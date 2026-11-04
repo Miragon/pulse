@@ -71,7 +71,7 @@ describe("resolveAuth with a token command", () => {
     })
     const error = failure(() => parseConfigFile(text, "/c.json"))
     expect(error.message).toBe(
-      'Invalid config file /c.json: profile "p" sets auth.tokenCommand, which pulse-cli no longer reads: remove the key from the file and export PULSE_CLI_TOKEN_COMMAND=<command> instead',
+      'Invalid config file /c.json: profile "p" sets auth.tokenCommand, which pulse no longer reads: remove the key from the file and export PULSE_CLI_TOKEN_COMMAND=<command> instead',
     )
   })
 
@@ -159,10 +159,10 @@ describe("profiles of a project file", () => {
     const broken: LoadedConfig = { ...file, defaultProfile: "gone" }
     const error = failure(() => selectProfile({}, {}, broken))
     expect(error.details.hint).toBe(
-      "It is the defaultProfile of the project file /repo/.pulse-cli.json; choose another one with `pulse-cli config use <profile> --project`. Known profiles: svc, mine. Create it with `pulse-cli config set gone --url <url>`.",
+      "It is the defaultProfile of the project file /repo/.pulse-cli.json; choose another one with `pulse config use <profile> --project`. Known profiles: svc, mine. Create it with `pulse config set gone --url <url>`.",
     )
     expect(missingProfileError("x", { profiles: {} }, "default").details.hint).toBe(
-      "It is the defaultProfile of the config file; choose another one with `pulse-cli config use <profile>`. Create it with `pulse-cli config set x --url <url>`.",
+      "It is the defaultProfile of the config file; choose another one with `pulse config use <profile>`. Create it with `pulse config set x --url <url>`.",
     )
   })
 

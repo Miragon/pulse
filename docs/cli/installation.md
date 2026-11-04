@@ -1,13 +1,15 @@
 # Installation
 
 Four ways, the same CLI: the npm package (Node.js >= 22.12), Homebrew, a standalone executable
-for machines without Node.js, or the container image.
+for machines without Node.js, or the container image. The command is `pulse`. Its name up to
+0.25, `pulse-cli`, stays as a second name of the same program, so scripts and agents that call
+`pulse-cli` keep working.
 
 ## npm
 
 ```sh
 npm install -g @miragon/pulse-cli
-pulse-cli --version
+pulse --version
 npx @miragon/pulse-cli --help
 ```
 
@@ -17,11 +19,11 @@ On macOS and Linux, from the [Miragon tap](https://github.com/Miragon/homebrew-t
 
 ```sh
 brew install miragon/tap/pulse-cli
-pulse-cli --version
+pulse --version
 ```
 
-The formula installs the [standalone executable](#standalone-executable) (no Node.js needed).
-`brew upgrade pulse-cli` updates it.
+The formula installs the [standalone executable](#standalone-executable) (no Node.js needed) as
+`pulse-cli` and links `pulse` to it. `brew upgrade pulse-cli` updates it.
 
 ## Standalone executable
 
@@ -42,28 +44,34 @@ Each macOS and Linux file also comes as `<file>.tar.xz` (about 25 MB instead of 
 base=https://github.com/Miragon/pulse/releases/latest/download
 curl -fL -O "$base/pulse-cli-linux-x64" -O "$base/pulse-cli-SHA256SUMS"
 sha256sum --check --ignore-missing pulse-cli-SHA256SUMS
-sudo install -m 0755 pulse-cli-linux-x64 /usr/local/bin/pulse-cli
-pulse-cli --version
+sudo install -m 0755 pulse-cli-linux-x64 /usr/local/bin/pulse
+pulse --version
 gh attestation verify pulse-cli-linux-x64 --repo Miragon/pulse
 ```
 
+- Install the file under the name you call it by: `pulse`, and for scripts that call `pulse-cli`
+  a link of that name too (`sudo ln -s pulse /usr/local/bin/pulse-cli`). The next steps and hints
+  the CLI prints say `pulse`, so an install from 0.25 or earlier, which has only the second name,
+  needs the `pulse` name too.
 - `latest/download` follows the newest release; `download/v<version>/<file>` pins one. On macOS
   check with `shasum -a 256 --check --ignore-missing pulse-cli-SHA256SUMS`.
 - **macOS**: the binaries are signed ad hoc, not notarized. A file downloaded with a browser is
   blocked; run `xattr -d com.apple.quarantine pulse-cli-macos-arm64` or allow it under System
   Settings → Privacy & Security.
 - **Windows**: compare `(Get-FileHash pulse-cli-windows-x64.exe).Hash` in PowerShell with its line
-  in `pulse-cli-SHA256SUMS`. The file is not Authenticode signed, so SmartScreen may warn.
+  in `pulse-cli-SHA256SUMS`. The file is not Authenticode signed, so SmartScreen may warn. Save
+  it as `pulse.exe` in a folder on your `PATH`, and for scripts that call `pulse-cli` a copy as
+  `pulse-cli.exe` too.
 - **Certificates and proxies**: `NODE_EXTRA_CA_CERTS=/path/ca.pem` or `NODE_USE_SYSTEM_CA=1` for an
   internal CA, `NODE_USE_ENV_PROXY=1` with `HTTPS_PROXY` / `NO_PROXY` for a proxy. The same holds
   for the container image.
-- `pulse-cli auth login` works on a server over SSH, see [OAuth](authentication.md#oauth).
+- `pulse auth login` works on a server over SSH, see [OAuth](authentication.md#oauth).
 
 ## Container image
 
 `ghcr.io/miragon/pulse-cli` for `linux/amd64` and `linux/arm64`, tagged `<version>`,
 `<major>.<minor>` and `latest`. It runs on distroless Node.js 24 as a non-root user (uid 65532),
-without a shell. Arguments after the image name go to `pulse-cli`; without `-t` the output is JSON.
+without a shell. Arguments after the image name go to `pulse`; without `-t` the output is JSON.
 
 ```sh
 docker run --rm ghcr.io/miragon/pulse-cli --version
@@ -86,7 +94,9 @@ docker run --rm -it --user "$(id -u):$(id -g)" -v "$HOME/.config/pulse-cli:/conf
   -e PULSE_CLI_CONFIG=/config/config.json ghcr.io/miragon/pulse-cli --profile prod status
 ```
 
-- `pulse-cli auth login` and token commands do not work in the container: use Basic auth or pass a
+- To call the image as `pulse` in a shell, alias it, with the `-e` and `-v` options you need:
+  `alias pulse='docker run --rm -i -e PULSE_CLI_URL ghcr.io/miragon/pulse-cli'`.
+- `pulse auth login` and token commands do not work in the container: use Basic auth or pass a
   token with `-e PULSE_CLI_TOKEN`.
 - A project file (`.pulse-cli.json`) in the mounted `/work` directory is used as on the host.
 - Each image carries an SBOM and SLSA provenance;
@@ -95,5 +105,5 @@ docker run --rm -it --user "$(id -u):$(id -g)" -v "$HOME/.config/pulse-cli:/conf
 
 ## Compatibility
 
-pulse-cli works with Operaton, CIB seven and Camunda 7. The tested versions and how to choose the
+The CLI works with Operaton, CIB seven and Camunda 7. The tested versions and how to choose the
 engine: [Engines](engines.md).

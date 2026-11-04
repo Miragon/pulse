@@ -1,5 +1,5 @@
 /**
- * `pulse-cli config path|show|list|set|unset|use|delete`. The edits are the pure
+ * `pulse config path|show|list|set|unset|use|delete`. The edits are the pure
  * functions of src/config/edit.ts; this module reads and writes the file (the user's config file
  * with mode 0600, with `--project` the project file, config-project.ts) and prints.
  */
@@ -187,7 +187,7 @@ async function removeProfile(name: string, command: Command, context: CliContext
 function registerSet(config: Command, context: CliContext): void {
   const set = subcommand(config, "set")
     .description(
-      "Create or update a profile; only the given values change. The first profile becomes the default. --output is the output format stored in the profile; -o <format> chooses how the profile is printed. Basic auth: --auth basic --auth-user <name> --auth-password-env <VAR> keeps the password in an environment variable. OAuth: --auth oauth --oauth-issuer <url> --oauth-client-id <id>, then pulse-cli auth login --profile <profile> in a terminal. A bearer token from elsewhere: --auth bearer --auth-token-env <VAR>. --project writes the project file of the repository instead of your config file.",
+      "Create or update a profile; only the given values change. The first profile becomes the default. --output is the output format stored in the profile; -o <format> chooses how the profile is printed. Basic auth: --auth basic --auth-user <name> --auth-password-env <VAR> keeps the password in an environment variable. OAuth: --auth oauth --oauth-issuer <url> --oauth-client-id <id>, then pulse auth login --profile <profile> in a terminal. A bearer token from elsewhere: --auth bearer --auth-token-env <VAR>. --project writes the project file of the repository instead of your config file.",
     )
     .argument("<profile>", "Profile name, e.g. local or prod-eu")
     .option("--url <url>", "REST API root, e.g. http://localhost:8080/engine-rest")

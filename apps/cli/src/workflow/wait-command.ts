@@ -1,5 +1,5 @@
 /**
- * `pulse-cli wait`: waits for a process instance (selection, then polling with the
+ * `pulse wait`: waits for a process instance (selection, then polling with the
  * default condition `idle`) or, with `--batch`, for a batch.
  */
 

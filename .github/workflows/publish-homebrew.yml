@@ -2,9 +2,10 @@ name: Publish the CLI Homebrew formula
 
 # Publishes the Homebrew formula of the CLI to Miragon/homebrew-tap (`brew install
 # miragon/tap/pulse-cli`): the standalone executables of a Pulse release for macOS and Linux,
-# without dependencies. Called by release-please.yml after publish-cli.yml attached the binaries
-# (not for a prerelease: the tap has one formula, which follows the newest stable release); a
-# manual run publishes an existing release again, or checks it with dry-run. The formula comes from
+# without dependencies, installed as pulse-cli with the command pulse linked to it. Called by
+# release-please.yml after publish-cli.yml attached the binaries (not for a prerelease: the tap
+# has one formula, which follows the newest stable release); a manual run publishes an existing
+# release again, or checks it with dry-run. The formula comes from
 # apps/cli/scripts/homebrew-formula.sh of the commit this workflow runs from, not of the release.
 #
 # The first publish also renames the formula: it adds operate -> pulse-cli to the tap's
@@ -67,7 +68,8 @@ jobs:
           retention-days: 7
 
   # Installs the formula from a local tap on each platform with a preinstalled Homebrew and runs
-  # its test, the audit of homebrew/core and the smoke test against the installed binary.
+  # its test, the audit of homebrew/core and the smoke test against the installed command pulse,
+  # then checks the version of its second name, pulse-cli.
   # Homebrew reads homebrew/core from its API: the Linux runner cannot clone it as a tap.
   verify:
     name: CLI formula on ${{ matrix.runner }}
@@ -105,10 +107,11 @@ jobs:
           brew test miragon/verify/pulse-cli
           brew audit --strict --online miragon/verify/pulse-cli
 
-      - name: Smoke test the installed binary
+      - name: Smoke test the installed commands
         working-directory: apps/cli
         run: |
-          bash scripts/smoke-test.sh "$(brew --prefix)/bin/pulse-cli"
+          bash scripts/smoke-test.sh "$(brew --prefix)/bin/pulse"
+          test "$("$(brew --prefix)/bin/pulse-cli" --version)" = "$EXPECTED_VERSION"
 
   # Opens a pull request with the formula on Miragon/homebrew-tap and squash-merges it, with a
   # token of the Miragon release-please app (vars.RELEASE_PLEASE_APP_CLIENT_ID +

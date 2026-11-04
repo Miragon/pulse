@@ -17,7 +17,7 @@ import {
 
 export interface WorkflowDoc {
   readonly name: string
-  /** `pulse-cli inspect [process-instance-id] [options]` */
+  /** `pulse inspect [process-instance-id] [options]` */
   readonly usage: string
   readonly summary: string
   /** What the command does, in paragraphs. */
@@ -77,14 +77,14 @@ function calls(...lists: readonly (readonly string[])[]): string[] {
 }
 
 const WAIT_REQUESTS =
-  "with --wait or --until the polls of pulse-cli wait (GET /process-instance/{id}, the tree, counts of executable jobs, tasks or activities, then of incidents; before idle the instance and the tree once more)"
+  "with --wait or --until the polls of pulse wait (GET /process-instance/{id}, the tree, counts of executable jobs, tasks or activities, then of incidents; before idle the instance and the tree once more)"
 /** advance and retry check the ids of --until before their writes. */
 const CHECKED_WAIT_REQUESTS = `${WAIT_REQUESTS}; before the writes, activity and task ids of --until are looked up in the BPMN (GET /process-definition/{id}/xml)`
 
 export const WORKFLOW_DOCS: readonly WorkflowDoc[] = [
   {
     name: "inspect",
-    usage: "pulse-cli inspect [process-instance-id] [options]",
+    usage: "pulse inspect [process-instance-id] [options]",
     summary:
       "Show where a process instance waits and why: wait states, incidents with root cause, called instances, variables",
     description:
@@ -99,14 +99,14 @@ export const WORKFLOW_DOCS: readonly WorkflowDoc[] = [
       "getHistoricIncidents",
     ]),
     examples: [
-      "pulse-cli inspect $INSTANCE_ID",
-      "pulse-cli inspect --business-key B-1 --history",
-      "pulse-cli inspect --process-definition-key order-process --latest --no-variables",
+      "pulse inspect $INSTANCE_ID",
+      "pulse inspect --business-key B-1 --history",
+      "pulse inspect --process-definition-key order-process --latest --no-variables",
     ],
   },
   {
     name: "wait",
-    usage: "pulse-cli wait [process-instance-id] [options]",
+    usage: "pulse wait [process-instance-id] [options]",
     summary:
       "Wait until a process instance is idle, ended, has an incident or reached an activity, or a batch finished",
     description:
@@ -128,15 +128,15 @@ export const WORKFLOW_DOCS: readonly WorkflowDoc[] = [
       ["getBatchStatistics", "getHistoricBatch"],
     ),
     examples: [
-      "pulse-cli wait $INSTANCE_ID",
-      "pulse-cli wait --business-key B-1 --until task --until ended --wait-timeout 2m",
-      "pulse-cli wait $INSTANCE_ID --until activity:book --execute-jobs",
-      "pulse-cli wait --batch $BATCH_ID",
+      "pulse wait $INSTANCE_ID",
+      "pulse wait --business-key B-1 --until task --until ended --wait-timeout 2m",
+      "pulse wait $INSTANCE_ID --until activity:book --execute-jobs",
+      "pulse wait --batch $BATCH_ID",
     ],
   },
   {
     name: "advance",
-    usage: "pulse-cli advance [process-instance-id] [options]",
+    usage: "pulse advance [process-instance-id] [options]",
     summary:
       "Complete what a process instance waits for: user task, external task, message, signal, timer or async job",
     description:
@@ -168,14 +168,14 @@ export const WORKFLOW_DOCS: readonly WorkflowDoc[] = [
       POLL_CALLS,
     ),
     examples: [
-      "pulse-cli advance $INSTANCE_ID --var approved=true",
-      "pulse-cli advance --business-key B-1 --activity-id charge-card --var charged=true --wait",
-      "pulse-cli advance $INSTANCE_ID --activity-id charge-card --fail 'Card declined'",
+      "pulse advance $INSTANCE_ID --var approved=true",
+      "pulse advance --business-key B-1 --activity-id charge-card --var charged=true --wait",
+      "pulse advance $INSTANCE_ID --activity-id charge-card --fail 'Card declined'",
     ],
   },
   {
     name: "retry",
-    usage: "pulse-cli retry [process-instance-id] [options]",
+    usage: "pulse retry [process-instance-id] [options]",
     summary:
       "Retry the failed jobs and external tasks of open incidents, optionally executing the jobs at once",
     description:
@@ -204,14 +204,14 @@ export const WORKFLOW_DOCS: readonly WorkflowDoc[] = [
       VIEW_CALLS,
     ),
     examples: [
-      "pulse-cli retry $INSTANCE_ID --now",
-      "pulse-cli retry --incident $INCIDENT_ID",
-      "pulse-cli retry --process-definition-key payment --activity-id call-psp --dry-run",
+      "pulse retry $INSTANCE_ID --now",
+      "pulse retry --incident $INCIDENT_ID",
+      "pulse retry --process-definition-key payment --activity-id call-psp --dry-run",
     ],
   },
   {
     name: "deploy",
-    usage: "pulse-cli deploy <paths...> [options]",
+    usage: "pulse deploy <paths...> [options]",
     summary:
       "Deploy changed BPMN, DMN and form files, report the versions in effect, optionally start an instance",
     description:
@@ -244,13 +244,13 @@ export const WORKFLOW_DOCS: readonly WorkflowDoc[] = [
       POLL_CALLS,
     ),
     examples: [
-      "pulse-cli deploy src/main/resources",
-      "pulse-cli deploy order-process.bpmn approval.dmn --start --business-key B-1 --var amount=250 --wait",
+      "pulse deploy src/main/resources",
+      "pulse deploy order-process.bpmn approval.dmn --start --business-key B-1 --var amount=250 --wait",
     ],
   },
   {
     name: "status",
-    usage: "pulse-cli status [options]",
+    usage: "pulse status [options]",
     summary:
       "Triage the engine: grouped incidents with root cause, job executor and external task worker health",
     description:
@@ -274,10 +274,7 @@ export const WORKFLOW_DOCS: readonly WorkflowDoc[] = [
       "getStacktrace",
       "getExternalTaskErrorDetails",
     ]),
-    examples: [
-      "pulse-cli status",
-      "pulse-cli status --process-definition-key payment --fail-on warning",
-    ],
+    examples: ["pulse status", "pulse status --process-definition-key payment --fail-on warning"],
   },
 ]
 
@@ -286,10 +283,10 @@ export function findWorkflow(name: string): WorkflowDoc | undefined {
   return WORKFLOW_DOCS.find((doc) => doc.name === name)
 }
 
-/** The pseudo group of `pulse-cli commands`. */
+/** The pseudo group of `pulse commands`. */
 export const WORKFLOW_GROUP = {
   group: "workflow",
-  description: `Top-level commands that combine several requests (pulse-cli <command>): ${WORKFLOW_DOCS.map((doc) => doc.name).join(", ")}`,
+  description: `Top-level commands that combine several requests (pulse <command>): ${WORKFLOW_DOCS.map((doc) => doc.name).join(", ")}`,
   commands: WORKFLOW_DOCS.length,
 } as const
 

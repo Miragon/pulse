@@ -1,5 +1,5 @@
 /**
- * The next steps of @miragon/pulse-engine-core as ready-to-run `pulse-cli` command lines, always
+ * The next steps of @miragon/pulse-engine-core as ready-to-run `pulse` command lines, always
  * with ids (never business keys), so they are reproducible. Pure.
  */
 
@@ -18,16 +18,16 @@ import { shellWord } from "./shell.js"
 function moveCommand(wait: ItemWait): string {
   switch (wait.kind) {
     case "userTask":
-      return `pulse-cli task complete ${wait.taskId}`
+      return `pulse task complete ${wait.taskId}`
     case "timer":
     case "asyncContinuation":
-      return `pulse-cli job execute ${wait.jobId}`
+      return `pulse job execute ${wait.jobId}`
     case "message":
-      return `pulse-cli execution trigger-event ${wait.executionId} ${shellWord(wait.eventName ?? "")}`
+      return `pulse execution trigger-event ${wait.executionId} ${shellWord(wait.eventName ?? "")}`
     case "signal":
-      return `pulse-cli signal throw --name ${shellWord(wait.eventName ?? "")} --execution-id ${wait.executionId}`
+      return `pulse signal throw --name ${shellWord(wait.eventName ?? "")} --execution-id ${wait.executionId}`
     case "other":
-      return `pulse-cli execution signal ${wait.executionId}`
+      return `pulse execution signal ${wait.executionId}`
   }
 }
 
@@ -44,17 +44,17 @@ export function itemCommand(wait: WaitState): string | undefined {
 export function nextCommand(step: NextStep): string {
   switch (step.action) {
     case "retry":
-      return `pulse-cli retry ${step.processInstanceId}`
+      return `pulse retry ${step.processInstanceId}`
     case "activate":
-      return `pulse-cli process-instance activate ${step.processInstanceId}`
+      return `pulse process-instance activate ${step.processInstanceId}`
     case "advance":
       return step.activityId === undefined
-        ? `pulse-cli advance ${step.processInstanceId}`
-        : `pulse-cli advance ${step.processInstanceId} --activity-id ${shellWord(step.activityId)}`
+        ? `pulse advance ${step.processInstanceId}`
+        : `pulse advance ${step.processInstanceId} --activity-id ${shellWord(step.activityId)}`
     case "move":
       return moveCommand(step.wait)
     case "inspectHistory":
-      return `pulse-cli inspect ${step.processInstanceId} --history`
+      return `pulse inspect ${step.processInstanceId} --history`
   }
 }
 
@@ -62,13 +62,13 @@ export function nextCommand(step: NextStep): string {
 export function groupCommand(step: GroupStep): string {
   switch (step.action) {
     case "listIncidentsOfType":
-      return `pulse-cli incident list --incident-type ${shellWord(step.incidentType)}`
+      return `pulse incident list --incident-type ${shellWord(step.incidentType)}`
     case "listFailedJobs":
-      return `pulse-cli job list --job-definition-id ${shellWord(step.jobDefinitionId ?? "<id>")} --with-exception`
+      return `pulse job list --job-definition-id ${shellWord(step.jobDefinitionId ?? "<id>")} --with-exception`
     case "retryActivity":
-      return `pulse-cli retry --process-definition-key ${shellWord(step.processDefinitionKey)} --activity-id ${shellWord(step.activityId)} --dry-run`
+      return `pulse retry --process-definition-key ${shellWord(step.processDefinitionKey)} --activity-id ${shellWord(step.activityId)} --dry-run`
     case "listIncidentsAtActivity":
-      return `pulse-cli incident list --process-definition-key-in ${shellWord(step.processDefinitionKey)} --activity-id ${shellWord(step.activityId)}`
+      return `pulse incident list --process-definition-key-in ${shellWord(step.processDefinitionKey)} --activity-id ${shellWord(step.activityId)}`
   }
 }
 
@@ -76,13 +76,13 @@ export function groupCommand(step: GroupStep): string {
 export function findingCommand(step: FindingStep): string {
   switch (step.action) {
     case "listOverdueJobs":
-      return "pulse-cli job list --executable --sort-by jobDueDate --sort-order asc --max-results 10"
+      return "pulse job list --executable --sort-by jobDueDate --sort-order asc --max-results 10"
     case "listUnlockedTasks":
-      return `pulse-cli external-task list --topic-name ${shellWord(step.topic)} --not-locked`
+      return `pulse external-task list --topic-name ${shellWord(step.topic)} --not-locked`
     case "listExpiredLocks":
-      return `pulse-cli external-task list --topic-name ${shellWord(step.topic)} --not-locked --with-retries-left`
+      return `pulse external-task list --topic-name ${shellWord(step.topic)} --not-locked --with-retries-left`
     case "listDefinitions":
-      return "pulse-cli process-definition list --latest-version --sort-by key --sort-order asc"
+      return "pulse process-definition list --latest-version --sort-by key --sort-order asc"
     default:
       return groupCommand(step)
   }
@@ -90,5 +90,5 @@ export function findingCommand(step: FindingStep): string {
 
 /** What to do about an incident retry cannot fix, as its command line. */
 export function skipCommand(step: SkipStep): string {
-  return `pulse-cli incident resolve ${step.incidentId} --yes`
+  return `pulse incident resolve ${step.incidentId} --yes`
 }

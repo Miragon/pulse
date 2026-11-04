@@ -41,7 +41,7 @@ console.log(token);
     const runs = async () =>
       (await readFile(runsFile, "utf8").catch(() => "")).split("\n").filter(Boolean).length
 
-    /** The variables of the command (passed through pulse-cli's environment). */
+    /** The variables of the command (passed through pulse's environment). */
     function commandEnv(extra: EnvOverrides = {}): EnvOverrides {
       return {
         IT_RUNS: runsFile,

@@ -1,5 +1,5 @@
 /**
- * The reading `pulse-cli config` commands: `config path` (the user's config file,
+ * The reading `pulse config` commands: `config path` (the user's config file,
  * with `--project` the project file), `config show` (the effective configuration with the source
  * of every value and the files it comes from) and `config list` (the profiles of both files).
  */

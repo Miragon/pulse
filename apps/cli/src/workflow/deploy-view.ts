@@ -1,5 +1,5 @@
 /**
- * The resources of a deployment as `pulse-cli deploy` reports them: which ones were
+ * The resources of a deployment as `pulse deploy` reports them: which ones were
  * deployed now, and the definitions in effect for every resource.
  */
 

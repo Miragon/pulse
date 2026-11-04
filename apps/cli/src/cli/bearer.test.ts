@@ -63,7 +63,7 @@ describe("bearer token sources", () => {
     expect(errorOf(empty.stderr)).toMatchObject({
       code: "USAGE",
       message: "--auth-token-stdin read an empty token",
-      hint: "Pipe the token into the command, e.g. gcloud auth print-access-token | pulse-cli ... --auth-token-stdin.",
+      hint: "Pipe the token into the command, e.g. gcloud auth print-access-token | pulse ... --auth-token-stdin.",
     })
     expect(empty.requests).toEqual([])
   })
@@ -78,7 +78,7 @@ describe("JWT expiry", () => {
       code: "TOKEN_EXPIRED",
       exitCode: 4,
       message: "The bearer token from PULSE_CLI_TOKEN expired at 2023-11-14T22:12:49.000Z",
-      hint: "pulse-cli never refreshes bearer tokens: the bearer token from PULSE_CLI_TOKEN expired at 2023-11-14T22:12:49.000Z; fetch a new one (e.g. with your identity provider's CLI) and set PULSE_CLI_TOKEN.",
+      hint: "pulse never refreshes bearer tokens: the bearer token from PULSE_CLI_TOKEN expired at 2023-11-14T22:12:49.000Z; fetch a new one (e.g. with your identity provider's CLI) and set PULSE_CLI_TOKEN.",
     })
   })
 })
@@ -104,7 +104,7 @@ describe("bearer tokens in ping", () => {
     const fake = fakeServer("http://camunda.intranet:8080/engine-rest").on("GET", "/task", json([]))
     const result = await execute(run, ["task", "list"], fakeRuntime({ fetch: fake.fetch, env }))
     expect(result.stderr).toBe(
-      "Warning: pulse-cli sends the bearer token over plain http to camunda.intranet:8080; anyone on the network path can read and reuse it. Use https:// for the engine URL (RFC 6750 §5.3).\n",
+      "Warning: pulse sends the bearer token over plain http to camunda.intranet:8080; anyone on the network path can read and reuse it. Use https:// for the engine URL (RFC 6750 §5.3).\n",
     )
     const dry = await execute(run, ["task", "list", "--dry-run"], fakeRuntime({ env }))
     expect(dry.stderr).toBe("")

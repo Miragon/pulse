@@ -1,8 +1,8 @@
 /**
- * The usage guide for LLM agents: the core printed by `pulse-cli guide` and the topics printed by
- * `pulse-cli guide <topic>`, each a page of docs/cli bundled as text. `skills/pulse-cli/SKILL.md` is
+ * The usage guide for LLM agents: the core printed by `pulse guide` and the topics printed by
+ * `pulse guide <topic>`, each a page of docs/cli bundled as text. `skills/pulse-cli/SKILL.md` is
  * a YAML frontmatter followed by exactly the core, which ends with the index of the topics. Every
- * `pulse-cli` command line in the code blocks of every page is checked against the catalog and run in
+ * `pulse` command line in the code blocks of every page is checked against the catalog and run in
  * the CLI; unit tests keep all of it true. Markdown, formatted with Prettier.
  */
 
@@ -14,17 +14,17 @@ import RECIPES_PAGE from "../../../../docs/cli/recipes.md"
 import WORKFLOW_PAGE from "../../../../docs/cli/workflow-commands.md"
 import { closeNames } from "../util.js"
 
-/** A topic of the agent guide, printed by `pulse-cli guide <name>`. */
+/** A topic of the agent guide, printed by `pulse guide <name>`. */
 export interface GuideTopic {
-  /** The word of `pulse-cli guide <name>`: lowercase letters and dashes. */
+  /** The word of `pulse guide <name>`: lowercase letters and dashes. */
   readonly name: string
-  /** One line for the topic index of the core guide and `pulse-cli guide --list`. */
+  /** One line for the topic index of the core guide and `pulse guide --list`. */
   readonly summary: string
   /** The docs page of the topic, as markdown. */
   readonly text: string
 }
 
-/** The topics of `pulse-cli guide <topic>`, in the order of the index. */
+/** The topics of `pulse guide <topic>`, in the order of the index. */
 export const GUIDE_TOPICS: readonly GuideTopic[] = [
   {
     name: "workflow",
@@ -84,93 +84,94 @@ export function topicSuggestions(word: string): string[] {
 
 const TOPIC_INDEX = GUIDE_TOPICS.map((topic) => `- \`${topic.name}\`: ${topic.summary}`).join("\n")
 
-export const GUIDE = `# pulse-cli: the Camunda 7 REST API from the command line
+export const GUIDE = `# Pulse CLI: the Camunda 7 REST API from the command line
 
-\`pulse-cli\` calls the REST API (\`/engine-rest\`) of Camunda 7 process engines: Operaton, CIB seven
+\`pulse\` calls the REST API (\`/engine-rest\`) of Camunda 7 process engines: Operaton, CIB seven
 and Camunda 7 CE/EE. Every REST operation is a command generated from the OpenAPI spec:
-\`pulse-cli <group> <command> [path-args...] [options]\`; workflow commands such as
-\`pulse-cli inspect\` combine several requests. It never prompts, prints JSON when stdout is not a
+\`pulse <group> <command> [path-args...] [options]\`; workflow commands such as
+\`pulse inspect\` combine several requests. It never prompts, prints JSON when stdout is not a
 terminal, reports errors as one JSON line on stderr (the last line) and uses stable exit codes.
-This core guide covers everyday use; \`pulse-cli guide <topic>\` prints the details of a topic (see
+This core guide covers everyday use; \`pulse guide <topic>\` prints the details of a topic (see
 Topics at the end).
 
 ## Setup
 
-If \`pulse-cli\` is missing, run \`npx -y @miragon/pulse-cli\` in its place or ask the user to install
+If \`pulse\` is missing, try \`pulse-cli\`: the same program, its only name up to 0.25 and its second
+name since. Without either, run \`npx -y @miragon/pulse-cli\` in its place or ask the user to install
 it with \`npm i -g @miragon/pulse-cli\` (Node.js 22.12+). The REST API root defaults to
 \`http://localhost:8080/engine-rest\`. Set it per shell, then check the connection:
 
 \`\`\`sh
 export PULSE_CLI_URL=http://localhost:8080/engine-rest
-pulse-cli ping
+pulse ping
 \`\`\`
 
 A repository may ship its engines as profiles in a project file (\`.pulse-cli.json\`): check
-\`pulse-cli config list\` first (scope \`project\`), a bare \`pulse-cli ping\` then uses its default.
+\`pulse config list\` first (scope \`project\`), a bare \`pulse ping\` then uses its default.
 
 Or keep each engine in a profile and pick one with \`--profile\`. \`--url\` and \`PULSE_CLI_URL\` override
 the URL of every profile (and its credentials go along), so unset \`PULSE_CLI_URL\` first:
 
 \`\`\`sh
 unset PULSE_CLI_URL
-pulse-cli config set local --url http://localhost:8080/engine-rest --default
-pulse-cli config set prod --url https://camunda.example.com/engine-rest --read-only
-pulse-cli ping --profile prod
+pulse config set local --url http://localhost:8080/engine-rest --default
+pulse config set prod --url https://camunda.example.com/engine-rest --read-only
+pulse ping --profile prod
 \`\`\`
 
-- \`pulse-cli ping\` prints \`{url, engine, reachable, version, engines, latencyMs, auth}\` (\`user\`
+- \`pulse ping\` prints \`{url, engine, reachable, version, engines, latencyMs, auth}\` (\`user\`
   too).
 - Precedence for every setting: flag > environment variable > profile > default.
-- Links to Cockpit: take \`values.cockpitUrl\` from \`pulse-cli config show -o json\`; when it is null,
+- Links to Cockpit: take \`values.cockpitUrl\` from \`pulse config show -o json\`; when it is null,
   ask the user for the Cockpit URL instead of guessing it from the engine URL.
 - Profiles, project files, environment variables, named engines and headers:
-  \`pulse-cli guide config\`. Basic auth, bearer tokens, token commands and OAuth logins:
-  \`pulse-cli guide auth\`.
+  \`pulse guide config\`. Basic auth, bearer tokens, token commands and OAuth logins:
+  \`pulse guide auth\`.
 
 ## Discover, describe, preview, run
 
 Never guess commands or flags. Look them up, preview writes, then run:
 
 \`\`\`sh
-pulse-cli commands
-pulse-cli commands --search incident
-pulse-cli describe process-definition start
-pulse-cli process-definition start invoice --var amount=250 --dry-run
-pulse-cli process-definition start invoice --var amount=250
+pulse commands
+pulse commands --search incident
+pulse describe process-definition start
+pulse process-definition start invoice --var amount=250 --dry-run
+pulse process-definition start invoice --var amount=250
 \`\`\`
 
-- \`pulse-cli commands\` lists the groups (and \`workflow\`); \`pulse-cli commands <group>\` the commands
+- \`pulse commands\` lists the groups (and \`workflow\`); \`pulse commands <group>\` the commands
   of a group with method, path, effect and summary; \`--search\` finds commands whose command, alias,
   operationId, summary or path contain every word (\`--search 'process instance'\`); \`--effect\`
   filters by \`read\`, \`write\`, \`delete\` or \`bulk\`.
-- \`pulse-cli describe <group> <command>\` (or an operationId or workflow command) shows arguments,
+- \`pulse describe <group> <command>\` (or an operationId or workflow command) shows arguments,
   options, the request body schema, responses and examples (JSON when piped, text with \`-o table\`).
-- \`pulse-cli <group> <command> --help\` shows the options; \`pulse-cli guide\` prints this guide.
+- \`pulse <group> <command> --help\` shows the options; \`pulse guide\` prints this guide.
 
 ## Workflow commands
 
 Top-level commands that combine requests, so no id passes through you. They select an instance by
 id, \`--business-key\` or \`--process-definition-key <key> --latest\`; \`next\` lists follow-ups:
 
-- \`pulse-cli inspect\`: where an instance waits and why: wait states, root incidents, variables.
-- \`pulse-cli wait\`: until the instance is idle, or
+- \`pulse inspect\`: where an instance waits and why: wait states, root incidents, variables.
+- \`pulse wait\`: until the instance is idle, or
   \`--until ended|incident|task[:key]|activity:<id>\`.
-- \`pulse-cli advance\`: completes what it waits for: user or external task, message, timer, job.
-- \`pulse-cli retry\`: sets the retries behind open incidents; \`--now\` executes the jobs.
-- \`pulse-cli deploy\`: deploys changed files and directories, reports the versions in effect.
-- \`pulse-cli status\`: grouped incidents with root cause, overdue jobs, external task workers.
+- \`pulse advance\`: completes what it waits for: user or external task, message, timer, job.
+- \`pulse retry\`: sets the retries behind open incidents; \`--now\` executes the jobs.
+- \`pulse deploy\`: deploys changed files and directories, reports the versions in effect.
+- \`pulse status\`: grouped incidents with root cause, overdue jobs, external task workers.
 
 \`\`\`sh
-pulse-cli deploy bpmn --start --business-key B-1 --var amount=250
-pulse-cli inspect --business-key B-1
-pulse-cli advance --business-key B-1 --var approved=true --wait
-pulse-cli retry --business-key B-1 --now
-pulse-cli wait --business-key B-1 --until ended
-pulse-cli status
+pulse deploy bpmn --start --business-key B-1 --var amount=250
+pulse inspect --business-key B-1
+pulse advance --business-key B-1 --var approved=true --wait
+pulse retry --business-key B-1 --now
+pulse wait --business-key B-1 --until ended
+pulse status
 \`\`\`
 
-Use \`pulse-cli wait\` or \`--wait\` (advance, retry, deploy) instead of \`sleep\`; it fails on incidents
-with exit code 9, which still prints the view. Options and rules: \`pulse-cli guide workflow\`.
+Use \`pulse wait\` or \`--wait\` (advance, retry, deploy) instead of \`sleep\`; it fails on incidents
+with exit code 9, which still prints the view. Options and rules: \`pulse guide workflow\`.
 
 ## Invocation conventions
 
@@ -181,7 +182,7 @@ with exit code 9, which still prints the view. Options and rules: \`pulse-cli gu
 - \`--body <json>\`, \`--body @file.json\` or \`--body -\` (stdin) is the base JSON body for nested
   structures; flags are merged on top, and the body is validated against the API schema.
 - List commands with \`--max-results\` also take \`--all\` to fetch every page.
-- Booleans, arrays, dates, variable types, files and the global options: \`pulse-cli guide input\`.
+- Booleans, arrays, dates, variable types, files and the global options: \`pulse guide input\`.
 
 ## Output
 
@@ -190,7 +191,7 @@ with exit code 9, which still prints the view. Options and rules: \`pulse-cli gu
 - \`--fields id,name,variables.amount\` keeps only these properties; \`-o table\` prints a table.
 - No content (HTTP 204): stdout stays empty, stderr gets \`Done: <METHOD> <path> → 204 No Content\`.
 - XML, text and binary responses, \`--out-file\`, \`--dry-run\` and \`--verbose\`:
-  \`pulse-cli guide output\`.
+  \`pulse guide output\`.
 
 ## Errors and exit codes
 
@@ -213,33 +214,33 @@ Errors are one JSON line on stderr, its last line (\`-o table\` prints readable 
 | 8    | network error or timeout                                                                               |
 | 9    | expected state not reached: \`WAIT_TIMEOUT\`, \`INCIDENT\`, \`INSTANCE_ENDED\`, \`JOB_FAILED\`, \`CHECK_FAILED\` |
 
-Read \`hint\` first: it names the fix (\`pulse-cli describe ...\`, \`--yes\`, \`--no-validate\`, the
+Read \`hint\` first: it names the fix (\`pulse describe ...\`, \`--yes\`, \`--no-validate\`, the
 accepted date forms, ...); for unknown names it starts with "Did you mean ...?". Redirects are never
 followed: a 3xx answer is \`HTTP_REDIRECT\` (exit 3), fix \`--url\` (\`https\`, a login page). Camunda 7
 engines report many rule violations as HTTP 500 (exit 7), e.g. a task that is already claimed:
-read \`engineMessage\` and fix the cause instead of retrying. On exit 4: \`pulse-cli guide auth\`.
+read \`engineMessage\` and fix the cause instead of retrying. On exit 4: \`pulse guide auth\`.
 
 ## Safety
 
 - \`--dry-run\` prints the request (\`method\`, \`url\`, \`headers\`, \`body\`, \`curl\`) without sending it.
   Use it before writes you are unsure about; it works in read-only mode too.
 - Commands with effect \`delete\` or \`bulk\` (batches, query based updates, all versions of a key,
-  \`pulse-cli retry --process-definition-key\` alone) refuse to run without \`--yes\` (exit 2,
+  \`pulse retry --process-definition-key\` alone) refuse to run without \`--yes\` (exit 2,
   \`CONFIRMATION_REQUIRED\`). Add \`--yes\` only when the user asked for exactly that change.
 - \`--read-only\`, \`PULSE_CLI_READ_ONLY=1\` or a profile created with \`--read-only\` refuse every
   command whose effect is not \`read\` (exit 2, \`READ_ONLY\`). Use read-only profiles for production.
 
 ## Topics
 
-\`pulse-cli guide <topic>\` prints the details of a topic; \`pulse-cli guide --list\` lists the topics:
+\`pulse guide <topic>\` prints the details of a topic; \`pulse guide --list\` lists the topics:
 
 ${TOPIC_INDEX}
 
 \`\`\`sh
-pulse-cli guide --list
-pulse-cli guide recipes
+pulse guide --list
+pulse guide recipes
 \`\`\`
 
 An older pulse-cli without topics answers "Too many arguments for 'guide'": run
-\`npx -y @miragon/pulse-cli@latest guide <topic>\` instead, or ask the user to update pulse-cli.
+\`npx -y @miragon/pulse-cli@latest guide <topic>\` instead, or ask the user to update it.
 `

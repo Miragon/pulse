@@ -56,7 +56,7 @@ describe("WORKFLOW_DOCS", () => {
         doc.options.length,
       )
       expect(
-        doc.examples.every((example) => example.startsWith(`pulse-cli ${doc.name}`)),
+        doc.examples.every((example) => example.startsWith(`pulse ${doc.name}`)),
         doc.name,
       ).toBe(true)
     }
@@ -133,7 +133,7 @@ describe("describeWorkflow", () => {
     if (doc === undefined) throw new Error("deploy")
     const view = describeWorkflow(doc, catalog)
     expect(view).toMatchObject({
-      command: "pulse-cli deploy <paths...>",
+      command: "pulse deploy <paths...>",
       workflow: true,
       effect: "write",
       arguments: [
@@ -153,7 +153,7 @@ describe("describeWorkflow", () => {
       repeatable: true,
     })
     const text = renderWorkflowDescribeText(view)
-    expect(text).toMatch(/^USAGE\n {2}pulse-cli deploy <paths\.\.\.> \[options\]\n\nDESCRIPTION\n/)
+    expect(text).toMatch(/^USAGE\n {2}pulse deploy <paths\.\.\.> \[options\]\n\nDESCRIPTION\n/)
     expect(text).toContain("\n  Effect: write\n")
     expect(text).toContain("\nREQUESTS\n  getDeployments")
     const status = findWorkflow("status")

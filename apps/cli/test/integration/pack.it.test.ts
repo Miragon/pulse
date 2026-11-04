@@ -1,14 +1,14 @@
 /**
  * Smoke test of the published artifact: `npm pack` of the bundle the build put into `dist/` (as the
  * publish workflow packs it: build first, no prepack script), install the tarball into a temporary
- * global prefix and run the installed `pulse-cli` binary.
+ * global prefix and run the installed commands, `pulse` and its second name `pulse-cli`.
  *
  * The pack runs in a copy of the package tree, so nothing it writes lands next to the `dist/` the
  * engine suites execute in parallel.
  */
 
 import { existsSync } from "node:fs"
-import { cp, mkdir, readdir, readFile, symlink } from "node:fs/promises"
+import { cp, mkdir, readdir, readFile, realpath, symlink } from "node:fs/promises"
 import { join, relative, sep } from "node:path"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import { REPO_ROOT } from "./support/cli.js"
@@ -17,7 +17,8 @@ import { makeTempDir, removeTempDir } from "./support/temp.js"
 
 const SKIP_ENV = "PULSE_CLI_IT_SKIP_PACK"
 const PACKAGE_NAME = "@miragon/pulse-cli"
-const BIN_NAME = "pulse-cli"
+/** The command, and its name up to 0.25: package.json `bin` maps both to the same bundle. */
+const BIN_NAMES = ["pulse", "pulse-cli"] as const
 const SETUP_TIMEOUT_MS = 300_000
 const NPM_TIMEOUT_MS = 240_000
 const IS_WINDOWS = process.platform === "win32"
@@ -88,8 +89,8 @@ function installedPackageDir(prefix: string): string {
   return join(modules, ...PACKAGE_NAME.split("/"))
 }
 
-function installedBin(prefix: string): string {
-  return IS_WINDOWS ? join(prefix, `${BIN_NAME}.cmd`) : join(prefix, "bin", BIN_NAME)
+function installedBin(prefix: string, name: string = BIN_NAMES[0]): string {
+  return IS_WINDOWS ? join(prefix, `${name}.cmd`) : join(prefix, "bin", name)
 }
 
 describe("packed npm tarball", () => {
@@ -103,8 +104,8 @@ describe("packed npm tarball", () => {
   let workdir: string | undefined
   let prefix = ""
 
-  const pulseCli = (args: readonly string[]) =>
-    runProcess(installedBin(prefix), args, {
+  const pulseCli = (args: readonly string[], name: string = BIN_NAMES[0]) =>
+    runProcess(installedBin(prefix, name), args, {
       cwd: workdir ?? REPO_ROOT,
       env: cleanEnv({ XDG_CONFIG_HOME: workdir }),
     })
@@ -129,16 +130,22 @@ describe("packed npm tarball", () => {
     expect(existsSync(join(packageDir, "dist", "pulse-cli.js"))).toBe(true)
     expect(existsSync(join(packageDir, "src"))).toBe(false)
     expect(existsSync(join(packageDir, "test"))).toBe(false)
-    expect(existsSync(installedBin(prefix))).toBe(true)
+    for (const name of BIN_NAMES) expect(existsSync(installedBin(prefix, name)), name).toBe(true)
   })
 
-  it("installs exactly one command, pulse-cli: an operate bin would collide with the old package", async () => {
+  it("installs exactly pulse and pulse-cli: an operate bin would collide with the old package", async () => {
     const bins = IS_WINDOWS
       ? (await readdir(prefix)).filter((name) => name !== "node_modules")
       : await readdir(join(prefix, "bin"))
     expect(bins.sort()).toEqual(
-      IS_WINDOWS ? [BIN_NAME, `${BIN_NAME}.cmd`, `${BIN_NAME}.ps1`] : [BIN_NAME],
+      BIN_NAMES.flatMap((name) => (IS_WINDOWS ? [name, `${name}.cmd`, `${name}.ps1`] : [name])),
     )
+  })
+
+  it.skipIf(IS_WINDOWS)("links both commands to the one bundle", async () => {
+    const entry = await realpath(join(installedPackageDir(prefix), "dist", "pulse-cli.js"))
+    for (const name of BIN_NAMES)
+      expect(await realpath(installedBin(prefix, name)), name).toBe(entry)
   })
 
   it("ships the README, the license and the agent skill", async () => {
@@ -163,8 +170,10 @@ describe("packed npm tarball", () => {
     const manifest = JSON.parse(await readFile(join(REPO_ROOT, "package.json"), "utf8")) as {
       version: string
     }
-    const result = expectSuccess(await pulseCli(["--version"]))
-    expect(result.stdout.trim()).toBe(manifest.version)
+    for (const name of BIN_NAMES) {
+      const result = expectSuccess(await pulseCli(["--version"], name))
+      expect(result.stdout.trim(), name).toBe(manifest.version)
+    }
   })
 
   it("lists the command groups", async () => {
@@ -175,7 +184,7 @@ describe("packed npm tarball", () => {
 
   it("prints the agent guide, the body of the skill, and its topics", async () => {
     const result = expectSuccess(await pulseCli(["guide"]))
-    expect(result.stdout).toMatch(/^# pulse-cli: /)
+    expect(result.stdout).toMatch(/^# Pulse CLI: /)
     const skillPath = join(installedPackageDir(prefix), "skills", "pulse-cli", "SKILL.md")
     expect((await readFile(skillPath, "utf8")).endsWith(`\n---\n\n${result.stdout}`)).toBe(true)
     const list = expectSuccess(await pulseCli(["guide", "--list"]))

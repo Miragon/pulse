@@ -4,22 +4,18 @@ import { withBase } from "vitepress"
 import VitalSigns from "./VitalSigns.vue"
 
 const terminal = [
-  [
-    { text: "~/shop", tone: "prompt" },
-    { text: " $ ", tone: "quiet" },
-    { text: "pulse-cli status" },
-  ],
+  [{ text: "~/shop", tone: "prompt" }, { text: " $ ", tone: "quiet" }, { text: "pulse status" }],
   [{ text: "Status   " }, { text: "4 incidents", tone: "danger" }],
   [],
   [{ text: "Incidents by root cause:" }],
   [{ text: "4", tone: "danger" }, { text: "  order-fulfillment · Charge payment" }],
   [{ text: "   CardExpiredException", tone: "quiet" }],
-  [{ text: "   next: " }, { text: "pulse-cli inspect --business-key ORD-10131", tone: "accent" }],
+  [{ text: "   next: " }, { text: "pulse inspect --business-key ORD-10131", tone: "accent" }],
   [],
   [
     { text: "~/shop", tone: "prompt" },
     { text: " $ ", tone: "quiet" },
-    { text: "pulse-cli retry --business-key ORD-10131 --now" },
+    { text: "pulse retry --business-key ORD-10131 --now" },
   ],
   [{ text: "Retried", tone: "accent" }, { text: " 1 job · incident resolved" }],
 ]
@@ -34,7 +30,7 @@ const clients = [
   },
   {
     name: "Terminal",
-    title: "Terminal · pulse-cli",
+    title: "Terminal · pulse",
     effect: "Triage the whole engine in one read-only call, then fix it.",
     action: "npm install -g @miragon/pulse-cli",
     href: "https://www.npmjs.com/package/@miragon/pulse-cli",

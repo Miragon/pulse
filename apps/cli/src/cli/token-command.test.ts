@@ -86,7 +86,7 @@ describe("token command sources", () => {
     const stored = await cli(["task", "list"], { files })
     expect(stored.code).toBe(3)
     expect(errorOf(stored.stderr).message).toContain(
-      "sets auth.tokenCommand, which pulse-cli no longer reads",
+      "sets auth.tokenCommand, which pulse no longer reads",
     )
     expect(stored.runtime.commandRuns).toEqual([])
   })
@@ -120,7 +120,7 @@ describe("a token command and the engine", () => {
     expect(result.requests).toHaveLength(2)
     const hint = String(errorOf(result.stderr).hint)
     expect(hint).toContain("the bearer token from the command of PULSE_CLI_TOKEN_COMMAND")
-    expect(hint).toContain("pulse-cli ran the command again after the 401")
+    expect(hint).toContain("pulse ran the command again after the 401")
     expect(result.stderr).not.toContain(OTHER)
   })
 
@@ -182,7 +182,7 @@ describe("a token command and the engine", () => {
     expect(note.code).toBe(0)
     expect(JSON.parse(note.stdout)).toMatchObject({ headers: { Accept: "application/json" } })
     expect(note.stderr).toBe(
-      "Note: pulse-cli runs the bearer token command of PULSE_CLI_TOKEN_COMMAND for the token when it sends the request; --dry-run does not run it.\n",
+      "Note: pulse runs the bearer token command of PULSE_CLI_TOKEN_COMMAND for the token when it sends the request; --dry-run does not run it.\n",
     )
     expect(runtime.commandRuns).toEqual([])
     await execute(run, ["task", "list"], runtime)
@@ -202,7 +202,7 @@ describe("a token command and the engine", () => {
   })
 })
 
-describe("pulse-cli auth with a token command", () => {
+describe("pulse auth with a token command", () => {
   it("status runs the command (or uses its cache) and shows the claims, never the token", async () => {
     const runtime = fakeRuntime({ env: ENV, commands: printing(JWT) })
     const first = await execute(run, ["auth", "status"], runtime)
@@ -264,17 +264,17 @@ describe("pulse-cli auth with a token command", () => {
     expect(errorOf(result.stderr).message).toMatch(/^Cannot remove the cached token .+ \(EACCES\)$/)
   })
 
-  it("login does not apply and says that pulse-cli runs the command", async () => {
+  it("login does not apply and says that pulse runs the command", async () => {
     const files = { [CONFIG_PATH]: profiles({ type: "bearer" }) }
     const stored = await cli(["auth", "login"], { files, env: ENV })
     expect(stored.code).toBe(2)
     expect(errorOf(stored.stderr)).toMatchObject({
-      message: "pulse-cli auth login does not apply to bearer tokens",
-      hint: 'Bearer auth is selected by the auth.type of profile "dev": pulse-cli runs the token command (PULSE_CLI_TOKEN_COMMAND) whenever it needs a token and never logs in itself; `pulse-cli auth status` runs it and shows the token\'s claims and expiry. For an OAuth login run by pulse-cli: pulse-cli config set dev --auth oauth --oauth-issuer <url> --oauth-client-id <id>.',
+      message: "pulse auth login does not apply to bearer tokens",
+      hint: 'Bearer auth is selected by the auth.type of profile "dev": pulse runs the token command (PULSE_CLI_TOKEN_COMMAND) whenever it needs a token and never logs in itself; `pulse auth status` runs it and shows the token\'s claims and expiry. For an OAuth login run by pulse: pulse config set dev --auth oauth --oauth-issuer <url> --oauth-client-id <id>.',
     })
     const env = await cli(["auth", "login"], { env: ENV })
     expect(errorOf(env.stderr).hint).toBe(
-      "Bearer auth is selected by a token command from PULSE_CLI_TOKEN_COMMAND without an auth type: pulse-cli runs the token command (PULSE_CLI_TOKEN_COMMAND) whenever it needs a token and never logs in itself; `pulse-cli auth status` runs it and shows the token's claims and expiry. For an OAuth login run by pulse-cli: unset PULSE_CLI_TOKEN_COMMAND and configure OAuth: pulse-cli config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>.",
+      "Bearer auth is selected by a token command from PULSE_CLI_TOKEN_COMMAND without an auth type: pulse runs the token command (PULSE_CLI_TOKEN_COMMAND) whenever it needs a token and never logs in itself; `pulse auth status` runs it and shows the token's claims and expiry. For an OAuth login run by pulse: unset PULSE_CLI_TOKEN_COMMAND and configure OAuth: pulse config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>.",
     )
     expect(env.runtime.commandRuns).toEqual([])
   })

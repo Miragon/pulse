@@ -4,7 +4,7 @@ import { PulseCliError, usageError } from "../errors.js"
 import { renderError, toPulseCliError } from "./error.js"
 
 const INTERNAL_HINT =
-  "This is likely a bug in pulse-cli. Re-run with --verbose for the stack trace and report it at https://github.com/Miragon/pulse/issues."
+  "This is likely a bug in pulse. Re-run with --verbose for the stack trace and report it at https://github.com/Miragon/pulse/issues."
 
 function withStack<T extends Error>(error: T, stack: string | undefined): T {
   Object.defineProperty(error, "stack", { value: stack, configurable: true })

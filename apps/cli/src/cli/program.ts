@@ -19,8 +19,8 @@ import { registerOperation } from "./operation.js"
 import { registerWorkflowCommands } from "./workflow/index.js"
 
 const GROUP_FOOTER = `
-Run "pulse-cli <group> <command> --help" for the arguments and options of a command, or
-"pulse-cli describe <group> <command>" for the request body schema and the responses.`
+Run "pulse <group> <command> --help" for the arguments and options of a command, or
+"pulse describe <group> <command>" for the request body schema and the responses.`
 
 const GROUPS_HEADING = "API groups:"
 

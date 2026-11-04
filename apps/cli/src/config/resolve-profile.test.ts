@@ -44,14 +44,14 @@ describe("selectProfile", () => {
     expect(error.code).toBe("CONFIG")
     expect(error.message).toBe('Profile "qa" does not exist')
     expect(error.details.hint).toBe(
-      "Known profiles: dev, prod, test. Create it with `pulse-cli config set qa --url <url>`.",
+      "Known profiles: dev, prod, test. Create it with `pulse config set qa --url <url>`.",
     )
   })
 
   it("names PULSE_CLI_PROFILE when it selects a missing profile", () => {
     const error = failure(() => selectProfile({}, { PULSE_CLI_PROFILE: "qa" }, undefined))
     expect(error.details.hint).toBe(
-      "It is selected by PULSE_CLI_PROFILE. Create it with `pulse-cli config set qa --url <url>`.",
+      "It is selected by PULSE_CLI_PROFILE. Create it with `pulse config set qa --url <url>`.",
     )
   })
 
@@ -60,7 +60,7 @@ describe("selectProfile", () => {
       selectProfile({}, {}, { defaultProfile: "gone", profiles: { a: {} } }),
     )
     expect(error.details.hint).toBe(
-      "It is the defaultProfile of the config file; choose another one with `pulse-cli config use <profile>`. Known profiles: a. Create it with `pulse-cli config set gone --url <url>`.",
+      "It is the defaultProfile of the config file; choose another one with `pulse config use <profile>`. Known profiles: a. Create it with `pulse config set gone --url <url>`.",
     )
   })
 
@@ -96,7 +96,7 @@ describe("findProfile and missingProfileError", () => {
 
   it("defaults to the flag wording", () => {
     expect(missingProfileError("x", undefined).details.hint).toBe(
-      "Create it with `pulse-cli config set x --url <url>`.",
+      "Create it with `pulse config set x --url <url>`.",
     )
   })
 })

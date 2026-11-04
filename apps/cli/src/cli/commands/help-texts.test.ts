@@ -15,7 +15,7 @@ const HELP: readonly (readonly [string, readonly string[]])[] = [
   [
     "config",
     [
-      "Usage: pulse-cli config [options] [command]",
+      "Usage: pulse config [options] [command]",
       "",
       "Manage the config file and its profiles. The file is written with mode 0600;",
       "values are validated before they are stored. A repository can share profiles in",
@@ -45,9 +45,9 @@ const HELP: readonly (readonly [string, readonly string[]])[] = [
       "                             <name> --auth-password-env <VAR> keeps the password",
       "                             in an environment variable. OAuth: --auth oauth",
       "                             --oauth-issuer <url> --oauth-client-id <id>, then",
-      "                             pulse-cli auth login --profile <profile> in a",
-      "                             terminal. A bearer token from elsewhere: --auth",
-      "                             bearer --auth-token-env <VAR>. --project writes the",
+      "                             pulse auth login --profile <profile> in a terminal.",
+      "                             A bearer token from elsewhere: --auth bearer",
+      "                             --auth-token-env <VAR>. --project writes the",
       "                             project file of the repository instead of your",
       "                             config file.",
       "  unset <profile> <keys...>  Remove values from a profile; auth removes all auth",
@@ -61,7 +61,7 @@ const HELP: readonly (readonly [string, readonly string[]])[] = [
   [
     "config path",
     [
-      "Usage: pulse-cli config path [options]",
+      "Usage: pulse config path [options]",
       "",
       "Print the location of your config file; with --project the project file in",
       "effect, else where `config set --project` creates one",
@@ -78,7 +78,7 @@ const HELP: readonly (readonly [string, readonly string[]])[] = [
   [
     "config show",
     [
-      "Usage: pulse-cli config show [options]",
+      "Usage: pulse config show [options]",
       "",
       "Print the effective configuration and where each value comes from; header",
       "values, the password, the client secret and the bearer token are masked unless",
@@ -117,7 +117,7 @@ const HELP: readonly (readonly [string, readonly string[]])[] = [
   [
     "config list",
     [
-      "Usage: pulse-cli config list [options]",
+      "Usage: pulse config list [options]",
       "",
       "List the profiles of your config file and of the project file (scope user or",
       "project)",
@@ -132,15 +132,15 @@ const HELP: readonly (readonly [string, readonly string[]])[] = [
   [
     "config set",
     [
-      "Usage: pulse-cli config set [options] <profile>",
+      "Usage: pulse config set [options] <profile>",
       "",
       "Create or update a profile; only the given values change. The first profile",
       "becomes the default. --output is the output format stored in the profile; -o",
       "<format> chooses how the profile is printed. Basic auth: --auth basic",
       "--auth-user <name> --auth-password-env <VAR> keeps the password in an",
       "environment variable. OAuth: --auth oauth --oauth-issuer <url> --oauth-client-id",
-      "<id>, then pulse-cli auth login --profile <profile> in a terminal. A bearer",
-      "token from elsewhere: --auth bearer --auth-token-env <VAR>. --project writes the",
+      "<id>, then pulse auth login --profile <profile> in a terminal. A bearer token",
+      "from elsewhere: --auth bearer --auth-token-env <VAR>. --project writes the",
       "project file of the repository instead of your config file.",
       "",
       "Arguments:",
@@ -212,7 +212,7 @@ const HELP: readonly (readonly [string, readonly string[]])[] = [
   [
     "config unset",
     [
-      "Usage: pulse-cli config unset [options] <profile> <keys...>",
+      "Usage: pulse config unset [options] <profile> <keys...>",
       "",
       "Remove values from a profile; auth removes all auth settings, an OAuth setting",
       "only itself, token (or tokenEnv) the bearer token",
@@ -237,7 +237,7 @@ const HELP: readonly (readonly [string, readonly string[]])[] = [
   [
     "config use",
     [
-      "Usage: pulse-cli config use [options] <profile>",
+      "Usage: pulse config use [options] <profile>",
       "",
       "Make a profile the default",
       "",
@@ -257,7 +257,7 @@ const HELP: readonly (readonly [string, readonly string[]])[] = [
   [
     "config delete",
     [
-      "Usage: pulse-cli config delete [options] <profile>",
+      "Usage: pulse config delete [options] <profile>",
       "",
       "Delete a profile",
       "",
@@ -277,7 +277,7 @@ const HELP: readonly (readonly [string, readonly string[]])[] = [
 ]
 
 describe("help texts", () => {
-  it.each(HELP)('documents "pulse-cli %s" with its arguments and options', async (path, lines) => {
+  it.each(HELP)('documents "pulse %s" with its arguments and options', async (path, lines) => {
     expect(await help(path.split(" "))).toBe(`${lines.join("\n")}\n`)
   })
 })

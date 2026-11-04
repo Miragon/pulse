@@ -39,12 +39,13 @@ const RULES = [
   { name: "old operate env var", pattern: /\bOPERATE_[A-Z]/ },
   { name: "old operate config file", pattern: /\.operate\.json/ },
   { name: "old operate config dir", pattern: /\.config\/operate/ },
-  // The CLI ships as @miragon/pulse-cli: the unscoped package pulse-cli is a stranger's, so
-  // `npx pulse-cli` or `npm i -g pulse-cli` installs someone else's code.
+  // The CLI ships as @miragon/pulse-cli and installs the commands pulse and pulse-cli: the
+  // unscoped packages of either name are strangers', so `npx pulse status` or
+  // `npm i -g pulse-cli` installs someone else's code.
   {
-    name: "unscoped pulse-cli package",
+    name: "unscoped pulse or pulse-cli package",
     pattern:
-      /(?:\bnpx|\bbunx|\bdlx)\s+(?:-{1,2}[\w-]+(?:=\S+)?\s+)*pulse-cli(?![\w-])|\b(?:npm|pnpm|yarn|bun)\s+(?:i|install|add)\s+(?:-{1,2}[\w-]+\s+)*pulse-cli(?![\w-])/,
+      /(?:\bnpx|\bbunx|\bdlx)\s+(?:-{1,2}[\w-]+(?:=\S+)?\s+)*pulse(?:-cli)?(?![\w-])|\b(?:npm|pnpm|yarn|bun)\s+(?:i|install|add)\s+(?:-{1,2}[\w-]+\s+)*pulse(?:-cli)?(?![\w-])/,
   },
   // OAuth comes from mcp-use's own provider variables (MCP_USE_OAUTH_*); the server refuses
   // to boot while the retired JSON variable is set, so a doc or a config that still names it
@@ -300,9 +301,12 @@ describe("the name rules", () => {
     ["echo $OPERATE_PROFILE", "old operate env var"],
     ["reads ./.operate.json first", "old operate config file"],
     ["~/.config/operate/engines.json", "old operate config dir"],
-    ["npx pulse-cli status", "unscoped pulse-cli package"],
-    ["npm i -g pulse-cli", "unscoped pulse-cli package"],
-    ["pnpm dlx pulse-cli guide", "unscoped pulse-cli package"],
+    ["npx pulse-cli status", "unscoped pulse or pulse-cli package"],
+    ["npm i -g pulse-cli", "unscoped pulse or pulse-cli package"],
+    ["pnpm dlx pulse-cli guide", "unscoped pulse or pulse-cli package"],
+    ["npx pulse status", "unscoped pulse or pulse-cli package"],
+    ["npx -y pulse@latest guide", "unscoped pulse or pulse-cli package"],
+    ["npm install -g pulse", "unscoped pulse or pulse-cli package"],
     ["docker run --rm miragon/pulse-cli --version", "image off GHCR"],
     ["docker.io/miragon/pulse-cli:latest", "image off GHCR"],
     ["docker.io/miragon/pulse-server:latest", "image off GHCR"],
@@ -369,6 +373,8 @@ describe("the name rules", () => {
     "https://docs.operaton.org/",
     "@miragon/pulse-cli",
     "npx -y @miragon/pulse-cli status",
+    "npx @miragon/pulse-cli guide && pulse status",
+    "npm i -g @miragon/pulse-ui",
     "npm i -g @miragon/pulse-cli",
     "brew install miragon/tap/pulse-cli",
     "ghcr.io/miragon/pulse-cli:0.22.0",

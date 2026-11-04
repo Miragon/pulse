@@ -83,7 +83,7 @@ describe("resolveAuth type inference with bearer tokens", () => {
       'The password variable UNSET_PASSWORD (auth.passwordEnv of profile "prod") is not set or empty',
     )
     expect(basic.details.hint).toBe(
-      'Export it, e.g. export UNSET_PASSWORD=<password>, or name another variable with `pulse-cli config set prod --auth-password-env <VAR>`. A bearer token is set (from PULSE_CLI_TOKEN) but not used: Basic auth is selected by the auth.type of profile "prod"; send it with --auth bearer or PULSE_CLI_AUTH=bearer.',
+      'Export it, e.g. export UNSET_PASSWORD=<password>, or name another variable with `pulse config set prod --auth-password-env <VAR>`. A bearer token is set (from PULSE_CLI_TOKEN) but not used: Basic auth is selected by the auth.type of profile "prod"; send it with --auth bearer or PULSE_CLI_AUTH=bearer.',
     )
     // errors without a hint get the note as hint
     const scopes = failure(() =>

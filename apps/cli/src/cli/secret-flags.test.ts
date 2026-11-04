@@ -45,7 +45,7 @@ describe("secretHint", () => {
   it("is given for names that ask for a secret only", () => {
     for (const name of ["--password", "--PASSWD", "--pwd", "--client-secret", "--token"]) {
       expect(secretHint(name)).toMatch(
-        /^Secrets are never flag values: .* PULSE_CLI_TOKEN or --auth-token-stdin; an OAuth token comes from `pulse-cli auth login`\. $/,
+        /^Secrets are never flag values: .* PULSE_CLI_TOKEN or --auth-token-stdin; an OAuth token comes from `pulse auth login`\. $/,
       )
     }
     for (const name of ["--pass", "--pass-word", "--auth-pass"]) {
@@ -59,7 +59,7 @@ describe("secretHint", () => {
   it("says where --show-secrets works instead of the secret hint", () => {
     for (const name of ["--show-secrets", "--Show-Secrets"]) {
       expect(secretHint(name)).toBe(
-        "--show-secrets works where pulse-cli prints credentials: --dry-run and --verbose of API and workflow commands, api and ping, and config show. `pulse-cli auth` commands never print a token. ",
+        "--show-secrets works where pulse prints credentials: --dry-run and --verbose of API and workflow commands, api and ping, and config show. `pulse auth` commands never print a token. ",
       )
     }
     expect(secretHint("--show-secret")).toMatch(/^Secrets are never flag values/)
@@ -89,7 +89,7 @@ describe("mentionsSecret", () => {
 describe("stdinHint", () => {
   it("explains --auth-password-stdin only when it is on the command line", () => {
     expect(stdinHint(["ping", "--auth-password-stdin", "x"])).toBe(
-      `--auth-password-stdin takes no value: pipe the password into it, e.g. printf '%s\\n' "$PASSWORD" | pulse-cli ... --auth-password-stdin. `,
+      `--auth-password-stdin takes no value: pipe the password into it, e.g. printf '%s\\n' "$PASSWORD" | pulse ... --auth-password-stdin. `,
     )
     expect(stdinHint(["ping", "--auth-password-stdin=x"])).not.toBe("")
     expect(stdinHint(["ping", "--auth-password-stdinx", "x"])).toBe("")
@@ -101,7 +101,7 @@ describe("stdinHint", () => {
       "--auth takes only the type: the token goes into PULSE_CLI_TOKEN or --auth-token-stdin, not after --auth bearer. "
     expect(stdinHint(["ping", "--auth", "bearer", "x"])).toBe(bearer)
     expect(stdinHint(["--auth=bearer", "--auth-token-stdin", "x", "ping"])).toBe(
-      `--auth-token-stdin takes no value: pipe the token into it, e.g. printf '%s\\n' "$TOKEN" | pulse-cli ... --auth-token-stdin. ${bearer}`,
+      `--auth-token-stdin takes no value: pipe the token into it, e.g. printf '%s\\n' "$TOKEN" | pulse ... --auth-token-stdin. ${bearer}`,
     )
     expect(stdinHint(["ping", "--auth", "oauth", "x"])).toBe("")
   })

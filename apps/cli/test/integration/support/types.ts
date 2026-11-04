@@ -17,7 +17,7 @@ export interface PingOutput {
 }
 
 /**
- * `pulse-cli auth status` of a bearer token: where it came from and, for a JWT, what its
+ * `pulse auth status` of a bearer token: where it came from and, for a JWT, what its
  * claims say (no signature check); never the token.
  */
 export interface BearerStatusOutput {
@@ -29,7 +29,7 @@ export interface BearerStatusOutput {
   readonly origin: string
   /** The token command that printed the token, else null. */
   readonly command: string | null
-  /** The token of the command came from pulse-cli's cache. */
+  /** The token of the command came from pulse's cache. */
   readonly cached: boolean
   readonly format: "jwt" | "opaque"
   /** `sub` of a JWT. */
@@ -44,7 +44,7 @@ export interface BearerStatusOutput {
   readonly expired: boolean
 }
 
-/** `pulse-cli auth login` (stdout) and `pulse-cli auth status`: the cached login, never a token. */
+/** `pulse auth login` (stdout) and `pulse auth status`: the cached login, never a token. */
 export interface LoginOutput {
   readonly profile: string | null
   /** Every profile that uses the login, in file order. */
@@ -68,7 +68,7 @@ export interface LoginOutput {
   readonly tokenCache: string
 }
 
-/** `pulse-cli auth logout`. */
+/** `pulse auth logout`. */
 export interface LogoutOutput {
   readonly profile: string | null
   /** OAuth: every profile that used the login. */
@@ -79,7 +79,7 @@ export interface LogoutOutput {
   readonly revoked: boolean | null
 }
 
-/** `pulse-cli config show`: every effective value with the source it came from. */
+/** `pulse config show`: every effective value with the source it came from. */
 export interface ConfigShowOutput {
   readonly configFile: string
   readonly profile: string | null

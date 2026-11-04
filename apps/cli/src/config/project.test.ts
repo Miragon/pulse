@@ -154,7 +154,7 @@ describe("parseProjectFile", () => {
     expect(error.message).toBe(
       `Invalid project file ${path}: profile "p" sets auth.${key}; a project file is shared and names no credentials, so it comes from ${instead} or a profile "p" of your own config file`,
     )
-    expect(error.details.hint).toContain("`pulse-cli config unset <profile> auth --project`")
+    expect(error.details.hint).toContain("`pulse config unset <profile> auth --project`")
     expect(error.details.hint).toContain("history of your repository")
     expect(`${error.message}${error.details.hint ?? ""}`).not.toContain("S3cr3t")
   })
@@ -203,7 +203,7 @@ describe("projectSecretProblem and projectProblem", () => {
     const foreign = projectProblem({ defaultProfile: "x", profiles: {} })
     expect(foreign?.problem).toMatch(/^defaultProfile "x" is not one of its profiles/)
     expect(foreign?.hint).toBe(
-      "Make one of its profiles the default with `pulse-cli config use <profile> --project`, or remove defaultProfile from the file.",
+      "Make one of its profiles the default with `pulse config use <profile> --project`, or remove defaultProfile from the file.",
     )
     expect(projectProblem({ defaultProfile: "p", profiles: { p: {} } })).toBeUndefined()
   })

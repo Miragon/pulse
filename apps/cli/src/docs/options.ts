@@ -1,6 +1,6 @@
 /**
  * How catalog entries become command line syntax. The single model behind option registration,
- * `--help` and `pulse-cli describe`, so the three can never disagree.
+ * `--help` and `pulse describe`, so the three can never disagree.
  */
 
 import { argumentName } from "../catalog/names.js"
@@ -277,7 +277,7 @@ export function argumentSyntax(argument: ArgumentDoc): string {
   return `<${argument.name}${argument.variadic ? "..." : ""}>`
 }
 
-/** One line usage, e.g. `pulse-cli process-definition start <key> [options]`. */
+/** One line usage, e.g. `pulse process-definition start <key> [options]`. */
 export function usageLine(operation: OperationSpec): string {
   const args = operationArguments(operation).map(argumentSyntax)
   return [CLI_NAME, operation.group, operation.name, ...args, "[options]"].join(" ")

@@ -145,7 +145,7 @@ describe("commandBearerAuth", () => {
     const runtime = printing(JWT)
     const note = {
       headers: {},
-      note: "pulse-cli runs the bearer token command of PULSE_CLI_TOKEN_COMMAND for the token when it sends the request; --dry-run does not run it.",
+      note: "pulse runs the bearer token command of PULSE_CLI_TOKEN_COMMAND for the token when it sends the request; --dry-run does not run it.",
     }
     await expect(provider(runtime).preview?.()).resolves.toEqual(note)
     expect(runtime.commandRuns).toHaveLength(0)
@@ -168,7 +168,7 @@ describe("commandBearerAuth", () => {
   it("explains a 401 and a 403 with the claims of the token it sent", async () => {
     const auth = provider(printing(JWT, OTHER))
     expect(auth.rejectedHint?.(401)).toBe(
-      "Bearer auth failed: the engine rejected the bearer token from the command of PULSE_CLI_TOKEN_COMMAND. Check that the token is still valid and was issued for this engine (or the gateway in front of it); pulse-cli ran the command for this request. Check what the command prints and for which audience (`pulse-cli auth status` shows the claims of its token).",
+      "Bearer auth failed: the engine rejected the bearer token from the command of PULSE_CLI_TOKEN_COMMAND. Check that the token is still valid and was issued for this engine (or the gateway in front of it); pulse ran the command for this request. Check what the command prints and for which audience (`pulse auth status` shows the claims of its token).",
     )
     await auth.headers()
     expect(auth.rejectedHint?.(401)).toContain(
@@ -176,7 +176,7 @@ describe("commandBearerAuth", () => {
     )
     await auth.refresh?.()
     expect(auth.rejectedHint?.(401)).toContain(
-      "pulse-cli ran the command again after the 401, and the engine rejected that token too (or the command printed the same one).",
+      "pulse ran the command again after the 401, and the engine rejected that token too (or the command printed the same one).",
     )
     expect(auth.rejectedHint?.(403)).toContain("lacks the roles or scopes")
     expect(auth.rejectedHint?.(500)).toBeUndefined()

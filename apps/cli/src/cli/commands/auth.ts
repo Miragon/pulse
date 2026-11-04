@@ -1,5 +1,5 @@
 /**
- * `pulse-cli auth login|status|logout`: the OAuth login of a person in a terminal,
+ * `pulse auth login|status|logout`: the OAuth login of a person in a terminal,
  * the state of the token cache, and the logout (auth-logout.ts); `auth status` also shows a bearer
  * token from elsewhere (auth-bearer.ts). This is the only module that imports the interactive login
  * (src/auth/oauth/login.ts): no other command can start a loopback server or a browser, so agents
@@ -38,9 +38,9 @@ const DEFAULT_LOGIN_TIMEOUT_MS = 300_000
 const DESCRIPTION = [
   "Log in with OAuth 2.0 (authorization code flow with PKCE) and manage the cached tokens.",
   "",
-  'A person runs "pulse-cli auth login" once in a terminal; every other command reads the token cache and refreshes the token on its own. Agents never log in themselves: without a usable login a command fails with LOGIN_REQUIRED (exit 4).',
+  'A person runs "pulse auth login" once in a terminal; every other command reads the token cache and refreshes the token on its own. Agents never log in themselves: without a usable login a command fails with LOGIN_REQUIRED (exit 4).',
   "",
-  'A bearer token from elsewhere (--auth bearer, PULSE_CLI_TOKEN) needs no login: "pulse-cli auth status" shows where it comes from and, for a JWT, its subject, issuer, audience and expiry.',
+  'A bearer token from elsewhere (--auth bearer, PULSE_CLI_TOKEN) needs no login: "pulse auth status" shows where it comes from and, for a JWT, its subject, issuer, audience and expiry.',
 ].join("\n")
 
 /** `--login-timeout <ms>`: a positive whole number up to the largest timer delay. */

@@ -80,7 +80,7 @@ describe("resolveAuth with a bearer token", () => {
         'The token variable CI_TOKEN (auth.tokenEnv of profile "prod") is not set or empty',
       )
       expect(error.details.hint).toBe(
-        "Export it, e.g. export CI_TOKEN=<token>, or name another variable with `pulse-cli config set prod --auth-token-env <VAR>`.",
+        "Export it, e.g. export CI_TOKEN=<token>, or name another variable with `pulse config set prod --auth-token-env <VAR>`.",
       )
     }
   })
@@ -92,7 +92,7 @@ describe("resolveAuth with a bearer token", () => {
       'The token variable named by auth.tokenEnv of profile "prod" is not set or empty',
     )
     expect(error.details.hint).toBe(
-      "Its name is not in the usual upper-case form, so it is not repeated: it may be a token stored by mistake. Check auth.tokenEnv in the config file (`pulse-cli config path`), or name another variable with `pulse-cli config set prod --auth-token-env <VAR>`.",
+      "Its name is not in the usual upper-case form, so it is not repeated: it may be a token stored by mistake. Check auth.tokenEnv in the config file (`pulse config path`), or name another variable with `pulse config set prod --auth-token-env <VAR>`.",
     )
     // set, it is a variable: the token is read from it
     const set = resolveAuth({}, { [name]: "tok" }, profile({ type: "bearer", tokenEnv: name }))
@@ -118,14 +118,14 @@ describe("resolveAuth with a bearer token", () => {
     expect(error.exitCode).toBe(3)
     expect(error.message).toBe("Bearer auth is selected but the token is missing")
     expect(error.details.hint).toBe(
-      "Bearer auth was selected by --auth bearer. Looked up the token in --auth-token-stdin, PULSE_CLI_TOKEN, PULSE_CLI_TOKEN_COMMAND and a profile (none is selected). Fetch a token with the tool that issues it (e.g. az account get-access-token, gcloud auth print-access-token) and export PULSE_CLI_TOKEN=<token>, let pulse-cli run that tool with export PULSE_CLI_TOKEN_COMMAND=<command>, pipe it into --auth-token-stdin, or store the name of its variable with `pulse-cli config set <profile> --auth bearer --auth-token-env <VAR>`; --auth none switches bearer auth off.",
+      "Bearer auth was selected by --auth bearer. Looked up the token in --auth-token-stdin, PULSE_CLI_TOKEN, PULSE_CLI_TOKEN_COMMAND and a profile (none is selected). Fetch a token with the tool that issues it (e.g. az account get-access-token, gcloud auth print-access-token) and export PULSE_CLI_TOKEN=<token>, let pulse run that tool with export PULSE_CLI_TOKEN_COMMAND=<command>, pipe it into --auth-token-stdin, or store the name of its variable with `pulse config set <profile> --auth bearer --auth-token-env <VAR>`; --auth none switches bearer auth off.",
     )
     const stored = failure(() => resolveAuth({}, {}, profile({ type: "bearer" })))
     expect(stored.details.hint).toContain(
       'Bearer auth was selected by the auth.type of profile "prod". Looked up the token in --auth-token-stdin, PULSE_CLI_TOKEN, PULSE_CLI_TOKEN_COMMAND and the auth.tokenEnv and auth.token of profile "prod".',
     )
     expect(stored.details.hint).toContain(
-      "`pulse-cli config set prod --auth bearer --auth-token-env <VAR>`",
+      "`pulse config set prod --auth bearer --auth-token-env <VAR>`",
     )
   })
 
@@ -224,10 +224,10 @@ describe("bearer auth and an Authorization header", () => {
     expect(error?.code).toBe("CONFIG")
     expect(error?.message).toBe("Bearer auth and an Authorization header are both configured")
     expect(error?.details.hint).toBe(
-      "Drop one: remove the Authorization header (from PULSE_CLI_HEADERS), or switch Bearer auth off with --auth none, PULSE_CLI_AUTH=none or `pulse-cli config unset <profile> auth`.",
+      "Drop one: remove the Authorization header (from PULSE_CLI_HEADERS), or switch Bearer auth off with --auth none, PULSE_CLI_AUTH=none or `pulse config unset <profile> auth`.",
     )
     expect(authorizationConflict(bearer, "flag", "p", true)?.details.hint).toBe(
-      "Remove the Authorization header (given with -H/--header): with bearer auth, pulse-cli sends the token in it.",
+      "Remove the Authorization header (given with -H/--header): with bearer auth, pulse sends the token in it.",
     )
   })
 

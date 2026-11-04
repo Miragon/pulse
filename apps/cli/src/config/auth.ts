@@ -90,7 +90,7 @@ export function profileAuthProblem(name: string, value: unknown): string | undef
   if (!isRecord(value)) return `profile "${name}" has an invalid auth (expected ${AUTH_EXAMPLE})`
   // the token command of 0.6.0: only the environment gives one now
   if (Object.hasOwn(value, "tokenCommand")) {
-    return `profile "${name}" sets auth.tokenCommand, which pulse-cli no longer reads: remove the key from the file and export ${ENV.tokenCommand}=<command> instead`
+    return `profile "${name}" sets auth.tokenCommand, which pulse no longer reads: remove the key from the file and export ${ENV.tokenCommand}=<command> instead`
   }
   const allowed: readonly string[] = PROFILE_AUTH_KEYS
   const unknown = Object.keys(value).filter((key) => !allowed.includes(key))

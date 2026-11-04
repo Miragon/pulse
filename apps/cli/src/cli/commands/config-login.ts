@@ -1,5 +1,5 @@
 /**
- * The OAuth logins after `pulse-cli config set|unset|delete`: a login is cached per
+ * The OAuth logins after `pulse config set|unset|delete`: a login is cached per
  * origin and stored OAuth settings, so an edit that changes a profile's settings or deletes it
  * removes the login of its previous settings when no other OAuth profile of the file uses it
  * (under the cache lock, so that a refresh in flight cannot write it back; not revoked). The

@@ -1,5 +1,5 @@
 /**
- * The instance view of an ended instance as `pulse-cli inspect` prints it: its next step as a
+ * The instance view of an ended instance as `pulse inspect` prints it: its next step as a
  * command line. The view's fallbacks and defaults are engine-core's (its snapshot-edges.test.ts).
  */
 
@@ -62,7 +62,7 @@ describe("instanceView with history", () => {
       waitingAt: [],
       incidents: [],
       children: [],
-      next: ["pulse-cli inspect pi --history"],
+      next: ["pulse inspect pi --history"],
     })
     expect(
       instanceView(

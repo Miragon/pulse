@@ -91,7 +91,7 @@ export function tokenPath(directory: string, fileName: string, platform: string)
 function fail(path: string, problem: string): never {
   throw configError(
     `Invalid config file ${path}: ${problem}`,
-    "Fix the file or recreate it with `pulse-cli config set`.",
+    "Fix the file or recreate it with `pulse config set`.",
   )
 }
 
@@ -242,7 +242,7 @@ export async function readConfigFile(
       if (!required) return undefined
       throw configError(
         `Config file ${path} does not exist`,
-        `Create it with \`pulse-cli config set <profile> --url <url> --config ${path}\`, or fix the path of --config or ${ENV.config}.`,
+        `Create it with \`pulse config set <profile> --url <url> --config ${path}\`, or fix the path of --config or ${ENV.config}.`,
       )
     }
     data = await fs.readFile(path)

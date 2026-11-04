@@ -79,7 +79,7 @@ describe("advance", () => {
     ).rejects.toMatchObject({
       code: "USAGE",
       details: {
-        hint: `Choose one: pulse-cli advance ${P} --activity-id charge --var charged=true --wait, pulse-cli advance ${P} --activity-id refund --var charged=true --wait.`,
+        hint: `Choose one: pulse advance ${P} --activity-id charge --var charged=true --wait, pulse advance ${P} --activity-id refund --var charged=true --wait.`,
       },
     })
   })

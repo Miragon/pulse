@@ -3,7 +3,7 @@
 export const OUTPUT_FORMATS = ["json", "table"] as const
 export type OutputFormat = (typeof OUTPUT_FORMATS)[number]
 
-/** The engine vendors pulse-cli has an adapter for (`flavor`); without one it uses `camunda7`. */
+/** The engine vendors pulse has an adapter for (`flavor`); without one it uses `camunda7`. */
 export const FLAVORS = ["operaton", "cibseven", "camunda7"] as const
 export type Flavor = (typeof FLAVORS)[number]
 export const DEFAULT_FLAVOR: Flavor = "camunda7"
@@ -143,7 +143,7 @@ export interface LoginKey {
 }
 
 /**
- * A bearer token obtained outside pulse-cli: sent as `Authorization: Bearer <token>`.
+ * A bearer token obtained outside pulse: sent as `Authorization: Bearer <token>`.
  * A token given as such is never refreshed and never stored; a token command is run
  * again when its token expires or is rejected.
  */
@@ -334,7 +334,7 @@ type ResolvedKey =
 export const DEFAULT_URL = "http://localhost:8080/engine-rest"
 export const DEFAULT_TIMEOUT_MS = 30_000
 
-/** The prefix of every environment variable pulse-cli reads (never bare PULSE_, PulseAudio's). */
+/** The prefix of every environment variable pulse reads (never bare PULSE_, PulseAudio's). */
 export const ENV_PREFIX = "PULSE_CLI_"
 
 export const ENV = {

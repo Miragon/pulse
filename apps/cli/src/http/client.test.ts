@@ -278,7 +278,7 @@ describe("send", () => {
       expect(error.message).toBe(`Cannot reach ${URL_} (ECONNREFUSED)`)
       expect(error.details).toEqual({
         request: { method: "GET", url: URL_ },
-        hint: "Is the engine running? Check --url, PULSE_CLI_URL or `pulse-cli config show`. Run `pulse-cli ping` to test the connection.",
+        hint: "Is the engine running? Check --url, PULSE_CLI_URL or `pulse config show`. Run `pulse ping` to test the connection.",
       })
       expect(error.cause).toBe(thrown)
     })
@@ -300,7 +300,7 @@ describe("networkError", () => {
     tls: "The TLS certificate is not trusted. Point NODE_EXTRA_CA_CERTS to your CA bundle.",
     dns: "The host name does not resolve. Check --url, PULSE_CLI_URL or your profile.",
     generic:
-      "Is the engine running? Check --url, PULSE_CLI_URL or `pulse-cli config show`. Run `pulse-cli ping` to test the connection.",
+      "Is the engine running? Check --url, PULSE_CLI_URL or `pulse config show`. Run `pulse ping` to test the connection.",
   }
 
   function fetchFailed(cause: unknown): TypeError {

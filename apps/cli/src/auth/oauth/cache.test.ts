@@ -289,7 +289,7 @@ describe("readCache and writeCache", () => {
     expect(error.code).toBe("LOGIN_REQUIRED")
     expect(error.exitCode).toBe(4)
     expect(error.message).toBe(`The token cache ${TOKEN_FILE} has an unknown format`)
-    expect(error.details.hint).toContain("pulse-cli auth login --profile p")
+    expect(error.details.hint).toContain("pulse auth login --profile p")
     expect(JSON.stringify(error.details)).not.toContain("access")
   })
 
@@ -351,7 +351,7 @@ describe("withCacheLock", () => {
     expect(error.code).toBe("CONFIG")
     expect(error.message).toBe(`Cannot lock the token cache ${TOKEN_FILE}`)
     expect(error.details.hint).toBe(
-      `Another pulse-cli process holds ${TOKEN_FILE}.lock. If no pulse-cli process is running, remove ${TOKEN_FILE}.lock; nothing was sent.`,
+      `Another pulse process holds ${TOKEN_FILE}.lock. If no pulse process is running, remove ${TOKEN_FILE}.lock; nothing was sent.`,
     )
     expect(isLockError(error)).toBe(true)
     expect(isLockError(new PulseCliError("CONFIG", "other"))).toBe(false)

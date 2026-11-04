@@ -5,32 +5,32 @@ several requests for the questions a developer, an operator or an agent asks mos
 process instance by id, `--business-key` or `--process-definition-key <key> --latest`, and their
 views list ready-to-run follow-ups under `next`.
 
-`pulse-cli describe <command>` lists every option of a command and the requests it sends.
+`pulse describe <command>` lists every option of a command and the requests it sends.
 
-| Command             | Effect                              | What it does                                                            |
-| ------------------- | ----------------------------------- | ----------------------------------------------------------------------- |
-| `pulse-cli inspect` | read                                | Where an instance waits and why: wait states, root incidents, variables |
-| `pulse-cli wait`    | read (write with `--execute-jobs`)  | Waits until the instance is idle or reaches an `--until` condition      |
-| `pulse-cli advance` | write                               | Completes what the instance waits for                                   |
-| `pulse-cli retry`   | write (bulk for a whole definition) | Sets the retries behind open incidents; `--now` executes the jobs       |
-| `pulse-cli deploy`  | write                               | Deploys changed files and directories, can start an instance            |
-| `pulse-cli status`  | read                                | Engine triage: incidents by root cause, overdue jobs, workers, batches  |
+| Command         | Effect                              | What it does                                                            |
+| --------------- | ----------------------------------- | ----------------------------------------------------------------------- |
+| `pulse inspect` | read                                | Where an instance waits and why: wait states, root incidents, variables |
+| `pulse wait`    | read (write with `--execute-jobs`)  | Waits until the instance is idle or reaches an `--until` condition      |
+| `pulse advance` | write                               | Completes what the instance waits for                                   |
+| `pulse retry`   | write (bulk for a whole definition) | Sets the retries behind open incidents; `--now` executes the jobs       |
+| `pulse deploy`  | write                               | Deploys changed files and directories, can start an instance            |
+| `pulse status`  | read                                | Engine triage: incidents by root cause, overdue jobs, workers, batches  |
 
 The development loop, without a single id passed around:
 
 ```sh
-pulse-cli deploy bpmn --start --business-key B-1 --var amount=250
-pulse-cli inspect --business-key B-1
-pulse-cli advance --business-key B-1 --var approved=true --wait
-pulse-cli retry --business-key B-1 --now
-pulse-cli wait --business-key B-1 --until ended
-pulse-cli status
+pulse deploy bpmn --start --business-key B-1 --var amount=250
+pulse inspect --business-key B-1
+pulse advance --business-key B-1 --var approved=true --wait
+pulse retry --business-key B-1 --now
+pulse wait --business-key B-1 --until ended
+pulse status
 ```
 
 On a terminal, or with `-o table`, a view prints as sections:
 
 ```text
-$ pulse-cli inspect --business-key ORD-1001 -o table
+$ pulse inspect --business-key ORD-1001 -o table
 Process instance  391a7907-c652-11f1-9fc4-1a2aceba9a9d
 State             ACTIVE
 Definition        order-process v1 (Order process)
@@ -46,10 +46,10 @@ NAME    VALUE  TYPE
 amount  250
 
 Next:
-  pulse-cli advance 391a7907-c652-11f1-9fc4-1a2aceba9a9d
+  pulse advance 391a7907-c652-11f1-9fc4-1a2aceba9a9d
 ```
 
-- **Waiting** replaces `sleep` and poll loops: `pulse-cli wait`, and `--wait` / `--until` of
+- **Waiting** replaces `sleep` and poll loops: `pulse wait`, and `--wait` / `--until` of
   advance, retry and deploy, poll until the condition holds or `--wait-timeout` (default `60s`)
   runs out. An incident ends the wait at once.
 - **Exit code 9**: every request succeeded, but the process did not reach the expected state

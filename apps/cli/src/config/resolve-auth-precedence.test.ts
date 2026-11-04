@@ -134,7 +134,7 @@ describe("authorizationConflict", () => {
     ["env", "from PULSE_CLI_HEADERS", "prod"],
     [
       "profile",
-      'from the headers of profile "prod"; `pulse-cli config unset prod headers` removes them',
+      'from the headers of profile "prod"; `pulse config unset prod headers` removes them',
       "prod",
     ],
   ] as const)("asks to drop one when the header comes from %s", (source, origin, name) => {
@@ -143,13 +143,13 @@ describe("authorizationConflict", () => {
     expect(error?.exitCode).toBe(3)
     expect(error?.message).toBe("Basic auth and an Authorization header are both configured")
     expect(error?.details.hint).toBe(
-      `Drop one: remove the Authorization header (${origin}), or switch Basic auth off with --auth none, PULSE_CLI_AUTH=none or \`pulse-cli config unset prod auth\`.`,
+      `Drop one: remove the Authorization header (${origin}), or switch Basic auth off with --auth none, PULSE_CLI_AUTH=none or \`pulse config unset prod auth\`.`,
     )
   })
 
   it("uses a placeholder without a selected profile", () => {
     expect(authorizationConflict(basic, "profile", undefined)?.details.hint).toBe(
-      'Drop one: remove the Authorization header (from the headers of profile "<profile>"; `pulse-cli config unset <profile> headers` removes them), or switch Basic auth off with --auth none, PULSE_CLI_AUTH=none or `pulse-cli config unset <profile> auth`.',
+      'Drop one: remove the Authorization header (from the headers of profile "<profile>"; `pulse config unset <profile> headers` removes them), or switch Basic auth off with --auth none, PULSE_CLI_AUTH=none or `pulse config unset <profile> auth`.',
     )
   })
 })
@@ -202,7 +202,7 @@ describe("resolveConfig with Basic auth", () => {
       ),
     )
     expect(error.message).toBe("Basic auth and an Authorization header are both configured")
-    expect(error.details.hint).toContain("`pulse-cli config unset p headers`")
+    expect(error.details.hint).toContain("`pulse config unset p headers`")
     expect(
       resolveConfig({ auth: "none" }, {}, file({ headers: { Authorization: "Bearer t" } })).headers,
     ).toEqual({ Authorization: "Bearer t" })

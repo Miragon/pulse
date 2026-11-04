@@ -69,7 +69,7 @@ describe("bearerAuth", () => {
       "The bearer token from PULSE_CLI_TOKEN expired at 2023-11-14T22:13:20.000Z",
     )
     expect(expired.details.hint).toBe(
-      "pulse-cli never refreshes bearer tokens: the bearer token from PULSE_CLI_TOKEN expired at 2023-11-14T22:13:20.000Z; fetch a new one (e.g. with your identity provider's CLI) and set PULSE_CLI_TOKEN.",
+      "pulse never refreshes bearer tokens: the bearer token from PULSE_CLI_TOKEN expired at 2023-11-14T22:13:20.000Z; fetch a new one (e.g. with your identity provider's CLI) and set PULSE_CLI_TOKEN.",
     )
     expect(JSON.stringify(expired.details) + expired.message).not.toContain(token)
   })
@@ -85,11 +85,11 @@ describe("bearerAuth", () => {
   it("explains a 401 and a 403, with the claims of a JWT to check", () => {
     const opaque = bearerAuth(config("opaque"), () => NOW)
     expect(opaque.rejectedHint?.(401)).toBe(
-      "Bearer auth failed: the engine rejected the bearer token from PULSE_CLI_TOKEN. Check that the token is still valid and was issued for this engine (or the gateway in front of it); fetch a new token (e.g. with your identity provider's CLI) and set PULSE_CLI_TOKEN. pulse-cli sends the token as it is and never refreshes it.",
+      "Bearer auth failed: the engine rejected the bearer token from PULSE_CLI_TOKEN. Check that the token is still valid and was issued for this engine (or the gateway in front of it); fetch a new token (e.g. with your identity provider's CLI) and set PULSE_CLI_TOKEN. pulse sends the token as it is and never refreshes it.",
     )
     const jwt = bearerAuth(config(jwtWith(VALID_CLAIMS)), () => NOW)
     expect(jwt.rejectedHint?.(401)).toBe(
-      "Bearer auth failed: the engine rejected the bearer token from PULSE_CLI_TOKEN (a JWT: subject 27c6dbd7-a170-4b19-8686-f7299949346a, issuer https://login.example.com/realms/camunda, audience engine-rest account, expires at 2023-11-14T23:13:20.000Z). Check that the engine (or the gateway in front of it) expects its issuer and audience and trusts the key that signed it (pulse-cli checks no signatures); fetch a new token (e.g. with your identity provider's CLI) and set PULSE_CLI_TOKEN. pulse-cli sends the token as it is and never refreshes it.",
+      "Bearer auth failed: the engine rejected the bearer token from PULSE_CLI_TOKEN (a JWT: subject 27c6dbd7-a170-4b19-8686-f7299949346a, issuer https://login.example.com/realms/camunda, audience engine-rest account, expires at 2023-11-14T23:13:20.000Z). Check that the engine (or the gateway in front of it) expects its issuer and audience and trusts the key that signed it (pulse checks no signatures); fetch a new token (e.g. with your identity provider's CLI) and set PULSE_CLI_TOKEN. pulse sends the token as it is and never refreshes it.",
     )
     expect(jwt.rejectedHint?.(403)).toBe(
       "The engine (or the gateway in front of it) refused the bearer token from PULSE_CLI_TOKEN (a JWT: subject 27c6dbd7-a170-4b19-8686-f7299949346a, issuer https://login.example.com/realms/camunda, audience engine-rest account, expires at 2023-11-14T23:13:20.000Z): the token was accepted, but it lacks the roles or scopes this operation needs, or its user has no engine authorization for it. Request a token with the required roles or scopes (another scope or audience at the identity provider), or ask for the engine authorization.",
@@ -111,7 +111,7 @@ describe("bearerAuth", () => {
     const provider = bearerAuth(config(token), () => now)
     // exactly at exp: expired for the hint, still sent (TOKEN_EXPIRED needs 30 s more)
     expect(provider.rejectedHint?.(401)).toContain(
-      "audience engine-rest account, expired at 2023-11-14T22:13:10.000Z). It expired at 2023-11-14T22:13:10.000Z: pulse-cli still sends a JWT up to 30 s after its exp (clock skew), but the engine or its gateway no longer accepts it; fetch a new token",
+      "audience engine-rest account, expired at 2023-11-14T22:13:10.000Z). It expired at 2023-11-14T22:13:10.000Z: pulse still sends a JWT up to 30 s after its exp (clock skew), but the engine or its gateway no longer accepts it; fetch a new token",
     )
     expect(provider.rejectedHint?.(403)).toContain("expired at 2023-11-14T22:13:10.000Z)")
     now -= 1
@@ -133,11 +133,9 @@ describe("renewal", () => {
       variable: undefined,
     }
     expect(renewal(config("t", { ...stored, profile: "p" }))).toBe(
-      "set PULSE_CLI_TOKEN (it overrides the stored token) or store it with `pulse-cli config set p --auth-token-stdin`",
+      "set PULSE_CLI_TOKEN (it overrides the stored token) or store it with `pulse config set p --auth-token-stdin`",
     )
-    expect(renewal(config("t", stored))).toContain(
-      "pulse-cli config set <profile> --auth-token-stdin",
-    )
+    expect(renewal(config("t", stored))).toContain("pulse config set <profile> --auth-token-stdin")
   })
 })
 
