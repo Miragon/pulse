@@ -120,11 +120,12 @@ jobs:
 
       # Mirror-only files (lockfile, LICENSE, README banner) are re-created
       # after the --delete pass, so stale copies can never survive a sync.
+      # The mirror's own .github/CODEOWNERS is excluded, so --delete keeps it.
       - name: Assemble the mirror working tree
         env:
           TAG: ${{ inputs.tag_name }}
         run: |
-          rsync -a --delete --exclude .git templates/composed-server/ mirror/
+          rsync -a --delete --exclude .git --exclude /.github/CODEOWNERS templates/composed-server/ mirror/
           cp "$WORK/pnpm-lock.yaml" mirror/pnpm-lock.yaml
           cp LICENSE mirror/LICENSE
           {
