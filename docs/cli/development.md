@@ -15,14 +15,12 @@ pnpm --fail-if-no-match --filter @miragon/pulse-cli build
 pnpm --fail-if-no-match --filter @miragon/pulse-cli test
 pnpm --fail-if-no-match --filter @miragon/pulse-cli catalog
 pnpm --fail-if-no-match --filter @miragon/pulse-cli test:engines
-pnpm --fail-if-no-match --filter @miragon/pulse-cli exec stryker run
 ```
 
 `test:engines` runs the Testcontainers suites against the built CLI (Docker or Podman, `build`
 first). `PULSE_CLI_IT_ENGINES=operaton,camunda` picks engines (`operaton`, `cibseven`, `camunda`),
 `PULSE_CLI_IT_SKIP_PACK=1` skips the tarball test, `PULSE_CLI_IT_BINARY=<absolute path>` tests a
-standalone executable and `PULSE_CLI_IT_CLI=<script>` another entry script. `stryker run` is a
-full Stryker run that mutates the working tree in place: leave `apps/cli` alone while it runs.
+standalone executable and `PULSE_CLI_IT_CLI=<script>` another entry script.
 
 ## Standalone executable and container image
 
@@ -109,9 +107,8 @@ adapters import `src/api`, only `auth login` reaches the interactive login, and 
 - **fast-check** property tests for naming, patches, variable parsing, dates, query building,
   projection, table width, config and auth precedence, PKCE, token expiry, the token cache, body
   validation and secret masking.
-- **StrykerJS** over the logic layers and the catalog generator without its data tables
-  (`apps/cli/stryker.config.json`, break 92): locally `stryker run --mutate <file>` runs a
-  branch's changed files; CI mutates only nightly, over the whole list.
+- **StrykerJS** mutates the workflow rules the CLI bundles from `@miragon/pulse-engine-core`,
+  nightly in CI; the CLI's own code is not mutation-tested (owner decision, 2026-11-04).
 - **Testcontainers** suites against the three engines, with and without Basic auth, behind
   Keycloak and an Envoy JWT gateway for OAuth, through the workflow commands, plus a test of the
   packed tarball. CI runs them, the packaging smoke tests and `claude plugin validate --strict` on

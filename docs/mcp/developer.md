@@ -45,11 +45,11 @@ server, the playground keeps running. Every port binds to `127.0.0.1`.
 The gates one by one: `pnpm build`, `pnpm typecheck`, `pnpm test`, `pnpm lint`, `pnpm format:check`.
 `pnpm dev` and `pnpm play` bind 127.0.0.1; `pnpm start` and Docker listen on all interfaces.
 
-Mutation testing: `pnpm --fail-if-no-match --filter <package> exec stryker run` (`--mutate <file>`
-narrows it) for `@miragon/pulse-widget-shell`, `-engine-client`, `-engine-connector`,
-`-analytics-client`, `-analytics-connector`, `-cli` or `pulse-cockpit`. A pull request runs none:
-`.github/workflows/mutation-nightly.yml` mutates every package each night (incremental). While the
-MCP server is rebuilt, the nightly run and the Stryker gates are paused (`scripts/mutation-pause.mjs`).
+Mutation testing covers `@miragon/pulse-engine-core` only (owner decision, 2026-11-04;
+`MUTATED_PACKAGES` in `scripts/check-package-scripts.mjs`):
+`pnpm --fail-if-no-match --filter @miragon/pulse-engine-core exec stryker run` (`--mutate <file>`
+narrows it). A pull request runs none: `.github/workflows/mutation-nightly.yml` mutates it each
+night (incremental).
 
 ## Build your own server
 

@@ -3,7 +3,9 @@ name: Mutation (nightly)
 # The FULL Stryker run, one leg per workspace package with a stryker.config.json, over the
 # package's whole `mutate` allowlist, and the only mutation testing CI runs (owner decision): no
 # pull request runs Stryker, and this run is no required check. A red leg means the package
-# scores below its thresholds.break.
+# scores below its thresholds.break. Only the packages in MUTATED_PACKAGES
+# (scripts/check-package-scripts.mjs) carry a config, today engine-core alone (owner decision,
+# 2026-11-04).
 #
 # Each leg keeps its package's Stryker incremental file in the Actions cache (every
 # stryker.config.json sets incremental: true and incrementalFile reports/stryker-incremental.json,
@@ -14,9 +16,13 @@ name: Mutation (nightly)
 # mutant. The cache key fingerprints the lockfile, the vitest, tsconfig and Stryker config and
 # the Node major, so a change there starts the package cold.
 #
-# PAUSED while the MCP server is rebuilt (owner decision, 2026-10-31; scripts/mutation-pause.mjs):
-# no schedule, manual dispatch only. Resuming restores `schedule: - cron: "0 2 * * *"`.
+# Nightly at 02:00 UTC, and by dispatch. Mutation testing resumed on 2026-11-04 after the MCP
+# server rebuild, for engine-core alone. A pause flips scripts/mutation-pause.mjs to true and
+# removes the schedule here (a workflow cannot read that switch); resuming flips it back and
+# restores the schedule.
 on:
+  schedule:
+    - cron: "0 2 * * *"
   workflow_dispatch:
     inputs:
       force:
@@ -63,11 +69,11 @@ jobs:
     needs: packages
     if: ${{ needs.packages.outputs.packages != '[]' }}
     runs-on: ubuntu-latest
-    # A cold or forced run of a package mutates its whole allowlist (widget-shell: about 70 files
-    # at about 1 min/file; the CLI: 135 files, about 240 min at Stryker's 4 workers, measured as
-    # the sum of the four shards of its last full run in its own repository); the other nights
-    # re-run only what changed. GitHub ends a hosted job after 360 min.
-    timeout-minutes: 350
+    # A cold or forced run of a package mutates its whole allowlist; the other nights re-run only
+    # what changed. engine-core runs cold in about 2 min on 8 local workers, so 30 min leaves room
+    # for a hosted runner's 4 and the build before it. A package that joins MUTATED_PACKAGES
+    # brings its own measured time here.
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:

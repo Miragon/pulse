@@ -1,8 +1,7 @@
 /**
  * The explicit command summaries of the catalog generator (rule 1 of summaries.ts): help texts,
- * data like the group descriptions (groups.ts) and the name overrides (overrides.ts). Outside the
- * mutation scope (apps/cli/stryker.config.json) for the same reason: only the golden catalog test
- * (render.test.ts) notices a changed text, as `catalog:check` does.
+ * data like the group descriptions (groups.ts) and the name overrides (overrides.ts): only the
+ * golden catalog test (render.test.ts) notices a changed text, as `catalog:check` does.
  */
 
 /** Explicit summaries keyed by operationId: wrong, generic or misleading upstream texts. */

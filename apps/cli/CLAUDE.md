@@ -95,7 +95,7 @@ no `generate` script, so turbo's cached `generate` task never replays a stale ca
 `apps/cli/src/generated/` by hand: change the spec patches or the generator.
 `apps/cli/scripts/catalog/render.test.ts` fails on a stale catalog.
 
-## Tests and mutation
+## Tests
 
 - Unit and fast-check property tests drive the CLI through `fakeRuntime`, an in-memory runtime;
   only the tests of `apps/cli/src/bin/` touch the real system. Every CLI line of a `sh` block in `apps/cli/README.md` and `docs/cli/` runs
@@ -103,9 +103,8 @@ no `generate` script, so turbo's cached `generate` task never replays a stale ca
 - The Testcontainers suites (`test:engines`, Docker, build first) run the built CLI against
   Operaton and CIB seven (Camunda 7's image left Docker Hub in November 2026), with Basic auth,
   behind Keycloak and an Envoy gateway, and pack the tarball.
-- `apps/cli/stryker.config.json` mutates the logic layers and the catalog generator (break 92).
-  It runs in place, because the tests read `docs/cli/` and `release-please-config.json` from the
-  repository root: leave the tree alone during a run. The mutate list only grows.
+- No mutation testing (owner decision, 2026-11-04): the repository mutates only
+  `@miragon/pulse-engine-core`, which holds the workflow rules the CLI bundles.
 - Coverage floors in `apps/cli/vitest.config.ts` only rise.
 
 ## The command and its second name

@@ -18,15 +18,17 @@
  * cover. An EXISTING package's gate scripts are additionally pinned to the
  * merge base by scripts/check-ratchets.mjs.
  *
- * The same source packages must also carry the configs those scripts measure
- * against, because each tool's default measures nothing: a `vitest.config.ts`
- * (vitest runs with coverage off by default, so no coverage floor would hold
- * the package) and a `stryker.config.json` (without one the nightly mutation
- * run never covers it), except the apps NO_MUTATION_APPS exempts by name
- * with a reason. Every stryker.config.json needs a numeric `thresholds.break`
- * above 0 (Stryker's default null never fails a run), a `mutate` allowlist
- * that selects files, and the json report at reports/mutation-report.json,
- * the one path the CI artifact and scripts/fitness-report.mjs read.
+ * The same source packages must also carry a `vitest.config.ts`: vitest runs
+ * with coverage off by default, so no coverage floor would hold the package.
+ *
+ * Mutation testing covers exactly the packages MUTATED_PACKAGES names, each
+ * with the reason the owner chose it: each carries a stryker.config.json, and
+ * a stryker.config.json in any other package fails, since the nightly run
+ * mutates every package that has one. Every stryker.config.json needs a
+ * numeric `thresholds.break` above 0 (Stryker's default null never fails a
+ * run), a `mutate` allowlist that selects files, and the json report at
+ * reports/mutation-report.json, the one path the CI artifact and
+ * scripts/fitness-report.mjs read.
  *
  * A pnpm filter that matches nothing exits 0 (pnpm 10), so a stale name turns a gate green
  * without running it, and `--fail-if-no-match` fails only when NO filter of the command
@@ -65,16 +67,17 @@ export const REQUIRED_SCRIPTS = {
 }
 
 /**
- * Source packages that carry no stryker.config.json, each with the reason the
- * owner accepted. Apps only: a package under packages/ is a library whose
- * logic the nightly run must be able to mutate. Shrink-only by review. An entry
- * whose dir is gone, has no src/ or carries a stryker.config.json fails this
- * gate, so the map cannot outlive its reason.
+ * The source packages mutation testing covers, each with the reason the owner
+ * chose it, and no other: each must carry a valid stryker.config.json, and a
+ * stryker.config.json in a package missing here fails the gate. An entry whose
+ * dir is gone or has no src/ fails too, so the map cannot outlive its reason.
+ * A package joins only by an owner decision.
  */
-export const NO_MUTATION_APPS = {
-  "apps/mcp-server":
-    "the composition root: its logic lives in the packages, which the nightly run mutates, and " +
-    "the app itself is tested end to end (in-process boots, tools/list goldens, the host simulation)",
+export const MUTATED_PACKAGES = {
+  "packages/connectors/engine/engine-core":
+    "owner decision 2026-11-04: mutation testing covers engine-core only. It holds the pure " +
+    "engine rules the CLI, the MCP server and the VS Code extension share, where a surviving " +
+    "mutant is a wrong rule in all three; in every other package a full run costs more than it finds",
 }
 
 /** The one path the CI mutation artifact and scripts/fitness-report.mjs read. */
@@ -166,12 +169,12 @@ export function checkStrykerConfig(dir, config) {
 /**
  * Violations for the configs one source package must carry (pure; unit-tested).
  * `stryker`: `{ exists, config, parseError }` as read from its
- * stryker.config.json; `exemptReason`: its NO_MUTATION_APPS entry, if any;
+ * stryker.config.json; `mutatedReason`: its MUTATED_PACKAGES entry, if any;
  * `mutationPaused`: skip the Stryker rules (scripts/mutation-pause.mjs).
  */
 export function checkPackageConfigs(
   dir,
-  { hasVitestConfig, stryker, exemptReason, mutationPaused = false },
+  { hasVitestConfig, stryker, mutatedReason, mutationPaused = false },
 ) {
   const errors = []
   if (!hasVitestConfig) {
@@ -182,21 +185,24 @@ export function checkPackageConfigs(
     )
   }
   if (mutationPaused) return errors
-  if (!stryker.exists) {
-    if (exemptReason === undefined) {
+  if (mutatedReason === undefined) {
+    if (stryker.exists) {
       errors.push(
-        `${dir}: no stryker.config.json, so the nightly mutation run never covers the ` +
-          `package. Add one with a "mutate" allowlist, a numeric thresholds.break and the json ` +
-          `report at ${MUTATION_REPORT} (a sibling package's config shows the shape)`,
+        `${dir}: carries a stryker.config.json but is not in MUTATED_PACKAGES, and the nightly ` +
+          `run mutates every package with one. Mutation testing covers only the packages the ` +
+          `owner chose: remove the config, or add the package to MUTATED_PACKAGES in ` +
+          `scripts/check-package-scripts.mjs with the owner's reason`,
       )
     }
     return errors
   }
-  if (exemptReason !== undefined) {
+  if (!stryker.exists) {
     errors.push(
-      `${dir}: listed in NO_MUTATION_APPS but carries a stryker.config.json; remove the stale ` +
-        `entry from scripts/check-package-scripts.mjs`,
+      `${dir}: listed in MUTATED_PACKAGES but has no stryker.config.json, so the nightly ` +
+        `mutation run never covers it. Add one with a "mutate" allowlist, a numeric ` +
+        `thresholds.break and the json report at ${MUTATION_REPORT}`,
     )
+    return errors
   }
   if (stryker.parseError !== undefined) {
     errors.push(
@@ -210,28 +216,23 @@ export function checkPackageConfigs(
 }
 
 /**
- * Violations of the exemption map itself (pure; unit-tested): every entry is an
- * app (apps/<name>) that is still a source package, with a reason.
+ * Violations of the mutation map itself (pure; unit-tested): every entry is
+ * still a source package and carries a reason.
  */
-export function checkMutationExemptions(sourceDirs, exemptions) {
-  const where = "NO_MUTATION_APPS in scripts/check-package-scripts.mjs"
+export function checkMutatedPackages(sourceDirs, mutated) {
+  const where = "MUTATED_PACKAGES in scripts/check-package-scripts.mjs"
   const errors = []
-  for (const [dir, reason] of Object.entries(exemptions)) {
-    if (!/^apps\/[^/]+$/.test(dir)) {
+  for (const [dir, reason] of Object.entries(mutated)) {
+    if (!sourceDirs.includes(dir)) {
       errors.push(
-        `${where}: "${dir}" is not an app (apps/<name>); a package is a library the nightly run ` +
-          `must mutate. Remove the entry and give the package a stryker.config.json`,
-      )
-    } else if (!sourceDirs.includes(dir)) {
-      errors.push(
-        `${where}: "${dir}" is not a workspace package with src/ (gone or renamed); remove the ` +
-          `stale entry`,
+        `${where}: "${dir}" is not a workspace package with src/ (gone or renamed); move the ` +
+          `entry to the package's new dir or remove it`,
       )
     }
     if (typeof reason !== "string" || reason.trim() === "") {
       errors.push(
-        `${where}: "${dir}" carries no reason; say why the app needs no mutation testing, or ` +
-          `remove the entry`,
+        `${where}: "${dir}" carries no reason; name the owner decision that put the package ` +
+          `under mutation testing, or remove the entry`,
       )
     }
   }
@@ -318,7 +319,7 @@ export function expandWorkspaceGlobs(root, globs) {
 export function checkWorkspace(
   root,
   globs,
-  { noMutationApps = NO_MUTATION_APPS, mutationPaused = false } = {},
+  { mutatedPackages = MUTATED_PACKAGES, mutationPaused = false } = {},
 ) {
   const errors = []
   const sourceDirs = []
@@ -333,12 +334,12 @@ export function checkWorkspace(
       ...checkPackageConfigs(dir, {
         hasVitestConfig: existsSync(path.join(abs, "vitest.config.ts")),
         stryker,
-        exemptReason: Object.hasOwn(noMutationApps, dir) ? noMutationApps[dir] : undefined,
+        mutatedReason: Object.hasOwn(mutatedPackages, dir) ? mutatedPackages[dir] : undefined,
         mutationPaused,
       }),
     )
   }
-  if (!mutationPaused) errors.push(...checkMutationExemptions(sourceDirs, noMutationApps))
+  if (!mutationPaused) errors.push(...checkMutatedPackages(sourceDirs, mutatedPackages))
   return { errors, sourceDirs }
 }
 
@@ -449,16 +450,17 @@ if (isMain) {
     )
     for (const error of errors) console.error(`  - ${error}`)
     console.error(
-      "\nFix the package instead of excluding it: a source package outside " +
-        "`turbo run lint|typecheck|test`, without a vitest.config.ts or outside the mutation " +
-        "gate is invisible to the gates (CLAUDE.md, Verification).",
+      "\nFix the package, never the gate: a source package outside " +
+        "`turbo run lint|typecheck|test` or without a vitest.config.ts is invisible to the " +
+        "gates, and a stryker.config.json belongs in exactly the packages MUTATED_PACKAGES " +
+        "lists (CLAUDE.md, Verification).",
     )
     process.exit(1)
   }
-  const exempt = Object.keys(NO_MUTATION_APPS).join(", ")
+  const mutated = Object.keys(MUTATED_PACKAGES).join(", ")
   const mutation = MUTATION_PAUSED
     ? "(mutation testing paused, stryker.config.json not checked: scripts/mutation-pause.mjs)"
-    : `and a gated stryker.config.json (exempt from mutation: ${exempt})`
+    : `(a gated stryker.config.json in ${mutated} and in no other package)`
   console.log(
     `Package scripts: all ${sourceDirs.length} source packages run the canonical lint, typecheck and test, carry a vitest.config.ts ${mutation}, and every pnpm filter names a workspace package.`,
   )

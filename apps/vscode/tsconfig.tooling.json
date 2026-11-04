@@ -6,11 +6,6 @@
     "jsx": null,
     "jsxImportSource": null
   },
-  "include": [
-    "vitest.config.ts",
-    "vitest.stryker.config.ts",
-    "vitest.engines.config.ts",
-    "test/architecture"
-  ],
+  "include": ["vitest.config.ts", "vitest.engines.config.ts", "test/architecture"],
   "exclude": []
 }

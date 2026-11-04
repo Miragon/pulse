@@ -5,7 +5,9 @@
  * cruiser), per-package coverage (from the
  * last `pnpm test` run's coverage-summary.json) and mutation scores (from
  * reports/mutation-report.json where a mutation run has happened: in CI only
- * the nightly "Mutation summary"; no pull request runs it).
+ * the nightly "Mutation summary"; no pull request runs it). Only the packages
+ * with a stryker.config.json are mutated (MUTATED_PACKAGES in
+ * scripts/check-package-scripts.mjs); every other row reads (not mutated).
  *
  * Read-only over existing artifacts except the architecture check, which is
  * fast enough to run inline. Appends the report to $GITHUB_STEP_SUMMARY in CI.
@@ -85,15 +87,20 @@ for (const dir of pkgDirs) {
   const name = JSON.parse(readFileSync(`${dir}/package.json`, "utf8")).name
   const cov = existsSync(covPath) ? JSON.parse(readFileSync(covPath, "utf8")).total : null
   const score = mutationScore(mutPath)
+  const mutated = existsSync(`${dir}/stryker.config.json`)
+  const mutation =
+    score !== null
+      ? `${pct(score.pct)} (${score.files} file(s))`
+      : mutated
+        ? "— (no run)"
+        : "— (not mutated)"
   put(
-    `| ${name} | ${pct(cov?.lines?.pct)} | ${pct(cov?.branches?.pct)} | ${pct(cov?.functions?.pct)} | ${
-      score === null ? "— (no run)" : `${pct(score.pct)} (${score.files} file(s))`
-    } |`,
+    `| ${name} | ${pct(cov?.lines?.pct)} | ${pct(cov?.branches?.pct)} | ${pct(cov?.functions?.pct)} | ${mutation} |`,
   )
 }
 put()
 put(
-  "_Coverage from the last `pnpm test`. Mutation scores from the last Stryker run per package, over the file count next to each: in CI only the nightly run (`mutation-nightly.yml`, its Mutation summary job), over the package's whole `mutate` allowlist, so a pull request's rows read (no run). Missing rows: no artifacts yet._",
+  "_Coverage from the last `pnpm test`. Mutation scores from the last Stryker run per package, over the file count next to each: in CI only the nightly run (`mutation-nightly.yml`, its Mutation summary job), over the package's whole `mutate` allowlist, so a pull request's rows read (no run). Missing rows: no artifacts yet. (not mutated): the package carries no stryker.config.json (MUTATED_PACKAGES in scripts/check-package-scripts.mjs)._",
 )
 
 const report = lines.join("\n")

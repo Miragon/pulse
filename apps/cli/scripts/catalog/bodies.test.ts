@@ -70,7 +70,7 @@ const SPEC: OpenApiDocument = {
 }
 
 describe("jsonBody", () => {
-  /** Built inside each test, so mutation testing attributes the coverage to it. */
+  /** Built inside each test, so a failure fails that test instead of the whole file. */
   const start = () => jsonBody(SPEC, ref("Start"))
 
   it("records the schema and its name", () => {
@@ -203,7 +203,7 @@ let cachedCatalog: Catalog | undefined
 
 /**
  * The catalog built from the vendored spec. Built lazily inside the first test that needs it, never
- * at load time, so mutation testing attributes the generator code to tests.
+ * at load time, so a generator failure fails that test instead of the whole file.
  */
 function realCatalog(): Catalog {
   cachedCatalog ??= buildCatalog(readPatchedSpec(), SPEC_URL)
