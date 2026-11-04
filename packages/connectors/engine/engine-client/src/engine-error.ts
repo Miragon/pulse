@@ -227,8 +227,61 @@ function abortError(error: unknown, request: Request, ctx: EngineErrorContext) {
   )
 }
 
+/** Longest redirect target the message names. */
+const MAX_REDIRECT_TARGET = 200
+
+/**
+ * Where a 3xx points, as origin and path only: a login page's query (a return URL, a state)
+ * says nothing the operator needs and may carry more than they should read.
+ */
+function redirectTarget(response: Response, secrets: readonly string[]): string | undefined {
+  const location = response.headers.get("Location")
+  if (!location || !URL.canParse(location, response.url || undefined)) return undefined
+  const target = new URL(location, response.url || undefined)
+  const shown = clip(`${target.origin}${target.pathname}`, secrets)
+  return shown.length > MAX_REDIRECT_TARGET ? `${shown.slice(0, MAX_REDIRECT_TARGET)}…` : shown
+}
+
+/**
+ * A 3xx: the client never follows one (a followed 302/303 turns a write into a GET), so the
+ * request was not applied, and the message says what to fix.
+ */
+function redirectError(response: Response, ctx: EngineErrorContext) {
+  const target = redirectTarget(response, secretForms(ctx.secrets ?? []))
+  const engineMessage = target ? `redirect to ${target}` : "redirect"
+  const suffix = ctx.engineId ? ` (engine ${ctx.engineId})` : ""
+  return new EngineRequestError(
+    `[${response.status}] ${engineMessage}${suffix}. The engine URL redirects, and redirects are ` +
+      "never followed: point the engine URL at the REST API root itself (e.g. https:// when the " +
+      "server redirects from http://). A redirect to a login page means the engine credentials " +
+      "are missing or expired.",
+    { kind: "http", httpStatus: response.status, engineMessage, engineId: ctx.engineId },
+  )
+}
+
+/**
+ * A 404 that is no engine answer: no exception type (a servlet container's or a proxy's page) or
+ * the JAX-RS `NotFoundException` of a path the REST API does not serve, most likely a wrong REST
+ * root. Wording only, restated from engine-core's `isUnknownEndpoint` (this leaf cannot import
+ * it); the engine connector holds the two equal (`src/lib/core-adapter/engine-port.test.ts`).
+ */
+function isUnknownEndpoint(status: number, type: string | undefined): boolean {
+  return status === 404 && (type === undefined || type === "NotFoundException")
+}
+
+const UNKNOWN_ENDPOINT_HINT =
+  "No such endpoint: check that the engine URL points at the REST API root itself " +
+  "(e.g. http://localhost:8080/engine-rest)."
+
+/** The sentence a status needs beyond the engine's own text, or "". */
+function hintOf(status: number, type: string | undefined, ctx: EngineErrorContext): string {
+  if (status === 401 && ctx.unauthorizedHint) return `. ${ctx.unauthorizedHint}`
+  return isUnknownEndpoint(status, type) ? `. ${UNKNOWN_ENDPOINT_HINT}` : ""
+}
+
 /** An engine error response: status, exception type and the (masked) engine text. */
 function httpError(body: unknown, response: Response, ctx: EngineErrorContext) {
+  if (response.status >= 300 && response.status < 400) return redirectError(response, ctx)
   const { type, engineMessage, engineCode } = describeBody(
     body,
     response,
@@ -236,7 +289,7 @@ function httpError(body: unknown, response: Response, ctx: EngineErrorContext) {
   )
   const suffix = ctx.engineId ? ` (engine ${ctx.engineId})` : ""
   const head = `[${response.status}${type ? ` ${type}` : ""}] ${engineMessage}${suffix}`
-  const hint = response.status === 401 && ctx.unauthorizedHint ? `. ${ctx.unauthorizedHint}` : ""
+  const hint = hintOf(response.status, type, ctx)
   return new EngineRequestError(`${head}${hint}`, {
     kind: "http",
     httpStatus: response.status,

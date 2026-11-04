@@ -1,7 +1,10 @@
 import { readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
-import { describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it } from "vitest"
+import { readProcessInstanceVariables, readTaskVariables } from "@miragon/pulse-engine-client"
+import { RAW_VARIABLES_QUERY } from "@miragon/pulse-engine-core"
+import { clientFor, startFakeEngine, type FakeEngine } from "./tools/test-support/fake-engine.js"
 
 // Outside `src/widgets`: it reads sources from disk (Node APIs).
 const SRC = fileURLToPath(new URL("./", import.meta.url))
@@ -73,5 +76,29 @@ describe("engine calls with a contract override go through the engine contract",
         /\.replace\(\s*["']Z["']\s*,\s*["']\+0000["']\s*\)/,
       )
     }
+  })
+})
+
+/**
+ * The raw-variable flag has ONE home, engine-core's `RAW_VARIABLES`. engine-client is a leaf and
+ * does not import engine-core, so its two variable reads restate the flag; this package imports
+ * both and holds the copy equal on the wire: a change to either side fails here.
+ */
+describe("engine-client's variable reads send engine-core's raw-variable flag", () => {
+  const engines: FakeEngine[] = []
+  afterEach(async () => {
+    await Promise.all(engines.splice(0).map((engine) => engine.close()))
+  })
+
+  it.each([
+    ["readProcessInstanceVariables", readProcessInstanceVariables, "/process-instance/x/variables"],
+    ["readTaskVariables", readTaskVariables, "/task/x/variables"],
+  ] as const)("%s", async (_, read, path) => {
+    const engine = await startFakeEngine({}, { body: {} })
+    engines.push(engine)
+    await read(clientFor(engine), "x")
+    expect(engine.requests.map((request) => [request.path, request.query])).toEqual([
+      [path, RAW_VARIABLES_QUERY],
+    ])
   })
 })

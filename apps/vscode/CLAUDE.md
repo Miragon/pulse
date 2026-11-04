@@ -76,8 +76,10 @@ workspace package only: the C7 adapter (`apps/vscode/src/adapters/c7` and its te
 `apps/vscode/test/adapters/c7`) imports `@miragon/pulse-engine-core`, the Camunda 7 family's
 workflow domain that the CLI and the MCP server run too, through its main entry, and esbuild
 bundles it (`engine-core-only-in-the-c7-adapter`; the repository's `family-core-consumers`). A
-change to how an instance is inspected, where it waits or what its root cause is goes into
-engine-core, never into a copy here; contract, core, webview and host stay engine-neutral.
+change to how an instance is inspected, where it waits, what its root cause is or when a 404
+names a missing resource (`isMissing`) goes into engine-core, never into a copy here; the
+adapter's `InspectView` is engine-core's instance view, not a mirror of it. Contract, core,
+webview and host stay engine-neutral.
 
 ## Rules
 

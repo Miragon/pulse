@@ -30,17 +30,6 @@ import type { OperationResult } from "../operation/result.js"
 import { sendRequest } from "../operation/send.js"
 import { compact } from "../util.js"
 
-/**
- * Engine 404s mean "missing"; routing 404s (a wrong REST root) have no engine type. The same rule
- * as engine-core's `isMissing` over `cliFailure` (a QueryParamException 404 maps to
- * HTTP_CLIENT_ERROR, never NOT_FOUND); engine.test.ts holds the two in agreement.
- */
-export function isMissing(error: unknown): boolean {
-  if (!(error instanceof PulseCliError) || error.code !== "NOT_FOUND") return false
-  const type = error.details.engineType
-  return type !== undefined && type !== "NotFoundException"
-}
-
 /** The engine answer of an HTTP error: every error `call` throws for a response has a status. */
 function cliFailure(error: unknown): EngineFailure | undefined {
   if (!(error instanceof PulseCliError) || error.details.status === undefined) return undefined

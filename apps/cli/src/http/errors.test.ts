@@ -1,3 +1,4 @@
+import { isUnknownEndpoint } from "@miragon/pulse-engine-core"
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import { HINTS, REQUEST, response } from "../../test/support/http-errors.js"
@@ -149,6 +150,23 @@ describe("httpError", () => {
     ])("keeps the generic hint for status %i", (status, body, hint) => {
       expect(httpError(response(status, body), REQUEST, LISTED).details.hint).toBe(hint)
     })
+  })
+})
+
+describe("the endpoint hint follows engine-core's isUnknownEndpoint", () => {
+  it.each([
+    [404, '{"type":"InvalidRequestException","message":"gone"}', "InvalidRequestException"],
+    [404, '{"type":"RestException","message":"No such definition"}', "RestException"],
+    [404, '{"type":"NotFoundException","message":"HTTP 404 Not Found"}', "NotFoundException"],
+    [404, '{"type":"QueryParamException","message":"bad maxResults"}', "QueryParamException"],
+    [404, "<html>Not Found</html>", undefined],
+    [404, "", undefined],
+    [400, '{"type":"NotFoundException","message":"x"}', "NotFoundException"],
+    [500, "", undefined],
+  ])("status %i, body %s", (status, body, engineType) => {
+    const hint = httpError(response(status, body), REQUEST).details.hint
+    const failure = engineType === undefined ? { status } : { status, engineType }
+    expect(hint === HINTS.endpoint).toBe(isUnknownEndpoint(failure))
   })
 })
 

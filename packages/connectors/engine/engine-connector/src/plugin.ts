@@ -56,10 +56,13 @@ export function createConfiguredEngineRegistry(config: EnginePluginConfig): Engi
   )
 }
 
-export function createPlugin(config: EnginePluginConfig): ModulePlugin {
+/** `registry`: the module's one registry for this config, shared with its BPMN lookup (module.ts). */
+export function createPlugin(
+  config: EnginePluginConfig,
+  registry: EngineRegistry = createConfiguredEngineRegistry(config),
+): ModulePlugin {
   // Resolved once so every gate below reads the same toolset and an unknown name warns once.
   const toolset = resolveEngineToolset(config.toolset)
-  const registry = createConfiguredEngineRegistry(config)
   // The deployment's ENGINE_HEALTH_* over engine-core's defaults, one set for the cockpit's
   // overview and engine_status, so both judge alike.
   const healthThresholds = { ...DEFAULT_VERDICT_THRESHOLDS, ...config.healthThresholds }

@@ -246,7 +246,24 @@ describe("engine_list_tasks candidate groups", () => {
   })
 })
 
-/** #340: through `fetchJobStacktrace` (text/plain, 404 → null), condensed for the model. */
+/**
+ * A 404 as the engine sends it for a resource it does not have, and the 404s of a wrong REST root:
+ * JAX-RS's `NotFoundException` for an unknown path, and a servlet container's or proxy's page
+ * without an engine answer. Only the first is "none" (engine-core's `isMissing`).
+ */
+const GONE: FakeReply = {
+  status: 404,
+  body: { type: "InvalidRequestException", message: "No job found with id gone" },
+}
+const WRONG_ROOT: readonly (readonly [string, FakeReply])[] = [
+  [
+    "NotFoundException",
+    { status: 404, body: { type: "NotFoundException", message: "HTTP 404 Not Found" } },
+  ],
+  ["an HTML error page", { status: 404, body: "<html>Not Found</html>", contentType: "text/html" }],
+]
+
+/** #340: through `fetchJobStacktrace` (text/plain, a missing job → null), condensed for the model. */
 describe("engine_get_job_stacktrace", () => {
   const TRACE = [
     "org.cibseven.bpm.engine.ProcessEngineException: WMS unreachable",
@@ -272,12 +289,24 @@ describe("engine_get_job_stacktrace", () => {
     expect(result.stacktrace).not.toContain("org.cibseven.bpm.engine.impl.Foo")
   })
 
-  it("answers null for a job without a trace (or gone: 404)", async () => {
-    const engine = await engineWith({ "GET /job/gone/stacktrace": { status: 404, body: {} } })
-    expect(await call(engine, "engine_get_job_stacktrace", { jobId: "gone" })).toEqual({
-      jobId: "gone",
-      stacktrace: null,
+  it("answers null for a job without a trace and for a job that is gone", async () => {
+    const engine = await engineWith({
+      "GET /job/gone/stacktrace": GONE,
+      "GET /job/clean/stacktrace": { status: 204 },
     })
+    for (const jobId of ["gone", "clean"]) {
+      expect(await call(engine, "engine_get_job_stacktrace", { jobId })).toEqual({
+        jobId,
+        stacktrace: null,
+      })
+    }
+  })
+
+  it.each(WRONG_ROOT)("fails loud on a wrong REST root (%s), never null", async (_, reply) => {
+    const engine = await engineWith({ "GET /job/j-1/stacktrace": reply })
+    const failure = call(engine, "engine_get_job_stacktrace", { jobId: "j-1" })
+    await expect(failure).rejects.toMatchObject({ httpStatus: 404 })
+    await expect(failure).rejects.toThrow("check that the engine URL points at the REST API root")
   })
 })
 
@@ -297,6 +326,29 @@ describe("engine_get_batch", () => {
     })
     expect(engine.requests[0].query).toEqual({ batchId: "b-1" })
   })
+
+  it("says so when neither the runtime nor the history knows the batch", async () => {
+    const engine = await engineWith({
+      "GET /batch/statistics": { body: [] },
+      "GET /history/batch/nope": GONE,
+    })
+    await expect(call(engine, "engine_get_batch", { batchId: "nope" })).rejects.toThrow(
+      "Batch nope not found: no running batch has this id and the engine history holds no record of it",
+    )
+  })
+
+  it.each(WRONG_ROOT)(
+    "reports a wrong REST root of the history read (%s) as it is, not as a missing batch",
+    async (_, reply) => {
+      const engine = await engineWith({
+        "GET /batch/statistics": { body: [] },
+        "GET /history/batch/b-1": reply,
+      })
+      const failure = call(engine, "engine_get_batch", { batchId: "b-1" })
+      await expect(failure).rejects.toMatchObject({ httpStatus: 404 })
+      await expect(failure).rejects.not.toThrow("not found: no running batch")
+    },
+  )
 
   it("falls back to the batch history once the batch has ended", async () => {
     const engine = await engineWith({

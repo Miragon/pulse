@@ -42,7 +42,7 @@ Writes (`ProcessCommands`) take the same road on a connection that may write.
 - `apps/vscode/src/adapters/c7/writing`, `apps/vscode/src/adapters/c7/errors`: the bodies of a variable change and a move, the token a move cancels; failures to `RuntimeError`
 - `apps/vscode/src/adapters/c7/web-ui`: `CockpitWebUi`: links into Cockpit or the CIB seven webclient
 - `apps/vscode/src/adapters/c7/engine-rest`: the REST client: requests, paging, parsed and checked views
-- `apps/vscode/src/adapters/c7/engine-rest/inspect`: engine-core's port over `EngineHttp` (`HttpEngineTransport`) and its instance view as the adapter's `InspectView`
+- `apps/vscode/src/adapters/c7/engine-rest/inspect`: engine-core's port over `EngineHttp` (`HttpEngineTransport`); the adapter's `InspectView` is engine-core's instance view with its timeline, no mirror type
 
 ## Rules
 

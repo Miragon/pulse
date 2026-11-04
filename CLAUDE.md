@@ -239,7 +239,8 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    configured engine > `ENGINE_NOT_SELECTED` listing the engines. There is deliberately NO
    per-user or in-memory selection (replica-unsafe; mcp-use 2 issues no session ids). A client
    you construct or cache yourself breaks multi-engine routing; `resolveEngine` already returns
-   `baseUrl`/`cockpitUrl`.
+   `baseUrl`/`cockpitUrl`. The BPMN lookup the module hands analytics (`createBpmnXmlFetcher`)
+   routes the same way, on the module's own registry and XML cache.
 
 3. **A view is registered in three places**; a view that misses one is silently absent:
    - the module's view map, keyed by its view tool's name (the engine module has ONE view,
@@ -418,18 +419,26 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    - Each engine REST rule the client defaults miss has one home, used by `tools/` AND `data/`
      (and by the CLI): the pure rules (`toEngineDate`, `engineSorting`, the filters,
      `toEngineVariable(s)`, `autoTypedValue`, `incidentRecovery`, `RAW_VARIABLES`, root causes,
-     and inside the engine port the missing-resource rule) in `@miragon/pulse-engine-core`, the
+     the missing-resource rule `isMissing`) in `@miragon/pulse-engine-core`, the
      reads bound to the SDK (text/plain endpoints, raw variable reads, `readBatch`, queued
      batches) in engine-client's `packages/connectors/engine/engine-client/src/engine-contract/`,
      which does not import engine-core. Dates parse in one parser, read in one of two named
      readings (`DateInputReading`: `OFFSET_REQUIRED` for the MCP tools, `UTC_WITHOUT_OFFSET` for
-     the CLI). The copies that remain are named, each until the behaviour PR settles it: the
-     raw-variable flag restated in the leaf client; three 404 readers (the client's reads take
-     EVERY 404 as "none", `isAnyNotFound`; engine-core's port and the CLI's
-     `apps/cli/src/workflow/engine.ts` exclude `NotFoundException`/`QueryParamException`, the
-     CLI's held equal to engine-core's by its test); two redirect settings (the client follows,
-     the CLI does not). Every write tool has a recording-fake-engine case in
-     `src/tools/*.wire.test.ts`. Analytics periods derive from `PERIODS`/`PERIOD_RANGE`.
+     the CLI). A 404 is "none" only by `isMissing` (a 404 `NotFoundException`, a
+     `QueryParamException` or one without an engine answer is a wrong REST root or request and
+     fails loud): the client's reads throw every 404 and their callers decide (the connector's
+     `isMissingResource`/`noneIfMissing` in `src/lib/core-adapter/engine-port.ts`), the CLI and
+     the VS Code adapter call it. Three copies are left, each held equal by a test: in the leaf
+     client the raw-variable flag (to `RAW_VARIABLES`, the connector's
+     `src/engine-contract.test.ts`) and the wrong-root hint of a 404 in
+     `packages/connectors/engine/engine-client/src/engine-error.ts` (wording only, to
+     `isUnknownEndpoint`, on which `isMissing` builds; the connector's
+     `src/lib/core-adapter/engine-port.test.ts`), and the CLI's endpoint hint in
+     `apps/cli/src/http/errors.ts` (its http layer does not import the core;
+     `apps/cli/src/http/errors.test.ts`). No client
+     follows a redirect: a 3xx fails with a message that names the fix. Every write tool has a
+     recording-fake-engine case in `src/tools/*.wire.test.ts`. Analytics periods derive from
+     `PERIODS`/`PERIOD_RANGE`.
    - The workflow rules the CLI and the read composites (`engine_inspect_process_instance`,
      `engine_status`, `src/lib/core-adapter/composites.ts`) share live in
      `@miragon/pulse-engine-core`: selection, root cause, the composites' paging and caps, the

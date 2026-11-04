@@ -78,17 +78,27 @@ export const PARALLEL = 8
 const PAGE_SIZE = 500
 
 /**
- * An engine 404 that names a missing resource: status 404 with an engine exception type other than
- * NotFoundException (JAX-RS: no such endpoint, a wrong REST root) and QueryParamException (an
- * unreadable query value).
+ * A 404 that is no engine answer about a resource: no exception type (a servlet container's or a
+ * proxy's error page) or the JAX-RS `NotFoundException` of a path the REST API does not serve. The
+ * engine URL is most likely not the REST API root (or this engine does not serve the endpoint).
+ */
+export function isUnknownEndpoint(failure: EngineFailure | undefined): boolean {
+  const type = failure?.engineType
+  return failure?.status === 404 && (type === undefined || type === "NotFoundException")
+}
+
+/**
+ * An engine 404 that names a missing resource: status 404 that is no unknown endpoint
+ * ({@link isUnknownEndpoint}: no exception type, or NotFoundException) and no QueryParamException
+ * (an unreadable query value). The ONE missing-resource rule of the family: the MCP tools, the CLI
+ * and the VS Code extension read a 404 through it, so a wrong REST root fails loud instead of
+ * reading as "none".
  */
 export function isMissing(failure: EngineFailure | undefined): boolean {
-  const type = failure?.engineType
   return (
     failure?.status === 404 &&
-    type !== undefined &&
-    type !== "NotFoundException" &&
-    type !== "QueryParamException"
+    !isUnknownEndpoint(failure) &&
+    failure.engineType !== "QueryParamException"
   )
 }
 

@@ -137,9 +137,9 @@ describe("createEngineClient", () => {
     const client = createEngineClient({ baseUrl: "http://localhost:8410/engine-rest" })
     await client.get({ url: "/engine", signal: caller.signal })
     expect(sent.request?.url).toBe("http://localhost:8410/engine-rest/engine")
-    // Pinned as it is: the CLI and VS Code send "manual" (see createEngineClient).
-    expect(sent.request?.redirect).toBe("follow")
-    expect(client.getConfig().redirect).toBe("follow")
+    // Never followed, as in the CLI and VS Code (client-redirect.test.ts runs a real 302).
+    expect(sent.request?.redirect).toBe("manual")
+    expect(client.getConfig().redirect).toBe("manual")
     expect(sent.signal).toBeInstanceOf(AbortSignal)
     expect(sent.signal?.aborted).toBe(false)
     caller.abort()

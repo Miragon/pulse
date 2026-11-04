@@ -49,17 +49,15 @@ describe("fetchJobStacktrace: a text/plain-only endpoint", () => {
     expect(mocked).toHaveBeenCalledWith({ client, path: { id: "job-1" }, ...TEXT_PLAIN })
   })
 
-  it("returns null for an empty body and for a job that no longer exists (404)", async () => {
+  it("returns null for an empty body", async () => {
     mocked.mockResolvedValueOnce("")
-    expect(await fetchJobStacktrace(client, "job-1")).toBeNull()
-    mocked.mockRejectedValueOnce(httpError(404))
     expect(await fetchJobStacktrace(client, "job-1")).toBeNull()
   })
 
-  // Pinned as it is: engine-core's isMissing would rethrow these two (a wrong REST root, an
-  // unreadable query value); one "missing" rule for both is a behaviour change of its own.
-  it.each(["NotFoundException", "QueryParamException"])(
-    "reads EVERY 404 as none, also one of type %s",
+  // The client decides nothing about a 404: whether it names a gone job or a wrong REST root is
+  // engine-core's isMissing, applied by the caller (the engine connector's port and tools).
+  it.each(["InvalidRequestException", "NotFoundException", "QueryParamException"])(
+    "throws a 404 of type %s for the caller to read",
     async (type) => {
       mocked.mockRejectedValueOnce(
         new EngineRequestError("[404] gone", {
@@ -69,7 +67,10 @@ describe("fetchJobStacktrace: a text/plain-only endpoint", () => {
           engineMessage: "gone",
         }),
       )
-      expect(await fetchJobStacktrace(client, "job-1")).toBeNull()
+      await expect(fetchJobStacktrace(client, "job-1")).rejects.toMatchObject({
+        httpStatus: 404,
+        type,
+      })
     },
   )
 
@@ -90,14 +91,16 @@ describe("fetchExternalTaskErrorDetails: a text/plain-only endpoint", () => {
     expect(mocked).toHaveBeenCalledWith({ client, path: { id: "ext-1" }, ...TEXT_PLAIN })
   })
 
-  it("returns null when the engine has none (204) or the task is gone (404)", async () => {
+  it("returns null when the engine has none (204)", async () => {
     mocked.mockResolvedValueOnce(undefined)
-    expect(await fetchExternalTaskErrorDetails(client, "ext-1")).toBeNull()
-    mocked.mockRejectedValueOnce(httpError(404))
     expect(await fetchExternalTaskErrorDetails(client, "ext-1")).toBeNull()
   })
 
-  it("throws other failures", async () => {
+  it("throws every failure, a 404 included", async () => {
+    mocked.mockRejectedValueOnce(httpError(404))
+    await expect(fetchExternalTaskErrorDetails(client, "ext-1")).rejects.toMatchObject({
+      httpStatus: 404,
+    })
     mocked.mockRejectedValueOnce(httpError(500))
     await expect(fetchExternalTaskErrorDetails(client, "ext-1")).rejects.toMatchObject({
       httpStatus: 500,
@@ -153,17 +156,12 @@ describe("readBatch", () => {
     expect(await readBatch(client, "b-1")).toMatchObject({ status: "running", endTime: null })
   })
 
-  it("says so when neither the runtime nor the history knows the batch", async () => {
-    stats.mockResolvedValue([] as never)
-    history.mockRejectedValue(httpError(404))
-    await expect(readBatch(client, "nope")).rejects.toThrow(
-      "Batch nope not found: no running batch has this id and the engine history holds no record of it",
-    )
-  })
-
-  it("propagates other history failures unchanged", async () => {
-    stats.mockResolvedValue([] as never)
-    history.mockRejectedValue(httpError(403))
-    await expect(readBatch(client, "b-1")).rejects.toMatchObject({ httpStatus: 403 })
-  })
+  it.each([404, 403])(
+    "propagates a %s of the history read unchanged (the caller words a missing batch)",
+    async (status) => {
+      stats.mockResolvedValue([] as never)
+      history.mockRejectedValue(httpError(status))
+      await expect(readBatch(client, "b-1")).rejects.toMatchObject({ httpStatus: status })
+    },
+  )
 })

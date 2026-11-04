@@ -49,7 +49,11 @@ npm install @miragon/pulse-engine-core
   as undefined, blank texts as undefined. A missing resource is an engine 404 whose exception type
   is neither `NotFoundException` (no such endpoint, a wrong REST root) nor `QueryParamException`,
   so your `failure` reading must carry the engine's `engineType`: without it a missing instance
-  fails instead of reading as missing.
+  fails instead of reading as missing. `isMissing(failure)` is that rule on its own, the one
+  missing-resource rule of the family: the MCP server, the CLI and the VS Code extension read
+  every 404 through it, so a wrong REST root fails loud instead of reading as "none".
+  `isUnknownEndpoint(failure)`, on which it builds, tells a 404 that is no engine answer (no
+  exception type, or `NotFoundException`), for a hint to check the REST root.
 - **Inspect:** `inspectInstance(port, selection, options)` selects an instance by id, by business
   key or by key with `latest`, and loads its view: wait states with their ids, root-cause
   incidents, called instances, optionally variables, the history timeline and stacktraces (cut
@@ -65,8 +69,10 @@ npm install @miragon/pulse-engine-core
   `engineDateMillis`, `latestEngineDate`), true-only and `…Like` filters (`trueOnly`,
   `complementaryFlags`, `engineLike`, `engineKeyList`, `engineInstanceSearch`), paired sorting
   (`engineSorting`), variable writes and typing (`toEngineVariable(s)`, `autoTypedValue`),
-  incident recovery (`incidentRecovery`), the raw variable read flag (`RAW_VARIABLES`) and root
-  causes (`rootCause`, and `rootCauseLine`, the line a viewer opens the text at).
+  incident recovery (`incidentRecovery`), the raw variable read flag (`RAW_VARIABLES`, and
+  `RAW_VARIABLES_QUERY`, its text form for a port's query), the history timeline of activity rows
+  (`timelineOf`) and root causes (`rootCause`, and `rootCauseLine`, the line a viewer opens the
+  text at).
 
 ```ts
 import { createEnginePort, type EngineTransport, inspectInstance } from "@miragon/pulse-engine-core"

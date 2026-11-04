@@ -34,6 +34,10 @@ export interface ComposableModule<TShared> {
   bootWarnings?(env: NodeJS.ProcessEnv): string[]
   /** Model-facing usage notes joined into the server `instructions`, stated ONCE instead of per tool. */
   instructions?(config: Record<string, unknown>): string | undefined
+  /**
+   * `config` is the very object the root's `shared` saw as this entry's `ModuleEntry.config`, so
+   * a module may key per-boot state on it (the engine module's one engine registry).
+   */
   createPlugin(config: Record<string, unknown>, shared: TShared): ModulePlugin
   /** Names this module carried before: the boot refuses each while it is set, naming its replacement. */
   retired?: {

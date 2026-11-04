@@ -39,13 +39,13 @@ const PLANTED: Readonly<Record<string, string>> = {
   "src/adapters/c7/runs-engine-core.ts":
     "import { rootCause } from '@miragon/pulse-engine-core';\nexport const cause = rootCause;\n",
   "src/adapters/c7/ships-engine-core-testing.ts":
-    "import { isMissing } from '@miragon/pulse-engine-core/testing';\nexport const missing = isMissing;\n",
+    "import { pageQuery } from '@miragon/pulse-engine-core/testing';\nexport const page = pageQuery;\n",
   "src/adapters/other/runs-engine-core.ts":
     "import { rootCause } from '@miragon/pulse-engine-core';\nexport const cause = rootCause;\n",
   "src/core/runs-engine-core.ts":
     "import type { WaitState } from '@miragon/pulse-engine-core';\nexport type Wait = WaitState;\n",
   "test/adapters/c7/engine-core.test.ts":
-    "import { isMissing } from '@miragon/pulse-engine-core/testing';\nexport const missing = isMissing;\n",
+    "import { pageQuery } from '@miragon/pulse-engine-core/testing';\nexport const page = pageQuery;\n",
   "test/adapters/c7-other/engine-core.test.ts":
     "import { rootCause } from '@miragon/pulse-engine-core';\nexport const cause = rootCause;\n",
   "test/core/engine-core.test.ts":

@@ -1,3 +1,9 @@
+import type {
+  DefinitionView as InspectedDefinitionView,
+  InstanceView,
+  TimelineEntry,
+} from "@miragon/pulse-engine-core"
+
 export interface ProductView {
   readonly name: string
   readonly version: string
@@ -50,60 +56,6 @@ export interface HistoricInstanceView {
   readonly startTime?: string
   readonly endTime?: string
   readonly superProcessInstanceId?: string
-}
-
-export interface WaitingAtView {
-  readonly kind: string
-  readonly activityId: string
-  readonly activityName?: string
-  readonly activityType?: string
-  readonly attachedTo?: string
-  readonly processInstanceId?: string
-  readonly since?: string
-  readonly incidentId?: string
-  readonly assignee?: string
-  readonly due?: string
-  readonly dueDate?: string
-  readonly topic?: string
-  readonly retries?: number
-  readonly eventName?: string
-}
-
-interface StacktraceView {
-  readonly lines: readonly string[]
-  readonly truncated: boolean
-}
-
-export interface InspectedIncidentView {
-  readonly id: string
-  readonly type: string
-  readonly activityId: string
-  readonly processInstanceId?: string
-  readonly message?: string
-  readonly since: string
-  readonly jobId?: string
-  readonly externalTaskId?: string
-  readonly stacktrace?: StacktraceView
-}
-
-export interface ChildInstanceView {
-  readonly id: string
-  readonly parentId: string
-  readonly key: string
-  readonly state: string
-}
-
-interface TimelineEntryView {
-  readonly activityId: string
-  readonly activityName?: string
-  readonly startTime: string
-  readonly endTime?: string
-  readonly canceled: boolean
-}
-
-interface CallView {
-  readonly activityId: string
-  readonly calledProcessInstanceId: string
 }
 
 export interface VariableView {
@@ -160,22 +112,9 @@ export interface MigrationReportView {
   readonly instructionReports: readonly MigrationInstructionReportView[]
 }
 
-export interface InspectView {
-  readonly id: string
-  readonly businessKey?: string
-  readonly definition: DefinitionView
-  readonly state: string
-  readonly startTime?: string
-  readonly endTime?: string
-  readonly parentId?: string
-  readonly waitingAt: readonly WaitingAtView[]
-  readonly incidents: readonly InspectedIncidentView[]
-  readonly propagatedIncidents: number
-  readonly children: readonly ChildInstanceView[]
-  readonly calls: readonly CallView[]
-  readonly timeline: readonly TimelineEntryView[]
-  readonly variables: readonly VariableView[]
-  readonly truncated: boolean
+export type InspectView = InstanceView & {
+  readonly definition: InspectedDefinitionView & { readonly version: number }
+  readonly timeline: readonly TimelineEntry[]
 }
 
 export interface IncidentQuery {

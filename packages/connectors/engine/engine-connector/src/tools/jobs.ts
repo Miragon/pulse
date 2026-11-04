@@ -17,6 +17,7 @@ import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
 import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 import { boundFailureText, condenseStacktrace } from "../lib/mcp/failure-text.js"
+import { noneIfMissing } from "../lib/core-adapter/engine-port.js"
 
 export function registerJobTools(register: ToolRegistrar<EngineRegistry>) {
   register({
@@ -60,7 +61,7 @@ export function registerJobTools(register: ToolRegistrar<EngineRegistry>) {
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     inputSchema: { ...getJobStacktraceInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) => {
-      const raw = await fetchJobStacktrace(client, args.jobId)
+      const raw = await noneIfMissing(fetchJobStacktrace(client, args.jobId))
       return {
         jobId: args.jobId,
         stacktrace: raw ? boundFailureText(condenseStacktrace(raw)) : null,

@@ -98,22 +98,22 @@ start view), never a second view tool: see the add-bpm-feature skill.
 
 ## Layout
 
-| Path                     | Contents                                                                                       |
-| ------------------------ | ---------------------------------------------------------------------------------------------- |
-| `src/tools/`             | Registrar operations tools, one file per domain (`index.ts` wires them)                        |
-| `src/schemas/`           | The tools' Zod input schemas and the one paging definition                                     |
-| `src/widget-tools.ts`    | `engine_open_cockpit` and the `*_data` feeds (`src/widget-tools/`)                             |
-| `src/data/`              | One builder per cockpit route; `feeds.ts` (the `*_data` feeds), `routes.ts` (the routes)       |
-| `src/widgets/`           | The cockpit app, its routes and widgets + `views.tsx`                                          |
-| `src/tool-names.ts`      | Tool-name constants for rename-safe in-widget feed calls                                       |
-| `src/lib/engine/`        | Engine routing (`with-engine.ts`, `resolve-engine.ts`), cockpit links, passthrough auth        |
-| `src/lib/core-adapter/`  | engine-core's port over the client, the read composites, `workflow-errors.ts` (their wording)  |
-| `src/lib/bpmn/`          | The definition XML read, BPMN and task-form reading, completing a user task by its form        |
-| `src/lib/mcp/`           | The tool surface: `toolsets.ts`, the paging envelope, variable and failure-text bounds         |
-| `src/lib/shared/`        | Pure code the widgets run too (engine environments, `TaskCompletion`); the one lib widgets use |
-| `src/module.ts`          | `engineModule` (config schema, env mapping) + `createBpmnXmlFetcher`                           |
-| `src/engine-provider.ts` | The vendor provider port (`EngineProvider`, `CockpitRef`)                                      |
-| `src/providers/`         | `cibseven` / `operaton` / `camunda7` providers (cockpit routes, branding)                      |
+| Path                     | Contents                                                                                                                                                   |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/tools/`             | Registrar operations tools, one file per domain (`index.ts` wires them)                                                                                    |
+| `src/schemas/`           | The tools' Zod input schemas and the one paging definition                                                                                                 |
+| `src/widget-tools.ts`    | `engine_open_cockpit` and the `*_data` feeds (`src/widget-tools/`)                                                                                         |
+| `src/data/`              | One builder per cockpit route; `feeds.ts` (the `*_data` feeds), `routes.ts` (the routes)                                                                   |
+| `src/widgets/`           | The cockpit app, its routes and widgets + `views.tsx`                                                                                                      |
+| `src/tool-names.ts`      | Tool-name constants for rename-safe in-widget feed calls                                                                                                   |
+| `src/lib/engine/`        | Engine routing (`with-engine.ts`, `resolve-engine.ts`), cockpit links, passthrough auth                                                                    |
+| `src/lib/core-adapter/`  | engine-core's port over the client (and engine-core's 404 rule applied to the client's errors, `noneIfMissing`), the read composites, `workflow-errors.ts` |
+| `src/lib/bpmn/`          | The definition XML read, BPMN and task-form reading, completing a user task by its form                                                                    |
+| `src/lib/mcp/`           | The tool surface: `toolsets.ts`, the paging envelope, variable and failure-text bounds                                                                     |
+| `src/lib/shared/`        | Pure code the widgets run too (engine environments, `TaskCompletion`); the one lib widgets use                                                             |
+| `src/module.ts`          | `engineModule` (config schema, env mapping) + `createBpmnXmlFetcher` (the tools' engine precedence and clients)                                            |
+| `src/engine-provider.ts` | The vendor provider port (`EngineProvider`, `CockpitRef`)                                                                                                  |
+| `src/providers/`         | `cibseven` / `operaton` / `camunda7` providers (cockpit routes, branding)                                                                                  |
 
 ## Verify
 

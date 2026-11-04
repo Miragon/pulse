@@ -79,4 +79,17 @@ describe("REST failures as runtime errors", () => {
     const runtime = new C7Adapter(engine.send).runtime(CONNECTION)
     expect(await runtime.getInstanceDetail(InstanceId("gone"))).toBeUndefined()
   })
+
+  test.each([
+    ["a wrong REST root", engineFailure(404, "NotFoundException", "no route")],
+    ["a query value the engine cannot read", engineFailure(404, "QueryParamException", "bad")],
+  ])("reads %s as misconfigured, never as no detail", async (_name, failure) => {
+    const engine = fakeEngineRest([
+      { route: "GET /process-instance/x", answer: failure },
+      { route: "GET /history/process-instance/x", answer: failure },
+      { route: "GET /variable-instance", answer: [] },
+    ])
+    const runtime = new C7Adapter(engine.send).runtime(CONNECTION)
+    expect(await failureOf(runtime.getInstanceDetail(InstanceId("x")))).toBe("misconfigured")
+  })
 })

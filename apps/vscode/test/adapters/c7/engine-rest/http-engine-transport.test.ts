@@ -1,4 +1,5 @@
-import { isMissing, INSPECT_OPERATIONS } from "@miragon/pulse-engine-core/testing"
+import { isMissing } from "@miragon/pulse-engine-core"
+import { INSPECT_OPERATIONS } from "@miragon/pulse-engine-core/testing"
 import { describe, expect, test } from "vitest"
 import { EngineRequestError } from "../../../../src/adapters/c7/engine-rest/index.js"
 import { HttpEngineTransport } from "../../../../src/adapters/c7/engine-rest/inspect/http-engine-transport.js"
@@ -56,10 +57,6 @@ describe("engine-core's port over the adapter's HTTP", () => {
   test.each([
     ["a missing resource", EngineRequestError.answered(404, "gone", "InvalidRequestException")],
     [
-      "a query value the engine cannot read",
-      EngineRequestError.answered(404, "x", "QueryParamException"),
-    ],
-    [
       "a resource that ended meanwhile",
       EngineRequestError.answered(500, "x", "NullValueException"),
     ],
@@ -67,6 +64,20 @@ describe("engine-core's port over the adapter's HTTP", () => {
   ])("reads %s as missing, as the extension always did", (_name, error) => {
     expect(isMissing(new HttpEngineTransport(httpOver(fakeEngineRest([]))).failure(error))).toBe(
       true,
+    )
+  })
+
+  test.each([
+    ["a wrong REST root", EngineRequestError.answered(404, "x", "NotFoundException")],
+    [
+      "a query value the engine cannot read",
+      EngineRequestError.answered(404, "x", "QueryParamException"),
+    ],
+    ["a 404 without an engine answer", EngineRequestError.answered(404, "x")],
+  ])("reads %s as no missing resource, by engine-core's one rule", (_name, error) => {
+    expect(EngineRequestError.isMissingResource(error)).toBe(false)
+    expect(isMissing(new HttpEngineTransport(httpOver(fakeEngineRest([]))).failure(error))).toBe(
+      false,
     )
   })
 

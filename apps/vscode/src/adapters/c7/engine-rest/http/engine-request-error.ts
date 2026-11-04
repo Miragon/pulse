@@ -1,6 +1,7 @@
+import { isMissing } from "@miragon/pulse-engine-core"
+
 export type EngineRequestFailure = "refused" | "unanswered" | "answered"
 
-const ROUTE_NOT_FOUND = "NotFoundException"
 const RESOURCE_GONE = "NullValueException"
 
 export class EngineRequestError extends Error {
@@ -35,8 +36,18 @@ export class EngineRequestError extends Error {
     if (!(error instanceof EngineRequestError)) {
       return false
     }
-    const missing = error.status === 404 && error.engineType !== undefined
     const gone = error.status === 500 && error.engineType === RESOURCE_GONE
-    return error.failure === "refused" || (missing && error.engineType !== ROUTE_NOT_FOUND) || gone
+    return error.failure === "refused" || EngineRequestError.isMissing404(error) || gone
+  }
+
+  private static isMissing404(error: EngineRequestError): boolean {
+    if (error.status === undefined) {
+      return false
+    }
+    return isMissing(
+      error.engineType === undefined
+        ? { status: error.status }
+        : { status: error.status, engineType: error.engineType },
+    )
   }
 }

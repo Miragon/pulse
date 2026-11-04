@@ -1,5 +1,7 @@
+import { MAX_STACKTRACE_LINES } from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
 import { RestEngineClient } from "../../../../src/adapters/c7/engine-rest/index.js"
+import { InspectedVariables } from "../../../../src/adapters/c7/mapping/inspected-variables.js"
 import { httpOver } from "../support/fake-engine.js"
 import { engineFailure, fakeEngineRest, type RestRoute } from "../support/fake-engine-rest.js"
 
@@ -172,6 +174,7 @@ describe("inspecting an instance over REST", () => {
     ])
     expect(view.waitingAt[3]).toEqual({
       kind: "userTask",
+      taskId: "t1",
       activityId: "review",
       activityName: "review",
       activityType: "userTask",
@@ -185,7 +188,7 @@ describe("inspecting an instance over REST", () => {
         stacktrace,
       ]),
     ).toEqual([
-      ["i1", "x1", { lines: ["Boom", "\tat Worker"], truncated: false }],
+      ["i1", "x1", ["Boom", "\tat Worker"]],
       ["i2", "j2", undefined],
       ["i4", undefined, undefined],
     ])
@@ -194,24 +197,24 @@ describe("inspecting an instance over REST", () => {
       definition: { id: ORDER, key: "order", version: 1 },
       propagatedIncidents: 2,
       children: [{ id: "c1", parentId: "p1", key: "label", state: "SUSPENDED" }],
-      calls: [{ activityId: "call", calledProcessInstanceId: "c1" }],
-      timeline: [{ activityId: "call", startTime: SINCE, canceled: true }],
-      variables: [
-        { name: "doc", valueJson: '"{}"', type: "Json" },
-        { name: "total", valueJson: "9007199254740993" },
+      timeline: [
+        { activityId: "call", startTime: SINCE, canceled: true, calledProcessInstanceId: "c1" },
       ],
     })
+    expect(InspectedVariables.of(view.variables)).toEqual([
+      { name: "doc", valueJson: '"{}"', type: "Json" },
+      { name: "total", valueJson: "9007199254740993" },
+    ])
   })
 
-  test("cuts a long stack trace and says that it is cut", async () => {
+  test("cuts a long stack trace at engine-core's limit", async () => {
     const frames = Array.from({ length: 250 }, (_, index) => `\tat Frame${index}`)
     const details = get("/external-task/x1/errorDetails", new Response(frames.join("\n")))
     const routes = RUNNING_TREE.map((route) => (route.route === details.route ? details : route))
 
     const stacktrace = (await inspect(routes))?.incidents[0]?.stacktrace
 
-    expect(stacktrace?.truncated).toBe(true)
-    expect(stacktrace?.lines).toHaveLength(200)
+    expect(stacktrace).toHaveLength(MAX_STACKTRACE_LINES)
   })
 
   test("reads an ended instance from its history alone", async () => {
@@ -232,7 +235,9 @@ describe("inspecting an instance over REST", () => {
     )
 
     expect(view).toMatchObject({ state: "COMPLETED", parentId: "p0", waitingAt: [], children: [] })
-    expect(view?.variables).toEqual([{ name: "route", valueJson: '"review"' }])
+    expect(InspectedVariables.of(view?.variables)).toEqual([
+      { name: "route", valueJson: '"review"' },
+    ])
   })
 
   test("names the definition and the caller of an instance without history", async () => {
@@ -300,6 +305,20 @@ describe("inspecting an instance over REST", () => {
     ])
 
     expect(view).toMatchObject({ truncated: true, children: [] })
+  })
+
+  test.each([
+    ["activityId", { startTime: SINCE }],
+    ["startTime", { activityId: "call" }],
+  ])("fails as an unexpected answer when a step of the path has no %s", async (field, step) => {
+    const routes = RUNNING_TREE.filter((route) => route.route !== "GET /history/activity-instance")
+    const failure = await inspect([...routes, get("/history/activity-instance", [step])]).then(
+      () => undefined,
+      (error: unknown) => error,
+    )
+    expect(failure).toBeInstanceOf(Error)
+    expect((failure as Error).name).toBe("UnexpectedAnswerError")
+    expect((failure as Error).message).toContain(`${field} is missing`)
   })
 
   test("fails when the engine fails to read the variables", async () => {

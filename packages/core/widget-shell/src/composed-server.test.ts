@@ -166,6 +166,20 @@ describe("createComposedServer: boot", () => {
     )
   })
 
+  // A module may key per-boot state on its config object (the engine module's one engine registry,
+  // shared by its tools and the BPMN lookup it hands analytics through `shared`).
+  it("hands `shared` and createPlugin the same config object of an entry", async () => {
+    const { module, createPlugin } = spiedAlpha()
+    const seen: Record<string, unknown>[] = []
+    const shared = (entries: readonly ModuleEntry[]) => {
+      seen.push(...entries.map((entry) => entry.config))
+      return {}
+    }
+    await createComposedServer(options({ modules: [module], shared }))
+    expect(seen).toHaveLength(1)
+    expect(createPlugin.mock.calls[0]?.[0]).toBe(seen[0])
+  })
+
   it("names the boot's variables and every module's in composedEnvVars", () => {
     expect([...composedEnvVars([alpha])].sort()).toEqual(
       [

@@ -64,9 +64,12 @@ REST calls themselves use the generated SDK (imported from
 `@miragon/pulse-engine-client/sdk`). If the endpoint is missing there, the OpenAPI spec
 changed and you need `pnpm generate`, not a hand-written fetch. The engine's REST rules the
 handler applies (`toEngineDate`, `engineLike`, `complementaryFlags`, `engineSorting`,
-`toEngineVariables`, `incidentRecovery`, `RAW_VARIABLES`) come from `@miragon/pulse-engine-core`,
-their one home, which the CLI uses too; the reads bound to the SDK (`fetchJobStacktrace`,
-`readProcessInstanceVariables`, `readBatch`) from `@miragon/pulse-engine-client`.
+`toEngineVariables`, `incidentRecovery`, `RAW_VARIABLES`, `isMissing`) come from
+`@miragon/pulse-engine-core`, their one home, which the CLI uses too; the reads bound to the SDK
+(`fetchJobStacktrace`, `readProcessInstanceVariables`, `readBatch`) from
+`@miragon/pulse-engine-client`. Those reads throw every 404: a handler that reads a missing
+resource as "none" wraps the read in `noneIfMissing` (`src/lib/core-adapter/engine-port.ts`,
+engine-core's `isMissing`), so a wrong REST root still fails loud.
 
 ### Parameter naming guide
 

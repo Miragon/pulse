@@ -55,6 +55,8 @@
       "retries": 3
     }
   ],
+  "propagatedIncidents": 0,
+  "children": [],
   "incidents": [
     {
       "id": "c7339796-cd79-11f1-9d36-92016cbb8c45",
@@ -73,41 +75,21 @@
       "externalTaskId": "c72a6fc7-cd79-11f1-9d36-92016cbb8c45"
     }
   ],
-  "propagatedIncidents": 0,
-  "children": [],
-  "calls": [],
-  "timeline": [],
-  "variables": [
-    {
-      "name": "amount",
-      "valueJson": "125"
+  "variables": {
+    "amount": 125,
+    "approved": false,
+    "bigId": 9007199254740993,
+    "customer": "ACME GmbH 1",
+    "items": {
+      "type": "Json",
+      "value": "[{\"sku\":\"A-1\",\"qty\":2},{\"sku\":\"B-7\",\"qty\":1}]"
     },
-    {
-      "name": "approved",
-      "valueJson": "false"
-    },
-    {
-      "name": "bigId",
-      "valueJson": "9007199254740993"
-    },
-    {
-      "name": "customer",
-      "valueJson": "\"ACME GmbH 1\""
-    },
-    {
-      "name": "items",
-      "valueJson": "\"[{\\\"sku\\\":\\\"A-1\\\",\\\"qty\\\":2},{\\\"sku\\\":\\\"B-7\\\",\\\"qty\\\":1}]\"",
-      "type": "Json"
-    },
-    {
-      "name": "note",
-      "valueJson": "null"
-    },
-    {
-      "name": "orderDate",
-      "valueJson": "\"2026-10-21T08:00:00.000+0000\"",
-      "type": "Date"
+    "note": null,
+    "orderDate": {
+      "type": "Date",
+      "value": "2026-10-21T08:00:00.000+0000"
     }
-  ],
-  "truncated": false
+  },
+  "timeline": [],
+  "next": []
 }

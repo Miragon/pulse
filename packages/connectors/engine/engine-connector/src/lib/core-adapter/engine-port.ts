@@ -39,6 +39,7 @@ import {
 import {
   createEnginePort,
   type EngineFailure,
+  isMissing,
   type EnginePort,
   type EngineTransport,
   type OperationInput,
@@ -117,6 +118,28 @@ export function engineFailure(error: unknown): EngineFailure | undefined {
     status: error.httpStatus,
     ...(error.type === undefined ? {} : { engineType: error.type }),
     engineMessage: error.engineMessage,
+  }
+}
+
+/**
+ * engine-core's missing-resource rule (`isMissing`) over an engine-client error: an engine 404
+ * that names a missing resource. A wrong REST root (a 404 `NotFoundException`, or a 404 without
+ * an engine answer) is no missing resource; it fails loud wherever a caller reads it.
+ */
+export function isMissingResource(error: unknown): boolean {
+  return isMissing(engineFailure(error))
+}
+
+/**
+ * The value of `read`, or `null` when it names a missing resource ({@link isMissingResource});
+ * every other failure, a wrong REST root included, rejects.
+ */
+export async function noneIfMissing<T>(read: Promise<T>): Promise<T | null> {
+  try {
+    return await read
+  } catch (error) {
+    if (isMissingResource(error)) return null
+    throw error
   }
 }
 

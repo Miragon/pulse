@@ -12,6 +12,12 @@
  *   Jackson's view of the Spin node instead of their JSON. With `false`,
  *   Object/Json/Xml values come back as their serialized string + `valueInfo`,
  *   exactly the shape a variable write takes back.
+ *
+ * These reads never decide what a failure means: every engine error throws
+ * (an `EngineRequestError`), a 404 included. Whether a 404 names a missing
+ * resource or a wrong REST root is engine-core's `isMissing`, the one rule of
+ * the family; the caller reads the error through it (the engine connector's
+ * port and tools).
  */
 import type { Client } from "../generated/client/types.gen.js"
 import {
@@ -23,7 +29,6 @@ import {
   getTaskVariables,
 } from "../generated/sdk.gen.js"
 import type { VariableValueDto } from "../generated/types.gen.js"
-import { EngineRequestError } from "../engine-error.js"
 import { endedBatchReport, runningBatchReport, type BatchReport } from "./batches.js"
 
 /** Request options for a `text/plain`-only endpoint. */
@@ -31,22 +36,13 @@ const TEXT_PLAIN = { parseAs: "text", headers: { Accept: "text/plain" } } as con
 
 /**
  * The query the variable reads send. The rule's home is engine-core's `RAW_VARIABLES`; this leaf
- * does not import engine-core, so its SDK reads restate the flag (the engine connector's wire
- * tests hold every variable read to `deserializeValues=false`).
+ * does not import engine-core, so its two SDK reads restate the flag, and the engine connector
+ * (the one package that imports both) holds the copy equal to engine-core's in
+ * `src/engine-contract.test.ts`.
  */
 const RAW_VARIABLES = { deserializeValues: false } as const
 
 export type VariableMap = Record<string, VariableValueDto>
-
-/**
- * The client's "missing" rule: EVERY 404. Broader than engine-core's `isMissing`, which leaves
- * out a 404 of the JAX-RS `NotFoundException` (no such endpoint: a wrong REST root) and of
- * `QueryParamException`; so here a wrong REST root reads as "none". Kept as it is in a refactor:
- * one rule for both is a behaviour change of its own.
- */
-function isAnyNotFound(error: unknown): boolean {
-  return error instanceof EngineRequestError && error.httpStatus === 404
-}
 
 /** Engine text, `null` for an empty body (204, or a resource without one). */
 function textOrNull(text: unknown): string | null {
@@ -54,36 +50,26 @@ function textOrNull(text: unknown): string | null {
 }
 
 /**
- * The exception stacktrace of a job; `null` when the job has none or no
- * longer exists (404). Every other failure throws: the caller decides
- * whether a missing stacktrace may degrade.
+ * The exception stacktrace of a job; `null` when the job has none (an empty
+ * body). Every failure throws, a 404 included: the caller decides through
+ * engine-core's `isMissing` whether the job is gone or the REST root wrong.
  */
 export async function fetchJobStacktrace(client: Client, jobId: string): Promise<string | null> {
-  try {
-    return textOrNull(await getStacktrace({ client, path: { id: jobId }, ...TEXT_PLAIN }))
-  } catch (error) {
-    if (isAnyNotFound(error)) return null
-    throw error
-  }
+  return textOrNull(await getStacktrace({ client, path: { id: jobId }, ...TEXT_PLAIN }))
 }
 
 /**
  * The error details a worker reported for an external task (its
- * `failedExternalTask` stacktrace); `null` when there are none or the task no
- * longer exists (404). Every other failure throws.
+ * `failedExternalTask` stacktrace); `null` when there are none (an empty
+ * body). Every failure throws, a 404 included (see `fetchJobStacktrace`).
  */
 export async function fetchExternalTaskErrorDetails(
   client: Client,
   externalTaskId: string,
 ): Promise<string | null> {
-  try {
-    return textOrNull(
-      await getExternalTaskErrorDetails({ client, path: { id: externalTaskId }, ...TEXT_PLAIN }),
-    )
-  } catch (error) {
-    if (isAnyNotFound(error)) return null
-    throw error
-  }
+  return textOrNull(
+    await getExternalTaskErrorDetails({ client, path: { id: externalTaskId }, ...TEXT_PLAIN }),
+  )
 }
 
 /** All variables of a process instance, serialized (see the module doc). */
@@ -106,19 +92,12 @@ export function readTaskVariables(client: Client, taskId: string): Promise<Varia
 /**
  * Where a batch stands: the runtime statistics while it exists (counts incl.
  * failed batch jobs), its history record once it ended. A batch neither
- * holds is reported as an error: it never existed, or ended on an engine
- * without batch history.
+ * holds fails with the engine's error of the history read (a 404 when it
+ * never existed, or ended on an engine without batch history); the caller
+ * words it through engine-core's `isMissing`.
  */
 export async function readBatch(client: Client, batchId: string): Promise<BatchReport> {
   const running = await getBatchStatistics({ client, query: { batchId } })
   if (Array.isArray(running) && running[0]) return runningBatchReport(running[0])
-  try {
-    return endedBatchReport(await getHistoricBatch({ client, path: { id: batchId } }))
-  } catch (error) {
-    if (!isAnyNotFound(error)) throw error
-    throw new Error(
-      `Batch ${batchId} not found: no running batch has this id and the engine history holds no record of it`,
-      { cause: error },
-    )
-  }
+  return endedBatchReport(await getHistoricBatch({ client, path: { id: batchId } }))
 }

@@ -18,6 +18,8 @@ export {
   type PlannedWrite,
   type Query,
   createEnginePort,
+  isMissing,
+  isUnknownEndpoint,
   PARALLEL,
   Slots,
 } from "./port.js"
@@ -62,7 +64,7 @@ export {
   toEngineVariable,
   toEngineVariables,
 } from "./variable-writes.js"
-export { RAW_VARIABLES } from "./variables.js"
+export { RAW_VARIABLES, RAW_VARIABLES_QUERY } from "./variables.js"
 export { incidentRecovery, type IncidentRecovery } from "./incident-recovery.js"
 export { mapLimit } from "./util.js"
 export { formatDuration } from "./durations.js"
@@ -113,6 +115,7 @@ export {
   MAX_STACKTRACE_LINES,
 } from "./inspect.js"
 export { activeTree, type InstanceTree } from "./tree.js"
+export { timelineOf } from "./timeline.js"
 export { waitId } from "./waits.js"
 export { byActivity, isAdvanceable, isSuspendedJob, itemStep } from "./next.js"
 export type {

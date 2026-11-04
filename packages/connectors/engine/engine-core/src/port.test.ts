@@ -4,6 +4,7 @@ import {
   type EngineFailure,
   type EngineTransport,
   isMissing,
+  isUnknownEndpoint,
   type OperationInput,
   pageQuery,
   Slots,
@@ -50,6 +51,18 @@ describe("isMissing", () => {
     expect(isMissing({ status: 404 })).toBe(false)
     expect(isMissing({ status: 500, engineType: "InvalidRequestException" })).toBe(false)
     expect(isMissing(undefined)).toBe(false)
+  })
+})
+
+describe("isUnknownEndpoint", () => {
+  it("is true only for a 404 that is no engine answer about a resource", () => {
+    expect(isUnknownEndpoint({ status: 404 })).toBe(true)
+    expect(isUnknownEndpoint({ status: 404, engineType: "NotFoundException" })).toBe(true)
+    expect(isUnknownEndpoint({ status: 404, engineType: "InvalidRequestException" })).toBe(false)
+    expect(isUnknownEndpoint({ status: 404, engineType: "QueryParamException" })).toBe(false)
+    expect(isUnknownEndpoint({ status: 500 })).toBe(false)
+    expect(isUnknownEndpoint({ status: 400, engineType: "NotFoundException" })).toBe(false)
+    expect(isUnknownEndpoint(undefined)).toBe(false)
   })
 })
 
