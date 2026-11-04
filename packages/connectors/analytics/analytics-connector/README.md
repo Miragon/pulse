@@ -100,8 +100,8 @@ failed read; the views ask the engines their rows come from, and the names are c
 
 Read the [`add-analytics-feature`](../../../../.claude/skills/add-analytics-feature) skill first. The house
 pattern: add a PromQL query function in [`@miragon/pulse-analytics-client`](../analytics-client) (using
-`METRIC_NAMES`, never raw metric strings), then one show tool and its view here (a registrar tool
-only for a read that needs no view). Metric names
+`METRIC_NAMES`, never raw metric strings), then the tool's Zod input schema in `src/schemas/` and
+one show tool and its view here (a registrar tool only for a read that needs no view). Metric names
 and labels are governed by the
 [metrics contract](../analytics-client/metrics-contract.json). Change it there first.
 
@@ -109,6 +109,7 @@ and labels are governed by the
 
 | Path                  | Contents                                                    |
 | --------------------- | ----------------------------------------------------------- |
+| `src/schemas/`        | The tools' Zod input schemas                                |
 | `src/tools/`          | The engine health read (`index.ts` wires it)                |
 | `src/widget-tools.ts` | `show_*` dashboard/comparison widget tools                  |
 | `src/widgets/`        | React dashboard + comparison widgets                        |
