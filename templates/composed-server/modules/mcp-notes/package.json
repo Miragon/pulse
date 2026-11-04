@@ -19,8 +19,8 @@
     "typecheck": "tsc --noEmit && tsc -p tsconfig.widgets.json"
   },
   "peerDependencies": {
-    "@miragon/pulse-ui": "^0.25.0",
-    "@miragon/pulse-widget-shell": "^0.25.0",
+    "@miragon/pulse-ui": "^0.26.0",
+    "@miragon/pulse-widget-shell": "^0.26.0",
     "mcp-use": "2.12.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
@@ -35,8 +35,8 @@
     }
   },
   "devDependencies": {
-    "@miragon/pulse-ui": "0.25.0",
-    "@miragon/pulse-widget-shell": "0.25.0",
+    "@miragon/pulse-ui": "0.26.0",
+    "@miragon/pulse-widget-shell": "0.26.0",
     "@tanstack/react-query": "5.105.0",
     "@testing-library/react": "16.3.3",
     "@types/node": "22.20.5",

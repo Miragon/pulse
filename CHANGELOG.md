@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.26.0](https://github.com/Miragon/pulse/compare/v0.25.0...v0.26.0) (2026-11-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* **engine:** @miragon/pulse-engine-client: fetchJobStacktrace and fetchExternalTaskErrorDetails reject on a 404 instead of resolving null (null stays for an empty body), and readBatch rejects with the engine's error of the history read instead of "Batch <id> not found"; read a 404 with @miragon/pulse-engine-core's isMissing. createEngineClient never follows a redirect: a 3xx rejects with an EngineRequestError. @miragon/pulse-engine-core: isMissing moved from the /testing entry to the main entry; isUnknownEndpoint, RAW_VARIABLES_QUERY and timelineOf are new exports. @miragon/pulse-engine-connector: createBpmnXmlFetcher without an engine id reads on ENGINE_DEFAULT, else the only configured engine, and rejects with ENGINE_NOT_SELECTED when several engines have no default (before: the first configured engine); an unknown id rejects with "Unknown engine id".
+* **analytics:** analytics_engine_health's result fields status and statusRule are now metricsState and metricsStateRule. In @miragon/pulse-analytics-client, EngineHealthResult carries metricsState and metricsStateRule, and the export ENGINE_HEALTH_STATUS_RULE is now ENGINE_METRICS_STATE_RULE.
+* **engine:** @miragon/pulse-engine-core/testing no longer exports messagePattern (use messageSignature from the entry) or engineStatus (use engineVerdict). readStatus returns critical from 50 open incidents or 25 of one cause by default; pass StatusOptions.thresholds to judge otherwise.
+* **analytics:** @miragon/pulse-analytics-client no longer exports `schemas` and has no zod peer. The analytics tools' input schemas belong to @miragon/pulse-analytics-connector and are not exported; a consumer that validated its own input with them declares its own zod schema.
+
+### Features
+
+* **cli:** a JSON Schema for .pulse-cli.json, held to the CLI and the VS Code extension ([#523](https://github.com/Miragon/pulse/issues/523)) ([8f47111](https://github.com/Miragon/pulse/commit/8f47111a6e74743a607fbd74c30f9b5bc695426b))
+* **cli:** pulse is the command, pulse-cli stays as an alias ([#522](https://github.com/Miragon/pulse/issues/522)) ([988ba08](https://github.com/Miragon/pulse/commit/988ba08494aee715bb906a29ffd0a5dee574134f))
+
+
+### Bug Fixes
+
+* **analytics:** analytics_engine_health reports metricsState, not status ([683f65f](https://github.com/Miragon/pulse/commit/683f65fda5014dabaa8a05ab0550f9d368c4bea9))
+* **cli:** pulse status groups incidents like the cockpit ([683f65f](https://github.com/Miragon/pulse/commit/683f65fda5014dabaa8a05ab0550f9d368c4bea9))
+* **engine:** engine-core judges with the cockpit's thresholds and drops messagePattern ([683f65f](https://github.com/Miragon/pulse/commit/683f65fda5014dabaa8a05ab0550f9d368c4bea9))
+* **engine:** one 404 rule, no followed redirects, one BPMN engine pick ([#528](https://github.com/Miragon/pulse/issues/528)) ([9cdc54c](https://github.com/Miragon/pulse/commit/9cdc54caaad2296cac8c6f81825996109527dc3c))
+* **engine:** one incident mask and one live verdict for engine_status and the cockpit ([#526](https://github.com/Miragon/pulse/issues/526)) ([683f65f](https://github.com/Miragon/pulse/commit/683f65fda5014dabaa8a05ab0550f9d368c4bea9))
+* **vscode:** read .pulse-cli.json by the CLI's rules ([8f47111](https://github.com/Miragon/pulse/commit/8f47111a6e74743a607fbd74c30f9b5bc695426b))
+* **vscode:** read a 404 by the engine family's one missing-resource rule ([9cdc54c](https://github.com/Miragon/pulse/commit/9cdc54caaad2296cac8c6f81825996109527dc3c))
+
+
+### Code Refactoring
+
+* **analytics:** move the tool input schemas into analytics-connector ([#521](https://github.com/Miragon/pulse/issues/521)) ([41b2805](https://github.com/Miragon/pulse/commit/41b280587d90123d799cf7fc36600a2c1a515830))
+
 ## [0.25.0](https://github.com/Miragon/pulse/compare/v0.24.2...v0.25.0) (2026-11-03)
 
 
