@@ -28,13 +28,13 @@ import { remediationHandOff, UNKNOWN_KEY as UNKNOWN } from "./remediation.js"
 import { useActionAllowed } from "./lib/engine-action.js"
 import { useHandOff, type HandOff, type ViewContext } from "./lib/hand-off.js"
 import { formatCount, formatCountAtLeast } from "./lib/format-count.js"
-import { healthVerdictLine } from "./lib/health-verdict.js"
+import { healthVerdictLine, VERDICT_TONE } from "./lib/health-verdict.js"
 import { useT } from "../messages/use-t.js"
 
-const STATUS: Record<EngineHealthStatus, { tone: ToneVariant; labelKey: string }> = {
-  ok: { tone: "success", labelKey: "engineHealth.statusStable" },
-  degraded: { tone: "warning", labelKey: "engineHealth.statusDegraded" },
-  critical: { tone: "danger", labelKey: "engineHealth.statusCritical" },
+const STATUS_LABEL: Record<EngineHealthStatus, string> = {
+  ok: "engineHealth.statusStable",
+  warning: "engineHealth.statusWarning",
+  critical: "engineHealth.statusCritical",
 }
 
 /** An engine with nothing deployed is neutral, never a green check over an empty engine (#322 U14). */
@@ -42,7 +42,7 @@ function verdictBadge(data: EngineHealthData): { tone: ToneVariant; labelKey: st
   if (data.summary.totalDefinitions === 0 && data.summary.totalIncidents === 0) {
     return { tone: "neutral", labelKey: "engineHealth.statusNothingDeployed" }
   }
-  return STATUS[data.status]
+  return { tone: VERDICT_TONE[data.status], labelKey: STATUS_LABEL[data.status] }
 }
 
 function clusterActivities(data: EngineHealthData): string[] {

@@ -23,13 +23,15 @@ interface HealthAlert {
 // An engine-less alert counts only when it is ours: in a shared Prometheus the others belong to somebody else.
 export const ENGINE_ALERT_NAME_PATTERN = "CibSeven.+"
 
-// Carried in every result so no reader mistakes this verdict for engine_open_cockpit's overview: the two may disagree.
-export const ENGINE_HEALTH_STATUS_RULE =
+// How `metricsState` comes about, carried in every result: the state the metrics show, under a
+// name of its own (the engine module's live verdict is `status`).
+export const ENGINE_METRICS_STATE_RULE =
   "From Prometheus, over the engines in scope: unknown when none of them reports metrics; critical only while a severity=critical alert fires for them (fleet-wide also an engine-less CibSeven* alert); degraded with any such firing alert, failed job, open incident or an engine in scope that reports nothing; else healthy."
 
 export interface EngineHealthResult {
-  status: "healthy" | "degraded" | "critical" | "unknown"
-  statusRule: string
+  /** The state the metrics and alert rules show (`ENGINE_METRICS_STATE_RULE`). */
+  metricsState: "healthy" | "degraded" | "critical" | "unknown"
+  metricsStateRule: string
   engines: string[] | null
   reportingEngines: string[]
   /** Every count reads 0 for these engines, not because they are idle. */
@@ -139,7 +141,7 @@ export async function engineHealth(
   ].sort()
   const silentEngines = (engines ?? []).filter((id) => !reportingEngines.includes(id))
 
-  const status: EngineHealthResult["status"] =
+  const metricsState: EngineHealthResult["metricsState"] =
     reportingEngines.length === 0
       ? "unknown"
       : firingAlerts.some((a) => a.severity === "critical")
@@ -149,8 +151,8 @@ export async function engineHealth(
           : "healthy"
 
   return {
-    status,
-    statusRule: ENGINE_HEALTH_STATUS_RULE,
+    metricsState,
+    metricsStateRule: ENGINE_METRICS_STATE_RULE,
     engines,
     reportingEngines,
     silentEngines,

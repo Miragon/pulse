@@ -1,6 +1,6 @@
 /**
  * The findings of the status triage: pure rules over the aggregated status, each naming its next
- * step, and the overall status (the highest severity, else `ok`).
+ * step. The overall status is `engineVerdict`'s (`verdict.ts`).
  */
 
 import { formatDuration } from "./durations.js"
@@ -31,7 +31,21 @@ export interface Finding<N = FindingStep> {
   readonly next: N
 }
 
+/** Open incidents at the verdict's thresholds (`incidentsAtThreshold`): what made the status critical. */
+interface IncidentsAtThreshold {
+  readonly openIncidents: number
+  /** The incidents of the largest cause (`largestCause`) and that cause. */
+  readonly largestCause: number
+  readonly cause?: { readonly activityId: string; readonly incidentType: string }
+  /** The thresholds in words (`criticalIncidentsRule`). */
+  readonly rule: string
+  /** The step of the cause's largest incident group, else its incidents by type. */
+  readonly next: GroupStep
+}
+
 export interface FindingInput {
+  /** Set when the open incidents reach the verdict's thresholds; raises INCIDENTS_CRITICAL. */
+  readonly incidentsAtThreshold?: IncidentsAtThreshold
   readonly jobs: JobStatus
   /** The incident groups shown; their findings carry the group's next step on. */
   readonly incidents: readonly IncidentGroup[]
@@ -65,6 +79,23 @@ function where(group: IncidentGroup): string {
   return group.processDefinitionKey === ""
     ? `job definition ${group.jobDefinitionId ?? "(unknown)"}`
     : `${group.processDefinitionKey}/${group.activityId}`
+}
+
+function thresholdFindings(input: FindingInput): Finding[] {
+  const at = input.incidentsAtThreshold
+  if (at === undefined) return []
+  const cause =
+    at.cause === undefined
+      ? ""
+      : `, ${at.largestCause} of them ${at.cause.incidentType} at ${at.cause.activityId}`
+  return [
+    {
+      severity: "critical",
+      code: "INCIDENTS_CRITICAL",
+      message: `${plural(at.openIncidents, "open incident")}${cause}: critical at ${at.rule}`,
+      next: at.next,
+    },
+  ]
 }
 
 function incidentFindings(input: FindingInput): Finding[] {
@@ -132,6 +163,7 @@ const SEVERITY_ORDER: readonly Severity[] = ["critical", "warning"]
 /** Every finding, critical first, then by code and message; incident findings carry their group's step. */
 export function findings(input: FindingInput): Finding[] {
   return [
+    ...thresholdFindings(input),
     ...overdueJobs(input),
     ...incidentFindings(input),
     ...workerFindings(input),
@@ -143,9 +175,4 @@ export function findings(input: FindingInput): Finding[] {
       compareText(left.code, right.code) ||
       compareText(left.message, right.message),
   )
-}
-
-/** The highest severity of the findings, else `ok`. */
-export function engineStatus(list: readonly Pick<Finding<unknown>, "severity">[]): EngineStatus {
-  return list[0]?.severity ?? "ok"
 }

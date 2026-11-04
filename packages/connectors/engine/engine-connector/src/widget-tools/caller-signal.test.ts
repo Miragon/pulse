@@ -6,6 +6,7 @@ import { createEngineRegistry } from "../lib/engine/resolve-engine.js"
 import { providerForEntry } from "../providers/index.js"
 import { ENGINE_WIDGET_ACTIONS_DATA } from "../tool-names.js"
 import { registerWidgetTools } from "../widget-tools.js"
+import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-engine-core"
 
 /**
  * #325: dropping `ctx` compiles (`call` is optional) and the per-feed tests stay green; only a
@@ -52,7 +53,10 @@ describe("widget tools and feeds honor ctx.signal", () => {
     const registry = createEngineRegistry([{ id: "prod-a", baseUrl }], (e) =>
       providerForEntry(e).createClient(e, { type: "none" }, { timeoutMs: 2000 }),
     )
-    registerWidgetTools(server, registry, { toolset: "read-only" })
+    registerWidgetTools(server, registry, {
+      healthThresholds: DEFAULT_VERDICT_THRESHOLDS,
+      toolset: "read-only",
+    })
 
     const readsOf = async (name: string, ctx: { signal?: AbortSignal }) => {
       const before = requests

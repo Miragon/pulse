@@ -34,7 +34,7 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
       name: ANALYTICS_SHOW_PERIOD_COMPARE,
       title: "Period Comparison",
       description:
-        "Compare process KPIs of two periods (around a deployment, A ends and B starts at its timestamp from engine_get_deployment). Per period: starts and starts per day, completions, incidents per 100 starts, avg/median/p95 duration, plus the deltas. Periods are clamped to now and the 30-day retention and reported as measured (`partial`); a reversed or wholly out-of-range period is refused.",
+        "Compare process KPIs of two periods (around a deployment, A ends and B starts at its deployment time). Per period: starts and starts per day, completions, incidents per 100 starts, avg/median/p95 duration, plus the deltas. Periods are clamped to now and the 30-day retention and reported as measured (`partial`); a reversed or wholly out-of-range period is refused.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
       inputSchema: strictToolInput(periodCompareInput.shape),
       ...showToolBinding(ANALYTICS_SHOW_PERIOD_COMPARE, "Period Comparison"),
@@ -53,7 +53,7 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
       name: ANALYTICS_SHOW_VERSION_COMPARE,
       title: "Process Version Comparison",
       description:
-        "Compare KPIs of two deployed versions of one processDefinitionKey over a shared rolling window. The version is an exact label on the instance and incident series, so starts, completions, incidents, incidents per 100 starts and avg/median/p95 duration per version and their deltas are exact; the comparison is process-wide (no element scope). Find versions with engine_list_process_definitions.",
+        "Compare KPIs of two deployed versions of one processDefinitionKey over a shared rolling window. The version is an exact label on the instance and incident series, so starts, completions, incidents, incidents per 100 starts and avg/median/p95 duration per version and their deltas are exact; the comparison is process-wide (no element scope).",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
       inputSchema: strictToolInput(versionCompareInput.shape),
       ...showToolBinding(ANALYTICS_SHOW_VERSION_COMPARE, "Process Version Comparison"),

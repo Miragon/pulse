@@ -1,11 +1,12 @@
 /**
  * The status triage of one engine in one call. Round 1 loads version, statistics, incidents,
  * external tasks, jobs, tasks and batches in parallel, round 2 the root cause of each incident
- * group shown; the findings name their next step.
+ * group shown; the findings name their next step, and the status is the live verdict
+ * (`engineVerdict`) over the open incidents, the largest cause and the findings.
  */
 
 import { EXECUTABLE } from "./conditions.js"
-import { type EngineStatus, type Finding, findings, engineStatus } from "./findings.js"
+import { type EngineStatus, type Finding, findings } from "./findings.js"
 import { incidentCause } from "./inspect.js"
 import { type EnginePort, PARALLEL, type PlannedRequest, pageQuery, type Query } from "./port.js"
 import { engineFormat } from "./dates.js"
@@ -14,6 +15,7 @@ import { queryInput } from "./requests.js"
 import {
   type DefinitionStatus,
   definitionStatus,
+  type GroupedIncidents,
   type GroupStep,
   groupIncidents,
   type IncidentGroup,
@@ -24,6 +26,15 @@ import {
   unknownKeys,
 } from "./status.js"
 import { compact, mapLimit, omit } from "./util.js"
+import {
+  causeKeyOf,
+  criticalIncidentsRule,
+  DEFAULT_VERDICT_THRESHOLDS,
+  engineVerdict,
+  incidentsAtThreshold,
+  largestCause,
+  type VerdictThresholds,
+} from "./verdict.js"
 
 /** How long an executable job or a waiting external task may wait by default: 5 minutes. */
 const STALE_AFTER_MS = 300_000
@@ -42,16 +53,23 @@ export interface StatusOptions {
   readonly maxGroups?: number
   /** The tie-break of equal incident groups; `defaultGroupOrder` when left out. */
   readonly compareGroupSteps?: (left: GroupStep, right: GroupStep) => number
+  /** When open incidents make the status critical; `DEFAULT_VERDICT_THRESHOLDS` when left out. */
+  readonly thresholds?: VerdictThresholds
 }
 
 /** The options with their defaults applied. */
-type Resolved = StatusOptions & { readonly staleAfterMs: number; readonly maxGroups: number }
+type Resolved = StatusOptions & {
+  readonly staleAfterMs: number
+  readonly maxGroups: number
+  readonly thresholds: VerdictThresholds
+}
 
 function resolved(options: StatusOptions): Resolved {
   return {
     ...options,
     staleAfterMs: options.staleAfterMs ?? STALE_AFTER_MS,
     maxGroups: options.maxGroups ?? MAX_GROUPS,
+    thresholds: options.thresholds ?? DEFAULT_VERDICT_THRESHOLDS,
   }
 }
 
@@ -251,6 +269,37 @@ async function incidentGroups(port: EnginePort, data: RoundOne, options: Resolve
 }
 
 /**
+ * The verdict's incident inputs, the cockpit's: every loaded open incident (propagated ones and
+ * those of batch jobs too) by its cause over every definition. Past the threshold, the
+ * INCIDENTS_CRITICAL input: its next step is the cause's largest group's, else its incidents by type.
+ */
+function incidentVerdict(data: RoundOne, grouped: GroupedIncidents, options: Resolved) {
+  const largest = largestCause(data.incidents.items)
+  const input = { openIncidents: data.incidentCount, largestCluster: largest?.count ?? 0 }
+  if (!incidentsAtThreshold(input, options.thresholds)) return { input }
+  const largestKey = largest?.cause.key
+  const group = grouped.groups.find(
+    (candidate) =>
+      causeKeyOf({
+        activityId: candidate.activityId,
+        incidentType: candidate.type,
+        incidentMessage: candidate.message,
+      }).key === largestKey,
+  )
+  const incidentType = largest?.cause.incidentType ?? "failedJob"
+  return {
+    input,
+    atThreshold: {
+      openIncidents: input.openIncidents,
+      largestCause: input.largestCluster,
+      ...compact({ cause: largest?.cause }),
+      rule: criticalIncidentsRule(options.thresholds),
+      next: group?.next ?? { action: "listIncidentsOfType" as const, incidentType },
+    },
+  }
+}
+
+/**
  * The status of the engine behind `deps.port`: findings with their severity, the overall status,
  * definitions, incident groups with their root cause, topics, jobs, tasks and batches; every cut
  * named in `truncated`. Reads `deps.now` once at the start and twice around the version request.
@@ -266,7 +315,9 @@ export async function readStatus(
   const externalTasks = topicStatus(data.externalTasks.items, now)
   const jobs = jobStatus(data.executableJobs, data.staleJobs, now - options.staleAfterMs)
   const batches = data.batches ?? []
+  const verdict = incidentVerdict(data, grouped, options)
   const list = findings({
+    ...compact({ incidentsAtThreshold: verdict.atThreshold }),
     jobs,
     incidents,
     externalTasks,
@@ -278,7 +329,7 @@ export async function readStatus(
   const notes = truncation(data, grouped.groups.length, options)
   return {
     engine: { version: data.version, latencyMs: data.latencyMs },
-    status: engineStatus(list),
+    status: engineVerdict({ ...verdict.input, findings: list }, options.thresholds),
     findings: list,
     definitions: definitionStatus(data.statistics, options.keys),
     incidents,

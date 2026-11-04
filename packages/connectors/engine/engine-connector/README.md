@@ -53,8 +53,8 @@ hangs every in-widget query on "Loading…".
   model.
 - **Read composites** (`src/lib/core-adapter/composites.ts`): `engine_inspect_process_instance` (where one
   instance waits and why, running or ended, selected by id, business key or definition key) and
-  `engine_status` (the triage of one engine: findings by severity, overall status,
-  counts) answer in one call what took several reads. Both run `@miragon/pulse-engine-core` over
+  `engine_status` (the triage of one engine: findings by severity, counts and the live verdict,
+  engine-core's `engineVerdict`: the cockpit overview's incident thresholds plus its findings) answer in one call what took several reads. Both run `@miragon/pulse-engine-core` over
   the client, return data without next steps and cap long lists, naming each cut in `truncated`.
 - **The view** (`src/widget-tools/cockpit.ts`): `engine_open_cockpit` renders the operations
   cockpit, opening on any of its views, and returns that view's facts as compact JSON; app-only

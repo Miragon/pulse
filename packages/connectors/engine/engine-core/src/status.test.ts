@@ -4,10 +4,10 @@ import {
   definitionStatus,
   groupIncidents,
   jobStatus,
-  messagePattern,
   topicStatus,
   unknownKeys,
 } from "./status.js"
+import { messageSignature } from "./message-signature.js"
 import { NOW, statistics } from "./testing/status.js"
 
 const incident = (id: string, overrides: Record<string, unknown> = {}) => ({
@@ -53,6 +53,28 @@ describe("groupIncidents", () => {
     })
   })
 
+  it("groups by the family's message signature, the one the cockpit's clusters use", () => {
+    const message = (incidentMessage: string) => ({ incidentMessage })
+    const grouped = groupIncidents(
+      [
+        // one cause: case, whitespace, quoted values and numbers differ
+        incident("1", message("Timeout calling 'https://a.example/1' after 30000 ms")),
+        incident("2", message("timeout  calling 'https://b.example/2' after 5000 ms")),
+        incident("3", message('TIMEOUT calling "svc" after 7 ms')),
+        // another cause at the same activity
+        incident("4", message("Connection refused calling 'https://a.example/1'")),
+      ],
+      [statistics("order", 1, [4, 4, 4])],
+    )
+    expect(grouped.groups.map((group) => group.count)).toEqual([2, 1, 1])
+    expect(grouped.groups[0]?.processInstanceIds).toEqual(["pi-1", "pi-2"])
+    expect(grouped.groups.map((group) => messageSignature(group.message))).toEqual([
+      "timeout calling '<v>' after <n> ms",
+      'timeout calling "<v>" after <n> ms',
+      "connection refused calling '<v>'",
+    ])
+  })
+
   it("names the job definition or the type of incidents outside any process definition", () => {
     const grouped = groupIncidents(
       [
@@ -92,10 +114,7 @@ describe("groupIncidents", () => {
 })
 
 describe("the other status reads", () => {
-  it("masks message patterns, sums definitions and finds unknown keys", () => {
-    expect(messagePattern("Job 6f2b8c3e-0f4a-11ef-a1b2-0242ac120002 failed 3 times")).toBe(
-      "Job # failed # times",
-    )
+  it("sums definitions and finds unknown keys", () => {
     const rows = [statistics("order", 1, [2, 0, 0]), statistics("order", 2, [1, 1, 1])]
     expect(definitionStatus(rows, [])).toEqual([
       {

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
-import { ENGINE_HEALTH_STATUS_RULE, engineHealth } from "./health.js"
+import { ENGINE_METRICS_STATE_RULE, engineHealth } from "./health.js"
 import type { PrometheusClient, PromSample } from "../prometheus.js"
 
 const sample = (metric: Record<string, string>, value: number): PromSample => ({ metric, value })
@@ -98,9 +98,8 @@ describe("engineHealth snapshot", () => {
 })
 
 /**
- * #340: the verdict is alert-based and says so: the same engine may be
- * "critical" in engine_open_cockpit's overview (incident counts) and only
- * "degraded" here. #336: silence is not health.
+ * #340: the metrics state is alert-based and says so, under a name of its own
+ * (`metricsState`, never `status`). #336: silence is not health.
  */
 describe("engineHealth verdict", () => {
   it.each<[string, Fixture, string]>([
@@ -121,17 +120,18 @@ describe("engineHealth verdict", () => {
       { reporting: [], firing: [alert("CibSevenEngineNoMetrics", "critical")] },
       "unknown",
     ],
-  ])("%s → %s", async (_label, fixture, status) => {
+  ])("%s → %s", async (_label, fixture, state) => {
     const result = await engineHealth(mockClient(fixture).ch, {})
-    expect(result.status).toBe(status)
-    expect(result.statusRule).toBe(ENGINE_HEALTH_STATUS_RULE)
+    expect(result.metricsState).toBe(state)
+    expect(result).not.toHaveProperty("status")
+    expect(result.metricsStateRule).toBe(ENGINE_METRICS_STATE_RULE)
   })
 
   it("reads an engine that sends nothing (or a mistyped id) as unknown, never healthy (N76)", async () => {
     const { ch } = mockClient({ reporting: [] })
     const result = await engineHealth(ch, { engine: "prod-b" })
     expect(result).toMatchObject({
-      status: "unknown",
+      metricsState: "unknown",
       engines: ["prod-b"],
       reportingEngines: [],
       silentEngines: ["prod-b"],
@@ -142,14 +142,14 @@ describe("engineHealth verdict", () => {
     const { ch } = mockClient({ reporting: ["prod-a"] })
     const result = await engineHealth(ch, { engine: ["prod-a", "prod-b"] })
     expect(result).toMatchObject({
-      status: "degraded",
+      metricsState: "degraded",
       reportingEngines: ["prod-a"],
       silentEngines: ["prod-b"],
     })
   })
 
   it("states its rule in words", () => {
-    expect(ENGINE_HEALTH_STATUS_RULE).toBe(
+    expect(ENGINE_METRICS_STATE_RULE).toBe(
       "From Prometheus, over the engines in scope: unknown when none of them reports metrics; critical only while a severity=critical alert fires for them (fleet-wide also an engine-less CibSeven* alert); degraded with any such firing alert, failed job, open incident or an engine in scope that reports nothing; else healthy.",
     )
   })

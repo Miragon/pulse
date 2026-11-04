@@ -1,6 +1,6 @@
 import type { ResolvedEngine } from "../lib/engine/resolve-engine.js"
 import type { CockpitStart, CockpitView } from "../view-models.js"
-import type { EngineHealthThresholds } from "./health-data.js"
+import type { VerdictThresholds } from "@miragon/pulse-engine-core"
 import type { ReadContext } from "./feeds.js"
 import { COCKPIT_ROUTES, type Facts } from "./routes.js"
 
@@ -8,7 +8,7 @@ import { COCKPIT_ROUTES, type Facts } from "./routes.js"
 export async function buildCockpitStart(
   view: CockpitView,
   engine: ResolvedEngine,
-  healthThresholds: EngineHealthThresholds,
+  healthThresholds: VerdictThresholds,
 ): Promise<CockpitStart> {
   // The record is total over the sections, so the view's own route takes the view.
   const start = COCKPIT_ROUTES[view.section].start as (

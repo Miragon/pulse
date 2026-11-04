@@ -115,8 +115,8 @@ describe("one action group per view, one action size", () => {
   // The cockpit's head holds the one Refresh (#322 U27), so the overview has none of its own.
   it("engine status: the incidents, then the chat", async () => {
     const data: EngineHealthData = {
-      status: "degraded",
-      statusRule: "degraded with any open incident",
+      status: "warning",
+      statusRule: "warning with any open incident",
       summary: {
         totalIncidents: 3,
         lastHourIncidents: 1,

@@ -27,10 +27,10 @@ beforeAll(async () => {
 })
 
 const RULE =
-  "From the engine's open incidents, read live: critical at >=50 open or >=25 in one cluster, degraded with any, else ok."
+  "From the engine's open incidents, read live: critical at >=50 open incidents or >=25 of one cause, warning with any, else ok."
 
 const DEGRADED: EngineHealthData = {
-  status: "degraded",
+  status: "warning",
   statusRule: RULE,
   summary: {
     totalIncidents: 51,

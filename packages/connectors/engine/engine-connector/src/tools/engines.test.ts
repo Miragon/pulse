@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest"
 import type { Client } from "@miragon/pulse-engine-client"
 import { registerEngineTools } from "./engines.js"
+import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-engine-core"
 import { captureTools } from "./test-support/fake-engine.js"
 import type { EngineEntry } from "../engine-provider.js"
 import { createEngineRegistry, type EngineRegistry } from "../lib/engine/resolve-engine.js"
@@ -21,7 +22,9 @@ function harness(engines: EngineEntry[] = ENGINES, defaultEngineId?: string) {
   const registry = createEngineRegistry(engines, (e) => ({ __engine: e.id }) as unknown as Client, {
     defaultEngineId,
   })
-  const configs = captureTools((register) => registerEngineTools(register))
+  const configs = captureTools((register) =>
+    registerEngineTools(register, DEFAULT_VERDICT_THRESHOLDS),
+  )
   const handlerOf = (name: string) => {
     const config = configs.get(name)
     if (!config) throw new Error(`${name} did not register`)

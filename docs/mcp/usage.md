@@ -95,11 +95,12 @@ still answers you in your language.
   resolved** only for custom incidents. Batch actions (batch retries,
   migrations) only queue work: ask for the batch status afterwards. Completing a task that was delegated in
   Tasklist hands it back to its owner, and the task stays open.
-- The two health checks judge different things and say how: the engine
-  overview rates one engine by its open incidents (by default critical at 50
-  open or 25 in one cluster), the analytics health by Prometheus alert rules
-  (critical only while a critical alert fires; unknown when an engine sends no
-  metrics). "Has this activity failed
+- An engine has one live verdict: the engine overview and `engine_status` rate
+  it ok, warning or critical (by default critical at 50 open incidents or 25 of
+  one cause) and count one cause alike (activity, type, masked message);
+  `engine_status` also judges overdue jobs, workers and batches. The analytics health reports what
+  the metrics show as `metricsState` (critical only while a critical alert
+  fires; unknown when an engine sends no metrics). "Has this activity failed
   before?" is answered from incident history, resolved incidents included.
 - A process view counts every deployed version of its key: old versions keep
   running after a redeploy; only the diagram is one version, and it says

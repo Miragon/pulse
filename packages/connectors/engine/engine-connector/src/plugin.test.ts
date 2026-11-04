@@ -6,7 +6,13 @@ import { z } from "zod"
 import { createConfiguredEngineRegistry, createPlugin, type EnginePluginConfig } from "./plugin.js"
 import { EngineNotSelectedError, resolveEngine } from "./lib/engine/resolve-engine.js"
 import { ENGINE_ADMIN_ONLY_TOOLS } from "./lib/mcp/toolsets.js"
-import { ENGINE_LIST_ENGINES, ENGINE_WIDGET_ACTIONS_DATA } from "./tool-names.js"
+import {
+  ENGINE_LIST_ENGINES,
+  ENGINE_OPEN_COCKPIT,
+  ENGINE_WIDGET_ACTIONS_DATA,
+} from "./tool-names.js"
+import { worldReply } from "./tools/test-support/engine-world.js"
+import { type FakeEngine, startFakeEngine } from "./tools/test-support/fake-engine.js"
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -260,5 +266,49 @@ describe("createPlugin per-engine auth", () => {
     })
 
     expect(authHeader(resolveEngine("solo", registry).client)).toBeNull()
+  })
+})
+
+describe("createPlugin: one live verdict for engine_status and the cockpit", () => {
+  const started: FakeEngine[] = []
+  afterEach(async () => {
+    await Promise.all(started.splice(0).map((engine) => engine.close()))
+  })
+
+  /** The verdict and its rule from engine_status and from the cockpit's overview, on one engine. */
+  async function verdicts(healthThresholds?: EnginePluginConfig["healthThresholds"]) {
+    const engine = await startFakeEngine({}, worldReply)
+    started.push(engine)
+    const tool = vi.fn()
+    createPlugin({
+      engines: [{ id: "a", baseUrl: engine.baseUrl }],
+      ...(healthThresholds === undefined ? {} : { healthThresholds }),
+    }).register({ tool, prompt: vi.fn() } as unknown as MCPServer)
+    const handlers = new Map(
+      (tool.mock.calls as Array<[{ name: string }, (args: unknown) => Promise<unknown>]>).map(
+        ([definition, handler]) => [definition.name, handler],
+      ),
+    )
+    const json = async (name: string) => {
+      const result = (await handlers.get(name)!({})) as { content: { text: string }[] }
+      return JSON.parse(result.content[0].text) as { status: string; statusRule: string }
+    }
+    return { status: await json("engine_status"), cockpit: await json(ENGINE_OPEN_COCKPIT) }
+  }
+
+  it("judges the world's open incident alike, by the defaults", async () => {
+    const { status, cockpit } = await verdicts()
+    expect([status.status, cockpit.status]).toEqual(["warning", "warning"])
+    for (const rule of [status.statusRule, cockpit.statusRule]) {
+      expect(rule).toContain(">=50 open incidents or >=25 of one cause")
+    }
+  })
+
+  it("hands the deployment's ENGINE_HEALTH_* thresholds to both", async () => {
+    const { status, cockpit } = await verdicts({ criticalIncidents: 1 })
+    expect([status.status, cockpit.status]).toEqual(["critical", "critical"])
+    for (const rule of [status.statusRule, cockpit.statusRule]) {
+      expect(rule).toContain(">=1 open incidents or >=25 of one cause")
+    }
   })
 })

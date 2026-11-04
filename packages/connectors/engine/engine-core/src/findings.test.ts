@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { engineStatus, type FindingInput, findings } from "./findings.js"
+import { type FindingInput, findings } from "./findings.js"
 import type { IncidentGroup } from "./status.js"
 import { NOW } from "./testing/status.js"
 import { omit } from "./util.js"
@@ -40,7 +40,6 @@ const topic = {
 describe("findings", () => {
   it("finds nothing on a quiet engine", () => {
     expect(findings(QUIET)).toEqual([])
-    expect(engineStatus([])).toBe("ok")
   })
 
   it("reports every rule with its step, critical first, then by code and message", () => {
@@ -116,7 +115,7 @@ describe("findings", () => {
         { action: "listDefinitions" },
       ],
     ])
-    expect(engineStatus(list)).toBe("critical")
+    expect(list[0]?.severity).toBe("critical")
   })
 
   it("carries the step of its group", () => {

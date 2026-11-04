@@ -1,10 +1,10 @@
 /** Edge cases, ordering and grouping of the status reads (status.ts). */
 
 import { describe, expect, it } from "vitest"
+import { messageSignature } from "@miragon/pulse-engine-core"
 import {
   definitionStatus,
   jobStatus,
-  messagePattern,
   NOW,
   statistics,
   topicStatus,
@@ -209,7 +209,7 @@ describe("status ordering and grouping details", () => {
     expect(grouped.groups.map((group) => group.activityId)).toEqual(["big", "new"])
   })
 
-  it("masks a digit run as one mark", () => {
-    expect(messagePattern("retried 12 times, 345 left")).toBe("retried # times, # left")
+  it("masks a whole number as one mark", () => {
+    expect(messageSignature("retried 12 times, 345 left")).toBe("retried <n> times, <n> left")
   })
 })

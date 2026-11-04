@@ -15,7 +15,10 @@ writes, incident recovery). It runs on an engine port you implement and returns 
 `wait`, `advance` and `retry` run on it and word its results as command lines and CLI errors.
 [@miragon/pulse-engine-connector](https://www.npmjs.com/package/@miragon/pulse-engine-connector)
 runs inspect and status on it over its client, as the MCP tools `engine_inspect_process_instance`
-and `engine_status`.
+and `engine_status`, and builds its cockpit's failure clusters and health verdict from the same
+`messageSignature` (the incident mask), `causeKeyOf` (one cause) and `engineVerdict` (`ok`,
+`warning` or `critical`, by thresholds you pass), so the CLI's `status`, `engine_status` and the
+cockpit count one cause alike and judge an engine by one rule.
 Pulse for VS Code bundles it in its C7 adapter: an instance's panel reads the instance through
 `loadInstance` and the root cause of an incident through `rootCause` and `rootCauseLine`.
 It is the shared domain of every Pulse interface to this API family, so an MCP tool and a CLI

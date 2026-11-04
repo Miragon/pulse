@@ -1,4 +1,7 @@
-export type EngineHealthStatus = "ok" | "degraded" | "critical"
+import type { EngineStatus } from "@miragon/pulse-engine-core"
+
+/** engine-core's live verdict (`engineVerdict`), the one `engine_status` gives too. */
+export type EngineHealthStatus = EngineStatus
 
 /** A cluster larger than the scan (`CLUSTER_SCAN_LIMIT`) is only a lower bound, never the scan's length. */
 export interface ClusterCounts {

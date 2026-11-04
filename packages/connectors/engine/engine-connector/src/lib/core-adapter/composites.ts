@@ -12,6 +12,7 @@
 import type { Client } from "@miragon/pulse-engine-client"
 import type { engineStatusInput, inspectProcessInstanceInput } from "../../schemas/index.js"
 import {
+  criticalIncidentsRule,
   type EnginePort,
   type Finding,
   type IncidentView,
@@ -20,6 +21,7 @@ import {
   readStatus,
   type Selection,
   type TimelineEntry,
+  type VerdictThresholds,
 } from "@miragon/pulse-engine-core"
 import type { z } from "zod"
 import { boundFailureText, condenseStacktrace } from "../mcp/failure-text.js"
@@ -31,40 +33,49 @@ export type InspectArgs = z.infer<typeof inspectProcessInstanceInput>
 export type EngineStatusArgs = z.infer<typeof engineStatusInput>
 
 /**
- * What each finding code of engine-core's triage says, under its severity; STATUS_RULE is built
- * from it, and `composites-status.wire.test.ts` holds its codes and severities to the findings
- * engine-core raises.
+ * What each finding code of engine-core's triage says, under its severity (INCIDENTS_CRITICAL with
+ * the thresholds in force); `statusRule` is built from it, and `composites-status.wire.test.ts`
+ * holds its codes and severities to the findings engine-core raises.
  */
 export const FINDING_RULES: Readonly<
-  Record<string, { readonly severity: "critical" | "warning"; readonly says: string }>
+  Record<
+    string,
+    {
+      readonly severity: "critical" | "warning"
+      readonly says: string | ((thresholds: VerdictThresholds) => string)
+    }
+  >
 > = {
+  INCIDENTS_CRITICAL: { severity: "critical", says: criticalIncidentsRule },
   JOBS_OVERDUE: {
     severity: "critical",
     says: "executable jobs overdue (is the job executor running?)",
   },
-  INCIDENTS: { severity: "warning", says: "incident groups" },
+  INCIDENTS: { severity: "warning", says: "any open incident (incident groups)" },
   NO_WORKER: { severity: "warning", says: "topics without a worker" },
   LOCK_EXPIRED: { severity: "warning", says: "topics with expired locks" },
   BATCH_FAILURES: { severity: "warning", says: "failed batch jobs" },
   UNKNOWN_KEY: { severity: "warning", says: "keys not deployed" },
 }
 
-function saying(severity: "critical" | "warning"): string {
+function saying(severity: "critical" | "warning", thresholds: VerdictThresholds): string {
   return Object.values(FINDING_RULES)
     .filter((rule) => rule.severity === severity)
-    .map((rule) => rule.says)
+    .map((rule) => (typeof rule.says === "string" ? rule.says : rule.says(thresholds)))
     .join(", ")
 }
 
 /**
- * How the status verdict comes about and what its counts mean; the cockpit's view has a verdict
- * of its own (open incident counts against ENGINE_HEALTH_*), so the two may differ for one engine.
+ * How the status comes about (engine-core's verdict, by the thresholds the cockpit's overview
+ * judges with) and what its counts mean.
  */
-export const STATUS_RULE =
-  `critical: ${saying("critical")}; warning: ${saying("warning")}; else ok. ` +
-  "Independent of the cockpit's incident-count verdict. incidentsTotal counts every open " +
-  "incident, propagated the copies on calling instances; the incident groups and definitions " +
-  "count root causes."
+export function statusRule(thresholds: VerdictThresholds): string {
+  return (
+    `critical: ${saying("critical", thresholds)}; warning: ${saying("warning", thresholds)}; ` +
+    "else ok. incidentsTotal counts every open incident, propagated the copies on calling " +
+    "instances; the incident groups and definitions count root causes."
+  )
+}
 
 /** Timeline entries and variables the model gets at most (the newest entries, the first names). */
 export const MAX_TIMELINE_ENTRIES = 100
@@ -213,17 +224,18 @@ function namedTopics(findings: readonly Finding[]): ReadonlySet<string> {
   return new Set(findings.flatMap((finding) => ("topic" in finding.next ? finding.next.topic : [])))
 }
 
-/** The triage of one engine, named by its id (never its address). */
+/** The triage of one engine, named by its id (never its address), by the verdict's thresholds. */
 export async function engineStatusForModel(
   client: Client,
   args: EngineStatusArgs,
   engineId: string,
+  thresholds: VerdictThresholds,
 ) {
   // trimmed, unlike the contract's engineKeyList: a key of spaces names no definition either
   const keys = (args.processDefinitionKeyIn ?? []).filter((key) => key.trim() !== "")
   const data = await readStatus(
     { port: enginePortFor(client), now: () => Date.now() },
-    { keys: [...new Set(keys)], maxGroups: MAX_STATUS_ROWS },
+    { keys: [...new Set(keys)], maxGroups: MAX_STATUS_ROWS, thresholds },
   )
   const notes = [...(data.truncated ?? [])]
   const named = namedTopics(data.findings)
@@ -234,7 +246,7 @@ export async function engineStatusForModel(
   ]
   return {
     ...data,
-    statusRule: STATUS_RULE,
+    statusRule: statusRule(thresholds),
     engine: { id: engineId, ...data.engine },
     findings: data.findings.map(withoutNext),
     definitions: firstRows(data.definitions, MAX_STATUS_ROWS, "definitions", notes),

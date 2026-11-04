@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
-  ENGINE_HEALTH_STATUS_RULE,
+  ENGINE_METRICS_STATE_RULE,
   type EngineHealthResult,
   type PrometheusClient,
   type PromSample,
@@ -63,7 +63,7 @@ describe("analytics_engine_health: verdict (N76)", () => {
   it("reads a Prometheus without any metrics of the fleet as unknown, never healthy", async () => {
     const { client } = recordingClient()
     const result = await run(client, {})
-    expect(result.status).toBe("unknown")
+    expect(result.metricsState).toBe("unknown")
     expect(result.silentEngines).toEqual(["prod-a", "prod-b"])
   })
 
@@ -71,7 +71,7 @@ describe("analytics_engine_health: verdict (N76)", () => {
     const { client } = recordingClient(onlyProdAReports)
     const result = await run(client, { engine: "prod-b" })
     expect(result).toMatchObject({
-      status: "unknown",
+      metricsState: "unknown",
       engines: ["prod-b"],
       reportingEngines: [],
       silentEngines: ["prod-b"],
@@ -82,7 +82,7 @@ describe("analytics_engine_health: verdict (N76)", () => {
     const { client } = recordingClient(onlyProdAReports)
     const result = await run(client, {})
     expect(result).toMatchObject({
-      status: "degraded",
+      metricsState: "degraded",
       reportingEngines: ["prod-a"],
       silentEngines: ["prod-b"],
     })
@@ -121,27 +121,28 @@ describe("analytics_engine_health: alerts (N76)", () => {
     const { client, queries } = recordingClient(onlyProdAReports)
     const result = await run(client, { engine: "prod-a" })
     expect(alertQueries(queries).some((q) => !q.includes('engine_id="prod-a"'))).toBe(false)
-    expect(result.status).toBe("healthy")
+    expect(result.metricsState).toBe("healthy")
   })
 })
 
-/** #340: each health tool states its rules and routes to the other. */
+/** #340: the tool states its rule; its state has a name of its own and it names no engine tool. */
 describe("analytics_engine_health verdict labeling", () => {
-  it("carries the status rule (including the unknown verdict) in every result", async () => {
+  it("carries the rule of metricsState (including unknown) in every result, and no status", async () => {
     const { client } = recordingClient()
     const result = await run(client, {})
-    expect(result.statusRule).toBe(ENGINE_HEALTH_STATUS_RULE)
-    expect(ENGINE_HEALTH_STATUS_RULE).toMatch(
+    expect(result.metricsStateRule).toBe(ENGINE_METRICS_STATE_RULE)
+    expect(Object.keys(result)).not.toContain("status")
+    expect(Object.keys(result)).not.toContain("statusRule")
+    expect(ENGINE_METRICS_STATE_RULE).toMatch(
       /^From Prometheus, over the engines in scope: unknown when none of them reports metrics;/,
     )
   })
 
-  it("states the rule, the engine scope and the routing to engine_open_cockpit", () => {
+  it("states the rule and the engine scope, and names no engine tool", () => {
     const { description } = captureConfig()
-    expect(description).toContain(`Status: ${ENGINE_HEALTH_STATUS_RULE}`)
+    expect(description).toContain(`metricsState: ${ENGINE_METRICS_STATE_RULE}`)
     expect(description).toContain("the silent ones (`silentEngines`")
-    expect(description).toContain(
-      "Use for fleet-wide or metric-based health; for one engine's live incident clusters use engine_open_cockpit.",
-    )
+    expect(description).toContain("Use for fleet-wide or metric-based health.")
+    expect(description).not.toMatch(/\bengine_[a-z]/)
   })
 })

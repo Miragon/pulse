@@ -37,22 +37,3 @@ export function truncateMessage(s: string | null, max = 300): string | null {
   const flat = s.replace(/\s+/g, " ").trim()
   return flat.length > max ? `${flat.slice(0, max)}…` : flat
 }
-
-/**
- * A different exception at the same activity and type is a different root cause.
- * Volatile tokens (ids, numbers, quoted values) are masked so instance noise
- * doesn't split one cause into hundreds of clusters.
- */
-export function messageSignature(msg: string | null): string {
-  if (!msg) return ""
-  return msg
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g, "<id>")
-    .replace(/\b[0-9a-f]{16,}\b/g, "<id>")
-    .replace(/'[^']*'/g, "'<v>'")
-    .replace(/"[^"]*"/g, '"<v>"')
-    .replace(/\b\d+\b/g, "<n>")
-    .trim()
-    .slice(0, 160)
-}

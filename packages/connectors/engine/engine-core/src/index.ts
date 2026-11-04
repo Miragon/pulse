@@ -67,6 +67,18 @@ export { incidentRecovery, type IncidentRecovery } from "./incident-recovery.js"
 export { mapLimit } from "./util.js"
 export { formatDuration } from "./durations.js"
 export { rootCause, rootCauseLine } from "./root-cause.js"
+export { MESSAGE_SIGNATURE_LENGTH, messageSignature } from "./message-signature.js"
+export {
+  type CauseFields,
+  causeKeyOf,
+  criticalIncidentsRule,
+  DEFAULT_VERDICT_THRESHOLDS,
+  engineVerdict,
+  type IncidentCauseKey,
+  largestCause,
+  type VerdictInput,
+  type VerdictThresholds,
+} from "./verdict.js"
 export type {
   AdvanceInput,
   AdvanceOption,

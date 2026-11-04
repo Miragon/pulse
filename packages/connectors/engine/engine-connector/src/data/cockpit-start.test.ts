@@ -24,9 +24,13 @@ import {
   type CockpitView,
 } from "../view-models.js"
 import { registerWidgetDataFeeds } from "../widget-tools/data-feeds.js"
-import { messageSignature } from "./cluster-scan.js"
+import {
+  DEFAULT_VERDICT_THRESHOLDS,
+  engineVerdict,
+  messageSignature,
+  type VerdictThresholds,
+} from "@miragon/pulse-engine-core"
 import { buildCockpitStart } from "./cockpit-start.js"
-import { DEFAULT_HEALTH_THRESHOLDS } from "./health-data.js"
 
 // The clock the health and cluster views stamp (`fetchedAt`), so the start and the feed agree.
 const NOW = "2026-10-10T08:00:00.000Z"
@@ -45,7 +49,7 @@ afterEach(async () => {
 type FeedHandler = (args: Record<string, unknown>, ctx: unknown) => Promise<unknown>
 
 /** The fake engine world, its feeds as the widgets call them, and the start view on it. */
-async function world() {
+async function world(healthThresholds: VerdictThresholds = DEFAULT_VERDICT_THRESHOLDS) {
   const engine = await startFakeEngine({}, worldReply)
   engines.push(engine)
   const registry = registryFor(engine)
@@ -56,7 +60,7 @@ async function world() {
         feeds.set(definition.name, handler),
     } as unknown as MCPServer,
     registry,
-    healthThresholds: DEFAULT_HEALTH_THRESHOLDS,
+    healthThresholds,
     toolset: "read-only",
     engineParam: engineParamShape,
   })
@@ -64,7 +68,7 @@ async function world() {
     feed: async (name: string, args: Record<string, unknown>) =>
       feedPayload(await feeds.get(name)!(args, {})),
     start: (view: CockpitView) =>
-      buildCockpitStart(view, resolveEngine(undefined, registry), DEFAULT_HEALTH_THRESHOLDS),
+      buildCockpitStart(view, resolveEngine(undefined, registry), healthThresholds),
   }
 }
 
@@ -148,11 +152,11 @@ describe("buildCockpitStart: the seed is the feed", () => {
     const engine = await startFakeEngine({}, worldReply)
     engines.push(engine)
     const resolved = resolveEngine(undefined, registryFor(engine))
-    await buildCockpitStart({ section: "jobs" }, resolved, DEFAULT_HEALTH_THRESHOLDS)
+    await buildCockpitStart({ section: "jobs" }, resolved, DEFAULT_VERDICT_THRESHOLDS)
     await buildCockpitStart(
       { section: "history", processInstanceId: WORLD.instanceId },
       resolved,
-      DEFAULT_HEALTH_THRESHOLDS,
+      DEFAULT_VERDICT_THRESHOLDS,
     )
     const pages = engine.requests
       .filter((r) => r.path === "/job" || r.path === "/history/activity-instance")
@@ -161,5 +165,23 @@ describe("buildCockpitStart: the seed is the feed", () => {
       ["/job", "0", String(LIST_PAGE_SIZE)],
       ["/history/activity-instance", null, String(HISTORY_PAGE_SIZE)],
     ])
+  })
+})
+
+// D5: the landing, the fleet view and the overview badge read one verdict, this feed's.
+describe("engine_health_data: the one live verdict every engine surface reads", () => {
+  it("carries engineVerdict's result on the deployment's thresholds", async () => {
+    // The world holds one open incident (`/incident/count` 1), one cause.
+    const inputs = { openIncidents: 1, largestCluster: 1 }
+    const strict: VerdictThresholds = { criticalIncidents: 1, criticalClusterSize: 25 }
+    for (const thresholds of [DEFAULT_VERDICT_THRESHOLDS, strict]) {
+      const { feed, start } = await world(thresholds)
+      const health = (await feed(ENGINE_HEALTH_DATA, {})) as { status: string }
+      expect(health.status).toBe(engineVerdict(inputs, thresholds))
+      const overview = await start({ section: "overview" })
+      expect(overview.data).toMatchObject({ health: { status: health.status } })
+    }
+    expect(engineVerdict(inputs, DEFAULT_VERDICT_THRESHOLDS)).toBe("warning")
+    expect(engineVerdict(inputs, strict)).toBe("critical")
   })
 })

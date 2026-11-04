@@ -9,6 +9,7 @@ import {
   Icon,
   KometMark,
   formatNumber,
+  type ToneVariant,
 } from "@miragon/pulse-ui"
 import { WidgetShell } from "@miragon/pulse-widget-shell/widgets"
 import { ArrowRight, CircleDashed, Layers, LoaderCircle, Unplug } from "lucide-react"
@@ -42,19 +43,13 @@ export function engineStatusKind(health: {
   return "healthy"
 }
 
-/** CI §3.7 */
-function StatusMark({ kind }: { kind: EngineStatusKind }) {
+/** CI §3.7; the dot is the engine's one live verdict, the overview badge's tone. */
+function StatusMark({ kind, tone }: { kind: EngineStatusKind; tone: ToneVariant }) {
   if (kind === "loading") {
     return <Icon icon={LoaderCircle} className="text-muted-foreground motion-safe:animate-spin" />
   }
   if (kind === "unreachable") return <Icon icon={Unplug} className={TONE_ICON.danger} />
   if (kind === "empty") return <Icon icon={CircleDashed} className="text-muted-foreground" />
-  const tone =
-    kind === "incidents" || kind === "failedJobs"
-      ? "danger"
-      : kind === "healthy"
-        ? "success"
-        : "neutral"
   return (
     <span className="inline-flex size-4 items-center justify-center" aria-hidden="true">
       <span className={cn("size-2 rounded-full", TONE_DOT[tone])} />
@@ -74,7 +69,7 @@ function EngineRow({
 }) {
   const locale = useLocale()
   const tr = (key: string, params?: Record<string, unknown>) => translator(locale, key, params)
-  const { query, summary } = useEngineHealth(engineId)
+  const { query, summary, tone } = useEngineHealth(engineId)
   const kind = engineStatusKind({ isError: query.isError, summary })
   const status =
     kind === "incidents"
@@ -96,7 +91,7 @@ function EngineRow({
         FOCUS_RING_INSET,
       )}
     >
-      <StatusMark kind={kind} />
+      <StatusMark kind={kind} tone={tone} />
       <span className="text-foreground min-w-0 truncate font-semibold">{engineId}</span>
       {isDefault && (
         <span className="border-input text-muted-foreground text-small shrink-0 rounded-sm border px-1.5">
@@ -137,7 +132,7 @@ export function LandingHeader({ subtitle, action }: { subtitle?: string; action?
   )
 }
 
-/** The same live health and severity ladder as the engine's own overview (#322 U15). */
+/** The same live health and verdict as the engine's own overview (#322 U15). */
 export function LandingChooser({
   engines,
   defaultEngineId,

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest"
 import type { MCPServer } from "mcp-use"
 import type { z } from "zod"
-import { DEFAULT_HEALTH_THRESHOLDS, type EngineHealthThresholds } from "../data/health-data.js"
+import { DEFAULT_VERDICT_THRESHOLDS, type VerdictThresholds } from "@miragon/pulse-engine-core"
 import type { EngineEntry } from "../engine-provider.js"
 import { createEngineRegistry } from "../lib/engine/resolve-engine.js"
 import { providerForEntry } from "../providers/index.js"
@@ -33,7 +33,7 @@ afterEach(async () => {
 /** Each engine without a `baseUrl` answers from the fake engine world; `requests` records the reads. */
 async function cockpitOn(
   ids: Array<Pick<EngineEntry, "id" | "environment"> & { baseUrl?: string }>,
-  options: { defaultEngineId?: string; healthThresholds?: EngineHealthThresholds } = {},
+  options: { defaultEngineId?: string; healthThresholds?: VerdictThresholds } = {},
 ) {
   const engine = await startFakeEngine({}, worldReply)
   engines.push(engine)
@@ -48,7 +48,7 @@ async function cockpitOn(
       (e) => providerForEntry(e).createClient(e, { type: "none" }),
       { defaultEngineId: options.defaultEngineId },
     ),
-    healthThresholds: options.healthThresholds ?? DEFAULT_HEALTH_THRESHOLDS,
+    healthThresholds: options.healthThresholds ?? DEFAULT_VERDICT_THRESHOLDS,
     toolset: "read-only",
     engineParam: engineParamShape,
   })
@@ -206,10 +206,10 @@ describe("engine_open_cockpit: the start view", () => {
   // #340: the deployment's OWN thresholds, so the model reads the rule the verdict followed.
   it("states the verdict rule with the deployment's thresholds", async () => {
     const { handler } = await cockpitOn([{ id: "solo" }], {
-      healthThresholds: { ...DEFAULT_HEALTH_THRESHOLDS, criticalIncidents: 10 },
+      healthThresholds: { ...DEFAULT_VERDICT_THRESHOLDS, criticalIncidents: 10 },
     })
     expect(factsOf(await handler({})).statusRule).toBe(
-      "From the engine's open incidents, read live: critical at >=10 open or >=25 in one cluster, degraded with any, else ok.",
+      "From the engine's open incidents, read live: critical at >=10 open incidents or >=25 of one cause, warning with any, else ok.",
     )
   })
 })
@@ -226,7 +226,7 @@ async function cockpitDown(): Promise<Handler> {
     registry: createEngineRegistry([{ id: "solo", baseUrl: engine.baseUrl }], (e) =>
       providerForEntry(e).createClient(e, { type: "none" }),
     ),
-    healthThresholds: DEFAULT_HEALTH_THRESHOLDS,
+    healthThresholds: DEFAULT_VERDICT_THRESHOLDS,
     toolset: "read-only",
     engineParam: engineParamShape,
   })
