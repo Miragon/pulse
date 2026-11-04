@@ -3,7 +3,13 @@
  * texts of the root help (intro, exit codes) and the examples section of operation commands.
  */
 
-import type { Command, HelpConfiguration, Option, OutputConfiguration } from "commander"
+import {
+  type Command,
+  Help,
+  type HelpConfiguration,
+  type Option,
+  type OutputConfiguration,
+} from "commander"
 import { EXIT_CODES } from "../errors.js"
 import type { Runtime } from "../runtime.js"
 import { terminalColumns } from "./output-format.js"
@@ -12,6 +18,34 @@ import { terminalColumns } from "./output-format.js"
 const DEFAULT_HELP_WIDTH = 80
 
 const HELP_TERMS = new WeakMap<Option, string>()
+
+const FULL_DESCRIPTIONS = new WeakMap<Command, string>()
+
+const VALUES_IN_DESCRIPTION = new WeakSet<Option>()
+
+/**
+ * Offers the allowed values of an option to shell completion. The CLI validates them itself, and
+ * the description already names them, so the help does not list them a second time.
+ */
+export function offerValues(option: Option, values: readonly string[]): void {
+  option.argChoices = [...values]
+  VALUES_IN_DESCRIPTION.add(option)
+}
+
+/**
+ * Makes `description()` the one-line summary (what shell completion lists) on every command that
+ * has one; the command's own help still shows the full text.
+ */
+export function useSummaryAsDescription(parent: Command): void {
+  for (const command of parent.commands) {
+    const summary = command.summary()
+    if (summary !== "") {
+      FULL_DESCRIPTIONS.set(command, command.description())
+      command.description(summary)
+    }
+    useSummaryAsDescription(command)
+  }
+}
 
 /** Shows `term` instead of the commander flags in the help, e.g. `--[no-]skip-io-mappings`. */
 export function setHelpTerm(option: Option, term: string): void {
@@ -34,6 +68,9 @@ export function commandPath(command: Command): string {
 export function helpConfiguration(): HelpConfiguration {
   return {
     optionTerm: (option) => HELP_TERMS.get(option) ?? option.flags,
+    optionDescription: (option) =>
+      VALUES_IN_DESCRIPTION.has(option) ? option.description : new Help().optionDescription(option),
+    commandDescription: (command) => FULL_DESCRIPTIONS.get(command) ?? command.description(),
     // the usage line shows the command name only; aliases are listed in the description
     commandUsage: (command) => [commandPath(command), command.usage()].join(" ").trimEnd(),
     // command lists show `claim <id>`: no aliases and no "[options]" (commander adds both, which

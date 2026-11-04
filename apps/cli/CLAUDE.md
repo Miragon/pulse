@@ -17,8 +17,9 @@ written for the MCP server, so this file holds the CLI's own. The pages for peop
   stderr with a documented exit code. A change to any of that is a change to the docs.
 - One runtime dependency, commander. The workflow domain and engine REST rules,
   `@miragon/pulse-engine-core` (`packages/connectors/engine/engine-core`, the engine family's
-  core), are a devDependency that tsdown bundles; everything else that ships is the code in
-  `apps/cli/src/`. The built bundle imports only commander and Node built-ins, and stays within
+  core), are a devDependency that tsdown bundles, and so is `@bomb.sh/tab`, which reads the
+  commander program for shell completion (`pulse-cli completion <shell>`, the hidden
+  `pulse-cli complete -- <words>`); everything else that ships is the code in `apps/cli/src/`. The built bundle imports only commander and Node built-ins, and stays within
   its size budget (`scripts/published-imports.test.mjs` reads `apps/cli/dist` and the ceiling in
   `apps/cli/test/__golden__/bundle-budget.json`, which `pnpm lint:ratchets` holds shrink-only:
   growth needs a `Ratchet-Exception:` trailer that says why).

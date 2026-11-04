@@ -83,6 +83,9 @@ importers:
         specifier: 15.0.0
         version: 15.0.0
     devDependencies:
+      '@bomb.sh/tab':
+        specifier: 0.0.22
+        version: 0.0.22(cac@7.1.0)(commander@15.0.0)
       '@miragon/pulse-engine-core':
         specifier: workspace:*
         version: link:../../packages/connectors/engine/engine-core
@@ -1037,6 +1040,21 @@ packages:
 
   '@blazediff/core@1.10.0':
     resolution: {integrity: sha512-AOQff0zgR7cGsZL+4E7hVkmujoPUpm0J9xzWGWZj5wCjd3gmxESXAPfKyuzs93VdpQNFhHlBhfOjrcZ+XTERtQ==}
+
+  '@bomb.sh/tab@0.0.22':
+    resolution: {integrity: sha512-l5IuWpV7szqG4MM6A7I+qPMmP2qPMq2TD4veIXaOH0sD53dV0Tv8WZPARp5O5Kp4+y4fnVCl3VL1HZKNghO1yg==}
+    hasBin: true
+    peerDependencies:
+      cac: ^6.7.14 || ^7.0.0
+      citty: ^0.1.6 || ^0.2.0
+      commander: ^13.1.0 || ^14.0.0 || ^15.0.0
+    peerDependenciesMeta:
+      cac:
+        optional: true
+      citty:
+        optional: true
+      commander:
+        optional: true
 
   '@bpmn-io/diagram-js-ui@0.2.4':
     resolution: {integrity: sha512-I678ZGtoH7z7FgzFhzzppM9ThsJ3Lh83kW3GjhjG3xyYciIPYHMaHK1MABP8F69H9pFZpViM6t4qUo8dwrVz0w==}
@@ -8415,6 +8433,11 @@ snapshots:
   '@bcoe/v8-coverage@1.0.2': {}
 
   '@blazediff/core@1.10.0': {}
+
+  '@bomb.sh/tab@0.0.22(cac@7.1.0)(commander@15.0.0)':
+    optionalDependencies:
+      cac: 7.1.0
+      commander: 15.0.0
 
   '@bpmn-io/diagram-js-ui@0.2.4':
     dependencies:
