@@ -55,8 +55,8 @@ hangs every in-widget query on "Loading…".
   `bpmnXml` and an `onUnavailable` fallback) and `analytics:process-heatmap-legend` (`mode`).
   A composition root spreads them into its `hostWidgets`.
 - **`analytics_engine_health`** (`src/tools/`) returns JSON without a view: a live WIP, incidents, backlog
-  and alerts snapshot. The incidents open right now and their instances are the
-  [engine module](../../engine/engine-connector)'s.
+  and alerts snapshot, its state from the alert rules as `metricsState`. The incidents open right
+  now and their instances are the [engine module](../../engine/engine-connector)'s.
 - **Configured engines only:** analytics reads exactly the server's configured engine ids:
   `createPlugin({ engineIds })` (a composed server injects the engine module's engines through
   `analyticsModule`'s shared `engineIds`), else `ANALYTICS_ENGINE_IDS` for a standalone boot.

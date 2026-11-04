@@ -1,5 +1,6 @@
 import { createToolRegistrar, type ModulePlugin } from "@miragon/pulse-widget-shell/server"
 import type { EngineAuthType } from "@miragon/pulse-engine-client"
+import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-engine-core"
 import { providerForEntry } from "./providers/index.js"
 import { registerTools } from "./tools/index.js"
 import { registerIncidentIssuePrompt, registerIncidentIssueTools } from "./tools/incident-issue.js"
@@ -59,6 +60,9 @@ export function createPlugin(config: EnginePluginConfig): ModulePlugin {
   // Resolved once so every gate below reads the same toolset and an unknown name warns once.
   const toolset = resolveEngineToolset(config.toolset)
   const registry = createConfiguredEngineRegistry(config)
+  // The deployment's ENGINE_HEALTH_* over engine-core's defaults, one set for the cockpit's
+  // overview and engine_status, so both judge alike.
+  const healthThresholds = { ...DEFAULT_VERDICT_THRESHOLDS, ...config.healthThresholds }
 
   const incidentIssueConfig = {
     repository: config.incidentIssueRepository,
@@ -71,15 +75,12 @@ export function createPlugin(config: EnginePluginConfig): ModulePlugin {
         withToolsetFilter(createToolRegistrar(server, registry), toolset),
         config.engines,
       )
-      registerEngineTools(register)
+      registerEngineTools(register, healthThresholds)
       // Deployments are opt-in on top of `admin` (code execution in the JVM).
       registerTools(register, { allowDeployments: config.allowDeployments })
       registerIncidentIssueTools(register, incidentIssueConfig)
       registerIncidentIssuePrompt(server, incidentIssueConfig)
-      registerWidgetTools(server, registry, {
-        healthThresholds: config.healthThresholds,
-        toolset,
-      })
+      registerWidgetTools(server, registry, { healthThresholds, toolset })
     },
   }
 }

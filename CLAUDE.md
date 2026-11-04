@@ -354,7 +354,9 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    - **A status is a tone, never a coloured word.** `ToneVariant` is
      `danger | warning | success | info | neutral`: an open incident or a failed job without retries
      is `danger`, a failed job with retries left or a degraded engine `warning`, a count without a
-     state `neutral`; the ladder is widget-shell's `countTone`/`severityTone`. Each tone has three
+     state `neutral`; the ladder is widget-shell's `countTone`/`severityTone`. An engine's own state
+     is the tone of its one verdict (`VERDICT_TONE`, the health feed's `status`): the overview's
+     badge and the engine's dot on the landing and the fleet view alike. Each tone has three
      roles: `--<tone>` (dot, edge, icon), `--<tone>-soft` (tint, black text) and `--<tone>-ink`
      (text on card or page, never on a tint, never a number). Numbers stay neutral. Components use
      role names only (`scanColors`); `packages/core/ui/src/theme/tone-contrast.test.ts` holds every
@@ -430,7 +432,13 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      `src/tools/*.wire.test.ts`. Analytics periods derive from `PERIODS`/`PERIOD_RANGE`.
    - The workflow rules the CLI and the read composites (`engine_inspect_process_instance`,
      `engine_status`, `src/lib/core-adapter/composites.ts`) share live in
-     `@miragon/pulse-engine-core`: selection, root cause, the composites' paging and caps; the
+     `@miragon/pulse-engine-core`: selection, root cause, the composites' paging and caps, the
+     ONE incident mask and cause (`messageSignature`, `causeKeyOf`: the status groups, the
+     verdict's largest cause, the cockpit's cluster ids) and the ONE live verdict (`engineVerdict`:
+     `engine_status`, `pulse status` and the cockpit's health route, `ok | warning | critical`;
+     the MCP server's thresholds from `ENGINE_HEALTH_*`, the CLI's the defaults 50/25), a
+     threshold breach a critical `INCIDENTS_CRITICAL` finding; analytics' Prometheus view is
+     `metricsState` (`metricsStateRule`), never a `status`; the
      connector's port (`src/lib/core-adapter/engine-port.ts`) maps each operation to an SDK or
      contract read. Deliberate carve-outs: the composites read definitions by id inside inspect (not `data/definition-info.ts`;
      `definitionKeyOf` only as a fallback), send UTC `+0000` dates (`engineFormat`, not
@@ -540,7 +548,9 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      surface of the admin golden; the apps the source guards read are listed in `APP_SCAN`
      (`scripts/source-scan.mjs`), where a new app adds its entry (an app missing there fails).
      Hand-offs and model contexts name no tool of either module (invariant 6), so the only raw
-     cross-module names are the probe feed and host widget ids.
+     cross-module names are the probe feed and host widget ids. A module's tool texts and
+     instructions name only its own tools (`crossModuleNames` in the app's
+     `tools-list.golden.test.ts`): the other module may be off.
    - **A write registers only through the registrar**, whose toolset filter decides it
      (`withToolsetFilter`/`isToolInToolset` in the engine module), never an ad-hoc `toolset === …`
      compare; an in-widget write asks `engine_widget_actions_data` whether it exists.

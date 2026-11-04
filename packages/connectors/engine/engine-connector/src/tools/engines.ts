@@ -1,14 +1,21 @@
 import { engineStatusInput } from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { engineStatusForModel } from "../lib/core-adapter/composites.js"
+import type { VerdictThresholds } from "@miragon/pulse-engine-core"
 import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 import { environmentOf, groupEnginesByEnvironment } from "../lib/shared/environments.js"
 import { providerForEntry } from "../providers/index.js"
 import { ENGINE_LIST_ENGINES } from "../tool-names.js"
 
-/** Reads: the engine list (so even a read-only multi-engine deployment can route) and the triage. */
-export function registerEngineTools(register: ToolRegistrar<EngineRegistry>): void {
+/**
+ * Reads: the engine list (so even a read-only multi-engine deployment can route) and the triage,
+ * judged by the thresholds the cockpit's overview uses.
+ */
+export function registerEngineTools(
+  register: ToolRegistrar<EngineRegistry>,
+  thresholds: VerdictThresholds,
+): void {
   register({
     name: ENGINE_LIST_ENGINES,
     category: "engines",
@@ -45,7 +52,7 @@ export function registerEngineTools(register: ToolRegistrar<EngineRegistry>): vo
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     inputSchema: { ...engineStatusInput.shape, ...engineParamShape },
     handler: withEngine((client, args, { engineId }) =>
-      engineStatusForModel(client, args, engineId),
+      engineStatusForModel(client, args, engineId, thresholds),
     ),
   })
 }

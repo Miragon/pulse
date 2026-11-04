@@ -22,7 +22,8 @@ import { buildCockpitStart } from "./cockpit-start.js"
 import { buildClusterDetailData } from "./cluster-detail-data.js"
 import { CLUSTER_SCAN_LIMIT } from "./cluster-scan.js"
 import { countOf, INCIDENT_SCAN_LIMIT, optional, rowsOf } from "./engine-reads.js"
-import { buildEngineHealthData, DEFAULT_HEALTH_THRESHOLDS } from "./health-data.js"
+import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-engine-core"
+import { buildEngineHealthData } from "./health-data.js"
 import { buildHistoryTimelineData } from "./history-timeline-data.js"
 import { buildIncidentDetailData } from "./incident-detail-data.js"
 import { buildIncidentsDashboardData } from "./incidents-dashboard-data.js"
@@ -204,7 +205,7 @@ const CASES: Record<string, Case> = {
       buildCockpitStart(
         { section: "overview" },
         { client, engineId: "fake", ...urls(baseUrl) },
-        DEFAULT_HEALTH_THRESHOLDS,
+        DEFAULT_VERDICT_THRESHOLDS,
       ),
     enrichment: {
       "GET /history/process-instance/count?startedAfter": (data: {

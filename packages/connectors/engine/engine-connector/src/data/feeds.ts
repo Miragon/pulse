@@ -31,7 +31,8 @@ import {
   buildProcessInstancesData,
 } from "./cockpit-data.js"
 import { fetchDefinitionXml } from "./definition-info.js"
-import { buildEngineHealthData, type EngineHealthThresholds } from "./health-data.js"
+import type { VerdictThresholds } from "@miragon/pulse-engine-core"
+import { buildEngineHealthData } from "./health-data.js"
 import { buildHistoryTimelineData } from "./history-timeline-data.js"
 import { buildIncidentDetailData } from "./incident-detail-data.js"
 import { buildIncidentsDashboardData } from "./incidents-dashboard-data.js"
@@ -49,7 +50,7 @@ type FeedInput<TShape extends z.ZodRawShape> = z.output<z.ZodObject<TShape>>
 
 /** What a read needs besides its engine: the deployment's health thresholds. */
 export interface ReadContext {
-  healthThresholds: EngineHealthThresholds
+  healthThresholds: VerdictThresholds
 }
 
 /** An app-only JSON feed: the widget's refresh, paging and navigation. */

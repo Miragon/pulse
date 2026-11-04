@@ -26,7 +26,7 @@ usable by any project that reads Camunda process metrics from Prometheus.
 
 The package has one entry point, `.`: the Prometheus client (`createPrometheusClient`,
 `withCallerSignal`), `queries`, the result types, `PERIODS` (the periods a query takes),
-`increaseIn` and `ENGINE_HEALTH_STATUS_RULE` (how `engineHealth` reaches its verdict). It has no
+`increaseIn` and `ENGINE_METRICS_STATE_RULE` (how `engineHealth` reaches its `metricsState`). It has no
 runtime dependency: the `analytics_*` tools' input schemas (zod) live in
 [`@miragon/pulse-analytics-connector`](../analytics-connector), next to the tools.
 

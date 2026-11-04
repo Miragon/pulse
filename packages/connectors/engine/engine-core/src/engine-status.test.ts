@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import { readStatus, statusRequests } from "./engine-status.js"
 import { fakePort, type Route } from "./testing/fake-port.js"
 import { NOW, statistics } from "./testing/status.js"
+import type { VerdictThresholds } from "./verdict.js"
 
 const OPTIONS = { keys: [], staleAfterMs: 300_000, maxGroups: 10 }
 const failedJob = (id: string, activityId: string) => ({
@@ -146,6 +147,124 @@ describe("readStatus", () => {
     expect(data.batches).toEqual({ running: 2, withFailures: 1 })
     expect(data.incidents).toEqual([])
     expect(data.engine.version).toBeNull()
+  })
+})
+
+describe("readStatus verdict", () => {
+  const quiet = {
+    getJobs: () => [],
+    getExternalTasks: () => [],
+  }
+  const read = (routes: Readonly<Record<string, Route>>, thresholds?: VerdictThresholds) =>
+    readStatus(
+      { port: engine({ ...quiet, ...routes }), now: clock() },
+      thresholds === undefined ? OPTIONS : { ...OPTIONS, thresholds },
+    )
+
+  it("is warning with incident findings below the thresholds", async () => {
+    const data = await read({})
+    expect(data.findings.every((finding) => finding.severity === "warning")).toBe(true)
+    expect(data.findings.map((finding) => finding.code)).not.toContain("INCIDENTS_CRITICAL")
+    expect(data.status).toBe("warning")
+  })
+
+  it("is critical from the open incidents of the count, not of the loaded page", async () => {
+    const data = await read({ getIncidentsCount: () => ({ count: 50 }) })
+    expect(data.status).toBe("critical")
+    // the findings say why, first: the threshold finding leads to the largest cause's group
+    expect(data.findings[0]).toEqual({
+      severity: "critical",
+      code: "INCIDENTS_CRITICAL",
+      message:
+        "50 open incidents, 2 of them failedJob at book: critical at >=50 open incidents or >=25 of one cause",
+      next: { action: "retryActivity", processDefinitionKey: "order", activityId: "book" },
+    })
+    expect(data.findings.slice(1).every((finding) => finding.severity === "warning")).toBe(true)
+  })
+
+  it("counts one cause as the cockpit does: across definitions, propagated and batch incidents too", async () => {
+    const other = (id: string) => ({ ...failedJob(id, "book"), processDefinitionId: "pay:1:y" })
+    const propagated = (id: string) => ({ ...failedJob(id, "book"), rootCauseIncidentId: "x" })
+    const batchJob = (id: string) => ({ ...failedJob(id, "book"), jobDefinitionId: "jd-b" })
+    const incidents = [
+      ...["o1", "o2"].map((id) => failedJob(id, "book")),
+      ...["p1", "p2"].map(other),
+      propagated("c1"),
+      batchJob("b1"),
+    ]
+    const data = await read(
+      {
+        getIncidents: () => incidents,
+        getIncidentsCount: () => ({ count: incidents.length }),
+        getBatchStatistics: () => [
+          { id: "b", type: "migration", failedJobs: 1, batchJobDefinitionId: "jd-b" },
+        ],
+      },
+      { criticalIncidents: 99, criticalClusterSize: 6 },
+    )
+    // the groups stay per definition and root cause; the verdict's cause spans all six
+    expect(data.incidents.map((group) => group.count)).toEqual([2, 2])
+    expect(data.status).toBe("critical")
+    expect(data.findings[0]).toMatchObject({
+      code: "INCIDENTS_CRITICAL",
+      message:
+        "6 open incidents, 6 of them failedJob at book: critical at >=99 open incidents or >=6 of one cause",
+    })
+  })
+
+  it("lists the cause's incidents by type when no group of it is shown", async () => {
+    const data = await read(
+      {
+        getIncidents: () => [{ ...failedJob("x", "book"), rootCauseIncidentId: "elsewhere" }],
+        getIncidentsCount: () => ({ count: 1 }),
+      },
+      { criticalIncidents: 1, criticalClusterSize: 99 },
+    )
+    expect(data.incidents).toEqual([])
+    expect(data.findings[0]).toMatchObject({
+      code: "INCIDENTS_CRITICAL",
+      next: { action: "listIncidentsOfType", incidentType: "failedJob" },
+    })
+  })
+
+  it("is critical from the largest group of one cause", async () => {
+    const many = Array.from({ length: 25 }, (_, index) => failedJob(`m${index}`, "book"))
+    const small = Array.from({ length: 12 }, (_, index) => failedJob(`s${index}`, `a${index}`))
+    const data = await readStatus(
+      {
+        port: engine({
+          ...quiet,
+          getIncidents: () => [...small, ...many],
+          getIncidentsCount: () => ({ count: 37 }),
+        }),
+        now: clock(),
+      },
+      { ...OPTIONS, maxGroups: 1 },
+    )
+    expect(data.incidents.map((group) => group.count)).toEqual([25])
+    expect(data.status).toBe("critical")
+  })
+
+  it("takes the thresholds it is given", async () => {
+    expect((await read({}, { criticalIncidents: 3, criticalClusterSize: 99 })).status).toBe(
+      "critical",
+    )
+    expect((await read({}, { criticalIncidents: 99, criticalClusterSize: 2 })).status).toBe(
+      "critical",
+    )
+    expect((await read({}, { criticalIncidents: 4, criticalClusterSize: 3 })).status).toBe(
+      "warning",
+    )
+  })
+
+  it("is ok without incidents and findings", async () => {
+    const data = await read({
+      getIncidents: () => [],
+      getIncidentsCount: () => ({ count: 0 }),
+      getProcessDefinitionStatistics: () => [statistics("order", 1, [41, 0, 0])],
+    })
+    expect(data.findings).toEqual([])
+    expect(data.status).toBe("ok")
   })
 })
 

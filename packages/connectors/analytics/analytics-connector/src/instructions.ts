@@ -25,7 +25,7 @@ export function analyticsInstructions(): string {
       "only the instances that ended in the period.",
     "- Each analytics_show_* tool shows the user a view and returns its figures to you as JSON " +
       "(the heatmap: a summary).",
-    // The status rule is analytics_engine_health's own description (`ENGINE_HEALTH_STATUS_RULE`);
+    // The metricsState rule is analytics_engine_health's own description (`ENGINE_METRICS_STATE_RULE`);
     // this line routes a period question away from it.
     "- Health: the open incidents of analytics_engine_health are point-in-time, with no period. " +
       "Incidents over a period: analytics_show_dashboard, per process and per activity.",

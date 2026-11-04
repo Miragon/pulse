@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { feedPayload } from "../tools/test-support/feed-payload.js"
 import type { MCPServer } from "mcp-use"
-import { DEFAULT_HEALTH_THRESHOLDS } from "../data/health-data.js"
+import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-engine-core"
 import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { resolveEngineToolset, type EngineToolset } from "../lib/mcp/toolsets.js"
 import { ENGINE_WIDGET_ACTIONS, ENGINE_WIDGET_ACTIONS_DATA } from "../tool-names.js"
@@ -19,7 +19,7 @@ function registerFeed(toolset: EngineToolset) {
   registerWidgetActionsFeed({
     server: { tool } as unknown as MCPServer,
     registry: { engines: [] } as unknown as EngineRegistry,
-    healthThresholds: DEFAULT_HEALTH_THRESHOLDS,
+    healthThresholds: DEFAULT_VERDICT_THRESHOLDS,
     toolset,
     engineParam: engineParamShape,
   })

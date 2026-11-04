@@ -10,9 +10,11 @@ import {
 } from "../tools/test-support/fake-engine.js"
 import { WORLD, worldReply } from "../tools/test-support/engine-world.js"
 import type { CockpitView } from "../view-models.js"
-import { CLUSTER_SCAN_LIMIT, messageSignature } from "./cluster-scan.js"
+import { messageSignature } from "@miragon/pulse-engine-core"
+import { CLUSTER_SCAN_LIMIT } from "./cluster-scan.js"
 import { buildCockpitStart, cockpitFacts } from "./cockpit-start.js"
-import { DEFAULT_HEALTH_THRESHOLDS, healthVerdictRule } from "./health-data.js"
+import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-engine-core"
+import { healthVerdictRule } from "./health-data.js"
 
 // The clock the incidents' age is read against: the world's incident is 2h old.
 const NOW = "2026-10-10T08:00:00.000Z"
@@ -37,7 +39,7 @@ async function factsOf(view: CockpitView, override: Override = () => undefined) 
   const start = await buildCockpitStart(
     view,
     resolveEngine(undefined, registryFor(engine)),
-    DEFAULT_HEALTH_THRESHOLDS,
+    DEFAULT_VERDICT_THRESHOLDS,
   )
   return cockpitFacts(start)
 }
@@ -63,12 +65,12 @@ function incidents(count: number, message = "card declined"): unknown[] {
   }))
 }
 
-const RULE = healthVerdictRule(DEFAULT_HEALTH_THRESHOLDS)
+const RULE = healthVerdictRule(DEFAULT_VERDICT_THRESHOLDS)
 
 describe("cockpitFacts: the model's view of each route", () => {
   it("overview: the verdict, the summary, the failed jobs and the top cluster", async () => {
     expect(await factsOf({ section: "overview" })).toEqual({
-      status: "degraded",
+      status: "warning",
       statusRule: RULE,
       totalIncidents: 1,
       lastHourIncidents: 1,

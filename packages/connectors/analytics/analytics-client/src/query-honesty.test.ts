@@ -105,7 +105,7 @@ const NO_DATA: { [K in keyof typeof queries]: (result: Result<K>) => void } = {
   },
   engineHealth: (r) => {
     // Silence is not health.
-    expect(r.status).toBe("unknown")
+    expect(r.metricsState).toBe("unknown")
     expect(r.reportingEngines).toEqual([])
     expect(r.silentEngines).toEqual(r.engines ?? [])
   },
@@ -155,7 +155,7 @@ describe("query honesty: a reporting engine with nothing open", () => {
       queries.engineLandscape(ch, { engine }),
     ])
 
-    expect(health.status).toBe("healthy")
+    expect(health.metricsState).toBe("healthy")
     expect({
       dashboard: dashboard.openIncidentsNow,
       engineHealth: health.openIncidents,

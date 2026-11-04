@@ -345,6 +345,9 @@ export function registerHealthTools(
 
 A new domain file adds its `registerXyzTools(register, engineScope)` call to `registerTools`
 in `src/tools/index.ts`. Engine scope, annotations and honest descriptions follow Step 4.
+The health tool's state from the alert rules is `metricsState` (its rule `metricsStateRule`),
+never `status`: the engine module's live verdict owns that name. No analytics text names an engine tool (the engine
+module may be off); the app's `tools-list.golden.test.ts` fails on one.
 
 ## Step 6: verify
 

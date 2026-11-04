@@ -220,6 +220,11 @@ The pattern is `engine_inspect_process_instance` and `engine_status`
   `src/lib/core-adapter/composites.wire.test.ts` (inspect) and
   `src/lib/core-adapter/composites-status.wire.test.ts` (status), over the helpers of
   `src/lib/core-adapter/composites.test-support.ts`.
+- How an engine is doing has one answer: mask incidents with engine-core's `messageSignature`,
+  count one cause with its `causeKeyOf`/`largestCause` and judge with its `engineVerdict`
+  (`ok | warning | critical`) by the `ENGINE_HEALTH_*` thresholds (`pulse status`: the
+  defaults), as `engine_status` and the cockpit's health route (`src/data/health-data.ts`)
+  do. Neither text names the other's verdict or an analytics tool.
 
 `src/lib/` is split by job, and each helper goes into the folder of its job: `engine/`
 (routing: `resolveEngine`, `withEngine`, the cockpit links, passthrough auth), `core-adapter/`
@@ -329,8 +334,9 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
 - Status: a `ToneVariant` (`danger`/`warning`/`success`/`info`/`neutral`; open incident or
   failed job without retries = `danger` (`severityTone`/`countTone` from
   `@miragon/pulse-widget-shell/widgets` is the one ladder for incident and job counts in every
-  module, a count without a state stays neutral), retries left or degraded = `warning`) shown via
-  pulse-ui's `StatusBadge` (tone and words required)/`CountPill`/`KpiCell.tone` or its
+  module, a count without a state stays neutral), retries left or degraded = `warning`; an
+  engine's own state is its verdict's tone, `VERDICT_TONE`, never a ladder over its counts)
+  shown via pulse-ui's `StatusBadge` (tone and words required)/`CountPill`/`KpiCell.tone` or its
   `TONE_DOT`/`TONE_BORDER`/`TONE_ICON`/`TONE_TINT`/`TONE_SOFT`/`TONE_INK` maps (a tone
   from the wire through `resolveTone`), next to readable words; never a coloured
   number, never a palette class or raw colour; text on a tint is black (`TONE_SOFT`), the

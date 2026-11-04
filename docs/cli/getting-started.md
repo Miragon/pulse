@@ -112,8 +112,8 @@ The [Claude Code plugin](./agents.md#claude-code-plugin) calls the CLI you insta
 `CLAUDE.md`: "Run `pulse guide` before using `pulse`."
 
 In CI, `--fail-on warning` fails on any finding, an open incident included. `--fail-on critical`
-fails only when executable jobs are overdue, and that finding asks whether the job executor is
-running. Either way the command exits with code 9 (`CHECK_FAILED`).
+fails from 50 open incidents, 25 of one cause or overdue executable jobs (that finding asks whether
+the job executor is running). Either way the command exits with code 9 (`CHECK_FAILED`).
 
 ## Where next
 

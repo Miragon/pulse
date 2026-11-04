@@ -17,6 +17,7 @@ import {
   str,
 } from "./records.js"
 import { engineTime } from "./dates.js"
+import { messageSignature } from "./message-signature.js"
 import { compact } from "./util.js"
 
 export interface DefinitionStatus {
@@ -84,15 +85,6 @@ export interface JobStatus {
 
 /** Incident groups list at most this many instance ids. */
 const LISTED_INSTANCES = 3
-
-const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi
-const HEX_RUN = /[0-9a-f]{16,}/gi
-const DIGITS = /\d+/g
-
-/** The message with UUIDs, hex runs of 16+ characters and digit runs masked as `#`. */
-export function messagePattern(message: string): string {
-  return message.replace(UUID, "#").replace(HEX_RUN, "#").replace(DIGITS, "#")
-}
 
 /** Process definitions of the statistics rows by id: key and version. */
 function definitionsById(statistics: readonly Rec[]): Map<string, Rec> {
@@ -215,13 +207,13 @@ function isRoot(incident: Rec): boolean {
   return str(incident, "id") === str(incident, "rootCauseIncidentId")
 }
 
-/** The group of an incident: key (else its job definition), activity, type, message pattern. */
+/** The group of an incident: key (else its job definition), activity, type, message signature. */
 function groupId(incident: Rec, key: string): string {
   return [
     key === "" ? `job-definition:${field(incident, "jobDefinitionId")}` : key,
     field(incident, "activityId"),
     field(incident, "incidentType"),
-    messagePattern(field(incident, "incidentMessage")),
+    messageSignature(field(incident, "incidentMessage")),
   ].join("\u0000")
 }
 
@@ -249,7 +241,7 @@ function groupOf(members: readonly Rec[]): IncidentGroup & { readonly newest: Re
 }
 
 /**
- * Root cause incidents grouped by key, activity, type and message pattern; largest groups first,
+ * Root cause incidents grouped by key, activity, type and message signature; largest groups first,
  * then the most recent, then `compareSteps` over the next steps. Incidents of the failed jobs of a
  * batch (`batchJobDefinitions`) are left out: BATCH_FAILURES reports them.
  */

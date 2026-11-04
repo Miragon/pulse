@@ -1,15 +1,14 @@
 import { describe, expect, it } from "vitest"
-import type { IncidentGroup } from "@miragon/pulse-engine-core"
-import {
-  engineStatus,
-  type FindingInput,
-  findings as coreFindings,
-} from "@miragon/pulse-engine-core/testing"
+import { engineVerdict, type IncidentGroup } from "@miragon/pulse-engine-core"
+import { type FindingInput, findings as coreFindings } from "@miragon/pulse-engine-core/testing"
 import { checkFailure } from "./findings.js"
 import { omit } from "../util.js"
 import { renderFinding } from "./status-command.js"
 
 const findings = (input: FindingInput) => coreFindings(input).map(renderFinding)
+/** The status of an engine without open incidents: the findings decide. */
+const statusOf = (list: readonly { readonly severity: "warning" | "critical" }[]) =>
+  engineVerdict({ openIncidents: 0, largestCluster: 0, findings: list })
 
 const NOW = Date.parse("2026-01-01T12:00:00.000Z")
 
@@ -42,7 +41,7 @@ const withoutCause = omit(GROUP, "rootCause")
 describe("findings", () => {
   it("finds nothing on a quiet engine: status ok, no CHECK_FAILED", () => {
     expect(findings(QUIET)).toEqual([])
-    expect(engineStatus([])).toBe("ok")
+    expect(statusOf([])).toBe("ok")
     expect(checkFailure("ok", [], "warning")).toBeUndefined()
   })
 
@@ -127,7 +126,7 @@ describe("findings", () => {
         next: "pulse external-task list --topic-name mail --not-locked",
       },
     ])
-    expect(engineStatus(list)).toBe("critical")
+    expect(statusOf(list)).toBe("critical")
     expect(findings({ ...QUIET, jobs: { executable: 1, overdue: 1 } })[0]?.message).toBe(
       "1 executable job has waited longer than 5m: is the job executor running?",
     )
@@ -254,6 +253,6 @@ describe("finding rules at their limits", () => {
     expect(list[0]?.message).toBe(
       "1 executable job has waited longer than 5m: is the job executor running?",
     )
-    expect(engineStatus(list)).toBe("critical")
+    expect(statusOf(list)).toBe("critical")
   })
 })

@@ -1,15 +1,24 @@
 import type { Client } from "@miragon/pulse-engine-client"
-import { engineDateMillis, latestEngineDate, toEngineDate } from "@miragon/pulse-engine-core"
+import {
+  causeKeyOf,
+  criticalIncidentsRule,
+  DEFAULT_VERDICT_THRESHOLDS,
+  engineDateMillis,
+  engineVerdict,
+  largestCause,
+  latestEngineDate,
+  toEngineDate,
+  type VerdictThresholds,
+} from "@miragon/pulse-engine-core"
 import {
   getHistoricProcessInstancesCount,
   getIncidents,
   getIncidentsCount,
 } from "@miragon/pulse-engine-client/sdk"
-import type { EngineHealthCluster, EngineHealthData, EngineHealthStatus } from "../view-models.js"
+import type { EngineHealthCluster, EngineHealthData } from "../view-models.js"
 import {
   CLUSTER_SCAN_LIMIT,
   HOUR_MS,
-  messageSignature,
   scanCoverage,
   truncateMessage,
   UNKNOWN,
@@ -27,20 +36,11 @@ import {
 } from "./definition-info.js"
 import { countOf, DAY_MS, rowsOf } from "./engine-reads.js"
 
-/** Deployment-tunable (`ENGINE_HEALTH_*`) so the verdict is explainable per installation. */
-export interface EngineHealthThresholds {
-  criticalIncidents: number
-  criticalClusterSize: number
-}
-
-export const DEFAULT_HEALTH_THRESHOLDS: EngineHealthThresholds = {
-  criticalIncidents: 50,
-  criticalClusterSize: 25,
-}
-
 const MAX_CLUSTERS = 6
 
 interface ClusterAcc {
+  /** engine-core's cause key (`causeKeyOf`), the cluster's route id. */
+  key: string
   activityId: string
   incidentType: string
   signature: string
@@ -54,26 +54,9 @@ interface ClusterAcc {
   latest: string | null
 }
 
-/**
- * Carried in every payload so no reader mistakes this incident-count verdict for
- * analytics_engine_health's alert-based one; the two may disagree.
- */
-export function healthVerdictRule(t: EngineHealthThresholds): string {
-  return (
-    `From the engine's open incidents, read live: critical at >=${t.criticalIncidents} open ` +
-    `or >=${t.criticalClusterSize} in one cluster, degraded with any, else ok.`
-  )
-}
-
-function statusOf(
-  totalIncidents: number,
-  topClusterSize: number,
-  t: EngineHealthThresholds,
-): EngineHealthStatus {
-  if (totalIncidents >= t.criticalIncidents || topClusterSize >= t.criticalClusterSize) {
-    return "critical"
-  }
-  return totalIncidents > 0 ? "degraded" : "ok"
+/** How the overview's `status` comes about: engine-core's verdict over the open incidents. */
+export function healthVerdictRule(t: VerdictThresholds): string {
+  return `From the engine's open incidents, read live: critical at ${criticalIncidentsRule(t)}, warning with any, else ok.`
 }
 
 interface IncidentScanAgg {
@@ -85,7 +68,7 @@ interface IncidentFacts {
   activityId: string
   incidentType: string
   signature: string
-  /** Same activity and type but a different exception is a different root cause. */
+  /** engine-core's cause key: same activity and type but another exception is another cause. */
   clusterKey: string
   defKey: string
   ts: string
@@ -101,9 +84,7 @@ function deriveIncidentFacts(
   cutoffMs: number,
   keyOf: (definitionId: string) => string | null,
 ): IncidentFacts {
-  const activityId = inc.activityId ?? UNKNOWN
-  const incidentType = inc.incidentType ?? "unknown"
-  const signature = messageSignature(inc.incidentMessage ?? null)
+  const { activityId, incidentType, signature, key } = causeKeyOf(inc)
   const defKey = (inc.processDefinitionId ? keyOf(inc.processDefinitionId) : null) ?? UNKNOWN
   const ts = inc.incidentTimestamp ?? ""
   const tsMs = engineDateMillis(ts)
@@ -111,7 +92,7 @@ function deriveIncidentFacts(
     activityId,
     incidentType,
     signature,
-    clusterKey: `${activityId}::${incidentType}::${signature}`,
+    clusterKey: key,
     defKey,
     ts,
     isRecent: tsMs !== null && tsMs >= cutoffMs,
@@ -133,6 +114,7 @@ function clusterIncidents(
     const acc =
       byCluster.get(facts.clusterKey) ??
       ({
+        key: facts.clusterKey,
         activityId: facts.activityId,
         incidentType: facts.incidentType,
         signature: facts.signature,
@@ -170,7 +152,7 @@ function toClusterList(
     const keys = [...c.keys.entries()].sort((a, b) => b[1] - a[1]).map(([k]) => k)
     const primaryKey = keys.find((k) => k !== UNKNOWN)
     return {
-      id: `${c.activityId}::${c.incidentType}::${c.signature}`,
+      id: c.key,
       activityId: c.activityId,
       activityName: elementNameIn(display.names, c.sampleDefinitionId, c.activityId),
       incidentType: c.incidentType,
@@ -197,7 +179,7 @@ function topClusters(byCluster: Map<string, ClusterAcc>): ClusterAcc[] {
 export async function buildEngineHealthData(
   client: Client,
   engineId: string,
-  thresholds: EngineHealthThresholds = DEFAULT_HEALTH_THRESHOLDS,
+  thresholds: VerdictThresholds = DEFAULT_VERDICT_THRESHOLDS,
 ): Promise<EngineHealthData> {
   // History filters take the engine's date format (engine contract).
   const startMs = Date.now()
@@ -258,10 +240,14 @@ export async function buildEngineHealthData(
   // The affected activities are exact only when the scan read every incident.
   const affectedActivities = coverage.complete ? activitySet.size : null
 
-  // The top cluster's SCANNED share is a lower bound, so it never raises a false
-  // "critical"; a capped scan means at least CLUSTER_SCAN_LIMIT incidents, which
-  // the total rule judges. The verdict travels as data; each reader words it.
-  const status = statusOf(totalIncidents, clusters[0]?.scannedIncidentCount ?? 0, thresholds)
+  // engine-core's verdict over engine-core's largest cause, as engine_status judges. The scanned
+  // share is a lower bound, so it never raises a false "critical"; a capped scan means at least
+  // CLUSTER_SCAN_LIMIT incidents, which the total rule judges. The verdict travels as data; each
+  // reader words it.
+  const status = engineVerdict(
+    { openIncidents: totalIncidents, largestCluster: largestCause(incidents)?.count ?? 0 },
+    thresholds,
+  )
 
   return {
     status,

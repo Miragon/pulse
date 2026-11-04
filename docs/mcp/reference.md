@@ -15,7 +15,7 @@ BPM operations across these domains (`category`): `engines`, `process-definition
 `jobs`, `history`, `migrations`, `batches`. Highlights:
 
 - **Engines:** `list_engines`, `engine_status` (the triage of one engine: findings by severity,
-  overall status, counts)
+  counts and the live verdict: the overview's incident thresholds `ENGINE_HEALTH_*` plus findings)
 - **Process definitions:** `list_process_definitions`, `get_process_definition_xml`
 - **Process instances:** `start`, `list`, `inspect_process_instance` (where one instance waits and
   why, running or ended, by id, business key or definition key), `delete`, `modify`,
@@ -44,8 +44,8 @@ periods, e.g. around a deployment), `show_version_compare` (two deployed version
 process), `show_engine_compare` (one process definition on two engines), `show_engine_landscape`
 (what runs where, load and job backlog per engine) and `show_bpmn_heatmap`. Each renders a view
 and returns its figures to the model as JSON (the heatmap: a summary). `analytics_engine_health` returns
-JSON without a view: a live WIP, incidents, backlog and alerts snapshot. The incidents open right
-now and their instances come from the engine module.
+JSON without a view: a live WIP, incidents, backlog and alerts snapshot, its state from the alert
+rules as `metricsState`. The incidents open right now and their instances come from the engine module.
 
 Across engines the tools report counts, never per-engine rates: engines host different process
 definitions, so an aggregated failure rate or duration describes that engine's process mix rather
@@ -122,7 +122,9 @@ Entries may also declare their vendor via `flavor` (`cibseven` | `operaton` | `c
 cockpit-link routes and display name.
 
 With several engines, the cockpit landing lists every engine with its live health in words (open
-incidents, empty, unreachable, loading), read from the engine itself. The cross-engine view (process
+incidents, empty, unreachable, loading), read from the engine itself. Its dot, there and in the
+cross-engine view, has the tone of the engine overview's verdict (ok, warning, critical), so one
+open incident below the thresholds is a warning, not an alarm. The cross-engine view (process
 landscape plus fleet-wide health and performance) needs the analytics module; without it
 (e.g. `MCP_ACTIVE_MODULES=engine` where no Prometheus exists) the cockpit does not offer it.
 

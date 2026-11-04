@@ -1,3 +1,4 @@
+import { DEFAULT_VERDICT_THRESHOLDS, type VerdictThresholds } from "@miragon/pulse-engine-core"
 import type { Route } from "@miragon/pulse-engine-core/testing"
 import { withToolErrors } from "@miragon/pulse-widget-shell/server"
 import {
@@ -74,8 +75,11 @@ export async function engineWith(
 
 export const inspect = (engine: FakeEngine, args: InspectArgs) =>
   inspectForModel(clientFor(engine), args, "fake")
-export const status = (engine: FakeEngine, args: EngineStatusArgs) =>
-  engineStatusForModel(clientFor(engine), args, "fake")
+export const status = (
+  engine: FakeEngine,
+  args: EngineStatusArgs,
+  thresholds: VerdictThresholds = DEFAULT_VERDICT_THRESHOLDS,
+) => engineStatusForModel(clientFor(engine), args, "fake", thresholds)
 
 /** The text a model reads for a failed inspect, as the registrar prints a thrown error. */
 export async function errorText(engine: FakeEngine, args: InspectArgs) {

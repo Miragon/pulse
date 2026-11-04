@@ -1,9 +1,9 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
+import { messageSignature } from "@miragon/pulse-engine-core"
 import {
   definitionStatus,
   jobStatus,
-  messagePattern,
   NOW,
   statistics,
   topicStatus,
@@ -12,19 +12,42 @@ import {
 import { groupIncidents } from "../../test/support/workflow-status.js"
 import { omit } from "../util.js"
 
-describe("messagePattern", () => {
-  it("masks UUIDs, long hex runs and digit runs", () => {
+describe("messageSignature, the mask pulse status groups by (the cockpit's)", () => {
+  it("masks UUIDs, long hex runs, quoted values and numbers, lowercased", () => {
     expect(
-      messagePattern(
-        "Job 6f2b8c3e-0f4a-11ef-a1b2-0242ac120002 failed after 3 retries (0123456789abcdef0)",
+      messageSignature(
+        "Job 6f2b8c3e-0f4a-11ef-a1b2-0242ac120002 failed after 3 retries (0123456789abcdef0) on 'mail'",
       ),
-    ).toBe("Job # failed after # retries (#)")
+    ).toBe("job <id> failed after <n> retries (<id>) on '<v>'")
   })
 
-  it("is idempotent (property)", () => {
+  it("groups incidents whose messages differ only in case, spacing, quoted values or numbers", () => {
+    const at = (id: string, incidentMessage: string) => ({
+      id,
+      rootCauseIncidentId: id,
+      incidentType: "failedJob",
+      activityId: "book",
+      processDefinitionId: "order:1:x",
+      processInstanceId: `pi-${id}`,
+      incidentMessage,
+      incidentTimestamp: "2026-01-01T10:00:00.000+0000",
+    })
+    const grouped = groupIncidents(
+      [
+        at("1", "Timeout calling 'https://a.example/1' after 30000 ms"),
+        at("2", "timeout  calling 'https://b.example/2' after 5000 ms"),
+        at("3", "Connection refused calling 'https://a.example/1'"),
+      ],
+      [statistics("order", 1, [3, 3, 3])],
+    )
+    expect(grouped.groups.map((group) => group.count)).toEqual([2, 1])
+  })
+
+  it("is stable below the cut (property)", () => {
     fc.assert(
       fc.property(fc.string(), (message) => {
-        expect(messagePattern(messagePattern(message))).toBe(messagePattern(message))
+        const signature = messageSignature(message)
+        if (signature.length < 160) expect(messageSignature(signature)).toBe(signature)
       }),
     )
   })

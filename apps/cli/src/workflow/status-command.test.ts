@@ -162,6 +162,75 @@ describe("status", () => {
   })
 })
 
+describe("status: incident groups and the verdict, as the cockpit has them", () => {
+  const incident = (id: string, overrides: Record<string, unknown> = {}) => ({
+    id,
+    rootCauseIncidentId: id,
+    incidentType: "custom",
+    activityId: "book",
+    processDefinitionId: "order:1:x",
+    incidentMessage: `Timeout calling 'https://svc-${id}.example' after ${id}0 ms`,
+    incidentTimestamp: "2026-01-01T10:00:00.000+0000",
+    ...overrides,
+  })
+
+  it("groups messages that differ only in case, quoted values and numbers into one cause", async () => {
+    const { deps } = engine({
+      incidents: [
+        incident("1"),
+        // the former mask (ids and digits as #) split these: another case, another quoted word
+        incident("2", { incidentMessage: "TIMEOUT calling 'https://invoice.example' after 20 ms" }),
+        incident("3", { incidentMessage: "Connection refused calling 'https://svc.example'" }),
+      ],
+    })
+    const result = await status(deps, OPTIONS)
+    if (result.kind !== "view") throw new Error("expected a view")
+    expect(result.view.incidents.map((group) => [group.count, group.message])).toEqual([
+      [2, "Timeout calling 'https://svc-1.example' after 10 ms"],
+      [1, "Connection refused calling 'https://svc.example'"],
+    ])
+    expect(result.view.status).toBe("warning")
+  })
+
+  it("is critical from 50 open incidents, a critical finding says so; --fail-on critical fails", async () => {
+    const many = (count: number) =>
+      Array.from({ length: count }, (_, index) =>
+        incident(String(index), { activityId: `a${index}`, incidentMessage: `cause ${index}` }),
+      )
+    const below = await status(engine({ incidents: many(49) }).deps, {
+      ...OPTIONS,
+      failOn: "critical",
+    })
+    if (below.kind !== "view") throw new Error("expected a view")
+    expect(below.view.status).toBe("warning")
+    expect(below.failure).toBeUndefined()
+    const at = await status(engine({ incidents: many(50) }).deps, {
+      ...OPTIONS,
+      failOn: "critical",
+    })
+    if (at.kind !== "view") throw new Error("expected a view")
+    expect(at.view.status).toBe("critical")
+    // the findings say why, first: the hint starts with the threshold finding's step
+    expect(at.view.findings[0]).toMatchObject({
+      severity: "critical",
+      code: "INCIDENTS_CRITICAL",
+      message:
+        "50 open incidents, 1 of them custom at a0: critical at >=50 open incidents or >=25 of one cause",
+    })
+    expect(at.view.findings.slice(1).every((finding) => finding.severity === "warning")).toBe(true)
+    expect(at.failure).toMatchObject({ code: "CHECK_FAILED" })
+    expect(at.failure?.details.hint).toBe(`Start with: ${at.view.findings[0]?.next ?? ""}`)
+  })
+
+  it("is critical from 25 incidents of one cause", async () => {
+    const same = Array.from({ length: 25 }, (_, index) => incident(String(index + 1)))
+    const result = await status(engine({ incidents: same }).deps, OPTIONS)
+    if (result.kind !== "view") throw new Error("expected a view")
+    expect(result.view.incidents.map((group) => group.count)).toEqual([25])
+    expect(result.view.status).toBe("critical")
+  })
+})
+
 describe("status details", () => {
   it("previews every request of round 1 with its query", () => {
     expect(

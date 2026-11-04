@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { registerEngineTools } from "../../tools/engines.js"
+import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-engine-core"
 import { registerTools } from "../../tools/index.js"
 import { registerIncidentIssueTools } from "../../tools/incident-issue.js"
 import type { EngineRegistry } from "../engine/resolve-engine.js"
@@ -26,7 +27,7 @@ function configsFor(toolset: EngineToolset, { allowDeployments = false } = {}): 
   const configs: Config[] = []
   const recorder = ((config: Config) => configs.push(config)) as unknown as Register
   const register = withToolsetFilter(recorder, toolset)
-  registerEngineTools(register)
+  registerEngineTools(register, DEFAULT_VERDICT_THRESHOLDS)
   registerTools(register, { allowDeployments })
   registerIncidentIssueTools(register, {})
   return configs

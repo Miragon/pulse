@@ -102,7 +102,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Live operational health of the CIB seven engine(s), from Prometheus state gauges: running WIP, open incidents by type, failed jobs (retries exhausted), executable/suspended job backlog, open/unassigned user tasks, external-task backlog, deployed definitions, and which alert rules are firing/pending. Names the engines judged and the silent ones (`silentEngines`: their counts read 0 because nothing arrives). Status: From Prometheus, over the engines in scope: unknown when none of them reports metrics; critical only while a severity=critical alert fires for them (fleet-wide also an engine-less CibSeven* alert); degraded with any such firing alert, failed job, open incident or an engine in scope that reports nothing; else healthy. Use for fleet-wide or metric-based health; for one engine's live incident clusters use engine_open_cockpit.",
+    "description": "Live operational health of the CIB seven engine(s), from Prometheus state gauges: running WIP, open incidents by type, failed jobs (retries exhausted), executable/suspended job backlog, open/unassigned user tasks, external-task backlog, deployed definitions, and which alert rules are firing/pending. Names the engines judged and the silent ones (`silentEngines`: their counts read 0 because nothing arrives). metricsState: From Prometheus, over the engines in scope: unknown when none of them reports metrics; critical only while a severity=critical alert fires for them (fleet-wide also an engine-less CibSeven* alert); degraded with any such firing alert, failed job, open incident or an engine in scope that reports nothing; else healthy. Use for fleet-wide or metric-based health.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -415,7 +415,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Compare process KPIs of two periods (around a deployment, A ends and B starts at its timestamp from engine_get_deployment). Per period: starts and starts per day, completions, incidents per 100 starts, avg/median/p95 duration, plus the deltas. Periods are clamped to now and the 30-day retention and reported as measured (`partial`); a reversed or wholly out-of-range period is refused.",
+    "description": "Compare process KPIs of two periods (around a deployment, A ends and B starts at its deployment time). Per period: starts and starts per day, completions, incidents per 100 starts, avg/median/p95 duration, plus the deltas. Periods are clamped to now and the 30-day retention and reported as measured (`partial`); a reversed or wholly out-of-range period is refused.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -491,7 +491,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Compare KPIs of two deployed versions of one processDefinitionKey over a shared rolling window. The version is an exact label on the instance and incident series, so starts, completions, incidents, incidents per 100 starts and avg/median/p95 duration per version and their deltas are exact; the comparison is process-wide (no element scope). Find versions with engine_list_process_definitions.",
+    "description": "Compare KPIs of two deployed versions of one processDefinitionKey over a shared rolling window. The version is an exact label on the instance and incident series, so starts, completions, incidents, incidents per 100 starts and avg/median/p95 duration per version and their deltas are exact; the comparison is process-wide (no element scope).",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {

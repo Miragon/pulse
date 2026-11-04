@@ -3,7 +3,7 @@ import type { AddressInfo } from "node:net"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import type { MCPServer } from "mcp-use"
 import { createToolRegistrar } from "@miragon/pulse-widget-shell/server"
-import { DEFAULT_HEALTH_THRESHOLDS } from "../data/health-data.js"
+import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-engine-core"
 import type { EngineEntry } from "../engine-provider.js"
 import { createEngineRegistry } from "../lib/engine/resolve-engine.js"
 import { engineModule, createBpmnXmlFetcher } from "../module.js"
@@ -207,7 +207,7 @@ describe("widget-path feeds honor the MCP request's ctx.signal", () => {
     registerWidgetDataFeeds({
       server,
       registry: registryFor([{ id: "prod-a", baseUrl }], 10_000),
-      healthThresholds: DEFAULT_HEALTH_THRESHOLDS,
+      healthThresholds: DEFAULT_VERDICT_THRESHOLDS,
       toolset: "read-only",
       engineParam: engineParamShape,
     })

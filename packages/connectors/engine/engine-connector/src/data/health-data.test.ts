@@ -18,10 +18,12 @@ import {
 import type { Client } from "@miragon/pulse-engine-client"
 import { buildClusterDetailData } from "./cluster-detail-data.js"
 import {
-  buildEngineHealthData,
-  healthVerdictRule,
-  type EngineHealthThresholds,
-} from "./health-data.js"
+  causeKeyOf,
+  engineVerdict,
+  largestCause,
+  type VerdictThresholds,
+} from "@miragon/pulse-engine-core"
+import { buildEngineHealthData, healthVerdictRule } from "./health-data.js"
 
 const mockedGetIncidents = vi.mocked(getIncidents)
 const mockedGetProcessInstances = vi.mocked(getProcessInstances)
@@ -157,11 +159,11 @@ describe("buildClusterDetailData paging", () => {
   })
 })
 
-// #340: the verdict states its source so it is not mistaken for analytics_engine_health.
+// #340: the verdict states its source and the deployment's thresholds.
 describe("healthVerdictRule", () => {
   it("names the source and the deployment's own thresholds", () => {
     expect(healthVerdictRule({ criticalIncidents: 10, criticalClusterSize: 4 })).toBe(
-      "From the engine's open incidents, read live: critical at >=10 open or >=4 in one cluster, degraded with any, else ok.",
+      "From the engine's open incidents, read live: critical at >=10 open incidents or >=4 of one cause, warning with any, else ok.",
     )
   })
 })
@@ -169,7 +171,7 @@ describe("healthVerdictRule", () => {
 // Rule text and verdict logic live apart, so each boundary row pins both: a
 // flipped comparison would otherwise ship a rule that describes another verdict.
 describe("buildEngineHealthData verdict", () => {
-  const T: EngineHealthThresholds = { criticalIncidents: 10, criticalClusterSize: 4 }
+  const T: VerdictThresholds = { criticalIncidents: 10, criticalClusterSize: 4 }
 
   /** `sizes[i]` open incidents on activity `A<i>`: one cluster per activity. */
   function scan(sizes: number[]): IncidentRowFixture[] {
@@ -196,15 +198,42 @@ describe("buildEngineHealthData verdict", () => {
 
   it.each([
     ["no open incident", [], "ok"],
-    ["one open incident", [1], "degraded"],
-    ["total one under the threshold, clusters under theirs", [3, 3, 3], "degraded"],
+    ["one open incident", [1], "warning"],
+    ["total one under the threshold, clusters under theirs", [3, 3, 3], "warning"],
     ["total AT the threshold, clusters under theirs", [3, 3, 3, 1], "critical"],
-    ["one cluster one under its threshold", [3], "degraded"],
+    ["one cluster one under its threshold", [3], "warning"],
     ["one cluster AT its threshold, total far under", [4], "critical"],
   ] as const)("%s → %s", async (_label, sizes, status) => {
     const data = await verdict([...sizes])
     expect(data.status).toBe(status)
     expect(data.statusRule).toBe(healthVerdictRule(T))
+  })
+
+  it("is engine-core's verdict, the one engine_status gives", async () => {
+    for (const sizes of [[], [1], [3, 3, 3], [3, 3, 3, 1], [3], [4], [2, 2]]) {
+      const data = await verdict(sizes)
+      const openIncidents = sizes.reduce((a, b) => a + b, 0)
+      expect(data.status).toBe(
+        engineVerdict({ openIncidents, largestCluster: Math.max(0, ...sizes) }, T),
+      )
+    }
+  })
+
+  it("counts one cause across definitions, engine-core's largestCause, as engine_status does", async () => {
+    // 2 + 2 incidents of one activity, type and message in two definitions: one cause of 4
+    const rows = [
+      ...scan([2]),
+      ...scan([2]).map((row) => ({ ...row, processDefinitionId: "K2:1:x" })),
+    ]
+    mockedGetIncidents.mockResolvedValue(rows)
+    vi.mocked(getIncidentsCount).mockResolvedValue({ count: 4 })
+    vi.mocked(getProcessDefinitionStatistics).mockResolvedValue([] as never)
+    vi.mocked(getHistoricProcessInstancesCount).mockResolvedValue({ count: 0 })
+    const data = await buildEngineHealthData(client, "eng1", T)
+    expect(largestCause(rows)?.count).toBe(4)
+    expect(data.status).toBe("critical")
+    expect(data.clusters.map((cluster) => cluster.id)).toEqual([causeKeyOf(rows[0] ?? {}).key])
+    expect(data.clusters[0]?.id).toBe("A0::failedJob::boom")
   })
 
   it("judges the engine-wide /count, not the capped scan", async () => {

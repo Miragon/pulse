@@ -3,6 +3,7 @@ import {
   earliestEngineDate,
   engineLike,
   latestEngineDate,
+  messageSignature,
   toEngineDate,
 } from "@miragon/pulse-engine-core"
 import {
@@ -15,7 +16,6 @@ import type { ClusterDetailFilters, PagingArgs } from "../feed-contracts.js"
 import {
   CLUSTER_SCAN_LIMIT,
   HOUR_MS,
-  messageSignature,
   scanCoverage,
   truncateMessage,
   UNKNOWN,
