@@ -38,9 +38,9 @@ describe("the engine jar", () => {
     assert.match(staleJarNote(1000), /pnpm stack:down && pnpm stack:up/)
   })
 
-  it("never tells a checkout without a jar to stop the stack another checkout built", () => {
-    assert.match(staleJarNote(undefined), /no engine jar: another checkout .* built the running/)
-    assert.match(staleJarNote(undefined), /keeps running/)
+  it("never tells a checkout without a jar to stop the stack every worktree shares", () => {
+    assert.match(staleJarNote(undefined), /no engine jar, so the running engine may not match/)
+    assert.match(staleJarNote(undefined), /shared and keeps running/)
     assert.doesNotMatch(staleJarNote(undefined), /stack:down/)
   })
 
