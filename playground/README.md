@@ -37,6 +37,8 @@ pnpm stack:down     # stop (volumes kept; --wipe drops them)
 - `stack:up` reuses a stack that already answers as it is, and stops with a message when another
   container or process holds one of its ports. After a change to the engine plugin or the
   example, `pnpm stack:down && pnpm stack:up` deploys it (`stack:up` says when the jar is stale).
+  Every checkout and worktree shares the one stack (Compose project `pulse`): `stack:down` stops
+  it for all of them, and a checkout without a jar of its own reuses the engine another one built.
 - With your own settings instead: `cp .env.example .env`, then `pnpm dev`.
 - Every published port binds to `127.0.0.1` on purpose: the engine REST API
   is anonymous, Grafana runs as anonymous Admin, the rest uses demo
