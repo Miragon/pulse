@@ -77,7 +77,8 @@ The product page is [miragon.ai/tools/pulse](https://miragon.ai/tools/pulse/).
 
 ## Development
 
-A fresh clone needs Node.js 22.22.2 or later, pnpm (`corepack enable`) and Docker; no JDK, no `.env`:
+A fresh clone needs Node.js 22.22.2 or later, pnpm (`corepack enable`, or `npm i -g pnpm@10.32.1` on
+Node.js 25 and later) and Docker; no JDK (Gradle runs in a container without one), no `.env`:
 
 ```bash
 pnpm play               # installs, starts the playground, builds, MCP server on :8400, inspector at /mcp/inspector
