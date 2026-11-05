@@ -104,6 +104,7 @@ pnpm install --frozen-lockfile       # all deps are public; no registry credenti
 pnpm build                           # turbo build across the monorepo (runs `generate` first)
 pnpm typecheck                       # tsc --noEmit everywhere, incl. widget/UI tsconfigs
 pnpm test                            # vitest across the workspace
+pnpm test:one <file...> [--watch]    # inner loop: test files in their packages, deps built, coverage off
 pnpm lint                            # eslint per package (`pnpm lint:fix` to autofix)
 pnpm format:check                    # prettier check (`pnpm format` to write)
 pnpm generate                        # regenerate the CIB seven SDK from the OpenAPI spec

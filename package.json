@@ -29,6 +29,7 @@
     "dev": "turbo run build --filter=@miragon/pulse-mcp-server^... --output-logs=errors-only && dotenv -e .env -- pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server dev",
     "play": "node scripts/local.mjs play",
     "play:cli": "node scripts/local.mjs play:cli",
+    "test:one": "node scripts/local.mjs test:one",
     "stack:up": "node scripts/local.mjs stack:up",
     "stack:down": "node scripts/local.mjs stack:down",
     "stack:status": "node scripts/local.mjs stack:status",
