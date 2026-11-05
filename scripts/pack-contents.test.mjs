@@ -4,7 +4,13 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { after, describe, it } from "node:test"
-import { packFindings, relativeSpecifiers, tarballFindings, TEST_FILE } from "./pack-contents.mjs"
+import {
+  packFindings,
+  relativeSpecifiers,
+  tarballFindings,
+  TEST_FILE,
+  TSCONFIG_FILE,
+} from "./pack-contents.mjs"
 
 /** A connector's tarball as files → text: dist, the widgets' source and what it imports. */
 const CONNECTOR = {
@@ -71,6 +77,23 @@ describe("pack-contents", () => {
     ])
   })
 
+  it("fails a tsconfig, the editor's nested one under src or a package's own", () => {
+    const planted = {
+      ...CONNECTOR,
+      "src/widgets/tsconfig.json": '{ "extends": "../../tsconfig.widgets.json" }',
+      "tsconfig.widgets.json": "{}",
+      // Not a project file: a module that merely carries the word.
+      "dist/tsconfig-paths.js": "export const paths = {}",
+    }
+    const why =
+      "a tsconfig ships (exclude it in files): a host's Vite reads it for the package's " +
+      "sources and fails on an extends target the tarball lacks"
+    assert.deepEqual(findings(planted), [
+      `src/widgets/tsconfig.json: ${why}`,
+      `tsconfig.widgets.json: ${why}`,
+    ])
+  })
+
   it("fails a widget import the files list left behind", () => {
     assert.deepEqual(findings(without(CONNECTOR, "src/view-models.ts", "src/messages/use-t.ts")), [
       "src/widgets/index.ts: imports ../view-models.js, which the tarball lacks (add it to files)",
@@ -117,6 +140,15 @@ describe("pack-contents", () => {
       "latest.js",
     ]) {
       assert.ok(!TEST_FILE.test(file), file)
+    }
+  })
+
+  it("names project files by their name, never a module or config that merely mentions one", () => {
+    for (const file of ["tsconfig.json", "src/ui/tsconfig.json", "tsconfig.widgets.json"]) {
+      assert.ok(TSCONFIG_FILE.test(file), file)
+    }
+    for (const file of ["dist/tsconfig-paths.js", "src/tsconfig.ts", "jsconfig.json"]) {
+      assert.ok(!TSCONFIG_FILE.test(file), file)
     }
   })
 
