@@ -77,11 +77,16 @@ jobs:
       - if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: pnpm --fail-if-no-match --filter pulse-cockpit exec playwright install-deps chromium
 
-      - run: pnpm build
+      - id: build
+        run: pnpm build
 
       - run: pnpm typecheck
 
-      - run: pnpm test
+      # Runs on a red typecheck too. node:test reports as spec plus one annotation per failure.
+      - if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        env:
+          NODE_OPTIONS: --test-reporter=spec --test-reporter-destination=stdout --test-reporter=${{ github.workspace }}/scripts/gha-test-reporter.mjs --test-reporter-destination=stdout
+        run: pnpm test
 
   # Playwright host simulation of the built widget bundle (test-host/README.md).
   host-sim:
@@ -314,19 +319,26 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
+      - id: install
+        run: pnpm install --frozen-lockfile
 
       - if: needs.changes.outputs.typescript == 'true'
         run: pnpm lint
 
-      - run: pnpm format:check
+      # The checks below run after a red one too, so one run names every failure.
+      - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm format:check
 
       - name: Repo-wide guards (docs-refs, old-names, pnpm filters)
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        env:
+          NODE_OPTIONS: --test-reporter=spec --test-reporter-destination=stdout --test-reporter=${{ github.workspace }}/scripts/gha-test-reporter.mjs --test-reporter-destination=stdout
         run: |
           node --test scripts/docs-refs.test.mjs scripts/old-names.test.mjs
           pnpm lint:package-scripts
 
-      - uses: Miragon/pin-npm-dependencies@v1.2.2
+      - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        uses: Miragon/pin-npm-dependencies@v1.2.2
 
   template:
     name: Composed-server template (Build + Test)
