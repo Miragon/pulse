@@ -51,6 +51,10 @@ Mutation testing covers `@miragon/pulse-engine-core` only (owner decision, 2026-
 narrows it). A pull request runs none: `.github/workflows/mutation-nightly.yml` mutates it each
 night (incremental).
 
+Editors read only files named `tsconfig.json`, so the widget, host-bundle and test trees that only
+a `tsconfig.<x>.json` checks each carry a nested `tsconfig.json` extending that project: editors
+check them with its settings (`pnpm lint:package-scripts`). `.vscode/` pins the workspace TypeScript.
+
 ## Build your own server
 
 The modules ship on public npm: `@miragon/pulse-engine-connector`,
