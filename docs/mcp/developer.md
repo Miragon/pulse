@@ -45,15 +45,11 @@ server, the playground keeps running. Every port binds to `127.0.0.1`.
 The gates one by one: `pnpm build`, `pnpm typecheck`, `pnpm test`, `pnpm lint`, `pnpm format:check`.
 `pnpm dev` and `pnpm play` bind 127.0.0.1; `pnpm start` and Docker listen on all interfaces.
 
-Mutation testing covers `@miragon/pulse-engine-core` only (owner decision, 2026-11-04;
-`MUTATED_PACKAGES` in `scripts/check-package-scripts.mjs`):
-`pnpm --fail-if-no-match --filter @miragon/pulse-engine-core exec stryker run` (`--mutate <file>`
-narrows it). A pull request runs none: `.github/workflows/mutation-nightly.yml` mutates it each
-night (incremental).
+Mutation testing covers `@miragon/pulse-engine-core` only (`MUTATED_PACKAGES`), nightly, never on a
+pull request: `pnpm --fail-if-no-match --filter @miragon/pulse-engine-core exec stryker run`.
 
-Editors read only files named `tsconfig.json`, so the widget, host-bundle and test trees that only
-a `tsconfig.<x>.json` checks each carry a nested `tsconfig.json` extending that project: editors
-check them with its settings (`pnpm lint:package-scripts`). `.vscode/` pins the workspace TypeScript.
+Editors read only `tsconfig.json`: each widget, host-bundle and test tree has a nested one extending
+the `tsconfig.<x>.json` that checks it (`pnpm lint:package-scripts`); `.vscode/` pins TypeScript.
 
 ## Build your own server
 
