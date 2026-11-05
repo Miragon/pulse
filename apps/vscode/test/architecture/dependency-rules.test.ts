@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process"
+import { execFileSync, spawnSync } from "node:child_process"
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
@@ -75,19 +75,21 @@ function plantedTree(): string {
   return root
 }
 
+const DEPCRUISE = join(REPO_ROOT, "node_modules/.bin/depcruise")
+
+function cruiseArguments(outputType: string): string[] {
+  return [
+    "apps/vscode/src",
+    "apps/vscode/test",
+    "--config",
+    join(APP_ROOT, ".dependency-cruiser.cjs"),
+    "--output-type",
+    outputType,
+  ]
+}
+
 function violationsIn(root: string): string[] {
-  const output = execFileSync(
-    join(REPO_ROOT, "node_modules/.bin/depcruise"),
-    [
-      "apps/vscode/src",
-      "apps/vscode/test",
-      "--config",
-      join(APP_ROOT, ".dependency-cruiser.cjs"),
-      "--output-type",
-      "json",
-    ],
-    { cwd: root, encoding: "utf8" },
-  )
+  const output = execFileSync(DEPCRUISE, cruiseArguments("json"), { cwd: root, encoding: "utf8" })
   const result = JSON.parse(output) as { summary: { violations: Violation[] } }
   return result.summary.violations.map(
     (violation) => `${violation.rule.name}: ${violation.from} -> ${violation.to}`,
@@ -95,6 +97,16 @@ function violationsIn(root: string): string[] {
 }
 
 describe("the dependency rules", () => {
+  test("say where an import outside the closed world belongs", { timeout: 60_000 }, () => {
+    const { stdout } = spawnSync(DEPCRUISE, cruiseArguments("err-long"), {
+      cwd: plantedTree(),
+      encoding: "utf8",
+    })
+    expect(stdout.replace(/\s+/g, " ")).toContain(
+      "error not-in-allowed: apps/vscode/src/core/uses-node.ts → fs No entry of `allowed` in apps/vscode/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md)",
+    )
+  })
+
   test("fire on every planted violation and on nothing else", { timeout: 60_000 }, () => {
     const library = "apps/vscode/node_modules/bpmn-moddle/dist/index.js"
     const engineCore = "apps/vscode/node_modules/@miragon/pulse-engine-core/dist/index.d.ts"
