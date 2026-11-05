@@ -97,6 +97,10 @@ no `generate` script, so turbo's cached `generate` task never replays a stale ca
 
 ## Tests
 
+- While you iterate, run the files you touch with `pnpm test:one apps/cli/src/<name>.test.ts`
+  (coverage off, engine-core built first): run alone, a file fails the floors, since
+  `coverage.include` counts every file it does not load. Then
+  `pnpm exec turbo run typecheck test lint --filter=@miragon/pulse-cli`; `pnpm check` is the bar.
 - Unit and fast-check property tests drive the CLI through `fakeRuntime`, an in-memory runtime;
   only the tests of `apps/cli/src/bin/` touch the real system. Every CLI line of a `sh` block in `apps/cli/README.md` and `docs/cli/` runs
   against a fake engine (`DOC_PAGES`): a documented command line that fails is a failing test.
