@@ -636,7 +636,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
   ceilings that `test-host/bundle-budget.spec.ts` checks; growth needs a `Ratchet-Exception:`
   trailer that says why. Two more shipped bundles have a shrink-only ceiling: the VS Code
   webview's (`apps/vscode/test/__golden__/bundle-budget.json`, gzip) and the CLI's npm dist
-  (`apps/cli/test/__golden__/bundle-budget.json`, raw bytes, read by
+  (`apps/cli/test/__golden__/bundle-budget.json`, raw bytes, engine-core bundled in, read by
   `scripts/published-imports.test.mjs`, which also makes it come down once the dist shrinks
   more than 10 % below it). The CLI's standalone bundle (`build/standalone`, the single
   executables and the image) has none.
