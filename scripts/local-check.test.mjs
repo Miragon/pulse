@@ -4,9 +4,9 @@ import { describe, it } from "node:test"
 import {
   CHECK_LOG_DIR,
   checkSteps,
+  chainSteps,
   checkSummary,
   formatDuration,
-  lintSteps,
   logName,
   outcomeOf,
   stepLine,
@@ -15,18 +15,21 @@ import {
 const names = (steps) => steps.map(({ name }) => name)
 const rootScripts = () =>
   JSON.parse(readFileSync(new URL("../package.json", import.meta.url))).scripts
-const LINT_CHAIN = "pnpm lint:first && turbo run lint --continue=always && pnpm run lint:last"
+const CHAINS = {
+  test: "turbo run test --continue=always && pnpm test:scripts",
+  lint: "pnpm lint:first && turbo run lint --continue=always && pnpm run lint:last",
+}
+const TURBO_TASKS = ["build", "typecheck", "test", "lint"]
 
 describe("checkSteps", () => {
-  it("runs the standard bar in order, with a step per gate of the lint chain", () => {
-    assert.deepEqual(names(checkSteps({ lintScript: LINT_CHAIN })), [
+  it("runs the standard bar in order, with a step per gate of the test and lint chains", () => {
+    assert.deepEqual(names(checkSteps({ scripts: CHAINS })), [
       "install",
       "browsers",
       "turbo",
       "test:scripts",
       "fetch",
       "lint:first",
-      "lint:turbo",
       "lint:last",
       "format:check",
     ])
@@ -37,43 +40,78 @@ describe("checkSteps", () => {
       "exec",
       "turbo",
       "run",
-      "build",
-      "typecheck",
-      "test",
-      "lint",
+      ...TURBO_TASKS,
       "--continue=dependencies-successful",
     ])
   })
 
-  it("derives the lint steps from the root lint chain at run time", () => {
-    const planned = checkSteps().map(({ args }) => args?.join(" "))
-    const segments = rootScripts()
-      .lint.split("&&")
-      .map((segment) => segment.trim())
-    assert.ok(segments.length > 1)
-    for (const segment of segments) {
-      const command = segment.startsWith("pnpm ") ? segment.slice(5) : `exec ${segment}`
-      assert.ok(planned.includes(command), `${segment} has no step of its own`)
+  it("derives its steps from the root test and lint chains at run time", () => {
+    const steps = checkSteps()
+    const planned = steps.map(({ args }) => args?.join(" "))
+    const scripts = rootScripts()
+    for (const chain of ["test", "lint"]) {
+      const segments = scripts[chain].split("&&").map((segment) => segment.trim())
+      assert.ok(segments.length > 1, chain)
+      for (const segment of segments) {
+        const turbo = /^turbo run ([\w: -]+?)(?: --|$)/.exec(segment)?.[1].split(" ")
+        if (turbo) {
+          assert.ok(
+            turbo.every((task) => steps[2].args.includes(task)),
+            `${segment}: not in turbo`,
+          )
+          continue
+        }
+        assert.ok(planned.includes(segment.replace(/^pnpm /, "")), `${segment} has no step`)
+      }
     }
-    assert.ok(!names(checkSteps()).includes("lint"), "a single lint step hides the later gates")
+    for (const single of ["test", "lint"]) {
+      assert.ok(
+        !names(steps).includes(single),
+        `one ${single} step hides the gates after a red one`,
+      )
+    }
   })
 
   it("splits a chain segment into a command without a shell", () => {
-    assert.deepEqual(lintSteps("  pnpm  lint:a   &&\nturbo run lint --x=y "), [
-      { name: "lint:a", command: "pnpm", args: ["lint:a"] },
-      { name: "lint:turbo", command: "pnpm", args: ["exec", "turbo", "run", "lint", "--x=y"] },
-    ])
+    assert.deepEqual(
+      chainSteps("  pnpm  lint:a   &&\npnpm run lint:b&& turbo run docs:build --x=y ", "lint"),
+      [
+        { name: "lint:a", command: "pnpm", args: ["lint:a"] },
+        { name: "lint:b", command: "pnpm", args: ["lint:b"] },
+        {
+          name: "lint:turbo",
+          command: "pnpm",
+          args: ["exec", "turbo", "run", "docs:build", "--x=y"],
+        },
+      ],
+    )
+  })
+
+  it("leaves turbo's own tasks to the turbo step, which runs them past a red package", () => {
+    assert.deepEqual(chainSteps("turbo run lint --continue=always && turbo run test", "x"), [])
+    assert.deepEqual(names(chainSteps("turbo run lint docs:build", "x")), ["x:turbo"])
   })
 
   it("refuses a segment only a shell would run as written", () => {
     for (const segment of [
       "knip --workspace '!docs'",
       "pnpm lint:a || true",
-      "depcruise src/* --config x",
+      "depcruise src --config x",
       "pnpm lint:a ; true",
+      "pnpm lint:a & pnpm lint:b",
+      "FOO=bar pnpm lint:a",
       "FOO=$BAR pnpm lint:a",
+      "pnpm lint:a # comment",
+      "pnpm ~/lint",
+      "{ pnpm lint:a; }",
+      "turbo run lint --filter=!docs",
+      "",
     ]) {
-      assert.throws(() => lintSteps(`pnpm lint:ok && ${segment}`), /without a shell/, segment)
+      assert.throws(
+        () => chainSteps(`pnpm lint:ok && ${segment}`, "lint"),
+        /without a shell/,
+        segment,
+      )
     }
   })
 
