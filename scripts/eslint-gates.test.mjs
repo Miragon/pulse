@@ -1,9 +1,11 @@
 import assert from "node:assert/strict"
+import fs from "node:fs"
 import path from "node:path"
 import { before, describe, it } from "node:test"
 import { fileURLToPath } from "node:url"
 import { ESLint, Linter } from "eslint"
 import tseslint from "typescript-eslint"
+import { DEFAULT_PROJECT_FILES } from "../eslint.config.mjs"
 
 /**
  * Self-test of the architecture pattern gates in eslint.config.mjs (a gate
@@ -416,5 +418,32 @@ describe("type-safety rules: errors everywhere, require-await off in the MCP tre
   it("leaves require-await off in the MCP trees and at error in the CLI, engine-core and VS Code", async () => {
     for (const rel of MCP_TREES) assert.equal(await severityAt(rel, REQUIRE_AWAIT), "off", rel)
     for (const rel of STRICT_TREES) assert.equal(await severityAt(rel, REQUIRE_AWAIT), "error", rel)
+  })
+})
+
+describe("the default project: the config files no tsconfig holds", () => {
+  let projectService
+  before(async () => {
+    const config = await eslint.calculateConfigForFile(path.join(repoRoot, "vitest.shared.ts"))
+    projectService = config.languageOptions.parserOptions.projectService
+  })
+
+  it("the effective list is the one lint:configs lints", () => {
+    assert.deepEqual(projectService.allowDefaultProject, DEFAULT_PROJECT_FILES)
+  })
+
+  it("the cap covers the list, so a commit staging all of it passes the pre-commit hook", () => {
+    assert.ok(
+      projectService.maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING >=
+        projectService.allowDefaultProject.length,
+      "typescript-eslint fails above the cap: 'Too many files (>N) have matched the default project'",
+    )
+  })
+
+  it("every listed file exists and ESLint lints it", async () => {
+    for (const rel of projectService.allowDefaultProject) {
+      assert.ok(fs.existsSync(path.join(repoRoot, rel)), `${rel} is gone: drop it from the list`)
+      assert.equal(await eslint.isPathIgnored(path.join(repoRoot, rel)), false, rel)
+    }
   })
 })

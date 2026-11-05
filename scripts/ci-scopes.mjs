@@ -38,6 +38,8 @@ export const PATH_RULES = [
   { pattern: /^docs\/\.vitepress\/miragon\//, scopes: ["typescript", "brand"] },
   // Read by the token drift scan (pulse-ui).
   { pattern: /^docs\/.*\.css$/, scopes: ["brand", "typescript"] },
+  // Linted by lint:configs.
+  { pattern: /^docs\/\.vitepress\/(?:config|theme\/index)\.ts$/, scopes: ["brand", "typescript"] },
   { pattern: /^docs\//, scopes: ["brand"] },
   // Read by scripts/server-env-names.test.mjs.
   { pattern: /^\.env\.example$/, scopes: ["typescript"] },
