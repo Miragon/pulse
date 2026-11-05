@@ -26,7 +26,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky",
-    "dev": "dotenv -e .env -- pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server dev",
+    "dev": "turbo run build --filter=@miragon/pulse-mcp-server^... --output-logs=errors-only && dotenv -e .env -- pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server dev",
     "play": "node scripts/local.mjs play",
     "play:cli": "node scripts/local.mjs play:cli",
     "stack:up": "node scripts/local.mjs stack:up",

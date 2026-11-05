@@ -21,7 +21,6 @@
     "build:ui": "vite build",
     "build:server": "tsc",
     "build": "pnpm run build:ui && pnpm run build:server",
-    "dev:ui": "vite build --watch",
     "dev": "pnpm run build:ui && mcp-use dev --port ${PORT:-8400} --no-open",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.ui.json && tsc -p tsconfig.test.json",
     "test": "vitest run",
