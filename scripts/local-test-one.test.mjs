@@ -1,6 +1,9 @@
 import assert from "node:assert/strict"
+import { mkdtempSync, rmdirSync, symlinkSync, unlinkSync } from "node:fs"
+import os from "node:os"
+import path from "node:path"
 import { describe, it } from "node:test"
-import { testOnePlan } from "./local-test-one.mjs"
+import { realpathOnDisk, testOnePlan } from "./local-test-one.mjs"
 import { REPO_ROOT } from "./source-scan.mjs"
 import { readWorkspace } from "./workspace-packages.mjs"
 
@@ -37,7 +40,7 @@ const workspace = [
   },
 ]
 const plan = (files, options = {}) =>
-  testOnePlan({ files, watch: false, root, cwd: root, workspace, exists: () => true, ...options })
+  testOnePlan({ files, watch: false, root, cwd: root, workspace, realpath: (p) => p, ...options })
 
 /** The paths a run hands to vitest. */
 const selected = (run) => run.args.slice(3, -1)
@@ -96,6 +99,11 @@ describe("testOnePlan", () => {
       plan(["packages/view/src/a.test.tsx"]).runs[0].hint,
       /@x\/view runs tests in Chromium.*--filter @x\/view exec playwright install chromium/,
     )
+    assert.match(plan(["packages/view"]).runs[0].hint, /install chromium/)
+  })
+
+  it("names no browser install when every file it runs is a Node test file", () => {
+    assert.equal(plan(["packages/view/src/a.test.ts"]).runs[0].hint, undefined)
   })
 
   it("refuses --watch over several packages, naming them", () => {
@@ -118,9 +126,32 @@ describe("testOnePlan", () => {
     assert.match(plan(["packages/core-old/a.test.ts"]).message, /belongs to no workspace package/)
   })
 
-  it("names a file that does not exist where it looked", () => {
-    const refused = plan(["src/gone.test.ts"], { cwd: "/repo/apps/cli", exists: () => false })
-    assert.equal(refused.message, "No such file: /repo/apps/cli/src/gone.test.ts")
+  it("reads a relative path from the root when it is not where pnpm ran (pnpm -C <root>)", () => {
+    const atRoot = (p) => (p.startsWith("/repo/scripts/") ? undefined : p)
+    const fromScripts = plan(["packages/core/src/a.test.ts"], {
+      cwd: "/repo/scripts",
+      realpath: atRoot,
+    })
+    assert.deepEqual(selected(fromScripts.runs[0]), ["src/a.test.ts"])
+  })
+
+  it("names a file that does not exist everywhere it looked", () => {
+    const missing = { realpath: () => undefined }
+    const refused = plan(["src/gone.test.ts"], { ...missing, cwd: "/repo/apps/cli" })
+    assert.equal(
+      refused.message,
+      "No such file: /repo/apps/cli/src/gone.test.ts or /repo/src/gone.test.ts",
+    )
+    assert.equal(plan(["/repo/a.test.ts"], missing).message, "No such file: /repo/a.test.ts")
+  })
+
+  it("matches a checkout reached through a symlink, the root resolved or not", () => {
+    const realpath = (p) => p.replace(/^\/tmp\//, "/private/tmp/")
+    const linked = "/tmp/repo/packages/core/src/a.test.ts"
+    for (const checkout of ["/private/tmp/repo", "/tmp/repo"]) {
+      const { runs } = plan([linked], { root: checkout, cwd: "/tmp/repo", realpath })
+      assert.deepEqual([runs[0].dir, ...selected(runs[0])], ["packages/core", "src/a.test.ts"])
+    }
   })
 
   it("points a file outside the packages at what runs it", () => {
@@ -145,6 +176,17 @@ describe("testOnePlan", () => {
       plan(["apps/cli/test-host/analytics.spec.ts"]).message,
       /needs Playwright.*--filter @x\/cli test:host/,
     )
+    assert.match(
+      plan(["packages/view/test/smoke/activation.test.cjs"]).message,
+      /needs VS Code.*--filter @x\/view test:smoke/,
+    )
+  })
+
+  it("knows those suites by the path inside the package, however the file was given", () => {
+    const fromTestHost = plan(["analytics.spec.ts"], { cwd: "/repo/apps/cli/test-host" })
+    assert.match(fromTestHost.message, /needs Playwright.*test:host/)
+    assert.match(plan(["apps/cli/test-host"]).message, /needs Playwright.*test:host/)
+    assert.equal(plan(["apps/cli/test/test-host-fake.test.ts"]).runs.length, 1)
   })
 
   it("resolves files of the real workspace, the extension's and a connector's", () => {
@@ -155,7 +197,7 @@ describe("testOnePlan", () => {
         root: REPO_ROOT,
         cwd: REPO_ROOT,
         workspace: readWorkspace(REPO_ROOT),
-        exists: () => true,
+        realpath: (p) => p,
       })
     const extension = real("apps/vscode/test/webview/a.test.tsx")
     assert.deepEqual(extension.builds, ["pulse-cockpit^..."])
@@ -165,5 +207,28 @@ describe("testOnePlan", () => {
       real("packages/connectors/engine/engine-connector/src/a.test.tsx").runs[0].dir,
       "packages/connectors/engine/engine-connector",
     )
+  })
+
+  it("resolves a real file through a symlinked checkout on disk", () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "test-one-"))
+    const link = path.join(dir, "checkout")
+    symlinkSync(REPO_ROOT, link, "dir")
+    try {
+      const { runs } = testOnePlan({
+        files: [path.join(link, "packages/connectors/engine/engine-core/src/dates.test.ts")],
+        watch: false,
+        root: REPO_ROOT,
+        cwd: link,
+        workspace: readWorkspace(REPO_ROOT),
+        realpath: realpathOnDisk,
+      })
+      assert.deepEqual(
+        [runs[0].dir, ...selected(runs[0])],
+        ["packages/connectors/engine/engine-core", "src/dates.test.ts"],
+      )
+    } finally {
+      unlinkSync(link)
+      rmdirSync(dir)
+    }
   })
 })

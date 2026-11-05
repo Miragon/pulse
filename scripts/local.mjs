@@ -60,7 +60,7 @@ import {
   pickJdk,
   staleJarNote,
 } from "./local-gradle.mjs"
-import { testOnePlan } from "./local-test-one.mjs"
+import { realpathOnDisk, testOnePlan } from "./local-test-one.mjs"
 import { readWorkspace } from "./workspace-packages.mjs"
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
@@ -498,7 +498,7 @@ async function testOne({ watch }, files) {
     // A root script runs at the root; `pnpm -w test:one` in a package keeps its relative paths.
     cwd: process.env.INIT_CWD ?? ROOT,
     workspace: readWorkspace(ROOT),
-    exists: existsSync,
+    realpath: realpathOnDisk,
   })
   if (plan instanceof Error) throw new Failure(plan.message)
   if (plan.builds.length > 0) await turboBuild(...plan.builds)
