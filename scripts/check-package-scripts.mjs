@@ -369,10 +369,10 @@ export const unknownFilters = (file, text, known) =>
 
 /**
  * Where a command runs as a gate: the root and every workspace package's scripts, the
- * Dockerfile, the workflows and their composite actions, the conductor and gate shell scripts.
+ * Dockerfile, the workflows and their composite actions, the gate shell scripts.
  */
 export const GATE_PATH =
-  /^(?:package\.json|(?:apps|packages)\/(?:[^/]+\/)+package\.json|docs\/package\.json|Dockerfile|\.github\/workflows\/[^/]+\.ya?ml|\.github\/actions\/(?:[^/]+\/)*[^/]+\.ya?ml|\.conductor\/[^/]+\.sh|scripts\/[^/]+\.sh)$/
+  /^(?:package\.json|(?:apps|packages)\/(?:[^/]+\/)+package\.json|docs\/package\.json|Dockerfile|\.github\/workflows\/[^/]+\.ya?ml|\.github\/actions\/(?:[^/]+\/)*[^/]+\.ya?ml|scripts\/[^/]+\.sh)$/
 
 /** A pnpm command whose filter is pnpm's (not one turbo receives after `pnpm turbo`). */
 const pnpmFilters = (command) => {
