@@ -14,6 +14,7 @@ import {
   isModelVisible,
   modelVisibleChars,
   repeatedParamDescriptions,
+  UPDATE_COMMAND,
   type WireTool,
 } from "./golden.js"
 
@@ -38,7 +39,7 @@ import {
  * tool of another module (`crossModuleNames`): the other may be off, and two
  * answers about one engine never point at each other.
  *
- * Intended change: `GOLDEN_UPDATE=1 pnpm --filter @miragon/pulse-mcp-server test`,
+ * Intended change: `pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server golden:update`,
  * then commit the JSON diff (refused in CI).
  */
 
@@ -132,6 +133,13 @@ function crossModuleNames(tools: readonly WireTool[], instructions: string): str
   return [...inTools, ...inInstructions]
 }
 
+/** What to do when a toolset's tool names differ from its list: the goldens cannot update first. */
+const nameListHint = (label: string) =>
+  `The ${label} tool names differ from apps/mcp-server/test/expected-tools.ts. If the change is ` +
+  "intended, add, move or remove the tool in its tier there (EXPECTED_TOOLS_READ_ONLY: the " +
+  "reads; OPERATIONS_ADDS: the writes the operations toolset adds; ADMIN_ADDS: admin only), " +
+  `then run ${UPDATE_COMMAND}.`
+
 /** Instruction tool names this boot does not give the model; `floor` keeps the scanner from going blind. */
 function namedButNotVisible(instructions: string, tools: readonly WireTool[], floor: number) {
   const named = toolNamesIn(instructions)
@@ -141,7 +149,7 @@ function namedButNotVisible(instructions: string, tools: readonly WireTool[], fl
 }
 
 describe("tools/list golden contract per toolset", () => {
-  it.each(TOOLSETS)("$label matches $golden", async ({ golden, options, names }) => {
+  it.each(TOOLSETS)("$label matches $golden", async ({ golden, label, options, names }) => {
     const server = await bootServer(options)
     try {
       const { tools } = await server.client.listTools()
@@ -150,8 +158,12 @@ describe("tools/list golden contract per toolset", () => {
       expect(namedButNotVisible(instructions, tools, 8)).toEqual([])
       // Code-unit order (not localeCompare): byte-stable across machines' ICU locales.
       const sorted = [...tools].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
-      // The name list is the reviewable summary; the golden the full payload.
-      expect(sorted.map((t) => t.name)).toEqual([...names].sort())
+      // The name list is the reviewable summary; the golden the full payload. It runs first, so
+      // a new tool stops here until its tier lists it.
+      expect(
+        sorted.map((t) => t.name),
+        nameListHint(label),
+      ).toEqual([...names].sort())
       // No parameter description repeats on more than two of this toolset's model-visible tools.
       expect(
         repeatedParamDescriptions(sorted),

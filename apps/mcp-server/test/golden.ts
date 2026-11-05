@@ -9,7 +9,10 @@ import { expect } from "vitest"
  * bypass an agent reaches for reflexively. Plain JSON + toEqual makes
  * `vitest -u` a no-op: the ONLY update path is an explicit
  * `GOLDEN_UPDATE=1` run, which is refused in CI, so every golden change is a
- * reviewable JSON diff in the PR.
+ * reviewable JSON diff in the PR. UPDATE_COMMAND is that run: the app reads
+ * the connectors from their dist, so it builds them first (a bare
+ * `vitest run` would write the goldens from their last build), and it turns
+ * coverage off, since it is no gate: `pnpm test` measures the suite.
  *
  * Next to each golden sits a CHARACTER BUDGET (`__golden__/char-budgets.json`):
  * the size of the text a model reads from that toolset: its model-visible
@@ -24,7 +27,8 @@ import { expect } from "vitest"
 export const GOLDEN_DIR = path.join(import.meta.dirname, "__golden__")
 const BUDGETS_FILE = "char-budgets.json"
 
-const UPDATE_COMMAND = "GOLDEN_UPDATE=1 pnpm --filter @miragon/pulse-mcp-server test"
+export const UPDATE_COMMAND =
+  "pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server golden:update"
 
 /** The agent-facing instruction attached to every golden assertion. */
 export const GOLDEN_HINT =

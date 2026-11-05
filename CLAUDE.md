@@ -625,7 +625,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
   feed is app-only), so the naming convention is load-bearing.
 - **The tools/list wire payload is a golden, per toolset**
   (`apps/mcp-server/test/tools-list.golden.test.ts`). The ONLY update path is
-  `GOLDEN_UPDATE=1 pnpm --filter @miragon/pulse-mcp-server test` (refused in CI);
+  `pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server golden:update` (refused in CI);
   never hand-edit a golden. `__golden__/char-budgets.json` pins each toolset's model-visible
   size, the tools/list text plus the server instructions sent at initialize (text moved into
   the instructions still counts), shrink-only: a change that makes the model read MORE text
