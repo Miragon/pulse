@@ -1,16 +1,44 @@
 /**
- * The steps of `pnpm check` and `pnpm check:all` and their summary (pure;
- * scripts/local-check.test.mjs). A step is `{ name, command, args }`, or `{ name, gradle }` for
- * a Gradle build scripts/local.mjs places on a JDK; `bestEffort` steps warn instead of failing.
+ * The steps of `pnpm check` and `pnpm check:all` and their summary (pure but for reading the root
+ * `lint` chain; scripts/local-check.test.mjs). A step is `{ name, command, args }`, or
+ * `{ name, gradle }` for a Gradle build scripts/local.mjs places on a JDK; `bestEffort` steps warn
+ * instead of failing.
  */
+import { readFileSync } from "node:fs"
 
 /** Where the step logs go (gitignored: reports/). */
 export const CHECK_LOG_DIR = "reports/check"
 
 const pnpm = (name, ...args) => ({ name, command: "pnpm", args })
 
+const rootLintScript = () =>
+  JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).scripts.lint
+
+/** What a chain segment split on whitespace would get wrong without a shell. */
+const SHELL_SYNTAX = /["'`$|;<>()\\*?]/
+
+/**
+ * One step per segment of a `lint` chain, each with its own log: an `&&` would hide every gate
+ * behind a red one, and a gate added to the chain joins here by itself. The ratchet lets the
+ * chain grow only by plain `pnpm <script>` gates (check-ratchets.mjs), so a split on whitespace
+ * needs no shell; a segment that would need one fails here instead of running as something else.
+ */
+export function lintSteps(script) {
+  return script.split("&&").map((segment) => {
+    if (SHELL_SYNTAX.test(segment)) {
+      throw new Error(
+        `pnpm check runs each gate of the lint chain without a shell and cannot run "${segment.trim()}": make it a root script and chain \`pnpm <script>\``,
+      )
+    }
+    const [command, ...args] = segment.trim().split(/\s+/)
+    if (command !== "pnpm") return pnpm(`lint:${command}`, "exec", command, ...args)
+    const name = args.find((arg) => arg !== "run")
+    return pnpm(name, ...args)
+  })
+}
+
 /** The standard local bar, then with `all` the checks CI runs in their own jobs. */
-export function checkSteps({ all = false, force = false } = {}) {
+export function checkSteps({ all = false, force = false, lintScript = rootLintScript() } = {}) {
   const steps = [
     pnpm("install", "install", "--frozen-lockfile"),
     // The VS Code webview tests in `test` render in Chromium.
@@ -33,12 +61,14 @@ export function checkSteps({ all = false, force = false } = {}) {
       "typecheck",
       "test",
       "lint",
+      // A red package does not cancel its siblings; only what depends on it stays out.
+      "--continue=dependencies-successful",
       ...(force ? ["--force"] : []),
     ),
     pnpm("test:scripts", "test:scripts"),
     // lint:ratchets compares against origin/main; offline it still runs on the last fetch.
     { name: "fetch", command: "git", args: ["fetch", "origin"], bestEffort: true },
-    pnpm("lint", "lint"),
+    ...lintSteps(lintScript),
     pnpm("format:check", "format:check"),
   ]
   if (!all) return steps
@@ -71,7 +101,7 @@ export const outcomeOf = (step, exitCode) =>
 
 /** One summary line: outcome, step, duration, log. */
 export const stepLine = ({ outcome, name, ms, log }) =>
-  `${outcome.padEnd(6)} ${name.padEnd(15)} ${formatDuration(ms).padStart(7)}  ${log}`
+  `${outcome.padEnd(6)} ${name.padEnd(24)} ${formatDuration(ms).padStart(7)}  ${log}`
 
 /** The closing lines and whether the run failed: every step ran, any FAILED fails it. */
 export function checkSummary(results, { interrupted = false } = {}) {
