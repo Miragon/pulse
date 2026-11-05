@@ -43,6 +43,9 @@ server, the playground keeps running. Every port binds to `127.0.0.1`.
 | `pnpm lint:fix` / `pnpm format`                 | ESLint and Prettier fixes                                                                             |
 
 The gates one by one: `pnpm build`, `pnpm typecheck`, `pnpm test`, `pnpm lint`, `pnpm format:check`.
+`pnpm check` names every failure in one run: a red step stops none, each gate of `pnpm lint` is a
+step of its own, and turbo goes on past a red package. In CI a failed test of `scripts/` is an
+annotation on its file and a row in the job summary.
 `pnpm dev` and `pnpm play` bind 127.0.0.1; `pnpm start` and Docker listen on all interfaces.
 
 Mutation testing covers `@miragon/pulse-engine-core` only (owner decision, 2026-11-04;
