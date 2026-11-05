@@ -11,9 +11,11 @@ import path from "node:path"
 
 const ANNOTATION_LIMIT = 2000
 const CELL_LIMIT = 300
+/** How much of what a test file printed (stderr, diagnostics) is kept to name why it crashed. */
+const STDERR_LIMIT = 16_384
 
-/** Failures another failure explains: the parent of a failed subtest, a test its parent cancelled. */
-const FOLLOW_ON = new Set(["subtestsFailed", "cancelledByParent"])
+/** The first line of an error as Node prints it: `SyntaxError: …`, `Error [ERR_…]: …`. */
+const ERROR_LINE = /^\w*(?:Error|Exception)\b.*$/gm
 
 const escapeData = (text) =>
   text.replaceAll("%", "%25").replaceAll("\r", "%0D").replaceAll("\n", "%0A")
@@ -22,20 +24,34 @@ const escapeProperty = (text) => escapeData(text).replaceAll(":", "%3A").replace
 
 const cut = (text, limit) => (text.length > limit ? `${text.slice(0, limit)}…` : text)
 
-/** The assertion behind node:test's wrapper, and how a crashed test file ended. */
-function messageOf(error) {
-  const message = (error?.cause?.message ?? error?.message ?? "test failed").trim()
-  const exit = error?.exitCode ?? error?.signal
-  return exit ? `${message} (exit ${exit})` : message
+/** The last error a test file printed: the one that ended it, past any a test logged on purpose. */
+export function lastError(output) {
+  return [...String(output ?? "").matchAll(ERROR_LINE)].at(-1)?.[0].trim()
 }
 
-/** A `test:fail` event's failure; `ancestors` are the names of the suites around it. */
-export function failureOf({ name, file, line, details }, ancestors = [], cwd = process.cwd()) {
+/** The assertion behind node:test's wrapper, and how a crashed test file ended and why. */
+function messageOf(error, output) {
+  const message = (error?.cause?.message ?? error?.message ?? "test failed").trim()
+  const exit = error?.exitCode ?? error?.signal
+  if (!exit) return message
+  const cause = lastError(output)
+  return `${message} (exit ${exit})${cause ? `: ${cause}` : ""}`
+}
+
+/**
+ * A `test:fail` event's failure; `ancestors` are the names of the suites around it, `output` what
+ * its test file printed since its last result (read only when the file itself failed).
+ */
+export function failureOf(
+  { name, file, line, details },
+  ancestors = [],
+  { cwd = process.cwd(), output } = {},
+) {
   return {
     title: [...ancestors, name].join(" > "),
     file: file && path.relative(cwd, file),
     line,
-    message: messageOf(details?.error),
+    message: messageOf(details?.error, output),
   }
 }
 
@@ -70,32 +86,68 @@ export function summaryTable(failures) {
   ].join("\n")
 }
 
-export default async function* ghaReporter(source) {
-  /** Per test file, the names of the tests running by nesting: suites start in definition order. */
-  const running = new Map()
+/**
+ * A running test: node:test reports a file's tests in definition order, each one's subtests
+ * before it, so a frame sees its whole subtree before its own result. `reported`: a failure in
+ * its subtree was reported; `cancelled`: its subtests that were cancelled when it ended.
+ */
+const frame = (name) => ({ name, reported: false, cancelled: [] })
+
+/**
+ * The failures of a test run, one annotation each, and with `summaryFile` their table appended to
+ * it. A failure another one explains stays out: the parent of a reported failure
+ * (`subtestsFailed`) and a subtest cancelled because its parent failed on its own (a hook, a
+ * timeout). A subtest its parent ended without awaiting is the cause of the parent's failure, so
+ * it is reported in the parent's place. A red test never goes without a word.
+ */
+export async function* reportFailures(source, { summaryFile, cwd = process.cwd() } = {}) {
+  const files = new Map()
   const failures = []
-  const followOn = []
   for await (const { type, data } of source) {
-    if (type === "test:start") {
-      const names = running.get(data.file) ?? []
-      names.length = data.nesting
-      names[data.nesting] = data.name
-      running.set(data.file, names)
-    }
-    if (type !== "test:fail" || data.todo !== undefined) continue
-    const failure = failureOf(data, running.get(data.file)?.slice(0, data.nesting))
-    if (FOLLOW_ON.has(data.details?.error?.failureType)) {
-      followOn.push(failure)
+    if (data?.file === undefined) continue
+    // test:stderr names the file as the command line did, the test events by its absolute path.
+    const key = path.resolve(cwd, data.file)
+    if (!files.has(key)) files.set(key, { frames: [], output: "" })
+    const state = files.get(key)
+    const { frames } = state
+    if (type === "test:stderr" || type === "test:diagnostic") {
+      const text = type === "test:stderr" ? data.message : `${data.message}\n`
+      state.output = `${state.output}${text}`.slice(-STDERR_LIMIT)
       continue
     }
-    failures.push(failure)
-    yield annotation(failure)
+    if (type === "test:start") {
+      frames.length = data.nesting
+      frames[data.nesting] = frame(data.name)
+      continue
+    }
+    if (type !== "test:pass" && type !== "test:fail") continue
+    const own = frames[data.nesting] ?? frame(data.name)
+    const parent = data.nesting > 0 ? frames[data.nesting - 1] : undefined
+    const { output } = state
+    state.output = ""
+    const failureType = data.details?.error?.failureType
+    const failed = type === "test:fail" && data.todo === undefined
+    // A cancelled subtest is explained only by its parent's own failure.
+    const found = failed && failureType !== "subtestsFailed" ? [] : own.cancelled
+    own.cancelled = []
+    if (failed) {
+      const ancestors = frames.slice(0, data.nesting).map((above) => above?.name ?? "")
+      const failure = failureOf(data, ancestors, { cwd, output })
+      if (failureType === "cancelledByParent" && parent) parent.cancelled.push(failure)
+      else if (failureType !== "subtestsFailed" || (found.length === 0 && !own.reported)) {
+        found.push(failure)
+      }
+    }
+    if (found.length === 0) continue
+    for (const above of frames.slice(0, data.nesting)) if (above) above.reported = true
+    for (const failure of found) {
+      failures.push(failure)
+      yield annotation(failure)
+    }
   }
-  // Follow-ons with no failure behind them (a subtest its parent never awaited) still turned the
-  // run red, so they speak rather than leave a red step without a word.
-  if (failures.length === 0) yield* followOn.map(annotation)
-  const reported = failures.length > 0 ? failures : followOn
-  if (reported.length > 0 && process.env.GITHUB_STEP_SUMMARY) {
-    appendFileSync(process.env.GITHUB_STEP_SUMMARY, summaryTable(reported))
-  }
+  if (failures.length > 0 && summaryFile) appendFileSync(summaryFile, summaryTable(failures))
+}
+
+export default async function* ghaReporter(source) {
+  yield* reportFailures(source, { summaryFile: process.env.GITHUB_STEP_SUMMARY })
 }
