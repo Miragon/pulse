@@ -30,6 +30,9 @@ host to `http://localhost:8400/mcp`, or open the inspector at `http://localhost:
 It boots read-only; `--admin` adds the write tools, `--deploy` deployments, `--multi-engine` a
 second engine. A variable set in your shell wins over the playground's settings. Ctrl-C stops the
 server, the playground keeps running. Every port binds to `127.0.0.1`.
+Worktrees share the playground (`pnpm stack:down` stops it for all); `.mcp.json` reaches
+`${PORT:-8400}`, so run a second worktree's server as `PORT=<port> pnpm play` and its Claude Code
+session as `PORT=<port> claude`.
 
 ## Common tasks
 

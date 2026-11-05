@@ -37,10 +37,12 @@ import {
   stepLine,
 } from "./local-check.mjs"
 import {
+  claudeCodeHint,
   cliPreset,
   COMPOSE_FILE,
   COMPOSE_PROJECT,
   composeArgs,
+  DEFAULT_SERVER_PORT,
   portConflict,
   portOwners,
   profilesFor,
@@ -66,8 +68,7 @@ const CLI_PACKAGE = "@miragon/pulse-cli"
 const CLI_ENTRY = "apps/cli/dist/pulse-cli.js"
 const STACK_TIMEOUT_MS = 10 * 60_000
 const SERVER_TIMEOUT_MS = 3 * 60_000
-/** The MCP server's port when PORT is unset (the `dev` script's default). */
-const DEFAULT_PORT = 8400
+const DEFAULT_PORT = DEFAULT_SERVER_PORT
 /** Served by `mcp-use dev` only. */
 const INSPECTOR = "/mcp/inspector"
 
@@ -381,7 +382,8 @@ async function ensurePortFree(port, fromEnv) {
   if (await portBound(port)) {
     const which = fromEnv ? "The port your PORT names" : `Port ${DEFAULT_PORT}`
     throw new Failure(
-      `${which} is taken (another pnpm play or pnpm dev?). Stop it, or set PORT to another port.`,
+      `${which} is taken (another pnpm play or pnpm dev, in another worktree say?). Stop it, or ` +
+        "set PORT to another port.",
     )
   }
 }
@@ -452,7 +454,7 @@ async function play(options) {
   if (ready) {
     console.log(
       `\nMCP server ready:\n  MCP endpoint  ${base}/mcp\n  inspector     ${base}${INSPECTOR}\n` +
-        "Ctrl-C stops the server; the playground keeps running.",
+        `${claudeCodeHint(port)}Ctrl-C stops the server; the playground keeps running.`,
     )
   }
   const code = await exited
