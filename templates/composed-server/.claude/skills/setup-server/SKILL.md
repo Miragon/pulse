@@ -126,7 +126,7 @@ The boot reads mcp-use's own provider variables itself; set those of ONE provide
 of `.env.example` lists the providers, their variables and what fails the boot. Keycloak, say:
 
 ```bash
-MCP_URL=https://mcp.example.com     # the token audience (RFC 8707), required with OAuth
+MCP_URL=https://mcp.example.com     # the public origin, no path; required with OAuth
 MCP_USE_OAUTH_KEYCLOAK_SERVER_URL=https://kc.example.com
 MCP_USE_OAUTH_KEYCLOAK_REALM=platform
 ```
@@ -134,6 +134,18 @@ MCP_USE_OAUTH_KEYCLOAK_REALM=platform
 `/mcp` then answers 401 without a valid bearer token and the default engine
 toolset rises to `operations`. Without a provider there is no caller identity. A
 provider config the boot cannot honor fails the boot, naming the variables.
+
+The token audience is NOT `MCP_URL` itself: mcp-use accepts a token whose
+`aud` holds `<MCP_URL>/mcp` (`https://mcp.example.com/mcp` above, the
+`resource` that `/.well-known/oauth-protected-resource/mcp` advertises) and
+that carries `sub`; the boot logs the value
+(`[acme-mcp] OAuth: tokens must carry aud https://mcp.example.com/mcp …`). The
+IdP side (audience mapper, `sub`, client registration with the claude.ai
+callback `https://claude.ai/api/mcp/auth_callback`, reading a 401) is the
+[identity provider checklist](https://miragon.github.io/pulse/mcp/operations#identity-provider-checklist).
+A 401's `WWW-Authenticate` header names an audience mismatch;
+`MCP_USE_OAUTH_DEBUG=1` logs a failed signature, issuer, `sub` or `exp` check
+with the token's claims.
 
 ## Step 4: make it yours
 

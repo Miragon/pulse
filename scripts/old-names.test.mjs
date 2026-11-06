@@ -158,12 +158,6 @@ const ALLOWED = [
     reason: "the npm README points to the archived repository of operate (up to 0.10.0)",
   },
   {
-    file: "docs/mcp/operations.md",
-    rules: ["retired MCP_OAUTH"],
-    section: /^#{2,6} Security\b/,
-    reason: "the upgrade note names the retired variable an operator unsets",
-  },
-  {
     file: "packages/core/widget-shell/src/oauth-env.ts",
     rules: ["retired MCP_OAUTH"],
     reason: "the boot refuses the retired variable and says what replaces it",

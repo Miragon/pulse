@@ -205,7 +205,7 @@ caller identity: passthrough engine auth and the per-caller caches key on it.
 
 | Variable                                    | Effect                                                                                                                         |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `PORT`                                      | HTTP port (default 8400)                                                                                                       |
+| `PORT` / `HOST`                             | HTTP port (default 8400) and bind address (default `0.0.0.0`, every interface; `pnpm dev` binds `127.0.0.1`)                   |
 | `MCP_URL`                                   | Public base URL (behind a proxy/gateway), also the `Host`/`Origin` the server accepts and the origin the views load Geist from |
 | `MCP_ALLOWED_HOSTS` / `MCP_ALLOWED_ORIGINS` | Further hostnames / origins the server accepts (default: localhost-class and `MCP_URL`'s only)                                 |
 | `MCP_MAX_BODY_BYTES`                        | Request-body cap (default 4 MiB; larger bodies get 413 before they are read)                                                   |
@@ -232,10 +232,16 @@ docker run -p 8400:8400 \
   deployment reached under any other name must set them.
 - Without OAuth the server boots unauthenticated: a module with toolsets runs
   its read-only floor, a module without toolsets every tool it has. Set one
-  provider's `MCP_USE_OAUTH_*` variables (plus `MCP_URL`, the token audience)
-  to require sign-in and raise the default toolsets. An authenticating gateway
+  provider's `MCP_USE_OAUTH_*` variables (plus `MCP_URL`) to require sign-in
+  and raise the default toolsets. An authenticating gateway
   in front is invisible to the server: it still sees no identity, so any
   widened toolset is open to whoever passes the gateway.
+- With OAuth, tokens must carry `<MCP_URL>/mcp` in `aud`
+  (`https://mcp.example.com/mcp` here) and a `sub` claim, else every call gets
+  401; the boot logs the audience it expects. The
+  [identity provider checklist](https://miragon.github.io/pulse/mcp/operations#identity-provider-checklist)
+  covers the audience, `sub`, client registration with the claude.ai callback
+  and how to read a 401.
 - `/health/live`, `/health/ready` and `/metrics` (Prometheus) are served next
   to `/mcp`, outside any OAuth gate and the `Host` check (`MCP_METRICS_TOKEN`
   protects the scrape); the image's `HEALTHCHECK` polls `/health/ready`;
