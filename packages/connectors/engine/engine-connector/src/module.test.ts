@@ -286,6 +286,8 @@ describe("engineModule.bootWarnings", () => {
     expect(warning).toContain("the Pulse starter's compose.yaml (Miragon/pulse-starter)")
     expect(warning).toContain("the Pulse playground (Miragon/pulse)")
     expect(warning).toContain('the playground\'s engine stamps "prod-a"')
+    // A zero-config boot sends no login, which the starter's engine refuses with 401.
+    expect(warning).toContain("the starter's asks for a login (ENGINE_AUTH_TYPE=basic, demo/demo)")
     expect(warning).not.toMatch(/the repo's/i)
   })
 
