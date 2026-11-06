@@ -106,7 +106,7 @@ services:
   # OTLP registry, serves process metrics for Prometheus to scrape (:9464).
   # Sole export path of the metric-first analytics stack.
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.128.0
+    image: otel/opentelemetry-collector-contrib:0.157.0
     command: ["--config=/etc/otel-collector-config.yaml"]
     environment:
       - DEPLOY_ENV=docker-local
