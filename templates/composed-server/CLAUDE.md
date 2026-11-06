@@ -63,7 +63,10 @@ external infrastructure.
    tools; the boot refuses a tool name two plugins register and names both.
    Wiring a module touches the server in two places (`MODULES` in `setup.ts`,
    the spread in `ui/view-registry.ts`) plus the `workspace:*` dependency;
-   the `create-module` skill walks through all of them. Tailwind scans
+   the `create-module` skill walks through all of them, and through removing
+   the example module. The guard tests in `server/test/` follow `MODULES`, so
+   adding a module and removing the example need no guard-test edit; only
+   `example-notes.test.ts` names the example, and it goes with it. Tailwind scans
    workspace modules via the `modules/*/src` glob in `ui/globals.css`; only
    npm-installed module packages need their own `@source` line.
 2. **Plain tools go through `createToolRegistrar`, never raw `server.tool()`**:
@@ -85,10 +88,9 @@ external infrastructure.
    server's `ui/view-registry.ts` spreads the map; `tool-names.ts` keeps the
    tool names rename-safe. A missed link is a SILENTLY absent view.
    `server/test/view-registry.test.ts` boots the real composition and fails
-   on a view-bound tool without a view, and on a view no tool opens. A
-   view-bound tool is a read (`readOnlyHint: true`, never destructive): on a
-   host that strips `structuredContent` the view re-runs it once, unasked
-   (`server/test/tool-annotations.e2e.test.ts`, on every toolset).
+   on a view-bound tool without a view, on a view no tool opens, and on a
+   view-bound tool that is not a read (`readOnlyHint: true`, never destructive):
+   a host that strips the tool's result re-runs it once, unasked.
 4. **`resolve.dedupe` in `server/vite.config.ts` is load-bearing: never trim
    it.** It spreads widget-shell's `VIEW_BUNDLE_DEDUPE`
    (`@miragon/pulse-widget-shell/server`), the packages the view bundle must

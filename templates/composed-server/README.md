@@ -149,14 +149,17 @@ silent (a widget rendering empty, unstyled, or not at all).
    a host that sends its palette overrides them, so set them only for hosts
    that send none. `server/test/brand.test.ts` checks that the result stays
    readable.
+3. Name the server: `SERVER_INFO` in `server/src/app.ts` holds the `name`
+   and `title` it reports to every MCP client. Clients such as the inspector
+   show the title, and every boot log line starts with `[<name>]`.
 
 ## Layout
 
-| Path                 | Contents                                                                                 |
-| -------------------- | ---------------------------------------------------------------------------------------- |
-| `server/`            | The composition root: module list (`src/setup.ts`), widget bundle (`src/ui/`), boot code |
-| `server/test/`       | Guard tests: keep them, they cover your modules too                                      |
-| `modules/mcp-notes/` | Example module: tools, an interactive widget, its module test and its widget test        |
+| Path                 | Contents                                                                                        |
+| -------------------- | ----------------------------------------------------------------------------------------------- |
+| `server/`            | The composition root: module list (`src/setup.ts`), widget bundle (`src/ui/`), boot code        |
+| `server/test/`       | Guard tests: keep them, they follow your modules; `example-notes.test.ts` goes with the example |
+| `modules/mcp-notes/` | Example module: tools, an interactive widget, its module test and its widget test               |
 
 ## Adding your own module
 
@@ -168,7 +171,11 @@ Rename `notes` to your module name, put your API/SDK access behind the store
 interface, and wire the module into the server: the `workspace:*` dependency
 in `server/package.json`, the module list and the view registry. The
 `create-module` skill walks through every step, and the guard tests fail
-loudly if a wiring step is missed.
+loudly if a wiring step is missed. They derive what they check from the
+module list, so a module you add, replace or drop needs no edit to the guard
+tests; only `example-notes.test.ts` goes with the example. Once your own
+module stands, remove the example: the skill's "Remove the example module"
+lists each place.
 
 A widget takes its UI from the design kit `@miragon/pulse-ui` (primitives,
 `WidgetHeader`, `KpiGrid`, the table cells, the formatters, the theme) and

@@ -130,7 +130,9 @@ silently unstyled).
 This file is the documented exception that calls `server.tool()` directly.
 Model both tools on `modules/mcp-notes/src/widget-tools.ts`:
 
-- **`show_*` tool**: spread `...showToolBinding(name, title)` (from
+- **`show_*` tool**: annotate it `{ readOnlyHint: true, idempotentHint: true }`
+  (why: the last bullet). Spread
+  `...showToolBinding(name, title)` (from
   `@miragon/pulse-widget-shell/server`). It binds the mcp-use view, the
   passthrough `outputSchema`, and the Apps-SDK `_meta` half. **Never hand-write
   `_meta.ui.*` keys**; mcp-use owns and overwrites that namespace. Return
@@ -158,8 +160,8 @@ Model both tools on `modules/mcp-notes/src/widget-tools.ts`:
   so a write there would run twice; and the registrar's toolset filter never
   sees a widget-path tool. A write is a registrar tool (the `create-module`
   skill, Step 5), which the filter drops outside its toolset.
-  `server/test/tool-annotations.e2e.test.ts` fails on a view-bound tool
-  that is not a read.
+  `server/test/view-registry.test.ts` fails on a view-bound tool that is
+  not a read.
 
 ## Step 4: verify
 
@@ -169,10 +171,12 @@ pnpm build && pnpm typecheck && pnpm test
 
 - `pnpm typecheck` is the **only** automated check that type-checks widget
   `.tsx` code. Never skip it.
-- `pnpm test` runs the view-registry guard (every view-bound tool has a view
-  under its name, and every view a tool) plus the wire-contract e2e (naming,
-  `_meta`, app-only visibility). If one fails it names exactly the missing
-  link: fix the link, never the test.
+- `pnpm test` runs the view-registry guard (every view-bound tool is a read
+  with a view under its name, and every view has a tool) plus the
+  wire-contract e2e (naming, `_meta`, app-only visibility). If one fails its
+  message names the missing link: fix the link, not the guard. The one test
+  that names the example, `server/test/example-notes.test.ts`, goes with the
+  example module (the `create-module` skill, "Remove the example module").
 - Write a widget test next to the widget, as
   `modules/mcp-notes/src/widgets/notes-list.test.tsx` does: `// @vitest-environment
 happy-dom`, then render the view or widget under `TestViewHost` from

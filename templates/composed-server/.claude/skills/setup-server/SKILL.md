@@ -145,7 +145,9 @@ then reinstall so the lockfile matches:
 2. `@acme/mcp-notes` in `modules/mcp-notes/package.json`, in
    `server/package.json`'s dependencies, and in every import
    (`server/src/setup.ts`, `server/src/ui/view-registry.ts`)
-3. the `acme-mcp` name in `server/src/app.ts`
+3. the server's `name` and `title` in `SERVER_INFO` (`server/src/app.ts`):
+   clients such as the inspector show the title, every boot log line starts
+   with `[<name>]`, and the tests read both from there
 4. `pnpm install` to refresh `pnpm-lock.yaml` (the Docker build uses
    `--frozen-lockfile`)
 
