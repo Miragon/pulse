@@ -74,7 +74,7 @@ describe("the view registry vs the view-bound tools", () => {
       writes,
       "view-bound tools that are not reads: a host that strips structuredContent re-runs the " +
         "view tool once, unasked. Annotate it { readOnlyHint: true } and move the write into a " +
-        "registrar tool of its own (create-module skill, Step 4)",
+        "registrar tool of its own (create-module skill, Steps 4 and 5)",
     ).toEqual([])
   })
 })

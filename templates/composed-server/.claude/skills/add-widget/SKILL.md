@@ -130,9 +130,8 @@ silently unstyled).
 This file is the documented exception that calls `server.tool()` directly.
 Model both tools on `modules/mcp-notes/src/widget-tools.ts`:
 
-- **`show_*` tool**: annotate it `{ readOnlyHint: true, idempotentHint: true }`:
-  a host that strips `structuredContent` re-runs it once, unasked
-  (`server/test/view-registry.test.ts` holds this). Spread
+- **`show_*` tool**: annotate it `{ readOnlyHint: true, idempotentHint: true }`
+  (why: the last bullet). Spread
   `...showToolBinding(name, title)` (from
   `@miragon/pulse-widget-shell/server`). It binds the mcp-use view, the
   passthrough `outputSchema`, and the Apps-SDK `_meta` half. **Never hand-write
@@ -161,8 +160,8 @@ Model both tools on `modules/mcp-notes/src/widget-tools.ts`:
   so a write there would run twice; and the registrar's toolset filter never
   sees a widget-path tool. A write is a registrar tool (the `create-module`
   skill, Step 5), which the filter drops outside its toolset.
-  `server/test/tool-annotations.e2e.test.ts` fails on a view-bound tool
-  that is not a read.
+  `server/test/view-registry.test.ts` fails on a view-bound tool that is
+  not a read.
 
 ## Step 4: verify
 
