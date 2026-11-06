@@ -107,7 +107,7 @@ services:
   # OTLP registry, serves process metrics for Prometheus to scrape (:9464).
   # Sole export path of the metric-first analytics stack.
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.157.0
+    image: otel/opentelemetry-collector-contrib:0.164.0
     command: ["--config=/etc/otel-collector-config.yaml"]
     environment:
       - DEPLOY_ENV=docker-local
@@ -177,7 +177,7 @@ services:
   # Use: docker compose --profile auth up -d
   keycloak:
     profiles: [auth]
-    image: quay.io/keycloak/keycloak:26.3
+    image: quay.io/keycloak/keycloak:26.8
     command: ["start-dev", "--import-realm"]
     environment:
       - KC_BOOTSTRAP_ADMIN_USERNAME=admin
