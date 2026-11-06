@@ -25,10 +25,12 @@ const CONNECTOR = {
   }),
   "dist/index.js": 'export * from "./tools/index.js"\nexport { plugin } from "./plugin.js"',
   "dist/index.d.ts": 'export * from "./tools/index.js"',
-  "dist/index.js.map": '{"sources":["../src/index.ts"]}',
+  "dist/index.js.map": '{"version":3,"sources":["../src/index.ts"],"mappings":""}',
+  "dist/index.d.ts.map": '{"version":3,"sources":["../src/index.ts"],"mappings":""}',
   "dist/plugin.js": "export const plugin = 1",
   "dist/tools/index.js": 'import { z } from "zod"\nexport const tools = []',
   "dist/tools/index.d.ts": "export declare const tools: unknown[]",
+  "src/index.ts": "export const tools = []",
   "src/widgets/index.ts": [
     'export { Views } from "./views.js"',
     'import type { Model } from "../view-models.js"',
@@ -117,6 +119,59 @@ describe("pack-contents", () => {
       "exports ./widgets: ./src/widgets/index.ts is not in the tarball",
       "types: dist/index.d.ts is not in the tarball",
     ])
+  })
+
+  it("fails once for the maps whose sources the tarball lacks, naming the first", () => {
+    const why =
+      "add the sources to files or inline them (inlineSources), else a host's Vite warns once " +
+      "per module it loads"
+    assert.deepEqual(findings(without(CONNECTOR, "src/index.ts")), [
+      `dist/index.d.ts.map: points to ../src/index.ts, which the tarball lacks (and 1 more): ${why}`,
+    ])
+    // Above the package root, or the build machine's absolute path: neither reaches a consumer,
+    // even where the path read from the package root is a shipped file (src/index.ts).
+    const planted = {
+      ...CONNECTOR,
+      "dist/plugin.js.map": '{"version":3,"sources":["../../src/index.ts"],"mappings":""}',
+      "index.js.map": '{"version":3,"sources":["/src/index.ts"],"mappings":""}',
+    }
+    assert.deepEqual(findings(planted), [
+      `dist/plugin.js.map: points to ../../src/index.ts, which the tarball lacks (and 1 more): ${why}`,
+    ])
+  })
+
+  it("passes a map source that ships, through its sourceRoot, or inlined as its content", () => {
+    const passing = {
+      ...CONNECTOR,
+      "dist/plugin.js.map": '{"version":3,"sourceRoot":"../src","sources":["index.ts"]}',
+      // inlineSources: the content travels in the map, the file need not ship.
+      "dist/tools/index.js.map": JSON.stringify({
+        version: 3,
+        sources: ["../../src/tools/index.ts"],
+        sourcesContent: ["export const tools = []"],
+        mappings: "",
+      }),
+    }
+    assert.deepEqual(findings(passing), [])
+    // Content inlined for one source of two: the other still has to ship.
+    const half = JSON.stringify({
+      sources: ["../../src/a.ts", "../../src/b.ts"],
+      sourcesContent: ["export const a = 1", null],
+    })
+    assert.match(
+      findings({ ...CONNECTOR, "dist/tools/index.js.map": half }).join("\n"),
+      /^dist\/tools\/index\.js\.map: points to \.\.\/\.\.\/src\/b\.ts, which the tarball lacks: /,
+    )
+  })
+
+  it("fails a map that is no JSON, and skips a test's map that already fails", () => {
+    assert.deepEqual(findings({ ...CONNECTOR, "dist/plugin.js.map": "not json" }), [
+      "dist/plugin.js.map: a map that is no JSON ships",
+    ])
+    assert.deepEqual(
+      findings({ ...CONNECTOR, "dist/a.test.js.map": '{"sources":["../src/a.ts"]}' }),
+      ["dist/a.test.js.map: a test ships (exclude it in files)"],
+    )
   })
 
   it("reads module specifiers from the AST, not from comments or strings", () => {

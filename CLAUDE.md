@@ -606,10 +606,11 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
   (`./widgets` exports the BPMN viewer, so every view bundle imports it) and of the two
   connectors, which draw diagrams. A published package imports only what its `dependencies` or
   `peerDependencies` declare (`scripts/published-imports.test.mjs`), and its tarball ships no
-  test and every module its entries reach (`scripts/pack-contents.mjs`, run by
-  `scripts/test-template.sh`); a connector ships `dist` and its `src`, the template's reference
-  implementation. **`mcp-use` is exactly pinned even as a peer** (`2.12.2`): a duplicate instance
-  breaks the React context and hangs every in-widget query (invariant 4). Name the required
+  test, every module its entries reach and every source its maps name
+  (`scripts/pack-contents.mjs`, run by `scripts/test-template.sh`): each library ships `dist`
+  and its `src` (a connector's is the template's reference implementation). **`mcp-use` is
+  exactly pinned even as a peer** (`2.12.2`): a duplicate instance breaks the React context
+  and hangs every in-widget query (invariant 4). Name the required
   `mcp-use` version in each package README and the release changelog. The template pins what the
   workspace pins (the `@miragon/pulse-*` libraries, `mcp-use`, `react`, `react-dom`, `zod`,
   `lucide-react`, `@tanstack/react-query`; `scripts/template-pins.mjs`, in `pnpm test` and
