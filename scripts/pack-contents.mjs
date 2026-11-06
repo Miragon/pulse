@@ -7,9 +7,9 @@
  *   directory, in dist/ or in the src/ every library ships (the sources its maps name; a
  *   connector's `./widgets` and the reference implementation the template's docs point at);
  * - no tsconfig ships: a src/ carries the editor's nested tsconfig.json of its widgets (a
- *   connector's, widget-shell's src/ui), and a host's Vite reads the nearest tsconfig.json of every source file it compiles
- *   outside node_modules (a linked or `file:` package), so it would fail on the `extends`
- *   target the tarball lacks;
+ *   connector's, widget-shell's src/ui), and a host's Vite reads the nearest tsconfig.json of
+ *   every source file it compiles outside node_modules (a linked or `file:` package), so it
+ *   would fail on the `extends` target the tarball lacks;
  * - every `exports` target, `main` and `types` is in the tarball;
  * - every relative import of a shipped module (JS, TS, declarations) resolves inside the
  *   tarball, so a `files` list never leaves behind a module a widget imports (a host's Vite
@@ -88,7 +88,7 @@ const PACKAGE_ROOT = "/package"
 
 /**
  * The sources the map at `file` (its JSON `text`) names that the tarball lacks, unless the map
- * inlines their content; null when the text is no JSON. A source resolves from the map's
+ * inlines their content; null when the text is no JSON object. A source resolves from the map's
  * directory through its `sourceRoot`, so one above the package root or an absolute path (the
  * build machine's) is never inside.
  */
@@ -99,6 +99,7 @@ function missingSources(file, text, shipped) {
   } catch {
     return null
   }
+  if (map === null || typeof map !== "object" || Array.isArray(map)) return null
   const root = typeof map.sourceRoot === "string" ? map.sourceRoot : ""
   const inside = (source) => {
     const resolved = path.posix.resolve(PACKAGE_ROOT, path.posix.dirname(file), root, source)
@@ -158,15 +159,16 @@ export function packFindings({ manifest, files, read }) {
   for (const file of files) {
     if (!SOURCE_MAP.test(file) || TEST_FILE.test(file)) continue
     const missing = missingSources(file, read(file), shipped)
-    if (missing === null) findings.push(`${file}: a map that is no JSON ships`)
+    if (missing === null) findings.push(`${file}: a map that is no JSON object ships`)
     else unmapped.push(...missing.map((source) => ({ file, source })))
   }
   if (unmapped.length > 0) {
     const [{ file, source }] = unmapped
     const more = unmapped.length > 1 ? ` (and ${unmapped.length - 1} more)` : ""
     findings.push(
-      `${file}: points to ${source}, which the tarball lacks${more}: add the sources to files ` +
-        `or inline them (inlineSources), else a host's Vite warns once per module it loads`,
+      `${file}: points to ${source}, which the tarball lacks${more}: ship the sources (src in ` +
+        `files; inlineSources fills a .js.map, never a .d.ts.map), else a host's Vite warns ` +
+        `once per module it loads and go-to-definition stops at the declaration`,
     )
   }
   return findings

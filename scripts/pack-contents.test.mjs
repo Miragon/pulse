@@ -122,22 +122,24 @@ describe("pack-contents", () => {
   })
 
   it("fails once for the maps whose sources the tarball lacks, naming the first", () => {
+    // A .d.ts.map sorts first, and inlineSources never fills one: the hint says to ship them.
     const why =
-      "add the sources to files or inline them (inlineSources), else a host's Vite warns once " +
-      "per module it loads"
+      "ship the sources (src in files; inlineSources fills a .js.map, never a .d.ts.map), else " +
+      "a host's Vite warns once per module it loads and go-to-definition stops at the declaration"
     assert.deepEqual(findings(without(CONNECTOR, "src/index.ts")), [
       `dist/index.d.ts.map: points to ../src/index.ts, which the tarball lacks (and 1 more): ${why}`,
     ])
-    // Above the package root, or the build machine's absolute path: neither reaches a consumer,
-    // even where the path read from the package root is a shipped file (src/index.ts).
-    const planted = {
-      ...CONNECTOR,
-      "dist/plugin.js.map": '{"version":3,"sources":["../../src/index.ts"],"mappings":""}',
-      "index.js.map": '{"version":3,"sources":["/src/index.ts"],"mappings":""}',
+    // Above the package root, beside it under a name the root prefixes, or the build machine's
+    // absolute path: none reaches a consumer, though each reads as the shipped src/index.ts to a
+    // check that clamps `..` at the root or tests the root's prefix without its slash.
+    for (const source of ["../../src/index.ts", "../../package-src/index.ts", "/src/index.ts"]) {
+      const map = JSON.stringify({ version: 3, sources: [source], mappings: "" })
+      assert.deepEqual(
+        findings({ ...CONNECTOR, "dist/plugin.js.map": map }),
+        [`dist/plugin.js.map: points to ${source}, which the tarball lacks: ${why}`],
+        source,
+      )
     }
-    assert.deepEqual(findings(planted), [
-      `dist/plugin.js.map: points to ../../src/index.ts, which the tarball lacks (and 1 more): ${why}`,
-    ])
   })
 
   it("passes a map source that ships, through its sourceRoot, or inlined as its content", () => {
@@ -164,10 +166,14 @@ describe("pack-contents", () => {
     )
   })
 
-  it("fails a map that is no JSON, and skips a test's map that already fails", () => {
-    assert.deepEqual(findings({ ...CONNECTOR, "dist/plugin.js.map": "not json" }), [
-      "dist/plugin.js.map: a map that is no JSON ships",
-    ])
+  it("fails a map that is no JSON object, and skips a test's map that already fails", () => {
+    for (const text of ["not json", "null", "[]", "3"]) {
+      assert.deepEqual(
+        findings({ ...CONNECTOR, "dist/plugin.js.map": text }),
+        ["dist/plugin.js.map: a map that is no JSON object ships"],
+        text,
+      )
+    }
     assert.deepEqual(
       findings({ ...CONNECTOR, "dist/a.test.js.map": '{"sources":["../src/a.ts"]}' }),
       ["dist/a.test.js.map: a test ships (exclude it in files)"],
