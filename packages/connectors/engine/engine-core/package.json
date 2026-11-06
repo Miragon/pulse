@@ -1,6 +1,6 @@
 {
   "name": "@miragon/pulse-engine-core",
-  "version": "0.26.0",
+  "version": "0.27.0",
   "description": "The workflow domain of the Camunda 7 REST API family (Operaton, CIB seven, Camunda 7): the engine port, instance selection, the inspect view, the status triage, root causes and the plans of retry and advance, and the pure engine REST rules (dates, filters, sorting, variable writes, incident recovery). No runtime dependency.",
   "license": "MIT",
   "keywords": [
