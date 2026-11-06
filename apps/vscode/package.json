@@ -312,6 +312,7 @@
     "sandbox:c8:up": "node scripts/sandbox-c8/sandbox.mjs up",
     "sandbox:c8:open": "node scripts/build.mjs && node scripts/sandbox-c8/sandbox.mjs open",
     "sandbox:c8:traffic": "node scripts/sandbox-c8/sandbox.mjs traffic",
+    "sandbox:c8:seed": "node scripts/sandbox-c8/sandbox.mjs seed",
     "sandbox:c8:down": "node scripts/sandbox-c8/sandbox.mjs down",
     "docs:screenshots": "node scripts/build.mjs && node scripts/screenshots/screenshots.mjs",
     "package": "node scripts/build.mjs --production && vsce package --no-dependencies --readme-path MARKETPLACE.md",

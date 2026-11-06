@@ -13,12 +13,45 @@ export function clusterVariables(variables) {
   )
 }
 
-function authorization(credentials) {
-  if (credentials === undefined) {
-    return {}
+const RETRIES = 5
+const BUSY = new Set([429, 503])
+const EARLY_MS = 60_000
+
+export function basicLogin({ username, password }) {
+  const token = Buffer.from(`${username}:${password}`).toString("base64")
+  return { headers: () => Promise.resolve({ Authorization: `Basic ${token}` }) }
+}
+
+async function tokenOf({ tokenEndpoint, clientId, clientSecret, audience }) {
+  const response = await fetch(tokenEndpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "client_credentials",
+      client_id: clientId,
+      client_secret: clientSecret,
+      ...(audience === undefined ? {} : { audience }),
+    }),
+  })
+  const body = await response.json().catch(() => ({}))
+  if (!response.ok || typeof body.access_token !== "string") {
+    throw new Error(
+      `The token endpoint answered HTTP ${response.status} ${body.error ?? ""}`.trim(),
+    )
   }
-  const token = Buffer.from(`${credentials.username}:${credentials.password}`).toString("base64")
-  return { Authorization: `Basic ${token}` }
+  return { value: body.access_token, expiresAt: Date.now() + Number(body.expires_in ?? 300) * 1000 }
+}
+
+export function clientCredentialsLogin(client) {
+  let token
+  return {
+    async headers() {
+      if (token === undefined || token.expiresAt - EARLY_MS < Date.now()) {
+        token = await tokenOf(client)
+      }
+      return { Authorization: `Bearer ${token.value}` }
+    },
+  }
 }
 
 function requestInit(method, headers, body) {
@@ -39,11 +72,23 @@ async function deploymentForm(name, file) {
   return form
 }
 
-export function clusterClient(endpoint, credentials) {
-  const headers = authorization(credentials)
+async function answerOf(endpoint, login, request) {
+  for (let attempt = 1; ; attempt++) {
+    const headers = login === undefined ? {} : await login.headers()
+    const response = await fetch(
+      `${endpoint}${request.path}`,
+      requestInit(request.method, headers, request.body),
+    )
+    if (!BUSY.has(response.status) || attempt === RETRIES) {
+      return response
+    }
+    await new Promise((resolve) => setTimeout(resolve, attempt * 1000))
+  }
+}
 
+export function clusterClient(endpoint, login) {
   async function call(method, path, body) {
-    const response = await fetch(`${endpoint}${path}`, requestInit(method, headers, body))
+    const response = await answerOf(endpoint, login, { method, path, body })
     const text = await response.text()
     if (!response.ok) {
       throw new Error(`${method} ${path}: HTTP ${response.status} ${text}`)
