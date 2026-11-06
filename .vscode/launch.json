@@ -1,0 +1,50 @@
+{
+  // F5 runs one of these under the debugger, every Node process under it included. Breakpoints in
+  // a `src` file bind: the server app's code runs in the `mcp-use dev` process through Vite (inline
+  // source maps), the packages from their `dist` with its source maps. Any other command stops at
+  // them too when run in a JavaScript Debug Terminal. The CLI's bundle ships no source maps: debug
+  // its tests.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "pnpm play: the server against the playground",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["play"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
+    },
+    {
+      "name": "pnpm play --admin: with the write tools",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["play", "--admin"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
+    },
+    {
+      "name": "pnpm dev: the server with your .env",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["dev"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
+    },
+    {
+      "name": "pnpm test:one: the open test file",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["test:one", "${file}"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
+    }
+  ]
+}
