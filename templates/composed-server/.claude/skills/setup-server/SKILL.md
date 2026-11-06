@@ -29,9 +29,13 @@ pnpm dev        # MCP endpoint on :8400/mcp, inspector on :8400/mcp/inspector
 Verify before configuring anything: open `http://localhost:8400/mcp/inspector` and
 call `notes_show_notes`: the example module needs no external infrastructure,
 so a rendered notes widget proves server, widget bundle, and inspector work.
-Then read the boot log. The Vite build output and mcp-use's own `[mcp-use]`
-and `[inspector]` lines (`views directory not configured.` among them) are
-expected. The server's own lines start with `[acme-mcp]` (the `name` in
+If the log says `[mcp-use] port 8400 is taken, using <port>`, the endpoint and
+the inspector are on that port and 8400 is another server (see
+Troubleshooting): use that port, or free 8400 and restart.
+Then read the boot log. The Vite build output, the `[inspector]` lines and
+`[mcp-use] views directory not configured.` / `created mcp-env.d.ts` are
+expected; a `[mcp-use] reload failed` line is an error. The server's own
+lines start with `[acme-mcp]` (the `name` in
 `server/src/app.ts`): every warning among them is actionable (unknown env var, missing Prometheus URL,
 engine auth problems), and one info line
 (`[acme-mcp] Toolsets: engine:read-only (default without OAuth), …`) states
@@ -168,6 +172,7 @@ host's theme; there is no theme switch in the app.
 pnpm install                    # once, then COMMIT pnpm-lock.yaml
 docker build -t my-mcp-server .
 docker run --env-file .env -p 127.0.0.1:8400:8400 \
+  --add-host=host.docker.internal:host-gateway \
   -e ENGINE_BASE_URL=http://host.docker.internal:8410/engine-rest \
   -e ENGINE_COCKPIT_URL=http://localhost:8410/webapp \
   -e PROMETHEUS_URL=http://host.docker.internal:8460 \
@@ -176,12 +181,16 @@ docker run --env-file .env -p 127.0.0.1:8400:8400 \
 
 - Config comes from the environment; the image does not read `.env` itself.
   `--env-file` hands it over (so `ENGINE_ID`, `ENGINE_FLAVOR` and the engine
-  auth match the local run), and the `-e` flags after it win. Inside the
-  container `localhost` is the container, so the server reaches the engine and
-  Prometheus through `host.docker.internal`, while `ENGINE_COCKPIT_URL` stays on
-  `localhost`: the user's browser opens those links. Without it the cockpit
-  links derive from the engine URL and point at `host.docker.internal`, which
-  a browser on the host usually does not resolve.
+  auth match the local run), and the `-e` flags after it win. Unlike dotenv it
+  reads plain `KEY=VALUE` lines: quotes and a trailing `# comment` stay in the
+  value. A dev-only `PORT` or `MCP_URL` in `.env` comes along too (a `PORT`
+  other than 8400 misses `-p …:8400:8400`): drop it or override it with `-e`.
+- Inside the container `localhost` is the container, so the server reaches the
+  engine and Prometheus through `host.docker.internal` (built into Docker
+  Desktop; on Linux the `--add-host` maps it to the host), while
+  `ENGINE_COCKPIT_URL` stays on `localhost`: the user's browser opens those
+  links. Without it the cockpit links derive from the engine URL and point at
+  `host.docker.internal`, which a browser on the host usually does not resolve.
 - `PORT` sets the HTTP port (default 8400); `MCP_URL` is the public base URL
   when running behind a proxy or MCP gateway and, with
   `MCP_ALLOWED_HOSTS`/`MCP_ALLOWED_ORIGINS`, the only non-localhost

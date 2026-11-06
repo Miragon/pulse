@@ -37,12 +37,15 @@ metrics, the `engine_id` they carry); `.env.example` explains each.
 ### 2. As a container
 
 The image takes its config from the environment; it never reads `.env`
-itself. `--env-file` hands it over, and the `-e` flags after it win:
+itself. `--env-file` hands it over as plain `KEY=VALUE` lines (docker keeps
+quotes and trailing comments in the value), and the `-e` flags after it win:
 
 ```bash
 pnpm install          # once, then commit pnpm-lock.yaml (the build uses --frozen-lockfile)
+[ -f .env ] || cp .env.example .env   # step 1's .env, or the playground's settings
 docker build -t my-mcp-server .
 docker run --env-file .env -p 127.0.0.1:8400:8400 \
+  --add-host=host.docker.internal:host-gateway \
   -e ENGINE_BASE_URL=http://host.docker.internal:8410/engine-rest \
   -e ENGINE_COCKPIT_URL=http://localhost:8410/webapp \
   -e PROMETHEUS_URL=http://host.docker.internal:8460 \
@@ -50,9 +53,9 @@ docker run --env-file .env -p 127.0.0.1:8400:8400 \
 ```
 
 Inside the container `localhost` is the container itself, so the server
-reaches the playground's engine and Prometheus through `host.docker.internal`,
-while the "open in cockpit" links open in your browser and stay on
-`localhost`.
+reaches the playground's engine and Prometheus through `host.docker.internal`
+(Docker Desktop resolves it, Linux needs the `--add-host`), while the "open in
+cockpit" links open in your browser and stay on `localhost`.
 
 Either way the MCP endpoint is `http://localhost:8400/mcp`. With `pnpm dev`,
 open the inspector at `http://localhost:8400/mcp/inspector` and call
