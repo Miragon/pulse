@@ -7,8 +7,8 @@ Self-Managed, from Camunda 8.9 on. A cluster below 8.9 gets a problem that names
 ::: warning Read-only, tested on Self-Managed
 Pulse cannot change data on a Camunda 8 cluster yet: no retries, no variable changes, no
 migrations. The conformance suites run on Self-Managed 8.9 and 8.10 with H2 and Elasticsearch,
-without security, with basic authentication and with OIDC. On SaaS, Pulse's login and _Add Engine_
-ran against an 8.9 cluster; no suite has run there yet.
+without security, with basic authentication and with OIDC. On SaaS, _Add Engine_ and the shop
+sandbox's charter ran against an 8.9 cluster; no suite has run there yet.
 :::
 
 ## SaaS
