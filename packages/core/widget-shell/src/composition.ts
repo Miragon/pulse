@@ -107,7 +107,7 @@ export interface ModuleComposition<TShared> {
    * `activeModules` the module names.
    */
   refuseRetired: (env?: NodeJS.ProcessEnv) => void
-  /** Unset/`all` = every module; unknown names warn and are skipped. */
+  /** Unset/`all` = every module; an unknown name fails the boot, listing the known modules. */
   activeModules: (env?: NodeJS.ProcessEnv) => ActiveModuleRef[]
   /** Call once per boot; derive the plugins and the boot log from the result. */
   resolveBoot: (env?: NodeJS.ProcessEnv, options?: ResolveBootOptions) => ResolvedBoot
@@ -180,12 +180,14 @@ export function composeModules<TShared>(options: {
     if (sentences.length > 0) throw new Error(`[${label}] ${sentences.join(" ")}`)
   }
 
-  const parseActiveModules = (
-    env: NodeJS.ProcessEnv,
-  ): { known: ActiveModuleRef[]; unknown: string[] } => {
+  /**
+   * A former name names its replacement; an unknown one (a typo, a module this root does not
+   * compose) lists the known modules. Either would otherwise boot a healthy server WITHOUT the
+   * module it asks for, with no tools at all when no listed name is known.
+   */
+  const activeModules = (env: NodeJS.ProcessEnv = process.env): ActiveModuleRef[] => {
     const refs = listedModules(env)
-    if (refs === undefined) return { known: modules.map(({ name }) => ({ name })), unknown: [] }
-    // A former name would read as unknown and boot WITHOUT the module it asks for.
+    if (refs === undefined) return modules.map(({ name }) => ({ name }))
     const sentences = retiredNameSentences(refs, retiredNames)
     if (sentences.length > 0) throw new Error(`[${label}] ${sentences.join(" ")}`)
     const repeated = [...new Set(refs.map(({ name }) => name))].filter(
@@ -196,14 +198,17 @@ export function composeModules<TShared>(options: {
         `[${label}] MCP_ACTIVE_MODULES names ${repeated.map((name) => `"${name}"`).join(", ")} more than once. List each module once, with at most one :toolset.`,
       )
     }
-    return {
-      known: refs.filter(({ name }) => registry[name]),
-      unknown: refs.filter(({ name }) => !registry[name]).map(({ name }) => name),
+    const unknown = refs.filter(({ name }) => !registry[name]).map(({ name }) => `"${name}"`)
+    if (unknown.length > 0) {
+      const one = unknown.length === 1
+      throw new Error(
+        `[${label}] MCP_ACTIVE_MODULES names ${one ? "an unknown module" : "the unknown modules"} ${unknown.join(", ")}, ` +
+          `so the server does not start without the ${one ? "module" : "modules"} it asks for. ` +
+          `Known modules: ${modules.map(({ name }) => name).join(", ")}.`,
+      )
     }
+    return refs
   }
-
-  const activeModules = (env: NodeJS.ProcessEnv = process.env): ActiveModuleRef[] =>
-    parseActiveModules(env).known
 
   const effectiveToolset = (
     module: ComposableModule<TShared>,
@@ -277,11 +282,9 @@ export function composeModules<TShared>(options: {
     },
     emitBootWarnings(env = process.env) {
       // Separate from `configFromEnv`, which stays side-effect free.
-      const { known, unknown } = parseActiveModules(env)
       const warnings = [
         ...warnedEnvVarSentences(env, warnedEnvVars),
-        ...unknown.map((name) => `Unknown module "${name}" in MCP_ACTIVE_MODULES: skipping`),
-        ...known.flatMap(({ name }) => registry[name].bootWarnings?.(env) ?? []),
+        ...activeModules(env).flatMap(({ name }) => registry[name].bootWarnings?.(env) ?? []),
       ]
       for (const warning of warnings) {
         console.warn(`[${label}] ${warning}`)

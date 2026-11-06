@@ -94,9 +94,10 @@ package customers build their own connectors and composed servers on (see the
   `@miragon/pulse-ui/testing`. The widgets follow the host's theme (then the OS); there is no
   theme preference.
 - **Module composition** (inside the boot): `createComposedServer` composes the modules you hand
-  it: `MCP_ACTIVE_MODULES` selection with `module:toolset` suffixes, the env-typo warner and boot
-  warnings. It resolves ONE concrete toolset per module per boot and threads it into the module's
-  `config.toolset` (`ModuleEntry`), authenticated exactly when it installed OAuth. A module's
+  it: `MCP_ACTIVE_MODULES` selection with `module:toolset` suffixes (an unknown module name fails
+  the boot, listing the modules), the env-typo warner and boot warnings. It resolves ONE concrete
+  toolset per module per boot and threads it into the module's `config.toolset` (`ModuleEntry`),
+  authenticated exactly when it installed OAuth. A module's
   `createPlugin(config, shared)` returns a `ModulePlugin`: its `name` and one `register(server)`
   that registers all its tools on the server the boot owns; `shared(entries)` is your wiring of
   what the active modules hand each other. The boot log states each module's toolset and why.
