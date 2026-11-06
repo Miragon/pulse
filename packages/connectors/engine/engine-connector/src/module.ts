@@ -13,6 +13,12 @@ import {
 } from "./retired-settings.js"
 import { fetchLatestDefinitionXml } from "./data/definition-info.js"
 import { type EngineRegistry, resolveEngine } from "./lib/engine/resolve-engine.js"
+import {
+  engineConfigErrorText,
+  listOrigin,
+  type EngineListOrigin,
+  type EngineSource,
+} from "./engine-config-error.js"
 
 // Incomplete credentials fail the boot instead of silently sending unauthenticated requests.
 const engineAuthSchema = z
@@ -32,6 +38,10 @@ const engineAuthSchema = z
 /** The shape of an engine id and an environment id. */
 const ID_PATTERN = /^[a-z0-9][a-z0-9-]*$/
 
+/** http(s) only: `localhost:8410/engine-rest` parses as a URL whose scheme is `localhost:`. */
+const httpUrl = (what: string) =>
+  z.url({ protocol: /^https?$/, error: `Expected an http:// or https:// URL${what}` })
+
 const engineSchema = z.object({
   id: z
     .string()
@@ -40,8 +50,8 @@ const engineSchema = z.object({
       ID_PATTERN,
       "Engine id must be lowercase alphanumeric / dashes, starting with a letter or digit",
     ),
-  baseUrl: z.string().url(),
-  cockpitUrl: z.string().url().optional(),
+  baseUrl: httpUrl(" of the REST API root, e.g. http://localhost:8410/engine-rest"),
+  cockpitUrl: httpUrl("").optional(),
   /** A picker grouping only: `id` stays the flat join key against the metrics' `engine_id`. */
   environment: z
     .string()
@@ -66,10 +76,15 @@ const engineSchema = z.object({
 
 /** The longest delay a Node timer holds: a longer deadline would fire at once. */
 const MAX_TIMEOUT_MS = 2_147_483_647
+const TIMEOUT_ERROR = "ENGINE_REQUEST_TIMEOUT_MS must be a whole number of milliseconds"
 
 export const engineConfigSchema = z
   .object({
-    engines: z.array(engineSchema).min(1),
+    engines: z
+      .array(engineSchema, {
+        error: 'Expected an array of engines or an environment map {"<environment>": [engines…]}',
+      })
+      .min(1, "Names no engine"),
     authType: z.enum(["basic", "bearer", "passthrough", "none"]).default("none"),
     username: z.string().optional(),
     password: z.string().optional(),
@@ -85,17 +100,14 @@ export const engineConfigSchema = z
       .transform((v) => v === "true"),
     // Strict: a typo ("30s", "3e4") fails the boot instead of becoming another deadline.
     requestTimeoutMs: z
-      .union([
-        z.number(),
-        z
-          .string()
-          .regex(/^\d+$/, "ENGINE_REQUEST_TIMEOUT_MS must be a whole number of milliseconds")
-          .transform(Number),
-      ])
+      // Without its own error a union that matches no branch says only "Invalid input".
+      .union([z.number(), z.string().regex(/^\d+$/, TIMEOUT_ERROR).transform(Number)], {
+        error: TIMEOUT_ERROR,
+      })
       .pipe(
         z
           .number()
-          .int("ENGINE_REQUEST_TIMEOUT_MS must be a whole number of milliseconds")
+          .int(TIMEOUT_ERROR)
           .min(1, "ENGINE_REQUEST_TIMEOUT_MS must be at least 1 ms")
           .max(MAX_TIMEOUT_MS, `ENGINE_REQUEST_TIMEOUT_MS must be at most ${MAX_TIMEOUT_MS} ms`),
       )
@@ -126,6 +138,7 @@ export const engineConfigSchema = z
   })
   // A duplicate id would silently route both entries' traffic to one of them.
   .refine((c) => new Set(c.engines.map((e) => e.id)).size === c.engines.length, {
+    path: ["engines"],
     message:
       "Engine ids must be unique across all environments: the id is the per-call `engine` selector and the join key against the metrics' engine_id label",
   })
@@ -226,7 +239,7 @@ function normalizeEnginesConfig(raw: unknown): unknown {
 function passthroughEngineIds(env: NodeJS.ProcessEnv): string[] {
   let engines: unknown
   try {
-    engines = loadEnginesFromEnv(env)
+    engines = loadEngineSource(env).engines
   } catch {
     return []
   }
@@ -243,7 +256,7 @@ function passthroughEngineIds(env: NodeJS.ProcessEnv): string[] {
  * ENGINE_ID exists because the id is the join key against the metrics'
  * `engine_id`: a mismatch reads as "no data", not as a config error.
  */
-function loadEnginesFromEnv(env: NodeJS.ProcessEnv): unknown {
+function loadEngineSource(env: NodeJS.ProcessEnv): EngineSource {
   const filePath = env.ENGINES_FILE?.trim()
   if (filePath) {
     if (/^[[{]/.test(filePath)) {
@@ -256,24 +269,39 @@ function loadEnginesFromEnv(env: NodeJS.ProcessEnv): unknown {
       resolved === filePath
         ? `ENGINES_FILE=${filePath}`
         : `ENGINES_FILE=${filePath} (resolved ${resolved})`
-    return parseEnginesConfig(readEnginesFile(resolved, source), source, "its content")
+    const raw = parseEnginesConfig(readEnginesFile(resolved, source), source, "its content")
+    return listSource(raw, `ENGINES_FILE=${filePath}`, " at ")
   }
   const json = env.ENGINES_JSON?.trim()
-  if (json) return parseEnginesConfig(json, "ENGINES_JSON", "the value")
+  if (json) return listSource(parseEnginesConfig(json, "ENGINES_JSON", "the value"), "ENGINES_JSON")
   const id = env.ENGINE_ID?.trim() || "default"
   const flavor = engineFlavorFromEnv(env)
   const shorthand = { id, ...(flavor ? { flavor } : {}) }
   const baseUrl = env.ENGINE_BASE_URL?.trim()
-  if (baseUrl) {
-    return [
-      {
+  const engine = baseUrl
+    ? {
         ...shorthand,
         baseUrl,
         ...(env.ENGINE_COCKPIT_URL ? { cockpitUrl: env.ENGINE_COCKPIT_URL } : {}),
-      },
-    ]
-  }
-  return [{ ...shorthand, baseUrl: "http://localhost:8410/engine-rest" }]
+      }
+    : { ...shorthand, baseUrl: "http://localhost:8410/engine-rest" }
+  return { engines: [engine], origin: { kind: "shorthand" } }
+}
+
+/** A parsed JSON list, normalized, with each entry's place as written for the config errors. */
+function listSource(raw: unknown, variable: string, separator = ""): EngineSource {
+  const engines = normalizeEnginesConfig(raw)
+  return { engines, origin: listOrigin(raw, variable, separator, shownIfId) }
+}
+
+/**
+ * Checked at the mapping, so a bad setting fails the boot before it logs the toolsets, naming
+ * the variable (and the engine entry) instead of the schema path.
+ */
+function checkedConfig(config: Record<string, unknown>, origin: EngineListOrigin) {
+  const checked = engineConfigSchema.safeParse(config)
+  if (!checked.success) throw new Error(engineConfigErrorText(checked.error.issues, origin))
+  return config
 }
 
 /**
@@ -303,7 +331,7 @@ function parseEnginesConfig(text: string, source: string, hidden: string): unkno
     )
   }
   assertUniqueTopLevelKeys(text)
-  return normalizeEnginesConfig(parsed.value)
+  return parsed.value
 }
 
 /** `docker run --env-file` keeps the quotes around a value, so the JSON arrives wrapped in them. */
@@ -340,10 +368,11 @@ function allowDeploymentsFromEnv(env: NodeJS.ProcessEnv): string | undefined {
 export const engineModule = {
   name: "engine",
 
-  /** Pure env → raw-config mapping; validation happens in `createPlugin`. */
+  /** Env → raw config, checked against the schema here; `createPlugin` parses it again. */
   configFromEnv(env: NodeJS.ProcessEnv): Record<string, unknown> {
-    return {
-      engines: loadEnginesFromEnv(env),
+    const { engines, origin } = loadEngineSource(env)
+    const config = {
+      engines,
       authType: env.ENGINE_AUTH_TYPE,
       username: env.ENGINE_USERNAME,
       password: env.ENGINE_PASSWORD,
@@ -361,6 +390,7 @@ export const engineModule = {
           }
         : {}),
     }
+    return checkedConfig(config, origin)
   },
 
   knownEnvVars: [

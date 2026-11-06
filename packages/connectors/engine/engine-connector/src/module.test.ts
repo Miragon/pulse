@@ -66,14 +66,16 @@ describe("ENGINE_ALLOW_DEPLOYMENTS", () => {
     ])
   })
 
-  it("configFromEnv only trims (empty = unset) and leaves the verdict to the strict schema", () => {
+  it("configFromEnv trims (empty = unset), keeps the text and refuses junk, naming the variable", () => {
     const fromEnv = (value?: string) =>
       engineModule.configFromEnv({ ENGINE_ALLOW_DEPLOYMENTS: value }).allowDeployments
-    expect(fromEnv("yes")).toBe("yes")
     expect(fromEnv(" true ")).toBe("true")
     expect(fromEnv("")).toBeUndefined()
     expect(fromEnv("   ")).toBeUndefined()
     expect(engineModule.configFromEnv({}).allowDeployments).toBeUndefined()
+    expect(() => fromEnv("yes")).toThrow(
+      'ENGINE_ALLOW_DEPLOYMENTS must be exactly "true" or "false" (or unset)',
+    )
   })
 
   it("is a known env var", () => {
@@ -125,11 +127,13 @@ describe("ENGINE_REQUEST_TIMEOUT_MS", () => {
     },
   )
 
-  it("configFromEnv trims (empty = unset) and leaves the verdict to the strict schema", () => {
+  it("configFromEnv trims (empty = unset), keeps the text and refuses junk, naming the variable", () => {
     const fromEnv = (value?: string) =>
       engineModule.configFromEnv({ ENGINE_REQUEST_TIMEOUT_MS: value }).requestTimeoutMs
     expect(fromEnv(" 5000 ")).toBe("5000")
-    expect(fromEnv("30s")).toBe("30s")
+    expect(() => fromEnv("30s")).toThrow(
+      "ENGINE_REQUEST_TIMEOUT_MS must be a whole number of milliseconds",
+    )
     expect(fromEnv("  ")).toBeUndefined()
     expect(fromEnv(undefined)).toBeUndefined()
     expect(engineModule.knownEnvVars).toContain("ENGINE_REQUEST_TIMEOUT_MS")

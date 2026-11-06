@@ -19,6 +19,16 @@ afterEach(() => {
 describe("the boot refuses a setting it cannot use, before it logs the toolsets", () => {
   it.each([
     [
+      "an engine entry that breaks the schema",
+      { ENGINES_JSON: '[{"id":"Prod_A","baseUrl":"http://localhost:8410/engine-rest"}]' },
+      "ENGINES_JSON[0].id: Engine id must be lowercase alphanumeric / dashes, starting with a letter or digit",
+    ],
+    [
+      "an engine URL without a scheme",
+      { ENGINE_BASE_URL: "localhost:8410/engine-rest" },
+      "ENGINE_BASE_URL: Expected an http:// or https:// URL of the REST API root, e.g. http://localhost:8410/engine-rest",
+    ],
+    [
       "an unknown module",
       { MCP_ACTIVE_MODULES: "engines:operations,analytic" },
       '[pulse] MCP_ACTIVE_MODULES names the unknown modules "engines", "analytic", so the server does not start without the modules it asks for. Known modules: engine, analytics.',
