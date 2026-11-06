@@ -55,6 +55,12 @@ needed. Then adjust:
   name, tool prefixes and thus view names, query keys), `src/module.test.ts`
   and the widget test included.
 
+The copy carries its own pins of `@miragon/pulse-ui`,
+`@miragon/pulse-widget-shell`, `mcp-use` and the shared libraries, and they
+move with the server's: an upgrade bumps them in every module too.
+`server/test/pins.test.ts` names each pin that differs from the installed
+`@miragon/pulse-widget-shell`.
+
 ## Step 2: the data layer
 
 `src/notes-store.ts` shows the shape: tools and widgets only ever see an

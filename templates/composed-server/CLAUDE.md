@@ -107,14 +107,19 @@ external infrastructure.
    `modules/mcp-notes/src/widgets/notes-list.test.tsx` does.
 5. **Exact version pins** (`save-exact` in `.npmrc`) for `dependencies`/
    `devDependencies`: upgrade all `@miragon/pulse-*` packages together to one
-   version. The consumer-shared libraries are ranged `peerDependencies` of a
+   version, in every `package.json` (each module carries its own). The
+   consumer-shared libraries are ranged `peerDependencies` of a
    module instead (`react`/`react-dom` `^19.2.0`, `zod` `^4.4.0`,
    `@miragon/pulse-ui` and `@miragon/pulse-widget-shell` `^<version>`), so
    they resolve to the server's one copy; keep an exact copy of each in
    `devDependencies` for local builds. Keep `react`, `react-dom`, `zod`,
    `lucide-react` and `@tanstack/react-query` at the versions the Pulse
-   packages are built with (Pulse checks its own copy of this template against
-   them).
+   packages are built with. `server/test/pins.test.ts` holds every
+   `package.json` to the installed `@miragon/pulse-widget-shell`, and
+   `strictPeerDependencies` in `pnpm-workspace.yaml` fails an install on an
+   unmet peer; never downgrade `lucide-react` to quiet one, and never turn
+   strict peers off: a third-party peer you accept gets a
+   `peerDependencyRules.allowedVersions` entry there.
    **`mcp-use` stays exactly pinned** even as a peer (`2.12.2`): a duplicate
    `mcp-use` instance breaks the React context and hangs every in-widget query
    on "Loading…" (invariant #4). `@mcp-use/client` (a dev dependency of `server/`) is

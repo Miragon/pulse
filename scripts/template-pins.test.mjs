@@ -1,23 +1,28 @@
 import assert from "node:assert/strict"
-import { readFileSync } from "node:fs"
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
 import path from "node:path"
 import { describe, it } from "node:test"
 import ts from "typescript"
 import { REPO_ROOT } from "./source-scan.mjs"
 import {
   checkTemplatePins,
+  INSPECTOR_LUCIDE,
+  peerRuleFindings,
   SHARED_LIBRARIES,
   templatePinFindings,
   workspacePins,
 } from "./template-pins.mjs"
 
 const VIEW_BUNDLE = "packages/core/widget-shell/src/view-bundle.ts"
+/** The starter's own pin guard: it holds a user's copy, where template-pins never runs. */
+const STARTER_PINS_TEST = "templates/composed-server/server/test/pins.test.ts"
 
-/** The string entries of the `VIEW_BUNDLE_DEDUPE` array literal in `source` (TypeScript AST). */
-function viewBundleDedupe(source) {
+/** The string entries of the array literal `name` is declared with in `source` (TypeScript AST). */
+function stringArray(source, file, name) {
   let entries
   const visit = (node) => {
-    if (ts.isVariableDeclaration(node) && node.name.getText() === "VIEW_BUNDLE_DEDUPE") {
+    if (ts.isVariableDeclaration(node) && node.name.getText() === name) {
       let init = node.initializer
       while (init && (ts.isAsExpression(init) || ts.isSatisfiesExpression(init))) {
         init = init.expression
@@ -28,10 +33,13 @@ function viewBundleDedupe(source) {
     }
     ts.forEachChild(node, visit)
   }
-  visit(ts.createSourceFile(VIEW_BUNDLE, source, ts.ScriptTarget.Latest, true))
-  if (entries === undefined) throw new Error(`no VIEW_BUNDLE_DEDUPE array in ${VIEW_BUNDLE}`)
+  visit(ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true))
+  if (entries === undefined) throw new Error(`no ${name} array in ${file}`)
   return entries
 }
+
+/** The string entries of the `VIEW_BUNDLE_DEDUPE` array literal in `source`. */
+const viewBundleDedupe = (source) => stringArray(source, VIEW_BUNDLE, "VIEW_BUNDLE_DEDUPE")
 
 /**
  * The deduped packages template-pins does not hold to the workspace's pin: every one but the
@@ -171,8 +179,78 @@ describe("template-pins", () => {
     )
   })
 
+  it("fails the template's install when strict peers are off or missing", () => {
+    const { pins } = workspacePins(WORKSPACE)
+    const yaml = (strict) =>
+      `${strict}peerDependencyRules:\n  allowedVersions:\n    "${INSPECTOR_LUCIDE}": "1"\n`
+    assert.deepEqual(peerRuleFindings(yaml("strictPeerDependencies: true\n"), pins), [])
+    for (const [strict, found] of [
+      ["strictPeerDependencies: false\n", "false"],
+      ['strictPeerDependencies: "true"\n', '"true"'],
+      ["", "missing"],
+    ]) {
+      assert.deepEqual(peerRuleFindings(yaml(strict), pins), [
+        "templates/composed-server/pnpm-workspace.yaml: strictPeerDependencies is " +
+          `${found}, expected true: an unmet peer must fail the starter's install, or a split ` +
+          "@miragon/pulse-* or mcp-use bump installs",
+      ])
+    }
+  })
+
+  it("allows mcp-use's inspector the lucide-react major the workspace pins, and no other", () => {
+    const { pins } = workspacePins(WORKSPACE)
+    const rule = (value) =>
+      "strictPeerDependencies: true\n" +
+      `peerDependencyRules:\n  allowedVersions:\n    "${INSPECTOR_LUCIDE}": ${value}\n`
+    assert.deepEqual(peerRuleFindings(rule('"1"'), pins), [])
+    assert.deepEqual(peerRuleFindings(rule("1"), pins), [], "an unquoted major parses as 1")
+    for (const [value, found] of [
+      ['"1.61.0"', '"1.61.0"'],
+      ['"2"', '"2"'],
+    ]) {
+      assert.deepEqual(peerRuleFindings(rule(value), pins), [
+        "templates/composed-server/pnpm-workspace.yaml: peerDependencyRules.allowedVersions " +
+          `"${INSPECTOR_LUCIDE}" is ${found}, the workspace pins lucide-react 1.61.0: allow its ` +
+          'major, "1"',
+      ])
+    }
+    assert.match(
+      peerRuleFindings('strictPeerDependencies: true\npackages:\n  - "server"\n', pins).join("\n"),
+      /"@mcp-use\/inspector>lucide-react" is missing, the workspace pins lucide-react 1\.61\.0/,
+    )
+  })
+
+  it("names a missing template pnpm-workspace.yaml instead of crashing", () => {
+    const root = mkdtempSync(path.join(tmpdir(), "template-pins-"))
+    try {
+      const write = (file, content) => {
+        mkdirSync(path.dirname(path.join(root, file)), { recursive: true })
+        writeFileSync(path.join(root, file), content)
+      }
+      write("pnpm-workspace.yaml", 'packages:\n  - "packages/core/*"\n  - "apps/*"\n')
+      for (const { dir, manifest } of WORKSPACE) {
+        write(`${dir}/package.json`, JSON.stringify(manifest))
+      }
+      write("templates/composed-server/server/package.json", "{}")
+      assert.deepEqual(checkTemplatePins(root).slice(1), [
+        "No templates/composed-server/pnpm-workspace.yaml: the starter installs its workspace " +
+          "and its peer rules from it",
+      ])
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
   it("holds in the repo: the template pins what the workspace pins", () => {
     assert.deepEqual(checkTemplatePins(REPO_ROOT), [])
+  })
+
+  it("holds the starter's own pin guard to SHARED_LIBRARIES", () => {
+    const source = readFileSync(path.join(REPO_ROOT, STARTER_PINS_TEST), "utf8")
+    assert.deepEqual(
+      [...stringArray(source, STARTER_PINS_TEST, "SHARED_LIBRARIES")].sort(),
+      [...SHARED_LIBRARIES].sort(),
+    )
   })
 
   // One list of what a view bundle resolves once: widget-shell's VIEW_BUNDLE_DEDUPE. A package
