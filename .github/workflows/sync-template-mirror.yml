@@ -6,8 +6,9 @@ name: Sync template mirror
 # read-only convenience so customers get GitHub's "Use this template" button
 # and a committed pnpm-lock.yaml (which makes `docker build` work without a
 # prior local install). Before pushing, the template is installed and tested
-# against the REAL public registry (no tarball overrides), which is the one
-# check scripts/test-template.sh cannot perform.
+# against the REAL public registry (no tarball overrides) and its Docker image
+# is built from that lockfile, the checks scripts/test-template.sh cannot
+# perform.
 #
 # Runs after publish-npm on purpose: syncing on the release merge would
 # briefly advertise pins that are not on npm yet.
@@ -100,6 +101,14 @@ jobs:
           pnpm typecheck
           pnpm test
           echo "WORK=$WORK" >> "$GITHUB_ENV"
+
+      # No other job builds the starter's Dockerfile: scripts/test-template.sh has
+      # no lockfile in the build context and docker-build.yml builds the root
+      # image. $WORK holds the lockfile the mirror commits, and the template's
+      # .dockerignore drops the node_modules and dist the step above left there.
+      # A Dockerfile that fails here never reaches a new starter.
+      - name: Build the template's Docker image
+        run: docker build --tag pulse-starter-check "$WORK"
 
       # Minted right before the push so the 1h token lifetime never races the
       # npm wait + test steps above. Same app as the release train, scoped
