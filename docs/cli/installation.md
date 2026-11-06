@@ -1,9 +1,8 @@
 # Installation
 
 Four ways, the same CLI: the npm package (Node.js >= 22.12), Homebrew, a standalone executable
-for machines without Node.js, or the container image. The command is `pulse`. Its name up to
-0.25, `pulse-cli`, stays as a second name of the same program, so scripts and agents that call
-`pulse-cli` keep working.
+for machines without Node.js, or the container image. The command is `pulse`, and
+`pulse-cli` is a second name of the same program.
 
 ## npm
 
@@ -50,9 +49,7 @@ gh attestation verify pulse-cli-linux-x64 --repo Miragon/pulse
 ```
 
 - Install the file under the name you call it by: `pulse`, and for scripts that call `pulse-cli`
-  a link of that name too (`sudo ln -s pulse /usr/local/bin/pulse-cli`). The next steps and hints
-  the CLI prints say `pulse`, so an install from 0.25 or earlier, which has only the second name,
-  needs the `pulse` name too.
+  a link of that name too (`sudo ln -s pulse /usr/local/bin/pulse-cli`).
 - `latest/download` follows the newest release; `download/v<version>/<file>` pins one. On macOS
   check with `shasum -a 256 --check --ignore-missing pulse-cli-SHA256SUMS`.
 - **macOS**: the binaries are signed ad hoc, not notarized. A file downloaded with a browser is

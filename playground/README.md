@@ -54,11 +54,9 @@ pnpm stack:down     # stop (volumes kept; --wipe drops them)
   `--profile full` (containerized server on :8400), `--profile dev` (plain
   CIB seven image, no analytics, without its invoice example, so it starts empty), `--profile auth` (Keycloak on :8480 for
   trying OAuth locally: `pnpm play --auth` puts the server behind it, `pnpm stack:up --auth`
-  starts it alone; see the commented block in `.env.example`)
-- The Compose project is `pulse`. A stack started before the rename still
-  runs as `miragon-ai` and holds the ports: stop it once with
-  `docker compose -p miragon-ai -f playground/docker/docker-compose.yml down`
-  (`down -v` drops its volumes as well).
+  starts it alone; see the commented block in `.env.example`). For MCP clients without
+  Dynamic Client Registration its realm pre-registers the client `pulse-server` with the
+  secret `pulse-secret`.
 
 ## Deploy to Fly.io
 
@@ -113,18 +111,15 @@ Afterwards, point an MCP client (e.g. claude.ai custom connector) at
   server app: a Cloudflare record `CNAME pulse-playground →
 miragon-ai-playground.fly.dev` (DNS only, not proxied) and
   `fly certs add pulse-playground.miragon.ai -a miragon-ai-playground`.
-  `MCP_URL` names it. The old `https://miragon-ai-playground.fly.dev/mcp`
-  keeps working, since `MCP_ALLOWED_HOSTS` and `MCP_ALLOWED_ORIGINS` still
-  admit it.
+  `MCP_URL` names it; `MCP_ALLOWED_HOSTS` and `MCP_ALLOWED_ORIGINS` also
+  admit the Fly name `miragon-ai-playground.fly.dev`.
 - A Fly **secret** overrides an `[env]` entry of the same name. If
   `fly secrets list -a miragon-ai-playground` shows `MCP_ACTIVE_MODULES`,
   keep it in sync with the toml (or `fly secrets unset` it). An OAuth provider's
   variables as secrets add login (`fly secrets set
 MCP_USE_OAUTH_KEYCLOAK_SERVER_URL=… MCP_USE_OAUTH_KEYCLOAK_REALM=… -a
 miragon-ai-playground`, see `.env.example`); the pin still keeps it
-  read-only. A secret left from the retired OAuth JSON variable fails the boot,
-  and the refusal names the provider variables that replace it: unset it in
-  the same deploy.
+  read-only.
 - The engine keeps its H2 database in memory: every engine restart reseeds
   (~600 instances) and live traffic keeps metrics moving. Prometheus history
   survives restarts on its volume.

@@ -28,7 +28,7 @@ const RULES = [
   // too), the repo, the image, the Homebrew tap, the docs, the product page, its
   // OPERATE_* variables, its config file and its config directory. The plain word stays
   // ("read and operate your engines", the cockpit's fleet.operate key, Camunda 8 Operate).
-  // Only the "Renamed from operate" section may point to the archived repo (ALLOWED).
+  // No file points to the archived repo.
   { name: "old operate package", pattern: /@miragon\/operate(?!\w)/i },
   { name: "old operate repo", pattern: /(?<![\w.-])miragon\/operate(?![\w-])/i },
   { name: "old operate image", pattern: /ghcr\.io\/miragon\/operate/i },
@@ -152,12 +152,6 @@ const SELF = path.relative(path.resolve(import.meta.dirname, ".."), import.meta.
  */
 const ALLOWED = [
   {
-    file: "apps/cli/README.md",
-    rules: ["old operate repo"],
-    section: /^#{2,6} Renamed from operate\b/,
-    reason: "the npm README points to the archived repository of operate (up to 0.10.0)",
-  },
-  {
     file: "packages/core/widget-shell/src/oauth-env.ts",
     rules: ["retired MCP_OAUTH"],
     reason: "the boot refuses the retired variable and says what replaces it",
@@ -189,12 +183,6 @@ const ALLOWED = [
     ],
     section: /^#{2,6} Renamed\b/,
     reason: "the migration table names every retired name next to its replacement",
-  },
-  {
-    file: "apps/mcp-server/README.md",
-    rules: ["retired package or path"],
-    section: /^#{2,6} Renamed from miragon-ai\b/,
-    reason: "the released 0.21 note names the package names of that release",
   },
   {
     under: "apps/cli/",

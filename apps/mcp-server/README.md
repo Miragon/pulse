@@ -101,31 +101,3 @@ Configuration is entirely environment-driven. See
 | `src/ui/`        | Widget host bundle: `view-registry.ts` (views + host widgets) + `main.tsx` (`mountViews`)                                                    |
 | `vite.config.ts` | Single-file widget bundle config (keep `dedupe` spreading `VIEW_BUNDLE_DEDUPE`)                                                              |
 | `Dockerfile`     | Lives at the repo root; multi-stage build that produces the published image                                                                  |
-
-## Renamed from miragon-ai
-
-Up to 0.20.0 this server shipped as "Miragon AI" from `Miragon/miragon-ai`. From 0.21.0 on,
-everything it ships carries the Pulse name:
-
-- npm: `@miragon-ai/<name>` becomes `@miragon/pulse-<name>` for `widget-shell`,
-  `camunda7-client`, `camunda7-connector`, `analytics-client` and `analytics-connector`; subpaths
-  (`/server`, `/widgets` …) stay. Rename the dependencies and the import specifiers, one version
-  across all five. The old packages are deprecated with a pointer to the new name, and update bots
-  do not follow a rename, so switch by hand.
-- Docker image: `miragon/miragon-ai-server` on Docker Hub becomes `ghcr.io/miragon/pulse-server`
-  on the GitHub Container Registry; the old image stays on Docker Hub, frozen at 0.20.0.
-- Starter: `Miragon/miragon-ai-starter` becomes
-  [`Miragon/pulse-starter`](https://github.com/Miragon/pulse-starter).
-- Playground: `https://pulse-playground.miragon.ai/mcp`; the old `fly.dev` URL keeps answering.
-- MCP client key: the examples register the server as `pulse` (was `miragon-ai`; this repo's
-  `.mcp.json` used `automation-mcp`), and it introduces itself as `pulse`; its log lines start
-  with `[pulse]`. In Claude Code the key is the tool prefix: allowlists and hooks on
-  `mcp__miragon-ai__*` or `mcp__automation-mcp__*` need `mcp__pulse__*`.
-- Engine access logs: the client's User-Agent was `@miragon/pulse-camunda7-client/<version>` (was
-  `@miragon-ai/camunda7-client/0.1.0`); it is `@miragon/pulse-engine-client/<version>` since 0.25,
-  see [Upgrading](../../docs/mcp/upgrading.md).
-- Local Keycloak (`--profile auth`): the pre-registered client is `pulse-server` with secret
-  `pulse-secret`; recreate the container to re-import the realm.
-- Repo: GitHub redirects the old URL; `git remote set-url origin git@github.com:Miragon/pulse.git`
-  updates a clone. The local Compose stack runs as project `pulse` now, so stop an old one first
-  ([`playground/`](../../playground/README.md#run-locally)).

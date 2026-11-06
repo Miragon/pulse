@@ -100,9 +100,7 @@ Details: [developer guide](docs/mcp/developer.md); the rules for code changes ar
 [release-please](https://github.com/googleapis/release-please) releases everything together:
 semantic commits on `main` open a release PR, and merging it publishes the server image, the npm
 packages, the CLI (npm, binaries, image, Homebrew `miragon/tap/pulse-cli`), the VS Code extension
-(Marketplace and Open VSX) and the engine plugin (Maven Central). Up to 0.20.0 the server and its
-packages shipped as "Miragon AI"; the [rename note](apps/mcp-server/README.md#renamed-from-miragon-ai)
-maps each old name to its new one.
+(Marketplace and Open VSX) and the engine plugin (Maven Central).
 
 ## Contributing
 

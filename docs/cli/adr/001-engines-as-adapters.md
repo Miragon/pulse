@@ -23,8 +23,7 @@ divergence is either a catalog of its own for that engine, generated with an ext
 wrapper around the port in its adapter.
 
 **The engine is chosen before anything is registered.** `flavor` (profile, `PULSE_CLI_FLAVOR`,
-`--flavor`, default `camunda7`; called `platform` before the move to Pulse) selects the adapter in
-`run.ts`; commands, help and `describe`
+`--flavor`, default `camunda7`) selects the adapter in `run.ts`; commands, help and `describe`
 then come from its catalog.
 
 **The rules are checked.** dependency-cruiser fails the build when `workflow` imports an adapter or
