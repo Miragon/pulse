@@ -4,6 +4,7 @@ export interface Asked {
   readonly title: string
   readonly input?: PromptInput
   readonly items?: readonly string[]
+  readonly details?: readonly (string | undefined)[]
   readonly question?: string
 }
 
@@ -34,6 +35,7 @@ export class ScriptedPrompts implements Prompts {
     this.asked.push({
       title,
       items: items.map((item) => item.label),
+      details: items.map((item) => item.detail),
       ...(question === undefined ? {} : { question }),
     })
     const answer = this.next()

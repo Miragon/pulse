@@ -73,11 +73,13 @@ export class SetupSteps {
 
   private reviewItems(setup: EngineSetup, values: SetupValues): PromptItem<ReviewChoice>[] {
     const fields = setup.fields.filter((field) => SetupSteps.visible(field, values))
+    const secret = fields.some((field) => field.password === true)
     return [
       {
         label: "$(check) Save and connect",
-        detail:
-          "Pulse adds the engine to .pulse-cli.json, keeps secrets in VS Code's secret storage and reads the engine once.",
+        detail: secret
+          ? "Writes .pulse-cli.json and keeps the secret in VS Code's secret storage."
+          : "Writes .pulse-cli.json and reads the engine once.",
         item: SAVE,
       },
       ...fields.map((field) => ({

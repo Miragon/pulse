@@ -92,6 +92,9 @@ describe("the Camunda 8 SaaS steps", () => {
     expect(inputOf(prompts, "Client secret").prompt).toContain(
       "sends it only to login.cloud.camunda.io",
     )
+    expect(prompts.asked.at(-1)?.details?.[0]).toBe(
+      "Writes .pulse-cli.json and keeps the secret in VS Code's secret storage.",
+    )
   })
 
   test.each([
@@ -194,9 +197,9 @@ describe("the Camunda 8 Self-Managed steps", () => {
     expect(values?.environment).toBe("production")
   })
 
-  test("send nothing for an open API", async () => {
+  test("send nothing for an open API, and say so before saving", async () => {
     const setup = new SelfManagedSetup(TAKEN)
-    const { values } = await asked(setup, [
+    const { prompts, values } = await asked(setup, [
       "http://localhost:18088/v2",
       "http://localhost:18088/operate",
       "No login",
@@ -211,6 +214,9 @@ describe("the Camunda 8 Self-Managed steps", () => {
       flavor: "camunda8",
     })
     expect(setup.credentialsOf(values ?? {})).toBeUndefined()
+    expect(prompts.asked.at(-1)?.details?.[0]).toBe(
+      "Writes .pulse-cli.json and reads the engine once.",
+    )
   })
 
   test.each([
