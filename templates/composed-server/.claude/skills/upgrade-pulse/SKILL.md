@@ -33,11 +33,11 @@ pnpm view @miragon/pulse-widget-shell version              # the newest release
 ```
 
 Take the newest unless the user names one. Then read what each release in
-between asks of you, oldest first:
-[Upgrading](https://miragon.github.io/pulse/mcp/upgrading) has a page for
-every release that breaks something (settings, tool names, exports), the
-[changelog](https://github.com/Miragon/pulse/blob/main/CHANGELOG.md) lists
-the rest. Note what reaches beyond the starter's files: a renamed setting in
+between asks of you, oldest first: the BREAKING CHANGES of its entry in the
+[changelog](https://github.com/Miragon/pulse/blob/main/CHANGELOG.md), and its
+page in [Upgrading](https://miragon.github.io/pulse/mcp/upgrading) where one
+exists (the pages start at 0.25 and spell out settings, tool names and
+exports). Note what reaches beyond the starter's files: a renamed setting in
 your deployment, a tool name in a hook or an allowlist, an export your own
 module imports.
 
@@ -57,6 +57,18 @@ echo "$FROM $TO"   # one commit each
 git diff "$FROM" "$TO" -- . ':!pnpm-lock.yaml' ':!.github' > ../pulse-upgrade.patch
 git apply -3 ../pulse-upgrade.patch
 ```
+
+- An empty side means the mirror has no sync commit for that release (none
+  for v0.17.0). Then take both sides from the Miragon/pulse tags, under refs
+  of their own so your tags stay yours, and run the diff above with them;
+  only the mirror's README banner keeps its old version:
+
+  ```bash
+  git fetch --no-tags https://github.com/Miragon/pulse.git \
+    refs/tags/v0.17.0:refs/pulse/v0.17.0 refs/tags/v0.18.0:refs/pulse/v0.18.0
+  FROM=refs/pulse/v0.17.0:templates/composed-server
+  TO=refs/pulse/v0.18.0:templates/composed-server
+  ```
 
 - `pnpm-lock.yaml` stays out (Step 4 regenerates it), and so does `.github`
   (the mirror's own `CODEOWNERS`).
@@ -82,9 +94,23 @@ git diff --relative=modules/mcp-notes "$FROM" "$TO" > ../example.patch
 git apply -3 --directory=modules/mcp-crm ../example.patch
 ```
 
-Resolve its conflicts like Step 2's. A hunk that does not fit what your
-module became (a file you rewrote or removed) is yours to port by hand or
-leave out; read the example's diff for it. Change your code where the
+A file of the example's diff that your module lacks (you renamed or removed
+`src/notes-store.ts`, say) stops the whole apply, and nothing is written, the
+module's `package.json` pins included: git prints
+`error: modules/mcp-crm/<path>: does not exist in index` for each such file.
+Run it again with one `--exclude` per file, written as the error names it
+(the path under `--directory`; the module-relative `src/notes-store.ts`
+matches nothing):
+
+```bash
+git apply -3 --directory=modules/mcp-crm \
+  --exclude=modules/mcp-crm/src/notes-store.ts ../example.patch
+```
+
+Port the hunks of an excluded file to its successor by hand, from the
+example's diff, or leave them out. Resolve the conflicts like Step 2's. To
+take only the pins of a module that kept nothing of the example,
+`--include=modules/mcp-crm/package.json` instead. Change your code where the
 release's page names an export you use. Then list every pin of the lockstep:
 
 ```bash
@@ -95,7 +121,7 @@ grep -rnE --include=package.json --exclude-dir=node_modules \
 
 Every `@miragon/pulse-*` names the new version, exact or as a `^` peer, and
 each library has one exact version across the files (a peer keeps its
-range).
+range; `mcp-use` is exact everywhere, peers included).
 
 ## Step 4: install, the bar, one boot
 
@@ -105,10 +131,13 @@ pnpm build && pnpm typecheck && pnpm test   # the bar (CLAUDE.md, Verification)
 pnpm dev                                    # one boot: read its log
 ```
 
-An unmet-peer warning from `pnpm install` is no reason to move a pin off the
-release's version. The boot refuses a setting the release retired and names
-its replacement: fix `.env` and every other source of the deployment's
-environment (secrets, compose files, manifests) the same way. A warning about
+An unmet peer, whether `pnpm install` warns about it or fails on it with
+strict peers on, is no reason to move a Pulse or lockstep pin off the
+release's version: a third-party peer you accept gets an entry under
+`peerDependencyRules.allowedVersions` in `pnpm-workspace.yaml`. The boot
+refuses a setting the release retired and names its replacement: fix `.env`
+and every other source of the deployment's environment (secrets, compose
+files, manifests) the same way. A warning about
 an unknown variable names one the release no longer reads. Render one widget
 in the inspector (`http://localhost:8400/mcp/inspector`) to see the new
 bundle work.

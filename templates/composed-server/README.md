@@ -253,9 +253,35 @@ updates:
         update-types: [minor, patch]
 ```
 
-For Renovate, `renovate.json` takes the same list: one `packageRules` entry
-groups `"matchPackageNames": ["*"]`, a second one after it sets
-`"enabled": false` for the names above (a later rule wins).
+For Renovate, a `renovate.json` (a later rule wins, so the lockstep comes
+last):
+
+```json
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "dependencies"
+    },
+    {
+      "matchPackageNames": [
+        "@miragon/pulse-*",
+        "mcp-use",
+        "@mcp-use/client",
+        "@modelcontextprotocol/client",
+        "react",
+        "react-dom",
+        "zod",
+        "lucide-react",
+        "@tanstack/react-query"
+      ],
+      "enabled": false
+    }
+  ]
+}
+```
 
 ## Going further
 
