@@ -150,14 +150,20 @@ their config from the environment). A variable under a watched prefix (`MCP_`,
 `ENGINE_`, `ENGINES_`, `PROMETHEUS_`, plus each module's own) that the server does not
 read prints a warning at boot, so typos surface immediately.
 
-Toolsets fail closed: without OAuth the engine module and analytics run
-**read-only** without a `module:toolset` suffix (queries, widgets, analytics,
-no writes; a module without toolsets, like notes or analytics, registers all
-its tools); with it the engine module runs its standard toolset, `operations`. The boot
+Toolsets fail closed: without OAuth and without a `module:toolset` suffix the
+engine module runs **read-only** (queries and widgets, no writes); with OAuth
+it runs its standard toolset, `operations`. The boot
 log names the effective toolsets. `admin` is never
 implied, and `engine_create_deployment` additionally needs
 `ENGINE_ALLOW_DEPLOYMENTS=true` (deploying a BPMN runs code in the engine
 JVM). See the `setup-server` skill before widening a server others can reach.
+
+A module without toolsets, like notes or analytics, registers all its tools on
+every boot. Give your module toolsets as soon as it registers a tool without
+`readOnlyHint: true` and the server may run without OAuth (the
+`create-module` skill, Step 5). Until then a boot without OAuth
+warns once per such tool, naming it and its module: anyone who reaches the
+port can call it.
 
 OAuth comes from one provider's `MCP_USE_OAUTH_*` variables, mcp-use's own
 (the providers and what fails the boot: `.env.example`), and is also the only
@@ -190,7 +196,8 @@ docker run -p 8400:8400 \
   (or browser `Origin`) that is not localhost-class, `MCP_URL`'s or listed in
   `MCP_ALLOWED_HOSTS`/`MCP_ALLOWED_ORIGINS` (DNS-rebinding protection), so a
   deployment reached under any other name must set them.
-- Without OAuth the server boots read-only and unauthenticated. Set one
+- Without OAuth the server boots unauthenticated: a module with toolsets runs
+  its read-only floor, a module without toolsets every tool it has. Set one
   provider's `MCP_USE_OAUTH_*` variables (plus `MCP_URL`, the token audience)
   to require sign-in and raise the default toolsets. An authenticating gateway
   in front is invisible to the server: it still sees no identity, so any
