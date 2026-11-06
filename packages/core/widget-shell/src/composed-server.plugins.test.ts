@@ -216,6 +216,44 @@ describe("createComposedServer: the plugins' tools", () => {
   })
 })
 
+describe("createComposedServer: writes no toolset narrows", () => {
+  /** Reads only, without toolsets: nothing to narrow, nothing to warn about. */
+  const reader: ModulePlugin = {
+    name: "reader",
+    register: (server) => {
+      server.tool({ name: "reader_list", annotations: { readOnlyHint: true } }, answer)
+    },
+  }
+
+  const openWrites = () =>
+    vi
+      .mocked(console.warn)
+      .mock.calls.map(([line]) => String(line))
+      .filter((line) => line.includes("declares no toolsets"))
+
+  const warning = (tool: string) =>
+    `[plugins-test] ${tool} is a write and its module "panel" declares no toolsets: anyone who reaches this port can call it. Declare toolsets on "panel" or configure an OAuth provider (MCP_USE_OAUTH_*); a tool that only reads states readOnlyHint: true.`
+
+  it("warns once per write of a module without toolsets on a boot without OAuth, and still serves it", async () => {
+    const modules = [moduleOf(panelPlugin()), alpha, moduleOf(reader)]
+    const server = await boot({ modules })
+    // alpha's tools carry no readOnlyHint either: its toolsets narrow them, so it never warns.
+    expect(openWrites()).toEqual([warning("panel_data"), warning("panel_show_panel")])
+    const { tools } = (await rpc(server.port, "tools/list")) as { tools: { name: string }[] }
+    expect(tools.map(({ name }) => name)).toEqual(expect.arrayContaining(["panel_data"]))
+  })
+
+  it("warns about nothing under OAuth, where every call needs a signed-in caller", async () => {
+    await createComposedServer(options({ oauth: testOAuth() }))
+    expect(openWrites()).toEqual([])
+  })
+
+  it("names the module as MCP_ACTIVE_MODULES lists it, also when its suffix is ignored", async () => {
+    await createComposedServer(options({ env: { MCP_ACTIVE_MODULES: "panel:read-only" } }))
+    expect(openWrites()).toEqual([warning("panel_data"), warning("panel_show_panel")])
+  })
+})
+
 describe("createComposedServer: the views", () => {
   it("primes every bound view once, after the last plugin, with the one bundle behind its name", async () => {
     const dir = await mkdtemp(path.join(tmpdir(), "composed-bundle-"))

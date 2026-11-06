@@ -39,7 +39,7 @@ describe("oauthFromEnv: the providers", () => {
     expect(fromEnv({})).toBeUndefined()
     expect(warn).toHaveBeenCalledOnce()
     expect(warn.mock.calls[0][0]).toBe(
-      "[test-root] No OAuth provider is configured (MCP_USE_OAUTH_*), so there is no caller identity: modules without an explicit toolset run read-only. Set one provider's MCP_USE_OAUTH_* variables, or widen with MCP_ACTIVE_MODULES=<module>:<toolset> (anyone who reaches this port gets that surface).",
+      "[test-root] No OAuth provider is configured (MCP_USE_OAUTH_*), so there is no caller identity: a module with toolsets runs its read-only floor unless MCP_ACTIVE_MODULES names a toolset, and a module without toolsets registers every tool. Set one provider's MCP_USE_OAUTH_* variables, or widen with MCP_ACTIVE_MODULES=<module>:<toolset> (anyone who reaches this port gets that surface).",
     )
   })
 

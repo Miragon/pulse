@@ -108,8 +108,9 @@ package customers build their own connectors and composed servers on (see the
   `retiredEnvVars(modules)` lists both kinds, so a test env can clear them too.
 - **Toolset vocabularies** (`./server`): a module declares its toolsets as
   `toolsets: createToolsetVocabulary(module, names, floor, { authenticatedDefault })` on its
-  definition; a module without one has no toolsets (a suffix is ignored with a warning). The rule
-  is fail-closed: no suffix →
+  definition; a module without one has no toolsets (a suffix is ignored with a warning) and
+  registers every tool, so a boot without OAuth warns once per tool of it without
+  `readOnlyHint: true`, naming the tool and the module. The rule is fail-closed: no suffix →
   `floor` without OAuth, `authenticatedDefault` (default: `floor`) with it; an empty or unknown
   suffix → `floor` with a warning; `resolve(undefined)` → `floor`. Nothing resolves to
   "everything" (a module's widest toolset is reachable only by naming it).
