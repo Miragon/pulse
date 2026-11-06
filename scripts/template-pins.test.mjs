@@ -1,5 +1,6 @@
 import assert from "node:assert/strict"
-import { readFileSync } from "node:fs"
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
 import path from "node:path"
 import { describe, it } from "node:test"
 import ts from "typescript"
@@ -178,9 +179,28 @@ describe("template-pins", () => {
     )
   })
 
+  it("fails the template's install when strict peers are off or missing", () => {
+    const { pins } = workspacePins(WORKSPACE)
+    const yaml = (strict) =>
+      `${strict}peerDependencyRules:\n  allowedVersions:\n    "${INSPECTOR_LUCIDE}": "1"\n`
+    assert.deepEqual(peerRuleFindings(yaml("strictPeerDependencies: true\n"), pins), [])
+    for (const [strict, found] of [
+      ["strictPeerDependencies: false\n", "false"],
+      ['strictPeerDependencies: "true"\n', '"true"'],
+      ["", "missing"],
+    ]) {
+      assert.deepEqual(peerRuleFindings(yaml(strict), pins), [
+        "templates/composed-server/pnpm-workspace.yaml: strictPeerDependencies is " +
+          `${found}, expected true: an unmet peer must fail the starter's install, or a split ` +
+          "@miragon/pulse-* or mcp-use bump installs",
+      ])
+    }
+  })
+
   it("allows mcp-use's inspector the lucide-react major the workspace pins, and no other", () => {
     const { pins } = workspacePins(WORKSPACE)
     const rule = (value) =>
+      "strictPeerDependencies: true\n" +
       `peerDependencyRules:\n  allowedVersions:\n    "${INSPECTOR_LUCIDE}": ${value}\n`
     assert.deepEqual(peerRuleFindings(rule('"1"'), pins), [])
     assert.deepEqual(peerRuleFindings(rule("1"), pins), [], "an unquoted major parses as 1")
@@ -195,9 +215,30 @@ describe("template-pins", () => {
       ])
     }
     assert.match(
-      peerRuleFindings('packages:\n  - "server"\n', pins).join("\n"),
+      peerRuleFindings('strictPeerDependencies: true\npackages:\n  - "server"\n', pins).join("\n"),
       /"@mcp-use\/inspector>lucide-react" is missing, the workspace pins lucide-react 1\.61\.0/,
     )
+  })
+
+  it("names a missing template pnpm-workspace.yaml instead of crashing", () => {
+    const root = mkdtempSync(path.join(tmpdir(), "template-pins-"))
+    try {
+      const write = (file, content) => {
+        mkdirSync(path.dirname(path.join(root, file)), { recursive: true })
+        writeFileSync(path.join(root, file), content)
+      }
+      write("pnpm-workspace.yaml", 'packages:\n  - "packages/core/*"\n  - "apps/*"\n')
+      for (const { dir, manifest } of WORKSPACE) {
+        write(`${dir}/package.json`, JSON.stringify(manifest))
+      }
+      write("templates/composed-server/server/package.json", "{}")
+      assert.deepEqual(checkTemplatePins(root).slice(1), [
+        "No templates/composed-server/pnpm-workspace.yaml: the starter installs its workspace " +
+          "and its peer rules from it",
+      ])
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
   })
 
   it("holds in the repo: the template pins what the workspace pins", () => {

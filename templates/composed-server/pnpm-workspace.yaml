@@ -5,6 +5,8 @@ packages:
 # An unmet peer fails the install instead of printing a warning that scrolls by: one
 # @miragon/pulse-* package or mcp-use bumped alone leaves a Pulse package next to a peer it
 # was never built with. server/test/pins.test.ts holds every package.json to the same line.
+# Keep it on even when pnpm's hint says otherwise: a third-party peer you accept gets an
+# allowedVersions entry below, like the inspector's.
 strictPeerDependencies: true
 
 peerDependencyRules:
