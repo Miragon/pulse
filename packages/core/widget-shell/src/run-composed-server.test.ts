@@ -120,6 +120,35 @@ describe("runComposedServer", () => {
     expect(written).toEqual(["[test-root] The server did not start: first line second line\n"])
   })
 
+  it("keeps the frames of a bug below the line, so a reader finds where it happened", async () => {
+    const create = failing(() => {
+      const config = undefined as unknown as { url: string }
+      return { url: config.url }
+    })
+    await expect(runComposedServer(create)).rejects.toThrow("process.exit(1)")
+    const [line, ...frames] = written.join("").trimEnd().split("\n")
+    expect(line).toMatch(
+      /^\[test-root\] The server did not start: Cannot read properties of undefined/,
+    )
+    expect(frames.length).toBeGreaterThan(0)
+    expect(frames.every((frame) => /^\s+at /.test(frame))).toBe(true)
+    expect(frames[0]).toContain("run-composed-server.test.ts")
+  })
+
+  it.each([
+    ["a SyntaxError of a refused setting", new SyntaxError("Unexpected token 'x'")],
+    [
+      "an Error subclass of a module",
+      new (class ConfigError extends Error {})("ALPHA_URL is wrong"),
+    ],
+  ])("prints %s without frames", async (_, error) => {
+    const create = failing(() => {
+      throw error
+    })
+    await expect(runComposedServer(create)).rejects.toThrow("process.exit(1)")
+    expect(written).toEqual([`[test-root] The server did not start: ${error.message}\n`])
+  })
+
   it("prints an error thrown before the boot without a name", async () => {
     const create = () => Promise.reject(new Error("package.json is missing"))
     await expect(runComposedServer(create)).rejects.toThrow("process.exit(1)")

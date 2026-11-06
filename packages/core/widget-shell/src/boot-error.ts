@@ -1,8 +1,8 @@
 /**
  * The one line a failed boot prints (`runComposedServer`): the server's name, what happened and
- * the error's own sentence, never a stack. The boot names the server on the errors it lets
- * through without wrapping them, so `createComposedServer` and `listen()` still reject with the
- * very error a test asserts on.
+ * the error's own sentence, with no stack unless the error is a bug (`bootErrorFrames`). The boot
+ * names the server on the errors it lets through without wrapping them, so `createComposedServer`
+ * and `listen()` still reject with the very error a test asserts on.
  */
 const bootLabels = new WeakMap<object, string>()
 
@@ -42,6 +42,19 @@ function messageOf(error: unknown): string {
   }
   if (error instanceof Error) return error.message || error.name
   return String(error)
+}
+
+/** JavaScript's own types for a bug, not a setting: where it happened is what a reader needs. */
+const BUG_ERRORS = new Set(["TypeError", "ReferenceError", "RangeError"])
+
+/**
+ * The stack frames a bug prints below the line (a TypeError in a module's `createPlugin`, say);
+ * none for every other error. A SyntaxError is left out: at boot it is a setting that JSON.parse or
+ * a RegExp refused, and its frames would only bury that.
+ */
+export function bootErrorFrames(error: unknown): string[] {
+  if (!(error instanceof Error) || !BUG_ERRORS.has(error.name) || !error.stack) return []
+  return error.stack.split("\n").filter((line) => /^\s+at /.test(line))
 }
 
 /** `[label] The server did not start: <the error's sentence>`, on one line. */

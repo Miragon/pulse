@@ -135,8 +135,9 @@ package customers build their own connectors and composed servers on (see the
   `font-display: swap`), so a host that blocks it shows its own font, then the system's.
   `mcp-use dev` serves the returned `app`; production listens, and the entry does both through
   `runComposedServer(createApp)`, which prints a failed boot as one line naming the server and the
-  setting (a ZodError as `path: message`, no stack) and exits 1 (under `mcp-use dev` the error
-  reaches the CLI). `listen({ handleSignals: true })` is
+  setting (a ZodError as `path: message`, no stack; a bug's TypeError, ReferenceError or RangeError
+  adds its frames) and exits 1 (under `mcp-use dev` the error reaches the CLI).
+  `listen({ handleSignals: true })` is
   mcp-use's `toNodeHandler` behind a request-body cap (`MCP_MAX_BODY_BYTES`, 413 before buffering),
   an in-flight body budget of 4× the cap (503) and a 30 s request timeout, plus a graceful drain
   (stop accepting, in-flight requests finish, readiness 503 `draining`). The guard is DNS-rebinding
