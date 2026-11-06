@@ -161,6 +161,19 @@ describe("scopesFor: paths outside the packages", () => {
     ])
   })
 
+  it("starts the starter's try-out engine for its compose.yaml, next to the template's checks", () => {
+    assert.deepEqual(scopes("templates/composed-server/compose.yaml"), [
+      "starter-engine",
+      "template",
+      "typescript",
+    ])
+  })
+
+  it("starts no engine for the rest of the template, its README with the container recipe too", () => {
+    assert.deepEqual(scopes("templates/composed-server/README.md"), [])
+    assert.ok(!scopes("templates/composed-server/server/src/app.ts").includes("starter-engine"))
+  })
+
   it("runs the TypeScript job for a workflow no pull request runs, so lint:github checks it", () => {
     assert.deepEqual(scopes(".github/workflows/publish-cli.yml", ".github/dependabot.yml"), [
       "typescript",
