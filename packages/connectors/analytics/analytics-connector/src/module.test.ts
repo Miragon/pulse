@@ -246,6 +246,16 @@ describe("analyticsModule Prometheus config validation", () => {
     ])
     expect(analyticsModule.bootWarnings({ PROMETHEUS_URL: "http://p:9090" })).toEqual([])
   })
+
+  // The warning ships to every server built on the package, a starter's too: it names where the
+  // :8460 Prometheus lives (no "repo" a starter user could place) and the way out without one.
+  it("names the Pulse playground's Prometheus and how to boot without one", () => {
+    const [warning] = analyticsModule.bootWarnings({})
+    expect(warning).toContain("The Pulse playground (Miragon/pulse)")
+    expect(warning).toContain("PROMETHEUS_URL=http://localhost:8460")
+    expect(warning).toContain("leave analytics out of MCP_ACTIVE_MODULES")
+    expect(warning).not.toMatch(/the repo's/i)
+  })
 })
 
 /**
