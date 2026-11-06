@@ -61,17 +61,11 @@ the `tsconfig.<x>.json` that checks it (`pnpm lint:package-scripts`); `.vscode/`
 
 ## Build your own server
 
-The modules ship on public npm: `@miragon/pulse-engine-connector`,
-`@miragon/pulse-analytics-connector`, `@miragon/pulse-widget-shell`, `@miragon/pulse-ui`, the two
-client packages and `@miragon/pulse-engine-core`, released in lockstep (pin one version across all).
-[`templates/composed-server/`](https://github.com/Miragon/pulse/tree/main/templates/composed-server)
-is a ready-to-copy pnpm workspace that composes them with an example custom module (tools,
-widget, guard tests included); its `CLAUDE.md` and `.claude/skills/` document the module
-contract and the invariants, its `README.md` is the quick tour. CI runs the template against the
-workspace's packed packages on every change (`scripts/test-template.sh`). Each release also
-syncs it (tested against the published packages, with a committed lockfile) to the read-only
-mirror [`Miragon/pulse-starter`](https://github.com/Miragon/pulse-starter)
-("Use this template" ready; contribute in Miragon/pulse, not there).
+[Build your own server](build-your-own.md) starts one from
+[Miragon/pulse-starter](https://github.com/Miragon/pulse-starter), the read-only mirror of
+`templates/composed-server/`: change the starter in this repository. CI tests the template against
+the workspace's packed packages (`scripts/test-template.sh`), and each release syncs it to the
+mirror.
 
 ## Documentation
 

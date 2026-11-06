@@ -45,6 +45,7 @@ export default miragonDocs({
         { text: "Tools and settings", link: "/mcp/reference" },
         { text: "Operations", link: "/mcp/operations" },
         { text: "Architecture", link: "/mcp/architecture" },
+        { text: "Build your own server", link: "/mcp/build-your-own" },
         { text: "Developer guide", link: "/mcp/developer" },
       ],
     },

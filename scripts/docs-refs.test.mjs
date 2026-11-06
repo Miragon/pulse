@@ -486,6 +486,7 @@ const DOCS_BUDGETS = {
   "mcp/index.md": 30,
   "mcp/getting-started.md": 60,
   "mcp/architecture.md": 150,
+  "mcp/build-your-own.md": 50,
   "mcp/developer.md": 80,
   "mcp/operations.md": 120,
   "mcp/usage.md": 150,
