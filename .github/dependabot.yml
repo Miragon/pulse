@@ -176,6 +176,26 @@ updates:
           - "patch"
           - "minor"
 
+  # Compose file, the starter's try-out engine (templates/composed-server/compose.yaml): moves
+  # its pinned CIB seven Run tag. A compose file is the docker-compose ecosystem's, not the
+  # docker one's; the mirror (Miragon/pulse-starter) gets the bump with the next release.
+  - package-ecosystem: "docker-compose"
+    directory: "/templates/composed-server"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 3
+    reviewers:
+      - "dominikhorn93"
+      - "emaarco"
+    groups:
+      docker-compose-template:
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+          - "minor"
+
   # Docker image, root Dockerfile (server), keeps the pinned base digest current
   - package-ecosystem: "docker"
     directory: "/"
