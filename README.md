@@ -68,14 +68,15 @@ start one locally with `docker run -p 8080:8080 operaton/operaton:2.1.5`.
 | [`packages/core/widget-shell/`](packages/core/widget-shell)                                               | `@miragon/pulse-widget-shell`             | View runtime and server boot for composed MCP servers        |
 | [`engine-plugins/`](engine-plugins)                                                                       | `io.miragon.mcp:cibseven-history-metrics` | Micrometer metrics plugin for the engine (Java 21)           |
 | [`playground/`](playground)                                                                               | —                                         | Demo engine, Compose stack and the public playground         |
-| [`templates/composed-server/`](templates/composed-server)                                                 | `Miragon/pulse-starter`                   | Starter for your own server with your own connector          |
+| [`templates/composed-server/`](templates/composed-server)                                                 | `Miragon/pulse-starter`                   | [Starter](docs/mcp/build-your-own.md) for your own server    |
 
 ## Documentation
 
 The docs site, [miragon.github.io/pulse](https://miragon.github.io/pulse/), is built from [`docs/`](docs/README.md),
 one section per client:
 
-- [MCP server](docs/mcp/index.md): getting started, usage, every tool, operations, architecture
+- [MCP server](docs/mcp/index.md): getting started, usage, every tool, operations, architecture,
+  [building your own server](docs/mcp/build-your-own.md)
 - [CLI](docs/cli/index.md): install, commands, configuration, authentication, AI agents
 - [VS Code](docs/vscode/index.md): installation, configuration, usage, architecture
 

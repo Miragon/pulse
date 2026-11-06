@@ -673,8 +673,14 @@ workspace (its header lists each check).
   from another repository. The pack job runs `pnpm pack`, which rewrites `workspace:*` (npm's
   own pack would ship it verbatim); the one job that holds `id-token: write` runs no package
   manager. Only the server app and the VS Code extension stay private. The `miragon-ai` names
-  used up to 0.20.0 are retired; never reuse them. `sync-template-mirror.yml` then mirrors
-  `templates/composed-server` to `Miragon/pulse-starter`, the customer-facing composition path.
+  used up to 0.20.0 are retired; never reuse them.
+- **The starter** reaches customers as `Miragon/pulse-starter`, the read-only mirror of
+  `templates/composed-server` and the customer-facing composition path, through
+  `sync-template-mirror.yml` after the npm publish (before it, the template's pins would not
+  resolve). The sync installs and tests the template against the public registry, builds its
+  Docker image, pushes the tree with that lockfile, then tags the mirror commit with the release
+  tag and publishes a release there, so a starter's owner learns of a new version by watching the
+  mirror's releases. A rerun creates only what is missing and never moves a published tag.
 - **The VS Code extension ships as a .vsix, never through npm**
   (`.github/workflows/publish-vscode-extension.yml`): packaged without credentials, published
   to the Visual Studio Marketplace and Open VSX from one job in the `vscode-marketplace`
