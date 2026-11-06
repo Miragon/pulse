@@ -41,8 +41,8 @@ export {
   type McpRequestInfo,
 } from "./request-context.js"
 
-// The boot: one composed server, the variables it reads, the view resources it primes and the
-// view bundle's dedupe list.
+// The boot: one composed server, the entry that runs it, the variables it reads, the view
+// resources it primes and the view bundle's dedupe list.
 export {
   composedEnvVars,
   createComposedServer,
@@ -53,6 +53,7 @@ export {
   type ListenOptions,
   type RunningServer,
 } from "./composed-server.js"
+export { runComposedServer, type RunComposedServerOptions } from "./run-composed-server.js"
 export { VIEW_RESOURCE_URI_PREFIX, viewResourceUri } from "./widget-tool-bindings.js"
 export { viewPrelude } from "./protocol/view-name.js"
 export { VIEW_BUNDLE_DEDUPE } from "./view-bundle.js"

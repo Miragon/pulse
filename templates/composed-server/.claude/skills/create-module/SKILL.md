@@ -81,7 +81,10 @@ The contract, field by field (see `notesModule`):
 
 - `name`: the key used in `MCP_ACTIVE_MODULES` and the name of its plugin.
 - `configFromEnv(env)`: a **pure** env → raw-config mapping; no I/O, no
-  `process.env` reads outside the argument, no validation here.
+  `process.env` reads outside the argument. It may check the config and
+  throw one plain `Error` that names the variable, as the engine and
+  analytics modules do: a wrong setting then fails the boot before its
+  `Toolsets:` line.
 - `knownEnvVars`: every env var your module reads. This feeds the server's
   boot-time typo warner, and each var contributes its prefix (`ACME_URL` →
   `ACME_`) to the watched set, so your module gets the same typo coverage as
@@ -91,7 +94,7 @@ The contract, field by field (see `notesModule`):
   module of reads only, like notes, leaves it out; a `<name>:<toolset>`
   suffix on it is ignored with a warning.
 - `createPlugin(config, shared)`: validate `config` with your zod schema
-  (**this** is where validation lives) and return a `ModulePlugin` (the type
+  (also after a check in `configFromEnv`) and return a `ModulePlugin` (the type
   from `@miragon/pulse-widget-shell/server`), `{ name, register(server) }`.
   Construct your data source/client once in `createPlugin`; `register` hands
   it to `registerTools`, then to `registerWidgetTools`. `name` is the module's
@@ -254,8 +257,9 @@ edit. The same holds for a Pulse module you leave out: dropping analytics is
 
 - Importing another module (or the server) instead of conforming
   structurally: peer isolation is the architecture.
-- Validating config in `configFromEnv` (belongs in `createPlugin`) or reading
-  `process.env` anywhere else in the module.
+- Reading `process.env` anywhere in the module but `configFromEnv`'s
+  argument, or letting a check there throw a ZodError: the boot prints its
+  schema path (`engines[0].id`), not the variable to fix.
 - Registering plain tools with raw `server.tool()`: the registrar is the
   contract; the raw path is for widget tools only.
 - Naming a plain tool `*_data` or `*_show_*`: the e2e naming contract will

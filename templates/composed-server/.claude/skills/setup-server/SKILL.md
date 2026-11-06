@@ -113,7 +113,7 @@ MCP_ACTIVE_MODULES=engine:operations,analytics,notes
   reaches the port. Behind an authenticating gateway the server still sees no
   identity, which is exactly why the suffix must stay explicit there: identity
   reaches the server only through its own OAuth.
-- Unknown module names warn and are skipped; a suffix on a module without
+- An unknown module name fails the boot, listing the modules; a suffix on a module without
   toolsets (e.g. `notes:read-only`) warns and is ignored; that module
   registers all its tools.
 - All widgets stay in the one Vite bundle regardless; inactive modules just

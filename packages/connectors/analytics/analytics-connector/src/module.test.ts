@@ -159,6 +159,46 @@ describe("analyticsModule env surface", () => {
       timeoutMs: "5000",
     })
   })
+
+  // The boot prints this error as one line, before it logs the toolsets.
+  const errorOf = (env: NodeJS.ProcessEnv): Error => {
+    try {
+      analyticsModule.configFromEnv(env)
+    } catch (error) {
+      return error as Error
+    }
+    throw new Error("configFromEnv accepted the config")
+  }
+
+  // `localhost:9090` parses as a URL with the scheme `localhost:`: every query then failed.
+  it.each(["localhost:9090", "prometheus.example.com/api", "ftp://prometheus.example.com"])(
+    "refuses PROMETHEUS_URL=%j at the mapping, naming the variable",
+    (url) => {
+      const error = errorOf({ PROMETHEUS_URL: url })
+      expect(error.name).toBe("Error")
+      expect(error.message).toBe(
+        "PROMETHEUS_URL must be an http:// or https:// URL, e.g. http://localhost:9090",
+      )
+    },
+  )
+
+  it("accepts an http(s) PROMETHEUS_URL, userinfo included, and never echoes a refused one", () => {
+    for (const url of ["http://localhost:8460", "https://u:p@prometheus.example.com/prom"]) {
+      expect(analyticsModule.configFromEnv({ PROMETHEUS_URL: url }).url).toBe(url)
+    }
+    expect(errorOf({ PROMETHEUS_URL: "svc:pl4nted-S3cret@prom:9090" }).message).not.toContain(
+      "pl4nted-S3cret",
+    )
+  })
+
+  it("refuses the timeout and the headers at the mapping, every issue on one line", () => {
+    expect(
+      errorOf({ PROMETHEUS_TIMEOUT_MS: "30s", PROMETHEUS_HEADERS: "X-Api-Key: s3cret" }).message,
+    ).toBe(
+      'PROMETHEUS_HEADERS must be a JSON object of string header values, e.g. {"X-Scope-OrgID":"tenant-a"}; ' +
+        "PROMETHEUS_TIMEOUT_MS must be a whole number of milliseconds",
+    )
+  })
 })
 
 describe("analyticsModule Prometheus config validation", () => {

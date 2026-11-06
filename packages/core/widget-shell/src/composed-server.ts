@@ -39,6 +39,7 @@ import { installToolSchemaTrim } from "./tool-schema-trim.js"
 import { installMcpRequestContext } from "./request-context.js"
 import { installToolRegistration } from "./tool-registration.js"
 import { viewPrelude } from "./protocol/view-name.js"
+import { labelBootError } from "./boot-error.js"
 
 /** What the server reports as `serverInfo` (plus the `instructions` it advertises). */
 export interface ComposedServerInfo {
@@ -225,6 +226,8 @@ function resolveSelection<TShared extends object>(
   // A renamed setting first: an operator upgrading with old settings reads the rename, not a
   // later check's failure.
   composition.refuseRetired(env)
+  // Then an unknown or repeated module name, before the OAuth line could read like a healthy boot.
+  composition.activeModules(env)
   composition.warnUnknownEnvVars(env)
   const edge = resolveHttpEdgePolicy(env)
   const oauth = options.oauth ?? oauthFromEnv(env, label)
@@ -405,13 +408,18 @@ async function boot<TShared extends object>(
   return {
     app,
     boot,
-    listen: (listenOptions = {}) => listen({ label, app, guard, env, state }, listenOptions),
+    listen: (listenOptions = {}) =>
+      listen({ label, app, guard, env, state }, listenOptions).catch((error: unknown) => {
+        throw labelBootError(error, label)
+      }),
   }
 }
 
 /**
  * Composes the modules, installs OAuth from the env and builds the plugins. Returns BEFORE
- * listening: `mcp-use dev` serves `app` itself, production calls `listen()`.
+ * listening: `mcp-use dev` serves `app` itself, production calls `listen()` (the entry through
+ * `runComposedServer`). A failed boot rejects with its error, which `runComposedServer` prints as
+ * one line under the server's name.
  */
 export async function createComposedServer<TShared extends object>(
   options: ComposedServerOptions<TShared>,
@@ -419,6 +427,10 @@ export async function createComposedServer<TShared extends object>(
   const { info, env = process.env } = options
   // mcp-use telemetry is on by default; an ops server must not phone home unless opted in.
   process.env.MCP_USE_ANONYMIZED_TELEMETRY ??= "false"
-  const composition = composeFor(info.name, options.modules, options.envVarHint)
-  return boot(options, composition, env)
+  try {
+    const composition = composeFor(info.name, options.modules, options.envVarHint)
+    return await boot(options, composition, env)
+  } catch (error) {
+    throw labelBootError(error, info.name)
+  }
 }

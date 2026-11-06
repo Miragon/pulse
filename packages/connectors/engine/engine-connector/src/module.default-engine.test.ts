@@ -9,12 +9,16 @@ describe("ENGINE_DEFAULT", () => {
     { id: "prod-b", baseUrl: "http://b.example/engine-rest" },
   ]
 
-  it("configFromEnv trims it; blank is unset", () => {
+  it("configFromEnv trims it; blank is unset; an id no engine carries fails there", () => {
     const fromEnv = (value?: string) =>
-      engineModule.configFromEnv({ ENGINE_DEFAULT: value }).defaultEngine
+      engineModule.configFromEnv({ ENGINES_JSON: JSON.stringify(TWO), ENGINE_DEFAULT: value })
+        .defaultEngine
     expect(fromEnv(" prod-b ")).toBe("prod-b")
     expect(fromEnv("  ")).toBeUndefined()
     expect(fromEnv(undefined)).toBeUndefined()
+    expect(() => fromEnv("prod-z")).toThrow(
+      "ENGINE_DEFAULT=prod-z names no configured engine (configured: prod-a, prod-b).",
+    )
   })
 
   it("is a known env var", () => {

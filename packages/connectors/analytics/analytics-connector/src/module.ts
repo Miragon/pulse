@@ -13,22 +13,32 @@ const HEADERS_ERROR =
 
 /** `PROMETHEUS_HEADERS` JSON text (env) or an object (direct caller) → a header record. */
 const headersSchema = z
-  .union([
-    z.record(z.string(), z.string()),
-    z.string().transform((text, ctx) => {
-      try {
-        return JSON.parse(text) as unknown
-      } catch {
-        // Never echo the text: header values are often secrets (API keys).
-        ctx.addIssue({ code: "custom", message: HEADERS_ERROR })
-        return z.NEVER
-      }
-    }),
-  ])
+  .union(
+    [
+      z.record(z.string(), z.string()),
+      z.string().transform((text, ctx) => {
+        try {
+          return JSON.parse(text) as unknown
+        } catch {
+          // Never echo the text: header values are often secrets (API keys).
+          ctx.addIssue({ code: "custom", message: HEADERS_ERROR })
+          return z.NEVER
+        }
+      }),
+    ],
+    // Without its own error a union that matches no branch says only "Invalid input".
+    { error: HEADERS_ERROR },
+  )
   .pipe(z.record(z.string(), z.string({ error: HEADERS_ERROR }), { error: HEADERS_ERROR }))
 
 const analyticsConfigSchema = z.object({
-  url: z.string().default("http://localhost:9090"),
+  // http(s) only: `localhost:9090` parses as a URL whose scheme is `localhost:`.
+  url: z
+    .url({
+      protocol: /^https?$/,
+      error: "PROMETHEUS_URL must be an http:// or https:// URL, e.g. http://localhost:9090",
+    })
+    .default("http://localhost:9090"),
   // Bearer token OR basic auth; the client rejects ambiguous combinations at boot.
   bearerToken: z.string().optional(),
   username: z.string().optional(),
@@ -36,13 +46,16 @@ const analyticsConfigSchema = z.object({
   headers: headersSchema.optional(),
   // Strict: a typo fails the boot instead of being coerced into another deadline.
   timeoutMs: z
-    .union([
-      z.number(),
-      z
-        .string()
-        .regex(/^\d+$/, "PROMETHEUS_TIMEOUT_MS must be a whole number of milliseconds")
-        .transform(Number),
-    ])
+    .union(
+      [
+        z.number(),
+        z
+          .string()
+          .regex(/^\d+$/, "PROMETHEUS_TIMEOUT_MS must be a whole number of milliseconds")
+          .transform(Number),
+      ],
+      { error: "PROMETHEUS_TIMEOUT_MS must be a whole number of milliseconds" },
+    )
     .pipe(
       z
         .number()
@@ -64,6 +77,33 @@ const analyticsConfigSchema = z.object({
     ])
     .optional(),
 })
+
+/** The variable behind each setting, for a config error that names it. */
+const VARIABLES: Readonly<Record<string, string>> = {
+  url: "PROMETHEUS_URL",
+  bearerToken: "PROMETHEUS_BEARER_TOKEN",
+  username: "PROMETHEUS_USERNAME",
+  password: "PROMETHEUS_PASSWORD",
+  headers: "PROMETHEUS_HEADERS",
+  timeoutMs: "PROMETHEUS_TIMEOUT_MS",
+  engineIds: "ANALYTICS_ENGINE_IDS",
+}
+
+/**
+ * Checked at the mapping, so a bad setting fails the boot before it logs the toolsets: one line,
+ * each issue behind its variable unless its message names it already.
+ */
+function checkedConfig(config: Record<string, unknown>): Record<string, unknown> {
+  const checked = analyticsConfigSchema.safeParse(config)
+  if (checked.success) return config
+  const lines = checked.error.issues.map(({ path, message }) => {
+    const variable = VARIABLES[String(path[0])]
+    return variable === undefined || message.startsWith(variable)
+      ? message
+      : `${variable}: ${message}`
+  })
+  throw new Error([...new Set(lines)].join("; "))
+}
 
 interface AnalyticsModuleShared {
   fetchBpmnXml?: FetchBpmnXml
@@ -97,7 +137,7 @@ export const analyticsModule = {
     // Credentials are passed verbatim otherwise, never trimmed into another secret.
     const trimmed = (name: string) => env[name]?.trim() || undefined
     const verbatim = (name: string) => (env[name]?.trim() ? env[name] : undefined)
-    return {
+    return checkedConfig({
       url: trimmed("PROMETHEUS_URL"),
       bearerToken: verbatim("PROMETHEUS_BEARER_TOKEN"),
       username: verbatim("PROMETHEUS_USERNAME"),
@@ -105,7 +145,7 @@ export const analyticsModule = {
       headers: trimmed("PROMETHEUS_HEADERS"),
       timeoutMs: trimmed("PROMETHEUS_TIMEOUT_MS"),
       engineIds: trimmed("ANALYTICS_ENGINE_IDS"),
-    }
+    })
   },
 
   knownEnvVars: [
