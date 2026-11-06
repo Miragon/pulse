@@ -80,8 +80,8 @@ CLI refuses as a whole (a committed password, a secret header, an unknown key) c
 engines; the fixtures pin that.
 
 The extension writes the file in one place: _Add Engine_ (`src/host/commands/add-engine-command.ts`)
-appends the profile that `src/host/connections/saas-setup.ts` or `self-managed-setup.ts` builds,
-through `src/host/connections/project-file-edit.ts`, the way the CLI writes: never as the default,
+appends the profile that an adapter's setup builds (`src/adapters/c8/setup/saas-setup.ts`,
+`self-managed-setup.ts`), through `src/host/connections/project-file-edit.ts`, the way the CLI writes: never as the default,
 `$schema` and `defaultProfile` untouched, nothing written into a file that isn't JSON, no secret.
 The fixture `valid-wizard-profiles.json` holds the wizard's exact output and
 `apps/vscode/test/host/wizard-profiles.test.ts` compares the two, so the CLI's parser and schema
@@ -93,9 +93,12 @@ so code that uses `document` in the core or `process` in the webview does not co
 ### Composition root
 
 `apps/vscode/src/host/composition-root.ts` is the only place that knows engines. Its
-class `CompositionRoot` holds one `EngineAdapter` per engine kind (`c7` → `C7Adapter`
-in a `Record<EngineKind, EngineAdapter>`, so a new kind does not compile without its
-adapter) and implements `EngineFactories`: for a configured target it
+class `CompositionRoot` holds the list of adapters and, built from it, the `EngineCatalogue`
+(`src/host/connections/engine-catalogue.ts`). Each adapter describes itself: its id, the profile
+flavors it serves (and whether a profile without a flavor is its), the credential types it takes,
+the local endpoint Pulse falls back to and its setups for _Add Engine_. The profile parser, the
+discovery, _Set Credentials_ and _Add Engine_ ask the catalogue, so the host names no engine. The
+root implements `EngineFactories`: for a configured target it
 returns the `ProcessRuntime` and, where the adapter has them, the `ProcessCommands` and
 the `EngineWebUi` (for a target with a `cockpitUrl`) of the adapter for `target.engine`. A target the target policy refuses (OAuth2,
 credentials saved for another endpoint, basic credentials over plain HTTP) gets a
@@ -191,9 +194,9 @@ file's current content when _Show Runtime Data for This Model_ runs again.
   `pnpm --filter pulse-cockpit run typecheck` through the `@ts-expect-error` probe of each
   layer (`apps/vscode/test/<layer>/runtime.boundary.ts`).
 - A new engine takes `apps/vscode/src/adapters/<engine>` with a class implementing
-  `EngineAdapter`, an engine test that runs the `ConformanceKit` and one entry in the
-  composition root. A new flavor or credential kind also takes the host's profile reader
-  and credential store. Core, protocol and webview change only where the contract gains
+  `EngineAdapter` (its id, profiles and setups next to runtime, commands and web UI), an engine
+  test that runs the `ConformanceKit` and one entry in the composition root. A new credential
+  kind also takes the host's profile reader and credential store. Core, protocol and webview change only where the contract gains
   something, and they never name an engine: ESLint keeps engine words out of them, and
   dependency-cruiser fails while a new adapter has no engine test.
   `apps/vscode/src/adapters/c8` came this way: the contract gained what real engines proved

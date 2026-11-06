@@ -13,7 +13,7 @@ vi.mock("vscode", () => ({
 
 const { WriteConfirmation } = await import("../../src/host/panels/write-confirmation.js")
 const { WriteAudit } = await import("../../src/host/connections/write-audit.js")
-const { LOCAL_TARGET } = await import("../../src/host/connections/engine-target.js")
+const { LOCAL_TARGET } = await import("./support/engines.js")
 
 const REQUEST: BulkRequest = {
   action: "migrateInstances",

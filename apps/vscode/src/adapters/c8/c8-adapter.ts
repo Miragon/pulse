@@ -2,6 +2,8 @@ import type {
   EngineAdapter,
   EngineConnection,
   EngineCredentials,
+  EngineProfiles,
+  EngineSetup,
   EngineWebUi,
   ProcessCommands,
   ProcessRuntime,
@@ -11,9 +13,22 @@ import { StaticAuth } from "./auth/static-auth.js"
 import { TokenSources } from "./auth/token-sources.js"
 import { C8ProcessRuntime } from "./c8-process-runtime.js"
 import { CamundaHttp, RestCamundaClient } from "./rest/index.js"
+import { SaasSetup } from "./setup/saas-setup.js"
+import { SelfManagedSetup } from "./setup/self-managed-setup.js"
 import { OperateWebUi } from "./web-ui/operate-web-ui.js"
 
 export class C8Adapter implements EngineAdapter {
+  readonly id = "c8"
+
+  readonly profiles: EngineProfiles = {
+    name: "Camunda 8",
+    flavors: ["camunda8"],
+    withoutFlavor: false,
+    credentials: ["basic", "clientCredentials"],
+  }
+
+  readonly setups: readonly EngineSetup[] = [new SaasSetup(), new SelfManagedSetup()]
+
   private readonly tokens: TokenSources
 
   constructor(

@@ -1,3 +1,4 @@
+import type { EngineCatalogue } from "./engine-catalogue.js"
 import type { EngineTarget } from "./engine-target.js"
 import { ProfileAuthReader } from "./profile-auth-reader.js"
 import { ProfileUrl } from "./profile-url.js"
@@ -12,8 +13,6 @@ type Json = Readonly<Record<string, unknown>>
 
 type Optionals = Pick<EngineTarget, "webUiUrl" | "readOnly">
 
-const C7_FLAVORS: ReadonlySet<unknown> = new Set(["camunda7", "operaton", "cibseven"])
-const C8_FLAVOR = "camunda8"
 const DEFAULT_ENGINE = "default"
 const PROFILE_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/
 const NOT_ENGINE_NAMES: ReadonlySet<string> = new Set(["", ".", ".."])
@@ -21,7 +20,10 @@ const NEEDS_PROFILES = 'the file needs a "profiles" object'
 const PLAIN_URL = "an http or https URL without credentials, query or fragment"
 
 export class TargetsParser {
-  constructor(private readonly path: string) {}
+  constructor(
+    private readonly path: string,
+    private readonly catalogue: EngineCatalogue,
+  ) {}
 
   static isProfileName(name: string): boolean {
     return PROFILE_NAME.test(name)
@@ -88,10 +90,10 @@ export class TargetsParser {
     if (typeof optional === "string") {
       return optional
     }
-    const engine = profile.flavor === C8_FLAVOR ? "c8" : "c7"
-    const supported = ProfileAuthReader.typesSendingCredentials(engine)
+    const engine = this.catalogue.engineOf(profile.flavor) ?? ""
+    const supported = this.catalogue.credentialTypesOf(engine)
     if (auth.kind === "clientCredentials" && !supported.includes(auth.kind)) {
-      return `profile "${name}" uses client credentials, which Pulse supports for the flavor ${C8_FLAVOR} only`
+      return `profile "${name}" uses client credentials, which Pulse supports for ${this.catalogue.flavorsSending(auth.kind)} only`
     }
     return {
       name,
@@ -111,12 +113,12 @@ export class TargetsParser {
   }
 
   private flavorProblemOf(name: string, flavor: unknown): string | undefined {
-    if (flavor === undefined || flavor === C8_FLAVOR || C7_FLAVORS.has(flavor)) {
+    if (flavor === undefined || this.catalogue.engineOf(flavor) !== undefined) {
       return undefined
     }
     const named = typeof flavor === "string" ? flavor.trim() : ""
-    return named === "" || named === C8_FLAVOR || C7_FLAVORS.has(named)
-      ? `profile "${name}" needs a flavor of camunda7, cibseven, operaton or ${C8_FLAVOR}`
+    return named === "" || this.catalogue.knowsFlavor(named)
+      ? `profile "${name}" needs a flavor of ${this.catalogue.flavors()}`
       : `profile "${name}" uses the flavor ${named}, which Pulse does not support yet`
   }
 

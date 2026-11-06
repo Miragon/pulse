@@ -14,11 +14,12 @@ import { ConfirmationPolicy } from "../../src/host/connections/confirmation-poli
 import { ConnectionBuilder } from "../../src/host/connections/connection-builder.js"
 import { EngineBulkRuns } from "../../src/host/connections/engine-bulk-runs.js"
 import type { Credentials, EngineFactories } from "../../src/host/connections/connection.js"
-import { LOCAL_TARGET, type EngineTarget } from "../../src/host/connections/engine-target.js"
+import type { EngineTarget } from "../../src/host/connections/engine-target.js"
 import type { EnvironmentSettings } from "../../src/host/connections/pulse-settings.js"
 import { WriteAudit } from "../../src/host/connections/write-audit.js"
 import { WritePolicy } from "../../src/host/connections/write-policy.js"
 import { NotificationText } from "../../src/host/notification-text.js"
+import { CATALOGUE, LOCAL_TARGET } from "./support/engines.js"
 
 const NO_LOGIN: Credentials = { kind: "none" }
 const LOGIN: Credentials = { kind: "basic", username: "demo", password: "demo" }
@@ -308,6 +309,7 @@ describe("a connection", () => {
 
   function factories(withCommands: boolean): EngineFactories {
     return {
+      catalogue: CATALOGUE,
       runtime: () => ({}) as never,
       commands: () => (withCommands ? commands : undefined),
       canWrite: () => withCommands,

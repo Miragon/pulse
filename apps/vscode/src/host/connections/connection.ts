@@ -1,6 +1,7 @@
 import type { EngineWebUi, ProcessCommands, ProcessRuntime } from "../../contract/index.js"
 import type { DiagramCache, EngineLane, LiveSwitch, SharedDefinitions } from "../../core/index.js"
 import type { EngineBadge } from "../../core/protocol/index.js"
+import type { EngineCatalogue } from "./engine-catalogue.js"
 import type { EngineTarget } from "./engine-target.js"
 
 export type Credentials =
@@ -23,6 +24,7 @@ export interface Connection {
 }
 
 export interface EngineFactories {
+  readonly catalogue: EngineCatalogue
   runtime(target: EngineTarget, credentials: Credentials): ProcessRuntime
   commands(target: EngineTarget, credentials: Credentials): ProcessCommands | undefined
   canWrite(target: EngineTarget): boolean

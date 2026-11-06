@@ -14,16 +14,22 @@ import {
   type WorkspaceFiles,
 } from "../contract/index.js"
 import type { Credentials, EngineFactories } from "./connections/connection.js"
-import type { EngineKind, EngineTarget } from "./connections/engine-target.js"
+import { EngineCatalogue } from "./connections/engine-catalogue.js"
+import type { EngineTarget } from "./connections/engine-target.js"
 import { TargetPolicy } from "./connections/target-policy.js"
 
-type EngineAdapters = Readonly<Record<EngineKind, EngineAdapter>>
-
 export class CompositionRoot implements EngineFactories {
-  constructor(private readonly adapters: EngineAdapters) {}
+  readonly catalogue: EngineCatalogue
+
+  private readonly adapters: ReadonlyMap<string, EngineAdapter>
+
+  constructor(adapters: readonly EngineAdapter[]) {
+    this.catalogue = new EngineCatalogue(adapters)
+    this.adapters = new Map(adapters.map((adapter) => [adapter.id, adapter]))
+  }
 
   static create(): CompositionRoot {
-    return new CompositionRoot({ c7: new C7Adapter(), c8: new C8Adapter() })
+    return new CompositionRoot([new C7Adapter(), new C8Adapter()])
   }
 
   runtime(target: EngineTarget, credentials: Credentials): ProcessRuntime {
@@ -31,18 +37,18 @@ export class CompositionRoot implements EngineFactories {
     if (refused !== undefined) {
       return new FailingRuntime(new RuntimeError("misconfigured", refused))
     }
-    return this.adapters[target.engine].runtime(this.connectionOf(target, credentials))
+    return this.adapterOf(target).runtime(this.connectionOf(target, credentials))
   }
 
   commands(target: EngineTarget, credentials: Credentials): ProcessCommands | undefined {
     return TargetPolicy.refusal(target, credentials) === undefined
-      ? this.adapters[target.engine].commands(this.connectionOf(target, credentials))
+      ? this.adapterOf(target).commands(this.connectionOf(target, credentials))
       : undefined
   }
 
   canWrite(target: EngineTarget): boolean {
     return (
-      this.adapters[target.engine].commands({
+      this.adapterOf(target).commands({
         endpoint: target.endpoint,
         credentials: { kind: "none" },
       }) !== undefined
@@ -50,13 +56,19 @@ export class CompositionRoot implements EngineFactories {
   }
 
   webUi(target: EngineTarget): EngineWebUi | undefined {
-    return target.webUiUrl === undefined
-      ? undefined
-      : this.adapters[target.engine].webUi(target.webUiUrl)
+    return target.webUiUrl === undefined ? undefined : this.adapterOf(target).webUi(target.webUiUrl)
   }
 
   static localSources(files: WorkspaceFiles): LocalSources {
     return { models: new BpmnModelSource(files), code: new WorkspaceCodeLocator(files) }
+  }
+
+  private adapterOf(target: EngineTarget): EngineAdapter {
+    const adapter = this.adapters.get(target.engine)
+    if (adapter === undefined) {
+      throw new Error(`No adapter serves the engine ${target.engine}.`)
+    }
+    return adapter
   }
 
   private connectionOf(target: EngineTarget, credentials: Credentials): EngineConnection {

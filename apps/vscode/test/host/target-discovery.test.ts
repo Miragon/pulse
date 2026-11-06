@@ -1,10 +1,10 @@
 import { join } from "node:path"
 import { beforeEach, describe, expect, test, vi } from "vitest"
-import { LOCAL_TARGET } from "../../src/host/connections/engine-target.js"
 import { TargetDiscovery } from "../../src/host/connections/target-discovery.js"
 import { TargetsFile } from "../../src/host/connections/targets-file.js"
 import { TargetsProblem } from "../../src/host/connections/targets-problem.js"
 import { WritePolicy } from "../../src/host/connections/write-policy.js"
+import { CATALOGUE, LOCAL_TARGET } from "./support/engines.js"
 
 const files = vi.hoisted(() => new Map<string, string>())
 
@@ -53,7 +53,7 @@ describe("the project files Pulse reads", () => {
       profiles({ shared: "http://b:8080/engine-rest", b: "http://b:8080/engine-rest" }),
     )
 
-    const { targets, problems } = await TargetDiscovery.discover()
+    const { targets, problems } = await TargetDiscovery.discover(CATALOGUE)
 
     expect(targets.map((target) => [target.name, target.endpoint])).toEqual([
       ["shared", "http://a:8080/engine-rest"],
@@ -63,7 +63,10 @@ describe("the project files Pulse reads", () => {
   })
 
   test("falls back to the local engine without any project file", async () => {
-    expect(await TargetDiscovery.discover()).toEqual({ targets: [LOCAL_TARGET], problems: [] })
+    expect(await TargetDiscovery.discover(CATALOGUE)).toEqual({
+      targets: [LOCAL_TARGET],
+      problems: [],
+    })
   })
 
   test("names the file a read-only profile comes from", () => {

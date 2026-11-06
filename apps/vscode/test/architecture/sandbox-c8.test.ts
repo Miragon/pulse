@@ -7,6 +7,7 @@ import { StackFrames } from "../../src/host/panels/stack-frames.js"
 import { WorkspaceCodeLocator } from "../../src/model/code/workspace-code-locator.js"
 import { MemoryFiles } from "../model/support/memory-files.js"
 import { APP_ROOT } from "./support/files.js"
+import { CATALOGUE } from "../host/support/engines.js"
 
 interface Seed {
   readonly businessIdsOf: (scenarios: readonly unknown[]) => readonly string[]
@@ -71,7 +72,9 @@ function jobTypes(): string[] {
 }
 
 describe("the Camunda 8 sandbox", () => {
-  const parsed = new TargetsParser(".pulse-cli.json").parse(read(SANDBOX, ".pulse-cli.json"))
+  const parsed = new TargetsParser(".pulse-cli.json", CATALOGUE).parse(
+    read(SANDBOX, ".pulse-cli.json"),
+  )
   const profiles = parsed.targets.map((target) => target.name)
 
   test("names three Camunda 8 profiles the extension reads without a problem", () => {

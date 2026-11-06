@@ -1,5 +1,3 @@
-export type EngineKind = "c7" | "c8"
-
 export type TargetAuth =
   | { readonly kind: "none" }
   | { readonly kind: "basic" }
@@ -15,18 +13,10 @@ type TargetSource = { readonly kind: "file"; readonly path: string } | { readonl
 
 export interface EngineTarget {
   readonly name: string
-  readonly engine: EngineKind
+  readonly engine: string
   readonly endpoint: string
   readonly auth: TargetAuth
   readonly source: TargetSource
   readonly webUiUrl?: string
   readonly readOnly?: true
-}
-
-export const LOCAL_TARGET: EngineTarget = {
-  name: "local",
-  engine: "c7",
-  endpoint: "http://localhost:8080/engine-rest",
-  auth: { kind: "none" },
-  source: { kind: "default" },
 }

@@ -3,7 +3,6 @@ import type { Connection } from "../connections/connection.js"
 import type { ConnectionRegistry } from "../connections/connection-registry.js"
 import type { CredentialStore } from "../connections/credential-store.js"
 import type { EngineTarget } from "../connections/engine-target.js"
-import { ProfileAuthReader } from "../connections/profile-auth-reader.js"
 import { TargetHosts, type CredentialHosts } from "../connections/target-hosts.js"
 import { TargetPolicy } from "../connections/target-policy.js"
 import { TargetsFile } from "../connections/targets-file.js"
@@ -71,7 +70,7 @@ export class SetCredentialsCommand implements Command {
   }
 
   private withoutAuthType(target: EngineTarget): string {
-    const types = ProfileAuthReader.typesSendingCredentials(target.engine).join(" or ")
+    const types = this.registry.catalogue().credentialTypesOf(target.engine).join(" or ")
     return target.source.kind === "file"
       ? `The profile ${target.name} has no auth type, so Pulse sends no credentials. Set its auth.type to ${types} in ${TargetsFile.NAME}.`
       : `${target.name} has no profile, so Pulse sends no credentials. Add a profile with an auth.type of ${types} to ${TargetsFile.NAME}.`

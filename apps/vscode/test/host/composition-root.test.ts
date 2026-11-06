@@ -8,8 +8,9 @@ import type {
 import { describe, expect, test } from "vitest"
 import { CompositionRoot } from "../../src/host/composition-root.js"
 import type { Credentials } from "../../src/host/connections/connection.js"
-import { LOCAL_TARGET, type EngineTarget } from "../../src/host/connections/engine-target.js"
+import type { EngineTarget } from "../../src/host/connections/engine-target.js"
 import { TargetsParser } from "../../src/host/connections/targets-parser.js"
+import { CATALOGUE, LOCAL_TARGET } from "./support/engines.js"
 
 const NO_LOGIN: Credentials = { kind: "none" }
 const LOGIN: Credentials = { kind: "basic", username: "demo", password: "demo" }
@@ -21,8 +22,10 @@ class RecordingAdapter implements EngineAdapter {
   readonly webUiUrls: string[] = []
   readonly runtimeOfIt = {} as ProcessRuntime
   readonly commandsOfIt = {} as ProcessCommands
+  readonly profiles = { name: "", flavors: [], withoutFlavor: false, credentials: [] }
+  readonly setups = []
 
-  constructor(readonly name: string) {}
+  constructor(readonly id: string) {}
 
   runtime(connection: EngineConnection): ProcessRuntime {
     this.connections.push(connection)
@@ -37,7 +40,7 @@ class RecordingAdapter implements EngineAdapter {
   webUi(webUiUrl: string): EngineWebUi {
     this.webUiUrls.push(webUiUrl)
     return {
-      name: this.name,
+      name: this.id,
       overviewUrl: () => "",
       instanceUrl: () => "",
       definitionUrl: () => "",
@@ -48,7 +51,7 @@ class RecordingAdapter implements EngineAdapter {
 function rootWithRecorder() {
   const c7 = new RecordingAdapter("c7")
   const c8 = new RecordingAdapter("c8")
-  return { c7, c8, root: new CompositionRoot({ c7, c8 }) }
+  return { c7, c8, root: new CompositionRoot([c7, c8]) }
 }
 
 describe("the composition root", () => {
@@ -129,7 +132,7 @@ describe("the composition root", () => {
   test("hands the adapter the token endpoint of the project file as written", () => {
     const { c8, root } = rootWithRecorder()
     const tokenEndpoint = "https://authentik.example.com/application/o/token/?tenant=shop"
-    const { targets } = new TargetsParser("/work/.pulse-cli.json").parse(
+    const { targets } = new TargetsParser("/work/.pulse-cli.json", CATALOGUE).parse(
       JSON.stringify({
         profiles: {
           c8: {
@@ -152,10 +155,10 @@ describe("the composition root", () => {
 
   test("asks the adapter of a target whether it can write at all", () => {
     const readOnly = new RecordingAdapter("c8")
-    const root = new CompositionRoot({
-      c7: new RecordingAdapter("c7"),
-      c8: Object.assign(readOnly, { commands: () => undefined }),
-    })
+    const root = new CompositionRoot([
+      new RecordingAdapter("c7"),
+      Object.assign(readOnly, { commands: () => undefined }),
+    ])
 
     expect(root.canWrite(C7_TARGET)).toBe(true)
     expect(root.canWrite({ ...C7_TARGET, engine: "c8" })).toBe(false)

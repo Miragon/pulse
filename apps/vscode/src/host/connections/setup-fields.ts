@@ -1,4 +1,4 @@
-import type { SetupChoice, SetupField, SetupValues } from "./setup-field.js"
+import type { EngineSetup, SetupChoice, SetupField, SetupValues } from "../../contract/index.js"
 import { TargetsParser } from "./targets-parser.js"
 
 const ENVIRONMENTS: readonly SetupChoice[] = [
@@ -20,12 +20,20 @@ const ENVIRONMENTS: readonly SetupChoice[] = [
 ]
 
 export class SetupFields {
-  static valueOf(values: SetupValues, key: string): string {
-    return values[key] ?? ""
-  }
-
-  static notBlank(what: string): (value: string) => string | undefined {
-    return (value) => (value.trim() === "" ? `Enter ${what}.` : undefined)
+  static completed(setup: EngineSetup, taken: ReadonlySet<string>): EngineSetup {
+    return {
+      label: setup.label,
+      detail: setup.detail,
+      title: setup.title,
+      fields: [
+        ...setup.fields,
+        SetupFields.name((values) => setup.suggestedName(values), taken),
+        SetupFields.environment(),
+      ],
+      suggestedName: (values) => setup.suggestedName(values),
+      profileOf: (values) => setup.profileOf(values),
+      credentialsOf: (values) => setup.credentialsOf(values),
+    }
   }
 
   static name(suggestion: (values: SetupValues) => string, taken: ReadonlySet<string>): SetupField {

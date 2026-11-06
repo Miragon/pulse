@@ -10,10 +10,10 @@ import { DiagramCache } from "../../src/core/index.js"
 import { ConnectionLive } from "./support/connection-live.js"
 import { describe, expect, test, vi } from "vitest"
 import type { Connection } from "../../src/host/connections/connection.js"
-import { LOCAL_TARGET } from "../../src/host/connections/engine-target.js"
 import { TargetsProblem } from "../../src/host/connections/targets-problem.js"
 import { EnginesTree, type EnginesTreeNode } from "../../src/host/explorer/engines-tree.js"
 import { FakeRegistry } from "./support/fake-registry.js"
+import { LOCAL_TARGET } from "./support/engines.js"
 import {
   ThemeColor,
   ThemeIcon,

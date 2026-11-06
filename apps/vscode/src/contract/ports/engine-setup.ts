@@ -24,8 +24,11 @@ export interface SetupCredentials {
 }
 
 export interface EngineSetup {
+  readonly label: string
+  readonly detail: string
   readonly title: string
   readonly fields: readonly SetupField[]
+  suggestedName(values: SetupValues): string
   profileOf(values: SetupValues): Readonly<Record<string, unknown>>
   credentialsOf(values: SetupValues): SetupCredentials | undefined
 }
