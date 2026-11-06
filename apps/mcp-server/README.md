@@ -93,14 +93,14 @@ Configuration is entirely environment-driven. See
 
 ## Layout
 
-| Path             | Contents                                                                                      |
-| ---------------- | --------------------------------------------------------------------------------------------- |
-| `src/index.ts`   | Server entry: `createApp()`, then `listen()` (body cap, drain) unless `mcp-use dev` serves it |
-| `src/app.ts`     | `createApp(env, deps?)`: the shared boot over the module list; the e2e suites boot it too     |
-| `src/setup.ts`   | The module list and the cross-module wiring (`SharedResources`)                               |
-| `src/ui/`        | Widget host bundle: `view-registry.ts` (views + host widgets) + `main.tsx` (`mountViews`)     |
-| `vite.config.ts` | Single-file widget bundle config (keep `dedupe` spreading `VIEW_BUNDLE_DEDUPE`)               |
-| `Dockerfile`     | Lives at the repo root; multi-stage build that produces the published image                   |
+| Path             | Contents                                                                                                                                     |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/index.ts`   | Server entry: `runComposedServer(createApp)` listens (body cap, drain) unless `mcp-use dev` serves it; a failed boot prints one line, exit 1 |
+| `src/app.ts`     | `createApp(env, deps?)`: the shared boot over the module list; the e2e suites boot it too                                                    |
+| `src/setup.ts`   | The module list and the cross-module wiring (`SharedResources`)                                                                              |
+| `src/ui/`        | Widget host bundle: `view-registry.ts` (views + host widgets) + `main.tsx` (`mountViews`)                                                    |
+| `vite.config.ts` | Single-file widget bundle config (keep `dedupe` spreading `VIEW_BUNDLE_DEDUPE`)                                                              |
+| `Dockerfile`     | Lives at the repo root; multi-stage build that produces the published image                                                                  |
 
 ## Renamed from miragon-ai
 
