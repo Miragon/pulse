@@ -33,10 +33,12 @@
     "!dist/**/*.test.*",
     "!dist/**/*.test-support.*",
     "!dist/render-*",
-    "src/theme.css",
-    "src/globals.css",
-    "src/fonts.css",
-    "src/tokens/cd-tokens.generated.css"
+    "src",
+    "!src/**/*.test.*",
+    "!src/**/*.test-support.*",
+    "!src/**/test-support",
+    "!src/**/tsconfig.json",
+    "!src/render-*"
   ],
   "exports": {
     ".": {

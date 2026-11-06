@@ -36,7 +36,7 @@ fi
 # lucide-react and @tanstack/react-query (scripts/template-pins.mjs says why).
 node "$ROOT/scripts/template-pins.mjs"
 
-# Build what the tarballs ship (files: dist [+ src]).
+# Build what the tarballs ship (files: dist and src).
 FILTERS=()
 for name in "${NAMES[@]}"; do FILTERS+=("--filter" "$name"); done
 pnpm --dir "$ROOT" exec turbo run build "${FILTERS[@]}"
@@ -47,8 +47,8 @@ for p in "${PACKAGES[@]}"; do
   (cd "$ROOT/$p" && pnpm pack --pack-destination "$PACK_DIR/$base" >/dev/null)
 done
 
-# What the tarballs ship: no tests, every entry and every relative import inside
-# (scripts/pack-contents.mjs).
+# What the tarballs ship: no tests, every entry, every relative import and every
+# source a map names inside (scripts/pack-contents.mjs).
 node "$ROOT/scripts/pack-contents.mjs" "$PACK_DIR"/*/*.tgz
 
 rsync -a --exclude node_modules --exclude dist --exclude .mcp-use "$TEMPLATE/" "$WORK/"

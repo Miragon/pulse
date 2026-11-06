@@ -29,6 +29,11 @@
     "!dist/**/*.test.*",
     "!dist/**/*.test-support.*",
     "!dist/**/test-support",
+    "src",
+    "!src/**/*.test.*",
+    "!src/**/*.test-support.*",
+    "!src/**/test-support",
+    "!src/**/tsconfig.json",
     "metrics-contract.json"
   ],
   "type": "module",
