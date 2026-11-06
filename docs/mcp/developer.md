@@ -41,11 +41,15 @@ session as `PORT=<port> claude`.
 | `pnpm play:cli -- <args>`                       | The CLI against the playground engine                                                                 |
 | `pnpm stack:up` / `stack:down` / `stack:status` | Start (`--multi-engine`, `--auth`), stop (`--wipe` drops the volumes) or show the playground          |
 | `pnpm dev`                                      | The server with your own settings (`cp .env.example .env` first)                                      |
+| `pnpm test:one <file...>`                       | Test files in their packages, the packages under them built first, coverage off (`--watch`)           |
 | `pnpm check`                                    | The bar for every change: install, build, typecheck, test, lint, format; a log per step in `reports/` |
 | `pnpm check:all`                                | `check` plus the host simulation, the template, the Gradle build, the docs build, the engine suites   |
 | `pnpm lint:fix` / `pnpm format`                 | ESLint and Prettier fixes                                                                             |
 
 The gates one by one: `pnpm build`, `pnpm typecheck`, `pnpm test`, `pnpm lint`, `pnpm format:check`.
+While you iterate: `pnpm test:one <file...>`, then the package and what depends on it with
+`pnpm exec turbo run typecheck test lint --filter=...<pkg>`, then `pnpm check`. A tool change
+refreshes the goldens with `pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server golden:update`.
 `pnpm dev` and `pnpm play` bind 127.0.0.1; `pnpm start` and Docker listen on all interfaces.
 
 Mutation testing covers `@miragon/pulse-engine-core` only (`MUTATED_PACKAGES`), nightly, never on a

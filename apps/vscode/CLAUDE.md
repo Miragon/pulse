@@ -33,9 +33,12 @@ The C7 adapter bundles engine-core from its build: after `pnpm install`, build i
 (`pnpm exec turbo run build --filter='pulse-cockpit^...'`, or `pnpm build`) before these
 commands, and again after a change to engine-core.
 
-The bar for every change is the repository's: `pnpm build && pnpm typecheck && pnpm test &&
-pnpm lint` at the root. The webview tests run in Chromium: install it once with
-`pnpm --filter pulse-cockpit exec playwright install chromium`. Run `test:engines`, `test:e2e`
+While you iterate, `pnpm test:one apps/vscode/test/<path>.test.ts` runs the files you touch
+(coverage off, engine-core built first; run alone, a file fails the floors, since
+`coverage.include` counts every file it does not load), then
+`pnpm exec turbo run typecheck test lint --filter=pulse-cockpit` the package. The bar for every
+change is the repository's: `pnpm check` at the root. The webview tests run in Chromium: install it
+once with `pnpm --filter pulse-cockpit exec playwright install chromium`. Run `test:engines`, `test:e2e`
 and `docs:screenshots` only when the change touches the adapter or the contract, the VS Code
 flows or the screens.
 

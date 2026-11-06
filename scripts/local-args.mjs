@@ -1,9 +1,9 @@
 /**
- * The command line of scripts/local.mjs, the script behind the root `pnpm stack:*`, `play*` and
- * `check*` commands (pure; scripts/local-args.test.mjs).
+ * The command line of scripts/local.mjs, the script behind the root `pnpm stack:*`, `play*`,
+ * `test:one` and `check*` commands (pure; scripts/local-args.test.mjs).
  */
 
-/** Every command with the options it takes. */
+/** Every command with the options it takes, and its `operands` when it takes arguments too. */
 export const COMMANDS = {
   "stack:up": {
     options: ["--multi-engine", "--auth", "--jdk-container"],
@@ -16,6 +16,11 @@ export const COMMANDS = {
     summary: "install, start the playground, build and run the MCP server with its inspector",
   },
   "play:cli": { options: [], summary: "the built CLI against the playground engine" },
+  "test:one": {
+    options: ["--watch"],
+    operands: "file",
+    summary: "test files in their packages, coverage off, the packages under them built first",
+  },
   check: { options: ["--force"], summary: "the standard local bar, one log per step" },
   "check:all": {
     options: ["--force", "--jdk-container"],
@@ -36,12 +41,14 @@ export const USAGE = [
   "",
   "pnpm play:cli -- <args> passes everything after -- to the CLI; pnpm -s play:cli -- <args>",
   "leaves stdout to the CLI alone (pnpm prints its script banner there), for a pipe.",
+  "pnpm test:one <file...> is the inner loop; pnpm test keeps enforcing the coverage floors.",
 ].join("\n")
 
 /**
  * `{ command, options, rest }` for `argv` (without node and the script), or an Error naming what
- * is wrong. play:cli passes every argument on to the CLI (a leading `--` dropped); `--deploy`
- * implies `--admin`, since deployments register only in the admin toolset.
+ * is wrong. play:cli passes every argument on to the CLI (a leading `--` dropped); a command
+ * with `operands` needs at least one, in `rest`; `--deploy` implies `--admin`, since deployments
+ * register only in the admin toolset.
  */
 export function parseArgs(argv) {
   const [command, ...args] = argv
@@ -53,14 +60,22 @@ export function parseArgs(argv) {
     return { command, options: {}, rest: args[0] === "--" ? args.slice(1) : args }
   }
   const options = Object.fromEntries(spec.options.map((option) => [optionKey(option), false]))
+  const rest = []
   for (const arg of args) {
     if (arg === "--") continue
+    if (spec.operands !== undefined && !arg.startsWith("-")) {
+      rest.push(arg)
+      continue
+    }
     if (!spec.options.includes(arg)) {
       const known = spec.options.length > 0 ? spec.options.join(", ") : "none"
       return new Error(`${command} does not take ${arg} (its options: ${known})`)
     }
     options[optionKey(arg)] = true
   }
+  if (spec.operands !== undefined && rest.length === 0) {
+    return new Error(`${command} needs at least one ${spec.operands}`)
+  }
   if (options.deploy) options.admin = true
-  return { command, options, rest: [] }
+  return { command, options, rest }
 }

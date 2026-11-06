@@ -21,11 +21,11 @@
     "build:ui": "vite build",
     "build:server": "tsc",
     "build": "pnpm run build:ui && pnpm run build:server",
-    "dev:ui": "vite build --watch",
-    "dev": "pnpm run build:ui && mcp-use dev --port ${PORT:-8400} --no-open",
+    "dev": "turbo run build --filter=@miragon/pulse-mcp-server^... --output-logs=errors-only && pnpm run build:ui && mcp-use dev --port ${PORT:-8400} --no-open",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.ui.json && tsc -p tsconfig.test.json",
     "test": "vitest run",
     "test:host": "pnpm run build:ui && playwright test -c test-host",
+    "golden:update": "turbo run build --filter=@miragon/pulse-mcp-server^... --output-logs=errors-only && GOLDEN_UPDATE=1 vitest run --coverage.enabled=false",
     "lint": "eslint src test test-host",
     "lint:fix": "eslint src test test-host --fix",
     "start": "cross-env NODE_ENV=production node dist/index.js"

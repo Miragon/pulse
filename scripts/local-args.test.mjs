@@ -32,6 +32,29 @@ describe("parseArgs", () => {
     assert.deepEqual(parseArgs(["play:cli"]).rest, [])
   })
 
+  it("reads test:one's files and --watch in any order", () => {
+    assert.deepEqual(parseArgs(["test:one", "a.test.ts", "--watch", "b.test.ts"]), {
+      command: "test:one",
+      options: { watch: true },
+      rest: ["a.test.ts", "b.test.ts"],
+    })
+    assert.equal(parseArgs(["test:one", "--", "a.test.ts"]).options.watch, false)
+    assert.deepEqual(parseArgs(["test:one", "--", "a.test.ts"]).rest, ["a.test.ts"])
+  })
+
+  it("refuses test:one without a file, and a flag it does not take", () => {
+    assert.match(parseArgs(["test:one"]).message, /test:one needs at least one file/)
+    assert.match(parseArgs(["test:one", "--watch"]).message, /test:one needs at least one file/)
+    assert.match(
+      parseArgs(["test:one", "a.test.ts", "--coverage"]).message,
+      /does not take --coverage.*--watch/,
+    )
+  })
+
+  it("takes no operand on a command without any", () => {
+    assert.match(parseArgs(["check", "a.test.ts"]).message, /check does not take a\.test\.ts/)
+  })
+
   it("names an unknown command, a missing one and an option the command does not take", () => {
     assert.match(parseArgs(["stack:restart"]).message, /Unknown command: stack:restart/)
     assert.match(parseArgs([]).message, /No command given/)

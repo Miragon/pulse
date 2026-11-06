@@ -352,12 +352,21 @@ module may be off); the app's `tools-list.golden.test.ts` fails on one.
 ## Step 6: verify
 
 ```bash
-pnpm build && pnpm typecheck && pnpm test && pnpm lint
+# while you iterate: the test files you touch (coverage off, the packages under them built first)
+pnpm test:one packages/connectors/analytics/analytics-client/src/queries/<name>.test.ts
+# then the package and every package that depends on it (the server's goldens included)
+pnpm exec turbo run typecheck test lint --filter=...@miragon/pulse-analytics-client
+# the bar for every change: build, typecheck, test, lint, format
+pnpm check
 ```
+
+A file run alone fails the package's coverage floors, since it loads only part of the code, so
+use `pnpm test:one` for it; `pnpm test` keeps enforcing the floors.
 
 A new or changed tool changes the wire surface: add its name to
 `apps/mcp-server/test/expected-tools.ts`, then refresh the per-toolset goldens with
-`GOLDEN_UPDATE=1 pnpm --filter @miragon/pulse-mcp-server test` and commit the
+`pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server golden:update` (it builds the
+connectors first) and commit the
 `test/__golden__/` diff. The budget of each toolset counts the model-visible tools/list text
 plus the server instructions. If `char-budgets.json` grew, `pnpm lint` fails until the commit
 carries a `Ratchet-Exception: <why the model must read more>` trailer. Trim wording first.
