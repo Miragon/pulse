@@ -383,8 +383,12 @@ describe("installed package paths in the template docs", () => {
       ["node_modules/@miragon/pulse-engine-connector/src/lib/mcp/toolsets.ts", /never at a root/],
       ["server/node_modules/@miragon/pulse-engine-connector/src/lib/no-such.ts", /does not exist/],
       ["server/node_modules/@miragon/pulse-{engine,analytics}-connector/src/nope/", /not exist/],
-      ["server/node_modules/@miragon/pulse-widget-shell/src/caller.ts", /does not ship src/],
-      ["server/node_modules/@miragon/pulse-ui/src/index.ts", /does not ship src/],
+      // Files no `files` entry names: they stay unshipped once a library ships its `src` too.
+      [
+        "server/node_modules/@miragon/pulse-widget-shell/vitest.config.ts",
+        /does not ship vitest\.config\.ts/,
+      ],
+      ["server/node_modules/@miragon/pulse-ui/tsconfig.json", /does not ship tsconfig\.json/],
       [
         "server/node_modules/@miragon/pulse-engine-connector/src/lib/mcp/toolsets.test.ts",
         /does not ship src/,
