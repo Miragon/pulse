@@ -93,8 +93,9 @@ their service names, on Linux and under Docker Desktop alike; `host.docker.inter
 their ports on Linux, which the playground publishes on `127.0.0.1` only. `ENGINE_COCKPIT_URL`
 stays on `localhost`: your browser opens those links.
 
-Pulse assumes a Camunda 7 engine. For CIB seven or Operaton add `-e ENGINE_FLAVOR=cibseven`
-(or `operaton`): it picks the engine's cockpit links and the product name the views show.
+Pulse assumes a Camunda 7 engine. The recipe sets `ENGINE_FLAVOR=cibseven` for the playground's
+CIB seven (`operaton` for Operaton, none for Camunda 7): it picks the engine's cockpit links and
+the product name the views show.
 
 Configuration is entirely environment-driven. See
 [Configuration](../../docs/mcp/reference.md#configuration), [Toolsets](../../docs/mcp/reference.md#toolsets) and

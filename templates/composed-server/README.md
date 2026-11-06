@@ -74,7 +74,7 @@ The Pulse playground's engine and Prometheus instead (`pnpm stack:up` there):
 ```bash
 docker run --env-file .env -p 127.0.0.1:8400:8400 \
   --network pulse_default \
-  -e ENGINE_BASE_URL=http://cibseven:8410/engine-rest \
+  -e ENGINE_BASE_URL=http://cibseven:8410/engine-rest -e ENGINE_ID=prod-a \
   -e ENGINE_COCKPIT_URL=http://localhost:8410/webapp \
   -e PROMETHEUS_URL=http://prometheus:9090 \
   my-mcp-server

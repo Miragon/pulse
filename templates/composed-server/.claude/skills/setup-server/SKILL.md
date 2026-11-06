@@ -223,8 +223,9 @@ docker run --env-file .env -p 127.0.0.1:8400:8400 \
   engine's Docker network and reaches it by its service name and port:
   `engine:8080` on `pulse-starter_default`, the network the `name:` in
   `compose.yaml` fixes. For the Pulse playground's engine and Prometheus, join
-  `pulse_default` instead with `-e ENGINE_BASE_URL=http://cibseven:8410/engine-rest`
-  and `-e PROMETHEUS_URL=http://prometheus:9090`. That works alike on Linux and
+  `pulse_default` instead with `-e ENGINE_BASE_URL=http://cibseven:8410/engine-rest`,
+  `-e ENGINE_ID=prod-a` (the id on its metrics, or analytics finds nothing) and
+  `-e PROMETHEUS_URL=http://prometheus:9090`. That works alike on Linux and
   under Docker Desktop; `host.docker.internal` does not: on Linux it is the
   Docker bridge's gateway, which misses a port published on `127.0.0.1`, where
   both engines publish theirs. An engine the container reaches by its address
