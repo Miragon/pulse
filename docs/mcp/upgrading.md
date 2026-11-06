@@ -1,17 +1,18 @@
 # Upgrading
 
 What a release changes that needs your hand: settings, tool names, metric names and, for a server of
-your own, its packages and files. Read the page of every release between the one you run and the one
-you take, oldest first; a release without a page needs nothing beyond its new version.
+your own, its packages and files. For every release between the one you run and the one you take,
+oldest first, read the BREAKING CHANGES of its entry in the
+[changelog](https://github.com/Miragon/pulse/blob/main/CHANGELOG.md) and its page below where it has
+one. The pages start at 0.25; for an older release, the changelog is all there is.
 
 | Release                      | What needs your hand                                                                                  |
 | ---------------------------- | ----------------------------------------------------------------------------------------------------- |
 | [0.26](upgrading-to-0-26.md) | `analytics_engine_health` reports `metricsState`, engine URLs are the REST root, one BPMN engine pick |
 | [0.25](upgrading-to-0-25.md) | camunda7 is engine (settings, tools, metrics, packages), OAuth from `MCP_USE_OAUTH_*`, a new starter  |
 
-Every change of a release, the CLI's and the VS Code extension's included, is in the
-[changelog](https://github.com/Miragon/pulse/blob/main/CHANGELOG.md) and the
-[releases](https://github.com/Miragon/pulse/releases).
+The changelog and the [releases](https://github.com/Miragon/pulse/releases) hold every change of a
+release, the CLI's and the VS Code extension's included.
 
 ## The image
 

@@ -12,6 +12,6 @@ read-only; writes need a toolset you name. Commands and configs call the server 
 | [Usage](./usage.md)                     | Connect an assistant, what to ask, language and theme                                |
 | [Reference](./reference.md)             | Every tool, the toolsets and the common settings                                     |
 | [Operations](./operations.md)           | The Docker image, security, environment variables, toolsets, health routes           |
-| [Upgrading](./upgrading.md)             | What a release asks of you, one page each, and how your own server takes one         |
+| [Upgrading](./upgrading.md)             | What a release asks of you, a page each from 0.25, and how your own server takes one |
 | [Architecture](./architecture.md)       | The server, its two modules and the systems they talk to                             |
 | [Developer guide](./developer.md)       | Run the stack from source and build your own server on the published modules         |

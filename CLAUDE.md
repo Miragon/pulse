@@ -30,6 +30,11 @@ getting-started steps) updates them in the same PR. Headings get GitHub's anchor
 `#anchor` link works on the site and on GitHub. The product page https://miragon.ai/tools/pulse/
 lives in Miragon/miragon-ai-docs; a change it shows needs a PR there too.
 
+A breaking change of the MCP server or of a library a server of your own builds on also adds or
+extends its release's page `docs/mcp/upgrading-to-<x>.md`: a row in `docs/mcp/upgrading.md`, a
+sidebar item, a `DOCS_BUDGETS` entry. The index and the starter's `upgrade-pulse` skill send readers
+there, and the changelog's one line rarely says what to change.
+
 ## What this repo is
 
 Pulse (part of the Miragon AI tool family) is a pnpm + Turbo monorepo that ships an MCP server
