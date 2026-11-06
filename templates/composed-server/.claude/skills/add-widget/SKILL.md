@@ -169,10 +169,12 @@ pnpm build && pnpm typecheck && pnpm test
 
 - `pnpm typecheck` is the **only** automated check that type-checks widget
   `.tsx` code. Never skip it.
-- `pnpm test` runs the view-registry guard (every view-bound tool has a view
-  under its name, and every view a tool) plus the wire-contract e2e (naming,
-  `_meta`, app-only visibility). If one fails it names exactly the missing
-  link: fix the link, never the test.
+- `pnpm test` runs the view-registry guard (every view-bound tool is a read
+  with a view under its name, and every view has a tool) plus the
+  wire-contract e2e (naming, `_meta`, app-only visibility). If one fails its
+  message names the missing link: fix the link, not the guard. The one test
+  that names the example, `server/test/example-notes.test.ts`, goes with the
+  example module (the `create-module` skill, "Remove the example module").
 - Write a widget test next to the widget, as
   `modules/mcp-notes/src/widgets/notes-list.test.tsx` does: `// @vitest-environment
 happy-dom`, then render the view or widget under `TestViewHost` from

@@ -7,6 +7,13 @@ import { MODULES, sharedResources } from "./setup.js"
 const PACKAGE_ROOT = path.join(import.meta.dirname, "..")
 
 /**
+ * Your server's identity, reported as `serverInfo` to every MCP client: clients such as the
+ * inspector show its `title`, and every boot log line starts with `[<name>]`. The tests read it
+ * from here.
+ */
+export const SERVER_INFO = { name: "acme-mcp", title: "Acme MCP" } as const
+
+/**
  * The preamble of the server `instructions`: short and factual. Every active
  * module appends its own snippet (`instructions` on its module definition,
  * e.g. the engine module's engine routing), and tool descriptions carry the rest.
@@ -41,12 +48,7 @@ export async function createApp(
   deps: AppDeps = {},
 ): Promise<ComposedServer> {
   return createComposedServer({
-    info: {
-      name: "acme-mcp",
-      version: packageVersion(),
-      title: "Acme MCP",
-      instructions: SERVER_INSTRUCTIONS,
-    },
+    info: { ...SERVER_INFO, version: packageVersion(), instructions: SERVER_INSTRUCTIONS },
     modules: MODULES,
     shared: sharedResources,
     env,

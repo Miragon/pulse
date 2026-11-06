@@ -202,11 +202,11 @@ Then document every var from `knownEnvVars` in `.env.example`.
 `server/test/env-example.test.ts` fails on both drift directions (an
 undocumented var, or a documented var no module reads).
 
-The e2e tests (`server/test/widget-contract.e2e.test.ts`,
-`server/test/strict-input.e2e.test.ts`,
-`server/test/tool-annotations.e2e.test.ts`) need no edit either: they boot the
-composed server in-process and cover your module by naming convention and on
-every toolset it declares.
+The other guard tests in `server/test/` need no edit either: they boot the
+composed server in-process and derive what they check from `MODULES` and the
+tools it lists, so they cover your module by naming convention and on every
+toolset it declares. Only `server/test/example-notes.test.ts` names the
+example module, and it goes with it (see "Remove the example module").
 
 ## Step 7: verify
 
@@ -223,6 +223,31 @@ the selection path: `MCP_ACTIVE_MODULES=<name> pnpm dev` must expose exactly
 your module's tools. If you declared `toolsets`, that is its read-only floor
 without OAuth and its `authenticatedDefault` with it (the boot log's
 `Toolsets:` line says which).
+
+## Remove the example module
+
+`modules/mcp-notes` is an example to copy, not part of your server. Once your
+own module stands, take the example out in one change:
+
+1. `server/src/setup.ts`: drop `notesModule` from `MODULES` and its import.
+2. `server/src/ui/view-registry.ts`: drop the `notesViews` spread and its
+   import.
+3. `server/package.json`: drop the `@acme/mcp-notes` dependency and the notes
+   in `description`; delete `modules/mcp-notes`, then `pnpm install`.
+4. `.env.example`: drop the Notes block (`NOTES_TITLE`) and `notes` from the
+   `MCP_ACTIVE_MODULES` comment.
+5. `server/src/app.ts`: `SERVER_INSTRUCTIONS` tells the model the server holds
+   team notes; say what yours does.
+6. Delete `server/test/example-notes.test.ts`, the one test that names the
+   example.
+7. The smoke checks that call `notes_show_notes` (`CLAUDE.md` → Verification,
+   the `setup-server` skill's Step 1, the README's Quickstart) take a show
+   tool of yours.
+
+Then run Step 7's bar. The other guard tests follow `MODULES`, so they need no
+edit. The same holds for a Pulse module you leave out: dropping analytics is
+`analyticsModule` in `MODULES`, `analyticsViews` and `analyticsHostWidgets` in
+`view-registry.ts` and its block in `.env.example`.
 
 ## Anti-patterns
 
