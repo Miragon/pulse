@@ -237,8 +237,9 @@ docker run -p 8400:8400 \
   in front is invisible to the server: it still sees no identity, so any
   widened toolset is open to whoever passes the gateway.
 - With OAuth, tokens must carry `<MCP_URL>/mcp` in `aud`
-  (`https://mcp.example.com/mcp` here) and a `sub` claim, else every call gets
-  401; the boot logs the audience it expects. The
+  (`https://mcp.example.com/mcp` here; `MCP_URL` is then an origin without a
+  path) and a `sub` claim, else every call gets 401; the boot logs the
+  audience it expects. The
   [identity provider checklist](https://miragon.github.io/pulse/mcp/operations#identity-provider-checklist)
   covers the audience, `sub`, client registration with the claude.ai callback
   and how to read a 401.

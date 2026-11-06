@@ -122,9 +122,9 @@ miragon-ai-playground.fly.dev` (DNS only, not proxied) and
   variables as secrets add login (`fly secrets set
 MCP_USE_OAUTH_KEYCLOAK_SERVER_URL=… MCP_USE_OAUTH_KEYCLOAK_REALM=… -a
 miragon-ai-playground`, see `.env.example`); the pin still keeps it
-  read-only. A secret left from the retired OAuth JSON variable fails the boot:
-  unset it in the same deploy (see the upgrade note under Security in
-  `docs/mcp/operations.md`).
+  read-only. A secret left from the retired OAuth JSON variable fails the boot,
+  and the refusal names the provider variables that replace it: unset it in
+  the same deploy.
 - The engine keeps its H2 database in memory: every engine restart reseeds
   (~600 instances) and live traffic keeps metrics moving. Prometheus history
   survives restarts on its volume.
