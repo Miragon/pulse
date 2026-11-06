@@ -198,4 +198,4 @@ root to see changes.
 | A refresh renders a second view      | the widget calls the `show_*` tool instead of the `*_data` feed                                                                                                               |
 | e2e test fails on `_meta`/visibility | tool name breaks the `_show_`/`_data` convention, or a hand-written `_meta.ui` key: use the helpers                                                                           |
 | Boot fails on a duplicate tool name  | two plugins register the same name; the error names both modules, rename one (keep the `<module>_` prefix)                                                                    |
-| Old UI after an edit                 | bundle is read once at boot: restart `pnpm dev` at the repo root (it rebuilds modules + bundle on start)                                                                      |
+| Old UI or tool text after an edit    | bundle and modules are read once at boot (a save's `[mcp-use] reloaded server entry` skips them): restart `pnpm dev` at the repo root (it rebuilds modules + bundle on start) |

@@ -17,6 +17,7 @@ task paths. Read the matching one BEFORE starting:
 ## Commands
 
 ```bash
+corepack enable       # pnpm 10.32.1 (`packageManager`); Node.js 25+ has none: npm i -g pnpm@10.32.1
 pnpm install          # public npm registry only, no credentials needed
 cp .env.example .env  # local config; `pnpm dev` loads it (only `pnpm dev` does)
 

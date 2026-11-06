@@ -20,6 +20,7 @@ Configuration ground rules first:
 ## Step 1: install and first run
 
 ```bash
+corepack enable # pnpm 10.32.1 (`packageManager`); Node.js 25+ has none: npm i -g pnpm@10.32.1
 pnpm install    # needs Node >= 22.22.2 (enforced at install time)
 cp .env.example .env
 pnpm dev        # MCP endpoint on :8400/mcp, inspector on :8400/mcp/inspector
@@ -28,8 +29,15 @@ pnpm dev        # MCP endpoint on :8400/mcp, inspector on :8400/mcp/inspector
 Verify before configuring anything: open `http://localhost:8400/mcp/inspector` and
 call `notes_show_notes`: the example module needs no external infrastructure,
 so a rendered notes widget proves server, widget bundle, and inspector work.
-Then read the boot log: every warning there is actionable (unknown env var,
-missing Prometheus URL, engine auth problems), and one info line
+If the log says `[mcp-use] port 8400 is taken, using <port>`, the endpoint and
+the inspector are on that port and 8400 is another server (see
+Troubleshooting): use that port, or free 8400 and restart.
+Then read the boot log. The Vite build output, the `[inspector]` lines and
+`[mcp-use] views directory not configured.` / `created mcp-env.d.ts` are
+expected; a `[mcp-use] reload failed` line is an error. The server's own
+lines start with `[acme-mcp]` (the `name` in
+`server/src/app.ts`): every warning among them is actionable (unknown env var, missing Prometheus URL,
+engine auth problems), and one info line
 (`[acme-mcp] Toolsets: engine:read-only (default without OAuth), …`) states
 what each module may do, read-only until you widen it or set up OAuth
 (Step 3).
@@ -163,13 +171,26 @@ host's theme; there is no theme switch in the app.
 ```bash
 pnpm install                    # once, then COMMIT pnpm-lock.yaml
 docker build -t my-mcp-server .
-docker run -p 127.0.0.1:8400:8400 \
+docker run --env-file .env -p 127.0.0.1:8400:8400 \
+  --add-host=host.docker.internal:host-gateway \
   -e ENGINE_BASE_URL=http://host.docker.internal:8410/engine-rest \
-  -e ENGINE_FLAVOR=cibseven \
+  -e ENGINE_COCKPIT_URL=http://localhost:8410/webapp \
+  -e PROMETHEUS_URL=http://host.docker.internal:8460 \
   my-mcp-server
 ```
 
-- Config comes from the environment; the image does not read `.env`.
+- Config comes from the environment; the image does not read `.env` itself.
+  `--env-file` hands it over (so `ENGINE_ID`, `ENGINE_FLAVOR` and the engine
+  auth match the local run), and the `-e` flags after it win. Unlike dotenv it
+  reads plain `KEY=VALUE` lines: quotes and a trailing `# comment` stay in the
+  value. A dev-only `PORT` or `MCP_URL` in `.env` comes along too (a `PORT`
+  other than 8400 misses `-p …:8400:8400`): drop it or override it with `-e`.
+- Inside the container `localhost` is the container, so the server reaches the
+  engine and Prometheus through `host.docker.internal` (built into Docker
+  Desktop; on Linux the `--add-host` maps it to the host), while
+  `ENGINE_COCKPIT_URL` stays on `localhost`: the user's browser opens those
+  links. Without it the cockpit links derive from the engine URL and point at
+  `host.docker.internal`, which a browser on the host usually does not resolve.
 - `PORT` sets the HTTP port (default 8400); `MCP_URL` is the public base URL
   when running behind a proxy or MCP gateway and, with
   `MCP_ALLOWED_HOSTS`/`MCP_ALLOWED_ORIGINS`, the only non-localhost
@@ -253,6 +274,7 @@ missing-URL warnings) is part of done.
 | Analytics tools return empty results      | `ENGINE_ID` differs from the engine container's `ENGINE_ID` (its `engine_id` label), or `PROMETHEUS_URL` points at the wrong port                                                                          |
 | Cockpit links open the wrong web app      | the engine's vendor: without `ENGINE_FLAVOR` (or a `flavor` per engine entry) it counts as Camunda 7                                                                                                       |
 | "Unknown environment variable" at boot    | typo, or a var this build doesn't read; `.env.example` is the authoritative list                                                                                                                           |
-| Widget UI changes don't show up           | the bundle is read once at boot; restart `pnpm dev` at the repo root (it rebuilds modules + bundle on start)                                                                                               |
+| Widget or module changes don't show up    | stale UI, tool description or handler: the modules and the bundle are built and read once, when `pnpm dev` starts (a save's `[mcp-use] reloaded server entry` skips them); restart it at the repo root     |
 | A tool is missing                         | module not in `MCP_ACTIVE_MODULES`, or its toolset filtered it; with no suffix and no OAuth it is `read-only` (see the boot log's `Toolsets:` line); deployments also need `ENGINE_ALLOW_DEPLOYMENTS=true` |
+| Engine tools show, your module's don't    | another server holds 8400 (the stock Pulse image, say): `pnpm dev` took the next free port and logged it (`[mcp-use] port 8400 is taken, using 8401`); connect to that endpoint or free 8400               |
 | Claude Desktop shows no tools at all      | a `"url"` entry in `claude_desktop_config.json` (stdio only, use the `mcp-remote` bridge from Step 6), or the app wasn't restarted                                                                         |

@@ -23,12 +23,15 @@ export default defineConfig({
     // bundle remains self-contained inside the sandboxed view iframe.
     assetsInlineLimit: 100_000_000,
     cssCodeSplit: false,
-    rollupOptions: {
+    // Every view inlines the one file, so it is never code-split and Vite's 500 kB hint does
+    // not apply; its size gate is test/__golden__/bundle-budget.json (gzip, test:host).
+    chunkSizeWarningLimit: 2000,
+    rolldownOptions: {
       input: fileURLToPath(new URL("./src/ui/main.tsx", import.meta.url)),
       output: {
         entryFileNames: "mcp-app.js",
         assetFileNames: "mcp-app.[ext]",
-        inlineDynamicImports: true,
+        codeSplitting: false,
       },
     },
     outDir: "dist",
