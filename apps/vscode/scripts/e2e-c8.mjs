@@ -1,8 +1,11 @@
-import { resolve } from "node:path"
+import { cp, mkdtemp } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import { join, resolve } from "node:path"
 import { driveVscode, panelFrame, runCommand, shot } from "./support/vscode-driver.mjs"
 
 const WORKSPACE = resolve("dev/host/workspace-c8")
 const CLUSTER = "http://localhost:18088/v2"
+const TOKEN_ENDPOINT = "http://localhost:18089/realms/pulse/protocol/openid-connect/token"
 const LOGINS = {
   none: { profile: "c8-open" },
   basic: {
@@ -86,6 +89,55 @@ const SET_CREDENTIALS = [
       .first()
       .waitFor({ timeout: LOADED })
     await shot(window, "c8-03-after-credentials")
+  },
+]
+
+async function wizardStep(window, title, value) {
+  await window
+    .locator(".quick-input-title", { hasText: `: ${title} (` })
+    .waitFor({ timeout: 30_000 })
+  const input = window.locator(".quick-input-widget input")
+  await input.fill(value)
+  await input.press("Enter")
+}
+
+async function wizardChoice(window, label) {
+  await window
+    .locator(".quick-input-list-row", { hasText: label })
+    .first()
+    .click({ timeout: 30_000 })
+}
+
+const ADDS_AN_ENGINE = [
+  "Add Engine sets up a Self-Managed cluster with OIDC step by step",
+  async (window) => {
+    await runCommand(window, "Pulse: Add Engine")
+    await wizardChoice(window, "Camunda 8 Self-Managed")
+    for (const [title, value] of [
+      ["REST address", CLUSTER],
+      ["Operate address", ""],
+    ]) {
+      await wizardStep(window, title, value)
+    }
+    await wizardChoice(window, "OIDC client credentials")
+    for (const [title, value] of [
+      ["Token endpoint", TOKEN_ENDPOINT],
+      ["Audience", "camunda"],
+      ["Scopes", ""],
+      ["Client ID", "pulse-reader"],
+      ["Client secret", "reader-secret"],
+      ["Name", "c8-wizard"],
+    ]) {
+      await wizardStep(window, title, value)
+    }
+    await wizardChoice(window, "Test")
+    await wizardChoice(window, "Save and connect")
+    await window
+      .getByRole("treeitem", {
+        name: /^c8-wizard, TEST · Camunda 8 8\.\d+\.\d+, read-only engine$/,
+      })
+      .waitFor({ timeout: LOADED })
+    await shot(window, "c8-09-add-engine")
   },
 ]
 
@@ -186,7 +238,14 @@ const STEPS = [
       await shot(window, "c8-08-engine-overview")
     },
   ],
+  ...(SECURITY === "oidc" ? [ADDS_AN_ENGINE] : []),
 ]
 
+async function copyOfWorkspace() {
+  const copy = await mkdtemp(join(tmpdir(), "pulse-e2e-c8-"))
+  await cp(WORKSPACE, copy, { recursive: true })
+  return copy
+}
+
 await clusterIsUp()
-await driveVscode(WORKSPACE, STEPS)
+await driveVscode(await copyOfWorkspace(), STEPS)
