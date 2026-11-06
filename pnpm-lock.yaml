@@ -199,8 +199,8 @@ importers:
         specifier: 5.3.0
         version: 5.3.0
       '@miragon/modeler-shell':
-        specifier: 0.9.0
-        version: 0.9.0(@vscode/test-electron@3.1.0)(playwright-core@1.64.1)
+        specifier: 0.10.0
+        version: 0.10.0(@vscode/test-electron@3.1.0)(playwright-core@1.64.1)
       '@miragon/pulse-engine-core':
         specifier: workspace:*
         version: link:../../packages/connectors/engine/engine-core
@@ -935,10 +935,6 @@ packages:
 
   '@babel/runtime@7.29.10':
     resolution: {integrity: sha512-NpugTzbKgGrNe45Ui32cN8vCFFMxVtP/9rtfwv0nP5FRDAjvYBxJcLVpYA9mr1jxP6cnIT7x9LUzuDTbWYYNRA==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/runtime@7.29.13':
-    resolution: {integrity: sha512-v+oN26xP4YIlQsbQ/CbTH1WG5m/l/DjKKZNy/Kp3f/AFvbgt7Em/D0FeMM3O2hX0YzeN2M16W8lOpyhIkfCBcQ==}
     engines: {node: '>=6.9.0'}
 
   '@babel/template@7.29.7':
@@ -1954,8 +1950,8 @@ packages:
     resolution: {integrity: sha512-j37dj/h6p6pots1L7pLPPNuABEEu9WP4OYg9pW1g+nYG331j0+3canE9OagtYdytYvdSAMG+2fKU5cxep6LgjA==}
     engines: {node: '>=22.12.0'}
 
-  '@miragon/modeler-shell@0.9.0':
-    resolution: {integrity: sha512-D1SWWWQuzs3BMLPib5pJnJsTzPpVSvDnm0zuxm9VQrrgCdaPqwpk/xfnU4xB6Z9ZqzaLi7KSzmyvPjivsOzgiw==}
+  '@miragon/modeler-shell@0.10.0':
+    resolution: {integrity: sha512-E9FAF1KxjmciNtIiUPopmyrz2a4HpRgxxc34JRXTdUMZA6/9vjWjQwaDU7RjDLL3ZM6doutpuLPlXtVMvzFlzA==}
     engines: {node: '>=20'}
     hasBin: true
     peerDependencies:
@@ -7376,8 +7372,8 @@ packages:
   undici-types@8.9.0:
     resolution: {integrity: sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg==}
 
-  undici@7.30.2:
-    resolution: {integrity: sha512-mLyPQnHwUxaM/rideoK/+KL8DaAJLRl4aBCfmX444aCSLnIaomqPLtNRe2jdCYcsk5wZzXrDIQC8ZeYNRAYyIA==}
+  undici@7.30.1:
+    resolution: {integrity: sha512-03KrMbjIFDWQR5RNPrSw3bd1r12JpyFQl9/yxjUbJtqkjmllqC5lFjZh6ujeuJCKr8EOQvRW872Oy/az+nLYxg==}
     engines: {node: '>=20.18.1'}
 
   undici@8.12.3:
@@ -8376,8 +8372,6 @@ snapshots:
 
   '@babel/runtime@7.29.10': {}
 
-  '@babel/runtime@7.29.13': {}
-
   '@babel/template@7.29.7':
     dependencies:
       '@babel/code-frame': 7.29.7
@@ -8431,7 +8425,7 @@ snapshots:
 
   '@base-ui/react@1.8.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
-      '@babel/runtime': 7.29.13
+      '@babel/runtime': 7.29.10
       '@base-ui/utils': 0.4.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@floating-ui/react-dom': 2.1.9(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@floating-ui/utils': 0.2.12
@@ -8444,7 +8438,7 @@ snapshots:
 
   '@base-ui/utils@0.4.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
-      '@babel/runtime': 7.29.13
+      '@babel/runtime': 7.29.10
       '@floating-ui/utils': 0.2.12
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
@@ -9245,7 +9239,7 @@ snapshots:
     dependencies:
       '@chevrotain/types': 13.2.0
 
-  '@miragon/modeler-shell@0.9.0(@vscode/test-electron@3.1.0)(playwright-core@1.64.1)':
+  '@miragon/modeler-shell@0.10.0(@vscode/test-electron@3.1.0)(playwright-core@1.64.1)':
     optionalDependencies:
       '@vscode/test-electron': 3.1.0
       playwright-core: 1.64.1
@@ -10759,7 +10753,7 @@ snapshots:
   '@testing-library/dom@10.4.1':
     dependencies:
       '@babel/code-frame': 7.29.7
-      '@babel/runtime': 7.29.13
+      '@babel/runtime': 7.29.10
       '@types/aria-query': 5.0.4
       aria-query: 5.3.0
       dom-accessibility-api: 0.5.16
@@ -13070,7 +13064,7 @@ snapshots:
       saxes: 6.0.0
       symbol-tree: 3.2.4
       tough-cookie: 6.0.2
-      undici: 7.30.2
+      undici: 7.30.1
       w3c-xmlserializer: 5.0.0
       webidl-conversions: 8.0.1
       whatwg-mimetype: 5.0.0
@@ -14764,7 +14758,7 @@ snapshots:
 
   undici-types@8.9.0: {}
 
-  undici@7.30.2:
+  undici@7.30.1:
     optional: true
 
   undici@8.12.3: {}
