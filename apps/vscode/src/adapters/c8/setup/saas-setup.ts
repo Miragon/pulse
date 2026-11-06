@@ -1,5 +1,10 @@
-import type { EngineSetup, SetupCredentials, SetupField, SetupValues } from "./setup-field.js"
-import { SetupFields } from "./setup-fields.js"
+import {
+  SetupRules,
+  type EngineSetup,
+  type SetupCredentials,
+  type SetupField,
+  type SetupValues,
+} from "../../../contract/index.js"
 
 const REGION = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const CLUSTER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
@@ -8,11 +13,15 @@ const AUDIENCE = "zeebe.camunda.io"
 const FROM_HUB = "Camunda Hub shows it in the API client's connection information as"
 
 export class SaasSetup implements EngineSetup {
+  readonly label = "Camunda 8 SaaS"
+
+  readonly detail = "A cluster in Camunda Hub, read with an API client's ID and secret."
+
   readonly title = "Camunda 8 SaaS"
 
   readonly fields: readonly SetupField[]
 
-  constructor(taken: ReadonlySet<string>) {
+  constructor() {
     this.fields = [
       {
         key: "region",
@@ -33,14 +42,16 @@ export class SaasSetup implements EngineSetup {
             : "Enter the cluster ID, a UUID such as 12345678-90ab-cdef-1234-567890abcdef.",
       },
       ...SaasSetup.clientFields(),
-      SetupFields.name((values) => `saas-${SetupFields.valueOf(values, "region")}`, taken),
-      SetupFields.environment(),
     ]
   }
 
+  suggestedName(values: SetupValues): string {
+    return `saas-${SetupRules.valueOf(values, "region")}`
+  }
+
   profileOf(values: SetupValues): Readonly<Record<string, unknown>> {
-    const region = SetupFields.valueOf(values, "region")
-    const root = `https://${region}.api.camunda.io/${SetupFields.valueOf(values, "clusterId").toLowerCase()}`
+    const region = SetupRules.valueOf(values, "region")
+    const root = `https://${region}.api.camunda.io/${SetupRules.valueOf(values, "clusterId").toLowerCase()}`
     return {
       url: `${root}/v2`,
       cockpitUrl: `${root}/operate`,
@@ -48,15 +59,15 @@ export class SaasSetup implements EngineSetup {
       auth: {
         type: "clientCredentials",
         tokenEndpoint: TOKEN_ENDPOINT,
-        audience: SetupFields.valueOf(values, "audience"),
+        audience: SetupRules.valueOf(values, "audience"),
       },
     }
   }
 
   credentialsOf(values: SetupValues): SetupCredentials {
     return {
-      identity: SetupFields.valueOf(values, "clientId"),
-      secret: SetupFields.valueOf(values, "clientSecret"),
+      identity: SetupRules.valueOf(values, "clientId"),
+      secret: SetupRules.valueOf(values, "clientSecret"),
     }
   }
 
@@ -66,21 +77,21 @@ export class SaasSetup implements EngineSetup {
         key: "clientId",
         title: "Client ID",
         prompt: `The ID of an API client of the cluster. ${FROM_HUB} CAMUNDA_CLIENT_ID.`,
-        problem: SetupFields.notBlank("the client ID"),
+        problem: SetupRules.notBlank("the client ID"),
       },
       {
         key: "clientSecret",
         title: "Client secret",
         prompt: `${FROM_HUB} CAMUNDA_CLIENT_SECRET. Pulse keeps it in VS Code's secret storage and sends it only to login.cloud.camunda.io.`,
         password: true,
-        problem: SetupFields.notBlank("the client secret"),
+        problem: SetupRules.notBlank("the client secret"),
       },
       {
         key: "audience",
         title: "Audience",
         prompt: `The audience of the client's tokens. ${FROM_HUB} CAMUNDA_TOKEN_AUDIENCE; keep ${AUDIENCE} unless it names another.`,
         initial: () => AUDIENCE,
-        problem: SetupFields.notBlank("the audience"),
+        problem: SetupRules.notBlank("the audience"),
       },
     ]
   }

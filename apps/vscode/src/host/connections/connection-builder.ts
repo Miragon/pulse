@@ -5,6 +5,7 @@ import { LivePolicy } from "./live-policy.js"
 import { AuditedCommands } from "./audited-commands.js"
 import type { Connection, Credentials, EngineFactories } from "./connection.js"
 import { EngineBadges } from "./engine-badges.js"
+import type { EngineCatalogue } from "./engine-catalogue.js"
 import type { EngineTarget } from "./engine-target.js"
 import type { WriteAudit } from "./write-audit.js"
 import { WritePolicy, type WritesSetting } from "./write-policy.js"
@@ -30,6 +31,10 @@ export class ConnectionBuilder {
     private readonly engines: EngineFactories,
     private readonly audit: WriteAudit,
   ) {}
+
+  get catalogue(): EngineCatalogue {
+    return this.engines.catalogue
+  }
 
   build(
     target: EngineTarget,

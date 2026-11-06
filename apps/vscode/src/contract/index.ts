@@ -59,12 +59,24 @@ export { MoveReasons } from "./model/move-reasons.js"
 export { RuntimeError } from "./model/runtime-error.js"
 export type { RuntimeFailure } from "./model/runtime-error.js"
 export { ValueKinds } from "./model/value-kinds.js"
+export { ProfileRules } from "./model/profile-rules.js"
+export { SetupRules } from "./model/setup-rules.js"
 export type {
+  CredentialType,
   EngineAdapter,
   EngineConnection,
   EngineCredentials,
+  EngineProfiles,
   EngineWebUi,
 } from "./ports/engine-adapter.js"
+export type {
+  EngineSetup,
+  SetupChoice,
+  SetupCredentials,
+  SetupField,
+  SetupValues,
+} from "./ports/engine-setup.js"
+export type { BpmnDialect, ImplementationRule, MappingRule } from "./ports/bpmn-dialect.js"
 export type { CodeLocator } from "./ports/code-locator.js"
 export type { ModelSource } from "./ports/model-source.js"
 export type {

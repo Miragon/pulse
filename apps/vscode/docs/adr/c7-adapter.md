@@ -253,6 +253,11 @@ engine calls answer a port method and maps their answers to the contract's read 
 private methods; nothing else does either. What one call needs from another (the inspected
 instance, the definitions by instance) goes in as a parameter, never as constructor state.
 
+`C7BpmnDialect` (`apps/vscode/src/adapters/c7/c7-bpmn-dialect.ts`) tells the model adapter what the
+family writes into a model: the camunda descriptor, class, delegate expression, expression and
+external topic, `camunda:inputOutput`, `camunda:errorEventDefinition` and the marks of the
+external task client ([local-sources.md](local-sources.md)).
+
 | Folder                                            | Classes                                                                                                                                                                                                                             | Job                                                                                                                                            |
 | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | `apps/vscode/src/adapters/c7/web-ui`              | `CockpitWebUi`                                                                                                                                                                                                                      | the routes into Cockpit or the CIB seven webclient                                                                                             |

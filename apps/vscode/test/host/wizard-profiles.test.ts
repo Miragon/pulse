@@ -1,18 +1,17 @@
 import { readFileSync } from "node:fs"
 import { describe, expect, test } from "vitest"
 import { ProjectFileEdit } from "../../src/host/connections/project-file-edit.js"
-import { SaasSetup } from "../../src/host/connections/saas-setup.js"
-import { SelfManagedSetup } from "../../src/host/connections/self-managed-setup.js"
-import type { SetupValues } from "../../src/host/connections/setup-field.js"
+import { SaasSetup } from "../../src/adapters/c8/setup/saas-setup.js"
+import { SelfManagedSetup } from "../../src/adapters/c8/setup/self-managed-setup.js"
+import type { SetupValues } from "../../src/contract/index.js"
 
 const FIXTURE = new URL(
   "../../../cli/test/fixtures/project-file/valid-wizard-profiles.json",
   import.meta.url,
 )
 const SCHEMA = "https://unpkg.com/@miragon/pulse-cli/schema/project-file.schema.json"
-const TAKEN: ReadonlySet<string> = new Set()
-const SAAS = new SaasSetup(TAKEN)
-const SELF_MANAGED = new SelfManagedSetup(TAKEN)
+const SAAS = new SaasSetup()
+const SELF_MANAGED = new SelfManagedSetup()
 const OIDC: SetupValues = {
   url: "https://camunda.example.com/v2",
   operateUrl: "https://camunda.example.com/operate",

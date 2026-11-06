@@ -3,11 +3,15 @@ import type { ModdleElement, ParseResult } from "bpmn-moddle"
 import { ModelParser } from "./model-parser.js"
 
 export class ErrorReader {
-  static of(model: ParseResult, element: ModdleElement): ErrorReference[] {
+  static of(
+    model: ParseResult,
+    element: ModdleElement,
+    extensionDefinitions: ReadonlySet<string>,
+  ): ErrorReference[] {
     const definitions = [
       ...ErrorReader.boundaryDefinitions(model, element),
-      ...ModelParser.extensions(element).filter(
-        (extension) => extension.$type === "camunda:ErrorEventDefinition",
+      ...ModelParser.extensions(element).filter((extension) =>
+        extensionDefinitions.has(extension.$type),
       ),
     ]
     const references = definitions.flatMap((definition) => ErrorReader.referenceOf(definition))

@@ -4,6 +4,7 @@ import type { OpenTargetsFileCommand } from "../../src/host/commands/open-target
 import type { ConnectionRegistry } from "../../src/host/connections/connection-registry.js"
 import type { CredentialStore } from "../../src/host/connections/credential-store.js"
 import type { EngineTarget } from "../../src/host/connections/engine-target.js"
+import { CATALOGUE } from "./support/engines.js"
 import { ScriptedPrompts } from "./support/scripted-prompts.js"
 
 interface Folder {
@@ -88,6 +89,7 @@ function adding(answers: readonly (string | undefined)[], describe: () => Promis
   })
   const openFile = vi.fn<OpenTargetsFileCommand["run"]>(() => Promise.resolve())
   const registry = {
+    catalogue: () => CATALOGUE,
     all: () => [{ target: { name: "shop-dev" } }],
     reload: () => {
       fake.log.push("reload")

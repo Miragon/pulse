@@ -1,7 +1,9 @@
 import { describe, expect, test } from "vitest"
 import { SetupSteps } from "../../src/host/commands/setup-steps.js"
-import { SaasSetup } from "../../src/host/connections/saas-setup.js"
-import { SelfManagedSetup } from "../../src/host/connections/self-managed-setup.js"
+import { SaasSetup } from "../../src/adapters/c8/setup/saas-setup.js"
+import { SelfManagedSetup } from "../../src/adapters/c8/setup/self-managed-setup.js"
+import type { EngineSetup } from "../../src/contract/index.js"
+import { SetupFields } from "../../src/host/connections/setup-fields.js"
 import { ScriptedPrompts } from "./support/scripted-prompts.js"
 
 const SAVE = "$(check) Save and connect"
@@ -26,10 +28,15 @@ function inputOf(prompts: ScriptedPrompts, title: string) {
   return input
 }
 
-async function asked(
-  setup: SaasSetup | SelfManagedSetup,
-  answers: readonly (string | undefined)[],
-) {
+function saas(): EngineSetup {
+  return SetupFields.completed(new SaasSetup(), TAKEN)
+}
+
+function selfManaged(): EngineSetup {
+  return SetupFields.completed(new SelfManagedSetup(), TAKEN)
+}
+
+async function asked(setup: EngineSetup, answers: readonly (string | undefined)[]) {
   const prompts = new ScriptedPrompts(answers)
   const values = await new SetupSteps(prompts).ask(setup)
   return { prompts, values }
@@ -37,7 +44,7 @@ async function asked(
 
 describe("the Camunda 8 SaaS steps", () => {
   test("ask each value with its step, then save what the review shows", async () => {
-    const setup = new SaasSetup(TAKEN)
+    const setup = saas()
     const { prompts, values } = await asked(setup, [...SAAS_ANSWERS, SAVE])
 
     expect(prompts.titles()).toEqual([
@@ -83,7 +90,7 @@ describe("the Camunda 8 SaaS steps", () => {
   })
 
   test("suggest the audience and a name, mask the secret and say where Hub shows each value", async () => {
-    const { prompts } = await asked(new SaasSetup(TAKEN), [...SAAS_ANSWERS, SAVE])
+    const { prompts } = await asked(saas(), [...SAAS_ANSWERS, SAVE])
 
     expect(inputOf(prompts, "Audience").value).toBe("zeebe.camunda.io")
     expect(inputOf(prompts, "Name").value).toBe("saas-bru-2")
@@ -110,13 +117,13 @@ describe("the Camunda 8 SaaS steps", () => {
     ["Name", "-saas", 'Use letters, digits, ".", "_" and "-", and start with a letter or digit.'],
     ["Name", "shop-dev", "Pulse already reads an engine named shop-dev. Choose another name."],
   ])("refuse a %s of %j", async (title, value, problem) => {
-    const { prompts } = await asked(new SaasSetup(TAKEN), [...SAAS_ANSWERS, SAVE])
+    const { prompts } = await asked(saas(), [...SAAS_ANSWERS, SAVE])
 
     expect(inputOf(prompts, title).validate(value)).toBe(problem)
   })
 
   test("change a value from the review and keep the rest", async () => {
-    const { values } = await asked(new SaasSetup(TAKEN), [...SAAS_ANSWERS, "Region", "jfk-1", SAVE])
+    const { values } = await asked(saas(), [...SAAS_ANSWERS, "Region", "jfk-1", SAVE])
 
     expect(values).toMatchObject({ region: "jfk-1", name: "saas-bru-2" })
   })
@@ -124,13 +131,13 @@ describe("the Camunda 8 SaaS steps", () => {
   test.each([0, 3, 6, 7])("stop without values when Escape ends step %i", async (step) => {
     const answers = [...SAAS_ANSWERS.slice(0, step), undefined]
 
-    expect((await asked(new SaasSetup(TAKEN), answers)).values).toBeUndefined()
+    expect((await asked(saas(), answers)).values).toBeUndefined()
   })
 })
 
 describe("the Camunda 8 Self-Managed steps", () => {
   test("read OIDC client credentials with scopes and an audience, and no Operate link when empty", async () => {
-    const setup = new SelfManagedSetup(TAKEN)
+    const setup = selfManaged()
     const { prompts, values } = await asked(setup, [
       "http://localhost:18088/v2/",
       "",
@@ -170,7 +177,7 @@ describe("the Camunda 8 Self-Managed steps", () => {
   })
 
   test("read basic auth, and a login added from the review asks what it needs", async () => {
-    const setup = new SelfManagedSetup(TAKEN)
+    const setup = selfManaged()
     const { values } = await asked(setup, [
       "https://camunda.example.com/v2",
       "https://camunda.example.com/operate",
@@ -198,7 +205,7 @@ describe("the Camunda 8 Self-Managed steps", () => {
   })
 
   test("send nothing for an open API, and say so before saving", async () => {
-    const setup = new SelfManagedSetup(TAKEN)
+    const setup = selfManaged()
     const { prompts, values } = await asked(setup, [
       "http://localhost:18088/v2",
       "http://localhost:18088/operate",
@@ -239,7 +246,7 @@ describe("the Camunda 8 Self-Managed steps", () => {
       "Separate distinct scopes with spaces. A scope has no quotes or backslashes.",
     ],
   ])("refuse a %s of %j", async (title, value, problem) => {
-    const { prompts } = await asked(new SelfManagedSetup(TAKEN), [
+    const { prompts } = await asked(selfManaged(), [
       "http://localhost:18088/v2",
       "",
       "OIDC client credentials",

@@ -2,10 +2,11 @@ import type * as vscode from "vscode"
 import { describe, expect, test } from "vitest"
 import { CredentialStore } from "../../src/host/connections/credential-store.js"
 import { EngineBadges } from "../../src/host/connections/engine-badges.js"
-import { LOCAL_TARGET, type EngineTarget } from "../../src/host/connections/engine-target.js"
+import type { EngineTarget } from "../../src/host/connections/engine-target.js"
 import { EnvironmentClassifier } from "../../src/host/connections/environment-classifier.js"
 import { TargetPolicy } from "../../src/host/connections/target-policy.js"
 import { TargetsParser } from "../../src/host/connections/targets-parser.js"
+import { CATALOGUE, LOCAL_TARGET } from "./support/engines.js"
 
 const FILE = "/work/.pulse-cli.json"
 const NONE = { user: undefined, workspace: [] }
@@ -34,7 +35,7 @@ describe("parsing the profiles of .pulse-cli.json", () => {
       },
     })
 
-    expect(new TargetsParser(FILE).parse(content)).toEqual({
+    expect(new TargetsParser(FILE, CATALOGUE).parse(content)).toEqual({
       targets: [
         {
           name: "dev",
@@ -71,7 +72,7 @@ describe("parsing the profiles of .pulse-cli.json", () => {
       },
     })
 
-    const parsed = new TargetsParser(FILE).parse(content)
+    const parsed = new TargetsParser(FILE, CATALOGUE).parse(content)
 
     expect(parsed.targets).toEqual([
       expect.objectContaining({
@@ -97,7 +98,7 @@ describe("parsing the profiles of .pulse-cli.json", () => {
       },
     })
 
-    const parsed = new TargetsParser(FILE).parse(content)
+    const parsed = new TargetsParser(FILE, CATALOGUE).parse(content)
 
     expect(parsed.targets.map((target) => target.name)).toEqual(["ok"])
     expect(parsed.targets[0]?.auth).toEqual({ kind: "oauth2" })
@@ -120,7 +121,7 @@ describe("parsing the profiles of .pulse-cli.json", () => {
       },
     })
 
-    const parsed = new TargetsParser(FILE).parse(content)
+    const parsed = new TargetsParser(FILE, CATALOGUE).parse(content)
 
     expect(parsed.targets.map((target) => target.name)).toEqual(["current"])
     expect(parsed.problems.map((problem) => problem.detail())).toEqual([
@@ -135,7 +136,7 @@ describe("parsing the profiles of .pulse-cli.json", () => {
       profiles: { typo: { url: "http://localhost:8080/engine-rest", flavor: "camunda" } },
     })
 
-    expect(new TargetsParser(FILE).parse(content)).toEqual({
+    expect(new TargetsParser(FILE, CATALOGUE).parse(content)).toEqual({
       targets: [],
       problems: [
         {
@@ -147,18 +148,18 @@ describe("parsing the profiles of .pulse-cli.json", () => {
   })
 
   test("reports a malformed file instead of failing", () => {
-    expect(new TargetsParser(FILE).parse("{")).toEqual({
+    expect(new TargetsParser(FILE, CATALOGUE).parse("{")).toEqual({
       targets: [],
       problems: [{ path: FILE, message: "the file is not valid JSON" }],
     })
-    expect(new TargetsParser(FILE).parse('{"profiles": []}').problems).toEqual([
+    expect(new TargetsParser(FILE, CATALOGUE).parse('{"profiles": []}').problems).toEqual([
       { path: FILE, message: 'the file needs a "profiles" object' },
     ])
-    expect(new TargetsParser(FILE).parse("{}")).toEqual({ targets: [], problems: [] })
+    expect(new TargetsParser(FILE, CATALOGUE).parse("{}")).toEqual({ targets: [], problems: [] })
   })
 
   test("names the broken file and what is wrong, for the error item in the Engines tree", () => {
-    const [problem] = new TargetsParser(FILE).parse("{").problems
+    const [problem] = new TargetsParser(FILE, CATALOGUE).parse("{").problems
 
     expect(problem?.label()).toBe(".pulse-cli.json: the file is not valid JSON")
     expect(problem?.detail()).toBe(`${FILE}: the file is not valid JSON`)
@@ -267,7 +268,7 @@ describe("the target policy", () => {
   })
 
   test("refuses endpoints that carry credentials", () => {
-    const parsed = new TargetsParser(FILE).parse(
+    const parsed = new TargetsParser(FILE, CATALOGUE).parse(
       JSON.stringify({
         profiles: { x: { url: "https://user:secret@x.example.com/engine-rest" } },
       }),

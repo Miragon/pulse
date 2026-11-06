@@ -1,16 +1,33 @@
 import type {
+  BpmnDialect,
   EngineAdapter,
   EngineConnection,
+  EngineProfiles,
+  EngineSetup,
   EngineWebUi,
   ProcessCommands,
   ProcessRuntime,
 } from "../../contract/index.js"
+import { C7BpmnDialect } from "./c7-bpmn-dialect.js"
 import { C7ProcessCommands } from "./c7-process-commands.js"
 import { C7ProcessRuntime } from "./c7-process-runtime.js"
 import { EngineHttp, RestEngineClient, RestEngineWriter } from "./engine-rest/index.js"
 import { CockpitWebUi } from "./web-ui/cockpit-web-ui.js"
 
 export class C7Adapter implements EngineAdapter {
+  readonly id = "c7"
+
+  readonly profiles: EngineProfiles = {
+    name: "Camunda 7, Operaton or CIB seven",
+    flavors: ["camunda7", "cibseven", "operaton"],
+    withoutFlavor: true,
+    credentials: ["basic"],
+    localEndpoint: "http://localhost:8080/engine-rest",
+  }
+
+  readonly setups: readonly EngineSetup[] = []
+  readonly bpmn: BpmnDialect = new C7BpmnDialect()
+
   constructor(private readonly send: typeof fetch = fetch) {}
 
   runtime(connection: EngineConnection): ProcessRuntime {

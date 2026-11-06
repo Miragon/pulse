@@ -66,7 +66,8 @@ describe("the lint gates", { timeout: 120_000 }, () => {
   test.each([
     "apps/vscode/src/contract/ports/process-runtime.ts",
     "apps/vscode/src/contract/model/ids.ts",
-  ])("keep engine words out of the contract: %s", async (filePath) => {
+    "apps/vscode/src/model/model/model-parser.ts",
+  ])("keep engine words out of the contract and the model adapter: %s", async (filePath) => {
     expect(await rulesFiredOn(readRepoFile(filePath), filePath)).toEqual([])
     const probe = `${readRepoFile(filePath)}\nexport type Key = 'processInstanceKey';\n`
     expect(await rulesFiredOn(probe, filePath)).toEqual(["no-restricted-syntax"])
@@ -75,6 +76,16 @@ describe("the lint gates", { timeout: 120_000 }, () => {
   test("let the neutral words of the contract through", async () => {
     const neutral = withProbe("export const ids = 'elementId bpmnProcessId definitionId c78';")
     expect(await rulesFiredOn(neutral)).toEqual([])
+  })
+
+  test.each([
+    "apps/vscode/src/host/connections/targets-parser.ts",
+    "apps/vscode/src/host/connections/engine-catalogue.ts",
+    "apps/vscode/src/host/commands/add-engine-command.ts",
+  ])("keep engine words out of the host outside its composition root: %s", async (filePath) => {
+    expect(await rulesFiredOn(readRepoFile(filePath), filePath)).toEqual([])
+    const probe = `${readRepoFile(filePath)}\nexport type Flavor = 'camunda8';\n`
+    expect(await rulesFiredOn(probe, filePath)).toEqual(["no-restricted-syntax"])
   })
 
   test("keep the engine CLI out of the extension outside its composition root", async () => {

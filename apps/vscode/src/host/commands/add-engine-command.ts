@@ -5,8 +5,8 @@ import type { CredentialStore } from "../connections/credential-store.js"
 import type { EngineTarget } from "../connections/engine-target.js"
 import { ProjectFileEdit } from "../connections/project-file-edit.js"
 import { PulseSettings } from "../connections/pulse-settings.js"
-import type { EngineSetup, SetupValues } from "../connections/setup-field.js"
-import { SetupKinds } from "../connections/setup-kinds.js"
+import type { EngineSetup, SetupValues } from "../../contract/index.js"
+import { SetupFields } from "../connections/setup-fields.js"
 import { TargetPolicy } from "../connections/target-policy.js"
 import { TargetsFile } from "../connections/targets-file.js"
 import { TargetsParser } from "../connections/targets-parser.js"
@@ -50,27 +50,26 @@ export class AddEngineCommand implements Command {
 
   async run(): Promise<void> {
     const folder = await this.folder()
-    const kind =
+    const choice =
       folder === undefined
         ? undefined
         : await this.prompts.pick(
             "Add Engine",
-            SetupKinds.choices().map((choice) => ({
-              label: choice.label,
-              detail: choice.detail,
-              item: choice.value,
-            })),
+            this.registry
+              .catalogue()
+              .choices()
+              .map((each) => ({ label: each.label, detail: each.detail, item: each })),
             "Which engine do you want to add?",
           )
-    if (folder === undefined || kind === undefined) {
+    if (folder === undefined || choice === undefined) {
       return
     }
-    const taken = new Set(this.registry.all().map((connection) => connection.target.name))
-    const setup = SetupKinds.setupOf(kind, taken)
-    if (setup === undefined) {
+    if (choice.setup === undefined) {
       await this.projectFile.run()
       return
     }
+    const taken = new Set(this.registry.all().map((connection) => connection.target.name))
+    const setup = SetupFields.completed(choice.setup, taken)
     const values = await this.steps.ask(setup)
     if (values !== undefined) {
       await this.finish({ folder, setup, values })
@@ -116,7 +115,7 @@ export class AddEngineCommand implements Command {
     if ("problem" in edition) {
       return `${TargetsFile.NAME} ${edition.problem}.`
     }
-    const parsed = new TargetsParser(file.fsPath).parse(edition.text)
+    const parsed = new TargetsParser(file.fsPath, this.registry.catalogue()).parse(edition.text)
     const target = parsed.targets.find((each) => each.name === name)
     if (target === undefined) {
       const problem = parsed.problems.find((each) => each.message.startsWith(`profile "${name}"`))

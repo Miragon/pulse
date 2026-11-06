@@ -48,7 +48,7 @@ flowchart LR
 ## Rules
 
 - In `apps/vscode/src/host/`, only `composition-root.ts` imports an adapter (dependency-cruiser, `pnpm lint:architecture:vscode`)
-- Engine words only in `composition-root.ts` and `connections/` (ESLint `no-restricted-syntax`)
+- Engine words only in `composition-root.ts` (ESLint `no-restricted-syntax`): the connections, the commands and _Add Engine_ ask the `EngineCatalogue` the root builds from the adapters
 - One class per file; `activate` and `deactivate` are the only module functions (ESLint)
 
 ## Build and test

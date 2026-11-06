@@ -1,4 +1,4 @@
-import type { EngineSetup, SetupField, SetupValues } from "../connections/setup-field.js"
+import type { EngineSetup, SetupField, SetupValues } from "../../contract/index.js"
 import type { PromptItem, Prompts } from "./prompts.js"
 
 const SAVE = "save"

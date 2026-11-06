@@ -37,6 +37,12 @@ and zod, which the closed-world rules forbid, reads its settings from the enviro
 "the engine shown is the engine queried", and retries on its own. `c8ctl` would mean a process per
 call. Tests use it as an independent check, by `npx`, never as a dependency.
 
+**The adapter brings what the host and the model adapter need to know.** `C8Adapter` names its
+flavor and credential types, its setups for _Add Engine_ live in
+`apps/vscode/src/adapters/c8/setup`, and `C8BpmnDialect` (`c8-bpmn-dialect.ts`) gives the model
+adapter the zeebe descriptor, the job type of `zeebe:taskDefinition`, `zeebe:ioMapping` and the
+marks of a job worker ([local-sources.md](local-sources.md)).
+
 **One HTTP seam.** `rest/camunda-http.ts` follows `EngineHttp`'s rules: `redirect: manual`, a
 60 s deadline, a 64 MiB cap. The cap lives in `rest/capped-text.ts`, which token requests share
 with 1 MiB and a 30 s deadline. `rest/rest-camunda-client.ts` has one method per call, and

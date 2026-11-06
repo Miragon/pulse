@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs"
 import { describe, expect, test } from "vitest"
 import type { EngineTarget } from "../../src/host/connections/engine-target.js"
 import { TargetsParser } from "../../src/host/connections/targets-parser.js"
+import { CATALOGUE } from "./support/engines.js"
 
 interface ResolvedProfile {
   readonly url: string
@@ -74,7 +75,7 @@ const fixtures: readonly Fixture[] = readdirSync(FIXTURES)
 const expected = JSON.parse(readFileSync(EXPECTED, "utf8")) as Readonly<Record<string, Expected>>
 
 function parsed(fixture: Fixture) {
-  return new TargetsParser(FILE).parse(fixture.text)
+  return new TargetsParser(FILE, CATALOGUE).parse(fixture.text)
 }
 
 function writtenTokenEndpoint(fixture: Fixture, name: string): unknown {

@@ -26,7 +26,7 @@ host as CommonJS for Node 22, the webview as an IIFE.
 | `core`        | Engine-neutral logic: use cases turn read models into view models, panel sessions handle webview intents; `apps/vscode/src/core/protocol` holds the JSON-only messages and view models                                                                                                                       | none                                  |
 | `webview`     | Preact UI and bpmn-js diagram. Renders protocol view models, sends intents                                                                                                                                                                                                                                   | browser                               |
 | `adapters/c7` | `EngineAdapter`, `ProcessRuntime`, `ProcessCommands` and the Cockpit web UI for the Camunda 7 family ([c7-adapter.md](c7-adapter.md)); `apps/vscode/src/adapters/c7/engine-rest` reads and writes the engine's REST API                                                                                      | Node                                  |
-| `model`       | `ModelSource` and `CodeLocator` for the local workspace: reads `.bpmn` files with bpmn-moddle and its vendor descriptors, finds the implementing code ([local-sources.md](local-sources.md)); the only layer with those libraries                                                                            | none (files through `WorkspaceFiles`) |
+| `model`       | `ModelSource` and `CodeLocator` for the local workspace: reads `.bpmn` files with bpmn-moddle and the BPMN dialects of the engine adapters, finds the implementing code ([local-sources.md](local-sources.md)); the only layer with those libraries                                                          | none (files through `WorkspaceFiles`) |
 | `host`        | VS Code host: composition root, connections, tree, panels, commands, status bar                                                                                                                                                                                                                              | Node + `vscode`                       |
 
 The core in the product owner's sense is everything that is engine-neutral
@@ -56,9 +56,10 @@ contract    → (nothing)
 core        → contract (entry only)
 protocol    → (nothing outside protocol)
 webview     → protocol (type-only), preact, bpmn-js, diagram-js, modeler-shell, fonts
-adapters/*  → contract (entry only)
-model       → contract (entry only), bpmn-moddle, camunda-bpmn-moddle, zeebe-bpmn-moddle
-              (nothing else may import these)
+adapters/*  → contract (entry only); an adapter's <engine>-bpmn-dialect.ts also its vendor's
+              moddle descriptor (the JSON of camunda-bpmn-moddle or zeebe-bpmn-moddle)
+model       → contract (entry only), bpmn-moddle
+              (nothing else may import it; the descriptors come from the dialects)
 host        → core, protocol, contract, vscode, modeler-shell, Node built-ins
               adapters and the model adapter only from host/composition-root.ts
 tests, scripts, dev tooling → anything
@@ -80,8 +81,8 @@ CLI refuses as a whole (a committed password, a secret header, an unknown key) c
 engines; the fixtures pin that.
 
 The extension writes the file in one place: _Add Engine_ (`src/host/commands/add-engine-command.ts`)
-appends the profile that `src/host/connections/saas-setup.ts` or `self-managed-setup.ts` builds,
-through `src/host/connections/project-file-edit.ts`, the way the CLI writes: never as the default,
+appends the profile that an adapter's setup builds (`src/adapters/c8/setup/saas-setup.ts`,
+`self-managed-setup.ts`), through `src/host/connections/project-file-edit.ts`, the way the CLI writes: never as the default,
 `$schema` and `defaultProfile` untouched, nothing written into a file that isn't JSON, no secret.
 The fixture `valid-wizard-profiles.json` holds the wizard's exact output and
 `apps/vscode/test/host/wizard-profiles.test.ts` compares the two, so the CLI's parser and schema
@@ -93,9 +94,13 @@ so code that uses `document` in the core or `process` in the webview does not co
 ### Composition root
 
 `apps/vscode/src/host/composition-root.ts` is the only place that knows engines. Its
-class `CompositionRoot` holds one `EngineAdapter` per engine kind (`c7` → `C7Adapter`
-in a `Record<EngineKind, EngineAdapter>`, so a new kind does not compile without its
-adapter) and implements `EngineFactories`: for a configured target it
+class `CompositionRoot` holds the list of adapters and, built from it, the `EngineCatalogue`
+(`src/host/connections/engine-catalogue.ts`). Each adapter describes itself: its id, the profile
+flavors it serves (and whether a profile without a flavor is its), the credential types it takes,
+the local endpoint Pulse falls back to and its setups for _Add Engine_. The profile parser, the
+discovery, _Set Credentials_ and _Add Engine_ ask the catalogue, so the host names no engine. The
+adapters also bring their BPMN dialects, which `localSources(files)` hands the model adapter. The
+root implements `EngineFactories`: for a configured target it
 returns the `ProcessRuntime` and, where the adapter has them, the `ProcessCommands` and
 the `EngineWebUi` (for a target with a `cockpitUrl`) of the adapter for `target.engine`. A target the target policy refuses (OAuth2,
 credentials saved for another endpoint, basic credentials over plain HTTP) gets a
@@ -108,7 +113,8 @@ The rest of the extension is VS Code wiring. `activate` in `extension.ts` hands 
 trees, the status bar, the panel manager and the commands (each a class implementing
 `Command`, registered by `CommandRegistrar`) and puts them into the context's
 subscriptions. No DI container, no plugin registry: adding an engine means one adapter
-folder and one entry in the composition root's adapter map.
+folder and one entry in the composition root's list of adapters, which
+`apps/vscode/test/architecture/engine-modules.test.ts` holds together.
 
 ### Host ⇄ webview protocol
 
@@ -191,14 +197,16 @@ file's current content when _Show Runtime Data for This Model_ runs again.
   `pnpm --filter pulse-cockpit run typecheck` through the `@ts-expect-error` probe of each
   layer (`apps/vscode/test/<layer>/runtime.boundary.ts`).
 - A new engine takes `apps/vscode/src/adapters/<engine>` with a class implementing
-  `EngineAdapter`, an engine test that runs the `ConformanceKit` and one entry in the
-  composition root. A new flavor or credential kind also takes the host's profile reader
-  and credential store. Core, protocol and webview change only where the contract gains
-  something, and they never name an engine: ESLint keeps engine words out of them, and
-  dependency-cruiser fails while a new adapter has no engine test.
+  `EngineAdapter` (its id, the folder's name, with its profiles, setups and BPMN dialect next to
+  runtime, commands and web UI), an engine test that runs the `ConformanceKit` and one entry in
+  the composition root. A new credential kind also takes the host's profile reader and
+  credential store. Core, protocol, webview, the model adapter and the host change only where
+  the contract gains something, and they never name an engine: ESLint keeps engine words out of
+  them (the composition root excepted), and dependency-cruiser fails while a new adapter has no
+  engine test.
   `apps/vscode/src/adapters/c8` came this way: the contract gained what real engines proved
-  it needs ([runtime-contract.md](runtime-contract.md)), and the host the flavor `camunda8`
-  and client credentials.
+  it needs ([runtime-contract.md](runtime-contract.md)), and the host client credentials; its
+  flavor `camunda8`, its setups and its BPMN dialect are the adapter's own.
 - Source-only layers keep the build to one esbuild run; the extension ships as one .vsix.
 
 ## Decision log

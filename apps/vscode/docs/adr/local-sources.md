@@ -1,7 +1,7 @@
 # Local sources: model and code next to the runtime
 
 - Status: accepted
-- Last reviewed: 2026-10-22
+- Last reviewed: 2026-11-06
 
 ## Context
 
@@ -10,8 +10,9 @@ this element?" and "where is the code that ran?" (Miragon/pulse-vscode#2). A
 standalone cockpit cannot answer them; an IDE can, because the `.bpmn` file and the
 workers are in the workspace. The configuration is vendor vocabulary (`camunda:topic`,
 `camunda:delegateExpression`, `zeebe:taskDefinition`, `camunda:inputOutput`,
-`zeebe:ioMapping`), so it must stay out of the contract, the core and the webview, and
-Pulse must keep working without the Miragon BPMN modeler.
+`zeebe:ioMapping`), so it must stay out of the contract, the core, the webview and the model
+adapter: each engine adapter brings it as its BPMN dialect. Pulse must keep working without the
+Miragon BPMN modeler.
 
 Libraries considered:
 
@@ -48,24 +49,37 @@ them.
 
 The only package with the moddle libraries (and, should they be published one day, the
 bpmn-modeler libraries). It is not called `adapter-*`, because every `adapter-*` package
-must pass the engine conformance kit.
+must pass the engine conformance kit. It names no engine: what a vendor writes into a model
+comes from the engine adapters as a `BpmnDialect` (`apps/vscode/src/contract/ports/bpmn-dialect.ts`),
+in the order of the composition root's adapters.
+
+| Field              | What it says                                                     | Camunda 7 family (`C7BpmnDialect`)                     | Camunda 8 (`C8BpmnDialect`)           |
+| ------------------ | ---------------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------- |
+| `descriptor`       | the vendor's moddle descriptor, the JSON of its `*-bpmn-moddle`  | `camunda-bpmn-moddle`                                  | `zeebe-bpmn-moddle`                   |
+| `fallback`         | parses every file that no other dialect's namespace marks        | yes                                                    | no                                    |
+| `implementations`  | where an element names its implementation, in order              | class, delegate expression, expression, external topic | job type of `zeebe:taskDefinition`    |
+| `mappings`         | the container of inputs and outputs and its parameter properties | `camunda:inputOutput`                                  | `zeebe:ioMapping`                     |
+| `errorDefinitions` | extension elements that throw errors                             | `camunda:errorEventDefinition`                         | none                                  |
+| `workerMarkers`    | words on the line where code subscribes a worker                 | `ExternalTaskSubscription`, `subscribe`, `topicName`   | `JobWorker`, `ZeebeWorker`, `jobType` |
 
 - `BpmnModelSource` finds `**/*.bpmn` (at most 500, sorted by path), skips files that do not
-  mention the process id, and confirms the id with moddle. It parses a Camunda 8 file
-  (zeebe namespace) with the zeebe descriptor and every other file with the camunda one:
-  one moddle instance with both descriptors drops the processes of a file. It reads the
-  implementation in the order of bpmn-modeler's code link (class, delegate expression,
-  expression, external topic, zeebe job type), the camunda `inputOutput` or zeebe
-  `ioMapping`, and the errors of the error boundary events attached to the element plus
-  its `camunda:errorEventDefinition`s.
+  mention the process id, and confirms the id with moddle. It parses a file with the
+  descriptor of the dialect whose namespace the file names and every other file with the
+  fallback's, so a file that names both the zeebe and the camunda namespace reads as
+  Camunda 8: one moddle instance with both descriptors drops the processes of a file. It
+  reads the implementation by the dialects' rules in the order of bpmn-modeler's code link
+  (class, delegate expression, expression, external topic, job type), the inputs and outputs
+  of their mapping containers, and the errors of the error boundary events attached to the
+  element plus the dialects' error definitions.
 - `WorkspaceCodeLocator` follows bpmn-modeler's `ImplementationLocator`: a class by its
   qualified name as a path (`**/io/shop/Charge.{java,kt,groovy,scala}`, the outer class of a
   nested one); a delegate or expression by its bean (`${svc.run()}` → `Svc.java`, else
-  `@Component("svc")` and its kin); a worker task by its task type as a quoted literal, first on a line that subscribes (`@ExternalTaskSubscription`, `@JobWorker`, `subscribe(`, `jobType(` …) so a constants class does not win, then anywhere, in
+  `@Component("svc")` and its kin); a worker task by its task type as a quoted literal, first on a line with a worker marker of a dialect (`@ExternalTaskSubscription`, `@JobWorker`, `subscribe(`, `jobType(` …) so a constants class does not win, then anywhere, in
   `*.{java,kt,groovy,scala,js,ts}`, outside comment lines, at most 5 000 files, main
   sources before test sources.
 
-Only the composition root constructs the adapter (`CompositionRoot.localSources(files)`).
+Only the composition root constructs the adapter (`CompositionRoot.localSources(files)`, with
+the dialects of its engine adapters).
 A class lands on its declaration (`class`, `interface`, `enum`, `record` or `object` and the
 simple name), else on the first line. The stack trace document reuses the `CodeLocator`: its
 `DocumentLinkProvider` links the thrown classes and the classes of application frames to their
@@ -119,9 +133,13 @@ The extension declares no `extensionDependencies` (`manifest.test.ts` checks it)
 ## Consequences
 
 - dependency-cruiser's `model-libraries-stay-in-the-model-adapter` refuses
-  `bpmn-moddle`, its descriptors and `@miragon/bpmn-modeler*` outside
-  `apps/vscode/src/model`; a planted import in the tree
-  `apps/vscode/test/architecture/dependency-rules.test.ts` builds proves it bites. The cruiser no
+  `bpmn-moddle`, the code of the vendor packages and `@miragon/bpmn-modeler*` outside
+  `apps/vscode/src/model`, and `moddle-descriptors-only-in-a-bpmn-dialect` refuses a vendor
+  descriptor outside an adapter's `<engine>-bpmn-dialect.ts`, the model adapter included;
+  planted imports in the tree `apps/vscode/test/architecture/dependency-rules.test.ts` builds
+  prove both bite. ESLint keeps engine words out of the model adapter as out of the core, and
+  `apps/vscode/test/adapters/bpmn-dialects.test.ts` holds each dialect to the types and
+  properties of its own descriptor. The cruiser no
   longer excludes every `dist/` folder, only our own build output, because libraries such as
   `bpmn-moddle` resolve into `node_modules/<lib>/dist/` and were invisible to every rule.
 - `focusLintElement` is an internal command of the bpmn-modeler, meant for its lint links.

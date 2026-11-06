@@ -2,6 +2,7 @@ import * as vscode from "vscode"
 import type { Connection } from "./connection.js"
 import type { ConnectionBuilder } from "./connection-builder.js"
 import type { CredentialStore } from "./credential-store.js"
+import type { EngineCatalogue } from "./engine-catalogue.js"
 import { EngineLanes } from "./engine-lanes.js"
 import { LivePolicy } from "./live-policy.js"
 import { EnvironmentClassifier } from "./environment-classifier.js"
@@ -27,7 +28,7 @@ export class ConnectionRegistry implements vscode.Disposable {
   ) {}
 
   async reload(): Promise<void> {
-    const discovered = await TargetDiscovery.discover()
+    const discovered = await TargetDiscovery.discover(this.builder.catalogue)
     const environments = PulseSettings.environments()
     const writes = PulseSettings.writes()
     const requests = await Promise.all(
@@ -49,6 +50,10 @@ export class ConnectionRegistry implements vscode.Disposable {
       )
     this.problems = discovered.problems
     this.changed.fire()
+  }
+
+  catalogue(): EngineCatalogue {
+    return this.builder.catalogue
   }
 
   applyLiveSettings(): void {

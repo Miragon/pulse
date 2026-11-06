@@ -4,8 +4,9 @@ import type { OpenTargetsFileCommand } from "../../src/host/commands/open-target
 import type { Connection } from "../../src/host/connections/connection.js"
 import type { ConnectionRegistry } from "../../src/host/connections/connection-registry.js"
 import type { CredentialStore } from "../../src/host/connections/credential-store.js"
-import { LOCAL_TARGET, type EngineTarget } from "../../src/host/connections/engine-target.js"
+import type { EngineTarget } from "../../src/host/connections/engine-target.js"
 import type { PanelHost, PanelNavigator } from "../../src/host/panels/vscode-panel-effects.js"
+import { CATALOGUE, LOCAL_TARGET } from "./support/engines.js"
 
 interface InputOptions {
   readonly title: string
@@ -92,7 +93,7 @@ function setCredentials() {
   const reload = vi.fn<ConnectionRegistry["reload"]>(() => Promise.resolve())
   const openFile = vi.fn<OpenTargetsFileCommand["run"]>(() => Promise.resolve())
   const command = new SetCredentialsCommand(
-    { reload } as unknown as ConnectionRegistry,
+    { reload, catalogue: () => CATALOGUE } as unknown as ConnectionRegistry,
     { write } as unknown as CredentialStore,
     { pick: vi.fn() } as unknown as ConnectionPicker,
     { run: openFile } as unknown as OpenTargetsFileCommand,

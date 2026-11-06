@@ -8,7 +8,7 @@ import { LiveWiring } from "../../src/host/live/live-wiring.js"
 import { WindowAttention } from "../../src/host/live/window-attention.js"
 import { ConnectionLive } from "./support/connection-live.js"
 import { FakeRegistry } from "./support/fake-registry.js"
-import { LOCAL_TARGET } from "../../src/host/connections/engine-target.js"
+import { LOCAL_TARGET } from "./support/engines.js"
 import {
   EventEmitter,
   debugEnded,

@@ -1,33 +1,44 @@
-import type { ElementImplementation } from "../../contract/index.js"
+import type { ElementImplementation, ImplementationRule } from "../../contract/index.js"
 import type { ModdleElement } from "bpmn-moddle"
 import { ModelParser } from "./model-parser.js"
 
 export class ImplementationReader {
-  static of(element: ModdleElement): ElementImplementation | undefined {
-    const className = ModelParser.text(element, "camunda:class")
-    if (className !== undefined) {
-      return { kind: "class", className }
+  static of(
+    element: ModdleElement,
+    rules: readonly ImplementationRule[],
+  ): ElementImplementation | undefined {
+    for (const rule of rules) {
+      const value = ImplementationReader.valueOf(element, rule)
+      if (value !== undefined) {
+        return ImplementationReader.implementation(rule.kind, value)
+      }
     }
-    const delegate = ModelParser.text(element, "camunda:delegateExpression")
-    if (delegate !== undefined) {
-      return { kind: "delegate", expression: delegate }
-    }
-    const expression = ModelParser.text(element, "camunda:expression")
-    if (expression !== undefined) {
-      return { kind: "expression", expression }
-    }
-    const taskType = ImplementationReader.taskType(element)
-    return taskType === undefined ? undefined : { kind: "workerTask", taskType }
+    return undefined
   }
 
-  private static taskType(element: ModdleElement): string | undefined {
-    const topic = ModelParser.text(element, "camunda:topic")
-    if (topic !== undefined && element.get("camunda:type") === "external") {
-      return topic
+  private static valueOf(element: ModdleElement, rule: ImplementationRule): string | undefined {
+    if (rule.when !== undefined && element.get(rule.when.property) !== rule.when.equals) {
+      return undefined
     }
-    const definition = ModelParser.extensions(element).find(
-      (extension) => extension.$type === "zeebe:TaskDefinition",
-    )
-    return ModelParser.text(definition, "type")
+    const owner =
+      rule.extension === undefined
+        ? element
+        : ModelParser.extensions(element).find((extension) => extension.$type === rule.extension)
+    return ModelParser.text(owner, rule.property)
+  }
+
+  private static implementation(
+    kind: ElementImplementation["kind"],
+    value: string,
+  ): ElementImplementation {
+    switch (kind) {
+      case "class":
+        return { kind, className: value }
+      case "delegate":
+      case "expression":
+        return { kind, expression: value }
+      case "workerTask":
+        return { kind, taskType: value }
+    }
   }
 }

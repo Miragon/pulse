@@ -1,13 +1,13 @@
-import { ProfileAuthReader } from "./profile-auth-reader.js"
-import { ProfileUrl } from "./profile-url.js"
-import type {
-  EngineSetup,
-  SetupChoice,
-  SetupCredentials,
-  SetupField,
-  SetupValues,
-} from "./setup-field.js"
-import { SetupFields } from "./setup-fields.js"
+import {
+  ProfileRules,
+  SetupRules,
+  type EngineSetup,
+  type SetupChoice,
+  type SetupCredentials,
+  type SetupField,
+  type SetupValues,
+} from "../../../contract/index.js"
+import { SetupAddress } from "./setup-address.js"
 
 const LOGINS: readonly SetupChoice[] = [
   { value: "none", label: "No login", detail: "The REST API answers without credentials." },
@@ -24,11 +24,16 @@ const WEB_APP_PATH = /\/operate$/
 const NOT_A_NAME = /[^A-Za-z0-9._-]+/g
 
 export class SelfManagedSetup implements EngineSetup {
+  readonly label = "Camunda 8 Self-Managed"
+
+  readonly detail =
+    "Your own cluster's REST API: without login, with basic auth or with OIDC client credentials."
+
   readonly title = "Camunda 8 Self-Managed"
 
   readonly fields: readonly SetupField[]
 
-  constructor(taken: ReadonlySet<string>) {
+  constructor() {
     this.fields = [
       ...SelfManagedSetup.addressFields(),
       {
@@ -39,15 +44,19 @@ export class SelfManagedSetup implements EngineSetup {
       },
       ...SelfManagedSetup.basicFields(),
       ...SelfManagedSetup.oidcFields(),
-      SetupFields.name((values) => SelfManagedSetup.nameOf(values), taken),
-      SetupFields.environment(),
     ]
   }
 
+  suggestedName(values: SetupValues): string {
+    const url = SetupAddress.of(SetupRules.valueOf(values, "url"))
+    const host = url === undefined ? "" : new URL(url).hostname.replace(NOT_A_NAME, "-")
+    return `c8-${host.replace(/^-+|-+$/g, "")}`
+  }
+
   profileOf(values: SetupValues): Readonly<Record<string, unknown>> {
-    const operate = ProfileUrl.of(SetupFields.valueOf(values, "operateUrl"))
+    const operate = SetupAddress.of(SetupRules.valueOf(values, "operateUrl"))
     return {
-      url: ProfileUrl.of(SetupFields.valueOf(values, "url")),
+      url: SetupAddress.of(SetupRules.valueOf(values, "url")),
       ...(operate === undefined ? {} : { cockpitUrl: operate }),
       flavor: "camunda8",
       ...SelfManagedSetup.authOf(values),
@@ -55,17 +64,17 @@ export class SelfManagedSetup implements EngineSetup {
   }
 
   credentialsOf(values: SetupValues): SetupCredentials | undefined {
-    const login = SetupFields.valueOf(values, "login")
+    const login = SetupRules.valueOf(values, "login")
     if (login === "basic") {
       return {
-        identity: SetupFields.valueOf(values, "username"),
-        secret: SetupFields.valueOf(values, "password"),
+        identity: SetupRules.valueOf(values, "username"),
+        secret: SetupRules.valueOf(values, "password"),
       }
     }
     return login === "oidc"
       ? {
-          identity: SetupFields.valueOf(values, "clientId"),
-          secret: SetupFields.valueOf(values, "clientSecret"),
+          identity: SetupRules.valueOf(values, "clientId"),
+          secret: SetupRules.valueOf(values, "clientSecret"),
         }
       : undefined
   }
@@ -86,7 +95,7 @@ export class SelfManagedSetup implements EngineSetup {
           "The address of Operate, ending in /operate. Pulse links to it; leave it empty for no links.",
         optional: true,
         initial: (values) =>
-          ProfileUrl.of(SetupFields.valueOf(values, "url"))?.replace(REST_PATH, "/operate") ?? "",
+          SetupAddress.of(SetupRules.valueOf(values, "url"))?.replace(REST_PATH, "/operate") ?? "",
         problem: (value) => SelfManagedSetup.addressProblem(value, WEB_APP_PATH, "/operate"),
       },
     ]
@@ -100,7 +109,7 @@ export class SelfManagedSetup implements EngineSetup {
         title: "Username",
         prompt: "A user of the cluster. Pulse needs read permissions only.",
         when: basic,
-        problem: SetupFields.notBlank("the username"),
+        problem: SetupRules.notBlank("the username"),
       },
       {
         key: "password",
@@ -108,7 +117,7 @@ export class SelfManagedSetup implements EngineSetup {
         prompt: "Pulse keeps it in VS Code's secret storage and sends it only to the cluster.",
         password: true,
         when: basic,
-        problem: SetupFields.notBlank("the password"),
+        problem: SetupRules.notBlank("the password"),
       },
     ]
   }
@@ -147,7 +156,7 @@ export class SelfManagedSetup implements EngineSetup {
         prompt:
           "The ID of the client your identity provider issued for Pulse. Pulse needs read permissions only.",
         when: oidc,
-        problem: SetupFields.notBlank("the client ID"),
+        problem: SetupRules.notBlank("the client ID"),
       },
       {
         key: "clientSecret",
@@ -156,7 +165,7 @@ export class SelfManagedSetup implements EngineSetup {
           "Pulse keeps it in VS Code's secret storage and sends it only to the token endpoint.",
         password: true,
         when: oidc,
-        problem: SetupFields.notBlank("the client secret"),
+        problem: SetupRules.notBlank("the client secret"),
       },
     ]
   }
@@ -164,19 +173,19 @@ export class SelfManagedSetup implements EngineSetup {
   private static authOf(values: SetupValues): {
     readonly auth?: Readonly<Record<string, unknown>>
   } {
-    const login = SetupFields.valueOf(values, "login")
+    const login = SetupRules.valueOf(values, "login")
     if (login === "basic") {
       return { auth: { type: "basic" } }
     }
     if (login !== "oidc") {
       return {}
     }
-    const scopes = SelfManagedSetup.scopesOf(SetupFields.valueOf(values, "scopes"))
-    const audience = SetupFields.valueOf(values, "audience")
+    const scopes = SelfManagedSetup.scopesOf(SetupRules.valueOf(values, "scopes"))
+    const audience = SetupRules.valueOf(values, "audience")
     return {
       auth: {
         type: "clientCredentials",
-        tokenEndpoint: SetupFields.valueOf(values, "tokenEndpoint"),
+        tokenEndpoint: SetupRules.valueOf(values, "tokenEndpoint"),
         ...(scopes.length === 0 ? {} : { scopes }),
         ...(audience === "" ? {} : { audience }),
       },
@@ -184,7 +193,7 @@ export class SelfManagedSetup implements EngineSetup {
   }
 
   private static addressProblem(value: string, path: RegExp, ending: string): string | undefined {
-    const url = ProfileUrl.of(value)
+    const url = SetupAddress.of(value)
     if (url === undefined) {
       return "Enter an http or https address without credentials, query or fragment."
     }
@@ -192,23 +201,17 @@ export class SelfManagedSetup implements EngineSetup {
   }
 
   private static tokenEndpointProblem(value: string): string | undefined {
-    const written = ProfileUrl.asWritten(value)
+    const written = SetupAddress.asWritten(value)
     return "needs" in written ? `Enter a token endpoint ${written.needs}.` : undefined
   }
 
   private static scopesProblem(value: string): string | undefined {
-    return ProfileAuthReader.isScopeList(SelfManagedSetup.scopesOf(value))
+    return ProfileRules.isScopeList(SelfManagedSetup.scopesOf(value))
       ? undefined
       : "Separate distinct scopes with spaces. A scope has no quotes or backslashes."
   }
 
   private static scopesOf(value: string): string[] {
     return value.split(/\s+/).filter((scope) => scope !== "")
-  }
-
-  private static nameOf(values: SetupValues): string {
-    const url = ProfileUrl.of(SetupFields.valueOf(values, "url"))
-    const host = url === undefined ? "" : new URL(url).hostname.replace(NOT_A_NAME, "-")
-    return `c8-${host.replace(/^-+|-+$/g, "")}`
   }
 }

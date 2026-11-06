@@ -4,6 +4,7 @@ import { CredentialStore } from "../../src/host/connections/credential-store.js"
 import type { EngineTarget } from "../../src/host/connections/engine-target.js"
 import { TargetPolicy } from "../../src/host/connections/target-policy.js"
 import { TargetsParser } from "../../src/host/connections/targets-parser.js"
+import { CATALOGUE } from "./support/engines.js"
 
 const FILE = "/work/.pulse-cli.json"
 const TOKEN_ENDPOINT = "https://login.cloud.camunda.io/oauth/token"
@@ -23,7 +24,7 @@ const TARGET: EngineTarget = {
 }
 
 function parsedWith(values: Readonly<Record<string, unknown>>) {
-  return new TargetsParser(FILE).parse(
+  return new TargetsParser(FILE, CATALOGUE).parse(
     JSON.stringify({
       profiles: {
         "c8-saas": {
@@ -49,7 +50,7 @@ function memorySecrets(): vscode.SecretStorage {
 
 describe("a camunda8 profile", () => {
   test("becomes a target of its own engine kind with its token endpoint", () => {
-    const parsed = new TargetsParser(FILE).parse(
+    const parsed = new TargetsParser(FILE, CATALOGUE).parse(
       JSON.stringify({
         profiles: {
           "c8-local": { url: "http://localhost:8080/v2", flavor: "camunda8" },
@@ -94,7 +95,7 @@ describe("a camunda8 profile", () => {
   })
 
   test("names what is missing instead of guessing", () => {
-    const parsed = new TargetsParser(FILE).parse(
+    const parsed = new TargetsParser(FILE, CATALOGUE).parse(
       JSON.stringify({
         profiles: {
           "no-endpoint": {

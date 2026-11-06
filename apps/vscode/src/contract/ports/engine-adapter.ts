@@ -1,6 +1,18 @@
 import type { DefinitionRef, InstanceSummary } from "../model/read-models.js"
+import type { BpmnDialect } from "./bpmn-dialect.js"
+import type { EngineSetup } from "./engine-setup.js"
 import type { ProcessCommands } from "./process-commands.js"
 import type { ProcessRuntime } from "./process-runtime.js"
+
+export type CredentialType = "basic" | "clientCredentials"
+
+export interface EngineProfiles {
+  readonly name: string
+  readonly flavors: readonly string[]
+  readonly withoutFlavor: boolean
+  readonly credentials: readonly CredentialType[]
+  readonly localEndpoint?: string
+}
 
 export type EngineCredentials =
   | { readonly kind: "none" }
@@ -27,6 +39,10 @@ export interface EngineWebUi {
 }
 
 export interface EngineAdapter {
+  readonly id: string
+  readonly profiles: EngineProfiles
+  readonly setups: readonly EngineSetup[]
+  readonly bpmn: BpmnDialect
   runtime(connection: EngineConnection): ProcessRuntime
   commands(connection: EngineConnection): ProcessCommands | undefined
   webUi(webUiUrl: string): EngineWebUi | undefined

@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, test, vi } from "vitest"
 import { OpenTargetsFileCommand } from "../../src/host/commands/open-targets-file-command.js"
 import type { Connection } from "../../src/host/connections/connection.js"
 import type { ConnectionRegistry } from "../../src/host/connections/connection-registry.js"
-import { LOCAL_TARGET } from "../../src/host/connections/engine-target.js"
 import { TargetsFile } from "../../src/host/connections/targets-file.js"
 import { TargetsProblem } from "../../src/host/connections/targets-problem.js"
+import { LOCAL_TARGET } from "./support/engines.js"
 
 const fake = vi.hoisted(() => ({
   existing: new Set<string>(),

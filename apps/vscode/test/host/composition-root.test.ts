@@ -1,4 +1,5 @@
 import type {
+  BpmnDialect,
   EngineAdapter,
   EngineConnection,
   EngineWebUi,
@@ -6,10 +7,15 @@ import type {
   ProcessRuntime,
 } from "../../src/contract/index.js"
 import { describe, expect, test } from "vitest"
+import { C7BpmnDialect } from "../../src/adapters/c7/c7-bpmn-dialect.js"
+import { C8BpmnDialect } from "../../src/adapters/c8/c8-bpmn-dialect.js"
+import { BpmnProcessId, ElementId } from "../../src/contract/index.js"
 import { CompositionRoot } from "../../src/host/composition-root.js"
 import type { Credentials } from "../../src/host/connections/connection.js"
-import { LOCAL_TARGET, type EngineTarget } from "../../src/host/connections/engine-target.js"
+import type { EngineTarget } from "../../src/host/connections/engine-target.js"
 import { TargetsParser } from "../../src/host/connections/targets-parser.js"
+import { MemoryFiles } from "../model/support/memory-files.js"
+import { CATALOGUE, LOCAL_TARGET } from "./support/engines.js"
 
 const NO_LOGIN: Credentials = { kind: "none" }
 const LOGIN: Credentials = { kind: "basic", username: "demo", password: "demo" }
@@ -21,8 +27,13 @@ class RecordingAdapter implements EngineAdapter {
   readonly webUiUrls: string[] = []
   readonly runtimeOfIt = {} as ProcessRuntime
   readonly commandsOfIt = {} as ProcessCommands
+  readonly profiles = { name: "", flavors: [], withoutFlavor: false, credentials: [] }
+  readonly setups = []
 
-  constructor(readonly name: string) {}
+  constructor(
+    readonly id: string,
+    readonly bpmn: BpmnDialect = new C7BpmnDialect(),
+  ) {}
 
   runtime(connection: EngineConnection): ProcessRuntime {
     this.connections.push(connection)
@@ -37,7 +48,7 @@ class RecordingAdapter implements EngineAdapter {
   webUi(webUiUrl: string): EngineWebUi {
     this.webUiUrls.push(webUiUrl)
     return {
-      name: this.name,
+      name: this.id,
       overviewUrl: () => "",
       instanceUrl: () => "",
       definitionUrl: () => "",
@@ -45,10 +56,30 @@ class RecordingAdapter implements EngineAdapter {
   }
 }
 
+const SHIPPING = [
+  '<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"',
+  ' xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"><bpmn:process id="shipping">',
+  '<bpmn:serviceTask id="Activity_BookCarrier"><bpmn:extensionElements>',
+  '<zeebe:taskDefinition type="book-carrier" /></bpmn:extensionElements></bpmn:serviceTask>',
+  "</bpmn:process></bpmn:definitions>",
+].join("")
+
+async function implementationIn(root: CompositionRoot) {
+  const { models } = root.localSources(
+    new MemoryFiles({ "file:///workspace/shipping.bpmn": SHIPPING }),
+  )
+  const model = await models.modelOf(BpmnProcessId("shipping"))
+  const element =
+    model === undefined
+      ? undefined
+      : await models.elementIn(model, ElementId("Activity_BookCarrier"))
+  return element?.configuration.implementation
+}
+
 function rootWithRecorder() {
   const c7 = new RecordingAdapter("c7")
   const c8 = new RecordingAdapter("c8")
-  return { c7, c8, root: new CompositionRoot({ c7, c8 }) }
+  return { c7, c8, root: new CompositionRoot([c7, c8]) }
 }
 
 describe("the composition root", () => {
@@ -129,7 +160,7 @@ describe("the composition root", () => {
   test("hands the adapter the token endpoint of the project file as written", () => {
     const { c8, root } = rootWithRecorder()
     const tokenEndpoint = "https://authentik.example.com/application/o/token/?tenant=shop"
-    const { targets } = new TargetsParser("/work/.pulse-cli.json").parse(
+    const { targets } = new TargetsParser("/work/.pulse-cli.json", CATALOGUE).parse(
       JSON.stringify({
         profiles: {
           c8: {
@@ -152,13 +183,28 @@ describe("the composition root", () => {
 
   test("asks the adapter of a target whether it can write at all", () => {
     const readOnly = new RecordingAdapter("c8")
-    const root = new CompositionRoot({
-      c7: new RecordingAdapter("c7"),
-      c8: Object.assign(readOnly, { commands: () => undefined }),
-    })
+    const root = new CompositionRoot([
+      new RecordingAdapter("c7"),
+      Object.assign(readOnly, { commands: () => undefined }),
+    ])
 
     expect(root.canWrite(C7_TARGET)).toBe(true)
     expect(root.canWrite({ ...C7_TARGET, engine: "c8" })).toBe(false)
+  })
+
+  test("reads the local models with the BPMN dialects of its adapters", async () => {
+    const withC8 = new CompositionRoot([
+      new RecordingAdapter("c7"),
+      new RecordingAdapter("c8", new C8BpmnDialect()),
+    ])
+
+    expect(await implementationIn(withC8)).toEqual({
+      kind: "workerTask",
+      taskType: "book-carrier",
+    })
+    expect(
+      await implementationIn(new CompositionRoot([new RecordingAdapter("c7")])),
+    ).toBeUndefined()
   })
 
   test("gives a refused target a failing runtime with the reason and no commands", async () => {
