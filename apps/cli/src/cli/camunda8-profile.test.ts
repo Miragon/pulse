@@ -2,8 +2,9 @@
  * A Camunda 8 profile, which only Pulse for VS Code reads, end to end through `run()`: as the
  * default of the project file or of the user's config file it leaves the commands that need no
  * engine running, every command that uses it refuses it by name and says why it was selected,
- * whatever --flavor or PULSE_CLI_FLAVOR say, and `config set` does not edit its client
- * credentials.
+ * whatever --flavor or PULSE_CLI_FLAVOR say, `config set` does not edit its client credentials,
+ * `config unset` removes them only as a whole, and `config set` never sends a Camunda 8 profile to
+ * `pulse auth login`.
  */
 
 import { describe, expect, it } from "vitest"
@@ -191,6 +192,106 @@ describe("config set on a profile whose auth type the CLI does not know", () => 
       expect(JSON.parse(fileText(runtime, path) ?? ""), target).toMatchObject({
         profiles: { saas: { url: "https://x.camunda.io/v2", flavor: "camunda8", auth: AUTH } },
       })
+    }
+  })
+})
+
+const AUTH_SETTINGS = [
+  "issuer",
+  "endpoints",
+  "authorizationEndpoint",
+  "tokenEndpoint",
+  "clientId",
+  "clientSecret",
+  "clientSecretEnv",
+  "scopes",
+  "audience",
+  "redirectPort",
+  "token",
+  "tokenEnv",
+]
+
+describe("config unset on a profile whose auth type the CLI does not know", () => {
+  it.each(
+    named([
+      ...AUTH_SETTINGS.flatMap((key) => [[key], [`auth.${key}`]]),
+      ["url", "audience"],
+      ["cockpitUrl", "tokenEndpoint"],
+    ]),
+  )("refuses `%s`, stored or not, and writes nothing", async (_name, keys) => {
+    for (const [target, path, project] of TARGETS) {
+      const { runtime } = setup({ [path]: SAAS_FILE })
+      const result = await execute(run, ["config", "unset", "saas", ...keys, ...project], runtime)
+      expect(result.code, target).toBe(3)
+      expect(errorOf(result.stderr), target).toMatchObject({
+        code: "CONFIG",
+        message: 'Profile "saas" has an unknown auth type',
+        hint: "Edit its auth in the file.",
+      })
+      expect(fileText(runtime, path), target).toBe(SAAS_FILE)
+    }
+  })
+
+  it("removes its auth whole with `auth`", async () => {
+    for (const [target, path, project] of TARGETS) {
+      const { runtime } = setup({ [path]: SAAS_FILE })
+      const result = await execute(run, ["config", "unset", "saas", "auth", ...project], runtime)
+      expect(result.code, target).toBe(0)
+      const { profiles } = JSON.parse(fileText(runtime, path) ?? "") as {
+        profiles: Record<string, unknown>
+      }
+      expect(profiles.saas, target).toEqual({
+        url: "https://bru-2.api.camunda.io/v2",
+        flavor: "camunda8",
+      })
+    }
+  })
+})
+
+const OAUTH = { type: "oauth", issuer: "https://login.example.com", clientId: "pulse" }
+const OAUTH_OPTIONS = ["--oauth-issuer", OAUTH.issuer, "--oauth-client-id", OAUTH.clientId]
+const LOGIN_STEP = "Next: run `pulse auth login --profile c8` in a terminal to log in."
+const OPERATE = "http://localhost:8081/operate"
+
+/** `config set c8 <options>` in a file whose profile c8 is `c8`, for each target file. */
+async function setC8(c8: object, options: readonly string[]) {
+  const outcomes = []
+  for (const [target, path, project] of TARGETS) {
+    const { runtime } = setup({
+      [path]: JSON.stringify({ profiles: { c8, c7: { url: BASE_URL } } }),
+    })
+    const result = await execute(run, ["config", "set", "c8", ...project, ...options], runtime)
+    const { profiles } = JSON.parse(fileText(runtime, path) ?? "") as {
+      profiles: Record<string, unknown>
+    }
+    outcomes.push({ target, ...result, profile: profiles.c8 })
+  }
+  return outcomes
+}
+
+describe("config set of OAuth on a Camunda 8 profile", () => {
+  it.each([
+    ["the OAuth options", C8, OAUTH_OPTIONS],
+    ["--auth oauth with the OAuth options", C8, ["--auth", "oauth", ...OAUTH_OPTIONS]],
+    [
+      "a new cockpit URL next to OAuth from the file",
+      { ...C8, auth: OAUTH },
+      ["--cockpit-url", OPERATE],
+    ],
+  ])("stores %s and prints no `pulse auth login` step", async (_name, c8, options) => {
+    for (const { target, code, stderr, profile } of await setC8(c8, options)) {
+      expect(code, target).toBe(0)
+      expect(profile, target).toMatchObject({ flavor: "camunda8", auth: OAUTH })
+      expect(stderr, target).not.toContain("auth login")
+    }
+  })
+
+  it("prints the step once --flavor makes it a profile the CLI uses", async () => {
+    const options = ["--flavor", "camunda7", ...OAUTH_OPTIONS]
+    for (const { target, code, stderr, profile } of await setC8(C8, options)) {
+      expect(code, target).toBe(0)
+      expect(profile, target).toMatchObject({ flavor: "camunda7", auth: OAUTH })
+      expect(stderr, target).toContain(LOGIN_STEP)
     }
   })
 })

@@ -34,6 +34,11 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
 }
 
+// `text` with its first character in upper case: a message that starts with a name or a phrase.
+export function capitalized(text: string): string {
+  return `${text.charAt(0).toUpperCase()}${text.slice(1)}`
+}
+
 /** `value` without its trailing slashes, in linear time (`/\/+$/` backtracks on a long run of them). */
 export function withoutTrailingSlashes(value: string): string {
   let end = value.length

@@ -5,7 +5,7 @@
  */
 
 import { compact, mergeHeaders } from "../util.js"
-import { changedAuth, hasAuthOptions, settleAuthorization } from "./auth-edit.js"
+import { changedAuth, checkAuthType, hasAuthOptions, settleAuthorization } from "./auth-edit.js"
 import { type BearerChanges, BEARER_UNSET_KEYS, bearerUnsetKeys } from "./bearer-edit.js"
 import { configError } from "./config-error.js"
 import { parseHeaders } from "./headers.js"
@@ -29,7 +29,6 @@ import {
 } from "./resolve.js"
 import {
   type AuthConfig,
-  AUTH_TYPES,
   type ConfigFile,
   type LoadedConfig,
   type OAuthConfig,
@@ -206,11 +205,7 @@ export function setProfile(
   validateProfileName(name)
   const current = file ?? EMPTY
   const existing = findProfile(current, name)
-  // the file keeps an auth type the CLI does not know (clientCredentials, Pulse for VS Code's):
-  // auth options would rewrite it into one that Pulse for VS Code or the CLI refuses
-  if (hasAuthOptions(changes) && !AUTH_TYPES.includes(existing?.auth?.type ?? "none")) {
-    throw configError(`Profile "${name}" has an unknown auth type`, "Edit its auth in the file.")
-  }
+  if (hasAuthOptions(changes)) checkAuthType(existing, name)
   const merged = { ...existing, ...changedValues(existing, changes) }
   const profile = canonical(settleAuthorization(merged, changes, name))
   const first = Object.keys(current.profiles).length === 0
@@ -252,6 +247,9 @@ export function unsetProfileKeys(
   const current = file ?? EMPTY
   const profile = requireProfile(current, name)
   const authKeys = keys.flatMap((key) => authUnsetKeys(key) ?? [])
+  // any single auth setting, also one the profile does not store, fails the whole command (as an
+  // auth option of `config set` does); `auth` removes the auth whole and stays the way to reset it
+  if (authKeys.length > 0) checkAuthType(profile, name)
   const plain = keys.filter((key) => authUnsetKeys(key) === undefined)
   const removed = new Set<string>(plain.map(profileKey))
   const { auth, ...kept }: Profile = Object.fromEntries(

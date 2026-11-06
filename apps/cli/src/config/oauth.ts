@@ -176,7 +176,7 @@ export const OAUTH_CHECKS: Readonly<Record<(typeof OAUTH_AUTH_KEYS)[number], Che
   redirectPort: [isRedirectPort, "a whole number between 0 and 65535"],
 }
 
-function keysOf(value: Record<string, unknown>, keys: readonly string[]): string[] {
+export function keysOf(value: Record<string, unknown>, keys: readonly string[]): string[] {
   return keys.filter((key) => Object.hasOwn(value, key))
 }
 

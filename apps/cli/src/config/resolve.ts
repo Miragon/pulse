@@ -89,7 +89,7 @@ function projectOf(file: LoadedConfig | undefined, name: string): ProjectSource 
 }
 
 // The file may hold a Camunda 8 profile for Pulse for VS Code; the CLI uses every other one.
-function usable(profile: Profile): profile is UsableProfile {
+export function usable(profile: Profile): profile is UsableProfile {
   return profile.flavor !== CAMUNDA_8_FLAVOR
 }
 
