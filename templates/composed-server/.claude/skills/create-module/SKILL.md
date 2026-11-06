@@ -1,6 +1,6 @@
 ---
 name: create-module
-description: Step-by-step house pattern for building your own connector module under `modules/`, a self-contained package exporting a module definition plus tools, wired into the server composition. Use whenever integrating a new system ("build a connector for X", "add tools for our API", "new module"), or wiring a module into the server. For the widget path see the add-widget skill.
+description: Step-by-step house pattern for building your own connector module under `modules/`, a self-contained package exporting a module definition plus tools, wired into the server composition. Use whenever integrating a new system ("build a connector for X", "add tools for our API", "new module"), or wiring a module into the server. Not for engine operations (start a process, correlate a message, job retries, variables): the engine module's `engine_*` tools do those already. For the widget path see the add-widget skill.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 ---
 
@@ -17,7 +17,18 @@ each other; anything shared goes through `@miragon/pulse-ui` (the design kit),
 inventing a new shape; every step below points at the file that shows the
 pattern. For patterns the notes module doesn't cover (toolsets, paged
 lists), the published Miragon modules ship their sources under
-`node_modules/@miragon/pulse-{engine,analytics}-connector/src/`.
+`server/node_modules/@miragon/pulse-{engine,analytics}-connector/src/`
+(gitignored symlinks: search one package directory, not the repo root; see
+`CLAUDE.md` → Reference code).
+
+**A module is for your other systems, not for the engine.** The engine
+module already registers the generic engine operations as tools
+(`engine_start_process_instance`, `engine_correlate_message`,
+`engine_set_job_retries` and more: list them in the inspector or with
+`pnpm exec mcp-use client local tools list` in `server/`), so "start our leasing process"
+needs no new tool. To give the model your processes' keys and variables, put
+them into your module's `instructions` (Step 3) without naming `engine_*`
+tools: the engine module may be off.
 
 ## Step 1: scaffold the package
 
@@ -46,6 +57,11 @@ interface; the implementation behind it is yours (an HTTP client, an SDK, a
 DB). Keep the client code in this layer, so handlers stay thin. If the client
 grows real weight (generated SDK, query library), split it into its own
 package later: extract on the second consumer, not speculatively.
+
+The client talks to your system, never to a Camunda engine: a second engine
+client built from `ENGINE_BASE_URL` skips what the engine module does on every
+call (the engine pick by `engine` and `ENGINE_DEFAULT`, each engine's auth
+including passthrough, its error rules).
 
 ## Step 3: the module definition (`src/module.ts`)
 
@@ -142,7 +158,7 @@ export const myToolsets = createToolsetVocabulary("<name>", MY_TOOLSETS, "read-o
   `toolset === "read-only"` compare (fails open for every name you add later)
   or a `toolset === undefined` shortcut (an absent toolset is the floor, not
   "everything"). Reference:
-  `node_modules/@miragon/pulse-engine-connector/src/lib/mcp/toolsets.ts`.
+  `server/node_modules/@miragon/pulse-engine-connector/src/lib/mcp/toolsets.ts`.
 
 ## Step 6: wire the module into the server
 

@@ -14,6 +14,23 @@ task paths. Read the matching one BEFORE starting:
 | `create-module` | building your own connector module: tools for your own API or system                       |
 | `add-widget`    | adding or changing an interactive widget (`show_*` tool + `*_data` feed + React component) |
 
+**Engine operations are tools already.** The engine module ships the generic
+Camunda 7 operations, among them `engine_start_process_instance`,
+`engine_correlate_message`, `engine_complete_task`,
+`engine_set_process_instance_variable` and `engine_set_job_retries` (list
+them all in the inspector, or with `pnpm exec mcp-use client local tools list`
+in `server/` after the one-time `connect` under Verification). "Start our
+leasing process" or "retry the failed jobs of X" needs
+no new module or tool: the model calls these. Without OAuth a write needs the
+`operations` toolset (`engine:operations` in `MCP_ACTIVE_MODULES`, invariant
+8). A custom module is for your other systems. To teach the model your
+processes (their keys, the variables a start takes), write them into your
+module's `instructions` without naming `engine_*` tools, since the engine
+module may be off. Never build a second engine client from `ENGINE_BASE_URL`:
+it loses what the engine module does on every call (the engine pick by
+`engine` and `ENGINE_DEFAULT`, each engine's auth including passthrough, its
+error rules).
+
 ## Commands
 
 ```bash
@@ -118,7 +135,7 @@ external infrastructure.
    admin-like toolset is only reachable by naming it. Gate a write by the
    module's toolset rule at registration (the engine module's
    `withToolsetFilter`/`isToolInToolset` in
-   `node_modules/@miragon/pulse-engine-connector/src/lib/mcp/toolsets.ts`), never
+   `server/node_modules/@miragon/pulse-engine-connector/src/lib/mcp/toolsets.ts`), never
    on a name compare or on `toolset === undefined`, both of which fail open.
    Details: `create-module` Step 5.
 
@@ -158,7 +175,17 @@ the Tailwind scan in one shot.
   pattern (module definition, registrar tool, widget tool + data feed, widget,
   module test, widget test under `TestViewHost`). Copy it; don't invent a new shape.
 - The published Pulse modules ship their **sources**: read
-  `node_modules/@miragon/pulse-engine-connector/src/` and
-  `node_modules/@miragon/pulse-analytics-connector/src/` for the reference
-  implementations of anything the notes module doesn't cover (toolsets, paged
-  lists, BPMN widgets).
+  `server/node_modules/@miragon/pulse-engine-connector/src/` and
+  `server/node_modules/@miragon/pulse-analytics-connector/src/` for the
+  reference implementations of anything the notes module doesn't cover
+  (toolsets, paged lists, BPMN widgets).
+- Where the APIs live: `server/node_modules/@miragon/pulse-widget-shell/README.md`
+  (an export table per entry: `/server`, `/widgets`, `/testing`) with its
+  typings `dist/server.d.ts` and `dist/ui/index.d.ts`, and
+  `server/node_modules/@miragon/pulse-ui/README.md` with `dist/index.d.ts`.
+- pnpm installs these packages under `server/node_modules` only (pulse-ui and
+  widget-shell also under `modules/<name>/node_modules`), never in a root
+  `node_modules`. That folder is gitignored and its `@miragon/*` entries are
+  symlinks, so a search from the repo root (Grep, Glob, `rg`) finds none of
+  these files: give one package directory as the path, e.g.
+  `server/node_modules/@miragon/pulse-engine-connector/src`.
