@@ -65,6 +65,10 @@ and uncomment `ENGINE_ID` (`prod-a`) and `PROMETHEUS_URL`
 other. Without a Prometheus, leave analytics out of `MCP_ACTIVE_MODULES`
 (Step 3), or every boot warns that `PROMETHEUS_URL` is unset.
 
+Every engine call answers 401 although `.env` says `demo`/`demo`? Wrong
+passwords lock `demo` out of that engine, for good after ten, and `demo` is
+its only admin: `docker compose down && docker compose up -d` resets it.
+
 For your own engine, edit `.env` (every field is documented inline in `.env.example`):
 
 - `ENGINE_BASE_URL`: the engine REST endpoint.

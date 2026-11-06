@@ -27,6 +27,7 @@ Prerequisites:
 
 - Node.js 22.22.2 or later (`engines` in `package.json`)
 - pnpm 10.32.1 (`packageManager`): `corepack enable`; Node.js 25+ has none: `npm i -g pnpm@10.32.1`
+- Docker, for the engine in `compose.yaml` (optional)
 
 ```bash
 pnpm install

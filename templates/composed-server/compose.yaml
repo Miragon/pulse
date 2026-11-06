@@ -8,6 +8,11 @@
 # LOOPBACK ONLY: the port binds to 127.0.0.1 and the logins are demo-grade. Don't drop the
 # 127.0.0.1: prefix to reach it from another machine; tunnel instead. Its database lives in
 # the container: `docker compose down` drops it, and the next `up` starts from scratch.
+#
+# A wrong password locks demo for a few seconds, each further one for longer (up to a minute),
+# and ten in a row lock it for good: every call then answers 401, the right password too, and
+# demo is the only admin who could unlock it. `docker compose down && docker compose up -d`
+# resets the engine.
 services:
   engine:
     # CIB seven Run, the vendor's public image, pinned to an exact tag.
