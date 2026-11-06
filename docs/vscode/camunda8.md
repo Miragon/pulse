@@ -77,14 +77,14 @@ credentials again, and the prompt names the host the secret goes to.
 
 ## What differs from Camunda 7
 
-| In the views        | On Camunda 8                                                                                                                                                 |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Counts              | On Elasticsearch a count can stop at 10,000 and then shows as `10k+` or `10,000+`. Running counts of the engine, a process or a version stay exact           |
-| Variable conditions | No `>`, `<` or date conditions: the API refuses them on variable values                                                                                      |
-| Incidents           | The worker's error text, or the engine's error message, instead of a stack trace                                                                             |
-| Fresh data          | Searches read an export that lags behind the cluster by up to a few seconds, so an instance you just started can read as not found until the next refresh    |
-| Long histories      | An instance with more than 10,000 element runs shows its newest 10,000 and says that the list is cut off; the wait states stay complete                      |
-| Tenants             | Pulse reads every tenant your login may read, without a picker. A process in several tenants shows as one, and its version list shows each tenant's versions |
+| In the views        | On Camunda 8                                                                                                                                                                                                                             |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Counts              | On Elasticsearch a count can stop at 10,000 and then shows as `10k+` or `10,000+`. Running counts of the engine, a process or a version stay exact                                                                                       |
+| Variable conditions | No `>`, `<` or date conditions: the API refuses them on variable values                                                                                                                                                                  |
+| Incidents           | The worker's error text, or the engine's error message, instead of a stack trace                                                                                                                                                         |
+| Fresh data          | Searches read an export that lags behind the cluster by up to a few seconds, so an instance you just started can read as not found until the next refresh                                                                                |
+| Long histories      | An instance with more than 10,000 element runs shows its newest 10,000 and says that the list is cut off; the wait states come from the active elements, so a long history doesn't push them out, and local variables keep their element |
+| Tenants             | Pulse reads every tenant your login may read, without a picker. A process in several tenants shows as one, and its version list shows each tenant's versions                                                                             |
 
 ## Try it in Docker
 

@@ -14,21 +14,21 @@ Every claim below comes from real engines: 8.9.27 and 8.10.8, each on H2 and on 
 each without security, with basic authentication and with OIDC, twelve rows in all. The spike's
 answers:
 
-| Question                                                                         | Answer                                                                                                                  |
-| -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Are `active` and `incidents` of the element statistics disjoint?                 | Yes                                                                                                                     |
-| Does a child's incident flag the parent, and does the call activity count it?    | Yes: `hasIncident` on the parent, the call activity reads `active 0, incidents 1`, without an `incidentKey`             |
-| Does an embedded sub-process count the incident of an element inside it?         | Yes, like a call activity: `active 0, incidents 1` on the sub-process, `hasIncident` without an `incidentKey`           |
-| Do `variables` filters match element-scope variables?                            | Yes, on both storages                                                                                                   |
-| What does `$gt` on a variable value do?                                          | It answers 400 ("cannot be parsed"), and so does `$lt`                                                                  |
-| What does a client without read permission get?                                  | `topology` 200, searches 200 with empty lists, single GETs 403                                                          |
-| Do statistics list idle processes?                                               | No. They work on H2. `isLatestVersion` sorts only by process id and tenant                                              |
-| Does the element search return a `PROCESS` row? Does a 1,000-element `$in` work? | No row. Yes. A non-numeric key is a 400. Start times tie within a millisecond, so sort by key                           |
-| How long is the export lag?                                                      | 50 to 110 ms on H2 with a flush of PT0S, about 3 s for a first load on Elasticsearch                                    |
-| Where does a count stop?                                                         | `totalItems` stops at 10,000 with `hasMoreTotalItems: true` on Elasticsearch; statistics stay exact                     |
-| What differs between 8.9 and 8.10?                                               | Only `suspendedDate`. An 8.10 endpoint on 8.9 is a 404 with the title `Not Found`; a missing resource has `NOT_FOUND`   |
-| What do two tenants with the same process look like?                             | Statistics and searches span every tenant the login may read. Each tenant has its own versions, so `v1` can exist twice |
-| Does a definition's XML arrive with its instances?                               | Not always: on Elasticsearch an instance's elements can be readable before its definition's XML is                      |
+| Question                                                                                                | Answer                                                                                                                  |
+| ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Are `active` and `incidents` of the element statistics disjoint?                                        | Yes                                                                                                                     |
+| Does a child's incident flag the parent, and does the call activity count it?                           | Yes: `hasIncident` on the parent, the call activity reads `active 0, incidents 1`, without an `incidentKey`             |
+| Does an embedded sub-process count the incident of an element inside it? (8.10.8, H2, basic)            | Yes, like a call activity: `active 0, incidents 1` on the sub-process, `hasIncident` without an `incidentKey`           |
+| Do `variables` filters match element-scope variables?                                                   | Yes, on both storages                                                                                                   |
+| What does `$gt` on a variable value do?                                                                 | It answers 400 ("cannot be parsed"), and so does `$lt`                                                                  |
+| What does a client without read permission get?                                                         | `topology` 200, searches 200 with empty lists, single GETs 403                                                          |
+| Do statistics list idle processes?                                                                      | No. They work on H2. `isLatestVersion` sorts only by process id and tenant                                              |
+| Does the element search return a `PROCESS` row? Does a 1,000-element `$in` work on the instance search? | No row. Yes. A non-numeric key is a 400. Start times tie within a millisecond, so sort by key                           |
+| How long is the export lag?                                                                             | 50 to 110 ms on H2 with a flush of PT0S, about 3 s for a first load on Elasticsearch                                    |
+| Where does a count stop?                                                                                | `totalItems` stops at 10,000 with `hasMoreTotalItems: true` on Elasticsearch; statistics stay exact                     |
+| What differs between 8.9 and 8.10?                                                                      | Only `suspendedDate`. An 8.10 endpoint on 8.9 is a 404 with the title `Not Found`; a missing resource has `NOT_FOUND`   |
+| What do two tenants with the same process look like? (8.10.8, H2, basic)                                | Statistics and searches span every tenant the login may read. Each tenant has its own versions, so `v1` can exist twice |
+| Does a definition's XML arrive with its instances?                                                      | Not always: on Elasticsearch an instance's elements can be readable before its definition's XML is                      |
 
 ## Decision
 
@@ -46,10 +46,14 @@ with 1 MiB and a 30 s deadline. `rest/rest-camunda-client.ts` has one method per
 **Client credentials live in `auth/`.** `C8Adapter` holds a `TokenSources`, one source per client
 and secret, because connections rebuild on every reload. A token is fetched in a single flight,
 read with a 1 MiB cap, and refreshed at `obtainedAt + lifetime - min(60 s, lifetime / 10)`; a
-lifetime that is not positive counts as the default. The answer decides the failure as the CLI's
-does: `invalid_client` and `unauthorized_client` are rejected credentials, any other RFC 6749
-code and any other 4xx a wrong token endpoint, audience or scopes, a 5xx, 408 or 425 an unreachable
-login service. A refused request holds for 60 s, a 429 for its `Retry-After` (seconds or an
+lifetime that is not positive counts as the default. The answer decides the failure. A 401 is
+rejected credentials whatever its code, because RFC 6749 gives it only to failed client
+authentication (Auth0, the SaaS login, answers a wrong secret with `access_denied`). A 400 is
+rejected credentials for `invalid_client` and `unauthorized_client` and a wrong audience or scopes
+for any other code. A 403 means the client may not get a token for that audience and those scopes,
+any other 4xx a wrong token endpoint, and a 5xx, 408 or 425 an unreachable login service. A token
+outside the Bearer token syntax counts as unexpected and never reaches a header or a message, and
+a message shows the token endpoint without its query. A refused request holds for 60 s, a 429 for its `Retry-After` (seconds or an
 HTTP date) or 60 s, an unreachable login service for 5 s, and new credentials end a hold. Clock
 steps back end a hold and a token too. After a 401 the API gets one retry with a fresh token, but a
 token younger than 30 s stays and the read fails as `unauthorized`: a wrong audience would
@@ -68,9 +72,9 @@ asking.
   id laws rely on.
 - A container's own incidents (a call activity, an embedded or event sub-process, an ad-hoc
   sub-process, a transaction) come from one `incidents` search per such element with an
-  incident. The rest of
-  its count belongs to the elements inside it and counts as active; on a call activity it is also
-  `incidentsInCalledInstances`.
+  incident. The rest of its count belongs to the elements inside it and counts as active; on a
+  call activity it is also `incidentsInCalledInstances`. When that search stops counting (above
+  10,000 on Elasticsearch), the row keeps the cluster's counts.
 - `calledFromElementId` comes from `parentElementInstanceKey`, a called process from
   `zeebe:calledElement`. `mapping/bpmn-text.ts` reads the diagram as text, as the C7 family's
   reader does, but like an XML parser where it matters: self-closing elements, both quote styles,
@@ -78,7 +82,13 @@ asking.
 - An instance is read first, because an ended read stops live updates. Its details follow, over the
   whole called tree with at most 50 instances, and `truncated` says when it holds only part of it.
   The wait states come from the active elements and their open jobs of any kind, so a long history
-  can't push them out; only the path is read with a cap, and a cut sets `truncated`.
+  can't push them out. A listener job of the process itself is a wait at the BPMN process id, a
+  container waits only on an open job or an incident of its own, and a message subscription
+  belongs to an element by key and element id, so a boundary event's message is not its host's
+  wait. A local variable of a run past the cut keeps its element through one
+  `GET /element-instances/{key}`, looked up once per runtime. The path keeps the newest 10,000 runs, and a cut sets `truncated`; the
+  active elements, user tasks and subscriptions of an instance share that cap, far above what an
+  instance holds at once.
 - Counts come from the search. A capped search falls back to the exact statistics for a plain
   running count of the engine, a process or a version; everything else is
   `{ count: 10000, atLeast: true }`.
@@ -112,9 +122,11 @@ and shows "Read-only. Pulse cannot change data on this engine yet." instead of `
   (`host/connections/credential-store.ts`), so a change to the project file can't redirect it.
 - `apps/cli` accepts `flavor: camunda8` and `tokenEndpoint` alone in a project file and refuses such
   a profile, by name, whenever it is selected to reach an engine, also with `--flavor` or
-  `PULSE_CLI_FLAVOR`. Help, guide and the config commands keep working with such a default. It does
-  not edit the auth of a profile whose type it does not know, and it never writes a file it would
-  refuse. `--flavor camunda8` stays unknown.
+  `PULSE_CLI_FLAVOR`: the engine commands, `config show` and the auth commands. Help, guide and the
+  other config commands keep working with such a default, and `config set` prints no
+  `pulse auth login` step for it. Neither `config set` nor `config unset` edits a single setting
+  of an auth type the CLI does not know; `config unset <profile> auth` removes it whole. The CLI
+  never writes a file it would refuse, and `--flavor camunda8` stays unknown.
 
 ## Decision log
 

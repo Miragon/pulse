@@ -184,10 +184,13 @@ file's current content when _Show Runtime Data for This Model_ runs again.
   layer (`apps/vscode/test/<layer>/runtime.boundary.ts`).
 - A new engine takes `apps/vscode/src/adapters/<engine>` with a class implementing
   `EngineAdapter`, an engine test that runs the `ConformanceKit` and one entry in the
-  composition root; core, protocol and webview stay untouched. ESLint keeps engine words
-  out of them, and dependency-cruiser fails while a new adapter has no engine test.
-  `apps/vscode/src/adapters/c8` came this way; the contract gained what real engines proved
-  it needs ([runtime-contract.md](runtime-contract.md)).
+  composition root. A new flavor or credential kind also takes the host's profile reader
+  and credential store. Core, protocol and webview change only where the contract gains
+  something, and they never name an engine: ESLint keeps engine words out of them, and
+  dependency-cruiser fails while a new adapter has no engine test.
+  `apps/vscode/src/adapters/c8` came this way: the contract gained what real engines proved
+  it needs ([runtime-contract.md](runtime-contract.md)), and the host the flavor `camunda8`
+  and client credentials.
 - Source-only layers keep the build to one esbuild run; the extension ships as one .vsix.
 
 ## Decision log

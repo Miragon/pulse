@@ -5,7 +5,8 @@ per engine family answers. The C7 adapter serves Operaton, CIB seven and Camunda
 REST API, with the Camunda 7 family's workflow domain (`@miragon/pulse-engine-core`, shared with
 the CLI and the MCP server and bundled into the extension) for inspecting an instance and its
 root causes. The C8 adapter reads Camunda 8 over its own REST API and shares nothing with it. A
-new engine is one more adapter folder and one entry in the composition root.
+new engine is one more adapter folder, its engine test and one entry in the composition root; a
+new flavor or credential kind also takes the host's profile reader, as Camunda 8 did.
 
 ```mermaid
 flowchart LR

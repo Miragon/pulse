@@ -255,9 +255,12 @@ timestamps, truncated details, throwing on unknown ids, per-version definition l
 errors, missing kinds, flattened scopes, counts that ignore the element and the business
 key, counts without an incident that include those with one, variable conditions that are
 ignored by the search or the count, one condition instead of all, numbers compared as
-text, `%` and `_` read as wildcards, not equals finding instances without the variable,
-task-local variables left out, ended instances left out, an empty list that finds
-nothing; for commands: a retry that
+text, `%` and `_` read as wildcards, `?` read as a wildcard, not equals finding instances
+without the variable, task-local variables left out, ended instances left out, an empty
+list that finds nothing, the oldest instances first, another order on each read, a caller
+its called instance's incident does not flag, a count within the world that calls itself
+a lower bound, a declared refusal of ordering or dates that answers anyway, refusals
+without a declaration, a declared refusal that fails with another failure; for commands: a retry that
 closes everything, a silently ignored retry, values stored as text, numbers through a
 double, engine failures instead of
 rejections, a move that cancels without starting, a silently ignored refused move, a
