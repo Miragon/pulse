@@ -205,11 +205,11 @@ host's theme; there is no theme switch in the app.
 ```bash
 pnpm install                    # once, then COMMIT pnpm-lock.yaml
 docker build -t my-mcp-server .
+docker compose up -d --wait     # compose.yaml's engine, on the network pulse-starter_default
 docker run --env-file .env -p 127.0.0.1:8400:8400 \
-  --add-host=host.docker.internal:host-gateway \
-  -e ENGINE_BASE_URL=http://host.docker.internal:8410/engine-rest \
+  --network pulse-starter_default \
+  -e ENGINE_BASE_URL=http://engine:8080/engine-rest \
   -e ENGINE_COCKPIT_URL=http://localhost:8410/webapp \
-  -e PROMETHEUS_URL=http://host.docker.internal:8460 \
   my-mcp-server
 ```
 
@@ -219,12 +219,20 @@ docker run --env-file .env -p 127.0.0.1:8400:8400 \
   reads plain `KEY=VALUE` lines: quotes and a trailing `# comment` stay in the
   value. A dev-only `PORT` or `MCP_URL` in `.env` comes along too (a `PORT`
   other than 8400 misses `-p …:8400:8400`): drop it or override it with `-e`.
-- Inside the container `localhost` is the container, so the server reaches the
-  engine and Prometheus through `host.docker.internal` (built into Docker
-  Desktop; on Linux the `--add-host` maps it to the host), while
-  `ENGINE_COCKPIT_URL` stays on `localhost`: the user's browser opens those
+- Inside the container `localhost` is the container, so the server joins the
+  engine's Docker network and reaches it by its service name and port:
+  `engine:8080` on `pulse-starter_default`, the network the `name:` in
+  `compose.yaml` fixes. For the Pulse playground's engine and Prometheus, join
+  `pulse_default` instead with `-e ENGINE_BASE_URL=http://cibseven:8410/engine-rest`
+  and `-e PROMETHEUS_URL=http://prometheus:9090`. That works alike on Linux and
+  under Docker Desktop; `host.docker.internal` does not: on Linux it is the
+  Docker bridge's gateway, which misses a port published on `127.0.0.1`, where
+  both engines publish theirs. An engine the container reaches by its address
+  needs no `--network`, only its URL in `ENGINE_BASE_URL`.
+- `ENGINE_COCKPIT_URL` stays on `localhost`: the user's browser opens those
   links. Without it the cockpit links derive from the engine URL and point at
-  `host.docker.internal`, which a browser on the host usually does not resolve.
+  `engine:8080`, which a browser on the host does not resolve.
+  `-p 127.0.0.1:8400:8400` publishes the server on the host's loopback only.
 - `PORT` sets the HTTP port (default 8400); `MCP_URL` is the public base URL
   when running behind a proxy or MCP gateway and, with
   `MCP_ALLOWED_HOSTS`/`MCP_ALLOWED_ORIGINS`, the only non-localhost

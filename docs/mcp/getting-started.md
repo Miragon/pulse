@@ -48,6 +48,8 @@ Pulse is below 1.0 and any release can change a tool or a setting, so pin a vers
 If the REST API needs a login, add `ENGINE_AUTH_TYPE=basic` with `ENGINE_USERNAME` and
 `ENGINE_PASSWORD`. Pulse assumes a Camunda 7 engine: for CIB seven or Operaton add
 `ENGINE_FLAVOR=cibseven` (or `operaton`), so its links open the right web app.
+On Linux add `--add-host=host.docker.internal:host-gateway`; it misses a port bound to `127.0.0.1`,
+so for an engine Docker publishes there, join its network (`--network`) and use its service name.
 [Operations](operations.md) covers several engines, OAuth and the toolsets that
 allow writes. For analytics, your engine project adds the plugin
 `io.miragon.mcp:cibseven-history-metrics` and exports its metrics to Prometheus, as
