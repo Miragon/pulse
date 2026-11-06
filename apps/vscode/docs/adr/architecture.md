@@ -7,7 +7,8 @@
 
 Pulse shows what a process engine is running, next to the BPMN models in VS Code.
 It must be engine-neutral like the Miragon BPMN modeler: Camunda 7 family engines
-(Operaton, CIB seven, Camunda 7) now, Camunda 8 later, without reworking the core.
+(Operaton, CIB seven, Camunda 7) and Camunda 8 ([c8-adapter.md](c8-adapter.md)), without
+reworking the core.
 The product owner asked for extremely good encapsulation: a core with logic and UI,
 and adapter modules that only provide data and fulfil contracts.
 
@@ -184,9 +185,9 @@ file's current content when _Show Runtime Data for This Model_ runs again.
 - A new engine takes `apps/vscode/src/adapters/<engine>` with a class implementing
   `EngineAdapter`, an engine test that runs the `ConformanceKit` and one entry in the
   composition root; core, protocol and webview stay untouched. ESLint keeps engine words
-  out of them, and dependency-cruiser fails while a new adapter has no engine test. The
-  spike built a Camunda 8 adapter this way against a mock of the REST API v2 and removed
-  it again to keep the prototype small to check.
+  out of them, and dependency-cruiser fails while a new adapter has no engine test.
+  `apps/vscode/src/adapters/c8` came this way; the contract gained what real engines proved
+  it needs ([runtime-contract.md](runtime-contract.md)).
 - Source-only layers keep the build to one esbuild run; the extension ships as one .vsix.
 
 ## Decision log

@@ -29,6 +29,7 @@ export default mergeConfig(
           "src/contract/**": { lines: 97, statements: 97, functions: 98, branches: 90 },
           "src/core/**": { lines: 98, statements: 98, functions: 98, branches: 90 },
           "src/adapters/c7/**": { lines: 92, statements: 92, functions: 98, branches: 80 },
+          "src/adapters/c8/**": { lines: 98, statements: 98, functions: 98, branches: 90 },
           "src/model/**": { lines: 98, statements: 98, functions: 98, branches: 88 },
           "src/webview/**": { lines: 78, statements: 78, functions: 78, branches: 68 },
         },

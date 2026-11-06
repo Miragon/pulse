@@ -56,6 +56,15 @@ describe("the configs the CI jobs run by name", () => {
     }
   })
 
+  test("hand the kit vitest's own test, so no wrapper can skip a law", () => {
+    const whole = /new ConformanceKit\(test\)/
+    for (const file of filesOf(ENGINE_TESTS)) {
+      expect(readFileSync(join(APP_ROOT, file), "utf8"), file).toMatch(whole)
+    }
+    expect("new ConformanceKit(test.skip)").not.toMatch(whole)
+    expect("new ConformanceKit(onlySome(test))").not.toMatch(whole)
+  })
+
   test("run every smoke test against the built extension", async () => {
     const smoke = await configOf(".vscode-test.mjs")
     expect(filesOf(SMOKE_TESTS).length).toBeGreaterThan(0)

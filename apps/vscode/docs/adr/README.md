@@ -11,6 +11,7 @@ commit and replace superseded text; Git keeps the history.
 | [architecture.md](architecture.md)         | Packages, dependency rules, composition root, host ⇄ webview protocol              |
 | [runtime-contract.md](runtime-contract.md) | The engine-neutral ports, their laws and the conformance kit                       |
 | [c7-adapter.md](c7-adapter.md)             | The Camunda 7 family adapter over the engine REST API                              |
+| [c8-adapter.md](c8-adapter.md)             | The read-only Camunda 8 adapter over the Orchestration Cluster REST API            |
 | [writes.md](writes.md)                     | Guarded writes: who may write, confirmation, intents, feedback, audit, bulk cancel |
 | [migrations.md](migrations.md)             | Migrating instances to another version: plan, checks, batch, failures              |
 | [user-interface.md](user-interface.md)     | Information architecture, design tokens, naming, scope of v0.1                     |
