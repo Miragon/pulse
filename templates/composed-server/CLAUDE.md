@@ -5,7 +5,7 @@ from the published `@miragon/pulse-*` modules (engine BPM operations, Prometheus
 process analytics) plus your own custom modules. `README.md` is the quick tour
 for humans; this file plus the skills carry the architecture rules.
 
-The skills in `.claude/skills/` are step-by-step walkthroughs for the three main
+The skills in `.claude/skills/` are step-by-step walkthroughs for the four main
 task paths. Read the matching one BEFORE starting:
 
 | Skill           | Use when…                                                                                  |
@@ -13,6 +13,7 @@ task paths. Read the matching one BEFORE starting:
 | `setup-server`  | configuring, running, branding, or deploying this server (env, modules, toolsets, Docker)  |
 | `create-module` | building your own connector module: tools for your own API or system                       |
 | `add-widget`    | adding or changing an interactive widget (`show_*` tool + `*_data` feed + React component) |
+| `upgrade-pulse` | taking a new Pulse release: every `@miragon/pulse-*` pin, its libraries, the starter files |
 
 ## Commands
 
@@ -101,7 +102,8 @@ external infrastructure.
    the mcp-use CLI's on-demand install can never mutate `package.json`
    mid-task or introduce a second, differently-resolved mcp-use instance. On
    an mcp-use bump, re-pin it to the newest version the new peer range
-   accepts.
+   accepts. A Pulse release moves all of these at once, the starter's own
+   files with them: the `upgrade-pulse` skill, never a bump of one package.
 6. **Never hand-write `_meta.ui.*` keys**: spread `showToolBinding(...)` for
    widget tools and `appOnly` for data feeds (both from
    `@miragon/pulse-widget-shell/server`); mcp-use owns and overwrites the `ui`

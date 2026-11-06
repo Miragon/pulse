@@ -89,13 +89,14 @@ the `setup-server` skill shows.
 
 Open this repo in Claude Code (or any agent that reads `CLAUDE.md`) and
 describe what you want: the skills in `.claude/skills/` walk the agent
-through the three common tasks step by step:
+through the four common tasks step by step:
 
 | Skill           | For…                                                   |
 | --------------- | ------------------------------------------------------ |
 | `setup-server`  | configuring, running, branding, and deploying          |
 | `create-module` | building a connector module for your own API or system |
 | `add-widget`    | adding an interactive widget to a module               |
+| `upgrade-pulse` | taking a new Pulse release, all packages at once       |
 
 Everything works the same when done by hand: `CLAUDE.md` is the compact
 architecture reference, and the guard tests in `server/test/` catch the
@@ -209,6 +210,52 @@ docker run -p 8400:8400 \
   from that origin, so behind a gateway route `/fonts/` to the server too. A
   host that blocks the origin, or a browser that cannot reach it, shows the
   host's font instead; nothing waits for the files.
+
+## Staying current
+
+A Pulse release moves the `@miragon/pulse-*` packages, the libraries they
+are built with (`mcp-use`, React, zod, `lucide-react`, TanStack Query) and
+this starter's own files together. A repository made from the starter shares
+no history with [pulse-starter](https://github.com/Miragon/pulse-starter), so
+`git pull` brings nothing: the `upgrade-pulse` skill applies the starter's
+diff between two releases, replays it on your modules, moves every pin and
+runs the bar. Its steps work by hand too
+(`.claude/skills/upgrade-pulse/SKILL.md`). What each release asks of you:
+[Upgrading](https://miragon.github.io/pulse/mcp/upgrading), the
+[changelog](https://github.com/Miragon/pulse/blob/main/CHANGELOG.md) and the
+[releases](https://github.com/Miragon/pulse/releases).
+
+A dependency bot keeps everything else current, as long as it leaves the
+lockstep to the skill. For Dependabot, a `.github/dependabot.yml`:
+
+```yaml
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    # Moved together with a Pulse release (the upgrade-pulse skill), never one by one.
+    ignore:
+      - dependency-name: "@miragon/pulse-*"
+      - dependency-name: mcp-use
+      - dependency-name: "@mcp-use/client"
+      - dependency-name: "@modelcontextprotocol/client"
+      - dependency-name: react
+      - dependency-name: react-dom
+      - dependency-name: zod
+      - dependency-name: lucide-react
+      - dependency-name: "@tanstack/react-query"
+    # Minors and patches in one pull request, each major in its own.
+    groups:
+      dependencies:
+        patterns: ["*"]
+        update-types: [minor, patch]
+```
+
+For Renovate, `renovate.json` takes the same list: one `packageRules` entry
+groups `"matchPackageNames": ["*"]`, a second one after it sets
+`"enabled": false` for the names above (a later rule wins).
 
 ## Going further
 

@@ -625,6 +625,7 @@ describe("what the guard reads", () => {
       "templates/composed-server/.claude/skills/add-widget/SKILL.md",
       "templates/composed-server/.claude/skills/create-module/SKILL.md",
       "templates/composed-server/.claude/skills/setup-server/SKILL.md",
+      "templates/composed-server/.claude/skills/upgrade-pulse/SKILL.md",
     ])
     assert.ok(docsPages.map(pageKey).includes("index.md"))
   })
