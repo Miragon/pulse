@@ -32,9 +32,11 @@ needed. Then adjust:
   `exports` map exactly: `.` (compiled server code) and `./widgets` (pointing
   at **TypeScript source**, compiled by the server's Vite build). Keep `react`
   an optional peer: server-side consumers must not need it.
-- Keep both tsconfigs: `tsconfig.json` excludes `src/widgets` from the server
+- Keep the three tsconfigs: `tsconfig.json` excludes `src/widgets` from the server
   build; `tsconfig.widgets.json` type-checks the widget `.tsx` (wired into the
-  `typecheck` script, the only check that covers widget code).
+  `typecheck` script, the only check that covers widget code); and
+  `src/widgets/tsconfig.json` extends it, so editors, which read only files named
+  `tsconfig.json`, check the widgets with the same settings.
 - Do a global rename `notes` → `<name>` across `src/` (module name, plugin
   name, tool prefixes and thus view names, query keys), `src/module.test.ts`
   and the widget test included.

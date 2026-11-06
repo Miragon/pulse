@@ -1,0 +1,6 @@
+{
+  // The editor's project for the widgets: tsserver reads only files named tsconfig.json, and the
+  // module's excludes this tree. The settings are tsconfig.widgets.json's, which `typecheck` runs.
+  "extends": "../../tsconfig.widgets.json",
+  "include": ["."]
+}

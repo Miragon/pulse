@@ -48,11 +48,11 @@ session as `PORT=<port> claude`.
 The gates one by one: `pnpm build`, `pnpm typecheck`, `pnpm test`, `pnpm lint`, `pnpm format:check`.
 `pnpm dev` and `pnpm play` bind 127.0.0.1; `pnpm start` and Docker listen on all interfaces.
 
-Mutation testing covers `@miragon/pulse-engine-core` only (owner decision, 2026-11-04;
-`MUTATED_PACKAGES` in `scripts/check-package-scripts.mjs`):
-`pnpm --fail-if-no-match --filter @miragon/pulse-engine-core exec stryker run` (`--mutate <file>`
-narrows it). A pull request runs none: `.github/workflows/mutation-nightly.yml` mutates it each
-night (incremental).
+Mutation testing covers `@miragon/pulse-engine-core` only (`MUTATED_PACKAGES`), nightly, never on a
+pull request: `pnpm --fail-if-no-match --filter @miragon/pulse-engine-core exec stryker run`.
+
+Editors read only `tsconfig.json`: each widget, host-bundle and test tree has a nested one extending
+the `tsconfig.<x>.json` that checks it (`pnpm lint:package-scripts`); `.vscode/` pins TypeScript.
 
 ## Build your own server
 

@@ -46,6 +46,8 @@ export const PATH_RULES = [
   { pattern: /^\.miragon\//, scopes: ["brand"] },
   { pattern: /^\.claude\//, scopes: [] },
   { pattern: /^\.claude-plugin\//, scopes: ["cli"] },
+  // The shared editor settings: only the always-on format check reads them.
+  { pattern: /^\.vscode\//, scopes: [] },
   { pattern: /^engine-plugins\//, scopes: ["kotlin"] },
   { pattern: /^playground\/cibseven-example\//, scopes: ["cibseven-example"] },
   // Read by the metrics contract tests.

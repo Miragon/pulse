@@ -33,7 +33,8 @@
     "src",
     "!src/**/*.test.*",
     "!src/**/*.test-support.*",
-    "!src/**/test-support"
+    "!src/**/test-support",
+    "!src/**/tsconfig.json"
   ],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

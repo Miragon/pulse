@@ -6,6 +6,10 @@
  * - no test ships: no `*.test.*` or `*.test-support.*` file and nothing under a `test-support/`
  *   directory, in dist/ or in the src/ a connector ships (its `./widgets` and the reference
  *   implementation the template's docs point at);
+ * - no tsconfig ships: a connector's src/ carries the editor's nested tsconfig.json of its
+ *   widgets, and a host's Vite reads the nearest tsconfig.json of every source file it compiles
+ *   outside node_modules (a linked or `file:` package), so it would fail on the `extends`
+ *   target the tarball lacks;
  * - every `exports` target, `main` and `types` is in the tarball;
  * - every relative import of a shipped module (JS, TS, declarations) resolves inside the
  *   tarball, so a `files` list never leaves behind a module a widget imports (a host's Vite
@@ -24,6 +28,9 @@ import ts from "typescript"
 
 /** A test or test support, by its name or its directory. */
 export const TEST_FILE = /(?:^|\/)(?:test-support\/|[^/]+\.test(?:-support)?\.[^/]+$)/
+
+/** A TypeScript project file (tsconfig.json, tsconfig.<x>.json), wherever it sits. */
+export const TSCONFIG_FILE = /(?:^|\/)tsconfig(?:\.[^/]+)?\.json$/
 
 /** Modules whose relative imports must resolve: JS, TS and declarations, never maps. */
 const MODULE = /\.(?:[cm]?[jt]sx?)$/
@@ -85,6 +92,12 @@ export function packFindings({ manifest, files, read }) {
   const findings = []
   for (const file of files) {
     if (TEST_FILE.test(file)) findings.push(`${file}: a test ships (exclude it in files)`)
+    if (TSCONFIG_FILE.test(file)) {
+      findings.push(
+        `${file}: a tsconfig ships (exclude it in files): a host's Vite reads it for the ` +
+          `package's sources and fails on an extends target the tarball lacks`,
+      )
+    }
   }
   const entries = [
     ...exportTargets(manifest.exports ?? {}).map(({ key, target }) => [`exports ${key}`, target]),
