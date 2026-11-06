@@ -23,8 +23,7 @@ divergence is either a catalog of its own for that engine, generated with an ext
 wrapper around the port in its adapter.
 
 **The engine is chosen before anything is registered.** `flavor` (profile, `PULSE_CLI_FLAVOR`,
-`--flavor`, default `camunda7`; called `platform` before the move to Pulse) selects the adapter in
-`run.ts`; commands, help and `describe`
+`--flavor`, default `camunda7`) selects the adapter in `run.ts`; commands, help and `describe`
 then come from its catalog.
 
 **The rules are checked.** dependency-cruiser fails the build when `workflow` imports an adapter or
@@ -38,8 +37,6 @@ The overview is in [Architecture](../architecture.md), the engine list in [Engin
 - A difference of one engine changes its catalog or its adapter. The other engines do not move.
 - The workflow commands are written once, against the port.
 - One generated catalog is committed and every adapter reads it while no engine diverges.
-- Existing profiles keep working: without `flavor` the CLI behaves as before. Versions without the
-  key reject a config file that contains it.
 - `src/catalog`, `src/operation` and `src/http` still hold the Camunda 7 REST code. They move into
   `src/api/camunda7-rest` step by step, not in one move.
 - No rule forbids `if (name === 'cibseven')` outside `src/engines/<name>`. Review does.

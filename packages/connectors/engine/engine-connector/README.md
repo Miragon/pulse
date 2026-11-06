@@ -84,7 +84,7 @@ hangs every in-widget query on "Loading…".
 - **Deployments are opt-in:** `engine_create_deployment` is registered only with
   `ENGINE_ALLOW_DEPLOYMENTS=true` (strict `true`/`false` after trimming, empty = unset, anything else fails the boot) on top of
   `engine:admin`: deploying a BPMN/DMN is code execution inside the engine JVM (JUEL expressions,
-  scripts). The full engine surface of earlier releases is `engine:admin` plus that flag.
+  scripts).
 
 ## Adding a tool or widget
 

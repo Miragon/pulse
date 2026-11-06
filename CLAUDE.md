@@ -26,7 +26,9 @@ Docs are held to the code:
 `docs/` holds the Pulse docs, a VitePress site on the Miragon docs kit
 (`docs/.vitepress/miragon/`, skill `miragon-brand:docs-site`) that `.github/workflows/docs.yml`
 publishes to https://miragon.github.io/pulse/. A user-visible change (env vars, tools, ports,
-getting-started steps) updates them in the same PR. Headings get GitHub's anchors, so a
+getting-started steps) updates them in the same PR. Below 1.0 the docs keep no upgrade page and
+no migration note: a breaking change says so in its commit (`!` plus a `BREAKING CHANGE:`
+footer), and release-please lists it in `CHANGELOG.md`. Headings get GitHub's anchors, so a
 `#anchor` link works on the site and on GitHub. The product page https://miragon.ai/tools/pulse/
 lives in Miragon/miragon-ai-docs; a change it shows needs a PR there too.
 
@@ -52,7 +54,7 @@ command line interface (`apps/cli`) and a VS Code extension (`apps/vscode`) for 
 | `engine-plugins/`                                    | Kotlin/Gradle: CIB seven OTEL metrics plugin (Java 21)                                                                                                                                                                                                            |
 | `playground/`                                        | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                 |
 | `docs/`                                              | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                                                        |
-| `docs/mcp/`                                          | The MCP server's pages of the docs site (getting started, usage, reference, operations, upgrading, architecture, developer)                                                                                                                                       |
+| `docs/mcp/`                                          | The MCP server's pages of the docs site (getting started, usage, reference, operations, architecture, developer)                                                                                                                                                  |
 | `docs/cli/`                                          | The CLI's pages of the docs site (install, commands, configuration, authentication, AI agents, development)                                                                                                                                                       |
 | `docs/vscode/`                                       | The VS Code extension's pages of the docs site (installation, configuration, usage, architecture)                                                                                                                                                                 |
 

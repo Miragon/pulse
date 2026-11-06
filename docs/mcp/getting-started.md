@@ -42,9 +42,10 @@ docker run --rm -p 127.0.0.1:8400:8400 \
 claude mcp add --transport http pulse http://localhost:8400/mcp
 ```
 
-Pulse is pre-1.0 and minor releases can rename tools, so pin a version tag from the
-[releases](https://github.com/Miragon/pulse/releases) for anything beyond a first try. If the
-REST API needs a login, add `ENGINE_AUTH_TYPE=basic` with `ENGINE_USERNAME` and
+Pulse is below 1.0 and any release can change a tool or a setting, so pin a version tag from the
+[releases](https://github.com/Miragon/pulse/releases) for anything beyond a first try; the
+[changelog](https://github.com/Miragon/pulse/blob/main/CHANGELOG.md) lists every breaking change.
+If the REST API needs a login, add `ENGINE_AUTH_TYPE=basic` with `ENGINE_USERNAME` and
 `ENGINE_PASSWORD`. Pulse assumes a Camunda 7 engine: for CIB seven or Operaton add
 `ENGINE_FLAVOR=cibseven` (or `operaton`), so its links open the right web app.
 [Operations](operations.md) covers several engines, OAuth and the toolsets that

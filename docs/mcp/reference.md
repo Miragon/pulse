@@ -6,7 +6,7 @@ environment variables is in [Operations](operations.md#environment-variables).
 ## Tools
 
 Tool inputs are strict: an unknown or misnamed parameter is refused with the list of valid
-ones instead of being ignored (which used to widen a "filtered" answer to the whole engine).
+ones, so a misspelled filter cannot widen the answer to the whole engine.
 
 ### Engine module (`engine_*`)
 

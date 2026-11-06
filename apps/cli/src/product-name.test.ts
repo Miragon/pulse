@@ -66,18 +66,13 @@ const ALLOWED: readonly Allowance[] = [
     line: /\*\*operate a Camunda 7|, operate a Camunda 7|[Ii]nspect and operate/,
     reason: "the English verb",
   },
-  {
-    file: "apps/cli/README.md",
-    section: /^#{2,6} Renamed from operate\b/,
-    reason: "the npm README points to the archived repository",
-  },
 ]
 
 /** Where the second name is right. Shrink-only: an entry that covers no hit fails. */
 const SECOND_NAME_ALLOWED: readonly Allowance[] = [
   {
     file: /^(?:apps\/cli\/(?:README\.md|src\/docs\/guide\.ts|skills\/pulse-cli\/(?:SKILL|commands\/status)\.md)|docs\/cli\/installation\.md)$/,
-    line: /second name|is missing, try|keep working|call `pulse-cli`|links `pulse` to it|older pulse-cli without topics|^- Bash\(pulse-cli (?:status|ping)\)$/,
+    line: /second name|is missing, try|call `pulse-cli`|links `pulse` to it|older pulse-cli without topics|^- Bash\(pulse-cli (?:status|ping)\)$/,
     reason: "the second name and the old installs that know only it",
   },
   {
