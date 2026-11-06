@@ -128,7 +128,7 @@ describe("oauthFromEnv: a deployment that asked for OAuth never boots without it
     "MCP_USE_OAUTH_KEYCLOAK_REALMS",
   ])("refuses %s, a variable it does not read", (name) => {
     expect(() => fromEnv({ ...KEYCLOAK, [name]: "https://x.example/mcp" })).toThrow(
-      `${name} is not read by this server, so it does not start. Unset it: the server reads one provider's variables, Keycloak (MCP_USE_OAUTH_KEYCLOAK_SERVER_URL, MCP_USE_OAUTH_KEYCLOAK_REALM), Auth0 (MCP_USE_OAUTH_AUTH0_DOMAIN), WorkOS (MCP_USE_OAUTH_WORKOS_SUBDOMAIN), Better Auth (MCP_USE_OAUTH_BETTER_AUTH_URL) or Convex (MCP_USE_OAUTH_CONVEX_AUTH_URL), and takes the token audience from MCP_URL (RFC 8707).`,
+      `${name} is not read by this server, so it does not start. Unset it: the server reads one provider's variables, Keycloak (MCP_USE_OAUTH_KEYCLOAK_SERVER_URL, MCP_USE_OAUTH_KEYCLOAK_REALM), Auth0 (MCP_USE_OAUTH_AUTH0_DOMAIN), WorkOS (MCP_USE_OAUTH_WORKOS_SUBDOMAIN), Better Auth (MCP_USE_OAUTH_BETTER_AUTH_URL) or Convex (MCP_USE_OAUTH_CONVEX_AUTH_URL), and takes the token audience from MCP_URL: tokens carry <MCP_URL>/mcp in aud (RFC 8707).`,
     )
   })
 
