@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.27.0](https://github.com/Miragon/pulse/compare/v0.26.0...v0.27.0) (2026-11-06)
+
+
+### ⚠ BREAKING CHANGES
+
+* a server whose MCP_ACTIVE_MODULES names a module it does not compose no longer starts without that module: the boot fails and lists the known modules. Correct or remove the name (module names are exact: engine, analytics and those of your own modules), or leave MCP_ACTIVE_MODULES unset to activate every module.
+
+### Features
+
+* a focused test run, and inner loops that never read a stale dist ([#533](https://github.com/Miragon/pulse/issues/533)) ([69b2d0c](https://github.com/Miragon/pulse/commit/69b2d0cb8d0acb8d097e32c43fc0b0ef7f8596ff))
+* **template:** a compose.yaml starts a CIB seven engine to try the engine tools ([#552](https://github.com/Miragon/pulse/issues/552)) ([e83ce8d](https://github.com/Miragon/pulse/commit/e83ce8d8e17af6b4e939095f3ff9a5ac70bf17d1))
+
+
+### Bug Fixes
+
+* a failed boot names the setting in one line; unknown modules and schemeless URLs fail it ([#547](https://github.com/Miragon/pulse/issues/547)) ([e425980](https://github.com/Miragon/pulse/commit/e4259807882407e81bc81000594d09f483927d6c))
+* bump @miragon/modeler-shell ([#563](https://github.com/Miragon/pulse/issues/563)) ([47f0a55](https://github.com/Miragon/pulse/commit/47f0a5566d35bbc3ac2fc3988849d516d096a15e))
+* **engine:** a malformed ENGINES_JSON or ENGINES_FILE never echoes its value ([#538](https://github.com/Miragon/pulse/issues/538)) ([410522d](https://github.com/Miragon/pulse/commit/410522d655ef88f5981bcb044d515268dbba4fc7))
+* **template:** pins move in lockstep, an unmet peer fails the install ([#541](https://github.com/Miragon/pulse/issues/541)) ([463f852](https://github.com/Miragon/pulse/commit/463f8524936f1fda6ba90e285f9eaedce58b20c6))
+* **template:** the container recipe joins the engine's network, and CI starts the try-out engine on Linux ([#558](https://github.com/Miragon/pulse/issues/558)) ([3d1b4f5](https://github.com/Miragon/pulse/commit/3d1b4f555933fc054ef07cdd48c5c4333da89d27))
+* **template:** the guard tests follow the composition, not the notes example ([#546](https://github.com/Miragon/pulse/issues/546)) ([58e8fa1](https://github.com/Miragon/pulse/commit/58e8fa1ac56641624d508e957006cff13f9f30ec))
+* **template:** the starter formats in the workspace's style, and pnpm format:check holds it ([#554](https://github.com/Miragon/pulse/issues/554)) ([1c5566c](https://github.com/Miragon/pulse/commit/1c5566c966922fe43c0ccceb845f687c057ad9b9))
+* **template:** the starter quickstart works as written ([#539](https://github.com/Miragon/pulse/issues/539)) ([afef9b6](https://github.com/Miragon/pulse/commit/afef9b674ba00a99acc022d084d57d93d8a270f3))
+* the libraries ship the sources their maps name ([#542](https://github.com/Miragon/pulse/issues/542)) ([320a12e](https://github.com/Miragon/pulse/commit/320a12e58a7f8b8f5c24d0f150f2ac72a9265846))
+* **vscode:** a table knows the user left from the commit that rendered its rows ([#564](https://github.com/Miragon/pulse/issues/564)) ([e538408](https://github.com/Miragon/pulse/commit/e5384087b5c654e40203897fccf2d8ccdb92a567))
+* **widget-shell:** the OAuth token audience is &lt;MCP_URL&gt;/mcp, plus an identity provider checklist ([#548](https://github.com/Miragon/pulse/issues/548)) ([e7c80bc](https://github.com/Miragon/pulse/commit/e7c80bc3e65d605e4338c53ebae0f9e916e1e348))
+* **widget-shell:** warn about each write a module without toolsets leaves open ([#544](https://github.com/Miragon/pulse/issues/544)) ([f376fa7](https://github.com/Miragon/pulse/commit/f376fa727f0bc94c5f2774eddaf58a8043c871b2))
+
 ## [0.26.0](https://github.com/Miragon/pulse/compare/v0.25.0...v0.26.0) (2026-11-04)
 
 
