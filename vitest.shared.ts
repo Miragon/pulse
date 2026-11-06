@@ -10,6 +10,9 @@ import { coverageConfigDefaults, defineConfig } from "vitest/config"
 export const sharedConfig = defineConfig({
   test: {
     environment: "node",
+    // In CI a test's console output shows only when the test fails: a green suite's expected
+    // errors would bury the one real failure in the log.
+    silent: process.env.CI ? "passed-only" : false,
     coverage: {
       provider: "v8",
       enabled: true,
