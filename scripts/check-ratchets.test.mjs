@@ -76,7 +76,6 @@ describe("ratchetKind", () => {
     assert.equal(ratchetKind("apps/mcp-server/package.json"), "package-scripts")
     assert.equal(ratchetKind("packages/core/widget-shell/vitest.stryker.config.ts"), null)
     assert.equal(ratchetKind("templates/composed-server/vitest.config.ts"), null)
-    assert.equal(ratchetKind("templates/composed-server/server/package.json"), null)
   })
 
   it("covers the CLI, the extension and a new connector-family package", () => {
@@ -87,6 +86,20 @@ describe("ratchetKind", () => {
     }
     // The docs workspace: only its manifest's `prettier` key is checked.
     assert.equal(ratchetKind("docs/package.json"), "workspace-manifest")
+  })
+
+  it("checks only the `prettier` key of the starter's manifests, none inside node_modules", () => {
+    for (const rel of [
+      "templates/composed-server/package.json",
+      "templates/composed-server/server/package.json",
+      "templates/composed-server/modules/mcp-notes/package.json",
+    ])
+      assert.equal(ratchetKind(rel), "template-manifest", rel)
+    for (const rel of [
+      "templates/composed-server/node_modules/prettier/package.json",
+      "templates/composed-server/server/node_modules/zod/package.json",
+    ])
+      assert.equal(ratchetKind(rel), null, rel)
   })
 })
 
@@ -303,6 +316,26 @@ describe("no `prettier` key in a workspace package.json (read before any .pretti
         assert.match(violations[0], /package\.json#prettier.*root \.prettierrc\.json `overrides`/)
       }
     }
+  })
+
+  it("flags the key in the starter's manifests, naming its copy of the root config", () => {
+    for (const [rel, before] of [
+      ["templates/composed-server/package.json", manifest()],
+      ["templates/composed-server/server/package.json", manifest()],
+      ["templates/composed-server/modules/my-module/package.json", null],
+    ]) {
+      const violations = checkRatchetFile(rel, before, manifest({ prettier: { semi: true } }))
+      assert.equal(violations.length, 1, rel)
+      assert.match(
+        violations[0],
+        /package\.json#prettier.*copy its settings, without `overrides`, into templates\/composed-server\/\.prettierrc\.json; delete the key\.$/,
+        rel,
+      )
+    }
+    assert.deepEqual(
+      checkRatchetFile("templates/composed-server/package.json", manifest(), manifest()),
+      [],
+    )
   })
 
   it("is quiet without the key, also for an introduced package", () => {
@@ -1018,9 +1051,17 @@ describe("the real repository carries no shadowing config and no package.json#pr
       [],
     )
     const manifests = listed.filter((rel) =>
-      ["root-scripts", "package-scripts", "workspace-manifest"].includes(ratchetKind(rel)),
+      ["root-scripts", "package-scripts", "workspace-manifest", "template-manifest"].includes(
+        ratchetKind(rel),
+      ),
     )
-    assert.ok(manifests.includes("package.json") && manifests.includes("docs/package.json"))
+    for (const rel of [
+      "package.json",
+      "docs/package.json",
+      "templates/composed-server/package.json",
+      "templates/composed-server/server/package.json",
+    ])
+      assert.ok(manifests.includes(rel), rel)
     for (const rel of manifests) {
       const text = readFileSync(rel, "utf8")
       assert.deepEqual(checkRatchetFile(rel, text, text), [], rel)

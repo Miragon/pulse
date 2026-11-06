@@ -615,9 +615,10 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
   and hangs every in-widget query (invariant 4). Name the required
   `mcp-use` version in each package README and the release changelog. The template pins what the
   workspace pins (the `@miragon/pulse-*` libraries, `mcp-use`, `react`, `react-dom`, `zod`,
-  `lucide-react`, `@tanstack/react-query`; `scripts/template-pins.mjs`, in `pnpm test` and
-  `scripts/test-template.sh`), never one package in isolation. Dependabot's one npm entry
-  covers the root and the template, so a grouped minor or patch bump moves both; a major or a
+  `lucide-react`, `@tanstack/react-query`, `prettier`, `prettier-plugin-tailwindcss`;
+  `scripts/template-pins.mjs`, in `pnpm test` and `scripts/test-template.sh`), never one package
+  in isolation. Dependabot's one npm entry covers the root and the template, so a grouped minor
+  or patch bump moves both; a major or a
   security update can arrive for one directory only and turns `pnpm test` red until the
   template pins the same version: bump both in that pull request.
 - **The widget `_meta` contract is split since mcp-use 2; never hand-write the `ui` half.**

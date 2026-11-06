@@ -81,9 +81,11 @@
  *                                   `--exclude` list may shrink); no `knip` key
  *   <pkg>/package.json              lint / typecheck / test pinned
  *   every workspace package.json    no `prettier` key (root, apps, packages,
- *                                   docs; also in a package.json the diff
- *                                   introduces): prettier reads it before any
- *                                   .prettierrc in the same directory
+ *                                   docs, the starter's manifests under
+ *                                   templates/composed-server; also in a
+ *                                   package.json the diff introduces):
+ *                                   prettier reads it before any .prettierrc
+ *                                   in the same directory
  *   shadowing configs               an eslint.config.* besides the root .mjs, a
  *                                   knip config besides knip.jsonc, a Stryker
  *                                   config besides stryker.config.json: each
@@ -106,9 +108,12 @@
  *                                   the one nested prettier config: a starter
  *                                   repo has no root config above it. It
  *                                   carries exactly the root .prettierrc.json's
- *                                   settings without `overrides` (they name
- *                                   monorepo paths), so it sets no style of
- *                                   its own
+ *                                   settings without `overrides`, so it sets no
+ *                                   style of its own. It drops every override,
+ *                                   a generic glob too (the parser of the
+ *                                   .claude-plugin manifests): being nearer,
+ *                                   it wins for the starter's files, so no
+ *                                   root override reaches them
  *   inline suppressions             `eslint-disable` of a gate rule (or of every
  *                                   rule), inline gate-rule config, `v8|c8|
  *                                   istanbul ignore`, `Stryker disable` in
@@ -175,6 +180,13 @@ const ROOT_PRETTIER = ".prettierrc.json"
  * above it. templatePrettierViolations holds it to the root's settings.
  */
 export const TEMPLATE_PRETTIER = "templates/composed-server/.prettierrc.json"
+/**
+ * The starter's manifests (its root, server/, modules/<name>/): a `prettier`
+ * key in one would beat TEMPLATE_PRETTIER for every file below it.
+ */
+const TEMPLATE_MANIFEST = new RegExp(
+  String.raw`^templates/composed-server/(?!(?:.*/)?node_modules/)(?:.+/)?package\.json$`,
+)
 
 // Config files a tool loads BEFORE (or instead of) the ratcheted one:
 // ESLint resolves the nearest eslint.config.{js,mjs,cjs,ts,mts,cts} upward
@@ -237,13 +249,20 @@ export function ratchetKind(relPath) {
   if (/^apps\/[^/]+\/test\/__golden__\/bundle-budget\.json$/.test(relPath)) return "bundle-budget"
   if (relPath === "package.json") return "root-scripts"
   if (new RegExp(`^${PKG}/package\\.json$`).test(relPath)) return "package-scripts"
-  // The docs workspace pins no gate script; only its `prettier` key is checked.
+  // The docs workspace and the starter's manifests pin no gate script; only
+  // their `prettier` key is checked.
   if (relPath === "docs/package.json") return "workspace-manifest"
+  if (TEMPLATE_MANIFEST.test(relPath)) return "template-manifest"
   return null
 }
 
 /** The ratchet kinds of a workspace package.json: each must carry no `prettier` key. */
-const MANIFEST_KINDS = new Set(["root-scripts", "package-scripts", "workspace-manifest"])
+const MANIFEST_KINDS = new Set([
+  "root-scripts",
+  "package-scripts",
+  "workspace-manifest",
+  "template-manifest",
+])
 
 // ── Source extraction (TypeScript AST, no evaluation, no imports) ───────────
 
@@ -1460,9 +1479,10 @@ function shadowViolation(relPath) {
 
 /**
  * The starter's prettier config (`newText`) against the root one (`rootText`,
- * same side): exactly the root's settings without `overrides`, which name
- * monorepo paths. prettier formats the starter's files with this copy, here
- * and in a starter repo, so any other setting is a style of its own.
+ * same side): exactly the root's settings without `overrides`, every one of
+ * them dropped, a generic glob too. prettier formats the starter's files with
+ * this copy, here and in a starter repo, so any other setting is a style of
+ * its own, and no root override reaches the starter's files.
  */
 function templatePrettierViolations(newText, rootText) {
   if (newText === null || newText === undefined) return []
@@ -1497,8 +1517,11 @@ function templatePrettierViolations(newText, rootText) {
  */
 function manifestKeyViolations(relPath, json) {
   if (!json || typeof json !== "object" || !Object.hasOwn(json, "prettier")) return []
+  const fix = TEMPLATE_MANIFEST.test(relPath)
+    ? `The starter's style is the root's: change the root .prettierrc.json and copy its settings, without \`overrides\`, into ${TEMPLATE_PRETTIER}`
+    : `Per-app style goes into the root .prettierrc.json \`overrides\` (\`"files": ["apps/<app>/**"]\`)`
   return [
-    `${relPath} -> a \`prettier\` key (package.json#prettier). prettier reads it before any .prettierrc in the same directory, so every file below it would be formatted, and pass format:check, in a style the root .prettierrc.json does not set. Per-app style goes into the root .prettierrc.json \`overrides\` (\`"files": ["apps/<app>/**"]\`); delete the key.`,
+    `${relPath} -> a \`prettier\` key (package.json#prettier). prettier reads it before any .prettierrc in the same directory, so every file below it would be formatted, and pass format:check, in a style the root .prettierrc.json does not set. ${fix}; delete the key.`,
   ]
 }
 
@@ -1585,7 +1608,8 @@ export function checkRatchetFile(
       ...comparePackageScripts(relPath, oldJson, newJson),
       ...manifestKeyViolations(relPath, newJson),
     ]
-  if (kind === "workspace-manifest") return manifestKeyViolations(relPath, newJson)
+  if (kind === "workspace-manifest" || kind === "template-manifest")
+    return manifestKeyViolations(relPath, newJson)
   return []
 }
 
