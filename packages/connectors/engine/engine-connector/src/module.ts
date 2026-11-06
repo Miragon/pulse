@@ -422,7 +422,7 @@ export const engineModule = {
       const id = env.ENGINE_ID?.trim() || "default"
       const flavor = engineFlavorFromEnv(env) ?? DEFAULT_ENGINE_FLAVOR
       warnings.push(
-        `No engine is configured (ENGINES_FILE / ENGINES_JSON / ENGINE_BASE_URL): defaulting to http://localhost:8410/engine-rest with engine id "${id}". That id is the join key against the metrics' engine_id label: engine-scoped analytics return empty when it does not match the ENGINE_ID the engine stamps (the repo's Compose stack stamps "prod-a"; set ENGINE_ID to match). Its cockpit links and name follow flavor "${flavor}"; the Compose engine is CIB seven (ENGINE_FLAVOR=cibseven).`,
+        `No engine is configured (ENGINES_FILE / ENGINES_JSON / ENGINE_BASE_URL): defaulting to http://localhost:8410/engine-rest with engine id "${id}", where the Pulse starter's compose.yaml (Miragon/pulse-starter) and the Pulse playground (Miragon/pulse) serve their engine. That id is the join key against the metrics' engine_id label: engine-scoped analytics return empty when it does not match the ENGINE_ID the engine stamps (the playground's engine stamps "prod-a"; set ENGINE_ID to match). Its cockpit links and name follow flavor "${flavor}"; both of those engines are CIB seven (ENGINE_FLAVOR=cibseven), and the starter's asks for a login (ENGINE_AUTH_TYPE=basic, demo/demo).`,
       )
     }
     const passthrough = passthroughEngineIds(env)

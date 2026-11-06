@@ -107,7 +107,7 @@ describe("engineModule.configFromEnv engine flavor", () => {
   })
 })
 
-/** The zero-config boot reaches the Compose engine, a CIB seven: its warning names the flavor. */
+/** The zero-config boot reaches the starter's or the playground's engine, a CIB seven: its warning names the flavor. */
 describe("engineModule.bootWarnings engine flavor", () => {
   it("names the flavor the zero-config engine's links follow: Camunda 7 unless set", () => {
     expect(engineModule.bootWarnings({})[0]).toContain('flavor "camunda7"')
