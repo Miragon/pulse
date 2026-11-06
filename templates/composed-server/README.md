@@ -16,27 +16,43 @@ deploy.
 
 ### 1. From source
 
-Prerequisites: Node 22.22.2 or newer (`corepack enable` provides the pinned pnpm).
+Prerequisites:
+
+- Node.js 22.22.2 or later (`engines` in `package.json`)
+- pnpm 10.32.1 (`packageManager`): `corepack enable`; Node.js 25+ has none: `npm i -g pnpm@10.32.1`
 
 ```bash
 pnpm install
-cp .env.example .env  # engine + Prometheus URLs; `pnpm dev` loads it
+cp .env.example .env  # the Pulse playground's settings; `pnpm dev` loads it
 pnpm dev              # MCP endpoint on :8400/mcp, inspector on :8400/mcp/inspector
 ```
 
+The copied `.env` fits the
+[Pulse playground](https://github.com/Miragon/pulse/tree/main/playground): its
+CIB seven engine with `demo`/`demo` and its Prometheus. For your own engine
+set `ENGINE_BASE_URL`, `ENGINE_FLAVOR`, `ENGINE_AUTH_TYPE` with its
+credentials, `PROMETHEUS_URL`, and `ENGINE_ID` to an id of yours (with
+metrics, the `engine_id` they carry); `.env.example` explains each.
+
 ### 2. As a container
 
-The image takes its config from the environment; it never reads `.env`.
+The image takes its config from the environment; it never reads `.env`
+itself. `--env-file` hands it over, and the `-e` flags after it win:
 
 ```bash
 pnpm install          # once, then commit pnpm-lock.yaml (the build uses --frozen-lockfile)
 docker build -t my-mcp-server .
-docker run -p 127.0.0.1:8400:8400 \
+docker run --env-file .env -p 127.0.0.1:8400:8400 \
   -e ENGINE_BASE_URL=http://host.docker.internal:8410/engine-rest \
-  -e ENGINE_FLAVOR=cibseven \
+  -e ENGINE_COCKPIT_URL=http://localhost:8410/webapp \
   -e PROMETHEUS_URL=http://host.docker.internal:8460 \
   my-mcp-server
 ```
+
+Inside the container `localhost` is the container itself, so the server
+reaches the playground's engine and Prometheus through `host.docker.internal`,
+while the "open in cockpit" links open in your browser and stay on
+`localhost`.
 
 Either way the MCP endpoint is `http://localhost:8400/mcp`. With `pnpm dev`,
 open the inspector at `http://localhost:8400/mcp/inspector` and call
@@ -45,6 +61,21 @@ production entrypoint the image runs mounts no inspector).
 The engine/analytics tools need a running engine and Prometheus; the
 [Pulse playground](https://github.com/Miragon/pulse/tree/main/playground)
 ships a ready-made Docker Compose stack whose URLs match `.env.example`.
+
+## Develop
+
+```bash
+pnpm build && pnpm typecheck && pnpm test   # the bar for every change
+```
+
+- The root `pnpm dev` builds the modules and the widget bundle once, when it
+  starts: after editing a module or a widget, stop it and start it again. The
+  `[mcp-use] reloaded server entry` line a save prints does not pick them up.
+- `pnpm typecheck` is the only check that type-checks widget `.tsx` code.
+- If port 8400 is taken, `pnpm dev` takes the next free one and logs it
+  (`[mcp-use] port 8400 is taken, using 8401`): connect to the endpoint it
+  logs. An assistant still pointed at 8400 talks to whatever holds that port,
+  the stock Pulse image, say, and shows its engine tools without yours.
 
 ## Connect an assistant
 
