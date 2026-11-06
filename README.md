@@ -75,7 +75,7 @@ start one locally with `docker run -p 8080:8080 operaton/operaton:2.1.5`.
 The docs site, [miragon.github.io/pulse](https://miragon.github.io/pulse/), is built from [`docs/`](docs/README.md),
 one section per client:
 
-- [MCP server](docs/mcp/index.md): getting started, usage, every tool, operations, upgrading, architecture
+- [MCP server](docs/mcp/index.md): getting started, usage, every tool, operations, architecture
 - [CLI](docs/cli/index.md): install, commands, configuration, authentication, AI agents
 - [VS Code](docs/vscode/index.md): installation, configuration, usage, architecture
 

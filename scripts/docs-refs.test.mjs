@@ -488,7 +488,6 @@ const DOCS_BUDGETS = {
   "mcp/architecture.md": 150,
   "mcp/developer.md": 80,
   "mcp/operations.md": 120,
-  "mcp/upgrading.md": 120,
   "mcp/usage.md": 150,
   "mcp/reference.md": 160,
   // The CLI's pages (docs/cli/).
