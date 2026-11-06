@@ -252,7 +252,10 @@ function loadEnginesFromEnv(env: NodeJS.ProcessEnv): unknown {
       )
     }
     const resolved = path.resolve(filePath)
-    const source = `ENGINES_FILE=${filePath} (resolved ${resolved})`
+    const source =
+      resolved === filePath
+        ? `ENGINES_FILE=${filePath}`
+        : `ENGINES_FILE=${filePath} (resolved ${resolved})`
     return parseEnginesConfig(readEnginesFile(resolved, source), source, "its content")
   }
   const json = env.ENGINES_JSON?.trim()
@@ -273,10 +276,14 @@ function loadEnginesFromEnv(env: NodeJS.ProcessEnv): unknown {
   return [{ ...shorthand, baseUrl: "http://localhost:8410/engine-rest" }]
 }
 
-/** A read error names the path only, never the content, so it may ride along as the cause. */
+/**
+ * A read error names the path only, never the content, so it may ride along as the cause.
+ * A UTF-8 byte order mark (some Windows editors save one) is dropped: JSON.parse rejects it.
+ */
 function readEnginesFile(resolved: string, source: string): string {
+  let content: string
   try {
-    return fs.readFileSync(resolved, "utf8")
+    content = fs.readFileSync(resolved, "utf8")
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code ?? "unknown error"
     throw new Error(
@@ -284,17 +291,26 @@ function readEnginesFile(resolved: string, source: string): string {
       { cause: error },
     )
   }
+  if (!content.trim()) throw new Error(`${source} is empty.`)
+  return content.replace(/^\uFEFF/, "")
 }
 
 function parseEnginesConfig(text: string, source: string, hidden: string): unknown {
   const parsed = parseJsonQuietly(text)
   if (!parsed.ok) {
     throw new Error(
-      `${source} is not valid JSON${parsed.at}; ${hidden} is not shown because it may hold credentials. A trailing comma or a missing quote is the usual cause.`,
+      `${source} is not valid JSON${parsed.at}; ${hidden} is not shown because it may hold credentials. ${parseHint(text)}`,
     )
   }
   assertUniqueTopLevelKeys(text)
   return normalizeEnginesConfig(parsed.value)
+}
+
+/** `docker run --env-file` keeps the quotes around a value, so the JSON arrives wrapped in them. */
+function parseHint(text: string): string {
+  return /^['"]/.test(text)
+    ? "It starts with a quote: remove the quotes around the JSON, since some env files keep them."
+    : "Look for a trailing comma or a missing quote, for example."
 }
 
 /**

@@ -8,7 +8,9 @@ import { engineModule } from "./module.js"
 describe("engineModule.configFromEnv never echoes the engine config", () => {
   const SECRET = "pl4nted-S3cret"
   const HIDDEN = "is not shown because it may hold credentials"
-  const HINT = "A trailing comma or a missing quote is the usual cause."
+  const HINT = "Look for a trailing comma or a missing quote, for example."
+  const QUOTED =
+    "It starts with a quote: remove the quotes around the JSON, since some env files keep them."
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pulse-engines-"))
   afterAll(() => fs.rmSync(dir, { recursive: true, force: true }))
 
@@ -28,8 +30,10 @@ describe("engineModule.configFromEnv never echoes the engine config", () => {
       `[{"id":"prod-a","baseUrl":"http://a.example/engine-rest","auth":{"type":"basic","username":"svc","password":"${SECRET}"}},]`,
       "",
     ],
-    // V8 names the unexpected character: the secret's first letter.
+    // V8 names the unexpected character and quotes a slice around it, the secret included.
     ["an unquoted value", `[{"id":"prod-a","auth":{"password":${SECRET}}}]`, ""],
+    // V8 quotes an input under 21 characters whole: only its own closing suffix is a position.
+    ["a position inside the value", "pw (line 9 column 9)", ""],
     [
       "a trailing comma in the map",
       `{"prod-eu":[{"id":"a","password":"${SECRET}"}],}`,
@@ -61,9 +65,31 @@ describe("engineModule.configFromEnv never echoes the engine config", () => {
     )
     const error = errorOf({ ENGINES_FILE: file })
     expect(error.message).toBe(
-      `ENGINES_FILE=${file} (resolved ${file}) is not valid JSON; its content ${HIDDEN}. ${HINT}`,
+      `ENGINES_FILE=${file} is not valid JSON; its content ${HIDDEN}. ${HINT}`,
     )
     expect(error.cause).toBeUndefined()
+  })
+
+  it.each([
+    ["single", `'[{"id":"a","password":"${SECRET}"}]'`, ""],
+    ["double", `"[{"id":"a","password":"${SECRET}"}]"`, " at line 1 column 5"],
+  ])("ENGINES_JSON wrapped in %s quotes says so", (_case, json, at) => {
+    expect(errorOf({ ENGINES_JSON: json }).message).toBe(
+      `ENGINES_JSON is not valid JSON${at}; the value ${HIDDEN}. ${QUOTED}`,
+    )
+  })
+
+  it("ENGINES_FILE saved with a byte order mark loads", () => {
+    const file = path.join(dir, "bom.json")
+    const engines = [{ id: "prod-a", baseUrl: "http://a.example/engine-rest" }]
+    fs.writeFileSync(file, `\uFEFF${JSON.stringify(engines)}`)
+    expect(engineModule.configFromEnv({ ENGINES_FILE: file }).engines).toEqual(engines)
+  })
+
+  it("an empty ENGINES_FILE says it is empty", () => {
+    const file = path.join(dir, "empty.json")
+    fs.writeFileSync(file, "\uFEFF \n")
+    expect(errorOf({ ENGINES_FILE: file }).message).toBe(`ENGINES_FILE=${file} is empty.`)
   })
 
   it("a missing or unreadable ENGINES_FILE names the variable and the resolved path", () => {
@@ -72,7 +98,7 @@ describe("engineModule.configFromEnv never echoes the engine config", () => {
       `ENGINES_FILE=${missing} (resolved ${path.resolve(missing)}) does not exist.`,
     )
     expect(errorOf({ ENGINES_FILE: dir }).message).toBe(
-      `ENGINES_FILE=${dir} (resolved ${dir}) cannot be read (EISDIR).`,
+      `ENGINES_FILE=${dir} cannot be read (EISDIR).`,
     )
   })
 
