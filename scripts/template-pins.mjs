@@ -21,10 +21,19 @@
  *   (CLAUDE.md, Contracts). release-please does NOT bump these: Dependabot's npm entry covers the
  *   template next to the root (.github/dependabot.yml), and a bump that reaches one directory
  *   only (a major, a security update, a hand bump) includes the other by hand.
+ * - The template's pnpm-workspace.yaml fails an install on an unmet peer (strictPeerDependencies),
+ *   and mcp-use's inspector asks for a lucide-react below the one the workspace pins. Its
+ *   peerDependencyRules allow the inspector the lucide-react MAJOR the workspace pins
+ *   (INSPECTOR_LUCIDE). Not the exact version: a starter that bumps lucide-react alone would then
+ *   fail its install with the inspector's range, the message that invites a downgrade, before
+ *   the starter's server/test/pins.test.ts names the pin. Dependabot never edits the entry, so a
+ *   lucide-react major moves it by hand; drop it here and in the template once the inspector
+ *   peers lucide-react 1.x.
  */
 import { readdirSync, readFileSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+import { parse } from "yaml"
 import { isPublishedLibrary, readWorkspace } from "./workspace-packages.mjs"
 
 /** Resolved once per host bundle; pinned in the template exactly as in the workspace. */
@@ -126,6 +135,27 @@ export function templatePinFindings(manifests, { versions, pins }) {
   return { unknown, drifted }
 }
 
+/** The template's peerDependencyRules entry for mcp-use's inspector and its lucide-react peer. */
+export const INSPECTOR_LUCIDE = "@mcp-use/inspector>lucide-react"
+const TEMPLATE_WORKSPACE = "templates/composed-server/pnpm-workspace.yaml"
+
+/**
+ * The finding of the template's pnpm-workspace.yaml (`workspaceYaml`, its text) when its
+ * INSPECTOR_LUCIDE entry is not the major of the workspace's lucide-react pin in `pins`.
+ */
+export function peerRuleFindings(workspaceYaml, pins) {
+  const exact = pins["lucide-react"]?.exact
+  if (exact === undefined) return [] // workspacePins reports the missing pin
+  const major = exact.split(".")[0]
+  const allowed = parse(workspaceYaml)?.peerDependencyRules?.allowedVersions?.[INSPECTOR_LUCIDE]
+  if (allowed !== undefined && String(allowed) === major) return []
+  const found = allowed === undefined ? "missing" : JSON.stringify(allowed)
+  return [
+    `${TEMPLATE_WORKSPACE}: peerDependencyRules.allowedVersions "${INSPECTOR_LUCIDE}" is ` +
+      `${found}, the workspace pins lucide-react ${exact}: allow its major, "${major}"`,
+  ]
+}
+
 const SKIP_DIRS = new Set(["node_modules", "dist", ".mcp-use"])
 
 /** Every package.json under `templateRoot` as `{ file, manifest }`, sorted by path. */
@@ -154,6 +184,7 @@ export function checkTemplatePins(root) {
     return [`No server/package.json under templates/composed-server: is the template still there?`]
   }
   const { unknown, drifted } = templatePinFindings(manifests, { versions, pins })
+  const rules = peerRuleFindings(readFileSync(path.join(root, TEMPLATE_WORKSPACE), "utf8"), pins)
   const out = []
   if (errors.length > 0) out.push("The workspace disagrees with itself:", ...errors)
   if (unknown.length > 0) {
@@ -170,6 +201,13 @@ export function checkTemplatePins(root) {
       ...drifted,
     )
   }
+  if (rules.length > 0) {
+    out.push(
+      "The template's peer rule for mcp-use's inspector drifted from the workspace's " +
+        "lucide-react pin (Dependabot edits package.json files only, so a major moves it by hand):",
+      ...rules,
+    )
+  }
   return out
 }
 
@@ -182,6 +220,7 @@ if (isMain) {
     process.exit(1)
   }
   console.log(
-    `Template pins: the @miragon/pulse-* libraries and ${SHARED_LIBRARIES.join(", ")} match the workspace.`,
+    `Template pins: the @miragon/pulse-* libraries and ${SHARED_LIBRARIES.join(", ")} match the ` +
+      `workspace; the "${INSPECTOR_LUCIDE}" peer rule allows its lucide-react major.`,
   )
 }
