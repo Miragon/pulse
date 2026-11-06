@@ -6,8 +6,9 @@ set -euo pipefail
 # workspace:* to real versions), points a throwaway copy of the template at
 # the tarballs via pnpm overrides, and runs the template's full bar. Catches
 # "the template no longer compiles against the packages we are about to
-# release" before the release train publishes to npm. Run from anywhere;
-# leaves the working tree untouched.
+# release" before the release train publishes to npm, and a file the bar or
+# `pnpm dev` writes that the template's own .gitignore misses. Run from
+# anywhere; leaves the working tree untouched.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEMPLATE="$ROOT/templates/composed-server"
@@ -64,10 +65,34 @@ rsync -a --exclude node_modules --exclude dist --exclude .mcp-use "$TEMPLATE/" "
   done
 } >> "$WORK/pnpm-workspace.yaml"
 
+# A starter repo has only the template's own .gitignore: the monorepo's root one
+# hides generated files here that would dirty it. The copy (outside the
+# monorepo) becomes a git repo of its own, its files staged before the bar; a
+# file the bar leaves that is neither staged nor ignored fails below. The
+# user's global excludes stay out, so a local run sees what CI sees.
+git_work() { git -C "$WORK" -c core.excludesFile=/dev/null "$@"; }
+git_work init -q
+git_work add -A
+
 cd "$WORK"
 pnpm install --no-frozen-lockfile
 pnpm build
 pnpm typecheck
 pnpm test
+
+# pnpm-lock.yaml is the one new file a starter repo commits (its Dockerfile
+# installs with --frozen-lockfile).
+LEFT="$(git_work ls-files --others --exclude-standard | grep -vx 'pnpm-lock.yaml' || true)"
+if [[ -n "$LEFT" ]]; then
+  echo "test-template: install, build, typecheck and test left files that templates/composed-server/.gitignore does not ignore, so a fresh starter repo shows them as changes:" >&2
+  echo "$LEFT" >&2
+  exit 1
+fi
+# `mcp-use dev` writes mcp-env.d.ts next to the server entry on every `pnpm dev`;
+# the bar above never runs it.
+if ! git_work check-ignore -q server/mcp-env.d.ts; then
+  echo "test-template: templates/composed-server/.gitignore does not ignore mcp-env.d.ts, which every \`pnpm dev\` writes to server/; add the line." >&2
+  exit 1
+fi
 
 echo "test-template: OK"
