@@ -7,42 +7,40 @@ Self-Managed, from Camunda 8.9 on. A cluster below 8.9 gets a problem that names
 ::: warning Read-only, tested on Self-Managed
 Pulse cannot change data on a Camunda 8 cluster yet: no retries, no variable changes, no
 migrations. The conformance suites run on Self-Managed 8.9 and 8.10 with H2 and Elasticsearch,
-without security, with basic authentication and with OIDC. SaaS speaks the same API, but no suite
-has run on a SaaS cluster yet.
+without security, with basic authentication and with OIDC. On SaaS, Pulse's login and _Add Engine_
+ran against an 8.9 cluster; no suite has run there yet.
 :::
 
 ## SaaS
 
-Create an API client for the cluster in Camunda Hub. Its connection information names the REST
-address, the token URL and the audience. Add a profile to `.pulse-cli.json`:
+Run _Pulse: Add Engine…_ and choose Camunda 8 SaaS. It asks for the region and the cluster ID, then
+for the ID, the secret and the audience of an API client of the cluster, as Camunda Hub shows them
+in the client's connection information (`CAMUNDA_CLUSTER_REGION`, `CAMUNDA_CLUSTER_ID`, …), and for
+a name and whether the cluster is test or production. Pulse adds the profile to `.pulse-cli.json`,
+keeps the ID and the secret in VS Code's secret storage, never in the file, and reads the cluster
+once to check it:
 
 ```json
 {
-  "profiles": {
-    "c8-saas": {
-      "url": "https://bru-2.api.camunda.io/<cluster id>/v2",
-      "flavor": "camunda8",
-      "cockpitUrl": "https://bru-2.api.camunda.io/<cluster id>/operate",
-      "auth": {
-        "type": "clientCredentials",
-        "tokenEndpoint": "https://login.cloud.camunda.io/oauth/token",
-        "audience": "<the audience of your API client>"
-      }
-    }
+  "url": "https://bru-2.api.camunda.io/<cluster id>/v2",
+  "cockpitUrl": "https://bru-2.api.camunda.io/<cluster id>/operate",
+  "flavor": "camunda8",
+  "auth": {
+    "type": "clientCredentials",
+    "tokenEndpoint": "https://login.cloud.camunda.io/oauth/token",
+    "audience": "zeebe.camunda.io"
   }
 }
 ```
 
-Then run _Pulse: Set Credentials…_ and enter the client ID and the client secret. They live in
-VS Code's secret storage, never in the file.
-
-SaaS hosts count as unclassified, so open views don't read the cluster again on their own. Classify
-the profile and turn live updates on in your user settings if you want them
+With authorizations on, the API client needs the [read permissions](#what-the-login-may-read). A
+cluster left unclassified is read again only when you refresh; Test turns live updates on
 ([Configuration](./configuration.md#settings)).
 
 ## Self-Managed
 
-The `url` ends in `/v2`, and `cockpitUrl`, when you set it, in `/operate`.
+_Pulse: Add Engine…_ with Camunda 8 Self-Managed asks for the REST address, the Operate address and
+the login. In the profile, the `url` ends in `/v2`, and `cockpitUrl`, when you set it, in `/operate`.
 
 | The cluster's API                | `auth` in the profile                                                    | What you enter in _Set Credentials…_ |
 | -------------------------------- | ------------------------------------------------------------------------ | ------------------------------------ |

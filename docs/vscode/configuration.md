@@ -30,7 +30,9 @@ reads profile by profile and skips the keys it does not use (`headers`, `timeout
 credentials), so a file the CLI refuses as a whole, say one with a committed password, can still
 list engines here: check a project file with `pulse-cli config list`.
 
-Set credentials with _Pulse: Set Credentials…_. They live in VS Code's secret storage.
+_Pulse: Add Engine…_ sets up a [Camunda 8](./camunda8.md) cluster step by step and writes its profile;
+_Configure Engines_ opens the file. Set credentials with _Pulse: Set Credentials…_. They live in VS
+Code's secret storage.
 
 ## Settings
 

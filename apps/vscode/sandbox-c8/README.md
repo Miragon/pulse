@@ -87,6 +87,24 @@ jump to them.
 | 27  | A board across engines          | Boards view → Shop operations, after _Set Credentials_             | shop-dev and shop-test counted with each engine named; prod-eu gets "Can't reach prod-eu." and "not read", totals read "from 2 of 3 engines".                                                                                                                                                |
 | 28  | A process board                 | Boards view → Order fulfillment, after _Set Credentials_           | The diagram of order-fulfillment on shop-dev and on shop-test with their badges; open incidents of both engines with element and message.                                                                                                                                                    |
 
+## Your own cluster
+
+`sandbox:c8:seed` loads the same shop into a cluster of your own, a SaaS cluster for example, so
+the charter's business keys work there too. Put the connection information of one of its API
+clients into the environment as Camunda Hub shows it (`CAMUNDA_CLUSTER_REGION`,
+`CAMUNDA_CLUSTER_ID`, `CAMUNDA_CLIENT_ID`, `CAMUNDA_CLIENT_SECRET`, `CAMUNDA_OAUTH_URL` and
+`CAMUNDA_TOKEN_AUDIENCE`; on Self-Managed `CAMUNDA_REST_ADDRESS` instead of region and cluster ID),
+then run:
+
+```sh
+pnpm --filter pulse-cockpit run sandbox:c8:seed
+```
+
+That client deploys, starts instances and works their jobs and user tasks, so with authorizations
+on it needs the admin role while it seeds. The seed refuses a cluster that already holds the shop.
+Then add the cluster with _Pulse: Add Engine…_ and a client that holds only the three read
+permissions. The rows about shop-test, prod-eu and the boards need the local clusters.
+
 ## How the data is made
 
 `apps/vscode/scripts/sandbox-c8` holds everything that is not part of this project: the cluster

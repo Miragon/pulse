@@ -28,6 +28,7 @@ pnpm --filter pulse-cockpit run test:e2e:c8:docker # VS Code on the running c8:u
 pnpm --filter pulse-cockpit run sandbox:up       # shop sandbox for manual testing: two seeded engines
 pnpm --filter pulse-cockpit run sandbox:open     # build, start the sandbox if needed, open it in VS Code
 pnpm --filter pulse-cockpit run sandbox:c8:open  # the same shop on two Camunda 8 clusters (sandbox:c8:up, :traffic, :down)
+pnpm --filter pulse-cockpit run sandbox:c8:seed  # the shop into your own cluster, with an API client's connection information set
 pnpm --filter pulse-cockpit run docs:screenshots # one screenshot per use case (after sandbox:up)
 pnpm --filter pulse-cockpit run package          # the .vsix
 ```
@@ -112,7 +113,8 @@ webview and host stay engine-neutral.
 - `.pulse-cli.json` follows the CLI's rules: the CLI owns its JSON Schema and the fixtures in
   `apps/cli/test/fixtures/project-file/` (the file and the CLI's verdict), the extension its
   expectations of them (`apps/vscode/test/host/project-file-fixtures.expected.json`, one entry
-  per fixture). `apps/vscode/test/host/project-file-fixtures.test.ts` reads the fixtures as files
+  per fixture). _Add Engine_ writes profiles: the fixture `valid-wizard-profiles.json` holds its
+  exact output, and `apps/vscode/test/host/wizard-profiles.test.ts` keeps the two equal. `apps/vscode/test/host/project-file-fixtures.test.ts` reads the fixtures as files
   (never an import) and holds `TargetsParser` to both. A profile the CLI accepts is a target with
   the CLI's URL, auth type and read-only flag, or a named problem; a value the CLI refuses never
   becomes a default. Change the parser with the fixtures, not apart.

@@ -79,6 +79,14 @@ never hides that. Pulse reads profile by profile and ignores keys it does not us
 CLI refuses as a whole (a committed password, a secret header, an unknown key) can still list
 engines; the fixtures pin that.
 
+The extension writes the file in one place: _Add Engine_ (`src/host/commands/add-engine-command.ts`)
+appends the profile that `src/host/connections/saas-setup.ts` or `self-managed-setup.ts` builds,
+through `src/host/connections/project-file-edit.ts`, the way the CLI writes: never as the default,
+`$schema` and `defaultProfile` untouched, nothing written into a file that isn't JSON, no secret.
+The fixture `valid-wizard-profiles.json` holds the wizard's exact output and
+`apps/vscode/test/host/wizard-profiles.test.ts` compares the two, so the CLI's parser and schema
+check every profile the wizard writes.
+
 Each layer has its own `tsconfig.<layer>.json` with `lib`/`types` matching its runtime,
 so code that uses `document` in the core or `process` in the webview does not compile.
 
