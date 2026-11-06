@@ -124,6 +124,16 @@ describe("the BPMN text reader", () => {
     expect(BpmnText.catchKind(xml, "Wait")).toBe("timer")
   })
 
+  test("leaves no comment behind that the removal of another one put together", () => {
+    const xml = definitions(`<!<!-- one -->-- <bpmn:intermediateCatchEvent id="Hidden">
+      <bpmn:timerEventDefinition />
+    </bpmn:intermediateCatchEvent> -->
+    <bpmn:intermediateCatchEvent id="Wait"><bpmn:signalEventDefinition /></bpmn:intermediateCatchEvent>`)
+
+    expect(BpmnText.catchKind(xml, "Hidden")).toBeUndefined()
+    expect(BpmnText.catchKind(xml, "Wait")).toBe("signal")
+  })
+
   test("reads a quoted > or /> as part of the value, never as the end of the tag", () => {
     const xml = definitions(`<bpmn:intermediateCatchEvent id="Wait" name="a /> b > c">
       <bpmn:signalEventDefinition />

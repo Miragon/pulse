@@ -62,7 +62,13 @@ export class BpmnText {
   }
 
   private static markupOf(xml: string): string {
-    return xml.replaceAll(NO_MARKUP, "")
+    let markup = xml
+    let before: string
+    do {
+      before = markup
+      markup = markup.replaceAll(NO_MARKUP, "")
+    } while (markup !== before)
+    return markup
   }
 
   private static textOf(group: string | undefined): string {
