@@ -371,7 +371,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      stroke through lucide's own `strokeWidth`, never a CSS `stroke-width` rule, which would
      beat the `LucideProvider` widget-shell's view root sets with pulse-ui's `ICON_STROKE`.
      Every package that imports `lucide-react` and every host bundle pin the SAME exact 1.x
-     devDependency (today `1.66.0`): two versions resolve a second mcp-use instance and split
+     devDependency (today `1.67.0`): two versions resolve a second mcp-use instance and split
      the React contexts.
    - **Actions and hand-offs.** A view's actions are ONE group in `WidgetHeader` `actions`, all
      `size="sm"`, ordered: deterministic steps, the engine's own web app

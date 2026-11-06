@@ -313,7 +313,7 @@
   "devDependencies": {
     "@types/node": "22.20.5",
     "@types/vscode": "1.101.0",
-    "@vitest/browser-playwright": "5.0.5",
+    "@vitest/browser-playwright": "5.1.0",
     "@vitest/coverage-v8": "5.1.0",
     "@vscode/test-cli": "0.0.15",
     "@vscode/test-electron": "3.1.0",
