@@ -77,9 +77,9 @@ second engine dialect cheap:
   the boot refuses a tool name two modules register. The app only lists its modules and wires
   their shared resources (`apps/mcp-server/src/setup.ts`); the shared boot selects the
   modules (`MCP_ACTIVE_MODULES`), installs OAuth from the env and resolves one fail-closed
-  toolset per module per boot (read-only unless widened) and logs it. The module
-  packages are published to npm, so external composition roots can mount them next to their own
-  modules. The reference is `templates/composed-server/`.
+  toolset per module per boot (a module with toolsets: read-only unless widened) and logs it.
+  The module packages are published to npm, so external composition roots can mount them next
+  to their own modules. The reference is `templates/composed-server/`.
 - The MCP server app owns no domain UI. Widgets live in packages: `pulse-ui`
   carries the design kit, `widget-shell` the view runtime;
   each module carries its own. Cross-module UI goes through another module's widget by its raw

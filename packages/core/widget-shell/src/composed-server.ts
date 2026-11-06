@@ -19,6 +19,7 @@ import {
   type ModuleComposition,
   type ModuleEntry,
   type ResolvedBoot,
+  unguardedModules,
 } from "./composition.js"
 import { installHealthEndpoints } from "./health.js"
 import { requestLogLevelWarning, resolvePort, swallowDevCliViewsPrime } from "./host-boot.js"
@@ -249,9 +250,16 @@ async function buildServer<TShared extends object>(
   const app = createServer(info, serverInstructions(info, composition.instructions(boot)), oauth)
   // Registrars take the OAuth-less type: no handler reads `ctx.auth`, only the request middleware.
   const server = app as unknown as MCPServer
-  const registration = installToolRegistration(server, fontAssetsCsp(env))
+  const registration = installToolRegistration(server, fontAssetsCsp(env), info.name)
   const shared = options.shared?.(boot.entries) ?? ({} as TShared)
-  for (const plugin of composition.pluginsFor(boot.entries, shared)) registration.register(plugin)
+  // Keyed by the entry, not the plugin's name: the warning names the module MCP_ACTIVE_MODULES lists.
+  const unguarded = unguardedModules(boot)
+  for (const entry of boot.entries) {
+    const unguardedModule = unguarded.has(entry.app) ? entry.app : undefined
+    for (const plugin of composition.pluginsFor([entry], shared)) {
+      registration.register(plugin, { unguardedModule })
+    }
+  }
   await primeViews(server, registration.viewNames, options.bundle, info.name)
   return app
 }

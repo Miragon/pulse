@@ -152,9 +152,14 @@ Model both tools on `modules/mcp-notes/src/widget-tools.ts`:
   `registerWidgetTools` in the notes module): the boot applies the server-wide
   view CSP to every view-bound tool and refuses a tool name another plugin
   already registered.
-- A widget-path tool never writes: the registrar's toolset filter never sees
-  it. A write is a registrar tool (the `create-module` skill, Step 5), which
-  the filter drops outside its toolset.
+- A widget-path tool never writes, and the `show_*` tool states
+  `readOnlyHint: true`. On a host that strips `structuredContent`
+  (claude.ai) the view re-runs its show tool once by itself, without asking,
+  so a write there would run twice; and the registrar's toolset filter never
+  sees a widget-path tool. A write is a registrar tool (the `create-module`
+  skill, Step 5), which the filter drops outside its toolset.
+  `server/test/tool-annotations.e2e.test.ts` fails on a view-bound tool
+  that is not a read.
 
 ## Step 4: verify
 

@@ -5,6 +5,7 @@ import { ENGINE_ADMIN_ONLY_TOOLS } from "@miragon/pulse-engine-connector"
 import { createApp } from "../src/app.js"
 import { MODULES } from "../src/setup.js"
 import { stubNeutralEnv } from "./neutral-env.js"
+import { toolsetSelections } from "./toolset-selections.js"
 
 const FIXTURE_JS = path.join(import.meta.dirname, "fixtures", "mcp-app.js")
 
@@ -27,26 +28,6 @@ interface ProbedTool {
 function errorText(result: unknown): string {
   const content = (result as { content?: Array<{ text?: string }> }).content ?? []
   return content.map((part) => part.text ?? "").join("\n")
-}
-
-/**
- * One `MCP_ACTIVE_MODULES` selection per toolset DEPTH: boot `i` runs every
- * composed module on its `i`-th declared toolset (its last one once it has
- * no more; a module without toolsets by its bare name). Together the boots
- * register every tool any toolset registers. The default boot would not: it
- * puts every module on its read-only floor, which hides every write tool
- * above it (an engine write, a destructive registrar tool):
- * exactly the tools where a dropped scoping key hurts most. Derived from
- * `MODULES`, not hand-listed: your module's toolsets are covered the moment
- * it declares them.
- */
-function toolsetSelections(): string[] {
-  const depth = Math.max(1, ...MODULES.map((module) => module.toolsets?.names.length ?? 1))
-  return Array.from({ length: depth }, (_, i) =>
-    MODULES.map(({ name, toolsets }) =>
-      toolsets ? `${name}:${toolsets.names[Math.min(i, toolsets.names.length - 1)]}` : name,
-    ).join(","),
-  )
 }
 
 /**
@@ -84,7 +65,8 @@ async function probeBoot(selection: string, probed: Map<string, ProbedTool>): Pr
 /**
  * Strict tool inputs on EVERY listed tool: every composed module's, yours
  * included, on EVERY toolset it declares (see
- * {@link toolsetSelections}). A non-strict input
+ * {@link toolsetSelections}), so the writes above the read-only floor, where
+ * a dropped scoping key hurts most, are probed too. A non-strict input
  * schema lets the server STRIP an unknown key before the handler runs: a
  * misnamed optional filter then silently widens the result and the model
  * never learns. Registrar tools (`createToolRegistrar`) are always strict,

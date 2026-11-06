@@ -39,8 +39,8 @@ lines start with `[acme-mcp]` (the `name` in
 `server/src/app.ts`): every warning among them is actionable (unknown env var, missing Prometheus URL,
 engine auth problems), and one info line
 (`[acme-mcp] Toolsets: engine:read-only (default without OAuth), …`) states
-what each module may do, read-only until you widen it or set up OAuth
-(Step 3).
+what each module may do: one with toolsets is read-only until you widen it
+or set up OAuth (Step 3), one shown as `(no toolsets)` registers every tool.
 
 ## Step 2: connect the engine and Prometheus
 

@@ -86,8 +86,10 @@ The contract, field by field (see `notesModule`):
   boot-time typo warner, and each var contributes its prefix (`ACME_URL` →
   `ACME_`) to the watched set, so your module gets the same typo coverage as
   the built-in ones.
-- `toolsets`: leave it out unless you implement Step 5 (the notes module has
-  none); without it a `<name>:<toolset>` suffix is ignored with a warning.
+- `toolsets`: required as soon as your module registers a tool without
+  `readOnlyHint: true` and the server may run without OAuth (Step 5). A
+  module of reads only, like notes, leaves it out; a `<name>:<toolset>`
+  suffix on it is ignored with a warning.
 - `createPlugin(config, shared)`: validate `config` with your zod schema
   (**this** is where validation lives) and return a `ModulePlugin` (the type
   from `@miragon/pulse-widget-shell/server`), `{ name, register(server) }`.
@@ -131,15 +133,20 @@ Tool conventions (they carry the contract, so they are not cosmetic):
   session.
 - Annotations: reads get `{ readOnlyHint: true, idempotentHint: true }`
   (+ `openWorldHint: true` when they talk to an external system); writes drop
-  `readOnlyHint`; every write states `destructiveHint` explicitly (MCP reads an
-  absent hint as `true`): `true` for irreversible operations, `false` otherwise.
+  `readOnlyHint` and need toolsets (Step 5); every write states
+  `destructiveHint` explicitly (MCP reads an absent hint as `true`): `true`
+  for irreversible operations, `false` otherwise.
 - Write tools that only flip state return a small `{ success: true, … }`
   object, not the raw (often empty) upstream response.
 
-## Step 5: toolsets (optional)
+## Step 5: toolsets (as soon as a tool writes)
 
-Skip this until someone needs to run your module with a narrowed tool surface
-(`MCP_ACTIVE_MODULES=<name>:read-only`). Then declare a vocabulary and put it
+A module without toolsets registers every tool on every boot. Without OAuth
+nobody signs in, so each of its writes is open to anyone who reaches the
+port; the boot warns once per tool without `readOnlyHint: true`, naming the
+tool and your module. So take this step as soon as your module registers a
+tool without `readOnlyHint: true` and the server may run without OAuth; a
+module of reads only skips it. Declare a vocabulary and put it
 on the module definition. The boot resolves ONE concrete toolset per
 boot, logs it, and hands it to `createPlugin` as `config.toolset`:
 
@@ -196,7 +203,8 @@ Then document every var from `knownEnvVars` in `.env.example`.
 undocumented var, or a documented var no module reads).
 
 The e2e tests (`server/test/widget-contract.e2e.test.ts`,
-`server/test/strict-input.e2e.test.ts`) need no edit either: they boot the
+`server/test/strict-input.e2e.test.ts`,
+`server/test/tool-annotations.e2e.test.ts`) need no edit either: they boot the
 composed server in-process and cover your module by naming convention and on
 every toolset it declares.
 
@@ -207,7 +215,8 @@ pnpm build && pnpm typecheck && pnpm test
 ```
 
 Then boot it for real: `pnpm dev`, check the boot log (your module's env-var
-typo coverage and boot warnings show up here), and call your tools in the
+typo coverage and boot warnings show up here, and a warning names each write
+a module without toolsets leaves open), and call your tools in the
 inspector at `http://localhost:8400/mcp/inspector`, or headless via the
 mcp-use client/screenshot commands in `CLAUDE.md` → Verification. Also verify
 the selection path: `MCP_ACTIVE_MODULES=<name> pnpm dev` must expose exactly

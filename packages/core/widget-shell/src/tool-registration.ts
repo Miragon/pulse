@@ -20,11 +20,19 @@ export interface WidgetCspMeta {
   base_uri_domains?: string[]
 }
 
+interface RegisterOptions {
+  /**
+   * The module's name when nothing narrows its tools on this boot (`unguardedModules`: no
+   * toolsets, no OAuth). Each tool it adds without `readOnlyHint: true` then warns once.
+   */
+  unguardedModule?: string
+}
+
 export interface ToolRegistration {
   /** Every `view.name` a registered tool binds; the boot primes them once, after every plugin. */
   readonly viewNames: ReadonlySet<string>
   /** Runs `plugin.register` with the plugin's name as the owner of every tool it adds. */
-  register(plugin: ModulePlugin): void
+  register(plugin: ModulePlugin, options?: RegisterOptions): void
 }
 
 type Register = (definition: ToolDefinition, callback: never) => unknown
@@ -68,20 +76,33 @@ function withCspDefaults(definition: ToolDefinition, csp: AppResourceCsp): ToolD
   return next as unknown as ToolDefinition
 }
 
+/** One line per open write; MCP reads an absent `readOnlyHint` as a write, so only `true` is a read. */
+function openWriteWarning(label: string, tool: string, module: string): string {
+  return (
+    `[${label}] ${tool} is a write and its module "${module}" declares no toolsets: anyone who ` +
+    `reaches this port can call it. Declare toolsets on "${module}" that keep its writes out of ` +
+    `the read-only floor, or configure an OAuth provider (MCP_USE_OAUTH_*); a tool that only ` +
+    `reads states readOnlyHint: true.`
+  )
+}
+
 /**
  * Wraps `server.tool` before any plugin registers. mcp-use keeps the last tool of a name, so a
  * second module's tool would silently replace the first: the boot refuses it instead. Modules bind
  * views through `showToolBinding`, which knows nothing about the deployment, so the server-wide view
- * CSP (the served fonts' origin) is merged in here.
+ * CSP (the served fonts' origin) is merged in here. An unguarded module's write only warns (under
+ * `label`): the boot never drops or refuses a tool for its annotations.
  */
 export function installToolRegistration(
   server: MCPServer,
   csp: AppResourceCsp | undefined,
+  label: string,
 ): ToolRegistration {
   const owners = new Map<string, string>()
   const viewNames = new Set<string>()
   const defaults = hasDomains(csp) ? csp : undefined
   let owner = SERVER_TOOL_OWNER
+  let unguarded: string | undefined
 
   // `never` keeps the assignment sound under parameter contravariance: the wrapper only forwards it.
   const original: Register = server.tool.bind(server)
@@ -96,18 +117,23 @@ export function installToolRegistration(
     const ref = original(defaults ? withCspDefaults(definition, defaults) : definition, callback)
     owners.set(definition.name, owner)
     if (definition.view?.name) viewNames.add(definition.view.name)
+    if (unguarded !== undefined && definition.annotations?.readOnlyHint !== true) {
+      console.warn(openWriteWarning(label, definition.name, unguarded))
+    }
     return ref
   }
   server.tool = guarded as typeof server.tool
 
   return {
     viewNames,
-    register(plugin) {
+    register(plugin, options = {}) {
       owner = plugin.name
+      unguarded = options.unguardedModule
       try {
         plugin.register(server)
       } finally {
         owner = SERVER_TOOL_OWNER
+        unguarded = undefined
       }
     },
   }

@@ -71,6 +71,18 @@ export interface ResolvedBoot {
   toolsets: EffectiveToolset[]
 }
 
+/**
+ * The active modules nothing narrows on this boot: they declare no toolsets, so they register
+ * every tool, and without OAuth no caller signs in. Each write among their tools is open to
+ * anyone who reaches the port.
+ */
+export function unguardedModules(boot: ResolvedBoot): ReadonlySet<string> {
+  if (boot.authenticated) return new Set()
+  return new Set(
+    boot.toolsets.filter(({ source }) => source === "none").map(({ module }) => module),
+  )
+}
+
 interface ResolveBootOptions {
   /**
    * Only the boot knows whether it INSTALLED OAuth; reading `MCP_USE_OAUTH_*` here would count a

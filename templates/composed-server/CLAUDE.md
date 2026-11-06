@@ -85,7 +85,10 @@ external infrastructure.
    server's `ui/view-registry.ts` spreads the map; `tool-names.ts` keeps the
    tool names rename-safe. A missed link is a SILENTLY absent view.
    `server/test/view-registry.test.ts` boots the real composition and fails
-   on a view-bound tool without a view, and on a view no tool opens.
+   on a view-bound tool without a view, and on a view no tool opens. A
+   view-bound tool is a read (`readOnlyHint: true`, never destructive): on a
+   host that strips `structuredContent` the view re-runs it once, unasked
+   (`server/test/tool-annotations.e2e.test.ts`, on every toolset).
 4. **`resolve.dedupe` in `server/vite.config.ts` is load-bearing: never trim
    it.** It spreads widget-shell's `VIEW_BUNDLE_DEDUPE`
    (`@miragon/pulse-widget-shell/server`), the packages the view bundle must
@@ -137,7 +140,10 @@ external infrastructure.
    module's vars there.
 8. **Toolsets fail closed.** A module opts into the `module:toolset` suffix by
    declaring `toolsets: createToolsetVocabulary(...)` on its definition (a
-   module without one has no toolsets); the boot resolves ONE
+   module without one has no toolsets and registers every tool on every boot,
+   so it declares them as soon as it registers a tool without
+   `readOnlyHint: true` and the server may run without OAuth; until then a
+   boot without OAuth warns once per such tool); the boot resolves ONE
    concrete toolset per module per boot and logs it. Without OAuth (the boot
    reads `MCP_USE_OAUTH_*`) a module without a suffix runs its
    read-only floor, an empty/unknown suffix falls back to it, and an
