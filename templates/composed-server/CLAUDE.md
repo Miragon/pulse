@@ -44,6 +44,7 @@ cp .env.example .env  # local config; `pnpm dev` loads it (only `pnpm dev` does)
 pnpm build            # modules → widget bundle → server
 pnpm typecheck        # tsc everywhere, INCLUDING widget .tsx code: the only check that covers it
 pnpm test             # vitest: guard tests + in-process e2e wire-contract tests
+pnpm format:check     # Prettier, the style in .prettierrc.json (`pnpm format` applies it)
 pnpm dev              # MCP endpoint on :8400/mcp, inspector on :8400/mcp/inspector
 
 docker build -t my-mcp-server .   # needs a committed pnpm-lock.yaml

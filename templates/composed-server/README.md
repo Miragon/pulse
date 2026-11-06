@@ -86,6 +86,7 @@ analytics tools the Pulse playground's Prometheus.
 
 ```bash
 pnpm build && pnpm typecheck && pnpm test   # the bar for every change
+pnpm format:check                           # Prettier, the style in .prettierrc.json (pnpm format applies it)
 ```
 
 - The root `pnpm dev` builds the modules and the widget bundle once, when it

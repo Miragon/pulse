@@ -33,7 +33,8 @@ fi
 
 # The template's pins must equal the workspace's: the @miragon/pulse-* libraries
 # (release-please bumps them via extra-files), mcp-use, react, react-dom, zod,
-# lucide-react and @tanstack/react-query (scripts/template-pins.mjs says why).
+# lucide-react, @tanstack/react-query, prettier and prettier-plugin-tailwindcss
+# (scripts/template-pins.mjs says why).
 node "$ROOT/scripts/template-pins.mjs"
 
 # Build what the tarballs ship (files: dist and src).
@@ -79,6 +80,29 @@ pnpm install --no-frozen-lockfile
 pnpm build
 pnpm typecheck
 pnpm test
+
+# The starter's own format check, after the bar so its output is in place: the
+# copy lies outside the monorepo, so only the starter's .prettierrc.json and the
+# Prettier and Tailwind plugin it installs reach its files. Each probe must then
+# be flagged, or the check is an empty one: a semicolon (its config is read) and
+# unsorted Tailwind classes (its plugin runs). The probe reads the check without
+# colour: Prettier colours its `[warn]` prefix whenever CI is set, on a pipe too,
+# and GitHub Actions sets CI.
+pnpm format:check
+format_probe() {
+  printf '%s\n' "$2" >"$WORK/$1"
+  local out
+  out="$(NO_COLOR=1 pnpm format:check 2>&1 || true)"
+  if ! grep -qxF "[warn] $1" <<<"$out"; then
+    echo "test-template: the starter's pnpm format:check does not flag $1 ($3):" >&2
+    echo "$out" >&2
+    exit 1
+  fi
+  rm "$WORK/$1"
+}
+format_probe server/src/format-probe.ts "export const probe = 1;" "a semicolon"
+format_probe server/src/format-probe.tsx 'export const probe = <i className="p-4 flex" />' \
+  "Tailwind classes out of order"
 
 # pnpm-lock.yaml is the one new file a starter repo commits (its Dockerfile
 # installs with --frozen-lockfile).

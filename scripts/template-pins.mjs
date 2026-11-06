@@ -21,6 +21,11 @@
  *   (CLAUDE.md, Contracts). release-please does NOT bump these: Dependabot's npm entry covers the
  *   template next to the root (.github/dependabot.yml), and a bump that reaches one directory
  *   only (a major, a security update, a hand bump) includes the other by hand.
+ * - FORMATTER, the Prettier the starter formats with (its .prettierrc.json is the root's settings,
+ *   held there by check-ratchets.mjs): the workspace's one exact pin, the root manifest's
+ *   included. The workspace's Prettier formats the template's files, and the starter's
+ *   `pnpm format:check` must accept them as they are; another Prettier or plugin release can
+ *   print them differently. Dependabot moves both directories like the shared libraries.
  * - The template's pnpm-workspace.yaml fails an install on an unmet peer (strictPeerDependencies,
  *   held here: without it a split bump installs with a warning), and mcp-use's inspector asks for a
  *   lucide-react below the one the workspace pins. Its peerDependencyRules allow the inspector the
@@ -45,6 +50,9 @@ export const SHARED_LIBRARIES = [
   "react-dom",
   "zod",
 ]
+
+/** The starter's formatter and its plugin; pinned in the template exactly as in the workspace. */
+export const FORMATTER = ["prettier", "prettier-plugin-tailwindcss"]
 
 /** Exact even as a peer (a ranged mcp-use peer admits a second instance). */
 export const EXACT_PEERS = ["mcp-use"]
@@ -189,7 +197,12 @@ export function checkTemplatePins(root) {
   const versions = Object.fromEntries(
     packages.filter(isPublishedLibrary).map(({ manifest }) => [manifest.name, manifest.version]),
   )
-  const { pins, errors } = workspacePins(packages)
+  // The root manifest holds the workspace's tooling (Prettier among it); no package is there.
+  const rootManifest = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8"))
+  const { pins, errors } = workspacePins(
+    [{ dir: "the root package.json", manifest: rootManifest }, ...packages],
+    [...SHARED_LIBRARIES, ...FORMATTER],
+  )
   const manifests = templateManifests(path.join(root, "templates/composed-server"))
   if (!manifests.some(({ file }) => file === "server/package.json")) {
     return [`No server/package.json under templates/composed-server: is the template still there?`]
@@ -234,7 +247,8 @@ if (isMain) {
     process.exit(1)
   }
   console.log(
-    `Template pins: the @miragon/pulse-* libraries and ${SHARED_LIBRARIES.join(", ")} match the ` +
+    `Template pins: the @miragon/pulse-* libraries, ${SHARED_LIBRARIES.join(", ")} and ` +
+      `${FORMATTER.join(", ")} match the ` +
       `workspace; the starter's install is strict on peers, its "${INSPECTOR_LUCIDE}" rule ` +
       "allows the workspace's lucide-react major.",
   )
