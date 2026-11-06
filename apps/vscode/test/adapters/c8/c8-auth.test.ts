@@ -1,6 +1,10 @@
 import { describe, expect, test } from "vitest"
 import { C8Adapter } from "../../../src/adapters/c8/index.js"
-import type { EngineCredentials, ProcessRuntime } from "../../../src/contract/index.js"
+import type {
+  EngineCredentials,
+  ProcessRuntime,
+  RuntimeError,
+} from "../../../src/contract/index.js"
 import { jsonAnswer, problem, REST_URL } from "./support/fake-camunda-rest.js"
 
 const TOKEN_URL = "https://login.test/oauth/token"
@@ -14,6 +18,9 @@ const CREDENTIALS: EngineCredentials = {
 }
 const LIFETIME_S = 3600
 const STEP_BACK_MS = 10 * 60 * 1000
+const TOKEN_TEXT = "eyJhbGciOi.secret-part"
+const OUTSIDE_THE_SYNTAX =
+  "The token endpoint answered with a token outside the Bearer token syntax (RFC 6750)."
 
 type TokenAnswer = (form: URLSearchParams) => Response
 
@@ -95,6 +102,16 @@ describe("client credentials", () => {
       "client_id",
       "client_secret",
     ])
+  })
+
+  test("send a token with every character the Bearer token syntax allows as it came", async () => {
+    const login = new Login()
+    login.answerToken = () =>
+      jsonAnswer({ access_token: "eyJ0-9_A.z~Z+a/b==", expires_in: LIFETIME_S })
+
+    await login.runtime().describeEngine()
+
+    expect(login.apiAuthorizations).toEqual(["Bearer eyJ0-9_A.z~Z+a/b=="])
   })
 
   test("ask once for parallel reads and across connection rebuilds", async () => {
@@ -331,6 +348,44 @@ describe("a refused token request", () => {
     expect(await failureOf(login.runtime().describeEngine())).toMatchObject({
       failure: "unexpectedResponse",
     })
+  })
+})
+
+describe("a token outside the Bearer token syntax", () => {
+  test.each([
+    ["a line feed", `${TOKEN_TEXT}\nX`],
+    ["a carriage return", `${TOKEN_TEXT}\rX`],
+    ["a CRLF", `${TOKEN_TEXT}\r\nX`],
+    ["a NUL", `${TOKEN_TEXT}\u0000X`],
+    ["a trailing line feed", `${TOKEN_TEXT}\n`],
+    ["a space", `${TOKEN_TEXT} X`],
+    ["a character above Latin-1", `${TOKEN_TEXT}${String.fromCharCode(0x100)}`],
+  ])("with %s is refused unquoted, and the API gets no request", async (_name, accessToken) => {
+    const login = new Login()
+    login.answerToken = () => jsonAnswer({ access_token: accessToken, expires_in: LIFETIME_S })
+
+    const error = (await failureOf(login.runtime().describeEngine())) as RuntimeError
+
+    expect(error).toMatchObject({ failure: "unexpectedResponse", message: OUTSIDE_THE_SYNTAX })
+    expect(`${error.message} ${String(error.hint)}`).not.toContain(TOKEN_TEXT)
+    expect(login.apiAuthorizations).toEqual([])
+  })
+
+  test("is held for a minute like any refusal", async () => {
+    const login = new Login()
+    login.answerToken = () =>
+      jsonAnswer({ access_token: `${TOKEN_TEXT}\nX`, expires_in: LIFETIME_S })
+    await failureOf(login.runtime().describeEngine())
+
+    login.now += 59 * 1000
+    expect(await failureOf(login.runtime().describeEngine())).toMatchObject({
+      message: OUTSIDE_THE_SYNTAX,
+    })
+    expect(login.tokenBodies).toHaveLength(1)
+
+    login.now += 2 * 1000
+    await failureOf(login.runtime().describeEngine())
+    expect(login.tokenBodies).toHaveLength(2)
   })
 })
 

@@ -18,6 +18,8 @@ const HOUR_MS = 60 * MINUTE_MS
 const ENDPOINT_HINT = "The profile's tokenEndpoint must be the URL that issues tokens."
 const REQUEST_HINT =
   "Check the audience and the scopes in the profile. Pulse sends them as written."
+const GRANT_HINT =
+  "Check that the login service lets this client get a token for the audience and the scopes in the profile."
 
 class TokenEndpoint {
   now = 1_000_000
@@ -79,15 +81,19 @@ function streamOf(sizes: readonly number[]): ReadableStream<Uint8Array> {
 
 describe("a token endpoint that refuses with an error code", () => {
   test.each([
-    [400, "invalid_client", "unauthorized"],
-    [400, "unauthorized_client", "unauthorized"],
-    [401, "invalid_client", "unauthorized"],
-    [401, "unauthorized_client", "unauthorized"],
-  ])("reads HTTP %i %s as a refused client", async (status, error, failure) => {
+    [400, "invalid_client"],
+    [400, "unauthorized_client"],
+    [401, "invalid_client"],
+    [401, "unauthorized_client"],
+    [401, "access_denied"],
+    [401, "unauthorized"],
+    [401, "invalid_grant"],
+    [401, "invalid_scope"],
+  ])("reads HTTP %i %s as a refused client", async (status, error) => {
     const endpoint = endpointAnswering(() => jsonAnswer({ error }, status))
 
     expect(await endpoint.read()).toMatchObject({
-      failure,
+      failure: "unauthorized",
       message: `The token endpoint refused the client ID or secret (${error}).`,
       hint: undefined,
     })
@@ -98,7 +104,7 @@ describe("a token endpoint that refuses with an error code", () => {
     [400, "invalid_target"],
     [400, "invalid_request"],
     [400, "unsupported_grant_type"],
-    [401, "invalid_grant"],
+    [400, "invalid_grant"],
     [400, "temporarily_unsupported"],
   ])("reads HTTP %i %s as a request the profile sets up wrong", async (status, error) => {
     const endpoint = endpointAnswering(() => jsonAnswer({ error }, status))
@@ -127,6 +133,20 @@ describe("a token endpoint that refuses with an error code", () => {
     expect(error).toMatchObject({
       failure: "misconfigured",
       message: "The token endpoint refused the request (invalid_scope31mb).",
+    })
+    expect(`${error.message} ${String(error.hint)}`).not.toContain(SECRET)
+  })
+
+  test("names the code of a 401 alone, reduced to its characters, never the description", async () => {
+    const endpoint = endpointAnswering(() =>
+      jsonAnswer({ error: "access_denied <i>", error_description: `${SECRET} is wrong` }, 401),
+    )
+
+    const error = (await endpoint.read()) as RuntimeError
+
+    expect(error).toMatchObject({
+      failure: "unauthorized",
+      message: "The token endpoint refused the client ID or secret (access_deniedi).",
     })
     expect(`${error.message} ${String(error.hint)}`).not.toContain(SECRET)
   })
@@ -168,24 +188,36 @@ describe("a token endpoint that refuses without an error code", () => {
     },
   )
 
-  test.each([
-    [401, "unauthorized", "The token endpoint refused the client ID or secret (HTTP 401)."],
-    [403, "forbidden", "The token endpoint refused to issue a token for this client (HTTP 403)."],
-  ])("reads HTTP %i as %s", async (status, failure, message) => {
-    const endpoint = endpointAnswering(() => new Response("<html>No token</html>", { status }))
+  test("reads HTTP 401 as a refused client", async () => {
+    const endpoint = endpointAnswering(() => new Response("<html>No token</html>", { status: 401 }))
 
-    expect(await endpoint.read()).toMatchObject({ failure, message, hint: undefined })
+    expect(await endpoint.read()).toMatchObject({
+      failure: "unauthorized",
+      message: "The token endpoint refused the client ID or secret (HTTP 401).",
+      hint: undefined,
+    })
+  })
+
+  test("reads HTTP 403 as forbidden and points at what the client may get a token for", async () => {
+    const endpoint = endpointAnswering(() => new Response("<html>No token</html>", { status: 403 }))
+
+    expect(await endpoint.read()).toMatchObject({
+      failure: "forbidden",
+      message: "The token endpoint refused to issue a token for this client (HTTP 403).",
+      hint: GRANT_HINT,
+    })
   })
 
   test.each([
-    [403, "forbidden"],
-    [404, "misconfigured"],
-  ])("reads HTTP %i by its status even with an error code", async (status, failure) => {
+    [403, "forbidden", GRANT_HINT],
+    [404, "misconfigured", ENDPOINT_HINT],
+  ])("reads HTTP %i by its status even with an error code", async (status, failure, hint) => {
     const endpoint = endpointAnswering(() => jsonAnswer({ error: "invalid_client" }, status))
 
     expect(await endpoint.read()).toMatchObject({
       failure,
       message: expect.stringContaining(`HTTP ${status}`) as unknown,
+      hint,
     })
   })
 
@@ -205,6 +237,7 @@ describe("a token endpoint that refuses without an error code", () => {
     ["an error code", () => jsonAnswer({ error: "invalid_scope" }, 400)],
     ["no error code", () => new Response("", { status: 400 })],
     ["a refused client", () => jsonAnswer({ error: "invalid_client" }, 401)],
+    ["a refused client with another code", () => jsonAnswer({ error: "access_denied" }, 401)],
     ["a forbidden client", () => new Response("", { status: 403 })],
     ["a wrong path", () => new Response("", { status: 404 })],
     ["a redirect", () => new Response("", { status: 302 })],
@@ -334,5 +367,50 @@ describe("a token answer of more than a mebibyte", () => {
       failure: "unauthorized",
       message: "The token endpoint refused the client ID or secret (HTTP 401).",
     })
+  })
+})
+
+describe("the token endpoint in a problem text", () => {
+  function failureWith(tokenEndpoint: string, send: typeof fetch): Promise<unknown> {
+    return new C8Adapter(send, () => 0)
+      .runtime({
+        endpoint: REST_URL,
+        credentials: {
+          kind: "clientCredentials",
+          tokenEndpoint,
+          clientId: "pulse",
+          clientSecret: SECRET,
+        },
+      })
+      .describeEngine()
+      .then(
+        () => "answered",
+        (error: unknown) => error,
+      )
+  }
+
+  test("leaves out its query and fragment", async () => {
+    const withQuery = "https://login.test/oauth/token?p=b2c_1_signin&tenant=shop#part"
+    const unreachable = await failureWith(withQuery, () =>
+      Promise.reject(new TypeError("fetch failed")),
+    )
+    const missing = await failureWith(withQuery, () =>
+      Promise.resolve(new Response("", { status: 404 })),
+    )
+
+    expect((unreachable as RuntimeError).message).toBe(
+      "Cannot reach the token endpoint https://login.test/oauth/token.",
+    )
+    expect((missing as RuntimeError).message).toContain(
+      "The token endpoint https://login.test/oauth/token answered with HTTP 404.",
+    )
+  })
+
+  test("names a value that is no URL as written", async () => {
+    const failure = await failureWith("not a url", () =>
+      Promise.reject(new TypeError("Invalid URL")),
+    )
+
+    expect((failure as RuntimeError).message).toBe("Cannot reach the token endpoint not a url.")
   })
 })

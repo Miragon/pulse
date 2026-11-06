@@ -30,6 +30,7 @@ const MAX_SKEW_MS = 60_000
 const DEFAULT_LIFETIME_S = 300
 const FRESH_TOKEN_MS = 30_000
 const DIGITS = /^\d+$/
+const B64TOKEN = /^[A-Za-z0-9\-._~+/]+=*$/
 const ANSWER_TEXT = new CappedText(MAX_ANSWER_BYTES)
 
 export class ClientCredentialsTokens implements RequestAuth {
@@ -123,6 +124,9 @@ export class ClientCredentialsTokens implements RequestAuth {
     const accessToken = fields.access_token
     if (typeof accessToken !== "string" || accessToken === "") {
       throw this.held(this.failures.withoutToken())
+    }
+    if (!B64TOKEN.test(accessToken)) {
+      throw this.held(this.failures.malformedToken())
     }
     const lifetimeMs = ClientCredentialsTokens.lifetimeOf(fields.expires_in) * 1000
     const obtainedAt = this.now()

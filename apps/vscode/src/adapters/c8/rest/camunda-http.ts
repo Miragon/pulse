@@ -20,6 +20,7 @@ interface CamundaRequest {
 const TIMEOUT_MS = 60_000
 const MAX_ANSWER_BYTES = 64 * 1024 * 1024
 const ANSWER_TEXT = new CappedText(MAX_ANSWER_BYTES)
+const UNKNOWN_REASON = "unknown failure"
 
 export class CamundaHttp {
   constructor(private readonly options: CamundaHttpOptions) {}
@@ -115,10 +116,15 @@ export class CamundaHttp {
     if (error instanceof Error && error.name === "TimeoutError") {
       return CamundaRequestError.unanswered(`${url} did not answer within ${String(TIMEOUT_MS)} ms`)
     }
-    const cause =
-      error instanceof Error ? (error.cause as { code?: unknown } | undefined) : undefined
-    const reason = typeof cause?.code === "string" ? cause.code : String(error)
-    return CamundaRequestError.unanswered(`Cannot reach ${url} (${reason})`)
+    return CamundaRequestError.unanswered(`Cannot reach ${url} (${CamundaHttp.reasonOf(error)})`)
+  }
+
+  private static reasonOf(error: unknown): string {
+    if (!(error instanceof Error)) {
+      return UNKNOWN_REASON
+    }
+    const cause = error.cause as { code?: unknown } | undefined
+    return typeof cause?.code === "string" ? cause.code : error.name
   }
 
   private static failureOf(response: Response, text: string): CamundaRequestError {

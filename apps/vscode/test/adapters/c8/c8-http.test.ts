@@ -1,10 +1,12 @@
 import { describe, expect, test } from "vitest"
 import { C8Adapter } from "../../../src/adapters/c8/index.js"
 import { CappedText } from "../../../src/adapters/c8/rest/capped-text.js"
+import type { RuntimeError } from "../../../src/contract/index.js"
 import { jsonAnswer, REST_URL } from "./support/fake-camunda-rest.js"
 import { NONE } from "./support/runtime-fixture.js"
 
 const MEBIBYTE = 1024 * 1024
+const TOKEN_TEXT = "eyJhbGciOi.secret-part"
 
 interface Body {
   readonly stream: ReadableStream<Uint8Array>
@@ -41,6 +43,13 @@ function cannotCancel(): never {
 
 function runtimeAnswering(answer: () => Promise<Response>) {
   return new C8Adapter(answer).runtime({ endpoint: REST_URL, credentials: NONE })
+}
+
+function failureOf(attempt: Promise<unknown>): Promise<unknown> {
+  return attempt.then(
+    () => "answered",
+    (error: unknown) => error,
+  )
 }
 
 function chunksOf(sizes: readonly number[]): ReadableStream<Uint8Array> {
@@ -80,12 +89,47 @@ describe("the HTTP layer of the C8 adapter", () => {
     })
   })
 
-  test("names the failure of anything else that stops a request", async () => {
-    const runtime = runtimeAnswering(() => Promise.reject(new Error("no route")))
+  test.each([
+    ["an error", new Error(`no route for Bearer ${TOKEN_TEXT}`), "Error"],
+    [
+      "a failed fetch whose cause has no code",
+      new TypeError("fetch failed", { cause: new Error(`Bearer ${TOKEN_TEXT}`) }),
+      "TypeError",
+    ],
+    [
+      "a header value that fetch refuses and quotes",
+      new TypeError(`Headers.append: "Bearer ${TOKEN_TEXT}\nX" is an invalid header value.`),
+      "TypeError",
+    ],
+  ])(
+    "names a request stopped by %s by the kind of failure alone, never by its text",
+    async (_name, error, kind) => {
+      const runtime = runtimeAnswering(() => Promise.reject(error))
 
-    await expect(runtime.describeEngine()).rejects.toMatchObject({
+      const failure = (await failureOf(runtime.describeEngine())) as RuntimeError
+
+      expect(failure).toMatchObject({
+        failure: "unreachable",
+        message: `Cannot reach ${REST_URL}/topology (${kind})`,
+      })
+      expect(`${failure.message} ${String(failure.hint)}`).not.toContain(TOKEN_TEXT)
+    },
+  )
+
+  test("names no reason for a failure that is no error, and never quotes it", async () => {
+    const answer = new Response(
+      new ReadableStream({
+        pull(controller) {
+          controller.error(`Bearer ${TOKEN_TEXT}`)
+        },
+      }),
+    )
+
+    await expect(
+      runtimeAnswering(() => Promise.resolve(answer)).describeEngine(),
+    ).rejects.toMatchObject({
       failure: "unreachable",
-      message: expect.stringContaining("no route") as unknown,
+      message: `Cannot reach ${REST_URL}/topology (unknown failure)`,
     })
   })
 
