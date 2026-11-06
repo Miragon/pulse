@@ -44,7 +44,28 @@ or set up OAuth (Step 3), one shown as `(no toolsets)` registers every tool.
 
 ## Step 2: connect the engine and Prometheus
 
-Edit `.env` (every field is documented inline in `.env.example`):
+No engine at hand? Start the one in `compose.yaml`; the copied `.env` already
+points at it (`http://localhost:8410/engine-rest`, `cibseven`, basic auth
+`demo`/`demo`):
+
+```bash
+docker compose up -d --wait   # CIB seven with its invoice example, healthy once its REST API answers
+pnpm dev
+```
+
+Then `engine_list_process_definitions` lists `invoice` and `ReviewInvoice`.
+That engine serves the engine tools only: it records no metrics and runs no
+Prometheus. For the analytics tools as well, run the
+[Pulse playground](https://github.com/Miragon/pulse/tree/main/playground)
+instead (Node.js, pnpm and Docker only:
+`git clone https://github.com/Miragon/pulse && cd pulse && pnpm stack:up`)
+and uncomment `ENGINE_ID` (`prod-a`) and `PROMETHEUS_URL`
+(`http://localhost:8460`) in `.env`. Both engines take port 8410: stop one
+(`docker compose down` here, `pnpm stack:down` there) before you start the
+other. Without a Prometheus, leave analytics out of `MCP_ACTIVE_MODULES`
+(Step 3), or every boot warns that `PROMETHEUS_URL` is unset.
+
+For your own engine, edit `.env` (every field is documented inline in `.env.example`):
 
 - `ENGINE_BASE_URL`: the engine REST endpoint.
 - `ENGINE_ID`: **must equal the engine container's own `ENGINE_ID`, the
@@ -53,7 +74,7 @@ Edit `.env` (every field is documented inline in `.env.example`):
   health reads `unknown`.
 - `ENGINE_FLAVOR`: the engine's vendor, `camunda7` (default), `cibseven` or `operaton`. It
   picks the cockpit-link routes and the product name the views show, so a CIB seven engine (the
-  playground's) sets `cibseven`.
+  one in `compose.yaml`, the playground's) sets `cibseven`.
 - `ENGINE_AUTH_TYPE`: `none | basic | bearer | passthrough`; `basic` needs
   `ENGINE_USERNAME`/`ENGINE_PASSWORD`, `bearer` needs `ENGINE_TOKEN` (both
   enforced at boot); `passthrough` forwards each MCP caller's own bearer token.
@@ -82,11 +103,6 @@ operaton | camunda7`, default `camunda7`) and `auth`; overrides the single-engin
 - `ENGINE_REQUEST_TIMEOUT_MS` / `PROMETHEUS_TIMEOUT_MS`: per-request
   deadlines (default 30000 ms); a hung upstream then fails the tool call with
   a timeout error instead of holding it.
-
-No engine at hand? The
-[Pulse playground](https://github.com/Miragon/pulse/tree/main/playground)
-is a ready-made Docker Compose stack (engine + Prometheus + Grafana) whose
-defaults match this template's `.env.example`.
 
 ## Step 3: select modules and toolsets
 

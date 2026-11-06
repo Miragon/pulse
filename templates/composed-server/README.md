@@ -30,16 +30,25 @@ Prerequisites:
 
 ```bash
 pnpm install
-cp .env.example .env  # the Pulse playground's settings; `pnpm dev` loads it
+cp .env.example .env  # the settings of the engine in compose.yaml; `pnpm dev` loads it
 pnpm dev              # MCP endpoint on :8400/mcp, inspector on :8400/mcp/inspector
 ```
 
-The copied `.env` fits the
-[Pulse playground](https://github.com/Miragon/pulse/tree/main/playground): its
-CIB seven engine with `demo`/`demo` and its Prometheus. For your own engine
-set `ENGINE_BASE_URL`, `ENGINE_FLAVOR`, `ENGINE_AUTH_TYPE` with its
-credentials, `PROMETHEUS_URL`, and `ENGINE_ID` to an id of yours (with
-metrics, the `engine_id` they carry); `.env.example` explains each.
+No engine yet? `docker compose up -d`, then `pnpm dev`. The
+[`compose.yaml`](compose.yaml) starts a CIB seven engine on `localhost:8410`
+with its invoice example (login `demo`/`demo`), the engine the copied `.env`
+points at. It serves the engine tools only. Analytics needs the metrics and
+the Prometheus of the
+[Pulse playground](https://github.com/Miragon/pulse/tree/main/playground),
+which runs with Node.js, pnpm and Docker only:
+`git clone https://github.com/Miragon/pulse && cd pulse && pnpm stack:up`,
+then uncomment `ENGINE_ID` and `PROMETHEUS_URL` in `.env`. The playground's
+engine takes port 8410 too, so run one of the two.
+
+For your own engine set `ENGINE_BASE_URL`, `ENGINE_FLAVOR`,
+`ENGINE_AUTH_TYPE` with its credentials, `PROMETHEUS_URL`, and `ENGINE_ID`
+to an id of yours (with metrics, the `engine_id` they carry); `.env.example`
+explains each.
 
 ### 2. As a container
 
@@ -49,7 +58,7 @@ quotes and trailing comments in the value), and the `-e` flags after it win:
 
 ```bash
 pnpm install          # once, then commit pnpm-lock.yaml (the build uses --frozen-lockfile)
-[ -f .env ] || cp .env.example .env   # step 1's .env, or the playground's settings
+[ -f .env ] || cp .env.example .env   # step 1's .env, or the settings of compose.yaml's engine
 docker build -t my-mcp-server .
 docker run --env-file .env -p 127.0.0.1:8400:8400 \
   --add-host=host.docker.internal:host-gateway \
@@ -60,17 +69,17 @@ docker run --env-file .env -p 127.0.0.1:8400:8400 \
 ```
 
 Inside the container `localhost` is the container itself, so the server
-reaches the playground's engine and Prometheus through `host.docker.internal`
-(Docker Desktop resolves it, Linux needs the `--add-host`), while the "open in
-cockpit" links open in your browser and stay on `localhost`.
+reaches the engine on port 8410 (compose.yaml's or the playground's) and the
+playground's Prometheus through `host.docker.internal` (Docker Desktop
+resolves it, Linux needs the `--add-host`), while the "open in cockpit" links
+open in your browser and stay on `localhost`.
 
 Either way the MCP endpoint is `http://localhost:8400/mcp`. With `pnpm dev`,
 open the inspector at `http://localhost:8400/mcp/inspector` and call
 `notes_show_notes`: the example widget renders with no external systems (the
 production entrypoint the image runs mounts no inspector).
-The engine/analytics tools need a running engine and Prometheus; the
-[Pulse playground](https://github.com/Miragon/pulse/tree/main/playground)
-ships a ready-made Docker Compose stack whose URLs match `.env.example`.
+The engine tools need a running engine (`docker compose up -d`, above), the
+analytics tools the Pulse playground's Prometheus.
 
 ## Develop
 
