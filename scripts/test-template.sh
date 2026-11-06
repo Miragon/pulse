@@ -85,12 +85,14 @@ pnpm test
 # copy lies outside the monorepo, so only the starter's .prettierrc.json and the
 # Prettier and Tailwind plugin it installs reach its files. Each probe must then
 # be flagged, or the check is an empty one: a semicolon (its config is read) and
-# unsorted Tailwind classes (its plugin runs).
+# unsorted Tailwind classes (its plugin runs). The probe reads the check without
+# colour: Prettier colours its `[warn]` prefix whenever CI is set, on a pipe too,
+# and GitHub Actions sets CI.
 pnpm format:check
 format_probe() {
   printf '%s\n' "$2" >"$WORK/$1"
   local out
-  out="$(pnpm format:check 2>&1 || true)"
+  out="$(NO_COLOR=1 pnpm format:check 2>&1 || true)"
   if ! grep -qxF "[warn] $1" <<<"$out"; then
     echo "test-template: the starter's pnpm format:check does not flag $1 ($3):" >&2
     echo "$out" >&2
