@@ -208,6 +208,7 @@ export class DefinitionReads {
       hasMoreInstances: state.next !== undefined,
       filter: state.filter,
       scopeCounts: state.scopeCounts,
+      refusedVariableConditions: this.context.runtime.refusedVariableConditions?.() ?? [],
       extraNotices:
         state.deployed === undefined ? state.notices : [...state.notices, state.deployed],
     }).build()
@@ -230,13 +231,11 @@ export class DefinitionReads {
   }
 
   private notDeployedProblem(): Problem {
-    const fileName = this.parts.drift.fileName
-    return fileName === undefined
-      ? Problems.notFound(`The process ${this.bpmnProcessId}`)
-      : {
-          title: `${fileName} is not deployed on ${this.context.engine.name}.`,
-          detail: `No version of ${this.bpmnProcessId} is deployed there. Deploy it, then refresh.`,
-          canEditConnection: false,
-        }
+    const subject = this.parts.drift.fileName ?? `The process ${this.bpmnProcessId}`
+    return {
+      title: `${subject} is not deployed on ${this.context.engine.name}, or you may not have permission to see it.`,
+      detail: `Pulse finds no version of ${this.bpmnProcessId} there. Deploy it if it isn't deployed yet, or ask for permission to read it. Then refresh.`,
+      canEditConnection: false,
+    }
   }
 }

@@ -206,7 +206,7 @@ describe("changing the mapping", () => {
         new PatchedRuntime(runtime, {
           checkMigration: async (plan) =>
             plan.mappings.length === 2
-              ? runtime.checkMigration(plan)
+              ? runtime.checkMigration!(plan)
               : {
                   problems: [
                     { mapping: plan.mappings[0]!, message: "Activities have incompatible types" },
@@ -235,7 +235,7 @@ describe("changing the mapping", () => {
         new PatchedRuntime(runtime, {
           checkMigration: async (plan) =>
             plan.mappings.length === 2
-              ? runtime.checkMigration(plan)
+              ? runtime.checkMigration!(plan)
               : Promise.reject(new RuntimeError("unreachable", "gone")),
         }),
     )
@@ -299,7 +299,7 @@ describe("migrating", () => {
       (runtime) =>
         new PatchedRuntime(runtime, {
           proposeMigration: async (source, target) => {
-            const plan = await runtime.proposeMigration(source, target)
+            const plan = await runtime.proposeMigration!(source, target)
             return { ...plan, mappings: plan.mappings.filter((m) => m.sourceElementId !== REVIEW) }
           },
           getElementStatistics: async (definitionId) =>
@@ -668,7 +668,7 @@ describe("findings of the review", () => {
           checkMigration: async (plan) => {
             checks += 1
             return checks === 1
-              ? runtime.checkMigration(plan)
+              ? runtime.checkMigration!(plan)
               : { problems: [{ mapping: plan.mappings[0]!, message: "v2 changed meanwhile" }] }
           },
         }),
@@ -859,7 +859,7 @@ describe("findings of the review", () => {
               await new Promise<void>((resolve) => (releaseFirst = resolve))
               return { problems: [{ mapping: plan.mappings[0]!, message: "stale answer" }] }
             }
-            return runtime.checkMigration(plan)
+            return runtime.checkMigration!(plan)
           },
         }),
     )

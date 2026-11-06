@@ -251,7 +251,11 @@ export class BulkIntents {
 
   private migrates(loaded: DefinitionLoaded): boolean {
     const canWrite = this.context.commands !== undefined
-    return BulkDecoration.selects(loaded.view, canWrite) && loaded.versions.length > 1
+    return (
+      BulkDecoration.selects(loaded.view, canWrite) &&
+      loaded.versions.length > 1 &&
+      this.context.runtime.proposeMigration !== undefined
+    )
   }
 
   private async start(kind: OfferedBulkKind): Promise<void> {

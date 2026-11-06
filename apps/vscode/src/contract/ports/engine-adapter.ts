@@ -5,6 +5,14 @@ import type { ProcessRuntime } from "./process-runtime.js"
 export type EngineCredentials =
   | { readonly kind: "none" }
   | { readonly kind: "basic"; readonly username: string; readonly password: string }
+  | {
+      readonly kind: "clientCredentials"
+      readonly tokenEndpoint: string
+      readonly clientId: string
+      readonly clientSecret: string
+      readonly audience?: string
+      readonly scopes?: readonly string[]
+    }
 
 export interface EngineConnection {
   readonly endpoint: string

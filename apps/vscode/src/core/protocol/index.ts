@@ -67,6 +67,7 @@ export type {
   ProcessListFilter,
   ProcessRow,
   ProcessScope,
+  RefusedVariableCondition,
   ScopeCounts,
   VariableConditionView,
   VariableEditor,

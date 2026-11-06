@@ -1,6 +1,6 @@
 import type { Ref } from "preact"
 import { useLayoutEffect, useRef, useState } from "preact/hooks"
-import type { InstanceListFilter } from "../../core/protocol/index.js"
+import type { InstanceListFilter, RefusedVariableCondition } from "../../core/protocol/index.js"
 import { Icon } from "../components/icon.js"
 import { useHost } from "../host/host-context.js"
 import { glyphs } from "../components/lucide-glyphs.json"
@@ -11,6 +11,7 @@ export interface VariableChipsProps {
   readonly filter: InstanceListFilter
   readonly labels: readonly string[] | undefined
   readonly names: readonly string[] | undefined
+  readonly refused?: readonly RefusedVariableCondition[] | undefined
   readonly onFilter: (filter: InstanceListFilter) => void
 }
 
@@ -72,7 +73,7 @@ function FilterOpener({ buttonRef, active, onOpen }: FilterOpenerProps) {
   )
 }
 
-export function VariableChips({ filter, labels, names, onFilter }: VariableChipsProps) {
+export function VariableChips({ filter, labels, names, refused, onFilter }: VariableChipsProps) {
   const host = useHost()
   const [editing, setEditing] = useState<Editing | undefined>(undefined)
   const opener = useRef<HTMLButtonElement>(null)
@@ -121,6 +122,7 @@ export function VariableChips({ filter, labels, names, onFilter }: VariableChips
           initial={editing.at === undefined ? undefined : conditions[editing.at]}
           others={editing.at === undefined ? conditions.length : conditions.length - 1}
           suggestions={names ?? []}
+          refused={refused ?? []}
           onApply={(condition) => {
             onFilter(InstanceFilter.withVariable(filter, condition, editing.at))
             close()

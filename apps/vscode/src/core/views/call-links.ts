@@ -21,7 +21,7 @@ export class CallLinks {
   }
 
   static missingText(bpmnProcessId: string, engineName: string): string {
-    return `${bpmnProcessId} isn't deployed on ${engineName}`
+    return `${bpmnProcessId} isn't deployed on ${engineName}, or you may not have permission to see it`
   }
 
   links(engineName: string): CallLink[] {

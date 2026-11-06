@@ -426,7 +426,7 @@ describe("the C7 runtime over recorded engine answers", () => {
       activeElementId: ElementId("Activity_ChargePayment"),
     })
 
-    expect(count).toBe(2)
+    expect(count).toEqual({ count: 2 })
     expect(engine.requests).toHaveLength(1)
     expect(bodyOf(engine)).toEqual({
       processDefinitionId: WORLD_IDS.order1,
@@ -456,7 +456,7 @@ describe("the C7 runtime over recorded engine answers", () => {
       withIncident: false,
     })
 
-    expect(count).toBe(2)
+    expect(count).toEqual({ count: 2 })
   })
 
   test("details a parent with the wait states and the root incident of its called instance", async () => {

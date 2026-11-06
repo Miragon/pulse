@@ -14,6 +14,22 @@ const BASIC: EngineConnection = {
 const BASIC_HEADER = `Basic ${btoa("demo:s3cret")}`
 
 describe("the C7 adapter", () => {
+  test("refuses client credentials instead of reading without them", async () => {
+    const engine = fakeEngineRest([])
+    const runtime = new C7Adapter(engine.send).runtime({
+      endpoint: REST_URL,
+      credentials: {
+        kind: "clientCredentials",
+        tokenEndpoint: "https://login.example.com/token",
+        clientId: "pulse",
+        clientSecret: "s3cret",
+      },
+    })
+
+    await expect(runtime.describeEngine()).rejects.toMatchObject({ failure: "unauthorized" })
+    expect(engine.requests).toEqual([])
+  })
+
   test("reads from the endpoint of the connection with its credentials, never following a redirect", async () => {
     const engine = fakeEngineRest([TELEMETRY])
     const runtime = new C7Adapter(engine.send).runtime(BASIC)

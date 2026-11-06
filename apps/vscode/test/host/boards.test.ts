@@ -214,7 +214,7 @@ function setup() {
     badge: { name: "shop", environment: "test", host: "shop" },
     runtime: {
       describeEngine: () => Promise.resolve({ product: "Engine", version: "1" }),
-      countInstances: () => Promise.resolve(4),
+      countInstances: () => Promise.resolve({ count: 4 }),
       searchInstances: () => Promise.resolve({ items: [instance("i-1", "order")] }),
     },
     definitions: { read: () => Promise.resolve([]) },

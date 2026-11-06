@@ -1,7 +1,7 @@
 # Runtime contract
 
 - Status: accepted
-- Last reviewed: 2026-11-03
+- Last reviewed: 2026-11-05
 
 ## Context
 
@@ -9,7 +9,7 @@ C7 family engines and Camunda 8 expose similar runtime data with different
 vocabulary, identifiers and consistency. In C7 `processDefinitionKey` is the BPMN id;
 in C8 `processDefinitionId` is the BPMN id and `processDefinitionKey` an int64 per
 version. C7 copies an incident to every parent of a call chain; C8 keeps it in the
-child. C7 stores engine stack traces; C8 only has the worker's error message. C8
+child. C7 stores engine stack traces; C8 has the worker's or the engine's error message. C8
 search results are eventually consistent and page with cursors.
 
 ## Decision
@@ -23,24 +23,25 @@ The ports are interfaces in `apps/vscode/src/contract/ports`; what they exchange
 `ProcessRuntime` (`ports/process-runtime.ts`) has one method per
 engine question:
 
-| Method                 | Question                                                                                                                        |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `describeEngine`       | Which product and version answers?                                                                                              |
-| `listDefinitions`      | Which processes are deployed, latest version, running and with-incident counts?                                                 |
-| `listVersions`         | Per version of one process: running and with-incident counts, newest first                                                      |
-| `getDiagramXml`        | The deployed XML of one version                                                                                                 |
-| `getElementStatistics` | Per element of one version: active, incidents raised here, incidents in called instances                                        |
-| `getCalledProcesses`   | Per call activity of one version: the process it calls and the deployed version its binding starts                              |
-| `searchInstances`      | Instances by version or process, lifecycle, incident, business key, active element, variable conditions; cursor paging          |
-| `countInstances`       | How many instances the same filter finds, without paging                                                                        |
-| `listVariableNames`    | The names of the variables the instances of one version hold, at any scope, sorted and once each; a hint, not a complete list   |
-| `getInstanceDetail`    | Wait states (across called instances), root incidents, called instances, variables, the path (elements run, with start and end) |
-| `searchIncidents`      | Root incidents by process, version or instance; cursor paging                                                                   |
-| `getIncidentDetails`   | The complete stack trace or error message of one incident                                                                       |
-| `getBulkOperation`     | State and item counts of one bulk operation; `undefined` when the engine does not know it (any more)                            |
-| `getBulkFailures`      | At most 100 reasons why items of a bulk operation failed, each naming its instance when the engine can; `[]` when none failed   |
-| `proposeMigration`     | The engine's mapping of elements between two versions (`MigrationPlan`)                                                         |
-| `checkMigration`       | The problems the engine finds in a plan, each naming its mapping when it can (`MigrationCheck`); tokens are not its concern     |
+| Method                       | Question                                                                                                                                        |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `describeEngine`             | Which product and version answers?                                                                                                              |
+| `listDefinitions`            | Which processes are deployed, latest version, running and with-incident counts?                                                                 |
+| `listVersions`               | Per version of one process: running and with-incident counts, newest first                                                                      |
+| `getDiagramXml`              | The deployed XML of one version                                                                                                                 |
+| `getElementStatistics`       | Per element of one version: active, incidents raised here, incidents in called instances                                                        |
+| `getCalledProcesses`         | Per call activity of one version: the process it calls and the deployed version its binding starts                                              |
+| `searchInstances`            | Instances by version or process, lifecycle, incident, business key, active element, variable conditions; cursor paging                          |
+| `countInstances`             | How many instances the same filter finds, without paging; a lower bound with `atLeast` when the engine stops counting                           |
+| `listVariableNames`          | The names of the variables the instances of one version hold, at any scope, sorted and once each; a hint, not a complete list                   |
+| `getInstanceDetail`          | Wait states (across called instances), root incidents, called instances, variables, the path (elements run, with start and end)                 |
+| `searchIncidents`            | Root incidents by process, version or instance; cursor paging                                                                                   |
+| `getIncidentDetails`         | The complete stack trace or error message of one incident                                                                                       |
+| `getBulkOperation`           | State and item counts of one bulk operation; `undefined` when the engine does not know it (any more)                                            |
+| `getBulkFailures`            | At most 100 reasons why items of a bulk operation failed, each naming its instance when the engine can; `[]` when none failed                   |
+| `proposeMigration?`          | The engine's mapping of elements between two versions (`MigrationPlan`); absent, together with `checkMigration?`, on an engine that cannot plan |
+| `checkMigration?`            | The problems the engine finds in a plan, each naming its mapping when it can (`MigrationCheck`); tokens are not its concern                     |
+| `refusedVariableConditions?` | The kinds of variable condition the engine refuses (`ordering`, `date`); each fails as `unsupported`                                            |
 
 `InstanceDetail.path` lists the instance's own element runs (`ElementRun`: element, start,
 end, canceled) in start order; called instances keep their own path. A run that has not
@@ -87,18 +88,25 @@ for any workspace, and the conformance kit does not cover them
   (UTC ISO timestamps, lossless big integers, root incidents only, error mapping, the
   root cause of an engine's stack trace). The core interprets: grouping, overlays, notices.
 - **Optional fields, no capability flags.** What one engine cannot deliver is an
-  optional field (`details?`, `calledFromElementId?`, `retriesLeft?`). A later real
-  capability gap becomes an optional method, never a flags object that can disagree
-  with behaviour. No engine family enum crosses the port.
+  optional field (`details?`, `calledFromElementId?`, `retriesLeft?`). A real capability
+  gap is an optional method (`proposeMigration?` and `checkMigration?`, as a pair), never
+  a flags object that can disagree with behaviour. The one declaration is
+  `refusedVariableConditions?()`, and the laws hold it to behaviour: what it names must
+  fail as `unsupported`, and everything else must answer correctly. No engine family enum
+  crosses the port.
 - **Errors.** A missing single item is `undefined`. Everything else throws
   `RuntimeError` with a closed `failure` (`unreachable`, `unauthorized`, `forbidden`,
-  `misconfigured`, `engineFailure`, `unexpectedResponse`, and `rejected` when the engine
-  refuses a command: unknown or closed incident, ended instance, invalid value, a move
-  without exactly one token at its source, unknown bulk operation).
+  `misconfigured`, `engineFailure`, `unexpectedResponse`, `unsupported` when the engine
+  cannot answer this kind of question at all, and `rejected` when the engine refuses a
+  command: unknown or closed incident, ended instance, invalid value, a move without
+  exactly one token at its source, unknown bulk operation). `unsupported` does not stop
+  live updates.
   `new FailingRuntime(error)` is the one runtime that rejects every call with a given
   error (unreachable engine, unsupported target).
 - **Counts** mean instances, not incidents (`withIncident`), on both engines.
-  `countInstances(filter)` counts exactly what `searchInstances(filter, …)` pages through.
+  `countInstances(filter)` counts what `searchInstances(filter, …)` pages through, as an
+  `InstanceCount`: exact, or with `atLeast` when the engine stopped counting. The laws
+  require an exact count over the world.
 - **Statistics** always address one version (`definitionId`), never a process.
 - **Incidents name their version.** `Incident.definition` is the `DefinitionRef` of the
   version the incident was raised in, so grouping by process and version needs no
@@ -174,13 +182,13 @@ for any workspace, and the conformance kit does not cover them
 
 ```mermaid
 flowchart LR
-  kit[ConformanceKit: 47 read laws, 15 command laws]
+  kit[ConformanceKit: 48 read laws, 15 command laws]
   kit --> fake[FakeEngine in memory]
   kit --> c7[C7Adapter on Operaton, CIB seven, Camunda 7 in containers]
   saboteurs[Saboteurs: broken runtimes] -- each must fail its law --> kit
 ```
 
-`apps/vscode/src/contract/conformance` holds 47 read laws and 15 command laws as
+`apps/vscode/src/contract/conformance` holds 48 read laws and 15 command laws as
 executable cases, modelled on `@miragon/modeler-api/conformance`:
 `new ConformanceKit(test).registerRuntimeLaws(prepare)` and `.registerCommandLaws(prepare)`
 bind them to any `(name, fn)` runner and throw a `ConformanceViolation` when a law fails. Command laws run on
@@ -272,9 +280,14 @@ business key fail the ids law too, as does a search that ignores the instance id
 
 - Every adapter is proven against the same laws on a real engine
   (`*.engine.test.ts`); an architecture test fails when an adapter has none.
-- The contract is ready for engines beyond the C7 family: a Camunda 8 adapter on the
-  REST API v2 passed every law against an API mock with a read lag during the spike,
-  without a change to the contract, and was removed again to keep the prototype small.
+- The contract holds beyond the C7 family: the Camunda 8 adapter passes every read law on real
+  engines ([c8-adapter.md](c8-adapter.md)). An earlier spike against an API mock needed no
+  contract change; real engines did. `countInstances` returns `InstanceCount`, because a search
+  may stop counting (`atLeast`, shown as `10,000+`); `unsupported` is a failure of its own, because
+  `rejected` reads "refused the change" and `misconfigured` stops live updates for the engine;
+  `refusedVariableConditions?()` names what a runtime refuses, the laws hold it to that and the
+  dialog hides it; `proposeMigration?` and `checkMigration?` are optional, as a pair; and
+  `EngineCredentials` gained client credentials, which the C7 adapter refuses.
 - Panel loads have fixed engine-call budgets (definition ≤ 7, three of them the scope
   counts queried in parallel with the page; instance ≤ 2 plus lazy details; both + 1
   `getCalledProcesses` when the diagram has a call activity; engine overview exactly 2,

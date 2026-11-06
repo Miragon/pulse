@@ -28,7 +28,11 @@ export class FakeQueries {
     return this.state.instances
       .filter((instance) => this.matchesInstance(instance, filter))
       .map((instance) => instance.summary)
-      .sort((left, right) => (right.startedAt ?? "").localeCompare(left.startedAt ?? ""))
+      .sort(
+        (left, right) =>
+          (right.startedAt ?? "").localeCompare(left.startedAt ?? "") ||
+          left.id.localeCompare(right.id),
+      )
   }
 
   incidents(filter: IncidentFilter): readonly Incident[] {

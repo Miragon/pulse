@@ -26,6 +26,7 @@ export const CASE = {
   instancesByActiveElement:
     "instances: filter by the element they wait at, also before an asynchronous task",
   instancesPaging: "instances: pages without gaps or duplicates",
+  instancesNewestFirst: "instances: the newest come first, in the same order on every read",
   instancesUtcTimestamps: "instances: timestamps are ISO-8601 in UTC",
   instancesCounted: "instances: counts agree with the search",
   instancesByIds: "instances: filter by up to 1000 instance ids",

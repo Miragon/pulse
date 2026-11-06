@@ -150,6 +150,60 @@ describe("a board", () => {
     expect(counter.querySelector(".counter__partial")).toBeNull()
   })
 
+  it("warns in the warning style when an engine stopped counting at or below the threshold", async () => {
+    const tile = {
+      kind: "counter",
+      title: "Running",
+      total: 10002,
+      totalAtLeast: true,
+      known: 2,
+      warnAbove: 20000,
+      entries: [
+        { engine: "capped", count: 10000, atLeast: true, undecided: true },
+        { engine: "local", count: 2 },
+      ],
+    } as const
+    harness = mountApp()
+    harness.publish(ready({ ...BOARD_VIEW, rows: [[tile]] }))
+    const counter = await waitForElement(harness.root, ".board-card--counter")
+    const threshold = counter.querySelector(".counter__threshold")
+
+    expect(threshold?.textContent).toBe("capped stopped counting at 10,000 · warns above 20,000")
+    expect(threshold?.classList).toContain("counter__threshold--undecided")
+    expect(threshold?.querySelector(".icon")).not.toBeNull()
+    expect(counter.querySelector(".counter__value")?.textContent).toBe("10,002+")
+    expect(texts(counter, ".counter__engine")).toEqual(["capped10,000+", "local2"])
+    expect(counter.querySelector(".counter__entry--above")).toBeNull()
+  })
+
+  it("counts the engines that stopped counting, and lets an engine above the threshold win", async () => {
+    const undecided = { engine: "capped", count: 10000, atLeast: true, undecided: true } as const
+    const tile = {
+      kind: "counter",
+      title: "Running",
+      total: 20000,
+      totalAtLeast: true,
+      known: 2,
+      warnAbove: 20000,
+      entries: [undecided, { ...undecided, engine: "search" }],
+    } as const
+    const above = {
+      ...tile,
+      entries: [undecided, { engine: "local", count: 25000, above: true }],
+    } as const
+    harness = mountApp()
+    harness.publish(ready({ ...BOARD_VIEW, rows: [[tile, above]] }))
+    await waitForElement(harness.root, ".board-card--counter")
+
+    expect(texts(harness.root, ".counter__threshold")).toEqual([
+      "2 engines stopped counting · warns above 20,000",
+      "local above 20,000",
+    ])
+    expect(harness.root.querySelector(".counter__threshold--above")?.textContent).toBe(
+      "local above 20,000",
+    )
+  })
+
   it("lists instances with incident per process and opens a process with its filter", async () => {
     harness = mountApp()
     harness.publish(ready(BOARD_VIEW))

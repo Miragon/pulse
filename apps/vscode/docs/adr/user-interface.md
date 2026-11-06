@@ -246,7 +246,8 @@ read-only document.
     of 3 called instances", incidents first), none yet opens the called process (the
     button says that the process is not called yet and names it);
   - a process that is not deployed keeps an outlined button ("shipment isn't deployed
-    on shop-dev"); a click shows the same text as an info strip;
+    on shop-dev, or you may not have permission to see it"); a click shows the same text
+    as an info strip;
   - a called process only an expression decides gets no button in the definition view;
     the instance view follows its called instances.
 - A jump always opens another editor tab (or reveals it); back is VS Code's Go Back, and

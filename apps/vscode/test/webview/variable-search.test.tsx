@@ -313,6 +313,15 @@ describe("the variable dialog", () => {
     expect(Object.keys(VariableDraft.errors(draft, 0))).toEqual(wrong === undefined ? [] : [wrong])
   })
 
+  it("offers no date and no ordering where the engine refuses them", () => {
+    const compareAs = VariableDraft.compareAsOptions(["date"]).map(([value]) => value)
+    expect(compareAs).not.toContain("date")
+    expect(VariableDraft.compareAsOptions([]).map(([value]) => value)).toContain("date")
+    expect(VariableDraft.operatorsOf("number", ["ordering"])).toEqual(["equals", "notEquals"])
+    expect(VariableDraft.operatorsOf("auto", ["ordering"])).toEqual(["equals", "notEquals", "like"])
+    expect(VariableDraft.operatorsOf("number", [])).toEqual(OPERATORS_OF.number)
+  })
+
   it("refuses a sixth condition", () => {
     const draft = VariableDraft.from({ name: "route", operator: "equals", value: "review" })
     expect(VariableDraft.errors(draft, 5).count).toBe("Use 5 conditions or fewer.")

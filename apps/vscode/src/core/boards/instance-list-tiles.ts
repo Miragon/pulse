@@ -35,7 +35,8 @@ export class InstanceListTiles {
         return {
           engine: name,
           rows: items.map((item) => InstanceListTiles.row(name, item)),
-          ...(counted === undefined ? {} : { total: counted }),
+          ...(counted === undefined ? {} : { total: counted.count }),
+          ...(counted?.atLeast === true ? { totalAtLeast: true as const } : {}),
         }
       }),
     )

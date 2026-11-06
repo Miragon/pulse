@@ -106,7 +106,12 @@ describe("the drift between the open file and the engine", () => {
 
     expect(fixture.lastState()).toMatchObject({
       status: "failed",
-      problem: { title: "new.bpmn is not deployed on local." },
+      problem: {
+        title: "new.bpmn is not deployed on local, or you may not have permission to see it.",
+        detail:
+          "Pulse finds no version of new-process there. Deploy it if it isn't deployed yet, or ask for permission to read it. Then refresh.",
+        canEditConnection: false,
+      },
     })
   })
 

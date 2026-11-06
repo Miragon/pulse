@@ -19,7 +19,7 @@ const SHOP = stubbed({
       summary("shipment", 4, 5),
       summary("audit", 1, 0),
     ]),
-  countInstances: (filter) => Promise.resolve(filter.withIncident === true ? 3 : 12),
+  countInstances: (filter) => Promise.resolve({ count: filter.withIncident === true ? 3 : 12 }),
   searchInstances: () =>
     Promise.resolve({ items: [instance("i-1", "order", "ORD-1"), instance("i-2", "order")] }),
 })
@@ -27,7 +27,7 @@ const SHOP = stubbed({
 const BILLING = stubbed({
   describeEngine: () => Promise.resolve({ product: "Engine", version: "7.23" }),
   listDefinitions: () => Promise.resolve([summary("order", 2, 1)]),
-  countInstances: () => Promise.resolve(2),
+  countInstances: () => Promise.resolve({ count: 2 }),
   searchInstances: () => Promise.resolve({ items: [instance("b-1", "order", "ORD-9")] }),
 })
 
@@ -104,6 +104,69 @@ describe("a board across engines", () => {
         withIncident: 1,
       },
       { name: "prod", state: "notConfigured" },
+    ])
+  })
+
+  test("carries a lower bound from an engine into its entry, the sum and the list", async () => {
+    const capped = stubbed({
+      describeEngine: () => Promise.resolve({ product: "Engine", version: "8.10" }),
+      listDefinitions: () => Promise.resolve([summary("order", 12, 3)]),
+      countInstances: () => Promise.resolve({ count: 10000, atLeast: true }),
+      searchInstances: () => Promise.resolve({ items: [instance("c-1", "order")] }),
+    })
+    const counter = { widget: "counter", props: { filter: ORDER } }
+    const list = { widget: "instanceList", props: { filter: ORDER } }
+    const fixture = boardFixture(board([counter, list], ["capped", "billing"]), [
+      { name: "capped", runtime: capped },
+      { name: "billing", runtime: BILLING },
+    ])
+
+    await new BoardPanel(fixture.context).handle({ type: "ready" })
+
+    expect(tileOf(fixture, "counter")).toMatchObject({
+      total: 10002,
+      totalAtLeast: true,
+      entries: [
+        { engine: "capped", count: 10000, atLeast: true },
+        { engine: "billing", count: 2 },
+      ],
+    })
+    expect(tileOf(fixture, "instanceList", 1)).toMatchObject({
+      groups: [
+        { engine: "capped", total: 10000, totalAtLeast: true },
+        { engine: "billing", total: 2 },
+      ],
+    })
+  })
+
+  test("keeps a lower bound above the threshold above, and one at or below it undecided", async () => {
+    const capped = stubbed({
+      describeEngine: () => Promise.resolve({ product: "Engine", version: "8.10" }),
+      listDefinitions: () => Promise.resolve([summary("order", 12, 3)]),
+      countInstances: () => Promise.resolve({ count: 10000, atLeast: true }),
+    })
+    const counters = [2, 10000, 20000].map((warnAbove) => ({
+      widget: "counter",
+      props: { filter: ORDER, warnAbove },
+    }))
+    const fixture = boardFixture(board(counters, ["capped", "billing"]), [
+      { name: "capped", runtime: capped },
+      { name: "billing", runtime: BILLING },
+    ])
+
+    await new BoardPanel(fixture.context).handle({ type: "ready" })
+
+    const verdicts = [0, 1, 2].map((row) =>
+      tileOf(fixture, "counter", row).entries.map(({ engine, above, undecided }) => ({
+        engine,
+        above,
+        undecided,
+      })),
+    )
+    expect(verdicts).toEqual([
+      [{ engine: "capped", above: true }, { engine: "billing" }],
+      [{ engine: "capped", undecided: true }, { engine: "billing" }],
+      [{ engine: "capped", undecided: true }, { engine: "billing" }],
     ])
   })
 

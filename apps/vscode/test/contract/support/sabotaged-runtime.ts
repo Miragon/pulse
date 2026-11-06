@@ -27,6 +27,20 @@ export class SabotagedRuntime {
     return { ...harness, runtime: broken }
   }
 
+  static without(methods: readonly (keyof ProcessRuntime)[]): ConformanceHarness {
+    const harness = SabotagedRuntime.conforming()
+    const runtime = new Proxy(harness.runtime, {
+      get(target, key) {
+        const value: unknown = Reflect.get(target, key)
+        if (methods.some((method) => method === key)) {
+          return undefined
+        }
+        return typeof value === "function" ? (value.bind(target) as unknown) : value
+      },
+    })
+    return { ...harness, runtime }
+  }
+
   static async failingCases(harness: ConformanceHarness): Promise<CaseName[]> {
     const failing: CaseName[] = []
     for (const conformanceCase of ConformanceKit.runtimeLaws()) {

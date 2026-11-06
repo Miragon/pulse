@@ -59,7 +59,11 @@ function counting(runtime: ProcessRuntime): CountingRuntime {
       },
     ]),
   ) as unknown as ProcessRuntime
-  return { runtime: counted, calls }
+  const refused = runtime.refusedVariableConditions?.bind(runtime)
+  return {
+    runtime: refused === undefined ? counted : { ...counted, refusedVariableConditions: refused },
+    calls,
+  }
 }
 
 export interface PanelFixture {

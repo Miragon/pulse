@@ -176,7 +176,7 @@ const BULK_SABOTAGES: readonly (readonly [string, HarnessSabotage, readonly Comm
         ...harness,
         commands: new PatchedCommands(harness.commands, {
           cancelInstances: async (instanceIds, options) => {
-            const running = await harness.runtime.countInstances({
+            const { count: running } = await harness.runtime.countInstances({
               instanceIds,
               lifecycle: "running",
             })
@@ -197,7 +197,7 @@ const BULK_SABOTAGES: readonly (readonly [string, HarnessSabotage, readonly Comm
           ...harness,
           commands: new PatchedCommands(harness.commands, {
             cancelInstances: async (instanceIds, options) => {
-              const running = await harness.runtime.countInstances({
+              const { count: running } = await harness.runtime.countInstances({
                 instanceIds,
                 lifecycle: "running",
               })
@@ -307,7 +307,7 @@ const BULK_SABOTAGES: readonly (readonly [string, HarnessSabotage, readonly Comm
           ...harness,
           commands: new PatchedCommands(harness.commands, {
             migrateInstances: async (plan, instanceIds) => {
-              const running = await harness.runtime.countInstances({
+              const { count: running } = await harness.runtime.countInstances({
                 instanceIds,
                 definitionId: plan.sourceDefinitionId,
                 lifecycle: "running",

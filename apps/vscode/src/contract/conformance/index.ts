@@ -13,6 +13,7 @@ export {
   WORLD_INSTANCES,
   WORLD_LOCAL_VARIABLE,
   WORLD_MIGRATION_INSTANCES,
+  WORLD_PROCESS,
   WORLD_SECOND_TOKEN,
 } from "./world/world.js"
 export type {

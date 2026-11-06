@@ -103,7 +103,7 @@ describe("the process widgets of a board", () => {
 
     expect(texts(harness.root, ".board-card--processDiagram .empty-hint")).toEqual([
       "The diagram was not read from prod-eu.",
-      "order-fulfillment is not deployed on shop-test.",
+      "order-fulfillment is not deployed on shop-test, or you may not have permission to see it.",
     ])
   })
 

@@ -25,6 +25,7 @@ export const WRITABLE_INSTANCE: InstanceView = {
       engineType: "failedExternalTask",
       message: "Card ending 4371 expired on 03/2025",
       rootCause: "CardExpiredException: Card ending 4371 expired on 03/2025",
+      causeLabel: "Root cause",
       createdAt: minutesBefore(12),
       retriesLeft: 0,
       detailsLabel: "Stacktrace",

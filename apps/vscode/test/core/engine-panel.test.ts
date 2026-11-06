@@ -190,7 +190,7 @@ describe("the engine panel", () => {
     expect(readyView(empty.lastState())).toMatchObject({
       processes: [],
       summary: "0 processes · 0 running · 0 with incident",
-      emptyText: "No processes deployed on local.",
+      emptyText: "No processes deployed on local, or you may not have permission to see them.",
     })
     expect(one.summary).toBe("1 process · 1 running · 0 with incident")
     expect(readyView(single.lastState())).toMatchObject({

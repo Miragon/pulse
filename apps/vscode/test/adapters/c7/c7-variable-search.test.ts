@@ -72,7 +72,7 @@ describe("the C7 variable search", () => {
   test("counts with the same conditions", async () => {
     const { runtime, engine } = fakeRuntime([COUNTED])
     const conditions: VariableCondition[] = [{ name: "route", operator: "like", pattern: "rev*" }]
-    expect(await runtime.countInstances({ variables: conditions })).toBe(3)
+    expect(await runtime.countInstances({ variables: conditions })).toEqual({ count: 3 })
     expect(variablesSent(engine)).toEqual([{ name: "route", operator: "like", value: "rev%" }])
   })
 })
