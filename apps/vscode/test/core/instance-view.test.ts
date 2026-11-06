@@ -11,6 +11,7 @@ import {
   type WaitState,
 } from "../../src/contract/index.js"
 import { describe, expect, test } from "vitest"
+import type { ElementLink, ElementLinks } from "../../src/core/panels/model-links.js"
 import type { IncidentRow } from "../../src/core/protocol/index.js"
 import { HandoverText } from "../../src/core/views/handover-text.js"
 import { InstanceHeadline } from "../../src/core/views/instance-headline.js"
@@ -47,6 +48,7 @@ function detailWith(changes: Partial<InstanceDetail>): InstanceDetail {
 function viewOf(
   detail: InstanceDetail,
   fullDetails: ReadonlyMap<IncidentId, IncidentDetails> = new Map(),
+  modelLinks?: ElementLinks,
 ) {
   return new InstanceViewBuilder({
     writable: false,
@@ -56,6 +58,7 @@ function viewOf(
     diagramXml: "<definitions/>",
     calledProcesses: [],
     fullDetails,
+    ...(modelLinks === undefined ? {} : { modelLinks }),
   }).build()
 }
 
@@ -227,8 +230,44 @@ describe("the instance view", () => {
     expect(view.incidents.map((row) => [row.causeLabel, row.rootCause])).toEqual([
       ["Root cause", "MissingBean: no bean"],
       ["Worker error", "Card declined"],
-      ["Error", "No variable customerId"],
+      ["Cause", "No variable customerId"],
       [undefined, undefined],
+    ])
+  })
+
+  test("labels a cause apart from the errors the local model names on the same card", () => {
+    const failed = incident("io-mapping", {
+      type: "ioMappingError",
+      message: "Failed to evaluate expression 'customer.id'",
+      details: complete("errorMessage", "Failed to evaluate expression 'customer.id'"),
+    })
+    const model = {
+      uri: "file:///shop/order.bpmn",
+      fileName: "order.bpmn",
+      bpmnProcessId: BpmnProcessId("order"),
+      xml: "<definitions/>",
+    }
+    const configuration = {
+      inputs: [],
+      outputs: [],
+      errors: [{ code: "PAYMENT_DECLINED", name: "Payment declined" }],
+    }
+    const link: ElementLink = {
+      model,
+      elementId: ELEMENT,
+      element: { location: { uri: model.uri, line: 7 }, configuration },
+      differsFromDeployed: false,
+    }
+
+    const [row] = viewOf(
+      detailWith({ incidents: [failed] }),
+      new Map(),
+      new Map([[failed.id, link]]),
+    ).incidents
+
+    expect([row?.causeLabel, ...(row?.model?.settings ?? []).map(({ label }) => label)]).toEqual([
+      "Cause",
+      "Error",
     ])
   })
 
@@ -253,7 +292,7 @@ describe("the instance view", () => {
 
     expect(text).toContain("  - Root cause: MissingBean: no bean")
     expect(text).toContain("  - Worker error: Card declined")
-    expect(text).toContain("  - Error: No variable customerId")
+    expect(text).toContain("  - Cause: No variable customerId")
     expect(text.match(/Root cause:/g)).toHaveLength(1)
   })
 })

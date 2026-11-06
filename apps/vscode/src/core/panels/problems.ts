@@ -39,7 +39,7 @@ export class Problems {
   static notFound(what: string): Problem {
     return {
       title: `${what} was not found.`,
-      detail: "It may have been deleted, or the engine may not show it yet.",
+      detail: "It may have been deleted.",
       canEditConnection: false,
     }
   }

@@ -74,10 +74,10 @@ describe("the problem shown for a failure", () => {
     })
   })
 
-  test("says that something not found may be gone, or not shown by the engine yet", () => {
+  test("says that something not found may have been deleted, on every engine", () => {
     expect(Problems.notFound("The instance 2251799…")).toEqual({
       title: "The instance 2251799… was not found.",
-      detail: "It may have been deleted, or the engine may not show it yet.",
+      detail: "It may have been deleted.",
       canEditConnection: false,
     })
   })

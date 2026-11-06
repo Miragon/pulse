@@ -110,7 +110,7 @@ describe("the cause of an incident", () => {
     harness.unmount()
   })
 
-  it.each(["Root cause", "Worker error", "Error"])(
+  it.each(["Root cause", "Worker error", "Cause"])(
     "carries the label %s as the host names it, whatever its details are called",
     async (causeLabel) => {
       harness = mountApp()
@@ -141,7 +141,7 @@ describe("the cause of an incident", () => {
     harness.publish({ status: "ready", refreshing: false, view: withIncident(unlabeled) })
     await waitForElement(harness.root, ".incident-card")
 
-    expect(facts(harness.root)[0]).toBe("Error: ConnectException: Connection refused")
+    expect(facts(harness.root)[0]).toBe("Cause: ConnectException: Connection refused")
   })
 })
 

@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest"
-import type { BoardView, PanelState } from "../../src/core/protocol/index.js"
+import type {
+  BoardView,
+  CounterEntry,
+  CounterTile,
+  PanelState,
+} from "../../src/core/protocol/index.js"
 import { BOARD_VIEW, BROKEN_BOARD_VIEW } from "../../dev/webview/fixtures/board.js"
 import { TimeLabels } from "../../src/webview/format/time-labels.js"
 import { buttonNamed, mountApp, waitForElement } from "./harness.js"
@@ -176,32 +181,43 @@ describe("a board", () => {
     expect(counter.querySelector(".counter__entry--above")).toBeNull()
   })
 
-  it("counts the engines that stopped counting, and lets an engine above the threshold win", async () => {
-    const undecided = { engine: "capped", count: 10000, atLeast: true, undecided: true } as const
-    const tile = {
+  it("names the engines that stopped counting next to the engines above the threshold", async () => {
+    const capped = { engine: "capped", count: 10000, atLeast: true, undecided: true } as const
+    const search = { ...capped, engine: "search" } as const
+    const local = { engine: "local", count: 25000, above: true } as const
+    const shop = { ...local, engine: "shop-test" } as const
+    const counter = (entries: readonly CounterEntry[]): CounterTile => ({
       kind: "counter",
       title: "Running",
-      total: 20000,
+      total: entries.reduce((sum, entry) => sum + (entry.count ?? 0), 0),
       totalAtLeast: true,
-      known: 2,
+      known: entries.length,
       warnAbove: 20000,
-      entries: [undecided, { ...undecided, engine: "search" }],
-    } as const
-    const above = {
-      ...tile,
-      entries: [undecided, { engine: "local", count: 25000, above: true }],
-    } as const
+      entries,
+    })
+    const tiles = [
+      [capped, search],
+      [capped, local],
+      [capped, search, local],
+      [capped, local, shop],
+    ]
     harness = mountApp()
-    harness.publish(ready({ ...BOARD_VIEW, rows: [[tile, above]] }))
+    harness.publish(ready({ ...BOARD_VIEW, rows: [tiles.map(counter)] }))
     await waitForElement(harness.root, ".board-card--counter")
 
+    const lines = [
+      "local above 20,000 · capped stopped counting at 10,000 · warns above 20,000",
+      "local above 20,000 · 2 engines stopped counting · warns above 20,000",
+      "2 engines above 20,000 · capped stopped counting at 10,000 · warns above 20,000",
+    ]
     expect(texts(harness.root, ".counter__threshold")).toEqual([
       "2 engines stopped counting · warns above 20,000",
-      "local above 20,000",
+      ...lines,
     ])
-    expect(harness.root.querySelector(".counter__threshold--above")?.textContent).toBe(
-      "local above 20,000",
-    )
+    expect(texts(harness.root, ".counter__threshold--above")).toEqual(lines)
+    expect(texts(harness.root, ".counter__threshold--undecided")).toEqual([
+      "2 engines stopped counting · warns above 20,000",
+    ])
   })
 
   it("lists instances with incident per process and opens a process with its filter", async () => {

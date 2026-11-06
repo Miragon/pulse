@@ -29,4 +29,16 @@ describe("the History tab of an instance", () => {
       ["Check credit", "Active", true, false, "–"],
     ])
   })
+
+  it("says that some lists are cut off without claiming which of their entries are left out", async () => {
+    harness = mountApp()
+    harness.publish(FIXTURES.instance)
+    await waitForElement(harness.root, ".incident-card")
+    expect(harness.root.querySelector(".truncated-note")).toBeNull()
+
+    harness.publish({ ...FIXTURES.instance, view: { ...FIXTURES.instance.view, truncated: true } })
+    const note = await waitForElement(harness.root, ".truncated-note")
+
+    expect(note.textContent).toBe("Some lists are cut off, so Pulse shows only part of them.")
+  })
 })

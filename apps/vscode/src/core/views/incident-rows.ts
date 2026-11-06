@@ -59,7 +59,7 @@ export class IncidentRows {
     if (details.kind === "stacktrace") {
       return "Root cause"
     }
-    return incident.job === undefined ? "Error" : "Worker error"
+    return incident.job === undefined ? "Cause" : "Worker error"
   }
 
   private completeDetails(incident: Incident): IncidentDetails | undefined {

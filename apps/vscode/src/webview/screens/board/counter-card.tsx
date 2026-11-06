@@ -60,17 +60,15 @@ function Threshold({ tile }: { readonly tile: CounterTile }) {
   if (tile.warnAbove === undefined) {
     return null
   }
-  const above = BoardLabels.above(tile)
-  const warning = above ?? BoardLabels.undecided(tile)
+  const warning = BoardLabels.warning(tile)
   if (warning === undefined) {
     return (
       <span class="counter__threshold">{`warns above ${CountLabels.exact(tile.warnAbove)}`}</span>
     )
   }
+  const tone = BoardLabels.above(tile) === undefined ? "undecided" : "above"
   return (
-    <span
-      class={`counter__threshold counter__threshold--${above === undefined ? "undecided" : "above"}`}
-    >
+    <span class={`counter__threshold counter__threshold--${tone}`}>
       <Icon of={glyphs.TriangleAlert} />
       {warning}
     </span>

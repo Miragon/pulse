@@ -24,7 +24,7 @@ export class HandoverText {
       `- **${incident.typeLabel}** at \`${incident.elementId}\` since ${HandoverText.utc(incident.createdAt)}`,
       ...(incident.rootCause === undefined
         ? []
-        : [`  - ${incident.causeLabel ?? "Error"}: ${incident.rootCause}`]),
+        : [`  - ${incident.causeLabel ?? "Cause"}: ${incident.rootCause}`]),
       `  - Message: ${incident.message}`,
       ...(incident.retriesLeft === undefined ? [] : [`  - Retries left: ${incident.retriesLeft}`]),
       ...(incident.job === undefined
