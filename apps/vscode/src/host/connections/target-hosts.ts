@@ -2,6 +2,11 @@ import type { EngineTarget } from "./engine-target.js"
 
 const LOOPBACK: ReadonlySet<string> = new Set(["localhost", "127.0.0.1", "[::1]"])
 
+export interface CredentialHosts {
+  readonly secret: string
+  readonly tokens?: string
+}
+
 export class TargetHosts {
   static isLoopback(target: EngineTarget): boolean {
     return TargetHosts.isLoopbackUrl(target.endpoint)
@@ -11,8 +16,19 @@ export class TargetHosts {
     return LOOPBACK.has(new URL(url).hostname)
   }
 
-  static secretHost(target: EngineTarget): string {
+  static credentialHosts(target: EngineTarget): CredentialHosts | undefined {
     const { auth } = target
-    return new URL(auth.kind === "clientCredentials" ? auth.tokenEndpoint : target.endpoint).host
+    const endpoint = new URL(target.endpoint).host
+    if (auth.kind === "clientCredentials") {
+      return { secret: new URL(auth.tokenEndpoint).host, tokens: endpoint }
+    }
+    return auth.kind === "basic" ? { secret: endpoint } : undefined
+  }
+
+  static credentialOrigins(target: EngineTarget): string {
+    const endpoint = new URL(target.endpoint).origin
+    return target.auth.kind === "clientCredentials"
+      ? `${endpoint} and ${new URL(target.auth.tokenEndpoint).origin}`
+      : endpoint
   }
 }

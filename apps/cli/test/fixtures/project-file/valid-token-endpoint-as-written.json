@@ -1,0 +1,45 @@
+{
+  "about": "A token endpoint with a trailing slash, a query or padding loads; Pulse for VS Code keeps it as the CLI keeps an OAuth endpoint, trimmed and otherwise as written, and the CLI refuses a Camunda 8 profile only when it is used.",
+  "file": {
+    "profiles": {
+      "slash": {
+        "url": "https://c8.example.com/v2",
+        "flavor": "camunda8",
+        "auth": {
+          "type": "clientCredentials",
+          "tokenEndpoint": "https://authentik.example.com/application/o/token/"
+        }
+      },
+      "query": {
+        "url": "https://c8.example.com/v2",
+        "flavor": "camunda8",
+        "auth": {
+          "type": "clientCredentials",
+          "tokenEndpoint": "https://tenant.b2clogin.com/tenant.onmicrosoft.com/oauth2/v2.0/token?p=B2C_1_app"
+        }
+      },
+      "padded": {
+        "url": "https://c8.example.com/v2",
+        "flavor": "camunda8",
+        "auth": {
+          "type": "clientCredentials",
+          "tokenEndpoint": "  https://login.example.com/oauth/token  "
+        }
+      }
+    }
+  },
+  "cli": {
+    "valid": true,
+    "profiles": {
+      "slash": {
+        "refused": "names Camunda 8"
+      },
+      "query": {
+        "refused": "names Camunda 8"
+      },
+      "padded": {
+        "refused": "names Camunda 8"
+      }
+    }
+  }
+}

@@ -9,6 +9,7 @@ import { describe, expect, test } from "vitest"
 import { CompositionRoot } from "../../src/host/composition-root.js"
 import type { Credentials } from "../../src/host/connections/connection.js"
 import { LOCAL_TARGET, type EngineTarget } from "../../src/host/connections/engine-target.js"
+import { TargetsParser } from "../../src/host/connections/targets-parser.js"
 
 const NO_LOGIN: Credentials = { kind: "none" }
 const LOGIN: Credentials = { kind: "basic", username: "demo", password: "demo" }
@@ -122,6 +123,30 @@ describe("the composition root", () => {
         scopes: ["read"],
       },
       { kind: "none" },
+    ])
+  })
+
+  test("hands the adapter the token endpoint of the project file as written", () => {
+    const { c8, root } = rootWithRecorder()
+    const tokenEndpoint = "https://authentik.example.com/application/o/token/?tenant=shop"
+    const { targets } = new TargetsParser("/work/.pulse-cli.json").parse(
+      JSON.stringify({
+        profiles: {
+          c8: {
+            url: "https://c8.example.com/v2",
+            flavor: "camunda8",
+            auth: { type: "clientCredentials", tokenEndpoint: ` ${tokenEndpoint} ` },
+          },
+        },
+      }),
+    )
+
+    for (const target of targets) {
+      root.runtime(target, { kind: "clientCredentials", clientId: "pulse", clientSecret: "s3cret" })
+    }
+
+    expect(c8.connections.map((connection) => connection.credentials)).toEqual([
+      { kind: "clientCredentials", tokenEndpoint, clientId: "pulse", clientSecret: "s3cret" },
     ])
   })
 

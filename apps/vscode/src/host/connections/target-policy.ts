@@ -12,7 +12,7 @@ export class TargetPolicy {
       return undefined
     }
     if (credentials.kind === "savedForAnotherEndpoint") {
-      return `The endpoint of ${target.name} changed since its credentials were saved for ${credentials.savedFor}. Set the credentials again to send them to the new endpoint.`
+      return `The endpoint of ${target.name} moved from ${credentials.savedFor} to ${TargetHosts.credentialOrigins(target)} since you saved its credentials. Check the change, then set the credentials again.`
     }
     if (TargetPolicy.sendsSecretsInClearText(target)) {
       return `${target.name} would send its credentials over plain HTTP. Use an https endpoint.`

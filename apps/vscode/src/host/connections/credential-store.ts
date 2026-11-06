@@ -1,6 +1,7 @@
 import type * as vscode from "vscode"
 import type { Credentials } from "./connection.js"
 import type { EngineTarget } from "./engine-target.js"
+import { TargetHosts } from "./target-hosts.js"
 
 const PREFIX = "pulse.connection"
 type Field = "username" | "password" | "origin"
@@ -17,7 +18,7 @@ export class CredentialStore {
     if (username === undefined || password === undefined) {
       return { kind: "none" }
     }
-    if (origin !== this.originOf(target)) {
+    if (origin !== TargetHosts.credentialOrigins(target)) {
       return { kind: "savedForAnotherEndpoint", savedFor: origin ?? "an unknown endpoint" }
     }
     return target.auth.kind === "clientCredentials"
@@ -28,7 +29,7 @@ export class CredentialStore {
   async write(target: EngineTarget, username: string, password: string): Promise<void> {
     await this.secrets.store(this.key(target, "username"), username)
     await this.secrets.store(this.key(target, "password"), password)
-    await this.secrets.store(this.key(target, "origin"), this.originOf(target))
+    await this.secrets.store(this.key(target, "origin"), TargetHosts.credentialOrigins(target))
   }
 
   private key(target: EngineTarget, field: Field): string {
@@ -38,12 +39,5 @@ export class CredentialStore {
   private secretScope(target: EngineTarget): string {
     const scope = target.source.kind === "file" ? target.source.path : "default"
     return `${scope}::${target.name}`
-  }
-
-  private originOf(target: EngineTarget): string {
-    const endpoint = new URL(target.endpoint).origin
-    return target.auth.kind === "clientCredentials"
-      ? `${endpoint} and ${new URL(target.auth.tokenEndpoint).origin}`
-      : endpoint
   }
 }

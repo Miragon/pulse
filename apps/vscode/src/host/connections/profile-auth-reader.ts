@@ -1,4 +1,4 @@
-import type { TargetAuth } from "./engine-target.js"
+import type { EngineKind, TargetAuth } from "./engine-target.js"
 import { ProfileUrl } from "./profile-url.js"
 
 type Json = Readonly<Record<string, unknown>>
@@ -9,6 +9,10 @@ const KINDS: ReadonlyMap<unknown, TargetAuth> = new Map<unknown, TargetAuth>([
   ["oauth", { kind: "oauth2" }],
 ])
 const CLIENT_CREDENTIALS = "clientCredentials"
+const TYPES_SENDING_CREDENTIALS: Readonly<Record<EngineKind, readonly string[]>> = {
+  c7: ["basic"],
+  c8: ["basic", CLIENT_CREDENTIALS],
+}
 const SCOPE_TOKEN = /^[\x21\x23-\x5b\x5d-\x7e]+$/
 const KEYS_NEEDING_A_TYPE = [
   "issuer",
@@ -45,10 +49,14 @@ export class ProfileAuthReader {
     return KINDS.get(record.type) ?? ProfileAuthReader.unsupported(name)
   }
 
+  static typesSendingCredentials(engine: EngineKind): readonly string[] {
+    return TYPES_SENDING_CREDENTIALS[engine]
+  }
+
   private static clientCredentials(name: string, auth: Json): TargetAuth | string {
-    const tokenEndpoint = ProfileUrl.of(auth.tokenEndpoint)
-    if (tokenEndpoint === undefined) {
-      return `profile "${name}" needs an auth.tokenEndpoint that is an http or https URL`
+    const tokenEndpoint = ProfileUrl.asWritten(auth.tokenEndpoint)
+    if ("needs" in tokenEndpoint) {
+      return `profile "${name}" needs an auth.tokenEndpoint ${tokenEndpoint.needs}`
     }
     const { audience, scopes } = auth
     if (scopes !== undefined && !ProfileAuthReader.isScopeList(scopes)) {
@@ -59,7 +67,7 @@ export class ProfileAuthReader {
     }
     return {
       kind: "clientCredentials",
-      tokenEndpoint,
+      tokenEndpoint: tokenEndpoint.url,
       ...(audience === undefined ? {} : { audience }),
       ...(scopes === undefined ? {} : { scopes }),
     }

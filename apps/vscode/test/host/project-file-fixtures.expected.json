@@ -246,6 +246,20 @@
     "targets": ["local"],
     "problems": []
   },
+  "valid-token-endpoint-as-written": {
+    "targets": ["slash", "query", "padded"],
+    "problems": []
+  },
+  "valid-token-endpoint-refused-on-use": {
+    "targets": [],
+    "problems": [
+      "profile \"credentials\" needs an auth.tokenEndpoint without credentials",
+      "profile \"fragment\" needs an auth.tokenEndpoint without a fragment",
+      "profile \"empty-fragment\" needs an auth.tokenEndpoint without a fragment",
+      "profile \"ftp\" needs an auth.tokenEndpoint that is an http or https URL",
+      "profile \"text\" needs an auth.tokenEndpoint that is an http or https URL"
+    ]
+  },
   "valid-urls-normalized": {
     "targets": ["padded", "slashes"],
     "problems": []

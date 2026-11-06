@@ -50,8 +50,8 @@ export class PulseExtension {
       new ConnectionBuilder(CompositionRoot.create(), audit),
     )
     const picker = new ConnectionPicker(registry)
-    const setCredentials = new SetCredentialsCommand(registry, credentials, picker)
     const openTargetsFile = new OpenTargetsFileCommand(registry)
+    const setCredentials = new SetCredentialsCommand(registry, credentials, picker, openTargetsFile)
     const documents = new IncidentDocuments()
     const sources = CompositionRoot.localSources(new VsCodeWorkspaceFiles())
     const attention = new WindowAttention()

@@ -85,7 +85,8 @@ export class TargetsParser {
       return optional
     }
     const engine = profile.flavor === C8_FLAVOR ? "c8" : "c7"
-    if (auth.kind === "clientCredentials" && engine === "c7") {
+    const supported = ProfileAuthReader.typesSendingCredentials(engine)
+    if (auth.kind === "clientCredentials" && !supported.includes(auth.kind)) {
       return `profile "${name}" uses client credentials, which Pulse supports for the flavor ${C8_FLAVOR} only`
     }
     return {

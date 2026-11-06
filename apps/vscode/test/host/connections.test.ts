@@ -275,13 +275,15 @@ describe("the target policy", () => {
     expect(parsed.targets).toEqual([])
   })
 
-  test("refuses credentials saved for another endpoint", () => {
+  test("refuses credentials saved for another endpoint and names where it points now", () => {
     expect(
       TargetPolicy.refusal(basic("prod-eu", "https://evil.example.com/engine-rest"), {
         kind: "savedForAnotherEndpoint",
         savedFor: "https://prod.example.com",
       }),
-    ).toContain("changed since its credentials were saved for https://prod.example.com")
+    ).toBe(
+      "The endpoint of prod-eu moved from https://prod.example.com to https://evil.example.com since you saved its credentials. Check the change, then set the credentials again.",
+    )
   })
 
   test("refuses basic authentication over plain HTTP to a remote host", () => {

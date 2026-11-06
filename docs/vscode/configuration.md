@@ -22,7 +22,8 @@ Pulse reads `url`, `flavor` (`camunda7`, `cibseven`, `operaton` or [`camunda8`](
 `camunda7` when absent), `engine` (the default engine only), `auth.type` (`none`, `basic`; without
 a type a `username` means `basic`; `clientCredentials` with `tokenEndpoint`, `audience` and
 `scopes` on `camunda8`), `cockpitUrl` and `readOnly` (no writes from Pulse either), with the CLI's rules:
-URLs lose trailing slashes, and a value the CLI refuses never becomes a default. Such a profile,
+`url` and `cockpitUrl` lose trailing slashes, `tokenEndpoint` stays as written, and a value the CLI
+refuses never becomes a default. Such a profile,
 and one Pulse cannot serve yet, shows up as a problem in the Engines view. Pulse reads no
 `PULSE_CLI_*` variable, so a profile needs its `url`, and it sends no profile `headers`. Pulse
 reads profile by profile and skips the keys it does not use (`headers`, `timeout`, `output`,

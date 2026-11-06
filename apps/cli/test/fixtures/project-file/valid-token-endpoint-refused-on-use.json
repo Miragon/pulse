@@ -1,0 +1,67 @@
+{
+  "about": "A token endpoint with credentials, a fragment or no http or https URL loads, since the CLI checks an OAuth URL only on use and refuses a Camunda 8 profile then; Pulse for VS Code names the rule it breaks as a problem.",
+  "file": {
+    "profiles": {
+      "credentials": {
+        "url": "https://c8.example.com/v2",
+        "flavor": "camunda8",
+        "auth": {
+          "type": "clientCredentials",
+          "tokenEndpoint": "https://demo:demo@login.example.com/oauth/token"
+        }
+      },
+      "fragment": {
+        "url": "https://c8.example.com/v2",
+        "flavor": "camunda8",
+        "auth": {
+          "type": "clientCredentials",
+          "tokenEndpoint": "https://login.example.com/oauth/token#top"
+        }
+      },
+      "empty-fragment": {
+        "url": "https://c8.example.com/v2",
+        "flavor": "camunda8",
+        "auth": {
+          "type": "clientCredentials",
+          "tokenEndpoint": "https://login.example.com/oauth/token#"
+        }
+      },
+      "ftp": {
+        "url": "https://c8.example.com/v2",
+        "flavor": "camunda8",
+        "auth": {
+          "type": "clientCredentials",
+          "tokenEndpoint": "ftp://login.example.com/oauth/token"
+        }
+      },
+      "text": {
+        "url": "https://c8.example.com/v2",
+        "flavor": "camunda8",
+        "auth": {
+          "type": "clientCredentials",
+          "tokenEndpoint": "not a url"
+        }
+      }
+    }
+  },
+  "cli": {
+    "valid": true,
+    "profiles": {
+      "credentials": {
+        "refused": "names Camunda 8"
+      },
+      "fragment": {
+        "refused": "names Camunda 8"
+      },
+      "empty-fragment": {
+        "refused": "names Camunda 8"
+      },
+      "ftp": {
+        "refused": "names Camunda 8"
+      },
+      "text": {
+        "refused": "names Camunda 8"
+      }
+    }
+  }
+}
