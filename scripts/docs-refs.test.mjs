@@ -5,8 +5,10 @@ import os from "node:os"
 import path from "node:path"
 import { afterEach, describe, it } from "node:test"
 import { fileURLToPath } from "node:url"
+import { TEST_FILE } from "./pack-contents.mjs"
 import { REPO_ROOT } from "./source-scan.mjs"
 import { fullSurface, metricVocabulary } from "./tool-surface.mjs"
+import { publishedLibraries } from "./workspace-packages.mjs"
 
 /**
  * Docs and skills say what the code does (#345). A skill an agent follows
@@ -14,7 +16,8 @@ import { fullSurface, metricVocabulary } from "./tool-surface.mjs"
  * This guard reads every backticked reference in the docs, the READMEs, the
  * agent files and the skills (isCheckedDoc below) and checks it against the
  * repo: tool names against the full surface (the admin golden), repo paths against the tree
- * (from the repo root, in a nested file too), the identifiers of the skills
+ * (from the repo root, in a nested file too), the template docs' paths into an installed
+ * package against what that package ships and where pnpm links it, the identifiers of the skills
  * and of the nested agent files against the sources and the mcp-use
  * typings (a nested agent file's also against its package's own
  * tsconfig*.json), and each page of the docs site (every Markdown file under docs/,
@@ -225,6 +228,181 @@ describe("repo paths in the docs", () => {
         )
       })
     assert.deepEqual(missing.map(where), [])
+  })
+})
+
+/**
+ * The template docs' paths into an installed Pulse package
+ * (`server/node_modules/@miragon/pulse-engine-connector/src/…`), which the repo paths check
+ * skips with the rest of node_modules. pnpm links a package only under the folder whose
+ * package.json declares it (`server/`, `modules/<dir>/`), never at a root node_modules/@miragon,
+ * and the copy there holds only what npm ships. So each path maps to its workspace library: a
+ * `dist/` path names an entry of its manifest (pack-contents.mjs checks the entries ship), any
+ * other path exists in the library and its `files` ship it.
+ */
+const INSTALLED_PATH =
+  /^(server|modules\/[\w.-]+)\/node_modules\/(@miragon\/pulse-[a-z0-9-]+)(?:\/(.+))?$/
+const CITES_INSTALLED = /node_modules\/@miragon\/pulse-/
+// npm packs these whatever `files` lists.
+const ALWAYS_PACKED = /^(?:package\.json|(?:README|LICEN[CS]E)(?:\.[^/]*)?)$/i
+
+/** `a{b,c}d` as `abd` and `acd`, every brace group in turn. */
+function expandBraces(token) {
+  const group = /\{([^{}]*)\}/.exec(token)
+  if (group === null) return [token]
+  const before = token.slice(0, group.index)
+  const after = token.slice(group.index + group[0].length)
+  return (group[1] ?? "").split(",").flatMap((alt) => expandBraces(`${before}${alt}${after}`))
+}
+
+/** Every string target of an `exports` value, whatever its conditions. */
+const exportTargets = (value) => {
+  if (typeof value === "string") return [value]
+  if (value === null || typeof value !== "object") return []
+  return Object.values(value).flatMap(exportTargets)
+}
+
+/** The package-relative files a manifest names as its entries: `main`, `types`, `exports`. */
+const entryFiles = (manifest) =>
+  [manifest.main, manifest.types, ...exportTargets(manifest.exports)]
+    .filter((target) => typeof target === "string")
+    .map((target) => path.posix.normalize(target))
+
+/** Whether a manifest's `files` ship `rest`, a package-relative path: an entry or below one. */
+const ships = (manifest, rest) =>
+  ALWAYS_PACKED.test(rest) ||
+  ((manifest.files ?? []).some(
+    (entry) => !entry.startsWith("!") && (rest === entry || rest.startsWith(`${entry}/`)),
+  ) &&
+    !TEST_FILE.test(rest))
+
+/** The packages the package.json of a template folder (`server`, `modules/<dir>`) installs. */
+function templateDeclares(folder) {
+  const file = path.join(TEMPLATE_ROOT, folder, "package.json")
+  if (!fs.existsSync(file)) return new Set()
+  const manifest = JSON.parse(fs.readFileSync(file, "utf8"))
+  return new Set(
+    ["dependencies", "devDependencies", "optionalDependencies"].flatMap((field) =>
+      Object.keys(manifest[field] ?? {}),
+    ),
+  )
+}
+
+/** What is wrong with `cited`, one path without braces (see installedPathProblems), if anything. */
+function installedPathProblem(cited, { root, libraries, declared }) {
+  const match = INSTALLED_PATH.exec(cited)
+  if (match === null) {
+    return (
+      "pnpm links a package under the folder that declares it (server/node_modules/@miragon/…, " +
+      "modules/<dir>/node_modules/@miragon/…), never at a root node_modules/@miragon"
+    )
+  }
+  const [, folder = "", name = "", rest] = match
+  const library = libraries.get(name)
+  if (library === undefined) return `${name} is no library this workspace publishes`
+  if (!declared(folder).has(name)) {
+    return `${folder}/package.json does not declare ${name}, so pnpm links it elsewhere`
+  }
+  if (rest === undefined) return undefined
+  if (rest === "dist" || rest.startsWith("dist/")) {
+    const isEntry = (entry) => entry === rest || entry.startsWith(`${rest}/`)
+    return entryFiles(library.manifest).some(isEntry)
+      ? undefined
+      : `${rest} is no entry of ${name} (main, types, exports), so nothing builds it`
+  }
+  if (!fs.existsSync(path.join(root, library.dir, rest))) {
+    return `${library.dir}/${rest} does not exist`
+  }
+  return ships(library.manifest, rest)
+    ? undefined
+    : `${name} does not ship ${rest} (the files of its package.json)`
+}
+
+/**
+ * What is wrong with `token`, a backticked path of a template doc, as a path into an installed
+ * package; none when it is right or names no such package. `libraries` maps an npm name to its
+ * workspace `{ dir, manifest }` (`dir` relative to `root`), `declared(folder)` names the packages
+ * a template folder installs. A brace group (`pulse-{engine,analytics}-connector`) is checked
+ * per alternative, and each problem names the path it is about.
+ */
+function installedPathProblems(token, context) {
+  if (!CITES_INSTALLED.test(token)) return []
+  const paths = expandBraces(token.replace(/:\d+(?:-\d+)?$/, "").replace(/\/$/, ""))
+  return paths.flatMap((cited) => {
+    const problem = installedPathProblem(cited, context)
+    if (problem === undefined) return []
+    return [paths.length > 1 ? `${cited}: ${problem}` : problem]
+  })
+}
+
+describe("installed package paths in the template docs", () => {
+  const libraries = new Map(
+    publishedLibraries(REPO_ROOT).map((library) => [library.manifest.name, library]),
+  )
+  const context = { root: REPO_ROOT, libraries, declared: templateDeclares }
+  const problemsOf = (token) => installedPathProblems(token, context)
+  const templateRefs = docFiles
+    .filter((file) => file.startsWith("templates/composed-server/"))
+    .flatMap((file) => backticked(file))
+
+  it("cite only files the installed packages ship, where pnpm links them", () => {
+    const wrong = templateRefs.flatMap((ref) =>
+      problemsOf(ref.token).map((problem) => `${where(ref)}: ${problem}`),
+    )
+    assert.deepEqual(wrong, [])
+  })
+
+  it("reads the template docs' installed paths (the check is not blind)", () => {
+    const citing = templateRefs
+      .filter((ref) => CITES_INSTALLED.test(ref.token))
+      .map((ref) => ref.file)
+    assert.deepEqual([...new Set(citing)].sort(), [
+      "templates/composed-server/.claude/skills/add-widget/SKILL.md",
+      "templates/composed-server/.claude/skills/create-module/SKILL.md",
+      "templates/composed-server/CLAUDE.md",
+    ])
+  })
+
+  it("accepts a shipped source, a README, an entry's typings and a module's own install", () => {
+    for (const token of [
+      "server/node_modules/@miragon/pulse-engine-connector/src/lib/mcp/toolsets.ts",
+      "server/node_modules/@miragon/pulse-{engine,analytics}-connector/src/widgets/",
+      "server/node_modules/@miragon/pulse-widget-shell/README.md",
+      "server/node_modules/@miragon/pulse-widget-shell/dist/ui/index.d.ts",
+      "server/node_modules/@miragon/pulse-ui/dist/index.d.ts",
+      "server/node_modules/@miragon/pulse-ui/src/theme.css",
+      "modules/mcp-notes/node_modules/@miragon/pulse-ui/README.md",
+      "node_modules/@miragon/",
+    ]) {
+      assert.deepEqual(problemsOf(token), [], token)
+    }
+  })
+
+  it("reports a root install, a missing file, an unshipped file and an undeclared package", () => {
+    const cases = [
+      ["node_modules/@miragon/pulse-engine-connector/src/lib/mcp/toolsets.ts", /never at a root/],
+      ["server/node_modules/@miragon/pulse-engine-connector/src/lib/no-such.ts", /does not exist/],
+      ["server/node_modules/@miragon/pulse-{engine,analytics}-connector/src/nope/", /not exist/],
+      // Files no `files` entry names: they stay unshipped once a library ships its `src` too.
+      [
+        "server/node_modules/@miragon/pulse-widget-shell/vitest.config.ts",
+        /does not ship vitest\.config\.ts/,
+      ],
+      ["server/node_modules/@miragon/pulse-ui/tsconfig.json", /does not ship tsconfig\.json/],
+      [
+        "server/node_modules/@miragon/pulse-engine-connector/src/lib/mcp/toolsets.test.ts",
+        /does not ship src/,
+      ],
+      ["server/node_modules/@miragon/pulse-widget-shell/dist/no-such.d.ts", /is no entry/],
+      ["server/node_modules/@miragon/pulse-engine-core/README.md", /does not declare/],
+      ["modules/mcp-notes/node_modules/@miragon/pulse-engine-connector/src", /does not declare/],
+      ["server/node_modules/@miragon/pulse-nope/README.md", /is no library/],
+    ]
+    for (const [token, problem] of cases) {
+      const problems = problemsOf(token)
+      assert.ok(problems.length > 0, token)
+      for (const found of problems) assert.match(found, problem, token)
+    }
   })
 })
 
