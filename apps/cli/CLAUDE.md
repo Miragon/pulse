@@ -116,12 +116,12 @@ no `generate` script, so turbo's cached `generate` task never replays a stale ca
 The command is `pulse`: usage, help, the guide, `describe`, the next steps and the hints print it,
 and the docs and the skill say it. `CLI_NAME` (`apps/cli/src/util.ts`) names the program for
 commander, the examples and the usage lines; the guide, the next steps and the hints spell `pulse`
-in their text, and the product-name test keeps them free of the old name. `pulse-cli` is a
-second `bin` of the same bundle, and `npx @miragon/pulse-cli` runs the bin named like the
-package. Names
-that are no command keep their spelling: the npm package, `PULSE_CLI_*`, `.pulse-cli.json`, the
-config directory, the image, the release assets, the bundle file, the Homebrew formula, the
-plugin and its skill, and the worker id and deployment name and source the engine stores.
+in their text, and the product-name test keeps them free of the second name. `pulse-cli` is a
+second `bin` of the same bundle, so scripts that call it work, and `npx @miragon/pulse-cli` runs
+the bin named like the package. Names that are no command keep their spelling: the npm package,
+`PULSE_CLI_*`, `.pulse-cli.json`, the config directory, the image, the release assets, the
+bundle file, the Homebrew formula, the plugin and its skill, and the worker id and deployment
+name and source the engine stores.
 `apps/cli/src/bin/bin-names.test.ts` holds the two bins to one entry,
 `apps/cli/src/product-name.test.ts` the shipped text to `pulse` outside its named exceptions, and
 the docs tests key on `CLI_NAME` and fail on a code block that runs `pulse-cli`, which they would

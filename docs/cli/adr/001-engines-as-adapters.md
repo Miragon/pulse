@@ -37,8 +37,6 @@ The overview is in [Architecture](../architecture.md), the engine list in [Engin
 - A difference of one engine changes its catalog or its adapter. The other engines do not move.
 - The workflow commands are written once, against the port.
 - One generated catalog is committed and every adapter reads it while no engine diverges.
-- Existing profiles keep working: without `flavor` the CLI behaves as before. Versions without the
-  key reject a config file that contains it.
 - `src/catalog`, `src/operation` and `src/http` still hold the Camunda 7 REST code. They move into
   `src/api/camunda7-rest` step by step, not in one move.
 - No rule forbids `if (name === 'cibseven')` outside `src/engines/<name>`. Review does.
