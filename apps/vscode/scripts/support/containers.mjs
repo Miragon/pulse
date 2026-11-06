@@ -16,12 +16,20 @@ export function removeContainer(name) {
   execFileSync(containerTool(), ["rm", "-f", name], { stdio: "ignore" })
 }
 
-export function startContainer({ name, image, port, environment = {} }) {
+export function startContainer({
+  name,
+  image,
+  port,
+  environment = {},
+  options = [],
+  command = [],
+}) {
   removeContainer(name)
   const variables = Object.entries(environment).flatMap(([key, value]) => ["-e", `${key}=${value}`])
+  const published = port === undefined ? [] : ["-p", `${port}:8080`]
   execFileSync(
     containerTool(),
-    ["run", "-d", "--name", name, "-p", `${port}:8080`, ...variables, image],
+    ["run", "-d", "--name", name, ...published, ...options, ...variables, image, ...command],
     { stdio: "ignore" },
   )
 }

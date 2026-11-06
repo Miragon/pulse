@@ -1,22 +1,8 @@
-import { existsSync } from "node:fs"
-import { mkdir, mkdtemp, rm } from "node:fs/promises"
-import { tmpdir } from "node:os"
-import { join, resolve } from "node:path"
-import { downloadAndUnzipVSCode } from "@vscode/test-electron"
-import { _electron as electron } from "playwright"
+import { resolve } from "node:path"
+import { driveVscode, panelFrame, runCommand, shot } from "./support/vscode-driver.mjs"
 
-const EXTENSION = resolve(".")
 const WORKSPACE = resolve("dev/host/workspace")
-const SHOTS = resolve(process.env.PULSE_E2E_SHOTS ?? "test-results/e2e")
-const MAC_INSTALLATION = "/Applications/Visual Studio Code.app/Contents/MacOS/Code"
 const ENGINE = "http://localhost:18080/engine-rest"
-
-async function vscodeExecutable() {
-  if (process.env.PULSE_VSCODE_EXECUTABLE !== undefined) {
-    return process.env.PULSE_VSCODE_EXECUTABLE
-  }
-  return existsSync(MAC_INSTALLATION) ? MAC_INSTALLATION : downloadAndUnzipVSCode("stable")
-}
 
 async function engineIsUp() {
   const response = await fetch(`${ENGINE}/version`).catch(() => undefined)
@@ -27,38 +13,11 @@ async function engineIsUp() {
   }
 }
 
-async function shot(window, name) {
-  await window.screenshot({ path: join(SHOTS, `${name}.png`) })
-  console.log(`screenshot ${name}.png`)
-}
-
-async function panelFrame(window) {
-  const outer = window.frameLocator("iframe.webview.ready").last()
-  return outer.frameLocator("iframe#active-frame")
-}
-
-async function runCommand(window, title) {
-  await window.keyboard.press(process.platform === "darwin" ? "Meta+Shift+P" : "Control+Shift+P")
-  await window.keyboard.type(title)
-  await window.keyboard.press("Enter")
-}
-
 async function openModel(window, fileName) {
   await runCommand(window, "View: Show Explorer")
   await window.getByRole("treeitem", { name: fileName, exact: true }).click()
   await window.locator(".tab.active", { hasText: fileName }).waitFor({ timeout: 30_000 })
   await runCommand(window, "Pulse: Show Runtime Data for This Model")
-}
-
-async function step(name, action, window) {
-  process.stdout.write(`• ${name} … `)
-  try {
-    await action()
-  } catch (error) {
-    await shot(window, "failed-step")
-    throw error
-  }
-  console.log("ok")
 }
 
 const STEPS = [
@@ -133,11 +92,10 @@ const STEPS = [
   [
     "Go to Process Instance finds a business key",
     async (window) => {
-      await window.keyboard.press(
-        process.platform === "darwin" ? "Meta+Shift+P" : "Control+Shift+P",
-      )
-      await window.keyboard.type("Pulse: Go to Process Instance")
-      await window.keyboard.press("Enter")
+      await runCommand(window, "Pulse: Go to Process Instance")
+      await window
+        .locator(".quick-input-title", { hasText: "Go to Process Instance" })
+        .waitFor({ timeout: 10_000 })
       const input = window.locator(".quick-input-widget input")
       await input.fill("DSP-3002")
       await input.press("Enter")
@@ -254,38 +212,5 @@ const STEPS = [
   ],
 ]
 
-async function launch(userData) {
-  return electron.launch({
-    executablePath: await vscodeExecutable(),
-    args: [
-      WORKSPACE,
-      `--extensionDevelopmentPath=${EXTENSION}`,
-      `--user-data-dir=${userData}`,
-      `--extensions-dir=${join(userData, "extensions")}`,
-      "--disable-workspace-trust",
-      "--skip-welcome",
-      "--skip-release-notes",
-      "--disable-telemetry",
-      "--new-window",
-      ...(process.env.PULSE_VSCODE_NO_SANDBOX === "1" ? ["--no-sandbox"] : []),
-    ],
-  })
-}
-
-async function run() {
-  await engineIsUp()
-  await mkdir(SHOTS, { recursive: true })
-  const userData = await mkdtemp(join(tmpdir(), "pulse-e2e-"))
-  const app = await launch(userData)
-  const window = await app.firstWindow()
-  try {
-    for (const [name, action] of STEPS) {
-      await step(name, () => action(window), window)
-    }
-  } finally {
-    await app.close()
-    await rm(userData, { recursive: true, force: true })
-  }
-}
-
-await run()
+await engineIsUp()
+await driveVscode(WORKSPACE, STEPS)
