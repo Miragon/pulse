@@ -24,11 +24,14 @@ lists), the published Miragon modules ship their sources under
 **A module is for your other systems, not for the engine.** The engine
 module already registers the generic engine operations as tools
 (`engine_start_process_instance`, `engine_correlate_message`,
-`engine_set_job_retries` and more: list them in the inspector or with
-`pnpm exec mcp-use client local tools list` in `server/`), so "start our leasing process"
-needs no new tool. To give the model your processes' keys and variables, put
-them into your module's `instructions` (Step 3) without naming `engine_*`
-tools: the engine module may be off.
+`engine_set_job_retries` and more), so "start our leasing process" needs no
+new tool. A listing shows only the running toolset: these writes appear with
+OAuth or under `MCP_ACTIVE_MODULES=engine:operations,analytics,<yours>`, never
+in the default read-only boot. List them in the inspector or with
+`pnpm exec mcp-use client local tools list` in `server/`, after the one-time
+`connect` (`CLAUDE.md` → Verification). To give the model your processes'
+keys and variables, put them into your module's `instructions` (Step 3)
+without naming `engine_*` tools: the engine module may be off.
 
 ## Step 1: scaffold the package
 
@@ -61,7 +64,8 @@ package later: extract on the second consumer, not speculatively.
 The client talks to your system, never to a Camunda engine: a second engine
 client built from `ENGINE_BASE_URL` skips what the engine module does on every
 call (the engine pick by `engine` and `ENGINE_DEFAULT`, each engine's auth
-including passthrough, its error rules).
+including passthrough, its error rules). If the engine tools do not cover a
+need, stop and ask: custom modules have no supported engine seam yet.
 
 ## Step 3: the module definition (`src/module.ts`)
 

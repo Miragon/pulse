@@ -15,9 +15,10 @@ KPI grids, BPMN viewers) live in
 The names below are documented in
 `server/node_modules/@miragon/pulse-widget-shell/README.md` (export table) and
 `server/node_modules/@miragon/pulse-ui/README.md`, typed in
-`dist/ui/index.d.ts` (widget-shell's `/widgets`) and `dist/index.d.ts`
-(pulse-ui). These are gitignored symlinks: search one package directory, not
-the repo root.
+`server/node_modules/@miragon/pulse-widget-shell/dist/ui/index.d.ts`
+(widget-shell's `./widgets`) and
+`server/node_modules/@miragon/pulse-ui/dist/index.d.ts`. The package
+directories are gitignored symlinks: search one of them, not the repo root.
 
 ## Step 0: pick the render path
 

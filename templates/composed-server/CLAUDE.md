@@ -17,19 +17,22 @@ task paths. Read the matching one BEFORE starting:
 **Engine operations are tools already.** The engine module ships the generic
 Camunda 7 operations, among them `engine_start_process_instance`,
 `engine_correlate_message`, `engine_complete_task`,
-`engine_set_process_instance_variable` and `engine_set_job_retries` (list
-them all in the inspector, or with `pnpm exec mcp-use client local tools list`
-in `server/` after the one-time `connect` under Verification). "Start our
-leasing process" or "retry the failed jobs of X" needs
-no new module or tool: the model calls these. Without OAuth a write needs the
-`operations` toolset (`engine:operations` in `MCP_ACTIVE_MODULES`, invariant
-8). A custom module is for your other systems. To teach the model your
-processes (their keys, the variables a start takes), write them into your
-module's `instructions` without naming `engine_*` tools, since the engine
-module may be off. Never build a second engine client from `ENGINE_BASE_URL`:
-it loses what the engine module does on every call (the engine pick by
-`engine` and `ENGINE_DEFAULT`, each engine's auth including passthrough, its
-error rules).
+`engine_set_process_instance_variable` and `engine_set_job_retries`. "Start
+our leasing process" or "retry the failed jobs of X" needs no new module or
+tool: the model calls these. They are writes, so without OAuth they register
+only under the `operations` toolset (`engine:operations` in
+`MCP_ACTIVE_MODULES` next to your other modules, e.g.
+`engine:operations,analytics,notes`; invariant 8). The default boot (no OAuth,
+no suffix) runs the read-only floor and lists none of them. To list the
+running toolset's tools, use the inspector or
+`pnpm exec mcp-use client local tools list` in `server/` after the one-time
+`connect` under Verification. A custom module is for your other systems. To teach the model your processes (their keys, the variables a
+start takes), write them into your module's `instructions` without naming
+`engine_*` tools, since the engine module may be off. Never build a second
+engine client from `ENGINE_BASE_URL`: it loses what the engine module does on
+every call (the engine pick by `engine` and `ENGINE_DEFAULT`, each engine's
+auth including passthrough, its error rules). If the engine tools do not
+cover a need, stop and ask: custom modules have no supported engine seam yet.
 
 ## Commands
 
@@ -179,13 +182,18 @@ the Tailwind scan in one shot.
   `server/node_modules/@miragon/pulse-analytics-connector/src/` for the
   reference implementations of anything the notes module doesn't cover
   (toolsets, paged lists, BPMN widgets).
-- Where the APIs live: `server/node_modules/@miragon/pulse-widget-shell/README.md`
-  (an export table per entry: `/server`, `/widgets`, `/testing`) with its
-  typings `dist/server.d.ts` and `dist/ui/index.d.ts`, and
-  `server/node_modules/@miragon/pulse-ui/README.md` with `dist/index.d.ts`.
-- pnpm installs these packages under `server/node_modules` only (pulse-ui and
-  widget-shell also under `modules/<name>/node_modules`), never in a root
-  `node_modules`. That folder is gitignored and its `@miragon/*` entries are
-  symlinks, so a search from the repo root (Grep, Glob, `rg`) finds none of
-  these files: give one package directory as the path, e.g.
+- Where the APIs live: widget-shell's README
+  (`server/node_modules/@miragon/pulse-widget-shell/README.md`) has its export
+  table, one row per entry (`./server`, `./widgets`, `./testing`), typed in
+  `server/node_modules/@miragon/pulse-widget-shell/dist/server.d.ts` and
+  `server/node_modules/@miragon/pulse-widget-shell/dist/ui/index.d.ts`;
+  pulse-ui's is `server/node_modules/@miragon/pulse-ui/README.md`, typed in
+  `server/node_modules/@miragon/pulse-ui/dist/index.d.ts`.
+- pnpm links these packages under `server/node_modules` (pulse-ui and
+  widget-shell also under `modules/<name>/node_modules`), never at
+  `node_modules/@miragon/` in the repo root: it keeps the real files in the
+  root `node_modules/.pnpm/` under hashed names. `node_modules` is gitignored,
+  the `@miragon/*` entries are symlinks and `.pnpm` is hidden, so a search
+  from the repo root (the Grep tool, `rg`) finds none of these files: give one
+  package directory as the path, e.g.
   `server/node_modules/@miragon/pulse-engine-connector/src`.
