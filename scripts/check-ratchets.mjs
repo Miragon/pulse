@@ -102,6 +102,13 @@
  *                                   foreign style; per-directory style goes
  *                                   into the root .prettierrc.json
  *                                   `overrides`. Each fails whenever it exists
+ *   templates/composed-server/.prettierrc.json
+ *                                   the one nested prettier config: a starter
+ *                                   repo has no root config above it. It
+ *                                   carries exactly the root .prettierrc.json's
+ *                                   settings without `overrides` (they name
+ *                                   monorepo paths), so it sets no style of
+ *                                   its own
  *   inline suppressions             `eslint-disable` of a gate rule (or of every
  *                                   rule), inline gate-rule config, `v8|c8|
  *                                   istanbul ignore`, `Stryker disable` in
@@ -139,6 +146,7 @@ import { execFileSync } from "node:child_process"
 import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+import { isDeepStrictEqual } from "node:util"
 import ts from "typescript"
 import { MUTATION_PAUSED } from "./mutation-pause.mjs"
 
@@ -160,6 +168,13 @@ const loadedInstead = (replaces) => (relPath) =>
 const NESTED = String.raw`(?!(?:.*/)?node_modules/)(?:.+/)`
 /** prettier's config file names besides package.json (the manifest check covers its key). */
 const PRETTIER_CONFIG = String.raw`(?:package\.yaml|\.prettierrc(?:\.\w+)?|prettier\.config\.[cm]?[jt]s)`
+const ROOT_PRETTIER = ".prettierrc.json"
+/**
+ * The one nested prettier config, checked before the shadow rule: the starter
+ * (templates/composed-server, mirrored to a repo of its own) has no root config
+ * above it. templatePrettierViolations holds it to the root's settings.
+ */
+export const TEMPLATE_PRETTIER = "templates/composed-server/.prettierrc.json"
 
 // Config files a tool loads BEFORE (or instead of) the ratcheted one:
 // ESLint resolves the nearest eslint.config.{js,mjs,cjs,ts,mts,cts} upward
@@ -194,7 +209,8 @@ const SHADOW_CONFIGS = [
   {
     // Any root prettier config but .prettierrc.json (package.yaml and
     // .prettierrc come BEFORE it, the others take over once it is gone), and
-    // any prettier config in a directory below the root.
+    // any prettier config in a directory below the root (ratchetKind classes
+    // TEMPLATE_PRETTIER before this rule).
     pattern: new RegExp(
       `^(?!\\.prettierrc\\.json$)${PRETTIER_CONFIG}$|^${NESTED}${PRETTIER_CONFIG}$`,
     ),
@@ -215,6 +231,7 @@ export function ratchetKind(relPath) {
   if (new RegExp(`^${PKG}/stryker\\.config\\.json$`).test(relPath)) return "stryker"
   if (relPath === "eslint.config.mjs") return "eslint"
   if (relPath === "knip.jsonc") return "knip"
+  if (relPath === TEMPLATE_PRETTIER) return "template-prettier"
   if (SHADOW_CONFIGS.some(({ pattern }) => pattern.test(relPath))) return "shadow-config"
   if (/^apps\/[^/]+\/test\/__golden__\/char-budgets\.json$/.test(relPath)) return "char-budgets"
   if (/^apps\/[^/]+\/test\/__golden__\/bundle-budget\.json$/.test(relPath)) return "bundle-budget"
@@ -1442,6 +1459,37 @@ function shadowViolation(relPath) {
 }
 
 /**
+ * The starter's prettier config (`newText`) against the root one (`rootText`,
+ * same side): exactly the root's settings without `overrides`, which name
+ * monorepo paths. prettier formats the starter's files with this copy, here
+ * and in a starter repo, so any other setting is a style of its own.
+ */
+function templatePrettierViolations(newText, rootText) {
+  if (newText === null || newText === undefined) return []
+  let copy
+  let root
+  try {
+    copy = JSON.parse(newText)
+  } catch {
+    return invalidJson(TEMPLATE_PRETTIER)
+  }
+  try {
+    root = JSON.parse(rootText ?? "")
+  } catch {
+    return [
+      `${TEMPLATE_PRETTIER} copies the root ${ROOT_PRETTIER}, which is missing or not valid JSON: nothing holds the starter's style to the workspace's. Restore the root ${ROOT_PRETTIER}.`,
+    ]
+  }
+  const settings = Object.fromEntries(
+    Object.entries(root ?? {}).filter(([key]) => key !== "overrides"),
+  )
+  if (isDeepStrictEqual(copy, settings)) return []
+  return [
+    `${TEMPLATE_PRETTIER} is not the root ${ROOT_PRETTIER} without \`overrides\`: it holds ${JSON.stringify(copy)}, the root ${JSON.stringify(settings)}. prettier formats the starter's files with this copy, in this repo and in a starter repo, so a difference is a style the root does not set (\`requirePragma: true\` even skips every file without a pragma). Change the style in the root ${ROOT_PRETTIER} and copy its settings, without \`overrides\`, here.`,
+  ]
+}
+
+/**
  * A workspace package.json key that configures a gate's tool where no
  * ratchet looks: prettier reads a package.json `prettier` key BEFORE any
  * .prettierrc in the same directory, so a nested one formats its package in
@@ -1482,12 +1530,23 @@ function introducedViolations(kind, relPath, newText) {
  * Compare one ratchet file's base text with its new text (null = absent).
  * `fileExists(repoRelPath)` answers for the working tree (stale mutate
  * entries); it defaults to "exists", the conservative answer.
+ * `readNew(repoRelPath)` reads another file of the new side (the root
+ * .prettierrc.json the starter's copy must equal), null when it is absent.
  */
-export function checkRatchetFile(relPath, oldText, newText, fileExists = () => true) {
+export function checkRatchetFile(
+  relPath,
+  oldText,
+  newText,
+  fileExists = () => true,
+  readNew = () => null,
+) {
   const kind = ratchetKind(relPath)
   // A shadowing config fails whenever it exists: introducing one is the attack.
   if (kind === "shadow-config")
     return newText === null || newText === undefined ? [] : [shadowViolation(relPath)]
+  // The starter's copy is a state too: it equals the root config or fails.
+  if (kind === "template-prettier")
+    return templatePrettierViolations(newText, readNew(ROOT_PRETTIER))
   if (oldText === null || oldText === undefined) return introducedViolations(kind, relPath, newText)
   if (kind === "vitest") return compareVitest(relPath, oldText, newText)
   if (kind === "eslint") return compareEslint(relPath, oldText, newText)
@@ -1831,7 +1890,13 @@ async function effectiveEslintViolations(repo, eslint, from, to, alsoProbe = [])
 
 /** The ratchet violations of one ratchet file, `from` -> `to`. */
 const ratchetFileViolations = (repo, rel, from, to) =>
-  checkRatchetFile(rel, repo.read(from, rel), repo.read(to, rel), (file) => repo.exists(to, file))
+  checkRatchetFile(
+    rel,
+    repo.read(from, rel),
+    repo.read(to, rel),
+    (file) => repo.exists(to, file),
+    (file) => repo.read(to, file),
+  )
 
 const isComparedRatchet = (rel) => {
   const kind = ratchetKind(rel)

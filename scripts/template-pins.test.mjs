@@ -7,6 +7,7 @@ import ts from "typescript"
 import { REPO_ROOT } from "./source-scan.mjs"
 import {
   checkTemplatePins,
+  FORMATTER,
   INSPECTOR_LUCIDE,
   peerRuleFindings,
   SHARED_LIBRARIES,
@@ -71,6 +72,10 @@ const WORKSPACE = [
   },
 ]
 const VERSIONS = { "@miragon/pulse-widget-shell": "0.24.2", "@miragon/pulse-ui": "0.24.2" }
+/** The root manifest of the fixture workspace: its tooling, the formatter among it. */
+const ROOT_MANIFEST = {
+  devDependencies: { prettier: "3.9.10", "prettier-plugin-tailwindcss": "0.8.1" },
+}
 
 /** The findings of one template manifest against the fixture workspace. */
 function findings(manifest, workspace = WORKSPACE) {
@@ -144,6 +149,27 @@ describe("template-pins", () => {
         "\n",
       ),
       /\(peerDependencies\): @miragon\/pulse-widget-shell pinned 0\.24\.2, the workspace \^0\.24\.2/,
+    )
+  })
+
+  it("holds the formatter to the workspace's exact pin, one only the root manifest holds too", () => {
+    const workspace = [{ dir: "the root package.json", manifest: ROOT_MANIFEST }, ...WORKSPACE]
+    const { pins, errors } = workspacePins(workspace, [...SHARED_LIBRARIES, ...FORMATTER])
+    assert.deepEqual(errors, [])
+    const starter = (prettier) => [
+      {
+        file: "package.json",
+        manifest: { devDependencies: { prettier, "prettier-plugin-tailwindcss": "0.8.1" } },
+      },
+    ]
+    const check = (prettier) => templatePinFindings(starter(prettier), { versions: VERSIONS, pins })
+    assert.deepEqual(check("3.9.10"), { unknown: [], drifted: [] })
+    assert.deepEqual(check("3.8.0").drifted, [
+      "package.json (devDependencies): prettier pinned 3.8.0, the workspace 3.9.10",
+    ])
+    assert.match(
+      workspacePins(WORKSPACE, FORMATTER).errors.join("\n"),
+      /pins prettier-plugin-tailwindcss nowhere/,
     )
   })
 
@@ -228,6 +254,7 @@ describe("template-pins", () => {
         writeFileSync(path.join(root, file), content)
       }
       write("pnpm-workspace.yaml", 'packages:\n  - "packages/core/*"\n  - "apps/*"\n')
+      write("package.json", JSON.stringify(ROOT_MANIFEST))
       for (const { dir, manifest } of WORKSPACE) {
         write(`${dir}/package.json`, JSON.stringify(manifest))
       }

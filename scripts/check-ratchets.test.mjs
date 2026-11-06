@@ -16,6 +16,7 @@ import {
   resolveBaseRef,
   run,
   suppressionDirectives,
+  TEMPLATE_PRETTIER,
   violationKey,
 } from "./check-ratchets.mjs"
 
@@ -189,7 +190,9 @@ describe("shadowing vitest, prettier and editorconfig files", () => {
       "docs/.prettierrc",
       "docs/.vitepress/.prettierrc.json",
       "docs/package.yaml",
-      "templates/composed-server/.prettierrc.json",
+      // The starter's one sanctioned copy is templates/composed-server/.prettierrc.json alone.
+      "templates/composed-server/.prettierrc",
+      "templates/composed-server/server/.prettierrc.json",
       "templates/composed-server/server/prettier.config.mjs",
       "scripts/.prettierrc.yml",
       "playground/prettier.config.js",
@@ -229,6 +232,56 @@ describe("shadowing vitest, prettier and editorconfig files", () => {
     ])
       assert.equal(ratchetKind(rel), null, rel)
     assert.deepEqual(checkRatchetFile(`${CLI_DIR}/.prettierrc`, "{}", null), [])
+  })
+})
+
+describe("the starter's prettier config: the root's settings without `overrides`", () => {
+  const SETTINGS = { semi: false, printWidth: 100, plugins: ["prettier-plugin-tailwindcss"] }
+  const OVERRIDES = [{ files: ["apps/vscode/**"], options: { plugins: [] } }]
+  const ROOT = JSON.stringify({ ...SETTINGS, overrides: OVERRIDES })
+  const json = (value) => `${JSON.stringify(value, null, 2)}\n`
+  /** The copy's violations, the root config of the same side read as `root`. */
+  const check = (text, root = ROOT) =>
+    checkRatchetFile(
+      TEMPLATE_PRETTIER,
+      null,
+      text,
+      () => true,
+      (rel) => (rel === ".prettierrc.json" ? root : null),
+    )
+
+  it("is a kind of its own, not a shadow config", () => {
+    assert.equal(ratchetKind(TEMPLATE_PRETTIER), "template-prettier")
+  })
+
+  it("passes the root's settings in any key order, and no copy at all", () => {
+    assert.deepEqual(check(json(SETTINGS)), [])
+    assert.deepEqual(check(json({ plugins: SETTINGS.plugins, printWidth: 100, semi: false })), [])
+    assert.deepEqual(check(null), [])
+  })
+
+  it("fails a setting of its own, a dropped or changed one, the root's overrides and a root moved alone", () => {
+    for (const [text, root] of [
+      [json({ ...SETTINGS, requirePragma: true }), ROOT],
+      [json({ semi: false, printWidth: 100 }), ROOT],
+      [json({ ...SETTINGS, semi: true }), ROOT],
+      [json({ ...SETTINGS, overrides: OVERRIDES }), ROOT],
+      [json(SETTINGS), JSON.stringify({ ...SETTINGS, printWidth: 110, overrides: OVERRIDES })],
+    ]) {
+      const violations = check(text, root)
+      assert.equal(violations.length, 1, text)
+      assert.match(
+        violations[0],
+        /^templates\/composed-server\/\.prettierrc\.json is not the root \.prettierrc\.json without `overrides`: .*copy its settings, without `overrides`, here\.$/,
+        text,
+      )
+    }
+  })
+
+  it("fails a broken copy and a missing or broken root", () => {
+    assert.match(check("{ nope")[0], /\.prettierrc\.json is not valid JSON/)
+    for (const root of [null, "{ nope"])
+      assert.match(check(json(SETTINGS), root)[0], /missing or not valid JSON.*Restore the root/)
   })
 })
 
@@ -972,6 +1025,15 @@ describe("the real repository carries no shadowing config and no package.json#pr
       const text = readFileSync(rel, "utf8")
       assert.deepEqual(checkRatchetFile(rel, text, text), [], rel)
     }
+  })
+
+  it("holds the starter's prettier config to the root's settings", () => {
+    const text = readFileSync(TEMPLATE_PRETTIER, "utf8")
+    const read = (rel) => readFileSync(rel, "utf8")
+    assert.deepEqual(
+      checkRatchetFile(TEMPLATE_PRETTIER, text, text, () => true, read),
+      [],
+    )
   })
 })
 
@@ -1978,6 +2040,28 @@ describe("the trailer covers its own commit (replayed per commit)", () => {
     assert.equal(code, 0, out)
     assert.ok(out.includes(`waved by ${a.slice(0, 9)}`), out)
     assert.ok(!out.includes("Merge abc into def"), out)
+  })
+
+  it("holds the starter's prettier copy to the root config of the same commit", async () => {
+    const config = (printWidth, extra = {}) =>
+      `${JSON.stringify({ semi: false, printWidth, ...extra }, null, 2)}\n`
+    const overrides = { overrides: [{ files: ["apps/x/**"], options: { semi: true } }] }
+    const repo = synthetic({
+      ".prettierrc.json": config(100, overrides),
+      [TEMPLATE_PRETTIER]: config(100),
+    })
+    const base = await repo.check()
+    assert.equal(base.code, 0, base.out)
+    // The root moves alone: the copy drifts, no commit makes that, so no trailer covers it.
+    repo.commit(`style: wider\n\n${TRAILER}`, () =>
+      repo.write(".prettierrc.json", config(110, overrides)),
+    )
+    const drifted = await repo.check()
+    assert.equal(drifted.code, 1, drifted.out)
+    assert.match(drifted.out, /server\/\.prettierrc\.json is not the root \.prettierrc\.json/)
+    repo.commit("style: the starter too", () => repo.write(TEMPLATE_PRETTIER, config(110)))
+    const followed = await repo.check()
+    assert.equal(followed.code, 0, followed.out)
   })
 
   it("fails closed when no single commit makes a violation (the steps only add up to it)", async () => {

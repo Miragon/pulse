@@ -1,0 +1,8 @@
+# What `pnpm format` leaves alone. The Prettier CLI also reads .gitignore, an editor's Prettier
+# extension often only this file, so the generated output is listed here as well.
+pnpm-lock.yaml
+node_modules/
+dist/
+coverage/
+.mcp-use/
+mcp-env.d.ts

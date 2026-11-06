@@ -76,6 +76,7 @@ ships a ready-made Docker Compose stack whose URLs match `.env.example`.
 
 ```bash
 pnpm build && pnpm typecheck && pnpm test   # the bar for every change
+pnpm format:check                           # Prettier, the style in .prettierrc.json (pnpm format applies it)
 ```
 
 - The root `pnpm dev` builds the modules and the widget bundle once, when it
