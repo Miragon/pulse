@@ -4,8 +4,9 @@
 > Pulse is below 1.0.0, so the API of the `@miragon/pulse-*` packages is not
 > stable and can change in any release. The
 > [changelog](https://github.com/Miragon/pulse/blob/main/CHANGELOG.md) lists
-> every breaking change. This starter pins all of them to one exact version:
-> keep it that way and update them together.
+> every breaking change. The `dependencies` and `devDependencies` of this starter
+> pin all of them to one exact version (a module's peer ranges resolve to the
+> server's copy): keep it that way and update them together.
 
 Build your own MCP server on the published `@miragon/pulse-*` modules of
 [Pulse](https://github.com/Miragon/pulse) (Camunda 7 / CIB seven BPM operations
@@ -38,18 +39,29 @@ pnpm dev              # MCP endpoint on :8400/mcp, inspector on :8400/mcp/inspec
 No engine yet? `docker compose up -d`, then `pnpm dev`. The
 [`compose.yaml`](compose.yaml) starts a CIB seven engine on `localhost:8410`
 with its invoice example (login `demo`/`demo`), the engine the copied `.env`
-points at. It serves the engine tools only. Analytics needs the metrics and
-the Prometheus of the
+points at. It serves the engine tools only, so the copied `.env` leaves
+analytics off (`MCP_ACTIVE_MODULES=engine,notes`): that engine has no Prometheus
+to read. Analytics needs the metrics and the Prometheus of the
 [Pulse playground](https://github.com/Miragon/pulse/tree/main/playground),
 which runs with Node.js, pnpm and Docker only:
 `git clone https://github.com/Miragon/pulse && cd pulse && pnpm stack:up`,
-then uncomment `ENGINE_ID` and `PROMETHEUS_URL` in `.env`. The playground's
-engine takes port 8410 too, so run one of the two.
+then uncomment `ENGINE_ID` and `PROMETHEUS_URL` in `.env` and add `analytics`
+to its `MCP_ACTIVE_MODULES`. The playground's engine takes port 8410 too, so
+run one of the two.
 
 For your own engine set `ENGINE_BASE_URL`, `ENGINE_FLAVOR`,
-`ENGINE_AUTH_TYPE` with its credentials, `PROMETHEUS_URL`, and `ENGINE_ID`
-to an id of yours (with metrics, the `engine_id` they carry); `.env.example`
+`ENGINE_AUTH_TYPE` with its credentials, and `ENGINE_ID` to an id of yours
+(with metrics, the `engine_id` they carry); with a Prometheus also
+`PROMETHEUS_URL` and `analytics` in `MCP_ACTIVE_MODULES`. `.env.example`
 explains each.
+
+The server's own log lines start with `[acme-mcp]`, and a warning among them
+names what to fix. `pnpm dev` prints more around them, all expected: the Vite
+build output, `[mcp-use] created mcp-env.d.ts`,
+`[mcp-use] views directory not configured.`,
+`[acme-mcp] mcp-use dev: the CLI checks Host …` (a dev-only note, not a warning)
+and `[inspector] [OAuth BFF] Mounted at …`. A `[mcp-use] reload failed` line is
+an error.
 
 ### 2. As a container
 
@@ -58,27 +70,32 @@ itself. `--env-file` hands it over as plain `KEY=VALUE` lines (docker keeps
 quotes and trailing comments in the value), and the `-e` flags after it win:
 
 ```bash
-pnpm install          # once, then commit pnpm-lock.yaml (the build uses --frozen-lockfile)
+pnpm install          # commit pnpm-lock.yaml if it changed (the build uses --frozen-lockfile)
 [ -f .env ] || cp .env.example .env   # step 1's .env, or the settings of compose.yaml's engine
 docker build -t my-mcp-server .
 docker compose up -d --wait           # compose.yaml's engine, on the network pulse-starter_default
-docker run --env-file .env -p 127.0.0.1:8400:8400 \
+docker run --rm --env-file .env -p 127.0.0.1:8400:8400 \
   --network pulse-starter_default \
   -e ENGINE_BASE_URL=http://engine:8080/engine-rest \
   -e ENGINE_COCKPIT_URL=http://localhost:8410/webapp \
   my-mcp-server
 ```
 
-The Pulse playground's engine and Prometheus instead (`pnpm stack:up` there):
+The Pulse playground's engine and Prometheus instead (`pnpm stack:up` there),
+with analytics on, which the copied `.env` leaves off:
 
 ```bash
-docker run --env-file .env -p 127.0.0.1:8400:8400 \
+docker run --rm --env-file .env -p 127.0.0.1:8400:8400 \
   --network pulse_default \
   -e ENGINE_BASE_URL=http://cibseven:8410/engine-rest -e ENGINE_ID=prod-a \
   -e ENGINE_COCKPIT_URL=http://localhost:8410/webapp \
   -e PROMETHEUS_URL=http://prometheus:9090 \
+  -e MCP_ACTIVE_MODULES=engine,analytics,notes \
   my-mcp-server
 ```
+
+Ctrl-C stops the server and `--rm` removes its container; `docker compose down`
+removes the engine.
 
 Inside the container `localhost` is the container itself, so the server joins
 the engine's Docker network and reaches it by its service name and port:
@@ -96,7 +113,8 @@ open the inspector at `http://localhost:8400/mcp/inspector` and call
 `notes_show_notes`: the example widget renders with no external systems (the
 production entrypoint the image runs mounts no inspector).
 The engine tools need a running engine (`docker compose up -d`, above), the
-analytics tools the Pulse playground's Prometheus.
+analytics tools the Pulse playground's Prometheus and `analytics` in
+`MCP_ACTIVE_MODULES`.
 
 ## Develop
 
@@ -185,7 +203,7 @@ silent (a widget rendering empty, unstyled, or not at all).
    readable.
 3. Name the server: `SERVER_INFO` in `server/src/app.ts` holds the `name`
    and `title` it reports to every MCP client. Clients such as the inspector
-   show the title, and every boot log line starts with `[<name>]`.
+   show the title, and the server's own log lines start with `[<name>]`.
 
 ## Layout
 
@@ -203,7 +221,11 @@ cp -R modules/mcp-notes modules/mcp-<name>
 
 Rename `notes` to your module name, put your API/SDK access behind the store
 interface, and wire the module into the server: the `workspace:*` dependency
-in `server/package.json`, the module list and the view registry. The
+in `server/package.json`, the module list, the view registry and
+`MCP_ACTIVE_MODULES` in `.env.example` and your `.env`. A module that variable
+does not name stays off and its tools are absent, whatever the module list
+holds (the boot log's `Toolsets:` line shows what runs), and a name it still
+holds after you remove a module fails the boot. The
 `create-module` skill walks through every step, and the guard tests fail
 loudly if a wiring step is missed. They derive what they check from the
 module list, so a module you add, replace or drop needs no edit to the guard
@@ -233,8 +255,8 @@ implied, and `engine_create_deployment` additionally needs
 `ENGINE_ALLOW_DEPLOYMENTS=true` (deploying a BPMN runs code in the engine
 JVM). See the `setup-server` skill before widening a server others can reach.
 
-A module without toolsets, like notes or analytics, registers all its tools on
-every boot. Give your module toolsets as soon as it registers a tool without
+A module without toolsets, like notes or analytics, registers all its tools
+whenever it runs. Give your module toolsets as soon as it registers a tool without
 `readOnlyHint: true` and the server may run without OAuth (the
 `create-module` skill, Step 5). Until then a boot without OAuth
 warns once per such tool, naming it and its module: anyone who reaches the
@@ -244,16 +266,16 @@ OAuth comes from one provider's `MCP_USE_OAUTH_*` variables, mcp-use's own
 (the providers and what fails the boot: `.env.example`), and is also the only
 caller identity: passthrough engine auth and the per-caller caches key on it.
 
-| Variable                                    | Effect                                                                                                                         |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `PORT` / `HOST`                             | HTTP port (default 8400) and bind address (default `0.0.0.0`, every interface; `pnpm dev` binds `127.0.0.1`)                   |
-| `MCP_URL`                                   | Public base URL (behind a proxy/gateway), also the `Host`/`Origin` the server accepts and the origin the views load Geist from |
-| `MCP_ALLOWED_HOSTS` / `MCP_ALLOWED_ORIGINS` | Further hostnames / origins the server accepts (default: localhost-class and `MCP_URL`'s only)                                 |
-| `MCP_MAX_BODY_BYTES`                        | Request-body cap (default 4 MiB; larger bodies get 413 before they are read)                                                   |
-| `MCP_METRICS_TOKEN`                         | Bearer token `/metrics` requires (default: open)                                                                               |
-| `MCP_USE_OAUTH_*`                           | One OAuth provider's variables (see `.env.example`), needs `MCP_URL`, the only caller identity                                 |
-| `MCP_ACTIVE_MODULES`                        | Modules (default: all), e.g. `engine:operations,notes`; no suffix: read-only floor, OAuth → standard; no toolsets: every tool  |
-| `ENGINE_*`, `PROMETHEUS_URL`, `NOTES_TITLE` | Module config, see `.env.example` for the full list                                                                            |
+| Variable                                    | Effect                                                                                                                                                                                           |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `PORT` / `HOST`                             | HTTP port (default 8400) and bind address (default `0.0.0.0`, every interface; `pnpm dev` binds `127.0.0.1`)                                                                                     |
+| `MCP_URL`                                   | Public base URL (behind a proxy/gateway), also the `Host`/`Origin` the server accepts and the origin the views load Geist from                                                                   |
+| `MCP_ALLOWED_HOSTS` / `MCP_ALLOWED_ORIGINS` | Further hostnames / origins the server accepts (default: localhost-class and `MCP_URL`'s only)                                                                                                   |
+| `MCP_MAX_BODY_BYTES`                        | Request-body cap (default 4 MiB; larger bodies get 413 before they are read)                                                                                                                     |
+| `MCP_METRICS_TOKEN`                         | Bearer token `/metrics` requires (default: open)                                                                                                                                                 |
+| `MCP_USE_OAUTH_*`                           | One OAuth provider's variables (see `.env.example`), needs `MCP_URL`, the only caller identity                                                                                                   |
+| `MCP_ACTIVE_MODULES`                        | Modules (default: all; the copied `.env`: `engine,notes`; one it does not name stays off), e.g. `engine:operations,notes`; no suffix: read-only floor, OAuth → standard; no toolsets: every tool |
+| `ENGINE_*`, `PROMETHEUS_URL`, `NOTES_TITLE` | Module config, see `.env.example` for the full list                                                                                                                                              |
 
 ## Deploying
 
@@ -261,11 +283,13 @@ The image built in the [Quickstart](#2-as-a-container) is the deployment
 artifact. One thing to add beyond the local run:
 
 ```bash
-docker run -p 8400:8400 \
+docker run --rm -p 8400:8400 \
   -e MCP_URL=https://mcp.example.com \
   my-mcp-server
 ```
 
+- No `.env` reaches this image, so `MCP_ACTIVE_MODULES` is unset and every
+  module runs, analytics included: name the modules you want.
 - `MCP_URL` is the public base URL when the server sits behind a proxy or MCP
   gateway; `PORT` changes the HTTP port. The server answers 403 to any `Host`
   (or browser `Origin`) that is not localhost-class, `MCP_URL`'s or listed in

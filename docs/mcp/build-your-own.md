@@ -27,7 +27,8 @@ pnpm dev
 
 Open the inspector at `http://localhost:8400/mcp/inspector` and call the tool that shows the
 notes of the example module `modules/mcp-notes`: its widget renders without an engine. Copying
-that module is how you start yours.
+that module is how you start yours; name it in `MCP_ACTIVE_MODULES` too, since the copied `.env`
+runs only `engine,notes` (analytics stays off: the starter's engine comes without a Prometheus).
 
 Your repository does not update itself: watch the starter's
 [releases](https://github.com/Miragon/pulse-starter/releases) on GitHub (Watch → Custom → Releases)

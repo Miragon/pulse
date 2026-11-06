@@ -8,8 +8,8 @@ const PACKAGE_ROOT = path.join(import.meta.dirname, "..")
 
 /**
  * Your server's identity, reported as `serverInfo` to every MCP client: clients such as the
- * inspector show its `title`, and every boot log line starts with `[<name>]`. The tests read it
- * from here.
+ * inspector show its `title`, and the server's own log lines start with `[<name>]`. The tests
+ * read it from here.
  */
 export const SERVER_INFO = { name: "acme-mcp", title: "Acme MCP" } as const
 
