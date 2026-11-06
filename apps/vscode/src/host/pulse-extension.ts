@@ -1,4 +1,5 @@
 import * as vscode from "vscode"
+import { AddEngineCommand } from "./commands/add-engine-command.js"
 import type { Command } from "./commands/command.js"
 import { CommandRegistrar } from "./commands/command-registrar.js"
 import { ConnectionEditor } from "./commands/connection-editor.js"
@@ -12,6 +13,7 @@ import { RefreshCommand } from "./commands/refresh-command.js"
 import { SetCredentialsCommand } from "./commands/set-credentials-command.js"
 import { ShowRuntimeDataCommand } from "./commands/show-runtime-data-command.js"
 import { SwitchEngineCommand } from "./commands/switch-engine-command.js"
+import { VsCodePrompts } from "./commands/vscode-prompts.js"
 import { BoardPanels } from "./boards/board-panels.js"
 import { BoardWatcher } from "./boards/board-watcher.js"
 import { BoardsTree } from "./boards/boards-tree.js"
@@ -88,6 +90,7 @@ export class PulseExtension {
         new SwitchEngineCommand(registry, picker),
         setCredentials,
         openTargetsFile,
+        new AddEngineCommand(registry, credentials, openTargetsFile, new VsCodePrompts()),
         new OpenEngineOverviewCommand(registry, picker, panels),
         ...this.navigation(registry, panels),
       ]),

@@ -23,6 +23,10 @@ const PLAIN_URL = "an http or https URL without credentials, query or fragment"
 export class TargetsParser {
   constructor(private readonly path: string) {}
 
+  static isProfileName(name: string): boolean {
+    return PROFILE_NAME.test(name)
+  }
+
   parse(content: string): ParsedTargets {
     const profiles = this.profilesOf(content)
     if (typeof profiles === "string") {

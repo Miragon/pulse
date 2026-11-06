@@ -5,6 +5,7 @@ export const COMMAND = {
   goToInstance: "pulse.goToInstance",
   switchEngine: "pulse.switchEngine",
   setCredentials: "pulse.setCredentials",
+  addEngine: "pulse.addEngine",
   openTargetsFile: "pulse.openTargetsFile",
   showRuntimeData: "pulse.showRuntimeData",
   openInstance: "pulse.openInstance",

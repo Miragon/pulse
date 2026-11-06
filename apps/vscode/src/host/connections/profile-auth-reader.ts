@@ -53,6 +53,14 @@ export class ProfileAuthReader {
     return TYPES_SENDING_CREDENTIALS[engine]
   }
 
+  static isScopeList(value: unknown): value is readonly string[] {
+    return (
+      Array.isArray(value) &&
+      value.every((scope) => typeof scope === "string" && SCOPE_TOKEN.test(scope)) &&
+      new Set(value).size === value.length
+    )
+  }
+
   private static clientCredentials(name: string, auth: Json): TargetAuth | string {
     const tokenEndpoint = ProfileUrl.asWritten(auth.tokenEndpoint)
     if ("needs" in tokenEndpoint) {
@@ -75,14 +83,6 @@ export class ProfileAuthReader {
 
   private static isNotBlank(value: unknown): value is string {
     return typeof value === "string" && value.trim() !== ""
-  }
-
-  private static isScopeList(value: unknown): value is readonly string[] {
-    return (
-      Array.isArray(value) &&
-      value.every((scope) => typeof scope === "string" && SCOPE_TOKEN.test(scope)) &&
-      new Set(value).size === value.length
-    )
   }
 
   private static implied(name: string, auth: Json): TargetAuth | string {

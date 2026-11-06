@@ -274,5 +274,9 @@
       "profile \"text\" needs a url that is an http or https URL without credentials, query or fragment",
       "profile \"credentials\" needs a url that is an http or https URL without credentials, query or fragment"
     ]
+  },
+  "valid-wizard-profiles": {
+    "targets": ["local", "saas-bru-2", "c8-open", "c8-basic", "c8-oidc"],
+    "problems": []
   }
 }
