@@ -1,4 +1,5 @@
 import fs from "node:fs"
+import path from "node:path"
 import { z } from "zod"
 import type { ModulePlugin } from "@miragon/pulse-widget-shell/server"
 import { createConfiguredEngineRegistry, createPlugin } from "./plugin.js"
@@ -28,12 +29,15 @@ const engineAuthSchema = z
     message: 'engine auth type "bearer" requires token',
   })
 
+/** The shape of an engine id and an environment id. */
+const ID_PATTERN = /^[a-z0-9][a-z0-9-]*$/
+
 const engineSchema = z.object({
   id: z
     .string()
     .min(1)
     .regex(
-      /^[a-z0-9][a-z0-9-]*$/,
+      ID_PATTERN,
       "Engine id must be lowercase alphanumeric / dashes, starting with a letter or digit",
     ),
   baseUrl: z.string().url(),
@@ -43,7 +47,7 @@ const engineSchema = z.object({
     .string()
     .min(1)
     .regex(
-      /^[a-z0-9][a-z0-9-]*$/,
+      ID_PATTERN,
       "Environment id must be lowercase alphanumeric / dashes, starting with a letter or digit",
     )
     // JS enumerates numeric keys first, which would reorder environments and shift engines[0].
@@ -148,8 +152,19 @@ function scanJsonString(text: string, openQuote: number): number {
 }
 
 /**
+ * A config error names a key or value of the input only when it is id-shaped: anything else
+ * may be a credential pasted into the wrong place.
+ */
+function shownIfId(value: unknown): string {
+  return typeof value === "string" && ID_PATTERN.test(value)
+    ? `"${value}"`
+    : "(not shown: not an id)"
+}
+
+/**
  * JSON.parse keeps the last duplicate, so a repeated environment key would silently
  * drop a block of engines. Only depth-1 keys count: entries repeat "id" by design.
+ * Runs on text JSON.parse accepted, so every depth-1 string before a colon is a key.
  */
 function assertUniqueTopLevelKeys(rawText: string): void {
   if (!rawText.trimStart().startsWith("{")) return
@@ -166,7 +181,7 @@ function assertUniqueTopLevelKeys(rawText: string): void {
       if (depth === 1 && rawText[k] === ":") {
         if (seen.has(key)) {
           throw new Error(
-            `Engine config: duplicate environment key "${key}". JSON keeps only the LAST duplicate, silently dropping the other block's engines. Merge the blocks into one array.`,
+            `Engine config: duplicate environment key ${shownIfId(key)}. JSON keeps only the LAST duplicate, silently dropping the other block's engines. Merge the blocks into one array.`,
           )
         }
         seen.add(key)
@@ -189,7 +204,7 @@ function normalizeEnginesConfig(raw: unknown): unknown {
   return Object.entries(raw).flatMap(([environment, engines]) => {
     if (!Array.isArray(engines)) {
       throw new Error(
-        `Engine config environment "${environment}" must map to an ARRAY of engine entries, but got ${typeof engines}. Environment-map form: {"<environment>": [{id, baseUrl, …}, …], …}.`,
+        `Engine config environment ${shownIfId(environment)} must map to an ARRAY of engine entries, but got ${typeof engines}. Environment-map form: {"<environment>": [{id, baseUrl, …}, …], …}.`,
       )
     }
     return engines.map((engine: unknown) => {
@@ -197,7 +212,7 @@ function normalizeEnginesConfig(raw: unknown): unknown {
         const own = (engine as { environment?: unknown }).environment
         if (own !== undefined && own !== environment) {
           throw new Error(
-            `Engine config: entry under environment "${environment}" carries a contradicting environment ${JSON.stringify(own)}. Drop the per-entry field or move the entry.`,
+            `Engine config: entry under environment ${shownIfId(environment)} carries a contradicting environment ${shownIfId(own)}. Drop the per-entry field or move the entry.`,
           )
         }
         return { ...engine, environment }
@@ -231,15 +246,20 @@ function passthroughEngineIds(env: NodeJS.ProcessEnv): string[] {
 function loadEnginesFromEnv(env: NodeJS.ProcessEnv): unknown {
   const filePath = env.ENGINES_FILE?.trim()
   if (filePath) {
-    const raw = fs.readFileSync(filePath, "utf8")
-    assertUniqueTopLevelKeys(raw)
-    return normalizeEnginesConfig(JSON.parse(raw))
+    if (/^[[{]/.test(filePath)) {
+      throw new Error(
+        "ENGINES_FILE holds JSON instead of a file path; the value is not shown because it may hold credentials. Inline JSON goes into ENGINES_JSON.",
+      )
+    }
+    const resolved = path.resolve(filePath)
+    const source =
+      resolved === filePath
+        ? `ENGINES_FILE=${filePath}`
+        : `ENGINES_FILE=${filePath} (resolved ${resolved})`
+    return parseEnginesConfig(readEnginesFile(resolved, source), source, "its content")
   }
   const json = env.ENGINES_JSON?.trim()
-  if (json) {
-    assertUniqueTopLevelKeys(json)
-    return normalizeEnginesConfig(JSON.parse(json))
-  }
+  if (json) return parseEnginesConfig(json, "ENGINES_JSON", "the value")
   const id = env.ENGINE_ID?.trim() || "default"
   const flavor = engineFlavorFromEnv(env)
   const shorthand = { id, ...(flavor ? { flavor } : {}) }
@@ -254,6 +274,57 @@ function loadEnginesFromEnv(env: NodeJS.ProcessEnv): unknown {
     ]
   }
   return [{ ...shorthand, baseUrl: "http://localhost:8410/engine-rest" }]
+}
+
+/**
+ * A read error names the path only, never the content, so it may ride along as the cause.
+ * A UTF-8 byte order mark (some Windows editors save one) is dropped: JSON.parse rejects it.
+ */
+function readEnginesFile(resolved: string, source: string): string {
+  let content: string
+  try {
+    content = fs.readFileSync(resolved, "utf8")
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code ?? "unknown error"
+    throw new Error(
+      code === "ENOENT" ? `${source} does not exist.` : `${source} cannot be read (${code}).`,
+      { cause: error },
+    )
+  }
+  if (!content.trim()) throw new Error(`${source} is empty.`)
+  return content.replace(/^\uFEFF/, "")
+}
+
+function parseEnginesConfig(text: string, source: string, hidden: string): unknown {
+  const parsed = parseJsonQuietly(text)
+  if (!parsed.ok) {
+    throw new Error(
+      `${source} is not valid JSON${parsed.at}; ${hidden} is not shown because it may hold credentials. ${parseHint(text)}`,
+    )
+  }
+  assertUniqueTopLevelKeys(text)
+  return normalizeEnginesConfig(parsed.value)
+}
+
+/** `docker run --env-file` keeps the quotes around a value, so the JSON arrives wrapped in them. */
+function parseHint(text: string): string {
+  return /^['"]/.test(text)
+    ? "It starts with a quote: remove the quotes around the JSON, since some env files keep them."
+    : "Look for a trailing comma or a missing quote, for example."
+}
+
+/**
+ * Per-engine `auth` puts passwords and tokens into the text, and V8 quotes a slice of the
+ * input in some parse errors: only the line and column leave here, never the parser's message
+ * and never the parse error itself (a `cause` is printed with the error).
+ */
+function parseJsonQuietly(text: string): { ok: true; value: unknown } | { ok: false; at: string } {
+  try {
+    return { ok: true, value: JSON.parse(text) as unknown }
+  } catch (error) {
+    const at = error instanceof Error ? / \(line (\d+) column (\d+)\)$/.exec(error.message) : null
+    return { ok: false, at: at ? ` at line ${at[1]} column ${at[2]}` : "" }
+  }
 }
 
 /** Not validated here: the schema's `flavor` enum fails the boot on an unknown vendor. */
