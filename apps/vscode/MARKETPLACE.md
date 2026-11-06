@@ -2,7 +2,7 @@
 
 See what your process engine is running, right next to your BPMN models: definitions,
 instances, incidents and variables, with badges on the deployed diagram. Works with Operaton,
-CIB seven and Camunda 7.
+CIB seven and Camunda 7, and reads Camunda 8 on SaaS and Self-Managed.
 
 ![Pulse in VS Code: from the engine to its process and an instance with an incident, the expired card fixed in its variables and the retry that clears the incident](https://github.com/Miragon/pulse/raw/main/apps/vscode/docs/demo.gif)
 

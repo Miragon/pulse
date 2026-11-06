@@ -23,6 +23,8 @@ pnpm --filter pulse-cockpit run test:smoke       # the extension activates in a 
 pnpm --filter pulse-cockpit run test:e2e         # VS Code e2e; needs `engine:up`
 pnpm --filter pulse-cockpit run test:smoke:docker # both in Docker under Xvfb: no VS Code window
 pnpm --filter pulse-cockpit run test:e2e:docker   # on your desktop (e2e: needs `engine:up`)
+pnpm --filter pulse-cockpit run c8:up            # Camunda 8 in Docker: --security none|basic|oidc --storage h2|elasticsearch
+pnpm --filter pulse-cockpit run test:e2e:c8:docker # VS Code on the running c8:up stack; PULSE_C8_SECURITY names its security
 pnpm --filter pulse-cockpit run sandbox:up       # shop sandbox for manual testing: two seeded engines
 pnpm --filter pulse-cockpit run sandbox:open     # build, start the sandbox if needed, open it in VS Code
 pnpm --filter pulse-cockpit run docs:screenshots # one screenshot per use case (after sandbox:up)
@@ -52,6 +54,11 @@ for manual testing. Manual and exploratory scenarios belong in
 With podman: `DOCKER_HOST=unix://$(podman machine inspect --format '{{.ConnectionInfo.PodmanSocket.Path}}')`
 and `TESTCONTAINERS_RYUK_DISABLED=true` for `test:engines`.
 
+`test:engines` runs the C7 suite by default. The Camunda 8 suite runs on a Camunda image:
+`PULSE_ENGINE_IMAGE=camunda/camunda:8.10.8 PULSE_C8_STORAGE=h2 PULSE_C8_SECURITY=oidc` (storage
+`h2` or `elasticsearch`, security `none`, `basic` or `oidc`). Each suite skips itself on the
+other's image.
+
 ## Where code goes
 
 The app is one package with six layers under `apps/vscode/src`. Each layer has its own
@@ -64,6 +71,7 @@ The app is one package with six layers under `apps/vscode/src`. Each layer has i
 | Interpret runtime data (grouping, view models, panel behaviour) | `apps/vscode/src/core`                                                                                                                                                                                         | `vscode`, DOM, Node, engine words          |
 | Change what the webview shows                                   | `apps/vscode/src/core/protocol` (types) and `apps/vscode/src/webview`                                                                                                                                          | logic in the webview, `--vscode-*` colours |
 | Talk to Operaton / CIB seven / Camunda 7                        | `apps/vscode/src/adapters/c7` (mapping) and `apps/vscode/src/adapters/c7/engine-rest` (REST client; its `inspect` runs engine-core over it); inspect, wait states, root causes in `@miragon/pulse-engine-core` | imports from core, webview or host; a copy |
+| Talk to Camunda 8                                               | `apps/vscode/src/adapters/c8`, read-only, per `apps/vscode/docs/adr/c8-adapter.md`                                                                                                                             | imports from core, webview or host; a copy |
 | Add an engine                                                   | `apps/vscode/src/adapters/<engine>` with a class implementing `EngineAdapter` + an `*.engine.test.ts` running the `ConformanceKit` + one entry in `apps/vscode/src/host/composition-root.ts`                   | branching on engines anywhere else         |
 | Read the local `.bpmn` model or find the implementing code      | `apps/vscode/src/model` (behind `ModelSource` / `CodeLocator`), per `apps/vscode/docs/adr/local-sources.md`                                                                                                    | moddle or bpmn-modeler libs anywhere else  |
 | Wire VS Code                                                    | `apps/vscode/src/host`                                                                                                                                                                                         | business rules                             |

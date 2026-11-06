@@ -4,7 +4,8 @@ The core never knows which engine it talks to: it asks the ports of a contract, 
 per engine family answers. The C7 adapter serves Operaton, CIB seven and Camunda 7 over their
 REST API, with the Camunda 7 family's workflow domain (`@miragon/pulse-engine-core`, shared with
 the CLI and the MCP server and bundled into the extension) for inspecting an instance and its
-root causes; a new engine is one more adapter folder and one entry in the composition root.
+root causes. The C8 adapter reads Camunda 8 over its own REST API and shares nothing with it. A
+new engine is one more adapter folder and one entry in the composition root.
 
 ```mermaid
 flowchart LR
@@ -14,6 +15,8 @@ flowchart LR
   c7["adapter c7"] -. implements .-> contract
   c7 --> engines["Operaton, CIB seven, Camunda 7: /engine-rest"]
   c7 -- bundled --> enginecore["engine-core: inspect, root cause"]
+  c8["adapter c8"] -. implements .-> contract
+  c8 --> cluster["Camunda 8: /v2"]
 ```
 
 The extension is one package with six layers under `apps/vscode/src`, each with its own globals
@@ -25,7 +28,7 @@ and dependency rules:
 | `core`     | grouping, view models, panel behaviour                  |
 | `webview`  | what the panels draw                                    |
 | `host`     | the VS Code wiring and the composition root             |
-| `adapters` | one folder per engine family (`c7` today)               |
+| `adapters` | one folder per engine family (`c7` and `c8`)            |
 | `model`    | the local `.bpmn` model and the code that implements it |
 
 More in the repository:

@@ -88,6 +88,7 @@ export default miragonDocs({
           link: "https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse-cockpit",
         },
         { text: "Configuration", link: "/vscode/configuration" },
+        { text: "Camunda 8", link: "/vscode/camunda8" },
         { text: "Usage", link: "/vscode/usage" },
         { text: "Boards", link: "/vscode/boards" },
         { text: "Architecture", link: "/vscode/architecture" },

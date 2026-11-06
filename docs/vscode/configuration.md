@@ -18,9 +18,10 @@ Pulse reads your engines as profiles in `.pulse-cli.json`, the project file of t
 }
 ```
 
-Pulse reads `url`, `flavor` (`camunda7`, `cibseven` or `operaton`; `camunda7` when absent),
-`engine` (the default engine only), `auth.type` (`none`, `basic`; without a type a `username`
-means `basic`), `cockpitUrl` and `readOnly` (no writes from Pulse either), with the CLI's rules:
+Pulse reads `url`, `flavor` (`camunda7`, `cibseven`, `operaton` or [`camunda8`](./camunda8.md);
+`camunda7` when absent), `engine` (the default engine only), `auth.type` (`none`, `basic`; without
+a type a `username` means `basic`; `clientCredentials` with `tokenEndpoint`, `audience` and
+`scopes` on `camunda8`), `cockpitUrl` and `readOnly` (no writes from Pulse either), with the CLI's rules:
 URLs lose trailing slashes, and a value the CLI refuses never becomes a default. Such a profile,
 and one Pulse cannot serve yet, shows up as a problem in the Engines view. Pulse reads no
 `PULSE_CLI_*` variable, so a profile needs its `url`, and it sends no profile `headers`. Pulse
@@ -56,6 +57,7 @@ never guesses this URL. It must be an `http` or `https` URL without credentials:
 | ---------------------------------------- | ------------------------------------- |
 | Camunda 7, Operaton, CIB seven (Cockpit) | ends in `/app/cockpit/<engine name>/` |
 | CIB seven webclient                      | ends in `/webapp/`                    |
+| Camunda 8 (Operate)                      | ends in `/operate`                    |
 
 ## Proxy and certificates
 
