@@ -1,5 +1,12 @@
 # Pulse starter
 
+> [!IMPORTANT]
+> Pulse is below 1.0.0, so the API of the `@miragon/pulse-*` packages is not
+> stable and can change in any release. The
+> [changelog](https://github.com/Miragon/pulse/blob/main/CHANGELOG.md) lists
+> every breaking change. This starter pins all of them to one exact version:
+> keep it that way and update them together.
+
 Build your own MCP server on the published `@miragon/pulse-*` modules of
 [Pulse](https://github.com/Miragon/pulse) (Camunda 7 / CIB seven BPM operations
 and Prometheus-backed process analytics, both with interactive widgets) and add

@@ -32,9 +32,9 @@ does not import.
 | `./sdk`   | Generated SDK, one typed function per REST operation                                      |
 | `./types` | Generated request/response types                                                          |
 
-These three subpaths are the public API. The internal layout of the generated
-output (`dist/generated/**`) is not: it may change with any `@hey-api/openapi-ts`
-upgrade, so deep imports are deliberately not exported.
+Import only these three subpaths: the layout of the generated output
+(`dist/generated/**`) changes with any `@hey-api/openapi-ts` upgrade, so it is
+not exported.
 
 ## Client behavior
 

@@ -7,6 +7,12 @@
 [![Docs](https://img.shields.io/badge/docs-miragon.github.io%2Fpulse-335DE5?style=flat-square)](https://miragon.github.io/pulse/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 
+> [!IMPORTANT]
+> Pulse is below 1.0.0, so its API is not stable: tools, settings, metric names, CLI commands and
+> the exports of the `@miragon/pulse-*` packages can change in any release. The
+> [changelog](CHANGELOG.md) lists every breaking change. Pin exact versions and update all
+> `@miragon/pulse-*` packages together.
+
 Pulse brings your **Camunda 7, CIB seven and Operaton** engines to where you already work. One
 idea, three clients on the same engines:
 
