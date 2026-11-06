@@ -72,10 +72,10 @@ and move its keycloak `serverUrl` and `realm` to `MCP_USE_OAUTH_KEYCLOAK_SERVER_
 | `PROMETHEUS_URL`                                       | `http://localhost:9090`             | Prometheus HTTP API, the analytics data source (the repo's Compose stack publishes `:8460`; the server warns at boot when unset). Auth: `PROMETHEUS_BEARER_TOKEN`, or `PROMETHEUS_USERNAME` + `PROMETHEUS_PASSWORD` (URL userinfo moves there); `PROMETHEUS_HEADERS` adds a JSON object of headers (tenant ids). Ambiguous auth fails the boot                                                                                                                                                                                                                  |
 | `ANALYTICS_ENGINE_IDS`                                 | unset                               | Comma-separated `engine_id`s analytics may read, only for a boot without the engine module; with it active its configured engine ids scope analytics and this is ignored. With neither, every analytics tool refuses (fail-closed), so a shared Prometheus never exposes other teams' engines                                                                                                                                                                                                                                                                   |
 
-Unknown `ENGINE_*`/`ENGINES_*`/`MCP_*` variables warn at boot, a setting renamed from the old module
-name fails it ([Upgrading](upgrading.md)); mcp-use telemetry is off (`MCP_USE_ANONYMIZED_TELEMETRY=true` opts in). The engine container takes `METRICS_ENABLED`,
-`ENGINE_ID` (must match the server's engine id, or that engine's analytics come back empty),
-`OTEL_EXPORTER_OTLP_ENDPOINT`/`OTEL_SERVICE_NAME` and, per node of a clustered engine, `OTEL_RESOURCE_ATTRIBUTES=service.instance.id=<node>`.
+Unknown `ENGINE_*`/`ENGINES_*`/`MCP_*` variables warn at boot. A setting renamed from the old module name ([Upgrading](upgrading.md)),
+an unknown module in `MCP_ACTIVE_MODULES` (the error lists the modules), an engine or Prometheus URL without `http://`/`https://` or another value the server refuses
+fails the boot with one line naming the variable (and the `ENGINES_*` entry), then exit 1. mcp-use telemetry is off (`MCP_USE_ANONYMIZED_TELEMETRY=true` opts in).
+The engine container takes `METRICS_ENABLED`, `ENGINE_ID` (must match the server's engine id, or that engine's analytics come back empty), `OTEL_EXPORTER_OTLP_ENDPOINT`/`OTEL_SERVICE_NAME` and, per node of a clustered engine, `OTEL_RESOURCE_ATTRIBUTES=service.instance.id=<node>`.
 
 ## Module activation
 
