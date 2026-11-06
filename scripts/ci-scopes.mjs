@@ -44,7 +44,7 @@ export const PATH_RULES = [
   { pattern: /^README\.md$/, scopes: ["brand"] },
   { pattern: /^[^/]+\.md$/, scopes: [] },
   { pattern: /^\.miragon\//, scopes: ["brand"] },
-  { pattern: /^(?:\.claude|\.conductor)\//, scopes: [] },
+  { pattern: /^\.claude\//, scopes: [] },
   { pattern: /^\.claude-plugin\//, scopes: ["cli"] },
   { pattern: /^engine-plugins\//, scopes: ["kotlin"] },
   { pattern: /^playground\/cibseven-example\//, scopes: ["cibseven-example"] },

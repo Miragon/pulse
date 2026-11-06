@@ -31,7 +31,6 @@ const NOT_COPIED = new Set([
   "coverage",
   "reports",
   ".stryker-tmp",
-  ".context",
   ".claude",
 ])
 

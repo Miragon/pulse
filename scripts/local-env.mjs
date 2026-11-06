@@ -60,6 +60,19 @@ export const SERVICES = [
   },
 ]
 
+/** The MCP server's port when PORT is unset (the `dev` script's default and `.mcp.json`'s). */
+export const DEFAULT_SERVER_PORT = 8400
+
+/**
+ * The ready message's line on Claude Code for a server on `port`, empty on 8400: `.mcp.json`
+ * points every session at `${PORT:-8400}`, so another port is reached only from a session
+ * started with the same PORT (a second worktree's server, say).
+ */
+export const claudeCodeHint = (port) =>
+  port === DEFAULT_SERVER_PORT
+    ? ""
+    : `  Claude Code   a session reaches it when started as PORT=${port} claude\n`
+
 /** The Compose profiles the options switch on. */
 export const profilesFor = ({ multiEngine = false, auth = false } = {}) => [
   ...(multiEngine ? ["multi-engine"] : []),

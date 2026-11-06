@@ -3,10 +3,12 @@ import { readFileSync } from "node:fs"
 import { describe, it } from "node:test"
 import { parse } from "yaml"
 import {
+  claudeCodeHint,
   cliPreset,
   COMPOSE_FILE,
   COMPOSE_PROJECT,
   composeArgs,
+  DEFAULT_SERVER_PORT,
   ENGINE_SOURCES,
   portConflict,
   portOwners,
@@ -152,6 +154,23 @@ describe("the presets", () => {
       "utf8",
     )
     assert.ok(module.includes(`Precedence: ${ENGINE_SOURCES.join(" > ")} >`))
+  })
+})
+
+describe("the server port", () => {
+  it("is the one .mcp.json points Claude Code at when PORT is unset", () => {
+    const { mcpServers } = JSON.parse(
+      readFileSync(new URL("../.mcp.json", import.meta.url), "utf8"),
+    )
+    assert.equal(mcpServers.pulse.url, `http://localhost:\${PORT:-${DEFAULT_SERVER_PORT}}/mcp`)
+  })
+
+  it("names how a session reaches a server off the default port, and nothing on it", () => {
+    assert.equal(claudeCodeHint(DEFAULT_SERVER_PORT), "")
+    assert.equal(
+      claudeCodeHint(8401),
+      "  Claude Code   a session reaches it when started as PORT=8401 claude\n",
+    )
   })
 })
 

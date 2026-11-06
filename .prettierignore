@@ -12,9 +12,6 @@ CHANGELOG.md
 # the next update would fight it. Reviewed as JSON diffs, never hand-edited.
 apps/*/test/__golden__/
 
-# Conductor workspace scratch dir (gitignored)
-.context/
-
 # Vite dev-server cache of the docs site (git-ignored via Vite's own nested
 # .gitignore, which Prettier does not read)
 docs/.vitepress/cache/

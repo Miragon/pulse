@@ -11,9 +11,9 @@ analytics stack, read-only. See [Connect your Claude in 30 seconds](getting-star
 ## Prerequisites
 
 - Node.js 22.22.2 or later (`engines` in the root `package.json`)
-- pnpm 10.32.1 (pinned via `packageManager`; `corepack enable` picks it up automatically)
-- Docker: the local playground, and the engine jar's build when no JDK 21 is installed
-- Optional: a JDK 21, which builds the engine jar and the Kotlin engine plugins faster
+- pnpm 10.32.1 (`packageManager`): `corepack enable`; Node.js 25+ has none: `npm i -g pnpm@10.32.1`
+- Docker: the playground, and Gradle in a container when no JDK 21 is installed
+- Optional: a JDK 21; Gradle then runs on it, and `./gradlew` by hand in `engine-plugins/` needs one
 
 ## Clone and run
 
@@ -30,6 +30,9 @@ host to `http://localhost:8400/mcp`, or open the inspector at `http://localhost:
 It boots read-only; `--admin` adds the write tools, `--deploy` deployments, `--multi-engine` a
 second engine. A variable set in your shell wins over the playground's settings. Ctrl-C stops the
 server, the playground keeps running. Every port binds to `127.0.0.1`.
+Worktrees share the playground (`pnpm stack:down` stops it for all); `.mcp.json` reaches
+`${PORT:-8400}`, so run a second worktree's server as `PORT=<port> pnpm play` and its Claude Code
+session as `PORT=<port> claude`.
 
 ## Common tasks
 
