@@ -6,7 +6,7 @@ import { basicLogin, clusterClient } from "../support/cluster-client.mjs"
 import { removeContainer, startContainer, waitUntil } from "../support/containers.mjs"
 import { endpointOf, operateOf, SANDBOX_CLUSTERS, SHOP_DEV } from "./clusters.mjs"
 import { ownCluster } from "./own-cluster.mjs"
-import { activeIncidentCount, holdsTheShop, seedCluster } from "./seed.mjs"
+import { activeIncidentCount, holdsTheShop, seedCluster, shopCount } from "./seed.mjs"
 import { runTraffic } from "./traffic.mjs"
 
 const STARTUP_MS = 240_000
@@ -18,7 +18,7 @@ function clientOf(cluster) {
 }
 
 async function countsOf(client) {
-  const instances = (state) => client.count("/process-instances/search", { state })
+  const instances = (state) => shopCount(client, "/process-instances/search", { state })
   const [running, completed, terminated, incidents] = await Promise.all([
     instances("ACTIVE"),
     instances("COMPLETED"),
@@ -90,7 +90,7 @@ async function seed() {
   await client.isReady()
   if (await holdsTheShop(client)) {
     throw new Error(
-      `${client.endpoint} already holds the shop's processes. Seed a cluster without them.`,
+      `${client.endpoint} already holds a process of the shop (order-fulfillment, shipment or return-handling). Seed a cluster without them.`,
     )
   }
   console.log(`Seeding the shop into ${client.endpoint} ...`)

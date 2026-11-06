@@ -97,20 +97,21 @@ async function startScenarios(cluster, definitions, scenarios) {
 
 const SHOP_PROCESSES = ["order-fulfillment", "shipment", "return-handling"]
 
-export async function activeIncidentCount(cluster) {
+export async function shopCount(cluster, path, filter) {
   const counts = await Promise.all(
     SHOP_PROCESSES.map((processDefinitionId) =>
-      cluster.count("/incidents/search", { state: "ACTIVE", processDefinitionId }),
+      cluster.count(path, { ...filter, processDefinitionId }),
     ),
   )
   return counts.reduce((sum, count) => sum + count, 0)
 }
 
+export function activeIncidentCount(cluster) {
+  return shopCount(cluster, "/incidents/search", { state: "ACTIVE" })
+}
+
 export async function holdsTheShop(cluster) {
-  const shop = await cluster.count("/process-definitions/search", {
-    processDefinitionId: "order-fulfillment",
-  })
-  return shop > 0
+  return (await shopCount(cluster, "/process-definitions/search", {})) > 0
 }
 
 export async function seedCluster(cluster, { name, deployments, scenarios }) {
