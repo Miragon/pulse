@@ -80,8 +80,9 @@ function withCspDefaults(definition: ToolDefinition, csp: AppResourceCsp): ToolD
 function openWriteWarning(label: string, tool: string, module: string): string {
   return (
     `[${label}] ${tool} is a write and its module "${module}" declares no toolsets: anyone who ` +
-    `reaches this port can call it. Declare toolsets on "${module}" or configure an OAuth ` +
-    `provider (MCP_USE_OAUTH_*); a tool that only reads states readOnlyHint: true.`
+    `reaches this port can call it. Declare toolsets on "${module}" that keep its writes out of ` +
+    `the read-only floor, or configure an OAuth provider (MCP_USE_OAUTH_*); a tool that only ` +
+    `reads states readOnlyHint: true.`
   )
 }
 

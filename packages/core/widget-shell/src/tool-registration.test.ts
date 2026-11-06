@@ -98,7 +98,7 @@ describe("installToolRegistration: writes of an unguarded module", () => {
   )
 
   const warning = (tool: string) =>
-    `[${LABEL}] ${tool} is a write and its module "crm" declares no toolsets: anyone who reaches this port can call it. Declare toolsets on "crm" or configure an OAuth provider (MCP_USE_OAUTH_*); a tool that only reads states readOnlyHint: true.`
+    `[${LABEL}] ${tool} is a write and its module "crm" declares no toolsets: anyone who reaches this port can call it. Declare toolsets on "crm" that keep its writes out of the read-only floor, or configure an OAuth provider (MCP_USE_OAUTH_*); a tool that only reads states readOnlyHint: true.`
 
   it("warns once per tool without readOnlyHint: true, naming it and the module, and registers every tool", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})

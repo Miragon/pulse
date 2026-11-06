@@ -231,8 +231,8 @@ describe("createComposedServer: writes no toolset narrows", () => {
       .mock.calls.map(([line]) => String(line))
       .filter((line) => line.includes("declares no toolsets"))
 
-  const warning = (tool: string) =>
-    `[plugins-test] ${tool} is a write and its module "panel" declares no toolsets: anyone who reaches this port can call it. Declare toolsets on "panel" or configure an OAuth provider (MCP_USE_OAUTH_*); a tool that only reads states readOnlyHint: true.`
+  const warning = (tool: string, module = "panel") =>
+    `[plugins-test] ${tool} is a write and its module "${module}" declares no toolsets: anyone who reaches this port can call it. Declare toolsets on "${module}" that keep its writes out of the read-only floor, or configure an OAuth provider (MCP_USE_OAUTH_*); a tool that only reads states readOnlyHint: true.`
 
   it("warns once per write of a module without toolsets on a boot without OAuth, and still serves it", async () => {
     const modules = [moduleOf(panelPlugin()), alpha, moduleOf(reader)]
@@ -248,9 +248,26 @@ describe("createComposedServer: writes no toolset narrows", () => {
     expect(openWrites()).toEqual([])
   })
 
-  it("names the module as MCP_ACTIVE_MODULES lists it, also when its suffix is ignored", async () => {
+  it("warns also when the module's suffix is ignored", async () => {
     await createComposedServer(options({ env: { MCP_ACTIVE_MODULES: "panel:read-only" } }))
     expect(openWrites()).toEqual([warning("panel_data"), warning("panel_show_panel")])
+  })
+
+  it("names the module as MCP_ACTIVE_MODULES lists it, not the plugin it builds", async () => {
+    const crm: ComposableModule<object> = {
+      name: "crm",
+      configFromEnv: () => ({}),
+      knownEnvVars: [],
+      createPlugin: () => ({
+        name: "crm-plugin",
+        register: (server) => {
+          const annotations = { readOnlyHint: false, destructiveHint: true }
+          server.tool({ name: "crm_delete_customer", annotations }, answer)
+        },
+      }),
+    }
+    await createComposedServer(options({ modules: [crm, alpha] }))
+    expect(openWrites()).toEqual([warning("crm_delete_customer", "crm")])
   })
 })
 
