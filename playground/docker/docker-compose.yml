@@ -134,9 +134,11 @@ services:
       - otel-collector
 
   # Grafana: process-analytics dashboards over Prometheus. Anonymous admin so
-  # the demo opens straight onto the provisioned dashboards.
+  # the demo opens straight onto the provisioned dashboards. Grafana 13 warns that
+  # auth.anonymous.org_role is deprecated with only Viewer supported, yet 13.3.0
+  # still grants the anonymous Admin.
   grafana:
-    image: grafana/grafana:11.4.0
+    image: grafana/grafana:13.3.0
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
