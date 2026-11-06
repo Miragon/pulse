@@ -49,8 +49,8 @@ const RULES = [
   },
   // OAuth comes from mcp-use's own provider variables (MCP_USE_OAUTH_*); the server refuses
   // to boot while the retired JSON variable is set, so a doc or a config that still names it
-  // sends an operator into a failed boot. Only the refusal and the operations page's upgrade
-  // note name it (ALLOWED).
+  // sends an operator into a failed boot. Only the refusal and the upgrading page name it
+  // (ALLOWED).
   { name: "retired MCP_OAUTH", pattern: /\bMCP_OAUTH\b/ },
   // Pulse grew out of the @miragon/mcp-toolkit-* packages and owns what it used: the registrar,
   // the view meta and the server i18n are @miragon/pulse-widget-shell/server, the design kit
@@ -156,12 +156,6 @@ const ALLOWED = [
     rules: ["old operate repo"],
     section: /^#{2,6} Renamed from operate\b/,
     reason: "the npm README points to the archived repository of operate (up to 0.10.0)",
-  },
-  {
-    file: "docs/mcp/operations.md",
-    rules: ["retired MCP_OAUTH"],
-    section: /^#{2,6} Security\b/,
-    reason: "the upgrade note names the retired variable an operator unsets",
   },
   {
     file: "packages/core/widget-shell/src/oauth-env.ts",

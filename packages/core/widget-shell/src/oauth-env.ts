@@ -1,9 +1,9 @@
 /**
  * mcp-use's own provider variables (`MCP_USE_OAUTH_*`) → the OAuth provider the boot installs.
- * mcp-use validates the bearer token and the RFC 8707 audience (`MCP_URL`) and serves discovery;
- * the server never mints tokens. It is the ONLY caller-identity source, and it raises every
- * module's no-suffix toolset to its standard set. A gateway that terminates auth in front is
- * invisible here: identity arrives only through this OAuth.
+ * mcp-use validates the bearer token, its `sub` and the RFC 8707 audience (`MCP_URL`'s origin plus
+ * `/mcp`) and serves discovery; the server never mints tokens. It is the ONLY caller-identity
+ * source, and it raises every module's no-suffix toolset to its standard set. A gateway that
+ * terminates auth in front is invisible here: identity arrives only through this OAuth.
  *
  * mcp-use has no provider selector, so the boot picks the one provider whose variables are set.
  * A deployment that asked for auth never comes up without it: the retired JSON variable
@@ -67,7 +67,7 @@ const PROVIDERS: readonly ProviderSpec[] = [
 export const OAUTH_ENV_VARS: readonly string[] = PROVIDERS.flatMap(({ variables }) => variables)
 
 /** mcp-use's own switch for logging JWT verification failures; it changes no verdict. */
-const DEBUG_VARIABLE = "MCP_USE_OAUTH_DEBUG"
+export const OAUTH_DEBUG_ENV_VAR = "MCP_USE_OAUTH_DEBUG"
 /** The retired JSON variable and its look-alikes (the likeliest migration typo). */
 const RETIRED = /^MCP_OAUTH(?:_|$)/
 /** mcp-use's namespace, which the env typo warner leaves alone. */
@@ -113,7 +113,7 @@ function refuseRetired(env: NodeJS.ProcessEnv): void {
  * the typo warner never sees, since it leaves all of mcp-use's namespace alone.
  */
 function unread(name: string): boolean {
-  if (!name.startsWith(MCP_USE) || name === DEBUG_VARIABLE || OAUTH_ENV_VARS.includes(name)) {
+  if (!name.startsWith(MCP_USE) || name === OAUTH_DEBUG_ENV_VAR || OAUTH_ENV_VARS.includes(name)) {
     return false
   }
   const rest = name.slice(MCP_USE.length)
@@ -132,7 +132,7 @@ function refuseUnread(env: NodeJS.ProcessEnv): void {
   throw new Error(
     `${sortedList(names)} ${verb} not read by this server, so it does not start. ` +
       `Unset ${pronoun}: the server reads one provider's variables, ${PROVIDER_LIST}, ` +
-      `and takes the token audience from MCP_URL (RFC 8707).`,
+      `and takes the token audience from MCP_URL: tokens carry <MCP_URL>/mcp in aud (RFC 8707).`,
   )
 }
 

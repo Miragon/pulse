@@ -13,12 +13,6 @@ import { MODULES } from "../src/setup.js"
  * undiscoverable. Add yours to `.env.example` when you add a module.
  */
 
-/**
- * Read on purpose, not in `composedEnvVars`: `PORT` is consumed by `listen()` of
- * `createComposedServer` (`@miragon/pulse-widget-shell/server`), not by a module.
- */
-const EXTRA_ALLOWED = ["PORT"]
-
 const ENV_EXAMPLE = path.join(import.meta.dirname, "..", "..", ".env.example")
 
 /** Keys from `FOO=…` lines, commented-out (`# FOO=…`) examples included. */
@@ -31,7 +25,7 @@ function documentedKeys(content: string): string[] {
 
 describe(".env.example matches the server's env surface", () => {
   const keys = documentedKeys(fs.readFileSync(ENV_EXAMPLE, "utf8"))
-  const allowed = new Set([...composedEnvVars(MODULES), ...EXTRA_ALLOWED])
+  const allowed = composedEnvVars(MODULES)
 
   it("documents no variable the server ignores (a copied .env would warn at boot)", () => {
     expect(keys.filter((key) => !allowed.has(key))).toEqual([])

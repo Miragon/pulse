@@ -124,8 +124,9 @@ package customers build their own connectors and composed servers on (see the
   warned at boot above `info`), `/metrics` (optional `MCP_METRICS_TOKEN`), the Host/Origin guard,
   `/health/*` and the font route (`installFontAssets`: Geist + Geist Mono as woff2 under
   `/fonts/geist-<version>/`, cached immutable, any origin, behind the guard). OAuth comes from one
-  provider's `MCP_USE_OAUTH_*` variables, mcp-use's own, with `MCP_URL` as the token audience (RFC
-  8707); the providers and what fails the boot are listed under
+  provider's `MCP_USE_OAUTH_*` variables, mcp-use's own; tokens must carry `<MCP_URL>/mcp` in `aud`
+  (RFC 8707) and a `sub`, and the boot logs that audience. The providers, what fails the boot and
+  the identity provider's side are under
   [Security](https://miragon.github.io/pulse/mcp/operations#security). Without a provider the boot
   runs unauthenticated with one warning. OAuth is the only caller identity, and `oauth` installs a
   provider instead (a test's stub IdP). Every view-bound tool advertises `MCP_URL`'s origin in its

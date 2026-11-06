@@ -32,7 +32,7 @@ import {
   type HttpEdgePolicy,
 } from "./http-edge.js"
 import { installMetrics } from "./metrics.js"
-import { OAUTH_ENV_VARS, oauthFromEnv } from "./oauth-env.js"
+import { OAUTH_DEBUG_ENV_VAR, OAUTH_ENV_VARS, oauthFromEnv } from "./oauth-env.js"
 import { createBodyLimitedListener, type BodyLimitedListener } from "./node-listener.js"
 import { fontAssetsCsp, installFontAssets } from "./font-assets.js"
 import { installToolSchemaTrim } from "./tool-schema-trim.js"
@@ -107,12 +107,17 @@ export const DEFAULT_DRAIN_TIMEOUT_MS = 4000
 export const DEFAULT_REQUEST_TIMEOUT_MS = 30_000
 
 /**
- * What the boot itself reads: the HTTP edge, the OAuth provider variables, the module selection
- * and mcp-use's request-log level (read by mcp-use; the boot warns at debug/trace).
+ * What the boot itself reads: the listener's port and bind address (`mcp-use dev` reads them too),
+ * the HTTP edge, the OAuth provider variables, the module selection, and two of mcp-use's own: the
+ * switch that logs why a bearer token failed verification and the request-log level (the boot
+ * warns at debug/trace).
  */
 const BOOT_ENV_VARS: readonly string[] = [
+  "PORT",
+  "HOST",
   ...HTTP_EDGE_ENV_VARS,
   ...OAUTH_ENV_VARS,
+  OAUTH_DEBUG_ENV_VAR,
   "MCP_ACTIVE_MODULES",
   "MCP_USE_LOG_LEVEL",
 ]
@@ -150,17 +155,37 @@ function guardPolicyFor(edge: HttpEdgePolicy, env: NodeJS.ProcessEnv): HttpEdgeP
   return env.MCP_USE_DEV_CLI ? { ...edge, allowedHosts: "*" } : edge
 }
 
-/** Behind our own listener a missing OAuth resource would only surface on the first `/mcp` call. */
-function assertOAuthResource(
+/**
+ * The resource mcp-use binds every token to (RFC 8707), before it appends the base path: the
+ * provider's own, else `MCP_URL`'s origin. Behind our own listener a missing one would only
+ * surface on the first `/mcp` call, so the boot fails here instead.
+ */
+function oauthResource(
   oauth: OAuthProvider<unknown> | undefined,
   env: NodeJS.ProcessEnv,
   label: string,
-): void {
-  if (oauth && oauth.resource === undefined && !env.MCP_URL?.trim()) {
+): string | undefined {
+  if (!oauth) return undefined
+  if (oauth.resource !== undefined) return String(oauth.resource)
+  const mcpUrl = env.MCP_URL?.trim()
+  if (!mcpUrl) {
     throw new Error(
-      `[${label}] OAuth needs MCP_URL, the server's public base URL, which is also the token audience (RFC 8707).`,
+      `[${label}] OAuth needs MCP_URL, the server's public origin: tokens must carry <MCP_URL>/mcp in aud (RFC 8707).`,
     )
   }
+  // `resolveHttpEdgePolicy` has validated it; mcp-use refuses one with a path under OAuth.
+  return new URL(mcpUrl).origin
+}
+
+/**
+ * The `aud` mcp-use's bearer gate accepts, the `resource` its protected-resource metadata
+ * advertises; its JWT verifier also requires `sub`. An IdP set up for another value gets a 401 on
+ * every call, so the boot names the value.
+ */
+function describeOAuthAudience(resource: string, basePath: string): string {
+  const audience = new URL(resource)
+  audience.pathname = basePath
+  return `OAuth: tokens must carry aud ${audience.href} (RFC 8707) and a sub claim.`
 }
 
 function serverInstructions(info: ComposedServerInfo, modules?: string): string | undefined {
@@ -231,7 +256,7 @@ function resolveSelection<TShared extends object>(
   composition.warnUnknownEnvVars(env)
   const edge = resolveHttpEdgePolicy(env)
   const oauth = options.oauth ?? oauthFromEnv(env, label)
-  assertOAuthResource(oauth, env, label)
+  const resource = oauthResource(oauth, env, label)
   // The same test `createServer` installs OAuth on: a boot is authenticated only with the bearer gate.
   const boot = composition.resolveBoot(env, { authenticated: Boolean(oauth) })
   composition.emitBootWarnings(env)
@@ -239,7 +264,7 @@ function resolveSelection<TShared extends object>(
   if (logLevel) console.warn(`[${label}] ${logLevel}`)
   composition.logEffectiveToolsets(boot)
   console.info(`[${label}] ${describeHttpEdgePolicy(edge)}`)
-  return { edge, oauth, boot }
+  return { edge, oauth, resource, boot }
 }
 
 async function buildServer<TShared extends object>(
@@ -393,6 +418,10 @@ async function boot<TShared extends object>(
   }
 
   const app = await buildServer(options, composition, selection, env)
+  // After mcp-use built its server: it has accepted the resource and knows the base path.
+  if (selection.resource) {
+    console.info(`[${label}] ${describeOAuthAudience(selection.resource, app.basePath)}`)
+  }
   const state = { draining: false }
 
   // Request logging is mcp-use's own (`MCP_USE_LOG_LEVEL`).
