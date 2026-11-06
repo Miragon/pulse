@@ -19,6 +19,14 @@
       "args": ["--extensionDevelopmentPath=${workspaceFolder}", "${workspaceFolder}/sandbox"],
       "outFiles": ["${workspaceFolder}/dist/**/*.cjs"],
       "preLaunchTask": "npm: build"
+    },
+    {
+      "name": "Run Pulse (sandbox, Camunda 8)",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}", "${workspaceFolder}/sandbox-c8"],
+      "outFiles": ["${workspaceFolder}/dist/**/*.cjs"],
+      "preLaunchTask": "npm: build"
     }
   ]
 }

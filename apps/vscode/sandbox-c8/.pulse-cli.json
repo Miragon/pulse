@@ -1,0 +1,27 @@
+{
+  "profiles": {
+    "shop-dev": {
+      "url": "http://localhost:18092/v2",
+      "flavor": "camunda8",
+      "cockpitUrl": "http://localhost:18092/operate"
+    },
+    "shop-test": {
+      "url": "http://localhost:18093/v2",
+      "flavor": "camunda8",
+      "cockpitUrl": "http://localhost:18093/operate",
+      "auth": {
+        "type": "basic"
+      }
+    },
+    "prod-eu": {
+      "url": "https://prod-eu.shop.invalid/v2",
+      "flavor": "camunda8",
+      "cockpitUrl": "https://prod-eu.shop.invalid/operate",
+      "auth": {
+        "type": "clientCredentials",
+        "tokenEndpoint": "https://login.shop.invalid/oauth/token",
+        "audience": "orchestration-api"
+      }
+    }
+  }
+}
