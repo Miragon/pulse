@@ -1,5 +1,5 @@
 import type { ComponentChildren } from "preact"
-import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks"
+import { useLayoutEffect, useRef, useState } from "preact/hooks"
 import { ColumnMeasure } from "./column-measure.js"
 import { ColumnGrip, useColumnSizing, type ColumnSizing } from "./column-sizing.js"
 import { TableKeys } from "./table-keys.js"
@@ -89,7 +89,7 @@ function SkeletonBody({ columns, count }: { readonly columns: number; readonly c
 function useFocusKeptInBody(rows: readonly unknown[]) {
   const body = useRef<HTMLTableSectionElement>(null)
   const focusedIndex = useRef<number | undefined>(undefined)
-  useEffect(() => {
+  useLayoutEffect(() => {
     const forget = (): void => {
       focusedIndex.current = undefined
     }
