@@ -16,6 +16,8 @@ gh repo create my-mcp-server --template Miragon/pulse-starter --private --clone
 
 ## First run
 
+In a clone of your new repository (after the button on GitHub, `git clone` it first):
+
 ```sh
 cd my-mcp-server
 pnpm install
@@ -33,8 +35,8 @@ exact pins, update all of them together, and read the
 
 ## Next steps
 
-- The [starter README](https://github.com/Miragon/pulse-starter#readme) covers your own engine,
-  the container image and connecting an assistant.
+- The [starter README](https://github.com/Miragon/pulse-starter#readme) covers the engine
+  settings, the container image and connecting an assistant.
 - Its agent files guide Claude Code or any agent that reads them:
   [CLAUDE.md](https://github.com/Miragon/pulse-starter/blob/main/CLAUDE.md) holds the module
   contract and its rules, and the

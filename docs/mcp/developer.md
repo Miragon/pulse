@@ -61,9 +61,11 @@ the `tsconfig.<x>.json` that checks it (`pnpm lint:package-scripts`); `.vscode/`
 
 ## Build your own server
 
-[Build your own server](build-your-own.md) starts one from `Miragon/pulse-starter`, the read-only
-mirror of `templates/composed-server/`: change the starter here. CI tests the template against the
-workspace's packed packages (`scripts/test-template.sh`), and each release syncs it to the mirror.
+[Build your own server](build-your-own.md) starts one from
+[Miragon/pulse-starter](https://github.com/Miragon/pulse-starter), the read-only mirror of
+`templates/composed-server/`: change the starter in this repository. CI tests the template against
+the workspace's packed packages (`scripts/test-template.sh`), and each release syncs it to the
+mirror.
 
 ## Documentation
 
