@@ -113,7 +113,8 @@ The rest of the extension is VS Code wiring. `activate` in `extension.ts` hands 
 trees, the status bar, the panel manager and the commands (each a class implementing
 `Command`, registered by `CommandRegistrar`) and puts them into the context's
 subscriptions. No DI container, no plugin registry: adding an engine means one adapter
-folder and one entry in the composition root's adapter map.
+folder and one entry in the composition root's list of adapters, which
+`apps/vscode/test/architecture/engine-modules.test.ts` holds together.
 
 ### Host ⇄ webview protocol
 
@@ -196,14 +197,16 @@ file's current content when _Show Runtime Data for This Model_ runs again.
   `pnpm --filter pulse-cockpit run typecheck` through the `@ts-expect-error` probe of each
   layer (`apps/vscode/test/<layer>/runtime.boundary.ts`).
 - A new engine takes `apps/vscode/src/adapters/<engine>` with a class implementing
-  `EngineAdapter` (its id, profiles and setups next to runtime, commands and web UI), an engine
-  test that runs the `ConformanceKit` and one entry in the composition root. A new credential
-  kind also takes the host's profile reader and credential store. Core, protocol and webview change only where the contract gains
-  something, and they never name an engine: ESLint keeps engine words out of them, and
-  dependency-cruiser fails while a new adapter has no engine test.
+  `EngineAdapter` (its id, the folder's name, with its profiles, setups and BPMN dialect next to
+  runtime, commands and web UI), an engine test that runs the `ConformanceKit` and one entry in
+  the composition root. A new credential kind also takes the host's profile reader and
+  credential store. Core, protocol, webview, the model adapter and the host change only where
+  the contract gains something, and they never name an engine: ESLint keeps engine words out of
+  them (the composition root excepted), and dependency-cruiser fails while a new adapter has no
+  engine test.
   `apps/vscode/src/adapters/c8` came this way: the contract gained what real engines proved
-  it needs ([runtime-contract.md](runtime-contract.md)), and the host the flavor `camunda8`
-  and client credentials.
+  it needs ([runtime-contract.md](runtime-contract.md)), and the host client credentials; its
+  flavor `camunda8`, its setups and its BPMN dialect are the adapter's own.
 - Source-only layers keep the build to one esbuild run; the extension ships as one .vsix.
 
 ## Decision log

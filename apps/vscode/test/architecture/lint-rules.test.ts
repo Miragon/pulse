@@ -78,6 +78,16 @@ describe("the lint gates", { timeout: 120_000 }, () => {
     expect(await rulesFiredOn(neutral)).toEqual([])
   })
 
+  test.each([
+    "apps/vscode/src/host/connections/targets-parser.ts",
+    "apps/vscode/src/host/connections/engine-catalogue.ts",
+    "apps/vscode/src/host/commands/add-engine-command.ts",
+  ])("keep engine words out of the host outside its composition root: %s", async (filePath) => {
+    expect(await rulesFiredOn(readRepoFile(filePath), filePath)).toEqual([])
+    const probe = `${readRepoFile(filePath)}\nexport type Flavor = 'camunda8';\n`
+    expect(await rulesFiredOn(probe, filePath)).toEqual(["no-restricted-syntax"])
+  })
+
   test("keep the engine CLI out of the extension outside its composition root", async () => {
     const host = "export const cli = 'engine-cli';\n"
     expect(await rulesFiredOn(host, "apps/vscode/src/host/engine-status-bar.ts")).toContain(

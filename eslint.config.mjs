@@ -602,7 +602,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["apps/vscode/src/host/composition-root.ts", "apps/vscode/src/host/connections/**"],
+    files: ["apps/vscode/src/host/composition-root.ts"],
     rules: { "no-restricted-syntax": ["error", ...vscodeModuleFunctionGate] },
   },
   {
