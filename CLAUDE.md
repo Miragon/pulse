@@ -26,7 +26,9 @@ Docs are held to the code:
 `docs/` holds the Pulse docs, a VitePress site on the Miragon docs kit
 (`docs/.vitepress/miragon/`, skill `miragon-brand:docs-site`) that `.github/workflows/docs.yml`
 publishes to https://miragon.github.io/pulse/. A user-visible change (env vars, tools, ports,
-getting-started steps) updates them in the same PR. Headings get GitHub's anchors, so a
+getting-started steps) updates them in the same PR. Below 1.0 the docs keep no upgrade page and
+no migration note: a breaking change says so in its commit (`!` plus a `BREAKING CHANGE:`
+footer), and release-please lists it in `CHANGELOG.md`. Headings get GitHub's anchors, so a
 `#anchor` link works on the site and on GitHub. The product page https://miragon.ai/tools/pulse/
 lives in Miragon/miragon-ai-docs; a change it shows needs a PR there too.
 

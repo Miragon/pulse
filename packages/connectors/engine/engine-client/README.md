@@ -43,7 +43,9 @@ and reject on HTTP error responses (`throwOnError: true`). Both options are
 declared once in the generator config (`openapi-ts.config.ts`) and applied at
 runtime through `createClientConfig` (`src/hey-api.ts`), which the generated
 default client and `createEngineClient` share, so generated types and runtime
-behavior always agree.
+behavior always agree. Every request sends
+`User-Agent: @miragon/pulse-engine-client/<version>`, so the engine's access
+logs show Pulse's calls.
 
 ```ts
 import { createEngineClient } from "@miragon/pulse-engine-client"
