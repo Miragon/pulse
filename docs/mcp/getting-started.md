@@ -52,3 +52,6 @@ If the REST API needs a login, add `ENGINE_AUTH_TYPE=basic` with `ENGINE_USERNAM
 allow writes. For analytics, your engine project adds the plugin
 `io.miragon.mcp:cibseven-history-metrics` and exports its metrics to Prometheus, as
 [Architecture](architecture.md) shows.
+
+For a server of your own, with modules for your own systems next to Pulse's, start from the
+starter: [Build your own server](build-your-own.md).
