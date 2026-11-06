@@ -301,7 +301,7 @@
   "dependencies": {
     "@fontsource-variable/geist": "5.3.0",
     "@fontsource-variable/geist-mono": "5.3.0",
-    "@miragon/modeler-shell": "0.9.0",
+    "@miragon/modeler-shell": "0.10.0",
     "@miragon/pulse-engine-core": "workspace:*",
     "bpmn-js": "18.31.1",
     "bpmn-moddle": "10.3.1",
