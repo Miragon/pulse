@@ -1,7 +1,12 @@
 import http from "node:http"
 import type { AddressInfo } from "node:net"
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest"
-import { createPrometheusClient, withCallerSignal, type PrometheusConfig } from "./prometheus.js"
+import {
+  createPrometheusClient,
+  PrometheusRequestError,
+  withCallerSignal,
+  type PrometheusConfig,
+} from "./prometheus.js"
 
 const TOKEN = "s3cr3t-token"
 const PASSWORD = "hunter2-pass"
@@ -45,6 +50,31 @@ const echoTable: Record<string, (auth?: string) => [number, string, string]> = {
     400,
     "application/json",
     JSON.stringify({ status: "error", errorType: "tenantsecret", error: "nope" }),
+  ],
+  // Another service holds the port.
+  "foreign-page": () => [
+    404,
+    "text/html; charset=utf-8",
+    "<html><body><h1>Resource not found</h1></body></html>",
+  ],
+  // A page that does not say what it is.
+  "foreign-page-untyped": () => [
+    404,
+    "text/plain",
+    "\n  <html><body><h1>Resource not found</h1></body></html>",
+  ],
+  // What Prometheus's own router answers under a wrong path prefix.
+  "foreign-text": () => [404, "text/plain", "404 page not found"],
+  "login-page": () => [401, "text/html", "<html><body>Sign in here</body></html>"],
+  "foreign-json": () => [
+    200,
+    "application/json",
+    JSON.stringify({ message: "hello", error: { code: 7 } }),
+  ],
+  "envelope-in-html": () => [
+    422,
+    "text/html",
+    JSON.stringify({ status: "error", errorType: "execution", error: "many-to-many matching" }),
   ],
 }
 
@@ -125,6 +155,17 @@ async function failure(promise: Promise<unknown>): Promise<string> {
   )
   expect(error).toBeInstanceOf(Error)
   return (error as Error).message
+}
+
+async function kindOf(promise: Promise<unknown>): Promise<string> {
+  const error = await promise.then(
+    () => {
+      throw new Error("expected the query to fail")
+    },
+    (e: unknown) => e,
+  )
+  expect(error).toBeInstanceOf(PrometheusRequestError)
+  return (error as PrometheusRequestError).kind
 }
 
 describe("Prometheus queries", () => {
@@ -225,16 +266,14 @@ describe("Prometheus errors reach the model actionable and credential-free", () 
 
   it("an empty body falls back to the status line", async () => {
     expect(await failure(client().instant("empty"))).toBe(
-      "Prometheus query failed (503): Service Unavailable — empty response body",
+      "Prometheus query failed (503): Service Unavailable, empty response body",
     )
   })
 
-  it("401: a credential echoed by the upstream is redacted, and the remedy is named", async () => {
+  it("401: a credential echoed by the upstream is redacted", async () => {
     const bearer = await failure(client({ bearerToken: TOKEN }).instant("echo-auth"))
     expect(bearer).not.toContain(TOKEN)
-    expect(bearer).toBe(
-      "Prometheus query failed (401): denied: Bearer *** — check the configured Prometheus credentials",
-    )
+    expect(bearer).toBe("Prometheus query failed (401): denied: Bearer ***")
     const basic = await failure(
       client({ username: "grafana", password: PASSWORD }).instant("echo-auth"),
     )
@@ -246,16 +285,14 @@ describe("Prometheus errors reach the model actionable and credential-free", () 
     // A token read verbatim from a secret file keeps its trailing newline; the
     // header is sent trimmed, so the echo carries the trimmed form.
     expect(await failure(client({ bearerToken: `${TOKEN}\n` }).instant("echo-credential"))).toBe(
-      "Prometheus query failed (401): invalid credential *** — check the configured Prometheus credentials",
+      "Prometheus query failed (401): invalid credential ***",
     )
     // Whitespace inside a password survives the echo but not the collapse.
     const spaced = "hunter2  pass\tword"
     const basic = await failure(
       client({ username: "grafana", password: spaced }).instant("echo-credential"),
     )
-    expect(basic).toBe(
-      "Prometheus query failed (401): invalid credential *** — check the configured Prometheus credentials",
-    )
+    expect(basic).toBe("Prometheus query failed (401): invalid credential ***")
   })
 
   it("never echoes an errorType that is no Prometheus error type", async () => {
@@ -276,8 +313,64 @@ describe("Prometheus errors reach the model actionable and credential-free", () 
 
   it("a 200 that is not JSON (a login page) says so instead of a JSON parse error", async () => {
     expect(await failure(client().instant("html"))).toBe(
-      "Prometheus returned a non-JSON response (HTTP 200, text/html) — is a proxy or login page in front of it?",
+      "Prometheus returned a non-JSON response (HTTP 200, text/html): is a proxy or login page in front of it?",
     )
+  })
+
+  it.each(["foreign-page", "foreign-page-untyped"])(
+    "%s: a web page from a service that is not Prometheus is never echoed",
+    async (query) => {
+      expect(await failure(client().instant(query))).toBe(
+        "Prometheus query failed (404): the answer is a web page, so another service or a proxy holds that address",
+      )
+    },
+  )
+
+  it("a login page behind a 401 is never echoed either", async () => {
+    expect(await failure(client().instant("login-page"))).toBe(
+      "Prometheus query failed (401): the answer is a web page, so another service or a proxy holds that address",
+    )
+  })
+
+  it("keeps a plain text answer, which can be Prometheus's own router", async () => {
+    expect(await failure(client().instant("foreign-text"))).toBe(
+      "Prometheus query failed (404): 404 page not found",
+    )
+  })
+
+  it("keeps Prometheus's own message, whatever content type carries it", async () => {
+    expect(await failure(client().instant("envelope-in-html"))).toBe(
+      "Prometheus query failed (422 execution): many-to-many matching",
+    )
+  })
+
+  it("a 200 whose JSON is no Prometheus answer reads as a failure, not as a crash", async () => {
+    expect(await failure(client().instant("foreign-json"))).toBe("Prometheus query error: unknown")
+  })
+
+  it("names each failure's kind for the layer that owns the settings", async () => {
+    expect(await kindOf(client({ url: closedUrl }).instant("up"))).toBe("unreachable")
+    expect(await kindOf(client({ timeoutMs: 50 }).instant("hang"))).toBe("timeout")
+    expect(await kindOf(client().instant("up", { signal: AbortSignal.abort() }))).toBe("cancelled")
+    expect(await kindOf(client().instant("echo-auth"))).toBe("unauthorized")
+    expect(await kindOf(client().instant("login-page"))).toBe("unauthorized")
+    expect(await kindOf(client().instant("foreign-page"))).toBe("foreign-answer")
+    expect(await kindOf(client().instant("foreign-text"))).toBe("foreign-answer")
+    expect(await kindOf(client().instant("text"))).toBe("foreign-answer")
+    expect(await kindOf(client().instant("html"))).toBe("foreign-answer")
+    expect(await kindOf(client().instant("foreign-json"))).toBe("foreign-answer")
+    expect(await kindOf(client().instant("bad"))).toBe("query")
+    expect(await kindOf(client().instant("envelope-in-html"))).toBe("query")
+    expect(await kindOf(client().instant("api-error"))).toBe("query")
+  })
+
+  // `withToolErrors` prefixes a `status` or `code` as `[…] `, which would print the status twice.
+  it("carries no status or code next to its complete message", async () => {
+    const error = await client()
+      .instant("foreign-page")
+      .catch((e: unknown) => e as Record<string, unknown>)
+    expect(error).not.toHaveProperty("status")
+    expect(error).not.toHaveProperty("code")
   })
 
   it("an API-level error", async () => {

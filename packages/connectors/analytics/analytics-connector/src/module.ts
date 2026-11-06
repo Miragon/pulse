@@ -162,7 +162,7 @@ export const analyticsModule = {
   bootWarnings(env: NodeJS.ProcessEnv): string[] {
     if (env.PROMETHEUS_URL?.trim()) return []
     return [
-      "PROMETHEUS_URL is not set: defaulting to http://localhost:9090. The Pulse playground (Miragon/pulse) publishes Prometheus on :8460 (PROMETHEUS_URL=http://localhost:8460). Without a Prometheus, leave analytics out of MCP_ACTIVE_MODULES.",
+      "PROMETHEUS_URL is not set: defaulting to http://localhost:9090. Point it at your Prometheus (the Pulse playground, Miragon/pulse, publishes one on :8460 of its host), or leave analytics out of MCP_ACTIVE_MODULES.",
     ]
   },
 

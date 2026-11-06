@@ -201,6 +201,20 @@ describe("createComposedServer: under mcp-use dev (the CLI owns the socket)", ()
     )
   })
 
+  it("states the body cap for the built server only, since the CLI serves the app itself", async () => {
+    await compose({ MCP_USE_DEV_CLI: "1" })
+    expect(info).toHaveBeenCalledWith(
+      expect.stringContaining("max body 4 MiB (16 MiB in flight) on the built server only;"),
+    )
+  })
+
+  it("states the body cap plainly outside mcp-use dev, where the listener enforces it", async () => {
+    await compose()
+    expect(info).toHaveBeenCalledWith(
+      expect.stringContaining("max body 4 MiB (16 MiB in flight); /metrics"),
+    )
+  })
+
   it("keeps the Origin check, which the CLI does not do", async () => {
     const composed = await compose({ MCP_USE_DEV_CLI: "1" })
     expect((await tunneled(composed, "https://attacker.example")).status).toBe(403)

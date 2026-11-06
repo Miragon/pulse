@@ -116,6 +116,8 @@ function kindOfStatus(status: number): ErrorKind {
 
 function kindOf(text: string, status: number | undefined): ErrorKind {
   if (TOOL_MISSING.test(text)) return "notOnServer"
+  // Its query API is one fixed route: a 404 is a wrong address, never an entry that is gone.
+  if (status === 404 && PROMETHEUS_STATUS.test(text)) return "unreachable"
   if (status !== undefined) return kindOfStatus(status)
   if (TIMEOUT.test(text)) return "timeout"
   if (UNREACHABLE.test(text)) return "unreachable"

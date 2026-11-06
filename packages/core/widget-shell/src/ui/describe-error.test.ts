@@ -49,9 +49,21 @@ const TABLE: Array<[raw: string, kind: ErrorKind, status: number | undefined, so
     "engine:prod",
   ],
   [
-    "Prometheus query failed (403): forbidden — check the configured Prometheus credentials",
+    "Prometheus query failed (403): forbidden. Check the credentials: PROMETHEUS_BEARER_TOKEN, or PROMETHEUS_USERNAME and PROMETHEUS_PASSWORD.",
     "forbidden",
     403,
+    "prometheus",
+  ],
+  [
+    "Prometheus query failed (404): the answer is a web page, so another service or a proxy holds that address. Check PROMETHEUS_URL, which decides the target; a server without a Prometheus leaves analytics out of MCP_ACTIVE_MODULES.",
+    "unreachable",
+    404,
+    "prometheus",
+  ],
+  [
+    "Prometheus unreachable (ECONNREFUSED). Check PROMETHEUS_URL, which decides the target; a server without a Prometheus leaves analytics out of MCP_ACTIVE_MODULES.",
+    "unreachable",
+    undefined,
     "prometheus",
   ],
   [
@@ -201,6 +213,11 @@ describe("describeError: the words, en and de", () => {
       "Prüf, ob Prometheus läuft und erreichbar ist.",
     ],
     [
+      "Prometheus query failed (404): 404 page not found",
+      "Prometheus ist nicht erreichbar (HTTP 404)",
+      "Prüf, ob Prometheus läuft und erreichbar ist.",
+    ],
+    [
       "Failed to fetch",
       "Die Datenquelle ist nicht erreichbar",
       "Prüf die Verbindung und versuch es noch mal.",
@@ -253,6 +270,11 @@ describe("describeError: the words, en and de", () => {
     [
       "Prometheus unreachable (ECONNREFUSED)",
       "Prometheus is unreachable",
+      "Check that Prometheus is running and reachable.",
+    ],
+    [
+      "Prometheus query failed (404): 404 page not found",
+      "Prometheus is unreachable (HTTP 404)",
       "Check that Prometheus is running and reachable.",
     ],
     ["Failed to fetch", "The data source is unreachable", "Check the connection, then try again."],

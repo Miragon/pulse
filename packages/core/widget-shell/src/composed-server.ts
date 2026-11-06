@@ -263,7 +263,8 @@ function resolveSelection<TShared extends object>(
   const logLevel = requestLogLevelWarning(env)
   if (logLevel) console.warn(`[${label}] ${logLevel}`)
   composition.logEffectiveToolsets(boot)
-  console.info(`[${label}] ${describeHttpEdgePolicy(edge)}`)
+  const underDevCli = Boolean(env.MCP_USE_DEV_CLI)
+  console.info(`[${label}] ${describeHttpEdgePolicy(edge, { underDevCli })}`)
   return { edge, oauth, resource, boot }
 }
 

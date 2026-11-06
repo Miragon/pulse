@@ -1,9 +1,11 @@
 export {
   createPrometheusClient,
+  PrometheusRequestError,
   withCallerSignal,
   PERIODS,
   type PrometheusConfig,
   type PrometheusClient,
+  type PrometheusFailureKind,
   type PromSample,
   type EngineFilterInput,
 } from "./prometheus.js"

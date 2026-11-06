@@ -300,8 +300,13 @@ export function composeModules<TShared>(options: {
         }
         return `${module}:${toolset} (${source})`
       }
-      const modules = boot.toolsets.map(describe).join(", ")
-      const line = `[${label}] Toolsets: ${modules || "no active modules"}`
+      const surface = boot.toolsets.map(describe).join(", ") || "no active modules"
+      // Only a list leaves one off, and without this a module that list misses is silently absent.
+      const active = new Set(boot.toolsets.map(({ module }) => module))
+      const leftOff = modules.map(({ name }) => name).filter((name) => !active.has(name))
+      const off =
+        leftOff.length > 0 ? `; left off by MCP_ACTIVE_MODULES: ${leftOff.join(", ")}` : ""
+      const line = `[${label}] Toolsets: ${surface}${off}`
       console.info(line)
       return line
     },

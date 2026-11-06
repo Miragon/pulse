@@ -5,6 +5,7 @@ import { registerTools } from "./tools/index.js"
 import { registerWidgetTools } from "./widget-tools.js"
 import { createNameLookup, type FetchBpmnXml } from "./bpmn-name-lookup.js"
 import { createEngineScope } from "./engine-ids.js"
+import { withRemedies } from "./prometheus-remedies.js"
 
 export interface AnalyticsPluginConfig extends PrometheusConfig {
   /** Injected by the host so this module stays free of engine SDKs; absent → ids, no diagram. */
@@ -14,14 +15,16 @@ export interface AnalyticsPluginConfig extends PrometheusConfig {
 }
 
 export function createPlugin(config: AnalyticsPluginConfig): ModulePlugin {
-  const client = createPrometheusClient({
-    url: config.url,
-    bearerToken: config.bearerToken,
-    username: config.username,
-    password: config.password,
-    headers: config.headers,
-    timeoutMs: config.timeoutMs,
-  })
+  const client = withRemedies(
+    createPrometheusClient({
+      url: config.url,
+      bearerToken: config.bearerToken,
+      username: config.username,
+      password: config.password,
+      headers: config.headers,
+      timeoutMs: config.timeoutMs,
+    }),
+  )
   const engineScope = createEngineScope(config.engineIds)
   return {
     name: "analytics",
