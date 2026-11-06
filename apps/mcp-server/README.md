@@ -12,10 +12,14 @@ an interactive view in the chat.
 
 ```bash
 docker run --rm -p 127.0.0.1:8400:8400 \
+  --add-host=host.docker.internal:host-gateway \
   -e ENGINE_BASE_URL=http://host.docker.internal:8080/engine-rest \
   ghcr.io/miragon/pulse-server:latest
 claude mcp add --transport http pulse http://localhost:8400/mcp
 ```
+
+On Linux `host.docker.internal` reaches an engine only on a port the host serves beyond
+`127.0.0.1`; for an engine in Docker, join its network as [Run](#run) shows.
 
 Claude Desktop, claude.ai, ChatGPT and other hosts: [Usage](../../docs/mcp/usage.md#connect-your-assistant).
 
@@ -70,10 +74,12 @@ upstream/proxy federation.
 ## Run
 
 ```bash
-# Published image (production): boots read-only without OAuth or a toolset suffix
-docker run --rm -p 127.0.0.1:8400:8400 \
-  -e ENGINE_BASE_URL=http://host.docker.internal:8410/engine-rest \
-  -e PROMETHEUS_URL=http://host.docker.internal:9090 \
+# Published image (production) on the playground's network (pnpm stack:up): boots read-only
+# without OAuth or a toolset suffix
+docker run --rm -p 127.0.0.1:8400:8400 --network pulse_default \
+  -e ENGINE_BASE_URL=http://cibseven:8410/engine-rest -e ENGINE_ID=prod-a \
+  -e ENGINE_FLAVOR=cibseven -e ENGINE_COCKPIT_URL=http://localhost:8410/webapp \
+  -e PROMETHEUS_URL=http://prometheus:9090 \
   ghcr.io/miragon/pulse-server:latest
 
 # From source (local dev: needs the Docker infra; see the root README)
@@ -82,8 +88,14 @@ pnpm build        # build:ui (Vite widget bundle) + build:server (tsc)
 pnpm start        # run the compiled server from dist/
 ```
 
-Pulse assumes a Camunda 7 engine. For CIB seven or Operaton add `-e ENGINE_FLAVOR=cibseven`
-(or `operaton`): it picks the engine's cockpit links and the product name the views show.
+The container joins the playground's Docker network and reaches the engine and Prometheus by
+their service names, on Linux and under Docker Desktop alike; `host.docker.internal` would miss
+their ports on Linux, which the playground publishes on `127.0.0.1` only. `ENGINE_COCKPIT_URL`
+stays on `localhost`: your browser opens those links.
+
+Pulse assumes a Camunda 7 engine. The recipe sets `ENGINE_FLAVOR=cibseven` for the playground's
+CIB seven (`operaton` for Operaton, none for Camunda 7): it picks the engine's cockpit links and
+the product name the views show.
 
 Configuration is entirely environment-driven. See
 [Configuration](../../docs/mcp/reference.md#configuration), [Toolsets](../../docs/mcp/reference.md#toolsets) and

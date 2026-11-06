@@ -14,6 +14,7 @@ export const SCOPES = [
   "typescript",
   "mcp",
   "template",
+  "starter-engine",
   "cli",
   "vscode",
   "vscode-package",
@@ -55,6 +56,11 @@ export const PATH_RULES = [
   // Read by the metrics contract tests.
   { pattern: /^playground\/docker\//, scopes: ["typescript"] },
   { pattern: /^playground\//, scopes: [] },
+  // The starter's try-out engine: its own job starts it; the template's format check reads it.
+  {
+    pattern: /^templates\/composed-server\/compose\.yaml$/,
+    scopes: ["starter-engine", "template", "typescript"],
+  },
   { pattern: /^templates\/.*\.(?:md|png|jpe?g|gif|webp)$/, scopes: [] },
   // The token drift scan (pulse-ui) reads them; the template's own job tests them.
   { pattern: /^templates\//, scopes: ["template", "typescript"] },

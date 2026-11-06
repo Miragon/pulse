@@ -13,6 +13,12 @@
 # and ten in a row lock it for good: every call then answers 401, the right password too, and
 # demo is the only admin who could unlock it. `docker compose down && docker compose up -d`
 # resets the engine.
+#
+# The project name is fixed, and with it the network, pulse-starter_default: the container
+# recipe in the README runs the server image on that network, where it reaches the engine as
+# http://engine:8080/engine-rest on Linux, macOS and Windows alike.
+name: pulse-starter
+
 services:
   engine:
     # CIB seven Run, the vendor's public image, pinned to an exact tag.

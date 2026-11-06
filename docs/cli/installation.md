@@ -91,6 +91,9 @@ docker run --rm -it --user "$(id -u):$(id -g)" -v "$HOME/.config/pulse-cli:/conf
   -e PULSE_CLI_CONFIG=/config/config.json ghcr.io/miragon/pulse-cli --profile prod status
 ```
 
+- On Linux `host.docker.internal` reaches no port bound to `127.0.0.1`: for an engine Docker
+  publishes there, run the image on the engine's network (`--network`) and name the engine by its
+  service and container port in `PULSE_CLI_URL`.
 - To call the image as `pulse` in a shell, alias it, with the `-e` and `-v` options you need:
   `alias pulse='docker run --rm -i -e PULSE_CLI_URL ghcr.io/miragon/pulse-cli'`.
 - `pulse auth login` and token commands do not work in the container: use Basic auth or pass a

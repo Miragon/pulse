@@ -179,10 +179,11 @@ updates:
   # Compose file, the starter's try-out engine (templates/composed-server/compose.yaml): moves
   # its pinned CIB seven Run tag. A compose file is the docker-compose ecosystem's, not the
   # docker one's; the mirror (Miragon/pulse-starter) gets the bump with the next release.
-  # No CI job starts this engine, so a green bump proves nothing about the new image, and
-  # dependabot-automerge.yml leaves it out (its paths name no compose file). Review it by
-  # hand in the template: after `docker compose up -d --wait`, /engine-rest/process-definition
-  # answers demo/demo with invoice and ReviewInvoice and an anonymous call with 401.
+  # The bump runs ci.yml's "Starter try-out engine" (scope starter-engine): the new image turns
+  # healthy, answers an anonymous call with 401 and demo/demo with 200, deploys invoice and
+  # ReviewInvoice, and a container on pulse-starter_default reaches it, the README's container
+  # recipe. dependabot-automerge.yml leaves it out (its paths name no compose file), so it
+  # merges by hand once that job is green.
   - package-ecosystem: "docker-compose"
     directory: "/templates/composed-server"
     schedule:

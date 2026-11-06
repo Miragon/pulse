@@ -61,19 +61,35 @@ quotes and trailing comments in the value), and the `-e` flags after it win:
 pnpm install          # once, then commit pnpm-lock.yaml (the build uses --frozen-lockfile)
 [ -f .env ] || cp .env.example .env   # step 1's .env, or the settings of compose.yaml's engine
 docker build -t my-mcp-server .
+docker compose up -d --wait           # compose.yaml's engine, on the network pulse-starter_default
 docker run --env-file .env -p 127.0.0.1:8400:8400 \
-  --add-host=host.docker.internal:host-gateway \
-  -e ENGINE_BASE_URL=http://host.docker.internal:8410/engine-rest \
+  --network pulse-starter_default \
+  -e ENGINE_BASE_URL=http://engine:8080/engine-rest \
   -e ENGINE_COCKPIT_URL=http://localhost:8410/webapp \
-  -e PROMETHEUS_URL=http://host.docker.internal:8460 \
   my-mcp-server
 ```
 
-Inside the container `localhost` is the container itself, so the server
-reaches the engine on port 8410 (compose.yaml's or the playground's) and the
-playground's Prometheus through `host.docker.internal` (Docker Desktop
-resolves it, Linux needs the `--add-host`), while the "open in cockpit" links
-open in your browser and stay on `localhost`.
+The Pulse playground's engine and Prometheus instead (`pnpm stack:up` there):
+
+```bash
+docker run --env-file .env -p 127.0.0.1:8400:8400 \
+  --network pulse_default \
+  -e ENGINE_BASE_URL=http://cibseven:8410/engine-rest -e ENGINE_ID=prod-a \
+  -e ENGINE_COCKPIT_URL=http://localhost:8410/webapp \
+  -e PROMETHEUS_URL=http://prometheus:9090 \
+  my-mcp-server
+```
+
+Inside the container `localhost` is the container itself, so the server joins
+the engine's Docker network and reaches it by its service name and port:
+`pulse-starter_default` is the network of compose.yaml (its `name:` fixes
+it), `pulse_default` the playground's. That works alike on Linux, macOS and
+Windows; `host.docker.internal` does not, since on Linux it misses a port
+published on `127.0.0.1`, where both engines publish theirs. The "open in
+cockpit" links open in your browser and stay on `localhost`, and
+`-p 127.0.0.1:8400:8400` keeps the server on your machine. For an engine of
+your own that the container reaches by its address, drop `--network` and set
+`ENGINE_BASE_URL` to that address.
 
 Either way the MCP endpoint is `http://localhost:8400/mcp`. With `pnpm dev`,
 open the inspector at `http://localhost:8400/mcp/inspector` and call
