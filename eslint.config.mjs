@@ -566,11 +566,11 @@ export default tseslint.config(
     rules: { "no-restricted-syntax": ["error", ...vscodeNeutralCode] },
   },
   {
-    files: ["apps/vscode/src/adapters/**/*.ts", "apps/vscode/src/model/**/*.ts"],
+    files: ["apps/vscode/src/adapters/**/*.ts"],
     rules: { "no-restricted-syntax": ["error", ...vscodeModuleFunctionGate] },
   },
   {
-    files: ["apps/vscode/src/core/**/*.ts"],
+    files: ["apps/vscode/src/core/**/*.ts", "apps/vscode/src/model/**/*.ts"],
     rules: { "no-restricted-syntax": ["error", ...vscodeNeutralCode, ...vscodeModuleFunctionGate] },
   },
   {

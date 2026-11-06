@@ -1,18 +1,26 @@
+import type { BpmnDialect } from "../../contract/index.js"
 import { BpmnModdle, type Moddle, type ModdleElement, type ParseResult } from "bpmn-moddle"
-import camunda from "camunda-bpmn-moddle/resources/camunda.json" with { type: "json" }
-import zeebe from "zeebe-bpmn-moddle/resources/zeebe.json" with { type: "json" }
 
-const ZEEBE_NAMESPACE = "http://camunda.org/schema/zeebe/1.0"
+interface DialectModdle {
+  readonly dialect: BpmnDialect
+  readonly moddle: Moddle
+}
 
 export class ModelParser {
-  private readonly camundaModdle: Moddle = BpmnModdle({ camunda })
-  private readonly zeebeModdle: Moddle = BpmnModdle({ zeebe })
+  private readonly moddles: readonly DialectModdle[]
+  private readonly plain: Moddle = BpmnModdle()
   private last: { readonly xml: string; readonly parsed: Promise<ParseResult> } | undefined
+
+  constructor(dialects: readonly BpmnDialect[]) {
+    this.moddles = dialects.map((dialect) => ({
+      dialect,
+      moddle: BpmnModdle({ extension: dialect.descriptor }),
+    }))
+  }
 
   parse(xml: string): Promise<ParseResult> {
     if (this.last?.xml !== xml) {
-      const moddle = xml.includes(ZEEBE_NAMESPACE) ? this.zeebeModdle : this.camundaModdle
-      this.last = { xml, parsed: moddle.fromXML(xml) }
+      this.last = { xml, parsed: this.moddleOf(xml).fromXML(xml) }
     }
     return this.last.parsed
   }
@@ -39,5 +47,12 @@ export class ModelParser {
   static text(element: ModdleElement | undefined, property: string): string | undefined {
     const value = element?.get(property)
     return typeof value === "string" && value.trim() !== "" ? value : undefined
+  }
+
+  private moddleOf(xml: string): Moddle {
+    const marked = this.moddles.find(
+      ({ dialect }) => !dialect.fallback && xml.includes(dialect.descriptor.uri),
+    )
+    return (marked ?? this.moddles.find(({ dialect }) => dialect.fallback))?.moddle ?? this.plain
   }
 }

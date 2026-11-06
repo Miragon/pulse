@@ -5,6 +5,7 @@ import { BpmnModelSource, WorkspaceCodeLocator } from "../model/index.js"
 import {
   FailingRuntime,
   RuntimeError,
+  type BpmnDialect,
   type EngineAdapter,
   type EngineConnection,
   type EngineCredentials,
@@ -22,10 +23,12 @@ export class CompositionRoot implements EngineFactories {
   readonly catalogue: EngineCatalogue
 
   private readonly adapters: ReadonlyMap<string, EngineAdapter>
+  private readonly dialects: readonly BpmnDialect[]
 
   constructor(adapters: readonly EngineAdapter[]) {
     this.catalogue = new EngineCatalogue(adapters)
     this.adapters = new Map(adapters.map((adapter) => [adapter.id, adapter]))
+    this.dialects = adapters.map((adapter) => adapter.bpmn)
   }
 
   static create(): CompositionRoot {
@@ -59,8 +62,11 @@ export class CompositionRoot implements EngineFactories {
     return target.webUiUrl === undefined ? undefined : this.adapterOf(target).webUi(target.webUiUrl)
   }
 
-  static localSources(files: WorkspaceFiles): LocalSources {
-    return { models: new BpmnModelSource(files), code: new WorkspaceCodeLocator(files) }
+  localSources(files: WorkspaceFiles): LocalSources {
+    return {
+      models: new BpmnModelSource(files, this.dialects),
+      code: new WorkspaceCodeLocator(files, this.dialects),
+    }
   }
 
   private adapterOf(target: EngineTarget): EngineAdapter {

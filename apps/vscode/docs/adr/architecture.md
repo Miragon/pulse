@@ -26,7 +26,7 @@ host as CommonJS for Node 22, the webview as an IIFE.
 | `core`        | Engine-neutral logic: use cases turn read models into view models, panel sessions handle webview intents; `apps/vscode/src/core/protocol` holds the JSON-only messages and view models                                                                                                                       | none                                  |
 | `webview`     | Preact UI and bpmn-js diagram. Renders protocol view models, sends intents                                                                                                                                                                                                                                   | browser                               |
 | `adapters/c7` | `EngineAdapter`, `ProcessRuntime`, `ProcessCommands` and the Cockpit web UI for the Camunda 7 family ([c7-adapter.md](c7-adapter.md)); `apps/vscode/src/adapters/c7/engine-rest` reads and writes the engine's REST API                                                                                      | Node                                  |
-| `model`       | `ModelSource` and `CodeLocator` for the local workspace: reads `.bpmn` files with bpmn-moddle and its vendor descriptors, finds the implementing code ([local-sources.md](local-sources.md)); the only layer with those libraries                                                                            | none (files through `WorkspaceFiles`) |
+| `model`       | `ModelSource` and `CodeLocator` for the local workspace: reads `.bpmn` files with bpmn-moddle and the BPMN dialects of the engine adapters, finds the implementing code ([local-sources.md](local-sources.md)); the only layer with those libraries                                                          | none (files through `WorkspaceFiles`) |
 | `host`        | VS Code host: composition root, connections, tree, panels, commands, status bar                                                                                                                                                                                                                              | Node + `vscode`                       |
 
 The core in the product owner's sense is everything that is engine-neutral
@@ -56,9 +56,10 @@ contract    → (nothing)
 core        → contract (entry only)
 protocol    → (nothing outside protocol)
 webview     → protocol (type-only), preact, bpmn-js, diagram-js, modeler-shell, fonts
-adapters/*  → contract (entry only)
-model       → contract (entry only), bpmn-moddle, camunda-bpmn-moddle, zeebe-bpmn-moddle
-              (nothing else may import these)
+adapters/*  → contract (entry only); an adapter's <engine>-bpmn-dialect.ts also its vendor's
+              moddle descriptor (the JSON of camunda-bpmn-moddle or zeebe-bpmn-moddle)
+model       → contract (entry only), bpmn-moddle
+              (nothing else may import it; the descriptors come from the dialects)
 host        → core, protocol, contract, vscode, modeler-shell, Node built-ins
               adapters and the model adapter only from host/composition-root.ts
 tests, scripts, dev tooling → anything
@@ -98,6 +99,7 @@ class `CompositionRoot` holds the list of adapters and, built from it, the `Engi
 flavors it serves (and whether a profile without a flavor is its), the credential types it takes,
 the local endpoint Pulse falls back to and its setups for _Add Engine_. The profile parser, the
 discovery, _Set Credentials_ and _Add Engine_ ask the catalogue, so the host names no engine. The
+adapters also bring their BPMN dialects, which `localSources(files)` hands the model adapter. The
 root implements `EngineFactories`: for a configured target it
 returns the `ProcessRuntime` and, where the adapter has them, the `ProcessCommands` and
 the `EngineWebUi` (for a target with a `cockpitUrl`) of the adapter for `target.engine`. A target the target policy refuses (OAuth2,

@@ -1,6 +1,7 @@
 import type { ElementImplementation } from "../../src/contract/index.js"
 import { describe, expect, test } from "vitest"
 import { WorkspaceCodeLocator } from "../../src/model/index.js"
+import { DIALECTS } from "./support/dialects.js"
 import { MemoryFiles } from "./support/memory-files.js"
 import {
   AUDIT_SERVICE,
@@ -37,7 +38,7 @@ const files = new MemoryFiles({
 })
 
 function locate(implementation: ElementImplementation) {
-  return new WorkspaceCodeLocator(files).locate(implementation)
+  return new WorkspaceCodeLocator(files, DIALECTS).locate(implementation)
 }
 
 describe("the workspace code locator", () => {

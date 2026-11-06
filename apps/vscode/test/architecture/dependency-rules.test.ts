@@ -11,6 +11,9 @@ interface Violation {
   readonly rule: { readonly name: string }
 }
 
+const DESCRIPTOR_IMPORT =
+  "import camunda from 'camunda-bpmn-moddle/resources/camunda.json' with { type: 'json' };\n"
+
 const PLANTED: Readonly<Record<string, string>> = {
   "src/contract/ids.ts": "export const id = 1;\n",
   "src/contract/index.ts": "export * from './ids.ts';\n",
@@ -27,6 +30,9 @@ const PLANTED: Readonly<Record<string, string>> = {
   "src/host/reads-model-library.ts":
     "import { BpmnModdle } from 'bpmn-moddle';\nexport const moddle = BpmnModdle;\n",
   "src/adapters/c7/index.ts": "export const adapter = 1;\n",
+  "src/adapters/c7/c7-bpmn-dialect.ts": `${DESCRIPTOR_IMPORT}export const dialect = camunda;\n`,
+  "src/adapters/c7/reads-descriptor.ts": `${DESCRIPTOR_IMPORT}export const descriptor = camunda;\n`,
+  "src/model/reads-descriptor.ts": `${DESCRIPTOR_IMPORT}export const descriptor = camunda;\n`,
   "src/adapters/c7/mapping-uses-node.ts":
     "import { spawn } from 'node:child_process';\nexport const run = spawn;\n",
   "src/adapters/other/index.ts": "export const adapter = 2;\n",
@@ -54,7 +60,7 @@ const PLANTED: Readonly<Record<string, string>> = {
     "import { rootCause } from '../../../../packages/connectors/engine/engine-core/src/root-cause.ts';\nexport const cause = rootCause;\n",
   "../../packages/connectors/engine/engine-core/src/root-cause.ts": "export const rootCause = 1;\n",
   "package.json":
-    '{ "name": "pulse", "private": true, "dependencies": { "@miragon/pulse-engine-core": "workspace:*" } }\n',
+    '{ "name": "pulse", "private": true, "dependencies": { "@miragon/pulse-engine-core": "workspace:*", "camunda-bpmn-moddle": "*" } }\n',
 }
 
 const roots: string[] = []
@@ -97,6 +103,7 @@ function violationsIn(root: string): string[] {
 describe("the dependency rules", () => {
   test("fire on every planted violation and on nothing else", { timeout: 60_000 }, () => {
     const library = "apps/vscode/node_modules/bpmn-moddle/dist/index.js"
+    const descriptor = "apps/vscode/node_modules/camunda-bpmn-moddle/resources/camunda.json"
     const engineCore = "apps/vscode/node_modules/@miragon/pulse-engine-core/dist/index.d.ts"
     const engineCoreTesting =
       "apps/vscode/node_modules/@miragon/pulse-engine-core/dist/testing/index.d.ts"
@@ -113,6 +120,9 @@ describe("the dependency rules", () => {
         "adapter-proven-on-an-engine: apps/vscode/src/adapters/other/index.ts -> apps/vscode/src/adapters/other/index.ts",
         "engine-test-runs-the-conformance-kit: apps/vscode/test/adapters/c7/c7.engine.test.ts -> apps/vscode/test/adapters/c7/c7.engine.test.ts",
         `model-libraries-stay-in-the-model-adapter: apps/vscode/src/host/reads-model-library.ts -> ${library}`,
+        `moddle-descriptors-only-in-a-bpmn-dialect: apps/vscode/src/adapters/c7/reads-descriptor.ts -> ${descriptor}`,
+        `moddle-descriptors-only-in-a-bpmn-dialect: apps/vscode/src/model/reads-descriptor.ts -> ${descriptor}`,
+        `not-in-allowed: apps/vscode/src/adapters/c7/reads-descriptor.ts -> ${descriptor}`,
         "no-circular: apps/vscode/src/core/cycle-a.ts -> apps/vscode/src/core/cycle-b.ts",
         `no-undeclared-dependencies: apps/vscode/src/host/reads-model-library.ts -> ${library}`,
         "not-in-allowed: apps/vscode/src/adapters/c7/mapping-uses-node.ts -> child_process",

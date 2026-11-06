@@ -45,7 +45,7 @@ flowchart LR
 
 ## Where things are
 
-- `apps/vscode/src/contract/ports`: the read and write ports and the plug that hands them out (`EngineAdapter`: its id, the profiles it serves and its setups for _Add Engine_, `engine-setup.ts`, next to runtime, commands and web UI)
+- `apps/vscode/src/contract/ports`: the read and write ports and the plug that hands them out (`EngineAdapter`: its id, the profiles it serves, its setups for _Add Engine_ (`engine-setup.ts`) and its BPMN dialect for the model adapter (`bpmn-dialect.ts`), next to runtime, commands and web UI)
 - `apps/vscode/src/contract/model`: ids, filters, pages and read models the ports exchange, plus `RuntimeError` and the rules host and adapters share (`ProfileRules`, `SetupRules`)
 - `apps/vscode/src/contract/failing-runtime.ts`: a runtime that rejects every call, for a target Pulse refuses
 - `apps/vscode/src/contract/conformance`: the kit, its laws and the fixed world, imported through its `index.ts`

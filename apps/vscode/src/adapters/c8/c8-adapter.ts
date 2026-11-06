@@ -1,4 +1,5 @@
 import type {
+  BpmnDialect,
   EngineAdapter,
   EngineConnection,
   EngineCredentials,
@@ -11,6 +12,7 @@ import type {
 import type { RequestAuth } from "./auth/request-auth.js"
 import { StaticAuth } from "./auth/static-auth.js"
 import { TokenSources } from "./auth/token-sources.js"
+import { C8BpmnDialect } from "./c8-bpmn-dialect.js"
 import { C8ProcessRuntime } from "./c8-process-runtime.js"
 import { CamundaHttp, RestCamundaClient } from "./rest/index.js"
 import { SaasSetup } from "./setup/saas-setup.js"
@@ -28,6 +30,7 @@ export class C8Adapter implements EngineAdapter {
   }
 
   readonly setups: readonly EngineSetup[] = [new SaasSetup(), new SelfManagedSetup()]
+  readonly bpmn: BpmnDialect = new C8BpmnDialect()
 
   private readonly tokens: TokenSources
 

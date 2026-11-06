@@ -18,6 +18,8 @@ const ENGINE_CORE =
 const ENGINE_CORE_ENTRY = "(^|/)node_modules/@miragon/pulse-engine-core/dist/index[.]d[.]ts$"
 const MODEL_LIBRARIES =
   "(^|/)node_modules/(bpmn-moddle|camunda-bpmn-moddle|zeebe-bpmn-moddle|@miragon/bpmn-modeler[^/]*)/"
+const MODDLE_DESCRIPTOR = "(^|/)node_modules/[^/]+-bpmn-moddle/resources/[^/]+[.]json$"
+const BPMN_DIALECT = `${APP}src/adapters/[^/]+/[^/]+-bpmn-dialect[.]ts$`
 
 module.exports = {
   allowedSeverity: "error",
@@ -47,6 +49,12 @@ module.exports = {
         "The C7 adapter runs the Camunda 7 family's workflow domain (@miragon/pulse-engine-core, its main entry), which esbuild bundles into the extension.",
       from: { path: `${APP}src/adapters/c7/` },
       to: { path: ENGINE_CORE_ENTRY },
+    },
+    {
+      comment:
+        "An engine adapter's BPMN dialect names its vendor's moddle descriptor, the JSON of a *-bpmn-moddle package.",
+      from: { path: BPMN_DIALECT },
+      to: { path: MODDLE_DESCRIPTOR },
     },
     {
       comment:
@@ -93,9 +101,17 @@ module.exports = {
       name: "model-libraries-stay-in-the-model-adapter",
       severity: "error",
       comment:
-        "BPMN model libraries (bpmn-moddle, its vendor descriptors, bpmn-modeler libs) belong in apps/vscode/src/model only. Read what you need through the ModelSource or CodeLocator port of the contract instead.",
+        "BPMN model libraries (bpmn-moddle, the vendor packages' code, bpmn-modeler libs) belong in apps/vscode/src/model only. Read what you need through the ModelSource or CodeLocator port of the contract instead.",
       from: { pathNot: [MODEL_ADAPTER, "(^|/)node_modules/"] },
-      to: { path: MODEL_LIBRARIES },
+      to: { path: MODEL_LIBRARIES, pathNot: MODDLE_DESCRIPTOR },
+    },
+    {
+      name: "moddle-descriptors-only-in-a-bpmn-dialect",
+      severity: "error",
+      comment:
+        "A vendor's moddle descriptor (the JSON of a *-bpmn-moddle package) is engine vocabulary: only an adapter's BPMN dialect (apps/vscode/src/adapters/<engine>/<engine>-bpmn-dialect.ts) names it, and the model adapter parses with the dialects the composition root hands it.",
+      from: { pathNot: [BPMN_DIALECT, "(^|/)node_modules/"] },
+      to: { path: MODDLE_DESCRIPTOR },
     },
     {
       name: "engine-core-only-in-the-c7-adapter",

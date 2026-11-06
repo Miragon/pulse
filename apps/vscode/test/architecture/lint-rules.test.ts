@@ -66,7 +66,8 @@ describe("the lint gates", { timeout: 120_000 }, () => {
   test.each([
     "apps/vscode/src/contract/ports/process-runtime.ts",
     "apps/vscode/src/contract/model/ids.ts",
-  ])("keep engine words out of the contract: %s", async (filePath) => {
+    "apps/vscode/src/model/model/model-parser.ts",
+  ])("keep engine words out of the contract and the model adapter: %s", async (filePath) => {
     expect(await rulesFiredOn(readRepoFile(filePath), filePath)).toEqual([])
     const probe = `${readRepoFile(filePath)}\nexport type Key = 'processInstanceKey';\n`
     expect(await rulesFiredOn(probe, filePath)).toEqual(["no-restricted-syntax"])

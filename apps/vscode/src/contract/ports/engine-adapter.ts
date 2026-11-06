@@ -1,4 +1,5 @@
 import type { DefinitionRef, InstanceSummary } from "../model/read-models.js"
+import type { BpmnDialect } from "./bpmn-dialect.js"
 import type { EngineSetup } from "./engine-setup.js"
 import type { ProcessCommands } from "./process-commands.js"
 import type { ProcessRuntime } from "./process-runtime.js"
@@ -41,6 +42,7 @@ export interface EngineAdapter {
   readonly id: string
   readonly profiles: EngineProfiles
   readonly setups: readonly EngineSetup[]
+  readonly bpmn: BpmnDialect
   runtime(connection: EngineConnection): ProcessRuntime
   commands(connection: EngineConnection): ProcessCommands | undefined
   webUi(webUiUrl: string): EngineWebUi | undefined

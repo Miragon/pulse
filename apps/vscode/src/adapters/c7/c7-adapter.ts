@@ -1,4 +1,5 @@
 import type {
+  BpmnDialect,
   EngineAdapter,
   EngineConnection,
   EngineProfiles,
@@ -7,6 +8,7 @@ import type {
   ProcessCommands,
   ProcessRuntime,
 } from "../../contract/index.js"
+import { C7BpmnDialect } from "./c7-bpmn-dialect.js"
 import { C7ProcessCommands } from "./c7-process-commands.js"
 import { C7ProcessRuntime } from "./c7-process-runtime.js"
 import { EngineHttp, RestEngineClient, RestEngineWriter } from "./engine-rest/index.js"
@@ -24,6 +26,7 @@ export class C7Adapter implements EngineAdapter {
   }
 
   readonly setups: readonly EngineSetup[] = []
+  readonly bpmn: BpmnDialect = new C7BpmnDialect()
 
   constructor(private readonly send: typeof fetch = fetch) {}
 

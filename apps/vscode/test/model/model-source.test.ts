@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest"
 import { BpmnModelSource } from "../../src/model/index.js"
 import paymentXml from "./fixtures/payment.bpmn"
 import shippingXml from "./fixtures/shipping.bpmn"
+import { DIALECTS } from "./support/dialects.js"
 import { MemoryFiles } from "./support/memory-files.js"
 
 const PAYMENT_URI = "file:///workspace/src/main/resources/bpmn/payment.bpmn"
@@ -11,6 +12,7 @@ const SHIPPING_URI = "file:///workspace/src/main/resources/bpmn/shipping.bpmn"
 function source(files: Readonly<Record<string, string>> = {}): BpmnModelSource {
   return new BpmnModelSource(
     new MemoryFiles({ [PAYMENT_URI]: paymentXml, [SHIPPING_URI]: shippingXml, ...files }),
+    DIALECTS,
   )
 }
 
@@ -100,6 +102,28 @@ describe("the BPMN model source", () => {
       implementation: { kind: "workerTask", taskType: "book-carrier" },
       inputs: [{ target: "address", source: "=order.address" }],
       outputs: [{ target: "bookingId", source: "=booking.id" }],
+      errors: [],
+    })
+  })
+
+  test("reads a model that names both vendor namespaces with the descriptor of the marked one", async () => {
+    const migrated = [
+      '<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"',
+      ' xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0">',
+      '<bpmn:process id="migrated"><bpmn:serviceTask id="Activity_Charge"><bpmn:extensionElements>',
+      '<zeebe:taskDefinition type="charge-payment" />',
+      '<zeebe:ioMapping><zeebe:input source="=order.total" target="amount" /></zeebe:ioMapping>',
+      "</bpmn:extensionElements></bpmn:serviceTask></bpmn:process></bpmn:definitions>",
+    ].join("")
+    const models = source({ "file:///workspace/a/migrated.bpmn": migrated })
+    const model = await models.modelOf(BpmnProcessId("migrated"))
+    const element =
+      model === undefined ? undefined : await models.elementIn(model, ElementId("Activity_Charge"))
+
+    expect(element?.configuration).toEqual({
+      implementation: { kind: "workerTask", taskType: "charge-payment" },
+      inputs: [{ target: "amount", source: "=order.total" }],
+      outputs: [],
       errors: [],
     })
   })

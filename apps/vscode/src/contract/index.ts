@@ -76,6 +76,7 @@ export type {
   SetupField,
   SetupValues,
 } from "./ports/engine-setup.js"
+export type { BpmnDialect, ImplementationRule, MappingRule } from "./ports/bpmn-dialect.js"
 export type { CodeLocator } from "./ports/code-locator.js"
 export type { ModelSource } from "./ports/model-source.js"
 export type {

@@ -1,7 +1,10 @@
 import type {
+  BpmnDialect,
   BpmnProcessId,
   ElementConfiguration,
   ElementId,
+  ImplementationRule,
+  MappingRule,
   ModelElement,
   ModelFile,
   ModelSource,
@@ -18,9 +21,20 @@ const MODEL_GLOB = "**/*.bpmn"
 const MAX_MODELS = 500
 
 export class BpmnModelSource implements ModelSource {
-  private readonly parser = new ModelParser()
+  private readonly parser: ModelParser
+  private readonly implementations: readonly ImplementationRule[]
+  private readonly mappings: readonly MappingRule[]
+  private readonly errorDefinitions: ReadonlySet<string>
 
-  constructor(private readonly files: WorkspaceFiles) {}
+  constructor(
+    private readonly files: WorkspaceFiles,
+    dialects: readonly BpmnDialect[],
+  ) {
+    this.parser = new ModelParser(dialects)
+    this.implementations = dialects.flatMap((dialect) => dialect.implementations)
+    this.mappings = dialects.flatMap((dialect) => dialect.mappings)
+    this.errorDefinitions = new Set(dialects.flatMap((dialect) => dialect.errorDefinitions))
+  }
 
   async modelOf(bpmnProcessId: BpmnProcessId): Promise<ModelFile | undefined> {
     const uris = [...(await this.files.find(MODEL_GLOB, MAX_MODELS))].sort()
@@ -57,12 +71,12 @@ export class BpmnModelSource implements ModelSource {
   }
 
   private configurationOf(parsed: ParseResult, element: ModdleElement): ElementConfiguration {
-    const implementation = ImplementationReader.of(element)
+    const implementation = ImplementationReader.of(element, this.implementations)
     return {
       ...(implementation === undefined ? {} : { implementation }),
-      inputs: MappingReader.of(element, "inputParameters"),
-      outputs: MappingReader.of(element, "outputParameters"),
-      errors: ErrorReader.of(parsed, element),
+      inputs: MappingReader.of(element, this.mappings, "inputs"),
+      outputs: MappingReader.of(element, this.mappings, "outputs"),
+      errors: ErrorReader.of(parsed, element, this.errorDefinitions),
     }
   }
 }

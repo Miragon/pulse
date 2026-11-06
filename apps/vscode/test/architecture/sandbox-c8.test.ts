@@ -5,6 +5,7 @@ import { BoardParser } from "../../src/core/boards/board-parser.js"
 import { TargetsParser } from "../../src/host/connections/targets-parser.js"
 import { StackFrames } from "../../src/host/panels/stack-frames.js"
 import { WorkspaceCodeLocator } from "../../src/model/code/workspace-code-locator.js"
+import { DIALECTS } from "../model/support/dialects.js"
 import { MemoryFiles } from "../model/support/memory-files.js"
 import { APP_ROOT } from "./support/files.js"
 import { CATALOGUE } from "../host/support/engines.js"
@@ -101,7 +102,7 @@ describe("the Camunda 8 sandbox", () => {
   })
 
   test("opens the worker of every job type the seed runs, and only two job types have none", async () => {
-    const locator = new WorkspaceCodeLocator(sandboxFiles())
+    const locator = new WorkspaceCodeLocator(sandboxFiles(), DIALECTS)
     const found = await Promise.all(
       jobTypes().map(async (taskType) => {
         const location = await locator.locate({ kind: "workerTask", taskType })
@@ -132,7 +133,7 @@ describe("the Camunda 8 sandbox", () => {
         return lineAt(uri, frame.sourceLine).trim()
       }),
     )
-    const locator = new WorkspaceCodeLocator(files)
+    const locator = new WorkspaceCodeLocator(files, DIALECTS)
     const classes = StackFrames.classesIn(trace)
       .map((mention) => mention.className)
       .filter((className) => className.startsWith("io.miragon."))
