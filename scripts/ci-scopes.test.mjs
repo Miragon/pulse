@@ -158,6 +158,10 @@ describe("scopesFor: paths outside the packages", () => {
       "typescript",
     ])
   })
+
+  it("runs nothing beyond the always-on checks for the shared editor settings", () => {
+    assert.deepEqual(scopes(".vscode/settings.json", ".vscode/extensions.json"), [])
+  })
 })
 
 describe("scopesFor fails closed", () => {
