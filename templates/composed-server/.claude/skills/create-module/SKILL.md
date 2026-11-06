@@ -175,7 +175,8 @@ Then document every var from `knownEnvVars` in `.env.example`.
 undocumented var, or a documented var no module reads).
 
 The e2e tests (`server/test/widget-contract.e2e.test.ts`,
-`server/test/strict-input.e2e.test.ts`) need no edit either: they boot the
+`server/test/strict-input.e2e.test.ts`,
+`server/test/tool-annotations.e2e.test.ts`) need no edit either: they boot the
 composed server in-process and cover your module by naming convention and on
 every toolset it declares.
 

@@ -177,7 +177,7 @@ caller identity: passthrough engine auth and the per-caller caches key on it.
 | `MCP_MAX_BODY_BYTES`                        | Request-body cap (default 4 MiB; larger bodies get 413 before they are read)                                                   |
 | `MCP_METRICS_TOKEN`                         | Bearer token `/metrics` requires (default: open)                                                                               |
 | `MCP_USE_OAUTH_*`                           | One OAuth provider's variables (see `.env.example`), needs `MCP_URL`, the only caller identity                                 |
-| `MCP_ACTIVE_MODULES`                        | Modules (default: all), e.g. `engine:operations,notes`; no suffix: read-only, OAuth → standard                                 |
+| `MCP_ACTIVE_MODULES`                        | Modules (default: all), e.g. `engine:operations,notes`; no suffix: read-only floor, OAuth → standard; no toolsets: every tool  |
 | `ENGINE_*`, `PROMETHEUS_URL`, `NOTES_TITLE` | Module config, see `.env.example` for the full list                                                                            |
 
 ## Deploying

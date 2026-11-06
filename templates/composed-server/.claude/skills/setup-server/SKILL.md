@@ -31,8 +31,8 @@ so a rendered notes widget proves server, widget bundle, and inspector work.
 Then read the boot log: every warning there is actionable (unknown env var,
 missing Prometheus URL, engine auth problems), and one info line
 (`[acme-mcp] Toolsets: engine:read-only (default without OAuth), …`) states
-what each module may do, read-only until you widen it or set up OAuth
-(Step 3).
+what each module may do: one with toolsets is read-only until you widen it
+or set up OAuth (Step 3), one shown as `(no toolsets)` registers every tool.
 
 ## Step 2: connect the engine and Prometheus
 

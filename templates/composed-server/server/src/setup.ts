@@ -24,7 +24,8 @@ export type ModuleDefinition = ComposableModule<SharedResources>
 /**
  * The modules THIS server composes; the boot selects, warns and wires them. Adding a module
  * touches this list and the spread in `src/ui/view-registry.ts` next to its `workspace:*`
- * dependency (the `create-module` skill walks through them). `test/strict-input.e2e.test.ts` and
+ * dependency (the `create-module` skill walks through them). `test/toolset-selections.ts` (the
+ * boots of the strict-input and tool-annotations guards), `test/strict-input.e2e.test.ts` and
  * `test/env-example.test.ts` read this list, so your module is covered without a test edit.
  */
 export const MODULES: readonly ModuleDefinition[] = [engineModule, analyticsModule, notesModule]
