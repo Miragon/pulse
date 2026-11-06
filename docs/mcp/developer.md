@@ -51,6 +51,7 @@ While you iterate: `pnpm test:one <file...>`, then the package and what depends 
 `pnpm exec turbo run typecheck test lint --filter=...<pkg>`, then `pnpm check`. A tool change
 refreshes the goldens with `pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server golden:update`.
 `pnpm dev` and `pnpm play` bind 127.0.0.1; `pnpm start` and Docker listen on all interfaces.
+To debug, press F5 in VS Code (`.vscode/launch.json`) or run any command in a JavaScript Debug Terminal.
 
 Mutation testing covers `@miragon/pulse-engine-core` only (`MUTATED_PACKAGES`), nightly, never on a
 pull request: `pnpm --fail-if-no-match --filter @miragon/pulse-engine-core exec stryker run`.
