@@ -45,6 +45,7 @@ const NEWEST_ELEMENTS_FIRST = [
   { field: "startDate", order: "DESC" },
   { field: "elementInstanceKey", order: "DESC" },
 ]
+const IN_SUBSCRIPTION_ORDER = [{ field: "messageSubscriptionKey", order: "ASC" }]
 
 export class RestCamundaClient implements CamundaClient {
   constructor(private readonly http: CamundaHttp) {}
@@ -141,6 +142,14 @@ export class RestCamundaClient implements CamundaClient {
     )
   }
 
+  elementInstance(key: string): Promise<ElementInstanceView | undefined> {
+    return this.unlessMissing(async () =>
+      CamundaViews.elementInstance(
+        JsonObject.of(await this.http.get(`/element-instances/${key}`), "element instance"),
+      ),
+    )
+  }
+
   jobsOf(instanceKey: string, elementInstanceKeys: readonly string[]): Promise<Rows<JobView>> {
     return this.inChunks(elementInstanceKeys, (keys) =>
       this.rowsAfter(
@@ -175,6 +184,7 @@ export class RestCamundaClient implements CamundaClient {
           processInstanceKey: instanceKey,
           messageSubscriptionState: { $in: OPEN_SUBSCRIPTIONS },
         },
+        sort: IN_SUBSCRIPTION_ORDER,
       },
       (json) => CamundaViews.messageSubscription(json),
     )

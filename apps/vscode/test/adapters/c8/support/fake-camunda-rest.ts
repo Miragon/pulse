@@ -56,6 +56,22 @@ export function searchOf(body: string): SearchBody {
   return JSON.parse(body) as SearchBody
 }
 
+export function matchingIn(
+  rows: readonly Readonly<Record<string, unknown>>[],
+): (body: string) => unknown {
+  return (body) => {
+    const conditions = Object.entries(searchOf(body).filter)
+    return page(
+      rows.filter((row) =>
+        conditions.every(([field, condition]) => {
+          const among = (condition as { readonly $in?: readonly unknown[] }).$in
+          return among === undefined || among.includes(row[field])
+        }),
+      ),
+    )
+  }
+}
+
 export function pagedByCursor(rows: readonly unknown[]): (body: string) => unknown {
   return (body) => {
     const { limit, after } = searchOf(body).page

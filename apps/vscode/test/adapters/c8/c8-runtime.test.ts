@@ -396,6 +396,37 @@ describe("its element statistics", () => {
     ])
   })
 
+  test.each([
+    ["a call activity", `<bpmn:callActivity id="Container" />`],
+    [
+      "an embedded sub-process",
+      `<bpmn:subProcess id="Container"><bpmn:serviceTask id="Inner" /></bpmn:subProcess>`,
+    ],
+  ])(
+    "keep the counts of %s as the cluster gives them while its own incidents pass the search's cap",
+    async (_container, markup) => {
+      const { runtime } = runtimeWith([
+        TOPOLOGY,
+        {
+          route: "POST /process-definitions/100/statistics/element-instances",
+          answer: { items: [{ elementId: "Container", active: 4, incidents: 12_000 }] },
+        },
+        {
+          route: "GET /process-definitions/100/xml",
+          answer: new Response(`<bpmn:definitions>${markup}</bpmn:definitions>`),
+        },
+        {
+          route: "POST /incidents/search",
+          answer: page([], { totalItems: 10_000, hasMoreTotalItems: true }),
+        },
+      ])
+
+      expect(await runtime.getElementStatistics(DefinitionId("100"))).toEqual([
+        { elementId: "Container", active: 4, incidents: 12_000, incidentsInCalledInstances: 0 },
+      ])
+    },
+  )
+
   test("pass the rows on as they are while the diagram is missing", async () => {
     const { camunda, runtime } = runtimeWith([
       TOPOLOGY,

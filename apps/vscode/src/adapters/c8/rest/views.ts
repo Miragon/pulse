@@ -68,6 +68,7 @@ export type JobView = {
   readonly kind: string | undefined
   readonly elementInstanceKey: string | undefined
   readonly retries: number | undefined
+  readonly createdAt: string | undefined
 }>
 
 export type UserTaskView = {
@@ -79,6 +80,7 @@ export type UserTaskView = {
 
 export type MessageSubscriptionView = {
   readonly elementInstanceKey: string
+  readonly elementId: string
 } & PresentFields<{
   readonly messageName: string | undefined
   readonly correlationKey: string | undefined

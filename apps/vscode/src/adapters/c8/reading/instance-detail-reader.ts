@@ -26,12 +26,13 @@ import {
   type VariableView,
 } from "../rest/index.js"
 import type { Diagrams } from "./diagrams.js"
+import { ElementScopes } from "./element-scopes.js"
 import { WaitStateReader, type MemberReads } from "./wait-state-reader.js"
 
 const MOST_CALLED_INSTANCES = 50
 const MOST_INCIDENTS = 200
 const MOST_VARIABLES = 1000
-const MEMBERS_AT_ONCE = 8
+const READS_AT_ONCE = 8
 const NOT_ON_THE_PATH: ReadonlySet<string> = new Set(["PROCESS", "SEQUENCE_FLOW"])
 const CANCELED = "TERMINATED"
 
@@ -55,11 +56,14 @@ interface TreeReads {
 export class InstanceDetailReader {
   private readonly waits: WaitStateReader
 
+  private readonly scopes: ElementScopes
+
   constructor(
     private readonly client: CamundaClient,
     diagrams: Diagrams,
   ) {
     this.waits = new WaitStateReader(diagrams)
+    this.scopes = new ElementScopes(client)
   }
 
   async read(instanceId: InstanceId): Promise<InstanceDetail | undefined> {
@@ -70,13 +74,9 @@ export class InstanceDetailReader {
     const called = await this.calledOf(instance)
     const reads = await this.readsOf(instance, called.instances)
     const path = [...reads.history.items].reverse()
-    const elements = new Map(
-      [...path, ...reads.members.flatMap((member) => member.active)].map(
-        (element) => [element.key, element] as const,
-      ),
-    )
+    const elements = await this.elementsOf(path, reads, instance)
     const waits = await InstanceDetailReader.fewAtOnce(reads.members, (member) =>
-      this.waits.of(member),
+      this.waits.of(member, reads.incidents.items),
     )
     return {
       instance: InstanceSummaries.of(instance),
@@ -135,10 +135,10 @@ export class InstanceDetailReader {
       this.client.userTasks(instance.key),
       this.client.messageSubscriptions(instance.key),
     ])
-    const jobs = await this.client.jobsOf(
+    const jobs = await this.client.jobsOf(instance.key, [
       instance.key,
-      active.items.map((element) => element.key),
-    )
+      ...active.items.map((element) => element.key),
+    ])
     return {
       instance,
       active: active.items,
@@ -147,6 +147,29 @@ export class InstanceDetailReader {
       subscriptions: subscriptions.items,
       cut: [active, jobs, tasks, subscriptions].some((rows) => rows.cut),
     }
+  }
+
+  private async elementsOf(
+    path: readonly ElementInstanceView[],
+    reads: TreeReads,
+    instance: InstanceView,
+  ): Promise<ReadonlyMap<string, ElementInstanceView>> {
+    const elements = new Map(
+      [...path, ...reads.members.flatMap((member) => member.active)].map(
+        (element) => [element.key, element] as const,
+      ),
+    )
+    const scopeKeys = new Set(reads.variables.map((variable) => variable.scopeKey))
+    const missing = Keys.only([...scopeKeys]).filter(
+      (key) => key !== instance.key && !elements.has(key),
+    )
+    const found = await InstanceDetailReader.fewAtOnce(missing, (key) => this.scopes.of(key))
+    for (const scope of found) {
+      if (scope !== undefined) {
+        elements.set(scope.key, scope)
+      }
+    }
+    return elements
   }
 
   private async incidentJobsOf(
@@ -183,7 +206,7 @@ export class InstanceDetailReader {
         }
       }
     }
-    await Promise.all(Array.from({ length: MEMBERS_AT_ONCE }, worker))
+    await Promise.all(Array.from({ length: READS_AT_ONCE }, worker))
     return results
   }
 

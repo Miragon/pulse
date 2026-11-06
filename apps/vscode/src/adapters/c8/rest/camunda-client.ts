@@ -30,6 +30,7 @@ export interface CamundaClient {
   instance(key: string): Promise<InstanceView | undefined>
   elementHistory(instanceKey: string): Promise<Rows<ElementInstanceView>>
   activeElements(instanceKey: string): Promise<Rows<ElementInstanceView>>
+  elementInstance(key: string): Promise<ElementInstanceView | undefined>
   jobsOf(instanceKey: string, elementInstanceKeys: readonly string[]): Promise<Rows<JobView>>
   jobsByKey(jobKeys: readonly string[]): Promise<Rows<JobView>>
   userTasks(instanceKey: string): Promise<Rows<UserTaskView>>

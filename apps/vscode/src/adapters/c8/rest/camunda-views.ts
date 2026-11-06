@@ -100,6 +100,7 @@ export class CamundaViews {
         kind: json.optionalString("kind"),
         elementInstanceKey: json.optionalString("elementInstanceKey"),
         retries: json.optionalNumber("retries"),
+        createdAt: json.optionalString("creationTime"),
       }),
     }
   }
@@ -117,6 +118,7 @@ export class CamundaViews {
   static messageSubscription(json: JsonObject): MessageSubscriptionView {
     return {
       elementInstanceKey: json.requiredString("elementInstanceKey"),
+      elementId: json.requiredString("elementId"),
       ...Present.fields({
         messageName: json.optionalString("messageName"),
         correlationKey: json.optionalString("correlationKey"),

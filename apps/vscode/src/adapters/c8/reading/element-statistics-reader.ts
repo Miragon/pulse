@@ -43,12 +43,15 @@ export class ElementStatisticsReader {
     container: ContainerText | undefined,
   ): Promise<ElementStatistics> {
     if (row.incidents === 0 || container === undefined) {
-      return ElementStatisticsReader.statistic(row.elementId, row.active, row.incidents, 0)
+      return ElementStatisticsReader.unsplit(row)
     }
     const raisedHere = await this.client.incidents(
       { processDefinitionKey: definitionId, elementId: row.elementId },
       { limit: 0 },
     )
+    if (raisedHere.capped) {
+      return ElementStatisticsReader.unsplit(row)
+    }
     const raisedInside = Math.max(row.incidents - raisedHere.total, 0)
     return ElementStatisticsReader.statistic(
       row.elementId,
@@ -56,6 +59,10 @@ export class ElementStatisticsReader {
       raisedHere.total,
       container.callsProcess ? raisedInside : 0,
     )
+  }
+
+  private static unsplit(row: ElementStatisticsView): ElementStatistics {
+    return ElementStatisticsReader.statistic(row.elementId, row.active, row.incidents, 0)
   }
 
   private static statistic(

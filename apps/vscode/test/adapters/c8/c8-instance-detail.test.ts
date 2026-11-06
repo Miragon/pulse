@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest"
 import { BpmnProcessId, DefinitionId, IncidentId, InstanceId } from "../../../src/contract/index.js"
 import {
+  matchingIn,
   page,
   pagedByCursor,
   problem,
@@ -306,7 +307,14 @@ describe("its instance detail", () => {
     {
       route: "POST /message-subscriptions/search",
       when: (body) => body.includes('"processInstanceKey":"1"'),
-      answer: page([{ elementInstanceKey: "15", messageName: "Paid", correlationKey: "ORD-1" }]),
+      answer: page([
+        {
+          elementInstanceKey: "15",
+          elementId: "Pay",
+          messageName: "Paid",
+          correlationKey: "ORD-1",
+        },
+      ]),
     },
     { route: "POST /message-subscriptions/search", answer: page([]) },
     {
@@ -353,6 +361,7 @@ describe("its instance detail", () => {
         { name: "big", value: '"cut', isTruncated: true, scopeKey: "404", processInstanceKey: "1" },
       ]),
     },
+    { route: "GET /element-instances/404", answer: problem(404, "NOT_FOUND", "missing") },
     {
       route: "GET /process-definitions/100/xml",
       answer: new Response(
@@ -490,9 +499,9 @@ describe("its instance detail", () => {
       expect.arrayContaining([
         {
           processInstanceKey: "1",
-          elementInstanceKey: { $in: ["12", "13", "14", "15", "16", "17", "18"] },
+          elementInstanceKey: { $in: ["1", "12", "13", "14", "15", "16", "17", "18"] },
         },
-        { processInstanceKey: "2", elementInstanceKey: { $in: ["20"] } },
+        { processInstanceKey: "2", elementInstanceKey: { $in: ["2", "20"] } },
       ]),
     )
     expect(searchesOf(camunda, "POST /user-tasks/search").map((search) => search.filter)).toEqual(
@@ -524,7 +533,7 @@ describe("its instance detail", () => {
     const { camunda, runtime } = runtimeWith(
       aloneWaiting({
         active: [],
-        jobs: page([job("70", "10", { type: "charge", state: "FAILED", retries: 0 })]),
+        jobs: matchingIn([job("70", "10", { type: "charge", state: "FAILED", retries: 0 })]),
         incidents: page([
           { ...incident, jobKey: "70" },
           { ...incident, incidentKey: "8", errorType: "IO_MAPPING_ERROR", errorMessage: null },
@@ -540,6 +549,7 @@ describe("its instance detail", () => {
     ])
     expect(detail?.incidents[1]).not.toHaveProperty("job")
     expect(searchesOf(camunda, "POST /jobs/search").map((search) => search.filter)).toEqual([
+      { processInstanceKey: "1", elementInstanceKey: { $in: ["1"] } },
       { jobKey: { $in: ["70"] } },
     ])
   })
@@ -730,6 +740,7 @@ describe("its wait states", () => {
               ? [
                   {
                     elementInstanceKey: "10",
+                    elementId: "AwaitPayment",
                     messageName: "Payment received",
                     correlationKey: "ORD-1",
                   },
@@ -778,10 +789,9 @@ describe("its wait states", () => {
     const { camunda, runtime } = runtimeWith(
       aloneWaiting({
         active,
-        jobs: (body: string) => {
-          const keys = (searchOf(body).filter.elementInstanceKey as { readonly $in: string[] }).$in
-          return page(keys.map((key) => job(`${key}0`, key)))
-        },
+        jobs: matchingIn(
+          active.map((each) => job(`${each.elementInstanceKey}0`, each.elementInstanceKey)),
+        ),
       }),
     )
 
@@ -796,7 +806,223 @@ describe("its wait states", () => {
           (search) => (search.filter.elementInstanceKey as { readonly $in: string[] }).$in.length,
         )
         .toSorted((left, right) => left - right),
-    ).toEqual([1, 1000])
+    ).toEqual([2, 1000])
+  })
+
+  test("wait at the process for a start listener job on the process itself", async () => {
+    const { camunda, runtime } = runtimeWith(
+      aloneWaiting({
+        active: [],
+        jobs: matchingIn([
+          job("50", "1", {
+            type: "audit-before",
+            kind: "EXECUTION_LISTENER",
+            listenerEventType: "START",
+            state: "COMPLETED",
+          }),
+          job("51", "1", {
+            type: "audit",
+            kind: "EXECUTION_LISTENER",
+            listenerEventType: "START",
+            creationTime: "2026-11-05T10:00:00.500Z",
+          }),
+        ]),
+      }),
+    )
+
+    const detail = await runtime.getInstanceDetail(InstanceId("1"))
+
+    expect(detail?.waitStates).toEqual([
+      {
+        instanceId: "1",
+        elementId: "order",
+        elementName: "Order",
+        kind: "workerTask",
+        taskType: "audit",
+        retriesLeft: 3,
+        since: "2026-11-05T10:00:00.500Z",
+      },
+    ])
+    expect(detail?.path).toEqual([])
+    expect(searchesOf(camunda, "POST /jobs/search").map((search) => search.filter)).toEqual([
+      { processInstanceKey: "1", elementInstanceKey: { $in: ["1"] } },
+    ])
+  })
+
+  test("wait at the process for its failed end listener, with the incident", async () => {
+    const { camunda, runtime } = runtimeWith(
+      aloneWaiting({
+        active: [],
+        jobs: matchingIn([
+          job("60", "1", {
+            type: "notify-end",
+            kind: "EXECUTION_LISTENER",
+            listenerEventType: "END",
+            state: "FAILED",
+            retries: 0,
+          }),
+        ]),
+        incidents: page([
+          {
+            incidentKey: "9",
+            processInstanceKey: "1",
+            processDefinitionKey: "100",
+            elementId: "order",
+            elementInstanceKey: "1",
+            errorType: "EXECUTION_LISTENER_NO_RETRIES",
+            errorMessage: "the notifier is down",
+            creationTime: "2026-11-05T10:05:00.000Z",
+            jobKey: "60",
+          },
+        ]),
+      }),
+    )
+
+    const detail = await runtime.getInstanceDetail(InstanceId("1"))
+
+    expect(detail?.waitStates).toEqual([
+      {
+        instanceId: "1",
+        elementId: "order",
+        elementName: "Order",
+        kind: "workerTask",
+        taskType: "notify-end",
+        retriesLeft: 0,
+        incidentId: "9",
+      },
+    ])
+    expect(detail?.incidents).toEqual([
+      expect.objectContaining({ id: "9", retriesLeft: 0, job: { id: "60", type: "notify-end" } }),
+    ])
+    expect(searchesOf(camunda, "POST /jobs/search")).toHaveLength(1)
+  })
+
+  test("wait at a container that holds an incident of its own and no job", async () => {
+    const { runtime } = runtimeWith(
+      aloneWaiting({
+        active: [
+          element("10", "Notify", "MULTI_INSTANCE_BODY", { incidentKey: "7" }),
+          element("11", "Label", "CALL_ACTIVITY", { incidentKey: "8" }),
+          element("12", "Prepare", "SUB_PROCESS", { incidentKey: "9" }),
+          element("13", "Ship", "SUB_PROCESS", { hasIncident: true }),
+          element("14", "Pack", "SERVICE_TASK", { incidentKey: "10" }),
+        ],
+        jobs: matchingIn([job("70", "14", { type: "pack", state: "FAILED", retries: 0 })]),
+        subscriptions: page([
+          {
+            elementInstanceKey: "12",
+            elementId: "PrepareCanceled",
+            messageName: "Order canceled",
+          },
+        ]),
+        incidents: page([
+          {
+            incidentKey: "9",
+            processInstanceKey: "1",
+            processDefinitionKey: "100",
+            elementId: "Prepare",
+            elementInstanceKey: "12",
+            errorType: "IO_MAPPING_ERROR",
+            errorMessage: "no variable found with name 'address'",
+            creationTime: "2026-11-05T10:00:00.000Z",
+          },
+        ]),
+      }),
+    )
+
+    const detail = await runtime.getInstanceDetail(InstanceId("1"))
+
+    expect(detail?.waitStates.map((wait) => [wait.elementId, wait.kind, wait.incidentId])).toEqual([
+      ["Notify", "other", "7"],
+      ["Label", "other", "8"],
+      ["Prepare", "other", "9"],
+      ["Pack", "workerTask", "10"],
+    ])
+    expect(detail?.waitStates[2]).toMatchObject({ description: "SUB_PROCESS" })
+    expect(detail?.incidents).toEqual([
+      expect.objectContaining({ id: "9", elementId: "Prepare", type: "IO_MAPPING_ERROR" }),
+    ])
+  })
+
+  test("take only an element's own message subscription, never one of its boundary events", async () => {
+    const { camunda, runtime } = runtimeWith([
+      ...aloneWaiting({
+        active: [
+          element("10", "AwaitPayment", "RECEIVE_TASK"),
+          element("11", "Charge", "SERVICE_TASK", { incidentKey: "7" }),
+        ],
+        jobs: matchingIn([job("50", "11", { type: "charge", state: "ERROR_THROWN", retries: 0 })]),
+        subscriptions: page([
+          {
+            elementInstanceKey: "10",
+            elementId: "PaymentCanceled",
+            messageName: "Order canceled",
+            correlationKey: "ORD-1",
+          },
+          {
+            elementInstanceKey: "10",
+            elementId: "AwaitPayment",
+            messageName: "Payment received",
+            correlationKey: "ORD-1",
+          },
+          {
+            elementInstanceKey: "11",
+            elementId: "ChargeCanceled",
+            messageName: "Order canceled",
+            correlationKey: "ORD-1",
+          },
+        ]),
+      }),
+      {
+        route: "GET /process-definitions/100/xml",
+        answer: new Response(
+          `<bpmn:receiveTask id="AwaitPayment" messageRef="Paid" />
+           <bpmn:serviceTask id="Charge" />`,
+        ),
+      },
+    ])
+
+    const detail = await runtime.getInstanceDetail(InstanceId("1"))
+
+    expect(detail?.waitStates).toEqual([
+      expect.objectContaining({
+        elementId: "AwaitPayment",
+        kind: "message",
+        messageName: "Payment received",
+        correlationKey: "ORD-1",
+      }),
+      expect.objectContaining({
+        elementId: "Charge",
+        kind: "other",
+        description: "SERVICE_TASK",
+        incidentId: "7",
+      }),
+    ])
+    expect(searchesOf(camunda, "POST /message-subscriptions/search")[0]?.sort).toEqual([
+      { field: "messageSubscriptionKey", order: "ASC" },
+    ])
+  })
+
+  test("read an event-based gateway as the message of the first event after it", async () => {
+    const { runtime } = runtimeWith(
+      aloneWaiting({
+        active: [element("10", "Choose", "EVENT_BASED_GATEWAY")],
+        subscriptions: page([
+          { elementInstanceKey: "10", elementId: "Paid", messageName: "Payment received" },
+          { elementInstanceKey: "10", elementId: "Canceled", messageName: "Order canceled" },
+        ]),
+      }),
+    )
+
+    const detail = await runtime.getInstanceDetail(InstanceId("1"))
+
+    expect(detail?.waitStates).toEqual([
+      expect.objectContaining({
+        elementId: "Choose",
+        kind: "message",
+        messageName: "Payment received",
+      }),
+    ])
   })
 })
 
@@ -913,6 +1139,7 @@ describe("its called tree", () => {
         },
       },
       { route: "POST /element-instances/search", answer: page([]) },
+      { route: "POST /jobs/search", answer: page([]) },
       { route: "POST /user-tasks/search", answer: page([]) },
       { route: "POST /message-subscriptions/search", answer: page([]) },
       { route: "POST /incidents/search", answer: page([]) },
@@ -952,6 +1179,7 @@ describe("its called tree", () => {
         },
       },
       { route: "POST /element-instances/search", answer: page([]) },
+      { route: "POST /jobs/search", answer: page([]) },
       { route: "POST /user-tasks/search", answer: page([]) },
       { route: "POST /message-subscriptions/search", answer: page([]) },
       { route: "POST /incidents/search", answer: page([]) },
@@ -979,15 +1207,32 @@ describe("its long history", () => {
     return new Date(FIRST_START + index * 1000).toISOString()
   }
 
-  function historyOf(count: number) {
+  function pollKey(index: number): string {
+    return String(100_001 + index)
+  }
+
+  function poll(index: number) {
+    return element(pollKey(index), "Poll", "SERVICE_TASK", {
+      state: "COMPLETED",
+      startDate: startOf(index + 1),
+      endDate: startOf(index + 1),
+    })
+  }
+
+  function lookedUp(camunda: FakeCamundaRest): string[] {
+    const prefix = "GET /element-instances/"
+    return camunda.requests
+      .filter((request) => request.route.startsWith(prefix))
+      .map((request) => request.route.slice(prefix.length))
+  }
+
+  function historyOf(
+    count: number,
+    variables?: readonly unknown[],
+    lookups: readonly RestRoute[] = [],
+  ) {
     const review = element("100000", "Review", "USER_TASK", { startDate: startOf(0) })
-    const polls = Array.from({ length: count - 2 }, (_, index) =>
-      element(String(100_001 + index), "Poll", "SERVICE_TASK", {
-        state: "COMPLETED",
-        startDate: startOf(index + 1),
-        endDate: startOf(index + 1),
-      }),
-    )
+    const polls = Array.from({ length: count - 2 }, (_, index) => poll(index))
     const tick = element(String(100_000 + count - 1), "Tick", "INTERMEDIATE_CATCH_EVENT", {
       startDate: startOf(count - 1),
     })
@@ -1013,9 +1258,12 @@ describe("its long history", () => {
       { route: "POST /incidents/search", answer: page([]) },
       {
         route: "POST /variables/search",
-        answer: page([variable("note", "100000"), variable("attempt", tick.elementInstanceKey)]),
+        answer: page(
+          variables ?? [variable("note", "100000"), variable("attempt", tick.elementInstanceKey)],
+        ),
       },
       { route: "GET /process-definitions/100/xml", answer: new Response(TIMER_XML) },
+      ...lookups,
     ])
   }
 
@@ -1057,5 +1305,87 @@ describe("its long history", () => {
     expect(detail?.path).toHaveLength(10_000)
     expect(detail?.path.at(0)).toMatchObject({ elementId: "Review", startedAt: startOf(0) })
     expect(historyLimitsOf(camunda)).toEqual(TWENTY_PAGES)
+  })
+
+  test("looks up the element of a local variable on a run past the cut, and only there", async () => {
+    const { camunda, runtime } = historyOf(
+      10_500,
+      [
+        variable("orderId", "1"),
+        variable("attempt", pollKey(0)),
+        variable("attempt", pollKey(1)),
+        variable("lastAttempt", pollKey(1)),
+        variable("attempt", pollKey(498)),
+        variable("attempt", pollKey(499)),
+        variable("note", "100000"),
+      ],
+      [0, 1, 498].map((index) => ({
+        route: `GET /element-instances/${pollKey(index)}`,
+        answer: poll(index),
+      })),
+    )
+
+    const detail = await runtime.getInstanceDetail(InstanceId("1"))
+
+    expect(detail?.variables.map((each) => [each.name, each.scope])).toEqual([
+      ["orderId", { kind: "instance" }],
+      ["attempt", { kind: "element", elementId: "Poll" }],
+      ["attempt", { kind: "element", elementId: "Poll" }],
+      ["lastAttempt", { kind: "element", elementId: "Poll" }],
+      ["attempt", { kind: "element", elementId: "Poll" }],
+      ["attempt", { kind: "element", elementId: "Poll" }],
+      ["note", { kind: "element", elementId: "Review" }],
+    ])
+    expect(lookedUp(camunda).toSorted()).toEqual([pollKey(0), pollKey(1), pollKey(498)])
+    expect(detail?.path).toHaveLength(10_000)
+    expect(detail?.truncated).toBe(true)
+  })
+
+  test("looks the element of a past run up once, not again on the next read", async () => {
+    const { camunda, runtime } = historyOf(
+      10_500,
+      [variable("attempt", pollKey(0)), variable("attempt", pollKey(1))],
+      [0, 1].map((index) => ({
+        route: `GET /element-instances/${pollKey(index)}`,
+        answer: poll(index),
+      })),
+    )
+
+    await runtime.getInstanceDetail(InstanceId("1"))
+    const again = await runtime.getInstanceDetail(InstanceId("1"))
+
+    expect(again?.variables.map((each) => each.scope)).toEqual([
+      { kind: "element", elementId: "Poll" },
+      { kind: "element", elementId: "Poll" },
+    ])
+    expect(lookedUp(camunda).toSorted()).toEqual([pollKey(0), pollKey(1)])
+  })
+
+  test("keeps the element of every local variable of the oldest runs, eight lookups at a time", async () => {
+    const reading = { now: 0, most: 0 }
+    const lookups = Array.from({ length: 499 }, (_, index) => ({
+      route: `GET /element-instances/${pollKey(index)}`,
+      answer: async () => {
+        reading.now += 1
+        reading.most = Math.max(reading.most, reading.now)
+        await new Promise((resolve) => setTimeout(resolve, 5))
+        reading.now -= 1
+        return poll(index)
+      },
+    }))
+    const { camunda, runtime } = historyOf(
+      10_500,
+      Array.from({ length: 1000 }, (_, index) => variable("attempt", pollKey(index))),
+      lookups,
+    )
+
+    const detail = await runtime.getInstanceDetail(InstanceId("1"))
+
+    expect(detail?.variables.map((each) => each.scope)).toEqual(
+      Array.from({ length: 1000 }, () => ({ kind: "element", elementId: "Poll" })),
+    )
+    expect(lookedUp(camunda)).toHaveLength(499)
+    expect(reading.most).toBe(8)
+    expect(detail?.truncated).toBe(true)
   })
 })
