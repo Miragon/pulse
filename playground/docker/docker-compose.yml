@@ -120,7 +120,7 @@ services:
 
   # Prometheus: scrapes the Collector's process metrics.
   prometheus:
-    image: prom/prometheus:v3.1.0
+    image: prom/prometheus:v3.15.1
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.retention.time=30d"
