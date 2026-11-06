@@ -44,7 +44,15 @@ export default miragonDocs({
         { text: "Usage", link: "/mcp/usage" },
         { text: "Tools and settings", link: "/mcp/reference" },
         { text: "Operations", link: "/mcp/operations" },
-        { text: "Upgrading", link: "/mcp/upgrading" },
+        {
+          text: "Upgrading",
+          link: "/mcp/upgrading",
+          collapsed: true,
+          items: [
+            { text: "To 0.26", link: "/mcp/upgrading-to-0-26" },
+            { text: "To 0.25", link: "/mcp/upgrading-to-0-25" },
+          ],
+        },
         { text: "Architecture", link: "/mcp/architecture" },
         { text: "Developer guide", link: "/mcp/developer" },
       ],

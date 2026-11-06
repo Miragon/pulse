@@ -10,7 +10,7 @@ engine-side database. Those series are what the [analytics module](../packages/c
 
 From 0.25 every meter is named `engine.*` (Prometheus `engine_*`); up to 0.24 the names started
 with `camunda`. Upgrade the plugin and the Pulse server together, and port your own alert rules and
-dashboards: [Upgrading](../docs/mcp/upgrading.md) lists every old name and a scrape-time rename
+dashboards: [Upgrading to 0.25](../docs/mcp/upgrading-to-0-25.md#metric-names) lists every old name and a scrape-time rename
 for engines that upgrade later.
 
 Published to **Maven Central** as `io.miragon.mcp:cibseven-history-metrics` (released via

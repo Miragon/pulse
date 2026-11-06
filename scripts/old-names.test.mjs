@@ -49,8 +49,8 @@ const RULES = [
   },
   // OAuth comes from mcp-use's own provider variables (MCP_USE_OAUTH_*); the server refuses
   // to boot while the retired JSON variable is set, so a doc or a config that still names it
-  // sends an operator into a failed boot. Only the refusal and the operations page's upgrade
-  // note name it (ALLOWED).
+  // sends an operator into a failed boot. Only the refusal and the 0.25 upgrade page name it
+  // (ALLOWED).
   { name: "retired MCP_OAUTH", pattern: /\bMCP_OAUTH\b/ },
   // Pulse grew out of the @miragon/mcp-toolkit-* packages and owns what it used: the registrar,
   // the view meta and the server i18n are @miragon/pulse-widget-shell/server, the design kit
@@ -158,12 +158,6 @@ const ALLOWED = [
     reason: "the npm README points to the archived repository of operate (up to 0.10.0)",
   },
   {
-    file: "docs/mcp/operations.md",
-    rules: ["retired MCP_OAUTH"],
-    section: /^#{2,6} Security\b/,
-    reason: "the upgrade note names the retired variable an operator unsets",
-  },
-  {
     file: "packages/core/widget-shell/src/oauth-env.ts",
     rules: ["retired MCP_OAUTH"],
     reason: "the boot refuses the retired variable and says what replaces it",
@@ -184,7 +178,7 @@ const ALLOWED = [
     reason: "the refusal table's own test",
   },
   {
-    file: "docs/mcp/upgrading.md",
+    file: "docs/mcp/upgrading-to-0-25.md",
     rules: [
       "retired camunda7_ tool prefix",
       "retired camunda7 module",
@@ -192,9 +186,10 @@ const ALLOWED = [
       "retired server variable",
       "retired metric name",
       "retired public name",
+      "retired MCP_OAUTH",
+      "retired toolkit package",
     ],
-    section: /^#{2,6} Renamed\b/,
-    reason: "the migration table names every retired name next to its replacement",
+    reason: "the page of the release that retired them names each next to its replacement",
   },
   {
     file: "apps/mcp-server/README.md",

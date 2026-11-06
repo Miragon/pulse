@@ -123,7 +123,7 @@ everything it ships carries the Pulse name:
   `mcp__miragon-ai__*` or `mcp__automation-mcp__*` need `mcp__pulse__*`.
 - Engine access logs: the client's User-Agent was `@miragon/pulse-camunda7-client/<version>` (was
   `@miragon-ai/camunda7-client/0.1.0`); it is `@miragon/pulse-engine-client/<version>` since 0.25,
-  see [Upgrading](../../docs/mcp/upgrading.md).
+  see [Upgrading to 0.25](../../docs/mcp/upgrading-to-0-25.md).
 - Local Keycloak (`--profile auth`): the pre-registered client is `pulse-server` with secret
   `pulse-secret`; recreate the container to re-import the realm.
 - Repo: GitHub redirects the old URL; `git remote set-url origin git@github.com:Miragon/pulse.git`

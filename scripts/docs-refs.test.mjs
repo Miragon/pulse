@@ -310,7 +310,10 @@ const DOCS_BUDGETS = {
   "mcp/architecture.md": 150,
   "mcp/developer.md": 80,
   "mcp/operations.md": 120,
-  "mcp/upgrading.md": 120,
+  // The upgrading index and one page per release that asks something of you.
+  "mcp/upgrading.md": 40,
+  "mcp/upgrading-to-0-25.md": 170,
+  "mcp/upgrading-to-0-26.md": 50,
   "mcp/usage.md": 150,
   "mcp/reference.md": 160,
   // The CLI's pages (docs/cli/).

@@ -44,10 +44,6 @@ names its toolsets. Deploying a BPMN/DMN is **code execution inside the engine J
 (`ENGINE_AUTH_TYPE=passthrough`) forwards each caller's token to the engine (never to Prometheus),
 for a trusted single-audience setup only: the engine could replay it here.
 
-**Upgrading from the OAuth JSON variable.** `MCP_OAUTH` now fails the boot: in one deploy, unset it
-and move its keycloak `serverUrl` and `realm` to `MCP_USE_OAUTH_KEYCLOAK_SERVER_URL` and
-`MCP_USE_OAUTH_KEYCLOAK_REALM`, its auth0 `domain` to `MCP_USE_OAUTH_AUTH0_DOMAIN`.
-
 ## Environment variables
 
 | Variable                                               | Default                             | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
@@ -73,7 +69,7 @@ and move its keycloak `serverUrl` and `realm` to `MCP_USE_OAUTH_KEYCLOAK_SERVER_
 | `ANALYTICS_ENGINE_IDS`                                 | unset                               | Comma-separated `engine_id`s analytics may read, only for a boot without the engine module; with it active its configured engine ids scope analytics and this is ignored. With neither, every analytics tool refuses (fail-closed), so a shared Prometheus never exposes other teams' engines                                                                                                                                                                                                                                                                   |
 
 Unknown `ENGINE_*`/`ENGINES_*`/`MCP_*` variables warn at boot, a setting renamed from the old module
-name fails it ([Upgrading](upgrading.md)); mcp-use telemetry is off (`MCP_USE_ANONYMIZED_TELEMETRY=true` opts in). The engine container takes `METRICS_ENABLED`,
+name fails it ([Upgrading to 0.25](upgrading-to-0-25.md)); mcp-use telemetry is off (`MCP_USE_ANONYMIZED_TELEMETRY=true` opts in). The engine container takes `METRICS_ENABLED`,
 `ENGINE_ID` (must match the server's engine id, or that engine's analytics come back empty),
 `OTEL_EXPORTER_OTLP_ENDPOINT`/`OTEL_SERVICE_NAME` and, per node of a clustered engine, `OTEL_RESOURCE_ATTRIBUTES=service.instance.id=<node>`.
 
