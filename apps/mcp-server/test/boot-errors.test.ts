@@ -29,6 +29,11 @@ describe("the boot refuses a setting it cannot use, before it logs the toolsets"
       "ENGINE_BASE_URL: Expected an http:// or https:// URL of the REST API root, e.g. http://localhost:8410/engine-rest",
     ],
     [
+      "a Prometheus URL without a scheme",
+      { PROMETHEUS_URL: "localhost:8460" },
+      "PROMETHEUS_URL must be an http:// or https:// URL, e.g. http://localhost:9090",
+    ],
+    [
       "an unknown module",
       { MCP_ACTIVE_MODULES: "engines:operations,analytic" },
       '[pulse] MCP_ACTIVE_MODULES names the unknown modules "engines", "analytic", so the server does not start without the modules it asks for. Known modules: engine, analytics.',
