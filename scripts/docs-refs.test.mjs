@@ -24,6 +24,9 @@ import { fullSurface, metricVocabulary } from "./tool-surface.mjs"
  * The product page https://miragon.ai/tools/pulse/ is built from
  * Miragon/miragon-ai-docs, which checks its own tool names against this repo
  * (scripts/check-miragon-ai-refs.mjs there).
+ *
+ * The template's upgrade-pulse skill finds a release on the mirror by the subject of its sync
+ * commit, which this guard holds to sync-template-mirror.yml.
  */
 
 const TEMPLATE_ROOT = path.join(REPO_ROOT, "templates", "composed-server")
@@ -386,6 +389,58 @@ describe("docs page budgets", () => {
       assert.ok(count <= lines, `docs/${page} has ${count} lines, its budget is ${lines}`)
     })
   }
+})
+
+/**
+ * The upgrade-pulse skill finds a release on the mirror by the subject sync-template-mirror.yml
+ * commits it under (`--grep=' v0.25.0$'`), and no pull request runs that workflow: the subject
+ * ends in the tag, and every grep of the skill finds it. The broken lookups, as messages.
+ */
+const MIRROR_SKILL = "templates/composed-server/.claude/skills/upgrade-pulse/SKILL.md"
+const MIRROR_WORKFLOW = ".github/workflows/sync-template-mirror.yml"
+const TAG_VARIABLE = "${TAG}"
+
+function mirrorLookupFindings(workflow, skill) {
+  const subjects = [...workflow.matchAll(/git commit -m "([^"]+)"/g)].map((match) => match[1])
+  if (subjects.length !== 1) {
+    return [`${MIRROR_WORKFLOW} commits ${subjects.length} times, not once`]
+  }
+  const subject = subjects[0] ?? ""
+  if (!subject.endsWith(` ${TAG_VARIABLE}`)) {
+    return [`${MIRROR_WORKFLOW} commits as "${subject}", which does not end in ${TAG_VARIABLE}`]
+  }
+  const greps = [...skill.matchAll(/--grep='( v(\d+\.\d+\.\d+)\$)'/g)]
+  if (greps.length === 0) return [`${MIRROR_SKILL} looks up no release with --grep`]
+  // git's --grep is a basic regular expression; ` v0.25.0$` reads the same in JavaScript.
+  return greps
+    .filter(([, pattern = "", version]) => {
+      const written = subject.replace(TAG_VARIABLE, `v${version}`)
+      return !new RegExp(pattern).test(written)
+    })
+    .map(([, pattern]) => `${MIRROR_SKILL}: --grep='${pattern}' finds no "${subject}"`)
+}
+
+describe("the mirror commit the upgrade skill looks for", () => {
+  const read = (rel) => fs.readFileSync(path.join(REPO_ROOT, rel), "utf8")
+
+  it("is the one the mirror's sync writes", () => {
+    assert.deepEqual(mirrorLookupFindings(read(MIRROR_WORKFLOW), read(MIRROR_SKILL)), [])
+  })
+
+  it("fails on a subject not ending in the tag, a second commit, a skill without the grep", () => {
+    const skill = "git log pulse-starter/main --format=%H --grep=' v0.25.0$'"
+    const commit = (subject) => `run: git commit -m "${subject}"`
+    const synced = commit(`chore: sync from Miragon/pulse ${TAG_VARIABLE}`)
+    assert.deepEqual(mirrorLookupFindings(synced, skill), [])
+    for (const [workflow, text] of [
+      [commit(`chore: sync ${TAG_VARIABLE} from Miragon/pulse`), skill],
+      [commit("chore: sync from Miragon/pulse"), skill],
+      [`${synced}\n${synced}`, skill],
+      [synced, "git log pulse-starter/main --grep=v0.25.0"],
+    ]) {
+      assert.equal(mirrorLookupFindings(workflow, text).length, 1, `${workflow} | ${text}`)
+    }
+  })
 })
 
 describe("what the guard reads", () => {
