@@ -179,7 +179,7 @@ function shownIfId(value: unknown): string {
  * drop a block of engines. Only depth-1 keys count: entries repeat "id" by design.
  * Runs on text JSON.parse accepted, so every depth-1 string before a colon is a key.
  */
-function assertUniqueTopLevelKeys(rawText: string): void {
+function assertUniqueTopLevelKeys(rawText: string, source: string): void {
   if (!rawText.trimStart().startsWith("{")) return
   const seen = new Set<string>()
   let depth = 0
@@ -194,7 +194,7 @@ function assertUniqueTopLevelKeys(rawText: string): void {
       if (depth === 1 && rawText[k] === ":") {
         if (seen.has(key)) {
           throw new Error(
-            `Engine config: duplicate environment key ${shownIfId(key)}. JSON keeps only the LAST duplicate, silently dropping the other block's engines. Merge the blocks into one array.`,
+            `${source}: duplicate environment key ${shownIfId(key)}. JSON keeps only the LAST duplicate, silently dropping the other block's engines. Merge the blocks into one array.`,
           )
         }
         seen.add(key)
@@ -212,12 +212,12 @@ function assertUniqueTopLevelKeys(rawText: string): void {
  * Accepts the array form or the map form `{"prod-eu": [{id, baseUrl}]}`, whose keys
  * are stamped as `environment`. A contradicting per-entry `environment` is an error.
  */
-function normalizeEnginesConfig(raw: unknown): unknown {
+function normalizeEnginesConfig(raw: unknown, variable: string): unknown {
   if (Array.isArray(raw) || typeof raw !== "object" || raw === null) return raw
   return Object.entries(raw).flatMap(([environment, engines]) => {
     if (!Array.isArray(engines)) {
       throw new Error(
-        `Engine config environment ${shownIfId(environment)} must map to an ARRAY of engine entries, but got ${typeof engines}. Environment-map form: {"<environment>": [{id, baseUrl, …}, …], …}.`,
+        `${variable}: environment ${shownIfId(environment)} must map to an ARRAY of engine entries, but got ${typeof engines}. Environment-map form: {"<environment>": [{id, baseUrl, …}, …], …}.`,
       )
     }
     return engines.map((engine: unknown) => {
@@ -225,7 +225,7 @@ function normalizeEnginesConfig(raw: unknown): unknown {
         const own = (engine as { environment?: unknown }).environment
         if (own !== undefined && own !== environment) {
           throw new Error(
-            `Engine config: entry under environment ${shownIfId(environment)} carries a contradicting environment ${shownIfId(own)}. Drop the per-entry field or move the entry.`,
+            `${variable}: an entry under environment ${shownIfId(environment)} carries a contradicting environment ${shownIfId(own)}. Drop the per-entry field or move the entry.`,
           )
         }
         return { ...engine, environment }
@@ -290,7 +290,7 @@ function loadEngineSource(env: NodeJS.ProcessEnv): EngineSource {
 
 /** A parsed JSON list, normalized, with each entry's place as written for the config errors. */
 function listSource(raw: unknown, variable: string, separator = ""): EngineSource {
-  const engines = normalizeEnginesConfig(raw)
+  const engines = normalizeEnginesConfig(raw, variable)
   return { engines, origin: listOrigin(raw, variable, separator, shownIfId) }
 }
 
@@ -330,7 +330,7 @@ function parseEnginesConfig(text: string, source: string, hidden: string): unkno
       `${source} is not valid JSON${parsed.at}; ${hidden} is not shown because it may hold credentials. ${parseHint(text)}`,
     )
   }
-  assertUniqueTopLevelKeys(text)
+  assertUniqueTopLevelKeys(text, source)
   return parsed.value
 }
 

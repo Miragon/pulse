@@ -85,6 +85,26 @@ describe("engineModule.configFromEnv names the variable a setting came from", ()
     expect(message).not.toContain("s3cret")
   })
 
+  it("names the variable for an environment map of the wrong shape", () => {
+    const entry = { id: "a", baseUrl: "http://a/engine-rest" }
+    expect(errorOf({ ENGINES_JSON: json({ prod: entry }) }).message).toMatch(
+      /^ENGINES_JSON: environment "prod" must map to an ARRAY of engine entries, but got object\./,
+    )
+    expect(
+      errorOf({ ENGINES_JSON: json({ prod: [{ ...entry, environment: "dev" }] }) }).message,
+    ).toMatch(
+      /^ENGINES_JSON: an entry under environment "prod" carries a contradicting environment "dev"\./,
+    )
+    expect(errorOf({ ENGINES_JSON: '{"prod":[],"prod":[]}' }).message).toMatch(
+      /^ENGINES_JSON: duplicate environment key "prod"\./,
+    )
+    const file = path.join(dir, "map.json")
+    fs.writeFileSync(file, json({ prod: entry }))
+    expect(errorOf({ ENGINES_FILE: file }).message).toContain(
+      `ENGINES_FILE=${file}: environment "prod" must map to an ARRAY`,
+    )
+  })
+
   it("names ENGINES_FILE and its path, then the entry", () => {
     const file = path.join(dir, "engines.json")
     fs.writeFileSync(file, json([{ id: "a", baseUrl: "http://a/engine-rest" }, { id: "b" }]))
