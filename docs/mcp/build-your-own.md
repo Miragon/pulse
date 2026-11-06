@@ -29,8 +29,11 @@ Open the inspector at `http://localhost:8400/mcp/inspector` and call the tool th
 notes of the example module `modules/mcp-notes`: its widget renders without an engine. Copying
 that module is how you start yours.
 
-Pulse is below 1.0, so any release can change the `@miragon/pulse-*` packages: keep the starter's
-exact pins, update all of them together, and read the
+Your repository does not update itself: watch the starter's
+[releases](https://github.com/Miragon/pulse-starter/releases) on GitHub (Watch → Custom → Releases)
+to learn of a new version. Each one names its Pulse release and links the starter's changes since
+the version before. Pulse is below 1.0, so any release can change the `@miragon/pulse-*` packages:
+keep the starter's exact pins, update all of them together, and read the
 [changelog](https://github.com/Miragon/pulse/blob/main/CHANGELOG.md) for every breaking change.
 
 ## Next steps
