@@ -104,9 +104,10 @@ jobs:
           pnpm test
           echo "WORK=$WORK" >> "$GITHUB_ENV"
 
-      # No other job builds the starter's Dockerfile: scripts/test-template.sh has
-      # no lockfile in the build context and docker-build.yml builds the root
-      # image. $WORK holds the lockfile the mirror commits, and the template's
+      # No other job builds the starter's Dockerfile: scripts/test-template.sh runs
+      # no docker build (its lockfile points at local tarballs outside the context)
+      # and docker-build.yml builds the root image. $WORK holds the lockfile the
+      # mirror commits, resolved from the public registry, and the template's
       # .dockerignore drops the node_modules and dist the step above left there.
       # A Dockerfile that fails here never reaches a new starter.
       - name: Build the template's Docker image
@@ -156,8 +157,9 @@ jobs:
           } > mirror/README.tmp
           mv mirror/README.tmp mirror/README.md
 
-      # Ends early when the tree is already up to date (a rerun, or a release
-      # that left the template alone); the tag and release step still runs.
+      # Ends early when the tree is already up to date, which only a rerun of the
+      # same tag can find: the banner names ${TAG} and every release bumps the
+      # template's pins. The tag and release step below still runs.
       - name: Commit and push
         env:
           TAG: ${{ inputs.tag_name }}
@@ -210,7 +212,7 @@ jobs:
           {
             echo "The starter as of [Miragon/pulse ${TAG}](https://github.com/Miragon/pulse/releases/tag/${TAG})."
             echo ""
-            echo "- What changed in Pulse: the [release notes](https://github.com/Miragon/pulse/releases/tag/${TAG}) and the [changelog](https://github.com/Miragon/pulse/blob/${TAG}/CHANGELOG.md), which lists every breaking change."
+            echo "- What changed in Pulse: the [changelog](https://github.com/Miragon/pulse/blob/${TAG}/CHANGELOG.md), which lists every breaking change."
             if [ -n "$prev" ]; then
               echo "- What changed in the starter: [${prev}...${TAG}](https://github.com/${mirror}/compare/${prev}...${TAG})."
             fi
