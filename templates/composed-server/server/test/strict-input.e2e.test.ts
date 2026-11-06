@@ -92,7 +92,10 @@ describe("strict tool inputs on the wire (every module, every toolset)", () => {
     expect(
       silent,
       "modules in MODULES that listed no tool named <module>_… on any toolset: name a module's " +
-        "tools after it (create-module skill, Step 4), and register them in its plugin's register",
+        "tools after it (create-module skill, Step 4), and register them in its plugin's " +
+        "register. Or the module registers no tool under the tests' neutral env: a plugin with " +
+        "no tool, or tools gated on config test/neutral-env.ts does not set (give it a stand-in " +
+        "value there, as for ENGINE_BASE_URL)",
     ).toEqual([])
   })
 

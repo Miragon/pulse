@@ -65,8 +65,8 @@ external infrastructure.
    the spread in `ui/view-registry.ts`) plus the `workspace:*` dependency;
    the `create-module` skill walks through all of them, and through removing
    the example module. The guard tests in `server/test/` follow `MODULES`, so
-   neither needs a test edit; only `example-notes.test.ts` names the example,
-   and it goes with it. Tailwind scans
+   adding a module and removing the example need no guard-test edit; only
+   `example-notes.test.ts` names the example, and it goes with it. Tailwind scans
    workspace modules via the `modules/*/src` glob in `ui/globals.css`; only
    npm-installed module packages need their own `@source` line.
 2. **Plain tools go through `createToolRegistrar`, never raw `server.tool()`**:

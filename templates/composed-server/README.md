@@ -172,9 +172,10 @@ interface, and wire the module into the server: the `workspace:*` dependency
 in `server/package.json`, the module list and the view registry. The
 `create-module` skill walks through every step, and the guard tests fail
 loudly if a wiring step is missed. They derive what they check from the
-module list, so a module you add, replace or drop needs no test edit. Once
-your own module stands, remove the example: the skill's "Remove the example
-module" lists each place.
+module list, so a module you add, replace or drop needs no edit to the guard
+tests; only `example-notes.test.ts` goes with the example. Once your own
+module stands, remove the example: the skill's "Remove the example module"
+lists each place.
 
 A widget takes its UI from the design kit `@miragon/pulse-ui` (primitives,
 `WidgetHeader`, `KpiGrid`, the table cells, the formatters, the theme) and

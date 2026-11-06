@@ -130,7 +130,10 @@ silently unstyled).
 This file is the documented exception that calls `server.tool()` directly.
 Model both tools on `modules/mcp-notes/src/widget-tools.ts`:
 
-- **`show_*` tool**: spread `...showToolBinding(name, title)` (from
+- **`show_*` tool**: annotate it `{ readOnlyHint: true, idempotentHint: true }`:
+  a host that strips `structuredContent` re-runs it once, unasked
+  (`server/test/view-registry.test.ts` holds this). Spread
+  `...showToolBinding(name, title)` (from
   `@miragon/pulse-widget-shell/server`). It binds the mcp-use view, the
   passthrough `outputSchema`, and the Apps-SDK `_meta` half. **Never hand-write
   `_meta.ui.*` keys**; mcp-use owns and overwrites that namespace. Return

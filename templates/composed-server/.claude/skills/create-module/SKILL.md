@@ -234,15 +234,16 @@ own module stands, take the example out in one change:
    import.
 3. `server/package.json`: drop the `@acme/mcp-notes` dependency and the notes
    in `description`; delete `modules/mcp-notes`, then `pnpm install`.
-4. `.env.example`: drop the Notes block (`NOTES_TITLE`) and `notes` from the
-   `MCP_ACTIVE_MODULES` comment.
+4. `.env.example`: drop the Notes block (`NOTES_TITLE`) and every other
+   `notes` mention (the `MCP_ACTIVE_MODULES` comment and its example).
 5. `server/src/app.ts`: `SERVER_INSTRUCTIONS` tells the model the server holds
    team notes; say what yours does.
 6. Delete `server/test/example-notes.test.ts`, the one test that names the
    example.
-7. The smoke checks that call `notes_show_notes` (`CLAUDE.md` → Verification,
-   the `setup-server` skill's Step 1, the README's Quickstart) take a show
-   tool of yours.
+7. The smoke checks that name `notes_show_notes` (`CLAUDE.md` → Commands and
+   Verification, the `setup-server` skill's Step 1, the README's Quickstart)
+   take a show tool of yours, and the README's Configuration names your
+   module where it names notes (the toolset prose and the variable table).
 
 Then run Step 7's bar. The other guard tests follow `MODULES`, so they need no
 edit. The same holds for a Pulse module you leave out: dropping analytics is
