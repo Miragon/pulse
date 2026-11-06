@@ -1,4 +1,5 @@
 import { C7Adapter } from "../adapters/c7/index.js"
+import { C8Adapter } from "../adapters/c8/index.js"
 import type { LocalSources } from "../core/index.js"
 import { BpmnModelSource, WorkspaceCodeLocator } from "../model/index.js"
 import {
@@ -22,7 +23,7 @@ export class CompositionRoot implements EngineFactories {
   constructor(private readonly adapters: EngineAdapters) {}
 
   static create(): CompositionRoot {
-    return new CompositionRoot({ c7: new C7Adapter() })
+    return new CompositionRoot({ c7: new C7Adapter(), c8: new C8Adapter() })
   }
 
   runtime(target: EngineTarget, credentials: Credentials): ProcessRuntime {
@@ -37,6 +38,15 @@ export class CompositionRoot implements EngineFactories {
     return TargetPolicy.refusal(target, credentials) === undefined
       ? this.adapters[target.engine].commands(this.connectionOf(target, credentials))
       : undefined
+  }
+
+  canWrite(target: EngineTarget): boolean {
+    return (
+      this.adapters[target.engine].commands({
+        endpoint: target.endpoint,
+        credentials: { kind: "none" },
+      }) !== undefined
+    )
   }
 
   webUi(target: EngineTarget): EngineWebUi | undefined {
@@ -57,8 +67,21 @@ export class CompositionRoot implements EngineFactories {
   }
 
   private engineCredentials(target: EngineTarget, credentials: Credentials): EngineCredentials {
-    return target.auth.kind === "basic" && credentials.kind === "basic"
-      ? credentials
-      : { kind: "none" }
+    const { auth } = target
+    if (auth.kind === "basic" && credentials.kind === "basic") {
+      return credentials
+    }
+    if (auth.kind === "clientCredentials" && credentials.kind === "clientCredentials") {
+      const { tokenEndpoint, audience, scopes } = auth
+      return {
+        kind: "clientCredentials",
+        tokenEndpoint,
+        clientId: credentials.clientId,
+        clientSecret: credentials.clientSecret,
+        ...(audience === undefined ? {} : { audience }),
+        ...(scopes === undefined ? {} : { scopes }),
+      }
+    }
+    return { kind: "none" }
   }
 }

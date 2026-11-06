@@ -1,0 +1,20 @@
+{
+  "about": "Scopes for client credentials as one string instead of a list; Pulse for VS Code sends the scopes to the token endpoint.",
+  "file": {
+    "profiles": {
+      "c8-entra": {
+        "url": "https://c8.example.com/v2",
+        "flavor": "camunda8",
+        "auth": {
+          "type": "clientCredentials",
+          "tokenEndpoint": "https://login.example.com/oauth2/v2.0/token",
+          "scopes": "api://pulse/.default"
+        }
+      }
+    }
+  },
+  "cli": {
+    "valid": false,
+    "error": "profile \"c8-entra\" has an invalid auth.scopes"
+  }
+}

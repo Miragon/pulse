@@ -1,15 +1,23 @@
 {
+  "invalid-auth-audience-blank": {
+    "targets": [],
+    "problems": ["profile \"c8-saas\" needs an auth.audience that is not blank"]
+  },
   "invalid-auth-client-secret-env": {
     "targets": ["local"],
     "problems": []
   },
   "invalid-auth-mix": {
     "targets": [],
-    "problems": ["profile \"local\" needs an auth type Pulse supports (none, basic or oauth)"]
+    "problems": [
+      "profile \"local\" needs an auth type Pulse supports (none, basic, oauth or clientCredentials)"
+    ]
   },
   "invalid-auth-not-object": {
     "targets": [],
-    "problems": ["profile \"local\" needs an auth type Pulse supports (none, basic or oauth)"]
+    "problems": [
+      "profile \"local\" needs an auth type Pulse supports (none, basic, oauth or clientCredentials)"
+    ]
   },
   "invalid-auth-oauth-keys-basic-type": {
     "targets": ["local"],
@@ -17,9 +25,15 @@
   },
   "invalid-auth-oauth-without-type": {
     "targets": [],
-    "problems": ["profile \"local\" needs an auth type Pulse supports (none, basic or oauth)"]
+    "problems": [
+      "profile \"local\" needs an auth type Pulse supports (none, basic, oauth or clientCredentials)"
+    ]
   },
   "invalid-auth-one-endpoint": {
+    "targets": ["local"],
+    "problems": []
+  },
+  "invalid-auth-password": {
     "targets": ["local"],
     "problems": []
   },
@@ -27,9 +41,11 @@
     "targets": ["local"],
     "problems": []
   },
-  "invalid-auth-password": {
-    "targets": ["local"],
-    "problems": []
+  "invalid-auth-scopes-not-list": {
+    "targets": [],
+    "problems": [
+      "profile \"c8-entra\" needs auth.scopes as a list of distinct scopes, such as [\"api://pulse/.default\"]"
+    ]
   },
   "invalid-auth-token-command": {
     "targets": [],
@@ -41,7 +57,9 @@
   },
   "invalid-auth-type-not-string": {
     "targets": [],
-    "problems": ["profile \"local\" needs an auth type Pulse supports (none, basic or oauth)"]
+    "problems": [
+      "profile \"local\" needs an auth type Pulse supports (none, basic, oauth or clientCredentials)"
+    ]
   },
   "invalid-auth-unknown-key": {
     "targets": ["local"],
@@ -79,15 +97,15 @@
   },
   "invalid-flavor-not-string": {
     "targets": [],
-    "problems": ["profile \"local\" needs a flavor of camunda7, cibseven or operaton"]
+    "problems": ["profile \"local\" needs a flavor of camunda7, cibseven, operaton or camunda8"]
   },
   "invalid-flavor-padded": {
     "targets": [],
-    "problems": ["profile \"local\" needs a flavor of camunda7, cibseven or operaton"]
+    "problems": ["profile \"local\" needs a flavor of camunda7, cibseven, operaton or camunda8"]
   },
   "invalid-flavor-unknown": {
     "targets": [],
-    "problems": ["profile \"local\" uses the flavor camunda8, which Pulse does not support yet"]
+    "problems": ["profile \"local\" uses the flavor zeebe, which Pulse does not support yet"]
   },
   "invalid-headers-secret": {
     "targets": ["local"],
@@ -170,10 +188,10 @@
   "valid-auth-type-refused-on-use": {
     "targets": [],
     "problems": [
-      "profile \"kerberos\" needs an auth type Pulse supports (none, basic or oauth)",
-      "profile \"blank\" needs an auth type Pulse supports (none, basic or oauth)",
-      "profile \"padded\" needs an auth type Pulse supports (none, basic or oauth)",
-      "profile \"oauth-kerberos\" needs an auth type Pulse supports (none, basic or oauth)"
+      "profile \"kerberos\" needs an auth type Pulse supports (none, basic, oauth or clientCredentials)",
+      "profile \"blank\" needs an auth type Pulse supports (none, basic, oauth or clientCredentials)",
+      "profile \"padded\" needs an auth type Pulse supports (none, basic, oauth or clientCredentials)",
+      "profile \"oauth-kerberos\" needs an auth type Pulse supports (none, basic, oauth or clientCredentials)"
     ]
   },
   "valid-cockpit-refused-on-use": {
@@ -204,6 +222,10 @@
   },
   "valid-every-profile-key": {
     "targets": ["shop"],
+    "problems": []
+  },
+  "valid-flavor-camunda8": {
+    "targets": ["c8-local", "c8-saas", "c7"],
     "problems": []
   },
   "valid-flavors": {

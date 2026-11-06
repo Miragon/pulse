@@ -78,6 +78,12 @@ function parsed(fixture: Fixture) {
 }
 
 function expectLikeTheCli(target: EngineTarget, profile: CliProfile | undefined): void {
+  if (target.engine === "c8") {
+    expect(profile, "the CLI has no adapter for a camunda8 profile").toMatchObject({
+      refused: expect.stringContaining("Camunda 8") as unknown,
+    })
+    return
+  }
   expect(profile, `the CLI refuses profile "${target.name}"`).not.toHaveProperty("refused")
   const resolved = profile as ResolvedProfile
   expect(target.endpoint).toBe(resolved.url)

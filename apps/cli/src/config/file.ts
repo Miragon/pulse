@@ -6,15 +6,15 @@ import type { FileSystem } from "../runtime.js"
 import { isRecord } from "../util.js"
 import { jsonErrorPosition } from "./json-position.js"
 import { profileAuthProblem } from "./auth.js"
-import { PROFILE_NAME } from "./syntax.js"
+import { isNonEmptyString, PROFILE_NAME } from "./syntax.js"
 import { configError } from "./config-error.js"
 import { isHeaderName, isHeaderValue } from "./headers.js"
-import { MAX_TIMEOUT_MS, isEngineName, isFlavor, isTimeout } from "./resolve.js"
+import { MAX_TIMEOUT_MS, isEngineName, isTimeout } from "./resolve.js"
 import {
   type ConfigFile,
   ENV,
   OUTPUT_FORMATS,
-  FLAVORS,
+  PROFILE_FLAVORS,
   PROFILE_KEYS,
   type Profile,
   type ProfileKey,
@@ -107,10 +107,6 @@ function checkKeys(
   }
 }
 
-function isNonEmptyString(value: unknown): boolean {
-  return typeof value === "string" && value.trim() !== ""
-}
-
 function isHeaderMap(value: unknown): boolean {
   return (
     isRecord(value) &&
@@ -130,7 +126,10 @@ const PROFILE_CHECKS: Readonly<Record<Exclude<ProfileKey, "auth">, Check>> = {
     "a URL such as http://localhost:8080/operaton/app/cockpit/default/",
   ],
   engine: [isEngineName, 'a process engine name, not "." or ".."'],
-  flavor: [isFlavor, `one of ${FLAVORS.join(", ")}`],
+  flavor: [
+    (value) => (PROFILE_FLAVORS as readonly unknown[]).includes(value),
+    `one of ${PROFILE_FLAVORS.join(", ")}`,
+  ],
   output: [
     (value) => OUTPUT_FORMATS.some((format) => format === value),
     OUTPUT_FORMATS.join(" or "),
@@ -222,7 +221,7 @@ export function parseConfigFile(text: string, path: string): ConfigFile {
 }
 
 /** `EACCES`, `EISDIR`, ... of a file system error, else its message. */
-function reasonOf(error: unknown): string {
+export function reasonOf(error: unknown): string {
   const code = isRecord(error) ? error.code : undefined
   if (typeof code === "string") return code
   return error instanceof Error ? error.message : String(error)
@@ -285,9 +284,12 @@ export async function writeConfigFile(
   config: ConfigFile,
   mode = 0o600,
 ): Promise<void> {
+  const text = serializeConfigFile(config)
+  // the CLI never writes a file it would refuse to read: CONFIG, nothing written
+  parseConfigFile(text, `${path} (not written)`)
   try {
     await fs.mkdir(dirname(path))
-    await fs.writeFile(path, serializeConfigFile(config), { mode })
+    await fs.writeFile(path, text, { mode })
   } catch (error) {
     throw ioError("write", path, error)
   }

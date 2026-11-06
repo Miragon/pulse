@@ -1,5 +1,6 @@
 import {
   BpmnProcessId,
+  RuntimeError,
   type EngineInfo,
   type ProcessCommands,
   type ProcessRuntime,
@@ -187,6 +188,40 @@ describe("the Engines tree following the active panel", () => {
     await tree.reveal({ engineName: "local-operaton", bpmnProcessId: ORDER })
 
     expect(view.revealed).toEqual([])
+  })
+})
+
+describe("the message below an engine in the Engines tree", () => {
+  test("says nothing is deployed or the login may not see it, as the engine overview does", async () => {
+    const text = "No process definitions deployed, or you may not have permission to see them."
+    const runtime = new PatchedRuntime(new FakeEngine(FakeWorld.seed().state), {
+      describeEngine: () => Promise.resolve(ENGINE),
+      listDefinitions: () => Promise.resolve([]),
+    })
+    const { tree } = treeOf(new FakeRegistry([connection(runtime)]))
+
+    const children = await tree.getChildren(await firstEngine(tree))
+
+    expect(children).toEqual([{ kind: "message", text, detail: "" }])
+    const item = tree.getTreeItem(children[0]!)
+    expect(item.label).toBe(text)
+    expect(item.tooltip).toBe(text)
+    expect(item.accessibilityInformation?.label).toBe(text)
+  })
+
+  test("shows a failed read as its problem, the detail as description and tooltip", async () => {
+    const runtime = new PatchedRuntime(new FakeEngine(FakeWorld.seed().state), {
+      describeEngine: () => Promise.resolve(ENGINE),
+      listDefinitions: () => Promise.reject(new RuntimeError("unreachable", "Connection refused.")),
+    })
+    const { tree } = treeOf(new FakeRegistry([connection(runtime)]))
+
+    const [message] = await tree.getChildren(await firstEngine(tree))
+    const item = tree.getTreeItem(message!)
+
+    expect(item.label).toBe("Can't reach local-operaton.")
+    expect(item.description).toBe("Connection refused.")
+    expect(item.tooltip).toBe("Connection refused.")
   })
 })
 

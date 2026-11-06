@@ -76,6 +76,8 @@ The CLI validates every value and writes the file with mode `0600`; you can also
   (see [Authentication](authentication.md)), `output`, `timeout`, `headers`, `readOnly`.
 - Profile names use letters, digits, `.`, `_` and `-` and start with a letter or digit.
 - URLs with credentials or a query string are rejected.
+- `pulse config` never writes a file it would refuse, and leaves an auth type it does not know to
+  you.
 
 ## Engines
 

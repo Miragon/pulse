@@ -118,7 +118,8 @@ Details: [using the CLI from AI agents](https://miragon.github.io/pulse/cli/agen
 
 The CLI works with Operaton, CIB seven and Camunda 7. Every change is tested against Operaton
 and CIB seven; Camunda 7 was tested with 7.24.0 until its image left Docker Hub in November 2026.
-Camunda 8 is not supported: it has a different API.
+Camunda 8 is not supported: it has a different API. A project file may still hold a `camunda8`
+profile for Pulse for VS Code; the CLI refuses it when you use it.
 
 Details: [engines](https://miragon.github.io/pulse/cli/engines).
 

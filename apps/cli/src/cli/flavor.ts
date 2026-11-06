@@ -4,7 +4,7 @@
  */
 
 import { resolveFlavor, selectProfile } from "../config/resolve.js"
-import type { Profile } from "../config/types.js"
+import type { UsableProfile } from "../config/types.js"
 import type { EngineAdapter } from "../engine-port/engine-adapter.js"
 import { ENGINES } from "../engines/index.js"
 import type { Runtime } from "../runtime.js"
@@ -16,12 +16,16 @@ import { loadConfig } from "./config-files.js"
  * The selected profile, or none when the config cannot be read: the command reports that problem
  * when it resolves its configuration, and commands such as `config set` must still run.
  */
-async function profileOf(argv: readonly string[], runtime: Runtime): Promise<Profile | undefined> {
+async function profileOf(
+  argv: readonly string[],
+  runtime: Runtime,
+): Promise<UsableProfile | undefined> {
   try {
     const files = await loadConfig(runtime, globalFromArgv(argv, "config"))
     const flags = compact({ profile: globalFromArgv(argv, "profile") })
     return selectProfile(flags, runtime.env, files.config).profile
   } catch {
+    // a Camunda 8 profile, too: selectProfile refuses it, and so does the command that uses it
     return undefined
   }
 }

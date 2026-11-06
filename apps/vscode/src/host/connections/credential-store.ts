@@ -20,7 +20,9 @@ export class CredentialStore {
     if (origin !== this.originOf(target)) {
       return { kind: "savedForAnotherEndpoint", savedFor: origin ?? "an unknown endpoint" }
     }
-    return { kind: "basic", username, password }
+    return target.auth.kind === "clientCredentials"
+      ? { kind: "clientCredentials", clientId: username, clientSecret: password }
+      : { kind: "basic", username, password }
   }
 
   async write(target: EngineTarget, username: string, password: string): Promise<void> {
@@ -39,6 +41,9 @@ export class CredentialStore {
   }
 
   private originOf(target: EngineTarget): string {
-    return new URL(target.endpoint).origin
+    const endpoint = new URL(target.endpoint).origin
+    return target.auth.kind === "clientCredentials"
+      ? `${endpoint} and ${new URL(target.auth.tokenEndpoint).origin}`
+      : endpoint
   }
 }

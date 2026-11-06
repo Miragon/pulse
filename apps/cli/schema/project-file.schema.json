@@ -44,8 +44,8 @@
           "not": { "pattern": "^\\s*\\.\\.?\\s*$" }
         },
         "flavor": {
-          "description": "The product behind the URL; camunda7 when absent.",
-          "enum": ["operaton", "cibseven", "camunda7"]
+          "description": "The product behind the URL; camunda7 when absent. Pulse for VS Code reads camunda8 profiles; the CLI refuses one when it is used.",
+          "enum": ["operaton", "cibseven", "camunda7", "camunda8"]
         },
         "auth": { "$ref": "#/definitions/auth" },
         "output": {
@@ -114,7 +114,7 @@
           "pattern": "\\S"
         },
         "tokenEndpoint": {
-          "description": "The OAuth token endpoint; only together with authorizationEndpoint.",
+          "description": "The OAuth token endpoint; only together with authorizationEndpoint, or alone with type clientCredentials.",
           "type": "string",
           "pattern": "\\S"
         },
@@ -165,7 +165,14 @@
         "tokenEndpoint": {
           "allOf": [
             { "$ref": "#/definitions/oauthType" },
-            { "type": "object", "required": ["authorizationEndpoint"] }
+            {
+              "if": {
+                "type": "object",
+                "required": ["type"],
+                "properties": { "type": { "const": "clientCredentials" } }
+              },
+              "else": { "type": "object", "required": ["authorizationEndpoint"] }
+            }
           ]
         },
         "clientId": { "$ref": "#/definitions/oauthType" },

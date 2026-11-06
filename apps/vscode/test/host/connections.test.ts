@@ -89,7 +89,7 @@ describe("parsing the profiles of .pulse-cli.json", () => {
     const content = JSON.stringify({
       profiles: {
         ok: { url: "http://localhost:8088/engine-rest", auth: { type: "oauth" } },
-        cluster: { url: "http://localhost:8088/v2", flavor: "camunda8" },
+        cluster: { url: "http://localhost:8088/v2", flavor: "zeebe" },
         named: { url: "http://localhost:8080/engine-rest", engine: "orders" },
         "bad-url": { url: "not a url" },
         bearer: { url: "http://localhost:8080/engine-rest", auth: { type: "bearer" } },
@@ -102,7 +102,7 @@ describe("parsing the profiles of .pulse-cli.json", () => {
     expect(parsed.targets.map((target) => target.name)).toEqual(["ok"])
     expect(parsed.targets[0]?.auth).toEqual({ kind: "oauth2" })
     expect(parsed.problems.map((problem) => problem.detail())).toEqual([
-      `${FILE}: profile "cluster" uses the flavor camunda8, which Pulse does not support yet`,
+      `${FILE}: profile "cluster" uses the flavor zeebe, which Pulse does not support yet`,
       `${FILE}: profile "named" names a process engine other than "default", which Pulse does not support yet`,
       `${FILE}: profile "bad-url" needs a url that is an http or https URL without credentials, query or fragment`,
       `${FILE}: profile "bearer" uses bearer auth, which Pulse does not support yet`,

@@ -1,0 +1,41 @@
+{
+  "about": "A Camunda 8 profile loads next to a Camunda 7 one: Pulse for VS Code reads it, and the CLI refuses it only when it is used.",
+  "file": {
+    "profiles": {
+      "c8-local": {
+        "url": "http://localhost:8080/v2",
+        "flavor": "camunda8",
+        "cockpitUrl": "http://localhost:8080/operate"
+      },
+      "c8-saas": {
+        "url": "https://bru-2.api.camunda.io/cluster/v2",
+        "flavor": "camunda8",
+        "auth": {
+          "type": "clientCredentials",
+          "tokenEndpoint": "https://login.cloud.camunda.io/oauth/token",
+          "audience": "zeebe.camunda.io"
+        }
+      },
+      "c7": {
+        "url": "http://localhost:8080/engine-rest"
+      }
+    }
+  },
+  "cli": {
+    "valid": true,
+    "profiles": {
+      "c8-local": {
+        "refused": "names Camunda 8"
+      },
+      "c8-saas": {
+        "refused": "names Camunda 8"
+      },
+      "c7": {
+        "url": "http://localhost:8080/engine-rest",
+        "flavor": "camunda7",
+        "readOnly": false,
+        "auth": "none"
+      }
+    }
+  }
+}

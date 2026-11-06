@@ -65,6 +65,9 @@ export class ConnectionBuilder {
     environment: Environment,
     writes: WritesSetting,
   ): Writes {
+    if (!this.engines.canWrite(target)) {
+      return { access: NO_ADAPTER }
+    }
     const access = WritePolicy.access(target, writes, credentials)
     const commands = access.writable ? this.engines.commands(target, credentials) : undefined
     if (commands === undefined) {

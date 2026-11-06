@@ -70,7 +70,7 @@ function givenFamilies(changes: AuthChanges): Family[] {
 }
 
 /** True when any auth option (type, Basic auth, OAuth or bearer token) was given. */
-function hasAuthOptions(changes: AuthChanges): boolean {
+export function hasAuthOptions(changes: AuthChanges): boolean {
   return changes.auth !== undefined || givenFamilies(changes).length > 0
 }
 

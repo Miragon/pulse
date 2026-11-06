@@ -46,7 +46,8 @@ class RecordingAdapter implements EngineAdapter {
 
 function rootWithRecorder() {
   const c7 = new RecordingAdapter("c7")
-  return { c7, root: new CompositionRoot({ c7 }) }
+  const c8 = new RecordingAdapter("c8")
+  return { c7, c8, root: new CompositionRoot({ c7, c8 }) }
 }
 
 describe("the composition root", () => {
@@ -84,6 +85,55 @@ describe("the composition root", () => {
       { kind: "none" },
       LOGIN,
     ])
+  })
+
+  test("hands a target to the adapter of its own engine kind only", () => {
+    const { c7, c8, root } = rootWithRecorder()
+    const target: EngineTarget = { ...C7_TARGET, engine: "c8" }
+
+    expect(root.runtime(target, NO_LOGIN)).toBe(c8.runtimeOfIt)
+    expect(c7.connections).toEqual([])
+  })
+
+  test("builds client credentials from the target and the stored client", () => {
+    const { c8, root } = rootWithRecorder()
+    const target: EngineTarget = {
+      ...C7_TARGET,
+      engine: "c8",
+      endpoint: "https://bru-2.api.camunda.io/cluster/v2",
+      auth: {
+        kind: "clientCredentials",
+        tokenEndpoint: "https://login.cloud.camunda.io/oauth/token",
+        audience: "zeebe.camunda.io",
+        scopes: ["read"],
+      },
+    }
+
+    root.runtime(target, { kind: "clientCredentials", clientId: "pulse", clientSecret: "s3cret" })
+    root.runtime(target, NO_LOGIN)
+
+    expect(c8.connections.map((connection) => connection.credentials)).toEqual([
+      {
+        kind: "clientCredentials",
+        tokenEndpoint: "https://login.cloud.camunda.io/oauth/token",
+        clientId: "pulse",
+        clientSecret: "s3cret",
+        audience: "zeebe.camunda.io",
+        scopes: ["read"],
+      },
+      { kind: "none" },
+    ])
+  })
+
+  test("asks the adapter of a target whether it can write at all", () => {
+    const readOnly = new RecordingAdapter("c8")
+    const root = new CompositionRoot({
+      c7: new RecordingAdapter("c7"),
+      c8: Object.assign(readOnly, { commands: () => undefined }),
+    })
+
+    expect(root.canWrite(C7_TARGET)).toBe(true)
+    expect(root.canWrite({ ...C7_TARGET, engine: "c8" })).toBe(false)
   })
 
   test("gives a refused target a failing runtime with the reason and no commands", async () => {

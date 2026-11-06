@@ -5,11 +5,12 @@
  */
 
 import { compact, mergeHeaders } from "../util.js"
-import { changedAuth, settleAuthorization } from "./auth-edit.js"
+import { changedAuth, hasAuthOptions, settleAuthorization } from "./auth-edit.js"
 import { type BearerChanges, BEARER_UNSET_KEYS, bearerUnsetKeys } from "./bearer-edit.js"
 import { configError } from "./config-error.js"
 import { parseHeaders } from "./headers.js"
 import {
+  ifGiven,
   type OAuthChanges,
   OAUTH_UNSET_KEYS,
   oauthUnsetKeys,
@@ -28,6 +29,7 @@ import {
 } from "./resolve.js"
 import {
   type AuthConfig,
+  AUTH_TYPES,
   type ConfigFile,
   type LoadedConfig,
   type OAuthConfig,
@@ -153,10 +155,6 @@ export function validateProfileName(name: string): string {
   return name
 }
 
-function ifGiven<T, R>(value: T | undefined, convert: (value: T) => R): R | undefined {
-  return value === undefined ? undefined : convert(value)
-}
-
 function changedHeaders(
   existing: Profile | undefined,
   headers: readonly string[],
@@ -208,6 +206,11 @@ export function setProfile(
   validateProfileName(name)
   const current = file ?? EMPTY
   const existing = findProfile(current, name)
+  // the file keeps an auth type the CLI does not know (clientCredentials, Pulse for VS Code's):
+  // auth options would rewrite it into one that Pulse for VS Code or the CLI refuses
+  if (hasAuthOptions(changes) && !AUTH_TYPES.includes(existing?.auth?.type ?? "none")) {
+    throw configError(`Profile "${name}" has an unknown auth type`, "Edit its auth in the file.")
+  }
   const merged = { ...existing, ...changedValues(existing, changes) }
   const profile = canonical(settleAuthorization(merged, changes, name))
   const first = Object.keys(current.profiles).length === 0
