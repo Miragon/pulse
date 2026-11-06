@@ -153,10 +153,33 @@ updates:
           - "patch"
           - "minor"
 
-  # Docker images, playground: compose stack, Fly variants, engine
+  # Compose file, the playground stack (playground/docker/docker-compose.yml): moves the images
+  # it pins (the dev profile's CIB seven Run, the OTEL Collector, Prometheus, Grafana, Keycloak).
+  # The docker ecosystem below reads Dockerfiles only, so the same images in the Fly variants
+  # (Dockerfile.fly) move there, in pull requests of their own. dependabot-automerge.yml leaves
+  # these out (its paths name no playground file), and no CI job starts the stack: before a merge,
+  # check the configs on the new image (promtool check config and check rules, the collector's
+  # validate, a Grafana that loads the provisioning) and run the metrics-contract tests.
+  - package-ecosystem: "docker-compose"
+    directory: "/playground/docker"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 3
+    reviewers:
+      - "dominikhorn93"
+      - "emaarco"
+    groups:
+      docker-compose-playground:
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+          - "minor"
+
+  # Docker images, playground: the Fly variants (Dockerfile.fly) and the engine image
   - package-ecosystem: "docker"
     directories:
-      - "/playground/docker"
       - "/playground/docker/otel"
       - "/playground/docker/prometheus"
       - "/playground/docker/grafana"
@@ -200,9 +223,13 @@ updates:
           - "patch"
           - "minor"
 
-  # Docker image, root Dockerfile (server), keeps the pinned base digest current
+  # Docker images, the server's Dockerfiles: the root one keeps its pinned base digest current;
+  # the starter's (templates/composed-server) mirrors it with an unpinned node tag, so only a new
+  # Node major reaches it, outside the group like every major
   - package-ecosystem: "docker"
-    directory: "/"
+    directories:
+      - "/"
+      - "/templates/composed-server"
     schedule:
       interval: "weekly"
     cooldown:
