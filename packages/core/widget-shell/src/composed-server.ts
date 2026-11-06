@@ -226,6 +226,8 @@ function resolveSelection<TShared extends object>(
   // A renamed setting first: an operator upgrading with old settings reads the rename, not a
   // later check's failure.
   composition.refuseRetired(env)
+  // Then an unknown or repeated module name, before the OAuth line could read like a healthy boot.
+  composition.activeModules(env)
   composition.warnUnknownEnvVars(env)
   const edge = resolveHttpEdgePolicy(env)
   const oauth = options.oauth ?? oauthFromEnv(env, label)

@@ -31,8 +31,8 @@ describe("activeModules / resolveBoot entries", () => {
     ])
   })
 
-  // Skipped, a typo booted a healthy server without the module it names (no tools at all when
-  // no listed name was known), which the health checks passed.
+  // While unknown names were skipped, a typo booted a healthy server without the module it names
+  // (no tools at all when no listed name was known), and the health checks passed it.
   it("refuses an unknown module, listing the known ones, before any config or warning", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     const configFromEnv = vi.fn(() => ({}))
