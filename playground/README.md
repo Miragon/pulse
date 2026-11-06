@@ -51,14 +51,18 @@ pnpm stack:down     # stop (volumes kept; --wipe drops them)
   deployments additionally need `ENGINE_ALLOW_DEPLOYMENTS=true`.
 - Compose profiles: `--profile multi-engine` (second engine on :8411;
   `pnpm stack:up --multi-engine`, `pnpm play --multi-engine`),
-  `--profile full` (containerized server on :8400), `--profile dev` (CIB seven Run
-  `run-2.2.0` in place of the default engine on :8410, its REST API anonymous like that
-  engine's, no analytics, without its invoice example, so it starts empty; with the stack
-  down, `docker compose --profile dev up -d cibseven-dev`), `--profile auth` (Keycloak on :8480 for
+  `--profile full` (containerized server on :8400), `--profile auth` (Keycloak on :8480 for
   trying OAuth locally: `pnpm play --auth` puts the server behind it, `pnpm stack:up --auth`
   starts it alone; see the commented block in `.env.example`). For MCP clients without
   Dynamic Client Registration its realm pre-registers the client `pulse-server` with the
   secret `pulse-secret`.
+- `--profile dev` runs CIB seven Run, the vendor's image at a pinned tag, on :8410 in place of
+  the default engine: no analytics and no invoice example, so it starts empty, and its REST API
+  is anonymous like the default engine's. It serves `pnpm dev` (with a `.env`) and a bare
+  `pulse`. Start it from the repo root with the stack down:
+  `docker compose -f playground/docker/docker-compose.yml --profile dev up -d cibseven-dev`.
+  `pnpm play`, `pnpm play:cli` and `pnpm stack:up` start the default engine, which needs the
+  same port, so run `pnpm stack:down` first; it stops the dev engine too.
 
 ## Deploy to Fly.io
 

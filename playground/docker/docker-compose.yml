@@ -76,11 +76,12 @@ services:
       retries: 12
       start_period: 30s
 
-  # Dev: CIB seven Run, the vendor's public image, pinned to the starter's exact tag
-  # (templates/composed-server/compose.yaml); no custom build, no metrics. It publishes the
-  # default engine's port 8410, so it runs instead of that engine: `--profile dev up` alone
-  # starts both, and the second fails to bind. Use, with the stack down:
-  #   docker compose --profile dev up -d cibseven-dev
+  # Dev: CIB seven Run, the vendor's public image at an exact tag (Dependabot's docker-compose
+  # entry for this file moves it); no custom build, no metrics. It publishes the default
+  # engine's port 8410, so it runs instead of that engine: `--profile dev up` alone starts
+  # both, and the second fails to bind. Use, from the repo root with the stack down
+  # (`pnpm stack:down` stops it too):
+  #   docker compose -f playground/docker/docker-compose.yml --profile dev up -d cibseven-dev
   cibseven-dev:
     profiles: [dev]
     image: cibseven/cibseven:run-2.2.0
