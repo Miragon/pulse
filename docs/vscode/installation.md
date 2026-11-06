@@ -38,9 +38,10 @@ incidents with real stack traces and a model that drifted:
 ```sh
 pnpm --filter pulse-cockpit run sandbox:open     # builds Pulse, starts the engines, opens the sandbox
 pnpm --filter pulse-cockpit run sandbox:traffic  # optional: live orders until Ctrl+C
+pnpm --filter pulse-cockpit run sandbox:c8:open  # the same shop on two Camunda 8 clusters
 ```
 
-Its test charter is in `apps/vscode/sandbox/README.md`.
+The test charters are in `apps/vscode/sandbox/README.md` and `apps/vscode/sandbox-c8/README.md`.
 
 ## Next steps
 

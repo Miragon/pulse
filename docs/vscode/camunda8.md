@@ -84,18 +84,26 @@ credentials again, and the prompt names the host the secret goes to.
 | Incidents           | The worker's error text, or the engine's error message, instead of a stack trace                                                                                                                                                         |
 | Fresh data          | Searches read an export that lags behind the cluster by up to a few seconds, so an instance you just started can read as not found until the next refresh                                                                                |
 | Long histories      | An instance with more than 10,000 element runs shows its newest 10,000 and says that the list is cut off; the wait states come from the active elements, so a long history doesn't push them out, and local variables keep their element |
+| Wait states         | At an event-based gateway Pulse names only the message the instance waits for, not a signal or a timer next to it                                                                                                                        |
 | Tenants             | Pulse reads every tenant your login may read, without a picker. A process in several tenants shows as one, and its version list shows each tenant's versions                                                                             |
 
 ## Try it in Docker
 
-From a clone of the repository, with Docker running:
+From a clone of the repository, with Docker running, one command builds Pulse, starts two seeded
+clusters with Operate and opens a shop project in VS Code. Its test charter is in
+`apps/vscode/sandbox-c8/README.md`:
+
+```sh
+pnpm --filter pulse-cockpit run sandbox:c8:open   # sandbox:c8:traffic adds live orders, sandbox:c8:down removes it
+```
+
+For one security mode at a time, as the end-to-end test runs it:
 
 ```sh
 pnpm --filter pulse-cockpit run c8:up --security oidc    # none (default), basic or oidc
 pnpm --filter pulse-cockpit run c8:down
 ```
 
-`--storage elasticsearch` swaps the default H2 for Elasticsearch. The command seeds orders with
-incidents and prints which profile of `apps/vscode/dev/host/workspace-c8` to open and which login
-to enter. Operate's browser login doesn't work on the OIDC stack, because Keycloak's public name
-there is `keycloak:8080`; the REST API Pulse reads works on every stack.
+`--storage elasticsearch` swaps the default H2 for Elasticsearch. The command seeds a small world
+with incidents and prints which profile of `apps/vscode/dev/host/workspace-c8` to open and which
+login to enter. Its cluster runs without Operate.

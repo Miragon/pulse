@@ -2,19 +2,16 @@
   "profiles": {
     "c8-open": {
       "url": "http://localhost:18088/v2",
-      "flavor": "camunda8",
-      "cockpitUrl": "http://localhost:18088/operate"
+      "flavor": "camunda8"
     },
     "c8-basic": {
       "url": "http://localhost:18088/v2",
       "flavor": "camunda8",
-      "cockpitUrl": "http://localhost:18088/operate",
       "auth": { "type": "basic" }
     },
     "c8-oidc": {
       "url": "http://localhost:18088/v2",
       "flavor": "camunda8",
-      "cockpitUrl": "http://localhost:18088/operate",
       "auth": {
         "type": "clientCredentials",
         "tokenEndpoint": "http://localhost:18089/realms/pulse/protocol/openid-connect/token",

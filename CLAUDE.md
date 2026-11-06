@@ -101,7 +101,7 @@ pnpm play:cli -- ping                # the built CLI against the playground engi
 pnpm stack:up | stack:down | stack:status   # the playground in Docker (--multi-engine, --auth)
 pnpm check                           # the local bar, one log per step in reports/check/
 pnpm check:all                       # plus test:host, template, Gradle, docs build, engine suites
-# The VS Code extension's own engines: pnpm --fail-if-no-match --filter pulse-cockpit sandbox:up
+# The VS Code extension's own engines: pnpm --fail-if-no-match --filter pulse-cockpit sandbox:up (Camunda 8: sandbox:c8:up)
 
 pnpm install --frozen-lockfile       # all deps are public; no registry credential needed
 

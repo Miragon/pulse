@@ -27,6 +27,7 @@ pnpm --filter pulse-cockpit run c8:up            # Camunda 8 in Docker: --securi
 pnpm --filter pulse-cockpit run test:e2e:c8:docker # VS Code on the running c8:up stack; PULSE_C8_SECURITY names its security
 pnpm --filter pulse-cockpit run sandbox:up       # shop sandbox for manual testing: two seeded engines
 pnpm --filter pulse-cockpit run sandbox:open     # build, start the sandbox if needed, open it in VS Code
+pnpm --filter pulse-cockpit run sandbox:c8:open  # the same shop on two Camunda 8 clusters (sandbox:c8:up, :traffic, :down)
 pnpm --filter pulse-cockpit run docs:screenshots # one screenshot per use case (after sandbox:up)
 pnpm --filter pulse-cockpit run package          # the .vsix
 ```
@@ -49,7 +50,9 @@ keeps no script of its own for it.
 `engine:up` seeds the fixed conformance world that the e2e test asserts on; do not change it
 for manual testing. Manual and exploratory scenarios belong in
 `apps/vscode/scripts/sandbox/scenarios.mjs`; keep the business keys in
-`apps/vscode/sandbox/README.md` in step with it.
+`apps/vscode/sandbox/README.md` in step with it. The Camunda 8 sandbox keeps its own in
+`apps/vscode/scripts/sandbox-c8/scenarios.mjs`; `apps/vscode/test/architecture/sandbox-c8.test.ts`
+holds its charter, its workers and the element ids its scripts name to the catalogue and the models.
 
 With podman: `DOCKER_HOST=unix://$(podman machine inspect --format '{{.ConnectionInfo.PodmanSocket.Path}}')`
 and `TESTCONTAINERS_RYUK_DISABLED=true` for `test:engines`.

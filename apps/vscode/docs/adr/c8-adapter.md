@@ -114,7 +114,11 @@ and shows "Read-only. Pulse cannot change data on this engine yet." instead of `
   and `PULSE_C8_STORAGE` pick the row. With security on, the adapter runs as a read-only principal, so
   a pass also proves the permissions the docs list.
 - `apps/vscode/test/adapters/c8/support/cluster-settings.json` holds the container settings, for the
-  suite and for `c8:up` alike.
+  suite, `c8:up` and the sandbox alike. The suite and `c8:up` start the cluster without its web apps.
+- The Camunda 8 sandbox (`apps/vscode/sandbox-c8`, `sandbox:c8:up`) runs the shop of the Camunda 7
+  sandbox on two clusters with the image's default profiles, so Operate runs for comparison;
+  `apps/vscode/test/architecture/sandbox-c8.test.ts` holds its charter, workers and element ids to
+  its scenario catalogue and models.
 - CI has the job `engines-camunda8`, switched off behind the repository variable `PULSE_C8_ENGINES`
   until the licence question of #531 has an answer: the images fall under Camunda's Self-Managed
   Non-Production Terms.
