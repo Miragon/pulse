@@ -22,6 +22,26 @@ const WIDGET_TREES = [
 // dedicated tsconfig.test.json project.
 const serverTestFiles = ["apps/mcp-server/test/**/*.ts", "apps/mcp-server/test-host/**/*.ts"]
 
+// Standalone config files that are not part of any tsconfig, so they are typed by
+// typescript-eslint's default project. No package's lint script reaches them: `pnpm lint:configs`
+// lints exactly this list, the pre-commit hook whichever of them a commit stages.
+export const DEFAULT_PROJECT_FILES = [
+  "vitest.shared.ts",
+  "apps/mcp-server/vite.config.ts",
+  "apps/mcp-server/vitest.config.ts",
+  "packages/connectors/analytics/analytics-connector/vitest.config.ts",
+  "packages/connectors/engine/engine-connector/vitest.config.ts",
+  "packages/connectors/analytics/analytics-client/vitest.config.ts",
+  "packages/connectors/engine/engine-client/vitest.config.ts",
+  "packages/connectors/engine/engine-client/openapi-ts.config.ts",
+  "packages/connectors/engine/engine-core/vitest.config.ts",
+  "packages/connectors/engine/engine-core/vitest.stryker.config.ts",
+  "packages/core/ui/vitest.config.ts",
+  "packages/core/widget-shell/vitest.config.ts",
+  "docs/.vitepress/config.ts",
+  "docs/.vitepress/theme/index.ts",
+]
+
 // The VS Code extension's runtime probes (apps/vscode/test/<layer>/runtime.boundary.ts)
 // expect the globals of their layer to be missing, so apps/vscode/tsconfig.json (the
 // union the editor and the project service use) leaves them out; each is typed by its
@@ -240,23 +260,11 @@ export default tseslint.config(
     languageOptions: {
       parserOptions: {
         projectService: {
-          // Standalone config files that are not part of any tsconfig
-          allowDefaultProject: [
-            "vitest.shared.ts",
-            "apps/mcp-server/vite.config.ts",
-            "apps/mcp-server/vitest.config.ts",
-            "packages/connectors/analytics/analytics-connector/vitest.config.ts",
-            "packages/connectors/engine/engine-connector/vitest.config.ts",
-            "packages/connectors/analytics/analytics-client/vitest.config.ts",
-            "packages/connectors/engine/engine-client/vitest.config.ts",
-            "packages/connectors/engine/engine-client/openapi-ts.config.ts",
-            "packages/connectors/engine/engine-core/vitest.config.ts",
-            "packages/connectors/engine/engine-core/vitest.stryker.config.ts",
-            "packages/core/ui/vitest.config.ts",
-            "packages/core/widget-shell/vitest.config.ts",
-            "docs/.vitepress/config.ts",
-            "docs/.vitepress/theme/index.ts",
-          ],
+          allowDefaultProject: DEFAULT_PROJECT_FILES,
+          // Without it typescript-eslint refuses a ninth match in one ESLint run: a commit staging
+          // more of them would fail the pre-commit hook, and so would `pnpm lint:configs`.
+          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING:
+            DEFAULT_PROJECT_FILES.length,
         },
         tsconfigRootDir: import.meta.dirname,
       },

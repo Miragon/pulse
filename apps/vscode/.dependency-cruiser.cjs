@@ -82,6 +82,14 @@ module.exports = {
   ],
   forbidden: [
     {
+      name: "not-in-allowed",
+      severity: "error",
+      comment:
+        "No entry of `allowed` in apps/vscode/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md). A layer uses its own modules and another layer only through its index.ts: core and adapters reach the contract, the C7 adapter also @miragon/pulse-engine-core's main entry (never a subpath), the model adapter the contract and the moddle libraries, the webview protocol types and its rendering libraries, the host core, protocol, contract, vscode, modeler-shell and Node built-ins, and only the host's composition root the engine adapters and the model adapter.",
+      from: {},
+      to: { path: "^$" },
+    },
+    {
       name: "no-circular",
       severity: "error",
       comment:

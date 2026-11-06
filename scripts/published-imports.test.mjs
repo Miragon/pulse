@@ -43,6 +43,7 @@ const BUNDLED_APPS = {
   "@miragon/pulse-cli": {
     dist: "apps/cli/dist",
     budget: "apps/cli/test/__golden__/bundle-budget.json",
+    bundles: "@miragon/pulse-engine-core",
   },
 }
 
@@ -50,6 +51,8 @@ const BUNDLED_APPS = {
 const BUDGET_TIGHT = 0.9
 /** A budget is set to the measured size rounded up to the next multiple of this. */
 const BUDGET_STEP = 16 * 1024
+/** The budget a bundle of this size would hold. */
+const budgetFor = (bytes) => Math.ceil(bytes / BUDGET_STEP) * BUDGET_STEP
 
 /** The size budget in bytes a bundled app's budget file holds (its `dist` key); throws without one. */
 function bundleBudget(root, bundled) {
@@ -162,10 +165,12 @@ function bundleFindings(root, { manifest }, bundled) {
   const maxBytes = bundleBudget(root, bundled)
   const size =
     bytes > maxBytes
-      ? [`${bundled.dist}: ${bytes} bytes, over the budget of ${maxBytes}`]
+      ? [
+          `${bundled.dist}: ${bytes} bytes, over the budget of ${maxBytes} (${bundled.bundles} is bundled into it, so a change there counts too). Shrink the bundle, or set "dist" in ${bundled.budget} to ${budgetFor(bytes)} in a commit whose Ratchet-Exception: trailer says why it grew`,
+        ]
       : bytes < Math.floor(maxBytes * BUDGET_TIGHT)
         ? [
-            `${bundled.dist}: ${bytes} bytes, more than 10 % below the budget of ${maxBytes}: lower "dist" in ${bundled.budget} to ${Math.ceil(bytes / BUDGET_STEP) * BUDGET_STEP}`,
+            `${bundled.dist}: ${bytes} bytes, more than 10 % below the budget of ${maxBytes}: lower "dist" in ${bundled.budget} to ${budgetFor(bytes)}`,
           ]
         : []
   return [...new Set(undeclared)].sort().concat(size)
@@ -452,7 +457,11 @@ describe("published packages declare what their shipped source imports", () => {
     describe("a bundled app is read from its bundle", () => {
       const CLI = { manifest: JSON.parse(LAYOUT["apps/cli/package.json"]) }
       const BUDGET = "apps/cli/test/__golden__/bundle-budget.json"
-      const BUNDLED = { dist: "apps/cli/dist", budget: BUDGET }
+      const BUNDLED = {
+        dist: "apps/cli/dist",
+        budget: BUDGET,
+        bundles: "@miragon/pulse-engine-core",
+      }
       /** The layout with these dist files and a budget file; the budget defaults to their size. */
       const withBudget = (files, budget) => ({
         ...LAYOUT,
@@ -495,12 +504,25 @@ describe("published packages declare what their shipped source imports", () => {
 
       it("fails a bundle over its budget and a missing bundle with the build hint", () => {
         assert.deepEqual(bundleFindings(sized(1001), CLI, BUNDLED), [
-          "apps/cli/dist: 1001 bytes, over the budget of 1000",
+          'apps/cli/dist: 1001 bytes, over the budget of 1000 (@miragon/pulse-engine-core is bundled into it, so a change there counts too). Shrink the bundle, or set "dist" in apps/cli/test/__golden__/bundle-budget.json to 16384 in a commit whose Ratchet-Exception: trailer says why it grew',
         ])
         assert.deepEqual(bundleFindings(sized(1000), CLI, BUNDLED), [])
         assert.deepEqual(bundleFindings(fixture(withBudget({}, 1000)), CLI, BUNDLED), [
           "apps/cli/dist is missing: run pnpm build first",
         ])
+      })
+
+      it("names the ceiling an over-budget bundle needs: its size, rounded up to the next 16 KiB", () => {
+        const needed = (bytes) => {
+          const [finding] = bundleFindings(
+            fixture(withBudget({ "apps/cli/dist/pulse-cli.js": "x".repeat(bytes) }, 1)),
+            CLI,
+            BUNDLED,
+          )
+          return /bundle-budget\.json to (\d+) /.exec(finding)?.[1]
+        }
+        assert.equal(needed(16384), "16384")
+        assert.equal(needed(16385), "32768")
       })
 
       it("fails a bundle that shrank more than 10 % below its budget, so the budget comes down", () => {
@@ -529,6 +551,16 @@ describe("published packages declare what their shipped source imports", () => {
         for (const bundled of Object.values(BUNDLED_APPS)) {
           assert.equal(ratchetKind(bundled.budget), "bundle-budget", bundled.budget)
           assert.ok(bundleBudget(REPO_ROOT, bundled) > 0)
+        }
+      })
+
+      it("names a workspace package each bundled app really bundles", () => {
+        const manifests = new Map(
+          workspacePackages().map((pkg) => [pkg.manifest.name, pkg.manifest]),
+        )
+        for (const [name, bundled] of Object.entries(BUNDLED_APPS)) {
+          assert.ok(manifests.has(bundled.bundles), bundled.bundles)
+          assert.ok(manifests.get(name).devDependencies?.[bundled.bundles], name)
         }
       })
     })

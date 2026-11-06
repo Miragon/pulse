@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs"
 import path from "node:path"
 import { describe, it } from "node:test"
 import { fileURLToPath } from "node:url"
+import { DEFAULT_PROJECT_FILES } from "../eslint.config.mjs"
 import { expandWorkspaceGlobs, workspaceGlobs } from "./check-package-scripts.mjs"
 import { PATH_RULES, SCOPES, mergeCommitFiles, scopesFor, withDependents } from "./ci-scopes.mjs"
 
@@ -83,6 +84,13 @@ describe("scopesFor: prose reaches only the checks that read it", () => {
 
   it("runs the token drift scan for a stylesheet anywhere in the docs site", () => {
     assert.deepEqual(scopes("docs/.vitepress/theme/custom.css"), ["brand", "typescript"])
+  })
+
+  it("runs pnpm lint for every config file lint:configs lints, the docs site's too", () => {
+    for (const file of DEFAULT_PROJECT_FILES) {
+      assert.ok(scopes(file).includes("typescript"), file)
+    }
+    assert.deepEqual(scopes("docs/.vitepress/config.ts"), ["brand", "typescript"])
   })
 })
 
