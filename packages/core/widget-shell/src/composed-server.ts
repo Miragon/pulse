@@ -258,7 +258,7 @@ function resolveSelection<TShared extends object>(
   composition.refuseRetired(env)
   // Then an unknown or repeated module name, before the OAuth line could read like a healthy boot.
   composition.activeModules(env)
-  // An OAuth variable the server does not read fails the boot: no typo warning for it in front.
+  // The retired OAuth variable fails the boot: no typo warning for it in front.
   refuseOAuthEnv(env)
   composition.warnUnknownEnvVars(env)
   const edge = resolveHttpEdgePolicy(env)

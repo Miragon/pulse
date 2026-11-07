@@ -30,8 +30,7 @@ runs **read-only**. With one, `/mcp` is an OAuth resource server that verifies e
 | Better Auth | `MCP_OAUTH_BETTER_AUTH_URL`: the auth URL, which is the issuer                                 |
 | Convex      | `MCP_OAUTH_CONVEX_AUTH_URL`: the auth URL                                                      |
 
-An incomplete provider, two providers, an invalid value, an unread `MCP_*` variable that names OAuth or
-a provider (an `…_AUDIENCE`, a misspelled prefix; the MCP Inspector's `MCP_OAUTH_CALLBACK_URL` and `MCP_INSPECTOR_*` excepted) or OAuth without `MCP_URL` fails the boot, naming the variables.
+An incomplete provider, two providers, an invalid value or OAuth without `MCP_URL` fails the boot, naming the variables. A variable it does not read only warns as unknown, so a misspelled provider variable boots **without OAuth**, with every toolset `MCP_ACTIVE_MODULES` names: read the boot log.
 
 <a id="identity-provider-checklist"></a>**Identity provider checklist.** On the provider's side:
 

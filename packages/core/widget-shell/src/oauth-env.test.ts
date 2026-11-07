@@ -102,7 +102,7 @@ describe("oauthFromEnv: the providers", () => {
   )
 })
 
-describe("oauthFromEnv: a deployment that asked for OAuth never boots without it", () => {
+describe("oauthFromEnv: what fails the boot", () => {
   it("refuses the retired JSON variable, blank included, and says what replaces it", () => {
     for (const value of ['{"provider":"keycloak"}', ""]) {
       expect(() => fromEnv({ MCP_OAUTH: value })).toThrow(
@@ -117,60 +117,37 @@ describe("oauthFromEnv: a deployment that asked for OAuth never boots without it
     expect(() => fromEnv({ ...KEYCLOAK, MCP_OAUTH: "{}" })).toThrow(/^MCP_OAUTH is no longer read/)
   })
 
+  // The typo warner speaks for these: none of them asks this reader for anything.
   it.each([
     "MCP_OAUTH_KEYCLOAK_AUDIENCE",
     "MCP_OAUTH_CLERK_FRONTEND_API_URL",
     "MCP_OAUTH_KEYCLOAK_REALMS",
-    // A segment in front of it changes nothing: a provider's variable under any MCP_ name.
     "MCP_FOO_OAUTH_KEYCLOAK_AUDIENCE",
-  ])("refuses %s, a variable it does not read", (name) => {
-    expect(() => fromEnv({ ...KEYCLOAK, [name]: "https://x.example/mcp" })).toThrow(
-      `${name} is not read by this server, so it does not start. Unset it: the server reads one provider's variables, Keycloak (MCP_OAUTH_KEYCLOAK_SERVER_URL, MCP_OAUTH_KEYCLOAK_REALM), Auth0 (MCP_OAUTH_AUTH0_DOMAIN), WorkOS (MCP_OAUTH_WORKOS_SUBDOMAIN), Better Auth (MCP_OAUTH_BETTER_AUTH_URL) or Convex (MCP_OAUTH_CONVEX_AUTH_URL), and takes the token audience from MCP_URL: tokens carry <MCP_URL>/mcp in aud (RFC 8707).`,
-    )
-  })
-
-  // The typo warner would only warn, and the server would boot without the OAuth it asks for.
-  it.each(["MCP_OAUH_KEYCLOAK_SERVER_URL", "MCP_AUTH0_DOMAIN", "MCP_OAUTHDEBUG"])(
-    "refuses %s, a misspelled OAuth variable, instead of booting without OAuth",
+    "MCP_OAUH_KEYCLOAK_SERVER_URL",
+    "MCP_AUTH0_DOMAIN",
+    "MCP_OAUTH_CALLBACK_URL",
+    "MCP_INSPECTOR_OAUTH_STATE_PATH",
+  ])(
+    "takes %s for no provider: without one it boots without OAuth, next to one it changes nothing",
     (name) => {
-      expect(() => fromEnv({ [name]: "https://kc.example.com" })).toThrow(
-        new RegExp(`^${name} is not read by this server, so it does not start\\.`),
+      vi.spyOn(console, "warn").mockImplementation(() => {})
+      expect(fromEnv({ [name]: "https://kc.example.com" })).toBeUndefined()
+      expect(fromEnv({ ...KEYCLOAK, [name]: "https://x.example/mcp" })?.oauthMetadata.issuer).toBe(
+        "https://kc.example.com/realms/platform",
       )
     },
   )
-
-  // `pnpm dev` starts the MCP Inspector from the same env; its OAuth settings configure a client.
-  it.each(["MCP_OAUTH_CALLBACK_URL", "MCP_INSPECTOR_OAUTH_STATE_PATH"])(
-    "leaves %s to the inspector it belongs to",
-    (name) => {
-      expect(fromEnv({ ...KEYCLOAK, [name]: "http://localhost:6274/oauth/callback" })).toBeDefined()
-      expect(() => fromEnv({ ...KEYCLOAK, MCP_OAUTH_CALLBACK_URI: "x" })).toThrow(
-        /^MCP_OAUTH_CALLBACK_URI is not read by this server/,
-      )
-    },
-  )
-
-  it("refuses a blank unread variable too, and names every unread one", () => {
-    expect(() => fromEnv({ ...KEYCLOAK, MCP_OAUTH_KEYCLOAK_AUDIENCE: "" })).toThrow(
-      /^MCP_OAUTH_KEYCLOAK_AUDIENCE is not read by this server/,
-    )
-    expect(() =>
-      fromEnv({ MCP_OAUTH_SECRET: "s", MCP_OAUTH_AUTH0_AUDIENCE: "https://x/mcp" }),
-    ).toThrow(
-      /^MCP_OAUTH_AUTH0_AUDIENCE, MCP_OAUTH_SECRET are not read by this server, so it does not start\. Unset them:/,
-    )
-  })
 
   // The boot reads the env it was handed; a variable only process.env holds is not its setting.
   it("reads the env it is handed, not process.env", () => {
-    vi.stubEnv("MCP_OAUTH_AUTH0_AUDIENCE", "https://elsewhere.example/mcp")
+    vi.stubEnv("MCP_OAUTH", "{}")
     expect(fromEnv(AUTH0)?.oauthMetadata.issuer).toBe("https://tenant.auth0.com/")
   })
 
   it("refuses the same without building a provider in refuseOAuthEnv", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     expect(() => refuseOAuthEnv({ MCP_OAUTH: "{}" })).toThrow(/^MCP_OAUTH is no longer read/)
-    expect(() => refuseOAuthEnv({ MCP_OAUTH_X: "1" })).toThrow(/^MCP_OAUTH_X is not read/)
+    expect(() => refuseOAuthEnv({ MCP_OAUTH_X: "1" })).not.toThrow()
     expect(() => refuseOAuthEnv({ ...KEYCLOAK, MCP_OAUTH_DEBUG: "1" })).not.toThrow()
     expect(warn).not.toHaveBeenCalled()
   })

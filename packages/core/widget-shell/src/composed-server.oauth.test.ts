@@ -210,11 +210,23 @@ describe("createComposedServer: OAuth", () => {
     expect(createPlugin).not.toHaveBeenCalled()
   })
 
-  it("refuses an OAuth variable it does not read as one error, with no typo warning in front", async () => {
-    await expect(
-      compose({ env: { ...KEYCLOAK_ENV, MCP_OAUTH_KEYCLOAK_AUDIENCE: "x" } }),
-    ).rejects.toThrow(/MCP_OAUTH_KEYCLOAK_AUDIENCE is not read by this server/)
+  it("refuses the retired OAuth variable as one error, with no typo warning in front", async () => {
+    await expect(compose({ env: { ...KEYCLOAK_ENV, MCP_OAUTH: "{}" } })).rejects.toThrow(
+      /^MCP_OAUTH is no longer read/,
+    )
     expect(console.warn).not.toHaveBeenCalled()
+  })
+
+  // No provider's variable is set, so nothing asks for OAuth; the log is what says so.
+  it("boots without OAuth on a misspelled provider variable, and warns about both", async () => {
+    await compose({ env: { MCP_OAUH_KEYCLOAK_SERVER_URL: "https://kc.example.com" } })
+    const warnings = vi.mocked(console.warn).mock.calls.map(([line]) => String(line))
+    expect(warnings).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('Unknown environment variable "MCP_OAUH_KEYCLOAK_SERVER_URL"'),
+        expect.stringContaining("No OAuth provider is configured"),
+      ]),
+    )
   })
 
   it("fails the boot when OAuth has no resource and MCP_URL is unset", async () => {

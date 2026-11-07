@@ -161,6 +161,11 @@ const ALLOWED = [
     reason: "the refusal's own test",
   },
   {
+    file: "packages/core/widget-shell/src/composed-server.oauth.test.ts",
+    rules: ["retired MCP_OAUTH"],
+    reason: "the boot's refusal comes without a typo warning in front",
+  },
+  {
     file: "packages/connectors/engine/engine-connector/src/retired-settings.ts",
     rules: ["retired server variable"],
     reason: "the boot refuses the camunda7 module's variables and says what replaces each",

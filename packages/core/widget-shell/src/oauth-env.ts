@@ -6,10 +6,10 @@
  * A gateway that terminates auth in front is invisible here: identity arrives only through this
  * OAuth.
  *
- * There is no provider selector, so the boot picks the one provider whose variables are set. A
- * deployment that asked for auth never comes up without it: the retired JSON variable
- * (`MCP_OAUTH`), an OAuth variable this server does not read, two providers or an incomplete one
- * fail the boot, naming the variables.
+ * There is no provider selector, so the boot picks the one provider whose variables are set. The
+ * retired JSON variable (`MCP_OAUTH`), two providers or an incomplete one fail the boot, naming the
+ * variables. Any other variable it does not read (an `…_AUDIENCE`, a misspelled prefix) is the typo
+ * warner's, so a misspelled provider boots without OAuth, and the log says so.
  */
 import {
   oauthAuth0Provider,
@@ -67,32 +67,6 @@ export const OAUTH_ENV_VARS: readonly string[] = PROVIDERS.flatMap(({ variables 
 export const OAUTH_DEBUG_ENV_VAR = "MCP_OAUTH_DEBUG"
 /** The retired JSON variable; its successors share its prefix, so only the exact name is refused. */
 const RETIRED = "MCP_OAUTH"
-/** The namespace an OAuth variable lives in, whatever follows it. */
-const MCP = "MCP_"
-/** What names OAuth in a variable: the word, or a provider's segment (`KEYCLOAK`, `AUTH0`, …). */
-const OAUTH_WORDS = ["OAUTH", ...new Set(OAUTH_ENV_VARS.map((name) => name.split("_")[2]))]
-/**
- * The MCP Inspector's own OAuth settings (`pnpm dev` starts it from the same env): its namespace
- * and its client's callback URL. They configure the inspector as a client, never this server.
- */
-const inspectorOwned = (name: string): boolean =>
-  name.startsWith("MCP_INSPECTOR_") || name === "MCP_OAUTH_CALLBACK_URL"
-
-const sortedList = (names: Iterable<string>): string => [...names].sort().join(", ")
-
-/** "is"/"it" for one name, "are"/"them" for several. */
-const grammar = (count: number) =>
-  count === 1 ? { verb: "is", pronoun: "it" } : { verb: "are", pronoun: "them" }
-
-const joinAlternatives = (items: readonly string[]): string =>
-  `${items.slice(0, -1).join(", ")} or ${items[items.length - 1]}`
-
-const PROVIDER_LIST = joinAlternatives(
-  PROVIDERS.map(({ name, variables }) => `${name} (${variables.join(", ")})`),
-)
-
-const presentNames = (env: NodeJS.ProcessEnv, matches: (name: string) => boolean): string[] =>
-  Object.keys(env).filter((name) => env[name] !== undefined && matches(name))
 
 /** A table variable counts as set only with a value; blank is unset. */
 const valueOf = (env: NodeJS.ProcessEnv, name: string): string | undefined =>
@@ -104,7 +78,11 @@ const switchedOn = (value: string | undefined): boolean => {
   return Boolean(normalized) && normalized !== "0" && normalized !== "false"
 }
 
-function refuseRetired(env: NodeJS.ProcessEnv): void {
+/**
+ * The refusal alone, which the boot runs before its typo warner: the variable fails the boot as one
+ * line, without a warning about the same name in front of it.
+ */
+export function refuseOAuthEnv(env: NodeJS.ProcessEnv): void {
   if (env[RETIRED] === undefined) return
   throw new Error(
     `${RETIRED} is no longer read, so the server does not start without the OAuth it asks for. ` +
@@ -112,39 +90,6 @@ function refuseRetired(env: NodeJS.ProcessEnv): void {
       `{"provider":"keycloak",…} becomes MCP_OAUTH_KEYCLOAK_SERVER_URL and MCP_OAUTH_KEYCLOAK_REALM, ` +
       `{"provider":"auth0",…} becomes MCP_OAUTH_AUTH0_DOMAIN.`,
   )
-}
-
-/**
- * An `MCP_*` name the boot does not read that asks for OAuth: any other `MCP_OAUTH_*` (an
- * `…_AUDIENCE`, a provider this server lacks), or one naming OAuth or a provider under a
- * misspelled prefix (`MCP_OAUH_KEYCLOAK_REALM`), which the typo warner would only warn about.
- */
-function unread(name: string): boolean {
-  if (!name.startsWith(MCP) || name === RETIRED || name === OAUTH_DEBUG_ENV_VAR) return false
-  if (OAUTH_ENV_VARS.includes(name) || inspectorOwned(name)) return false
-  const rest = name.slice(MCP.length)
-  return OAUTH_WORDS.some((word) => rest.includes(word))
-}
-
-/** A blank value counts: the setting is there and would be ignored. */
-function refuseUnread(env: NodeJS.ProcessEnv): void {
-  const names = presentNames(env, unread)
-  if (names.length === 0) return
-  const { verb, pronoun } = grammar(names.length)
-  throw new Error(
-    `${sortedList(names)} ${verb} not read by this server, so it does not start. ` +
-      `Unset ${pronoun}: the server reads one provider's variables, ${PROVIDER_LIST}, ` +
-      `and takes the token audience from MCP_URL: tokens carry <MCP_URL>/mcp in aud (RFC 8707).`,
-  )
-}
-
-/**
- * The refusals alone, which the boot runs before its typo warner: a variable it refuses fails the
- * boot as one line, without a warning about the same name in front of it.
- */
-export function refuseOAuthEnv(env: NodeJS.ProcessEnv): void {
-  refuseRetired(env)
-  refuseUnread(env)
 }
 
 interface Requested {
@@ -172,7 +117,7 @@ function requestedProvider(env: NodeJS.ProcessEnv): Requested | undefined {
   const missing = provider.variables.filter((_, i) => !values[i])
   if (missing.length > 0) {
     throw new Error(
-      `${provider.name} OAuth needs ${provider.variables.join(" and ")}, but ${missing.join(" and ")} ${grammar(missing.length).verb} unset.`,
+      `${provider.name} OAuth needs ${provider.variables.join(" and ")}, but ${missing.join(" and ")} ${missing.length === 1 ? "is" : "are"} unset.`,
     )
   }
   return { provider, values: values as string[] }
@@ -191,9 +136,8 @@ function build({ provider, values }: Requested, options: ProviderOptions): OAuth
 
 /**
  * No provider's variables → `undefined` plus ONE boot warning (prefixed with `label`). The retired
- * variable, a variable this server does not read, two providers, an incomplete or an invalid one
- * throw: a deployment that asked for auth must never come up without it. `MCP_OAUTH_DEBUG` is read
- * from the same `env`.
+ * variable, two providers, an incomplete or an invalid one throw. `MCP_OAUTH_DEBUG` is read from
+ * the same `env`.
  */
 export function oauthFromEnv(env: NodeJS.ProcessEnv, label: string): OAuthProvider | undefined {
   refuseOAuthEnv(env)

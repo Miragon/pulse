@@ -13,7 +13,7 @@ import { MODULES } from "../src/setup.js"
 
 const FIXTURE_JS = path.join(import.meta.dirname, "fixtures", "mcp-app.js")
 
-/** What a developer's shell may export that the boot refuses without reading it: an unread `MCP_OAUTH_*`. */
+/** What a developer's shell may export that the boot reads only to refuse or warn: the retired JSON variable, an unread `MCP_OAUTH_*`. */
 const STRAY = /^MCP_OAUTH_?/
 
 /**
