@@ -555,6 +555,14 @@ const DOCS_BUDGETS = {
   "vscode/usage.md": 80,
   "vscode/boards.md": 70,
   "vscode/architecture.md": 50,
+  // The Orca plugin spike (docs/spikes/, kept off the site by srcExclude).
+  "spikes/orca-plugin/README.md": 180,
+  "spikes/orca-plugin/inventory.md": 130,
+  "spikes/orca-plugin/prior-art.md": 360,
+  "spikes/orca-plugin/plan.md": 250,
+  "spikes/orca-plugin/proposal-1.md": 250,
+  "spikes/orca-plugin/proposal-2.md": 250,
+  "spikes/orca-plugin/proposal-3.md": 250,
 }
 
 /** A page's budget key: its path under docs/, so docs/index.md and docs/cli/index.md differ. */

@@ -229,7 +229,7 @@ against the repository (3 blockers, 7 major, 6 minor). Changed:
 
 Rejected:
 
-- Moving the spike docs to `apps/vscode/docs/spikes/` (B3, A-M7): the task names
+- Moving the spike docs to apps/vscode/docs/spikes (B3, A-M7): the task names
   `docs/spikes/orca-plugin/`. They stay there; `docs/.vitepress/config.ts` excludes `spikes/**` so
   the site never publishes them, each page gets a `DOCS_BUDGETS` entry, and paths that are never
   committed (dist-orca) stay out of backticks.
