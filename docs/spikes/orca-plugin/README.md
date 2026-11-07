@@ -1,146 +1,135 @@
 # Spike: Pulse as an Orca plugin
 
-**Result:** Pulse for VS Code carries over to Orca with almost no new logic. The plugin shows real
-engine data from the sandbox: the Engines tree with "with incident" counts in Orca's right sidebar,
-a definition and an instance view in an editor tab with the bpmn-js diagram, its badges and the
-incident's root cause, and a login kept in Orca's encrypted secrets. The webview, the core and the
-C7 adapter run unchanged; the spike adds about 1,050 lines of glue in `apps/vscode/dev/orca/`.
+**Result:** Pulse for VS Code runs as an Orca plugin with the feature set of the extension,
+writes included. The plugin shows the Engines tree, the engine overview, definitions, instances,
+migrations, a local model against its deployment and boards, each with real data from the
+sandbox engines, with live refresh, back links, incident details and the engine's web app. Writes
+follow the extension's policy; the confirmation waits in the Pulse panel. The webview, the core
+and the C7 adapter run unchanged; the Orca host is about 3,700 lines in `apps/vscode/dev/orca/`,
+covered by 27 tests in `apps/vscode/test/orca/`.
 
-**Recommendation: go on, read-first.** Build a real version that shows what the spike shows plus
-live refresh and the incident hand-off to an agent, and leave writes until Orca has a trusted
-confirmation surface or the panel flow below is proven. Before that, an owner decides where an Orca
-host lives in this repository (section 5).
+**Recommendation: go on, with writes.** What is left for a release is placement, packaging,
+tests in a real Orca and a handful of gaps only Orca can close (section 4). Before that, an owner
+decides where an Orca host lives in this repository (section 5).
 
 How it came about: [inventory](inventory.md), [prior art](prior-art.md), proposals
-[1](proposal-1.md), [2](proposal-2.md), [3](proposal-3.md), the reviewed [plan](plan.md).
+[1](proposal-1.md), [2](proposal-2.md), [3](proposal-3.md), the reviewed [plan](plan.md). The
+first, read-only round is in the Git history of this file.
 
-## 1. What works
+## 1. What it shows
 
-Against the sandbox engines (`pnpm --filter pulse-cockpit run sandbox:up`), in Orca 1.4.252, dark
-theme:
+Against the sandbox engines (`pnpm --filter pulse-cockpit run sandbox:up`), Orca 1.4.252, dark:
 
-| Screenshot                                                             | Shows                                                                                                                                                                                                                                                    |
-| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [engines-panel.png](screenshots/engines-panel.png)                     | The Pulse panel: shop-dev LOCAL with 13 instances with incident and its three processes, shop-test TEST refusing without a login (HTTP 401), prod-eu PROD unreachable                                                                                    |
-| [engines-panel-signed-in.png](screenshots/engines-panel-signed-in.png) | The same after the shop-test login was stored in `secrets:own`: shop-test lists its processes                                                                                                                                                            |
-| [definition-dark.png](screenshots/definition-dark.png)                 | Order fulfillment v3 in an editor tab next to the panel: the diagram with badges (Check order 120, Charge payment 4 incidents and 2 running, Calculate loyalty points 2, Ship order 3 in called instances), the older-versions notice, the instance list |
-| [instance-dark.png](screenshots/instance-dark.png)                     | ORD-10129: the path in the diagram, Charge payment failed, the Incidents tab with the root cause `CardExpiredException`                                                                                                                                  |
+| Screenshot                                                             | Shows                                                                                                                             |
+| ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| [engine-overview.png](screenshots/engine-overview.png)                 | shop-dev's processes in a tab, writable, live; the panel with the active engine, go to instance and the tree; the status bar item |
+| [model-compare.png](screenshots/model-compare.png)                     | order-fulfillment.bpmn from the workspace against the deployed v3, the tree selecting the process of the focused tab              |
+| [board.png](screenshots/board.png)                                     | The sandbox board `shop-operations.board.json` in Orca's custom editor, read from both engines, prod-eu unreachable               |
+| [panel-confirmation.png](screenshots/panel-confirmation.png)           | A token move on shop-dev waiting for its confirmation in the Pulse panel, with the facts the extension's dialog shows             |
+| [status-bar-confirmation.png](screenshots/status-bar-confirmation.png) | The status bar while a write waits                                                                                                |
+| [definition-dark.png](screenshots/definition-dark.png)                 | First round: Order fulfillment v3 with its badges                                                                                 |
+| [instance-dark.png](screenshots/instance-dark.png)                     | First round: ORD-10129 with the root cause `CardExpiredException`                                                                 |
 
-![The Pulse panel and a definition tab in Orca](screenshots/definition-dark.png)
+![The engine overview and the Pulse panel in Orca](screenshots/engine-overview.png)
 
-Checked on the way (plan section 4): `orca plugin validate` and `orca plugin check` pass;
-`orca plugin dev request` answers `engines.list` with real data and `views.open` writes the handle
-and opens the tab; the worker bundle carries no `vscode`; the extension's typecheck, ESLint,
-1,420 tests with their coverage floors, dependency-cruiser, knip and prettier stay green.
+Checked on the way: `orca plugin validate` and `orca plugin check` pass; `orca plugin dev request`
+drove a retry on shop-dev (no confirmation, local), a retry on shop-test (TEST, confirmed in the
+panel) and a token move on shop-dev (asked, then cancelled), each with its line in the write audit
+of `orca plugin logs`; the worker bundle carries no `vscode`; the extension's typecheck, ESLint,
+1,447 tests with their coverage floors, dependency-cruiser, knip and prettier stay green. Not
+captured: the light theme and an acted panel (`--theme` and `--act` need Orca's window hidden,
+which this session may not do; section 6).
 
-Not captured: light theme and the filled login form. `--theme` and `--act` work only while Orca's
-window is hidden or minimized, and this session may not send Apple Events to hide it. Section 6
-has the commands.
+## 2. Feature set against VS Code
 
-## 2. Feature mapping as built
+| VS Code                                                 | Orca                                                                                                                        |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Engines tree, reveal of the focused panel               | Components panel with Orca's `Tree`; the focused tab selects its engine or process                                          |
+| Live tree and live panels (`pulse.liveUpdates`)         | Same loops; four settings `liveUpdates.<environment>`; visibility from the panel and from each tab                          |
+| Engine overview, definition, instance, migration panels | Custom editor on `.pulse-view` handle files in `.pulse/views/` next to the project file                                     |
+| Show runtime data for this model                        | "Local models" in the panel: each `.bpmn` of the project opens the definition against that file                             |
+| Boards tree, open board, new board                      | "Boards" in the panel; `.board.json` opens in Orca's custom editor, whose Source toggle edits it                            |
+| Go to process instance (input box, quick pick)          | Search field in the panel, a list when several instances share the business key                                             |
+| Switch engine (quick pick), status bar                  | "Active engine" select and a command; the status bar shows the active engine with its incidents                             |
+| Set credentials                                         | Login form in the panel, asked for by a tab or a board; kept in `secrets:own` on the OS key store                           |
+| Configure engines                                       | Opens the project file, creating it from the extension's template                                                           |
+| `pulse.writes`, write dialog, bulk dialog               | Setting "Writes"; the extension's `ConfirmationPolicy` decides; the panel asks for host, count and reason as the dialogs do |
+| Pick one of several called instances                    | A list in the panel                                                                                                         |
+| Incident details with links into code                   | A `.log` file opened in Orca's editor, without links                                                                        |
+| Open model, open code                                   | Opens the file in Orca, without the element or line                                                                         |
+| Open in web app, copy, copy handover                    | Answered within the click: the frame opens the URL (`shell.openExternal`) or copies (`execCommand`)                         |
+| Back to the panel that opened this one                  | Back link to the opening tab, reopened through its handle                                                                   |
+| Nudge on save, debug end, task end                      | Nudge on saving a `.bpmn` (`editor.save.before`)                                                                            |
+| `.pulse-cli.json` in every workspace folder             | Setting "Project file", else the one at the root of the focused workspace                                                   |
+| `pulse.environments` in user and workspace settings     | Setting "Environments" (JSON) and `.vscode/settings.json` next to the project file                                          |
 
-| VS Code                                              | Orca, as built                                                                                                                                                    | File                                              |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| Activity bar and Engines tree view                   | Components panel with Orca's `Tree`, in the right sidebar                                                                                                         | `apps/vscode/dev/orca/panel/engines.tsx`          |
-| Incident badge on a definition                       | `error` icon and "N with incident" in the row description; the engine row sums it, as the engine overview does                                                    | `apps/vscode/dev/orca/worker/engine-rows.ts`      |
-| Problem rows                                         | `warning` rows with the words of `Problems`                                                                                                                       | same                                              |
-| Set credentials (input boxes)                        | A form under the tree on selecting an engine with basic auth; the worker writes through `CredentialStore` into `secrets:own` after checking `secrets.protection`  | `apps/vscode/dev/orca/worker/engine-directory.ts` |
-| `.pulse-cli.json` discovery and `pulse.environments` | The plugin setting "Project file"; environments from `.vscode/settings.json` next to it, as workspace scope                                                       | same                                              |
-| Webview panel in an editor tab                       | Custom editor on `.pulse-view` handle files the worker writes to `<workspace>/.pulse/views/` (a `.gitignore` of `*` keeps Git clean) and opens with `editor.open` | `apps/vscode/dev/orca/worker/view-handles.ts`     |
-| `acquireVsCodeApi` and `postMessage`                 | A shim that maps intents to `plugin.request("cockpit.intent")` and state posts to window `message` events; theme from Orca's `light`/`dark` class                 | `apps/vscode/dev/orca/editor/bridge.ts`           |
-| Extension host wiring of the panels                  | Sessions per editor, keyed by `PanelCaller.id`; `PanelEffects` open further tabs                                                                                  | `apps/vscode/dev/orca/worker/cockpit-sessions.ts` |
-
-Missing for a real version, by priority:
-
-1. **Live refresh and closed tabs.** Orca tells the worker nothing when a tab closes. Give each
-   frame a lease it renews while visible; feed visibility into the core's `LiveContext`; refresh
-   the tree on a timer while the panel is visible.
-2. **Navigation details.** Back links (`PanelOrigins`), readable tab names for instances (the
-   business key, not the UUID), a picker for several called instances, go-to-instance.
-3. **Copy, open in Cockpit, stack traces.** Copy can run in the shim inside the click; open in
-   Cockpit and copy handover need a URL or text from the worker within the gesture window, best as
-   the answer to the intent rather than a post. Stack traces as a read-only view, links into code
-   through `editor.open`.
-4. **Agent hand-off (Orca only).** "Ask an agent about this incident" through `agent.launch` with a
-   fixed task line, typed ids and engine text fenced and capped, as invariant 6 asks of the MCP
-   widgets ([proposal 2](proposal-2.md)). "Inspect in a terminal" with `pulse inspect`.
-5. **Status bar.** One item with the incident total; it keeps the worker running, which also
-   carries the live refresh.
-6. **Writes.** The core asks `confirmWrite`; the worker keeps the write pending and accepts the
-   answer only from the Pulse panel (`PanelCaller` `{ surface: "panel", contributionId: "engines" }`,
-   bound by Orca to the frame's session), drawn with Orca's own controls, with the typed host for
-   production. Then audit through `WriteAudit` into `orca plugin logs`.
-7. **Model drift and boards**, last, since they need workspace files.
+How a write is confirmed: the core asks `confirmWrite`; the worker keeps the write pending and
+posts the question to the Pulse panel, raises a desktop notification and turns the status bar
+item to "Confirm in the Pulse panel". Only a request from the panel (`PanelCaller`
+`{ surface: "panel", contributionId: "engines" }`, set by Orca) settles it; a tab's request is
+refused and logged. Unanswered questions lapse after ten minutes. `orca plugin dev request`
+calls as the plugin's first panel, so a developer can answer from the CLI; installed plugins have
+no such path.
 
 ## 3. What Orca made easy
 
-- **The split fits.** Pulse already keeps the engine in a Node host and the UI in a sandboxed
+- The split fits. Pulse already keeps the engine in a Node host and the UI in a sandboxed
   webview; Orca's `trusted-worker` plus isolated frames is the same shape. Node 24 in the worker
   has `JSON.rawJSON`, so `LosslessJson` and `EngineHttp` run as they are.
-- **The webview bundle runs unchanged.** Isolated frames load an IIFE, CSS and fonts by relative
-  URL, allow inline styles, and keep `localStorage`; the frame needs no network because the state
-  carries the BPMN XML (24 KB for Order fulfillment, far under the 256 KiB post limit).
-- **The Tree component** gives a native-looking engines list in about 190 lines, keeps engine text
-  as text, and offers a password input for the login.
-- **Secrets, settings and the dev loop.** `secrets:own` sits on the OS key store;
-  `contributes.settings` draws the setting in Orca's Settings; `orca plugin dev request`,
-  `plugin shot`, `plugin check` and `plugin validate` made each step checkable without clicking.
+- The webview bundle runs unchanged, in isolated frames, without network, from the state the
+  worker posts.
+- The host layer of the extension carries over in part: `ConfirmationPolicy`, `WritePolicy`,
+  `LivePolicy`, `WriteAudit`, `CredentialStore`, `TargetsParser`, `EngineLanes`,
+  `ConnectionBuilder`, `PanelOrigins` and `PanelTitle` run in the worker untouched.
+- Orca's own surfaces cover what the extension needs from VS Code: settings with pickers, a
+  status bar item, commands, a save hook, workspace events and the components catalogue for
+  forms, lists and trees.
 
-## 4. What Orca made hard, and where it lacks a surface
+## 4. Open for a release
 
-Candidates for an issue or a request to the Orca team:
+By priority:
 
-- **No editor tab without a file.** A cockpit view needs a handle file in the workspace and
-  `workspace:write` (as git-log and git-control do). A `views` contribution or `editor.openView`
-  that opens a custom editor on a virtual document would remove the files.
-- **No way to open or focus a panel from code** (`orca plugin open` exists only on the CLI), so a
-  pending confirmation can only point at the panel.
-- **No close event for editors and panels** in the worker; sessions need leases.
-- **No title for a custom editor tab** from the frame: the tab shows the handle's file name.
-- **Tree items have no badge, colour or row action**, so counts become text and "set credentials"
-  becomes select plus form.
-- **Every surface of a plugin may read its secrets**, the frame that renders engine text
-  included. Frames have no network and `openExternal` needs a click plus a consent prompt, which
-  contains it, but a per-surface grant would make the worker the only reader.
-- **`orca plugin shot --editor` captures once the editor asked for its document**, before the state
-  a worker sends afterwards; the diagram is still empty then. The spike used `--window` instead. An
-  editor-side "ready" signal, or waiting for pending `plugin.request` calls as panel shots do, would
-  fix it.
-- **`--theme` and `--act` need the window hidden or minimized**, which an agent running inside Orca
-  cannot always do.
-- **Docs and behaviour differ in small places:** `workspace.list` reports local workspaces with
-  `hostId: "local"`, not `null`; a rebuilt worker keeps running the old code until
-  `orca plugin restart` (panels hot reload); the first panel shot after a cold worker start shows
-  the loading state.
-- **Reserved, not yet usable:** `mcpServers` would let the plugin offer Pulse's MCP server to the
-  agents Orca launches; `connections` a host-run sign-in.
+1. **Placement** (owner decision, section 5), then packaging: a release job that builds the
+   plugin and commits it where a catalog can pin it, with listing images.
+2. **Tests in Orca.** The worker is covered with a fake `orca`; the panel deserves tests with
+   Orca's own kit (`orca/testing`, run by `orca plugin test`) and the frame bridge a smoke test in
+   a real Orca, as modeler-suite's `orca-electron` harness does.
+3. **Gaps against VS Code that Orca can close** (candidates for the Orca team):
+   - no editor tab without a file, so views need handle files and `workspace:write`;
+   - no tab title from the frame, so a tab shows its handle's file name;
+   - no way to open or focus a panel from code, so a waiting write can only point at the panel;
+   - no close event for tabs and panels; the plugin uses a request Orca aborts on close;
+   - no active editor for the worker, so the status bar cannot show the open model's runtime and
+     "Show runtime data for this model" became a list;
+   - `editor.open` takes no line or selection, so incident details, models and code open at the
+     top, and plain text editors carry no links;
+   - tree items have no badge, colour or row action;
+   - every surface of a plugin may read its secrets;
+   - `orca plugin check` waits for every request in flight, so the panel starts its visibility
+     request a second after it draws.
+4. **Wording.** The read-only notes of `WritePolicy` name `pulse.writes`; in Orca the setting is
+   "Writes". The note belongs to the host, so it moves when the host layer moves.
+5. **Orca only, after parity:** an agent hand-off for an incident (`agent.launch` with typed ids
+   and fenced engine text, [proposal 2](proposal-2.md)) and `pulse inspect` in a terminal.
 
-## 5. Effort and recommendation
+## 5. Placement and effort
 
-**Placement first (owner decision).** The spike lives in `apps/vscode/dev/` because the root rule
-says apps never import each other. A real version is a shipped interface and needs one of:
+The spike lives in `apps/vscode/dev/` because the root rule says apps never import each other.
+A shipped Orca host needs one of:
 
-- a host layer at apps/vscode/src/orca with its own dependency-cruiser rules, tsconfig and tests
-  (fast, but a second interface inside the VS Code app), or
+- a host layer at apps/vscode/src/orca with its own dependency-cruiser rules, tsconfig and
+  coverage floor (fast, but a second interface inside the VS Code app), or
 - an app at apps/orca over packages extracted from `apps/vscode/src` (contract, core, protocol,
-  webview, C7 adapter, the pure connection files): the clean path, a larger move.
+  webview, C7 adapter, the host files the worker reuses): the clean path, a larger move.
 
-| Work                                                                                                                                                                        | Estimate    |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| Placement: `src/orca` layer with rules, tsconfig, tests and CI (or the package extraction: plus 5 to 8 days)                                                                | 2 to 3 days |
-| Live refresh, leases, worker restarts, tree refresh                                                                                                                         | 2 days      |
-| Navigation details, copy, open in Cockpit, stack traces                                                                                                                     | 3 days      |
-| Agent hand-off and status bar                                                                                                                                               | 2 days      |
-| Tests: fake `orca` API for worker and shim, a smoke test in a real Orca as modeler-suite's `orca-electron` harness does                                                     | 3 days      |
-| Packaging and publishing: a release job that builds the plugin and commits it where a catalog can pin it (Miragon/orca-modelers or a repository of its own), listing images | 2 days      |
-| Writes with the panel confirmation, audit, conformance                                                                                                                      | 4 to 5 days |
+| Work                                                                             | Estimate    |
+| -------------------------------------------------------------------------------- | ----------- |
+| Placement as a `src/orca` layer (the package extraction: plus 5 to 8 days)       | 2 to 3 days |
+| Panel tests with `orca/testing`, a smoke test in a real Orca, CI                 | 3 days      |
+| Packaging, release job, catalog entry, listing images                            | 2 days      |
+| Review of the write path with a second pair of eyes, conformance on test engines | 2 days      |
 
-Read-first version: about three weeks; with writes about four.
-
-**Go on**, read-first, for three reasons: the reuse is real (no change to webview, core or adapter),
-Orca's surfaces cover the must-haves, and Orca adds what VS Code lacks (agents next to the cockpit).
-Wait for Orca only on writes and on the gaps above; drop it only if Orca's worker model, which its
-docs still call experimental, changes in a way that breaks the split.
+About two weeks to a first release, the package extraction not counted.
 
 ## 6. Run it locally
 
@@ -153,15 +142,15 @@ $O plugin dev load apps/vscode/dist-orca        # prints the approval command wi
 $O plugin dev load apps/vscode/dist-orca --approve <fingerprint>
 $O plugin dev request apps/vscode/dist-orca engines.setProjectFile \
   --data "{\"path\":\"$PWD/apps/vscode/sandbox/.pulse-cli.json\"}"
-$O plugin open local.pulse-cockpit              # the panel; Enter on a process opens its tab
-$O plugin dev request apps/vscode/dist-orca views.open \
-  --data '{"engine":"shop-dev","view":"definition","bpmnProcessId":"order-fulfillment"}'
+$O plugin open local.pulse-cockpit              # the panel; Enter on an engine or process opens it
 ```
 
-The project file must lie inside a local Orca workspace, since the view handles go there. After a
-rebuild, run `$O plugin restart local.pulse-cockpit` so the worker loads the new code.
+Without the setting, the plugin reads `.pulse-cli.json` at the root of the focused workspace.
+After a rebuild, `$O plugin dev reload apps/vscode/dist-orca` remounts open tabs and
+`$O plugin restart local.pulse-cockpit` restarts the worker; tabs and the panel reconnect.
 
-The shots that need Orca's window hidden (light theme, the login form), with the window minimized:
+The shots that need Orca's window hidden (light theme, an acted panel), with the window
+minimized:
 
 ```sh
 $O plugin shot local.pulse-cockpit --theme light --width 420
