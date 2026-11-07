@@ -1,5 +1,6 @@
-import type { MCPServer, RequestContext, ToolAnnotations } from "mcp-use"
+import type { ServerContext, ToolAnnotations } from "@modelcontextprotocol/server"
 import type { z } from "zod"
+import type { ModuleServer } from "./module-server.js"
 import { withToolErrors } from "./tool-errors.js"
 import { strictToolInput } from "./widget-tool-bindings.js"
 
@@ -7,9 +8,6 @@ type ZodRawShape = Record<string, z.ZodType>
 
 /** The validated args a handler receives, inferred from its input shape. */
 type ToolArgs<TShape extends ZodRawShape = ZodRawShape> = z.infer<z.ZodObject<TShape>>
-
-/** mcp-use's per-call context; `auth` is optional: a boot without OAuth has none. */
-type ToolHandlerContext = RequestContext<unknown, "optional">
 
 export interface ToolConfig<TClient, TShape extends ZodRawShape = ZodRawShape> {
   name: string
@@ -20,8 +18,12 @@ export interface ToolConfig<TClient, TShape extends ZodRawShape = ZodRawShape> {
   /** An object schema: MCP's `structuredContent` is an object. */
   outputSchema?: z.ZodObject
   annotations?: ToolAnnotations
-  /** `ctx` is optional so a test calls the handler as `(client, args)`. */
-  handler: (client: TClient, args: ToolArgs<TShape>, ctx?: ToolHandlerContext) => Promise<unknown>
+  /**
+   * `ctx` is the SDK's per-call context (`ctx.mcpReq.signal` aborts with the request); optional
+   * so a test calls the handler as `(client, args)`. The caller comes from the ambient request
+   * info (`callerCacheKey`), never from `ctx`.
+   */
+  handler: (client: TClient, args: ToolArgs<TShape>, ctx?: ServerContext) => Promise<unknown>
 }
 
 /** What `createToolRegistrar` returns: a module's tool files take it as `register`. */
@@ -58,34 +60,28 @@ function toResult(result: unknown, config: { name: string; outputSchema?: unknow
 }
 
 /**
- * Every operations tool registers here (CLAUDE.md invariant 1): strict input (an unknown key is a
- * tool error naming the valid keys), a throw as `[code] message`, the result mirrored into
- * `structuredContent`. The handler gets `(client, args, ctx)`.
+ * Every operations tool registers here (CLAUDE.md invariant 1), through the SDK's `registerTool`:
+ * strict input (an unknown key is a tool error naming the valid keys), a throw as
+ * `[code] message`, the result mirrored into `structuredContent`. The handler gets
+ * `(client, args, ctx)`.
  */
 export function createToolRegistrar<TClient>(
-  server: MCPServer,
+  server: ModuleServer,
   client: TClient,
 ): ToolRegistrar<TClient> {
   return <TShape extends ZodRawShape>(config: ToolConfig<TClient, TShape>) => {
-    server.tool(
+    server.registerTool(
+      config.name,
       {
-        name: config.name,
         description: config.description,
         inputSchema: strictToolInput(config.inputSchema ?? {}),
-        outputSchema: config.outputSchema,
-        annotations: config.annotations,
+        ...(config.outputSchema !== undefined && { outputSchema: config.outputSchema }),
+        ...(config.annotations !== undefined && { annotations: config.annotations }),
       },
-      // mcp-use validates the args against the schema above before the callback runs; the
+      // The SDK validates the args against the schema above before the callback runs; the
       // callback sees the erased `ToolArgs`, the handler its own shape.
-      withToolErrors(async (args: ToolArgs, ctx?: unknown) =>
-        toResult(
-          await config.handler(
-            client,
-            args as ToolArgs<TShape>,
-            ctx as ToolHandlerContext | undefined,
-          ),
-          config,
-        ),
+      withToolErrors(async (args: ToolArgs, ctx: ServerContext) =>
+        toResult(await config.handler(client, args as ToolArgs<TShape>, ctx), config),
       ),
     )
   }

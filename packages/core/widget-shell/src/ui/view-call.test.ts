@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest"
 import { modelContextText } from "./ask-ai-prompt.js"
-import { NO_CALL_OBSERVATION, type CallObservation } from "./call-observer.js"
 import {
   isViewData,
   resolveViewCall,
@@ -11,7 +10,6 @@ import {
 
 const DATA = { rows: [1] }
 const AT = Date.UTC(2026, 9, 31, 14, 32)
-const stripped: CallObservation = { args: { engine: "prod" }, result: "stripped", cancelled: false }
 
 function resolve(inputs: Partial<ViewCallInputs>) {
   return resolveViewCall({
@@ -19,7 +17,7 @@ function resolve(inputs: Partial<ViewCallInputs>) {
     output: undefined,
     error: undefined,
     cancelled: false,
-    observation: NO_CALL_OBSERVATION,
+    stripped: false,
     rerun: { state: "idle" },
     ...inputs,
   })
@@ -55,20 +53,18 @@ describe("resolveViewCall", () => {
   })
 
   it("2. the host's renderable result, never stamped and never re-run", () => {
-    expect(resolve({ status: "ready", output: DATA, observation: stripped })).toEqual({
+    expect(resolve({ status: "ready", output: DATA, stripped: true })).toEqual({
       phase: { phase: "ready", data: DATA, reloadedAt: null },
       recover: false,
     })
   })
 
-  it("3. a cancel, latched by mcp-use or seen by the observer, is never re-run", () => {
+  it("3. a cancel is never re-run", () => {
     expect(resolve({ status: "error", cancelled: true })).toEqual({
       phase: { phase: "cancelled" },
       recover: false,
     })
-    expect(
-      resolve({ observation: { ...stripped, cancelled: true }, cancelled: true }).recover,
-    ).toBe(false)
+    expect(resolve({ stripped: true, cancelled: true }).recover).toBe(false)
   })
 
   it("4. a re-run in flight waits, so a retry is never sent twice", () => {
@@ -101,7 +97,7 @@ describe("resolveViewCall", () => {
   })
 
   it("7. a stripped or unrenderable result re-runs once", () => {
-    expect(resolve({ observation: stripped })).toEqual({
+    expect(resolve({ stripped: true })).toEqual({
       phase: { phase: "waiting" },
       recover: true,
     })
@@ -112,7 +108,7 @@ describe("resolveViewCall", () => {
   })
 
   it("8. a slow tool just waits: no result was sent, so none is missing", () => {
-    expect(resolve({ observation: { ...NO_CALL_OBSERVATION, args: { a: 1 } } })).toEqual({
+    expect(resolve({ stripped: false })).toEqual({
       phase: { phase: "waiting" },
       recover: false,
     })

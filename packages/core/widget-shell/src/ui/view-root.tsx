@@ -1,22 +1,22 @@
 /**
- * The bundle root (the second widget-shell file that imports `mcp-use/react`; the other is
- * `mcp-use-host.tsx`). `mountViews` picks the view the document's prelude names; `mountView`
- * mounts one view without a map, the entry a per-view build would call.
+ * The bundle root. `mountViews` picks the view the document's prelude names; `mountView` mounts one
+ * view without a map, the entry a per-view build would call.
  */
 import { StrictMode, useState } from "react"
+import { createRoot } from "react-dom/client"
 import { QueryClientProvider } from "@tanstack/react-query"
 import { ToastProvider, ICON_STROKE } from "@miragon/pulse-ui"
 import { LucideProvider } from "lucide-react"
-import { bootstrapView } from "mcp-use/react"
 import { readViewName } from "../protocol/view-name.js"
-import { installCallObserver, type CallObserver } from "./call-observer.js"
 import { SHELL_VIEW_CONFIG } from "./display-mode-toggle.js"
 import { HostDocument } from "./host-document.js"
 import { HostWidgetsProvider, type HostWidgets } from "./host-widgets.js"
-import { McpUseViewHost, useMcpUseViewCall } from "./mcp-use-host.js"
+import { ExtAppsViewHost, useViewCall } from "./ext-apps-host.js"
 import { LocaleGate } from "./locale-gate.js"
 import { createViewQueryClient } from "./tool-query.js"
+import { ViewErrorBoundary } from "./view-error-boundary.js"
 import { ViewFrame } from "./view-frame.js"
+import { createViewRuntime, type ViewRuntime } from "./view-runtime.js"
 import type { ViewComponent, ViewMap } from "./views.js"
 
 export interface MountViewOptions {
@@ -33,13 +33,23 @@ export interface MountViewsOptions {
 
 const NO_WIDGETS: HostWidgets = {}
 
-/** One view, no map: the observer listens BEFORE the runtime connects, so it sees every notification. */
+/** One view, no map: the handlers sit on the `App` before it connects, so none misses a notification. */
 export function mountView(options: MountViewOptions): void {
-  const observer = installCallObserver()
-  bootstrapView({
-    default: () => <ViewRoot {...options} observer={observer} />,
-    viewConfig: SHELL_VIEW_CONFIG,
+  const runtime = createViewRuntime(SHELL_VIEW_CONFIG)
+  void runtime.connect().catch((error: unknown) => {
+    console.error("[pulse] Failed to connect the view runtime:", error)
   })
+  let container = document.getElementById("root")
+  if (!container) {
+    container = document.createElement("div")
+    container.id = "root"
+    document.body.appendChild(container)
+  }
+  createRoot(container).render(
+    <ViewErrorBoundary>
+      <ViewRoot {...options} runtime={runtime} />
+    </ViewErrorBoundary>,
+  )
 }
 
 /** The view the document's prelude names; an unknown name renders the "can't show" state. */
@@ -49,12 +59,8 @@ export function mountViews({ views, hostWidgets }: MountViewsOptions): void {
   mountView({ name, view, hostWidgets })
 }
 
-function McpUseViewFrame({
-  name,
-  view,
-  observer,
-}: Omit<MountViewOptions, "hostWidgets"> & { observer: CallObserver | null }) {
-  return <ViewFrame call={useMcpUseViewCall(name, observer)} view={view} />
+function RootViewFrame({ name, view }: Omit<MountViewOptions, "hostWidgets">) {
+  return <ViewFrame call={useViewCall(name)} view={view} />
 }
 
 /**
@@ -66,26 +72,26 @@ export function ViewRoot({
   name,
   view,
   hostWidgets,
-  observer,
-}: MountViewOptions & { observer: CallObserver | null }) {
+  runtime,
+}: MountViewOptions & { runtime: ViewRuntime }) {
   const [client] = useState(createViewQueryClient)
   return (
     <StrictMode>
-      <McpUseViewHost>
+      <ExtAppsViewHost runtime={runtime}>
         <QueryClientProvider client={client}>
           <HostDocument>
             <LocaleGate>
               <LucideProvider strokeWidth={ICON_STROKE}>
                 <ToastProvider>
                   <HostWidgetsProvider widgets={hostWidgets ?? NO_WIDGETS}>
-                    <McpUseViewFrame name={name} view={view} observer={observer} />
+                    <RootViewFrame name={name} view={view} />
                   </HostWidgetsProvider>
                 </ToastProvider>
               </LucideProvider>
             </LocaleGate>
           </HostDocument>
         </QueryClientProvider>
-      </McpUseViewHost>
+      </ExtAppsViewHost>
     </StrictMode>
   )
 }

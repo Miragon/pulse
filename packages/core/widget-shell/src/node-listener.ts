@@ -1,15 +1,15 @@
 /**
- * mcp-use 2's Node bridge buffers every non-GET body into one string and parses it (up to ~20× on
- * the heap) before the OAuth gate. So before the bridge: a guard-refused request's body is discarded
- * unread, an over-cap body gets 413, and a body past the in-flight budget gets 503 + `Retry-After`.
- * `mcp-use dev` serves through its own listener and is NOT capped.
+ * The Node bridge buffers every non-GET body before the app sees it, and a JSON body parses into a
+ * heap graph up to ~20× its size, all before the OAuth gate. So before the bridge: a guard-refused
+ * request's body is discarded unread, an over-cap body gets 413, and a body past the in-flight
+ * budget gets 503 + `Retry-After`. Every boot serves through it, `pnpm dev` included.
  */
 import type { IncomingMessage, ServerResponse } from "node:http"
 import { Readable } from "node:stream"
-import { toNodeHandler, type NodeIncomingMessageLike } from "mcp-use/node"
+import { toNodeHandler, type NodeIncomingMessageLike } from "@modelcontextprotocol/node"
 import { IN_FLIGHT_BODY_MULTIPLE, jsonRpcErrorBody } from "./http-edge.js"
 
-/** `MCPServer` satisfies it structurally. */
+/** `McpHttpApp` satisfies it structurally. */
 export interface FetchTarget {
   fetch: (request: Request) => Promise<Response>
 }
@@ -81,7 +81,7 @@ function replay(
 }
 
 /**
- * The body headers go too: mcp-use's JSON middleware runs BEFORE the guard and would answer an empty
+ * The body headers go too: a handler that parses JSON before the guard would answer an empty
  * `application/json` body 400 instead of letting the guard 403.
  */
 function bodiless(req: IncomingMessage): NodeIncomingMessageLike {
@@ -131,7 +131,7 @@ export function createBodyLimitedListener(
 ): BodyLimitedListener {
   const bridge = toNodeHandler(
     { fetch: (request) => target.fetch(request) },
-    onError ? { onerror: onError } : {},
+    { maxRequestBodySize: maxBodyBytes, ...(onError ? { onerror: onError } : {}) },
   )
   const tooLarge: Refusal = {
     status: 413,

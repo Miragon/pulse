@@ -1,22 +1,27 @@
 import { mkdtemp, writeFile } from "node:fs/promises"
-import http from "node:http"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { MCPServer, registerViews } from "mcp-use"
-import { oauthCustomProvider } from "mcp-use/oauth"
+import { McpHttpApp } from "./mcp-server.js"
+import { oauthCustomProvider } from "./oauth-providers.js"
 import type { ComposableModule, ModulePlugin } from "./composition.js"
 import {
   createComposedServer,
   type ComposedServerOptions,
   type RunningServer,
 } from "./composed-server.js"
+import {
+  answer,
+  moduleOf,
+  plain,
+  pluginOf,
+  rpc,
+  withPlugins,
+} from "./composed-server.test-support.js"
 import { getMcpRequestInfo } from "./request-context.js"
 import { createToolsetVocabulary } from "./toolsets.js"
 import { viewPrelude } from "./protocol/view-name.js"
 import { showToolBinding } from "./widget-tool-bindings.js"
-
-const answer = () => ({ content: [{ type: "text" as const, text: "ok" }], structuredContent: {} })
 
 /** A module the house way: one plain tool and one view-bound show tool. */
 const alpha: ComposableModule<object> = {
@@ -29,10 +34,11 @@ const alpha: ComposableModule<object> = {
   createPlugin: () => ({
     name: "alpha",
     register: (server) => {
-      server.tool({ name: "alpha_ping", description: "Pings." }, answer)
-      server.tool(
+      plain(server, "alpha_ping", { description: "Pings." })
+      server.registerTool(
+        "alpha_show_thing",
         {
-          name: "alpha_show_thing",
+          title: "Thing",
           description: "Shows a thing.",
           ...showToolBinding("alpha_show_thing", "Thing"),
         },
@@ -42,34 +48,20 @@ const alpha: ComposableModule<object> = {
   }),
 }
 
-/** A module without toolsets around one plugin: the boot builds it like any other. */
-const moduleOf = (plugin: ModulePlugin): ComposableModule<object> => ({
-  name: plugin.name,
-  configFromEnv: () => ({}),
-  knownEnvVars: [],
-  createPlugin: () => plugin,
-})
-
 /** A plugin outside alpha, owning a plain feed and a view-bound show tool. */
 const panelPlugin = (): ModulePlugin => ({
   name: "panel",
   register: (server) => {
-    server.tool({ name: "panel_data", description: "Feeds the panel." }, answer)
-    server.tool(
+    plain(server, "panel_data", { description: "Feeds the panel." })
+    server.registerTool(
+      "panel_show_panel",
       {
-        name: "panel_show_panel",
+        title: "Panel",
         description: "Shows the panel.",
         ...showToolBinding("panel_show_panel", "Panel"),
       },
       answer,
     )
-  },
-})
-
-const pluginOf = (name: string, ...toolNames: string[]): ModulePlugin => ({
-  name,
-  register: (server) => {
-    for (const toolName of toolNames) server.tool({ name: toolName }, answer)
   },
 })
 
@@ -98,8 +90,6 @@ function options(overrides: Partial<ComposedServerOptions> = {}): ComposedServer
   }
 }
 
-const withPlugins = (...plugins: ModulePlugin[]) => ({ modules: plugins.map(moduleOf) })
-
 async function boot(overrides: Partial<ComposedServerOptions> = {}) {
   const composed = await createComposedServer(options(overrides))
   const server = await composed.listen({ port: 0, host: "127.0.0.1" })
@@ -107,50 +97,9 @@ async function boot(overrides: Partial<ComposedServerOptions> = {}) {
   return server
 }
 
-/** One JSON-RPC call on a fresh connection; the server is stateless, so no initialize first. */
-function rpc(
-  port: number,
-  method: string,
-  params: Record<string, unknown> = {},
-  headers: Record<string, string> = {},
-) {
-  return new Promise<Record<string, unknown>>((resolve, reject) => {
-    const req = http.request(
-      {
-        host: "127.0.0.1",
-        port,
-        method: "POST",
-        path: "/mcp",
-        agent: false,
-        headers: {
-          "content-type": "application/json",
-          accept: "application/json, text/event-stream",
-          "mcp-protocol-version": "2025-06-18",
-          ...headers,
-        },
-      },
-      (res) => {
-        const chunks: Buffer[] = []
-        res.on("data", (chunk: Buffer) => chunks.push(chunk))
-        res.on("end", () => {
-          const body = Buffer.concat(chunks).toString("utf8")
-          const json = body.trimStart().startsWith("{")
-            ? body
-            : body
-                .split("\n")
-                .find((line) => line.startsWith("data: "))!
-                .slice("data: ".length)
-          resolve((JSON.parse(json) as { result: Record<string, unknown> }).result)
-        })
-      },
-    )
-    req.on("error", reject)
-    req.end(JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }))
-  })
-}
-
-const testOAuth = () =>
-  oauthCustomProvider<unknown>({
+/** A stub IdP; `acceptAny` lets every bearer token through, bound to this server. */
+const testOAuth = ({ acceptAny = false } = {}) =>
+  oauthCustomProvider({
     resource: "http://localhost/mcp",
     oauthMetadata: {
       issuer: "https://idp.example.test",
@@ -158,8 +107,17 @@ const testOAuth = () =>
       token_endpoint: "https://idp.example.test/t",
       response_types_supported: ["code"],
     },
-    createTokenVerifier: () => ({
-      verifyAccessToken: () => Promise.reject(new Error("no tokens in this test")),
+    createTokenVerifier: (resource) => ({
+      verifyAccessToken: (token) =>
+        acceptAny
+          ? Promise.resolve({
+              token,
+              clientId: "test",
+              scopes: [],
+              resource,
+              expiresAt: Math.floor(Date.now() / 1000) + 3600,
+            })
+          : Promise.reject(new Error("no tokens in this test")),
     }),
     mapAuthInfo: () => ({ user: {}, payload: {}, permissions: [] }),
   })
@@ -171,21 +129,26 @@ describe("createComposedServer: the plugins' tools", () => {
     expect(tools.map(({ name }) => name).sort()).toEqual(PLUGIN_TOOLS)
   })
 
-  it("registers only the plugins' tools, also under OAuth with every module writable", async () => {
-    const tool = vi.spyOn(MCPServer.prototype, "tool")
-    await createComposedServer(
-      options({ oauth: testOAuth(), env: { MCP_ACTIVE_MODULES: "panel,alpha:operations" } }),
-    )
-    const names = tool.mock.calls.map(([definition]) => definition.name)
-    expect(names.sort()).toEqual(PLUGIN_TOOLS)
+  it("serves only the plugins' tools, also under OAuth with every module writable", async () => {
+    const server = await boot({
+      oauth: testOAuth({ acceptAny: true }),
+      env: { MCP_ACTIVE_MODULES: "panel,alpha:operations" },
+    })
+    const { tools } = (await rpc(
+      server.port,
+      "tools/list",
+      {},
+      { authorization: "Bearer any" },
+    )) as { tools: { name: string }[] }
+    expect(tools.map(({ name }) => name).sort()).toEqual(PLUGIN_TOOLS)
   })
 
-  // A real call through mcp-use: the metrics middleware hangs on mcp-use's own tools/call event.
+  // A real call through the SDK: the metrics middleware wraps the replayed handler.
   it("hands a plugin's tools the ambient request info and counts the call by tool", async () => {
     const probe: ModulePlugin = {
       name: "probe",
       register: (server) => {
-        server.tool({ name: "probe_auth" }, () => ({
+        server.registerTool("probe_auth", {}, () => ({
           content: [{ type: "text" as const, text: getMcpRequestInfo()?.authorization ?? "none" }],
         }))
       },
@@ -221,7 +184,7 @@ describe("createComposedServer: writes no toolset narrows", () => {
   const reader: ModulePlugin = {
     name: "reader",
     register: (server) => {
-      server.tool({ name: "reader_list", annotations: { readOnlyHint: true } }, answer)
+      server.registerTool("reader_list", { annotations: { readOnlyHint: true } }, answer)
     },
   }
 
@@ -232,7 +195,7 @@ describe("createComposedServer: writes no toolset narrows", () => {
       .filter((line) => line.includes("declares no toolsets"))
 
   const warning = (tool: string, module = "panel") =>
-    `[plugins-test] ${tool} is a write and its module "${module}" declares no toolsets: anyone who reaches this port can call it. Declare toolsets on "${module}" that keep its writes out of the read-only floor, or configure an OAuth provider (MCP_USE_OAUTH_*); a tool that only reads states readOnlyHint: true.`
+    `[plugins-test] ${tool} is a write and its module "${module}" declares no toolsets: anyone who reaches this port can call it. Declare toolsets on "${module}" that keep its writes out of the read-only floor, or configure an OAuth provider (MCP_OAUTH_*); a tool that only reads states readOnlyHint: true.`
 
   it("warns once per write of a module without toolsets on a boot without OAuth, and still serves it", async () => {
     const modules = [moduleOf(panelPlugin()), alpha, moduleOf(reader)]
@@ -262,7 +225,7 @@ describe("createComposedServer: writes no toolset narrows", () => {
         name: "crm-plugin",
         register: (server) => {
           const annotations = { readOnlyHint: false, destructiveHint: true }
-          server.tool({ name: "crm_delete_customer", annotations }, answer)
+          server.registerTool("crm_delete_customer", { annotations }, answer)
         },
       }),
     }
@@ -277,7 +240,7 @@ describe("createComposedServer: the views", () => {
     const bundle = { jsPath: path.join(dir, "app.js"), cssPath: path.join(dir, "app.css") }
     await writeFile(bundle.jsPath, "globalThis.bundleMarker = 41")
     await writeFile(bundle.cssPath, ".bundle-marker { color: inherit }")
-    const prime = vi.spyOn(MCPServer.prototype, registerViews)
+    const prime = vi.spyOn(McpHttpApp.prototype, "primeViews")
     const server = await boot({
       bundle,
       modules: [moduleOf(panelPlugin()), alpha, moduleOf(pluginOf("late", "late_list"))],
@@ -310,7 +273,7 @@ describe("createComposedServer: the views", () => {
   })
 
   it("reads no bundle and primes nothing when no tool binds a view", async () => {
-    const prime = vi.spyOn(MCPServer.prototype, registerViews)
+    const prime = vi.spyOn(McpHttpApp.prototype, "primeViews")
     await createComposedServer(options(withPlugins(pluginOf("plain", "x"))))
     expect(prime).not.toHaveBeenCalled()
     expect(console.warn).not.toHaveBeenCalledWith(expect.stringContaining("No widget bundle"))

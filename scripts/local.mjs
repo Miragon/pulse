@@ -13,6 +13,7 @@
  * a bash on the PATH (Git Bash). Only macOS and Linux are tested.
  */
 import { execFile, spawn } from "node:child_process"
+import { randomBytes } from "node:crypto"
 import {
   closeSync,
   existsSync,
@@ -44,10 +45,13 @@ import {
   COMPOSE_PROJECT,
   composeArgs,
   DEFAULT_SERVER_PORT,
+  inspectorLink,
+  inspectorPorts,
   portConflict,
   portOwners,
   profilesFor,
   SERVICES,
+  SERVER_READY_PATH,
   serverPreset,
   servicesFor,
   withPreset,
@@ -71,9 +75,9 @@ const CLI_PACKAGE = "@miragon/pulse-cli"
 const CLI_ENTRY = "apps/cli/dist/pulse-cli.js"
 const STACK_TIMEOUT_MS = 10 * 60_000
 const SERVER_TIMEOUT_MS = 3 * 60_000
+/** The inspector starts next to the server; once the server is ready, it gets this long more. */
+const INSPECTOR_TIMEOUT_MS = 30_000
 const DEFAULT_PORT = DEFAULT_SERVER_PORT
-/** Served by `mcp-use dev` only. */
-const INSPECTOR = "/mcp/inspector"
 
 class Failure extends Error {}
 
@@ -329,14 +333,24 @@ async function stackStatus() {
   const owners = await dockerPs()
   const server = {
     id: "mcp-server",
-    ports: [8400],
-    url: "http://localhost:8400/mcp",
+    ports: [DEFAULT_PORT],
+    url: `http://localhost:${DEFAULT_PORT}/mcp`,
     start: "pnpm play",
   }
+  const [{ port: inspectorPort }] = inspectorPorts({})
+  const inspector = {
+    id: "inspector",
+    ports: [inspectorPort],
+    url: `http://127.0.0.1:${inspectorPort}`,
+    start: "pnpm play",
+  }
+  const local = [server, inspector]
   const rows = await Promise.all(
-    [...SERVICES, server].map(async (service) => {
+    [...SERVICES, ...local].map(async (service) => {
       const owner = owners.get(service.ports[0])
-      const up = service === server ? await portBound(DEFAULT_PORT) : await answers(service.probe)
+      const up = local.includes(service)
+        ? await portBound(service.ports[0])
+        : await answers(service.probe)
       const start =
         service.start ?? `pnpm stack:up${service.profile ? ` --${service.profile}` : ""}`
       const state = up ? "up" : owner ? "starting or unhealthy" : `not running (${start})`
@@ -385,15 +399,21 @@ function signalTree(child, signal) {
 }
 
 /**
- * Fail before the install and the build when the server's port is taken. The message names the
- * port only when it is the default: a value from the caller's environment is never logged.
+ * Fail before the install and the build when the server's port or one of the inspector's is
+ * taken. The message names a port only when it is a default: a value from the caller's
+ * environment is never logged.
  */
-async function ensurePortFree(port, fromEnv) {
-  if (await portBound(port)) {
-    const which = fromEnv ? "The port your PORT names" : `Port ${DEFAULT_PORT}`
+async function ensurePortsFree(port, fromEnv, env) {
+  const wanted = [
+    { variable: "PORT", port, fromEnv, what: "" },
+    ...inspectorPorts(env).map((entry) => ({ ...entry, what: " (the inspector's)" })),
+  ]
+  for (const { variable, port: candidate, fromEnv: named, what } of wanted) {
+    if (!(await portBound(candidate))) continue
+    const which = named ? `The port your ${variable} names` : `Port ${candidate}${what}`
     throw new Failure(
       `${which} is taken (another pnpm play or pnpm dev, in another worktree say?). Stop it, or ` +
-        "set PORT to another port.",
+        `set ${variable} to another port.`,
     )
   }
 }
@@ -409,17 +429,25 @@ function sayOverrides({ overridden, outranking }) {
 }
 
 async function play(options) {
-  const preset = serverPreset(options)
-  const { env, ...overrides } = withPreset(preset, process.env)
   const portFromEnv = process.env.PORT !== undefined
-  const port = Number(env.PORT ?? DEFAULT_PORT)
+  const port = Number(process.env.PORT ?? DEFAULT_PORT)
+  const preset = serverPreset({ ...options, port })
+  const { env: presetEnv, ...overrides } = withPreset(preset, process.env)
+  // The inspector's sign-in token: the caller's own, else a fresh one, so the ready message can
+  // link the signed-in web UI. The ready message never names a token from the caller's
+  // environment; the inspector's own banner prints whichever token it runs with
+  // (docs/mcp/developer.md).
+  const tokenFromEnv = Boolean(presetEnv.MCP_INSPECTOR_API_TOKEN)
+  const env = tokenFromEnv
+    ? presetEnv
+    : { ...presetEnv, MCP_INSPECTOR_API_TOKEN: randomBytes(32).toString("hex") }
   await ensureDocker()
-  await ensurePortFree(port, portFromEnv)
+  await ensurePortsFree(port, portFromEnv, env)
   await install()
   await ensureStack(options)
   say("Building the server's packages ...")
   await turboBuild(`${SERVER_PACKAGE}^...`)
-  await ensurePortFree(port, portFromEnv)
+  await ensurePortsFree(port, portFromEnv, env)
   sayOverrides(overrides)
   // Named from the preset, never echoed from the caller's environment (sayOverrides names it).
   const toolsets =
@@ -448,13 +476,13 @@ async function play(options) {
   // A signal the server did not get from us (an OOM kill, say) is a failure.
   const exited = new Promise((resolve) => child.on("exit", (code) => resolve(code ?? 1)))
   const base = `http://localhost:${port}`
-  const inspector = `http://127.0.0.1:${port}${INSPECTOR}`
+  const [{ port: inspectorPort }] = inspectorPorts(env)
   const gone = () => child.exitCode !== null || child.signalCode !== null
   let ready = false
   try {
     await waitFor(
       "The MCP server",
-      async () => gone() || (ready = await answers(inspector)),
+      async () => gone() || (ready = await answers(`http://127.0.0.1:${port}${SERVER_READY_PATH}`)),
       SERVER_TIMEOUT_MS,
     )
   } catch (error) {
@@ -462,8 +490,21 @@ async function play(options) {
     throw error
   }
   if (ready) {
+    // The inspector starts beside the server and may answer a moment after it.
+    const inspector = await waitFor(
+      "The inspector",
+      async () => gone() || answers(`http://127.0.0.1:${inspectorPort}/`),
+      INSPECTOR_TIMEOUT_MS,
+    ).then(
+      () => !gone(),
+      () => false,
+    )
+    const link = tokenFromEnv
+      ? `http://127.0.0.1:${inspectorPort} (sign in with your MCP_INSPECTOR_API_TOKEN)`
+      : inspectorLink(inspectorPort, env.MCP_INSPECTOR_API_TOKEN)
     console.log(
-      `\nMCP server ready:\n  MCP endpoint  ${base}/mcp\n  inspector     ${base}${INSPECTOR}\n` +
+      `\nMCP server ready:\n  MCP endpoint  ${base}/mcp\n` +
+        `  inspector     ${inspector ? link : "did not start; its output is above"}\n` +
         `${claudeCodeHint(port)}Ctrl-C stops the server; the playground keeps running.`,
     )
   }

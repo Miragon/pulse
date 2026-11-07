@@ -1,17 +1,17 @@
 /**
  * DNS-rebinding protection (Origin validation is a MUST of MCP Streamable HTTP) as two allow-lists:
  * `Host` on every request (a rebinding page arrives under the ATTACKER's hostname), `Origin` on
- * non-GET/HEAD requests carrying one; requests without `Origin` pass, since non-browser MCP clients
- * never send one. App-owned instead of mcp-use's `allowedHosts`, which would also guard the
- * operational routes that probes reach by container IP.
+ * requests that can change something (not GET, HEAD or a CORS preflight) carrying one; requests
+ * without `Origin` pass, since non-browser MCP clients never send one. The boot's own guard, in
+ * front of everything but the operational routes, which probes reach by container IP.
  */
 
 /** A loopback caller is the machine itself. */
 const LOCALHOST_HOSTNAMES: readonly string[] = ["localhost", "127.0.0.1", "[::1]"]
 
 /**
- * 4 MiB bounds ONE request; mcp-use parses a JSON body into a heap graph up to ~20× its size before
- * the OAuth gate runs, so the in-flight budget below bounds the total.
+ * 4 MiB bounds ONE request; a JSON body parses into a heap graph up to ~20× its size, so the
+ * in-flight budget below bounds the total. Both hold before the OAuth gate runs.
  */
 export const DEFAULT_MAX_BODY_BYTES = 4 * 1024 * 1024
 
@@ -128,18 +128,14 @@ const formatBytes = (bytes: number): string => {
 
 /**
  * So a 403 in the field is explainable from the log. The body cap sits in the boot's own listener
- * (`createBodyLimitedListener`), which `mcp-use dev` never starts: it serves the app itself.
+ * (`createBodyLimitedListener`), which every boot starts, the dev loop included.
  */
-export function describeHttpEdgePolicy(
-  policy: HttpEdgePolicy,
-  { underDevCli = false }: { underDevCli?: boolean } = {},
-): string {
+export function describeHttpEdgePolicy(policy: HttpEdgePolicy): string {
   const list = (allowList: AllowList) =>
     allowList === "*" ? "any (validation off)" : allowList.join(", ")
   return (
     `HTTP edge: hosts ${list(policy.allowedHosts)}; origins ${list(policy.allowedOrigins)}; ` +
-    `max body ${formatBytes(policy.maxBodyBytes)} (${formatBytes(policy.maxInFlightBodyBytes)} in flight)` +
-    `${underDevCli ? " on the built server only" : ""}; ` +
+    `max body ${formatBytes(policy.maxBodyBytes)} (${formatBytes(policy.maxInFlightBodyBytes)} in flight); ` +
     `/metrics ${policy.metricsToken ? "token-protected" : "open"}`
   )
 }
@@ -169,8 +165,9 @@ export function originRejection(
   policy: HttpEdgePolicy,
 ): string | undefined {
   if (policy.allowedOrigins === "*" || !origin) return undefined
-  // Sandboxed view iframes send `Origin: null` on asset GETs (mcp-use applies the same rule).
-  if (method === "GET" || method === "HEAD") return undefined
+  // Sandboxed view iframes send `Origin: null` on asset GETs. A preflight changes nothing either:
+  // a browser on a foreign origin reads the discovery documents' CORS answer, never `/mcp`'s.
+  if (method === "GET" || method === "HEAD" || method === "OPTIONS") return undefined
   let url: URL | undefined
   try {
     url = new URL(origin)
@@ -241,7 +238,7 @@ export interface EdgeGuardOptions {
   exemptPaths?: readonly string[]
 }
 
-/** Covers every route registered AFTER it (hono runs in order); mcp-use mounts `/mcp` later. */
+/** Covers every route registered AFTER it (hono runs in order); the app mounts `/mcp` last. */
 export function installHttpEdgeGuard(
   server: EdgeGuardHost,
   policy: HttpEdgePolicy,

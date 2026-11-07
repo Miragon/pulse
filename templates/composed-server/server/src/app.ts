@@ -39,7 +39,7 @@ export interface AppDeps {
 /**
  * The composition root `src/index.ts` and the tests share: one `createComposedServer` call
  * (`@miragon/pulse-widget-shell/server`). The boot owns the rest: the module selection and its
- * log, OAuth from mcp-use's own `MCP_USE_OAUTH_*` variables, the mcp-use server, `/metrics`, the
+ * log, OAuth from one provider's `MCP_OAUTH_*` variables, the MCP server, `/metrics`, the
  * Host/Origin guard, `/health/*`, the body-capped listener and the graceful drain. This file
  * names what is yours: the server's name, the modules and their wiring (`setup.ts`).
  */
@@ -53,7 +53,7 @@ export async function createApp(
     shared: sharedResources,
     env,
     bundle: deps.bundle ?? {
-      // Read ONCE at boot: after rebuilding the bundle, restart the server.
+      // Read ONCE at boot: `pnpm dev` restarts the server when the bundle is rebuilt.
       jsPath: path.join(PACKAGE_ROOT, "dist", "mcp-app.js"),
       cssPath: path.join(PACKAGE_ROOT, "dist", "mcp-app.css"),
     },

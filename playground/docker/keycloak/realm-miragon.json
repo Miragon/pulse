@@ -73,7 +73,7 @@
   "clientScopes": [
     {
       "name": "basic",
-      "description": "Subject + username claims for access tokens. Keycloak does NOT auto-create its built-in scopes when a realm import defines clientScopes, and mcp-use's Keycloak provider rejects any token without sub ('Missing Keycloak subject').",
+      "description": "Subject + username claims for access tokens. Keycloak does NOT auto-create its built-in scopes when a realm import defines clientScopes, and the server's Keycloak provider rejects any token without sub ('Missing Keycloak subject').",
       "protocol": "openid-connect",
       "attributes": {
         "include.in.token.scope": "false",
@@ -155,7 +155,7 @@
     },
     {
       "name": "mcp-resource",
-      "description": "Stamps the MCP server's canonical resource URL into aud \u2014 mcp-use 2 rejects tokens without it (RFC 8707).",
+      "description": "Stamps the MCP server's canonical resource URL into aud \u2014 the server rejects tokens without it (RFC 8707).",
       "protocol": "openid-connect",
       "attributes": {
         "include.in.token.scope": "false",

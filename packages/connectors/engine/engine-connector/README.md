@@ -16,7 +16,7 @@ interactive views that show incidents, instances and diagrams right in the chat.
 
 ```sh
 npm install @miragon/pulse-engine-connector @miragon/pulse-widget-shell
-npm install react react-dom zod lucide-react bpmn-js@18.31.1 @miragon/pulse-ui mcp-use@2.12.2
+npm install react react-dom zod lucide-react bpmn-js@18.31.1 @miragon/pulse-ui
 ```
 
 To build your own MCP server on it, start from [pulse-starter](https://github.com/Miragon/pulse-starter).
@@ -42,9 +42,10 @@ view runtime and boot your server shares with every module), `lucide-react` `^0.
 (the widgets' icons; pin a 1.x copy (this repo pins 1.67.0): widget-shell's view root imports
 `LucideProvider`, which 0.x lacks, so a deduped 0.x copy fails the bundle build). Your view
 bundle's Vite config spreads widget-shell's `VIEW_BUNDLE_DEDUPE` into `resolve.dedupe`. `bpmn-js`
-is a peer (`^18.31.1`): the widgets draw BPMN diagrams. **`mcp-use` is exactly pinned**: pin
-it to `mcp-use@2.12.2` in your app. A duplicate `mcp-use` instance breaks the React context and
-hangs every in-widget query on "Loading…".
+is a peer (`^18.31.1`): the widgets draw BPMN diagrams. The module registers on widget-shell's
+`ModuleServer`, the official MCP TypeScript SDK's `registerTool`/`registerPrompt`, and needs no
+SDK package of its own: widget-shell brings `@modelcontextprotocol/server` 2.4 and
+`@modelcontextprotocol/ext-apps` 2.0.
 
 ## What it provides
 
@@ -92,8 +93,8 @@ This module has strict house patterns: read the
 [`add-bpm-feature`](../../../../.claude/skills/add-bpm-feature) skill and the architecture invariants in
 [`CLAUDE.md`](../../../../CLAUDE.md) before adding tools, schemas, or widgets. In short: input schemas live
 in `src/schemas/` next to the tools, the pure engine rules in
-[`@miragon/pulse-engine-core`](../engine-core), tools register via the registrar (never raw
-`server.tool()`), and a view is a cockpit route (its section, its builder and `*_data` feed, its
+[`@miragon/pulse-engine-core`](../engine-core), tools register via the registrar (never a raw
+`server.registerTool()`), and a view is a cockpit route (its section, its builder and `*_data` feed, its
 start view), never a second view tool: see the add-bpm-feature skill.
 
 ## Layout
@@ -118,4 +119,4 @@ start view), never a second view tool: see the add-bpm-feature skill.
 ## Verify
 
 `pnpm typecheck` is the **only** check that type-checks the widget `.tsx` (via
-`tsconfig.widgets.json`). Widgets render only manually through the inspector; see the root README.
+`tsconfig.widgets.json`). Widgets render only manually through the MCP Inspector `pnpm dev` starts; see the root README.

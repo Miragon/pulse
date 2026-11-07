@@ -26,8 +26,9 @@ URL: https://pulse-playground.miragon.ai/mcp
 Then ask _"Which processes have open incidents right now?"_ and drill into the widgets. Claude
 Desktop needs a bridge, described in [Usage](usage.md#connect-your-assistant).
 
-Without an assistant of your own, [open the playground in a browser chat](https://inspector.manufact.com/inspector?server=https%3A%2F%2Fpulse-playground.miragon.ai%2Fmcp&tab=chat),
-a third-party MCP inspector connected to the same engine, with nothing to install.
+Without an assistant of your own, open the playground in the official [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector)
+(Node.js 22.19 or later): `npx @modelcontextprotocol/inspector --server-url https://pulse-playground.miragon.ai/mcp --transport http`.
+Its Tools tab calls every tool, its Apps tab renders the widgets; it has no chat, so a hand-off to the chat does nothing.
 
 ## Run it on your own engine
 

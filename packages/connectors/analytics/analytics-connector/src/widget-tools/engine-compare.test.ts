@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest"
 import type { z } from "zod"
-import type { MCPServer } from "mcp-use"
 import {
   increaseIn,
   type EngineCompareResult,
@@ -8,25 +7,19 @@ import {
 } from "@miragon/pulse-analytics-client"
 import { createEngineScope } from "../engine-ids.js"
 import { registerWidgetTools } from "../widget-tools.js"
-
-type ToolResult = {
-  isError?: boolean
-  content: Array<{ type: string; text: string }>
-  structuredContent: Record<string, unknown>
-}
-type Definition = { name: string; description: string; inputSchema: z.ZodObject }
-type Handler = (args: Record<string, unknown>, ctx: unknown) => Promise<ToolResult>
+import {
+  recordedTools,
+  type Definition,
+  type Handler,
+  type ToolResult,
+} from "./recorded-tools.test-support.js"
 
 const NAME = "analytics_show_engine_compare"
 
 function showEngineCompare(ch: PrometheusClient): { definition: Definition; handler: Handler } {
-  const tools = new Map<string, { definition: Definition; handler: Handler }>()
-  const server = {
-    tool: (definition: Definition, handler: Handler) => {
-      tools.set(definition.name, { definition, handler })
-    },
-  } as unknown as MCPServer
-  registerWidgetTools(server, ch, { engineScope: createEngineScope(["prod-a", "prod-b"]) })
+  const tools = recordedTools((server) =>
+    registerWidgetTools(server, ch, { engineScope: createEngineScope(["prod-a", "prod-b"]) }),
+  )
   return tools.get(NAME)!
 }
 
@@ -64,16 +57,13 @@ describe("analytics_show_engine_compare PromQL", () => {
     const { client, queries } = recordingClient()
     const key = 'process_definition_key="order"'
 
-    await showEngineCompare(client).handler(
-      {
-        processDefinitionKey: "order",
-        engineA: "prod-a",
-        engineB: "prod-b",
-        windowDays: 14,
-        minBucketSize: 10,
-      },
-      {},
-    )
+    await showEngineCompare(client).handler({
+      processDefinitionKey: "order",
+      engineA: "prod-a",
+      engineB: "prod-b",
+      windowDays: 14,
+      minBucketSize: 10,
+    })
 
     expect(queries).toEqual([
       ...kpiQueries(
@@ -92,17 +82,14 @@ describe("analytics_show_engine_compare PromQL", () => {
   it("scopes to processDefinitionKey everywhere and activityId only on the incident query", async () => {
     const { client, queries } = recordingClient()
 
-    await showEngineCompare(client).handler(
-      {
-        engineA: "prod-a",
-        engineB: "prod-b",
-        windowDays: 7,
-        processDefinitionKey: "order",
-        activityId: "Task_check",
-        minBucketSize: 1,
-      },
-      {},
-    )
+    await showEngineCompare(client).handler({
+      engineA: "prod-a",
+      engineB: "prod-b",
+      windowDays: 7,
+      processDefinitionKey: "order",
+      activityId: "Task_check",
+      minBucketSize: 1,
+    })
 
     const key = 'process_definition_key="order"'
     expect(queries).toHaveLength(14)
@@ -116,15 +103,12 @@ describe("analytics_show_engine_compare PromQL", () => {
   it("refuses an engine this server is not configured for, before any query (N138)", async () => {
     const { client, queries } = recordingClient()
 
-    const result = await showEngineCompare(client).handler(
-      {
-        processDefinitionKey: "order",
-        engineA: "prod-a",
-        engineB: "tenant-x",
-        windowDays: 7,
-      },
-      {},
-    )
+    const result = await showEngineCompare(client).handler({
+      processDefinitionKey: "order",
+      engineA: "prod-a",
+      engineB: "tenant-x",
+      windowDays: 7,
+    })
     expect(result.isError).toBe(true)
     expect(result.content[0].text).toMatch(/Unknown engine "tenant-x" in engineB/)
     expect(queries).toEqual([])
@@ -142,16 +126,13 @@ describe("analytics_show_engine_compare PromQL", () => {
         ),
     }
     const result = dataOf(
-      await showEngineCompare(client).handler(
-        {
-          processDefinitionKey: "order",
-          engineA: "prod-a",
-          engineB: "prod-b",
-          windowDays: 7,
-          minBucketSize: 1,
-        },
-        {},
-      ),
+      await showEngineCompare(client).handler({
+        processDefinitionKey: "order",
+        engineA: "prod-a",
+        engineB: "prod-b",
+        windowDays: 7,
+        minBucketSize: 1,
+      }),
     )
 
     expect(result.kpis[1]).toMatchObject({
@@ -166,12 +147,12 @@ describe("analytics_show_engine_compare PromQL", () => {
   it("prefers an explicit minBucketSize over the schema default", async () => {
     const { client } = recordingClient()
     const { definition, handler } = showEngineCompare(client)
-    // mcp-use parses the input before the handler runs, so an omitted value takes the default.
+    // The SDK parses the input before the handler runs, so an omitted value takes the default.
     const parsed = (input: Record<string, unknown>) => definition.inputSchema.parse(input)
     const input = { processDefinitionKey: "order", engineA: "prod-a", engineB: "prod-b" }
 
-    const explicit = dataOf(await handler(parsed({ ...input, minBucketSize: 3 }), {}))
-    const fallback = dataOf(await handler(parsed(input), {}))
+    const explicit = dataOf(await handler(parsed({ ...input, minBucketSize: 3 })))
+    const fallback = dataOf(await handler(parsed(input)))
 
     expect(explicit.minBucketSize).toBe(3)
     expect(fallback.minBucketSize).toBe(10)

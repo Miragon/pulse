@@ -1,6 +1,5 @@
 /** The rendering call's lifecycle as plain logic: what the frame shows, and when it re-runs. */
 import type { ModelContextSpec } from "./ask-ai-prompt.js"
-import type { CallObservation } from "./call-observer.js"
 
 export type ViewPhase =
   | { phase: "waiting" }
@@ -23,12 +22,13 @@ export type Rerun =
   | { state: "failed"; error: Error }
 
 export interface ViewCallInputs {
-  /** mcp-use's latch (`useToolContext().status`). */
+  /** The rendering call's latch (`ViewRuntime.getTool().status`). */
   status: "pending" | "ready" | "error"
   output: unknown
   error: Error | undefined
   cancelled: boolean
-  observation: CallObservation
+  /** The host's result arrived without `structuredContent`. */
+  stripped: boolean
   rerun: Rerun
 }
 
@@ -64,7 +64,7 @@ export function resolveViewCall(inputs: ViewCallInputs): { phase: ViewPhase; rec
     const error = inputs.error ?? new Error("The tool call failed.")
     return { phase: { phase: "error", error }, recover: false }
   }
-  const recover = status === "ready" || inputs.observation.result === "stripped"
+  const recover = status === "ready" || inputs.stripped
   return { phase: WAITING, recover }
 }
 

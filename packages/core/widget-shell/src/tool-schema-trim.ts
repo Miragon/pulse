@@ -1,12 +1,6 @@
-/** Drops the `$schema` URI and zod's ±MAX_SAFE_INTEGER `.int()` bounds from advertised input schemas: they cost characters on every tool of every turn. Validation runs against the zod schemas, so this is behaviour-neutral; output schemas stay (clients validate against them). */
+import type { StandardSchemaWithJSON } from "@modelcontextprotocol/server"
 
-/** The narrow structural surface the middleware needs (an `MCPServer` satisfies it). */
-export interface ToolListMiddlewareHost {
-  use(
-    pattern: "mcp:tools/list",
-    fn: (ctx: unknown, next: () => Promise<unknown[]>) => Promise<unknown[]>,
-  ): unknown
-}
+/** Drops the `$schema` URI and zod's ±MAX_SAFE_INTEGER `.int()` bounds from advertised input schemas: they cost characters on every tool of every turn. Validation runs against the zod schemas, so this is behaviour-neutral; output schemas stay (clients validate against them). */
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -42,6 +36,18 @@ export function trimToolDescriptor(tool: unknown): unknown {
   return { ...tool, inputSchema: trimToolSchema(tool.inputSchema) }
 }
 
-export function installToolSchemaTrim(server: ToolListMiddlewareHost): void {
-  server.use("mcp:tools/list", async (_ctx, next) => (await next()).map(trimToolDescriptor))
+/** The SDK has no list middleware: a Standard Schema shell whose JSON Schema comes out trimmed. */
+export function trimInputSchema<TSchema extends StandardSchemaWithJSON>(schema: TSchema): TSchema {
+  const standard = schema["~standard"]
+  const { jsonSchema } = standard
+  return {
+    ...schema,
+    "~standard": {
+      ...standard,
+      jsonSchema: {
+        input: (options: never) => trimToolSchema(jsonSchema.input(options)),
+        output: (options: never) => trimToolSchema(jsonSchema.output(options)),
+      },
+    },
+  }
 }

@@ -36,8 +36,8 @@ describe("the app's module list and its wiring", () => {
     vi.spyOn(console, "info").mockImplementation(() => {})
     vi.spyOn(console, "warn").mockImplementation(() => {})
     stubNeutralEnv({
-      MCP_USE_OAUTH_KEYCLOAK_SERVER_URL: "https://kc.example.com",
-      MCP_USE_OAUTH_KEYCLOAK_REALM: "r",
+      MCP_OAUTH_KEYCLOAK_SERVER_URL: "https://kc.example.com",
+      MCP_OAUTH_KEYCLOAK_REALM: "r",
       MCP_URL: "http://localhost:8400",
     })
     const composed = await createApp()

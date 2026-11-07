@@ -1,4 +1,4 @@
-import type { MCPServer } from "mcp-use"
+import type { ModuleServer } from "@miragon/pulse-widget-shell/server"
 import { buildViewResult } from "@miragon/pulse-widget-shell/server"
 import type { PrometheusClient } from "@miragon/pulse-analytics-client"
 import type { AnalyticsEngineScope } from "../engine-ids.js"
@@ -9,7 +9,7 @@ import type { NameLookup } from "../bpmn-name-lookup.js"
  * itself, keeping the dual-protocol contract in one place.
  */
 export interface AnalyticsWidgetToolsContext {
-  server: MCPServer
+  server: ModuleServer
   ch: PrometheusClient
   /** The server's configured engine ids: every query resolves `engine` through it. */
   engineScope: AnalyticsEngineScope

@@ -13,9 +13,9 @@ export function registerWidgetDataFeeds(ctx: WidgetToolsContext) {
   const { server, registry, healthThresholds, engineParam } = ctx
 
   function registerDataFeed(feed: DataFeed) {
-    server.tool(
+    server.registerTool(
+      feed.name,
       {
-        name: feed.name,
         title: feed.title,
         description: feed.description,
         annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },

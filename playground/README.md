@@ -24,7 +24,8 @@ pnpm stack:status   # what runs, healthy or not
 pnpm stack:down     # stop (volumes kept; --wipe drops them)
 ```
 
-- MCP endpoint: `http://localhost:8400/mcp`, inspector: `http://localhost:8400/mcp/inspector`
+- MCP endpoint: `http://localhost:8400/mcp`; `pnpm play` also starts the official MCP Inspector on
+  `127.0.0.1` and prints its URL
 - `.pulse-cli.json`, the CLI's project file, holds the default profile `local` for the stack's
   engine (CIB seven, no login: its REST API is anonymous). Inside the repo a bare `pulse`
   (`npm install -g @miragon/pulse-cli`, or the build `node apps/cli/dist/pulse-cli.js`) reaches
@@ -123,7 +124,7 @@ miragon-ai-playground.fly.dev` (DNS only, not proxied) and
   `fly secrets list -a miragon-ai-playground` shows `MCP_ACTIVE_MODULES`,
   keep it in sync with the toml (or `fly secrets unset` it). An OAuth provider's
   variables as secrets add login (`fly secrets set
-MCP_USE_OAUTH_KEYCLOAK_SERVER_URL=… MCP_USE_OAUTH_KEYCLOAK_REALM=… -a
+MCP_OAUTH_KEYCLOAK_SERVER_URL=… MCP_OAUTH_KEYCLOAK_REALM=… -a
 miragon-ai-playground`, see `.env.example`); the pin still keeps it
   read-only.
 - The engine keeps its H2 database in memory: every engine restart reseeds

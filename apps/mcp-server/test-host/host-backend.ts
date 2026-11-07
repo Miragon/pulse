@@ -7,7 +7,7 @@ import { viewResourceUri } from "@miragon/pulse-widget-shell/server"
 
 /** What `GET /host/view` hands the host page: the served view, as a host receives it. */
 export interface HostView {
-  /** `resources/read` text of `ui://views/<tool>.html`, the document mcp-use serves. */
+  /** `resources/read` text of `ui://views/<tool>.html`, the document the server serves. */
   html: string
   /** `_meta.ui.csp` of that read (the host turns it into the frame's CSP). */
   csp: Record<string, string[]> | undefined

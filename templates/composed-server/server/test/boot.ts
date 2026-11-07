@@ -63,7 +63,7 @@ export function toolsetSelections(): string[] {
 /** Whether `name` is among the modules this server composes (`MODULES` in `src/setup.ts`). */
 export const isComposed = (name: string): boolean => MODULES.some((module) => module.name === name)
 
-/** The tool's `_meta.ui` block, which mcp-use emits from its `view`/`visibility` binding. */
+/** The tool's `_meta.ui` block, which `showToolBinding` and `appOnly` stamp. */
 export function uiOf(tool: Tool): Record<string, unknown> {
   return (tool._meta?.ui ?? {}) as Record<string, unknown>
 }

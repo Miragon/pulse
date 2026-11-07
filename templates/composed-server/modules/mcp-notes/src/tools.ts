@@ -1,16 +1,16 @@
 import { z } from "zod"
-import type { MCPServer } from "mcp-use"
+import type { ModuleServer } from "@miragon/pulse-widget-shell/server"
 import { createToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import type { NotesStore } from "./notes-store.js"
 
 /**
  * Plain operations tools: JSON data *for the model* (render path 1 of 3).
- * Registered through the registrar, never raw `server.tool()`; only widget
+ * Registered through the registrar, never raw `server.registerTool()`; only widget
  * tools (widget-tools.ts) use the raw registration path. The registrar is
  * always strict: an unknown (e.g. misnamed) key is a tool error naming the
  * valid keys, never a silently dropped filter that widens the result.
  */
-export function registerTools(server: MCPServer, store: NotesStore): void {
+export function registerTools(server: ModuleServer, store: NotesStore): void {
   const register = createToolRegistrar(server, store)
 
   register({

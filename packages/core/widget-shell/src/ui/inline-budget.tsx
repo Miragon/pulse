@@ -1,7 +1,7 @@
 import { createContext, useContext, type ReactNode } from "react"
 import type { InlineRows } from "./inline-fit.js"
 
-/** What an INLINE view may show before it offers more (#396); provided by the view host (`McpUseViewHost`). */
+/** What an INLINE view may show before it offers more (#396); provided by the view host (the ext-apps adapter, `TestViewHost`). */
 export interface InlineBudget {
   /** null = the canvas's own maximum. */
   diagramMaxHeight: number | null

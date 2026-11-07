@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest"
-import type { MCPServer } from "mcp-use"
+import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
 import type { z } from "zod"
 import { DEFAULT_VERDICT_THRESHOLDS, type VerdictThresholds } from "@miragon/pulse-engine-core"
 import type { EngineEntry } from "../engine-provider.js"
@@ -18,11 +18,19 @@ interface CockpitResult {
   content: Array<{ type: string; text: string }>
 }
 
-type Handler = (args: Record<string, unknown>, ctx?: unknown) => Promise<CockpitResult>
+type Handler = (args: Record<string, unknown>) => Promise<CockpitResult>
 
 interface Definition {
   name: string
   inputSchema: z.ZodType
+}
+
+/** The cockpit tool as `registerCockpitWidgetTools` registered it on `recording`. */
+function cockpitOf(recording: ReturnType<typeof recordingModuleServer>) {
+  const tool = recording.tool(ENGINE_OPEN_COCKPIT)
+  const definition = { name: tool.name, ...tool.config } as Definition
+  const handler: Handler = (args) => tool.call(args)
+  return { definition, handler }
 }
 
 const engines: FakeEngine[] = []
@@ -38,11 +46,9 @@ async function cockpitOn(
   const engine = await startFakeEngine({}, worldReply)
   engines.push(engine)
   const entries = ids.map((e) => ({ ...e, baseUrl: e.baseUrl ?? engine.baseUrl }))
-  const registered: Array<[Definition, Handler]> = []
+  const recording = recordingModuleServer()
   registerCockpitWidgetTools({
-    server: {
-      tool: (definition: Definition, handler: Handler) => registered.push([definition, handler]),
-    } as unknown as MCPServer,
+    server: recording.server,
     registry: createEngineRegistry(
       entries,
       (e) => providerForEntry(e).createClient(e, { type: "none" }),
@@ -52,8 +58,7 @@ async function cockpitOn(
     toolset: "read-only",
     engineParam: engineParamShape,
   })
-  const [definition, handler] = registered.find(([d]) => d.name === ENGINE_OPEN_COCKPIT)!
-  return { definition, handler, requests: engine.requests, baseUrl: engine.baseUrl }
+  return { ...cockpitOf(recording), requests: engine.requests, baseUrl: engine.baseUrl }
 }
 
 const dataOf = (result: CockpitResult) => result.structuredContent!
@@ -150,21 +155,18 @@ describe("engine_open_cockpit: the engine it opens on", () => {
 
 describe("engine_open_cockpit and engine_list_engines", () => {
   it("the bootstrap lists exactly the engines engine_list_engines lists, in its order", async () => {
-    const handlers = new Map<string, Handler>()
+    const recording = recordingModuleServer()
     createPlugin({
       engines: [
         { id: "prod-b", baseUrl: "http://b.invalid/engine-rest", environment: "us" },
         { id: "prod-a", baseUrl: "http://a.invalid/engine-rest", environment: "eu" },
         { id: "prod-c", baseUrl: "http://c.invalid/engine-rest" },
       ],
-    }).register({
-      tool: (definition: Definition, handler: Handler) => handlers.set(definition.name, handler),
-      prompt: () => {},
-    } as unknown as MCPServer)
-    const listed = JSON.parse(textOf(await handlers.get(ENGINE_LIST_ENGINES)!({}))) as {
+    }).register(recording.server)
+    const listed = JSON.parse(textOf(await recording.tool(ENGINE_LIST_ENGINES).call({}))) as {
       engines: Array<{ id: string }>
     }
-    const opened = dataOf(await handlers.get(ENGINE_OPEN_COCKPIT)!({})).engines as Array<{
+    const opened = dataOf(await cockpitOf(recording).handler({})).engines as Array<{
       id: string
     }>
     expect(listed.engines.map((e) => e.id)).toHaveLength(3)
@@ -218,11 +220,9 @@ describe("engine_open_cockpit: the start view", () => {
 async function cockpitDown(): Promise<Handler> {
   const engine = await startFakeEngine({}, { status: 503, body: { message: "unavailable" } })
   engines.push(engine)
-  const registered: Array<[Definition, Handler]> = []
+  const recording = recordingModuleServer()
   registerCockpitWidgetTools({
-    server: {
-      tool: (definition: Definition, handler: Handler) => registered.push([definition, handler]),
-    } as unknown as MCPServer,
+    server: recording.server,
     registry: createEngineRegistry([{ id: "solo", baseUrl: engine.baseUrl }], (e) =>
       providerForEntry(e).createClient(e, { type: "none" }),
     ),
@@ -230,7 +230,7 @@ async function cockpitDown(): Promise<Handler> {
     toolset: "read-only",
     engineParam: engineParamShape,
   })
-  return registered[0][1]
+  return cockpitOf(recording).handler
 }
 
 describe("engine_open_cockpit: the input rules", () => {

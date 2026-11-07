@@ -1,7 +1,7 @@
 # Grouping rule: patch + minor updates travel together per ecosystem, major updates get
 # their own pull request. A single breaking major otherwise turns the whole group red and
-# blocks every harmless bump in it (see #193: mcp-use 2, TypeScript 6, ESLint 10 and 25
-# more in one unmergeable PR).
+# blocks every harmless bump in it (see #193: a framework major, TypeScript 6, ESLint 10 and
+# 25 more in one unmergeable PR).
 version: 2
 updates:
   # npm dependencies: the pnpm monorepo and the starter template, which pins what the workspace
@@ -47,12 +47,14 @@ updates:
     # Dependabot assigns each dependency to the FIRST group that matches it: the specific groups
     # come first, and the catch-all excludes their patterns as well.
     groups:
-      # mcp-use is pinned exactly in every package and the template, peers included, so
-      # it moves in its own PR, and a lone bump of one directory breaks the template drift
-      # gate (see #270).
-      mcp-use:
+      # The official MCP SDK (server, Node adapter, MCP Apps, client, inspector) moves as one
+      # line: the inspector pins the server, client and core it was built with exactly, MCP Apps
+      # and the Node adapter peer them. One PR moves the line in both directories, so the
+      # template drift gate (scripts/template-pins.mjs, see #270) never sees one package or one
+      # directory alone.
+      mcp-sdk:
         patterns:
-          - "mcp-use"
+          - "@modelcontextprotocol/*"
         update-types:
           - "patch"
           - "minor"
@@ -92,7 +94,7 @@ updates:
         patterns:
           - "*"
         exclude-patterns:
-          - "mcp-use"
+          - "@modelcontextprotocol/*"
           - "commander"
           - "tsdown"
           - "tsx"

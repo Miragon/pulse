@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from "vitest"
-import type { MCPServer } from "mcp-use"
+import { describe, expect, it } from "vitest"
+import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
 import { engineModule, engineConfigSchema } from "./module.js"
 
 /** The operator default for a call without `engine`: it must name a configured engine, or the boot fails. */
@@ -43,15 +43,9 @@ describe("ENGINE_DEFAULT", () => {
   it("reaches the routing and the instructions", async () => {
     const text = engineModule.instructions({ engines: TWO, defaultEngine: "prod-b" })
     expect(text).toContain('else to the default engine "prod-b"')
-    const tool = vi.fn()
-    engineModule
-      .createPlugin({ engines: TWO, defaultEngine: "prod-b" })
-      .register({ tool, prompt: vi.fn() } as unknown as MCPServer)
-    const calls = tool.mock.calls as Array<
-      [{ name: string }, (args: unknown, ctx: unknown) => Promise<{ structuredContent?: unknown }>]
-    >
-    const [, listEngines] = calls.find(([d]) => d.name === "engine_list_engines")!
-    const result = await listEngines({}, {})
+    const recording = recordingModuleServer()
+    engineModule.createPlugin({ engines: TWO, defaultEngine: "prod-b" }).register(recording.server)
+    const result = await recording.tool("engine_list_engines").call({})
     expect(result.structuredContent).toMatchObject({ defaultEngineId: "prod-b" })
   })
 })

@@ -1,8 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { bootstrapView, disposeView } from "mcp-use/react"
+import { createRoot, type Root } from "react-dom/client"
 import { useLocale } from "@miragon/pulse-ui"
-import { createCallObserver, type CallObserver } from "./call-observer.js"
 import { SERVED_FONTS_STYLE_ID } from "./declare-served-fonts.js"
 import { useHostWidget } from "./host-widgets.js"
 import { AskAiButton } from "./ask-ai-button.js"
@@ -11,13 +10,12 @@ import { useInlineBudget } from "./inline-budget.js"
 import { OpenInCockpitLink } from "./open-in-cockpit-link.js"
 import { HostModelContext } from "./view-host.js"
 import { ViewRoot } from "./view-root.js"
+import { createViewRuntime, type ViewRuntime, type ViewTransport } from "./view-runtime.js"
 import type { ViewComponent } from "./views.js"
 import { useHostDisplayMode } from "./widget-shell.js"
 
-// The REAL mcp-use view runtime over an in-memory SEP-1865 host, so the provider stack runs as in
-// the bundle. (No @testing-library render: bootstrapView owns the React root.)
-
-type ViewTransport = NonNullable<NonNullable<Parameters<typeof bootstrapView>[1]>["transport"]>
+// The REAL view runtime (the official `App`) over an in-memory SEP-1865 host, so the provider stack
+// runs as in the bundle.
 
 interface Message {
   jsonrpc: "2.0"
@@ -43,8 +41,6 @@ function createFakeHost(options: {
   tools?: Record<string, FakeTool>
 }) {
   const sent: Message[] = []
-  // What the window's message listener sees: the observer reads the same notifications.
-  const window = new EventTarget()
   const transport = {
     onmessage: undefined as ((message: Message) => void) | undefined,
     onclose: undefined as (() => void) | undefined,
@@ -90,10 +86,8 @@ function createFakeHost(options: {
     return { result: {} }
   }
 
-  const observer: CallObserver = createCallObserver(window, () => true)
   return {
     transport: transport as unknown as ViewTransport,
-    observer,
     methods: () => sent.map((m) => m.method),
     toolCalls: (name?: string) =>
       sent
@@ -105,9 +99,7 @@ function createFakeHost(options: {
         .filter((m) => m.method === "ui/update-model-context")
         .map((m) => JSON.stringify(m.params)),
     notify: (method: string, params: Record<string, unknown>) => {
-      const data = { jsonrpc: "2.0", method, params }
-      window.dispatchEvent(new MessageEvent("message", { data }))
-      transport.onmessage?.(data as Message)
+      transport.onmessage?.({ jsonrpc: "2.0", method, params })
     },
   }
 }
@@ -126,19 +118,26 @@ const ProbeView: ViewComponent<{ rows: string[] }> = ({ data }) => {
 
 type Host = ReturnType<typeof createFakeHost>
 
+let reactRoot: Root | undefined
+let runtime: ViewRuntime | undefined
+
 function mount(host: Host, view: ViewComponent | null = ProbeView as ViewComponent) {
-  bootstrapView(
-    {
-      default: () => (
-        <ViewRoot
-          name={VIEW_TOOL}
-          view={view ?? undefined}
-          observer={host.observer}
-          hostWidgets={{ "demo:panel": () => null }}
-        />
-      ),
-    },
+  runtime = createViewRuntime(
+    { displayModes: ["inline", "fullscreen"] },
     { transport: host.transport },
+  )
+  void runtime.connect()
+  const container = document.createElement("div")
+  container.id = "root"
+  document.body.appendChild(container)
+  reactRoot = createRoot(container)
+  reactRoot.render(
+    <ViewRoot
+      name={VIEW_TOOL}
+      view={view ?? undefined}
+      runtime={runtime}
+      hostWidgets={{ "demo:panel": () => null }}
+    />,
   )
 }
 
@@ -151,11 +150,12 @@ const text = () => document.body.textContent ?? ""
 const root = document.documentElement
 
 afterEach(async () => {
-  await disposeView()
+  reactRoot?.unmount()
+  await runtime?.dispose()
   document.getElementById("root")?.remove()
   document.getElementById("__mcp-host-fonts")?.remove()
   document.getElementById(SERVED_FONTS_STYLE_ID)?.remove()
-  delete globalThis.__mcpUseViewConfig
+  delete (globalThis as { __pulseViewConfig?: unknown }).__pulseViewConfig
   root.className = ""
   root.lang = ""
   root.removeAttribute("data-theme")
@@ -190,8 +190,10 @@ describe("ViewRoot: the host's own result", () => {
   })
 
   it("follows the host's theme, locale, fonts and a display-mode change live", async () => {
-    // What mcp-use injects into a served view document: the server's public asset base.
-    globalThis.__mcpUseViewConfig = { publicBase: "https://mcp.example.com/mcp/_mcp-use/public/" }
+    // What a served view document states: the server's public origin.
+    ;(globalThis as { __pulseViewConfig?: unknown }).__pulseViewConfig = {
+      publicBase: "https://mcp.example.com/",
+    }
     const host = createFakeHost({
       hostContext: {
         theme: "dark",

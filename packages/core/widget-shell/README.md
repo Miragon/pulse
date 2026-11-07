@@ -11,11 +11,14 @@ Its UI builds on the design kit [`@miragon/pulse-ui`](../ui).
 ## Install
 
 ```sh
-npm install @miragon/pulse-widget-shell zod bpmn-js@18.31.1 mcp-use@2.12.2
+npm install @miragon/pulse-widget-shell zod bpmn-js@18.31.1
 ```
 
 The widgets also need `react`, `react-dom`, `@miragon/pulse-ui`, `lucide-react` and
-`@tanstack/react-query`.
+`@tanstack/react-query`. It builds on the official MCP TypeScript SDK
+(`@modelcontextprotocol/server` 2.4, `@modelcontextprotocol/node` 2.1,
+`@modelcontextprotocol/ext-apps` 2.0); the peer dependencies under [Exports](#exports) say
+which of them your app installs.
 
 To build your own MCP server on it, start from [pulse-starter](https://github.com/Miragon/pulse-starter).
 
@@ -33,17 +36,20 @@ package customers build their own connectors and composed servers on (see the
 
 - **The view runtime** (`./widgets`): the bundle root `mountViews({ views, hostWidgets })` picks
   the view the document's prelude names (the show tool's name) from your view map and mounts it
-  under the view root (the mcp-use adapter, ONE `QueryClient` per document, `HostDocument`,
-  `LocaleGate`, toasts); `mountView` mounts one view without a map. `LocaleGate` renders German
+  under the view root (the host adapter over ext-apps' official `App`, ONE `QueryClient` per
+  document, `HostDocument`, `LocaleGate`, toasts); `mountView` mounts one view without a map. The
+  adapter is the only code that imports the view runtime of `@modelcontextprotocol/ext-apps`: it fills the
+  host-agnostic contexts every widget reads, as `TestViewHost` does in a test, so another host (a
+  web app, an editor webview) needs an adapter of its own and no widget change. `LocaleGate` renders German
   for a host locale whose language is `de` (`de`, `de-DE`, `de_AT`) and English otherwise. The
-  root's call hook (`useMcpUseViewCall` over `resolveViewCall`) owns the stripped-result recovery: a host that
+  root's call hook (`useViewCall` over `resolveViewCall`) owns the stripped-result recovery: a host that
   drops `structuredContent` (claude.ai) gets the view re-running its own show tool ONCE (every
   view-bound tool is a read), stamped "Reloaded at"; the view frame renders the phases (waiting,
   error with a retry, cancelled, ready) and keeps a crashing view, and each `ViewStack` row and
   `HostWidgetSlot`, inside its own error boundary. Widgets reach the host only through the view
   host seam (`useViewHost`: `callTool`, `sendFollowUp`, `openExternal`; `HostModelContext`) and the query
   hooks (`useToolQuery`, `useToolMutation`, `useViewData` (which seeds a feed with the view's
-  data), `useQueryClient`), never `mcp-use/react`, so a widget renders under `TestViewHost`
+  data), `useQueryClient`), never ext-apps, so a widget renders under `TestViewHost`
   (fake tools, a log of host actions and model contexts) in a plain test. Another module's
   widget renders by raw id through the host widgets (`useHostWidget`, `HostWidgetSlot`).
 - **View builders** (`./server`): `buildViewResult(data, summary)` (a show tool's result: the
@@ -51,8 +57,9 @@ package customers build their own connectors and composed servers on (see the
   where the model needs the figures, the result as compact JSON) and
   `buildDataFeedResult` (the single implementation of the app-only `*_data` feed result);
   `decodeToolResult` reads either (on both entries: a widget decodes `callTool`'s raw result with
-  it, a server test its own tool's). The view itself is declared on the tool by `showToolBinding`
-  (a `view` binding; mcp-use derives the `_meta.ui` keys from it), and the boot primes each
+  it, a server test its own tool's). The view itself is declared on the tool by `showToolBinding`,
+  spread into `registerTool`'s config (both `_meta` halves: MCP Apps' `ui.resourceUri` and the
+  `openai/*` keys; `appOnly` is a feed's `ui.visibility: ["app"]`), and the boot serves each
   view with `viewPrelude(name)` ahead of the bundle.
 - **BPMN names** (`./server`, and `./widgets` for a view): `readBpmnNames` / `parseBpmnNames`: the one rule every module
   reads a model's names by, without a DOM (a process's own name, else its Modeler pool's;
@@ -99,8 +106,12 @@ package customers build their own connectors and composed servers on (see the
   toolset per module per boot and threads it into the module's `config.toolset` (`ModuleEntry`),
   authenticated exactly when it installed OAuth. A module's
   `createPlugin(config, shared)` returns a `ModulePlugin`: its `name` and one `register(server)`
-  that registers all its tools on the server the boot owns; `shared(entries)` is your wiring of
+  that registers all its tools and prompts on a `ModuleServer`, the official SDK's own
+  `registerTool`/`registerPrompt` (`Pick<McpServer, …>`, so the SDK's docs and ext-apps'
+  `registerAppTool` apply as they are); `shared(entries)` is your wiring of
   what the active modules hand each other. The boot log states each module's toolset and why.
+  A module's tests register on `recordingModuleServer()` (`./testing`), which calls a handler the
+  way the SDK does (`testServerContext(signal?)` builds its context).
   `composedEnvVars(modules)` names every variable such a boot reads (the boot's own and each
   module's `knownEnvVars`), e.g. for a `.env.example` check. A module that was renamed declares
   `retired: { names, envVars, warnedEnvVars }`: the boot refuses a former name in
@@ -118,49 +129,56 @@ package customers build their own connectors and composed servers on (see the
 - **Server boot** (`./server`): `createComposedServer` (options `info`, `modules`, `shared?`,
   `bundle`, `env?`, `envVarHint?`, `oauth?`) is the one boot sequence every composed server shares:
   env-typo warnings, the HTTP edge policy, OAuth, ONE module selection, the boot log, the plugins of
-  the active modules, the `MCPServer` with `serverInfo`/`instructions`, each plugin's `register` (a
-  tool name two modules register fails the boot, naming both), the views every tool binds primed
-  once with your `bundle`, request context (request logging is mcp-use's own: `MCP_USE_LOG_LEVEL`,
-  warned at boot above `info`), `/metrics` (optional `MCP_METRICS_TOKEN`), the Host/Origin guard,
+  the active modules, each plugin's `register` recorded once (a tool or prompt name two modules
+  register fails the boot, naming both; so does an input schema that lets an unknown key through
+  or a view URI other than `ui://views/<name>.html`), the views every tool binds primed
+  once with your `bundle`, then per request a fresh `McpServer` with `serverInfo`/`instructions`
+  that the recording replays into, behind the SDK's stateless `createMcpHandler`; request context
+  and one log line per request (the error text on a failure), `/metrics` (optional
+  `MCP_METRICS_TOKEN`), the Host/Origin guard in front of the OAuth gate,
   `/health/*` and the font route (`installFontAssets`: Geist + Geist Mono as woff2 under
   `/fonts/geist-<version>/`, cached immutable, any origin, behind the guard). OAuth comes from one
-  provider's `MCP_USE_OAUTH_*` variables, mcp-use's own; tokens must carry `<MCP_URL>/mcp` in `aud`
+  provider's `MCP_OAUTH_*` variables: a resource server that verifies tokens with `jose`; tokens
+  must carry `<MCP_URL>/mcp` in `aud`
   (RFC 8707) and a `sub`, and the boot logs that audience. The providers, what fails the boot and
   the identity provider's side are under
   [Security](https://miragon.github.io/pulse/mcp/operations#security). Without a provider the boot
   runs unauthenticated with one warning. OAuth is the only caller identity, and `oauth` installs a
   provider instead (a test's stub IdP). Every view-bound tool advertises `MCP_URL`'s origin in its
   view CSP `resourceDomains` and the Apps SDK `openai/widgetCSP` (`fontAssetsCsp`, merged into every
-  view-bound tool as it registers); without `MCP_URL` mcp-use appends the origin the host read the
+  view-bound tool as it registers); without `MCP_URL` the boot appends the origin the host read the
   view from. `HostDocument` declares the faces from that origin (`declareServedFonts`,
   `font-display: swap`), so a host that blocks it shows its own font, then the system's.
-  `mcp-use dev` serves the returned `app`; production listens, and the entry does both through
-  `runComposedServer(createApp)`, which prints a failed boot as one line naming the server and the
+  The entry runs it through `runComposedServer(createApp)`, in production and under `pnpm dev`
+  alike, which prints a failed boot as one line naming the server and the
   setting (a ZodError as `path: message`, no stack; a bug's TypeError, ReferenceError or RangeError
-  adds its frames) and exits 1 (under `mcp-use dev` the error reaches the CLI).
+  adds its frames) and exits 1.
   `listen({ handleSignals: true })` is
-  mcp-use's `toNodeHandler` behind a request-body cap (`MCP_MAX_BODY_BYTES`, 413 before buffering),
+  the SDK's `toNodeHandler` (`@modelcontextprotocol/node`) behind a request-body cap (`MCP_MAX_BODY_BYTES`, 413 before buffering),
   an in-flight body budget of 4× the cap (503) and a 30 s request timeout, plus a graceful drain
   (stop accepting, in-flight requests finish, readiness 503 `draining`). The guard is DNS-rebinding
   protection: `Host` (and a POST's `Origin`) must be localhost-class, `MCP_URL`'s or in
   `MCP_ALLOWED_HOSTS`/`MCP_ALLOWED_ORIGINS`; `/health*` and `/metrics` stay reachable by IP for
-  probes and scrapers.
+  probes and scrapers. `/mcp` answers POST only (405 for GET, DELETE and HEAD, as the SDK's
+  stateless handler does).
 
 ## Exports
 
-| Subpath     | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `./server`  | The module port (`ComposableModule`, `ModulePlugin`, `ModuleEntry`, `createToolsetVocabulary`); tool authoring: the registrar (`createToolRegistrar`, `withToolErrors`), the view and feed bindings and results (`showToolBinding`, `appOnly`, `strictToolInput`, `buildViewResult`, `buildDataFeedResult`, `decodeToolResult`), the server i18n (`createTranslator`), the BPMN-name readers and the per-caller request info (`callerCacheKey`, `getMcpRequestInfo`, `runWithMcpRequestInfo`); the boot: `createComposedServer` with `composedEnvVars` / `retiredEnvVars` and the entry `runComposedServer`, the view URIs (`viewResourceUri`, `viewPrelude`), `VIEW_BUNDLE_DEDUPE` and the served fonts (`installFontAssets`, `fontAssetsCsp`). The boot's parts (edge guard, body limit, metrics, health) run only inside `createComposedServer` |
-| `./widgets` | The view runtime (`mountViews`, the view host, the query hooks, `TestViewHost`; the language from the host locale (`de…` German, else English), the theme as host context > OS), the host-bound UI, `AskAiButton` for a hand-off `HAND_OFF_ACTIONS` does not list, `decodeToolResult` and `createTranslator`, each with the types its signature names. The view root's providers and the inline-fit machinery stay inside `mountViews`                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `./testing` | The product glossary: `PRODUCT_GLOSSARY`, `glossaryFindings`, `blindGlossaryRules`, `unnamedGlossaryTerms`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Subpath     | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `./server`  | The module port (`ComposableModule`, `ModulePlugin`, `ModuleEntry`, `ModuleServer`, `createToolsetVocabulary`); tool authoring: the registrar (`createToolRegistrar`, `withToolErrors`), the view and feed bindings and results (`showToolBinding`, `appOnly`, `strictToolInput`, `buildViewResult`, `buildDataFeedResult`, `decodeToolResult`), the server i18n (`createTranslator`), the BPMN-name readers and the per-caller request info (`callerCacheKey`, `getMcpRequestInfo`, `runWithMcpRequestInfo`); the boot: `createComposedServer` with `composedEnvVars` / `retiredEnvVars`, the app it serves (`McpHttpApp`) and the entry `runComposedServer`, the view URIs (`viewResourceUri`, `viewPrelude`), `VIEW_BUNDLE_DEDUPE`, the dev loop's `viewBundleWatchPlugin` and the served fonts (`installFontAssets`, `fontAssetsCsp`). The boot's parts (edge guard, body limit, metrics, health) run only inside `createComposedServer` |
+| `./widgets` | The view runtime (`mountViews`, the view host, the query hooks, `TestViewHost`; the language from the host locale (`de…` German, else English), the theme as host context > OS), the host-bound UI, `AskAiButton` for a hand-off `HAND_OFF_ACTIONS` does not list, `decodeToolResult` and `createTranslator`, each with the types its signature names. The view root's providers and the inline-fit machinery stay inside `mountViews`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `./testing` | The product glossary: `PRODUCT_GLOSSARY`, `glossaryFindings`, `blindGlossaryRules`, `unnamedGlossaryTerms`; a module's test server: `recordingModuleServer`, `testServerContext`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
 `@miragon/pulse-ui`, `react`/`react-dom`, `zod` and `@tanstack/react-query` are **peer
 dependencies**: they must resolve to a single instance across the host bundle, otherwise the React
 contexts diverge and in-widget queries hang. Spread `VIEW_BUNDLE_DEDUPE` (`./server`) into your
 view bundle's Vite `resolve.dedupe` (`dedupe: [...VIEW_BUNDLE_DEDUPE]`): it names every package
 that must exist once, this one included, and a release that adds one reaches you with the version
-bump. A module of your own, like the Pulse connectors, peers this package (`^<this release>`), so
-your server's copy is the only one. The peers are published as ranges (`react`/`react-dom`
+bump. Under `vite build --watch` next to `tsx watch` (the starter's `pnpm dev`), add
+`viewBundleWatchPlugin()` to the plugins: it leaves an output that did not change unwritten, so the
+server restarts only for a new bundle. A module of your own, like the Pulse connectors, peers this
+package (`^<this release>`), so your server's copy is the only one. The peers are published as ranges (`react`/`react-dom`
 `^19.2.0`, `zod` `^4.4.0`, `@miragon/pulse-ui` `^<this release>`, `lucide-react`
 `^0.562.0 || ^1.0.0`) so they dedupe against your app's copy. **A host bundle that dedupes
 `lucide-react` needs a 1.x copy that exports `LucideProvider`** (this repo pins 1.67.0):
@@ -169,9 +187,12 @@ fails the bundle build with a missing export. The peer range still admits 0.562 
 own test graph; no package manager warns you about it. `bpmn-js` is a peer (`^18.31.1`):
 `./widgets` exports the BPMN viewer, so every view bundle imports it.
 
-`mcp-use` is the exception: it is an **exactly pinned** peer dependency. Pin it to `mcp-use@2.12.2`
-in your app. A duplicate `mcp-use` instance breaks the React context and hangs every in-widget query
-on "Loading…".
+The official MCP TypeScript SDK comes with this package (`@modelcontextprotocol/server` 2.4,
+`@modelcontextprotocol/node` 2.1, `@modelcontextprotocol/ext-apps` 2.0). A module that imports one
+of them itself, such as ext-apps' `registerAppTool`, declares it as a ranged peer in that range: a
+caret range that admits the version this package pins.
+Its `App` keeps no React context, so a second copy costs bytes and breaks nothing; none of them
+needs an exact pin.
 
 ## Where it fits
 
@@ -182,7 +203,7 @@ engine-connector / analytics-connector widgets
    @miragon/pulse-widget-shell   ──  view runtime · view builders · host-bound UI
             │  build on
             ▼
-   mcp-use/react (the view's host) · @tanstack/react-query · @miragon/pulse-ui (design kit)
+   @modelcontextprotocol/ext-apps (the view's host, behind one adapter) · @tanstack/react-query · @miragon/pulse-ui (design kit)
 ```
 
 One package, two halves that share one wire protocol: `./widgets` is `src/ui`, `./server` (and

@@ -4,8 +4,11 @@
  * so no root can wire a second boot that skips one of them.
  */
 
-// The module port: what a module hands the boot.
+// The module port: what a module hands the boot, and the server its plugin registers on (the
+// official SDK's `registerTool`/`registerPrompt`), the app the boot serves.
 export { type ComposableModule, type ModuleEntry, type ModulePlugin } from "./composition.js"
+export { type ModuleServer } from "./module-server.js"
+export { type McpHttpApp, type ToolAnnotations } from "./mcp-server.js"
 export { createToolsetVocabulary, type ToolsetVocabulary } from "./toolsets.js"
 
 // Tool authoring: the registrar, the view and feed bindings and results, the server i18n, the
@@ -57,6 +60,7 @@ export { runComposedServer, type RunComposedServerOptions } from "./run-composed
 export { VIEW_RESOURCE_URI_PREFIX, viewResourceUri } from "./widget-tool-bindings.js"
 export { viewPrelude } from "./protocol/view-name.js"
 export { VIEW_BUNDLE_DEDUPE } from "./view-bundle.js"
+export { viewBundleWatchPlugin } from "./view-bundle-watch.js"
 
 // The served fonts (owner order: unchanged), and the route host installFontAssets takes.
 export type { HttpRouteHost } from "./health.js"

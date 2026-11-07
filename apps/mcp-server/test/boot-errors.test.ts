@@ -65,7 +65,7 @@ describe("the entry prints a refused setting as one line and exits 1", () => {
     const exit = vi.spyOn(process, "exit").mockImplementation((code) => {
       throw new Error(`process.exit(${String(code)})`)
     })
-    stubNeutralEnv({ MCP_ACTIVE_MODULES: "engines", MCP_USE_DEV_CLI: undefined })
+    stubNeutralEnv({ MCP_ACTIVE_MODULES: "engines" })
     await expect(import("../src/index.js")).rejects.toThrow("process.exit(1)")
     expect(written).toEqual([
       '[pulse] The server did not start: MCP_ACTIVE_MODULES names an unknown module "engines", so the server does not start without the module it asks for. Known modules: engine, analytics.\n',

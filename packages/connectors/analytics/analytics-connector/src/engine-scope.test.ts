@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { decodeToolResult, type ToolResult } from "@miragon/pulse-widget-shell/server"
-import type { MCPServer } from "mcp-use"
+import {
+  recordingModuleServer,
+  type RecordingModuleServer,
+} from "@miragon/pulse-widget-shell/testing"
 import type { PrometheusClient, PromSample } from "@miragon/pulse-analytics-client"
 import {
   createEngineScope,
@@ -54,19 +57,17 @@ describe("createEngineScope", () => {
 
 type ToolCallback = (
   args: Record<string, unknown>,
-  ctx?: unknown,
 ) => Promise<{ isError?: boolean; content: Array<{ text: string }> }>
 
+/** Each recorded tool's callback, called the way the SDK calls it. */
+const callsOf = (recording: RecordingModuleServer): Map<string, ToolCallback> =>
+  new Map([...recording.tools].map(([name, tool]) => [name, (args) => tool.call(args)]))
+
 function toolsOver(ch: PrometheusClient, engineScope: AnalyticsEngineScope) {
-  const tools = new Map<string, ToolCallback>()
-  const server = {
-    tool: (definition: { name: string }, callback: ToolCallback) => {
-      tools.set(definition.name, callback)
-    },
-  } as unknown as MCPServer
-  registerTools(server, ch, engineScope)
-  registerWidgetTools(server, ch, { engineScope })
-  return tools
+  const recording = recordingModuleServer()
+  registerTools(recording.server, ch, engineScope)
+  registerWidgetTools(recording.server, ch, { engineScope })
+  return callsOf(recording)
 }
 
 function recordingClient(answer: (q: string) => PromSample[] = () => []) {
@@ -131,7 +132,7 @@ function engineIdsMatched(promql: string): string[][] {
 
 async function call(tool: ToolCallback, args: Record<string, unknown>) {
   try {
-    const result = await tool(args, {})
+    const result = await tool(args)
     return result.isError ? { refused: result.content[0]?.text ?? "" } : { refused: null }
   } catch (error) {
     return { refused: (error as Error).message }
@@ -151,20 +152,15 @@ describe("every engine-reading tool is scoped to the configured engines (N138)",
 
   it("reads the heatmap's diagram from the configured engines only", async () => {
     const asked: Array<string | undefined> = []
-    const tools = new Map<string, ToolCallback>()
-    const server = {
-      tool: (definition: { name: string }, callback: ToolCallback) => {
-        tools.set(definition.name, callback)
-      },
-    } as unknown as MCPServer
-    registerWidgetTools(server, recordingClient().ch, {
+    const recording = recordingModuleServer()
+    registerWidgetTools(recording.server, recordingClient().ch, {
       engineScope: scope,
       fetchBpmnXml: (_key, engine) => {
         asked.push(engine)
         return Promise.resolve(null)
       },
     })
-    const feed = tools.get("analytics_bpmn_xml_data")!
+    const feed = callsOf(recording).get("analytics_bpmn_xml_data")!
     expect((await call(feed, { processDefinitionKey: "order" })).refused).toBeNull()
     expect(asked).toEqual(["prod-a", "prod-b"])
     asked.length = 0
@@ -227,8 +223,8 @@ describe("the BPMN heatmap names the engines its heat adds up (K33)", () => {
     "%s echoes the resolved engines in its payload",
     async (name) => {
       const tool = toolsOver(recordingClient().ch, scope).get(name)!
-      const fleet = await tool({ processDefinitionKey: "order", period: "7d" }, {})
-      const one = await tool({ processDefinitionKey: "order", period: "7d", engine: "prod-b" }, {})
+      const fleet = await tool({ processDefinitionKey: "order", period: "7d" })
+      const one = await tool({ processDefinitionKey: "order", period: "7d", engine: "prod-b" })
 
       expect(payloadOf(fleet).engines).toEqual(["prod-a", "prod-b"])
       expect(payloadOf(one).engines).toEqual(["prod-b"])
@@ -239,16 +235,11 @@ describe("the BPMN heatmap names the engines its heat adds up (K33)", () => {
 describe("analyticsModule engine scope wiring", () => {
   /** The booted module's fleet, as its refusal of an unknown engine names it (before any query). */
   async function fleetOf(config: Record<string, unknown>, shared: { engineIds?: string[] }) {
-    const tools = new Map<string, ToolCallback>()
-    const server = {
-      tool: (definition: { name: string }, callback: ToolCallback) => {
-        tools.set(definition.name, callback)
-      },
-    } as unknown as MCPServer
+    const recording = recordingModuleServer()
     analyticsModule
       .createPlugin({ url: "http://prometheus.invalid", ...config }, shared)
-      .register(server)
-    const { refused } = await call(tools.get("analytics_engine_health")!, {
+      .register(recording.server)
+    const { refused } = await call(callsOf(recording).get("analytics_engine_health")!, {
       engine: "not-configured",
     })
     if (refused === NO_ENGINE_SCOPE_MESSAGE) return []

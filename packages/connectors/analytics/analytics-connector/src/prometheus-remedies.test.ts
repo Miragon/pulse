@@ -1,7 +1,7 @@
 import http from "node:http"
 import type { AddressInfo } from "node:net"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
-import type { MCPServer } from "mcp-use"
+import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
 import {
   PrometheusRequestError,
   type PrometheusClient,
@@ -117,11 +117,6 @@ describe("withRemedies", () => {
   })
 })
 
-type ToolCallback = (
-  args: Record<string, unknown>,
-  ctx?: unknown,
-) => Promise<{ isError?: boolean; content: Array<{ type: string; text: string }> }>
-
 const PASSWORD = "hunter2-pass"
 
 /** Plays what holds the port: another service, or a Prometheus that refuses the query. */
@@ -151,12 +146,7 @@ afterAll(async () => {
 
 /** The tool's error text, booted from env the way the composition root does. */
 async function toolError(prometheusUrl: string): Promise<string> {
-  const tools = new Map<string, ToolCallback>()
-  const server = {
-    tool: (definition: { name: string }, callback: ToolCallback) => {
-      tools.set(definition.name, callback)
-    },
-  } as unknown as MCPServer
+  const recording = recordingModuleServer()
   const plugin = analyticsModule.createPlugin(
     analyticsModule.configFromEnv({
       PROMETHEUS_URL: prometheusUrl,
@@ -164,8 +154,8 @@ async function toolError(prometheusUrl: string): Promise<string> {
     }),
     {},
   )
-  plugin.register(server)
-  const result = await tools.get("analytics_engine_health")!({})
+  plugin.register(recording.server)
+  const result = await recording.tool("analytics_engine_health").call({})
   expect(result.isError).toBe(true)
   return result.content[0].text
 }

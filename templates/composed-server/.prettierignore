@@ -4,5 +4,3 @@ pnpm-lock.yaml
 node_modules/
 dist/
 coverage/
-.mcp-use/
-mcp-env.d.ts

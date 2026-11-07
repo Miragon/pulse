@@ -21,10 +21,10 @@ describe("the served-font contract", () => {
 
 describe("servedFontBaseUrl", () => {
   it("puts the font path on the origin of the view's public base", () => {
-    expect(servedFontBaseUrl("https://mcp.example.com/mcp/_mcp-use/public/")).toBe(
+    expect(servedFontBaseUrl("https://mcp.example.com/mcp/assets/")).toBe(
       "https://mcp.example.com/fonts/geist-5.3.0",
     )
-    expect(servedFontBaseUrl("http://127.0.0.1:8400/mcp/_mcp-use/public/")).toBe(
+    expect(servedFontBaseUrl("http://127.0.0.1:8400/mcp/assets/")).toBe(
       "http://127.0.0.1:8400/fonts/geist-5.3.0",
     )
   })

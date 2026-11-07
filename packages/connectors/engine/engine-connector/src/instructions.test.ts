@@ -1,7 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
-import { describe, expect, it, vi } from "vitest"
-import type { MCPServer } from "mcp-use"
+import { describe, expect, it } from "vitest"
+import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
 import { listJobsInput } from "./schemas/index.js"
 import { runWithMcpRequestInfo } from "@miragon/pulse-widget-shell/server"
 import { engineModule } from "./module.js"
@@ -195,14 +195,10 @@ describe("engineModule.instructions", () => {
   })
 
   it("several engines, no default: a call without `engine` fails with the ENGINE_NOT_SELECTED it names", async () => {
-    const tool = vi.fn()
-    const server = { tool, prompt: vi.fn() } as unknown as MCPServer
-    engineModule.createPlugin({ engines: TWO, toolset: "read-only" }).register(server)
-    const calls = tool.mock.calls as Array<
-      [{ name: string }, (args: unknown, ctx: unknown) => Promise<{ content: { text: string }[] }>]
-    >
-    const [, listInstances] = calls.find(([d]) => d.name === "engine_list_process_instances")!
-    const result = await runWithMcpRequestInfo({}, () => listInstances({}, {}))
+    const recording = recordingModuleServer()
+    engineModule.createPlugin({ engines: TWO, toolset: "read-only" }).register(recording.server)
+    const listInstances = recording.tool("engine_list_process_instances")
+    const result = await runWithMcpRequestInfo({}, () => listInstances.call({}))
     expect(result.content[0].text).toMatch(/^\[ENGINE_NOT_SELECTED\] No engine specified/)
   })
 })

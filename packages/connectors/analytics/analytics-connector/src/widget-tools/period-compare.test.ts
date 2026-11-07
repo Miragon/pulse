@@ -1,6 +1,4 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
-import type { z } from "zod"
-import type { MCPServer } from "mcp-use"
 import {
   increaseIn,
   type PeriodCompareResult,
@@ -8,26 +6,14 @@ import {
 } from "@miragon/pulse-analytics-client"
 import { createEngineScope } from "../engine-ids.js"
 import { registerWidgetTools } from "../widget-tools.js"
-
-type ToolResult = {
-  isError?: boolean
-  content: Array<{ type: string; text: string }>
-  structuredContent: Record<string, unknown>
-}
-type Definition = { name: string; description: string; inputSchema: z.ZodObject }
-type Handler = (args: Record<string, unknown>, ctx: unknown) => Promise<ToolResult>
-type Tool = { definition: Definition; handler: Handler }
+import { recordedTools, type Tool, type ToolResult } from "./recorded-tools.test-support.js"
 
 const NAME = "analytics_show_period_compare"
 
 function showTools(ch: PrometheusClient): Map<string, Tool> {
-  const tools = new Map<string, Tool>()
-  const server = {
-    tool: (definition: Definition, handler: Handler) => {
-      tools.set(definition.name, { definition, handler })
-    },
-  } as unknown as MCPServer
-  registerWidgetTools(server, ch, { engineScope: createEngineScope(["prod-a", "prod-b"]) })
+  const tools = recordedTools((server) =>
+    registerWidgetTools(server, ch, { engineScope: createEngineScope(["prod-a", "prod-b"]) }),
+  )
   return tools
 }
 
@@ -60,17 +46,14 @@ describe("analytics_show_period_compare PromQL", () => {
   it("queries each period via `[duration] @ end` historical windows", async () => {
     const { client, queries } = recordingClient()
 
-    await showPeriodCompare(client).handler(
-      {
-        processDefinitionKey: "order",
-        periodAFrom: "2026-01-20T00:00:00Z",
-        periodATo: "2026-01-21T00:00:00Z",
-        periodBFrom: "2026-02-01T00:00:00Z",
-        periodBTo: "2026-02-03T00:00:00Z",
-        minBucketSize: 10,
-      },
-      {},
-    )
+    await showPeriodCompare(client).handler({
+      processDefinitionKey: "order",
+      periodAFrom: "2026-01-20T00:00:00Z",
+      periodATo: "2026-01-21T00:00:00Z",
+      periodBFrom: "2026-02-01T00:00:00Z",
+      periodBTo: "2026-02-03T00:00:00Z",
+      minBucketSize: 10,
+    })
 
     const atA = Date.parse("2026-01-21T00:00:00Z") / 1000
     const atB = Date.parse("2026-02-03T00:00:00Z") / 1000
@@ -102,16 +85,13 @@ describe("analytics_show_period_compare periods (N79)", () => {
     const { client, queries } = recordingClient()
 
     const result = dataOf(
-      await showPeriodCompare(client).handler(
-        {
-          ...base,
-          periodAFrom: "2026-02-01T00:00:00Z",
-          periodATo: "2026-02-05T00:00:00Z",
-          periodBFrom: "2026-02-05T00:00:00Z",
-          periodBTo: "2026-02-15T00:00:00Z",
-        },
-        {},
-      ),
+      await showPeriodCompare(client).handler({
+        ...base,
+        periodAFrom: "2026-02-01T00:00:00Z",
+        periodATo: "2026-02-05T00:00:00Z",
+        periodBFrom: "2026-02-05T00:00:00Z",
+        periodBTo: "2026-02-15T00:00:00Z",
+      }),
     )
 
     // No `@` anchor in the future: Prometheus would answer with the elapsed
@@ -128,16 +108,13 @@ describe("analytics_show_period_compare periods (N79)", () => {
     const { client, queries } = recordingClient(20)
     const split = NOW - 2 * 3_600_000
     const iso = (ms: number) => new Date(ms).toISOString()
-    const result = await showPeriodCompare(client).handler(
-      {
-        ...base,
-        periodAFrom: iso(split - 7 * 86_400_000),
-        periodATo: iso(split),
-        periodBFrom: iso(split),
-        periodBTo: iso(split + 7 * 86_400_000),
-      },
-      {},
-    )
+    const result = await showPeriodCompare(client).handler({
+      ...base,
+      periodAFrom: iso(split - 7 * 86_400_000),
+      periodATo: iso(split),
+      periodBFrom: iso(split),
+      periodBTo: iso(split + 7 * 86_400_000),
+    })
 
     // No `@` anchor beyond now: period B is 2 h, not 7 d.
     const anchors = queries.flatMap((q) => [...q.matchAll(/@ (\d+)/g)].map((m) => Number(m[1])))
@@ -156,16 +133,13 @@ describe("analytics_show_period_compare periods (N79)", () => {
 
   it("refuses a reversed period instead of measuring a 1-second one", async () => {
     const { client, queries } = recordingClient()
-    const result = await showPeriodCompare(client).handler(
-      {
-        ...base,
-        periodAFrom: "2026-02-05T00:00:00Z",
-        periodATo: "2026-02-01T00:00:00Z",
-        periodBFrom: "2026-02-05T00:00:00Z",
-        periodBTo: "2026-02-08T00:00:00Z",
-      },
-      {},
-    )
+    const result = await showPeriodCompare(client).handler({
+      ...base,
+      periodAFrom: "2026-02-05T00:00:00Z",
+      periodATo: "2026-02-01T00:00:00Z",
+      periodBFrom: "2026-02-05T00:00:00Z",
+      periodBTo: "2026-02-08T00:00:00Z",
+    })
     expect(result.isError).toBe(true)
     expect(result.content[0].text).toMatch(/periodA ends before it starts/)
     expect(queries).toEqual([])
@@ -173,16 +147,13 @@ describe("analytics_show_period_compare periods (N79)", () => {
 
   it("refuses a period entirely before the retention", async () => {
     const { client, queries } = recordingClient()
-    const result = await showPeriodCompare(client).handler(
-      {
-        ...base,
-        periodAFrom: "2025-10-01T00:00:00Z",
-        periodATo: "2025-10-08T00:00:00Z",
-        periodBFrom: "2026-02-01T00:00:00Z",
-        periodBTo: "2026-02-08T00:00:00Z",
-      },
-      {},
-    )
+    const result = await showPeriodCompare(client).handler({
+      ...base,
+      periodAFrom: "2025-10-01T00:00:00Z",
+      periodATo: "2025-10-08T00:00:00Z",
+      periodBFrom: "2026-02-01T00:00:00Z",
+      periodBTo: "2026-02-08T00:00:00Z",
+    })
     expect(result.isError).toBe(true)
     expect(result.content[0].text).toMatch(/periodA lies before the 30-day Prometheus retention/)
     expect(queries).toEqual([])
@@ -190,30 +161,27 @@ describe("analytics_show_period_compare periods (N79)", () => {
 
   it("refuses a period B in the future instead of comparing an empty one", async () => {
     const { client, queries } = recordingClient()
-    const result = await showPeriodCompare(client).handler(
-      {
-        ...base,
-        periodAFrom: "2026-02-01T00:00:00Z",
-        periodATo: "2026-02-08T00:00:00Z",
-        periodBFrom: new Date(NOW + 3_600_000).toISOString(),
-        periodBTo: new Date(NOW + 2 * 3_600_000).toISOString(),
-      },
-      {},
-    )
+    const result = await showPeriodCompare(client).handler({
+      ...base,
+      periodAFrom: "2026-02-01T00:00:00Z",
+      periodATo: "2026-02-08T00:00:00Z",
+      periodBFrom: new Date(NOW + 3_600_000).toISOString(),
+      periodBTo: new Date(NOW + 2 * 3_600_000).toISOString(),
+    })
     expect(result.isError).toBe(true)
     expect(result.content[0].text).toMatch(/periodB lies in the future/)
     expect(queries).toEqual([])
   })
 })
 
-/** mcp-use parses the input before the handler runs, so an omitted value takes the schema default. */
+/** The SDK parses the input before the handler runs, so an omitted value takes the schema default. */
 describe("analytics schema defaults", () => {
   function parsedCall(name: string) {
     return async (input: Record<string, unknown>) => {
       const { client, queries } = recordingClient()
       const { definition, handler } = showTools(client).get(name)!
       const args = definition.inputSchema.parse(input)
-      const result = await handler(args, {})
+      const result = await handler(args)
       return { args, queries, result }
     }
   }

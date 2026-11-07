@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it } from "vitest"
 import { createElement } from "react"
 import { cleanup, render, screen } from "@testing-library/react"
-import type { MCPServer } from "mcp-use"
+import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
 import {
   TestViewHost,
   type HostAction,
@@ -28,15 +28,18 @@ afterEach(() => {
 
 /** Every view-bound tool the plugin registers on its widest toolset. */
 function viewTools(): string[] {
-  const register = vi.fn()
+  const recording = recordingModuleServer()
   createPlugin({
     engines: [{ id: "prod-a", baseUrl: "http://prod-a.example/engine-rest" }],
     toolset: "admin",
-  }).register({ tool: register, prompt: vi.fn() } as unknown as MCPServer)
-  return register.mock.calls
-    .map(([definition]) => definition as { name: string; _meta?: { ui?: unknown } })
-    .filter((d) => d._meta?.ui !== undefined || /_show_|_open_/.test(d.name))
-    .map((d) => d.name)
+  }).register(recording.server)
+  const boundView = (meta: Record<string, unknown> | undefined) =>
+    (meta?.ui as { resourceUri?: unknown } | undefined)?.resourceUri
+  return [...recording.tools.values()]
+    .filter(
+      ({ name, config }) => boundView(config._meta) !== undefined || /_show_|_open_/.test(name),
+    )
+    .map(({ name }) => name)
 }
 
 const DEFINITION: ProcessIncidentsData = {

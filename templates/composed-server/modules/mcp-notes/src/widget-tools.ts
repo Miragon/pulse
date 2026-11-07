@@ -1,5 +1,5 @@
 import { z } from "zod"
-import type { MCPServer } from "mcp-use"
+import type { ModuleServer } from "@miragon/pulse-widget-shell/server"
 import {
   appOnly,
   buildDataFeedResult,
@@ -23,15 +23,17 @@ const notesInputShape = {
     .describe("Case-insensitive filter matched against title, text, and tags."),
 }
 
-export function registerWidgetTools(server: MCPServer, store: NotesStore, title: string) {
+export function registerWidgetTools(server: ModuleServer, store: NotesStore, title: string) {
   // Render path 2 of 3: renders the view for the user AND returns a short
   // summary for the model. Its structuredContent IS the view's data, and the
   // tool's name is the view's name (`notesViews` in `widgets/index.ts`). The
   // `_show_` naming is load-bearing: the server's widget-contract e2e test
-  // asserts the view `_meta` on it by name.
-  server.tool(
+  // asserts the view `_meta` on it by name. `server` is the official SDK's
+  // registration API: `registerTool` here, and `registerAppTool` from
+  // `@modelcontextprotocol/ext-apps/server` works on it too.
+  server.registerTool(
+    NOTES_SHOW_NOTES,
     {
-      name: NOTES_SHOW_NOTES,
       title: "Team Notes",
       description: "Show the team's operations notes as an interactive list.",
       annotations: { readOnlyHint: true, idempotentHint: true },
@@ -53,9 +55,9 @@ export function registerWidgetTools(server: MCPServer, store: NotesStore, title:
   // retry, an invalidation after a write) and fetches when it is embedded
   // without data. Same builder, same arguments as the show tool. The `_data`
   // suffix is load-bearing: the e2e test asserts app-only visibility on it by name.
-  server.tool(
+  server.registerTool(
+    NOTES_LIST_DATA,
     {
-      name: NOTES_LIST_DATA,
       title: "Notes list data (internal)",
       description:
         "Internal JSON feed (no UI) for the notes widget's refresh. Prefer notes_show_notes.",

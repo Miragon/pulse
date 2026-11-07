@@ -1,12 +1,12 @@
 ---
 name: add-bpm-feature
-description: Step-by-step house pattern for adding a new BPM operations tool, widget tool, or widget to the engine module (`packages/connectors/engine/engine-connector`, over `packages/connectors/engine/engine-client` and `packages/connectors/engine/engine-core`). Use whenever adding or changing Camunda 7 / CIB seven tools ("add a tool to suspend jobs", "expose X from the engine REST API"), input schemas, cockpit routes, `*_data` feeds, or React widgets in the cockpit. Takes precedence over generic mcp-use examples.
+description: Step-by-step house pattern for adding a new BPM operations tool, widget tool, or widget to the engine module (`packages/connectors/engine/engine-connector`, over `packages/connectors/engine/engine-client` and `packages/connectors/engine/engine-core`). Use whenever adding or changing Camunda 7 / CIB seven tools ("add a tool to suspend jobs", "expose X from the engine REST API"), input schemas, cockpit routes, `*_data` feeds, or React widgets in the cockpit. Takes precedence over generic MCP SDK examples.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 ---
 
 # add-bpm-feature: new tool/widget in the engine module
 
-The engine module never registers operations tools with raw `server.tool()`. Tools go
+The engine module never registers operations tools with a raw `server.registerTool()`. Tools go
 through the registrar (`createToolRegistrar` from `@miragon/pulse-widget-shell/server`);
 engine access goes through `withEngine`/`resolveEngine` (per-call `engine` override >
 `ENGINE_DEFAULT` > the only configured engine). A view is registered in three places (CLAUDE.md
@@ -73,9 +73,9 @@ engine-core's `isMissing`), so a wrong REST root still fails loud.
 
 ### Parameter naming guide
 
-Inputs are STRICT (the registrar is always strict; raw `server.tool()` registrations use
-`strictToolInput(...)` from `@miragon/pulse-widget-shell/server`): an unknown key is a tool
-error listing the valid keys. So one name per concept across every tool: a model that learned
+Inputs are STRICT (the registrar is always strict; raw `server.registerTool()` registrations use
+`strictToolInput(...)` from `@miragon/pulse-widget-shell/server`, and the boot refuses any other
+input schema that lets an unknown key through): an unknown key is a tool error listing the valid keys. So one name per concept across every tool: a model that learned
 `assignee` on one tool must not be refused it on the next. Renames ship without aliases.
 
 | Concept                  | Name                                                                                                                                                                                                                                                   |
@@ -283,7 +283,7 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   query, so Refresh and a write's invalidation re-read it (#341). Widgets import every
   query hook (`useToolQuery`, `useToolMutation`, `useViewData`, `useQueryClient`) and the
   host seam (`useViewHost`, `HostModelContext`) from the view runtime, never from
-  `mcp-use/react` (ESLint); tests render them under `TestViewHost`
+  `@modelcontextprotocol/ext-apps` (ESLint); tests render them under `TestViewHost`
 - `formatTimestamp`/`formatDate`/`formatTime` (dates) and `formatNumber`/`formatPercent`/
   `formatPercentPoints`/`formatPeriod`/`formatDuration`/`truncate`, all from
   `@miragon/pulse-ui`: no local format
@@ -446,7 +446,9 @@ route. A route that nothing emits and `engine_open_cockpit` cannot open is dead.
 
 `src/widget-tools.ts` wires the cockpit tool (`src/widget-tools/cockpit.ts`), the `*_data`
 feeds (`data-feeds.ts`, over `DATA_FEEDS`) and the actions feed; these files are the documented
-exception that uses `server.tool()` directly:
+exception that calls the official SDK's `server.registerTool(name, config, handler)` directly
+(`server` is the module's `ModuleServer`; its handler gets `(args, ctx)`, the SDK's context with the
+call's abort signal at `ctx.mcpReq.signal`):
 
 - Every widget-path tool (the cockpit AND each feed) declares
   `inputSchema: strictToolInput({ … })` (from `@miragon/pulse-widget-shell/server`), never
@@ -454,11 +456,10 @@ exception that uses `server.tool()` directly:
   `apps/mcp-server/test/strict-input.e2e.test.ts` refuses any module tool that
   accepts one.
 - `engine_open_cockpit` spreads `...showToolBinding(ENGINE_OPEN_COCKPIT, "Open Cockpit")`
-  (from `@miragon/pulse-widget-shell/server`), which binds a native mcp-use view named after
-  the tool (`view: { name }`, mcp-use then emits all `_meta.ui.*` keys and the
-  `ui://views/<tool>.html` resource itself), adds the required passthrough `outputSchema`,
-  and stamps the Apps-SDK half of `_meta`; **never write `_meta.ui` keys by hand** (mcp-use
-  owns and overwrites that namespace). Resolve the engine via
+  (from `@miragon/pulse-widget-shell/server`) into its config, which binds the view named after
+  the tool (`_meta.ui.resourceUri: "ui://views/<tool>.html"`, whose resource the boot serves),
+  adds the required passthrough `outputSchema` and stamps the Apps-SDK half of `_meta`;
+  **never write `_meta` keys by hand**. Resolve the engine via
   `resolveEngine(args.engine, registry, ctx)`, which already returns `baseUrl`/`cockpitUrl`;
   never fish them out of `registry.engines`. It returns `buildViewResult(data, facts)`
   (from `@miragon/pulse-widget-shell/server`): `data` IS the view's data, no title (the
@@ -466,8 +467,7 @@ exception that uses `server.tool()` directly:
   model-facing text channel, while the full payload travels only in `structuredContent`.
 - `*_data` feeds: describe one with `dataFeed({ name, title, description, shape, read })` in
   `DATA_FEEDS` (`src/data/feeds.ts`); `registerDataFeed` in `data-feeds.ts` registers each and
-  spreads `...appOnly` (the native
-  `visibility: "app"` field, emitted as SEP-1865 `_meta.ui.visibility: ["app"]`, plus
+  spreads `...appOnly` (SEP-1865 `_meta.ui.visibility: ["app"]` plus
   `openai/widgetAccessible`; **no** view binding) and returns `buildDataFeedResult(data)` so
   the in-widget `callTool()` gets JSON back instead of the host rendering a new widget.
   Wrap every raw handler in `withToolErrors` (from `@miragon/pulse-widget-shell/server`).
@@ -571,7 +571,7 @@ toolset. If `char-budgets.json` grew, `pnpm lint` fails until the commit carries
 `pnpm typecheck` is the **only** automated check that type-checks widget `.tsx` code
 (`tsc -p tsconfig.widgets.json`); never skip it. For widgets also do a manual render
 check: `pnpm play` (playground, build and server in one command), then call the
-tool in the inspector at `http://localhost:8400/mcp/inspector`. The default boot
+tool in the MCP Inspector `pnpm play` starts next to the server (it prints the URL). The default boot
 is read-only (the boot log names the toolsets). To exercise a write tool or button, run
 `pnpm play --admin` (`--deploy` for deployments). Run `pnpm format:check` (or
 `pnpm format`) before committing.

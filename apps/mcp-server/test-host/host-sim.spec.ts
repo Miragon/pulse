@@ -230,13 +230,13 @@ async function documentTheme(app: FrameLocator) {
   }))
 }
 
-/** The last height the view reported to the host (bootstrapView's auto-resize). */
+/** The last height the view reported to the host (the ext-apps `App`'s auto-resize). */
 async function reportedHeight(page: Page): Promise<number> {
   return (await hostLog(page)).sizeChanges.at(-1)?.height ?? Number.NaN
 }
 
 /**
- * The height the view reported for what it renders NOW. bootstrapView's
+ * The height the view reported for what it renders NOW. The `App`'s
  * auto-resize reports one frame after a resize (ResizeObserver → rAF →
  * postMessage), so right after the content became visible the last report can
  * still be an earlier state's (the view's loading state), which would
@@ -346,13 +346,13 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
     // The server never titles a view (#322 U3): the widget's own heading is
     // the view's one title, in the host's language.
     await expect(app.getByRole("heading", { name: "All processes", exact: true })).toHaveCount(1)
-    // Harness self-checks: the frame runs mcp-use's synthesized document
+    // Harness self-checks: the frame runs the served document
     // (its inline view config) with the view's name from the prelude,
     // sandboxed to an opaque origin, under the host's CSP (the first element
     // of <head>, ahead of every script).
     expect(
       await app.locator("html").evaluate(() => ({
-        viewConfig: "__mcpUseViewConfig" in globalThis,
+        viewConfig: "__pulseViewConfig" in globalThis,
         view: (globalThis as { __pulseView?: unknown }).__pulseView,
         origin: window.origin,
         csp: document.head.firstElementChild?.getAttribute("http-equiv") ?? null,
@@ -371,7 +371,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
     expect(await reExecutions(page)).toHaveLength(0)
     // The chat's own answer carries no "Reloaded at" line.
     await expect(app.getByText(CHROME.reloadedAt)).toHaveCount(0)
-    // The provider stack works in the real bundle: bootstrapView's auto-resize
+    // The provider stack works in the real bundle: the `App`'s auto-resize
     // reports the rendered height to the host.
     expect(await settledHeight(page, app)).toBeGreaterThan(200)
     expect(log.errors).toEqual([])
