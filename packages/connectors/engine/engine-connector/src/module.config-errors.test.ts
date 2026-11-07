@@ -147,7 +147,7 @@ describe("engine URLs are http(s) only", () => {
     "http://engine:8080/engine-rest",
     "http://10.0.0.1:8080/engine-rest",
     "http://[::1]:8080/engine-rest",
-    "https://svc:pw@engine.example.com/engine-rest",
+    "https://engine.example.com/engine-rest/",
   ])("accepts %s", (url) => {
     expect(parse(url)).toBe(true)
     expect(parse("http://a/engine-rest", url)).toBe(true)
@@ -159,9 +159,50 @@ describe("engine URLs are http(s) only", () => {
     "engine.example.com/engine-rest",
     "ftp://engine.example.com/engine-rest",
     "http://",
+    // The CLI's and VS Code's rule. `fetch` throws on credentials, quoting the URL to the model.
+    "https://svc:pw@engine.example.com/engine-rest",
+    "https://svc@engine.example.com/engine-rest",
+    "http:svc:pw@engine.example.com/engine-rest",
+    " https://svc:pw@engine.example.com/engine-rest ",
+    "https://engine.example.com/engine-rest?token=x",
+    "https://engine.example.com/engine-rest?",
+    "https://engine.example.com/engine-rest#x",
+    "https://engine.example.com/engine-rest#",
+    "https://engine.example.com/webapp/#/",
   ])("refuses %s for the REST root and the cockpit link", (url) => {
     expect(parse(url)).toBe(false)
     expect(parse("http://a/engine-rest", url)).toBe(false)
+  })
+
+  it("names the place and the way out for credentials, a query string or a fragment", () => {
+    const refused =
+      "Must not contain credentials, a query string or a fragment. The value is not shown because it may hold credentials"
+    const hint =
+      "A login goes into ENGINE_AUTH_TYPE with ENGINE_USERNAME and ENGINE_PASSWORD, or into the entry's `auth`"
+    const secretUrl = "https://svc:pw@engine.example.com/engine-rest"
+    const plainUrl = "http://a/engine-rest"
+    const messageOf = (env: NodeJS.ProcessEnv) => {
+      try {
+        engineModule.configFromEnv(env)
+      } catch (error) {
+        return (error as Error).message
+      }
+      return "accepted"
+    }
+    expect(messageOf({ ENGINE_BASE_URL: secretUrl })).toBe(`ENGINE_BASE_URL: ${refused}. ${hint}`)
+    expect(messageOf({ ENGINE_BASE_URL: plainUrl, ENGINE_COCKPIT_URL: secretUrl })).toBe(
+      `ENGINE_COCKPIT_URL: ${refused}`,
+    )
+    expect(messageOf({ ENGINES_JSON: JSON.stringify([{ id: "a", baseUrl: secretUrl }]) })).toBe(
+      `ENGINES_JSON[0].baseUrl: ${refused}. ${hint}`,
+    )
+    expect(
+      messageOf({
+        ENGINES_JSON: JSON.stringify({
+          "prod-eu": [{ id: "a", baseUrl: plainUrl, cockpitUrl: secretUrl }],
+        }),
+      }),
+    ).toBe(`ENGINES_JSON["prod-eu"][0].cockpitUrl: ${refused}`)
   })
 
   it("never echoes the URL, which may carry credentials", () => {

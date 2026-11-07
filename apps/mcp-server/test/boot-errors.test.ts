@@ -45,6 +45,27 @@ describe("the boot refuses a setting it cannot use, before it logs the toolsets"
     await expect(boot()).rejects.toThrow(message)
     expect(info).not.toHaveBeenCalled()
   })
+
+  /** `bootWarnings` names the ids of a passthrough engine: only a checked config reaches it. */
+  it("logs no secret of an engine setting in front of its error", async () => {
+    const SECRET = "pl4nted-S3cret"
+    const info = vi.spyOn(console, "info").mockImplementation(() => {})
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    stubNeutralEnv({
+      ENGINES_JSON: JSON.stringify([
+        {
+          id: SECRET,
+          baseUrl: `https://svc:${SECRET}@engine.example/engine-rest`,
+          auth: { type: "passthrough" },
+        },
+      ]),
+      ENGINE_DEFAULT: `${SECRET}-other`,
+    })
+    const refused = (await boot().catch((error: unknown) => error)) as Error
+    expect(refused.message).toContain("ENGINES_JSON[0].baseUrl: Must not contain credentials")
+    expect(refused.message).not.toContain(SECRET)
+    expect(JSON.stringify([info.mock.calls, warn.mock.calls])).not.toContain(SECRET)
+  })
 })
 
 /** `src/index.ts` itself, imported as `node dist/index.js` runs it: a revert to its own listen fails here. */

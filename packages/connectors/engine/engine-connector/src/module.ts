@@ -19,6 +19,7 @@ import {
   type EngineListOrigin,
   type EngineSource,
 } from "./engine-config-error.js"
+import { httpUrl } from "./engine-url.js"
 
 // Incomplete credentials fail the boot instead of silently sending unauthenticated requests.
 const engineAuthSchema = z
@@ -38,10 +39,6 @@ const engineAuthSchema = z
 /** The shape of an engine id and an environment id. */
 const ID_PATTERN = /^[a-z0-9][a-z0-9-]*$/
 
-/** http(s) only: `localhost:8410/engine-rest` parses as a URL whose scheme is `localhost:`. */
-const httpUrl = (what: string) =>
-  z.url({ protocol: /^https?$/, error: `Expected an http:// or https:// URL${what}` })
-
 const engineSchema = z.object({
   id: z
     .string()
@@ -50,7 +47,10 @@ const engineSchema = z.object({
       ID_PATTERN,
       "Engine id must be lowercase alphanumeric / dashes, starting with a letter or digit",
     ),
-  baseUrl: httpUrl(" of the REST API root, e.g. http://localhost:8410/engine-rest"),
+  baseUrl: httpUrl(
+    " of the REST API root, e.g. http://localhost:8410/engine-rest",
+    ". A login goes into ENGINE_AUTH_TYPE with ENGINE_USERNAME and ENGINE_PASSWORD, or into the entry's `auth`",
+  ),
   cockpitUrl: httpUrl("").optional(),
   /** A picker grouping only: `id` stays the flat join key against the metrics' `engine_id`. */
   environment: z
@@ -149,7 +149,7 @@ export const engineConfigSchema = z
       issues.addIssue({
         code: "custom",
         path: ["defaultEngine"],
-        message: `ENGINE_DEFAULT=${c.defaultEngine} names no configured engine (configured: ${ids.join(", ")}).`,
+        message: `ENGINE_DEFAULT=${shownIfId(c.defaultEngine, "")} names no configured engine (configured: ${ids.map((id) => shownIfId(id, "")).join(", ")}).`,
       })
     }
   })
@@ -168,9 +168,9 @@ function scanJsonString(text: string, openQuote: number): number {
  * A config error names a key or value of the input only when it is id-shaped: anything else
  * may be a credential pasted into the wrong place.
  */
-function shownIfId(value: unknown): string {
+function shownIfId(value: unknown, quote = '"'): string {
   return typeof value === "string" && ID_PATTERN.test(value)
-    ? `"${value}"`
+    ? `${quote}${value}${quote}`
     : "(not shown: not an id)"
 }
 
