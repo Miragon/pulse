@@ -36,7 +36,7 @@ function EngineProblem({ engine }: { readonly engine: BoardEngineStatus }) {
     return (
       <StatusStrip
         tone="warning"
-        title={`${engine.name} is not in .pulse-cli.json.`}
+        title={`${engine.name} is not in .pulse-cli.json or your CLI config.`}
         detail="Its widgets stay empty until a profile of that name exists."
         actions={[
           {

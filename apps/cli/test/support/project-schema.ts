@@ -1,8 +1,9 @@
 /**
  * The JSON Schema of the project file (apps/cli/schema/project-file.schema.json), the shared
- * fixtures (apps/cli/test/fixtures/project-file/, which Pulse for VS Code's parser test reads by
- * path, too) and what the parser and the schema say about a file. A fixture holds the file and
- * the CLI's verdict only; the extension keeps its own expectations next to its test.
+ * fixtures (apps/cli/test/fixtures/project-file/ and, for the user's config file,
+ * apps/cli/test/fixtures/user-config/, which Pulse for VS Code's parser tests read by path, too)
+ * and what the parser and the schema say about a file. A fixture holds the file and the CLI's
+ * verdict only; the extension keeps its own expectations next to its tests.
  */
 
 import { readdirSync, readFileSync } from "node:fs"
@@ -12,7 +13,7 @@ import { PulseCliError } from "../../src/errors.js"
 import { isRecord } from "../../src/util.js"
 
 export const SCHEMA_URL = new URL("../../schema/project-file.schema.json", import.meta.url)
-const FIXTURES_URL = new URL("../fixtures/project-file/", import.meta.url)
+const FIXTURES_URL = new URL("../fixtures/", import.meta.url)
 export const PROJECT_PATH = "/repo/.pulse-cli.json"
 
 /** A node of the schema, as far as the structural checks read it. */
@@ -91,13 +92,14 @@ function checked(entry: string, raw: unknown): RawFixture {
   return raw as unknown as RawFixture
 }
 
-/** Every fixture, sorted by file name. */
-export function fixtures(): Fixture[] {
-  return readdirSync(FIXTURES_URL)
+/** Every fixture of a folder (the project file's by default), sorted by file name. */
+export function fixtures(folder: "project-file" | "user-config" = "project-file"): Fixture[] {
+  const directory = new URL(`${folder}/`, FIXTURES_URL)
+  return readdirSync(directory)
     .filter((entry) => entry.endsWith(".json"))
     .sort()
     .map((entry) => {
-      const raw = checked(entry, JSON.parse(readFileSync(new URL(entry, FIXTURES_URL), "utf8")))
+      const raw = checked(entry, JSON.parse(readFileSync(new URL(entry, directory), "utf8")))
       const text = raw.text ?? `${JSON.stringify(raw.file, null, 2)}\n`
       return { name: entry.replace(/\.json$/, ""), about: raw.about, text, cli: raw.cli }
     })

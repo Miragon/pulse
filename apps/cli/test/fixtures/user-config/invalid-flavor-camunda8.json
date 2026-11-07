@@ -1,0 +1,18 @@
+{
+  "about": "A flavor this CLI does not know, such as camunda8, makes it refuse the whole file and with it every command on the machine; Pulse for VS Code still lists the other engines.",
+  "file": {
+    "profiles": {
+      "cluster": {
+        "url": "https://cluster.example.com/v2",
+        "flavor": "camunda8"
+      },
+      "dev": {
+        "url": "http://localhost:8080/engine-rest"
+      }
+    }
+  },
+  "cli": {
+    "valid": false,
+    "error": "profile \"cluster\" has an invalid flavor"
+  }
+}

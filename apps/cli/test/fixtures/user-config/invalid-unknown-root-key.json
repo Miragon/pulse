@@ -1,0 +1,15 @@
+{
+  "about": "A root key the CLI does not know.",
+  "file": {
+    "profiles": {
+      "dev": {
+        "url": "http://localhost:8080/engine-rest"
+      }
+    },
+    "engines": {}
+  },
+  "cli": {
+    "valid": false,
+    "error": "unknown key(s) engines in the root object"
+  }
+}

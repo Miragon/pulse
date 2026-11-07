@@ -1,4 +1,4 @@
-import { basename } from "node:path"
+import { ProfileFileName } from "./profile-file-name.js"
 
 export class TargetsProblem {
   constructor(
@@ -8,7 +8,7 @@ export class TargetsProblem {
   ) {}
 
   label(): string {
-    return `${basename(this.path)}: ${this.message}`
+    return `${ProfileFileName.label(this.path)}: ${this.message}`
   }
 
   detail(): string {

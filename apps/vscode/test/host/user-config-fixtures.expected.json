@@ -1,0 +1,49 @@
+{
+  "invalid-default-profile-name": {
+    "targets": ["dev"],
+    "problems": []
+  },
+  "invalid-flavor-camunda8": {
+    "targets": ["dev"],
+    "problems": ["profile \"cluster\" uses the flavor camunda8, which Pulse does not support yet"]
+  },
+  "invalid-not-json": {
+    "targets": [],
+    "problems": ["the file is not valid JSON"]
+  },
+  "invalid-profile-unknown-key": {
+    "targets": ["dev"],
+    "problems": []
+  },
+  "invalid-unknown-root-key": {
+    "targets": ["dev"],
+    "problems": []
+  },
+  "valid-bearer-token": {
+    "targets": [],
+    "problems": [
+      "profile \"token\" uses bearer auth, which Pulse does not support yet",
+      "profile \"token-env\" uses bearer auth, which Pulse does not support yet"
+    ]
+  },
+  "valid-credentials": {
+    "targets": ["basic-literal", "basic-env", "oauth-literal", "oauth-env"],
+    "problems": []
+  },
+  "valid-default-profile-elsewhere": {
+    "targets": ["mine"],
+    "problems": []
+  },
+  "valid-empty-file": {
+    "targets": [],
+    "problems": []
+  },
+  "valid-profiles": {
+    "targets": ["shop", "billing"],
+    "problems": []
+  },
+  "valid-secret-headers": {
+    "targets": ["gateway"],
+    "problems": []
+  }
+}
