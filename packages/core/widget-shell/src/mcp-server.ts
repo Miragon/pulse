@@ -16,13 +16,19 @@ import {
 } from "@modelcontextprotocol/server"
 import { Hono, type Context } from "hono"
 import {
+  isNormalTarget,
+  jsonRpcErrorResponse,
+  NOT_NORMAL_TARGET,
+  type RefusedRequest,
+} from "./http-edge.js"
+import {
   oauthDiscovery,
   oauthGate,
   resolveOAuthResource,
   toolResultChallenge,
 } from "./oauth-gate.js"
 import type { OAuthProvider } from "./oauth-providers.js"
-import { installRequestLog, requestLogLevel } from "./request-log.js"
+import { installRequestLog, logRefusedRequest, requestLogLevel } from "./request-log.js"
 import type { ModuleRegistrations, RecordedPrompt, RecordedTool } from "./tool-registration.js"
 import {
   viewDocument,
@@ -57,6 +63,7 @@ type HttpMiddleware = (ctx: Context, next: () => Promise<void>) => Promise<Respo
 type HttpHandler = (ctx: Context) => Response | Promise<Response>
 type RequestMiddleware = (ctx: unknown, next: () => Promise<void>) => Promise<void>
 type ToolCallMiddleware = (ctx: unknown, next: () => Promise<unknown>) => Promise<unknown>
+type RefusalHook = (refused: RefusedRequest) => void
 
 const BASE_PATH = "/mcp"
 /**
@@ -76,11 +83,13 @@ export class McpHttpApp {
   readonly #config: McpHttpAppConfig
   /**
    * Routes on the path as sent, never percent-decoded (Hono's default): `/%6Dcp` is no alias of
-   * `/mcp` a gateway's path rule would miss. Dot segments resolve earlier, in the URL parser.
+   * `/mcp` a gateway's path rule would miss. Dot segments never get here: the listener refuses
+   * them on the raw target (`isNormalTarget`).
    */
   readonly #http = new Hono({ getPath: (request) => new URL(request.url).pathname })
   readonly #requestHooks: RequestMiddleware[] = []
   readonly #toolCallHooks: ToolCallMiddleware[] = []
+  readonly #refusalHooks: RefusalHook[] = []
   readonly #oauth: { resource: URL; discovery: ReturnType<typeof oauthDiscovery> } | undefined
   #bundles: Record<string, ViewBundle> = {}
   #handler: McpHttpHandler | undefined
@@ -94,6 +103,7 @@ export class McpHttpApp {
     }
     if (config.log !== false) {
       installRequestLog(this.#http, BASE_PATH, requestLogLevel(config.env ?? process.env))
+      this.onRefused(logRefusedRequest)
     }
   }
 
@@ -106,6 +116,17 @@ export class McpHttpApp {
     else if (pattern === "mcp:tools/call") this.#toolCallHooks.push(fn)
     else this.#http.use(pattern, fn)
     return this
+  }
+
+  /** Runs for a request answered in front of the routes, which no `*` middleware sees. */
+  onRefused(fn: RefusalHook): this {
+    this.#refusalHooks.push(fn)
+    return this
+  }
+
+  /** The listener's report of a request it answered itself. */
+  recordRefused = (refused: RefusedRequest): void => {
+    for (const hook of this.#refusalHooks) hook(refused)
   }
 
   get(path: string, handler: HttpHandler): this {
@@ -122,9 +143,17 @@ export class McpHttpApp {
     this.#bundles = { ...this.#bundles, ...bundles }
   }
 
+  /**
+   * A `Request`'s URL has already been parsed, so its dot segments are gone and only the listener
+   * can refuse those; what the parser leaves (`//mcp`, `/mcp/`) is refused here the same way.
+   */
   fetch = async (request: Request): Promise<Response> => {
     this.#mount()
-    return this.#http.fetch(request)
+    const { pathname } = new URL(request.url)
+    if (isNormalTarget(pathname)) return this.#http.fetch(request)
+    const { method } = request
+    this.recordRefused({ method, target: pathname, status: 404, message: NOT_NORMAL_TARGET })
+    return jsonRpcErrorResponse(404, NOT_NORMAL_TARGET)
   }
 
   async close(): Promise<void> {

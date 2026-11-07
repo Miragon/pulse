@@ -42,7 +42,7 @@ a provider (an `…_AUDIENCE`, a misspelled prefix; the MCP Inspector's `MCP_OAU
 
 A gateway that terminates auth **in front of** the server is invisible to it (identity is only a
 bearer token the server validates): such a deployment runs read-only until `MCP_ACTIVE_MODULES`
-names its toolsets. It routes on the path as sent, so a percent-encoded alias such as `/%6Dcp` gets 404; dot segments (`/./mcp`, `/%2e/mcp`) resolve as in any URL parser, so such a gateway normalizes the path before its rule. Deploying a BPMN/DMN is **code execution inside the engine JVM**, so
+names its toolsets. A route answers under its own path only, so a path rule in front reads what the server routes on: a request target that is not its own normal form (a dot or empty segment such as `/./mcp`, `/%2e/mcp`, `//mcp` or `/mcp/`, a backslash, a fragment, an absolute URL) gets 404 on every route, ahead of the `Host` check and OAuth; a percent-encoded alias such as `/%6Dcp` matches no route; a `Host` header that is empty, holds more than a host or names none gets 400. Deploying a BPMN/DMN is **code execution inside the engine JVM**, so
 `engine_create_deployment` also needs `ENGINE_ALLOW_DEPLOYMENTS=true`. Passthrough auth
 (`ENGINE_AUTH_TYPE=passthrough`) forwards each caller's token to the engine (never to Prometheus;
 under OAuth exactly the token the server verified, and a header with a second credential gets 401),

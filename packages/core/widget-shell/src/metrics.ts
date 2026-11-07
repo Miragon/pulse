@@ -7,6 +7,7 @@
 import { createHash, timingSafeEqual } from "node:crypto"
 import { collectDefaultMetrics, Counter, Histogram, Registry } from "prom-client"
 import type { HttpRouteHost } from "./health.js"
+import type { RefusedRequest } from "./http-edge.js"
 import { toolCallOutcome, toolNameOf, type ToolCallMiddlewareHost } from "./host-boot.js"
 
 export interface HttpMiddlewareContext {
@@ -21,7 +22,11 @@ interface HttpMiddlewareHost {
   ): unknown
 }
 
-export type MetricsHost = HttpRouteHost & HttpMiddlewareHost & ToolCallMiddlewareHost
+interface RefusalHost {
+  onRefused(fn: (refused: RefusedRequest) => void): unknown
+}
+
+export type MetricsHost = HttpRouteHost & HttpMiddlewareHost & ToolCallMiddlewareHost & RefusalHost
 
 export interface MetricsOptions {
   path?: string
@@ -35,6 +40,7 @@ export interface MetricsOptions {
 }
 
 const DEFAULT_ROUTES: readonly string[] = ["/mcp", "/health", "/metrics", "/.well-known", "/fonts"]
+const OTHER_ROUTE = "other"
 const DURATION_BUCKETS = [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30]
 
 const digest = (value: string): Buffer => createHash("sha256").update(value).digest()
@@ -51,7 +57,7 @@ const authorizationOf = (ctx: unknown): string | undefined =>
   )
 
 export function routeLabel(path: string, routes: readonly string[] = DEFAULT_ROUTES): string {
-  return routes.find((route) => path === route || path.startsWith(`${route}/`)) ?? "other"
+  return routes.find((route) => path === route || path.startsWith(`${route}/`)) ?? OTHER_ROUTE
 }
 
 /** Call BEFORE registering routes to count: hono stops at the first response in registration order. */
@@ -121,6 +127,12 @@ export function installMetrics(server: MetricsHost, options: MetricsOptions = {}
       stop()
       httpRequests.inc({ method, route, status })
     }
+  })
+
+  // Answered in front of the routes, so no middleware counts it; its path is the caller's.
+  server.onRefused(({ method, status }) => {
+    httpRequests.inc({ method, route: OTHER_ROUTE, status: String(status) })
+    httpDuration.observe({ method, route: OTHER_ROUTE }, 0)
   })
 
   server.get(path, async (ctx) => {

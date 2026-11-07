@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest"
 import type { ModulePlugin } from "./composition.js"
+import type { RefusedRequest } from "./http-edge.js"
 import { CAPABILITIES, McpHttpApp, type McpHttpAppConfig } from "./mcp-server.js"
 import { createModuleRegistry } from "./tool-registration.js"
 import { showToolBinding, viewResourceUri } from "./widget-tool-bindings.js"
@@ -73,6 +74,31 @@ async function call(app: McpHttpApp, method: string, params: Record<string, unkn
         .slice("data: ".length)
   return (JSON.parse(data) as { result: Record<string, unknown> }).result
 }
+
+describe("McpHttpApp: a path that is not its own normal form", () => {
+  it("gets 404, counted and logged like a refusal of the listener", async () => {
+    const app = appOf()
+    const seen: RefusedRequest[] = []
+    app.onRefused((refused) => seen.push(refused))
+    const res = await app.fetch(new Request("http://localhost/mcp/"))
+    expect(res.status).toBe(404)
+    expect(await res.text()).toContain("not in its normal form")
+    expect(seen).toHaveLength(1)
+    expect(seen[0]).toMatchObject({ method: "GET", target: "/mcp/", status: 404 })
+    expect(log.mock.calls.at(-1)?.[0]).toMatch(/^GET \/mcp\/ 404 0ms ERROR Not found/)
+  })
+
+  it("reports a refusal of the listener to every hook, the log only if the app logs", () => {
+    const app = appOf({ log: false })
+    const seen: string[] = []
+    app
+      .onRefused(({ target }) => seen.push(`a ${target}`))
+      .onRefused(({ target }) => seen.push(`b ${target}`))
+    app.recordRefused({ method: "GET", target: "/./mcp", status: 404, message: "m" })
+    expect(seen).toEqual(["a /./mcp", "b /./mcp"])
+    expect(log).not.toHaveBeenCalled()
+  })
+})
 
 describe("McpHttpApp", () => {
   it("serves a view only once its bundle is primed", async () => {

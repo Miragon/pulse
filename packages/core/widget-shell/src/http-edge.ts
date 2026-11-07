@@ -187,6 +187,49 @@ export function originRejection(
   )
 }
 
+/** The path of a request target as sent, before any URL parser; a query stays the app's. */
+export const pathOfTarget = (target: string): string => target.split("?", 1)[0]
+
+/**
+ * Whether a request target (`req.url`, before any URL parser) names one path only: origin-form,
+ * no empty segment, and nothing a URL parser rewrites (`.` and `..` in any `%2e` spelling, `\`, a
+ * fragment). A path rule in front of the server then reads the path the routes read. A `Request`'s
+ * URL has been through that parser, so only the listener can see all of this; the app checks what
+ * is left of it.
+ */
+export function isNormalTarget(target: string): boolean {
+  const path = pathOfTarget(target)
+  if (!path.startsWith("/") || path.includes("//") || (path !== "/" && path.endsWith("/"))) {
+    return false
+  }
+  return new URL(`http://h${path}`).pathname === path
+}
+
+export const NOT_NORMAL_TARGET =
+  "Not found: the request path is not in its normal form (no dot or empty segment, no backslash, no fragment, no absolute URL)."
+
+/**
+ * The SDK's bridge builds a request's URL as `http://<Host><target>`, so a `Host` holding a path
+ * (`h/mcp?`) replaces the target's, an empty one (`http:///h/mcp`) turns its first segment into the
+ * host, one with credentials or that is no host at all fails the `Request` with a stack in the log,
+ * the credentials with it. Absent, the bridge says `localhost` and the guard decides.
+ */
+export function isUsableHost(host: string | undefined): boolean {
+  if (host === undefined) return true
+  return /^[^/\\?#@]+$/.test(host) && URL.canParse(`http://${host}`)
+}
+
+export const NOT_A_HOST = "Bad request: the Host header is empty or names no host and port."
+
+/** A request answered in front of the routes, which no middleware saw. */
+export interface RefusedRequest {
+  method: string
+  /** As sent, so as the caller chose it: the log's to clean, never a metric label. */
+  target: string
+  status: number
+  message: string
+}
+
 export interface EdgeRequest {
   method: string
   /** Without the query. */
@@ -215,7 +258,7 @@ export function jsonRpcErrorBody(message: string): string {
   return JSON.stringify({ jsonrpc: "2.0", error: { code: -32000, message }, id: null })
 }
 
-function jsonRpcErrorResponse(status: number, message: string): Response {
+export function jsonRpcErrorResponse(status: number, message: string): Response {
   return new Response(jsonRpcErrorBody(message), {
     status,
     headers: { "content-type": "application/json", "cache-control": "no-store" },

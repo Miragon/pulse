@@ -568,9 +568,13 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      `createApp(env, deps?)` (`src/app.ts`) that `src/index.ts` AND the e2e suites boot, never a
      test-only re-implementation. Readiness never probes engines or Prometheus (it answers 503
      only while the server drains); metric labels stay bounded (tool catalogue + known routes,
-     never users or arguments). The router reads the path as sent, never percent-decoded, so
-     `/%6Dcp` is no alias of `/mcp` (`composed-server.edge.test.ts`); only dot segments resolve,
-     in the URL parser, before any route. The HTTP edge guard
+     never users or arguments). A route answers under its own path only: the listener refuses a
+     raw `req.url` that is not its own normal form with 404 (`isNormalTarget`: dot and empty
+     segments, a backslash, a fragment, absolute-form) and a `Host` the SDK's bridge would join
+     into the path or fail on (`isUsableHost`) with 400, in front of the guard and OAuth, counted under `route="other"`; a
+     `Request` has its dot segments resolved, so `composed-server.paths.test.ts` drives real
+     sockets. The router reads the path as sent, never percent-decoded, so `/%6Dcp` is no alias of
+     `/mcp` (`composed-server.edge.test.ts`). The HTTP edge guard
      (`resolveHttpEdgePolicy`) is DNS-rebinding protection in front of the OAuth gate that
      exempts `/health*` and `/metrics`; it is the ONE `Host`/`Origin` check, so never add the
      SDK's `hostHeaderValidationResponse` or a transport's `allowedHosts` next to it.

@@ -26,6 +26,7 @@ import {
   type JSONRPCRequest,
 } from "@modelcontextprotocol/server"
 import type { Hono } from "hono"
+import type { RefusedRequest } from "./http-edge.js"
 
 export const REQUEST_LOG_LEVEL_ENV_VAR = "MCP_LOG_LEVEL"
 const LEVELS = ["info", "debug", "trace"] as const
@@ -67,14 +68,19 @@ const isRecord = (value: unknown): value is Json =>
 
 const text = (value: unknown): string | undefined => (typeof value === "string" ? value : undefined)
 
-// Control and format characters would let a caller forge log lines or reorder them on screen.
-const sanitize = (value: string) => value.replace(/[\p{Cc}\p{Cf}]/gu, "?")
+// Control, format and line-separator characters would let a caller forge log lines or reorder them
+// on screen.
+const sanitize = (value: string) => value.replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu, "?")
 
 const ERROR_TEXT_MAX = 500
+const PATH_MAX = 200
 const INLINE_MAX = 80
 const DUMP_MAX = 10_000
 
 const cut = (value: string, max: number) => (value.length > max ? `${value.slice(0, max)}…` : value)
+
+/** Paths are the caller's: one line each, whatever they hold, and of a bounded length. */
+const loggedPath = (path: string) => cut(sanitize(path), PATH_MAX)
 
 function clientInfo(value: unknown): string | undefined {
   if (!isRecord(value) || typeof value.name !== "string") return undefined
@@ -307,6 +313,21 @@ function answerToRead(response: Response, first: JSONRPCRequest | undefined): bo
 const isExpectedRefusal = (method: string, path: string, mcpPath: string, status: number) =>
   status === 405 && path === mcpPath && (method === "GET" || method === "DELETE")
 
+/** No absolute target (`http://user:pw@h`), and no authority a URL parser reads off `//` or `/\`. */
+const ORIGIN_FORM = /^\/(?![/\\])/
+
+/**
+ * The line of a request the listener answered, which `installRequestLog` never sees. Without its
+ * query or fragment, like every other line, which either can carry a token; a target that is no
+ * path is left out whole, since it can carry credentials.
+ */
+export function logRefusedRequest({ method, target, status, message }: RefusedRequest): void {
+  const shown = ORIGIN_FORM.test(target)
+    ? loggedPath(target.split(/[?#]/, 1)[0])
+    : "(not origin-form)"
+  console.log(`${method} ${shown} ${status} 0ms ERROR ${message}`)
+}
+
 export function installRequestLog(
   app: Hono,
   mcpPath: string,
@@ -324,7 +345,7 @@ export function installRequestLog(
     }
     const exchange: Exchange = {
       started,
-      path,
+      path: loggedPath(path),
       described: describe(method, requestBody),
       requestBody,
     }
