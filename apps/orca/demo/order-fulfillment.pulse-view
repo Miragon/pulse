@@ -1,0 +1,6 @@
+{
+  "pulse": 1,
+  "engine": "shop-dev",
+  "view": "definition",
+  "bpmnProcessId": "order-fulfillment"
+}

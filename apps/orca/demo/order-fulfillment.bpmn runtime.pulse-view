@@ -1,0 +1,7 @@
+{
+  "pulse": 1,
+  "engine": "shop-dev",
+  "view": "model",
+  "bpmnProcessId": "order-fulfillment",
+  "modelPath": "/workspace/shop/processes/order-fulfillment.bpmn"
+}

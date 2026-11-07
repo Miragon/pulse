@@ -12,6 +12,41 @@
   "repository": "https://github.com/Miragon/pulse",
   "license": "MIT",
   "icon": "assets/icon.png",
+  "cover": {
+    "path": "images/cover.webp",
+    "alt": "Miragon AI Pulse: your process engines next to your BPMN models, inside Orca."
+  },
+  "screenshots": [
+    {
+      "path": "images/cover.webp",
+      "alt": "Miragon AI Pulse: your process engines next to your BPMN models, inside Orca.",
+      "caption": "Your process engines, inside Orca"
+    },
+    {
+      "path": "images/screenshot-orca.webp",
+      "alt": "Orca with Order fulfillment v3 in a Pulse tab: badges for running instances and incidents on the diagram, the instances below, the Pulse panel on the right",
+      "caption": "Incidents and running instances on the deployed diagram",
+      "theme": "light"
+    },
+    {
+      "path": "images/screenshot-orca-dark.webp",
+      "alt": "Orca with Order fulfillment v3 in a Pulse tab: badges for running instances and incidents on the diagram, the instances below, the Pulse panel on the right",
+      "caption": "Incidents and running instances on the deployed diagram",
+      "theme": "dark"
+    },
+    {
+      "path": "images/screenshot-orca-2.webp",
+      "alt": "Orca with order-fulfillment.bpmn from the workspace against the deployed v3, the diagram with its badges and the Pulse panel listing the engine's processes",
+      "caption": "Your local model against what the engine runs",
+      "theme": "light"
+    },
+    {
+      "path": "images/screenshot-orca-2-dark.webp",
+      "alt": "Orca with order-fulfillment.bpmn from the workspace against the deployed v3, the diagram with its badges and the Pulse panel listing the engine's processes",
+      "caption": "Your local model against what the engine runs",
+      "theme": "dark"
+    }
+  ],
   "engines": {
     "orca": ">=1.4.252"
   },

@@ -93,7 +93,7 @@ jobs:
       - name: The folder holds the plugin and nothing else
         run: |
           listing="$(cd apps/orca/dist && find . -type f | sort)"
-          for file in ./orca-plugin.json ./worker.mjs ./panel/engines.js ./editor/index.html ./editor/board.html ./editor/bridge.js ./editor/webview.js ./assets/icon.png; do
+          for file in ./orca-plugin.json ./worker.mjs ./panel/engines.js ./editor/index.html ./editor/board.html ./editor/bridge.js ./editor/webview.js ./assets/icon.png ./images/cover.webp; do
             if ! grep -qxF "$file" <<<"$listing"; then
               echo "::error::The plugin folder lacks ${file}"
               exit 1
@@ -149,7 +149,7 @@ jobs:
           owner: Miragon
           repositories: orca-modelers
 
-      - uses: Miragon/orca-modelers/.github/actions/publish-plugin@c907859b63bf8018401a7b9848e4397101c4b449
+      - uses: Miragon/orca-modelers/.github/actions/publish-plugin@27d04de633e38c0c3981975b5d57f309b43dd3c0
         with:
           token: ${{ steps.app-token.outputs.token }}
           plugins-dir: orca-plugins
