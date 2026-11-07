@@ -5,7 +5,7 @@ The adapter that answers Pulse's questions and writes for Operaton, CIB seven an
 ## Why
 
 Operaton and CIB seven are forks of Camunda 7 and keep its REST API, so one adapter serves all
-three. It calls that REST API itself with `fetch` ([c7-adapter.md](../../../docs/adr/c7-adapter.md)),
+three. It calls that REST API itself with `fetch` ([c7-adapter.md](../../../../../apps/vscode/docs/adr/c7-adapter.md)),
 no child process, and runs the family's workflow domain, `@miragon/pulse-engine-core` (the
 inspection of an instance, its wait states, root causes), which the CLI and the MCP server
 share; esbuild bundles it into the extension.
@@ -55,4 +55,4 @@ CI runs all conformance laws on real Operaton 2.1.5, CIB seven 2.2.0 and Camunda
 
 ## More
 
-[C7 adapter](../../../docs/adr/c7-adapter.md) · [code structure](../../../docs/adr/code-structure.md) · [runtime contract](../../../docs/adr/runtime-contract.md) · [writes](../../../docs/adr/writes.md)
+[C7 adapter](../../../../../apps/vscode/docs/adr/c7-adapter.md) · [code structure](../../../../../apps/vscode/docs/adr/code-structure.md) · [runtime contract](../../../../../apps/vscode/docs/adr/runtime-contract.md) · [writes](../../../../../apps/vscode/docs/adr/writes.md)

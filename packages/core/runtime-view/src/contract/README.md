@@ -56,4 +56,4 @@ flowchart LR
 
 ## More
 
-[runtime contract](../../docs/adr/runtime-contract.md) · [writes](../../docs/adr/writes.md) · [code structure](../../docs/adr/code-structure.md) · [architecture overview](../../docs/architecture-overview.md)
+[runtime contract](../../../../../apps/vscode/docs/adr/runtime-contract.md) · [writes](../../../../../apps/vscode/docs/adr/writes.md) · [code structure](../../../../../apps/vscode/docs/adr/code-structure.md) · [architecture overview](../../../../../apps/vscode/docs/architecture-overview.md)

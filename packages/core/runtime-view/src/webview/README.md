@@ -56,4 +56,4 @@ Only UI state (open tab, split, column widths, zoom) stays in the webview's own 
 
 ## More
 
-[user interface](../../docs/adr/user-interface.md) · [protocol](../../docs/adr/architecture.md#host--webview-protocol) · [writes](../../docs/adr/writes.md) · [code structure](../../docs/adr/code-structure.md) · [guardrails](../../docs/adr/guardrails.md)
+[user interface](../../../../../apps/vscode/docs/adr/user-interface.md) · [protocol](../../../../../apps/vscode/docs/adr/architecture.md#host--webview-protocol) · [writes](../../../../../apps/vscode/docs/adr/writes.md) · [code structure](../../../../../apps/vscode/docs/adr/code-structure.md) · [guardrails](../../../../../apps/vscode/docs/adr/guardrails.md)

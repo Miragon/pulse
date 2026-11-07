@@ -15,9 +15,12 @@ and adapter modules that only provide data and fulfil contracts.
 
 ### Layers
 
-One package, `apps/vscode` of the Pulse monorepo, with six layers as folders under
-`apps/vscode/src`. There is no per-layer build. Only the extension bundles (esbuild): the
-host as CommonJS for Node 22, the webview as an IIFE.
+Six layers, as folders of three workspace packages since Pulse for Orca (`apps/orca`) became a
+second host of the same runtime view: `contract`, `core`, `webview` and `model` (with the host
+kit, the engine-neutral host rules both hosts share) in `packages/core/runtime-view`, the C7
+adapter in `packages/connectors/engine/engine-adapter`, the VS Code host in `apps/vscode/src/host`.
+The packages build their declarations only; each host bundles their sources with esbuild: the
+extension its host as CommonJS for Node 22 and the webview as an IIFE.
 
 | Layer         | Responsibility                                                                                                                                                                                                                                                                                                                             | Runtime                               |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------- |
@@ -34,8 +37,10 @@ The core in the product owner's sense is everything that is engine-neutral
 ### Allowed dependencies
 
 The list is closed: every import edge not listed is an error
-(`apps/vscode/.dependency-cruiser.cjs`, `allowedSeverity: error`, run by
-`pnpm lint:architecture:vscode`).
+(one closed-world config per package: `packages/core/runtime-view/.dependency-cruiser.cjs`,
+`packages/connectors/engine/engine-adapter/.dependency-cruiser.cjs`,
+`apps/vscode/.dependency-cruiser.cjs`, each with `allowedSeverity: error`, run by
+`pnpm lint:architecture:runtime-view`, `:engine-adapter` and `:vscode`).
 
 ```mermaid
 flowchart TB

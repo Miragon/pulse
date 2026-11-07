@@ -27,6 +27,7 @@ export default miragonDocs({
     { text: "MCP server", link: "/mcp/" },
     { text: "CLI", link: "/cli/" },
     { text: "VS Code", link: "/vscode/" },
+    { text: "Orca", link: "/orca/" },
   ],
 
   // One sidebar for the whole site, one group per client.
@@ -91,6 +92,16 @@ export default miragonDocs({
         { text: "Usage", link: "/vscode/usage" },
         { text: "Boards", link: "/vscode/boards" },
         { text: "Architecture", link: "/vscode/architecture" },
+      ],
+    },
+    {
+      text: "Orca",
+      collapsed: false,
+      items: [
+        { text: "Introduction", link: "/orca/" },
+        { text: "Installation", link: "/orca/installation" },
+        { text: "Configuration", link: "/orca/configuration" },
+        { text: "Usage", link: "/orca/usage" },
       ],
     },
   ],

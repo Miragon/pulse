@@ -68,9 +68,9 @@ next engine plugs in: one more adapter package and one entry in the composition 
 Pulse reads what an engine is running and shows it next to the models. Writes
 (retry an incident, change a variable) are guarded and audited
 ([writes.md](adr/writes.md)). Each package has a README with its own picture:
-[contract](../src/contract/README.md), [core](../src/core/README.md),
-[webview](../src/webview/README.md), [extension](../src/host/README.md),
-[adapter-c7](../src/adapters/c7/README.md).
+[contract](../../../packages/core/runtime-view/src/contract/README.md), [core](../../../packages/core/runtime-view/src/core/README.md),
+[webview](../../../packages/core/runtime-view/src/webview/README.md), [extension](../src/host/README.md),
+[adapter-c7](../../../packages/connectors/engine/engine-adapter/src/README.md).
 
 ## 2. Ports and adapters
 

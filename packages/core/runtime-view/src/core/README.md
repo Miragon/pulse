@@ -55,4 +55,4 @@ sequenceDiagram
 
 ## More
 
-[architecture](../../docs/adr/architecture.md) · [code structure](../../docs/adr/code-structure.md) · [writes](../../docs/adr/writes.md) · [guardrails](../../docs/adr/guardrails.md) · [overview](../../docs/architecture-overview.md)
+[architecture](../../../../../apps/vscode/docs/adr/architecture.md) · [code structure](../../../../../apps/vscode/docs/adr/code-structure.md) · [writes](../../../../../apps/vscode/docs/adr/writes.md) · [guardrails](../../../../../apps/vscode/docs/adr/guardrails.md) · [overview](../../../../../apps/vscode/docs/architecture-overview.md)

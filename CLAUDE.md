@@ -62,6 +62,7 @@ command line interface (`apps/cli`), a VS Code extension (`apps/vscode`) and an 
 | `docs/mcp/`                                          | The MCP server's pages of the docs site (getting started, usage, reference, operations, architecture, build your own, developer)                                                                                                                                  |
 | `docs/cli/`                                          | The CLI's pages of the docs site (install, commands, configuration, authentication, AI agents, development)                                                                                                                                                       |
 | `docs/vscode/`                                       | The VS Code extension's pages of the docs site (installation, configuration, usage, architecture)                                                                                                                                                                 |
+| `docs/orca/`                                         | The Orca plugin's pages of the docs site (installation, configuration, usage)                                                                                                                                                                                     |
 
 Three axes decide where code goes, and they stay apart:
 
@@ -753,7 +754,8 @@ workspace (its header lists each check).
   Each names this repository in its `repository` field, since npm refuses a provenance publish
   from another repository. The pack job runs `pnpm pack`, which rewrites `workspace:*` (npm's
   own pack would ship it verbatim); the one job that holds `id-token: write` runs no package
-  manager. Only the server app and the VS Code extension stay private. The `miragon-ai` names
+  manager. The server app, the two editor hosts and the packages only they bundle (the runtime
+  view, the engine adapter) stay private. The `miragon-ai` names
   used up to 0.20.0 are retired; never reuse them.
 - **The starter** reaches customers as `Miragon/pulse-starter`, the read-only mirror of
   `templates/composed-server` and the customer-facing composition path, through
@@ -767,6 +769,14 @@ workspace (its header lists each check).
   to the Visual Studio Marketplace and Open VSX from one job in the `vscode-marketplace`
   environment that builds nothing; `VSCE_PUBLISH`/`OVSX_PUBLISH` are handed down by name, never
   `secrets: inherit`.
+- **The Orca plugin ships as a Git repository, never through npm**
+  (`.github/workflows/publish-orca-plugin.yml`): Orca installs a plugin from a repository, pinned
+  to the commit of its newest version tag. The workflow builds `apps/orca/dist` without
+  credentials, checks it with the CLI of the Orca release CI pins, pushes it to the read-only
+  mirror `Miragon/pulse-orca` with a token of the release-please app, tags and releases that
+  commit with the release tag, and attaches the plugin folder and its catalog release entry
+  (`orca plugin release-entry`) to the Pulse release. The jobs that hold a token install nothing.
+  Listing it in an Orca catalog is a pull request there, with that entry.
 - **Engine plugins** publish to Maven Central via `publish-to-maven.yml` (Vanniktech Maven
   Publish, GPG-signed) under the group `io.miragon.mcp` with the engine in the artifactId
   (`io.miragon.mcp:cibseven-history-metrics`); publishing config lives in each module's own
