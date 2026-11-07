@@ -25,6 +25,7 @@ import {
 } from "@miragon/pulse-runtime-view/host-kit"
 import { ConnectionRegistry } from "./connections/connection-registry.js"
 import { ConnectionWatcher } from "./connections/connection-watcher.js"
+import { VSCODE_WRITES_WORDING } from "./connections/writes-wording.js"
 import { EngineStatusBar } from "./engine-status-bar.js"
 import { EnginesTree } from "./explorer/engines-tree.js"
 import { EnginesTreeLive } from "./explorer/engines-tree-live.js"
@@ -49,7 +50,7 @@ export class PulseExtension {
     const registry = new ConnectionRegistry(
       this.context.workspaceState,
       credentials,
-      new ConnectionBuilder(CompositionRoot.create(), audit),
+      new ConnectionBuilder(CompositionRoot.create(), audit, VSCODE_WRITES_WORDING),
     )
     const picker = new ConnectionPicker(registry)
     const setCredentials = new SetCredentialsCommand(registry, credentials, picker)

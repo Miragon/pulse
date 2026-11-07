@@ -37,6 +37,7 @@ export {
   type ConfirmationAnswer,
 } from "./connections/write-audit.js"
 export { WritePolicy, type WritesSetting } from "./connections/write-policy.js"
+export { type WritesWording } from "./connections/writes-wording.js"
 export { TimerScheduler } from "./live/timer-scheduler.js"
 export { NotificationText } from "./notification-text.js"
 export { PanelOrigins } from "./panels/panel-origins.js"

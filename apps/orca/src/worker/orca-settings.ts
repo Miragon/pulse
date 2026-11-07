@@ -5,6 +5,7 @@ import {
   type EnvironmentSettings,
   WritePolicy,
   type WritesSetting,
+  type WritesWording,
 } from "@miragon/pulse-runtime-view/host-kit"
 import type { OrcaWorkerApi } from "orca/worker"
 
@@ -14,6 +15,11 @@ const WORKSPACE_ENVIRONMENTS_KEY = "pulse.environments"
 type Scoped = Readonly<Record<string, unknown>>
 
 export class OrcaSettings {
+  static readonly WRITES_WORDING: WritesWording = {
+    setting: "the Pulse setting Writes",
+    enableOnRemote: 'Set the Pulse setting Writes to "Also on remote engines with a login"',
+  }
+
   constructor(private readonly orca: OrcaWorkerApi) {}
 
   async projectFile(): Promise<string> {

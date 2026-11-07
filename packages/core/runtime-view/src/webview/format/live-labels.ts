@@ -83,6 +83,6 @@ export class LiveLabels {
   }
 
   private static offNote(environment: Environment, everySeconds: number): string {
-    return `Live updates are off for ${environment} engines. The button turns them on in your user settings (pulse.liveUpdates); then this view reads the engine every ${everySeconds} s ${WHILE_SEEN}.`
+    return `Live updates are off for ${environment} engines. The button turns them on in your user settings; then this view reads the engine every ${everySeconds} s ${WHILE_SEEN}.`
   }
 }

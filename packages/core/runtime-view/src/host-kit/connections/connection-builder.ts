@@ -8,6 +8,7 @@ import { EngineBadges } from "./engine-badges.js"
 import type { EngineTarget } from "./engine-target.js"
 import type { WriteAudit } from "./write-audit.js"
 import { WritePolicy, type WritesSetting } from "./write-policy.js"
+import type { WritesWording } from "./writes-wording.js"
 
 export interface ConnectionSettings {
   readonly writes: WritesSetting
@@ -29,6 +30,7 @@ export class ConnectionBuilder {
   constructor(
     private readonly engines: EngineFactories,
     private readonly audit: WriteAudit,
+    private readonly wording: WritesWording,
   ) {}
 
   build(
@@ -65,7 +67,7 @@ export class ConnectionBuilder {
     environment: Environment,
     writes: WritesSetting,
   ): Writes {
-    const access = WritePolicy.access(target, writes, credentials)
+    const access = WritePolicy.access(target, writes, credentials, this.wording)
     const commands = access.writable ? this.engines.commands(target, credentials) : undefined
     if (commands === undefined) {
       return { access: access.writable ? NO_ADAPTER : access }

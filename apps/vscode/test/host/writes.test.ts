@@ -1,3 +1,4 @@
+import { VSCODE_WRITES_WORDING } from "../../src/host/connections/writes-wording.js"
 import { EngineLane } from "@miragon/pulse-runtime-view/core"
 import {
   DefinitionId,
@@ -62,20 +63,24 @@ describe("who may write", () => {
     [REMOTE, "enabled", LOGIN, true],
     [REMOTE_WITHOUT_LOGIN, "enabled", LOGIN, false],
   ] as const)("%s with %s and %o may write: %s", (engine, setting, credentials, writable) => {
-    expect(WritePolicy.access(engine, setting, credentials).writable).toBe(writable)
+    expect(WritePolicy.access(engine, setting, credentials, VSCODE_WRITES_WORDING).writable).toBe(
+      writable,
+    )
   })
 
   test("says why an engine stays read-only", () => {
-    expect(WritePolicy.access(REMOTE, "enabled", NO_LOGIN).note).toBe(
+    expect(WritePolicy.access(REMOTE, "enabled", NO_LOGIN, VSCODE_WRITES_WORDING).note).toBe(
       "Read-only. prod-eu needs a login before Pulse writes, so that the engine records who changed what.",
     )
-    expect(WritePolicy.access(REMOTE, "localOnly", LOGIN).note).toContain(
+    expect(WritePolicy.access(REMOTE, "localOnly", LOGIN, VSCODE_WRITES_WORDING).note).toContain(
       'pulse.writes to "enabled"',
     )
   })
 
   test("keeps a read-only profile read-only, even on this machine", () => {
-    expect(WritePolicy.access({ ...LOCAL, readOnly: true }, "enabled", NO_LOGIN)).toEqual({
+    expect(
+      WritePolicy.access({ ...LOCAL, readOnly: true }, "enabled", NO_LOGIN, VSCODE_WRITES_WORDING),
+    ).toEqual({
       writable: false,
       note: "Read-only. shop-dev is a read-only profile in its project file.",
     })
@@ -320,7 +325,11 @@ describe("a connection", () => {
 
   const LOCAL_ONLY = { writes: "localOnly", live: undefined, lane: new EngineLane() } as const
   const builder = (withCommands: boolean) =>
-    new ConnectionBuilder(factories(withCommands), new WriteAudit({ info: () => undefined }))
+    new ConnectionBuilder(
+      factories(withCommands),
+      new WriteAudit({ info: () => undefined }),
+      VSCODE_WRITES_WORDING,
+    )
 
   test("carries audited commands and the identity it logs in with when it may write", () => {
     const connection = builder(true).build(
@@ -359,6 +368,7 @@ describe("a connection", () => {
     const withWebUi = new ConnectionBuilder(
       { ...factories(false), webUi: () => cockpit },
       new WriteAudit({ info: () => undefined }),
+      VSCODE_WRITES_WORDING,
     ).build(LOCAL, NO_LOGIN, "local", LOCAL_ONLY)
 
     expect(withWebUi.webUi).toBe(cockpit)

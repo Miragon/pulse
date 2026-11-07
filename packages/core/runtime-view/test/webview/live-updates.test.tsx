@@ -102,7 +102,7 @@ describe("the freshness stamp with live updates", () => {
     const button = await waitForElement<HTMLButtonElement>(harness.root, ".live-button")
 
     expect(button.getAttribute("aria-label")).toBe("Turn on live updates for production engines")
-    expect(stamp(harness).title).toContain("user settings (pulse.liveUpdates)")
+    expect(stamp(harness).title).toContain("turns them on in your user settings;")
     expect(stamp(harness).title).toContain("every 30 s while this tab is visible")
     button.click()
     expect(harness.posted).toContainEqual({ type: "turnOnLiveUpdates" })

@@ -3,6 +3,7 @@ import type { EngineAccess } from "../../core/protocol/index.js"
 import type { Credentials } from "./connection.js"
 import type { EngineTarget } from "./engine-target.js"
 import { TargetHosts } from "./target-hosts.js"
+import type { WritesWording } from "./writes-wording.js"
 
 export type WritesSetting = "localOnly" | "enabled" | "disabled"
 
@@ -17,9 +18,10 @@ export class WritePolicy {
     target: EngineTarget,
     setting: WritesSetting,
     credentials: Credentials,
+    wording: WritesWording,
   ): EngineAccess {
     if (setting === "disabled") {
-      return WritePolicy.denied("Writes are turned off with pulse.writes.")
+      return WritePolicy.denied(`Writes are turned off with ${wording.setting}.`)
     }
     if (target.readOnly === true) {
       return WritePolicy.denied(
@@ -29,7 +31,7 @@ export class WritePolicy {
     const loopback = TargetHosts.isLoopback(target)
     if (!loopback && setting === "localOnly") {
       return WritePolicy.denied(
-        `Writes are on for engines on this machine (localhost) only. Set pulse.writes to "enabled" in your user settings to allow them on ${target.name}.`,
+        `Writes are on for engines on this machine (localhost) only. ${wording.enableOnRemote} to allow them on ${target.name}.`,
       )
     }
     if (!loopback && !(target.auth.kind === "basic" && credentials.kind === "basic")) {
@@ -39,7 +41,7 @@ export class WritePolicy {
     }
     return {
       writable: true,
-      note: `Pulse may retry incidents, change variables, move tokens, cancel and migrate instances on ${target.name}. Turn this off with pulse.writes.`,
+      note: `Pulse may retry incidents, change variables, move tokens, cancel and migrate instances on ${target.name}. Turn this off with ${wording.setting}.`,
     }
   }
 

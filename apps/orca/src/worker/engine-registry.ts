@@ -17,7 +17,7 @@ import {
 } from "@miragon/pulse-runtime-view/host-kit"
 import type { OrcaWorkerApi } from "orca/worker"
 import { OrcaSecretStorage } from "./orca-secret-storage.js"
-import type { OrcaSettings } from "./orca-settings.js"
+import { OrcaSettings } from "./orca-settings.js"
 import type { OrcaWorkspaces } from "./orca-workspaces.js"
 
 const PROJECT_FILE = ".pulse-cli.json"
@@ -50,7 +50,11 @@ export class EngineRegistry {
     audit: WriteAudit,
   ) {
     this.credentials = new CredentialStore(new OrcaSecretStorage(orca.secrets))
-    this.builder = new ConnectionBuilder(CompositionRoot.create(), audit)
+    this.builder = new ConnectionBuilder(
+      CompositionRoot.create(),
+      audit,
+      OrcaSettings.WRITES_WORDING,
+    )
   }
 
   async reload(): Promise<void> {
