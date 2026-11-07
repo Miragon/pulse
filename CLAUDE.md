@@ -216,8 +216,8 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    (both from `src/lib/engine/with-engine.ts`). Canonical shape: `engine_list_process_instances` in
    `packages/connectors/engine/engine-connector/src/tools/process-instances.ts`. ESLint
    (`no-restricted-syntax` in `eslint.config.mjs`) blocks a raw `registerTool` and ext-apps'
-   `registerAppTool` in every spelling (an import included) outside the widget-path files its
-   `ignores` lists. `no-restricted-syntax` is ONE rule: a
+   `registerAppTool` in the spellings its gate test plants (an import included; a nested
+   destructuring or `Object.entries` gets past it) outside the widget-path files its `ignores` lists. `no-restricted-syntax` is ONE rule: a
    later flat-config block REPLACES its selectors, so a glob two gates share gets one block with
    the union (`scripts/eslint-gates.test.mjs`).
    - Annotations decide the toolset. A destructive or admin tool goes into `ADMIN_ONLY_TOOLS`
@@ -254,7 +254,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    `baseUrl`/`cockpitUrl`. The BPMN lookup the module hands analytics (`createBpmnXmlFetcher`)
    routes the same way, on the module's own registry and XML cache.
 
-3. **A view is registered in three places**; a view that misses one is silently absent:
+3. **A bundle view is registered in three places**; a view that misses one is silently absent:
    - the module's view map, keyed by its view tool's name (the engine module has ONE view,
      `engine_open_cockpit` → `CockpitApp` in
      `packages/connectors/engine/engine-connector/src/widgets/views.tsx`)
@@ -282,6 +282,12 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    view-bound tools of the tools/list goldens and fails both ways: on a tool without a view
    (the "can't show this view" state) and on a view no tool opens (dead code in every
    view's bundle).
+
+   Engine and analytics views are bundle views, never a resource of their own: an ESLint gate
+   (`no-restricted-syntax`, `scripts/eslint-gates.test.mjs`) blocks `registerResource` and ext-apps'
+   `registerAppResource` in the spellings that test plants under `packages/connectors/`, the
+   widget-tools files too, so they stay on the kit and the view host. A customer's module may bring a finished HTML
+   document instead (invariant 8, the module port); only that view skips the three places.
 
 4. **The view bundle's `resolve.dedupe` is load-bearing: never remove or trim it.** It is
    widget-shell's `VIEW_BUNDLE_DEDUPE` (`@miragon/pulse-widget-shell/server`), spread whole in
@@ -538,12 +544,18 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      every tool instead of 60 descriptions; `retired`, the former names and variables the boot
      refuses, naming their replacements; plugin factory), conforming STRUCTURALLY to
      `ComposableModule<TShared>`. Its `createPlugin(config, shared)` returns a `ModulePlugin`,
-     `{ name, register(server) }`: `register` puts every tool and prompt of the module on the
-     `ModuleServer` the boot hands it, the official SDK's API itself
-     (`Pick<McpServer, "registerTool" | "registerPrompt">`, so ext-apps' `registerAppTool` works
-     on it too), and `name` is the owner the duplicate guard names. Pulse adds no facade over
+     `{ name, register(server) }`: `register` puts every tool, prompt and resource of the module
+     on the `ModuleServer` the boot hands it, the official SDK's API itself
+     (`Pick<McpServer, "registerTool" | "registerPrompt" | "registerResource">`, so ext-apps'
+     `registerAppTool` and `registerAppResource` work on it too), and `name` is the owner the
+     duplicate guards name. Pulse adds no facade over
      the SDK: helpers that return config parts (`showToolBinding`, `appOnly`, `strictToolInput`)
-     and the registrar, which registers through the SDK's own `registerTool`. The composition machinery (selection with `module:toolset` suffixes in
+     and the registrar, which registers through the SDK's own `registerTool`. A resource is for
+     what a customer's module brings itself: a finished HTML view, bound by
+     `showToolBinding(name, title, { resourceUri, csp })`, which an npm package ships without
+     the server's Vite build knowing it. It pays for that: no bundle code shared, no host
+     contexts from widget-shell, its CSP and its fonts its own; the boot's server-wide view CSP
+     stops at bundle views. The composition machinery (selection with `module:toolset` suffixes in
      `MCP_ACTIVE_MODULES`, `resolveBoot`) lives inside the boot
      (`@miragon/pulse-widget-shell/server`); a root hands it its module list and its `shared`
      wiring and nothing about auth. The boot installs OAuth, a resource server that verifies
@@ -558,11 +570,18 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      stylesheet pulse-ui's `theme.css` after `tailwindcss` (`test/ui-stylesheet.test.ts`).
    - **One boot.** `createComposedServer` owns the boot order and the production listener and
      takes the root's `modules` and `shared`. It records each plugin's registrations once
-     (`createModuleRegistry`): a tool or prompt name two plugins share fails the boot naming both
-     owners, so does an input schema that lets an unknown key through or a view URI other than
-     `ui://views/<name>.html`; it trims the input schemas, and every view-bound tool gets the
-     server-wide view CSP defaults (the served fonts' origin). Once every plugin has registered,
-     it primes the one widget bundle for every view, and each request replays the recording into
+     (`createModuleRegistry`): a tool, prompt or resource name or a resource URI two plugins share
+     fails the boot naming both owners, so does an input schema that lets an unknown key through,
+     a resource under `ui://views/` (the boot's, so no module replaces a view) or a template whose
+     variables could reach it, or a view-bound tool that binds neither the view of its own name,
+     `ui://views/<tool>.html`, nor a `ui://` resource a module registered; it trims the input
+     schemas, and every bundle view's tool gets the server-wide view CSP defaults (the served
+     fonts' origin). A resource's or prompt's callback runs guarded (`module-callbacks.ts`), since
+     the SDK leaves a request unanswered behind one that returns no result or throws no `Error`: it
+     gets an answer naming the module, and a template's `list` that fails or hangs costs only its
+     own entries in `resources/list`. Once every plugin has registered,
+     it primes the one widget bundle for every bundle view, replays the recording once (what the
+     SDK refuses fails the boot, not each request), and each request replays it into
      a fresh `McpServer` behind the SDK's `createMcpHandler` (stateless, no session ids; a
      registration is fixed at boot). Each MCP server app owns ONE
      `createApp(env, deps?)` (`src/app.ts`) that `src/index.ts` AND the e2e suites boot, never a
@@ -649,7 +668,9 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
   (`@modelcontextprotocol/server`, `/node`, `/ext-apps`) follows the same split: a ranged peer
   where a module types against it (a caret range that admits widget-shell's pin), else an exact
   dependency of widget-shell; its `App` keeps no React context, so no SDK package needs an exact
-  peer pin. Name the SDK ranges a package needs in its README. Each package the template lists it
+  peer pin. A server that installs an npm module peering ext-apps also pins ext-apps at
+  widget-shell's version, or its strict peers check nothing: the starter's
+  `server/test/pins.test.ts` holds such a pin once it is set, and nothing demands one. Name the SDK ranges a package needs in its README. Each package the template lists it
   pins as the workspace does (the `@miragon/pulse-*` libraries, the `@modelcontextprotocol/*`
   packages, the inspector the dev loop starts among them, `react`, `react-dom`, `zod`,
   `lucide-react`, `@tanstack/react-query`, `prettier`, `prettier-plugin-tailwindcss`;
@@ -661,9 +682,11 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 - **The widget `_meta` carries two halves; never hand-write either.** `showToolBinding`
   stamps both on a view tool: MCP Apps' `ui.resourceUri` (with the flat `ui/resourceUri`, as
   ext-apps' `registerAppTool` writes it) and the OpenAI Apps SDK's `openai/*` keys; `appOnly`
-  stamps a feed's `ui.visibility: ["app"]` and `openai/widgetAccessible`. The boot adds the
-  rest: the view CSP defaults (`openai/widgetCSP`, the resource's `ui.csp`), the view
-  resource's metadata and `_meta.ui` on a view tool's result.
+  stamps a feed's `ui.visibility: ["app"]` and `openai/widgetAccessible`. For a bundle view the
+  boot adds the rest: the view CSP defaults (`openai/widgetCSP`, the resource's `ui.csp`), the
+  view resource's metadata; `_meta.ui` on the tool's result it stamps for every bound view. A
+  view a module registers states its own `_meta.ui` on its resource, ext-apps' API, and the
+  same CSP through `showToolBinding(name, title, { resourceUri, csp })`.
   `apps/mcp-server/test/widget-contract.e2e.test.ts` checks the wire **by name**
   (every `*_show_*` tool and `engine_open_cockpit` carry the widget `_meta`, every `*_data`
   feed is app-only), so the naming convention is load-bearing.

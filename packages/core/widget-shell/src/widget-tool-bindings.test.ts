@@ -69,6 +69,25 @@ describe("showToolBinding", () => {
       nested: { x: true },
     })
   })
+
+  it("binds a view the module brings itself in both halves, its CSP in the Apps SDK's spelling", () => {
+    const resourceUri = "ui://acme/board.html"
+    const own = showToolBinding("acme_show_board", "Board", {
+      resourceUri,
+      csp: { connectDomains: ["https://api.acme.example"] },
+    })
+    expect(own._meta).toEqual({
+      ui: { resourceUri },
+      "ui/resourceUri": resourceUri,
+      "openai/outputTemplate": resourceUri,
+      "openai/toolInvocation/invoking": "Loading Board…",
+      "openai/toolInvocation/invoked": "Board ready",
+      "openai/widgetAccessible": true,
+      "openai/resultCanProduceWidget": true,
+      "openai/widgetCSP": { connect_domains: ["https://api.acme.example"] },
+    })
+    expect(showToolBinding("x", "X", { resourceUri })._meta).not.toHaveProperty("openai/widgetCSP")
+  })
 })
 
 describe("appOnly", () => {

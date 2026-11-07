@@ -3,13 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { z } from "zod"
 import type { ModulePlugin } from "./composition.js"
 import type { ModuleServer } from "./module-server.js"
-import {
-  createModuleRegistry,
-  fromWidgetCspMeta,
-  mergeDomainLists,
-  toWidgetCspMeta,
-  type RecordedTool,
-} from "./tool-registration.js"
+import { createModuleRegistry, type RecordedTool } from "./tool-registration.js"
 import { appOnly, showToolBinding, strictToolInput } from "./widget-tool-bindings.js"
 
 /** As loose as the registry takes it: the cases plant what the SDK's types would refuse. */
@@ -261,25 +255,17 @@ describe("createModuleRegistry: the views", () => {
   it("serves each bound view once, titled by its tool, and no feed or plain tool", () => {
     const registry = createModuleRegistry(CSP, LABEL)
     registry.register(
-      pluginOf(
-        "alpha",
-        show("x_show_a", "A"),
-        ["x_a_data", { ...appOnly }],
-        ["x_list_a", {}],
-        // Two tools may share one view; the first names it.
-        [
-          "x_show_a_again",
-          { title: "Again", _meta: { ui: { resourceUri: "ui://views/x_show_a.html" } } },
-        ],
-      ),
+      pluginOf("alpha", show("x_show_a", "A"), ["x_a_data", { ...appOnly }], ["x_list_a", {}]),
     )
     registry.register(pluginOf("beta", show("y_show_b", "B")))
     expect([...registry.views]).toEqual([
       ["x_show_a", { description: "A", csp: CSP }],
       ["y_show_b", { description: "B", csp: CSP }],
     ])
-    expect(recorded(registry, "x_show_a_again").view).toBe("x_show_a")
+    expect(recorded(registry, "x_show_a").resourceUri).toBe("ui://views/x_show_a.html")
     expect(recorded(registry, "x_a_data").view).toBeUndefined()
+    expect(recorded(registry, "x_a_data").resourceUri).toBeUndefined()
+    registry.checkBindings()
   })
 
   it("writes both spellings of the view, as registerAppTool does", () => {
@@ -302,14 +288,28 @@ describe("createModuleRegistry: the views", () => {
     expect([...registry.views.values()]).toEqual([{ csp: {} }, { csp: {} }])
   })
 
-  it("refuses a tool that binds a resource this server does not serve", () => {
-    for (const uri of ["ui://weather/view.html", "ui://views/.html", "ui://views/a/b.html", 7]) {
+  const unserved = (uri: unknown) =>
+    `Tool "x_show_map" of "x" binds ${JSON.stringify(uri)}, which this server does not serve: bind the view named after the tool, ui://views/<tool>.html, which the boot serves from the bundle (showToolBinding(name, title)), or a resource a module registers (registerAppResource, showToolBinding(name, title, { resourceUri })).`
+
+  // A view re-runs the tool it is named after on a stripped result, so another tool's name is out.
+  it("refuses a tool that binds anything under ui://views/ but the view of its own name", () => {
+    for (const uri of [
+      "ui://views/x_show_other.html",
+      "ui://views/.html",
+      "ui://views/a/b.html",
+      "ui://views/x_show_map",
+    ]) {
       const registry = createModuleRegistry(undefined, LABEL)
       const config: Config = { _meta: { ui: { resourceUri: uri } } }
-      expect(() => registry.register(pluginOf("x", ["x_show_map", config]))).toThrow(
-        `Tool "x_show_map" binds ${JSON.stringify(uri)}, which this server does not serve: it serves one view per tool, ui://views/<name>.html (showToolBinding(name, title)).`,
-      )
+      expect(() => registry.register(pluginOf("x", ["x_show_map", config]))).toThrow(unserved(uri))
     }
+  })
+
+  it("refuses a tool that binds a resource no module registers, once every plugin registered", () => {
+    const registry = createModuleRegistry(undefined, LABEL)
+    const config: Config = { _meta: { ui: { resourceUri: "ui://weather/view.html" } } }
+    registry.register(pluginOf("x", ["x_show_map", config]))
+    expect(() => registry.checkBindings()).toThrow(unserved("ui://weather/view.html"))
   })
 })
 
@@ -376,39 +376,5 @@ describe("createModuleRegistry: the server-wide view CSP", () => {
       expect(recorded(registry, "x_show_thing").config._meta).not.toHaveProperty("openai/widgetCSP")
       expect(registry.views.get("x_show_thing")).toEqual({ description: "Thing", csp: {} })
     }
-  })
-})
-
-describe("toWidgetCspMeta and fromWidgetCspMeta", () => {
-  const csp = {
-    connectDomains: ["https://c"],
-    resourceDomains: ["https://r"],
-    frameDomains: ["https://f"],
-    baseUriDomains: ["https://b"],
-  }
-  const meta = {
-    connect_domains: ["https://c"],
-    resource_domains: ["https://r"],
-    frame_domains: ["https://f"],
-    base_uri_domains: ["https://b"],
-  }
-
-  it("spells each list the other way and leaves absent ones out", () => {
-    expect(toWidgetCspMeta(csp)).toEqual(meta)
-    expect(fromWidgetCspMeta(meta)).toEqual(csp)
-    expect(toWidgetCspMeta({})).toEqual({})
-    expect(fromWidgetCspMeta(undefined)).toEqual({})
-  })
-})
-
-describe("mergeDomainLists", () => {
-  it("appends each default list to the tool's own, each entry once, and skips empty ones", () => {
-    expect(
-      mergeDomainLists<Record<string, string[] | undefined>>(
-        { a: ["1"], b: ["2"] },
-        { a: ["1", "3"], c: ["4"], d: [], e: undefined },
-      ),
-    ).toEqual({ a: ["1", "3"], b: ["2"], c: ["4"] })
-    expect(mergeDomainLists(undefined, { a: ["1"] })).toEqual({ a: ["1"] })
   })
 })

@@ -305,7 +305,9 @@ async function buildServer<TShared extends object>(
       registry.register(plugin, { unguardedModule })
     }
   }
+  registry.checkBindings()
   await primeViews(app, [...registry.views.keys()], options.bundle, info.name)
+  app.checkReplay()
   return app
 }
 

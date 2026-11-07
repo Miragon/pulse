@@ -325,7 +325,7 @@ docker run --rm -p 8400:8400 \
   removed before new connections are refused.
 - The views render in Geist and Geist Mono, served by the server itself
   under `/fonts/geist-<version>/` (woff2, cached immutable, no CDN) and
-  admitted by every view's CSP (`resourceDomains`: `MCP_URL`'s origin, else
+  admitted by every bundle view's CSP (`resourceDomains`: `MCP_URL`'s origin, else
   the origin the host read the view from). The host's browser fetches them
   from that origin, so behind a gateway route `/fonts/` to the server too. A
   host that blocks the origin, or a browser that cannot reach it, shows the

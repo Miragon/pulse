@@ -5,7 +5,7 @@
  */
 import { readFileSync } from "node:fs"
 import { createRequire } from "node:module"
-import type { AppResourceCsp } from "./view-resource.js"
+import type { AppResourceCsp } from "./view-csp.js"
 import type { HttpRouteHost } from "./health.js"
 import { SERVED_FONT_FILES, SERVED_FONT_PATH } from "./protocol/served-fonts.js"
 

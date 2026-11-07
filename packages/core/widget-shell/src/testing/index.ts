@@ -16,6 +16,7 @@ export {
   testServerContext,
   type RecordedConfig,
   type RecordedPromptResult,
+  type RecordedResource,
   type RecordedToolResult,
   type RecordingModuleServer,
   type Registration,

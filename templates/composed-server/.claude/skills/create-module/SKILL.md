@@ -51,6 +51,9 @@ needed. Then adjust:
   `typecheck` script, the only check that covers widget code); and
   `src/widgets/tsconfig.json` extends it, so editors, which read only files named
   `tsconfig.json`, check the widgets with the same settings.
+- A module without widgets (its views are finished HTML documents, the `add-widget`
+  skill) deletes `src/widgets` and drops the `./widgets` entry, `tsconfig.widgets.json`
+  and the second half of `typecheck`, which would fail on no inputs (`TS18003`).
 - Do a global rename `notes` → `<name>` across `src/` (module name, plugin
   name, tool prefixes and thus view names, query keys), `src/module.test.ts`
   and the widget test included.
@@ -97,12 +100,17 @@ The contract, field by field (see `notesModule`):
   (also after a check in `configFromEnv`) and return a `ModulePlugin` (the type
   from `@miragon/pulse-widget-shell/server`), `{ name, register(server) }`.
   `server` is a `ModuleServer`: the official MCP SDK's own
-  `registerTool`/`registerPrompt`, with the signatures its docs
-  (https://ts.sdk.modelcontextprotocol.io/v2/) show; a module registers no
-  resources (the boot serves the views). Construct your data source/client once in `createPlugin`; `register` hands
+  `registerTool`/`registerPrompt`/`registerResource`, with the signatures its docs
+  (https://ts.sdk.modelcontextprotocol.io/v2/) show. The boot serves your views
+  from the bundle, so a module needs no resource for a widget; a finished HTML
+  view is the exception (the `add-widget` skill, "A finished HTML view").
+  Construct your data source/client once in `createPlugin`; `register` hands
   it to `registerTools`, then to `registerWidgetTools`. `name` is the module's
-  name: the boot refuses a tool or prompt name two plugins register and names
-  both owners, and an input schema that would let an unknown key through. `shared` is the app-wired cross-module resource bag; type the fields
+  name: the boot refuses a tool, prompt or resource name or a resource URI two
+  plugins register and names both owners, and an input schema that would let an
+  unknown key through. The toolset filter never sees a resource, so every client
+  that reaches the server can read it: register one that only a wider toolset
+  may read inside that toolset's branch. `shared` is the app-wired cross-module resource bag; type the fields
   you consume structurally (e.g. `fetchBpmnXml?: FetchBpmnXml`, as analytics
   does) and tolerate their absence.
 - Optional `bootWarnings(env)`: return actionable hints for misconfigured
@@ -119,8 +127,9 @@ inside the package, as in the Miragon connectors.
 
 `src/module.test.ts` checks the port the way the boot uses it: the plugin's
 name and the tools its `register` adds, recorded by `recordingModuleServer()`
-from `@miragon/pulse-widget-shell/testing`, which also calls a handler the way
-the SDK does. Keep it in step with your tools.
+from `@miragon/pulse-widget-shell/testing`, which also calls a handler and reads
+a resource (`recording.resource(uri).read()`) the way the SDK does. Keep it in
+step with your tools.
 
 ## Step 4: tools
 
@@ -207,11 +216,12 @@ Four edits, plus the env documentation:
 A missed spread is **silent** (tools work, the view says it can't show
 itself), which is why `server/test/view-registry.test.ts` covers you
 without an edit: it boots the real composition (edit 2) and fails naming a
-view-bound tool without a view.
+view-bound tool without a view. A module whose views are finished HTML documents
+has nothing to spread: it skips edit 3 and the Tailwind line below.
 
 Tailwind needs no edit: `server/src/ui/globals.css` scans every workspace
 module through the `modules/*/src` glob. Only an npm-installed module
-package would need its own `@source` line there.
+package with widget sources would need its own `@source` line there.
 
 Then document every var from `knownEnvVars` in `.env.example`.
 `server/test/env-example.test.ts` fails on both drift directions (an

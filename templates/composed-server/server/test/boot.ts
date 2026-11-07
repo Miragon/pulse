@@ -1,6 +1,10 @@
 import path from "node:path"
 import { Client, StreamableHTTPClientTransport, type Tool } from "@modelcontextprotocol/client"
-import type { ComposedServer, RunningServer } from "@miragon/pulse-widget-shell/server"
+import {
+  VIEW_RESOURCE_URI_PREFIX,
+  type ComposedServer,
+  type RunningServer,
+} from "@miragon/pulse-widget-shell/server"
 import { createApp } from "../src/app.js"
 import { MODULES } from "../src/setup.js"
 import { stubNeutralEnv } from "./neutral-env.js"
@@ -68,8 +72,16 @@ export function uiOf(tool: Tool): Record<string, unknown> {
   return (tool._meta?.ui ?? {}) as Record<string, unknown>
 }
 
-/** A tool that opens a view: it binds its own `ui://views/<name>.html` resource. */
+/** A tool that opens a view: `_meta.ui.resourceUri` names the resource it renders in. */
 export const isViewBound = (tool: Tool): boolean => typeof uiOf(tool).resourceUri === "string"
+
+/**
+ * A tool whose view comes from the bundle: `ui://views/<name>.html`, which the boot serves. A view
+ * a module brings itself (its own URI, its own resource) has no entry in the view registry, and
+ * the guards on the bundle's views do not hold it.
+ */
+export const isBundleView = (tool: Tool): boolean =>
+  isViewBound(tool) && String(uiOf(tool).resourceUri).startsWith(VIEW_RESOURCE_URI_PREFIX)
 
 /** An app-only tool: a `*_data` feed only the view calls, hidden from the model. */
 export function isAppOnly(tool: Tool): boolean {

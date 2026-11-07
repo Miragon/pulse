@@ -1,7 +1,7 @@
 /**
  * The HTTP app the boot serves, on the official SDK: one `McpServer` per request behind
  * `createMcpHandler`, into which the modules' recorded registrations replay (`tool-registration.ts`),
- * together with one resource per bound view. `use`/`get` are one Hono app in registration order,
+ * together with one resource per bundle view. `use`/`get` are one Hono app in registration order,
  * `/mcp` mounted last.
  */
 import {
@@ -29,6 +29,7 @@ import {
 } from "./oauth-gate.js"
 import type { OAuthProvider } from "./oauth-providers.js"
 import { installRequestLog, logRefusedRequest, requestLogLevel } from "./request-log.js"
+import { replayResource } from "./resource-registration.js"
 import type { ModuleRegistrations, RecordedPrompt, RecordedTool } from "./tool-registration.js"
 import {
   viewDocument,
@@ -144,6 +145,15 @@ export class McpHttpApp {
   }
 
   /**
+   * Builds one request's server from the record, once, without a request: what the SDK itself
+   * refuses at registration (a resource's invalid cache hint) then fails the boot, not every
+   * request of every module.
+   */
+  checkReplay(): void {
+    this.#buildSdkServer(undefined)
+  }
+
+  /**
    * A `Request`'s URL has already been parsed, so its dot segments are gone and only the listener
    * can refuse those; what the parser leaves (`//mcp`, `/mcp/`) is refused here the same way.
    */
@@ -224,18 +234,19 @@ export class McpHttpApp {
       },
       { capabilities: CAPABILITIES, ...(instructions !== undefined && { instructions }) },
     )
-    const { tools, prompts, views } = this.#config.registrations
+    const { tools, prompts, resources, views } = this.#config.registrations
     for (const tool of tools) this.#registerTool(server, tool)
     for (const prompt of prompts) registerPrompt(server, prompt)
     for (const [viewName, binding] of views) {
       if (this.#bundles[viewName]) this.#registerView(server, viewName, binding, request)
     }
+    for (const resource of resources) replayResource(server, resource)
     return server
   }
 
   /** Around the recorded handler: the `mcp:tools/call` middleware, then a view tool's result stamps. */
   #registerTool(server: McpServer, tool: RecordedTool): void {
-    const resultMeta = tool.view === undefined ? undefined : viewResultMeta(tool.view)
+    const resultMeta = tool.resourceUri === undefined ? undefined : viewResultMeta(tool.resourceUri)
     const invoke = async (args: unknown, ctx: ServerContext) => {
       const inner = async (): Promise<unknown> => {
         const result = await tool.handler(args, ctx)

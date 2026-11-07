@@ -8,8 +8,8 @@ description: Where to look before changing MCP server code in this repo (tools, 
 This repo builds on the official MCP TypeScript SDK: `@modelcontextprotocol/server` (the server,
 `McpServer`, `createMcpHandler`), `@modelcontextprotocol/node` (the Node listener) and the MCP Apps
 extension `@modelcontextprotocol/ext-apps` (`registerAppTool` on the server, the `App` in a view).
-A module registers on a `ModuleServer`, which is the SDK's own `registerTool`/`registerPrompt`, so
-the SDK's examples apply as they are. What Pulse adds on top (the module contract, the registrar,
+A module registers on a `ModuleServer`, which is the SDK's own
+`registerTool`/`registerPrompt`/`registerResource`, so the SDK's examples apply as they are. What Pulse adds on top (the module contract, the registrar,
 toolsets, tool errors, the view and feed bindings, server i18n, caller identity) lives in
 `@miragon/pulse-widget-shell/server`, the view runtime in `@miragon/pulse-widget-shell/widgets`,
 the UI in `@miragon/pulse-ui`. Read these, in this order:
@@ -40,7 +40,8 @@ the UI in `@miragon/pulse-ui`. Read these, in this order:
 
 Where an SDK example and the house skills disagree, the house skills win: a tool's view binding
 comes from `showToolBinding`, never a hand-written `_meta.ui`, and the boot serves the view
-resources, so a module registers none.
+resources, so a connector registers none (an ESLint gate holds that; a customer's module may bring
+a finished HTML view, see widget-shell's README).
 
 A user-visible change (env vars, tools, ports, getting-started steps) updates the Pulse docs
 in `docs/` in the same PR; they build into the site https://miragon.github.io/pulse/

@@ -50,41 +50,49 @@ const vscodeBoundaryProbes = ["apps/vscode/test/*/runtime.boundary.ts"]
 
 // ── Pattern-gate selectors (`no-restricted-syntax`) ─────────────────────────
 
-const TOOL_MEMBER = "/^(registerTool|registerAppTool)$/"
-const REGISTRAR_MESSAGE =
-  "Operations tools are registered through createToolRegistrar (@miragon/pulse-widget-shell/server) in src/tools/ (see .claude/skills/add-bpm-feature); a raw server.registerTool() or ext-apps' registerAppTool() (also via an import, a computed key, .call/.bind/.apply, destructuring or Reflect.get) is reserved for the widget-tools files."
+// Every syntactic route to a member that names it literally (an agent "working around" a gate
+// reaches for exactly these). A key computed at runtime stays out of any selector's reach: that
+// is review's job. Parameter destructuring and object literals stay allowed: test fakes build
+// `{ registerTool } as unknown as ModuleServer`. Inline `eslint-disable` of this rule (or of
+// complexity/max-lines) is caught by scripts/check-ratchets.mjs, not here: a directive could
+// disable a rule that polices directives.
+const registrationGate = (member, message) =>
+  [
+    // x.registerTool(...), x?.registerTool(...), .call/bind/apply(...), const t = x.registerTool,
+    // apps.registerAppTool(...) through a namespace import
+    `MemberExpression[computed=false][property.name=${member}]`,
+    // x["registerTool"], x[`registerTool`]
+    `MemberExpression[computed=true][property.value=${member}]`,
+    `MemberExpression[computed=true] > TemplateLiteral.property > TemplateElement[value.raw=${member}]`,
+    // const { registerTool } = x, const { "registerTool": t } = x, ({ registerTool } = x), …
+    `VariableDeclarator > ObjectPattern.id > Property[key.name=${member}]`,
+    `VariableDeclarator > ObjectPattern.id > Property[key.value=${member}]`,
+    `AssignmentExpression > ObjectPattern.left > Property[key.name=${member}]`,
+    `AssignmentExpression > ObjectPattern.left > Property[key.value=${member}]`,
+    // Reflect.get(x, "registerTool"), Reflect.get(x, `registerTool`)
+    `CallExpression[callee.object.name='Reflect'][callee.property.name='get'] > Literal.arguments[value=${member}]`,
+    `CallExpression[callee.object.name='Reflect'][callee.property.name='get'] > TemplateLiteral.arguments > TemplateElement[value.raw=${member}]`,
+    // import { registerAppTool } from "@modelcontextprotocol/ext-apps/server", renamed or by a
+    // string name, and export { registerAppTool } from …
+    `ImportSpecifier[imported.name=${member}]`,
+    `ImportSpecifier[imported.value=${member}]`,
+    `ExportSpecifier[local.name=${member}]`,
+    `ExportSpecifier[local.value=${member}]`,
+  ].map((selector) => ({ selector, message }))
 
-// Invariant 1. Not just the canonical `x.registerTool(...)`: every syntactic
-// route to the SDK's method or ext-apps' `registerAppTool` that names it
-// literally (an agent "working around" the gate reaches for exactly these).
-// A key computed at runtime stays out of any selector's reach: that is
-// review's job. Parameter destructuring and object literals stay allowed:
-// test fakes build `{ registerTool } as unknown as ModuleServer`. Inline
-// `eslint-disable` of this rule (or of complexity/max-lines) is caught by
-// scripts/check-ratchets.mjs, not here: a directive could disable a rule
-// that polices directives.
-const registrarGate = [
-  // x.registerTool(...), x?.registerTool(...), .call/bind/apply(...), const t = x.registerTool,
-  // apps.registerAppTool(...) through a namespace import
-  `MemberExpression[computed=false][property.name=${TOOL_MEMBER}]`,
-  // x["registerTool"], x[`registerTool`]
-  `MemberExpression[computed=true][property.value=${TOOL_MEMBER}]`,
-  `MemberExpression[computed=true] > TemplateLiteral.property > TemplateElement[value.raw=${TOOL_MEMBER}]`,
-  // const { registerTool } = x, const { "registerTool": t } = x, ({ registerTool } = x), …
-  `VariableDeclarator > ObjectPattern.id > Property[key.name=${TOOL_MEMBER}]`,
-  `VariableDeclarator > ObjectPattern.id > Property[key.value=${TOOL_MEMBER}]`,
-  `AssignmentExpression > ObjectPattern.left > Property[key.name=${TOOL_MEMBER}]`,
-  `AssignmentExpression > ObjectPattern.left > Property[key.value=${TOOL_MEMBER}]`,
-  // Reflect.get(x, "registerTool"), Reflect.get(x, `registerTool`)
-  `CallExpression[callee.object.name='Reflect'][callee.property.name='get'] > Literal.arguments[value=${TOOL_MEMBER}]`,
-  `CallExpression[callee.object.name='Reflect'][callee.property.name='get'] > TemplateLiteral.arguments > TemplateElement[value.raw=${TOOL_MEMBER}]`,
-  // import { registerAppTool } from "@modelcontextprotocol/ext-apps/server", renamed or by a
-  // string name, and export { registerAppTool } from …
-  `ImportSpecifier[imported.name=${TOOL_MEMBER}]`,
-  `ImportSpecifier[imported.value=${TOOL_MEMBER}]`,
-  `ExportSpecifier[local.name=${TOOL_MEMBER}]`,
-  `ExportSpecifier[local.value=${TOOL_MEMBER}]`,
-].map((selector) => ({ selector, message: REGISTRAR_MESSAGE }))
+// Invariant 1: the SDK's method and ext-apps' `registerAppTool`.
+const registrarGate = registrationGate(
+  "/^(registerTool|registerAppTool)$/",
+  "Operations tools are registered through createToolRegistrar (@miragon/pulse-widget-shell/server) in src/tools/ (see .claude/skills/add-bpm-feature); a raw server.registerTool() or ext-apps' registerAppTool() (also via an import, a computed key, .call/.bind/.apply, destructuring or Reflect.get) is reserved for the widget-tools files.",
+)
+
+// Invariant 3: a customer's module may bring a finished HTML view of its own; the engine and
+// analytics views stay in the host bundle, where the kit, the view host and the design system
+// hold them. Everywhere in a connector, the widget-tools files too.
+const connectorResourceGate = registrationGate(
+  "/^(registerResource|registerAppResource)$/",
+  "A connector registers no resource of its own (CLAUDE.md invariant 3): its views belong in the host bundle, which the boot serves under ui://views/<tool>.html (showToolBinding), so they stay on the kit and the view host. A finished HTML view is for a customer's module.",
+)
 
 // Invariant 6.
 const widgetDateGate = [
@@ -369,10 +377,17 @@ export default tseslint.config(
   // union (the connector widgets below). scripts/eslint-gates.test.mjs pins
   // the effective options per path and lints known-bad spellings.
 
+  // Invariant 3: no connector registers a resource: its views belong in the host bundle. Every
+  // family's package, whose next blocks carry this gate in their union.
+  {
+    files: ["packages/connectors/*/*/src/**/*.{ts,tsx}"],
+    rules: { "no-restricted-syntax": ["error", ...connectorResourceGate] },
+  },
+
   // Invariant 1: operations tools go through createToolRegistrar. A raw
   // server.registerTool() or registerAppTool() is reserved for the
   // widget-tools path (the view tools and *_data feeds), exactly the ignores
-  // list below.
+  // list below. The union with the resource gate of the block above.
   {
     files: [
       "packages/connectors/analytics/analytics-connector/src/**/*.{ts,tsx}",
@@ -384,7 +399,7 @@ export default tseslint.config(
       "packages/connectors/engine/engine-connector/src/widget-tools.ts",
       "packages/connectors/engine/engine-connector/src/widget-tools/**",
     ],
-    rules: { "no-restricted-syntax": ["error", ...registrarGate] },
+    rules: { "no-restricted-syntax": ["error", ...registrarGate, ...connectorResourceGate] },
   },
 
   // Invariant 6: every widget tree renders dates and numbers through pulse-ui's
@@ -395,7 +410,7 @@ export default tseslint.config(
     files: WIDGET_TREES,
     rules: { "no-restricted-syntax": ["error", ...widgetDateGate, ...widgetNumberGate] },
   },
-  // Connector widgets sit under the registrar, date and number gates and render every
+  // Connector widgets sit under the registrar, resource, date and number gates and render every
   // hand-off through widget-shell's HandOffButton (hand-off gate): one block with the union,
   // after the registrar and WIDGET_TREES blocks (whose options it replaces for these files).
   {
@@ -404,6 +419,7 @@ export default tseslint.config(
       "no-restricted-syntax": [
         "error",
         ...registrarGate,
+        ...connectorResourceGate,
         ...widgetDateGate,
         ...widgetNumberGate,
         ...widgetHandOffGate,

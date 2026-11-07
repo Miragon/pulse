@@ -1,34 +1,47 @@
 /**
  * The boot's record of what the modules register. Each plugin's `register(server)` gets a
- * `ModuleServer`, the official SDK server's two registration methods, and the boot records every
- * call ONCE, checked: a name two registrations share fails the boot naming both owners; a tool's
- * input is strict (CLAUDE.md invariant 5) and its advertised schema trimmed; a view-bound tool
- * names a view this server serves and gets the server-wide view CSP. `McpHttpApp` replays the
- * record into a fresh `McpServer` per request, so nothing can change it once the boot is done.
+ * `ModuleServer`, the official SDK server's three registration methods, and the boot records every
+ * call ONCE, checked: a name or resource URI two registrations share fails the boot naming both
+ * owners; a tool's input is strict (CLAUDE.md invariant 5) and its advertised schema trimmed; a
+ * view-bound tool binds the bundle's view named after it, which gets the server-wide view CSP, or
+ * a resource a module registered, whose CSP stays the module's; a resource's or prompt's callback
+ * is guarded (`module-callbacks.ts`). `McpHttpApp` replays the record into a fresh `McpServer` per
+ * request, so nothing can change it once the boot is done.
  */
 import type {
   CallToolResult,
   InputRequiredResult,
   RegisteredPrompt,
+  RegisteredResource,
+  RegisteredResourceTemplate,
   RegisteredTool,
+  ResourceTemplate,
   ServerContext,
   StandardSchemaWithJSON,
   ToolAnnotations,
 } from "@modelcontextprotocol/server"
 import type { z } from "zod"
 import type { ModulePlugin } from "./composition.js"
+import { guardedCallback, holdsArray } from "./module-callbacks.js"
 import type { ModuleServer } from "./module-server.js"
+import {
+  recordedResource,
+  resourceTargetOf,
+  servesUri,
+  type RecordedResource,
+  type ResourceConfig,
+} from "./resource-registration.js"
 import { trimInputSchema } from "./tool-schema-trim.js"
-import type { AppResourceCsp, ViewBinding } from "./view-resource.js"
-import { strictToolInput, viewNameOf, viewResourceUri } from "./widget-tool-bindings.js"
-
-/** The Apps SDK spelling of {@link AppResourceCsp}. */
-export interface WidgetCspMeta {
-  connect_domains?: string[]
-  resource_domains?: string[]
-  frame_domains?: string[]
-  base_uri_domains?: string[]
-}
+import {
+  fromWidgetCspMeta,
+  hasDomains,
+  mergeDomainLists,
+  toWidgetCspMeta,
+  type AppResourceCsp,
+  type WidgetCspMeta,
+} from "./view-csp.js"
+import type { ViewBinding } from "./view-resource.js"
+import { strictToolInput, VIEW_RESOURCE_URI_PREFIX, viewNameOf } from "./widget-tool-bindings.js"
 
 type ToolResult = CallToolResult | InputRequiredResult
 
@@ -51,7 +64,9 @@ export interface RecordedTool {
   owner: string
   config: RecordedToolConfig
   handler: RecordedToolHandler
-  /** The view it binds (`ui://views/<view>.html`); the boot serves it. */
+  /** The resource it binds: its view, stamped on each of its results. */
+  resourceUri?: string
+  /** Set when that resource is the bundle's view named after it, `ui://views/<view>.html`. */
   view?: string
 }
 
@@ -63,10 +78,11 @@ export interface RecordedPrompt {
   callback: unknown
 }
 
-/** What the boot serves: every module's tools and prompts, and each bound view once. */
+/** What the boot serves: every module's tools, prompts and resources, and each bundle view once. */
 export interface ModuleRegistrations {
   readonly tools: readonly RecordedTool[]
   readonly prompts: readonly RecordedPrompt[]
+  readonly resources: readonly RecordedResource[]
   readonly views: ReadonlyMap<string, ViewBinding>
 }
 
@@ -81,6 +97,11 @@ interface RegisterOptions {
 export interface ModuleRegistry extends ModuleRegistrations {
   /** Runs `plugin.register` on a `ModuleServer` that records under the plugin's name. */
   register(plugin: ModulePlugin, options?: RegisterOptions): void
+  /**
+   * After the last plugin: every tool binds a resource this server serves. Only now, since
+   * ext-apps' docs register a tool before the resource it binds.
+   */
+  checkBindings(): void
 }
 
 /** What `registerTool` takes, as loose as every SDK overload is: the record checks the rest. */
@@ -99,7 +120,6 @@ interface PromptConfigInput {
   argsSchema?: unknown
 }
 
-type Lists = Readonly<Record<string, readonly string[] | undefined>>
 type AnyCallback = (...args: unknown[]) => ToolResult | Promise<ToolResult>
 
 /** Feeds never carry it, so it marks the tools Apps SDK hosts render. */
@@ -107,39 +127,6 @@ const OUTPUT_TEMPLATE = "openai/outputTemplate"
 const WIDGET_CSP = "openai/widgetCSP"
 const FLAT_RESOURCE_URI = "ui/resourceUri"
 const JSON_SCHEMA_TARGET = "draft-2020-12"
-
-export function toWidgetCspMeta(csp: AppResourceCsp): WidgetCspMeta {
-  const meta: WidgetCspMeta = {}
-  if (csp.connectDomains) meta.connect_domains = csp.connectDomains
-  if (csp.resourceDomains) meta.resource_domains = csp.resourceDomains
-  if (csp.frameDomains) meta.frame_domains = csp.frameDomains
-  if (csp.baseUriDomains) meta.base_uri_domains = csp.baseUriDomains
-  return meta
-}
-
-/** The SEP-1865 spelling of an Apps SDK `openai/widgetCSP`. */
-export function fromWidgetCspMeta(meta: WidgetCspMeta | undefined): AppResourceCsp {
-  const csp: AppResourceCsp = {}
-  if (meta?.connect_domains) csp.connectDomains = meta.connect_domains
-  if (meta?.resource_domains) csp.resourceDomains = meta.resource_domains
-  if (meta?.frame_domains) csp.frameDomains = meta.frame_domains
-  if (meta?.base_uri_domains) csp.baseUriDomains = meta.base_uri_domains
-  return csp
-}
-
-/** The tool's own entries come first; each default origin is appended once. */
-export function mergeDomainLists<T extends object>(own: T | undefined, defaults: T): T {
-  const mine = (own ?? {}) as Lists
-  const merged: Record<string, unknown> = { ...mine }
-  for (const [key, domains] of Object.entries(defaults as Lists)) {
-    if (!domains?.length) continue
-    merged[key] = [...new Set([...(mine[key] ?? []), ...domains])]
-  }
-  return merged as T
-}
-
-const hasDomains = (lists: object | undefined): lists is object =>
-  lists !== undefined && Object.values(lists as Lists).some((domains) => (domains?.length ?? 0) > 0)
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)
@@ -196,31 +183,77 @@ function strictInput(tool: string, owner: string, schema: unknown): StrictInput 
   return { schema, takesArgs: true }
 }
 
-/** The view a tool binds: MCP Apps' `_meta.ui.resourceUri`, else the flat key older hosts read. */
-function boundView(tool: string, meta: Record<string, unknown> | undefined): string | undefined {
-  const uri = (isRecord(meta?.ui) ? meta.ui.resourceUri : undefined) ?? meta?.[FLAT_RESOURCE_URI]
-  if (uri === undefined) return undefined
-  const view = viewNameOf(uri)
-  if (view === undefined) {
-    throw new Error(
-      `Tool "${tool}" binds ${JSON.stringify(uri)}, which this server does not serve: it serves ` +
-        "one view per tool, ui://views/<name>.html (showToolBinding(name, title)).",
+/** The boot's answer to a resource no tool could reach, with both ways out. */
+function unservedBinding(tool: string, owner: string, uri: unknown): Error {
+  return new Error(
+    `Tool "${tool}" of "${owner}" binds ${JSON.stringify(uri)}, which this server does not serve: ` +
+      "bind the view named after the tool, ui://views/<tool>.html, which the boot serves from the " +
+      "bundle (showToolBinding(name, title)), or a resource a module registers " +
+      "(registerAppResource, showToolBinding(name, title, { resourceUri })).",
+  )
+}
+
+interface ToolBinding {
+  uri: string
+  /** The bundle's view of that name, when `uri` is one. */
+  view?: string
+}
+
+/** What a host renders: ext-apps refuses anything but `ui://`, and a template names no document. */
+const isViewUri = (uri: unknown): uri is string =>
+  typeof uri === "string" && uri.startsWith("ui://") && !/[{}]/.test(uri)
+
+/**
+ * The resource a tool binds, from whichever spelling states it: MCP Apps' `_meta.ui.resourceUri`,
+ * the flat key older hosts read, the Apps SDK's template. Two that differ would show one view on
+ * one host and another on the next. Under `ui://views/` a tool binds only the view of its own
+ * name: a view re-runs that tool on a stripped result, whichever tool opened it.
+ */
+function bindingOf(
+  tool: string,
+  owner: string,
+  meta: Record<string, unknown> | undefined,
+): ToolBinding | undefined {
+  const ui = meta?.ui
+  if (ui !== undefined && !isRecord(ui)) {
+    throw new TypeError(
+      `Tool "${tool}" of "${owner}" states _meta.ui as ${JSON.stringify(ui)}, which is no object: ` +
+        "spread showToolBinding(name, title) instead of writing it.",
     )
   }
-  return view
+  const template = meta?.[OUTPUT_TEMPLATE]
+  const uri = [ui?.resourceUri, meta?.[FLAT_RESOURCE_URI], template].find(
+    (stated) => stated !== undefined,
+  )
+  if (uri === undefined) return undefined
+  if (!isViewUri(uri)) {
+    throw new Error(
+      `Tool "${tool}" of "${owner}" binds ${JSON.stringify(uri)}, which no host would render: a ` +
+        "view's URI starts with ui:// and names one document, no template. Register the document " +
+        `as a resource of your own, like ui://${owner}/<view>.html.`,
+    )
+  }
+  if (template !== undefined && template !== uri) {
+    throw new Error(
+      `Tool "${tool}" of "${owner}" binds ${uri}, but its openai/outputTemplate names ` +
+        `${JSON.stringify(template)}: state both with showToolBinding(name, title, { resourceUri }).`,
+    )
+  }
+  if (!uri.startsWith(VIEW_RESOURCE_URI_PREFIX)) return { uri }
+  if (viewNameOf(uri) !== tool) throw unservedBinding(tool, owner, uri)
+  return { uri, view: tool }
 }
 
 /**
  * A view-bound tool's `_meta`: both spellings of its view (as `registerAppTool` writes them) and,
- * for Apps SDK hosts, the server-wide view CSP merged into its own `openai/widgetCSP`. Copied,
- * never mutated: `showToolBinding` and `appOnly` parts are shared.
+ * for Apps SDK hosts, `defaults` merged into its own `openai/widgetCSP`. Copied, never mutated:
+ * `showToolBinding` and `appOnly` parts are shared.
  */
-function viewToolMeta(
+function boundToolMeta(
   meta: Record<string, unknown> | undefined,
-  view: string,
+  resourceUri: string,
   defaults: AppResourceCsp | undefined,
 ): Record<string, unknown> {
-  const resourceUri = viewResourceUri(view)
   const ui = isRecord(meta?.ui) ? meta.ui : {}
   const next: Record<string, unknown> = {
     ...meta,
@@ -234,11 +267,14 @@ function viewToolMeta(
   return next
 }
 
+type RegistrationKind = "Tool" | "Prompt" | "Resource"
+
 /**
- * The handle `registerTool`/`registerPrompt` return. Every request gets its own `McpServer` from
- * the record, so a handle could change nothing a client sees: it refuses instead of pretending.
+ * The handle `registerTool`/`registerPrompt`/`registerResource` return. Every request gets its own
+ * `McpServer` from the record, so a handle could change nothing a client sees: it refuses instead
+ * of pretending.
  */
-function fixedHandle(kind: "Tool" | "Prompt", name: string, config: object) {
+function fixedHandle(kind: RegistrationKind, name: string, config: object) {
   const refuse = (): never => {
     throw new Error(
       `${kind} "${name}" is fixed at boot: the server replays every registration into each ` +
@@ -255,7 +291,7 @@ function fixedHandle(kind: "Tool" | "Prompt", name: string, config: object) {
   }
 }
 
-function refuseLate(open: boolean, owner: string, kind: "Tool" | "Prompt", name: string): void {
+function refuseLate(open: boolean, owner: string, kind: RegistrationKind, name: string): void {
   if (open) return
   throw new Error(
     `${kind} "${name}" registers after "${owner}" returned from register(server): the boot ` +
@@ -265,8 +301,9 @@ function refuseLate(open: boolean, owner: string, kind: "Tool" | "Prompt", name:
 
 /**
  * The boot's one registry: `label` prefixes the open-write warning, `csp` is the server-wide view
- * CSP (the served fonts' origin), which every view and, in Apps SDK spelling, every widget tool
- * gets on top of what the tool states itself.
+ * CSP (the served fonts' origin), which every bundle view and, in Apps SDK spelling, its tool get
+ * on top of what the tool states itself. A view a module registers loads its own fonts: nothing
+ * of it is touched.
  */
 export function createModuleRegistry(
   csp: AppResourceCsp | undefined,
@@ -274,9 +311,13 @@ export function createModuleRegistry(
 ): ModuleRegistry {
   const tools: RecordedTool[] = []
   const prompts: RecordedPrompt[] = []
+  const resources: RecordedResource[] = []
   const views = new Map<string, ViewBinding>()
   const toolOwners = new Map<string, string>()
   const promptOwners = new Map<string, string>()
+  /** Every resource name a client lists, a bundle view's among them: it carries its tool's name. */
+  const resourceOwners = new Map<string, string>()
+  const uriOwners = new Map<string, string>()
   const defaults = hasDomains(csp) ? csp : undefined
 
   function claim(owners: Map<string, string>, kind: string, name: string, owner: string): void {
@@ -286,6 +327,16 @@ export function createModuleRegistry(
       `${kind} "${name}" is registered twice: by "${previous}" and again by "${owner}". ` +
         `A server lists one ${kind.toLowerCase()} per name, so rename one of them.`,
     )
+  }
+
+  /** The bundle's view of a tool: named after it, titled by it, with the server-wide CSP. */
+  function addBundleView(view: string, owner: string, config: ToolConfigInput): void {
+    resourceOwners.set(view, owner)
+    const own = fromWidgetCspMeta(config._meta?.[WIDGET_CSP] as WidgetCspMeta | undefined)
+    views.set(view, {
+      ...(config.title !== undefined && { description: config.title }),
+      csp: defaults ? mergeDomainLists(own, defaults) : own,
+    })
   }
 
   function recordTool(
@@ -300,8 +351,11 @@ export function createModuleRegistry(
       throw new TypeError(`Tool "${name}" of "${owner}" has no callback.`)
     }
     const input = strictInput(name, owner, config.inputSchema)
-    const view = boundView(name, config._meta)
-    const meta = view === undefined ? config._meta : viewToolMeta(config._meta, view, defaults)
+    const binding = bindingOf(name, owner, config._meta)
+    const view = binding?.view
+    if (view !== undefined) claim(resourceOwners, "Resource", view, owner)
+    const meta =
+      binding && boundToolMeta(config._meta, binding.uri, view === undefined ? undefined : defaults)
     const call = callback as AnyCallback
     tools.push({
       name,
@@ -312,16 +366,11 @@ export function createModuleRegistry(
         ...(meta !== undefined && { _meta: meta }),
       },
       handler: input.takesArgs ? (args, ctx) => call(args, ctx) : (_args, ctx) => call(ctx),
+      ...(binding && { resourceUri: binding.uri }),
       ...(view !== undefined && { view }),
     })
     toolOwners.set(name, owner)
-    if (view !== undefined && !views.has(view)) {
-      const own = fromWidgetCspMeta(config._meta?.[WIDGET_CSP] as WidgetCspMeta | undefined)
-      views.set(view, {
-        ...(config.title !== undefined && { description: config.title }),
-        csp: defaults ? mergeDomainLists(own, defaults) : own,
-      })
-    }
+    if (view !== undefined) addBundleView(view, owner, config)
     if (unguarded !== undefined && config.annotations?.readOnlyHint !== true) {
       console.warn(openWriteWarning(label, name, unguarded))
     }
@@ -337,14 +386,50 @@ export function createModuleRegistry(
     if (typeof callback !== "function") {
       throw new TypeError(`Prompt "${name}" of "${owner}" has no callback.`)
     }
-    prompts.push({ name, owner, config, callback })
+    const guarded = guardedCallback(
+      `Prompt "${name}" of "${owner}"`,
+      callback as AnyCallback,
+      holdsArray("messages"),
+    )
+    prompts.push({ name, owner, config, callback: guarded })
     promptOwners.set(name, owner)
+  }
+
+  function recordResource(
+    owner: string,
+    name: string,
+    target: string | ResourceTemplate,
+    config: ResourceConfig,
+    callback: unknown,
+  ): void {
+    const { uri, template } = resourceTargetOf(name, owner, target)
+    claim(resourceOwners, "Resource", name, owner)
+    const previous = uriOwners.get(uri)
+    if (previous !== undefined) {
+      throw new Error(
+        `Resource URI "${uri}" is registered twice: by "${previous}" and again by "${owner}". ` +
+          "A server serves one resource per URI, so change one of them.",
+      )
+    }
+    if (typeof callback !== "function") {
+      throw new TypeError(`Resource "${name}" of "${owner}" has no read callback.`)
+    }
+    resources.push(recordedResource({ name, owner, uri, config }, template, callback))
+    resourceOwners.set(name, owner)
+    uriOwners.set(uri, owner)
   }
 
   return {
     tools,
     prompts,
+    resources,
     views,
+    checkBindings() {
+      for (const { name, owner, resourceUri, view } of tools) {
+        if (resourceUri === undefined || view !== undefined) continue
+        if (!servesUri(resources, resourceUri)) throw unservedBinding(name, owner, resourceUri)
+      }
+    },
     register(plugin, options = {}) {
       let open = true
       const owner = plugin.name
@@ -361,6 +446,17 @@ export function createModuleRegistry(
           refuseLate(open, owner, "Prompt", name)
           recordPrompt(owner, name, config, callback)
           return fixedHandle("Prompt", name, config) as unknown as RegisteredPrompt
+        },
+        registerResource: (
+          name: string,
+          target: string | ResourceTemplate,
+          config: ResourceConfig,
+          callback: unknown,
+        ) => {
+          refuseLate(open, owner, "Resource", name)
+          recordResource(owner, name, target, config, callback)
+          const handle = fixedHandle("Resource", name, { name, metadata: config })
+          return handle as unknown as RegisteredResource & RegisteredResourceTemplate
         },
       }
       try {

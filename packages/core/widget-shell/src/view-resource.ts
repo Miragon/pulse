@@ -1,9 +1,12 @@
 /**
  * A view's resource on the wire: the document (the bundle inlined), the `_meta.ui` the host builds
  * its CSP from, the Apps SDK fields on the resource, and the `ui` stamps on a view tool's result.
- * The boot registers it per request for every view a tool binds; `ext-apps`' `registerAppResource`
- * gives only the MIME type, the rest has no official helper.
+ * The boot registers it per request for every bundle view a tool binds; `ext-apps`'
+ * `registerAppResource` gives only the MIME type, the rest has no official helper. A view a module
+ * brings itself is its own resource (`resource-registration.ts`), and only the result stamps here
+ * reach it.
  */
+import type { AppResourceCsp } from "./view-csp.js"
 import { viewResourceUri } from "./widget-tool-bindings.js"
 
 const UI_MIME_TYPE = "text/html;profile=mcp-app"
@@ -11,14 +14,6 @@ const UI_MIME_TYPE = "text/html;profile=mcp-app"
 const DISPLAY_MODES = ["inline", "fullscreen"]
 /** Every view comes from the one bundle, whose cards draw no frame of their own (#344). */
 const PREFERS_BORDER = true
-
-/** A view's CSP in the SEP-1865 spelling: origins other than the server's own. */
-export interface AppResourceCsp {
-  connectDomains?: string[]
-  resourceDomains?: string[]
-  frameDomains?: string[]
-  baseUriDomains?: string[]
-}
 
 /** A view the boot serves (keyed by its name), as the tool that binds it states it. */
 export interface ViewBinding {
@@ -34,8 +29,7 @@ export interface ViewBundle {
 }
 export type ViewsManifest = Record<string, ViewBundle>
 
-export function viewResultMeta(viewName: string): Record<string, unknown> {
-  const resourceUri = viewResourceUri(viewName)
+export function viewResultMeta(resourceUri: string): Record<string, unknown> {
   return { ui: { resourceUri }, "ui/resourceUri": resourceUri }
 }
 

@@ -1,3 +1,5 @@
+import { registerAppResource, RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps/server"
+import { ResourceTemplate } from "@modelcontextprotocol/server"
 import { describe, expect, it } from "vitest"
 import { z } from "zod"
 import { strictToolInput } from "../widget-tool-bindings.js"
@@ -60,5 +62,63 @@ describe("recordingModuleServer", () => {
     )
     expect(() => recording.tool("x_other")).toThrow('No tool "x_other"; registered: x_list.')
     expect(() => recordingModuleServer().tool("x")).toThrow("registered: none.")
+  })
+
+  const BOARD_URI = "ui://acme/board.html"
+  const html = () => ({
+    contents: [{ uri: BOARD_URI, mimeType: RESOURCE_MIME_TYPE, text: "<!doctype html>" }],
+  })
+
+  it("records a resource by URI, also through ext-apps' registerAppResource, and reads it", async () => {
+    const recording = recordingModuleServer()
+    registerAppResource(recording.server, "Board", BOARD_URI, { description: "A board." }, html)
+    const board = recording.resource(BOARD_URI)
+    expect(board).toMatchObject({
+      name: "Board",
+      uri: BOARD_URI,
+      config: { mimeType: RESOURCE_MIME_TYPE, description: "A board." },
+    })
+    expect((await board.read()).contents[0]).toMatchObject({ text: "<!doctype html>" })
+  })
+
+  it("calls a read as the SDK does: (url, ctx), a template's (url, variables, ctx)", async () => {
+    const recording = recordingModuleServer()
+    const seen: unknown[][] = []
+    const callback = (...args: unknown[]) => {
+      seen.push(args)
+      return { contents: [] }
+    }
+    const ctx = testServerContext()
+    recording.server.registerResource("Board", BOARD_URI, {}, callback)
+    await recording.resource(BOARD_URI).read(BOARD_URI, ctx)
+    const template = new ResourceTemplate("ui://acme/{id}.html", { list: undefined })
+    recording.server.registerResource("Item", template, {}, callback)
+    await recording.resource("ui://acme/{id}.html").read("ui://acme/7.html", ctx)
+    expect(seen).toEqual([
+      [new URL(BOARD_URI), ctx],
+      [new URL("ui://acme/7.html"), { id: "7" }, ctx],
+    ])
+    await expect(
+      recording.resource("ui://acme/{id}.html").read("ui://acme/7/8.html"),
+    ).rejects.toThrow(
+      "ui://acme/7/8.html does not match the resource template ui://acme/{id}.html.",
+    )
+  })
+
+  it("refuses a second registration of a URI or a template's name, and names what it holds", () => {
+    const recording = recordingModuleServer()
+    recording.server.registerResource("Board", BOARD_URI, {}, html)
+    expect(() => recording.server.registerResource("Other", BOARD_URI, {}, html)).toThrow(
+      `Resource ${BOARD_URI} is already registered`,
+    )
+    const template = (uri: string) => new ResourceTemplate(uri, { list: undefined })
+    recording.server.registerResource("Item", template("ui://acme/{id}.html"), {}, html)
+    expect(() =>
+      recording.server.registerResource("Item", template("ui://acme/x/{id}.html"), {}, html),
+    ).toThrow("is already registered")
+    expect(() => recording.resource("ui://none")).toThrow(
+      `No resource "ui://none"; registered: ${BOARD_URI}, ui://acme/{id}.html.`,
+    )
+    expect(() => recordingModuleServer().resource("ui://none")).toThrow("registered: none.")
   })
 })

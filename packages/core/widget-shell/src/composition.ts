@@ -3,13 +3,14 @@ import type { ToolsetSource, ToolsetVocabulary } from "./toolsets.js"
 
 /** What a module hands the boot. */
 export interface ModulePlugin {
-  /** The module name; the boot's duplicate tool-name guard names it. */
+  /** The module name; the boot's duplicate name guards name it. */
   name: string
   /**
-   * Registers all of the module's tools and prompts with the official SDK's `registerTool` and
-   * `registerPrompt` (or `registerAppTool` from `@modelcontextprotocol/ext-apps/server`), once:
-   * the boot records them and serves the views they bind. Handlers read the caller through the
-   * ambient request info (`callerCacheKey`, passthrough auth), which the boot installs.
+   * Registers all of the module's tools, prompts and resources with the official SDK's
+   * `registerTool`, `registerPrompt` and `registerResource` (or `registerAppTool` and
+   * `registerAppResource` from `@modelcontextprotocol/ext-apps/server`), once: the boot records
+   * them and serves the bundle views they bind. Handlers read the caller through the ambient
+   * request info (`callerCacheKey`, passthrough auth), which the boot installs.
    */
   register(server: ModuleServer): void
 }

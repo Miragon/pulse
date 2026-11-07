@@ -254,7 +254,7 @@ docker run --rm --env-file .env -p 127.0.0.1:8400:8400 \
   `Host`/`Origin` the server accepts: anything else gets 403 (DNS-rebinding
   protection), with the message naming the variable to set. It is also the
   origin the views load Geist from (the server's own `/fonts/geist-<version>/`
-  route, declared in every view's CSP `resourceDomains`): behind a gateway,
+  route, declared in every bundle view's CSP `resourceDomains`): behind a gateway,
   route `/fonts/` to the server too, or the views show the host's font.
 - Federation/aggregation across MCP servers belongs in an external gateway
   (e.g. agentgateway) IN FRONT of this server; this repo builds one

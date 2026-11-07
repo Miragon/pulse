@@ -61,6 +61,17 @@ package customers build their own connectors and composed servers on (see the
   spread into `registerTool`'s config (both `_meta` halves: MCP Apps' `ui.resourceUri` and the
   `openai/*` keys; `appOnly` is a feed's `ui.visibility: ["app"]`), and the boot serves each
   view with `viewPrelude(name)` ahead of the bundle.
+- **A view a module brings itself** (`./server`): a finished HTML document, built by any toolchain
+  and shipped on npm, without the server's Vite build knowing it. Register it as a resource of your
+  own, `registerAppResource(server, name, "ui://<module>/<view>.html", config, read)`, and bind the
+  tool with `showToolBinding(name, title, { resourceUri, csp })`. The document runs the MCP Apps
+  handshake itself. It shares no code with the bundle, so it pays for its own React and styles;
+  gets none of this package's view host, query hooks or stripped-result recovery; and its CSP
+  (`_meta.ui.csp` on the resource, `csp` for the Apps SDK half) and fonts are its own: the boot adds
+  nothing to it. The boot guards its callbacks: one that returns no `contents` or throws no `Error`
+  gets an answer naming the module, a thrown error's message reaches the client, its stack the log,
+  and a template's `list` that fails or hangs costs only its own entries. A widget in the bundle is
+  the right choice unless you need that independence.
 - **BPMN names** (`./server`, and `./widgets` for a view): `readBpmnNames` / `parseBpmnNames`: the one rule every module
   reads a model's names by, without a DOM (a process's own name, else its Modeler pool's;
   character references such as `&#10;` and `&#38;` decoded, space folded), so two modules never
@@ -106,12 +117,13 @@ package customers build their own connectors and composed servers on (see the
   toolset per module per boot and threads it into the module's `config.toolset` (`ModuleEntry`),
   authenticated exactly when it installed OAuth. A module's
   `createPlugin(config, shared)` returns a `ModulePlugin`: its `name` and one `register(server)`
-  that registers all its tools and prompts on a `ModuleServer`, the official SDK's own
-  `registerTool`/`registerPrompt` (`Pick<McpServer, …>`, so the SDK's docs and ext-apps'
-  `registerAppTool` apply as they are); `shared(entries)` is your wiring of
-  what the active modules hand each other. The boot log states each module's toolset and why.
-  A module's tests register on `recordingModuleServer()` (`./testing`), which calls a handler the
-  way the SDK does (`testServerContext(signal?)` builds its context).
+  that registers all its tools, prompts and resources on a `ModuleServer`, the official SDK's own
+  `registerTool`/`registerPrompt`/`registerResource` (`Pick<McpServer, …>`, so the SDK's docs and
+  ext-apps' `registerAppTool` and `registerAppResource` apply as they are); `shared(entries)` is
+  your wiring of what the active modules hand each other. The boot log states each module's toolset
+  and why. A module's tests register on `recordingModuleServer()` (`./testing`), which calls a
+  handler and reads a resource (`resource(uri).read()`) the way the SDK does
+  (`testServerContext(signal?)` builds its context).
   `composedEnvVars(modules)` names every variable such a boot reads (the boot's own and each
   module's `knownEnvVars`), e.g. for a `.env.example` check. A module that was renamed declares
   `retired: { names, envVars, warnedEnvVars }`: the boot refuses a former name in
@@ -129,9 +141,11 @@ package customers build their own connectors and composed servers on (see the
 - **Server boot** (`./server`): `createComposedServer` (options `info`, `modules`, `shared?`,
   `bundle`, `env?`, `envVarHint?`, `oauth?`) is the one boot sequence every composed server shares:
   env-typo warnings, the HTTP edge policy, OAuth, ONE module selection, the boot log, the plugins of
-  the active modules, each plugin's `register` recorded once (a tool or prompt name two modules
-  register fails the boot, naming both; so does an input schema that lets an unknown key through
-  or a view URI other than `ui://views/<name>.html`), the views every tool binds primed
+  the active modules, each plugin's `register` recorded once (a tool, prompt or resource name or a
+  resource URI two modules register fails the boot, naming both; so does an input schema that lets
+  an unknown key through, a resource under `ui://views/`, which the boot keeps for the bundle, or a
+  tool that binds neither the view of its own name, `ui://views/<tool>.html`, nor a resource a
+  module registered), the bundle views the tools bind primed
   once with your `bundle`, then per request a fresh `McpServer` with `serverInfo`/`instructions`
   that the recording replays into, behind the SDK's stateless `createMcpHandler`; request context
   and one log line per request (the error text on a failure), `/metrics` (optional
@@ -144,9 +158,9 @@ package customers build their own connectors and composed servers on (see the
   the identity provider's side are under
   [Security](https://miragon.github.io/pulse/mcp/operations#security). Without a provider the boot
   runs unauthenticated with one warning. OAuth is the only caller identity, and `oauth` installs a
-  provider instead (a test's stub IdP). Every view-bound tool advertises `MCP_URL`'s origin in its
-  view CSP `resourceDomains` and the Apps SDK `openai/widgetCSP` (`fontAssetsCsp`, merged into every
-  view-bound tool as it registers); without `MCP_URL` the boot appends the origin the host read the
+  provider instead (a test's stub IdP). Every bundle view advertises `MCP_URL`'s origin in its
+  view CSP `resourceDomains` and the Apps SDK `openai/widgetCSP` (`fontAssetsCsp`, merged into its
+  tool as it registers); without `MCP_URL` the boot appends the origin the host read the
   view from. `HostDocument` declares the faces from that origin (`declareServedFonts`,
   `font-display: swap`), so a host that blocks it shows its own font, then the system's.
   The entry runs it through `runComposedServer(createApp)`, in production and under `pnpm dev`
@@ -164,11 +178,11 @@ package customers build their own connectors and composed servers on (see the
 
 ## Exports
 
-| Subpath     | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `./server`  | The module port (`ComposableModule`, `ModulePlugin`, `ModuleEntry`, `ModuleServer`, `createToolsetVocabulary`); tool authoring: the registrar (`createToolRegistrar`, `withToolErrors`), the view and feed bindings and results (`showToolBinding`, `appOnly`, `strictToolInput`, `buildViewResult`, `buildDataFeedResult`, `decodeToolResult`), the server i18n (`createTranslator`), the BPMN-name readers and the per-caller request info (`callerCacheKey`, `getMcpRequestInfo`, `runWithMcpRequestInfo`); the boot: `createComposedServer` with `composedEnvVars` / `retiredEnvVars`, the app it serves (`McpHttpApp`) and the entry `runComposedServer`, the view URIs (`viewResourceUri`, `viewPrelude`), `VIEW_BUNDLE_DEDUPE`, the dev loop's `viewBundleWatchPlugin` and the served fonts (`installFontAssets`, `fontAssetsCsp`). The boot's parts (edge guard, body limit, metrics, health) run only inside `createComposedServer` |
-| `./widgets` | The view runtime (`mountViews`, the view host, the query hooks, `TestViewHost`; the language from the host locale (`de…` German, else English), the theme as host context > OS), the host-bound UI, `AskAiButton` for a hand-off `HAND_OFF_ACTIONS` does not list, `decodeToolResult` and `createTranslator`, each with the types its signature names. The view root's providers and the inline-fit machinery stay inside `mountViews`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| `./testing` | The product glossary: `PRODUCT_GLOSSARY`, `glossaryFindings`, `blindGlossaryRules`, `unnamedGlossaryTerms`; a module's test server: `recordingModuleServer`, `testServerContext`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Subpath     | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `./server`  | The module port (`ComposableModule`, `ModulePlugin`, `ModuleEntry`, `ModuleServer`, `createToolsetVocabulary`); tool authoring: the registrar (`createToolRegistrar`, `withToolErrors`), the view and feed bindings and results (`showToolBinding`, `OwnViewBinding`, `AppResourceCsp`, `appOnly`, `strictToolInput`, `buildViewResult`, `buildDataFeedResult`, `decodeToolResult`), the server i18n (`createTranslator`), the BPMN-name readers and the per-caller request info (`callerCacheKey`, `getMcpRequestInfo`, `runWithMcpRequestInfo`); the boot: `createComposedServer` with `composedEnvVars` / `retiredEnvVars`, the app it serves (`McpHttpApp`) and the entry `runComposedServer`, the view URIs (`viewResourceUri`, `viewPrelude`), `VIEW_BUNDLE_DEDUPE`, the dev loop's `viewBundleWatchPlugin` and the served fonts (`installFontAssets`, `fontAssetsCsp`). The boot's parts (edge guard, body limit, metrics, health) run only inside `createComposedServer` |
+| `./widgets` | The view runtime (`mountViews`, the view host, the query hooks, `TestViewHost`; the language from the host locale (`de…` German, else English), the theme as host context > OS), the host-bound UI, `AskAiButton` for a hand-off `HAND_OFF_ACTIONS` does not list, `decodeToolResult` and `createTranslator`, each with the types its signature names. The view root's providers and the inline-fit machinery stay inside `mountViews`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `./testing` | The product glossary: `PRODUCT_GLOSSARY`, `glossaryFindings`, `blindGlossaryRules`, `unnamedGlossaryTerms`; a module's test server: `recordingModuleServer` (tools, prompts and resources), `testServerContext`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 
 `@miragon/pulse-ui`, `react`/`react-dom`, `zod` and `@tanstack/react-query` are **peer
 dependencies**: they must resolve to a single instance across the host bundle, otherwise the React
@@ -190,7 +204,8 @@ own test graph; no package manager warns you about it. `bpmn-js` is a peer (`^18
 The official MCP TypeScript SDK comes with this package (`@modelcontextprotocol/server` 2.4,
 `@modelcontextprotocol/node` 2.1, `@modelcontextprotocol/ext-apps` 2.0). A module that imports one
 of them itself, such as ext-apps' `registerAppTool`, declares it as a ranged peer in that range: a
-caret range that admits the version this package pins.
+caret range that admits the version this package pins. A server that installs such a module from
+npm pins that package itself at this package's version, or its strict peers check nothing.
 Its `App` keeps no React context, so a second copy costs bytes and breaks nothing; none of them
 needs an exact pin.
 

@@ -27,6 +27,7 @@ directories are gitignored symlinks: search one of them, not the repo root.
 | JSON data for the model                  | Plain registrar tool in `src/tools.ts`; no widget, stop here |
 | A widget rendered for the user + summary | `<module>_show_<thing>` widget tool in `src/widget-tools.ts` |
 | App-only JSON for in-widget refresh/nav  | `<module>_<thing>_data` feed in `src/widget-tools.ts`        |
+| A view that must stay outside the bundle | "A finished HTML view" below, instead of Steps 1 and 2       |
 
 A widget almost always means **both** widget-path tools: the `show_*` tool
 renders it, the `*_data` feed is what it re-reads (a retry, an invalidation
@@ -157,7 +158,7 @@ nothing). Model both tools on `modules/mcp-notes/src/widget-tools.ts`:
   `z.object`, which silently drops an unknown key instead of refusing it.
 - Register both inside your plugin's `register(server)` (through
   `registerWidgetTools` in the notes module): the boot applies the server-wide
-  view CSP to every view-bound tool and refuses a tool name another plugin
+  view CSP to every bundle view and refuses a tool name another plugin
   already registered.
 - A widget-path tool never writes, and the `show_*` tool states
   `readOnlyHint: true`. On a host that strips `structuredContent`
@@ -165,8 +166,8 @@ nothing). Model both tools on `modules/mcp-notes/src/widget-tools.ts`:
   so a write there would run twice; and the registrar's toolset filter never
   sees a widget-path tool. A write is a registrar tool (the `create-module`
   skill, Step 5), which the filter drops outside its toolset.
-  `server/test/view-registry.test.ts` fails on a view-bound tool that is
-  not a read.
+  `server/test/view-registry.test.ts` fails on a view-bound tool that is not
+  a read.
 
 ## Step 4: verify
 
@@ -176,8 +177,8 @@ pnpm build && pnpm typecheck && pnpm test
 
 - `pnpm typecheck` is the **only** automated check that type-checks widget
   `.tsx` code. Never skip it.
-- `pnpm test` runs the view-registry guard (every view-bound tool is a read
-  with a view under its name, and every view has a tool) plus the
+- `pnpm test` runs the view-registry guard (every view-bound tool is a read,
+  a bundle view's tool has a view under its name, and every view has a tool) plus the
   wire-contract e2e (naming, `_meta`, app-only visibility). If one fails its
   message names the missing link: fix the link, not the guard. The one test
   that names the example, `server/test/example-notes.test.ts`, goes with the
@@ -211,15 +212,119 @@ A widget edit rebuilds the bundle and restarts the server by itself; reopen
 the view to see it. A module's tools are built once, when `pnpm dev` starts:
 restart `pnpm dev` at the repo root after changing them.
 
+## A finished HTML view
+
+A widget in the bundle is the default: it shares the kit and the host contexts,
+and every other module's view looks like it. A module may instead bring one
+finished HTML document as a resource of its own, when the view comes from
+another toolchain or the module ships on npm without widget sources. Nothing of
+it enters the Vite build, the view map or `view-registry.ts`. It costs you:
+
+- **No shared bundle code.** The document carries its own React and styles, or
+  none, and every render pays for them.
+- **No host contexts from widget-shell**: no `useViewHost`, query hooks,
+  `LocaleGate` or theme. The document runs the MCP Apps handshake itself (ext-apps'
+  `App`, https://apps.extensions.modelcontextprotocol.io/api/), reads theme and
+  locale from the host context and calls its feeds through the host. A feed's
+  `buildDataFeedResult` answers one text block of JSON, no `structuredContent`,
+  so the document parses `content[0].text` itself. It also has
+  no recovery for a host that strips `structuredContent`: on such a host it gets
+  no data unless it fetches it from a feed itself.
+- **The CSP is yours.** The boot adds nothing: not the server's origin, not the
+  fonts. The document loads its own, and `_meta.ui.csp` admits every origin it
+  needs. The same goes for what a bundle view's resource tells Apps SDK hosts,
+  `openai/widgetDescription` and `openai/ui`: state them in your resource's
+  `_meta` if a host should read them.
+- **Its size is yours.** The bundle has a budget, a document none: a read sends
+  it whole and holds about four times its size in the server's memory (256 MB
+  grew the process by 1 GB).
+
+```ts
+import { readFileSync } from "node:fs"
+import {
+  registerAppResource,
+  registerAppTool,
+  RESOURCE_MIME_TYPE,
+} from "@modelcontextprotocol/ext-apps/server"
+import {
+  buildViewResult,
+  showToolBinding,
+  strictToolInput,
+  type AppResourceCsp,
+  type ModuleServer,
+} from "@miragon/pulse-widget-shell/server"
+
+const BOARD_URI = "ui://board/board.html" // your own: ui://views/ is the boot's
+const CSP: AppResourceCsp = { connectDomains: ["https://api.example.com"] }
+const BOARD_HTML = readFileSync(new URL("./board.html", import.meta.url), "utf8")
+
+export function register(server: ModuleServer): void {
+  registerAppTool(
+    server,
+    "board_show_board",
+    {
+      title: "Board",
+      annotations: { readOnlyHint: true },
+      inputSchema: strictToolInput({}),
+      ...showToolBinding("board_show_board", "Board", { resourceUri: BOARD_URI, csp: CSP }),
+    },
+    () => buildViewResult({ cards: [] }, "No cards."),
+  )
+  registerAppResource(server, "Board", BOARD_URI, {}, () => ({
+    contents: [
+      {
+        uri: BOARD_URI,
+        mimeType: RESOURCE_MIME_TYPE,
+        text: BOARD_HTML,
+        _meta: { ui: { csp: CSP } },
+      },
+    ],
+  }))
+}
+```
+
+`tsc` copies no HTML and the example reads `board.html` on import, so without the
+file next to the compiled code the server does not start, even with the module
+off: build with `"build": "tsc && cp src/board.html dist/"`. To publish the module,
+its `package.json` says `"files": ["dist"]` and drops the `"private": true` of the
+copied notes module.
+
+`server.registerTool` and `server.registerResource` work just the same; the two
+ext-apps helpers add only the flat `ui/resourceUri` and the MIME type. A module
+that imports them declares ext-apps as a ranged peer (`CLAUDE.md`, rule 5), and a
+server that installs it from npm pins it in `dependencies` of
+`server/package.json`: `"@modelcontextprotocol/ext-apps"` at the version
+`server/node_modules/@miragon/pulse-widget-shell/package.json` lists.
+`server/test/pins.test.ts` holds a pin you set and misses one you did not. The
+`_show_` and `_data` naming holds as ever:
+`server/test/widget-contract.e2e.test.ts` also asks every view tool for both
+`_meta` halves, so spread `showToolBinding` here too, with `registerAppTool` as
+well.
+
+The boot checks the rest. A URI or resource name two registrations share fails
+naming both modules, so does a URI under `ui://views/`, which it serves from the
+bundle, or a template that could reach it (spell out its scheme, and a `ui:`
+template's host), and so does a tool whose URI no module registers, is no `ui://`
+URI or is a template's text. A read or prompt callback that returns no `contents`
+or `messages` array, or throws no `Error`, gets an error naming the module. A
+thrown error's message reaches the client, as a tool's does, so keep secrets out
+of it; its stack goes to the log, the rest of it nowhere, and a `ProtocolError`
+goes out as thrown. A template's `list` callback that fails or takes over 5 s
+costs only its own entries in `resources/list`. A module's test reads
+the document with `recordingModuleServer().resource(uri).read()`. Render it in the
+inspector's Apps tab as any other view, and check it on `--app-info` (Step 4).
+
 ## Troubleshooting
 
-| Symptom                               | Cause                                                                                                                                                                         |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "Can't show this view"                | the module's view map is not spread in `server/src/ui/view-registry.ts`, or its key differs from the show tool's name (the guard test names the tool)                         |
-| Widget renders unstyled               | widget sources outside the Tailwind scan set: workspace modules are globbed (`modules/*/src`); an npm-installed module needs its own `@source` in `server/src/ui/globals.css` |
-| Hangs on "Loading…" forever           | `resolve.dedupe` in `server/vite.config.ts` trimmed or no longer spreading `VIEW_BUNDLE_DEDUPE` (duplicate React contexts), or a missing `isError` branch in the fallback     |
-| A refresh renders a second view       | the widget calls the `show_*` tool instead of the `*_data` feed                                                                                                               |
-| e2e test fails on `_meta`/visibility  | tool name breaks the `_show_`/`_data` convention, or a hand-written `_meta.ui` key: use the helpers                                                                           |
-| The show tool is not in the tool list | its module is not named in `MCP_ACTIVE_MODULES` in `.env` (a module the list does not name stays off; the boot log's `Toolsets:` line shows what runs)                        |
-| Boot fails on a duplicate tool name   | two plugins register the same name; the error names both modules, rename one (keep the `<module>_` prefix)                                                                    |
-| Old UI or tool text after an edit     | the view still shows the old bundle: reopen it; a tool's text or handler is built once, when `pnpm dev` starts: restart it at the repo root (it rebuilds the modules)         |
+| Symptom                                                 | Cause                                                                                                                                                                         |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Boot fails: "binds …, which this server does not serve" | the tool's `_meta` names a URI no module registers: bind `ui://views/<tool>.html` with `showToolBinding(name, title)`, or register that resource (a finished HTML view)       |
+| Boot fails: "binds …, which no host would render"       | the tool's `_meta` names a URI that is no `ui://` URI or a template's text: bind one document, and keep a resource of another scheme for data                                 |
+| "Can't show this view"                                  | the module's view map is not spread in `server/src/ui/view-registry.ts`, or its key differs from the show tool's name (the guard test names the tool)                         |
+| Widget renders unstyled                                 | widget sources outside the Tailwind scan set: workspace modules are globbed (`modules/*/src`); an npm-installed module needs its own `@source` in `server/src/ui/globals.css` |
+| Hangs on "Loading…" forever                             | `resolve.dedupe` in `server/vite.config.ts` trimmed or no longer spreading `VIEW_BUNDLE_DEDUPE` (duplicate React contexts), or a missing `isError` branch in the fallback     |
+| A refresh renders a second view                         | the widget calls the `show_*` tool instead of the `*_data` feed                                                                                                               |
+| e2e test fails on `_meta`/visibility                    | tool name breaks the `_show_`/`_data` convention, or a hand-written `_meta.ui` key: use the helpers                                                                           |
+| The show tool is not in the tool list                   | its module is not named in `MCP_ACTIVE_MODULES` in `.env` (a module the list does not name stays off; the boot log's `Toolsets:` line shows what runs)                        |
+| Boot fails on a duplicate tool name                     | two plugins register the same name; the error names both modules, rename one (keep the `<module>_` prefix)                                                                    |
+| Old UI or tool text after an edit                       | the view still shows the old bundle: reopen it; a tool's text or handler is built once, when `pnpm dev` starts: restart it at the repo root (it rebuilds the modules)         |

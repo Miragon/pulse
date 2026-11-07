@@ -121,7 +121,7 @@ describe("the view document and a view tool's result", () => {
   })
 
   it("stamps the view's resource in both spellings on a result", () => {
-    expect(viewResultMeta("demo_show_x")).toEqual({
+    expect(viewResultMeta("ui://views/demo_show_x.html")).toEqual({
       ui: { resourceUri: "ui://views/demo_show_x.html" },
       "ui/resourceUri": "ui://views/demo_show_x.html",
     })

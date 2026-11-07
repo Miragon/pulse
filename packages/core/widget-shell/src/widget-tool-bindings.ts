@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { toWidgetCspMeta, type AppResourceCsp } from "./view-csp.js"
 
 /** The scheme of the views the boot serves; the widget-contract e2e pins it. */
 export const VIEW_RESOURCE_URI_PREFIX = "ui://views/"
@@ -18,15 +19,24 @@ export function viewNameOf(uri: unknown): string | undefined {
   return name.length > 0 && !name.includes("/") ? name : undefined
 }
 
+/** A view the module brings itself, a resource it registers, in place of one from the bundle. */
+export interface OwnViewBinding {
+  /** The resource's URI (`registerAppResource`), never under `ui://views/`. */
+  resourceUri: string
+  /** What the resource states in its `_meta.ui.csp`, for Apps SDK hosts' `openai/widgetCSP`. */
+  csp?: AppResourceCsp
+}
+
 /**
- * The config parts that bind a tool to its view (named after the tool), spread into
- * `registerTool`'s config: both halves of `_meta`, MCP Apps' `ui.resourceUri` (with the flat
- * `ui/resourceUri` older hosts read, as `registerAppTool` adds it) and the OpenAI Apps SDK keys.
- * The boot serves the view resource and titles it with the tool's `title`. `passthrough` keeps
- * free-form `structuredContent` intact under the output schema.
+ * The config parts that bind a tool to its view, spread into `registerTool`'s config: both halves
+ * of `_meta`, MCP Apps' `ui.resourceUri` (with the flat `ui/resourceUri` older hosts read, as
+ * `registerAppTool` adds it) and the OpenAI Apps SDK keys. Without `own` that is the view named
+ * after the tool: the boot serves it from the bundle and titles it with the tool's `title`. With
+ * `own` it is the resource the module registers itself. `passthrough` keeps free-form
+ * `structuredContent` intact under the output schema.
  */
-export function showToolBinding(name: string, title: string) {
-  const resourceUri = viewResourceUri(name)
+export function showToolBinding(name: string, title: string, own?: OwnViewBinding) {
+  const resourceUri = own?.resourceUri ?? viewResourceUri(name)
   return {
     outputSchema: z.object({}).passthrough(),
     _meta: {
@@ -37,6 +47,7 @@ export function showToolBinding(name: string, title: string) {
       "openai/toolInvocation/invoked": `${title} ready`,
       "openai/widgetAccessible": true,
       "openai/resultCanProduceWidget": true,
+      ...(own?.csp && { "openai/widgetCSP": toWidgetCspMeta(own.csp) }),
     },
   }
 }

@@ -73,13 +73,18 @@ second engine dialect cheap:
 - Modules are self-contained. Each exports a module definition: config schema, env mapping,
   known env vars, toolset vocabulary, boot warnings, plugin factory
   (`packages/connectors/<family>/<family>-connector/src/module.ts`). A plugin is a name plus a
-  `register(server)` that puts the module's tools on the one server the shared boot builds;
-  the boot refuses a tool name two modules register. The app only lists its modules and wires
+  `register(server)` that puts the module's tools, prompts and resources on the one server the
+  shared boot builds; the boot refuses a name or resource URI two modules register. The app only lists its modules and wires
   their shared resources (`apps/mcp-server/src/setup.ts`); the shared boot selects the
   modules (`MCP_ACTIVE_MODULES`), installs OAuth from the env and resolves one fail-closed
   toolset per module per boot (a module with toolsets: read-only unless widened) and logs it.
   The module packages are published to npm, so external composition roots can mount them next
   to their own modules. The reference is `templates/composed-server/`.
+- A view comes from the bundle or from its module. Engine and analytics views are bundle views
+  (an ESLint gate blocks a resource in `packages/connectors/`). A module of yours, on npm say, may
+  bring a finished HTML document as its own resource instead: nothing of it enters the bundle, so
+  it shares no code with it, gets none of widget-shell's host contexts and states its own CSP. The
+  boot keeps `ui://views/` for the bundle and fails on a tool that binds a resource nobody serves.
 - The MCP server app owns no domain UI. Widgets live in packages: `pulse-ui`
   carries the design kit, `widget-shell` the view runtime;
   each module carries its own. Cross-module UI goes through another module's widget by its raw

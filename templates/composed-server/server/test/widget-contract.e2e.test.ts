@@ -14,6 +14,7 @@ import {
   bootComposition,
   closeComposition,
   isAppOnly,
+  isBundleView,
   isComposed,
   isViewBound,
   uiOf,
@@ -43,11 +44,11 @@ async function readResourceDomains(client: Client, uri: string): Promise<string[
  * Wire-level widget-contract assertions: what ext-apps hosts (Claude Desktop /
  * claude.ai) actually see on tools/list, resources/list and resources/read.
  * widget-shell's `showToolBinding` stamps both halves on a view tool: MCP Apps'
- * `_meta.ui.resourceUri` (one `ui://views/<tool>.html` resource PER view tool)
- * and the Apps SDK's `openai/*`; `appOnly` hides a feed from the model; the
- * boot serves each view resource with its CSP. Every check derives from the
- * composition (`MODULES` and the
- * tools it lists), so it covers every module this app composes, yours
+ * `_meta.ui.resourceUri` (one `ui://views/<tool>.html` resource PER view tool,
+ * or the resource a module brings itself) and the Apps SDK's `openai/*`;
+ * `appOnly` hides a feed from the model; the boot serves each view resource from
+ * the bundle with its CSP. Every check derives from the composition (`MODULES`
+ * and the tools it lists), so it covers every module this app composes, yours
  * included, with no tool listed by hand: a `*_show_*` tool without its view
  * binding hangs on the host's loading skeleton; a model-visible `*_data` feed
  * gets rendered by the host instead of feeding the in-widget callTool.
@@ -56,13 +57,17 @@ describe("widget wire contract (dual-protocol _meta)", () => {
   let booted: BootedComposition
   let client: Client
   let tools: Tool[]
+  /** Every tool with a view, the bundle's or a module's own. */
   let viewTools: Tool[]
+  /** Those whose view the boot serves from the bundle. */
+  let bundleViewTools: Tool[]
   let serverOrigin: string
 
   beforeAll(async () => {
     booted = await bootComposition()
     ;({ client, tools, origin: serverOrigin } = booted)
     viewTools = tools.filter(isViewBound)
+    bundleViewTools = tools.filter(isBundleView)
   })
 
   afterAll(async () => {
@@ -93,11 +98,12 @@ describe("widget wire contract (dual-protocol _meta)", () => {
       const meta = toolMeta(tool)
       const ui = uiOf(tool)
       const label = tool.name
-      // The view is named after the tool → per-tool view resource uri.
-      expect(ui.resourceUri, `${label}: ui.resourceUri`).toBe(viewResourceUri(tool.name))
-      expect(meta["openai/outputTemplate"], `${label}: outputTemplate`).toBe(
-        viewResourceUri(tool.name),
-      )
+      // A bundle view is named after the tool → per-tool view resource uri.
+      if (isBundleView(tool)) {
+        expect(ui.resourceUri, `${label}: ui.resourceUri`).toBe(viewResourceUri(tool.name))
+      }
+      // Both halves name one resource, or one host shows another view than the next.
+      expect(meta["openai/outputTemplate"], `${label}: outputTemplate`).toBe(ui.resourceUri)
       expect(meta["openai/widgetAccessible"], `${label}: widgetAccessible`).toBe(true)
       expect(meta["openai/resultCanProduceWidget"], `${label}: resultCanProduceWidget`).toBe(true)
       expect(meta["openai/toolInvocation/invoking"], `${label}: invoking`).toEqual(
@@ -117,9 +123,15 @@ describe("widget wire contract (dual-protocol _meta)", () => {
     for (const tool of tools.filter((t) => t.name.includes("_show_"))) {
       const ui = uiOf(tool)
       expect(
-        ui.resourceUri,
-        `${tool.name}: a show tool binds its own view: spread showToolBinding(name, title)`,
-      ).toBe(viewResourceUri(tool.name))
+        isViewBound(tool),
+        `${tool.name}: a show tool binds a view: spread showToolBinding(name, title)`,
+      ).toBe(true)
+      if (isBundleView(tool)) {
+        expect(
+          ui.resourceUri,
+          `${tool.name}: a show tool binds the view of its own name: spread showToolBinding(name, title)`,
+        ).toBe(viewResourceUri(tool.name))
+      }
       expect(ui.visibility, `${tool.name}: show tools must stay model-visible`).toBeUndefined()
     }
   })
@@ -163,10 +175,12 @@ describe("widget wire contract (dual-protocol _meta)", () => {
     }
   })
 
-  it("lists one view resource per view-bound tool with the mcp-app profile mimeType", async () => {
+  it("lists the view resource of every view-bound tool with the mcp-app profile mimeType", async () => {
     const { resources } = await client.listResources()
     for (const tool of viewTools) {
-      const resource = resources.find((r) => r.uri === viewResourceUri(tool.name))
+      const resource = resources.find((r) => r.uri === uiOf(tool).resourceUri)
+      // A view a module's resource template serves has no listing; the boot checked its binding.
+      if (!resource && !isBundleView(tool)) continue
       expect(resource, `view resource for ${tool.name} should be listed`).toBeDefined()
       expect(resource!.mimeType, tool.name).toBe("text/html;profile=mcp-app")
     }
@@ -174,8 +188,8 @@ describe("widget wire contract (dual-protocol _meta)", () => {
 
   // The Apps SDK half the boot writes for each view resource: the view's description (its view
   // tool's title, from showToolBinding) and its display modes, inline and fullscreen.
-  it("reads every view with its Apps SDK description and display modes", async () => {
-    for (const tool of viewTools) {
+  it("reads every view from the bundle with its Apps SDK description and display modes", async () => {
+    for (const tool of bundleViewTools) {
       const meta = await readViewMeta(client, viewResourceUri(tool.name))
       expect(meta["openai/widgetDescription"], tool.name).toEqual(expect.stringMatching(/\S/))
       expect(meta["openai/ui"], tool.name).toEqual({
@@ -187,7 +201,7 @@ describe("widget wire contract (dual-protocol _meta)", () => {
   // The one bundle serves every view: the document's prelude names the view (= its view tool),
   // before the bundle runs, so the bundle mounts that view and re-runs that tool on a stripped result.
   it("names its view in every view document, before the bundle", async () => {
-    for (const tool of viewTools) {
+    for (const tool of bundleViewTools) {
       const { contents } = await client.readResource({ uri: viewResourceUri(tool.name) })
       const text = (contents[0] as { text?: string }).text ?? ""
       expect(text, tool.name).toContain(viewPrelude(tool.name))
@@ -195,7 +209,7 @@ describe("widget wire contract (dual-protocol _meta)", () => {
   })
 
   it("returns view html embedding the bundle with the request-resolved csp from resources/read", async () => {
-    for (const tool of viewTools) {
+    for (const tool of bundleViewTools) {
       const uri = viewResourceUri(tool.name)
       const { contents } = await client.readResource({ uri })
       const content = contents[0] as {
@@ -239,9 +253,10 @@ describe("widget wire contract (dual-protocol _meta)", () => {
 
 /**
  * Behind its public URL (`MCP_URL`) the server declares that origin itself on
- * every view-bound tool (the shell's, the Miragon modules' and YOUR modules'
- * alike, listed and read, and in the Apps SDK half, `openai/widgetCSP`), so
- * a host admits the font route the views load Geist from.
+ * every tool with a view from the bundle (the shell's, the Miragon modules' and
+ * YOUR modules' alike, listed and read, and in the Apps SDK half,
+ * `openai/widgetCSP`), so a host admits the font route the views load Geist from.
+ * A view a module brings itself loads its own fonts.
  */
 describe("widget wire contract: the font origin under MCP_URL", () => {
   const PUBLIC_ORIGIN = "https://mcp.acme.test"
@@ -256,14 +271,16 @@ describe("widget wire contract: the font origin under MCP_URL", () => {
     vi.unstubAllEnvs()
   })
 
-  it("advertises it in resourceDomains on every view resource and to Apps SDK hosts", async () => {
+  it("advertises it in resourceDomains on every bundle view and to Apps SDK hosts", async () => {
     const { client, tools } = booted
     const { resources } = await client.listResources()
     const views = resources.filter((r) => r.uri.startsWith(VIEW_RESOURCE_URI_PREFIX))
     for (const view of views) {
       expect(await readResourceDomains(client, view.uri), view.uri).toContain(PUBLIC_ORIGIN)
     }
-    const widgetTools = tools.filter((t) => t._meta?.["openai/outputTemplate"] !== undefined)
+    const widgetTools = tools.filter(
+      (t) => isBundleView(t) && t._meta?.["openai/outputTemplate"] !== undefined,
+    )
     for (const tool of widgetTools) {
       expect(tool._meta?.["openai/widgetCSP"], tool.name).toEqual({
         resource_domains: [PUBLIC_ORIGIN],

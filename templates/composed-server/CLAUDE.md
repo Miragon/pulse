@@ -80,8 +80,9 @@ only in a real host, through a tunnel (the `setup-server` skill, Step 6).
 2. **Plain tools go through `createToolRegistrar`, never a raw `server.registerTool()`**:
    the raw path is reserved for widget tools (`widget-tools.ts`). `server` is the
    `ModuleServer` the boot hands `register(server)`: the official MCP SDK's own
-   `registerTool`/`registerPrompt`, so its docs
-   (https://ts.sdk.modelcontextprotocol.io/v2/) and ext-apps' `registerAppTool`
+   `registerTool`/`registerPrompt`/`registerResource`, so its docs
+   (https://ts.sdk.modelcontextprotocol.io/v2/) and ext-apps' `registerAppTool` and
+   `registerAppResource`
    (https://apps.extensions.modelcontextprotocol.io/api/) apply as they are; Pulse
    adds only config helpers on top, which a view tool spreads either way
    (`...showToolBinding(name, title)`, rule 6). Three render
@@ -105,7 +106,9 @@ only in a real host, through a tunnel (the `setup-server` skill, Step 6).
    `server/test/view-registry.test.ts` boots the real composition and fails
    on a view-bound tool without a view, on a view no tool opens, and on a
    view-bound tool that is not a read (`readOnlyHint: true`, never destructive):
-   a host that strips the tool's result re-runs it once, unasked.
+   a host that strips the tool's result re-runs it once, unasked. A finished HTML
+   view a module brings itself hangs off none of these links: the `add-widget`
+   skill, "A finished HTML view", says when that fits and what it costs.
 4. **`resolve.dedupe` in `server/vite.config.ts` is load-bearing: never trim
    it.** It spreads widget-shell's `VIEW_BUNDLE_DEDUPE`
    (`@miragon/pulse-widget-shell/server`), the packages the view bundle must
@@ -146,12 +149,17 @@ only in a real host, through a tunnel (the `setup-server` skill, Step 6).
    it itself (ext-apps' `registerAppTool`, say) declares it like `zod`: a ranged
    peer in the range widget-shell's README names (a caret range that admits the
    version widget-shell pins; `server/test/pins.test.ts` holds it), plus an exact
-   devDependency.
-6. **Never hand-write `_meta` keys**: spread `showToolBinding(...)` for
+   devDependency. Install such a module from npm and `server/package.json` pins
+   the package too, in `dependencies`, at widget-shell's version: pnpm otherwise
+   installs what the module's range resolves to, and neither strict peers nor
+   `pins.test.ts` see it.
+6. **Never hand-write a tool's `_meta` keys**: spread `showToolBinding(...)` for
    widget tools and `appOnly` for data feeds (both from
    `@miragon/pulse-widget-shell/server`). They stamp both halves, MCP Apps' `ui`
-   keys and the `openai/*` ones; the boot adds the view's CSP and serves its
-   resource, so a module registers none.
+   keys and the `openai/*` ones; for a view in the bundle the boot adds the CSP
+   and serves its resource. A finished HTML view is the one resource a module
+   registers: `showToolBinding(name, title, { resourceUri, csp })` on the tool,
+   and on the resource the `_meta.ui` of ext-apps' API, which is the module's.
 7. **`.env.example` documents every env var the server reads**: both drift
    directions are guarded by `server/test/env-example.test.ts`; add your
    module's vars there. The same test holds its live `MCP_ACTIVE_MODULES` to

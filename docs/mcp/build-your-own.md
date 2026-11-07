@@ -9,8 +9,7 @@ GitHub, or with the GitHub CLI:
 gh repo create my-mcp-server --template Miragon/pulse-starter --private --clone
 ```
 
-Prerequisites: Node.js 22 from 22.23.4, 24 from 24.22.1, or 26.12.1 and later (the starter's `engines`) and pnpm 10.32.1 (`corepack enable`; Node.js 25 and later
-ship no corepack, so `npm i -g pnpm@10.32.1`).
+Prerequisites: Node.js 22 from 22.23.4, 24 from 24.22.1, or 26.12.1 and later (the starter's `engines`) and pnpm 10.32.1 (`corepack enable`; from Node.js 25 `npm i -g pnpm@10.32.1`).
 
 ## First run
 
@@ -32,19 +31,20 @@ since the copied `.env` runs only `engine,notes` (the starter's engine comes wit
 ## Write a module
 
 A module's plugin registers on the official MCP TypeScript SDK itself: `register(server)` gets the
-SDK's `registerTool` and `registerPrompt`, so tools and prompts follow the
-[SDK docs](https://ts.sdk.modelcontextprotocol.io/v2/) and views
-[MCP Apps](https://apps.extensions.modelcontextprotocol.io/api/). Pulse adds only what composes
-modules into one server: the module contract (config from the environment, instructions, boot
-warnings), the registrar for tools the model reads, toolsets that fail closed, and the view runtime
-its widgets render in. The starter's [CLAUDE.md](https://github.com/Miragon/pulse-starter/blob/main/CLAUDE.md)
+SDK's `registerTool`, `registerPrompt` and `registerResource`, so it follows the
+[SDK docs](https://ts.sdk.modelcontextprotocol.io/v2/) and [MCP Apps](https://apps.extensions.modelcontextprotocol.io/api/).
+Pulse adds what composes modules into one server: the module contract, the registrar, toolsets that fail
+closed and the view runtime. The starter's [CLAUDE.md](https://github.com/Miragon/pulse-starter/blob/main/CLAUDE.md)
 holds that contract, its [skills](https://github.com/Miragon/pulse-starter/tree/main/.claude/skills) walk through
 a module and a widget, its [README](https://github.com/Miragon/pulse-starter#readme) covers engines, image and assistants.
 
+A view is a widget in the server's one bundle, which fits almost every module. A module shipped prebuilt
+brings a finished HTML document as its own resource instead (`registerAppResource`,
+`showToolBinding(name, title, { resourceUri })`): no shared bundle code, no host contexts, its CSP is its own.
+
 ## Updates
 
-Your repository does not update itself: watch the starter's
-[releases](https://github.com/Miragon/pulse-starter/releases) (Watch → Custom → Releases). Pulse is below 1.0,
-so keep the starter's exact pins, update them together and read the
-[changelog](https://github.com/Miragon/pulse/blob/main/CHANGELOG.md) for every breaking change. The starter
-mirrors `templates/composed-server/` in Miragon/pulse: report a problem [there](https://github.com/Miragon/pulse/issues).
+Watch the starter's [releases](https://github.com/Miragon/pulse-starter/releases) (Watch → Custom → Releases): your
+repository does not update itself. Pulse is below 1.0, so keep its exact pins, update them together and read the
+[changelog](https://github.com/Miragon/pulse/blob/main/CHANGELOG.md). The starter mirrors
+`templates/composed-server/` in Miragon/pulse: report a problem [there](https://github.com/Miragon/pulse/issues).
