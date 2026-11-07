@@ -1,9 +1,9 @@
 import { readFileSync, readdirSync } from "node:fs"
 import { join, relative } from "node:path"
 import { describe, expect, test } from "vitest"
-import { APP_ROOT } from "./support/files.js"
+import { REPO_ROOT } from "./support/files.js"
 
-const WEBVIEW = join(APP_ROOT, "src/webview")
+const WEBVIEW = join(REPO_ROOT, "packages/core/runtime-view/src/webview")
 const VENDORED = join(WEBVIEW, "theme")
 
 function stylesheetsUnder(directory: string): string[] {
@@ -28,7 +28,7 @@ describe("the webview stylesheets", () => {
     expect(stylesheets.length).toBeGreaterThan(0)
     const found = stylesheets.flatMap((path) =>
       hostColoursIn(readFileSync(path, "utf8")).map(
-        (name) => `${relative(APP_ROOT, path)}: ${name}`,
+        (name) => `${relative(REPO_ROOT, path)}: ${name}`,
       ),
     )
     expect(found).toEqual([])

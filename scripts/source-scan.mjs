@@ -2,7 +2,8 @@
  * The non-test sources of every package and every MCP server app: what the cross-module source
  * guards (tool-name refs, hand-off refs, server env names) read. An interface app (a CLI, an
  * editor extension) carries no tool name of either module and posts nothing to an MCP host, so
- * no guard reads it.
+ * no guard reads it, and neither reads the packages only the editor hosts bundle
+ * (INTERFACE_PACKAGES).
  */
 import fs from "node:fs"
 import path from "node:path"
@@ -18,8 +19,16 @@ export const REPO_ROOT = path.resolve(import.meta.dirname, "..")
 export const APP_SCAN = {
   cli: "interface",
   "mcp-server": "mcp-host",
+  orca: "interface",
   vscode: "interface",
 }
+
+/**
+ * The packages only the interface apps bundle (keyed by their directory under packages/): the
+ * runtime view the editor hosts share and the engine family's adapter of its contract. Like an
+ * interface app, they carry no tool name and post nothing to an MCP host.
+ */
+export const INTERFACE_PACKAGES = ["core/runtime-view", "connectors/engine/engine-adapter"]
 
 /** @param {string} dir */
 const childDirs = (dir) =>
@@ -45,7 +54,10 @@ function sourceRoots(root, apps) {
   const appDirs = Object.entries(apps)
     .filter(([, scan]) => scan === "mcp-host")
     .map(([name]) => /** @type {const} */ ([path.join(root, "apps", name), "mcp-host"]))
-  return [...appDirs, ...packageDirs.map((dir) => /** @type {const} */ ([dir, "package"]))]
+  const scannedPackages = packageDirs.filter(
+    (dir) => !INTERFACE_PACKAGES.includes(path.relative(packages, dir).split(path.sep).join("/")),
+  )
+  return [...appDirs, ...scannedPackages.map((dir) => /** @type {const} */ ([dir, "package"]))]
     .map(([dir, owner]) => ({ src: path.join(dir, "src"), owner }))
     .filter(({ src }) => fs.existsSync(src))
 }

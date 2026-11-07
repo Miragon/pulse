@@ -80,8 +80,8 @@ file each: the file and the CLI's verdict, the error or each profile as it resol
 resolves each profile, `apps/cli/src/config/project-schema-boundaries.test.ts` checks the edges
 both ways, as a table and as properties, the refused header names drawn from the CLI's own lists.
 The CLI owns the files and its verdict; Pulse for VS Code owns what it makes of them
-(`apps/vscode/test/host/project-file-fixtures.expected.json`), and its
-`apps/vscode/test/host/project-file-fixtures.test.ts` reads the fixtures as files. A change to
+(`packages/core/runtime-view/test/host-kit/project-file-fixtures.expected.json`), and its
+`packages/core/runtime-view/test/host-kit/project-file-fixtures.test.ts` reads the fixtures as files. A change to
 what a project file may hold changes the parser, the schema and a fixture in the same commit; a
 new fixture needs an entry in the extension's expectations too. The one rule JSON Schema cannot
 express (a defaultProfile names one of the file's profiles) is checked next to the schema in

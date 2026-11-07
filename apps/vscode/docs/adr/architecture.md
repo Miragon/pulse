@@ -19,14 +19,14 @@ One package, `apps/vscode` of the Pulse monorepo, with six layers as folders und
 `apps/vscode/src`. There is no per-layer build. Only the extension bundles (esbuild): the
 host as CommonJS for Node 22, the webview as an IIFE.
 
-| Layer         | Responsibility                                                                                                                                                                                                                                                                                               | Runtime                               |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------- |
-| `contract`    | The `ProcessRuntime`, `ProcessCommands` and `EngineAdapter` ports, the local `ModelSource` and `CodeLocator` ports with the `WorkspaceFiles` seam, read models and `RuntimeError`; folders `apps/vscode/src/contract/conformance` (the kit) and `apps/vscode/src/contract/fake` (in-memory reference engine) | none (no DOM, no Node)                |
-| `core`        | Engine-neutral logic: use cases turn read models into view models, panel sessions handle webview intents; `apps/vscode/src/core/protocol` holds the JSON-only messages and view models                                                                                                                       | none                                  |
-| `webview`     | Preact UI and bpmn-js diagram. Renders protocol view models, sends intents                                                                                                                                                                                                                                   | browser                               |
-| `adapters/c7` | `EngineAdapter`, `ProcessRuntime`, `ProcessCommands` and the Cockpit web UI for the Camunda 7 family ([c7-adapter.md](c7-adapter.md)); `apps/vscode/src/adapters/c7/engine-rest` reads and writes the engine's REST API                                                                                      | Node                                  |
-| `model`       | `ModelSource` and `CodeLocator` for the local workspace: reads `.bpmn` files with bpmn-moddle and its vendor descriptors, finds the implementing code ([local-sources.md](local-sources.md)); the only layer with those libraries                                                                            | none (files through `WorkspaceFiles`) |
-| `host`        | VS Code host: composition root, connections, tree, panels, commands, status bar                                                                                                                                                                                                                              | Node + `vscode`                       |
+| Layer         | Responsibility                                                                                                                                                                                                                                                                                                                             | Runtime                               |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------- |
+| `contract`    | The `ProcessRuntime`, `ProcessCommands` and `EngineAdapter` ports, the local `ModelSource` and `CodeLocator` ports with the `WorkspaceFiles` seam, read models and `RuntimeError`; folders `packages/core/runtime-view/src/contract/conformance` (the kit) and `packages/core/runtime-view/src/contract/fake` (in-memory reference engine) | none (no DOM, no Node)                |
+| `core`        | Engine-neutral logic: use cases turn read models into view models, panel sessions handle webview intents; `packages/core/runtime-view/src/core/protocol` holds the JSON-only messages and view models                                                                                                                                      | none                                  |
+| `webview`     | Preact UI and bpmn-js diagram. Renders protocol view models, sends intents                                                                                                                                                                                                                                                                 | browser                               |
+| `adapters/c7` | `EngineAdapter`, `ProcessRuntime`, `ProcessCommands` and the Cockpit web UI for the Camunda 7 family ([c7-adapter.md](c7-adapter.md)); `packages/connectors/engine/engine-adapter/src/engine-rest` reads and writes the engine's REST API                                                                                                  | Node                                  |
+| `model`       | `ModelSource` and `CodeLocator` for the local workspace: reads `.bpmn` files with bpmn-moddle and its vendor descriptors, finds the implementing code ([local-sources.md](local-sources.md)); the only layer with those libraries                                                                                                          | none (files through `WorkspaceFiles`) |
+| `host`        | VS Code host: composition root, connections, tree, panels, commands, status bar                                                                                                                                                                                                                                                            | Node + `vscode`                       |
 
 The core in the product owner's sense is everything that is engine-neutral
 (`core`, `webview`, `host`); adapters only provide data.
@@ -67,13 +67,13 @@ One edge crosses into another app, and only as a file read: the CLI owns the for
 `.pulse-cli.json` (its JSON Schema `apps/cli/schema/project-file.schema.json`) and the shared
 fixtures in `apps/cli/test/fixtures/project-file/`, each the file and the CLI's verdict. The
 extension owns what it makes of each fixture, in
-`apps/vscode/test/host/project-file-fixtures.expected.json`, so rewording a problem changes no
-file of the CLI. The test `apps/vscode/test/host/project-file-fixtures.test.ts` reads the
+`packages/core/runtime-view/test/host-kit/project-file-fixtures.expected.json`, so rewording a problem changes no
+file of the CLI. The test `packages/core/runtime-view/test/host-kit/project-file-fixtures.test.ts` reads the
 fixtures with `node:fs`, never through an import (apps never import each other; a file read is
 no import edge), and holds `TargetsParser` to them: every profile the CLI accepts is a target with
 the CLI's URL, auth type and read-only flag, or a named problem, and every fixture has exactly one
 expectation. A change to the CLI's rules changes the fixtures, and this test fails until the
-parser follows; `apps/vscode/turbo.json` names the fixtures as inputs of `test`, so a cached run
+parser follows; `packages/core/runtime-view/turbo.json` names the fixtures as inputs of `test`, so a cached run
 never hides that. Pulse reads profile by profile and ignores keys it does not use, so a file the
 CLI refuses as a whole (a committed password, a secret header, an unknown key) can still list
 engines; the fixtures pin that.
@@ -103,7 +103,7 @@ folder and one entry in the composition root's adapter map.
 
 ### Host ⇄ webview protocol
 
-Hand-rolled discriminated unions in `apps/vscode/src/core/protocol` with runtime guards
+Hand-rolled discriminated unions in `packages/core/runtime-view/src/core/protocol` with runtime guards
 (`MessageGuards.isWebviewIntent` in the host; the webview, which may import only types,
 checks state messages in its `HostBridge`). Rule: **intents in,
 state out**. The webview sends intents (`ready`, `refresh`, `selectVersion`,
@@ -181,7 +181,7 @@ file's current content when _Show Runtime Data for This Model_ runs again.
   in `apps/vscode/test/architecture`); a wrong global fails
   `pnpm --filter pulse-cockpit run typecheck` through the `@ts-expect-error` probe of each
   layer (`apps/vscode/test/<layer>/runtime.boundary.ts`).
-- A new engine takes `apps/vscode/src/adapters/<engine>` with a class implementing
+- A new engine takes `packages/connectors/<family>/<family>-adapter` with a class implementing
   `EngineAdapter`, an engine test that runs the `ConformanceKit` and one entry in the
   composition root; core, protocol and webview stay untouched. ESLint keeps engine words
   out of them, and dependency-cruiser fails while a new adapter has no engine test. The

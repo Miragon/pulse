@@ -10,7 +10,7 @@ Feature ids are the [inventory](inventory.md)'s. Orca claims cite a source; "gue
 **Frame.** `panel.html` (the sidebar panel) and `editor.html` (the custom editor, section 2) load
 `bridge.js` (new), then the unchanged `webview.js`, `webview.css` and `fonts/`. Orca serves them
 from the plugin folder by relative URL ([isolated frames][iso]). `bridge.js` defines the
-`acquireVsCodeApi()` that `apps/vscode/src/webview/main.tsx` calls.
+`acquireVsCodeApi()` that `packages/core/runtime-view/src/webview/main.tsx` calls.
 
 **Worker.** The worker (`trusted-worker`) keeps one session per frame, keyed by `context.panel.id`,
 which "stays the same while it stays open" (orca-worker.d.ts `PanelCaller`). A session holds one
@@ -50,11 +50,11 @@ with an `incidentSummary` per engine and per process, like
 
 That is about 1,000 production lines and 330 test lines.
 
-**Reused unchanged:** `apps/vscode/src/webview`, `apps/vscode/src/core` (with `MessageGuards`),
-`apps/vscode/src/contract`, `apps/vscode/src/adapters/c7` with engine-core, `apps/vscode/src/model`,
-`apps/vscode/src/host/composition-root.ts`, `apps/vscode/src/host/live/timer-scheduler.ts`,
+**Reused unchanged:** `packages/core/runtime-view/src/webview`, `packages/core/runtime-view/src/core` (with `MessageGuards`),
+`packages/core/runtime-view/src/contract`, `packages/connectors/engine/engine-adapter/src` with engine-core, `packages/core/runtime-view/src/model`,
+`apps/vscode/src/host/composition-root.ts`, `packages/core/runtime-view/src/host-kit/live/timer-scheduler.ts`,
 `apps/vscode/src/host/connections` except the five files that import `vscode` at runtime (registry,
-watcher, settings, discovery, targets file), `apps/vscode/scripts/webview-build-options.mjs` and
+watcher, settings, discovery, targets file), `packages/core/runtime-view/scripts/webview-build-options.mjs` and
 `hostBuildOptions` of `apps/vscode/scripts/build.mjs`.
 
 **Seams in apps/vscode** (configuration only, behaviour-neutral for the extension):
@@ -63,7 +63,7 @@ watcher, settings, discovery, targets file), `apps/vscode/scripts/webview-build-
    contract, core, protocol and adapter entries, `src/host/connections/`, the composition root and
    Node built-ins (the frame: protocol types only).
 2. `apps/vscode/tsconfig.host.json` includes src/orca/worker (it type-imports `vscode` through
-   `apps/vscode/src/host/connections/credential-store.ts`); `apps/vscode/tsconfig.webview.json`
+   `packages/core/runtime-view/src/host-kit/connections/credential-store.ts`); `packages/core/runtime-view/tsconfig.webview.json`
    includes src/orca/frame.
 3. `knip.jsonc`: the worker main and the frame bridge as entries.
 4. `apps/vscode/package.json`: a new `orca:build` script; the pinned lint, typecheck, test stay.
@@ -75,27 +75,27 @@ Output goes to dist/orca: gitignored, skipped by the linters, kept out of the .v
 
 ## 1. Feature mapping
 
-| Id             | Orca surface          | How                                                                                                                                                                             | Fallback                     | Citation                                                  |
-| -------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- | --------------------------------------------------------- |
-| S1             | Sidebar HTML panel    | Manifest panel, icon `activity`                                                                                                                                                 | none                         | [PanelContribution][m-panel]                              |
-| S2, S6, S8, S9 | Panel, home view      | Board chip per target with product, running and incident counts; refresh; `LOCAL_TARGET` when there is no file; a chip opens the engine view                                    | none                         | `apps/vscode/src/core/boards/board-engine.ts`             |
-| S3             | Panel, engine view    | `EnginePanel`: running, latest version and incidents per process                                                                                                                | one click deeper             | `apps/vscode/src/core/views/engine-view-builder.ts`       |
-| S4, S5         | Panel, home view      | `incidentSummary` by engine and by process; production chips in red; problem strips                                                                                             | no "9+" badge                | `apps/vscode/src/webview/screens/board/board-engines.tsx` |
-| S7             | Worker `editor.open`  | `editConnection` opens the `.pulse-cli.json` it read (`workspace:write`)                                                                                                        | a notice that names the path | [host methods][h-methods]                                 |
-| S10, P1        | Panel or editor frame | One view per document; back is `history.back()` with a `back` label in the URL; the tab title stays fixed (orca-frame.d.ts has no title call; guess)                            | none                         | [files and assets][a-files]                               |
-| S11 to S17     | none in v1            | No command input, IDE events or tree; a status bar item would keep the worker running; `BoardPanel.attend` does nothing, so refresh is manual                                   | later                        | [status bar][m-status], [events][h-events]                |
-| S18            | Panel, board view     | The worker reads `.pulse/boards/*.board.json` with Node                                                                                                                         | later                        | `apps/vscode/src/core/boards/board-panel.ts`              |
-| C1, C2         | Worker                | `workspace.list` on local hosts (`hostId` null; guess); Node reads each root's `.pulse-cli.json` through `TargetsParser`, dedupes by name and discovers again on each home open | all workspaces               | [host methods][h-methods]                                 |
-| C3             | Frame `login.html`    | `setCredentials` navigates there; `pulse.setCredentials` stores through `CredentialStore` only on `os-keyring`                                                                  | refuse                       | [prior art 4.3][pa-cred]                                  |
-| C4, C6, C7     | Worker                | `TargetPolicy`, `Problems` and the product label as they are                                                                                                                    | none                         | `apps/vscode/src/host/composition-root.ts`                |
-| C5, C11        | Plugin settings       | `environments` as one JSON string; four on/off enums for live updates                                                                                                           | none                         | [SettingContribution][m-setting]                          |
-| C8, C9, C10    | Worker                | v1 builds every connection with writes `disabled`; section 3 later; `WriteAudit` writes to `orca.log`                                                                           | read-only                    | `apps/vscode/src/host/connections/write-policy.ts`        |
-| P2 to P11, P13 | Frame                 | Webview and core as they are; the theme comes through the shim (section 5)                                                                                                      | light only                   | `apps/vscode/src/webview/host/host-bridge.ts`             |
-| P12            | Frame                 | Navigate; ignore `toSide`; `pickInstance` takes the first choice (incidents first)                                                                                              | the user goes back           | `apps/vscode/src/host/panels/vscode-panel-effects.ts`     |
-| P14            | Frame                 | `getState` and `setState` in `localStorage`, keyed by route                                                                                                                     | in memory                    | [files and assets][a-files]                               |
-| P15            | Frame                 | For a `copy` intent the shim runs `execCommand` inside the click; `copyHandover` goes through the worker                                                                        | none                         | [isolated frames][iso]                                    |
-| P16            | Frame                 | The worker posts the URL; the frame calls `orca.shell.openExternal`, which needs a click (guess: the round trip fits its time window)                                           | show the URL                 | [host API][h-methods]                                     |
-| P17 to P21     | later                 | Incident text and root cause stay visible; writes are off                                                                                                                       | later                        |                                                           |
+| Id             | Orca surface          | How                                                                                                                                                                             | Fallback                     | Citation                                                                 |
+| -------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- | ------------------------------------------------------------------------ |
+| S1             | Sidebar HTML panel    | Manifest panel, icon `activity`                                                                                                                                                 | none                         | [PanelContribution][m-panel]                                             |
+| S2, S6, S8, S9 | Panel, home view      | Board chip per target with product, running and incident counts; refresh; `LOCAL_TARGET` when there is no file; a chip opens the engine view                                    | none                         | `packages/core/runtime-view/src/core/boards/board-engine.ts`             |
+| S3             | Panel, engine view    | `EnginePanel`: running, latest version and incidents per process                                                                                                                | one click deeper             | `packages/core/runtime-view/src/core/views/engine-view-builder.ts`       |
+| S4, S5         | Panel, home view      | `incidentSummary` by engine and by process; production chips in red; problem strips                                                                                             | no "9+" badge                | `packages/core/runtime-view/src/webview/screens/board/board-engines.tsx` |
+| S7             | Worker `editor.open`  | `editConnection` opens the `.pulse-cli.json` it read (`workspace:write`)                                                                                                        | a notice that names the path | [host methods][h-methods]                                                |
+| S10, P1        | Panel or editor frame | One view per document; back is `history.back()` with a `back` label in the URL; the tab title stays fixed (orca-frame.d.ts has no title call; guess)                            | none                         | [files and assets][a-files]                                              |
+| S11 to S17     | none in v1            | No command input, IDE events or tree; a status bar item would keep the worker running; `BoardPanel.attend` does nothing, so refresh is manual                                   | later                        | [status bar][m-status], [events][h-events]                               |
+| S18            | Panel, board view     | The worker reads `.pulse/boards/*.board.json` with Node                                                                                                                         | later                        | `packages/core/runtime-view/src/core/boards/board-panel.ts`              |
+| C1, C2         | Worker                | `workspace.list` on local hosts (`hostId` null; guess); Node reads each root's `.pulse-cli.json` through `TargetsParser`, dedupes by name and discovers again on each home open | all workspaces               | [host methods][h-methods]                                                |
+| C3             | Frame `login.html`    | `setCredentials` navigates there; `pulse.setCredentials` stores through `CredentialStore` only on `os-keyring`                                                                  | refuse                       | [prior art 4.3][pa-cred]                                                 |
+| C4, C6, C7     | Worker                | `TargetPolicy`, `Problems` and the product label as they are                                                                                                                    | none                         | `apps/vscode/src/host/composition-root.ts`                               |
+| C5, C11        | Plugin settings       | `environments` as one JSON string; four on/off enums for live updates                                                                                                           | none                         | [SettingContribution][m-setting]                                         |
+| C8, C9, C10    | Worker                | v1 builds every connection with writes `disabled`; section 3 later; `WriteAudit` writes to `orca.log`                                                                           | read-only                    | `packages/core/runtime-view/src/host-kit/connections/write-policy.ts`    |
+| P2 to P11, P13 | Frame                 | Webview and core as they are; the theme comes through the shim (section 5)                                                                                                      | light only                   | `packages/core/runtime-view/src/webview/host/host-bridge.ts`             |
+| P12            | Frame                 | Navigate; ignore `toSide`; `pickInstance` takes the first choice (incidents first)                                                                                              | the user goes back           | `apps/vscode/src/host/panels/vscode-panel-effects.ts`                    |
+| P14            | Frame                 | `getState` and `setState` in `localStorage`, keyed by route                                                                                                                     | in memory                    | [files and assets][a-files]                                              |
+| P15            | Frame                 | For a `copy` intent the shim runs `execCommand` inside the click; `copyHandover` goes through the worker                                                                        | none                         | [isolated frames][iso]                                                   |
+| P16            | Frame                 | The worker posts the URL; the frame calls `orca.shell.openExternal`, which needs a click (guess: the round trip fits its time window)                                           | show the URL                 | [host API][h-methods]                                                    |
+| P17 to P21     | later                 | Incident text and root cause stay visible; writes are off                                                                                                                       | later                        |                                                                          |
 
 ## 2. A cockpit "tab" without a file
 
@@ -113,7 +113,7 @@ dirty ([custom editors][a-editors]). Orca opens `.json` in Source ([CustomEditor
 "always behave as `option`"), so the person picks Pulse in the view toggle (guess: also for a
 `filenames` entry ending in `.json`). Guess: navigating the editor frame keeps the editor API; if
 not, it swaps sessions in place with one shared `StatePublisher`
-(`apps/vscode/src/core/panels/state-publisher.ts`), so revisions keep rising.
+(`packages/core/runtime-view/src/core/panels/state-publisher.ts`), so revisions keep rising.
 
 ## 3. Write confirmations without native modals
 
@@ -164,7 +164,7 @@ Measured with the dev host bundled into the scratchpad against shop-dev: loading
 order-fulfillment definition 23,595 B (11,568 B of it BPMN XML), instance 19,544 B, engine 831 B.
 Only the XML grows with the model; above 240 KiB the worker posts `pulse.stateTooLarge` and the
 frame pulls `pulse.state` (1 MiB). `setVariable` allows a 64 KiB value
-(`apps/vscode/src/core/protocol/message-guards.ts`), more than the input limit leaves after the
+(`packages/core/runtime-view/src/core/protocol/message-guards.ts`), more than the input limit leaves after the
 envelope, so writes need a 60 KiB cap. A failed request keeps the last state; the heartbeat retries.
 
 ## 5. Bundling
@@ -177,7 +177,7 @@ envelope, so writes need a 60 KiB cap. A failed request keeps the last state; th
 - **Worker**: `hostBuildOptions` with ESM output, no `vscode` external and the `createRequire`
   banner of `apps/vscode/scripts/dev-server.mjs`; the dev host built so is 391,266 B. Orca calls the
   default export `activate` ([files and assets][a-files]).
-- **Node**: `apps/vscode/src/adapters/c7/engine-rest/views/lossless-json.ts` needs `JSON.rawJSON`
+- **Node**: `packages/connectors/engine/engine-adapter/src/engine-rest/views/lossless-json.ts` needs `JSON.rawJSON`
   (Node 21 and later). Orca 1.4.252 bundles Electron 43.8.6 with Node v24.22.1 (version strings in
   its app bundle); [hello-orca][ex-hello] calls the worker "plain-Node". Guess: it runs on that
   Node. The version is experimental ([stability][a-stab]), so `activate` checks `JSON.rawJSON` first.
@@ -188,7 +188,7 @@ envelope, so writes need a 60 KiB cap. A failed request keeps the last state; th
   unused.
 - **Not `@miragon/modeler-shell/orca/webview`**: Pulse pins 0.10.0 (`apps/vscode/package.json`)
   without that entry; `orcaEditorApi()` throws without `orca.document.session` ([api.ts][ms-api]),
-  so not in a panel; `mountOrcaShell` would change `apps/vscode/src/webview/diagram/canvas-shell.ts`;
+  so not in a panel; `mountOrcaShell` would change `packages/core/runtime-view/src/webview/diagram/canvas-shell.ts`;
   `orcaEditorHost` ([editor-host.ts][ms-host]) syncs a document Pulse lacks. Worth taking: the
   theme mapping, and `installOrcaEditorStub` ([orca-stub.ts][ms-stub]) for a smoke test.
 
@@ -211,7 +211,7 @@ the heartbeat covers it.
   which hides Source); one view at a time, back through history, the first of several called
   instances; read-only, no stack trace document, no jump to model or code; an engine list, not a
   tree, without status bar or go-to-instance; targets of every local workspace, logins keyed by the
-  absolute path of `.pulse-cli.json` (`apps/vscode/src/host/connections/credential-store.ts`);
+  absolute path of `.pulse-cli.json` (`packages/core/runtime-view/src/host-kit/connections/credential-store.ts`);
   Miragon colours, only light and dark follow Orca; up to 15 s stale after a worker stop.
 - **Risks**: unchecked guesses (worker Node, navigation in the editor frame, a click still counting
   after a round trip, the `.json` toggle rule); Orca's `secrets.get` answers `null` where

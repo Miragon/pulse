@@ -1,4 +1,4 @@
-import type { Attention } from "../../core/index.js"
+import type { Attention } from "@miragon/pulse-runtime-view/core"
 import * as vscode from "vscode"
 
 const IDLE_AFTER_MS = 15 * 60_000

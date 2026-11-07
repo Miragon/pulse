@@ -5,8 +5,8 @@ writes included. The plugin shows the Engines tree, the engine overview, definit
 migrations, a local model against its deployment and boards, each with real data from the
 sandbox engines, with live refresh, back links, incident details and the engine's web app. Writes
 follow the extension's policy; the confirmation waits in the Pulse panel. The webview, the core
-and the C7 adapter run unchanged; the Orca host is about 3,700 lines in `apps/vscode/dev/orca/`,
-covered by 27 tests in `apps/vscode/test/orca/`.
+and the C7 adapter run unchanged; the Orca host is about 3,700 lines in `apps/orca/src/`,
+covered by 27 tests in `apps/orca/test/`.
 
 **Recommendation: go on, with writes.** What is left for a release is placement, packaging,
 tests in a real Orca and a handful of gaps only Orca can close (section 4). Before that, an owner
@@ -136,17 +136,17 @@ About two weeks to a first release, the package extraction not counted.
 ```sh
 pnpm install && pnpm build                      # engine-core is bundled from its build
 pnpm --filter pulse-cockpit run sandbox:up      # shop-dev, shop-test (demo/demo), about two minutes
-pnpm --filter pulse-cockpit run orca:build      # builds the plugin into apps/vscode/dist-orca
+pnpm --filter pulse-cockpit run orca:build      # builds the plugin into apps/orca/dist
 O=/Applications/Orca.app/Contents/Resources/bin/orca
-$O plugin dev load apps/vscode/dist-orca        # prints the approval command with its fingerprint
-$O plugin dev load apps/vscode/dist-orca --approve <fingerprint>
-$O plugin dev request apps/vscode/dist-orca engines.setProjectFile \
+$O plugin dev load apps/orca/dist        # prints the approval command with its fingerprint
+$O plugin dev load apps/orca/dist --approve <fingerprint>
+$O plugin dev request apps/orca/dist engines.setProjectFile \
   --data "{\"path\":\"$PWD/apps/vscode/sandbox/.pulse-cli.json\"}"
 $O plugin open local.pulse-cockpit              # the panel; Enter on an engine or process opens it
 ```
 
 Without the setting, the plugin reads `.pulse-cli.json` at the root of the focused workspace.
-After a rebuild, `$O plugin dev reload apps/vscode/dist-orca` remounts open tabs and
+After a rebuild, `$O plugin dev reload apps/orca/dist` remounts open tabs and
 `$O plugin restart local.pulse-cockpit` restarts the worker; tabs and the panel reconnect.
 
 The shots that need Orca's window hidden (light theme, an acted panel), with the window
@@ -159,4 +159,4 @@ $O plugin shot local.pulse-cockpit --width 420 --act \
 $O plugin shot local.pulse-cockpit --window --theme light   # with a Pulse tab open
 ```
 
-`$O plugin dev unload apps/vscode/dist-orca` removes it again.
+`$O plugin dev unload apps/orca/dist` removes it again.

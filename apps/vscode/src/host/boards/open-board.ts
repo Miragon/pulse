@@ -1,9 +1,9 @@
-import { BoardPanel, StatePublisher, type BoardContext } from "../../core/index.js"
-import { MessageGuards, type PanelState } from "../../core/protocol/index.js"
+import { BoardPanel, StatePublisher, type BoardContext } from "@miragon/pulse-runtime-view/core"
+import { MessageGuards, type PanelState } from "@miragon/pulse-runtime-view/protocol"
 import { connectThemeBridge } from "@miragon/modeler-shell/vscode/extension"
 import * as vscode from "vscode"
 import { THEMES } from "../panels/open-panel.js"
-import { PanelTitle } from "../panels/panel-title.js"
+import { PanelTitle } from "@miragon/pulse-runtime-view/host-kit"
 
 export type BoardContextFactory = (publish: (state: PanelState) => void) => BoardContext
 

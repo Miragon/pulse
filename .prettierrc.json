@@ -10,7 +10,12 @@
       "options": { "parser": "json-stringify" }
     },
     {
-      "files": ["apps/vscode/**"],
+      "files": [
+        "apps/vscode/**",
+        "apps/orca/**",
+        "packages/core/runtime-view/**",
+        "packages/connectors/engine/engine-adapter/**"
+      ],
       "options": {
         "plugins": []
       }

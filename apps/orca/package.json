@@ -1,0 +1,32 @@
+{
+  "name": "@miragon/pulse-orca",
+  "private": true,
+  "version": "0.27.1",
+  "description": "Pulse for Orca: the runtime view of Pulse for VS Code as an Orca plugin, for Operaton, CIB seven and Camunda 7.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Miragon/pulse.git",
+    "directory": "apps/orca"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "vitest run",
+    "test:orca": "node scripts/orca.mjs plugin validate dist && node scripts/orca.mjs plugin check dist",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.worker.json && tsc -p tsconfig.frame.json",
+    "lint": "eslint src test scripts",
+    "lint:fix": "eslint src test scripts --fix"
+  },
+  "dependencies": {
+    "@miragon/pulse-engine-adapter": "workspace:*",
+    "@miragon/pulse-runtime-view": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "@vitest/coverage-v8": "5.1.0",
+    "esbuild": "0.28.2",
+    "typescript": "6.0.3",
+    "vitest": "5.1.0"
+  }
+}

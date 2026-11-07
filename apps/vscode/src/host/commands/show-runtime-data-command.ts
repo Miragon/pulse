@@ -1,5 +1,5 @@
-import { BpmnProcessId } from "../../contract/index.js"
-import { BpmnProcessIds } from "../../core/index.js"
+import { BpmnProcessId } from "@miragon/pulse-runtime-view/contract"
+import { BpmnProcessIds } from "@miragon/pulse-runtime-view/core"
 import { basename } from "node:path"
 import * as vscode from "vscode"
 import { ActiveModel } from "../active-model.js"

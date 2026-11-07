@@ -1,8 +1,11 @@
 import * as vscode from "vscode"
-import { LOCAL_TARGET, type EngineTarget } from "./engine-target.js"
+import {
+  LOCAL_TARGET,
+  type EngineTarget,
+  TargetsParser,
+  type TargetsProblem,
+} from "@miragon/pulse-runtime-view/host-kit"
 import { TargetsFile } from "./targets-file.js"
-import { TargetsParser } from "./targets-parser.js"
-import type { TargetsProblem } from "./targets-problem.js"
 
 export interface DiscoveredTargets {
   readonly targets: readonly EngineTarget[]

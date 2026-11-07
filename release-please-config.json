@@ -20,6 +20,18 @@
           "jsonpath": "$.version"
         },
         { "type": "json", "path": "apps/vscode/package.json", "jsonpath": "$.version" },
+        { "type": "json", "path": "apps/orca/package.json", "jsonpath": "$.version" },
+        { "type": "json", "path": "apps/orca/orca-plugin.json", "jsonpath": "$.version" },
+        {
+          "type": "json",
+          "path": "packages/core/runtime-view/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "packages/connectors/engine/engine-adapter/package.json",
+          "jsonpath": "$.version"
+        },
         {
           "type": "json",
           "path": "packages/connectors/engine/engine-client/package.json",

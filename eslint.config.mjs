@@ -42,11 +42,15 @@ export const DEFAULT_PROJECT_FILES = [
   "docs/.vitepress/theme/index.ts",
 ]
 
-// The VS Code extension's runtime probes (apps/vscode/test/<layer>/runtime.boundary.ts)
-// expect the globals of their layer to be missing, so apps/vscode/tsconfig.json (the
-// union the editor and the project service use) leaves them out; each is typed by its
-// layer's tsconfig instead.
-const vscodeBoundaryProbes = ["apps/vscode/test/*/runtime.boundary.ts"]
+// The editor hosts and the runtime view they share keep the VS Code extension's house rules.
+const RUNTIME_VIEW = "packages/core/runtime-view"
+const ENGINE_ADAPTER = "packages/connectors/engine/engine-adapter"
+const EDITOR_TREES = `{apps/vscode,apps/orca,${RUNTIME_VIEW},${ENGINE_ADAPTER}}`
+
+// The runtime probes (<package>/test/<layer>/runtime.boundary.ts) expect the globals of their
+// layer to be missing, so the package's tsconfig.json (the union the editor and the project
+// service use) leaves them out; each is typed by its layer's tsconfig instead.
+const editorBoundaryProbes = [`${EDITOR_TREES}/test/*/runtime.boundary.ts`]
 
 // ── Pattern-gate selectors (`no-restricted-syntax`) ─────────────────────────
 
@@ -212,15 +216,17 @@ const widgetHandOffGate = [
   "JSXOpeningElement[name.property.name='AskAiButton']",
 ].map((selector) => ({ selector, message: HAND_OFF_MESSAGE }))
 
-// ── The VS Code extension (apps/vscode): its own house rules ───────────────
-// The extension keeps the stricter rules it was built with (apps/vscode/CLAUDE.md,
+// ── The editor hosts (apps/vscode, apps/orca) and the runtime view they share ──
+// Pulse for VS Code, Pulse for Orca, the runtime view (packages/core/runtime-view) and the
+// Camunda 7 family's adapter (packages/connectors/engine/engine-adapter) keep the stricter
+// rules the extension was built with (apps/vscode/CLAUDE.md,
 // apps/vscode/docs/adr/guardrails.md): no comments (the inline rule below, never
 // switched off inline: noInlineConfig), behaviour in classes, one class per file,
 // budgets (complexity 10, 300 lines, 60 per function, 4 parameters, 20 statements),
 // no engine words in the contract, the core and the webview, no --vscode-* colour in
-// the webview. apps/vscode/test/architecture/lint-rules.test.ts lints a probe per rule.
-// Its no-restricted-syntax blocks name apps/vscode paths only, so they never replace
-// a selector of the MCP gates above (and none of those reaches apps/vscode).
+// the webview. packages/core/runtime-view/test/architecture/lint-rules.test.ts lints a probe
+// per rule. Its no-restricted-syntax blocks name these trees only, so they never replace
+// a selector of the MCP gates above (and none of those reaches them).
 const vscodeNoComments = {
   meta: {
     type: "suggestion",
@@ -244,9 +250,9 @@ const vscodeNoComments = {
 const VSCODE_ENGINE_WORDS =
   "camunda|zeebe|operaton|cib ?seven|processDefinitionKey|processInstanceKey|activityId|\\bc[78]\\b"
 const VSCODE_ENGINE_WORDS_MESSAGE =
-  "Engine vocabulary belongs in apps/vscode/src/adapters/<engine> and the composition root. Use the neutral words of the contract here (elementId, definitionId, bpmnProcessId, instanceId)."
+  "Engine vocabulary belongs in packages/connectors/<family>/<family>-adapter and the composition roots. Use the neutral words of the contract here (elementId, definitionId, bpmnProcessId, instanceId)."
 const VSCODE_HOST_COLOUR_MESSAGE =
-  "The webview takes no colour from VS Code. Use a Miragon token (--cd-*) from apps/vscode/src/webview/theme instead of a --vscode-* variable."
+  "The webview takes no colour from VS Code. Use a Miragon token (--cd-*) from packages/core/runtime-view/src/webview/theme instead of a --vscode-* variable."
 const VSCODE_CLASS_MESSAGE =
   "Put behaviour in a class: a method of the class that owns the job, or a static method of a utility class named after its topic. See apps/vscode/docs/adr/code-structure.md."
 
@@ -296,6 +302,9 @@ export default tseslint.config(
       // The Miragon docs kit, vendored byte for byte from
       // Miragon/corporate-identity and linted there; check.mjs pins the copy.
       "docs/.vitepress/miragon/**",
+      // Orca's plugin typings, as `orca plugin types` writes them for the Orca release the
+      // plugin is checked against (apps/orca/CLAUDE.md); never edited by hand.
+      "apps/orca/types/**",
     ],
   },
 
@@ -304,7 +313,7 @@ export default tseslint.config(
 
   // Typed linting via the project service for everything the package tsconfigs cover
   {
-    ignores: [...WIDGET_TREES, ...serverTestFiles, ...vscodeBoundaryProbes],
+    ignores: [...WIDGET_TREES, ...serverTestFiles, ...editorBoundaryProbes],
     languageOptions: {
       parserOptions: {
         projectService: {
@@ -346,15 +355,15 @@ export default tseslint.config(
     },
   },
 
-  // The VS Code extension's runtime probes: typed via their layer's tsconfig
+  // The runtime probes of the editor hosts' layers: typed via their layer's tsconfig
   {
-    files: vscodeBoundaryProbes,
+    files: editorBoundaryProbes,
     languageOptions: {
       parserOptions: {
         project: [
-          "apps/vscode/tsconfig.contract.json",
-          "apps/vscode/tsconfig.core.json",
-          "apps/vscode/tsconfig.webview.json",
+          `${RUNTIME_VIEW}/tsconfig.contract.json`,
+          `${RUNTIME_VIEW}/tsconfig.core.json`,
+          `${RUNTIME_VIEW}/tsconfig.webview.json`,
           "apps/vscode/tsconfig.host.json",
         ],
         tsconfigRootDir: import.meta.dirname,
@@ -549,23 +558,23 @@ export default tseslint.config(
     files: ["apps/cli/scripts/**/*.ts"],
     rules: { "no-console": "off" },
   },
-  // ── The VS Code extension (apps/vscode) ─────────────────────────────────
+  // ── The editor hosts (apps/vscode, apps/orca) and the runtime view they share ──
   {
-    files: ["apps/vscode/**/*.{ts,tsx}"],
+    files: [`${EDITOR_TREES}/**/*.{ts,tsx}`],
     extends: [tseslint.configs.strictTypeChecked, tseslint.configs.stylisticTypeChecked],
   },
   // The JS files keep the strict and stylistic rules that need no types. Only their rule
   // sets: the configs' eslint-recommended part switches core checks such as no-undef off,
   // which TypeScript does for TS files but nothing does for JS.
   {
-    files: ["apps/vscode/**/*.{js,mjs,cjs}"],
+    files: [`${EDITOR_TREES}/**/*.{js,mjs,cjs}`],
     extends: [
       tseslint.configs.strict.find(({ name }) => name === "typescript-eslint/strict"),
       tseslint.configs.stylistic.find(({ name }) => name === "typescript-eslint/stylistic"),
     ],
   },
   {
-    files: ["apps/vscode/**/*.{ts,tsx,js,mjs,cjs}"],
+    files: [`${EDITOR_TREES}/**/*.{ts,tsx,js,mjs,cjs}`],
     plugins: { "pulse-vscode": { rules: { "no-comments": vscodeNoComments } } },
     linterOptions: { noInlineConfig: true, reportUnusedDisableDirectives: "error" },
     rules: {
@@ -583,7 +592,10 @@ export default tseslint.config(
   {
     files: [
       "apps/vscode/{src,dev,scripts,sandbox}/**/*.{ts,tsx,js,mjs,cjs}",
-      "apps/vscode/test/webview/harness.tsx",
+      "apps/orca/{src,scripts}/**/*.{ts,tsx,js,mjs,cjs}",
+      `${RUNTIME_VIEW}/{src,dev,scripts}/**/*.{ts,tsx,js,mjs,cjs}`,
+      `${ENGINE_ADAPTER}/src/**/*.{ts,tsx,js,mjs,cjs}`,
+      `${RUNTIME_VIEW}/test/webview/harness.tsx`,
       "apps/vscode/test/smoke/*.cjs",
     ],
     rules: {
@@ -594,49 +606,49 @@ export default tseslint.config(
     },
   },
   {
-    files: ["apps/vscode/test/**/*.ts", "apps/vscode/test/**/*.test.tsx"],
+    files: [`${EDITOR_TREES}/test/**/*.ts`, `${EDITOR_TREES}/test/**/*.test.tsx`],
     rules: { "@typescript-eslint/no-non-null-assertion": "off" },
   },
   {
-    files: ["apps/vscode/test/*/runtime.boundary.ts"],
+    files: editorBoundaryProbes,
     rules: { "pulse-vscode/no-comments": "off" },
   },
   {
-    files: ["apps/vscode/dev/**/*.{ts,tsx}"],
+    files: [`${EDITOR_TREES}/dev/**/*.{ts,tsx}`],
     rules: { "no-console": "off" },
   },
   {
-    files: ["apps/vscode/**/*.{js,mjs}"],
+    files: [`${EDITOR_TREES}/**/*.{js,mjs}`],
     extends: [tseslint.configs.disableTypeChecked],
     languageOptions: { globals: globals.node },
     rules: { "no-console": "off" },
   },
   {
-    files: ["apps/vscode/**/*.cjs"],
+    files: [`${EDITOR_TREES}/**/*.cjs`],
     extends: [tseslint.configs.disableTypeChecked],
     languageOptions: { globals: { ...globals.node, ...globals.mocha }, sourceType: "commonjs" },
     rules: { "@typescript-eslint/no-require-imports": "off" },
   },
   {
-    files: ["apps/vscode/src/contract/**/*.ts"],
+    files: [`${RUNTIME_VIEW}/src/contract/**/*.ts`],
     rules: { "no-restricted-syntax": ["error", ...vscodeNeutralCode, ...vscodeModuleFunctionGate] },
   },
   // The branded id constructors are module functions by design: this block replaces the
   // contract's selectors for the one file (flat config never merges a rule's options).
   {
-    files: ["apps/vscode/src/contract/model/ids.ts"],
+    files: [`${RUNTIME_VIEW}/src/contract/model/ids.ts`],
     rules: { "no-restricted-syntax": ["error", ...vscodeNeutralCode] },
   },
   {
-    files: ["apps/vscode/src/adapters/**/*.ts", "apps/vscode/src/model/**/*.ts"],
+    files: [`${ENGINE_ADAPTER}/src/**/*.ts`, `${RUNTIME_VIEW}/src/model/**/*.ts`],
     rules: { "no-restricted-syntax": ["error", ...vscodeModuleFunctionGate] },
   },
   {
-    files: ["apps/vscode/src/core/**/*.ts"],
+    files: [`${RUNTIME_VIEW}/src/core/**/*.ts`],
     rules: { "no-restricted-syntax": ["error", ...vscodeNeutralCode, ...vscodeModuleFunctionGate] },
   },
   {
-    files: ["apps/vscode/src/webview/**/*.ts"],
+    files: [`${RUNTIME_VIEW}/src/webview/**/*.ts`],
     rules: {
       "no-restricted-syntax": [
         "error",
@@ -647,7 +659,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["apps/vscode/src/webview/**/*.tsx"],
+    files: [`${RUNTIME_VIEW}/src/webview/**/*.tsx`],
     rules: {
       "no-restricted-syntax": [
         "error",
@@ -658,23 +670,32 @@ export default tseslint.config(
     },
   },
   {
-    files: ["apps/vscode/src/host/**/*.ts"],
+    files: [
+      "apps/vscode/src/host/**/*.ts",
+      `${RUNTIME_VIEW}/src/host-kit/**/*.ts`,
+      "apps/orca/src/**/*.ts",
+    ],
     rules: {
       "no-restricted-syntax": ["error", ...vscodeHostEngineWords, ...vscodeModuleFunctionGate],
     },
   },
   {
-    files: ["apps/vscode/src/host/composition-root.ts", "apps/vscode/src/host/connections/**"],
+    files: [
+      "apps/vscode/src/host/composition-root.ts",
+      "apps/vscode/src/host/connections/**",
+      `${RUNTIME_VIEW}/src/host-kit/connections/**`,
+      "apps/orca/src/worker/composition-root.ts",
+    ],
     rules: { "no-restricted-syntax": ["error", ...vscodeModuleFunctionGate] },
   },
   {
-    files: ["apps/vscode/src/host/extension.ts"],
+    files: ["apps/vscode/src/host/extension.ts", "apps/orca/src/worker/main.ts"],
     rules: {
       "no-restricted-syntax": ["error", ...vscodeHostEngineWords, ...vscodeEntryFunctionGate],
     },
   },
   {
-    files: ["apps/vscode/src/**/*.{ts,tsx}"],
+    files: [`${EDITOR_TREES}/src/**/*.{ts,tsx}`],
     rules: {
       "max-classes-per-file": ["error", 1],
       "@typescript-eslint/member-ordering": [
@@ -696,7 +717,14 @@ export default tseslint.config(
   // contract). The React Compiler rules of recommended-latest stay off here: they read
   // Preact's mutable refs and diagram handles as React state.
   {
-    files: ["apps/vscode/src/webview/**/*.{ts,tsx}", "apps/vscode/test/webview/**/*.{ts,tsx}"],
+    files: [`${EDITOR_TREES}/**/*.{ts,tsx}`],
+    plugins: { "react-hooks": reactHooks },
+    rules: Object.fromEntries(
+      Object.keys(reactHooks.configs["recommended-latest"].rules).map((rule) => [rule, "off"]),
+    ),
+  },
+  {
+    files: [`${RUNTIME_VIEW}/{src,test}/webview/**/*.{ts,tsx}`],
     plugins: { "react-hooks": reactHooks },
     rules: { "react-hooks/rules-of-hooks": "error" },
   },

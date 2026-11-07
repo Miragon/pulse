@@ -16,8 +16,8 @@ search results are eventually consistent and page with cursors.
 
 ### Three ports
 
-The ports are interfaces in `apps/vscode/src/contract/ports`; what they exchange lives in
-`apps/vscode/src/contract/model`. Adapters implement them with classes
+The ports are interfaces in `packages/core/runtime-view/src/contract/ports`; what they exchange lives in
+`packages/core/runtime-view/src/contract/model`. Adapters implement them with classes
 ([code-structure.md](code-structure.md)).
 
 `ProcessRuntime` (`ports/process-runtime.ts`) has one method per
@@ -180,7 +180,7 @@ flowchart LR
   saboteurs[Saboteurs: broken runtimes] -- each must fail its law --> kit
 ```
 
-`apps/vscode/src/contract/conformance` holds 47 read laws and 15 command laws as
+`packages/core/runtime-view/src/contract/conformance` holds 47 read laws and 15 command laws as
 executable cases, modelled on `@miragon/modeler-api/conformance`:
 `new ConformanceKit(test).registerRuntimeLaws(prepare)` and `.registerCommandLaws(prepare)`
 bind them to any `(name, fn)` runner and throw a `ConformanceViolation` when a law fails. Command laws run on

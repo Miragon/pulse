@@ -1,0 +1,74 @@
+# CLAUDE.md (apps/orca)
+
+Guidance for agents working on Pulse for Orca: the Orca plugin `pulse-cockpit`
+(`@miragon/pulse-orca`), the runtime view of Pulse for VS Code inside Orca. It is an interface
+app of the Pulse monorepo and the second editor host of the runtime view
+(`packages/core/runtime-view`) and the C7 adapter (`packages/connectors/engine/engine-adapter`).
+The repository's package rules hold here (the root `CLAUDE.md`), and so do the rules of
+`apps/vscode/CLAUDE.md` for everything both hosts share (the house rules, the ADRs in
+`apps/vscode/docs/adr/`); this file adds what is Orca's.
+
+## Commands
+
+Run them from the repository root.
+
+```sh
+pnpm --filter @miragon/pulse-orca run build      # the plugin folder apps/orca/dist, as Orca loads it
+pnpm --filter @miragon/pulse-orca run typecheck  # tsc over the app, then the worker and the frames with their globals
+pnpm --filter @miragon/pulse-orca run lint       # ESLint with the house rules of the editor hosts
+pnpm --filter @miragon/pulse-orca test           # the worker against a fake Orca, coverage floors
+pnpm --filter @miragon/pulse-orca run test:orca  # orca plugin validate + check over dist (needs Orca, or ORCA_RESOURCES)
+pnpm lint:architecture:orca                      # the closed-world dependency rules
+```
+
+`apps/orca/scripts/orca.mjs` runs the Orca CLI of the installed app (`/Applications/Orca.app`), or of the
+release whose resources folder `ORCA_RESOURCES` names: CI extracts the pinned Orca .deb and runs
+its CLI on plain Node. `types/` holds Orca's plugin typings as `orca plugin types` writes them for
+that release; bump them together with `ORCA_VERSION` in `.github/workflows/ci.yml`.
+
+To try the plugin in Orca, against the sandbox engines of the VS Code extension
+(`pnpm --fail-if-no-match --filter pulse-cockpit run sandbox:up`):
+
+```sh
+O=/Applications/Orca.app/Contents/Resources/bin/orca
+$O plugin dev load apps/orca/dist                 # prints the approval command with its fingerprint
+$O plugin dev load apps/orca/dist --approve <fingerprint>
+$O plugin dev request apps/orca/dist engines.setProjectFile \
+  --data "{\"path\":\"$PWD/apps/vscode/sandbox/.pulse-cli.json\"}"
+$O plugin open local.pulse-cockpit
+```
+
+After a rebuild, `$O plugin dev reload apps/orca/dist` remounts open tabs; tabs and the panel
+reconnect after `$O plugin restart local.pulse-cockpit`.
+
+## Where code goes
+
+| You want to…                                                 | Put it in                                                                      | Never                                          |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------ | ---------------------------------------------- |
+| Anything both editor hosts show or decide                    | the runtime view or the adapter (`apps/vscode/CLAUDE.md`, "Where code goes")   | a copy here                                    |
+| Wire the runtime view into Orca (requests, events, settings) | `apps/orca/src/worker`                                                         | business rules, the panel runtime `orca`       |
+| The Pulse panel (engines tree, prompts, login, boards)       | `apps/orca/src/panel`, Orca's components                                       | `orca/worker`, the runtime view's code         |
+| The frames of the custom editors (views, boards)             | `apps/orca/src/editor` (`bridge.ts` posts the webview's intents to the worker) | logic: the frame holds the webview bundle only |
+| A message between the worker, the panel and the frames       | `apps/orca/src/protocol.ts` (`PluginRequests`, `PluginPanelEvents`)            | an untyped request name                        |
+| A contribution (command, setting, editor, capability)        | `apps/orca/orca-plugin.json`                                                   | a capability the plugin does not use           |
+| The engines and the model reader                             | `apps/orca/src/worker/composition-root.ts`, the one place that knows them      | an adapter import anywhere else                |
+
+The dependency rules are closed-world (`apps/orca/.dependency-cruiser.cjs`): the worker uses the
+runtime view's core, protocol, contract and host kit, `orca/worker` and Node built-ins; the panel
+`orca` and the protocol's types; the frames the protocol's types; only the composition root the
+adapter and the model reader. `pnpm lint:architecture:orca` says where an import belongs.
+
+## Rules
+
+- The house rules of the editor hosts hold here (`apps/vscode/CLAUDE.md`, Rules): no comments,
+  classes, the budgets, strict TypeScript, English UI text in sentence case, ratchets one way.
+- Writes follow the extension's policy (`WritePolicy`, `ConfirmationPolicy` of the host kit). A
+  confirmation waits in the Pulse panel and only a request from the panel
+  (`PanelCaller { surface: "panel", contributionId: "engines" }`, set by Orca) settles it; a tab's
+  request is refused and logged. Every answer lands in the write audit (`orca plugin logs`).
+- A frame never holds authority: it posts the webview's intents, and what it does itself (open a
+  URL, copy) comes back from the worker as an action within the user's gesture.
+- A request a frame or the panel holds open (a watch) answers within Orca's request timeout and
+  ends when Orca aborts it: Orca has no close event, and `orca plugin check` waits for every
+  request in flight.
+- Commit messages are Conventional Commits with the scope `orca`.

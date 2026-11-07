@@ -36,7 +36,7 @@ What they found:
 ### Format
 
 `.pulse/boards/<name>.board.json`, anywhere in the workspace, read by `BoardParser`
-(`apps/vscode/src/core/boards`), validated by hand like `.pulse-cli.json`. Every problem names
+(`packages/core/runtime-view/src/core/boards`), validated by hand like `.pulse-cli.json`. Every problem names
 its JSON path and reason. `schemaVersion` 1, `title`, `engines` (profile names of
 `.pulse-cli.json`, the only engine id the extension has) and `rows`, each `{ "row": [...] }`
 of `{ "widget", "props" }`, the toolkit's layout grammar. The widgets are `counter`,

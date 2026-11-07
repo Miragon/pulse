@@ -1,4 +1,4 @@
-import type { BulkRequest } from "../../src/core/index.js"
+import type { BulkRequest } from "@miragon/pulse-runtime-view/core"
 import { beforeEach, describe, expect, test, vi } from "vitest"
 
 interface InputOptions {

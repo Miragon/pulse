@@ -1,4 +1,4 @@
-import type { Connection } from "../../../src/host/connections/connection.js"
+import type { Connection } from "@miragon/pulse-runtime-view/host-kit"
 import type { ConnectionRegistry } from "../../../src/host/connections/connection-registry.js"
 import { EventEmitter } from "./vscode-fake.js"
 

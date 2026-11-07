@@ -1,4 +1,4 @@
-import type { WorkspaceFiles } from "../../contract/index.js"
+import type { WorkspaceFiles } from "@miragon/pulse-runtime-view/contract"
 import * as vscode from "vscode"
 
 const EXCLUDED = "**/{node_modules,target,build,dist,out,.git}/**"

@@ -1,4 +1,4 @@
-import { EngineLane } from "../../src/core/index.js"
+import { EngineLane } from "@miragon/pulse-runtime-view/core"
 import {
   DefinitionId,
   ElementId,
@@ -7,18 +7,22 @@ import {
   InstanceId,
   RuntimeError,
   type ProcessCommands,
-} from "../../src/contract/index.js"
+} from "@miragon/pulse-runtime-view/contract"
 import { describe, expect, test } from "vitest"
-import { AuditedCommands } from "../../src/host/connections/audited-commands.js"
-import { ConfirmationPolicy } from "../../src/host/connections/confirmation-policy.js"
-import { ConnectionBuilder } from "../../src/host/connections/connection-builder.js"
+import {
+  AuditedCommands,
+  ConfirmationPolicy,
+  ConnectionBuilder,
+  type Credentials,
+  type EngineFactories,
+  LOCAL_TARGET,
+  type EngineTarget,
+  WriteAudit,
+  WritePolicy,
+  NotificationText,
+  type EnvironmentSettings,
+} from "@miragon/pulse-runtime-view/host-kit"
 import { EngineBulkRuns } from "../../src/host/connections/engine-bulk-runs.js"
-import type { Credentials, EngineFactories } from "../../src/host/connections/connection.js"
-import { LOCAL_TARGET, type EngineTarget } from "../../src/host/connections/engine-target.js"
-import type { EnvironmentSettings } from "../../src/host/connections/pulse-settings.js"
-import { WriteAudit } from "../../src/host/connections/write-audit.js"
-import { WritePolicy } from "../../src/host/connections/write-policy.js"
-import { NotificationText } from "../../src/host/notification-text.js"
 
 const NO_LOGIN: Credentials = { kind: "none" }
 const LOGIN: Credentials = { kind: "basic", username: "demo", password: "demo" }

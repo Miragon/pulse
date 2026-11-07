@@ -18,11 +18,13 @@ import { BoardsTree } from "./boards/boards-tree.js"
 import { NewBoardCommand } from "./commands/new-board-command.js"
 import { OpenBoardCommand } from "./commands/open-board-command.js"
 import { CompositionRoot } from "./composition-root.js"
-import { ConnectionBuilder } from "./connections/connection-builder.js"
+import {
+  ConnectionBuilder,
+  CredentialStore,
+  WriteAudit,
+} from "@miragon/pulse-runtime-view/host-kit"
 import { ConnectionRegistry } from "./connections/connection-registry.js"
 import { ConnectionWatcher } from "./connections/connection-watcher.js"
-import { CredentialStore } from "./connections/credential-store.js"
-import { WriteAudit } from "./connections/write-audit.js"
 import { EngineStatusBar } from "./engine-status-bar.js"
 import { EnginesTree } from "./explorer/engines-tree.js"
 import { EnginesTreeLive } from "./explorer/engines-tree-live.js"

@@ -5,7 +5,7 @@ import type {
   IncidentDetails,
   InstanceId,
   SourceLocation,
-} from "../../contract/index.js"
+} from "@miragon/pulse-runtime-view/contract"
 import type {
   BulkAnswer,
   BulkOutcomeReport,
@@ -17,15 +17,17 @@ import type {
   PanelEffects,
   WebUiTarget,
   WriteRequest,
-} from "../../core/index.js"
-import type { Environment, Problem } from "../../core/protocol/index.js"
+} from "@miragon/pulse-runtime-view/core"
+import type { Environment, Problem } from "@miragon/pulse-runtime-view/protocol"
 import * as vscode from "vscode"
 import type { ConnectionEditor } from "../commands/connection-editor.js"
-import type { Connection } from "../connections/connection.js"
+import {
+  type Connection,
+  type WriteAudit,
+  NotificationText,
+} from "@miragon/pulse-runtime-view/host-kit"
 import type { ConnectionRegistry } from "../connections/connection-registry.js"
-import type { WriteAudit } from "../connections/write-audit.js"
 import { PulseSettings } from "../connections/pulse-settings.js"
-import { NotificationText } from "../notification-text.js"
 import type { IncidentDocuments } from "./incident-documents.js"
 import type { SourceNavigation } from "./source-navigation.js"
 import type { WriteConfirmation } from "./write-confirmation.js"

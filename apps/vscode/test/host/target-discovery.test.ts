@@ -1,10 +1,8 @@
 import { join } from "node:path"
 import { beforeEach, describe, expect, test, vi } from "vitest"
-import { LOCAL_TARGET } from "../../src/host/connections/engine-target.js"
+import { LOCAL_TARGET, TargetsProblem, WritePolicy } from "@miragon/pulse-runtime-view/host-kit"
 import { TargetDiscovery } from "../../src/host/connections/target-discovery.js"
 import { TargetsFile } from "../../src/host/connections/targets-file.js"
-import { TargetsProblem } from "../../src/host/connections/targets-problem.js"
-import { WritePolicy } from "../../src/host/connections/write-policy.js"
 
 const files = vi.hoisted(() => new Map<string, string>())
 

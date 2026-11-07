@@ -284,16 +284,14 @@
     "dev": "node scripts/dev-server.mjs",
     "lint": "eslint src test dev scripts sandbox",
     "lint:fix": "eslint src test dev scripts sandbox --fix",
-    "typecheck": "tsc --noEmit && tsc -p tsconfig.contract.json && tsc -p tsconfig.core.json && tsc -p tsconfig.model.json && tsc -p tsconfig.adapters.json && tsc -p tsconfig.webview.json && tsc -p tsconfig.host.json && tsc -p tsconfig.tooling.json",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.host.json && tsc -p tsconfig.tooling.json",
     "test": "vitest run",
-    "test:engines": "vitest run --config vitest.engines.config.ts",
     "test:smoke": "node scripts/build.mjs && vscode-test --config .vscode-test.mjs",
     "test:e2e": "node scripts/build.mjs && node scripts/e2e.mjs",
     "test:smoke:docker": "node scripts/docker-test.mjs smoke",
     "test:e2e:docker": "node scripts/docker-test.mjs e2e",
     "engine:up": "node scripts/engine.mjs up",
     "engine:down": "node scripts/engine.mjs down",
-    "orca:build": "node dev/orca/build.mjs",
     "sandbox:up": "node scripts/sandbox/sandbox.mjs up",
     "sandbox:open": "node scripts/build.mjs && node scripts/sandbox/sandbox.mjs open",
     "sandbox:traffic": "node scripts/sandbox/sandbox.mjs traffic",
@@ -304,16 +302,9 @@
     "open-vsx:publish": "ovsx publish"
   },
   "dependencies": {
-    "@fontsource-variable/geist": "5.3.0",
-    "@fontsource-variable/geist-mono": "5.3.0",
     "@miragon/modeler-shell": "0.10.0",
-    "@miragon/pulse-engine-core": "workspace:*",
-    "bpmn-js": "18.31.1",
-    "bpmn-moddle": "10.3.1",
-    "camunda-bpmn-moddle": "8.0.2",
-    "diagram-js": "15.28.1",
-    "preact": "11.1.1",
-    "zeebe-bpmn-moddle": "2.0.0"
+    "@miragon/pulse-engine-adapter": "workspace:*",
+    "@miragon/pulse-runtime-view": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "22.20.5",
@@ -326,7 +317,6 @@
     "esbuild": "0.28.2",
     "ovsx": "1.3.0",
     "playwright": "1.64.1",
-    "testcontainers": "12.2.1",
     "typescript": "6.0.3",
     "vitest": "5.1.0"
   }

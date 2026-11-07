@@ -21,14 +21,8 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "types": ["node", "vscode"],
-    "jsx": "react-jsx",
-    "jsxImportSource": "preact",
-    "paths": {
-      "orca": ["./dev/orca/types/orca.d.ts"],
-      "orca/worker": ["./dev/orca/types/orca-worker.d.ts"]
-    }
+    "types": ["node", "vscode"]
   },
-  "include": ["src", "test", "dev", "vitest.config.ts", "vitest.engines.config.ts"],
+  "include": ["src", "test", "dev", "vitest.config.ts"],
   "exclude": ["test/*/runtime.boundary.ts"]
 }

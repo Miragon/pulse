@@ -113,8 +113,8 @@ flowchart LR
   class next planned
 ```
 
-- **Contract:** the ports are interfaces (`apps/vscode/src/contract/ports`); what they
-  exchange are read models (`apps/vscode/src/contract/model`). No engine word appears in
+- **Contract:** the ports are interfaces (`packages/core/runtime-view/src/contract/ports`); what they
+  exchange are read models (`packages/core/runtime-view/src/contract/model`). No engine word appears in
   them.
 - **Adapters:** a class per role (`C7ProcessRuntime implements ProcessRuntime`, …). The
   composition root picks the adapter by the target's `engine` and is the only place that
