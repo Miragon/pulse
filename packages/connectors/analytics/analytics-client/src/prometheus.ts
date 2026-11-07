@@ -51,15 +51,27 @@ export class PrometheusRequestError extends Error {
   }
 }
 
-interface PromApiResponse {
-  status: "success" | "error"
-  errorType?: string
-  error?: string
-  data?: {
-    resultType: string
-    result: Array<{ metric: Record<string, string>; value: [number, string] }>
-  }
+interface PromRow {
+  metric: Record<string, string>
+  value: [number, string]
 }
+
+/** What answered, parsed: whoever holds the address decides the shape, so nothing here is checked yet. */
+interface PromApiResponse {
+  status?: unknown
+  errorType?: unknown
+  error?: unknown
+  data?: { result?: unknown } | null
+}
+
+const isPromRow = (row: unknown): row is PromRow => {
+  const { metric, value } = (row ?? {}) as Partial<PromRow>
+  return typeof metric === "object" && metric !== null && Array.isArray(value)
+}
+
+/** How Prometheus itself refuses: an `error` envelope with a message. */
+const isOwnRefusal = (body: PromApiResponse | null | undefined): boolean =>
+  body?.status === "error" && typeof body.error === "string" && body.error.trim() !== ""
 
 function splitUserinfo(raw: string): { base: string; username?: string; password?: string } {
   let url: URL
@@ -101,7 +113,7 @@ function authorizationFor(
   if (username === undefined) return { secrets: [] }
   const password = config.password ?? userinfo.password ?? ""
   const basic = Buffer.from(`${username}:${password}`).toString("base64")
-  return { authorization: `Basic ${basic}`, secrets: [password, basic] }
+  return { authorization: `Basic ${basic}`, secrets: [username, password, basic] }
 }
 
 /** RFC 9110 field-name token; a value must not break the header line. */
@@ -181,9 +193,14 @@ function parseJson(text: string): unknown {
 const contentTypeOf = (response: Response): string | undefined =>
   response.headers.get("Content-Type")?.split(";")[0].trim().toLowerCase()
 
-/** A web page (an error page, a login form) is never Prometheus's API: its text stays out of the message. */
-const isWebPage = (response: Response, text: string): boolean =>
-  contentTypeOf(response) === "text/html" || text.trimStart().startsWith("<")
+/**
+ * A web page (an error page, a login form) is never Prometheus's API: its text stays out of the
+ * message. An empty body is no page, whatever its type says, and falls back to the status line.
+ */
+const isWebPage = (response: Response, text: string): boolean => {
+  const body = text.trimStart()
+  return body.startsWith("<") || (body !== "" && contentTypeOf(response) === "text/html")
+}
 
 function networkCode(error: unknown): string {
   const cause = (error as { cause?: { code?: unknown; errors?: Array<{ code?: unknown }> } }).cause
@@ -198,9 +215,14 @@ export function createPrometheusClient(config: PrometheusConfig): PrometheusClie
   const { headers, secrets } = buildHeaders(config, userinfo)
   const timeoutMs = resolveTimeout(config.timeoutMs)
 
+  // An upstream's text may name where it was sent (a proxy's does), so the target goes with the
+  // credentials. A value under secretForms' 4 characters, a bare `/` path say, stays as it is.
+  const { host, hostname, pathname } = new URL(base)
+  const masked = secretForms([...secrets, base, host, hostname, pathname])
+
   // Masked before AND after collapsing whitespace, so neither form of a secret slips through.
   const safe = (text: string): string => {
-    const flat = mask(mask(text, secrets).replace(/\s+/g, " ").trim(), secrets)
+    const flat = mask(mask(text, masked).replace(/\s+/g, " ").trim(), masked)
     return flat.length > MAX_ERROR_TEXT ? `${flat.slice(0, MAX_ERROR_TEXT)}…` : flat
   }
 
@@ -217,13 +239,13 @@ export function createPrometheusClient(config: PrometheusConfig): PrometheusClie
   }
 
   function httpError(response: Response, text: string): PrometheusRequestError {
-    const body = parseJson(text) as Partial<PromApiResponse> | null | undefined
+    const body = parseJson(text) as PromApiResponse | null | undefined
     const errorType = errorTypeOf(body?.errorType)
     const detail = httpDetail(response, text, body?.error)
     const auth = response.status === 401 || response.status === 403
     return new PrometheusRequestError(
       `Prometheus query failed (${response.status}${errorType ? ` ${errorType}` : ""}): ${detail}`,
-      auth ? "unauthorized" : body?.status === "error" ? "query" : "foreign-answer",
+      auth ? "unauthorized" : isOwnRefusal(body) ? "query" : "foreign-answer",
     )
   }
 
@@ -252,7 +274,7 @@ export function createPrometheusClient(config: PrometheusConfig): PrometheusClie
 
   function parseEnvelope(response: Response, text: string): PromApiResponse {
     const body = parseJson(text)
-    if (body !== null && typeof body === "object") return body as PromApiResponse
+    if (body !== null && typeof body === "object") return body
     const type = contentTypeOf(response)
     throw new PrometheusRequestError(
       `Prometheus returned a non-JSON response (HTTP ${response.status}${
@@ -268,16 +290,17 @@ export function createPrometheusClient(config: PrometheusConfig): PrometheusClie
       const { response, text } = await fetchText(url, options.signal)
       if (!response.ok) throw httpError(response, text)
       const body = parseEnvelope(response, text)
-      if (body.status !== "success" || !body.data) {
+      const rows = body.status === "success" ? body.data?.result : undefined
+      if (!Array.isArray(rows) || !rows.every(isPromRow)) {
         const errorType = errorTypeOf(body.errorType)
-        const detail = typeof body.error === "string" ? safe(body.error) : "unknown"
+        const detail = (typeof body.error === "string" && safe(body.error)) || "unknown"
         throw new PrometheusRequestError(
           `Prometheus query error${errorType ? ` (${errorType})` : ""}: ${detail}`,
-          body.status === "error" ? "query" : "foreign-answer",
+          isOwnRefusal(body) ? "query" : "foreign-answer",
         )
       }
       const out: PromSample[] = []
-      for (const r of body.data.result) {
+      for (const r of rows) {
         const value = Number(r.value[1])
         if (Number.isNaN(value)) continue
         out.push({ metric: r.metric, value })

@@ -17,7 +17,7 @@ const REMEDIES: Readonly<Record<PrometheusFailureKind, string | undefined>> = {
   "foreign-answer": CHECK_TARGET,
   timeout: "PROMETHEUS_TIMEOUT_MS sets this deadline, PROMETHEUS_URL the target.",
   unauthorized:
-    "Check the credentials: PROMETHEUS_BEARER_TOKEN, or PROMETHEUS_USERNAME and PROMETHEUS_PASSWORD.",
+    "Check the credentials: PROMETHEUS_BEARER_TOKEN, PROMETHEUS_USERNAME and PROMETHEUS_PASSWORD, the userinfo of PROMETHEUS_URL, or PROMETHEUS_HEADERS.",
   // Prometheus's own answer is about the query; a caller's cancel leaves nothing to fix.
   query: undefined,
   cancelled: undefined,
@@ -25,7 +25,7 @@ const REMEDIES: Readonly<Record<PrometheusFailureKind, string | undefined>> = {
 
 const asSentence = (text: string): string => (/[.?!…]$/.test(text) ? text : `${text}.`)
 
-/** Every failed query names the setting behind it and the way out. */
+/** A failure the settings can cause names the setting behind it and the way out; Prometheus's own answer and a caller's cancel stay as they are. */
 export function withRemedies(client: PrometheusClient): PrometheusClient {
   return {
     async instant(query, options) {

@@ -158,7 +158,7 @@ export const analyticsModule = {
     "ANALYTICS_ENGINE_IDS",
   ] as const,
 
-  /** The default :9090 is a bare Prometheus, not the playground's :8460; without the hint queries 404 silently. */
+  /** The default :9090 is a bare Prometheus, not the playground's :8460; without the hint the first sign is a failing query. */
   bootWarnings(env: NodeJS.ProcessEnv): string[] {
     if (env.PROMETHEUS_URL?.trim()) return []
     return [

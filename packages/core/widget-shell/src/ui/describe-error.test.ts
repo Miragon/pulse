@@ -49,7 +49,7 @@ const TABLE: Array<[raw: string, kind: ErrorKind, status: number | undefined, so
     "engine:prod",
   ],
   [
-    "Prometheus query failed (403): forbidden. Check the credentials: PROMETHEUS_BEARER_TOKEN, or PROMETHEUS_USERNAME and PROMETHEUS_PASSWORD.",
+    "Prometheus query failed (403): forbidden. Check the credentials: PROMETHEUS_BEARER_TOKEN, PROMETHEUS_USERNAME and PROMETHEUS_PASSWORD, the userinfo of PROMETHEUS_URL, or PROMETHEUS_HEADERS.",
     "forbidden",
     403,
     "prometheus",

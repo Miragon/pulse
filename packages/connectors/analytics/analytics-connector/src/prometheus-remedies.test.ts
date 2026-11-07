@@ -76,7 +76,7 @@ describe("withRemedies", () => {
     [
       "unauthorized",
       "Prometheus query failed (401): denied",
-      "Prometheus query failed (401): denied. Check the credentials: PROMETHEUS_BEARER_TOKEN, or PROMETHEUS_USERNAME and PROMETHEUS_PASSWORD.",
+      "Prometheus query failed (401): denied. Check the credentials: PROMETHEUS_BEARER_TOKEN, PROMETHEUS_USERNAME and PROMETHEUS_PASSWORD, the userinfo of PROMETHEUS_URL, or PROMETHEUS_HEADERS.",
     ],
   ])("%s: names the setting and the way out", async (kind, message, expected) => {
     expect(await messageOf(failure(message, kind))).toBe(expected)
@@ -193,6 +193,37 @@ describe("an analytics tool error, through the module", () => {
     )
     expect(text).not.toContain("<")
     expect(text).not.toContain("Resource not found")
+    expect(text).not.toContain(PASSWORD)
+  })
+
+  it("a 200 that claims success and holds something else: a failure with the way out", async () => {
+    answer = {
+      status: 200,
+      type: "application/json",
+      body: JSON.stringify({ status: "success", data: { id: 1, name: "x" } }),
+    }
+    expect(await toolError(serviceUrl)).toBe(`Prometheus query error: unknown. ${CHECK_TARGET}`)
+  })
+
+  it("an error envelope without a message: a failure with the way out", async () => {
+    answer = {
+      status: 200,
+      type: "application/json",
+      body: JSON.stringify({ status: "error", error: { nested: true } }),
+    }
+    expect(await toolError(serviceUrl)).toBe(`Prometheus query error: unknown. ${CHECK_TARGET}`)
+  })
+
+  it("a proxy echoes its target: neither the host nor the username reaches the text", async () => {
+    answer = {
+      status: 504,
+      type: "text/plain",
+      body: `Error occurred while trying to proxy: ${new URL(serviceUrl).host}/api/v1/query, user grafana`,
+    }
+    const text = await toolError(credentialed(serviceUrl))
+    expect(text).not.toContain(new URL(serviceUrl).host)
+    expect(text).not.toContain(new URL(serviceUrl).hostname)
+    expect(text).not.toContain("grafana")
     expect(text).not.toContain(PASSWORD)
   })
 

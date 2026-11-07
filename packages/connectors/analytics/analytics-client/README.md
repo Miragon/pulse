@@ -57,8 +57,9 @@ const dashboard = await queries.dashboardData(prom, {
 `username` + `password`; userinfo in `url` is moved into the Basic header),
 extra `headers` (e.g. a tenant id) and a per-query `timeoutMs` (default
 30 000 ms). Ambiguous auth throws at construction. Query errors never carry
-the URL or a credential, truncate upstream bodies and leave out a web page from
-a service that is not Prometheus, so they are safe to show a model. Each is a
+the URL or a credential (an upstream's text is echoed with both masked), truncate
+upstream bodies and leave out a web page from a service that is not Prometheus,
+so they are safe to show a model. Each is a
 `PrometheusRequestError`, whose `kind` tells a caller which of its own settings
 to name. `withCallerSignal(client, signal)` makes every query abort with the
 caller's signal as well.
