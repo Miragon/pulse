@@ -47,7 +47,7 @@ export class PanelRequests {
 
   register(): void {
     const { panels } = this.orca
-    const { registry, services, prompts, files } = this.parts
+    const { registry, services, prompts } = this.parts
     panels.handle("engines.list", () => this.list())
     panels.handle("engines.watch", ({ visible }, { panel, signal }) =>
       this.surfaces.watch(panel.id, visible, signal),
@@ -66,13 +66,13 @@ export class PanelRequests {
     )
     panels.handle("engines.configure", async () => ({ path: await services.configure() }))
     panels.handle("instances.find", ({ query }) => this.find(query))
-    panels.handle("boards.list", async () => ({ boards: await files.boards() }))
+    panels.handle("boards.list", () => this.boards())
     panels.handle("boards.open", async ({ path }) => {
       await this.parts.workspaces.openFile(path)
       return { ok: true }
     })
     panels.handle("boards.create", ({ title }) => this.createBoard(title))
-    panels.handle("models.list", async () => ({ models: await files.models() }))
+    panels.handle("models.list", () => this.models())
     panels.handle("prompts.list", () => ({ prompts: prompts.list() }))
     panels.handle("prompts.answer", ({ id, answer }, { panel }) => {
       const allowed = PanelRequests.isPulsePanel(panel)
@@ -102,6 +102,16 @@ export class PanelRequests {
       ),
       problems: registry.configurationProblems().map((problem) => problem.label()),
     }
+  }
+
+  private async boards() {
+    await this.parts.ready()
+    return { boards: await this.parts.files.boards() }
+  }
+
+  private async models() {
+    await this.parts.ready()
+    return { models: await this.parts.files.models() }
   }
 
   private async find(query: string) {

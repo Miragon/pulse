@@ -7,7 +7,8 @@ class LoginActions {
     if (current === undefined) {
       return
     }
-    const { ok } = await plugin.request("engines.setCredentials", current)
+    const { engine, username, password } = current
+    const { ok } = await plugin.request("engines.setCredentials", { engine, username, password })
     set(PanelState.login, ok ? undefined : { ...current, failed: true })
     await PanelState.load()
   }

@@ -42,6 +42,7 @@ export class EngineRegistry {
   private readonly builder: ConnectionBuilder
   private readonly changed = new Set<Listener>()
   private readonly written = new Set<Listener>()
+  private reloads: Promise<void> = Promise.resolve()
 
   constructor(
     private readonly orca: OrcaWorkerApi,
@@ -57,35 +58,10 @@ export class EngineRegistry {
     )
   }
 
-  async reload(): Promise<void> {
-    const discovered = await this.discover()
-    const environments = await this.settings.environments(discovered.files)
-    this.environments = environments
-    const writes = await this.settings.writes()
-    const live = await this.settings.liveUpdates()
-    const stored = await this.orca.storage.get(ACTIVE_KEY)
-    this.activeName = typeof stored === "string" ? stored : undefined
-    const requests = await Promise.all(
-      discovered.targets.map(async (target) => ({
-        target,
-        credentials: await this.credentials.read(target),
-      })),
-    )
-    this.connections = this.lanes.assign(requests).map(({ target, credentials, lane }) =>
-      this.builder.build(
-        target,
-        credentials,
-        EnvironmentClassifier.classify(target, environments),
-        {
-          writes,
-          live,
-          lane,
-        },
-      ),
-    )
-    this.files = discovered.files
-    this.problems = discovered.problems
-    EngineRegistry.fire(this.changed)
+  reload(): Promise<void> {
+    const reload = this.reloads.then(() => this.load())
+    this.reloads = reload.catch(() => undefined)
+    return reload
   }
 
   async applyLiveSettings(): Promise<void> {
@@ -151,6 +127,37 @@ export class EngineRegistry {
     await this.credentials.write(connection.target, username, password)
     await this.reload()
     return true
+  }
+
+  private async load(): Promise<void> {
+    const discovered = await this.discover()
+    const environments = await this.settings.environments(discovered.files)
+    this.environments = environments
+    const writes = await this.settings.writes()
+    const live = await this.settings.liveUpdates()
+    const stored = await this.orca.storage.get(ACTIVE_KEY)
+    this.activeName = typeof stored === "string" ? stored : undefined
+    const requests = await Promise.all(
+      discovered.targets.map(async (target) => ({
+        target,
+        credentials: await this.credentials.read(target),
+      })),
+    )
+    this.connections = this.lanes.assign(requests).map(({ target, credentials, lane }) =>
+      this.builder.build(
+        target,
+        credentials,
+        EnvironmentClassifier.classify(target, environments),
+        {
+          writes,
+          live,
+          lane,
+        },
+      ),
+    )
+    this.files = discovered.files
+    this.problems = discovered.problems
+    EngineRegistry.fire(this.changed)
   }
 
   private async discover(): Promise<Discovered> {
