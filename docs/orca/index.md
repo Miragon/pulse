@@ -1,8 +1,9 @@
 # Pulse for Orca
 
 ::: warning Early version
-Pulse for Orca is an early version of the Orca plugin, built from the same runtime view as
-[Pulse for VS Code](../vscode/index.md): expect rough edges and changes between releases
+Pulse for Orca is an early version, listed in
+[Miragon's Orca catalog](https://github.com/Miragon/orca-modelers) and built from the same runtime
+view as [Pulse for VS Code](../vscode/index.md): expect rough edges and changes between releases
 ([Installation](./installation.md)). Writes are off for every engine but a local one unless you
 turn them on.
 :::
@@ -11,6 +12,8 @@ Pulse for Orca shows what your process engine is running inside [Orca](https://g
 definitions, instances, incidents and variables, with badges on the deployed diagram, in Orca's
 editor tabs, and the engines in a Pulse panel in the right sidebar. It works with Operaton,
 CIB seven and Camunda 7 and reads the same engine profiles as the [Pulse CLI](../cli/index.md).
+
+![The engine overview in an Orca tab, next to the Pulse panel](../assets/orca/engine-overview.png)
 
 It does what Pulse for VS Code does, with Orca's surfaces:
 
@@ -22,8 +25,9 @@ It does what Pulse for VS Code does, with Orca's surfaces:
 | Write and bulk dialogs                             | The confirmation waits in the Pulse panel and in the status bar                 |
 | Settings `pulse.*`                                 | The plugin's settings in Orca: project file, writes, environments, live updates |
 
-| Page                                | What it covers                                             |
-| ----------------------------------- | ---------------------------------------------------------- |
-| [Installation](./installation.md)   | Install it from its repository, or load it from the source |
-| [Configuration](./configuration.md) | Engine profiles, credentials and the plugin's settings     |
-| [Usage](./usage.md)                 | The panel, the tabs, writes and their confirmation         |
+| Page                                | What it covers                                                |
+| ----------------------------------- | ------------------------------------------------------------- |
+| [Installation](./installation.md)   | Install it from Miragon's catalog, or load it from the source |
+| [Configuration](./configuration.md) | Engine profiles, credentials and the plugin's settings        |
+| [Usage](./usage.md)                 | The panel, the tabs, writes and their confirmation            |
+| [Architecture](./architecture.md)   | Worker, panel and tabs, and what Orca does not offer yet      |

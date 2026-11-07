@@ -1,23 +1,26 @@
 # Installation
 
-Pulse for Orca needs Orca 1.4.248 or later on the desktop. It runs as a trusted worker: Orca
-asks you to approve the access it needs before it runs.
+Pulse for Orca needs Orca 1.4.252 or later on the desktop. It is listed in
+[Miragon's Orca catalog](https://github.com/Miragon/orca-modelers), next to the Miragon modelers,
+and every Pulse release publishes a new version there.
 
-## From its repository
+## From the catalog
 
-Every Pulse release publishes the plugin to its read-only repository
-[Miragon/pulse-orca](https://github.com/Miragon/pulse-orca), tagged with the release:
+Open [Pulse in Orca](https://onorca.dev/plugins/miragon.pulse-cockpit?catalog=https://github.com/miragon/orca-modelers.git)
+and press **Install**. The first time, Orca asks whether to add the catalog.
+
+On the command line, add the catalog once, then install the plugin. Each command prints the
+approval it needs and the same command with `--approve <fingerprint>`:
 
 ```sh
-orca plugin install Miragon/pulse-orca
+orca plugin catalog add Miragon/orca-modelers
+orca plugin install miragon.pulse-cockpit
 ```
 
-Orca installs the newest version tag and prints what the plugin asks for: its own secrets,
-settings and storage, reading and writing workspace files, and desktop notifications. It prints
-the command that approves exactly this version too, `orca plugin install Miragon/pulse-orca
---approve <fingerprint>`. `orca plugin update` moves to the next release; each release asks again
-when its access changes. Each Pulse release also carries the plugin folder as
-`pulse-orca-<version>.tar.gz`.
+Pulse runs as a trusted worker, so Orca shows what it asks for before it runs: its own secrets,
+settings and storage, reading and writing workspace files, and desktop notifications. The
+approval holds for exactly this version. New releases arrive through the catalog
+(`orca plugin update`), and a release asks again when its access changes.
 
 ## From the source
 

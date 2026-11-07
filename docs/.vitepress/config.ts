@@ -20,7 +20,7 @@ export default miragonDocs({
 
   // README.md is the index for reading the pages on GitHub; the site's index is
   // index.md.
-  srcExclude: ["README.md", "spikes/**"],
+  srcExclude: ["README.md"],
 
   nav: [
     { text: "Overview", link: "/overview" },
@@ -102,6 +102,7 @@ export default miragonDocs({
         { text: "Installation", link: "/orca/installation" },
         { text: "Configuration", link: "/orca/configuration" },
         { text: "Usage", link: "/orca/usage" },
+        { text: "Architecture", link: "/orca/architecture" },
       ],
     },
   ],

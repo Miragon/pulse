@@ -13,6 +13,8 @@ definition, each in an editor tab. The panel also holds:
   whether the file matches the deployed version.
 - **Boards**: the boards of `.pulse/boards/`, and a form for a new one.
 
+![The engine overview in a tab, the Pulse panel beside it](../assets/orca/engine-overview.png)
+
 ## The tabs
 
 A tab shows the engine overview, a definition, an instance or a migration exactly as Pulse for
@@ -22,7 +24,11 @@ leads back to the tab that opened one. A tab is a handle file in `.pulse/views/`
 project file, which Git ignores. Incident details open as a `.log` file. _Open in web app_ opens
 the engine's cockpit, and a copy lands on your clipboard.
 
+![A local model against the deployed version](../assets/orca/model-compare.png)
+
 A board (`.board.json`) opens in its own editor, from the panel or from the file.
+
+![A board across two engines, one of them unreachable](../assets/orca/board.png)
 
 ## Writes
 
@@ -32,3 +38,5 @@ confirmation, it waits in the Pulse panel, with the engine, the instances and wh
 the status bar says so. Only the panel can confirm it, never a tab; an unanswered confirmation
 lapses after ten minutes. Every write and every answer goes into the plugin's log
 (`orca plugin logs`).
+
+![A token move waiting for its confirmation in the Pulse panel](../assets/orca/panel-confirmation.png)
