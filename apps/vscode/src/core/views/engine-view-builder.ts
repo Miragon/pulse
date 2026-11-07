@@ -33,7 +33,7 @@ export class EngineViewBuilder {
       scopeCounts: { all: found.length, withIncident: withIncident.length },
       emptyText:
         this.snapshot.definitions.length === 0
-          ? `No processes deployed on ${engine.name}.`
+          ? `No processes deployed on ${engine.name}, or you may not have permission to see them.`
           : "No processes match this filter.",
       ...WebUiLinks.toStartPage(engine),
     }

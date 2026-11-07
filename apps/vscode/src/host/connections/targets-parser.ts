@@ -13,6 +13,7 @@ type Json = Readonly<Record<string, unknown>>
 type Optionals = Pick<EngineTarget, "webUiUrl" | "readOnly">
 
 const C7_FLAVORS: ReadonlySet<unknown> = new Set(["camunda7", "operaton", "cibseven"])
+const C8_FLAVOR = "camunda8"
 const DEFAULT_ENGINE = "default"
 const PROFILE_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/
 const NOT_ENGINE_NAMES: ReadonlySet<string> = new Set(["", ".", ".."])
@@ -21,6 +22,10 @@ const PLAIN_URL = "an http or https URL without credentials, query or fragment"
 
 export class TargetsParser {
   constructor(private readonly path: string) {}
+
+  static isProfileName(name: string): boolean {
+    return PROFILE_NAME.test(name)
+  }
 
   parse(content: string): ParsedTargets {
     const profiles = this.profilesOf(content)
@@ -83,9 +88,14 @@ export class TargetsParser {
     if (typeof optional === "string") {
       return optional
     }
+    const engine = profile.flavor === C8_FLAVOR ? "c8" : "c7"
+    const supported = ProfileAuthReader.typesSendingCredentials(engine)
+    if (auth.kind === "clientCredentials" && !supported.includes(auth.kind)) {
+      return `profile "${name}" uses client credentials, which Pulse supports for the flavor ${C8_FLAVOR} only`
+    }
     return {
       name,
-      engine: "c7",
+      engine,
       endpoint,
       auth,
       source: { kind: "file", path: this.path },
@@ -101,12 +111,12 @@ export class TargetsParser {
   }
 
   private flavorProblemOf(name: string, flavor: unknown): string | undefined {
-    if (flavor === undefined || C7_FLAVORS.has(flavor)) {
+    if (flavor === undefined || flavor === C8_FLAVOR || C7_FLAVORS.has(flavor)) {
       return undefined
     }
     const named = typeof flavor === "string" ? flavor.trim() : ""
-    return named === "" || C7_FLAVORS.has(named)
-      ? `profile "${name}" needs a flavor of camunda7, cibseven or operaton`
+    return named === "" || named === C8_FLAVOR || C7_FLAVORS.has(named)
+      ? `profile "${name}" needs a flavor of camunda7, cibseven, operaton or ${C8_FLAVOR}`
       : `profile "${name}" uses the flavor ${named}, which Pulse does not support yet`
   }
 

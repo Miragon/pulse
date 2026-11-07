@@ -29,6 +29,16 @@ export class PulseSettings {
     return vscode.workspace.getConfiguration("pulse").inspect("liveUpdates")?.globalValue
   }
 
+  static async classify(name: string, environment: Environment): Promise<void> {
+    await vscode.workspace
+      .getConfiguration("pulse")
+      .update(
+        "environments",
+        { ...PulseSettings.environments().user, [name]: environment },
+        vscode.ConfigurationTarget.Global,
+      )
+  }
+
   static async turnOnLiveUpdates(environment: Environment): Promise<void> {
     const user = PulseSettings.liveUpdates()
     await vscode.workspace

@@ -5,11 +5,12 @@
  */
 
 import { compact, mergeHeaders } from "../util.js"
-import { changedAuth, settleAuthorization } from "./auth-edit.js"
+import { changedAuth, checkAuthType, hasAuthOptions, settleAuthorization } from "./auth-edit.js"
 import { type BearerChanges, BEARER_UNSET_KEYS, bearerUnsetKeys } from "./bearer-edit.js"
 import { configError } from "./config-error.js"
 import { parseHeaders } from "./headers.js"
 import {
+  ifGiven,
   type OAuthChanges,
   OAUTH_UNSET_KEYS,
   oauthUnsetKeys,
@@ -153,10 +154,6 @@ export function validateProfileName(name: string): string {
   return name
 }
 
-function ifGiven<T, R>(value: T | undefined, convert: (value: T) => R): R | undefined {
-  return value === undefined ? undefined : convert(value)
-}
-
 function changedHeaders(
   existing: Profile | undefined,
   headers: readonly string[],
@@ -208,6 +205,7 @@ export function setProfile(
   validateProfileName(name)
   const current = file ?? EMPTY
   const existing = findProfile(current, name)
+  if (hasAuthOptions(changes)) checkAuthType(existing, name)
   const merged = { ...existing, ...changedValues(existing, changes) }
   const profile = canonical(settleAuthorization(merged, changes, name))
   const first = Object.keys(current.profiles).length === 0
@@ -249,6 +247,9 @@ export function unsetProfileKeys(
   const current = file ?? EMPTY
   const profile = requireProfile(current, name)
   const authKeys = keys.flatMap((key) => authUnsetKeys(key) ?? [])
+  // any single auth setting, also one the profile does not store, fails the whole command (as an
+  // auth option of `config set` does); `auth` removes the auth whole and stays the way to reset it
+  if (authKeys.length > 0) checkAuthType(profile, name)
   const plain = keys.filter((key) => authUnsetKeys(key) === undefined)
   const removed = new Set<string>(plain.map(profileKey))
   const { auth, ...kept }: Profile = Object.fromEntries(

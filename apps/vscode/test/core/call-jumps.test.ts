@@ -99,7 +99,11 @@ describe("jumping from a call activity in the definition view", () => {
     await panel.handle({ type: "ready" })
 
     expect(definitionView(fixture.lastState()).calls).toEqual([
-      { elementId: CALL_ACTIVITY, label: "pulse-label isn't deployed on local", missing: true },
+      {
+        elementId: CALL_ACTIVITY,
+        label: "pulse-label isn't deployed on local, or you may not have permission to see it",
+        missing: true,
+      },
     ])
 
     await panel.handle({ type: "openCall", elementId: CALL_ACTIVITY, toSide: false })
@@ -107,7 +111,7 @@ describe("jumping from a call activity in the definition view", () => {
     expect(fixture.effects.openDefinition).not.toHaveBeenCalled()
     expect(definitionView(fixture.lastState()).notices).toContainEqual({
       tone: "info",
-      title: "pulse-label isn't deployed on local.",
+      title: "pulse-label isn't deployed on local, or you may not have permission to see it.",
       actions: [],
     })
 
@@ -216,7 +220,7 @@ describe("jumping from a call activity in the instance view", () => {
     await panel.handle({ type: "openCall", elementId: CALL_ACTIVITY, toSide: false })
 
     expect(instanceView(fixture.lastState()).notice?.title).toBe(
-      "pulse-label isn't deployed on local.",
+      "pulse-label isn't deployed on local, or you may not have permission to see it.",
     )
 
     await panel.handle({ type: "refresh" })

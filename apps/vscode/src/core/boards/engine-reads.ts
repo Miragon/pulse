@@ -5,6 +5,7 @@ import {
   type DefinitionSummary,
   type ElementStatistics,
   type Incident,
+  type InstanceCount,
   type InstanceFilter,
   type InstanceSummary,
   type Page,
@@ -31,7 +32,7 @@ export class EngineReads {
     return this.once("summaries", () => this.definitions.read(0))
   }
 
-  count(filter: InstanceFilter): Promise<Read<number>> {
+  count(filter: InstanceFilter): Promise<Read<InstanceCount>> {
     return this.once(`count|${JSON.stringify(filter)}`, () => this.runtime.countInstances(filter))
   }
 

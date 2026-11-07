@@ -14,7 +14,7 @@ import {
   validateUrl,
 } from "./resolve.js"
 import { redactUrl } from "./redact.js"
-import { type ConfigFile, FLAVORS, type Profile } from "./types.js"
+import { type ConfigFile, FLAVORS, type UsableProfile } from "./types.js"
 
 describe("selectProfile", () => {
   const config: ConfigFile = {
@@ -219,7 +219,7 @@ describe("validateFlavor", () => {
 describe("resolveFlavor", () => {
   it("takes the flag, then PULSE_CLI_FLAVOR, then the profile, else camunda7", () => {
     const env = { PULSE_CLI_FLAVOR: "cibseven" }
-    const profile: Profile = { flavor: "operaton" }
+    const profile: UsableProfile = { flavor: "operaton" }
     expect(resolveFlavor({ flavor: "camunda7" }, env, profile)).toEqual({
       value: "camunda7",
       source: "flag",

@@ -7,7 +7,8 @@
 
 Pulse shows what a process engine is running, next to the BPMN models in VS Code.
 It must be engine-neutral like the Miragon BPMN modeler: Camunda 7 family engines
-(Operaton, CIB seven, Camunda 7) now, Camunda 8 later, without reworking the core.
+(Operaton, CIB seven, Camunda 7) and Camunda 8 ([c8-adapter.md](c8-adapter.md)), without
+reworking the core.
 The product owner asked for extremely good encapsulation: a core with logic and UI,
 and adapter modules that only provide data and fulfil contracts.
 
@@ -77,6 +78,14 @@ parser follows; `apps/vscode/turbo.json` names the fixtures as inputs of `test`,
 never hides that. Pulse reads profile by profile and ignores keys it does not use, so a file the
 CLI refuses as a whole (a committed password, a secret header, an unknown key) can still list
 engines; the fixtures pin that.
+
+The extension writes the file in one place: _Add Engine_ (`src/host/commands/add-engine-command.ts`)
+appends the profile that `src/host/connections/saas-setup.ts` or `self-managed-setup.ts` builds,
+through `src/host/connections/project-file-edit.ts`, the way the CLI writes: never as the default,
+`$schema` and `defaultProfile` untouched, nothing written into a file that isn't JSON, no secret.
+The fixture `valid-wizard-profiles.json` holds the wizard's exact output and
+`apps/vscode/test/host/wizard-profiles.test.ts` compares the two, so the CLI's parser and schema
+check every profile the wizard writes.
 
 Each layer has its own `tsconfig.<layer>.json` with `lib`/`types` matching its runtime,
 so code that uses `document` in the core or `process` in the webview does not compile.
@@ -183,10 +192,13 @@ file's current content when _Show Runtime Data for This Model_ runs again.
   layer (`apps/vscode/test/<layer>/runtime.boundary.ts`).
 - A new engine takes `apps/vscode/src/adapters/<engine>` with a class implementing
   `EngineAdapter`, an engine test that runs the `ConformanceKit` and one entry in the
-  composition root; core, protocol and webview stay untouched. ESLint keeps engine words
-  out of them, and dependency-cruiser fails while a new adapter has no engine test. The
-  spike built a Camunda 8 adapter this way against a mock of the REST API v2 and removed
-  it again to keep the prototype small to check.
+  composition root. A new flavor or credential kind also takes the host's profile reader
+  and credential store. Core, protocol and webview change only where the contract gains
+  something, and they never name an engine: ESLint keeps engine words out of them, and
+  dependency-cruiser fails while a new adapter has no engine test.
+  `apps/vscode/src/adapters/c8` came this way: the contract gained what real engines proved
+  it needs ([runtime-contract.md](runtime-contract.md)), and the host the flavor `camunda8`
+  and client credentials.
 - Source-only layers keep the build to one esbuild run; the extension ships as one .vsix.
 
 ## Decision log

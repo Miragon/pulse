@@ -1,4 +1,5 @@
 import type {
+  RefusedVariableCondition,
   VariableConditionView,
   VariableOperator,
   VariableValueType,
@@ -25,7 +26,7 @@ export const NUMBER_PATTERN = "-?(?:0|[1-9]\\d*)(?:\\.\\d+)?"
 
 export const DATE_PATTERN = "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(?::\\d{2})?"
 
-export const COMPARE_AS: readonly (readonly [CompareAs, string])[] = [
+const COMPARE_AS: readonly (readonly [CompareAs, string])[] = [
   ["auto", "Automatic"],
   ["text", "Text"],
   ["number", "Number"],
@@ -70,6 +71,21 @@ export class VariableDraft {
       value: condition?.value ?? "",
       compareAs: condition?.as ?? "auto",
     }
+  }
+
+  static compareAsOptions(
+    refused: readonly RefusedVariableCondition[],
+  ): readonly (readonly [CompareAs, string])[] {
+    return COMPARE_AS.filter(([compareAs]) => compareAs !== "date" || !refused.includes("date"))
+  }
+
+  static operatorsOf(
+    compareAs: CompareAs,
+    refused: readonly RefusedVariableCondition[],
+  ): readonly VariableOperator[] {
+    return OPERATORS_OF[compareAs].filter(
+      (operator) => !NUMBER_OPERATORS.has(operator) || !refused.includes("ordering"),
+    )
   }
 
   static operatorLabel(compareAs: CompareAs, operator: VariableOperator): string {

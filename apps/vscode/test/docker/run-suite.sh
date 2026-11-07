@@ -16,10 +16,19 @@ pnpm config set store-dir /pnpm-store >/dev/null
 pnpm install --frozen-lockfile --filter "pulse-cockpit..." --filter .
 pnpm --fail-if-no-match --filter "pulse-cockpit^..." run build
 
+# Forwards a loopback port to a host and port this container's network reaches.
+forward() {
+  node -e 'const net = require("node:net"); const [from, host, to] = process.argv.slice(1); net.createServer((client) => { const target = net.connect(Number(to), host); client.pipe(target).pipe(client); target.on("error", () => client.destroy()); client.on("error", () => target.destroy()) }).listen(Number(from), "127.0.0.1")' "$@" &
+}
+
+# The e2e suites and their workspaces name the engine by the ports of the host; the container
+# shares the engine container's network, where the engine listens on 8080.
 if [ "$suite" = e2e ]; then
-  # The e2e suite and its workspace name the engine as localhost:18080; the container shares the
-  # engine container's network, where the engine listens on 8080.
-  node -e 'const net = require("node:net"); net.createServer((client) => { const engine = net.connect(8080, "127.0.0.1"); client.pipe(engine).pipe(client); engine.on("error", () => client.destroy()); client.on("error", () => engine.destroy()) }).listen(18080, "127.0.0.1")' &
+  forward 18080 127.0.0.1 8080
+fi
+if [ "$suite" = e2e:c8 ]; then
+  forward 18088 127.0.0.1 8080
+  forward 18089 keycloak 8080
 fi
 
 cd apps/vscode

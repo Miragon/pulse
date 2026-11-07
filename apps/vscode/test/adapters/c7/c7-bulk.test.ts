@@ -276,7 +276,7 @@ describe("instances by id", () => {
       { route: "POST /history/process-instance/count", answer: { count: 3 } },
     ])
 
-    expect(await runtime.countInstances({ instanceIds: IDS })).toBe(3)
+    expect(await runtime.countInstances({ instanceIds: IDS })).toEqual({ count: 3 })
     expect(engine.requests.map((request) => request.route)).toEqual([
       "POST /history/process-instance/count",
     ])
@@ -288,7 +288,7 @@ describe("instances by id", () => {
   test("finds nothing for an empty list without asking the engine", async () => {
     const { runtime, engine } = fakeRuntime([])
 
-    expect(await runtime.countInstances({ instanceIds: [] })).toBe(0)
+    expect(await runtime.countInstances({ instanceIds: [] })).toEqual({ count: 0 })
     expect(await runtime.searchInstances({ instanceIds: [] }, { limit: 5 })).toEqual({ items: [] })
     expect(engine.requests).toEqual([])
   })

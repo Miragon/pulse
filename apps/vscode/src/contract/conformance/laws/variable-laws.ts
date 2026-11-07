@@ -1,5 +1,10 @@
 import { BpmnProcessId } from "../../model/ids.js"
-import type { InstanceFilter, VariableCondition } from "../../model/queries.js"
+import type {
+  InstanceFilter,
+  VariableCondition,
+  VariableConditionKind,
+} from "../../model/queries.js"
+import { RuntimeError } from "../../model/runtime-error.js"
 import { Conditions } from "./conditions.js"
 import { Ensure } from "../ensure.js"
 import { CASE, type ConformanceCase } from "../conformance-case.js"
@@ -17,6 +22,8 @@ const NEW_YEAR = "2026-01-01T00:00:00.000Z"
 interface Expectation {
   readonly conditions: readonly VariableCondition[]
   readonly found: readonly InstanceAlias[]
+  readonly needs?: VariableConditionKind
+  readonly meaningfulOnlyWithIt?: true
 }
 
 export class VariableSearch {
@@ -28,9 +35,12 @@ export class VariableSearch {
   }
 
   static countedFilters(harness: ConformanceHarness): readonly InstanceFilter[] {
+    const ordering = VariableSearch.refuses(harness, "ordering")
+      ? []
+      : [VariableSearch.inWorld(harness, [Conditions.greaterThan("amount", 5)])]
     return [
       VariableSearch.inWorld(harness, [Conditions.equals("route", "review")]),
-      VariableSearch.inWorld(harness, [Conditions.greaterThan("amount", 5)]),
+      ...ordering,
       VariableSearch.inWorld(harness, [Conditions.like("route", "*e*")]),
     ]
   }
@@ -42,22 +52,55 @@ export class VariableSearch {
     }
   }
 
+  private static refuses(harness: ConformanceHarness, kind: VariableConditionKind): boolean {
+    return harness.runtime.refusedVariableConditions?.().includes(kind) === true
+  }
+
   private static async expect(
     harness: ConformanceHarness,
     law: string,
     expectations: readonly Expectation[],
   ): Promise<void> {
-    for (const { conditions, found } of expectations) {
-      const page = await harness.runtime.searchInstances(
-        VariableSearch.inWorld(harness, conditions),
-        { limit: PAGE_LIMIT },
-      )
-      Ensure.sameSet(
-        page.items.map((item) => item.id),
-        found.map((alias) => harness.world.instanceIds[alias]),
-        `${law} (${JSON.stringify(conditions)})`,
-      )
+    for (const expectation of expectations) {
+      const { needs, conditions, found, meaningfulOnlyWithIt } = expectation
+      if (needs === undefined || !VariableSearch.refuses(harness, needs)) {
+        const page = await harness.runtime.searchInstances(
+          VariableSearch.inWorld(harness, conditions),
+          { limit: PAGE_LIMIT },
+        )
+        Ensure.sameSet(
+          page.items.map((item) => item.id),
+          found.map((alias) => harness.world.instanceIds[alias]),
+          `${law} (${JSON.stringify(conditions)})`,
+        )
+      } else if (meaningfulOnlyWithIt !== true) {
+        await VariableSearch.expectRefusal(harness, law, conditions)
+      }
     }
+  }
+
+  private static async expectRefusal(
+    harness: ConformanceHarness,
+    law: string,
+    conditions: readonly VariableCondition[],
+  ): Promise<void> {
+    const filter = VariableSearch.inWorld(harness, conditions)
+    const answers = await Promise.all([
+      VariableSearch.failureOf(harness.runtime.searchInstances(filter, { limit: PAGE_LIMIT })),
+      VariableSearch.failureOf(harness.runtime.countInstances(filter)),
+    ])
+    Ensure.that(
+      answers.every((failure) => failure === "unsupported"),
+      law,
+      `${JSON.stringify(conditions)} is declared as refused: expected "unsupported", got ${Ensure.describe(answers)}`,
+    )
+  }
+
+  private static failureOf(attempt: Promise<unknown>): Promise<string> {
+    return attempt.then(
+      () => "answered",
+      (error: unknown) => (RuntimeError.is(error) ? error.failure : String(error)),
+    )
   }
 }
 
@@ -118,15 +161,41 @@ export const VARIABLE_LAWS: readonly ConformanceCase[] = [
     {
       conditions: [Conditions.greaterThan("amount", 5), Conditions.lessThan("amount", 100)],
       found: ["ORD-1002"],
+      needs: "ordering",
     },
-    { conditions: [Conditions.greaterThan("amount", 42)], found: [] },
+    { conditions: [Conditions.greaterThan("amount", 42)], found: [], needs: "ordering" },
+    { conditions: [Conditions.lessThan("amount", 100)], found: ["ORD-1002"], needs: "ordering" },
+    { conditions: [Conditions.lessThan("amount", 42)], found: [], needs: "ordering" },
   ]),
   VariableSearch.law(CASE.variablesDates, [
-    { conditions: [Conditions.date("dueAt", "equals", WORLD_DUE_AT)], found: ["ORD-1002"] },
-    { conditions: [Conditions.date("dueAt", "greaterThan", NEW_YEAR)], found: ["ORD-1002"] },
-    { conditions: [Conditions.date("dueAt", "lessThan", NEW_YEAR)], found: [] },
-    { conditions: [Conditions.equals("dueAt", WORLD_DUE_AT)], found: [] },
-    { conditions: [Conditions.date("route", "greaterThan", NEW_YEAR)], found: [] },
+    {
+      conditions: [Conditions.date("dueAt", "equals", WORLD_DUE_AT)],
+      found: ["ORD-1002"],
+      needs: "date",
+    },
+    {
+      conditions: [Conditions.date("dueAt", "greaterThan", NEW_YEAR)],
+      found: ["ORD-1002"],
+      needs: "date",
+    },
+    { conditions: [Conditions.date("dueAt", "lessThan", NEW_YEAR)], found: [], needs: "date" },
+    {
+      conditions: [Conditions.date("dueAt", "notEquals", NEW_YEAR)],
+      found: ["ORD-1002"],
+      needs: "date",
+    },
+    {
+      conditions: [Conditions.date("dueAt", "notEquals", WORLD_DUE_AT)],
+      found: [],
+      needs: "date",
+    },
+    {
+      conditions: [Conditions.equals("dueAt", WORLD_DUE_AT)],
+      found: [],
+      needs: "date",
+      meaningfulOnlyWithIt: true,
+    },
+    { conditions: [Conditions.date("route", "greaterThan", NEW_YEAR)], found: [], needs: "date" },
   ]),
   VariableSearch.law(CASE.variablesNull, [
     { conditions: [Conditions.equals("giftNote", null)], found: ["ORD-1002"] },
@@ -141,6 +210,7 @@ export const VARIABLE_LAWS: readonly ConformanceCase[] = [
     { conditions: [Conditions.like("route", "rev*")], found: ["ORD-1001", "ORD-2001"] },
     { conditions: [Conditions.like("route", "r_view")], found: [] },
     { conditions: [Conditions.like("route", "r%")], found: [] },
+    { conditions: [Conditions.like("route", "r?view")], found: [] },
   ]),
   VariableSearch.law(CASE.variablesAllHold, [
     {

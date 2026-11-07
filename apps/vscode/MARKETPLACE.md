@@ -2,7 +2,7 @@
 
 See what your process engine is running, right next to your BPMN models: definitions,
 instances, incidents and variables, with badges on the deployed diagram. Works with Operaton,
-CIB seven and Camunda 7.
+CIB seven and Camunda 7, and reads Camunda 8 on SaaS and Self-Managed.
 
 ![Pulse in VS Code: from the engine to its process and an instance with an incident, the expired card fixed in its variables and the retry that clears the incident](https://github.com/Miragon/pulse/raw/main/apps/vscode/docs/demo.gif)
 
@@ -39,6 +39,7 @@ Pulse reads the engine profiles of `.pulse-cli.json`, the project file of the
 [Pulse CLI](https://miragon.github.io/pulse/cli/) (`npx @miragon/pulse-cli`). Mark production
 engines with `"pulse.environments": { "<name>": "production" }`. An optional `cockpitUrl` per
 profile (a Cockpit ending in `/app/cockpit/<engine>/` or the CIB seven webclient ending in
-`/webapp/`) adds an _Open in Cockpit_ button to the panels.
+`/webapp/`) adds an _Open in Cockpit_ button to the panels. For Camunda 8, _Pulse: Add Engine…_
+asks for a SaaS or Self-Managed cluster step by step and writes its profile.
 
 Installation, configuration and usage: [miragon.github.io/pulse/vscode](https://miragon.github.io/pulse/vscode/).

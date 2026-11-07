@@ -21,6 +21,7 @@ idea, three clients on the same engines:
 - **Your terminal:** `pulse`, every engine operation as one short command, for people and AI
   agents alike.
 - **VS Code:** runtime data next to your BPMN models: instances, incidents, variables and retries.
+  It also reads Camunda 8, on SaaS and Self-Managed.
 
 Pulse is part of [Miragon AI](https://miragon.ai/), the family of Miragon's AI tools.
 

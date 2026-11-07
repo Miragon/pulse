@@ -4,7 +4,7 @@
     "profiles": {
       "local": {
         "url": "http://localhost:8080/engine-rest",
-        "flavor": "camunda8"
+        "flavor": "zeebe"
       }
     }
   },

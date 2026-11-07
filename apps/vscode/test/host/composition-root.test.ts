@@ -9,6 +9,7 @@ import { describe, expect, test } from "vitest"
 import { CompositionRoot } from "../../src/host/composition-root.js"
 import type { Credentials } from "../../src/host/connections/connection.js"
 import { LOCAL_TARGET, type EngineTarget } from "../../src/host/connections/engine-target.js"
+import { TargetsParser } from "../../src/host/connections/targets-parser.js"
 
 const NO_LOGIN: Credentials = { kind: "none" }
 const LOGIN: Credentials = { kind: "basic", username: "demo", password: "demo" }
@@ -46,7 +47,8 @@ class RecordingAdapter implements EngineAdapter {
 
 function rootWithRecorder() {
   const c7 = new RecordingAdapter("c7")
-  return { c7, root: new CompositionRoot({ c7 }) }
+  const c8 = new RecordingAdapter("c8")
+  return { c7, c8, root: new CompositionRoot({ c7, c8 }) }
 }
 
 describe("the composition root", () => {
@@ -84,6 +86,79 @@ describe("the composition root", () => {
       { kind: "none" },
       LOGIN,
     ])
+  })
+
+  test("hands a target to the adapter of its own engine kind only", () => {
+    const { c7, c8, root } = rootWithRecorder()
+    const target: EngineTarget = { ...C7_TARGET, engine: "c8" }
+
+    expect(root.runtime(target, NO_LOGIN)).toBe(c8.runtimeOfIt)
+    expect(c7.connections).toEqual([])
+  })
+
+  test("builds client credentials from the target and the stored client", () => {
+    const { c8, root } = rootWithRecorder()
+    const target: EngineTarget = {
+      ...C7_TARGET,
+      engine: "c8",
+      endpoint: "https://bru-2.api.camunda.io/cluster/v2",
+      auth: {
+        kind: "clientCredentials",
+        tokenEndpoint: "https://login.cloud.camunda.io/oauth/token",
+        audience: "zeebe.camunda.io",
+        scopes: ["read"],
+      },
+    }
+
+    root.runtime(target, { kind: "clientCredentials", clientId: "pulse", clientSecret: "s3cret" })
+    root.runtime(target, NO_LOGIN)
+
+    expect(c8.connections.map((connection) => connection.credentials)).toEqual([
+      {
+        kind: "clientCredentials",
+        tokenEndpoint: "https://login.cloud.camunda.io/oauth/token",
+        clientId: "pulse",
+        clientSecret: "s3cret",
+        audience: "zeebe.camunda.io",
+        scopes: ["read"],
+      },
+      { kind: "none" },
+    ])
+  })
+
+  test("hands the adapter the token endpoint of the project file as written", () => {
+    const { c8, root } = rootWithRecorder()
+    const tokenEndpoint = "https://authentik.example.com/application/o/token/?tenant=shop"
+    const { targets } = new TargetsParser("/work/.pulse-cli.json").parse(
+      JSON.stringify({
+        profiles: {
+          c8: {
+            url: "https://c8.example.com/v2",
+            flavor: "camunda8",
+            auth: { type: "clientCredentials", tokenEndpoint: ` ${tokenEndpoint} ` },
+          },
+        },
+      }),
+    )
+
+    for (const target of targets) {
+      root.runtime(target, { kind: "clientCredentials", clientId: "pulse", clientSecret: "s3cret" })
+    }
+
+    expect(c8.connections.map((connection) => connection.credentials)).toEqual([
+      { kind: "clientCredentials", tokenEndpoint, clientId: "pulse", clientSecret: "s3cret" },
+    ])
+  })
+
+  test("asks the adapter of a target whether it can write at all", () => {
+    const readOnly = new RecordingAdapter("c8")
+    const root = new CompositionRoot({
+      c7: new RecordingAdapter("c7"),
+      c8: Object.assign(readOnly, { commands: () => undefined }),
+    })
+
+    expect(root.canWrite(C7_TARGET)).toBe(true)
+    expect(root.canWrite({ ...C7_TARGET, engine: "c8" })).toBe(false)
   })
 
   test("gives a refused target a failing runtime with the reason and no commands", async () => {

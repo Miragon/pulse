@@ -23,7 +23,9 @@ flowchart LR
 ```
 
 1. The extension gives the adapter of a target's engine family a connection: endpoint, credentials.
-2. The adapter hands out `ProcessRuntime` with 11 reads and, if it can write, `ProcessCommands`.
+2. The adapter hands out `ProcessRuntime` with 17 methods, three of them optional
+   (`refusedVariableConditions?`, `proposeMigration?`, `checkMigration?`), and, if it can write,
+   `ProcessCommands`.
 3. Core and extension ask in Pulse's words: process, version, instance and element ids.
 4. Only the adapter behind the ports knows which engine answers.
 5. The adapter turns each question into engine API calls and normalises the answer.
@@ -37,8 +39,9 @@ flowchart LR
 ```
 
 1. Each test harness seeds one fixed world of processes, element ids and instances into its engine.
-2. The kit runs 47 read laws and 15 command laws; the fake and every adapter must pass all of them.
-3. It tests itself: 59 saboteurs in `apps/vscode/test/contract`, each the fake with one flaw, fail exactly their laws.
+2. The kit runs 48 read laws and 15 command laws; the fake and every adapter pass every read law,
+   and every adapter that writes every command law.
+3. It tests itself: 68 saboteurs in `apps/vscode/test/contract`, each the fake with one flaw, fail exactly their laws.
 
 ## Where things are
 

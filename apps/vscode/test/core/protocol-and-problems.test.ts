@@ -62,6 +62,26 @@ describe("the problem shown for a failure", () => {
     })
   })
 
+  test("names what the engine cannot do without offering to edit the connection", () => {
+    const error = new RuntimeError("unsupported", "No ordering on variables.", {
+      hint: "Use equals instead.",
+    })
+
+    expect(Problems.of(error, ENGINE)).toEqual({
+      title: "dev cannot do this.",
+      detail: "No ordering on variables. Use equals instead.",
+      canEditConnection: false,
+    })
+  })
+
+  test("says that something not found may have been deleted, on every engine", () => {
+    expect(Problems.notFound("The instance 2251799…")).toEqual({
+      title: "The instance 2251799… was not found.",
+      detail: "It may have been deleted.",
+      canEditConnection: false,
+    })
+  })
+
   test("adds the hint of the adapter", () => {
     const error = new RuntimeError("unauthorized", "HTTP 401.", { hint: "Set the credentials." })
     expect(Problems.of(error, ENGINE).detail).toBe("HTTP 401. Set the credentials.")

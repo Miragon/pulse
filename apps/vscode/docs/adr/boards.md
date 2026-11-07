@@ -59,7 +59,8 @@ single-engine. Per engine it probes `describeEngine` first and reads nothing els
 that fails it; `EngineReads` reads each distinct question once per engine and load. Honest
 numbers: totals come from counts and the shared definitions, never from page lengths; a failed
 read shows "not read", never 0; a total says how many engines it counts ("from 2 of 3 engines"); a
-threshold warns per engine. `instanceList` shows each engine's first 50 rows with that
+threshold warns per engine, and a count that is only a lower bound at or below it reads
+"stopped counting", never calm. `instanceList` shows each engine's first 50 rows with that
 engine's total, in one table with an engine column and the rows of each engine together, because the contract promises no order across
 engines. `incidentSummary` counts instances with incident from `listDefinitions`, one call per
 engine. `processDiagram` draws the latest version of one engine's deployment with the

@@ -5,11 +5,15 @@ import {
   IncidentId,
   InstanceId,
   IsoTimestamp,
+  type Incident,
+  type IncidentDetails,
   type InstanceDetail,
   type WaitState,
 } from "../../src/contract/index.js"
 import { describe, expect, test } from "vitest"
+import type { ElementLink, ElementLinks } from "../../src/core/panels/model-links.js"
 import type { IncidentRow } from "../../src/core/protocol/index.js"
+import { HandoverText } from "../../src/core/views/handover-text.js"
 import { InstanceHeadline } from "../../src/core/views/instance-headline.js"
 import { InstanceViewBuilder } from "../../src/core/views/instance-view-builder.js"
 
@@ -41,7 +45,11 @@ function detailWith(changes: Partial<InstanceDetail>): InstanceDetail {
   }
 }
 
-function viewOf(detail: InstanceDetail) {
+function viewOf(
+  detail: InstanceDetail,
+  fullDetails: ReadonlyMap<IncidentId, IncidentDetails> = new Map(),
+  modelLinks?: ElementLinks,
+) {
   return new InstanceViewBuilder({
     writable: false,
     engine: { name: "local", environment: "local", host: "localhost" },
@@ -49,9 +57,41 @@ function viewOf(detail: InstanceDetail) {
     detail,
     diagramXml: "<definitions/>",
     calledProcesses: [],
-    fullDetails: new Map(),
+    fullDetails,
+    ...(modelLinks === undefined ? {} : { modelLinks }),
   }).build()
 }
+
+function incident(id: string, changes: Partial<Incident> = {}): Incident {
+  return {
+    id: IncidentId(id),
+    instanceId: ROOT,
+    definition: { id: DefinitionId("order:1"), bpmnProcessId: BpmnProcessId("order"), version: 1 },
+    elementId: ELEMENT,
+    type: "failedJob",
+    message: "boom",
+    createdAt: SINCE,
+    ...changes,
+  }
+}
+
+function complete(kind: IncidentDetails["kind"], rootCause: string): IncidentDetails {
+  return { kind, text: `${rootCause}\n  more lines`, truncated: false, rootCause }
+}
+
+const CAUSES = [
+  incident("from-a-stack-trace", { details: complete("stacktrace", "MissingBean: no bean") }),
+  incident("from-a-worker", {
+    job: { id: "job-1", type: "charge-card" },
+    details: complete("errorMessage", "Card declined"),
+  }),
+  incident("from-the-engine", {
+    type: "mappingError",
+    message: "No variable customerId",
+    details: complete("errorMessage", "No variable customerId"),
+  }),
+  incident("without-details"),
+]
 
 function wait(kind: WaitState): WaitState {
   return kind
@@ -182,6 +222,78 @@ describe("the instance view", () => {
     expect(view.variables).toEqual([
       { name: "reviewer", valueJson: '"mia"', truncated: true, scopeElementId: "Activity_Wait" },
     ])
+  })
+
+  test("labels a cause by its source: a stack trace, a worker's error, an error without a job", () => {
+    const view = viewOf(detailWith({ incidents: CAUSES }))
+
+    expect(view.incidents.map((row) => [row.causeLabel, row.rootCause])).toEqual([
+      ["Root cause", "MissingBean: no bean"],
+      ["Worker error", "Card declined"],
+      ["Cause", "No variable customerId"],
+      [undefined, undefined],
+    ])
+  })
+
+  test("labels a cause apart from the errors the local model names on the same card", () => {
+    const failed = incident("io-mapping", {
+      type: "ioMappingError",
+      message: "Failed to evaluate expression 'customer.id'",
+      details: complete("errorMessage", "Failed to evaluate expression 'customer.id'"),
+    })
+    const model = {
+      uri: "file:///shop/order.bpmn",
+      fileName: "order.bpmn",
+      bpmnProcessId: BpmnProcessId("order"),
+      xml: "<definitions/>",
+    }
+    const configuration = {
+      inputs: [],
+      outputs: [],
+      errors: [{ code: "PAYMENT_DECLINED", name: "Payment declined" }],
+    }
+    const link: ElementLink = {
+      model,
+      elementId: ELEMENT,
+      element: { location: { uri: model.uri, line: 7 }, configuration },
+      differsFromDeployed: false,
+    }
+
+    const [row] = viewOf(
+      detailWith({ incidents: [failed] }),
+      new Map(),
+      new Map([[failed.id, link]]),
+    ).incidents
+
+    expect([row?.causeLabel, ...(row?.model?.settings ?? []).map(({ label }) => label)]).toEqual([
+      "Cause",
+      "Error",
+    ])
+  })
+
+  test("labels a cause by the complete details it came from, not by the shortened ones", () => {
+    const shortened = incident("shortened", {
+      job: { id: "job-2" },
+      details: { kind: "errorMessage", text: "Wrapper: outer", truncated: true },
+    })
+    const view = viewOf(
+      detailWith({ incidents: [shortened] }),
+      new Map([[shortened.id, complete("stacktrace", "Inner: the real cause")]]),
+    )
+
+    expect(view.incidents[0]).toMatchObject({
+      causeLabel: "Root cause",
+      rootCause: "Inner: the real cause",
+    })
+  })
+
+  test("hands each cause over with the label its card shows", () => {
+    const text = HandoverText.of(viewOf(detailWith({ incidents: CAUSES })))
+
+    expect(text).toContain("  - Root cause: MissingBean: no bean")
+    expect(text).toContain("  - Worker error: Card declined")
+    expect(text).toContain("  - Cause: No variable customerId")
+    expect(text.match(/Root cause:/g)).toHaveLength(1)
   })
 })
 

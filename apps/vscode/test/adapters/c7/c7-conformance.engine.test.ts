@@ -14,42 +14,45 @@ function connectionTo(endpoint: string) {
   return { endpoint, credentials: { kind: "none" } } as const
 }
 
-describe(`the C7 adapter against ${ENGINE_IMAGE}`, () => {
-  const adapter = new C7Adapter()
-  let engine: RunningEngine | undefined
-  let harness: ConformanceHarness | undefined
+describe.skipIf(/^camunda\/camunda[:@]/.test(ENGINE_IMAGE))(
+  `the C7 adapter against ${ENGINE_IMAGE}`,
+  () => {
+    const adapter = new C7Adapter()
+    let engine: RunningEngine | undefined
+    let harness: ConformanceHarness | undefined
 
-  beforeAll(async () => {
-    engine = await startEngine()
-    harness = {
-      runtime: adapter.runtime(connectionTo(engine.url)),
-      unreachableRuntime: adapter.runtime(connectionTo(UNREACHABLE_URL)),
-      world: await seedWorld(engine.url),
-    }
-  })
+    beforeAll(async () => {
+      engine = await startEngine()
+      harness = {
+        runtime: adapter.runtime(connectionTo(engine.url)),
+        unreachableRuntime: adapter.runtime(connectionTo(UNREACHABLE_URL)),
+        world: await seedWorld(engine.url),
+      }
+    })
 
-  afterAll(async () => {
-    await engine?.stop()
-  })
+    afterAll(async () => {
+      await engine?.stop()
+    })
 
-  const kit = new ConformanceKit(test)
+    const kit = new ConformanceKit(test)
 
-  kit.registerRuntimeLaws(() => {
-    if (harness === undefined) {
-      return Promise.reject(new Error("the engine did not start"))
-    }
-    return Promise.resolve(harness)
-  })
+    kit.registerRuntimeLaws(() => {
+      if (harness === undefined) {
+        return Promise.reject(new Error("the engine did not start"))
+      }
+      return Promise.resolve(harness)
+    })
 
-  kit.registerCommandLaws(async () => {
-    if (engine === undefined || harness === undefined) {
-      throw new Error("the engine did not start")
-    }
-    return {
-      runtime: harness.runtime,
-      commands: adapter.commands(connectionTo(engine.url)),
-      world: await seedCommandWorld(engine.url, harness.world),
-      asyncWork: BATCHES_RUN_WITHIN,
-    }
-  })
-})
+    kit.registerCommandLaws(async () => {
+      if (engine === undefined || harness === undefined) {
+        throw new Error("the engine did not start")
+      }
+      return {
+        runtime: harness.runtime,
+        commands: adapter.commands(connectionTo(engine.url)),
+        world: await seedCommandWorld(engine.url, harness.world),
+        asyncWork: BATCHES_RUN_WITHIN,
+      }
+    })
+  },
+)

@@ -12,7 +12,7 @@ import { loginFileName, removeCache, withCacheLock } from "../../auth/oauth/cach
 import { pathModule } from "../../config/file.js"
 import { configOrigin, loginKeyOf, loginProfiles, sameLoginKey } from "../../config/login-key.js"
 import { projectOrigin } from "../../config/project.js"
-import { findProfile } from "../../config/resolve.js"
+import { findProfile, usable } from "../../config/resolve.js"
 import {
   type ConfigFile,
   DEFAULT_TIMEOUT_MS,
@@ -100,7 +100,8 @@ function loginOf(edited: Edited, runtime: Runtime): string {
  */
 async function loginNotice(edited: Edited, runtime: Runtime): Promise<string | undefined> {
   const after = findProfile(edited.after, edited.name)
-  if (after?.auth?.type !== "oauth") return undefined
+  // `pulse auth login` refuses a profile the CLI does not use (Camunda 8), like every command
+  if (after?.auth?.type !== "oauth" || !usable(after)) return undefined
   const key = loginKeyOf(edited.origin, after.auth)
   if ((await cachedLogin(key, runtime)) === undefined) {
     return `Next: run \`${loginOf(edited, runtime)}\` in a terminal to log in.`

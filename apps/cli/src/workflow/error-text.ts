@@ -9,6 +9,7 @@ import {
   type WorkflowErrorReason,
 } from "@miragon/pulse-engine-core"
 import { PulseCliError, usageError } from "../errors.js"
+import { capitalized } from "../util.js"
 import { inputRule, nothing, optionKind, several } from "./advance-text.js"
 
 /** What only the command line knows: the command and its other words (shell quoted). */
@@ -49,10 +50,6 @@ function filterText(selection: Selection): string {
       : `process definition key "${selection.processDefinitionKey}"`,
   ].filter((part) => part !== undefined)
   return parts.join(" and ")
-}
-
-function capitalized(text: string): string {
-  return `${text.charAt(0).toUpperCase()}${text.slice(1)}`
 }
 
 function notFound(selection: Selection): PulseCliError {

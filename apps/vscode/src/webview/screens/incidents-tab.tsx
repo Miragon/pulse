@@ -61,7 +61,7 @@ function IncidentFacts({ incident }: { readonly incident: IncidentRow }) {
   return (
     <dl class="facts">
       {incident.rootCause !== undefined && (
-        <Fact label="Root cause">
+        <Fact label={incident.causeLabel ?? "Cause"}>
           <code class="facts__code">{incident.rootCause}</code>
         </Fact>
       )}

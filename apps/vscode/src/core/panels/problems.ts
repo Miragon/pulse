@@ -9,6 +9,7 @@ const TITLES: Readonly<Record<RuntimeFailure, (engine: string) => string>> = {
   engineFailure: (engine) => `${engine} failed to answer.`,
   unexpectedResponse: (engine) => `${engine} answered in an unexpected way.`,
   rejected: (engine) => `${engine} refused the change.`,
+  unsupported: (engine) => `${engine} cannot do this.`,
 }
 
 const CONNECTION_FAILURES: ReadonlySet<RuntimeFailure> = new Set<RuntimeFailure>([

@@ -2,15 +2,8 @@ import { randomUUID } from "node:crypto"
 import { readFile } from "node:fs/promises"
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http"
 import { extname, join } from "node:path"
-import { C7Adapter } from "../../src/adapters/c7/index.js"
-import {
-  BpmnProcessId,
-  DefinitionId,
-  InstanceId,
-  type ProcessCommands,
-  type ProcessRuntime,
-} from "../../src/contract/index.js"
-import { FakeEngine, FakeWorld } from "../../src/contract/fake/index.js"
+import { createDevEngine } from "./dev-engine.js"
+import { BpmnProcessId, DefinitionId, InstanceId } from "../../src/contract/index.js"
 import {
   BulkRuns,
   DefinitionPanel,
@@ -52,30 +45,18 @@ interface Session {
 
 const sessions = new Map<string, Session>()
 
-interface DevEngine {
-  readonly runtime: ProcessRuntime
-  readonly commands: ProcessCommands
-}
-
-function createEngine(): DevEngine {
-  if (ENGINE_URL === "fake") {
-    const engine = new FakeEngine(FakeWorld.seed().state)
-    return { runtime: engine, commands: engine }
-  }
-  const adapter = new C7Adapter()
-  const connection = { endpoint: ENGINE_URL, credentials: { kind: "none" as const } }
-  return { runtime: adapter.runtime(connection), commands: adapter.commands(connection) }
-}
-
-const { runtime, commands } = createEngine()
+const { name, runtime, commands } = createDevEngine(ENGINE_URL)
 const diagrams = new DiagramCache(runtime)
 const definitions = new SharedDefinitions(runtime, new EngineLane())
 const bulkRuns = new BulkRuns()
 const engine: EngineBadge = {
-  name: ENGINE_URL === "fake" ? "fake" : "local-operaton",
+  name,
   environment: "local",
   host: ENGINE_URL === "fake" ? "in memory" : new URL(ENGINE_URL).host,
-  access: { writable: true, note: "The dev host writes without asking." },
+  access:
+    commands === undefined
+      ? { writable: false, note: "Read-only. Pulse cannot change data on this engine yet." }
+      : { writable: true, note: "The dev host writes without asking." },
 }
 
 function send(channel: Channel, message: unknown): void {
@@ -177,7 +158,7 @@ function createSession(query: URLSearchParams): string {
     },
     now: () => new Date(),
     wait: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
-    commands,
+    ...(commands === undefined ? {} : { commands }),
     bulkRuns,
   }
   sessions.set(id, { channel, panel: panelFor(query, context) })

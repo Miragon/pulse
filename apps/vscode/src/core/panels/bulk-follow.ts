@@ -130,7 +130,7 @@ export class BulkFollow {
       this.context.runtime.countInstances(action.eligibleFilter({ instanceIds: ids })),
       arrivedFilter === undefined ? undefined : this.context.runtime.countInstances(arrivedFilter),
     ])
-    run.reconciled(remaining, arrived)
+    run.reconciled(remaining.count, arrived?.count)
   }
 
   private reportOutcome(run: BulkRun): void {

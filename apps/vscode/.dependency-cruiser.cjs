@@ -141,7 +141,7 @@ module.exports = {
       name: "adapter-proven-on-an-engine",
       severity: "error",
       comment:
-        "This engine adapter is not run by any *.engine.test.ts. Add apps/vscode/test/adapters/<engine>/<engine>-conformance.engine.test.ts that runs new ConformanceKit(test).registerRuntimeLaws(...) from src/contract/conformance against the engine or a mock of its API.",
+        "This engine adapter is not run by any *.engine.test.ts. Add apps/vscode/test/adapters/<engine>/<engine>-conformance.engine.test.ts that runs new ConformanceKit(test).registerRuntimeLaws(...) from src/contract/conformance against a real engine, for example in Testcontainers.",
       from: { path: ENGINE_TEST },
       to: { path: ADAPTER_ENTRY, reachable: false },
     },

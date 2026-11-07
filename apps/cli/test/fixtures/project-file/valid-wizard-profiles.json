@@ -1,0 +1,68 @@
+{
+  "about": "The profiles that Pulse for VS Code's Add Engine wizard appends next to a file's own profile, default and schema: the CLI keeps reading the file and refuses the Camunda 8 profiles only when one is used.",
+  "file": {
+    "$schema": "https://unpkg.com/@miragon/pulse-cli/schema/project-file.schema.json",
+    "defaultProfile": "local",
+    "profiles": {
+      "local": {
+        "url": "http://localhost:8080/engine-rest"
+      },
+      "saas-bru-2": {
+        "url": "https://bru-2.api.camunda.io/12345678-90ab-cdef-1234-567890abcdef/v2",
+        "cockpitUrl": "https://bru-2.api.camunda.io/12345678-90ab-cdef-1234-567890abcdef/operate",
+        "flavor": "camunda8",
+        "auth": {
+          "type": "clientCredentials",
+          "tokenEndpoint": "https://login.cloud.camunda.io/oauth/token",
+          "audience": "zeebe.camunda.io"
+        }
+      },
+      "c8-open": {
+        "url": "http://localhost:18088/v2",
+        "cockpitUrl": "http://localhost:18088/operate",
+        "flavor": "camunda8"
+      },
+      "c8-basic": {
+        "url": "https://camunda.example.com/v2",
+        "flavor": "camunda8",
+        "auth": {
+          "type": "basic"
+        }
+      },
+      "c8-oidc": {
+        "url": "https://camunda.example.com/v2",
+        "cockpitUrl": "https://camunda.example.com/operate",
+        "flavor": "camunda8",
+        "auth": {
+          "type": "clientCredentials",
+          "tokenEndpoint": "https://keycloak.example.com/realms/camunda/protocol/openid-connect/token",
+          "scopes": ["api://camunda/.default"],
+          "audience": "camunda"
+        }
+      }
+    }
+  },
+  "cli": {
+    "valid": true,
+    "profiles": {
+      "local": {
+        "url": "http://localhost:8080/engine-rest",
+        "flavor": "camunda7",
+        "readOnly": false,
+        "auth": "none"
+      },
+      "saas-bru-2": {
+        "refused": "names Camunda 8"
+      },
+      "c8-open": {
+        "refused": "names Camunda 8"
+      },
+      "c8-basic": {
+        "refused": "names Camunda 8"
+      },
+      "c8-oidc": {
+        "refused": "names Camunda 8"
+      }
+    }
+  }
+}

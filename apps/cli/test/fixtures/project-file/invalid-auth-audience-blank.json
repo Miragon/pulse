@@ -1,0 +1,20 @@
+{
+  "about": "A blank audience for client credentials; Pulse for VS Code sends the audience to the token endpoint.",
+  "file": {
+    "profiles": {
+      "c8-saas": {
+        "url": "https://bru-2.api.camunda.io/cluster/v2",
+        "flavor": "camunda8",
+        "auth": {
+          "type": "clientCredentials",
+          "tokenEndpoint": "https://login.cloud.camunda.io/oauth/token",
+          "audience": "  "
+        }
+      }
+    }
+  },
+  "cli": {
+    "valid": false,
+    "error": "profile \"c8-saas\" has an invalid auth.audience"
+  }
+}

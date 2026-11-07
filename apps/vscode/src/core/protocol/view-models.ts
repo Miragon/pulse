@@ -76,7 +76,11 @@ export interface InstanceListFilter {
   readonly variables?: readonly VariableConditionView[]
 }
 
-export type ScopeCounts = Readonly<Record<InstanceScope, number>>
+export type ScopeCounts = Readonly<Record<InstanceScope, number>> & {
+  readonly atLeast?: readonly InstanceScope[]
+}
+
+export type RefusedVariableCondition = "ordering" | "date"
 
 export interface DefinitionView {
   readonly kind: "definition"
@@ -95,6 +99,7 @@ export interface DefinitionView {
   readonly filter: InstanceListFilter
   readonly variableLabels?: readonly string[]
   readonly variableNames?: readonly string[]
+  readonly refusedVariableConditions?: readonly RefusedVariableCondition[]
   readonly scopeCounts: ScopeCounts
   readonly historyNote?: string
   readonly notices: readonly Notice[]
@@ -149,6 +154,7 @@ export interface IncidentRow {
   readonly engineType: string
   readonly message: string
   readonly rootCause?: string
+  readonly causeLabel?: string
   readonly createdAt: string
   readonly retriesLeft?: number
   readonly detailsLabel?: string

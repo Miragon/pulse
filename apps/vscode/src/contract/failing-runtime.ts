@@ -1,6 +1,6 @@
 import type { BulkFailure, BulkOperation } from "./model/bulk-operations.js"
 import type { MigrationCheck, MigrationPlan } from "./model/migrations.js"
-import type { Page } from "./model/queries.js"
+import type { InstanceCount, Page } from "./model/queries.js"
 import type {
   CalledProcess,
   DefinitionSummary,
@@ -52,7 +52,7 @@ export class FailingRuntime implements ProcessRuntime {
     return this.fail()
   }
 
-  countInstances(): Promise<number> {
+  countInstances(): Promise<InstanceCount> {
     return this.fail()
   }
 

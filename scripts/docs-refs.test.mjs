@@ -514,6 +514,7 @@ const DOCS_BUDGETS = {
   "vscode/index.md": 50,
   "vscode/installation.md": 50,
   "vscode/configuration.md": 80,
+  "vscode/camunda8.md": 110,
   "vscode/usage.md": 80,
   "vscode/boards.md": 70,
   "vscode/architecture.md": 50,

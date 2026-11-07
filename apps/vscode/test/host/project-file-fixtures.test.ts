@@ -77,7 +77,35 @@ function parsed(fixture: Fixture) {
   return new TargetsParser(FILE).parse(fixture.text)
 }
 
-function expectLikeTheCli(target: EngineTarget, profile: CliProfile | undefined): void {
+function writtenTokenEndpoint(fixture: Fixture, name: string): unknown {
+  const file: unknown = JSON.parse(fixture.text)
+  const profile = isRecord(file) && isRecord(file.profiles) ? file.profiles[name] : undefined
+  const auth = isRecord(profile) ? profile.auth : undefined
+  return isRecord(auth) ? auth.tokenEndpoint : undefined
+}
+
+function expectTokenEndpointAsWritten(target: EngineTarget, written: unknown): void {
+  if (target.auth.kind === "clientCredentials") {
+    expect(typeof written).toBe("string")
+    expect(
+      target.auth.tokenEndpoint,
+      "the CLI keeps an OAuth endpoint trimmed, else as written",
+    ).toBe(String(written).trim())
+  }
+}
+
+function expectLikeTheCli(
+  target: EngineTarget,
+  profile: CliProfile | undefined,
+  written: unknown,
+): void {
+  if (target.engine === "c8") {
+    expect(profile, "the CLI has no adapter for a camunda8 profile").toMatchObject({
+      refused: expect.stringContaining("Camunda 8") as unknown,
+    })
+    expectTokenEndpointAsWritten(target, written)
+    return
+  }
   expect(profile, `the CLI refuses profile "${target.name}"`).not.toHaveProperty("refused")
   const resolved = profile as ResolvedProfile
   expect(target.endpoint).toBe(resolved.url)
@@ -125,7 +153,7 @@ describe("the CLI's project file fixtures", () => {
           const named = problems.some((problem) => problem.message.startsWith(`profile "${name}" `))
           expect(named, `profile "${name}" is neither a target nor a problem`).toBe(true)
         } else {
-          expectLikeTheCli(target, profiles[name])
+          expectLikeTheCli(target, profiles[name], writtenTokenEndpoint(fixture, name))
         }
       }
     },

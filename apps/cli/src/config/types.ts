@@ -8,6 +8,11 @@ export const FLAVORS = ["operaton", "cibseven", "camunda7"] as const
 export type Flavor = (typeof FLAVORS)[number]
 export const DEFAULT_FLAVOR: Flavor = "camunda7"
 
+// Pulse for VS Code reads this flavor from the same project file; the CLI refuses it on use.
+export const CAMUNDA_8_FLAVOR = "camunda8"
+export const PROFILE_FLAVORS = [...FLAVORS, CAMUNDA_8_FLAVOR] as const
+type ProfileFlavor = (typeof PROFILE_FLAVORS)[number]
+
 export const AUTH_TYPES = ["none", "basic", "oauth", "bearer"] as const
 export type AuthType = (typeof AUTH_TYPES)[number]
 
@@ -209,13 +214,16 @@ export interface Profile {
   readonly url?: string
   readonly cockpitUrl?: string
   readonly engine?: string
-  readonly flavor?: Flavor
+  readonly flavor?: ProfileFlavor
   readonly auth?: ProfileAuth
   readonly output?: OutputFormat
   readonly timeout?: number
   readonly headers?: Readonly<Record<string, string>>
   readonly readOnly?: boolean
 }
+
+// A profile a command uses: selectProfile refuses one that names Camunda 8.
+export type UsableProfile = Profile & { readonly flavor?: Flavor }
 
 /** Keys a profile may contain, in the order they are written to the config file. */
 export const PROFILE_KEYS = [
@@ -245,7 +253,7 @@ export type SelectedProfile =
     }
   | {
       readonly name: string
-      readonly profile: Profile
+      readonly profile: UsableProfile
       readonly project?: ProjectSource
       readonly origin?: string
       /** The config file named by `--config` or PULSE_CLI_CONFIG, when the profile comes from it. */

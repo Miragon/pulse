@@ -55,7 +55,7 @@ export function hasOAuthOptions(changes: OAuthChanges): boolean {
   return OAUTH_OPTIONS.some((key) => changes[key] !== undefined)
 }
 
-function ifGiven<T, R>(value: T | undefined, convert: (value: T) => R): R | undefined {
+export function ifGiven<T, R>(value: T | undefined, convert: (value: T) => R): R | undefined {
   return value === undefined ? undefined : convert(value)
 }
 

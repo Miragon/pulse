@@ -176,7 +176,7 @@ export const OAUTH_CHECKS: Readonly<Record<(typeof OAUTH_AUTH_KEYS)[number], Che
   redirectPort: [isRedirectPort, "a whole number between 0 and 65535"],
 }
 
-function keysOf(value: Record<string, unknown>, keys: readonly string[]): string[] {
+export function keysOf(value: Record<string, unknown>, keys: readonly string[]): string[] {
   return keys.filter((key) => Object.hasOwn(value, key))
 }
 
@@ -210,7 +210,8 @@ export function oauthProfileProblem(name: string, value: Record<string, unknown>
     return `profile "${name}" sets both auth.clientSecret and auth.clientSecretEnv; keep one (clientSecretEnv is recommended)`
   }
   const endpoints = keysOf(value, ["authorizationEndpoint", "tokenEndpoint"])
-  return endpoints.length === 1
+  return endpoints.length === 1 &&
+    !(value.type === "clientCredentials" && endpoints[0] === "tokenEndpoint")
     ? `profile "${name}" sets auth.${endpoints[0] ?? ""} without the other endpoint; set both auth.authorizationEndpoint and auth.tokenEndpoint, or neither (discovery from auth.issuer)`
     : undefined
 }

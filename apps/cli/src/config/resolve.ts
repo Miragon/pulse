@@ -21,6 +21,7 @@ import {
   type LoadedConfig,
   OUTPUT_FORMATS,
   type OutputFormat,
+  CAMUNDA_8_FLAVOR,
   FLAVORS,
   type Flavor,
   type Profile,
@@ -28,6 +29,7 @@ import {
   type ResolvedConfig,
   type SelectedProfile,
   type Source,
+  type UsableProfile,
 } from "./types.js"
 
 /** Largest delay a Node.js timer supports (2^31 - 1 ms, about 24.8 days). */
@@ -86,6 +88,11 @@ function projectOf(file: LoadedConfig | undefined, name: string): ProjectSource 
   return file?.project?.profiles.includes(name) === true ? file.project.source : undefined
 }
 
+// The file may hold a Camunda 8 profile for Pulse for VS Code; the CLI uses every other one.
+export function usable(profile: Profile): profile is UsableProfile {
+  return profile.flavor !== CAMUNDA_8_FLAVOR
+}
+
 /**
  * The selected profile, where it comes from and, when it comes from there, the
  * project file.
@@ -100,6 +107,13 @@ export function selectProfile(
   const profile = findProfile(file, selected.name)
   if (file === undefined || profile === undefined) {
     throw missingProfileError(selected.name, file, selected.origin)
+  }
+  // keyed on the profile itself, so neither --flavor nor PULSE_CLI_FLAVOR gets past it
+  if (!usable(profile)) {
+    throw configError(
+      `Profile "${selected.name}" names Camunda 8, which the CLI does not support`,
+      `${originNote(selected.origin, file)}Pulse for VS Code reads such profiles.`,
+    )
   }
   const project = projectOf(file, selected.name)
   const origin = originOf(file, selected.name)
@@ -170,7 +184,7 @@ export function validateEngine(engine: string): string {
   return trimmed
 }
 
-export function isFlavor(value: unknown): value is Flavor {
+function isFlavor(value: unknown): value is Flavor {
   return FLAVORS.some((flavor) => flavor === value)
 }
 
@@ -186,7 +200,7 @@ export function validateFlavor(flavor: string): Flavor {
 export function resolveFlavor(
   flags: ConfigFlags,
   env: Env,
-  profile: Profile | undefined,
+  profile: UsableProfile | undefined,
 ): { readonly value: Flavor; readonly source: Source } {
   const flavor = pick(nonEmpty(flags.flavor), nonEmpty(env[ENV.flavor]), profile?.flavor)
   return {

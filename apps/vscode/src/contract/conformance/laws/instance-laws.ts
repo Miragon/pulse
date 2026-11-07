@@ -1,75 +1,13 @@
-import {
-  BpmnProcessId,
-  ElementId,
-  InstanceId,
-  IsoTimestamp,
-  type PageCursor,
-} from "../../model/ids.js"
+import { BpmnProcessId, ElementId, InstanceId, IsoTimestamp } from "../../model/ids.js"
 import type { InstanceFilter } from "../../model/queries.js"
-import type { InstanceSummary } from "../../model/read-models.js"
 import { Ensure } from "../ensure.js"
 import { CASE, type ConformanceCase } from "../conformance-case.js"
-import type { ConformanceHarness } from "../harness.js"
-import { VariableSearch } from "./variable-laws.js"
-import { WORLD_ELEMENT, WORLD_PROCESS, type InstanceAlias } from "../world/world.js"
+import { InstanceReads, MAX_PAGES } from "./instance-reads.js"
+import { WORLD_ELEMENT, WORLD_PROCESS } from "../world/world.js"
 
-const PAGE_LIMIT = 50
-const MAX_PAGES = 10
 const ORDER = BpmnProcessId(WORLD_PROCESS.order)
+const DISPATCH = BpmnProcessId(WORLD_PROCESS.dispatch)
 const MOST_IDS = 1000
-
-class InstanceReads {
-  static async search(
-    harness: ConformanceHarness,
-    filter: InstanceFilter,
-  ): Promise<readonly InstanceSummary[]> {
-    const page = await harness.runtime.searchInstances(filter, { limit: PAGE_LIMIT })
-    return page.items
-  }
-
-  static async searchAll(
-    harness: ConformanceHarness,
-    filter: InstanceFilter,
-  ): Promise<readonly InstanceSummary[]> {
-    const found: InstanceSummary[] = []
-    let after: PageCursor | undefined
-    for (let pages = 1; pages <= MAX_PAGES; pages += 1) {
-      const page = await harness.runtime.searchInstances(filter, {
-        limit: PAGE_LIMIT,
-        ...(after === undefined ? {} : { after }),
-      })
-      found.push(...page.items)
-      if (page.next === undefined) {
-        break
-      }
-      after = page.next
-    }
-    return found
-  }
-
-  static idsOf(harness: ConformanceHarness, aliases: readonly InstanceAlias[]): InstanceId[] {
-    return aliases.map((alias) => harness.world.instanceIds[alias])
-  }
-
-  static countedFilters(harness: ConformanceHarness): readonly InstanceFilter[] {
-    const orderV1 = harness.world.definitionIds["order@1"]
-    return [
-      { definitionId: orderV1 },
-      { definitionId: orderV1, lifecycle: "running" },
-      { definitionId: orderV1, lifecycle: "running", withIncident: true },
-      { definitionId: orderV1, lifecycle: "ended" },
-      { bpmnProcessId: ORDER, lifecycle: "running", withIncident: false },
-      {
-        bpmnProcessId: ORDER,
-        lifecycle: "running",
-        activeElementId: ElementId(WORLD_ELEMENT.reviewOrder),
-      },
-      { definitionId: orderV1, businessKey: "ORD-1003" },
-      { definitionId: harness.world.unknown.definitionId },
-      ...VariableSearch.countedFilters(harness),
-    ]
-  }
-}
 
 const instancesByVersionAndLifecycle: ConformanceCase = {
   name: CASE.instancesByVersionAndLifecycle,
@@ -125,6 +63,15 @@ const instancesWithIncident: ConformanceCase = {
     })
     const flagged = running.filter((item) => item.hasIncident).map((item) => item.id)
     Ensure.sameSet(flagged, InstanceReads.idsOf(harness, ["ORD-1002"]), this.name)
+    const callers = await InstanceReads.search(harness, {
+      bpmnProcessId: DISPATCH,
+      withIncident: true,
+    })
+    Ensure.sameSet(
+      callers.map((item) => item.id),
+      InstanceReads.idsOf(harness, ["DSP-3001"]),
+      `${this.name} (an incident in a called instance flags its caller)`,
+    )
   },
 }
 
@@ -196,6 +143,26 @@ const instancesPaging: ConformanceCase = {
   },
 }
 
+const instancesNewestFirst: ConformanceCase = {
+  name: CASE.instancesNewestFirst,
+  async run(harness) {
+    const first = await InstanceReads.search(harness, { bpmnProcessId: ORDER })
+    const started = first.map((item) => item.startedAt ?? "")
+    Ensure.that(
+      started.every((at, index) => index === 0 || (started[index - 1] ?? "") >= at),
+      this.name,
+      `started ${Ensure.describe(started)}`,
+    )
+    const second = await InstanceReads.search(harness, { bpmnProcessId: ORDER })
+    Ensure.that(
+      Ensure.describe(first.map((item) => item.id)) ===
+        Ensure.describe(second.map((item) => item.id)),
+      this.name,
+      "two reads returned another order",
+    )
+  },
+}
+
 const instancesUtcTimestamps: ConformanceCase = {
   name: CASE.instancesUtcTimestamps,
   async run(harness) {
@@ -223,9 +190,9 @@ const instancesCounted: ConformanceCase = {
         InstanceReads.searchAll(harness, filter),
       ])
       Ensure.that(
-        count === items.length,
+        count.count === items.length && count.atLeast === undefined,
         this.name,
-        `${JSON.stringify(filter)} counted ${count}, the search found ${items.length}`,
+        `${JSON.stringify(filter)} counted ${Ensure.describe(count)}, the search found ${items.length}`,
       )
     }
   },
@@ -247,7 +214,7 @@ const instancesByIds: ConformanceCase = {
       this.name,
     )
     const counted = await harness.runtime.countInstances(filter)
-    Ensure.that(counted === wanted.length, this.name, `counted ${counted}`)
+    Ensure.that(counted.count === wanted.length, this.name, `counted ${Ensure.describe(counted)}`)
     const running = await InstanceReads.search(harness, { ...filter, lifecycle: "running" })
     Ensure.sameSet(
       running.map((instance) => instance.id),
@@ -266,9 +233,9 @@ const instancesByIds: ConformanceCase = {
     const none = await InstanceReads.search(harness, { instanceIds: [] })
     const noneCounted = await harness.runtime.countInstances({ instanceIds: [] })
     Ensure.that(
-      none.length === 0 && noneCounted === 0,
+      none.length === 0 && noneCounted.count === 0,
       this.name,
-      `an empty id list found ${none.length} and counted ${noneCounted}`,
+      `an empty id list found ${none.length} and counted ${noneCounted.count}`,
     )
   },
 }
@@ -280,6 +247,7 @@ export const INSTANCE_LAWS: readonly ConformanceCase[] = [
   instancesEndedByBusinessKey,
   instancesByActiveElement,
   instancesPaging,
+  instancesNewestFirst,
   instancesUtcTimestamps,
   instancesCounted,
   instancesByIds,

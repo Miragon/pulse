@@ -18,17 +18,21 @@ Pulse reads your engines as profiles in `.pulse-cli.json`, the project file of t
 }
 ```
 
-Pulse reads `url`, `flavor` (`camunda7`, `cibseven` or `operaton`; `camunda7` when absent),
-`engine` (the default engine only), `auth.type` (`none`, `basic`; without a type a `username`
-means `basic`), `cockpitUrl` and `readOnly` (no writes from Pulse either), with the CLI's rules:
-URLs lose trailing slashes, and a value the CLI refuses never becomes a default. Such a profile,
+Pulse reads `url`, `flavor` (`camunda7`, `cibseven`, `operaton` or [`camunda8`](./camunda8.md);
+`camunda7` when absent), `engine` (the default engine only), `auth.type` (`none`, `basic`; without
+a type a `username` means `basic`; `clientCredentials` with `tokenEndpoint`, `audience` and
+`scopes` on `camunda8`), `cockpitUrl` and `readOnly` (no writes from Pulse either), with the CLI's rules:
+`url` and `cockpitUrl` lose trailing slashes, `tokenEndpoint` stays as written, and a value the CLI
+refuses never becomes a default. Such a profile,
 and one Pulse cannot serve yet, shows up as a problem in the Engines view. Pulse reads no
 `PULSE_CLI_*` variable, so a profile needs its `url`, and it sends no profile `headers`. Pulse
 reads profile by profile and skips the keys it does not use (`headers`, `timeout`, `output`,
 credentials), so a file the CLI refuses as a whole, say one with a committed password, can still
 list engines here: check a project file with `pulse-cli config list`.
 
-Set credentials with _Pulse: Set Credentials…_. They live in VS Code's secret storage.
+_Pulse: Add Engine…_ sets up a [Camunda 8](./camunda8.md) cluster step by step and writes its profile;
+_Configure Engines_ opens the file. Set credentials with _Pulse: Set Credentials…_. They live in VS
+Code's secret storage.
 
 ## Settings
 
@@ -56,6 +60,7 @@ never guesses this URL. It must be an `http` or `https` URL without credentials:
 | ---------------------------------------- | ------------------------------------- |
 | Camunda 7, Operaton, CIB seven (Cockpit) | ends in `/app/cockpit/<engine name>/` |
 | CIB seven webclient                      | ends in `/webapp/`                    |
+| Camunda 8 (Operate)                      | ends in `/operate`                    |
 
 ## Proxy and certificates
 

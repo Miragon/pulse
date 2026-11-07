@@ -23,8 +23,12 @@ pnpm --filter pulse-cockpit run test:smoke       # the extension activates in a 
 pnpm --filter pulse-cockpit run test:e2e         # VS Code e2e; needs `engine:up`
 pnpm --filter pulse-cockpit run test:smoke:docker # both in Docker under Xvfb: no VS Code window
 pnpm --filter pulse-cockpit run test:e2e:docker   # on your desktop (e2e: needs `engine:up`)
+pnpm --filter pulse-cockpit run c8:up            # Camunda 8 in Docker: --security none|basic|oidc --storage h2|elasticsearch
+pnpm --filter pulse-cockpit run test:e2e:c8:docker # VS Code on the running c8:up stack; PULSE_C8_SECURITY names its security
 pnpm --filter pulse-cockpit run sandbox:up       # shop sandbox for manual testing: two seeded engines
 pnpm --filter pulse-cockpit run sandbox:open     # build, start the sandbox if needed, open it in VS Code
+pnpm --filter pulse-cockpit run sandbox:c8:open  # the same shop on two Camunda 8 clusters (sandbox:c8:up, :traffic, :down)
+pnpm --filter pulse-cockpit run sandbox:c8:seed  # the shop into your own cluster, with an API client's connection information set
 pnpm --filter pulse-cockpit run docs:screenshots # one screenshot per use case (after sandbox:up)
 pnpm --filter pulse-cockpit run package          # the .vsix
 ```
@@ -50,10 +54,17 @@ keeps no script of its own for it.
 `engine:up` seeds the fixed conformance world that the e2e test asserts on; do not change it
 for manual testing. Manual and exploratory scenarios belong in
 `apps/vscode/scripts/sandbox/scenarios.mjs`; keep the business keys in
-`apps/vscode/sandbox/README.md` in step with it.
+`apps/vscode/sandbox/README.md` in step with it. The Camunda 8 sandbox keeps its own in
+`apps/vscode/scripts/sandbox-c8/scenarios.mjs`; `apps/vscode/test/architecture/sandbox-c8.test.ts`
+holds its charter, its workers and the element ids its scripts name to the catalogue and the models.
 
 With podman: `DOCKER_HOST=unix://$(podman machine inspect --format '{{.ConnectionInfo.PodmanSocket.Path}}')`
 and `TESTCONTAINERS_RYUK_DISABLED=true` for `test:engines`.
+
+`test:engines` runs the C7 suite by default. The Camunda 8 suite runs on a Camunda image:
+`PULSE_ENGINE_IMAGE=camunda/camunda:8.10.8 PULSE_C8_STORAGE=h2 PULSE_C8_SECURITY=oidc` (storage
+`h2` or `elasticsearch`, security `none`, `basic` or `oidc`). Each suite skips itself on the
+other's image.
 
 ## Where code goes
 
@@ -67,6 +78,7 @@ The app is one package with six layers under `apps/vscode/src`. Each layer has i
 | Interpret runtime data (grouping, view models, panel behaviour) | `apps/vscode/src/core`                                                                                                                                                                                         | `vscode`, DOM, Node, engine words          |
 | Change what the webview shows                                   | `apps/vscode/src/core/protocol` (types) and `apps/vscode/src/webview`                                                                                                                                          | logic in the webview, `--vscode-*` colours |
 | Talk to Operaton / CIB seven / Camunda 7                        | `apps/vscode/src/adapters/c7` (mapping) and `apps/vscode/src/adapters/c7/engine-rest` (REST client; its `inspect` runs engine-core over it); inspect, wait states, root causes in `@miragon/pulse-engine-core` | imports from core, webview or host; a copy |
+| Talk to Camunda 8                                               | `apps/vscode/src/adapters/c8`, read-only, per `apps/vscode/docs/adr/c8-adapter.md`                                                                                                                             | imports from core, webview or host; a copy |
 | Add an engine                                                   | `apps/vscode/src/adapters/<engine>` with a class implementing `EngineAdapter` + an `*.engine.test.ts` running the `ConformanceKit` + one entry in `apps/vscode/src/host/composition-root.ts`                   | branching on engines anywhere else         |
 | Read the local `.bpmn` model or find the implementing code      | `apps/vscode/src/model` (behind `ModelSource` / `CodeLocator`), per `apps/vscode/docs/adr/local-sources.md`                                                                                                    | moddle or bpmn-modeler libs anywhere else  |
 | Wire VS Code                                                    | `apps/vscode/src/host`                                                                                                                                                                                         | business rules                             |
@@ -106,7 +118,8 @@ host stay engine-neutral.
 - `.pulse-cli.json` follows the CLI's rules: the CLI owns its JSON Schema and the fixtures in
   `apps/cli/test/fixtures/project-file/` (the file and the CLI's verdict), the extension its
   expectations of them (`apps/vscode/test/host/project-file-fixtures.expected.json`, one entry
-  per fixture). `apps/vscode/test/host/project-file-fixtures.test.ts` reads the fixtures as files
+  per fixture). _Add Engine_ writes profiles: the fixture `valid-wizard-profiles.json` holds its
+  exact output, and `apps/vscode/test/host/wizard-profiles.test.ts` keeps the two equal. `apps/vscode/test/host/project-file-fixtures.test.ts` reads the fixtures as files
   (never an import) and holds `TargetsParser` to both. A profile the CLI accepts is a target with
   the CLI's URL, auth type and read-only flag, or a named problem; a value the CLI refuses never
   becomes a default. Change the parser with the fixtures, not apart.

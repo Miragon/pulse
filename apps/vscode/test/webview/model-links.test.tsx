@@ -103,6 +103,48 @@ describe("the model and code links of an incident", () => {
   })
 })
 
+describe("the cause of an incident", () => {
+  let harness: Harness
+
+  afterEach(() => {
+    harness.unmount()
+  })
+
+  it.each(["Root cause", "Worker error", "Cause"])(
+    "carries the label %s as the host names it, whatever its details are called",
+    async (causeLabel) => {
+      harness = mountApp()
+      harness.publish({
+        status: "ready",
+        refreshing: false,
+        view: withIncident({ ...INCIDENT, detailsLabel: "Stacktrace", causeLabel }),
+      })
+      await waitForElement(harness.root, ".incident-card")
+
+      expect(facts(harness.root)[0]).toBe(`${causeLabel}: ${INCIDENT.rootCause ?? ""}`)
+    },
+  )
+
+  it("claims no root cause for a cause without a label", async () => {
+    const unlabeled: IncidentRow = {
+      id: INCIDENT.id,
+      shortId: INCIDENT.shortId,
+      elementId: INCIDENT.elementId,
+      typeLabel: INCIDENT.typeLabel,
+      engineType: INCIDENT.engineType,
+      message: "Connection refused",
+      createdAt: INCIDENT.createdAt,
+      rootCause: "ConnectException: Connection refused",
+      detailsLabel: "Stacktrace",
+    }
+    harness = mountApp()
+    harness.publish({ status: "ready", refreshing: false, view: withIncident(unlabeled) })
+    await waitForElement(harness.root, ".incident-card")
+
+    expect(facts(harness.root)[0]).toBe("Cause: ConnectException: Connection refused")
+  })
+})
+
 describe("the model link of a definition", () => {
   let harness: Harness
 

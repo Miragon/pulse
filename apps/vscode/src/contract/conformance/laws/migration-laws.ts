@@ -24,9 +24,13 @@ class MigrationSteps {
   }
 
   static proposal(harness: CommandHarness): Promise<MigrationPlan> {
-    return harness.runtime.proposeMigration(
-      MigrationSteps.source(harness),
-      MigrationSteps.target(harness),
+    return Ensure.defined(
+      harness.runtime.proposeMigration?.(
+        MigrationSteps.source(harness),
+        MigrationSteps.target(harness),
+      ),
+      "migration",
+      "an engine that migrates also proposes migration plans",
     )
   }
 
@@ -60,12 +64,17 @@ class MigrationSteps {
     return operation
   }
 
-  static count(
+  static async count(
     harness: CommandHarness,
     definitionId: DefinitionId,
     instanceIds: readonly InstanceId[],
   ): Promise<number> {
-    return harness.runtime.countInstances({ definitionId, instanceIds, lifecycle: "running" })
+    const { count } = await harness.runtime.countInstances({
+      definitionId,
+      instanceIds,
+      lifecycle: "running",
+    })
+    return count
   }
 
   static async footprints(

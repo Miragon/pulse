@@ -12,7 +12,9 @@ import {
 
 type Call = (runtime: ProcessRuntime) => Promise<unknown>
 
-const EVERY_METHOD: Readonly<Record<keyof ProcessRuntime, Call>> = {
+const EVERY_METHOD: Readonly<
+  Record<Exclude<keyof ProcessRuntime, "refusedVariableConditions">, Call>
+> = {
   describeEngine: (runtime) => runtime.describeEngine(),
   listDefinitions: (runtime) => runtime.listDefinitions(),
   listVersions: (runtime) => runtime.listVersions(BpmnProcessId("order")),
@@ -28,9 +30,9 @@ const EVERY_METHOD: Readonly<Record<keyof ProcessRuntime, Call>> = {
   getBulkOperation: (runtime) => runtime.getBulkOperation(BulkOperationId("bulk")),
   getBulkFailures: (runtime) => runtime.getBulkFailures(BulkOperationId("bulk")),
   proposeMigration: (runtime) =>
-    runtime.proposeMigration(DefinitionId("order:1"), DefinitionId("order:2")),
+    runtime.proposeMigration!(DefinitionId("order:1"), DefinitionId("order:2")),
   checkMigration: (runtime) =>
-    runtime.checkMigration({
+    runtime.checkMigration!({
       sourceDefinitionId: DefinitionId("order:1"),
       targetDefinitionId: DefinitionId("order:2"),
       mappings: [],

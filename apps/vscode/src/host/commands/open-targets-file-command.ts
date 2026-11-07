@@ -26,17 +26,11 @@ export class OpenTargetsFileCommand implements Command {
   }
 
   private knownFile(path: unknown): string | undefined {
-    const problems = this.registry.configurationProblems()
-    const broken = problems.find((problem) => problem.path === path)
-    if (broken !== undefined) {
-      return broken.path
-    }
-    for (const { target } of this.registry.all()) {
-      if (target.source.kind === "file") {
-        return target.source.path
-      }
-    }
-    return problems[0]?.path
+    const broken = this.registry.configurationProblems().map((problem) => problem.path)
+    const read = this.registry
+      .all()
+      .flatMap(({ target }) => (target.source.kind === "file" ? [target.source.path] : []))
+    return [...broken, ...read].find((known) => known === path) ?? read[0] ?? broken[0]
   }
 
   private async projectFileIn(folder: vscode.Uri): Promise<vscode.Uri> {

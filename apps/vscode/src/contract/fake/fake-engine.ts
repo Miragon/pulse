@@ -7,7 +7,13 @@ import type {
   InstanceId,
 } from "../model/ids.js"
 import type { MigrationCheck, MigrationPlan } from "../model/migrations.js"
-import type { IncidentFilter, InstanceFilter, Page, PageRequest } from "../model/queries.js"
+import type {
+  IncidentFilter,
+  InstanceCount,
+  InstanceFilter,
+  Page,
+  PageRequest,
+} from "../model/queries.js"
 import type {
   CalledInstance,
   CalledProcess,
@@ -75,8 +81,8 @@ export class FakeEngine implements ProcessRuntime, ProcessCommands {
     return Promise.resolve(FakeQueries.pageOf(this.queries().instances(filter), page))
   }
 
-  countInstances(filter: InstanceFilter): Promise<number> {
-    return Promise.resolve(this.queries().instances(filter).length)
+  countInstances(filter: InstanceFilter): Promise<InstanceCount> {
+    return Promise.resolve({ count: this.queries().instances(filter).length })
   }
 
   getInstanceDetail(instanceId: InstanceId): Promise<InstanceDetail | undefined> {

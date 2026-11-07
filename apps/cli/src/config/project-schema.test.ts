@@ -27,7 +27,7 @@ import {
   AUTH_TYPES,
   BASIC_AUTH_KEYS,
   BEARER_AUTH_KEYS,
-  FLAVORS,
+  PROFILE_FLAVORS,
   OAUTH_AUTH_KEYS,
   OUTPUT_FORMATS,
   PROFILE_AUTH_KEYS,
@@ -129,7 +129,7 @@ describe("the project file schema", () => {
     const profile = definition("profile")
     expect(propertyNames(profile)).toEqual([...PROFILE_KEYS].sort())
     expect(profile.additionalProperties).toBe(false)
-    expect(profile.properties?.flavor?.enum).toEqual(FLAVORS)
+    expect(profile.properties?.flavor?.enum).toEqual(PROFILE_FLAVORS)
     expect(profile.properties?.output?.enum).toEqual(OUTPUT_FORMATS)
     expect(propertyNames(SCHEMA)).toEqual(["$schema", "defaultProfile", "profiles"])
     expect(SCHEMA.additionalProperties).toBe(false)

@@ -1,9 +1,11 @@
 import { describe, expect, test } from "vitest"
-import type {
-  InstanceFilter,
-  InstanceSummary,
-  ProcessRuntime,
-  VariableCondition,
+import {
+  RuntimeError,
+  type InstanceFilter,
+  type InstanceSummary,
+  type ProcessRuntime,
+  type RuntimeFailure,
+  type VariableCondition,
 } from "../../src/contract/index.js"
 import { CASE, WORLD_LOCAL_VARIABLE, type CaseName } from "../../src/contract/conformance/index.js"
 import { SabotagedRuntime, type Sabotage } from "./support/sabotaged-runtime.js"
@@ -73,6 +75,31 @@ function sqlWildcards(condition: VariableCondition): VariableCondition {
   return condition.operator === "like"
     ? { ...condition, pattern: condition.pattern.replace(/[%_]/g, "*") }
     : condition
+}
+
+function questionMarkAsWildcard(condition: VariableCondition): VariableCondition {
+  return condition.operator === "like"
+    ? { ...condition, pattern: condition.pattern.replace(/\?/g, "*") }
+    : condition
+}
+
+function asksForOrderingOrDate(filter: InstanceFilter): boolean {
+  return (filter.variables ?? []).some(
+    (condition) =>
+      "at" in condition ||
+      condition.operator === "greaterThan" ||
+      condition.operator === "lessThan",
+  )
+}
+
+function refusingConditions(runtime: ProcessRuntime, failure: RuntimeFailure) {
+  const refused = () => Promise.reject(new RuntimeError(failure, "this engine cannot compare"))
+  return {
+    searchInstances: (filter: InstanceFilter, page: { readonly limit: number }) =>
+      asksForOrderingOrDate(filter) ? refused() : runtime.searchInstances(filter, page),
+    countInstances: (filter: InstanceFilter) =>
+      asksForOrderingOrDate(filter) ? refused() : runtime.countInstances(filter),
+  }
 }
 
 async function ids(runtime: ProcessRuntime, filter: InstanceFilter): Promise<Set<string>> {
@@ -192,6 +219,39 @@ const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] =
     [CASE.variablesLike],
   ],
   [
+    "a like pattern reads ? as a wildcard",
+    (runtime) => ({
+      searchInstances: (filter, page) =>
+        runtime.searchInstances(mapConditions(filter, questionMarkAsWildcard), page),
+      countInstances: (filter) =>
+        runtime.countInstances(mapConditions(filter, questionMarkAsWildcard)),
+    }),
+    [CASE.variablesLike],
+  ],
+  [
+    "it declares ordering as refused but answers it",
+    () => ({ refusedVariableConditions: () => ["ordering"] }),
+    [CASE.variablesNumbers],
+  ],
+  [
+    "it declares dates as refused but answers them",
+    () => ({ refusedVariableConditions: () => ["date"] }),
+    [CASE.variablesDates],
+  ],
+  [
+    "it refuses ordering and dates without declaring it",
+    (runtime) => refusingConditions(runtime, "unsupported"),
+    [CASE.variablesNumbers, CASE.variablesDates, CASE.instancesCounted],
+  ],
+  [
+    "it declares a refusal but fails with another failure",
+    (runtime) => ({
+      refusedVariableConditions: () => ["ordering", "date"],
+      ...refusingConditions(runtime, "engineFailure"),
+    }),
+    [CASE.variablesNumbers, CASE.variablesDates],
+  ],
+  [
     "not equals also finds instances without the variable",
     (runtime) => ({
       searchInstances: async (filter, page) =>
@@ -199,7 +259,7 @@ const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] =
           ? { items: await notEqualsAlsoWithout(runtime, filter) }
           : runtime.searchInstances(filter, page),
     }),
-    [CASE.variablesNotEquals, CASE.variablesNull],
+    [CASE.variablesNotEquals, CASE.variablesDates, CASE.variablesNull],
   ],
   [
     "not equals skips a value of another type",
@@ -276,5 +336,14 @@ describe("the variable laws", () => {
     expect(await SabotagedRuntime.failingCases(SabotagedRuntime.with(sabotage))).toEqual(
       [...expected].sort(),
     )
+  })
+
+  test("accept a runtime that declares what it refuses and refuses exactly that", async () => {
+    const declaring = SabotagedRuntime.with((runtime) => ({
+      refusedVariableConditions: () => ["ordering", "date"],
+      ...refusingConditions(runtime, "unsupported"),
+    }))
+
+    expect(await SabotagedRuntime.failingCases(declaring)).toEqual([])
   })
 })

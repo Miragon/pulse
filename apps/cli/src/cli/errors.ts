@@ -8,7 +8,7 @@ import { type PulseCliError, usageError } from "../errors.js"
 import { renderError, toPulseCliError } from "../output/error.js"
 import { terminalSafe } from "../output/terminal.js"
 import type { Runtime } from "../runtime.js"
-import { closeNames } from "../util.js"
+import { capitalized, closeNames } from "../util.js"
 import { globalFromArgv, outputFromArgv, verboseRequested } from "./argv.js"
 import type { CliState } from "./context.js"
 import { commandPath } from "./help.js"
@@ -71,10 +71,6 @@ function usageHint(command: Command): string {
 function commandsHint(command: Command): string {
   const word = command.args[0] ?? ""
   return `Run "${commandPath(command)} --help" for the commands, or search all commands with "pulse commands --search ${word}".`
-}
-
-function capitalized(text: string): string {
-  return `${text.charAt(0).toUpperCase()}${text.slice(1)}`
 }
 
 /** `pulse auth` and its subcommands: an extra word there is most likely a token. */

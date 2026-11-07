@@ -1,12 +1,9 @@
+import type { EngineCredentials } from "../../../../contract/index.js"
 import { Present } from "../present.js"
 import { JsonObject } from "../views/json-object.js"
 import { LosslessJson } from "../views/lossless-json.js"
 import { UnexpectedAnswerError } from "../views/unexpected-answer-error.js"
 import { EngineRequestError } from "./engine-request-error.js"
-
-type EngineCredentials =
-  | { readonly kind: "none" }
-  | { readonly kind: "basic"; readonly username: string; readonly password: string }
 
 export type Query = Readonly<Record<string, string | undefined>>
 
@@ -108,10 +105,11 @@ export class EngineHttp {
   }
 
   private async exchange(url: URL, request: EngineRequest): Promise<[Response, string]> {
+    const headers = this.headersOf(request)
     try {
       const response = await this.options.send(url, {
         method: request.method,
-        headers: this.headersOf(request),
+        headers,
         redirect: "manual",
         signal: AbortSignal.timeout(TIMEOUT_MS),
         ...(request.body === undefined ? {} : { body: request.body }),
@@ -144,6 +142,12 @@ export class EngineHttp {
     const credentials = this.options.credentials
     if (credentials.kind === "none") {
       return {}
+    }
+    if (credentials.kind === "clientCredentials") {
+      throw EngineRequestError.answered(
+        401,
+        "This engine connects with basic authentication or none, not with client credentials.",
+      )
     }
     const pair = new TextEncoder().encode(`${credentials.username}:${credentials.password}`)
     const binary = Array.from(pair, (byte) => String.fromCharCode(byte)).join("")

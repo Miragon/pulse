@@ -86,6 +86,15 @@ describe("Configure Engines and Open the project file", () => {
     ])
   })
 
+  test("open the file of the engine you name, not the first one", async () => {
+    const first = { target: { ...LOCAL_TARGET, source: { kind: "file", path: CURRENT } } } as const
+    const nested = {
+      target: { ...LOCAL_TARGET, name: "shop", source: { kind: "file", path: NESTED } },
+    } as const
+
+    expect(await runIn(registryOf([], [first, nested]), NESTED)).toEqual([`open ${NESTED}`])
+  })
+
   test("ask for a folder when none is open", async () => {
     fake.folders = []
 

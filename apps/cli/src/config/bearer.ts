@@ -7,6 +7,7 @@
 
 import { isRecord } from "../util.js"
 import { configError } from "./config-error.js"
+import { keysOf } from "./oauth.js"
 import { CONTROL, ENV_NAME, isNonEmptyString } from "./syntax.js"
 import {
   AUTH_TYPES,
@@ -55,10 +56,6 @@ export const BEARER_CHECKS: Readonly<Record<(typeof BEARER_AUTH_KEYS)[number], C
     "the name of an environment variable, e.g. CI_ENGINE_TOKEN",
   ],
   token: [isNonEmptyString, "a non-empty string"],
-}
-
-function keysOf(value: Record<string, unknown>, keys: readonly string[]): string[] {
-  return keys.filter((key) => Object.hasOwn(value, key))
 }
 
 /** Bearer keys next to Basic auth or OAuth keys: one profile uses one kind of credentials. */

@@ -195,10 +195,48 @@ jobs:
           PULSE_ENGINE_IMAGE: ${{ matrix.image }}
         run: pnpm --fail-if-no-match --filter pulse-cockpit run test:engines
 
+  # Camunda 8 in Testcontainers, off until the owner answers the licence question of #531: the
+  # images fall under Camunda's Self-Managed Non-Production Terms. The repository variable
+  # PULSE_C8_ENGINES=true turns it on. Keep the rows in step with apps/vscode/docs/adr/c8-adapter.md.
+  engines-camunda8:
+    name: Engines (camunda8 ${{ matrix.version }}, ${{ matrix.storage }}, ${{ matrix.security }})
+    needs: changes
+    if: vars.PULSE_C8_ENGINES == 'true' && needs.changes.outputs.vscode == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ["8.9.27", "8.10.8"]
+        storage: [h2, elasticsearch]
+        security: [none, basic, oidc]
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v6.1.0
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm turbo build --filter=pulse-cockpit...
+
+      - name: Extension conformance (apps/vscode)
+        env:
+          PULSE_ENGINE_IMAGE: camunda/camunda:${{ matrix.version }}
+          PULSE_C8_STORAGE: ${{ matrix.storage }}
+          PULSE_C8_SECURITY: ${{ matrix.security }}
+        run: pnpm --fail-if-no-match --filter pulse-cockpit run test:engines
+
   # The one requirable check of the matrix; skipped passes.
   engines-result:
     name: Engines
-    needs: engines
+    needs: [engines, engines-camunda8]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -206,11 +244,14 @@ jobs:
       - name: Every leg passed
         env:
           RESULT: ${{ needs.engines.result }}
+          RESULT_CAMUNDA8: ${{ needs.engines-camunda8.result }}
         run: |
-          if [ "$RESULT" != success ] && [ "$RESULT" != skipped ]; then
-            echo "::error::The engine matrix ended with ${RESULT}: see the Engines (<flavor>) jobs"
-            exit 1
-          fi
+          for result in "$RESULT" "$RESULT_CAMUNDA8"; do
+            if [ "$result" != success ] && [ "$result" != skipped ]; then
+              echo "::error::The engine matrix ended with ${result}: see the Engines (<flavor>) jobs"
+              exit 1
+            fi
+          done
 
   # Activation + every command in VS Code stable under Xvfb.
   vscode-smoke:

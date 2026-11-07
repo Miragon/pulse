@@ -22,7 +22,9 @@ export class HandoverText {
   private static incidentLines(incident: IncidentRow): string[] {
     return [
       `- **${incident.typeLabel}** at \`${incident.elementId}\` since ${HandoverText.utc(incident.createdAt)}`,
-      ...(incident.rootCause === undefined ? [] : [`  - Root cause: ${incident.rootCause}`]),
+      ...(incident.rootCause === undefined
+        ? []
+        : [`  - ${incident.causeLabel ?? "Cause"}: ${incident.rootCause}`]),
       `  - Message: ${incident.message}`,
       ...(incident.retriesLeft === undefined ? [] : [`  - Retries left: ${incident.retriesLeft}`]),
       ...(incident.job === undefined

@@ -4,6 +4,7 @@ import { MigrationRows } from "../views/migration-rows.js"
 import type { PreparedBulk } from "./bulk-write.js"
 import type { MigrateInstancesAction } from "./migrate-instances-action.js"
 import { MigrationReads, type MigrationLoaded, type MigrationState } from "./migration-reads.js"
+import { MigrationPlanning } from "./migration-planning.js"
 import type { PanelContext } from "./panel-context.js"
 
 export interface PreviewHost {
@@ -57,7 +58,7 @@ export class MigrationPreview {
   ): Promise<boolean> {
     const { runtime } = this.context
     const [check, statistics] = await Promise.all([
-      runtime.checkMigration(action.plan),
+      MigrationPlanning.check(runtime, action.plan),
       runtime.getElementStatistics(loaded.source.id),
     ])
     const waiting = await this.reads.waitingAt(

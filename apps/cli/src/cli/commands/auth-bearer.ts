@@ -22,6 +22,7 @@ import {
   type StaticBearerConfig,
 } from "../../config/types.js"
 import { type PulseCliError, usageError } from "../../errors.js"
+import { capitalized } from "../../util.js"
 import type { LogoutView } from "./auth-view.js"
 
 export interface BearerStatusView {
@@ -200,8 +201,4 @@ export async function logoutCommand(
     )
   }
   return { profile: config.profile ?? null, tokenCache, removed, revoked: null }
-}
-
-function capitalized(text: string): string {
-  return `${text.charAt(0).toUpperCase()}${text.slice(1)}`
 }

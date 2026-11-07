@@ -310,6 +310,7 @@ describe("a connection", () => {
     return {
       runtime: () => ({}) as never,
       commands: () => (withCommands ? commands : undefined),
+      canWrite: () => withCommands,
       webUi: () => undefined,
     }
   }

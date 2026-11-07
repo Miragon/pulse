@@ -44,7 +44,7 @@ export function HistoryTab({ path, elementName }: HistoryTabProps) {
       columns={columns}
       rows={path}
       rowKey={(row) => `${row.elementId}:${row.startedAt}`}
-      empty={<EmptyHint text="The engine keeps no history for this instance." />}
+      empty={<EmptyHint text="The engine has no history for this instance." />}
     />
   )
 }

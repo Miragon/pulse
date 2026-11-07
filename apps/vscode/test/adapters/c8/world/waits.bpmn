@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_Waiting" targetNamespace="http://bpmn.io/schema/bpmn" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.9.0">
+  <bpmn:process id="pulse-waits" name="Waiting" isExecutable="true">
+    <bpmn:startEvent id="Event_Started" name="Started">
+      <bpmn:outgoing>Flow_StartedToFork</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:parallelGateway id="Gateway_Fork">
+      <bpmn:incoming>Flow_StartedToFork</bpmn:incoming>
+      <bpmn:outgoing>Flow_ForkToMessage</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ForkToTimer</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ForkToSignal</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:intermediateCatchEvent id="Event_Message" name="Payment received">
+      <bpmn:incoming>Flow_ForkToMessage</bpmn:incoming>
+      <bpmn:outgoing>Flow_MessageToAfterPayment</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_Message" messageRef="Message_PaymentReceived" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:endEvent id="Event_AfterPayment" name="After payment">
+      <bpmn:incoming>Flow_MessageToAfterPayment</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_MessageToAfterPayment" sourceRef="Event_Message" targetRef="Event_AfterPayment" />
+    <bpmn:sequenceFlow id="Flow_ForkToMessage" sourceRef="Gateway_Fork" targetRef="Event_Message" />
+    <bpmn:intermediateCatchEvent id="Event_Timer" name="One hour later">
+      <bpmn:incoming>Flow_ForkToTimer</bpmn:incoming>
+      <bpmn:outgoing>Flow_TimerToAfterHour</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDefinition_Timer">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT1H</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:endEvent id="Event_AfterHour" name="After the hour">
+      <bpmn:incoming>Flow_TimerToAfterHour</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_TimerToAfterHour" sourceRef="Event_Timer" targetRef="Event_AfterHour" />
+    <bpmn:sequenceFlow id="Flow_ForkToTimer" sourceRef="Gateway_Fork" targetRef="Event_Timer" />
+    <bpmn:intermediateCatchEvent id="Event_Signal" name="Stop signal">
+      <bpmn:incoming>Flow_ForkToSignal</bpmn:incoming>
+      <bpmn:outgoing>Flow_SignalToAfterSignal</bpmn:outgoing>
+      <bpmn:signalEventDefinition id="SignalEventDefinition_Signal" signalRef="Signal_Stop" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:endEvent id="Event_AfterSignal" name="After the signal">
+      <bpmn:incoming>Flow_SignalToAfterSignal</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_SignalToAfterSignal" sourceRef="Event_Signal" targetRef="Event_AfterSignal" />
+    <bpmn:sequenceFlow id="Flow_ForkToSignal" sourceRef="Gateway_Fork" targetRef="Event_Signal" />
+    <bpmn:sequenceFlow id="Flow_StartedToFork" sourceRef="Event_Started" targetRef="Gateway_Fork" />
+  </bpmn:process>
+  <bpmn:message id="Message_PaymentReceived" name="Payment received">
+    <bpmn:extensionElements>
+      <zeebe:subscription correlationKey="=orderId" />
+    </bpmn:extensionElements>
+  </bpmn:message>
+  <bpmn:signal id="Signal_Stop" name="Stop" />
+  <bpmndi:BPMNDiagram id="BPMNDiagram_pulse-waits">
+    <bpmndi:BPMNPlane id="BPMNPlane_pulse-waits" bpmnElement="pulse-waits">
+      <bpmndi:BPMNShape id="BPMNShape_Event_Started" bpmnElement="Event_Started">
+        <dc:Bounds x="80" y="87" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="68" y="129" width="61" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Gateway_Fork" bpmnElement="Gateway_Fork">
+        <dc:Bounds x="176" y="80" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Event_Message" bpmnElement="Event_Message">
+        <dc:Bounds x="286" y="87" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="270" y="129" width="68" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Event_AfterPayment" bpmnElement="Event_AfterPayment">
+        <dc:Bounds x="382" y="87" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="370" y="129" width="61" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Event_Timer" bpmnElement="Event_Timer">
+        <dc:Bounds x="286" y="190" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="270" y="232" width="68" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Event_AfterHour" bpmnElement="Event_AfterHour">
+        <dc:Bounds x="382" y="190" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="363" y="232" width="75" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Event_Signal" bpmnElement="Event_Signal">
+        <dc:Bounds x="286" y="286" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="260" y="328" width="89" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Event_AfterSignal" bpmnElement="Event_AfterSignal">
+        <dc:Bounds x="382" y="286" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="363" y="328" width="75" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_MessageToAfterPayment" bpmnElement="Flow_MessageToAfterPayment">
+        <di:waypoint x="322" y="105" />
+        <di:waypoint x="382" y="105" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_ForkToMessage" bpmnElement="Flow_ForkToMessage">
+        <di:waypoint x="226" y="105" />
+        <di:waypoint x="286" y="105" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_TimerToAfterHour" bpmnElement="Flow_TimerToAfterHour">
+        <di:waypoint x="322" y="208" />
+        <di:waypoint x="382" y="208" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_ForkToTimer" bpmnElement="Flow_ForkToTimer">
+        <di:waypoint x="201" y="130" />
+        <di:waypoint x="201" y="208" />
+        <di:waypoint x="286" y="208" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_SignalToAfterSignal" bpmnElement="Flow_SignalToAfterSignal">
+        <di:waypoint x="322" y="304" />
+        <di:waypoint x="382" y="304" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_ForkToSignal" bpmnElement="Flow_ForkToSignal">
+        <di:waypoint x="201" y="130" />
+        <di:waypoint x="201" y="304" />
+        <di:waypoint x="286" y="304" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_StartedToFork" bpmnElement="Flow_StartedToFork">
+        <di:waypoint x="116" y="105" />
+        <di:waypoint x="176" y="105" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -8,7 +8,7 @@
  * (`settleAuthorization`).
  */
 
-import { compact } from "../util.js"
+import { capitalized, compact } from "../util.js"
 import { validateAuthType, validatePassword, validateUsername } from "./auth.js"
 import { hasBearerKeys } from "./bearer.js"
 import { type BearerChanges, changedBearerKeys, hasBearerOptions } from "./bearer-edit.js"
@@ -17,6 +17,7 @@ import { hasAuthorization } from "./headers.js"
 import { hasOAuthKeys } from "./oauth.js"
 import { changedOAuthKeys, hasOAuthOptions, type OAuthChanges } from "./oauth-edit.js"
 import {
+  AUTH_TYPES,
   type AuthType,
   BASIC_AUTH_KEYS,
   PROFILE_AUTH_KEYS,
@@ -70,8 +71,17 @@ function givenFamilies(changes: AuthChanges): Family[] {
 }
 
 /** True when any auth option (type, Basic auth, OAuth or bearer token) was given. */
-function hasAuthOptions(changes: AuthChanges): boolean {
+export function hasAuthOptions(changes: AuthChanges): boolean {
   return changes.auth !== undefined || givenFamilies(changes).length > 0
+}
+
+// The CLI leaves an auth type it does not know (clientCredentials, Pulse for VS Code's) as the
+// file has it: an auth option of `config set` or one setting of `config unset` is a CONFIG error,
+// since the CLI knows none of the type's rules and could not put a removed setting back.
+export function checkAuthType(profile: Profile | undefined, name: string): void {
+  if (!AUTH_TYPES.includes(profile?.auth?.type ?? "none")) {
+    throw configError(`Profile "${name}" has an unknown auth type`, "Edit its auth in the file.")
+  }
 }
 
 function secretOf(existing: ProfileAuth | undefined, changes: AuthChanges): Secret {
@@ -98,10 +108,6 @@ function basicKeys(existing: ProfileAuth | undefined, changes: AuthChanges): Par
       ? existing?.username
       : validateUsername(authUser.trim(), "from --auth-user")
   return { ...compact({ username }), ...secretOf(existing, changes) }
-}
-
-function capitalized(text: string): string {
-  return `${text.charAt(0).toUpperCase()}${text.slice(1)}`
 }
 
 /** Options of several families, or of a family the explicit type does not use: CONFIG. */

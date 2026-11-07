@@ -1,4 +1,5 @@
-import type { TargetAuth } from "./engine-target.js"
+import type { EngineKind, TargetAuth } from "./engine-target.js"
+import { ProfileUrl } from "./profile-url.js"
 
 type Json = Readonly<Record<string, unknown>>
 
@@ -7,6 +8,12 @@ const KINDS: ReadonlyMap<unknown, TargetAuth> = new Map<unknown, TargetAuth>([
   ["basic", { kind: "basic" }],
   ["oauth", { kind: "oauth2" }],
 ])
+const CLIENT_CREDENTIALS = "clientCredentials"
+const TYPES_SENDING_CREDENTIALS: Readonly<Record<EngineKind, readonly string[]>> = {
+  c7: ["basic"],
+  c8: ["basic", CLIENT_CREDENTIALS],
+}
+const SCOPE_TOKEN = /^[\x21\x23-\x5b\x5d-\x7e]+$/
 const KEYS_NEEDING_A_TYPE = [
   "issuer",
   "authorizationEndpoint",
@@ -33,23 +40,59 @@ export class ProfileAuthReader {
     if (record.type === "bearer") {
       return `profile "${name}" uses bearer auth, which Pulse does not support yet`
     }
+    if (record.type === CLIENT_CREDENTIALS) {
+      return ProfileAuthReader.clientCredentials(name, record)
+    }
     if (record.type === undefined) {
       return ProfileAuthReader.implied(name, record)
     }
     return KINDS.get(record.type) ?? ProfileAuthReader.unsupported(name)
   }
 
+  static typesSendingCredentials(engine: EngineKind): readonly string[] {
+    return TYPES_SENDING_CREDENTIALS[engine]
+  }
+
+  static isScopeList(value: unknown): value is readonly string[] {
+    return (
+      Array.isArray(value) &&
+      value.every((scope) => typeof scope === "string" && SCOPE_TOKEN.test(scope)) &&
+      new Set(value).size === value.length
+    )
+  }
+
+  private static clientCredentials(name: string, auth: Json): TargetAuth | string {
+    const tokenEndpoint = ProfileUrl.asWritten(auth.tokenEndpoint)
+    if ("needs" in tokenEndpoint) {
+      return `profile "${name}" needs an auth.tokenEndpoint ${tokenEndpoint.needs}`
+    }
+    const { audience, scopes } = auth
+    if (scopes !== undefined && !ProfileAuthReader.isScopeList(scopes)) {
+      return `profile "${name}" needs auth.scopes as a list of distinct scopes, such as ["api://pulse/.default"]`
+    }
+    if (audience !== undefined && !ProfileAuthReader.isNotBlank(audience)) {
+      return `profile "${name}" needs an auth.audience that is not blank`
+    }
+    return {
+      kind: "clientCredentials",
+      tokenEndpoint: tokenEndpoint.url,
+      ...(audience === undefined ? {} : { audience }),
+      ...(scopes === undefined ? {} : { scopes }),
+    }
+  }
+
+  private static isNotBlank(value: unknown): value is string {
+    return typeof value === "string" && value.trim() !== ""
+  }
+
   private static implied(name: string, auth: Json): TargetAuth | string {
     if (KEYS_NEEDING_A_TYPE.some((key) => Object.hasOwn(auth, key))) {
       return ProfileAuthReader.unsupported(name)
     }
-    const username = auth.username
-    return typeof username === "string" && username.trim() !== ""
-      ? { kind: "basic" }
-      : { kind: "none" }
+    return ProfileAuthReader.isNotBlank(auth.username) ? { kind: "basic" } : { kind: "none" }
   }
 
   private static unsupported(name: string): string {
-    return `profile "${name}" needs an auth type Pulse supports (none, basic or oauth)`
+    return `profile "${name}" needs an auth type Pulse supports (none, basic, oauth or clientCredentials)`
   }
 }

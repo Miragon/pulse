@@ -3,9 +3,12 @@ import { mkdirSync, readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { containerTool } from "./support/containers.mjs"
 
-const SUITES = ["smoke", "e2e"]
+const ENGINES = {
+  smoke: undefined,
+  e2e: { container: "pulse-dev-engine", script: "engine:up" },
+  "e2e:c8": { container: "pulse-c8-engine", script: "c8:up" },
+}
 const IMAGE = "pulse-vscode-tests"
-const ENGINE = "pulse-dev-engine"
 const ROOT = resolve("../..")
 const RESULTS = resolve("test-results")
 
@@ -22,9 +25,9 @@ function run(tool, args) {
   return result.status ?? 1
 }
 
-function engineRuns(tool) {
+function engineRuns(tool, container) {
   try {
-    const state = execFileSync(tool, ["inspect", "-f", "{{.State.Running}}", ENGINE], {
+    const state = execFileSync(tool, ["inspect", "-f", "{{.State.Running}}", container], {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
     })
@@ -40,12 +43,15 @@ function pnpmVersion() {
 }
 
 const suite = process.argv[2]
-if (!SUITES.includes(suite)) {
-  fail(`Usage: node scripts/docker-test.mjs ${SUITES.join("|")}`)
+if (!Object.hasOwn(ENGINES, suite)) {
+  fail(`Usage: node scripts/docker-test.mjs ${Object.keys(ENGINES).join("|")}`)
 }
+const engine = ENGINES[suite]
 const tool = containerTool()
-if (suite === "e2e" && !engineRuns(tool)) {
-  fail(`No running ${ENGINE}. Run "pnpm --filter pulse-cockpit run engine:up" first.`)
+if (engine !== undefined && !engineRuns(tool, engine.container)) {
+  fail(
+    `No running ${engine.container}. Run "pnpm --filter pulse-cockpit run ${engine.script}" first.`,
+  )
 }
 const built = run(tool, [
   "build",
@@ -60,7 +66,7 @@ if (built !== 0) {
   process.exit(built)
 }
 mkdirSync(RESULTS, { recursive: true })
-const network = suite === "e2e" ? ["--network", `container:${ENGINE}`] : []
+const network = engine === undefined ? [] : ["--network", `container:${engine.container}`]
 process.exit(
   run(tool, [
     "run",
@@ -80,6 +86,8 @@ process.exit(
     "PULSE_E2E_SHOTS=/results/e2e",
     "-e",
     "PULSE_VSCODE_NO_SANDBOX=1",
+    "-e",
+    `PULSE_C8_SECURITY=${process.env.PULSE_C8_SECURITY ?? "none"}`,
     IMAGE,
     "bash",
     "/src/apps/vscode/test/docker/run-suite.sh",

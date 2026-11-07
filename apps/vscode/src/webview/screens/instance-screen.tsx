@@ -225,7 +225,7 @@ function InstanceDetails({
         <TabContent tab={tab} view={view} nameOf={nameOf} onShowElement={onShowElement} />
         {view.truncated && (
           <p class="muted truncated-note">
-            Some lists are cut off. Pulse shows the first entries only.
+            Some lists are cut off, so Pulse shows only part of them.
           </p>
         )}
       </Tabs>

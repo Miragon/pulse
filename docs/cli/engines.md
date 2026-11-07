@@ -14,6 +14,7 @@ has its own adapter in the CLI, so a difference of one engine stays in one place
 Commands for features an engine does not offer fail with the engine's error. Property names that
 differ between the engines are both accepted (`operatonFormRef`, `camundaFormRef`). Camunda 8 is
 not supported: it has a different API (see the [decision](adr/002-camunda-8-is-a-separate-api.md)).
+A `camunda8` profile is for Pulse for VS Code: the CLI refuses it when you use it.
 
 ## Choosing the engine
 

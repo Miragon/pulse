@@ -1,0 +1,82 @@
+{
+  "realm": "pulse",
+  "enabled": true,
+  "sslRequired": "none",
+  "accessTokenLifespan": 300,
+  "clients": [
+    {
+      "clientId": "camunda-app",
+      "secret": "camunda-app-secret",
+      "enabled": true,
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["*"]
+    },
+    {
+      "clientId": "pulse-seed",
+      "secret": "seed-secret",
+      "enabled": true,
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocolMappers": [
+        {
+          "name": "aud",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": { "included.custom.audience": "camunda", "access.token.claim": "true" }
+        }
+      ]
+    },
+    {
+      "clientId": "pulse-reader",
+      "secret": "reader-secret",
+      "enabled": true,
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocolMappers": [
+        {
+          "name": "aud",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": { "included.custom.audience": "camunda", "access.token.claim": "true" }
+        }
+      ]
+    },
+    {
+      "clientId": "pulse-nobody",
+      "secret": "nobody-secret",
+      "enabled": true,
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocolMappers": [
+        {
+          "name": "aud",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": { "included.custom.audience": "camunda", "access.token.claim": "true" }
+        }
+      ]
+    },
+    {
+      "clientId": "pulse-short",
+      "secret": "short-secret",
+      "enabled": true,
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "attributes": { "access.token.lifespan": "5" },
+      "protocolMappers": [
+        {
+          "name": "aud",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": { "included.custom.audience": "camunda", "access.token.claim": "true" }
+        }
+      ]
+    }
+  ]
+}

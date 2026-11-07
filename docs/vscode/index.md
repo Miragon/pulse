@@ -9,8 +9,8 @@ unless you turn them on.
 
 Pulse for VS Code shows what your process engine is running, right next to your BPMN models:
 definitions, instances, incidents and variables, with badges on the deployed diagram. It works
-with Operaton, CIB seven and Camunda 7 and reads the same engine profiles as the
-[Pulse CLI](../cli/index.md).
+with Operaton, CIB seven and Camunda 7, reads [Camunda 8](./camunda8.md) on SaaS and Self-Managed,
+and uses the same engine profiles as the [Pulse CLI](../cli/index.md).
 
 ![Pulse in VS Code: from the engine to an instance with an incident, the variable fixed and the retry that clears it](../assets/vscode/demo.gif)
 
@@ -33,6 +33,7 @@ where the models and the code already are.
 | ----------------------------------- | -------------------------------------------------------- |
 | [Installation](./installation.md)   | Install it, try it on a seeded engine                    |
 | [Configuration](./configuration.md) | Engine profiles, credentials, environments, live updates |
+| [Camunda 8](./camunda8.md)          | SaaS and Self-Managed, permissions, what differs         |
 | [Usage](./usage.md)                 | The views and panels, model and code, writes and batches |
 | [Boards](./boards.md)               | Shared views across engines, kept as JSON in the repo    |
 | [Architecture](./architecture.md)   | Contract, core, adapters and the decisions behind them   |

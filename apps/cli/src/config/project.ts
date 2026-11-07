@@ -13,9 +13,9 @@
  */
 
 import type { FileSystem } from "../runtime.js"
-import { compact, isRecord, isSecretHeader } from "../util.js"
+import { compact, isSecretHeader } from "../util.js"
 import { configError } from "./config-error.js"
-import { type Location, parseConfigFile, pathModule } from "./file.js"
+import { type Location, parseConfigFile, pathModule, reasonOf } from "./file.js"
 import {
   type ConfigFile,
   ENV,
@@ -230,13 +230,6 @@ export function parseProjectFile(text: string, path: string): ConfigFile {
     throw configError(`Invalid project file ${path}: ${invalid.problem}`, invalid.hint)
   }
   return file
-}
-
-/** `EACCES`, `EISDIR`, ... of a file system error, else its message. */
-function reasonOf(error: unknown): string {
-  const code = isRecord(error) ? error.code : undefined
-  if (typeof code === "string") return code
-  return error instanceof Error ? error.message : String(error)
 }
 
 /** Reads and checks an existing project file. */

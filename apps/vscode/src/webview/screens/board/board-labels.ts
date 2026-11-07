@@ -64,21 +64,41 @@ export class BoardLabels {
       : `${CountLabels.plural(above.length, "engine")} above ${limit}`
   }
 
+  static warning(tile: CounterTile): string | undefined {
+    const parts = [BoardLabels.above(tile), BoardLabels.undecided(tile)].filter(
+      (part) => part !== undefined,
+    )
+    return parts.length === 0 ? undefined : parts.join(" · ")
+  }
+
   static diagramFacts(engine: string, version: number): string {
     return `${engine} · v${version}, the latest version`
   }
 
   static diagramMissing(tile: ProcessDiagramTile): string {
     return tile.notDeployed === true
-      ? `${tile.bpmnProcessId} is not deployed on ${tile.engine}.`
+      ? `${tile.bpmnProcessId} is not deployed on ${tile.engine}, or you may not have permission to see it.`
       : `The diagram was not read from ${tile.engine}.`
   }
 
-  static entryCount(count: number | undefined): string {
-    return count === undefined ? "not read" : CountLabels.exact(count)
+  static entryCount(count: number | undefined, atLeast = false): string {
+    return count === undefined ? "not read" : CountLabels.exact(count, atLeast)
   }
 
-  static count(count: number | undefined): string {
-    return count === undefined ? "—" : CountLabels.exact(count)
+  static count(count: number | undefined, atLeast = false): string {
+    return count === undefined ? "—" : CountLabels.exact(count, atLeast)
+  }
+
+  private static undecided(tile: CounterTile): string | undefined {
+    const undecided = tile.entries.filter((entry) => entry.undecided === true)
+    const [first] = undecided
+    if (tile.warnAbove === undefined || first === undefined) {
+      return undefined
+    }
+    const stopped =
+      undecided.length === 1
+        ? `${first.engine} stopped counting at ${CountLabels.exact(first.count ?? 0)}`
+        : `${CountLabels.plural(undecided.length, "engine")} stopped counting`
+    return `${stopped} · warns above ${CountLabels.exact(tile.warnAbove)}`
   }
 }

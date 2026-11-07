@@ -21,6 +21,12 @@ not before.
 
 **Until then the CLI does not support Camunda 8.** The docs say so ([Engines](../engines.md)).
 
+**A project file may name it.** Pulse for VS Code reads the same `.pulse-cli.json` and has a Camunda 8
+adapter of its own, which shares no code with the CLI. So a profile may say `flavor: camunda8`, and
+`tokenEndpoint` may stand alone with `type: clientCredentials`. The file still loads, and the CLI
+refuses only that profile, by name, when it is used. `--flavor camunda8` and
+`PULSE_CLI_FLAVOR=camunda8` stay unknown: `FLAVORS` remains the list of engines the CLI serves.
+
 ## Consequences
 
 - The Camunda 7 engines are not slowed down by abstractions for an API that is not there.

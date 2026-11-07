@@ -1,0 +1,22 @@
+{
+  "profiles": {
+    "c8-open": {
+      "url": "http://localhost:18088/v2",
+      "flavor": "camunda8"
+    },
+    "c8-basic": {
+      "url": "http://localhost:18088/v2",
+      "flavor": "camunda8",
+      "auth": { "type": "basic" }
+    },
+    "c8-oidc": {
+      "url": "http://localhost:18088/v2",
+      "flavor": "camunda8",
+      "auth": {
+        "type": "clientCredentials",
+        "tokenEndpoint": "http://localhost:18089/realms/pulse/protocol/openid-connect/token",
+        "audience": "camunda"
+      }
+    }
+  }
+}
