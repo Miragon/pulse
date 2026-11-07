@@ -10,7 +10,6 @@ const REGION = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const CLUSTER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const TOKEN_ENDPOINT = "https://login.cloud.camunda.io/oauth/token"
 const AUDIENCE = "zeebe.camunda.io"
-const FROM_HUB = "Camunda Hub shows it in the API client's connection information as"
 
 export class SaasSetup implements EngineSetup {
   readonly label = "Camunda 8 SaaS"
@@ -26,7 +25,8 @@ export class SaasSetup implements EngineSetup {
       {
         key: "region",
         title: "Region",
-        prompt: `The cluster's region, for example bru-2. ${FROM_HUB} CAMUNDA_CLUSTER_REGION.`,
+        prompt:
+          "CAMUNDA_CLUSTER_REGION: from the API client's connection information in Camunda Hub, for example bru-2.",
         problem: (value) =>
           REGION.test(value)
             ? undefined
@@ -35,7 +35,7 @@ export class SaasSetup implements EngineSetup {
       {
         key: "clusterId",
         title: "Cluster ID",
-        prompt: `${FROM_HUB} CAMUNDA_CLUSTER_ID.`,
+        prompt: "CAMUNDA_CLUSTER_ID: the cluster's ID.",
         problem: (value) =>
           CLUSTER_ID.test(value.toLowerCase())
             ? undefined
@@ -76,20 +76,21 @@ export class SaasSetup implements EngineSetup {
       {
         key: "clientId",
         title: "Client ID",
-        prompt: `The ID of an API client of the cluster. ${FROM_HUB} CAMUNDA_CLIENT_ID.`,
+        prompt: "CAMUNDA_CLIENT_ID: the API client's ID.",
         problem: SetupRules.notBlank("the client ID"),
       },
       {
         key: "clientSecret",
         title: "Client secret",
-        prompt: `${FROM_HUB} CAMUNDA_CLIENT_SECRET. Pulse keeps it in VS Code's secret storage and sends it only to login.cloud.camunda.io.`,
+        prompt:
+          "CAMUNDA_CLIENT_SECRET: Pulse keeps it in VS Code's secret storage and sends it only to login.cloud.camunda.io.",
         password: true,
         problem: SetupRules.notBlank("the client secret"),
       },
       {
         key: "audience",
         title: "Audience",
-        prompt: `The audience of the client's tokens. ${FROM_HUB} CAMUNDA_TOKEN_AUDIENCE; keep ${AUDIENCE} unless it names another.`,
+        prompt: `CAMUNDA_TOKEN_AUDIENCE: keep ${AUDIENCE} unless Hub shows another.`,
         initial: () => AUDIENCE,
         problem: SetupRules.notBlank("the audience"),
       },

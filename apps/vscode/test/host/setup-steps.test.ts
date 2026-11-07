@@ -89,13 +89,23 @@ describe("the Camunda 8 SaaS steps", () => {
     expect(setup.credentialsOf(values ?? {})).toEqual({ identity: "client-id", secret: " s3cret " })
   })
 
-  test("suggest the audience and a name, mask the secret and say where Hub shows each value", async () => {
+  test("suggest the audience and a name, mask the secret and start each prompt with its Hub value", async () => {
     const { prompts } = await asked(saas(), [...SAAS_ANSWERS, SAVE])
 
     expect(inputOf(prompts, "Audience").value).toBe("zeebe.camunda.io")
     expect(inputOf(prompts, "Name").value).toBe("saas-bru-2")
     expect(inputOf(prompts, "Client secret").password).toBe(true)
-    expect(inputOf(prompts, "Region").prompt).toContain("CAMUNDA_CLUSTER_REGION")
+    expect(
+      ["Region", "Cluster ID", "Client ID", "Client secret", "Audience"].map(
+        (title) => inputOf(prompts, title).prompt.split(":")[0],
+      ),
+    ).toEqual([
+      "CAMUNDA_CLUSTER_REGION",
+      "CAMUNDA_CLUSTER_ID",
+      "CAMUNDA_CLIENT_ID",
+      "CAMUNDA_CLIENT_SECRET",
+      "CAMUNDA_TOKEN_AUDIENCE",
+    ])
     expect(inputOf(prompts, "Client secret").prompt).toContain(
       "sends it only to login.cloud.camunda.io",
     )

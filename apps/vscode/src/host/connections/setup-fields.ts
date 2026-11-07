@@ -50,7 +50,7 @@ export class SetupFields {
     return {
       key: "environment",
       title: "Environment",
-      prompt: "How should Pulse treat this engine? Pulse keeps your answer in your user settings.",
+      prompt: "Test or production? Pulse keeps the answer in your user settings.",
       choices: ENVIRONMENTS,
     }
   }
