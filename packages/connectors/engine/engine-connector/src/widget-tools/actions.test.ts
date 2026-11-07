@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { feedPayload } from "../tools/test-support/feed-payload.js"
-import type { MCPServer } from "mcp-use"
+import { appOnly } from "@miragon/pulse-widget-shell/server"
+import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
 import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-engine-core"
 import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { resolveEngineToolset, type EngineToolset } from "../lib/mcp/toolsets.js"
@@ -12,33 +13,31 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-type Handler = (params: unknown) => Promise<{ structuredContent?: Record<string, unknown> }>
-
 function registerFeed(toolset: EngineToolset) {
-  const tool = vi.fn()
+  const recording = recordingModuleServer()
   registerWidgetActionsFeed({
-    server: { tool } as unknown as MCPServer,
+    server: recording.server,
     registry: { engines: [] } as unknown as EngineRegistry,
     healthThresholds: DEFAULT_VERDICT_THRESHOLDS,
     toolset,
     engineParam: engineParamShape,
   })
-  expect(tool).toHaveBeenCalledOnce()
-  const [definition, handler] = tool.mock.calls[0] as [Record<string, unknown>, Handler]
-  return { definition, handler }
+  expect(recording.tools.size).toBe(1)
+  const [feed] = recording.tools.values()
+  return feed
 }
 
 async function allowedActionsFor(toolset: EngineToolset): Promise<unknown> {
-  const result = await registerFeed(toolset).handler({})
+  const result = await registerFeed(toolset).call({})
   return feedPayload(result).allowedActions
 }
 
 describe("engine_widget_actions_data", () => {
   it("is an app-only feed with no view binding", () => {
-    const { definition } = registerFeed("operations")
-    expect(definition.name).toBe(ENGINE_WIDGET_ACTIONS_DATA)
-    expect(definition.visibility).toBe("app")
-    expect(definition).not.toHaveProperty("view")
+    const { name, config } = registerFeed("operations")
+    expect(name).toBe(ENGINE_WIDGET_ACTIONS_DATA)
+    expect(config._meta).toEqual(appOnly._meta)
+    expect(config._meta?.ui).not.toHaveProperty("resourceUri")
   })
 
   it("allows every widget action only under an explicit admin", async () => {

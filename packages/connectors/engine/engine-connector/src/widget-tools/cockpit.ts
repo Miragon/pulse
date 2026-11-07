@@ -97,9 +97,9 @@ export function registerCockpitWidgetTools({
   healthThresholds,
   engineParam,
 }: WidgetToolsContext) {
-  server.tool(
+  server.registerTool(
+    ENGINE_OPEN_COCKPIT,
     {
-      name: ENGINE_OPEN_COCKPIT,
       title: "Open Cockpit",
       description:
         "Show the user the operations cockpit on one engine; they navigate it without further tool calls. `view` picks where it opens, by default the overview: the health verdict from the open incidents, the top failure clusters and every process. instance-detail needs a running instance; history shows ended ones too. You get that view's facts as compact JSON.",

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { decodeToolResult, type ToolResult } from "@miragon/pulse-widget-shell/server"
-import type { MCPServer } from "mcp-use"
+import type { ModuleServer } from "@miragon/pulse-widget-shell/server"
+import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
 import type { PrometheusClient } from "@miragon/pulse-analytics-client"
 import { registerWidgetTools } from "./widget-tools.js"
 import { createEngineScope } from "./engine-ids.js"
@@ -12,7 +13,19 @@ const feedData = <T = Record<string, unknown>>(result: unknown): T =>
 
 /** A show tool's structuredContent IS the view's data. */
 type ShowResult = { structuredContent: Record<string, unknown> }
-type Handler = (args: Record<string, unknown>, ctx: unknown) => Promise<ShowResult>
+type Handler = (args: Record<string, unknown>) => Promise<ShowResult>
+
+/** The tools `register` adds, each called the way the SDK calls it (the caller is ambient). */
+function handlersOf(register: (server: ModuleServer) => void): Map<string, Handler> {
+  const recording = recordingModuleServer()
+  register(recording.server)
+  return new Map(
+    [...recording.tools].map(([name, tool]) => [
+      name,
+      (args) => tool.call(args) as Promise<ShowResult>,
+    ]),
+  )
+}
 
 function recordingClient(): { client: PrometheusClient; queries: string[] } {
   const queries: string[] = []
@@ -28,18 +41,12 @@ function recordingClient(): { client: PrometheusClient; queries: string[] } {
 }
 
 describe("no server titles (U3) and the heatmap's as-of stamp (U7)", () => {
-  const CTX = { auth: { user: { id: "user-1" } } }
   function viewHandlers(): Map<string, Handler> {
-    const byName = new Map<string, Handler>()
-    const server = {
-      tool: (definition: { name: string }, handler: Handler) => {
-        byName.set(definition.name, handler)
-      },
-    } as unknown as MCPServer
-    registerWidgetTools(server, recordingClient().client, {
-      engineScope: createEngineScope(["prod-a"]),
-    })
-    return byName
+    return handlersOf((server) =>
+      registerWidgetTools(server, recordingClient().client, {
+        engineScope: createEngineScope(["prod-a"]),
+      }),
+    )
   }
   // Handlers called directly get no schema defaults: pass the period.
   const SHOWS: Array<[string, Record<string, unknown>]> = [
@@ -49,7 +56,7 @@ describe("no server titles (U3) and the heatmap's as-of stamp (U7)", () => {
   it("hands the view its data only: the widget heading names it in the host's language", async () => {
     const tools = viewHandlers()
     for (const [name, args] of SHOWS) {
-      const { structuredContent } = await tools.get(name)!(args, CTX)
+      const { structuredContent } = await tools.get(name)!(args)
       expect(Object.keys(structuredContent)).not.toContain("title")
       expect(Object.keys(structuredContent)).not.toContain("layout")
     }
@@ -58,8 +65,8 @@ describe("no server titles (U3) and the heatmap's as-of stamp (U7)", () => {
   it("stamps the heatmap with the time its values were read, in the view and the feed", async () => {
     const tools = viewHandlers()
     const args = { processDefinitionKey: "order", period: "7d" }
-    const show = await tools.get("analytics_show_bpmn_heatmap")!(args, CTX)
-    const feed = await tools.get("analytics_bpmn_heatmap_data")!(args, CTX)
+    const show = await tools.get("analytics_show_bpmn_heatmap")!(args)
+    const feed = await tools.get("analytics_bpmn_heatmap_data")!(args)
     const iso = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
     expect(show.structuredContent.asOf).toMatch(iso)
     expect(feedData<{ asOf?: string }>(feed).asOf).toMatch(iso)
@@ -72,20 +79,16 @@ describe("the heatmap's missing-diagram cause", () => {
 
   /** The show payload never carries the XML: the model reads it on some hosts. */
   async function payloads(fetchBpmnXml?: FetchBpmnXml, engines = ["prod-a"]) {
-    const byName = new Map<string, Handler>()
-    const server = {
-      tool: (definition: { name: string }, handler: Handler) => {
-        byName.set(definition.name, handler)
-      },
-    } as unknown as MCPServer
-    registerWidgetTools(server, recordingClient().client, {
-      engineScope: createEngineScope(engines),
-      fetchBpmnXml,
-    })
+    const byName = handlersOf((server) =>
+      registerWidgetTools(server, recordingClient().client, {
+        engineScope: createEngineScope(engines),
+        fetchBpmnXml,
+      }),
+    )
     const args = { processDefinitionKey: "order", period: "7d" }
-    const show = await byName.get("analytics_show_bpmn_heatmap")!(args, {})
-    const heat = feedData<Diagram>(await byName.get("analytics_bpmn_heatmap_data")!(args, {}))
-    const diagram = feedData<Diagram>(await byName.get("analytics_bpmn_xml_data")!(args, {}))
+    const show = await byName.get("analytics_show_bpmn_heatmap")!(args)
+    const heat = feedData<Diagram>(await byName.get("analytics_bpmn_heatmap_data")!(args))
+    const diagram = feedData<Diagram>(await byName.get("analytics_bpmn_xml_data")!(args))
     const fields = ({ bpmnXml, bpmnMissing }: Diagram) => ({ bpmnXml, bpmnMissing })
     return {
       show: fields(show.structuredContent),
@@ -167,23 +170,18 @@ describe("the names behind the ids", () => {
   const NAMES = { order: { name: "Order fulfillment", elements: { Task_A: "Pack" } } }
 
   async function run(name: string) {
-    const byName = new Map<string, Handler>()
-    const server = {
-      tool: (definition: { name: string }, handler: Handler) => {
-        byName.set(definition.name, handler)
-      },
-    } as unknown as MCPServer
     const calls: Array<[string[], NameRequest | undefined]> = []
-    registerWidgetTools(server, client, {
-      engineScope: createEngineScope(["prod-a"]),
-      namesFor: (keys, request) => {
-        calls.push([[...keys], request])
-        return Promise.resolve(NAMES)
-      },
-    })
-    const ctx = { auth: { user: { id: "user-1" } } }
+    const byName = handlersOf((server) =>
+      registerWidgetTools(server, client, {
+        engineScope: createEngineScope(["prod-a"]),
+        namesFor: (keys, request) => {
+          calls.push([[...keys], request])
+          return Promise.resolve(NAMES)
+        },
+      }),
+    )
     // Handlers called directly get no schema defaults: pass the period.
-    const result = await byName.get(name)!({ period: "7d" }, ctx)
+    const result = await byName.get(name)!({ period: "7d" })
     return { content: feedData(result), result, calls }
   }
 

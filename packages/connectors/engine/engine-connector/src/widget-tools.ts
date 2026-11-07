@@ -1,4 +1,4 @@
-import type { MCPServer } from "mcp-use"
+import type { ModuleServer } from "@miragon/pulse-widget-shell/server"
 import type { VerdictThresholds } from "@miragon/pulse-engine-core"
 import type { EngineRegistry } from "./lib/engine/resolve-engine.js"
 import { engineParamShapeFor } from "./lib/engine/with-engine.js"
@@ -16,7 +16,7 @@ export interface EngineWidgetToolsOptions {
 }
 
 export function registerWidgetTools(
-  server: MCPServer,
+  server: ModuleServer,
   registry: EngineRegistry,
   options: EngineWidgetToolsOptions,
 ) {

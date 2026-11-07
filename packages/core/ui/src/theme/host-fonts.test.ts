@@ -24,7 +24,7 @@ function inlineStyle(initial: Record<string, string> = {}): InlineStyleTarget & 
   }
 }
 
-/** What mcp-use's ThemeProvider does with the host's style variables (ext-apps applyHostStyleVariables). */
+/** What widget-shell's HostDocument does with the host's style variables. */
 function applyHostStyleVariables(
   style: InlineStyleTarget,
   variables: Record<string, string | undefined>,
@@ -110,7 +110,7 @@ describe("adoptHostFontVariables (host font → fallback slot)", () => {
     )
   })
 
-  it("is idempotent (mcp-use re-applies on every host-context update)", () => {
+  it("is idempotent (the view host re-applies on every host-context update)", () => {
     const html = inlineStyle()
     for (let i = 0; i < 2; i++) {
       applyHostStyleVariables(html, HOST)

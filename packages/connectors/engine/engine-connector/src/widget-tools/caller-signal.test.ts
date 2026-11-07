@@ -1,7 +1,7 @@
 import http from "node:http"
 import type { AddressInfo } from "node:net"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
-import type { MCPServer } from "mcp-use"
+import { recordingModuleServer, testServerContext } from "@miragon/pulse-widget-shell/testing"
 import { createEngineRegistry } from "../lib/engine/resolve-engine.js"
 import { providerForEntry } from "../providers/index.js"
 import { ENGINE_WIDGET_ACTIONS_DATA } from "../tool-names.js"
@@ -12,8 +12,6 @@ import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-engine-core"
  * #325: dropping `ctx` compiles (`call` is optional) and the per-feed tests stay green; only a
  * sweep over the whole surface notices.
  */
-
-type ToolCallback = (args: Record<string, unknown>, ctx?: unknown) => Promise<unknown>
 
 let requests = 0
 const engine = http.createServer((req, res) => {
@@ -42,14 +40,9 @@ const ARGS = {
   activityId: "task-1",
 }
 
-describe("widget tools and feeds honor ctx.signal", () => {
+describe("widget tools and feeds honor ctx.mcpReq.signal", () => {
   it("every engine-reading handler stops reading once the MCP request is cancelled", async () => {
-    const tools = new Map<string, ToolCallback>()
-    const server = {
-      tool: (definition: { name: string }, callback: ToolCallback) => {
-        tools.set(definition.name, callback)
-      },
-    } as unknown as MCPServer
+    const { server, tools } = recordingModuleServer()
     const registry = createEngineRegistry([{ id: "prod-a", baseUrl }], (e) =>
       providerForEntry(e).createClient(e, { type: "none" }, { timeoutMs: 2000 }),
     )
@@ -58,18 +51,18 @@ describe("widget tools and feeds honor ctx.signal", () => {
       toolset: "read-only",
     })
 
-    const readsOf = async (name: string, ctx: { signal?: AbortSignal }) => {
+    const readsOf = async (name: string, signal?: AbortSignal) => {
       const before = requests
-      await tools.get(name)!(ARGS, ctx)
+      await tools.get(name)!.call(ARGS, testServerContext(signal))
       return requests - before
     }
     const neverRead: string[] = []
     for (const name of tools.keys()) {
-      if ((await readsOf(name, {})) === 0) {
+      if ((await readsOf(name)) === 0) {
         neverRead.push(name)
         continue
       }
-      expect({ name, reads: await readsOf(name, { signal: AbortSignal.abort() }) }).toEqual({
+      expect({ name, reads: await readsOf(name, AbortSignal.abort()) }).toEqual({
         name,
         reads: 0,
       })

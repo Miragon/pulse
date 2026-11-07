@@ -32,7 +32,7 @@ function recordingClient(answer: (query: string) => PromSample[] = () => []) {
 }
 
 const run = (client: PrometheusClient, args: Record<string, unknown>) =>
-  captureConfig().handler(client, args, {} as never) as Promise<EngineHealthResult>
+  captureConfig().handler(client, args) as Promise<EngineHealthResult>
 
 /** Prometheus where only `prod-a` reports its engine-state gauges (when the selector admits it). */
 const onlyProdAReports = (query: string): PromSample[] =>

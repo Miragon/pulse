@@ -1,4 +1,4 @@
-/** No React, no mcp-use: the server tests and the view runtime decode tool results the same way. */
+/** No React, no SDK: the server tests and the view runtime decode tool results the same way. */
 
 export interface ToolResult {
   content?: ReadonlyArray<{ type: string; text?: string }>

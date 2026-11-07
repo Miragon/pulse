@@ -16,7 +16,7 @@ const FILL_STYLE: CSSProperties = {
 const INLINE_STYLE: CSSProperties = { display: "contents" }
 
 /**
- * Replaces mcp-use's `ThemeProvider`, which reset `color-scheme`. Host fonts go
+ * Applies the host's theme without resetting `color-scheme`. Host fonts go
  * into the fallback slot (`adoptHostFontVariables`), so Geist stays first. A
  * view that overflows a stated budget scrolls inside it instead of clipping.
  */

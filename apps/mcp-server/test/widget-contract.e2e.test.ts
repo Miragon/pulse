@@ -21,12 +21,11 @@ function uiBlock(meta: Record<string, unknown>): Record<string, unknown> {
 /**
  * Wire-level widget-contract assertions: what ext-apps hosts (Claude Desktop /
  * claude.ai) actually see on tools/list, resources/list and resources/read.
- * Since mcp-use 2 the MCP Apps half (`_meta.ui.*`, the `ui://views/<tool>.html`
- * resources, the CSP) is emitted natively from each tool's `view`/`visibility`
- * binding (one view PER TOOL instead of 1.x's single shared app resource),
- * while widget-shell's `showToolBinding` stamps the Apps SDK half
- * (`openai/*`). This is the contract whose absence made every widget hang on
- * its loading skeleton.
+ * widget-shell's `showToolBinding` and `appOnly` stamp both halves on the tool
+ * (MCP Apps' `_meta.ui.*` with the `ui://views/<tool>.html` resource, and the
+ * Apps SDK's `openai/*`); the boot serves one resource per view tool with its
+ * CSP. This is the contract whose absence made every widget hang on its
+ * loading skeleton.
  */
 describe("widget wire contract (dual-protocol _meta)", () => {
   let server: BootedServer
@@ -167,8 +166,8 @@ describe("widget wire contract (dual-protocol _meta)", () => {
       const { contents } = await client.readResource({ uri: viewResourceUri(tool.name) })
       const meta = (contents[0] as { _meta?: Record<string, unknown> })._meta ?? {}
       expect(uiBlock(meta).prefersBorder, tool.name).toBe(true)
-      // The Apps SDK half mcp-use derives for the view (since 2.8 and 2.10): the view's
-      // description and its default display modes, inline and fullscreen (pip is no Apps SDK mode).
+      // The Apps SDK half the boot adds to the view: its description and its default display
+      // modes, inline and fullscreen (pip is no Apps SDK mode).
       expect(meta["openai/widgetDescription"], tool.name).toBe(tool.title)
       expect(meta["openai/ui"], tool.name).toEqual({
         availableDisplayModes: ["inline", "fullscreen"],
@@ -208,7 +207,7 @@ describe("widget wire contract (dual-protocol _meta)", () => {
 
     const csp = uiBlock(content._meta ?? {}).csp as Record<string, string[]> | undefined
     expect(csp, "read contents should carry _meta.ui.csp").toBeTruthy()
-    // mcp-use appends the request-resolved server origin itself since 2.x.
+    // The boot appends the request-resolved server origin.
     expect(csp!.connectDomains).toContain(serverOrigin)
   })
 

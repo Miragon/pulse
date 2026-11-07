@@ -63,6 +63,35 @@ export const SERVICES = [
 /** The MCP server's port when PORT is unset (the `dev` script's default and `.mcp.json`'s). */
 export const DEFAULT_SERVER_PORT = 8400
 
+/** What answers 200 once the MCP server serves (and 503 while it drains). */
+export const SERVER_READY_PATH = "/health/ready"
+
+/**
+ * The ports the official MCP inspector (the server app's `dev:inspector`) listens on, all on
+ * 127.0.0.1, as `{ variable, port, fromEnv }`: its web UI, the MCP Apps sandbox and the origin
+ * the apps run under. Each comes from the inspector's own variable, else its default; the
+ * sandbox falls back to SERVER_PORT first, as the inspector does.
+ */
+export function inspectorPorts(env) {
+  const read = (...names) => {
+    const name = names.find((candidate) => /^\d+$/.test(env[candidate]?.trim() ?? ""))
+    return name === undefined ? undefined : Number(env[name].trim())
+  }
+  return [
+    { variable: "CLIENT_PORT", port: read("CLIENT_PORT"), fallback: 6274 },
+    { variable: "MCP_SANDBOX_PORT", port: read("MCP_SANDBOX_PORT", "SERVER_PORT"), fallback: 6275 },
+    { variable: "MCP_APP_ORIGIN_PORT", port: read("MCP_APP_ORIGIN_PORT"), fallback: 6278 },
+  ].map(({ variable, port, fallback }) => ({
+    variable,
+    port: port ?? fallback,
+    fromEnv: port !== undefined,
+  }))
+}
+
+/** The inspector's web UI on `port`, signed in with `token` (its MCP_INSPECTOR_API_TOKEN). */
+export const inspectorLink = (port, token) =>
+  `http://127.0.0.1:${port}/?MCP_INSPECTOR_API_TOKEN=${encodeURIComponent(token)}`
+
 /**
  * The ready message's line on Claude Code for a server on `port`, empty on 8400: `.mcp.json`
  * points every session at `${PORT:-8400}`, so another port is reached only from a session
@@ -108,13 +137,16 @@ const ENGINE_B = {
 /**
  * The MCP server's settings against the playground: the playground's public demo login, its
  * Prometheus, loopback only. `admin` widens the toolset, `deploy` registers deployments, `auth`
- * puts the server behind the playground's Keycloak (.env.example, "Local playground").
+ * puts the server behind the playground's Keycloak (.env.example, "Local playground"), with
+ * MCP_URL on localhost and the server's `port`: OAuth needs it, and the realm stamps
+ * http://localhost:8400/mcp into every token's aud.
  */
 export function serverPreset({
   multiEngine = false,
   admin = false,
   deploy = false,
   auth = false,
+  port = DEFAULT_SERVER_PORT,
 } = {}) {
   const engines = multiEngine
     ? {
@@ -144,8 +176,9 @@ export function serverPreset({
     ...(deploy ? { ENGINE_ALLOW_DEPLOYMENTS: "true" } : {}),
     ...(auth
       ? {
-          MCP_USE_OAUTH_KEYCLOAK_SERVER_URL: "http://localhost:8480",
-          MCP_USE_OAUTH_KEYCLOAK_REALM: "miragon",
+          MCP_URL: `http://localhost:${port}`,
+          MCP_OAUTH_KEYCLOAK_SERVER_URL: "http://localhost:8480",
+          MCP_OAUTH_KEYCLOAK_REALM: "miragon",
         }
       : {}),
   }

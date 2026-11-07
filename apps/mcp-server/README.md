@@ -35,7 +35,8 @@ the boot log names the toolset of each module. Writes, OAuth and several engines
 ## Overview
 
 The MCP host for [Pulse](../../README.md). It composes the `engine` and `analytics` modules
-into a single [mcp-use](https://github.com/mcp-use/mcp-use) server, bundles every React widget into
+into a single server on the official [MCP TypeScript SDK](https://ts.sdk.modelcontextprotocol.io/v2/),
+bundles every React widget into
 one Vite bundle served as per-tool view resources, and serves the streamable-HTTP MCP transport on
 port `8400`.
 
@@ -57,15 +58,17 @@ The package itself is `private` and not published to npm.
   factory) against the app-owned port in [`src/setup.ts`](src/setup.ts); the app only lists its
   modules and wires their shared resources, the shared boot selects them and installs OAuth.
 - **Bundles the widget UI:** Vite builds the two-file bundle `dist/mcp-app.js` + `dist/mcp-app.css`,
-  a self-contained bundle (React, Tailwind, all widgets). mcp-use serves it behind one
-  `ui://views/<tool>.html` view resource per widget tool (derived from each tool's `view` binding),
+  a self-contained bundle (React, Tailwind, all widgets). The boot serves it behind one
+  `ui://views/<tool>.html` view resource per widget tool (the `_meta.ui.resourceUri` its
+  `showToolBinding` sets),
   each with a prelude naming its view, so `mountViews` picks the tool's view from
   [`src/ui/view-registry.ts`](src/ui/view-registry.ts). The `dedupe` array in
   [`vite.config.ts`](vite.config.ts) is load-bearing: it spreads widget-shell's `VIEW_BUNDLE_DEDUPE`
-  and so keeps a single React / TanStack Query / mcp-use / pulse-ui / widget-shell instance, so a
+  and so keeps a single React / TanStack Query / pulse-ui / widget-shell / lucide-react instance, so a
   widget finds the view host and the one `QueryClient`.
-- **Serves HTTP:** streamable-HTTP MCP on `:8400/mcp`; the `mcp-use` inspector (`:8400/mcp/inspector`) ships with `mcp-use dev` only, never with the production entrypoint
-  in dev.
+- **Serves HTTP:** streamable-HTTP MCP on `:8400/mcp` (POST only, stateless: GET, DELETE and HEAD
+  get 405), `/health/*` and `/metrics`. No inspector ships with the server: `pnpm dev` starts the
+  official MCP Inspector as a process of its own.
 
 The server is self-contained (tools + widget UI in one endpoint). Aggregating it with other MCP
 servers is the job of an external MCP gateway (e.g. agentgateway) in front; there is no built-in
@@ -83,7 +86,7 @@ docker run --rm -p 127.0.0.1:8400:8400 --network pulse_default \
   ghcr.io/miragon/pulse-server:latest
 
 # From source (local dev: needs the Docker infra; see the root README)
-pnpm dev          # build:ui + mcp-use dev on :8400, inspector at /mcp/inspector
+pnpm dev          # build once, then vite build --watch + tsx watch on :8400 and the MCP Inspector
 pnpm build        # build:ui (Vite widget bundle) + build:server (tsc)
 pnpm start        # run the compiled server from dist/
 ```
@@ -105,11 +108,11 @@ Configuration is entirely environment-driven. See
 
 ## Layout
 
-| Path             | Contents                                                                                                                                     |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/index.ts`   | Server entry: `runComposedServer(createApp)` listens (body cap, drain) unless `mcp-use dev` serves it; a failed boot prints one line, exit 1 |
-| `src/app.ts`     | `createApp(env, deps?)`: the shared boot over the module list; the e2e suites boot it too                                                    |
-| `src/setup.ts`   | The module list and the cross-module wiring (`SharedResources`)                                                                              |
-| `src/ui/`        | Widget host bundle: `view-registry.ts` (views + host widgets) + `main.tsx` (`mountViews`)                                                    |
-| `vite.config.ts` | Single-file widget bundle config (keep `dedupe` spreading `VIEW_BUNDLE_DEDUPE`)                                                              |
-| `Dockerfile`     | Lives at the repo root; multi-stage build that produces the published image                                                                  |
+| Path             | Contents                                                                                                                            |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `src/index.ts`   | Server entry: `runComposedServer(createApp)` listens (body cap, drain), under `pnpm dev` too; a failed boot prints one line, exit 1 |
+| `src/app.ts`     | `createApp(env, deps?)`: the shared boot over the module list; the e2e suites boot it too                                           |
+| `src/setup.ts`   | The module list and the cross-module wiring (`SharedResources`)                                                                     |
+| `src/ui/`        | Widget host bundle: `view-registry.ts` (views + host widgets) + `main.tsx` (`mountViews`)                                           |
+| `vite.config.ts` | Single-file widget bundle config (keep `dedupe` spreading `VIEW_BUNDLE_DEDUPE`)                                                     |
+| `Dockerfile`     | Lives at the repo root; multi-stage build that produces the published image                                                         |

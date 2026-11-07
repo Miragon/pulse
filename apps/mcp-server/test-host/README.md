@@ -18,8 +18,8 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
   `HOST_SIM_ENGINE_URL`), so an in-flight state is asserted without a timing
   window.
 - `host-sim.html` is a minimal SEP-1865 host. It reads the view resource
-  (`resources/read` of `ui://views/<tool>.html`, mcp-use's synthesized inline
-  document), renders it as `srcdoc` in a `sandbox="allow-scripts"` iframe
+  (`resources/read` of `ui://views/<tool>.html`, the inline document the boot
+  serves), renders it as `srcdoc` in a `sandbox="allow-scripts"` iframe
   under the CSP built from the resource's `_meta.ui.csp`, answers
   `ui/initialize`, and proxies every `tools/call` the view makes to the server.
 - A scenario can size the frame (`width=<px>`; default 960): the layout
@@ -93,6 +93,6 @@ pnpm --filter @miragon/pulse-mcp-server test:host                          # bui
 ```
 
 Not part of `pnpm test` (needs the Vite bundle and a browser). Run it locally for
-any change to the widget shell, pulse-ui, `src/ui/` or the mcp-use pin.
+any change to the widget shell, pulse-ui, `src/ui/` or the `@modelcontextprotocol/ext-apps` pin.
 Failed scenarios leave a trace and a screenshot in `apps/mcp-server/test-results/`
 (`pnpm exec playwright show-trace <zip>`).

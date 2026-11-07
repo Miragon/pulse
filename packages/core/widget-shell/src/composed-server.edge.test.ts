@@ -1,5 +1,5 @@
 import http from "node:http"
-import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import {
   createComposedServer,
   DEFAULT_REQUEST_TIMEOUT_MS,
@@ -8,10 +8,9 @@ import {
 } from "./composed-server.js"
 
 const running: RunningServer[] = []
-let info: MockInstance<(line: string) => void>
 
 beforeEach(() => {
-  info = vi.spyOn(console, "info").mockImplementation(() => {})
+  vi.spyOn(console, "info").mockImplementation(() => {})
   vi.spyOn(console, "warn").mockImplementation(() => {})
   vi.spyOn(console, "log").mockImplementation(() => {})
 })
@@ -173,7 +172,49 @@ describe("createComposedServer: admission before the body", () => {
   })
 })
 
-describe("createComposedServer: under mcp-use dev (the CLI owns the socket)", () => {
+// Hono decodes the path before routing by default; the boot routes on the path as sent, so a
+// percent-encoded alias of `/mcp` cannot slip past a gateway's rule on that path.
+describe("createComposedServer: routes on the path as sent", () => {
+  const post = (port: number, path: string) =>
+    new Promise<number>((resolve, reject) => {
+      const req = http.request(
+        {
+          host: "127.0.0.1",
+          port,
+          method: "POST",
+          path,
+          agent: false,
+          headers: {
+            "content-type": "application/json",
+            accept: "application/json, text/event-stream",
+          },
+        },
+        (res) => {
+          res.resume()
+          res.on("end", () => resolve(res.statusCode ?? 0))
+        },
+      )
+      req.on("error", reject)
+      req.end(INITIALIZE)
+    })
+
+  it.each(["/%6Dcp", "/%6dcp", "/mc%70", "/m%63p", "/%6D%63%70"])(
+    "answers %s with 404, never as /mcp",
+    async (path) => {
+      const { server } = await boot()
+      expect(await post(server.port, path)).toBe(404)
+      expect(await post(server.port, "/mcp")).toBe(200)
+    },
+  )
+
+  it("serves the operational routes only under their own names", async () => {
+    const { server } = await boot()
+    expect((await request(server.port, { path: "/health/live" })).status).toBe(200)
+    expect((await request(server.port, { path: "/health/%6Cive" })).status).toBe(404)
+  })
+})
+
+describe("createComposedServer: a tunnel's host", () => {
   const TUNNEL_HOST = "k3x9.tunnel.example"
 
   const tunneled = (
@@ -193,36 +234,17 @@ describe("createComposedServer: under mcp-use dev (the CLI owns the socket)", ()
       }),
     )
 
-  it("defers the Host check to the CLI, so its tunnel reaches the server", async () => {
-    const composed = await compose({ MCP_USE_DEV_CLI: "1" })
-    expect((await tunneled(composed)).status).toBe(200)
-    expect(info).toHaveBeenCalledWith(
-      "[edge-test] mcp-use dev: the CLI checks Host (localhost-class + its tunnel); Origin is checked here.",
-    )
-  })
-
-  it("states the body cap for the built server only, since the CLI serves the app itself", async () => {
-    await compose({ MCP_USE_DEV_CLI: "1" })
-    expect(info).toHaveBeenCalledWith(
-      expect.stringContaining("max body 4 MiB (16 MiB in flight) on the built server only;"),
-    )
-  })
-
-  it("states the body cap plainly outside mcp-use dev, where the listener enforces it", async () => {
-    await compose()
-    expect(info).toHaveBeenCalledWith(
-      expect.stringContaining("max body 4 MiB (16 MiB in flight); /metrics"),
-    )
-  })
-
-  it("keeps the Origin check, which the CLI does not do", async () => {
-    const composed = await compose({ MCP_USE_DEV_CLI: "1" })
-    expect((await tunneled(composed, "https://attacker.example")).status).toBe(403)
-  })
-
-  it("checks Host itself outside mcp-use dev", async () => {
+  it("checks Host itself", async () => {
     const composed = await compose()
     expect((await tunneled(composed)).status).toBe(403)
-    expect(info).not.toHaveBeenCalledWith(expect.stringContaining("mcp-use dev:"))
+  })
+})
+
+describe("createComposedServer: the HTTP edge line", () => {
+  it("states the body cap plainly, since every boot's own listener enforces it", async () => {
+    await compose()
+    expect(console.info).toHaveBeenCalledWith(
+      expect.stringContaining("max body 4 MiB (16 MiB in flight); /metrics"),
+    )
   })
 })

@@ -26,10 +26,11 @@ import { appOnlyFeeds } from "./tool-surface.mjs"
  */
 
 const PRIMITIVE = "packages/core/widget-shell/src/ui/ask-ai-button.tsx"
-/** The view runtime: the host seam, its mcp-use adapter and the test host only pass the pen on. */
+/** The view runtime: the host seam, its MCP Apps adapter and the test host only pass the pen on. */
 const RUNTIME = [
   "packages/core/widget-shell/src/ui/view-host.tsx",
-  "packages/core/widget-shell/src/ui/mcp-use-host.tsx",
+  "packages/core/widget-shell/src/ui/ext-apps-host.tsx",
+  "packages/core/widget-shell/src/ui/view-runtime.ts",
   "packages/core/widget-shell/src/ui/test-view-host.tsx",
 ]
 const FOLLOW_UP_HOLDERS = [PRIMITIVE, ...RUNTIME]

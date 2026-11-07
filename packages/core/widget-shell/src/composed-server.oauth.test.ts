@@ -1,10 +1,15 @@
 import crypto from "node:crypto"
 import http from "node:http"
 import type { AddressInfo } from "node:net"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { OAuthError, OAuthErrorCode, oauthCustomProvider } from "mcp-use/oauth"
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest"
+import { OAuthError, OAuthErrorCode } from "@modelcontextprotocol/server"
+import { oauthCustomProvider } from "./oauth-providers.js"
 import type { ComposableModule } from "./composition.js"
-import { createComposedServer, type ComposedServerOptions } from "./composed-server.js"
+import {
+  createComposedServer,
+  type ComposedServerOptions,
+  type RunningServer,
+} from "./composed-server.js"
 import { createToolsetVocabulary } from "./toolsets.js"
 
 const createPlugin = vi.fn(() => ({ name: "alpha", register: () => {} }))
@@ -19,18 +24,18 @@ const alpha: ComposableModule<object> = {
   createPlugin,
 }
 
-/** A network-free IdP that accepts exactly one token; installing it runs mcp-use's real bearer gate. */
+/** A network-free IdP that accepts exactly one token; installing it runs the real bearer gate. */
 const KNOWN_TOKEN = "unit-token"
-const stubOAuth = () =>
-  oauthCustomProvider<unknown>({
+const stubOAuth = (issuer = "https://idp.example.test") =>
+  oauthCustomProvider({
     resource: "http://localhost/mcp",
     oauthMetadata: {
-      issuer: "https://idp.example.test",
-      authorization_endpoint: "https://idp.example.test/a",
-      token_endpoint: "https://idp.example.test/t",
+      issuer,
+      authorization_endpoint: `${issuer}/a`,
+      token_endpoint: `${issuer}/t`,
       response_types_supported: ["code"],
     },
-    createTokenVerifier: (resource) => ({
+    createTokenVerifier: (resource: URL) => ({
       verifyAccessToken: (token: string) =>
         token === KNOWN_TOKEN
           ? Promise.resolve({
@@ -47,12 +52,14 @@ const stubOAuth = () =>
   })
 
 const KEYCLOAK_ENV = {
-  MCP_USE_OAUTH_KEYCLOAK_SERVER_URL: "https://kc.example.com",
-  MCP_USE_OAUTH_KEYCLOAK_REALM: "platform",
+  MCP_OAUTH_KEYCLOAK_SERVER_URL: "https://kc.example.com",
+  MCP_OAUTH_KEYCLOAK_REALM: "platform",
 }
 
 interface Realm {
   serverUrl: string
+  /** Answer the key set with a 500 from now on. */
+  fail(): void
   /** An RS256 access token from this realm: its issuer, an hour's `exp`, then `claims`. */
   sign(claims: Record<string, unknown>): string
   close(): Promise<void>
@@ -60,12 +67,17 @@ interface Realm {
 
 /**
  * A loopback Keycloak realm that serves only its JWKS, so the Keycloak provider the env names runs
- * mcp-use's real JWT verifier against tokens this test signs.
+ * the real JWT verifier against tokens this test signs.
  */
 async function startRealm(): Promise<Realm> {
   const { privateKey, publicKey } = crypto.generateKeyPairSync("rsa", { modulusLength: 2048 })
   const jwk = { ...publicKey.export({ format: "jwk" }), kid: "k1", alg: "RS256", use: "sig" }
+  let failing = false
   const server = http.createServer((_req, res) => {
+    if (failing) {
+      res.statusCode = 500
+      return res.end("down")
+    }
     res.setHeader("content-type", "application/json")
     res.end(JSON.stringify({ keys: [jwk] }))
   })
@@ -74,6 +86,9 @@ async function startRealm(): Promise<Realm> {
   const segment = (value: object) => Buffer.from(JSON.stringify(value)).toString("base64url")
   return {
     serverUrl,
+    fail: () => {
+      failing = true
+    },
     sign(claims) {
       const exp = Math.floor(Date.now() / 1000) + 3600
       const body = { iss: `${serverUrl}/realms/platform`, exp, ...claims }
@@ -85,12 +100,17 @@ async function startRealm(): Promise<Realm> {
   }
 }
 
+const running: RunningServer[] = []
+let log: MockInstance<(line: string) => void>
+
 beforeEach(() => {
   vi.spyOn(console, "info").mockImplementation(() => {})
   vi.spyOn(console, "warn").mockImplementation(() => {})
+  log = vi.spyOn(console, "log").mockImplementation(() => {})
 })
 
-afterEach(() => {
+afterEach(async () => {
+  await Promise.all(running.splice(0).map((server) => server.shutdown()))
   vi.restoreAllMocks()
   vi.unstubAllEnvs()
   createPlugin.mockClear()
@@ -104,6 +124,17 @@ const compose = (overrides: Partial<ComposedServerOptions> = {}) =>
     env: {},
     ...overrides,
   })
+
+const INITIALIZE = JSON.stringify({
+  jsonrpc: "2.0",
+  id: 1,
+  method: "initialize",
+  params: {
+    protocolVersion: "2025-06-18",
+    capabilities: {},
+    clientInfo: { name: "unit", version: "0" },
+  },
+})
 
 /** An MCP `initialize` straight into the app (no socket), from a Host the edge allows. */
 const initialize = (
@@ -119,23 +150,24 @@ const initialize = (
         accept: "application/json, text/event-stream",
         ...headers,
       },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "initialize",
-        params: {
-          protocolVersion: "2025-06-18",
-          capabilities: {},
-          clientInfo: { name: "unit", version: "0" },
-        },
-      }),
+      body: INITIALIZE,
+    }),
+  )
+
+const fetchApp = (
+  composed: { app: { fetch: (r: Request) => Promise<Response> } },
+  path: string,
+  init: RequestInit = {},
+) =>
+  composed.app.fetch(
+    new Request(`http://localhost${path}`, {
+      ...init,
+      headers: { host: "localhost", ...(init.headers as Record<string, string>) },
     }),
   )
 
 describe("createComposedServer: OAuth", () => {
   it("builds the OAuth provider the env names: /mcp answers 401 with a Bearer challenge, and the boot is authenticated", async () => {
-    // mcp-use reads MCP_URL (the token audience) from process.env itself.
-    vi.stubEnv("MCP_URL", "http://localhost")
     const composed = await compose({ env: { ...KEYCLOAK_ENV, MCP_URL: "http://localhost" } })
     expect(composed.boot.authenticated).toBe(true)
     expect(composed.boot.entries[0].config).toMatchObject({ toolset: "operations" })
@@ -146,7 +178,7 @@ describe("createComposedServer: OAuth", () => {
 
   it("installs the root's provider instead of reading the env, and authenticates the boot", async () => {
     // Keycloak AND Auth0 in the env would fail the boot if it read them.
-    const env = { ...KEYCLOAK_ENV, MCP_USE_OAUTH_AUTH0_DOMAIN: "tenant.auth0.com" }
+    const env = { ...KEYCLOAK_ENV, MCP_OAUTH_AUTH0_DOMAIN: "tenant.auth0.com" }
     const composed = await compose({ oauth: stubOAuth(), env })
     expect(composed.boot.authenticated).toBe(true)
     expect(composed.boot.entries[0].config).toMatchObject({ toolset: "operations" })
@@ -172,10 +204,17 @@ describe("createComposedServer: OAuth", () => {
   })
 
   it("fails the boot on an OAuth config it cannot honor, before any plugin is created", async () => {
-    await expect(compose({ env: { MCP_USE_OAUTH_KEYCLOAK_REALM: "platform" } })).rejects.toThrow(
-      "Keycloak OAuth needs MCP_USE_OAUTH_KEYCLOAK_SERVER_URL and MCP_USE_OAUTH_KEYCLOAK_REALM, but MCP_USE_OAUTH_KEYCLOAK_SERVER_URL is unset.",
+    await expect(compose({ env: { MCP_OAUTH_KEYCLOAK_REALM: "platform" } })).rejects.toThrow(
+      "Keycloak OAuth needs MCP_OAUTH_KEYCLOAK_SERVER_URL and MCP_OAUTH_KEYCLOAK_REALM, but MCP_OAUTH_KEYCLOAK_SERVER_URL is unset.",
     )
     expect(createPlugin).not.toHaveBeenCalled()
+  })
+
+  it("refuses an OAuth variable it does not read as one error, with no typo warning in front", async () => {
+    await expect(
+      compose({ env: { ...KEYCLOAK_ENV, MCP_OAUTH_KEYCLOAK_AUDIENCE: "x" } }),
+    ).rejects.toThrow(/MCP_OAUTH_KEYCLOAK_AUDIENCE is not read by this server/)
+    expect(console.warn).not.toHaveBeenCalled()
   })
 
   it("fails the boot when OAuth has no resource and MCP_URL is unset", async () => {
@@ -185,58 +224,200 @@ describe("createComposedServer: OAuth", () => {
     )
   })
 
-  // What the docs tell an IdP admin (docs/mcp/operations.md, the identity provider checklist),
-  // held to the pinned mcp-use: an IdP set up for MCP_URL itself gets 401 on every call.
-  describe("the token audience, against mcp-use's own JWT verifier", () => {
-    let realm: Realm
-    beforeEach(async () => {
-      realm = await startRealm()
-    })
-    afterEach(() => realm.close())
+  // Discovery could not advertise it: the boot fails, not every discovery request.
+  it("fails the boot on an issuer that is plain HTTP off loopback", async () => {
+    await expect(compose({ oauth: stubOAuth("http://idp.internal") })).rejects.toThrow(
+      'OAuth issuer "http://idp.internal/" cannot be advertised in discovery: Issuer URL must be HTTPS',
+    )
+  })
+})
 
-    const bootRealm = () => {
-      vi.stubEnv("MCP_URL", "http://localhost")
-      return compose({
-        env: {
-          MCP_USE_OAUTH_KEYCLOAK_SERVER_URL: realm.serverUrl,
-          MCP_USE_OAUTH_KEYCLOAK_REALM: "platform",
-          MCP_URL: "http://localhost",
+describe("createComposedServer: OAuth behind the edge", () => {
+  it("answers a foreign Host from the guard before the bearer gate", async () => {
+    const composed = await compose({ oauth: stubOAuth() })
+    const foreign = await initialize(composed, { host: "attacker.example" })
+    expect(foreign.status).toBe(403)
+    expect(foreign.headers.get("www-authenticate")).toBeNull()
+    expect(await foreign.text()).toContain('Host \\"attacker.example\\" is not allowed')
+  })
+
+  it("refuses a foreign Origin's POST even with a valid token", async () => {
+    const composed = await compose({ oauth: stubOAuth() })
+    const res = await initialize(composed, {
+      authorization: `Bearer ${KNOWN_TOKEN}`,
+      origin: "https://attacker.example",
+    })
+    expect(res.status).toBe(403)
+  })
+
+  // The listener refuses the body before any route, the bearer gate included.
+  it("answers a body over the 4 MiB default with 413 before the bearer gate", async () => {
+    const composed = await compose({ oauth: stubOAuth() })
+    const server = await composed.listen({ port: 0, host: "127.0.0.1" })
+    running.push(server)
+    const answer = await new Promise<{ status: number; body: string }>((resolve, reject) => {
+      const req = http.request(
+        {
+          host: "127.0.0.1",
+          port: server.port,
+          method: "POST",
+          path: "/mcp",
+          agent: false,
+          headers: {
+            "content-type": "application/json",
+            "content-length": String(4 * 1024 * 1024 + 1),
+          },
         },
+        (res) => {
+          const chunks: Buffer[] = []
+          res.on("data", (chunk: Buffer) => chunks.push(chunk))
+          res.on("end", () => {
+            resolve({ status: res.statusCode ?? 0, body: Buffer.concat(chunks).toString("utf8") })
+            req.destroy()
+          })
+        },
+      )
+      req.on("error", (error: NodeJS.ErrnoException) => {
+        if (error.code !== "ECONNRESET" && error.code !== "EPIPE") reject(error)
       })
+      req.write("{")
+    })
+    expect(answer.status).toBe(413)
+    expect(answer.body).toContain("exceeds 4194304 bytes (MCP_MAX_BODY_BYTES)")
+  })
+})
+
+describe("createComposedServer: OAuth discovery", () => {
+  it("serves both documents, answers a preflight from any origin and refuses other methods", async () => {
+    const composed = await compose({ oauth: stubOAuth() })
+    const resource = await fetchApp(composed, "/.well-known/oauth-protected-resource/mcp")
+    expect(await resource.json()).toEqual({
+      resource: "http://localhost/mcp",
+      authorization_servers: ["https://idp.example.test"],
+    })
+    const server = await fetchApp(composed, "/.well-known/oauth-authorization-server")
+    expect(await server.json()).toMatchObject({ issuer: "https://idp.example.test" })
+    const preflight = await fetchApp(composed, "/.well-known/oauth-protected-resource/mcp", {
+      method: "OPTIONS",
+      headers: {
+        origin: "https://claude.ai",
+        "access-control-request-method": "GET",
+        "access-control-request-headers": "mcp-protocol-version",
+      },
+    })
+    expect(preflight.status).toBe(204)
+    expect(preflight.headers.get("access-control-allow-origin")).toBe("*")
+    expect(preflight.headers.get("access-control-allow-headers")).toBe("mcp-protocol-version")
+    const posted = await fetchApp(composed, "/.well-known/oauth-protected-resource/mcp", {
+      method: "POST",
+      body: "{}",
+    })
+    expect(posted.status).toBe(405)
+    expect(posted.headers.get("allow")).toBe("GET, HEAD, OPTIONS")
+    expect((await fetchApp(composed, "/.well-known/openid-configuration")).status).toBe(404)
+  })
+
+  it("serves no discovery without OAuth", async () => {
+    const composed = await compose()
+    const res = await fetchApp(composed, "/.well-known/oauth-protected-resource/mcp")
+    expect(res.status).toBe(404)
+  })
+})
+
+// What the docs tell an IdP admin (docs/mcp/operations.md, the identity provider checklist):
+// an IdP set up for MCP_URL itself gets 401 on every call.
+describe("the token audience, against the real JWT verifier", () => {
+  let realm: Realm
+  beforeEach(async () => {
+    realm = await startRealm()
+  })
+  afterEach(() => realm.close())
+
+  const bootRealm = (env: NodeJS.ProcessEnv = {}) =>
+    compose({
+      env: {
+        MCP_OAUTH_KEYCLOAK_SERVER_URL: realm.serverUrl,
+        MCP_OAUTH_KEYCLOAK_REALM: "platform",
+        MCP_URL: "http://localhost",
+        ...env,
+      },
+    })
+
+  it("logs the audience it accepts, MCP_URL's origin plus /mcp, which discovery advertises", async () => {
+    const composed = await bootRealm()
+    const infos = vi.mocked(console.info).mock.calls.map(([line]) => String(line))
+    expect(infos).toContain(
+      "[oauth-test] OAuth: tokens must carry aud http://localhost/mcp (RFC 8707) and a sub claim.",
+    )
+    const metadata = await fetchApp(composed, "/.well-known/oauth-protected-resource/mcp")
+    expect(await metadata.json()).toMatchObject({ resource: "http://localhost/mcp" })
+  })
+
+  it("serves a token whose aud holds <MCP_URL>/mcp and refuses MCP_URL itself or no sub", async () => {
+    const composed = await bootRealm()
+    const call = (claims: Record<string, unknown>) =>
+      initialize(composed, { authorization: `Bearer ${realm.sign(claims)}` })
+    expect((await call({ aud: "http://localhost/mcp", sub: "u" })).status).toBe(200)
+    expect((await call({ aud: ["account", "http://localhost/mcp"], sub: "u" })).status).toBe(200)
+    const wrongAudience = await call({ aud: "http://localhost", sub: "u" })
+    expect(wrongAudience.status).toBe(401)
+    expect(wrongAudience.headers.get("www-authenticate")).toContain(
+      "Token audience does not include the protected resource",
+    )
+    expect((await call({ aud: "http://localhost/mcp" })).status).toBe(401)
+  })
+
+  // A malformed claim is refused whole, even when one of its strings names this server.
+  it.each([
+    ["an array that mixes in a number", [1, "http://localhost/mcp"]],
+    ["an array that mixes in null", ["http://localhost/mcp", null]],
+    ["an array that mixes in an object", [{ aud: "x" }, "http://localhost/mcp"]],
+    ["an empty array", []],
+    ["a number", 1],
+  ])("refuses an aud that is %s", async (_case, aud) => {
+    const composed = await bootRealm()
+    const refused = await initialize(composed, {
+      authorization: `Bearer ${realm.sign({ aud, sub: "u" })}`,
+    })
+    expect(refused.status).toBe(401)
+    expect(refused.headers.get("www-authenticate")).toContain(
+      "Token audience claim must be a string or string array",
+    )
+  })
+
+  it("logs why a token was refused with MCP_OAUTH_DEBUG from the boot's env, and only then", async () => {
+    const debug = vi.spyOn(console, "error").mockImplementation(() => {})
+    for (const off of ["0", "false", " "]) {
+      const quiet = await bootRealm({ MCP_OAUTH_DEBUG: off })
+      await initialize(quiet, { authorization: `Bearer ${realm.sign({ aud: "x", sub: "u" })}` })
     }
-
-    it("logs the audience it accepts, MCP_URL's origin plus /mcp, which discovery advertises", async () => {
-      const composed = await bootRealm()
-      const infos = vi.mocked(console.info).mock.calls.map(([line]) => String(line))
-      expect(infos).toContain(
-        "[oauth-test] OAuth: tokens must carry aud http://localhost/mcp (RFC 8707) and a sub claim.",
-      )
-      const metadata = await composed.app.fetch(
-        new Request("http://localhost/.well-known/oauth-protected-resource/mcp", {
-          headers: { host: "localhost" },
-        }),
-      )
-      expect(await metadata.json()).toMatchObject({ resource: "http://localhost/mcp" })
+    expect(debug).not.toHaveBeenCalled()
+    const loud = await bootRealm({ MCP_OAUTH_DEBUG: "1" })
+    await initialize(loud, {
+      authorization: `Bearer ${realm.sign({ aud: "http://localhost/mcp" })}`,
     })
+    const logged = debug.mock.calls.map(([line]) => String(line))
+    expect(logged).toContain("[oauth-debug] claim=sub reason=missing")
+  })
 
-    it("serves a token whose aud holds <MCP_URL>/mcp and refuses MCP_URL itself or no sub", async () => {
-      const composed = await bootRealm()
-      const call = (claims: Record<string, unknown>) =>
-        initialize(composed, { authorization: `Bearer ${realm.sign(claims)}` })
-      expect((await call({ aud: "http://localhost/mcp", sub: "u" })).status).toBe(200)
-      expect((await call({ aud: ["account", "http://localhost/mcp"], sub: "u" })).status).toBe(200)
-      // The 401 names an audience mismatch in its challenge; mcp-use's debug log does not.
-      const debug = vi.spyOn(console, "error").mockImplementation(() => {})
-      vi.stubEnv("MCP_USE_OAUTH_DEBUG", "1")
-      const wrongAudience = await call({ aud: "http://localhost", sub: "u" })
-      expect(wrongAudience.status).toBe(401)
-      expect(wrongAudience.headers.get("www-authenticate")).toContain(
-        "Token audience does not include the protected resource",
-      )
-      expect(debug).not.toHaveBeenCalled()
-      expect((await call({ aud: "http://localhost/mcp" })).status).toBe(401)
-      const logged = debug.mock.calls.map(([line]) => String(line))
-      expect(logged).toContain("[oauth-debug] claim=sub reason=missing")
+  it("answers 503 naming the key set when the IdP cannot deliver it, and logs the reason", async () => {
+    const composed = await bootRealm()
+    realm.fail()
+    const res = await initialize(composed, {
+      authorization: `Bearer ${realm.sign({ aud: "http://localhost/mcp", sub: "u" })}`,
     })
+    expect(res.status).toBe(503)
+    const body = (await res.json()) as { error: string; error_description: string }
+    expect(body.error).toBe("temporarily_unavailable")
+    expect(body.error_description).toContain(
+      `could not be loaded from ${realm.serverUrl}/realms/platform/protocol/openid-connect/certs`,
+    )
+    await vi.waitFor(() =>
+      expect(log).toHaveBeenCalledWith(
+        expect.stringMatching(
+          /^initialize unit\/0 \/mcp 503 client=unit\/0 \d+ms ERROR temporarily_unavailable: The identity provider's signing keys could not be loaded/,
+        ),
+      ),
+    )
   })
 })

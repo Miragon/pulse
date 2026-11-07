@@ -1,7 +1,7 @@
 /**
  * Labels stay bounded: tool names are a finite catalogue, routes fold onto known ones (paths are
  * caller-controlled); never arguments, users or sessions. Calls refused by the SDK before the handler
- * show only in mcp-use's request log. Default collectors keep their standard unprefixed names for
+ * show only in the request log. Default collectors keep their standard unprefixed names for
  * stock Grafana dashboards. Outside the OAuth gate: set `token` or front it with network policy.
  */
 import { createHash, timingSafeEqual } from "node:crypto"

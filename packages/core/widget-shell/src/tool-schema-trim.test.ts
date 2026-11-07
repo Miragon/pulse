@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from "vitest"
+import { describe, expect, it } from "vitest"
 import { z } from "zod"
-import { installToolSchemaTrim, trimToolDescriptor, trimToolSchema } from "./tool-schema-trim.js"
+import { trimInputSchema, trimToolDescriptor, trimToolSchema } from "./tool-schema-trim.js"
 
 const input = z.toJSONSchema(
   z.object({
@@ -40,7 +40,7 @@ describe("trimToolSchema", () => {
   })
 })
 
-describe("trimToolDescriptor / installToolSchemaTrim", () => {
+describe("trimToolDescriptor / trimInputSchema", () => {
   it("trims the input schema only: the output schema is what clients validate against", () => {
     const tool = { name: "t", inputSchema: input, outputSchema: input }
     const trimmed = trimToolDescriptor(tool) as typeof tool
@@ -49,15 +49,12 @@ describe("trimToolDescriptor / installToolSchemaTrim", () => {
     expect(trimToolDescriptor({ name: "no-schema" })).toEqual({ name: "no-schema" })
   })
 
-  it("registers a tools/list middleware that maps every advertised tool", async () => {
-    const use = vi.fn()
-    installToolSchemaTrim({ use })
-    expect(use).toHaveBeenCalledWith("mcp:tools/list", expect.any(Function))
-    const middleware = use.mock.calls[0][1] as (
-      ctx: unknown,
-      next: () => Promise<unknown[]>,
-    ) => Promise<unknown[]>
-    const listed = await middleware({}, () => Promise.resolve([{ name: "t", inputSchema: input }]))
-    expect(listed).toEqual([{ name: "t", inputSchema: trimToolSchema(input) }])
+  it("shells a Standard Schema so it advertises the trimmed JSON Schema and validates as before", () => {
+    const schema = z.strictObject({ firstResult: z.number().int().min(0).optional() })
+    const shell = trimInputSchema(schema)
+    const advertised = shell["~standard"].jsonSchema.input({ target: "draft-2020-12" })
+    expect(advertised).not.toHaveProperty("$schema")
+    expect(JSON.stringify(advertised)).not.toContain(String(Number.MAX_SAFE_INTEGER))
+    expect(shell["~standard"].validate({ nope: 1 })).toHaveProperty("issues")
   })
 })

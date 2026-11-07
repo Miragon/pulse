@@ -1,28 +1,15 @@
 import { beforeEach, describe, expect, it } from "vitest"
-import type { z } from "zod"
-import type { MCPServer } from "mcp-use"
 import type { PrometheusClient, VersionCompareResult } from "@miragon/pulse-analytics-client"
 import { createEngineScope } from "../engine-ids.js"
 import { registerWidgetTools } from "../widget-tools.js"
-
-type ToolResult = {
-  content: Array<{ type: string; text: string }>
-  structuredContent: Record<string, unknown>
-}
-type Definition = { name: string; description: string; inputSchema: z.ZodObject }
-type Handler = (args: Record<string, unknown>, ctx: unknown) => Promise<ToolResult>
-type Tool = { definition: Definition; handler: Handler }
+import { recordedTools, type Tool, type ToolResult } from "./recorded-tools.test-support.js"
 
 const NAME = "analytics_show_version_compare"
 
 function showVersionCompare(ch: PrometheusClient): Tool {
-  const tools = new Map<string, Tool>()
-  const server = {
-    tool: (definition: Definition, handler: Handler) => {
-      tools.set(definition.name, { definition, handler })
-    },
-  } as unknown as MCPServer
-  registerWidgetTools(server, ch, { engineScope: createEngineScope(["prod-a"]) })
+  const tools = recordedTools((server) =>
+    registerWidgetTools(server, ch, { engineScope: createEngineScope(["prod-a"]) }),
+  )
   return tools.get(NAME)!
 }
 
@@ -54,7 +41,7 @@ describe("analytics_show_version_compare", () => {
   })
 
   it("reads incidents per version, on the version label (issue 337)", async () => {
-    const res = dataOf(await tool.handler({ ...args, minBucketSize: 10 }, {}))
+    const res = dataOf(await tool.handler({ ...args, minBucketSize: 10 }))
 
     const incidentQueries = recording.queries.filter((q) =>
       q.includes("engine_incident_created_total"),
@@ -92,10 +79,10 @@ describe("analytics_show_version_compare", () => {
   })
 
   it("prefers an explicit minBucketSize over the schema default", async () => {
-    // mcp-use parses the input before the handler runs, so an omitted value takes the default.
+    // The SDK parses the input before the handler runs, so an omitted value takes the default.
     const parsed = (input: Record<string, unknown>) => tool.definition.inputSchema.parse(input)
-    const explicit = dataOf(await tool.handler(parsed({ ...args, minBucketSize: 3 }), {}))
-    const fallback = dataOf(await tool.handler(parsed(args), {}))
+    const explicit = dataOf(await tool.handler(parsed({ ...args, minBucketSize: 3 })))
+    const fallback = dataOf(await tool.handler(parsed(args)))
     expect(explicit.minBucketSize).toBe(3)
     expect(fallback.minBucketSize).toBe(10)
   })

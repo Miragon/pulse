@@ -4,7 +4,7 @@
  * The bare `<path>` aliases readiness for single-URL probes. Outside the OAuth gate, so no token.
  */
 
-/** Structural, so hosts pass an `MCPServer` without this module importing mcp-use or hono. */
+/** Structural, so hosts pass an `McpHttpApp` without this module importing hono. */
 export interface HttpRouteHost {
   get(path: string, handler: (ctx: unknown) => Response | Promise<Response>): unknown
 }

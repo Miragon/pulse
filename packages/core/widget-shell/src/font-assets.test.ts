@@ -144,7 +144,7 @@ describe("fontAssetsCsp", () => {
     })
   })
 
-  it("declares nothing without MCP_URL: mcp-use appends the request-resolved origin itself", () => {
+  it("declares nothing without MCP_URL: the boot appends the request-resolved origin itself", () => {
     expect(fontAssetsCsp({})).toBeUndefined()
     expect(fontAssetsCsp({ MCP_URL: "  " })).toBeUndefined()
   })

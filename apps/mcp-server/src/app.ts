@@ -31,7 +31,7 @@ export interface AppDeps {
   bundle?: { jsPath: string; cssPath?: string }
 }
 
-/** The one boot `src/index.ts` (production and `mcp-use dev`) and the e2e suites share. */
+/** The one boot `src/index.ts` (production and `pnpm dev`) and the e2e suites share. */
 export async function createApp(
   env: NodeJS.ProcessEnv = process.env,
   deps: AppDeps = {},

@@ -1,13 +1,13 @@
-import type { MCPServer } from "mcp-use"
+import type { ModulePlugin } from "@miragon/pulse-widget-shell/server"
+import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
 import { describe, expect, it } from "vitest"
 import { notesModule } from "./module.js"
 
 /** The tool names a plugin registers, read off a stand-in server that only records them. */
-function registeredToolNames(plugin: { register(server: MCPServer): void }): string[] {
-  const names: string[] = []
-  const server = { tool: (definition: { name: string }) => void names.push(definition.name) }
-  plugin.register(server as unknown as MCPServer)
-  return names
+function registeredToolNames(plugin: ModulePlugin): string[] {
+  const recording = recordingModuleServer()
+  plugin.register(recording.server)
+  return [...recording.tools.keys()]
 }
 
 /**

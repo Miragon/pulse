@@ -14,9 +14,10 @@ const MONO = `${SERVED_FONT_PATH}/${SERVED_FONT_FILES.mono}`
 const showPlugin: ModulePlugin = {
   name: "demo",
   register: (server) => {
-    server.tool(
+    server.registerTool(
+      "demo_show_thing",
       {
-        name: "demo_show_thing",
+        title: "Thing",
         description: "Shows a thing.",
         ...showToolBinding("demo_show_thing", "Thing"),
       },
@@ -45,8 +46,8 @@ afterEach(async () => {
 })
 
 async function boot(env: NodeJS.ProcessEnv = {}) {
-  // mcp-use reads MCP_URL from process.env itself (the request-resolved origin).
-  vi.stubEnv("MCP_URL", env.MCP_URL)
+  // The opposite in process.env: the boot reads MCP_URL from the env it is handed, nothing else.
+  vi.stubEnv("MCP_URL", env.MCP_URL === undefined ? "https://process-env.example" : undefined)
   const composed = await createComposedServer({
     info: { name: "fonts-test", version: "0.0.0" },
     modules: [demo],
@@ -228,7 +229,7 @@ describe("the font origin on the views", () => {
     const server = await boot()
     const origin = `http://127.0.0.1:${server.port}`
     for (const resource of await viewResources(server.port)) {
-      // mcp-use appends the request-resolved origin, listed and read alike.
+      // The boot appends the request-resolved origin, listed and read alike.
       expect(resource._meta?.ui?.csp?.resourceDomains, resource.uri).toEqual([origin])
       expect((await readCsp(server.port, resource.uri))?.resourceDomains, resource.uri).toEqual([
         origin,

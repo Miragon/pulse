@@ -1,7 +1,7 @@
 import http from "node:http"
 import type { AddressInfo } from "node:net"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
-import type { MCPServer } from "mcp-use"
+import { recordingModuleServer, testServerContext } from "@miragon/pulse-widget-shell/testing"
 import { analyticsModule } from "./module.js"
 import { ANALYTICS_ENGINE_LANDSCAPE_DATA } from "./tool-names.js"
 
@@ -9,11 +9,6 @@ import { ANALYTICS_ENGINE_LANDSCAPE_DATA } from "./tool-names.js"
  * #325 through the module. A real local HTTP server plays Prometheus, so auth headers, deadline and
  * cancellation are observed on the wire.
  */
-
-type ToolCallback = (
-  args: Record<string, unknown>,
-  ctx?: unknown,
-) => Promise<{ isError?: boolean; content: Array<{ type: string; text: string }> }>
 
 const seenAuth: Array<string | undefined> = []
 const seenTenant: Array<string | string[] | undefined> = []
@@ -44,18 +39,13 @@ const ENGINES = { ANALYTICS_ENGINE_IDS: "prod-a,prod-b" }
 
 /** Boots the module from env the way the composition root does; returns its tools. */
 function boot(env: NodeJS.ProcessEnv) {
-  const tools = new Map<string, ToolCallback>()
-  const server = {
-    tool: (definition: { name: string }, callback: ToolCallback) => {
-      tools.set(definition.name, callback)
-    },
-  } as unknown as MCPServer
+  const recording = recordingModuleServer()
   const plugin = analyticsModule.createPlugin(
     analyticsModule.configFromEnv({ PROMETHEUS_URL: url, ...ENGINES, ...env }),
     {},
   )
-  plugin.register(server)
-  return tools
+  plugin.register(recording.server)
+  return new Map([...recording.tools].map(([name, tool]) => [name, tool.call]))
 }
 
 describe("Prometheus config reaches the wire", () => {
@@ -96,10 +86,10 @@ describe("Prometheus config reaches the wire", () => {
     )
   })
 
-  it("EVERY tool hands ctx.signal to its queries", async () => {
+  it("EVERY tool hands ctx.mcpReq.signal to its queries", async () => {
     hang = false
     const tools = boot({})
-    // Unsignalled a handler must reach Prometheus, with an already-aborted ctx.signal it must not:
+    // Unsignalled a handler must reach Prometheus, with an already-aborted signal it must not:
     // a handler that drops ctx would still query.
     const daysAgo = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString()
     const args = {
@@ -116,18 +106,18 @@ describe("Prometheus config reaches the wire", () => {
       engineA: "prod-a",
       engineB: "prod-b",
     }
-    const queriesOf = async (name: string, ctx: { signal?: AbortSignal }) => {
+    const queriesOf = async (name: string, signal?: AbortSignal) => {
       const before = seenAuth.length
-      await tools.get(name)!(args, ctx)
+      await tools.get(name)!(args, testServerContext(signal))
       return seenAuth.length - before
     }
     const neverQuery: string[] = []
     for (const name of tools.keys()) {
-      if ((await queriesOf(name, {})) === 0) {
+      if ((await queriesOf(name)) === 0) {
         neverQuery.push(name)
         continue
       }
-      expect({ name, queries: await queriesOf(name, { signal: AbortSignal.abort() }) }).toEqual({
+      expect({ name, queries: await queriesOf(name, AbortSignal.abort()) }).toEqual({
         name,
         queries: 0,
       })
@@ -137,7 +127,7 @@ describe("Prometheus config reaches the wire", () => {
     expect(tools.size - neverQuery.length).toBeGreaterThanOrEqual(9)
   })
 
-  it("a widget feed's ctx.signal cancels its queries before the deadline", async () => {
+  it("a widget feed's ctx.mcpReq.signal cancels its queries before the deadline", async () => {
     hang = true
     const tools = boot({ PROMETHEUS_TIMEOUT_MS: "10000" })
     const controller = new AbortController()
@@ -145,7 +135,7 @@ describe("Prometheus config reaches the wire", () => {
     const started = Date.now()
     const result = await tools.get(ANALYTICS_ENGINE_LANDSCAPE_DATA)!(
       {},
-      { signal: controller.signal },
+      testServerContext(controller.signal),
     )
     expect(Date.now() - started).toBeLessThan(5_000)
     expect(result.isError).toBe(true)

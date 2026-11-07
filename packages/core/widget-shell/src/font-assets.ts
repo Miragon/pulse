@@ -5,7 +5,7 @@
  */
 import { readFileSync } from "node:fs"
 import { createRequire } from "node:module"
-import type { AppResourceCsp } from "./tool-registration.js"
+import type { AppResourceCsp } from "./view-resource.js"
 import type { HttpRouteHost } from "./health.js"
 import { SERVED_FONT_FILES, SERVED_FONT_PATH } from "./protocol/served-fonts.js"
 
@@ -77,7 +77,7 @@ export function installFontAssets(
 }
 
 /**
- * `undefined` without `MCP_URL` (local dev): mcp-use still appends the request-resolved origin on
+ * `undefined` without `MCP_URL` (local dev): the boot still appends the request-resolved origin on
  * every `resources/read`. Call it after `resolveHttpEdgePolicy` validated `MCP_URL`.
  */
 export function fontAssetsCsp(env: NodeJS.ProcessEnv): AppResourceCsp | undefined {

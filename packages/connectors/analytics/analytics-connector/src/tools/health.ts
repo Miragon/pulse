@@ -26,7 +26,7 @@ export function registerHealthTools(
       const engines = engineScope.resolve(args.engine)
       // The module's engine-less alerts (a collector outage) only count for a
       // verdict over the whole configured fleet.
-      return queries.engineHealth(withCallerSignal(ch, ctx?.signal), {
+      return queries.engineHealth(withCallerSignal(ch, ctx?.mcpReq.signal), {
         engine: engines,
         includeFleetAlerts: engineScope.coversFleet(engines),
       })

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { compose, moduleOf } from "./composition.test-support.js"
+import { composeModules } from "./composition.js"
+import { compose, moduleOf, type TestShared } from "./composition.test-support.js"
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -104,6 +105,29 @@ describe("retired names", () => {
     )
     expect(warning().emitBootWarnings({ MCP_ACTIVE_MODULES: "alpha" })).toEqual([])
     expect([...warning().retiredEnvVars]).toEqual([["OLD_PW", "ALPHA_PW"]])
+  })
+
+  // The root's own former variables (the boot's names up to 0.27) go into the same refusal.
+  it("refuses the root's retired variables in the same message as the modules'", () => {
+    const rooted = (appRetiredEnvVars: Record<string, string>) =>
+      composeModules<TestShared>({
+        label: "test-root",
+        modules: [moduleOf("alpha", { retired: { envVars: { OLD_URL: "ALPHA_URL" } } })],
+        appEnvVars: ["MCP_LOG_LEVEL"],
+        appRetiredEnvVars,
+      })
+    const composition = rooted({ MCP_USE_LOG_LEVEL: "MCP_LOG_LEVEL" })
+    expect(() => composition.refuseRetired({ MCP_USE_LOG_LEVEL: "debug", OLD_URL: "x" })).toThrow(
+      "[test-root] MCP_USE_LOG_LEVEL, OLD_URL are no longer read, so the server does not start with settings it would ignore. " +
+        "Rename them, the values stay: MCP_USE_LOG_LEVEL becomes MCP_LOG_LEVEL, OLD_URL becomes ALPHA_URL.",
+    )
+    expect([...composition.retiredEnvVars.keys()]).toEqual(["MCP_USE_LOG_LEVEL", "OLD_URL"])
+    expect(() => rooted({ MCP_LOG_LEVEL: "X" })).toThrow(
+      "The server retires the variable MCP_LOG_LEVEL, which it or a module still reads.",
+    )
+    expect(() => rooted({ OLD_URL: "X" })).toThrow(
+      'The variable OLD_URL is retired twice (module "alpha").',
+    )
   })
 
   it("fails to compose a table that contradicts itself", () => {

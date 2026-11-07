@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { feedPayload } from "./tools/test-support/feed-payload.js"
-import type { MCPServer } from "mcp-use"
+import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
 import type { Client } from "@miragon/pulse-engine-client"
 import { z } from "zod"
 import { createConfiguredEngineRegistry, createPlugin, type EnginePluginConfig } from "./plugin.js"
@@ -18,27 +18,24 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
+interface Definition {
+  name: string
+  annotations?: Record<string, unknown>
+  inputSchema?: z.ZodObject
+}
+
 async function bootSurface(config: Partial<EnginePluginConfig>) {
-  const tool = vi.fn()
-  const server = { tool, prompt: vi.fn() } as unknown as MCPServer
+  const recording = recordingModuleServer()
   const plugin = createPlugin({
     engines: [{ id: "a", baseUrl: "http://a.example/engine-rest" }],
     ...config,
   })
-  plugin.register(server)
-  const calls = tool.mock.calls as Array<
-    [
-      {
-        name: string
-        annotations?: Record<string, unknown>
-        inputSchema?: z.ZodObject
-        visibility?: string
-      },
-      (p: unknown) => Promise<unknown>,
-    ]
-  >
+  plugin.register(recording.server)
   const byName = new Map(
-    calls.map(([definition, handler]) => [definition.name, { definition, handler }]),
+    [...recording.tools.values()].map(({ name, config, call }) => [
+      name,
+      { definition: { name, ...config } as Definition, handler: call },
+    ]),
   )
   const feed = feedPayload<{ allowedActions: string[] }>(
     await byName.get(ENGINE_WIDGET_ACTIONS_DATA)!.handler({}),
@@ -279,18 +276,13 @@ describe("createPlugin: one live verdict for engine_status and the cockpit", () 
   async function verdicts(healthThresholds?: EnginePluginConfig["healthThresholds"]) {
     const engine = await startFakeEngine({}, worldReply)
     started.push(engine)
-    const tool = vi.fn()
+    const recording = recordingModuleServer()
     createPlugin({
       engines: [{ id: "a", baseUrl: engine.baseUrl }],
       ...(healthThresholds === undefined ? {} : { healthThresholds }),
-    }).register({ tool, prompt: vi.fn() } as unknown as MCPServer)
-    const handlers = new Map(
-      (tool.mock.calls as Array<[{ name: string }, (args: unknown) => Promise<unknown>]>).map(
-        ([definition, handler]) => [definition.name, handler],
-      ),
-    )
+    }).register(recording.server)
     const json = async (name: string) => {
-      const result = (await handlers.get(name)!({})) as { content: { text: string }[] }
+      const result = await recording.tool(name).call({})
       return JSON.parse(result.content[0].text) as { status: string; statusRule: string }
     }
     return { status: await json("engine_status"), cockpit: await json(ENGINE_OPEN_COCKPIT) }

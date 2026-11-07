@@ -2,8 +2,8 @@ import { createContext, useContext, type ReactNode } from "react"
 import type { EffectiveTheme, HostStyleVariables } from "./host-context.js"
 
 /**
- * As REPORTED, no fallbacks, so "the host said nothing" stays distinguishable. The mcp-use
- * adapter (`McpUseViewHost`) provides it in production, `TestViewHost` in tests.
+ * As REPORTED, no fallbacks, so "the host said nothing" stays distinguishable. The ext-apps
+ * adapter (`ext-apps-host.tsx`) provides it in production, `TestViewHost` in tests.
  */
 export interface ShellHost {
   /** The bridge is connected; until then every other field is unknown. */

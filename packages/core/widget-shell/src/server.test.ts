@@ -35,6 +35,7 @@ describe("the /server entry", () => {
       "servedFontBaseUrl",
       "showToolBinding",
       "strictToolInput",
+      "viewBundleWatchPlugin",
       "viewPrelude",
       "viewResourceUri",
       "withToolErrors",

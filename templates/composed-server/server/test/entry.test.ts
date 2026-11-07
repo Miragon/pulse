@@ -29,7 +29,7 @@ describe("the entry prints a refused setting as one line and exits 1", () => {
     const exit = vi.spyOn(process, "exit").mockImplementation((code) => {
       throw new Error(`process.exit(${String(code)})`)
     })
-    stubNeutralEnv({ MCP_ACTIVE_MODULES: "no-such-module", MCP_USE_DEV_CLI: undefined })
+    stubNeutralEnv({ MCP_ACTIVE_MODULES: "no-such-module" })
 
     await expect(import("../src/index.js")).rejects.toThrow("process.exit(1)")
 

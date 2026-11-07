@@ -1,6 +1,6 @@
 /**
- * A type alias, NOT an interface: TypeScript synthesizes the index signature mcp-use's tool
- * callback expects for anonymous types only.
+ * A type alias, NOT an interface: TypeScript synthesizes the index signature the SDK's tool
+ * callback result expects for anonymous types only.
  */
 export type ViewResult = {
   content: { type: "text"; text: string }[]

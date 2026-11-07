@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest"
-import type { MCPServer } from "mcp-use"
 import type {
   EngineLandscapeResult,
   PrometheusClient,
@@ -7,33 +6,23 @@ import type {
 } from "@miragon/pulse-analytics-client"
 import { createEngineScope } from "../engine-ids.js"
 import { registerComparisonWidgetTools } from "./comparisons.js"
-
-type ToolResult = {
-  isError?: boolean
-  content: Array<{ type: string; text: string }>
-  structuredContent: Record<string, unknown>
-}
-type Handler = (args: Record<string, unknown>, ctx: unknown) => Promise<ToolResult>
+import { recordedTools, type Handler, type ToolResult } from "./recorded-tools.test-support.js"
 
 const engineScope = createEngineScope(["prod-a", "prod-b"])
 
 function handlers(ch: PrometheusClient): Map<string, Handler> {
-  const byName = new Map<string, Handler>()
-  const server = {
-    tool: (definition: { name: string }, handler: Handler) => {
-      byName.set(definition.name, handler)
-    },
-  } as unknown as MCPServer
-  registerComparisonWidgetTools({
-    server,
-    ch,
-    engineScope,
-    namesFor: (keys) =>
-      Promise.resolve(
-        Object.fromEntries([...keys].map((key) => [key, { name: `Name ${key}`, elements: {} }])),
-      ),
-  })
-  return byName
+  const tools = recordedTools((server) =>
+    registerComparisonWidgetTools({
+      server,
+      ch,
+      engineScope,
+      namesFor: (keys) =>
+        Promise.resolve(
+          Object.fromEntries([...keys].map((key) => [key, { name: `Name ${key}`, elements: {} }])),
+        ),
+    }),
+  )
+  return new Map([...tools].map(([name, { handler }]) => [name, handler]))
 }
 
 const dataOf = <T>(result: ToolResult) => result.structuredContent as T
@@ -47,10 +36,12 @@ const daysAgo = (days: number) => new Date(Date.now() - days * 86_400_000).toISO
 describe("analytics_show_version_compare", () => {
   it("returns the per-version incident rates to the model as compact JSON (issue 337)", async () => {
     const show = handlers(ch).get("analytics_show_version_compare")!
-    const result = await show(
-      { processDefinitionKey: "order", versionA: 1, versionB: 2, windowDays: 14 },
-      {},
-    )
+    const result = await show({
+      processDefinitionKey: "order",
+      versionA: 1,
+      versionB: 2,
+      windowDays: 14,
+    })
 
     const text = result.content[0].text
     expect(text).not.toContain("\n")
@@ -64,10 +55,12 @@ describe("analytics_show_version_compare", () => {
 
   it("names the engines a fleet comparison aggregates (K33)", async () => {
     const show = handlers(ch).get("analytics_show_version_compare")!
-    const result = await show(
-      { processDefinitionKey: "order", versionA: 1, versionB: 2, windowDays: 14 },
-      {},
-    )
+    const result = await show({
+      processDefinitionKey: "order",
+      versionA: 1,
+      versionB: 2,
+      windowDays: 14,
+    })
     expect(modelOf<VersionCompareResult>(result).engines).toEqual(["prod-a", "prod-b"])
     expect(dataOf<VersionCompareResult>(result).engines).toEqual(["prod-a", "prod-b"])
   })
@@ -75,10 +68,11 @@ describe("analytics_show_version_compare", () => {
 
 describe("analytics_show_engine_compare: engine scope (N138)", () => {
   it("refuses an engine outside the configured ones", async () => {
-    const result = await handlers(ch).get("analytics_show_engine_compare")!(
-      { processDefinitionKey: "order", engineA: "prod-a", engineB: "tenant-x" },
-      {},
-    )
+    const result = await handlers(ch).get("analytics_show_engine_compare")!({
+      processDefinitionKey: "order",
+      engineA: "prod-a",
+      engineB: "tenant-x",
+    })
     expect(result.isError).toBe(true)
     expect(result.content[0].text).toContain('Unknown engine "tenant-x" in engineB')
   })
@@ -125,14 +119,14 @@ describe("the model reads what the view shows", () => {
   it.each(CALLS)(
     "%s returns the same result in content and structuredContent",
     async (name, args) => {
-      const result = await handlers(ch).get(name)!(args, {})
+      const result = await handlers(ch).get(name)!(args)
       expect(result.isError).toBeFalsy()
       expect(result.content[0].text).toBe(JSON.stringify(result.structuredContent))
     },
   )
 
   it("returns the landscape's figures without the names the view shows", async () => {
-    const result = await handlers(landscapeClient).get("analytics_show_engine_landscape")!({}, {})
+    const result = await handlers(landscapeClient).get("analytics_show_engine_landscape")!({})
     const { names, ...figures } = dataOf<Record<string, unknown>>(result)
     expect(names).toEqual({ order: { name: "Name order", elements: {} } })
     expect(result.content[0].text).toBe(JSON.stringify(figures))
@@ -145,7 +139,6 @@ describe("the model reads what the view shows", () => {
 })
 
 describe("no server titles (U3): the widget heading names the view in the host's language", () => {
-  const CTX = { auth: { user: { id: "user-1" } } }
   const titledHandlers = () => handlers(ch)
   const CALLS: Array<[string, Record<string, unknown>]> = [
     // Handlers called directly get no schema defaults: pass the window.
@@ -173,7 +166,7 @@ describe("no server titles (U3): the widget heading names the view in the host's
   it("hands each comparison and the landscape its data only", async () => {
     const tools = titledHandlers()
     for (const [name, args] of CALLS) {
-      const { structuredContent } = await tools.get(name)!(args, CTX)
+      const { structuredContent } = await tools.get(name)!(args)
       expect(Object.keys(structuredContent)).not.toContain("title")
       expect(Object.keys(structuredContent)).not.toContain("layout")
     }

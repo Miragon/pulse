@@ -42,11 +42,11 @@ async function readResourceDomains(client: Client, uri: string): Promise<string[
 /**
  * Wire-level widget-contract assertions: what ext-apps hosts (Claude Desktop /
  * claude.ai) actually see on tools/list, resources/list and resources/read.
- * Since mcp-use 2 the MCP Apps half (`_meta.ui.*`, the `ui://views/<tool>.html`
- * resources, the CSP) is emitted natively from each tool's `view`/`visibility`
- * binding (one view PER TOOL instead of 1.x's single shared app resource),
- * while widget-shell's `showToolBinding` stamps the Apps SDK half
- * (`openai/*`). Every check derives from the composition (`MODULES` and the
+ * widget-shell's `showToolBinding` stamps both halves on a view tool: MCP Apps'
+ * `_meta.ui.resourceUri` (one `ui://views/<tool>.html` resource PER view tool)
+ * and the Apps SDK's `openai/*`; `appOnly` hides a feed from the model; the
+ * boot serves each view resource with its CSP. Every check derives from the
+ * composition (`MODULES` and the
  * tools it lists), so it covers every module this app composes, yours
  * included, with no tool listed by hand: a `*_show_*` tool without its view
  * binding hangs on the host's loading skeleton; a model-visible `*_data` feed
@@ -172,8 +172,8 @@ describe("widget wire contract (dual-protocol _meta)", () => {
     }
   })
 
-  // The Apps SDK half mcp-use derives for each view resource (since 2.8 and 2.10): the view's
-  // description (showToolBinding's title) and its default display modes, inline and fullscreen.
+  // The Apps SDK half the boot writes for each view resource: the view's description (its view
+  // tool's title, from showToolBinding) and its display modes, inline and fullscreen.
   it("reads every view with its Apps SDK description and display modes", async () => {
     for (const tool of viewTools) {
       const meta = await readViewMeta(client, viewResourceUri(tool.name))
@@ -210,7 +210,7 @@ describe("widget wire contract (dual-protocol _meta)", () => {
 
       const csp = (content._meta?.ui as { csp?: Record<string, string[]> } | undefined)?.csp
       expect(csp, `${uri}: read contents should carry _meta.ui.csp`).toBeTruthy()
-      // mcp-use appends the request-resolved server origin itself since 2.x.
+      // The boot adds the request-resolved server origin itself.
       expect(csp!.connectDomains, uri).toContain(serverOrigin)
     }
   })
@@ -274,7 +274,7 @@ describe("widget wire contract: the font origin under MCP_URL", () => {
 
 /**
  * The engine module's toolsets fail closed: without an OAuth provider (the
- * neutral env clears every `MCP_USE_OAUTH_*`) no selection that does not NAME
+ * neutral env clears every `MCP_OAUTH_*`) no selection that does not NAME
  * `engine:admin` may list an admin-only tool: not unset, not an empty or
  * unknown suffix. Runs while the engine module is in `MODULES`.
  */

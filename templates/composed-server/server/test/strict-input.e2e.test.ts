@@ -58,9 +58,10 @@ async function probeBoot(selection: string, probed: Map<string, ProbedTool>): Pr
  * schema lets the server STRIP an unknown key before the handler runs: a
  * misnamed optional filter then silently widens the result and the model
  * never learns. Registrar tools (`createToolRegistrar`) are always strict,
- * raw `server.tool()` registrations take `strictToolInput(shape)` (both from
- * `@miragon/pulse-widget-shell/server`); then an unknown key is a tool error
- * naming the valid keys, which the model fixes in one retry.
+ * raw `server.registerTool()` registrations take `strictToolInput(shape)` (both
+ * from `@miragon/pulse-widget-shell/server`), and the boot refuses a tool whose
+ * input lets an unknown key through; then an unknown key is a tool error naming
+ * the valid keys, which the model fixes in one retry.
  */
 describe("strict tool inputs on the wire (every module, every toolset)", () => {
   const selections = toolsetSelections()
@@ -120,7 +121,7 @@ describe("strict tool inputs on the wire (every module, every toolset)", () => {
     expect(
       open,
       "tools whose advertised input accepts unknown keys: register plain tools through " +
-        "createToolRegistrar, give a raw server.tool() inputSchema: strictToolInput(shape)",
+        "createToolRegistrar, give a raw server.registerTool() inputSchema: strictToolInput(shape)",
     ).toEqual([])
   })
 
@@ -139,7 +140,7 @@ describe("strict tool inputs on the wire (every module, every toolset)", () => {
     expect(
       failures,
       "tools that strip an unknown key instead of refusing it: register plain tools through " +
-        "createToolRegistrar, give a raw server.tool() inputSchema: strictToolInput(shape)",
+        "createToolRegistrar, give a raw server.registerTool() inputSchema: strictToolInput(shape)",
     ).toEqual([])
   })
 })

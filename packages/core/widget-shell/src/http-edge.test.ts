@@ -113,13 +113,6 @@ describe("describeHttpEdgePolicy", () => {
     )
   })
 
-  it("says that the cap holds on the built server only under mcp-use dev", () => {
-    expect(describeHttpEdgePolicy(resolveHttpEdgePolicy({}), { underDevCli: true })).toBe(
-      "HTTP edge: hosts localhost, 127.0.0.1, [::1]; origins localhost, 127.0.0.1, [::1]; " +
-        "max body 4 MiB (16 MiB in flight) on the built server only; /metrics open",
-    )
-  })
-
   it.each([
     ["1048576", "max body 1 MiB (4 MiB in flight);"],
     ["1024", "max body 1 KiB (4 KiB in flight);"],
@@ -178,9 +171,11 @@ describe("originRejection", () => {
     expect(originRejection("", "POST", policy)).toBeUndefined()
   })
 
-  it("skips the safe methods, whatever the origin", () => {
+  it("skips the safe methods and a CORS preflight, whatever the origin", () => {
     expect(originRejection("https://attacker.example", "GET", policy)).toBeUndefined()
     expect(originRejection("null", "HEAD", policy)).toBeUndefined()
+    expect(originRejection("https://claude.ai", "OPTIONS", policy)).toBeUndefined()
+    expect(originRejection("https://claude.ai", "POST", policy)).toContain("is not allowed")
   })
 
   it.each([

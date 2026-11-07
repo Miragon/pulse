@@ -95,9 +95,9 @@ asks for what the view shows. Import the tool name from `src/tool-names.ts`.
 Widgets reach the host only through the view runtime: `useViewHost()` (`callTool`,
 `sendFollowUp`, `openExternal`), `HostModelContext` and the query hooks
 (`useViewData`, `useToolQuery`, `useToolMutation`, `useQueryClient`). Never
-import `mcp-use/react` in a widget: its hooks throw outside the bundle root
-(`mountViews`), and the seam is what lets a test render the widget without a
-host (Step 4).
+import `@modelcontextprotocol/ext-apps` in a widget: only widget-shell's host
+adapter under the bundle root (`mountViews`) talks to the host, and the seam is
+what lets a test render the widget without a host (Step 4).
 
 ## Step 2: the three links
 
@@ -127,20 +127,25 @@ silently unstyled).
 
 ## Step 3: the widget tools (`src/widget-tools.ts`)
 
-This file is the documented exception that calls `server.tool()` directly.
-Model both tools on `modules/mcp-notes/src/widget-tools.ts`:
+This file is the documented exception that calls the official SDK's
+`server.registerTool(name, config, handler)` directly (`server` is the
+`ModuleServer` your plugin's `register(server)` gets; ext-apps'
+`registerAppTool` works on it too, with the same
+`...showToolBinding(name, title)` spread into its config, which then adds
+nothing). Model both tools on `modules/mcp-notes/src/widget-tools.ts`:
 
 - **`show_*` tool**: annotate it `{ readOnlyHint: true, idempotentHint: true }`
   (why: the last bullet). Spread
   `...showToolBinding(name, title)` (from
-  `@miragon/pulse-widget-shell/server`). It binds the mcp-use view, the
-  passthrough `outputSchema`, and the Apps-SDK `_meta` half. **Never hand-write
-  `_meta.ui.*` keys**; mcp-use owns and overwrites that namespace. Return
+  `@miragon/pulse-widget-shell/server`) into its config. It binds the view
+  named after the tool (`_meta.ui.resourceUri`, a resource the boot serves),
+  the passthrough `outputSchema`, and the Apps-SDK `_meta` half. **Never
+  hand-write `_meta` keys.** Return
   `buildViewResult(data, summary)`: the `structuredContent` IS the view's
   data (no title: the widget's heading names the view), and `summary` is the
   model-facing channel (1–2 sentences, key figures, pointer to the plain tool
   for raw data).
-- **`*_data` feed**: spread `...appOnly` (native `visibility: "app"` +
+- **`*_data` feed**: spread `...appOnly` (`_meta.ui.visibility: ["app"]` +
   `openai/widgetAccessible`, **no** view binding) and return
   `buildDataFeedResult(data)`, so the in-widget `callTool()` gets JSON back
   instead of the host rendering a new widget.
@@ -183,26 +188,28 @@ happy-dom`, then render the view or widget under `TestViewHost` from
   `@miragon/pulse-widget-shell/widgets` with fake `tools`, and assert what it
   shows, what it asked the host (`onHostAction`: tool calls, follow-ups,
   links) and what it told the model (`onModelContext`). No server, no host,
-  no `bootstrapView`.
+  no view runtime.
 
 Then a render check of the real bundle (the widget test renders the component,
-not the built bundle in a host). Headless, with `pnpm dev` running, from
-`server/` (needs a local Chrome):
+not the built bundle in a host). `pnpm dev` starts the official MCP Inspector
+next to the server; open the URL it prints, then render `<module>_show_<thing>`
+in its Apps tab. A styled widget proves the bundle, the registry links, and
+the Tailwind scan in one shot; also exercise the widget's feed (a retry, or a
+write that invalidates it) so the `*_data` path runs too. The inspector has no
+chat, so a hand-off does nothing there; a real host behind a tunnel shows it
+(the `setup-server` skill, Step 6). Headless, with `pnpm dev` running, the
+inspector's CLI checks the wire from `server/`:
 
 ```bash
-pnpm exec mcp-use client connect local http://localhost:8400/mcp  # once
-pnpm exec mcp-use client local tools call <module>_show_<thing>   # wire: _meta.ui.resourceUri + structuredContent
-pnpm exec mcp-use screenshot --mcp http://localhost:8400/mcp \
-  --tool <module>_show_<thing> --output /tmp/widget.png --json
+pnpm exec mcp-inspector --cli --server-url http://127.0.0.1:8400/mcp --transport http \
+  --method tools/call --tool-name <module>_show_<thing> --app-info      # the view: resourceUri, csp
+pnpm exec mcp-inspector --cli --server-url http://127.0.0.1:8400/mcp --transport http \
+  --method tools/call --tool-name <module>_show_<thing> --format json   # its structuredContent
 ```
 
-A styled widget in the PNG proves the bundle, the registry links, and the
-Tailwind scan in one shot. In the inspector
-(`http://localhost:8400/mcp/inspector`, the human/no-Chrome path), also
-exercise the widget's feed (a retry, or a write that invalidates it) so the
-`*_data` path runs too. The widget bundle is read once at boot, and the root `pnpm dev`
-rebuilds modules + bundle on every start: restart `pnpm dev` at the repo
-root to see changes.
+A widget edit rebuilds the bundle and restarts the server by itself; reopen
+the view to see it. A module's tools are built once, when `pnpm dev` starts:
+restart `pnpm dev` at the repo root after changing them.
 
 ## Troubleshooting
 
@@ -215,4 +222,4 @@ root to see changes.
 | e2e test fails on `_meta`/visibility  | tool name breaks the `_show_`/`_data` convention, or a hand-written `_meta.ui` key: use the helpers                                                                           |
 | The show tool is not in the tool list | its module is not named in `MCP_ACTIVE_MODULES` in `.env` (a module the list does not name stays off; the boot log's `Toolsets:` line shows what runs)                        |
 | Boot fails on a duplicate tool name   | two plugins register the same name; the error names both modules, rename one (keep the `<module>_` prefix)                                                                    |
-| Old UI or tool text after an edit     | bundle and modules are read once at boot (a save's `[mcp-use] reloaded server entry` skips them): restart `pnpm dev` at the repo root (it rebuilds modules + bundle on start) |
+| Old UI or tool text after an edit     | the view still shows the old bundle: reopen it; a tool's text or handler is built once, when `pnpm dev` starts: restart it at the repo root (it rebuilds the modules)         |

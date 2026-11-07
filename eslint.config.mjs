@@ -50,32 +50,40 @@ const vscodeBoundaryProbes = ["apps/vscode/test/*/runtime.boundary.ts"]
 
 // ── Pattern-gate selectors (`no-restricted-syntax`) ─────────────────────────
 
-const TOOL_MEMBER = "/^(tool|registerTool)$/"
+const TOOL_MEMBER = "/^(registerTool|registerAppTool)$/"
 const REGISTRAR_MESSAGE =
-  "Operations tools are registered through createToolRegistrar (@miragon/pulse-widget-shell/server) in src/tools/ (see .claude/skills/add-bpm-feature); raw server.tool() (also via a computed key, .call/.bind/.apply, destructuring or Reflect.get) is reserved for the widget-tools files."
+  "Operations tools are registered through createToolRegistrar (@miragon/pulse-widget-shell/server) in src/tools/ (see .claude/skills/add-bpm-feature); a raw server.registerTool() or ext-apps' registerAppTool() (also via an import, a computed key, .call/.bind/.apply, destructuring or Reflect.get) is reserved for the widget-tools files."
 
-// Invariant 1. Not just the canonical `x.tool(...)`: every syntactic route
-// to the member that names it literally (an agent "working around" the gate
-// reaches for exactly these). A key computed at runtime stays out of any
-// selector's reach: that is review's job. Parameter destructuring and object
-// literals stay allowed: test fakes build `{ tool } as unknown as MCPServer`.
-// Inline `eslint-disable` of this rule (or of complexity/max-lines) is caught
-// by scripts/check-ratchets.mjs, not here: a directive could disable a rule
+// Invariant 1. Not just the canonical `x.registerTool(...)`: every syntactic
+// route to the SDK's method or ext-apps' `registerAppTool` that names it
+// literally (an agent "working around" the gate reaches for exactly these).
+// A key computed at runtime stays out of any selector's reach: that is
+// review's job. Parameter destructuring and object literals stay allowed:
+// test fakes build `{ registerTool } as unknown as ModuleServer`. Inline
+// `eslint-disable` of this rule (or of complexity/max-lines) is caught by
+// scripts/check-ratchets.mjs, not here: a directive could disable a rule
 // that polices directives.
 const registrarGate = [
-  // x.tool(...), x?.tool(...), x.tool.call/bind/apply(...), const t = x.tool
+  // x.registerTool(...), x?.registerTool(...), .call/bind/apply(...), const t = x.registerTool,
+  // apps.registerAppTool(...) through a namespace import
   `MemberExpression[computed=false][property.name=${TOOL_MEMBER}]`,
-  // x["tool"], x[`tool`]
+  // x["registerTool"], x[`registerTool`]
   `MemberExpression[computed=true][property.value=${TOOL_MEMBER}]`,
   `MemberExpression[computed=true] > TemplateLiteral.property > TemplateElement[value.raw=${TOOL_MEMBER}]`,
-  // const { tool } = x, const { "tool": t } = x, ({ tool } = x), ({ "tool": t } = x)
+  // const { registerTool } = x, const { "registerTool": t } = x, ({ registerTool } = x), …
   `VariableDeclarator > ObjectPattern.id > Property[key.name=${TOOL_MEMBER}]`,
   `VariableDeclarator > ObjectPattern.id > Property[key.value=${TOOL_MEMBER}]`,
   `AssignmentExpression > ObjectPattern.left > Property[key.name=${TOOL_MEMBER}]`,
   `AssignmentExpression > ObjectPattern.left > Property[key.value=${TOOL_MEMBER}]`,
-  // Reflect.get(x, "tool"), Reflect.get(x, `tool`)
+  // Reflect.get(x, "registerTool"), Reflect.get(x, `registerTool`)
   `CallExpression[callee.object.name='Reflect'][callee.property.name='get'] > Literal.arguments[value=${TOOL_MEMBER}]`,
   `CallExpression[callee.object.name='Reflect'][callee.property.name='get'] > TemplateLiteral.arguments > TemplateElement[value.raw=${TOOL_MEMBER}]`,
+  // import { registerAppTool } from "@modelcontextprotocol/ext-apps/server", renamed or by a
+  // string name, and export { registerAppTool } from …
+  `ImportSpecifier[imported.name=${TOOL_MEMBER}]`,
+  `ImportSpecifier[imported.value=${TOOL_MEMBER}]`,
+  `ExportSpecifier[local.name=${TOOL_MEMBER}]`,
+  `ExportSpecifier[local.value=${TOOL_MEMBER}]`,
 ].map((selector) => ({ selector, message: REGISTRAR_MESSAGE }))
 
 // Invariant 6.
@@ -133,16 +141,27 @@ const widgetNumberGateForFormatters = widgetNumberGate.filter(
 )
 
 // Invariant 6: widgets reach the host only through widget-shell's view host (`useViewHost`,
-// `HostModelContext`) and query hooks, never `mcp-use/react` itself: its hooks throw outside
-// `bootstrapView`, so a widget importing it could not render under `TestViewHost`. The ONE
-// adapter is widget-shell's `mcp-use-host.tsx` + `view-root.tsx`. (The AI sparkle is banned by
-// pulse-ui's scanGlyphs, which every widget tree runs in its brand-gates test.)
-const mcpUseReactGate = {
-  paths: [
+// `HostModelContext`) and query hooks, never the MCP Apps runtime of `@modelcontextprotocol/ext-apps`
+// itself (its `App`, its React hooks, its app bridge, its types): a widget that speaks to the
+// host directly renders neither under `TestViewHost` nor in another host (a web app, a VS Code
+// webview) that brings an adapter of its own. The ONE adapter is widget-shell's
+// EXT_APPS_HOST_ADAPTER. ext-apps' `/server` is the server half (`registerAppTool`, the view
+// resource's MIME type), no host runtime: invariant 1's registrar gate keeps `registerAppTool` to
+// the widget-tools files. (The AI sparkle is banned by pulse-ui's scanGlyphs, which every widget
+// tree runs in its brand-gates test.)
+const EXT_APPS_HOST_ADAPTER = [
+  "packages/core/widget-shell/src/ui/view-runtime.ts",
+  "packages/core/widget-shell/src/ui/ext-apps-host.tsx",
+  "packages/core/widget-shell/src/ui/view-root.tsx",
+]
+const extAppsRuntimeGate = {
+  patterns: [
     {
-      name: "mcp-use/react",
+      // The root and every subpath but `/server` (a `group` cannot re-include a subpath of an
+      // excluded root: gitignore semantics).
+      regex: "^@modelcontextprotocol/ext-apps(?:/(?!server$).*)?$",
       message:
-        "Only widget-shell's view root (view-root.tsx, mcp-use-host.tsx) imports mcp-use/react; a widget uses the view host (useViewHost) and renders under TestViewHost in tests (CLAUDE.md invariant 6).",
+        "Only widget-shell's host adapter (view-runtime.ts, ext-apps-host.tsx, view-root.tsx) imports the MCP Apps runtime of @modelcontextprotocol/ext-apps; a widget uses the view host (useViewHost) and renders under TestViewHost in tests (CLAUDE.md invariant 6).",
     },
   ],
 }
@@ -320,7 +339,7 @@ export default tseslint.config(
       // recommendedTypeChecked level, error. require-await is off everywhere but the CLI,
       // engine-core and the VS Code extension, whose blocks below set it at error again: in the
       // MCP trees an async function without await is how they satisfy a Promise-returning
-      // signature (mcp-use's tool, prompt and resource callbacks, the health probes, fetch stubs
+      // signature (the SDK's tool, prompt and resource callbacks, the health probes, fetch stubs
       // and the Prometheus fakes of the tests), where the rule only asks for a Promise.resolve
       // wrapper.
       "@typescript-eslint/require-await": "off",
@@ -350,9 +369,10 @@ export default tseslint.config(
   // union (the connector widgets below). scripts/eslint-gates.test.mjs pins
   // the effective options per path and lints known-bad spellings.
 
-  // Invariant 1: operations tools go through createToolRegistrar. Raw
-  // server.tool() is reserved for the widget-tools path (show_* / *_data
-  // feeds), exactly the ignores list below.
+  // Invariant 1: operations tools go through createToolRegistrar. A raw
+  // server.registerTool() or registerAppTool() is reserved for the
+  // widget-tools path (the view tools and *_data feeds), exactly the ignores
+  // list below.
   {
     files: [
       "packages/connectors/analytics/analytics-connector/src/**/*.{ts,tsx}",
@@ -403,9 +423,10 @@ export default tseslint.config(
     files: ["packages/core/ui/src/kit/format.ts", "packages/core/ui/src/locale/ui-messages.ts"],
     rules: { "no-restricted-syntax": ["error", ...widgetNumberGateForFormatters] },
   },
-  // Invariant 6, imports: no `mcp-use/react` in any MCP source or test but widget-shell's
-  // adapter. Its own rule (`no-restricted-imports` is ONE rule too: a glob two import gates
-  // share gets their union), so it never collides with the no-restricted-syntax unions above.
+  // Invariant 6, imports: no MCP Apps runtime (`@modelcontextprotocol/ext-apps` but its
+  // `/server`) in any MCP source or test but widget-shell's host adapter. Its own rule
+  // (`no-restricted-imports` is ONE rule too: a glob two import gates share gets their union), so
+  // it never collides with the no-restricted-syntax unions above.
   {
     files: [
       "apps/mcp-server/{src,test,test-host}/**/*.{ts,tsx}",
@@ -413,14 +434,10 @@ export default tseslint.config(
       "packages/core/widget-shell/src/**/*.{ts,tsx}",
       "packages/connectors/*/*/src/**/*.{ts,tsx}",
     ],
-    rules: { "no-restricted-imports": ["error", mcpUseReactGate] },
+    rules: { "no-restricted-imports": ["error", extAppsRuntimeGate] },
   },
   {
-    files: [
-      "packages/core/widget-shell/src/ui/mcp-use-host.tsx",
-      "packages/core/widget-shell/src/ui/view-root.tsx",
-      "packages/core/widget-shell/src/ui/view-root.test.tsx",
-    ],
+    files: EXT_APPS_HOST_ADAPTER,
     rules: { "no-restricted-imports": "off" },
   },
   // ── Ratchet metrics: complexity + file-length budgets ───────────────────

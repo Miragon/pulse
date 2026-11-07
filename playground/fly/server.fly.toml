@@ -1,5 +1,5 @@
 # Pulse server, the only public app of the playground stack, served
-# WITHOUT authentication (no MCP_USE_OAUTH_*): anyone on the internet can call it, so
+# WITHOUT authentication (no MCP_OAUTH_*): anyone on the internet can call it, so
 # it is pinned read-only below. Build context: repo root (monorepo
 # Dockerfile). Deploy via playground/fly/deploy.sh.
 app = "miragon-ai-playground"

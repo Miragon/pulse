@@ -15,7 +15,8 @@ Docs are held to the code:
   page stays within its line budget.
 - `scripts/old-names.test.mjs` fails on a technical name of the retired operate CLI, on the
   unscoped npm packages pulse and pulse-cli (someone else's), on an image off GHCR, on the
-  retired OAuth JSON variable, on a package of the retired MCP toolkit and on a name the engine
+  retired OAuth JSON variable, on a package of the retired MCP toolkit, on the framework the
+  server ran on up to 0.27 (its packages and its variables, which the boot refuses) and on a name the engine
   module carried up to 0.24 (its `camunda7_` tools, the module name, its packages and app path,
   its `CAMUNDA_` server variables, its metric names); the vendor (`flavor` `camunda7`,
   "Camunda 7") stays.
@@ -35,7 +36,8 @@ lives in Miragon/miragon-ai-docs; a change it shows needs a PR there too.
 ## What this repo is
 
 Pulse (part of the Miragon AI tool family) is a pnpm + Turbo monorepo that ships an MCP server
-(built on `mcp-use`, with its UI on `@miragon/pulse-ui`) for Camunda 7 / CIB seven BPM operations
+(built on the official MCP TypeScript SDK, `@modelcontextprotocol/server` with the MCP Apps
+extension `@modelcontextprotocol/ext-apps`, its UI on `@miragon/pulse-ui`) for Camunda 7 / CIB seven BPM operations
 and Prometheus-backed process analytics, including interactive React widgets (MCP Apps), plus a
 command line interface (`apps/cli`) and a VS Code extension (`apps/vscode`) for the same engines.
 
@@ -94,7 +96,7 @@ package; another interface app keeps its own rules in its own CLAUDE.md.
 
 ```bash
 # From a fresh clone with Node, pnpm and Docker only (no JDK, no .env; scripts/local.mjs):
-pnpm play                            # install, playground up, build, MCP server + inspector on :8400
+pnpm play                            # install, playground up, build, MCP server on :8400 + MCP Inspector
 pnpm play:cli -- ping                # the built CLI against the playground engine
 pnpm stack:up | stack:down | stack:status   # the playground in Docker (--multi-engine, --auth)
 pnpm check                           # the local bar, one log per step in reports/check/
@@ -112,7 +114,7 @@ pnpm format:check                    # prettier check (`pnpm format` to write)
 pnpm generate                        # regenerate the CIB seven SDK from the OpenAPI spec
 
 # The server with your own settings (a .env file, see .env.example; playground: pnpm stack:up):
-pnpm dev                             # MCP server on :8400
+pnpm dev                             # MCP server on :8400 + MCP Inspector
 
 # Kotlin engine plugins (Java 21):
 cd engine-plugins && ./gradlew build # compile + unit tests + Konsist architecture tests
@@ -125,10 +127,15 @@ pnpm --fail-if-no-match --filter @miragon/pulse-cli catalog       # regenerate t
 pnpm --fail-if-no-match --filter @miragon/pulse-cli test:engines  # Testcontainers suites
 ```
 
-`pnpm play` and `pnpm dev` serve the MCP endpoint at `http://localhost:8400/mcp` and the `mcp-use`
-inspector UI at `http://localhost:8400/mcp/inspector` (served by `mcp-use dev` only;
-the production entrypoint mounts no inspector). Use the inspector to call tools and
-render widgets manually.
+`pnpm play` and `pnpm dev` build once, then serve the MCP endpoint at `http://localhost:8400/mcp`
+(`vite build --watch` and `tsx watch` rebuild the view bundle and restart the server when the
+app's sources or the bundle change; a package's change needs its build) and start the official MCP
+Inspector (`@modelcontextprotocol/inspector`, the app's `dev:inspector`) as a process of its own
+on `127.0.0.1`, connected to that endpoint. It opens no browser: open the URL it prints (with its
+per-launch token). Use it to call tools and render widgets manually (its Apps tab). It has no
+chat, so a hand-off and a view's model context show only in a real host; one reaches a local
+server through a tunnel (`cloudflared tunnel --url http://localhost:8400`, then `MCP_URL` set to
+the tunnel's `https://` origin and the server restarted, or the `Host` check refuses it).
 
 If generated SDK files look wrong (e.g. `client.gen.ts` importing `./src/hey-api.js`
 instead of `../hey-api.js`), the shared turbo cache replayed a poisoned `generate`
@@ -200,7 +207,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 
 ## Architecture invariants
 
-1. **New operations tools go through the registrar, never raw `server.tool()`.** Add the Zod
+1. **New operations tools go through the registrar, never a raw `server.registerTool()`.** Add the Zod
    input schema in `packages/connectors/engine/engine-connector/src/schemas/`, then register
    the tool in `packages/connectors/engine/engine-connector/src/tools/<domain>.ts` via the
    `register` callback of `createToolRegistrar` (`@miragon/pulse-widget-shell/server`, wired in
@@ -208,8 +215,9 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    module), `...engineParamShape` in the input schema, the handler wrapped in `withEngine(...)`
    (both from `src/lib/engine/with-engine.ts`). Canonical shape: `engine_list_process_instances` in
    `packages/connectors/engine/engine-connector/src/tools/process-instances.ts`. ESLint
-   (`no-restricted-syntax` in `eslint.config.mjs`) blocks raw `server.tool()` in every spelling
-   outside the widget-path files its `ignores` lists. `no-restricted-syntax` is ONE rule: a
+   (`no-restricted-syntax` in `eslint.config.mjs`) blocks a raw `registerTool` and ext-apps'
+   `registerAppTool` in every spelling (an import included) outside the widget-path files its
+   `ignores` lists. `no-restricted-syntax` is ONE rule: a
    later flat-config block REPLACES its selectors, so a glob two gates share gets one block with
    the union (`scripts/eslint-gates.test.mjs`).
    - Annotations decide the toolset. A destructive or admin tool goes into `ADMIN_ONLY_TOOLS`
@@ -240,7 +248,8 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    which routes by precedence: per-call `engine` > the operator default
    `ENGINE_DEFAULT` (it must name a configured engine, else the boot fails) > the only
    configured engine > `ENGINE_NOT_SELECTED` listing the engines. There is deliberately NO
-   per-user or in-memory selection (replica-unsafe; mcp-use 2 issues no session ids). A client
+   per-user or in-memory selection (replica-unsafe; the server is stateless, one `McpServer`
+   per request, no session ids). A client
    you construct or cache yourself breaks multi-engine routing; `resolveEngine` already returns
    `baseUrl`/`cockpitUrl`. The BPMN lookup the module hands analytics (`createBpmnXmlFetcher`)
    routes the same way, on the module's own registry and XML cache.
@@ -266,8 +275,9 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    they fail to compile until each has the route. A route that nothing emits and
    `engine_open_cockpit` cannot open is dead.
 
-   A view is picked by its NAME, the view tool's name (`showToolBinding`, primed under
-   `ui://views/<name>.html` with a prelude naming it), so
+   A view is picked by its NAME, the view tool's name (`showToolBinding` binds the tool to
+   `ui://views/<name>.html` in its `_meta.ui.resourceUri`, the boot serves the one bundle there
+   with a prelude naming it), so
    `apps/mcp-server/test/view-registry.test.ts` holds the view registry to the
    view-bound tools of the tools/list goldens and fails both ways: on a tool without a view
    (the "can't show this view" state) and on a view no tool opens (dead code in every
@@ -276,16 +286,18 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 4. **The view bundle's `resolve.dedupe` is load-bearing: never remove or trim it.** It is
    widget-shell's `VIEW_BUNDLE_DEDUPE` (`@miragon/pulse-widget-shell/server`), spread whole in
    `apps/mcp-server/vite.config.ts` and the template's `server/vite.config.ts`. Without it each
-   widget package bundles its own React, TanStack Query, mcp-use, pulse-ui or widget-shell
+   widget package bundles its own React, TanStack Query, pulse-ui, widget-shell or lucide-react
    instance, the React contexts no longer match, a widget finds no view host and no
-   `QueryClient`, and every in-widget query hangs on "Loading…". widget-shell's
+   `QueryClient`, and every in-widget query hangs on "Loading…" (ext-apps' `App` keeps no React
+   context, so a second copy of it costs only bytes and stays off the list). widget-shell's
    `src/view-bundle.test.ts` holds the list to its peers, `test/view-bundle.test.ts` the app's
    config to the list, test:host's in-widget query the built bundle.
 
 5. **There are three render paths; pick deliberately:**
    - Registrar tools (`src/tools/`): plain JSON data _for the model_.
    - Widget tools (`show_*` in analytics, `engine_open_cockpit` in the engine module; spread
-     `...showToolBinding(name, title)` from `@miragon/pulse-widget-shell/server`): render a
+     `...showToolBinding(name, title)` from `@miragon/pulse-widget-shell/server` into
+     `registerTool`'s config): render a
      view for the user, as `buildViewResult(data, text)`: the `structuredContent` IS the view's
      data and the `content` text is the model-facing result as compact JSON (the analytics
      heatmap: a short English summary). `engine_open_cockpit`'s `view` picks the start
@@ -299,9 +311,9 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      result would be rendered by the host instead of returned to the in-widget `callTool()`.
 
    Every tool takes STRICT input (the registrar always, a raw registration through
-   `strictToolInput(…)`), with no exemption list: an unknown key is a tool error listing the
-   valid keys, never a silently stripped filter
-   (`test/strict-input.e2e.test.ts` in the app). Parameter names and descriptions follow the
+   `strictToolInput(…)`; the boot refuses a schema that lets an unknown key through), with no
+   exemption list: an unknown key is a tool error listing the valid keys, never a silently
+   stripped filter (`test/strict-input.e2e.test.ts` in the app). Parameter names and descriptions follow the
    guide in the add-bpm-feature skill: a parameter that means the same on every tool is
    explained once in the module instructions, and a tool describes it only where it means more
    there.
@@ -317,15 +329,23 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      what touches the host and never a pulse-ui name
      (`packages/core/widget-shell/src/pulse-ui-overlap.test.ts`). A form says an invalid
      entry inline next to the control it marks `aria-invalid`, never clamps it silently.
-   - **The view runtime is widget-shell's.** The root's call hook (`useMcpUseViewCall` over
-     `resolveViewCall`) owns the stripped-result recovery: a host that drops
-     `structuredContent` gets ONE re-run of the view's own view tool, so every view-bound tool
-     is a read (`apps/mcp-server/test/view-registry.test.ts`). `ViewFrame` renders the
-     phases (waiting, error, cancelled, ready); every `ViewStack` row and `HostWidgetSlot` has
-     its own error boundary, so one crashing widget never takes its view down. Widgets reach
-     the host only through `useViewHost`/`HostModelContext` and the query hooks
-     (`useToolQuery`, `useToolMutation`, `useViewData`), test under `TestViewHost`, and never import
-     `mcp-use/react` (ESLint `no-restricted-imports`, `scripts/eslint-gates.test.mjs`).
+   - **The view runtime is widget-shell's.** Its host adapter (`ExtAppsViewHost` in
+     `src/ui/ext-apps-host.tsx` over the official `App` of `@modelcontextprotocol/ext-apps` in
+     `src/ui/view-runtime.ts`, mounted by `src/ui/view-root.tsx`) is the ONE place that speaks to
+     the host: it mounts the
+     host-agnostic contexts every widget reads (`HostContexts`, from one `ShellHost` and one
+     `ViewHost`), as `TestViewHost` does in tests, so another host (a web app, a VS Code
+     webview) brings an adapter of its own and never touches a widget.
+     The root's call hook (`useViewCall` over `resolveViewCall`) owns the stripped-result
+     recovery: a host that drops `structuredContent` gets ONE re-run of the view's own view
+     tool, so every view-bound tool is a read (`apps/mcp-server/test/view-registry.test.ts`).
+     `ViewFrame` renders the phases (waiting, error, cancelled, ready); every `ViewStack` row
+     and `HostWidgetSlot` has its own error boundary, so one crashing widget never takes its
+     view down. Widgets reach the host only through `useViewHost`/`HostModelContext` and the
+     query hooks (`useToolQuery`, `useToolMutation`, `useViewData`), test under `TestViewHost`,
+     and never import the MCP Apps runtime of `@modelcontextprotocol/ext-apps` (ESLint
+     `no-restricted-imports` outside the adapter's three files; its `/server` half is invariant
+     1's; `scripts/eslint-gates.test.mjs`).
    - **States and feedback** (#322). Loading, error and no data go through `ViewDataState`, or
      `QueryFallback` + `TableSkeleton` in a self-fetching widget (without an `isError` branch
      the skeleton never ends); both take a required `onRetry` and word a failure with
@@ -371,8 +391,8 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      stroke through lucide's own `strokeWidth`, never a CSS `stroke-width` rule, which would
      beat the `LucideProvider` widget-shell's view root sets with pulse-ui's `ICON_STROKE`.
      Every package that imports `lucide-react` and every host bundle pin the SAME exact 1.x
-     devDependency (today `1.67.0`): two versions resolve a second mcp-use instance and split
-     the React contexts.
+     devDependency (today `1.67.0`): pnpm installs a package once per peer set, so two versions
+     resolve a second pulse-ui and widget-shell instance and split the React contexts.
    - **Actions and hand-offs.** A view's actions are ONE group in `WidgetHeader` `actions`, all
      `size="sm"`, ordered: deterministic steps, the engine's own web app
      (`OpenInCockpitLink`), then the chat; the meta line under the title holds facts only
@@ -463,7 +483,8 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      from the server's own OAuth only: nothing a client chooses (a session id, a header)
      identifies a caller. Code reads it through the ambient request info (`getMcpRequestInfo`):
      per-caller caches key on `callerCacheKey`, passthrough auth forwards the caller's bearer
-     token. Without OAuth there is no caller: a request still caches apart by its bearer token,
+     token (under OAuth the one the gate verified; a header with a second credential gets 401).
+     Without OAuth there is no caller: a request still caches apart by its bearer token,
      and one without a token shares the empty cache partition.
 
 8. **Modules are self-contained peers; an MCP server app is a thin composition root.** The
@@ -517,14 +538,18 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      every tool instead of 60 descriptions; `retired`, the former names and variables the boot
      refuses, naming their replacements; plugin factory), conforming STRUCTURALLY to
      `ComposableModule<TShared>`. Its `createPlugin(config, shared)` returns a `ModulePlugin`,
-     `{ name, register(server) }`: `register` puts every tool, prompt and resource of the module
-     on the server the boot owns, and `name` is the owner the duplicate guard names. The
-     composition machinery (selection with `module:toolset` suffixes in `MCP_ACTIVE_MODULES`,
-     `resolveBoot`) lives inside the boot (`@miragon/pulse-widget-shell/server`); a root hands
-     it its module list and its `shared` wiring and nothing about auth. The boot installs OAuth
-     from one provider's `MCP_USE_OAUTH_*` variables (the table and the failure rules:
-     `docs/mcp/operations.md`) and is authenticated exactly when it installed a provider,
-     never inferred from an env var.
+     `{ name, register(server) }`: `register` puts every tool and prompt of the module on the
+     `ModuleServer` the boot hands it, the official SDK's API itself
+     (`Pick<McpServer, "registerTool" | "registerPrompt">`, so ext-apps' `registerAppTool` works
+     on it too), and `name` is the owner the duplicate guard names. Pulse adds no facade over
+     the SDK: helpers that return config parts (`showToolBinding`, `appOnly`, `strictToolInput`)
+     and the registrar, which registers through the SDK's own `registerTool`. The composition machinery (selection with `module:toolset` suffixes in
+     `MCP_ACTIVE_MODULES`, `resolveBoot`) lives inside the boot
+     (`@miragon/pulse-widget-shell/server`); a root hands it its module list and its `shared`
+     wiring and nothing about auth. The boot installs OAuth, a resource server that verifies
+     bearer tokens with `jose`, from one provider's `MCP_OAUTH_*` variables (the table and the
+     failure rules: `docs/mcp/operations.md`) and is authenticated exactly when it installed a
+     provider, never inferred from an env var.
    - **The app composes, nothing more.** `setup.ts` holds `MODULES` and `sharedResources`, the
      `SharedResources` wiring (`fetchBpmnXml`, the engine module's XML lookup for analytics; `engineIds`,
      the ONLY engines analytics reads, so analytics needs NO engine SDK). Widget components and
@@ -532,17 +557,23 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      `mountViews({ views, hostWidgets })` (its `ViewRoot` provider order is load-bearing), the
      stylesheet pulse-ui's `theme.css` after `tailwindcss` (`test/ui-stylesheet.test.ts`).
    - **One boot.** `createComposedServer` owns the boot order and the production listener and
-     takes the root's `modules` and `shared`. It constructs the `MCPServer` itself and wraps
-     `server.tool` before the first plugin registers: a tool name two registrations share fails
-     the boot naming both owners (`server` for one outside a plugin), and every view-bound tool
-     gets the server-wide view CSP defaults (the served fonts' origin). Once every plugin has
-     registered, it primes the one widget bundle for every view. Each MCP server app owns ONE
+     takes the root's `modules` and `shared`. It records each plugin's registrations once
+     (`createModuleRegistry`): a tool or prompt name two plugins share fails the boot naming both
+     owners, so does an input schema that lets an unknown key through or a view URI other than
+     `ui://views/<name>.html`; it trims the input schemas, and every view-bound tool gets the
+     server-wide view CSP defaults (the served fonts' origin). Once every plugin has registered,
+     it primes the one widget bundle for every view, and each request replays the recording into
+     a fresh `McpServer` behind the SDK's `createMcpHandler` (stateless, no session ids; a
+     registration is fixed at boot). Each MCP server app owns ONE
      `createApp(env, deps?)` (`src/app.ts`) that `src/index.ts` AND the e2e suites boot, never a
      test-only re-implementation. Readiness never probes engines or Prometheus (it answers 503
      only while the server drains); metric labels stay bounded (tool catalogue + known routes,
-     never users or arguments). The HTTP edge guard
-     (`resolveHttpEdgePolicy`) is DNS-rebinding protection that exempts `/health*` and
-     `/metrics`; never swap it for mcp-use's `allowedHosts`, which guards those too.
+     never users or arguments). The router reads the path as sent, never percent-decoded, so
+     `/%6Dcp` is no alias of `/mcp` (`composed-server.edge.test.ts`); only dot segments resolve,
+     in the URL parser, before any route. The HTTP edge guard
+     (`resolveHttpEdgePolicy`) is DNS-rebinding protection in front of the OAuth gate that
+     exempts `/health*` and `/metrics`; it is the ONE `Host`/`Origin` check, so never add the
+     SDK's `hostHeaderValidationResponse` or a transport's `allowedHosts` next to it.
    - **Cross-module UI is tiered**: another module's widget only through the host widget map
      by raw id (`useHostWidget`/`HostWidgetSlot`: `analytics:engine-landscape` in the engine
      module's fleet view, `analytics:process-heatmap` and `analytics:process-heatmap-legend` in
@@ -610,21 +641,25 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
   `peerDependencies` declare (`scripts/published-imports.test.mjs`), and its tarball ships no
   test, every module its entries reach and every source its maps name
   (`scripts/pack-contents.mjs`, run by `scripts/test-template.sh`): each library ships `dist`
-  and its `src` (a connector's is the template's reference implementation). **`mcp-use` is
-  exactly pinned even as a peer** (`2.12.2`): a duplicate instance breaks the React context
-  and hangs every in-widget query (invariant 4). Name the required
-  `mcp-use` version in each package README and the release changelog. The template pins what the
-  workspace pins (the `@miragon/pulse-*` libraries, `mcp-use`, `react`, `react-dom`, `zod`,
+  and its `src` (a connector's is the template's reference implementation). The official SDK
+  (`@modelcontextprotocol/server`, `/node`, `/ext-apps`) follows the same split: a ranged peer
+  where a module types against it (a caret range that admits widget-shell's pin), else an exact
+  dependency of widget-shell; its `App` keeps no React context, so no SDK package needs an exact
+  peer pin. Name the SDK ranges a package needs in its README. Each package the template lists it
+  pins as the workspace does (the `@miragon/pulse-*` libraries, the `@modelcontextprotocol/*`
+  packages, the inspector the dev loop starts among them, `react`, `react-dom`, `zod`,
   `lucide-react`, `@tanstack/react-query`, `prettier`, `prettier-plugin-tailwindcss`;
   `scripts/template-pins.mjs`, in `pnpm test` and `scripts/test-template.sh`), never one package
   in isolation. Dependabot's one npm entry covers the root and the template, so a grouped minor
   or patch bump moves both; a major or a
   security update can arrive for one directory only and turns `pnpm test` red until the
   template pins the same version: bump both in that pull request.
-- **The widget `_meta` contract is split since mcp-use 2; never hand-write the `ui` half.**
-  mcp-use emits the MCP-Apps keys from the tool's `view`/`visibility` fields and OVERWRITES
-  the `ui` namespace on tools/list; widget-shell's `showToolBinding` stamps only the `openai/*`
-  half.
+- **The widget `_meta` carries two halves; never hand-write either.** `showToolBinding`
+  stamps both on a view tool: MCP Apps' `ui.resourceUri` (with the flat `ui/resourceUri`, as
+  ext-apps' `registerAppTool` writes it) and the OpenAI Apps SDK's `openai/*` keys; `appOnly`
+  stamps a feed's `ui.visibility: ["app"]` and `openai/widgetAccessible`. The boot adds the
+  rest: the view CSP defaults (`openai/widgetCSP`, the resource's `ui.csp`), the view
+  resource's metadata and `_meta.ui` on a view tool's result.
   `apps/mcp-server/test/widget-contract.e2e.test.ts` checks the wire **by name**
   (every `*_show_*` tool and `engine_open_cockpit` carry the widget `_meta`, every `*_data`
   feed is app-only), so the naming convention is load-bearing.
@@ -647,7 +682,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 - **Federation happens in an external MCP gateway (agentgateway) IN FRONT of this server;
   this repo builds one self-contained MCP server including its UI.** Federation was dropped
   deliberately in #162: no upstream/proxy mechanics. A gateway that terminates auth in front is
-  invisible to this server: without an OAuth provider (`MCP_USE_OAUTH_*`) it boots read-only
+  invisible to this server: without an OAuth provider (`MCP_OAUTH_*`) it boots read-only
   with no caller identity, so
   such a deployment names its toolsets in `MCP_ACTIVE_MODULES`.
 - **The server reads no `PULSE_*` variable.** PulseAudio owns `PULSE_*` and `PULSE_CLI_*` is
@@ -711,7 +746,7 @@ workspace (its header lists each check).
 | `pnpm lint`       | The build-free gates first (`lint:naming`, `lint:package-scripts`, `lint:github`, `lint:ratchets`, which needs `git fetch origin`), then ESLint per package incl. the pattern gates, dependency-cruiser (`lint:architecture`, `:cli`, `:vscode`) and knip (`lint:deadcode`: everything but exports and types; `:exports`: exports and types in every workspace but the vendored docs kit), and last `lint:configs` (the config files no tsconfig holds and no package lints: `DEFAULT_PROJECT_FILES` in `eslint.config.mjs`)             |
 | `pnpm fitness`    | Report: architecture graph, per-package coverage and engine-core's mutation score; locally after `pnpm test` (no CI job on a pull request), else the "Mutation summary" job of `.github/workflows/mutation-nightly.yml`                                                                                                                                                                                                                                                                                                                  |
 | `./gradlew build` | Kotlin compile + unit tests + Konsist architecture tests (run in `engine-plugins/`)                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| `test:host`       | `pnpm --filter @miragon/pulse-mcp-server test:host`: Playwright host simulation of the **built** widget bundle behind a SEP-1865 host shim, the real `engine_open_cockpit` against a stub engine (`pinned …` scenarios are known defects, flipped when fixed); CI "Widget host simulation (test:host)"; run it for changes to widget-shell, pulse-ui, `src/ui/` or the mcp-use pin                                                                                                                                                       |
+| `test:host`       | `pnpm --filter @miragon/pulse-mcp-server test:host`: Playwright host simulation of the **built** widget bundle behind a SEP-1865 host shim, the real `engine_open_cockpit` against a stub engine (`pinned …` scenarios are known defects, flipped when fixed); CI "Widget host simulation (test:host)"; run it for changes to widget-shell, pulse-ui, `src/ui/` or the `@modelcontextprotocol/ext-apps` pin                                                                                                                              |
 | Template          | `scripts/test-template.sh` (in `pnpm check:all`; CI "Composed-server template (Build + Test)"): packs the published libraries (`scripts/workspace-packages.mjs`), checks their contents (`scripts/pack-contents.mjs`), points a copy of `templates/composed-server` at them and runs its build, typecheck, test and format check, its pins matched to the workspace first (`scripts/template-pins.mjs`). ESLint, knip and dependency-cruiser skip `templates/`: the template's composition-root rules (invariant 8) are review knowledge |
 | Starter engine    | "Starter try-out engine" in `.github/workflows/ci.yml` (scope `starter-engine`: `templates/composed-server/compose.yaml` and the job itself): starts that engine on Linux and checks what a Run tag bump can break (healthy within 240 s, 401 without a login, 200 for demo/demo, invoice and ReviewInvoice deployed), then reaches it from a container on `pulse-starter_default`, the network of the starter's container recipe                                                                                                        |
 | Docker build      | `.github/workflows/docker-build.yml`: plain `docker build` of the root `Dockerfile` (no push) on every PR touching what the build stage copies                                                                                                                                                                                                                                                                                                                                                                                           |
@@ -720,7 +755,7 @@ workspace (its header lists each check).
 | VS Code package   | `vsce package` dry run of the production build (`.github/workflows/ci.yml`): bundles in, no sources, maps or node_modules; the webview budget is `pnpm test`'s (`apps/vscode/test/architecture/bundle-budget.test.ts`)                                                                                                                                                                                                                                                                                                                   |
 | CLI jobs          | `ci.yml` in the `cli` scope: `CLI binary (<target>)` (single executable on Linux x64, macOS arm64, Windows x64), `CLI image (build + smoke)`, `CLI plugin (validate)`, aggregated by `CLI (all checks)`                                                                                                                                                                                                                                                                                                                                  |
 | CI scopes         | The `changes` job runs `scripts/ci-scopes.mjs` over a PR's files and every other job runs only in its scope (a skipped job reports success); "Lint + Format" runs on every PR. A new job gets `needs: changes` and a scope; a test that starts reading a file outside its package adds that path to `PATH_RULES` or `ALSO_READ_BY`, unless that path already selects the job that runs the test (a package's code and data files select the TypeScript job)                                                                              |
-| Manual            | `pnpm play` (or the playground + `pnpm dev` with a `.env`), then exercise tools/widgets in the inspector. The default boot is read-only; write paths need an explicit suffix: `pnpm play --admin`, or `MCP_ACTIVE_MODULES=engine:admin,analytics` in `.env`                                                                                                                                                                                                                                                                              |
+| Manual            | `pnpm play` (or the playground + `pnpm dev` with a `.env`), then exercise tools/widgets in the MCP Inspector it starts. The default boot is read-only; write paths need an explicit suffix: `pnpm play --admin`, or `MCP_ACTIVE_MODULES=engine:admin,analytics` in `.env`                                                                                                                                                                                                                                                                |
 
 The repo guards `pnpm test` runs over the real tree: docs-refs, old-names, published imports,
 tool-name and hand-off references, server env names, the source scan's `APP_SCAN` and the
@@ -731,7 +766,7 @@ themselves on planted violations in fixtures; the extension's own gates live in
 
 A green `pnpm build && pnpm typecheck && pnpm test && pnpm lint` (`pnpm check` runs them) is the minimum bar for
 every change, in that order (`scripts/published-imports.test.mjs` reads the built CLI bundle);
-widget changes additionally need `test:host` plus a manual render check via the inspector (the
+widget changes additionally need `test:host` plus a manual render check in the MCP Inspector (the
 host simulation renders one real view, not every widget's data path).
 
 **Ratchets only move one way.** `scripts/check-ratchets.mjs` (`pnpm lint:ratchets`) compares

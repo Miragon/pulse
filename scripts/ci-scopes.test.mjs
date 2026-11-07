@@ -86,6 +86,10 @@ describe("scopesFor: prose reaches only the checks that read it", () => {
     assert.deepEqual(scopes("docs/.vitepress/theme/custom.css"), ["brand", "typescript"])
   })
 
+  it("runs the script guards for the developer page, whose command local-env.test.mjs reads", () => {
+    assert.deepEqual(scopes("docs/mcp/developer.md"), ["brand", "typescript"])
+  })
+
   it("runs pnpm lint for every config file lint:configs lints, the docs site's too", () => {
     for (const file of DEFAULT_PROJECT_FILES) {
       assert.ok(scopes(file).includes("typescript"), file)
