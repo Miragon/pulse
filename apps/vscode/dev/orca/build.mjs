@@ -56,5 +56,6 @@ await Promise.all([
 
 await cp(`${here}orca-plugin.json`, `${out}orca-plugin.json`)
 await cp(`${here}editor/index.html`, `${out}editor/index.html`)
+await cp(`${here}editor/board.html`, `${out}editor/board.html`)
 await cp(`${app}media/icon.png`, `${out}assets/icon.png`)
 console.log(`[pulse-orca] built ${out}`)

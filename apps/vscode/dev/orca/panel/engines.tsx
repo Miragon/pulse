@@ -1,12 +1,10 @@
 import {
-  atom,
-  Button,
   Callout,
   EmptyState,
   IconButton,
-  Input,
   plugin,
   read,
+  Select,
   set,
   Spinner,
   Stack,
@@ -17,63 +15,30 @@ import {
   type TreeItem,
 } from "orca"
 import type { EngineList, EngineRow } from "../protocol.js"
+import { GoToInstance } from "./go-to-instance.js"
+import { LoginForm } from "./login-form.js"
+import { PanelState } from "./panel-state.js"
+import { PromptCard } from "./prompt-card.js"
+import { Boards, Models } from "./workspace-files.js"
 
-interface Login {
-  readonly engine: string
-  readonly username: string
-  readonly password: string
-  readonly failed: boolean
-}
-
-const list = atom<EngineList | undefined>(undefined)
-const expanded = atom<readonly string[]>([])
-const login = atom<Login | undefined>(undefined)
-
-class EnginesPanel {
-  static async load(): Promise<void> {
-    const answer = await plugin.request("engines.list")
-    set(list, answer)
-    set(
-      expanded,
-      answer.engines.map((engine) => `engine|${engine.name}`),
-    )
-  }
-
-  static shortPath(path: string): string {
-    return path.split("/").slice(-2).join("/")
-  }
-
+class EnginesTree {
   static items(engines: readonly EngineRow[]): TreeItem[] {
     return engines.map((engine) => ({
       key: `engine|${engine.name}`,
-      label: engine.name,
+      label: engine.active ? `${engine.name} (active)` : engine.name,
       description: engine.description,
-      icon: engine.problem === undefined ? "database" : "warning",
-      children:
-        engine.problem === undefined
-          ? engine.definitions.map((definition) => ({
-              key: `definition|${engine.name}|${definition.bpmnProcessId}`,
-              label: definition.label,
-              description: definition.description,
-              icon: definition.withIncident > 0 ? "error" : "layers",
-            }))
-          : [
-              {
-                key: `problem|${engine.name}`,
-                label: engine.problem.title,
-                description: engine.problem.detail,
-                icon: "warning",
-              },
-            ],
+      icon: engine.problem === undefined ? (engine.writable ? "edit" : "database") : "warning",
+      children: EnginesTree.children(engine),
     }))
   }
 
   static select(key: string): void {
+    set(PanelState.selected, key)
     const [kind, engine] = key.split("|")
-    const row = read(list)?.engines.find((candidate) => candidate.name === engine)
+    const row = read(PanelState.list)?.engines.find((candidate) => candidate.name === engine)
     const needsLogin = kind !== "definition" && row?.needsLogin === true
     set(
-      login,
+      PanelState.login,
       needsLogin && engine !== undefined
         ? { engine, username: "", password: "", failed: false }
         : undefined,
@@ -82,108 +47,146 @@ class EnginesPanel {
 
   static act(key: string): void {
     const [kind, engine, bpmnProcessId] = key.split("|")
-    if (kind === "definition" && engine !== undefined && bpmnProcessId !== undefined) {
+    if (engine === undefined) {
+      return
+    }
+    if (kind === "definition" && bpmnProcessId !== undefined) {
       void plugin.request("views.open", { engine, view: "definition", bpmnProcessId })
       return
     }
-    EnginesPanel.select(key)
+    if (kind === "engine") {
+      void plugin.request("views.open", { engine, view: "engine" })
+      return
+    }
+    EnginesTree.select(key)
+  }
+
+  static selection(): { selected?: string } {
+    const selected = read(PanelState.selected)
+    return selected === undefined ? {} : { selected }
   }
 
   static toggle(key: string, open: boolean): void {
-    const others = read(expanded).filter((candidate) => candidate !== key)
-    set(expanded, open ? [...others, key] : others)
+    const others = read(PanelState.expanded).filter((candidate) => candidate !== key)
+    set(PanelState.expanded, open ? [...others, key] : others)
   }
 
-  static async saveLogin(): Promise<void> {
-    const current = read(login)
-    if (current === undefined) {
-      return
+  private static children(engine: EngineRow): readonly TreeItem[] {
+    if (engine.problem !== undefined) {
+      return [
+        {
+          key: `problem|${engine.name}`,
+          label: engine.problem.title,
+          description: engine.problem.detail,
+          icon: "warning",
+        },
+      ]
     }
-    const { ok } = await plugin.request("engines.setCredentials", current)
-    set(login, ok ? undefined : { ...current, failed: true })
-    await EnginesPanel.load()
+    if (engine.definitions.length === 0) {
+      return [
+        { key: `empty|${engine.name}`, label: "No process definitions deployed", icon: "layers" },
+      ]
+    }
+    return engine.definitions.map((definition) => ({
+      key: `definition|${engine.name}|${definition.bpmnProcessId}`,
+      label: definition.label,
+      description: definition.description,
+      icon: definition.withIncident > 0 ? "error" : "layers",
+    }))
   }
 }
 
 export function setup(context: PanelContext): void {
-  context.subscriptions.push(plugin.on("engines.changed", () => void EnginesPanel.load()))
-  void EnginesPanel.load()
+  PanelState.setup(context)
 }
 
-function LoginForm({ current }: { readonly current: Login }) {
+function Header({ answer }: { readonly answer: EngineList }) {
+  const shown =
+    answer.projectFile === ""
+      ? "Default engine on localhost"
+      : answer.projectFile.split("/").slice(-2).join("/")
   return (
-    <Callout tone="warning" icon="plug" title={`Sign in to ${current.engine}`}>
-      <Stack gap="sm">
-        <Input
-          label="Username"
-          value={current.username}
-          onChange={(username) => {
-            set(login, { ...current, username })
-          }}
-        />
-        <Input
-          label="Password"
-          type="password"
-          value={current.password}
-          onChange={(password) => {
-            set(login, { ...current, password })
-          }}
-        />
-        {current.failed ? (
-          <Text tone="danger">Pulse couldn't save the login on this machine.</Text>
-        ) : null}
-        <Button
-          onPress={() => EnginesPanel.saveLogin()}
-          disabled={current.username === "" || current.password === ""}
-        >
-          Save login
-        </Button>
-      </Stack>
-    </Callout>
+    <Toolbar label="Engines">
+      <Text muted size="xs">
+        {shown}
+      </Text>
+      <IconButton
+        icon="refresh"
+        label="Refresh"
+        onPress={() => void Promise.all([PanelState.load(), PanelState.loadFiles()])}
+      />
+      <IconButton
+        icon="settings"
+        label="Configure engines"
+        onPress={() => void plugin.request("engines.configure")}
+      />
+    </Toolbar>
+  )
+}
+
+function ActiveEngine({ engines }: { readonly engines: readonly EngineRow[] }) {
+  if (engines.length < 2) {
+    return null
+  }
+  const active = engines.find((engine) => engine.active)?.name ?? ""
+  return (
+    <Select
+      label="Active engine"
+      value={active}
+      options={engines.map((engine) => ({ value: engine.name, label: engine.name }))}
+      onChange={(engine) => void plugin.request("engines.activate", { engine })}
+    />
   )
 }
 
 export default function Panel() {
-  const answer = read(list)
-  const current = read(login)
+  PanelState.reportVisibility()
+  const answer = read(PanelState.list)
   if (answer === undefined) {
     return <Spinner label="Loading engines" />
   }
-  if (answer.projectFile === "") {
-    return (
-      <EmptyState
-        icon="settings"
-        title="No project file"
-        description="Set Project file under Settings, Plugins, Pulse to the path of a .pulse-cli.json."
-      />
-    )
-  }
+  const login = read(PanelState.login)
+  const active = answer.engines.find((engine) => engine.active)
   return (
     <Stack gap="sm">
-      <Toolbar label="Engines">
-        <Text muted size="xs">
-          {EnginesPanel.shortPath(answer.projectFile)}
-        </Text>
-        <IconButton icon="refresh" label="Refresh" onPress={() => EnginesPanel.load()} />
-      </Toolbar>
+      <Header answer={answer} />
+      {read(PanelState.prompts).map((prompt) => (
+        <PromptCard key={prompt.id} prompt={prompt} />
+      ))}
+      {read(PanelState.notices).map((notice, index) => (
+        <Callout key={`${index}|${notice.text}`} tone={notice.tone} title={notice.text} />
+      ))}
       {answer.problems.map((problem) => (
         <Callout key={problem} tone="danger" title={problem} />
       ))}
-      <Tree
-        label="Engines"
-        items={EnginesPanel.items(answer.engines)}
-        expanded={read(expanded)}
-        onToggle={({ key, expanded: open }) => {
-          EnginesPanel.toggle(key, open)
-        }}
-        onSelect={({ key }) => {
-          EnginesPanel.select(key)
-        }}
-        onAction={({ key }) => {
-          EnginesPanel.act(key)
-        }}
-      />
-      {current === undefined ? null : <LoginForm current={current} />}
+      <ActiveEngine engines={answer.engines} />
+      {active === undefined ? null : <GoToInstance engine={active.name} />}
+      {answer.engines.length === 0 ? (
+        <EmptyState
+          icon="database"
+          title="No engines"
+          description="Configure engines in a .pulse-cli.json."
+        />
+      ) : (
+        <Tree
+          label="Engines"
+          items={EnginesTree.items(answer.engines)}
+          {...EnginesTree.selection()}
+          expanded={read(PanelState.expanded)}
+          onToggle={({ key, expanded }) => {
+            EnginesTree.toggle(key, expanded)
+          }}
+          onSelect={({ key }) => {
+            EnginesTree.select(key)
+          }}
+          onAction={({ key }) => {
+            EnginesTree.act(key)
+          }}
+        />
+      )}
+      {login === undefined ? null : <LoginForm current={login} />}
+      {active === undefined ? null : <Models engine={active.name} />}
+      <Boards />
     </Stack>
   )
 }

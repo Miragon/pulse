@@ -10,10 +10,12 @@ const ENVIRONMENT_LABELS = {
 } as const
 
 export class EngineRows {
-  static async of(connection: Connection): Promise<EngineRow> {
+  static async of(connection: Connection, active: boolean): Promise<EngineRow> {
     const listed = await EngineRows.definitions(connection)
     const base = {
       name: connection.target.name,
+      active,
+      writable: connection.commands !== undefined,
       needsLogin: connection.target.auth.kind === "basic",
     }
     if ("problem" in listed) {

@@ -16,12 +16,33 @@ export interface Disposable {
 export interface PanelContext {
   subscriptions: Disposable[]
   signal: AbortSignal
+  visible: ReadonlyAtom<boolean>
+  panel: { id: string }
 }
 
 export type IconName =
-  "activity" | "database" | "error" | "warning" | "layers" | "refresh" | "settings" | "plug"
+  | "activity"
+  | "add"
+  | "check"
+  | "close"
+  | "database"
+  | "edit"
+  | "error"
+  | "file"
+  | "file-text"
+  | "gauge"
+  | "layers"
+  | "open-external"
+  | "plug"
+  | "refresh"
+  | "search"
+  | "settings"
+  | "star"
+  | "warning"
 export type Tone = "neutral" | "accent" | "success" | "warning" | "danger"
 type Gap = "none" | "xs" | "sm" | "md" | "lg"
+type Size = "xs" | "sm" | "md"
+type Variant = "solid" | "outline" | "ghost"
 type Press = () => unknown
 interface WithChildren {
   children?: unknown
@@ -40,24 +61,60 @@ export interface TreeItem {
 }
 
 export const Stack: OrcaComponent<WithChildren & { gap?: Gap }>
+export const Row: OrcaComponent<
+  WithChildren & { gap?: Gap; justify?: "start" | "center" | "end" | "between"; wrap?: boolean }
+>
 export const Text: OrcaComponent<
-  WithChildren & { tone?: Tone; muted?: boolean; size?: "xs" | "sm" | "md" }
+  WithChildren & {
+    tone?: Tone
+    muted?: boolean
+    size?: Size
+    weight?: "regular" | "medium" | "semibold"
+  }
 >
 export const Button: OrcaComponent<
-  WithChildren & { variant?: "solid" | "outline" | "ghost"; disabled?: boolean; onPress?: Press }
+  WithChildren & {
+    variant?: Variant
+    tone?: Tone
+    size?: Size
+    icon?: IconName
+    disabled?: boolean
+    onPress?: Press
+  }
 >
-export const IconButton: OrcaComponent<Leaf & { icon: IconName; label: string; onPress?: Press }>
+export const IconButton: OrcaComponent<
+  Leaf & { icon: IconName; label: string; variant?: Variant; disabled?: boolean; onPress?: Press }
+>
 export const Input: OrcaComponent<
   Leaf & {
     label: string
+    labelHidden?: boolean
     value?: string
     placeholder?: string
-    type?: "text" | "password"
+    type?: "text" | "search" | "password"
+    invalid?: boolean
+    onChange?: (value: string) => void
+    onSubmit?: (value: string) => void
+  }
+>
+export const Select: OrcaComponent<
+  Leaf & {
+    label: string
+    labelHidden?: boolean
+    value?: string
+    options: readonly { value: string; label: string }[]
     onChange?: (value: string) => void
   }
 >
 export const Toolbar: OrcaComponent<WithChildren & { label: string; gap?: Gap }>
 export const Callout: OrcaComponent<WithChildren & { tone?: Tone; title?: string; icon?: IconName }>
+export const Collapsible: OrcaComponent<
+  WithChildren & { title: string; description?: string; defaultOpen?: boolean }
+>
+export const List: OrcaComponent<WithChildren & { label?: string }>
+export const ListItem: OrcaComponent<
+  WithChildren & { title?: string; description?: string; icon?: IconName; onPress?: Press }
+>
 export const EmptyState: OrcaComponent<
   WithChildren & { title: string; description?: string; icon?: IconName }
 >
@@ -66,6 +123,7 @@ export const Tree: OrcaComponent<
   Leaf & {
     label: string
     items: readonly TreeItem[]
+    selected?: string
     expanded?: readonly string[]
     onToggle?: (item: { key: string; expanded: boolean }) => void
     onSelect?: (item: { key: string }) => void
@@ -91,7 +149,11 @@ type OutputOf<K extends keyof PluginRequests> = PluginRequests[K] extends { outp
   ? O
   : null
 export const plugin: {
-  request<K extends keyof PluginRequests>(name: K, input?: InputOf<K>): Promise<OutputOf<K>>
+  request<K extends keyof PluginRequests>(
+    name: K,
+    input?: InputOf<K>,
+    options?: { signal?: AbortSignal; timeoutMs?: number },
+  ): Promise<OutputOf<K>>
   on<K extends keyof PluginPanelEvents>(
     event: K,
     handler: (payload: PluginPanelEvents[K]) => void,
