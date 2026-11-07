@@ -1,0 +1,57 @@
+{
+  "$schema": "https://raw.githubusercontent.com/stablyai/orca/main/docs/schemas/plugins/orca-plugin.v2.schema.json",
+  "manifestVersion": 2,
+  "id": "pulse-cockpit",
+  "name": "Pulse",
+  "version": "0.0.1",
+  "description": "Spike: the Pulse engine cockpit for Operaton, CIB seven and Camunda 7 inside Orca.",
+  "author": {
+    "name": "Miragon GmbH",
+    "url": "https://www.miragon.io"
+  },
+  "repository": "https://github.com/Miragon/pulse",
+  "license": "MIT",
+  "icon": "assets/icon.png",
+  "engines": {
+    "orca": ">=1.4.248"
+  },
+  "execution": "trusted-worker",
+  "pluginApi": 1,
+  "main": "worker.mjs",
+  "contributes": {
+    "panels": [
+      {
+        "id": "engines",
+        "title": "Pulse",
+        "icon": "activity",
+        "entry": "panel/engines.js",
+        "ui": "components"
+      }
+    ],
+    "customEditors": [
+      {
+        "id": "pulse-view",
+        "title": "Pulse",
+        "extensions": [".pulse-view"],
+        "entry": "editor/index.html",
+        "frame": "isolated"
+      }
+    ],
+    "settings": [
+      {
+        "key": "projectFile",
+        "title": "Project file",
+        "description": "Path of the .pulse-cli.json that names your engines.",
+        "type": "string",
+        "default": "",
+        "placeholder": "/path/to/project/.pulse-cli.json"
+      }
+    ]
+  },
+  "capabilities": [
+    { "kind": "secrets:own" },
+    { "kind": "settings:own" },
+    { "kind": "workspace:read" },
+    { "kind": "workspace:write" }
+  ]
+}

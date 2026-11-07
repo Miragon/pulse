@@ -293,6 +293,7 @@
     "test:e2e:docker": "node scripts/docker-test.mjs e2e",
     "engine:up": "node scripts/engine.mjs up",
     "engine:down": "node scripts/engine.mjs down",
+    "orca:build": "node dev/orca/build.mjs",
     "sandbox:up": "node scripts/sandbox/sandbox.mjs up",
     "sandbox:open": "node scripts/build.mjs && node scripts/sandbox/sandbox.mjs open",
     "sandbox:traffic": "node scripts/sandbox/sandbox.mjs traffic",

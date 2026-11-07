@@ -58,6 +58,10 @@
         "dev/host/dev-host.ts",
         "dev/webview/stub.ts",
         "dev/webview/*.mjs",
+        // The Orca spike: dev/orca/build.mjs bundles these three with esbuild.
+        "dev/orca/worker/main.ts",
+        "dev/orca/panel/engines.tsx",
+        "dev/orca/editor/bridge.ts",
         "test/smoke/*.test.cjs",
       ],
       "vitest": {
