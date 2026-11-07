@@ -41,7 +41,7 @@ An incomplete provider, two providers, an invalid value or OAuth without `MCP_UR
 
 A gateway that terminates auth **in front of** the server is invisible to it (identity is only a
 bearer token the server validates): such a deployment runs read-only until `MCP_ACTIVE_MODULES`
-names its toolsets. A route answers under its own path only, so a path rule in front reads what the server routes on: a request target that is not its own normal form (a dot or empty segment such as `/./mcp`, `/%2e/mcp`, `//mcp` or `/mcp/`, a backslash, a fragment, an absolute URL) gets 404 on every route, ahead of the `Host` check and OAuth; a percent-encoded alias such as `/%6Dcp` matches no route; a `Host` header that is empty, holds more than a host or names none gets 400. Deploying a BPMN/DMN is **code execution inside the engine JVM**, so
+names its toolsets. A route answers under its own path only, so a path rule in front reads what the server routes on: a request target that is not its own normal form (a dot or empty segment such as `/./mcp`, `/%2e/mcp`, `//mcp` or `/mcp/`, a backslash, a fragment, an absolute URL) gets 404 on every route, ahead of the `Host` check and OAuth; a percent-encoded alias such as `/%6Dcp` matches no route; a `Host` header that is empty, holds more than a host or names none gets 400; a TRACE gets 405 on every path, its `Allow` naming what the route takes (empty where no route holds the path). Deploying a BPMN/DMN is **code execution inside the engine JVM**, so
 `engine_create_deployment` also needs `ENGINE_ALLOW_DEPLOYMENTS=true`. Passthrough auth
 (`ENGINE_AUTH_TYPE=passthrough`) forwards each caller's token to the engine (never to Prometheus;
 under OAuth exactly the token the server verified, and a header with a second credential gets 401),
@@ -103,7 +103,7 @@ Three routes sit next to `/mcp`, outside the OAuth gate and the `Host` check:
 
 The server logs one line per request to stdout (`tools/call engine_status /mcp 200 client=claude-code/2.1 12ms`: method, tool or resource, path, status, client, time); a failed one ends in `ERROR <text>`.
 `MCP_LOG_LEVEL=debug` adds tool arguments and results (cut at 80 characters), `trace` whole requests and responses with credential headers redacted; both log process variables and business keys, and the boot warns.
-`/mcp` takes POST only (GET, DELETE and HEAD get 405: the server keeps no session) and `/` serves no page. A refused setting fails the boot (exit 1) with one stderr line that names it.
+`/mcp` takes POST only (GET, DELETE and HEAD get 405: the server keeps no session) and `/` serves no page. Node refuses TRACK itself (400) and closes a CONNECT's socket without an answer: neither shows in this log or in `/metrics`. A refused setting fails the boot (exit 1) with one stderr line that names it.
 Engine metrics come from the Kotlin plugin via any Micrometer export (see [Architecture](architecture.md)), Grafana is optional (`:8470`); alert rules ship in `playground/docker/prometheus/alerts.yml`, and
 `analytics_engine_health` surfaces the same gauges and firing alerts in one call.
 
