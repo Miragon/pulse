@@ -295,9 +295,9 @@ jobs:
 
   # Pulse for Orca as Orca loads it: the built plugin folder through the CLI of a pinned Orca
   # release (its .deb, checked against the release's digest, runs on plain Node: no app, no
-  # display). Bump ORCA_VERSION and ORCA_DEB_SHA256 together with apps/orca/types.
+  # display), and the kit tests on that release's orca/testing. Bump ORCA_VERSION and ORCA_DEB_SHA256 together with apps/orca/types.
   orca:
-    name: Orca plugin (validate + check)
+    name: Orca plugin (validate, check, kit tests)
     needs: changes
     if: needs.changes.outputs.orca == 'true'
     runs-on: ubuntu-latest
@@ -331,6 +331,9 @@ jobs:
           echo "ORCA_RESOURCES=$RUNNER_TEMP/orca/opt/Orca/resources" >> "$GITHUB_ENV"
 
       - run: pnpm --fail-if-no-match --filter @miragon/pulse-orca run test:orca
+
+      # The panel and the worker on Orca's own test kit (orca/testing) of that release.
+      - run: pnpm --fail-if-no-match --filter @miragon/pulse-orca run test:kit
 
   # Every PR: prettier and the build-free repo guards; `pnpm lint` in the typescript scope.
   quality:

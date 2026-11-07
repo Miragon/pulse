@@ -13,7 +13,9 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "test": "vitest run",
-    "test:orca": "node scripts/orca.mjs plugin validate dist && node scripts/orca.mjs plugin check dist",
+    "test:kit": "vitest run --config vitest.kit.config.ts",
+    "test:orca": "node scripts/orca-types.mjs && node scripts/orca.mjs plugin validate dist && node scripts/orca.mjs plugin check dist",
+    "test:smoke": "node scripts/build.mjs && node scripts/smoke.mjs",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.worker.json && tsc -p tsconfig.frame.json",
     "lint": "eslint src test scripts",
     "lint:fix": "eslint src test scripts --fix"

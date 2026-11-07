@@ -6,5 +6,6 @@
     "jsx": null,
     "jsxImportSource": null
   },
-  "include": ["src/worker", "src/protocol.ts", "test", "types"]
+  "include": ["src/worker", "src/protocol.ts", "test", "types"],
+  "exclude": ["test/kit/panel"]
 }

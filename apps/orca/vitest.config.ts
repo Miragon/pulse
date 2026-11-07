@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises"
 import { defineConfig, mergeConfig, type Plugin } from "vitest/config"
 import { sharedConfig } from "../../vitest.shared"
 
-const bpmnAsText: Plugin = {
+export const bpmnAsText: Plugin = {
   name: "bpmn-as-text",
   async load(id) {
     if (!id.endsWith(".bpmn")) return null
@@ -19,7 +19,7 @@ export default mergeConfig(
       restoreMocks: true,
       coverage: {
         include: ["src/worker/**/*.ts", "src/protocol.ts"],
-        thresholds: { lines: 28, statements: 28, functions: 24, branches: 32 },
+        thresholds: { lines: 98, statements: 98, functions: 97, branches: 91 },
       },
       projects: [
         {

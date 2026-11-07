@@ -42,4 +42,15 @@ describe("prompts waiting in the Pulse panel", () => {
     expect(await asking).toBeUndefined()
     expect(prompts.list()).toEqual([])
   })
+
+  test("settle every waiting prompt without an answer when the worker stops", async () => {
+    const counts: number[] = []
+    const prompts = new Prompts((count) => counts.push(count))
+    const asking = prompts.ask({ kind: "pick", title: "Which instance?", choices: [] })
+
+    prompts.dispose()
+
+    expect(await asking).toBeUndefined()
+    expect(counts).toEqual([1, 0])
+  })
 })

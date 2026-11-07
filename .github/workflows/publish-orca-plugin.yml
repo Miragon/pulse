@@ -104,6 +104,8 @@ jobs:
 
       - run: pnpm --fail-if-no-match --filter @miragon/pulse-orca run test:orca
 
+      - run: pnpm --fail-if-no-match --filter @miragon/pulse-orca run test:kit
+
       - name: The folder holds the plugin and nothing else
         run: |
           listing="$(cd apps/orca/dist && find . -type f | sort)"

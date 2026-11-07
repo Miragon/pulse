@@ -25,5 +25,5 @@
     "jsx": "react-jsx",
     "jsxImportSource": "orca"
   },
-  "include": ["src", "test", "types", "vitest.config.ts"]
+  "include": ["src", "test", "types", "vitest.config.ts", "vitest.kit.config.ts"]
 }

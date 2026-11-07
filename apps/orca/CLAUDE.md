@@ -17,14 +17,21 @@ pnpm --filter @miragon/pulse-orca run build      # the plugin folder apps/orca/d
 pnpm --filter @miragon/pulse-orca run typecheck  # tsc over the app, then the worker and the frames with their globals
 pnpm --filter @miragon/pulse-orca run lint       # ESLint with the house rules of the editor hosts
 pnpm --filter @miragon/pulse-orca test           # the worker against a fake Orca, coverage floors
-pnpm --filter @miragon/pulse-orca run test:orca  # orca plugin validate + check over dist (needs Orca, or ORCA_RESOURCES)
+pnpm --filter @miragon/pulse-orca run test:orca  # the typings against this Orca, then orca plugin validate + check over dist (needs Orca, or ORCA_RESOURCES)
+pnpm --filter @miragon/pulse-orca run test:kit   # the panel and the worker on Orca's own test kit (orca/testing)
+pnpm --filter @miragon/pulse-orca run test:smoke # build, load into the running Orca, read the sandbox engines, open a view
 pnpm lint:architecture:orca                      # the closed-world dependency rules
 ```
 
 `apps/orca/scripts/orca.mjs` runs the Orca CLI of the installed app (`/Applications/Orca.app`), or of the
 release whose resources folder `ORCA_RESOURCES` names: CI extracts the pinned Orca .deb and runs
 its CLI on plain Node. `types/` holds Orca's plugin typings as `orca plugin types` writes them for
-that release; bump them together with `ORCA_VERSION` in `.github/workflows/ci.yml`.
+that release; bump them together with `ORCA_VERSION` and `ORCA_DEB_SHA256` in
+`.github/workflows/ci.yml` and `.github/workflows/publish-orca-plugin.yml`. The kit tests
+(`test/kit/*.orca.test.ts`, `vitest.kit.config.ts`) resolve `orca` and `orca/testing` to that
+release's own runtime files, so a panel test draws with Orca's components and a worker test
+answers through Orca's mock host, which refuses what Orca refuses. `test:smoke` approves the
+fingerprint of the plugin it just built, the developer's own folder, and needs the sandbox up.
 
 To try the plugin in Orca, against the sandbox engines of the VS Code extension
 (`pnpm --fail-if-no-match --filter pulse-cockpit run sandbox:up`):

@@ -13,8 +13,12 @@ export class ViewsFixture {
   readonly orca = new FakeOrca()
   readonly opened: unknown[] = []
   readonly closed: string[] = []
+  readonly engines = new Map<string, Connection>()
+  readonly live = new OrcaLive(() => undefined)
   readonly connection: Connection
+  private readonly changes: (() => void)[] = []
   readonly views: CockpitViews
+  openFails = false
 
   constructor() {
     const runtime = new FakeEngine(FakeWorld.seed().state)
@@ -26,25 +30,37 @@ export class ViewsFixture {
       webUi: { name: "Cockpit", overviewUrl: () => "http://localhost:8080/cockpit" },
       ...ConnectionLive.of(runtime),
     } as unknown as Connection
+    this.engines.set("local", this.connection)
     const registry = {
-      byName: (name: string) => (name === "local" ? this.connection : undefined),
-      onDidChange: () => () => undefined,
+      byName: (name: string) => this.engines.get(name),
+      onDidChange: (listener: () => void) => {
+        this.changes.push(listener)
+        return () => undefined
+      },
     } as unknown as EngineRegistry
     this.views = new CockpitViews({
       orca: this.orca.api(),
       registry,
-      live: new OrcaLive(() => undefined),
+      live: this.live,
       audit: new WriteAudit({ info: () => undefined }),
       sources: {} as LocalSources,
       services: { notice: vi.fn() } as unknown as ServiceHost,
       openFile: (request) => {
         this.opened.push(request)
-        return Promise.resolve("/views/file.pulse-view")
+        return this.openFails
+          ? Promise.reject(new Error("no workspace"))
+          : Promise.resolve("/views/file.pulse-view")
       },
       closed: (frame) => {
         this.closed.push(frame)
       },
     })
+  }
+
+  changeEngines(): void {
+    for (const listener of this.changes) {
+      listener()
+    }
   }
 
   statesFor(frame: string): unknown[] {
