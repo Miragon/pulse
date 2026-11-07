@@ -114,7 +114,7 @@ export interface ModuleComposition<TShared> {
   /** Call once per boot; derive the plugins and the boot log from the result. */
   resolveBoot: (env?: NodeJS.ProcessEnv, options?: ResolveBootOptions) => ResolvedBoot
   pluginsFor: (entries: ModuleEntry[], shared: TShared) => ModulePlugin[]
-  warnUnknownEnvVars: (env?: NodeJS.ProcessEnv, extraKnown?: Iterable<string>) => string[]
+  warnUnknownEnvVars: (env?: NodeJS.ProcessEnv) => string[]
   emitBootWarnings: (env?: NodeJS.ProcessEnv) => string[]
   logEffectiveToolsets: (boot: ResolvedBoot) => string
   instructions: (boot: ResolvedBoot) => string | undefined
@@ -124,11 +124,6 @@ export function composeModules<TShared>(options: {
   label: string
   modules: readonly ComposableModule<TShared>[]
   appEnvVars?: readonly string[]
-  /**
-   * The boot's own former variables, each with the one that replaces it: refused like a module's
-   * `retired.envVars`, in the same message.
-   */
-  appRetiredEnvVars?: Readonly<Record<string, string>>
   /** Prefixes owned by other tools in a shared environment, exempt from the typo warner. */
   foreignEnvPrefixes?: readonly string[]
   envVarHint?: string
@@ -137,7 +132,6 @@ export function composeModules<TShared>(options: {
     label,
     modules,
     appEnvVars = [],
-    appRetiredEnvVars = {},
     // The MCP Inspector `pnpm dev` starts: its own namespace, the ports that move it and its
     // client's OAuth callback.
     foreignEnvPrefixes = [
@@ -153,11 +147,7 @@ export function composeModules<TShared>(options: {
     modules.map((m) => [m.name, m]),
   )
   const knownEnvVars = new Set([...appEnvVars, ...modules.flatMap((m) => [...m.knownEnvVars])])
-  const { retiredNames, refusedEnvVars, warnedEnvVars } = retiredTables(
-    modules,
-    knownEnvVars,
-    appRetiredEnvVars,
-  )
+  const { retiredNames, refusedEnvVars, warnedEnvVars } = retiredTables(modules, knownEnvVars)
   const retiredEnvVars = new Map([...refusedEnvVars, ...warnedEnvVars])
 
   // Prefixes derive from every known var, so custom modules get the same typo coverage.
@@ -279,15 +269,14 @@ export function composeModules<TShared>(options: {
         .filter((entry) => registry[entry.app])
         .map((entry) => registry[entry.app].createPlugin(entry.config, shared))
     },
-    warnUnknownEnvVars(env = process.env, extraKnown = []) {
-      const known = new Set([...knownEnvVars, ...extraKnown])
+    warnUnknownEnvVars(env = process.env) {
       // `<KNOWN_VAR>_*` (PROMETHEUS_PASSWORD_FILE, …) addresses OTHER processes, never a typo.
       const extendsKnownVar = (name: string) =>
-        [...known].some((knownName) => name.startsWith(`${knownName}_`))
+        [...knownEnvVars].some((knownName) => name.startsWith(`${knownName}_`))
       const unknown = Object.keys(env).filter(
         (name) =>
           watchedPrefixes.some((prefix) => name.startsWith(prefix)) &&
-          !known.has(name) &&
+          !knownEnvVars.has(name) &&
           !extendsKnownVar(name) &&
           !foreignEnvPrefixes.some((prefix) => name.startsWith(prefix)),
       )
@@ -346,7 +335,6 @@ export function composeModules<TShared>(options: {
 function retiredTables<TShared>(
   modules: readonly ComposableModule<TShared>[],
   knownEnvVars: ReadonlySet<string>,
-  appRetiredEnvVars: Readonly<Record<string, string>>,
 ): {
   retiredNames: ReadonlyMap<string, string>
   refusedEnvVars: ReadonlyMap<string, string>
@@ -355,7 +343,7 @@ function retiredTables<TShared>(
   // In any case: the boot matches a former name in any case.
   const current = new Set(modules.map(({ name }) => name.toLowerCase()))
   const retiredNames = new Map<string, string>()
-  const refusedEnvVars = appRetiredTable(appRetiredEnvVars, knownEnvVars)
+  const refusedEnvVars = new Map<string, string>()
   const warnedEnvVars = new Map<string, string>()
   for (const module of modules) {
     for (const former of module.retired?.names ?? []) {
@@ -385,22 +373,6 @@ function retiredTables<TShared>(
     }
   }
   return { retiredNames, refusedEnvVars, warnedEnvVars }
-}
-
-/** The root's own former variables, seeding the refused table the modules' join. */
-function appRetiredTable(
-  appRetiredEnvVars: Readonly<Record<string, string>>,
-  knownEnvVars: ReadonlySet<string>,
-): Map<string, string> {
-  const table = new Map(Object.entries(appRetiredEnvVars))
-  for (const former of table.keys()) {
-    if (knownEnvVars.has(former)) {
-      throw new Error(
-        `The server retires the variable ${former}, which it or a module still reads.`,
-      )
-    }
-  }
-  return table
 }
 
 /** One warning per warned retired variable that is present: the server reads its replacement. */

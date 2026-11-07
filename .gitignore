@@ -22,10 +22,6 @@ engine-plugins/*/build/
 playground/cibseven-example/.gradle/
 playground/cibseven-example/build/
 .idea/
-# Written by the dev server up to 0.27 (its state folder and a typing file next to the
-# server entry): an older checkout may still hold them, so never commit them.
-.mcp-use/
-mcp-env.d.ts
 .playwright-mcp/
 .ai/
 .DS_STORE

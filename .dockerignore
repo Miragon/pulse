@@ -13,8 +13,6 @@
 **/.data
 .git
 .idea
-# State the dev server wrote up to 0.27: an older checkout may still hold it.
-**/.mcp-use
 .playwright-mcp
 .ai
 engine-plugins/.gradle

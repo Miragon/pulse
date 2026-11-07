@@ -49,7 +49,7 @@ describe("oauthFromEnv: the providers", () => {
     expect(fromEnv({ MCP_OAUTH_AUTH0_DOMAIN: "  " })).toBeUndefined()
     expect(fromEnv({ MCP_OAUTH_DEBUG: "true" })).toBeUndefined()
     expect(fromEnv({ MCP_OAUTH: undefined })).toBeUndefined()
-    expect(fromEnv({ MCP_LOG_LEVEL: "info", MCP_URL: "https://x", MCP_USE_API_KEY: "k" })).toBe(
+    expect(fromEnv({ MCP_LOG_LEVEL: "info", MCP_URL: "https://x", MCP_API_KEY: "k" })).toBe(
       undefined,
     )
     expect(warn).toHaveBeenCalledTimes(4)
@@ -121,8 +121,8 @@ describe("oauthFromEnv: a deployment that asked for OAuth never boots without it
     "MCP_OAUTH_KEYCLOAK_AUDIENCE",
     "MCP_OAUTH_CLERK_FRONTEND_API_URL",
     "MCP_OAUTH_KEYCLOAK_REALMS",
-    // A former name outside the boot's rename table: never read here either.
-    "MCP_USE_OAUTH_KEYCLOAK_AUDIENCE",
+    // A segment in front of it changes nothing: a provider's variable under any MCP_ name.
+    "MCP_FOO_OAUTH_KEYCLOAK_AUDIENCE",
   ])("refuses %s, a variable it does not read", (name) => {
     expect(() => fromEnv({ ...KEYCLOAK, [name]: "https://x.example/mcp" })).toThrow(
       `${name} is not read by this server, so it does not start. Unset it: the server reads one provider's variables, Keycloak (MCP_OAUTH_KEYCLOAK_SERVER_URL, MCP_OAUTH_KEYCLOAK_REALM), Auth0 (MCP_OAUTH_AUTH0_DOMAIN), WorkOS (MCP_OAUTH_WORKOS_SUBDOMAIN), Better Auth (MCP_OAUTH_BETTER_AUTH_URL) or Convex (MCP_OAUTH_CONVEX_AUTH_URL), and takes the token audience from MCP_URL: tokens carry <MCP_URL>/mcp in aud (RFC 8707).`,

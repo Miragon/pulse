@@ -13,12 +13,8 @@ import { MODULES } from "../src/setup.js"
 
 const FIXTURE_JS = path.join(import.meta.dirname, "fixtures", "mcp-app.js")
 
-/**
- * What a developer's shell may still export that the boot refuses or warns about without reading
- * it: any `MCP_OAUTH_*` (an unread one fails the boot), any name of the namespace the server read
- * up to 0.27, and the CSP and asset variables that have no effect.
- */
-const STRAY = /^(?:MCP_OAUTH_?|MCP_USE_|CSP_URLS$|CSP_[A-Z0-9_]+_DOMAINS$|MCP_ASSETS_URL$)/
+/** What a developer's shell may export that the boot refuses without reading it: an unread `MCP_OAUTH_*`. */
+const STRAY = /^MCP_OAUTH_?/
 
 /**
  * The env every in-process boot starts from: EVERY variable the server reads is cleared (the

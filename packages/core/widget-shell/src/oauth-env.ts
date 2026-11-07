@@ -9,8 +9,7 @@
  * There is no provider selector, so the boot picks the one provider whose variables are set. A
  * deployment that asked for auth never comes up without it: the retired JSON variable
  * (`MCP_OAUTH`), an OAuth variable this server does not read, two providers or an incomplete one
- * fail the boot, naming the variables. The names up to 0.27 (`MCP_USE_OAUTH_*`) are the boot's
- * retired table (`retired-boot-env.ts`), refused before this runs.
+ * fail the boot, naming the variables.
  */
 import {
   oauthAuth0Provider,
@@ -68,7 +67,7 @@ export const OAUTH_ENV_VARS: readonly string[] = PROVIDERS.flatMap(({ variables 
 export const OAUTH_DEBUG_ENV_VAR = "MCP_OAUTH_DEBUG"
 /** The retired JSON variable; its successors share its prefix, so only the exact name is refused. */
 const RETIRED = "MCP_OAUTH"
-/** The namespace an OAuth variable lives in; the former one (`MCP_USE_`) included. */
+/** The namespace an OAuth variable lives in, whatever follows it. */
 const MCP = "MCP_"
 /** What names OAuth in a variable: the word, or a provider's segment (`KEYCLOAK`, `AUTH0`, …). */
 const OAUTH_WORDS = ["OAUTH", ...new Set(OAUTH_ENV_VARS.map((name) => name.split("_")[2]))]

@@ -38,7 +38,6 @@ import { createBodyLimitedListener, type BodyLimitedListener } from "./node-list
 import { fontAssetsCsp, installFontAssets } from "./font-assets.js"
 import { installMcpRequestContext } from "./request-context.js"
 import { REQUEST_LOG_LEVEL_ENV_VAR, requestLogLevelWarning } from "./request-log.js"
-import { ineffectiveEnv, RENAMED_BOOT_ENV_VARS } from "./retired-boot-env.js"
 import { createModuleRegistry, type ModuleRegistrations } from "./tool-registration.js"
 import { viewPrelude } from "./protocol/view-name.js"
 import { labelBootError } from "./boot-error.js"
@@ -132,7 +131,6 @@ const composeFor = <TShared>(
     label,
     modules,
     appEnvVars: BOOT_ENV_VARS,
-    appRetiredEnvVars: RENAMED_BOOT_ENV_VARS,
     envVarHint,
   })
 
@@ -144,9 +142,9 @@ export function composedEnvVars<TShared>(
 }
 
 /**
- * Every variable the boot and the modules retired (the boot's own former names, each module's
- * `retired.envVars`), which a boot over them refuses while it is set. A neutral test env clears
- * these next to `composedEnvVars`, so a value a shell still exports never reaches the boot.
+ * Every variable the modules retired (`retired.envVars`), which a boot over them refuses while it
+ * is set. A neutral test env clears these next to `composedEnvVars`, so a value a shell still
+ * exports never reaches the boot.
  */
 export function retiredEnvVars<TShared>(
   modules: readonly ComposableModule<TShared>[],
@@ -262,9 +260,7 @@ function resolveSelection<TShared extends object>(
   composition.activeModules(env)
   // An OAuth variable the server does not read fails the boot: no typo warning for it in front.
   refuseOAuthEnv(env)
-  const ineffective = ineffectiveEnv(env)
-  composition.warnUnknownEnvVars(env, ineffective.names)
-  for (const warning of ineffective.warnings) console.warn(`[${label}] ${warning}`)
+  composition.warnUnknownEnvVars(env)
   const edge = resolveHttpEdgePolicy(env)
   const oauth = options.oauth ?? oauthFromEnv(env, label)
   const resource = oauthResource(oauth, env, label)

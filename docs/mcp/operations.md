@@ -72,8 +72,7 @@ for a trusted single-audience setup only: the engine could replay it here.
 | `PROMETHEUS_URL`                                       | `http://localhost:9090`             | Prometheus HTTP API (`http(s)://`), the analytics data source (the repo's Compose stack publishes `:8460`; the server warns at boot when unset). Auth: `PROMETHEUS_BEARER_TOKEN`, or `PROMETHEUS_USERNAME` + `PROMETHEUS_PASSWORD` (URL userinfo moves there); `PROMETHEUS_HEADERS` adds a JSON object of headers (tenant ids). Ambiguous auth fails the boot                                                                                                                                                                                                   |
 | `ANALYTICS_ENGINE_IDS`                                 | unset                               | Comma-separated `engine_id`s analytics may read, only for a boot without the engine module; with it active its configured engine ids scope analytics and this is ignored. With neither, every analytics tool refuses (fail-closed), so a shared Prometheus never exposes other teams' engines                                                                                                                                                                                                                                                                   |
 
-Unknown `ENGINE_*`/`ENGINES_*`/`MCP_*` variables warn at boot, and so do `CSP_URLS`, `CSP_*_DOMAINS`
-and `MCP_ASSETS_URL`, which have no effect. The server sends no telemetry. The engine container takes `METRICS_ENABLED`,
+Unknown `ENGINE_*`/`ENGINES_*`/`MCP_*` variables warn at boot. The server sends no telemetry. The engine container takes `METRICS_ENABLED`,
 `ENGINE_ID` (must match the server's engine id, or that engine's analytics come back empty),
 `OTEL_EXPORTER_OTLP_ENDPOINT`/`OTEL_SERVICE_NAME` and, per node of a clustered engine, `OTEL_RESOURCE_ATTRIBUTES=service.instance.id=<node>`.
 

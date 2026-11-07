@@ -195,11 +195,10 @@ describe("createComposedServer: boot", () => {
     )
   })
 
-  it("names every variable the boot and the modules retired in retiredEnvVars, none of them read", () => {
+  it("names every variable the modules retired in retiredEnvVars, none of them read", () => {
     const retiring = { ...alpha, retired: { names: ["alpha0"], envVars: { OLD_URL: "ALPHA_URL" } } }
     const retired = [...retiredEnvVars([retiring])]
-    expect(retired.at(-1)).toBe("OLD_URL")
-    expect(retired).toContain("MCP_USE_LOG_LEVEL")
+    expect(retired).toEqual(["OLD_URL"])
     expect(composedEnvVars([retiring]).has("OLD_URL")).toBe(false)
     expect(retiredEnvVars([alpha]).has("OLD_URL")).toBe(false)
   })

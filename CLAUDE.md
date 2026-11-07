@@ -15,8 +15,7 @@ Docs are held to the code:
   page stays within its line budget.
 - `scripts/old-names.test.mjs` fails on a technical name of the retired operate CLI, on the
   unscoped npm packages pulse and pulse-cli (someone else's), on an image off GHCR, on the
-  retired OAuth JSON variable, on a package of the retired MCP toolkit, on the framework the
-  server ran on up to 0.27 (its packages and its variables, which the boot refuses) and on a name the engine
+  retired OAuth JSON variable, on a package of the retired MCP toolkit and on a name the engine
   module carried up to 0.24 (its `camunda7_` tools, the module name, its packages and app path,
   its `CAMUNDA_` server variables, its metric names); the vendor (`flavor` `camunda7`,
   "Camunda 7") stays.

@@ -294,12 +294,8 @@ describe("warnUnknownEnvVars", () => {
     expect(warn).toHaveBeenCalledTimes(2)
   })
 
-  it("exempts foreign prefixes and honors the extra allowlist", () => {
-    expect(
-      compose().warnUnknownEnvVars({ MCP_INSPECTOR_SECRET_STORE: "memory", MCP_SECRET: "x" }, [
-        "MCP_SECRET",
-      ]),
-    ).toEqual([])
+  it("exempts foreign prefixes", () => {
+    expect(compose().warnUnknownEnvVars({ MCP_INSPECTOR_SECRET_STORE: "memory" })).toEqual([])
   })
 
   // `pnpm dev` starts the MCP Inspector next to the server; moving its ports sets these for both.
@@ -313,13 +309,6 @@ describe("warnUnknownEnvVars", () => {
         MCP_SANDBOX_PROT: "6285",
       }),
     ).toEqual(["MCP_SANDBOX_PROT"])
-    expect(warn).toHaveBeenCalledOnce()
-  })
-
-  // The names up to 0.27 have no exemption: a leftover one is unknown.
-  it("warns about a leftover MCP_USE_* name", () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
-    expect(compose().warnUnknownEnvVars({ MCP_USE_DEV_CLI: "1" })).toEqual(["MCP_USE_DEV_CLI"])
     expect(warn).toHaveBeenCalledOnce()
   })
 
