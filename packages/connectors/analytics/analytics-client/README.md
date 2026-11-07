@@ -25,7 +25,7 @@ usable by any project that reads Camunda process metrics from Prometheus.
 ## Exports
 
 The package has one entry point, `.`: the Prometheus client (`createPrometheusClient`,
-`withCallerSignal`), `queries`, the result types, `PERIODS` (the periods a query takes),
+`withCallerSignal`, `PrometheusRequestError`), `queries`, the result types, `PERIODS` (the periods a query takes),
 `increaseIn` and `ENGINE_METRICS_STATE_RULE` (how `engineHealth` reaches its `metricsState`). It has no
 runtime dependency: the `analytics_*` tools' input schemas (zod) live in
 [`@miragon/pulse-analytics-connector`](../analytics-connector), next to the tools.
@@ -57,8 +57,11 @@ const dashboard = await queries.dashboardData(prom, {
 `username` + `password`; userinfo in `url` is moved into the Basic header),
 extra `headers` (e.g. a tenant id) and a per-query `timeoutMs` (default
 30 000 ms). Ambiguous auth throws at construction. Query errors never carry
-the URL or a credential and truncate upstream bodies, so they are safe to show
-a model. `withCallerSignal(client, signal)` makes every query abort with the
+the URL or a credential (an upstream's text is echoed with both masked), truncate
+upstream bodies and leave out a web page from a service that is not Prometheus,
+so they are safe to show a model. Each is a
+`PrometheusRequestError`, whose `kind` tells a caller which of its own settings
+to name. `withCallerSignal(client, signal)` makes every query abort with the
 caller's signal as well.
 
 ## Metrics contract

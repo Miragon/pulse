@@ -201,6 +201,32 @@ describe("logEffectiveToolsets", () => {
       "[test-root] Toolsets: no active modules",
     )
   })
+
+  // A module copied into the root's list but not into a copied .env would otherwise stay absent
+  // with no word in the log.
+  it("names the modules of the root's list that MCP_ACTIVE_MODULES leaves off, on the one line", () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {})
+    const composition = compose([moduleOf("alpha"), moduleOf("beta"), moduleOf("gamma")])
+    const logFor = (value: string) =>
+      composition.logEffectiveToolsets(composition.resolveBoot({ MCP_ACTIVE_MODULES: value }))
+    expect(logFor("beta:admin")).toBe(
+      "[test-root] Toolsets: beta:admin (suffix); left off by MCP_ACTIVE_MODULES: alpha, gamma",
+    )
+    expect(info).toHaveBeenCalledTimes(1)
+    expect(logFor(",")).toBe(
+      "[test-root] Toolsets: no active modules; left off by MCP_ACTIVE_MODULES: alpha, beta, gamma",
+    )
+  })
+
+  it.each([
+    ["unset", {}],
+    ["all", { MCP_ACTIVE_MODULES: "all" }],
+    ["naming every module", { MCP_ACTIVE_MODULES: "beta,alpha" }],
+  ])("names none when the list is %s", (_case, env) => {
+    vi.spyOn(console, "info").mockImplementation(() => {})
+    const composition = compose([moduleOf("alpha"), moduleOf("beta")])
+    expect(composition.logEffectiveToolsets(composition.resolveBoot(env))).not.toContain("left off")
+  })
 })
 
 describe("instructions", () => {
