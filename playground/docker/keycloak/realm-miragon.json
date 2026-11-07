@@ -63,7 +63,7 @@
         "subType": "anonymous",
         "subComponents": {},
         "config": {
-          "trusted-hosts": ["localhost", "127.0.0.1"],
+          "trusted-hosts": ["localhost", "127.0.0.1", "github.com"],
           "host-sending-registration-request-must-match": ["false"],
           "client-uris-must-match": ["true"]
         }
