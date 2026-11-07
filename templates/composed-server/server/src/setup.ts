@@ -23,8 +23,9 @@ export type ModuleDefinition = ComposableModule<SharedResources>
 
 /**
  * The modules THIS server composes; the boot selects, warns and wires them. Adding a module
- * touches this list and the spread in `src/ui/view-registry.ts` next to its `workspace:*`
- * dependency (the `create-module` skill walks through them, and through removing the example).
+ * touches this list, the spread in `src/ui/view-registry.ts` next to its `workspace:*`
+ * dependency and `MCP_ACTIVE_MODULES` in `.env.example` (the `create-module` skill walks through
+ * them, and through removing the example).
  * The guard tests in `test/` derive what they check from this list and the tools it registers, so
  * adding, replacing or dropping a module needs no test edit; only `test/example-notes.test.ts`
  * names the example module, and it goes with it.

@@ -22,7 +22,7 @@ our leasing process" or "retry the failed jobs of X" needs no new module or
 tool: the model calls these. They are writes, so without OAuth they register
 only under the `operations` toolset (`engine:operations` in
 `MCP_ACTIVE_MODULES` next to your other modules, e.g.
-`engine:operations,analytics,notes`; invariant 8). The default boot (no OAuth,
+`engine:operations,notes`; invariant 8). The default boot (no OAuth,
 no suffix) runs the read-only floor and lists none of them. To list the
 running toolset's tools, use the inspector or
 `pnpm exec mcp-use client local tools list` in `server/` after the one-time
@@ -39,7 +39,7 @@ cover a need, stop and ask: custom modules have no supported engine seam yet.
 ```bash
 corepack enable       # pnpm 10.32.1 (`packageManager`); Node.js 25+ has none: npm i -g pnpm@10.32.1
 pnpm install          # public npm registry only, no credentials needed
-cp .env.example .env  # local config; `pnpm dev` loads it (only `pnpm dev` does)
+cp .env.example .env  # local config, runs engine and notes (compose.yaml has no Prometheus); only `pnpm dev` loads it
 
 pnpm build            # modules → widget bundle → server
 pnpm typecheck        # tsc everywhere, INCLUDING widget .tsx code: the only check that covers it
@@ -63,7 +63,9 @@ external infrastructure.
    the module's `name` and one `register(server)` that registers all its
    tools; the boot refuses a tool name two plugins register and names both.
    Wiring a module touches the server in two places (`MODULES` in `setup.ts`,
-   the spread in `ui/view-registry.ts`) plus the `workspace:*` dependency;
+   the spread in `ui/view-registry.ts`) plus the `workspace:*` dependency and
+   `MCP_ACTIVE_MODULES` in `.env.example` and your `.env` (a module the list does
+   not name stays off, a name `MODULES` no longer holds fails the boot);
    the `create-module` skill walks through all of them, and through removing
    the example module. The guard tests in `server/test/` follow `MODULES`, so
    adding a module and removing the example need no guard-test edit; only
@@ -140,10 +142,12 @@ external infrastructure.
    namespace.
 7. **`.env.example` documents every env var the server reads**: both drift
    directions are guarded by `server/test/env-example.test.ts`; add your
-   module's vars there.
+   module's vars there. The same test holds its live `MCP_ACTIVE_MODULES` to
+   `MODULES`: every composed module; analytics may stay out, since
+   `compose.yaml` runs no Prometheus.
 8. **Toolsets fail closed.** A module opts into the `module:toolset` suffix by
    declaring `toolsets: createToolsetVocabulary(...)` on its definition (a
-   module without one has no toolsets and registers every tool on every boot,
+   module without one has no toolsets and registers every tool whenever it runs,
    so it declares them as soon as it registers a tool without
    `readOnlyHint: true` and the server may run without OAuth; until then a
    boot without OAuth warns once per such tool); the boot resolves ONE

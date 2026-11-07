@@ -1,8 +1,9 @@
 # A CIB seven engine to try the engine tools on: `docker compose up -d`, then `pnpm dev`.
 # The live values of .env.example point at it (localhost:8410, cibseven, demo/demo).
 #
-# The engine tools only: it records no metrics and runs no Prometheus, so the analytics tools
-# need the Pulse playground (https://github.com/Miragon/pulse/tree/main/playground). The
+# The engine tools only: it records no metrics and runs no Prometheus, so MCP_ACTIVE_MODULES in
+# .env.example leaves analytics off. The analytics tools need the Pulse playground
+# (https://github.com/Miragon/pulse/tree/main/playground) and analytics in that list. The
 # playground's engine takes port 8410 too: run one of the two.
 #
 # LOOPBACK ONLY: the port binds to 127.0.0.1 and the logins are demo-grade. Don't drop the

@@ -26,7 +26,7 @@ module already registers the generic engine operations as tools
 (`engine_start_process_instance`, `engine_correlate_message`,
 `engine_set_job_retries` and more), so "start our leasing process" needs no
 new tool. A listing shows only the running toolset: these writes appear with
-OAuth or under `MCP_ACTIVE_MODULES=engine:operations,analytics,<yours>`, never
+OAuth or under `MCP_ACTIVE_MODULES=engine:operations,<yours>`, never
 in the default read-only boot. List them in the inspector or with
 `pnpm exec mcp-use client local tools list` in `server/`, after the one-time
 `connect` (`CLAUDE.md` → Verification). To give the model your processes'
@@ -144,7 +144,7 @@ Tool conventions (they carry the contract, so they are not cosmetic):
 
 ## Step 5: toolsets (as soon as a tool writes)
 
-A module without toolsets registers every tool on every boot. Without OAuth
+A module without toolsets registers every tool whenever it runs. Without OAuth
 nobody signs in, so each of its writes is open to anyone who reaches the
 port; the boot warns once per tool without `readOnlyHint: true`, naming the
 tool and your module. So take this step as soon as your module registers a
@@ -184,13 +184,20 @@ export const myToolsets = createToolsetVocabulary("<name>", MY_TOOLSETS, "read-o
 
 ## Step 6: wire the module into the server
 
-Three edits, plus the env documentation:
+Four edits, plus the env documentation:
 
 1. `server/package.json`: add `"@<your-scope>/mcp-<name>": "workspace:*"`,
    then `pnpm install`.
 2. `server/src/setup.ts`: add your module to `MODULES`.
 3. `server/src/ui/view-registry.ts`: spread your `<name>Views` map into
    `viewRegistry` (needed once you have show tools; harmless before).
+4. `MCP_ACTIVE_MODULES` in `.env.example` and in your `.env`: add `<name>` to
+   the list. A module the list does not name stays off and its tools are absent
+   (the boot log's `Toolsets:` line shows what runs).
+   `server/test/env-example.test.ts` holds `.env.example` to `MODULES`; nothing
+   checks your `.env`, so a stale copy boots without your module. The playground
+   recipe in the README's Quickstart and in the `setup-server` skill's Step 5
+   names the modules itself in `-e MCP_ACTIVE_MODULES`: add `<name>` there too.
 
 A missed spread is **silent** (tools work, the view says it can't show
 itself), which is why `server/test/view-registry.test.ts` covers you
@@ -223,7 +230,7 @@ a module without toolsets leaves open), and call your tools in the
 inspector at `http://localhost:8400/mcp/inspector`, or headless via the
 mcp-use client/screenshot commands in `CLAUDE.md` → Verification. Also verify
 the selection path: `MCP_ACTIVE_MODULES=<name> pnpm dev` must expose exactly
-your module's tools. If you declared `toolsets`, that is its read-only floor
+your module's tools (the shell's value beats `.env`). If you declared `toolsets`, that is its read-only floor
 without OAuth and its `authenticatedDefault` with it (the boot log's
 `Toolsets:` line says which).
 
@@ -237,8 +244,10 @@ own module stands, take the example out in one change:
    import.
 3. `server/package.json`: drop the `@acme/mcp-notes` dependency and the notes
    in `description`; delete `modules/mcp-notes`, then `pnpm install`.
-4. `.env.example`: drop the Notes block (`NOTES_TITLE`) and every other
-   `notes` mention (the `MCP_ACTIVE_MODULES` comment and its example).
+4. `.env.example`: drop the Notes block (`NOTES_TITLE`), `notes` from the live
+   `MCP_ACTIVE_MODULES` value and every other `notes` mention (that variable's
+   comment). Take it out of your `.env` too: the boot refuses a name the list
+   still holds once `MODULES` no longer does.
 5. `server/src/app.ts`: `SERVER_INSTRUCTIONS` tells the model the server holds
    team notes; say what yours does.
 6. Delete `server/test/example-notes.test.ts`, the one test that names the
@@ -247,11 +256,20 @@ own module stands, take the example out in one change:
    Verification, the `setup-server` skill's Step 1, the README's Quickstart)
    take a show tool of yours, and the README's Configuration names your
    module where it names notes (the toolset prose and the variable table).
+8. Every module list that still names `notes` names your module: the README's
+   Quickstart (`MCP_ACTIVE_MODULES=engine,notes`, and
+   `-e MCP_ACTIVE_MODULES=engine,analytics,notes` in the playground recipe),
+   `CLAUDE.md` (`engine:operations,notes` and the comment on
+   `cp .env.example .env`) and the `setup-server` skill (Steps 1, 2, 3 and 5,
+   Troubleshooting). Copied as it stands, such a value fails the boot.
+   `git grep -n notes` shows what is left, including the comment in
+   `server/src/setup.ts` that names the deleted test.
 
 Then run Step 7's bar. The other guard tests follow `MODULES`, so they need no
 edit. The same holds for a Pulse module you leave out: dropping analytics is
 `analyticsModule` in `MODULES`, `analyticsViews` and `analyticsHostWidgets` in
-`view-registry.ts` and its block in `.env.example`.
+`view-registry.ts`, its block in `.env.example` and its name in any
+`MCP_ACTIVE_MODULES` value that holds it.
 
 ## Anti-patterns
 

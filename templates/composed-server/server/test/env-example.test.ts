@@ -23,6 +23,16 @@ function documentedKeys(content: string): string[] {
     .filter((key): key is string => key !== undefined)
 }
 
+/** The modules the live `MCP_ACTIVE_MODULES=` line runs, read as the boot reads it; unset or `all` runs every composed one. */
+function listedModules(content: string, composed: readonly string[]): string[] {
+  const value = /^MCP_ACTIVE_MODULES=(.*)$/m.exec(content)?.[1]?.trim()
+  if (!value || value === "all") return [...composed]
+  return value
+    .split(",")
+    .map((entry) => entry.replace(/:.*$/, "").trim())
+    .filter(Boolean)
+}
+
 describe(".env.example matches the server's env surface", () => {
   const keys = documentedKeys(fs.readFileSync(ENV_EXAMPLE, "utf8"))
   const allowed = composedEnvVars(MODULES)
@@ -38,5 +48,23 @@ describe(".env.example matches the server's env surface", () => {
   it("lists each variable exactly once", () => {
     const duplicates = keys.filter((key, i) => keys.indexOf(key) !== i)
     expect(duplicates).toEqual([])
+  })
+})
+
+describe("the module list a copied .env starts with", () => {
+  const composed = MODULES.map(({ name }) => name)
+  const listed = listedModules(fs.readFileSync(ENV_EXAMPLE, "utf8"), composed)
+
+  it("names only composed modules (the boot refuses an unknown one)", () => {
+    expect(listed.filter((name) => !composed.includes(name))).toEqual([])
+  })
+
+  it("names each module once (the boot refuses a repeat)", () => {
+    expect(listed.filter((name, i) => listed.indexOf(name) !== i)).toEqual([])
+  })
+
+  // Analytics may stay out: compose.yaml runs no Prometheus for it to read.
+  it("names every other composed module (one it leaves out is off, its tools absent)", () => {
+    expect(composed.filter((name) => name !== "analytics" && !listed.includes(name))).toEqual([])
   })
 })

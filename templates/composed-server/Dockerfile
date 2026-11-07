@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 # Mirrors the stock Pulse server image (two-stage pnpm build). Requires a
-# committed pnpm-lock.yaml: run `pnpm install` once and commit the lockfile.
+# committed pnpm-lock.yaml: run `pnpm install` and commit it if it changed.
 
 FROM node:26-slim AS base
 
@@ -28,6 +28,10 @@ RUN pnpm install --frozen-lockfile --offline
 RUN pnpm run build
 
 # Selected by path, not by name: renaming the @acme scope needs no edit here.
+# pnpm 10's default deploy only takes a workspace with inject-workspace-packages=true, which this
+# one does not set, so --legacy picks the former implementation. pnpm says so on every build,
+# as expected: "WARN Shared workspace lockfile detected but configuration forces legacy deploy
+# implementation." A prom-client deprecation warning, when one shows, comes from a dependency.
 RUN pnpm --filter ./server deploy --prod --legacy /app/deployed
 
 FROM base AS runtime
