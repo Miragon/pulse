@@ -17,10 +17,11 @@ import { parse } from "yaml"
 import {
   BEFORE_THE_GATE,
   CI_WORKFLOW,
-  CLI_PUBLISH_TRIGGERS,
-  CLI_PUBLISH_WORKFLOWS,
+  CHANNEL_PUBLISH_TRIGGERS,
+  CHANNEL_PUBLISH_WORKFLOWS,
   DOCS_TRIGGERS,
   DOCS_WORKFLOW,
+  ORCA_PUBLISH_ACTION,
   PAGES_ENVIRONMENT,
   PUBLISHABLE_DIR,
   PUBLISH_WORKFLOW,
@@ -30,7 +31,7 @@ import {
   VSCODE_PUBLISH_WORKFLOW,
   actionRefs,
   checkCiScopes,
-  checkCliPublishWorkflows,
+  checkChannelPublishWorkflows,
   checkDocsDeploy,
   checkPluginVersions,
   checkPublishMatrix,
@@ -1285,22 +1286,22 @@ describe("checkReleaseGate", () => {
   })
 })
 
-// ── publish-cli.yml + publish-homebrew.yml ──────────────────────────────────
+// ── publish-cli.yml + publish-homebrew.yml + publish-orca-plugin.yml ────────
 
-describe("checkCliPublishWorkflows", () => {
+describe("checkChannelPublishWorkflows", () => {
   const workflows = () =>
-    new Map([RELEASE_WORKFLOW, ...CLI_PUBLISH_WORKFLOWS].map((file) => [file, readDoc(file)]))
+    new Map([RELEASE_WORKFLOW, ...CHANNEL_PUBLISH_WORKFLOWS].map((file) => [file, readDoc(file)]))
 
   it("accepts the real workflows", () => {
-    assert.deepEqual(checkCliPublishWorkflows(workflows()), [])
+    assert.deepEqual(checkChannelPublishWorkflows(workflows()), [])
   })
 
   it("rejects a package manager next to a write grant, not in a contents: read job", () => {
     const docs = workflows()
-    const cli = docs.get(CLI_PUBLISH_WORKFLOWS[0])
+    const cli = docs.get(CHANNEL_PUBLISH_WORKFLOWS[0])
     cli.jobs.image.steps.splice(1, 0, { run: "pnpm install --frozen-lockfile" })
     cli.jobs.assets.steps.push({ run: "npx some-tool" })
-    const errors = checkCliPublishWorkflows(docs)
+    const errors = checkChannelPublishWorkflows(docs)
     assert.equal(errors.length, 2)
     assert.match(errors[0], /job assets holds .* and runs "npx"/)
     assert.match(errors[1], /job image holds .* and runs "pnpm"/)
@@ -1308,7 +1309,7 @@ describe("checkCliPublishWorkflows", () => {
 
   it("rejects a package manager next to an App token, a secret or a minted token", () => {
     const docs = workflows()
-    const brew = docs.get(CLI_PUBLISH_WORKFLOWS[1])
+    const brew = docs.get(CHANNEL_PUBLISH_WORKFLOWS[1])
     brew.jobs.publish.steps.splice(2, 0, { run: "npx some-tool" })
     brew.jobs.formula.steps.push({
       env: { NPM_TOKEN: "${{ secrets.NPM_TOKEN }}" },
@@ -1318,7 +1319,7 @@ describe("checkCliPublishWorkflows", () => {
       env: { GH_TOKEN: "${{ needs.formula.outputs.tap-token }}" },
       run: "yarn install",
     })
-    const errors = checkCliPublishWorkflows(docs)
+    const errors = checkChannelPublishWorkflows(docs)
     assert.equal(errors.length, 3)
     assert.match(errors[0], /job formula holds a secret and runs "npm ci"/)
     assert.match(errors[1], /job verify holds a minted token and runs "yarn"/)
@@ -1327,23 +1328,23 @@ describe("checkCliPublishWorkflows", () => {
 
   it("lets a contents: read job with only its own GITHUB_TOKEN run a package manager", () => {
     const docs = workflows()
-    const cli = docs.get(CLI_PUBLISH_WORKFLOWS[0])
+    const cli = docs.get(CHANNEL_PUBLISH_WORKFLOWS[0])
     cli.jobs.bundle.steps.push({
       env: { GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" },
       run: "pnpm --version",
     })
-    assert.deepEqual(checkCliPublishWorkflows(docs), [])
+    assert.deepEqual(checkChannelPublishWorkflows(docs), [])
   })
 
   it("rejects string permissions, top-level grants, caches, persisted credentials and expressions in run", () => {
     const docs = workflows()
-    const brew = docs.get(CLI_PUBLISH_WORKFLOWS[1])
+    const brew = docs.get(CHANNEL_PUBLISH_WORKFLOWS[1])
     brew.permissions = { contents: "read" }
     brew.jobs.publish.permissions = "write-all"
     brew.jobs.formula.steps[0].with = {}
     brew.jobs.verify.steps.push({ uses: "actions/cache@v6.1.0", with: { path: "x", key: "y" } })
     brew.jobs.verify.steps.push({ run: 'echo "${{ inputs.version }}"' })
-    const errors = checkCliPublishWorkflows(docs)
+    const errors = checkChannelPublishWorkflows(docs)
     assert.equal(errors.length, 5)
     assert.match(errors[0], /top-level permissions must be \{\}/)
   })
@@ -1351,9 +1352,9 @@ describe("checkCliPublishWorkflows", () => {
   it("demands that the release calls each one and that it runs on its own triggers only", () => {
     const docs = workflows()
     delete docs.get(RELEASE_WORKFLOW).jobs["publish-homebrew"]
-    docs.get(CLI_PUBLISH_WORKFLOWS[0]).on.workflow_dispatch = {}
-    docs.get(CLI_PUBLISH_WORKFLOWS[1]).on.push = { branches: ["main"] }
-    const errors = checkCliPublishWorkflows(docs)
+    docs.get(CHANNEL_PUBLISH_WORKFLOWS[0]).on.workflow_dispatch = {}
+    docs.get(CHANNEL_PUBLISH_WORKFLOWS[1]).on.push = { branches: ["main"] }
+    const errors = checkChannelPublishWorkflows(docs)
     assert.equal(errors.length, 3)
     assert.match(
       errors[0],
@@ -1361,16 +1362,31 @@ describe("checkCliPublishWorkflows", () => {
     )
     assert.match(errors[1], /no job calls \.\/\.github\/workflows\/publish-homebrew\.yml/)
     assert.match(errors[2], /publish-homebrew\.yml: runs on push; it runs on workflow_call and/)
-    assert.deepEqual(Object.keys(CLI_PUBLISH_TRIGGERS), CLI_PUBLISH_WORKFLOWS)
+    assert.deepEqual(Object.keys(CHANNEL_PUBLISH_TRIGGERS), CHANNEL_PUBLISH_WORKFLOWS)
+  })
+
+  it("pins the Orca publish action to a commit, in a job a dry run skips, next to no package manager", () => {
+    const docs = workflows()
+    const orca = docs.get(CHANNEL_PUBLISH_WORKFLOWS[2])
+    const publish = orca.jobs.publish
+    const action = publish.steps.find((step) => String(step.uses).startsWith(ORCA_PUBLISH_ACTION))
+    action.uses = `${ORCA_PUBLISH_ACTION}@main`
+    delete publish.if
+    publish.steps.push({ run: "pnpm install --frozen-lockfile" })
+    const errors = checkChannelPublishWorkflows(docs)
+    assert.equal(errors.length, 3)
+    assert.match(errors[0], /publish-plugin is pinned to "main"; pin it to a full commit SHA/)
+    assert.match(errors[1], /job publish publishes to Miragon\/orca-modelers: it needs if:/)
+    assert.match(errors[2], /job publish holds an App token and runs "pnpm"/)
   })
 
   it("names a missing workflow, and a release that calls nothing", () => {
     const docs = workflows()
-    docs.delete(CLI_PUBLISH_WORKFLOWS[1])
-    assert.match(checkCliPublishWorkflows(docs)[0], /publish-homebrew\.yml is missing/)
+    docs.delete(CHANNEL_PUBLISH_WORKFLOWS[1])
+    assert.match(checkChannelPublishWorkflows(docs)[0], /publish-homebrew\.yml is missing/)
     docs.delete(RELEASE_WORKFLOW)
     assert.match(
-      checkCliPublishWorkflows(docs)[0],
+      checkChannelPublishWorkflows(docs)[0],
       /no job calls \.\/\.github\/workflows\/publish-cli\.yml/,
     )
   })

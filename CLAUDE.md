@@ -769,14 +769,17 @@ workspace (its header lists each check).
   to the Visual Studio Marketplace and Open VSX from one job in the `vscode-marketplace`
   environment that builds nothing; `VSCE_PUBLISH`/`OVSX_PUBLISH` are handed down by name, never
   `secrets: inherit`.
-- **The Orca plugin ships as a Git repository, never through npm**
-  (`.github/workflows/publish-orca-plugin.yml`): Orca installs a plugin from a repository, pinned
-  to the commit of its newest version tag. The workflow builds `apps/orca/dist` without
-  credentials, checks it with the CLI of the Orca release CI pins, pushes it to the read-only
-  mirror `Miragon/pulse-orca` with a token of the release-please app, tags and releases that
-  commit with the release tag, and attaches the plugin folder and its catalog release entry
-  (`orca plugin release-entry`) to the Pulse release. The jobs that hold a token install nothing.
-  Listing it in an Orca catalog is a pull request there, with that entry.
+- **The Orca plugin ships into Miragon's Orca catalog, never through npm**
+  (`.github/workflows/publish-orca-plugin.yml`): Orca installs a plugin from committed files,
+  pinned to a commit and the hash of its files, so the built folder lives in
+  `Miragon/orca-modelers` (`plugins/pulse-cockpit`, listed as `miragon.pulse-cockpit` in its
+  `orca-catalog.json`), never in this repository. The workflow builds `apps/orca/dist` without
+  credentials, checks it with the CLI of the Orca release CI pins and hands it, with the release
+  tag and the plugin's lines of the changelog (`apps/orca/scripts/release-notes.mjs`), to that
+  repository's `publish-plugin` action, pinned to a commit, with a token of the release-please
+  app. The action admits only what its `sources.json` names (`pulse-cockpit` from
+  `Miragon/pulse`) and merges the folder and the catalog entry through two validated pull
+  requests; the job that holds the token installs nothing.
 - **Engine plugins** publish to Maven Central via `publish-to-maven.yml` (Vanniktech Maven
   Publish, GPG-signed) under the group `io.miragon.mcp` with the engine in the artifactId
   (`io.miragon.mcp:cibseven-history-metrics`); publishing config lives in each module's own
