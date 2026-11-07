@@ -1,5 +1,6 @@
 import * as vscode from "vscode"
 import type { Connection } from "../connections/connection.js"
+import { ProfileFileName } from "../connections/profile-file-name.js"
 import type { OpenTargetsFileCommand } from "./open-targets-file-command.js"
 import type { SetCredentialsCommand } from "./set-credentials-command.js"
 
@@ -14,17 +15,23 @@ export class ConnectionEditor {
   }
 
   async edit(connection: Connection): Promise<void> {
+    const source = connection.target.source
+    const file = source.kind === "file" ? source.path : undefined
     const choice = await vscode.window.showQuickPick(
       [
         { label: `Set credentials for ${connection.target.name}…`, action: "credentials" as const },
-        { label: "Open the project file", action: "file" as const },
+        {
+          label:
+            file === undefined ? "Configure engines…" : `Open ${ProfileFileName.inSentence(file)}`,
+          action: "file" as const,
+        },
       ],
       { title: `Edit connection ${connection.target.name}` },
     )
     if (choice?.action === "credentials") {
       await this.setCredentialsOf(connection)
     } else if (choice?.action === "file") {
-      await this.openTargetsFile.run()
+      await this.openTargetsFile.run(file)
     }
   }
 }

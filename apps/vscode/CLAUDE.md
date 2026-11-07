@@ -109,7 +109,9 @@ host stay engine-neutral.
   per fixture). `apps/vscode/test/host/project-file-fixtures.test.ts` reads the fixtures as files
   (never an import) and holds `TargetsParser` to both. A profile the CLI accepts is a target with
   the CLI's URL, auth type and read-only flag, or a named problem; a value the CLI refuses never
-  becomes a default. Change the parser with the fixtures, not apart.
+  becomes a default. Change the parser with the fixtures, not apart. The CLI's user config
+  follows the same split: its fixtures in `apps/cli/test/fixtures/user-config/`, the extension's
+  expectations in `apps/vscode/test/host/user-config-fixtures.expected.json`.
 - When you change a boundary, the contract, the protocol or a dependency, update the matching
   record in `apps/vscode/docs/adr/` in the same commit.
 - The webview's colours are the Miragon tokens in `apps/vscode/src/webview/theme/`, vendored

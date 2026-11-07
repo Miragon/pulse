@@ -4,6 +4,7 @@ import { ProfileUrl } from "./profile-url.js"
 import { TargetsProblem } from "./targets-problem.js"
 
 export interface ParsedTargets {
+  readonly names: readonly string[]
   readonly targets: readonly EngineTarget[]
   readonly problems: readonly TargetsProblem[]
 }
@@ -25,7 +26,7 @@ export class TargetsParser {
   parse(content: string): ParsedTargets {
     const profiles = this.profilesOf(content)
     if (typeof profiles === "string") {
-      return { targets: [], problems: [new TargetsProblem(this.path, profiles)] }
+      return { names: [], targets: [], problems: [new TargetsProblem(this.path, profiles)] }
     }
     const targets: EngineTarget[] = []
     const problems: TargetsProblem[] = []
@@ -37,7 +38,7 @@ export class TargetsParser {
         targets.push(target)
       }
     }
-    return { targets, problems }
+    return { names: Object.keys(profiles), targets, problems }
   }
 
   private profilesOf(content: string): Json | string {

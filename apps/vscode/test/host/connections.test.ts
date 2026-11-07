@@ -35,6 +35,7 @@ describe("parsing the profiles of .pulse-cli.json", () => {
     })
 
     expect(new TargetsParser(FILE).parse(content)).toEqual({
+      names: ["dev", "prod-eu"],
       targets: [
         {
           name: "dev",
@@ -136,6 +137,7 @@ describe("parsing the profiles of .pulse-cli.json", () => {
     })
 
     expect(new TargetsParser(FILE).parse(content)).toEqual({
+      names: ["typo"],
       targets: [],
       problems: [
         {
@@ -148,13 +150,14 @@ describe("parsing the profiles of .pulse-cli.json", () => {
 
   test("reports a malformed file instead of failing", () => {
     expect(new TargetsParser(FILE).parse("{")).toEqual({
+      names: [],
       targets: [],
       problems: [{ path: FILE, message: "the file is not valid JSON" }],
     })
     expect(new TargetsParser(FILE).parse('{"profiles": []}').problems).toEqual([
       { path: FILE, message: 'the file needs a "profiles" object' },
     ])
-    expect(new TargetsParser(FILE).parse("{}")).toEqual({ targets: [], problems: [] })
+    expect(new TargetsParser(FILE).parse("{}")).toEqual({ names: [], targets: [], problems: [] })
   })
 
   test("names the broken file and what is wrong, for the error item in the Engines tree", () => {
@@ -257,6 +260,17 @@ describe("the secret scope", () => {
       `pulse.connection.${FILE}::dev.username`,
       "pulse.connection.default::local.username",
     ])
+  })
+
+  test("keeps a profile of the CLI's user config apart from a project's of the same name", async () => {
+    const { stored, store } = inMemorySecrets()
+    const own = "/home/dev/.config/pulse-cli/config.json"
+    const mine = { ...remote("dev", "http://x"), source: { kind: "file", path: own } } as const
+    await store.write(remote("dev", "http://x"), "team", "team-secret")
+    await store.write(mine, "me", "my-secret")
+
+    expect(await store.read(mine)).toEqual({ kind: "basic", username: "me", password: "my-secret" })
+    expect(stored.get(`pulse.connection.${own}::dev.username`)).toBe("me")
   })
 })
 

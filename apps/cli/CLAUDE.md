@@ -86,7 +86,11 @@ what a project file may hold changes the parser, the schema and a fixture in the
 new fixture needs an entry in the extension's expectations too. The one rule JSON Schema cannot
 express (a defaultProfile names one of the file's profiles) is checked next to the schema in
 `apps/cli/test/support/project-schema.ts`. An invalid fixture holds one violation, so the schema
-has to catch each on its own.
+has to catch each on its own. The user's config file has fixtures of its own in
+`apps/cli/test/fixtures/user-config/` (credentials and a foreign defaultProfile allowed), held to
+`parseConfigFile` by `apps/cli/src/config/user-config-fixtures.test.ts` and read by the
+extension's `apps/vscode/test/host/user-config-fixtures.test.ts`; a new one needs an entry in
+`apps/vscode/test/host/user-config-fixtures.expected.json`.
 
 ## Catalogs
 
