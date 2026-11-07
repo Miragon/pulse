@@ -4,13 +4,14 @@
 writes included. The plugin shows the Engines tree, the engine overview, definitions, instances,
 migrations, a local model against its deployment and boards, each with real data from the
 sandbox engines, with live refresh, back links, incident details and the engine's web app. Writes
-follow the extension's policy; the confirmation waits in the Pulse panel. The webview, the core
-and the C7 adapter run unchanged; the Orca host is about 3,700 lines in `apps/orca/src/`,
-covered by 27 tests in `apps/orca/test/`.
+follow the extension's policy; the confirmation waits in the Pulse panel.
 
-**Recommendation: go on, with writes.** What is left for a release is placement, packaging,
-tests in a real Orca and a handful of gaps only Orca can close (section 4). Before that, an owner
-decides where an Orca host lives in this repository (section 5).
+**Since then, ready for a first release** (section 4): Pulse for Orca is an app of its own,
+`apps/orca`, over two packages it shares with the extension, the runtime view
+(`packages/core/runtime-view`) and the C7 adapter (`packages/connectors/engine/engine-adapter`).
+It ships with every Pulse release to the mirror `Miragon/pulse-orca`, and it is tested on Orca's
+own kit and in a real Orca. What stays open are gaps only Orca can close and two owner steps
+(section 5).
 
 How it came about: [inventory](inventory.md), [prior art](prior-art.md), proposals
 [1](proposal-1.md), [2](proposal-2.md), [3](proposal-3.md), the reviewed [plan](plan.md). The
@@ -85,58 +86,44 @@ no such path.
   status bar item, commands, a save hook, workspace events and the components catalogue for
   forms, lists and trees.
 
-## 4. Open for a release
+## 4. From spike to release
 
-By priority:
+| Was open after the spike | Done                                                                                                                                                                                                                                                                            |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Placement                | `apps/orca` as an app of its own; what both hosts run moved out of `apps/vscode` unchanged into `packages/core/runtime-view` and `packages/connectors/engine/engine-adapter` (the family's new `-adapter` role), each with closed-world dependency rules and planted violations |
+| Tests in Orca            | 145 unit tests of the worker on a fake Orca with coverage floors; 55 kit tests of the panel and the worker on `orca/testing` of the pinned release; `test:smoke` loads the build into the running Orca and reads the sandbox engines                                            |
+| CI                       | The job "Orca plugin (validate, check, kit tests)" runs the CLI of the pinned Orca .deb on plain Node, checks the vendored typings against it, validates and checks the plugin folder and runs the kit tests                                                                    |
+| Packaging and release    | `publish-orca-plugin.yml` in the release-please train: build and check, push to the mirror, tag and release it, the catalog entry by `orca plugin release-entry`, plugin folder and entry on the Pulse release                                                                  |
+| Wording                  | Each host names its own writes setting in the read-only notes                                                                                                                                                                                                                   |
+| Docs                     | `docs/orca/` on the docs site; `apps/orca/CLAUDE.md`                                                                                                                                                                                                                            |
 
-1. **Placement** (owner decision, section 5), then packaging: a release job that builds the
-   plugin and commits it where a catalog can pin it, with listing images.
-2. **Tests in Orca.** The worker is covered with a fake `orca`; the panel deserves tests with
-   Orca's own kit (`orca/testing`, run by `orca plugin test`) and the frame bridge a smoke test in
-   a real Orca, as modeler-suite's `orca-electron` harness does.
-3. **Gaps against VS Code that Orca can close** (candidates for the Orca team):
+## 5. Still open
+
+1. **Owner steps before the first release:** create `Miragon/pulse-orca` (empty, public) and
+   install the release-please app on it with Contents write; decide the plugin id for a catalog
+   (today `pulse-cockpit`, the publisher comes from the repository owner) and open the catalog
+   pull request with the entry the release attaches.
+2. **Gaps against VS Code that Orca can close** (candidates for the Orca team):
    - no editor tab without a file, so views need handle files and `workspace:write`;
    - no tab title from the frame, so a tab shows its handle's file name;
    - no way to open or focus a panel from code, so a waiting write can only point at the panel;
    - no close event for tabs and panels; the plugin uses a request Orca aborts on close;
-   - no active editor for the worker, so the status bar cannot show the open model's runtime and
-     "Show runtime data for this model" became a list;
+   - no active editor for the worker, so "Show runtime data for this model" became a list;
    - `editor.open` takes no line or selection, so incident details, models and code open at the
-     top, and plain text editors carry no links;
+     top;
    - tree items have no badge, colour or row action;
    - every surface of a plugin may read its secrets;
-   - `orca plugin check` waits for every request in flight, so the panel starts its visibility
-     request a second after it draws.
-4. **Wording.** The read-only notes of `WritePolicy` name `pulse.writes`; in Orca the setting is
-   "Writes". The note belongs to the host, so it moves when the host layer moves.
-5. **Orca only, after parity:** an agent hand-off for an incident (`agent.launch` with typed ids
+   - `orca plugin check` reads scenario files only from the folder it checks, so scenarios would
+     ship in the plugin; the kit tests cover them instead.
+3. **Orca only, after parity:** an agent hand-off for an incident (`agent.launch` with typed ids
    and fenced engine text, [proposal 2](proposal-2.md)) and `pulse inspect` in a terminal.
-
-## 5. Placement and effort
-
-The spike lives in `apps/vscode/dev/` because the root rule says apps never import each other.
-A shipped Orca host needs one of:
-
-- a host layer at apps/vscode/src/orca with its own dependency-cruiser rules, tsconfig and
-  coverage floor (fast, but a second interface inside the VS Code app), or
-- an app at apps/orca over packages extracted from `apps/vscode/src` (contract, core, protocol,
-  webview, C7 adapter, the host files the worker reuses): the clean path, a larger move.
-
-| Work                                                                             | Estimate    |
-| -------------------------------------------------------------------------------- | ----------- |
-| Placement as a `src/orca` layer (the package extraction: plus 5 to 8 days)       | 2 to 3 days |
-| Panel tests with `orca/testing`, a smoke test in a real Orca, CI                 | 3 days      |
-| Packaging, release job, catalog entry, listing images                            | 2 days      |
-| Review of the write path with a second pair of eyes, conformance on test engines | 2 days      |
-
-About two weeks to a first release, the package extraction not counted.
 
 ## 6. Run it locally
 
 ```sh
 pnpm install && pnpm build                      # engine-core is bundled from its build
 pnpm --filter pulse-cockpit run sandbox:up      # shop-dev, shop-test (demo/demo), about two minutes
-pnpm --filter pulse-cockpit run orca:build      # builds the plugin into apps/orca/dist
+pnpm --filter @miragon/pulse-orca run build     # builds the plugin into apps/orca/dist
 O=/Applications/Orca.app/Contents/Resources/bin/orca
 $O plugin dev load apps/orca/dist        # prints the approval command with its fingerprint
 $O plugin dev load apps/orca/dist --approve <fingerprint>
@@ -159,4 +146,5 @@ $O plugin shot local.pulse-cockpit --width 420 --act \
 $O plugin shot local.pulse-cockpit --window --theme light   # with a Pulse tab open
 ```
 
-`$O plugin dev unload apps/orca/dist` removes it again.
+`$O plugin dev unload apps/orca/dist` removes it again. `pnpm --filter @miragon/pulse-orca run
+test:smoke` does the load, the project file and a first view in one go.
