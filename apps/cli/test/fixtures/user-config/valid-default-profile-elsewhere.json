@@ -1,0 +1,22 @@
+{
+  "about": "The user's defaultProfile may name a profile of another file, which a project file's may not.",
+  "file": {
+    "defaultProfile": "team",
+    "profiles": {
+      "mine": {
+        "url": "http://localhost:8080/engine-rest"
+      }
+    }
+  },
+  "cli": {
+    "valid": true,
+    "profiles": {
+      "mine": {
+        "url": "http://localhost:8080/engine-rest",
+        "flavor": "camunda7",
+        "readOnly": false,
+        "auth": "none"
+      }
+    }
+  }
+}

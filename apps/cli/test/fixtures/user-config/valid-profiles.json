@@ -1,0 +1,45 @@
+{
+  "about": "The profile keys Pulse for VS Code reads mean the same in the user's own file as in a project file.",
+  "file": {
+    "$schema": "https://unpkg.com/@miragon/pulse-cli/schema/project-file.schema.json",
+    "profiles": {
+      "shop": {
+        "url": "http://localhost:18090/engine-rest/",
+        "flavor": "operaton",
+        "engine": "default",
+        "cockpitUrl": "http://localhost:18090/operaton/app/cockpit/default/",
+        "readOnly": true,
+        "timeout": 30000,
+        "output": "table"
+      },
+      "billing": {
+        "url": "https://billing.example.com/engine-rest",
+        "flavor": "cibseven",
+        "readOnly": false,
+        "auth": {
+          "type": "basic",
+          "username": "demo"
+        }
+      }
+    }
+  },
+  "cli": {
+    "valid": true,
+    "profiles": {
+      "shop": {
+        "url": "http://localhost:18090/engine-rest",
+        "flavor": "operaton",
+        "readOnly": true,
+        "auth": "none",
+        "cockpitUrl": "http://localhost:18090/operaton/app/cockpit/default",
+        "engine": "default"
+      },
+      "billing": {
+        "url": "https://billing.example.com/engine-rest",
+        "flavor": "cibseven",
+        "readOnly": false,
+        "auth": "basic"
+      }
+    }
+  }
+}

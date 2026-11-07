@@ -1,0 +1,8 @@
+{
+  "about": "A file without profiles, byte for byte the one Pulse for VS Code creates, lists no engine.",
+  "text": "{\n  \"profiles\": {}\n}\n",
+  "cli": {
+    "valid": true,
+    "profiles": {}
+  }
+}
