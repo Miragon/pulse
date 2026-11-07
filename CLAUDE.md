@@ -215,10 +215,13 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    (both from `src/lib/engine/with-engine.ts`). Canonical shape: `engine_list_process_instances` in
    `packages/connectors/engine/engine-connector/src/tools/process-instances.ts`. ESLint
    (`no-restricted-syntax` in `eslint.config.mjs`) blocks a raw `registerTool` and ext-apps'
-   `registerAppTool` in the spellings its gate test plants (an import included; a nested
-   destructuring or `Object.entries` gets past it) outside the widget-path files its `ignores` lists. `no-restricted-syntax` is ONE rule: a
-   later flat-config block REPLACES its selectors, so a glob two gates share gets one block with
-   the union (`scripts/eslint-gates.test.mjs`).
+   `registerAppTool` wherever a source of any extension names it outside the widget-path files
+   its `ignores` lists: a member, an import, a destructuring at any depth, a string that is the
+   whole name outside a type (so `Object.entries` too). Left to review: a key concatenated or
+   computed at runtime, a parameter's own destructuring (a carve-out from when the gated member was
+   `tool`; no source uses one) and `src/generated/`, which ESLint skips.
+   `no-restricted-syntax` is ONE rule: a later flat-config block REPLACES its selectors, so a glob
+   two gates share gets one block with the union (`scripts/eslint-gates.test.mjs`).
    - Annotations decide the toolset. A destructive or admin tool goes into `ADMIN_ONLY_TOOLS`
      (`src/lib/mcp/toolsets.ts`); `src/lib/mcp/toolsets.test.ts` checks every registrar tool
      and `src/plugin.test.ts` every tool the module registers, feeds included (the read-only floor
@@ -284,9 +287,11 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 
    Engine and analytics views are bundle views, never a resource of their own: an ESLint gate
    (`no-restricted-syntax`, `scripts/eslint-gates.test.mjs`) blocks `registerResource` and ext-apps'
-   `registerAppResource` in the spellings that test plants under `packages/connectors/`, the
-   widget-tools files too, so they stay on the kit and the view host. A customer's module may bring a finished HTML
-   document instead (invariant 8, the module port); only that view skips the three places.
+   `registerAppResource` under `packages/connectors/`, the widget-tools files too, wherever invariant
+   1's gate would (left to review here too: a key concatenated or computed at runtime, a parameter's
+   own destructuring, `src/generated/`), so they stay on the kit and the view host. A customer's
+   module may bring a finished HTML document instead (invariant 8, the module port); only that view
+   skips the three places.
 
 4. **The view bundle's `resolve.dedupe` is load-bearing: never remove or trim it.** It is
    widget-shell's `VIEW_BUNDLE_DEDUPE` (`@miragon/pulse-widget-shell/server`), spread whole in

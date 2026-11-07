@@ -20,13 +20,19 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 const ENGINE_CONNECTOR_SRC_DIR = "packages/connectors/engine/engine-connector/src"
 const AN = "packages/connectors/analytics/analytics-connector/src"
 
+/**
+ * Every extension of a source in a connector's src: tsc builds .mts and .cts too, ESLint's
+ * defaults lint .js, .mjs and .cjs, and only a block's `files` makes it read .jsx.
+ */
+const SOURCE_EXTENSIONS = ["ts", "tsx", "mts", "cts", "js", "jsx", "mjs", "cjs"]
+
 const eslint = new ESLint({ cwd: repoRoot })
 const linter = new Linter({ configType: "flat" })
 
 /** The effective options of `rule` for a repo path (null when off). */
 async function ruleOptionsFor(rel, rule) {
   const config = await eslint.calculateConfigForFile(path.join(repoRoot, rel))
-  const setting = config.rules?.[rule]
+  const setting = config?.rules?.[rule]
   return setting && setting[0] !== 0 && setting[0] !== "off" ? setting : null
 }
 
@@ -39,7 +45,7 @@ async function gateMessages(rel, code, rule = "no-restricted-syntax") {
       code,
       [
         {
-          files: ["**/*.ts", "**/*.tsx"],
+          files: SOURCE_EXTENSIONS.map((extension) => `**/*.${extension}`),
           languageOptions: {
             parser: tseslint.parser,
             parserOptions: { ecmaFeatures: { jsx: true } },
@@ -289,7 +295,54 @@ describe("hand-off gate (invariant 6, CI U4) in both connectors' widgets", () =>
 
 const EXT_APPS = '"@modelcontextprotocol/ext-apps/server"'
 
+/**
+ * The routes both registration gates share, by the method's name and ext-apps' function's: a
+ * pattern at any depth, the name as a string or template whatever reads it, a dynamic import's
+ * .then and a TypeScript import alias.
+ */
+const sharedEscapes = (method, appFunction) => ({
+  "nested destructuring": `const { srv: { ${method} } } = ctx\n${method}("x")`,
+  "nested destructuring, string key": `const { srv: { "${method}": t } } = ctx\nt("x")`,
+  "nested destructuring assignment": `let ${method}\n;({ srv: { ${method} } } = ctx)`,
+  "array destructuring": `const [{ ${method} }] = [server]\n${method}("x")`,
+  "array destructuring assignment": `let ${method}\n;[{ ${method} }] = [server]`,
+  "for-of destructuring": `for (const { ${method} } of [server]) ${method}("x")`,
+  "for-of destructuring assignment": `let ${method}\nfor ({ ${method} } of [server]) ${method}("x")`,
+  "catch destructuring": `try { f() } catch ({ ${method} }) { ${method}("x") }`,
+  "a parameter's default": `const f = ({ ${method} } = server) => ${method}("x")`,
+  "a parameter's nested pattern": `const f = ({ srv: { ${method} } }) => ${method}("x")`,
+  "Reflect with a computed get": `Reflect["get"](server, "${method}")("x")`,
+  "a destructured Reflect.get": `const { get } = Reflect\nget(server, "${method}")("x")`,
+  "Object.getOwnPropertyDescriptor": `Object.getOwnPropertyDescriptor(server, "${method}").value("x")`,
+  "Object.entries": `Object.entries(server).find(([k]) => k === "${method}")[1]("x")`,
+  "Object.entries, template key": `Object.entries(server).find(([k]) => k === \`${method}\`)[1]("x")`,
+  "a key in a constant": `const key = "${method}"\nserver[key]("x")`,
+  "a key under a type assertion": `server["${method}" as keyof typeof server]("x")`,
+  "a key in an enum": `enum Key { Name = "${method}" }\nserver[Key.Name]("x")`,
+  "an escaped string key": `server["${method.replace("r", "\\u0072")}"]("x")`,
+  "an escaped template key": `server[\`${method.replace("r", "\\u0072")}\`]("x")`,
+  "an escaped member": `server.${method.replace("r", "\\u0072")}("x")`,
+  ".then of a dynamic import": `import(${EXT_APPS}).then(({ ${appFunction} }) => ${appFunction}(server))`,
+  ".then of a dynamic import, nested": `import(${EXT_APPS}).then(({ default: { ${appFunction} } }) => ${appFunction}(server))`,
+  ".then of a dynamic import, function": `import(${EXT_APPS}).then(function ({ ${appFunction} }) { ${appFunction}(server) })`,
+  ".then of a held import": `const apps = import(${EXT_APPS})\napps.then(({ ${appFunction} }) => ${appFunction}(server))`,
+  "an import alias": `import * as apps from ${EXT_APPS}\nimport app = apps.${appFunction}\napp(server)`,
+})
+
+/**
+ * What no selector reaches, or what the gates leave free on purpose. CLAUDE.md names these
+ * (invariants 1 and 3): a route that closes turns this red, so the sentence follows the gate.
+ */
+const openRoutes = (method, head, tail) => ({
+  "a concatenated key": `server["${head}" + "${tail}"]("x")`,
+  "a template key with an expression": `const a = "${tail}"\nserver[\`${head}\${a}\`]("x")`,
+  "a key computed at runtime": 'server[names.pick()]("x")',
+  "a key found at runtime": `Object.entries(server).find(([k]) => k.endsWith("${tail}"))[1]("x")`,
+  "a parameter's own pattern": `const f = ({ ${method} }) => ${method}("x")\nf(server)`,
+})
+
 const REGISTRAR_ESCAPES = {
+  ...sharedEscapes("registerTool", "registerAppTool"),
   "direct call": 'server.registerTool("x", {}, handler)',
   "optional call": 'server?.registerTool("x", {}, handler)',
   "computed string key": 'server["registerTool"]("x", {}, handler)',
@@ -315,7 +368,7 @@ const REGISTRAR_ESCAPES = {
   "registerAppTool re-export, string name": `export { "registerAppTool" as app } from ${EXT_APPS}`,
 }
 
-describe("registrar gate (invariant 1) catches every spelling", () => {
+describe("registrar gate (invariant 1) catches every spelling that names the member", () => {
   for (const rel of [
     `${ENGINE_CONNECTOR_SRC_DIR}/tools/__probe__.ts`,
     `${AN}/tools/__probe__.tsx`,
@@ -328,10 +381,24 @@ describe("registrar gate (invariant 1) catches every spelling", () => {
     }
   }
 
-  it("stays quiet on test fakes, parameter destructuring and unrelated names", async () => {
+  it("stays quiet on test fakes, types, parameter destructuring and unrelated names", async () => {
     const code = [
       "const server = { registerTool } as unknown as ModuleServer",
+      "const fake = { registerTool: record, registerPrompt: record }",
       "const fn = ({ registerTool, list }: Case) => [registerTool, list]",
+      "function own({ registerTool }: ModuleServer) { return registerTool }",
+      "const { make = ({ registerTool }: Case) => registerTool } = options",
+      "const { made = { registerTool } } = options",
+      'type Fake = Pick<ModuleServer, "registerTool" | "registerPrompt">',
+      'interface Shape { "registerTool": Register; "registerAppTool"(server: S): void }',
+      'declare const typed: { "registerTool": number }',
+      'type Register = ModuleServer["registerTool"]',
+      "type Template = ModuleServer[`registerTool`]",
+      `type App = typeof import(${EXT_APPS})`,
+      'import { registerTools } from "./index.js"',
+      "registerTools(register, { allowDeployments: true })",
+      'const sentence = "a raw registerTool is reserved for the widget-tools files"',
+      'const plural = "registerTools"',
       "const name = tool.name + toolName + obj.tools.length + recording.tool(name).config",
       "server.registerPrompt(name, config, callback)",
       `import { RESOURCE_MIME_TYPE } from ${EXT_APPS}`,
@@ -343,22 +410,41 @@ describe("registrar gate (invariant 1) catches every spelling", () => {
   })
 
   it("exempts exactly the widget-tools path", async () => {
+    const code = [
+      `import { registerAppTool } from ${EXT_APPS}`,
+      'server.registerTool("x", {}, handler)',
+      "const { srv: { registerTool } } = ctx",
+      'Object.entries(server).find(([k]) => k === "registerAppTool")',
+    ].join("\n")
     for (const rel of [
       `${ENGINE_CONNECTOR_SRC_DIR}/widget-tools.ts`,
       `${ENGINE_CONNECTOR_SRC_DIR}/widget-tools/__probe__.ts`,
+      `${ENGINE_CONNECTOR_SRC_DIR}/widget-tools/__probe__.mts`,
       `${AN}/widget-tools.ts`,
       `${AN}/widget-tools/__probe__.ts`,
+      `${AN}/widget-tools/__probe__.mjs`,
     ]) {
-      const messages = await gateMessages(
-        rel,
-        `import { registerAppTool } from ${EXT_APPS}\nserver.registerTool("x", {}, handler)`,
-      )
-      assert.equal(messages.filter(isRegistrarHit).length, 0, rel)
+      assert.deepEqual(await gateMessages(rel, code), [], rel)
+    }
+    for (const rel of [
+      `${ENGINE_CONNECTOR_SRC_DIR}/widget-tools.mts`,
+      `${ENGINE_CONNECTOR_SRC_DIR}/widget-tools-more.ts`,
+      `${AN}/widgets/__probe__.tsx`,
+    ]) {
+      assert.ok((await gateMessages(rel, code)).some(isRegistrarHit), rel)
     }
   })
+
+  for (const [label, code] of Object.entries(openRoutes("registerTool", "register", "Tool"))) {
+    it(`leaves ${label} to review, as CLAUDE.md says`, async () => {
+      const messages = await gateMessages(`${ENGINE_CONNECTOR_SRC_DIR}/tools/__probe__.ts`, code)
+      assert.equal(messages.filter(isRegistrarHit).length, 0, code)
+    })
+  }
 })
 
 const RESOURCE_ESCAPES = {
+  ...sharedEscapes("registerResource", "registerAppResource"),
   "direct call": 'server.registerResource("x", "ui://x/y.html", {}, read)',
   "optional call": 'server?.registerResource("x", "ui://x/y.html", {}, read)',
   "computed string key": 'server["registerResource"]("x", "ui://x/y.html", {}, read)',
@@ -409,9 +495,23 @@ describe("connector resource gate (invariant 3): a connector's views belong in t
       'server.registerTool("x", { ...showToolBinding("x", "X") }, handler)',
       'const uri = viewResourceUri("x") + recording.resources.size',
       "const fn = ({ registerResource }: Case) => registerResource",
+      "const fake = { registerResource: record } as unknown as ModuleServer",
+      'type Fake = Pick<ModuleServer, "registerResource">',
+      'interface Shape { "registerResource": Register; "registerAppResource"(server: S): void }',
+      'declare const typed: { "registerResource": number }',
+      'const sentence = "a connector calls no registerResource"',
     ].join("\n")
     assert.deepEqual(await gateMessages(`${AN}/widget-tools/__probe__.ts`, code), [])
   })
+
+  for (const [label, code] of Object.entries(
+    openRoutes("registerResource", "register", "Resource"),
+  )) {
+    it(`leaves ${label} to review, as CLAUDE.md says`, async () => {
+      const messages = await gateMessages(`${AN}/widget-tools/__probe__.ts`, code)
+      assert.equal(messages.filter(isResourceHit).length, 0, code)
+    })
+  }
 
   it("leaves the boot, which serves the bundle's views, and the apps alone", async () => {
     const code = 'server.registerResource("x", "ui://views/x.html", {}, read)'
@@ -442,6 +542,36 @@ describe("connector resource gate (invariant 3): a connector's views belong in t
       assert.equal(messages.filter(isNumberHit).length, 1, `${rel}: number gate dropped`)
     }
   })
+})
+
+describe("the registration gates hold every source extension", () => {
+  const CALLS = 'server.registerTool("x")\nserver.registerResource("x")'
+
+  it("reach no generated folder, which ESLint skips, as CLAUDE.md says", async () => {
+    const rel = `${ENGINE_CONNECTOR_SRC_DIR}/generated/__probe__.ts`
+    assert.equal(await eslint.isPathIgnored(path.join(repoRoot, rel)), true)
+  })
+
+  for (const extension of SOURCE_EXTENSIONS) {
+    it(`a .${extension} file: ESLint lints it, under the gates its path carries`, async () => {
+      const paths = [
+        // [probe path, registrar gate?]: the registrar holds the connectors outside widget-tools.
+        [`${ENGINE_CONNECTOR_SRC_DIR}/__probe__.${extension}`, true],
+        [`${ENGINE_CONNECTOR_SRC_DIR}/tools/deep/__probe__.${extension}`, true],
+        [`${AN}/widgets/__probe__.${extension}`, true],
+        [`${AN}/__probe__.test.${extension}`, true],
+        [`${ENGINE_CONNECTOR_SRC_DIR}/widget-tools/__probe__.${extension}`, false],
+        [`packages/connectors/engine/engine-client/src/__probe__.${extension}`, false],
+        [`packages/connectors/newfamily/newfamily-connector/src/__probe__.${extension}`, false],
+      ]
+      for (const [rel, registrar] of paths) {
+        assert.equal(await eslint.isPathIgnored(path.join(repoRoot, rel)), false, rel)
+        const messages = await gateMessages(rel, CALLS)
+        assert.equal(messages.filter(isResourceHit).length, 1, `${rel}: resource gate missing`)
+        assert.equal(messages.filter(isRegistrarHit).length, registrar ? 1 : 0, `${rel}: registrar`)
+      }
+    })
+  }
 })
 
 describe("gates sharing a glob are merged, not overridden", () => {
