@@ -144,8 +144,6 @@ export const deSweep: MessageCatalog = {
     String(count) === "0" ? "Keine Versuche mehr" : `Noch ${countOf(count, "Versuch", "Versuche")}`,
   "incidentFailure.retryAria": "Job neu versuchen (setzt die Versuche auf 1)",
   "incidentFailure.retryButton": "Job neu versuchen",
-  "incidentFailure.retryError":
-    "Der Job konnte nicht neu eingeplant werden ({message}). Prüf die Fehlermeldung und versuch es noch mal.",
   "incidentFailure.retryTaskAria": "External Task neu versuchen (setzt die Versuche auf 1)",
   "incidentFailure.retryTaskButton": "Task neu versuchen",
   "incidentFailure.stacktraceTitle": "Stacktrace",
@@ -238,8 +236,6 @@ export const deSweep: MessageCatalog = {
     "Ungültiger Wert: erwartet wird {type}. Korrigier die Eingabe und speichere noch mal.",
   "instanceSections.noVariables": "Keine Variablen",
   "instanceSections.save": "Speichern",
-  "instanceSections.saveError":
-    "Speichern hat nicht geklappt ({message}). Deine Eingabe ist noch da, versuch es noch mal.",
   "instanceSections.variablesTableLabel": "Variablen der Prozessinstanz",
   "jobPanel.badgeTotal": "{count} gesamt",
   "jobPanel.colActivity": "Aktivität",
@@ -254,8 +250,6 @@ export const deSweep: MessageCatalog = {
   "jobPanel.noJobs": "Keine Jobs in dieser Auswahl.",
   "jobPanel.retried": "Neu eingeplant",
   "jobPanel.retry": "Job neu versuchen",
-  "jobPanel.retryError":
-    "Der Job konnte nicht neu eingeplant werden ({message}). Prüf die Fehlermeldung und versuch es noch mal.",
   "jobPanel.stuck": "Keine Versuche mehr",
   "jobPanel.summaryLabel": "Job-Übersicht",
   "jobPanel.tableLabel": "Jobs",
@@ -347,12 +341,8 @@ export const deSweep: MessageCatalog = {
   "procIncTable.openIncidentDetail": "Incident-Details öffnen",
   "procIncTable.resolve": "Als gelöst markieren",
   "procIncTable.resolved": "Als gelöst markiert",
-  "procIncTable.resolveError":
-    "Der Incident konnte nicht als gelöst markiert werden ({message}). Versuch es noch mal.",
   "procIncTable.retried": "Neu eingeplant",
   "procIncTable.retry": "Neu versuchen",
-  "procIncTable.retryError":
-    "Der Job konnte nicht neu eingeplant werden ({message}). Prüf die Fehlermeldung und versuch es noch mal.",
   "procIncTable.retryHint":
     "Setzt die Versuche auf 1. Incidents dieses Typs verschwinden mit einem neuen Versuch, nicht durch „Als gelöst markieren“.",
   "procIncTable.tableLabel": "Incidents in dieser Aktivität",

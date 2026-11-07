@@ -1,3 +1,4 @@
+import { Fragment } from "react"
 import {
   Button,
   CountPill,
@@ -17,9 +18,11 @@ import {
 
 import { LIST_PAGE_SIZE, type JobPanelData } from "../view-models.js"
 import {
+  FIT_CONTINUES_ROW,
   HandOffButton,
   IdText,
   ListTable,
+  type ListTableColumn,
   PagedRows,
   usePagedViewData,
   ViewDataState,
@@ -30,6 +33,7 @@ import { Check } from "lucide-react"
 import { ENGINE_JOBS_DATA } from "../tool-names.js"
 import { useEngineAction, type EngineAction } from "./lib/engine-action.js"
 import { MoreActions } from "./lib/more-actions.js"
+import { WriteError } from "./lib/write-error.js"
 import { instanceName, writeFeedback } from "./lib/write-feedback.js"
 import { useHandOff, type HandOff, type ViewContext } from "./lib/hand-off.js"
 import { useT } from "../messages/use-t.js"
@@ -170,7 +174,6 @@ function JobRow({
   const t = useT()
   const { ask } = useHandOff()
   const retried = retry.done.has(job.id)
-  const retryError = retry.error(job.id)
   const name = job.activityName ?? job.activityId ?? job.id
   return (
     <tr className="hover:bg-muted transition-colors">
@@ -232,12 +235,19 @@ function JobRow({
             </div>
           )
         )}
-        {retryError && (
-          <p role="alert" className="text-danger-ink text-small mt-1">
-            {t("jobPanel.retryError", { message: retryError })}
-          </p>
-        )}
       </Td>
+    </tr>
+  )
+}
+
+/** Its job's failure across every column, not in the pinned one: one item in the fit. */
+function JobRetryError({ error, columns }: { error: string | null; columns: number }) {
+  if (!error) return null
+  return (
+    <tr {...FIT_CONTINUES_ROW}>
+      <td colSpan={columns} className="border-border border-b px-4 py-1.5">
+        <WriteError error={error} />
+      </td>
     </tr>
   )
 }
@@ -288,6 +298,14 @@ export function JobPanelWidget({
   const scopedProcess = shownKey
     ? (jobs.find((j) => j.processDefinitionName)?.processDefinitionName ?? shownKey)
     : null
+  const columns: ListTableColumn[] = [
+    { label: t("jobPanel.colActivity") },
+    { label: t("jobPanel.colInstance"), hideBelow: "lg" },
+    { label: t("jobPanel.colRetries"), align: "right" },
+    { label: t("jobPanel.colError") },
+    { label: t("jobPanel.colCreated"), align: "right", hideBelow: "md" },
+    { plain: true, sticky: true },
+  ]
 
   return (
     <WidgetShell>
@@ -334,25 +352,17 @@ export function JobPanelWidget({
           {/* Jobs without retries come first: the feed sorts by retries. The
               rows are the inline head of the list (PagedRows, #396). */}
           <PagedRows paged={paged}>
-            <ListTable
-              ariaLabel={t("jobPanel.tableLabel")}
-              columns={[
-                { label: t("jobPanel.colActivity") },
-                { label: t("jobPanel.colInstance"), hideBelow: "lg" },
-                { label: t("jobPanel.colRetries"), align: "right" },
-                { label: t("jobPanel.colError") },
-                { label: t("jobPanel.colCreated"), align: "right", hideBelow: "md" },
-                { plain: true, sticky: true },
-              ]}
-            >
+            <ListTable ariaLabel={t("jobPanel.tableLabel")} columns={columns}>
               {jobs.map((job) => (
-                <JobRow
-                  key={job.id}
-                  job={job}
-                  retry={retry}
-                  engineId={engine}
-                  showProcess={!data.filters.processDefinitionKey}
-                />
+                <Fragment key={job.id}>
+                  <JobRow
+                    job={job}
+                    retry={retry}
+                    engineId={engine}
+                    showProcess={!data.filters.processDefinitionKey}
+                  />
+                  <JobRetryError error={retry.error(job.id)} columns={columns.length} />
+                </Fragment>
               ))}
             </ListTable>
           </PagedRows>

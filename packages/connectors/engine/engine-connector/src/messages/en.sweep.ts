@@ -144,8 +144,6 @@ export const enSweep: MessageCatalog = {
     String(count) === "0" ? "No retries left" : `${countOf(count, "retry", "retries")} left`,
   "incidentFailure.retryAria": "Retry job (sets retries to 1)",
   "incidentFailure.retryButton": "Retry job",
-  "incidentFailure.retryError":
-    "Could not schedule the retry ({message}). Check the error message and try again.",
   "incidentFailure.retryTaskAria": "Retry external task (sets retries to 1)",
   "incidentFailure.retryTaskButton": "Retry task",
   "incidentFailure.stacktraceTitle": "Stacktrace",
@@ -235,7 +233,6 @@ export const enSweep: MessageCatalog = {
   "instanceSections.invalidValue": "Invalid value: expected {type}. Fix the input and save again.",
   "instanceSections.noVariables": "No variables",
   "instanceSections.save": "Save",
-  "instanceSections.saveError": "Saving failed ({message}). Your input is still here, try again.",
   "instanceSections.variablesTableLabel": "Process instance variables",
   "jobPanel.badgeTotal": "{count} total",
   "jobPanel.colActivity": "Activity",
@@ -250,8 +247,6 @@ export const enSweep: MessageCatalog = {
   "jobPanel.noJobs": "No jobs in this selection.",
   "jobPanel.retried": "Retry scheduled",
   "jobPanel.retry": "Retry job",
-  "jobPanel.retryError":
-    "Could not schedule the retry ({message}). Check the error message and try again.",
   "jobPanel.stuck": "No retries left",
   "jobPanel.summaryLabel": "Job summary",
   "jobPanel.tableLabel": "Jobs",
@@ -342,11 +337,8 @@ export const enSweep: MessageCatalog = {
   "procIncTable.openIncidentDetail": "Open incident detail",
   "procIncTable.resolve": "Mark as resolved",
   "procIncTable.resolved": "Marked as resolved",
-  "procIncTable.resolveError": "Could not mark the incident as resolved ({message}). Try again.",
   "procIncTable.retried": "Retry scheduled",
   "procIncTable.retry": "Retry",
-  "procIncTable.retryError":
-    "Could not schedule the retry ({message}). Check the error message and try again.",
   "procIncTable.retryHint":
     "Sets retries to 1. Incidents of this type clear with a retry, not by marking them resolved.",
   "procIncTable.tableLabel": "Incidents in this activity",
