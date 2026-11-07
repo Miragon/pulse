@@ -8,17 +8,18 @@
  * is guarded (`module-callbacks.ts`). `McpHttpApp` replays the record into a fresh `McpServer` per
  * request, so nothing can change it once the boot is done.
  */
-import type {
-  CallToolResult,
-  InputRequiredResult,
-  RegisteredPrompt,
-  RegisteredResource,
-  RegisteredResourceTemplate,
-  RegisteredTool,
-  ResourceTemplate,
-  ServerContext,
-  StandardSchemaWithJSON,
-  ToolAnnotations,
+import {
+  McpServer,
+  type CallToolResult,
+  type InputRequiredResult,
+  type RegisteredPrompt,
+  type RegisteredResource,
+  type RegisteredResourceTemplate,
+  type RegisteredTool,
+  type ResourceTemplate,
+  type ServerContext,
+  type StandardSchemaWithJSON,
+  type ToolAnnotations,
 } from "@modelcontextprotocol/server"
 import type { z } from "zod"
 import type { ModulePlugin } from "./composition.js"
@@ -299,6 +300,48 @@ function refuseLate(open: boolean, owner: string, kind: RegistrationKind, name: 
   )
 }
 
+/** V8's sentence for calling what is no function; group 1 is the name called, if it states one. */
+const NOT_A_FUNCTION = /(?:(?:^|\.)([\w$]+))? is not a function$/
+
+/**
+ * The names a call on the server may have meant: those of the SDK's `McpServer` and its former
+ * `tool`, `prompt` and `resource`. Any other name is as likely another object's as the server's.
+ */
+const SERVER_NAMES: ReadonlySet<string> = new Set([
+  ...Object.getOwnPropertyNames(McpServer.prototype),
+  "tool",
+  "prompt",
+  "resource",
+])
+
+/** What the server offers, said only where the name called is one a server has or had. */
+function aboutTheServer(method: string | undefined, server: ModuleServer): string {
+  if (method === undefined || !SERVER_NAMES.has(method)) return ""
+  const offers = Object.hasOwn(server, method) ? "offers" : `has no ${method}(): it offers`
+  return ` Its server, a ModuleServer, ${offers} registerTool, registerPrompt and registerResource.`
+}
+
+/**
+ * A call the `ModuleServer` does not offer, `server.tool(...)` above all, fails with a sentence that
+ * names no module and, once minified, reads `B.tool is not a function`. That sentence cannot tell
+ * the server from another object of the module, so the answer names the module and speaks of the
+ * server only for a name a server has or had, and then only of what holds either way. Every other
+ * error comes back as it is.
+ */
+function namingTheModule(error: unknown, owner: string, server: ModuleServer): unknown {
+  if (!(error instanceof TypeError)) return error
+  const call = NOT_A_FUNCTION.exec(error.message)
+  if (!call) return error
+  const named = new TypeError(
+    `Module "${owner}" failed in register(server): ${error.message}.` +
+      aboutTheServer(call[1], server),
+    { cause: error },
+  )
+  // The frames of the call, which the boot prints below its line, not those of this catch.
+  named.stack = error.stack?.replace(error.message, () => named.message)
+  return named
+}
+
 /**
  * The boot's one registry: `label` prefixes the open-write warning, `csp` is the server-wide view
  * CSP (the served fonts' origin), which every bundle view and, in Apps SDK spelling, its tool get
@@ -461,6 +504,8 @@ export function createModuleRegistry(
       }
       try {
         plugin.register(server)
+      } catch (error) {
+        throw namingTheModule(error, owner, server)
       } finally {
         open = false
       }
