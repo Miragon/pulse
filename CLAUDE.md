@@ -14,11 +14,8 @@ Docs are held to the code:
   repo path exists, the identifiers of the skills and nested agent files exist, and each docs
   page stays within its line budget.
 - `scripts/old-names.test.mjs` fails on a technical name of the retired operate CLI, on the
-  unscoped npm packages pulse and pulse-cli (someone else's), on an image off GHCR, on the
-  retired OAuth JSON variable, on a package of the retired MCP toolkit and on a name the engine
-  module carried up to 0.24 (its `camunda7_` tools, the module name, its packages and app path,
-  its `CAMUNDA_` server variables, its metric names); the vendor (`flavor` `camunda7`,
-  "Camunda 7") stays.
+  unscoped npm packages pulse and pulse-cli (someone else's), on an image off GHCR and on a package
+  of the retired MCP toolkit.
 - `scripts/check-package-scripts.mjs` (`pnpm lint:package-scripts`) fails on a `--filter`
   naming no workspace package and on a pnpm filter without `--fail-if-no-match` on a gate path
   (pnpm 10 exits 0 when a filter matches nothing, so a stale name turns a gate green).
@@ -540,8 +537,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      package's own directory in a `pathNot`.
    - **The module port.** Each module exports its definition in `src/module.ts` (config schema,
      `configFromEnv`, `knownEnvVars`, `toolsets`, `bootWarnings`, `instructions`, the rules for
-     every tool instead of 60 descriptions; `retired`, the former names and variables the boot
-     refuses, naming their replacements; plugin factory), conforming STRUCTURALLY to
+     every tool instead of 60 descriptions; plugin factory), conforming STRUCTURALLY to
      `ComposableModule<TShared>`. Its `createPlugin(config, shared)` returns a `ModulePlugin`,
      `{ name, register(server) }`: `register` puts every tool, prompt and resource of the module
      on the `ModuleServer` the boot hands it, the official SDK's API itself

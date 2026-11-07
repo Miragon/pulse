@@ -38,6 +38,11 @@ describe("the boot refuses a setting it cannot use, before it logs the toolsets"
       { MCP_ACTIVE_MODULES: "engines:operations,analytic" },
       '[pulse] MCP_ACTIVE_MODULES names the unknown modules "engines", "analytic", so the server does not start without the modules it asks for. Known modules: engine, analytics.',
     ],
+    [
+      "the name the engine module carried up to 0.24, unknown like any other",
+      { MCP_ACTIVE_MODULES: "camunda7:operations,analytics" },
+      '[pulse] MCP_ACTIVE_MODULES names an unknown module "camunda7", so the server does not start without the module it asks for. Known modules: engine, analytics.',
+    ],
   ])("%s", async (_case, env, message) => {
     const info = vi.spyOn(console, "info").mockImplementation(() => {})
     vi.spyOn(console, "warn").mockImplementation(() => {})

@@ -4,7 +4,6 @@ import type { McpHttpApp } from "@miragon/pulse-widget-shell/server"
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client"
 import {
   composedEnvVars,
-  retiredEnvVars,
   type ComposedServer,
   type RunningServer,
 } from "@miragon/pulse-widget-shell/server"
@@ -13,20 +12,23 @@ import { MODULES } from "../src/setup.js"
 
 const FIXTURE_JS = path.join(import.meta.dirname, "fixtures", "mcp-app.js")
 
-/** What a developer's shell may export that the boot reads only to refuse or warn: the retired JSON variable, an unread `MCP_OAUTH_*`. */
-const STRAY = /^MCP_OAUTH_?/
+/**
+ * What a developer's shell may export that the boot reads only to warn: the former JSON variable
+ * `MCP_OAUTH`, an unread `MCP_OAUTH_*`.
+ */
+const STRAY = /^MCP_OAUTH(?:$|_)/
 
 /**
  * The env every in-process boot starts from: EVERY variable the server reads is cleared (the
- * boot's own, OAuth's and each module's slice, `composedEnvVars(MODULES)`) plus every retired
- * variable (`retiredEnvVars(MODULES)`), which the boot refuses, and every stray name above; then a
- * dead engine URL (nothing may reach a real engine or Prometheus) and `env` are applied. Derived,
- * not hand-listed: a toolset, an engine source, an edge override or an OAuth provider exported in
- * the developer's shell changes the surface under test. `vi.unstubAllEnvs()` undoes it.
+ * boot's own, OAuth's and each module's slice, `composedEnvVars(MODULES)`) plus every stray name
+ * above; then a dead engine URL (nothing may reach a real engine or Prometheus) and `env` are
+ * applied. Derived, not hand-listed: a toolset, an engine source, an edge override or an OAuth
+ * provider exported in the developer's shell changes the surface under test.
+ * `vi.unstubAllEnvs()` undoes it.
  */
 export function stubNeutralEnv(env: Record<string, string | undefined> = {}): void {
   const strays = Object.keys(process.env).filter((name) => STRAY.test(name))
-  const cleared = [...composedEnvVars(MODULES), ...retiredEnvVars(MODULES), ...strays]
+  const cleared = [...composedEnvVars(MODULES), ...strays]
   for (const name of cleared) vi.stubEnv(name, undefined)
   for (const [name, value] of Object.entries({ ENGINE_BASE_URL: "http://localhost:1", ...env })) {
     vi.stubEnv(name, value)

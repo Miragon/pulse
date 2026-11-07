@@ -29,7 +29,6 @@ describe("the /server entry", () => {
       "installFontAssets",
       "parseBpmnNames",
       "readBpmnNames",
-      "retiredEnvVars",
       "runComposedServer",
       "runWithMcpRequestInfo",
       "servedFontBaseUrl",

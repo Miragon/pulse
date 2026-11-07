@@ -55,7 +55,6 @@ export {
 export {
   composedEnvVars,
   createComposedServer,
-  retiredEnvVars,
   type ComposedServer,
   type ComposedServerInfo,
   type ComposedServerOptions,

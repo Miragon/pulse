@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { OAUTH_DEBUG_ENV_VAR, OAUTH_ENV_VARS, oauthFromEnv, refuseOAuthEnv } from "./oauth-env.js"
+import { OAUTH_DEBUG_ENV_VAR, OAUTH_ENV_VARS, oauthFromEnv } from "./oauth-env.js"
 
 const KEYCLOAK = {
   MCP_OAUTH_KEYCLOAK_SERVER_URL: "https://kc.example.com",
@@ -48,11 +48,10 @@ describe("oauthFromEnv: the providers", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     expect(fromEnv({ MCP_OAUTH_AUTH0_DOMAIN: "  " })).toBeUndefined()
     expect(fromEnv({ MCP_OAUTH_DEBUG: "true" })).toBeUndefined()
-    expect(fromEnv({ MCP_OAUTH: undefined })).toBeUndefined()
     expect(fromEnv({ MCP_LOG_LEVEL: "info", MCP_URL: "https://x", MCP_API_KEY: "k" })).toBe(
       undefined,
     )
-    expect(warn).toHaveBeenCalledTimes(4)
+    expect(warn).toHaveBeenCalledTimes(3)
   })
 
   // Exact values: swapped server URL and realm would still construct.
@@ -103,22 +102,9 @@ describe("oauthFromEnv: the providers", () => {
 })
 
 describe("oauthFromEnv: what fails the boot", () => {
-  it("refuses the retired JSON variable, blank included, and says what replaces it", () => {
-    for (const value of ['{"provider":"keycloak"}', ""]) {
-      expect(() => fromEnv({ MCP_OAUTH: value })).toThrow(
-        'MCP_OAUTH is no longer read, so the server does not start without the OAuth it asks for. Unset it and set one provider\'s MCP_OAUTH_* variables instead: {"provider":"keycloak",…} becomes MCP_OAUTH_KEYCLOAK_SERVER_URL and MCP_OAUTH_KEYCLOAK_REALM, {"provider":"auth0",…} becomes MCP_OAUTH_AUTH0_DOMAIN.',
-      )
-    }
-  })
-
-  // The retired JSON variable's successors share its prefix: only the exact name is refused.
-  it("reads the provider variables that share the retired variable's prefix", () => {
-    expect(fromEnv(KEYCLOAK)?.oauthMetadata.issuer).toBe("https://kc.example.com/realms/platform")
-    expect(() => fromEnv({ ...KEYCLOAK, MCP_OAUTH: "{}" })).toThrow(/^MCP_OAUTH is no longer read/)
-  })
-
   // The typo warner speaks for these: none of them asks this reader for anything.
   it.each([
+    "MCP_OAUTH",
     "MCP_OAUTH_KEYCLOAK_AUDIENCE",
     "MCP_OAUTH_CLERK_FRONTEND_API_URL",
     "MCP_OAUTH_KEYCLOAK_REALMS",
@@ -140,16 +126,8 @@ describe("oauthFromEnv: what fails the boot", () => {
 
   // The boot reads the env it was handed; a variable only process.env holds is not its setting.
   it("reads the env it is handed, not process.env", () => {
-    vi.stubEnv("MCP_OAUTH", "{}")
+    vi.stubEnv("MCP_OAUTH_WORKOS_SUBDOMAIN", "acme.authkit.app")
     expect(fromEnv(AUTH0)?.oauthMetadata.issuer).toBe("https://tenant.auth0.com/")
-  })
-
-  it("refuses the same without building a provider in refuseOAuthEnv", () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
-    expect(() => refuseOAuthEnv({ MCP_OAUTH: "{}" })).toThrow(/^MCP_OAUTH is no longer read/)
-    expect(() => refuseOAuthEnv({ MCP_OAUTH_X: "1" })).not.toThrow()
-    expect(() => refuseOAuthEnv({ ...KEYCLOAK, MCP_OAUTH_DEBUG: "1" })).not.toThrow()
-    expect(warn).not.toHaveBeenCalled()
   })
 
   it("refuses the variables of two providers, naming both", () => {

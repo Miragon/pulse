@@ -6,10 +6,10 @@
  * A gateway that terminates auth in front is invisible here: identity arrives only through this
  * OAuth.
  *
- * There is no provider selector, so the boot picks the one provider whose variables are set. The
- * retired JSON variable (`MCP_OAUTH`), two providers or an incomplete one fail the boot, naming the
- * variables. Any other variable it does not read (an `…_AUDIENCE`, a misspelled prefix) is the typo
- * warner's, so a misspelled provider boots without OAuth, and the log says so.
+ * There is no provider selector, so the boot picks the one provider whose variables are set. Two
+ * providers or an incomplete one fail the boot, naming the variables. Any other variable it does
+ * not read (an `…_AUDIENCE`, a misspelled prefix) is the typo warner's, so a misspelled provider
+ * boots without OAuth, and the log says so.
  */
 import {
   oauthAuth0Provider,
@@ -65,8 +65,6 @@ export const OAUTH_ENV_VARS: readonly string[] = PROVIDERS.flatMap(({ variables 
 
 /** Logs why a bearer token was refused (never the token); it changes no verdict. */
 export const OAUTH_DEBUG_ENV_VAR = "MCP_OAUTH_DEBUG"
-/** The retired JSON variable; its successors share its prefix, so only the exact name is refused. */
-const RETIRED = "MCP_OAUTH"
 
 /** A table variable counts as set only with a value; blank is unset. */
 const valueOf = (env: NodeJS.ProcessEnv, name: string): string | undefined =>
@@ -76,20 +74,6 @@ const valueOf = (env: NodeJS.ProcessEnv, name: string): string | undefined =>
 const switchedOn = (value: string | undefined): boolean => {
   const normalized = value?.trim().toLowerCase()
   return Boolean(normalized) && normalized !== "0" && normalized !== "false"
-}
-
-/**
- * The refusal alone, which the boot runs before its typo warner: the variable fails the boot as one
- * line, without a warning about the same name in front of it.
- */
-export function refuseOAuthEnv(env: NodeJS.ProcessEnv): void {
-  if (env[RETIRED] === undefined) return
-  throw new Error(
-    `${RETIRED} is no longer read, so the server does not start without the OAuth it asks for. ` +
-      `Unset it and set one provider's MCP_OAUTH_* variables instead: ` +
-      `{"provider":"keycloak",…} becomes MCP_OAUTH_KEYCLOAK_SERVER_URL and MCP_OAUTH_KEYCLOAK_REALM, ` +
-      `{"provider":"auth0",…} becomes MCP_OAUTH_AUTH0_DOMAIN.`,
-  )
 }
 
 interface Requested {
@@ -135,12 +119,10 @@ function build({ provider, values }: Requested, options: ProviderOptions): OAuth
 }
 
 /**
- * No provider's variables → `undefined` plus ONE boot warning (prefixed with `label`). The retired
- * variable, two providers, an incomplete or an invalid one throw. `MCP_OAUTH_DEBUG` is read from
- * the same `env`.
+ * No provider's variables → `undefined` plus ONE boot warning (prefixed with `label`). Two
+ * providers, an incomplete or an invalid one throw. `MCP_OAUTH_DEBUG` is read from the same `env`.
  */
 export function oauthFromEnv(env: NodeJS.ProcessEnv, label: string): OAuthProvider | undefined {
-  refuseOAuthEnv(env)
   const requested = requestedProvider(env)
   if (!requested) {
     console.warn(
