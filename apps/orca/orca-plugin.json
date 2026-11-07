@@ -13,7 +13,7 @@
   "license": "MIT",
   "icon": "assets/icon.png",
   "engines": {
-    "orca": ">=1.4.248"
+    "orca": ">=1.4.252"
   },
   "execution": "trusted-worker",
   "pluginApi": 1,
