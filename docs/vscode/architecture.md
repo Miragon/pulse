@@ -4,7 +4,7 @@ The core never knows which engine it talks to: it asks the ports of a contract, 
 per engine family answers. The C7 adapter serves Operaton, CIB seven and Camunda 7 over their
 REST API, with the Camunda 7 family's workflow domain (`@miragon/pulse-engine-core`, shared with
 the CLI and the MCP server and bundled into the extension) for inspecting an instance and its
-root causes; a new engine is one more adapter folder and one entry in the composition root.
+root causes; a new engine family is one more adapter package and one entry in each composition root.
 
 ```mermaid
 flowchart LR
@@ -16,17 +16,19 @@ flowchart LR
   c7 -- bundled --> enginecore["engine-core: inspect, root cause"]
 ```
 
-The extension is one package with six layers under `apps/vscode/src`, each with its own globals
-and dependency rules:
+The layers live in two packages the extension shares with [Pulse for Orca](../orca/architecture.md),
+each layer with its own globals and dependency rules; `apps/vscode/src/host` is the VS Code
+wiring and the composition root:
 
-| Layer      | Holds                                                   |
-| ---------- | ------------------------------------------------------- |
-| `contract` | ports, read models, conformance laws                    |
-| `core`     | grouping, view models, panel behaviour                  |
-| `webview`  | what the panels draw                                    |
-| `host`     | the VS Code wiring and the composition root             |
-| `adapters` | one folder per engine family (`c7` today)               |
-| `model`    | the local `.bpmn` model and the code that implements it |
+| Package                                     | Layer      | Holds                                                   |
+| ------------------------------------------- | ---------- | ------------------------------------------------------- |
+| `packages/core/runtime-view`                | `contract` | ports, read models, conformance laws                    |
+|                                             | `core`     | grouping, view models, panel behaviour                  |
+|                                             | `protocol` | the messages between host and webview                   |
+|                                             | `webview`  | what the panels draw                                    |
+|                                             | `model`    | the local `.bpmn` model and the code that implements it |
+|                                             | `host-kit` | the host-neutral rules: writes, live updates, logins    |
+| `packages/connectors/engine/engine-adapter` | adapter    | the C7 adapter of the contract                          |
 
 More in the repository:
 
