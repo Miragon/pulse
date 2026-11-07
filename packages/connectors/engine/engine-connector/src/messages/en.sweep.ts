@@ -115,8 +115,7 @@ export const enSweep: MessageCatalog = {
   "historyTimeline.empty":
     "This instance has no history. Check the ID, or whether the engine writes history (history level).",
   "historyTimeline.footerNoun": "activities",
-  "historyTimeline.loadError":
-    "Could not load the history ({message}). Open it again, or check that the engine is reachable.",
+  "historyTimeline.loadError": "Could not load the history",
   "historyTimeline.loading": "Loading activity history…",
   "historyTimeline.noData": "No data available",
   "historyTimeline.started": "Started {time}",
@@ -352,8 +351,7 @@ export const enSweep: MessageCatalog = {
   "taskForm.errorRequired": "Pick a value for {name} before you complete the task.",
   "taskForm.externalForm":
     "This task uses its own form ({formKey}), which does not render here. Open it in the Tasklist, or add the variables by hand.",
-  "taskForm.loadError":
-    "Could not load the task form ({message}). Close the task and open it again.",
+  "taskForm.loadError": "Could not load the task form",
   "taskForm.loading": "Loading task form…",
   "taskForm.namePlaceholder": "name",
   "taskForm.removeVariable": "Remove variable",
@@ -368,7 +366,6 @@ export const enSweep: MessageCatalog = {
   "value.no": "No",
   "value.yes": "Yes",
   "viewState.retry": "Try again",
-  "viewState.unknownError": "unknown error",
 
   "engineContext.environment": "Environment",
   "confirmDialog.environment": "Environment",

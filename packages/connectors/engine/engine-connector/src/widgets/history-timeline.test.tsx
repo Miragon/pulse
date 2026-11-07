@@ -1,7 +1,11 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
-import { explainActivityHandOff, HistoryTimelineWidget } from "./history-timeline.js"
+import {
+  explainActivityHandOff,
+  HistoryTimelineWidget,
+  PagedHistoryView,
+} from "./history-timeline.js"
 import type { HistoryTimelineData } from "../view-models.js"
 import { ENGINE_HISTORY_TIMELINE_DATA } from "../tool-names.js"
 import { TestViewHost, createTestQueryClient } from "@miragon/pulse-widget-shell/widgets"
@@ -198,6 +202,38 @@ describe("HistoryTimelineWidget paging", () => {
       </TestViewHost>,
     )
     expect(screen.queryByText("Load more")).toBeNull()
+  })
+})
+
+// The history tab of the instance and incident views pages on its own (invariant 6: worded, its
+// engine text only under "Details", and a retry).
+describe("PagedHistoryView's failed first page", () => {
+  it("words the failure, keeps the engine's text under Details and reads again on retry", async () => {
+    const history = vi.fn(() => ({
+      isError: true,
+      content: [
+        {
+          type: "text",
+          text: "[500 ProcessEngineException] Boom raw-engine-text at org.camunda.Secret.java:42 (engine prod-a)",
+        },
+      ],
+    }))
+    render(
+      <TestViewHost
+        tools={{ engine_query_historic_activity_instances: history }}
+        client={createTestQueryClient()}
+      >
+        <PagedHistoryView processInstanceId="pi-1" engine="prod-a" />
+      </TestViewHost>,
+    )
+    const title = await screen.findByText("Engine prod-a reported an error (HTTP 500)")
+    const state = title.closest('[data-slot="error-state"]')!
+    expect(state.querySelector("details")?.textContent).toContain("raw-engine-text")
+    const shown = document.body.cloneNode(true) as HTMLElement
+    for (const details of shown.querySelectorAll("details")) details.remove()
+    expect(shown.textContent).not.toContain("raw-engine-text")
+    fireEvent.click(within(state as HTMLElement).getByRole("button", { name: "Try again" }))
+    await waitFor(() => expect(history).toHaveBeenCalledTimes(2))
   })
 })
 

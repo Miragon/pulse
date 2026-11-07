@@ -115,8 +115,7 @@ export const deSweep: MessageCatalog = {
   "historyTimeline.empty":
     "Zu dieser Instanz gibt es keinen Verlauf. Prüf die ID, oder ob die Engine einen Verlauf schreibt (History Level).",
   "historyTimeline.footerNoun": "Aktivitäten",
-  "historyTimeline.loadError":
-    "Der Verlauf konnte nicht geladen werden ({message}). Öffne ihn noch mal, oder prüf, ob die Engine erreichbar ist.",
+  "historyTimeline.loadError": "Der Verlauf konnte nicht geladen werden",
   "historyTimeline.loading": "Verlauf wird geladen…",
   "historyTimeline.noData": "Keine Daten verfügbar",
   "historyTimeline.started": "Gestartet {time}",
@@ -356,8 +355,7 @@ export const deSweep: MessageCatalog = {
   "taskForm.errorRequired": "Wähl einen Wert für {name}, bevor du die Aufgabe abschließt.",
   "taskForm.externalForm":
     "Diese Aufgabe nutzt ein eigenes Formular ({formKey}), das hier nicht erscheint. Öffne es in der Tasklist, oder füg die Variablen von Hand hinzu.",
-  "taskForm.loadError":
-    "Das Formular konnte nicht geladen werden ({message}). Schließ die Aufgabe und öffne sie noch mal.",
+  "taskForm.loadError": "Das Formular konnte nicht geladen werden",
   "taskForm.loading": "Formular wird geladen…",
   "taskForm.namePlaceholder": "Name",
   "taskForm.removeVariable": "Variable entfernen",
@@ -372,7 +370,6 @@ export const deSweep: MessageCatalog = {
   "value.no": "Nein",
   "value.yes": "Ja",
   "viewState.retry": "Erneut versuchen",
-  "viewState.unknownError": "unbekannter Fehler",
 
   "engineContext.environment": "Umgebung",
   "confirmDialog.environment": "Umgebung",

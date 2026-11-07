@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { Alert, AlertDescription, Button, Input, Icon, NativeSelect } from "@miragon/pulse-ui"
-import { useToolQuery } from "@miragon/pulse-widget-shell/widgets"
+import { QueryFallback, TableSkeleton, useToolQuery } from "@miragon/pulse-widget-shell/widgets"
 import { Plus, X } from "lucide-react"
 
 import { useT } from "../messages/use-t.js"
@@ -51,16 +51,16 @@ export function TaskCompleteForm({
   const schema = formSchema ?? fetchedSchema.data ?? null
 
   if (!schema) {
-    if (fetchedSchema.isError) {
-      return (
-        <Alert variant="destructive" className="mt-2">
-          <AlertDescription>
-            {t("taskForm.loadError", { message: fetchedSchema.error.message })}
-          </AlertDescription>
-        </Alert>
-      )
-    }
-    return <p className="text-muted-foreground text-dense py-2">{t("taskForm.loading")}</p>
+    return (
+      <QueryFallback
+        isError={fetchedSchema.isError}
+        error={fetchedSchema.error}
+        onRetry={() => void fetchedSchema.refetch()}
+        errorTitle={t("taskForm.loadError")}
+        loadingText={t("taskForm.loading")}
+        skeleton={<TableSkeleton />}
+      />
+    )
   }
 
   return (

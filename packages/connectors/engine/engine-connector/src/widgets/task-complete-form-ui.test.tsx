@@ -97,21 +97,28 @@ describe("the task form never passes an unknown form for 'no form'", () => {
     expect(screen.queryByText("This task has no form.")).toBeNull()
   })
 
-  it("loads a schema the server could not build, and shows that load's failure", async () => {
+  it("loads a schema the server could not build, and words that load's failure", async () => {
     // The shared client retries with backoff: answer at once.
     queryClient.setQueryDefaults(["engine", "task-form"], { retry: false })
     const asked: unknown[] = []
     renderForm(null, {
       engine_get_task_form: (args: unknown) => {
         asked.push(args)
-        throw new Error("[403] not authorized")
+        throw new Error("[403 AuthorizationException] user demo lacks READ on task (engine prod)")
       },
     })
-    expect(
-      await screen.findByText(/Could not load the task form \(.*not authorized.*\)/),
-    ).toBeTruthy()
+    const title = await screen.findByText("Engine prod denied access (HTTP 403)")
+    const state = title.closest('[data-slot="error-state"]')!
+    // The engine's own text only under "Details" (invariant 6).
+    expect(state.querySelector("details")?.textContent).toContain("user demo lacks READ")
+    const shown = document.body.cloneNode(true) as HTMLElement
+    for (const details of shown.querySelectorAll("details")) details.remove()
+    expect(shown.textContent).not.toContain("lacks READ")
     expect(asked).toEqual([{ taskId: "t-1", engine: "prod" }])
     expect(screen.queryByText("This task has no form.")).toBeNull()
+    // A failed load is no dead end.
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }))
+    await waitFor(() => expect(asked).toHaveLength(2))
   })
 })
 

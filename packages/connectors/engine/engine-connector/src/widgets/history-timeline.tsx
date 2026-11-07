@@ -2,8 +2,6 @@ import { useMemo } from "react"
 import {
   Card,
   CardContent,
-  Alert,
-  AlertDescription,
   StatusBadge,
   TONE_DOT,
   PagedListFooter,
@@ -279,18 +277,17 @@ export function PagedHistoryView({
   })
 
   if (!paged.firstPage) {
-    if (paged.error) {
-      return (
-        <Alert variant="destructive">
-          <AlertDescription>
-            {t("historyTimeline.loadError", {
-              message: paged.error.message || t("viewState.unknownError"),
-            })}
-          </AlertDescription>
-        </Alert>
-      )
-    }
-    return <p className="text-muted-foreground text-dense">{t("historyTimeline.loading")}</p>
+    return (
+      <ViewDataState
+        loading={paged.loading}
+        error={paged.error}
+        onRetry={paged.retry}
+        errorTitle={t("historyTimeline.loadError")}
+        loadingText={t("historyTimeline.loading")}
+        emptyText={t("historyTimeline.noData")}
+        retryLabel={t("viewState.retry")}
+      />
+    )
   }
 
   return (
