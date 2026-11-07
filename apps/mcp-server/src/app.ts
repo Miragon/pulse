@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs"
 import path from "node:path"
 import { createComposedServer, type ComposedServer } from "@miragon/pulse-widget-shell/server"
-import { MODULES, sharedResources } from "./setup.js"
+import { MODULES, sharedResources, type ModuleDefinition } from "./setup.js"
 
 /** `src/` under tsx/vitest, `dist/` when compiled: the package root is one level up either way. */
 const PACKAGE_ROOT = path.join(import.meta.dirname, "..")
@@ -29,6 +29,8 @@ function packageVersion(): string {
 export interface AppDeps {
   /** Widget bundle; default: the compiled `dist/mcp-app.{js,css}`. */
   bundle?: { jsPath: string; cssPath?: string }
+  /** The composition; default: `MODULES`. The host simulation adds a module's own view to it. */
+  modules?: readonly ModuleDefinition[]
 }
 
 /** The one boot `src/index.ts` (production and `pnpm dev`) and the e2e suites share. */
@@ -45,7 +47,7 @@ export async function createApp(
       websiteUrl: "https://github.com/Miragon/pulse",
       instructions: SERVER_INSTRUCTIONS,
     },
-    modules: MODULES,
+    modules: deps.modules ?? MODULES,
     shared: sharedResources,
     env,
     envVarHint: "see docs/mcp/operations.md",
