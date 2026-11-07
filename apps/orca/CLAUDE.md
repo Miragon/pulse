@@ -48,6 +48,28 @@ $O plugin open local.pulse-cockpit
 After a rebuild, `$O plugin dev reload apps/orca/dist` remounts open tabs; tabs and the panel
 reconnect after `$O plugin restart local.pulse-cockpit`.
 
+## Product shots
+
+The cover and the screenshots in `apps/orca/images/` are the plugin's page in Orca's directory
+(`cover`, `screenshots` in `orca-plugin.json`) and the pictures of `README.md`. The skill
+`miragon-brand:product-shots` makes them from `.miragon/product-shots.json`: Orca in a Linux
+container, the demo workspace `apps/orca/demo/` (a project file, a model and the tabs it opens) against the
+sandbox's shop-dev, reached as `dev.shop.example`. With the sandbox up and the plugin built, from
+the repository root:
+
+```sh
+podman run --rm --init -v "$PWD":/work -w /work -v "$PLUGIN":/plugin:ro \
+  -v orca-cache:/orca-cache -e ORCA_CACHE=/orca-cache -e ORCA_VERSION=1.4.252 \
+  --add-host dev.shop.example:host-gateway mcr.microsoft.com/playwright:v1.56.1-noble \
+  bash -c 'npm i --silent --prefix /tmp/pw playwright-core@1.56.1 &&
+    PLAYWRIGHT_CORE=/tmp/pw/node_modules/playwright-core xvfb-run -a -s "-screen 0 1920x1200x24" \
+    node /plugin/skills/product-shots/scripts/listing.mjs --product pulse-orca'
+```
+
+`$PLUGIN` is the `miragon-brand` plugin folder. Make them again after a visible change of the
+tabs or the panel and after an update of the skill (the version the config names), and copy the two light
+screenshots to `docs/assets/orca/`.
+
 ## Where code goes
 
 | You want to…                                                 | Put it in                                                                      | Never                                          |

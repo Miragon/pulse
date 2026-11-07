@@ -1,26 +1,31 @@
 # Installation
 
-Pulse for Orca needs Orca 1.4.252 or later on the desktop. It is listed in
-[Miragon's Orca catalog](https://github.com/Miragon/orca-modelers), next to the Miragon modelers,
-and every Pulse release publishes a new version there.
+Pulse for Orca needs Orca 1.4.252 or later on the desktop. Every Pulse release publishes a new
+version to [Miragon's Orca catalog](https://github.com/Miragon/orca-modelers), next to the
+Miragon modelers, which Orca's plugin directory lists.
 
-## From the catalog
+## From Orca's plugin directory
 
-Open [Pulse in Orca](https://onorca.dev/plugins/miragon.pulse-cockpit?catalog=https://github.com/miragon/orca-modelers.git)
-and press **Install**. The first time, Orca asks whether to add the catalog.
+Turn on plugins in Orca once (Settings → Plugins → **Turn on plugins**). Then open
+[Pulse in Orca's plugin directory](https://www.onorca.dev/plugins/miragon/orca-modelers/pulse-cockpit),
+or search for **Pulse** in Settings → Plugins, and install it.
 
-On the command line, add the catalog once, then install the plugin. Each command prints the
-approval it needs and the same command with `--approve <fingerprint>`:
+Pulse runs as a trusted worker, so Orca shows what it asks for before it runs: your engines over
+the network, its own secrets, settings and storage, reading and writing workspace files, and
+desktop notifications. The approval holds for exactly this version. New releases arrive through
+Orca, and a release asks again when its access changes.
+
+## From Miragon's catalog
+
+If a release is not in Orca's directory yet, add the catalog in Settings → Plugins → ⋯ →
+**Catalog sources…** (`https://github.com/miragon/orca-modelers.git`, ref `main`), or on the
+command line. Each command prints the approval it needs and the same command with
+`--approve <fingerprint>`:
 
 ```sh
 orca plugin catalog add Miragon/orca-modelers
 orca plugin install miragon.pulse-cockpit
 ```
-
-Pulse runs as a trusted worker, so Orca shows what it asks for before it runs: its own secrets,
-settings and storage, reading and writing workspace files, and desktop notifications. The
-approval holds for exactly this version. New releases arrive through the catalog
-(`orca plugin update`), and a release asks again when its access changes.
 
 ## From the source
 

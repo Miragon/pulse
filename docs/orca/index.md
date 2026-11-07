@@ -13,7 +13,7 @@ definitions, instances, incidents and variables, with badges on the deployed dia
 editor tabs, and the engines in a Pulse panel in the right sidebar. It works with Operaton,
 CIB seven and Camunda 7 and reads the same engine profiles as the [Pulse CLI](../cli/index.md).
 
-![The engine overview in an Orca tab, next to the Pulse panel](../assets/orca/engine-overview.png)
+![Pulse in Orca: a deployed process with incidents and running instances on its diagram, the Pulse panel on the right](../assets/orca/definition.webp)
 
 It does what Pulse for VS Code does, with Orca's surfaces:
 

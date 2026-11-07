@@ -13,7 +13,7 @@ definition, each in an editor tab. The panel also holds:
   whether the file matches the deployed version.
 - **Boards**: the boards of `.pulse/boards/`, and a form for a new one.
 
-![The engine overview in a tab, the Pulse panel beside it](../assets/orca/engine-overview.png)
+![A definition in a tab with incidents and running instances on its diagram, the Pulse panel beside it](../assets/orca/definition.webp)
 
 ## The tabs
 
@@ -24,7 +24,7 @@ leads back to the tab that opened one. A tab is a handle file in `.pulse/views/`
 project file, which Git ignores. Incident details open as a `.log` file. _Open in web app_ opens
 the engine's cockpit, and a copy lands on your clipboard.
 
-![A local model against the deployed version](../assets/orca/model-compare.png)
+![A local model against the deployed version, with its badges](../assets/orca/model-runtime.webp)
 
 A board (`.board.json`) opens in its own editor, from the panel or from the file.
 
