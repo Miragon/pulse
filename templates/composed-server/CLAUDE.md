@@ -143,7 +143,7 @@ external infrastructure.
 7. **`.env.example` documents every env var the server reads**: both drift
    directions are guarded by `server/test/env-example.test.ts`; add your
    module's vars there. The same test holds its live `MCP_ACTIVE_MODULES` to
-   `MODULES`: every composed module but analytics, which stays off because
+   `MODULES`: every composed module; analytics may stay out, since
    `compose.yaml` runs no Prometheus.
 8. **Toolsets fail closed.** A module opts into the `module:toolset` suffix by
    declaring `toolsets: createToolsetVocabulary(...)` on its definition (a

@@ -724,8 +724,8 @@ workspace (its header lists each check).
 
 The repo guards `pnpm test` runs over the real tree: docs-refs, old-names, published imports,
 tool-name and hand-off references, server env names, the source scan's `APP_SCAN` and the
-template pins. Besides the dependency-cruiser and ESLint self-tests (invariants 8 and 1), the
-naming, package-scripts, ratchet, GitHub-config, CI-scope and pack-content checks each prove
+template's pins and shipped module list. Besides the dependency-cruiser and ESLint self-tests
+(invariants 8 and 1), the naming, package-scripts, ratchet, GitHub-config, CI-scope and pack-content checks each prove
 themselves on planted violations in fixtures; the extension's own gates live in
 `apps/vscode/test/architecture`.
 

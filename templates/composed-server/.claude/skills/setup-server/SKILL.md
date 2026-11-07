@@ -41,8 +41,9 @@ engine auth problems), and one info line
 (`[acme-mcp] Toolsets: engine:read-only (default without OAuth), …`) states
 what each module may do: one with toolsets is read-only until you widen it
 or set up OAuth (Step 3), one shown as `(no toolsets)` registers every tool.
-A module that line leaves out is off: the copied `.env` runs `engine,notes`, so
-analytics stays off until you turn it on (Step 2).
+A module the line names after `left off by MCP_ACTIVE_MODULES` is off: the
+copied `.env` runs `engine,notes`, so analytics stays off until you turn it on
+(Step 2).
 
 ## Step 2: connect the engine and Prometheus
 
@@ -123,7 +124,7 @@ goes into the list, in `.env.example` and in your `.env`.
 A module with toolsets runs ONE of them per boot, named by a `module:toolset` suffix:
 
 ```bash
-MCP_ACTIVE_MODULES=engine:operations,analytics,notes
+MCP_ACTIVE_MODULES=engine:operations,notes
 ```
 
 - The engine module supports `read-only | operations | admin`; analytics and notes

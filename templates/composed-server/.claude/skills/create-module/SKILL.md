@@ -195,7 +195,9 @@ Four edits, plus the env documentation:
    the list. A module the list does not name stays off and its tools are absent
    (the boot log's `Toolsets:` line shows what runs).
    `server/test/env-example.test.ts` holds `.env.example` to `MODULES`; nothing
-   checks your `.env`, so a stale copy boots without your module.
+   checks your `.env`, so a stale copy boots without your module. The playground
+   recipe in the README's Quickstart and in the `setup-server` skill's Step 5
+   names the modules itself in `-e MCP_ACTIVE_MODULES`: add `<name>` there too.
 
 A missed spread is **silent** (tools work, the view says it can't show
 itself), which is why `server/test/view-registry.test.ts` covers you
@@ -254,6 +256,14 @@ own module stands, take the example out in one change:
    Verification, the `setup-server` skill's Step 1, the README's Quickstart)
    take a show tool of yours, and the README's Configuration names your
    module where it names notes (the toolset prose and the variable table).
+8. Every module list that still names `notes` names your module: the README's
+   Quickstart (`MCP_ACTIVE_MODULES=engine,notes`, and
+   `-e MCP_ACTIVE_MODULES=engine,analytics,notes` in the playground recipe),
+   `CLAUDE.md` (`engine:operations,notes` and the comment on
+   `cp .env.example .env`) and the `setup-server` skill (Steps 1, 2, 3 and 5,
+   Troubleshooting). Copied as it stands, such a value fails the boot.
+   `git grep -n notes` shows what is left, including the comment in
+   `server/src/setup.ts` that names the deleted test.
 
 Then run Step 7's bar. The other guard tests follow `MODULES`, so they need no
 edit. The same holds for a Pulse module you leave out: dropping analytics is

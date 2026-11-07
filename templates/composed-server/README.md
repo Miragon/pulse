@@ -95,7 +95,8 @@ docker run --rm --env-file .env -p 127.0.0.1:8400:8400 \
 ```
 
 Ctrl-C stops the server and `--rm` removes its container; `docker compose down`
-removes the engine.
+removes compose.yaml's engine, `pnpm stack:down` in your Pulse clone the
+playground.
 
 Inside the container `localhost` is the container itself, so the server joins
 the engine's Docker network and reaches it by its service name and port:
@@ -227,9 +228,10 @@ does not name stays off and its tools are absent, whatever the module list
 holds (the boot log's `Toolsets:` line shows what runs), and a name it still
 holds after you remove a module fails the boot. The
 `create-module` skill walks through every step, and the guard tests fail
-loudly if a wiring step is missed. They derive what they check from the
-module list, so a module you add, replace or drop needs no edit to the guard
-tests; only `example-notes.test.ts` goes with the example. Once your own
+loudly if a wiring step is missed (except in your `.env`, which nothing checks:
+the boot log's `Toolsets:` line shows what runs). They derive what they check
+from the module list, so a module you add, replace or drop needs no edit to the
+guard tests; only `example-notes.test.ts` goes with the example. Once your own
 module stands, remove the example: the skill's "Remove the example module"
 lists each place.
 
