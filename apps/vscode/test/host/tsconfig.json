@@ -1,0 +1,6 @@
+{
+  // The editor's project for the runtime probe apps/vscode/tsconfig.json leaves out: it expects
+  // the globals tsconfig.host.json lacks. The tests beside it stay in the union.
+  "extends": "../../tsconfig.host.json",
+  "include": ["runtime.boundary.ts"]
+}

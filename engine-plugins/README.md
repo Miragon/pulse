@@ -8,10 +8,8 @@ default), an Actuator Prometheus scrape, or the OTEL Java agent's Micrometer bri
 engine-side database. Those series are what the [analytics module](../packages/connectors/analytics/analytics-connector) of
 [Pulse](../README.md) queries.
 
-From 0.25 every meter is named `engine.*` (Prometheus `engine_*`); up to 0.24 the names started
-with `camunda`. Upgrade the plugin and the Pulse server together, and port your own alert rules and
-dashboards: [Upgrading](../docs/mcp/upgrading.md) lists every old name and a scrape-time rename
-for engines that upgrade later.
+Run the plugin and the Pulse server at the same version: below 1.0 a release can rename a metric
+or a label, and the [changelog](../CHANGELOG.md) lists every breaking change.
 
 Published to **Maven Central** as `io.miragon.mcp:cibseven-history-metrics` (released via
 release-please together with the server image). A runnable showcase that consumes this plugin lives

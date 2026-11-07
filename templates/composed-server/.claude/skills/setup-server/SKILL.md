@@ -20,6 +20,7 @@ Configuration ground rules first:
 ## Step 1: install and first run
 
 ```bash
+corepack enable # pnpm 10.32.1 (`packageManager`); Node.js 25+ has none: npm i -g pnpm@10.32.1
 pnpm install    # needs Node >= 22.22.2 (enforced at install time)
 cp .env.example .env
 pnpm dev        # MCP endpoint on :8400/mcp, inspector on :8400/mcp/inspector
@@ -28,15 +29,53 @@ pnpm dev        # MCP endpoint on :8400/mcp, inspector on :8400/mcp/inspector
 Verify before configuring anything: open `http://localhost:8400/mcp/inspector` and
 call `notes_show_notes`: the example module needs no external infrastructure,
 so a rendered notes widget proves server, widget bundle, and inspector work.
-Then read the boot log: every warning there is actionable (unknown env var,
-missing Prometheus URL, engine auth problems), and one info line
+If the log says `[mcp-use] port 8400 is taken, using <port>`, the endpoint and
+the inspector are on that port and 8400 is another server (see
+Troubleshooting): use that port, or free 8400 and restart.
+Then read the boot log. The Vite build output, the `[inspector]` lines and
+`[mcp-use] views directory not configured.` / `created mcp-env.d.ts` are
+expected; a `[mcp-use] reload failed` line is an error. The server's own
+lines start with `[acme-mcp]` (the `name` in
+`server/src/app.ts`): every warning among them is actionable (unknown env var, missing Prometheus URL,
+engine auth problems), and one info line
 (`[acme-mcp] Toolsets: engine:read-only (default without OAuth), …`) states
-what each module may do, read-only until you widen it or set up OAuth
-(Step 3).
+what each module may do: one with toolsets is read-only until you widen it
+or set up OAuth (Step 3), one shown as `(no toolsets)` registers every tool.
+A module the line names after `left off by MCP_ACTIVE_MODULES` is off: the
+copied `.env` runs `engine,notes`, so analytics stays off until you turn it on
+(Step 2).
 
 ## Step 2: connect the engine and Prometheus
 
-Edit `.env` (every field is documented inline in `.env.example`):
+No engine at hand? Start the one in `compose.yaml`; the copied `.env` already
+points at it (`http://localhost:8410/engine-rest`, `cibseven`, basic auth
+`demo`/`demo`):
+
+```bash
+docker compose up -d --wait   # CIB seven with its invoice example, healthy once its REST API answers
+pnpm dev
+```
+
+Then `engine_list_process_definitions` lists `invoice` and `ReviewInvoice`.
+That engine serves the engine tools only: it records no metrics and runs no
+Prometheus, so the copied `.env` leaves analytics off
+(`MCP_ACTIVE_MODULES=engine,notes`). For the analytics tools as well, run the
+[Pulse playground](https://github.com/Miragon/pulse/tree/main/playground)
+instead (Node.js, pnpm and Docker only:
+`git clone https://github.com/Miragon/pulse && cd pulse && pnpm stack:up`),
+uncomment `ENGINE_ID` (`prod-a`) and `PROMETHEUS_URL`
+(`http://localhost:8460`) in `.env` and add `analytics` to its
+`MCP_ACTIVE_MODULES`. Both engines take port 8410: stop one
+(`docker compose down` here, `pnpm stack:down` there) before you start the
+other. Without a Prometheus, keep analytics out of `MCP_ACTIVE_MODULES`
+(Step 3): with it on, every boot warns that `PROMETHEUS_URL` is unset and every
+analytics query fails.
+
+Every engine call answers 401 although `.env` says `demo`/`demo`? Wrong
+passwords lock `demo` out of that engine, for good after ten, and `demo` is
+its only admin: `docker compose down && docker compose up -d` resets it.
+
+For your own engine, edit `.env` (every field is documented inline in `.env.example`):
 
 - `ENGINE_BASE_URL`: the engine REST endpoint.
 - `ENGINE_ID`: **must equal the engine container's own `ENGINE_ID`, the
@@ -45,7 +84,7 @@ Edit `.env` (every field is documented inline in `.env.example`):
   health reads `unknown`.
 - `ENGINE_FLAVOR`: the engine's vendor, `camunda7` (default), `cibseven` or `operaton`. It
   picks the cockpit-link routes and the product name the views show, so a CIB seven engine (the
-  playground's) sets `cibseven`.
+  one in `compose.yaml`, the playground's) sets `cibseven`.
 - `ENGINE_AUTH_TYPE`: `none | basic | bearer | passthrough`; `basic` needs
   `ENGINE_USERNAME`/`ENGINE_PASSWORD`, `bearer` needs `ENGINE_TOKEN` (both
   enforced at boot); `passthrough` forwards each MCP caller's own bearer token.
@@ -62,9 +101,10 @@ operaton | camunda7`, default `camunda7`) and `auth`; overrides the single-engin
   globally unique across environments. A call without `engine` routes to
   `ENGINE_DEFAULT` (it must name a configured engine, else the boot
   fails); without one it fails with `ENGINE_NOT_SELECTED` listing the engines.
-- `PROMETHEUS_URL`: unset defaults to `http://localhost:9090`, which does
-  **not** match the playground stack (host port 8460); every analytics query
-  then fails. The server warns at boot when unset. A protected Prometheus takes
+- `PROMETHEUS_URL`, with `analytics` added to `MCP_ACTIVE_MODULES` (Step 3):
+  unset defaults to `http://localhost:9090`, which does **not** match the
+  playground stack (host port 8460); every analytics query then fails. The
+  server warns at boot when analytics runs without it. A protected Prometheus takes
   `PROMETHEUS_BEARER_TOKEN` or `PROMETHEUS_USERNAME`/`PROMETHEUS_PASSWORD`
   (plus `PROMETHEUS_HEADERS`, a JSON object, e.g. for a tenant id).
 - Analytics reads only the server's configured engines, the engine module's engine ids
@@ -75,18 +115,16 @@ operaton | camunda7`, default `camunda7`) and `auth`; overrides the single-engin
   deadlines (default 30000 ms); a hung upstream then fails the tool call with
   a timeout error instead of holding it.
 
-No engine at hand? The
-[Pulse playground](https://github.com/Miragon/pulse/tree/main/playground)
-is a ready-made Docker Compose stack (engine + Prometheus + Grafana) whose
-defaults match this template's `.env.example`.
-
 ## Step 3: select modules and toolsets
 
-`MCP_ACTIVE_MODULES` is a comma list; unset or `all` activates every module.
+`MCP_ACTIVE_MODULES` is a comma list; unset or `all` activates every module, and
+a module the list does not name stays off. The copied `.env` sets `engine,notes`
+(analytics stays off: `compose.yaml` runs no Prometheus), so a module you add
+goes into the list, in `.env.example` and in your `.env`.
 A module with toolsets runs ONE of them per boot, named by a `module:toolset` suffix:
 
 ```bash
-MCP_ACTIVE_MODULES=engine:operations,analytics,notes
+MCP_ACTIVE_MODULES=engine:operations,notes
 ```
 
 - The engine module supports `read-only | operations | admin`; analytics and notes
@@ -105,7 +143,7 @@ MCP_ACTIVE_MODULES=engine:operations,analytics,notes
   reaches the port. Behind an authenticating gateway the server still sees no
   identity, which is exactly why the suffix must stay explicit there: identity
   reaches the server only through its own OAuth.
-- Unknown module names warn and are skipped; a suffix on a module without
+- An unknown module name fails the boot, listing the modules; a suffix on a module without
   toolsets (e.g. `notes:read-only`) warns and is ignored; that module
   registers all its tools.
 - All widgets stay in the one Vite bundle regardless; inactive modules just
@@ -118,7 +156,7 @@ The boot reads mcp-use's own provider variables itself; set those of ONE provide
 of `.env.example` lists the providers, their variables and what fails the boot. Keycloak, say:
 
 ```bash
-MCP_URL=https://mcp.example.com     # the token audience (RFC 8707), required with OAuth
+MCP_URL=https://mcp.example.com     # the public origin, no path; required with OAuth
 MCP_USE_OAUTH_KEYCLOAK_SERVER_URL=https://kc.example.com
 MCP_USE_OAUTH_KEYCLOAK_REALM=platform
 ```
@@ -126,6 +164,18 @@ MCP_USE_OAUTH_KEYCLOAK_REALM=platform
 `/mcp` then answers 401 without a valid bearer token and the default engine
 toolset rises to `operations`. Without a provider there is no caller identity. A
 provider config the boot cannot honor fails the boot, naming the variables.
+
+The token audience is NOT `MCP_URL` itself: mcp-use accepts a token whose
+`aud` holds `<MCP_URL>/mcp` (`https://mcp.example.com/mcp` above, the
+`resource` that `/.well-known/oauth-protected-resource/mcp` advertises) and
+that carries `sub`; the boot logs the value
+(`[acme-mcp] OAuth: tokens must carry aud https://mcp.example.com/mcp …`). The
+IdP side (audience mapper, `sub`, client registration with the claude.ai
+callback `https://claude.ai/api/mcp/auth_callback`, reading a 401) is the
+[identity provider checklist](https://miragon.github.io/pulse/mcp/operations#identity-provider-checklist).
+A 401's `WWW-Authenticate` header names an audience mismatch;
+`MCP_USE_OAUTH_DEBUG=1` logs a failed signature, issuer, `sub` or `exp` check
+with the token's claims.
 
 ## Step 4: make it yours
 
@@ -137,7 +187,9 @@ then reinstall so the lockfile matches:
 2. `@acme/mcp-notes` in `modules/mcp-notes/package.json`, in
    `server/package.json`'s dependencies, and in every import
    (`server/src/setup.ts`, `server/src/ui/view-registry.ts`)
-3. the `acme-mcp` name in `server/src/app.ts`
+3. the server's `name` and `title` in `SERVER_INFO` (`server/src/app.ts`):
+   clients such as the inspector show the title, the server's own log lines
+   start with `[<name>]`, and the tests read both from there
 4. `pnpm install` to refresh `pnpm-lock.yaml` (the Docker build uses
    `--frozen-lockfile`)
 
@@ -161,15 +213,39 @@ host's theme; there is no theme switch in the app.
 ## Step 5: Docker and production
 
 ```bash
-pnpm install                    # once, then COMMIT pnpm-lock.yaml
+pnpm install                    # commit pnpm-lock.yaml if it changed
 docker build -t my-mcp-server .
-docker run -p 127.0.0.1:8400:8400 \
-  -e ENGINE_BASE_URL=http://host.docker.internal:8410/engine-rest \
-  -e ENGINE_FLAVOR=cibseven \
+docker compose up -d --wait     # compose.yaml's engine, on the network pulse-starter_default
+docker run --rm --env-file .env -p 127.0.0.1:8400:8400 \
+  --network pulse-starter_default \
+  -e ENGINE_BASE_URL=http://engine:8080/engine-rest \
+  -e ENGINE_COCKPIT_URL=http://localhost:8410/webapp \
   my-mcp-server
 ```
 
-- Config comes from the environment; the image does not read `.env`.
+- Config comes from the environment; the image does not read `.env` itself.
+  `--env-file` hands it over (so `MCP_ACTIVE_MODULES`, `ENGINE_ID`, `ENGINE_FLAVOR`
+  and the engine auth match the local run), and the `-e` flags after it win. Unlike dotenv it
+  reads plain `KEY=VALUE` lines: quotes and a trailing `# comment` stay in the
+  value. A dev-only `PORT` or `MCP_URL` in `.env` comes along too (a `PORT`
+  other than 8400 misses `-p …:8400:8400`): drop it or override it with `-e`.
+- Inside the container `localhost` is the container, so the server joins the
+  engine's Docker network and reaches it by its service name and port:
+  `engine:8080` on `pulse-starter_default`, the network the `name:` in
+  `compose.yaml` fixes. For the Pulse playground's engine and Prometheus, join
+  `pulse_default` instead with `-e ENGINE_BASE_URL=http://cibseven:8410/engine-rest`,
+  `-e ENGINE_ID=prod-a` (the id on its metrics, or analytics finds nothing),
+  `-e PROMETHEUS_URL=http://prometheus:9090` and
+  `-e MCP_ACTIVE_MODULES=engine,analytics,notes` (the copied `.env` leaves
+  analytics off). That works alike on Linux and
+  under Docker Desktop; `host.docker.internal` does not: on Linux it is the
+  Docker bridge's gateway, which misses a port published on `127.0.0.1`, where
+  both engines publish theirs. An engine the container reaches by its address
+  needs no `--network`, only its URL in `ENGINE_BASE_URL`.
+- `ENGINE_COCKPIT_URL` stays on `localhost`: the user's browser opens those
+  links. Without it the cockpit links derive from the engine URL and point at
+  `engine:8080`, which a browser on the host does not resolve.
+  `-p 127.0.0.1:8400:8400` publishes the server on the host's loopback only.
 - `PORT` sets the HTTP port (default 8400); `MCP_URL` is the public base URL
   when running behind a proxy or MCP gateway and, with
   `MCP_ALLOWED_HOSTS`/`MCP_ALLOWED_ORIGINS`, the only non-localhost
@@ -240,19 +316,21 @@ pnpm build && pnpm typecheck && pnpm test
 
 Then a functional pass in the inspector: `engine_list_engines` (engines
 configured), one cheap read such as `engine_list_process_definitions` (engine
-reachable, auth works), the cockpit (`engine_open_cockpit`), one analytics tool (Prometheus
-reachable, `engine_id` matches). A clean boot log (no unknown-var or
+reachable, auth works), the cockpit (`engine_open_cockpit`), and with analytics on one
+analytics tool (Prometheus reachable, `engine_id` matches). A clean boot log (no unknown-var or
 missing-URL warnings) is part of done.
 
 ## Troubleshooting
 
-| Symptom                                   | Cause                                                                                                                                                                                                      |
-| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Every in-widget query hangs on "Loading…" | `resolve.dedupe` in `server/vite.config.ts` no longer spreads `VIEW_BUNDLE_DEDUPE`, or a second copy of React, the kit, widget-shell or mcp-use got installed                                              |
-| Widgets render unstyled                   | widget sources outside the Tailwind scan set (workspace modules are globbed; npm-installed ones need an `@source` in `server/src/ui/globals.css`)                                                          |
-| Analytics tools return empty results      | `ENGINE_ID` differs from the engine container's `ENGINE_ID` (its `engine_id` label), or `PROMETHEUS_URL` points at the wrong port                                                                          |
-| Cockpit links open the wrong web app      | the engine's vendor: without `ENGINE_FLAVOR` (or a `flavor` per engine entry) it counts as Camunda 7                                                                                                       |
-| "Unknown environment variable" at boot    | typo, or a var this build doesn't read; `.env.example` is the authoritative list                                                                                                                           |
-| Widget UI changes don't show up           | the bundle is read once at boot; restart `pnpm dev` at the repo root (it rebuilds modules + bundle on start)                                                                                               |
-| A tool is missing                         | module not in `MCP_ACTIVE_MODULES`, or its toolset filtered it; with no suffix and no OAuth it is `read-only` (see the boot log's `Toolsets:` line); deployments also need `ENGINE_ALLOW_DEPLOYMENTS=true` |
-| Claude Desktop shows no tools at all      | a `"url"` entry in `claude_desktop_config.json` (stdio only, use the `mcp-remote` bridge from Step 6), or the app wasn't restarted                                                                         |
+| Symptom                                   | Cause                                                                                                                                                                                                                                                                                    |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Every in-widget query hangs on "Loading…" | `resolve.dedupe` in `server/vite.config.ts` no longer spreads `VIEW_BUNDLE_DEDUPE`, or a second copy of React, the kit, widget-shell or mcp-use got installed                                                                                                                            |
+| Widgets render unstyled                   | widget sources outside the Tailwind scan set (workspace modules are globbed; npm-installed ones need an `@source` in `server/src/ui/globals.css`)                                                                                                                                        |
+| Analytics tools return empty results      | `ENGINE_ID` differs from the engine container's `ENGINE_ID` (its `engine_id` label), or `PROMETHEUS_URL` points at the wrong port                                                                                                                                                        |
+| Cockpit links open the wrong web app      | the engine's vendor: without `ENGINE_FLAVOR` (or a `flavor` per engine entry) it counts as Camunda 7                                                                                                                                                                                     |
+| "Unknown environment variable" at boot    | typo, or a var this build doesn't read; `.env.example` is the authoritative list                                                                                                                                                                                                         |
+| Widget or module changes don't show up    | stale UI, tool description or handler: the modules and the bundle are built and read once, when `pnpm dev` starts (a save's `[mcp-use] reloaded server entry` skips them); restart it at the repo root                                                                                   |
+| A tool is missing                         | module not in `MCP_ACTIVE_MODULES` (the copied `.env` names `engine,notes`, not analytics or a module you added), or its toolset filtered it; with no suffix and no OAuth it is `read-only` (see the boot log's `Toolsets:` line); deployments also need `ENGINE_ALLOW_DEPLOYMENTS=true` |
+| The boot refuses an unknown module        | `MCP_ACTIVE_MODULES` in `.env` still names a module you removed from `MODULES`, or a typo: take it out of the list                                                                                                                                                                       |
+| Engine tools show, your module's don't    | another server holds 8400 (the stock Pulse image, say): `pnpm dev` took the next free port and logged it (`[mcp-use] port 8400 is taken, using 8401`); connect to that endpoint or free 8400                                                                                             |
+| Claude Desktop shows no tools at all      | a `"url"` entry in `claude_desktop_config.json` (stdio only, use the `mcp-remote` bridge from Step 6), or the app wasn't restarted                                                                                                                                                       |

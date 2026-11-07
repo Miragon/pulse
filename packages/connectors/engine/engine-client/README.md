@@ -32,9 +32,9 @@ does not import.
 | `./sdk`   | Generated SDK, one typed function per REST operation                                      |
 | `./types` | Generated request/response types                                                          |
 
-These three subpaths are the public API. The internal layout of the generated
-output (`dist/generated/**`) is not: it may change with any `@hey-api/openapi-ts`
-upgrade, so deep imports are deliberately not exported.
+Import only these three subpaths: the layout of the generated output
+(`dist/generated/**`) changes with any `@hey-api/openapi-ts` upgrade, so it is
+not exported.
 
 ## Client behavior
 
@@ -43,7 +43,9 @@ and reject on HTTP error responses (`throwOnError: true`). Both options are
 declared once in the generator config (`openapi-ts.config.ts`) and applied at
 runtime through `createClientConfig` (`src/hey-api.ts`), which the generated
 default client and `createEngineClient` share, so generated types and runtime
-behavior always agree.
+behavior always agree. Every request sends
+`User-Agent: @miragon/pulse-engine-client/<version>`, so the engine's access
+logs show Pulse's calls.
 
 ```ts
 import { createEngineClient } from "@miragon/pulse-engine-client"

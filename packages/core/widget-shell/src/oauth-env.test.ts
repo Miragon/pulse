@@ -39,7 +39,7 @@ describe("oauthFromEnv: the providers", () => {
     expect(fromEnv({})).toBeUndefined()
     expect(warn).toHaveBeenCalledOnce()
     expect(warn.mock.calls[0][0]).toBe(
-      "[test-root] No OAuth provider is configured (MCP_USE_OAUTH_*), so there is no caller identity: modules without an explicit toolset run read-only. Set one provider's MCP_USE_OAUTH_* variables, or widen with MCP_ACTIVE_MODULES=<module>:<toolset> (anyone who reaches this port gets that surface).",
+      "[test-root] No OAuth provider is configured (MCP_USE_OAUTH_*), so there is no caller identity: a module with toolsets runs its read-only floor unless MCP_ACTIVE_MODULES names a toolset, and a module without toolsets registers every tool. Set one provider's MCP_USE_OAUTH_* variables, or widen with MCP_ACTIVE_MODULES=<module>:<toolset> (anyone who reaches this port gets that surface).",
     )
   })
 
@@ -128,7 +128,7 @@ describe("oauthFromEnv: a deployment that asked for OAuth never boots without it
     "MCP_USE_OAUTH_KEYCLOAK_REALMS",
   ])("refuses %s, a variable it does not read", (name) => {
     expect(() => fromEnv({ ...KEYCLOAK, [name]: "https://x.example/mcp" })).toThrow(
-      `${name} is not read by this server, so it does not start. Unset it: the server reads one provider's variables, Keycloak (MCP_USE_OAUTH_KEYCLOAK_SERVER_URL, MCP_USE_OAUTH_KEYCLOAK_REALM), Auth0 (MCP_USE_OAUTH_AUTH0_DOMAIN), WorkOS (MCP_USE_OAUTH_WORKOS_SUBDOMAIN), Better Auth (MCP_USE_OAUTH_BETTER_AUTH_URL) or Convex (MCP_USE_OAUTH_CONVEX_AUTH_URL), and takes the token audience from MCP_URL (RFC 8707).`,
+      `${name} is not read by this server, so it does not start. Unset it: the server reads one provider's variables, Keycloak (MCP_USE_OAUTH_KEYCLOAK_SERVER_URL, MCP_USE_OAUTH_KEYCLOAK_REALM), Auth0 (MCP_USE_OAUTH_AUTH0_DOMAIN), WorkOS (MCP_USE_OAUTH_WORKOS_SUBDOMAIN), Better Auth (MCP_USE_OAUTH_BETTER_AUTH_URL) or Convex (MCP_USE_OAUTH_CONVEX_AUTH_URL), and takes the token audience from MCP_URL: tokens carry <MCP_URL>/mcp in aud (RFC 8707).`,
     )
   })
 

@@ -37,6 +37,8 @@ pnpm stack:down     # stop (volumes kept; --wipe drops them)
 - `stack:up` reuses a stack that already answers as it is, and stops with a message when another
   container or process holds one of its ports. After a change to the engine plugin or the
   example, `pnpm stack:down && pnpm stack:up` deploys it (`stack:up` says when the jar is stale).
+  Every checkout and worktree shares the one stack (Compose project `pulse`): `stack:down` stops
+  it for all of them, and a checkout without a jar of its own reuses the engine another one built.
 - With your own settings instead: `cp .env.example .env`, then `pnpm dev`.
 - Every published port binds to `127.0.0.1` on purpose: the engine REST API
   is anonymous, Grafana runs as anonymous Admin, the rest uses demo
@@ -49,14 +51,18 @@ pnpm stack:down     # stop (volumes kept; --wipe drops them)
   deployments additionally need `ENGINE_ALLOW_DEPLOYMENTS=true`.
 - Compose profiles: `--profile multi-engine` (second engine on :8411;
   `pnpm stack:up --multi-engine`, `pnpm play --multi-engine`),
-  `--profile full` (containerized server on :8400), `--profile dev` (plain
-  CIB seven image, no analytics, without its invoice example, so it starts empty), `--profile auth` (Keycloak on :8480 for
+  `--profile full` (containerized server on :8400), `--profile auth` (Keycloak on :8480 for
   trying OAuth locally: `pnpm play --auth` puts the server behind it, `pnpm stack:up --auth`
-  starts it alone; see the commented block in `.env.example`)
-- The Compose project is `pulse`. A stack started before the rename still
-  runs as `miragon-ai` and holds the ports: stop it once with
-  `docker compose -p miragon-ai -f playground/docker/docker-compose.yml down`
-  (`down -v` drops its volumes as well).
+  starts it alone; see the commented block in `.env.example`). For MCP clients without
+  Dynamic Client Registration its realm pre-registers the client `pulse-server` with the
+  secret `pulse-secret`.
+- `--profile dev` runs CIB seven Run, the vendor's image at a pinned tag, on :8410 in place of
+  the default engine: no analytics and no invoice example, so it starts empty, and its REST API
+  is anonymous like the default engine's. It serves `pnpm dev` (with a `.env`) and a bare
+  `pulse`. Start it from the repo root with the stack down:
+  `docker compose -f playground/docker/docker-compose.yml --profile dev up -d cibseven-dev`.
+  `pnpm play`, `pnpm play:cli` and `pnpm stack:up` start the default engine, which needs the
+  same port, so run `pnpm stack:down` first; it stops the dev engine too.
 
 ## Deploy to Fly.io
 
@@ -111,18 +117,15 @@ Afterwards, point an MCP client (e.g. claude.ai custom connector) at
   server app: a Cloudflare record `CNAME pulse-playground →
 miragon-ai-playground.fly.dev` (DNS only, not proxied) and
   `fly certs add pulse-playground.miragon.ai -a miragon-ai-playground`.
-  `MCP_URL` names it. The old `https://miragon-ai-playground.fly.dev/mcp`
-  keeps working, since `MCP_ALLOWED_HOSTS` and `MCP_ALLOWED_ORIGINS` still
-  admit it.
+  `MCP_URL` names it; `MCP_ALLOWED_HOSTS` and `MCP_ALLOWED_ORIGINS` also
+  admit the Fly name `miragon-ai-playground.fly.dev`.
 - A Fly **secret** overrides an `[env]` entry of the same name. If
   `fly secrets list -a miragon-ai-playground` shows `MCP_ACTIVE_MODULES`,
   keep it in sync with the toml (or `fly secrets unset` it). An OAuth provider's
   variables as secrets add login (`fly secrets set
 MCP_USE_OAUTH_KEYCLOAK_SERVER_URL=… MCP_USE_OAUTH_KEYCLOAK_REALM=… -a
 miragon-ai-playground`, see `.env.example`); the pin still keeps it
-  read-only. A secret left from the retired OAuth JSON variable fails the boot:
-  unset it in the same deploy (see the upgrade note under Security in
-  `docs/mcp/operations.md`).
+  read-only.
 - The engine keeps its H2 database in memory: every engine restart reseeds
   (~600 instances) and live traffic keeps metrics moving. Prometheus history
   survives restarts on its volume.

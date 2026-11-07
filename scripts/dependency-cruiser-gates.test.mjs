@@ -5,7 +5,7 @@ import os from "node:os"
 import path from "node:path"
 import { after, before, describe, it } from "node:test"
 import { fileURLToPath } from "node:url"
-import { cruise } from "dependency-cruiser"
+import { cruise, format } from "dependency-cruiser"
 import extractDepcruiseOptions from "dependency-cruiser/config-utl/extract-depcruise-options"
 import extractTSConfig from "dependency-cruiser/config-utl/extract-ts-config"
 import { CONNECTOR_ROLES } from "./check-package-naming.mjs"
@@ -1409,6 +1409,48 @@ describe("APP_PACKAGES names every real app of the repo", () => {
       )
     })
   }
+})
+
+describe("a failing cruise says the fix", () => {
+  const config = createRequire(import.meta.url)(CONFIG)
+  const { scripts } = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"))
+
+  for (const script of [...ARCHITECTURE_SCRIPTS, "lint:architecture:vscode"]) {
+    it(`${script} prints the comment of the rule that fired`, () => {
+      assert.match(scripts[script], /--output-type err-long$/)
+    })
+  }
+
+  // The VS Code extension's config too: lint:architecture:vscode prints its comments, and its
+  // closed world's `not-in-allowed` takes the wording from the forbidden rule of that name.
+  for (const file of [CONFIG, path.join(repoRoot, "apps/vscode/.dependency-cruiser.cjs")]) {
+    it(`every rule of ${path.relative(repoRoot, file)} carries a comment to print`, () => {
+      const { forbidden = [], required = [] } = createRequire(import.meta.url)(file)
+      assert.ok(forbidden.length > 0, `${file} lists no forbidden rules`)
+      assert.deepEqual(
+        [...forbidden, ...required].filter((rule) => !rule.comment?.trim()).map((r) => r.name),
+        [],
+      )
+    })
+  }
+
+  it("the VS Code closed world's not-in-allowed has the wording err-long prints for it", () => {
+    const { allowed, forbidden } = createRequire(import.meta.url)(
+      path.join(repoRoot, "apps/vscode/.dependency-cruiser.cjs"),
+    )
+    assert.ok(allowed.length > 0, "the VS Code config is no longer closed-world")
+    assert.ok(forbidden.some((rule) => rule.name === "not-in-allowed" && rule.comment?.trim()))
+  })
+
+  it("the err-long reporter prints it under a planted violation, and fails the run", async () => {
+    const { output: report, exitCode } = await format(output, { outputType: "err-long" })
+    const { comment } = config.forbidden.find((rule) => rule.name === CLIENT_LEAF)
+    assert.ok(exitCode > 0, "err-long no longer fails the gate")
+    assert.ok(
+      report.replace(/\s+/g, " ").includes(comment.replace(/\s+/g, " ")),
+      `no comment of ${CLIENT_LEAF} in the report`,
+    )
+  })
 })
 
 describe("the self-test covers the whole config", () => {

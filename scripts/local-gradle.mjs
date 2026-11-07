@@ -121,13 +121,19 @@ export function gradleCommand(jdk, { repoRoot, project, tasks, platform, uid, gi
 }
 
 /**
- * The note for a stack that runs while the jar here is missing or older than its sources: the
- * running engine may not have the changes (stack:up reuses a running stack as it is).
+ * The note for a stack that runs while the jar here is missing or older than its sources
+ * (stack:up reuses a running stack as it is). Without a jar here, nothing says which checkout
+ * built the running engine (another worktree, or this one before its build output went): every
+ * worktree shares the stack, so that note never tells it to stop it.
  */
 export const staleJarNote = (jarMtimeMs) =>
-  `The engine jar here is ${jarMtimeMs === undefined ? "missing" : "older than its sources"}, so ` +
-  "the running engine may lack changes to the engine plugin or the example; " +
-  "pnpm stack:down && pnpm stack:up rebuilds and redeploys it."
+  jarMtimeMs === undefined
+    ? "This checkout has no engine jar, so the running engine may not match its engine plugin " +
+      "and example (another checkout, a worktree say, may have built it). The playground is " +
+      "shared and keeps running as it is."
+    : "The engine jar here is older than its sources, so the running engine may lack changes " +
+      "to the engine plugin or the example; pnpm stack:down && pnpm stack:up rebuilds and " +
+      "redeploys it."
 
 /** One line on where Gradle runs. */
 export const describeJdk = (jdk) =>

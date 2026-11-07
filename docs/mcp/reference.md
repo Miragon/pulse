@@ -6,7 +6,7 @@ environment variables is in [Operations](operations.md#environment-variables).
 ## Tools
 
 Tool inputs are strict: an unknown or misnamed parameter is refused with the list of valid
-ones instead of being ignored (which used to widen a "filtered" answer to the whole engine).
+ones, so a misspelled filter cannot widen the answer to the whole engine.
 
 ### Engine module (`engine_*`)
 
@@ -87,7 +87,7 @@ The most common variables. See [Operations](operations.md#environment-variables)
 | ------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `PORT`                                                  | `8400`                              | HTTP port the MCP server listens on                                                                                                                                                        |
 | `MCP_ACTIVE_MODULES`                                    | all, read-only                      | Comma-separated modules (`engine,analytics`), each with an optional [toolset](#toolsets) suffix; no suffix = read-only, under OAuth the standard toolset                                   |
-| `MCP_URL`                                               | —                                   | Public base URL: advertised URLs, OAuth audience, the `Host`/`Origin` accepted (else localhost only), and the origin the views load Geist from (`/fonts/…`)                                |
+| `MCP_URL`                                               | —                                   | Public base URL: advertised URLs, the `Host`/`Origin` accepted (else localhost only), the origin the views load Geist from (`/fonts/…`); OAuth tokens carry `<MCP_URL>/mcp` in `aud`       |
 | `MCP_USE_OAUTH_*`                                       | —                                   | One OAuth provider's variables protecting `/mcp`, the only caller identity (see [Operations](operations.md#security))                                                                      |
 | `ENGINE_ALLOW_DEPLOYMENTS`                              | `false`                             | `true` registers `engine_create_deployment` under `engine:admin`: code execution in the engine JVM; empty = unset, any value but `true`/`false` fails the boot                             |
 | `ENGINE_BASE_URL`                                       | `http://localhost:8410/engine-rest` | Single-engine REST base URL                                                                                                                                                                |

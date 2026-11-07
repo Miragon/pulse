@@ -63,7 +63,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@v6.1.0
+      - uses: pnpm/action-setup@v6.1.1
 
       # No dependency cache in a release job: a restored store would end up in the package.
       - uses: actions/setup-node@v7.1.0
@@ -175,7 +175,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@v6.1.0
+      - uses: pnpm/action-setup@v6.1.1
 
       - uses: actions/setup-node@v7.1.0
         with:

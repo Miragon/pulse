@@ -6,8 +6,11 @@ name: Sync template mirror
 # read-only convenience so customers get GitHub's "Use this template" button
 # and a committed pnpm-lock.yaml (which makes `docker build` work without a
 # prior local install). Before pushing, the template is installed and tested
-# against the REAL public registry (no tarball overrides), which is the one
-# check scripts/test-template.sh cannot perform.
+# against the REAL public registry (no tarball overrides) and its Docker image
+# is built from that lockfile, the checks scripts/test-template.sh cannot
+# perform. Each sync tags the mirror commit with the release tag and publishes
+# a release on the mirror, so a starter's owner can watch the mirror's releases
+# and diff two versions by tag.
 #
 # Runs after publish-npm on purpose: syncing on the release merge would
 # briefly advertise pins that are not on npm yet.
@@ -50,7 +53,7 @@ jobs:
         with:
           ref: ${{ inputs.tag_name }}
 
-      - uses: pnpm/action-setup@v6.1.0
+      - uses: pnpm/action-setup@v6.1.1
 
       - uses: actions/setup-node@v7.1.0
         with:
@@ -101,6 +104,15 @@ jobs:
           pnpm test
           echo "WORK=$WORK" >> "$GITHUB_ENV"
 
+      # No other job builds the starter's Dockerfile: scripts/test-template.sh runs
+      # no docker build (its lockfile points at local tarballs outside the context)
+      # and docker-build.yml builds the root image. $WORK holds the lockfile the
+      # mirror commits, resolved from the public registry, and the template's
+      # .dockerignore drops the node_modules and dist the step above left there.
+      # A Dockerfile that fails here never reaches a new starter.
+      - name: Build the template's Docker image
+        run: docker build --tag pulse-starter-check "$WORK"
+
       # Minted right before the push so the 1h token lifetime never races the
       # npm wait + test steps above. Same app as the release train, scoped
       # down to the mirror repo.
@@ -121,6 +133,9 @@ jobs:
       # Mirror-only files (lockfile, LICENSE, README banner) are re-created
       # after the --delete pass, so stale copies can never survive a sync.
       # The mirror's own .github/CODEOWNERS is excluded, so --delete keeps it.
+      # The banner has two readers: a visitor of the mirror, and the owner of a
+      # repository created from it with "Use this template", which copies the
+      # banner and CODEOWNERS too.
       - name: Assemble the mirror working tree
         env:
           TAG: ${{ inputs.tag_name }}
@@ -130,14 +145,21 @@ jobs:
           cp LICENSE mirror/LICENSE
           {
             echo "> [!NOTE]"
-            echo "> Read-only mirror of [\`templates/composed-server\`](https://github.com/Miragon/pulse/tree/main/templates/composed-server)"
-            echo "> in [Miragon/pulse](https://github.com/Miragon/pulse), synced on every release (currently ${TAG})."
-            echo "> Please open issues and pull requests there."
+            echo "> Read-only mirror of [\`templates/composed-server\`](https://github.com/Miragon/pulse/tree/${TAG}/templates/composed-server)"
+            echo "> in [Miragon/pulse](https://github.com/Miragon/pulse) at ${TAG}. Open issues and pull requests there."
+            echo ">"
+            echo "> Created your repository from this template? It does not update itself."
+            echo "> Each [release of this mirror](https://github.com/${MIRROR_OWNER}/${MIRROR_NAME}/releases)"
+            echo "> names the Pulse release and its changelog. Below 1.0 a release can break your server."
+            echo "> Delete this note and \`.github/CODEOWNERS\`, which the mirror keeps for Miragon only."
             echo ""
             cat mirror/README.md
           } > mirror/README.tmp
           mv mirror/README.tmp mirror/README.md
 
+      # Ends early when the tree is already up to date, which only a rerun of the
+      # same tag can find: the banner names ${TAG} and every release bumps the
+      # template's pins. The tag and release step below still runs.
       - name: Commit and push
         env:
           TAG: ${{ inputs.tag_name }}
@@ -152,3 +174,49 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "chore: sync from Miragon/pulse ${TAG}"
           git push
+
+      # Tags the commit that holds this release's tree (the sync commit, or the
+      # mirror's HEAD when nothing changed) and releases it, so "Watch →
+      # Releases" on the mirror notifies. Creates only what is missing, so a
+      # rerun never fails on a tag or release that exists, and never moves a
+      # published tag. The compare link starts at the newest v-tag below $TAG.
+      - name: Tag and release the mirror commit
+        env:
+          TAG: ${{ inputs.tag_name }}
+          GH_TOKEN: ${{ steps.mirror-token.outputs.token }}
+        run: |
+          cd mirror
+          mirror="${MIRROR_OWNER}/${MIRROR_NAME}"
+          commit="$(git rev-parse HEAD)"
+          # An annotated tag (one made by hand) lists its commit last, as <tag>^{}.
+          tagged="$(git ls-remote origin "refs/tags/${TAG}" "refs/tags/${TAG}^{}" | tail -n1 | cut -f1)"
+          if [ -z "$tagged" ]; then
+            git tag "$TAG" "$commit"
+            git push origin "refs/tags/${TAG}"
+          elif [ "$tagged" != "$commit" ]; then
+            echo "::warning::${TAG} already tags ${tagged} on the mirror, not ${commit}: it stays where it is."
+          fi
+
+          if out="$(gh release view "$TAG" --repo "$mirror" --json tagName 2>&1)"; then
+            echo "Release ${TAG} already exists on ${mirror}."
+            exit 0
+          elif [ "$out" != "release not found" ]; then
+            echo "::error::Could not read release ${TAG} of ${mirror}: ${out}"
+            exit 1
+          fi
+
+          prev="$(git ls-remote --refs --tags origin |
+            awk -v tag="$TAG" '{ sub("^refs/tags/", "", $2) } $2 ~ /^v[0-9]/ && $2 != tag { print $2 } END { print tag }' |
+            sort -V | awk -v tag="$TAG" '$0 == tag { print last } { last = $0 }')"
+          notes="${RUNNER_TEMP}/mirror-release-notes.md"
+          {
+            echo "The starter as of [Miragon/pulse ${TAG}](https://github.com/Miragon/pulse/releases/tag/${TAG})."
+            echo ""
+            echo "- What changed in Pulse: the [changelog](https://github.com/Miragon/pulse/blob/${TAG}/CHANGELOG.md), which lists every breaking change."
+            if [ -n "$prev" ]; then
+              echo "- What changed in the starter: [${prev}...${TAG}](https://github.com/${mirror}/compare/${prev}...${TAG})."
+            fi
+            echo ""
+            echo "Pulse is below 1.0.0, so a release can break a server built on this starter. Update all \`@miragon/pulse-*\` packages together, to one exact version."
+          } > "$notes"
+          gh release create "$TAG" --repo "$mirror" --verify-tag --title "$TAG" --notes-file "$notes"

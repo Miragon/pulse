@@ -23,6 +23,7 @@ jobs:
       typescript: ${{ steps.scopes.outputs.typescript }}
       mcp: ${{ steps.scopes.outputs.mcp }}
       template: ${{ steps.scopes.outputs.template }}
+      starter-engine: ${{ steps.scopes.outputs.starter-engine }}
       cli: ${{ steps.scopes.outputs.cli }}
       vscode: ${{ steps.scopes.outputs.vscode }}
       vscode-package: ${{ steps.scopes.outputs.vscode-package }}
@@ -52,7 +53,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
 
-      - uses: pnpm/action-setup@v6.1.0
+      - uses: pnpm/action-setup@v6.1.1
 
       - uses: actions/setup-node@v7.1.0
         with:
@@ -77,11 +78,16 @@ jobs:
       - if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: pnpm --fail-if-no-match --filter pulse-cockpit exec playwright install-deps chromium
 
-      - run: pnpm build
+      - id: build
+        run: pnpm build
 
       - run: pnpm typecheck
 
-      - run: pnpm test
+      # Runs on a red typecheck too. node:test reports as spec plus one annotation per failure.
+      - if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        env:
+          NODE_OPTIONS: --test-reporter=spec --test-reporter-destination=stdout --test-reporter=${{ github.workspace }}/scripts/gha-test-reporter.mjs --test-reporter-destination=stdout
+        run: pnpm test
 
   # Playwright host simulation of the built widget bundle (test-host/README.md).
   host-sim:
@@ -93,7 +99,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
 
-      - uses: pnpm/action-setup@v6.1.0
+      - uses: pnpm/action-setup@v6.1.1
 
       - uses: actions/setup-node@v7.1.0
         with:
@@ -163,7 +169,7 @@ jobs:
             exit 1
           fi
 
-      - uses: pnpm/action-setup@v6.1.0
+      - uses: pnpm/action-setup@v6.1.1
 
       - uses: actions/setup-node@v7.1.0
         with:
@@ -259,7 +265,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@v6.1.0
+      - uses: pnpm/action-setup@v6.1.1
 
       - uses: actions/setup-node@v7.1.0
         with:
@@ -297,7 +303,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@v6.1.0
+      - uses: pnpm/action-setup@v6.1.1
 
       - uses: actions/setup-node@v7.1.0
         with:
@@ -348,26 +354,33 @@ jobs:
           # check-ratchets needs full history.
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@v6.1.0
+      - uses: pnpm/action-setup@v6.1.1
 
       - uses: actions/setup-node@v7.1.0
         with:
           node-version: 22
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
+      - id: install
+        run: pnpm install --frozen-lockfile
 
       - if: needs.changes.outputs.typescript == 'true'
         run: pnpm lint
 
-      - run: pnpm format:check
+      # The checks below run after a red one too, so one run names every failure.
+      - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm format:check
 
       - name: Repo-wide guards (docs-refs, old-names, pnpm filters)
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        env:
+          NODE_OPTIONS: --test-reporter=spec --test-reporter-destination=stdout --test-reporter=${{ github.workspace }}/scripts/gha-test-reporter.mjs --test-reporter-destination=stdout
         run: |
           node --test scripts/docs-refs.test.mjs scripts/old-names.test.mjs
           pnpm lint:package-scripts
 
-      - uses: Miragon/pin-npm-dependencies@v1.2.2
+      - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        uses: Miragon/pin-npm-dependencies@v1.2.2
 
   template:
     name: Composed-server template (Build + Test)
@@ -377,7 +390,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
 
-      - uses: pnpm/action-setup@v6.1.0
+      - uses: pnpm/action-setup@v6.1.1
 
       - uses: actions/setup-node@v7.1.0
         with:
@@ -388,6 +401,97 @@ jobs:
 
       # The template against the packed workspace packages.
       - run: ./scripts/test-template.sh
+
+  # The starter's try-out engine on Linux: what a bump of its Run tag can break, and the network
+  # path of the starter's container recipe (templates/composed-server/README.md).
+  starter-engine:
+    name: Starter try-out engine
+    needs: changes
+    if: needs.changes.outputs.starter-engine == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: templates/composed-server
+    env:
+      # The host port compose.yaml publishes on 127.0.0.1, and its project's network.
+      PORT: "8410"
+      NETWORK: pulse-starter_default
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - run: docker compose pull
+
+      # The healthcheck gives up after about 150 s.
+      - name: The engine turns healthy
+        run: docker compose up -d --wait --wait-timeout 240
+
+      # Never a wrong password: one locks demo for seconds, ten for good.
+      - name: An anonymous call gets 401, demo/demo 200
+        run: |
+          rest="http://127.0.0.1:${PORT}/engine-rest"
+          anonymous="$(curl -sS -o /dev/null -w '%{http_code}' "$rest/process-definition")"
+          demo="$(curl -sS -o /dev/null -w '%{http_code}' -u demo:demo "$rest/process-definition")"
+          echo "anonymous: ${anonymous}, demo/demo: ${demo}"
+          if [ "$anonymous" != 401 ]; then
+            echo "::error::An anonymous call got ${anonymous}, not 401: the REST API lets every request in (CAMUNDA_BPM_RUN_AUTH_* in compose.yaml)"
+            exit 1
+          fi
+          if [ "$demo" != 200 ]; then
+            echo "::error::demo/demo got ${demo}, not 200: the login .env.example sends does not pass"
+            exit 1
+          fi
+
+      # The example deploys after the REST API answers, so the healthcheck can pass before it.
+      - name: The invoice example deploys invoice and ReviewInvoice
+        run: |
+          rest="http://127.0.0.1:${PORT}/engine-rest"
+          for _ in $(seq 60); do
+            keys="$(curl -sf -u demo:demo "$rest/process-definition?keysIn=invoice,ReviewInvoice&latestVersion=true" | jq -r 'map(.key) | sort | join(",")')" || keys=""
+            if [ "$keys" = "ReviewInvoice,invoice" ]; then
+              echo "Deployed: ${keys}"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::After 2 minutes the engine holds '${keys}', not invoice and ReviewInvoice (CAMUNDA_BPM_RUN_EXAMPLE_ENABLED in compose.yaml)"
+          exit 1
+
+      # The container recipe: a container on the project's network reaches the engine by its
+      # service name. The engine's image is the client, it ships curl.
+      - name: A container on pulse-starter_default reaches http://engine:8080
+        run: |
+          image="$(docker inspect --format '{{.Config.Image}}' "$(docker compose ps -q engine)")"
+          code="$(docker run --rm --network "$NETWORK" --entrypoint curl "$image" -sS -o /dev/null \
+            -w '%{http_code}' --max-time 10 -u demo:demo \
+            http://engine:8080/engine-rest/process-definition/key/invoice)" || true
+          echo "http://engine:8080 from ${NETWORK}: ${code}"
+          if [ "$code" != 200 ]; then
+            echo "::error::A container on ${NETWORK} got ${code} from http://engine:8080/engine-rest, not 200: the README's container recipe misses the engine (name: in compose.yaml)"
+            exit 1
+          fi
+
+      # Why the recipe joins the network: on Linux host-gateway is the Docker bridge's gateway,
+      # and the engine's port binds to the host's 127.0.0.1. A record, not a gate.
+      - name: host.docker.internal misses the loopback port (the former recipe)
+        run: |
+          image="$(docker inspect --format '{{.Config.Image}}' "$(docker compose ps -q engine)")"
+          code="$(docker run --rm --add-host=host.docker.internal:host-gateway --entrypoint curl "$image" \
+            -sS -o /dev/null -w '%{http_code}' --max-time 10 "http://host.docker.internal:${PORT}/engine-rest/engine")" || true
+          echo "http://host.docker.internal:${PORT} through host-gateway: ${code}"
+          if [ "$code" != 000 ]; then
+            echo "::warning::host.docker.internal reached the port on 127.0.0.1 (HTTP ${code}): the README's reason to join the network no longer holds on this Docker"
+          fi
+
+      - name: Engine log
+        if: failure()
+        run: docker compose logs engine
+
+      - name: Stop the engine
+        if: always()
+        run: docker compose down -v
 
   # Docs kit vs. Miragon/corporate-identity + brand-lint; skipped without the secret.
   brand:
@@ -493,7 +597,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@v6.1.0
+      - uses: pnpm/action-setup@v6.1.1
 
       # Node 24 like the release; no pnpm cache on Linux (partial store would poison the key).
       - uses: actions/setup-node@v7.1.0
@@ -550,7 +654,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@v6.1.0
+      - uses: pnpm/action-setup@v6.1.1
 
       # No pnpm cache (see cli-binaries).
       - uses: actions/setup-node@v7.1.0

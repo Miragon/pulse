@@ -30,6 +30,7 @@ describe("the /server entry", () => {
       "parseBpmnNames",
       "readBpmnNames",
       "retiredEnvVars",
+      "runComposedServer",
       "runWithMcpRequestInfo",
       "servedFontBaseUrl",
       "showToolBinding",

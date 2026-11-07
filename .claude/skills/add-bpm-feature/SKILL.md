@@ -345,7 +345,7 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   number, never a palette class or raw colour; text on a tint is black (`TONE_SOFT`), the
   `-ink` role is only for text in a tone directly on the card or page (an inline error)
 - Icons: Lucide via `Icon` (`import { FileSearch } from "lucide-react"`; the package pins
-  devDependency `lucide-react` `1.66.0`, see CLAUDE.md invariant 6), never a Unicode glyph
+  devDependency `lucide-react` `1.67.0`, see CLAUDE.md invariant 6), never a Unicode glyph
   or emoji, at 16 px (`dense` in rows; `scanIconSizes` allows 16 and 24 only); a chat
   hand-off is widget-shell's `<HandOffButton action="explainError" prompt={ask(…)} />`
   (`@miragon/pulse-widget-shell/widgets`: the product's one table of functions, each with its
@@ -546,14 +546,23 @@ businessKey))` …; add an entry and its `feedback.*` keys in `messages/{en,de}.
 ## Step 5: verify
 
 ```bash
-pnpm build && pnpm typecheck && pnpm test && pnpm lint
+# while you iterate: the test files you touch (coverage off, the packages under them built first)
+pnpm test:one packages/connectors/engine/engine-connector/src/tools/<domain>.wire.test.ts
+# then the package and every package that depends on it (the server's goldens included)
+pnpm exec turbo run typecheck test lint --filter=...@miragon/pulse-engine-connector
+# the bar for every change: build, typecheck, test, lint, format
+pnpm check
 # for widget/shell changes additionally:
 pnpm --filter @miragon/pulse-mcp-server test:host
 ```
 
+A file run alone fails the package's coverage floors, since it loads only part of the code, so
+use `pnpm test:one` for it; `pnpm test` keeps enforcing the floors.
+
 A new or changed tool changes the wire surface: add its name to
 `apps/mcp-server/test/expected-tools.ts`, then refresh the per-toolset goldens with
-`GOLDEN_UPDATE=1 pnpm --filter @miragon/pulse-mcp-server test` and commit the
+`pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server golden:update` (it builds the
+connectors first) and commit the
 `test/__golden__/` diff (descriptions and schemas are what the model reads; review them).
 The budget counts the model-visible tools/list text plus the server instructions of each
 toolset. If `char-budgets.json` grew, `pnpm lint` fails until the commit carries a

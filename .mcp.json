@@ -2,7 +2,7 @@
   "mcpServers": {
     "pulse": {
       "type": "http",
-      "url": "http://localhost:8400/mcp"
+      "url": "http://localhost:${PORT:-8400}/mcp"
     }
   }
 }

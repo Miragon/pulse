@@ -26,7 +26,9 @@ Docs are held to the code:
 `docs/` holds the Pulse docs, a VitePress site on the Miragon docs kit
 (`docs/.vitepress/miragon/`, skill `miragon-brand:docs-site`) that `.github/workflows/docs.yml`
 publishes to https://miragon.github.io/pulse/. A user-visible change (env vars, tools, ports,
-getting-started steps) updates them in the same PR. Headings get GitHub's anchors, so a
+getting-started steps) updates them in the same PR. Below 1.0 the docs keep no upgrade page and
+no migration note: a breaking change says so in its commit (`!` plus a `BREAKING CHANGE:`
+footer), and release-please lists it in `CHANGELOG.md`. Headings get GitHub's anchors, so a
 `#anchor` link works on the site and on GitHub. The product page https://miragon.ai/tools/pulse/
 lives in Miragon/miragon-ai-docs; a change it shows needs a PR there too.
 
@@ -52,7 +54,7 @@ command line interface (`apps/cli`) and a VS Code extension (`apps/vscode`) for 
 | `engine-plugins/`                                    | Kotlin/Gradle: CIB seven OTEL metrics plugin (Java 21)                                                                                                                                                                                                            |
 | `playground/`                                        | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                 |
 | `docs/`                                              | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                                                        |
-| `docs/mcp/`                                          | The MCP server's pages of the docs site (getting started, usage, reference, operations, upgrading, architecture, developer)                                                                                                                                       |
+| `docs/mcp/`                                          | The MCP server's pages of the docs site (getting started, usage, reference, operations, architecture, build your own, developer)                                                                                                                                  |
 | `docs/cli/`                                          | The CLI's pages of the docs site (install, commands, configuration, authentication, AI agents, development)                                                                                                                                                       |
 | `docs/vscode/`                                       | The VS Code extension's pages of the docs site (installation, configuration, usage, architecture)                                                                                                                                                                 |
 
@@ -108,6 +110,7 @@ pnpm install --frozen-lockfile       # all deps are public; no registry credenti
 pnpm build                           # turbo build across the monorepo (runs `generate` first)
 pnpm typecheck                       # tsc --noEmit everywhere, incl. widget/UI tsconfigs
 pnpm test                            # vitest across the workspace
+pnpm test:one <file...> [--watch]    # inner loop: test files in their packages, deps built, coverage off
 pnpm lint                            # eslint per package (`pnpm lint:fix` to autofix)
 pnpm format:check                    # prettier check (`pnpm format` to write)
 pnpm generate                        # regenerate the CIB seven SDK from the OpenAPI spec
@@ -372,7 +375,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      stroke through lucide's own `strokeWidth`, never a CSS `stroke-width` rule, which would
      beat the `LucideProvider` widget-shell's view root sets with pulse-ui's `ICON_STROKE`.
      Every package that imports `lucide-react` and every host bundle pin the SAME exact 1.x
-     devDependency (today `1.66.0`): two versions resolve a second mcp-use instance and split
+     devDependency (today `1.67.0`): two versions resolve a second mcp-use instance and split
      the React contexts.
    - **Actions and hand-offs.** A view's actions are ONE group in `WidgetHeader` `actions`, all
      `size="sm"`, ordered: deterministic steps, the engine's own web app
@@ -609,15 +612,17 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
   (`./widgets` exports the BPMN viewer, so every view bundle imports it) and of the two
   connectors, which draw diagrams. A published package imports only what its `dependencies` or
   `peerDependencies` declare (`scripts/published-imports.test.mjs`), and its tarball ships no
-  test and every module its entries reach (`scripts/pack-contents.mjs`, run by
-  `scripts/test-template.sh`); a connector ships `dist` and its `src`, the template's reference
-  implementation. **`mcp-use` is exactly pinned even as a peer** (`2.12.2`): a duplicate instance
-  breaks the React context and hangs every in-widget query (invariant 4). Name the required
+  test, every module its entries reach and every source its maps name
+  (`scripts/pack-contents.mjs`, run by `scripts/test-template.sh`): each library ships `dist`
+  and its `src` (a connector's is the template's reference implementation). **`mcp-use` is
+  exactly pinned even as a peer** (`2.12.2`): a duplicate instance breaks the React context
+  and hangs every in-widget query (invariant 4). Name the required
   `mcp-use` version in each package README and the release changelog. The template pins what the
   workspace pins (the `@miragon/pulse-*` libraries, `mcp-use`, `react`, `react-dom`, `zod`,
-  `lucide-react`, `@tanstack/react-query`; `scripts/template-pins.mjs`, in `pnpm test` and
-  `scripts/test-template.sh`), never one package in isolation. Dependabot's one npm entry
-  covers the root and the template, so a grouped minor or patch bump moves both; a major or a
+  `lucide-react`, `@tanstack/react-query`, `prettier`, `prettier-plugin-tailwindcss`;
+  `scripts/template-pins.mjs`, in `pnpm test` and `scripts/test-template.sh`), never one package
+  in isolation. Dependabot's one npm entry covers the root and the template, so a grouped minor
+  or patch bump moves both; a major or a
   security update can arrive for one directory only and turns `pnpm test` red until the
   template pins the same version: bump both in that pull request.
 - **The widget `_meta` contract is split since mcp-use 2; never hand-write the `ui` half.**
@@ -629,7 +634,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
   feed is app-only), so the naming convention is load-bearing.
 - **The tools/list wire payload is a golden, per toolset**
   (`apps/mcp-server/test/tools-list.golden.test.ts`). The ONLY update path is
-  `GOLDEN_UPDATE=1 pnpm --filter @miragon/pulse-mcp-server test` (refused in CI);
+  `pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server golden:update` (refused in CI);
   never hand-edit a golden. `__golden__/char-budgets.json` pins each toolset's model-visible
   size, the tools/list text plus the server instructions sent at initialize (text moved into
   the instructions still counts), shrink-only: a change that makes the model read MORE text
@@ -639,7 +644,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
   ceilings that `test-host/bundle-budget.spec.ts` checks; growth needs a `Ratchet-Exception:`
   trailer that says why. Two more shipped bundles have a shrink-only ceiling: the VS Code
   webview's (`apps/vscode/test/__golden__/bundle-budget.json`, gzip) and the CLI's npm dist
-  (`apps/cli/test/__golden__/bundle-budget.json`, raw bytes, read by
+  (`apps/cli/test/__golden__/bundle-budget.json`, raw bytes, engine-core bundled in, read by
   `scripts/published-imports.test.mjs`, which also makes it come down once the dist shrinks
   more than 10 % below it). The CLI's standalone bundle (`build/standalone`, the single
   executables and the image) has none.
@@ -672,8 +677,14 @@ workspace (its header lists each check).
   from another repository. The pack job runs `pnpm pack`, which rewrites `workspace:*` (npm's
   own pack would ship it verbatim); the one job that holds `id-token: write` runs no package
   manager. Only the server app and the VS Code extension stay private. The `miragon-ai` names
-  used up to 0.20.0 are retired; never reuse them. `sync-template-mirror.yml` then mirrors
-  `templates/composed-server` to `Miragon/pulse-starter`, the customer-facing composition path.
+  used up to 0.20.0 are retired; never reuse them.
+- **The starter** reaches customers as `Miragon/pulse-starter`, the read-only mirror of
+  `templates/composed-server` and the customer-facing composition path, through
+  `sync-template-mirror.yml` after the npm publish (before it, the template's pins would not
+  resolve). The sync installs and tests the template against the public registry, builds its
+  Docker image, pushes the tree with that lockfile, then tags the mirror commit with the release
+  tag and publishes a release there, so a starter's owner learns of a new version by watching the
+  mirror's releases. A rerun creates only what is missing and never moves a published tag.
 - **The VS Code extension ships as a .vsix, never through npm**
   (`.github/workflows/publish-vscode-extension.yml`): packaged without credentials, published
   to the Visual Studio Marketplace and Open VSX from one job in the `vscode-marketplace`
@@ -701,11 +712,12 @@ workspace (its header lists each check).
 | `pnpm build`      | turbo `build` everywhere: tsc emit of the packages and server code, the server app's Vite widget bundle (`build:ui`), the CLI's tsdown bundle (`apps/cli/dist`) and the VS Code extension's esbuild bundles; excludes widget `.tsx` type errors in packages                                                                                                                                                                                                                                                                              |
 | `pnpm typecheck`  | **The only check that type-checks widget code**: `tsc -p tsconfig.widgets.json` in the two connector packages and widget-shell (its view half), `tsc -p tsconfig.ui.json` (and `tsconfig.test.json`) in the server app; the VS Code extension per layer, each with that layer's runtime globals only                                                                                                                                                                                                                                     |
 | `pnpm test`       | Vitest unit tests, the server app's wire-contract tests and tools/list goldens (in-process boot, loopback HTTP), the VS Code extension's architecture tests, the per-package coverage floors, then `node --test` over `scripts/*.test.mjs` (repo guards and gate self-tests, below the table); docs-refs, old-names and `lint:package-scripts` also run in Lint + Format; **no widget rendering** (the VS Code webview tests render in Chromium; locally once: `pnpm --filter pulse-cockpit exec playwright install chromium`)           |
-| `pnpm lint`       | ESLint per package incl. the pattern gates, then dependency-cruiser (`lint:architecture`, `:cli`, `:vscode`), `lint:naming`, `lint:package-scripts`, `lint:ratchets` (needs `git fetch origin`), knip (`lint:deadcode`: everything but exports and types; `:exports`: exports and types in every workspace but the vendored docs kit) and `lint:github`                                                                                                                                                                                  |
+| `pnpm lint`       | The build-free gates first (`lint:naming`, `lint:package-scripts`, `lint:github`, `lint:ratchets`, which needs `git fetch origin`), then ESLint per package incl. the pattern gates, dependency-cruiser (`lint:architecture`, `:cli`, `:vscode`) and knip (`lint:deadcode`: everything but exports and types; `:exports`: exports and types in every workspace but the vendored docs kit), and last `lint:configs` (the config files no tsconfig holds and no package lints: `DEFAULT_PROJECT_FILES` in `eslint.config.mjs`)             |
 | `pnpm fitness`    | Report: architecture graph, per-package coverage and engine-core's mutation score; locally after `pnpm test` (no CI job on a pull request), else the "Mutation summary" job of `.github/workflows/mutation-nightly.yml`                                                                                                                                                                                                                                                                                                                  |
 | `./gradlew build` | Kotlin compile + unit tests + Konsist architecture tests (run in `engine-plugins/`)                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `test:host`       | `pnpm --filter @miragon/pulse-mcp-server test:host`: Playwright host simulation of the **built** widget bundle behind a SEP-1865 host shim, the real `engine_open_cockpit` against a stub engine (`pinned …` scenarios are known defects, flipped when fixed); CI "Widget host simulation (test:host)"; run it for changes to widget-shell, pulse-ui, `src/ui/` or the mcp-use pin                                                                                                                                                       |
-| Template          | `scripts/test-template.sh` (in `pnpm check:all`; CI "Composed-server template (Build + Test)"): packs the published libraries (`scripts/workspace-packages.mjs`), checks the tarballs' contents (`scripts/pack-contents.mjs`), points a copy of `templates/composed-server` at them and runs its build, typecheck and tests, its pins checked against the workspace first (`scripts/template-pins.mjs`). ESLint, knip and dependency-cruiser skip `templates/`: the template's composition-root rules (invariant 8) are review knowledge |
+| Template          | `scripts/test-template.sh` (in `pnpm check:all`; CI "Composed-server template (Build + Test)"): packs the published libraries (`scripts/workspace-packages.mjs`), checks their contents (`scripts/pack-contents.mjs`), points a copy of `templates/composed-server` at them and runs its build, typecheck, test and format check, its pins matched to the workspace first (`scripts/template-pins.mjs`). ESLint, knip and dependency-cruiser skip `templates/`: the template's composition-root rules (invariant 8) are review knowledge |
+| Starter engine    | "Starter try-out engine" in `.github/workflows/ci.yml` (scope `starter-engine`: `templates/composed-server/compose.yaml` and the job itself): starts that engine on Linux and checks what a Run tag bump can break (healthy within 240 s, 401 without a login, 200 for demo/demo, invoice and ReviewInvoice deployed), then reaches it from a container on `pulse-starter_default`, the network of the starter's container recipe                                                                                                        |
 | Docker build      | `.github/workflows/docker-build.yml`: plain `docker build` of the root `Dockerfile` (no push) on every PR touching what the build stage copies                                                                                                                                                                                                                                                                                                                                                                                           |
 | Engines           | `Engines (<flavor>)` in `.github/workflows/ci.yml`: CIB seven and Operaton in Testcontainers (Camunda 7's image left Docker Hub in November 2026), running the CLI's suites and the VS Code extension's conformance laws (`test:engines`; images pinned in `apps/cli/test/integration/support/engines.ts`); the `Engines` job aggregates the legs; `Engines (camunda8 …)` runs the extension's Camunda 8 suite and stays off until the repository variable `PULSE_C8_ENGINES` is `true`                                                  |
 | VS Code smoke     | activation + every contributed command in VS Code stable under Xvfb, `test:smoke` (`.github/workflows/ci.yml`)                                                                                                                                                                                                                                                                                                                                                                                                                           |
@@ -716,8 +728,8 @@ workspace (its header lists each check).
 
 The repo guards `pnpm test` runs over the real tree: docs-refs, old-names, published imports,
 tool-name and hand-off references, server env names, the source scan's `APP_SCAN` and the
-template pins. Besides the dependency-cruiser and ESLint self-tests (invariants 8 and 1), the
-naming, package-scripts, ratchet, GitHub-config, CI-scope and pack-content checks each prove
+template's pins and shipped module list. Besides the dependency-cruiser and ESLint self-tests
+(invariants 8 and 1), the naming, package-scripts, ratchet, GitHub-config, CI-scope and pack-content checks each prove
 themselves on planted violations in fixtures; the extension's own gates live in
 `apps/vscode/test/architecture`.
 

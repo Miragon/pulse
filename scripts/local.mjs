@@ -2,8 +2,9 @@
 /**
  * The local commands from a fresh clone (root package.json): `pnpm stack:up|down|status` run the
  * playground in Docker, `pnpm play` runs the MCP server against it, `pnpm play:cli` the CLI,
- * `pnpm check` and `pnpm check:all` the local bar. Node built-ins only, so it starts before
- * `pnpm install`. Needs Node, pnpm and Docker; no JDK (Gradle runs in a container without one).
+ * `pnpm test:one` test files in their packages, `pnpm check` and `pnpm check:all` the local bar.
+ * Node built-ins only, so it starts before `pnpm install`. Needs Node, pnpm and Docker; no JDK
+ * (Gradle runs in a container without one).
  *
  * Portability: child processes start without a shell. pnpm runs through the pnpm that started
  * this script (npm_execpath: its .js entry under node, or its native binary), docker and git as
@@ -37,10 +38,12 @@ import {
   stepLine,
 } from "./local-check.mjs"
 import {
+  claudeCodeHint,
   cliPreset,
   COMPOSE_FILE,
   COMPOSE_PROJECT,
   composeArgs,
+  DEFAULT_SERVER_PORT,
   portConflict,
   portOwners,
   profilesFor,
@@ -59,6 +62,8 @@ import {
   pickJdk,
   staleJarNote,
 } from "./local-gradle.mjs"
+import { realpathOnDisk, testOnePlan } from "./local-test-one.mjs"
+import { readWorkspace } from "./workspace-packages.mjs"
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const SERVER_PACKAGE = "@miragon/pulse-mcp-server"
@@ -66,8 +71,7 @@ const CLI_PACKAGE = "@miragon/pulse-cli"
 const CLI_ENTRY = "apps/cli/dist/pulse-cli.js"
 const STACK_TIMEOUT_MS = 10 * 60_000
 const SERVER_TIMEOUT_MS = 3 * 60_000
-/** The MCP server's port when PORT is unset (the `dev` script's default). */
-const DEFAULT_PORT = 8400
+const DEFAULT_PORT = DEFAULT_SERVER_PORT
 /** Served by `mcp-use dev` only. */
 const INSPECTOR = "/mcp/inspector"
 
@@ -349,11 +353,18 @@ async function stackStatus() {
 const install = () =>
   must(pnpmArgv(["install", "--frozen-lockfile"]), "pnpm install --frozen-lockfile")
 
-/** turbo builds `filter` (generate runs first: build depends on it). */
-const turboBuild = (filter) =>
+/** turbo builds `filters` (generate runs first: build depends on it). */
+const turboBuild = (...filters) =>
   must(
-    pnpmArgv(["exec", "turbo", "run", "build", `--filter=${filter}`, "--output-logs=errors-only"]),
-    `The build (${filter})`,
+    pnpmArgv([
+      "exec",
+      "turbo",
+      "run",
+      "build",
+      ...filters.map((filter) => `--filter=${filter}`),
+      "--output-logs=errors-only",
+    ]),
+    `The build (${filters.join(", ")})`,
   )
 
 /**
@@ -381,7 +392,8 @@ async function ensurePortFree(port, fromEnv) {
   if (await portBound(port)) {
     const which = fromEnv ? "The port your PORT names" : `Port ${DEFAULT_PORT}`
     throw new Failure(
-      `${which} is taken (another pnpm play or pnpm dev?). Stop it, or set PORT to another port.`,
+      `${which} is taken (another pnpm play or pnpm dev, in another worktree say?). Stop it, or ` +
+        "set PORT to another port.",
     )
   }
 }
@@ -452,7 +464,7 @@ async function play(options) {
   if (ready) {
     console.log(
       `\nMCP server ready:\n  MCP endpoint  ${base}/mcp\n  inspector     ${base}${INSPECTOR}\n` +
-        "Ctrl-C stops the server; the playground keeps running.",
+        `${claudeCodeHint(port)}Ctrl-C stops the server; the playground keeps running.`,
     )
   }
   const code = await exited
@@ -476,6 +488,30 @@ async function playCli(_options, rest) {
   const { env, ...overrides } = withPreset(cliPreset(), process.env)
   sayOverrides(overrides)
   process.exitCode = await run([process.execPath, path.join(ROOT, CLI_ENTRY), ...rest], { env })
+}
+
+// ── test:one ────────────────────────────────────────────────────────────────
+
+async function testOne({ watch }, files) {
+  const plan = testOnePlan({
+    files,
+    watch,
+    root: ROOT,
+    // A root script runs at the root; `pnpm -w test:one` in a package keeps its relative paths.
+    cwd: process.env.INIT_CWD ?? ROOT,
+    workspace: readWorkspace(ROOT),
+    realpath: realpathOnDisk,
+  })
+  if (plan instanceof Error) throw new Failure(plan.message)
+  if (plan.builds.length > 0) await turboBuild(...plan.builds)
+  if (watch) say("Watching this package; after a change in a package below it, run this again.")
+  const failed = []
+  for (const { dir, name, args, hint } of plan.runs) {
+    if ((await run(pnpmArgv(args), { cwd: path.join(ROOT, dir) })) === 0) continue
+    failed.push(name)
+    if (hint !== undefined) say(`\n${hint}`)
+  }
+  if (failed.length > 0) throw new Failure(`test:one failed in ${failed.join(", ")}.`)
 }
 
 // ── check and check:all ─────────────────────────────────────────────────────
@@ -539,6 +575,7 @@ const COMMAND_RUNNERS = {
   "stack:status": stackStatus,
   play,
   "play:cli": playCli,
+  "test:one": testOne,
   check: (options) => check(options, false),
   "check:all": (options) => check(options, true),
 }

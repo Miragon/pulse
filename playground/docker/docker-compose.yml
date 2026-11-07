@@ -76,15 +76,22 @@ services:
       retries: 12
       start_period: 30s
 
-  # Dev: plain CIB seven image, no custom build
-  # Use: docker compose --profile dev up
+  # Dev: CIB seven Run, the vendor's public image at an exact tag (Dependabot's docker-compose
+  # entry for this file moves it); no custom build, no metrics. It publishes the default
+  # engine's port 8410, so it runs instead of that engine: `--profile dev up` alone starts
+  # both, and the second fails to bind. Use, from the repo root with the stack down
+  # (`pnpm stack:down` stops it too):
+  #   docker compose -f playground/docker/docker-compose.yml --profile dev up -d cibseven-dev
   cibseven-dev:
     profiles: [dev]
-    image: cibseven/cibseven:run-latest
+    image: cibseven/cibseven:run-2.2.0
     ports:
       - "127.0.0.1:8410:8080"
     environment:
-      - CIBSEVEN_BPM_RUN_AUTH_ENABLED=true
+      # The REST API takes anonymous requests, like the default engine's: Run's default.yml
+      # turns auth on with `authentication: pseudo`, which lets every request in, whatever its
+      # credentials. So .pulse-cli.json's `local` profile (no auth) reaches it, and so does the
+      # demo/demo login .env.example sends. demo/demo is also the web app's login.
       # Without the invoice example: it sets the engine clock back while it seeds itself,
       # after the REST API already answers, so data created then gets rewound timestamps.
       # CIB seven's Run reads camunda.bpm.*, so this variable keeps the CAMUNDA_ prefix.
@@ -100,7 +107,7 @@ services:
   # OTLP registry, serves process metrics for Prometheus to scrape (:9464).
   # Sole export path of the metric-first analytics stack.
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.128.0
+    image: otel/opentelemetry-collector-contrib:0.164.0
     command: ["--config=/etc/otel-collector-config.yaml"]
     environment:
       - DEPLOY_ENV=docker-local
@@ -114,7 +121,7 @@ services:
 
   # Prometheus: scrapes the Collector's process metrics.
   prometheus:
-    image: prom/prometheus:v3.1.0
+    image: prom/prometheus:v3.15.1
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.retention.time=30d"
@@ -128,9 +135,11 @@ services:
       - otel-collector
 
   # Grafana: process-analytics dashboards over Prometheus. Anonymous admin so
-  # the demo opens straight onto the provisioned dashboards.
+  # the demo opens straight onto the provisioned dashboards. Grafana 13 warns that
+  # auth.anonymous.org_role is deprecated with only Viewer supported, yet 13.3.0
+  # still grants the anonymous Admin.
   grafana:
-    image: grafana/grafana:11.4.0
+    image: grafana/grafana:13.3.0
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
@@ -168,7 +177,7 @@ services:
   # Use: docker compose --profile auth up -d
   keycloak:
     profiles: [auth]
-    image: quay.io/keycloak/keycloak:26.3
+    image: quay.io/keycloak/keycloak:26.8
     command: ["start-dev", "--import-realm"]
     environment:
       - KC_BOOTSTRAP_ADMIN_USERNAME=admin

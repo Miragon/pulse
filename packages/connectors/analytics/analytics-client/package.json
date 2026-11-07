@@ -1,6 +1,6 @@
 {
   "name": "@miragon/pulse-analytics-client",
-  "version": "0.26.0",
+  "version": "0.27.1",
   "description": "Prometheus client and PromQL query functions for Camunda process analytics, with the metrics contract.",
   "license": "MIT",
   "keywords": [
@@ -29,6 +29,11 @@
     "!dist/**/*.test.*",
     "!dist/**/*.test-support.*",
     "!dist/**/test-support",
+    "src",
+    "!src/**/*.test.*",
+    "!src/**/*.test-support.*",
+    "!src/**/test-support",
+    "!src/**/tsconfig.json",
     "metrics-contract.json"
   ],
   "type": "module",
@@ -50,6 +55,6 @@
   "devDependencies": {
     "@types/node": "26.6.5",
     "typescript": "6.0.3",
-    "vitest": "5.0.5"
+    "vitest": "5.1.0"
   }
 }

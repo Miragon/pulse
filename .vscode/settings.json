@@ -1,0 +1,9 @@
+{
+  // The workspace's TypeScript, the version `pnpm typecheck` runs, not the one VS Code bundles.
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  // Prettier formats what `pnpm format:check` checks.
+  "[css][html][javascript][json][jsonc][markdown][typescript][typescriptreact][vue][yaml]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
+}

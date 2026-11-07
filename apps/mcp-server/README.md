@@ -12,10 +12,14 @@ an interactive view in the chat.
 
 ```bash
 docker run --rm -p 127.0.0.1:8400:8400 \
+  --add-host=host.docker.internal:host-gateway \
   -e ENGINE_BASE_URL=http://host.docker.internal:8080/engine-rest \
   ghcr.io/miragon/pulse-server:latest
 claude mcp add --transport http pulse http://localhost:8400/mcp
 ```
+
+On Linux `host.docker.internal` reaches an engine only on a port the host serves beyond
+`127.0.0.1`; for an engine in Docker, join its network as [Run](#run) shows.
 
 Claude Desktop, claude.ai, ChatGPT and other hosts: [Usage](../../docs/mcp/usage.md#connect-your-assistant).
 
@@ -70,10 +74,12 @@ upstream/proxy federation.
 ## Run
 
 ```bash
-# Published image (production): boots read-only without OAuth or a toolset suffix
-docker run --rm -p 127.0.0.1:8400:8400 \
-  -e ENGINE_BASE_URL=http://host.docker.internal:8410/engine-rest \
-  -e PROMETHEUS_URL=http://host.docker.internal:9090 \
+# Published image (production) on the playground's network (pnpm stack:up): boots read-only
+# without OAuth or a toolset suffix
+docker run --rm -p 127.0.0.1:8400:8400 --network pulse_default \
+  -e ENGINE_BASE_URL=http://cibseven:8410/engine-rest -e ENGINE_ID=prod-a \
+  -e ENGINE_FLAVOR=cibseven -e ENGINE_COCKPIT_URL=http://localhost:8410/webapp \
+  -e PROMETHEUS_URL=http://prometheus:9090 \
   ghcr.io/miragon/pulse-server:latest
 
 # From source (local dev: needs the Docker infra; see the root README)
@@ -82,8 +88,14 @@ pnpm build        # build:ui (Vite widget bundle) + build:server (tsc)
 pnpm start        # run the compiled server from dist/
 ```
 
-Pulse assumes a Camunda 7 engine. For CIB seven or Operaton add `-e ENGINE_FLAVOR=cibseven`
-(or `operaton`): it picks the engine's cockpit links and the product name the views show.
+The container joins the playground's Docker network and reaches the engine and Prometheus by
+their service names, on Linux and under Docker Desktop alike; `host.docker.internal` would miss
+their ports on Linux, which the playground publishes on `127.0.0.1` only. `ENGINE_COCKPIT_URL`
+stays on `localhost`: your browser opens those links.
+
+Pulse assumes a Camunda 7 engine. The recipe sets `ENGINE_FLAVOR=cibseven` for the playground's
+CIB seven (`operaton` for Operaton, none for Camunda 7): it picks the engine's cockpit links and
+the product name the views show.
 
 Configuration is entirely environment-driven. See
 [Configuration](../../docs/mcp/reference.md#configuration), [Toolsets](../../docs/mcp/reference.md#toolsets) and
@@ -93,39 +105,11 @@ Configuration is entirely environment-driven. See
 
 ## Layout
 
-| Path             | Contents                                                                                      |
-| ---------------- | --------------------------------------------------------------------------------------------- |
-| `src/index.ts`   | Server entry: `createApp()`, then `listen()` (body cap, drain) unless `mcp-use dev` serves it |
-| `src/app.ts`     | `createApp(env, deps?)`: the shared boot over the module list; the e2e suites boot it too     |
-| `src/setup.ts`   | The module list and the cross-module wiring (`SharedResources`)                               |
-| `src/ui/`        | Widget host bundle: `view-registry.ts` (views + host widgets) + `main.tsx` (`mountViews`)     |
-| `vite.config.ts` | Single-file widget bundle config (keep `dedupe` spreading `VIEW_BUNDLE_DEDUPE`)               |
-| `Dockerfile`     | Lives at the repo root; multi-stage build that produces the published image                   |
-
-## Renamed from miragon-ai
-
-Up to 0.20.0 this server shipped as "Miragon AI" from `Miragon/miragon-ai`. From 0.21.0 on,
-everything it ships carries the Pulse name:
-
-- npm: `@miragon-ai/<name>` becomes `@miragon/pulse-<name>` for `widget-shell`,
-  `camunda7-client`, `camunda7-connector`, `analytics-client` and `analytics-connector`; subpaths
-  (`/server`, `/widgets` …) stay. Rename the dependencies and the import specifiers, one version
-  across all five. The old packages are deprecated with a pointer to the new name, and update bots
-  do not follow a rename, so switch by hand.
-- Docker image: `miragon/miragon-ai-server` on Docker Hub becomes `ghcr.io/miragon/pulse-server`
-  on the GitHub Container Registry; the old image stays on Docker Hub, frozen at 0.20.0.
-- Starter: `Miragon/miragon-ai-starter` becomes
-  [`Miragon/pulse-starter`](https://github.com/Miragon/pulse-starter).
-- Playground: `https://pulse-playground.miragon.ai/mcp`; the old `fly.dev` URL keeps answering.
-- MCP client key: the examples register the server as `pulse` (was `miragon-ai`; this repo's
-  `.mcp.json` used `automation-mcp`), and it introduces itself as `pulse`; its log lines start
-  with `[pulse]`. In Claude Code the key is the tool prefix: allowlists and hooks on
-  `mcp__miragon-ai__*` or `mcp__automation-mcp__*` need `mcp__pulse__*`.
-- Engine access logs: the client's User-Agent was `@miragon/pulse-camunda7-client/<version>` (was
-  `@miragon-ai/camunda7-client/0.1.0`); it is `@miragon/pulse-engine-client/<version>` since 0.25,
-  see [Upgrading](../../docs/mcp/upgrading.md).
-- Local Keycloak (`--profile auth`): the pre-registered client is `pulse-server` with secret
-  `pulse-secret`; recreate the container to re-import the realm.
-- Repo: GitHub redirects the old URL; `git remote set-url origin git@github.com:Miragon/pulse.git`
-  updates a clone. The local Compose stack runs as project `pulse` now, so stop an old one first
-  ([`playground/`](../../playground/README.md#run-locally)).
+| Path             | Contents                                                                                                                                     |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/index.ts`   | Server entry: `runComposedServer(createApp)` listens (body cap, drain) unless `mcp-use dev` serves it; a failed boot prints one line, exit 1 |
+| `src/app.ts`     | `createApp(env, deps?)`: the shared boot over the module list; the e2e suites boot it too                                                    |
+| `src/setup.ts`   | The module list and the cross-module wiring (`SharedResources`)                                                                              |
+| `src/ui/`        | Widget host bundle: `view-registry.ts` (views + host widgets) + `main.tsx` (`mountViews`)                                                    |
+| `vite.config.ts` | Single-file widget bundle config (keep `dedupe` spreading `VIEW_BUNDLE_DEDUPE`)                                                              |
+| `Dockerfile`     | Lives at the repo root; multi-stage build that produces the published image                                                                  |

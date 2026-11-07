@@ -24,12 +24,17 @@ export default defineConfig({
     // iframe.
     assetsInlineLimit: 100_000_000,
     cssCodeSplit: false,
-    rollupOptions: {
+    // Every view inlines the whole bundle, so it stays ONE file by design: never
+    // code-split it. Vite's 500 kB hint does not fit it; 2000 kB is its size
+    // alarm instead: a bundle past it costs every render, so trim what the
+    // widgets import rather than splitting it.
+    chunkSizeWarningLimit: 2000,
+    rolldownOptions: {
       input: fileURLToPath(new URL("./src/ui/main.tsx", import.meta.url)),
       output: {
         entryFileNames: "mcp-app.js",
         assetFileNames: "mcp-app.[ext]",
-        inlineDynamicImports: true,
+        codeSplitting: false,
       },
     },
     outDir: "dist",

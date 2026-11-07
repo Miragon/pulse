@@ -1,7 +1,7 @@
 {
   "name": "pulse-cockpit",
   "private": true,
-  "version": "0.26.0",
+  "version": "0.27.1",
   "displayName": "Miragon Pulse",
   "description": "See what your process engine is running, right next to your BPMN models: definitions, instances, incidents and variables. Retry incidents and fix variables, guarded.",
   "publisher": "miragon-gmbh",
@@ -322,7 +322,7 @@
   "dependencies": {
     "@fontsource-variable/geist": "5.3.0",
     "@fontsource-variable/geist-mono": "5.3.0",
-    "@miragon/modeler-shell": "0.9.0",
+    "@miragon/modeler-shell": "0.10.0",
     "@miragon/pulse-engine-core": "workspace:*",
     "bpmn-js": "18.31.1",
     "bpmn-moddle": "10.3.1",
@@ -334,8 +334,8 @@
   "devDependencies": {
     "@types/node": "22.20.5",
     "@types/vscode": "1.101.0",
-    "@vitest/browser-playwright": "5.0.5",
-    "@vitest/coverage-v8": "5.0.5",
+    "@vitest/browser-playwright": "5.1.0",
+    "@vitest/coverage-v8": "5.1.0",
     "@vscode/test-cli": "0.0.15",
     "@vscode/test-electron": "3.1.0",
     "@vscode/vsce": "4.1.0",
@@ -344,6 +344,6 @@
     "playwright": "1.64.1",
     "testcontainers": "12.2.1",
     "typescript": "6.0.3",
-    "vitest": "5.0.5"
+    "vitest": "5.1.0"
   }
 }

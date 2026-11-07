@@ -1,3 +1,17 @@
 packages:
   - "server"
   - "modules/*"
+
+# An unmet peer fails the install instead of printing a warning that scrolls by: one
+# @miragon/pulse-* package or mcp-use bumped alone leaves a Pulse package next to a peer it
+# was never built with. server/test/pins.test.ts holds every package.json to the same line.
+# Keep it on even when pnpm's hint says otherwise: a third-party peer you accept gets an
+# allowedVersions entry below, like the inspector's.
+strictPeerDependencies: true
+
+peerDependencyRules:
+  allowedVersions:
+    # mcp-use's inspector asks for lucide-react ^0.562.0. The starter pins lucide-react 1.x
+    # exactly on purpose, at the version the Pulse packages are built with, so the view bundle
+    # resolves one icon library and one mcp-use. Never downgrade lucide-react to quiet this peer.
+    "@mcp-use/inspector>lucide-react": "1"

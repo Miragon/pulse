@@ -7,11 +7,13 @@ particular to it. The rules for agents that change it are in `apps/cli/CLAUDE.md
 ## Commands
 
 Run them from the repository root. `pnpm build && pnpm typecheck && pnpm test && pnpm lint` is
-the bar for every change; the CLI's own scripts run one part of it:
+the bar for every change; the CLI's own scripts run one part of it, and `pnpm test:one` runs
+single test files while you iterate (coverage off: run alone, a file fails the floors):
 
 ```sh
 pnpm install --frozen-lockfile
 pnpm --fail-if-no-match --filter @miragon/pulse-cli build
+pnpm test:one apps/cli/src/util.test.ts
 pnpm --fail-if-no-match --filter @miragon/pulse-cli test
 pnpm --fail-if-no-match --filter @miragon/pulse-cli catalog
 pnpm --fail-if-no-match --filter @miragon/pulse-cli test:engines

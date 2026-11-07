@@ -7,6 +7,12 @@
 [![Docs](https://img.shields.io/badge/docs-miragon.github.io%2Fpulse-335DE5?style=flat-square)](https://miragon.github.io/pulse/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 
+> [!IMPORTANT]
+> Pulse is below 1.0.0, so its API is not stable: tools, settings, metric names, CLI commands and
+> the exports of the `@miragon/pulse-*` packages can change in any release. The
+> [changelog](CHANGELOG.md) lists every breaking change. Pin exact versions and update all
+> `@miragon/pulse-*` packages together.
+
 Pulse brings your **Camunda 7, CIB seven and Operaton** engines to where you already work. One
 idea, three clients on the same engines:
 
@@ -63,14 +69,15 @@ start one locally with `docker run -p 8080:8080 operaton/operaton:2.1.5`.
 | [`packages/core/widget-shell/`](packages/core/widget-shell)                                               | `@miragon/pulse-widget-shell`             | View runtime and server boot for composed MCP servers        |
 | [`engine-plugins/`](engine-plugins)                                                                       | `io.miragon.mcp:cibseven-history-metrics` | Micrometer metrics plugin for the engine (Java 21)           |
 | [`playground/`](playground)                                                                               | —                                         | Demo engine, Compose stack and the public playground         |
-| [`templates/composed-server/`](templates/composed-server)                                                 | `Miragon/pulse-starter`                   | Starter for your own server with your own connector          |
+| [`templates/composed-server/`](templates/composed-server)                                                 | `Miragon/pulse-starter`                   | [Starter](docs/mcp/build-your-own.md) for your own server    |
 
 ## Documentation
 
 The docs site, [miragon.github.io/pulse](https://miragon.github.io/pulse/), is built from [`docs/`](docs/README.md),
 one section per client:
 
-- [MCP server](docs/mcp/index.md): getting started, usage, every tool, operations, upgrading, architecture
+- [MCP server](docs/mcp/index.md): getting started, usage, every tool, operations, architecture,
+  [building your own server](docs/mcp/build-your-own.md)
 - [CLI](docs/cli/index.md): install, commands, configuration, authentication, AI agents
 - [VS Code](docs/vscode/index.md): installation, configuration, usage, architecture
 
@@ -78,7 +85,8 @@ The product page is [miragon.ai/tools/pulse](https://miragon.ai/tools/pulse/).
 
 ## Development
 
-A fresh clone needs Node.js 22.22.2 or later, pnpm (`corepack enable`) and Docker; no JDK, no `.env`:
+A fresh clone needs Node.js 22.22.2 or later, pnpm (`corepack enable`, or `npm i -g pnpm@10.32.1` on
+Node.js 25 and later) and Docker; no JDK (Gradle runs in a container without one), no `.env`:
 
 ```bash
 pnpm play               # installs, starts the playground, builds, MCP server on :8400, inspector at /mcp/inspector
@@ -94,9 +102,7 @@ Details: [developer guide](docs/mcp/developer.md); the rules for code changes ar
 [release-please](https://github.com/googleapis/release-please) releases everything together:
 semantic commits on `main` open a release PR, and merging it publishes the server image, the npm
 packages, the CLI (npm, binaries, image, Homebrew `miragon/tap/pulse-cli`), the VS Code extension
-(Marketplace and Open VSX) and the engine plugin (Maven Central). Up to 0.20.0 the server and its
-packages shipped as "Miragon AI"; the [rename note](apps/mcp-server/README.md#renamed-from-miragon-ai)
-maps each old name to its new one.
+(Marketplace and Open VSX) and the engine plugin (Maven Central).
 
 ## Contributing
 

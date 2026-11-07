@@ -1,6 +1,6 @@
 {
   "name": "@miragon/pulse-analytics-connector",
-  "version": "0.26.0",
+  "version": "0.27.1",
   "description": "Prometheus-backed process-analytics MCP module: tools, dashboards, and comparison widgets.",
   "license": "MIT",
   "keywords": [
@@ -33,7 +33,8 @@
     "src",
     "!src/**/*.test.*",
     "!src/**/*.test-support.*",
-    "!src/**/test-support"
+    "!src/**/test-support",
+    "!src/**/tsconfig.json"
   ],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -85,12 +86,12 @@
     "@types/react": "19.3.0",
     "bpmn-js": "18.31.1",
     "happy-dom": "21.0.4",
-    "lucide-react": "1.66.0",
+    "lucide-react": "1.67.0",
     "mcp-use": "2.12.2",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "typescript": "6.0.3",
-    "vitest": "5.0.5",
+    "vitest": "5.1.0",
     "zod": "4.6.7"
   }
 }

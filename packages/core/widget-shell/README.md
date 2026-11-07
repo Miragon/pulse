@@ -94,9 +94,10 @@ package customers build their own connectors and composed servers on (see the
   `@miragon/pulse-ui/testing`. The widgets follow the host's theme (then the OS); there is no
   theme preference.
 - **Module composition** (inside the boot): `createComposedServer` composes the modules you hand
-  it: `MCP_ACTIVE_MODULES` selection with `module:toolset` suffixes, the env-typo warner and boot
-  warnings. It resolves ONE concrete toolset per module per boot and threads it into the module's
-  `config.toolset` (`ModuleEntry`), authenticated exactly when it installed OAuth. A module's
+  it: `MCP_ACTIVE_MODULES` selection with `module:toolset` suffixes (an unknown module name fails
+  the boot, listing the modules), the env-typo warner and boot warnings. It resolves ONE concrete
+  toolset per module per boot and threads it into the module's `config.toolset` (`ModuleEntry`),
+  authenticated exactly when it installed OAuth. A module's
   `createPlugin(config, shared)` returns a `ModulePlugin`: its `name` and one `register(server)`
   that registers all its tools on the server the boot owns; `shared(entries)` is your wiring of
   what the active modules hand each other. The boot log states each module's toolset and why.
@@ -108,8 +109,9 @@ package customers build their own connectors and composed servers on (see the
   `retiredEnvVars(modules)` lists both kinds, so a test env can clear them too.
 - **Toolset vocabularies** (`./server`): a module declares its toolsets as
   `toolsets: createToolsetVocabulary(module, names, floor, { authenticatedDefault })` on its
-  definition; a module without one has no toolsets (a suffix is ignored with a warning). The rule
-  is fail-closed: no suffix →
+  definition; a module without one has no toolsets (a suffix is ignored with a warning) and
+  registers every tool, so a boot without OAuth warns once per tool of it without
+  `readOnlyHint: true`, naming the tool and the module. The rule is fail-closed: no suffix →
   `floor` without OAuth, `authenticatedDefault` (default: `floor`) with it; an empty or unknown
   suffix → `floor` with a warning; `resolve(undefined)` → `floor`. Nothing resolves to
   "everything" (a module's widest toolset is reachable only by naming it).
@@ -122,8 +124,9 @@ package customers build their own connectors and composed servers on (see the
   warned at boot above `info`), `/metrics` (optional `MCP_METRICS_TOKEN`), the Host/Origin guard,
   `/health/*` and the font route (`installFontAssets`: Geist + Geist Mono as woff2 under
   `/fonts/geist-<version>/`, cached immutable, any origin, behind the guard). OAuth comes from one
-  provider's `MCP_USE_OAUTH_*` variables, mcp-use's own, with `MCP_URL` as the token audience (RFC
-  8707); the providers and what fails the boot are listed under
+  provider's `MCP_USE_OAUTH_*` variables, mcp-use's own; tokens must carry `<MCP_URL>/mcp` in `aud`
+  (RFC 8707) and a `sub`, and the boot logs that audience. The providers, what fails the boot and
+  the identity provider's side are under
   [Security](https://miragon.github.io/pulse/mcp/operations#security). Without a provider the boot
   runs unauthenticated with one warning. OAuth is the only caller identity, and `oauth` installs a
   provider instead (a test's stub IdP). Every view-bound tool advertises `MCP_URL`'s origin in its
@@ -131,7 +134,11 @@ package customers build their own connectors and composed servers on (see the
   view-bound tool as it registers); without `MCP_URL` mcp-use appends the origin the host read the
   view from. `HostDocument` declares the faces from that origin (`declareServedFonts`,
   `font-display: swap`), so a host that blocks it shows its own font, then the system's.
-  `mcp-use dev` serves the returned `app`; production calls `listen({ handleSignals: true })`:
+  `mcp-use dev` serves the returned `app`; production listens, and the entry does both through
+  `runComposedServer(createApp)`, which prints a failed boot as one line naming the server and the
+  setting (a ZodError as `path: message`, no stack; a bug's TypeError, ReferenceError or RangeError
+  adds its frames) and exits 1 (under `mcp-use dev` the error reaches the CLI).
+  `listen({ handleSignals: true })` is
   mcp-use's `toNodeHandler` behind a request-body cap (`MCP_MAX_BODY_BYTES`, 413 before buffering),
   an in-flight body budget of 4× the cap (503) and a 30 s request timeout, plus a graceful drain
   (stop accepting, in-flight requests finish, readiness 503 `draining`). The guard is DNS-rebinding
@@ -141,11 +148,11 @@ package customers build their own connectors and composed servers on (see the
 
 ## Exports
 
-| Subpath     | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `./server`  | The module port (`ComposableModule`, `ModulePlugin`, `ModuleEntry`, `createToolsetVocabulary`); tool authoring: the registrar (`createToolRegistrar`, `withToolErrors`), the view and feed bindings and results (`showToolBinding`, `appOnly`, `strictToolInput`, `buildViewResult`, `buildDataFeedResult`, `decodeToolResult`), the server i18n (`createTranslator`), the BPMN-name readers and the per-caller request info (`callerCacheKey`, `getMcpRequestInfo`, `runWithMcpRequestInfo`); the boot: `createComposedServer` with `composedEnvVars` / `retiredEnvVars`, the view URIs (`viewResourceUri`, `viewPrelude`), `VIEW_BUNDLE_DEDUPE` and the served fonts (`installFontAssets`, `fontAssetsCsp`). The boot's parts (edge guard, body limit, metrics, health) run only inside `createComposedServer` |
-| `./widgets` | The view runtime (`mountViews`, the view host, the query hooks, `TestViewHost`; the language from the host locale (`de…` German, else English), the theme as host context > OS), the host-bound UI, `AskAiButton` for a hand-off `HAND_OFF_ACTIONS` does not list, `decodeToolResult` and `createTranslator`, each with the types its signature names. The view root's providers and the inline-fit machinery stay inside `mountViews`                                                                                                                                                                                                                                                                                                                                                                           |
-| `./testing` | The product glossary: `PRODUCT_GLOSSARY`, `glossaryFindings`, `blindGlossaryRules`, `unnamedGlossaryTerms`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Subpath     | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `./server`  | The module port (`ComposableModule`, `ModulePlugin`, `ModuleEntry`, `createToolsetVocabulary`); tool authoring: the registrar (`createToolRegistrar`, `withToolErrors`), the view and feed bindings and results (`showToolBinding`, `appOnly`, `strictToolInput`, `buildViewResult`, `buildDataFeedResult`, `decodeToolResult`), the server i18n (`createTranslator`), the BPMN-name readers and the per-caller request info (`callerCacheKey`, `getMcpRequestInfo`, `runWithMcpRequestInfo`); the boot: `createComposedServer` with `composedEnvVars` / `retiredEnvVars` and the entry `runComposedServer`, the view URIs (`viewResourceUri`, `viewPrelude`), `VIEW_BUNDLE_DEDUPE` and the served fonts (`installFontAssets`, `fontAssetsCsp`). The boot's parts (edge guard, body limit, metrics, health) run only inside `createComposedServer` |
+| `./widgets` | The view runtime (`mountViews`, the view host, the query hooks, `TestViewHost`; the language from the host locale (`de…` German, else English), the theme as host context > OS), the host-bound UI, `AskAiButton` for a hand-off `HAND_OFF_ACTIONS` does not list, `decodeToolResult` and `createTranslator`, each with the types its signature names. The view root's providers and the inline-fit machinery stay inside `mountViews`                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `./testing` | The product glossary: `PRODUCT_GLOSSARY`, `glossaryFindings`, `blindGlossaryRules`, `unnamedGlossaryTerms`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 
 `@miragon/pulse-ui`, `react`/`react-dom`, `zod` and `@tanstack/react-query` are **peer
 dependencies**: they must resolve to a single instance across the host bundle, otherwise the React
@@ -156,7 +163,7 @@ bump. A module of your own, like the Pulse connectors, peers this package (`^<th
 your server's copy is the only one. The peers are published as ranges (`react`/`react-dom`
 `^19.2.0`, `zod` `^4.4.0`, `@miragon/pulse-ui` `^<this release>`, `lucide-react`
 `^0.562.0 || ^1.0.0`) so they dedupe against your app's copy. **A host bundle that dedupes
-`lucide-react` needs a 1.x copy that exports `LucideProvider`** (this repo pins 1.66.0):
+`lucide-react` needs a 1.x copy that exports `LucideProvider`** (this repo pins 1.67.0):
 widget-shell's view root imports `LucideProvider`, which 0.x does not export, so a deduped 0.x copy
 fails the bundle build with a missing export. The peer range still admits 0.562 only for this repo's
 own test graph; no package manager warns you about it. `bpmn-js` is a peer (`^18.31.1`):

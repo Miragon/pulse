@@ -7,9 +7,9 @@ description: Where to look before changing MCP server code in this repo (tools, 
 
 This repo runs `mcp-use@2.12.2`; what Pulse adds on the server (registrar, tool errors, view
 meta, server i18n, caller identity) lives in `@miragon/pulse-widget-shell/server`, the UI in
-`@miragon/pulse-ui`. The generic mcp-use skill this file used to vendor taught 1.x APIs
-(`server.uiResource()`, the `text()`/`widget()` response helpers, `server.proxy()`, the
-1.x widget hook, hand-stamped `_meta.ui`), so it is gone. Read these instead, in this order:
+`@miragon/pulse-ui`. Generic mcp-use examples often use APIs this repo does not
+(`server.uiResource()`, the `text()`/`widget()` response helpers, `server.proxy()`, the 1.x
+widget hook, hand-stamped `_meta.ui`). Read these instead, in this order:
 
 1. **The root `CLAUDE.md`**: the architecture invariants. Tools go through the
    registrar, engine access through `withEngine`, a view through the module's

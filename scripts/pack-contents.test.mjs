@@ -4,7 +4,13 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { after, describe, it } from "node:test"
-import { packFindings, relativeSpecifiers, tarballFindings, TEST_FILE } from "./pack-contents.mjs"
+import {
+  packFindings,
+  relativeSpecifiers,
+  tarballFindings,
+  TEST_FILE,
+  TSCONFIG_FILE,
+} from "./pack-contents.mjs"
 
 /** A connector's tarball as files → text: dist, the widgets' source and what it imports. */
 const CONNECTOR = {
@@ -19,10 +25,12 @@ const CONNECTOR = {
   }),
   "dist/index.js": 'export * from "./tools/index.js"\nexport { plugin } from "./plugin.js"',
   "dist/index.d.ts": 'export * from "./tools/index.js"',
-  "dist/index.js.map": '{"sources":["../src/index.ts"]}',
+  "dist/index.js.map": '{"version":3,"sources":["../src/index.ts"],"mappings":""}',
+  "dist/index.d.ts.map": '{"version":3,"sources":["../src/index.ts"],"mappings":""}',
   "dist/plugin.js": "export const plugin = 1",
   "dist/tools/index.js": 'import { z } from "zod"\nexport const tools = []',
   "dist/tools/index.d.ts": "export declare const tools: unknown[]",
+  "src/index.ts": "export const tools = []",
   "src/widgets/index.ts": [
     'export { Views } from "./views.js"',
     'import type { Model } from "../view-models.js"',
@@ -71,6 +79,23 @@ describe("pack-contents", () => {
     ])
   })
 
+  it("fails a tsconfig, the editor's nested one under src or a package's own", () => {
+    const planted = {
+      ...CONNECTOR,
+      "src/widgets/tsconfig.json": '{ "extends": "../../tsconfig.widgets.json" }',
+      "tsconfig.widgets.json": "{}",
+      // Not a project file: a module that merely carries the word.
+      "dist/tsconfig-paths.js": "export const paths = {}",
+    }
+    const why =
+      "a tsconfig ships (exclude it in files): a host's Vite reads it for the package's " +
+      "sources and fails on an extends target the tarball lacks"
+    assert.deepEqual(findings(planted), [
+      `src/widgets/tsconfig.json: ${why}`,
+      `tsconfig.widgets.json: ${why}`,
+    ])
+  })
+
   it("fails a widget import the files list left behind", () => {
     assert.deepEqual(findings(without(CONNECTOR, "src/view-models.ts", "src/messages/use-t.ts")), [
       "src/widgets/index.ts: imports ../view-models.js, which the tarball lacks (add it to files)",
@@ -96,6 +121,65 @@ describe("pack-contents", () => {
     ])
   })
 
+  it("fails once for the maps whose sources the tarball lacks, naming the first", () => {
+    // A .d.ts.map sorts first, and inlineSources never fills one: the hint says to ship them.
+    const why =
+      "ship the sources (src in files; inlineSources fills a .js.map, never a .d.ts.map), else " +
+      "a host's Vite warns once per module it loads and go-to-definition stops at the declaration"
+    assert.deepEqual(findings(without(CONNECTOR, "src/index.ts")), [
+      `dist/index.d.ts.map: points to ../src/index.ts, which the tarball lacks (and 1 more): ${why}`,
+    ])
+    // Above the package root, beside it under a name the root prefixes, or the build machine's
+    // absolute path: none reaches a consumer, though each reads as the shipped src/index.ts to a
+    // check that clamps `..` at the root or tests the root's prefix without its slash.
+    for (const source of ["../../src/index.ts", "../../package-src/index.ts", "/src/index.ts"]) {
+      const map = JSON.stringify({ version: 3, sources: [source], mappings: "" })
+      assert.deepEqual(
+        findings({ ...CONNECTOR, "dist/plugin.js.map": map }),
+        [`dist/plugin.js.map: points to ${source}, which the tarball lacks: ${why}`],
+        source,
+      )
+    }
+  })
+
+  it("passes a map source that ships, through its sourceRoot, or inlined as its content", () => {
+    const passing = {
+      ...CONNECTOR,
+      "dist/plugin.js.map": '{"version":3,"sourceRoot":"../src","sources":["index.ts"]}',
+      // inlineSources: the content travels in the map, the file need not ship.
+      "dist/tools/index.js.map": JSON.stringify({
+        version: 3,
+        sources: ["../../src/tools/index.ts"],
+        sourcesContent: ["export const tools = []"],
+        mappings: "",
+      }),
+    }
+    assert.deepEqual(findings(passing), [])
+    // Content inlined for one source of two: the other still has to ship.
+    const half = JSON.stringify({
+      sources: ["../../src/a.ts", "../../src/b.ts"],
+      sourcesContent: ["export const a = 1", null],
+    })
+    assert.match(
+      findings({ ...CONNECTOR, "dist/tools/index.js.map": half }).join("\n"),
+      /^dist\/tools\/index\.js\.map: points to \.\.\/\.\.\/src\/b\.ts, which the tarball lacks: /,
+    )
+  })
+
+  it("fails a map that is no JSON object, and skips a test's map that already fails", () => {
+    for (const text of ["not json", "null", "[]", "3"]) {
+      assert.deepEqual(
+        findings({ ...CONNECTOR, "dist/plugin.js.map": text }),
+        ["dist/plugin.js.map: a map that is no JSON object ships"],
+        text,
+      )
+    }
+    assert.deepEqual(
+      findings({ ...CONNECTOR, "dist/a.test.js.map": '{"sources":["../src/a.ts"]}' }),
+      ["dist/a.test.js.map: a test ships (exclude it in files)"],
+    )
+  })
+
   it("reads module specifiers from the AST, not from comments or strings", () => {
     const source = [
       '// import "./commented.js"',
@@ -117,6 +201,15 @@ describe("pack-contents", () => {
       "latest.js",
     ]) {
       assert.ok(!TEST_FILE.test(file), file)
+    }
+  })
+
+  it("names project files by their name, never a module or config that merely mentions one", () => {
+    for (const file of ["tsconfig.json", "src/ui/tsconfig.json", "tsconfig.widgets.json"]) {
+      assert.ok(TSCONFIG_FILE.test(file), file)
+    }
+    for (const file of ["dist/tsconfig-paths.js", "src/tsconfig.ts", "jsconfig.json"]) {
+      assert.ok(!TSCONFIG_FILE.test(file), file)
     }
   })
 

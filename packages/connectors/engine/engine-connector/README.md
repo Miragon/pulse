@@ -39,7 +39,7 @@ The consumer-shared libraries are ranged **peer dependencies** so they dedupe ag
 copy: `react`/`react-dom` `^19.2.0`, `zod` `^4.4.0`, `@miragon/pulse-ui` and
 `@miragon/pulse-widget-shell` `^<this release>` (the design kit the widgets compose from, and the
 view runtime and boot your server shares with every module), `lucide-react` `^0.562.0 || ^1.0.0`
-(the widgets' icons; pin a 1.x copy (this repo pins 1.66.0): widget-shell's view root imports
+(the widgets' icons; pin a 1.x copy (this repo pins 1.67.0): widget-shell's view root imports
 `LucideProvider`, which 0.x lacks, so a deduped 0.x copy fails the bundle build). Your view
 bundle's Vite config spreads widget-shell's `VIEW_BUNDLE_DEDUPE` into `resolve.dedupe`. `bpmn-js`
 is a peer (`^18.31.1`): the widgets draw BPMN diagrams. **`mcp-use` is exactly pinned**: pin
@@ -84,7 +84,7 @@ hangs every in-widget query on "Loading…".
 - **Deployments are opt-in:** `engine_create_deployment` is registered only with
   `ENGINE_ALLOW_DEPLOYMENTS=true` (strict `true`/`false` after trimming, empty = unset, anything else fails the boot) on top of
   `engine:admin`: deploying a BPMN/DMN is code execution inside the engine JVM (JUEL expressions,
-  scripts). The full engine surface of earlier releases is `engine:admin` plus that flag.
+  scripts).
 
 ## Adding a tool or widget
 

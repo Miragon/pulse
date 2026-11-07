@@ -66,14 +66,16 @@ describe("ENGINE_ALLOW_DEPLOYMENTS", () => {
     ])
   })
 
-  it("configFromEnv only trims (empty = unset) and leaves the verdict to the strict schema", () => {
+  it("configFromEnv trims (empty = unset), keeps the text and refuses junk, naming the variable", () => {
     const fromEnv = (value?: string) =>
       engineModule.configFromEnv({ ENGINE_ALLOW_DEPLOYMENTS: value }).allowDeployments
-    expect(fromEnv("yes")).toBe("yes")
     expect(fromEnv(" true ")).toBe("true")
     expect(fromEnv("")).toBeUndefined()
     expect(fromEnv("   ")).toBeUndefined()
     expect(engineModule.configFromEnv({}).allowDeployments).toBeUndefined()
+    expect(() => fromEnv("yes")).toThrow(
+      'ENGINE_ALLOW_DEPLOYMENTS must be exactly "true" or "false" (or unset)',
+    )
   })
 
   it("is a known env var", () => {
@@ -125,11 +127,13 @@ describe("ENGINE_REQUEST_TIMEOUT_MS", () => {
     },
   )
 
-  it("configFromEnv trims (empty = unset) and leaves the verdict to the strict schema", () => {
+  it("configFromEnv trims (empty = unset), keeps the text and refuses junk, naming the variable", () => {
     const fromEnv = (value?: string) =>
       engineModule.configFromEnv({ ENGINE_REQUEST_TIMEOUT_MS: value }).requestTimeoutMs
     expect(fromEnv(" 5000 ")).toBe("5000")
-    expect(fromEnv("30s")).toBe("30s")
+    expect(() => fromEnv("30s")).toThrow(
+      "ENGINE_REQUEST_TIMEOUT_MS must be a whole number of milliseconds",
+    )
     expect(fromEnv("  ")).toBeUndefined()
     expect(fromEnv(undefined)).toBeUndefined()
     expect(engineModule.knownEnvVars).toContain("ENGINE_REQUEST_TIMEOUT_MS")
@@ -265,7 +269,7 @@ describe("engineModule.configFromEnv environment-map form", () => {
   })
 })
 
-/** Zero-config reaches the Compose engine while analytics silently return empty: the warning is the only signal. */
+/** Zero-config reaches a local CIB seven while analytics silently return empty: the warning is the only signal. */
 describe("engineModule.bootWarnings", () => {
   it("warns on a fully unconfigured environment, naming the fallback URL and id", () => {
     const warnings = engineModule.bootWarnings({})
@@ -273,6 +277,18 @@ describe("engineModule.bootWarnings", () => {
     expect(warnings[0]).toContain("http://localhost:8410/engine-rest")
     expect(warnings[0]).toContain('engine id "default"')
     expect(warnings[0]).toContain("ENGINE_ID")
+  })
+
+  // The warning ships to every server built on the package, a starter's too: it names the two
+  // engines that answer on :8410 by their repositories, never "the repo's" stack.
+  it("names the engines the fallback URL reaches: the starter's compose.yaml and the playground", () => {
+    const [warning] = engineModule.bootWarnings({})
+    expect(warning).toContain("the Pulse starter's compose.yaml (Miragon/pulse-starter)")
+    expect(warning).toContain("the Pulse playground (Miragon/pulse)")
+    expect(warning).toContain('the playground\'s engine stamps "prod-a"')
+    // A zero-config boot sends no login, which the starter's engine refuses with 401.
+    expect(warning).toContain("the starter's asks for a login (ENGINE_AUTH_TYPE=basic, demo/demo)")
+    expect(warning).not.toMatch(/the repo's/i)
   })
 
   it("names the ENGINE_ID override in the warning when only the id is set", () => {

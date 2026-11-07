@@ -7,8 +7,8 @@
 
 Operaton and CIB seven are forks of Camunda 7 and keep its REST API, so one adapter
 serves all three; the conformance kit runs on Operaton and CIB seven in CI (Camunda 7's
-image left Docker Hub in November 2026; it passed on 7.24.0 until then). Up to 0.24 the adapter
-spawned Miragon's retired engine CLI per call; it now calls the REST API itself:
+image left Docker Hub in November 2026; it passed on 7.24.0 until then). The adapter calls the
+REST API itself:
 
 ```mermaid
 flowchart LR
@@ -41,9 +41,7 @@ MCP server run too.
   `engine-core-only-in-the-c7-adapter`, and the root rule `family-core-consumers` with the
   adapter in `CORE_BUNDLES`); the contract, the core, the webview and the host stay
   engine-neutral. esbuild inlines it into `dist/extension.cjs`, the .vsix ships no
-  `node_modules`. Up to 0.24 the adapter carried its own copy of the inspect domain
-  ("standalone: no shared package"); that copy predated engine-core, which came from the same
-  CLI code, and a fix to wait states or root causes landed twice. One home now: the
+  `node_modules`. One home: a fix to wait states or root causes lands once, and the
   conformance laws run engine-core on all three engines.
 - **engine-core's port over `EngineHttp`.** `HttpEngineTransport` implements engine-core's
   `EngineTransport`: `InspectOperations` maps each operation id engine-core's inspection

@@ -91,7 +91,9 @@ describe("Prometheus config reaches the wire", () => {
     const tools = boot({ PROMETHEUS_TIMEOUT_MS: "60" })
     const result = await tools.get("analytics_engine_health")!({})
     expect(result.isError).toBe(true)
-    expect(result.content[0].text).toBe("Prometheus did not respond within 60 ms (timeout)")
+    expect(result.content[0].text).toBe(
+      "Prometheus did not respond within 60 ms (timeout). PROMETHEUS_TIMEOUT_MS sets this deadline, PROMETHEUS_URL the target.",
+    )
   })
 
   it("EVERY tool hands ctx.signal to its queries", async () => {

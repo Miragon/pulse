@@ -18,11 +18,13 @@
  * - ADMIN: `engine:admin,analytics` + `ENGINE_ALLOW_DEPLOYMENTS=true`:
  *   the full surface. Never implied by a default.
  *
- * Regenerate by running the golden test and copying the sorted names from the
- * assertion diffs. These lists pin WHICH tools a toolset exposes; the full
- * wire payload of each (descriptions, annotations, visibility, schemas) is
- * pinned per toolset by tools-list.golden.test.ts → `__golden__/tools-*.json`;
- * a tool change updates both (`GOLDEN_UPDATE=1`, see golden.ts).
+ * A new, renamed or re-tiered tool goes into its list here by hand (the golden
+ * test's name diff shows which). These lists pin WHICH tools a toolset
+ * exposes; the full wire payload of each (descriptions, annotations,
+ * visibility, schemas) is pinned per toolset by tools-list.golden.test.ts →
+ * `__golden__/tools-*.json`; a tool change updates both (the goldens through
+ * `pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server golden:update`,
+ * see golden.ts).
  */
 export const EXPECTED_TOOLS_READ_ONLY: readonly string[] = [
   "analytics_bpmn_heatmap_data",

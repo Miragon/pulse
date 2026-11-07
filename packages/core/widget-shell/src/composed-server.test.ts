@@ -183,8 +183,11 @@ describe("createComposedServer: boot", () => {
   it("names the boot's variables and every module's in composedEnvVars", () => {
     expect([...composedEnvVars([alpha])].sort()).toEqual(
       [
+        "PORT",
+        "HOST",
         ...HTTP_EDGE_ENV_VARS,
         ...OAUTH_ENV_VARS,
+        "MCP_USE_OAUTH_DEBUG",
         "MCP_ACTIVE_MODULES",
         "MCP_USE_LOG_LEVEL",
         "ALPHA_URL",

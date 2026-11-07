@@ -14,6 +14,7 @@ export const SCOPES = [
   "typescript",
   "mcp",
   "template",
+  "starter-engine",
   "cli",
   "vscode",
   "vscode-package",
@@ -38,19 +39,28 @@ export const PATH_RULES = [
   { pattern: /^docs\/\.vitepress\/miragon\//, scopes: ["typescript", "brand"] },
   // Read by the token drift scan (pulse-ui).
   { pattern: /^docs\/.*\.css$/, scopes: ["brand", "typescript"] },
+  // Linted by lint:configs.
+  { pattern: /^docs\/\.vitepress\/(?:config|theme\/index)\.ts$/, scopes: ["brand", "typescript"] },
   { pattern: /^docs\//, scopes: ["brand"] },
   // Read by scripts/server-env-names.test.mjs.
   { pattern: /^\.env\.example$/, scopes: ["typescript"] },
   { pattern: /^README\.md$/, scopes: ["brand"] },
   { pattern: /^[^/]+\.md$/, scopes: [] },
   { pattern: /^\.miragon\//, scopes: ["brand"] },
-  { pattern: /^(?:\.claude|\.conductor)\//, scopes: [] },
+  { pattern: /^\.claude\//, scopes: [] },
   { pattern: /^\.claude-plugin\//, scopes: ["cli"] },
+  // The shared editor settings: only the always-on format check reads them.
+  { pattern: /^\.vscode\//, scopes: [] },
   { pattern: /^engine-plugins\//, scopes: ["kotlin"] },
   { pattern: /^playground\/cibseven-example\//, scopes: ["cibseven-example"] },
   // Read by the metrics contract tests.
   { pattern: /^playground\/docker\//, scopes: ["typescript"] },
   { pattern: /^playground\//, scopes: [] },
+  // The starter's try-out engine: its own job starts it; the template's format check reads it.
+  {
+    pattern: /^templates\/composed-server\/compose\.yaml$/,
+    scopes: ["starter-engine", "template", "typescript"],
+  },
   { pattern: /^templates\/.*\.(?:md|png|jpe?g|gif|webp)$/, scopes: [] },
   // The token drift scan (pulse-ui) reads them; the template's own job tests them.
   { pattern: /^templates\//, scopes: ["template", "typescript"] },

@@ -30,6 +30,10 @@
  * reports/mutation-report.json, the one path the CI artifact and
  * scripts/fitness-report.mjs read.
  *
+ * Editors read only files named tsconfig.json, so a tree only an extra project checks carries a
+ * nested tsconfig.json that extends it, in the workspace's packages and the template's
+ * (scripts/editor-projects.mjs says why and what holds).
+ *
  * A pnpm filter that matches nothing exits 0 (pnpm 10), so a stale name turns a gate green
  * without running it, and `--fail-if-no-match` fails only when NO filter of the command
  * matches. So every filter in a tracked text file (docs included) that names a package names
@@ -41,6 +45,7 @@ import { execFileSync } from "node:child_process"
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+import { editorProjectFindings, extraTsconfigs } from "./editor-projects.mjs"
 import { MUTATION_PAUSED } from "./mutation-pause.mjs"
 
 /**
@@ -239,13 +244,6 @@ export function checkMutatedPackages(sourceDirs, mutated) {
   return errors
 }
 
-/** The extra `tsconfig.<x>.json` projects in a package directory. */
-function extraTsconfigs(abs) {
-  return readdirSync(abs)
-    .filter((name) => /^tsconfig\.[\w-]+\.json$/.test(name))
-    .sort()
-}
-
 /** A package's stryker.config.json as `{ exists, config, parseError }`. */
 function readStrykerConfig(abs) {
   const file = path.join(abs, "stryker.config.json")
@@ -343,6 +341,26 @@ export function checkWorkspace(
   return { errors, sourceDirs }
 }
 
+/** The template's workspace: it ships the packages' layout to customers. */
+export const TEMPLATE_WORKSPACE = "templates/composed-server"
+
+/**
+ * Editor findings (scripts/editor-projects.mjs) for the workspace's source packages and the
+ * template's. `ts` is the TypeScript module, which the caller loads.
+ */
+export function checkEditorProjects(ts, root, sourceDirs) {
+  const template = path.join(root, TEMPLATE_WORKSPACE)
+  const templateDirs = expandWorkspaceGlobs(
+    template,
+    workspaceGlobs(readFileSync(path.join(template, "pnpm-workspace.yaml"), "utf8")),
+  )
+    .filter((dir) => existsSync(path.join(template, dir, "src")))
+    .map((dir) => path.posix.join(TEMPLATE_WORKSPACE, dir))
+  return [...sourceDirs, ...templateDirs].flatMap((dir) =>
+    editorProjectFindings(ts, path.join(root, dir), dir),
+  )
+}
+
 const FILTER = /(?:--filter(?:=|\s+)|\s-F\s+)\\?["']?([^\s"'`)\\]+)/g
 
 /**
@@ -369,10 +387,10 @@ export const unknownFilters = (file, text, known) =>
 
 /**
  * Where a command runs as a gate: the root and every workspace package's scripts, the
- * Dockerfile, the workflows and their composite actions, the conductor and gate shell scripts.
+ * Dockerfile, the workflows and their composite actions, the gate shell scripts.
  */
 export const GATE_PATH =
-  /^(?:package\.json|(?:apps|packages)\/(?:[^/]+\/)+package\.json|docs\/package\.json|Dockerfile|\.github\/workflows\/[^/]+\.ya?ml|\.github\/actions\/(?:[^/]+\/)*[^/]+\.ya?ml|\.conductor\/[^/]+\.sh|scripts\/[^/]+\.sh)$/
+  /^(?:package\.json|(?:apps|packages)\/(?:[^/]+\/)+package\.json|docs\/package\.json|Dockerfile|\.github\/workflows\/[^/]+\.ya?ml|\.github\/actions\/(?:[^/]+\/)*[^/]+\.ya?ml|scripts\/[^/]+\.sh)$/
 
 /** A pnpm command whose filter is pnpm's (not one turbo receives after `pnpm turbo`). */
 const pnpmFilters = (command) => {
@@ -444,16 +462,21 @@ if (isMain) {
   }
   const { errors, sourceDirs } = checkWorkspace(root, globs, { mutationPaused: MUTATION_PAUSED })
   errors.push(...checkFilters(repoTextFiles(root)))
+  // Loaded here, never at the top: ci-scopes.mjs imports this module before any install.
+  const { default: ts } = await import("typescript")
+  errors.push(...checkEditorProjects(ts, root, sourceDirs))
   if (errors.length > 0) {
     console.error(
-      "Workspace packages with missing or non-canonical gate scripts, configs or filters:\n",
+      "Workspace packages with missing or non-canonical gate scripts, configs, filters or " +
+        "editor projects:\n",
     )
     for (const error of errors) console.error(`  - ${error}`)
     console.error(
       "\nFix the package, never the gate: a source package outside " +
         "`turbo run lint|typecheck|test` or without a vitest.config.ts is invisible to the " +
         "gates, and a stryker.config.json belongs in exactly the packages MUTATED_PACKAGES " +
-        "lists (CLAUDE.md, Verification).",
+        "lists (CLAUDE.md, Verification); a file only a tsconfig.<x>.json checks opens in a " +
+        "nested tsconfig.json that extends that project (scripts/editor-projects.mjs).",
     )
     process.exit(1)
   }
@@ -462,6 +485,6 @@ if (isMain) {
     ? "(mutation testing paused, stryker.config.json not checked: scripts/mutation-pause.mjs)"
     : `(a gated stryker.config.json in ${mutated} and in no other package)`
   console.log(
-    `Package scripts: all ${sourceDirs.length} source packages run the canonical lint, typecheck and test, carry a vitest.config.ts ${mutation}, and every pnpm filter names a workspace package.`,
+    `Package scripts: all ${sourceDirs.length} source packages run the canonical lint, typecheck and test, carry a vitest.config.ts ${mutation}, and every pnpm filter names a workspace package; editors open every file with the settings of the project that checks it (with the template's packages).`,
   )
 }

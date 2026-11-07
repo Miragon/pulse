@@ -83,8 +83,8 @@ The CLI validates every value and writes the file with mode `0600`; you can also
 
 `flavor` says which product runs behind the URL: `operaton`, `cibseven` or `camunda7`. It
 selects the engine adapter and with it the commands, help and `describe`. Without it the CLI uses
-`camunda7`, which works for all three today. `engine` stays what it was: the name of a process
-engine (`/engine/{name}`).
+`camunda7`, which works for all three today. `engine` is the name of a process engine
+(`/engine/{name}`).
 
 ```sh
 pulse config set local --flavor operaton
@@ -92,8 +92,7 @@ PULSE_CLI_FLAVOR=cibseven pulse ping
 pulse ping --flavor camunda7
 ```
 
-An unknown value is an error that lists the known engines. Before the CLI moved to Pulse the key
-was called `platform`; that name is an unknown key now, and `--platform` an unknown option.
+An unknown value is an error that lists the known engines.
 
 ## Profiles
 

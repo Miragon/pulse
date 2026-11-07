@@ -33,10 +33,15 @@ describe("the engine jar", () => {
     assert.equal(jarIsStale(3000, 2000), false)
   })
 
-  it("says when a running engine may lack the changes", () => {
-    assert.match(staleJarNote(undefined), /jar here is missing/)
+  it("says when a running engine may lack this checkout's changes", () => {
     assert.match(staleJarNote(1000), /older than its sources/)
     assert.match(staleJarNote(1000), /pnpm stack:down && pnpm stack:up/)
+  })
+
+  it("never tells a checkout without a jar to stop the stack every worktree shares", () => {
+    assert.match(staleJarNote(undefined), /no engine jar, so the running engine may not match/)
+    assert.match(staleJarNote(undefined), /shared and keeps running/)
+    assert.doesNotMatch(staleJarNote(undefined), /stack:down/)
   })
 
   it("keeps the wrapper and the shell scripts LF on every checkout (sh runs them in Linux)", () => {

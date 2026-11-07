@@ -46,8 +46,7 @@ npm install -g @miragon/pulse-cli      # or, without Node.js: brew install mirag
 pulse guide
 ```
 
-The command is `pulse`. `pulse-cli`, its name up to 0.25, stays as a second name, so scripts and
-agents that call it keep working.
+The command is `pulse`; `pulse-cli` is a second name of the same program.
 
 ## Quick start
 
@@ -148,10 +147,6 @@ built from the pages in [`docs/cli/`](https://github.com/Miragon/pulse/tree/main
 - [Engines](https://miragon.github.io/pulse/cli/engines): compatibility, choosing the engine, adding a difference or an engine
 - [Architecture](https://miragon.github.io/pulse/cli/architecture): engine port, adapters, catalog generation; [decisions](https://miragon.github.io/pulse/cli/adr/)
 - [Development](https://github.com/Miragon/pulse/blob/main/docs/cli/development.md): building and testing the CLI in the Pulse repository
-
-## Renamed from operate
-
-Up to 0.10.0 this CLI was operate, released from the archived [Miragon/operate](https://github.com/Miragon/operate).
 
 ## Contributing
 

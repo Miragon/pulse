@@ -34,7 +34,10 @@ export function createPlugin(config: NotesPluginConfig): ModulePlugin {
 export const notesModule = {
   name: "notes",
 
-  /** Pure env → raw-config mapping; validation happens in `createPlugin`. */
+  /**
+   * Pure env → raw-config mapping, which `createPlugin` parses. A setting that can be wrong is
+   * also checked here, with one Error that names the variable, so the boot fails before its log.
+   */
   configFromEnv(env: NodeJS.ProcessEnv): Record<string, unknown> {
     return { title: env.NOTES_TITLE?.trim() || undefined }
   },

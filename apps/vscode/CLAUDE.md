@@ -37,9 +37,12 @@ The C7 adapter bundles engine-core from its build: after `pnpm install`, build i
 (`pnpm exec turbo run build --filter='pulse-cockpit^...'`, or `pnpm build`) before these
 commands, and again after a change to engine-core.
 
-The bar for every change is the repository's: `pnpm build && pnpm typecheck && pnpm test &&
-pnpm lint` at the root. The webview tests run in Chromium: install it once with
-`pnpm --filter pulse-cockpit exec playwright install chromium`. Run `test:engines`, `test:e2e`
+While you iterate, `pnpm test:one apps/vscode/test/<path>.test.ts` runs the files you touch
+(coverage off, engine-core built first; run alone, a file fails the floors, since
+`coverage.include` counts every file it does not load), then
+`pnpm exec turbo run typecheck test lint --filter=pulse-cockpit` the package. The bar for every
+change is the repository's: `pnpm check` at the root. The webview tests run in Chromium: install it
+once with `pnpm --filter pulse-cockpit exec playwright install chromium`. Run `test:engines`, `test:e2e`
 and `docs:screenshots` only when the change touches the adapter or the contract, the VS Code
 flows or the screens.
 
@@ -82,15 +85,17 @@ The app is one package with six layers under `apps/vscode/src`. Each layer has i
 
 The dependency rules are closed-world (`apps/vscode/.dependency-cruiser.cjs`): an import that
 is not explicitly allowed fails `pnpm lint:architecture:vscode` with a message that says where
-it belongs. Nothing outside them is allowed, so no widget-shell, no React, no zod and one
-workspace package only: the C7 adapter (`apps/vscode/src/adapters/c7` and its tests in
-`apps/vscode/test/adapters/c7`) imports `@miragon/pulse-engine-core`, the Camunda 7 family's
-workflow domain that the CLI and the MCP server run too, through its main entry, and esbuild
-bundles it (`engine-core-only-in-the-c7-adapter`; the repository's `family-core-consumers`). A
-change to how an instance is inspected, where it waits, what its root cause is or when a 404
-names a missing resource (`isMissing`) goes into engine-core, never into a copy here; the
-adapter's `InspectView` is engine-core's instance view, not a mirror of it. Contract, core,
-webview and host stay engine-neutral.
+it belongs (dependency-cruiser reports it as `not-in-allowed` and takes the wording from the
+forbidden rule of that name, which never fires itself). Nothing outside them is allowed, so no
+widget-shell, no React, no zod and one workspace package only: the C7 adapter
+(`apps/vscode/src/adapters/c7` and its tests in `apps/vscode/test/adapters/c7`) imports
+`@miragon/pulse-engine-core`, the Camunda 7 family's workflow domain that the CLI and the MCP
+server run too, through its main entry, and esbuild bundles it
+(`engine-core-only-in-the-c7-adapter`; the repository's `family-core-consumers`). A change to
+how an instance is inspected, where it waits, what its root cause is or when a 404 names a
+missing resource (`isMissing`) goes into engine-core, never into a copy here; the adapter's
+`InspectView` is engine-core's instance view, not a mirror of it. Contract, core, webview and
+host stay engine-neutral.
 
 ## Rules
 

@@ -126,13 +126,20 @@ const formatBytes = (bytes: number): string => {
   return `${Number((bytes / size).toFixed(2))} ${unit}`
 }
 
-/** So a 403 in the field is explainable from the log. */
-export function describeHttpEdgePolicy(policy: HttpEdgePolicy): string {
+/**
+ * So a 403 in the field is explainable from the log. The body cap sits in the boot's own listener
+ * (`createBodyLimitedListener`), which `mcp-use dev` never starts: it serves the app itself.
+ */
+export function describeHttpEdgePolicy(
+  policy: HttpEdgePolicy,
+  { underDevCli = false }: { underDevCli?: boolean } = {},
+): string {
   const list = (allowList: AllowList) =>
     allowList === "*" ? "any (validation off)" : allowList.join(", ")
   return (
     `HTTP edge: hosts ${list(policy.allowedHosts)}; origins ${list(policy.allowedOrigins)}; ` +
-    `max body ${formatBytes(policy.maxBodyBytes)} (${formatBytes(policy.maxInFlightBodyBytes)} in flight); ` +
+    `max body ${formatBytes(policy.maxBodyBytes)} (${formatBytes(policy.maxInFlightBodyBytes)} in flight)` +
+    `${underDevCli ? " on the built server only" : ""}; ` +
     `/metrics ${policy.metricsToken ? "token-protected" : "open"}`
   )
 }

@@ -28,15 +28,50 @@ export interface PrometheusClient {
   instant(query: string, options?: PrometheusQueryOptions): Promise<PromSample[]>
 }
 
-interface PromApiResponse {
-  status: "success" | "error"
-  errorType?: string
-  error?: string
-  data?: {
-    resultType: string
-    result: Array<{ metric: Record<string, string>; value: [number, string] }>
+/**
+ * What went wrong, for the layer that owns the settings: this client knows the wire, not the
+ * variables a deployment sets or the modules it runs (`withRemedies` in the connector).
+ * `foreign-answer`: something answered, but not as Prometheus's API does. `query`: Prometheus's
+ * own answer, about the query.
+ */
+export type PrometheusFailureKind =
+  "unreachable" | "timeout" | "cancelled" | "unauthorized" | "foreign-answer" | "query"
+
+/**
+ * A failed query. Carries the failure as `kind`, deliberately no `status` or `code`:
+ * widget-shell's `withToolErrors` prefixes those as `[…] `, and the message is complete on its own.
+ */
+export class PrometheusRequestError extends Error {
+  readonly kind: PrometheusFailureKind
+
+  constructor(message: string, kind: PrometheusFailureKind, options?: ErrorOptions) {
+    super(message, options)
+    this.name = "PrometheusRequestError"
+    this.kind = kind
   }
 }
+
+interface PromRow {
+  metric: Record<string, string>
+  value: [number, string]
+}
+
+/** What answered, parsed: whoever holds the address decides the shape, so nothing here is checked yet. */
+interface PromApiResponse {
+  status?: unknown
+  errorType?: unknown
+  error?: unknown
+  data?: { result?: unknown } | null
+}
+
+const isPromRow = (row: unknown): row is PromRow => {
+  const { metric, value } = (row ?? {}) as Partial<PromRow>
+  return typeof metric === "object" && metric !== null && Array.isArray(value)
+}
+
+/** How Prometheus itself refuses: an `error` envelope with a message. */
+const isOwnRefusal = (body: PromApiResponse | null | undefined): boolean =>
+  body?.status === "error" && typeof body.error === "string" && body.error.trim() !== ""
 
 function splitUserinfo(raw: string): { base: string; username?: string; password?: string } {
   let url: URL
@@ -78,7 +113,7 @@ function authorizationFor(
   if (username === undefined) return { secrets: [] }
   const password = config.password ?? userinfo.password ?? ""
   const basic = Buffer.from(`${username}:${password}`).toString("base64")
-  return { authorization: `Basic ${basic}`, secrets: [password, basic] }
+  return { authorization: `Basic ${basic}`, secrets: [username, password, basic] }
 }
 
 /** RFC 9110 field-name token; a value must not break the header line. */
@@ -155,38 +190,62 @@ function parseJson(text: string): unknown {
   }
 }
 
+const contentTypeOf = (response: Response): string | undefined =>
+  response.headers.get("Content-Type")?.split(";")[0].trim().toLowerCase()
+
+/**
+ * A web page (an error page, a login form) is never Prometheus's API: its text stays out of the
+ * message. An empty body is no page, whatever its type says, and falls back to the status line.
+ */
+const isWebPage = (response: Response, text: string): boolean => {
+  const body = text.trimStart()
+  return body.startsWith("<") || (body !== "" && contentTypeOf(response) === "text/html")
+}
+
 function networkCode(error: unknown): string {
   const cause = (error as { cause?: { code?: unknown; errors?: Array<{ code?: unknown }> } }).cause
   const code = cause?.code ?? cause?.errors?.find((e) => e.code)?.code
   return typeof code === "string" && code.length > 0 ? code : "network error"
 }
 
-/** Every failure message is safe to hand to the model: no URL, no credentials, upstream text truncated. */
+/** Every failure message is safe to hand to the model: no URL, no credentials, no web page, upstream text truncated. */
 export function createPrometheusClient(config: PrometheusConfig): PrometheusClient {
   const userinfo = splitUserinfo(config.url)
   const { base } = userinfo
   const { headers, secrets } = buildHeaders(config, userinfo)
   const timeoutMs = resolveTimeout(config.timeoutMs)
 
+  // An upstream's text may name where it was sent (a proxy's does), so the target goes with the
+  // credentials. A value under secretForms' 4 characters, a bare `/` path say, stays as it is.
+  const { host, hostname, pathname } = new URL(base)
+  const masked = secretForms([...secrets, base, host, hostname, pathname])
+
   // Masked before AND after collapsing whitespace, so neither form of a secret slips through.
   const safe = (text: string): string => {
-    const flat = mask(mask(text, secrets).replace(/\s+/g, " ").trim(), secrets)
+    const flat = mask(mask(text, masked).replace(/\s+/g, " ").trim(), masked)
     return flat.length > MAX_ERROR_TEXT ? `${flat.slice(0, MAX_ERROR_TEXT)}…` : flat
   }
 
   const errorTypeOf = (value: unknown): string | undefined =>
     typeof value === "string" && ERROR_TYPE.test(value) ? safe(value) : undefined
 
-  function httpError(response: Response, text: string): Error {
-    const body = parseJson(text) as Partial<PromApiResponse> | null | undefined
+  function httpDetail(response: Response, text: string, ownError: unknown): string {
+    const own = typeof ownError === "string" ? safe(ownError) : ""
+    if (own) return own
+    if (isWebPage(response, text)) {
+      return "the answer is a web page, so another service or a proxy holds that address"
+    }
+    return safe(text) || `${response.statusText || "HTTP error"}, empty response body`
+  }
+
+  function httpError(response: Response, text: string): PrometheusRequestError {
+    const body = parseJson(text) as PromApiResponse | null | undefined
     const errorType = errorTypeOf(body?.errorType)
-    const raw = typeof body?.error === "string" ? body.error : text
-    const detail = safe(raw) || `${response.statusText || "HTTP error"} — empty response body`
+    const detail = httpDetail(response, text, body?.error)
     const auth = response.status === 401 || response.status === 403
-    return new Error(
-      `Prometheus query failed (${response.status}${errorType ? ` ${errorType}` : ""}): ${detail}${
-        auth ? " — check the configured Prometheus credentials" : ""
-      }`,
+    return new PrometheusRequestError(
+      `Prometheus query failed (${response.status}${errorType ? ` ${errorType}` : ""}): ${detail}`,
+      auth ? "unauthorized" : isOwnRefusal(body) ? "query" : "foreign-answer",
     )
   }
 
@@ -200,23 +259,28 @@ export function createPrometheusClient(config: PrometheusConfig): PrometheusClie
       const response = await fetch(url, { method: "GET", headers, signal })
       return { response, text: await response.text() }
     } catch (err) {
-      const message = deadline.aborted
-        ? `Prometheus did not respond within ${timeoutMs} ms (timeout)`
-        : caller?.aborted
-          ? "Prometheus query cancelled by the caller"
-          : `Prometheus unreachable (${networkCode(err)})`
-      throw new Error(message, { cause: err })
+      if (deadline.aborted) {
+        const message = `Prometheus did not respond within ${timeoutMs} ms (timeout)`
+        throw new PrometheusRequestError(message, "timeout", { cause: err })
+      }
+      if (caller?.aborted) {
+        const message = "Prometheus query cancelled by the caller"
+        throw new PrometheusRequestError(message, "cancelled", { cause: err })
+      }
+      const message = `Prometheus unreachable (${networkCode(err)})`
+      throw new PrometheusRequestError(message, "unreachable", { cause: err })
     }
   }
 
   function parseEnvelope(response: Response, text: string): PromApiResponse {
     const body = parseJson(text)
-    if (body !== null && typeof body === "object") return body as PromApiResponse
-    const type = response.headers.get("Content-Type")?.split(";")[0]
-    throw new Error(
+    if (body !== null && typeof body === "object") return body
+    const type = contentTypeOf(response)
+    throw new PrometheusRequestError(
       `Prometheus returned a non-JSON response (HTTP ${response.status}${
         type ? `, ${type}` : ""
-      }) — is a proxy or login page in front of it?`,
+      }): is a proxy or login page in front of it?`,
+      "foreign-answer",
     )
   }
 
@@ -226,16 +290,17 @@ export function createPrometheusClient(config: PrometheusConfig): PrometheusClie
       const { response, text } = await fetchText(url, options.signal)
       if (!response.ok) throw httpError(response, text)
       const body = parseEnvelope(response, text)
-      if (body.status !== "success" || !body.data) {
+      const rows = body.status === "success" ? body.data?.result : undefined
+      if (!Array.isArray(rows) || !rows.every(isPromRow)) {
         const errorType = errorTypeOf(body.errorType)
-        throw new Error(
-          `Prometheus query error${errorType ? ` (${errorType})` : ""}: ${safe(
-            body.error ?? "unknown",
-          )}`,
+        const detail = (typeof body.error === "string" && safe(body.error)) || "unknown"
+        throw new PrometheusRequestError(
+          `Prometheus query error${errorType ? ` (${errorType})` : ""}: ${detail}`,
+          isOwnRefusal(body) ? "query" : "foreign-answer",
         )
       }
       const out: PromSample[] = []
-      for (const r of body.data.result) {
+      for (const r of rows) {
         const value = Number(r.value[1])
         if (Number.isNaN(value)) continue
         out.push({ metric: r.metric, value })

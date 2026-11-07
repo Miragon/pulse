@@ -40,8 +40,8 @@ describe("providerForEntry", () => {
 
 /**
  * The single-engine shorthand names a CIB seven or Operaton engine with
- * ENGINE_FLAVOR, the way ENGINE_ID names its id: configFromEnv
- * only trims, the schema's enum judges the value.
+ * ENGINE_FLAVOR, the way ENGINE_ID names its id: configFromEnv trims,
+ * the schema's enum judges the value.
  */
 describe("engineModule.configFromEnv engine flavor", () => {
   const BASE = "http://engine.example/engine-rest"
@@ -90,10 +90,12 @@ describe("engineModule.configFromEnv engine flavor", () => {
   it.each(["CIBSEVEN", "cib seven", "flowable"])(
     "fails the boot on %j, naming the variable",
     (raw) => {
-      expect(() => providerOf({ ENGINE_FLAVOR: raw })).toThrow(/ENGINE_FLAVOR/)
-      const result = engineConfigSchema.safeParse(
-        engineModule.configFromEnv({ ENGINE_FLAVOR: raw }),
+      expect(() => engineModule.configFromEnv({ ENGINE_FLAVOR: raw })).toThrow(
+        /^ENGINE_FLAVOR: Engine flavor must be "cibseven", "operaton" or "camunda7"/,
       )
+      const result = engineConfigSchema.safeParse({
+        engines: [{ id: "default", baseUrl: BASE, flavor: raw }],
+      })
       expect(result.error?.issues).toEqual([
         expect.objectContaining({ path: ["engines", 0, "flavor"] }),
       ])
@@ -105,7 +107,7 @@ describe("engineModule.configFromEnv engine flavor", () => {
   })
 })
 
-/** The zero-config boot reaches the Compose engine, a CIB seven: its warning names the flavor. */
+/** The zero-config boot reaches the starter's or the playground's engine, a CIB seven: its warning names the flavor. */
 describe("engineModule.bootWarnings engine flavor", () => {
   it("names the flavor the zero-config engine's links follow: Camunda 7 unless set", () => {
     expect(engineModule.bootWarnings({})[0]).toContain('flavor "camunda7"')

@@ -8,10 +8,14 @@
     "typecheck": "pnpm --filter \"./modules/**\" build && pnpm -r typecheck",
     "test": "pnpm --filter \"./modules/**\" build && pnpm -r test",
     "dev": "pnpm --filter \"./modules/**\" build && dotenv -e .env -- pnpm --filter ./server dev",
-    "start": "pnpm --filter ./server start"
+    "start": "pnpm --filter ./server start",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
-    "dotenv-cli": "11.1.0"
+    "dotenv-cli": "11.1.0",
+    "prettier": "3.9.10",
+    "prettier-plugin-tailwindcss": "0.8.1"
   },
   "packageManager": "pnpm@10.32.1",
   "engines": {

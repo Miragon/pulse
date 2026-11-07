@@ -96,8 +96,8 @@ Topics at the end).
 
 ## Setup
 
-If \`pulse\` is missing, try \`pulse-cli\`: the same program, its only name up to 0.25 and its second
-name since. Without either, run \`npx -y @miragon/pulse-cli\` in its place or ask the user to install
+If \`pulse\` is missing, try \`pulse-cli\`: the same program under its second name. Without either,
+run \`npx -y @miragon/pulse-cli\` in its place or ask the user to install
 it with \`npm i -g @miragon/pulse-cli\` (Node.js 22.12+). The REST API root defaults to
 \`http://localhost:8080/engine-rest\`. Set it per shell, then check the connection:
 

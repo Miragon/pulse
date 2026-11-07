@@ -1,6 +1,6 @@
 {
   "name": "@miragon/pulse-widget-shell",
-  "version": "0.26.0",
+  "version": "0.27.1",
   "description": "The Pulse view runtime and server boot: mountViews, the view host, the query hooks and TestViewHost, view and data-feed builders, BPMN views, the composed-server boot, the tool registrar and server i18n. Its UI builds on @miragon/pulse-ui.",
   "license": "MIT",
   "keywords": [
@@ -29,7 +29,12 @@
     "dist",
     "!dist/**/*.test.*",
     "!dist/**/*.test-support.*",
-    "!dist/**/test-support"
+    "!dist/**/test-support",
+    "src",
+    "!src/**/*.test.*",
+    "!src/**/*.test-support.*",
+    "!src/**/test-support",
+    "!src/**/tsconfig.json"
   ],
   "exports": {
     "./server": {
@@ -81,17 +86,17 @@
   },
   "devDependencies": {
     "@miragon/pulse-ui": "workspace:*",
-    "@tanstack/react-query": "5.105.0",
+    "@tanstack/react-query": "5.105.3",
     "@testing-library/react": "16.3.3",
     "@types/react": "19.3.0",
     "bpmn-js": "18.31.1",
     "happy-dom": "21.0.4",
-    "lucide-react": "1.66.0",
+    "lucide-react": "1.67.0",
     "mcp-use": "2.12.2",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "typescript": "6.0.3",
-    "vitest": "5.0.5",
+    "vitest": "5.1.0",
     "zod": "4.6.7"
   },
   "dependencies": {

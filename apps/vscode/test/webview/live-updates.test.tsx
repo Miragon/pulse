@@ -227,4 +227,32 @@ describe("focus in a table that updates on its own", () => {
 
     expect(document.activeElement).toBe(search)
   })
+
+  it("knows the user left even in the commit that rendered the rows", async () => {
+    harness = mountApp()
+    const left = new Promise<HTMLInputElement | null>((resolve) => {
+      const observer = new MutationObserver(() => {
+        if (rows().length === 0) {
+          return
+        }
+        observer.disconnect()
+        rows()[1]?.focus()
+        const search = harness.root.querySelector<HTMLInputElement>(".search-field input")
+        search?.focus()
+        resolve(search)
+      })
+      observer.observe(harness.root, { childList: true, subtree: true })
+    })
+    harness.publish(READY)
+    const search = await left
+
+    harness.publish({
+      ...READY,
+      view: { ...READY.view, instances: READY.view.instances.slice(2) },
+    })
+    await new Promise((resolve) => setTimeout(resolve, 100))
+
+    expect(search).not.toBeNull()
+    expect(document.activeElement).toBe(search)
+  })
 })

@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs"
 import path from "node:path"
 import { describe, it } from "node:test"
 import { fileURLToPath } from "node:url"
+import { DEFAULT_PROJECT_FILES } from "../eslint.config.mjs"
 import { expandWorkspaceGlobs, workspaceGlobs } from "./check-package-scripts.mjs"
 import { PATH_RULES, SCOPES, mergeCommitFiles, scopesFor, withDependents } from "./ci-scopes.mjs"
 
@@ -84,6 +85,13 @@ describe("scopesFor: prose reaches only the checks that read it", () => {
   it("runs the token drift scan for a stylesheet anywhere in the docs site", () => {
     assert.deepEqual(scopes("docs/.vitepress/theme/custom.css"), ["brand", "typescript"])
   })
+
+  it("runs pnpm lint for every config file lint:configs lints, the docs site's too", () => {
+    for (const file of DEFAULT_PROJECT_FILES) {
+      assert.ok(scopes(file).includes("typescript"), file)
+    }
+    assert.deepEqual(scopes("docs/.vitepress/config.ts"), ["brand", "typescript"])
+  })
 })
 
 describe("scopesFor: a package's code reaches its dependents", () => {
@@ -153,10 +161,27 @@ describe("scopesFor: paths outside the packages", () => {
     ])
   })
 
+  it("starts the starter's try-out engine for its compose.yaml, next to the template's checks", () => {
+    assert.deepEqual(scopes("templates/composed-server/compose.yaml"), [
+      "starter-engine",
+      "template",
+      "typescript",
+    ])
+  })
+
+  it("starts no engine for the rest of the template, its README with the container recipe too", () => {
+    assert.deepEqual(scopes("templates/composed-server/README.md"), [])
+    assert.ok(!scopes("templates/composed-server/server/src/app.ts").includes("starter-engine"))
+  })
+
   it("runs the TypeScript job for a workflow no pull request runs, so lint:github checks it", () => {
     assert.deepEqual(scopes(".github/workflows/publish-cli.yml", ".github/dependabot.yml"), [
       "typescript",
     ])
+  })
+
+  it("runs nothing beyond the always-on checks for the shared editor settings", () => {
+    assert.deepEqual(scopes(".vscode/settings.json", ".vscode/extensions.json"), [])
   })
 })
 

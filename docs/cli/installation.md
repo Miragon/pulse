@@ -1,9 +1,8 @@
 # Installation
 
 Four ways, the same CLI: the npm package (Node.js >= 22.12), Homebrew, a standalone executable
-for machines without Node.js, or the container image. The command is `pulse`. Its name up to
-0.25, `pulse-cli`, stays as a second name of the same program, so scripts and agents that call
-`pulse-cli` keep working.
+for machines without Node.js, or the container image. The command is `pulse`, and
+`pulse-cli` is a second name of the same program.
 
 ## npm
 
@@ -50,9 +49,7 @@ gh attestation verify pulse-cli-linux-x64 --repo Miragon/pulse
 ```
 
 - Install the file under the name you call it by: `pulse`, and for scripts that call `pulse-cli`
-  a link of that name too (`sudo ln -s pulse /usr/local/bin/pulse-cli`). The next steps and hints
-  the CLI prints say `pulse`, so an install from 0.25 or earlier, which has only the second name,
-  needs the `pulse` name too.
+  a link of that name too (`sudo ln -s pulse /usr/local/bin/pulse-cli`).
 - `latest/download` follows the newest release; `download/v<version>/<file>` pins one. On macOS
   check with `shasum -a 256 --check --ignore-missing pulse-cli-SHA256SUMS`.
 - **macOS**: the binaries are signed ad hoc, not notarized. A file downloaded with a browser is
@@ -94,6 +91,9 @@ docker run --rm -it --user "$(id -u):$(id -g)" -v "$HOME/.config/pulse-cli:/conf
   -e PULSE_CLI_CONFIG=/config/config.json ghcr.io/miragon/pulse-cli --profile prod status
 ```
 
+- On Linux `host.docker.internal` reaches no port bound to `127.0.0.1`: for an engine Docker
+  publishes there, run the image on the engine's network (`--network`) and name the engine by its
+  service and container port in `PULSE_CLI_URL`.
 - To call the image as `pulse` in a shell, alias it, with the `-e` and `-v` options you need:
   `alias pulse='docker run --rm -i -e PULSE_CLI_URL ghcr.io/miragon/pulse-cli'`.
 - `pulse auth login` and token commands do not work in the container: use Basic auth or pass a

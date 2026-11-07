@@ -1,6 +1,6 @@
 {
   "name": "@miragon/pulse-engine-client",
-  "version": "0.26.0",
+  "version": "0.27.1",
   "description": "Generated CIB seven / Camunda 7 REST SDK, its client with deadlines and engine errors, and the reads whose REST contract the SDK defaults miss.",
   "license": "MIT",
   "keywords": [
@@ -28,7 +28,12 @@
     "dist",
     "!dist/**/*.test.*",
     "!dist/**/*.test-support.*",
-    "!dist/**/test-support"
+    "!dist/**/test-support",
+    "src",
+    "!src/**/*.test.*",
+    "!src/**/*.test-support.*",
+    "!src/**/test-support",
+    "!src/**/tsconfig.json"
   ],
   "type": "module",
   "main": "dist/index.js",
@@ -59,6 +64,6 @@
   "devDependencies": {
     "@hey-api/openapi-ts": "0.99.0",
     "typescript": "6.0.3",
-    "vitest": "5.0.5"
+    "vitest": "5.1.0"
   }
 }

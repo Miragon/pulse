@@ -28,7 +28,7 @@ const RULES = [
   // too), the repo, the image, the Homebrew tap, the docs, the product page, its
   // OPERATE_* variables, its config file and its config directory. The plain word stays
   // ("read and operate your engines", the cockpit's fleet.operate key, Camunda 8 Operate).
-  // Only the "Renamed from operate" section may point to the archived repo (ALLOWED).
+  // No file points to the archived repo.
   { name: "old operate package", pattern: /@miragon\/operate(?!\w)/i },
   { name: "old operate repo", pattern: /(?<![\w.-])miragon\/operate(?![\w-])/i },
   { name: "old operate image", pattern: /ghcr\.io\/miragon\/operate/i },
@@ -49,8 +49,7 @@ const RULES = [
   },
   // OAuth comes from mcp-use's own provider variables (MCP_USE_OAUTH_*); the server refuses
   // to boot while the retired JSON variable is set, so a doc or a config that still names it
-  // sends an operator into a failed boot. Only the refusal and the operations page's upgrade
-  // note name it (ALLOWED).
+  // sends an operator into a failed boot. Only the refusal and its test name it (ALLOWED).
   { name: "retired MCP_OAUTH", pattern: /\bMCP_OAUTH\b/ },
   // Pulse grew out of the @miragon/mcp-toolkit-* packages and owns what it used: the registrar,
   // the view meta and the server i18n are @miragon/pulse-widget-shell/server, the design kit
@@ -152,18 +151,6 @@ const SELF = path.relative(path.resolve(import.meta.dirname, ".."), import.meta.
  */
 const ALLOWED = [
   {
-    file: "apps/cli/README.md",
-    rules: ["old operate repo"],
-    section: /^#{2,6} Renamed from operate\b/,
-    reason: "the npm README points to the archived repository of operate (up to 0.10.0)",
-  },
-  {
-    file: "docs/mcp/operations.md",
-    rules: ["retired MCP_OAUTH"],
-    section: /^#{2,6} Security\b/,
-    reason: "the upgrade note names the retired variable an operator unsets",
-  },
-  {
     file: "packages/core/widget-shell/src/oauth-env.ts",
     rules: ["retired MCP_OAUTH"],
     reason: "the boot refuses the retired variable and says what replaces it",
@@ -182,25 +169,6 @@ const ALLOWED = [
     file: "packages/connectors/engine/engine-connector/src/retired-settings.test.ts",
     rules: ["retired server variable"],
     reason: "the refusal table's own test",
-  },
-  {
-    file: "docs/mcp/upgrading.md",
-    rules: [
-      "retired camunda7_ tool prefix",
-      "retired camunda7 module",
-      "retired package or path",
-      "retired server variable",
-      "retired metric name",
-      "retired public name",
-    ],
-    section: /^#{2,6} Renamed\b/,
-    reason: "the migration table names every retired name next to its replacement",
-  },
-  {
-    file: "apps/mcp-server/README.md",
-    rules: ["retired package or path"],
-    section: /^#{2,6} Renamed from miragon-ai\b/,
-    reason: "the released 0.21 note names the package names of that release",
   },
   {
     under: "apps/cli/",

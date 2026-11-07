@@ -4,6 +4,7 @@ import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import {
   GOLDEN_HINT,
+  UPDATE_COMMAND,
   assertCharBudget,
   assertGolden,
   isModelVisible,
@@ -49,7 +50,7 @@ describe("assertGolden", () => {
   })
 
   it("a missing golden fails with the update instruction and is never auto-created", () => {
-    expect(() => assertGolden("probe", { a: 1 }, dir)).toThrow(/GOLDEN_UPDATE=1/)
+    expect(() => assertGolden("probe", { a: 1 }, dir)).toThrow(UPDATE_COMMAND)
     expect(fs.readdirSync(dir)).toEqual([])
   })
 
@@ -67,8 +68,21 @@ describe("assertGolden", () => {
   })
 
   it("the hint names the one legitimate path", () => {
-    expect(GOLDEN_HINT).toContain("GOLDEN_UPDATE=1")
+    expect(GOLDEN_HINT).toContain(UPDATE_COMMAND)
     expect(GOLDEN_HINT).toContain("NEVER edit a golden by hand")
+  })
+
+  it("the update command builds the connectors, then rewrites the goldens", () => {
+    expect(UPDATE_COMMAND).toMatch(/ --filter @miragon\/pulse-mcp-server golden:update$/)
+    const { scripts } = JSON.parse(
+      fs.readFileSync(path.join(import.meta.dirname, "..", "package.json"), "utf8"),
+    ) as { scripts: Record<string, string> }
+    const steps = scripts["golden:update"]?.split(" && ") ?? []
+    // A bare vitest run reads the connectors' last build: their exports point at dist.
+    expect(steps[0]).toBe(
+      "turbo run build --filter=@miragon/pulse-mcp-server^... --output-logs=errors-only",
+    )
+    expect(steps.at(-1)).toMatch(/^GOLDEN_UPDATE=1 vitest run\b/)
   })
 })
 

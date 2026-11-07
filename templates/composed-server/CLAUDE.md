@@ -14,15 +14,37 @@ task paths. Read the matching one BEFORE starting:
 | `create-module` | building your own connector module: tools for your own API or system                       |
 | `add-widget`    | adding or changing an interactive widget (`show_*` tool + `*_data` feed + React component) |
 
+**Engine operations are tools already.** The engine module ships the generic
+Camunda 7 operations, among them `engine_start_process_instance`,
+`engine_correlate_message`, `engine_complete_task`,
+`engine_set_process_instance_variable` and `engine_set_job_retries`. "Start
+our leasing process" or "retry the failed jobs of X" needs no new module or
+tool: the model calls these. They are writes, so without OAuth they register
+only under the `operations` toolset (`engine:operations` in
+`MCP_ACTIVE_MODULES` next to your other modules, e.g.
+`engine:operations,notes`; invariant 8). The default boot (no OAuth,
+no suffix) runs the read-only floor and lists none of them. To list the
+running toolset's tools, use the inspector or
+`pnpm exec mcp-use client local tools list` in `server/` after the one-time
+`connect` under Verification. A custom module is for your other systems. To teach the model your processes (their keys, the variables a
+start takes), write them into your module's `instructions` without naming
+`engine_*` tools, since the engine module may be off. Never build a second
+engine client from `ENGINE_BASE_URL`: it loses what the engine module does on
+every call (the engine pick by `engine` and `ENGINE_DEFAULT`, each engine's
+auth including passthrough, its error rules). If the engine tools do not
+cover a need, stop and ask: custom modules have no supported engine seam yet.
+
 ## Commands
 
 ```bash
+corepack enable       # pnpm 10.32.1 (`packageManager`); Node.js 25+ has none: npm i -g pnpm@10.32.1
 pnpm install          # public npm registry only, no credentials needed
-cp .env.example .env  # local config; `pnpm dev` loads it (only `pnpm dev` does)
+cp .env.example .env  # local config, runs engine and notes (compose.yaml has no Prometheus); only `pnpm dev` loads it
 
 pnpm build            # modules → widget bundle → server
 pnpm typecheck        # tsc everywhere, INCLUDING widget .tsx code: the only check that covers it
 pnpm test             # vitest: guard tests + in-process e2e wire-contract tests
+pnpm format:check     # Prettier, the style in .prettierrc.json (`pnpm format` applies it)
 pnpm dev              # MCP endpoint on :8400/mcp, inspector on :8400/mcp/inspector
 
 docker build -t my-mcp-server .   # needs a committed pnpm-lock.yaml
@@ -41,8 +63,13 @@ external infrastructure.
    the module's `name` and one `register(server)` that registers all its
    tools; the boot refuses a tool name two plugins register and names both.
    Wiring a module touches the server in two places (`MODULES` in `setup.ts`,
-   the spread in `ui/view-registry.ts`) plus the `workspace:*` dependency;
-   the `create-module` skill walks through all of them. Tailwind scans
+   the spread in `ui/view-registry.ts`) plus the `workspace:*` dependency and
+   `MCP_ACTIVE_MODULES` in `.env.example` and your `.env` (a module the list does
+   not name stays off, a name `MODULES` no longer holds fails the boot);
+   the `create-module` skill walks through all of them, and through removing
+   the example module. The guard tests in `server/test/` follow `MODULES`, so
+   adding a module and removing the example need no guard-test edit; only
+   `example-notes.test.ts` names the example, and it goes with it. Tailwind scans
    workspace modules via the `modules/*/src` glob in `ui/globals.css`; only
    npm-installed module packages need their own `@source` line.
 2. **Plain tools go through `createToolRegistrar`, never raw `server.tool()`**:
@@ -64,7 +91,9 @@ external infrastructure.
    server's `ui/view-registry.ts` spreads the map; `tool-names.ts` keeps the
    tool names rename-safe. A missed link is a SILENTLY absent view.
    `server/test/view-registry.test.ts` boots the real composition and fails
-   on a view-bound tool without a view, and on a view no tool opens.
+   on a view-bound tool without a view, on a view no tool opens, and on a
+   view-bound tool that is not a read (`readOnlyHint: true`, never destructive):
+   a host that strips the tool's result re-runs it once, unasked.
 4. **`resolve.dedupe` in `server/vite.config.ts` is load-bearing: never trim
    it.** It spreads widget-shell's `VIEW_BUNDLE_DEDUPE`
    (`@miragon/pulse-widget-shell/server`), the packages the view bundle must
@@ -86,14 +115,19 @@ external infrastructure.
    `modules/mcp-notes/src/widgets/notes-list.test.tsx` does.
 5. **Exact version pins** (`save-exact` in `.npmrc`) for `dependencies`/
    `devDependencies`: upgrade all `@miragon/pulse-*` packages together to one
-   version. The consumer-shared libraries are ranged `peerDependencies` of a
+   version, in every `package.json` (each module carries its own). The
+   consumer-shared libraries are ranged `peerDependencies` of a
    module instead (`react`/`react-dom` `^19.2.0`, `zod` `^4.4.0`,
    `@miragon/pulse-ui` and `@miragon/pulse-widget-shell` `^<version>`), so
    they resolve to the server's one copy; keep an exact copy of each in
    `devDependencies` for local builds. Keep `react`, `react-dom`, `zod`,
    `lucide-react` and `@tanstack/react-query` at the versions the Pulse
-   packages are built with (Pulse checks its own copy of this template against
-   them).
+   packages are built with. `server/test/pins.test.ts` holds every
+   `package.json` to the installed `@miragon/pulse-widget-shell`, and
+   `strictPeerDependencies` in `pnpm-workspace.yaml` fails an install on an
+   unmet peer; never downgrade `lucide-react` to quiet one, and never turn
+   strict peers off: a third-party peer you accept gets a
+   `peerDependencyRules.allowedVersions` entry there.
    **`mcp-use` stays exactly pinned** even as a peer (`2.12.2`): a duplicate
    `mcp-use` instance breaks the React context and hangs every in-widget query
    on "Loading…" (invariant #4). `@mcp-use/client` (a dev dependency of `server/`) is
@@ -108,17 +142,22 @@ external infrastructure.
    namespace.
 7. **`.env.example` documents every env var the server reads**: both drift
    directions are guarded by `server/test/env-example.test.ts`; add your
-   module's vars there.
+   module's vars there. The same test holds its live `MCP_ACTIVE_MODULES` to
+   `MODULES`: every composed module; analytics may stay out, since
+   `compose.yaml` runs no Prometheus.
 8. **Toolsets fail closed.** A module opts into the `module:toolset` suffix by
    declaring `toolsets: createToolsetVocabulary(...)` on its definition (a
-   module without one has no toolsets); the boot resolves ONE
+   module without one has no toolsets and registers every tool whenever it runs,
+   so it declares them as soon as it registers a tool without
+   `readOnlyHint: true` and the server may run without OAuth; until then a
+   boot without OAuth warns once per such tool); the boot resolves ONE
    concrete toolset per module per boot and logs it. Without OAuth (the boot
    reads `MCP_USE_OAUTH_*`) a module without a suffix runs its
    read-only floor, an empty/unknown suffix falls back to it, and an
    admin-like toolset is only reachable by naming it. Gate a write by the
    module's toolset rule at registration (the engine module's
    `withToolsetFilter`/`isToolInToolset` in
-   `node_modules/@miragon/pulse-engine-connector/src/lib/mcp/toolsets.ts`), never
+   `server/node_modules/@miragon/pulse-engine-connector/src/lib/mcp/toolsets.ts`), never
    on a name compare or on `toolset === undefined`, both of which fail open.
    Details: `create-module` Step 5.
 
@@ -158,7 +197,22 @@ the Tailwind scan in one shot.
   pattern (module definition, registrar tool, widget tool + data feed, widget,
   module test, widget test under `TestViewHost`). Copy it; don't invent a new shape.
 - The published Pulse modules ship their **sources**: read
-  `node_modules/@miragon/pulse-engine-connector/src/` and
-  `node_modules/@miragon/pulse-analytics-connector/src/` for the reference
-  implementations of anything the notes module doesn't cover (toolsets, paged
-  lists, BPMN widgets).
+  `server/node_modules/@miragon/pulse-engine-connector/src/` and
+  `server/node_modules/@miragon/pulse-analytics-connector/src/` for the
+  reference implementations of anything the notes module doesn't cover
+  (toolsets, paged lists, BPMN widgets).
+- Where the APIs live: widget-shell's README
+  (`server/node_modules/@miragon/pulse-widget-shell/README.md`) has its export
+  table, one row per entry (`./server`, `./widgets`, `./testing`), typed in
+  `server/node_modules/@miragon/pulse-widget-shell/dist/server.d.ts` and
+  `server/node_modules/@miragon/pulse-widget-shell/dist/ui/index.d.ts`;
+  pulse-ui's is `server/node_modules/@miragon/pulse-ui/README.md`, typed in
+  `server/node_modules/@miragon/pulse-ui/dist/index.d.ts`.
+- pnpm links these packages under `server/node_modules` (pulse-ui and
+  widget-shell also under `modules/<name>/node_modules`), never at
+  `node_modules/@miragon/` in the repo root: it keeps the real files in the
+  root `node_modules/.pnpm/` under hashed names. `node_modules` is gitignored,
+  the `@miragon/*` entries are symlinks and `.pnpm` is hidden, so a search
+  from the repo root (the Grep tool, `rg`) finds none of these files: give one
+  package directory as the path, e.g.
+  `server/node_modules/@miragon/pulse-engine-connector/src`.

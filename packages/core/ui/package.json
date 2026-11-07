@@ -1,6 +1,6 @@
 {
   "name": "@miragon/pulse-ui",
-  "version": "0.26.0",
+  "version": "0.27.1",
   "description": "Pulse's design kit for MCP App views and your own React UIs: shadcn-based primitives, components, the tone model and type scale, locale, toasts and formatters, and the Miragon theme over the vendored corporate-design tokens.",
   "license": "MIT",
   "keywords": [
@@ -33,10 +33,12 @@
     "!dist/**/*.test.*",
     "!dist/**/*.test-support.*",
     "!dist/render-*",
-    "src/theme.css",
-    "src/globals.css",
-    "src/fonts.css",
-    "src/tokens/cd-tokens.generated.css"
+    "src",
+    "!src/**/*.test.*",
+    "!src/**/*.test-support.*",
+    "!src/**/test-support",
+    "!src/**/tsconfig.json",
+    "!src/render-*"
   ],
   "exports": {
     ".": {
@@ -87,11 +89,11 @@
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "happy-dom": "21.0.4",
-    "lucide-react": "1.66.0",
+    "lucide-react": "1.67.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "tailwindcss": "4.3.3",
+    "tailwindcss": "4.3.4",
     "typescript": "6.0.3",
-    "vitest": "5.0.5"
+    "vitest": "5.1.0"
   }
 }

@@ -11,7 +11,14 @@ allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 (the widget test), `widget-tools.ts` (show tool and data feed), `tool-names.ts`
 (rename safety). Richer patterns (paged lists,
 KPI grids, BPMN viewers) live in
-`node_modules/@miragon/pulse-{engine,analytics}-connector/src/widgets/`.
+`server/node_modules/@miragon/pulse-{engine,analytics}-connector/src/widgets/`.
+The names below are documented in
+`server/node_modules/@miragon/pulse-widget-shell/README.md` (export table) and
+`server/node_modules/@miragon/pulse-ui/README.md`, typed in
+`server/node_modules/@miragon/pulse-widget-shell/dist/ui/index.d.ts`
+(widget-shell's `./widgets`) and
+`server/node_modules/@miragon/pulse-ui/dist/index.d.ts`. The package
+directories are gitignored symlinks: search one of them, not the repo root.
 
 ## Step 0: pick the render path
 
@@ -123,7 +130,9 @@ silently unstyled).
 This file is the documented exception that calls `server.tool()` directly.
 Model both tools on `modules/mcp-notes/src/widget-tools.ts`:
 
-- **`show_*` tool**: spread `...showToolBinding(name, title)` (from
+- **`show_*` tool**: annotate it `{ readOnlyHint: true, idempotentHint: true }`
+  (why: the last bullet). Spread
+  `...showToolBinding(name, title)` (from
   `@miragon/pulse-widget-shell/server`). It binds the mcp-use view, the
   passthrough `outputSchema`, and the Apps-SDK `_meta` half. **Never hand-write
   `_meta.ui.*` keys**; mcp-use owns and overwrites that namespace. Return
@@ -145,9 +154,14 @@ Model both tools on `modules/mcp-notes/src/widget-tools.ts`:
   `registerWidgetTools` in the notes module): the boot applies the server-wide
   view CSP to every view-bound tool and refuses a tool name another plugin
   already registered.
-- A widget-path tool never writes: the registrar's toolset filter never sees
-  it. A write is a registrar tool (the `create-module` skill, Step 5), which
-  the filter drops outside its toolset.
+- A widget-path tool never writes, and the `show_*` tool states
+  `readOnlyHint: true`. On a host that strips `structuredContent`
+  (claude.ai) the view re-runs its show tool once by itself, without asking,
+  so a write there would run twice; and the registrar's toolset filter never
+  sees a widget-path tool. A write is a registrar tool (the `create-module`
+  skill, Step 5), which the filter drops outside its toolset.
+  `server/test/view-registry.test.ts` fails on a view-bound tool that is
+  not a read.
 
 ## Step 4: verify
 
@@ -157,10 +171,12 @@ pnpm build && pnpm typecheck && pnpm test
 
 - `pnpm typecheck` is the **only** automated check that type-checks widget
   `.tsx` code. Never skip it.
-- `pnpm test` runs the view-registry guard (every view-bound tool has a view
-  under its name, and every view a tool) plus the wire-contract e2e (naming,
-  `_meta`, app-only visibility). If one fails it names exactly the missing
-  link: fix the link, never the test.
+- `pnpm test` runs the view-registry guard (every view-bound tool is a read
+  with a view under its name, and every view has a tool) plus the
+  wire-contract e2e (naming, `_meta`, app-only visibility). If one fails its
+  message names the missing link: fix the link, not the guard. The one test
+  that names the example, `server/test/example-notes.test.ts`, goes with the
+  example module (the `create-module` skill, "Remove the example module").
 - Write a widget test next to the widget, as
   `modules/mcp-notes/src/widgets/notes-list.test.tsx` does: `// @vitest-environment
 happy-dom`, then render the view or widget under `TestViewHost` from
@@ -190,12 +206,13 @@ root to see changes.
 
 ## Troubleshooting
 
-| Symptom                              | Cause                                                                                                                                                                         |
-| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "Can't show this view"               | the module's view map is not spread in `server/src/ui/view-registry.ts`, or its key differs from the show tool's name (the guard test names the tool)                         |
-| Widget renders unstyled              | widget sources outside the Tailwind scan set: workspace modules are globbed (`modules/*/src`); an npm-installed module needs its own `@source` in `server/src/ui/globals.css` |
-| Hangs on "Loading…" forever          | `resolve.dedupe` in `server/vite.config.ts` trimmed or no longer spreading `VIEW_BUNDLE_DEDUPE` (duplicate React contexts), or a missing `isError` branch in the fallback     |
-| A refresh renders a second view      | the widget calls the `show_*` tool instead of the `*_data` feed                                                                                                               |
-| e2e test fails on `_meta`/visibility | tool name breaks the `_show_`/`_data` convention, or a hand-written `_meta.ui` key: use the helpers                                                                           |
-| Boot fails on a duplicate tool name  | two plugins register the same name; the error names both modules, rename one (keep the `<module>_` prefix)                                                                    |
-| Old UI after an edit                 | bundle is read once at boot: restart `pnpm dev` at the repo root (it rebuilds modules + bundle on start)                                                                      |
+| Symptom                               | Cause                                                                                                                                                                         |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Can't show this view"                | the module's view map is not spread in `server/src/ui/view-registry.ts`, or its key differs from the show tool's name (the guard test names the tool)                         |
+| Widget renders unstyled               | widget sources outside the Tailwind scan set: workspace modules are globbed (`modules/*/src`); an npm-installed module needs its own `@source` in `server/src/ui/globals.css` |
+| Hangs on "Loading…" forever           | `resolve.dedupe` in `server/vite.config.ts` trimmed or no longer spreading `VIEW_BUNDLE_DEDUPE` (duplicate React contexts), or a missing `isError` branch in the fallback     |
+| A refresh renders a second view       | the widget calls the `show_*` tool instead of the `*_data` feed                                                                                                               |
+| e2e test fails on `_meta`/visibility  | tool name breaks the `_show_`/`_data` convention, or a hand-written `_meta.ui` key: use the helpers                                                                           |
+| The show tool is not in the tool list | its module is not named in `MCP_ACTIVE_MODULES` in `.env` (a module the list does not name stays off; the boot log's `Toolsets:` line shows what runs)                        |
+| Boot fails on a duplicate tool name   | two plugins register the same name; the error names both modules, rename one (keep the `<module>_` prefix)                                                                    |
+| Old UI or tool text after an edit     | bundle and modules are read once at boot (a save's `[mcp-use] reloaded server entry` skips them): restart `pnpm dev` at the repo root (it rebuilds modules + bundle on start) |

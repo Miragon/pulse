@@ -1,3 +1,6 @@
+import crypto from "node:crypto"
+import http from "node:http"
+import type { AddressInfo } from "node:net"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { OAuthError, OAuthErrorCode, oauthCustomProvider } from "mcp-use/oauth"
 import type { ComposableModule } from "./composition.js"
@@ -46,6 +49,40 @@ const stubOAuth = () =>
 const KEYCLOAK_ENV = {
   MCP_USE_OAUTH_KEYCLOAK_SERVER_URL: "https://kc.example.com",
   MCP_USE_OAUTH_KEYCLOAK_REALM: "platform",
+}
+
+interface Realm {
+  serverUrl: string
+  /** An RS256 access token from this realm: its issuer, an hour's `exp`, then `claims`. */
+  sign(claims: Record<string, unknown>): string
+  close(): Promise<void>
+}
+
+/**
+ * A loopback Keycloak realm that serves only its JWKS, so the Keycloak provider the env names runs
+ * mcp-use's real JWT verifier against tokens this test signs.
+ */
+async function startRealm(): Promise<Realm> {
+  const { privateKey, publicKey } = crypto.generateKeyPairSync("rsa", { modulusLength: 2048 })
+  const jwk = { ...publicKey.export({ format: "jwk" }), kid: "k1", alg: "RS256", use: "sig" }
+  const server = http.createServer((_req, res) => {
+    res.setHeader("content-type", "application/json")
+    res.end(JSON.stringify({ keys: [jwk] }))
+  })
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve))
+  const serverUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
+  const segment = (value: object) => Buffer.from(JSON.stringify(value)).toString("base64url")
+  return {
+    serverUrl,
+    sign(claims) {
+      const exp = Math.floor(Date.now() / 1000) + 3600
+      const body = { iss: `${serverUrl}/realms/platform`, exp, ...claims }
+      const signed = `${segment({ alg: "RS256", kid: "k1", typ: "JWT" })}.${segment(body)}`
+      const signature = crypto.sign("RSA-SHA256", Buffer.from(signed), privateKey)
+      return `${signed}.${signature.toString("base64url")}`
+    },
+    close: () => new Promise((resolve) => server.close(() => resolve())),
+  }
 }
 
 beforeEach(() => {
@@ -144,7 +181,62 @@ describe("createComposedServer: OAuth", () => {
   it("fails the boot when OAuth has no resource and MCP_URL is unset", async () => {
     const oauth = { resource: undefined } as unknown as ComposedServerOptions["oauth"]
     await expect(compose({ oauth })).rejects.toThrow(
-      "[oauth-test] OAuth needs MCP_URL, the server's public base URL, which is also the token audience (RFC 8707).",
+      "[oauth-test] OAuth needs MCP_URL, the server's public origin: tokens must carry <MCP_URL>/mcp in aud (RFC 8707).",
     )
+  })
+
+  // What the docs tell an IdP admin (docs/mcp/operations.md, the identity provider checklist),
+  // held to the pinned mcp-use: an IdP set up for MCP_URL itself gets 401 on every call.
+  describe("the token audience, against mcp-use's own JWT verifier", () => {
+    let realm: Realm
+    beforeEach(async () => {
+      realm = await startRealm()
+    })
+    afterEach(() => realm.close())
+
+    const bootRealm = () => {
+      vi.stubEnv("MCP_URL", "http://localhost")
+      return compose({
+        env: {
+          MCP_USE_OAUTH_KEYCLOAK_SERVER_URL: realm.serverUrl,
+          MCP_USE_OAUTH_KEYCLOAK_REALM: "platform",
+          MCP_URL: "http://localhost",
+        },
+      })
+    }
+
+    it("logs the audience it accepts, MCP_URL's origin plus /mcp, which discovery advertises", async () => {
+      const composed = await bootRealm()
+      const infos = vi.mocked(console.info).mock.calls.map(([line]) => String(line))
+      expect(infos).toContain(
+        "[oauth-test] OAuth: tokens must carry aud http://localhost/mcp (RFC 8707) and a sub claim.",
+      )
+      const metadata = await composed.app.fetch(
+        new Request("http://localhost/.well-known/oauth-protected-resource/mcp", {
+          headers: { host: "localhost" },
+        }),
+      )
+      expect(await metadata.json()).toMatchObject({ resource: "http://localhost/mcp" })
+    })
+
+    it("serves a token whose aud holds <MCP_URL>/mcp and refuses MCP_URL itself or no sub", async () => {
+      const composed = await bootRealm()
+      const call = (claims: Record<string, unknown>) =>
+        initialize(composed, { authorization: `Bearer ${realm.sign(claims)}` })
+      expect((await call({ aud: "http://localhost/mcp", sub: "u" })).status).toBe(200)
+      expect((await call({ aud: ["account", "http://localhost/mcp"], sub: "u" })).status).toBe(200)
+      // The 401 names an audience mismatch in its challenge; mcp-use's debug log does not.
+      const debug = vi.spyOn(console, "error").mockImplementation(() => {})
+      vi.stubEnv("MCP_USE_OAUTH_DEBUG", "1")
+      const wrongAudience = await call({ aud: "http://localhost", sub: "u" })
+      expect(wrongAudience.status).toBe(401)
+      expect(wrongAudience.headers.get("www-authenticate")).toContain(
+        "Token audience does not include the protected resource",
+      )
+      expect(debug).not.toHaveBeenCalled()
+      expect((await call({ aud: "http://localhost/mcp" })).status).toBe(401)
+      const logged = debug.mock.calls.map(([line]) => String(line))
+      expect(logged).toContain("[oauth-debug] claim=sub reason=missing")
+    })
   })
 })

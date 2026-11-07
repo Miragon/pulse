@@ -1,23 +1,14 @@
-import path from "node:path"
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
-import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client"
-import { ENGINE_ADMIN_ONLY_TOOLS } from "@miragon/pulse-engine-connector"
-import { createApp } from "../src/app.js"
+import type { Tool } from "@modelcontextprotocol/client"
+import { ENGINE_ADMIN_ONLY_TOOLS, engineModule } from "@miragon/pulse-engine-connector"
 import { MODULES } from "../src/setup.js"
-import { stubNeutralEnv } from "./neutral-env.js"
-
-const FIXTURE_JS = path.join(import.meta.dirname, "fixtures", "mcp-app.js")
+import { bootComposition, closeComposition, isComposed, toolsetSelections } from "./boot.js"
 
 const PROBE_KEY = "__strictInputProbe"
 
-interface WireTool {
-  name: string
-  inputSchema: { properties?: Record<string, unknown>; additionalProperties?: unknown }
-}
-
 /** One tool, probed once in the first boot that lists it. */
 interface ProbedTool {
-  tool: WireTool
+  tool: Tool
   /** The `MCP_ACTIVE_MODULES` selection of that boot. */
   selection: string
   isError: boolean
@@ -30,44 +21,23 @@ function errorText(result: unknown): string {
 }
 
 /**
- * One `MCP_ACTIVE_MODULES` selection per toolset DEPTH: boot `i` runs every
- * composed module on its `i`-th declared toolset (its last one once it has
- * no more; a module without toolsets by its bare name). Together the boots
- * register every tool any toolset registers. The default boot would not: it
- * puts every module on its read-only floor, which hides every write tool
- * above it (an engine write, a destructive registrar tool):
- * exactly the tools where a dropped scoping key hurts most. Derived from
- * `MODULES`, not hand-listed: your module's toolsets are covered the moment
- * it declares them.
- */
-function toolsetSelections(): string[] {
-  const depth = Math.max(1, ...MODULES.map((module) => module.toolsets?.names.length ?? 1))
-  return Array.from({ length: depth }, (_, i) =>
-    MODULES.map(({ name, toolsets }) =>
-      toolsets ? `${name}:${toolsets.names[Math.min(i, toolsets.names.length - 1)]}` : name,
-    ).join(","),
-  )
-}
-
-/**
  * Boot the composed server on `selection` and probe every tool not probed
  * yet with an unknown key. No toolset grants `engine_create_deployment`
  * on its own: it also needs the `ENGINE_ALLOW_DEPLOYMENTS` opt-in, so the
  * guard sets it.
  */
 async function probeBoot(selection: string, probed: Map<string, ProbedTool>): Promise<void> {
-  stubNeutralEnv({ MCP_ACTIVE_MODULES: selection, ENGINE_ALLOW_DEPLOYMENTS: "true" })
-  const composed = await createApp(process.env, { bundle: { jsPath: FIXTURE_JS } })
-  const app = await composed.listen({ port: 0, host: "127.0.0.1" })
-  const client = new Client({ name: "strict-input-test", version: "0.0.0" })
+  const booted = await bootComposition({
+    MCP_ACTIVE_MODULES: selection,
+    ENGINE_ALLOW_DEPLOYMENTS: "true",
+  })
   try {
-    await client.connect(
-      new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${app.port}/mcp`)),
-    )
-    const tools = (await client.listTools()).tools as unknown as WireTool[]
-    for (const tool of tools) {
+    for (const tool of booted.tools) {
       if (probed.has(tool.name)) continue
-      const result = await client.callTool({ name: tool.name, arguments: { [PROBE_KEY]: true } })
+      const result = await booted.client.callTool({
+        name: tool.name,
+        arguments: { [PROBE_KEY]: true },
+      })
       probed.set(tool.name, {
         tool,
         selection,
@@ -76,15 +46,15 @@ async function probeBoot(selection: string, probed: Map<string, ProbedTool>): Pr
       })
     }
   } finally {
-    await client.close()
-    await app.shutdown()
+    await closeComposition(booted)
   }
 }
 
 /**
  * Strict tool inputs on EVERY listed tool: every composed module's, yours
  * included, on EVERY toolset it declares (see
- * {@link toolsetSelections}). A non-strict input
+ * {@link toolsetSelections}), so the writes above the read-only floor, where
+ * a dropped scoping key hurts most, are probed too. A non-strict input
  * schema lets the server STRIP an unknown key before the handler runs: a
  * misnamed optional filter then silently widens the result and the model
  * never learns. Registrar tools (`createToolRegistrar`) are always strict,
@@ -114,28 +84,44 @@ describe("strict tool inputs on the wire (every module, every toolset)", () => {
     }
   })
 
-  it("covers the custom notes module next to the Miragon modules, write tools included (the guard is not vacuous)", () => {
+  it("probes tools of every composed module (the guard is not vacuous)", () => {
     const names = [...probed.keys()]
-    expect(names).toEqual(
-      expect.arrayContaining(["notes_list_notes", "notes_show_notes", "notes_list_data"]),
+    const silent = MODULES.map(({ name }) => name).filter(
+      (name) => !names.some((tool) => tool.startsWith(`${name}_`)),
     )
-    expect(names.some((name) => name.startsWith("engine_"))).toBe(true)
-    expect(names.some((name) => name.startsWith("analytics_"))).toBe(true)
-    // Registered only above the read-only floor: the floor boot alone never lists them.
-    expect(names).toEqual(
-      expect.arrayContaining([
-        ...ENGINE_ADMIN_ONLY_TOOLS,
-        "engine_set_job_retries",
-        "engine_resolve_incident",
-      ]),
-    )
+    expect(
+      silent,
+      "modules in MODULES that listed no tool named <module>_… on any toolset: name a module's " +
+        "tools after it (create-module skill, Step 4), and register them in its plugin's " +
+        "register. Or the module registers no tool under the tests' neutral env: a plugin with " +
+        "no tool, or tools gated on config test/neutral-env.ts does not set (give it a stand-in " +
+        "value there, as for ENGINE_BASE_URL)",
+    ).toEqual([])
   })
+
+  // Registered only above the read-only floor: the floor boot alone never lists them.
+  it.runIf(isComposed(engineModule.name))(
+    "probes the engine module's writes above its read-only floor",
+    () => {
+      expect([...probed.keys()]).toEqual(
+        expect.arrayContaining([
+          ...ENGINE_ADMIN_ONLY_TOOLS,
+          "engine_set_job_retries",
+          "engine_resolve_incident",
+        ]),
+      )
+    },
+  )
 
   it("every tool advertises additionalProperties: false", () => {
     const open = [...probed.values()]
       .filter(({ tool }) => tool.inputSchema.additionalProperties !== false)
       .map(({ tool, selection }) => `${tool.name} (${selection})`)
-    expect(open, "tools whose advertised input accepts unknown keys").toEqual([])
+    expect(
+      open,
+      "tools whose advertised input accepts unknown keys: register plain tools through " +
+        "createToolRegistrar, give a raw server.tool() inputSchema: strictToolInput(shape)",
+    ).toEqual([])
   })
 
   it("every tool refuses an unknown key with a tool error naming the valid keys", () => {
@@ -150,6 +136,10 @@ describe("strict tool inputs on the wire (every module, every toolset)", () => {
         failures.push(`${tool.name} (${selection}): ${isError ? text : "accepted the call"}`)
       }
     }
-    expect(failures).toEqual([])
+    expect(
+      failures,
+      "tools that strip an unknown key instead of refusing it: register plain tools through " +
+        "createToolRegistrar, give a raw server.tool() inputSchema: strictToolInput(shape)",
+    ).toEqual([])
   })
 })

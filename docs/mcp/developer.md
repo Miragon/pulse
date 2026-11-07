@@ -11,9 +11,9 @@ analytics stack, read-only. See [Connect your Claude in 30 seconds](getting-star
 ## Prerequisites
 
 - Node.js 22.22.2 or later (`engines` in the root `package.json`)
-- pnpm 10.32.1 (pinned via `packageManager`; `corepack enable` picks it up automatically)
-- Docker: the local playground, and the engine jar's build when no JDK 21 is installed
-- Optional: a JDK 21, which builds the engine jar and the Kotlin engine plugins faster
+- pnpm 10.32.1 (`packageManager`): `corepack enable`; Node.js 25+ has none: `npm i -g pnpm@10.32.1`
+- Docker: the playground, and Gradle in a container when no JDK 21 is installed
+- Optional: a JDK 21; Gradle then runs on it, and `./gradlew` by hand in `engine-plugins/` needs one
 
 ## Clone and run
 
@@ -30,6 +30,9 @@ host to `http://localhost:8400/mcp`, or open the inspector at `http://localhost:
 It boots read-only; `--admin` adds the write tools, `--deploy` deployments, `--multi-engine` a
 second engine. A variable set in your shell wins over the playground's settings. Ctrl-C stops the
 server, the playground keeps running. Every port binds to `127.0.0.1`.
+Worktrees share the playground (`pnpm stack:down` stops it for all); `.mcp.json` reaches
+`${PORT:-8400}`, so run a second worktree's server as `PORT=<port> pnpm play` and its Claude Code
+session as `PORT=<port> claude`.
 
 ## Common tasks
 
@@ -38,32 +41,32 @@ server, the playground keeps running. Every port binds to `127.0.0.1`.
 | `pnpm play:cli -- <args>`                       | The CLI against the playground engine                                                                 |
 | `pnpm stack:up` / `stack:down` / `stack:status` | Start (`--multi-engine`, `--auth`), stop (`--wipe` drops the volumes) or show the playground          |
 | `pnpm dev`                                      | The server with your own settings (`cp .env.example .env` first)                                      |
+| `pnpm test:one <file...>`                       | Test files in their packages, the packages under them built first, coverage off (`--watch`)           |
 | `pnpm check`                                    | The bar for every change: install, build, typecheck, test, lint, format; a log per step in `reports/` |
 | `pnpm check:all`                                | `check` plus the host simulation, the template, the Gradle build, the docs build, the engine suites   |
 | `pnpm lint:fix` / `pnpm format`                 | ESLint and Prettier fixes                                                                             |
 
 The gates one by one: `pnpm build`, `pnpm typecheck`, `pnpm test`, `pnpm lint`, `pnpm format:check`.
+While you iterate: `pnpm test:one <file...>`, then the package and what depends on it with
+`pnpm exec turbo run typecheck test lint --filter=...<pkg>`, then `pnpm check`. A tool change
+refreshes the goldens with `pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server golden:update`.
 `pnpm dev` and `pnpm play` bind 127.0.0.1; `pnpm start` and Docker listen on all interfaces.
+To debug, press F5 in VS Code (`.vscode/launch.json`) or run any command in a JavaScript Debug Terminal.
 
-Mutation testing covers `@miragon/pulse-engine-core` only (owner decision, 2026-11-04;
-`MUTATED_PACKAGES` in `scripts/check-package-scripts.mjs`):
-`pnpm --fail-if-no-match --filter @miragon/pulse-engine-core exec stryker run` (`--mutate <file>`
-narrows it). A pull request runs none: `.github/workflows/mutation-nightly.yml` mutates it each
-night (incremental).
+Mutation testing covers `@miragon/pulse-engine-core` only (`MUTATED_PACKAGES`), nightly, never on a
+pull request: `pnpm --fail-if-no-match --filter @miragon/pulse-engine-core exec stryker run`.
+
+Editors read only `tsconfig.json`: each widget, host-bundle and test tree has a nested one extending
+the `tsconfig.<x>.json` that checks it (`pnpm lint:package-scripts`); `.vscode/` pins TypeScript.
 
 ## Build your own server
 
-The modules ship on public npm: `@miragon/pulse-engine-connector`,
-`@miragon/pulse-analytics-connector`, `@miragon/pulse-widget-shell`, `@miragon/pulse-ui`, the two
-client packages and `@miragon/pulse-engine-core`, released in lockstep (pin one version across all).
-[`templates/composed-server/`](https://github.com/Miragon/pulse/tree/main/templates/composed-server)
-is a ready-to-copy pnpm workspace that composes them with an example custom module (tools,
-widget, guard tests included); its `CLAUDE.md` and `.claude/skills/` document the module
-contract and the invariants, its `README.md` is the quick tour. CI runs the template against the
-workspace's packed packages on every change (`scripts/test-template.sh`). Each release also
-syncs it (tested against the published packages, with a committed lockfile) to the read-only
-mirror [`Miragon/pulse-starter`](https://github.com/Miragon/pulse-starter)
-("Use this template" ready; contribute in Miragon/pulse, not there).
+[Build your own server](build-your-own.md) starts one from
+[Miragon/pulse-starter](https://github.com/Miragon/pulse-starter), the read-only mirror of
+`templates/composed-server/`: change the starter in this repository. CI tests the template against
+the workspace's packed packages (`scripts/test-template.sh`), and each release syncs it to the
+mirror as a [release](https://github.com/Miragon/pulse-starter/releases) of the same version
+(`.github/workflows/sync-template-mirror.yml`).
 
 ## Documentation
 

@@ -1,0 +1,7 @@
+{
+  // The editor's project for the view half: tsserver reads only files named tsconfig.json, and
+  // the package's excludes this tree. The settings are tsconfig.widgets.json's, which `typecheck`
+  // runs; its exclude (the protocol tests, which run in Node) is inherited.
+  "extends": "../../tsconfig.widgets.json",
+  "include": [".", "../protocol"]
+}
