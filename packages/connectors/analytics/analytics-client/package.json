@@ -1,6 +1,6 @@
 {
   "name": "@miragon/pulse-analytics-client",
-  "version": "0.27.0",
+  "version": "0.27.1",
   "description": "Prometheus client and PromQL query functions for Camunda process analytics, with the metrics contract.",
   "license": "MIT",
   "keywords": [

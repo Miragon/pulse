@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.27.1](https://github.com/Miragon/pulse/compare/v0.27.0...v0.27.1) (2026-11-07)
+
+
+### Bug Fixes
+
+* analytics errors name their way out, and the boot log says what it leaves off ([#568](https://github.com/Miragon/pulse/issues/568)) ([578ae71](https://github.com/Miragon/pulse/commit/578ae719ae06807bf914fda2bfcb72e1a87ffd29))
+* **template:** the copied .env runs what compose.yaml can serve, and the Quickstart says what it prints ([#569](https://github.com/Miragon/pulse/issues/569)) ([ffe8a61](https://github.com/Miragon/pulse/commit/ffe8a6137f033f11c5c3f802031a3a1a2d6886e2))
+
 ## [0.27.0](https://github.com/Miragon/pulse/compare/v0.26.0...v0.27.0) (2026-11-06)
 
 
