@@ -46,7 +46,10 @@ confronted with runtime data (#1688).
   (ESLint enforces it). The
   renderer draws with the two light roles plot and text; they are constants that a drift
   test pins to `cd-tokens.generated.json`, so the bundle carries no token map it does not
-  read (303 B gzip). Native surfaces use VS Code theme colours only.
+  read (303 B gzip); `diagram/canvas-roles.ts` is the one file pulse-ui's colour gate allows
+  a raw colour in (`apps/vscode/test/architecture/brand-gates.test.ts`). The repository's
+  token drift test holds each token the vendored copies share (this one, pulse-ui's and the
+  docs kit's) to one value per scope. Native surfaces use VS Code theme colours only.
 - Light, dark and high contrast switch by CSS only: the cd-canvas role classes are
   assigned to the rendered SVG once per import; viewbox and overlays stay.
 - One severity ladder: incident (danger, full badge), incident in a called instance
@@ -68,7 +71,13 @@ confronted with runtime data (#1688).
   webview draws Lucide's geometry itself: `components/lucide-glyphs.json` holds the
   glyphs it uses, copied from lucide-preact 1.61.0 with Lucide's ISC and Feather's MIT
   notice, and `Icon` renders them. lucide-preact's runtime and per-path keys cost
-  2.1 kB gzip of the bundle budget; a new icon is one more entry in that file.
+  2.1 kB gzip of the bundle budget; a new icon is one more entry in that file. An icon is
+  16 px in the chrome and 12 px beside dense text and on the diagram's 20 px overlays
+  (count and move badges, the code and move buttons, inline links and warnings): 12 px is a
+  named deviation from the design system's 16 and 24 px, the one other size `Icon` takes,
+  and pulse-ui's icon size gate allows it only in the files
+  `apps/vscode/test/architecture/brand-gates.test.ts` lists, each with its reason; an entry no
+  icon needs fails.
 
 ### Moving a token
 

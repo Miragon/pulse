@@ -131,7 +131,13 @@ host stay engine-neutral.
   record in `apps/vscode/docs/adr/` in the same commit.
 - The webview's colours are the Miragon tokens in `apps/vscode/src/webview/theme/`, vendored
   unchanged from Miragon/corporate-identity and pinned by its `manifest.json`: re-vendor,
-  never edit (the repository's token drift test reads that manifest).
+  never edit (the repository's token drift test reads that manifest and holds every token the
+  copy shares with pulse-ui's and the docs kit's to one value per scope, so a release that
+  changes a value is vendored into every copy at once). pulse-ui's brand gates scan the webview
+  (`apps/vscode/test/architecture/brand-gates.test.ts`): Lucide icons, never a glyph, at
+  16 px or at 12 px beside dense text and on the diagram's overlays (the named deviation, each
+  file listed there with its reason), and no raw colour outside the renderer's paint constants
+  in `diagram/canvas-roles.ts`.
 - UI text is English and follows the English rules of the brand tone: sentence case, active
   voice, no dash as a connector.
 - Commit messages are Conventional Commits with the scope `vscode`.

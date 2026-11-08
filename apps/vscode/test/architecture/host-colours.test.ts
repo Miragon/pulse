@@ -1,5 +1,6 @@
 import { readFileSync, readdirSync } from "node:fs"
 import { join, relative } from "node:path"
+import { stylesheetColorFindings } from "@miragon/pulse-ui/testing"
 import { describe, expect, test } from "vitest"
 import { APP_ROOT } from "./support/files.js"
 
@@ -40,5 +41,20 @@ describe("the webview stylesheets", () => {
     [".probe { color: var(--cd-ui-text); }", []],
   ])("are read for VS Code colours: %s", (css, expected) => {
     expect(hostColoursIn(css)).toEqual(expected)
+  })
+
+  test("take no raw colour either, only the Miragon tokens", () => {
+    const found = stylesheetsUnder(WEBVIEW).flatMap((path) =>
+      stylesheetColorFindings(readFileSync(path, "utf8"), relative(APP_ROOT, path)),
+    )
+    expect(found).toEqual([])
+  })
+
+  test.each([
+    [".probe { color: #1D1D1D; }", ["#1D1D1D"]],
+    [".probe { border-color: rgb(0 0 0 / 20%); }", ["rgb("]],
+    [".probe { background: color-mix(in srgb, var(--cd-ui-text) 8%, transparent); }", []],
+  ])("are read for raw colours: %s", (css, expected) => {
+    expect(stylesheetColorFindings(css, "probe.css").map(({ match }) => match)).toEqual(expected)
   })
 })

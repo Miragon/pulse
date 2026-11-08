@@ -13,10 +13,13 @@ import { dirname, isAbsolute, join, relative, sep } from "node:path"
  * `$kommentar` are fine) and sanctions a stylesheet only when it lies inside
  * the manifest's own folder and matches its sha256 byte for byte. A manifest
  * sanctions nothing by being there: the caller names the manifests it trusts.
- * A sanctioned stylesheet keeps every palette value it declares in a top-level
- * `:root`, and once any stylesheet of a manifest declares a `--cd-*` at all,
- * those stylesheets' top-level `:root` blocks together declare EVERY token of
- * the palette: a copy that drops one forks the palette by omission.
+ * Token equality: a `--cd-*` that two sanctioned copies declare in the same
+ * scope (a top-level `:root`, the light or the dark theme) has one value in
+ * both, and in a top-level `:root` it is the palette's value, so a CI release
+ * that changes a value reaches every copy in one re-vendor. Once any stylesheet
+ * of a manifest declares a `--cd-*` at all, those stylesheets' top-level
+ * `:root` blocks together declare EVERY token of the palette: a copy that drops
+ * one forks the palette by omission.
  *
  * Every rule fails closed: a sanctioned manifest that is missing, malformed,
  * lists a path outside the repo, a missing or edited file, or sits next to a
@@ -67,8 +70,8 @@ export interface VendoredTokenOptions {
   scanRoots: readonly string[]
   /**
    * The top-level `:root` tokens of pulse-ui's copy (`rootTokens`): a sanctioned
-   * copy keeps each value, and a manifest whose copies declare tokens declares
-   * all of them.
+   * copy keeps each value in its top-level `:root`, and a manifest whose copies
+   * declare tokens declares all of them.
    */
   palette: ReadonlyMap<string, string>
 }
@@ -184,6 +187,64 @@ export function rootTokens(css: string): Map<string, string> {
   return tokens
 }
 
+const fold = (text: string) => text.replace(/\s+/g, " ").trim()
+
+/** A selector list split at its top-level commas: `:is(a, b)` and `[x="a,b"]` stay whole. */
+function selectorsOf(prelude: string): string[] {
+  const selectors: string[] = []
+  let depth = 0
+  let start = 0
+  for (let i = 0; i < prelude.length; i++) {
+    const char = prelude[i]
+    if (char === "(" || char === "[") depth++
+    else if (char === ")" || char === "]") depth--
+    else if (char === "," && depth === 0) {
+      selectors.push(prelude.slice(start, i))
+      start = i + 1
+    }
+  }
+  return [...selectors, prelude.slice(start)].map(fold)
+}
+
+/**
+ * The `--cd-*` tokens a stylesheet declares, by scope: each selector of a rule's
+ * list inside the at-rules around it, written as CSS (`:root`,
+ * `@media screen { [data-cd-theme="dark"] }`), so `html.dark, [data-cd-theme="dark"]`
+ * in one copy and `[data-cd-theme="dark"]` in another meet in one scope. A later
+ * declaration wins, as in CSS; whitespace in a value is folded.
+ */
+export function scopedTokens(css: string): Map<string, Map<string, string>> {
+  const scopes = new Map<string, Map<string, string>>()
+  const text = rulesOf(css)
+  const blocks: string[] = []
+  let start = 0
+  const declare = (end: number) => {
+    const declaration = /^\s*(--cd-[\w-]+)\s*:([\s\S]*)$/.exec(text.slice(start, end))
+    const rule = blocks.at(-1)
+    if (declaration === null || rule === undefined) return
+    const outer = blocks.slice(0, -1).map(fold)
+    for (const selector of selectorsOf(rule)) {
+      const scope = [...outer, selector].join(" { ") + " }".repeat(outer.length)
+      const tokens = scopes.get(scope) ?? new Map<string, string>()
+      tokens.set(declaration[1], fold(declaration[2]))
+      scopes.set(scope, tokens)
+    }
+  }
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i]
+    if (char === "{") {
+      blocks.push(text.slice(start, i))
+    } else if (char === ";") {
+      declare(i)
+    } else if (char === "}") {
+      declare(i)
+      blocks.pop()
+    } else continue
+    start = i + 1
+  }
+  return scopes
+}
+
 /** What the manifests sanction: the copies inside their folders, by manifest. */
 interface Sanction {
   /** Every sanctioned copy (absolute path). */
@@ -263,42 +324,66 @@ function forkFindings(root: string, scanRoots: readonly string[], sanctioned: Se
   })
 }
 
-/** One manifest's copies against pulse-ui's palette: each value kept, and no token dropped. */
+const stylesheetsOf = (files: Iterable<string>) =>
+  [...files].filter((name) => name.endsWith(".css"))
+
+/** One manifest's copies against pulse-ui's palette: no token dropped. */
 function paletteFindings(
-  root: string,
   manifest: string,
   files: readonly string[],
   palette: ReadonlyMap<string, string>,
 ): string[] {
-  const findings: string[] = []
   const declared = new Set<string>()
   let declaresTokens = false
-  for (const file of files.filter((name) => name.endsWith(".css"))) {
+  for (const file of stylesheetsOf(files)) {
     const css = readFileSync(file, "utf8")
     declaresTokens ||= CD_DECLARATION.test(rulesOf(css))
-    for (const [name, value] of rootTokens(css)) {
-      declared.add(name)
-      const expected = palette.get(name)
-      if (expected !== undefined && expected !== value) {
-        findings.push(
-          `${posix(relative(root, file))}: ${name} is ${value}, pulse-ui's copy says ${expected}: vendor both from the same CI release (a re-vendor), never change a value in the repo`,
-        )
-      }
-    }
+    for (const name of rootTokens(css).keys()) declared.add(name)
   }
   const missing = [...palette.keys()].filter((name) => !declared.has(name))
-  if (declaresTokens && missing.length > 0) {
-    findings.push(
-      `${manifest}: its vendored stylesheets declare --cd-* tokens, but no top-level :root among them declares ${missing.join(", ")}, which pulse-ui's copy does: a copy without a palette token forks the palette by omission, so vendor the CI token file whole (a re-vendor), never trim it`,
-    )
+  return declaresTokens && missing.length > 0
+    ? [
+        `${manifest}: its vendored stylesheets declare --cd-* tokens, but no top-level :root among them declares ${missing.join(", ")}, which pulse-ui's copy does: a copy without a palette token forks the palette by omission, so vendor the CI token file whole (a re-vendor), never trim it`,
+      ]
+    : []
+}
+
+/**
+ * Token equality over every sanctioned copy: each `--cd-*` in each scope has one
+ * value, and the palette's in a top-level `:root`. The finding names every value
+ * with the copies that say it.
+ */
+function equalityFindings(
+  root: string,
+  sanctioned: ReadonlySet<string>,
+  palette: ReadonlyMap<string, string>,
+): string[] {
+  const said = new Map<string, Map<string, string[]>>()
+  const say = (token: string, value: string, source: string) => {
+    const values = said.get(token) ?? new Map<string, string[]>()
+    values.set(value, [...(values.get(value) ?? []), source])
+    said.set(token, values)
   }
-  return findings
+  for (const [name, value] of palette) say(`${name} in :root`, value, "pulse-ui's palette")
+  for (const file of stylesheetsOf(sanctioned)) {
+    for (const [scope, tokens] of scopedTokens(readFileSync(file, "utf8"))) {
+      for (const [name, value] of tokens)
+        say(`${name} in ${scope}`, value, posix(relative(root, file)))
+    }
+  }
+  return [...said]
+    .filter(([, values]) => values.size > 1)
+    .map(
+      ([token, values]) =>
+        `${token} differs between the vendored copies (${[...values].map(([value, sources]) => `${value} in ${sources.join(", ")}`).join("; ")}): vendor every copy from the same CI release (a re-vendor), never change a value in the repo`,
+    )
 }
 
 /**
  * Findings for the vendored token copies, empty when every `--cd-*` in the
  * scanned stylesheets lives in a sanctioned, unedited copy on pulse-ui's
- * palette. Each finding names the offending path and the fix.
+ * palette and every copy gives a token the same value in the same scope. Each
+ * finding names the offending path or token and the fix.
  */
 export function vendoredTokenFindings({
   root,
@@ -309,8 +394,9 @@ export function vendoredTokenFindings({
   const sanction: Sanction = { files: new Set(), byManifest: new Map() }
   const findings = manifests.flatMap((manifest) => manifestFindings(root, manifest, sanction))
   findings.push(...forkFindings(root, scanRoots, sanction.files))
+  findings.push(...equalityFindings(root, sanction.files, palette))
   for (const [manifest, files] of sanction.byManifest) {
-    findings.push(...paletteFindings(root, manifest, files, palette))
+    findings.push(...paletteFindings(manifest, files, palette))
   }
   return findings
 }

@@ -10,10 +10,9 @@ import {
 } from "@miragon/pulse-ui/testing"
 import { afterAll, describe, expect, test } from "vitest"
 import { APP_ROOT } from "./support/files.js"
+import { ENGINE_VOCABULARY_LAYER, WORDED_LAYERS } from "./support/layers.js"
 
 const SOURCES = join(APP_ROOT, "src")
-const ENGINE_VOCABULARY_LAYER = "adapters"
-const WORDED_LAYERS = ["contract", "core", "host", "model", "webview"]
 
 function wordFindings(root: string): string[] {
   return glossaryFindings(sourceTexts(root), PRODUCT_GLOSSARY.en).map(

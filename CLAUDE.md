@@ -156,7 +156,9 @@ CI-Release neu vendoren, nie von Hand ändern).
 Ein `--cd-*` steht nur in vendorten Kopien, deren Manifest `SANCTIONED_TOKEN_MANIFESTS` freigibt:
 heute die Kopie in pulse-ui (`packages/core/ui/src/tokens/manifest.json`), das Doku-Kit und das
 Theme der VS-Code-Webview (`apps/vscode/src/webview/theme/manifest.json`). Eine weitere Kopie kommt
-mit einem Manifest im Format des Doku-Kits und einem Eintrag dort, nie als Ausnahme im Scan. Der
+mit einem Manifest im Format des Doku-Kits und einem Eintrag dort, nie als Ausnahme im Scan. Ein
+Token, das mehrere Kopien im selben Geltungsbereich setzen (`:root`, Hell, Dunkel), hat in allen
+denselben Wert: Ändert ein CI-Release einen Wert, kommt er in alle Kopien zugleich. Der
 Drift-Test ist `packages/core/ui/src/theme/token-drift.test.ts` (mit
 `packages/core/ui/src/theme/vendored-tokens.test-support.ts`); `test:host` prüft das gebaute
 Stylesheet.
@@ -168,7 +170,8 @@ kannst. Englisch übernimmt die übertragbaren Regeln: Sentence case, aktiv, kei
 Verbinder. `.miragon/brand.json` schaltet den brand-lint-Hook für jede geänderte Datei ein;
 Strings in `.ts`/`.tsx` prüfen die Gates aus `@miragon/pulse-ui/testing` (Invariante 6). Dort
 liegen auch das Produkt-Glossar und die Zählbegriffe; die VS-Code-Erweiterung prüft ihre Texte im
-Code damit (`apps/vscode/test/architecture/product-words.test.ts`).
+Code damit (`apps/vscode/test/architecture/product-words.test.ts`) und ihre Webview mit den
+Marken-Gates (`apps/vscode/test/architecture/brand-gates.test.ts`).
 
 ### Abweichungen für eingebettete Chat-Widgets
 
@@ -199,6 +202,18 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
   den Theme-Slot `--brand-mark-display: none` aus.
 - BPMN-Zoom-Leiste oben rechts statt unten rechts: unten rechts liegt das bpmn.io-Logo
   (Lizenzpflicht).
+
+### Abweichung für die VS-Code-Webview
+
+Die Webview der VS-Code-Erweiterung (Preact, eigenes CSS) teilt mit den Widgets das Fundament aus
+pulse-ui, nicht die Komponenten. Für sie gilt diese bewusste Abweichung vom Guide
+(Owner-Entscheidung, auch in `apps/vscode/docs/adr/user-interface.md`):
+
+- Icons: 12 px neben dichtem Text und auf den 20-px-Overlays des Diagramms (Zähl- und
+  Move-Badges, Code- und Move-Knöpfe, Links und Warnungen im Text), sonst 16 px. `scanIconSizes`
+  lässt dort neben 16 und 24 px nur 12 px zu, und nur in den Dateien, die
+  `apps/vscode/test/architecture/brand-gates.test.ts` je mit Grund nennt; ein Eintrag ohne
+  12-px-Icon schlägt fehl.
 
 ## Architecture invariants
 
@@ -418,8 +433,10 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      `scanColors`) in its own `brand-gates.test.ts` (the host bundle's `src/ui` runs
      `scanGlyphs`; widget-shell checks its words next to its catalogs, in
      `packages/core/widget-shell/src/ui/kit-words.test.ts`), and its en/de catalogs hold the same
-     keys. One term per thing across the product, the VS Code extension included:
-     `PRODUCT_GLOSSARY` (`@miragon/pulse-ui/testing`, with the brand gates; Incident,
+     keys; the VS Code extension runs `scanGlyphs`, `scanIconSizes` and `scanColors` over its
+     webview (`apps/vscode/test/architecture/brand-gates.test.ts`, its 12 px icons the named
+     deviation of the design section). One term per thing across the product, the VS Code
+     extension included: `PRODUCT_GLOSSARY` (`@miragon/pulse-ui/testing`, with the brand gates; Incident,
      "Jobs ohne Versuche" / "jobs without retries", "bereitstellen", Geschäftsschlüssel,
      aussetzen, Versuche, alle Engines), checked with each connector's own terms by
      `src/messages/glossary.test.ts` and listed in `src/messages/GLOSSARY.md`, and over the
