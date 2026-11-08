@@ -7,7 +7,8 @@ set -euo pipefail
 # the tarballs via pnpm overrides, and runs the template's full bar. Catches
 # "the template no longer compiles against the packages we are about to
 # release" before the release train publishes to npm, and a file the bar
-# writes that the template's own .gitignore misses. Run from anywhere; leaves
+# writes that the template's own .gitignore misses. Then runs a prebuilt module
+# with its own HTML view through that copy (below). Run from anywhere; leaves
 # the working tree untouched.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -56,7 +57,7 @@ rsync -a --exclude node_modules --exclude dist "$TEMPLATE/" "$WORK/"
 
 # Overrides beat both the template's direct pins and the transitive
 # @miragon/pulse-* ranges inside the packed packages.
-{
+library_overrides() {
   echo ""
   echo "overrides:"
   for i in "${!PACKAGES[@]}"; do
@@ -64,7 +65,8 @@ rsync -a --exclude node_modules --exclude dist "$TEMPLATE/" "$WORK/"
     tgz=("$PACK_DIR/$base"/*.tgz)
     echo "  \"${NAMES[$i]}\": \"file:${tgz[0]}\""
   done
-} >> "$WORK/pnpm-workspace.yaml"
+}
+library_overrides >> "$WORK/pnpm-workspace.yaml"
 
 # A starter repo has only the template's own .gitignore: the monorepo's root one
 # hides generated files here that would dirty it. The copy (outside the
@@ -112,5 +114,34 @@ if [[ -n "$LEFT" ]]; then
   echo "$LEFT" >&2
   exit 1
 fi
+
+# The module author's path (the add-widget skill's "A finished HTML view"): a module built and
+# packed on its own, its view one finished HTML document, installed into the starter copy from its
+# tarball. After the starter's own bar, which ran without it: the bar runs again with the module
+# composed, and prebuilt-module.test.ts adds what only this path shows: the built server boots,
+# its document reaches the wire unchanged under its own CSP, the Vite bundle holds nothing of it.
+FIXTURE="$ROOT/templates/fixtures/prebuilt-module"
+MODULE_WORK="$(mktemp -d)/prebuilt-module"
+rsync -a --exclude node_modules --exclude dist --exclude starter "$FIXTURE/" "$MODULE_WORK/"
+node "$ROOT/scripts/prebuilt-module.mjs" pin "$MODULE_WORK"
+{
+  echo 'packages: ["."]'
+  library_overrides
+} > "$MODULE_WORK/pnpm-workspace.yaml"
+mkdir -p "$PACK_DIR/prebuilt-module"
+(
+  cd "$MODULE_WORK"
+  pnpm install --no-frozen-lockfile
+  pnpm run build
+  pnpm pack --pack-destination "$PACK_DIR/prebuilt-module" >/dev/null
+)
+MODULE_TGZ=("$PACK_DIR/prebuilt-module"/*.tgz)
+
+node "$ROOT/scripts/prebuilt-module.mjs" wire "$WORK" "${MODULE_TGZ[0]}"
+cp "$FIXTURE/starter/prebuilt-module.test.ts" "$WORK/server/test/"
+pnpm install --no-frozen-lockfile
+pnpm build
+pnpm typecheck
+pnpm test
 
 echo "test-template: OK"

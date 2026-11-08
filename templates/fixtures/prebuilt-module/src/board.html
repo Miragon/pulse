@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Team board</title>
+  </head>
+  <body>
+    <h1 id="title">Team board</h1>
+    <p id="status">Waiting for the host</p>
+    <ul id="cards"></ul>
+    <p id="feed"></p>
+    <script>
+      // The MCP Apps handshake by hand: this document needs no client library and no bundler.
+      const pending = new Map()
+      let nextId = 1
+      const post = (message) => window.parent.postMessage({ jsonrpc: "2.0", ...message }, "*")
+      const request = (method, params) =>
+        new Promise((resolve, reject) => {
+          const id = nextId++
+          pending.set(id, { resolve, reject })
+          post({ id, method, params })
+        })
+      const status = document.getElementById("status")
+
+      function render({ team, cards }) {
+        document.getElementById("title").textContent = "Team board of " + team
+        const items = cards.map((card) => {
+          const item = document.createElement("li")
+          item.textContent = card.lane + ": " + card.id + " " + card.title
+          return item
+        })
+        document.getElementById("cards").replaceChildren(...items)
+        status.textContent = "Rendered"
+        post({
+          method: "ui/notifications/size-changed",
+          params: { height: document.documentElement.scrollHeight },
+        })
+      }
+
+      window.addEventListener("message", ({ data, source }) => {
+        if (source !== window.parent || data?.jsonrpc !== "2.0") return
+        if (data.id !== undefined && pending.has(data.id)) {
+          const { resolve, reject } = pending.get(data.id)
+          pending.delete(data.id)
+          if (data.error) reject(new Error(data.error.message))
+          else resolve(data.result)
+        } else if (data.method === "ui/notifications/tool-result") {
+          render(data.params.structuredContent)
+        }
+      })
+
+      async function boot() {
+        await request("ui/initialize", {
+          protocolVersion: "2026-01-26",
+          appInfo: { name: "acme-board", version: "0.1.0" },
+          appCapabilities: {},
+        })
+        post({ method: "ui/notifications/initialized", params: {} })
+        // A feed through the host: buildDataFeedResult answers in one text block of JSON.
+        const feed = await request("tools/call", { name: "board_cards_data", arguments: {} })
+        const { cards } = JSON.parse(feed.content[0].text)
+        document.getElementById("feed").textContent = "Feed answered with " + cards + " cards"
+      }
+      boot().catch((error) => {
+        status.textContent = "Failed: " + error.message
+      })
+    </script>
+  </body>
+</html>

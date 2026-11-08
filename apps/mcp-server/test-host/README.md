@@ -18,8 +18,9 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
   `HOST_SIM_ENGINE_URL`), so an in-flight state is asserted without a timing
   window.
 - `host-sim.html` is a minimal SEP-1865 host. It reads the view resource
-  (`resources/read` of `ui://views/<tool>.html`, the inline document the boot
-  serves), renders it as `srcdoc` in a `sandbox="allow-scripts"` iframe
+  (`resources/read` of the tool's `_meta.ui.resourceUri`: `ui://views/<tool>.html`,
+  the inline document the boot serves, or a module's own), renders it as `srcdoc`
+  in a `sandbox="allow-scripts"` iframe
   under the CSP built from the resource's `_meta.ui.csp`, answers
   `ui/initialize`, and proxies every `tools/call` the view makes to the server.
 - A scenario can size the frame (`width=<px>`; default 960): the layout
@@ -70,6 +71,7 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
 | analytics dashboard        | `analytics_show_dashboard` at 760 px              | every activity column shown inside its region, names from the diagram, no document scroll                                                                          |
 | analytics landscape        | `analytics_show_engine_landscape` at 760 px       | the column groups headed, the backlog columns and the compare action inside their regions                                                                          |
 | axe (analytics)            | dashboard + landscape, light and dark, 760 px     | zero WCAG 2.1 A/AA violations (`analytics.spec.ts`)                                                                                                                |
+| a module's own view        | a tool bound to a resource of its module          | the finished document renders from that URI under its own CSP, no prelude, its feed answers through the host (`own-view.spec.ts`)                                  |
 
 **The cockpit's chrome inline.** Every scenario of the engine module renders the cockpit, whose head
 (sections, engine switch, Refresh) sits above the route. Inline the head is the only row: a

@@ -165,6 +165,18 @@ describe("scopesFor: paths outside the packages", () => {
     ])
   })
 
+  it("runs the template's job for the fixture module, and test:host for the document it renders too", () => {
+    assert.deepEqual(scopes("templates/fixtures/prebuilt-module/src/index.ts"), [
+      "template",
+      "typescript",
+    ])
+    assert.deepEqual(scopes("templates/fixtures/prebuilt-module/src/board.html"), [
+      "mcp",
+      "template",
+      "typescript",
+    ])
+  })
+
   it("starts the starter's try-out engine for its compose.yaml, next to the template's checks", () => {
     assert.deepEqual(scopes("templates/composed-server/compose.yaml"), [
       "starter-engine",

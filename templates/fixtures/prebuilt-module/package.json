@@ -1,0 +1,19 @@
+{
+  "name": "@acme/mcp-board",
+  "version": "0.1.0",
+  "description": "The module scripts/test-template.sh packs and installs: register(server) plus one finished HTML view, no widget sources. Its pins follow the workspace (scripts/prebuilt-module.mjs).",
+  "license": "MIT",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc && cp src/board.html dist/"
+  }
+}

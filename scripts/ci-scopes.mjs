@@ -63,6 +63,11 @@ export const PATH_RULES = [
     pattern: /^templates\/composed-server\/compose\.yaml$/,
     scopes: ["starter-engine", "template", "typescript"],
   },
+  // The fixture module's document: test:host renders it too (own-view-module.ts).
+  {
+    pattern: /^templates\/fixtures\/prebuilt-module\/src\/board\.html$/,
+    scopes: ["mcp", "template", "typescript"],
+  },
   { pattern: /^templates\/.*\.(?:md|png|jpe?g|gif|webp)$/, scopes: [] },
   // The token drift scan (pulse-ui) reads them; the template's own job tests them.
   { pattern: /^templates\//, scopes: ["template", "typescript"] },

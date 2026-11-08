@@ -3,11 +3,10 @@ import http from "node:http"
 import type { AddressInfo } from "node:net"
 import path from "node:path"
 import type { Client } from "@modelcontextprotocol/client"
-import { viewResourceUri } from "@miragon/pulse-widget-shell/server"
 
 /** What `GET /host/view` hands the host page: the served view, as a host receives it. */
 export interface HostView {
-  /** `resources/read` text of `ui://views/<tool>.html`, the document the server serves. */
+  /** `resources/read` text of the tool's `_meta.ui.resourceUri`, the document the server serves. */
   html: string
   /** `_meta.ui.csp` of that read (the host turns it into the frame's CSP). */
   csp: Record<string, string[]> | undefined
@@ -41,14 +40,14 @@ function sendJson(res: http.ServerResponse, status: number, body: unknown): void
 }
 
 async function readView(client: Client, toolName: string): Promise<HostView> {
-  const [{ contents }, { tools }] = await Promise.all([
-    client.readResource({ uri: viewResourceUri(toolName) }),
-    client.listTools(),
-  ])
-  const content = contents[0] as { text?: string; _meta?: { ui?: { csp?: HostView["csp"] } } }
+  const { tools } = await client.listTools()
   const tool = tools.find((t) => t.name === toolName)
-  if (typeof content.text !== "string" || !tool) {
-    throw new Error(`no view resource or tool for "${toolName}"`)
+  const uri = (tool?._meta?.ui as { resourceUri?: unknown } | undefined)?.resourceUri
+  if (typeof uri !== "string") throw new Error(`no view-bound tool "${toolName}"`)
+  const { contents } = await client.readResource({ uri })
+  const content = contents[0] as { text?: string; _meta?: { ui?: { csp?: HostView["csp"] } } }
+  if (typeof content.text !== "string") {
+    throw new Error(`no document at "${uri}", the view of "${toolName}"`)
   }
   return { html: content.text, csp: content._meta?.ui?.csp, tool }
 }
