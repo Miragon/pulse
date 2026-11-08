@@ -1,22 +1,21 @@
 # Playground
 
 A self-contained demo environment for Pulse: a seeded
-CIB seven engine with live traffic, the full metric-first analytics stack,
-and the MCP server on top. Run it locally with Docker Compose, or deploy
-the whole stack to Fly.io with one workflow.
+CIB seven engine with live traffic and the MCP server on top. Run it locally
+with Docker Compose, or deploy the whole stack to Fly.io with one workflow.
 
-| Path                | Contents                                                                       |
-| ------------------- | ------------------------------------------------------------------------------ |
-| `cibseven-example/` | Spring Boot CIB seven engine: seeded Miravelo Leasing processes, live traffic  |
-| `docker/`           | Compose stack: engine(s), OTEL Collector, Prometheus, Grafana, optional server |
-| `fly/`              | Fly.io deployment: one `*.fly.toml` per app + `deploy.sh`                      |
+| Path                | Contents                                                                      |
+| ------------------- | ----------------------------------------------------------------------------- |
+| `cibseven-example/` | Spring Boot CIB seven engine: seeded Miravelo Leasing processes, live traffic |
+| `docker/`           | Compose stack: engine(s), optional Keycloak and server                        |
+| `fly/`              | Fly.io deployment: one `*.fly.toml` per app + `deploy.sh`                     |
 
 ## Run locally
 
 From a fresh clone with Node.js, pnpm and Docker (no JDK, no `.env`):
 
 ```sh
-pnpm stack:up       # engine, OTEL, Prometheus, Grafana; waits until they answer
+pnpm stack:up       # the engine; waits until it answers
 pnpm play           # stack:up if needed, then the MCP server on :8400 against it
 pnpm play:cli -- ping   # pnpm -s play:cli -- ... leaves stdout to the CLI, for a pipe
 pulse status        # an installed pulse: .pulse-cli.json makes the stack's engine its default
@@ -30,8 +29,8 @@ pnpm stack:down     # stop (volumes kept; --wipe drops them)
   engine (CIB seven, no login: its REST API is anonymous). Inside the repo a bare `pulse`
   (`npm install -g @miragon/pulse-cli`, or the build `node apps/cli/dist/pulse-cli.js`) reaches
   it; your own profiles stay available with `--profile`.
-- Grafana: `http://localhost:8470`, Prometheus: `http://localhost:8460`, engine:
-  `http://localhost:8410` (login `demo` / `demo`)
+- Engine: `http://localhost:8410` (login `demo` / `demo`). The playground runs no Prometheus, so
+  `pnpm play` runs the engine module alone (`MCP_ACTIVE_MODULES=engine`).
 - The engine image copies a jar (`cibseven-example/build/libs/`): `stack:up` builds it when it is
   missing or older than its sources, on a local JDK 21 or else in an `eclipse-temurin:21-jdk`
   container (Gradle cache in the Docker volume `pulse-gradle-cache`; `--jdk-container` forces it).
@@ -42,13 +41,12 @@ pnpm stack:down     # stop (volumes kept; --wipe drops them)
   it for all of them, and a checkout without a jar of its own reuses the engine another one built.
 - With your own settings instead: `cp .env.example .env`, then `pnpm dev`.
 - Every published port binds to `127.0.0.1` on purpose: the engine REST API
-  is anonymous, Grafana runs as anonymous Admin, the rest uses demo
-  credentials. From another machine, tunnel instead of rebinding
+  is anonymous, the rest uses demo credentials. From another machine, tunnel instead of rebinding
   (`ssh -L 8400:127.0.0.1:8400 <host>`).
 - The server boots **read-only** (no OAuth provider, no toolset suffix; the boot
   log names the effective toolsets). To exercise write paths, run
   `pnpm play --admin` (deployments: `--deploy`), or set
-  `MCP_ACTIVE_MODULES=engine:admin,analytics` in `.env` for `pnpm dev`;
+  `MCP_ACTIVE_MODULES=engine:admin` in `.env` for `pnpm dev`;
   deployments additionally need `ENGINE_ALLOW_DEPLOYMENTS=true`.
 - Compose profiles: `--profile multi-engine` (second engine on :8411;
   `pnpm stack:up --multi-engine`, `pnpm play --multi-engine`),
@@ -58,7 +56,7 @@ pnpm stack:down     # stop (volumes kept; --wipe drops them)
   Dynamic Client Registration its realm pre-registers the client `pulse-server` with the
   secret `pulse-secret`.
 - `--profile dev` runs CIB seven Run, the vendor's image at a pinned tag, on :8410 in place of
-  the default engine: no analytics and no invoice example, so it starts empty, and its REST API
+  the default engine: no seed and no invoice example, so it starts empty, and its REST API
   is anonymous like the default engine's. It serves `pnpm dev` (with a `.env`) and a bare
   `pulse`. Start it from the repo root with the stack down:
   `docker compose -f playground/docker/docker-compose.yml --profile dev up -d cibseven-dev`.
@@ -67,18 +65,15 @@ pnpm stack:down     # stop (volumes kept; --wipe drops them)
 
 ## Deploy to Fly.io
 
-The stack maps to five Fly apps in one org, wired over Fly's private 6PN
-network. Only the server is public: everything else has no public IP, but
+The stack maps to two Fly apps in one org, wired over Fly's private 6PN
+network. Only the server is public: the engine has no public IP, but
 6PN is shared by every app in the org: the anonymous engine REST API is
 reachable from all of them, so keep untrusted apps out of the org.
 
-| Fly app                            | Service        | Exposure                                          |
-| ---------------------------------- | -------------- | ------------------------------------------------- |
-| `miragon-ai-playground`            | MCP server     | public: `https://pulse-playground.miragon.ai/mcp` |
-| `miragon-ai-playground-engine`     | CIB seven      | private (`….internal:8410`)                       |
-| `miragon-ai-playground-otel`       | OTEL Collector | private (`….internal:4318` / `:9464`)             |
-| `miragon-ai-playground-prometheus` | Prometheus     | private (`….internal:9090`), 3 GB volume          |
-| `miragon-ai-playground-grafana`    | Grafana        | private: `flyctl proxy 8470:3000 -a <app>`        |
+| Fly app                        | Service    | Exposure                                          |
+| ------------------------------ | ---------- | ------------------------------------------------- |
+| `miragon-ai-playground`        | MCP server | public: `https://pulse-playground.miragon.ai/mcp` |
+| `miragon-ai-playground-engine` | CIB seven  | private (`….internal:8410`)                       |
 
 ### Via GitHub Actions (recommended)
 
@@ -89,9 +84,9 @@ One-time setup:
 - Repo secret `FLY_API_TOKEN`: an org-scoped deploy token
   (`fly tokens create org -o miragon`), stored including the leading `FlyV1 `
   prefix. It must be org-scoped because `deploy.sh` creates missing apps on
-  first run, and the nightly **Reset Playground** workflow reaches two apps
-  (engine + Prometheus). An app-scoped `fly tokens create deploy` token is
-  rejected as `unauthorized`.
+  first run; the nightly **Reset Playground** workflow restarts the engine
+  with it. An app-scoped `fly tokens create deploy` token is rejected as
+  `unauthorized`.
 - Optional repo variable `FLY_ORG` if the apps should not live in `miragon`.
 
 ### Via CLI
@@ -99,17 +94,17 @@ One-time setup:
 ```sh
 fly auth login
 (cd playground/cibseven-example && ./gradlew bootJar)   # engine image copies the jar
-./playground/fly/deploy.sh all                          # or: otel|engine|prometheus|grafana|server
+./playground/fly/deploy.sh all                          # or: engine|server
 ```
 
-First deploy creates the apps and the Prometheus volume.
+First deploy creates the apps.
 Afterwards, point an MCP client (e.g. claude.ai custom connector) at
 `https://pulse-playground.miragon.ai/mcp`.
 
 ### Notes
 
 - The MCP endpoint is **unauthenticated** and pinned **read-only**
-  (`MCP_ACTIVE_MODULES=engine:read-only,analytics` in
+  (`MCP_ACTIVE_MODULES=engine:read-only` in
   `fly/server.fly.toml`): anyone can query the demo engine, nobody
   can change it through the server (no engine writes). Never
   widen it there and never set `ENGINE_ALLOW_DEPLOYMENTS` on this app
@@ -128,8 +123,7 @@ MCP_OAUTH_KEYCLOAK_SERVER_URL=… MCP_OAUTH_KEYCLOAK_REALM=… -a
 miragon-ai-playground`, see `.env.example`); the pin still keeps it
   read-only.
 - The engine keeps its H2 database in memory: every engine restart reseeds
-  (~600 instances) and live traffic keeps metrics moving. Prometheus history
-  survives restarts on its volume.
-- Everything runs single-machine (`--ha=false`), sized for demos, roughly
-  $15–25/month; the server scales to zero when idle. Tear down with
-  `fly apps destroy <app>` per app.
+  (~600 instances) and live traffic keeps the cockpit moving.
+- Everything runs single-machine (`--ha=false`), sized for demos; the
+  server scales to zero when idle. Tear down with `fly apps destroy <app>`
+  per app.

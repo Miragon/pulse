@@ -158,11 +158,11 @@ export const analyticsModule = {
     "ANALYTICS_ENGINE_IDS",
   ] as const,
 
-  /** The default :9090 is a bare Prometheus, not the playground's :8460; without the hint the first sign is a failing query. */
+  /** The default :9090 is a guess, rarely the Prometheus that holds the engine metrics; without the hint the first sign is a failing query. */
   bootWarnings(env: NodeJS.ProcessEnv): string[] {
     if (env.PROMETHEUS_URL?.trim()) return []
     return [
-      "PROMETHEUS_URL is not set: defaulting to http://localhost:9090. Point it at your Prometheus (the Pulse playground, Miragon/pulse, publishes one on :8460 of its host), or leave analytics out of MCP_ACTIVE_MODULES.",
+      "PROMETHEUS_URL is not set: defaulting to http://localhost:9090. Point it at the Prometheus that holds your engines' metrics, or leave analytics out of MCP_ACTIVE_MODULES.",
     ]
   },
 

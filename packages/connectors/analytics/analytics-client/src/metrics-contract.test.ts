@@ -15,44 +15,20 @@ interface ContractMetric {
 }
 
 const here = (rel: string) => fileURLToPath(new URL(rel, import.meta.url))
-const repoRoot = here("../../../../..")
 
 const contract = JSON.parse(readFileSync(here("../metrics-contract.json"), "utf8")) as {
   metrics: ContractMetric[]
 }
 
-const coveredSeries = new Set(
-  contract.metrics.flatMap((m) =>
-    m.type === "histogram"
-      ? [m.promName, `${m.promName}_sum`, `${m.promName}_count`, `${m.promName}_bucket`]
-      : [m.promName],
-  ),
-)
-
 /**
  * Every label a contract metric carries. The series share their prefix with the `engine_id` label
- * (`by (engine_id)`, `{engine_id="…"}`, Grafana's `$engine_id`), so a series scan skips exactly
- * these and reads every other `engine_…` token as a series the contract must hold.
+ * (`by (engine_id)`, `{engine_id="…"}`), so a series scan skips exactly these and reads every
+ * other `engine_…` token as a series.
  */
 const CONTRACT_LABELS = new Set(contract.metrics.flatMap((m) => m.labels))
 
 const extractSeries = (text: string) =>
   [...new Set(text.match(/engine_[a-zA-Z0-9_]+/g) ?? [])].filter((s) => !CONTRACT_LABELS.has(s))
-
-/**
- * `sum by (a, b)(max by (…)(engine_x{…}))`: each by-clause with the first series after it (the
- * aggregated expression's, behind any nested calls, parentheses and inner by-clauses, whose
- * `engine_id` is a label, not a series). Two flat regexes and a slice, not one nested pattern:
- * that one backtracked (CodeQL js/redos).
- */
-const byClauses = (text: string) =>
-  [...text.matchAll(/\bby\s*\(([^)]*)\)/g)].map((clause) => ({
-    clause: clause[0],
-    labels: clause[1],
-    series: [...text.slice(clause.index + clause[0].length).matchAll(/engine_[A-Za-z0-9_]+/g)]
-      .map((match) => match[0])
-      .find((token) => !CONTRACT_LABELS.has(token)),
-  }))
 
 /** Strip block and line comments: doc comments may legitimately mention series names. */
 const stripComments = (src: string) =>
@@ -73,23 +49,12 @@ const resolveMetricInterpolations = (code: string) =>
     },
   )
 
-// Collecting every string value also undoes the JSON escaping that would defeat the matcher regexes.
-const jsonStringValues = (node: unknown): string[] => {
-  if (typeof node === "string") return [node]
-  if (Array.isArray(node)) return node.flatMap(jsonStringValues)
-  if (node !== null && typeof node === "object")
-    return Object.values(node as Record<string, unknown>).flatMap(jsonStringValues)
-  return []
-}
-
 interface ConsumerSource {
   name: string
   text: string
 }
 
 const queriesDir = here("./queries")
-const dashboardsDir = join(repoRoot, "playground/docker/grafana/dashboards")
-const alertsFile = join(repoRoot, "playground/docker/prometheus/alerts.yml")
 
 const querySources = (): ConsumerSource[] =>
   readdirSync(queriesDir)
@@ -99,26 +64,14 @@ const querySources = (): ConsumerSource[] =>
       text: resolveMetricInterpolations(stripComments(readFileSync(join(queriesDir, f), "utf8"))),
     }))
 
-const alertsSource = (): ConsumerSource => ({
-  name: "alerts.yml",
-  text: readFileSync(alertsFile, "utf8"),
-})
-
-const dashboardSources = (): ConsumerSource[] =>
-  readdirSync(dashboardsDir)
-    .filter((f) => f.endsWith(".json"))
-    .map((f) => ({
-      name: `dashboards/${f}`,
-      text: jsonStringValues(
-        JSON.parse(readFileSync(join(dashboardsDir, f), "utf8")) as unknown,
-      ).join("\n"),
-    }))
-
-const allConsumerSources = (): ConsumerSource[] => [
-  ...querySources(),
-  alertsSource(),
-  ...dashboardSources(),
-]
+/**
+ * No query pins a known label value through a regex selector, so this line keeps the regex scan
+ * below proven (it read the playground's Grafana dashboard until that went).
+ */
+const REGEX_SELECTOR_PROBE: ConsumerSource = {
+  name: "regex selector probe",
+  text: `${METRIC_NAMES.userTasksOpen}{status=~"total|unassigned"}`,
+}
 
 describe("metrics contract", () => {
   it("declares well-formed metrics", () => {
@@ -163,27 +116,6 @@ describe("metrics contract", () => {
     expect(constNames).toEqual(contractNames)
   })
 
-  it("covers every engine_* metric used in the Prometheus alert rules", () => {
-    const alerts = readFileSync(alertsFile, "utf8")
-    const used = extractSeries(alerts)
-    expect(used.length).toBeGreaterThan(0)
-    for (const series of used) {
-      expect(coveredSeries.has(series), `${series} (alerts.yml) missing from contract`).toBe(true)
-    }
-  })
-
-  it("covers every engine_* metric used in the Grafana dashboards", () => {
-    const dashboards = readdirSync(dashboardsDir).filter((f) => f.endsWith(".json"))
-    expect(dashboards.length).toBeGreaterThan(0)
-    for (const file of dashboards) {
-      const used = extractSeries(readFileSync(join(dashboardsDir, file), "utf8"))
-      expect(used.length, `${file} should reference engine_* metrics`).toBeGreaterThan(0)
-      for (const series of used) {
-        expect(coveredSeries.has(series), `${series} (${file}) missing from contract`).toBe(true)
-      }
-    }
-  })
-
   it("query sources contain no raw engine_* literals (METRIC_NAMES only)", () => {
     const sources = readdirSync(queriesDir).filter(
       (f) => f.endsWith(".ts") && !f.endsWith(".test.ts"),
@@ -196,8 +128,8 @@ describe("metrics contract", () => {
     }
   })
 
-  it("hardcoded label values in queries, alert rules and dashboards are declared knownValues", () => {
-    const sources = allConsumerSources()
+  it("hardcoded label values in queries are declared knownValues", () => {
+    const sources = [...querySources(), REGEX_SELECTOR_PROBE]
 
     const knownValues = new Map<string, Set<string>>()
     for (const m of contract.metrics) {
@@ -217,7 +149,7 @@ describe("metrics contract", () => {
       // The lookbehind keeps `alertstate="firing"` from matching the `state` label.
       const exact = new RegExp(`(?<![A-Za-z_])${label}="([A-Za-z_][A-Za-z0-9_]*)"`, "g")
       // Regex selectors (`label=~"total|unassigned"`): every alternative must
-      // be a knownValue, except wildcards (`.*`/`.+`) and Grafana variables.
+      // be a knownValue, except wildcards (`.*`/`.+`) and `$` variables.
       const regexSel = new RegExp(`(?<![A-Za-z_])${label}=~"([^"]*)"`, "g")
       for (const { name, text } of sources) {
         for (const match of text.matchAll(exact)) {
@@ -243,72 +175,33 @@ describe("metrics contract", () => {
       }
     }
     expect(exactChecked).toBeGreaterThan(0)
-    // The Grafana dashboard pins `status=~"total|unassigned"`. If this reads
-    // 0 the regex-matcher scan silently broke, not the dashboard.
+    // The probe pins `status=~"total|unassigned"`. If this reads 0 the
+    // regex-matcher scan silently broke.
     expect(regexChecked).toBeGreaterThan(0)
-  })
-
-  it("PromQL grouping labels in alert rules and dashboards are declared on the metric they group", () => {
-    const seriesToMetric = new Map<string, ContractMetric>()
-    for (const m of contract.metrics) {
-      seriesToMetric.set(m.promName, m)
-      if (m.type === "histogram") {
-        for (const suffix of ["_sum", "_count", "_bucket"]) {
-          seriesToMetric.set(`${m.promName}${suffix}`, m)
-        }
-      }
-    }
-
-    let checked = 0
-    for (const { name, text } of [alertsSource(), ...dashboardSources()]) {
-      for (const { clause, labels: labelList, series } of byClauses(text)) {
-        expect(series, `unattributable "${clause}" clause in ${name}`).toBeDefined()
-        if (series === undefined) continue
-        const metric = seriesToMetric.get(series)
-        expect(metric, `${series} (${name}) missing from contract`).toBeDefined()
-        if (!metric) continue
-        const labels = labelList
-          .split(",")
-          .map((l) => l.trim())
-          .filter((l) => l !== "" && l !== "le") // `le` is the histogram bucket label
-        for (const label of labels) {
-          checked++
-          expect(
-            metric.labels.includes(label),
-            `${name} groups ${series} by "${label}", which is not a declared label of ${metric.promName}`,
-          ).toBe(true)
-        }
-      }
-    }
-    expect(checked).toBeGreaterThan(0)
   })
 
   it("reads the engine_id label as no series, and every other engine_ token as one", () => {
     const query =
       'sum by (engine_id) (max by (process_definition_key, engine_id) (engine_jobs_failed{engine_id="$engine_id"}))'
     expect(extractSeries(query)).toEqual(["engine_jobs_failed"])
-    expect(byClauses(query).map(({ series }) => series)).toEqual([
-      "engine_jobs_failed",
-      "engine_jobs_failed",
-    ])
-    // A series the contract does not hold still reads as one, so the checks above fail on it.
+    // A series the contract does not hold still reads as one, so the literal check above fails on it.
     const unknown = "sum by (engine_id) (increase(engine_unknown_total[5m]))"
     expect(extractSeries(unknown)).toEqual(["engine_unknown_total"])
-    expect(coveredSeries.has("engine_unknown_total")).toBe(false)
-    expect(byClauses(unknown)[0]?.series).toBe("engine_unknown_total")
   })
 
-  it("every contract metric has at least one consumer (queries, alerts or dashboards)", () => {
-    // Emitted by the engine plugin for future dashboards but consumed nowhere
-    // yet. Remove an entry from this allowlist the moment a consumer appears:
-    // the stale-entry check below fails to remind you. Do NOT add new entries
-    // without the same "deliberately emitted ahead of consumption" rationale.
+  it("every contract metric has at least one consumer (the queries)", () => {
+    // Emitted by the engine plugin but read by no query: the user-task series
+    // (the duration fed only the playground's Grafana dashboard, which went with
+    // the playground's Prometheus). Remove an entry from this allowlist the
+    // moment a consumer appears: the stale-entry check below fails to remind
+    // you. Do NOT add new entries without the same rationale.
     const KNOWN_UNCONSUMED = new Set([
       "engine_usertask_created_total",
       "engine_usertask_completed_total",
+      "engine_usertask_duration_milliseconds",
     ])
 
-    const used = new Set(allConsumerSources().flatMap(({ text }) => extractSeries(text)))
+    const used = new Set(querySources().flatMap(({ text }) => extractSeries(text)))
 
     for (const m of contract.metrics) {
       const series =
@@ -321,10 +214,9 @@ describe("metrics contract", () => {
           false,
         )
       } else {
-        expect(
-          consumed,
-          `${m.promName} has no consumer (TS queries, alerts.yml, Grafana dashboards). Dead contract entry?`,
-        ).toBe(true)
+        expect(consumed, `${m.promName} has no consumer (TS queries). Dead contract entry?`).toBe(
+          true,
+        )
       }
     }
   })

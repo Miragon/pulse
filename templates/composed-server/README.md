@@ -42,13 +42,10 @@ No engine yet? `docker compose up -d`, then `pnpm dev`. The
 with its invoice example (login `demo`/`demo`), the engine the copied `.env`
 points at. It serves the engine tools only, so the copied `.env` leaves
 analytics off (`MCP_ACTIVE_MODULES=engine,notes`): that engine has no Prometheus
-to read. Analytics needs the metrics and the Prometheus of the
-[Pulse playground](https://github.com/Miragon/pulse/tree/main/playground),
-which runs with Node.js, pnpm and Docker only:
-`git clone https://github.com/Miragon/pulse && cd pulse && pnpm stack:up`,
-then uncomment `ENGINE_ID` and `PROMETHEUS_URL` in `.env` and add `analytics`
-to its `MCP_ACTIVE_MODULES`. The playground's engine takes port 8410 too, so
-run one of the two.
+to read. Analytics needs a Prometheus that holds your engines' metrics (the
+engine plugin `io.miragon.mcp:cibseven-history-metrics`); the
+[Pulse playground](https://github.com/Miragon/pulse/tree/main/playground) runs
+none either.
 
 For your own engine set `ENGINE_BASE_URL`, `ENGINE_FLAVOR`,
 `ENGINE_AUTH_TYPE` with its credentials, and `ENGINE_ID` to an id of yours
@@ -83,16 +80,14 @@ docker run --rm --env-file .env -p 127.0.0.1:8400:8400 \
   my-mcp-server
 ```
 
-The Pulse playground's engine and Prometheus instead (`pnpm stack:up` there),
-with analytics on, which the copied `.env` leaves off:
+The Pulse playground's engine instead (`pnpm stack:up` there), seeded with
+demo data:
 
 ```bash
 docker run --rm --env-file .env -p 127.0.0.1:8400:8400 \
   --network pulse_default \
   -e ENGINE_BASE_URL=http://cibseven:8410/engine-rest -e ENGINE_ID=prod-a \
   -e ENGINE_COCKPIT_URL=http://localhost:8410/webapp \
-  -e PROMETHEUS_URL=http://prometheus:9090 \
-  -e MCP_ACTIVE_MODULES=engine,analytics,notes \
   my-mcp-server
 ```
 
@@ -117,7 +112,7 @@ example widget renders with no external systems. The image runs no inspector;
 for a container, start one yourself
 (`npx @modelcontextprotocol/inspector --server-url http://127.0.0.1:8400/mcp --transport http`).
 The engine tools need a running engine (`docker compose up -d`, above), the
-analytics tools the Pulse playground's Prometheus and `analytics` in
+analytics tools a Prometheus with your engines' metrics and `analytics` in
 `MCP_ACTIVE_MODULES`.
 
 ## Develop

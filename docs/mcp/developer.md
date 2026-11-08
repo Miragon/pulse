@@ -5,8 +5,8 @@ From a fresh clone to a running server in one command, or zero if you start with
 ## Try it first (no install)
 
 Point any MCP client at the [playground](https://pulse-playground.miragon.ai/mcp)
-(`https://pulse-playground.miragon.ai/mcp`): a seeded engine, live traffic, and the full
-analytics stack, read-only. See [Connect your Claude in 30 seconds](getting-started.md#connect-your-claude-in-30-seconds). Everything below is for running your own stack.
+(`https://pulse-playground.miragon.ai/mcp`): a seeded engine with live traffic,
+read-only. See [Connect your Claude in 30 seconds](getting-started.md#connect-your-claude-in-30-seconds). Everything below is for running your own stack.
 
 ## Prerequisites
 
@@ -24,8 +24,8 @@ pnpm play
 ```
 
 `pnpm play` installs the dependencies, starts the playground in Docker (CIB seven with demo data
-and live traffic, the OTEL Collector, Prometheus, Grafana; the first start builds the engine jar,
-a few minutes), builds the server and runs it on `:8400` against the playground, next to the official
+and live traffic; the first start builds the engine jar, a few minutes), builds the server and runs
+it on `:8400` against the playground, the engine module alone, next to the official
 [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector) on `127.0.0.1`: open the URL it prints (no browser
 opens by itself) to call tools and render the widgets, or connect any MCP host to `http://localhost:8400/mcp`.
 It boots read-only; `--admin` adds the write tools, `--deploy` deployments, `--multi-engine` a

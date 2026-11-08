@@ -3,7 +3,7 @@
 Pulse is a single Node.js MCP server that exposes Camunda 7 / CIB seven
 operations and Prometheus-backed analytics to any MCP host (Claude, ChatGPT, …). The engine plugin
 `io.miragon.mcp:cibseven-history-metrics` (0.27.1, its last version) emits process metrics via
-Micrometer, pushed over OTLP; the OTEL Collector exports them to Prometheus for the analytics module.
+Micrometer into a Prometheus of yours, which the analytics module queries.
 
 ## At a glance
 
@@ -23,9 +23,7 @@ flowchart LR
   Analytics -->|PromQL| Prom[(Prometheus)]
 
   Engine -. history events .-> Plugin[engine metrics plugin]
-  Plugin -- OTLP --> Collector[OTEL Collector]
-  Collector --> Prom
-  Prom --> Grafana[Grafana dashboards]
+  Plugin -- metrics --> Prom
 
   Server -. serves .-> Widgets[Widget bundle<br/>React + Tailwind]
 ```
@@ -110,12 +108,10 @@ question of its own.
 
 ## External systems
 
-| System                  | Purpose                                                                        | Default endpoint                    |
-| ----------------------- | ------------------------------------------------------------------------------ | ----------------------------------- |
-| Camunda 7 / CIB seven   | The BPM engine itself: process definitions, instances, tasks, incidents.       | `http://localhost:8410/engine-rest` |
-| OpenTelemetry collector | Receives OTLP from the engine; exports metrics to Prometheus.                  | `:8431` (OTLP HTTP)                 |
-| Prometheus              | Time-series store for the process metrics; the analytics module's data source. | `http://localhost:8460`             |
-| Grafana                 | Provisioned process-analytics dashboards over Prometheus.                      | `http://localhost:8470`             |
+| System                | Purpose                                                                        | Default endpoint                    |
+| --------------------- | ------------------------------------------------------------------------------ | ----------------------------------- |
+| Camunda 7 / CIB seven | The BPM engine itself: process definitions, instances, tasks, incidents.       | `http://localhost:8410/engine-rest` |
+| Prometheus            | Time-series store for the process metrics; the analytics module's data source. | `http://localhost:9090`             |
 
 ## Data flow
 
@@ -132,9 +128,8 @@ question of its own.
    turn.
 
 Process metrics originate in the engine: its metrics plugin maps history events
-to Micrometer counters/histograms (model-bounded labels), the
-Collector receives them over OTLP, and Prometheus stores them. Per-instance drill-down (search) is
-served by the engine REST history API, not the metrics.
+to Micrometer counters/histograms (model-bounded labels), and Prometheus stores them.
+Per-instance drill-down (search) is served by the engine REST history API, not the metrics.
 
 ## Repository layout
 

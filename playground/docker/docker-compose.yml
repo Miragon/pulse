@@ -1,9 +1,8 @@
 # Local demo stack: LOOPBACK-ONLY BY DESIGN. Every published port binds to
 # 127.0.0.1: the engine REST API accepts anonymous requests (anyone who reaches
-# it can deploy and start processes), Grafana runs as anonymous Admin, and
-# Keycloak and the OTEL Collector use demo-grade credentials or none.
+# it can deploy and start processes), and Keycloak uses demo-grade credentials.
 # Don't drop the 127.0.0.1: prefixes to reach the stack from another machine;
-# tunnel instead, e.g. `ssh -L 8400:127.0.0.1:8400 -L 8470:127.0.0.1:8470 <host>`.
+# tunnel instead, e.g. `ssh -L 8400:127.0.0.1:8400 -L 8410:127.0.0.1:8410 <host>`.
 name: pulse
 
 services:
@@ -61,7 +60,7 @@ services:
       start_period: 30s
 
   # Dev: CIB seven Run, the vendor's public image at an exact tag (Dependabot's docker-compose
-  # entry for this file moves it); no custom build, no metrics. It publishes the default
+  # entry for this file moves it); no custom build, no seed. It publishes the default
   # engine's port 8410, so it runs instead of that engine: `--profile dev up` alone starts
   # both, and the second fails to bind. Use, from the repo root with the stack down
   # (`pnpm stack:down` stops it too):
@@ -86,57 +85,6 @@ services:
       timeout: 5s
       retries: 12
       start_period: 30s
-
-  # OpenTelemetry Collector: receives OTLP pushed by the engines' Micrometer
-  # OTLP registry, serves process metrics for Prometheus to scrape (:9464).
-  # Sole export path of the metric-first analytics stack.
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.164.0
-    command: ["--config=/etc/otel-collector-config.yaml"]
-    environment:
-      - DEPLOY_ENV=docker-local
-    volumes:
-      - ./otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
-    ports:
-      - "127.0.0.1:8430:4317" # OTLP gRPC
-      - "127.0.0.1:8431:4318" # OTLP HTTP
-      - "127.0.0.1:8450:8888" # Collector's own telemetry
-      - "127.0.0.1:8451:9464" # Prometheus exporter (process metrics)
-
-  # Prometheus: scrapes the Collector's process metrics.
-  prometheus:
-    image: prom/prometheus:v3.15.1
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.retention.time=30d"
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
-      - prometheus-data:/prometheus
-    ports:
-      - "127.0.0.1:8460:9090" # Prometheus UI
-    depends_on:
-      - otel-collector
-
-  # Grafana: process-analytics dashboards over Prometheus. Anonymous admin so
-  # the demo opens straight onto the provisioned dashboards. Grafana 13 warns that
-  # auth.anonymous.org_role is deprecated with only Viewer supported, yet 13.3.0
-  # still grants the anonymous Admin.
-  grafana:
-    image: grafana/grafana:13.3.0
-    volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
-    environment:
-      - PROMETHEUS_URL=http://prometheus:9090
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-      - GF_AUTH_DISABLE_LOGIN_FORM=true
-      - GF_USERS_DEFAULT_THEME=light
-    ports:
-      - "127.0.0.1:8470:3000" # Grafana UI
-    depends_on:
-      - prometheus
 
   # Keycloak: the local IdP for the server's opt-in OAuth
   # (MCP_OAUTH_KEYCLOAK_SERVER_URL and MCP_OAUTH_KEYCLOAK_REALM; the
@@ -203,22 +151,22 @@ services:
       - "127.0.0.1:8400:8400"
     environment:
       - PORT=8400
-      # No OAuth provider and no toolset suffix ⇒ every module boots READ-ONLY (the
+      # The playground runs no Prometheus, so the server runs the engine module
+      # alone. No OAuth provider and no toolset suffix ⇒ it boots READ-ONLY (the
       # boot log names the effective toolsets). To exercise write paths, name
-      # the toolsets explicitly, e.g. add
-      #   - MCP_ACTIVE_MODULES=engine:operations,analytics
-      # (engine:admin for delete/modify/migrations/signals; deployments also
-      # need ENGINE_ALLOW_DEPLOYMENTS=true). Safe here only because the port is
+      # the toolset explicitly, e.g. engine:operations (engine:admin for
+      # delete/modify/migrations/signals; deployments also need
+      # ENGINE_ALLOW_DEPLOYMENTS=true). Safe here only because the port is
       # bound to 127.0.0.1; never widen an unauthenticated server reachable
       # from a network.
+      - MCP_ACTIVE_MODULES=engine
       # Pass either a single ENGINE_BASE_URL (single engine) OR
       # ENGINES_JSON with a list. Below: single-engine default; for
       # multi-engine override by exporting ENGINES_JSON in the host
       # shell before `docker compose up`, or by overriding via a compose
       # override file.
       - ENGINE_BASE_URL=http://cibseven:8410/engine-rest
-      # The id the server knows the engine by. The playground engines export no
-      # metrics, so analytics finds none for them.
+      # The id the server knows the engine by.
       - ENGINE_ID=prod-a
       # The engine is CIB seven: without the flavor the server takes it for
       # Camunda 7 and puts Camunda 7 routes on the /webapp cockpit below.
@@ -227,12 +175,9 @@ services:
       - ENGINE_AUTH_TYPE=basic
       - ENGINE_USERNAME=demo
       - ENGINE_PASSWORD=demo
-      - PROMETHEUS_URL=http://prometheus:9090
     depends_on:
       cibseven:
         condition: service_healthy
-      prometheus:
-        condition: service_started
     healthcheck:
       # Readiness over HTTP (the server's /health/ready; mirrors the Dockerfile
       # HEALTHCHECK); the image ships no curl, Node's global fetch does the probe.
@@ -247,6 +192,3 @@ services:
       timeout: 3s
       retries: 6
       start_period: 15s
-
-volumes:
-  prometheus-data:

@@ -60,15 +60,11 @@ pnpm dev
 Then `engine_list_process_definitions` lists `invoice` and `ReviewInvoice`.
 That engine serves the engine tools only: it records no metrics and runs no
 Prometheus, so the copied `.env` leaves analytics off
-(`MCP_ACTIVE_MODULES=engine,notes`). For the analytics tools as well, run the
-[Pulse playground](https://github.com/Miragon/pulse/tree/main/playground)
-instead (Node.js, pnpm and Docker only:
-`git clone https://github.com/Miragon/pulse && cd pulse && pnpm stack:up`),
-uncomment `ENGINE_ID` (`prod-a`) and `PROMETHEUS_URL`
-(`http://localhost:8460`) in `.env` and add `analytics` to its
-`MCP_ACTIVE_MODULES`. Both engines take port 8410: stop one
-(`docker compose down` here, `pnpm stack:down` there) before you start the
-other. Without a Prometheus, keep analytics out of `MCP_ACTIVE_MODULES`
+(`MCP_ACTIVE_MODULES=engine,notes`). The analytics tools need a Prometheus that
+holds your engines' metrics (the engine plugin
+`io.miragon.mcp:cibseven-history-metrics`); the
+[Pulse playground](https://github.com/Miragon/pulse/tree/main/playground) runs
+none either. Without a Prometheus, keep analytics out of `MCP_ACTIVE_MODULES`
 (Step 3): with it on, every boot warns that `PROMETHEUS_URL` is unset and every
 analytics query fails.
 
@@ -103,8 +99,8 @@ operaton | camunda7`, default `camunda7`) and `auth`; overrides the single-engin
   `ENGINE_DEFAULT` (it must name a configured engine, else the boot
   fails); without one it fails with `ENGINE_NOT_SELECTED` listing the engines.
 - `PROMETHEUS_URL`, with `analytics` added to `MCP_ACTIVE_MODULES` (Step 3):
-  unset defaults to `http://localhost:9090`, which does **not** match the
-  playground stack (host port 8460); every analytics query then fails. The
+  unset defaults to `http://localhost:9090`; point it at the Prometheus that
+  holds your engines' metrics, or every analytics query fails. The
   server warns at boot when analytics runs without it. A protected Prometheus takes
   `PROMETHEUS_BEARER_TOKEN` or `PROMETHEUS_USERNAME`/`PROMETHEUS_PASSWORD`
   (plus `PROMETHEUS_HEADERS`, a JSON object, e.g. for a tenant id).
@@ -234,12 +230,9 @@ docker run --rm --env-file .env -p 127.0.0.1:8400:8400 \
 - Inside the container `localhost` is the container, so the server joins the
   engine's Docker network and reaches it by its service name and port:
   `engine:8080` on `pulse-starter_default`, the network the `name:` in
-  `compose.yaml` fixes. For the Pulse playground's engine and Prometheus, join
-  `pulse_default` instead with `-e ENGINE_BASE_URL=http://cibseven:8410/engine-rest`,
-  `-e ENGINE_ID=prod-a` (the id on its metrics, or analytics finds nothing),
-  `-e PROMETHEUS_URL=http://prometheus:9090` and
-  `-e MCP_ACTIVE_MODULES=engine,analytics,notes` (the copied `.env` leaves
-  analytics off). That works alike on Linux and
+  `compose.yaml` fixes. For the Pulse playground's engine, join
+  `pulse_default` instead with `-e ENGINE_BASE_URL=http://cibseven:8410/engine-rest`
+  and `-e ENGINE_ID=prod-a`. That works alike on Linux and
   under Docker Desktop; `host.docker.internal` does not: on Linux it is the
   Docker bridge's gateway, which misses a port published on `127.0.0.1`, where
   both engines publish theirs. An engine the container reaches by its address

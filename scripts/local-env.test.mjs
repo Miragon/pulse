@@ -14,6 +14,7 @@ import {
   inspectorPorts,
   portConflict,
   portOwners,
+  presetToolsets,
   profilesFor,
   SERVICES,
   serverPreset,
@@ -38,8 +39,8 @@ describe("the playground services", () => {
 
   it("adds the second engine and Keycloak only with their options", () => {
     const ids = (options) => servicesFor(options).map(({ id }) => id)
-    assert.deepEqual(ids({}), ["engine", "otel-collector", "prometheus", "grafana"])
-    assert.deepEqual(ids({ multiEngine: true, auth: true }).slice(4), ["engine-b", "keycloak"])
+    assert.deepEqual(ids({}), ["engine"])
+    assert.deepEqual(ids({ multiEngine: true, auth: true }), ["engine", "engine-b", "keycloak"])
     assert.deepEqual(profilesFor({ auth: true }), ["auth"])
   })
 
@@ -57,7 +58,8 @@ describe("the playground services", () => {
 })
 
 describe("the presets", () => {
-  it("point the server at the playground engine, its Prometheus and loopback", () => {
+  it("point the server at the playground engine and loopback, the engine module alone", () => {
+    // The playground runs no Prometheus: analytics would boot only to fail every query.
     assert.deepEqual(serverPreset(), {
       ENGINE_BASE_URL: "http://localhost:8410/engine-rest",
       ENGINE_ID: "prod-a",
@@ -66,8 +68,8 @@ describe("the presets", () => {
       ENGINE_AUTH_TYPE: "basic",
       ENGINE_USERNAME: "demo",
       ENGINE_PASSWORD: "demo",
-      PROMETHEUS_URL: "http://localhost:8460",
       HOST: "127.0.0.1",
+      MCP_ACTIVE_MODULES: "engine",
     })
   })
 
@@ -99,10 +101,16 @@ describe("the presets", () => {
   })
 
   it("widens the toolset with --admin and registers deployments with --deploy", () => {
-    assert.equal(serverPreset().MCP_ACTIVE_MODULES, undefined)
-    assert.equal(serverPreset({ admin: true }).MCP_ACTIVE_MODULES, "engine:admin,analytics")
+    assert.equal(serverPreset().MCP_ACTIVE_MODULES, "engine")
+    assert.equal(serverPreset({ admin: true }).MCP_ACTIVE_MODULES, "engine:admin")
     assert.equal(serverPreset({ admin: true }).ENGINE_ALLOW_DEPLOYMENTS, undefined)
     assert.equal(serverPreset({ admin: true, deploy: true }).ENGINE_ALLOW_DEPLOYMENTS, "true")
+  })
+
+  it("names the toolsets play starts: the --admin suffix, else the engine module's default", () => {
+    assert.equal(presetToolsets(serverPreset()), "engine, read-only")
+    assert.equal(presetToolsets(serverPreset(), { auth: true }), "engine, its default under OAuth")
+    assert.equal(presetToolsets(serverPreset({ admin: true }), { auth: true }), "engine:admin")
   })
 
   it("puts the server behind the playground's Keycloak with --auth", () => {
@@ -131,13 +139,13 @@ describe("the presets", () => {
 
   it("lets the caller's environment win and names what it replaced", () => {
     const { env, overridden } = withPreset(
-      { ENGINE_ID: "prod-a", HOST: "127.0.0.1", PROMETHEUS_URL: "http://localhost:8460" },
+      { ENGINE_ID: "prod-a", HOST: "127.0.0.1", ENGINE_FLAVOR: "cibseven" },
       { ENGINE_ID: "mine", HOST: "127.0.0.1", PATH: "/bin" },
     )
     assert.deepEqual(env, {
       ENGINE_ID: "mine",
       HOST: "127.0.0.1",
-      PROMETHEUS_URL: "http://localhost:8460",
+      ENGINE_FLAVOR: "cibseven",
       PATH: "/bin",
     })
     assert.deepEqual(overridden, ["ENGINE_ID"])

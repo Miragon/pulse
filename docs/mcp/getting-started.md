@@ -7,8 +7,8 @@ it on your own engine. Commands and configs call the server `pulse`.
 ## Connect your Claude in 30 seconds
 
 The hosted [playground](https://pulse-playground.miragon.ai/mcp) runs a seeded CIB seven engine
-with live demo traffic and the full analytics stack. It is read-only and needs no login. Every
-night at 22:00 UTC the engine reseeds and the metrics are wiped.
+with live demo traffic. It is read-only and needs no login. Every night at 22:00 UTC the engine
+reseeds.
 
 ::: code-group
 

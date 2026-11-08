@@ -21,7 +21,7 @@ interface HealthAlert {
 }
 
 // An engine-less alert counts only when it is ours: in a shared Prometheus the others belong to somebody else.
-export const ENGINE_ALERT_NAME_PATTERN = "CibSeven.+"
+const ENGINE_ALERT_NAME_PATTERN = "CibSeven.+"
 
 // How `metricsState` comes about, carried in every result: the state the metrics show, under a
 // name of its own (the engine module's live verdict is `status`).

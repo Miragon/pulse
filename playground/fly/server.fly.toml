@@ -19,22 +19,22 @@ primary_region = "fra"
   MCP_URL = "https://pulse-playground.miragon.ai"
   MCP_ALLOWED_HOSTS = "miragon-ai-playground.fly.dev"
   MCP_ALLOWED_ORIGINS = "https://miragon-ai-playground.fly.dev"
-  # Public + unauthenticated ⇒ read-only BY DESIGN: queries, widgets and
-  # analytics, no engine writes. An unauthenticated boot already
+  # Public + unauthenticated ⇒ read-only BY DESIGN: queries and widgets, no
+  # engine writes; the playground runs no Prometheus, so the engine module runs
+  # alone. An unauthenticated boot already
   # defaults to read-only; the explicit pin keeps it that way should someone
   # add an OAuth provider or widen a default. Never widen it here and never set
   # ENGINE_ALLOW_DEPLOYMENTS on this app: deploying a BPMN runs code inside
   # the engine JVM. A Fly SECRET of the same name
   # overrides [env]: if `fly secrets list -a miragon-ai-playground` shows
   # MCP_ACTIVE_MODULES, keep it in sync with this value (or unset it).
-  MCP_ACTIVE_MODULES = "engine:read-only,analytics"
+  MCP_ACTIVE_MODULES = "engine:read-only"
   # demo/demo is the engine's seeded admin user; its REST API does not enforce
   # auth. The engine has no public IP, but it sits on the org's private 6PN
   # network, which other apps in the org share; treat it as reachable by
   # them, not as isolated. The engine is CIB seven: without `flavor` the
   # server would take it for Camunda 7 and name and link it as one.
   ENGINES_JSON = '[{"id":"prod-a","baseUrl":"http://miragon-ai-playground-engine.internal:8410/engine-rest","flavor":"cibseven","auth":{"type":"basic","username":"demo","password":"demo"}}]'
-  PROMETHEUS_URL = "http://miragon-ai-playground-prometheus.internal:9090"
 
 [http_service]
   internal_port = 8400

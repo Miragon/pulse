@@ -74,10 +74,10 @@ against the contract: [`src/metrics-contract.test.ts`](src/metrics-contract.test
 checks the metric names; [`src/metrics-contract-labels.test.ts`](src/metrics-contract-labels.test.ts)
 runs every exported query function and checks each label its PromQL names (matchers,
 `by`/`without`, `on`/`ignoring`/`group_*`) against the labels the contract declares for that
-series, alert rules and Grafana dashboards included.
+series.
 
-The contract also sets how a series is READ, and the same tests check every query, alert rule and
-dashboard panel against it. PromQL of your own uses the exported helper `increaseIn`:
+The contract also sets how a series is READ, and the same tests check every query against it.
+PromQL of your own (alert rules, dashboards) uses the exported helper `increaseIn`:
 
 - `increaseIn(series, window)` for a counter or histogram: a series is created on its first event,
   and `increase()`/`rate()` never count a series' first sample, so the first incident of a type at
@@ -87,8 +87,7 @@ dashboard panel against it. PromQL of your own uses the exported helper `increas
   anything sums them.
 - Durations are whole milliseconds (`*_duration_milliseconds`).
 
-A rename that skips the contract, or a consumer (queries, alert rules, Grafana dashboards), fails
-one of these tests. Only attach model-bounded labels (definition key, activity id, engine id);
+A rename that skips the contract or a query fails one of these tests. Only attach model-bounded labels (definition key, activity id, engine id);
 never instance ids, business keys, or variable values.
 
 ## Publishing

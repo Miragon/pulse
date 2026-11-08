@@ -17,10 +17,7 @@ on:
         default: all
         options:
           - all
-          - otel
           - engine
-          - prometheus
-          - grafana
           - server
 
 permissions:

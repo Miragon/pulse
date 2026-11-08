@@ -156,13 +156,9 @@ updates:
           - "minor"
 
   # Compose file, the playground stack (playground/docker/docker-compose.yml): moves the images
-  # it pins (the dev profile's CIB seven Run, the OTEL Collector, Prometheus, Grafana, Keycloak).
-  # The docker ecosystem below reads Dockerfiles only, so the same images in the Fly variants
-  # (Dockerfile.fly) move there, in pull requests of their own. dependabot-automerge.yml leaves
-  # these out (its paths name nothing under playground/docker), and no CI job starts the stack:
-  # before a merge, check the configs on the new image (promtool check config and check rules,
-  # the collector's validate, a Grafana that loads the provisioning) and run the
-  # metrics-contract tests.
+  # it pins (the dev profile's CIB seven Run, Keycloak). dependabot-automerge.yml leaves these out
+  # (its paths name nothing under playground/docker), and no CI job starts the stack: before a
+  # merge, start it on the new image (pnpm stack:up, --auth for Keycloak).
   - package-ecosystem: "docker-compose"
     directory: "/playground/docker"
     schedule:
@@ -180,12 +176,9 @@ updates:
           - "patch"
           - "minor"
 
-  # Docker images, playground: the Fly variants (Dockerfile.fly) and the engine image
+  # Docker image, playground: the engine image
   - package-ecosystem: "docker"
     directories:
-      - "/playground/docker/otel"
-      - "/playground/docker/prometheus"
-      - "/playground/docker/grafana"
       - "/playground/cibseven-example"
     schedule:
       interval: "weekly"

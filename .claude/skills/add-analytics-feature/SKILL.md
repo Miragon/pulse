@@ -60,26 +60,25 @@ append `_sum`/`_count`/`_bucket` at the call site. The single source of truth is
 `packages/connectors/analytics/analytics-client/metrics-contract.json`. Pulse no longer builds
 the engine plugin that emits the metrics (`io.miragon.mcp:cibseven-history-metrics`, 0.27.1 its
 last version), so a _new_ metric or label has no emitter here. The contract tests enforce
-consistency: they also check the Grafana dashboards (incl. regex matchers), the alert rules'
-and dashboards' `sum by (…)` grouping labels, `GAUGE_LABELS` against the gauges, millisecond
-`buckets` on every histogram, and dead contract entries (documented allowlist in the test).
+consistency: they also check the label values the queries pin (incl. regex matchers),
+`GAUGE_LABELS` against the gauges, millisecond `buckets` on every histogram, and dead contract
+entries (documented allowlist in the test).
 Don't weaken these guards. Keep labels model-bounded (never
 instance ids, business keys, variable values).
 
 **Label contract:** `src/metrics-contract-labels.test.ts` runs every exported query
 function against a recording client and checks each label the sent PromQL names (matchers,
 `by`/`without`, `on`/`ignoring`/`group_*`) against the labels the contract declares for
-that series; alert rules and Grafana dashboards go through the same checker. The calls it
+that series. The calls it
 runs come from the `SCENARIOS` map in `src/query-scenarios.test-support.ts` (shared with the
 honesty guard below), total over the `queries` namespace, so a new export without an entry
 fails `pnpm typecheck`. Give the entry argument sets that switch on every optional matcher
 (engine filter single and multi, element/incident scope, process scope present and
-absent). A PromQL shape the checker (`src/promql-{parse,labels,sources}.test-support.ts`)
+absent). A PromQL shape the checker (`src/promql-{parse,labels}.test-support.ts`)
 rejects means extending the checker, never bypassing it. The same file runs the reading
-rules (`src/promql-reading-rules.test-support.ts`) over every sent query, the alert rules
-and the dashboard panels: a counter or histogram outside the born-series count, or a gauge
-not folded over exactly its contract labels, fails. Alert rules and dashboards spell the
-count out in the exact shape `increaseIn` emits.
+rules (`src/promql-reading-rules.test-support.ts`) over every sent query: a counter or
+histogram outside the born-series count, or a gauge not folded over exactly its contract
+labels, fails.
 
 **Honesty rules:** `src/query-honesty.test.ts` runs the same scenarios and holds two more
 total maps a new export must fill (`pnpm typecheck` fails otherwise): `NO_DATA` (what the
@@ -378,6 +377,6 @@ here (`src/widgets/process-heatmap.test.tsx`).
 
 `pnpm test` runs the query snapshot tests; `pnpm typecheck` is the **only** check that
 covers widget `.tsx` code (`tsc -p tsconfig.widgets.json`). For end-to-end verification:
-`pnpm play` (the playground's engine and Prometheus emit real metrics; it builds and starts the
-server against them), then call the tool in the MCP Inspector `pnpm play` starts next to the
-server (it prints the URL). Run `pnpm format:check` before committing.
+`pnpm dev` with `analytics` in `MCP_ACTIVE_MODULES` and `PROMETHEUS_URL` at a Prometheus that
+holds the engine plugin's metrics (the playground runs none), then call the tool in the MCP
+Inspector `pnpm dev` starts next to the server (it prints the URL). Run `pnpm format:check` before committing.

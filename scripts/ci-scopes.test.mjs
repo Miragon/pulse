@@ -155,8 +155,8 @@ describe("scopesFor: paths outside the packages", () => {
     assert.deepEqual(scopes("playground/cibseven-example/build.gradle.kts"), ["cibseven-example"])
   })
 
-  it("runs the TypeScript job for the files the metrics contract and server env-name tests read", () => {
-    assert.deepEqual(scopes("playground/docker/prometheus/alerts.yml"), ["typescript"])
+  it("runs the TypeScript job for the files the playground and server env-name tests read", () => {
+    assert.deepEqual(scopes("playground/docker/docker-compose.yml"), ["typescript"])
     assert.deepEqual(scopes(".env.example"), ["typescript"])
   })
 

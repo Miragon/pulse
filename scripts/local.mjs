@@ -49,6 +49,7 @@ import {
   inspectorPorts,
   portConflict,
   portOwners,
+  presetToolsets,
   profilesFor,
   SERVICES,
   SERVER_READY_PATH,
@@ -453,8 +454,7 @@ async function play(options) {
   const toolsets =
     process.env.MCP_ACTIVE_MODULES !== undefined
       ? "from your MCP_ACTIVE_MODULES"
-      : (preset.MCP_ACTIVE_MODULES ??
-        (options.auth ? "the default under OAuth" : "the read-only default"))
+      : presetToolsets(preset, options)
   say(`Starting the MCP server (toolsets: ${toolsets}) ...`)
   const [command, ...args] = pnpmArgv(["--fail-if-no-match", "--filter", SERVER_PACKAGE, "dev"])
   const child = spawn(command, args, {

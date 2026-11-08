@@ -82,9 +82,9 @@ class MiraveloLeasingSeeder(
         val rollbackEraStartDaysAgo: Int,
         val rollbackEraEndDaysAgo: Int,
         val rollbackEraFailureRate: Double,
-        // Recent failures inside the last 7 days so analytics_show_dashboard
-        // (period=7d default) renders Incidents > 0. Distinct from buggyEra
-        // (15..30 days ago) which anchors the IMPROVED period comparison verdict.
+        // Recent failures inside the last 7 days, so a week's history holds
+        // incidents. Distinct from buggyEra (15..30 days ago), the older and
+        // worse period.
         val currentEraFailureRate: Double,
     )
 
@@ -174,17 +174,15 @@ class MiraveloLeasingSeeder(
         } else {
             null
         }
-        // Current-era band = last 7 days. Falls inside the default
-        // analytics_show_dashboard window so Incidents > 0 without depending on
-        // a longer window selection.
+        // Current-era band = last 7 days, so a week's history holds incidents
+        // without depending on a longer window.
         val currentEraStart = now.minus(7, ChronoUnit.DAYS)
         val completedCount = (cfg.instances * cfg.completedRatio).toInt()
 
         // Resolve the deployed v1 / v2 process_definition_ids so each instance
         // can be started against a specific version. Camunda's
         // startProcessInstanceByKey would always pick the latest; instead we
-        // dispatch by id so analytics_show_version_compare sees a real population
-        // on both versions.
+        // dispatch by id so both versions hold a real population.
         val v1Id = findVersionId(processKey, version = 1)
         val v2Id = findVersionId(processKey, version = 2)
         if (v1Id == null) {
@@ -266,9 +264,8 @@ class MiraveloLeasingSeeder(
             }
             if (inCurrentEra && Random.nextDouble() < cfg.currentEraFailureRate) {
                 // Reuse the existing blacklist-outage variable so we don't
-                // grow the delegate surface; the analytics dashboard sees
-                // an open incident on Activity_CheckBlacklist within the
-                // default 7-day window.
+                // grow the delegate surface; the last 7 days hold an open
+                // incident on Activity_CheckBlacklist.
                 variables["_simulateBlacklistOutage"] = true
                 seededCurrentEraFailure++
             }
