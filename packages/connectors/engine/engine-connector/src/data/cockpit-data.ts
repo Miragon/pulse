@@ -119,7 +119,7 @@ interface RawInstance {
 }
 
 /**
- * Totals over the WHOLE set, never the page: each chip's count (All, With incidents, Suspended) on
+ * Totals over the WHOLE set, never the page: each chip's count (All, With incident, Suspended) on
  * the same scope and search whichever chip is on, and the page's total, which is the count of the
  * chip that is on and so costs no read of its own. Only both flags at once, which no chip sends,
  * read their intersection as a fourth count. `active` is no chip: it stays in the scope, where

@@ -34,7 +34,7 @@ export class DefinitionNodes {
   }
 
   private describeCounts(summary: DefinitionSummary): string {
-    const running = summary.running === 0 ? "idle" : `${summary.running} running`
+    const running = summary.running === 0 ? "idle" : `${summary.running} running in all versions`
     return `${running} · latest v${summary.latest.version}`
   }
 }

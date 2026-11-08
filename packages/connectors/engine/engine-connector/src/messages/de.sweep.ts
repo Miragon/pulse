@@ -131,7 +131,7 @@ export const deSweep: MessageCatalog = {
   "fleet.landscape.kpiUnreachable": "{count} nicht erreichbar",
   "fleet.landscape.legendNotDeployed":
     "Eine leere Zelle heißt: Der Prozess ist auf dieser Engine nicht bereitgestellt.",
-  "fleet.landscape.matrix.hint": "laufende Instanzen je Engine",
+  "fleet.landscape.matrix.hint": "laufende Instanzen je Engine · alle Versionen",
   "fleet.landscape.matrix.tableLabel": "Prozessdefinitionen nach Engine",
   "fleet.landscape.matrix.title": "Was wo läuft",
   "fleet.landscape.mixNote":
@@ -299,9 +299,10 @@ export const deSweep: MessageCatalog = {
   "procIncTable.loading": "Incidents werden geladen…",
   "procIncTable.noIncidents": "Keine offenen Incidents.",
   "processInstances.allTitle": "Laufende Instanzen",
+  "processInstances.allVersions": "alle Versionen",
   "processInstances.chipAll": "Alle",
   "processInstances.chipSuspended": "Ausgesetzt",
-  "processInstances.chipWithIncidents": "Mit Incidents",
+  "processInstances.chipWithIncidents": "Mit Incident",
   "processInstances.chipsLabel": "Instanzfilter",
   "processInstances.colBusinessKey": "Geschäftsschlüssel / ID",
   "processInstances.colIncident": "Incident",

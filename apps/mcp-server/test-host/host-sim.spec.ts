@@ -1511,14 +1511,14 @@ test.describe("an instance and the instance list (engine_open_cockpit)", () => {
     const chips = app.getByRole("group", { name: "Instance filters" })
     // Exact names and texts: a substring would let 540 pass for 54 and 154 running for 54.
     const all = chips.getByRole("button", { name: "All 160", exact: true })
-    const withIncidents = chips.getByRole("button", { name: "With incidents 54", exact: true })
+    const withIncidents = chips.getByRole("button", { name: "With incident 54", exact: true })
     const suspended = chips.getByRole("button", { name: "Suspended 10", exact: true })
     await expect(all).toBeVisible({ timeout: 15_000 })
     await expect(withIncidents).toBeVisible()
     await expect(suspended).toBeVisible()
     await expect(app.getByText("160 running", { exact: true })).toBeVisible()
 
-    await chips.getByRole("button", { name: /^With incidents/ }).click()
+    await chips.getByRole("button", { name: /^With incident/ }).click()
     await expect(app.getByText("54 running", { exact: true })).toBeVisible({ timeout: 15_000 })
     // Still the whole list and its suspended ones, not those that also have an incident.
     await expect(all).toBeVisible()

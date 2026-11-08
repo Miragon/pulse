@@ -212,7 +212,7 @@ export interface ProcessInstancesData {
    * not the page), whichever chip is on.
    */
   allCount: number
-  /** The With incidents chip's count: instances with an open incident in the scope and search. */
+  /** The With incident chip's count: instances with an open incident in the scope and search. */
   withIncidentCount: number
   /** The Suspended chip's count: suspended instances in the scope and search, whichever chip is on. */
   suspendedCount: number

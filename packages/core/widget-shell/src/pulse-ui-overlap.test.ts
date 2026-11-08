@@ -68,14 +68,19 @@ describe("widget-shell exports no pulse-ui name (one kit)", () => {
     for (const name of ["Button", "Icon", "formatNumber", "ToneVariant", "WidgetHeader"]) {
       expect(PULSE_UI.root, name).toContain(name)
     }
-    for (const name of ["scanGlyphs", "themeStylesheets", "catalogTextFindings"]) {
+    for (const name of [
+      "scanGlyphs",
+      "themeStylesheets",
+      "catalogTextFindings",
+      "PRODUCT_GLOSSARY",
+    ]) {
       expect(PULSE_UI.testing, name).toContain(name)
     }
     const widgets = WIDGETS.widgets.map((e) => e.name)
     for (const name of ["WidgetShell", "mountViews", "PagedRows", "useViewData"]) {
       expect(widgets, name).toContain(name)
     }
-    expect(WIDGETS.testing.map((e) => e.name)).toContain("PRODUCT_GLOSSARY")
+    expect(WIDGETS.testing.map((e) => e.name)).toContain("recordingModuleServer")
   })
 
   it("/widgets and /testing share no name with pulse-ui's root or /testing", () => {

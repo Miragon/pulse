@@ -117,7 +117,7 @@ describe("a search keeps the list and its search box mounted while page 0 is in 
     host(Widget, { [ENGINE_PROCESS_INSTANCES_DATA]: feed.handler })
 
     const search = screen.getByRole("searchbox", { name: "Search by business key or ID" })
-    fireEvent.click(screen.getByRole("button", { name: /^With incidents \d/ }))
+    fireEvent.click(screen.getByRole("button", { name: /^With incident \d/ }))
     await waitFor(() => expect(feed.calls).toHaveLength(1))
     expect(feed.calls[0].args).toMatchObject({ withIncidents: true })
     expect(search.isConnected).toBe(true)

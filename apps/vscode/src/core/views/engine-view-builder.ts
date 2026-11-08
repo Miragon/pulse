@@ -91,6 +91,6 @@ export class EngineViewBuilder {
     const running = definitions.reduce((sum, summary) => sum + summary.running, 0)
     const withIncident = definitions.reduce((sum, summary) => sum + summary.withIncident, 0)
     const processes = Labels.plural(definitions.length, "process", "processes")
-    return `${processes} · ${running} running · ${withIncident} with incident`
+    return `${processes} · ${running} running · ${withIncident} with incident · all versions`
   }
 }

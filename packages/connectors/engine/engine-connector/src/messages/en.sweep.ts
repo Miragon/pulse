@@ -131,7 +131,7 @@ export const enSweep: MessageCatalog = {
   "fleet.landscape.kpiUnreachable": "{count} unreachable",
   "fleet.landscape.legendNotDeployed":
     "An empty cell means the process is not deployed on that engine.",
-  "fleet.landscape.matrix.hint": "running instances per engine",
+  "fleet.landscape.matrix.hint": "running instances per engine · all versions",
   "fleet.landscape.matrix.tableLabel": "Process definitions by engine",
   "fleet.landscape.matrix.title": "What runs where",
   "fleet.landscape.mixNote":
@@ -296,9 +296,10 @@ export const enSweep: MessageCatalog = {
   "procIncTable.loading": "Loading incidents…",
   "procIncTable.noIncidents": "No open incidents.",
   "processInstances.allTitle": "Running instances",
+  "processInstances.allVersions": "all versions",
   "processInstances.chipAll": "All",
   "processInstances.chipSuspended": "Suspended",
-  "processInstances.chipWithIncidents": "With incidents",
+  "processInstances.chipWithIncidents": "With incident",
   "processInstances.chipsLabel": "Instance filters",
   "processInstances.colBusinessKey": "Business key / ID",
   "processInstances.colIncident": "Incident",

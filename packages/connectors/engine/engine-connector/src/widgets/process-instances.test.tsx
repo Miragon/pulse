@@ -183,7 +183,7 @@ describe("the filter chips' counts", () => {
       </TestViewHost>,
     )
     expect(chip(/^All/).textContent).toBe("All2,480")
-    expect(chip(/^With incidents/).textContent).toBe("With incidents1,234")
+    expect(chip(/^With incident/).textContent).toBe("With incident1,234")
     expect(chip(/^Suspended/).textContent).toBe("Suspended7")
     expect(screen.getByText("2,480 running")).toBeTruthy()
   })
@@ -200,7 +200,7 @@ describe("the filter chips' counts", () => {
       </TestViewHost>,
     )
     expect(chip(/^Alle/).textContent).toBe("Alle2.480")
-    expect(chip(/^Mit Incidents/).textContent).toBe("Mit Incidents1.234")
+    expect(chip(/^Mit Incident/).textContent).toBe("Mit Incident1.234")
     expect(chip(/^Ausgesetzt/).textContent).toBe("Ausgesetzt7")
     expect(screen.getByText("2.480 laufend")).toBeTruthy()
   })
@@ -219,15 +219,15 @@ describe("the filter chips' counts", () => {
         />
       </TestViewHost>,
     )
-    fireEvent.click(chip(/^With incidents/))
-    await waitFor(() => expect(chip(/^With incidents/).getAttribute("aria-pressed")).toBe("true"))
+    fireEvent.click(chip(/^With incident/))
+    await waitFor(() => expect(chip(/^With incident/).getAttribute("aria-pressed")).toBe("true"))
     expect(chip(/^All/).textContent).toBe("All12")
     expect(chip(/^Suspended/).textContent).toBe("Suspended1")
 
-    // With incidents on, the page's total is that chip's count; All still counts the whole list.
+    // With incident on, the page's total is that chip's count; All still counts the whole list.
     answer({ ...counted(13, 4, 2), totalCount: 4, filters: { withIncidents: true } })
     await waitFor(() => expect(chip(/^Suspended/).textContent).toBe("Suspended2"))
-    expect(chip(/^With incidents/).textContent).toBe("With incidents4")
+    expect(chip(/^With incident/).textContent).toBe("With incident4")
     expect(chip(/^All/).textContent).toBe("All13")
     expect(screen.getByText("4 running")).toBeTruthy()
   })

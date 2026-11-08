@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest"
-import { catalogTextFindings } from "@miragon/pulse-ui/testing"
-import { glossaryFindings, PRODUCT_GLOSSARY } from "../testing/index.js"
+import {
+  BARE_PAUSE_RULE_EN,
+  catalogTextFindings,
+  glossaryFindings,
+  PRODUCT_GLOSSARY,
+} from "@miragon/pulse-ui/testing"
 import { ASK_AI_PROMPT_LABELS } from "./ask-ai-prompt.js"
 import { ERROR_KINDS } from "./describe-error.js"
 import { ERROR_LABELS, type ErrorLabels, type ErrorSource } from "./error-labels.js"
@@ -70,12 +74,15 @@ describe("kit copy follows the voice rules", () => {
 })
 
 describe("kit copy uses the product glossary", () => {
+  // The MCP views pause nothing of their own, so any "pause" here means the engine's suspension.
+  const rules = { de: PRODUCT_GLOSSARY.de, en: [...PRODUCT_GLOSSARY.en, BARE_PAUSE_RULE_EN] }
+
   // The kit's labels sit in every module's views (hand-offs, list chrome).
   it.each(["de", "en"] as const)("kit labels (%s)", (language) => {
-    expect(glossaryFindings(KIT_LABELS[language], PRODUCT_GLOSSARY[language])).toEqual([])
+    expect(glossaryFindings(KIT_LABELS[language], rules[language])).toEqual([])
   })
 
   it.each(["de", "en"] as const)("error words (%s)", (language) => {
-    expect(glossaryFindings(ERROR_WORDS[language], PRODUCT_GLOSSARY[language])).toEqual([])
+    expect(glossaryFindings(ERROR_WORDS[language], rules[language])).toEqual([])
   })
 })

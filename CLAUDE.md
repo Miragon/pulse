@@ -48,7 +48,7 @@ command line interface (`apps/cli`) and a VS Code extension (`apps/vscode`) for 
 | `packages/connectors/engine/engine-client/`    | Generated CIB seven REST SDK (`src/generated/`), `createEngineClient`, `EngineRequestError` and the SDK-bound reads (`src/engine-contract/`); a leaf                                                                                                              |
 | `packages/connectors/engine/engine-core/`      | The Camunda 7 REST API family's workflow domain and pure engine REST rules (npm `@miragon/pulse-engine-core`): port, selection, inspect, status triage, root causes, retry/advance plans, dates, filters, variable writes; no runtime dependency                  |
 | `packages/core/ui/`                            | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the brand gates under `/testing` |
-| `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), the product glossary (`/testing`)      |
+| `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), a module's test server (`/testing`)    |
 | `playground/`                                  | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                 |
 | `docs/`                                        | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                                                        |
 | `docs/mcp/`                                    | The MCP server's pages of the docs site (getting started, usage, reference, operations, architecture, build your own, developer)                                                                                                                                  |
@@ -166,8 +166,9 @@ vollständig: du-Ansprache, AI statt `KI`, „CIB seven“, kein Gedankenstrich 
 normale Groß- und Kleinschreibung, Fehlermeldungen sagen, was passiert ist und was du tun
 kannst. Englisch übernimmt die übertragbaren Regeln: Sentence case, aktiv, kein Em-Dash als
 Verbinder. `.miragon/brand.json` schaltet den brand-lint-Hook für jede geänderte Datei ein;
-Strings in `.ts`/`.tsx` prüfen die Gates aus `@miragon/pulse-ui/testing` (Invariante 6); das
-Produkt-Glossar liegt in `@miragon/pulse-widget-shell/testing`.
+Strings in `.ts`/`.tsx` prüfen die Gates aus `@miragon/pulse-ui/testing` (Invariante 6). Dort
+liegen auch das Produkt-Glossar und die Zählbegriffe; die VS-Code-Erweiterung prüft ihre Texte im
+Code damit (`apps/vscode/test/architecture/product-words.test.ts`).
 
 ### Abweichungen für eingebettete Chat-Widgets
 
@@ -409,11 +410,15 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      `scanColors`) in its own `brand-gates.test.ts` (the host bundle's `src/ui` runs
      `scanGlyphs`; widget-shell checks its words next to its catalogs, in
      `packages/core/widget-shell/src/ui/kit-words.test.ts`), and its en/de catalogs hold the same
-     keys. One term per thing across the product: `PRODUCT_GLOSSARY`
-     (`@miragon/pulse-widget-shell/testing`; Incident,
+     keys. One term per thing across the product, the VS Code extension included:
+     `PRODUCT_GLOSSARY` (`@miragon/pulse-ui/testing`, with the brand gates; Incident,
      "Jobs ohne Versuche" / "jobs without retries", "bereitstellen", Geschäftsschlüssel,
      aussetzen, Versuche, alle Engines), checked with each connector's own terms by
-     `src/messages/glossary.test.ts` and listed in `src/messages/GLOSSARY.md`.
+     `src/messages/glossary.test.ts` and listed in `src/messages/GLOSSARY.md`, and over the
+     extension's sources by `apps/vscode/test/architecture/product-words.test.ts`. The counts
+     both tools show take the words of `COUNT_TERMS` (owner decision E2): "Incidents" are the open
+     incidents of the thing shown, "With incident" the instances that have one, and a count's
+     header names its version scope; the numbers behind a word may differ per tool.
    - **Locale on the server.** Tool results for the model are English only (the engine module's
      cockpit facts are JSON keys); a
      verdict travels as data and the widget words it in the host's language. The server never

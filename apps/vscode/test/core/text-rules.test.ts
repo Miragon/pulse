@@ -21,9 +21,9 @@ describe("the definition nodes", () => {
     const { state } = FakeWorld.seed()
     const nodes = await new DefinitionNodes(new FakeEngine(state)).list()
     expect(nodes.map((node) => [node.label, node.description, node.withIncident])).toEqual([
-      ["Dispatch order", "1 running · latest v1", 1],
-      ["Order fulfillment", "3 running · latest v2", 1],
-      ["Print label", "1 running · latest v1", 1],
+      ["Dispatch order", "1 running in all versions · latest v1", 1],
+      ["Order fulfillment", "3 running in all versions · latest v2", 1],
+      ["Print label", "1 running in all versions · latest v1", 1],
     ])
   })
 })

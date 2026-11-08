@@ -96,6 +96,12 @@ export function App() {
   view inlines (no height floor, no forced or inlined font, no raw colour, no `--cd-*` token), and
   `contrastFindings` with `toneContrastPairs()` / `ROLE_CONTRAST_PAIRS` for WCAG AA in light and
   dark (`LIGHT_STATUS_EXEMPTION` is the CI's own exemption for green and amber on light).
+- **The product's words** (`@miragon/pulse-ui/testing`, Node only): `PRODUCT_GLOSSARY` (one word
+  per thing in every Pulse UI, the MCP widgets and the VS Code webview), `glossaryFindings` over
+  a catalog, `sourceTexts` to read a source tree that keeps its words in code as one,
+  `blindGlossaryRules` and `unnamedGlossaryTerms`, `BARE_PAUSE_RULE_EN` (the strict pause rule
+  for a UI that pauses nothing of its own, as the MCP widgets) and `COUNT_TERMS`, the one word per
+  count (incidents, instances with an incident, the version scope a header names).
 - **The stylesheets**: `theme.css` (the Miragon theme without Tailwind's entry; it imports the
   vendored `--cd-*` corporate-design tokens, `cd-tokens.generated.css`), `globals.css` (Tailwind,
   the theme and the kit's sources in one line) and `fonts.css` (opt-in Geist, bundled).

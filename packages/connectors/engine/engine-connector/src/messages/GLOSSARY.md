@@ -9,10 +9,10 @@ der Zahl). Neue Begriffe kommen erst hier hinein, dann in den Test, dann in den 
 
 ## Gemeinsame Begriffe aller Module
 
-Diese Begriffe gelten in jedem Modul gleich, auch in einem, das eine Komposition dazunimmt.
-Die Regeln stehen einmal in widget-shell (`PRODUCT_GLOSSARY` in
-`@miragon/pulse-widget-shell/testing`), und `glossary.test.ts` jedes Moduls prüft damit seine
-Kataloge.
+Diese Begriffe gelten in jedem Modul gleich, auch in einem, das eine Komposition dazunimmt, und
+in der VS-Code-Erweiterung. Die Regeln stehen einmal in pulse-ui (`PRODUCT_GLOSSARY` in
+`@miragon/pulse-ui/testing`), und `glossary.test.ts` jedes Moduls prüft damit seine Kataloge;
+die Erweiterung prüft ihre Texte im Code (`apps/vscode/test/architecture/product-words.test.ts`).
 
 | Sache                                                 | Deutsch                                                            | Nicht                                | Englisch                  | Nicht                  |
 | ----------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------ | ------------------------- | ---------------------- |
@@ -20,9 +20,30 @@ Kataloge.
 | Jobs, deren Versuche aufgebraucht sind (`failedJobs`) | Jobs ohne Versuche („3 ohne Versuche“)                             | Fehlgeschlagene Jobs, tote Jobs      | jobs without retries      | failed jobs, dead jobs |
 | BPMN-Modell auf die Engine bringen                    | bereitstellen, bereitgestellt (das Ergebnis heißt Deployment)      | deployen, deployst, deployt          | deploy, deployed          | –                      |
 | Business Key                                          | Geschäftsschlüssel                                                 | GK, Business Key                     | business key              | BK                     |
-| Instanz anhalten                                      | aussetzen, ausgesetzt                                              | anhalten, angehalten, pausieren      | suspend, suspended        | pause, halt            |
+| Instanz anhalten                                      | aussetzen, ausgesetzt                                              | anhalten, angehalten, pausieren      | suspend, suspended        | pause, halt (¹)        |
 | Retries eines Jobs                                    | Versuche („Noch 2 Versuche“, „Keine Versuche mehr“), neu versuchen | Wiederholungen, wiederholen, Retries | retries, retry            | –                      |
 | Alle Engines zusammen                                 | alle Engines, Engine-übergreifend                                  | Flotte                               | all engines, cross-engine | fleet                  |
+
+(¹) Englisch prüft die gemeinsame Regel „pause“ und „halt“ nur in drei Wörtern Abstand zu dem,
+was die Engine aussetzt (Instanz, Prozess, Definition, Version, Job): VS Code pausiert seine
+Live-Updates und hält einen Bulk-Lauf an, und das bleibt so. Das Cockpit pausiert nichts Eigenes,
+darum verbietet `glossary.test.ts` hier jedes „pause“ und „halt“, mit der strengen Regel
+`BARE_PAUSE_RULE_EN` aus `@miragon/pulse-ui/testing`, die auch die Wörter der Kits von widget-shell
+und pulse-ui prüft.
+
+## Zählbegriffe
+
+Owner-Entscheidung E2 (2026-11-08): Die MCP-Widgets und VS Code dürfen verschieden zählen (alle
+Incidents oder die Wurzeln, eine Version oder alle), darum sind die Wörter gleich, nicht die
+Zahlen. Ein Wort pro Zählung, kein Wort für zwei Zählungen; welche Zahl dahinter steht, bleibt
+die Regel jedes Werkzeugs. Die Tabelle steht einmal in pulse-ui (`COUNT_TERMS` in
+`@miragon/pulse-ui/testing`).
+
+| Zählung                                                    | Deutsch                                              | Nicht         | Englisch                                         | Nicht          |
+| ---------------------------------------------------------- | ---------------------------------------------------- | ------------- | ------------------------------------------------ | -------------- |
+| Offene Incidents der gezeigten Sache                       | Incidents, als Kachel allein „Offene Incidents“      | –             | Incidents, as a tile on its own "Open incidents" | –              |
+| Instanzen mit offenem Incident                             | Mit Incident                                         | Mit Incidents | With incident                                    | With incidents |
+| Versionsbereich einer Zählung, immer im Kopf über der Zahl | alle Versionen, bei einer Version die Version („v3“) | –             | all versions, for one version the version ("v3") | –              |
 
 ## Begriffe des Engine-Moduls
 

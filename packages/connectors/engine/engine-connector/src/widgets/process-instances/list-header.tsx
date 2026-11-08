@@ -67,6 +67,9 @@ export function InstancesHeader({
             <>
               <span className="text-muted-foreground">·</span>
               <span className="font-mono">{scopedKey}</span>
+              {/* A process's list spans every version of its key: the header names that scope. */}
+              <span className="text-muted-foreground">·</span>
+              <span>{t("processInstances.allVersions")}</span>
             </>
           )}
         </>

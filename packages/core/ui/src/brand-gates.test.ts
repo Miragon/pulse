@@ -4,10 +4,13 @@ import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
 import { UI_MESSAGES } from "./locale/ui-messages.js"
 import {
+  BARE_PAUSE_RULE_EN,
   catalogTextFindings,
   colorFindings,
+  glossaryFindings,
   glyphFindings,
   iconSizeFindings,
+  PRODUCT_GLOSSARY,
   scanColors,
   scanGlyphs,
   scanIconSizes,
@@ -83,6 +86,12 @@ describe("kit copy follows the voice rules", () => {
     ),
   )("%s", (_, section, language) => {
     expect(catalogTextFindings(UI_MESSAGES[language][section], { language })).toEqual([])
+  })
+
+  it.each(["de", "en"] as const)("uses the product's words (%s)", (language) => {
+    // The kit's views pause nothing of their own: any "pause" means the engine's suspension.
+    const rules = { de: PRODUCT_GLOSSARY.de, en: [...PRODUCT_GLOSSARY.en, BARE_PAUSE_RULE_EN] }
+    expect(glossaryFindings(UI_MESSAGES[language], rules[language])).toEqual([])
   })
 })
 

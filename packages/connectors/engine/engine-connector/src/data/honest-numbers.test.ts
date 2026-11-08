@@ -139,7 +139,7 @@ const CASES: Record<string, Case> = {
   },
   buildProcessInstancesData: instancesOf({}),
   // Each chip shows its count whichever chip is on: with a chip on, All's is a read of its own.
-  "buildProcessInstancesData (With incidents chip)": instancesOf({ withIncidents: true }),
+  "buildProcessInstancesData (With incident chip)": instancesOf({ withIncidents: true }),
   "buildProcessInstancesData (Suspended chip)": instancesOf({ suspended: true }),
   // Engine-wide rows on a bare definition id: their keys (the process
   // column's drill) resolve through the statistics (enrichment).
@@ -421,8 +421,8 @@ describe.each(Object.entries(CASES))("%s", (_name, builder) => {
 
 // The chips' counts are figures on screen: reads of their own (`readOf` tells their bodies apart),
 // so the table above breaks each of them alone, whichever chip is on.
-it.each(["", " (With incidents chip)", " (Suspended chip)"])(
-  "buildProcessInstancesData%s counts All, With incidents and Suspended apart",
+it.each(["", " (With incident chip)", " (Suspended chip)"])(
+  "buildProcessInstancesData%s counts All, With incident and Suspended apart",
   async (variant) => {
     const { reads } = await build(CASES[`buildProcessInstancesData${variant}`])
     const counts = [...reads].filter((read) => read.startsWith("POST /process-instance/count"))

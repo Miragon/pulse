@@ -360,13 +360,14 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   builder sets it from `provider.branding.displayName`)
 - Copy: en + de catalogs in the brand voice (du, AI, "CIB seven", no dash connector,
   errors say what happened and what you can do, `Ja`/`Nein` for Booleans) and the terms of
-  `src/messages/GLOSSARY.md`; counts go in formatted (`formatNumber`) and the entry picks
+  `src/messages/GLOSSARY.md` (a count the VS Code webview shows too takes its word from
+  `COUNT_TERMS`); counts go in formatted (`formatNumber`) and the entry picks
   the noun's number (`countOf` from `messages/plural.ts`). The gates: `catalogTextFindings`
   over every catalog and en/de key parity of the widget catalogs (`messages/catalog-text.test.ts`),
   the glossary
   (`messages/glossary.test.ts`), `scanGlyphs` over all of `src` and `scanColors` over
-  `src/widgets` (`src/brand-gates.test.ts`; the gates come from `@miragon/pulse-ui/testing`,
-  the glossary from `@miragon/pulse-widget-shell/testing`)
+  `src/widgets` (`src/brand-gates.test.ts`; the gates, the glossary and the count terms come
+  from `@miragon/pulse-ui/testing`)
 - BPMN: viewer lifecycle and the fixed light canvas via `useBpmnViewer` (the container
   is a forced-light island, `data-theme-mode="light"`, on the paper token) +
   `BpmnZoomControls` (light in every theme, Lucide). The frame height comes from the

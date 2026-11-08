@@ -1,12 +1,14 @@
 import { readFileSync } from "node:fs"
 import { describe, expect, it } from "vitest"
 import {
+  BARE_PAUSE_RULE_EN,
   blindGlossaryRules,
+  COUNT_TERMS,
   glossaryFindings,
   PRODUCT_GLOSSARY,
   unnamedGlossaryTerms,
   type GlossaryRule,
-} from "@miragon/pulse-widget-shell/testing"
+} from "@miragon/pulse-ui/testing"
 import { catalogs } from "./index.js"
 
 /** Each rule carries a probe it must catch, so a broken pattern fails instead of passing everything. */
@@ -29,6 +31,9 @@ const DE_RULES: readonly GlossaryRule[] = [
 ]
 
 const EN_RULES: readonly GlossaryRule[] = [
+  // The cockpit pauses nothing of its own (no live updates, no runs), so any pause or halt here
+  // means the engine's suspension; the product rule only flags one next to what it suspends.
+  BARE_PAUSE_RULE_EN,
   { pattern: /\bresum(e|ed|es|ing)\b/i, use: "activate", probe: "Resume instance" },
   {
     pattern: /^(Resolved|Resolve|Retried|Fix)$/,
@@ -78,6 +83,40 @@ describe("the glossary rules spare the glossary terms", () => {
     ["Activities with incidents", LANGUAGES[1][2]],
   ])("%s", (text, rules) => {
     expect(rules.filter((rule) => rule.pattern.test(text)).map((r) => r.use)).toEqual([])
+  })
+})
+
+/** Owner decision E2 (2026-11-08): the count terms the VS Code webview shares, word for word. */
+describe("the count terms", () => {
+  it.each([
+    ["processInstances.chipWithIncidents", COUNT_TERMS.withIncident],
+    ["instanceDetail.tabIncidents", COUNT_TERMS.incidents],
+    ["cockpitDefs.colIncidents", COUNT_TERMS.incidents],
+    ["fleet.incidents", COUNT_TERMS.incidents],
+    ["fleet.landscape.colIncidents", COUNT_TERMS.incidents],
+    ["procIncFlow.modeIncidents", COUNT_TERMS.incidents],
+    ["procIncFlow.valuesColIncidents", COUNT_TERMS.incidents],
+    // A KPI tile names the same count spelled out, standing alone.
+    ["engineHealth.kpiOpenIncidents", COUNT_TERMS.incidents.long],
+    ["fleet.landscape.kpiIncidents", COUNT_TERMS.incidents.long],
+    ["incidentsKpi.cellOpenIncidents", COUNT_TERMS.incidents.long],
+    ["instanceDetail.kpiOpenIncidents", COUNT_TERMS.incidents.long],
+    ["procIncKpi.openIncidents", COUNT_TERMS.incidents.long],
+    ["procIncHeader.allVersions", COUNT_TERMS.allVersions],
+    ["processInstances.allVersions", COUNT_TERMS.allVersions],
+  ])("%s", (key, term) => {
+    expect(catalogs.de[key]).toBe(term.de)
+    expect(catalogs.en[key]).toBe(term.en)
+  })
+
+  it.each([
+    "cockpitDefs.deployedHint",
+    "procIncFlow.diagramVersion",
+    "procIncKpi.headerBadge",
+    "fleet.landscape.matrix.hint",
+  ])("%s names the version scope of its counts", (key) => {
+    expect(catalogs.de[key]).toContain(COUNT_TERMS.allVersions.de)
+    expect(catalogs.en[key]).toContain(COUNT_TERMS.allVersions.en)
   })
 })
 

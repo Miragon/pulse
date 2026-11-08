@@ -312,6 +312,7 @@
     "zeebe-bpmn-moddle": "2.0.0"
   },
   "devDependencies": {
+    "@miragon/pulse-ui": "workspace:*",
     "@types/node": "22.20.5",
     "@types/vscode": "1.101.0",
     "@vitest/browser-playwright": "5.1.0",

@@ -220,7 +220,7 @@ describe("buildProcessInstancesData: totals and page-scoped incident flags (#335
       counted: [ALL, WITH_INCIDENT, SUSPENDED],
     },
     {
-      chip: "With incidents",
+      chip: "With incident",
       args: { withIncidents: true },
       totals: { totalCount: 57, allCount: 152, withIncidentCount: 57, suspendedCount: 9 },
       counted: [ALL, WITH_INCIDENT, SUSPENDED],
@@ -250,7 +250,7 @@ describe("buildProcessInstancesData: totals and page-scoped incident flags (#335
     },
     // `active` is no chip: it scopes every count, and nothing in it is suspended.
     {
-      chip: "With incidents of the active",
+      chip: "With incident of the active",
       args: { withIncidents: true, active: true },
       totals: { totalCount: 57, allCount: 152, withIncidentCount: 57, suspendedCount: 0 },
       counted: [

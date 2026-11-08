@@ -1,6 +1,7 @@
-import type { CatalogLanguage } from "@miragon/pulse-ui/testing"
+import { sampleParams, type CatalogLanguage } from "./catalog-text.js"
+import { COUNT_TERMS } from "./count-terms.js"
 
-/** The glossary gate: one word per thing. Each rule carries a probe so a broken pattern fails instead of passing everything; PRODUCT_GLOSSARY holds the terms every module's views share, so a user reads one word per thing across them. */
+/** The glossary gate: one word per thing. Each rule carries a probe so a broken pattern fails instead of passing everything; PRODUCT_GLOSSARY holds the terms every Pulse UI shares (the MCP widgets and the VS Code webview), so a user reads one word per thing across them. */
 export interface GlossaryRule {
   pattern: RegExp
   use: string
@@ -19,6 +20,31 @@ export interface GlossaryFinding {
 
 /** The verb only: "Deployment" stays the engine's noun. */
 const DEPLOY_VERB_DE = /(?<![\p{L}])(ge)?deploy(e|en|st|t|te|ten)?(?![\p{L}])/iu
+
+/** What the engine suspends, as the noun a text names it by. */
+const SUSPENDABLE = String.raw`(?:instances?|process(?:es)?|definitions?|versions?|jobs?)`
+const PAUSE_WORD = String.raw`(?:paus|halt)(?:e|ed|es|ing|s)?`
+/**
+ * Pause and halt name the engine's suspension only within three words of what it suspends
+ * ("Paused instances", "Instance halted"): the VS Code webview pauses its live updates and halts
+ * a bulk run, and those keep their words.
+ */
+const PAUSED_ENGINE_STATE_EN = new RegExp(
+  String.raw`\b${PAUSE_WORD}\b(?:\s+\S+){0,3}?\s+${SUSPENDABLE}\b|\b${SUSPENDABLE}\b(?:\s+\S+){0,3}?\s+${PAUSE_WORD}\b`,
+  "i",
+)
+
+/**
+ * The strict English pause rule, for a UI that pauses nothing of its own (the MCP widgets and
+ * their kits: no live updates, no runs), where any "pause" or "halt" means the engine's
+ * suspension. Such a UI runs it beside {@link PRODUCT_GLOSSARY}, whose rule spares the VS Code
+ * webview's live updates and bulk runs.
+ */
+export const BARE_PAUSE_RULE_EN: GlossaryRule = {
+  pattern: /\b(paus|halt)(e|ed|es|ing|s)?\b/i,
+  use: "suspend, suspended",
+  probe: "Paused",
+}
 
 export const PRODUCT_GLOSSARY: Readonly<Record<CatalogLanguage, readonly GlossaryRule[]>> = {
   de: [
@@ -47,6 +73,12 @@ export const PRODUCT_GLOSSARY: Readonly<Record<CatalogLanguage, readonly Glossar
     { pattern: /[Ww]iederhol/, use: "Versuche, neu versuchen", probe: "Job wiederholen" },
     { pattern: /(?<![\p{L}])retr(y|ies)(?![\p{L}])/iu, use: "Versuche", probe: "3 Retries" },
     { pattern: /Flotte/, use: "alle Engines, Engine-übergreifend", probe: "Flotten-Analyse" },
+    {
+      // Instances that have an incident; "Aktivitäten mit Incidents" stays free.
+      pattern: /(?:^|\d\s+|(?<![\p{L}])Instanzen?\s+)mit\s+Incidents(?![\p{L}])/iu,
+      use: COUNT_TERMS.withIncident.de,
+      probe: "Mit Incidents",
+    },
   ],
   en: [
     {
@@ -57,20 +89,15 @@ export const PRODUCT_GLOSSARY: Readonly<Record<CatalogLanguage, readonly Glossar
     { pattern: /\bdead\s+jobs\b/i, use: "jobs without retries", probe: "3 dead jobs" },
     { pattern: /\boccurrences?\b/i, use: "incident", probe: "Occurrences per process" },
     { pattern: /\bBK\b/, use: "business key", probe: "BK: 42" },
-    { pattern: /\b(paus|halt)(e|ed|ing)?\b/i, use: "suspend, suspended", probe: "Paused" },
+    { pattern: PAUSED_ENGINE_STATE_EN, use: "suspend, suspended", probe: "Paused instances" },
     { pattern: /\bfleet\b/i, use: "all engines, cross-engine", probe: "Fleet analysis" },
-  ],
-}
-
-/** A stand-in argument: every property, and its own primitive value, is `n`. */
-function sampleParams(n: number): unknown {
-  return new Proxy(Object.create(null) as object, {
-    get: (_target, prop) => {
-      if (prop === Symbol.toPrimitive) return (hint: string) => (hint === "number" ? n : String(n))
-      if (prop === "toString" || prop === "valueOf") return () => String(n)
-      return n
+    {
+      // Instances that have an incident; "Activities with incidents" stays free.
+      pattern: /(?:^|\d\s+|\binstances?\s+)with\s+incidents\b/i,
+      use: COUNT_TERMS.withIncident.en,
+      probe: "With incidents",
     },
-  })
+  ],
 }
 
 /** Undefined when the entry needs a real shape (the catalog text test reports that). */
