@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { ReactNode } from "react"
 import {
   act,
@@ -10,7 +10,15 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react"
-import { useLocale } from "@miragon/pulse-ui"
+import {
+  LocaleProvider,
+  formatNumber,
+  formatTime,
+  getFormatLocale,
+  setFormatLocale,
+  useLocale,
+  type FormatLocale,
+} from "@miragon/pulse-ui"
 import { useDisplayModeControl } from "./display-mode-toggle.js"
 import { useInlineBudget } from "./inline-budget.js"
 import { useShellHost } from "./shell-host.js"
@@ -220,5 +228,73 @@ describe("TestViewHost: providers", () => {
       "[pulse] useViewHost() needs mountViews/mountView or TestViewHost",
     )
     error.mockRestore()
+  })
+})
+
+describe("TestViewHost: the formatters' locale", () => {
+  /** Stands in for the machine's locale: what the formatters read before a test host mounts. */
+  const MACHINE: FormatLocale = { language: "de", locale: "de-DE", timeZone: "Pacific/Auckland" }
+  const ISO = "2026-07-22T22:15:30.000Z"
+
+  function Probe() {
+    return <p data-testid="probe">{`${useLocale()}|${formatNumber(1234.5)}|${formatTime(ISO)}`}</p>
+  }
+  const probe = () => screen.getByTestId("probe").textContent
+
+  beforeEach(() => setFormatLocale(MACHINE))
+  afterEach(() => setFormatLocale(undefined))
+
+  it("formats in the locale the tree reads, English by default, never the one it found", () => {
+    render(
+      <TestViewHost host={{ timeZone: "UTC" }}>
+        <Probe />
+      </TestViewHost>,
+    )
+    expect(probe()).toMatch(/^en\|1,234\.5\|10:15:30\sPM$/)
+  })
+
+  it("formats in its own locale, else in an outer provider's, as the tree's words are", () => {
+    render(
+      <TestViewHost locale="de" host={{ timeZone: "UTC" }}>
+        <Probe />
+      </TestViewHost>,
+    )
+    expect(probe()).toBe("de|1.234,5|22:15:30")
+    cleanup()
+    render(
+      <LocaleProvider locale="de">
+        <TestViewHost host={{ timeZone: "UTC" }}>
+          <Probe />
+        </TestViewHost>
+      </LocaleProvider>,
+    )
+    expect(probe()).toBe("de|1.234,5|22:15:30")
+  })
+
+  it("formats in the host's time zone, in the runtime's for one it does not know", () => {
+    render(
+      <TestViewHost host={{ timeZone: "Asia/Tokyo" }}>
+        <Probe />
+      </TestViewHost>,
+    )
+    expect(probe()).toMatch(/^en\|1,234\.5\|7:15:30\sAM$/)
+    cleanup()
+    render(
+      <TestViewHost host={{ timeZone: "Mars/Olympus_Mons" }}>
+        <Probe />
+      </TestViewHost>,
+    )
+    expect(getFormatLocale()).toEqual({ language: "en", locale: "en", timeZone: undefined })
+  })
+
+  it("puts back the locale it replaced when it unmounts, so no test inherits another's", () => {
+    render(
+      <TestViewHost locale="de-AT">
+        <Probe />
+      </TestViewHost>,
+    )
+    expect(getFormatLocale()).toEqual({ language: "de", locale: "de-AT", timeZone: undefined })
+    cleanup()
+    expect(getFormatLocale()).toBe(MACHINE)
   })
 })

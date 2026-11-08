@@ -284,7 +284,9 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   query hook (`useToolQuery`, `useToolQueries`, `useToolMutation`, `useViewData`,
   `useQueryClient`) and the host seam (`useViewHost`, `HostModelContext`) from the view
   runtime, never from `@modelcontextprotocol/ext-apps` (ESLint); tests render them under
-  `TestViewHost`
+  `TestViewHost`, whose `locale` (else an outer `LocaleProvider`'s, else English) and
+  `host.timeZone` the formatters render in, as `LocaleGate` publishes the host's: a widget test
+  sets no `setFormatLocale` of its own and reads the same on every machine
 - Across engines (the cross-engine overview) a widget reads each engine's feed under the key
   its other readers use (`useToolQueries`, one read per engine), and a figure over engines is
   a sum of counts (`foldFleetLandscape` in `src/lib/shared/fleet-landscape.ts`), never a

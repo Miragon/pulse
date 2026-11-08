@@ -3,7 +3,11 @@
  * model context it reported. It mounts the same host contexts as the ext-apps adapter
  * (`HostContexts`: display mode, fullscreen switch, inline budget, view host), a query client,
  * the icon stroke and toasts, so a widget test needs no host. Not mounted: `HostDocument`
- * (theme, fonts, the measured inline fit) and `LocaleGate` (pass `locale` instead).
+ * (theme, fonts, the measured inline fit) and `LocaleGate`. In its place the tree reads `locale`
+ * (else an outer `LocaleProvider`'s, else English), and the formatters of `@miragon/pulse-ui`
+ * render in that locale and `host.timeZone`, published as the gate publishes the host's before
+ * the tree renders and put back on unmount: a widget test formats a number or a date the same on
+ * every machine, never in the machine's locale.
  */
 import {
   createContext,
@@ -15,9 +19,10 @@ import {
   type ReactNode,
 } from "react"
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query"
-import { LocaleProvider, ToastProvider, ICON_STROKE } from "@miragon/pulse-ui"
+import { LocaleProvider, ToastProvider, ICON_STROKE, useLocale } from "@miragon/pulse-ui"
 import { LucideProvider } from "lucide-react"
 import type { ToolResult } from "../protocol/tool-result.js"
+import { formatLocaleOf, isFormatLocale, usePublishedFormatLocale } from "./format-locale.js"
 import { HostContexts, type RequestDisplayMode } from "./host-contexts.js"
 import type { ShellHost } from "./shell-host.js"
 import { createViewQueryClient } from "./tool-query.js"
@@ -41,11 +46,17 @@ export interface TestViewHostProps {
   onHostAction?: (action: HostAction) => void
   /** Each mounted `HostModelContext` reports its content (last writer wins). */
   onModelContext?: (text: string) => void
-  /** Merged over `{ connected: true, displayMode: "inline", availableDisplayModes: [] }`. */
+  /**
+   * Merged over `{ connected: true, displayMode: "inline", availableDisplayModes: [] }`. Its
+   * `timeZone` is the formatters' zone, as a host's is (unknown or none: the runtime's own).
+   */
   host?: Partial<ShellHost>
   /** Default: `createTestQueryClient()`, once per mount. */
   client?: QueryClient
-  /** Wraps a `LocaleProvider` only when given, so an outer one wins. */
+  /**
+   * Wraps a `LocaleProvider` only when given, so an outer one wins. Either way the formatters
+   * render in the locale the tree reads (this one, else the outer provider's, else English).
+   */
   locale?: string
   children: ReactNode
 }
@@ -125,6 +136,16 @@ export function TestViewHost({
     (mode) => onHostAction?.({ type: "requestDisplayMode", mode }),
     [onHostAction],
   )
+  const outerLocale = useLocale()
+  const target = useMemo(
+    () => formatLocaleOf(locale ?? outerLocale, shell.timeZone),
+    [locale, outerLocale, shell.timeZone],
+  )
+  const published = usePublishedFormatLocale(target)
+  const [ready, setReady] = useState(false)
+  if (!ready && isFormatLocale(published, target)) setReady(true)
+  if (!ready) return null
+
   const tree = (
     <ModelContextSinkContext.Provider value={onModelContext}>
       <HostContexts shell={shell} host={fake} requestDisplayMode={request}>

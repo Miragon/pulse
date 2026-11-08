@@ -265,7 +265,9 @@ async function readThroughput(client: Client, key: string, nowMs: number): Promi
     .map(([activityId, counts]) => ({ activityId, ...place(activityId), ...counts }))
     .sort(
       (a, b) =>
-        b.passed - a.passed || b.running - a.running || a.activityId.localeCompare(b.activityId),
+        b.passed - a.passed ||
+        b.running - a.running ||
+        a.activityId.localeCompare(b.activityId, "en"),
     )
   return {
     processDefinitionKey: key,

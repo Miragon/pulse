@@ -99,7 +99,7 @@ function processesOf(engines: readonly ReadEngine[]): LandscapeProcess[] {
       (a, b) =>
         Number(b.shared) - Number(a.shared) ||
         b.runningTotal - a.runningTotal ||
-        a.processDefinitionKey.localeCompare(b.processDefinitionKey),
+        a.processDefinitionKey.localeCompare(b.processDefinitionKey, "en"),
     )
 }
 

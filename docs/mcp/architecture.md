@@ -88,7 +88,8 @@ A widget never talks to its host. It reads host-agnostic contexts from widget-sh
 runtime (`useViewHost` for tool calls and hand-offs, the theme, locale, display mode and height
 budget), and one adapter fills them: today the MCP Apps adapter over the official `App` of
 `@modelcontextprotocol/ext-apps`, the only code that imports its view runtime (an ESLint gate
-keeps it so). `TestViewHost` fills the same contexts in tests.
+keeps it so). `TestViewHost` fills the same contexts in tests and publishes the formatters'
+locale as the view root does, so a widget test reads the same on every machine.
 
 The MCP Apps host is therefore one host among several possible ones. A web app that shows the
 same React components brings an adapter of its own and leaves the widgets as they are. The engine

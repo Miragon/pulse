@@ -189,7 +189,9 @@ happy-dom`, then render the view or widget under `TestViewHost` from
   `@miragon/pulse-widget-shell/widgets` with fake `tools`, and assert what it
   shows, what it asked the host (`onHostAction`: tool calls, follow-ups,
   links) and what it told the model (`onModelContext`). No server, no host,
-  no view runtime.
+  no view runtime. Numbers and dates render in the test host's `locale`
+  (English without one) and its `host.timeZone`, as the view root renders
+  them in the host's, so the test reads the same on every machine.
 
 Then a render check of the real bundle (the widget test renders the component,
 not the built bundle in a host). `pnpm dev` starts the official MCP Inspector

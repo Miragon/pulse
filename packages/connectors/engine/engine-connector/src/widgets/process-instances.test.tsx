@@ -1,7 +1,6 @@
 // @vitest-environment happy-dom
-import { afterEach, beforeEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it } from "vitest"
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
-import { setFormatLocale } from "@miragon/pulse-ui"
 import { complementaryFlags } from "@miragon/pulse-engine-core"
 import { ENGINE_PROCESS_INSTANCES_DATA } from "../tool-names.js"
 import type { ProcessInstancesData } from "../view-models.js"
@@ -149,15 +148,6 @@ describe("the engine-wide list's columns", () => {
 // The chips count what each of them lists: the payload ON SCREEN, never the request, so a
 // chip's count stays put while its own page is in flight.
 describe("the filter chips' counts", () => {
-  // The numbers' format is the published locale's, never the machine's: a German one would
-  // read 1.234 in the English case.
-  beforeEach(() => {
-    setFormatLocale({ language: "en", locale: "en-US" })
-  })
-  afterEach(() => {
-    setFormatLocale(undefined)
-  })
-
   /** No chip on: the page's total is All's count. */
   const counted = (all: number, incidents: number, suspended: number): ProcessInstancesData => ({
     ...firstPage({}),
@@ -189,7 +179,6 @@ describe("the filter chips' counts", () => {
   })
 
   it("formats them in the host's locale", () => {
-    setFormatLocale({ language: "de", locale: "de-DE" })
     render(
       <TestViewHost locale="de">
         <ProcessInstancesView

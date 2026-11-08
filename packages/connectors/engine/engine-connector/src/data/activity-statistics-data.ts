@@ -74,7 +74,7 @@ async function readRunning(
       (a, b) =>
         b.running - a.running ||
         b.incidents - a.incidents ||
-        a.activityId.localeCompare(b.activityId),
+        a.activityId.localeCompare(b.activityId, "en"),
     )
   return {
     processDefinitionKey: key,
