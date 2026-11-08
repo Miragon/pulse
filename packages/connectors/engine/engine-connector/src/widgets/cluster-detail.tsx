@@ -11,6 +11,7 @@ import {
   WidgetHeader,
   PagedListFooter,
   DrillButton,
+  SITUATION_TONES,
 } from "@miragon/pulse-ui"
 import {
   HandOffButton,
@@ -111,7 +112,7 @@ function ClusterHeader({ data, engineId }: { data: ClusterDetailData; engineId: 
   )
   return (
     <WidgetHeader
-      badge={<StatusBadge tone="danger">{data.incidentType}</StatusBadge>}
+      badge={<StatusBadge tone={SITUATION_TONES.openIncident}>{data.incidentType}</StatusBadge>}
       // The activity by its name; its BPMN id only where it has none (#322 U13).
       title={data.activityName ?? <span className="font-mono">{data.activityId}</span>}
       sub={
@@ -144,7 +145,7 @@ function ClusterKpis({ data }: { data: ClusterDetailData }) {
         {
           label: t("clusterDetail.kpiAffected"),
           value: formatCountAtLeast(data.incidentCount, data.scannedIncidentCount),
-          tone: "danger",
+          tone: SITUATION_TONES.openIncident,
         },
         // How fast it grows is a count, not a second state (#322 U14).
         { label: t("clusterDetail.kpiNewLastHour"), value: formatCount(data.lastHourCount) },

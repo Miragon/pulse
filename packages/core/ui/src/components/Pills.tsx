@@ -1,6 +1,7 @@
 import type { ReactElement, ReactNode } from "react"
 import { useUiMessages } from "../locale/locale-provider.js"
-import { resolveTone, TONE_BORDER, TONE_DOT, TONE_SOFT, type ToneName } from "../lib/tone-utils.js"
+import { TONE_BORDER, TONE_DOT, TONE_SOFT } from "../lib/tone-utils.js"
+import { resolveTone, type ToneName } from "../tones/index.js"
 import { cn } from "../lib/utils.js"
 
 export interface LivePillProps {

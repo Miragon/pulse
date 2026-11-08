@@ -3,6 +3,7 @@ import {
   DrillButton,
   KpiGrid,
   StatusBadge,
+  SITUATION_TONES,
   WidgetHeader,
   type ToneVariant,
   VersionChip,
@@ -33,8 +34,8 @@ export function instanceStatus(
       : isSuspended
         ? t("instanceDetail.statusSuspended")
         : t("instanceDetail.statusRunning")
-  // #322 U14: green would claim "done well", and ended or cancelled is no alarm.
-  const tone = cancelled || ended ? ("neutral" as const) : isSuspended ? "warning" : "info"
+  // The one table every Pulse UI reads: running is info, suspended and ended are neutral.
+  const tone = SITUATION_TONES[cancelled || ended ? "ended" : isSuspended ? "suspended" : "running"]
   return { label, tone }
 }
 
@@ -180,7 +181,7 @@ export function InstanceKpis({
         {
           label: t("instanceDetail.kpiOpenIncidents"),
           value: formatNumber(openIncidentCount),
-          tone: openIncidentCount > 0 ? "danger" : undefined,
+          tone: openIncidentCount > 0 ? SITUATION_TONES.openIncident : undefined,
         },
         {
           label: t("instanceDetail.kpiVariables"),

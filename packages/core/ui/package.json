@@ -45,6 +45,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./tones": {
+      "types": "./dist/tones/index.d.ts",
+      "import": "./dist/tones/index.js"
+    },
     "./testing": {
       "types": "./dist/testing/index.d.ts",
       "import": "./dist/testing/index.js"

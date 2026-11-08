@@ -94,6 +94,7 @@ const OWN_FAMILY = "connectors-own-their-family"
 const CLIENT_LEAF = "clients-are-leaves"
 const CORE = "core-is-foundation"
 const UI_LEAF = "ui-is-a-leaf"
+const UI_FOUNDATION = "ui-foundation-entries-import-nothing"
 const SHELL_VIEWS = "widget-shell-views-browser-only"
 const SHELL_HEADLESS = "widget-shell-server-headless"
 const SHELL_PROTOCOL = "widget-shell-protocol-is-a-leaf"
@@ -183,6 +184,7 @@ const LEAVES = [
   `${UI}/src/target.ts`,
   `${UI}/src/lib.ts`,
   `${UI}/src/testing/glyphs.ts`,
+  `${UI}/src/tones/situations.ts`,
   `${ENGINE}/src/target.ts`,
   `${ENGINE}/src/lib.ts`,
   `${ENGINE}/src/testing/fixture.ts`,
@@ -537,6 +539,36 @@ const SUITES = [
       [UI_SRC, "./lib.ts", []],
       [ENGINE_CONNECTOR_SRC, "@miragon/pulse-ui", []],
       [SERVER_SRC, "@miragon/pulse-ui", []],
+    ],
+  },
+  {
+    rule: UI_FOUNDATION,
+    title: "pulse-ui's framework-free entries import only their own folder",
+    cases: [
+      // React and the kit's own libraries are the kit's, never its foundation's; nor a built-in.
+      ...["react", "lucide-react", "radix-ui", "tailwind-merge", "node:fs"].map((spec) => [
+        `${UI}/src/tones/to-npm.ts`,
+        spec,
+        [UI_FOUNDATION],
+      ]),
+      // Another file of the kit, at runtime or for a type, its ./testing tree too.
+      [`${UI}/src/tones/to-kit.ts`, "../lib.ts", [UI_FOUNDATION]],
+      [`${UI}/src/tones/to-kit-type.ts`, "../lib.ts", [UI_FOUNDATION], "type"],
+      [`${UI}/src/tones/to-testing.ts`, "../testing/glyphs.ts", [NO_TESTING, UI_FOUNDATION]],
+      // A workspace package: the leaf rule bites as well.
+      [`${UI}/src/tones/to-shell.ts`, "@miragon/pulse-widget-shell", [UI_FOUNDATION, UI_LEAF]],
+      [
+        `${UI}/src/tones/escape.ts`,
+        "../../../widget-shell/src/target.ts",
+        [DEEP, UI_FOUNDATION, UI_LEAF],
+      ],
+      // Allowed: its own folder, its tests; the kit imports it, and so does the extension.
+      [`${UI}/src/tones/index.ts`, "./situations.ts", []],
+      [`${UI}/src/tones/situations.test.ts`, "vitest", []],
+      [`${UI}/src/lib/tone-utils.ts`, "../tones/situations.ts", []],
+      [UI_SRC, "./tones/situations.ts", []],
+      [`${EXT}/src/webview/tone.ts`, "@miragon/pulse-ui/tones", []],
+      [`${EXT}/src/core/tone.ts`, "@miragon/pulse-ui/tones", [], "type"],
     ],
   },
   {

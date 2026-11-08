@@ -53,8 +53,28 @@ const PLANTED: Readonly<Record<string, string>> = {
   "test/core/escapes-into-engine-core.test.ts":
     "import { rootCause } from '../../../../packages/connectors/engine/engine-core/src/root-cause.ts';\nexport const cause = rootCause;\n",
   "../../packages/connectors/engine/engine-core/src/root-cause.ts": "export const rootCause = 1;\n",
+  "src/webview/reads-tones.ts":
+    "import { SITUATION_TONES } from '@miragon/pulse-ui/tones';\nexport const tones = SITUATION_TONES;\n",
+  "src/core/reads-tones.ts":
+    "import type { ToneVariant } from '@miragon/pulse-ui/tones';\nexport type Tone = ToneVariant;\n",
+  "src/host/reads-tones.ts":
+    "import { countTone } from '@miragon/pulse-ui/tones';\nexport const tone = countTone;\n",
+  "src/webview/renders-kit.ts":
+    "import { Button } from '@miragon/pulse-ui';\nexport const button = Button;\n",
+  "src/core/ships-ui-testing.ts":
+    "import { PRODUCT_GLOSSARY } from '@miragon/pulse-ui/testing';\nexport const glossary = PRODUCT_GLOSSARY;\n",
+  "src/webview/reads-kit-subpath.ts":
+    "import { Button } from '@miragon/pulse-ui/kit';\nexport const button = Button;\n",
+  "src/webview/escapes-into-tones.ts":
+    "import { countTone } from '../../../../packages/core/ui/src/tones/count-tone.ts';\nexport const tone = countTone;\n",
+  "src/core/escapes-into-built-tones.ts":
+    "import { countTone } from '../../../../packages/core/ui/dist/tones/count-tone.js';\nexport const tone = countTone;\n",
+  "../../packages/core/ui/src/tones/count-tone.ts": "export const countTone = 1;\n",
+  "../../packages/core/ui/dist/tones/count-tone.js": "export const countTone = 1;\n",
+  "test/core/reads-ui-testing.test.ts":
+    "import { PRODUCT_GLOSSARY } from '@miragon/pulse-ui/testing';\nexport const glossary = PRODUCT_GLOSSARY;\n",
   "package.json":
-    '{ "name": "pulse", "private": true, "dependencies": { "@miragon/pulse-engine-core": "workspace:*" } }\n',
+    '{ "name": "pulse", "private": true, "dependencies": { "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-ui": "workspace:*" } }\n',
 }
 
 const roots: string[] = []
@@ -112,6 +132,11 @@ describe("the dependency rules", () => {
     const engineCore = "apps/vscode/node_modules/@miragon/pulse-engine-core/dist/index.d.ts"
     const engineCoreTesting =
       "apps/vscode/node_modules/@miragon/pulse-engine-core/dist/testing/index.d.ts"
+    const kit = "apps/vscode/node_modules/@miragon/pulse-ui/dist/index.d.ts"
+    const kitTesting = "apps/vscode/node_modules/@miragon/pulse-ui/dist/testing/index.d.ts"
+    const tones = "apps/vscode/node_modules/@miragon/pulse-ui/dist/tones/index.d.ts"
+    const tonesSource = "packages/core/ui/src/tones/count-tone.ts"
+    const tonesBuild = "packages/core/ui/dist/tones/count-tone.js"
     expect(violationsIn(plantedTree()).sort()).toEqual(
       [
         `engine-core-only-in-the-c7-adapter: apps/vscode/src/adapters/other/runs-engine-core.ts -> ${engineCore}`,
@@ -135,6 +160,18 @@ describe("the dependency rules", () => {
         `not-in-allowed: apps/vscode/src/host/reads-model-library.ts -> ${library}`,
         "not-in-allowed: apps/vscode/src/webview/runtime-import.ts -> apps/vscode/src/core/protocol/index.ts",
         "protocol-imports-nothing: apps/vscode/src/core/protocol/leaky.ts -> apps/vscode/src/contract/index.ts",
+        `not-in-allowed: apps/vscode/src/host/reads-tones.ts -> ${tones}`,
+        `pulse-ui-only-its-foundation: apps/vscode/src/webview/renders-kit.ts -> ${kit}`,
+        `not-in-allowed: apps/vscode/src/webview/renders-kit.ts -> ${kit}`,
+        `pulse-ui-only-its-foundation: apps/vscode/src/core/ships-ui-testing.ts -> ${kitTesting}`,
+        `not-in-allowed: apps/vscode/src/core/ships-ui-testing.ts -> ${kitTesting}`,
+        "pulse-ui-only-its-foundation: apps/vscode/src/webview/reads-kit-subpath.ts -> @miragon/pulse-ui/kit",
+        "not-in-allowed: apps/vscode/src/webview/reads-kit-subpath.ts -> @miragon/pulse-ui/kit",
+        "not-to-unresolvable: apps/vscode/src/webview/reads-kit-subpath.ts -> @miragon/pulse-ui/kit",
+        `pulse-ui-only-its-foundation: apps/vscode/src/webview/escapes-into-tones.ts -> ${tonesSource}`,
+        `not-in-allowed: apps/vscode/src/webview/escapes-into-tones.ts -> ${tonesSource}`,
+        `pulse-ui-only-its-foundation: apps/vscode/src/core/escapes-into-built-tones.ts -> ${tonesBuild}`,
+        `not-in-allowed: apps/vscode/src/core/escapes-into-built-tones.ts -> ${tonesBuild}`,
       ].sort(),
     )
   })

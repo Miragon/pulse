@@ -89,8 +89,8 @@ package customers build their own connectors and composed servers on (see the
   Layout, states and feedback: `ListTable` scrolls inside a named, keyboard-reachable region
   (column priorities via `hideBelow`, the row actions pinned with `sticky`, the sorted
   column marked with `sort`, heads over adjacent columns with `groups`), `IdCell`/`IdText`
-  show an id shortened in Geist Mono with a copy button, `countTone`/`severityTone` are the one
-  severity ladder for incident and job counts, `describeError` turns an engine or
+  show an id shortened in Geist Mono with a copy button (the severity ladder for incident and
+  job counts, `countTone`/`severityTone`, is pulse-ui's), `describeError` turns an engine or
   transport failure into what happened and what you can do (pulse-ui's `ErrorState` in
   `ViewDataState`, `QueryFallback`, `useDetailView`, raw text under "Details", retry
   required), `useActionFeedback` raises pulse-ui's toasts after a write (an engine

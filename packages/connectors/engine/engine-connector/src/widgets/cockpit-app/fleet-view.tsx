@@ -6,8 +6,9 @@ import {
   SectionHeading,
   TONE_DOT,
   cn,
+  countTone,
 } from "@miragon/pulse-ui"
-import { countTone, HandOffButton } from "@miragon/pulse-widget-shell/widgets"
+import { HandOffButton } from "@miragon/pulse-widget-shell/widgets"
 import { ArrowRight } from "lucide-react"
 import type { CockpitDashboardData } from "../../view-models.js"
 import {

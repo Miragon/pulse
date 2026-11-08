@@ -1,4 +1,11 @@
-import { formatNumber, formatTimestamp, KpiGrid, LivePill, WidgetHeader } from "@miragon/pulse-ui"
+import {
+  formatNumber,
+  formatTimestamp,
+  KpiGrid,
+  LivePill,
+  WidgetHeader,
+  SITUATION_TONES,
+} from "@miragon/pulse-ui"
 import {
   HandOffButton,
   ViewDataState,
@@ -100,7 +107,7 @@ function IncidentOverviewKpiView({
           {
             label: t("incidentsKpi.cellOpenIncidents"),
             value: formatNumber(data.totalCount),
-            tone: data.totalCount > 0 ? "danger" : undefined,
+            tone: data.totalCount > 0 ? SITUATION_TONES.openIncident : undefined,
           },
           {
             label: t("incidentsKpi.cellProcessesAffected"),

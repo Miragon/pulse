@@ -204,6 +204,9 @@ importers:
       '@miragon/pulse-engine-core':
         specifier: workspace:*
         version: link:../../packages/connectors/engine/engine-core
+      '@miragon/pulse-ui':
+        specifier: workspace:*
+        version: link:../../packages/core/ui
       bpmn-js:
         specifier: 18.31.1
         version: 18.31.1
@@ -223,9 +226,6 @@ importers:
         specifier: 2.0.0
         version: 2.0.0(moddle@8.2.1)
     devDependencies:
-      '@miragon/pulse-ui':
-        specifier: workspace:*
-        version: link:../../packages/core/ui
       '@types/node':
         specifier: 22.20.5
         version: 22.20.5

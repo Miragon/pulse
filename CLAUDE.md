@@ -39,21 +39,21 @@ extension `@modelcontextprotocol/ext-apps`, its UI on `@miragon/pulse-ui`) for C
 including interactive React widgets (MCP Apps), plus a
 command line interface (`apps/cli`) and a VS Code extension (`apps/vscode`) for the same engines.
 
-| Path                                           | Contents                                                                                                                                                                                                                                                          |
-| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/mcp-server/`                             | The MCP host: composes plugins, bundles the widget UI, serves HTTP on `:8400`                                                                                                                                                                                     |
-| `apps/cli/`                                    | The CLI (npm `@miragon/pulse-cli`): every REST operation of the engine as a command, generated from its OpenAPI spec, plus the workflow commands; its rules in `apps/cli/CLAUDE.md`                                                                               |
-| `apps/vscode/`                                 | Pulse for VS Code (`pulse-cockpit`, a .vsix): a Preact webview over an engine-neutral contract and core, the C7 adapter; its rules in `apps/vscode/CLAUDE.md`                                                                                                     |
-| `packages/connectors/engine/engine-connector/` | engine module: operations tools, widget tools, widgets                                                                                                                                                                                                            |
-| `packages/connectors/engine/engine-client/`    | Generated CIB seven REST SDK (`src/generated/`), `createEngineClient`, `EngineRequestError` and the SDK-bound reads (`src/engine-contract/`); a leaf                                                                                                              |
-| `packages/connectors/engine/engine-core/`      | The Camunda 7 REST API family's workflow domain and pure engine REST rules (npm `@miragon/pulse-engine-core`): port, selection, inspect, status triage, root causes, retry/advance plans, dates, filters, variable writes; no runtime dependency                  |
-| `packages/core/ui/`                            | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the brand gates under `/testing` |
-| `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), a module's test server (`/testing`)    |
-| `playground/`                                  | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                 |
-| `docs/`                                        | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                                                        |
-| `docs/mcp/`                                    | The MCP server's pages of the docs site (getting started, usage, reference, operations, architecture, build your own, developer)                                                                                                                                  |
-| `docs/cli/`                                    | The CLI's pages of the docs site (install, commands, configuration, authentication, AI agents, development)                                                                                                                                                       |
-| `docs/vscode/`                                 | The VS Code extension's pages of the docs site (installation, configuration, usage, architecture)                                                                                                                                                                 |
+| Path                                           | Contents                                                                                                                                                                                                                                                                                                  |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/mcp-server/`                             | The MCP host: composes plugins, bundles the widget UI, serves HTTP on `:8400`                                                                                                                                                                                                                             |
+| `apps/cli/`                                    | The CLI (npm `@miragon/pulse-cli`): every REST operation of the engine as a command, generated from its OpenAPI spec, plus the workflow commands; its rules in `apps/cli/CLAUDE.md`                                                                                                                       |
+| `apps/vscode/`                                 | Pulse for VS Code (`pulse-cockpit`, a .vsix): a Preact webview over an engine-neutral contract and core, the C7 adapter; its rules in `apps/vscode/CLAUDE.md`                                                                                                                                             |
+| `packages/connectors/engine/engine-connector/` | engine module: operations tools, widget tools, widgets                                                                                                                                                                                                                                                    |
+| `packages/connectors/engine/engine-client/`    | Generated CIB seven REST SDK (`src/generated/`), `createEngineClient`, `EngineRequestError` and the SDK-bound reads (`src/engine-contract/`); a leaf                                                                                                                                                      |
+| `packages/connectors/engine/engine-core/`      | The Camunda 7 REST API family's workflow domain and pure engine REST rules (npm `@miragon/pulse-engine-core`): port, selection, inspect, status triage, root causes, retry/advance plans, dates, filters, variable writes; no runtime dependency                                                          |
+| `packages/core/ui/`                            | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the tones without React under `/tones`, the brand gates under `/testing` |
+| `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), a module's test server (`/testing`)                                            |
+| `playground/`                                  | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                                                         |
+| `docs/`                                        | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                                                                                                |
+| `docs/mcp/`                                    | The MCP server's pages of the docs site (getting started, usage, reference, operations, architecture, build your own, developer)                                                                                                                                                                          |
+| `docs/cli/`                                    | The CLI's pages of the docs site (install, commands, configuration, authentication, AI agents, development)                                                                                                                                                                                               |
+| `docs/vscode/`                                 | The VS Code extension's pages of the docs site (installation, configuration, usage, architecture)                                                                                                                                                                                                         |
 
 Three axes decide where code goes, and they stay apart:
 
@@ -382,9 +382,14 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    - **A status is a tone, never a coloured word.** `ToneVariant` is
      `danger | warning | success | info | neutral`: an open incident or a failed job without retries
      is `danger`, a failed job with retries left or a degraded engine `warning`, a count without a
-     state `neutral`; the ladder is widget-shell's `countTone`/`severityTone`. An engine's own state
-     is the tone of its one verdict (`VERDICT_TONE`, the health feed's `status`): the overview's
-     badge and the engine's dot on the landing and the fleet view alike. Each tone has three
+     state `neutral`; one table gives each situation its tone in every Pulse UI (`SITUATION_TONES`
+     in pulse-ui's framework-free `@miragon/pulse-ui/tones`: running `info`, suspended, ended and a
+     process that runs without a problem `neutral`, never a green "healthy"; the VS Code webview's
+     state labels read it too; a widget reads a state's tone there, never a literal), the count
+     ladder over it pulse-ui's `countTone`/`severityTone`. An engine's own state is the tone of its
+     one verdict (`VERDICT_TONE`, the health feed's `status`; `ok` is the table's `healthy`,
+     neutral; the VS Code extension shows no verdict): the overview's badge and the engine's dot
+     on the landing and the fleet view alike. Each tone has three
      roles: `--<tone>` (dot, edge, icon), `--<tone>-soft` (tint, black text) and `--<tone>-ink`
      (text on card or page, never on a tint, never a number). Numbers stay neutral. Components use
      role names only (`scanColors`); `packages/core/ui/src/theme/tone-contrast.test.ts` holds every
@@ -521,7 +526,10 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      and pulse-ui its leaf, no package or app imports an app, no cross-package deep imports. The
      interface apps import nothing of the MCP/UI/server stack, zod included, and no workspace
      package except a family core they bundle (`@miragon/pulse-engine-core`: the CLI's, and the
-     VS Code extension's in its C7 adapter alone, `apps/vscode/src/adapters/c7`); a family
+     VS Code extension's in its C7 adapter alone, `apps/vscode/src/adapters/c7`) and, in the
+     VS Code extension's core and webview, pulse-ui's framework-free tones
+     (`@miragon/pulse-ui/tones`, which imports nothing: `ui-foundation-entries-import-nothing`;
+     the extension's `pulse-ui-only-its-foundation` keeps the React kit out); a family
      core (`family-core-is-a-leaf`) is imported only by its family's connector and the apps (or
      the app part) that bundle it (`family-core-consumers`, `CORE_BUNDLERS`), and no shipped code imports a
      `./testing` entry (`shipped-code-not-to-testing`). The family rules key on the roles, so a

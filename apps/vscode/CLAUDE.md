@@ -75,11 +75,16 @@ The dependency rules are closed-world (`apps/vscode/.dependency-cruiser.cjs`): a
 is not explicitly allowed fails `pnpm lint:architecture:vscode` with a message that says where
 it belongs (dependency-cruiser reports it as `not-in-allowed` and takes the wording from the
 forbidden rule of that name, which never fires itself). Nothing outside them is allowed, so no
-widget-shell, no React, no zod and one workspace package only: the C7 adapter
-(`apps/vscode/src/adapters/c7` and its tests in `apps/vscode/test/adapters/c7`) imports
+widget-shell, no React, no zod and two workspace packages only, each bundled by esbuild. The C7
+adapter (`apps/vscode/src/adapters/c7` and its tests in `apps/vscode/test/adapters/c7`) imports
 `@miragon/pulse-engine-core`, the Camunda 7 family's workflow domain that the CLI and the MCP
-server run too, through its main entry, and esbuild bundles it
-(`engine-core-only-in-the-c7-adapter`; the repository's `family-core-consumers`). A change to
+server run too, through its main entry (`engine-core-only-in-the-c7-adapter`; the repository's
+`family-core-consumers`). The core and the webview import Pulse's UI foundation as
+`@miragon/pulse-ui/tones` only: the tone vocabulary and `SITUATION_TONES`, the one tone per
+situation the MCP widgets show too, framework-free (`pulse-ui-only-its-foundation`; the
+repository's `ui-foundation-entries-import-nothing`). The React kit stays out; the webview draws
+a tone with its own CSS classes, and `apps/vscode/test/webview/situation-tones.test.tsx` holds
+its state labels and diagram badges to the table. A change to
 how an instance is inspected, where it waits, what its root cause is or when a 404 names a
 missing resource (`isMissing`) goes into engine-core, never into a copy here; the adapter's
 `InspectView` is engine-core's instance view, not a mirror of it. Contract, core, webview and

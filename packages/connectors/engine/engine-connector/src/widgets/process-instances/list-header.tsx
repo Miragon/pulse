@@ -1,4 +1,4 @@
-import { formatNumber, LivePill, WidgetHeader } from "@miragon/pulse-ui"
+import { formatNumber, LivePill, SITUATION_TONES, WidgetHeader } from "@miragon/pulse-ui"
 import { HandOffButton } from "@miragon/pulse-widget-shell/widgets"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
 import { useT } from "../../messages/use-t.js"
@@ -60,7 +60,8 @@ export function InstancesHeader({
       title={title}
       sub={
         <>
-          <LivePill tone="info">
+          {/* The running state's tint and dot; the count inside stays in the text colour. */}
+          <LivePill tone={SITUATION_TONES.running}>
             {t("processInstances.runningCount", { count: formatNumber(total) })}
           </LivePill>
           {scopedKey && (

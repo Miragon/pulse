@@ -1,4 +1,4 @@
-import { CountPill, FOCUS_RING, cn, formatNumber } from "@miragon/pulse-ui"
+import { CountPill, FOCUS_RING, cn, formatNumber, SITUATION_TONES } from "@miragon/pulse-ui"
 import type { IncidentsByProcess } from "../../view-models.js"
 import { useT } from "../../messages/use-t.js"
 
@@ -48,7 +48,9 @@ export function EmptyStateWithSiblings({
                   {s.processDefinitionName ?? s.processDefinitionKey}
                 </span>
                 {/* No coloured digits: the count on the danger tint and edge. */}
-                <CountPill tone="danger">{formatNumber(s.incidentCount)}</CountPill>
+                <CountPill tone={SITUATION_TONES.openIncident}>
+                  {formatNumber(s.incidentCount)}
+                </CountPill>
               </button>
             ))}
           </div>

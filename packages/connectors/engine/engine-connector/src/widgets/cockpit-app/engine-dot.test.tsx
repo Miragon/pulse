@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it } from "vitest"
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react"
 import { DEFAULT_VERDICT_THRESHOLDS, engineVerdict } from "@miragon/pulse-engine-core"
-import { TONE_DOT, type ToneVariant } from "@miragon/pulse-ui"
+import { SITUATION_TONES, TONE_DOT, type ToneVariant } from "@miragon/pulse-ui"
 import { TestViewHost, createTestQueryClient } from "@miragon/pulse-widget-shell/widgets"
 import { ENGINE_COCKPIT_OVERVIEW_DATA, ENGINE_HEALTH_DATA } from "../../tool-names.js"
 import type { CockpitDashboardData, EngineHealthData } from "../../view-models.js"
@@ -34,6 +34,7 @@ const ENGINES: Record<string, EngineCounts> = {
     running: 10,
   },
   "stuck-jobs": { openIncidents: 0, largestCause: 0, failedJobs: 4, running: 10 },
+  steady: { openIncidents: 0, largestCause: 0, failedJobs: 0, running: 10 },
   idle: { openIncidents: 0, largestCause: 0, failedJobs: 0, running: 0 },
 }
 
@@ -134,7 +135,16 @@ describe("the landing's engine dot follows the one verdict", () => {
     const row = await screen.findByRole("button", {
       name: /^stuck-jobs\s*,\s*4 jobs without retries$/,
     })
-    await waitFor(() => expect(dotTone(row)).toBe("success"))
+    await waitFor(() => expect(healthQueryDone("stuck-jobs")).toBe(true))
+    expect(dotTone(row)).toBe("neutral")
+  })
+
+  it("an engine the verdict calls ok is the table's healthy: neutral, never green", async () => {
+    renderLanding()
+    const row = await landingRow("steady")
+    await waitFor(() => expect(healthQueryDone("steady")).toBe(true))
+    expect(dotTone(row)).toBe(SITUATION_TONES.healthy)
+    expect(dotTone(row)).toBe("neutral")
   })
 
   it("an idle engine the verdict calls ok stays neutral, never green", async () => {
@@ -174,7 +184,8 @@ describe("the fleet view's engine dot follows the one verdict", () => {
 
   it("jobs without retries keep their danger count but do not colour the dot", async () => {
     renderFleet()
-    await waitFor(() => expect(dotTone(fleetCard("stuck-jobs"))).toBe("success"))
+    await waitFor(() => expect(healthQueryDone("stuck-jobs")).toBe(true))
+    expect(dotTone(fleetCard("stuck-jobs"))).toBe("neutral")
     const pill = within(fleetCard("stuck-jobs")).getByText("4")
     expect(pill.className).toContain("border-danger")
   })

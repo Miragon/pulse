@@ -1,7 +1,7 @@
 # Architecture
 
 - Status: accepted
-- Last reviewed: 2026-11-04 (the CLI's project file fixtures)
+- Last reviewed: 2026-11-08 (Pulse's UI foundation: `@miragon/pulse-ui/tones` in core and webview)
 
 ## Context
 
@@ -45,16 +45,20 @@ flowchart TB
   extension -- composition root only --> modelAdapter[model-adapter]
   modelAdapter --> contract
   core --> contract
+  core --> tones["@miragon/pulse-ui/tones"]
   webview -- types only --> protocol[core/protocol]
+  webview --> tones
   adapterC7 --> contract
   adapterC7 -. "fetch" .-> rest[[engine REST API]]
 ```
 
 ```text
 contract    → (nothing)
-core        → contract (entry only)
+core        → contract (entry only), @miragon/pulse-ui/tones
 protocol    → (nothing outside protocol)
-webview     → protocol (type-only), preact, bpmn-js, diagram-js, modeler-shell, fonts
+webview     → protocol (type-only), @miragon/pulse-ui/tones, preact, bpmn-js, diagram-js,
+              modeler-shell, fonts
+              (nothing else of @miragon/pulse-ui ships: no React kit, no stylesheet, no ./testing)
 adapters/*  → contract (entry only)
 model       → contract (entry only), bpmn-moddle, camunda-bpmn-moddle, zeebe-bpmn-moddle
               (nothing else may import these)
@@ -62,6 +66,14 @@ host        → core, protocol, contract, vscode, modeler-shell, Node built-ins
               adapters and the model adapter only from host/composition-root.ts
 tests, scripts, dev tooling → anything
 ```
+
+`@miragon/pulse-ui/tones` is the part of Pulse's UI foundation the extension ships: the tone
+vocabulary and `SITUATION_TONES`, the one tone per situation (an open incident, a running or
+suspended instance) that the MCP widgets read too. It imports nothing (the repository's
+`ui-foundation-entries-import-nothing`), so esbuild bundles a few hundred bytes and no React.
+The extension shares which tone a situation takes, not a component: the webview draws the tone
+with its own CSS ([user-interface.md](user-interface.md)), and `pulse-ui-only-its-foundation`
+keeps pulse-ui's React kit, its stylesheets and `./testing` out of shipped code.
 
 One edge crosses into another app, and only as a file read: the CLI owns the format of
 `.pulse-cli.json` (its JSON Schema `apps/cli/schema/project-file.schema.json`) and the shared

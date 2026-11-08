@@ -1,7 +1,7 @@
 # User interface
 
 - Status: accepted
-- Last reviewed: 2026-10-26 (boards, see [boards.md](boards.md); live updates, see [live-updates.md](live-updates.md); moving a token; bulk cancel, see [writes.md](writes.md); migration, see [migrations.md](migrations.md))
+- Last reviewed: 2026-11-08 (the tones of Pulse's situation table; 2026-10-26: boards, see [boards.md](boards.md); live updates, see [live-updates.md](live-updates.md); moving a token; bulk cancel, see [writes.md](writes.md); migration, see [migrations.md](migrations.md))
 
 ## Context
 
@@ -50,7 +50,15 @@ confronted with runtime data (#1688).
 - Light, dark and high contrast switch by CSS only: the cd-canvas role classes are
   assigned to the rendered SVG once per import; viewbox and overlays stay.
 - One severity ladder: incident (danger, full badge), incident in a called instance
-  (outline), running (blue badge), stale (outline). No state by colour alone, no green
+  (outline), running (blue badge), stale (outline). The tones of a state are Pulse's, the same
+  the MCP widgets show: the state labels take theirs from `SITUATION_TONES`
+  (`@miragon/pulse-ui/tones`: running info, suspended and ended neutral, an incident danger), and
+  `apps/vscode/test/webview/situation-tones.test.tsx` holds them to that table by their rendered
+  colour, the labels and the incident flag in the light and dark themes with and without high
+  contrast, the badges in the light theme: the filled ones keep the palette's full colour under
+  white text in every theme. The table tones a state only; the diagram's green path (the elements
+  an instance passed, the flows it took) and a notice's strip are drawings of the extension's own.
+  No state by colour alone, no green
   "healthy", no greyed-out write buttons; production is red only when configured
   (`pulse.environments`), never guessed from a name. The panel headers name neither
   engine nor environment (a board's names its engines, since it spans several): the Engines

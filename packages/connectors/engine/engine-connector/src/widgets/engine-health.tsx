@@ -10,6 +10,7 @@ import {
   Icon,
   NamedId,
   formatNumber,
+  SITUATION_TONES,
 } from "@miragon/pulse-ui"
 import {
   HandOffButton,
@@ -234,7 +235,7 @@ function HealthKpis({ summary, go }: { summary: EngineHealthData["summary"]; go:
               : summary.last24hIncidents > 0
                 ? ` ${t("engineHealth.kpiIn24h", { count: formatNumber(summary.last24hIncidents) })}`
                 : undefined,
-          tone: summary.totalIncidents > 0 ? "danger" : undefined,
+          tone: summary.totalIncidents > 0 ? SITUATION_TONES.openIncident : undefined,
           onClick: () => go({ type: "incidents" }),
           actionHint: t("engineHealth.kpiOpenIncidentsAria"),
         },

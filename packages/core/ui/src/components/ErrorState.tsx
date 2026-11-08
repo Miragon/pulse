@@ -3,7 +3,8 @@ import { CircleAlert, Info, RefreshCw, TriangleAlert, type LucideIcon } from "lu
 import { useUiMessages } from "../locale/locale-provider.js"
 import { Button } from "../primitives/button.js"
 import { FOCUS_RING } from "../lib/focus-ring.js"
-import { resolveTone, TONE_BORDER, TONE_ICON, TONE_SOFT } from "../lib/tone-utils.js"
+import { TONE_BORDER, TONE_ICON, TONE_SOFT } from "../lib/tone-utils.js"
+import { resolveTone } from "../tones/index.js"
 import { cn } from "../lib/utils.js"
 import type { StateHeadingLevel } from "./EmptyState.js"
 

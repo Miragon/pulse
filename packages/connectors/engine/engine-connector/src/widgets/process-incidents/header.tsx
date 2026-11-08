@@ -4,6 +4,7 @@ import {
   StatusBadge,
   WidgetHeader,
   DrillButton,
+  SITUATION_TONES,
 } from "@miragon/pulse-ui"
 import {
   HandOffButton,
@@ -48,7 +49,7 @@ function HeaderBadge({ data }: { data: ProcessIncidentsData }) {
   const t = useT()
   if (data.incidentCount === 0) return null
   return (
-    <StatusBadge tone="danger">
+    <StatusBadge tone={SITUATION_TONES.openIncident}>
       {t("procIncHeader.openIncidents", { count: formatNumber(data.incidentCount) })}
     </StatusBadge>
   )

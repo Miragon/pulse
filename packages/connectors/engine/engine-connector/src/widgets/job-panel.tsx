@@ -4,6 +4,7 @@ import {
   CountPill,
   KpiGrid,
   PagedListFooter,
+  SITUATION_TONES,
   StatusBadge,
   WidgetHeader,
   type ToneVariant,
@@ -133,8 +134,8 @@ function draftJobTicketHandOff(job: Job, engineId: string | undefined): HandOff 
 
 // #322 U14: no retries left holds an incident (danger), retries left means the engine tries again (warning).
 function retriesTone(job: Job): ToneVariant {
-  if (job.retries === 0) return "danger"
-  return job.exceptionMessage ? "warning" : "neutral"
+  if (job.retries === 0) return SITUATION_TONES.jobWithoutRetries
+  return job.exceptionMessage ? SITUATION_TONES.jobWithRetriesLeft : "neutral"
 }
 
 // A panel scoped to one process names it in the head, not in every row.
@@ -339,7 +340,7 @@ export function JobPanelWidget({
           {
             label: t("jobPanel.stuck"),
             value: formatNumber(failedCount),
-            tone: failedCount > 0 ? "danger" : undefined,
+            tone: failedCount > 0 ? SITUATION_TONES.jobWithoutRetries : undefined,
           },
           { label: t("jobPanel.healthy"), value: formatNumber(totalCount - failedCount) },
         ]}

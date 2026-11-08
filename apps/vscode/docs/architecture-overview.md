@@ -133,11 +133,16 @@ flowchart TB
   webview -- types only --> protocol[core/protocol]
   adapterC7 --> contract
   adapterC7 -- bundled --> engineCore["@miragon/pulse-engine-core"]
+  core -- bundled --> tones["@miragon/pulse-ui/tones"]
+  webview -- bundled --> tones
 ```
 
 Every import edge not drawn fails `pnpm lint:architecture:vscode` (dependency-cruiser, closed world).
-The one workspace package is engine-core, the Camunda 7 family's workflow domain that the CLI
-and the MCP server run too: only the C7 adapter imports it, and esbuild bundles it.
+Two workspace packages reach the extension, and esbuild bundles both. engine-core is the
+Camunda 7 family's workflow domain that the CLI and the MCP server run too: only the C7 adapter
+imports it. `@miragon/pulse-ui/tones` is Pulse's UI foundation without React: the tone
+vocabulary and the one tone per situation the MCP widgets show too. The core and the webview
+may import it, nothing of pulse-ui's React kit.
 
 ## 4. One adapter for Operaton, CIB seven and Camunda 7
 

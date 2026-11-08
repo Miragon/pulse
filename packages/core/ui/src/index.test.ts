@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs"
 import { describe, expect, it } from "vitest"
 import * as ui from "./index.js"
+import * as tones from "./tones/index.js"
 
 /** A piece missing from the root entry is a piece no view can import. */
 describe("the @miragon/pulse-ui entry", () => {
@@ -38,6 +39,10 @@ describe("the @miragon/pulse-ui entry", () => {
     "setFormatLocale",
     "getFormatLocale",
     "subscribeFormatLocale",
+    // The tone ladder that came from widget-shell, and the situation table.
+    "countTone",
+    "severityTone",
+    "SITUATION_TONES",
     // A sample of the design kit that came from the toolkit.
     "Button",
     "KpiGrid",
@@ -63,6 +68,30 @@ describe("the @miragon/pulse-ui entry", () => {
       "formatCount",
     ]) {
       expect(ui, name).not.toHaveProperty(name)
+    }
+  })
+})
+
+/**
+ * `./tones` is the framework-free part of the tone model, for a UI that loads no React (the VS
+ * Code webview): the same bindings as the root, name by name, so no tone has two sources.
+ */
+describe("the @miragon/pulse-ui/tones entry", () => {
+  it("exports exactly these runtime names", () => {
+    expect(Object.keys(tones).sort()).toEqual([
+      "SITUATION_TONES",
+      "TONE_ALIASES",
+      "TONE_VARIANTS",
+      "countTone",
+      "isToneVariant",
+      "resolveTone",
+      "severityTone",
+    ])
+  })
+
+  it("hands out the root's own bindings", () => {
+    for (const [name, value] of Object.entries(tones)) {
+      expect(ui[name as keyof typeof ui], name).toBe(value)
     }
   })
 })

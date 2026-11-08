@@ -198,6 +198,16 @@ describe("EngineHealthVerdict (fixture render)", () => {
     expect(within(cluster).getByText("failedExternalTask").closest("[data-tone]")).toBeNull()
   })
 
+  it("a stable engine's badge is the table's healthy: neutral, never green", () => {
+    render(
+      <TestViewHost client={queryClient}>
+        <Widget data={HEALTHY as never} />
+      </TestViewHost>,
+    )
+    const badge = screen.getByText("Stable").closest("[data-slot='status-badge']")!
+    expect(badge.getAttribute("data-tone")).toBe("neutral")
+  })
+
   it("an engine with nothing deployed is neutral: no green 'stable' over an empty engine", () => {
     const empty: EngineHealthData = {
       ...HEALTHY,

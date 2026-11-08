@@ -9,6 +9,7 @@ import {
   LogText,
   NamedId,
   Td,
+  SITUATION_TONES,
 } from "@miragon/pulse-ui"
 import {
   FIT_CONTINUES_ROW,
@@ -149,7 +150,9 @@ export function IncidentTable({
                 )}
                 <Td>
                   <div className="flex flex-col items-start gap-1">
-                    <StatusBadge tone="danger">{incident.incidentType}</StatusBadge>
+                    <StatusBadge tone={SITUATION_TONES.openIncident}>
+                      {incident.incidentType}
+                    </StatusBadge>
                     <LogText text={incident.incidentMessage} />
                   </div>
                 </Td>

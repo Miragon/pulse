@@ -33,9 +33,8 @@ export function useEngineHealth(engineId: string) {
   }
 }
 
-/** Neutral until the verdict is read (or when it cannot be); an idle engine must not read as green. */
+/** Neutral until the verdict is read (or when it cannot be), and neutral while it is ok. */
 function dotTone(health: EngineHealthData | undefined): ToneVariant {
   if (!health) return "neutral"
-  if (health.status === "ok" && health.summary.runningInstances === 0) return "neutral"
   return VERDICT_TONE[health.status]
 }

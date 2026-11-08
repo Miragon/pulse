@@ -340,9 +340,11 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   entries (`HandOffButton`, `OpenInCockpitLink`); a confirmation names an instance with
   `instanceTargetLines` (business key, then short id)
 - Status: a `ToneVariant` (`danger`/`warning`/`success`/`info`/`neutral`; open incident or
-  failed job without retries = `danger` (`severityTone`/`countTone` from
-  `@miragon/pulse-widget-shell/widgets` is the one ladder for incident and job counts in every
-  module, a count without a state stays neutral), retries left or degraded = `warning`; an
+  failed job without retries = `danger` (`severityTone`/`countTone` from `@miragon/pulse-ui` is
+  the one ladder for incident and job counts in every module, a count without a state stays
+  neutral; an instance's or a step's state takes its tone from `SITUATION_TONES`, the table the
+  VS Code webview reads too: running `info`, suspended and ended `neutral`), retries left or
+  degraded = `warning`; an
   engine's own state is its verdict's tone, `VERDICT_TONE`, never a ladder over its counts)
   shown via pulse-ui's `StatusBadge` (tone and words required)/`CountPill`/`KpiCell.tone` or its
   `TONE_DOT`/`TONE_BORDER`/`TONE_ICON`/`TONE_TINT`/`TONE_SOFT`/`TONE_INK` maps (a tone

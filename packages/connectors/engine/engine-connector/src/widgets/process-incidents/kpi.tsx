@@ -1,4 +1,4 @@
-import { formatNumber, KpiGrid, type KpiCell } from "@miragon/pulse-ui"
+import { formatNumber, KpiGrid, type KpiCell, SITUATION_TONES } from "@miragon/pulse-ui"
 import { ViewDataState, WidgetShell } from "@miragon/pulse-widget-shell/widgets"
 import { useNav } from "../navigation.js"
 import { useT } from "../../messages/use-t.js"
@@ -53,7 +53,7 @@ export function ProcessDefinitionKpi(scope: DefinitionScope) {
     {
       label: t("procIncKpi.openIncidents"),
       value: formatNumber(data.incidentCount),
-      tone: data.incidentCount > 0 ? "danger" : undefined,
+      tone: data.incidentCount > 0 ? SITUATION_TONES.openIncident : undefined,
     },
     {
       label: t("procIncKpi.last24h"),
@@ -62,7 +62,7 @@ export function ProcessDefinitionKpi(scope: DefinitionScope) {
     {
       label: t("procIncKpi.failedJobs"),
       value: formatNumber(data.failedJobs),
-      tone: data.failedJobs > 0 ? "danger" : undefined,
+      tone: data.failedJobs > 0 ? SITUATION_TONES.jobWithoutRetries : undefined,
       // The drill shows what the cell counts: this process's jobs without retries.
       onClick: () =>
         go({ type: "jobs", processDefinitionKey: data.processDefinitionKey, failedOnly: true }),

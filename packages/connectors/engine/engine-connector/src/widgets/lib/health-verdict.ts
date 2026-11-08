@@ -1,15 +1,16 @@
-import { formatNumber, type ToneVariant } from "@miragon/pulse-ui"
+import { formatNumber, SITUATION_TONES, type ToneVariant } from "@miragon/pulse-ui"
 import type { EngineHealthData, EngineHealthStatus } from "../../view-models.js"
 import type { T } from "../../messages/use-t.js"
 
 /**
  * engine-core's one live verdict as a tone: the overview's badge and the engine's dot on the
- * landing and the fleet view, so one engine never shows two states.
+ * landing and the fleet view, so one engine never shows two states. An engine that runs without a
+ * problem is the table's `healthy`, neutral as a process is: never a green "healthy".
  */
 export const VERDICT_TONE: Record<EngineHealthStatus, ToneVariant> = {
-  ok: "success",
+  ok: SITUATION_TONES.healthy,
   warning: "warning",
-  critical: "danger",
+  critical: SITUATION_TONES.openIncident,
 }
 
 /** #322 U3: the server sends the verdict as data; an empty engine says so instead of "no open incidents". */

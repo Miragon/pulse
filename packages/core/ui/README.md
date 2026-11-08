@@ -14,7 +14,8 @@ npm install @miragon/pulse-ui react react-dom lucide-react tailwindcss
 ```
 
 `react`, `react-dom` and `lucide-react` are required peers. `tailwindcss` is needed for the
-stylesheets only, and `typescript` for the brand gates under `./testing` only.
+stylesheets only, and `typescript` for the brand gates under `./testing` only. `./tones` needs no
+peer at runtime.
 
 ## Minimal example
 
@@ -81,7 +82,8 @@ export function App() {
   `Table`, `Tabs`, `Dialog`, `Alert`, `Input`, `Switch`, …) and the components on top
   (`WidgetHeader`, `KpiGrid`, `StatusBadge`/`LivePill`/`CountPill`, `FilterBar`, `GroupCard`,
   `PagedListFooter`, `EmptyState`/`ErrorState`, `DrillButton`); the tone model (`TONE_*`,
-  `resolveTone`, `ToneVariant`), the type scale (`TYPE_SCALE`, `MICRO_LABEL`), the focus ring
+  `resolveTone`, `ToneVariant`, and the names of `./tones` below), the type scale (`TYPE_SCALE`,
+  `MICRO_LABEL`), the focus ring
   (`FOCUS_RING`) and `cn`; the locale (`LocaleProvider`, `useLocale`, `createUseT`, the kit's own
   catalogs in English and German) and the toasts (`ToastProvider`, `useToast`); the formatters
   (`formatNumber`, `formatDuration`, `formatTimestamp`, … in the locale `setFormatLocale` sets,
@@ -90,6 +92,13 @@ export function App() {
   (`KometMark`/`AppEmptyState`: a landing, a first start, never in a widget); the font helpers
   (`fontFaces`, `GEIST_FONT_FILES`, `adoptHostFontVariables`) and the tokens as data
   (`CD_TOKENS`, `ROLE_TOKENS`).
+- **The tones without React** (`@miragon/pulse-ui/tones`, any runtime): the vocabulary
+  (`ToneVariant`, `TONE_VARIANTS`, `resolveTone`, `isToneVariant`), `SITUATION_TONES`, the one
+  tone per situation on an engine (an open incident, a job without retries, a running or
+  suspended instance, a process that runs without a problem, which is never green), and the
+  count ladder over it (`countTone`, `severityTone`). It imports nothing, so a UI on another
+  framework (the VS Code webview on Preact) shows the same situation in the same tone; the root
+  entry exports the same names.
 - **The brand gates** (`@miragon/pulse-ui/testing`, Node only): `catalogTextFindings` (the voice
   rules over a message catalog), `scanTypeScale`, `scanGlyphs`, `scanIconSizes`, `scanColors` and
   `stylesheetColorFindings` over your sources, `stylesheetShapeFindings` over a stylesheet every

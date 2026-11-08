@@ -7,13 +7,14 @@ import {
   SectionHeading,
   TableEmptyState,
   Td,
+  countTone,
   formatNumber,
   type KpiCell,
+  SITUATION_TONES,
 } from "@miragon/pulse-ui"
 import {
   ListTable,
   TableSkeleton,
-  countTone,
   useToolQueries,
   type ListTableColumn,
   type ListTableGroup,
@@ -103,7 +104,7 @@ function LandscapeKpis({ figures, states, t }: Landscape & { t: T }) {
     {
       label: t("fleet.landscape.kpiIncidents"),
       value: totalOf(totals.openIncidents, complete),
-      tone: (totals.openIncidents ?? 0) > 0 ? "danger" : undefined,
+      tone: (totals.openIncidents ?? 0) > 0 ? SITUATION_TONES.openIncident : undefined,
     },
   ]
   return <KpiGrid cells={cells} />
@@ -123,8 +124,9 @@ function Figure({ value, t }: { value: number | null; t: T }) {
 
 /** A count that is a state: a danger pill while there are any, as the engine cards show it. */
 function StateCount({ value, t }: { value: number | null; t: T }) {
-  if (countTone(value) === "danger") {
-    return <CountPill tone="danger">{formatNumber(value)}</CountPill>
+  const tone = countTone(value)
+  if (tone === SITUATION_TONES.openIncident) {
+    return <CountPill tone={tone}>{formatNumber(value)}</CountPill>
   }
   return <Figure value={value} t={t} />
 }

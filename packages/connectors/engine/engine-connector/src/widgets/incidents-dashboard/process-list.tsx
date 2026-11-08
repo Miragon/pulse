@@ -7,6 +7,7 @@ import {
   SectionHeading,
   TONE_DOT,
   cn,
+  countTone,
   type FilterChip,
   type ToneVariant,
   DrillButton,
@@ -34,7 +35,6 @@ import {
   OpenInCockpitLink,
   ViewDataState,
   WidgetShell,
-  countTone,
   useViewData,
 } from "@miragon/pulse-widget-shell/widgets"
 

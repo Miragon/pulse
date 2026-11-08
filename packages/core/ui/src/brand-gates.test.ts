@@ -22,7 +22,7 @@ import {
 
 const SRC = fileURLToPath(new URL(".", import.meta.url))
 /** Every source directory but the gates themselves (testing) and the vendored tokens. */
-const SCANNED = ["components", "hooks", "kit", "lib", "locale", "primitives", "theme"]
+const SCANNED = ["components", "hooks", "kit", "lib", "locale", "primitives", "theme", "tones"]
 
 /**
  * The shadcn primitives as vendored in toolkit 2.8.1 take Tailwind's own sizes (`text-sm`,

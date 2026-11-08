@@ -53,9 +53,10 @@ const UI_PREFIX = UI_ROOT + sep
 
 const PULSE_UI = {
   root: exportsOf(join(UI_ROOT, "dist/index.d.ts")).map((e) => e.name),
+  tones: exportsOf(join(UI_ROOT, "dist/tones/index.d.ts")).map((e) => e.name),
   testing: exportsOf(join(UI_ROOT, "dist/testing/index.d.ts")).map((e) => e.name),
 }
-const KIT = new Set([...PULSE_UI.root, ...PULSE_UI.testing])
+const KIT = new Set([...PULSE_UI.root, ...PULSE_UI.tones, ...PULSE_UI.testing])
 const WIDGETS = {
   widgets: exportsOf(join(here, "ui/index.ts")),
   testing: exportsOf(join(here, "testing/index.ts")),
@@ -67,6 +68,9 @@ describe("widget-shell exports no pulse-ui name (one kit)", () => {
     // Sanity: the lists are real, so an empty overlap below means something.
     for (const name of ["Button", "Icon", "formatNumber", "ToneVariant", "WidgetHeader"]) {
       expect(PULSE_UI.root, name).toContain(name)
+    }
+    for (const name of ["countTone", "severityTone", "SITUATION_TONES", "ToneVariant"]) {
+      expect(PULSE_UI.tones, name).toContain(name)
     }
     for (const name of [
       "scanGlyphs",
@@ -83,7 +87,7 @@ describe("widget-shell exports no pulse-ui name (one kit)", () => {
     expect(WIDGETS.testing.map((e) => e.name)).toContain("recordingModuleServer")
   })
 
-  it("/widgets and /testing share no name with pulse-ui's root or /testing", () => {
+  it("/widgets and /testing share no name with pulse-ui's root, /tones or /testing", () => {
     expect(SHELL.filter((e) => KIT.has(e.name)).map((e) => e.name)).toEqual([])
   })
 
