@@ -11,7 +11,7 @@ and VS Code.
 | [VS Code](vscode/index.md) | Installation, configuration, usage, architecture (early version) |
 
 The pages build into a VitePress site, published at
-[miragon.github.io/pulse](https://miragon.github.io/pulse/) from `main`. Run
+[miragon.github.io/pulse](https://miragon.github.io/pulse/) with each release. Run
 `pnpm docs:dev` for a local preview. This file is the index for reading them on GitHub and is not
 part of the site. The product page is
 [miragon.ai/tools/pulse](https://miragon.ai/tools/pulse/).

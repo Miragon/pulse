@@ -22,7 +22,10 @@ Docs are held to the code:
 
 `docs/` holds the Pulse docs, a VitePress site on the Miragon docs kit
 (`docs/.vitepress/miragon/`, skill `miragon-brand:docs-site`) that `.github/workflows/docs.yml`
-publishes to https://miragon.github.io/pulse/. A user-visible change (env vars, tools, ports,
+builds on a pull request and publishes to https://miragon.github.io/pulse/ with each release, so
+the site shows only released docs: `release-please.yml` calls it on `main` after the approval (the
+`github-pages` environment admits `main` only, never a tag), a dispatch on `main` deploys by hand,
+and no push deploys (`pnpm lint:github`). A user-visible change (env vars, tools, ports,
 getting-started steps) updates them in the same PR. Below 1.0 the docs keep no upgrade page and
 no migration note: a breaking change says so in its commit (`!` plus a `BREAKING CHANGE:`
 footer), and release-please lists it in `CHANGELOG.md`. Headings get GitHub's anchors, so a
