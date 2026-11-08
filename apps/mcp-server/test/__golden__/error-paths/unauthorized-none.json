@@ -1,0 +1,48 @@
+{
+  "case": "unauthorized-none",
+  "config": {
+    "ENGINE_BASE_URL": "http://127.0.0.1:<port>/engine-rest"
+  },
+  "probes": [
+    {
+      "arguments": {
+        "processInstanceId": "pi-1"
+      },
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "[401] empty response body (engine default). The engine requires authentication, but none is configured."
+            ],
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "sent": [
+        "GET /engine-rest/history/process-instance/pi-1",
+        "GET /engine-rest/process-instance/pi-1"
+      ],
+      "tool": "engine_inspect_process_instance"
+    },
+    {
+      "arguments": {},
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "[401] empty response body (engine default). The engine requires authentication, but none is configured."
+            ],
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "sent": [
+        "GET /engine-rest/process-instance/count",
+        "GET /engine-rest/process-instance?firstResult=0&maxResults=20"
+      ],
+      "tool": "engine_list_process_instances"
+    }
+  ]
+}

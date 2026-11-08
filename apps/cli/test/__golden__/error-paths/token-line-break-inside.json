@@ -1,0 +1,26 @@
+{
+  "case": "token-line-break-inside",
+  "config": {
+    "PULSE_CLI_AUTH": "bearer",
+    "PULSE_CLI_TOKEN": "tok-demo-123\nsecond-line",
+    "PULSE_CLI_URL": "http://127.0.0.1:<port>/engine-rest"
+  },
+  "probes": [
+    {
+      "argv": [
+        "process-instance",
+        "get",
+        "pi-1"
+      ],
+      "exitCode": 3,
+      "sent": [],
+      "stderrLines": [
+        "{\"error\":{\"code\":\"CONFIG\",\"exitCode\":3,\"message\":\"The bearer token from PULSE_CLI_TOKEN contains line breaks or control characters (RFC 6750)\",\"hint\":\"A bearer token consists of letters, digits and - . _ ~ + / (optionally ending with =), e.g. a JWT. Pass the token alone (a leading \\\"Bearer \\\" is fine), not a whole header line, a JSON answer or several lines.\"}}",
+        ""
+      ],
+      "stdoutLines": [
+        ""
+      ]
+    }
+  ]
+}

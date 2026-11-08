@@ -1,0 +1,29 @@
+{
+  "case": "double-slash-root",
+  "config": {
+    "ENGINE_BASE_URL": "http://127.0.0.1:<port>/engine-rest//"
+  },
+  "probes": [
+    {
+      "arguments": {
+        "processInstanceId": "pi-1"
+      },
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "[404 NotFoundException] RESTEASY003210: Could not find resource (engine default). No such endpoint: check that the engine URL points at the REST API root itself (e.g. http://localhost:8080/engine-rest)."
+            ],
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "sent": [
+        "GET /engine-rest//history/process-instance/pi-1",
+        "GET /engine-rest//process-instance/pi-1"
+      ],
+      "tool": "engine_inspect_process_instance"
+    }
+  ]
+}

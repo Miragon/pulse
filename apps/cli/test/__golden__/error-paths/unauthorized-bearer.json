@@ -1,0 +1,28 @@
+{
+  "case": "unauthorized-bearer",
+  "config": {
+    "PULSE_CLI_AUTH": "bearer",
+    "PULSE_CLI_TOKEN": "tok-demo-123",
+    "PULSE_CLI_URL": "http://127.0.0.1:<port>/engine-rest"
+  },
+  "probes": [
+    {
+      "argv": [
+        "process-instance",
+        "get",
+        "pi-1"
+      ],
+      "exitCode": 4,
+      "sent": [
+        "GET /engine-rest/process-instance/pi-1 [Bearer tok-demo-123]"
+      ],
+      "stderrLines": [
+        "{\"error\":{\"code\":\"UNAUTHORIZED\",\"exitCode\":4,\"message\":\"HTTP 401 Unauthorized\",\"status\":401,\"hint\":\"Bearer auth failed: the engine rejected the bearer token from PULSE_CLI_TOKEN. Check that the token is still valid and was issued for this engine (or the gateway in front of it); fetch a new token (e.g. with your identity provider's CLI) and set PULSE_CLI_TOKEN. pulse sends the token as it is and never refreshes it.\",\"request\":{\"method\":\"GET\",\"url\":\"http://127.0.0.1:<port>/engine-rest/process-instance/pi-1\"}}}",
+        ""
+      ],
+      "stdoutLines": [
+        ""
+      ]
+    }
+  ]
+}

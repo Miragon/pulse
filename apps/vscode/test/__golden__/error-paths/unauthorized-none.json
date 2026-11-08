@@ -1,0 +1,36 @@
+{
+  "case": "unauthorized-none",
+  "connection": {
+    "credentials": {
+      "kind": "none"
+    },
+    "endpoint": "http://127.0.0.1:<port>/engine-rest"
+  },
+  "probes": [
+    {
+      "call": "describeEngine",
+      "outcome": {
+        "failure": "unauthorized",
+        "hint": null,
+        "message": "HTTP 401"
+      },
+      "sent": [
+        "GET /engine-rest/telemetry/data"
+      ]
+    },
+    {
+      "call": "getInstanceDetail pi-1",
+      "outcome": {
+        "failure": "unauthorized",
+        "hint": null,
+        "message": "HTTP 401"
+      },
+      "sent": [
+        "GET /engine-rest/history/activity-instance?processInstanceId=pi-1&sortBy=occurrence&sortOrder=asc&firstResult=0&maxResults=500",
+        "GET /engine-rest/history/process-instance/pi-1",
+        "GET /engine-rest/process-instance/pi-1",
+        "GET /engine-rest/variable-instance?processInstanceIdIn=pi-1&deserializeValues=false&maxResults=500"
+      ]
+    }
+  ]
+}

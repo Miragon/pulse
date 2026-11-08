@@ -1,0 +1,23 @@
+{
+  "case": "missing-resource",
+  "connection": {
+    "credentials": {
+      "kind": "none"
+    },
+    "endpoint": "http://127.0.0.1:<port>/engine-rest"
+  },
+  "probes": [
+    {
+      "call": "getInstanceDetail pi-1",
+      "outcome": {
+        "returned": "undefined"
+      },
+      "sent": [
+        "GET /engine-rest/history/activity-instance?processInstanceId=pi-1&sortBy=occurrence&sortOrder=asc&firstResult=0&maxResults=500",
+        "GET /engine-rest/history/process-instance/pi-1",
+        "GET /engine-rest/process-instance/pi-1",
+        "GET /engine-rest/variable-instance?processInstanceIdIn=pi-1&deserializeValues=false&maxResults=500"
+      ]
+    }
+  ]
+}

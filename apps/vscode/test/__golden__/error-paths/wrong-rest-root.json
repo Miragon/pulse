@@ -1,0 +1,37 @@
+{
+  "case": "wrong-rest-root",
+  "connection": {
+    "credentials": {
+      "kind": "none"
+    },
+    "endpoint": "http://127.0.0.1:<port>"
+  },
+  "probes": [
+    {
+      "call": "describeEngine",
+      "outcome": {
+        "failure": "misconfigured",
+        "hint": null,
+        "message": "HTTP 404"
+      },
+      "sent": [
+        "GET /telemetry/data",
+        "GET /version"
+      ]
+    },
+    {
+      "call": "getInstanceDetail pi-1",
+      "outcome": {
+        "failure": "misconfigured",
+        "hint": null,
+        "message": "HTTP 404"
+      },
+      "sent": [
+        "GET /history/activity-instance?processInstanceId=pi-1&sortBy=occurrence&sortOrder=asc&firstResult=0&maxResults=500",
+        "GET /history/process-instance/pi-1",
+        "GET /process-instance/pi-1",
+        "GET /variable-instance?processInstanceIdIn=pi-1&deserializeValues=false&maxResults=500"
+      ]
+    }
+  ]
+}

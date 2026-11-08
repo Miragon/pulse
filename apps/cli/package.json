@@ -51,7 +51,8 @@
     "lint": "eslint src scripts test *.config.ts",
     "lint:fix": "eslint src scripts test *.config.ts --fix",
     "test": "vitest run",
-    "test:engines": "vitest run --config vitest.integration.config.ts"
+    "test:engines": "vitest run --config vitest.integration.config.ts",
+    "golden:update": "turbo run build --filter=@miragon/pulse-cli^... --output-logs=errors-only && GOLDEN_UPDATE=1 vitest run --coverage.enabled=false"
   },
   "dependencies": {
     "commander": "15.0.0"

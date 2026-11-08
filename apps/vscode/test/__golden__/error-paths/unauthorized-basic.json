@@ -1,0 +1,24 @@
+{
+  "case": "unauthorized-basic",
+  "connection": {
+    "credentials": {
+      "kind": "basic",
+      "password": "demo-secret",
+      "username": "demo"
+    },
+    "endpoint": "http://127.0.0.1:<port>/engine-rest"
+  },
+  "probes": [
+    {
+      "call": "describeEngine",
+      "outcome": {
+        "failure": "unauthorized",
+        "hint": null,
+        "message": "HTTP 401"
+      },
+      "sent": [
+        "GET /engine-rest/telemetry/data [Basic ZGVtbzpkZW1vLXNlY3JldA==]"
+      ]
+    }
+  ]
+}

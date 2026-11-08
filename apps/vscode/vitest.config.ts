@@ -39,6 +39,7 @@ export default mergeConfig(
           test: {
             name: "unit",
             environment: "node",
+            env: { LC_ALL: "C.UTF-8" },
             include: ["test/**/*.test.ts"],
             exclude: ["test/**/*.engine.test.ts"],
           },

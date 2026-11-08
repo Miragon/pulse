@@ -1,0 +1,56 @@
+{
+  "case": "integer-beyond-2-53",
+  "config": {
+    "PULSE_CLI_URL": "http://127.0.0.1:<port>/engine-rest"
+  },
+  "probes": [
+    {
+      "argv": [
+        "process-instance",
+        "get-variables",
+        "pi-1"
+      ],
+      "exitCode": 0,
+      "sent": [
+        "GET /engine-rest/process-instance/pi-1/variables"
+      ],
+      "stderrLines": [
+        ""
+      ],
+      "stdoutLines": [
+        "{\"big\":{\"type\":\"Long\",\"value\":9223372036854775807,\"valueInfo\":{}}}",
+        ""
+      ]
+    },
+    {
+      "argv": [
+        "inspect",
+        "pi-1"
+      ],
+      "exitCode": 0,
+      "sent": [
+        "GET /engine-rest/event-subscription?processInstanceId=pi-1&firstResult=0&maxResults=500",
+        "GET /engine-rest/external-task?processInstanceIdIn=pi-1&firstResult=0&maxResults=500",
+        "GET /engine-rest/history/process-instance/pi-1",
+        "GET /engine-rest/incident?processInstanceId=pi-1&firstResult=0&maxResults=500",
+        "GET /engine-rest/job-definition?processDefinitionId=order%3A2%3A6f1e8a&firstResult=0&maxResults=500",
+        "GET /engine-rest/job/job-1/stacktrace",
+        "GET /engine-rest/job?processInstanceIds=pi-1&firstResult=0&maxResults=500",
+        "GET /engine-rest/job?processInstanceIds=pi-1&timers=true&firstResult=0&maxResults=500",
+        "GET /engine-rest/process-definition?processDefinitionIdIn=order%3A2%3A6f1e8a&firstResult=0&maxResults=500",
+        "GET /engine-rest/process-instance/pi-1",
+        "GET /engine-rest/process-instance/pi-1/activity-instances",
+        "GET /engine-rest/process-instance/pi-1/variables?deserializeValues=false",
+        "GET /engine-rest/process-instance?firstResult=0&maxResults=101&superProcessInstance=pi-1",
+        "GET /engine-rest/task?processInstanceIdIn=pi-1&firstResult=0&maxResults=500"
+      ],
+      "stderrLines": [
+        ""
+      ],
+      "stdoutLines": [
+        "{\"id\":\"pi-1\",\"businessKey\":\"B-7\",\"definition\":{\"key\":\"order\",\"version\":2,\"name\":\"Order\",\"id\":\"order:2:6f1e8a\"},\"state\":\"ACTIVE\",\"startTime\":\"2026-10-09T13:38:15.430+0000\",\"waitingAt\":[{\"activityId\":\"approve\",\"activityName\":\"Approve order\",\"activityType\":\"userTask\",\"since\":\"2026-10-09T13:38:15.498+0000\",\"kind\":\"userTask\",\"taskId\":\"task-1\",\"assignee\":\"demo\"},{\"activityId\":\"charge\",\"activityName\":\"Charge card\",\"activityType\":\"serviceTask\",\"since\":\"2026-10-09T13:38:15.512+0000\",\"incidentId\":\"inc-1\",\"kind\":\"asyncContinuation\",\"jobId\":\"job-1\",\"retries\":0}],\"incidents\":[{\"id\":\"inc-1\",\"type\":\"failedJob\",\"activityId\":\"charge\",\"message\":\"Card declined: insufficient funds (order B-7)\",\"rootCause\":\"PaymentRefusedException: insufficient funds\",\"jobId\":\"job-1\",\"since\":\"2026-10-09T13:40:02.112+0000\"}],\"children\":[],\"variables\":{\"big\":9223372036854775807},\"next\":[\"pulse retry pi-1\",\"pulse advance pi-1 --activity-id approve\",\"pulse advance pi-1 --activity-id charge\"]}",
+        ""
+      ]
+    }
+  ]
+}

@@ -102,8 +102,15 @@ no `generate` script, so turbo's cached `generate` task never replays a stale ca
   `coverage.include` counts every file it does not load. Then
   `pnpm exec turbo run typecheck test lint --filter=@miragon/pulse-cli`; `pnpm check` is the bar.
 - Unit and fast-check property tests drive the CLI through `fakeRuntime`, an in-memory runtime;
-  only the tests of `apps/cli/src/bin/` touch the real system. Every CLI line of a `sh` block in `apps/cli/README.md` and `docs/cli/` runs
+  only the tests of `apps/cli/src/bin/` and the goldens touch the real system. Every CLI line of a `sh` block in `apps/cli/README.md` and `docs/cli/` runs
   against a fake engine (`DOC_PAGES`): a documented command line that fails is a failing test.
+- Goldens pin what `pulse status` and `pulse inspect` print and what the CLI writes for the
+  engine failures their README lists, byte for byte (`apps/cli/src/cli/goldens/`, the files in
+  `apps/cli/test/__golden__/`, the cases in `apps/cli/test/__golden__/error-paths/README.md`).
+  They run `fakeRuntime` with the real `fetch` against loopback engines on real sockets, and
+  `dns-failure` asks the system resolver. An intended change runs
+  `pnpm --fail-if-no-match --filter @miragon/pulse-cli golden:update` (refused in CI) and
+  commits the diff; never edit a golden by hand.
 - The Testcontainers suites (`test:engines`, Docker, build first) run the built CLI against
   Operaton and CIB seven (Camunda 7's image left Docker Hub in November 2026), with Basic auth,
   behind Keycloak and an Envoy gateway, and pack the tarball.

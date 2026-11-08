@@ -283,6 +283,7 @@
     "typecheck": "tsc --noEmit && tsc -p tsconfig.contract.json && tsc -p tsconfig.core.json && tsc -p tsconfig.model.json && tsc -p tsconfig.adapters.json && tsc -p tsconfig.webview.json && tsc -p tsconfig.host.json && tsc -p tsconfig.tooling.json",
     "test": "vitest run",
     "test:engines": "vitest run --config vitest.engines.config.ts",
+    "golden:update": "turbo run build --filter=pulse-cockpit^... --output-logs=errors-only && GOLDEN_UPDATE=1 vitest run --project unit --coverage.enabled=false",
     "test:smoke": "node scripts/build.mjs && vscode-test --config .vscode-test.mjs",
     "test:e2e": "node scripts/build.mjs && node scripts/e2e.mjs",
     "test:smoke:docker": "node scripts/docker-test.mjs smoke",

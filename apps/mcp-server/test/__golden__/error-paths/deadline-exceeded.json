@@ -1,0 +1,112 @@
+{
+  "case": "deadline-exceeded",
+  "config": {
+    "ENGINE_BASE_URL": "http://127.0.0.1:<port>/engine-rest",
+    "ENGINE_REQUEST_TIMEOUT_MS": "300",
+    "MCP_ACTIVE_MODULES": "engine:admin"
+  },
+  "probes": [
+    {
+      "arguments": {
+        "processInstanceId": "pi-1"
+      },
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "engine default did not respond within 300 ms (timeout)"
+            ],
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "sent": [
+        "GET /engine-rest/history/process-instance/pi-1",
+        "GET /engine-rest/process-instance/pi-1"
+      ],
+      "tool": "engine_inspect_process_instance"
+    },
+    {
+      "arguments": {},
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "engine default did not respond within 300 ms (timeout)"
+            ],
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "sent": [
+        "GET /engine-rest/process-instance/count",
+        "GET /engine-rest/process-instance?firstResult=0&maxResults=20"
+      ],
+      "tool": "engine_list_process_instances"
+    },
+    {
+      "arguments": {
+        "sourceProcessDefinitionId": "order:1:5e0d79",
+        "targetProcessDefinitionId": "order:2:6f1e8a"
+      },
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "engine default did not respond within 300 ms (timeout) — the POST may still have been applied; check the current state before retrying"
+            ],
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "sent": [
+        "POST /engine-rest/migration/generate"
+      ],
+      "tool": "engine_create_migration_plan"
+    },
+    {
+      "arguments": {},
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "engine default did not respond within 300 ms (timeout) — the POST may still have been applied; check the current state before retrying"
+            ],
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "sent": [
+        "POST /engine-rest/process-instance/count",
+        "POST /engine-rest/process-instance/count",
+        "POST /engine-rest/process-instance/count",
+        "POST /engine-rest/process-instance?firstResult=0&maxResults=50"
+      ],
+      "tool": "engine_process_instances_data"
+    },
+    {
+      "arguments": {
+        "processDefinitionKey": "order"
+      },
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "engine default did not respond within 300 ms (timeout) — the POST may still have been applied; check the current state before retrying"
+            ],
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "sent": [
+        "POST /engine-rest/process-definition/key/order/start"
+      ],
+      "tool": "engine_start_process_instance"
+    }
+  ]
+}

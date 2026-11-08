@@ -1,0 +1,50 @@
+{
+  "case": "path-value-dot",
+  "config": {
+    "ENGINE_BASE_URL": "http://127.0.0.1:<port>/engine-rest"
+  },
+  "probes": [
+    {
+      "arguments": {
+        "processInstanceId": "."
+      },
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "[404 NotFoundException] RESTEASY003210: Could not find resource (engine default). No such endpoint: check that the engine URL points at the REST API root itself (e.g. http://localhost:8080/engine-rest)."
+            ],
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "sent": [
+        "GET /engine-rest/history/process-instance/",
+        "GET /engine-rest/process-instance/"
+      ],
+      "tool": "engine_inspect_process_instance"
+    },
+    {
+      "arguments": {
+        "processInstanceId": ".."
+      },
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "[404 NotFoundException] RESTEASY003210: Could not find resource (engine default). No such endpoint: check that the engine URL points at the REST API root itself (e.g. http://localhost:8080/engine-rest)."
+            ],
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "sent": [
+        "GET /engine-rest/",
+        "GET /engine-rest/history/"
+      ],
+      "tool": "engine_inspect_process_instance"
+    }
+  ]
+}

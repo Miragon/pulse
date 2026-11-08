@@ -105,7 +105,8 @@ adapters import `src/api`, only `auth login` reaches the interactive login, and 
   (400 for tests), 60 lines per function, 20 statements, depth 3, 4 parameters. **Prettier**,
   **knip** on every issue type (`pnpm lint:deadcode`, `pnpm lint:deadcode:exports`).
 - **vitest** with v8 coverage floors of 90 % for lines, statements and functions and 85 % for
-  branches (`apps/cli/vitest.config.ts`); the floors only rise.
+  branches (`apps/cli/vitest.config.ts`); the floors only rise. Goldens pin what `status` and
+  `inspect` print and the engine failures their README lists (`apps/cli/test/__golden__/`); only `golden:update` writes them.
 - **fast-check** property tests for naming, patches, variable parsing, dates, query building,
   projection, table width, config and auth precedence, PKCE, token expiry, the token cache, body
   validation and secret masking.

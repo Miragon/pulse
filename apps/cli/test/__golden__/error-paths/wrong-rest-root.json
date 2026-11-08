@@ -1,0 +1,66 @@
+{
+  "case": "wrong-rest-root",
+  "config": {
+    "PULSE_CLI_URL": "http://127.0.0.1:<port>"
+  },
+  "probes": [
+    {
+      "argv": [
+        "process-instance",
+        "get",
+        "pi-1"
+      ],
+      "exitCode": 5,
+      "sent": [
+        "GET /process-instance/pi-1"
+      ],
+      "stderrLines": [
+        "{\"error\":{\"code\":\"NOT_FOUND\",\"exitCode\":5,\"message\":\"HTTP 404 Not Found\",\"status\":404,\"hint\":\"The endpoint does not exist. Check that the URL points to the REST API root, e.g. http://localhost:8080/engine-rest, and the engine name (--engine).\",\"request\":{\"method\":\"GET\",\"url\":\"http://127.0.0.1:<port>/process-instance/pi-1\"}}}",
+        ""
+      ],
+      "stdoutLines": [
+        ""
+      ]
+    },
+    {
+      "argv": [
+        "process-instance",
+        "get",
+        "pi-1",
+        "-o",
+        "table"
+      ],
+      "exitCode": 5,
+      "sent": [
+        "GET /process-instance/pi-1"
+      ],
+      "stderrLines": [
+        "Error: HTTP 404 Not Found",
+        "  Request: GET http://127.0.0.1:<port>/process-instance/pi-1",
+        "  Hint: The endpoint does not exist. Check that the URL points to the REST API root, e.g. http://localhost:8080/engine-rest, and the engine name (--engine).",
+        ""
+      ],
+      "stdoutLines": [
+        ""
+      ]
+    },
+    {
+      "argv": [
+        "inspect",
+        "pi-1"
+      ],
+      "exitCode": 5,
+      "sent": [
+        "GET /history/process-instance/pi-1",
+        "GET /process-instance/pi-1"
+      ],
+      "stderrLines": [
+        "{\"error\":{\"code\":\"NOT_FOUND\",\"exitCode\":5,\"message\":\"HTTP 404 Not Found\",\"status\":404,\"hint\":\"The endpoint does not exist. Check that the URL points to the REST API root, e.g. http://localhost:8080/engine-rest, and the engine name (--engine).\",\"request\":{\"method\":\"GET\",\"url\":\"http://127.0.0.1:<port>/process-instance/pi-1\"}}}",
+        ""
+      ],
+      "stdoutLines": [
+        ""
+      ]
+    }
+  ]
+}

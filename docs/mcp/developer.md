@@ -50,8 +50,8 @@ prints its sign-in token, one from `MCP_INSPECTOR_API_TOKEN` too: keep the outpu
 
 The gates one by one: `pnpm build`, `pnpm typecheck`, `pnpm test`, `pnpm lint`, `pnpm format:check`.
 While you iterate: `pnpm test:one <file...>`, then the package and what depends on it with
-`pnpm exec turbo run typecheck test lint --filter=...<pkg>`, then `pnpm check`. A tool change
-refreshes the goldens with `pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server golden:update`.
+`pnpm exec turbo run typecheck test lint --filter=...<pkg>`, then `pnpm check`. A change to a tool,
+an engine read's result or its error text refreshes the goldens with `pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server golden:update`.
 `pnpm dev` and `pnpm play` bind 127.0.0.1; `pnpm start` and Docker listen on all interfaces.
 The inspector has no chat, so a hand-off shows only in a real host: tunnel the server
 (`cloudflared tunnel --url http://localhost:8400`), set `MCP_URL` to the `https://` origin it prints

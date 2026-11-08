@@ -1,0 +1,45 @@
+{
+  "case": "deadline-exceeded",
+  "config": {
+    "PULSE_CLI_TIMEOUT": "300",
+    "PULSE_CLI_URL": "http://127.0.0.1:<port>/engine-rest"
+  },
+  "probes": [
+    {
+      "argv": [
+        "process-instance",
+        "get",
+        "pi-1"
+      ],
+      "exitCode": 8,
+      "sent": [
+        "GET /engine-rest/process-instance/pi-1"
+      ],
+      "stderrLines": [
+        "{\"error\":{\"code\":\"TIMEOUT\",\"exitCode\":8,\"message\":\"Request timed out after 300 ms\",\"hint\":\"Increase the timeout with --timeout <ms> or PULSE_CLI_TIMEOUT, or check the engine load.\",\"request\":{\"method\":\"GET\",\"url\":\"http://127.0.0.1:<port>/engine-rest/process-instance/pi-1\"}}}",
+        ""
+      ],
+      "stdoutLines": [
+        ""
+      ]
+    },
+    {
+      "argv": [
+        "inspect",
+        "pi-1"
+      ],
+      "exitCode": 8,
+      "sent": [
+        "GET /engine-rest/history/process-instance/pi-1",
+        "GET /engine-rest/process-instance/pi-1"
+      ],
+      "stderrLines": [
+        "{\"error\":{\"code\":\"TIMEOUT\",\"exitCode\":8,\"message\":\"Request timed out after 300 ms\",\"hint\":\"Increase the timeout with --timeout <ms> or PULSE_CLI_TIMEOUT, or check the engine load.\",\"request\":{\"method\":\"GET\",\"url\":\"http://127.0.0.1:<port>/engine-rest/process-instance/pi-1\"}}}",
+        ""
+      ],
+      "stdoutLines": [
+        ""
+      ]
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "case": "dns-failure",
+  "connection": {
+    "credentials": {
+      "kind": "none"
+    },
+    "endpoint": "http://engine.pulse-golden.invalid/engine-rest"
+  },
+  "probes": [
+    {
+      "call": "describeEngine",
+      "outcome": {
+        "failure": "unreachable",
+        "hint": null,
+        "message": "Cannot reach http://engine.pulse-golden.invalid/engine-rest/telemetry/data (ENOTFOUND)"
+      },
+      "sent": []
+    }
+  ]
+}

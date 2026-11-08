@@ -13,6 +13,9 @@ export default mergeConfig(
     ],
     test: {
       include: ["src/**/*.test.ts", "scripts/**/*.test.ts"],
+      // The locale CI runs in, set before a worker starts (ICU reads it once): the goldens
+      // (src/cli/goldens) then read the same on every machine.
+      env: { LC_ALL: "C.UTF-8" },
       clearMocks: true,
       restoreMocks: true,
       // CI runners are several times slower than developer machines, especially with coverage

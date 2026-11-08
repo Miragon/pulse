@@ -1,0 +1,20 @@
+{
+  "case": "tls-failure",
+  "connection": {
+    "credentials": {
+      "kind": "none"
+    },
+    "endpoint": "https://127.0.0.1:<port>/engine-rest"
+  },
+  "probes": [
+    {
+      "call": "describeEngine",
+      "outcome": {
+        "failure": "unreachable",
+        "hint": null,
+        "message": "Cannot reach https://127.0.0.1:<port>/engine-rest/telemetry/data (DEPTH_ZERO_SELF_SIGNED_CERT)"
+      },
+      "sent": []
+    }
+  ]
+}

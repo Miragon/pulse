@@ -1,0 +1,40 @@
+{
+  "case": "path-value-dot",
+  "config": {
+    "PULSE_CLI_URL": "http://127.0.0.1:<port>/engine-rest"
+  },
+  "probes": [
+    {
+      "argv": [
+        "process-instance",
+        "get",
+        "."
+      ],
+      "exitCode": 2,
+      "sent": [],
+      "stderrLines": [
+        "{\"error\":{\"code\":\"USAGE\",\"exitCode\":2,\"message\":\"Argument <id> must not be empty, \\\".\\\" or \\\"..\\\"\"}}",
+        ""
+      ],
+      "stdoutLines": [
+        ""
+      ]
+    },
+    {
+      "argv": [
+        "process-instance",
+        "get",
+        ".."
+      ],
+      "exitCode": 2,
+      "sent": [],
+      "stderrLines": [
+        "{\"error\":{\"code\":\"USAGE\",\"exitCode\":2,\"message\":\"Argument <id> must not be empty, \\\".\\\" or \\\"..\\\"\"}}",
+        ""
+      ],
+      "stdoutLines": [
+        ""
+      ]
+    }
+  ]
+}

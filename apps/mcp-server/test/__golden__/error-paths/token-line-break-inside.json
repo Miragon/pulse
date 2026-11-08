@@ -1,0 +1,10 @@
+{
+  "boot": "Headers.set: \"Bearer tok-demo-123\nsecond-line\" is an invalid header value.",
+  "case": "token-line-break-inside",
+  "config": {
+    "ENGINE_AUTH_TYPE": "bearer",
+    "ENGINE_BASE_URL": "http://127.0.0.1:<port>/engine-rest",
+    "ENGINE_TOKEN": "tok-demo-123\nsecond-line"
+  },
+  "sent": []
+}

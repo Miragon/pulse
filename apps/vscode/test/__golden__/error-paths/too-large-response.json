@@ -1,0 +1,22 @@
+{
+  "case": "too-large-response",
+  "connection": {
+    "credentials": {
+      "kind": "none"
+    },
+    "endpoint": "http://127.0.0.1:<port>/engine-rest"
+  },
+  "probes": [
+    {
+      "call": "describeEngine",
+      "outcome": {
+        "failure": "unexpectedResponse",
+        "hint": null,
+        "message": "the engine answered with more than 67108864 bytes"
+      },
+      "sent": [
+        "GET /engine-rest/telemetry/data"
+      ]
+    }
+  ]
+}

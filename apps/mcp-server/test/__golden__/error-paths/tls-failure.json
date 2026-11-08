@@ -1,0 +1,46 @@
+{
+  "case": "tls-failure",
+  "config": {
+    "ENGINE_BASE_URL": "https://127.0.0.1:<port>/engine-rest",
+    "MCP_ACTIVE_MODULES": "engine:operations"
+  },
+  "probes": [
+    {
+      "arguments": {
+        "processInstanceId": "pi-1"
+      },
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "connection to engine default failed (DEPTH_ZERO_SELF_SIGNED_CERT)"
+            ],
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "sent": [],
+      "tool": "engine_inspect_process_instance"
+    },
+    {
+      "arguments": {
+        "jobId": "job-1",
+        "retries": 1
+      },
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "connection to engine default failed (DEPTH_ZERO_SELF_SIGNED_CERT) — the PUT may still have been applied; check the current state before retrying"
+            ],
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "sent": [],
+      "tool": "engine_set_job_retries"
+    }
+  ]
+}

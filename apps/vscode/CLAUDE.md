@@ -100,6 +100,11 @@ host stay engine-neutral.
   `pnpm lint:ratchets` holds them to the merge base like every other ratchet of the repo. Do
   not delete tests. An exception to a guardrail is a human's decision in review, never your
   own edit.
+- The C7 adapter's error-path goldens (`apps/vscode/test/adapters/c7/goldens/`, the files and
+  the case table in `apps/vscode/test/__golden__/error-paths/`) pin what it reports for the
+  engine failures that table lists. An intended change runs
+  `pnpm --fail-if-no-match --filter pulse-cockpit golden:update` (refused in CI) and commits the
+  diff; never edit a golden by hand.
 - A new gate is a rule in a standard tool (ESLint, dependency-cruiser, knip, tsc, Vitest) or
   a test. A rule you write proves it bites with a case in `apps/vscode/test/architecture`;
   see `apps/vscode/docs/adr/guardrails.md`.
