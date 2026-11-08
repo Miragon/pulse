@@ -50,14 +50,6 @@ jobs:
       - name: Approved
         run: echo "Release approved. Proceeding to publish."
 
-  publish-maven:
-    name: Publish engine plugins to Maven Central
-    needs: gate
-    uses: ./.github/workflows/publish-to-maven.yml
-    secrets: inherit
-    with:
-      dry_run: ${{ inputs.dry_run == true }}
-
   # A called workflow gets no more than this job grants, and the workflow-level
   # permissions above lack packages: write, so the job names its own.
   publish-docker:

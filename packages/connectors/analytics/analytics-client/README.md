@@ -17,7 +17,7 @@ npm install @miragon/pulse-analytics-client
 Prometheus client and PromQL query layer for Camunda 7 / CIB seven process analytics. It pairs a thin
 HTTP client for the Prometheus query API with a set of typed, purpose-built query functions and the
 **metrics contract**, the single source of truth for the `engine_*` metric names and labels the
-[engine plugin](../../../../engine-plugins) emits.
+engine plugin `io.miragon.mcp:cibseven-history-metrics` emits (0.27.1 is its last version).
 
 Used by [`@miragon/pulse-analytics-connector`](../analytics-connector) to power the `analytics_*` MCP tools, but
 usable by any project that reads Camunda process metrics from Prometheus.
@@ -67,18 +67,14 @@ caller's signal as well.
 ## Metrics contract
 
 [`metrics-contract.json`](metrics-contract.json) is the **single source of truth** for metric names
-and labels. The Kotlin plugin emits the OTEL instruments (`otelName`) that surface in Prometheus as
+and labels. The engine plugin emits the OTEL instruments (`otelName`) that surface in Prometheus as
 `engine_*` series (`promName`), and the queries reference them through `METRIC_NAMES`
-([`src/metric-names.ts`](src/metric-names.ts)), **never raw strings**. Both sides are verified
-against the contract:
-
-- TypeScript: [`src/metrics-contract.test.ts`](src/metrics-contract.test.ts) (vitest) checks the
-  metric names; [`src/metrics-contract-labels.test.ts`](src/metrics-contract-labels.test.ts) runs
-  every exported query function and checks each label its PromQL names (matchers, `by`/`without`,
-  `on`/`ignoring`/`group_*`) against the labels the contract declares for that series, alert
-  rules and Grafana dashboards included
-- Kotlin: `MetricsContractTest.kt` (Gradle), incl. the millisecond bucket bounds each histogram
-  registers
+([`src/metric-names.ts`](src/metric-names.ts)), **never raw strings**. The queries are verified
+against the contract: [`src/metrics-contract.test.ts`](src/metrics-contract.test.ts) (vitest)
+checks the metric names; [`src/metrics-contract-labels.test.ts`](src/metrics-contract-labels.test.ts)
+runs every exported query function and checks each label its PromQL names (matchers,
+`by`/`without`, `on`/`ignoring`/`group_*`) against the labels the contract declares for that
+series, alert rules and Grafana dashboards included.
 
 The contract also sets how a series is READ, and the same tests check every query, alert rule and
 dashboard panel against it. PromQL of your own uses the exported helper `increaseIn`:

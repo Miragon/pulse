@@ -7,29 +7,21 @@ import path from "node:path"
 /** The jar the engine image copies (playground/cibseven-example/Dockerfile). */
 export const ENGINE_JAR = "playground/cibseven-example/build/libs/cibseven-example.jar"
 
-/**
- * What the jar is built from: the example and the engine plugin it includes as a composite
- * build, with the version catalog both read. Build output inside them is skipped.
- */
+/** What the jar is built from: the example and its version catalog. Build output inside is skipped. */
 export const ENGINE_JAR_SOURCES = [
   "playground/cibseven-example/src",
   "playground/cibseven-example/build.gradle.kts",
   "playground/cibseven-example/settings.gradle.kts",
   "playground/cibseven-example/gradle.properties",
+  "playground/cibseven-example/gradle/libs.versions.toml",
   "playground/cibseven-example/gradle/wrapper/gradle-wrapper.properties",
-  "engine-plugins/cibseven-history-metrics/src",
-  "engine-plugins/cibseven-history-metrics/build.gradle.kts",
-  "engine-plugins/build.gradle.kts",
-  "engine-plugins/settings.gradle.kts",
-  "engine-plugins/gradle.properties",
-  "engine-plugins/gradle/libs.versions.toml",
 ]
 
 /** The JDK image a container build runs in, and the volume that keeps its Gradle cache. */
 export const JDK_IMAGE = "eclipse-temurin:21-jdk"
 export const GRADLE_CACHE_VOLUME = "pulse-gradle-cache"
 
-/** Both Gradle builds set `jvmToolchain(21)` and no toolchain resolver: only a JDK 21 builds. */
+/** The Gradle build sets `jvmToolchain(21)` and no toolchain resolver: only a JDK 21 builds. */
 export const JDK_MAJOR = 21
 
 /** The jar needs a build when it is missing or older than its newest source. */
@@ -62,7 +54,7 @@ export function pickJdk({ forceContainer, javaHome, javaHomeMajor, macJdk21, pat
 }
 
 /** The Gradle builds a container build writes into. */
-const GRADLE_PROJECTS = ["engine-plugins", "playground/cibseven-example"]
+const GRADLE_PROJECTS = ["playground/cibseven-example"]
 
 /** What Gradle writes there: its build, project-cache and Kotlin dirs and what is in them. */
 const BUILD_OUTPUT = [".gradle", "build", ".kotlin"]
@@ -71,8 +63,8 @@ const BUILD_OUTPUT = [".gradle", "build", ".kotlin"]
 
 /**
  * The command that runs `tasks` in the Gradle build `project` (relative to `repoRoot`):
- * `{ command, args, cwd, env }`. A container build mounts the whole repository (the example
- * includes ../../engine-plugins) and keeps Gradle's cache in a named volume. `--init` with
+ * `{ command, args, cwd, env }`. A container build mounts the whole repository and keeps
+ * Gradle's cache in a named volume. `--init` with
  * TINI_KILL_PROCESS_GROUP lets Ctrl-C reach Gradle (a shell as PID 1 ignores SIGINT).
  * On Linux the container's root writes the build output as root; the hand-back gives it to the
  * caller's user, also after Ctrl-C. Under a user namespace (rootless Docker, Docker Desktop for
@@ -128,12 +120,11 @@ export function gradleCommand(jdk, { repoRoot, project, tasks, platform, uid, gi
  */
 export const staleJarNote = (jarMtimeMs) =>
   jarMtimeMs === undefined
-    ? "This checkout has no engine jar, so the running engine may not match its engine plugin " +
-      "and example (another checkout, a worktree say, may have built it). The playground is " +
-      "shared and keeps running as it is."
+    ? "This checkout has no engine jar, so the running engine may not match its example " +
+      "(another checkout, a worktree say, may have built it). The playground is shared and " +
+      "keeps running as it is."
     : "The engine jar here is older than its sources, so the running engine may lack changes " +
-      "to the engine plugin or the example; pnpm stack:down && pnpm stack:up rebuilds and " +
-      "redeploys it."
+      "to the example; pnpm stack:down && pnpm stack:up rebuilds and redeploys it."
 
 /** One line on where Gradle runs. */
 export const describeJdk = (jdk) =>

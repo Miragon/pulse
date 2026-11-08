@@ -16,9 +16,6 @@ coverage/
 templates/composed-server/pnpm-lock.yaml
 miranum-ai/
 # Gradle
-engine-plugins/.gradle/
-engine-plugins/build/
-engine-plugins/*/build/
 playground/cibseven-example/.gradle/
 playground/cibseven-example/build/
 .idea/

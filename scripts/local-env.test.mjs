@@ -71,12 +71,12 @@ describe("the presets", () => {
     })
   })
 
-  it("keeps the engine id of the Compose engine (the engine_id join key)", () => {
-    const engineId = (service) =>
-      compose.services[service].environment.find((entry) => entry.startsWith("ENGINE_ID="))
-    assert.equal(engineId("cibseven"), `ENGINE_ID=${serverPreset().ENGINE_ID}`)
-    const engines = JSON.parse(serverPreset({ multiEngine: true }).ENGINES_JSON)
-    assert.equal(engineId("cibseven-b"), `ENGINE_ID=${engines[1].id}`)
+  it("hands the Compose engines no metrics settings: no plugin in them reads one", () => {
+    for (const service of ["cibseven", "cibseven-b"]) {
+      const names = compose.services[service].environment.map((entry) => entry.split("=")[0])
+      const metrics = names.filter((name) => /^(?:ENGINE_ID|METRICS_ENABLED|OTEL_)/.test(name))
+      assert.deepEqual(metrics, [], service)
+    }
   })
 
   it("lists both engines with --multi-engine instead of the single-engine shorthand", () => {

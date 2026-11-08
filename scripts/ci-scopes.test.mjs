@@ -139,17 +139,19 @@ describe("scopesFor: a package's code reaches its dependents", () => {
     ])
   })
 
-  it("adds Kotlin for the metrics contract, which the engine plugin's test reads", () => {
+  it("runs only its package's checks for the metrics contract: no Gradle build reads it", () => {
     assert.deepEqual(
       scopes("packages/connectors/analytics/analytics-client/metrics-contract.json"),
-      ["kotlin", "mcp", "template", "typescript"],
+      ["mcp", "template", "typescript"],
     )
   })
 })
 
 describe("scopesFor: paths outside the packages", () => {
-  it("runs one Gradle build for each Gradle project", () => {
-    assert.deepEqual(scopes("engine-plugins/gradle/libs.versions.toml"), ["kotlin"])
+  it("runs the one Gradle build for the playground engine, its version catalog included", () => {
+    assert.deepEqual(scopes("playground/cibseven-example/gradle/libs.versions.toml"), [
+      "cibseven-example",
+    ])
     assert.deepEqual(scopes("playground/cibseven-example/build.gradle.kts"), ["cibseven-example"])
   })
 

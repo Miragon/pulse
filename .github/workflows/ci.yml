@@ -27,7 +27,6 @@ jobs:
       cli: ${{ steps.scopes.outputs.cli }}
       vscode: ${{ steps.scopes.outputs.vscode }}
       vscode-package: ${{ steps.scopes.outputs.vscode-package }}
-      kotlin: ${{ steps.scopes.outputs.kotlin }}
       cibseven-example: ${{ steps.scopes.outputs.cibseven-example }}
       brand: ${{ steps.scopes.outputs.brand }}
     steps:
@@ -489,27 +488,6 @@ jobs:
       - name: brand-lint
         if: env.CI_SOURCE_TOKEN != ''
         run: node .ci-source/plugins/miragon-brand/scripts/brand-lint.mjs --nur-hart docs README.md apps/cli/README.md
-
-  kotlin:
-    name: Kotlin (Build + Test)
-    needs: changes
-    if: needs.changes.outputs.kotlin == 'true'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: engine-plugins
-    steps:
-      - uses: actions/checkout@v7.0.1
-
-      - uses: actions/setup-java@v6.2.0
-        with:
-          distribution: temurin
-          java-version: 21
-          cache: gradle
-
-      - run: ./gradlew build
-        env:
-          GRADLE_OPTS: -Dorg.gradle.daemon=false
 
   cibseven-example:
     name: CIB Seven Example (Build + Test)

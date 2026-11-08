@@ -52,9 +52,9 @@ If the REST API needs a login, add `ENGINE_AUTH_TYPE=basic` with `ENGINE_USERNAM
 On Linux add `--add-host=host.docker.internal:host-gateway`; that name misses a port bound to
 `127.0.0.1`: join such an engine's network (`--network`) and use its service and container port.
 [Operations](operations.md) covers several engines, OAuth and the toolsets that
-allow writes. For analytics, your engine project adds the plugin
-`io.miragon.mcp:cibseven-history-metrics` and exports its metrics to Prometheus, as
-[Architecture](architecture.md) shows.
+allow writes. Analytics reads the metrics of the engine plugin
+`io.miragon.mcp:cibseven-history-metrics` from Prometheus, as [Architecture](architecture.md)
+shows; Pulse no longer builds the plugin, and 0.27.1 is its last version.
 
 For a server of your own, with modules for your own systems next to Pulse's, start from
 Miragon/pulse-starter: [Build your own server](build-your-own.md).

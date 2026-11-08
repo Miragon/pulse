@@ -13,7 +13,7 @@ analytics stack, read-only. See [Connect your Claude in 30 seconds](getting-star
 - Node.js 22.22.2 or later (`engines` in the root `package.json`)
 - pnpm 10.32.1 (`packageManager`): `corepack enable`; Node.js 25+ has none: `npm i -g pnpm@10.32.1`
 - Docker: the playground, and Gradle in a container when no JDK 21 is installed
-- Optional: a JDK 21; Gradle then runs on it, and `./gradlew` by hand in `engine-plugins/` needs one
+- Optional: a JDK 21; Gradle then runs on it, and `./gradlew` by hand in `playground/cibseven-example/` needs one
 
 ## Clone and run
 
@@ -77,4 +77,4 @@ the workspace's packed packages, also with a prebuilt module that brings its own
 
 - These pages are Markdown in `docs/`, next to the code they describe, and build into this VitePress site (`pnpm docs:dev`, `pnpm docs:build`), published to [miragon.github.io/pulse](https://miragon.github.io/pulse/) with each release, so the site shows what a release shipped (a pull request only builds them). A change to env vars, tools, ports or the getting-started steps updates them in the same PR. `scripts/docs-refs.test.mjs` checks every tool name and repo path they cite, and each page's line budget.
 - The product page [miragon.ai/tools/pulse](https://miragon.ai/tools/pulse/) is built from [Miragon/miragon-ai-docs](https://github.com/Miragon/miragon-ai-docs).
-- [Reference](reference.md) lists every tool, toolset and the common env vars; [`engine-plugins/README.md`](https://github.com/Miragon/pulse/blob/main/engine-plugins/README.md) covers the Kotlin plugin build.
+- [Reference](reference.md) lists every tool, toolset and the common env vars.

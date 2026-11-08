@@ -7,8 +7,8 @@
 name: pulse
 
 services:
-  # Default: custom-built CIB seven with the Micrometer metrics plugin.
-  # Identifies itself as `prod-a` via the `engine_id` metric tag.
+  # Default: custom-built CIB seven (../cibseven-example), seeded and with live
+  # traffic; the server knows it as `prod-a`.
   cibseven:
     build:
       context: ../cibseven-example
@@ -17,18 +17,9 @@ services:
       - "127.0.0.1:8410:8410"
     environment:
       - SPRING_PROFILES_ACTIVE=seed-presentation
-      - METRICS_ENABLED=true
-      - ENGINE_ID=prod-a
-      # Continuous real-time traffic so the metric-first analytics populate
-      # out of the box (set false to rely on the backdated seed only).
+      # Continuous real-time traffic so the cockpit moves out of the box (set
+      # false to rely on the backdated seed only).
       - LIVE_TRAFFIC_ENABLED=true
-      # Micrometer's OTLP registry pushes here (application.yml appends
-      # /v1/metrics); OTEL_SERVICE_NAME it honors natively.
-      - OTEL_SERVICE_NAME=cibseven-engine-a
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
-    depends_on:
-      otel-collector:
-        condition: service_started
     healthcheck:
       # The temurin JRE image ships no curl; probe the engine REST API with
       # bash's /dev/tcp instead (same pattern as the keycloak check below).
@@ -42,7 +33,7 @@ services:
       retries: 12
       start_period: 30s
 
-  # Second engine on port 8411, identifying as `prod-b`. Opt-in via the
+  # Second engine on port 8411, `prod-b` to the server. Opt-in via the
   # `multi-engine` profile so the default `docker compose up` keeps the existing
   # single-engine setup unchanged.
   # Use: docker compose --profile multi-engine up -d
@@ -55,14 +46,7 @@ services:
       - "127.0.0.1:8411:8410"
     environment:
       - SPRING_PROFILES_ACTIVE=seed-presentation
-      - METRICS_ENABLED=true
-      - ENGINE_ID=prod-b
       - LIVE_TRAFFIC_ENABLED=true
-      - OTEL_SERVICE_NAME=cibseven-engine-b
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
-    depends_on:
-      otel-collector:
-        condition: service_started
     healthcheck:
       # The temurin JRE image ships no curl; probe the engine REST API with
       # bash's /dev/tcp instead (same pattern as the keycloak check below).
@@ -233,12 +217,8 @@ services:
       # shell before `docker compose up`, or by overriding via a compose
       # override file.
       - ENGINE_BASE_URL=http://cibseven:8410/engine-rest
-      # Must stay in sync with the cibseven service's ENGINE_ID: that value is
-      # the `engine_id` metric label every analytics query is scoped to. A
-      # mismatch is silent: all analytics for the engine come back empty and its
-      # health reads `unknown`.
-      # Analytics reads only the configured engines, so this single-engine
-      # default leaves prod-b's metrics out until ENGINES_JSON lists it.
+      # The id the server knows the engine by. The playground engines export no
+      # metrics, so analytics finds none for them.
       - ENGINE_ID=prod-a
       # The engine is CIB seven: without the flavor the server takes it for
       # Camunda 7 and puts Camunda 7 routes on the /webapp cockpit below.

@@ -12,7 +12,6 @@
       "include-component-in-tag": false,
       "changelog-path": "CHANGELOG.md",
       "extra-files": [
-        { "type": "generic", "path": "engine-plugins/gradle.properties" },
         { "type": "json", "path": "package.json", "jsonpath": "$.version" },
         {
           "type": "json",

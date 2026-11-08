@@ -81,7 +81,10 @@ export function checkSteps({ all = false, force = false, scripts = rootScripts()
     pnpm("host browsers", ...server, "exec", "playwright", "install", "chromium"),
     pnpm("test:host", ...server, "test:host"),
     { name: "template", command: "bash", args: ["scripts/test-template.sh"] },
-    { name: "engine-plugins", gradle: { project: "engine-plugins", tasks: ["build"] } },
+    {
+      name: "cibseven-example",
+      gradle: { project: "playground/cibseven-example", tasks: ["build"] },
+    },
     pnpm("docs:build", "docs:build"),
     pnpm("test:engines", "--fail-if-no-match", "--filter", "@miragon/pulse-cli", "test:engines"),
   ]

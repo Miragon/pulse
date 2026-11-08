@@ -206,8 +206,7 @@ describe("tool names in the docs", () => {
 })
 
 describe("repo paths in the docs", () => {
-  const ROOTS =
-    /^(?:apps|packages|docs|scripts|playground|engine-plugins|templates|\.claude|\.github)\//
+  const ROOTS = /^(?:apps|packages|docs|scripts|playground|templates|\.claude|\.github)\//
   // Written by a build or a test run, not checked in.
   const GENERATED = /(?:^|\/)(?:dist|test-results|node_modules|generated-sources)(?:\/|$)/
   const pathOf = (token) => token.replace(/:\d+(?:-\d+)?$/, "").replace(/\/$/, "")
@@ -482,9 +481,9 @@ describe("identifiers in the skills and the nested agent files", () => {
     fileURLToPath(import.meta.url),
     path.join(REPO_ROOT, "scripts", "old-names.test.mjs"),
   ])
-  const isSource = (file) => /\.(?:tsx?|mts|mjs|cjs|kt)$/.test(file) && !FIXTURE_SOURCES.has(file)
+  const isSource = (file) => /\.(?:tsx?|mts|mjs|cjs)$/.test(file) && !FIXTURE_SOURCES.has(file)
   const words = wordsOf([
-    ...["apps", "packages", "scripts", "templates", "engine-plugins"].flatMap((dir) =>
+    ...["apps", "packages", "scripts", "templates"].flatMap((dir) =>
       walk(path.join(REPO_ROOT, dir), isSource),
     ),
     ...typings,
@@ -646,7 +645,7 @@ describe("what the guard reads", () => {
     "packages/connectors/engine/engine-connector/src/messages/GLOSSARY.md",
     ".claude/skills/shadcn/rules/forms.md",
     "templates/composed-server/server/README.md",
-    "engine-plugins/README.md",
+    "playground/README.md",
     "TODOS.md",
     "apps/cli/README.txt",
   ]) {

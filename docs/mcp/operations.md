@@ -72,9 +72,8 @@ for a trusted single-audience setup only: the engine could replay it here.
 | `ANALYTICS_ENGINE_IDS`                                 | unset                               | Comma-separated `engine_id`s analytics may read, only for a boot without the engine module; with it active its configured engine ids scope analytics and this is ignored. With neither, every analytics tool refuses (fail-closed), so a shared Prometheus never exposes other teams' engines                                                                                                                                                                                                                                                                   |
 
 An engine URL (`ENGINE_BASE_URL`, `ENGINE_COCKPIT_URL`, an entry's `baseUrl` or `cockpitUrl`) with credentials, a query string or a fragment fails the boot, as in the CLI and the VS Code extension; a login goes into `ENGINE_AUTH_TYPE` or the entry's `auth`. A boot error repeats no such URL, and shows an engine id or `ENGINE_DEFAULT` only when it has the shape of an id.
-Unknown `ENGINE_*`/`ENGINES_*`/`MCP_*` variables warn at boot. The server sends no telemetry. The engine container takes `METRICS_ENABLED`,
-`ENGINE_ID` (must match the server's engine id, or that engine's analytics come back empty),
-`OTEL_EXPORTER_OTLP_ENDPOINT`/`OTEL_SERVICE_NAME` and, per node of a clustered engine, `OTEL_RESOURCE_ATTRIBUTES=service.instance.id=<node>`.
+Unknown `ENGINE_*`/`ENGINES_*`/`MCP_*` variables warn at boot. The server sends no telemetry. An engine with the metrics plugin
+tags its metrics with an engine id that must match the server's, or that engine's analytics come back empty.
 
 ## Module activation
 
@@ -105,7 +104,7 @@ Three routes sit next to `/mcp`, outside the OAuth gate and the `Host` check:
 The server logs one line per request to stdout (`tools/call engine_status /mcp 200 client=claude-code/2.1 12ms`: method, tool or resource, path, status, client, time); a failed one ends in `ERROR <text>`.
 `MCP_LOG_LEVEL=debug` adds tool arguments and results (cut at 80 characters), `trace` whole requests and responses with credential headers redacted; both log process variables and business keys, and the boot warns.
 `/mcp` takes POST only (GET, DELETE and HEAD get 405: the server keeps no session) and `/` serves no page. Node refuses TRACK itself (400) and closes a CONNECT's socket without an answer: neither shows in this log or in `/metrics`. A refused setting fails the boot (exit 1) with one stderr line that names it.
-Engine metrics come from the Kotlin plugin via any Micrometer export (see [Architecture](architecture.md)), Grafana is optional (`:8470`); alert rules ship in `playground/docker/prometheus/alerts.yml`, and
+Engine metrics come from the engine plugin `io.miragon.mcp:cibseven-history-metrics` (0.27.1, its last version) via any Micrometer export (see [Architecture](architecture.md)), Grafana is optional (`:8470`); alert rules ship in `playground/docker/prometheus/alerts.yml`, and
 `analytics_engine_health` surfaces the same gauges and firing alerts in one call.
 
 <a id="ci-cd"></a>
@@ -113,7 +112,7 @@ Engine metrics come from the Kotlin plugin via any Micrometer export (see [Archi
 ## CI/CD
 
 `.github/workflows/ci.yml` runs on public npm dependencies only: TypeScript (build, test, lint,
-format), Kotlin engine plugins, the CIB seven example, the brand checks, the CLI and the VS Code
+format), the CIB seven example, the brand checks, the CLI and the VS Code
 extension against Camunda 7, CIB seven and Operaton, the CLI's binaries, image and plugin, the extension in VS Code and as a .vsix.
 A push to `main` runs every job, a pull request those its changes need (`scripts/ci-scopes.mjs`); mutation testing runs nightly.
 `docs.yml` checks the docs kit, builds the site on pull requests touching `docs/` (a dead link fails it) and publishes it with each release: `release-please.yml` calls it on `main` after the approval.

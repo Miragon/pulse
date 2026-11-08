@@ -52,7 +52,6 @@ command line interface (`apps/cli`) and a VS Code extension (`apps/vscode`) for 
 | `packages/connectors/analytics/analytics-client/`    | Prometheus client, PromQL query functions (`src/queries/`) and the metrics contract; a leaf                                                                                                                                                                       |
 | `packages/core/ui/`                                  | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the brand gates under `/testing` |
 | `packages/core/widget-shell/`                        | The view runtime (`/widgets`: `mountViews`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), the product glossary (`/testing`)      |
-| `engine-plugins/`                                    | Kotlin/Gradle: CIB seven OTEL metrics plugin (Java 21)                                                                                                                                                                                                            |
 | `playground/`                                        | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                 |
 | `docs/`                                              | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                                                        |
 | `docs/mcp/`                                          | The MCP server's pages of the docs site (getting started, usage, reference, operations, architecture, build your own, developer)                                                                                                                                  |
@@ -115,8 +114,8 @@ pnpm generate                        # regenerate the CIB seven SDK from the Ope
 # The server with your own settings (a .env file, see .env.example; playground: pnpm stack:up):
 pnpm dev                             # MCP server on :8400 + MCP Inspector
 
-# Kotlin engine plugins (Java 21):
-cd engine-plugins && ./gradlew build # compile + unit tests + Konsist architecture tests
+# The playground engine (Kotlin, Java 21):
+cd playground/cibseven-example && ./gradlew build # compile + unit tests
 
 # Docs site:
 pnpm docs:dev                        # local dev server; pnpm docs:build to build
@@ -637,17 +636,16 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 
 - **`packages/connectors/analytics/analytics-client/metrics-contract.json` is the single source
   of truth for metric names and labels: when changing a metric, change it here first.** The
-  Kotlin plugin (`engine-plugins/cibseven-history-metrics/`) emits the Micrometer meters,
-  recorded only once the engine command COMMITTED; durations are whole milliseconds with
-  explicit buckets, since Micrometer rounds UP to a whole base unit before bucketing. Read a
-  counter or histogram only through `increaseIn` (`queries/helpers.ts`): `increase()`/`rate()`
-  never count a series' first sample, so the first incident at an activity would read 0; fold
-  a gauge over a clustered engine's nodes as `max by (<its contract labels>)`. TS queries (via
-  `METRIC_NAMES`), `playground/docker/prometheus/alerts.yml` and the Grafana dashboards are
-  checked by `packages/connectors/analytics/analytics-client/src/metrics-contract.test.ts`,
-  `src/metrics-contract-labels.test.ts` (a new query export needs a `SCENARIOS` entry) and the
-  Gradle `MetricsContractTest.kt`. Attach only model-bounded labels (definition key, activity
-  id, engine id …), never instance ids, business keys or variable values.
+  engine plugin `io.miragon.mcp:cibseven-history-metrics` emits them; Pulse no longer builds it,
+  and 0.27.1 on Maven Central is its last version. Read a counter or histogram only through
+  `increaseIn` (`queries/helpers.ts`): `increase()`/`rate()` never count a series' first sample,
+  so the first incident at an activity would read 0; fold a gauge over a clustered engine's
+  nodes as `max by (<its contract labels>)`. TS queries (via `METRIC_NAMES`),
+  `playground/docker/prometheus/alerts.yml` and the Grafana dashboards are checked by
+  `packages/connectors/analytics/analytics-client/src/metrics-contract.test.ts` and
+  `src/metrics-contract-labels.test.ts` (a new query export needs a `SCENARIOS` entry). Attach
+  only model-bounded labels (definition key, activity id, engine id …), never instance ids,
+  business keys or variable values.
 - **Never aggregate a RATE across engines.** Engines host different process definitions, so a
   rate or duration summed per `engine_id` measures the engine's process mix and can even
   invert the per-process truth. Cross-engine views report absolute counts plus the
@@ -729,9 +727,9 @@ workspace (its header lists each check).
 
 - **One release-please train.** Conventional commits on `main` drive `release-please.yml`: one
   Release PR (tag `v<version>`) bumps the root, every app, the seven packages, the template's
-  pins, the engine-client User-Agent and `engine-plugins/gradle.properties` in lockstep
-  (`extra-files` in `release-please-config.json`). Merging it creates the release; every
-  publish job then waits for manual approval of the `release` environment gate.
+  pins and the engine-client User-Agent in lockstep (`extra-files` in `release-please-config.json`).
+  Merging it creates the release; every publish job then waits for manual approval of the
+  `release` environment gate.
 - **npm:** the seven packages and `@miragon/pulse-cli` publish through
   `publish-npm-package.yml` with OIDC trusted publishing (no NPM_TOKEN, provenance attached).
   Each names this repository in its `repository` field, since npm refuses a provenance publish
@@ -751,10 +749,6 @@ workspace (its header lists each check).
   to the Visual Studio Marketplace and Open VSX from one job in the `vscode-marketplace`
   environment that builds nothing; `VSCE_PUBLISH`/`OVSX_PUBLISH` are handed down by name, never
   `secrets: inherit`.
-- **Engine plugins** publish to Maven Central via `publish-to-maven.yml` (Vanniktech Maven
-  Publish, GPG-signed) under the group `io.miragon.mcp` with the engine in the artifactId
-  (`io.miragon.mcp:cibseven-history-metrics`); publishing config lives in each module's own
-  `build.gradle.kts`.
 - **The server image** publishes via `publish-to-docker.yml` to
   `ghcr.io/miragon/pulse-server` with the run's `GITHUB_TOKEN`; a reusable workflow gets no
   more than its caller grants, so the `publish-docker` job grants `packages: write` itself.
@@ -775,7 +769,7 @@ workspace (its header lists each check).
 | `pnpm test`       | Vitest unit tests, the server app's wire-contract tests and tools/list goldens (in-process boot, loopback HTTP), the VS Code extension's architecture tests, the per-package coverage floors, then `node --test` over `scripts/*.test.mjs` (repo guards and gate self-tests, below the table); docs-refs, old-names and `lint:package-scripts` also run in Lint + Format; **no widget rendering** (the VS Code webview tests render in Chromium; locally once: `pnpm --filter pulse-cockpit exec playwright install chromium`)                                                                                                                                                        |
 | `pnpm lint`       | The build-free gates first (`lint:naming`, `lint:package-scripts`, `lint:github`, `lint:ratchets`, which needs `git fetch origin`), then ESLint per package incl. the pattern gates, dependency-cruiser (`lint:architecture`, `:cli`, `:vscode`) and knip (`lint:deadcode`: everything but exports and types; `:exports`: exports and types in every workspace but the vendored docs kit), and last `lint:configs` (the config files no tsconfig holds and no package lints: `DEFAULT_PROJECT_FILES` in `eslint.config.mjs`)                                                                                                                                                          |
 | `pnpm fitness`    | Report: architecture graph, per-package coverage and engine-core's mutation score; locally after `pnpm test` (no CI job on a pull request), else the "Mutation summary" job of `.github/workflows/mutation-nightly.yml`                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `./gradlew build` | Kotlin compile + unit tests + Konsist architecture tests (run in `engine-plugins/`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `./gradlew build` | The playground engine (`playground/cibseven-example/`): Kotlin compile + unit tests of its processes; CI "CIB Seven Example (Build + Test)", in `pnpm check:all`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `test:host`       | `pnpm --filter @miragon/pulse-mcp-server test:host`: Playwright host simulation of the **built** widget bundle behind a SEP-1865 host shim, the real `engine_open_cockpit` against a stub engine (`pinned …` scenarios are known defects, flipped when fixed); CI "Widget host simulation (test:host)"; run it for changes to widget-shell, pulse-ui, `src/ui/` or the `@modelcontextprotocol/ext-apps` pin                                                                                                                                                                                                                                                                           |
 | Template          | `scripts/test-template.sh` (in `pnpm check:all`; CI "Composed-server template (Build + Test)"): packs the published libraries (`scripts/workspace-packages.mjs`), checks their contents (`scripts/pack-contents.mjs`), points a copy of `templates/composed-server` at them and runs its build, typecheck, test and format check, its pins matched to the workspace first (`scripts/template-pins.mjs`), then build, typecheck and test again with the fixture module `templates/fixtures/prebuilt-module` installed (`scripts/prebuilt-module.mjs`). ESLint, knip and dependency-cruiser skip `templates/`: the template's composition-root rules (invariant 8) are review knowledge |
 | Starter engine    | "Starter try-out engine" in `.github/workflows/ci.yml` (scope `starter-engine`: `templates/composed-server/compose.yaml` and the job itself): starts that engine on Linux and checks what a Run tag bump can break (healthy within 240 s, 401 without a login, 200 for demo/demo, invoice and ReviewInvoice deployed), then reaches it from a container on `pulse-starter_default`, the network of the starter's container recipe                                                                                                                                                                                                                                                     |

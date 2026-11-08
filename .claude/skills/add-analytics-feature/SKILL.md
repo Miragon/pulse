@@ -57,16 +57,13 @@ const [counts, sums] = await Promise.all([
 (`src/metric-names.ts`), never raw `engine_*` literals; a guard test in
 `src/metrics-contract.test.ts` fails on them. Histogram entries are the base name:
 append `_sum`/`_count`/`_bucket` at the call site. The single source of truth is
-`packages/connectors/analytics/analytics-client/metrics-contract.json`: if you need a _new_ metric or label,
-change the contract first, then the Kotlin plugin
-(`engine-plugins/cibseven-history-metrics/.../ProcessMetrics.kt` /
-`EngineStateMetrics.kt`), `METRIC_NAMES`, and any alert rules / Grafana dashboards.
-Contract tests on both sides enforce consistency: the TS side also checks the Grafana
-dashboards (incl. regex matchers), the alert rules' and dashboards' `sum by (…)`
-grouping labels, `GAUGE_LABELS` against the gauges, millisecond `buckets` on every
-histogram, and dead contract entries (documented allowlist in the test); the Kotlin side
-checks the label keys each instrument attaches and the bucket bounds each histogram
-registers. Don't weaken these guards. Keep labels model-bounded (never
+`packages/connectors/analytics/analytics-client/metrics-contract.json`. Pulse no longer builds
+the engine plugin that emits the metrics (`io.miragon.mcp:cibseven-history-metrics`, 0.27.1 its
+last version), so a _new_ metric or label has no emitter here. The contract tests enforce
+consistency: they also check the Grafana dashboards (incl. regex matchers), the alert rules'
+and dashboards' `sum by (…)` grouping labels, `GAUGE_LABELS` against the gauges, millisecond
+`buckets` on every histogram, and dead contract entries (documented allowlist in the test).
+Don't weaken these guards. Keep labels model-bounded (never
 instance ids, business keys, variable values).
 
 **Label contract:** `src/metrics-contract-labels.test.ts` runs every exported query

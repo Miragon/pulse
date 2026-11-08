@@ -5,11 +5,11 @@ CIB seven engine with live traffic, the full metric-first analytics stack,
 and the MCP server on top. Run it locally with Docker Compose, or deploy
 the whole stack to Fly.io with one workflow.
 
-| Path                | Contents                                                                                                      |
-| ------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `cibseven-example/` | Spring Boot CIB seven engine: seeded Miravelo Leasing processes, live traffic, Micrometer metrics (OTLP push) |
-| `docker/`           | Compose stack: engine(s), OTEL Collector, Prometheus, Grafana, optional server                                |
-| `fly/`              | Fly.io deployment: one `*.fly.toml` per app + `deploy.sh`                                                     |
+| Path                | Contents                                                                       |
+| ------------------- | ------------------------------------------------------------------------------ |
+| `cibseven-example/` | Spring Boot CIB seven engine: seeded Miravelo Leasing processes, live traffic  |
+| `docker/`           | Compose stack: engine(s), OTEL Collector, Prometheus, Grafana, optional server |
+| `fly/`              | Fly.io deployment: one `*.fly.toml` per app + `deploy.sh`                      |
 
 ## Run locally
 
@@ -36,8 +36,8 @@ pnpm stack:down     # stop (volumes kept; --wipe drops them)
   missing or older than its sources, on a local JDK 21 or else in an `eclipse-temurin:21-jdk`
   container (Gradle cache in the Docker volume `pulse-gradle-cache`; `--jdk-container` forces it).
 - `stack:up` reuses a stack that already answers as it is, and stops with a message when another
-  container or process holds one of its ports. After a change to the engine plugin or the
-  example, `pnpm stack:down && pnpm stack:up` deploys it (`stack:up` says when the jar is stale).
+  container or process holds one of its ports. After a change to the example,
+  `pnpm stack:down && pnpm stack:up` deploys it (`stack:up` says when the jar is stale).
   Every checkout and worktree shares the one stack (Compose project `pulse`): `stack:down` stops
   it for all of them, and a checkout without a jar of its own reuses the engine another one built.
 - With your own settings instead: `cp .env.example .env`, then `pnpm dev`.

@@ -137,12 +137,12 @@ describe("checkSteps", () => {
       "host browsers",
       "test:host",
       "template",
-      "engine-plugins",
+      "cibseven-example",
       "docs:build",
       "test:engines",
     ])
-    assert.deepEqual(all.find(({ name }) => name === "engine-plugins").gradle, {
-      project: "engine-plugins",
+    assert.deepEqual(all.find(({ name }) => name === "cibseven-example").gradle, {
+      project: "playground/cibseven-example",
       tasks: ["build"],
     })
   })

@@ -84,8 +84,8 @@ invert the per-process truth. Two consequences run through the module:
   sides is what makes a delta attributable to the engine; the landscape's `sharedProcessKeys`
   lists the definitions that qualify.
 
-These tools read the `engine_*` series emitted by the
-[engine metrics plugin](../../../../engine-plugins). Per-instance drill-down (search by variable) is **not**
+These tools read the `engine_*` series emitted by the engine metrics plugin
+`io.miragon.mcp:cibseven-history-metrics` (0.27.1 is its last version). Per-instance drill-down (search by variable) is **not**
 metric-backed: use the `engine_query_historic_*` tools in the [engine module](../../engine/engine-connector).
 
 The BPMN heatmap gets its diagram XML via an injected `fetchBpmnXml` shared resource (wired by the

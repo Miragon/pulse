@@ -1,9 +1,9 @@
 # Pulse architecture
 
 Pulse is a single Node.js MCP server that exposes Camunda 7 / CIB seven
-operations and Prometheus-backed analytics to any MCP host (Claude, ChatGPT, …). A Kotlin plugin
-in the engine emits process metrics via Micrometer, pushed over OTLP; the OTEL Collector exports
-them to Prometheus so the analytics module can query them.
+operations and Prometheus-backed analytics to any MCP host (Claude, ChatGPT, …). The engine plugin
+`io.miragon.mcp:cibseven-history-metrics` (0.27.1, its last version) emits process metrics via
+Micrometer, pushed over OTLP; the OTEL Collector exports them to Prometheus for the analytics module.
 
 ## At a glance
 
@@ -22,7 +22,7 @@ flowchart LR
   EngineModule -->|REST| Engine[(Camunda 7 / CIB seven)]
   Analytics -->|PromQL| Prom[(Prometheus)]
 
-  Engine -. history events .-> Plugin[Kotlin metrics plugin]
+  Engine -. history events .-> Plugin[engine metrics plugin]
   Plugin -- OTLP --> Collector[OTEL Collector]
   Collector --> Prom
   Prom --> Grafana[Grafana dashboards]
@@ -39,7 +39,6 @@ flowchart LR
 | **VS Code extension** (`apps/vscode/`)                               | Shows what an engine runs next to the BPMN models in VS Code: a Preact webview over an engine-neutral contract and the C7 adapter. Ships as a .vsix on the Marketplace and Open VSX; rules in `apps/vscode/CLAUDE.md`.         |
 | **engine** (`packages/connectors/engine/engine-connector/`)          | Wraps the Camunda 7 / CIB seven REST API via an OpenAPI-generated client. Exposes process, task, incident, deployment, and history tools plus widgets.                                                                         |
 | **analytics** (`packages/connectors/analytics/analytics-connector/`) | Queries Prometheus via PromQL for the process dashboard (per process and per activity), period, version and engine comparisons, the cross-engine landscape and engine health. Tools + widgets.                                 |
-| **engine-plugins** (`engine-plugins/`)                               | Kotlin Micrometer plugins for CIB seven: a process-metrics emitter. Independent build (Java 21, Gradle). No engine-side database.                                                                                              |
 | **widgets** (`apps/mcp-server/dist/mcp-app.js` + `.css`)             | One Vite-built ES module + stylesheet containing React, Tailwind, and every widget. The server serves it behind one `ui://views/<tool>.html` resource per widget tool, which declares that view on itself (`showToolBinding`). |
 
 ## Composition rules
@@ -132,8 +131,8 @@ question of its own.
    Inside the view, app-only `*_data` feeds refresh and page it without a model
    turn.
 
-Process metrics originate in the engine: the Kotlin plugin maps history events
-to Micrometer counters/histograms (100 % coverage, model-bounded labels), the
+Process metrics originate in the engine: its metrics plugin maps history events
+to Micrometer counters/histograms (model-bounded labels), the
 Collector receives them over OTLP, and Prometheus stores them. Per-instance drill-down (search) is
 served by the engine REST history API, not the metrics.
 
@@ -144,7 +143,6 @@ served by the engine REST history API, not the metrics.
 | `apps/mcp-server/`     | The MCP server entry point and the widget bundle.                     |
 | `packages/core/`       | What every family builds on: widget-shell, pulse-ui.                  |
 | `packages/connectors/` | One folder per family: client, connector (MCP plugin), optional core. |
-| `engine-plugins/`      | Kotlin Micrometer plugins (process metrics).                          |
 | `playground/`          | Demo env: showcases, Compose stack, Fly.io deployment.                |
 
 For deeper detail, [Reference](reference.md) lists every tool and toolset.

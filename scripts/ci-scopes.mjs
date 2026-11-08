@@ -18,7 +18,6 @@ export const SCOPES = [
   "cli",
   "vscode",
   "vscode-package",
-  "kotlin",
   "cibseven-example",
   "brand",
 ]
@@ -53,7 +52,6 @@ export const PATH_RULES = [
   { pattern: /^\.claude-plugin\//, scopes: ["cli"] },
   // The shared editor settings: only the always-on format check reads them.
   { pattern: /^\.vscode\//, scopes: [] },
-  { pattern: /^engine-plugins\//, scopes: ["kotlin"] },
   { pattern: /^playground\/cibseven-example\//, scopes: ["cibseven-example"] },
   // Read by the metrics contract tests.
   { pattern: /^playground\/docker\//, scopes: ["typescript"] },
@@ -74,13 +72,7 @@ export const PATH_RULES = [
 ]
 
 /** Package files that checks outside the package read too. */
-export const ALSO_READ_BY = [
-  {
-    pattern: /^packages\/connectors\/analytics\/analytics-client\/metrics-contract\.json$/,
-    scopes: ["kotlin"],
-  },
-  { pattern: /^apps\/cli\/README\.md$/, scopes: ["brand"] },
-]
+export const ALSO_READ_BY = [{ pattern: /^apps\/cli\/README\.md$/, scopes: ["brand"] }]
 
 export function packageScopes(dir) {
   const scopes = ["typescript"]

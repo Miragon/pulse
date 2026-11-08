@@ -149,9 +149,8 @@ Full walkthrough in [Operations](operations.md).
 
 ## Engine metrics plugin
 
-The analytics module needs the `engine_*` metric series in Prometheus. The Kotlin plugin in
-[`engine-plugins/`](https://github.com/Miragon/pulse/tree/main/engine-plugins) records them as Micrometer meters from inside the CIB seven
-runtime, with no engine-side database; export via Micrometer's OTLP registry (the playground default),
-an Actuator Prometheus scrape, or the OTEL Java agent's Micrometer bridge. It publishes to Maven Central as
-`io.miragon.mcp:cibseven-history-metrics`. See [`engine-plugins/README.md`](https://github.com/Miragon/pulse/blob/main/engine-plugins/README.md)
-and the runnable [`playground/cibseven-example/`](https://github.com/Miragon/pulse/tree/main/playground/cibseven-example).
+The analytics module needs the `engine_*` metric series in Prometheus. The engine plugin
+`io.miragon.mcp:cibseven-history-metrics` records them as Micrometer meters from inside the CIB seven
+runtime, with no engine-side database; export via Micrometer's OTLP registry, an Actuator Prometheus
+scrape, or the OTEL Java agent's Micrometer bridge. Pulse no longer builds the plugin: 0.27.1 on
+Maven Central is its last version, and the playground engine runs without it.
