@@ -51,11 +51,17 @@ const vscodeBoundaryProbes = ["apps/vscode/test/*/runtime.boundary.ts"]
 // ── Pattern-gate selectors (`no-restricted-syntax`) ─────────────────────────
 
 // Every syntactic route to a member that names it literally (an agent "working around" a gate
-// reaches for exactly these). A key computed at runtime stays out of any selector's reach: that
-// is review's job. Parameter destructuring and object literals stay allowed: test fakes build
-// `{ registerTool } as unknown as ModuleServer`. Inline `eslint-disable` of this rule (or of
+// reaches for exactly these). A key concatenated or computed at runtime stays out of any
+// selector's reach: that is review's job. Object literals stay allowed: test fakes build
+// `{ registerTool } as unknown as ModuleServer`. A parameter's own destructuring stays allowed
+// too, a carve-out from when the gated member was the common name `tool`; no source under the
+// gates destructures one of these names. Inline `eslint-disable` of this rule (or of
 // complexity/max-lines) is caught by scripts/check-ratchets.mjs, not here: a directive could
-// disable a rule that polices directives.
+// disable a rule that polices directives. The string selectors at the end also match what the
+// narrower ones above them match, so such a hit reports twice: check-ratchets.mjs never lets this
+// list shrink.
+/** The parents of a string that sits in a type, which reads nothing. */
+const TYPE_PARENTS = "TSLiteralType, TSPropertySignature, TSMethodSignature"
 const registrationGate = (member, message) =>
   [
     // x.registerTool(...), x?.registerTool(...), .call/bind/apply(...), const t = x.registerTool,
@@ -64,26 +70,41 @@ const registrationGate = (member, message) =>
     // x["registerTool"], x[`registerTool`]
     `MemberExpression[computed=true][property.value=${member}]`,
     `MemberExpression[computed=true] > TemplateLiteral.property > TemplateElement[value.raw=${member}]`,
-    // const { registerTool } = x, const { "registerTool": t } = x, ({ registerTool } = x), …
-    `VariableDeclarator > ObjectPattern.id > Property[key.name=${member}]`,
-    `VariableDeclarator > ObjectPattern.id > Property[key.value=${member}]`,
-    `AssignmentExpression > ObjectPattern.left > Property[key.name=${member}]`,
-    `AssignmentExpression > ObjectPattern.left > Property[key.value=${member}]`,
+    // A pattern at any depth: const { a: { registerTool } } = x, const { "registerTool": t } = x,
+    // ({ registerTool } = x), const [{ registerTool }] = xs, for-of, catch, ({ registerTool } = x) => …
+    `ObjectPattern:not(:function > ObjectPattern) > Property[key.name=${member}]`,
+    `ObjectPattern:not(:function > ObjectPattern) > Property[key.value=${member}]`,
+    // import(x).then(({ registerAppTool }) => …): a parameter, yet how a promised import or server
+    // destructures, so any .then
+    `CallExpression[callee.property.name='then'] > :function > ObjectPattern > Property[key.name=${member}]`,
     // Reflect.get(x, "registerTool"), Reflect.get(x, `registerTool`)
     `CallExpression[callee.object.name='Reflect'][callee.property.name='get'] > Literal.arguments[value=${member}]`,
     `CallExpression[callee.object.name='Reflect'][callee.property.name='get'] > TemplateLiteral.arguments > TemplateElement[value.raw=${member}]`,
     // import { registerAppTool } from "@modelcontextprotocol/ext-apps/server", renamed or by a
-    // string name, and export { registerAppTool } from …
+    // string name, and export { registerAppTool } from …; import app = apps.registerAppTool
     `ImportSpecifier[imported.name=${member}]`,
     `ImportSpecifier[imported.value=${member}]`,
     `ExportSpecifier[local.name=${member}]`,
     `ExportSpecifier[local.value=${member}]`,
+    `TSImportEqualsDeclaration > TSQualifiedName[right.name=${member}]`,
+    // The name as a string, whatever reads it: Reflect["get"](x, "registerTool"),
+    // Object.getOwnPropertyDescriptor(x, "registerTool"), Object.entries(x).find(([k]) => k ===
+    // "registerTool"), const key = `registerTool`. Only the whole string, cooked (an escape in it
+    // changes nothing), and no type's: a literal type (Pick<ModuleServer, "registerTool">) or a
+    // member's key in an interface or a type literal ({ "registerTool": Register }).
+    `:not(${TYPE_PARENTS}) > Literal[value=${member}]`,
+    `:not(${TYPE_PARENTS}) > TemplateLiteral > TemplateElement[value.cooked=${member}]`,
   ].map((selector) => ({ selector, message }))
+
+// Every extension of a source in a connector's src: tsc builds .mts and .cts too, ESLint's defaults
+// lint .js, .mjs and .cjs, and only a block's `files` makes it read .jsx. Only the registration
+// gates' two blocks take it.
+const CONNECTOR_SOURCE = "*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}"
 
 // Invariant 1: the SDK's method and ext-apps' `registerAppTool`.
 const registrarGate = registrationGate(
   "/^(registerTool|registerAppTool)$/",
-  "Operations tools are registered through createToolRegistrar (@miragon/pulse-widget-shell/server) in src/tools/ (see .claude/skills/add-bpm-feature); a raw server.registerTool() or ext-apps' registerAppTool() (also via an import, a computed key, .call/.bind/.apply, destructuring or Reflect.get) is reserved for the widget-tools files.",
+  "Operations tools are registered through createToolRegistrar (@miragon/pulse-widget-shell/server) in src/tools/ (see .claude/skills/add-bpm-feature); a raw server.registerTool() or ext-apps' registerAppTool() (also via an import, a computed key, .call/.bind/.apply, destructuring or a string that names it) is reserved for the widget-tools files.",
 )
 
 // Invariant 3: a customer's module may bring a finished HTML view of its own; the engine and
@@ -380,7 +401,7 @@ export default tseslint.config(
   // Invariant 3: no connector registers a resource: its views belong in the host bundle. Every
   // family's package, whose next blocks carry this gate in their union.
   {
-    files: ["packages/connectors/*/*/src/**/*.{ts,tsx}"],
+    files: [`packages/connectors/*/*/src/**/${CONNECTOR_SOURCE}`],
     rules: { "no-restricted-syntax": ["error", ...connectorResourceGate] },
   },
 
@@ -390,8 +411,8 @@ export default tseslint.config(
   // list below. The union with the resource gate of the block above.
   {
     files: [
-      "packages/connectors/analytics/analytics-connector/src/**/*.{ts,tsx}",
-      "packages/connectors/engine/engine-connector/src/**/*.{ts,tsx}",
+      `packages/connectors/analytics/analytics-connector/src/**/${CONNECTOR_SOURCE}`,
+      `packages/connectors/engine/engine-connector/src/**/${CONNECTOR_SOURCE}`,
     ],
     ignores: [
       "packages/connectors/analytics/analytics-connector/src/widget-tools.ts",
