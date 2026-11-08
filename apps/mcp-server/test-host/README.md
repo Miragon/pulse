@@ -7,8 +7,8 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
   `src/app.ts`, default read-only deployment, plus a `engine:operations`
   one for the write scenario) serving `dist/mcp-app.{js,css}`, a CIB seven
   REST stub (`stub-engine.ts`, `fixtures/process-definitions.json` with their
-  statistics and no open incident, the `invoice` diagram `fixtures/invoice.bpmn`,
-  three failed jobs; under `/realistic`, real-sized data in
+  statistics and no open incident, the `invoice` diagram `fixtures/invoice.bpmn`
+  with two instances at `approveInvoice`, three failed jobs; under `/realistic`, real-sized data in
   `realistic-engine.ts`), a Prometheus
   stub (`stub-prometheus.ts`: two engines, two processes, the `invoice`
   activities, evaluating the exact PromQL shapes analytics sends) and the host's
@@ -59,6 +59,7 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
 | inline list height         | the jobs, no height budget                        | the settled report (equal to max-content) below the old 600 px floor (#339 K40)                                                                                    |
 | fullscreen                 | `availableDisplayModes: ["inline", "fullscreen"]` | the toggle requests fullscreen and follows the host's switch                                                                                                       |
 | BPMN on a dark host        | a process (`invoice`), `theme: "dark"`            | light canvas, dark flows/labels, every zoom button clickable past the logo                                                                                         |
+| process flow, Running      | a process (`invoice`), its flow on Running        | only the engine's modes, the real feed's count as a badge on `approveInvoice` (2), its row under "Values per activity"                                             |
 | kit foundation             | the jobs, fullscreen offered                      | Miragon roles (link `--cd-blau-link`), Lucide stroke 2.5, 2 dense, neutral KPI                                                                                     |
 | layout at 760 px           | `width: 760` (a chat's inline column)             | no horizontal document scroll, the table in a named region, 24 px shell padding                                                                                    |
 | column priority            | the jobs at 760 px                                | `hideBelow` column hidden, the row actions `sticky` and inside the region                                                                                          |

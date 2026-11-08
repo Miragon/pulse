@@ -34,7 +34,8 @@ BPM operations across these domains (`category`): `engines`, `process-definition
 - **View:** `open_cockpit`, the operations cockpit and the module's one view: `view` opens it on
   the overview (default), the incidents, a failure cluster, a process, its instances, an
   instance, an incident, the jobs or an instance's history; the result carries that view's facts
-  as compact JSON
+  as compact JSON. A process's flow shows its open incidents or, as **Running**, what runs at
+  each element now, every deployed version summed onto the latest diagram
 
 ### Analytics module (`analytics_*`)
 

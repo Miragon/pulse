@@ -367,10 +367,10 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   `BpmnZoomControls` (light in every theme, Lucide). The frame height comes from the
   diagram's size (`height` from the hook: its height at the scale bpmn-js draws it, never
   past 1:1, 240–560 px, read from the XML's DI before the import, so the frame does not
-  jump): pass no fixed `height` to `BpmnDiagram` unless a layout needs one. The heat on the
-  process flow is analytics' (`analytics:process-heatmap` through `HostWidgetSlot`, offered only
-  while `useAnalyticsActive` holds and both heatmap host widgets are registered): this module
-  passes its diagram, never the heat values.
+  jump): pass no fixed `height` to `BpmnDiagram` unless a layout needs one. The process flow
+  draws only engine reads: the open incidents, or as "Running" the `instance-count`,
+  `incident` and `failed-jobs` badges of `engine_activity_statistics_data` (every version
+  summed onto the latest diagram, mounted only once picked).
   Overlay and legend colours are widget-shell's ONE token module (`BPMN_TOKENS`,
   `widget-shell/src/ui/bpmn-tokens.ts`: incident = danger, running/open task = blue on the
   info tint, counts white on blue or danger; strokes ≥ 3:1, badge text ≥ 4.5:1, drift- and contrast-tested) through `HIGHLIGHT_COLORS`

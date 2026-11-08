@@ -88,4 +88,4 @@ Das Glossar des Engine-Moduls führt dieselbe Tabelle.
 - Fehlermeldungen sagen, was passiert ist, und was du tun kannst. Über einem Diagramm der
   Heatmap (`BpmnHeatmap`) steht der erste Teil als `errorTitle`, der zweite als `errorHint`
   darunter; der Titel hat nur eine Zeile. Jeder Ort hat dafür eigene Texte (`aHeatmap.*` in
-  der Ansicht, `aProcessHeatmap.*` im Prozessfluss des Engine-Moduls).
+  der Ansicht, `aProcessHeatmap.*` auf dem Diagramm eines anderen Moduls).

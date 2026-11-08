@@ -79,6 +79,20 @@ export async function fetchLatestDefinition(client: Client, key: string): Promis
   return latest
 }
 
+/**
+ * Every deployed version of a key over every tenant, newest first, uncapped: a view that sums per
+ * version reads them all, and only the key's own versions (never the engine-wide statistics).
+ */
+export async function fetchDefinitionVersions(
+  client: Client,
+  key: string,
+): Promise<DefinitionInfo[]> {
+  const rows = rowsOf<RawDefinition>(
+    await getProcessDefinitions({ client, query: { key, sortBy: "version", sortOrder: "desc" } }),
+  )
+  return rows.filter((row) => !!row.id).map((row) => toDefinitionInfo(row, key))
+}
+
 export function unknownKeyError(key: string): Error {
   return new Error(`No process definition with key "${key}" is deployed on this engine.`)
 }

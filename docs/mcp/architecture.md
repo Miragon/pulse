@@ -88,7 +88,7 @@ second engine dialect cheap:
 - The MCP server app owns no domain UI. Widgets live in packages: `pulse-ui`
   carries the design kit, `widget-shell` the view runtime;
   each module carries its own. Cross-module UI goes through another module's widget by its raw
-  host-widget id (`analytics:engine-landscape`, `analytics:process-heatmap`), a probe feed by tool name
+  host-widget id (`analytics:engine-landscape`), a probe feed by tool name
   with graceful degradation, or hard-composed views in a dedicated package (created with the first real view).
 - Extract on the second consumer, never speculatively. A composed-views
   package appears with the first cross-module view, a shared domain-widget

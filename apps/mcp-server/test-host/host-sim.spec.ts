@@ -964,31 +964,35 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
     }
   })
 
-  // The engine module's flow and analytics' host widgets meet only here: each side pins the
-  // props in its own suite, so a drift between them shows in this render.
-  test("the process flow paints analytics' heat through its host widgets", async ({ page }) => {
+  // The flow's "Running" end to end: the server's real feed against the stub's statistics, its
+  // count on the built diagram and the values under it.
+  test("the process flow shows what runs at each element now, read from the engine", async ({
+    page,
+  }) => {
     const app = await openView(page, {
       args: { engine: HEALTHY_ENGINE, view: "process-detail", processDefinitionKey: "invoice" },
     })
     const modes = app.getByRole("group", { name: "Process flow display" })
-    // Offered once the analytics probe answered and both host widgets are in the bundle.
-    const frequency = modes.getByRole("button", { name: "Frequency" })
-    await expect(frequency).toBeVisible({ timeout: 15_000 })
-    await frequency.click()
+    await expect(modes).toBeVisible({ timeout: 15_000 })
+    // No other module's mode: the flow offers what the engine reads, nothing to probe.
+    await expect(modes.getByRole("button")).toHaveText(["Incidents", "Running"])
+    await modes.getByRole("button", { name: "Running" }).click()
 
-    // The stub Prometheus holds the heat of `invoice` on `stub` only: the key and the engine
-    // reached the feed, and the diagram the flow passed is drawn under the heat.
-    const heat = app.getByRole("img", {
-      name: "BPMN process diagram with an execution heat overlay",
+    await expect(
+      app.getByText("diagram v3 (latest) · running now, counts span 1 version"),
+    ).toBeVisible({
+      timeout: 15_000,
     })
-    await expect(heat.locator(".djs-connection")).toHaveCount(4, { timeout: 15_000 })
-    await expect(app.getByText("Executions per element · 30 days")).toBeVisible()
-    await expect(app.getByText("No metrics for this engine in this period.")).toHaveCount(0)
+    const canvas = app.getByRole("img", { name: "BPMN process diagram" })
+    await expect(canvas.locator(".djs-connection")).toHaveCount(4, { timeout: 15_000 })
+    // The two instances at approveInvoice, as a badge on that element.
+    await expect(app.locator(".bpmn-overlay-badge--instance-count")).toHaveText(["2"])
 
-    await modes.getByRole("button", { name: "Duration" }).click()
-    await expect(app.getByText("Avg duration per element · 30 days")).toBeVisible()
-    await expect(heat).toBeVisible()
-    await expect(app.getByText(/Could not load the heatmap/)).toHaveCount(0)
+    await app.getByText("Values per activity").click()
+    const values = app.getByRole("region", { name: "Values per activity" })
+    await expect(values.getByRole("row")).toHaveCount(2)
+    await expect(values.getByRole("row").nth(1)).toContainText("Approve Invoice")
+    await expect(values.getByRole("row").nth(1)).toContainText("approveInvoice")
   })
 })
 

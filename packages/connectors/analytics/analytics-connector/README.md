@@ -51,10 +51,10 @@ SDK package of its own: widget-shell brings `@modelcontextprotocol/server` 2.4 a
   returns its figures to the model as compact JSON (the heatmap: a summary).
 - **Host widgets** (`analyticsHostWidgets` from `./widgets`): what another module renders by raw
   id, each fetching its own data. The engine module's fleet view shows
-  `analytics:engine-landscape`; its process flow shows the heat of one process on its own diagram
-  with `analytics:process-heatmap` (`processDefinitionKey`, `engine`, `mode`, the diagram's
-  `bpmnXml` and an `onUnavailable` fallback) and `analytics:process-heatmap-legend` (`mode`).
-  A composition root spreads them into its `hostWidgets`.
+  `analytics:engine-landscape`, which a composition root registers in its `hostWidgets`.
+  `analytics:process-heatmap` (`processDefinitionKey`, `engine`, `mode`, the diagram's `bpmnXml`
+  and an `onUnavailable` fallback) and `analytics:process-heatmap-legend` (`mode`) draw the heat
+  of one process on a caller's diagram; the engine module's process flow does not render them.
 - **`analytics_engine_health`** (`src/tools/`) returns JSON without a view: a live WIP, incidents, backlog
   and alerts snapshot, its state from the alert rules as `metricsState`. The incidents open right
   now and their instances are the [engine module](../../engine/engine-connector)'s.

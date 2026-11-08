@@ -604,12 +604,10 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      SDK's `hostHeaderValidationResponse` or a transport's `allowedHosts` next to it.
    - **Cross-module UI is tiered**: another module's widget only through the host widget map
      by raw id (`useHostWidget`/`HostWidgetSlot`: `analytics:engine-landscape` in the engine
-     module's fleet view, `analytics:process-heatmap` and `analytics:process-heatmap-legend` in
-     its process flow). The module that owns the data owns the widget and its payload type: the
-     widget fetches its own data and reads its props as untyped input. The heatmap's ids and props
-     are pinned on both sides (`process-heatmap.test.tsx`, `process-definition-flow.test.tsx`)
-     and rendered together by `test:host`; props outside its contract call the caller's
-     fallback, never a blank area. A raw tool-name
+     module's fleet view; its process flow draws only what the engine reads, the open incidents
+     or, as "Running", what runs at each element now from `engine_activity_statistics_data`). The
+     module that owns the data owns the widget and its payload type: the widget fetches its own
+     data and reads its props as untyped input. A raw tool-name
      string with graceful degradation is left only for the probe; hard-composed views go in a
      dedicated package created with the first real view, never in the app, never as
      module-to-module imports. The host bundle is static, so a surface that needs another module

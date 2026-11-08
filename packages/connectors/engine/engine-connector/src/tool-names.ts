@@ -10,6 +10,8 @@ export const ENGINE_INCIDENTS_DATA = "engine_incidents_data"
 // Every section of the definition view reads this one feed under a shared query key.
 export const ENGINE_PROCESS_INCIDENTS_DATA = "engine_process_incidents_data"
 export const ENGINE_ACTIVITY_INCIDENTS_DATA = "engine_activity_incidents_data"
+// What runs at each element of a process now, over every version: the process flow's "Running".
+export const ENGINE_ACTIVITY_STATISTICS_DATA = "engine_activity_statistics_data"
 export const ENGINE_INCIDENT_DETAIL_DATA = "engine_incident_detail_data"
 export const ENGINE_HISTORY_TIMELINE_DATA = "engine_history_timeline_data"
 // A definition's XML never changes, so the widget keeps it for good and the server caches it.

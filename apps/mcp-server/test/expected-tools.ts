@@ -38,6 +38,7 @@ export const EXPECTED_TOOLS_READ_ONLY: readonly string[] = [
   "analytics_show_period_compare",
   "analytics_show_version_compare",
   "engine_activity_incidents_data",
+  "engine_activity_statistics_data",
   "engine_bpmn_xml_data",
   "engine_cluster_detail_data",
   "engine_cockpit_overview_data",

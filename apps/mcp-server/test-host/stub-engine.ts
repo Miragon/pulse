@@ -32,6 +32,16 @@ const INVOICE_BPMN = readFileSync(
   "utf8",
 )
 
+/**
+ * What runs at each element now (the process flow's "Running"): two instances wait at the
+ * invoice's `approveInvoice`; the other definitions run nothing the stub draws.
+ */
+function activityStatistics(key: string): unknown[] {
+  return key === "invoice"
+    ? [{ id: "approveInvoice", instances: 2, failedJobs: 0, incidents: [] }]
+    : []
+}
+
 /** `/process-definition/{id}/{xml|statistics}` of a fixture definition, or null. */
 function definitionResource(pathname: string): { status: number; body: unknown } | null {
   const match = /^\/engine-rest\/process-definition\/([^/]+)\/(xml|statistics)$/.exec(pathname)
@@ -39,7 +49,7 @@ function definitionResource(pathname: string): { status: number; body: unknown }
   const id = decodeURIComponent(match[1])
   const definition = DEFINITIONS.find((d) => d.id === id)
   if (!definition) return { status: 404, body: { type: "RestException", message: `No ${id}` } }
-  if (match[2] === "statistics") return { status: 200, body: [] }
+  if (match[2] === "statistics") return { status: 200, body: activityStatistics(definition.key) }
   // The other definitions have no diagram here: their names stay the engine's (enrichment).
   if (definition.key !== "invoice") {
     return { status: 404, body: { type: "RestException", message: `No diagram for ${id}` } }
@@ -247,8 +257,8 @@ function createSearchHolds() {
  * against it through the real server, so the view renders the payload the
  * server ACTUALLY builds (view envelope, data shape, engine id) from a fixed
  * engine response (`fixtures/process-definitions.json` with their statistics,
- * no open incident, the `invoice` diagram `fixtures/invoice.bpmn` with empty
- * activity statistics and three failed jobs).
+ * no open incident, the `invoice` diagram `fixtures/invoice.bpmn` with two instances at
+ * `approveInvoice` and three failed jobs).
  * The broken base URL turns any tool into a genuine `isError` result: an
  * engine 503 through the server's own error mapping.
  *

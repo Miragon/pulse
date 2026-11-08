@@ -1,33 +1,38 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
-import { ENGINE_BPMN_XML_DATA, ENGINE_PROCESS_INCIDENTS_DATA } from "../tool-names.js"
-import type { ProcessIncidentsData } from "../view-models.js"
-import type * as DiagramModule from "./bpmn-diagram.js"
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import {
-  PROCESS_HEATMAP_LEGEND_WIDGET,
-  PROCESS_HEATMAP_WIDGET,
-  ProcessDefinitionFlow,
-} from "./process-incidents/flow.js"
+  ENGINE_ACTIVITY_STATISTICS_DATA,
+  ENGINE_BPMN_XML_DATA,
+  ENGINE_PROCESS_INCIDENTS_DATA,
+} from "../tool-names.js"
+import type { ActivityStatisticsData, ProcessIncidentsData } from "../view-models.js"
+import type * as DiagramModule from "./bpmn-diagram.js"
+import type { BpmnHighlight } from "./bpmn-highlights.js"
+import { ProcessDefinitionFlow } from "./process-incidents/flow.js"
 import type { DefinitionScope } from "./process-incidents/feed.js"
-import { TestViewHost, createTestQueryClient } from "@miragon/pulse-widget-shell/widgets"
+import {
+  TestViewHost,
+  createTestQueryClient,
+  type HostAction,
+} from "@miragon/pulse-widget-shell/widgets"
 
-// One retry-free client per test; the test reads and pokes its cache.
+// One retry-free client per test.
 let queryClient = createTestQueryClient()
 
-// bpmn-js needs a real layout engine.
+// bpmn-js needs a real layout engine: the stub records what the flow asks it to draw.
+const drawn: Array<{ definitionId: string; highlights: readonly BpmnHighlight[] }> = []
 vi.mock("./bpmn-diagram.js", async (importOriginal) => ({
   ...(await importOriginal<typeof DiagramModule>()),
-  BpmnDiagram: () => <div data-testid="incident-overlay" />,
+  BpmnDiagram: (props: { definitionId: string; highlights?: readonly BpmnHighlight[] }) => {
+    drawn.push({ definitionId: props.definitionId, highlights: props.highlights ?? [] })
+    return <div data-testid="diagram" data-definition={props.definitionId} />
+  },
 }))
-
-// #341 N102: heatmap modes only once analytics is CONFIRMED active. Before, the overview opened in
-// heatmap mode without analytics: ~7 s of loading and four failing calls instead of the overlay.
-
-const ANALYTICS_PROBE = "analytics_engine_landscape_data"
 
 afterEach(() => {
   cleanup()
+  drawn.length = 0
   queryClient = createTestQueryClient()
 })
 
@@ -59,6 +64,49 @@ const DATA: ProcessIncidentsData = {
   engineId: "prod-a",
 }
 
+const RUNNING: ActivityStatisticsData = {
+  processDefinitionKey: "leasing",
+  source: "runtime",
+  diagramDefinitionId: "leasing:2:d2",
+  diagramVersion: 2,
+  versionCount: 2,
+  activities: [
+    {
+      activityId: "sendPolicy",
+      activityName: "Send policy",
+      inDiagram: true,
+      running: 7,
+      failedJobs: 0,
+      incidents: 0,
+    },
+    {
+      activityId: "assess",
+      activityName: "Assess",
+      inDiagram: true,
+      running: 3,
+      failedJobs: 1,
+      incidents: 1,
+    },
+    {
+      activityId: "notify",
+      activityName: null,
+      inDiagram: true,
+      running: 2,
+      failedJobs: 2,
+      incidents: 0,
+    },
+    {
+      activityId: "legacyCheck",
+      activityName: "Legacy check",
+      inDiagram: false,
+      running: 1,
+      failedJobs: 0,
+      incidents: 0,
+    },
+  ],
+  engineId: "prod-a",
+}
+
 // The route scopes the flow; a drill reads the feed, a start view also hands it its seed.
 const ROUTE = { processDefinitionKey: "leasing", engine: "prod-a" }
 const ENTRIES: Array<[string, DefinitionScope]> = [
@@ -66,169 +114,148 @@ const ENTRIES: Array<[string, DefinitionScope]> = [
   ["seeded process view", { ...ROUTE, data: DATA }],
 ]
 
-/**
- * Analytics' host widgets, as stubs that record their props: this side of the contract that
- * analytics' `process-heatmap.test.tsx` pins from the other.
- */
-interface HostWidgetCalls {
-  heatmap: Array<Record<string, unknown>>
-  legend: Array<Record<string, unknown>>
-}
-
-function stubHostWidgets(calls: HostWidgetCalls) {
-  return {
-    [PROCESS_HEATMAP_WIDGET]: (props: Record<string, unknown>) => {
-      calls.heatmap.push(props)
-      return <div data-testid="heatmap-widget" />
-    },
-    [PROCESS_HEATMAP_LEGEND_WIDGET]: (props: Record<string, unknown>) => {
-      calls.legend.push(props)
-      return <div data-testid="heatmap-legend" />
-    },
-  }
-}
-
-function renderFlow(
-  props: DefinitionScope,
-  {
-    analytics,
-    widgets = [PROCESS_HEATMAP_WIDGET, PROCESS_HEATMAP_LEGEND_WIDGET],
-    bpmnXml = "<definitions/>",
-  }: { analytics: boolean; widgets?: readonly string[]; bpmnXml?: string | null },
-): HostWidgetCalls {
-  const calls: HostWidgetCalls = { heatmap: [], legend: [] }
-  const tools: Record<string, unknown> = {
-    [ENGINE_PROCESS_INCIDENTS_DATA]: DATA,
-    [ENGINE_BPMN_XML_DATA]: { processDefinitionId: DATA.diagramDefinitionId, bpmnXml },
-    ...(analytics ? { [ANALYTICS_PROBE]: { engines: [] } } : {}),
-  }
+function renderFlow(props: DefinitionScope, running: unknown = RUNNING) {
+  const actions: HostAction[] = []
+  const contexts: string[] = []
   render(
     <TestViewHost
-      tools={tools}
+      tools={{
+        [ENGINE_PROCESS_INCIDENTS_DATA]: DATA,
+        [ENGINE_BPMN_XML_DATA]: { processDefinitionId: DATA.diagramDefinitionId, bpmnXml: "<x/>" },
+        [ENGINE_ACTIVITY_STATISTICS_DATA]: running,
+      }}
       client={queryClient}
-      hostWidgets={Object.fromEntries(
-        Object.entries(stubHostWidgets(calls)).filter(([id]) => widgets.includes(id)),
-      )}
+      onHostAction={(action) => actions.push(action)}
+      onModelContext={(text) => contexts.push(text)}
     >
       <ProcessDefinitionFlow {...props} />
     </TestViewHost>,
   )
-  return calls
+  const calls = (name: string) =>
+    actions.flatMap((a) => (a.type === "callTool" && a.name === name ? [a.args] : []))
+  return { actions, contexts, calls }
 }
 
-const modeGroup = () => screen.getByRole("group", { name: "Process flow display" })
+const modeGroup = () => screen.findByRole("group", { name: "Process flow display" })
 
-/** Once the flow has loaded and the probe has offered the heat modes. */
-async function chooseHeatMode(name: "Frequency" | "Duration") {
-  const group = await screen.findByRole("group", { name: "Process flow display" })
-  fireEvent.click(await within(group).findByRole("button", { name }))
+async function chooseRunning() {
+  fireEvent.click(within(await modeGroup()).getByRole("button", { name: "Running" }))
 }
 
-async function probeSettled(status: "success" | "error") {
-  await waitFor(() =>
-    expect(
-      queryClient.getQueryCache().find({ queryKey: ["analytics-probe"], exact: false })?.state
-        .status,
-    ).toBe(status),
-  )
-}
+const lastDrawn = () => drawn.at(-1)
+const highlightOf = <K extends BpmnHighlight["kind"]>(kind: K) =>
+  lastDrawn()?.highlights.find((h): h is Extract<BpmnHighlight, { kind: K }> => h.kind === kind)
 
 describe.each(ENTRIES)("definition view flow: %s", (_entry, props) => {
-  it("without analytics: the incident overlay, no heatmap mode, no heatmap widget", async () => {
-    const calls = renderFlow(props, { analytics: false })
+  it("leads with the incidents and reads what runs only once Running is picked", async () => {
+    const { calls } = renderFlow(props)
 
-    expect(await screen.findByTestId("incident-overlay")).toBeTruthy()
-    // Let the probe fail and any stray query settle.
-    await probeSettled("error")
-    expect(within(modeGroup()).queryByRole("button", { name: "Frequency" })).toBeNull()
-    expect(within(modeGroup()).queryByRole("button", { name: "Duration" })).toBeNull()
-    expect(calls).toEqual({ heatmap: [], legend: [] })
-  })
-
-  it("with analytics: still leads with the overlay; the heatmap mounts only on request", async () => {
-    const calls = renderFlow(props, { analytics: true })
-
-    expect(await screen.findByTestId("incident-overlay")).toBeTruthy()
-    const frequency = await within(modeGroup()).findByRole("button", { name: "Frequency" })
+    expect(await screen.findByTestId("diagram")).toBeTruthy()
+    const group = await modeGroup()
     expect(
-      within(modeGroup()).getByRole("button", { name: "Incidents" }).getAttribute("aria-pressed"),
+      within(group).getByRole("button", { name: "Incidents" }).getAttribute("aria-pressed"),
     ).toBe("true")
-    expect(calls).toEqual({ heatmap: [], legend: [] })
+    expect(highlightOf("incident")?.counts).toEqual([{ activityId: "assess", count: 1 }])
+    expect(screen.getByText("diagram v2 (latest) · counts span all versions")).toBeTruthy()
+    expect(calls(ENGINE_ACTIVITY_STATISTICS_DATA)).toEqual([])
 
-    fireEvent.click(frequency)
-    expect(await screen.findByTestId("heatmap-widget")).toBeTruthy()
-    expect(screen.getByTestId("heatmap-legend")).toBeTruthy()
-    expect(screen.queryByTestId("incident-overlay")).toBeNull()
+    await chooseRunning()
+    await screen.findByText("diagram v2 (latest) · running now, counts span 2 versions")
+    expect(calls(ENGINE_ACTIVITY_STATISTICS_DATA)).toEqual([
+      { processDefinitionKey: "leasing", source: "runtime", engine: "prod-a" },
+    ])
   })
 })
 
-describe("definition view flow: the props it passes analytics' heatmap widgets", () => {
+describe("definition view flow: Running", () => {
   const [, props] = ENTRIES[0]
 
-  it("passes key, engine, mode, the drawn diagram and the fallback, and nothing else", async () => {
-    const calls = renderFlow(props, { analytics: true })
-    await chooseHeatMode("Frequency")
+  it("draws the running count on each element, its incidents, and a failed job without one", async () => {
+    renderFlow(props)
+    await chooseRunning()
+    await screen.findByText(/running now/)
 
-    await waitFor(() => expect(calls.heatmap.at(-1)?.bpmnXml).toBe("<definitions/>"))
-    const passed = calls.heatmap.at(-1) ?? {}
-    expect(Object.keys(passed).sort()).toEqual([
-      "bpmnXml",
-      "engine",
-      "mode",
-      "onUnavailable",
-      "processDefinitionKey",
+    expect(lastDrawn()?.definitionId).toBe("leasing:2:d2")
+    expect(highlightOf("instance-count")?.counts).toEqual([
+      { activityId: "sendPolicy", count: 7 },
+      { activityId: "assess", count: 3 },
+      { activityId: "notify", count: 2 },
+      { activityId: "legacyCheck", count: 1 },
     ])
-    const { onUnavailable, ...values } = passed
-    expect(values).toEqual({
-      processDefinitionKey: "leasing",
-      // Without it the feed would aggregate across the whole fleet.
-      engine: "prod-a",
-      mode: "frequency",
-      bpmnXml: "<definitions/>",
+    expect(highlightOf("incident")).toEqual({
+      kind: "incident",
+      activityIds: ["assess"],
+      counts: [{ activityId: "assess", count: 1 }],
     })
-    expect(typeof onUnavailable).toBe("function")
-    // While the diagram loads it is undefined, never a guess.
-    expect(
-      calls.heatmap.every((p) => p.bpmnXml === undefined || p.bpmnXml === "<definitions/>"),
-    ).toBe(true)
-    expect(calls.legend.at(-1)).toEqual({ mode: "frequency" })
-
-    await chooseHeatMode("Duration")
-    await waitFor(() => expect(calls.heatmap.at(-1)?.mode).toBe("duration"))
-    expect(calls.legend.at(-1)).toEqual({ mode: "duration" })
+    // assess's failed job raised its incident, which already takes the red corner.
+    expect(highlightOf("failed-jobs")?.counts).toEqual([{ activityId: "notify", count: 2 }])
   })
 
-  it("passes null for a version without a diagram", async () => {
-    const calls = renderFlow(props, { analytics: true, bpmnXml: null })
-    await chooseHeatMode("Frequency")
-    await waitFor(() => expect(calls.heatmap.at(-1)?.bpmnXml).toBeNull())
+  it("lists the values behind the badges, an element only older versions have marked", async () => {
+    renderFlow(props)
+    await chooseRunning()
+
+    const table = await screen.findByRole("region", { name: "Values per activity" })
+    const rows = within(table).getAllByRole("row").slice(1)
+    expect(rows.map((row) => row.textContent)).toEqual([
+      "Send policysendPolicy700",
+      "Assessassess311",
+      "notify202",
+      "Legacy checklegacyCheck · only in older versions100",
+    ])
   })
 
-  it("falls back to the incidents and hides the heat modes once the widget reports the feed failed", async () => {
-    const calls = renderFlow(props, { analytics: true })
-    await chooseHeatMode("Frequency")
-    await waitFor(() => expect(calls.heatmap.length).toBeGreaterThan(0))
+  it("says so when nothing runs, and draws the diagram bare", async () => {
+    renderFlow(props, { ...RUNNING, activities: [] })
+    await chooseRunning()
 
-    const onUnavailable = calls.heatmap[0].onUnavailable as () => void
-    act(() => onUnavailable())
-
-    expect(await screen.findByTestId("incident-overlay")).toBeTruthy()
-    expect(screen.queryByTestId("heatmap-widget")).toBeNull()
-    expect(within(modeGroup()).queryByRole("button", { name: "Frequency" })).toBeNull()
     expect(
-      screen.getByText(/Could not load the heatmap\. Check that the analytics module is enabled\./),
+      await screen.findByText("No instance of this process is running right now."),
     ).toBeTruthy()
+    expect(highlightOf("instance-count")?.counts).toEqual([])
+    expect(screen.queryByRole("region", { name: "Values per activity" })).toBeNull()
   })
 
-  it.each([
-    ["both widgets", []],
-    ["the legend", [PROCESS_HEATMAP_WIDGET]],
-    ["the heatmap", [PROCESS_HEATMAP_LEGEND_WIDGET]],
-  ])("offers no heat mode when the bundle lacks %s (fail-closed)", async (_case, widgets) => {
-    const calls = renderFlow(props, { analytics: true, widgets })
-    expect(await screen.findByTestId("incident-overlay")).toBeTruthy()
-    await probeSettled("success")
-    expect(within(modeGroup()).queryByRole("button", { name: "Frequency" })).toBeNull()
-    expect(calls).toEqual({ heatmap: [], legend: [] })
+  it("shows a failed read with a retry and keeps the switch back to the incidents", async () => {
+    let fail = true
+    const { calls } = renderFlow(props, () => {
+      if (fail) throw new Error("[503 ProcessEngineException] Engine is shutting down")
+      return RUNNING
+    })
+    await chooseRunning()
+
+    const retry = await screen.findByRole("button", { name: /try again|retry/i })
+    fail = false
+    fireEvent.click(retry)
+    await screen.findByText(/running now/)
+    expect(calls(ENGINE_ACTIVITY_STATISTICS_DATA)).toHaveLength(2)
+
+    fireEvent.click(within(await modeGroup()).getByRole("button", { name: "Incidents" }))
+    await screen.findByText("diagram v2 (latest) · counts span all versions")
+  })
+
+  it("tells the model the three elements with the most running, names fenced", async () => {
+    const { contexts } = renderFlow(props)
+    await chooseRunning()
+    await waitFor(() => expect(contexts.at(-1)).toMatch(/runs at each activity/))
+
+    const text = contexts.at(-1) ?? ""
+    expect(text).toContain(
+      'Ids: engine="prod-a", processDefinitionKey="leasing", diagramDefinitionId="leasing:2:d2"',
+    )
+    expect(text).toContain(
+      'On screen: versions=2, diagramVersion=2, activitiesRunning=4, activitiesWithIncidents=1, top1ActivityId="sendPolicy", top1Running=7, top2ActivityId="assess", top2Running=3, top3ActivityId="notify", top3Running=2',
+    )
+    expect(text).not.toContain("legacyCheck")
+    expect(text).toMatch(/top1Name:\n```text\nSend policy\n```/)
+  })
+
+  it("renders no other module's widget and probes none", async () => {
+    const { actions } = renderFlow(props)
+    await chooseRunning()
+    await screen.findByText(/running now/)
+
+    const tools = actions.flatMap((a) => (a.type === "callTool" ? [a.name] : []))
+    expect(tools.filter((name) => !name.startsWith("engine_"))).toEqual([])
   })
 })

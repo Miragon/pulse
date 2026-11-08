@@ -93,6 +93,9 @@ describe("the decided wording", () => {
     ["value.no", "Nein", "No"],
     // Same name as the metric engine_jobs_failed in analytics' landscape.
     ["fleet.failedJobs", "Jobs ohne Versuche", "Jobs without retries"],
+    // The process flow's mode: what runs at each element now, a count, so "laufend", never "aktiv".
+    ["procIncFlow.modeRunning", "Laufend", "Running"],
+    ["procIncFlow.valuesColRunning", "Laufend", "Running"],
   ])("%s", (key, german, english) => {
     expect(catalogs.de[key]).toBe(german)
     expect(catalogs.en[key]).toBe(english)

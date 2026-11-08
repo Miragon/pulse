@@ -108,8 +108,8 @@ describe("the host widgets", () => {
     const stray = Object.keys(hostWidgets).filter((id) => !expected.includes(id))
     expect(
       stray,
-      "host widgets no composed module renders, or whose owner is not in MODULES: drop their " +
-        "spread from hostWidgets in src/ui/view-registry.ts",
+      "host widgets no composed module renders, or whose owner is not in MODULES: drop them " +
+        "from hostWidgets in src/ui/view-registry.ts",
     ).toEqual([])
   })
 
@@ -117,8 +117,8 @@ describe("the host widgets", () => {
     const missing = expected.filter((id) => !(id in hostWidgets))
     expect(
       missing,
-      "spread the owning module's host widgets (analyticsHostWidgets for analytics:…) into " +
-        "hostWidgets in src/ui/view-registry.ts",
+      "register each by its id from the owning module's host widgets (analyticsHostWidgets " +
+        "for analytics:…) in hostWidgets in src/ui/view-registry.ts",
     ).toEqual([])
   })
 })

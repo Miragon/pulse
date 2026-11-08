@@ -20,7 +20,7 @@ helpers from `src/prometheus.ts` (never concatenate label values by hand):
 - `escapeLabelValue(value)`: escapes `\` and `"` for use inside a label matcher
 - `engineMatcher(engine)`: optional `engine_id="…"` / `engine_id=~"a|b"` fragment
 - `selector(...matchers)`: assembles `{…}`, dropping empties
-- `PERIOD_RANGE` / `PERIODS` / `Period`: the allowed windows (`1d`–`30d`, capped at
+- `PERIOD_RANGE` / `PERIODS` / `Period`: the allowed windows (`1d` to `30d`, capped at
   retention); derive anything period-shaped from these, never copy the enum
 - `increaseIn(series, window)` (`src/queries/helpers.ts`): the ONE way to read a counter
   or histogram series over a window (contract rule 2). The plugin creates a series on its
@@ -374,14 +374,13 @@ An engine widget that names an analytics feed by raw string (today only the prob
 `analytics_engine_landscape_data`) is checked against the admin golden by
 `scripts/tool-name-refs.test.mjs` (so refresh the goldens first): renaming a feed fails there.
 The engine module shows analytics' UI only through the host widgets (`analyticsHostWidgets` in
-`src/widgets/views.tsx`): `analytics:engine-landscape` in its fleet view,
-`analytics:process-heatmap` and `analytics:process-heatmap-legend` in its process flow. A host
-widget fetches its own data and reads its props as untyped input
-(`readProcessHeatmapProps`; props outside the contract call the caller's `onUnavailable`, so
-the engine falls back to its incidents); the ids and props are a contract, pinned here
-(`src/widgets/process-heatmap.test.tsx`) and on the engine side, rendered together by the
-app's `test:host` (the process flow in Frequency and Duration), and the app's
-`view-registry.test.ts` holds each id the engine renders to a registered widget.
+`src/widgets/views.tsx`): `analytics:engine-landscape` in its fleet view. Its process flow
+renders no heat of analytics: it reads what runs at each element from the engine, so
+`analytics:process-heatmap` and `analytics:process-heatmap-legend` have no caller in this repo.
+A host widget fetches its own data and reads its props as untyped input
+(`readProcessHeatmapProps`; props outside the contract call the caller's `onUnavailable`); the
+ids and props are a contract, pinned here (`src/widgets/process-heatmap.test.tsx`), and the
+app's `view-registry.test.ts` holds each id the engine renders to a registered widget.
 
 `pnpm test` runs the query snapshot tests; `pnpm typecheck` is the **only** check that
 covers widget `.tsx` code (`tsc -p tsconfig.widgets.json`). For end-to-end verification:

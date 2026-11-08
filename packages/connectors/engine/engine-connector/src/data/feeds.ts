@@ -1,6 +1,7 @@
 import { z } from "zod"
 import {
   activityIncidentsFilterShape,
+  activityStatisticsShape,
   clusterDetailFilterShape,
   incidentsDashboardFilterShape,
   instanceSearchShape,
@@ -11,6 +12,7 @@ import type { ResolvedEngine } from "../lib/engine/resolve-engine.js"
 import { pagingShape } from "../schemas/index.js"
 import {
   ENGINE_ACTIVITY_INCIDENTS_DATA,
+  ENGINE_ACTIVITY_STATISTICS_DATA,
   ENGINE_BPMN_XML_DATA,
   ENGINE_CLUSTER_DETAIL_DATA,
   ENGINE_COCKPIT_OVERVIEW_DATA,
@@ -24,6 +26,7 @@ import {
   ENGINE_PROCESS_INSTANCES_DATA,
 } from "../tool-names.js"
 import { HISTORY_PAGE_SIZE } from "../view-models.js"
+import { buildActivityStatisticsData } from "./activity-statistics-data.js"
 import { buildClusterDetailData } from "./cluster-detail-data.js"
 import {
   buildCockpitDashboardData,
@@ -190,6 +193,18 @@ const activityIncidentsFeed = dataFeed({
   }),
 })
 
+const activityStatisticsFeed = dataFeed({
+  name: ENGINE_ACTIVITY_STATISTICS_DATA,
+  title: "Activity statistics data (internal)",
+  description:
+    "Internal JSON feed (no UI) for the process flow: what runs at each element of a process now, over every deployed version. Prefer engine_open_cockpit.",
+  shape: activityStatisticsShape,
+  read: async (args, { client, engineId }) => ({
+    ...(await buildActivityStatisticsData(client, args)),
+    engineId,
+  }),
+})
+
 export const incidentDetailFeed = dataFeed({
   name: ENGINE_INCIDENT_DETAIL_DATA,
   title: "Incident detail data (internal)",
@@ -215,5 +230,6 @@ export const DATA_FEEDS: readonly DataFeed[] = [
   incidentsFeed,
   processIncidentsFeed,
   activityIncidentsFeed,
+  activityStatisticsFeed,
   incidentDetailFeed,
 ]

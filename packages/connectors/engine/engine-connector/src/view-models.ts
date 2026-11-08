@@ -398,6 +398,38 @@ export interface ProcessIncidentsData extends EngineVendorInfo {
   engineId?: string
 }
 
+/** One element of a process right now, summed over every version of its key. */
+export interface ActivityStatisticsActivity {
+  activityId: string
+  /** Its name in the drawn diagram; null when the diagram does not name it or is unreadable. */
+  activityName: string | null
+  /** False when only older versions have it, so the drawn diagram cannot show it; null when the diagram is unreadable. */
+  inDiagram: boolean | null
+  /** Activity instances at the element now (the engine's `instances`), those with an incident included. */
+  running: number
+  /** Jobs there with no retries left. */
+  failedJobs: number
+  /** Open incidents there, every type. */
+  incidents: number
+}
+
+/**
+ * What runs at each element of a process now (engine_activity_statistics_data): every deployed
+ * version is read and summed per element, drawn on the latest version's diagram.
+ */
+export interface ActivityStatisticsData {
+  processDefinitionKey: string
+  source: "runtime"
+  /** The version the elements are drawn on: the latest over every tenant, as the process view's. */
+  diagramDefinitionId: string | null
+  diagramVersion: number
+  /** Deployed versions of the key, every one read: the version scope the counts name. */
+  versionCount: number
+  /** Elements with anything there, most running first. */
+  activities: ActivityStatisticsActivity[]
+  engineId: string
+}
+
 export interface IncidentDetailJob {
   id: string
   retries: number

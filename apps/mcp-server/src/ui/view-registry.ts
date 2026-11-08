@@ -8,7 +8,7 @@ export const viewRegistry: ViewMap = {
   ...analyticsViews,
 }
 
-/** The widgets one module renders of another by raw id: analytics' engine landscape (the engine module's fleet view) and its process heatmap with the legend (the engine module's process flow). */
+/** The widgets one module renders of another by raw id: analytics' engine landscape (the engine module's fleet view). */
 export const hostWidgets: HostWidgets = {
-  ...analyticsHostWidgets,
+  "analytics:engine-landscape": analyticsHostWidgets["analytics:engine-landscape"],
 }

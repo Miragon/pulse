@@ -615,6 +615,51 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
+    "description": "Internal JSON feed (no UI) for the process flow: what runs at each element of a process now, over every deployed version. Prefer engine_open_cockpit.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "processDefinitionKey": {
+          "description": "Process definition key",
+          "type": "string"
+        },
+        "source": {
+          "description": "runtime = what runs at each element now, summed over every deployed version",
+          "enum": [
+            "runtime"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "processDefinitionKey",
+        "source"
+      ],
+      "type": "object"
+    },
+    "name": "engine_activity_statistics_data",
+    "title": "Activity statistics data (internal)"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
     "description": "Internal JSON feed (no UI): one deployed process definition's BPMN 2.0 XML, by id, which every diagram in the views draws. Use engine_get_process_definition_xml for the XML itself.",
     "inputSchema": {
       "additionalProperties": false,

@@ -3,6 +3,7 @@ import { clientFor, startFakeEngine, type FakeEngine } from "../tools/test-suppo
 import {
   definitionKeyInId,
   definitionKeyResolver,
+  fetchDefinitionVersions,
   fetchDefinitionXml,
   fetchLatestDefinitionXml,
   foldStatsByKey,
@@ -123,6 +124,39 @@ describe("fetchLatestDefinitionXml", () => {
     })
     engines.push(engine)
     await expect(fetchLatestDefinitionXml(clientFor(engine), "leasing")).rejects.toThrow()
+  })
+})
+
+describe("fetchDefinitionVersions", () => {
+  it("lists every version of the key over every tenant, newest first, uncapped", async () => {
+    const engine = await startFakeEngine({
+      "GET /process-definition": {
+        body: [
+          { id: "leasing:3:t1", key: "leasing", version: 3, tenantId: "acme" },
+          { id: "leasing:2:d2", key: "leasing", name: "Leasing", version: 2 },
+          // A row without an id names no version to read.
+          { key: "leasing", version: 1 },
+        ],
+      },
+    })
+    engines.push(engine)
+
+    expect(await fetchDefinitionVersions(clientFor(engine), "leasing")).toEqual([
+      { id: "leasing:3:t1", key: "leasing", name: null, version: 3 },
+      { id: "leasing:2:d2", key: "leasing", name: "Leasing", version: 2 },
+    ])
+    // Key-scoped: never the engine-wide statistics, never a capped page.
+    expect(engine.requests.map((r) => [r.path, r.query])).toEqual([
+      ["/process-definition", { key: "leasing", sortBy: "version", sortOrder: "desc" }],
+    ])
+  })
+
+  it("propagates a failed read", async () => {
+    const engine = await startFakeEngine({
+      "GET /process-definition": { status: 500, body: { message: "db down" } },
+    })
+    engines.push(engine)
+    await expect(fetchDefinitionVersions(clientFor(engine), "leasing")).rejects.toThrow()
   })
 })
 

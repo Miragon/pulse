@@ -29,6 +29,7 @@ import { buildIncidentDetailData } from "./incident-detail-data.js"
 import { buildIncidentsDashboardData } from "./incidents-dashboard-data.js"
 import { buildInstanceDetailData } from "./instance-detail-data.js"
 import { buildActivityIncidentsData, buildProcessIncidentsData } from "./process-incidents-data.js"
+import { buildActivityStatisticsData } from "./activity-statistics-data.js"
 
 // Each case declares only its enrichment reads; EVERY other read its healthy
 // build makes is primary and broken in turn, so a newly swallowed failure fails
@@ -303,6 +304,17 @@ const CASES: Record<string, Case> = {
       "GET /process-instance?maxResults&processInstanceIds": (data: {
         incidents: Array<{ businessKey: unknown }>
       }) => data.incidents[0]?.businessKey,
+    },
+  },
+  // Every version's statistics are primary: a version left out would undercount the key.
+  buildActivityStatisticsData: {
+    run: (client) => buildActivityStatisticsData(client, { processDefinitionKey: WORLD.key }),
+    unknown: { read: KEY_LOOKUP, reply: NO_ROWS },
+    enrichment: {
+      // The diagram names the elements and says which of them it draws.
+      [`GET /process-definition/${WORLD.latestDefinitionId}/xml`]: (data: {
+        activities: Array<{ inDiagram: unknown; activityName: unknown }>
+      }) => data.activities[0]?.inDiagram ?? data.activities[0]?.activityName,
     },
   },
 }

@@ -7,11 +7,10 @@ import { BpmnHeatmap, HeatmapLegend } from "./heatmap/heat-diagram.js"
 import type { BpmnHeatmapData, HeatMode } from "./heatmap/bpmn-heatmap-widget.js"
 
 /**
- * The heat of one process definition on another module's diagram: the engine module's process
- * flow renders both by raw id (`HostWidgetSlot`), the legend in its toolbar and the heatmap below
- * it. The ids and their props are the contract, so keep them stable: `process-heatmap.test.tsx` pins
- * them, the engine module's `process-definition-flow.test.tsx` from the other side, and test:host
- * renders both together in the built bundle.
+ * The heat of one process definition on another module's diagram, rendered by raw id
+ * (`HostWidgetSlot`): the legend in the caller's toolbar and the heatmap below it. The engine
+ * module's process flow no longer renders them. The ids and their props are the contract, so keep
+ * them stable: `process-heatmap.test.tsx` pins them.
  */
 export const PROCESS_HEATMAP_WIDGET = "analytics:process-heatmap"
 export const PROCESS_HEATMAP_LEGEND_WIDGET = "analytics:process-heatmap-legend"
