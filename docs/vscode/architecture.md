@@ -32,9 +32,13 @@ The webview stays Preact with its own stylesheets. Its tones come from `@miragon
 and its times, durations, counts and short ids from `@miragon/pulse-ui/format`, the parts of
 Pulse's design kit without React, bundled as well: a running, suspended or failing instance shows
 in the same tone as in the MCP widgets, and a duration, a lower bound or a long key reads the same.
+The extension shares that foundation with the MCP widgets, the words of its counts and the brand
+gates, never a component: [Parity with the MCP cockpit](./parity.md) lists what differs and why,
+and [#586](https://github.com/Miragon/pulse/issues/586) holds when the two share building blocks.
 
 More in the repository:
 
 - `apps/vscode/docs/architecture-overview.md`: who talks to whom, in pictures
-- `apps/vscode/docs/adr/`: the decisions and their reasons (writes, migrations, live updates …)
+- `apps/vscode/docs/adr/`: the decisions and their reasons (writes, migrations, live updates …),
+  the shared UI foundation in `apps/vscode/docs/adr/ui-foundation.md`
 - `apps/vscode/CLAUDE.md`: commands and rules for contributors and coding agents

@@ -83,7 +83,10 @@ server run too, through its main entry (`engine-core-only-in-the-c7-adapter`; th
 `@miragon/pulse-ui/tones` and `@miragon/pulse-ui/format` only: the tone vocabulary and
 `SITUATION_TONES`, the one tone per situation the MCP widgets show too, and the formatters,
 framework-free (`pulse-ui-only-its-foundation`; the repository's
-`ui-foundation-entries-import-nothing`). The React kit stays out; the webview draws a tone with
+`ui-foundation-entries-import-nothing`). That foundation is all the webview shares with the MCP
+widgets, never a component, by the product owner's decision
+(`apps/vscode/docs/adr/ui-foundation.md`; #586 holds when they share building blocks again). The
+React kit stays out; the webview draws a tone with
 its own CSS classes, and `apps/vscode/test/webview/situation-tones.test.tsx` holds its state
 labels and diagram badges to the table. A time, a duration, a count or a short id goes through
 `TimeLabels`, `CountLabels` (webview) or `Labels` (core), which delegate to the formatters in
@@ -140,6 +143,10 @@ host stay engine-neutral.
   in `diagram/canvas-roles.ts`.
 - UI text is English and follows the English rules of the brand tone: sentence case, active
   voice, no dash as a connector.
+- A field, a count or an action added to or changed in a view the MCP cockpit has too (the
+  engine overview, a process, its instances, an instance, an incident, the history) is a pair
+  feature: its pull request says whether the MCP widgets get it and updates the parity list
+  `docs/vscode/parity.md` by its review rule.
 - Commit messages are Conventional Commits with the scope `vscode`.
 - Model BPMN only with the bpmn CLI (`npx -y @miragon/bpmn-cli@0.7.0`), never by hand; the
   conformance world's element ids are fixed.

@@ -90,12 +90,27 @@ budget), and one adapter fills them: today the MCP Apps adapter over the officia
 `@modelcontextprotocol/ext-apps`, the only code that imports its view runtime (an ESLint gate
 keeps it so). `TestViewHost` fills the same contexts in tests.
 
-The MCP Apps host is therefore one host among several possible ones. A web app or a VS Code
-webview that shows the same React components brings an adapter of its own and leaves the
-widgets as they are. The engine module's widgets still read the Camunda 7 REST family's data,
-though: components that serve another engine such as Camunda 8 need an engine-neutral contract first,
-as the VS Code extension keeps one for its webview (`apps/vscode`), and that is a design
-question of its own.
+The MCP Apps host is therefore one host among several possible ones. A web app that shows the
+same React components brings an adapter of its own and leaves the widgets as they are. The engine
+module's widgets still read the Camunda 7 REST family's data, though: components that serve
+another engine such as Camunda 8 need an engine-neutral contract first, as the VS Code extension
+keeps one for its webview (`apps/vscode`), and that is a design question of its own.
+
+## Two UI families
+
+Pulse's UIs come in two families. React on `@miragon/pulse-ui` and widget-shell: the MCP widgets,
+a starter's widgets and the web apps of [#573](https://github.com/Miragon/pulse/issues/573).
+Preact with components and stylesheets of its own: the VS Code extension's webview, which has no
+host adapter and never renders a widget. The two share pulse-ui's foundation, never a component:
+the framework-free `@miragon/pulse-ui/tones` (one tone per situation, `SITUATION_TONES`) and
+`@miragon/pulse-ui/format` (dates, durations, counts, short ids), which the extension bundles, and
+from `@miragon/pulse-ui/testing` the product glossary, the count words and the brand gates its
+tests run. So the same count has the same word, the same situation the same tone and a duration
+the same form in both, while each tool shows what its audience needs: six cockpit views have a
+counterpart in VS Code, and [Parity with the MCP cockpit](../vscode/parity.md) lists every
+difference between them as closed, wanted or open. The decision is
+`apps/vscode/docs/adr/ui-foundation.md`; [#586](https://github.com/Miragon/pulse/issues/586)
+holds when the two share building blocks again.
 
 ## External systems
 

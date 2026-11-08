@@ -53,7 +53,7 @@ command line interface (`apps/cli`) and a VS Code extension (`apps/vscode`) for 
 | `docs/`                                        | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                                                                                                                                 |
 | `docs/mcp/`                                    | The MCP server's pages of the docs site (getting started, usage, reference, operations, architecture, build your own, developer)                                                                                                                                                                                                           |
 | `docs/cli/`                                    | The CLI's pages of the docs site (install, commands, configuration, authentication, AI agents, development)                                                                                                                                                                                                                                |
-| `docs/vscode/`                                 | The VS Code extension's pages of the docs site (installation, configuration, usage, architecture)                                                                                                                                                                                                                                          |
+| `docs/vscode/`                                 | The VS Code extension's pages of the docs site (installation, configuration, usage, architecture, parity with the MCP cockpit)                                                                                                                                                                                                             |
 
 Three axes decide where code goes, and they stay apart:
 
@@ -68,7 +68,13 @@ Three axes decide where code goes, and they stay apart:
   MCP server, the CLI (`apps/cli`, rules in `apps/cli/CLAUDE.md`) and the VS Code extension
   (`apps/vscode`, rules in `apps/vscode/CLAUDE.md`). Another interface (a second editor
   extension, say) is an app of its own. Apps never import each other, and no package imports
-  an app.
+  an app. An interface's UI belongs to one of two UI families (owner decision 2026-11-08,
+  `apps/vscode/docs/adr/ui-foundation.md`): React on `@miragon/pulse-ui` and widget-shell (the
+  MCP widgets, a starter's, the web apps of #573) or Preact with its own components (the VS Code
+  webview). They share pulse-ui's framework-free foundation (`/format`, `/tones`, and in tests
+  the glossary, the count words and the brand gates of `/testing`), never a component;
+  `docs/vscode/parity.md` lists what differs between the views both show, and #586 holds when
+  they share building blocks again.
 
 A family is one source the MCP server reads: a dialect, or another source (a metrics store,
 say). Its packages are named `<family>-<role>`: `<family>-connector` (the MCP module),
@@ -206,8 +212,12 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 ### Abweichung für die VS-Code-Webview
 
 Die Webview der VS-Code-Erweiterung (Preact, eigenes CSS) teilt mit den Widgets das Fundament aus
-pulse-ui, nicht die Komponenten. Für sie gilt diese bewusste Abweichung vom Guide
-(Owner-Entscheidung, auch in `apps/vscode/docs/adr/user-interface.md`):
+pulse-ui, nicht die Komponenten: Töne (`@miragon/pulse-ui/tones`), Formatierer
+(`@miragon/pulse-ui/format`), Tokens mit gleichen Werten, Glossar, Zählbegriffe und Marken-Gates
+(Owner-Entscheidung, `apps/vscode/docs/adr/ui-foundation.md`). Was die beiden Oberflächen
+unterscheidet und ob es gewollt ist, steht in `docs/vscode/parity.md`. Für die Webview gilt diese
+bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
+`apps/vscode/docs/adr/user-interface.md`):
 
 - Icons: 12 px neben dichtem Text und auf den 20-px-Overlays des Diagramms (Zähl- und
   Move-Badges, Code- und Move-Knöpfe, Links und Warnungen im Text), sonst 16 px. `scanIconSizes`
@@ -341,7 +351,15 @@ pulse-ui, nicht die Komponenten. Für sie gilt diese bewusste Abweichung vom Gui
    `@miragon/pulse-widget-shell/widgets`; never re-inline their primitives.** This covers
    the React views an MCP host renders (pulse-ui's and widget-shell's `src`, the connectors'
    `src/widgets`, the host bundle in `apps/mcp-server/src/ui/`); another interface
-   app's own UI follows the design system above.
+   app's own UI follows the design system above, and the VS Code webview takes from pulse-ui
+   only its foundation (`/format`, `/tones`; `apps/vscode/docs/adr/ui-foundation.md`).
+   - **Pairs.** Six cockpit views have a counterpart in the VS Code webview (the overview, a
+     process, its instances, an instance, an incident, the history). A field, a count or an
+     action added to or changed in one is a pair feature: its pull request says whether the
+     other tool gets it and updates `docs/vscode/parity.md` by its review rule. Its content takes
+     props and callbacks only, no host context (`process-definitions-table-view.tsx` with
+     `renderActions`, `history-steps.tsx`), and stays in the connector until a second consumer
+     comes, so a shared building block (#586) costs little.
    - **One kit.** Primitives, components, the tone model (`TONE_*`, `resolveTone`), `cn`, the
      formatters and the kit pieces (`Icon`, `Th`/`Td`, `TableEmptyState`, `NativeSelect` …) come
      from `@miragon/pulse-ui`, a leaf (`ui-is-a-leaf`, invariant 8); widget-shell exports only
@@ -550,7 +568,7 @@ pulse-ui, nicht die Komponenten. Für sie gilt diese bewusste Abweichung vom Gui
      VS Code extension's core and webview, pulse-ui's framework-free formatters and tones
      (`@miragon/pulse-ui/format`, `@miragon/pulse-ui/tones`, which import nothing:
      `ui-foundation-entries-import-nothing`; the extension's `pulse-ui-only-its-foundation`
-     keeps the React kit out); a family
+     keeps the React kit out; the decision: `apps/vscode/docs/adr/ui-foundation.md`); a family
      core (`family-core-is-a-leaf`) is imported only by its family's connector and the apps (or
      the app part) that bundle it (`family-core-consumers`, `CORE_BUNDLERS`), and no shipped code imports a
      `./testing` entry (`shipped-code-not-to-testing`). The family rules key on the roles, so a

@@ -533,6 +533,9 @@ const DOCS_BUDGETS = {
   "vscode/usage.md": 80,
   "vscode/boards.md": 70,
   "vscode/architecture.md": 50,
+  // Every difference between the MCP cockpit and the webview, a row each: it grows with a
+  // feature built on one side and shrinks with one that closes a row.
+  "vscode/parity.md": 210,
 }
 
 /** A page's budget key: its path under docs/, so docs/index.md and docs/cli/index.md differ. */

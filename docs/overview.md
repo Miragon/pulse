@@ -18,6 +18,10 @@ The VS Code extension is an early version, published on the
   The CLI and the extension read the same project file, `.pulse-cli.json`.
 - **Read first.** The server boots read-only, the CLI previews and asks before a write, the
   extension writes only on local engines unless you allow more.
+- **One look.** The MCP widgets and the VS Code panels use the same words for a count, the same
+  tone for a situation and the same formatters for a date, a duration, a count and an id, each
+  with screens of its own: [Parity with the MCP cockpit](./vscode/parity.md) says what differs
+  and why.
 - **One release.** All three ship with every Pulse release, the same version number:
   the image `ghcr.io/miragon/pulse-server`, the npm package `@miragon/pulse-cli` and the
   extension `pulse`.
