@@ -327,6 +327,10 @@ export const enSweep: MessageCatalog = {
   "procIncEmpty.siblingsUnavailable":
     "Could not check other processes for open incidents. Look at the incidents overview.",
   "procIncFlow.diagramVersion": "diagram v{version} (latest) · counts span all versions",
+  "procIncFlow.heatAria": "BPMN process diagram with the throughput as heat",
+  "procIncFlow.heatRange": "{min} to {max}",
+  "procIncFlow.historyNotKept":
+    "The engine keeps no history of this process (a history time to live of 0 days), so there is no throughput to show.",
   "procIncFlow.hint": ({ count }) => `${countOf(count, "activity", "activities")} failing`,
   "procIncFlow.hintOfTotal": ({ count, total }) =>
     `${String(count)} of ${countOf(total, "activity", "activities")} failing`,
@@ -334,17 +338,32 @@ export const enSweep: MessageCatalog = {
   "procIncFlow.modeAria": "Process flow display",
   "procIncFlow.modeIncidents": "Incidents",
   "procIncFlow.modeRunning": "Running",
+  "procIncFlow.modeThroughput": "Throughput · 30 days",
   "procIncFlow.noBpmnDiagram": "No BPMN diagram available",
   "procIncFlow.noDataAvailable": "No data available",
+  "procIncFlow.noHistory":
+    "This engine records no history. Throughput needs history level activity or higher.",
   "procIncFlow.noneRunning": "No instance of this process is running right now.",
+  "procIncFlow.noneStarted": "No instance of this process started since {date}, {time}.",
   "procIncFlow.olderVersionsOnly": "only in older versions",
   "procIncFlow.runningCaption": ({ version, count }) =>
     `diagram v${String(version)} (latest) · running now, counts span ${countOf(count, "version", "versions")}`,
   "procIncFlow.runningLoadError": "Could not load what is running.",
+  "procIncFlow.throughputCaption": ({ version, count, date, time, versions }) =>
+    `diagram v${String(version)} (latest) · ${countOf(count, "instance", "instances")} started since ${String(date)}, ${String(time)}, on ${countOf(versions, "version", "versions")}`,
+  "procIncFlow.throughputCapped": ({ days }) =>
+    `The window covers only ${countOf(days, "day", "days")}: the engine keeps the history that long.`,
+  "procIncFlow.throughputLoadError": "Could not load the throughput.",
+  "procIncFlow.throughputNote":
+    "Read from the engine's history (history level activity or higher) at {time}, kept for an hour.",
+  "procIncFlow.throughputUncounted": ({ count }) =>
+    `Not counted: ${countOf(count, "instance", "instances")} started in the window on older or no longer deployed versions.`,
   "procIncFlow.title": "Process flow",
   "procIncFlow.valuesColActivity": "Activity",
+  "procIncFlow.valuesColCanceled": "Canceled",
   "procIncFlow.valuesColFailedJobs": "Jobs without retries",
   "procIncFlow.valuesColIncidents": "Incidents",
+  "procIncFlow.valuesColPassed": "Passes",
   "procIncFlow.valuesColRunning": "Running",
   "procIncFlow.valuesTitle": "Values per activity",
   "procIncHeader.allVersions": "all versions",

@@ -330,6 +330,10 @@ export const deSweep: MessageCatalog = {
   "procIncEmpty.siblingsUnavailable":
     "Ob andere Prozesse offene Incidents haben, ließ sich nicht prüfen. Schau in die Incident-Übersicht.",
   "procIncFlow.diagramVersion": "Diagramm v{version} (neueste) · Zahlen über alle Versionen",
+  "procIncFlow.heatAria": "BPMN-Prozessdiagramm, eingefärbt nach Durchlauf",
+  "procIncFlow.heatRange": "{min} bis {max}",
+  "procIncFlow.historyNotKept":
+    "Die Engine bewahrt keine Historie dieses Prozesses auf (History Time To Live 0 Tage), deshalb gibt es keinen Durchlauf.",
   "procIncFlow.hint": ({ count }) => `${countOf(count, "Aktivität", "Aktivitäten")} mit Fehlern`,
   "procIncFlow.hintOfTotal": ({ count, total }) =>
     `${String(count)} von ${countOf(total, "Aktivität", "Aktivitäten")} mit Fehlern`,
@@ -337,17 +341,32 @@ export const deSweep: MessageCatalog = {
   "procIncFlow.modeAria": "Anzeige des Prozessablaufs",
   "procIncFlow.modeIncidents": "Incidents",
   "procIncFlow.modeRunning": "Laufend",
+  "procIncFlow.modeThroughput": "Durchlauf · 30 Tage",
   "procIncFlow.noBpmnDiagram": "Kein BPMN-Diagramm verfügbar",
   "procIncFlow.noDataAvailable": "Keine Daten verfügbar",
+  "procIncFlow.noHistory":
+    "Diese Engine schreibt keine Historie. Der Durchlauf braucht das History-Level activity oder höher.",
   "procIncFlow.noneRunning": "Gerade läuft keine Instanz dieses Prozesses.",
+  "procIncFlow.noneStarted": "Seit {date}, {time} ist keine Instanz dieses Prozesses gestartet.",
   "procIncFlow.olderVersionsOnly": "nur in älteren Versionen",
   "procIncFlow.runningCaption": ({ version, count }) =>
     `Diagramm v${String(version)} (neueste) · jetzt laufend, Zahlen über ${countOf(count, "Version", "Versionen")}`,
   "procIncFlow.runningLoadError": "Was gerade läuft, ließ sich nicht laden.",
+  "procIncFlow.throughputCaption": ({ version, count, date, time, versions }) =>
+    `Diagramm v${String(version)} (neueste) · ${countOf(count, "Instanz", "Instanzen")} seit ${String(date)}, ${String(time)} gestartet, auf ${countOf(versions, "Version", "Versionen")}`,
+  "procIncFlow.throughputCapped": ({ days }) =>
+    `Das Fenster umfasst nur ${countOf(days, "Tag", "Tage")}: so lange bewahrt die Engine die Historie auf.`,
+  "procIncFlow.throughputLoadError": "Der Durchlauf ließ sich nicht laden.",
+  "procIncFlow.throughputNote":
+    "Um {time} aus der Historie der Engine gelesen (History-Level activity oder höher), eine Stunde gehalten.",
+  "procIncFlow.throughputUncounted": ({ count }) =>
+    `Nicht gezählt: ${countOf(count, "Instanz", "Instanzen")}, im Fenster auf älteren oder nicht mehr bereitgestellten Versionen gestartet.`,
   "procIncFlow.title": "Prozessablauf",
   "procIncFlow.valuesColActivity": "Aktivität",
+  "procIncFlow.valuesColCanceled": "Abgebrochen",
   "procIncFlow.valuesColFailedJobs": "Jobs ohne Versuche",
   "procIncFlow.valuesColIncidents": "Incidents",
+  "procIncFlow.valuesColPassed": "Durchläufe",
   "procIncFlow.valuesColRunning": "Laufend",
   "procIncFlow.valuesTitle": "Werte je Aktivität",
   "procIncHeader.allVersions": "alle Versionen",

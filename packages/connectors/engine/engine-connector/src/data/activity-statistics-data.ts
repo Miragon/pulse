@@ -1,22 +1,19 @@
 import type { Client } from "@miragon/pulse-engine-client"
 import { getActivityStatistics } from "@miragon/pulse-engine-client/sdk"
 import { mapLimit } from "@miragon/pulse-engine-core"
-import { readBpmnNames } from "@miragon/pulse-widget-shell/server"
 import type { ActivityStatisticsArgs } from "../feed-contracts.js"
-import { bpmnActivityIds } from "../lib/bpmn/bpmn-parse.js"
-import type { ActivityStatisticsActivity, ActivityStatisticsData } from "../view-models.js"
-import {
-  fetchDefinitionVersions,
-  fetchDefinitionXml,
-  fetchLatestDefinition,
-} from "./definition-info.js"
-import { optional, rowsOf } from "./engine-reads.js"
+import type {
+  ActivityStatisticsActivity,
+  ActivityStatisticsData,
+  ActivityThroughputData,
+} from "../view-models.js"
+import { MULTI_INSTANCE_BODY, placeOnDiagram, readDiagramXml } from "./activity-diagram.js"
+import { readActivityThroughput } from "./activity-throughput.js"
+import { fetchDefinitionVersions, fetchLatestDefinition } from "./definition-info.js"
+import { rowsOf } from "./engine-reads.js"
 
 /** Version reads in flight at once: a key with many versions never fans out in one burst. */
 const VERSION_READS_AT_ONCE = 4
-
-/** A multi-instance activity's body is reported as its own id; it stands on its element. */
-const MULTI_INSTANCE_BODY = /#multiInstanceBody$/
 
 interface ActivityStatsRow {
   id?: string | null
@@ -35,7 +32,7 @@ function readVersion(client: Client, definitionId: string): Promise<ActivityStat
   }).then((rows) => rowsOf<ActivityStatsRow>(rows))
 }
 
-/** Sums the versions' rows per element; an element with nothing there is no row. */
+/** Sums the versions' rows per element (a multi-instance body on its element); nothing there is no row. */
 function sumPerElement(rows: ActivityStatsRow[]): Map<string, Counts> {
   const byElement = new Map<string, Counts>()
   for (const row of rows) {
@@ -57,9 +54,9 @@ function sumPerElement(rows: ActivityStatsRow[]): Map<string, Counts> {
  * after a redeploy, so every version is read (#335 N60) and summed per element onto the latest
  * version's diagram; an element only an older version has says so (`inDiagram: false`).
  */
-export async function buildActivityStatisticsData(
+async function readRunning(
   client: Client,
-  { processDefinitionKey: key }: Pick<ActivityStatisticsArgs, "processDefinitionKey">,
+  key: string,
 ): Promise<Omit<ActivityStatisticsData, "engineId">> {
   const [diagram, versions] = await Promise.all([
     // Primary: an unknown key is a not-found error, never a view of zeros.
@@ -68,18 +65,11 @@ export async function buildActivityStatisticsData(
   ])
   const [perVersion, bpmnXml] = await Promise.all([
     mapLimit(versions, VERSION_READS_AT_ONCE, (version) => readVersion(client, version.id)),
-    diagram.id ? optional(fetchDefinitionXml(client, diagram.id)) : Promise.resolve(null),
+    readDiagramXml(client, diagram),
   ])
-
-  const diagramIds = bpmnXml ? new Set(bpmnActivityIds(bpmnXml)) : null
-  const names = readBpmnNames(bpmnXml ?? "").elements
+  const place = placeOnDiagram(bpmnXml)
   const activities = [...sumPerElement(perVersion.flat())]
-    .map(([activityId, counts]) => ({
-      activityId,
-      activityName: Object.hasOwn(names, activityId) ? names[activityId] : null,
-      inDiagram: diagramIds ? diagramIds.has(activityId) : null,
-      ...counts,
-    }))
+    .map(([activityId, counts]) => ({ activityId, ...place(activityId), ...counts }))
     .sort(
       (a, b) =>
         b.running - a.running ||
@@ -94,4 +84,25 @@ export async function buildActivityStatisticsData(
     versionCount: versions.length,
     activities,
   }
+}
+
+/** The feed's payload: "Running" (`runtime`) or "Throughput" (`history`). */
+export type ActivityStatisticsFeedData = ActivityStatisticsData | ActivityThroughputData
+
+/** Each variant without the engine id the feed adds (a plain `Omit` would merge the variants). */
+type WithoutEngineId<T> = T extends unknown ? Omit<T, "engineId"> : never
+
+/**
+ * The process flow's element counts, read from the engine REST API: what runs at each element now
+ * (`runtime`), or what the instances started in the last 30 days passed there (`history`, kept per
+ * engine client, caller and key for the hour).
+ */
+export function buildActivityStatisticsData(
+  client: Client,
+  { processDefinitionKey, source }: ActivityStatisticsArgs,
+  nowMs: number = Date.now(),
+): Promise<WithoutEngineId<ActivityStatisticsFeedData>> {
+  return source === "history"
+    ? readActivityThroughput(client, processDefinitionKey, nowMs)
+    : readRunning(client, processDefinitionKey)
 }

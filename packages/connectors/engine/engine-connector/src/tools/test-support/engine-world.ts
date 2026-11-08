@@ -107,6 +107,7 @@ const ROUTES: Record<string, unknown> = {
 const XML_BY_ID = /^\/process-definition\/(order:\d:d\d)\/xml$/
 const DEFINITION_BY_ID = /^\/process-definition\/order:(\d):d\d$/
 const ACTIVITY_STATS = /^\/process-definition\/order:(\d):d\d\/statistics$/
+const HISTORY_STATS = /^\/history\/process-definition\/order:\d:d\d\/statistics$/
 
 /** Unmapped lists answer `[]`, counts `{count: 1}`. */
 export function worldReply(request: RecordedRequest): FakeReply {
@@ -128,6 +129,9 @@ export function worldReply(request: RecordedRequest): FakeReply {
         },
       ],
     }
+  }
+  if (HISTORY_STATS.test(path)) {
+    return { body: [{ id: WORLD.activityId, instances: 1, finished: 3, canceled: 1 }] }
   }
   const def = DEFINITION_BY_ID.exec(path)
   if (def) return { body: definition(Number(def[1]) as 1 | 2) }

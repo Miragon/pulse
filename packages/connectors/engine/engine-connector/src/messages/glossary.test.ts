@@ -98,6 +98,9 @@ describe("the decided wording", () => {
     // The process flow's mode: what runs at each element now, a count, so "laufend", never "aktiv".
     ["procIncFlow.modeRunning", "Laufend", "Running"],
     ["procIncFlow.valuesColRunning", "Laufend", "Running"],
+    // What the last 30 days' instances passed: a cohort read from the history, never "Häufigkeit".
+    ["procIncFlow.modeThroughput", "Durchlauf · 30 Tage", "Throughput · 30 days"],
+    ["procIncFlow.valuesColPassed", "Durchläufe", "Passes"],
   ])("%s", (key, german, english) => {
     expect(catalogs.de[key]).toBe(german)
     expect(catalogs.en[key]).toBe(english)

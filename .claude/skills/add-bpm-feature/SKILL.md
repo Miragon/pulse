@@ -375,7 +375,9 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   jump): pass no fixed `height` to `BpmnDiagram` unless a layout needs one. The process flow
   draws only engine reads: the open incidents, or as "Running" the `instance-count`,
   `incident` and `failed-jobs` badges of `engine_activity_statistics_data` (every version
-  summed onto the latest diagram, mounted only once picked).
+  summed onto the latest diagram, mounted only once picked), or as "Throughput" its history
+  source as heat (`BpmnHeatmap`, the ramp `BPMN_TOKENS.heat` read from the theme's variables;
+  a read that loads the engine's database: see CLAUDE.md invariant 7).
   Overlay and legend colours are widget-shell's ONE token module (`BPMN_TOKENS`,
   `widget-shell/src/ui/bpmn-tokens.ts`: incident = danger, running/open task = blue on the
   info tint, counts white on blue or danger; strokes ≥ 3:1, badge text ≥ 4.5:1, drift- and contrast-tested) through `HIGHLIGHT_COLORS`

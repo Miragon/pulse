@@ -42,6 +42,40 @@ function activityStatistics(key: string): unknown[] {
     : []
 }
 
+/** The invoice instances started in the window ("Throughput"); no other definition started any. */
+const INVOICE_STARTED = 12
+
+/**
+ * What those twelve instances passed (the process flow's "Throughput"): two still wait at
+ * `approveInvoice`, eight were paid and two rejected.
+ */
+const INVOICE_HISTORY = [
+  { id: "StartEvent_received", instances: 0, finished: 12, canceled: 0 },
+  { id: "approveInvoice", instances: 2, finished: 10, canceled: 0 },
+  { id: "Gateway_approved", instances: 0, finished: 10, canceled: 0 },
+  { id: "EndEvent_paid", instances: 0, finished: 8, canceled: 0 },
+  { id: "EndEvent_rejected", instances: 0, finished: 2, canceled: 0 },
+]
+
+const isInvoice = (key: string | null, id: string | null) =>
+  key === "invoice" || DEFINITIONS.some((d) => d.id === id && d.key === "invoice")
+
+/**
+ * The history reads of "Throughput": the cohort counts per key or version, and a version's
+ * history statistics. Any other history count (the overview's 24 h) falls through to 0.
+ */
+function historyResource(url: URL): { status: number; body: unknown } | null {
+  const { pathname, searchParams } = url
+  const key = searchParams.get("processDefinitionKey")
+  const id = searchParams.get("processDefinitionId")
+  if (pathname === "/engine-rest/history/process-instance/count" && (key ?? id)) {
+    return { status: 200, body: { count: isInvoice(key, id) ? INVOICE_STARTED : 0 } }
+  }
+  const match = /^\/engine-rest\/history\/process-definition\/([^/]+)\/statistics$/.exec(pathname)
+  if (!match) return null
+  return { status: 200, body: isInvoice(null, decodeURIComponent(match[1])) ? INVOICE_HISTORY : [] }
+}
+
 /** `/process-definition/{id}/{xml|statistics}` of a fixture definition, or null. */
 function definitionResource(pathname: string): { status: number; body: unknown } | null {
   const match = /^\/engine-rest\/process-definition\/([^/]+)\/(xml|statistics)$/.exec(pathname)
@@ -114,7 +148,8 @@ function route(url: URL): { status: number; body: unknown } {
     const max = Number(searchParams.get("maxResults") ?? DEFINITIONS.length)
     return { status: 200, body: filterDefinitions(searchParams).slice(first, first + max) }
   }
-  const resource = overviewResource(pathname) ?? definitionResource(pathname)
+  const resource =
+    historyResource(url) ?? overviewResource(pathname) ?? definitionResource(pathname)
   if (resource) return resource
   // Unmapped on purpose (and logged): a widget that starts needing another
   // endpoint shows its error state instead of rendering made-up data.
@@ -269,7 +304,7 @@ function createSearchHolds() {
  * server ACTUALLY builds (view envelope, data shape, engine id) from a fixed
  * engine response (`fixtures/process-definitions.json` with their statistics,
  * no open incident, the `invoice` diagram `fixtures/invoice.bpmn` with two instances at
- * `approveInvoice` and three failed jobs).
+ * `approveInvoice`, twelve started in the last 30 days in its history, and three failed jobs).
  * The broken base URL turns any tool into a genuine `isError` result: an
  * engine 503 through the server's own error mapping.
  *

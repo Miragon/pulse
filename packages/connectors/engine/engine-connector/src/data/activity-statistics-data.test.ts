@@ -67,7 +67,11 @@ function routes(overrides: FakeRoutes = {}): FakeRoutes {
 async function build(overrides?: FakeRoutes) {
   const engine = await startFakeEngine(routes(overrides), { body: [] })
   engines.push(engine)
-  const data = await buildActivityStatisticsData(clientFor(engine), { processDefinitionKey: KEY })
+  const data = await buildActivityStatisticsData(clientFor(engine), {
+    processDefinitionKey: KEY,
+    source: "runtime",
+  })
+  if (data.source !== "runtime") throw new Error("runtime asked, history answered")
   return { data, requests: engine.requests }
 }
 

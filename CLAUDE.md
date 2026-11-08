@@ -441,6 +441,15 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      some hosts): a view names the version it draws (`diagramDefinitionId`) and `BpmnDiagram`
      reads the XML from the app-only `engine_bpmn_xml_data`. The ONE XML read is `lib/bpmn/definition-xml.ts`, cached per
      engine client and per caller.
+   - The process flow's "Throughput" (`data/activity-throughput.ts`) reads the engine's history
+     statistics, which load its database (measured 2026-11-08): a fixed 30-day window, cut to the
+     shortest `historyTimeToLive` of a version that ran in it or could have, and said so (0 days:
+     no window, nothing read); counts first, over the likely versions and six older ones at most
+     (the rest named as not counted), so a version without an instance in the window is never
+     read; one statistics read at a time per engine (`oneAtATime`); one read
+     per engine client, caller, key and window for the hour (`createCallerCache`, both in
+     `lib/engine/per-engine.ts`, the XML read's cache too). Its widget query sits outside the
+     cockpit's Refresh (`THROUGHPUT_QUERY_ROOT`) and never retries by itself.
    - Each engine REST rule the client defaults miss has one home, used by `tools/` AND `data/`
      (and by the CLI): the pure rules (`toEngineDate`, `engineSorting`, the filters,
      `toEngineVariable(s)`, `autoTypedValue`, `incidentRecovery`, `RAW_VARIABLES`, root causes,
@@ -596,7 +605,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    - **No module renders another's UI.** A module's views show its own widgets over its own
      feeds (the engine module's cockpit reads the engines itself: the cross-engine landscape
      from each engine's overview and `engine_job_backlog_data`, the process flow's "Running"
-     from `engine_activity_statistics_data`), widget-shell keeps no host widget map, and no
+     and "Throughput" from `engine_activity_statistics_data`), widget-shell keeps no host widget map, and no
      module imports another (`connectors-are-peers`). A view that composes modules goes in a
      dedicated package created with the first real one, never in the app.
      `scripts/tool-name-refs.test.mjs` checks every `<module>_…` literal against the full

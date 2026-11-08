@@ -445,6 +445,61 @@ export interface ActivityStatisticsData {
   engineId: string
 }
 
+export interface ActivityThroughputActivity {
+  activityId: string
+  /** Its name in the drawn diagram; null when the diagram does not name it or is unreadable. */
+  activityName: string | null
+  /** False when only older versions have it, so the drawn diagram cannot show it; null when the diagram is unreadable. */
+  inDiagram: boolean | null
+  /** The window's instances' finished activity instances there (canceled included): the heat. */
+  passed: number
+  /** Their activity instances still open there. */
+  running: number
+  /** Of the finished, the canceled ones. */
+  canceled: number
+}
+
+/**
+ * What the instances started in the window passed at each element (engine_activity_statistics_data,
+ * `source: "history"`): a cohort, so an instance started before the window counts nowhere, read
+ * from the engine's history per version that started any, summed onto the latest diagram.
+ */
+export interface ActivityThroughputData {
+  processDefinitionKey: string
+  source: "history"
+  /** The version the elements are drawn on: the latest over every tenant, as the process view's. */
+  diagramDefinitionId: string | null
+  diagramVersion: number
+  /** Deployed versions of the key. */
+  versionCount: number
+  /** The versions that started an instance in the window: the version scope the counts name. */
+  versionsRead: number
+  /** The window's start (ISO), on the hour; now when the window has 0 days. */
+  startedAfter: string
+  /**
+   * The window in days: 30, or the shorter history time to live of a version that ran in it or
+   * could have (deployed since its start, or the latest then); 0: the engine keeps no history of
+   * the process, and nothing was read.
+   */
+  windowDays: number
+  /** True when a version's history time to live cut the window below 30 days. */
+  cappedByHistoryTimeToLive: boolean
+  /** Instances started in the window, over the versions read. */
+  instanceCount: number
+  /**
+   * The key's instances started in the window on no version read: older versions past the counted
+   * ones, or history a deleted deployment left. Not in any figure; the view says how many.
+   */
+  uncountedInstances: number
+  /** False: the engine writes no history; null: unknown. Asked only when the window holds no instance. */
+  historyRecorded: boolean | null
+  /** When the engine was read (ISO): the server answers from that read for up to an hour. */
+  readAt: string
+  /** Elements the window's instances passed, most passed first. */
+  activities: ActivityThroughputActivity[]
+  engineId: string
+}
+
 export interface IncidentDetailJob {
   id: string
   retries: number

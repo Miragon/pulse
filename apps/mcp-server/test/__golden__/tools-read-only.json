@@ -66,7 +66,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI) for the process flow: what runs at each element of a process now, over every deployed version. Prefer engine_open_cockpit.",
+    "description": "Internal JSON feed (no UI) for the process flow: what runs at each element of a process now, or what the instances started in the last 30 days passed there, over every deployed version. Prefer engine_open_cockpit.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -81,9 +81,10 @@
           "type": "string"
         },
         "source": {
-          "description": "runtime = what runs at each element now, summed over every deployed version",
+          "description": "runtime = what runs at each element now, summed over every deployed version; history = what the instances started in the last 30 days passed (history level activity or higher)",
           "enum": [
-            "runtime"
+            "runtime",
+            "history"
           ],
           "type": "string"
         }

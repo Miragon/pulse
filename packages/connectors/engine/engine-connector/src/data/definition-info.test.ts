@@ -5,6 +5,7 @@ import {
   definitionKeyResolver,
   fetchDefinitionVersions,
   fetchDefinitionXml,
+  fetchVersionIdsDeployedAfter,
   foldStatsByKey,
   processDefinitionKeyFromId,
   resolveDefinitionKeys,
@@ -73,7 +74,8 @@ describe("fetchDefinitionVersions", () => {
       "GET /process-definition": {
         body: [
           { id: "leasing:3:t1", key: "leasing", version: 3, tenantId: "acme" },
-          { id: "leasing:2:d2", key: "leasing", name: "Leasing", version: 2 },
+          // How long its history stays: the throughput window never claims more.
+          { id: "leasing:2:d2", key: "leasing", name: "Leasing", version: 2, historyTimeToLive: 7 },
           // A row without an id names no version to read.
           { key: "leasing", version: 1 },
         ],
@@ -82,8 +84,22 @@ describe("fetchDefinitionVersions", () => {
     engines.push(engine)
 
     expect(await fetchDefinitionVersions(clientFor(engine), "leasing")).toEqual([
-      { id: "leasing:3:t1", key: "leasing", name: null, version: 3 },
-      { id: "leasing:2:d2", key: "leasing", name: "Leasing", version: 2 },
+      {
+        id: "leasing:3:t1",
+        key: "leasing",
+        name: null,
+        version: 3,
+        historyTimeToLive: null,
+        tenantId: "acme",
+      },
+      {
+        id: "leasing:2:d2",
+        key: "leasing",
+        name: "Leasing",
+        version: 2,
+        historyTimeToLive: 7,
+        tenantId: null,
+      },
     ])
     // Key-scoped: never the engine-wide statistics, never a capped page.
     expect(engine.requests.map((r) => [r.path, r.query])).toEqual([
@@ -97,6 +113,39 @@ describe("fetchDefinitionVersions", () => {
     })
     engines.push(engine)
     await expect(fetchDefinitionVersions(clientFor(engine), "leasing")).rejects.toThrow()
+  })
+})
+
+describe("fetchVersionIdsDeployedAfter", () => {
+  it("asks the key's versions deployed after a time, over every tenant, uncapped", async () => {
+    const engine = await startFakeEngine({
+      "GET /process-definition": {
+        body: [
+          { id: "leasing:3:t1", key: "leasing", version: 3, tenantId: "acme" },
+          { id: "leasing:2:d2", key: "leasing", version: 2 },
+          { key: "leasing", version: 1 },
+        ],
+      },
+    })
+    engines.push(engine)
+    const since = "2026-10-09T11:00:00.000+0000"
+
+    expect(await fetchVersionIdsDeployedAfter(clientFor(engine), "leasing", since)).toEqual(
+      new Set(["leasing:3:t1", "leasing:2:d2"]),
+    )
+    expect(engine.requests.map((r) => [r.path, r.query])).toEqual([
+      ["/process-definition", { key: "leasing", deployedAfter: since }],
+    ])
+  })
+
+  it("propagates a failed read", async () => {
+    const engine = await startFakeEngine({
+      "GET /process-definition": { status: 500, body: { message: "db down" } },
+    })
+    engines.push(engine)
+    await expect(
+      fetchVersionIdsDeployedAfter(clientFor(engine), "leasing", "2026-10-09T11:00:00.000+0000"),
+    ).rejects.toThrow()
   })
 })
 

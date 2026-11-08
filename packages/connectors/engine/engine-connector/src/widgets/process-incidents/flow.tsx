@@ -14,8 +14,9 @@ import { useT } from "../../messages/use-t.js"
 import { diagramActivityFraction } from "./activity-scope.js"
 import { useDefinitionData, type DefinitionScope } from "./feed.js"
 import { RunningFlow } from "./running-flow.js"
+import { ThroughputFlow } from "./throughput-flow.js"
 
-type FlowMode = "incidents" | "running"
+type FlowMode = "incidents" | "running" | "throughput"
 
 function activityHint(t: ReturnType<typeof useT>, data: ProcessIncidentsData): string {
   const fraction = diagramActivityFraction(data)
@@ -41,6 +42,7 @@ function FlowModeToolbar({
   const options: SegmentedControlOption<FlowMode>[] = [
     { value: "incidents", label: t("procIncFlow.modeIncidents") },
     { value: "running", label: t("procIncFlow.modeRunning") },
+    { value: "throughput", label: t("procIncFlow.modeThroughput") },
   ]
   return (
     <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
@@ -55,7 +57,10 @@ function FlowModeToolbar({
   )
 }
 
-/** Leads with the open incidents; "Running" reads what runs at each element only once picked. */
+/**
+ * Leads with the open incidents; "Running" (what runs at each element now) and "Throughput" (what
+ * the last 30 days' instances passed, from the history) read only once picked.
+ */
 export function ProcessDefinitionFlow(scope: DefinitionScope) {
   const t = useT()
   const { engine } = scope
@@ -108,8 +113,14 @@ export function ProcessDefinitionFlow(scope: DefinitionScope) {
               highlights={highlights}
             />
           </>
-        ) : (
+        ) : mode === "running" ? (
           <RunningFlow
+            processDefinitionKey={data.processDefinitionKey}
+            engine={engine}
+            toolbar={toolbar}
+          />
+        ) : (
+          <ThroughputFlow
             processDefinitionKey={data.processDefinitionKey}
             engine={engine}
             toolbar={toolbar}

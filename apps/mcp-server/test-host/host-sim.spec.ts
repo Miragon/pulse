@@ -975,7 +975,11 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
     const modes = app.getByRole("group", { name: "Process flow display" })
     await expect(modes).toBeVisible({ timeout: 15_000 })
     // No other module's mode: the flow offers what the engine reads, nothing to probe.
-    await expect(modes.getByRole("button")).toHaveText(["Incidents", "Running"])
+    await expect(modes.getByRole("button")).toHaveText([
+      "Incidents",
+      "Running",
+      "Throughput · 30 days",
+    ])
     await modes.getByRole("button", { name: "Running" }).click()
 
     await expect(
@@ -993,6 +997,47 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
     await expect(values.getByRole("row")).toHaveCount(2)
     await expect(values.getByRole("row").nth(1)).toContainText("Approve Invoice")
     await expect(values.getByRole("row").nth(1)).toContainText("approveInvoice")
+  })
+
+  // The flow's "Throughput" end to end: the real feed's history reads against the stub, the heat
+  // painted in the theme's ramp on the built diagram, and the values under it.
+  test("the process flow paints what the last 30 days' instances passed, read from the history", async ({
+    page,
+  }) => {
+    const app = await openView(page, {
+      args: { engine: HEALTHY_ENGINE, view: "process-detail", processDefinitionKey: "invoice" },
+    })
+    const modes = app.getByRole("group", { name: "Process flow display" })
+    await expect(modes).toBeVisible({ timeout: 15_000 })
+    await modes.getByRole("button", { name: "Throughput · 30 days" }).click()
+
+    await expect(
+      app.getByText(/^diagram v3 \(latest\) · 12 instances started since .+, on 1 version$/),
+    ).toBeVisible({ timeout: 15_000 })
+    const heat = app.getByRole("img", { name: "BPMN process diagram with the throughput as heat" })
+    await expect(heat.locator(".djs-connection")).toHaveCount(4, { timeout: 15_000 })
+    await expect(
+      app.getByText(/Read from the engine's history \(history level activity or higher\)/),
+    ).toBeVisible()
+    // The layer took its ramp from the theme's --cd-* variables: something is painted.
+    const painted = app.locator("canvas[aria-hidden='true']")
+    await expect
+      .poll(() =>
+        painted.evaluate((canvas: HTMLCanvasElement) => {
+          const pixels = canvas.getContext("2d")?.getImageData(0, 0, canvas.width, canvas.height)
+          return pixels ? pixels.data.some((value, i) => i % 4 === 3 && value > 0) : false
+        }),
+      )
+      .toBe(true)
+
+    await app.getByText("Values per activity").click()
+    const values = app.getByRole("region", { name: "Values per activity" })
+    // Most passed first: the twelve started; approveInvoice passed ten, and two still wait there.
+    await expect(values.getByRole("row").nth(1)).toContainText("Invoice received")
+    await expect(values.getByRole("row").nth(1)).toContainText("12")
+    await expect(values.getByRole("row").nth(2)).toContainText("Approve Invoice")
+    await expect(values.getByRole("row").nth(2).getByRole("cell").nth(1)).toHaveText("10")
+    await expect(values.getByRole("row").nth(2).getByRole("cell").nth(2)).toHaveText("2")
   })
 })
 

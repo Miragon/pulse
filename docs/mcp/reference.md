@@ -35,7 +35,9 @@ BPM operations across these domains (`category`): `engines`, `process-definition
   the overview (default), the incidents, a failure cluster, a process, its instances, an
   instance, an incident, the jobs or an instance's history; the result carries that view's facts
   as compact JSON. A process's flow shows its open incidents or, as **Running**, what runs at
-  each element now, every deployed version summed onto the latest diagram
+  each element now, every deployed version summed onto the latest diagram; as **Throughput ·
+  30 days**, what the instances started in the last 30 days passed per element, from the
+  engine's history (the app-only `engine_activity_statistics_data`, `source` `history`)
 
 ### Toolsets
 

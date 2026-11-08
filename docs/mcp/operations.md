@@ -86,6 +86,10 @@ An empty (`engine:`) or unknown suffix warns and falls back to read-only, even u
 Widgets hide action buttons whose tool the toolset drops. The full surface is
 `engine:admin` plus `ENGINE_ALLOW_DEPLOYMENTS=true`.
 
+## Engine load
+
+The process flow's **Throughput · 30 days** reads the history statistics of the engine (history level `activity` or higher), one query per version that started an instance in the window. On PostgreSQL at 10,000 instances a day a warm read takes about a second and a cold one up to about 15 seconds; an engine whose other processes start far more instances costs more. So the window is fixed, the server keeps a read for an hour per engine, caller and process (per replica), sends one such query at a time per engine and never repeats one by itself: the mode loads when picked, not on Refresh, and a failed read waits for the retry button.
+
 ## Observability
 
 Three routes sit next to `/mcp`, outside the OAuth gate and the `Host` check:

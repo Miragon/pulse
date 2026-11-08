@@ -133,6 +133,19 @@ const incidentDetailEnrichment = {
     data.job.stacktrace,
 }
 
+// The diagram names the elements and says which of them it draws.
+const activityStatistics = (source: "runtime" | "history"): Case => ({
+  run: (client) => buildActivityStatisticsData(client, { processDefinitionKey: WORLD.key, source }),
+  unknown: { read: KEY_LOOKUP, reply: NO_ROWS },
+  enrichment: {
+    [`GET /process-definition/${WORLD.latestDefinitionId}/xml`]: (data: {
+      activities: Array<{ inDiagram: unknown; activityName: unknown }>
+    }) => data.activities[0]?.inDiagram ?? data.activities[0]?.activityName,
+  },
+})
+const HISTORY_OPEN = "GET /history/process-instance?maxResults&unfinished"
+const recorded = (data: { historyRecorded: unknown }) => data.historyRecorded
+
 const CASES: Record<string, Case> = {
   buildCockpitDashboardData: {
     run: (client) => buildCockpitDashboardData(client, "fake"),
@@ -308,15 +321,15 @@ const CASES: Record<string, Case> = {
     },
   },
   // Every version's statistics are primary: a version left out would undercount the key.
-  buildActivityStatisticsData: {
-    run: (client) => buildActivityStatisticsData(client, { processDefinitionKey: WORLD.key }),
-    unknown: { read: KEY_LOOKUP, reply: NO_ROWS },
-    enrichment: {
-      // The diagram names the elements and says which of them it draws.
-      [`GET /process-definition/${WORLD.latestDefinitionId}/xml`]: (data: {
-        activities: Array<{ inDiagram: unknown; activityName: unknown }>
-      }) => data.activities[0]?.inDiagram ?? data.activities[0]?.activityName,
-    },
+  buildActivityStatisticsData: activityStatistics("runtime"),
+  // "Throughput": the counts pick the versions and the window, the statistics are the figures.
+  "buildActivityStatisticsData (history)": activityStatistics("history"),
+  // Nothing started in the window: whether the engine writes history at all is enrichment.
+  "buildActivityStatisticsData (history, nothing started)": {
+    run: activityStatistics("history").run,
+    world: (r) =>
+      r.path === "/history/process-instance/count" ? { body: { count: 0 } } : undefined,
+    enrichment: { "GET /process-instance?maxResults": recorded, [HISTORY_OPEN]: recorded },
   },
   // The cross-engine landscape's backlog: four counts, each a figure on screen, none enrichment.
   buildJobBacklogData: { run: (client) => buildJobBacklogData(client) },

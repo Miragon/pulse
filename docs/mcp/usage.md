@@ -103,7 +103,12 @@ still answers you in your language.
   running after a redeploy; only the diagram is one version, and it says
   which. Its flow shows the open incidents per element or, under **Running**,
   how many instances are at each element right now, read from the engine as
-  its own cockpit draws them. With two engines or more, the cross-engine overview
+  its own cockpit draws them. **Throughput · 30 days** colours each element by
+  how often the instances started in the last 30 days passed it (the ones still
+  there count as running), read from the engine's history (history level
+  `activity` or higher): instances started earlier count nowhere, and a shorter
+  history time to live shortens the window, which the view then says. The first open per hour reads the engine's database,
+  so it can take seconds; the server keeps the read for an hour. With two engines or more, the cross-engine overview
   shows each engine's health and job backlog and which processes run where,
   counted on every engine, never ranked. A number the engine could not confirm shows as "—" (or "≥N" when
   only part of it was read), never as 0, and an engine that does not answer

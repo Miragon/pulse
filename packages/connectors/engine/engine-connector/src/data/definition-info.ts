@@ -47,6 +47,8 @@ interface RawDefinition {
   key?: string | null
   name?: string | null
   version?: number | null
+  historyTimeToLive?: number | null
+  tenantId?: string | null
 }
 
 function toDefinitionInfo(raw: RawDefinition, key: string): DefinitionInfo {
@@ -80,17 +82,48 @@ export async function fetchLatestDefinition(client: Client, key: string): Promis
 }
 
 /**
+ * A deployed version, how many days the engine keeps its history (null: no limit) and its tenant
+ * (null: none), whose own versions count on.
+ */
+export interface DefinitionVersion extends DefinitionInfo {
+  historyTimeToLive: number | null
+  tenantId: string | null
+}
+
+/**
  * Every deployed version of a key over every tenant, newest first, uncapped: a view that sums per
  * version reads them all, and only the key's own versions (never the engine-wide statistics).
  */
 export async function fetchDefinitionVersions(
   client: Client,
   key: string,
-): Promise<DefinitionInfo[]> {
+): Promise<DefinitionVersion[]> {
   const rows = rowsOf<RawDefinition>(
     await getProcessDefinitions({ client, query: { key, sortBy: "version", sortOrder: "desc" } }),
   )
-  return rows.filter((row) => !!row.id).map((row) => toDefinitionInfo(row, key))
+  return rows
+    .filter((row) => !!row.id)
+    .map((row) => ({
+      ...toDefinitionInfo(row, key),
+      historyTimeToLive: typeof row.historyTimeToLive === "number" ? row.historyTimeToLive : null,
+      tenantId: row.tenantId ?? null,
+    }))
+}
+
+/**
+ * The ids of a key's versions deployed after `deployedAfter` (an engine date), over every tenant,
+ * uncapped: with the version that was the latest at that time, the ones an instance started since
+ * then most likely ran on.
+ */
+export async function fetchVersionIdsDeployedAfter(
+  client: Client,
+  key: string,
+  deployedAfter: string,
+): Promise<Set<string>> {
+  const rows = rowsOf<RawDefinition>(
+    await getProcessDefinitions({ client, query: { key, deployedAfter } }),
+  )
+  return new Set(rows.flatMap((row) => (row.id ? [row.id] : [])))
 }
 
 export function unknownKeyError(key: string): Error {
