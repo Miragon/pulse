@@ -134,6 +134,23 @@ describe("runComposedServer", () => {
     expect(frames[0]).toContain("run-composed-server.test.ts")
   })
 
+  it("names the module on a server method it does not get, with the frames of that call", async () => {
+    const usesOldApi: ComposableModule<object> = {
+      ...alpha,
+      createPlugin: () => ({
+        name: "alpha",
+        register: (server) => void (server as unknown as { tool: () => void }).tool(),
+      }),
+    }
+    const { create } = createApp({ modules: [usesOldApi] })
+    await expect(runComposedServer(create)).rejects.toThrow("process.exit(1)")
+    const [line, ...frames] = written.join("").trimEnd().split("\n")
+    expect(line).toBe(
+      '[test-root] The server did not start: Module "alpha" failed in register(server): server.tool is not a function. Its server, a ModuleServer, has no tool(): it offers registerTool, registerPrompt and registerResource.',
+    )
+    expect(frames[0]).toContain("run-composed-server.test.ts")
+  })
+
   it.each([
     ["a SyntaxError of a refused setting", new SyntaxError("Unexpected token 'x'")],
     [
