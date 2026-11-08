@@ -118,20 +118,34 @@ interface RawInstance {
   suspended?: boolean | null
 }
 
-/** Totals over the WHOLE filtered set, never the page; a deciding filter answers without a call. */
-function filteredTotals(client: Client, filter: ProcessInstanceFilter) {
+/**
+ * Totals over the WHOLE set, never the page: each chip's count (All, With incidents, Suspended) on
+ * the same scope and search whichever chip is on, and the page's total, which is the count of the
+ * chip that is on and so costs no read of its own. Only both flags at once, which no chip sends,
+ * read their intersection as a fourth count. `active` is no chip: it stays in the scope, where
+ * nothing is suspended.
+ */
+async function filteredTotals(client: Client, filter: ProcessInstanceFilter) {
   const count = (body: ProcessInstanceFilter) =>
     queryProcessInstancesCount({ client, body }).then(countOf)
-  const total = count(filter)
-  return Promise.all([
+  const scope = { ...filter, withIncident: undefined, suspended: undefined }
+  const all = count(scope)
+  const withIncident = count({ ...scope, withIncident: true })
+  const suspended = filter.active ? Promise.resolve(0) : count({ ...scope, suspended: true })
+  const total = filter.withIncident
+    ? filter.suspended
+      ? count(filter)
+      : withIncident
+    : filter.suspended
+      ? suspended
+      : all
+  const [totalCount, allCount, withIncidentCount, suspendedCount] = await Promise.all([
     total,
-    filter.withIncident ? total : count({ ...filter, withIncident: true }),
-    filter.suspended
-      ? total
-      : filter.active
-        ? Promise.resolve(0)
-        : count({ ...filter, suspended: true }),
+    all,
+    withIncident,
+    suspended,
   ])
+  return { totalCount, allCount, withIncidentCount, suspendedCount }
 }
 
 /** Scoped to the page's ids, not an engine-wide incident scan. */
@@ -197,7 +211,7 @@ export async function buildProcessInstancesData(
 ): Promise<ProcessInstancesData> {
   const filter = toProcessInstanceFilter(args)
 
-  const [raw, [totalCount, withIncidentCount, suspendedCount], definition] = await Promise.all([
+  const [raw, totals, definition] = await Promise.all([
     queryProcessInstances({
       client,
       query: { firstResult: args.firstResult ?? 0, maxResults: args.maxResults ?? LIST_PAGE_SIZE },
@@ -233,10 +247,11 @@ export async function buildProcessInstancesData(
   return {
     processDefinitionKey: args.processDefinitionKey ?? null,
     processDefinitionName: definition?.name ?? null,
-    totalCount,
+    totalCount: totals.totalCount,
     returnedCount: instances.length,
-    withIncidentCount,
-    suspendedCount,
+    allCount: totals.allCount,
+    withIncidentCount: totals.withIncidentCount,
+    suspendedCount: totals.suspendedCount,
     instances,
     filters: {
       active: args.active,

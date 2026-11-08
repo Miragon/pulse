@@ -12,7 +12,14 @@ import {
   type FakeReply,
   type RecordedRequest,
 } from "../tools/test-support/fake-engine.js"
-import { ENGINE_FAILURE, readOf, WORLD, worldReply } from "../tools/test-support/engine-world.js"
+import {
+  BARE_DEFINITION_ID,
+  ENGINE_FAILURE,
+  onBareDefinitionId,
+  readOf,
+  WORLD,
+  worldReply,
+} from "../tools/test-support/engine-world.js"
 import {
   buildCockpitDashboardData,
   buildJobPanelData,
@@ -21,7 +28,7 @@ import {
 import { buildCockpitStart } from "./cockpit-start.js"
 import { buildClusterDetailData } from "./cluster-detail-data.js"
 import { CLUSTER_SCAN_LIMIT } from "./cluster-scan.js"
-import { countOf, INCIDENT_SCAN_LIMIT, optional, rowsOf } from "./engine-reads.js"
+import { INCIDENT_SCAN_LIMIT } from "./engine-reads.js"
 import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-engine-core"
 import { buildEngineHealthData } from "./health-data.js"
 import { buildHistoryTimelineData } from "./history-timeline-data.js"
@@ -68,32 +75,6 @@ function incidentScan(count: number): unknown[] {
     incidentTimestamp: now,
     configuration: WORLD.jobId,
   }))
-}
-
-// Past 64 chars the engine stores a bare id; only the statistics name its key.
-const BARE_DEFINITION_ID = "6f1c2a9e-0b7d-4c33-9a51-3d2e8f40b7aa"
-const BARE_ID_STATS: FakeReply = {
-  body: [
-    {
-      id: BARE_DEFINITION_ID,
-      instances: 1,
-      incidents: [{ incidentType: "failedJob", incidentCount: 1 }],
-      definition: {
-        id: BARE_DEFINITION_ID,
-        key: "customerOnboardingApprovalProcess",
-        version: 1,
-      },
-    },
-  ],
-}
-
-function onBareDefinitionId(path: string, rows: unknown[]): Case["world"] {
-  return (r) =>
-    r.path === path
-      ? { body: rows }
-      : r.path === "/process-definition/statistics"
-        ? BARE_ID_STATS
-        : undefined
 }
 
 const processIncidents: Case["run"] = (client, baseUrl) =>
@@ -145,15 +126,21 @@ const activityStatistics = (source: "runtime" | "history"): Case => ({
 })
 const HISTORY_OPEN = "GET /history/process-instance?maxResults&unfinished"
 const recorded = (data: { historyRecorded: unknown }) => data.historyRecorded
+/** The instance list on the world's key, with a chip on or none. */
+const instancesOf = (args: { withIncidents?: boolean; suspended?: boolean }): Case => ({
+  run: (client) =>
+    buildProcessInstancesData(client, "fake", { processDefinitionKey: WORLD.key, ...args }),
+  unknown: { read: KEY_LOOKUP, reply: NO_ROWS },
+})
 
 const CASES: Record<string, Case> = {
   buildCockpitDashboardData: {
     run: (client) => buildCockpitDashboardData(client, "fake"),
   },
-  buildProcessInstancesData: {
-    run: (client) => buildProcessInstancesData(client, "fake", { processDefinitionKey: WORLD.key }),
-    unknown: { read: KEY_LOOKUP, reply: NO_ROWS },
-  },
+  buildProcessInstancesData: instancesOf({}),
+  // Each chip shows its count whichever chip is on: with a chip on, All's is a read of its own.
+  "buildProcessInstancesData (With incidents chip)": instancesOf({ withIncidents: true }),
+  "buildProcessInstancesData (Suspended chip)": instancesOf({ suspended: true }),
   // Engine-wide rows on a bare definition id: their keys (the process
   // column's drill) resolve through the statistics (enrichment).
   "buildProcessInstancesData (engine-wide, bare definition ids)": {
@@ -185,9 +172,34 @@ const CASES: Record<string, Case> = {
       buildInstanceDetailData(client, "fake", { processInstanceId: WORLD.instanceId }),
     unknown: { read: `GET /process-instance/${WORLD.instanceId}`, reply: NOT_FOUND },
     enrichment: {
+      // The diagram, and the name of each incident's element read from it.
       [`GET /process-definition/${WORLD.instanceDefinitionId}/xml`]: (data: {
         diagramDefinitionId: unknown
-      }) => data.diagramDefinitionId,
+        incidents: Array<{ activityName: unknown }>
+      }) => data.diagramDefinitionId ?? data.incidents[0]?.activityName,
+    },
+  },
+  // A bare definition id names no key: that one definition's row resolves it (enrichment, never
+  // the engine-wide statistics), and with it the process's name and the header's drill; a failed
+  // read leaves the key null, never the UUID.
+  "buildInstanceDetailData (bare definition id)": {
+    run: (client) =>
+      buildInstanceDetailData(client, "fake", { processInstanceId: WORLD.instanceId }),
+    world: onBareDefinitionId(`/process-instance/${WORLD.instanceId}`, {
+      id: WORLD.instanceId,
+      definitionId: BARE_DEFINITION_ID,
+    }),
+    enrichment: {
+      "GET /process-definition?maxResults&processDefinitionIdIn": (data: {
+        definitionKey: unknown
+        processDefinitionName: unknown
+      }) => data.definitionKey ?? data.processDefinitionName,
+      [namesFrom(BARE_DEFINITION_ID)]: (data: {
+        diagramDefinitionId: unknown
+        processDefinitionName: unknown
+        incidents: Array<{ activityName: unknown }>
+      }) =>
+        data.diagramDefinitionId ?? data.processDefinitionName ?? data.incidents[0]?.activityName,
     },
   },
   buildHistoryTimelineData: {
@@ -407,6 +419,21 @@ describe.each(Object.entries(CASES))("%s", (_name, builder) => {
   })
 })
 
+// The chips' counts are figures on screen: reads of their own (`readOf` tells their bodies apart),
+// so the table above breaks each of them alone, whichever chip is on.
+it.each(["", " (With incidents chip)", " (Suspended chip)"])(
+  "buildProcessInstancesData%s counts All, With incidents and Suspended apart",
+  async (variant) => {
+    const { reads } = await build(CASES[`buildProcessInstancesData${variant}`])
+    const counts = [...reads].filter((read) => read.startsWith("POST /process-instance/count"))
+    expect(counts.sort()).toEqual(
+      [",suspended", ",withIncident", ""].map(
+        (flag) => `POST /process-instance/count {processDefinitionKey${flag}}`,
+      ),
+    )
+  },
+)
+
 describe("the rejection table is complete", () => {
   it("names every data builder exported from src/data", async () => {
     const dir = dirname(fileURLToPath(import.meta.url))
@@ -423,24 +450,5 @@ describe("the rejection table is complete", () => {
     // A variant case ("buildX (scan capped)") covers the same builder.
     const covered = new Set(Object.keys(CASES).map((name) => name.split(" ")[0]))
     expect(builders.sort()).toEqual([...covered].sort())
-  })
-})
-
-describe("engine-reads", () => {
-  it("a count reply without a count is an engine-contract breach, not a 0", () => {
-    expect(countOf({ count: 0 })).toBe(0)
-    expect(() => countOf({})).toThrow(/without a count/)
-    expect(() => countOf(null)).toThrow(/without a count/)
-  })
-
-  it("a list reply that is no list is an engine-contract breach, not 'no rows'", () => {
-    expect(rowsOf([1])).toEqual([1])
-    expect(() => rowsOf({})).toThrow(/without a list/)
-    expect(() => rowsOf(undefined)).toThrow(/without a list/)
-  })
-
-  it("an enrichment read degrades to null", async () => {
-    await expect(optional(Promise.reject(new Error("boom")))).resolves.toBeNull()
-    await expect(optional(Promise.resolve("x"))).resolves.toBe("x")
   })
 })

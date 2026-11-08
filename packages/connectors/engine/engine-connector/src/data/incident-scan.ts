@@ -148,6 +148,9 @@ export function toIncidentInstance(
     incidentType: r.incidentType,
     incidentMessage: r.incidentMessage ?? null,
     incidentTimestamp: r.incidentTimestamp,
+    activityId: r.activityId,
+    // The activity's group names it; its page reads no diagram.
+    activityName: null,
     recovery: incidentRecovery(r),
     cockpitInstanceUrl: buildInstanceCockpitUrl(
       ctx,

@@ -127,6 +127,92 @@ function overviewResource(pathname: string): { status: number; body: unknown } |
   }
 }
 
+/** The invoice version every stub instance and job runs on. */
+const INVOICE_V3 = "invoice:3:7f1c2a9e-2f4b-11f1-9c7e-0242ac120004"
+
+/** The one instance the stub serves whole (the instance view): it waits at `approveInvoice`. */
+const INVOICE_INSTANCE = "pi-invoice-42"
+
+/**
+ * Its two open incidents: one at an element the diagram names (`approveInvoice`), one at an
+ * element the diagram does not hold (`chargeCard`, the stub jobs' element), named by its id.
+ * Only reads scoped to this instance see them; the engine-wide reads stay empty.
+ */
+function invoiceIncident(id: string, activityId: string, incidentMessage: string) {
+  return {
+    id,
+    processDefinitionId: INVOICE_V3,
+    processInstanceId: INVOICE_INSTANCE,
+    executionId: INVOICE_INSTANCE,
+    activityId,
+    failedActivityId: activityId,
+    incidentType: "failedJob",
+    incidentMessage,
+    incidentTimestamp: "2026-10-10T08:00:00.000+0000",
+    configuration: `job-${id}`,
+    causeIncidentId: id,
+    rootCauseIncidentId: id,
+  }
+}
+
+const INVOICE_INSTANCE_INCIDENTS = [
+  invoiceIncident("inc-approve", "approveInvoice", "Approver lookup failed"),
+  invoiceIncident("inc-charge", "chargeCard", "Card declined"),
+]
+
+/** The instance view's reads of {@link INVOICE_INSTANCE}, or null. */
+function instanceResource(url: URL): { status: number; body: unknown } | null {
+  const { pathname, searchParams } = url
+  const base = `/engine-rest/process-instance/${INVOICE_INSTANCE}`
+  const scoped = searchParams.get("processInstanceId") === INVOICE_INSTANCE
+  switch (true) {
+    case pathname === base:
+      return {
+        status: 200,
+        body: {
+          id: INVOICE_INSTANCE,
+          definitionId: INVOICE_V3,
+          businessKey: "INV-2026-0042",
+          suspended: false,
+          ended: false,
+        },
+      }
+    case pathname === `${base}/activity-instances`:
+      return {
+        status: 200,
+        body: {
+          id: INVOICE_INSTANCE,
+          activityId: "invoice",
+          activityName: "Invoice Receipt",
+          activityType: "processDefinition",
+          childActivityInstances: [
+            {
+              id: "approveInvoice:ai-1",
+              activityId: "approveInvoice",
+              activityName: "Approve Invoice",
+              activityType: "userTask",
+              childActivityInstances: [],
+              childTransitionInstances: [],
+            },
+          ],
+          childTransitionInstances: [],
+        },
+      }
+    case pathname === `${base}/variables`:
+      return { status: 200, body: { amount: { type: "Double", value: 129.9, valueInfo: {} } } }
+    case scoped && pathname === "/engine-rest/incident":
+      return { status: 200, body: INVOICE_INSTANCE_INCIDENTS }
+    case scoped && pathname === "/engine-rest/incident/count":
+      return { status: 200, body: { count: INVOICE_INSTANCE_INCIDENTS.length } }
+    case scoped && pathname === "/engine-rest/task":
+      return { status: 200, body: [] }
+    case scoped && pathname === "/engine-rest/task/count":
+      return { status: 200, body: { count: 0 } }
+    default:
+      return null
+  }
+}
+
 function filterDefinitions(query: URLSearchParams): ProcessDefinition[] {
   const key = query.get("key")
   return DEFINITIONS.filter((d) => !key || d.key === key)
@@ -149,7 +235,10 @@ function route(url: URL): { status: number; body: unknown } {
     return { status: 200, body: filterDefinitions(searchParams).slice(first, first + max) }
   }
   const resource =
-    historyResource(url) ?? overviewResource(pathname) ?? definitionResource(pathname)
+    instanceResource(url) ??
+    historyResource(url) ??
+    overviewResource(pathname) ??
+    definitionResource(pathname)
   if (resource) return resource
   // Unmapped on purpose (and logged): a widget that starts needing another
   // endpoint shows its error state instead of rendering made-up data.
@@ -183,7 +272,7 @@ function failedJob(id: string, processInstanceId: string, exceptionMessage: stri
     id,
     processInstanceId,
     processDefinitionKey: "invoice",
-    processDefinitionId: "invoice:3:7f1c2a9e-2f4b-11f1-9c7e-0242ac120004",
+    processDefinitionId: INVOICE_V3,
     failedActivityId: "chargeCard",
     retries: 0,
     exceptionMessage,
@@ -304,7 +393,8 @@ function createSearchHolds() {
  * server ACTUALLY builds (view envelope, data shape, engine id) from a fixed
  * engine response (`fixtures/process-definitions.json` with their statistics,
  * no open incident, the `invoice` diagram `fixtures/invoice.bpmn` with two instances at
- * `approveInvoice`, twelve started in the last 30 days in its history, and three failed jobs).
+ * `approveInvoice`, twelve started in the last 30 days in its history, three failed jobs, and
+ * one invoice instance with two open incidents that only its own reads see).
  * The broken base URL turns any tool into a genuine `isError` result: an
  * engine 503 through the server's own error mapping.
  *

@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
-import { afterEach, describe, expect, it } from "vitest"
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { afterEach, beforeEach, describe, expect, it } from "vitest"
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import { setFormatLocale } from "@miragon/pulse-ui"
 import { complementaryFlags } from "@miragon/pulse-engine-core"
 import { ENGINE_PROCESS_INSTANCES_DATA } from "../tool-names.js"
 import type { ProcessInstancesData } from "../view-models.js"
@@ -24,6 +25,7 @@ function firstPage(flags: StateFlags): ProcessInstancesData {
     processDefinitionName: "Invoice",
     totalCount: 3,
     returnedCount: 2,
+    allCount: 3,
     withIncidentCount: 0,
     suspendedCount: 0,
     instances: ["pi-1", "pi-2"].map((id) => ({
@@ -141,5 +143,92 @@ describe("the engine-wide list's columns", () => {
     )
     expect(headers()).toEqual(expect.arrayContaining(["Version", "State"]))
     expect(headers()).not.toContain("Process")
+  })
+})
+
+// The chips count what each of them lists: the payload ON SCREEN, never the request, so a
+// chip's count stays put while its own page is in flight.
+describe("the filter chips' counts", () => {
+  // The numbers' format is the published locale's, never the machine's: a German one would
+  // read 1.234 in the English case.
+  beforeEach(() => {
+    setFormatLocale({ language: "en", locale: "en-US" })
+  })
+  afterEach(() => {
+    setFormatLocale(undefined)
+  })
+
+  /** No chip on: the page's total is All's count. */
+  const counted = (all: number, incidents: number, suspended: number): ProcessInstancesData => ({
+    ...firstPage({}),
+    totalCount: all,
+    allCount: all,
+    withIncidentCount: incidents,
+    suspendedCount: suspended,
+  })
+  const chip = (name: RegExp) =>
+    within(screen.getByRole("group", { name: /instance filters|instanzfilter/i })).getByRole(
+      "button",
+      { name },
+    )
+
+  it("shows every chip's count, formatted; with no chip on, All's is the header's total", () => {
+    render(
+      <TestViewHost>
+        <ProcessInstancesView
+          data={counted(2_480, 1_234, 7)}
+          processDefinitionKey="invoice"
+          engine="prod"
+        />
+      </TestViewHost>,
+    )
+    expect(chip(/^All/).textContent).toBe("All2,480")
+    expect(chip(/^With incidents/).textContent).toBe("With incidents1,234")
+    expect(chip(/^Suspended/).textContent).toBe("Suspended7")
+    expect(screen.getByText("2,480 running")).toBeTruthy()
+  })
+
+  it("formats them in the host's locale", () => {
+    setFormatLocale({ language: "de", locale: "de-DE" })
+    render(
+      <TestViewHost locale="de">
+        <ProcessInstancesView
+          data={counted(2_480, 1_234, 7)}
+          processDefinitionKey="invoice"
+          engine="prod"
+        />
+      </TestViewHost>,
+    )
+    expect(chip(/^Alle/).textContent).toBe("Alle2.480")
+    expect(chip(/^Mit Incidents/).textContent).toBe("Mit Incidents1.234")
+    expect(chip(/^Ausgesetzt/).textContent).toBe("Ausgesetzt7")
+    expect(screen.getByText("2.480 laufend")).toBeTruthy()
+  })
+
+  it("reads the page on screen: the old counts while a chip's page loads, then its own", async () => {
+    let answer: (data: ProcessInstancesData) => void = () => {}
+    const pending = new Promise<ProcessInstancesData>((resolve) => {
+      answer = resolve
+    })
+    render(
+      <TestViewHost tools={{ [ENGINE_PROCESS_INSTANCES_DATA]: () => pending }}>
+        <ProcessInstancesView
+          data={counted(12, 3, 1)}
+          processDefinitionKey="invoice"
+          engine="prod"
+        />
+      </TestViewHost>,
+    )
+    fireEvent.click(chip(/^With incidents/))
+    await waitFor(() => expect(chip(/^With incidents/).getAttribute("aria-pressed")).toBe("true"))
+    expect(chip(/^All/).textContent).toBe("All12")
+    expect(chip(/^Suspended/).textContent).toBe("Suspended1")
+
+    // With incidents on, the page's total is that chip's count; All still counts the whole list.
+    answer({ ...counted(13, 4, 2), totalCount: 4, filters: { withIncidents: true } })
+    await waitFor(() => expect(chip(/^Suspended/).textContent).toBe("Suspended2"))
+    expect(chip(/^With incidents/).textContent).toBe("With incidents4")
+    expect(chip(/^All/).textContent).toBe("All13")
+    expect(screen.getByText("4 running")).toBeTruthy()
   })
 })

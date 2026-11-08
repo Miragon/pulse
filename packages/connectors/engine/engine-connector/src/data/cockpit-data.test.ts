@@ -106,7 +106,13 @@ describe("buildCockpitDashboardData: one row per KEY (#335 N60)", () => {
 
 const bodyOf = (r: RecordedRequest) => r.body as Record<string, unknown>
 
-function instanceRoutes(counts: { all: number; withIncident: number; suspended: number }) {
+/** `both` answers a count with both flags, which no chip sends. */
+function instanceRoutes(counts: {
+  all: number
+  withIncident: number
+  suspended: number
+  both?: number
+}) {
   return {
     "GET /process-instance": { body: [{ id: "p2" }] },
     "POST /process-instance": {
@@ -117,15 +123,18 @@ function instanceRoutes(counts: { all: number; withIncident: number; suspended: 
         { id: "p3", definitionId: "legacy-id" },
       ],
     },
-    "POST /process-instance/count": (r: RecordedRequest) => ({
-      body: {
-        count: bodyOf(r).withIncident
-          ? counts.withIncident
-          : bodyOf(r).suspended
-            ? counts.suspended
-            : counts.all,
-      },
-    }),
+    "POST /process-instance/count": (r: RecordedRequest) => {
+      const { withIncident, suspended } = bodyOf(r)
+      const count =
+        withIncident && suspended
+          ? counts.both
+          : withIncident
+            ? counts.withIncident
+            : suspended
+              ? counts.suspended
+              : counts.all
+      return { body: { count } }
+    },
     // The key's latest version over every tenant (a tenant deployment has no
     // tenant-less /process-definition/key/{key}).
     "GET /process-definition": {
@@ -178,6 +187,7 @@ describe("buildProcessInstancesData: totals and page-scoped incident flags (#335
       processDefinitionName: "Order",
       totalCount: 152,
       returnedCount: 3,
+      allCount: 152,
       withIncidentCount: 57,
       suspendedCount: 9,
     })
@@ -196,19 +206,79 @@ describe("buildProcessInstancesData: totals and page-scoped incident flags (#335
     ])
   })
 
-  it("answers the totals a filter already decides without asking", async () => {
+  // The chips count what each of them lists, so a chip's count never turns into an intersection
+  // with the chip that is on, and All counts the whole list. The page's total is the count of the
+  // chip that is on: no read of its own.
+  const ALL = { processDefinitionKey: "K1" }
+  const WITH_INCIDENT = { ...ALL, withIncident: true }
+  const SUSPENDED = { ...ALL, suspended: true }
+  it.each([
+    {
+      chip: "All",
+      args: {},
+      totals: { totalCount: 152, allCount: 152, withIncidentCount: 57, suspendedCount: 9 },
+      counted: [ALL, WITH_INCIDENT, SUSPENDED],
+    },
+    {
+      chip: "With incidents",
+      args: { withIncidents: true },
+      totals: { totalCount: 57, allCount: 152, withIncidentCount: 57, suspendedCount: 9 },
+      counted: [ALL, WITH_INCIDENT, SUSPENDED],
+    },
+    {
+      chip: "Suspended",
+      args: { suspended: true },
+      totals: { totalCount: 9, allCount: 152, withIncidentCount: 57, suspendedCount: 9 },
+      counted: [ALL, WITH_INCIDENT, SUSPENDED],
+    },
+    // The search box narrows every chip alike.
+    {
+      chip: "Suspended within a search",
+      args: { suspended: true, search: " BK-7 " },
+      totals: { totalCount: 9, allCount: 152, withIncidentCount: 57, suspendedCount: 9 },
+      counted: [ALL, WITH_INCIDENT, SUSPENDED].map((body) => ({
+        ...body,
+        orQueries: [{ businessKeyLike: "%BK-7%", processInstanceIds: ["BK-7"] }],
+      })),
+    },
+    // No chip sends both flags: their intersection is the one total no chip counts.
+    {
+      chip: "both flags",
+      args: { withIncidents: true, suspended: true },
+      totals: { totalCount: 4, allCount: 152, withIncidentCount: 57, suspendedCount: 9 },
+      counted: [ALL, WITH_INCIDENT, SUSPENDED, { ...SUSPENDED, withIncident: true }],
+    },
+    // `active` is no chip: it scopes every count, and nothing in it is suspended.
+    {
+      chip: "With incidents of the active",
+      args: { withIncidents: true, active: true },
+      totals: { totalCount: 57, allCount: 152, withIncidentCount: 57, suspendedCount: 0 },
+      counted: [
+        { ...ALL, active: true },
+        { ...WITH_INCIDENT, active: true },
+      ],
+    },
+  ])("counts every chip on the same scope whichever chip is on: $chip", async (row) => {
+    const { engine, client } = await engineWith(
+      instanceRoutes({ all: 152, withIncident: 57, suspended: 9, both: 4 }),
+    )
+
+    const data = await buildProcessInstancesData(client, "engine-a", {
+      processDefinitionKey: "K1",
+      ...row.args,
+    })
+
+    expect(data).toMatchObject(row.totals)
+    expect(calls(engine, "/process-instance/count").map(bodyOf)).toEqual(row.counted)
+  })
+
+  it("asks for no incident flags on a withIncident page: every row has one", async () => {
     const { engine, client } = await engineWith(
       instanceRoutes({ all: 4, withIncident: 4, suspended: 0 }),
     )
 
-    const data = await buildProcessInstancesData(client, "engine-a", {
-      withIncidents: true,
-      active: true,
-    })
+    const data = await buildProcessInstancesData(client, "engine-a", { withIncidents: true })
 
-    expect(data).toMatchObject({ totalCount: 4, withIncidentCount: 4, suspendedCount: 0 })
-    expect(calls(engine, "/process-instance/count")).toHaveLength(1)
-    // Every row of a withIncident page has one: no flag query either.
     expect(calls(engine, "/process-instance")).toHaveLength(1)
     expect(data.instances.every((i) => i.hasIncident)).toBe(true)
   })

@@ -113,5 +113,9 @@ still answers you in your language.
   counted on every engine, never ranked. A number the engine could not confirm shows as "—" (or "≥N" when
   only part of it was read), never as 0, and an engine that does not answer
   is an error, not an empty view.
+- An instance's view names the element of each open incident (its name in the
+  diagram, else its id) and leads to its process with **View process**. The
+  instance list's chips (**All**, **With incidents**, **Suspended**) count what
+  each one shows within the search, whichever chip is on.
 - If a tool isn't doing what you expect, ask the assistant to show you the raw
   arguments. It'll print them, and you can spot mismatches quickly.

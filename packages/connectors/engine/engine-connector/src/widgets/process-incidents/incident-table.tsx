@@ -7,6 +7,7 @@ import {
   formatTimestamp,
   Icon,
   LogText,
+  NamedId,
   Td,
 } from "@miragon/pulse-ui"
 import {
@@ -70,31 +71,46 @@ function RecoveryButton({
   )
 }
 
+/** Where an incident sits, by its element's name (the id where it has none); never blank. */
+function IncidentElement({ incident }: { incident: IncidentInstance }) {
+  // A floor, or a wrapping name gets squeezed into a column a word wide.
+  return (
+    <div className="flex min-w-40 flex-col">
+      {incident.activityId ? (
+        <NamedId name={incident.activityName} id={incident.activityId} />
+      ) : (
+        <span className="text-muted-foreground">{"—"}</span>
+      )}
+    </div>
+  )
+}
+
 export function IncidentTable({
   incidents,
   recovery,
   onAnalyze,
-  hideInstanceColumn = false,
+  subject = "instance",
   engine,
   vendor,
 }: {
   incidents: IncidentInstance[]
   recovery: IncidentRecoveryState
   onAnalyze: (incidentId: string) => void
-  hideInstanceColumn?: boolean
+  /** The first column: each row's instance (an activity's incidents) or its element (an instance's). */
+  subject?: "instance" | "element"
   engine?: string
   vendor?: string
 }) {
   const t = useT()
   const { ask } = useHandOff()
+  const byInstance = subject === "instance"
   // Aligns under the activity summary's icon column; without that column the indent would float.
-  const leadPad = hideInstanceColumn ? undefined : "pl-12"
-  const columnCount = hideInstanceColumn ? 3 : 4
+  const leadPad = byInstance ? "pl-12" : undefined
 
   const columns: ListTableColumn[] = [
-    ...(hideInstanceColumn
-      ? []
-      : [{ label: t("procIncTable.columnInstance"), className: leadPad }]),
+    byInstance
+      ? { label: t("procIncTable.columnInstance"), className: leadPad }
+      : { label: t("procIncTable.columnActivity") },
     { label: t("procIncTable.columnErrorMessage") },
     // The summary row above names first and latest; the message keeps the room (#322 U2).
     { label: t("procIncTable.columnTime"), align: "right" as const, hideBelow: "md" as const },
@@ -103,7 +119,10 @@ export function IncidentTable({
 
   return (
     <div className="bg-muted [--list-table-surface:var(--muted)]">
-      <ListTable ariaLabel={t("procIncTable.tableLabel")} columns={columns}>
+      <ListTable
+        ariaLabel={byInstance ? t("procIncTable.tableLabel") : t("procIncTable.tableLabelInstance")}
+        columns={columns}
+      >
         {/* Inline, the table shows the incidents that fit (its own fit, or the
             paged wrapper's) and says how many there are. */}
         {incidents.map((incident) => {
@@ -114,7 +133,7 @@ export function IncidentTable({
           return (
             <Fragment key={incident.id}>
               <tr>
-                {!hideInstanceColumn && (
+                {byInstance ? (
                   <Td className={leadPad}>
                     {/* One instance label (#322 U13): its business key, the
                         UUID a copyable chip. */}
@@ -122,6 +141,10 @@ export function IncidentTable({
                       id={incident.processInstanceId}
                       businessKey={incident.businessKey}
                     />
+                  </Td>
+                ) : (
+                  <Td>
+                    <IncidentElement incident={incident} />
                   </Td>
                 )}
                 <Td>
@@ -167,7 +190,7 @@ export function IncidentTable({
               {error && (
                 <tr {...FIT_CONTINUES_ROW}>
                   <td
-                    colSpan={columnCount}
+                    colSpan={columns.length}
                     className={`border-border border-b px-4 py-1.5 ${leadPad ?? ""}`}
                   >
                     <WriteError error={error} />

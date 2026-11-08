@@ -1472,3 +1472,58 @@ test.describe("cockpit (engine_open_cockpit)", () => {
     await expect(app.getByLabel("Selected engine")).toHaveCount(0)
   })
 })
+
+/**
+ * What the VS Code extension showed and the cockpit lacked: an instance names the element of
+ * each incident and leads to its process, and the instance list's chips count what each lists.
+ */
+test.describe("an instance and the instance list (engine_open_cockpit)", () => {
+  test("an instance names each incident's element and leads to its process", async ({ page }) => {
+    const errors = collectErrors(page)
+    // The stub's one instance with open incidents (stub-engine.ts), no open task: the view
+    // opens on its Incidents tab.
+    const app = await openView(page, {
+      args: { engine: HEALTHY_ENGINE, view: "instance-detail", processInstanceId: "pi-invoice-42" },
+    })
+    const table = app.getByRole("region", { name: "Incidents of this instance" })
+    await expect(table).toBeVisible({ timeout: 15_000 })
+    await expect(table.getByRole("columnheader").first()).toHaveText("Activity")
+    const elements = table.locator("tbody > tr > td:first-child")
+    // The diagram's name leads with the id below it; an element the diagram lacks shows its id.
+    await expect(elements).toHaveText(["Approve InvoiceapproveInvoice", "chargeCard"])
+
+    await app.getByRole("button", { name: "View process" }).click()
+    await expect(app.getByRole("heading", { name: "Invoice Receipt" })).toBeVisible({
+      timeout: 15_000,
+    })
+    await expect(app.getByRole("navigation", { name: "Breadcrumb" })).toContainText(
+      "Invoice Receipt",
+    )
+    expect(errors).toEqual([])
+  })
+
+  test("the chips count what each lists, whichever chip is on", async ({ page }) => {
+    // The realistic engine: 160 running instances, 54 with an incident, 10 suspended.
+    const app = await openView(page, {
+      hostEnv: REALISTIC_HOST_ENV,
+      args: { engine: REALISTIC_ENGINE, view: "process-instances" },
+    })
+    const chips = app.getByRole("group", { name: "Instance filters" })
+    // Exact names and texts: a substring would let 540 pass for 54 and 154 running for 54.
+    const all = chips.getByRole("button", { name: "All 160", exact: true })
+    const withIncidents = chips.getByRole("button", { name: "With incidents 54", exact: true })
+    const suspended = chips.getByRole("button", { name: "Suspended 10", exact: true })
+    await expect(all).toBeVisible({ timeout: 15_000 })
+    await expect(withIncidents).toBeVisible()
+    await expect(suspended).toBeVisible()
+    await expect(app.getByText("160 running", { exact: true })).toBeVisible()
+
+    await chips.getByRole("button", { name: /^With incidents/ }).click()
+    await expect(app.getByText("54 running", { exact: true })).toBeVisible({ timeout: 15_000 })
+    // Still the whole list and its suspended ones, not those that also have an incident.
+    await expect(all).toBeVisible()
+    await expect(suspended).toBeVisible()
+    await expect(withIncidents).toHaveAttribute("aria-pressed", "true")
+    await expect(all).toHaveAttribute("aria-pressed", "false")
+  })
+})

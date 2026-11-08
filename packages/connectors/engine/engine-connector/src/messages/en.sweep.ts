@@ -264,6 +264,7 @@ export const enSweep: MessageCatalog = {
   "instanceDetail.tasksAllCompleted": "All tasks completed.",
   "instanceDetail.title": "Process instance",
   "instanceDetail.unassigned": "unassigned",
+  "instanceDetail.viewProcess": "View process",
   "instanceSections.cancelEditing": "Cancel editing",
   "instanceSections.columnName": "Name",
   "instanceSections.columnType": "Type",
@@ -395,6 +396,7 @@ export const enSweep: MessageCatalog = {
   "procIncSummary.firstSeen": "first seen",
   "procIncSummary.latest": "latest",
   "procIncTable.columnActions": "Actions",
+  "procIncTable.columnActivity": "Activity",
   "procIncTable.columnErrorMessage": "Error message",
   "procIncTable.columnInstance": "Instance",
   "procIncTable.columnTime": "Time",
@@ -407,6 +409,7 @@ export const enSweep: MessageCatalog = {
   "procIncTable.retryHint":
     "Sets retries to 1. Incidents of this type clear with a retry, not by marking them resolved.",
   "procIncTable.tableLabel": "Incidents in this activity",
+  "procIncTable.tableLabelInstance": "Incidents of this instance",
   "taskForm.addVariable": "Add variable",
   "taskForm.cancel": "Cancel",
   "taskForm.complete": "Complete task",

@@ -1,5 +1,6 @@
 import {
   Button,
+  DrillButton,
   KpiGrid,
   StatusBadge,
   WidgetHeader,
@@ -71,6 +72,7 @@ export function InstanceHeader({
   isSuspended,
   isActionable,
   isMutatingInstance,
+  onOpenProcess,
   onRequestSuspendToggle,
   onRequestCancel,
 }: {
@@ -83,6 +85,8 @@ export function InstanceHeader({
   isSuspended: boolean
   isActionable: boolean
   isMutatingInstance: boolean
+  /** Opens the instance's process in the cockpit; absent while its key is unknown. */
+  onOpenProcess?: () => void
   onRequestSuspendToggle?: () => void
   onRequestCancel?: () => void
 }) {
@@ -104,8 +108,12 @@ export function InstanceHeader({
           <IdText value={instance.id} />
         </>
       }
+      // The meta line names the process (facts only); the way to it is the first action.
       actions={
         <>
+          {onOpenProcess && (
+            <DrillButton onDrill={onOpenProcess}>{t("instanceDetail.viewProcess")}</DrillButton>
+          )}
           {isActionable && onRequestSuspendToggle && (
             <Button
               variant="outline"

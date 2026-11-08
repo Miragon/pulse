@@ -105,6 +105,8 @@ function incidentRows(incidentType: string, recovery: IncidentRecovery) {
       incidentType,
       incidentMessage: "boom",
       incidentTimestamp: "2026-10-10T08:00:00.000+0000",
+      activityId: "charge",
+      activityName: null,
       cockpitInstanceUrl: null,
       businessKey: null,
       recovery,

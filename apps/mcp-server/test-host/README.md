@@ -9,7 +9,8 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
   REST stub (`stub-engine.ts`, `fixtures/process-definitions.json` with their
   statistics and no open incident, the `invoice` diagram `fixtures/invoice.bpmn`
   with two instances at `approveInvoice` and twelve started in the last 30 days in its history,
-  three failed jobs, their backlog counts; under
+  three failed jobs, their backlog counts, one invoice instance with two open incidents that only
+  its own reads see; under
   `/realistic`, real-sized data in `realistic-engine.ts`) and the host's
   server side (`host-backend.ts`, a real MCP client), all on ephemeral
   loopback ports. A scenario can hold the stub's answers to one search term
@@ -65,6 +66,8 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
 | column priority            | the jobs at 760 px                                | `hideBelow` column hidden, the row actions `sticky` and inside the region                                                                                          |
 | row menu                   | the jobs at 760 px, "more" on a middle row        | the menu lies over the next rows' pinned cells: its entries take the clicks, focus, Escape                                                                         |
 | axe                        | overview + jobs, light and dark, 760 px           | zero WCAG 2.1 A/AA violations (`@axe-core/playwright`)                                                                                                             |
+| instance incidents         | an instance (`pi-invoice-42`), its Incidents tab  | each incident's element: the diagram's name over its id, the id where the diagram lacks it; View process opens the process route                                   |
+| instance list chips        | instances (realistic engine), With incidents on   | the chips count what each lists (160, 54, 10), All and Suspended unchanged while With incidents is on                                                              |
 | write refresh (operations) | the failed jobs, user clicks Retry                | the retry refetches the seeded feed and re-renders, **zero** re-executions                                                                                         |
 | cockpit on an engine       | `engine_open_cockpit` with `engine`               | opens on that engine (the head's engine select), not on the engine picker                                                                                          |
 | cockpit start view         | `engine_open_cockpit` with `view: "jobs"`         | the Jobs head section is current, the jobs table renders, no engine picker                                                                                         |

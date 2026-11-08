@@ -266,6 +266,7 @@ export const deSweep: MessageCatalog = {
   "instanceDetail.tasksAllCompleted": "Alle Aufgaben abgeschlossen.",
   "instanceDetail.title": "Prozessinstanz",
   "instanceDetail.unassigned": "nicht zugewiesen",
+  "instanceDetail.viewProcess": "Prozess anzeigen",
   "instanceSections.cancelEditing": "Bearbeiten abbrechen",
   "instanceSections.columnName": "Name",
   "instanceSections.columnType": "Typ",
@@ -399,6 +400,7 @@ export const deSweep: MessageCatalog = {
   "procIncSummary.firstSeen": "zuerst gesehen",
   "procIncSummary.latest": "zuletzt",
   "procIncTable.columnActions": "Aktionen",
+  "procIncTable.columnActivity": "Aktivität",
   "procIncTable.columnErrorMessage": "Fehlermeldung",
   "procIncTable.columnInstance": "Instanz",
   "procIncTable.columnTime": "Zeit",
@@ -411,6 +413,7 @@ export const deSweep: MessageCatalog = {
   "procIncTable.retryHint":
     "Setzt die Versuche auf 1. Incidents dieses Typs verschwinden mit einem neuen Versuch, nicht durch „Als gelöst markieren“.",
   "procIncTable.tableLabel": "Incidents in dieser Aktivität",
+  "procIncTable.tableLabelInstance": "Incidents dieser Instanz",
   "taskForm.addVariable": "Variable hinzufügen",
   "taskForm.cancel": "Abbrechen",
   "taskForm.complete": "Aufgabe abschließen",

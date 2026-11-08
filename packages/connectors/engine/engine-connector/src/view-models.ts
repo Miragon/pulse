@@ -207,9 +207,14 @@ export interface ProcessInstancesData {
   /** Total matching instances on the engine (may exceed `instances.length`). */
   totalCount: number
   returnedCount: number
-  /** Of `totalCount` (the whole filtered set, not the page): instances with an open incident. */
+  /**
+   * The All chip's count: every instance in the scope and search, no chip filter (the whole set,
+   * not the page), whichever chip is on.
+   */
+  allCount: number
+  /** The With incidents chip's count: instances with an open incident in the scope and search. */
   withIncidentCount: number
-  /** Of `totalCount` (the whole filtered set, not the page): suspended instances. */
+  /** The Suspended chip's count: suspended instances in the scope and search, whichever chip is on. */
   suspendedCount: number
   instances: ProcessInstanceRow[]
   filters: {
@@ -240,6 +245,13 @@ export interface IncidentInstance {
   incidentType: string
   incidentMessage: string | null
   incidentTimestamp: string
+  /** The element the incident occurred at; null when the engine names none. */
+  activityId: string | null
+  /**
+   * The element's name in the instance's diagram; null without one or unread (an activity's
+   * incident page leaves it null: its group names the activity).
+   */
+  activityName: string | null
   recovery: IncidentRecovery
   /** Null without cockpitUrl or when scheme validation rejected it. */
   cockpitInstanceUrl: string | null
@@ -263,7 +275,10 @@ export interface InstanceDetailData {
   }
   /** The process's name, from the instance's diagram; null without one or unreadable. */
   processDefinitionName: string | null
-  /** Null for a generated id (long keys). */
+  /**
+   * The key the definition id names, resolved for a bare generated id (long keys); null when
+   * that read fails (enrichment: no drill to the process, never the UUID as a key).
+   */
   definitionKey: string | null
   activityTree: ActivityTree | null
   variables: Record<string, VariableValue>
