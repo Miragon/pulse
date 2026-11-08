@@ -29,6 +29,7 @@ import { EngineActionDialog } from "../lib/engine-action-dialog.js"
 import { useIncidentRecovery, type IncidentRecoveryState } from "./use-incident-recovery.js"
 import { InstanceLabel } from "../lib/identity.js"
 import { MoreActions } from "../lib/more-actions.js"
+import { WriteError } from "../lib/write-error.js"
 
 /** Mirrors the feed's server default. */
 const INCIDENT_PAGE_SIZE = 10
@@ -169,11 +170,7 @@ export function IncidentTable({
                     colSpan={columnCount}
                     className={`border-border border-b px-4 py-1.5 ${leadPad ?? ""}`}
                   >
-                    <span role="alert" className="text-danger-ink text-small">
-                      {retried
-                        ? t("procIncTable.retryError", { message: error })
-                        : t("procIncTable.resolveError", { message: error })}
-                    </span>
+                    <WriteError error={error} />
                   </td>
                 </tr>
               )}

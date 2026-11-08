@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react"
 import { Alert, AlertDescription, Button, Input, Icon, NativeSelect } from "@miragon/pulse-ui"
-import { useToolQuery } from "@miragon/pulse-widget-shell/widgets"
+import { QueryFallback, TableSkeleton, useToolQuery } from "@miragon/pulse-widget-shell/widgets"
 import { Plus, X } from "lucide-react"
 
 import { useT } from "../messages/use-t.js"
 import type { TaskFormField, TaskFormSchema } from "../view-models.js"
 import { coerceValue } from "./lib/coerce-value.js"
 import type { CompleteTaskAction } from "./lib/complete-task.js"
+import { WriteError } from "./lib/write-error.js"
 import { writeFeedback } from "./lib/write-feedback.js"
 
 interface TaskCompleteFormProps {
@@ -50,16 +51,16 @@ export function TaskCompleteForm({
   const schema = formSchema ?? fetchedSchema.data ?? null
 
   if (!schema) {
-    if (fetchedSchema.isError) {
-      return (
-        <Alert variant="destructive" className="mt-2">
-          <AlertDescription>
-            {t("taskForm.loadError", { message: fetchedSchema.error.message })}
-          </AlertDescription>
-        </Alert>
-      )
-    }
-    return <p className="text-muted-foreground text-dense py-2">{t("taskForm.loading")}</p>
+    return (
+      <QueryFallback
+        isError={fetchedSchema.isError}
+        error={fetchedSchema.error}
+        onRetry={() => void fetchedSchema.refetch()}
+        errorTitle={t("taskForm.loadError")}
+        loadingText={t("taskForm.loading")}
+        skeleton={<TableSkeleton />}
+      />
+    )
   }
 
   return (
@@ -92,12 +93,15 @@ function TaskCompleteFormBody({
   )
   const [manualEntries, setManualEntries] = useState<ManualEntry[]>([])
   const [submitError, setSubmitError] = useState<string | null>(null)
+  // The engine's answer, apart from the form's own check: worded, its text under "Details".
+  const [writeError, setWriteError] = useState<Error | null>(null)
   // A delegated task went back to its owner and stays open: never shown as completed.
   const [resolvedTo, setResolvedTo] = useState<{ owner: string | null } | null>(null)
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setSubmitError(null)
+    setWriteError(null)
     setResolvedTo(null)
 
     const variables: Record<string, { value: unknown; type?: string }> = {}
@@ -147,7 +151,7 @@ function TaskCompleteFormBody({
           }
           onCompleted?.()
         },
-        onError: (error) => setSubmitError(error.message),
+        onError: (error) => setWriteError(error),
       },
     )
   }
@@ -231,6 +235,7 @@ function TaskCompleteFormBody({
           <AlertDescription>{submitError}</AlertDescription>
         </Alert>
       )}
+      <WriteError error={writeError} />
     </form>
   )
 }

@@ -18,6 +18,7 @@ import { Check, RotateCcw } from "lucide-react"
 import type { IncidentDetailData, IncidentDetailJob } from "../../view-models.js"
 
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
+import { WriteError } from "../lib/write-error.js"
 import { useT } from "../../messages/use-t.js"
 
 function errorText(data: IncidentDetailData): string | null | undefined {
@@ -121,11 +122,7 @@ export function FailureSummary({
         <HandOffButton action="explainError" prompt={ask(explainErrorHandOff(data))} />
         <HandOffButton action="draftTicket" prompt={ask(draftTicketHandOff(data))} />
       </div>
-      {retryError && (
-        <p role="alert" className="text-danger-ink text-small">
-          {t("incidentFailure.retryError", { message: retryError })}
-        </p>
-      )}
+      <WriteError error={retryError} />
       <FactLine data={data} />
     </section>
   )

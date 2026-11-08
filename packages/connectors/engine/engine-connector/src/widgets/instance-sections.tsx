@@ -7,6 +7,7 @@ import type { ActivityTree, VariableValue } from "../view-models.js"
 import { useT } from "../messages/use-t.js"
 import { coerceValue, isEditableVariable } from "./lib/coerce-value.js"
 import { useEngineAction, type EngineAction } from "./lib/engine-action.js"
+import { WriteError } from "./lib/write-error.js"
 import { writeFeedback } from "./lib/write-feedback.js"
 
 function prettyJson(serialized: string): string {
@@ -176,11 +177,7 @@ function VariableRow({
             )}
             {/* Server-side rejection of a validly-parsed write: without this the
                 Save button just re-enables and the row stays silently in edit. */}
-            {!editError && serverError && (
-              <p role="alert" className="text-destructive text-small font-sans">
-                {t("instanceSections.saveError", { message: serverError })}
-              </p>
-            )}
+            {!editError && <WriteError error={serverError} className="font-sans" />}
           </form>
         ) : (
           formatVariableValue(variable.value, variable.type, {

@@ -115,8 +115,7 @@ export const deSweep: MessageCatalog = {
   "historyTimeline.empty":
     "Zu dieser Instanz gibt es keinen Verlauf. Prüf die ID, oder ob die Engine einen Verlauf schreibt (History Level).",
   "historyTimeline.footerNoun": "Aktivitäten",
-  "historyTimeline.loadError":
-    "Der Verlauf konnte nicht geladen werden ({message}). Öffne ihn noch mal, oder prüf, ob die Engine erreichbar ist.",
+  "historyTimeline.loadError": "Der Verlauf konnte nicht geladen werden",
   "historyTimeline.loading": "Verlauf wird geladen…",
   "historyTimeline.noData": "Keine Daten verfügbar",
   "historyTimeline.started": "Gestartet {time}",
@@ -144,8 +143,6 @@ export const deSweep: MessageCatalog = {
     String(count) === "0" ? "Keine Versuche mehr" : `Noch ${countOf(count, "Versuch", "Versuche")}`,
   "incidentFailure.retryAria": "Job neu versuchen (setzt die Versuche auf 1)",
   "incidentFailure.retryButton": "Job neu versuchen",
-  "incidentFailure.retryError":
-    "Der Job konnte nicht neu eingeplant werden ({message}). Prüf die Fehlermeldung und versuch es noch mal.",
   "incidentFailure.retryTaskAria": "External Task neu versuchen (setzt die Versuche auf 1)",
   "incidentFailure.retryTaskButton": "Task neu versuchen",
   "incidentFailure.stacktraceTitle": "Stacktrace",
@@ -238,8 +235,6 @@ export const deSweep: MessageCatalog = {
     "Ungültiger Wert: erwartet wird {type}. Korrigier die Eingabe und speichere noch mal.",
   "instanceSections.noVariables": "Keine Variablen",
   "instanceSections.save": "Speichern",
-  "instanceSections.saveError":
-    "Speichern hat nicht geklappt ({message}). Deine Eingabe ist noch da, versuch es noch mal.",
   "instanceSections.variablesTableLabel": "Variablen der Prozessinstanz",
   "jobPanel.badgeTotal": "{count} gesamt",
   "jobPanel.colActivity": "Aktivität",
@@ -254,8 +249,6 @@ export const deSweep: MessageCatalog = {
   "jobPanel.noJobs": "Keine Jobs in dieser Auswahl.",
   "jobPanel.retried": "Neu eingeplant",
   "jobPanel.retry": "Job neu versuchen",
-  "jobPanel.retryError":
-    "Der Job konnte nicht neu eingeplant werden ({message}). Prüf die Fehlermeldung und versuch es noch mal.",
   "jobPanel.stuck": "Keine Versuche mehr",
   "jobPanel.summaryLabel": "Job-Übersicht",
   "jobPanel.tableLabel": "Jobs",
@@ -347,12 +340,8 @@ export const deSweep: MessageCatalog = {
   "procIncTable.openIncidentDetail": "Incident-Details öffnen",
   "procIncTable.resolve": "Als gelöst markieren",
   "procIncTable.resolved": "Als gelöst markiert",
-  "procIncTable.resolveError":
-    "Der Incident konnte nicht als gelöst markiert werden ({message}). Versuch es noch mal.",
   "procIncTable.retried": "Neu eingeplant",
   "procIncTable.retry": "Neu versuchen",
-  "procIncTable.retryError":
-    "Der Job konnte nicht neu eingeplant werden ({message}). Prüf die Fehlermeldung und versuch es noch mal.",
   "procIncTable.retryHint":
     "Setzt die Versuche auf 1. Incidents dieses Typs verschwinden mit einem neuen Versuch, nicht durch „Als gelöst markieren“.",
   "procIncTable.tableLabel": "Incidents in dieser Aktivität",
@@ -366,8 +355,7 @@ export const deSweep: MessageCatalog = {
   "taskForm.errorRequired": "Wähl einen Wert für {name}, bevor du die Aufgabe abschließt.",
   "taskForm.externalForm":
     "Diese Aufgabe nutzt ein eigenes Formular ({formKey}), das hier nicht erscheint. Öffne es in der Tasklist, oder füg die Variablen von Hand hinzu.",
-  "taskForm.loadError":
-    "Das Formular konnte nicht geladen werden ({message}). Schließ die Aufgabe und öffne sie noch mal.",
+  "taskForm.loadError": "Das Formular konnte nicht geladen werden",
   "taskForm.loading": "Formular wird geladen…",
   "taskForm.namePlaceholder": "Name",
   "taskForm.removeVariable": "Variable entfernen",
@@ -382,7 +370,6 @@ export const deSweep: MessageCatalog = {
   "value.no": "Nein",
   "value.yes": "Ja",
   "viewState.retry": "Erneut versuchen",
-  "viewState.unknownError": "unbekannter Fehler",
 
   "engineContext.environment": "Umgebung",
   "confirmDialog.environment": "Umgebung",
