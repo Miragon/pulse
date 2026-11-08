@@ -149,17 +149,19 @@ describe("ClusterDetailWidget (fixture render)", () => {
       </TestViewHost>,
     )
 
-    // Never the scanned 1,000 passed off as the cluster's size (counts render
-    // in the runtime's locale).
-    const scanned = formatNumber(1000)
-    expect(screen.getByText(`≥${scanned}`)).toBeTruthy()
-    expect(screen.getByText(`≥${scanned} affected · in shipping`)).toBeTruthy()
+    // Never the scanned 1,000 passed off as the cluster's size, but a lower bound (counts
+    // render in the runtime's locale; the matcher reads the no-break space as a space).
+    const atLeast = `≥ ${formatNumber(1000)}`
+    expect(screen.getByText(atLeast)).toBeTruthy()
+    expect(screen.getByText(`${atLeast} affected · in shipping`)).toBeTruthy()
     expect(screen.getAllByText("—")).toHaveLength(2)
     expect(screen.queryByText("0")).toBeNull()
     // A first sighting the scan cannot vouch for is left out, never guessed.
     expect(screen.queryByText(/^first seen /)).toBeNull()
     expect(
-      screen.getByText(`The list covers the newest ${scanned} incidents of this cluster.`),
+      screen.getByText(
+        `The list covers the newest ${formatNumber(1000)} incidents of this cluster.`,
+      ),
     ).toBeTruthy()
   })
 })

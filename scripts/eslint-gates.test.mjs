@@ -60,7 +60,7 @@ async function gateMessages(rel, code, rule = "no-restricted-syntax") {
 const isRegistrarHit = (m) => m.includes("createToolRegistrar")
 const isResourceHit = (m) => m.includes("A connector registers no resource of its own")
 const isDateHit = (m) =>
-  /^Use format(?:Timestamp|Date|Time)\b/.test(m) && m.includes("@miragon/pulse-ui")
+  /^Use format(?:Timestamp|Date|Time|RelativeTime)\b/.test(m) && m.includes("@miragon/pulse-ui")
 const isNumberHit = (m) => m.includes("view's locale") || m.includes("browser's locale")
 
 const WS = "packages/core/widget-shell/src/ui"
@@ -74,20 +74,44 @@ const WIDGET_TREE_PATHS = [APP_UI, WS, `${ENGINE_CONNECTOR_SRC_DIR}/widgets`].fl
   `${dir}/__probe__.ts`,
   `${dir}/__probe__.tsx`,
 ])
-/** The number gate's probes: pulse-ui's code and every widget tree. */
-const NUMBER_PATHS = [`${UI}/__probe__.ts`, `${UI}/__probe__.tsx`, ...WIDGET_TREE_PATHS]
+/**
+ * The VS Code extension's core and webview: they format through pulse-ui's foundation
+ * (`@miragon/pulse-ui/format`), so the date and number gates join their own blocks' unions.
+ */
+const VSCODE_FORMAT_PATHS = [
+  "apps/vscode/src/core/views/__probe__.ts",
+  "apps/vscode/src/webview/format/__probe__.ts",
+  "apps/vscode/src/webview/screens/__probe__.tsx",
+]
+/** Every tree the date gate holds. */
+const DATE_PATHS = [...WIDGET_TREE_PATHS, ...VSCODE_FORMAT_PATHS]
+/** The number gate's probes: pulse-ui's code, every widget tree and the VS Code extension's. */
+const NUMBER_PATHS = [`${UI}/__probe__.ts`, `${UI}/__probe__.tsx`, ...DATE_PATHS]
 
-describe("date gate (invariant 6) in every widget tree", () => {
-  it("catches Intl.DateTimeFormat (new and called), toLocaleDateString and toLocaleTimeString", async () => {
+describe("date gate (invariant 6) in every widget tree and the VS Code core and webview", () => {
+  it("catches Intl.DateTimeFormat and Intl.RelativeTimeFormat (new and called), toLocaleDateString and toLocaleTimeString", async () => {
     const code = [
       'new Intl.DateTimeFormat("de", opts).format(d)',
       "Intl.DateTimeFormat(undefined).format(d)",
+      'new Intl.RelativeTimeFormat("en", { style: "narrow" }).format(-5, "minute")',
       "d.toLocaleDateString()",
       'd.toLocaleTimeString("de")',
     ].join("\n")
-    for (const rel of WIDGET_TREE_PATHS) {
+    for (const rel of DATE_PATHS) {
       const messages = await gateMessages(rel, code)
-      assert.equal(messages.filter(isDateHit).length, 4, rel)
+      assert.equal(messages.filter(isDateHit).length, 5, rel)
+    }
+  })
+
+  it("keeps the VS Code extension's own selectors in the union beside it", async () => {
+    const code = 'export const word = "processDefinitionKey"\nd.toLocaleDateString()'
+    for (const rel of VSCODE_FORMAT_PATHS) {
+      const messages = await gateMessages(rel, code)
+      assert.equal(messages.filter(isDateHit).length, 1, rel)
+      assert.ok(
+        messages.some((m) => m.includes("Engine vocabulary belongs in apps/vscode/src/adapters")),
+        rel,
+      )
     }
   })
 
@@ -96,7 +120,8 @@ describe("date gate (invariant 6) in every widget tree", () => {
     for (const rel of [
       "packages/core/widget-shell/src/__probe__.ts",
       "packages/core/widget-shell/src/protocol/__probe__.ts",
-      `${UI}/kit/format.ts`,
+      `${UI}/format/dates.ts`,
+      "apps/vscode/src/host/__probe__.ts",
     ]) {
       const messages = await gateMessages(rel, code)
       assert.equal(messages.filter(isDateHit).length, 0, rel)
@@ -143,7 +168,7 @@ describe("number gate (invariant 6) in pulse-ui and every widget tree", () => {
   })
 
   it("lets exactly the kit's two formatters build an Intl.NumberFormat, toFixed stays banned there", async () => {
-    for (const rel of [`${UI}/kit/format.ts`, `${UI}/locale/ui-messages.ts`]) {
+    for (const rel of [`${UI}/format/numbers.ts`, `${UI}/locale/ui-messages.ts`]) {
       const messages = await gateMessages(
         rel,
         "new Intl.NumberFormat(current?.locale, options)\nconst a = n.toFixed(1)",
@@ -153,6 +178,19 @@ describe("number gate (invariant 6) in pulse-ui and every widget tree", () => {
         messages.every((m) => !m.includes("Intl.NumberFormat")),
         rel,
       )
+    }
+  })
+
+  it("keeps the formatters' tests and the extension's wrappers under the whole gate", async () => {
+    for (const rel of [
+      `${UI}/format/format.test.ts`,
+      `${UI}/format/duration.ts`,
+      `${UI}/format/dates.ts`,
+      "apps/vscode/src/webview/format/count-labels.ts",
+      "apps/vscode/src/core/views/labels.ts",
+    ]) {
+      const messages = await gateMessages(rel, 'new Intl.NumberFormat("en").format(n)')
+      assert.equal(messages.filter(isNumberHit).length, 1, rel)
     }
   })
 })
@@ -674,7 +712,7 @@ describe("type-safety rules: errors everywhere, require-await off in the MCP tre
     "apps/mcp-server/src/setup.ts",
     "apps/mcp-server/test/golden.ts",
     "packages/core/widget-shell/src/caller.ts",
-    "packages/core/ui/src/kit/format.ts",
+    "packages/core/ui/src/format/numbers.ts",
     "packages/connectors/engine/engine-connector/src/widgets/lib/engine-action.ts",
     "packages/connectors/engine/engine-client/src/client.ts",
   ]

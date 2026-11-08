@@ -258,7 +258,7 @@ describe("EngineHealthVerdict (fixture render)", () => {
       </TestViewHost>,
     )
 
-    expect(screen.getByText(`≥${formatNumber(1400)} affected`, { exact: false })).toBeTruthy()
+    expect(screen.getByText(`≥ ${formatNumber(1400)} affected`, { exact: false })).toBeTruthy()
     // An unknown 24h count is left out, not rendered as "0 new in 24h".
     expect(screen.queryByText(/new in 24h/)).toBeNull()
   })

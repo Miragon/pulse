@@ -2,6 +2,7 @@ import type { PathRow, PathState } from "../../core/protocol/index.js"
 import { DataTable } from "../components/data-table.js"
 import type { Column } from "../components/data-table.js"
 import { EmptyHint } from "../components/empty-hint.js"
+import { NoValue } from "../components/no-value.js"
 import { TimeCell } from "./waiting-tab.js"
 
 export interface HistoryTabProps {
@@ -34,7 +35,7 @@ export function HistoryTab({ path, elementName }: HistoryTabProps) {
     {
       key: "duration",
       label: "Duration",
-      render: (row) => row.duration ?? <span class="muted">–</span>,
+      render: (row) => row.duration ?? <NoValue />,
     },
   ]
   return (

@@ -80,11 +80,18 @@ adapter (`apps/vscode/src/adapters/c7` and its tests in `apps/vscode/test/adapte
 `@miragon/pulse-engine-core`, the Camunda 7 family's workflow domain that the CLI and the MCP
 server run too, through its main entry (`engine-core-only-in-the-c7-adapter`; the repository's
 `family-core-consumers`). The core and the webview import Pulse's UI foundation as
-`@miragon/pulse-ui/tones` only: the tone vocabulary and `SITUATION_TONES`, the one tone per
-situation the MCP widgets show too, framework-free (`pulse-ui-only-its-foundation`; the
-repository's `ui-foundation-entries-import-nothing`). The React kit stays out; the webview draws
-a tone with its own CSS classes, and `apps/vscode/test/webview/situation-tones.test.tsx` holds
-its state labels and diagram badges to the table. A change to
+`@miragon/pulse-ui/tones` and `@miragon/pulse-ui/format` only: the tone vocabulary and
+`SITUATION_TONES`, the one tone per situation the MCP widgets show too, and the formatters,
+framework-free (`pulse-ui-only-its-foundation`; the repository's
+`ui-foundation-entries-import-nothing`). The React kit stays out; the webview draws a tone with
+its own CSS classes, and `apps/vscode/test/webview/situation-tones.test.tsx` holds its state
+labels and diagram badges to the table. A time, a duration, a count or a short id goes through
+`TimeLabels`, `CountLabels` (webview) or `Labels` (core), which delegate to the formatters in
+English with a 24-hour clock and alone may import them (the closed world allows
+`@miragon/pulse-ui/format` only from `core/views/labels.ts` and the webview's `format/`); a count
+in a text goes in through them too (`Labels.count`, `CountLabels.exact`), and the repository's
+date and number gates keep `Intl`, `toFixed` and a locale-less `toLocaleString()` out of core
+and webview. A change to
 how an instance is inspected, where it waits, what its root cause is or when a 404 names a
 missing resource (`isMissing`) goes into engine-core, never into a copy here; the adapter's
 `InspectView` is engine-core's instance view, not a mirror of it. Contract, core, webview and

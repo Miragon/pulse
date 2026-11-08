@@ -93,7 +93,7 @@ export class MigrationViewBuilder {
     if (this.rows.identical() && problems.length === 0) {
       return `All ${Labels.plural(mappings.length, "element")} map by id · no problems · ${checked}`
     }
-    return `${mappings.length} mapped · ${this.findings()} · ${checked}`
+    return `${Labels.count(mappings.length)} mapped · ${this.findings()} · ${checked}`
   }
 
   private findings(): string {
@@ -152,8 +152,8 @@ export class MigrationViewBuilder {
       }
     }
     const waits = blocked.count === 1 ? "waits" : "wait"
-    const reason = `${blocked.count} of ${this.rows.count} ${waits} at ${where}, which ${has} no mapping in ${target}.`
-    const which = blocked.count === 1 ? "one" : String(blocked.count)
+    const reason = `${Labels.count(blocked.count)} of ${Labels.count(this.rows.count)} ${waits} at ${where}, which ${has} no mapping in ${target}.`
+    const which = blocked.count === 1 ? "one" : Labels.count(blocked.count)
     return blocked.count < this.rows.count
       ? { status: "refused", reason, leaveOut: `Leave the ${which} out` }
       : { status: "refused", reason }

@@ -12,6 +12,7 @@ import {
   type ToneVariant,
   DrillButton,
   TableEmptyState,
+  formatCount,
   formatNumber,
   formatTimestamp,
 } from "@miragon/pulse-ui"
@@ -27,7 +28,6 @@ import { GroupSummaryRow, IncidentGroupIcon } from "../group-summary-row.js"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
 import { MoreActions } from "../lib/more-actions.js"
 import { useT } from "../../messages/use-t.js"
-import { formatCount } from "../lib/format-count.js"
 import { dashboardScope, incidentsFeed } from "./scope.js"
 
 import {

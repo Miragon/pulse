@@ -1,7 +1,14 @@
 import { readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
-import { describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it } from "vitest"
+import {
+  formatDuration,
+  formatPercentPoints,
+  formatPeriod,
+  formatRelativeTime,
+  setFormatLocale,
+} from "./format/index.js"
 import { UI_MESSAGES } from "./locale/ui-messages.js"
 import {
   BARE_PAUSE_RULE_EN,
@@ -22,7 +29,17 @@ import {
 
 const SRC = fileURLToPath(new URL(".", import.meta.url))
 /** Every source directory but the gates themselves (testing) and the vendored tokens. */
-const SCANNED = ["components", "hooks", "kit", "lib", "locale", "primitives", "theme", "tones"]
+const SCANNED = [
+  "components",
+  "format",
+  "hooks",
+  "kit",
+  "lib",
+  "locale",
+  "primitives",
+  "theme",
+  "tones",
+]
 
 /**
  * The shadcn primitives as vendored in toolkit 2.8.1 take Tailwind's own sizes (`text-sm`,
@@ -92,6 +109,39 @@ describe("kit copy follows the voice rules", () => {
     // The kit's views pause nothing of their own: any "pause" means the engine's suspension.
     const rules = { de: PRODUCT_GLOSSARY.de, en: [...PRODUCT_GLOSSARY.en, BARE_PAUSE_RULE_EN] }
     expect(glossaryFindings(UI_MESSAGES[language], rules[language])).toEqual([])
+  })
+})
+
+/**
+ * The formatters write a few words of their own (relative times under a minute, the units of a
+ * duration, a period and percentage points): rendered in each language, they meet the catalog
+ * gates the kit's catalogs meet.
+ */
+describe("the formatters' own words follow the voice rules", () => {
+  const LOCALES = { de: "de-DE", en: "en-US" } as const
+  const NOW = new Date("2026-10-21T12:00:00Z")
+  const at = (ms: number) => new Date(NOW.getTime() + ms).toISOString()
+
+  afterEach(() => {
+    setFormatLocale(undefined)
+  })
+
+  it.each(["de", "en"] as const)("%s", (language) => {
+    setFormatLocale({ language, locale: LOCALES[language] })
+    const words = {
+      justNow: formatRelativeTime(at(-20_000), NOW),
+      underAMinute: formatRelativeTime(at(20_000), NOW),
+      minutesAgo: formatRelativeTime(at(-5 * 60_000), NOW),
+      seconds: formatDuration(12_000),
+      minutes: formatDuration(187_000),
+      hours: formatDuration(5_040_000),
+      days: formatDuration(97_200_000),
+      period: formatPeriod("7d"),
+      onePeriod: formatPeriod("1h"),
+      percentPoints: formatPercentPoints(0.2),
+    }
+    expect(catalogTextFindings(words, { language })).toEqual([])
+    expect(glossaryFindings(words, PRODUCT_GLOSSARY[language])).toEqual([])
   })
 })
 

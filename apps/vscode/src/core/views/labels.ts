@@ -1,9 +1,8 @@
+import { formatCount, formatDuration, setFormatLocale, shortId } from "@miragon/pulse-ui/format"
 import type { InstanceState, WaitStateKind } from "../../contract/index.js"
 import type { InstanceStateLabel } from "../protocol/index.js"
 
-const UUID_HEAD = /^[0-9a-f]{8}-[0-9a-f]{4}-/i
-const NUMERIC = /^\d+$/
-const SHORT_LENGTH = 8
+const ENGLISH_24_HOURS = { language: "en", locale: "en-u-hc-h23" }
 
 const STATE_LABELS: Readonly<Record<InstanceState, InstanceStateLabel>> = {
   running: "Running",
@@ -23,14 +22,12 @@ const WAIT_KIND_LABELS: Readonly<Record<WaitStateKind, string>> = {
 }
 
 export class Labels {
+  static {
+    setFormatLocale(ENGLISH_24_HOURS)
+  }
+
   static shortId(id: string): string {
-    if (UUID_HEAD.test(id)) {
-      return `${id.slice(0, SHORT_LENGTH)}…`
-    }
-    if (NUMERIC.test(id) && id.length > SHORT_LENGTH) {
-      return `…${id.slice(-SHORT_LENGTH)}`
-    }
-    return id
+    return shortId(id)
   }
 
   static instanceState(state: InstanceState): InstanceStateLabel {
@@ -51,28 +48,18 @@ export class Labels {
   }
 
   static duration(milliseconds: number): string {
-    if (milliseconds < 1000) {
-      return `${Math.max(0, Math.round(milliseconds))} ms`
-    }
-    const seconds = milliseconds / 1000
-    if (seconds < 60) {
-      return `${seconds.toFixed(seconds < 10 ? 1 : 0)} s`
-    }
-    const minutes = Math.floor(seconds / 60)
-    if (minutes < 60) {
-      return `${minutes} min ${Math.floor(seconds % 60)} s`
-    }
-    const hours = Math.floor(minutes / 60)
-    return hours < 24
-      ? `${hours} h ${minutes % 60} min`
-      : `${Math.floor(hours / 24)} d ${hours % 24} h`
+    return formatDuration(Math.max(0, milliseconds))
   }
 
   static capitalized(text: string): string {
     return text.charAt(0).toUpperCase() + text.slice(1)
   }
 
+  static count(count: number): string {
+    return formatCount(count)
+  }
+
   static plural(count: number, noun: string, nouns = `${noun}s`): string {
-    return `${count} ${count === 1 ? noun : nouns}`
+    return `${Labels.count(count)} ${count === 1 ? noun : nouns}`
   }
 }

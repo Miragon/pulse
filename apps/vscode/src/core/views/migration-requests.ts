@@ -38,7 +38,7 @@ export class MigrationRequests {
       confirmLabel: `Migrate ${instances}`,
       selected: this.preview.selected,
       count,
-      countPrompt: `Type ${count} to migrate ${instances}`,
+      countPrompt: BulkRequests.countPrompt(count, "migrate"),
       warning: plan.action.wording.warning,
       takesReason: false,
       reasonPrompt: "",
@@ -58,7 +58,7 @@ export class MigrationRequests {
     return [
       ...(leftOut.length === 0
         ? []
-        : [`${leftOut.length} left out, staying on v${source.version}`]),
+        : [`${Labels.count(leftOut.length)} left out, staying on v${source.version}`]),
       this.ownWayFact(),
       ...new MigrationRows(this.state).restartingTimers(),
       ...this.versionFacts(),

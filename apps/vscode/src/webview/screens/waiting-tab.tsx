@@ -2,6 +2,7 @@ import type { WaitRow } from "../../core/protocol/index.js"
 import { DataTable } from "../components/data-table.js"
 import type { Column } from "../components/data-table.js"
 import { EmptyHint } from "../components/empty-hint.js"
+import { NoValue } from "../components/no-value.js"
 import { TimeLabels } from "../format/time-labels.js"
 import { CalledInstanceLink } from "./called-instance-link.js"
 
@@ -19,7 +20,7 @@ export function TimeCell({
   readonly precise?: boolean
 }) {
   if (iso === undefined) {
-    return <span class="muted">–</span>
+    return <NoValue />
   }
   return (
     <span title={TimeLabels.tooltip(iso)}>
@@ -78,7 +79,7 @@ export function WaitingTab({ waitStates, elementName, onShowElement }: WaitingTa
       ),
     },
     { key: "kind", label: "Kind", render: (row) => row.kindLabel },
-    { key: "detail", label: "Detail", render: (row) => row.detail ?? <span class="muted">–</span> },
+    { key: "detail", label: "Detail", render: (row) => row.detail ?? <NoValue /> },
     { key: "since", label: "Since", render: (row) => <TimeCell iso={row.since} /> },
     { key: "due", label: "Due", render: (row) => <TimeCell iso={row.dueAt} /> },
   ]

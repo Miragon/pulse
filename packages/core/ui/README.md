@@ -14,8 +14,8 @@ npm install @miragon/pulse-ui react react-dom lucide-react tailwindcss
 ```
 
 `react`, `react-dom` and `lucide-react` are required peers. `tailwindcss` is needed for the
-stylesheets only, and `typescript` for the brand gates under `./testing` only. `./tones` needs no
-peer at runtime.
+stylesheets only, and `typescript` for the brand gates under `./testing` only. `./format` and
+`./tones` need no peer at runtime.
 
 ## Minimal example
 
@@ -86,12 +86,23 @@ export function App() {
   `MICRO_LABEL`), the focus ring
   (`FOCUS_RING`) and `cn`; the locale (`LocaleProvider`, `useLocale`, `createUseT`, the kit's own
   catalogs in English and German) and the toasts (`ToastProvider`, `useToast`); the formatters
-  (`formatNumber`, `formatDuration`, `formatTimestamp`, … in the locale `setFormatLocale` sets,
-  see the minimal example); the pieces every list and form shares (`Th`/`Td`, `TableEmptyState`,
+  (the names of `./format` below, in the locale `setFormatLocale` sets, see the minimal example);
+  the pieces every list and form shares (`Th`/`Td`, `TableEmptyState`,
   `NamedId`, `Icon`, `Section`, `RowCard`, `NativeSelect`, `SegmentedControl`, `LogText`); the Komet for app-level surfaces only
   (`KometMark`/`AppEmptyState`: a landing, a first start, never in a widget); the font helpers
   (`fontFaces`, `GEIST_FONT_FILES`, `adoptHostFontVariables`) and the tokens as data
   (`CD_TOKENS`, `ROLE_TOKENS`).
+- **The formatters without React** (`@miragon/pulse-ui/format`, any runtime): dates and times
+  (`formatTimestamp`, `formatDate`, `formatTime` to the minute, second or millisecond,
+  `formatClock` with the day only when it is not today, `formatInstant` in the view's zone and in
+  UTC, `formatRelativeTime`), the one duration form (`formatDuration`: `420ms`, `3m 7s`, `2d 3h`),
+  numbers (`formatNumber`, `formatPercent`, `formatPercentPoints`, `formatPeriod`), counts that
+  may be a lower bound or unknown (`formatCount`: `1,234`, `≥ 2,000`, `—`; `formatCompactCount`:
+  `1.2k`, `10k+`), `shortId` (up to 12 characters whole, a longer number by its tail, a UUID by
+  its head, any other id whole) and `truncate`, all in the locale `setFormatLocale` sets (a `-u-hc-h23`
+  extension of its tag picks a 24-hour clock). It imports nothing, so a UI on another framework
+  (the VS Code webview on Preact) shows a date, a duration or a count as the MCP views do; the
+  root entry exports the same names.
 - **The tones without React** (`@miragon/pulse-ui/tones`, any runtime): the vocabulary
   (`ToneVariant`, `TONE_VARIANTS`, `resolveTone`, `isToneVariant`), `SITUATION_TONES`, the one
   tone per situation on an engine (an open incident, a job without retries, a running or

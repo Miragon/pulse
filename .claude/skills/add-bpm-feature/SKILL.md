@@ -289,12 +289,15 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   its other readers use (`useToolQueries`, one read per engine), and a figure over engines is
   a sum of counts (`foldFleetLandscape` in `src/lib/shared/fleet-landscape.ts`), never a
   rate, a duration or a ranking: engines run different processes
-- `formatTimestamp`/`formatDate`/`formatTime` (dates) and `formatNumber`/`formatPercent`/
-  `formatPercentPoints`/`formatPeriod`/`formatDuration`/`truncate`, all from
-  `@miragon/pulse-ui`: no local format
+- `formatTimestamp`/`formatDate`/`formatTime`/`formatClock`/`formatInstant`/
+  `formatRelativeTime` (dates) and `formatNumber`/`formatCount`/`formatCompactCount`/
+  `formatPercent`/`formatPercentPoints`/`formatPeriod`/`formatDuration`/`shortId`/`truncate`,
+  all from `@miragon/pulse-ui` (the same set the VS Code extension reads from
+  `@miragon/pulse-ui/format`): no local format
   helpers, no `toFixed`, no `toLocaleString()` without a locale, no hand-built
   `Intl.NumberFormat` (canonical duration style
-  "3m 7s" / German "3 Min. 7 s"; "3,7 %", "+0,2 Pp.", "7 Tage")
+  "3m 7s", "2d 3h" / German "3 Min. 7 s"; a lower bound "≥ 2,000", compact "10k+";
+  "3,7 %", "+0,2 Pp.", "7 Tage")
 - Tables: widget-shell's `ListTable` is the frame: a named, keyboard-reachable scroll region
   (`role="region"`, `tabIndex=0`; `ariaLabel` is required), so a wide table never widens
   the document at 760 px (the host simulation pins it). A column a narrow view can do
@@ -502,12 +505,12 @@ call's abort signal at `ctx.mcpReq.signal`):
   a tool error), and an unknown id or key is a not-found error, never a view of zeros. Only
   ENRICHMENT (display names, diagram XML, cockpit links, optional history) degrades, via
   `optional(...)`, and to `null`, never to a `0`, `[]` or `{}` that reads as a fact.
-  Widgets render that null as "—" (`formatCount`, `src/widgets/lib/format-count.ts`),
+  Widgets render that null as "—" (`formatCount` from `@miragon/pulse-ui`),
   the facts keep it `null` (the instructions read it as unknown). Totals come from `/count`
   endpoints or statistics, never from
   the length of a capped page or scan: a recency scan (`INCIDENT_SCAN_LIMIT`, the health
   views' `CLUSTER_SCAN_LIMIT`) only enriches and says how far it reaches
-  (`scannedIncidentCount`, null facts, "≥N" via `formatCountAtLeast`). A view about
+  (`scannedIncidentCount`, null facts, "≥ N" via `formatCount(exact ?? { atLeast: scanned })`). A view about
   a process definition KEY spans every deployed version (key-scoped `/count`, statistics
   summed per key); only a diagram is one version, and it is labelled. Engine timestamps
   compare by instant (`engineDateMillis`/`latestEngineDate`/`earliestEngineDate` from

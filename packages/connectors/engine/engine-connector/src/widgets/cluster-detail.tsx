@@ -3,6 +3,7 @@ import {
   NamedId,
   TableEmptyState,
   Td,
+  formatCount,
   formatNumber,
   formatTimestamp,
   FilterBar,
@@ -35,7 +36,6 @@ import {
 } from "./remediation.js"
 import { useActionAllowed } from "./lib/engine-action.js"
 import { useHandOff, type ViewContext } from "./lib/hand-off.js"
-import { formatCount, formatCountAtLeast } from "./lib/format-count.js"
 import { InstanceLabel } from "./lib/identity.js"
 import { instanceName } from "./lib/write-feedback.js"
 import { useT } from "../messages/use-t.js"
@@ -120,7 +120,7 @@ function ClusterHeader({ data, engineId }: { data: ClusterDetailData; engineId: 
           <ViewMeta asOf={data.fetchedAt} />
           <span>
             {t("clusterDetail.affectedAcross", {
-              count: formatCountAtLeast(data.incidentCount, data.scannedIncidentCount),
+              count: formatCount(data.incidentCount ?? { atLeast: data.scannedIncidentCount }),
               keys: clusterProcesses(data, t("clusterDetail.unknownKeys")),
             })}
             {/* A point in time is a fact of the line, not a KPI tile it
@@ -135,7 +135,7 @@ function ClusterHeader({ data, engineId }: { data: ClusterDetailData; engineId: 
   )
 }
 
-/** A count a capped scan cannot vouch for renders as a lower bound ("≥2,000") or "—". */
+/** A count a capped scan cannot vouch for renders as a lower bound ("≥ 2,000") or "—". */
 function ClusterKpis({ data }: { data: ClusterDetailData }) {
   const t = useT()
   return (
@@ -144,7 +144,7 @@ function ClusterKpis({ data }: { data: ClusterDetailData }) {
       cells={[
         {
           label: t("clusterDetail.kpiAffected"),
-          value: formatCountAtLeast(data.incidentCount, data.scannedIncidentCount),
+          value: formatCount(data.incidentCount ?? { atLeast: data.scannedIncidentCount }),
           tone: SITUATION_TONES.openIncident,
         },
         // How fast it grows is a count, not a second state (#322 U14).

@@ -88,6 +88,18 @@ describe("the lint gates", { timeout: 120_000 }, () => {
   })
 
   test.each([
+    [PROBE_FILE, "export const share = (0.5).toFixed(1);"],
+    [PROBE_FILE, "export const count = new Intl.NumberFormat('en').format(1);"],
+    [PROBE_FILE, "export const ago = new Intl.RelativeTimeFormat('en').format(-1, 'day');"],
+    [COMPONENT_PROBE, "export const at = new Date(0).toLocaleTimeString('en');"],
+    [COMPONENT_PROBE, "export const day = new Intl.DateTimeFormat('en').format(new Date(0));"],
+    [COMPONENT_PROBE, "export const total = (1234).toLocaleString();"],
+  ])("format dates and numbers through the UI foundation only: %s", async (filePath, line) => {
+    const probe = `${readRepoFile(filePath)}\n${line}\n`
+    expect(await rulesFiredOn(probe, filePath)).toContain("no-restricted-syntax")
+  })
+
+  test.each([
     [
       "apps/vscode/src/webview/format/json-text.ts",
       "export const colour = 'var(--vscode-foreground)';\n",

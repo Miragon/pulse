@@ -28,9 +28,10 @@ and dependency rules:
 | `adapters` | one folder per engine family (`c7` today)               |
 | `model`    | the local `.bpmn` model and the code that implements it |
 
-The webview stays Preact with its own stylesheets. Its tones come from `@miragon/pulse-ui/tones`,
-the part of Pulse's design kit without React, bundled as well: a running, suspended or failing
-instance shows in the same tone as in the MCP widgets.
+The webview stays Preact with its own stylesheets. Its tones come from `@miragon/pulse-ui/tones`
+and its times, durations, counts and short ids from `@miragon/pulse-ui/format`, the parts of
+Pulse's design kit without React, bundled as well: a running, suspended or failing instance shows
+in the same tone as in the MCP widgets, and a duration, a lower bound or a long key reads the same.
 
 More in the repository:
 

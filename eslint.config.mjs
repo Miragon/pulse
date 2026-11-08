@@ -6,7 +6,8 @@ import globals from "globals"
 // The widget trees: every tree of React views an MCP host renders (the host bundle's src/ui,
 // widget-shell's view half, the connector's widgets). They are excluded from their package's
 // tsconfig.json and typed by the browser-only tsconfig.widgets.json / tsconfig.ui.json projects
-// instead, and the date and number gates (invariant 6) hold all of them.
+// instead, and the date and number gates (invariant 6) hold all of them, and the VS Code
+// extension's core and webview too (its blocks below carry them in their unions).
 const CONNECTOR_WIDGETS = ["packages/connectors/engine/engine-connector/src/widgets/**/*.{ts,tsx}"]
 const WIDGET_TREES = [
   "apps/mcp-server/src/ui/**/*.{ts,tsx}",
@@ -110,13 +111,20 @@ const connectorResourceGate = registrationGate(
   "A connector registers no resource of its own (CLAUDE.md invariant 3): its views belong in the host bundle, which the boot serves under ui://views/<tool>.html (showToolBinding), so they stay on the kit and the view host. A finished HTML view is for a customer's module.",
 )
 
-// Invariant 6.
+// Invariant 6: dates and times render through pulse-ui's formatters (`@miragon/pulse-ui`, or
+// `@miragon/pulse-ui/format` where no React runs: the VS Code extension's TimeLabels).
 const widgetDateGate = [
   {
     selector:
       ":matches(NewExpression, CallExpression)[callee.object.name='Intl'][callee.property.name='DateTimeFormat']",
     message:
-      "Use formatTimestamp/formatDate/formatTime from @miragon/pulse-ui, the single source for timestamp rendering (CLAUDE.md invariant 6).",
+      "Use formatTimestamp/formatDate/formatTime/formatClock/formatInstant from @miragon/pulse-ui (/format outside React), the single source for timestamp rendering (CLAUDE.md invariant 6).",
+  },
+  {
+    selector:
+      ":matches(NewExpression, CallExpression)[callee.object.name='Intl'][callee.property.name='RelativeTimeFormat']",
+    message:
+      "Use formatRelativeTime from @miragon/pulse-ui (/format outside React) instead of a hand-built Intl.RelativeTimeFormat (CLAUDE.md invariant 6).",
   },
   {
     selector: "CallExpression[callee.property.name='toLocaleDateString']",
@@ -131,7 +139,8 @@ const widgetDateGate = [
 ]
 
 // Invariant 6: numbers in widget code render through pulse-ui's formatters
-// (formatNumber/formatPercent/formatPercentPoints/formatPeriod/formatDuration),
+// (formatNumber/formatCount/formatCompactCount/formatPercent/formatPercentPoints/formatPeriod/
+// formatDuration),
 // which read the view's locale. Number#toFixed formats in no locale; a
 // toLocaleString() without a locale (no argument, `undefined`, `null`, `[]`)
 // in the browser's; a hand-built Intl.NumberFormat bypasses the formatters
@@ -156,7 +165,7 @@ const widgetNumberGate = [
   {
     selector: NUMBER_FORMAT_SELECTOR,
     message:
-      "Use formatNumber/formatPercent/formatPercentPoints from the pulse-ui kit instead of a hand-built Intl.NumberFormat: they read the view's locale (CLAUDE.md invariant 6).",
+      "Use formatNumber/formatCount/formatCompactCount/formatPercent/formatPercentPoints from the pulse-ui kit instead of a hand-built Intl.NumberFormat: they read the view's locale (CLAUDE.md invariant 6).",
   },
 ]
 // The kit's formatters themselves: the same gate minus Intl.NumberFormat.
@@ -213,9 +222,10 @@ const widgetHandOffGate = [
 // switched off inline: noInlineConfig), behaviour in classes, one class per file,
 // budgets (complexity 10, 300 lines, 60 per function, 4 parameters, 20 statements),
 // no engine words in the contract, the core and the webview, no --vscode-* colour in
-// the webview. apps/vscode/test/architecture/lint-rules.test.ts lints a probe per rule.
-// Its no-restricted-syntax blocks name apps/vscode paths only, so they never replace
-// a selector of the MCP gates above (and none of those reaches apps/vscode).
+// the webview, dates and numbers in the core and the webview through pulse-ui's formatters (the
+// date and number gates of the widget trees). apps/vscode/test/architecture/lint-rules.test.ts
+// lints a probe per rule. Its no-restricted-syntax blocks name apps/vscode paths only, so they
+// never replace a selector of the MCP gates above (and no MCP block reaches apps/vscode).
 const vscodeNoComments = {
   meta: {
     type: "suggestion",
@@ -442,11 +452,12 @@ export default tseslint.config(
     files: ["packages/core/ui/src/**/*.{ts,tsx}"],
     rules: { "no-restricted-syntax": ["error", ...widgetNumberGate] },
   },
-  // The kit's two number formatters: `format.ts` (the view's locale, set by LocaleGate)
-  // and `formatCount` in `ui-messages.ts` (the components' own locale). After the
-  // general pulse-ui block: a later block replaces `no-restricted-syntax` for both files.
+  // The kit's two number formatters: `format/numbers.ts` (the view's locale, set by LocaleGate
+  // or the VS Code extension) and `formatCountIn` in `ui-messages.ts` (the components' own
+  // locale). After the general pulse-ui block: a later block replaces `no-restricted-syntax` for
+  // both files.
   {
-    files: ["packages/core/ui/src/kit/format.ts", "packages/core/ui/src/locale/ui-messages.ts"],
+    files: ["packages/core/ui/src/format/numbers.ts", "packages/core/ui/src/locale/ui-messages.ts"],
     rules: { "no-restricted-syntax": ["error", ...widgetNumberGateForFormatters] },
   },
   // Invariant 6, imports: no MCP Apps runtime (`@modelcontextprotocol/ext-apps` but its
@@ -620,9 +631,20 @@ export default tseslint.config(
     files: ["apps/vscode/src/adapters/**/*.ts", "apps/vscode/src/model/**/*.ts"],
     rules: { "no-restricted-syntax": ["error", ...vscodeModuleFunctionGate] },
   },
+  // The core and the webview format dates and numbers through pulse-ui's foundation
+  // (`@miragon/pulse-ui/format`, behind TimeLabels, CountLabels and Labels): the date and number
+  // gates of the widget trees join each block's union.
   {
     files: ["apps/vscode/src/core/**/*.ts"],
-    rules: { "no-restricted-syntax": ["error", ...vscodeNeutralCode, ...vscodeModuleFunctionGate] },
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        ...vscodeNeutralCode,
+        ...vscodeModuleFunctionGate,
+        ...widgetDateGate,
+        ...widgetNumberGate,
+      ],
+    },
   },
   {
     files: ["apps/vscode/src/webview/**/*.ts"],
@@ -632,6 +654,8 @@ export default tseslint.config(
         ...vscodeNeutralCode,
         ...vscodeHostColours,
         ...vscodeModuleFunctionGate,
+        ...widgetDateGate,
+        ...widgetNumberGate,
       ],
     },
   },
@@ -643,6 +667,8 @@ export default tseslint.config(
         ...vscodeNeutralCode,
         ...vscodeHostColours,
         ...vscodeComponentFunctionGate,
+        ...widgetDateGate,
+        ...widgetNumberGate,
       ],
     },
   },

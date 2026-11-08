@@ -50,7 +50,7 @@ export class CallLinks {
   private instancesLabel(choices: readonly CalledInstanceChoice[]): string {
     const [first] = choices
     if (choices.length > 1 || first === undefined) {
-      return `Choose one of ${choices.length} called instances`
+      return `Choose one of ${Labels.count(choices.length)} called instances`
     }
     const { bpmnProcessId, id } = first.instance
     return `Open called instance ${bpmnProcessId} ${Labels.shortId(id)}`

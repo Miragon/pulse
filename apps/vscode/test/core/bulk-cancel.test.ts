@@ -388,7 +388,7 @@ describe("following a bulk cancel", () => {
 
     expect(opened.view().bulk).toMatchObject({
       status: "stalled",
-      notice: { tone: "warning", title: "No progress for 2 min 30 s: 0 of 2 done" },
+      notice: { tone: "warning", title: "No progress for 2m 30s: 0 of 2 done" },
     })
     opened.panel.dispose()
     await opened.gate.open()

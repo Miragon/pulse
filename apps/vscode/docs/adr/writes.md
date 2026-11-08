@@ -231,9 +231,10 @@ cancel always asks for more:
   with them." and "Can't be undone; Stop only halts the rest."), "Checked just now" and
   the engine line with host and identity. The title carries the count, so the dialog
   does not repeat it; it stays short with 1000 instances as with one.
-- The count is typed as digits, exactly ("Type 44 to cancel 44 instances"). Its prompt
-  names engine, environment and host and repeats the action's warning; an empty box
-  shows no error yet.
+- The count is typed as digits, exactly ("Type 44 to cancel 44 instances"), and the prompt
+  writes it as those digits twice ("Type 1000 to cancel 1000 instances", where the title
+  groups it: "Cancel 1,000 instances of …?"). Its prompt names engine, environment and host
+  and repeats the action's warning; an empty box shows no error yet.
 - The reason is asked only for actions that send it to the engine (`takesReason`), with
   the action's prompt ("The engine keeps it with the cancelled instances. Pulse does not
   log it."). It is cleaned first (`NotificationText.printable`, then trimmed) and then
@@ -264,7 +265,7 @@ again when it loads or is shown. An operation is worked off when it ended, when
 below history level FULL). Then the core counts the submitted ids that are still running
 (one `countInstances`); that count decides the outcome, the panel reloads once and the
 outcome goes to the audit. Progress counts are capped at the submitted count. The strip
-shows "No progress for 5 min" when nothing moved for 2 minutes on a local engine and 5
+shows "No progress for" and the idle time when nothing moved for 2 minutes on a local engine and 5
 minutes elsewhere, counted only while a panel watches and from the moment one comes back.
 A failed read is no stall: the strip warns "Pulse can't read its progress: …" with the
 problem, which is "Paused until the engine accepts the login again." while the engine

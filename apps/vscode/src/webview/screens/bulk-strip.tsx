@@ -1,6 +1,7 @@
 import type { BulkProgress, BulkStatus, BulkView } from "../../core/protocol/index.js"
 import { useEffect, useRef, useState } from "preact/hooks"
 import { Icon } from "../components/icon.js"
+import { CountLabels } from "../format/count-labels.js"
 import { StripButton, TONE_GLYPHS } from "../components/status-strip.js"
 import { useStripActions } from "./notices.js"
 
@@ -29,7 +30,7 @@ function ProgressBar({ progress }: { readonly progress: BulkProgress }) {
       aria-valuemin={0}
       aria-valuemax={progress.total}
       aria-valuenow={worked}
-      aria-valuetext={`${worked} of ${progress.total} done`}
+      aria-valuetext={`${CountLabels.exact(worked)} of ${CountLabels.exact(progress.total)} done`}
     >
       <span class="bulk-strip__fill" style={{ width: `${share}%` }} />
     </div>

@@ -107,7 +107,7 @@ describe("the cross-engine landscape, read from each engine", () => {
     const landscape = screen.getByRole("region", { name: "Process landscape" })
     await waitFor(() => expect(within(landscape).getByText("1 unreachable")).toBeTruthy())
     // 3 + 1 on prod-a, 4 + 0 on prod-b: a sum of counts, never an average or a rate.
-    expect(within(landscape).getByText("≥8")).toBeTruthy()
+    expect(within(landscape).getByText("≥ 8")).toBeTruthy()
     expect(within(landscape).getByText("1 on several engines")).toBeTruthy()
   })
 
@@ -177,7 +177,7 @@ describe("the cross-engine landscape, read from each engine", () => {
     )
     const landscape = screen.getByRole("region", { name: "Process landscape" })
     await waitFor(() => expect(within(landscape).getByText("2 unreachable")).toBeTruthy())
-    expect(within(landscape).queryByText(/^≥?0$/)).toBeNull()
+    expect(within(landscape).queryByText(/^(≥\s)?0$/)).toBeNull()
     expect(
       screen.getByText(
         "No engine has answered, so there are no process definitions to show. Check that the engines are reachable.",

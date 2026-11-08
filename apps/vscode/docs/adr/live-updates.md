@@ -122,7 +122,7 @@ A running bulk operation ([writes.md](writes.md)) is followed by a poll of its o
   table focus follows the row and moves to its neighbour when the row leaves; overlays are
   redrawn only when they changed; an open variable editor or move panel holds its panel until
   it closes or the panel is hidden; a write confirmation holds it too and names the data's age ("Data read
-  2 min 5 s ago · live updates are paused").
+  2m 5s ago · live updates are paused").
 - No notifications or toasts from anything a background read finds.
 
 ### Where it lives

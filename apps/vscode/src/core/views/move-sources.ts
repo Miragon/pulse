@@ -2,6 +2,7 @@ import type { WaitState } from "../../contract/index.js"
 import type { FlowNodes } from "../bpmn/flow-nodes.js"
 import type { ActiveTokens } from "./active-tokens.js"
 import type { ElementLabels } from "./element-labels.js"
+import { Labels } from "./labels.js"
 
 export class MoveSources {
   constructor(
@@ -35,7 +36,7 @@ export class MoveSources {
       return "Move a token inside the sub-process instead."
     }
     if (count > 1) {
-      return `${count} tokens wait here; Pulse moves only a single one.`
+      return `${Labels.count(count)} tokens wait here; Pulse moves only a single one.`
     }
     if (this.nodes.isMultiInstance(elementId)) {
       return "This element runs as multi-instance; Pulse moves only single tokens."

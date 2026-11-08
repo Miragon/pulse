@@ -63,7 +63,7 @@ export function resolveUiMessages(
  * `1,234` / `1.234`). An invalid tag falls back to English instead of
  * throwing inside a render.
  */
-export function formatCount(value: number, locale: string | undefined): string {
+export function formatCountIn(value: number, locale: string | undefined): string {
   try {
     return new Intl.NumberFormat(locale).format(value)
   } catch {

@@ -185,6 +185,7 @@ const LEAVES = [
   `${UI}/src/lib.ts`,
   `${UI}/src/testing/glyphs.ts`,
   `${UI}/src/tones/situations.ts`,
+  `${UI}/src/format/numbers.ts`,
   `${ENGINE}/src/target.ts`,
   `${ENGINE}/src/lib.ts`,
   `${ENGINE}/src/testing/fixture.ts`,
@@ -555,6 +556,11 @@ const SUITES = [
       [`${UI}/src/tones/to-kit.ts`, "../lib.ts", [UI_FOUNDATION]],
       [`${UI}/src/tones/to-kit-type.ts`, "../lib.ts", [UI_FOUNDATION], "type"],
       [`${UI}/src/tones/to-testing.ts`, "../testing/glyphs.ts", [NO_TESTING, UI_FOUNDATION]],
+      // Each entry only its own folder: the formatters never reach into the tones, nor back.
+      [`${UI}/src/format/to-tones.ts`, "../tones/situations.ts", [UI_FOUNDATION]],
+      [`${UI}/src/tones/to-format.ts`, "../format/numbers.ts", [UI_FOUNDATION]],
+      [`${UI}/src/format/to-kit.ts`, "../lib.ts", [UI_FOUNDATION]],
+      ...["react", "node:fs"].map((spec) => [`${UI}/src/format/to-npm.ts`, spec, [UI_FOUNDATION]]),
       // A workspace package: the leaf rule bites as well.
       [`${UI}/src/tones/to-shell.ts`, "@miragon/pulse-widget-shell", [UI_FOUNDATION, UI_LEAF]],
       [
@@ -569,6 +575,12 @@ const SUITES = [
       [UI_SRC, "./tones/situations.ts", []],
       [`${EXT}/src/webview/tone.ts`, "@miragon/pulse-ui/tones", []],
       [`${EXT}/src/core/tone.ts`, "@miragon/pulse-ui/tones", [], "type"],
+      [`${UI}/src/format/duration.ts`, "./numbers.ts", []],
+      [`${UI}/src/format/format.test.ts`, "vitest", []],
+      [`${UI}/src/kit/log-text.tsx`, "../format/numbers.ts", []],
+      [UI_SRC, "./format/numbers.ts", []],
+      [`${EXT}/src/webview/format/time-labels.ts`, "@miragon/pulse-ui/format", []],
+      [`${EXT}/src/core/views/labels.ts`, "@miragon/pulse-ui/format", []],
     ],
   },
   {

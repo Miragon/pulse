@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs"
 import { describe, expect, it } from "vitest"
+import * as format from "./format/index.js"
 import * as ui from "./index.js"
 import * as tones from "./tones/index.js"
 
@@ -36,6 +37,13 @@ describe("the @miragon/pulse-ui entry", () => {
     "formatTime",
     "formatTimestamp",
     "truncate",
+    // The formatters both Pulse UIs share, and the short id that came from widget-shell.
+    "formatClock",
+    "formatInstant",
+    "formatRelativeTime",
+    "formatCount",
+    "formatCompactCount",
+    "shortId",
     "setFormatLocale",
     "getFormatLocale",
     "subscribeFormatLocale",
@@ -65,7 +73,7 @@ describe("the @miragon/pulse-ui entry", () => {
       // No consumer outside the kit: Icon's `dense`, KometMark's own clamp, ListFooter's count.
       "DENSE_ICON_STROKE",
       "KOMET_MIN_SIZE",
-      "formatCount",
+      "formatCountIn",
     ]) {
       expect(ui, name).not.toHaveProperty(name)
     }
@@ -91,6 +99,41 @@ describe("the @miragon/pulse-ui/tones entry", () => {
 
   it("hands out the root's own bindings", () => {
     for (const [name, value] of Object.entries(tones)) {
+      expect(ui[name as keyof typeof ui], name).toBe(value)
+    }
+  })
+})
+
+/**
+ * `./format` holds the formatters for a UI that loads no React (the VS Code webview and the
+ * extension's core): the same bindings as the root, so a date or a count has one source.
+ */
+describe("the @miragon/pulse-ui/format entry", () => {
+  it("exports exactly these runtime names", () => {
+    expect(Object.keys(format).sort()).toEqual([
+      "formatClock",
+      "formatCompactCount",
+      "formatCount",
+      "formatDate",
+      "formatDuration",
+      "formatInstant",
+      "formatNumber",
+      "formatPercent",
+      "formatPercentPoints",
+      "formatPeriod",
+      "formatRelativeTime",
+      "formatTime",
+      "formatTimestamp",
+      "getFormatLocale",
+      "setFormatLocale",
+      "shortId",
+      "subscribeFormatLocale",
+      "truncate",
+    ])
+  })
+
+  it("hands out the root's own bindings", () => {
+    for (const [name, value] of Object.entries(format)) {
       expect(ui[name as keyof typeof ui], name).toBe(value)
     }
   })

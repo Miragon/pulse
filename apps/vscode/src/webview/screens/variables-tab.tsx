@@ -6,6 +6,7 @@ import { DataTable } from "../components/data-table.js"
 import type { Column } from "../components/data-table.js"
 import { EmptyHint } from "../components/empty-hint.js"
 import { Icon } from "../components/icon.js"
+import { NoValue } from "../components/no-value.js"
 import { useWriteState } from "../host/write-context.js"
 import { WriteStates } from "../host/write-states.js"
 import { VariableEditor } from "./variable-editor.js"
@@ -150,7 +151,7 @@ export function VariablesTab({ variables, elementName }: VariablesTabProps) {
       label: "Name",
       render: (row) => <NameCell row={row} elementName={elementName} />,
     },
-    { key: "type", label: "Type", render: (row) => row.type ?? <span class="muted">–</span> },
+    { key: "type", label: "Type", render: (row) => row.type ?? <NoValue /> },
     {
       key: "value",
       label: "Value",

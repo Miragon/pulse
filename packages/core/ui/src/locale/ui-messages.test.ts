@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
-  formatCount,
+  formatCountIn,
   resolveUiLocale,
   resolveUiMessages,
   UI_LOCALES,
@@ -162,14 +162,14 @@ describe("resolveUiMessages", () => {
   })
 })
 
-describe("formatCount", () => {
+describe("formatCountIn", () => {
   it("groups digits per locale", () => {
-    expect(formatCount(1234567, "en")).toBe("1,234,567")
-    expect(formatCount(1234567, "de-DE")).toBe("1.234.567")
-    expect(formatCount(7, "de")).toBe("7")
+    expect(formatCountIn(1234567, "en")).toBe("1,234,567")
+    expect(formatCountIn(1234567, "de-DE")).toBe("1.234.567")
+    expect(formatCountIn(7, "de")).toBe("7")
   })
 
   it("falls back to English for an invalid locale tag instead of throwing", () => {
-    expect(formatCount(1234, "not a locale!")).toBe("1,234")
+    expect(formatCountIn(1234, "not a locale!")).toBe("1,234")
   })
 })

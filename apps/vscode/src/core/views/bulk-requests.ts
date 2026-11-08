@@ -39,11 +39,16 @@ export class BulkRequests {
       confirmLabel: `${verb} ${instances}`,
       selected: preview.selected,
       count,
-      countPrompt: `Type ${count} to ${wording.verb} ${instances}`,
+      countPrompt: BulkRequests.countPrompt(count, wording.verb),
       warning: wording.warning,
       takesReason: plan.action.sendsReason,
       reasonPrompt: wording.reasonPrompt,
     }
+  }
+
+  static countPrompt(count: number, verb: string): string {
+    const digits = String(count)
+    return `Type ${digits} to ${verb} ${digits} ${count === 1 ? "instance" : "instances"}`
   }
 
   static skippedFacts(preview: BulkPreview): string[] {

@@ -181,21 +181,31 @@ export { LogText, LOG_TEXT_PREVIEW, TEXT_BLOCK_FRAME } from "./kit/log-text.js"
 export { KometMark, AppEmptyState } from "./kit/brand-mark.js"
 export { NavigationFocus } from "./kit/navigation-focus.js"
 export { MENU_ITEM } from "./kit/menu-item.js"
-// The formatters render in the locale set once with `setFormatLocale` (the browser's until then);
-// a test resets it with `setFormatLocale(undefined)`.
+// The formatters (the framework-free `./format` entry, the same names) render in the locale set
+// once with `setFormatLocale` (the browser's until then); a test resets it with
+// `setFormatLocale(undefined)`.
 export {
+  formatClock,
+  formatCompactCount,
+  formatCount,
   formatDate,
   formatDuration,
+  formatInstant,
   formatNumber,
   formatPercent,
   formatPercentPoints,
   formatPeriod,
+  formatRelativeTime,
   formatTime,
   formatTimestamp,
+  shortId,
   truncate,
   setFormatLocale,
   getFormatLocale,
   subscribeFormatLocale,
+  type ClockOptions,
+  type Count,
   type PercentFormatOptions,
   type FormatLocale,
-} from "./kit/format.js"
+  type TimeOptions,
+} from "./format/index.js"

@@ -59,6 +59,22 @@ const PLANTED: Readonly<Record<string, string>> = {
     "import type { ToneVariant } from '@miragon/pulse-ui/tones';\nexport type Tone = ToneVariant;\n",
   "src/host/reads-tones.ts":
     "import { countTone } from '@miragon/pulse-ui/tones';\nexport const tone = countTone;\n",
+  "src/core/views/labels.ts":
+    "import { formatCount } from '@miragon/pulse-ui/format';\nexport const count = formatCount;\n",
+  "src/webview/format/count-labels.ts":
+    "import { formatCount } from '@miragon/pulse-ui/format';\nexport const count = formatCount;\n",
+  "src/webview/reads-format.ts":
+    "import { formatCount } from '@miragon/pulse-ui/format';\nexport const count = formatCount;\n",
+  "src/core/reads-format.ts":
+    "import { shortId } from '@miragon/pulse-ui/format';\nexport const short = shortId;\n",
+  "src/host/reads-format.ts":
+    "import { formatDuration } from '@miragon/pulse-ui/format';\nexport const duration = formatDuration;\n",
+  "src/core/escapes-into-format.ts":
+    "import { shortId } from '../../../../packages/core/ui/src/format/text.ts';\nexport const short = shortId;\n",
+  "src/webview/escapes-into-built-format.ts":
+    "import { formatCount } from '../../../../packages/core/ui/dist/format/numbers.js';\nexport const count = formatCount;\n",
+  "../../packages/core/ui/src/format/text.ts": "export const shortId = 1;\n",
+  "../../packages/core/ui/dist/format/numbers.js": "export const formatCount = 1;\n",
   "src/webview/renders-kit.ts":
     "import { Button } from '@miragon/pulse-ui';\nexport const button = Button;\n",
   "src/core/ships-ui-testing.ts":
@@ -137,6 +153,9 @@ describe("the dependency rules", () => {
     const tones = "apps/vscode/node_modules/@miragon/pulse-ui/dist/tones/index.d.ts"
     const tonesSource = "packages/core/ui/src/tones/count-tone.ts"
     const tonesBuild = "packages/core/ui/dist/tones/count-tone.js"
+    const format = "apps/vscode/node_modules/@miragon/pulse-ui/dist/format/index.d.ts"
+    const formatSource = "packages/core/ui/src/format/text.ts"
+    const formatBuild = "packages/core/ui/dist/format/numbers.js"
     expect(violationsIn(plantedTree()).sort()).toEqual(
       [
         `engine-core-only-in-the-c7-adapter: apps/vscode/src/adapters/other/runs-engine-core.ts -> ${engineCore}`,
@@ -172,6 +191,13 @@ describe("the dependency rules", () => {
         `not-in-allowed: apps/vscode/src/webview/escapes-into-tones.ts -> ${tonesSource}`,
         `pulse-ui-only-its-foundation: apps/vscode/src/core/escapes-into-built-tones.ts -> ${tonesBuild}`,
         `not-in-allowed: apps/vscode/src/core/escapes-into-built-tones.ts -> ${tonesBuild}`,
+        `not-in-allowed: apps/vscode/src/host/reads-format.ts -> ${format}`,
+        `not-in-allowed: apps/vscode/src/core/reads-format.ts -> ${format}`,
+        `not-in-allowed: apps/vscode/src/webview/reads-format.ts -> ${format}`,
+        `pulse-ui-only-its-foundation: apps/vscode/src/core/escapes-into-format.ts -> ${formatSource}`,
+        `not-in-allowed: apps/vscode/src/core/escapes-into-format.ts -> ${formatSource}`,
+        `pulse-ui-only-its-foundation: apps/vscode/src/webview/escapes-into-built-format.ts -> ${formatBuild}`,
+        `not-in-allowed: apps/vscode/src/webview/escapes-into-built-format.ts -> ${formatBuild}`,
       ].sort(),
     )
   })

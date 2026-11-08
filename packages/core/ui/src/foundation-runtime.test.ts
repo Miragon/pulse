@@ -12,7 +12,7 @@ import { afterAll, describe, expect, it } from "vitest"
  * fails here, which the import rule `ui-foundation-entries-import-nothing` cannot see.
  */
 const SRC = fileURLToPath(new URL(".", import.meta.url))
-const FOUNDATION_ENTRIES = ["tones"]
+const FOUNDATION_ENTRIES = ["format", "tones"]
 
 const LANGUAGE_ONLY: ts.CompilerOptions = {
   target: ts.ScriptTarget.ES2022,

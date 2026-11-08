@@ -17,8 +17,11 @@ const ENGINE_CORE =
   "(^|/)node_modules/@miragon/pulse-engine-core/|^@miragon/pulse-engine-core(/|$)|^packages/connectors/engine/engine-core/"
 const ENGINE_CORE_ENTRY = "(^|/)node_modules/@miragon/pulse-engine-core/dist/index[.]d[.]ts$"
 const PULSE_UI = "(^|/)node_modules/@miragon/pulse-ui/|^@miragon/pulse-ui(/|$)|^packages/core/ui/"
-const UI_FOUNDATION = "(^|/)node_modules/@miragon/pulse-ui/dist/tones/|^@miragon/pulse-ui/tones$"
-const UI_FOUNDATION_ENTRY = "(^|/)node_modules/@miragon/pulse-ui/dist/tones/index[.]d[.]ts$"
+const UI_FOUNDATION =
+  "(^|/)node_modules/@miragon/pulse-ui/dist/(format|tones)/|^@miragon/pulse-ui/(format|tones)$"
+const UI_TONES_ENTRY = "(^|/)node_modules/@miragon/pulse-ui/dist/tones/index[.]d[.]ts$"
+const UI_FORMAT_ENTRY = "(^|/)node_modules/@miragon/pulse-ui/dist/format/index[.]d[.]ts$"
+const LABEL_HELPERS = `${APP}src/(core/views/labels[.]ts$|webview/format/)`
 const MODEL_LIBRARIES =
   "(^|/)node_modules/(bpmn-moddle|camunda-bpmn-moddle|zeebe-bpmn-moddle|@miragon/bpmn-modeler[^/]*)/"
 
@@ -64,9 +67,15 @@ module.exports = {
     },
     {
       comment:
-        "The core and the webview read the tones of Pulse's UI foundation (@miragon/pulse-ui/tones: framework-free, it imports nothing), which esbuild bundles into the extension.",
+        "The core and the webview read Pulse's tones (@miragon/pulse-ui/tones: framework-free, it imports nothing), which esbuild bundles into the extension.",
       from: { path: `${APP}src/(core|webview)/` },
-      to: { path: UI_FOUNDATION_ENTRY },
+      to: { path: UI_TONES_ENTRY },
+    },
+    {
+      comment:
+        "Only the label helpers read Pulse's formatters (@miragon/pulse-ui/format: framework-free, it imports nothing): Labels in the core and the webview's format folder set their locale before they format, so no output depends on the machine's.",
+      from: { path: LABEL_HELPERS },
+      to: { path: UI_FORMAT_ENTRY },
     },
     {
       comment: "The webview may use its rendering libraries.",
@@ -94,7 +103,7 @@ module.exports = {
       name: "not-in-allowed",
       severity: "error",
       comment:
-        "No entry of `allowed` in apps/vscode/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md). A layer uses its own modules and another layer only through its index.ts: core and adapters reach the contract, the C7 adapter also @miragon/pulse-engine-core's main entry (never a subpath), core and webview also @miragon/pulse-ui/tones, the model adapter the contract and the moddle libraries, the webview protocol types and its rendering libraries, the host core, protocol, contract, vscode, modeler-shell and Node built-ins, and only the host's composition root the engine adapters and the model adapter.",
+        "No entry of `allowed` in apps/vscode/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md). A layer uses its own modules and another layer only through its index.ts: core and adapters reach the contract, the C7 adapter also @miragon/pulse-engine-core's main entry (never a subpath), core and webview also @miragon/pulse-ui/tones and their label helpers (core/views/labels.ts, webview/format/) @miragon/pulse-ui/format, the model adapter the contract and the moddle libraries, the webview protocol types and its rendering libraries, the host core, protocol, contract, vscode, modeler-shell and Node built-ins, and only the host's composition root the engine adapters and the model adapter.",
       from: {},
       to: { path: "^$" },
     },
@@ -126,7 +135,7 @@ module.exports = {
       name: "pulse-ui-only-its-foundation",
       severity: "error",
       comment:
-        "The extension shares Pulse's UI foundation, not its React kit: shipped code imports @miragon/pulse-ui only as @miragon/pulse-ui/tones (in the core and the webview), never its root (React, Radix, Tailwind classes), its stylesheets or ./testing, and never a file of it by path. Draw a tone with the webview's own CSS classes; tests may import @miragon/pulse-ui/testing.",
+        "The extension shares Pulse's UI foundation, not its React kit: shipped code imports @miragon/pulse-ui only as @miragon/pulse-ui/format and @miragon/pulse-ui/tones (in the core and the webview), never its root (React, Radix, Tailwind classes), its stylesheets or ./testing, and never a file of it by path. Format through the extension's TimeLabels, CountLabels and Labels, draw a tone with the webview's own CSS classes; tests may import @miragon/pulse-ui/testing.",
       from: { pathNot: [TEST_CODE, TOOLING, "(^|/)node_modules/"] },
       to: { path: PULSE_UI, pathNot: UI_FOUNDATION },
     },

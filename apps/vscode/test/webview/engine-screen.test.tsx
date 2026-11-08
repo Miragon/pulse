@@ -59,7 +59,7 @@ describe("the engine overview", () => {
     expect(order?.querySelector(".danger-count")?.textContent).toBe("9")
     expect(shipment?.querySelector(".danger-count")).toBeNull()
     expect(harness.root.querySelector(".filter-bar__summary")?.textContent).toBe(
-      "3 processes · 1369 running · 10 with incident · all versions",
+      "3 processes · 1,369 running · 10 with incident · all versions",
     )
   })
 

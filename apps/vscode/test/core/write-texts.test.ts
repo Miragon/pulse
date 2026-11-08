@@ -107,18 +107,18 @@ describe("the confirmation of a write", () => {
     const facts = (ageMs: number, live?: LiveUpdates) =>
       WriteRequests.retry(viewWith({}), INCIDENT, { ageMs, live }).facts.at(-1)
     expect(facts(1200)).toBe("Data read just now")
-    expect(facts(125_000, { status: "live", everySeconds: 30 })).toBe("Data read 2 min 5 s ago")
+    expect(facts(125_000, { status: "live", everySeconds: 30 })).toBe("Data read 2m 5s ago")
     expect(facts(125_000, { status: "paused", reason: "user" })).toBe(
-      "Data read 2 min 5 s ago · live updates are paused",
+      "Data read 2m 5s ago · live updates are paused",
     )
     expect(facts(9000, { status: "reconnecting", retryAt: "2026-10-21T09:00:20.000Z" })).toBe(
-      "Data read 9.0 s ago · the last live update failed",
+      "Data read 9s ago · the last live update failed",
     )
     expect(facts(9000, { status: "stopped", reason: "refused" })).toBe(
-      "Data read 9.0 s ago · live updates stopped",
+      "Data read 9s ago · live updates stopped",
     )
     expect(facts(9000, { status: "off", environment: "production", everySeconds: 30 })).toBe(
-      "Data read 9.0 s ago · live updates are off",
+      "Data read 9s ago · live updates are off",
     )
   })
 

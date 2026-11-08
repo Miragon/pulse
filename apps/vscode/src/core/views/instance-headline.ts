@@ -10,7 +10,7 @@ export class InstanceHeadline {
     }
     return {
       tone: "danger",
-      title: `${rows.length} incidents${state === "suspended" ? " · suspended" : ""}`,
+      title: `${Labels.plural(rows.length, "incident")}${state === "suspended" ? " · suspended" : ""}`,
       detail: first.rootCause ?? first.message,
       actions: [],
     }

@@ -8,6 +8,7 @@ import {
   TableEmptyState,
   Td,
   countTone,
+  formatCount,
   formatNumber,
   type KpiCell,
   SITUATION_TONES,
@@ -69,9 +70,9 @@ function useLandscape(engineIds: readonly string[]): Landscape {
   return { figures: foldFleetLandscape(reads), states }
 }
 
-/** A sum over the read engines: "≥" while an engine is not read, "—" while none is. */
+/** A sum over the read engines: a lower bound while an engine is not read, "—" while none is. */
 function totalOf(value: number | null, complete: boolean): string {
-  return value === null || complete ? formatNumber(value) : `≥${formatNumber(value)}`
+  return formatCount(value === null || complete ? value : { atLeast: value })
 }
 
 function LandscapeKpis({ figures, states, t }: Landscape & { t: T }) {

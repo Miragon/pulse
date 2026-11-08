@@ -4,6 +4,7 @@ import type { Column } from "../components/data-table.js"
 import { EmptyHint } from "../components/empty-hint.js"
 import { IdText } from "../components/id-text.js"
 import { IncidentFlag, StateLabel } from "../components/state-label.js"
+import { NoValue } from "../components/no-value.js"
 import { TimeLabels } from "../format/time-labels.js"
 import { useHost } from "../host/host-context.js"
 import { InstanceFilter } from "./instance-filter.js"
@@ -13,7 +14,7 @@ import { SelectionBar } from "./selection-bar.js"
 
 function StartedCell({ row }: { readonly row: InstanceRow }) {
   if (row.startedAt === undefined) {
-    return <span class="muted">–</span>
+    return <NoValue />
   }
   return (
     <span title={TimeLabels.tooltip(row.startedAt)}>
@@ -32,7 +33,7 @@ const COLUMNS: readonly Column<InstanceRow>[] = [
   {
     key: "businessKey",
     label: "Business key",
-    render: (row) => row.businessKey ?? <span class="muted">–</span>,
+    render: (row) => row.businessKey ?? <NoValue />,
   },
   {
     key: "state",

@@ -1,18 +1,24 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import {
+  formatClock,
+  formatCompactCount,
+  formatCount,
   formatDate,
   formatDuration,
+  formatInstant,
   formatNumber,
   formatPercent,
   formatPercentPoints,
   formatPeriod,
+  formatRelativeTime,
   formatTime,
   formatTimestamp,
   getFormatLocale,
   setFormatLocale,
+  shortId,
   subscribeFormatLocale,
   truncate,
-} from "./format.js"
+} from "./index.js"
 
 const EMPTY = "—"
 
@@ -92,6 +98,8 @@ describe("formatDuration", () => {
     expect(formatDuration(12_000)).toBe("12s")
     expect(formatDuration(187_000)).toBe("3m 7s")
     expect(formatDuration(5_040_000)).toBe("1h 24m")
+    expect(formatDuration(86_399_999)).toBe("23h 59m")
+    expect(formatDuration(97_200_000)).toBe("1d 3h")
   })
 
   it("rounds fractional milliseconds", () => {
@@ -112,13 +120,14 @@ describe("formatDuration", () => {
     expect(formatDuration(12_000)).toBe(`12${NBSP}s`)
     expect(formatDuration(187_000)).toBe(`3${NBSP}Min. 7${NBSP}s`)
     expect(formatDuration(5_040_000)).toBe(`1${NBSP}h 24${NBSP}Min.`)
-    expect(formatDuration(3_600_000 * 1234)).toBe(`1.234${NBSP}h 0${NBSP}Min.`)
+    expect(formatDuration(3_600_000 * 27)).toBe(`1${NBSP}d 3${NBSP}h`)
+    expect(formatDuration(86_400_000 * 1234)).toBe(`1.234${NBSP}d 0${NBSP}h`)
   })
 
   it("keeps the compact English family in an English view, grouped by the locale", () => {
     setFormatLocale({ language: "en", locale: "en-US" })
     expect(formatDuration(187_000)).toBe("3m 7s")
-    expect(formatDuration(3_600_000 * 1234)).toBe("1,234h 0m")
+    expect(formatDuration(86_400_000 * 1234)).toBe("1,234d 0h")
   })
 })
 
@@ -219,5 +228,143 @@ describe("truncate", () => {
     expect(truncate("abcdef", 3)).toBe("abc…")
     expect(truncate("abc", 3)).toBe("abc")
     expect(truncate(null, 3)).toBe(EMPTY)
+  })
+})
+
+/** The VS Code extension's locale: English words, a 24-hour clock. */
+const ENGLISH_24H = { language: "en", locale: "en-u-hc-h23", timeZone: "Europe/Berlin" }
+
+describe("formatTime to the millisecond", () => {
+  it("adds the milliseconds in the view's locale, so close runs stay apart", () => {
+    setFormatLocale(ENGLISH_24H)
+    expect(formatTime("2026-10-21T07:05:07.042Z", { milliseconds: true })).toBe("09:05:07.042")
+    setFormatLocale({ language: "de", locale: "de-DE", timeZone: "Europe/Berlin" })
+    expect(formatTime("2026-10-21T07:05:07.042Z", { milliseconds: true })).toBe("09:05:07,042")
+  })
+
+  it("follows the locale's clock: a 12-hour English, a 24-hour one with -u-hc-h23", () => {
+    setFormatLocale({ language: "en", locale: "en-US", timeZone: "UTC" })
+    expect(formatTime("2026-10-21T16:41:00Z", { seconds: false })).toBe("04:41 PM")
+    setFormatLocale({ language: "en", locale: "en-u-hc-h23", timeZone: "UTC" })
+    expect(formatTime("2026-10-21T16:41:00Z", { seconds: false })).toBe("16:41")
+    expect(formatTime("2026-10-21T06:41:09Z")).toBe("06:41:09")
+  })
+})
+
+describe("formatClock", () => {
+  const iso = "2026-10-21T07:05:07.042Z"
+  const sameDay = new Date("2026-10-21T20:00:00Z")
+  const nextDay = new Date("2026-10-22T07:00:00Z")
+
+  it("shows the time alone on its own day, at the asked precision", () => {
+    setFormatLocale(ENGLISH_24H)
+    expect(formatClock(iso, { seconds: false, now: sameDay })).toBe("09:05")
+    expect(formatClock(iso, { now: sameDay })).toBe("09:05:07")
+    expect(formatClock(iso, { milliseconds: true, now: sameDay })).toBe("09:05:07.042")
+  })
+
+  it("puts the day before the time on any other day", () => {
+    setFormatLocale(ENGLISH_24H)
+    expect(formatClock(iso, { seconds: false, now: nextDay })).toBe("Oct 21, 09:05")
+    expect(formatClock(iso, { now: nextDay })).toBe("Oct 21, 09:05:07")
+    expect(formatClock(iso, { milliseconds: true, now: nextDay })).toBe("Oct 21, 09:05:07.042")
+    setFormatLocale({ language: "de", locale: "de-DE", timeZone: "Europe/Berlin" })
+    expect(formatClock(iso, { seconds: false, now: nextDay })).toBe("21. Okt., 09:05")
+  })
+
+  it("counts the day in the view's time zone", () => {
+    // 23:30 UTC on the 21st is already the 22nd in Berlin.
+    setFormatLocale(ENGLISH_24H)
+    expect(formatClock("2026-10-21T23:30:00Z", { seconds: false, now: nextDay })).toBe("01:30")
+  })
+
+  it("returns the placeholder for no or an unparsable time", () => {
+    for (const value of [null, undefined, "", "not a time"]) {
+      expect(formatClock(value)).toBe(EMPTY)
+      expect(formatInstant(value)).toBe(EMPTY)
+      expect(formatRelativeTime(value)).toBe(EMPTY)
+    }
+  })
+})
+
+describe("formatInstant", () => {
+  it("names the instant in the view's zone and in UTC", () => {
+    setFormatLocale(ENGLISH_24H)
+    expect(formatInstant("2026-10-21T12:02:00Z")).toBe(
+      "Oct 21, 2026, 14:02:00 GMT+2 · Oct 21, 2026, 12:02:00 UTC",
+    )
+  })
+})
+
+describe("formatRelativeTime", () => {
+  const now = new Date("2026-10-21T12:00:00Z")
+  const at = (ms: number) => new Date(now.getTime() + ms).toISOString()
+
+  it("speaks the largest whole unit from minutes to days", () => {
+    setFormatLocale(ENGLISH_24H)
+    expect(formatRelativeTime(at(-5 * 60_000), now)).toBe("5m ago")
+    expect(formatRelativeTime(at(2 * 3_600_000), now)).toBe("in 2h")
+    expect(formatRelativeTime(at(-3 * 86_400_000), now)).toBe("3d ago")
+  })
+
+  it("says under a minute in words, past and future", () => {
+    setFormatLocale(ENGLISH_24H)
+    expect(formatRelativeTime(at(-20_000), now)).toBe("just now")
+    expect(formatRelativeTime(at(20_000), now)).toBe("in under a minute")
+    setFormatLocale({ language: "de", locale: "de-DE" })
+    expect(formatRelativeTime(at(-20_000), now)).toBe("gerade eben")
+    expect(formatRelativeTime(at(20_000), now)).toBe("in unter einer Minute")
+    expect(formatRelativeTime(at(-5 * 60_000), now)).toBe("vor 5 Min.")
+  })
+})
+
+describe("formatCount / formatCompactCount", () => {
+  it("renders an exact count, a lower bound and an unknown one", () => {
+    setFormatLocale({ language: "en", locale: "en-US" })
+    expect(formatCount(1234)).toBe("1,234")
+    expect(formatCount(0)).toBe("0")
+    expect(formatCount({ atLeast: 2000 })).toBe(`≥${NBSP}2,000`)
+    for (const value of [null, undefined, Number.NaN]) expect(formatCount(value)).toBe(EMPTY)
+    setFormatLocale({ language: "de", locale: "de-DE" })
+    expect(formatCount({ atLeast: 2000 })).toBe(`≥${NBSP}2.000`)
+  })
+
+  it("shortens from 1,000 on, in the locale, with a + for a lower bound", () => {
+    setFormatLocale({ language: "en", locale: "en-US" })
+    expect(formatCompactCount(999)).toBe("999")
+    expect(formatCompactCount(1234)).toBe("1.2k")
+    // M and B stay capital: a small m is the minutes of a duration ("3m 7s").
+    expect(formatCompactCount(1_500_000)).toBe("1.5M")
+    expect(formatCompactCount(2_000_000_000)).toBe("2B")
+    expect(formatCompactCount({ atLeast: 10_000 })).toBe("10k+")
+    expect(formatCompactCount({ atLeast: 40 })).toBe("40+")
+    expect(formatCompactCount(null)).toBe(EMPTY)
+    setFormatLocale({ language: "de", locale: "de-DE" })
+    // German shortens from a million; below it a count is grouped as formatCount writes it.
+    expect(formatCompactCount(1234)).toBe("1.234")
+    expect(formatCompactCount(12_345)).toBe("12.345")
+    expect(formatCompactCount({ atLeast: 10_000 })).toBe("10.000+")
+    expect(formatCompactCount(1_500_000)).toBe(`1,5${NBSP}Mio.`)
+  })
+})
+
+describe("shortId", () => {
+  const UUID = "5f0ce78e-1c47-11f0-9a3b-0242ac120002"
+
+  it("keeps an id of up to 12 characters whole", () => {
+    expect(shortId("LEA-2026-04")).toBe("LEA-2026-04")
+    expect(shortId("123456789012")).toBe("123456789012")
+  })
+
+  it("shows a longer number by its tail and a UUID by its head", () => {
+    expect(shortId("2251799813685249")).toBe("…13685249")
+    expect(shortId("1234567890123")).toBe("…67890123")
+    expect(shortId(UUID)).toBe("5f0ce78e…")
+    expect(shortId(UUID.toUpperCase())).toBe("5F0CE78E…")
+  })
+
+  it("keeps any other id whole: no part of it is safe to drop", () => {
+    expect(shortId("invoice:3:a1b2c3")).toBe("invoice:3:a1b2c3")
+    expect(shortId("fake-ORD-1002")).toBe("fake-ORD-1002")
   })
 })

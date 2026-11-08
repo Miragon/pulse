@@ -9,6 +9,7 @@ import {
   DrillButton,
   Icon,
   NamedId,
+  formatCount,
   formatNumber,
   SITUATION_TONES,
 } from "@miragon/pulse-ui"
@@ -28,7 +29,6 @@ import { ENGINE_HEALTH_DATA } from "../tool-names.js"
 import { remediationHandOff, UNKNOWN_KEY as UNKNOWN } from "./remediation.js"
 import { useActionAllowed } from "./lib/engine-action.js"
 import { useHandOff, type HandOff, type ViewContext } from "./lib/hand-off.js"
-import { formatCount, formatCountAtLeast } from "./lib/format-count.js"
 import { healthVerdictLine, VERDICT_TONE } from "./lib/health-verdict.js"
 import { useT } from "../messages/use-t.js"
 
@@ -137,7 +137,7 @@ function ClusterRow({
       : (cluster.processDefinitionName ?? primaryKey ?? UNKNOWN)
   const facts = [
     t("engineHealth.clusterAffected", {
-      count: formatCountAtLeast(cluster.incidentCount, cluster.scannedIncidentCount),
+      count: formatCount(cluster.incidentCount ?? { atLeast: cluster.scannedIncidentCount }),
     }),
     cluster.last24hCount !== null && cluster.last24hCount > 0
       ? t("engineHealth.clusterNew24h", { count: formatNumber(cluster.last24hCount) })

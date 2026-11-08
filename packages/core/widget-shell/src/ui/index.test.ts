@@ -52,7 +52,6 @@ describe("the /widgets entry", () => {
       "parseBpmnNames",
       "readBpmnNames",
       "servedFontBaseUrl",
-      "shortId",
       "useActionFeedback",
       "useBpmnViewer",
       "useDetailView",

@@ -1,7 +1,7 @@
 # User interface
 
 - Status: accepted
-- Last reviewed: 2026-11-08 (the tones of Pulse's situation table; 2026-10-26: boards, see [boards.md](boards.md); live updates, see [live-updates.md](live-updates.md); moving a token; bulk cancel, see [writes.md](writes.md); migration, see [migrations.md](migrations.md))
+- Last reviewed: 2026-11-08 (the tones of Pulse's situation table; times, durations, counts and short ids from Pulse's formatters; 2026-10-26: boards, see [boards.md](boards.md); live updates, see [live-updates.md](live-updates.md); moving a token; bulk cancel, see [writes.md](writes.md); migration, see [migrations.md](migrations.md))
 
 ## Context
 
@@ -196,7 +196,7 @@ Bulk cancel lives in the definition panel; who may and how it is confirmed is in
   | submitting             | "Cancelling 44 instances…"                                                     | none                                       |
   | running                | "Cancelling instances: 20 of 44 done", the failed count only when some failed  | Stop                                       |
   | running, unread        | the same title, "Pulse can't read its progress: " and the problem (warning)    | Stop                                       |
-  | stalled                | "No progress for 5 min: 20 of 44 done" with the action's hint (warning)        | Stop                                       |
+  | stalled                | "No progress for 5m 12s: 20 of 44 done" with the action's hint (warning)       | Stop                                       |
   | stopping               | "Stopping… 20 of 44 cancelled so far"                                          | none                                       |
   | stopped                | "Stopped. 23 of 117 cancelled, 94 still running."                              | Select the 94 still running, Dismiss       |
   | stopped, halted        | the same, "The engine keeps the halted operation. Stop again to remove it."    | Stop, Select the 94 still running, Dismiss |
@@ -273,6 +273,16 @@ read-only document.
 - Instance start and end and the History tab's times show seconds and milliseconds
   (`09:05:07.042`, the day before it when it is not today): runs a few milliseconds apart
   stay apart. Lists and waiting times stay at minutes.
+- Times, durations, counts and short ids go through the MCP widgets' formatters: `TimeLabels`,
+  `CountLabels` and `Labels` delegate to Pulse's formatters (`@miragon/pulse-ui/format`) in
+  English with a 24-hour clock. Durations, counts and ids read as in the MCP widgets; a time
+  reads in English with a 24-hour clock (`09:05`), where the MCP widgets follow the host's
+  locale (a 12-hour clock on an en-US host). A duration takes its two largest units (`742ms`,
+  `3m 7s`, `2h 5m`, `1d 3h`), a count is grouped (`1,234`, in a sentence too) and above 999
+  shortens where the exact value sits in the tooltip (`1.2k`, `1.5M`), a lower bound reads
+  `≥ 2,000` exact and `10k+` compact, and a short id keeps up to 12 characters whole, a longer
+  number by its tail (`…13685249`, big-integer keys share their head), a UUID by its head
+  (`8f3c2a1e…`) and any other id whole. A missing value is one em dash (`—`) in every cell.
 - A called instance's header links to its caller ("from 63e79cda…", `CornerLeftUp`). It
   names the caller by its short id: the called instance's data has no business key of
   the caller, and reading it would cost a second detail read per load.

@@ -1,7 +1,7 @@
 # Architecture
 
 - Status: accepted
-- Last reviewed: 2026-11-08 (Pulse's UI foundation: `@miragon/pulse-ui/tones` in core and webview)
+- Last reviewed: 2026-11-08 (Pulse's UI foundation: `@miragon/pulse-ui/tones` and `@miragon/pulse-ui/format` in core and webview)
 
 ## Context
 
@@ -46,18 +46,22 @@ flowchart TB
   modelAdapter --> contract
   core --> contract
   core --> tones["@miragon/pulse-ui/tones"]
+  core --> format["@miragon/pulse-ui/format"]
   webview -- types only --> protocol[core/protocol]
   webview --> tones
+  webview --> format
   adapterC7 --> contract
   adapterC7 -. "fetch" .-> rest[[engine REST API]]
 ```
 
 ```text
 contract    → (nothing)
-core        → contract (entry only), @miragon/pulse-ui/tones
+core        → contract (entry only), @miragon/pulse-ui/tones,
+              @miragon/pulse-ui/format (only from views/labels.ts)
 protocol    → (nothing outside protocol)
-webview     → protocol (type-only), @miragon/pulse-ui/tones, preact, bpmn-js, diagram-js,
-              modeler-shell, fonts
+webview     → protocol (type-only), @miragon/pulse-ui/tones,
+              @miragon/pulse-ui/format (only from format/), preact,
+              bpmn-js, diagram-js, modeler-shell, fonts
               (nothing else of @miragon/pulse-ui ships: no React kit, no stylesheet, no ./testing)
 adapters/*  → contract (entry only)
 model       → contract (entry only), bpmn-moddle, camunda-bpmn-moddle, zeebe-bpmn-moddle
@@ -67,13 +71,23 @@ host        → core, protocol, contract, vscode, modeler-shell, Node built-ins
 tests, scripts, dev tooling → anything
 ```
 
-`@miragon/pulse-ui/tones` is the part of Pulse's UI foundation the extension ships: the tone
-vocabulary and `SITUATION_TONES`, the one tone per situation (an open incident, a running or
-suspended instance) that the MCP widgets read too. It imports nothing (the repository's
-`ui-foundation-entries-import-nothing`), so esbuild bundles a few hundred bytes and no React.
-The extension shares which tone a situation takes, not a component: the webview draws the tone
-with its own CSS ([user-interface.md](user-interface.md)), and `pulse-ui-only-its-foundation`
-keeps pulse-ui's React kit, its stylesheets and `./testing` out of shipped code.
+`@miragon/pulse-ui/tones` and `@miragon/pulse-ui/format` are the part of Pulse's UI foundation
+the extension ships: the tone vocabulary and `SITUATION_TONES`, the one tone per situation (an
+open incident, a running or suspended instance), and the formatters (times to the millisecond,
+relative times, the one duration form, exact and compact counts with their lower bound, short
+ids), both of which the MCP widgets read too. They import nothing (the repository's
+`ui-foundation-entries-import-nothing`), so esbuild bundles about a kilobyte and no React.
+The extension shares which tone a situation takes and how a date, a duration, a count or an id
+reads, not a component: the webview draws the tone with its own CSS
+([user-interface.md](user-interface.md)), `TimeLabels` and `CountLabels` (webview) and `Labels`
+(core) delegate to the formatters and set their locale (English, a 24-hour clock:
+`en-u-hc-h23`, once per layer: `Labels` in the core, `LabelLocale` in the webview), the
+repository's date and number gates keep `Intl` and `toFixed` out of core and webview, and
+`pulse-ui-only-its-foundation` keeps pulse-ui's React kit, its stylesheets and `./testing` out of
+shipped code. Only those label helpers import the formatters (`core/views/labels.ts` and the
+webview's `format/` folder, the closed world's one entry for `@miragon/pulse-ui/format`): the
+formatters keep their locale in the module, so a module that called them directly would format
+in the machine's locale until a helper had loaded.
 
 One edge crosses into another app, and only as a file read: the CLI owns the format of
 `.pulse-cli.json` (its JSON Schema `apps/cli/schema/project-file.schema.json`) and the shared

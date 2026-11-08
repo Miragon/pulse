@@ -22,7 +22,7 @@ export class BulkFailureText {
   text(): string {
     const failures = this.run.failures ?? []
     const { failed, total } = this.run.progress
-    const header = `Bulk operation ${this.run.operationId ?? ""}: ${failed} of ${total} failed.`
+    const header = `Bulk operation ${this.run.operationId ?? ""}: ${Labels.count(failed)} of ${Labels.count(total)} failed.`
     const more =
       failures.length >= READ_AT_MOST ? [`Pulse read the first ${READ_AT_MOST} failures.`] : []
     return [header, "", ...failures.map((failure) => this.lineOf(failure)), ...more].join("\n")

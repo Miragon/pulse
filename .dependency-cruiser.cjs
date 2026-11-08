@@ -161,11 +161,12 @@ const EXT_APPS_HOST_ADAPTER = [
 const VIEW_STACK = `react|react-dom|lucide-react|@tanstack/[^/]+|@miragon/pulse-ui|${EXT_APPS_RUNTIME}|bpmn-js|diagram-js`
 
 /**
- * pulse-ui's framework-free entries, one folder each under src/ (`./tones`): the UI foundation
- * every Pulse UI shares at runtime, the VS Code webview included. The group names the folder,
- * so an entry imports only its own (ui-foundation-entries-import-nothing).
+ * pulse-ui's framework-free entries, one folder each under src/ (`./format`, `./tones`): the UI
+ * foundation every Pulse UI shares at runtime, the VS Code extension's core and webview included.
+ * The group names the folder, so an entry imports only its own
+ * (ui-foundation-entries-import-nothing).
  */
-const UI_FOUNDATION_ENTRIES = "^packages/core/ui/src/(tones)/"
+const UI_FOUNDATION_ENTRIES = "^packages/core/ui/src/(format|tones)/"
 
 /** widget-shell's two halves and the protocol modules both import (see the seam rules). */
 const SHELL_SRC = "^packages/core/widget-shell/src/"
@@ -279,7 +280,8 @@ module.exports = {
       name: "ui-foundation-entries-import-nothing",
       severity: "error",
       comment:
-        "pulse-ui's framework-free entries (src/tones, published as @miragon/pulse-ui/tones) " +
+        "pulse-ui's framework-free entries (src/format and src/tones, published as " +
+        "@miragon/pulse-ui/format and @miragon/pulse-ui/tones) " +
         "import only their own folder: no React, no Radix, no tailwind-merge, no other file of " +
         "the kit, no Node built-in. A UI on another framework (the VS Code webview on Preact) " +
         "bundles them, so what needs React or a class map stays in the kit's root, which may " +
