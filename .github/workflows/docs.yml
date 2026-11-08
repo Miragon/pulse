@@ -3,20 +3,20 @@ name: Docs
 # The Pulse docs (docs/*.md) as a VitePress site on GitHub Pages:
 # https://miragon.github.io/pulse/. A pull request that touches docs/ checks
 # the vendored Miragon docs kit and builds the site (VitePress fails the build on
-# a dead link). A push to main also deploys it.
+# a dead link). Only a release deploys it, so the site shows no docs that no release
+# shipped: release-please.yml calls this workflow on main once a release is created
+# and approved, and a dispatch on main deploys it by hand. No push deploys it, and no
+# run on a tag can: the github-pages environment admits main only.
+# scripts/check-github-config.mjs (pnpm lint:github) pins the triggers and the caller.
 # Template from Miragon/corporate-identity (skill docs-site), with the pnpm
 # workspace steps: docs/ is the workspace package @miragon/pulse-docs.
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "docs/**"
-      - ".github/workflows/docs.yml"
   pull_request:
     paths:
       - "docs/**"
       - ".github/workflows/docs.yml"
+  workflow_call:
   workflow_dispatch:
 
 # No permissions by default; each job asks for what it needs.
@@ -55,7 +55,7 @@ jobs:
           # Taken from the repo name, so the build follows the rename in #415. The URL
           # moves with it: GitHub does not redirect project pages after a rename.
           # A build from before a rename keeps the old base and Pages serves it broken
-          # under the new one, with a green run. So rename the repo first and merge
+          # under the new one, with a green run. So rename the repo first and release
           # second, or run this workflow by hand (workflow_dispatch) right after it.
           DOCS_BASE: /${{ github.event.repository.name }}/
 

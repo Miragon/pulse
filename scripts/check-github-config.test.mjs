@@ -19,6 +19,9 @@ import {
   CI_WORKFLOW,
   CLI_PUBLISH_TRIGGERS,
   CLI_PUBLISH_WORKFLOWS,
+  DOCS_TRIGGERS,
+  DOCS_WORKFLOW,
+  PAGES_ENVIRONMENT,
   PUBLISHABLE_DIR,
   PUBLISH_WORKFLOW,
   RELEASE_WORKFLOW,
@@ -28,6 +31,7 @@ import {
   actionRefs,
   checkCiScopes,
   checkCliPublishWorkflows,
+  checkDocsDeploy,
   checkPluginVersions,
   checkPublishMatrix,
   checkPublishWorkflow,
@@ -1369,6 +1373,174 @@ describe("checkCliPublishWorkflows", () => {
       checkCliPublishWorkflows(docs)[0],
       /no job calls \.\/\.github\/workflows\/publish-cli\.yml/,
     )
+  })
+})
+
+// ── docs.yml: the docs site ─────────────────────────────────────────────────
+
+describe("checkDocsDeploy", () => {
+  const workflows = () =>
+    new Map([RELEASE_WORKFLOW, DOCS_WORKFLOW].map((file) => [file, readDoc(file)]))
+  const docsErrors = (mutate) => {
+    const docs = workflows()
+    mutate({ docs: docs.get(DOCS_WORKFLOW), release: docs.get(RELEASE_WORKFLOW) })
+    return checkDocsDeploy(docs)
+  }
+
+  it("accepts the real workflows: the release calls docs.yml once", () => {
+    assert.deepEqual(checkDocsDeploy(workflows()), [])
+    const callers = Object.values(readDoc(RELEASE_WORKFLOW).jobs).filter(
+      (job) => job.uses === `./${DOCS_WORKFLOW}`,
+    )
+    assert.equal(callers.length, 1)
+    assert.deepEqual(DOCS_TRIGGERS, ["pull_request", "workflow_call", "workflow_dispatch"])
+  })
+
+  it("rejects the push to main that deployed unreleased docs, and any other trigger", () => {
+    const errors = docsErrors(({ docs }) => {
+      docs.on.push = { branches: ["main"], paths: ["docs/**"] }
+      docs.on.schedule = [{ cron: "0 4 * * *" }]
+    })
+    assert.equal(errors.length, 2)
+    assert.match(errors[0], /docs\.yml: runs on push; it runs on pull_request, workflow_call, /)
+    assert.match(errors[1], /docs\.yml: runs on schedule;/)
+    // the string and the list form of on count the same way
+    assert.match(docsErrors(({ docs }) => (docs.on = "push"))[0], /runs on push/)
+  })
+
+  it("demands each of its triggers: the release's call, the hand deploy, the pull request build", () => {
+    const errors = docsErrors(({ docs }) => {
+      delete docs.on.workflow_call
+      delete docs.on.workflow_dispatch
+      delete docs.on.pull_request
+    })
+    assert.equal(errors.length, 3)
+    assert.match(errors[0], /does not run on pull_request/)
+    assert.match(errors[1], /does not run on workflow_call/)
+    assert.match(errors[2], /does not run on workflow_dispatch/)
+  })
+
+  it("rejects top-level permissions", () => {
+    const errors = docsErrors(({ docs }) => (docs.permissions = { contents: "read" }))
+    assert.deepEqual(errors.length, 1)
+    assert.match(errors[0], /docs\.yml: top-level permissions must be \{\}/)
+  })
+
+  it("rejects a deploy job that grants more, deploys from a pull request or another branch", () => {
+    for (const [mutate, pattern] of [
+      [
+        ({ docs }) => (docs.jobs.deploy.permissions.contents = "write"),
+        /job deploy must hold exactly \{ pages: write, id-token: write \}/,
+      ],
+      [
+        ({ docs }) => (docs.jobs.deploy.permissions = "write-all"),
+        /job deploy must hold exactly .*"write-all"/,
+      ],
+      [({ docs }) => delete docs.jobs.deploy.if, /job deploy must deploy from main only/],
+      [
+        ({ docs }) => (docs.jobs.deploy.if = "github.ref == 'refs/heads/main'"),
+        /job deploy must deploy from main only, never from a pull request/,
+      ],
+      [
+        ({ docs }) => (docs.jobs.deploy.if = "github.event_name != 'pull_request'"),
+        /job deploy must deploy from main only/,
+      ],
+    ]) {
+      const errors = docsErrors(mutate)
+      assert.equal(errors.length, 1, errors.join("\n"))
+      assert.match(errors[0], pattern)
+    }
+  })
+
+  it("demands one deploy job in github-pages, and the Pages grants nowhere else", () => {
+    const outside = docsErrors(({ docs }) => delete docs.jobs.deploy.environment)
+    assert.equal(outside.length, 2)
+    assert.match(outside[0], /exactly one job runs in the environment github-pages .* found 0/)
+    assert.match(outside[1], /job deploy holds pages or id-token/)
+    const twice = docsErrors(({ docs }) => {
+      docs.jobs.again = structuredClone(docs.jobs.deploy)
+    })
+    assert.equal(twice.length, 1)
+    assert.match(twice[0], /found 2 \(deploy, again\)/)
+    for (const permissions of [
+      { contents: "read", "id-token": "write" },
+      { contents: "read", pages: "read" },
+      "read-all",
+    ]) {
+      const errors = docsErrors(({ docs }) => (docs.jobs.build.permissions = permissions))
+      assert.equal(errors.length, 1, JSON.stringify(permissions))
+      assert.match(errors[0], /job build holds pages or id-token: only the deploy job/)
+    }
+    assert.equal(PAGES_ENVIRONMENT, "github-pages")
+  })
+
+  it("demands exactly one release job that calls it, the one that deploys", () => {
+    const none = docsErrors(({ release }) => delete release.jobs["publish-docs"])
+    assert.equal(none.length, 1)
+    assert.match(none[0], /exactly one job calls \.\/\.github\/workflows\/docs\.yml, found 0/)
+    const twice = docsErrors(({ release }) => {
+      release.jobs["publish-docs-again"] = structuredClone(release.jobs["publish-docs"])
+    })
+    assert.match(twice[0], /found 2/)
+    const noRelease = workflows()
+    noRelease.delete(RELEASE_WORKFLOW)
+    assert.match(checkDocsDeploy(noRelease)[0], /found 0/)
+  })
+
+  it("rejects a caller that deploys before the approval, on a dry run or without a release", () => {
+    for (const [mutate, pattern] of [
+      [
+        ({ release }) => (release.jobs["publish-docs"].needs = ["release-please"]),
+        /job publish-docs must need release-please and gate/,
+      ],
+      [
+        ({ release }) =>
+          (release.jobs["publish-docs"].if =
+            "${{ needs.release-please.outputs.release_created == 'true' || inputs.dry_run == true }}"),
+        /job publish-docs must run only once a release is created/,
+      ],
+      [
+        ({ release }) => (release.jobs["publish-docs"].if = "${{ inputs.dry_run != true }}"),
+        /job publish-docs must run only once a release is created/,
+      ],
+      [
+        ({ release }) => delete release.jobs["publish-docs"].if,
+        /job publish-docs must run only once a release is created/,
+      ],
+    ]) {
+      const errors = docsErrors(mutate)
+      assert.equal(errors.length, 1, errors.join("\n"))
+      assert.match(errors[0], pattern)
+    }
+  })
+
+  it("rejects a caller that grants more or less, or hands down secrets", () => {
+    for (const [mutate, pattern] of [
+      [
+        ({ release }) => (release.jobs["publish-docs"].permissions.contents = "write"),
+        /job publish-docs must hold exactly \{ contents: read, pages: write, id-token: write \}/,
+      ],
+      [
+        ({ release }) => delete release.jobs["publish-docs"].permissions,
+        /job publish-docs must hold exactly .*\(found undefined\)/,
+      ],
+      [
+        ({ release }) => (release.jobs["publish-docs"].secrets = "inherit"),
+        /job publish-docs passes secrets: the deploy needs none/,
+      ],
+    ]) {
+      const errors = docsErrors(mutate)
+      assert.equal(errors.length, 1, errors.join("\n"))
+      assert.match(errors[0], pattern)
+    }
+  })
+
+  it("names a missing docs workflow", () => {
+    const docs = workflows()
+    docs.delete(DOCS_WORKFLOW)
+    assert.deepEqual(checkDocsDeploy(docs), [
+      ".github/workflows/docs.yml is missing: a release never deploys the docs",
+    ])
   })
 })
 

@@ -172,3 +172,18 @@ jobs:
     secrets: inherit
     with:
       tag_name: ${{ needs.release-please.outputs.tag_name }}
+
+  # The docs site (docs.yml) deploys with a release, never with a push to main, so it shows only
+  # what a release shipped. This run is on main, the one branch the github-pages environment
+  # admits (it refuses a run on the release tag), and builds the release's commit. Not on a dry
+  # run, which creates no release. The grants are the ceiling of the called jobs: build narrows
+  # itself to contents: read, deploy to pages: write and id-token: write. It takes no secret.
+  publish-docs:
+    name: Publish the docs site
+    needs: [release-please, gate]
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/docs.yml

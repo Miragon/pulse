@@ -20,6 +20,9 @@
  *   publish-vscode-extension.yml, after the release gate, and that workflow keeps the store
  *   credentials in its one job in the vscode-marketplace environment, which installs with
  *   --ignore-scripts and builds nothing (checkVscodePublish);
+ * - the docs site deploys with a release: docs.yml runs on no push, its one deploy job in the
+ *   github-pages environment holds only the Pages grants, and one job of release-please.yml calls
+ *   it after the approval, once a release is created (checkDocsDeploy);
  * - every job of ci.yml runs in a scope of scripts/ci-scopes.mjs, and a failed changes job
  *   fails a job instead of skipping all of them (checkCiScopes).
  *
@@ -895,6 +898,140 @@ export function checkVscodePublish(releaseDoc, publishDoc, packages) {
   return errors
 }
 
+// ── docs.yml: the docs site ─────────────────────────────────────────────────
+
+export const DOCS_WORKFLOW = ".github/workflows/docs.yml"
+/**
+ * The events the docs workflow runs on, each of them: a pull request builds the site, the release
+ * calls it to deploy, a dispatch deploys by hand. Never a push or a schedule, so the public site
+ * shows no docs that no release shipped.
+ */
+export const DOCS_TRIGGERS = ["pull_request", "workflow_call", "workflow_dispatch"]
+/** The environment of the Pages deploy; its deployment branch policy admits main only. */
+export const PAGES_ENVIRONMENT = "github-pages"
+const PAGES_GRANT = { pages: "write", "id-token": "write" }
+/** The deploy's condition in the release: a release exists, which no dry run creates. */
+const RELEASE_CREATED = "needs.release-please.outputs.release_created == 'true'"
+
+/** Like holdsIdToken, for pages: a string grants it, a map that names it at all does. */
+const holdsPages = (job) => {
+  const permissions = job?.permissions
+  if (permissions === undefined) return false
+  if (permissions === null || typeof permissions !== "object" || Array.isArray(permissions)) {
+    return true
+  }
+  return Object.hasOwn(permissions, "pages")
+}
+
+/** The one job of docs.yml that deploys: in github-pages with exactly the Pages grant, main only. */
+function checkPagesDeployJob(doc) {
+  const errors = []
+  const jobs = jobsOf(doc)
+  const deploys = jobs.filter(([, job]) => environmentOf(job) === PAGES_ENVIRONMENT)
+  if (deploys.length !== 1) {
+    const ids = deploys.map(([id]) => id).join(", ")
+    errors.push(
+      `${DOCS_WORKFLOW}: exactly one job runs in the environment ${PAGES_ENVIRONMENT} (the ` +
+        `deploy job), found ${deploys.length}${ids === "" ? "" : ` (${ids})`}`,
+    )
+  }
+  for (const [id, job] of deploys) {
+    const at = `${DOCS_WORKFLOW}: job ${id}`
+    if (!isDeepStrictEqual(job.permissions, PAGES_GRANT)) {
+      errors.push(
+        `${at} must hold exactly { pages: write, id-token: write } (found ` +
+          `${JSON.stringify(job.permissions)})`,
+      )
+    }
+    const condition = String(job.if ?? "")
+    if (
+      !condition.includes("github.event_name != 'pull_request'") ||
+      !condition.includes("github.ref == 'refs/heads/main'")
+    ) {
+      errors.push(
+        `${at} must deploy from main only, never from a pull request (if: github.event_name != ` +
+          `'pull_request' && github.ref == 'refs/heads/main')`,
+      )
+    }
+  }
+  for (const [id, job] of jobs.filter(([, other]) => environmentOf(other) !== PAGES_ENVIRONMENT)) {
+    if (holdsIdToken(job) || holdsPages(job)) {
+      errors.push(
+        `${DOCS_WORKFLOW}: job ${id} holds pages or id-token: only the deploy job in ` +
+          `${PAGES_ENVIRONMENT} may (a string such as write-all or read-all counts)`,
+      )
+    }
+  }
+  return errors
+}
+
+/** The one release job that calls docs.yml: after the approval, once a release exists. */
+function checkDocsCaller(releaseDoc) {
+  const errors = []
+  const callers = jobsOf(releaseDoc).filter(([, job]) => job?.uses === `./${DOCS_WORKFLOW}`)
+  if (callers.length !== 1) {
+    errors.push(
+      `${RELEASE_WORKFLOW}: exactly one job calls ./${DOCS_WORKFLOW}, found ${callers.length}: ` +
+        `a release deploys the docs site once, and nothing else does`,
+    )
+  }
+  for (const [id, job] of callers) {
+    const at = `${RELEASE_WORKFLOW}: job ${id}`
+    const needs = asList(job.needs)
+    if (!["release-please", "gate"].every((need) => needs.includes(need))) {
+      errors.push(`${at} must need release-please and gate: the site deploys an approved release`)
+    }
+    const condition = String(job.if ?? "")
+    if (!condition.includes(RELEASE_CREATED) || /\|\||inputs\./.test(condition)) {
+      errors.push(
+        `${at} must run only once a release is created (if: \${{ ${RELEASE_CREATED} }}), with ` +
+          `no alternative: a dry run creates no release and deploys nothing`,
+      )
+    }
+    const grant = { contents: "read", ...PAGES_GRANT }
+    if (!isDeepStrictEqual(job.permissions, grant)) {
+      errors.push(
+        `${at} must hold exactly { contents: read, pages: write, id-token: write }: the ceiling ` +
+          `of the called build and deploy jobs (found ${JSON.stringify(job.permissions)})`,
+      )
+    }
+    if (job.secrets !== undefined) {
+      errors.push(`${at} passes secrets: the deploy needs none, never secrets: inherit`)
+    }
+  }
+  return errors
+}
+
+/**
+ * The docs site deploys with a release, never with a push to main (pure; `workflows` holds
+ * release-please.yml too): docs.yml runs on exactly DOCS_TRIGGERS with no permission at the top
+ * level, one job deploys, in github-pages from main, and one job of release-please.yml calls it
+ * after the approval, only once a release is created, with the Pages grants and no secret.
+ */
+export function checkDocsDeploy(workflows) {
+  const doc = workflows.get(DOCS_WORKFLOW)
+  if (doc === undefined) return [`${DOCS_WORKFLOW} is missing: a release never deploys the docs`]
+  const errors = []
+  const triggers = Object.keys(triggersOf(doc))
+  for (const event of triggers.filter((event) => !DOCS_TRIGGERS.includes(event))) {
+    errors.push(
+      `${DOCS_WORKFLOW}: runs on ${event}; it runs on ${DOCS_TRIGGERS.join(", ")} only, so the ` +
+        `site deploys with a release or by hand, never docs that no release shipped`,
+    )
+  }
+  for (const event of DOCS_TRIGGERS.filter((event) => !triggers.includes(event))) {
+    errors.push(
+      `${DOCS_WORKFLOW}: does not run on ${event}: a pull request builds the site, the release ` +
+        `calls it (workflow_call), a dispatch on main deploys it by hand`,
+    )
+  }
+  if (!isDeepStrictEqual(doc.permissions, {})) {
+    errors.push(`${DOCS_WORKFLOW}: top-level permissions must be {}: each job names its own`)
+  }
+  errors.push(...checkPagesDeployJob(doc), ...checkDocsCaller(workflows.get(RELEASE_WORKFLOW)))
+  return errors
+}
+
 // ── CI scopes ───────────────────────────────────────────────────────────────
 
 const SCOPE_REFERENCE = /\bneeds\.changes\.outputs\.([\w-]+)/g
@@ -1000,6 +1137,7 @@ export function checkRepo(root) {
       workflows.get(VSCODE_PUBLISH_WORKFLOW),
       packages,
     ),
+    ...checkDocsDeploy(workflows),
     ...checkCiScopes(workflows.get(CI_WORKFLOW)),
   ]
 }
@@ -1020,6 +1158,6 @@ if (isMain) {
   console.log(
     "GitHub config: publish workflow, npm matrix and repositories, release extra-files and " +
       "plugin versions, the release gate, the CLI publish workflows, the extension's release " +
-      "path and the CI scopes hold.",
+      "path, the docs deploy and the CI scopes hold.",
   )
 }

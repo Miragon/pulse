@@ -116,4 +116,4 @@ Engine metrics come from the Kotlin plugin via any Micrometer export (see [Archi
 format), Kotlin engine plugins, the CIB seven example, the brand checks, the CLI and the VS Code
 extension against Camunda 7, CIB seven and Operaton, the CLI's binaries, image and plugin, the extension in VS Code and as a .vsix.
 A push to `main` runs every job, a pull request those its changes need (`scripts/ci-scopes.mjs`); mutation testing runs nightly.
-`docs.yml` checks the docs kit, builds the site on pull requests touching `docs/` (a dead link fails it) and publishes it from `main`.
+`docs.yml` checks the docs kit, builds the site on pull requests touching `docs/` (a dead link fails it) and publishes it with each release: `release-please.yml` calls it on `main` after the approval.
