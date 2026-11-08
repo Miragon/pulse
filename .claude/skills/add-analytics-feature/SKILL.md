@@ -1,6 +1,6 @@
 ---
 name: add-analytics-feature
-description: Step-by-step house pattern for adding a new analytics capability, a PromQL query function in `packages/connectors/analytics/analytics-client` and one tool in `packages/connectors/analytics/analytics-connector` (normally a show tool with its view). Use whenever adding or changing process analytics ("add a query for X", "new KPI/metric analysis", "extend the analytics dashboard"), PromQL queries, Prometheus-backed tools, or analytics widgets. Takes precedence over generic mcp-use examples.
+description: Step-by-step house pattern for adding a new analytics capability, a PromQL query function in `packages/connectors/analytics/analytics-client` and one tool in `packages/connectors/analytics/analytics-connector` (normally a show tool with its view). Use whenever adding or changing process analytics ("add a query for X", "new KPI/metric analysis", "extend the analytics dashboard"), PromQL queries, Prometheus-backed tools, or analytics widgets. Takes precedence over generic MCP SDK examples.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 ---
 
@@ -166,19 +166,19 @@ for the user and returns its figures to the model. The view chain mirrors the en
    `analyticsViews`. Verify your view arrives there.
    `apps/mcp-server/test/view-registry.test.ts` fails on any view-bound tool
    without a view.
-4. Register an `analytics_show_*` tool in `src/widget-tools.ts` with
-   `inputSchema: strictToolInput({ … })` (strict like the registrar: an
+4. Register an `analytics_show_*` tool in `src/widget-tools.ts` with the official SDK's
+   `server.registerTool(name, config, handler)` and `inputSchema: strictToolInput({ … })` (strict like the registrar: an
    unknown key is a tool error listing the valid ones; naming per the guide in the
    add-bpm-feature skill, e.g. `maxResults`, never `limit`; `activityId`, never `elementId`) and spread `...showToolBinding(TOOL_NAME, "Title")` (from
-   `@miragon/pulse-widget-shell/server`: native `view` binding named after the tool + required
-   passthrough `outputSchema` + the Apps-SDK `_meta` half; never hand-write
-   `_meta.ui` keys, mcp-use owns them), returning `buildViewResult(view, JSON.stringify(result))`
+   `@miragon/pulse-widget-shell/server`: the `_meta.ui.resourceUri` of the view named after the
+   tool, whose resource the boot serves, + required passthrough `outputSchema` + the Apps-SDK
+   `_meta` half; never hand-write `_meta` keys), returning `buildViewResult(view, JSON.stringify(result))`
    (`viewWithJson` in `src/widget-tools/shared.ts`): the `structuredContent` IS the view's
    data, the `content` the query result as compact JSON, without the `names` only the view
    needs (reference: `analytics_show_dashboard`). Only a widget that reads a feed itself (rendered without
    data, like the fleet's landscape, or refreshing in place) needs one: an app-only
    `*_data` feed spreads `...appOnly`
-   (`visibility: "app"` + `openai/widgetAccessible`, **no** view binding) and returns
+   (`_meta.ui.visibility: ["app"]` + `openai/widgetAccessible`, **no** view binding) and returns
    `buildDataFeedResult(data)`. Both resolve `engine` through `withEngineScope` like the
    registrar tools, and the payload echoes the resolved `engines` so the view and the
    model read the scope from the DATA.
@@ -335,7 +335,7 @@ export function registerHealthTools(
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     inputSchema: engineHealthInput.shape,
     handler: async (ch, args, ctx) =>
-      queries.engineHealth(withCallerSignal(ch, ctx?.signal), {
+      queries.engineHealth(withCallerSignal(ch, ctx?.mcpReq.signal), {
         engine: engineScope.resolve(args.engine),
         // …
       }),
@@ -386,5 +386,5 @@ app's `test:host` (the process flow in Frequency and Duration), and the app's
 `pnpm test` runs the query snapshot tests; `pnpm typecheck` is the **only** check that
 covers widget `.tsx` code (`tsc -p tsconfig.widgets.json`). For end-to-end verification:
 `pnpm play` (the playground's engine and Prometheus emit real metrics; it builds and starts the
-server against them), then call the tool in the inspector at
-`http://localhost:8400/mcp/inspector`. Run `pnpm format:check` before committing.
+server against them), then call the tool in the MCP Inspector `pnpm play` starts next to the
+server (it prints the URL). Run `pnpm format:check` before committing.

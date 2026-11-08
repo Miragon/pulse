@@ -1,7 +1,6 @@
 **/node_modules
 **/dist
 **/*.tsbuildinfo
-**/.mcp-use
 **/.DS_Store
 coverage
 # Local credentials, in every package, never in the image or the repo.

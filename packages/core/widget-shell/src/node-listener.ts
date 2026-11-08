@@ -1,15 +1,27 @@
 /**
- * mcp-use 2's Node bridge buffers every non-GET body into one string and parses it (up to ~20× on
- * the heap) before the OAuth gate. So before the bridge: a guard-refused request's body is discarded
- * unread, an over-cap body gets 413, and a body past the in-flight budget gets 503 + `Retry-After`.
- * `mcp-use dev` serves through its own listener and is NOT capped.
+ * The one place that sees `req.url` as sent: the bridge's URL parser resolves dot segments before
+ * any route, so a target that is not its own normal form gets 404 here, on every route, ahead of
+ * the guard and OAuth (and a `Host` the bridge would join into the path gets 400).
+ *
+ * The bridge also buffers every non-GET body before the app sees it, and a JSON body parses into a
+ * heap graph up to ~20× its size, all before the OAuth gate. So before the bridge: a guard-refused
+ * request's body is discarded unread, an over-cap body gets 413, and a body past the in-flight
+ * budget gets 503 + `Retry-After`. Every boot serves through it, `pnpm dev` included.
  */
 import type { IncomingMessage, ServerResponse } from "node:http"
 import { Readable } from "node:stream"
-import { toNodeHandler, type NodeIncomingMessageLike } from "mcp-use/node"
-import { IN_FLIGHT_BODY_MULTIPLE, jsonRpcErrorBody } from "./http-edge.js"
+import { toNodeHandler, type NodeIncomingMessageLike } from "@modelcontextprotocol/node"
+import {
+  IN_FLIGHT_BODY_MULTIPLE,
+  isNormalTarget,
+  isUsableHost,
+  jsonRpcErrorBody,
+  NOT_A_HOST,
+  NOT_NORMAL_TARGET,
+  type RefusedRequest,
+} from "./http-edge.js"
 
-/** `MCPServer` satisfies it structurally. */
+/** `McpHttpApp` satisfies it structurally. */
 export interface FetchTarget {
   fetch: (request: Request) => Promise<Response>
 }
@@ -21,6 +33,8 @@ export interface BodyLimitedListenerOptions {
   refusedBeforeBody?: (req: IncomingMessage) => boolean
   /** Grace before the socket of a refused upload is cut (default 2000 ms). */
   discardGraceMs?: number
+  /** A request answered here for its target or `Host`, which the app's log and metrics never see. */
+  onRefused?: (refused: RefusedRequest) => void
   /** The client still gets a JSON-RPC 500. */
   onError?: (error: Error) => void
 }
@@ -81,7 +95,7 @@ function replay(
 }
 
 /**
- * The body headers go too: mcp-use's JSON middleware runs BEFORE the guard and would answer an empty
+ * The body headers go too: a handler that parses JSON before the guard would answer an empty
  * `application/json` body 400 instead of letting the guard 403.
  */
 function bodiless(req: IncomingMessage): NodeIncomingMessageLike {
@@ -98,6 +112,15 @@ interface Refusal {
   headers?: Record<string, string>
 }
 
+const NOT_NORMAL: Refusal = { status: 404, message: NOT_NORMAL_TARGET }
+const BAD_HOST: Refusal = { status: 400, message: NOT_A_HOST }
+
+/** The path first, which takes no header and no body. */
+function targetRefusal(req: IncomingMessage): Refusal | undefined {
+  if (!isNormalTarget(req.url ?? "/")) return NOT_NORMAL
+  return isUsableHost(req.headers.host) ? undefined : BAD_HOST
+}
+
 function refuse(
   req: IncomingMessage,
   res: ServerResponse,
@@ -109,6 +132,7 @@ function refuse(
     ...headers,
     "content-type": "application/json",
     "content-length": body.length,
+    "cache-control": "no-store",
     connection: "close",
   })
   res.end(body)
@@ -126,12 +150,13 @@ export function createBodyLimitedListener(
     maxInFlightBodyBytes = IN_FLIGHT_BODY_MULTIPLE * maxBodyBytes,
     refusedBeforeBody,
     discardGraceMs = 2000,
+    onRefused,
     onError,
   }: BodyLimitedListenerOptions,
 ): BodyLimitedListener {
   const bridge = toNodeHandler(
     { fetch: (request) => target.fetch(request) },
-    onError ? { onerror: onError } : {},
+    { maxRequestBodySize: maxBodyBytes, ...(onError ? { onerror: onError } : {}) },
   )
   const tooLarge: Refusal = {
     status: 413,
@@ -176,6 +201,11 @@ export function createBodyLimitedListener(
     share: BudgetShare,
   ): Promise<void> => {
     const method = (req.method ?? "GET").toUpperCase()
+    const refused = targetRefusal(req)
+    if (refused) {
+      onRefused?.({ method, target: req.url ?? "/", ...refused })
+      return refuse(req, res, refused, discardGraceMs)
+    }
     if (method === "GET" || method === "HEAD") return bridge(req, res)
     if (refusedBeforeBody?.(req)) {
       // The app's guard answers (and counts) the 403.

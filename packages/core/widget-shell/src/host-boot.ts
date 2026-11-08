@@ -1,6 +1,6 @@
-/** mcp-use workarounds for composed-server hosts, so a migration lands here once. */
+/** Small boot helpers: the listen port and how the metrics read a tool call. */
 
-/** Structural, so callers pass an `MCPServer` without this module importing mcp-use. */
+/** Structural: the app's `mcp:tools/call` hook, as the metrics install it. */
 export interface ToolCallMiddlewareHost {
   use(
     pattern: "mcp:tools/call",
@@ -19,30 +19,6 @@ export function toolCallOutcome(result: unknown): "ok" | "error" {
     result !== null &&
     (result as { isError?: unknown }).isError === true
   return isError ? "error" : "ok"
-}
-
-/**
- * Above `info`, `MCP_USE_LOG_LEVEL` logs tool inputs/outputs or full dumps with headers: process
- * variables, business keys and bearer tokens reach the log. The boot says so.
- */
-export function requestLogLevelWarning(env: NodeJS.ProcessEnv): string | undefined {
-  const level = env.MCP_USE_LOG_LEVEL?.trim().toLowerCase()
-  if (level !== "debug" && level !== "trace") return undefined
-  return level === "trace"
-    ? "MCP_USE_LOG_LEVEL=trace: mcp-use logs every request and response in full, headers (bearer tokens) included. For debugging only."
-    : "MCP_USE_LOG_LEVEL=debug: mcp-use logs tool inputs and outputs (process variables, business keys) on every call. For debugging only."
-}
-
-/**
- * `mcp-use dev` primes its own empty views manifest onto the default export, which mcp-use rejects
- * as a double prime. Swallowed only under the dev CLI, so a genuine double prime still fails.
- */
-export function swallowDevCliViewsPrime(
-  server: object,
-  env: NodeJS.ProcessEnv = process.env,
-): void {
-  if (!env.MCP_USE_DEV_CLI) return
-  ;(server as { __primeViews: () => void }).__primeViews = () => {}
 }
 
 export interface ResolvePortOptions {

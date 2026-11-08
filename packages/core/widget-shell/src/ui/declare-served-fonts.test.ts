@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it } from "vitest"
 import { declareServedFonts, SERVED_FONTS_STYLE_ID } from "./declare-served-fonts.js"
 
-const PUBLIC_BASE = "https://mcp.example.com/mcp/_mcp-use/public/"
+const PUBLIC_BASE = "https://mcp.example.com/mcp/assets/"
 const FONT_BASE = "https://mcp.example.com/fonts/geist-5.3.0"
 
 const declared = () => document.getElementById(SERVED_FONTS_STYLE_ID)
@@ -27,9 +27,7 @@ describe("declareServedFonts", () => {
     expect(css).not.toContain("data:")
 
     // A second mount (StrictMode, a re-rendered shell) adds nothing.
-    expect(declareServedFonts(document, "https://other.example/mcp/_mcp-use/public/")).toBe(
-      FONT_BASE,
-    )
+    expect(declareServedFonts(document, "https://other.example/mcp/assets/")).toBe(FONT_BASE)
     expect(document.querySelectorAll(`#${SERVED_FONTS_STYLE_ID}`)).toHaveLength(1)
   })
 
@@ -39,7 +37,7 @@ describe("declareServedFonts", () => {
   })
 
   it("declares nothing for a base it cannot write into a CSS url()", () => {
-    expect(declareServedFonts(document, "http://a(b/mcp/_mcp-use/public/")).toBeUndefined()
+    expect(declareServedFonts(document, "http://a(b/mcp/assets/")).toBeUndefined()
     expect(declared()).toBeNull()
   })
 })

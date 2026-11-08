@@ -17,6 +17,7 @@ function install(options?: MetricsOptions) {
   const routes = new Map<string, RouteHandler>()
   let http: HttpMiddleware | undefined
   let tool: ToolMiddleware | undefined
+  let refuse: Parameters<MetricsHost["onRefused"]>[0] | undefined
   const server: MetricsHost = {
     get: (path, handler) => routes.set(path, handler),
     use: (pattern: "*" | "mcp:tools/call", handler: HttpMiddleware | ToolMiddleware) => {
@@ -24,9 +25,12 @@ function install(options?: MetricsOptions) {
       else tool = handler as ToolMiddleware
       return undefined
     },
+    onRefused: (fn) => {
+      refuse = fn
+    },
   }
   const registry = installMetrics(server, { defaultMetrics: false, ...options })
-  if (!http || !tool) throw new Error("middlewares were not registered")
+  if (!http || !tool || !refuse) throw new Error("middlewares were not registered")
   const scrape = async (path = "/metrics", authorization?: string) => {
     const handler = routes.get(path)
     if (!handler) throw new Error(`no route registered for ${path}`)
@@ -37,7 +41,7 @@ function install(options?: MetricsOptions) {
   }
   const request = (method: string, path: string, status: number, next?: () => Promise<void>) =>
     http!({ req: { method, path }, res: { status } }, next ?? (async () => {}))
-  return { routes, registry, scrape, request, tool }
+  return { routes, registry, scrape, request, tool, refuse }
 }
 
 describe("bearerMatches", () => {
@@ -50,6 +54,21 @@ describe("bearerMatches", () => {
     expect(bearerMatches("s3cret", "s3cret")).toBe(false)
     expect(bearerMatches("Bearer ", "s3cret")).toBe(false)
     expect(bearerMatches(undefined, "s3cret")).toBe(false)
+  })
+})
+
+describe("a request refused in front of the routes", () => {
+  it("counts under route=other, whatever its target looks like", async () => {
+    const { registry, refuse } = install()
+    for (const target of ["/./mcp", "/x/../metrics", "//health"]) {
+      refuse({ method: "GET", target, status: 404, message: "Not found" })
+    }
+    refuse({ method: "POST", target: "/x", status: 400, message: "Bad request" })
+    const text = await registry.metrics()
+    expect(text).toContain('mcp_http_requests_total{method="GET",route="other",status="404"} 3')
+    expect(text).toContain('mcp_http_requests_total{method="POST",route="other",status="400"} 1')
+    expect(text).toContain('mcp_http_request_duration_seconds_count{method="GET",route="other"} 3')
+    expect(text).not.toMatch(/mcp\b.*\/\.\/|x\/\.\.|route="\/\//)
   })
 })
 

@@ -180,19 +180,4 @@ describe("runComposedServer", () => {
     expect(written).toEqual([])
     expect(exit).not.toHaveBeenCalled()
   })
-
-  it("under mcp-use dev, never listens and lets a boot error reach the dev CLI", async () => {
-    vi.stubEnv("MCP_USE_DEV_CLI", "1")
-    const { create, listened } = createApp()
-    expect(typeof (await runComposedServer(create)).fetch).toBe("function")
-    expect(listened).toEqual([])
-    const broken = failing(() => {
-      throw new Error("ALPHA_URL must be an http:// or https:// URL")
-    })
-    await expect(runComposedServer(broken)).rejects.toThrow(
-      "ALPHA_URL must be an http:// or https:// URL",
-    )
-    expect(written).toEqual([])
-    expect(exit).not.toHaveBeenCalled()
-  })
 })

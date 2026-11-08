@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { z } from "zod"
-import type { MCPServer } from "mcp-use"
+import { recordingModuleServer, testServerContext } from "./testing/module-server.js"
 import { createToolRegistrar } from "./tool-registrar.js"
 
 interface Result {
@@ -11,31 +11,31 @@ interface Result {
 }
 
 interface Registered {
-  definition: {
-    name: string
-    description: string
-    inputSchema: z.ZodType
-    outputSchema?: z.ZodType
-    annotations?: Record<string, boolean>
+  name: string
+  config: {
+    description?: string
+    inputSchema?: unknown
+    outputSchema?: unknown
+    annotations?: Record<string, unknown>
   }
-  call: (args: Record<string, unknown>, ctx?: unknown) => Promise<Result>
+  call: (
+    args: Record<string, unknown>,
+    ctx?: ReturnType<typeof testServerContext>,
+  ) => Promise<Result>
 }
 
-/** A fake `server.tool` that records what the registrar hands mcp-use. */
+/** The registrar on a recording `ModuleServer`: what it hands the SDK's `registerTool`. */
 function harness<TClient>(client: TClient) {
-  const tools: Registered[] = []
-  const server = {
-    tool: (definition: Registered["definition"], call: Registered["call"]) => {
-      tools.push({ definition, call })
-    },
-  } as unknown as MCPServer
+  const recording = recordingModuleServer()
   const only = (): Registered => {
-    const [tool] = tools
+    const [tool] = recording.tools.values()
     if (!tool) throw new Error("the registrar registered nothing")
     return tool
   }
-  return { register: createToolRegistrar(server, client), only }
+  return { register: createToolRegistrar(recording.server, client), only }
 }
+
+const inputOf = (tool: Registered) => tool.config.inputSchema as z.ZodType
 
 const text = (result: Result) => result.content[0]?.text
 
@@ -131,13 +131,13 @@ describe("createToolRegistrar registration", () => {
       annotations,
       handler: () => Promise.resolve({ data: [] }),
     })
-    const { definition } = only()
-    expect(definition.name).toBe("probe")
-    expect(definition.description).toBe("Probes.")
-    expect(definition.outputSchema).toBe(outputSchema)
-    expect(definition.annotations).toBe(annotations)
+    const { name, config } = only()
+    expect(name).toBe("probe")
+    expect(config.description).toBe("Probes.")
+    expect(config.outputSchema).toBe(outputSchema)
+    expect(config.annotations).toBe(annotations)
     // `category` is registrar bookkeeping, never part of the wire definition.
-    expect(definition).not.toHaveProperty("category")
+    expect(config).not.toHaveProperty("category")
   })
 
   it("hands the handler the client, the args and the ctx", async () => {
@@ -153,7 +153,7 @@ describe("createToolRegistrar registration", () => {
         return Promise.resolve(null)
       },
     })
-    const ctx = { signal: new AbortController().signal }
+    const ctx = testServerContext()
     await only().call({ a: 1 }, ctx)
     expect(seen).toEqual([client, { a: 1 }, ctx])
   })
@@ -166,7 +166,7 @@ describe("createToolRegistrar registration", () => {
       inputSchema: { query: z.string(), limit: z.number().optional() },
       handler: () => Promise.resolve(null),
     })
-    const schema = only().definition.inputSchema
+    const schema = inputOf(only())
     expect(z.toJSONSchema(schema, { io: "input" })).toMatchObject({ additionalProperties: false })
     const result = schema.safeParse({ query: "a", extra: 1 })
     expect(result.success).toBe(false)
@@ -178,7 +178,7 @@ describe("createToolRegistrar registration", () => {
   it("is strict without an input schema too", () => {
     const { register, only } = harness({})
     register({ name: "probe", description: "", handler: () => Promise.resolve(null) })
-    const schema = only().definition.inputSchema
+    const schema = inputOf(only())
     expect(schema.safeParse({}).success).toBe(true)
     expect(schema.safeParse({ x: 1 }).error?.issues.map((issue) => issue.message)).toEqual([
       'Unknown key "x". This tool takes no arguments.',

@@ -10,11 +10,14 @@ import {
   composeArgs,
   DEFAULT_SERVER_PORT,
   ENGINE_SOURCES,
+  inspectorLink,
+  inspectorPorts,
   portConflict,
   portOwners,
   profilesFor,
   SERVICES,
   serverPreset,
+  SERVER_READY_PATH,
   servicesFor,
   withPreset,
 } from "./local-env.mjs"
@@ -103,14 +106,20 @@ describe("the presets", () => {
   })
 
   it("puts the server behind the playground's Keycloak with --auth", () => {
-    assert.equal(serverPreset().MCP_USE_OAUTH_KEYCLOAK_SERVER_URL, undefined)
+    assert.equal(serverPreset().MCP_OAUTH_KEYCLOAK_SERVER_URL, undefined)
     const preset = serverPreset({ auth: true })
     const keycloak = SERVICES.find(({ id }) => id === "keycloak")
-    assert.equal(preset.MCP_USE_OAUTH_KEYCLOAK_SERVER_URL, `http://localhost:${keycloak.ports[0]}`)
-    assert.match(keycloak.probe, new RegExp(`/realms/${preset.MCP_USE_OAUTH_KEYCLOAK_REALM}$`))
-    // The two lines .env.example names for the local playground.
+    assert.equal(preset.MCP_OAUTH_KEYCLOAK_SERVER_URL, `http://localhost:${keycloak.ports[0]}`)
+    assert.match(keycloak.probe, new RegExp(`/realms/${preset.MCP_OAUTH_KEYCLOAK_REALM}$`))
+    // OAuth refuses to boot without MCP_URL; the server's own port, on the name the realm stamps.
+    assert.equal(preset.MCP_URL, `http://localhost:${DEFAULT_SERVER_PORT}`)
+    assert.equal(serverPreset({ auth: true, port: 8500 }).MCP_URL, "http://localhost:8500")
+    assert.equal(serverPreset({ port: 8500 }).MCP_URL, undefined)
+    // The three lines .env.example names for the local playground.
     const example = readFileSync(new URL("../.env.example", import.meta.url), "utf8")
-    for (const [name, value] of Object.entries(preset).filter(([name]) => /OAUTH/.test(name))) {
+    for (const [name, value] of Object.entries(preset).filter(([name]) =>
+      /OAUTH|MCP_URL/.test(name),
+    )) {
       assert.ok(example.includes(`# ${name}=${value}\n`), name)
     }
   })
@@ -171,6 +180,78 @@ describe("the server port", () => {
       claudeCodeHint(8401),
       "  Claude Code   a session reaches it when started as PORT=8401 claude\n",
     )
+  })
+
+  it("is ready on the probe the boot answers, never on a dev-only page", () => {
+    assert.equal(SERVER_READY_PATH, "/health/ready")
+  })
+})
+
+describe("the inspector", () => {
+  const manifest = JSON.parse(
+    readFileSync(new URL("../apps/mcp-server/package.json", import.meta.url), "utf8"),
+  )
+
+  it("starts with the server: loopback, no browser, the dev server's endpoint", () => {
+    const script = manifest.scripts["dev:inspector"]
+    assert.match(manifest.scripts.dev, /pnpm run "\/\^dev:\/"/)
+    assert.match(script, /^HOST=127\.0\.0\.1 /)
+    assert.match(script, /\bMCP_AUTO_OPEN_ENABLED=false\b/)
+    // On localhost, the origin `--auth`'s MCP_URL names: under OAuth the inspector's client
+    // refuses a protected resource on another origin than the one it connects to.
+    assert.match(script, /--server-url http:\/\/localhost:\$\{PORT:-8400\}\/mcp"?$/)
+    assert.equal(
+      new URL(serverPreset({ auth: true }).MCP_URL).host,
+      new URL(script.split("--server-url ")[1].replace("${PORT:-8400}", "8400")).host,
+    )
+    assert.match(manifest.devDependencies["@modelcontextprotocol/inspector"], /^\d+\.\d+\.\d+$/)
+  })
+
+  // A second worktree's inspector collides on any port the command leaves on its default, and
+  // `pnpm play` refuses to start on a taken one.
+  it("the docs' second-worktree command moves every port the inspector binds", () => {
+    const page = readFileSync(new URL("../docs/mcp/developer.md", import.meta.url), "utf8")
+    const command = page.split("\n").find((line) => line.includes("<port> pnpm play"))
+    assert.ok(command, "docs/mcp/developer.md names the second worktree's command")
+    const named = Object.fromEntries(
+      [...command.matchAll(/\b([A-Z_]+)=<port>/g)].map(([, name], index) => [
+        name,
+        String(7000 + index),
+      ]),
+    )
+    assert.ok(named.PORT)
+    const defaults = new Set(inspectorPorts({}).map(({ port }) => port))
+    assert.deepEqual(
+      inspectorPorts(named).filter(({ port }) => defaults.has(port)),
+      [],
+    )
+  })
+
+  it("listens on its defaults unless its own variables move it", () => {
+    assert.deepEqual(inspectorPorts({}), [
+      { variable: "CLIENT_PORT", port: 6274, fromEnv: false },
+      { variable: "MCP_SANDBOX_PORT", port: 6275, fromEnv: false },
+      { variable: "MCP_APP_ORIGIN_PORT", port: 6278, fromEnv: false },
+    ])
+    assert.deepEqual(
+      inspectorPorts({
+        CLIENT_PORT: "7000",
+        SERVER_PORT: "7001",
+        MCP_APP_ORIGIN_PORT: " 7002 ",
+      }).map(({ port, fromEnv }) => [port, fromEnv]),
+      [
+        [7000, true],
+        [7001, true],
+        [7002, true],
+      ],
+    )
+    assert.equal(inspectorPorts({ MCP_SANDBOX_PORT: "7003", SERVER_PORT: "7001" })[1].port, 7003)
+    // A value the inspector would ignore leaves its default.
+    assert.equal(inspectorPorts({ CLIENT_PORT: "next" })[0].port, 6274)
+  })
+
+  it("links its web UI signed in", () => {
+    assert.equal(inspectorLink(6274, "a b"), "http://127.0.0.1:6274/?MCP_INSPECTOR_API_TOKEN=a%20b")
   })
 })
 

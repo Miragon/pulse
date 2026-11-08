@@ -2,14 +2,18 @@ import { fileURLToPath } from "node:url"
 import { defineConfig } from "vite"
 import react from "@vitejs/plugin-react"
 import tailwindcss from "@tailwindcss/vite"
-import { VIEW_BUNDLE_DEDUPE } from "@miragon/pulse-widget-shell/server"
+import { VIEW_BUNDLE_DEDUPE, viewBundleWatchPlugin } from "@miragon/pulse-widget-shell/server"
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  // `pnpm dev` builds the bundle, then `vite build --watch` rebuilds it
+  // next to `tsx watch`, which restarts the server on every write: the
+  // plugin leaves an unchanged output unwritten, so the watcher's first
+  // build restarts nothing.
+  plugins: [react(), tailwindcss(), viewBundleWatchPlugin()],
   resolve: {
     // LOAD-BEARING: widget-shell's list of what the view bundle must resolve to
-    // ONE instance (React, TanStack Query, mcp-use, the kit @miragon/pulse-ui,
-    // the view runtime @miragon/pulse-widget-shell, lucide-react). The modules
+    // ONE instance (React, TanStack Query, the kit @miragon/pulse-ui, the view
+    // runtime @miragon/pulse-widget-shell, lucide-react). The modules
     // each resolve their own pnpm instance of these; bundling two copies gives
     // each its own React context, a widget's `useViewHost()`/`useToolQuery()`
     // reads the wrong one (no view host, no QueryClient), and every in-widget

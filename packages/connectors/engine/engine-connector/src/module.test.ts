@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import type { MCPServer } from "mcp-use"
+import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
 import { engineModule, engineConfigSchema } from "./module.js"
 
 afterEach(() => {
@@ -84,10 +84,9 @@ describe("ENGINE_ALLOW_DEPLOYMENTS", () => {
 
   /** The module's createPlugin → plugin → registrar path, as the composition drives it. */
   const registeredNames = (config: Record<string, unknown>): string[] => {
-    const tool = vi.fn()
-    const server = { tool, prompt: vi.fn() } as unknown as MCPServer
-    engineModule.createPlugin({ engines: [engine], ...config }).register(server)
-    return tool.mock.calls.map((c) => (c[0] as { name: string }).name)
+    const recording = recordingModuleServer()
+    engineModule.createPlugin({ engines: [engine], ...config }).register(recording.server)
+    return [...recording.tools.keys()]
   }
 
   it("registers engine_create_deployment only with the flag AND engine:admin", () => {
@@ -140,7 +139,7 @@ describe("ENGINE_REQUEST_TIMEOUT_MS", () => {
   })
 
   it("reaches every engine client: a junk value fails createPlugin, a valid one boots", () => {
-    const server = { tool: vi.fn(), prompt: vi.fn() } as unknown as MCPServer
+    const { server } = recordingModuleServer()
     expect(() =>
       engineModule.createPlugin({ engines: [engine], requestTimeoutMs: "soon" }),
     ).toThrow(/ENGINE_REQUEST_TIMEOUT_MS/)

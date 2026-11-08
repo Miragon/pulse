@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import type { MCPServer } from "mcp-use"
+import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
 import { z } from "zod"
 import { analyticsModule } from "./module.js"
 import { dashboardInput } from "./schemas/index.js"
@@ -22,18 +22,15 @@ interface RecordedTool {
 
 /** The whole surface the plugin registers: registrar tools, widget tools and feeds. */
 function surfaceFor(config: Record<string, unknown> = {}): RecordedTool[] {
-  const tools: RecordedTool[] = []
-  const server = {
-    tool: (definition: RecordedTool) => {
-      tools.push(definition)
-    },
-  } as unknown as MCPServer
+  const recording = recordingModuleServer()
   const plugin = analyticsModule.createPlugin(
     { url: "http://prometheus.invalid", ...config },
     { engineIds: ["prod-a"] },
   )
-  plugin.register(server)
-  return tools
+  plugin.register(recording.server)
+  return [...recording.tools.values()].map(
+    ({ name, config }) => ({ name, ...config }) as RecordedTool,
+  )
 }
 
 const namesOf = (tools: RecordedTool[]) => tools.map((tool) => tool.name).sort()

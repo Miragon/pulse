@@ -1,6 +1,4 @@
 import { describe, expect, it } from "vitest"
-import type { z } from "zod"
-import type { MCPServer } from "mcp-use"
 import type {
   EngineLandscapeResult,
   PrometheusClient,
@@ -8,28 +6,22 @@ import type {
 } from "@miragon/pulse-analytics-client"
 import { createEngineScope } from "../engine-ids.js"
 import { registerWidgetTools } from "../widget-tools.js"
-
-type ToolResult = {
-  isError?: boolean
-  content: Array<{ type: string; text: string }>
-  structuredContent: Record<string, unknown>
-}
-type Definition = { name: string; description: string; inputSchema: z.ZodObject }
-type Handler = (args: Record<string, unknown>, ctx: unknown) => Promise<ToolResult>
+import {
+  recordedTools,
+  type Definition,
+  type Handler,
+  type ToolResult,
+} from "./recorded-tools.test-support.js"
 
 const NAME = "analytics_show_engine_landscape"
 
 /** prod-c reports nothing. */
 function showLandscape(ch: PrometheusClient): { definition: Definition; handler: Handler } {
-  const tools = new Map<string, { definition: Definition; handler: Handler }>()
-  const server = {
-    tool: (definition: Definition, handler: Handler) => {
-      tools.set(definition.name, { definition, handler })
-    },
-  } as unknown as MCPServer
-  registerWidgetTools(server, ch, {
-    engineScope: createEngineScope(["prod-a", "prod-b", "prod-c"]),
-  })
+  const tools = recordedTools((server) =>
+    registerWidgetTools(server, ch, {
+      engineScope: createEngineScope(["prod-a", "prod-b", "prod-c"]),
+    }),
+  )
   return tools.get(NAME)!
 }
 
@@ -65,7 +57,7 @@ describe("analytics_show_engine_landscape", () => {
   it("builds the inventory matrix and issues one node-folded query per metric", async () => {
     const { client, queries } = recordingClient()
 
-    const shown = await showLandscape(client).handler({}, {})
+    const shown = await showLandscape(client).handler({})
     const result = modelResult(shown)
 
     // Engine omitted = the configured fleet: the silent prod-c stays visible.
@@ -99,7 +91,7 @@ describe("analytics_show_engine_landscape", () => {
     const { client, queries } = recordingClient()
 
     const result = modelResult(
-      await showLandscape(client).handler({ engine: ["prod-a", "prod-c"] }, {}),
+      await showLandscape(client).handler({ engine: ["prod-a", "prod-c"] }),
     )
 
     expect(queries.every((q) => q.includes('{engine_id=~"prod-a|prod-c"}'))).toBe(true)
@@ -109,7 +101,7 @@ describe("analytics_show_engine_landscape", () => {
   it("never lists another tenant's engine from a shared Prometheus (N138)", async () => {
     const { client, queries } = recordingClient()
 
-    const result = await showLandscape(client).handler({ engine: ["prod-a", "tenant-x"] }, {})
+    const result = await showLandscape(client).handler({ engine: ["prod-a", "tenant-x"] })
     expect(result.isError).toBe(true)
     expect(result.content[0].text).toMatch(/Unknown engine "tenant-x"/)
     expect(queries).toEqual([])

@@ -95,7 +95,7 @@ jobs:
       - name: Install + test the template against the public registry
         run: |
           WORK="$(mktemp -d)/composed-server"
-          rsync -a --exclude node_modules --exclude dist --exclude .mcp-use \
+          rsync -a --exclude node_modules --exclude dist \
             templates/composed-server/ "$WORK/"
           cd "$WORK"
           pnpm install --no-frozen-lockfile

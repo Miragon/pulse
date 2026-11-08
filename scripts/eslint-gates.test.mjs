@@ -53,6 +53,7 @@ async function gateMessages(rel, code, rule = "no-restricted-syntax") {
 }
 
 const isRegistrarHit = (m) => m.includes("createToolRegistrar")
+const isResourceHit = (m) => m.includes("A connector registers no resource of its own")
 const isDateHit = (m) =>
   /^Use format(?:Timestamp|Date|Time)\b/.test(m) && m.includes("@miragon/pulse-ui")
 const isNumberHit = (m) => m.includes("view's locale") || m.includes("browser's locale")
@@ -153,8 +154,10 @@ describe("number gate (invariant 6) in pulse-ui and every widget tree", () => {
   })
 })
 
-describe("mcp-use/react gate (invariant 6): only widget-shell's adapter imports it", () => {
-  const isMcpUseReactHit = (m) => m.includes("imports mcp-use/react")
+describe("MCP Apps runtime gate (invariant 6): only widget-shell's host adapter imports ext-apps", () => {
+  const isExtAppsHit = (m) =>
+    m.includes("imports the MCP Apps runtime of @modelcontextprotocol/ext-apps")
+  const ADAPTER = [`${WS}/view-runtime.ts`, `${WS}/ext-apps-host.tsx`, `${WS}/view-root.tsx`]
   const MCP_PATHS = [
     `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.tsx`,
     `${AN}/widgets/__probe__.ts`,
@@ -168,28 +171,79 @@ describe("mcp-use/react gate (invariant 6): only widget-shell's adapter imports 
     "apps/mcp-server/test-host/__probe__.spec.ts",
   ]
 
-  it("bans mcp-use/react everywhere but widget-shell's adapter", async () => {
-    const code = 'import { useCallTool, bootstrapView } from "mcp-use/react"'
+  // Every way a static import or re-export reaches the runtime: its root, each browser subpath
+  // ext-apps exports, a type alone, a namespace, a side effect.
+  const RUNTIME_IMPORTS = [
+    'import { App, PostMessageTransport } from "@modelcontextprotocol/ext-apps"',
+    'import type { McpUiHostContext } from "@modelcontextprotocol/ext-apps"',
+    'import { type McpUiHostContext } from "@modelcontextprotocol/ext-apps"',
+    'import * as apps from "@modelcontextprotocol/ext-apps"',
+    'import "@modelcontextprotocol/ext-apps"',
+    'import { App } from "@modelcontextprotocol/ext-apps/app-with-deps"',
+    'import { useApp } from "@modelcontextprotocol/ext-apps/react"',
+    'import { useApp } from "@modelcontextprotocol/ext-apps/react-with-deps"',
+    'import { AppBridge } from "@modelcontextprotocol/ext-apps/app-bridge"',
+    'export { App } from "@modelcontextprotocol/ext-apps"',
+    'export * from "@modelcontextprotocol/ext-apps/react"',
+  ]
+
+  it("bans the runtime in every static spelling everywhere but widget-shell's host adapter", async () => {
     for (const rel of MCP_PATHS) {
-      const messages = await gateMessages(rel, code, "no-restricted-imports")
-      assert.equal(messages.filter(isMcpUseReactHit).length, 1, rel)
+      for (const code of RUNTIME_IMPORTS) {
+        const messages = await gateMessages(rel, code, "no-restricted-imports")
+        assert.equal(messages.filter(isExtAppsHit).length, 1, `${rel}: ${code}`)
+      }
     }
-    for (const rel of [
-      `${WS}/mcp-use-host.tsx`,
-      `${WS}/view-root.tsx`,
-      `${WS}/view-root.test.tsx`,
-    ]) {
-      assert.deepEqual(await gateMessages(rel, code, "no-restricted-imports"), [], rel)
+    for (const rel of ADAPTER) {
+      for (const code of RUNTIME_IMPORTS) {
+        assert.deepEqual(await gateMessages(rel, code, "no-restricted-imports"), [], rel)
+      }
     }
   })
 
-  it("leaves pulse-ui, the server package and widget-shell's entries alone", async () => {
+  it("exempts exactly the adapter: its tests and the rest of the view runtime stay gated", async () => {
+    const code = RUNTIME_IMPORTS[0]
+    for (const rel of [
+      `${WS}/view-root.test.tsx`,
+      `${WS}/view-runtime.test.ts`,
+      `${WS}/view-host.tsx`,
+      `${WS}/test-view-host.tsx`,
+    ]) {
+      const messages = await gateMessages(rel, code, "no-restricted-imports")
+      assert.equal(messages.filter(isExtAppsHit).length, 1, rel)
+    }
+  })
+
+  it("covers every subpath the installed ext-apps exports, its server half aside", async () => {
+    const manifest = JSON.parse(
+      fs.readFileSync(
+        path.join(
+          repoRoot,
+          "packages/core/widget-shell/node_modules/@modelcontextprotocol/ext-apps/package.json",
+        ),
+        "utf8",
+      ),
+    )
+    const subpaths = Object.keys(manifest.exports).filter((key) => key !== "./server")
+    assert.ok(subpaths.includes(".") && subpaths.includes("./react"), subpaths.join(", "))
+    for (const subpath of subpaths) {
+      const code = `import x from "@modelcontextprotocol/ext-apps${subpath.slice(1)}"`
+      const messages = await gateMessages(`${WS}/__probe__.tsx`, code, "no-restricted-imports")
+      assert.equal(messages.filter(isExtAppsHit).length, 1, code)
+    }
+  })
+
+  it("leaves pulse-ui, ext-apps' server half, the SDK and widget-shell's entries alone", async () => {
     const code = [
       'import { Button, WidgetHeader, LocaleProvider, ToastProvider, type ToneVariant } from "@miragon/pulse-ui"',
       'import { scanColors, themeStylesheets } from "@miragon/pulse-ui/testing"',
-      'import { MCPServer } from "mcp-use"',
+      'import { RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps/server"',
+      'import type { McpServer } from "@modelcontextprotocol/server"',
+      'import { Client } from "@modelcontextprotocol/client"',
       'import { useToolQuery, useViewHost, TestViewHost } from "@miragon/pulse-widget-shell/widgets"',
       'import { buildViewResult } from "@miragon/pulse-widget-shell/server"',
+      // A look-alike package is none of ext-apps.
+      'import { x } from "@modelcontextprotocol/ext-apps-extra"',
     ].join("\n")
     for (const rel of MCP_PATHS) {
       assert.deepEqual(await gateMessages(rel, code, "no-restricted-imports"), [], rel)
@@ -233,22 +287,32 @@ describe("hand-off gate (invariant 6, CI U4) in both connectors' widgets", () =>
   })
 })
 
+const EXT_APPS = '"@modelcontextprotocol/ext-apps/server"'
+
 const REGISTRAR_ESCAPES = {
-  "direct call": 'server.tool("x", {}, handler)',
-  "registerTool call": 'server.registerTool("x", {}, handler)',
-  "optional call": 'server?.tool("x", {}, handler)',
-  "computed string key": 'server["tool"]("x", {}, handler)',
-  "computed template key": 'server[`tool`]("x", {}, handler)',
-  ".call": 'server.tool.call(server, "x", {}, handler)',
-  ".bind": 'server.tool.bind(server)("x", {}, handler)',
-  ".apply": 'server.tool.apply(server, ["x", {}, handler])',
-  "destructured declaration": 'const { tool } = server\ntool("x", {}, handler)',
+  "direct call": 'server.registerTool("x", {}, handler)',
+  "optional call": 'server?.registerTool("x", {}, handler)',
+  "computed string key": 'server["registerTool"]("x", {}, handler)',
+  "computed template key": 'server[`registerTool`]("x", {}, handler)',
+  ".call": 'server.registerTool.call(server, "x", {}, handler)',
+  ".bind": 'server.registerTool.bind(server)("x", {}, handler)',
+  ".apply": 'server.registerTool.apply(server, ["x", {}, handler])',
+  "destructured declaration": 'const { registerTool } = server\nregisterTool("x", {}, handler)',
   "destructured + renamed": 'const { registerTool: register } = server\nregister("x")',
-  "destructured string key": 'const { "tool": t } = server\nt("x")',
-  "destructuring assignment": 'let tool\n;({ tool } = server)\ntool("x")',
-  "destructuring assignment, string key": 'let t\n;({ "tool": t } = server)\nt.call(server, "x")',
-  "Reflect.get": 'Reflect.get(server, "tool")("x", {}, handler)',
-  "Reflect.get, template key": 'Reflect.get(server, `tool`).call(server, "x")',
+  "destructured string key": 'const { "registerTool": t } = server\nt("x")',
+  "destructuring assignment": 'let registerTool\n;({ registerTool } = server)\nregisterTool("x")',
+  "destructuring assignment, string key":
+    'let t\n;({ "registerTool": t } = server)\nt.call(server, "x")',
+  "Reflect.get": 'Reflect.get(server, "registerTool")("x", {}, handler)',
+  "Reflect.get, template key": 'Reflect.get(server, `registerTool`).call(server, "x")',
+  "registerAppTool import": `import { registerAppTool } from ${EXT_APPS}\nregisterAppTool(server, "x", c, h)`,
+  "registerAppTool renamed import": `import { registerAppTool as app } from ${EXT_APPS}\napp(server, "x", c, h)`,
+  "registerAppTool string-name import": `import { "registerAppTool" as app } from ${EXT_APPS}\napp(server)`,
+  "registerAppTool namespace import": `import * as apps from ${EXT_APPS}\napps.registerAppTool(server, "x", c, h)`,
+  "registerAppTool computed key": `import * as apps from ${EXT_APPS}\napps["registerAppTool"](server)`,
+  "registerAppTool dynamic import": `const { registerAppTool } = await import(${EXT_APPS})`,
+  "registerAppTool re-export": `export { registerAppTool } from ${EXT_APPS}`,
+  "registerAppTool re-export, string name": `export { "registerAppTool" as app } from ${EXT_APPS}`,
 }
 
 describe("registrar gate (invariant 1) catches every spelling", () => {
@@ -266,9 +330,11 @@ describe("registrar gate (invariant 1) catches every spelling", () => {
 
   it("stays quiet on test fakes, parameter destructuring and unrelated names", async () => {
     const code = [
-      "const server = { tool } as unknown as MCPServer",
-      "const fn = ({ tool, list }: Case) => [tool, list]",
-      "const name = tool.name + toolName + obj.tools.length",
+      "const server = { registerTool } as unknown as ModuleServer",
+      "const fn = ({ registerTool, list }: Case) => [registerTool, list]",
+      "const name = tool.name + toolName + obj.tools.length + recording.tool(name).config",
+      "server.registerPrompt(name, config, callback)",
+      `import { RESOURCE_MIME_TYPE } from ${EXT_APPS}`,
     ].join("\n")
     assert.deepEqual(
       await gateMessages(`${ENGINE_CONNECTOR_SRC_DIR}/tools/__probe__.test.ts`, code),
@@ -283,8 +349,97 @@ describe("registrar gate (invariant 1) catches every spelling", () => {
       `${AN}/widget-tools.ts`,
       `${AN}/widget-tools/__probe__.ts`,
     ]) {
-      const messages = await gateMessages(rel, 'server.tool("x", {}, handler)')
+      const messages = await gateMessages(
+        rel,
+        `import { registerAppTool } from ${EXT_APPS}\nserver.registerTool("x", {}, handler)`,
+      )
       assert.equal(messages.filter(isRegistrarHit).length, 0, rel)
+    }
+  })
+})
+
+const RESOURCE_ESCAPES = {
+  "direct call": 'server.registerResource("x", "ui://x/y.html", {}, read)',
+  "optional call": 'server?.registerResource("x", "ui://x/y.html", {}, read)',
+  "computed string key": 'server["registerResource"]("x", "ui://x/y.html", {}, read)',
+  "computed template key": 'server[`registerResource`]("x", "ui://x/y.html", {}, read)',
+  ".call": 'server.registerResource.call(server, "x", "ui://x/y.html", {}, read)',
+  ".bind": 'server.registerResource.bind(server)("x", "ui://x/y.html", {}, read)',
+  "destructured declaration": 'const { registerResource } = server\nregisterResource("x")',
+  "destructured + renamed": 'const { registerResource: register } = server\nregister("x")',
+  "destructuring assignment": "let registerResource\n;({ registerResource } = server)",
+  "Reflect.get": 'Reflect.get(server, "registerResource")("x")',
+  "registerAppResource import": `import { registerAppResource } from ${EXT_APPS}\nregisterAppResource(server, "x", u, {}, r)`,
+  "registerAppResource renamed import": `import { registerAppResource as app } from ${EXT_APPS}\napp(server)`,
+  "registerAppResource string-name import": `import { "registerAppResource" as app } from ${EXT_APPS}\napp(server)`,
+  "registerAppResource namespace import": `import * as apps from ${EXT_APPS}\napps.registerAppResource(server)`,
+  "registerAppResource computed key": `import * as apps from ${EXT_APPS}\napps["registerAppResource"](server)`,
+  "registerAppResource dynamic import": `const { registerAppResource } = await import(${EXT_APPS})`,
+  "registerAppResource re-export": `export { registerAppResource } from ${EXT_APPS}`,
+}
+
+describe("connector resource gate (invariant 3): a connector's views belong in the bundle", () => {
+  // The gate has no exempt path: the widget-tools files, where a raw registerTool is fine, the
+  // widgets and tests sit under it, and so does every package of a family.
+  const CONNECTOR_PATHS = [
+    `${ENGINE_CONNECTOR_SRC_DIR}/tools/__probe__.ts`,
+    `${ENGINE_CONNECTOR_SRC_DIR}/widget-tools.ts`,
+    `${ENGINE_CONNECTOR_SRC_DIR}/widget-tools/__probe__.ts`,
+    `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.tsx`,
+    `${ENGINE_CONNECTOR_SRC_DIR}/plugin.test.ts`,
+    `${AN}/widget-tools.ts`,
+    `${AN}/widget-tools/__probe__.ts`,
+    `${AN}/widgets/__probe__.ts`,
+    "packages/connectors/engine/engine-client/src/__probe__.ts",
+    "packages/connectors/newfamily/newfamily-connector/src/__probe__.ts",
+  ]
+
+  for (const [label, code] of Object.entries(RESOURCE_ESCAPES)) {
+    it(`catches ${label} on every connector path`, async () => {
+      for (const rel of CONNECTOR_PATHS) {
+        const messages = await gateMessages(rel, code)
+        assert.ok(messages.some(isResourceHit), `${rel}: "${code}" passed the resource gate`)
+      }
+    })
+  }
+
+  it("stays quiet on what a connector does on the view path", async () => {
+    const code = [
+      `import { RESOURCE_MIME_TYPE } from ${EXT_APPS}`,
+      'server.registerTool("x", { ...showToolBinding("x", "X") }, handler)',
+      'const uri = viewResourceUri("x") + recording.resources.size',
+      "const fn = ({ registerResource }: Case) => registerResource",
+    ].join("\n")
+    assert.deepEqual(await gateMessages(`${AN}/widget-tools/__probe__.ts`, code), [])
+  })
+
+  it("leaves the boot, which serves the bundle's views, and the apps alone", async () => {
+    const code = 'server.registerResource("x", "ui://views/x.html", {}, read)'
+    for (const rel of [
+      "packages/core/widget-shell/src/mcp-server.ts",
+      "apps/mcp-server/src/app.ts",
+    ]) {
+      const messages = await gateMessages(rel, code)
+      assert.equal(messages.filter(isResourceHit).length, 0, rel)
+    }
+  })
+
+  it("holds next to the registrar, date and number gates in one union on the connector widgets", async () => {
+    const code = [
+      'server.registerResource("x")',
+      'server.registerTool("x")',
+      "d.toLocaleDateString()",
+      "const a = n.toFixed(1)",
+    ].join("\n")
+    for (const rel of [
+      `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.ts`,
+      `${AN}/widgets/__probe__.tsx`,
+    ]) {
+      const messages = await gateMessages(rel, code)
+      assert.equal(messages.filter(isResourceHit).length, 1, `${rel}: resource gate dropped`)
+      assert.ok(messages.some(isRegistrarHit), `${rel}: registrar gate dropped`)
+      assert.equal(messages.filter(isDateHit).length, 1, `${rel}: date gate dropped`)
+      assert.equal(messages.filter(isNumberHit).length, 1, `${rel}: number gate dropped`)
     }
   })
 })
@@ -293,7 +448,7 @@ describe("gates sharing a glob are merged, not overridden", () => {
   let widgetTs
   let widgetTsx
   before(async () => {
-    const code = 'server.tool("x")\nnew Intl.DateTimeFormat("de")\nd.toLocaleDateString()'
+    const code = 'server.registerTool("x")\nnew Intl.DateTimeFormat("de")\nd.toLocaleDateString()'
     widgetTs = await gateMessages(`${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.ts`, code)
     widgetTsx = await gateMessages(`${AN}/widgets/__probe__.tsx`, code)
   })
@@ -307,7 +462,7 @@ describe("gates sharing a glob are merged, not overridden", () => {
 
   it("both connectors' widgets carry the registrar, date AND number gates in one union per glob", async () => {
     const code = [
-      'server.tool("x")',
+      'server.registerTool("x")',
       "d.toLocaleDateString()",
       "const a = n.toFixed(1)",
       "const b = n.toLocaleString()",
@@ -330,7 +485,7 @@ describe("gates sharing a glob are merged, not overridden", () => {
   it("the widget trees without another gate carry exactly the date and number gates", async () => {
     const code = [
       'import { AskAiButton } from "@miragon/pulse-widget-shell/widgets"',
-      'server.tool("x")',
+      'server.registerTool("x")',
       "d.toLocaleTimeString()",
       "const a = n.toFixed(1)",
     ].join("\n")

@@ -38,7 +38,7 @@ export function runWithMcpRequestInfo<T>(info: McpRequestInfo, fn: () => T): T {
   return storage.run(info, fn)
 }
 
-/** Structural so mcp-use's type stays out of the public surface. */
+/** Structural, as the app's `mcp:*` hook hands it over. */
 interface MiddlewareCtxLike {
   request?: { header(name: string): string | undefined }
   auth?: unknown
@@ -58,7 +58,7 @@ function deriveInfo(ctx: MiddlewareCtxLike): McpRequestInfo {
   }
 }
 
-/** Structural so this module need not import mcp-use. */
+/** Structural so this module need not import the app. */
 export interface McpMiddlewareHost {
   use(pattern: "mcp:*", fn: (ctx: unknown, next: () => Promise<void>) => Promise<void>): unknown
 }

@@ -9,7 +9,7 @@ import { repoTextFiles } from "./check-package-scripts.mjs"
  * publishes to Docker Hub), a technical name of the retired operate CLI points to an
  * archived product, the retired OAuth JSON variable configures nothing, and a name of the
  * retired camunda7 module (its tools, module name, packages, variables and metric names) names
- * nothing the server registers, reads or exports any more, and a package of the retired MCP
+ * nothing the server registers, reads or exports any more, a package of the retired MCP
  * toolkit installs a library Pulse no longer builds on. No other gate
  * reads them, so this guard reads every tracked text file (and every untracked one git does
  * not ignore) and fails on them.
@@ -47,9 +47,9 @@ const RULES = [
     pattern:
       /(?:\bnpx|\bbunx|\bdlx)\s+(?:-{1,2}[\w-]+(?:=\S+)?\s+)*pulse(?:-cli)?(?![\w-])|\b(?:npm|pnpm|yarn|bun)\s+(?:i|install|add)\s+(?:-{1,2}[\w-]+\s+)*pulse(?:-cli)?(?![\w-])/,
   },
-  // OAuth comes from mcp-use's own provider variables (MCP_USE_OAUTH_*); the server refuses
-  // to boot while the retired JSON variable is set, so a doc or a config that still names it
-  // sends an operator into a failed boot. Only the refusal and its test name it (ALLOWED).
+  // OAuth comes from one provider's variables (MCP_OAUTH_*); the server refuses to boot while
+  // the retired JSON variable is set, so a doc or a config that still names it sends an operator
+  // into a failed boot. Only the refusal and its test name it (ALLOWED).
   { name: "retired MCP_OAUTH", pattern: /\bMCP_OAUTH\b/ },
   // Pulse grew out of the @miragon/mcp-toolkit-* packages and owns what it used: the registrar,
   // the view meta and the server i18n are @miragon/pulse-widget-shell/server, the design kit
@@ -159,6 +159,11 @@ const ALLOWED = [
     file: "packages/core/widget-shell/src/oauth-env.test.ts",
     rules: ["retired MCP_OAUTH"],
     reason: "the refusal's own test",
+  },
+  {
+    file: "packages/core/widget-shell/src/composed-server.oauth.test.ts",
+    rules: ["retired MCP_OAUTH"],
+    reason: "the boot's refusal comes without a typo warning in front",
   },
   {
     file: "packages/connectors/engine/engine-connector/src/retired-settings.ts",
@@ -351,10 +356,14 @@ describe("the name rules", () => {
     "reads ./.pulse-cli.json first",
     "deployment-source operate",
     'workerId: "operate"',
-    // mcp-use's own OAuth variables, and a look-alike the boot refuses by itself.
-    "MCP_USE_OAUTH_KEYCLOAK_SERVER_URL=https://kc.example.com",
-    "MCP_USE_OAUTH_*",
-    "MCP_OAUTH_KEYCLOAK_SERVER_URL",
+    // The OAuth variables and the log level of today, and the official SDK.
+    "MCP_OAUTH_KEYCLOAK_SERVER_URL=https://kc.example.com",
+    "MCP_OAUTH_*",
+    "MCP_OAUTH_DEBUG=true",
+    "MCP_LOG_LEVEL=debug",
+    'import { McpServer } from "@modelcontextprotocol/server"',
+    'import { App } from "@modelcontextprotocol/ext-apps"',
+    "pnpm exec mcp-inspector --cli --method tools/list",
     // The toolkit as the origin of ported code stays citable.
     "ported from mcp-toolkit's examples/test/helpers/golden.ts",
     "the outline `Button` at that scale (Miragon/mcp-toolkit#194)",

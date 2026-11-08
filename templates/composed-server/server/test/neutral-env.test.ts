@@ -16,14 +16,14 @@ describe("stubNeutralEnv", () => {
 
   it("clears every variable the server reads, whatever the shell exported", () => {
     for (const name of composedEnvVars(MODULES)) vi.stubEnv(name, "from-the-shell")
-    // Outside the known variables: only the MCP_USE_OAUTH_* sweep clears it.
-    vi.stubEnv("MCP_USE_OAUTH_KEYCLOAK_AUDIENCE", "from-the-shell")
+    // Outside the known variables: only the MCP_OAUTH_* sweep clears it.
+    vi.stubEnv("MCP_OAUTH_KEYCLOAK_AUDIENCE", "from-the-shell")
 
     const selection = MODULES.map(({ name }) => name).join(",")
     stubNeutralEnv({ MCP_ACTIVE_MODULES: selection })
 
-    expect(process.env.MCP_USE_OAUTH_KEYCLOAK_SERVER_URL).toBeUndefined()
-    expect(process.env.MCP_USE_OAUTH_KEYCLOAK_AUDIENCE).toBeUndefined()
+    expect(process.env.MCP_OAUTH_KEYCLOAK_SERVER_URL).toBeUndefined()
+    expect(process.env.MCP_OAUTH_KEYCLOAK_AUDIENCE).toBeUndefined()
     expect(Object.entries(process.env).filter(([, value]) => value === "from-the-shell")).toEqual(
       [],
     )

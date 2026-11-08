@@ -1,17 +1,17 @@
 /**
  * DNS-rebinding protection (Origin validation is a MUST of MCP Streamable HTTP) as two allow-lists:
  * `Host` on every request (a rebinding page arrives under the ATTACKER's hostname), `Origin` on
- * non-GET/HEAD requests carrying one; requests without `Origin` pass, since non-browser MCP clients
- * never send one. App-owned instead of mcp-use's `allowedHosts`, which would also guard the
- * operational routes that probes reach by container IP.
+ * requests that can change something (not GET, HEAD or a CORS preflight) carrying one; requests
+ * without `Origin` pass, since non-browser MCP clients never send one. The boot's own guard, in
+ * front of everything but the operational routes, which probes reach by container IP.
  */
 
 /** A loopback caller is the machine itself. */
 const LOCALHOST_HOSTNAMES: readonly string[] = ["localhost", "127.0.0.1", "[::1]"]
 
 /**
- * 4 MiB bounds ONE request; mcp-use parses a JSON body into a heap graph up to ~20× its size before
- * the OAuth gate runs, so the in-flight budget below bounds the total.
+ * 4 MiB bounds ONE request; a JSON body parses into a heap graph up to ~20× its size, so the
+ * in-flight budget below bounds the total. Both hold before the OAuth gate runs.
  */
 export const DEFAULT_MAX_BODY_BYTES = 4 * 1024 * 1024
 
@@ -128,18 +128,14 @@ const formatBytes = (bytes: number): string => {
 
 /**
  * So a 403 in the field is explainable from the log. The body cap sits in the boot's own listener
- * (`createBodyLimitedListener`), which `mcp-use dev` never starts: it serves the app itself.
+ * (`createBodyLimitedListener`), which every boot starts, the dev loop included.
  */
-export function describeHttpEdgePolicy(
-  policy: HttpEdgePolicy,
-  { underDevCli = false }: { underDevCli?: boolean } = {},
-): string {
+export function describeHttpEdgePolicy(policy: HttpEdgePolicy): string {
   const list = (allowList: AllowList) =>
     allowList === "*" ? "any (validation off)" : allowList.join(", ")
   return (
     `HTTP edge: hosts ${list(policy.allowedHosts)}; origins ${list(policy.allowedOrigins)}; ` +
-    `max body ${formatBytes(policy.maxBodyBytes)} (${formatBytes(policy.maxInFlightBodyBytes)} in flight)` +
-    `${underDevCli ? " on the built server only" : ""}; ` +
+    `max body ${formatBytes(policy.maxBodyBytes)} (${formatBytes(policy.maxInFlightBodyBytes)} in flight); ` +
     `/metrics ${policy.metricsToken ? "token-protected" : "open"}`
   )
 }
@@ -169,8 +165,9 @@ export function originRejection(
   policy: HttpEdgePolicy,
 ): string | undefined {
   if (policy.allowedOrigins === "*" || !origin) return undefined
-  // Sandboxed view iframes send `Origin: null` on asset GETs (mcp-use applies the same rule).
-  if (method === "GET" || method === "HEAD") return undefined
+  // Sandboxed view iframes send `Origin: null` on asset GETs. A preflight changes nothing either:
+  // a browser on a foreign origin reads the discovery documents' CORS answer, never `/mcp`'s.
+  if (method === "GET" || method === "HEAD" || method === "OPTIONS") return undefined
   let url: URL | undefined
   try {
     url = new URL(origin)
@@ -188,6 +185,49 @@ export function originRejection(
     `Origin "${origin}" is not allowed (DNS-rebinding protection). Add it to ` +
     `MCP_ALLOWED_ORIGINS if a browser app on that origin should reach this server.`
   )
+}
+
+/** The path of a request target as sent, before any URL parser; a query stays the app's. */
+export const pathOfTarget = (target: string): string => target.split("?", 1)[0]
+
+/**
+ * Whether a request target (`req.url`, before any URL parser) names one path only: origin-form,
+ * no empty segment, and nothing a URL parser rewrites (`.` and `..` in any `%2e` spelling, `\`, a
+ * fragment). A path rule in front of the server then reads the path the routes read. A `Request`'s
+ * URL has been through that parser, so only the listener can see all of this; the app checks what
+ * is left of it.
+ */
+export function isNormalTarget(target: string): boolean {
+  const path = pathOfTarget(target)
+  if (!path.startsWith("/") || path.includes("//") || (path !== "/" && path.endsWith("/"))) {
+    return false
+  }
+  return new URL(`http://h${path}`).pathname === path
+}
+
+export const NOT_NORMAL_TARGET =
+  "Not found: the request path is not in its normal form (no dot or empty segment, no backslash, no fragment, no absolute URL)."
+
+/**
+ * The SDK's bridge builds a request's URL as `http://<Host><target>`, so a `Host` holding a path
+ * (`h/mcp?`) replaces the target's, an empty one (`http:///h/mcp`) turns its first segment into the
+ * host, one with credentials or that is no host at all fails the `Request` with a stack in the log,
+ * the credentials with it. Absent, the bridge says `localhost` and the guard decides.
+ */
+export function isUsableHost(host: string | undefined): boolean {
+  if (host === undefined) return true
+  return /^[^/\\?#@]+$/.test(host) && URL.canParse(`http://${host}`)
+}
+
+export const NOT_A_HOST = "Bad request: the Host header is empty or names no host and port."
+
+/** A request answered in front of the routes, which no middleware saw. */
+export interface RefusedRequest {
+  method: string
+  /** As sent, so as the caller chose it: the log's to clean, never a metric label. */
+  target: string
+  status: number
+  message: string
 }
 
 export interface EdgeRequest {
@@ -218,7 +258,7 @@ export function jsonRpcErrorBody(message: string): string {
   return JSON.stringify({ jsonrpc: "2.0", error: { code: -32000, message }, id: null })
 }
 
-function jsonRpcErrorResponse(status: number, message: string): Response {
+export function jsonRpcErrorResponse(status: number, message: string): Response {
   return new Response(jsonRpcErrorBody(message), {
     status,
     headers: { "content-type": "application/json", "cache-control": "no-store" },
@@ -241,7 +281,7 @@ export interface EdgeGuardOptions {
   exemptPaths?: readonly string[]
 }
 
-/** Covers every route registered AFTER it (hono runs in order); mcp-use mounts `/mcp` later. */
+/** Covers every route registered AFTER it (hono runs in order); the app mounts `/mcp` last. */
 export function installHttpEdgeGuard(
   server: EdgeGuardHost,
   policy: HttpEdgePolicy,

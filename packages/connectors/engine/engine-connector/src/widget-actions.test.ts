@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
-import { beforeAll, describe, expect, it, vi } from "vitest"
-import type { MCPServer } from "mcp-use"
+import { beforeAll, describe, expect, it } from "vitest"
+import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
 import { createPlugin } from "./plugin.js"
 import { ENGINE_WIDGET_ACTIONS } from "./tool-names.js"
 import { GATING_SITES } from "./widgets/action-gating.sites.js"
@@ -27,18 +27,17 @@ const RAW_CALLER_HOLDERS: Record<string, string> = {}
 
 /** Every tool the plugin registers on the widest toolset, with its read/write nature. */
 function registeredTools(): Map<string, { readOnly: boolean }> {
-  const register = vi.fn()
-  const server = { tool: register, prompt: vi.fn() } as unknown as MCPServer
+  const recording = recordingModuleServer()
   const plugin = createPlugin({
     engines: [{ id: "prod", baseUrl: "http://prod.example/engine-rest" }],
     toolset: "admin",
   })
-  plugin.register(server)
-  const definitions = register.mock.calls.map(
-    ([definition]) => definition as { name: string; annotations?: { readOnlyHint?: boolean } },
-  )
+  plugin.register(recording.server)
   return new Map(
-    definitions.map((d) => [d.name, { readOnly: d.annotations?.readOnlyHint === true }]),
+    [...recording.tools.values()].map(({ name, config }) => [
+      name,
+      { readOnly: config.annotations?.readOnlyHint === true },
+    ]),
   )
 }
 

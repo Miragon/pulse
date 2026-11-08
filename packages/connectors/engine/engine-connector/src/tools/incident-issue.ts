@@ -16,7 +16,7 @@ import type {
   ProcessDefinitionDto,
   ProcessInstanceDto,
 } from "@miragon/pulse-engine-client/types"
-import type { MCPServer } from "mcp-use"
+import type { ModuleServer } from "@miragon/pulse-widget-shell/server"
 import { z } from "zod"
 import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { buildInstanceCockpitUrl, type EngineLink } from "../lib/engine/cockpit-url.js"
@@ -335,15 +335,15 @@ const incidentIssuePromptSchema = z.object({
 })
 
 /** The draft is the deliverable; filing happens only on the user's explicit request, never by this server. */
-export function registerIncidentIssuePrompt(server: MCPServer, config: IncidentIssueConfig) {
-  server.prompt(
+export function registerIncidentIssuePrompt(server: ModuleServer, config: IncidentIssueConfig) {
+  server.registerPrompt(
+    "draft_incident_ticket",
     {
-      name: "draft_incident_ticket",
       description:
         "Draft a structured ticket from a Camunda 7 / CIB seven engine incident and present it in the chat for review. " +
         "Tracker-agnostic: the user decides where to file it (their issue tracker via any available integration, " +
         "a prefilled GitHub link, or copy-paste). Filing only happens on explicit request.",
-      schema: incidentIssuePromptSchema,
+      argsSchema: incidentIssuePromptSchema,
     },
     async ({ incidentId }) => {
       const target = config.repository

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import type { MCPServer } from "mcp-use"
+import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
 import { resolveEngine } from "../lib/engine/resolve-engine.js"
 import { engineParamShape } from "../lib/engine/with-engine.js"
 import {
@@ -46,19 +46,14 @@ afterEach(async () => {
   await Promise.all(engines.splice(0).map((engine) => engine.close()))
 })
 
-type FeedHandler = (args: Record<string, unknown>, ctx: unknown) => Promise<unknown>
-
 /** The fake engine world, its feeds as the widgets call them, and the start view on it. */
 async function world(healthThresholds: VerdictThresholds = DEFAULT_VERDICT_THRESHOLDS) {
   const engine = await startFakeEngine({}, worldReply)
   engines.push(engine)
   const registry = registryFor(engine)
-  const feeds = new Map<string, FeedHandler>()
+  const recording = recordingModuleServer()
   registerWidgetDataFeeds({
-    server: {
-      tool: (definition: { name: string }, handler: FeedHandler) =>
-        feeds.set(definition.name, handler),
-    } as unknown as MCPServer,
+    server: recording.server,
     registry,
     healthThresholds,
     toolset: "read-only",
@@ -66,7 +61,7 @@ async function world(healthThresholds: VerdictThresholds = DEFAULT_VERDICT_THRES
   })
   return {
     feed: async (name: string, args: Record<string, unknown>) =>
-      feedPayload(await feeds.get(name)!(args, {})),
+      feedPayload(await recording.tool(name).call(args)),
     start: (view: CockpitView) =>
       buildCockpitStart(view, resolveEngine(undefined, registry), healthThresholds),
   }

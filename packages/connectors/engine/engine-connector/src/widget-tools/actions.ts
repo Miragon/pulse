@@ -12,9 +12,9 @@ import type { WidgetToolsContext } from "./shared.js"
 export function registerWidgetActionsFeed(ctx: WidgetToolsContext) {
   const allowedActions = allowedWidgetActions(ctx.toolset)
 
-  ctx.server.tool(
+  ctx.server.registerTool(
+    ENGINE_WIDGET_ACTIONS_DATA,
     {
-      name: ENGINE_WIDGET_ACTIONS_DATA,
       title: "Widget actions (internal)",
       description:
         "Internal JSON feed (no UI): which engine write actions the widgets may offer in this deployment.",

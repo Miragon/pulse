@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it, vi } from "vitest"
-import type { MCPServer } from "mcp-use"
+import { afterEach, describe, expect, it } from "vitest"
+import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
 import type { z } from "zod"
 import { registerIncidentIssuePrompt, registerIncidentIssueTools } from "./incident-issue.js"
 import { createEngineRegistry } from "../lib/engine/resolve-engine.js"
@@ -161,18 +161,12 @@ describe("engine_format_incident_issue keeps engine values inside their spans", 
 
 describe("the draft_incident_ticket prompt", () => {
   function promptFor(repository?: string) {
-    const prompt = vi.fn()
-    registerIncidentIssuePrompt({ prompt } as unknown as MCPServer, { repository })
-    const [[definition, handler]] = prompt.mock.calls as Array<
-      [{ schema: z.ZodObject }, (args: Record<string, unknown>) => Promise<unknown>]
-    >
-    const text = async (args: Record<string, unknown>) => {
-      const result = (await handler(args)) as {
-        messages: Array<{ content: { text: string } }>
-      }
-      return result.messages[0].content.text
-    }
-    return { schema: definition.schema, text }
+    const recording = recordingModuleServer()
+    registerIncidentIssuePrompt(recording.server, { repository })
+    const [prompt] = recording.prompts.values()
+    const text = async (args: Record<string, unknown>) =>
+      (await prompt.call(args)).messages[0].content.text
+    return { schema: prompt.config.argsSchema as z.ZodObject, text }
   }
 
   it("takes no repository argument", () => {

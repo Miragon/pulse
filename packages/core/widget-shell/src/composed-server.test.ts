@@ -187,9 +187,9 @@ describe("createComposedServer: boot", () => {
         "HOST",
         ...HTTP_EDGE_ENV_VARS,
         ...OAUTH_ENV_VARS,
-        "MCP_USE_OAUTH_DEBUG",
+        "MCP_OAUTH_DEBUG",
         "MCP_ACTIVE_MODULES",
-        "MCP_USE_LOG_LEVEL",
+        "MCP_LOG_LEVEL",
         "ALPHA_URL",
       ].sort(),
     )
@@ -197,9 +197,10 @@ describe("createComposedServer: boot", () => {
 
   it("names every variable the modules retired in retiredEnvVars, none of them read", () => {
     const retiring = { ...alpha, retired: { names: ["alpha0"], envVars: { OLD_URL: "ALPHA_URL" } } }
-    expect([...retiredEnvVars([retiring])]).toEqual(["OLD_URL"])
+    const retired = [...retiredEnvVars([retiring])]
+    expect(retired).toEqual(["OLD_URL"])
     expect(composedEnvVars([retiring]).has("OLD_URL")).toBe(false)
-    expect([...retiredEnvVars([alpha])]).toEqual([])
+    expect(retiredEnvVars([alpha]).has("OLD_URL")).toBe(false)
   })
 
   it("refuses a retired setting FIRST, before the edge or OAuth checks and any plugin", async () => {
@@ -217,7 +218,7 @@ describe("createComposedServer: boot", () => {
       createComposedServer(
         options({
           modules: [retiring],
-          env: { MCP_ACTIVE_MODULES: "alpha0:operations", MCP_USE_OAUTH_KEYCLOAK_REALM: "r" },
+          env: { MCP_ACTIVE_MODULES: "alpha0:operations", MCP_OAUTH_KEYCLOAK_REALM: "r" },
         }),
       ),
     ).rejects.toThrow("Write alpha instead: alpha0:operations becomes alpha:operations.")
@@ -234,16 +235,6 @@ describe("createComposedServer: boot", () => {
     expect(warnings.filter((line) => line.includes("Unknown environment variable"))).toEqual([
       expect.stringContaining('"MCP_TYPO"'),
     ])
-  })
-
-  it("defaults telemetry off without overriding an explicit opt-in", async () => {
-    vi.stubEnv("MCP_USE_ANONYMIZED_TELEMETRY", undefined)
-    await createComposedServer(options())
-    expect(process.env.MCP_USE_ANONYMIZED_TELEMETRY).toBe("false")
-    vi.stubEnv("MCP_USE_ANONYMIZED_TELEMETRY", "true")
-    await createComposedServer(options())
-    expect(process.env.MCP_USE_ANONYMIZED_TELEMETRY).toBe("true")
-    vi.unstubAllEnvs()
   })
 })
 

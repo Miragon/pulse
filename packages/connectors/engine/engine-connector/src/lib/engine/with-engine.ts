@@ -50,7 +50,7 @@ export interface EngineContext extends EngineLink {
 }
 
 /**
- * `call.signal` aborts engine READS when the MCP client cancels; writes always run
+ * `call.mcpReq.signal` aborts engine READS when the MCP client cancels; writes always run
  * to completion (pinned in `tools/engine-errors.test.ts`).
  */
 export function withEngine<TArgs extends { engine?: string }, TResult>(

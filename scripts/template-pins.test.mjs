@@ -6,9 +6,11 @@ import { describe, it } from "node:test"
 import ts from "typescript"
 import { REPO_ROOT } from "./source-scan.mjs"
 import {
+  caretAdmits,
   checkTemplatePins,
   FORMATTER,
-  INSPECTOR_LUCIDE,
+  MCP_SCOPE,
+  mcpPackages,
   peerRuleFindings,
   SHARED_LIBRARIES,
   templatePinFindings,
@@ -55,11 +57,16 @@ const WORKSPACE = [
   {
     dir: "packages/core/widget-shell",
     manifest: {
-      peerDependencies: { "mcp-use": "2.12.2", react: "^19.2.0", zod: "^4.4.0" },
+      dependencies: { "@modelcontextprotocol/node": "2.1.2" },
+      peerDependencies: {
+        "@modelcontextprotocol/server": "^2.4.0",
+        react: "^19.2.0",
+        zod: "^4.4.0",
+      },
       devDependencies: {
+        "@modelcontextprotocol/server": "2.4.0",
         "@tanstack/react-query": "5.103.2",
         "lucide-react": "1.61.0",
-        "mcp-use": "2.12.2",
         react: "19.3.1",
         "react-dom": "19.3.1",
         zod: "4.6.7",
@@ -68,7 +75,13 @@ const WORKSPACE = [
   },
   {
     dir: "apps/mcp-server",
-    manifest: { dependencies: { "mcp-use": "2.12.2", zod: "4.6.7" }, devDependencies: {} },
+    manifest: {
+      dependencies: { zod: "4.6.7" },
+      devDependencies: {
+        "@modelcontextprotocol/client": "2.4.0",
+        "@modelcontextprotocol/inspector": "2.14.0",
+      },
+    },
   },
 ]
 const VERSIONS = { "@miragon/pulse-widget-shell": "0.24.2", "@miragon/pulse-ui": "0.24.2" }
@@ -77,9 +90,12 @@ const ROOT_MANIFEST = {
   devDependencies: { prettier: "3.9.10", "prettier-plugin-tailwindcss": "0.8.1" },
 }
 
+/** What the fixture workspace holds the template to: the shared libraries and its SDK packages. */
+const HELD = [...SHARED_LIBRARIES, ...mcpPackages(WORKSPACE)]
+
 /** The findings of one template manifest against the fixture workspace. */
 function findings(manifest, workspace = WORKSPACE) {
-  const { pins, errors } = workspacePins(workspace)
+  const { pins, errors } = workspacePins(workspace, HELD)
   assert.deepEqual(errors, [])
   return templatePinFindings([{ file: "modules/m/package.json", manifest }], {
     versions: VERSIONS,
@@ -90,16 +106,17 @@ function findings(manifest, workspace = WORKSPACE) {
 const HOLDS = {
   peerDependencies: {
     "@miragon/pulse-widget-shell": "^0.24.2",
-    "mcp-use": "2.12.2",
+    "@modelcontextprotocol/server": "^2.4.0",
     react: "^19.2.0",
     zod: "^4.4.0",
   },
   devDependencies: {
     "@miragon/pulse-ui": "0.24.2",
     "@miragon/pulse-widget-shell": "0.24.2",
+    "@modelcontextprotocol/inspector": "2.14.0",
+    "@modelcontextprotocol/server": "2.4.0",
     "@tanstack/react-query": "5.103.2",
     "lucide-react": "1.61.0",
-    "mcp-use": "2.12.2",
     react: "19.3.1",
     "react-dom": "19.3.1",
     typescript: "5.9.3",
@@ -128,14 +145,63 @@ describe("template-pins", () => {
     })
   }
 
-  it("holds a peer to the workspace's peer range, mcp-use to its exact pin", () => {
+  it("holds a peer to the workspace's peer range, the SDK's too", () => {
     assert.match(
       findings(withPin("peerDependencies", "react", "^19.0.0")).drifted.join("\n"),
       /\(peerDependencies\): react pinned \^19\.0\.0, the workspace \^19\.2\.0/,
     )
     assert.match(
-      findings(withPin("peerDependencies", "mcp-use", "^2.12.2")).drifted.join("\n"),
-      /mcp-use pinned \^2\.12\.2, the workspace 2\.12\.2/,
+      findings(withPin("peerDependencies", "@modelcontextprotocol/server", "2.4.0")).drifted.join(
+        "\n",
+      ),
+      /@modelcontextprotocol\/server pinned 2\.4\.0, the workspace \^2\.4\.0/,
+    )
+  })
+
+  // CLAUDE.md, Contracts: a module that imports an SDK package widget-shell brings along peers it
+  // in a range, so the starter's one copy (widget-shell's exact pin) satisfies it.
+  it("admits a caret peer of an SDK package the workspace pins but never peers", () => {
+    for (const range of ["^2.1.2", "^2.1.0", "^2.0.0", "2.1.2"]) {
+      assert.deepEqual(findings(withPin("peerDependencies", "@modelcontextprotocol/node", range)), {
+        unknown: [],
+        drifted: [],
+      })
+    }
+    for (const range of ["^2.1.3", "^2.2.0", "^3.0.0", "^1.0.0", "~2.1.2", ">=2.0.0", "*"]) {
+      assert.deepEqual(
+        findings(withPin("peerDependencies", "@modelcontextprotocol/node", range)).drifted,
+        [
+          `modules/m/package.json (peerDependencies): @modelcontextprotocol/node pinned ${range}, ` +
+            "the workspace 2.1.2, or a caret range that admits it",
+        ],
+      )
+    }
+    assert.equal(caretAdmits("^0.1.0", "0.1.2"), false)
+    assert.equal(caretAdmits("^2.0.4", "2.0.4"), true)
+  })
+
+  it("holds every SDK package the workspace pins, whichever stanza pins it there", () => {
+    assert.deepEqual(mcpPackages(WORKSPACE), [
+      "@modelcontextprotocol/client",
+      "@modelcontextprotocol/inspector",
+      "@modelcontextprotocol/node",
+      "@modelcontextprotocol/server",
+    ])
+    assert.ok(mcpPackages(WORKSPACE).every((name) => name.startsWith(MCP_SCOPE)))
+    for (const [stanza, name, spec, workspace] of [
+      ["devDependencies", "@modelcontextprotocol/inspector", "2.13.0", "2.14.0"],
+      ["devDependencies", "@modelcontextprotocol/client", "2.4.1", "2.4.0"],
+      ["dependencies", "@modelcontextprotocol/node", "2.1.3", "2.1.2"],
+      ["dependencies", "@modelcontextprotocol/server", "2.5.0", "2.4.0"],
+    ]) {
+      assert.deepEqual(findings(withPin(stanza, name, spec)).drifted, [
+        `modules/m/package.json (${stanza}): ${name} pinned ${spec}, the workspace ${workspace}`,
+      ])
+    }
+    // An SDK package the workspace never pins stays the template's own.
+    assert.deepEqual(
+      findings(withPin("devDependencies", "@modelcontextprotocol/ext-tasks", "0.2.3")).drifted,
+      [],
     )
   })
 
@@ -196,54 +262,29 @@ describe("template-pins", () => {
     assert.match(workspacePins(WORKSPACE, ["left-pad"]).errors.join("\n"), /pins left-pad nowhere/)
   })
 
-  it("fails a ranged mcp-use peer in the workspace", () => {
-    const ranged = structuredClone(WORKSPACE)
-    ranged[0].manifest.peerDependencies["mcp-use"] = "^2.12.2"
+  it("fails a workspace that pins an SDK package two ways", () => {
+    const split = structuredClone(WORKSPACE)
+    split[1].manifest.devDependencies["@modelcontextprotocol/server"] = "2.4.1"
     assert.match(
-      workspacePins(ranged).errors.join("\n"),
-      /mcp-use must be exact as a peer too: peer \^2\.12\.2, pin 2\.12\.2/,
+      workspacePins(split, mcpPackages(split)).errors.join("\n"),
+      /pins @modelcontextprotocol\/server 2 ways/,
     )
   })
 
   it("fails the template's install when strict peers are off or missing", () => {
-    const { pins } = workspacePins(WORKSPACE)
-    const yaml = (strict) =>
-      `${strict}peerDependencyRules:\n  allowedVersions:\n    "${INSPECTOR_LUCIDE}": "1"\n`
-    assert.deepEqual(peerRuleFindings(yaml("strictPeerDependencies: true\n"), pins), [])
+    const yaml = (strict) => `${strict}packages:\n  - "server"\n  - "modules/*"\n`
+    assert.deepEqual(peerRuleFindings(yaml("strictPeerDependencies: true\n")), [])
     for (const [strict, found] of [
       ["strictPeerDependencies: false\n", "false"],
       ['strictPeerDependencies: "true"\n', '"true"'],
       ["", "missing"],
     ]) {
-      assert.deepEqual(peerRuleFindings(yaml(strict), pins), [
+      assert.deepEqual(peerRuleFindings(yaml(strict)), [
         "templates/composed-server/pnpm-workspace.yaml: strictPeerDependencies is " +
           `${found}, expected true: an unmet peer must fail the starter's install, or a split ` +
-          "@miragon/pulse-* or mcp-use bump installs",
+          "@miragon/pulse-* or MCP SDK bump installs",
       ])
     }
-  })
-
-  it("allows mcp-use's inspector the lucide-react major the workspace pins, and no other", () => {
-    const { pins } = workspacePins(WORKSPACE)
-    const rule = (value) =>
-      "strictPeerDependencies: true\n" +
-      `peerDependencyRules:\n  allowedVersions:\n    "${INSPECTOR_LUCIDE}": ${value}\n`
-    assert.deepEqual(peerRuleFindings(rule('"1"'), pins), [])
-    assert.deepEqual(peerRuleFindings(rule("1"), pins), [], "an unquoted major parses as 1")
-    for (const [value, found] of [
-      ['"1.61.0"', '"1.61.0"'],
-      ['"2"', '"2"'],
-    ]) {
-      assert.deepEqual(peerRuleFindings(rule(value), pins), [
-        "templates/composed-server/pnpm-workspace.yaml: peerDependencyRules.allowedVersions " +
-          `"${INSPECTOR_LUCIDE}" is ${found}, the workspace pins lucide-react 1.61.0: allow its ` +
-          'major, "1"',
-      ])
-    }
-    assert.match(
-      peerRuleFindings('strictPeerDependencies: true\npackages:\n  - "server"\n', pins).join("\n"),
-      /"@mcp-use\/inspector>lucide-react" is missing, the workspace pins lucide-react 1\.61\.0/,
-    )
   })
 
   it("names a missing template pnpm-workspace.yaml instead of crashing", () => {

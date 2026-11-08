@@ -14,8 +14,8 @@ export type RequestDisplayMode = (mode: "inline" | "fullscreen") => void
 
 /**
  * The host-agnostic contexts every widget reads, all derived from ONE `ShellHost`: the display
- * mode, the fullscreen switch, the inline budget (#396) and the view host. The mcp-use adapter
- * (`McpUseViewHost`) and `TestViewHost` both mount it, so a widget test sees the production
+ * mode, the fullscreen switch, the inline budget (#396) and the view host. The ext-apps adapter
+ * (`ext-apps-host.tsx`) and `TestViewHost` both mount it, so a widget test sees the production
  * derivation: inline, the BPMN canvas is capped and "show more" asks for fullscreen where the
  * host offers it.
  */

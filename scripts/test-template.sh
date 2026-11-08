@@ -6,9 +6,9 @@ set -euo pipefail
 # workspace:* to real versions), points a throwaway copy of the template at
 # the tarballs via pnpm overrides, and runs the template's full bar. Catches
 # "the template no longer compiles against the packages we are about to
-# release" before the release train publishes to npm, and a file the bar or
-# `pnpm dev` writes that the template's own .gitignore misses. Run from
-# anywhere; leaves the working tree untouched.
+# release" before the release train publishes to npm, and a file the bar
+# writes that the template's own .gitignore misses. Run from anywhere; leaves
+# the working tree untouched.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEMPLATE="$ROOT/templates/composed-server"
@@ -32,9 +32,9 @@ if ((${#PACKAGES[@]} == 0)); then
 fi
 
 # The template's pins must equal the workspace's: the @miragon/pulse-* libraries
-# (release-please bumps them via extra-files), mcp-use, react, react-dom, zod,
-# lucide-react, @tanstack/react-query, prettier and prettier-plugin-tailwindcss
-# (scripts/template-pins.mjs says why).
+# (release-please bumps them via extra-files), react, react-dom, zod, lucide-react,
+# @tanstack/react-query, prettier, prettier-plugin-tailwindcss and the
+# @modelcontextprotocol/* packages (scripts/template-pins.mjs says why).
 node "$ROOT/scripts/template-pins.mjs"
 
 # Build what the tarballs ship (files: dist and src).
@@ -52,7 +52,7 @@ done
 # source a map names inside (scripts/pack-contents.mjs).
 node "$ROOT/scripts/pack-contents.mjs" "$PACK_DIR"/*/*.tgz
 
-rsync -a --exclude node_modules --exclude dist --exclude .mcp-use "$TEMPLATE/" "$WORK/"
+rsync -a --exclude node_modules --exclude dist "$TEMPLATE/" "$WORK/"
 
 # Overrides beat both the template's direct pins and the transitive
 # @miragon/pulse-* ranges inside the packed packages.
@@ -110,12 +110,6 @@ LEFT="$(git_work ls-files --others --exclude-standard | grep -vx 'pnpm-lock.yaml
 if [[ -n "$LEFT" ]]; then
   echo "test-template: install, build, typecheck and test left files that templates/composed-server/.gitignore does not ignore, so a fresh starter repo shows them as changes:" >&2
   echo "$LEFT" >&2
-  exit 1
-fi
-# `mcp-use dev` writes mcp-env.d.ts next to the server entry on every `pnpm dev`;
-# the bar above never runs it.
-if ! git_work check-ignore -q server/mcp-env.d.ts; then
-  echo "test-template: templates/composed-server/.gitignore does not ignore mcp-env.d.ts, which every \`pnpm dev\` writes to server/; add the line." >&2
   exit 1
 fi
 

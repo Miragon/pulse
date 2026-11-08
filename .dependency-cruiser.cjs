@@ -43,7 +43,7 @@
  *      (`preserveSymlinks: true` below keeps that path instead of the sibling's real
  *      path, so a package entry stays distinguishable from a relative escape);
  *   3. a bare, unresolved specifier: every subpath import (`@miragon/pulse-widget-shell/server`,
- *      `mcp-use/react`: dependency-cruiser reads no exports map) and every undeclared
+ *      `@modelcontextprotocol/ext-apps/react`: dependency-cruiser reads no exports map) and every undeclared
  *      dependency (`react` where the importer does not list it).
  * `npm()` builds the shape 2 and shape 3 patterns for a list of npm names. Never exempt
  * a package's own directory wholesale in a `pathNot`: its node_modules holds the very
@@ -115,32 +115,50 @@ const TEST_SUPPORT = ["[.]test-support[.]tsx?$", "/test-support/"]
 const SRC_TEST_CODE = ["[.]test[.]tsx?$", ...TEST_SUPPORT, `^${PACKAGE_ROOT}/src/testing/`]
 
 /**
- * What makes a package an MCP host or a widget: the UI runtime, the MCP framework and
- * protocol SDK, the server's metrics, zod and the generated REST SDK's runtime. The CLI
- * imports none of it.
+ * What makes a package an MCP host or a widget: the UI runtime, the official MCP SDK (server,
+ * Node adapter, MCP Apps), the HTTP framework and the token verifier the server runs on, the
+ * server's metrics, zod and the generated REST SDK's runtime. The CLI imports none of it.
  */
 const MCP_STACK = [
   "react",
   "react-dom",
   "lucide-react",
   "@tanstack/[^/]+",
-  "mcp-use",
   "@modelcontextprotocol/[^/]+",
+  "hono",
+  "@hono/[^/]+",
+  "jose",
   "prom-client",
   "zod",
   "@hey-api/[^/]+",
 ].join("|")
 
 /**
- * The view stack: React and what builds on it (Lucide, TanStack Query, the design kit, the view
- * runtime's mcp-use adapter `mcp-use/react`, which ESLint keeps to widget-shell's adapter, and the
- * BPMN viewer). The only npm packages widget-shell's view half and (with widget-shell's
- * `/widgets`) a connector's widgets import, and none of them is widget-shell's server half's. The
- * server stack (mcp-use itself, @modelcontextprotocol, prom-client, zod) and Node built-ins are
- * not among them.
+ * The MCP Apps runtime: `@modelcontextprotocol/ext-apps` and every subpath but its server half
+ * (`/server`: `registerAppTool`, the view resource's MIME type), which is server code. Only
+ * widget-shell's host adapter (EXT_APPS_HOST_ADAPTER) imports it (ext-apps-runtime-in-the-adapter).
  */
-const VIEW_STACK =
-  "react|react-dom|lucide-react|@tanstack/[^/]+|@miragon/pulse-ui|mcp-use/react|bpmn-js|diagram-js"
+const EXT_APPS_RUNTIME = "@modelcontextprotocol/ext-apps(?!/server(?:/|$))"
+
+/**
+ * widget-shell's host adapter: the one place that speaks to an MCP Apps host (ESLint's
+ * EXT_APPS_HOST_ADAPTER in eslint.config.mjs names the same files).
+ */
+const EXT_APPS_HOST_ADAPTER = [
+  "^packages/core/widget-shell/src/ui/view-runtime[.]ts$",
+  "^packages/core/widget-shell/src/ui/ext-apps-host[.]tsx$",
+  "^packages/core/widget-shell/src/ui/view-root[.]tsx$",
+]
+
+/**
+ * The view stack: React and what builds on it (Lucide, TanStack Query, the design kit, the MCP
+ * Apps runtime, which only widget-shell's host adapter imports, and the BPMN viewer). The only
+ * npm packages widget-shell's view half and (with widget-shell's `/widgets`) a connector's
+ * widgets import, and none of them is widget-shell's server half's. The server stack (the SDK's
+ * server and Node packages, ext-apps' `/server`, hono, jose, prom-client, zod) and Node built-ins
+ * are not among them.
+ */
+const VIEW_STACK = `react|react-dom|lucide-react|@tanstack/[^/]+|@miragon/pulse-ui|${EXT_APPS_RUNTIME}|bpmn-js|diagram-js`
 
 /** widget-shell's two halves and the protocol modules both import (see the seam rules). */
 const SHELL_SRC = "^packages/core/widget-shell/src/"
@@ -239,7 +257,7 @@ module.exports = {
       comment:
         "packages/core/ui (@miragon/pulse-ui) is the design kit every Pulse view and every customer UI " +
         "builds on: it imports no workspace package and nothing of the MCP, query, server or schema " +
-        "stack (mcp-use, @modelcontextprotocol, TanStack, zod, prom-client, " +
+        "stack (@modelcontextprotocol, hono, jose, TanStack, zod, prom-client, " +
         "@hey-api, bpmn-js, diagram-js). What needs the host, a tool call or BPMN belongs in widget-shell, " +
         "which imports pulse-ui, never the other way round (CLAUDE.md invariants 6 and 8).",
       from: { path: "^packages/core/ui/" },
@@ -248,7 +266,7 @@ module.exports = {
           "^packages/(?!core/ui/)",
           "@miragon/pulse-(?!ui(?:/|$))",
           ...npm(
-            "mcp-use|@modelcontextprotocol/[^/]+|@tanstack/[^/]+|zod|prom-client|@hey-api/[^/]+|bpmn-js|diagram-js",
+            "@modelcontextprotocol/[^/]+|hono|@hono/[^/]+|jose|@tanstack/[^/]+|zod|prom-client|@hey-api/[^/]+|bpmn-js|diagram-js",
           ),
         ],
       },
@@ -267,7 +285,8 @@ module.exports = {
       comment:
         "widget-shell's view half (src/ui, the `/widgets` entry, in every view bundle) imports " +
         "only src/ui, src/protocol and the view stack (VIEW_STACK): no server module of " +
-        "widget-shell, no Node built-in, no server package (mcp-use, prom-client, zod). What both " +
+        "widget-shell, no Node built-in, no server package (the SDK's server, hono, jose, prom-client, " +
+        "zod). What both " +
         "halves need moves into src/protocol, dependency-free.",
       from: { path: SHELL_VIEWS, pathNot: SRC_TEST_CODE },
       to: { pathNot: [SHELL_VIEWS, SHELL_PROTOCOL, ...npm(VIEW_STACK)] },
@@ -294,6 +313,19 @@ module.exports = {
       to: { pathNot: SHELL_PROTOCOL },
     },
     {
+      name: "ext-apps-runtime-in-the-adapter",
+      severity: "error",
+      comment:
+        "Only widget-shell's host adapter (src/ui/view-runtime.ts, ext-apps-host.tsx, " +
+        "view-root.tsx) imports the MCP Apps runtime (@modelcontextprotocol/ext-apps but its " +
+        "/server half): a widget reaches the host through widget-shell's view host and query " +
+        "hooks, so it renders under TestViewHost and in another host (a web app, a VS Code " +
+        "webview) that brings an adapter of its own (CLAUDE.md invariant 6). ESLint's " +
+        "no-restricted-imports holds the static imports; this rule sees a dynamic import() too.",
+      from: { pathNot: EXT_APPS_HOST_ADAPTER },
+      to: { path: npm(EXT_APPS_RUNTIME) },
+    },
+    {
       name: "connector-widgets-are-browser-code",
       severity: "error",
       comment:
@@ -304,7 +336,7 @@ module.exports = {
         "(src/bpmn-names.ts), widget-shell's `/widgets` and the view stack (VIEW_STACK). Nothing " +
         "else of the connector (tools, widget tools, data builders, the other lib folders, " +
         "providers, instructions, feed contracts, plugin, module, the package root), no client " +
-        "SDK, no server package (mcp-use, zod), no Node built-in. Type-only imports stay allowed: " +
+        "SDK, no server package (the MCP SDK's server, zod), no Node built-in. Type-only imports stay allowed: " +
         "a widget reads the view models' and feeds' types. Data reaches a widget through its view " +
         "tool and `*_data` feeds; pure code the widgets and the server both run goes into " +
         "src/lib/shared.",
@@ -390,7 +422,7 @@ module.exports = {
         "package except the family core it bundles (CLI_CORE: @miragon/pulse-engine-core, the " +
         "engine family's workflow domain, which tsdown inlines), and nothing of the MCP/UI/server " +
         "stack (react, react-dom, lucide-react, preact, bpmn-js, diagram-js, " +
-        "mcp-use, @modelcontextprotocol, TanStack, prom-client, " +
+        "@modelcontextprotocol, hono, jose, TanStack, prom-client, " +
         "zod, @hey-api, vscode, @miragon/modeler-shell). A relative escape into " +
         "packages/connectors/engine/engine-core is still a violation: import the package.",
       from: { path: "^apps/cli/" },

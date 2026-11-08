@@ -4,7 +4,7 @@ function errorResult(message: string) {
 }
 
 /**
- * A throw reaches the model as `[<status or code>] <message>`: mcp-use passes the bare message,
+ * A throw reaches the model as `[<status or code>] <message>`: the SDK passes the bare message,
  * and the code (`ENGINE_NOT_SELECTED`, `UNKNOWN_ENGINE`) is what tells the model the next step.
  * An HTTP-ish `status` wins over a domain `code`; without either the message stays as it is.
  */

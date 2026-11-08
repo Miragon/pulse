@@ -1,4 +1,4 @@
-import type { MCPServer } from "mcp-use"
+import type { ModuleServer } from "@miragon/pulse-widget-shell/server"
 import {
   appOnly,
   buildDataFeedResult,
@@ -44,7 +44,7 @@ export interface AnalyticsWidgetToolsOptions {
 }
 
 export function registerWidgetTools(
-  server: MCPServer,
+  server: ModuleServer,
   ch: PrometheusClient,
   options: AnalyticsWidgetToolsOptions,
 ) {
@@ -68,9 +68,9 @@ export function registerWidgetTools(
     return { bpmnXml: null, bpmnMissing: "not-loaded" }
   }
 
-  server.tool(
+  server.registerTool(
+    ANALYTICS_SHOW_DASHBOARD,
     {
-      name: ANALYTICS_SHOW_DASHBOARD,
       title: "Process Analytics Dashboard",
       description:
         "Show process metrics from Prometheus for a rolling period: starts, completions, incidents created (not failed instances) and resolved, avg/median/p95 duration of the instances that ENDED in it (null when none did), the period before as reference, and the live state now (instances running, incidents open). Broken down per process definition and per (process, activity): executions, total/avg/median/p95 time and incidents created (unscoped: the top 20 by total time).",
@@ -80,7 +80,7 @@ export function registerWidgetTools(
     },
     withToolErrors(async (args, ctx) => {
       const result = await queries.dashboardData(
-        withCallerSignal(ch, ctx.signal),
+        withCallerSignal(ch, ctx.mcpReq.signal),
         withEngineScope(engineScope, args),
       )
       return viewWithJson(await namedDashboard(result, namesFor), result)
@@ -89,9 +89,9 @@ export function registerWidgetTools(
 
   registerComparisonWidgetTools({ server, ch, engineScope, namesFor })
 
-  server.tool(
+  server.registerTool(
+    ANALYTICS_SHOW_BPMN_HEATMAP,
     {
-      name: ANALYTICS_SHOW_BPMN_HEATMAP,
       title: "BPMN Heatmap",
       description:
         "Render a process definition's BPMN diagram with a per-element heat overlay from metrics, with a Frequency↔Duration toggle (traversal count vs average duration per element). Node-level only (sequence-flow/edge heat is not available from metrics) and rendered on the latest deployed version's diagram (activity metrics carry no version label). Needs the engine module to fetch the BPMN XML; otherwise the widget shows a fallback.",
@@ -102,7 +102,7 @@ export function registerWidgetTools(
     withToolErrors(async (args, ctx) => {
       const { period } = args
       const scoped = withEngineScope(engineScope, args)
-      const heat = await queries.elementHeat(withCallerSignal(ch, ctx.signal), scoped)
+      const heat = await queries.elementHeat(withCallerSignal(ch, ctx.mcpReq.signal), scoped)
       // Only to know whether a diagram exists; the widget reads the XML from `analytics_bpmn_xml_data`.
       const bpmn = await loadBpmn(args.processDefinitionKey, scoped.engine)
       // The engines travel with the heat, so the model description names them.
@@ -127,9 +127,9 @@ export function registerWidgetTools(
     }),
   )
 
-  server.tool(
+  server.registerTool(
+    ANALYTICS_BPMN_HEATMAP_DATA,
     {
-      name: ANALYTICS_BPMN_HEATMAP_DATA,
       title: "BPMN heatmap data (internal)",
       description:
         "Internal JSON feed (no UI) for the BPMN heatmap: per-element execution frequency + average duration over a window. Lets another widget (e.g. the CIB seven cockpit) paint the heat on its own diagram. Prefer analytics_show_bpmn_heatmap for a standalone view.",
@@ -140,7 +140,7 @@ export function registerWidgetTools(
     withToolErrors(async (args, ctx) => {
       const { period } = args
       const scoped = withEngineScope(engineScope, args)
-      const heat = await queries.elementHeat(withCallerSignal(ch, ctx.signal), scoped)
+      const heat = await queries.elementHeat(withCallerSignal(ch, ctx.mcpReq.signal), scoped)
       const data = {
         processDefinitionKey: args.processDefinitionKey,
         period,
@@ -153,9 +153,9 @@ export function registerWidgetTools(
     }),
   )
 
-  server.tool(
+  server.registerTool(
+    ANALYTICS_BPMN_XML_DATA,
     {
-      name: ANALYTICS_BPMN_XML_DATA,
       title: "BPMN heatmap diagram (internal)",
       description:
         "Internal JSON feed (no UI): the latest deployed BPMN XML of a process key on the engines in scope, for the heatmap view's diagram.",

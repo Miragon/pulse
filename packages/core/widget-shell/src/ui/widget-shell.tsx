@@ -4,7 +4,7 @@ import { cn } from "@miragon/pulse-ui"
 /** Without this flag every embedded widget would stack a second background and padding inside the first. */
 const InsideShellContext = createContext(false)
 
-/** mcp-use 2.x's `useDisplayMode` only works under `bootstrapView`, so the bundle root provides it. */
+/** The display mode the bundle root provides, read by `useShellHost`'s consumers. */
 const DisplayModeContext = createContext<string>("inline")
 
 export function DisplayModeProvider({ mode, children }: { mode: string; children: ReactNode }) {

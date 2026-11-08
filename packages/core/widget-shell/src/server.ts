@@ -4,15 +4,24 @@
  * so no root can wire a second boot that skips one of them.
  */
 
-// The module port: what a module hands the boot.
+// The module port: what a module hands the boot, and the server its plugin registers on (the
+// official SDK's `registerTool`/`registerPrompt`/`registerResource`), the app the boot serves.
 export { type ComposableModule, type ModuleEntry, type ModulePlugin } from "./composition.js"
+export { type ModuleServer } from "./module-server.js"
+export { type McpHttpApp, type ToolAnnotations } from "./mcp-server.js"
 export { createToolsetVocabulary, type ToolsetVocabulary } from "./toolsets.js"
 
 // Tool authoring: the registrar, the view and feed bindings and results, the server i18n, the
 // BPMN-name readers and the per-caller request info.
 export { withToolErrors } from "./tool-errors.js"
 export { createToolRegistrar, type ToolConfig, type ToolRegistrar } from "./tool-registrar.js"
-export { appOnly, showToolBinding, strictToolInput } from "./widget-tool-bindings.js"
+export {
+  appOnly,
+  showToolBinding,
+  strictToolInput,
+  type OwnViewBinding,
+} from "./widget-tool-bindings.js"
+export { type AppResourceCsp } from "./view-csp.js"
 export { buildDataFeedResult, buildViewResult, type ViewResult } from "./view-results.js"
 // The two protocol helpers both halves use are also on `/widgets`, with their types: server
 // summaries and widget strings call createTranslator at runtime, and the server's tool tests
@@ -57,6 +66,7 @@ export { runComposedServer, type RunComposedServerOptions } from "./run-composed
 export { VIEW_RESOURCE_URI_PREFIX, viewResourceUri } from "./widget-tool-bindings.js"
 export { viewPrelude } from "./protocol/view-name.js"
 export { VIEW_BUNDLE_DEDUPE } from "./view-bundle.js"
+export { viewBundleWatchPlugin } from "./view-bundle-watch.js"
 
 // The served fonts (owner order: unchanged), and the route host installFontAssets takes.
 export type { HttpRouteHost } from "./health.js"

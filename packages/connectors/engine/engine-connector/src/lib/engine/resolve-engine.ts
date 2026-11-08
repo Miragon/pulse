@@ -69,9 +69,9 @@ export class UnknownEngineError extends Error {
   }
 }
 
-/** mcp-use's handler `ctx` satisfies this structurally. */
+/** The SDK's handler `ctx` (`ServerContext`) satisfies this structurally. */
 export interface EngineCallContext {
-  signal?: AbortSignal
+  mcpReq?: { signal?: AbortSignal }
 }
 
 /**
@@ -86,7 +86,7 @@ export function resolveEngine(
   const engineId = pickEngineId(override, registry)
   const backend = registry.backends.get(engineId)
   if (!backend) throw new UnknownEngineError(engineId, registry.engines)
-  return { ...backend, client: withCallerSignal(backend.client, call?.signal), engineId }
+  return { ...backend, client: withCallerSignal(backend.client, call?.mcpReq?.signal), engineId }
 }
 
 /** An empty `""` override counts as no engine named; it still skips the default. */

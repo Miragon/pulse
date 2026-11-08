@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { createElement } from "react"
 import { cleanup, render } from "@testing-library/react"
-import type { MCPServer } from "mcp-use"
+import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
 import { TestViewHost, type ViewComponent } from "@miragon/pulse-widget-shell/widgets"
 import { createPlugin } from "../plugin.js"
 import { analyticsHostWidgets, analyticsViews, FleetLandscape } from "./views.js"
@@ -40,14 +40,11 @@ afterEach(() => {
 
 /** Every view-bound tool the plugin registers. */
 function viewTools(): string[] {
-  const register = vi.fn()
-  createPlugin({ url: "http://prometheus.example", engineIds: ["prod-a"] }).register({
-    tool: register,
-    prompt: vi.fn(),
-  } as unknown as MCPServer)
-  return register.mock.calls
-    .map(([definition]) => (definition as { name: string }).name)
-    .filter((name) => name.startsWith("analytics_show_"))
+  const recording = recordingModuleServer()
+  createPlugin({ url: "http://prometheus.example", engineIds: ["prod-a"] }).register(
+    recording.server,
+  )
+  return [...recording.tools.keys()].filter((name) => name.startsWith("analytics_show_"))
 }
 
 const DATA = { engines: ["prod-a"] }

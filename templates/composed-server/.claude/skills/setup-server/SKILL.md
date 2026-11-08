@@ -21,20 +21,21 @@ Configuration ground rules first:
 
 ```bash
 corepack enable # pnpm 10.32.1 (`packageManager`); Node.js 25+ has none: npm i -g pnpm@10.32.1
-pnpm install    # needs Node >= 22.22.2 (enforced at install time)
+pnpm install    # needs Node ^22.23.4, ^24.22.1 or >= 26.12.1 (enforced at install time)
 cp .env.example .env
-pnpm dev        # MCP endpoint on :8400/mcp, inspector on :8400/mcp/inspector
+pnpm dev        # MCP endpoint on :8400/mcp, plus the MCP Inspector (it prints its URL)
 ```
 
-Verify before configuring anything: open `http://localhost:8400/mcp/inspector` and
-call `notes_show_notes`: the example module needs no external infrastructure,
-so a rendered notes widget proves server, widget bundle, and inspector work.
-If the log says `[mcp-use] port 8400 is taken, using <port>`, the endpoint and
-the inspector are on that port and 8400 is another server (see
-Troubleshooting): use that port, or free 8400 and restart.
-Then read the boot log. The Vite build output, the `[inspector]` lines and
-`[mcp-use] views directory not configured.` / `created mcp-env.d.ts` are
-expected; a `[mcp-use] reload failed` line is an error. The server's own
+`pnpm dev` runs Vite rebuilding the widget bundle, the server (`tsx watch`) and
+the official MCP Inspector on `127.0.0.1`, pointed at the server; it opens no
+browser. Verify before configuring anything: open the URL the inspector
+prints (it carries a per-launch token) and render `notes_show_notes` in its
+Apps tab: the example module needs no external infrastructure, so a rendered
+notes widget proves server, widget bundle, and inspector work.
+If the server logs `listen EADDRINUSE`, another server holds 8400 (see
+Troubleshooting): free it, or set `PORT` in `.env` and restart.
+Then read the boot log. The Vite build output and the inspector's lines are
+expected. The server's own
 lines start with `[acme-mcp]` (the `name` in
 `server/src/app.ts`): every warning among them is actionable (unknown env var, missing Prometheus URL,
 engine auth problems), and one info line
@@ -152,21 +153,22 @@ MCP_ACTIVE_MODULES=engine:operations,notes
 
 ### OAuth: sign-in and caller identity
 
-The boot reads mcp-use's own provider variables itself; set those of ONE provider. The OAuth block
+The boot reads one provider's `MCP_OAUTH_*` variables; set those of ONE provider. The OAuth block
 of `.env.example` lists the providers, their variables and what fails the boot. Keycloak, say:
 
 ```bash
 MCP_URL=https://mcp.example.com     # the public origin, no path; required with OAuth
-MCP_USE_OAUTH_KEYCLOAK_SERVER_URL=https://kc.example.com
-MCP_USE_OAUTH_KEYCLOAK_REALM=platform
+MCP_OAUTH_KEYCLOAK_SERVER_URL=https://kc.example.com
+MCP_OAUTH_KEYCLOAK_REALM=platform
 ```
 
-`/mcp` then answers 401 without a valid bearer token and the default engine
-toolset rises to `operations`. Without a provider there is no caller identity. A
+`/mcp` then answers 401 without a valid bearer token (the server is an OAuth
+resource server: it verifies tokens against the provider, never issues them)
+and the default engine toolset rises to `operations`. Without a provider there is no caller identity. A
 provider config the boot cannot honor fails the boot, naming the variables.
 
-The token audience is NOT `MCP_URL` itself: mcp-use accepts a token whose
-`aud` holds `<MCP_URL>/mcp` (`https://mcp.example.com/mcp` above, the
+The token audience is NOT `MCP_URL` itself: the server accepts a token whose
+`aud` (a string, or an array of strings only) holds `<MCP_URL>/mcp` (`https://mcp.example.com/mcp` above, the
 `resource` that `/.well-known/oauth-protected-resource/mcp` advertises) and
 that carries `sub`; the boot logs the value
 (`[acme-mcp] OAuth: tokens must carry aud https://mcp.example.com/mcp …`). The
@@ -174,8 +176,8 @@ IdP side (audience mapper, `sub`, client registration with the claude.ai
 callback `https://claude.ai/api/mcp/auth_callback`, reading a 401) is the
 [identity provider checklist](https://miragon.github.io/pulse/mcp/operations#identity-provider-checklist).
 A 401's `WWW-Authenticate` header names an audience mismatch;
-`MCP_USE_OAUTH_DEBUG=1` logs a failed signature, issuer, `sub` or `exp` check
-with the token's claims.
+`MCP_OAUTH_DEBUG=1` logs why the signature, issuer, `sub` or `exp` check
+failed, never the token.
 
 ## Step 4: make it yours
 
@@ -252,7 +254,7 @@ docker run --rm --env-file .env -p 127.0.0.1:8400:8400 \
   `Host`/`Origin` the server accepts: anything else gets 403 (DNS-rebinding
   protection), with the message naming the variable to set. It is also the
   origin the views load Geist from (the server's own `/fonts/geist-<version>/`
-  route, declared in every view's CSP `resourceDomains`): behind a gateway,
+  route, declared in every bundle view's CSP `resourceDomains`): behind a gateway,
   route `/fonts/` to the server too, or the views show the host's font.
 - Federation/aggregation across MCP servers belongs in an external gateway
   (e.g. agentgateway) IN FRONT of this server; this repo builds one
@@ -293,20 +295,25 @@ claude mcp add --transport http my-mcp-server http://localhost:8400/mcp
 
 **claude.ai / ChatGPT custom connectors** need a server reachable over the
 public internet (an `https://…/mcp` URL), so a deployment, not localhost. For
-a throwaway test of a local build, `--tunnel` exposes it publicly. Run it
-through dotenv from the repo root: `mcp-use dev` only reads a `.env` next to
-itself (`server/.env`), never this repo's root one, so a bare
-`mcp-use dev --tunnel` in `server/` tunnels a server with no engine or
-Prometheus configured:
+a throwaway test of a local build, and for what the inspector cannot show (a
+hand-off to the chat, the context a view hands the model, the host's locale),
+tunnel the running `pnpm dev` with Cloudflare's
+[`cloudflared`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/):
 
 ```bash
-pnpm exec dotenv -e .env -- pnpm --filter ./server exec mcp-use dev --tunnel --no-open
+cloudflared tunnel --url http://localhost:8400   # prints https://<random>.trycloudflare.com
 ```
 
-Under `mcp-use dev` the CLI checks `Host` itself and admits its tunnel host,
-so the tunnel needs no `MCP_ALLOWED_HOSTS` (browser `Origin`s are still
-checked). A built server (`pnpm start`, the image) behind a tunnel or proxy
-needs `MCP_URL` set to the public URL, else every call gets 403.
+Then set `MCP_URL` in `.env` to that `https://` origin and restart `pnpm dev`:
+the server answers 403 to any other `Host` (DNS-rebinding protection), and
+`MCP_URL` is also the origin the views load their font from. Add
+`<MCP_URL>/mcp` as the connector's URL. The tunnel is public: anyone with the
+URL reaches the server, so keep the read-only default and stop the tunnel
+when you are done. Cloudflare lists Server-Sent Events as unsupported on quick
+tunnels, and the server answers most requests as a short event stream: should
+a host's calls hang, run a named Cloudflare Tunnel (a Cloudflare account) instead.
+A built server (`pnpm start`, the image) behind a tunnel or proxy needs the
+same `MCP_URL`.
 
 ## Step 7: verify
 
@@ -324,13 +331,13 @@ missing-URL warnings) is part of done.
 
 | Symptom                                   | Cause                                                                                                                                                                                                                                                                                    |
 | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Every in-widget query hangs on "Loading…" | `resolve.dedupe` in `server/vite.config.ts` no longer spreads `VIEW_BUNDLE_DEDUPE`, or a second copy of React, the kit, widget-shell or mcp-use got installed                                                                                                                            |
+| Every in-widget query hangs on "Loading…" | `resolve.dedupe` in `server/vite.config.ts` no longer spreads `VIEW_BUNDLE_DEDUPE`, or a second copy of React, the kit, widget-shell or lucide-react got installed                                                                                                                       |
 | Widgets render unstyled                   | widget sources outside the Tailwind scan set (workspace modules are globbed; npm-installed ones need an `@source` in `server/src/ui/globals.css`)                                                                                                                                        |
 | Analytics tools return empty results      | `ENGINE_ID` differs from the engine container's `ENGINE_ID` (its `engine_id` label), or `PROMETHEUS_URL` points at the wrong port                                                                                                                                                        |
 | Cockpit links open the wrong web app      | the engine's vendor: without `ENGINE_FLAVOR` (or a `flavor` per engine entry) it counts as Camunda 7                                                                                                                                                                                     |
 | "Unknown environment variable" at boot    | typo, or a var this build doesn't read; `.env.example` is the authoritative list                                                                                                                                                                                                         |
-| Widget or module changes don't show up    | stale UI, tool description or handler: the modules and the bundle are built and read once, when `pnpm dev` starts (a save's `[mcp-use] reloaded server entry` skips them); restart it at the repo root                                                                                   |
+| Widget or module changes don't show up    | a widget edit rebuilds the bundle and restarts the server by itself, so reopen the view; a module's tools are built once, when `pnpm dev` starts: restart it at the repo root                                                                                                            |
 | A tool is missing                         | module not in `MCP_ACTIVE_MODULES` (the copied `.env` names `engine,notes`, not analytics or a module you added), or its toolset filtered it; with no suffix and no OAuth it is `read-only` (see the boot log's `Toolsets:` line); deployments also need `ENGINE_ALLOW_DEPLOYMENTS=true` |
 | The boot refuses an unknown module        | `MCP_ACTIVE_MODULES` in `.env` still names a module you removed from `MODULES`, or a typo: take it out of the list                                                                                                                                                                       |
-| Engine tools show, your module's don't    | another server holds 8400 (the stock Pulse image, say): `pnpm dev` took the next free port and logged it (`[mcp-use] port 8400 is taken, using 8401`); connect to that endpoint or free 8400                                                                                             |
+| Engine tools show, your module's don't    | another server holds 8400 (the stock Pulse image, say): your server logged `listen EADDRINUSE` and did not start; free 8400 or set `PORT`                                                                                                                                                |
 | Claude Desktop shows no tools at all      | a `"url"` entry in `claude_desktop_config.json` (stdio only, use the `mcp-remote` bridge from Step 6), or the app wasn't restarted                                                                                                                                                       |

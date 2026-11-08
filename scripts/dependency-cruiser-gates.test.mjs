@@ -68,8 +68,12 @@ const THIRD_PARTY = [
   "react-dom",
   "lucide-react",
   "@tanstack/react-query",
-  "mcp-use",
-  "@modelcontextprotocol/sdk",
+  "@modelcontextprotocol/server",
+  "@modelcontextprotocol/node",
+  "@modelcontextprotocol/ext-apps",
+  "@modelcontextprotocol/ext-apps-extra",
+  "hono",
+  "jose",
   "prom-client",
   "zod",
   "@hey-api/client-fetch",
@@ -92,6 +96,7 @@ const UI_LEAF = "ui-is-a-leaf"
 const SHELL_VIEWS = "widget-shell-views-browser-only"
 const SHELL_HEADLESS = "widget-shell-server-headless"
 const SHELL_PROTOCOL = "widget-shell-protocol-is-a-leaf"
+const EXT_APPS = "ext-apps-runtime-in-the-adapter"
 const WIDGETS_BROWSER = "connector-widgets-are-browser-code"
 const WIDGETS_SHARED_LIB = "connector-widgets-only-shared-lib"
 const POINT_DOWN = "connector-data-and-lib-point-down"
@@ -245,8 +250,14 @@ const SUITES = [
         "react-dom/client",
         "lucide-react",
         "@tanstack/react-query",
-        "mcp-use/react",
-        "@modelcontextprotocol/sdk/server",
+        "@modelcontextprotocol/server",
+        "@modelcontextprotocol/node",
+        "@modelcontextprotocol/ext-apps/server",
+        "@modelcontextprotocol/client",
+        "hono",
+        "hono/cors",
+        "@hono/node-server",
+        "jose",
         "prom-client",
         "zod",
         "@hey-api/client-fetch",
@@ -256,6 +267,12 @@ const SUITES = [
         "@miragon/modeler-shell",
         "vscode",
       ].map((spec) => [CLI_SRC, spec, [HEADLESS]]),
+      // The MCP Apps runtime is the host adapter's rule as well.
+      ...["@modelcontextprotocol/ext-apps", "@modelcontextprotocol/ext-apps/react"].map((spec) => [
+        CLI_SRC,
+        spec,
+        [HEADLESS, EXT_APPS],
+      ]),
       // An app is the app rule's (apps-never-import-apps), not this one's.
       [CLI_SRC, "pulse-cockpit", [APP_APP]],
       [CLI_SRC, "@miragon/pulse-ui", [HEADLESS]],
@@ -293,11 +310,15 @@ const SUITES = [
       [ENGINE_SRC, "@miragon/pulse-ui", [CORE_LEAF]],
       [ENGINE_SRC, "@miragon/pulse-widget-shell/server", [CORE_LEAF]],
       [ENGINE_SRC, "@miragon/pulse-cli", [NO_APP, CORE_LEAF]],
-      ...["zod", "mcp-use", "react", "commander", "reactive", "node:fs", "path"].map((spec) => [
-        ENGINE_SRC,
-        spec,
-        [CORE_LEAF],
-      ]),
+      ...[
+        "zod",
+        "@modelcontextprotocol/server",
+        "react",
+        "commander",
+        "reactive",
+        "node:fs",
+        "path",
+      ].map((spec) => [ENGINE_SRC, spec, [CORE_LEAF]]),
       [`${ENGINE}/src/escape.ts`, "../../../../core/ui/src/target.ts", [CORE_LEAF, DEEP]],
       [`${ENGINE}/src/escape-client.ts`, "../../engine-client/src/target.ts", [CORE_LEAF, DEEP]],
       // The shipped ./testing export is no test file: only *.test.ts may import vitest.
@@ -442,7 +463,7 @@ const SUITES = [
       [SERVER_SRC, "@miragon/pulse-analytics-connector", []],
       [SERVER_SRC, "react", []],
       [SERVER_SRC, "zod", []],
-      [SERVER_SRC, "mcp-use/server", []],
+      [SERVER_SRC, "@modelcontextprotocol/server", []],
       [SERVER_SRC, "./lib.ts", []],
     ],
   },
@@ -479,7 +500,8 @@ const SUITES = [
       // React and the kit are the view half's (the server half is widget-shell-server-headless's).
       [`${SHELL}/src/ui/view.ts`, "react", []],
       [SHELL_SRC, "zod", []],
-      [SHELL_SRC, "mcp-use", []],
+      [SHELL_SRC, "@modelcontextprotocol/server", []],
+      [SHELL_SRC, "hono", []],
       [`${SHELL}/src/ui/view.ts`, "@miragon/pulse-ui", []],
       [SHELL_SRC, "@miragon/pulse-mcp-server-kit", []],
     ],
@@ -495,14 +517,17 @@ const SUITES = [
       // A scoped app name is a workspace package name as well: the leaf rule bites with the app rule.
       [UI_SRC, "@miragon/pulse-mcp-server", [NO_APP, UI_LEAF]],
       ...[
-        "mcp-use",
-        "mcp-use/react",
+        "@modelcontextprotocol/server",
+        "@modelcontextprotocol/ext-apps/server",
+        "hono",
+        "jose",
         "@tanstack/react-query",
         "zod",
-        "@modelcontextprotocol/sdk/server",
         "prom-client",
         "bpmn-js",
       ].map((spec) => [UI_SRC, spec, [UI_LEAF]]),
+      // The MCP Apps runtime is the host adapter's rule as well.
+      [UI_SRC, "@modelcontextprotocol/ext-apps", [UI_LEAF, EXT_APPS]],
       [`${UI}/src/escape.ts`, "../../widget-shell/src/target.ts", [UI_LEAF, DEEP]],
       // Allowed: React, Lucide, its own modules; every Pulse package may import it.
       [UI_SRC, "react", []],
@@ -526,9 +551,12 @@ const SUITES = [
       ...[
         "@miragon/pulse-widget-shell/server",
         "node:fs",
-        "mcp-use",
-        "mcp-use/server",
-        "@modelcontextprotocol/sdk/server",
+        "@modelcontextprotocol/server",
+        "@modelcontextprotocol/node",
+        // ext-apps' server half is server code, not the view stack's runtime.
+        "@modelcontextprotocol/ext-apps/server",
+        "hono",
+        "jose",
         "prom-client",
         "zod",
         "commander",
@@ -545,14 +573,15 @@ const SUITES = [
         "react-dom/client",
         "lucide-react",
         "@tanstack/react-query",
-        "mcp-use/react",
         "bpmn-js/lib/NavigatedViewer",
         "diagram-js",
       ].map((spec) => [`${SHELL}/src/ui/view.ts`, spec, []]),
+      // The MCP Apps runtime is view stack, in the host adapter alone.
+      [`${SHELL}/src/ui/view-runtime.ts`, "@modelcontextprotocol/ext-apps", []],
       // Tests and test-support run in Node: exempt.
       [`${SHELL}/src/ui/brand.test.ts`, "node:fs", []],
       [`${SHELL}/src/ui/view.test.tsx`, "../composed-server.ts", []],
-      [`${SHELL}/src/ui/host.test-support.ts`, "mcp-use", []],
+      [`${SHELL}/src/ui/host.test-support.ts`, "@modelcontextprotocol/server", []],
     ],
   },
   {
@@ -569,15 +598,26 @@ const SUITES = [
         "lucide-react",
         "@tanstack/react-query",
         "@miragon/pulse-ui",
-        "mcp-use/react",
         "bpmn-js",
         "diagram-js",
       ].map((spec) => [`${SHELL}/src/view-stack.ts`, spec, [SHELL_HEADLESS]]),
+      // The MCP Apps runtime is view stack (and the host adapter's rule).
+      ...[
+        "@modelcontextprotocol/ext-apps",
+        "@modelcontextprotocol/ext-apps/react",
+        "@modelcontextprotocol/ext-apps/app-bridge",
+      ].map((spec) => [`${SHELL}/src/view-stack.ts`, spec, [SHELL_HEADLESS, EXT_APPS]]),
       [`${SHELL}/src/view-stack.ts`, "@miragon/pulse-ui/testing", [NO_TESTING, SHELL_HEADLESS]],
       // Allowed: the protocol, the server stack, Node built-ins; the server's own modules.
       [`${SHELL}/src/server-entry.ts`, "./protocol/tool-result.ts", []],
       [`${SHELL}/src/server-entry.ts`, "./composed-server.ts", []],
-      [`${SHELL}/src/server-entry.ts`, "mcp-use/server", []],
+      ...[
+        "@modelcontextprotocol/server",
+        "@modelcontextprotocol/node",
+        "@modelcontextprotocol/ext-apps/server",
+        "hono",
+        "jose",
+      ].map((spec) => [`${SHELL}/src/server-entry.ts`, spec, []]),
       [`${SHELL}/src/server-entry.ts`, "prom-client", []],
       [`${SHELL}/src/server-entry.ts`, "node:http", []],
       // Look-alikes of the view stack are none of it.
@@ -598,17 +638,56 @@ const SUITES = [
       [`${SHELL}/src/protocol/to-views.ts`, "../ui/target.ts", [SHELL_PROTOCOL]],
       [`${SHELL}/src/protocol/to-views-type.ts`, "../ui/lib.ts", [SHELL_PROTOCOL], "type"],
       // Any npm package (the view stack and the server stack alike) and any Node built-in.
-      ...["react", "@miragon/pulse-ui", "mcp-use", "zod", "node:crypto"].map((spec) => [
-        `${SHELL}/src/protocol/to-npm.ts`,
-        spec,
-        [SHELL_PROTOCOL],
-      ]),
+      ...["react", "@miragon/pulse-ui", "@modelcontextprotocol/server", "zod", "node:crypto"].map(
+        (spec) => [`${SHELL}/src/protocol/to-npm.ts`, spec, [SHELL_PROTOCOL]],
+      ),
       // Neither half's rule fires on the protocol: each rule has one subject.
-      [`${SHELL}/src/protocol/to-mcp-server.ts`, "mcp-use/server", [SHELL_PROTOCOL]],
+      [`${SHELL}/src/protocol/to-mcp-server.ts`, "@modelcontextprotocol/server", [SHELL_PROTOCOL]],
       // Allowed: another protocol module.
       [`${SHELL}/src/protocol/tool-result-reader.ts`, "./view-name.ts", []],
       // Its tests run in Node: exempt.
       [`${SHELL}/src/protocol/tool-result.test.ts`, "node:fs", []],
+    ],
+  },
+  {
+    rule: EXT_APPS,
+    title: "only widget-shell's host adapter imports the MCP Apps runtime, in any form",
+    cases: [
+      // A connector's widgets: the view-stack allowlist lets the runtime through, this rule not.
+      ...[
+        "@modelcontextprotocol/ext-apps",
+        "@modelcontextprotocol/ext-apps/react",
+        "@modelcontextprotocol/ext-apps/app-bridge",
+      ].map((spec) => [`${ENGINE_CONNECTOR}/src/widgets/host.tsx`, spec, [EXT_APPS]]),
+      // What ESLint's no-restricted-imports does not see: a dynamic import(); and a type alone.
+      [
+        `${AN_CONNECTOR}/src/widgets/dynamic-host.tsx`,
+        "@modelcontextprotocol/ext-apps",
+        [EXT_APPS],
+        "dynamic",
+      ],
+      [
+        `${AN_CONNECTOR}/src/widgets/host-type.ts`,
+        "@modelcontextprotocol/ext-apps",
+        [EXT_APPS],
+        "type",
+      ],
+      // The rest of widget-shell's view half, its tests and the server app's host bundle.
+      [`${SHELL}/src/ui/view-host.tsx`, "@modelcontextprotocol/ext-apps", [EXT_APPS]],
+      [`${SHELL}/src/ui/view-root.test.tsx`, "@modelcontextprotocol/ext-apps", [EXT_APPS]],
+      [`${SERVER}/src/ui/main.tsx`, "@modelcontextprotocol/ext-apps/react", [EXT_APPS]],
+      // Allowed: the adapter, in any form.
+      [`${SHELL}/src/ui/view-runtime.ts`, "@modelcontextprotocol/ext-apps/app-with-deps", []],
+      [`${SHELL}/src/ui/ext-apps-host.tsx`, "@modelcontextprotocol/ext-apps", [], "type"],
+      [`${SHELL}/src/ui/view-root.tsx`, "@modelcontextprotocol/ext-apps", [], "dynamic"],
+      // Allowed: ext-apps' server half where server code runs, and a look-alike package.
+      [
+        `${ENGINE_CONNECTOR}/src/widget-tools/cockpit.ts`,
+        "@modelcontextprotocol/ext-apps/server",
+        [],
+      ],
+      [`${SHELL}/src/view-resource.ts`, "@modelcontextprotocol/ext-apps/server", []],
+      [SERVER_SRC, "@modelcontextprotocol/ext-apps-extra", []],
     ],
   },
   {
@@ -633,8 +712,9 @@ const SUITES = [
         "@miragon/pulse-engine-client/sdk",
         "@miragon/pulse-widget-shell/server",
         // Server packages and Node built-ins.
-        "mcp-use",
-        "mcp-use/server",
+        "@modelcontextprotocol/server",
+        "@modelcontextprotocol/ext-apps/server",
+        "hono",
         "zod",
         "node:fs",
         // Anchored: a look-alike of an allowed name is no view-stack package.

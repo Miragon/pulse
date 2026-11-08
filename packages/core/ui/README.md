@@ -125,7 +125,7 @@ Measure a brand in a test: `parseThemeVariables(...themeStylesheets(), brandCss)
 
 ## What it is not
 
-Pure React: no `mcp-use`, no TanStack Query, no zod and no host. The view runtime (a view
+Pure React: no MCP SDK, no TanStack Query, no zod and no host. The view runtime (a view
 mounted in an MCP host and its tool calls) is
 [`@miragon/pulse-widget-shell`](../widget-shell) (`/widgets`), which builds on this kit.
 

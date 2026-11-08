@@ -78,7 +78,7 @@ describe("HostDocument", () => {
 
   it("declares Geist from the server that served the view, before the host's font", () => {
     renderDocument({
-      publicBase: "https://mcp.example.com/mcp/_mcp-use/public/",
+      publicBase: "https://mcp.example.com/mcp/assets/",
       fontCss: "@font-face { font-family: HostSans; src: local(Arial); }",
     })
     const served = document.getElementById(SERVED_FONTS_STYLE_ID)!

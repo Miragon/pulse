@@ -5,37 +5,52 @@ import {
   appOnly,
   showToolBinding,
   strictToolInput,
+  viewNameOf,
   viewResourceUri,
 } from "./widget-tool-bindings.js"
 
-describe("viewResourceUri", () => {
-  it("builds mcp-use's view resource URI", () => {
+describe("viewResourceUri and viewNameOf", () => {
+  it("builds the view resource URI the boot serves, and reads the view back", () => {
     expect(viewResourceUri("show_tasks_board")).toBe("ui://views/show_tasks_board.html")
     expect(viewResourceUri("x").startsWith(VIEW_RESOURCE_URI_PREFIX)).toBe(true)
+    expect(viewNameOf(viewResourceUri("show_tasks_board"))).toBe("show_tasks_board")
+  })
+
+  it("names no view for another URI", () => {
+    for (const uri of [
+      "ui://weather/view.html",
+      "ui://views/x.htm",
+      "ui://views/.html",
+      "ui://views/a/b.html",
+      undefined,
+      7,
+    ]) {
+      expect(viewNameOf(uri), String(uri)).toBeUndefined()
+    }
   })
 })
 
 describe("showToolBinding", () => {
   const binding = showToolBinding("show_widget", "Widget")
+  const uri = "ui://views/show_widget.html"
 
-  it("binds the view to the tool name", () => {
-    expect(binding.view).toEqual({
-      name: "show_widget",
-      description: "Widget",
-      prefersBorder: true,
-    })
+  it("binds the view named after the tool, in both MCP Apps spellings", () => {
+    expect(binding._meta.ui).toEqual({ resourceUri: uri })
+    expect(binding._meta["ui/resourceUri"]).toBe(uri)
   })
 
-  it("stamps the five Apps SDK keys in the wire order", () => {
+  it("stamps the five Apps SDK keys in the wire order, after the MCP Apps half", () => {
     expect(Object.keys(binding._meta)).toEqual([
+      "ui",
+      "ui/resourceUri",
       "openai/outputTemplate",
       "openai/toolInvocation/invoking",
       "openai/toolInvocation/invoked",
       "openai/widgetAccessible",
       "openai/resultCanProduceWidget",
     ])
-    expect(binding._meta).toEqual({
-      "openai/outputTemplate": "ui://views/show_widget.html",
+    expect(binding._meta).toMatchObject({
+      "openai/outputTemplate": uri,
       "openai/toolInvocation/invoking": "Loading Widget…",
       "openai/toolInvocation/invoked": "Widget ready",
       "openai/widgetAccessible": true,
@@ -43,27 +58,46 @@ describe("showToolBinding", () => {
     })
   })
 
-  it("never stamps a ui key: mcp-use owns that namespace", () => {
-    expect(Object.keys(binding._meta).some((key) => key === "ui" || key.startsWith("ui/"))).toBe(
-      false,
-    )
+  it("is only official config: an outputSchema and _meta", () => {
+    expect(Object.keys(binding)).toEqual(["outputSchema", "_meta"])
   })
 
-  it("carries a passthrough outputSchema (mcp-use requires one for view-bound tools)", () => {
+  it("carries a passthrough outputSchema", () => {
     // Free-form structuredContent must survive SDK-side validation unstripped.
     expect(binding.outputSchema.parse({ anything: 1, nested: { x: true } })).toEqual({
       anything: 1,
       nested: { x: true },
     })
   })
+
+  it("binds a view the module brings itself in both halves, its CSP in the Apps SDK's spelling", () => {
+    const resourceUri = "ui://acme/board.html"
+    const own = showToolBinding("acme_show_board", "Board", {
+      resourceUri,
+      csp: { connectDomains: ["https://api.acme.example"] },
+    })
+    expect(own._meta).toEqual({
+      ui: { resourceUri },
+      "ui/resourceUri": resourceUri,
+      "openai/outputTemplate": resourceUri,
+      "openai/toolInvocation/invoking": "Loading Board…",
+      "openai/toolInvocation/invoked": "Board ready",
+      "openai/widgetAccessible": true,
+      "openai/resultCanProduceWidget": true,
+      "openai/widgetCSP": { connect_domains: ["https://api.acme.example"] },
+    })
+    expect(showToolBinding("x", "X", { resourceUri })._meta).not.toHaveProperty("openai/widgetCSP")
+  })
 })
 
 describe("appOnly", () => {
   it("marks the tool app-only + widget-accessible, without any rendering keys", () => {
-    expect(appOnly.visibility).toBe("app")
-    expect(appOnly._meta).toEqual({ "openai/widgetAccessible": true })
+    expect(appOnly).toEqual({
+      _meta: { ui: { visibility: ["app"] }, "openai/widgetAccessible": true },
+    })
     // A feed result must never be rendered by the host (invariant 5).
-    expect(appOnly).not.toHaveProperty("view")
+    expect(appOnly._meta.ui).not.toHaveProperty("resourceUri")
+    expect(appOnly._meta).not.toHaveProperty("openai/outputTemplate")
   })
 })
 

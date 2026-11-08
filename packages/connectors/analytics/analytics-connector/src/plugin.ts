@@ -1,4 +1,3 @@
-import type { MCPServer } from "mcp-use"
 import type { ModulePlugin } from "@miragon/pulse-widget-shell/server"
 import { createPrometheusClient, type PrometheusConfig } from "@miragon/pulse-analytics-client"
 import { registerTools } from "./tools/index.js"
@@ -28,7 +27,7 @@ export function createPlugin(config: AnalyticsPluginConfig): ModulePlugin {
   const engineScope = createEngineScope(config.engineIds)
   return {
     name: "analytics",
-    register(server: MCPServer) {
+    register(server) {
       registerTools(server, client, engineScope)
       registerWidgetTools(server, client, {
         fetchBpmnXml: config.fetchBpmnXml,

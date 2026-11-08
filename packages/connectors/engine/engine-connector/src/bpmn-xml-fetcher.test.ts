@@ -1,13 +1,11 @@
-import { afterEach, describe, expect, it, vi } from "vitest"
-import type { MCPServer } from "mcp-use"
+import { afterEach, describe, expect, it } from "vitest"
+import { recordingModuleServer, testServerContext } from "@miragon/pulse-widget-shell/testing"
 import { engineModule, createBpmnXmlFetcher } from "./module.js"
 import {
   type FakeEngine,
   type FakeRoutes,
   startFakeEngine,
 } from "./tools/test-support/fake-engine.js"
-
-type ToolHandler = (args: unknown, ctx: { signal: AbortSignal }) => Promise<unknown>
 
 /**
  * The BPMN-XML lookup handed to analytics (its heatmap and the names in its
@@ -133,7 +131,7 @@ function definitions(id: string): FakeRoutes {
 /**
  * The lookup runs on the module's own clients: the plugin the boot creates from the same config
  * object, so a diagram analytics read is the one the tools then answer from definition-xml.ts's
- * cache, also through a tool call's per-request client view (`ctx.signal`).
+ * cache, also through a tool call's per-request client view (`ctx.mcpReq.signal`).
  */
 describe("createBpmnXmlFetcher shares the engine module's clients and XML cache", () => {
   it("one XML read for the lookup and the tool on the same boot config", async () => {
@@ -141,15 +139,12 @@ describe("createBpmnXmlFetcher shares the engine module's clients and XML cache"
     try {
       const config = engineModule.configFromEnv({ ENGINE_BASE_URL: engine.baseUrl })
       const fetchBpmnXml = createBpmnXmlFetcher(config)!
-      const tool = vi.fn()
-      engineModule.createPlugin(config).register({ tool, prompt: vi.fn() } as unknown as MCPServer)
-      const [, handler] = (tool.mock.calls as [{ name: string }, ToolHandler][]).find(
-        ([definition]) => definition.name === "engine_get_process_definition_xml",
-      )!
+      const recording = recordingModuleServer()
+      engineModule.createPlugin(config).register(recording.server)
+      const xmlTool = recording.tool("engine_get_process_definition_xml")
 
       expect(await fetchBpmnXml("leasing")).toBe('<definitions id="a"/>')
-      const signal = new AbortController().signal
-      const answer = await handler({ processDefinitionId: "leasing:1:a" }, { signal })
+      const answer = await xmlTool.call({ processDefinitionId: "leasing:1:a" }, testServerContext())
       expect(JSON.stringify(answer)).toContain("definitions id=")
       expect(engine.requests.filter((r) => r.path.endsWith("/xml"))).toHaveLength(1)
     } finally {

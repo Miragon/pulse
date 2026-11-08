@@ -1,16 +1,18 @@
-import type { MCPServer } from "mcp-use"
+import type { ModuleServer } from "./module-server.js"
 import type { ToolsetSource, ToolsetVocabulary } from "./toolsets.js"
 
 /** What a module hands the boot. */
 export interface ModulePlugin {
-  /** The module name; the boot's duplicate tool-name guard names it. */
+  /** The module name; the boot's duplicate name guards name it. */
   name: string
   /**
-   * Registers all of the module's tools, prompts and resources on the server the boot owns.
-   * The boot installs the ambient request info (`callerCacheKey`, passthrough auth) on that
-   * server for every module.
+   * Registers all of the module's tools, prompts and resources with the official SDK's
+   * `registerTool`, `registerPrompt` and `registerResource` (or `registerAppTool` and
+   * `registerAppResource` from `@modelcontextprotocol/ext-apps/server`), once: the boot records
+   * them and serves the bundle views they bind. Handlers read the caller through the ambient
+   * request info (`callerCacheKey`, passthrough auth), which the boot installs.
    */
-  register(server: MCPServer): void
+  register(server: ModuleServer): void
 }
 
 /** One active module as the boot resolved it; `config` carries the effective `toolset`. */
@@ -85,7 +87,7 @@ export function unguardedModules(boot: ResolvedBoot): ReadonlySet<string> {
 
 interface ResolveBootOptions {
   /**
-   * Only the boot knows whether it INSTALLED OAuth; reading `MCP_USE_OAUTH_*` here would count a
+   * Only the boot knows whether it INSTALLED OAuth; reading `MCP_OAUTH_*` here would count a
    * boot without the bearer gate as authenticated and fail open. Omitted = `false`.
    */
   authenticated?: boolean
@@ -112,7 +114,7 @@ export interface ModuleComposition<TShared> {
   /** Call once per boot; derive the plugins and the boot log from the result. */
   resolveBoot: (env?: NodeJS.ProcessEnv, options?: ResolveBootOptions) => ResolvedBoot
   pluginsFor: (entries: ModuleEntry[], shared: TShared) => ModulePlugin[]
-  warnUnknownEnvVars: (env?: NodeJS.ProcessEnv, extraKnown?: Iterable<string>) => string[]
+  warnUnknownEnvVars: (env?: NodeJS.ProcessEnv) => string[]
   emitBootWarnings: (env?: NodeJS.ProcessEnv) => string[]
   logEffectiveToolsets: (boot: ResolvedBoot) => string
   instructions: (boot: ResolvedBoot) => string | undefined
@@ -122,7 +124,7 @@ export function composeModules<TShared>(options: {
   label: string
   modules: readonly ComposableModule<TShared>[]
   appEnvVars?: readonly string[]
-  /** Prefixes owned by dependencies, exempt from the typo warner. */
+  /** Prefixes owned by other tools in a shared environment, exempt from the typo warner. */
   foreignEnvPrefixes?: readonly string[]
   envVarHint?: string
 }): ModuleComposition<TShared> {
@@ -130,7 +132,14 @@ export function composeModules<TShared>(options: {
     label,
     modules,
     appEnvVars = [],
-    foreignEnvPrefixes = ["MCP_USE_", "MCP_INSPECTOR_"],
+    // The MCP Inspector `pnpm dev` starts: its own namespace, the ports that move it and its
+    // client's OAuth callback.
+    foreignEnvPrefixes = [
+      "MCP_INSPECTOR_",
+      "MCP_SANDBOX_PORT",
+      "MCP_APP_ORIGIN_PORT",
+      "MCP_OAUTH_CALLBACK_URL",
+    ],
     envVarHint,
   } = options
 
@@ -260,15 +269,14 @@ export function composeModules<TShared>(options: {
         .filter((entry) => registry[entry.app])
         .map((entry) => registry[entry.app].createPlugin(entry.config, shared))
     },
-    warnUnknownEnvVars(env = process.env, extraKnown = []) {
-      const known = new Set([...knownEnvVars, ...extraKnown])
+    warnUnknownEnvVars(env = process.env) {
       // `<KNOWN_VAR>_*` (PROMETHEUS_PASSWORD_FILE, …) addresses OTHER processes, never a typo.
       const extendsKnownVar = (name: string) =>
-        [...known].some((knownName) => name.startsWith(`${knownName}_`))
+        [...knownEnvVars].some((knownName) => name.startsWith(`${knownName}_`))
       const unknown = Object.keys(env).filter(
         (name) =>
           watchedPrefixes.some((prefix) => name.startsWith(prefix)) &&
-          !known.has(name) &&
+          !knownEnvVars.has(name) &&
           !extendsKnownVar(name) &&
           !foreignEnvPrefixes.some((prefix) => name.startsWith(prefix)),
       )

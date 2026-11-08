@@ -1,18 +1,18 @@
 /**
  * The composed-server boot; a root hands it only its module list and its cross-module wiring.
- * The order is load-bearing: config checks fail before any I/O; OAuth from the env (mcp-use's own
- * `MCP_USE_OAUTH_*`); one `resolveBoot`; the plugins from the active modules;
- * the tool guard before any plugin registers, the views primed once after the last one; metrics
- * before other routes (hono only counts later routes), then the Host/Origin guard, then
- * health (reachable by IP-addressed probes), fonts behind the guard; `listen()` in production only.
- * Under `mcp-use dev` the CLI owns the `Host` check (only it knows its tunnel host), so the guard
- * keeps just the `Origin` half; else `--tunnel` answers every hosted-assistant call 403.
+ * The order is load-bearing: config checks fail before any I/O, a renamed or refused setting
+ * first; OAuth from the env (`MCP_OAUTH_*`); one `resolveBoot`; the plugins from the active
+ * modules, each recorded once through the module registry, the views primed once after the last
+ * one; the request log first of all routes, metrics before the others (hono only counts later
+ * routes), then the Host/Origin guard, then health (reachable by IP-addressed probes), fonts
+ * behind the guard, `/mcp` (the OAuth gate, then the MCP handler) last. `listen()` serves it all
+ * through the listener, so a target that is not its own normal form gets 404 and a body over the
+ * cap 413 before any of them.
  */
 import fs from "node:fs/promises"
 import http from "node:http"
 import type { AddressInfo } from "node:net"
-import { MCPServer, registerViews, type ViewsManifest } from "mcp-use"
-import type { OAuthProvider } from "mcp-use/oauth"
+import { McpHttpApp, type OAuthProvider, type ViewsManifest } from "./mcp-server.js"
 import {
   composeModules,
   type ComposableModule,
@@ -22,22 +22,23 @@ import {
   unguardedModules,
 } from "./composition.js"
 import { installHealthEndpoints } from "./health.js"
-import { requestLogLevelWarning, resolvePort, swallowDevCliViewsPrime } from "./host-boot.js"
+import { resolvePort } from "./host-boot.js"
 import {
   describeHttpEdgePolicy,
   edgeRejection,
   HTTP_EDGE_ENV_VARS,
   installHttpEdgeGuard,
+  pathOfTarget,
   resolveHttpEdgePolicy,
   type HttpEdgePolicy,
 } from "./http-edge.js"
 import { installMetrics } from "./metrics.js"
-import { OAUTH_DEBUG_ENV_VAR, OAUTH_ENV_VARS, oauthFromEnv } from "./oauth-env.js"
+import { OAUTH_DEBUG_ENV_VAR, OAUTH_ENV_VARS, oauthFromEnv, refuseOAuthEnv } from "./oauth-env.js"
 import { createBodyLimitedListener, type BodyLimitedListener } from "./node-listener.js"
 import { fontAssetsCsp, installFontAssets } from "./font-assets.js"
-import { installToolSchemaTrim } from "./tool-schema-trim.js"
 import { installMcpRequestContext } from "./request-context.js"
-import { installToolRegistration } from "./tool-registration.js"
+import { REQUEST_LOG_LEVEL_ENV_VAR, requestLogLevelWarning } from "./request-log.js"
+import { createModuleRegistry, type ModuleRegistrations } from "./tool-registration.js"
 import { viewPrelude } from "./protocol/view-name.js"
 import { labelBootError } from "./boot-error.js"
 
@@ -61,12 +62,12 @@ export interface ComposedServerOptions<TShared extends object = object> {
   /** Cross-module wiring: what the active modules hand each other. Absent: every plugin gets `{}`. */
   shared?: (entries: readonly ModuleEntry[]) => TShared
   bundle: { jsPath: string; cssPath?: string }
-  /** mcp-use reads `MCP_URL` and its own `MCP_USE_*` from `process.env`, so production passes `process.env`. */
+  /** Every setting the boot and the modules read; production passes `process.env` (the default). */
   env?: NodeJS.ProcessEnv
   /** Appended to the unknown-variable warning, e.g. where the variables are documented. */
   envVarHint?: string
   /** Installed INSTEAD of the provider the env names (a test's stub IdP). Production omits it. */
-  oauth?: OAuthProvider<unknown>
+  oauth?: OAuthProvider
 }
 
 export interface ListenOptions {
@@ -94,8 +95,8 @@ export interface RunningServer {
 }
 
 export interface ComposedServer {
-  /** `mcp-use dev` takes it as the entry's default export. */
-  app: MCPServer<unknown>
+  /** The HTTP app `listen()` serves; a test can `fetch` it without a socket. */
+  app: McpHttpApp
   boot: ResolvedBoot
   listen(options?: ListenOptions): Promise<RunningServer>
 }
@@ -107,10 +108,9 @@ export const DEFAULT_DRAIN_TIMEOUT_MS = 4000
 export const DEFAULT_REQUEST_TIMEOUT_MS = 30_000
 
 /**
- * What the boot itself reads: the listener's port and bind address (`mcp-use dev` reads them too),
- * the HTTP edge, the OAuth provider variables, the module selection, and two of mcp-use's own: the
- * switch that logs why a bearer token failed verification and the request-log level (the boot
- * warns at debug/trace).
+ * What the boot itself reads: the listener's port and bind address, the HTTP edge, the OAuth
+ * provider variables, the module selection, the switch that logs why a bearer token was refused
+ * and the request-log level (the boot warns at debug/trace).
  */
 const BOOT_ENV_VARS: readonly string[] = [
   "PORT",
@@ -119,7 +119,7 @@ const BOOT_ENV_VARS: readonly string[] = [
   ...OAUTH_ENV_VARS,
   OAUTH_DEBUG_ENV_VAR,
   "MCP_ACTIVE_MODULES",
-  "MCP_USE_LOG_LEVEL",
+  REQUEST_LOG_LEVEL_ENV_VAR,
 ]
 
 const composeFor = <TShared>(
@@ -127,7 +127,12 @@ const composeFor = <TShared>(
   modules: readonly ComposableModule<TShared>[],
   envVarHint?: string,
 ): ModuleComposition<TShared> =>
-  composeModules<TShared>({ label, modules, appEnvVars: BOOT_ENV_VARS, envVarHint })
+  composeModules<TShared>({
+    label,
+    modules,
+    appEnvVars: BOOT_ENV_VARS,
+    envVarHint,
+  })
 
 /** Every variable a boot over `modules` reads: the boot's own plus each module's `knownEnvVars`. */
 export function composedEnvVars<TShared>(
@@ -151,17 +156,12 @@ const HEALTH_PATH = "/health"
 const METRICS_PATH = "/metrics"
 const EXEMPT_PATHS = [HEALTH_PATH, METRICS_PATH]
 
-function guardPolicyFor(edge: HttpEdgePolicy, env: NodeJS.ProcessEnv): HttpEdgePolicy {
-  return env.MCP_USE_DEV_CLI ? { ...edge, allowedHosts: "*" } : edge
-}
-
 /**
- * The resource mcp-use binds every token to (RFC 8707), before it appends the base path: the
- * provider's own, else `MCP_URL`'s origin. Behind our own listener a missing one would only
- * surface on the first `/mcp` call, so the boot fails here instead.
+ * The resource every token is bound to (RFC 8707), before the base path is appended: the
+ * provider's own, else `MCP_URL`'s origin. The boot fails here without one, naming `MCP_URL`.
  */
 function oauthResource(
-  oauth: OAuthProvider<unknown> | undefined,
+  oauth: OAuthProvider | undefined,
   env: NodeJS.ProcessEnv,
   label: string,
 ): string | undefined {
@@ -173,14 +173,14 @@ function oauthResource(
       `[${label}] OAuth needs MCP_URL, the server's public origin: tokens must carry <MCP_URL>/mcp in aud (RFC 8707).`,
     )
   }
-  // `resolveHttpEdgePolicy` has validated it; mcp-use refuses one with a path under OAuth.
+  // `resolveHttpEdgePolicy` has validated it; one with a path fails in `resolveOAuthResource`.
   return new URL(mcpUrl).origin
 }
 
 /**
- * The `aud` mcp-use's bearer gate accepts, the `resource` its protected-resource metadata
- * advertises; its JWT verifier also requires `sub`. An IdP set up for another value gets a 401 on
- * every call, so the boot names the value.
+ * The `aud` the bearer gate accepts, the `resource` the protected-resource metadata advertises;
+ * the JWT verifier also requires `sub`. An IdP set up for another value gets a 401 on every call,
+ * so the boot names the value.
  */
 function describeOAuthAudience(resource: string, basePath: string): string {
   const audience = new URL(resource)
@@ -197,19 +197,24 @@ function serverInstructions(info: ComposedServerInfo, modules?: string): string 
 function createServer(
   info: ComposedServerInfo,
   instructions: string | undefined,
-  oauth: OAuthProvider<unknown> | undefined,
-): MCPServer<unknown> {
-  // No `baseUrl`: mcp-use resolves the serving origin from the request or `MCP_URL`.
-  const config = {
+  registrations: ModuleRegistrations,
+  oauth: OAuthProvider | undefined,
+  env: NodeJS.ProcessEnv,
+  maxRequestBodySize: number,
+): McpHttpApp {
+  // The serving origin comes from the request or `MCP_URL`.
+  return new McpHttpApp({
     ...(info.title ? { title: info.title } : {}),
     ...(info.websiteUrl ? { websiteUrl: info.websiteUrl } : {}),
+    ...(info.description ? { description: info.description } : {}),
     ...(instructions ? { instructions } : {}),
+    ...(oauth ? { oauth } : {}),
     name: info.name,
     version: info.version,
-    description: info.description,
-    host: "localhost",
-  }
-  return oauth ? new MCPServer<unknown>({ ...config, oauth }) : new MCPServer<never>(config)
+    registrations,
+    env,
+    maxRequestBodySize,
+  })
 }
 
 /** A missing file only warns, so a dev server boots before the first bundle build. */
@@ -224,21 +229,21 @@ async function readBundleFile(filePath: string, label: string): Promise<string> 
   }
 }
 
-/** Priming is one-shot in mcp-use, so it runs once every plugin bound its views: all share ONE bundle, each behind its name's prelude. */
+/** Runs once every plugin bound its views: all share ONE bundle, each behind its name's prelude. */
 async function primeViews(
-  server: MCPServer,
-  viewNames: ReadonlySet<string>,
+  server: McpHttpApp,
+  viewNames: readonly string[],
   bundle: ComposedServerOptions["bundle"],
   label: string,
 ): Promise<void> {
-  if (viewNames.size === 0) return
+  if (viewNames.length === 0) return
   const js = await readBundleFile(bundle.jsPath, label)
   const css = bundle.cssPath ? await readBundleFile(bundle.cssPath, label) : ""
   // The prelude names the view before the bundle runs (`mountViews` reads it).
   const manifest: ViewsManifest = Object.fromEntries(
-    [...viewNames].map((name) => [name, { kind: "inline", js: viewPrelude(name) + js, css }]),
+    viewNames.map((name) => [name, { kind: "inline", js: viewPrelude(name) + js, css }]),
   )
-  server[registerViews](manifest)
+  server.primeViews(manifest)
 }
 
 /** The one selection of this boot, with everything it logs: config checks fail before any I/O. */
@@ -253,6 +258,8 @@ function resolveSelection<TShared extends object>(
   composition.refuseRetired(env)
   // Then an unknown or repeated module name, before the OAuth line could read like a healthy boot.
   composition.activeModules(env)
+  // The retired OAuth variable fails the boot: no typo warning for it in front.
+  refuseOAuthEnv(env)
   composition.warnUnknownEnvVars(env)
   const edge = resolveHttpEdgePolicy(env)
   const oauth = options.oauth ?? oauthFromEnv(env, label)
@@ -263,8 +270,7 @@ function resolveSelection<TShared extends object>(
   const logLevel = requestLogLevelWarning(env)
   if (logLevel) console.warn(`[${label}] ${logLevel}`)
   composition.logEffectiveToolsets(boot)
-  const underDevCli = Boolean(env.MCP_USE_DEV_CLI)
-  console.info(`[${label}] ${describeHttpEdgePolicy(edge, { underDevCli })}`)
+  console.info(`[${label}] ${describeHttpEdgePolicy(edge)}`)
   return { edge, oauth, resource, boot }
 }
 
@@ -273,23 +279,31 @@ async function buildServer<TShared extends object>(
   composition: ModuleComposition<TShared>,
   selection: ReturnType<typeof resolveSelection>,
   env: NodeJS.ProcessEnv,
-): Promise<MCPServer<unknown>> {
+): Promise<McpHttpApp> {
   const { info } = options
   const { boot, oauth } = selection
-  const app = createServer(info, serverInstructions(info, composition.instructions(boot)), oauth)
-  // Registrars take the OAuth-less type: no handler reads `ctx.auth`, only the request middleware.
-  const server = app as unknown as MCPServer
-  const registration = installToolRegistration(server, fontAssetsCsp(env), info.name)
+  // The app reads the registry per request, so it may exist before the plugins register.
+  const registry = createModuleRegistry(fontAssetsCsp(env), info.name)
+  const app = createServer(
+    info,
+    serverInstructions(info, composition.instructions(boot)),
+    registry,
+    oauth,
+    env,
+    selection.edge.maxBodyBytes,
+  )
   const shared = options.shared?.(boot.entries) ?? ({} as TShared)
   // Keyed by the entry, not the plugin's name: the warning names the module MCP_ACTIVE_MODULES lists.
   const unguarded = unguardedModules(boot)
   for (const entry of boot.entries) {
     const unguardedModule = unguarded.has(entry.app) ? entry.app : undefined
     for (const plugin of composition.pluginsFor([entry], shared)) {
-      registration.register(plugin, { unguardedModule })
+      registry.register(plugin, { unguardedModule })
     }
   }
-  await primeViews(server, registration.viewNames, options.bundle, info.name)
+  registry.checkBindings()
+  await primeViews(app, [...registry.views.keys()], options.bundle, info.name)
+  app.checkReplay()
   return app
 }
 
@@ -312,7 +326,7 @@ async function settlesWithin(promise: Promise<void>, ms: number): Promise<boolea
 
 interface DrainContext {
   label: string
-  app: MCPServer<unknown>
+  app: McpHttpApp
   server: http.Server
   listener: BodyLimitedListener
   state: { draining: boolean }
@@ -362,13 +376,14 @@ async function listen(
       edgeRejection(
         {
           method: (req.method ?? "GET").toUpperCase(),
-          path: (req.url ?? "/").split("?")[0],
+          path: pathOfTarget(req.url ?? "/"),
           host: req.headers.host,
           origin: req.headers.origin,
         },
         guard,
         EXEMPT_PATHS,
       ) !== undefined,
+    onRefused: app.recordRefused,
     onError: (error) => console.error(`[${label}] request failed:`, error),
   })
   const requestTimeout = options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS
@@ -411,24 +426,16 @@ async function boot<TShared extends object>(
   const label = options.info.name
   const selection = resolveSelection(options, composition, env)
   const { edge, boot } = selection
-  const guard = guardPolicyFor(edge, env)
-  if (guard !== edge) {
-    console.info(
-      `[${label}] mcp-use dev: the CLI checks Host (localhost-class + its tunnel); Origin is checked here.`,
-    )
-  }
+  const guard = edge
 
   const app = await buildServer(options, composition, selection, env)
-  // After mcp-use built its server: it has accepted the resource and knows the base path.
+  // After the app accepted the resource and the issuer: it knows the base path.
   if (selection.resource) {
     console.info(`[${label}] ${describeOAuthAudience(selection.resource, app.basePath)}`)
   }
   const state = { draining: false }
 
-  // Request logging is mcp-use's own (`MCP_USE_LOG_LEVEL`).
   installMcpRequestContext(app)
-  installToolSchemaTrim(app)
-  swallowDevCliViewsPrime(app, env)
   installMetrics(app, { path: METRICS_PATH, token: edge.metricsToken })
   installHttpEdgeGuard(app, guard, { exemptPaths: EXEMPT_PATHS })
   installHealthEndpoints(app, { path: HEALTH_PATH, label, draining: () => state.draining })
@@ -447,16 +454,14 @@ async function boot<TShared extends object>(
 
 /**
  * Composes the modules, installs OAuth from the env and builds the plugins. Returns BEFORE
- * listening: `mcp-use dev` serves `app` itself, production calls `listen()` (the entry through
- * `runComposedServer`). A failed boot rejects with its error, which `runComposedServer` prints as
- * one line under the server's name.
+ * listening: the entry calls `listen()` (through `runComposedServer`), a test may fetch `app`
+ * directly. A failed boot rejects with its error, which `runComposedServer` prints as one line
+ * under the server's name.
  */
 export async function createComposedServer<TShared extends object>(
   options: ComposedServerOptions<TShared>,
 ): Promise<ComposedServer> {
   const { info, env = process.env } = options
-  // mcp-use telemetry is on by default; an ops server must not phone home unless opted in.
-  process.env.MCP_USE_ANONYMIZED_TELEMETRY ??= "false"
   try {
     const composition = composeFor(info.name, options.modules, options.envVarHint)
     return await boot(options, composition, env)

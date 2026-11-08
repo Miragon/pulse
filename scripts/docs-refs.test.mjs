@@ -18,8 +18,8 @@ import { publishedLibraries } from "./workspace-packages.mjs"
  * repo: tool names against the full surface (the admin golden), repo paths against the tree
  * (from the repo root, in a nested file too), the template docs' paths into an installed
  * package against what that package ships and where pnpm links it, the identifiers of the skills
- * and of the nested agent files against the sources and the mcp-use
- * typings (a nested agent file's also against its package's own
+ * and of the nested agent files against the sources and the typings of the official MCP SDK
+ * (OFFICIAL_TYPINGS; a nested agent file's also against its package's own
  * tsconfig*.json), and each page of the docs site (every Markdown file under docs/,
  * built by VitePress to https://miragon.github.io/pulse/) against its line
  * budget (DOCS_BUDGETS below, keyed by the path under docs/).
@@ -454,19 +454,57 @@ function unknownIdentifiers(root, docs, words, files) {
   })
 }
 
+/**
+ * The official MCP SDK's packages whose typings the skills may name, each as linked for the
+ * package that compiles against it: the server, its Node adapter and MCP Apps for widget-shell
+ * (the version every module and the skills' code build on), the client for the server app's
+ * tests. `core` holds the protocol types the server re-exports; pnpm links it next to the server.
+ */
+const OFFICIAL_TYPINGS = [
+  ["packages/core/widget-shell", "@modelcontextprotocol/server"],
+  ["packages/core/widget-shell", "@modelcontextprotocol/server", "../core"],
+  ["packages/core/widget-shell", "@modelcontextprotocol/node"],
+  ["packages/core/widget-shell", "@modelcontextprotocol/ext-apps"],
+  ["apps/mcp-server", "@modelcontextprotocol/client"],
+]
+
+/** The declaration files under a package's dist (`.d.ts`, `.d.mts`, `.d.cts`). */
+const isDeclaration = (file) => /\.d\.[cm]?ts$/.test(file)
+
 describe("identifiers in the skills and the nested agent files", () => {
-  // widget-shell's copy: the mcp-use version every package and the skills' code compile against.
-  const packageDir = (name) =>
-    fs.realpathSync(path.join(REPO_ROOT, "packages/core/widget-shell/node_modules", name))
-  // This guard's own fixtures name identifiers on purpose (`useNoSuchHook`): they declare none.
-  const isSource = (file) =>
-    /\.(?:tsx?|mts|mjs|cjs|kt)$/.test(file) && file !== fileURLToPath(import.meta.url)
+  const typingsDirs = OFFICIAL_TYPINGS.map(([from, name, sibling = "."]) =>
+    path.join(fs.realpathSync(path.join(REPO_ROOT, from, "node_modules", name)), sibling, "dist"),
+  )
+  const typings = typingsDirs.flatMap((dir) => walk(dir, isDeclaration))
+  // This guard's own fixtures name identifiers on purpose (`useNoSuchHook`), and old-names' name
+  // retired ones (`useCallTool`, `MCPServer`): they declare none.
+  const FIXTURE_SOURCES = new Set([
+    fileURLToPath(import.meta.url),
+    path.join(REPO_ROOT, "scripts", "old-names.test.mjs"),
+  ])
+  const isSource = (file) => /\.(?:tsx?|mts|mjs|cjs|kt)$/.test(file) && !FIXTURE_SOURCES.has(file)
   const words = wordsOf([
     ...["apps", "packages", "scripts", "templates", "engine-plugins"].flatMap((dir) =>
       walk(path.join(REPO_ROOT, dir), isSource),
     ),
-    ...walk(path.join(packageDir("mcp-use"), "dist"), (file) => file.endsWith(".d.ts")),
+    ...typings,
   ])
+
+  it("reads the typings of every official package it names", () => {
+    const empty = typingsDirs.filter((dir) => walk(dir, isDeclaration).length === 0)
+    assert.deepEqual(empty, [], "a package without declarations under dist/ checks nothing")
+    const declared = wordsOf(typings)
+    const missing = [
+      "McpServer",
+      "registerTool",
+      "CallToolResult",
+      "toNodeHandler",
+      "registerAppTool",
+      "Client",
+      "StreamableHTTPClientTransport",
+    ].filter((name) => !declared.has(name))
+    assert.deepEqual(missing, [])
+  })
 
   it("name only functions, hooks and types that exist", () => {
     assert.deepEqual(unknownIdentifiers(REPO_ROOT, identifierDocs(docFiles), words, repoFiles), [])

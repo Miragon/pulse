@@ -2,9 +2,9 @@ import { createContext, useContext, type ComponentType, type ReactNode } from "r
 import type { ToolResult } from "../protocol/tool-result.js"
 
 /**
- * The ONE seam between a view and its host. Widgets never import `mcp-use/react` (its hooks
- * throw outside `bootstrapView`): production provides the mcp-use adapter (`mountViews`), tests
- * `TestViewHost`. Display mode stays in the host-agnostic `useShellHost`/`useDisplayModeControl`.
+ * The ONE seam between a view and its host. Widgets never import `@modelcontextprotocol/ext-apps`:
+ * production provides the ext-apps adapter (`mountViews`), tests `TestViewHost`, a later host
+ * (a web app, an editor) its own. Display mode stays in the host-agnostic `useShellHost`/`useDisplayModeControl`.
  */
 export interface ViewHost {
   /**
@@ -17,7 +17,7 @@ export interface ViewHost {
   sendFollowUp: (prompt: string) => void
   /** Opens a URL outside the frame. Fail-soft. */
   openExternal: (url: string) => void
-  /** One node of the view's model-context tree; nests like mcp-use's `ModelContext`. */
+  /** One node of the view's model-context tree; nested nodes join into one context. */
   ModelContext: ComponentType<{ content: string; children?: ReactNode }>
 }
 

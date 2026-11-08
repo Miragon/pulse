@@ -29,8 +29,8 @@ const DATA: NotesListData = {
 
 /**
  * The reference for a widget test: `TestViewHost` stands in for the chat host (fake tools, a log
- * of what the widget asked the host, the model context it reported), so no `bootstrapView` and
- * no server are needed.
+ * of what the widget asked the host, the model context it reported), so neither the host adapter
+ * nor a server is needed.
  */
 describe("the notes view", () => {
   it("renders the show tool's data without a call and tells the model what it shows", async () => {

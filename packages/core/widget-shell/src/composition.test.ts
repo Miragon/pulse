@@ -294,12 +294,22 @@ describe("warnUnknownEnvVars", () => {
     expect(warn).toHaveBeenCalledTimes(2)
   })
 
-  it("exempts foreign prefixes and honors the extra allowlist", () => {
+  it("exempts foreign prefixes", () => {
+    expect(compose().warnUnknownEnvVars({ MCP_INSPECTOR_SECRET_STORE: "memory" })).toEqual([])
+  })
+
+  // `pnpm dev` starts the MCP Inspector next to the server; moving its ports sets these for both.
+  it("exempts the inspector's own port and callback variables, not a near-miss of them", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     expect(
-      compose().warnUnknownEnvVars({ MCP_USE_ANONYMIZED_TELEMETRY: "false", MCP_SECRET: "x" }, [
-        "MCP_SECRET",
-      ]),
-    ).toEqual([])
+      compose().warnUnknownEnvVars({
+        MCP_SANDBOX_PORT: "6285",
+        MCP_APP_ORIGIN_PORT: "6288",
+        MCP_OAUTH_CALLBACK_URL: "http://localhost:6274/oauth/callback",
+        MCP_SANDBOX_PROT: "6285",
+      }),
+    ).toEqual(["MCP_SANDBOX_PROT"])
+    expect(warn).toHaveBeenCalledOnce()
   })
 
   it("exempts `<KNOWN_VAR>_*` extensions (docker-secrets style), but not near-misses", () => {

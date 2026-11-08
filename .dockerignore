@@ -13,7 +13,6 @@
 **/.data
 .git
 .idea
-.mcp-use
 .playwright-mcp
 .ai
 engine-plugins/.gradle

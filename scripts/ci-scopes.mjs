@@ -41,6 +41,8 @@ export const PATH_RULES = [
   { pattern: /^docs\/.*\.css$/, scopes: ["brand", "typescript"] },
   // Linted by lint:configs.
   { pattern: /^docs\/\.vitepress\/(?:config|theme\/index)\.ts$/, scopes: ["brand", "typescript"] },
+  // Read by scripts/local-env.test.mjs: the second worktree's command.
+  { pattern: /^docs\/mcp\/developer\.md$/, scopes: ["brand", "typescript"] },
   { pattern: /^docs\//, scopes: ["brand"] },
   // Read by scripts/server-env-names.test.mjs.
   { pattern: /^\.env\.example$/, scopes: ["typescript"] },

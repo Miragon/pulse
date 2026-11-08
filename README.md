@@ -88,7 +88,7 @@ A fresh clone needs Node.js 22.22.2 or later, pnpm (`corepack enable`, or `npm i
 Node.js 25 and later) and Docker; no JDK (Gradle runs in a container without one), no `.env`:
 
 ```bash
-pnpm play               # installs, starts the playground, builds, MCP server on :8400, inspector at /mcp/inspector
+pnpm play               # installs, starts the playground, builds, MCP server on :8400 + MCP Inspector
 pnpm play:cli -- ping   # the CLI against the playground engine
 pnpm stack:status       # what runs; pnpm stack:up / stack:down start and stop the playground
 pnpm check              # the bar for every change: build, typecheck, test, lint, format

@@ -25,14 +25,16 @@ pnpm play
 
 `pnpm play` installs the dependencies, starts the playground in Docker (CIB seven with demo data
 and live traffic, the OTEL Collector, Prometheus, Grafana; the first start builds the engine jar,
-a few minutes), builds the server and runs it on `:8400` against the playground. Connect any MCP
-host to `http://localhost:8400/mcp`, or open the inspector at `http://localhost:8400/mcp/inspector`.
+a few minutes), builds the server and runs it on `:8400` against the playground, next to the official
+[MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector) on `127.0.0.1`: open the URL it prints (no browser
+opens by itself) to call tools and render the widgets, or connect any MCP host to `http://localhost:8400/mcp`.
 It boots read-only; `--admin` adds the write tools, `--deploy` deployments, `--multi-engine` a
 second engine. A variable set in your shell wins over the playground's settings. Ctrl-C stops the
-server, the playground keeps running. Every port binds to `127.0.0.1`.
-Worktrees share the playground (`pnpm stack:down` stops it for all); `.mcp.json` reaches
-`${PORT:-8400}`, so run a second worktree's server as `PORT=<port> pnpm play` and its Claude Code
-session as `PORT=<port> claude`.
+server, the playground keeps running. Every port binds to `127.0.0.1`. Worktrees share the playground
+(`pnpm stack:down` stops it for all); `.mcp.json` reaches `${PORT:-8400}`, so run a second worktree's server as
+`PORT=<port> CLIENT_PORT=<port> MCP_SANDBOX_PORT=<port> MCP_APP_ORIGIN_PORT=<port> pnpm play` (the inspector's
+three ports, 6274, 6275 and 6278 by default) and its Claude Code session as `PORT=<port> claude`. The inspector
+prints its sign-in token, one from `MCP_INSPECTOR_API_TOKEN` too: keep the output of `pnpm play` and `pnpm dev` out of shared logs.
 
 ## Common tasks
 
@@ -40,7 +42,7 @@ session as `PORT=<port> claude`.
 | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | `pnpm play:cli -- <args>`                       | The CLI against the playground engine                                                                 |
 | `pnpm stack:up` / `stack:down` / `stack:status` | Start (`--multi-engine`, `--auth`), stop (`--wipe` drops the volumes) or show the playground          |
-| `pnpm dev`                                      | The server with your own settings (`cp .env.example .env` first)                                      |
+| `pnpm dev`                                      | The server and the inspector with your own settings (`cp .env.example .env` first)                    |
 | `pnpm test:one <file...>`                       | Test files in their packages, the packages under them built first, coverage off (`--watch`)           |
 | `pnpm check`                                    | The bar for every change: install, build, typecheck, test, lint, format; a log per step in `reports/` |
 | `pnpm check:all`                                | `check` plus the host simulation, the template, the Gradle build, the docs build, the engine suites   |
@@ -51,13 +53,15 @@ While you iterate: `pnpm test:one <file...>`, then the package and what depends 
 `pnpm exec turbo run typecheck test lint --filter=...<pkg>`, then `pnpm check`. A tool change
 refreshes the goldens with `pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server golden:update`.
 `pnpm dev` and `pnpm play` bind 127.0.0.1; `pnpm start` and Docker listen on all interfaces.
+The inspector has no chat, so a hand-off shows only in a real host: tunnel the server
+(`cloudflared tunnel --url http://localhost:8400`), set `MCP_URL` to the `https://` origin it prints
+and restart (Cloudflare's quick tunnels carry no Server-Sent Events, which the server answers in: should
+calls hang, use a named tunnel). Anyone with that URL reaches the server, so keep the read-only default.
 To debug, press F5 in VS Code (`.vscode/launch.json`) or run any command in a JavaScript Debug Terminal.
 
-Mutation testing covers `@miragon/pulse-engine-core` only (`MUTATED_PACKAGES`), nightly, never on a
-pull request: `pnpm --fail-if-no-match --filter @miragon/pulse-engine-core exec stryker run`.
+Mutation testing covers `@miragon/pulse-engine-core` only (`MUTATED_PACKAGES`), nightly, never on a pull request: `pnpm --fail-if-no-match --filter @miragon/pulse-engine-core exec stryker run`.
 
-Editors read only `tsconfig.json`: each widget, host-bundle and test tree has a nested one extending
-the `tsconfig.<x>.json` that checks it (`pnpm lint:package-scripts`); `.vscode/` pins TypeScript.
+Editors read only `tsconfig.json`: each widget, host-bundle and test tree has a nested one extending the `tsconfig.<x>.json` that checks it (`pnpm lint:package-scripts`); `.vscode/` pins TypeScript.
 
 ## Build your own server
 
