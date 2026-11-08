@@ -23,7 +23,7 @@ describe("workspace-packages", () => {
     assert.equal(lib("packages/core/x", { engines: { vscode: "^1.101.0" } }), false)
   })
 
-  it("lists the repo's seven libraries, what test-template.sh packs and the mirror waits for", () => {
+  it("lists the repo's six libraries, what test-template.sh packs and the mirror waits for", () => {
     const out = execFileSync(
       process.execPath,
       [path.join(REPO_ROOT, "scripts/workspace-packages.mjs"), "libraries"],
@@ -41,6 +41,7 @@ describe("workspace-packages", () => {
       "@miragon/pulse-engine-client",
       "@miragon/pulse-engine-connector",
       "@miragon/pulse-engine-core",
+      "@miragon/pulse-profile",
       "@miragon/pulse-ui",
       "@miragon/pulse-widget-shell",
     ])

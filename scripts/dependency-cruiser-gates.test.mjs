@@ -37,6 +37,7 @@ const CLI = "apps/cli"
 const EXT = "apps/vscode"
 const SHELL = "packages/core/widget-shell"
 const UI = "packages/core/ui"
+const PROFILE = "packages/core/profile"
 const ENGINE = "packages/connectors/engine/engine-core"
 const ENGINE_CLIENT = "packages/connectors/engine/engine-client"
 const ENGINE_CONNECTOR = "packages/connectors/engine/engine-connector"
@@ -52,6 +53,7 @@ const WORKSPACE = {
   [EXT]: { name: "pulse-cockpit", engines: { vscode: "^1.101.0" } },
   [SHELL]: { name: "@miragon/pulse-widget-shell" },
   [UI]: { name: "@miragon/pulse-ui" },
+  [PROFILE]: { name: "@miragon/pulse-profile" },
   [ENGINE]: { name: "@miragon/pulse-engine-core" },
   [ENGINE_CLIENT]: { name: "@miragon/pulse-engine-client" },
   [ENGINE_CONNECTOR]: { name: "@miragon/pulse-engine-connector" },
@@ -106,6 +108,8 @@ const NO_APP = "packages-never-import-the-app"
 const APP_APP = "apps-never-import-apps"
 const HEADLESS = "cli-is-headless"
 const CORE_LEAF = "family-core-is-a-leaf"
+const PROFILE_LEAF = "profile-is-a-leaf"
+const PROFILE_USERS = "profile-consumers"
 const CORE_USERS = "family-core-consumers"
 const CLI_CORE_LAYERS = "cli-family-core-only-in-named-layers"
 const NO_TESTING = "shipped-code-not-to-testing"
@@ -146,6 +150,8 @@ const UI_SRC = `${UI}/src/index.ts`
 const ENGINE_SRC = `${ENGINE}/src/index.ts`
 const ENGINE_CORE = "@miragon/pulse-engine-core"
 const BILLING_CORE_NAME = "@miragon/pulse-billing-core"
+const PROFILE_NAME = "@miragon/pulse-profile"
+const PROFILE_SRC = `${PROFILE}/src/index.ts`
 const BILLING_CORE_SRC = `${BILLING_CORE}/src/index.ts`
 const ENGINE_CLIENT_SRC = `${ENGINE_CLIENT}/src/index.ts`
 const ENGINE_CONNECTOR_SRC = `${ENGINE_CONNECTOR}/src/index.ts`
@@ -189,6 +195,8 @@ const LEAVES = [
   `${ENGINE}/src/target.ts`,
   `${ENGINE}/src/lib.ts`,
   `${ENGINE}/src/testing/fixture.ts`,
+  `${PROFILE}/src/target.ts`,
+  `${PROFILE}/src/lib.ts`,
   `${BILLING_CORE}/src/lib.ts`,
   `${BILLING_CORE}/src/a.test.ts`,
   `${ENGINE_CLIENT}/src/target.ts`,
@@ -232,7 +240,11 @@ const LEAVES = [
   `${BILLING_CONNECTOR}/src/plugin.ts`,
   `${BILLING_CONNECTOR}/src/lib/shared/environments.ts`,
 ]
-const JSON_LEAVES = [`${CLI}/src/generated/commands.json`, `${CLI}/src/generated/catalog.a.json`]
+const JSON_LEAVES = [
+  `${CLI}/src/generated/commands.json`,
+  `${CLI}/src/generated/catalog.a.json`,
+  `${PROFILE}/src/testing/fixtures.json`,
+]
 
 /**
  * One suite per rule: [importer, specifier, exact rules, form?]. `form` "type" plants an
@@ -241,7 +253,7 @@ const JSON_LEAVES = [`${CLI}/src/generated/commands.json`, `${CLI}/src/generated
 const SUITES = [
   {
     rule: HEADLESS,
-    title: "the CLI imports no workspace package but the core it bundles, nor the MCP/UI stack",
+    title: "the CLI imports no workspace package but the ones it bundles, nor the MCP/UI stack",
     cases: [
       ...[
         "@miragon/pulse-widget-shell",
@@ -301,6 +313,84 @@ const SUITES = [
       ],
       // It names the one core the CLI bundles: another family's core stays a violation.
       [`${CLI}/src/workflow/other-core.ts`, BILLING_CORE_NAME, [HEADLESS]],
+      // The profile format is bundled too (CLI_BUNDLES): its name is exempt, anchored, and its
+      // tree is not (profile-consumers decides where in the CLI it is read).
+      [`${CLI}/src/config/profile-x.ts`, "@miragon/pulse-profilex", [HEADLESS]],
+      [
+        `${CLI}/src/config/escape-profile.ts`,
+        "../../../../packages/core/profile/src/target.ts",
+        [HEADLESS, DEEP],
+      ],
+    ],
+  },
+  {
+    rule: PROFILE_LEAF,
+    title:
+      "the profile format imports only its own modules: no package, no npm module, no built-in",
+    cases: [
+      // Not even a sibling of packages/core: core-is-foundation lets the others import one.
+      [PROFILE_SRC, "@miragon/pulse-ui", [PROFILE_LEAF]],
+      [PROFILE_SRC, "@miragon/pulse-widget-shell/server", [PROFILE_LEAF]],
+      [PROFILE_SRC, ENGINE_CORE, [CORE, PROFILE_LEAF]],
+      [PROFILE_SRC, "@miragon/pulse-engine-client", [CORE, PROFILE_LEAF]],
+      [PROFILE_SRC, "@miragon/pulse-cli", [NO_APP, PROFILE_LEAF]],
+      ...["zod", "react", "commander", "reactive", "node:fs"].map((spec) => [
+        PROFILE_SRC,
+        spec,
+        [PROFILE_LEAF],
+      ]),
+      [`${PROFILE}/src/url.ts`, "url", [PROFILE_LEAF]],
+      [`${PROFILE}/src/escape.ts`, "../../ui/src/target.ts", [PROFILE_LEAF, DEEP]],
+      // The shipped ./testing export is no test file: it loads its fixtures as JSON, no vitest.
+      [`${PROFILE}/src/testing/index.ts`, "vitest", [PROFILE_LEAF]],
+      [`${PROFILE}/src/testing/fixtures.ts`, "./fixtures.json", []],
+      [`${PROFILE}/src/testing/types.ts`, "../lib.ts", []],
+      [`${PROFILE}/src/parse.ts`, "./lib.ts", []],
+      [`${PROFILE}/src/a.test.ts`, "vitest", []],
+    ],
+  },
+  {
+    rule: PROFILE_USERS,
+    title: "the profile format is read where a surface reads its profiles, and in tests",
+    cases: [
+      [SERVER_SRC, PROFILE_NAME, [PROFILE_USERS]],
+      [SHELL_SRC, PROFILE_NAME, [PROFILE_USERS]],
+      [UI_SRC, PROFILE_NAME, [UI_LEAF, PROFILE_USERS]],
+      [ENGINE_SRC, PROFILE_NAME, [CORE_LEAF, PROFILE_USERS]],
+      [ENGINE_CLIENT_SRC, PROFILE_NAME, [CLIENT_LEAF, PROFILE_USERS]],
+      [ENGINE_CONNECTOR_SRC, PROFILE_NAME, [PROFILE_USERS]],
+      [
+        `${ENGINE_CONNECTOR}/src/widgets/profile.ts`,
+        PROFILE_NAME,
+        [WIDGETS_BROWSER, PROFILE_USERS],
+      ],
+      [`${ENGINE_CONNECTOR}/src/tools/profile.ts`, PROFILE_NAME, [PROFILE_USERS]],
+      // The readers are named files: a look-alike or a deeper module.ts is none.
+      [`${ENGINE_CONNECTOR}/src/engine-profiles-x.ts`, PROFILE_NAME, [PROFILE_USERS]],
+      [`${ENGINE_CONNECTOR}/src/lib/engine/module.ts`, PROFILE_NAME, [PROFILE_USERS]],
+      // Another family's module reads no engine profiles.
+      [`${BILLING_CONNECTOR}/src/engine-profiles.ts`, PROFILE_NAME, [PROFILE_USERS]],
+      [`${CLI}/src/workflow/profile.ts`, PROFILE_NAME, [PROFILE_USERS]],
+      [`${CLI}/src/configx/profile.ts`, PROFILE_NAME, [PROFILE_USERS]],
+      [`${EXT}/src/core/profile.ts`, PROFILE_NAME, [PROFILE_USERS]],
+      [`${EXT}/src/host/other/profile.ts`, PROFILE_NAME, [PROFILE_USERS]],
+      [
+        `${SERVER}/src/escape-profile.ts`,
+        "../../../packages/core/profile/src/target.ts",
+        [PROFILE_USERS, DEEP],
+      ],
+      // Unresolved subpaths (shape 3: dependency-cruiser reads no exports map).
+      [`${SHELL}/src/profile-sub.ts`, `${PROFILE_NAME}/sub`, [PROFILE_USERS]],
+      [`${SERVER}/src/profile-testing.ts`, `${PROFILE_NAME}/testing`, [PROFILE_USERS, NO_TESTING]],
+      // A reader's shipped code reaches no ./testing entry either.
+      [`${CLI}/src/config/fixtures.ts`, `${PROFILE_NAME}/testing`, [NO_TESTING]],
+      // Allowed: the readers, and tests anywhere.
+      [`${CLI}/src/config/profiles.ts`, PROFILE_NAME, []],
+      [`${EXT}/src/host/connections/profiles.ts`, PROFILE_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/engine-profiles.ts`, PROFILE_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/module.test.ts`, `${PROFILE_NAME}/testing`, []],
+      [`${SHELL}/src/profile.test.ts`, PROFILE_NAME, []],
+      [`${CLI}/test/support/profiles.ts`, `${PROFILE_NAME}/testing`, []],
     ],
   },
   {
@@ -1053,7 +1143,7 @@ const SUITES = [
   },
   {
     rule: CLI_CYCLE,
-    title: "the CLI and the core it bundles have no import cycle, a type-only one included",
+    title: "the CLI and the packages it bundles have no import cycle, a type-only one included",
     cases: [
       [`${CLI}/src/cycle-a.ts`, "./cycle-b.ts", [CIRCULAR, CLI_CYCLE]],
       [`${CLI}/src/cycle-b.ts`, "./cycle-a.ts", [CIRCULAR, CLI_CYCLE]],
@@ -1064,6 +1154,9 @@ const SUITES = [
       [`${ENGINE}/src/cycle-b.ts`, "./cycle-a.ts", [CIRCULAR, CLI_CYCLE]],
       [`${ENGINE}/src/type-cycle-a.ts`, "./type-cycle-b.ts", [CLI_CYCLE], "type"],
       [`${ENGINE}/src/type-cycle-b.ts`, "./type-cycle-a.ts", [CLI_CYCLE], "type"],
+      // So is the profile format, which the CLI bundles as well.
+      [`${PROFILE}/src/type-cycle-a.ts`, "./type-cycle-b.ts", [CLI_CYCLE], "type"],
+      [`${PROFILE}/src/type-cycle-b.ts`, "./type-cycle-a.ts", [CLI_CYCLE], "type"],
       // A core the CLI does not bundle is out of the CLI's rules: no-circular tolerates the type.
       [`${BILLING_CORE}/src/type-cycle-a.ts`, "./type-cycle-b.ts", [], "type"],
       [`${BILLING_CORE}/src/type-cycle-b.ts`, "./type-cycle-a.ts", [], "type"],
@@ -1079,12 +1172,13 @@ const SUITES = [
   },
   {
     rule: CLI_NOT_TEST,
-    title: "nothing in the CLI or the core it bundles imports a test file of its own",
+    title: "nothing in the CLI or the packages it bundles imports a test file of its own",
     cases: [
       [`${CLI}/src/b.test.ts`, "./a.test.ts", [CLI_NOT_TEST]],
       [`${CLI}/src/c.test.ts`, "./target.ts", []],
       [`${ENGINE}/src/testing/to-test.ts`, "../a.test.ts", [CLI_NOT_TEST]],
       [`${ENGINE}/src/c.test.ts`, "./a.test.ts", [CLI_NOT_TEST]],
+      [`${PROFILE}/src/c.test.ts`, "./a.test.ts", [CLI_NOT_TEST]],
       // A core the CLI does not bundle is out of the CLI's rules.
       [`${BILLING_CORE}/src/to-test.ts`, "./a.test.ts", []],
       // Each package's own tests only: the CLI's rule never reaches into the core's tree.

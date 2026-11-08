@@ -35,6 +35,11 @@
         },
         {
           "type": "json",
+          "path": "packages/core/profile/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
           "path": "packages/core/ui/package.json",
           "jsonpath": "$.version"
         },

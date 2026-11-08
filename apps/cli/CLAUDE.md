@@ -56,13 +56,16 @@ package but `@miragon/pulse-engine-core`, and that only from `apps/cli/src/workf
 `apps/cli/src/operation/variables.ts` (`autoTypedValue`) (tests anywhere), and nothing of the MCP
 or UI stack. The package
 returns data (next steps, error reasons); `next-text.ts` and `error-text.ts` in
-`apps/cli/src/workflow/` word them as the CLI prints them.
+`apps/cli/src/workflow/` word them as the CLI prints them. The CLI's rules also admit the profile
+format, `@miragon/pulse-profile`, in `apps/cli/src/config/` (`CLI_BUNDLES` and
+`profile-consumers` in the root `.dependency-cruiser.cjs`), for the config layer to read the
+profiles with.
 
 ## Budgets
 
 The CLI's blocks in the root `eslint.config.mjs` (which also hold
-`packages/connectors/engine/engine-core`) are stricter than the global ones and only tighten: the
-strict type-checked rules of
+`packages/connectors/engine/engine-core` and `packages/core/profile`, the packages it may bundle)
+are stricter than the global ones and only tighten: the strict type-checked rules of
 typescript-eslint, complexity 10, 300 effective lines per file for shipped code and scripts, 60
 lines per function, 20 statements, depth 3, 4 parameters. Every test file stays within 400
 lines, also under `apps/cli/test/`: a test that grows splits along its describes into a sibling

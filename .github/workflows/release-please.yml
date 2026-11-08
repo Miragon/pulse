@@ -81,6 +81,7 @@ jobs:
       matrix:
         directory:
           - packages/core/ui
+          - packages/core/profile
           - packages/connectors/engine/engine-core
           - packages/connectors/engine/engine-client
           - packages/core/widget-shell

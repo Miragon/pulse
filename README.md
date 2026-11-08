@@ -64,6 +64,7 @@ start one locally with `docker run -p 8080:8080 operaton/operaton:2.1.5`.
 | [`packages/connectors/engine/engine-core/`](packages/connectors/engine/engine-core)           | `@miragon/pulse-engine-core`      | Camunda 7 workflow domain and pure engine REST rules         |
 | [`packages/core/ui/`](packages/core/ui)                                                       | `@miragon/pulse-ui`               | Design kit for Pulse views and your own React UIs            |
 | [`packages/core/widget-shell/`](packages/core/widget-shell)                                   | `@miragon/pulse-widget-shell`     | View runtime and server boot for composed MCP servers        |
+| [`packages/core/profile/`](packages/core/profile)                                             | `@miragon/pulse-profile`          | One profile format for the CLI, VS Code and the MCP server   |
 | [`playground/`](playground)                                                                   | —                                 | Demo engine, Compose stack and the public playground         |
 | [`templates/composed-server/`](templates/composed-server)                                     | `Miragon/pulse-starter`           | [Starter](docs/mcp/build-your-own.md) for your own server    |
 

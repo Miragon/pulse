@@ -1,0 +1,393 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://unpkg.com/@miragon/pulse-profile/schema/pulse.schema.json",
+  "title": "Pulse profile file",
+  "description": "Named profiles of the engines Pulse reaches, and the default one. Where a file comes from decides what it may hold of credentials: a file others share (a repository's .pulse.json) names none, neither a secret nor the variable that holds one; the profiles of an MCP server name only variables that start with ENGINE_SECRET_; your own config file of the CLI may hold a secret itself. JSON Schema cannot tell which file this is, that a key appears twice, that defaultProfile names one of the profiles or that a URL is well-formed: the parser of @miragon/pulse-profile checks these and refuses the one profile they concern.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "description": "The URL or path of this schema, so that your editor checks the file.",
+      "type": "string"
+    },
+    "defaultProfile": {
+      "description": "The profile a client uses when none is named. Blank means none; otherwise it names one of the profiles of this file. Without it, the only profile of a file is the default.",
+      "type": "string",
+      "pattern": "^\\s*(?:[A-Za-z0-9][A-Za-z0-9._-]*\\s*)?$"
+    },
+    "profiles": {
+      "description": "The profiles by name: letters, digits, \".\", \"_\" and \"-\", starting with a letter or digit. The name is how you select a profile, and on an MCP server the engine id.",
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+      },
+      "additionalProperties": {
+        "$ref": "#/definitions/profile"
+      }
+    }
+  },
+  "definitions": {
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "description": "The REST API root, e.g. http://localhost:8080/engine-rest: an http or https URL without credentials, query or fragment.",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "cockpitUrl": {
+          "description": "The engine's web app, for links only, e.g. http://localhost:8080/camunda/app/cockpit/default/: an http or https URL without credentials, query or fragment.",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "engine": {
+          "description": "The name of a process engine (/engine/{name}); without it the default engine.",
+          "type": "string",
+          "pattern": "\\S",
+          "not": {
+            "pattern": "^\\s*\\.\\.?\\s*$"
+          }
+        },
+        "flavor": {
+          "description": "The product behind the URL; camunda7 when absent.",
+          "enum": ["camunda7", "cibseven", "operaton"]
+        },
+        "environment": {
+          "description": "The environment the engine belongs to (prod-eu, test): lower case letters, digits and \"-\". An MCP server groups its engines by it.",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "auth": {
+          "$ref": "#/definitions/auth"
+        },
+        "output": {
+          "description": "The CLI's output format; without it a table on a terminal, JSON otherwise.",
+          "enum": ["json", "table"]
+        },
+        "timeout": {
+          "description": "The request timeout in milliseconds.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "headers": {
+          "description": "Extra request headers. A file others share stores no secret header: credentials, cookies and names containing token, secret, password or api-key.",
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[!#$%&'*+.^_`|~0-9A-Za-z-]+$",
+            "not": {
+              "description": "Connection management headers the HTTP client sets itself.",
+              "pattern": "^(?:[Cc][Oo][Nn][Nn][Ee][Cc][Tt][Ii][Oo][Nn]|[Cc][Oo][Nn][Tt][Ee][Nn][Tt]-[Ll][Ee][Nn][Gg][Tt][Hh]|[Ee][Xx][Pp][Ee][Cc][Tt]|[Kk][Ee][Ee][Pp]-[Aa][Ll][Ii][Vv][Ee]|[Tt][Rr][Aa][Nn][Ss][Ff][Ee][Rr]-[Ee][Nn][Cc][Oo][Dd][Ii][Nn][Gg]|[Uu][Pp][Gg][Rr][Aa][Dd][Ee])$"
+            }
+          },
+          "patternProperties": {
+            "^(?:[Aa][Uu][Tt][Hh][Oo][Rr][Ii][Zz][Aa][Tt][Ii][Oo][Nn]|[Pp][Rr][Oo][Xx][Yy]-[Aa][Uu][Tt][Hh][Oo][Rr][Ii][Zz][Aa][Tt][Ii][Oo][Nn]|[Cc][Oo][Oo][Kk][Ii][Ee]|[Ss][Ee][Tt]-[Cc][Oo][Oo][Kk][Ii][Ee])$|[Tt][Oo][Kk][Ee][Nn]|[Ss][Ee][Cc][Rr][Ee][Tt]|[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]|[Aa][Pp][Ii]-[Kk][Ee][Yy]|[Aa][Pp][Ii][Kk][Ee][Yy]": {
+              "description": "A secret header: only in your own config file of the CLI, never in a file others share.",
+              "deprecated": true,
+              "$ref": "#/definitions/headerValue"
+            }
+          },
+          "additionalProperties": {
+            "$ref": "#/definitions/headerValue"
+          }
+        },
+        "readOnly": {
+          "description": "true refuses every write through this profile.",
+          "type": "boolean"
+        }
+      }
+    },
+    "headerValue": {
+      "description": "An ISO-8859-1 (Latin-1) value without control characters but tab.",
+      "type": "string",
+      "pattern": "^[\\u0009\\u0020-\\u007E\\u00A0-\\u00FF]*$"
+    },
+    "auth": {
+      "description": "How a client authenticates. Without type a username selects Basic auth; OAuth and a stored token need their type. The secret comes from elsewhere: a variable the profile names, a login, or what each client keeps itself.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "description": "none, basic, bearer, oauth or passthrough (an MCP server forwards its caller's token). none switches the other keys off.",
+          "enum": ["none", "basic", "bearer", "oauth", "passthrough"]
+        },
+        "username": {
+          "description": "The Basic auth username: not blank, without \":\" and control characters.",
+          "type": "string",
+          "allOf": [
+            {
+              "pattern": "\\S"
+            },
+            {
+              "pattern": "^[^:\\u0000-\\u001F\\u007F-\\u009F]*$"
+            }
+          ]
+        },
+        "passwordEnv": {
+          "description": "The environment variable that holds the Basic auth password.",
+          "$ref": "#/definitions/variable"
+        },
+        "password": {
+          "description": "The Basic auth password itself.",
+          "$ref": "#/definitions/secret"
+        },
+        "issuer": {
+          "description": "The OAuth issuer, discovered unless both endpoints are set.",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "authorizationEndpoint": {
+          "description": "The OAuth authorization endpoint; with type oauth only together with tokenEndpoint.",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "tokenEndpoint": {
+          "description": "The OAuth token endpoint; with type oauth only together with authorizationEndpoint.",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "clientId": {
+          "description": "The OAuth client id.",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "clientSecretEnv": {
+          "description": "The environment variable that holds the OAuth client secret.",
+          "$ref": "#/definitions/variable"
+        },
+        "clientSecret": {
+          "description": "The OAuth client secret itself.",
+          "$ref": "#/definitions/secret"
+        },
+        "scopes": {
+          "description": "The OAuth scopes, each listed once; openid and offline_access when absent.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[\\u0021\\u0023-\\u005B\\u005D-\\u007E]+$"
+          }
+        },
+        "audience": {
+          "description": "The OAuth audience.",
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "redirectPort": {
+          "description": "The port of the login callback; 0 for any free port.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "tokenEnv": {
+          "description": "The environment variable that holds a bearer token obtained elsewhere.",
+          "$ref": "#/definitions/variable"
+        },
+        "token": {
+          "description": "A bearer token itself.",
+          "$ref": "#/definitions/secret"
+        }
+      },
+      "dependencies": {
+        "username": {
+          "$ref": "#/definitions/basicKeys"
+        },
+        "passwordEnv": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/basicKeys"
+            },
+            {
+              "type": "object",
+              "not": {
+                "required": ["password"]
+              }
+            }
+          ]
+        },
+        "password": {
+          "$ref": "#/definitions/basicKeys"
+        },
+        "issuer": {
+          "$ref": "#/definitions/oauthKeys"
+        },
+        "authorizationEndpoint": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/oauthKeys"
+            },
+            {
+              "if": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "const": "oauth"
+                  }
+                }
+              },
+              "then": {
+                "type": "object",
+                "required": ["tokenEndpoint"]
+              }
+            }
+          ]
+        },
+        "tokenEndpoint": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/oauthKeys"
+            },
+            {
+              "if": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "const": "oauth"
+                  }
+                }
+              },
+              "then": {
+                "type": "object",
+                "required": ["authorizationEndpoint"]
+              }
+            }
+          ]
+        },
+        "clientId": {
+          "$ref": "#/definitions/oauthKeys"
+        },
+        "clientSecretEnv": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/oauthKeys"
+            },
+            {
+              "type": "object",
+              "not": {
+                "required": ["clientSecret"]
+              }
+            }
+          ]
+        },
+        "clientSecret": {
+          "$ref": "#/definitions/oauthKeys"
+        },
+        "scopes": {
+          "$ref": "#/definitions/oauthKeys"
+        },
+        "audience": {
+          "$ref": "#/definitions/oauthKeys"
+        },
+        "redirectPort": {
+          "$ref": "#/definitions/oauthKeys"
+        },
+        "tokenEnv": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/bearerKeys"
+            },
+            {
+              "type": "object",
+              "not": {
+                "required": ["token"]
+              }
+            }
+          ]
+        },
+        "token": {
+          "$ref": "#/definitions/bearerKeys"
+        }
+      }
+    },
+    "variable": {
+      "description": "Only the name, never the value: letters, digits and \"_\", not starting with a digit. A file others share names none; an MCP server reads only variables that start with ENGINE_SECRET_.",
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+    },
+    "secret": {
+      "description": "A secret itself: only in your own config file of the CLI. A file others share and the profiles of an MCP server refuse it; name the variable that holds it instead.",
+      "deprecated": true,
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "basicKeys": {
+      "description": "Basic auth keys: type basic, none or no type, and no key of OAuth or a stored token.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "not": {
+            "enum": ["bearer", "oauth", "passthrough"]
+          }
+        }
+      },
+      "not": {
+        "anyOf": [
+          {
+            "required": ["issuer"]
+          },
+          {
+            "required": ["authorizationEndpoint"]
+          },
+          {
+            "required": ["tokenEndpoint"]
+          },
+          {
+            "required": ["clientId"]
+          },
+          {
+            "required": ["clientSecretEnv"]
+          },
+          {
+            "required": ["clientSecret"]
+          },
+          {
+            "required": ["scopes"]
+          },
+          {
+            "required": ["audience"]
+          },
+          {
+            "required": ["redirectPort"]
+          },
+          {
+            "required": ["tokenEnv"]
+          },
+          {
+            "required": ["token"]
+          }
+        ]
+      }
+    },
+    "oauthKeys": {
+      "description": "OAuth keys: type oauth (or none, which switches them off), and no key of a stored token.",
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "enum": ["none", "oauth"]
+        }
+      },
+      "not": {
+        "anyOf": [
+          {
+            "required": ["tokenEnv"]
+          },
+          {
+            "required": ["token"]
+          }
+        ]
+      }
+    },
+    "bearerKeys": {
+      "description": "A stored token: type bearer (or none, which switches it off).",
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "enum": ["none", "bearer"]
+        }
+      }
+    }
+  }
+}

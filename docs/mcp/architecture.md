@@ -78,6 +78,10 @@ second engine dialect cheap:
   carries the design kit, `widget-shell` the view runtime;
   each module carries its own and renders no other module's widget. A view that composes
   modules goes in a dedicated package, created with the first real one.
+- One profile format. `@miragon/pulse-profile` (`packages/core/profile`) holds one format of the
+  engine profiles for the CLI, the VS Code extension and the server: it takes a file's text and
+  returns a verdict per profile as data, reads no file and no environment, imports nothing, and
+  lets an interface state what it serves (`refusalsOn`), so a key is applied or refuses the profile.
 - Extract on the second consumer, never speculatively. A composed-views
   package appears with the first cross-module view, a shared domain-widget
   package with a second dialect, a host-kit with a second MCP server app.
@@ -134,11 +138,11 @@ holds when the two share building blocks again.
 
 ## Repository layout
 
-| Path                   | Description                                                           |
-| ---------------------- | --------------------------------------------------------------------- |
-| `apps/mcp-server/`     | The MCP server entry point and the widget bundle.                     |
-| `packages/core/`       | What every family builds on: widget-shell, pulse-ui.                  |
-| `packages/connectors/` | One folder per family: client, connector (MCP plugin), optional core. |
-| `playground/`          | Demo env: showcases, Compose stack, Fly.io deployment.                |
+| Path                   | Description                                                              |
+| ---------------------- | ------------------------------------------------------------------------ |
+| `apps/mcp-server/`     | The MCP server entry point and the widget bundle.                        |
+| `packages/core/`       | What every family builds on: widget-shell, pulse-ui, the profile format. |
+| `packages/connectors/` | One folder per family: client, connector (MCP plugin), optional core.    |
+| `playground/`          | Demo env: showcases, Compose stack, Fly.io deployment.                   |
 
 For deeper detail, [Reference](reference.md) lists every tool and toolset.

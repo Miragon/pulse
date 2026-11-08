@@ -17,11 +17,13 @@
  *   - `<family>-core`, when the family's interfaces share a pure domain: a leaf that the
  *     family's connector and the interface apps that bundle it import (engine-core).
  * The foundation packages every family builds on live under `packages/core/` (npm names
- * without a role suffix, e.g. `@miragon/pulse-widget-shell`), never one family's code. The
- * apps under `apps/` sit ON TOP of
+ * without a role suffix, e.g. `@miragon/pulse-widget-shell`), never one family's code; one of
+ * them, the profile format (`@miragon/pulse-profile`, PROFILE), is a leaf only the readers of
+ * profiles import. The apps under `apps/` sit ON TOP of
  * the packages: the MCP server (`@miragon/pulse-mcp-server`) composes the
- * connectors; of the two interface apps, the CLI (apps/cli, `@miragon/pulse-cli`) imports
- * exactly the family core it bundles (CLI_CORE), and the VS Code
+ * connectors; of the two interface apps, the CLI (apps/cli, `@miragon/pulse-cli`) imports no
+ * workspace package but the ones CLI_BUNDLES names, which tsdown inlines (its family core, and
+ * the profile format for its config layer), and the VS Code
  * extension (apps/vscode, the unscoped `pulse-cockpit`, because vsce rejects scoped names)
  * imports it in its C7 adapter alone (apps/vscode/src/adapters/c7, esbuild bundles it).
  * No package and no app imports an app
@@ -103,7 +105,38 @@ const CORE_BUNDLES = {
 }
 const CORE_BUNDLERS = Object.keys(CORE_BUNDLES)
 const CLI_CORE = escapeRegExp(CORE_BUNDLES["^apps/cli/"].name)
-const CLI_CORE_TREE = escapeRegExp(CORE_BUNDLES["^apps/cli/"].tree)
+
+/**
+ * The profile format (packages/core/profile, npm `@miragon/pulse-profile`): the one parser of the
+ * profile files of the CLI, Pulse for VS Code and the MCP server. A foundation package, not a
+ * family core, so it stays out of CORE_BUNDLES (whose keys loosen family-core-consumers): its own
+ * rules are profile-is-a-leaf and profile-consumers.
+ */
+const PROFILE = { name: "@miragon/pulse-profile", tree: "packages/core/profile" }
+
+/**
+ * Where a surface reads its profiles, the only shipped importers of PROFILE: the CLI's config
+ * layer, Pulse for VS Code's connections (its closed world, apps/vscode/.dependency-cruiser.cjs,
+ * admits the edge on its own) and the engine connector's configuration (its module definition,
+ * the profiles it builds from the environment, the provider port that names the flavors). Tests
+ * import it anywhere.
+ */
+const PROFILE_READERS = [
+  "^apps/cli/src/config/",
+  "^apps/vscode/src/host/connections/",
+  "^packages/connectors/engine/engine-connector/src/(?:module|engine-profiles|engine-provider)[.]ts$",
+]
+
+/**
+ * The workspace packages the CLI may bundle (tsdown inlines what it imports, so the published CLI
+ * depends on none of them): its family core, CORE_BUNDLES' entry for apps/cli, and the profile
+ * format, admitted for the config layer before the CLI reads its profiles with it. The only
+ * workspace packages cli-is-headless lets the CLI import; cli-no-circular and cli-not-to-test
+ * hold their trees as part of the CLI.
+ */
+const CLI_BUNDLES = [CORE_BUNDLES["^apps/cli/"], PROFILE]
+const CLI_BUNDLE_NAMES = CLI_BUNDLES.map(({ name }) => escapeRegExp(name)).join("|")
+const CLI_BUNDLE_TREES = CLI_BUNDLES.map(({ tree }) => escapeRegExp(tree)).join("|")
 
 /** Test-support modules: helpers of the tests, never shipped. */
 const TEST_SUPPORT = ["[.]test-support[.]tsx?$", "/test-support/"]
@@ -437,12 +470,13 @@ module.exports = {
       severity: "error",
       comment:
         "The CLI (apps/cli) is a terminal interface, not an MCP host: it imports no workspace " +
-        "package except the family core it bundles (CLI_CORE: @miragon/pulse-engine-core, the " +
-        "engine family's workflow domain, which tsdown inlines), and nothing of the MCP/UI/server " +
+        "package except the ones CLI_BUNDLES names, which tsdown inlines (" +
+        "@miragon/pulse-engine-core, the engine family's workflow domain, and " +
+        "@miragon/pulse-profile, the profile format), and nothing of the MCP/UI/server " +
         "stack (react, react-dom, lucide-react, preact, bpmn-js, diagram-js, " +
         "@modelcontextprotocol, hono, jose, TanStack, prom-client, " +
-        "zod, @hey-api, vscode, @miragon/modeler-shell). A relative escape into " +
-        "packages/connectors/engine/engine-core is still a violation: import the package.",
+        "zod, @hey-api, vscode, @miragon/modeler-shell). A relative escape into a bundled " +
+        "package's tree is still a violation: import the package.",
       from: { path: "^apps/cli/" },
       to: {
         path: [
@@ -450,8 +484,44 @@ module.exports = {
           "@miragon/pulse-",
           ...npm(`${MCP_STACK}|preact|bpmn-js|diagram-js|@miragon/modeler-shell|vscode`),
         ],
-        pathNot: npm(CLI_CORE),
+        pathNot: npm(CLI_BUNDLE_NAMES),
       },
+    },
+    {
+      name: "profile-is-a-leaf",
+      severity: "error",
+      comment:
+        "The profile format (packages/core/profile, @miragon/pulse-profile) has no runtime " +
+        "dependency: its shipped code (the ./testing export and its JSON fixtures included) " +
+        "imports only its own modules, no workspace package, no npm package and no Node " +
+        "built-in. It parses the text a reader hands it: finding and reading the file, the " +
+        "environment and the secrets, and the wording of what follows, stay with the reader " +
+        "(the CLI, Pulse for VS Code, the MCP server). Its tests may import vitest, fast-check " +
+        "and ajv.",
+      from: { path: `^${escapeRegExp(PROFILE.tree)}/src/`, pathNot: ["[.]test[.]ts$"] },
+      to: { pathNot: `^${escapeRegExp(PROFILE.tree)}/src/` },
+    },
+    {
+      name: "profile-consumers",
+      severity: "error",
+      comment:
+        "The profile format (@miragon/pulse-profile) may be imported only where a surface reads " +
+        "its profiles (PROFILE_READERS): the CLI's config layer (apps/cli/src/config), Pulse " +
+        "for VS Code's connections (apps/vscode/src/host/connections) and the engine " +
+        "connector's configuration (src/module.ts, src/engine-profiles.ts, " +
+        "src/engine-provider.ts), and by tests anywhere. No widget, no other module, no other " +
+        "foundation package and not the MCP server app: they get the engines the connector built " +
+        "from the profiles, never the format. A relative escape into packages/core/profile is a " +
+        "violation too.",
+      from: {
+        pathNot: [
+          ...PROFILE_READERS,
+          `^${escapeRegExp(PROFILE.tree)}/(?:src|test)/`,
+          ...SRC_TEST_CODE,
+          "^apps/[^/]+/(?:test|test-host)/",
+        ],
+      },
+      to: { path: [`^${escapeRegExp(PROFILE.tree)}/`, ...npm(escapeRegExp(PROFILE.name))] },
     },
     {
       name: "family-core-is-a-leaf",
@@ -544,10 +614,10 @@ module.exports = {
       name: "cli-no-circular",
       severity: "error",
       comment:
-        "The CLI (apps/cli) and the family core it bundles (CLI_CORE_TREE, engine-core) have no " +
-        "import cycle at all, type-only cycles included (stricter than no-circular above). Extract " +
-        "the shared part into its own module.",
-      from: { path: `^(?:apps/cli|${CLI_CORE_TREE})/` },
+        "The CLI (apps/cli) and the packages CLI_BUNDLES names (engine-core, the profile " +
+        "format) have no import cycle at all, type-only cycles included (stricter than " +
+        "no-circular above). Extract the shared part into its own module.",
+      from: { path: `^(?:apps/cli|${CLI_BUNDLE_TREES})/` },
       to: { circular: true },
     },
     {
@@ -564,10 +634,10 @@ module.exports = {
       name: "cli-not-to-test",
       severity: "error",
       comment:
-        "Nothing in the CLI or in the family core it bundles (CLI_CORE_TREE, engine-core) imports " +
-        "a test file (*.test.ts) of its own tree. Shared test helpers live in " +
-        "apps/cli/test/support/ and in the core's src/testing/.",
-      from: { path: `^(apps/cli|${CLI_CORE_TREE})/` },
+        "Nothing in the CLI or in the packages CLI_BUNDLES names (engine-core, the profile " +
+        "format) imports a test file (*.test.ts) of its own tree. Shared test helpers live in " +
+        "apps/cli/test/support/ and in a bundled package's src/testing/.",
+      from: { path: `^(apps/cli|${CLI_BUNDLE_TREES})/` },
       to: { path: "^$1/.*[.]test[.]ts$" },
     },
     {
