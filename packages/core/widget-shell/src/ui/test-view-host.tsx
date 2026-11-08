@@ -2,9 +2,8 @@
  * Renders a widget WITHOUT a host: fake tools, a log of what it asked the host to do and the
  * model context it reported. It mounts the same host contexts as the ext-apps adapter
  * (`HostContexts`: display mode, fullscreen switch, inline budget, view host), a query client,
- * the host widgets, the icon stroke and toasts, so a widget test needs no host. Not
- * mounted: `HostDocument` (theme, fonts, the measured inline fit) and `LocaleGate` (pass
- * `locale` instead).
+ * the icon stroke and toasts, so a widget test needs no host. Not mounted: `HostDocument`
+ * (theme, fonts, the measured inline fit) and `LocaleGate` (pass `locale` instead).
  */
 import {
   createContext,
@@ -20,7 +19,6 @@ import { LocaleProvider, ToastProvider, ICON_STROKE } from "@miragon/pulse-ui"
 import { LucideProvider } from "lucide-react"
 import type { ToolResult } from "../protocol/tool-result.js"
 import { HostContexts, type RequestDisplayMode } from "./host-contexts.js"
-import { HostWidgetsProvider, type HostWidgets } from "./host-widgets.js"
 import type { ShellHost } from "./shell-host.js"
 import { createViewQueryClient } from "./tool-query.js"
 import type { ViewHost } from "./view-host.js"
@@ -45,7 +43,6 @@ export interface TestViewHostProps {
   onModelContext?: (text: string) => void
   /** Merged over `{ connected: true, displayMode: "inline", availableDisplayModes: [] }`. */
   host?: Partial<ShellHost>
-  hostWidgets?: HostWidgets
   /** Default: `createTestQueryClient()`, once per mount. */
   client?: QueryClient
   /** Wraps a `LocaleProvider` only when given, so an outer one wins. */
@@ -79,7 +76,6 @@ function toResult(value: unknown): ToolResult {
 }
 
 const NO_HOST: ShellHost = { connected: true, displayMode: "inline", availableDisplayModes: [] }
-const NO_WIDGETS: HostWidgets = {}
 
 type ModelContextSink = ((text: string) => void) | undefined
 
@@ -118,7 +114,6 @@ export function TestViewHost({
   onHostAction,
   onModelContext,
   host,
-  hostWidgets,
   client,
   locale,
   children,
@@ -134,11 +129,9 @@ export function TestViewHost({
     <ModelContextSinkContext.Provider value={onModelContext}>
       <HostContexts shell={shell} host={fake} requestDisplayMode={request}>
         <QueryClientProvider client={client ?? ownClient}>
-          <HostWidgetsProvider widgets={hostWidgets ?? NO_WIDGETS}>
-            <LucideProvider strokeWidth={ICON_STROKE}>
-              <ToastProvider>{children}</ToastProvider>
-            </LucideProvider>
-          </HostWidgetsProvider>
+          <LucideProvider strokeWidth={ICON_STROKE}>
+            <ToastProvider>{children}</ToastProvider>
+          </LucideProvider>
         </QueryClientProvider>
       </HostContexts>
     </ModelContextSinkContext.Provider>

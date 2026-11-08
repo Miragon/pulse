@@ -183,8 +183,7 @@ module.exports = {
       comment:
         "Connector modules are self-contained peers and never import each other (CLAUDE.md invariant 8). " +
         "Cross-module needs go through the composition root: what the modules share via " +
-        "SharedResources (apps/mcp-server/src/setup.ts), another module's widget via the host widget " +
-        "map by raw id (useHostWidget/HostWidgetSlot).",
+        "SharedResources (apps/mcp-server/src/setup.ts; today the app hands nothing through).",
       from: { path: "^packages/connectors/[^/]+/([^/]+)-connector/" },
       to: {
         path: ["^packages/connectors/.+-connector/", "@miragon/pulse-[^/]+-connector(/|$)"],

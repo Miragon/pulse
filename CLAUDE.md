@@ -254,8 +254,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    - the module's view map, keyed by its view tool's name (the engine module has ONE view,
      `engine_open_cockpit` → `CockpitApp` in
      `packages/connectors/engine/engine-connector/src/widgets/views.tsx`)
-   - `apps/mcp-server/src/ui/view-registry.ts`: every module's views plus the host
-     widgets (cross-module widgets by raw id)
+   - `apps/mcp-server/src/ui/view-registry.ts`: every module's views
    - `packages/connectors/engine/engine-connector/src/tool-names.ts`: the tool-name constant
      for the view tool and every `*_data` feed, so in-widget feed calls stay rename-safe
 
@@ -344,10 +343,10 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      recovery: a host that drops `structuredContent` gets ONE re-run of the view's own view
      tool, so every view-bound tool is a read (`apps/mcp-server/test/view-registry.test.ts`).
      `ViewFrame` renders the phases (waiting, error, cancelled, ready); every `ViewStack` row
-     and `HostWidgetSlot` has its own error boundary, so one crashing widget never takes its
-     view down. Widgets reach the host only through `useViewHost`/`HostModelContext` and the
-     query hooks (`useToolQuery`, `useToolQueries`, `useToolMutation`, `useViewData`), test
-     under `TestViewHost`, and never import the MCP Apps runtime of
+     has its own error boundary, so one crashing widget never takes its view down. Widgets
+     reach the host only through `useViewHost`/`HostModelContext` and the query hooks
+     (`useToolQuery`, `useToolQueries`, `useToolMutation`, `useViewData`), test under
+     `TestViewHost`, and never import the MCP Apps runtime of
      `@modelcontextprotocol/ext-apps` (ESLint `no-restricted-imports` outside the adapter's three
      files; its `/server` half is invariant 1's; `scripts/eslint-gates.test.mjs`).
    - **States and feedback** (#322). Loading, error and no data go through `ViewDataState`, or
@@ -594,15 +593,12 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      (`resolveHttpEdgePolicy`) is DNS-rebinding protection in front of the OAuth gate that
      exempts `/health*` and `/metrics`; it is the ONE `Host`/`Origin` check, so never add the
      SDK's `hostHeaderValidationResponse` or a transport's `allowedHosts` next to it.
-   - **Cross-module UI is tiered**: another module's widget only through the host widget map
-     by raw id (`useHostWidget`/`HostWidgetSlot`). No module renders one or probes another's
-     feed today: the engine module's cockpit reads the engines itself (the cross-engine
-     landscape from each engine's overview and `engine_job_backlog_data`, the process flow's
-     "Running" from `engine_activity_statistics_data`), and the app and the starter register no
-     host widget. The module that owns the data owns the widget and its payload type: the
-     widget fetches its own data and reads its props as untyped input. Hard-composed views go in
-     a dedicated package created with the first real view, never in the app, never as
-     module-to-module imports.
+   - **No module renders another's UI.** A module's views show its own widgets over its own
+     feeds (the engine module's cockpit reads the engines itself: the cross-engine landscape
+     from each engine's overview and `engine_job_backlog_data`, the process flow's "Running"
+     from `engine_activity_statistics_data`), widget-shell keeps no host widget map, and no
+     module imports another (`connectors-are-peers`). A view that composes modules goes in a
+     dedicated package created with the first real one, never in the app.
      `scripts/tool-name-refs.test.mjs` checks every `<module>_…` literal against the full
      surface of the admin golden and finds no raw cross-module name; the apps the source guards
      read are listed in `APP_SCAN` (`scripts/source-scan.mjs`), where a new app adds its entry

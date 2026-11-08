@@ -76,9 +76,8 @@ second engine dialect cheap:
   boot keeps `ui://views/` for the bundle and fails on a tool that binds a resource nobody serves.
 - The MCP server app owns no domain UI. Widgets live in packages: `pulse-ui`
   carries the design kit, `widget-shell` the view runtime;
-  each module carries its own. Cross-module UI goes through another module's widget by its raw
-  host-widget id (none renders one today: the cockpit reads the engines itself)
-  or hard-composed views in a dedicated package (created with the first real view).
+  each module carries its own and renders no other module's widget. A view that composes
+  modules goes in a dedicated package, created with the first real one.
 - Extract on the second consumer, never speculatively. A composed-views
   package appears with the first cross-module view, a shared domain-widget
   package with a second dialect, a host-kit with a second MCP server app.

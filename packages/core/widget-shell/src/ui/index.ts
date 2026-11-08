@@ -12,7 +12,6 @@ export { ConfirmDialog, type ConfirmDialogProps, type ConfirmTarget } from "./co
 export { useActionFeedback, type ActionFeedback } from "./action-feedback.js"
 export { QueryFallback, TableSkeleton } from "./query-fallback.js"
 export { ViewMeta, formatLookback, type ViewMetaEngines, type ViewMetaParts } from "./view-meta.js"
-export { HostWidgetSlot, useHostWidget, type HostWidget, type HostWidgets } from "./host-widgets.js"
 // The view runtime: the bundle root, the host seam, the data layer and the test host.
 export {
   mountView,

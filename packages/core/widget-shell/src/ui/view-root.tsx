@@ -10,7 +10,6 @@ import { LucideProvider } from "lucide-react"
 import { readViewName } from "../protocol/view-name.js"
 import { SHELL_VIEW_CONFIG } from "./display-mode-toggle.js"
 import { HostDocument } from "./host-document.js"
-import { HostWidgetsProvider, type HostWidgets } from "./host-widgets.js"
 import { ExtAppsViewHost, useViewCall } from "./ext-apps-host.js"
 import { LocaleGate } from "./locale-gate.js"
 import { createViewQueryClient } from "./tool-query.js"
@@ -23,15 +22,11 @@ export interface MountViewOptions {
   /** The view's name (= its show tool's name); the stripped-result recovery re-runs it. */
   name: string | undefined
   view: ViewComponent | undefined
-  hostWidgets?: HostWidgets
 }
 
 export interface MountViewsOptions {
   views: ViewMap
-  hostWidgets?: HostWidgets
 }
-
-const NO_WIDGETS: HostWidgets = {}
 
 /** One view, no map: the handlers sit on the `App` before it connects, so none misses a notification. */
 export function mountView(options: MountViewOptions): void {
@@ -53,13 +48,13 @@ export function mountView(options: MountViewOptions): void {
 }
 
 /** The view the document's prelude names; an unknown name renders the "can't show" state. */
-export function mountViews({ views, hostWidgets }: MountViewsOptions): void {
+export function mountViews({ views }: MountViewsOptions): void {
   const name = readViewName()
   const view = name !== undefined && Object.hasOwn(views, name) ? views[name] : undefined
-  mountView({ name, view, hostWidgets })
+  mountView({ name, view })
 }
 
-function RootViewFrame({ name, view }: Omit<MountViewOptions, "hostWidgets">) {
+function RootViewFrame({ name, view }: MountViewOptions) {
   return <ViewFrame call={useViewCall(name)} view={view} />
 }
 
@@ -68,12 +63,7 @@ function RootViewFrame({ name, view }: Omit<MountViewOptions, "hostWidgets">) {
  * per document, the document layer (theme, fonts, the inline budget box), the gate that resolves
  * the locale from the host context, then the kit's icon stroke and toasts.
  */
-export function ViewRoot({
-  name,
-  view,
-  hostWidgets,
-  runtime,
-}: MountViewOptions & { runtime: ViewRuntime }) {
+export function ViewRoot({ name, view, runtime }: MountViewOptions & { runtime: ViewRuntime }) {
   const [client] = useState(createViewQueryClient)
   return (
     <StrictMode>
@@ -83,9 +73,7 @@ export function ViewRoot({
             <LocaleGate>
               <LucideProvider strokeWidth={ICON_STROKE}>
                 <ToastProvider>
-                  <HostWidgetsProvider widgets={hostWidgets ?? NO_WIDGETS}>
-                    <RootViewFrame name={name} view={view} />
-                  </HostWidgetsProvider>
+                  <RootViewFrame name={name} view={view} />
                 </ToastProvider>
               </LucideProvider>
             </LocaleGate>

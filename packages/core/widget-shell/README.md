@@ -35,7 +35,7 @@ package customers build their own connectors and composed servers on (see the
 
 ## What it provides
 
-- **The view runtime** (`./widgets`): the bundle root `mountViews({ views, hostWidgets })` picks
+- **The view runtime** (`./widgets`): the bundle root `mountViews({ views })` picks
   the view the document's prelude names (the show tool's name) from your view map and mounts it
   under the view root (the host adapter over ext-apps' official `App`, ONE `QueryClient` per
   document, `HostDocument`, `LocaleGate`, toasts); `mountView` mounts one view without a map. The
@@ -46,14 +46,14 @@ package customers build their own connectors and composed servers on (see the
   root's call hook (`useViewCall` over `resolveViewCall`) owns the stripped-result recovery: a host that
   drops `structuredContent` (claude.ai) gets the view re-running its own show tool ONCE (every
   view-bound tool is a read), stamped "Reloaded at"; the view frame renders the phases (waiting,
-  error with a retry, cancelled, ready) and keeps a crashing view, and each `ViewStack` row and
-  `HostWidgetSlot`, inside its own error boundary. Widgets reach the host only through the view
+  error with a retry, cancelled, ready) and keeps a crashing view, and each `ViewStack` row,
+  inside its own error boundary. Widgets reach the host only through the view
   host seam (`useViewHost`: `callTool`, `sendFollowUp`, `openExternal`; `HostModelContext`) and the query
   hooks (`useToolQuery`, `useToolQueries` (one read per entry of a list, under `useToolQuery`'s
   keys), `useToolMutation`, `useViewData` (which seeds a feed with the view's data),
   `useQueryClient`), never ext-apps, so a widget renders under `TestViewHost`
-  (fake tools, a log of host actions and model contexts) in a plain test. Another module's
-  widget renders by raw id through the host widgets (`useHostWidget`, `HostWidgetSlot`).
+  (fake tools, a log of host actions and model contexts) in a plain test. No module renders
+  another's widget, and the view root keeps no map for one.
 - **View builders** (`./server`): `buildViewResult(data, summary)` (a show tool's result: the
   `structuredContent` IS the view's data, the text what the model reads: a short summary or,
   where the model needs the figures, the result as compact JSON) and

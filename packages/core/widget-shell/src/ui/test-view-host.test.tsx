@@ -12,7 +12,6 @@ import {
 } from "@testing-library/react"
 import { useLocale } from "@miragon/pulse-ui"
 import { useDisplayModeControl } from "./display-mode-toggle.js"
-import { HostWidgetSlot } from "./host-widgets.js"
 import { useInlineBudget } from "./inline-budget.js"
 import { useShellHost } from "./shell-host.js"
 import { createTestQueryClient, TestViewHost, type HostAction } from "./test-view-host.js"
@@ -195,16 +194,16 @@ describe("TestViewHost: providers", () => {
     expect(screen.getByText("de")).toBeTruthy()
   })
 
-  it("hands out the host widgets: a slot renders one with its props, or nothing", () => {
-    const Section = (props: Record<string, unknown>) => <p>{`section ${String(props.engine)}`}</p>
+  it("takes no host widget map, as the view root does", () => {
     render(
-      <TestViewHost hostWidgets={{ "demo:panel": Section }}>
-        <HostWidgetSlot id="demo:panel" props={{ engine: "prod" }} />
-        <HostWidgetSlot id="missing:panel" />
-        <HostWidgetSlot id="toString" />
+      <TestViewHost
+        // @ts-expect-error: no module renders another's widget, so the test host takes no map
+        hostWidgets={{ "demo:panel": () => <p>panel</p> }}
+      >
+        <p>view</p>
       </TestViewHost>,
     )
-    expect(document.body.textContent).toBe("section prod")
+    expect(document.body.textContent).toBe("view")
   })
 
   it("uses the client a test passes, retry-free by default", async () => {
