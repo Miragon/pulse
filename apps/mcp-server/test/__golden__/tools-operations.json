@@ -1406,6 +1406,36 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
+    "description": "Internal JSON feed (no UI) for the cross-engine overview: one engine's executable, suspended and later-due jobs and its external tasks. Prefer engine_open_cockpit.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "engine_job_backlog_data",
+    "title": "Job backlog data (internal)"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
     "description": "Internal JSON feed (no UI) for jobs. Prefer engine_open_cockpit.",
     "inputSchema": {
       "additionalProperties": false,

@@ -1,8 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import { describe, expect, it } from "vitest"
-import { ENGINE_HOST_WIDGET_REFS } from "@miragon/pulse-engine-connector/widgets"
-import { hostWidgets, viewRegistry } from "../src/ui/view-registry.js"
+import { viewRegistry } from "../src/ui/view-registry.js"
 import { GOLDEN_DIR } from "./golden.js"
 
 interface GoldenTool {
@@ -49,15 +48,5 @@ describe("the view registry vs the view-bound tools", () => {
       )
       .map((tool) => tool.name)
     expect(writes, "a view-bound tool must be readOnlyHint: true and never destructive").toEqual([])
-  })
-})
-
-/** A cross-module widget no module renders is dead code in every view's bundle. */
-describe("the host widgets", () => {
-  it("hold nothing but the cross-module widgets a module renders", () => {
-    const refs: readonly string[] = ENGINE_HOST_WIDGET_REFS
-    const stray = Object.keys(hostWidgets).filter((id) => !refs.includes(id))
-    expect(stray).toEqual([])
-    for (const ref of refs) expect(hostWidgets, `${ref} is rendered but absent`).toHaveProperty(ref)
   })
 })

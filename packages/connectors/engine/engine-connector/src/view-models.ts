@@ -39,6 +39,21 @@ export interface CockpitDashboardData {
   engineId?: string
 }
 
+/**
+ * One engine's job backlog right now, four counts of that engine alone: the cross-engine
+ * overview compares them across engines, since no process mix is in them.
+ */
+export interface JobBacklogData {
+  /** Jobs the job executor runs next: retries left, due and active (engine-core's `EXECUTABLE`). */
+  executableJobs: number
+  suspendedJobs: number
+  /** Jobs due later than now: timers, and retries waiting out their back-off. */
+  jobsDueLater: number
+  /** External tasks waiting for a worker or locked by one. */
+  externalTasks: number
+  engineId: string
+}
+
 export interface TaskData {
   id: string
   name: string | null

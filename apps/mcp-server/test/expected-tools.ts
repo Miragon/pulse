@@ -57,6 +57,7 @@ export const EXPECTED_TOOLS_READ_ONLY: readonly string[] = [
   "engine_incidents_data",
   "engine_inspect_process_instance",
   "engine_instance_detail_data",
+  "engine_job_backlog_data",
   "engine_jobs_data",
   "engine_list_deployments",
   "engine_list_engines",

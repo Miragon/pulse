@@ -65,6 +65,7 @@ describe("the /widgets entry", () => {
       "usePagedViewData",
       "useQueryClient",
       "useToolMutation",
+      "useToolQueries",
       "useToolQuery",
       "useViewData",
       "useViewHost",

@@ -72,7 +72,10 @@ function definitionStatistics() {
   }))
 }
 
-/** The overview's engine-wide reads: statistics, the open incidents (none) and the counts. */
+/**
+ * The overview's engine-wide reads: statistics, the open incidents (none) and the counts; the
+ * cross-engine landscape's backlog counts the external tasks (none).
+ */
 function overviewResource(pathname: string): { status: number; body: unknown } | null {
   switch (pathname) {
     case "/engine-rest/process-definition/statistics":
@@ -81,6 +84,7 @@ function overviewResource(pathname: string): { status: number; body: unknown } |
       return { status: 200, body: [] }
     case "/engine-rest/incident/count":
     case "/engine-rest/history/process-instance/count":
+    case "/engine-rest/external-task/count":
       return { status: 200, body: { count: 0 } }
     case "/engine-rest/process-instance/count":
       return { status: 200, body: { count: 3 } }
@@ -175,6 +179,8 @@ function stubJobs(): Map<string, StubJob> {
 /**
  * `/job` reads, the count (GET, query) and the panel's query (POST, its
  * filter in the body), and the retries write; null for every other request.
+ * The jobs are active and due now: an executable count takes those with
+ * retries left, and none is suspended or due later (the landscape's backlog).
  */
 function jobRoute(
   method: string,
@@ -186,7 +192,12 @@ function jobRoute(
   const failedOnly =
     searchParams.get("noRetriesLeft") === "true" ||
     (body as { noRetriesLeft?: unknown } | undefined)?.noRetriesLeft === true
-  const listed = () => [...jobs.values()].filter((j) => !failedOnly || j.retries === 0)
+  const executableOnly = searchParams.get("executable") === "true"
+  const none = searchParams.get("suspended") === "true" || searchParams.has("dueDates")
+  const listed = () =>
+    [...jobs.values()].filter(
+      (j) => !none && (!failedOnly || j.retries === 0) && (!executableOnly || j.retries > 0),
+    )
   if (method === "GET" && pathname === "/engine-rest/job/count") {
     return { status: 200, body: { count: listed().length } }
   }

@@ -91,8 +91,10 @@ describe("the decided wording", () => {
     ["confirmDialog.resolveConfirm", "Als gelöst markieren", "Mark as resolved"],
     ["value.yes", "Ja", "Yes"],
     ["value.no", "Nein", "No"],
-    // Same name as the metric engine_jobs_failed in analytics' landscape.
+    // The engine cards and the landscape's column say it alike.
     ["fleet.failedJobs", "Jobs ohne Versuche", "Jobs without retries"],
+    ["fleet.landscape.colFailedJobs", "Jobs ohne Versuche", "Jobs without retries"],
+    ["fleet.landscape.colRunning", "Laufend", "Running"],
     // The process flow's mode: what runs at each element now, a count, so "laufend", never "aktiv".
     ["procIncFlow.modeRunning", "Laufend", "Running"],
     ["procIncFlow.valuesColRunning", "Laufend", "Running"],

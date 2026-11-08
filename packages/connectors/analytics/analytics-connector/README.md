@@ -49,12 +49,12 @@ SDK package of its own: widget-shell brings `@modelcontextprotocol/server` 2.4 a
   e.g. around a deployment), `show_version_compare`, `show_engine_compare`,
   `show_engine_landscape` and `show_bpmn_heatmap`. Each renders a view (`src/widgets/`) and
   returns its figures to the model as compact JSON (the heatmap: a summary).
-- **Host widgets** (`analyticsHostWidgets` from `./widgets`): what another module renders by raw
-  id, each fetching its own data. The engine module's fleet view shows
-  `analytics:engine-landscape`, which a composition root registers in its `hostWidgets`.
-  `analytics:process-heatmap` (`processDefinitionKey`, `engine`, `mode`, the diagram's `bpmnXml`
-  and an `onUnavailable` fallback) and `analytics:process-heatmap-legend` (`mode`) draw the heat
-  of one process on a caller's diagram; the engine module's process flow does not render them.
+- **Host widgets** (`analyticsHostWidgets` from `./widgets`): what another module may render by
+  raw id, each fetching its own data. `analytics:engine-landscape` (`engine`, a list of engine
+  ids) shows the landscape; `analytics:process-heatmap` (`processDefinitionKey`, `engine`, `mode`,
+  the diagram's `bpmnXml` and an `onUnavailable` fallback) and `analytics:process-heatmap-legend`
+  (`mode`) draw the heat of one process on a caller's diagram. The engine module renders none of
+  them: its cockpit reads the engines itself.
 - **`analytics_engine_health`** (`src/tools/`) returns JSON without a view: a live WIP, incidents, backlog
   and alerts snapshot, its state from the alert rules as `metricsState`. The incidents open right
   now and their instances are the [engine module](../../engine/engine-connector)'s.

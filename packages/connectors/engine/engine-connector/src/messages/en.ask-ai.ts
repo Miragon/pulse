@@ -26,8 +26,6 @@ export const enAskAi = {
     "Give me an overview of these engines: where most of the work and most of the trouble are, any job backlog or silent engine, and where to start. Recommend only.",
   "askAi.fleet.failures":
     "Analyze the failures across these engines: the dominant failure cluster, whether it is isolated or systemic, and the fix that helps most.",
-  "askAi.fleet.performance":
-    "Give me an overview of process performance across these engines: the slowest processes and the main bottleneck. Compare processes, not engines.",
   "askAi.instances.rootCause":
     "Find the root cause of this instance's incident, check whether other instances of the process fail the same way, and recommend a fix for this instance or the whole cluster.",
   "askAi.instances.triageProcess":

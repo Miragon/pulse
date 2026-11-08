@@ -20,7 +20,6 @@ import { ENGINE_LIST_ENGINES } from "../../tool-names.js"
 import { FleetCrumbs, NavBreadcrumb, navigationOf } from "./breadcrumb.js"
 import { CockpitHead, EngineSwitch, type TopSection } from "./head.js"
 import { CockpitRoute } from "./routes.js"
-import { useAnalyticsActive } from "./analytics-probe.js"
 import { FleetView } from "./fleet-view.js"
 import { LandingChooser, LandingHeader } from "./landing.js"
 
@@ -231,8 +230,8 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
   const [state, dispatch] = useCockpitState(data, engines)
   const { scope, stack, goneEngineId } = state
 
-  // Fleet analyses need Prometheus, so the cross-engine view waits for analytics.
-  const offerFleet = useAnalyticsActive() && engines.length > 1
+  // The cross-engine view reads every engine itself, so two engines are all it needs.
+  const offerFleet = engines.length > 1
   const openFleet = offerFleet ? () => dispatch({ type: "to-fleet" }) : undefined
 
   const enterEngine = (id: string) => dispatch({ type: "enter-engine", id })

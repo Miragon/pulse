@@ -3,7 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react"
 import { ToolResultError } from "../protocol/tool-result.js"
 import { spyHost } from "./tool-host.test-support.js"
-import { createViewQueryClient, useToolMutation, useToolQuery, useViewData } from "./tool-query.js"
+import {
+  createViewQueryClient,
+  useToolMutation,
+  useToolQueries,
+  useToolQuery,
+  useViewData,
+} from "./tool-query.js"
 
 /** The view's data layer over the view host: keys, decoding, invalidation and the seeded feed (#341). */
 
@@ -72,6 +78,40 @@ describe("useToolQuery", () => {
     })
     await act(() => new Promise((resolve) => setTimeout(resolve, 20)))
     expect(callTool).not.toHaveBeenCalled()
+  })
+})
+
+describe("useToolQueries", () => {
+  const reads = [
+    { key: ["test:view", "prod"], tool: "test_view_data", args: { engine: "prod" } },
+    { key: ["test:view", "test"], tool: "test_view_data", args: { engine: "test" } },
+  ]
+
+  it("reads each entry in order, each failure its own, under useToolQuery's cache keys", async () => {
+    callTool.mockImplementation((_tool: string, args: Record<string, unknown>) =>
+      args.engine === "test"
+        ? { isError: true, content: [{ type: "text", text: "unreachable" }] }
+        : answer(`from ${String(args.engine)}`),
+    )
+    const { result } = renderHook(() => useToolQueries<Answer>(reads), { wrapper })
+    await waitFor(() => expect(result.current[1]?.isError).toBe(true))
+    expect(result.current[0]?.data).toEqual({ value: "from prod" })
+    expect(result.current[1]?.error?.message).toBe("unreachable")
+    expect(host.client().getQueryData(["test:view", "prod", { engine: "prod" }])).toEqual({
+      value: "from prod",
+    })
+  })
+
+  it("shares an answer with a useToolQuery of the same read: one call", async () => {
+    callTool.mockResolvedValue(answer("shared"))
+    const single = renderHook(
+      () => useToolQuery<Answer>(["test:view", "prod"], "test_view_data", { engine: "prod" }),
+      { wrapper },
+    )
+    await waitFor(() => expect(single.result.current.data).toEqual({ value: "shared" }))
+    const { result } = renderHook(() => useToolQueries<Answer>(reads.slice(0, 1)), { wrapper })
+    expect(result.current[0]?.data).toEqual({ value: "shared" })
+    expect(callTool).toHaveBeenCalledTimes(1)
   })
 })
 

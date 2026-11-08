@@ -106,7 +106,9 @@ still answers you in your language.
   running after a redeploy; only the diagram is one version, and it says
   which. Its flow shows the open incidents per element or, under **Running**,
   how many instances are at each element right now, read from the engine as
-  its own cockpit draws them. A number the engine could not confirm shows as "—" (or "≥N" when
+  its own cockpit draws them. With two engines or more, the cross-engine overview
+  shows each engine's health and job backlog and which processes run where,
+  counted on every engine, never ranked. A number the engine could not confirm shows as "—" (or "≥N" when
   only part of it was read), never as 0, and an engine that does not answer
   is an error, not an empty view.
 - If a tool isn't doing what you expect, ask the assistant to show you the raw

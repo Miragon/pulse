@@ -9,9 +9,8 @@ Begriff ändert, ändert ihn auch dort.
 
 ## Gemeinsame Begriffe aller Module
 
-Diese Begriffe stehen in den Ansichten mehrerer Module nebeneinander: Die Engine-übergreifende
-Übersicht des Engine-Moduls bettet die Prozesslandschaft von analytics ein. Sie gelten deshalb in
-jedem Modul gleich. Die Regeln stehen einmal in widget-shell (`PRODUCT_GLOSSARY` in
+Diese Begriffe stehen in den Ansichten mehrerer Module. Sie gelten deshalb in jedem Modul gleich.
+Die Regeln stehen einmal in widget-shell (`PRODUCT_GLOSSARY` in
 `@miragon/pulse-widget-shell/testing`), und `glossary.test.ts` jedes Moduls prüft damit seine
 Kataloge. Das Glossar des Engine-Moduls führt dieselbe Tabelle.
 

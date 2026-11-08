@@ -21,6 +21,7 @@ import {
   ENGINE_INCIDENT_DETAIL_DATA,
   ENGINE_INCIDENTS_DATA,
   ENGINE_INSTANCE_DETAIL_DATA,
+  ENGINE_JOB_BACKLOG_DATA,
   ENGINE_JOBS_DATA,
   ENGINE_PROCESS_INCIDENTS_DATA,
   ENGINE_PROCESS_INSTANCES_DATA,
@@ -40,6 +41,7 @@ import { buildHistoryTimelineData } from "./history-timeline-data.js"
 import { buildIncidentDetailData } from "./incident-detail-data.js"
 import { buildIncidentsDashboardData } from "./incidents-dashboard-data.js"
 import { buildInstanceDetailData } from "./instance-detail-data.js"
+import { buildJobBacklogData } from "./job-backlog-data.js"
 import { buildActivityIncidentsData, buildProcessIncidentsData } from "./process-incidents-data.js"
 
 /**
@@ -157,6 +159,18 @@ export const jobsFeed = dataFeed({
 
 // The feeds below add `engineId` to their builder's result.
 
+const jobBacklogFeed = dataFeed({
+  name: ENGINE_JOB_BACKLOG_DATA,
+  title: "Job backlog data (internal)",
+  description:
+    "Internal JSON feed (no UI) for the cross-engine overview: one engine's executable, suspended and later-due jobs and its external tasks. Prefer engine_open_cockpit.",
+  shape: {},
+  read: async (_, { client, engineId }) => ({
+    ...(await buildJobBacklogData(client)),
+    engineId,
+  }),
+})
+
 export const incidentsFeed = dataFeed({
   name: ENGINE_INCIDENTS_DATA,
   title: "Incidents dashboard data (internal)",
@@ -227,6 +241,7 @@ export const DATA_FEEDS: readonly DataFeed[] = [
   instanceDetailFeed,
   historyTimelineFeed,
   jobsFeed,
+  jobBacklogFeed,
   incidentsFeed,
   processIncidentsFeed,
   activityIncidentsFeed,

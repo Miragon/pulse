@@ -3,8 +3,8 @@ import { ViewErrorBoundary } from "./view-error-boundary.js"
 
 /**
  * Another module's widget, rendered by a raw id without a module-to-module import: it takes its
- * scope as props and fetches its own data. Only cross-module surfaces use it, today analytics'
- * `analytics:engine-landscape` in the engine module's fleet view.
+ * scope as props and fetches its own data. Only cross-module surfaces use it; no
+ * module in this repo renders one.
  */
 export type HostWidget = ComponentType<Record<string, unknown>>
 export type HostWidgets = Readonly<Record<string, HostWidget>>

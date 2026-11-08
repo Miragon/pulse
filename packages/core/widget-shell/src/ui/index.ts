@@ -27,11 +27,13 @@ export {
   createViewQueryClient,
   useQueryClient,
   useToolMutation,
+  useToolQueries,
   useToolQuery,
   useViewData,
   type QueryClient,
   type ToolMutationOptions,
   type ToolQueryOptions,
+  type ToolRead,
   type ViewDataOptions,
   type ViewDataResult,
 } from "./tool-query.js"

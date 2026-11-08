@@ -48,7 +48,7 @@ export const analyticsViews: ViewMap = {
   [ANALYTICS_SHOW_BPMN_HEATMAP]: BpmnHeatmapView,
 }
 
-/** The id the engine module's fleet view renders the landscape by. */
+/** The id another module renders the landscape by. */
 const ENGINE_LANDSCAPE_WIDGET = "analytics:engine-landscape"
 
 function isEngineList(value: unknown): value is string[] {
@@ -56,9 +56,9 @@ function isEngineList(value: unknown): value is string[] {
 }
 
 /**
- * The engine module's fleet view renders the landscape by its raw id with `{ engine: string[] }`, every
- * configured engine, so an engine without metrics still shows. Anything else is no engine list:
- * the landscape then reads every engine.
+ * A caller renders the landscape by its raw id with `{ engine: string[] }`, every configured
+ * engine, so an engine without metrics still shows. Anything else is no engine list: the landscape
+ * then reads every engine.
  */
 export function FleetLandscape(props: Record<string, unknown>) {
   const engine = isEngineList(props.engine) ? props.engine : undefined
@@ -66,8 +66,8 @@ export function FleetLandscape(props: Record<string, unknown>) {
 }
 
 /**
- * Rendered by raw id from another module: the landscape in the engine module's fleet view, the
- * heatmap and its legend in its process flow.
+ * Rendered by raw id from another module: the landscape, the heatmap and its legend. The engine
+ * module renders none of them; its cockpit reads the engines itself.
  */
 export const analyticsHostWidgets: HostWidgets = {
   [ENGINE_LANDSCAPE_WIDGET]: FleetLandscape,

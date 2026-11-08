@@ -11,6 +11,7 @@ import type {
 import {
   ENGINE_COCKPIT_OVERVIEW_DATA,
   ENGINE_HEALTH_DATA,
+  ENGINE_JOB_BACKLOG_DATA,
   ENGINE_JOBS_DATA,
   ENGINE_LIST_ENGINES,
 } from "../../tool-names.js"
@@ -94,6 +95,13 @@ function renderCockpit(
     [ENGINE_COCKPIT_OVERVIEW_DATA]: overview,
     [ENGINE_HEALTH_DATA]: health,
     [ENGINE_JOBS_DATA]: () => JOBS_DATA,
+    [ENGINE_JOB_BACKLOG_DATA]: (args: Record<string, unknown>) => ({
+      executableJobs: 0,
+      suspendedJobs: 0,
+      jobsDueLater: 0,
+      externalTasks: 0,
+      engineId: String(args.engine),
+    }),
   }
   const host = (data: CockpitAppData) => (
     <TestViewHost
@@ -197,6 +205,35 @@ describe("CockpitApp reconciles its engine scope with the engine list", () => {
     renderCockpit(boot("prod-a", THREE), { engines: THREE.slice(1) })
     await waitFor(() => expect(onLanding()).toBe(true))
     expect(screen.getByText(/prod-a is no longer configured on this server/)).toBeTruthy()
+  })
+})
+
+/** The cross-engine overview reads the engines themselves: no other module gates it. */
+describe("CockpitApp offers the cross-engine overview with two engines or more", () => {
+  it("from the picker, with nothing but the engine module's feeds", async () => {
+    const { reads } = renderCockpit()
+    fireEvent.click(await screen.findByRole("button", { name: "Cross-engine overview" }))
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Cross-engine overview" }),
+    ).toBeTruthy()
+    expect(screen.getByRole("region", { name: "Process landscape" })).toBeTruthy()
+    await waitFor(() => expect(reads(ENGINE_JOB_BACKLOG_DATA)).toHaveLength(2))
+  })
+
+  it("from an engine's head", async () => {
+    renderCockpit(boot("prod-a", ENGINES))
+    await waitFor(() => expect(activeEngine()).toBe("prod-a"))
+    fireEvent.click(screen.getByRole("button", { name: "Cross-engine overview" }))
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Cross-engine overview" }),
+    ).toBeTruthy()
+  })
+
+  it("not with one engine", async () => {
+    const solo = [{ id: "solo", environment: "default" }]
+    renderCockpit(boot("solo", solo), { engines: solo })
+    expect(await screen.findByRole("heading", { name: "solo · Overview" })).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "Cross-engine overview" })).toBeNull()
   })
 })
 

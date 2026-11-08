@@ -30,6 +30,7 @@ import { buildIncidentsDashboardData } from "./incidents-dashboard-data.js"
 import { buildInstanceDetailData } from "./instance-detail-data.js"
 import { buildActivityIncidentsData, buildProcessIncidentsData } from "./process-incidents-data.js"
 import { buildActivityStatisticsData } from "./activity-statistics-data.js"
+import { buildJobBacklogData } from "./job-backlog-data.js"
 
 // Each case declares only its enrichment reads; EVERY other read its healthy
 // build makes is primary and broken in turn, so a newly swallowed failure fails
@@ -317,6 +318,8 @@ const CASES: Record<string, Case> = {
       }) => data.activities[0]?.inDiagram ?? data.activities[0]?.activityName,
     },
   },
+  // The cross-engine landscape's backlog: four counts, each a figure on screen, none enrichment.
+  buildJobBacklogData: { run: (client) => buildJobBacklogData(client) },
 }
 
 /** The case's engine: the world plus its overrides, with at most one read broken. */

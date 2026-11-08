@@ -79,7 +79,7 @@ Unknown `ENGINE_*`/`ENGINES_*`/`MCP_*` variables warn at boot. The server sends 
 ## Module activation
 
 `MCP_ACTIVE_MODULES` lists the modules (unset/`all` = every module; one it does not name stays off), e.g. `engine` alone where
-no Prometheus exists (the cockpit drops its cross-engine view; the [starter](build-your-own.md)'s `.env.example` sets `engine,notes` for that reason). A module with toolsets runs one per boot:
+no Prometheus exists (the [starter](build-your-own.md)'s `.env.example` sets `engine,notes` for that reason). A module with toolsets runs one per boot:
 
 | Toolset             | Surface                                                                                                                        | No-suffix default |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------- |

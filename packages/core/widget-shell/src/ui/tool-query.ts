@@ -8,6 +8,7 @@ import {
   hashKey,
   QueryClient,
   useMutation,
+  useQueries,
   useQuery,
   useQueryClient,
   type UseMutationResult,
@@ -44,6 +45,30 @@ export function useToolQuery<TData>(
     ...options,
     queryKey: [...key, args],
     queryFn: async () => decodeToolResult<TData>(await callTool(tool, args)),
+  })
+}
+
+/** One read of {@link useToolQueries}: `tool` with `args`, cached under `[...key, args]`. */
+export interface ToolRead {
+  key: readonly unknown[]
+  tool: string
+  args: object
+}
+
+/**
+ * Reads a list of the same kind at once (one engine's feed per engine, say), in the order given:
+ * each entry is the {@link useToolQuery} of its read, under the same cache key, so a widget that
+ * reads one of them alone shares its answer.
+ */
+export function useToolQueries<TData>(
+  reads: readonly ToolRead[],
+): Array<UseQueryResult<TData, Error>> {
+  const { callTool } = useViewHost()
+  return useQueries({
+    queries: reads.map(({ key, tool, args }) => ({
+      queryKey: [...key, args],
+      queryFn: async () => decodeToolResult<TData>(await callTool(tool, args)),
+    })),
   })
 }
 

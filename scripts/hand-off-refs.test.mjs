@@ -91,9 +91,10 @@ describe("every hand-off names no tool", () => {
   const specs = scanSources(findHandOffSpecs)
 
   // The hand-off floor is pinned at the post-cut count: cut 7 removed the BPMN viewer's and the
-  // process list's hand-offs with their views.
+  // process list's hand-offs with their views, and the cross-engine overview's performance
+  // hand-off went with the analytics landscape it asked about.
   it("finds the specs (the scanner is not blind)", () => {
-    assert.ok(specs.filter((s) => s.kind === "hand-off").length >= 30)
+    assert.ok(specs.filter((s) => s.kind === "hand-off").length >= 29)
     assert.ok(specs.filter((s) => s.kind === "context").length >= 12)
   })
 

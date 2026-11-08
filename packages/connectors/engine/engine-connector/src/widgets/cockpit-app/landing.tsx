@@ -143,7 +143,7 @@ export function LandingChooser({
   engines: Array<{ id: string; environment?: string }>
   defaultEngineId?: string | null
   onEnterEngine: (id: string) => void
-  /** Omitted when analytics is inactive. */
+  /** Omitted with a single engine. */
   onOpenFleet?: () => void
   notice?: ReactNode
 }) {

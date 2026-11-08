@@ -1,9 +1,8 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
 import type { ComponentType } from "react"
-import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react"
+import { cleanup, render, screen, within } from "@testing-library/react"
 import { ENGINE_COCKPIT_OVERVIEW_DATA } from "../../tool-names.js"
-import { useAnalyticsActive } from "./analytics-probe.js"
 import { LandingChooser } from "./landing.js"
 import { TestViewHost, createTestQueryClient } from "@miragon/pulse-widget-shell/widgets"
 
@@ -106,97 +105,5 @@ describe("LandingChooser", () => {
     renderLanding(undefined, [{ id: "solo-a" }, { id: "solo-b" }])
     expect(screen.queryByRole("heading", { level: 2 })).toBeNull()
     expect(screen.getByText("2 engines configured. Pick one to work with.")).toBeTruthy()
-  })
-})
-
-describe("useAnalyticsActive", () => {
-  function Probe() {
-    return <span>{`analytics:${String(useAnalyticsActive())}`}</span>
-  }
-  const ProbeWidget = Probe as unknown as ComponentType<Record<string, unknown>>
-
-  it("is true once the analytics landscape feed answers", async () => {
-    render(
-      <TestViewHost
-        tools={{ analytics_engine_landscape_data: { engines: [] } }}
-        client={queryClient}
-      >
-        <ProbeWidget />
-      </TestViewHost>,
-    )
-    expect(screen.getByText("analytics:false")).toBeTruthy()
-    expect(await screen.findByText("analytics:true")).toBeTruthy()
-  })
-
-  it("stays false when the module is not active (unknown tool)", async () => {
-    render(
-      <TestViewHost tools={{}} client={queryClient}>
-        <ProbeWidget />
-      </TestViewHost>,
-    )
-    await waitFor(() =>
-      expect(
-        queryClient.getQueryCache().find({ queryKey: ["analytics-probe"], exact: false })?.state
-          .status,
-      ).toBe("error"),
-    )
-    expect(screen.getByText("analytics:false")).toBeTruthy()
-  })
-
-  it("answers once per view: a later probe reads nothing, a failing re-read never flips it", async () => {
-    let calls = 0
-    let failing = false
-    const tools = {
-      analytics_engine_landscape_data: () => {
-        calls += 1
-        if (failing) throw new Error("Prometheus is down")
-        return { engines: [] }
-      },
-    }
-    const tree = (probes: number) => (
-      <TestViewHost tools={tools} client={queryClient}>
-        {Array.from({ length: probes }, (_, i) => (
-          <ProbeWidget key={i} />
-        ))}
-      </TestViewHost>
-    )
-    const view = render(tree(1))
-    expect(await screen.findByText("analytics:true")).toBeTruthy()
-
-    view.rerender(tree(2))
-    expect(screen.getAllByText("analytics:true")).toHaveLength(2)
-    expect(calls).toBe(1)
-
-    failing = true
-    await act(() => queryClient.refetchQueries({ queryKey: ["analytics-probe"] }))
-    expect(calls).toBe(2)
-    expect(screen.getAllByText("analytics:true")).toHaveLength(2)
-  })
-
-  it("a failed probe stays false for the view: a later probe does not re-read", async () => {
-    const calls: string[] = []
-    const tree = (probes: number) => (
-      <TestViewHost
-        tools={{}}
-        client={queryClient}
-        onHostAction={(action) => {
-          if (action.type === "callTool") calls.push(action.name)
-        }}
-      >
-        {Array.from({ length: probes }, (_, i) => (
-          <ProbeWidget key={i} />
-        ))}
-      </TestViewHost>
-    )
-    const view = render(tree(1))
-    await waitFor(() =>
-      expect(
-        queryClient.getQueryCache().find({ queryKey: ["analytics-probe"], exact: false })?.state
-          .status,
-      ).toBe("error"),
-    )
-    view.rerender(tree(2))
-    expect(screen.getAllByText("analytics:false")).toHaveLength(2)
-    expect(calls).toEqual(["analytics_engine_landscape_data"])
   })
 })

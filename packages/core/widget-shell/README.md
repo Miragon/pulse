@@ -48,8 +48,9 @@ package customers build their own connectors and composed servers on (see the
   error with a retry, cancelled, ready) and keeps a crashing view, and each `ViewStack` row and
   `HostWidgetSlot`, inside its own error boundary. Widgets reach the host only through the view
   host seam (`useViewHost`: `callTool`, `sendFollowUp`, `openExternal`; `HostModelContext`) and the query
-  hooks (`useToolQuery`, `useToolMutation`, `useViewData` (which seeds a feed with the view's
-  data), `useQueryClient`), never ext-apps, so a widget renders under `TestViewHost`
+  hooks (`useToolQuery`, `useToolQueries` (one read per entry of a list, under `useToolQuery`'s
+  keys), `useToolMutation`, `useViewData` (which seeds a feed with the view's data),
+  `useQueryClient`), never ext-apps, so a widget renders under `TestViewHost`
   (fake tools, a log of host actions and model contexts) in a plain test. Another module's
   widget renders by raw id through the host widgets (`useHostWidget`, `HostWidgetSlot`).
 - **View builders** (`./server`): `buildViewResult(data, summary)` (a show tool's result: the

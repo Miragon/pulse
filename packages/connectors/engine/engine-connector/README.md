@@ -63,8 +63,9 @@ SDK package of its own: widget-shell brings `@modelcontextprotocol/server` 2.4 a
   (`src/data/feeds.ts`: name, description, input and read) and one route descriptor
   (`src/data/routes.ts`: the ids each route needs and takes, its start data and its facts).
 - **Widgets** (`src/widgets/`): the cockpit app and its routes (overview, incidents, failure
-  cluster, process, instances, instance, incident, jobs, history); `src/widgets/views.tsx` maps
-  the tool to the cockpit.
+  cluster, process, instances, instance, incident, jobs, history), and with two engines or more
+  the cross-engine overview (each engine's health, job backlog and processes, counts only);
+  `src/widgets/views.tsx` maps the tool to the cockpit.
 - **Multi-engine routing:** every tool resolves its engine through `withEngine` / `resolveEngine`
   (`src/lib/engine/`): per-call override → `ENGINE_DEFAULT` (it must name a configured engine,
   else the boot fails) → the only configured engine, else `ENGINE_NOT_SELECTED` listing the
@@ -111,7 +112,7 @@ start view), never a second view tool: see the add-bpm-feature skill.
 | `src/lib/core-adapter/`  | engine-core's port over the client (and engine-core's 404 rule applied to the client's errors, `noneIfMissing`), the read composites, `workflow-errors.ts` |
 | `src/lib/bpmn/`          | The definition XML read, BPMN and task-form reading, completing a user task by its form                                                                    |
 | `src/lib/mcp/`           | The tool surface: `toolsets.ts`, the paging envelope, variable and failure-text bounds                                                                     |
-| `src/lib/shared/`        | Pure code the widgets run too (engine environments, `TaskCompletion`); the one lib widgets use                                                             |
+| `src/lib/shared/`        | Pure code the widgets run too (environments, `TaskCompletion`, the landscape fold); the one lib widgets use                                                |
 | `src/module.ts`          | `engineModule` (config schema, env mapping) + `createBpmnXmlFetcher` (the tools' engine precedence and clients)                                            |
 | `src/engine-provider.ts` | The vendor provider port (`EngineProvider`, `CockpitRef`)                                                                                                  |
 | `src/providers/`         | `cibseven` / `operaton` / `camunda7` providers (cockpit routes, branding)                                                                                  |

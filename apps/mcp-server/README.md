@@ -113,6 +113,6 @@ Configuration is entirely environment-driven. See
 | `src/index.ts`   | Server entry: `runComposedServer(createApp)` listens (body cap, drain), under `pnpm dev` too; a failed boot prints one line, exit 1 |
 | `src/app.ts`     | `createApp(env, deps?)`: the shared boot over the module list; the e2e suites boot it too                                           |
 | `src/setup.ts`   | The module list and the cross-module wiring (`SharedResources`)                                                                     |
-| `src/ui/`        | Widget host bundle: `view-registry.ts` (views + host widgets) + `main.tsx` (`mountViews`)                                           |
+| `src/ui/`        | Widget host bundle: `view-registry.ts` (the views) + `main.tsx` (`mountViews`)                                                      |
 | `vite.config.ts` | Single-file widget bundle config (keep `dedupe` spreading `VIEW_BUNDLE_DEDUPE`)                                                     |
 | `Dockerfile`     | Lives at the repo root; multi-stage build that produces the published image                                                         |

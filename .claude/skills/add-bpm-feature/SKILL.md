@@ -281,9 +281,14 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
 - A view that reads its feed directly calls widget-shell's `useViewData` (from
   `@miragon/pulse-widget-shell/widgets`): the handed-in tool result always seeds a live
   query, so Refresh and a write's invalidation re-read it (#341). Widgets import every
-  query hook (`useToolQuery`, `useToolMutation`, `useViewData`, `useQueryClient`) and the
-  host seam (`useViewHost`, `HostModelContext`) from the view runtime, never from
-  `@modelcontextprotocol/ext-apps` (ESLint); tests render them under `TestViewHost`
+  query hook (`useToolQuery`, `useToolQueries`, `useToolMutation`, `useViewData`,
+  `useQueryClient`) and the host seam (`useViewHost`, `HostModelContext`) from the view
+  runtime, never from `@modelcontextprotocol/ext-apps` (ESLint); tests render them under
+  `TestViewHost`
+- Across engines (the cross-engine overview) a widget reads each engine's feed under the key
+  its other readers use (`useToolQueries`, one read per engine), and a figure over engines is
+  a sum of counts (`foldFleetLandscape` in `src/lib/shared/fleet-landscape.ts`), never a
+  rate, a duration or a ranking: engines run different processes
 - `formatTimestamp`/`formatDate`/`formatTime` (dates) and `formatNumber`/`formatPercent`/
   `formatPercentPoints`/`formatPeriod`/`formatDuration`/`truncate`, all from
   `@miragon/pulse-ui`: no local format

@@ -282,9 +282,9 @@ own module stands, take the example out in one change:
 
 Then run Step 7's bar. The other guard tests follow `MODULES`, so they need no
 edit. The same holds for a Pulse module you leave out: dropping analytics is
-`analyticsModule` in `MODULES`, `analyticsViews` and `analyticsHostWidgets` in
-`view-registry.ts`, its block in `.env.example` and its name in any
-`MCP_ACTIVE_MODULES` value that holds it.
+`analyticsModule` in `MODULES`, `analyticsViews` in `view-registry.ts`, its
+block in `.env.example` and its name in any `MCP_ACTIVE_MODULES` value that
+holds it.
 
 ## Anti-patterns
 

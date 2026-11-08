@@ -1,14 +1,9 @@
-import type { HostWidgets, ViewMap } from "@miragon/pulse-widget-shell/widgets"
+import type { ViewMap } from "@miragon/pulse-widget-shell/widgets"
 import { engineViews } from "@miragon/pulse-engine-connector/widgets"
-import { analyticsHostWidgets, analyticsViews } from "@miragon/pulse-analytics-connector/widgets"
+import { analyticsViews } from "@miragon/pulse-analytics-connector/widgets"
 
 /** Every view of this server by view name (= its view tool's name); `test/view-registry.test.ts` holds it to the goldens. */
 export const viewRegistry: ViewMap = {
   ...engineViews,
   ...analyticsViews,
-}
-
-/** The widgets one module renders of another by raw id: analytics' engine landscape (the engine module's fleet view). */
-export const hostWidgets: HostWidgets = {
-  "analytics:engine-landscape": analyticsHostWidgets["analytics:engine-landscape"],
 }

@@ -125,9 +125,9 @@ cockpit-link routes and display name.
 With several engines, the cockpit landing lists every engine with its live health in words (open
 incidents, empty, unreachable, loading), read from the engine itself. Its dot, there and in the
 cross-engine view, has the tone of the engine overview's verdict (ok, warning, critical), so one
-open incident below the thresholds is a warning, not an alarm. The cross-engine view (process
-landscape plus fleet-wide health and performance) needs the analytics module; without it
-(e.g. `MCP_ACTIVE_MODULES=engine` where no Prometheus exists) the cockpit does not offer it.
+open incident below the thresholds is a warning, not an alarm. With two engines or more the
+cockpit offers the cross-engine view: each engine's health, its job backlog and which processes
+run where, read from every engine itself, as counts, never a ranking of the engines.
 
 Fleets that span several environments (each environment hosting some services with an engine)
 group their engines per environment: the cockpit landing lists the engines under their

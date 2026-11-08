@@ -1,6 +1,6 @@
 import type { CatalogLanguage } from "@miragon/pulse-ui/testing"
 
-/** The glossary gate: one word per thing. Each rule carries a probe so a broken pattern fails instead of passing everything; PRODUCT_GLOSSARY holds the terms modules show side by side (the engine module's cockpit embeds analytics' landscape). */
+/** The glossary gate: one word per thing. Each rule carries a probe so a broken pattern fails instead of passing everything; PRODUCT_GLOSSARY holds the terms every module's views share, so a user reads one word per thing across them. */
 export interface GlossaryRule {
   pattern: RegExp
   use: string

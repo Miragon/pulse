@@ -92,8 +92,13 @@ async function landingRow(engineId: string): Promise<HTMLElement> {
   return screen.findByRole("button", { name: new RegExp(`^${engineId}\\s*,`) })
 }
 
+/** The engine's card: the landscape below names the engine too, but in no button. */
 function fleetCard(engineId: string): HTMLElement {
-  return screen.getByText(engineId, { selector: "span" }).closest("button")!
+  const cards = screen
+    .getAllByText(engineId, { selector: "span" })
+    .flatMap((name) => name.closest("button") ?? [])
+  expect(cards).toHaveLength(1)
+  return cards[0]
 }
 
 it("the fixture's verdicts are engine-core's: one incident is warning, the threshold critical", () => {

@@ -24,8 +24,6 @@ export const deAskAi: Record<EngineAskAiKey, string> = {
     "Gib mir einen Überblick über diese Engines: Wo liegt die meiste Arbeit, wo liegen die meisten Probleme, gibt es einen Job-Rückstau oder eine stille Engine, und wo fange ich an? Nur empfehlen.",
   "askAi.fleet.failures":
     "Analysier die Fehler über diese Engines: der häufigste Fehler-Cluster, ob er einzeln oder systematisch auftritt, und die Behebung mit der größten Wirkung.",
-  "askAi.fleet.performance":
-    "Gib mir einen Überblick über die Prozess-Performance dieser Engines: die langsamsten Prozesse und der größte Engpass. Vergleich Prozesse, nicht Engines.",
   "askAi.instances.rootCause":
     "Finde die Ursache des Incidents dieser Instanz, prüf, ob andere Instanzen des Prozesses genauso fehlschlagen, und empfiehl eine Behebung für diese Instanz oder den ganzen Cluster.",
   "askAi.instances.triageProcess":

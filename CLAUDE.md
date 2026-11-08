@@ -352,10 +352,10 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      `ViewFrame` renders the phases (waiting, error, cancelled, ready); every `ViewStack` row
      and `HostWidgetSlot` has its own error boundary, so one crashing widget never takes its
      view down. Widgets reach the host only through `useViewHost`/`HostModelContext` and the
-     query hooks (`useToolQuery`, `useToolMutation`, `useViewData`), test under `TestViewHost`,
-     and never import the MCP Apps runtime of `@modelcontextprotocol/ext-apps` (ESLint
-     `no-restricted-imports` outside the adapter's three files; its `/server` half is invariant
-     1's; `scripts/eslint-gates.test.mjs`).
+     query hooks (`useToolQuery`, `useToolQueries`, `useToolMutation`, `useViewData`), test
+     under `TestViewHost`, and never import the MCP Apps runtime of
+     `@modelcontextprotocol/ext-apps` (ESLint `no-restricted-imports` outside the adapter's three
+     files; its `/server` half is invariant 1's; `scripts/eslint-gates.test.mjs`).
    - **States and feedback** (#322). Loading, error and no data go through `ViewDataState`, or
      `QueryFallback` + `TableSkeleton` in a self-fetching widget (without an `isError` branch
      the skeleton never ends); both take a required `onRetry` and word a failure with
@@ -569,7 +569,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      `SharedResources` wiring (`fetchBpmnXml`, the engine module's XML lookup for analytics; `engineIds`,
      the ONLY engines analytics reads, so analytics needs NO engine SDK). Widget components and
      boot plumbing live in packages; the bundle root is
-     `mountViews({ views, hostWidgets })` (its `ViewRoot` provider order is load-bearing), the
+     `mountViews({ views })` (its `ViewRoot` provider order is load-bearing), the
      stylesheet pulse-ui's `theme.css` after `tailwindcss` (`test/ui-stylesheet.test.ts`).
    - **One boot.** `createComposedServer` owns the boot order and the production listener and
      takes the root's `modules` and `shared`. It records each plugin's registrations once
@@ -603,21 +603,19 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      exempts `/health*` and `/metrics`; it is the ONE `Host`/`Origin` check, so never add the
      SDK's `hostHeaderValidationResponse` or a transport's `allowedHosts` next to it.
    - **Cross-module UI is tiered**: another module's widget only through the host widget map
-     by raw id (`useHostWidget`/`HostWidgetSlot`: `analytics:engine-landscape` in the engine
-     module's fleet view; its process flow draws only what the engine reads, the open incidents
-     or, as "Running", what runs at each element now from `engine_activity_statistics_data`). The
-     module that owns the data owns the widget and its payload type: the widget fetches its own
-     data and reads its props as untyped input. A raw tool-name
-     string with graceful degradation is left only for the probe; hard-composed views go in a
-     dedicated package created with the first real view, never in the app, never as
-     module-to-module imports. The host bundle is static, so a surface that needs another module
-     probes one of its argument-free feeds once per view (`useAnalyticsActive`; a failed probe,
-     or a bundle without the host widget, hides the offers, fail-closed).
+     by raw id (`useHostWidget`/`HostWidgetSlot`). No module renders one or probes another's
+     feed today: the engine module's cockpit reads the engines itself (the cross-engine
+     landscape from each engine's overview and `engine_job_backlog_data`, the process flow's
+     "Running" from `engine_activity_statistics_data`), and the app and the starter register no
+     host widget. The module that owns the data owns the widget and its payload type: the
+     widget fetches its own data and reads its props as untyped input. Hard-composed views go in
+     a dedicated package created with the first real view, never in the app, never as
+     module-to-module imports.
      `scripts/tool-name-refs.test.mjs` checks every `<module>_…` literal against the full
-     surface of the admin golden; the apps the source guards read are listed in `APP_SCAN`
-     (`scripts/source-scan.mjs`), where a new app adds its entry (an app missing there fails).
-     Hand-offs and model contexts name no tool of either module (invariant 6), so the only raw
-     cross-module names are the probe feed and host widget ids. A module's tool texts and
+     surface of the admin golden and finds no raw cross-module name; the apps the source guards
+     read are listed in `APP_SCAN` (`scripts/source-scan.mjs`), where a new app adds its entry
+     (an app missing there fails). Hand-offs and model contexts name no tool of either module
+     (invariant 6). A module's tool texts and
      instructions name only its own tools (`crossModuleNames` in the app's
      `tools-list.golden.test.ts`): the other module may be off.
    - **A write registers only through the registrar**, whose toolset filter decides it
@@ -653,8 +651,10 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 - **Never aggregate a RATE across engines.** Engines host different process definitions, so a
   rate or duration summed per `engine_id` measures the engine's process mix and can even
   invert the per-process truth. Cross-engine views report absolute counts plus the
-  engine-owned backlog gauges (labelled by `engine_id` ONLY): `queries/engine-landscape.ts` +
-  `analytics:engine-landscape`. A like-for-like comparison holds the process fixed, which is
+  engine-owned backlog: the engine module's landscape sums counts only
+  (`packages/connectors/engine/engine-connector/src/lib/shared/fleet-landscape.ts`, its test),
+  analytics' `queries/engine-landscape.ts` reads gauges labelled by `engine_id` ONLY. A
+  like-for-like comparison holds the process fixed, which is
   why `analytics_show_engine_compare` REQUIRES a `processDefinitionKey`; keep it required
   (`src/widget-tools/engine-{compare,landscape}.test.ts`).
 - **Pinning is split by dependency stanza.** `dependencies`/`devDependencies` stay EXACT

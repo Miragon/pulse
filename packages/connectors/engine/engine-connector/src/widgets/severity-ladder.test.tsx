@@ -6,7 +6,7 @@ import type { CockpitDashboardData } from "../view-models.js"
 import { ProcessDefinitionsTable } from "./cockpit-dashboard/definitions-table.js"
 import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 
-// #322 U14, decision f: the engine module reads the kit's `countTone`, the ladder analytics uses in the landscape this cockpit embeds.
+// #322 U14, decision f: the engine module reads the kit's `countTone`, the ladder its cross-engine landscape uses too.
 
 afterEach(() => {
   cleanup()
