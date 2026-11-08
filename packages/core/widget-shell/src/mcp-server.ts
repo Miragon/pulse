@@ -130,6 +130,21 @@ export class McpHttpApp {
     for (const hook of this.#refusalHooks) hook(refused)
   }
 
+  /**
+   * What a path takes, for the listener's 405: `/mcp` and discovery as the SDK's own 405 names it,
+   * a `get` route with the HEAD hono answers on it. Empty where no route holds the path: RFC 9110
+   * wants the list on every 405, and an empty one says the path takes nothing.
+   */
+  allowedMethods = (path: string): string => {
+    if (path === BASE_PATH) return "POST"
+    const discovery = this.#oauth?.discovery
+    if (discovery && oauthMetadataResponse(new Request(`http://h${path}`), discovery)) {
+      return "GET, HEAD, OPTIONS"
+    }
+    const routes = this.#http.routes
+    return routes.some((route) => route.method === "GET" && route.path === path) ? "GET, HEAD" : ""
+  }
+
   get(path: string, handler: HttpHandler): this {
     this.#http.get(path, handler)
     return this

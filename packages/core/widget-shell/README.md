@@ -164,7 +164,7 @@ package customers build their own connectors and composed servers on (see the
   setting (a ZodError as `path: message`, no stack; a bug's TypeError, ReferenceError or RangeError
   adds its frames) and exits 1.
   `listen({ handleSignals: true })` is
-  the SDK's `toNodeHandler` (`@modelcontextprotocol/node`) behind a check of the raw target (a path that is not its own normal form gets 404 on every route, a `Host` that holds more than a host or names none 400) and a request-body cap (`MCP_MAX_BODY_BYTES`, 413 before buffering),
+  the SDK's `toNodeHandler` (`@modelcontextprotocol/node`) behind a check of the raw target (a path that is not its own normal form gets 404 on every route, a `Host` that holds more than a host or names none 400, a TRACE, which no `Request` can carry, 405) and a request-body cap (`MCP_MAX_BODY_BYTES`, 413 before buffering),
   an in-flight body budget of 4× the cap (503) and a 30 s request timeout, plus a graceful drain
   (stop accepting, in-flight requests finish, readiness 503 `draining`). The guard is DNS-rebinding
   protection: `Host` (and a POST's `Origin`) must be localhost-class, `MCP_URL`'s or in

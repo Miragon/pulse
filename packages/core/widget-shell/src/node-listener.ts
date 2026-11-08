@@ -1,7 +1,8 @@
 /**
  * The one place that sees `req.url` as sent: the bridge's URL parser resolves dot segments before
  * any route, so a target that is not its own normal form gets 404 here, on every route, ahead of
- * the guard and OAuth (and a `Host` the bridge would join into the path gets 400).
+ * the guard and OAuth (a `Host` the bridge would join into the path gets 400, a method it cannot
+ * build a `Request` of 405).
  *
  * The bridge also buffers every non-GET body before the app sees it, and a JSON body parses into a
  * heap graph up to ~20× its size, all before the OAuth gate. So before the bridge: a guard-refused
@@ -15,9 +16,12 @@ import {
   IN_FLIGHT_BODY_MULTIPLE,
   isNormalTarget,
   isUsableHost,
+  isUsableMethod,
   jsonRpcErrorBody,
+  METHOD_REFUSED,
   NOT_A_HOST,
   NOT_NORMAL_TARGET,
+  pathOfTarget,
   type RefusedRequest,
 } from "./http-edge.js"
 
@@ -33,8 +37,10 @@ export interface BodyLimitedListenerOptions {
   refusedBeforeBody?: (req: IncomingMessage) => boolean
   /** Grace before the socket of a refused upload is cut (default 2000 ms). */
   discardGraceMs?: number
-  /** A request answered here for its target or `Host`, which the app's log and metrics never see. */
+  /** A request answered here, which the app's log and metrics never see. */
   onRefused?: (refused: RefusedRequest) => void
+  /** What a path takes, for the `Allow` of a 405; the default, empty, says it takes nothing. */
+  allowedMethods?: (path: string) => string
   /** The client still gets a JSON-RPC 500. */
   onError?: (error: Error) => void
 }
@@ -151,6 +157,7 @@ export function createBodyLimitedListener(
     refusedBeforeBody,
     discardGraceMs = 2000,
     onRefused,
+    allowedMethods = () => "",
     onError,
   }: BodyLimitedListenerOptions,
 ): BodyLimitedListener {
@@ -166,6 +173,13 @@ export function createBodyLimitedListener(
     status: 503,
     message: `Server busy: request bodies in flight would exceed ${maxInFlightBodyBytes} bytes. Retry shortly.`,
     headers: { "retry-after": "1" },
+  }
+  /** The target before the method: `Allow` reads a path, and only a normal one names a route. */
+  const edgeRefusal = (req: IncomingMessage, method: string): Refusal | undefined => {
+    const refused = targetRefusal(req)
+    if (refused || isUsableMethod(method)) return refused
+    const allow = allowedMethods(pathOfTarget(req.url ?? "/"))
+    return { status: 405, message: METHOD_REFUSED, headers: { allow } }
   }
   let inFlight = 0
   let heldBodyBytes = 0
@@ -201,7 +215,7 @@ export function createBodyLimitedListener(
     share: BudgetShare,
   ): Promise<void> => {
     const method = (req.method ?? "GET").toUpperCase()
-    const refused = targetRefusal(req)
+    const refused = edgeRefusal(req, method)
     if (refused) {
       onRefused?.({ method, target: req.url ?? "/", ...refused })
       return refuse(req, res, refused, discardGraceMs)

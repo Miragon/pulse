@@ -1,5 +1,6 @@
+import http from "node:http"
 import { describe, expect, it } from "vitest"
-import { isNormalTarget, isUsableHost, pathOfTarget } from "./http-edge.js"
+import { isNormalTarget, isUsableHost, isUsableMethod, pathOfTarget } from "./http-edge.js"
 
 /** What the listener reads off a request as sent, before any URL parser sees it. */
 
@@ -132,4 +133,26 @@ describe("isUsableHost", () => {
       expect(isUsableHost(host)).toBe(false)
     },
   )
+})
+
+describe("isUsableMethod", () => {
+  const buildsARequest = (method: string): boolean => {
+    try {
+      new Request("http://h/", { method })
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  it("agrees with the Request the bridge builds, on every method Node's parser knows", () => {
+    const methods = [...http.METHODS, "TRACK"]
+    const usable = methods.filter((method) => isUsableMethod(method))
+    expect(usable).toEqual(methods.filter(buildsARequest))
+    expect(methods.filter((method) => !isUsableMethod(method)).sort()).toEqual([
+      "CONNECT",
+      "TRACE",
+      "TRACK",
+    ])
+  })
 })

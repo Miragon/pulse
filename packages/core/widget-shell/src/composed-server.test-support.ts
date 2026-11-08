@@ -2,6 +2,8 @@ import http from "node:http"
 import net from "node:net"
 import type { ComposableModule, ModulePlugin } from "./composition.js"
 import type { ModuleServer } from "./module-server.js"
+import { oauthCustomProvider } from "./oauth-providers.js"
+import { SERVED_FONT_FILES, SERVED_FONT_PATH } from "./protocol/served-fonts.js"
 
 export const answer = () => ({
   content: [{ type: "text" as const, text: "ok" }],
@@ -161,3 +163,72 @@ export function rawRequest(
     socket.write(Buffer.from(`${lines.join("\r\n")}\r\n\r\n${body?.sent ?? ""}`, "latin1"))
   })
 }
+
+/** A provider whose verifier knows no token: a reached `/mcp` answers 401. */
+export const stubOAuth = () =>
+  oauthCustomProvider({
+    resource: "http://localhost/mcp",
+    oauthMetadata: {
+      issuer: "https://idp.example.test",
+      authorization_endpoint: "https://idp.example.test/a",
+      token_endpoint: "https://idp.example.test/t",
+      response_types_supported: ["code"],
+    },
+    createTokenVerifier: () => ({
+      verifyAccessToken: () => Promise.reject(new Error("no token is known")),
+    }),
+    mapAuthInfo: () => ({ user: { id: "u" }, payload: { sub: "u" }, permissions: [] }),
+  })
+
+const INITIALIZE = JSON.stringify({
+  jsonrpc: "2.0",
+  id: 1,
+  method: "initialize",
+  params: {
+    protocolVersion: "2025-06-18",
+    capabilities: {},
+    clientInfo: { name: "unit", version: "0" },
+  },
+})
+
+export const POST_INITIALIZE: Partial<RawRequest> = {
+  method: "POST",
+  body: { length: Buffer.byteLength(INITIALIZE), sent: INITIALIZE },
+  headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream" },
+}
+
+const FONT = `${SERVED_FONT_PATH}/${SERVED_FONT_FILES.sans}`
+
+/** Every route, with what it answers under its own name on a boot under OAuth and what it takes. */
+export const ROUTES: {
+  route: string
+  reached: number
+  request?: Partial<RawRequest>
+  allow: string
+}[] = [
+  { route: "/mcp", reached: 401, request: POST_INITIALIZE, allow: "POST" },
+  { route: "/health", reached: 200, allow: "GET, HEAD" },
+  { route: "/health/live", reached: 200, allow: "GET, HEAD" },
+  { route: "/health/ready", reached: 200, allow: "GET, HEAD" },
+  { route: "/metrics", reached: 200, allow: "GET, HEAD" },
+  { route: "/.well-known/oauth-protected-resource/mcp", reached: 200, allow: "GET, HEAD, OPTIONS" },
+  { route: FONT, reached: 200, allow: "GET, HEAD" },
+]
+
+/** One after the other: a burst of sockets overflows a small listen backlog (macOS: 128). */
+export async function statuses(
+  port: number,
+  targets: readonly string[],
+  request: Partial<RawRequest> = {},
+) {
+  const answers: Record<string, number> = {}
+  for (const target of targets) {
+    answers[target] = (await rawRequest(port, { ...request, target })).status
+  }
+  return answers
+}
+
+export const all = (targets: readonly string[], status: number) =>
+  Object.fromEntries(targets.map((target) => [target, status]))
+
+export const scrape = async (port: number) => (await rawRequest(port, { target: "/metrics" })).body

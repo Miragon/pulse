@@ -4,9 +4,17 @@ import {
   type ComposedServerOptions,
   type RunningServer,
 } from "./composed-server.js"
-import { moduleOf, plain, rawRequest, type RawRequest } from "./composed-server.test-support.js"
-import { oauthCustomProvider } from "./oauth-providers.js"
-import { SERVED_FONT_FILES, SERVED_FONT_PATH } from "./protocol/served-fonts.js"
+import {
+  all,
+  moduleOf,
+  plain,
+  POST_INITIALIZE,
+  rawRequest,
+  ROUTES,
+  scrape,
+  statuses,
+  stubOAuth,
+} from "./composed-server.test-support.js"
 
 /**
  * A route answers under its own path only: the real listener, on real sockets, because a `Request`
@@ -30,21 +38,6 @@ afterEach(async () => {
   vi.restoreAllMocks()
 })
 
-const stubOAuth = () =>
-  oauthCustomProvider({
-    resource: "http://localhost/mcp",
-    oauthMetadata: {
-      issuer: "https://idp.example.test",
-      authorization_endpoint: "https://idp.example.test/a",
-      token_endpoint: "https://idp.example.test/t",
-      response_types_supported: ["code"],
-    },
-    createTokenVerifier: () => ({
-      verifyAccessToken: () => Promise.reject(new Error("no token is known")),
-    }),
-    mapAuthInfo: () => ({ user: { id: "u" }, payload: { sub: "u" }, permissions: [] }),
-  })
-
 const probeModule = moduleOf({
   name: "probe",
   register: (server) => plain(server, "probe_tool"),
@@ -65,36 +58,6 @@ async function boot(overrides: Partial<ComposedServerOptions> = {}) {
   running.push(server)
   return { composed, server, port: server.port }
 }
-
-const INITIALIZE = JSON.stringify({
-  jsonrpc: "2.0",
-  id: 1,
-  method: "initialize",
-  params: {
-    protocolVersion: "2025-06-18",
-    capabilities: {},
-    clientInfo: { name: "unit", version: "0" },
-  },
-})
-
-const POST_INITIALIZE: Partial<RawRequest> = {
-  method: "POST",
-  body: { length: Buffer.byteLength(INITIALIZE), sent: INITIALIZE },
-  headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream" },
-}
-
-const FONT = `${SERVED_FONT_PATH}/${SERVED_FONT_FILES.sans}`
-
-/** Every route, with what it answers under its own name on a boot under OAuth. */
-const ROUTES: { route: string; reached: number; request?: Partial<RawRequest> }[] = [
-  { route: "/mcp", reached: 401, request: POST_INITIALIZE },
-  { route: "/health", reached: 200 },
-  { route: "/health/live", reached: 200 },
-  { route: "/health/ready", reached: 200 },
-  { route: "/metrics", reached: 200 },
-  { route: "/.well-known/oauth-protected-resource/mcp", reached: 200 },
-  { route: FONT, reached: 200 },
-]
 
 /** What a URL parser folds onto the route, and the shapes a route must not answer to either. */
 const notNormal = (route: string, port: number) => [
@@ -139,24 +102,6 @@ const noRoute = (route: string) => [
   `${route}%2e`,
   `/%5c${route.slice(1)}`,
 ]
-
-/** One after the other: a burst of sockets overflows a small listen backlog (macOS: 128). */
-async function statuses(
-  port: number,
-  targets: readonly string[],
-  request: Partial<RawRequest> = {},
-) {
-  const answers: Record<string, number> = {}
-  for (const target of targets) {
-    answers[target] = (await rawRequest(port, { ...request, target })).status
-  }
-  return answers
-}
-
-const all = (targets: readonly string[], status: number) =>
-  Object.fromEntries(targets.map((target) => [target, status]))
-
-const scrape = async (port: number) => (await rawRequest(port, { target: "/metrics" })).body
 
 describe("the listener: a route answers under its own path only", () => {
   it.each(ROUTES)("$route answers under its name", async ({ route, reached, request }) => {

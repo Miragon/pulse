@@ -221,6 +221,19 @@ export function isUsableHost(host: string | undefined): boolean {
 
 export const NOT_A_HOST = "Bad request: the Host header is empty or names no host and port."
 
+/**
+ * The methods the Fetch standard forbids a `Request`: the SDK's bridge would fail on one with a 500
+ * and a stack in the log, whoever sends it. Only TRACE gets that far. Node's parser answers TRACK
+ * 400 itself and closes a CONNECT's socket unanswered, with nothing listening for its `connect`
+ * event; neither reaches the listener, the log or a counter.
+ */
+const METHODS_NO_REQUEST_CARRIES: ReadonlySet<string> = new Set(["CONNECT", "TRACE", "TRACK"])
+
+export const isUsableMethod = (method: string): boolean => !METHODS_NO_REQUEST_CARRIES.has(method)
+
+export const METHOD_REFUSED =
+  "Method not allowed: this server takes no CONNECT, TRACE or TRACK request."
+
 /** A request answered in front of the routes, which no middleware saw. */
 export interface RefusedRequest {
   method: string

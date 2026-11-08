@@ -6,8 +6,8 @@
  * one; the request log first of all routes, metrics before the others (hono only counts later
  * routes), then the Host/Origin guard, then health (reachable by IP-addressed probes), fonts
  * behind the guard, `/mcp` (the OAuth gate, then the MCP handler) last. `listen()` serves it all
- * through the listener, so a target that is not its own normal form gets 404 and a body over the
- * cap 413 before any of them.
+ * through the listener, so a target that is not its own normal form gets 404, a TRACE 405 and a
+ * body over the cap 413 before any of them.
  */
 import fs from "node:fs/promises"
 import http from "node:http"
@@ -368,6 +368,7 @@ async function listen(
         EXEMPT_PATHS,
       ) !== undefined,
     onRefused: app.recordRefused,
+    allowedMethods: app.allowedMethods,
     onError: (error) => console.error(`[${label}] request failed:`, error),
   })
   const requestTimeout = options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS

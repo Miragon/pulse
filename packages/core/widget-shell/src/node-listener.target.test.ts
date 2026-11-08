@@ -152,3 +152,85 @@ describe("createBodyLimitedListener: the target as sent", () => {
     expect(res.body).toContain("localhost")
   })
 })
+
+describe("createBodyLimitedListener: a method no Request can carry", () => {
+  it("answers it itself, with nothing reaching the app or onError", async () => {
+    const app = appOf()
+    const onError = vi.fn()
+    const { port, refused } = await serve(app, { onError })
+    const res = await rawRequest(port, { method: "TRACE", target: "/mcp" })
+    expect(res.status).toBe(405)
+    expect(res.body).toContain("Method not allowed")
+    expect(app.fetch).not.toHaveBeenCalled()
+    expect(onError).not.toHaveBeenCalled()
+    expect(refused).toHaveLength(1)
+    expect(refused[0]).toMatchObject({ method: "TRACE", target: "/mcp", status: 405 })
+    expect(refused[0].message).toContain("Method not allowed")
+  })
+
+  it("closes the connection, whatever the client asked, and stays out of a cache", async () => {
+    const { port } = await serve(appOf())
+    const { head } = await rawRequest(port, {
+      method: "TRACE",
+      target: "/mcp",
+      connection: "keep-alive",
+    })
+    expect(head).toMatch(/^connection: close$/im)
+    expect(head).toMatch(/^cache-control: no-store$/im)
+  })
+
+  it("asks allowedMethods for the path, without its query", async () => {
+    const allowedMethods = vi.fn(() => "GET, HEAD")
+    const { port } = await serve(appOf(), { allowedMethods })
+    const { head } = await rawRequest(port, { method: "TRACE", target: "/health/live?x=1" })
+    expect(head).toMatch(/^allow: GET, HEAD$/im)
+    expect(allowedMethods).toHaveBeenCalledExactlyOnceWith("/health/live")
+  })
+
+  it("names an empty list without allowedMethods", async () => {
+    const { port } = await serve(appOf())
+    const { head } = await rawRequest(port, { method: "TRACE", target: "/mcp" })
+    expect(head).toMatch(/^allow: *$/im)
+  })
+
+  it("leaves a method the bridge can carry to the app", async () => {
+    const app = appOf()
+    const { port, refused } = await serve(app)
+    const res = await rawRequest(port, { method: "PROPFIND", target: "/mcp" })
+    expect(res.status).toBe(200)
+    expect(app.fetch).toHaveBeenCalledTimes(1)
+    expect(refused).toEqual([])
+  })
+
+  it("answers before the body: an open upload over the cap reads no byte of it", async () => {
+    const app = appOf()
+    const refusedBeforeBody = vi.fn(() => false)
+    const { listener, port } = await serve(app, { refusedBeforeBody })
+    const res = await rawRequest(port, {
+      method: "TRACE",
+      target: "/mcp",
+      body: { length: 5000, sent: "x".repeat(10) },
+    })
+    expect(res.status).toBe(405)
+    expect(listener.heldBodyBytes).toBe(0)
+    expect(refusedBeforeBody).not.toHaveBeenCalled()
+    expect(app.fetch).not.toHaveBeenCalled()
+  })
+
+  it("settles the request, so a drain does not wait for it", async () => {
+    const { listener, port } = await serve(appOf())
+    await rawRequest(port, { method: "TRACE", target: "/mcp" })
+    await listener.idle()
+    expect(listener.inFlight).toBe(0)
+  })
+
+  it("reads the target and the Host first: `Allow` needs a route's path", async () => {
+    const allowedMethods = vi.fn(() => "GET")
+    const { port } = await serve(appOf(), { allowedMethods })
+    const trace = { method: "TRACE", target: "/mcp" }
+    expect((await rawRequest(port, { ...trace, target: "/./mcp" })).status).toBe(404)
+    expect((await rawRequest(port, { ...trace, target: "*" })).status).toBe(404)
+    expect((await rawRequest(port, { ...trace, host: "h/mcp?" })).status).toBe(400)
+    expect(allowedMethods).not.toHaveBeenCalled()
+  })
+})
