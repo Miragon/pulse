@@ -1,7 +1,7 @@
 /**
  * The composed-server boot; a root hands it only its module list and its cross-module wiring.
- * The order is load-bearing: config checks fail before any I/O, a renamed or refused setting
- * first; OAuth from the env (`MCP_OAUTH_*`); one `resolveBoot`; the plugins from the active
+ * The order is load-bearing: config checks fail before any I/O, an unknown module name first;
+ * OAuth from the env (`MCP_OAUTH_*`); one `resolveBoot`; the plugins from the active
  * modules, each recorded once through the module registry, the views primed once after the last
  * one; the request log first of all routes, metrics before the others (hono only counts later
  * routes), then the Host/Origin guard, then health (reachable by IP-addressed probes), fonts
@@ -33,7 +33,7 @@ import {
   type HttpEdgePolicy,
 } from "./http-edge.js"
 import { installMetrics } from "./metrics.js"
-import { OAUTH_DEBUG_ENV_VAR, OAUTH_ENV_VARS, oauthFromEnv, refuseOAuthEnv } from "./oauth-env.js"
+import { OAUTH_DEBUG_ENV_VAR, OAUTH_ENV_VARS, oauthFromEnv } from "./oauth-env.js"
 import { createBodyLimitedListener, type BodyLimitedListener } from "./node-listener.js"
 import { fontAssetsCsp, installFontAssets } from "./font-assets.js"
 import { installMcpRequestContext } from "./request-context.js"
@@ -141,17 +141,6 @@ export function composedEnvVars<TShared>(
   return composeFor("env", modules).knownEnvVars
 }
 
-/**
- * Every variable the modules retired (`retired.envVars`), which a boot over them refuses while it
- * is set. A neutral test env clears these next to `composedEnvVars`, so a value a shell still
- * exports never reaches the boot.
- */
-export function retiredEnvVars<TShared>(
-  modules: readonly ComposableModule<TShared>[],
-): ReadonlySet<string> {
-  return new Set(composeFor("env", modules).retiredEnvVars.keys())
-}
-
 const HEALTH_PATH = "/health"
 const METRICS_PATH = "/metrics"
 const EXEMPT_PATHS = [HEALTH_PATH, METRICS_PATH]
@@ -253,13 +242,8 @@ function resolveSelection<TShared extends object>(
   env: NodeJS.ProcessEnv,
 ) {
   const label = options.info.name
-  // A renamed setting first: an operator upgrading with old settings reads the rename, not a
-  // later check's failure.
-  composition.refuseRetired(env)
-  // Then an unknown or repeated module name, before the OAuth line could read like a healthy boot.
+  // An unknown or repeated module name first, before the OAuth line could read like a healthy boot.
   composition.activeModules(env)
-  // The retired OAuth variable fails the boot: no typo warning for it in front.
-  refuseOAuthEnv(env)
   composition.warnUnknownEnvVars(env)
   const edge = resolveHttpEdgePolicy(env)
   const oauth = options.oauth ?? oauthFromEnv(env, label)

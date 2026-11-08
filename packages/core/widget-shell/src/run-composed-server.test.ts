@@ -92,11 +92,10 @@ describe("runComposedServer", () => {
   })
 
   it("names the server once when the error already opens with it", async () => {
-    const retiring = { ...alpha, retired: { envVars: { OLD_URL: "ALPHA_URL" } } }
-    const { create } = createApp({ modules: [retiring], env: { OLD_URL: "x" } })
+    const { create } = createApp({ env: { MCP_ACTIVE_MODULES: "nope" } })
     await expect(runComposedServer(create)).rejects.toThrow("process.exit(1)")
     expect(written).toEqual([
-      "[test-root] The server did not start: OLD_URL is no longer read, so the server does not start with a setting it would ignore. Rename it, the value stays: OLD_URL becomes ALPHA_URL.\n",
+      '[test-root] The server did not start: MCP_ACTIVE_MODULES names an unknown module "nope", so the server does not start without the module it asks for. Known modules: alpha.\n',
     ])
   })
 

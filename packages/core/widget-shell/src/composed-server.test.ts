@@ -5,7 +5,6 @@ import {
   composedEnvVars,
   createComposedServer,
   DEFAULT_DRAIN_TIMEOUT_MS,
-  retiredEnvVars,
   type ComposedServerOptions,
   type RunningServer,
 } from "./composed-server.js"
@@ -195,33 +194,20 @@ describe("createComposedServer: boot", () => {
     )
   })
 
-  it("names every variable the modules retired in retiredEnvVars, none of them read", () => {
-    const retiring = { ...alpha, retired: { names: ["alpha0"], envVars: { OLD_URL: "ALPHA_URL" } } }
-    const retired = [...retiredEnvVars([retiring])]
-    expect(retired).toEqual(["OLD_URL"])
-    expect(composedEnvVars([retiring]).has("OLD_URL")).toBe(false)
-    expect(retiredEnvVars([alpha]).has("OLD_URL")).toBe(false)
-  })
-
-  it("refuses a retired setting FIRST, before the edge or OAuth checks and any plugin", async () => {
+  it("refuses an unknown module FIRST, before the edge or OAuth checks and any plugin", async () => {
     const { module, createPlugin } = spiedAlpha()
-    const retiring = {
-      ...module,
-      retired: { names: ["alpha0"], envVars: { OLD_URL: "ALPHA_URL" } },
-    }
-    await expect(
-      createComposedServer(
-        options({ modules: [retiring], env: { OLD_URL: "x", MCP_MAX_BODY_BYTES: "lots" } }),
-      ),
-    ).rejects.toThrow("OLD_URL is no longer read")
     await expect(
       createComposedServer(
         options({
-          modules: [retiring],
-          env: { MCP_ACTIVE_MODULES: "alpha0:operations", MCP_OAUTH_KEYCLOAK_REALM: "r" },
+          modules: [module],
+          env: {
+            MCP_ACTIVE_MODULES: "nope:operations",
+            MCP_MAX_BODY_BYTES: "lots",
+            MCP_OAUTH_KEYCLOAK_REALM: "r",
+          },
         }),
       ),
-    ).rejects.toThrow("Write alpha instead: alpha0:operations becomes alpha:operations.")
+    ).rejects.toThrow('MCP_ACTIVE_MODULES names an unknown module "nope"')
     expect(createPlugin).not.toHaveBeenCalled()
     const warnings = vi.mocked(console.warn).mock.calls.map(([line]) => String(line))
     expect(warnings).toEqual([])

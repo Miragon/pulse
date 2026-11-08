@@ -41,18 +41,6 @@ export interface ComposableModule<TShared> {
    * a module may key per-boot state on it (the engine module's one engine registry).
    */
   createPlugin(config: Record<string, unknown>, shared: TShared): ModulePlugin
-  /** Names this module carried before: the boot refuses each while it is set, naming its replacement. */
-  retired?: {
-    /** Former names in `MCP_ACTIVE_MODULES`. */
-    names?: readonly string[]
-    /** Former environment variables, each with the variable that replaces it. */
-    envVars?: Readonly<Record<string, string>>
-    /**
-     * Former variables a shell may still export for another tool (a credential the CLI's docs
-     * name, say): the boot warns, naming the replacement, instead of refusing.
-     */
-    warnedEnvVars?: Readonly<Record<string, string>>
-  }
 }
 
 interface ActiveModuleRef {
@@ -97,18 +85,6 @@ interface ResolveBootOptions {
 export interface ModuleComposition<TShared> {
   /** The one source of the variables a boot reads (`composedEnvVars`). */
   knownEnvVars: ReadonlySet<string>
-  /**
-   * Every module's retired variable with the one that replaces it (`retiredEnvVars`), refused or
-   * warned about; never read.
-   */
-  retiredEnvVars: ReadonlyMap<string, string>
-  /**
-   * Throws ONCE on every retired variable that is set (blank included) and every retired module
-   * name in `MCP_ACTIVE_MODULES`, naming each replacement, so one failed boot names every rename.
-   * The boot calls it first, before any other setting is checked; `resolveBoot` refuses the same,
-   * `activeModules` the module names.
-   */
-  refuseRetired: (env?: NodeJS.ProcessEnv) => void
   /** Unset/`all` = every module; an unknown name fails the boot, listing the known modules. */
   activeModules: (env?: NodeJS.ProcessEnv) => ActiveModuleRef[]
   /** Call once per boot; derive the plugins and the boot log from the result. */
@@ -147,8 +123,6 @@ export function composeModules<TShared>(options: {
     modules.map((m) => [m.name, m]),
   )
   const knownEnvVars = new Set([...appEnvVars, ...modules.flatMap((m) => [...m.knownEnvVars])])
-  const { retiredNames, refusedEnvVars, warnedEnvVars } = retiredTables(modules, knownEnvVars)
-  const retiredEnvVars = new Map([...refusedEnvVars, ...warnedEnvVars])
 
   // Prefixes derive from every known var, so custom modules get the same typo coverage.
   const watchedPrefixes = [
@@ -180,25 +154,14 @@ export function composeModules<TShared>(options: {
       })
   }
 
-  /** Every retired setting of `env` in one error: the variables, then the module names. */
-  const refuseRetired = (env: NodeJS.ProcessEnv): void => {
-    const sentences = [
-      ...retiredEnvVarSentences(env, refusedEnvVars),
-      ...retiredNameSentences(listedModules(env) ?? [], retiredNames),
-    ]
-    if (sentences.length > 0) throw new Error(`[${label}] ${sentences.join(" ")}`)
-  }
-
   /**
-   * A former name names its replacement; an unknown one (a typo, a module this root does not
-   * compose) lists the known modules. Either would otherwise boot a healthy server WITHOUT the
-   * module it asks for, with no tools at all when no listed name is known.
+   * An unknown name (a typo, a module this root does not compose) lists the known modules. It
+   * would otherwise boot a healthy server WITHOUT the module it asks for, with no tools at all
+   * when no listed name is known.
    */
   const activeModules = (env: NodeJS.ProcessEnv = process.env): ActiveModuleRef[] => {
     const refs = listedModules(env)
     if (refs === undefined) return modules.map(({ name }) => ({ name }))
-    const sentences = retiredNameSentences(refs, retiredNames)
-    if (sentences.length > 0) throw new Error(`[${label}] ${sentences.join(" ")}`)
     const repeated = [...new Set(refs.map(({ name }) => name))].filter(
       (name) => refs.filter((ref) => ref.name === name).length > 1,
     )
@@ -239,7 +202,6 @@ export function composeModules<TShared>(options: {
     env: NodeJS.ProcessEnv = process.env,
     { authenticated = false }: ResolveBootOptions = {},
   ): ResolvedBoot => {
-    refuseRetired(env)
     const toolsets: EffectiveToolset[] = []
     const entries = activeModules(env).map(({ name, toolset: suffix }): ModuleEntry => {
       const effective = effectiveToolset(registry[name], suffix, authenticated)
@@ -258,10 +220,6 @@ export function composeModules<TShared>(options: {
 
   return {
     knownEnvVars,
-    retiredEnvVars,
-    refuseRetired(env = process.env) {
-      refuseRetired(env)
-    },
     activeModules,
     resolveBoot,
     pluginsFor(entries, shared) {
@@ -290,10 +248,9 @@ export function composeModules<TShared>(options: {
     },
     emitBootWarnings(env = process.env) {
       // Separate from `configFromEnv`, which stays side-effect free.
-      const warnings = [
-        ...warnedEnvVarSentences(env, warnedEnvVars),
-        ...activeModules(env).flatMap(({ name }) => registry[name].bootWarnings?.(env) ?? []),
-      ]
+      const warnings = activeModules(env).flatMap(
+        ({ name }) => registry[name].bootWarnings?.(env) ?? [],
+      )
       for (const warning of warnings) {
         console.warn(`[${label}] ${warning}`)
       }
@@ -325,107 +282,4 @@ export function composeModules<TShared>(options: {
       return snippets.length > 0 ? snippets.join("\n\n") : undefined
     },
   }
-}
-
-/**
- * Every module's former names, each with its current one, built once per composition. A table
- * that contradicts itself (a former name that is a current module or a variable a module reads)
- * fails at compose time instead of refusing a working setting.
- */
-function retiredTables<TShared>(
-  modules: readonly ComposableModule<TShared>[],
-  knownEnvVars: ReadonlySet<string>,
-): {
-  retiredNames: ReadonlyMap<string, string>
-  refusedEnvVars: ReadonlyMap<string, string>
-  warnedEnvVars: ReadonlyMap<string, string>
-} {
-  // In any case: the boot matches a former name in any case.
-  const current = new Set(modules.map(({ name }) => name.toLowerCase()))
-  const retiredNames = new Map<string, string>()
-  const refusedEnvVars = new Map<string, string>()
-  const warnedEnvVars = new Map<string, string>()
-  for (const module of modules) {
-    for (const former of module.retired?.names ?? []) {
-      if (current.has(former.toLowerCase())) {
-        throw new Error(
-          `Module "${module.name}" retires the name "${former}", which a composed module still carries.`,
-        )
-      }
-      retiredNames.set(former, module.name)
-    }
-    const retiring: [ReadonlyMap<string, string>, Map<string, string>][] = [
-      [new Map(Object.entries(module.retired?.envVars ?? {})), refusedEnvVars],
-      [new Map(Object.entries(module.retired?.warnedEnvVars ?? {})), warnedEnvVars],
-    ]
-    for (const [table, into] of retiring) {
-      for (const [former, replacement] of table) {
-        if (knownEnvVars.has(former)) {
-          throw new Error(
-            `Module "${module.name}" retires the variable ${former}, which a composed module still reads.`,
-          )
-        }
-        if (refusedEnvVars.has(former) || warnedEnvVars.has(former)) {
-          throw new Error(`The variable ${former} is retired twice (module "${module.name}").`)
-        }
-        into.set(former, replacement)
-      }
-    }
-  }
-  return { retiredNames, refusedEnvVars, warnedEnvVars }
-}
-
-/** One warning per warned retired variable that is present: the server reads its replacement. */
-function warnedEnvVarSentences(
-  env: NodeJS.ProcessEnv,
-  warnedEnvVars: ReadonlyMap<string, string>,
-): string[] {
-  return [...warnedEnvVars.keys()]
-    .filter((name) => env[name] !== undefined)
-    .sort()
-    .map(
-      (name) =>
-        `${name} is no longer read; the server reads ${warnedEnvVars.get(name)}. Rename it if it was meant for the server.`,
-    )
-}
-
-/**
- * One sentence for every retired variable that is present, blank included: its value would be
- * ignored.
- */
-function retiredEnvVarSentences(
-  env: NodeJS.ProcessEnv,
-  retiredEnvVars: ReadonlyMap<string, string>,
-): string[] {
-  const present = [...retiredEnvVars.keys()].filter((name) => env[name] !== undefined).sort()
-  if (present.length === 0) return []
-  const one = present.length === 1
-  const renames = present.map((name) => `${name} becomes ${retiredEnvVars.get(name)}`).join(", ")
-  return [
-    `${present.join(", ")} ${one ? "is" : "are"} no longer read, so the server does not start ` +
-      `with ${one ? "a setting" : "settings"} it would ignore. ` +
-      `Rename ${one ? "it, the value stays" : "them, the values stay"}: ${renames}.`,
-  ]
-}
-
-/**
- * One sentence per retired entry, its suffix carried over to the current name. A former name
- * matches in any case: it means nothing else, and as an unknown name it would only warn.
- */
-function retiredNameSentences(
-  refs: readonly ActiveModuleRef[],
-  retiredNames: ReadonlyMap<string, string>,
-): string[] {
-  return refs.flatMap(({ name, toolset }) => {
-    const current = [...retiredNames].find(
-      ([former]) => former.toLowerCase() === name.toLowerCase(),
-    )?.[1]
-    if (current === undefined) return []
-    const suffix = toolset === undefined ? "" : `:${toolset}`
-    return [
-      `MCP_ACTIVE_MODULES names "${name}", the former name of the ${current} module, so the server ` +
-        `does not start without the module it asks for. ` +
-        `Write ${current} instead: ${name}${suffix} becomes ${current}${suffix}.`,
-    ]
-  })
 }

@@ -6,11 +6,6 @@ import { createConfiguredEngineRegistry, createPlugin } from "./plugin.js"
 import { DEFAULT_ENGINE_FLAVOR } from "./providers/index.js"
 import { engineToolsets } from "./lib/mcp/toolsets.js"
 import { engineInstructions } from "./instructions.js"
-import {
-  RETIRED_CREDENTIAL_ENV_VARS,
-  RETIRED_ENV_VARS,
-  RETIRED_MODULE_NAMES,
-} from "./retired-settings.js"
 import { fetchLatestDefinitionXml } from "./data/definition-info.js"
 import { type EngineRegistry, resolveEngine } from "./lib/engine/resolve-engine.js"
 import {
@@ -450,13 +445,6 @@ export const engineModule = {
 
   createPlugin(config: Record<string, unknown>): ModulePlugin {
     return createPlugin(engineConfigSchema.parse(config), registryOf(config))
-  },
-
-  /** The `camunda7` names up to 0.24: the boot refuses each while it is set, naming its replacement. */
-  retired: {
-    names: RETIRED_MODULE_NAMES,
-    envVars: RETIRED_ENV_VARS,
-    warnedEnvVars: RETIRED_CREDENTIAL_ENV_VARS,
   },
 }
 

@@ -31,6 +31,20 @@ describe("the app's module list and its wiring", () => {
     expect(pulse).toEqual([])
   })
 
+  // The CLI's docs name CAMUNDA_PASSWORD for its --auth-password-env, and a shell may export what
+  // Camunda's own tools read: none of them is the server's, so the boot neither refuses nor warns.
+  it.each(["CAMUNDA_BASE_URL", "CAMUNDA_PASSWORD"])(
+    "boots with %s set and says nothing about it",
+    async (name) => {
+      vi.spyOn(console, "info").mockImplementation(() => {})
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+      stubNeutralEnv({ [name]: "from-the-shell" })
+      const composed = await createApp()
+      expect(composed.boot.entries.length).toBeGreaterThan(0)
+      expect(warn.mock.calls.flat().join("\n")).not.toContain(name)
+    },
+  )
+
   // The production path: the env default, no oauth seam, the default bundle path.
   it("boots authenticated from the process env when one provider's variables are set", async () => {
     vi.spyOn(console, "info").mockImplementation(() => {})
