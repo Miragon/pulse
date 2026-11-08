@@ -176,7 +176,7 @@ async function fetchSiblingsWithIncidents(
   const siblings = [...(await fetchStatsByKey(client, {})).entries()]
     .filter(([key, stats]) => key !== excludeKey && stats.incidentCount > 0)
     .sort((a, b) => b[1].incidentCount - a[1].incidentCount)
-  // A Modeler pool around an unnamed process names it, as analytics names it.
+  // A Modeler pool around an unnamed process names it, as every view names it.
   await nameUnnamedDefinitions(
     client,
     siblings.map(([, stats]) => stats.latest),

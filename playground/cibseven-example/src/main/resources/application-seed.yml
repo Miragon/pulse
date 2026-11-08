@@ -12,7 +12,7 @@ seed:
   # Instances started earlier than (now - buggy-era-days) belong to the pre-fix
   # era. A subset of them gets `_simulateBlacklistOutage=true`, which makes the
   # asyncBefore `CheckBlacklist` task in the `assessCreditworthiness` sub-
-  # process raise an incident. Feeds the period comparison with a real
+  # process raise an incident. Gives the incident history a real
   # before/after gap for the fix-verification skill (UC5).
   buggy-era-days: 15
   buggy-era-failure-rate: 0.15

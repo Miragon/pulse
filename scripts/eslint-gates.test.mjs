@@ -18,7 +18,6 @@ import { DEFAULT_PROJECT_FILES } from "../eslint.config.mjs"
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const ENGINE_CONNECTOR_SRC_DIR = "packages/connectors/engine/engine-connector/src"
-const AN = "packages/connectors/analytics/analytics-connector/src"
 
 /**
  * Every extension of a source in a connector's src: tsc builds .mts and .cts too, ESLint's
@@ -68,15 +67,13 @@ const WS = "packages/core/widget-shell/src/ui"
 const UI = "packages/core/ui/src"
 const APP_UI = "apps/mcp-server/src/ui"
 /**
- * WIDGET_TREES of eslint.config.mjs: the host bundle's src/ui, widget-shell's view half and both
- * connectors' widgets, a .ts and a .tsx probe each. The date and number gates hold all of them.
+ * WIDGET_TREES of eslint.config.mjs: the host bundle's src/ui, widget-shell's view half and the
+ * connector's widgets, a .ts and a .tsx probe each. The date and number gates hold all of them.
  */
-const WIDGET_TREE_PATHS = [
-  APP_UI,
-  WS,
-  `${ENGINE_CONNECTOR_SRC_DIR}/widgets`,
-  `${AN}/widgets`,
-].flatMap((dir) => [`${dir}/__probe__.ts`, `${dir}/__probe__.tsx`])
+const WIDGET_TREE_PATHS = [APP_UI, WS, `${ENGINE_CONNECTOR_SRC_DIR}/widgets`].flatMap((dir) => [
+  `${dir}/__probe__.ts`,
+  `${dir}/__probe__.tsx`,
+])
 /** The number gate's probes: pulse-ui's code and every widget tree. */
 const NUMBER_PATHS = [`${UI}/__probe__.ts`, `${UI}/__probe__.tsx`, ...WIDGET_TREE_PATHS]
 
@@ -166,7 +163,7 @@ describe("MCP Apps runtime gate (invariant 6): only widget-shell's host adapter 
   const ADAPTER = [`${WS}/view-runtime.ts`, `${WS}/ext-apps-host.tsx`, `${WS}/view-root.tsx`]
   const MCP_PATHS = [
     `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.tsx`,
-    `${AN}/widgets/__probe__.ts`,
+    `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.ts`,
     `${ENGINE_CONNECTOR_SRC_DIR}/widget-tools/__probe__.ts`,
     `${UI}/__probe__.tsx`,
     `${UI}/testing/__probe__.ts`,
@@ -257,12 +254,9 @@ describe("MCP Apps runtime gate (invariant 6): only widget-shell's host adapter 
   })
 })
 
-describe("hand-off gate (invariant 6, CI U4) in both connectors' widgets", () => {
+describe("hand-off gate (invariant 6, CI U4) in the connector's widgets", () => {
   const isHandOffHit = (m) => m.includes("HandOffButton") && m.includes("not AskAiButton")
-  const HAND_OFF_PATHS = [
-    `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.tsx`,
-    `${AN}/widgets/__probe__.tsx`,
-  ]
+  const HAND_OFF_PATHS = [`${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.tsx`]
   const KIT = '"@miragon/pulse-widget-shell/widgets"'
 
   it("bans AskAiButton in every spelling: import, renamed import, element, namespace", async () => {
@@ -371,7 +365,7 @@ const REGISTRAR_ESCAPES = {
 describe("registrar gate (invariant 1) catches every spelling that names the member", () => {
   for (const rel of [
     `${ENGINE_CONNECTOR_SRC_DIR}/tools/__probe__.ts`,
-    `${AN}/tools/__probe__.tsx`,
+    `${ENGINE_CONNECTOR_SRC_DIR}/tools/__probe__.tsx`,
   ]) {
     for (const [label, code] of Object.entries(REGISTRAR_ESCAPES)) {
       it(`${label} (${path.extname(rel)})`, async () => {
@@ -420,16 +414,14 @@ describe("registrar gate (invariant 1) catches every spelling that names the mem
       `${ENGINE_CONNECTOR_SRC_DIR}/widget-tools.ts`,
       `${ENGINE_CONNECTOR_SRC_DIR}/widget-tools/__probe__.ts`,
       `${ENGINE_CONNECTOR_SRC_DIR}/widget-tools/__probe__.mts`,
-      `${AN}/widget-tools.ts`,
-      `${AN}/widget-tools/__probe__.ts`,
-      `${AN}/widget-tools/__probe__.mjs`,
+      `${ENGINE_CONNECTOR_SRC_DIR}/widget-tools/__probe__.mjs`,
     ]) {
       assert.deepEqual(await gateMessages(rel, code), [], rel)
     }
     for (const rel of [
       `${ENGINE_CONNECTOR_SRC_DIR}/widget-tools.mts`,
       `${ENGINE_CONNECTOR_SRC_DIR}/widget-tools-more.ts`,
-      `${AN}/widgets/__probe__.tsx`,
+      `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.tsx`,
     ]) {
       assert.ok((await gateMessages(rel, code)).some(isRegistrarHit), rel)
     }
@@ -473,9 +465,7 @@ describe("connector resource gate (invariant 3): a connector's views belong in t
     `${ENGINE_CONNECTOR_SRC_DIR}/widget-tools/__probe__.ts`,
     `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.tsx`,
     `${ENGINE_CONNECTOR_SRC_DIR}/plugin.test.ts`,
-    `${AN}/widget-tools.ts`,
-    `${AN}/widget-tools/__probe__.ts`,
-    `${AN}/widgets/__probe__.ts`,
+    `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.ts`,
     "packages/connectors/engine/engine-client/src/__probe__.ts",
     "packages/connectors/newfamily/newfamily-connector/src/__probe__.ts",
   ]
@@ -501,14 +491,20 @@ describe("connector resource gate (invariant 3): a connector's views belong in t
       'declare const typed: { "registerResource": number }',
       'const sentence = "a connector calls no registerResource"',
     ].join("\n")
-    assert.deepEqual(await gateMessages(`${AN}/widget-tools/__probe__.ts`, code), [])
+    assert.deepEqual(
+      await gateMessages(`${ENGINE_CONNECTOR_SRC_DIR}/widget-tools/__probe__.ts`, code),
+      [],
+    )
   })
 
   for (const [label, code] of Object.entries(
     openRoutes("registerResource", "register", "Resource"),
   )) {
     it(`leaves ${label} to review, as CLAUDE.md says`, async () => {
-      const messages = await gateMessages(`${AN}/widget-tools/__probe__.ts`, code)
+      const messages = await gateMessages(
+        `${ENGINE_CONNECTOR_SRC_DIR}/widget-tools/__probe__.ts`,
+        code,
+      )
       assert.equal(messages.filter(isResourceHit).length, 0, code)
     })
   }
@@ -533,7 +529,7 @@ describe("connector resource gate (invariant 3): a connector's views belong in t
     ].join("\n")
     for (const rel of [
       `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.ts`,
-      `${AN}/widgets/__probe__.tsx`,
+      `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.tsx`,
     ]) {
       const messages = await gateMessages(rel, code)
       assert.equal(messages.filter(isResourceHit).length, 1, `${rel}: resource gate dropped`)
@@ -558,8 +554,8 @@ describe("the registration gates hold every source extension", () => {
         // [probe path, registrar gate?]: the registrar holds the connectors outside widget-tools.
         [`${ENGINE_CONNECTOR_SRC_DIR}/__probe__.${extension}`, true],
         [`${ENGINE_CONNECTOR_SRC_DIR}/tools/deep/__probe__.${extension}`, true],
-        [`${AN}/widgets/__probe__.${extension}`, true],
-        [`${AN}/__probe__.test.${extension}`, true],
+        [`${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.${extension}`, true],
+        [`${ENGINE_CONNECTOR_SRC_DIR}/__probe__.test.${extension}`, true],
         [`${ENGINE_CONNECTOR_SRC_DIR}/widget-tools/__probe__.${extension}`, false],
         [`packages/connectors/engine/engine-client/src/__probe__.${extension}`, false],
         [`packages/connectors/newfamily/newfamily-connector/src/__probe__.${extension}`, false],
@@ -580,7 +576,7 @@ describe("gates sharing a glob are merged, not overridden", () => {
   before(async () => {
     const code = 'server.registerTool("x")\nnew Intl.DateTimeFormat("de")\nd.toLocaleDateString()'
     widgetTs = await gateMessages(`${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.ts`, code)
-    widgetTsx = await gateMessages(`${AN}/widgets/__probe__.tsx`, code)
+    widgetTsx = await gateMessages(`${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.tsx`, code)
   })
 
   it("connector widget files carry BOTH the registrar and the date gate", () => {
@@ -590,7 +586,7 @@ describe("gates sharing a glob are merged, not overridden", () => {
     }
   })
 
-  it("both connectors' widgets carry the registrar, date AND number gates in one union per glob", async () => {
+  it("the connector's widgets carry the registrar, date AND number gates in one union per glob", async () => {
     const code = [
       'server.registerTool("x")',
       "d.toLocaleDateString()",
@@ -602,8 +598,6 @@ describe("gates sharing a glob are merged, not overridden", () => {
     for (const rel of [
       `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.ts`,
       `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.tsx`,
-      `${AN}/widgets/__probe__.ts`,
-      `${AN}/widgets/__probe__.tsx`,
     ]) {
       const messages = await gateMessages(rel, code)
       assert.ok(messages.some(isRegistrarHit), `${rel}: registrar gate dropped`)
@@ -682,7 +676,7 @@ describe("type-safety rules: errors everywhere, require-await off in the MCP tre
     "packages/core/widget-shell/src/caller.ts",
     "packages/core/ui/src/kit/format.ts",
     "packages/connectors/engine/engine-connector/src/widgets/lib/engine-action.ts",
-    "packages/connectors/analytics/analytics-client/src/metric-names.ts",
+    "packages/connectors/engine/engine-client/src/client.ts",
   ]
   const STRICT_TREES = [
     "apps/cli/src/util.ts",

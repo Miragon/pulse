@@ -1,10 +1,6 @@
 # A CIB seven engine to try the engine tools on: `docker compose up -d`, then `pnpm dev`.
 # The live values of .env.example point at it (localhost:8410, cibseven, demo/demo).
 #
-# The engine tools only: it records no metrics and runs no Prometheus, so MCP_ACTIVE_MODULES in
-# .env.example leaves analytics off. The analytics tools need a Prometheus that holds your
-# engines' metrics and analytics in that list.
-#
 # LOOPBACK ONLY: the port binds to 127.0.0.1 and the logins are demo-grade. Don't drop the
 # 127.0.0.1: prefix to reach it from another machine; tunnel instead. Its database lives in
 # the container: `docker compose down` drops it, and the next `up` starts from scratch.

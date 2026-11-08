@@ -12,7 +12,6 @@ import {
 import { startHostBackend, type HostBackend } from "./host-backend.js"
 import { ownViewModule } from "./own-view-module.js"
 import { startStubEngine } from "./stub-engine.js"
-import { startStubPrometheus } from "./stub-prometheus.js"
 
 interface Deployment {
   host: HostBackend
@@ -56,16 +55,13 @@ async function deploy(env: Record<string, string>, deps?: AppDeps): Promise<Depl
  */
 export default async function globalSetup(): Promise<() => Promise<void>> {
   const engine = await startStubEngine()
-  // The analytics views read their figures from it (analytics.spec.ts).
-  const prometheus = await startStubPrometheus()
   const engines = {
     ENGINES_JSON: JSON.stringify([
       { id: HEALTHY_ENGINE, baseUrl: engine.baseUrl },
       { id: BROKEN_ENGINE, baseUrl: engine.brokenBaseUrl },
     ]),
-    PROMETHEUS_URL: prometheus.url,
   }
-  // The default deployment (no OAuth, so every module runs read-only) is the
+  // The default deployment (no OAuth, so the engine module runs read-only) is the
   // widest audience a view has to work for.
   const readOnly = await deploy(engines)
   // A gateway-fronted deployment naming its toolset: the widget writes are
@@ -75,7 +71,6 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   // scenarios keep their engine landscape.
   const realistic = await deploy({
     ENGINES_JSON: JSON.stringify([{ id: REALISTIC_ENGINE, baseUrl: engine.realisticBaseUrl }]),
-    PROMETHEUS_URL: prometheus.url,
   })
   // A module with a finished HTML view of its own next to the bundle's (own-view.spec.ts).
   const ownView = await deploy(
@@ -93,7 +88,6 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     await operations.close()
     await realistic.close()
     await ownView.close()
-    await prometheus.close()
     await engine.close()
   }
 }

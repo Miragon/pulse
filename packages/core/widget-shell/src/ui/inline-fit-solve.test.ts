@@ -36,7 +36,7 @@ describe("solveInlineFit: one list", () => {
   })
 
   it("keeps 3 rows when even 1 does not fit: the view then scrolls inside the budget", () => {
-    // The analytics dashboard: about 1000 px around its activity table.
+    // A dashboard of about 1000 px around its activity table.
     expect(solveInlineFit(view(600, 1000, 7, 66))).toEqual({ cuts: { rows: 3 }, fits: false })
   })
 

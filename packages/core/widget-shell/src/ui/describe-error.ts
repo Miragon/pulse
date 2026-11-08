@@ -35,12 +35,10 @@ export interface DescribedError {
 }
 
 const BRACKET_STATUS = /\[(\d{3})(?:[\s\]])/
-const PROMETHEUS_STATUS = /Prometheus query failed \((\d{3})\b/
 /** The engine id the engine client appends or leads with. */
 const ENGINE_ID =
   /\(engine ([^\s)]+)\)|\bengine (\S+) (?:unreachable|did not respond)|connection to engine (\S+) failed/
 const ENGINE = /\bengine\b|ProcessEngineException|\bCamunda\b|\bCIB seven\b/i
-const PROMETHEUS = /\bPrometheus\b/
 const TOOL_MISSING = /\btool\b[^\n]*\bnot found\b|\bunknown tool\b|-32601\b|\bmethod not found\b/i
 const TIMEOUT = /\(timeout\)|\btimed? ?out\b|-32001\b|did not respond within/i
 const UNREACHABLE =
@@ -93,14 +91,13 @@ function statusOf(error: unknown, text: string): number | undefined {
       if (typeof value === "number" && value >= 100 && value <= 599) return value
     }
   }
-  const match = BRACKET_STATUS.exec(text) ?? PROMETHEUS_STATUS.exec(text)
+  const match = BRACKET_STATUS.exec(text)
   return match ? Number(match[1]) : undefined
 }
 
 function sourceOf(text: string): ErrorSource {
   const id = ENGINE_ID.exec(text)
   if (id) return { type: "engine", id: id[1] ?? id[2] ?? id[3] }
-  if (PROMETHEUS.test(text)) return { type: "prometheus" }
   if (ENGINE.test(text)) return { type: "engine" }
   return { type: "unknown" }
 }
@@ -116,8 +113,6 @@ function kindOfStatus(status: number): ErrorKind {
 
 function kindOf(text: string, status: number | undefined): ErrorKind {
   if (TOOL_MISSING.test(text)) return "notOnServer"
-  // Its query API is one fixed route: a 404 is a wrong address, never an entry that is gone.
-  if (status === 404 && PROMETHEUS_STATUS.test(text)) return "unreachable"
   if (status !== undefined) return kindOfStatus(status)
   if (TIMEOUT.test(text)) return "timeout"
   if (UNREACHABLE.test(text)) return "unreachable"

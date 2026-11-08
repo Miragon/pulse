@@ -83,12 +83,6 @@ const TODAY = {
   ...published("packages/connectors/engine/engine-connector", {
     name: "@miragon/pulse-engine-connector",
   }),
-  ...published("packages/connectors/analytics/analytics-client", {
-    name: "@miragon/pulse-analytics-client",
-  }),
-  ...published("packages/connectors/analytics/analytics-connector", {
-    name: "@miragon/pulse-analytics-connector",
-  }),
   docs: { name: "@miragon/pulse-docs", private: true },
 }
 /** Packages that do not exist yet: a public CLI, a VS Code extension, a new public package. */

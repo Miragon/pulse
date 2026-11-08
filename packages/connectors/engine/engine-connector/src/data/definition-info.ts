@@ -146,8 +146,8 @@ export interface NameableDefinition {
 
 /**
  * Mutates in place. The engine names a process from `<process>` only, while the
- * Modeler names the POOL; without this the engine module showed `miraveloLeasing` where
- * analytics shows "Miravelo - Bike Leasing". A diagram without names keeps null.
+ * Modeler names the POOL; without this the engine module showed `miraveloLeasing`, not
+ * "Miravelo - Bike Leasing". A diagram without names keeps null.
  */
 export async function nameUnnamedDefinitions<T extends NameableDefinition>(
   client: Client,
@@ -183,15 +183,6 @@ export async function fetchDefinitionsById(
       .filter((row): row is RawDefinition & { id: string } => !!row.id)
       .map((row) => [row.id, toDefinitionInfo(row, row.key ?? definitionKeyInId(row.id) ?? "")]),
   )
-}
-
-/** Never `GET /process-definition/key/{key}/xml`: it only finds tenant-less definitions. */
-export async function fetchLatestDefinitionXml(
-  client: Client,
-  key: string,
-): Promise<string | null> {
-  const latest = await findLatestDefinition(client, key)
-  return latest?.id ? fetchDefinitionXml(client, latest.id) : null
 }
 
 interface IncidentStatRow {

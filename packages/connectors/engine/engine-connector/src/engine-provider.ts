@@ -22,7 +22,7 @@ export interface EngineEntry {
   id: string
   baseUrl: string
   cockpitUrl?: string
-  /** Grouping only: `id` stays the globally unique join key against `engine_id`. */
+  /** Grouping only: `id` stays the globally unique `engine` selector. */
   environment?: string
   /** Engine vendor of the C7 dialect; selects the provider. Default: "camunda7". */
   flavor?: EngineFlavor

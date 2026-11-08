@@ -1,9 +1,8 @@
 # Pulse architecture
 
 Pulse is a single Node.js MCP server that exposes Camunda 7 / CIB seven
-operations and Prometheus-backed analytics to any MCP host (Claude, ChatGPT, …). The engine plugin
-`io.miragon.mcp:cibseven-history-metrics` (0.27.1, its last version) emits process metrics via
-Micrometer into a Prometheus of yours, which the analytics module queries.
+operations to any MCP host (Claude, ChatGPT, …). Everything it shows, the figures of its views
+included, it reads from the engine's REST API.
 
 ## At a glance
 
@@ -13,31 +12,24 @@ flowchart LR
 
   subgraph Modules
     EngineModule[engine<br/>tools + widgets]
-    Analytics[analytics<br/>tools + widgets]
   end
 
   Server --> EngineModule
-  Server --> Analytics
 
   EngineModule -->|REST| Engine[(Camunda 7 / CIB seven)]
-  Analytics -->|PromQL| Prom[(Prometheus)]
-
-  Engine -. history events .-> Plugin[engine metrics plugin]
-  Plugin -- metrics --> Prom
 
   Server -. serves .-> Widgets[Widget bundle<br/>React + Tailwind]
 ```
 
 ## Modules
 
-| Module                                                               | Role                                                                                                                                                                                                                           |
-| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **MCP Server** (`apps/mcp-server/`)                                  | Hosts the HTTP transport on port `8400` on the official MCP TypeScript SDK, loads modules from `MCP_ACTIVE_MODULES`, and serves the Vite-built React widget bundle (see **widgets**).                                          |
-| **CLI** (`apps/cli/`)                                                | Every engine REST operation as a command, generated from the OpenAPI spec, plus the workflow commands; on npm, Homebrew, GHCR and the GitHub release. See the [CLI docs](../cli/index.md); rules in `apps/cli/CLAUDE.md`.      |
-| **VS Code extension** (`apps/vscode/`)                               | Shows what an engine runs next to the BPMN models in VS Code: a Preact webview over an engine-neutral contract and the C7 adapter. Ships as a .vsix on the Marketplace and Open VSX; rules in `apps/vscode/CLAUDE.md`.         |
-| **engine** (`packages/connectors/engine/engine-connector/`)          | Wraps the Camunda 7 / CIB seven REST API via an OpenAPI-generated client. Exposes process, task, incident, deployment, and history tools plus widgets.                                                                         |
-| **analytics** (`packages/connectors/analytics/analytics-connector/`) | Queries Prometheus via PromQL for the process dashboard (per process and per activity), period, version and engine comparisons, the cross-engine landscape and engine health. Tools + widgets.                                 |
-| **widgets** (`apps/mcp-server/dist/mcp-app.js` + `.css`)             | One Vite-built ES module + stylesheet containing React, Tailwind, and every widget. The server serves it behind one `ui://views/<tool>.html` resource per widget tool, which declares that view on itself (`showToolBinding`). |
+| Module                                                      | Role                                                                                                                                                                                                                           |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **MCP Server** (`apps/mcp-server/`)                         | Hosts the HTTP transport on port `8400` on the official MCP TypeScript SDK, loads modules from `MCP_ACTIVE_MODULES`, and serves the Vite-built React widget bundle (see **widgets**).                                          |
+| **CLI** (`apps/cli/`)                                       | Every engine REST operation as a command, generated from the OpenAPI spec, plus the workflow commands; on npm, Homebrew, GHCR and the GitHub release. See the [CLI docs](../cli/index.md); rules in `apps/cli/CLAUDE.md`.      |
+| **VS Code extension** (`apps/vscode/`)                      | Shows what an engine runs next to the BPMN models in VS Code: a Preact webview over an engine-neutral contract and the C7 adapter. Ships as a .vsix on the Marketplace and Open VSX; rules in `apps/vscode/CLAUDE.md`.         |
+| **engine** (`packages/connectors/engine/engine-connector/`) | Wraps the Camunda 7 / CIB seven REST API via an OpenAPI-generated client. Exposes process, task, incident, deployment, and history tools plus widgets.                                                                         |
+| **widgets** (`apps/mcp-server/dist/mcp-app.js` + `.css`)    | One Vite-built ES module + stylesheet containing React, Tailwind, and every widget. The server serves it behind one `ui://views/<tool>.html` resource per widget tool, which declares that view on itself (`showToolBinding`). |
 
 ## Composition rules
 
@@ -50,7 +42,7 @@ second engine dialect cheap:
   real differences: cockpit routes, branding, client hook), never packages or apps.
   A _dialect_ (an engine API family: Camunda 7 today, Flowable would be another) is
   one package family under `packages/connectors/<family>/`. A family is one source the
-  server reads, a dialect or another source such as `analytics` (Prometheus): its client,
+  server reads, a dialect or another source (a metrics store, say): its client,
   its connector (the MCP module) and, when its interfaces share a pure domain, its core.
   A package two interfaces share is extracted on its second consumer into the family's core,
   like `@miragon/pulse-engine-core`, the Camunda 7 family's workflow domain that the CLI and
@@ -60,24 +52,24 @@ second engine dialect cheap:
   family's code. An
   _interface_ is an app:
   `apps/mcp-server` is the thin composition root of the Camunda-7-dialect
-  MCP server (engine + analytics); a different dialect gets a family and an MCP server app
+  MCP server (the engine module); a different dialect gets a family and an MCP server app
   named after it.
   The CLI (`apps/cli`) and the VS Code extension (`apps/vscode`) are interfaces of their own.
-- Modules are peers. Connector packages (`*-connector`) never import each other. Cross-module
-  capabilities are injected by the app, e.g. the engine module's BPMN-XML lookup feeding the
-  analytics heatmap and the names in its views (`SharedResources.fetchBpmnXml`) and its
-  configured engine ids, the only engines analytics reads (`engineIds`).
+- Modules are peers. Connector packages (`*-connector`) never import each other. What one
+  module needs of another the app injects through `shared` (`SharedResources` in
+  `apps/mcp-server/src/setup.ts`), the port for what the modules of a composition share; today
+  the app hands nothing through.
 - Modules are self-contained. Each exports a module definition: config schema, env mapping,
   known env vars, toolset vocabulary, boot warnings, plugin factory
   (`packages/connectors/<family>/<family>-connector/src/module.ts`). A plugin is a name plus a
   `register(server)` that puts the module's tools, prompts and resources on the one server the
   shared boot builds; the boot refuses a name or resource URI two modules register. The app only lists its modules and wires
-  their shared resources (`apps/mcp-server/src/setup.ts`); the shared boot selects the
+  what they share (`apps/mcp-server/src/setup.ts`); the shared boot selects the
   modules (`MCP_ACTIVE_MODULES`), installs OAuth from the env and resolves one fail-closed
   toolset per module per boot (a module with toolsets: read-only unless widened) and logs it.
   The module packages are published to npm, so external composition roots can mount them next
   to their own modules. The reference is `templates/composed-server/`.
-- A view comes from the bundle or from its module. Engine and analytics views are bundle views
+- A view comes from the bundle or from its module. The engine module's views are bundle views
   (an ESLint gate blocks a resource in `packages/connectors/`). A module of yours, on npm say, may
   bring a finished HTML document as its own resource instead: nothing of it enters the bundle, so
   it shares no code with it, gets none of widget-shell's host contexts and states its own CSP. The
@@ -108,28 +100,22 @@ question of its own.
 
 ## External systems
 
-| System                | Purpose                                                                        | Default endpoint                    |
-| --------------------- | ------------------------------------------------------------------------------ | ----------------------------------- |
-| Camunda 7 / CIB seven | The BPM engine itself: process definitions, instances, tasks, incidents.       | `http://localhost:8410/engine-rest` |
-| Prometheus            | Time-series store for the process metrics; the analytics module's data source. | `http://localhost:9090`             |
+| System                | Purpose                                                                  | Default endpoint                    |
+| --------------------- | ------------------------------------------------------------------------ | ----------------------------------- |
+| Camunda 7 / CIB seven | The BPM engine itself: process definitions, instances, tasks, incidents. | `http://localhost:8410/engine-rest` |
 
 ## Data flow
 
-1. The MCP host calls a tool on the server (e.g. `analytics_engine_health`).
+1. The MCP host calls a tool on the server (e.g. `engine_status`).
 2. The server delegates to the matching module's plugin.
-3. The plugin calls the relevant system (REST for the engine, PromQL for
-   Prometheus) and returns JSON for the model.
-4. A view tool (the engine module's `open_cockpit`, analytics' `show_*`) returns the
-   view's data as `structuredContent` and its model-facing result (the facts or
-   figures as compact JSON; the heatmap: a short summary) as `content`; the host
+3. The plugin calls the engine's REST API and returns JSON for the model.
+4. A view tool (the engine module's `open_cockpit`) returns the
+   view's data as `structuredContent` and its model-facing result (the facts as
+   compact JSON) as `content`; the host
    renders it in the tool's view, which the shared bundle picks by the tool's
    name (re-running the tool once where a host drops `structuredContent`).
    Inside the view, app-only `*_data` feeds refresh and page it without a model
    turn.
-
-Process metrics originate in the engine: its metrics plugin maps history events
-to Micrometer counters/histograms (model-bounded labels), and Prometheus stores them.
-Per-instance drill-down (search) is served by the engine REST history API, not the metrics.
 
 ## Repository layout
 

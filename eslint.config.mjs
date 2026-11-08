@@ -4,13 +4,10 @@ import reactHooks from "eslint-plugin-react-hooks"
 import globals from "globals"
 
 // The widget trees: every tree of React views an MCP host renders (the host bundle's src/ui,
-// widget-shell's view half, both connectors' widgets). They are excluded from their package's
+// widget-shell's view half, the connector's widgets). They are excluded from their package's
 // tsconfig.json and typed by the browser-only tsconfig.widgets.json / tsconfig.ui.json projects
 // instead, and the date and number gates (invariant 6) hold all of them.
-const CONNECTOR_WIDGETS = [
-  "packages/connectors/analytics/analytics-connector/src/widgets/**/*.{ts,tsx}",
-  "packages/connectors/engine/engine-connector/src/widgets/**/*.{ts,tsx}",
-]
+const CONNECTOR_WIDGETS = ["packages/connectors/engine/engine-connector/src/widgets/**/*.{ts,tsx}"]
 const WIDGET_TREES = [
   "apps/mcp-server/src/ui/**/*.{ts,tsx}",
   "packages/core/widget-shell/src/ui/**/*.{ts,tsx}",
@@ -29,9 +26,7 @@ export const DEFAULT_PROJECT_FILES = [
   "vitest.shared.ts",
   "apps/mcp-server/vite.config.ts",
   "apps/mcp-server/vitest.config.ts",
-  "packages/connectors/analytics/analytics-connector/vitest.config.ts",
   "packages/connectors/engine/engine-connector/vitest.config.ts",
-  "packages/connectors/analytics/analytics-client/vitest.config.ts",
   "packages/connectors/engine/engine-client/vitest.config.ts",
   "packages/connectors/engine/engine-client/openapi-ts.config.ts",
   "packages/connectors/engine/engine-core/vitest.config.ts",
@@ -107,8 +102,8 @@ const registrarGate = registrationGate(
   "Operations tools are registered through createToolRegistrar (@miragon/pulse-widget-shell/server) in src/tools/ (see .claude/skills/add-bpm-feature); a raw server.registerTool() or ext-apps' registerAppTool() (also via an import, a computed key, .call/.bind/.apply, destructuring or a string that names it) is reserved for the widget-tools files.",
 )
 
-// Invariant 3: a customer's module may bring a finished HTML view of its own; the engine and
-// analytics views stay in the host bundle, where the kit, the view host and the design system
+// Invariant 3: a customer's module may bring a finished HTML view of its own; the engine
+// module's views stay in the host bundle, where the kit, the view host and the design system
 // hold them. Everywhere in a connector, the widget-tools files too.
 const connectorResourceGate = registrationGate(
   "/^(registerResource|registerAppResource)$/",
@@ -200,10 +195,10 @@ const extAppsRuntimeGate = {
 // HandOffButton, whose function table (HAND_OFF_ACTIONS + kitLabels().handOff)
 // gives every function one Lucide icon and one label in every module; an
 // AskAiButton with a hand-picked icon and verb let the same function drift
-// apart between engine and analytics ("Ursache im Chat klären" next to
+// apart between two modules ("Ursache im Chat klären" next to
 // "Ursache im Chat suchen", FileSearch for two functions). The import (also
-// renamed) and the element (also through a namespace) are both banned in both
-// connectors' widgets.
+// renamed) and the element (also through a namespace) are both banned in a
+// connector's widgets.
 const HAND_OFF_MESSAGE =
   "Render a chat hand-off with widget-shell's HandOffButton (`action` from HAND_OFF_ACTIONS: one Lucide icon and one verb that names the chat per function, in every module), not AskAiButton (CI U4, CLAUDE.md invariant 6)."
 const widgetHandOffGate = [
@@ -327,7 +322,6 @@ export default tseslint.config(
         project: [
           "apps/mcp-server/tsconfig.ui.json",
           "packages/core/widget-shell/tsconfig.widgets.json",
-          "packages/connectors/analytics/analytics-connector/tsconfig.widgets.json",
           "packages/connectors/engine/engine-connector/tsconfig.widgets.json",
         ],
         tsconfigRootDir: import.meta.dirname,
@@ -368,8 +362,8 @@ export default tseslint.config(
       // recommendedTypeChecked level, error. require-await is off everywhere but the CLI,
       // engine-core and the VS Code extension, whose blocks below set it at error again: in the
       // MCP trees an async function without await is how they satisfy a Promise-returning
-      // signature (the SDK's tool, prompt and resource callbacks, the health probes, fetch stubs
-      // and the Prometheus fakes of the tests), where the rule only asks for a Promise.resolve
+      // signature (the SDK's tool, prompt and resource callbacks, the health probes and the fetch
+      // stubs of the tests), where the rule only asks for a Promise.resolve
       // wrapper.
       "@typescript-eslint/require-await": "off",
       "@typescript-eslint/consistent-type-imports": [
@@ -410,13 +404,8 @@ export default tseslint.config(
   // widget-tools path (the view tools and *_data feeds), exactly the ignores
   // list below. The union with the resource gate of the block above.
   {
-    files: [
-      `packages/connectors/analytics/analytics-connector/src/**/${CONNECTOR_SOURCE}`,
-      `packages/connectors/engine/engine-connector/src/**/${CONNECTOR_SOURCE}`,
-    ],
+    files: [`packages/connectors/engine/engine-connector/src/**/${CONNECTOR_SOURCE}`],
     ignores: [
-      "packages/connectors/analytics/analytics-connector/src/widget-tools.ts",
-      "packages/connectors/analytics/analytics-connector/src/widget-tools/**",
       "packages/connectors/engine/engine-connector/src/widget-tools.ts",
       "packages/connectors/engine/engine-connector/src/widget-tools/**",
     ],

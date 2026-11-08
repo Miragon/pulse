@@ -168,7 +168,7 @@ describe("EngineHealthVerdict (fixture render)", () => {
     const prompts = actions.flatMap((a) => (a.type === "sendFollowUp" ? [a.prompt] : []))
     expect(prompts).toHaveLength(1)
     expect(prompts[0]).toContain('Ids: engine="default"')
-    expect(prompts[0]).not.toMatch(/\b(engine|analytics)_[a-z0-9_]+/)
+    expect(prompts[0]).not.toMatch(/\bengine_[a-z0-9_]+/)
     queryClient.setQueryDefaults(["engine-widget-actions"], {})
   })
 

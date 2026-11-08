@@ -148,7 +148,7 @@ describe("ENGINE_REQUEST_TIMEOUT_MS", () => {
   })
 })
 
-/** The id is the join key against `engine_id`: a mismatch makes engine-scoped analytics empty, not failing. */
+/** The id is the per-call `engine` selector, the name the cockpit shows and the id the hand-offs name. */
 describe("engineModule.configFromEnv engine ids", () => {
   const enginesOf = (env: NodeJS.ProcessEnv) =>
     engineModule.configFromEnv(env).engines as Array<{ id: string; baseUrl: string }>
@@ -268,14 +268,15 @@ describe("engineModule.configFromEnv environment-map form", () => {
   })
 })
 
-/** Zero-config reaches a local CIB seven while analytics silently return empty: the warning is the only signal. */
+/** Zero-config reaches a local CIB seven on the fallback URL: the warning is the only signal of where. */
 describe("engineModule.bootWarnings", () => {
   it("warns on a fully unconfigured environment, naming the fallback URL and id", () => {
     const warnings = engineModule.bootWarnings({})
     expect(warnings).toHaveLength(1)
     expect(warnings[0]).toContain("http://localhost:8410/engine-rest")
     expect(warnings[0]).toContain('engine id "default"')
-    expect(warnings[0]).toContain("ENGINE_ID")
+    // No metrics label joins the id any more: the warning sends no one to match it.
+    expect(warnings[0]).not.toMatch(/analytics|metrics|engine_id|stamps/)
   })
 
   // The warning ships to every server built on the package, a starter's too: it names the two
@@ -284,7 +285,6 @@ describe("engineModule.bootWarnings", () => {
     const [warning] = engineModule.bootWarnings({})
     expect(warning).toContain("the Pulse starter's compose.yaml (Miragon/pulse-starter)")
     expect(warning).toContain("the Pulse playground (Miragon/pulse)")
-    expect(warning).toContain('the playground\'s engine stamps "prod-a"')
     // A zero-config boot sends no login, which the starter's engine refuses with 401.
     expect(warning).toContain("the starter's asks for a login (ENGINE_AUTH_TYPE=basic, demo/demo)")
     expect(warning).not.toMatch(/the repo's/i)
@@ -437,7 +437,7 @@ describe("engineConfigSchema auth validation", () => {
     ).not.toThrow()
   })
 
-  it("rejects duplicate engine ids across environments: the id stays the flat join key", () => {
+  it("rejects duplicate engine ids across environments: the id stays the flat `engine` selector", () => {
     expect(() =>
       engineConfigSchema.parse({
         engines: [

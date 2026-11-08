@@ -29,19 +29,19 @@ describe("the boot refuses a setting it cannot use, before it logs the toolsets"
       "ENGINE_BASE_URL: Expected an http:// or https:// URL of the REST API root, e.g. http://localhost:8410/engine-rest",
     ],
     [
-      "a Prometheus URL without a scheme",
-      { PROMETHEUS_URL: "localhost:8460" },
-      "PROMETHEUS_URL must be an http:// or https:// URL, e.g. http://localhost:9090",
-    ],
-    [
       "an unknown module",
       { MCP_ACTIVE_MODULES: "engines:operations,analytic" },
-      '[pulse] MCP_ACTIVE_MODULES names the unknown modules "engines", "analytic", so the server does not start without the modules it asks for. Known modules: engine, analytics.',
+      '[pulse] MCP_ACTIVE_MODULES names the unknown modules "engines", "analytic", so the server does not start without the modules it asks for. Known modules: engine.',
+    ],
+    [
+      "the analytics module, gone with Prometheus, unknown like any other",
+      { MCP_ACTIVE_MODULES: "engine:operations,analytics" },
+      '[pulse] MCP_ACTIVE_MODULES names an unknown module "analytics", so the server does not start without the module it asks for. Known modules: engine.',
     ],
     [
       "the name the engine module carried up to 0.24, unknown like any other",
-      { MCP_ACTIVE_MODULES: "camunda7:operations,analytics" },
-      '[pulse] MCP_ACTIVE_MODULES names an unknown module "camunda7", so the server does not start without the module it asks for. Known modules: engine, analytics.',
+      { MCP_ACTIVE_MODULES: "camunda7:operations" },
+      '[pulse] MCP_ACTIVE_MODULES names an unknown module "camunda7", so the server does not start without the module it asks for. Known modules: engine.',
     ],
   ])("%s", async (_case, env, message) => {
     const info = vi.spyOn(console, "info").mockImplementation(() => {})
@@ -94,7 +94,7 @@ describe("the entry prints a refused setting as one line and exits 1", () => {
     stubNeutralEnv({ MCP_ACTIVE_MODULES: "engines" })
     await expect(import("../src/index.js")).rejects.toThrow("process.exit(1)")
     expect(written).toEqual([
-      '[pulse] The server did not start: MCP_ACTIVE_MODULES names an unknown module "engines", so the server does not start without the module it asks for. Known modules: engine, analytics.\n',
+      '[pulse] The server did not start: MCP_ACTIVE_MODULES names an unknown module "engines", so the server does not start without the module it asks for. Known modules: engine.\n',
     ])
     expect(exit).toHaveBeenCalledExactlyOnceWith(1)
     expect(info).not.toHaveBeenCalled()

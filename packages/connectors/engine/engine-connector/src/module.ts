@@ -2,12 +2,10 @@ import fs from "node:fs"
 import path from "node:path"
 import { z } from "zod"
 import type { ModulePlugin } from "@miragon/pulse-widget-shell/server"
-import { createConfiguredEngineRegistry, createPlugin } from "./plugin.js"
+import { createPlugin } from "./plugin.js"
 import { DEFAULT_ENGINE_FLAVOR } from "./providers/index.js"
 import { engineToolsets } from "./lib/mcp/toolsets.js"
 import { engineInstructions } from "./instructions.js"
-import { fetchLatestDefinitionXml } from "./data/definition-info.js"
-import { type EngineRegistry, resolveEngine } from "./lib/engine/resolve-engine.js"
 import {
   engineConfigErrorText,
   listOrigin,
@@ -47,7 +45,7 @@ const engineSchema = z.object({
     ". A login goes into ENGINE_AUTH_TYPE with ENGINE_USERNAME and ENGINE_PASSWORD, or into the entry's `auth`",
   ),
   cockpitUrl: httpUrl("").optional(),
-  /** A picker grouping only: `id` stays the flat join key against the metrics' `engine_id`. */
+  /** A picker grouping only: `id` stays the flat, globally unique `engine` selector. */
   environment: z
     .string()
     .min(1)
@@ -135,7 +133,7 @@ export const engineConfigSchema = z
   .refine((c) => new Set(c.engines.map((e) => e.id)).size === c.engines.length, {
     path: ["engines"],
     message:
-      "Engine ids must be unique across all environments: the id is the per-call `engine` selector and the join key against the metrics' engine_id label",
+      "Engine ids must be unique across all environments: the id is the per-call `engine` selector",
   })
   // No quotes around the ids: ZodError.message is the issues JSON, which would escape them.
   .superRefine((c, issues) => {
@@ -248,8 +246,8 @@ function passthroughEngineIds(env: NodeJS.ProcessEnv): string[] {
 
 /**
  * Precedence: ENGINES_FILE > ENGINES_JSON > ENGINE_BASE_URL > the local default engine.
- * ENGINE_ID exists because the id is the join key against the metrics'
- * `engine_id`: a mismatch reads as "no data", not as a config error.
+ * ENGINE_ID names the shorthand's engine: the `engine` selector, the name the cockpit shows and
+ * the id the hand-offs name.
  */
 function loadEngineSource(env: NodeJS.ProcessEnv): EngineSource {
   const filePath = env.ENGINES_FILE?.trim()
@@ -417,7 +415,7 @@ export const engineModule = {
       const id = env.ENGINE_ID?.trim() || "default"
       const flavor = engineFlavorFromEnv(env) ?? DEFAULT_ENGINE_FLAVOR
       warnings.push(
-        `No engine is configured (ENGINES_FILE / ENGINES_JSON / ENGINE_BASE_URL): defaulting to http://localhost:8410/engine-rest with engine id "${id}", where the Pulse starter's compose.yaml (Miragon/pulse-starter) and the Pulse playground (Miragon/pulse) serve their engine. That id is the join key against the metrics' engine_id label: engine-scoped analytics return empty when it does not match the ENGINE_ID the engine stamps (the playground's engine stamps "prod-a"; set ENGINE_ID to match). Its cockpit links and name follow flavor "${flavor}"; both of those engines are CIB seven (ENGINE_FLAVOR=cibseven), and the starter's asks for a login (ENGINE_AUTH_TYPE=basic, demo/demo).`,
+        `No engine is configured (ENGINES_FILE / ENGINES_JSON / ENGINE_BASE_URL): defaulting to http://localhost:8410/engine-rest with engine id "${id}", where the Pulse starter's compose.yaml (Miragon/pulse-starter) and the Pulse playground (Miragon/pulse) serve their engine. Its cockpit links and name follow flavor "${flavor}"; both of those engines are CIB seven (ENGINE_FLAVOR=cibseven), and the starter's asks for a login (ENGINE_AUTH_TYPE=basic, demo/demo).`,
       )
     }
     const passthrough = passthroughEngineIds(env)
@@ -444,37 +442,6 @@ export const engineModule = {
   },
 
   createPlugin(config: Record<string, unknown>): ModulePlugin {
-    return createPlugin(engineConfigSchema.parse(config), registryOf(config))
+    return createPlugin(engineConfigSchema.parse(config))
   },
-}
-
-/**
- * The module's engine registry for one boot config: the boot hands the same config object
- * (`ModuleEntry.config`) to `sharedResources` and to `createPlugin`, so the tools and the BPMN
- * lookup below run on the same clients and share `definition-xml.ts`'s cache.
- */
-const registries = new WeakMap<Record<string, unknown>, EngineRegistry>()
-
-function registryOf(config: Record<string, unknown>): EngineRegistry {
-  let registry = registries.get(config)
-  if (!registry) {
-    registry = createConfiguredEngineRegistry(engineConfigSchema.parse(config))
-    registries.set(config, registry)
-  }
-  return registry
-}
-
-/**
- * Lets analytics read BPMN XML without the engine SDK. The engine is picked by the tools' one
- * precedence (`resolveEngine`): the named `engineId`, else `ENGINE_DEFAULT`, else the only
- * configured engine, else it rejects with `ENGINE_NOT_SELECTED`; an unknown id rejects too.
- * `null` means not deployed; a failed read REJECTS, so a failure never reads as "not deployed".
- * It runs on the module's own clients for this config (the tools' registry and XML cache).
- */
-export function createBpmnXmlFetcher(
-  config: Record<string, unknown>,
-): ((processDefinitionKey: string, engineId?: string) => Promise<string | null>) | undefined {
-  const registry = registryOf(config)
-  return async (processDefinitionKey, engineId) =>
-    fetchLatestDefinitionXml(resolveEngine(engineId, registry).client, processDefinitionKey)
 }

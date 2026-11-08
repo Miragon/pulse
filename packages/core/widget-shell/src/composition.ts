@@ -228,7 +228,7 @@ export function composeModules<TShared>(options: {
         .map((entry) => registry[entry.app].createPlugin(entry.config, shared))
     },
     warnUnknownEnvVars(env = process.env) {
-      // `<KNOWN_VAR>_*` (PROMETHEUS_PASSWORD_FILE, …) addresses OTHER processes, never a typo.
+      // `<KNOWN_VAR>_*` (ENGINE_PASSWORD_FILE, …) addresses OTHER processes, never a typo.
       const extendsKnownVar = (name: string) =>
         [...knownEnvVars].some((knownName) => name.startsWith(`${knownName}_`))
       const unknown = Object.keys(env).filter(

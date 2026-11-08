@@ -33,7 +33,7 @@ For a new issue:
 
 - Extract the issue type (`feature`, `bug`, `refactor`) from `$ARGUMENTS`; if missing, ask the user.
 - For `feature`: understand the desired behaviour and why it is needed.
-- For `bug`: understand the current vs. expected behaviour and reproduction steps; ask about server version, affected module (engine/analytics/core/ui), and process engine (Camunda 7/CIB seven) if relevant.
+- For `bug`: understand the current vs. expected behaviour and reproduction steps; ask about server version, affected module (engine/core/ui), and process engine (Camunda 7/CIB seven) if relevant.
 - For `refactor`: understand the scope, motivation, and target state.
 
 For an issue that needs to be updated:

@@ -15,7 +15,7 @@ guidelines.
 
 ### Name
 
-**Pulse**, the name of Miragon's process analytics and operations for the Camunda 7
+**Pulse**, the name of Miragon's process operations for the Camunda 7
 family ([Miragon/pulse](https://github.com/Miragon/pulse), an MCP server). Same engines, same
 questions, another surface: this extension is Pulse inside VS Code. The Marketplace shows
 "Miragon Pulse" because the bare name is crowded there. Not "Operate" (Camunda 8's app and

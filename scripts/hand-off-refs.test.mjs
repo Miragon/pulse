@@ -57,8 +57,8 @@ describe("hand-offs go through the one primitive", () => {
     )
   })
 
-  // A view's description function (the analytics `describe*`) is held to the same rule: every
-  // return hands back modelContextText(…).
+  // A view's description function (a `describe*`) is held to the same rule: every return hands
+  // back modelContextText(…).
   it("every HostModelContext text is assembled by modelContextText, never written in place", () => {
     const contents = scanSources(findModelContextContents)
     const functions = scanSources(findContextFunctions)
@@ -78,12 +78,10 @@ describe("hand-offs go through the one primitive", () => {
       "Build the text with useHandOff().context(…), modelContextText(…) or a function " +
         "whose every return is modelContextText(…) (a name declared twice cannot be resolved).",
     )
-    // The scanner is not blind: the cockpit and the detail views.
+    // The scanner is not blind: the cockpit and the detail views. No view of the tree describes
+    // itself through a function today (the analytics heatmap did); the readers' own cases below
+    // keep that branch proven.
     assert.ok(contents.length >= 12, `${contents.length} model contexts`)
-    // Nor blind to the description functions: the heatmap describes itself. The floor is pinned
-    // at the post-cut count: cut 6 removed the failure dashboard, the comparison/dashboard
-    // descriptions and nine analytics tools.
-    assert.ok(contents.filter((c) => c.callee !== null && describes(c.callee)).length >= 1)
   })
 })
 
@@ -91,10 +89,10 @@ describe("every hand-off names no tool", () => {
   const specs = scanSources(findHandOffSpecs)
 
   // The hand-off floor is pinned at the post-cut count: cut 7 removed the BPMN viewer's and the
-  // process list's hand-offs with their views, and the cross-engine overview's performance
-  // hand-off went with the analytics landscape it asked about.
+  // process list's hand-offs with their views, the cross-engine overview's performance hand-off
+  // went with the analytics landscape it asked about, and the analytics views took theirs along.
   it("finds the specs (the scanner is not blind)", () => {
-    assert.ok(specs.filter((s) => s.kind === "hand-off").length >= 29)
+    assert.ok(specs.filter((s) => s.kind === "hand-off").length >= 23)
     assert.ok(specs.filter((s) => s.kind === "context").length >= 12)
   })
 
@@ -124,9 +122,7 @@ describe("every hand-off names no tool", () => {
   it("no prose sends the model to an app-only feed", () => {
     const appOnly = appOnlyFeeds()
     assert.ok(appOnly.size >= 10, `${appOnly.size} app-only feeds`)
-    const prose = scanSources((file, text) =>
-      findProseToolNames(file, text, ["engine", "analytics"]),
-    )
+    const prose = scanSources((file, text) => findProseToolNames(file, text, ["engine"]))
     assert.ok(prose.length >= 20, "the scanner is not blind")
     assert.deepEqual(
       prose.filter((ref) => appOnly.has(ref.name)).map((ref) => `${ref.name} (${ref.at})`),
@@ -148,12 +144,6 @@ describe("the hand-off readers", () => {
     // A bare feed constant is plumbing, not prose; a family wildcard names no tool.
     assert.deepEqual(findProseToolNames("x.ts", 'const F = "engine_jobs_data"', ["engine"]), [])
     assert.deepEqual(toolNamesIn("history (engine_query_historic_*) covers", ["engine"]), [])
-  })
-
-  it("read no metric name or label as a tool, and every other engine_ token as one", () => {
-    const text =
-      "sum by (engine_id) (engine_jobs_failed) next to engine_jobs_faild and engine_stale_data"
-    assert.deepEqual(toolNamesIn(text, ["engine"]), ["engine_jobs_faild", "engine_stale_data"])
   })
 
   it("find a raw follow-up and a hand-written model context", () => {
@@ -207,7 +197,7 @@ describe("the hand-off readers", () => {
       'const a = { summary: LEAD + (x ? " Retry." : ""), ids: { engine } }',
       "const b = { summary: `Viewing ${engine}` }",
       'const c = { summary: "Act via engine_delete_process_instance" }',
-      'const d = { summary: "s", facts: { hint: "use analytics_x" } }',
+      'const d = { summary: "s", facts: { hint: "use engine_x" } }',
       'const e = { intent: "k", ids: { tool: "engine_list_jobs" } }',
     ].join("\n")
     assert.deepEqual(
@@ -216,7 +206,7 @@ describe("the hand-off readers", () => {
         [true, []],
         [false, []],
         [true, ["engine_delete_process_instance"]],
-        [true, ["analytics_x"]],
+        [true, ["engine_x"]],
         [true, ["engine_list_jobs"]],
       ],
     )
@@ -226,7 +216,7 @@ describe("the hand-off readers", () => {
     const text = [
       "export const good = (d) => modelContextText({ summary: 's', ids: { engine } })",
       "export function mixed(d) { if (d) return modelContextText(x); return `Viewing ${d}` }",
-      "export const bad = (d) => `Viewing ${d.key}. Drill with analytics_x.`",
+      "export const bad = (d) => `Viewing ${d.key}. Drill with engine_x.`",
       "const a = <HostModelContext content={good(data)}><A /></HostModelContext>",
       "const b = <HostModelContext content={`x`}>{null}</HostModelContext>",
     ].join("\n")

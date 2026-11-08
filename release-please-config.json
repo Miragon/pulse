@@ -30,11 +30,6 @@
         },
         {
           "type": "json",
-          "path": "packages/connectors/analytics/analytics-client/package.json",
-          "jsonpath": "$.version"
-        },
-        {
-          "type": "json",
           "path": "packages/connectors/engine/engine-core/package.json",
           "jsonpath": "$.version"
         },
@@ -52,16 +47,6 @@
           "type": "json",
           "path": "packages/connectors/engine/engine-connector/package.json",
           "jsonpath": "$.version"
-        },
-        {
-          "type": "json",
-          "path": "packages/connectors/analytics/analytics-connector/package.json",
-          "jsonpath": "$.version"
-        },
-        {
-          "type": "json",
-          "path": "templates/composed-server/server/package.json",
-          "jsonpath": "$.dependencies['@miragon/pulse-analytics-connector']"
         },
         {
           "type": "json",

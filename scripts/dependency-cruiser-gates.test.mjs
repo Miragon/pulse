@@ -40,10 +40,11 @@ const UI = "packages/core/ui"
 const ENGINE = "packages/connectors/engine/engine-core"
 const ENGINE_CLIENT = "packages/connectors/engine/engine-client"
 const ENGINE_CONNECTOR = "packages/connectors/engine/engine-connector"
-const AN_CLIENT = "packages/connectors/analytics/analytics-client"
-const AN_CONNECTOR = "packages/connectors/analytics/analytics-connector"
-// No such package exists: a second family's core proves the core rules key on the role.
-const AN_CORE = "packages/connectors/analytics/analytics-core"
+// No such family exists: a second family's client, connector and core prove the family rules
+// key on the roles.
+const BILLING_CLIENT = "packages/connectors/billing/billing-client"
+const BILLING_CONNECTOR = "packages/connectors/billing/billing-connector"
+const BILLING_CORE = "packages/connectors/billing/billing-core"
 
 const WORKSPACE = {
   [SERVER]: { name: "@miragon/pulse-mcp-server", private: true },
@@ -54,9 +55,9 @@ const WORKSPACE = {
   [ENGINE]: { name: "@miragon/pulse-engine-core" },
   [ENGINE_CLIENT]: { name: "@miragon/pulse-engine-client" },
   [ENGINE_CONNECTOR]: { name: "@miragon/pulse-engine-connector" },
-  [AN_CLIENT]: { name: "@miragon/pulse-analytics-client" },
-  [AN_CONNECTOR]: { name: "@miragon/pulse-analytics-connector" },
-  [AN_CORE]: { name: "@miragon/pulse-analytics-core" },
+  [BILLING_CLIENT]: { name: "@miragon/pulse-billing-client" },
+  [BILLING_CONNECTOR]: { name: "@miragon/pulse-billing-connector" },
+  [BILLING_CORE]: { name: "@miragon/pulse-billing-core" },
 }
 
 // Third-party stubs installed into every importer's own node_modules. `vscode` is left out
@@ -143,11 +144,11 @@ const SHELL_SRC = `${SHELL}/src/index.ts`
 const UI_SRC = `${UI}/src/index.ts`
 const ENGINE_SRC = `${ENGINE}/src/index.ts`
 const ENGINE_CORE = "@miragon/pulse-engine-core"
-const AN_CORE_NAME = "@miragon/pulse-analytics-core"
-const AN_CORE_SRC = `${AN_CORE}/src/index.ts`
+const BILLING_CORE_NAME = "@miragon/pulse-billing-core"
+const BILLING_CORE_SRC = `${BILLING_CORE}/src/index.ts`
 const ENGINE_CLIENT_SRC = `${ENGINE_CLIENT}/src/index.ts`
 const ENGINE_CONNECTOR_SRC = `${ENGINE_CONNECTOR}/src/index.ts`
-const AN_CONNECTOR_SRC = `${AN_CONNECTOR}/src/index.ts`
+const BILLING_CONNECTOR_SRC = `${BILLING_CONNECTOR}/src/index.ts`
 
 // Leaf modules the relative escapes point at. They import nothing, so no probe forms a cycle
 // unless a case plants one on purpose.
@@ -185,8 +186,8 @@ const LEAVES = [
   `${ENGINE}/src/target.ts`,
   `${ENGINE}/src/lib.ts`,
   `${ENGINE}/src/testing/fixture.ts`,
-  `${AN_CORE}/src/lib.ts`,
-  `${AN_CORE}/src/a.test.ts`,
+  `${BILLING_CORE}/src/lib.ts`,
+  `${BILLING_CORE}/src/a.test.ts`,
   `${ENGINE_CLIENT}/src/target.ts`,
   `${ENGINE_CLIENT}/src/lib.ts`,
   `${ENGINE_CLIENT}/src/x-connector/y.ts`,
@@ -219,14 +220,14 @@ const LEAVES = [
   `${ENGINE_CONNECTOR}/src/tool-names.ts`,
   `${ENGINE_CONNECTOR}/src/messages/use-t.ts`,
   `${ENGINE_CONNECTOR}/src/widgets/lib/engine-action.ts`,
-  `${AN_CONNECTOR}/src/tools/target.ts`,
-  `${AN_CONNECTOR}/src/bpmn-names.ts`,
-  `${AN_CONNECTOR}/src/instructions.ts`,
-  `${AN_CONNECTOR}/src/summary.ts`,
-  `${AN_CONNECTOR}/src/lib/engine/target.ts`,
-  `${AN_CONNECTOR}/src/widget-tools.ts`,
-  `${AN_CONNECTOR}/src/plugin.ts`,
-  `${AN_CONNECTOR}/src/lib/shared/environments.ts`,
+  `${BILLING_CONNECTOR}/src/tools/target.ts`,
+  `${BILLING_CONNECTOR}/src/bpmn-names.ts`,
+  `${BILLING_CONNECTOR}/src/instructions.ts`,
+  `${BILLING_CONNECTOR}/src/summary.ts`,
+  `${BILLING_CONNECTOR}/src/lib/engine/target.ts`,
+  `${BILLING_CONNECTOR}/src/widget-tools.ts`,
+  `${BILLING_CONNECTOR}/src/plugin.ts`,
+  `${BILLING_CONNECTOR}/src/lib/shared/environments.ts`,
 ]
 const JSON_LEAVES = [`${CLI}/src/generated/commands.json`, `${CLI}/src/generated/catalog.a.json`]
 
@@ -296,7 +297,7 @@ const SUITES = [
         [HEADLESS, DEEP],
       ],
       // It names the one core the CLI bundles: another family's core stays a violation.
-      [`${CLI}/src/workflow/other-core.ts`, AN_CORE_NAME, [HEADLESS]],
+      [`${CLI}/src/workflow/other-core.ts`, BILLING_CORE_NAME, [HEADLESS]],
     ],
   },
   {
@@ -306,7 +307,7 @@ const SUITES = [
       [ENGINE_SRC, "@miragon/pulse-engine-client", [CORE_LEAF]],
       // engine-core and the engine family share the stem: the family stays out of the leaf.
       [ENGINE_SRC, "@miragon/pulse-engine-connector", [CORE_LEAF]],
-      [ENGINE_SRC, AN_CORE_NAME, [CORE_LEAF]],
+      [ENGINE_SRC, BILLING_CORE_NAME, [CORE_LEAF]],
       [ENGINE_SRC, "@miragon/pulse-ui", [CORE_LEAF]],
       [ENGINE_SRC, "@miragon/pulse-widget-shell/server", [CORE_LEAF]],
       [ENGINE_SRC, "@miragon/pulse-cli", [NO_APP, CORE_LEAF]],
@@ -326,9 +327,9 @@ const SUITES = [
       [ENGINE_SRC, "./lib.ts", []],
       [`${ENGINE}/src/a.test.ts`, "vitest", []],
       // Keyed on the role: any family's core is a leaf, by the layout alone.
-      [AN_CORE_SRC, "@miragon/pulse-analytics-client", [CORE_LEAF]],
-      [AN_CORE_SRC, "zod", [CORE_LEAF]],
-      [AN_CORE_SRC, "./lib.ts", []],
+      [BILLING_CORE_SRC, "@miragon/pulse-billing-client", [CORE_LEAF]],
+      [BILLING_CORE_SRC, "zod", [CORE_LEAF]],
+      [BILLING_CORE_SRC, "./lib.ts", []],
     ],
   },
   {
@@ -336,7 +337,7 @@ const SUITES = [
     title: "a family core is imported by its family's connector and the apps that bundle it",
     cases: [
       [SERVER_SRC, ENGINE_CORE, [CORE_USERS]],
-      [SERVER_SRC, AN_CORE_NAME, [CORE_USERS]],
+      [SERVER_SRC, BILLING_CORE_NAME, [CORE_USERS]],
       [EXT_SRC, ENGINE_CORE, [CORE_USERS]],
       [
         `${SERVER}/src/escape-core.ts`,
@@ -344,10 +345,10 @@ const SUITES = [
         [CORE_USERS, DEEP],
       ],
       // The other packages answer to their own rule, each edge to exactly one.
-      [AN_CONNECTOR_SRC, ENGINE_CORE, [OWN_FAMILY]],
-      [ENGINE_CONNECTOR_SRC, AN_CORE_NAME, [OWN_FAMILY]],
+      [BILLING_CONNECTOR_SRC, ENGINE_CORE, [OWN_FAMILY]],
+      [ENGINE_CONNECTOR_SRC, BILLING_CORE_NAME, [OWN_FAMILY]],
       [SHELL_SRC, ENGINE_CORE, [CORE]],
-      [SHELL_SRC, AN_CORE_NAME, [CORE]],
+      [SHELL_SRC, BILLING_CORE_NAME, [CORE]],
       [UI_SRC, ENGINE_CORE, [CORE, UI_LEAF]],
       [ENGINE_CLIENT_SRC, ENGINE_CORE, [CLIENT_LEAF]],
       [ENGINE_CLIENT_SRC, `${ENGINE_CORE}/testing`, [CLIENT_LEAF, NO_TESTING]],
@@ -366,7 +367,7 @@ const SUITES = [
       [`${EXT}/src/adapters/c7/inspect.ts`, ENGINE_CORE, []],
       [`${EXT}/src/adapters/c7/engine-rest/inspect/port.ts`, ENGINE_CORE, []],
       [ENGINE_CONNECTOR_SRC, ENGINE_CORE, []],
-      [AN_CONNECTOR_SRC, AN_CORE_NAME, []],
+      [BILLING_CONNECTOR_SRC, BILLING_CORE_NAME, []],
       [`${CLI}/src/workflow/inspect.ts`, ENGINE_CORE, []],
       [`${CLI}/src/engine-port/port.ts`, ENGINE_CORE, [], "type"],
       // The types-only rule of the engine port still bites on the new package.
@@ -390,7 +391,7 @@ const SUITES = [
       [`${CLI}/scripts/core.ts`, ENGINE_CORE, [CLI_CORE_LAYERS]],
       [CLI_SRC, `${ENGINE_CORE}/testing`, [CLI_CORE_LAYERS, NO_TESTING]],
       // Another family's core is cli-is-headless's alone.
-      [`${CLI}/src/cli/other-core.ts`, AN_CORE_NAME, [HEADLESS]],
+      [`${CLI}/src/cli/other-core.ts`, BILLING_CORE_NAME, [HEADLESS]],
       [`${CLI}/src/f.test.ts`, ENGINE_CORE, []],
     ],
   },
@@ -408,7 +409,7 @@ const SUITES = [
       // pulse-ui/testing reads files and parses TypeScript: no shipped module imports it.
       [`${SHELL}/src/ui/brand.ts`, "@miragon/pulse-ui/testing", [NO_TESTING]],
       [`${SERVER}/src/ui/brand.ts`, "@miragon/pulse-ui/testing", [NO_TESTING]],
-      [`${AN_CONNECTOR}/src/widgets/brand.ts`, "@miragon/pulse-ui/testing", [NO_TESTING]],
+      [`${BILLING_CONNECTOR}/src/widgets/brand.ts`, "@miragon/pulse-ui/testing", [NO_TESTING]],
       [`${EXT}/src/brand.ts`, "@miragon/pulse-ui/testing", [NO_TESTING]],
       // A package's own testing tree, by relative path.
       [ENGINE_SRC, "./testing/fixture.ts", [NO_TESTING]],
@@ -460,7 +461,7 @@ const SUITES = [
       [SERVER_SRC, "@miragon/pulse-widget-shell", []],
       [SERVER_SRC, "@miragon/pulse-widget-shell/server", []],
       [SERVER_SRC, "@miragon/pulse-engine-connector", []],
-      [SERVER_SRC, "@miragon/pulse-analytics-connector", []],
+      [SERVER_SRC, "@miragon/pulse-billing-connector", []],
       [SERVER_SRC, "react", []],
       [SERVER_SRC, "zod", []],
       [SERVER_SRC, "@modelcontextprotocol/server", []],
@@ -496,7 +497,7 @@ const SUITES = [
     title: "packages/core reaches up into no connector, client or app",
     cases: [
       [SHELL_SRC, "@miragon/pulse-engine-connector", [CORE]],
-      [SHELL_SRC, "@miragon/pulse-analytics-client", [CORE]],
+      [SHELL_SRC, "@miragon/pulse-billing-client", [CORE]],
       // React and the kit are the view half's (the server half is widget-shell-server-headless's).
       [`${SHELL}/src/ui/view.ts`, "react", []],
       [SHELL_SRC, "zod", []],
@@ -513,7 +514,7 @@ const SUITES = [
       [UI_SRC, "@miragon/pulse-widget-shell", [UI_LEAF]],
       [UI_SRC, "@miragon/pulse-widget-shell/widgets", [UI_LEAF]],
       [UI_SRC, "@miragon/pulse-engine-connector", [CORE, UI_LEAF]],
-      [UI_SRC, "@miragon/pulse-analytics-client", [CORE, UI_LEAF]],
+      [UI_SRC, "@miragon/pulse-billing-client", [CORE, UI_LEAF]],
       // A scoped app name is a workspace package name as well: the leaf rule bites with the app rule.
       [UI_SRC, "@miragon/pulse-mcp-server", [NO_APP, UI_LEAF]],
       ...[
@@ -661,13 +662,13 @@ const SUITES = [
       ].map((spec) => [`${ENGINE_CONNECTOR}/src/widgets/host.tsx`, spec, [EXT_APPS]]),
       // What ESLint's no-restricted-imports does not see: a dynamic import(); and a type alone.
       [
-        `${AN_CONNECTOR}/src/widgets/dynamic-host.tsx`,
+        `${BILLING_CONNECTOR}/src/widgets/dynamic-host.tsx`,
         "@modelcontextprotocol/ext-apps",
         [EXT_APPS],
         "dynamic",
       ],
       [
-        `${AN_CONNECTOR}/src/widgets/host-type.ts`,
+        `${BILLING_CONNECTOR}/src/widgets/host-type.ts`,
         "@modelcontextprotocol/ext-apps",
         [EXT_APPS],
         "type",
@@ -737,19 +738,19 @@ const SUITES = [
         "../../../../../core/widget-shell/src/composed-server.ts",
         [DEEP, WIDGETS_BROWSER],
       ],
-      [`${AN_CONNECTOR}/src/widgets/server-code.tsx`, "../tools/target.ts", [WIDGETS_BROWSER]],
+      [`${BILLING_CONNECTOR}/src/widgets/server-code.tsx`, "../tools/target.ts", [WIDGETS_BROWSER]],
       [
-        `${AN_CONNECTOR}/src/widgets/server-code.tsx`,
-        "@miragon/pulse-analytics-client",
+        `${BILLING_CONNECTOR}/src/widgets/server-code.tsx`,
+        "@miragon/pulse-billing-client",
         [WIDGETS_BROWSER],
       ],
-      [`${AN_CONNECTOR}/src/widgets/server-code.tsx`, "../instructions.ts", [WIDGETS_BROWSER]],
-      [`${AN_CONNECTOR}/src/widgets/server-code.tsx`, "../summary.ts", [WIDGETS_BROWSER]],
+      [`${BILLING_CONNECTOR}/src/widgets/server-code.tsx`, "../instructions.ts", [WIDGETS_BROWSER]],
+      [`${BILLING_CONNECTOR}/src/widgets/server-code.tsx`, "../summary.ts", [WIDGETS_BROWSER]],
       // No file is exempt by name any more: the shared folder is every connector's, by role.
-      [`${AN_CONNECTOR}/src/widgets/view.tsx`, "../lib/shared/environments.ts", []],
+      [`${BILLING_CONNECTOR}/src/widgets/view.tsx`, "../lib/shared/environments.ts", []],
       // Another family's client is no browser code either (and connectors-own-their-family's).
       [
-        `${AN_CONNECTOR}/src/widgets/engine-sdk.ts`,
+        `${BILLING_CONNECTOR}/src/widgets/engine-sdk.ts`,
         "@miragon/pulse-engine-client",
         [OWN_FAMILY, WIDGETS_BROWSER],
       ],
@@ -760,7 +761,7 @@ const SUITES = [
         "../feed-contracts.ts",
         "@miragon/pulse-engine-client",
       ].map((spec) => [`${ENGINE_CONNECTOR}/src/widgets/types.ts`, spec, [], "type"]),
-      [`${AN_CONNECTOR}/src/widgets/types.ts`, "@miragon/pulse-analytics-client", [], "type"],
+      [`${BILLING_CONNECTOR}/src/widgets/types.ts`, "@miragon/pulse-billing-client", [], "type"],
       // Allowed at runtime: the widgets' own modules, the shared words, names and view models, the
       // shared lib folder, widget-shell's view half and the view stack.
       ...[
@@ -777,7 +778,7 @@ const SUITES = [
         "lucide-react",
         "@tanstack/react-query",
       ].map((spec) => [`${ENGINE_CONNECTOR}/src/widgets/view.tsx`, spec, []]),
-      [`${AN_CONNECTOR}/src/widgets/view.tsx`, "../bpmn-names.ts", []],
+      [`${BILLING_CONNECTOR}/src/widgets/view.tsx`, "../bpmn-names.ts", []],
       // Tests and their test-support boot the plugin and fake the engine: exempt.
       [`${ENGINE_CONNECTOR}/src/widgets/views.test.tsx`, "../plugin.ts", []],
       [
@@ -848,7 +849,7 @@ const SUITES = [
       ],
       // Keyed on the role: any connector's widgets.
       [
-        `${AN_CONNECTOR}/src/widgets/server-lib.ts`,
+        `${BILLING_CONNECTOR}/src/widgets/server-lib.ts`,
         "../lib/engine/target.ts",
         [WIDGETS_BROWSER, WIDGETS_SHARED_LIB],
       ],
@@ -896,7 +897,7 @@ const SUITES = [
       [`${ENGINE_CONNECTOR}/src/data/root-up.ts`, "../plugin.ts", [POINT_DOWN]],
       [`${ENGINE_CONNECTOR}/src/data/root-up.ts`, "../module.ts", [POINT_DOWN]],
       [`${ENGINE_CONNECTOR}/src/lib/engine/root-up.ts`, "../../index.ts", [POINT_DOWN]],
-      [`${AN_CONNECTOR}/src/lib/engine/root-up.ts`, "../../plugin.ts", [POINT_DOWN]],
+      [`${BILLING_CONNECTOR}/src/lib/engine/root-up.ts`, "../../plugin.ts", [POINT_DOWN]],
       // ... and by the connector's own npm name, which reaches its root and its widgets.
       [`${ENGINE_CONNECTOR}/src/data/self.ts`, "@miragon/pulse-engine-connector", [POINT_DOWN]],
       [
@@ -905,8 +906,8 @@ const SUITES = [
         [POINT_DOWN],
       ],
       // Keyed on the role: any connector's data and lib.
-      [`${AN_CONNECTOR}/src/data/up.ts`, "../tools/target.ts", [POINT_DOWN]],
-      [`${AN_CONNECTOR}/src/lib/engine/up.ts`, "../../widget-tools.ts", [POINT_DOWN]],
+      [`${BILLING_CONNECTOR}/src/data/up.ts`, "../tools/target.ts", [POINT_DOWN]],
+      [`${BILLING_CONNECTOR}/src/lib/engine/up.ts`, "../../widget-tools.ts", [POINT_DOWN]],
       // Allowed: down and sideways, and every layer above may import these.
       [`${ENGINE_CONNECTOR}/src/data/down.ts`, "../lib/engine/with-engine.ts", []],
       [`${ENGINE_CONNECTOR}/src/data/down.ts`, "../view-models.ts", []],
@@ -928,8 +929,8 @@ const SUITES = [
     rule: PEERS,
     title: "connectors never import each other, also through their own node_modules",
     cases: [
-      [ENGINE_CONNECTOR_SRC, "@miragon/pulse-analytics-connector", [PEERS]],
-      [ENGINE_CONNECTOR_SRC, "@miragon/pulse-analytics-connector/widgets", [PEERS]],
+      [ENGINE_CONNECTOR_SRC, "@miragon/pulse-billing-connector", [PEERS]],
+      [ENGINE_CONNECTOR_SRC, "@miragon/pulse-billing-connector/widgets", [PEERS]],
       // The old pattern's reach stays: a client folder named like a connector is still caught.
       [
         `${ENGINE_CONNECTOR}/src/escape.ts`,
@@ -947,16 +948,16 @@ const SUITES = [
     rule: OWN_FAMILY,
     title: "a connector depends on its own family's client and core only",
     cases: [
-      [ENGINE_CONNECTOR_SRC, "@miragon/pulse-analytics-client", [OWN_FAMILY]],
-      [AN_CONNECTOR_SRC, "@miragon/pulse-engine-client/sdk", [OWN_FAMILY]],
-      [AN_CONNECTOR_SRC, "@miragon/pulse-engine-client", [OWN_FAMILY]],
-      [AN_CONNECTOR_SRC, `${ENGINE_CORE}/testing`, [OWN_FAMILY, NO_TESTING]],
+      [ENGINE_CONNECTOR_SRC, "@miragon/pulse-billing-client", [OWN_FAMILY]],
+      [BILLING_CONNECTOR_SRC, "@miragon/pulse-engine-client/sdk", [OWN_FAMILY]],
+      [BILLING_CONNECTOR_SRC, "@miragon/pulse-engine-client", [OWN_FAMILY]],
+      [BILLING_CONNECTOR_SRC, `${ENGINE_CORE}/testing`, [OWN_FAMILY, NO_TESTING]],
       [
-        `${AN_CONNECTOR}/src/escape-core.ts`,
+        `${BILLING_CONNECTOR}/src/escape-core.ts`,
         "../../../engine/engine-core/src/target.ts",
         [OWN_FAMILY, DEEP],
       ],
-      [AN_CONNECTOR_SRC, "@miragon/pulse-analytics-client", []],
+      [BILLING_CONNECTOR_SRC, "@miragon/pulse-billing-client", []],
     ],
   },
   {
@@ -964,7 +965,7 @@ const SUITES = [
     title: "clients are leaves, also for workspace packages in their own node_modules",
     cases: [
       [ENGINE_CLIENT_SRC, "@miragon/pulse-widget-shell", [CLIENT_LEAF]],
-      [ENGINE_CLIENT_SRC, "@miragon/pulse-analytics-client", [CLIENT_LEAF]],
+      [ENGINE_CLIENT_SRC, "@miragon/pulse-billing-client", [CLIENT_LEAF]],
       [ENGINE_CLIENT_SRC, "@miragon/pulse-engine-connector/widgets", [CLIENT_LEAF]],
       [
         `${ENGINE_CLIENT}/src/escape.ts`,
@@ -1020,8 +1021,8 @@ const SUITES = [
       [`${ENGINE}/src/type-cycle-a.ts`, "./type-cycle-b.ts", [CLI_CYCLE], "type"],
       [`${ENGINE}/src/type-cycle-b.ts`, "./type-cycle-a.ts", [CLI_CYCLE], "type"],
       // A core the CLI does not bundle is out of the CLI's rules: no-circular tolerates the type.
-      [`${AN_CORE}/src/type-cycle-a.ts`, "./type-cycle-b.ts", [], "type"],
-      [`${AN_CORE}/src/type-cycle-b.ts`, "./type-cycle-a.ts", [], "type"],
+      [`${BILLING_CORE}/src/type-cycle-a.ts`, "./type-cycle-b.ts", [], "type"],
+      [`${BILLING_CORE}/src/type-cycle-b.ts`, "./type-cycle-a.ts", [], "type"],
     ],
   },
   {
@@ -1041,7 +1042,7 @@ const SUITES = [
       [`${ENGINE}/src/testing/to-test.ts`, "../a.test.ts", [CLI_NOT_TEST]],
       [`${ENGINE}/src/c.test.ts`, "./a.test.ts", [CLI_NOT_TEST]],
       // A core the CLI does not bundle is out of the CLI's rules.
-      [`${AN_CORE}/src/to-test.ts`, "./a.test.ts", []],
+      [`${BILLING_CORE}/src/to-test.ts`, "./a.test.ts", []],
       // Each package's own tests only: the CLI's rule never reaches into the core's tree.
       [
         `${CLI}/src/to-engine-test.ts`,

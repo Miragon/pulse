@@ -11,14 +11,14 @@ conforming **structurally** to the server's port (the `ModuleDefinition` type
 in `server/src/setup.ts`). Your module never imports the server, and the
 server never reaches into your module. Modules are peers: they never import
 each other; anything shared goes through `@miragon/pulse-ui` (the design kit),
-`@miragon/pulse-widget-shell` or the app-wired `SharedResources`.
+`@miragon/pulse-widget-shell` or the server-wired `SharedResources` (today empty).
 
 **Reference implementation: `modules/mcp-notes`.** Copy it rather than
 inventing a new shape; every step below points at the file that shows the
 pattern. For patterns the notes module doesn't cover (toolsets, paged
-lists), the published Miragon modules ship their sources under
-`server/node_modules/@miragon/pulse-{engine,analytics}-connector/src/`
-(gitignored symlinks: search one package directory, not the repo root; see
+lists), the published engine module ships its sources under
+`server/node_modules/@miragon/pulse-engine-connector/src/`
+(a gitignored symlink: search that package directory, not the repo root; see
 `CLAUDE.md` → Reference code).
 
 **A module is for your other systems, not for the engine.** The engine
@@ -85,8 +85,8 @@ The contract, field by field (see `notesModule`):
 - `name`: the key used in `MCP_ACTIVE_MODULES` and the name of its plugin.
 - `configFromEnv(env)`: a **pure** env → raw-config mapping; no I/O, no
   `process.env` reads outside the argument. It may check the config and
-  throw one plain `Error` that names the variable, as the engine and
-  analytics modules do: a wrong setting then fails the boot before its
+  throw one plain `Error` that names the variable, as the engine module
+  does: a wrong setting then fails the boot before its
   `Toolsets:` line.
 - `knownEnvVars`: every env var your module reads. This feeds the server's
   boot-time typo warner, and each var contributes its prefix (`ACME_URL` →
@@ -110,11 +110,13 @@ The contract, field by field (see `notesModule`):
   plugins register and names both owners, and an input schema that would let an
   unknown key through. The toolset filter never sees a resource, so every client
   that reaches the server can read it: register one that only a wider toolset
-  may read inside that toolset's branch. `shared` is the app-wired cross-module resource bag; type the fields
-  you consume structurally (e.g. `fetchBpmnXml?: FetchBpmnXml`, as analytics
-  does) and tolerate their absence.
+  may read inside that toolset's branch. `shared` is the port for what the
+  modules of this server share, built by `sharedResources` in
+  `server/src/setup.ts`, which hands nothing through today: a field you add
+  to `SharedResources` there, your module types structurally on its side and
+  tolerates its absence.
 - Optional `bootWarnings(env)`: return actionable hints for misconfigured
-  deployments (see the analytics module's Prometheus-URL warning).
+  deployments (see the engine module's warning when no engine is configured).
 - Optional `instructions(config)`: a short snippet the
   server appends to its MCP `instructions` (the rules that hold for EVERY tool
   of your module: routing, argument conventions, which tool answers what), so
@@ -278,10 +280,7 @@ own module stands, take the example out in one change:
    `server/src/setup.ts` that names the deleted test.
 
 Then run Step 7's bar. The other guard tests follow `MODULES`, so they need no
-edit. The same holds for a Pulse module you leave out: dropping analytics is
-`analyticsModule` in `MODULES`, `analyticsViews` in `view-registry.ts`, its
-block in `.env.example` and its name in any `MCP_ACTIVE_MODULES` value that
-holds it.
+edit.
 
 ## Anti-patterns
 

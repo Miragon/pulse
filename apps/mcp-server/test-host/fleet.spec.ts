@@ -6,7 +6,7 @@ import { BROKEN_ENGINE, HEALTHY_ENGINE } from "./engines.js"
  * The cockpit's cross-engine overview in the BUILT bundle at the width a chat gives an inline
  * view (760 px), opened from the picker of the default deployment's two engines: the stub engine
  * and the one that answers every request with a 503. Its landscape is read from each engine's own
- * REST API (no Prometheus, no other module): the tables keep every column they promise in view
+ * REST API: the tables keep every column they promise in view
  * without widening the document, their column groups are headed, the engine that does not answer
  * says so in words and gets no column, and the view passes axe in light and dark.
  */

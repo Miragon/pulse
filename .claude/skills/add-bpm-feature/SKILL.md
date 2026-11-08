@@ -81,7 +81,7 @@ input schema that lets an unknown key through): an unknown key is a tool error l
 | Concept                  | Name                                                                                                                                                                                                                                                   |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Process definition       | `processDefinitionKey` (all versions), `processDefinitionId` (one version); never bare `key`                                                                                                                                                           |
-| Entity ids               | `<entity>Id`: `processInstanceId`, `deploymentId`, `jobId`, `activityId` (analytics too); never bare `id`, never `elementId`                                                                                                                           |
+| Entity ids               | `<entity>Id`: `processInstanceId`, `deploymentId`, `jobId`, `activityId`; never bare `id`, never `elementId`                                                                                                                                           |
 | Several values           | `<name>In`, an array (`processDefinitionKeyIn`); merged with the single form via `engineKeyList`                                                                                                                                                       |
 | User filter              | `assignee` (the user a task is assigned to); a write that sets a user takes `userId`                                                                                                                                                                   |
 | Business key / substring | `businessKey` exact, `businessKeyLike`/`nameLike` substring via `likeParam()`: `engineLike` wraps a `%`-less value                                                                                                                                     |
@@ -227,7 +227,7 @@ The pattern is `engine_inspect_process_instance` and `engine_status`
   count one cause with its `causeKeyOf`/`largestCause` and judge with its `engineVerdict`
   (`ok | warning | critical`) by the `ENGINE_HEALTH_*` thresholds (`pulse status`: the
   defaults), as `engine_status` and the cockpit's health route (`src/data/health-data.ts`)
-  do. Neither text names the other's verdict or an analytics tool.
+  do. Neither text names the other's verdict.
 
 `src/lib/` is split by job, and each helper goes into the folder of its job: `engine/`
 (routing: `resolveEngine`, `withEngine`, the cockpit links, passthrough auth), `core-adapter/`
@@ -327,15 +327,15 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   adds `engineTargetLines(t, engineId, useEngineEnvironment(engineId))`
   (`widgets/lib/engine-context.tsx`). Names before ids: the
   design kit's `NamedId` (`@miragon/pulse-ui`: an activity's or process's name, the
-  id a quiet mono line; the same look analytics uses), `InstanceLabel`
+  id a quiet mono line; the same look in every module), `InstanceLabel`
   (`widgets/lib/identity.tsx`: the business key, the UUID a copyable `IdText` chip; the
   words of `instanceName`); a drill passes the target's `label` so its breadcrumb reads
   the name. The builder reads names as enrichment (`fetchNamesByDefinition` with
   `processNameIn`/`elementNameIn`, `fetchDefinitionsById`, `fetchBusinessKeys`), every
   diagram name through widget-shell's `readBpmnNames`/`parseBpmnNames` (never a regex of your
-  own: analytics reads the same diagrams), and a view that shows the engine's definition
+  own: every view reads the same diagrams), and a view that shows the engine's definition
   name passes its rows through `nameUnnamedDefinitions` (a Modeler pool around an unnamed
-  process names it, as analytics does). A row keeps ONE deterministic action;
+  process names it, as in every view). A row keeps ONE deterministic action;
   its vendor link and chat hand-offs sit behind `MoreActions`, as `variant="menuitem"`
   entries (`HandOffButton`, `OpenInCockpitLink`); a confirmation names an instance with
   `instanceTargetLines` (business key, then short id)

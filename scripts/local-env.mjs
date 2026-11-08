@@ -116,7 +116,7 @@ const ENGINE_B = {
 
 /**
  * The MCP server's settings against the playground: the playground's public demo login, the
- * engine module alone (the playground runs no Prometheus), loopback only. `admin` widens the
+ * engine module, loopback only. `admin` widens the
  * toolset, `deploy` registers deployments, `auth` puts the server behind the playground's
  * Keycloak (.env.example, "Local playground"), with MCP_URL on localhost and the server's
  * `port`: OAuth needs it, and the realm stamps http://localhost:8400/mcp into every token's aud.

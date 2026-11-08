@@ -37,8 +37,8 @@ Pulse brings the engine to you instead:
   engine and an override per call.
 - **Safe by default.** The MCP server starts read-only, the CLI previews a change with `--dry-run`
   and asks before it deletes, and VS Code writes only to a local engine unless you allow more.
-- **Analytics without the engine database.** Process KPIs, bottlenecks and engine comparisons come
-  from Prometheus, fed by a small metrics plugin in the engine.
+- **Nothing to install in the engine.** Every figure comes from the engine's own REST API: no
+  plugin, no metrics store.
 - **Self-hosted and open.** One container image, public npm packages, MIT licensed.
 
 ## Get started
@@ -54,20 +54,18 @@ start one locally with `docker run -p 8080:8080 operaton/operaton:2.1.5`.
 
 ## What's in this repository
 
-| Path                                                                                                      | Package                              | Role                                                         |
-| --------------------------------------------------------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------ |
-| [`apps/mcp-server/`](apps/mcp-server)                                                                     | `ghcr.io/miragon/pulse-server`       | The MCP server: composes the modules, serves HTTP on `:8400` |
-| [`apps/cli/`](apps/cli)                                                                                   | `@miragon/pulse-cli`                 | The command line interface                                   |
-| [`apps/vscode/`](apps/vscode)                                                                             | `pulse-cockpit` (a .vsix)            | Pulse for VS Code                                            |
-| [`packages/connectors/engine/engine-connector/`](packages/connectors/engine/engine-connector)             | `@miragon/pulse-engine-connector`    | Operations tools and widgets for Camunda 7 engines           |
-| [`packages/connectors/analytics/analytics-connector/`](packages/connectors/analytics/analytics-connector) | `@miragon/pulse-analytics-connector` | Prometheus-backed analytics tools and dashboards             |
-| [`packages/connectors/engine/engine-client/`](packages/connectors/engine/engine-client)                   | `@miragon/pulse-engine-client`       | Typed REST SDK and client for the engine                     |
-| [`packages/connectors/engine/engine-core/`](packages/connectors/engine/engine-core)                       | `@miragon/pulse-engine-core`         | Camunda 7 workflow domain and pure engine REST rules         |
-| [`packages/connectors/analytics/analytics-client/`](packages/connectors/analytics/analytics-client)       | `@miragon/pulse-analytics-client`    | Prometheus client, PromQL queries and the metrics contract   |
-| [`packages/core/ui/`](packages/core/ui)                                                                   | `@miragon/pulse-ui`                  | Design kit for Pulse views and your own React UIs            |
-| [`packages/core/widget-shell/`](packages/core/widget-shell)                                               | `@miragon/pulse-widget-shell`        | View runtime and server boot for composed MCP servers        |
-| [`playground/`](playground)                                                                               | —                                    | Demo engine, Compose stack and the public playground         |
-| [`templates/composed-server/`](templates/composed-server)                                                 | `Miragon/pulse-starter`              | [Starter](docs/mcp/build-your-own.md) for your own server    |
+| Path                                                                                          | Package                           | Role                                                         |
+| --------------------------------------------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------ |
+| [`apps/mcp-server/`](apps/mcp-server)                                                         | `ghcr.io/miragon/pulse-server`    | The MCP server: composes the modules, serves HTTP on `:8400` |
+| [`apps/cli/`](apps/cli)                                                                       | `@miragon/pulse-cli`              | The command line interface                                   |
+| [`apps/vscode/`](apps/vscode)                                                                 | `pulse-cockpit` (a .vsix)         | Pulse for VS Code                                            |
+| [`packages/connectors/engine/engine-connector/`](packages/connectors/engine/engine-connector) | `@miragon/pulse-engine-connector` | Operations tools and widgets for Camunda 7 engines           |
+| [`packages/connectors/engine/engine-client/`](packages/connectors/engine/engine-client)       | `@miragon/pulse-engine-client`    | Typed REST SDK and client for the engine                     |
+| [`packages/connectors/engine/engine-core/`](packages/connectors/engine/engine-core)           | `@miragon/pulse-engine-core`      | Camunda 7 workflow domain and pure engine REST rules         |
+| [`packages/core/ui/`](packages/core/ui)                                                       | `@miragon/pulse-ui`               | Design kit for Pulse views and your own React UIs            |
+| [`packages/core/widget-shell/`](packages/core/widget-shell)                                   | `@miragon/pulse-widget-shell`     | View runtime and server boot for composed MCP servers        |
+| [`playground/`](playground)                                                                   | —                                 | Demo engine, Compose stack and the public playground         |
+| [`templates/composed-server/`](templates/composed-server)                                     | `Miragon/pulse-starter`           | [Starter](docs/mcp/build-your-own.md) for your own server    |
 
 ## Documentation
 

@@ -63,8 +63,7 @@ describe("the module list a copied .env starts with", () => {
     expect(listed.filter((name, i) => listed.indexOf(name) !== i)).toEqual([])
   })
 
-  // Analytics may stay out: compose.yaml runs no Prometheus for it to read.
-  it("names every other composed module (one it leaves out is off, its tools absent)", () => {
-    expect(composed.filter((name) => name !== "analytics" && !listed.includes(name))).toEqual([])
+  it("names every composed module (one it leaves out is off, its tools absent)", () => {
+    expect(composed.filter((name) => !listed.includes(name))).toEqual([])
   })
 })

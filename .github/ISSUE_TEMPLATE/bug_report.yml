@@ -60,7 +60,6 @@ body:
       label: Affected Module
       options:
         - engine
-        - analytics
         - core
         - ui
         - Other

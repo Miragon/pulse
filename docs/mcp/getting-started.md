@@ -33,12 +33,11 @@ Its Tools tab calls every tool, its Apps tab renders the widgets; it has no chat
 ## Run it on your own engine
 
 You need Docker and the REST API of a Camunda 7, CIB seven or Operaton engine. The server boots
-read-only, and `MCP_ACTIVE_MODULES=engine` leaves out analytics until you run Prometheus:
+read-only:
 
 ```sh
 docker run --rm -p 127.0.0.1:8400:8400 \
   -e ENGINE_BASE_URL=http://host.docker.internal:8080/engine-rest \
-  -e MCP_ACTIVE_MODULES=engine \
   ghcr.io/miragon/pulse-server:latest
 claude mcp add --transport http pulse http://localhost:8400/mcp
 ```
@@ -52,9 +51,7 @@ If the REST API needs a login, add `ENGINE_AUTH_TYPE=basic` with `ENGINE_USERNAM
 On Linux add `--add-host=host.docker.internal:host-gateway`; that name misses a port bound to
 `127.0.0.1`: join such an engine's network (`--network`) and use its service and container port.
 [Operations](operations.md) covers several engines, OAuth and the toolsets that
-allow writes. Analytics reads the metrics of the engine plugin
-`io.miragon.mcp:cibseven-history-metrics` from Prometheus, as [Architecture](architecture.md)
-shows; Pulse no longer builds the plugin, and 0.27.1 is its last version.
+allow writes. Pulse reads everything from the engine's REST API: the engine needs no plugin.
 
 For a server of your own, with modules for your own systems next to Pulse's, start from
 Miragon/pulse-starter: [Build your own server](build-your-own.md).

@@ -90,5 +90,5 @@ export {
 } from "./use-bpmn-viewer.js"
 export { BpmnZoomControls, type BpmnZoomControlsProps } from "./bpmn-zoom-controls.js"
 // Also on `/server` (src/protocol/): the one rule every module names a model's process and elements
-// by, on the server and in a view (analytics' heatmap names its values table with it).
+// by, on the server and in a view.
 export { parseBpmnNames, readBpmnNames } from "../protocol/bpmn-names.js"

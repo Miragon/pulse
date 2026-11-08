@@ -19,7 +19,7 @@ What they found:
 
 - "Cockpit" names Camunda 7's web app; the extension already says "Open in Cockpit" and
   [user-interface.md](user-interface.md) rejects the word. "Dashboards" names fixed views of
-  the MCP server (the incident and analytics dashboards), "Views" is a VS Code term.
+  the MCP server (the incident dashboard), "Views" is a VS Code term.
 - The MCP server's saved dashboards of the time lived in the toolkit and widget-shell (zod,
   React, one engine per read); the server has dropped them since and keeps only fixed layouts.
   The extension may import none of it, and no second consumer would share a `-domain` package.

@@ -572,7 +572,7 @@ describe("published packages declare what their shipped source imports", () => {
     })
   })
 
-  it("reads the repo's seven npm packages (the scanner is not blind)", () => {
+  it("reads the repo's six npm packages (the scanner is not blind)", () => {
     const names = publishedPackages().map(({ manifest }) => manifest.name)
     for (const name of [
       "@miragon/pulse-engine-core",
@@ -580,8 +580,6 @@ describe("published packages declare what their shipped source imports", () => {
       "@miragon/pulse-widget-shell",
       "@miragon/pulse-engine-connector",
       "@miragon/pulse-engine-client",
-      "@miragon/pulse-analytics-connector",
-      "@miragon/pulse-analytics-client",
     ]) {
       assert.ok(names.includes(name), name)
     }

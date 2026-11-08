@@ -34,7 +34,6 @@
     "dev:inspector": "HOST=127.0.0.1 MCP_AUTO_OPEN_ENABLED=false MCP_INSPECTOR_SECRET_STORE=${MCP_INSPECTOR_SECRET_STORE:-memory} mcp-inspector --web --transport http --server-url http://localhost:${PORT:-8400}/mcp"
   },
   "dependencies": {
-    "@miragon/pulse-analytics-connector": "workspace:*",
     "@miragon/pulse-engine-connector": "workspace:*",
     "@miragon/pulse-widget-shell": "workspace:*",
     "zod": "4.6.7"

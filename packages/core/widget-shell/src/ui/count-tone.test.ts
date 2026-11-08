@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { countTone, severityTone } from "./count-tone.js"
 
-/** One sign, one meaning (#322 U14, decision f): the ladder both connectors read their counts by. */
+/** One sign, one meaning (#322 U14, decision f): the ladder every connector reads its counts by. */
 describe("countTone", () => {
   it("is danger while there is any open incident or job without retries", () => {
     expect(countTone(1)).toBe("danger")

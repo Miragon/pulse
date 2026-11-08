@@ -22,8 +22,8 @@ const TABLE: Array<[raw: string, kind: ErrorKind, status: number | undefined, so
     undefined,
     "engine:prod-a",
   ],
-  ["Prometheus unreachable (ENOTFOUND)", "unreachable", undefined, "prometheus"],
-  ["Prometheus query failed (503): service unavailable", "unreachable", 503, "prometheus"],
+  // No source of its own any more: a data source the kit does not know reads as unknown.
+  ["Prometheus unreachable (ENOTFOUND)", "unreachable", undefined, "unknown"],
   ["TypeError: Failed to fetch", "unreachable", undefined, "unknown"],
   [
     "engine prod-a did not respond within 30000 ms (timeout)",
@@ -31,40 +31,17 @@ const TABLE: Array<[raw: string, kind: ErrorKind, status: number | undefined, so
     undefined,
     "engine:prod-a",
   ],
-  ["Prometheus did not respond within 10000 ms (timeout)", "timeout", undefined, "prometheus"],
+  ["upstream did not respond within 10000 ms (timeout)", "timeout", undefined, "unknown"],
   ["MCP error -32001: Request timed out", "timeout", undefined, "unknown"],
   ["[504] Gateway Timeout (engine prod)", "timeout", 504, "engine:prod"],
   ["Tool engine_jobs_data not found", "notOnServer", undefined, "unknown"],
-  [
-    "MCP error -32602: Tool analytics_engine_landscape_data not found",
-    "notOnServer",
-    undefined,
-    "unknown",
-  ],
+  ["MCP error -32602: Tool notes_list_data not found", "notOnServer", undefined, "unknown"],
   ["Unknown tool: engine_jobs_data", "notOnServer", undefined, "unknown"],
   [
     "[401] Unauthorized (engine prod). Check ENGINES_JSON credentials",
     "unauthorized",
     401,
     "engine:prod",
-  ],
-  [
-    "Prometheus query failed (403): forbidden. Check the credentials: PROMETHEUS_BEARER_TOKEN, PROMETHEUS_USERNAME and PROMETHEUS_PASSWORD, the userinfo of PROMETHEUS_URL, or PROMETHEUS_HEADERS.",
-    "forbidden",
-    403,
-    "prometheus",
-  ],
-  [
-    "Prometheus query failed (404): the answer is a web page, so another service or a proxy holds that address. Check PROMETHEUS_URL, which decides the target; a server without a Prometheus leaves analytics out of MCP_ACTIVE_MODULES.",
-    "unreachable",
-    404,
-    "prometheus",
-  ],
-  [
-    "Prometheus unreachable (ECONNREFUSED). Check PROMETHEUS_URL, which decides the target; a server without a Prometheus leaves analytics out of MCP_ACTIVE_MODULES.",
-    "unreachable",
-    undefined,
-    "prometheus",
   ],
   [
     "[404 InvalidRequestException] Process instance with id x does not exist (engine prod-a)",
@@ -113,8 +90,9 @@ describe("classifyError: the mapping table", () => {
 
   it("takes strings, { message } objects and anything else", () => {
     expect(classifyError("engine e unreachable (ECONNREFUSED)").kind).toBe("unreachable")
-    expect(classifyError({ message: "Prometheus unreachable (x)" }).source).toEqual({
-      type: "prometheus",
+    expect(classifyError({ message: "engine e unreachable (x)" }).source).toEqual({
+      type: "engine",
+      id: "e",
     })
     expect(classifyError(null)).toEqual({
       kind: "unknown",
@@ -203,19 +181,14 @@ describe("describeError: the words, en and de", () => {
       "Versuch es gleich noch mal. Passiert das öfter, ist die Engine vielleicht stark ausgelastet.",
     ],
     [
-      "Prometheus did not respond within 1 ms (timeout)",
-      "Prometheus antwortet nicht rechtzeitig",
+      "upstream did not respond within 1 ms (timeout)",
+      "Die Datenquelle antwortet nicht rechtzeitig",
       "Versuch es gleich noch mal.",
     ],
     [
       "Prometheus unreachable (ECONNREFUSED)",
-      "Prometheus ist nicht erreichbar",
-      "Prüf, ob Prometheus läuft und erreichbar ist.",
-    ],
-    [
-      "Prometheus query failed (404): 404 page not found",
-      "Prometheus ist nicht erreichbar (HTTP 404)",
-      "Prüf, ob Prometheus läuft und erreichbar ist.",
+      "Die Datenquelle ist nicht erreichbar",
+      "Prüf die Verbindung und versuch es noch mal.",
     ],
     [
       "Failed to fetch",
@@ -263,19 +236,14 @@ describe("describeError: the words, en and de", () => {
       "Try again in a moment. If it keeps happening, the engine may be under heavy load.",
     ],
     [
-      "Prometheus did not respond within 1 ms (timeout)",
-      "Prometheus did not respond in time",
+      "upstream did not respond within 1 ms (timeout)",
+      "The data source did not respond in time",
       "Try again in a moment.",
     ],
     [
       "Prometheus unreachable (ECONNREFUSED)",
-      "Prometheus is unreachable",
-      "Check that Prometheus is running and reachable.",
-    ],
-    [
-      "Prometheus query failed (404): 404 page not found",
-      "Prometheus is unreachable (HTTP 404)",
-      "Check that Prometheus is running and reachable.",
+      "The data source is unreachable",
+      "Check the connection, then try again.",
     ],
     ["Failed to fetch", "The data source is unreachable", "Check the connection, then try again."],
     [

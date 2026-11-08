@@ -5,7 +5,6 @@ import {
   definitionKeyResolver,
   fetchDefinitionVersions,
   fetchDefinitionXml,
-  fetchLatestDefinitionXml,
   foldStatsByKey,
   processDefinitionKeyFromId,
   resolveDefinitionKeys,
@@ -65,65 +64,6 @@ describe("resolveDefinitionKeys", () => {
     expect(resolved(UUID)).toBe(LONG_KEY)
     expect(resolved("order:2:d2")).toBe("order")
     expect(engine.requests.map((r) => r.path)).toEqual(["/process-definition/statistics"])
-  })
-})
-
-// `GET /process-definition/key/{key}/xml` only finds tenant-less definitions,
-// so a tenant deployment had no diagram (#322 follow-up).
-describe("fetchLatestDefinitionXml", () => {
-  const TENANT_DEFINITION = { id: "leasing:3:t1", key: "leasing", version: 3, tenantId: "acme" }
-
-  async function tenantEngine() {
-    const engine = await startFakeEngine({
-      "GET /process-definition": (request) => ({
-        body: request.query.key === "leasing" ? [TENANT_DEFINITION] : [],
-      }),
-      "GET /process-definition/leasing:3:t1/xml": {
-        body: { id: TENANT_DEFINITION.id, bpmn20Xml: "<definitions id='leasing'/>" },
-      },
-      // What the tenant-less key endpoint answers for a tenant deployment.
-      "GET /process-definition/key/leasing/xml": {
-        status: 404,
-        body: { type: "InvalidRequestException", message: "No matching definition" },
-      },
-    })
-    engines.push(engine)
-    return engine
-  }
-
-  it("resolves a tenant-deployed key to its latest version and reads that version's XML by id", async () => {
-    const engine = await tenantEngine()
-
-    expect(await fetchLatestDefinitionXml(clientFor(engine), "leasing")).toBe(
-      "<definitions id='leasing'/>",
-    )
-    expect(engine.requests.map((r) => [r.path, r.query])).toEqual([
-      [
-        "/process-definition",
-        {
-          key: "leasing",
-          latestVersion: "true",
-          sortBy: "version",
-          sortOrder: "desc",
-          maxResults: "1",
-        },
-      ],
-      ["/process-definition/leasing:3:t1/xml", {}],
-    ])
-  })
-
-  it("is null for a key with no deployed version and reads no XML", async () => {
-    const engine = await tenantEngine()
-    expect(await fetchLatestDefinitionXml(clientFor(engine), "unknown")).toBeNull()
-    expect(engine.requests.map((r) => r.path)).toEqual(["/process-definition"])
-  })
-
-  it("propagates a failed read: the caller decides whether the diagram is enrichment", async () => {
-    const engine = await startFakeEngine({
-      "GET /process-definition": { status: 500, body: { message: "db down" } },
-    })
-    engines.push(engine)
-    await expect(fetchLatestDefinitionXml(clientFor(engine), "leasing")).rejects.toThrow()
   })
 })
 

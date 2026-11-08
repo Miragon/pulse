@@ -20,8 +20,7 @@ primary_region = "fra"
   MCP_ALLOWED_HOSTS = "miragon-ai-playground.fly.dev"
   MCP_ALLOWED_ORIGINS = "https://miragon-ai-playground.fly.dev"
   # Public + unauthenticated ⇒ read-only BY DESIGN: queries and widgets, no
-  # engine writes; the playground runs no Prometheus, so the engine module runs
-  # alone. An unauthenticated boot already
+  # engine writes. An unauthenticated boot already
   # defaults to read-only; the explicit pin keeps it that way should someone
   # add an OAuth provider or widen a default. Never widen it here and never set
   # ENGINE_ALLOW_DEPLOYMENTS on this app: deploying a BPMN runs code inside

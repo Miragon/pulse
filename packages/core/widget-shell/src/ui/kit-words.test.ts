@@ -14,7 +14,6 @@ import { KIT_LABELS } from "./kit-labels.js"
 const ERROR_SOURCES: ReadonlyArray<[key: string, source: ErrorSource]> = [
   ["engineWithId", { type: "engine", id: "prod" }],
   ["engine", { type: "engine" }],
-  ["prometheus", { type: "prometheus" }],
   ["unknown", { type: "unknown" }],
 ]
 
@@ -46,12 +45,12 @@ const ERROR_WORDS = {
 }
 
 describe("the error words are rendered branch by branch", () => {
-  it.each(["de", "en"] as const)("%s: the engine, Prometheus and fallback branches differ", (l) => {
+  it.each(["de", "en"] as const)("%s: the engine and fallback branches differ", (l) => {
     const words = ERROR_WORDS[l]
-    const hints = ["engine", "prometheus", "unknown"].map((s) => words[`unreachable.hint.${s}`])
-    expect(new Set(hints).size).toBe(3)
+    const hints = ["engine", "unknown"].map((s) => words[`unreachable.hint.${s}`])
+    expect(new Set(hints).size).toBe(2)
     const subjects = ERROR_SOURCES.map(([key]) => words[`source.${key}`])
-    expect(new Set(subjects).size).toBe(4)
+    expect(new Set(subjects).size).toBe(3)
     expect(words["source.engineWithId"]).toContain("prod")
   })
 })

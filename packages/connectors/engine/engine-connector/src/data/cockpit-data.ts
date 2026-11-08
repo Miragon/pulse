@@ -64,7 +64,7 @@ export async function buildCockpitDashboardData(
   const issuesOf = (d: DefinitionStat) =>
     d.failedJobs + d.incidents.reduce((s, i) => s + i.incidentCount, 0)
   definitions.sort((a, b) => issuesOf(b) - issuesOf(a) || b.instances - a.instances)
-  // A Modeler pool around an unnamed process names it, as analytics names it.
+  // A Modeler pool around an unnamed process names it, as every view names it.
   await nameUnnamedDefinitions(client, definitions)
 
   return {

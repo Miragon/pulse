@@ -1,7 +1,7 @@
 /**
  * The non-test sources of every package and every MCP server app: what the cross-module source
  * guards (tool-name refs, hand-off refs, server env names) read. An interface app (a CLI, an
- * editor extension) carries no tool name of either module and posts nothing to an MCP host, so
+ * editor extension) carries no tool name of any module and posts nothing to an MCP host, so
  * no guard reads it.
  */
 import fs from "node:fs"

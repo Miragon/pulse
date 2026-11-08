@@ -23,7 +23,6 @@ const PACKAGES = [
     "@miragon/pulse-engine-core": "workspace:*",
     "@miragon/pulse-widget-shell": "workspace:*",
   }),
-  pkg("packages/connectors/analytics/analytics-client", "@miragon/pulse-analytics-client"),
   pkg("apps/mcp-server", "@miragon/pulse-mcp-server", {
     "@miragon/pulse-engine-connector": "workspace:*",
   }),
@@ -137,13 +136,6 @@ describe("scopesFor: a package's code reaches its dependents", () => {
       "vscode",
       "vscode-package",
     ])
-  })
-
-  it("runs only its package's checks for the metrics contract: no Gradle build reads it", () => {
-    assert.deepEqual(
-      scopes("packages/connectors/analytics/analytics-client/metrics-contract.json"),
-      ["mcp", "template", "typescript"],
-    )
   })
 })
 

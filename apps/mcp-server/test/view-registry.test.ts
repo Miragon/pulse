@@ -32,9 +32,8 @@ function viewBoundTools(): string[] {
 describe("the view registry vs the view-bound tools", () => {
   it("holds a view for every view-bound tool, and nothing else", () => {
     const tools = viewBoundTools()
-    // The floor is pinned at the post-cut count: cut 7 removed the twelve engine show tools
-    // (engine_open_cockpit and the six analytics show tools remain).
-    expect(tools.length, "the goldens name the view-bound tools").toBeGreaterThanOrEqual(7)
+    // The floor is the engine module's one view, engine_open_cockpit.
+    expect(tools.length, "the goldens name the view-bound tools").toBeGreaterThanOrEqual(1)
     expect(Object.keys(viewRegistry).sort()).toEqual(tools)
   })
 

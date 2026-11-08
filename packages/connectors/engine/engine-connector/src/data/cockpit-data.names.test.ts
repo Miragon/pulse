@@ -24,9 +24,9 @@ const statsRow = (key: string, version: number, over: Record<string, unknown> = 
   ...over,
 })
 
-// One rule with analytics (#322 U13): an unnamed process takes its Modeler
+// One rule (#322 U13): an unnamed process takes its Modeler
 // pool name ("Miravelo - Bike Leasing", not `miraveloLeasing`).
-describe("the lists name a Modeler pool's unnamed process as analytics does", () => {
+describe("the lists name a Modeler pool's unnamed process as every view does", () => {
   const POOLED_XML = `<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
   <bpmn:collaboration id="Collaboration_1">
     <bpmn:participant id="Pool" name="Miravelo - Bike Leasing" processRef="miraveloLeasing" />

@@ -38,8 +38,6 @@ describe("workspace-packages", () => {
       publishedLibraries(REPO_ROOT).map(({ dir, manifest }) => [dir, manifest.name]),
     )
     assert.deepEqual(rows.map(([, name]) => name).sort(), [
-      "@miragon/pulse-analytics-client",
-      "@miragon/pulse-analytics-connector",
       "@miragon/pulse-engine-client",
       "@miragon/pulse-engine-connector",
       "@miragon/pulse-engine-core",

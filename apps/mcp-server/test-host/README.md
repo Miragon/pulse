@@ -9,9 +9,7 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
   REST stub (`stub-engine.ts`, `fixtures/process-definitions.json` with their
   statistics and no open incident, the `invoice` diagram `fixtures/invoice.bpmn`
   with two instances at `approveInvoice`, three failed jobs, their backlog counts; under
-  `/realistic`, real-sized data in `realistic-engine.ts`), a Prometheus
-  stub (`stub-prometheus.ts`: two engines, two processes, the `invoice`
-  activities, evaluating the exact PromQL shapes analytics sends) and the host's
+  `/realistic`, real-sized data in `realistic-engine.ts`) and the host's
   server side (`host-backend.ts`, a real MCP client), all on ephemeral
   loopback ports. A scenario can hold the stub's answers to one search term
   and release them later (`POST /__control/hold|release?term=<term>` at
@@ -54,7 +52,6 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
 | height budget              | `containerDimensions.maxHeight: 220`              | settled report ≤ 220 and ≥ the capped container, the shell scrolls inside it                                                                                       |
 | list fits a 600 px budget  | the jobs, `containerDimensions.maxHeight: 600`    | the list view fits as a card: exactly one job row, the shell's container has no scroll of its own (#396)                                                           |
 | inline fit, real-sized     | realistic engine, 760 px, 600/800/none, de-DE     | instances (all, scoped) and jobs fit as one card: k of N rows, "Show all" in view, no inner scroll; a new budget or width at runtime refits (`inline-fit.spec.ts`) |
-| inline head of a table     | analytics dashboard, `maxHeight: 400` (3 rows)    | 3 of 6 rows and "3 of 6 shown"; Show all requests fullscreen (all 6), without it Show more (#396)                                                                  |
 | inline head, cross-engine  | the overview's matrix, its own height less 20 px  | the last table cut ("1 of 3 shown" or "2 of 3"); Show all requests fullscreen (all 3), without it Show more (#396, `fleet.spec.ts`)                                |
 | bundle budget              | the built `dist/mcp-app.js` / `.css`              | gzip within `test/__golden__/bundle-budget.json`, and within 10 % of it (#344 K39)                                                                                 |
 | inline list height         | the jobs, no height budget                        | the settled report (equal to max-content) below the old 600 px floor (#339 K40)                                                                                    |
@@ -72,9 +69,6 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
 | cockpit picker             | `engine_open_cockpit` without `engine`            | the engine list (two engines, no default engine configured), each engine's state in its accessible name                                                            |
 | cross-engine overview      | the picker's "Cross-engine overview" at 760 px    | the landscape from both engines: column groups headed, backlog columns in their region, the 503 engine "unreachable" with no column; en, de (`fleet.spec.ts`)      |
 | axe (cross-engine)         | the overview, light and dark, 760 px              | zero WCAG 2.1 A/AA violations (`fleet.spec.ts`)                                                                                                                    |
-| analytics dashboard        | `analytics_show_dashboard` at 760 px              | every activity column shown inside its region, names from the diagram, no document scroll                                                                          |
-| analytics landscape        | `analytics_show_engine_landscape` at 760 px       | the column groups headed, the backlog columns and the compare action inside their regions                                                                          |
-| axe (analytics)            | dashboard + landscape, light and dark, 760 px     | zero WCAG 2.1 A/AA violations (`analytics.spec.ts`)                                                                                                                |
 | a module's own view        | a tool bound to a resource of its module          | the finished document renders from that URI under its own CSP, no prelude, its feed answers through the host (`own-view.spec.ts`)                                  |
 
 **The cockpit's chrome inline.** Every scenario of the engine module renders the cockpit, whose head

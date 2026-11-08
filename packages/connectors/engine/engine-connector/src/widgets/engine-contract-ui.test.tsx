@@ -129,7 +129,7 @@ describe("incident rows offer the action the engine accepts", () => {
       .map((a) => (a as { prompt: string }).prompt)
     expect(prompts).toHaveLength(1)
     expect(prompts[0]).toContain('Ids: engine="prod-b", incidentId="job"')
-    expect(prompts[0]).not.toMatch(/\b(engine|analytics)_[a-z0-9_]+/)
+    expect(prompts[0]).not.toMatch(/\bengine_[a-z0-9_]+/)
   })
 
   it("hides Retry when the toolset lacks the retries tool", async () => {

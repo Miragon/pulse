@@ -34,7 +34,7 @@ describe("strict tool inputs on the wire (full surface)", () => {
   beforeAll(async () => {
     server = await bootServer({
       env: {
-        MCP_ACTIVE_MODULES: "engine:admin,analytics",
+        MCP_ACTIVE_MODULES: "engine:admin",
         ENGINE_ALLOW_DEPLOYMENTS: "true",
       },
     })
@@ -46,11 +46,10 @@ describe("strict tool inputs on the wire (full surface)", () => {
   })
 
   it("covers every tool, model-facing and app-only (the guard is not vacuous)", () => {
-    // The modules' tools.
-    expect(tools.every((tool) => /^(engine|analytics)_/.test(tool.name))).toBe(true)
-    // The model-visible floor is pinned at the post-cut count: cut 7 removed the twelve
-    // engine show tools.
-    expect(tools.filter(isModelVisible).length).toBeGreaterThanOrEqual(53)
+    // The engine module's tools.
+    expect(tools.every((tool) => tool.name.startsWith("engine_"))).toBe(true)
+    // The model-visible floor is pinned at the engine module's count.
+    expect(tools.filter(isModelVisible).length).toBeGreaterThanOrEqual(47)
     expect(tools.filter((tool) => !isModelVisible(tool)).length).toBeGreaterThanOrEqual(15)
     // The engine list and the history/stacktrace reads (#340) are probed like the rest.
     expect(tools.map((tool) => tool.name)).toEqual(

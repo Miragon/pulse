@@ -58,8 +58,7 @@ describe("the playground services", () => {
 })
 
 describe("the presets", () => {
-  it("point the server at the playground engine and loopback, the engine module alone", () => {
-    // The playground runs no Prometheus: analytics would boot only to fail every query.
+  it("point the server at the playground engine and loopback, the engine module", () => {
     assert.deepEqual(serverPreset(), {
       ENGINE_BASE_URL: "http://localhost:8410/engine-rest",
       ENGINE_ID: "prod-a",

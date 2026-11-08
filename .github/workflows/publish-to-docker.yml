@@ -80,13 +80,13 @@ jobs:
           labels: |
             org.opencontainers.image.source=https://github.com/Miragon/pulse
             org.opencontainers.image.title=Pulse
-            org.opencontainers.image.description=Pulse MCP server: process operations and analytics for Camunda 7 / CIB seven / Operaton engines
+            org.opencontainers.image.description=Pulse MCP server: process operations for Camunda 7 / CIB seven / Operaton engines
             org.opencontainers.image.licenses=MIT
             org.opencontainers.image.version=${{ steps.version.outputs.version }}
           # GHCR shows a multi-arch package's description from the index, not from
           # the per-platform labels above.
           annotations: |
-            index:org.opencontainers.image.description=Pulse MCP server: process operations and analytics for Camunda 7 / CIB seven / Operaton engines
+            index:org.opencontainers.image.description=Pulse MCP server: process operations for Camunda 7 / CIB seven / Operaton engines
           provenance: ${{ inputs.dry_run != true }}
           sbom: ${{ inputs.dry_run != true }}
           cache-from: type=gha

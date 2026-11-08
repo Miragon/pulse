@@ -29,8 +29,7 @@ pnpm stack:down     # stop (volumes kept; --wipe drops them)
   engine (CIB seven, no login: its REST API is anonymous). Inside the repo a bare `pulse`
   (`npm install -g @miragon/pulse-cli`, or the build `node apps/cli/dist/pulse-cli.js`) reaches
   it; your own profiles stay available with `--profile`.
-- Engine: `http://localhost:8410` (login `demo` / `demo`). The playground runs no Prometheus, so
-  `pnpm play` runs the engine module alone (`MCP_ACTIVE_MODULES=engine`).
+- Engine: `http://localhost:8410` (login `demo` / `demo`).
 - The engine image copies a jar (`cibseven-example/build/libs/`): `stack:up` builds it when it is
   missing or older than its sources, on a local JDK 21 or else in an `eclipse-temurin:21-jdk`
   container (Gradle cache in the Docker volume `pulse-gradle-cache`; `--jdk-container` forces it).

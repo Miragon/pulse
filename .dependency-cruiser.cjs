@@ -8,12 +8,12 @@
  *
  * Layout + naming carry the layer semantics. A family under `packages/connectors/<family>/` is
  * one source the MCP server reads: an engine API family (a dialect; today `engine`, the Camunda 7
- * REST API) or another source (`analytics`, Prometheus). Its packages are named
+ * REST API) or another source (a metrics store, say). Its packages are named
  * `<family>-<role>` (npm `@miragon/pulse-<family>-<role>`; the naming gate holds the family
  * name), keyed by the role suffix:
  *   - `<family>-connector`: the MCP module (tools and their input schemas, widget tools,
  *     widgets);
- *   - `<family>-client`: its SDK leaf (generated REST SDK or PromQL queries);
+ *   - `<family>-client`: its SDK leaf (the generated REST SDK, say);
  *   - `<family>-core`, when the family's interfaces share a pure domain: a leaf that the
  *     family's connector and the interface apps that bundle it import (engine-core).
  * The foundation packages every family builds on live under `packages/core/` (npm names
@@ -182,10 +182,9 @@ module.exports = {
       severity: "error",
       comment:
         "Connector modules are self-contained peers and never import each other (CLAUDE.md invariant 8). " +
-        "Cross-module needs go through the composition root: shared server data via SharedResources " +
-        "(apps/mcp-server/src/setup.ts), another module's widget via the host widget map by raw id " +
-        "(useHostWidget/HostWidgetSlot), and a raw tool-name string with graceful degradation only " +
-        "for the probe of an argument-free feed.",
+        "Cross-module needs go through the composition root: what the modules share via " +
+        "SharedResources (apps/mcp-server/src/setup.ts), another module's widget via the host widget " +
+        "map by raw id (useHostWidget/HostWidgetSlot).",
       from: { path: "^packages/connectors/[^/]+/([^/]+)-connector/" },
       to: {
         path: ["^packages/connectors/.+-connector/", "@miragon/pulse-[^/]+-connector(/|$)"],
@@ -201,11 +200,10 @@ module.exports = {
       name: "connectors-own-their-family",
       severity: "error",
       comment:
-        "A connector may only depend on its own family's client and core (analytics-connector → " +
-        "analytics-client; engine-connector → engine-client, engine-core). Engine data a foreign " +
-        "module needs arrives as an injected port on SharedResources: the pattern is " +
-        "fetchBpmnXml, which feeds the analytics heatmap without giving the analytics connector " +
-        "an engine-SDK dependency (CLAUDE.md invariant 8).",
+        "A connector may only depend on its own family's client and core (engine-connector → " +
+        "engine-client, engine-core). Engine data a foreign module needs arrives as an injected " +
+        "port on SharedResources, the composition root's wiring of what the modules share, never " +
+        "as an engine-SDK dependency of that module (CLAUDE.md invariant 8).",
       from: { path: "^packages/connectors/[^/]+/([^/]+)-connector/" },
       to: {
         path: [

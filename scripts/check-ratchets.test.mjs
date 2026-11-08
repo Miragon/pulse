@@ -54,8 +54,6 @@ const REAL_VITEST_CONFIGS = [
   "packages/core/widget-shell/vitest.config.ts",
   "packages/connectors/engine/engine-client/vitest.config.ts",
   "packages/connectors/engine/engine-connector/vitest.config.ts",
-  "packages/connectors/analytics/analytics-client/vitest.config.ts",
-  "packages/connectors/analytics/analytics-connector/vitest.config.ts",
 ]
 
 describe("ratchetKind", () => {

@@ -113,7 +113,7 @@ start view), never a second view tool: see the add-bpm-feature skill.
 | `src/lib/bpmn/`          | The definition XML read, BPMN and task-form reading, completing a user task by its form                                                                    |
 | `src/lib/mcp/`           | The tool surface: `toolsets.ts`, the paging envelope, variable and failure-text bounds                                                                     |
 | `src/lib/shared/`        | Pure code the widgets run too (environments, `TaskCompletion`, the landscape fold); the one lib widgets use                                                |
-| `src/module.ts`          | `engineModule` (config schema, env mapping) + `createBpmnXmlFetcher` (the tools' engine precedence and clients)                                            |
+| `src/module.ts`          | `engineModule` (config schema, env mapping, boot warnings, instructions, plugin factory)                                                                   |
 | `src/engine-provider.ts` | The vendor provider port (`EngineProvider`, `CockpitRef`)                                                                                                  |
 | `src/providers/`         | `cibseven` / `operaton` / `camunda7` providers (cockpit routes, branding)                                                                                  |
 

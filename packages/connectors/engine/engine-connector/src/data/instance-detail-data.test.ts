@@ -105,7 +105,7 @@ describe("buildInstanceDetailData", () => {
     expect(data.incidents.map((i) => i.businessKey)).toEqual(["LEA-2026-00424"])
   })
 
-  // One rule with analytics (widget-shell `parseBpmnNames`): the Modeler
+  // One rule (widget-shell `parseBpmnNames`): the Modeler
   // names the pool of a collaboration and writes a line break as `&#10;`.
   it("names a Modeler collaboration's process by its pool, the line break a space", async () => {
     mockedInstance.mockResolvedValueOnce({ id: "p1", definitionId: "K1:3:dep" })

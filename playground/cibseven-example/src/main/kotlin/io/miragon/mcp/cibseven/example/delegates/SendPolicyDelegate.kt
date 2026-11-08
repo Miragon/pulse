@@ -16,8 +16,8 @@ class SendPolicyDelegate : JavaDelegate {
         // Narrow rollback regression band: MiraveloLeasingSeeder marks instances
         // in the rollback window with `_simulatePolicyRenderFailure=true`, when
         // the policy template was mis-rendered. Surfaces as a job-level
-        // incident on Activity_SendPolicy (asyncBefore) and feeds
-        // the period comparison with the REGRESSED verdict for UC5.
+        // incident on Activity_SendPolicy (asyncBefore), so the incident
+        // history shows the regression for UC5 REGRESSED.
         val rollbackFail = execution.getVariable("_simulatePolicyRenderFailure") as? Boolean ?: false
         if (rollbackFail) {
             log.warn(

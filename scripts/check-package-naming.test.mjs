@@ -51,8 +51,6 @@ const FUTURE = {
   "packages/core/widget-shell/package.json": { name: "@miragon/pulse-widget-shell" },
   "packages/connectors/engine/engine-client/package.json": scoped("engine-client"),
   "packages/connectors/engine/engine-connector/package.json": scoped("engine-connector"),
-  "packages/connectors/analytics/analytics-client/package.json": scoped("analytics-client"),
-  "packages/connectors/analytics/analytics-connector/package.json": scoped("analytics-connector"),
   "docs/package.json": { name: "@miragon/pulse-docs", private: true },
 }
 
@@ -97,8 +95,6 @@ describe("checkPackageName: today's packages", () => {
       ["packages/connectors/engine/engine-core", { name: "@miragon/pulse-engine-core" }],
       ["packages/connectors/engine/engine-client", scoped("engine-client")],
       ["packages/connectors/engine/engine-connector", scoped("engine-connector")],
-      ["packages/connectors/analytics/analytics-client", scoped("analytics-client")],
-      ["packages/connectors/analytics/analytics-connector", scoped("analytics-connector")],
       ["docs", { name: "@miragon/pulse-docs", private: true }],
     ]) {
       assert.deepEqual(checkPackageName(dir, manifest), [], dir)
@@ -225,8 +221,8 @@ describe("checkPackageName: connector families", () => {
   it("names a family's package after its family: <family>-<role>", () => {
     for (const dir of [
       "packages/connectors/engine/c7-client",
-      "packages/connectors/engine/analytics-core",
-      "packages/connectors/analytics/engine-connector",
+      "packages/connectors/engine/billing-core",
+      "packages/connectors/billing/engine-connector",
       "packages/connectors/engine/engine-x-client",
     ]) {
       assertOne(checkPackageName(dir, scoped(dir)), /is named after its family/, dir)
@@ -234,7 +230,7 @@ describe("checkPackageName: connector families", () => {
   })
 
   it("accepts a family's pure domain as its -core", () => {
-    for (const base of ["engine-core", "analytics-core"]) {
+    for (const base of ["engine-core", "billing-core"]) {
       const dir = `packages/connectors/${base.split("-")[0]}/${base}`
       assert.deepEqual(checkPackageName(dir, scoped(dir)), [], dir)
     }
@@ -467,7 +463,7 @@ describe("checkAppDependencies: no package declares an app", () => {
 describe("checkPackageNaming over a fixture tree", () => {
   it("passes the repo's layout: server, CLI, extension, core and connector families", () => {
     inTree(FUTURE, (root) => {
-      assert.deepEqual(checkPackageNaming(root), { errors: [], checked: 9 })
+      assert.deepEqual(checkPackageNaming(root), { errors: [], checked: 7 })
     })
   })
 

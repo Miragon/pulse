@@ -80,9 +80,8 @@ describe("widget wire contract (dual-protocol _meta)", () => {
   })
 
   // Your preamble first, then each active module's own snippet, joined by the
-  // shared boot, so the Miragon modules' routing rules (the engine module's
-  // engine precedence, analytics' engine filter) reach the model with no code
-  // here. A custom module adds one via `instructions` on its definition.
+  // shared boot, so the engine module's routing rules (its engine precedence)
+  // reach the model with no code here. A custom module adds one via `instructions` on its definition.
   it("sends your preamble, then each active module's own instructions", () => {
     const snippets = booted.composed.boot.entries.flatMap((entry) => {
       const module = MODULES.find(({ name }) => name === entry.app)

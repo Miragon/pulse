@@ -42,25 +42,24 @@ For a server on your own machine, use `http://127.0.0.1:8400/mcp` there:
 `127.0.0.1` rather than `localhost`, which Node may resolve to IPv6 while the
 server listens on IPv4.
 
-Once connected, you'll see Camunda and analytics tools available in the
+Once connected, you'll see the Camunda tools available in the
 assistant. Try asking _"show me the open incidents"_. Claude calls
 `engine_open_cockpit` on its incidents view and shows the cockpit there.
 
 ## What you can ask
 
-| Topic          | Example questions                                                                                                              |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| **Processes**  | "Show me all process definitions." · "Start a new instance of `loan-approval`."                                                |
-| **Tasks**      | "What tasks are assigned to me?" · "Complete task 12345 with `approved=true`."                                                 |
-| **Incidents**  | "Triage the open incidents." · "Retry all failed jobs from this morning."                                                      |
-| **Diagnosis**  | "Where does order B-1 wait, and why?" · "How is the engine doing right now?"                                                   |
-| **Analytics**  | "Where do `loan-approval` instances spend the most time?" · "Compare the last 7 days of `loan-approval` with the week before." |
-| **Migrations** | "Plan a migration from v1 to v2 of `loan-approval`."                                                                           |
+| Topic          | Example questions                                                               |
+| -------------- | ------------------------------------------------------------------------------- |
+| **Processes**  | "Show me all process definitions." · "Start a new instance of `loan-approval`." |
+| **Tasks**      | "What tasks are assigned to me?" · "Complete task 12345 with `approved=true`."  |
+| **Incidents**  | "Triage the open incidents." · "Retry all failed jobs from this morning."       |
+| **Diagnosis**  | "Where does order B-1 wait, and why?" · "How is the engine doing right now?"    |
+| **Migrations** | "Plan a migration from v1 to v2 of `loan-approval`."                            |
 
 Most data-heavy answers come back as an interactive view: the engine
 operations cockpit (opened on its overview, the incidents, a process, an
 instance, an incident, the jobs or an instance's history, then navigated by
-clicking) and the analytics dashboards and comparisons render inline. Inline a
+clicking) renders inline. Inline a
 view stays a compact card: a list shows its first rows and how many there are,
 and **Show all** opens it fullscreen where your chat app offers that.
 
@@ -98,9 +97,7 @@ still answers you in your language.
 - An engine has one live verdict: the engine overview and `engine_status` rate
   it ok, warning or critical (by default critical at 50 open incidents or 25 of
   one cause) and count one cause alike (activity, type, masked message);
-  `engine_status` also judges overdue jobs, workers and batches. The analytics health reports what
-  the metrics show as `metricsState` (critical only while a critical alert
-  fires; unknown when an engine sends no metrics). "Has this activity failed
+  `engine_status` also judges overdue jobs, workers and batches. "Has this activity failed
   before?" is answered from incident history, resolved incidents included.
 - A process view counts every deployed version of its key: old versions keep
   running after a redeploy; only the diagram is one version, and it says

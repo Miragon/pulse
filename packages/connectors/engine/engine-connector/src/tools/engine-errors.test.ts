@@ -6,7 +6,7 @@ import { recordingModuleServer, testServerContext } from "@miragon/pulse-widget-
 import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-engine-core"
 import type { EngineEntry } from "../engine-provider.js"
 import { createEngineRegistry } from "../lib/engine/resolve-engine.js"
-import { engineModule, createBpmnXmlFetcher } from "../module.js"
+import { engineModule } from "../module.js"
 import { providerForEntry } from "../providers/index.js"
 import { ENGINE_PROCESS_INSTANCES_DATA } from "../tool-names.js"
 import { registerWidgetDataFeeds } from "../widget-tools/data-feeds.js"
@@ -154,19 +154,6 @@ describe("engine errors as the model reads them (registrar tool)", () => {
       processInstanceId: "hang",
     })
     expect(result.content[0].text).toBe("engine prod-a did not respond within 150 ms (timeout)")
-  })
-
-  it("ENGINE_REQUEST_TIMEOUT_MS also bounds the BPMN-XML lookup handed to analytics", async () => {
-    const fetchBpmnXml = createBpmnXmlFetcher(
-      engineModule.configFromEnv({
-        ENGINE_BASE_URL: baseUrl,
-        ENGINE_REQUEST_TIMEOUT_MS: "100",
-      }),
-    )!
-    const started = Date.now()
-    // A timeout is a failed read, never "not deployed": it rejects.
-    await expect(fetchBpmnXml("hang")).rejects.toThrow()
-    expect(Date.now() - started).toBeLessThan(2_000)
   })
 })
 

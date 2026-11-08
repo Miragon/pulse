@@ -1,7 +1,6 @@
 import type { Locale } from "./host-context.js"
 
-export type ErrorSource =
-  { type: "engine"; id?: string } | { type: "prometheus" } | { type: "unknown" }
+export type ErrorSource = { type: "engine"; id?: string } | { type: "unknown" }
 
 export interface ErrorKindLabels {
   title: (p: { source: string; status: string }) => string
@@ -40,18 +39,14 @@ const EN: ErrorLabels = {
       ? source.id
         ? `Engine ${source.id}`
         : "The engine"
-      : source.type === "prometheus"
-        ? "Prometheus"
-        : "The data source",
+      : "The data source",
   status: ({ status }) => ` (HTTP ${status})`,
   unreachable: {
     title: ({ source, status }) => `${source} is unreachable${status}`,
     hint: ({ source }) =>
       source === "engine"
         ? "Check that the engine is running, or pick another engine."
-        : source === "prometheus"
-          ? "Check that Prometheus is running and reachable."
-          : "Check the connection, then try again.",
+        : "Check the connection, then try again.",
   },
   timeout: {
     title: ({ source }) => `${source} did not respond in time`,
@@ -99,18 +94,14 @@ const DE: ErrorLabels = {
       ? source.id
         ? `Die Engine ${source.id}`
         : "Die Engine"
-      : source.type === "prometheus"
-        ? "Prometheus"
-        : "Die Datenquelle",
+      : "Die Datenquelle",
   status: ({ status }) => ` (HTTP ${status})`,
   unreachable: {
     title: ({ source, status }) => `${source} ist nicht erreichbar${status}`,
     hint: ({ source }) =>
       source === "engine"
         ? "Prüf, ob die Engine läuft, oder wähl eine andere Engine."
-        : source === "prometheus"
-          ? "Prüf, ob Prometheus läuft und erreichbar ist."
-          : "Prüf die Verbindung und versuch es noch mal.",
+        : "Prüf die Verbindung und versuch es noch mal.",
   },
   timeout: {
     title: ({ source }) => `${source} antwortet nicht rechtzeitig`,

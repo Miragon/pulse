@@ -561,8 +561,6 @@ describe("checkWorkspace over fixture trees", () => {
       "packages/connectors/engine/engine-client",
       "packages/connectors/engine/engine-connector",
       "packages/connectors/engine/engine-core",
-      "packages/connectors/analytics/analytics-client",
-      "packages/connectors/analytics/analytics-connector",
     ]) {
       assert.ok(sourceDirs.includes(dir), dir)
     }

@@ -151,15 +151,14 @@ services:
       - "127.0.0.1:8400:8400"
     environment:
       - PORT=8400
-      # The playground runs no Prometheus, so the server runs the engine module
-      # alone. No OAuth provider and no toolset suffix ⇒ it boots READ-ONLY (the
-      # boot log names the effective toolsets). To exercise write paths, name
-      # the toolset explicitly, e.g. engine:operations (engine:admin for
-      # delete/modify/migrations/signals; deployments also need
-      # ENGINE_ALLOW_DEPLOYMENTS=true). Safe here only because the port is
+      # No OAuth provider and no toolset suffix ⇒ the engine module boots
+      # READ-ONLY (the boot log names the effective toolsets). To exercise write
+      # paths, name the toolset explicitly, e.g. add
+      #   - MCP_ACTIVE_MODULES=engine:operations
+      # (engine:admin for delete/modify/migrations/signals; deployments also
+      # need ENGINE_ALLOW_DEPLOYMENTS=true). Safe here only because the port is
       # bound to 127.0.0.1; never widen an unauthenticated server reachable
       # from a network.
-      - MCP_ACTIVE_MODULES=engine
       # Pass either a single ENGINE_BASE_URL (single engine) OR
       # ENGINES_JSON with a list. Below: single-engine default; for
       # multi-engine override by exporting ENGINES_JSON in the host

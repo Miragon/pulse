@@ -34,7 +34,7 @@ the boot log names the toolset of each module. Writes, OAuth and several engines
 
 ## Overview
 
-The MCP host for [Pulse](../../README.md). It composes the `engine` and `analytics` modules
+The MCP host for [Pulse](../../README.md). It composes the `engine` module
 into a single server on the official [MCP TypeScript SDK](https://ts.sdk.modelcontextprotocol.io/v2/),
 bundles every React widget into
 one Vite bundle served as per-tool view resources, and serves the streamable-HTTP MCP transport on
@@ -51,12 +51,12 @@ The package itself is `private` and not published to npm.
   A module with toolsets runs one fail-closed toolset per boot: the suffix if given (`engine:operations`,
   …), otherwise read-only without OAuth and its standard toolset (engine `operations`)
   with it; `admin` is never implied, an empty or unknown suffix falls back to read-only, and the
-  boot log states the result. Analytics declares none (every analytics tool is a read), so a
-  suffix on it is ignored with a warning.
+  boot log states the result.
   Modules self-describe via their
   `src/module.ts` (`configFromEnv`, `knownEnvVars`, `bootWarnings`, `instructions`, plugin
   factory) against the app-owned port in [`src/setup.ts`](src/setup.ts); the app only lists its
-  modules and wires their shared resources, the shared boot selects them and installs OAuth.
+  modules and wires what they share (today nothing), the shared boot selects them and installs
+  OAuth.
 - **Bundles the widget UI:** Vite builds the two-file bundle `dist/mcp-app.js` + `dist/mcp-app.css`,
   a self-contained bundle (React, Tailwind, all widgets). The boot serves it behind one
   `ui://views/<tool>.html` view resource per widget tool (the `_meta.ui.resourceUri` its
@@ -77,12 +77,11 @@ upstream/proxy federation.
 ## Run
 
 ```bash
-# Published image (production) on the playground's network (pnpm stack:up): the engine module
-# alone (the playground runs no Prometheus), read-only without OAuth or a toolset suffix
+# Published image (production) on the playground's network (pnpm stack:up), read-only without
+# OAuth or a toolset suffix
 docker run --rm -p 127.0.0.1:8400:8400 --network pulse_default \
   -e ENGINE_BASE_URL=http://cibseven:8410/engine-rest -e ENGINE_ID=prod-a \
   -e ENGINE_FLAVOR=cibseven -e ENGINE_COCKPIT_URL=http://localhost:8410/webapp \
-  -e MCP_ACTIVE_MODULES=engine \
   ghcr.io/miragon/pulse-server:latest
 
 # From source (local dev: needs the Docker infra; see the root README)
@@ -112,7 +111,7 @@ Configuration is entirely environment-driven. See
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | `src/index.ts`   | Server entry: `runComposedServer(createApp)` listens (body cap, drain), under `pnpm dev` too; a failed boot prints one line, exit 1 |
 | `src/app.ts`     | `createApp(env, deps?)`: the shared boot over the module list; the e2e suites boot it too                                           |
-| `src/setup.ts`   | The module list and the cross-module wiring (`SharedResources`)                                                                     |
+| `src/setup.ts`   | The module list and what the modules share (`SharedResources`, today empty)                                                         |
 | `src/ui/`        | Widget host bundle: `view-registry.ts` (the views) + `main.tsx` (`mountViews`)                                                      |
 | `vite.config.ts` | Single-file widget bundle config (keep `dedupe` spreading `VIEW_BUNDLE_DEDUPE`)                                                     |
 | `Dockerfile`     | Lives at the repo root; multi-stage build that produces the published image                                                         |

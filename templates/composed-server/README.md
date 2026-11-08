@@ -10,8 +10,7 @@
 
 Build your own MCP server on the published `@miragon/pulse-*` modules of
 [Pulse](https://github.com/Miragon/pulse) (Camunda 7 / CIB seven BPM operations
-and Prometheus-backed process analytics, both with interactive widgets) and add
-modules for your own systems.
+with interactive widgets) and add modules for your own systems.
 `modules/mcp-notes` is a small example module that shows the whole pattern;
 copying it is how you start yours.
 
@@ -40,18 +39,11 @@ pnpm dev              # MCP endpoint on :8400/mcp, plus the MCP Inspector (it pr
 No engine yet? `docker compose up -d`, then `pnpm dev`. The
 [`compose.yaml`](compose.yaml) starts a CIB seven engine on `localhost:8410`
 with its invoice example (login `demo`/`demo`), the engine the copied `.env`
-points at. It serves the engine tools only, so the copied `.env` leaves
-analytics off (`MCP_ACTIVE_MODULES=engine,notes`): that engine has no Prometheus
-to read. Analytics needs a Prometheus that holds your engines' metrics (the
-engine plugin `io.miragon.mcp:cibseven-history-metrics`); the
-[Pulse playground](https://github.com/Miragon/pulse/tree/main/playground) runs
-none either.
+points at (`MCP_ACTIVE_MODULES=engine,notes`).
 
 For your own engine set `ENGINE_BASE_URL`, `ENGINE_FLAVOR`,
-`ENGINE_AUTH_TYPE` with its credentials, and `ENGINE_ID` to an id of yours
-(with metrics, the `engine_id` they carry); with a Prometheus also
-`PROMETHEUS_URL` and `analytics` in `MCP_ACTIVE_MODULES`. `.env.example`
-explains each.
+`ENGINE_AUTH_TYPE` with its credentials, and `ENGINE_ID` to an id of yours.
+`.env.example` explains each.
 
 The server's own log lines start with `[acme-mcp]`, and a warning among them
 names what to fix. `pnpm dev` runs three processes next to each other: Vite
@@ -111,9 +103,7 @@ open the inspector's URL and render `notes_show_notes` in its Apps tab: the
 example widget renders with no external systems. The image runs no inspector;
 for a container, start one yourself
 (`npx @modelcontextprotocol/inspector --server-url http://127.0.0.1:8400/mcp --transport http`).
-The engine tools need a running engine (`docker compose up -d`, above), the
-analytics tools a Prometheus with your engines' metrics and `analytics` in
-`MCP_ACTIVE_MODULES`.
+The engine tools need a running engine (`docker compose up -d`, above).
 
 ## Develop
 
@@ -246,7 +236,7 @@ reaches the host through the view runtime `@miragon/pulse-widget-shell/widgets`
 [`.env.example`](.env.example) documents every variable this server reads;
 copy it to `.env` (loaded by `pnpm dev` only; `pnpm start` and Docker take
 their config from the environment). A variable under a watched prefix (`MCP_`,
-`ENGINE_`, `ENGINES_`, `PROMETHEUS_`, plus each module's own) that the server does not
+`ENGINE_`, `ENGINES_`, plus each module's own) that the server does not
 read prints a warning at boot, so typos surface immediately.
 
 Toolsets fail closed: without OAuth and without a `module:toolset` suffix the
@@ -257,7 +247,7 @@ implied, and `engine_create_deployment` additionally needs
 `ENGINE_ALLOW_DEPLOYMENTS=true` (deploying a BPMN runs code in the engine
 JVM). See the `setup-server` skill before widening a server others can reach.
 
-A module without toolsets, like notes or analytics, registers all its tools
+A module without toolsets, like notes, registers all its tools
 whenever it runs. Give your module toolsets as soon as it registers a tool without
 `readOnlyHint: true` and the server may run without OAuth (the
 `create-module` skill, Step 5). Until then a boot without OAuth
@@ -278,7 +268,7 @@ identity: passthrough engine auth and the per-caller caches key on it.
 | `MCP_METRICS_TOKEN`                         | Bearer token `/metrics` requires (default: open)                                                                                                                                                 |
 | `MCP_OAUTH_*`                               | One OAuth provider's variables (see `.env.example`), needs `MCP_URL`, the only caller identity                                                                                                   |
 | `MCP_ACTIVE_MODULES`                        | Modules (default: all; the copied `.env`: `engine,notes`; one it does not name stays off), e.g. `engine:operations,notes`; no suffix: read-only floor, OAuth → standard; no toolsets: every tool |
-| `ENGINE_*`, `PROMETHEUS_URL`, `NOTES_TITLE` | Module config, see `.env.example` for the full list                                                                                                                                              |
+| `ENGINE_*`, `NOTES_TITLE`                   | Module config, see `.env.example` for the full list                                                                                                                                              |
 
 ## Deploying
 
@@ -292,7 +282,7 @@ docker run --rm -p 8400:8400 \
 ```
 
 - No `.env` reaches this image, so `MCP_ACTIVE_MODULES` is unset and every
-  module runs, analytics included: name the modules you want.
+  module runs, the notes example included: name the modules you want.
 - `MCP_URL` is the public base URL when the server sits behind a proxy or MCP
   gateway; `PORT` changes the HTTP port. The server answers 403 to any `Host`
   (or browser `Origin`) that is not localhost-class, `MCP_URL`'s or listed in

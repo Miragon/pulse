@@ -11,7 +11,7 @@ allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 (the widget test), `widget-tools.ts` (show tool and data feed), `tool-names.ts`
 (rename safety). Richer patterns (paged lists,
 KPI grids, BPMN viewers) live in
-`server/node_modules/@miragon/pulse-{engine,analytics}-connector/src/widgets/`.
+`server/node_modules/@miragon/pulse-engine-connector/src/widgets/`.
 The names below are documented in
 `server/node_modules/@miragon/pulse-widget-shell/README.md` (export table) and
 `server/node_modules/@miragon/pulse-ui/README.md`, typed in

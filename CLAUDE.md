@@ -1,8 +1,7 @@
 # CLAUDE.md
 
-Guidance for AI agents working in this repository. Read the repo skill of your feature path
-before you add code: `.claude/skills/add-bpm-feature` (engine tools, queries, widgets) and
-`.claude/skills/add-analytics-feature` (analytics).
+Guidance for AI agents working in this repository. Read the repo skill before you add code:
+`.claude/skills/add-bpm-feature` (engine tools, queries, widgets).
 
 Each rule below names the gate that enforces it; when a gate fails, its message and source
 carry the details. A rule without a gate is review knowledge and keeps its reason.
@@ -36,27 +35,25 @@ lives in Miragon/miragon-ai-docs; a change it shows needs a PR there too.
 
 Pulse (part of the Miragon AI tool family) is a pnpm + Turbo monorepo that ships an MCP server
 (built on the official MCP TypeScript SDK, `@modelcontextprotocol/server` with the MCP Apps
-extension `@modelcontextprotocol/ext-apps`, its UI on `@miragon/pulse-ui`) for Camunda 7 / CIB seven BPM operations
-and Prometheus-backed process analytics, including interactive React widgets (MCP Apps), plus a
+extension `@modelcontextprotocol/ext-apps`, its UI on `@miragon/pulse-ui`) for Camunda 7 / CIB seven BPM operations,
+including interactive React widgets (MCP Apps), plus a
 command line interface (`apps/cli`) and a VS Code extension (`apps/vscode`) for the same engines.
 
-| Path                                                 | Contents                                                                                                                                                                                                                                                          |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/mcp-server/`                                   | The MCP host: composes plugins, bundles the widget UI, serves HTTP on `:8400`                                                                                                                                                                                     |
-| `apps/cli/`                                          | The CLI (npm `@miragon/pulse-cli`): every REST operation of the engine as a command, generated from its OpenAPI spec, plus the workflow commands; its rules in `apps/cli/CLAUDE.md`                                                                               |
-| `apps/vscode/`                                       | Pulse for VS Code (`pulse-cockpit`, a .vsix): a Preact webview over an engine-neutral contract and core, the C7 adapter; its rules in `apps/vscode/CLAUDE.md`                                                                                                     |
-| `packages/connectors/engine/engine-connector/`       | engine module: operations tools, widget tools, widgets                                                                                                                                                                                                            |
-| `packages/connectors/analytics/analytics-connector/` | analytics module: Prometheus-backed tools, dashboards, comparison widgets                                                                                                                                                                                         |
-| `packages/connectors/engine/engine-client/`          | Generated CIB seven REST SDK (`src/generated/`), `createEngineClient`, `EngineRequestError` and the SDK-bound reads (`src/engine-contract/`); a leaf                                                                                                              |
-| `packages/connectors/engine/engine-core/`            | The Camunda 7 REST API family's workflow domain and pure engine REST rules (npm `@miragon/pulse-engine-core`): port, selection, inspect, status triage, root causes, retry/advance plans, dates, filters, variable writes; no runtime dependency                  |
-| `packages/connectors/analytics/analytics-client/`    | Prometheus client, PromQL query functions (`src/queries/`) and the metrics contract; a leaf                                                                                                                                                                       |
-| `packages/core/ui/`                                  | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the brand gates under `/testing` |
-| `packages/core/widget-shell/`                        | The view runtime (`/widgets`: `mountViews`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), the product glossary (`/testing`)      |
-| `playground/`                                        | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                 |
-| `docs/`                                              | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                                                        |
-| `docs/mcp/`                                          | The MCP server's pages of the docs site (getting started, usage, reference, operations, architecture, build your own, developer)                                                                                                                                  |
-| `docs/cli/`                                          | The CLI's pages of the docs site (install, commands, configuration, authentication, AI agents, development)                                                                                                                                                       |
-| `docs/vscode/`                                       | The VS Code extension's pages of the docs site (installation, configuration, usage, architecture)                                                                                                                                                                 |
+| Path                                           | Contents                                                                                                                                                                                                                                                          |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/mcp-server/`                             | The MCP host: composes plugins, bundles the widget UI, serves HTTP on `:8400`                                                                                                                                                                                     |
+| `apps/cli/`                                    | The CLI (npm `@miragon/pulse-cli`): every REST operation of the engine as a command, generated from its OpenAPI spec, plus the workflow commands; its rules in `apps/cli/CLAUDE.md`                                                                               |
+| `apps/vscode/`                                 | Pulse for VS Code (`pulse-cockpit`, a .vsix): a Preact webview over an engine-neutral contract and core, the C7 adapter; its rules in `apps/vscode/CLAUDE.md`                                                                                                     |
+| `packages/connectors/engine/engine-connector/` | engine module: operations tools, widget tools, widgets                                                                                                                                                                                                            |
+| `packages/connectors/engine/engine-client/`    | Generated CIB seven REST SDK (`src/generated/`), `createEngineClient`, `EngineRequestError` and the SDK-bound reads (`src/engine-contract/`); a leaf                                                                                                              |
+| `packages/connectors/engine/engine-core/`      | The Camunda 7 REST API family's workflow domain and pure engine REST rules (npm `@miragon/pulse-engine-core`): port, selection, inspect, status triage, root causes, retry/advance plans, dates, filters, variable writes; no runtime dependency                  |
+| `packages/core/ui/`                            | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the brand gates under `/testing` |
+| `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), the product glossary (`/testing`)      |
+| `playground/`                                  | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                 |
+| `docs/`                                        | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                                                        |
+| `docs/mcp/`                                    | The MCP server's pages of the docs site (getting started, usage, reference, operations, architecture, build your own, developer)                                                                                                                                  |
+| `docs/cli/`                                    | The CLI's pages of the docs site (install, commands, configuration, authentication, AI agents, development)                                                                                                                                                       |
+| `docs/vscode/`                                 | The VS Code extension's pages of the docs site (installation, configuration, usage, architecture)                                                                                                                                                                 |
 
 Three axes decide where code goes, and they stay apart:
 
@@ -73,15 +70,14 @@ Three axes decide where code goes, and they stay apart:
   extension, say) is an app of its own. Apps never import each other, and no package imports
   an app.
 
-A family is one source the MCP server reads: a dialect, or another source such as `analytics`
-(Prometheus). Its packages are named `<family>-<role>`: `<family>-connector` (the MCP module),
+A family is one source the MCP server reads: a dialect, or another source (a metrics store,
+say). Its packages are named `<family>-<role>`: `<family>-connector` (the MCP module),
 `<family>-client` (the wire: SDK, client, the SDK-bound reads) and, when the family's interfaces
 share a pure domain, `<family>-core` (no runtime dependency, one port per family, the home of the
 family's pure rules; extracted on its second consumer, like `engine-core`, which the CLI and the
 VS Code extension's C7 adapter bundle and the engine connector runs). A family's tool input
 schemas live in its connector, next to the tools
-(`packages/connectors/engine/engine-connector/src/schemas/`,
-`packages/connectors/analytics/analytics-connector/src/schemas/`), so a client carries no zod:
+(`packages/connectors/engine/engine-connector/src/schemas/`), so a client carries no zod:
 validating tool input is the connector's concern, and the wire takes typed parameters.
 Family code stays in its family: `packages/core/` holds what every family builds on (pulse-ui,
 widget-shell), never one family's code.
@@ -209,8 +205,8 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    input schema in `packages/connectors/engine/engine-connector/src/schemas/`, then register
    the tool in `packages/connectors/engine/engine-connector/src/tools/<domain>.ts` via the
    `register` callback of `createToolRegistrar` (`@miragon/pulse-widget-shell/server`, wired in
-   `src/tools/index.ts`): a `category` matching its domain file (`"analytics"` in the analytics
-   module), `...engineParamShape` in the input schema, the handler wrapped in `withEngine(...)`
+   `src/tools/index.ts`): a `category` matching its domain file, `...engineParamShape` in the
+   input schema, the handler wrapped in `withEngine(...)`
    (both from `src/lib/engine/with-engine.ts`). Canonical shape: `engine_list_process_instances` in
    `packages/connectors/engine/engine-connector/src/tools/process-instances.ts`. ESLint
    (`no-restricted-syntax` in `eslint.config.mjs`) blocks a raw `registerTool` and ext-apps'
@@ -230,8 +226,8 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      unauthenticated boot and its standard toolset (engine `operations`) under OAuth;
      `admin` is never implied; an empty or unknown suffix warns and falls back to the floor;
      nothing resolves to "everything" (widget-shell's `toolsets.test.ts` +
-     `composition.test.ts`). Analytics declares no toolsets: every analytics tool is a read
-     (its `src/module.test.ts`), and a suffix on it is ignored with a warning.
+     `composition.test.ts`). A module without toolsets registers every tool, and a suffix on it
+     is ignored with a warning.
    - Admin-only by decision, each with `destructiveHint: true`: the engine-wide
      `engine_throw_signal` and the external-task worker protocol (`engine_fetch_and_lock`,
      `engine_complete_external_task`, `engine_handle_external_task_failure`); the read path
@@ -252,8 +248,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    per-user or in-memory selection (replica-unsafe; the server is stateless, one `McpServer`
    per request, no session ids). A client
    you construct or cache yourself breaks multi-engine routing; `resolveEngine` already returns
-   `baseUrl`/`cockpitUrl`. The BPMN lookup the module hands analytics (`createBpmnXmlFetcher`)
-   routes the same way, on the module's own registry and XML cache.
+   `baseUrl`/`cockpitUrl`.
 
 3. **A bundle view is registered in three places**; a view that misses one is silently absent:
    - the module's view map, keyed by its view tool's name (the engine module has ONE view,
@@ -284,7 +279,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    (the "can't show this view" state) and on a view no tool opens (dead code in every
    view's bundle).
 
-   Engine and analytics views are bundle views, never a resource of their own: an ESLint gate
+   The engine module's views are bundle views, never a resource of their own: an ESLint gate
    (`no-restricted-syntax`, `scripts/eslint-gates.test.mjs`) blocks `registerResource` and ext-apps'
    `registerAppResource` under `packages/connectors/`, the widget-tools files too, wherever invariant
    1's gate would (left to review here too: a key concatenated or computed at runtime, a parameter's
@@ -304,12 +299,12 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 
 5. **There are three render paths; pick deliberately:**
    - Registrar tools (`src/tools/`): plain JSON data _for the model_.
-   - Widget tools (`show_*` in analytics, `engine_open_cockpit` in the engine module; spread
+   - Widget tools (`engine_open_cockpit` in the engine module, a customer module's `*_show_*`; spread
      `...showToolBinding(name, title)` from `@miragon/pulse-widget-shell/server` into
      `registerTool`'s config): render a
      view for the user, as `buildViewResult(data, text)`: the `structuredContent` IS the view's
-     data and the `content` text is the model-facing result as compact JSON (the analytics
-     heatmap: a short English summary). `engine_open_cockpit`'s `view` picks the start
+     data and the `content` text is the model-facing result as compact JSON or a short English
+     summary. `engine_open_cockpit`'s `view` picks the start
      route, its `structuredContent` carries that route's data (the route's widgets seed their
      feeds with it) and its `content` that route's facts. The view is picked by its name
      (= the tool's name); a composed view (a dashboard, the process detail) is ONE component
@@ -374,7 +369,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    - **Type, dates and numbers.** Text sits on pulse-ui's `TYPE_SCALE` (13 px floor,
      `scanTypeScale`). Dates and numbers go through the kit's `format*` helpers in the locale
      `LocaleGate` publishes (ESLint's date and number gates over `WIDGET_TREES`, every widget
-     tree: the host bundle's `src/ui`, widget-shell's and both connectors' widgets;
+     tree: the host bundle's `src/ui`, widget-shell's and the connector's widgets;
      `scripts/eslint-gates.test.mjs`). A count reaches a
      catalog entry already formatted, and the entry puts the noun in the right number
      (`countOf`, `plural(…)`), never a `…One`/`…Other` key pair.
@@ -421,7 +416,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      aussetzen, Versuche, alle Engines), checked with each connector's own terms by
      `src/messages/glossary.test.ts` and listed in `src/messages/GLOSSARY.md`.
    - **Locale on the server.** Tool results for the model are English only (the engine module's
-     cockpit facts are JSON keys, analytics' heatmap summary goes through its `summaryT`); a
+     cockpit facts are JSON keys); a
      verdict travels as data and the widget words it in the host's language. The server never
      titles a view.
    - **Everything a widget tells the model is built by `askAiPrompt`/`modelContextText`**
@@ -445,8 +440,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      (`data/honest-numbers.test.ts`).
    - No view payload carries BPMN XML (a view tool's `structuredContent` reaches the model on
      some hosts): a view names the version it draws (`diagramDefinitionId`) and `BpmnDiagram`
-     reads the XML from the app-only `engine_bpmn_xml_data` (the heatmap from
-     `analytics_bpmn_xml_data`). The ONE XML read is `lib/bpmn/definition-xml.ts`, cached per
+     reads the XML from the app-only `engine_bpmn_xml_data`. The ONE XML read is `lib/bpmn/definition-xml.ts`, cached per
      engine client and per caller.
    - Each engine REST rule the client defaults miss has one home, used by `tools/` AND `data/`
      (and by the CLI): the pure rules (`toEngineDate`, `engineSorting`, the filters,
@@ -469,8 +463,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      `apps/cli/src/http/errors.ts` (its http layer does not import the core;
      `apps/cli/src/http/errors.test.ts`). No client
      follows a redirect: a 3xx fails with a message that names the fix. Every write tool has a
-     recording-fake-engine case in `src/tools/*.wire.test.ts`. Analytics periods derive from
-     `PERIODS`/`PERIOD_RANGE`.
+     recording-fake-engine case in `src/tools/*.wire.test.ts`.
    - The workflow rules the CLI and the read composites (`engine_inspect_process_instance`,
      `engine_status`, `src/lib/core-adapter/composites.ts`) share live in
      `@miragon/pulse-engine-core`: selection, root cause, the composites' paging and caps, the
@@ -478,8 +471,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      verdict's largest cause, the cockpit's cluster ids) and the ONE live verdict (`engineVerdict`:
      `engine_status`, `pulse status` and the cockpit's health route, `ok | warning | critical`;
      the MCP server's thresholds from `ENGINE_HEALTH_*`, the CLI's the defaults 50/25), a
-     threshold breach a critical `INCIDENTS_CRITICAL` finding; analytics' Prometheus view is
-     `metricsState` (`metricsStateRule`), never a `status`; the
+     threshold breach a critical `INCIDENTS_CRITICAL` finding; the
      connector's port (`src/lib/core-adapter/engine-port.ts`) maps each operation to an SDK or
      contract read. Deliberate carve-outs: the composites read definitions by id inside inspect (not `data/definition-info.ts`;
      `definitionKeyOf` only as a fallback), send UTC `+0000` dates (`engineFormat`, not
@@ -565,8 +557,9 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      failure rules: `docs/mcp/operations.md`) and is authenticated exactly when it installed a
      provider, never inferred from an env var.
    - **The app composes, nothing more.** `setup.ts` holds `MODULES` and `sharedResources`, the
-     `SharedResources` wiring (`fetchBpmnXml`, the engine module's XML lookup for analytics; `engineIds`,
-     the ONLY engines analytics reads, so analytics needs NO engine SDK). Widget components and
+     `SharedResources` wiring: `shared` is the port for what the modules of a composition share
+     (how a module gets another's capability, the engine module's engine access say, without
+     importing it); today the app hands nothing through. Widget components and
      boot plumbing live in packages; the bundle root is
      `mountViews({ views })` (its `ViewRoot` provider order is load-bearing), the
      stylesheet pulse-ui's `theme.css` after `tailwindcss` (`test/ui-stylesheet.test.ts`).
@@ -587,7 +580,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      a fresh `McpServer` behind the SDK's `createMcpHandler` (stateless, no session ids; a
      registration is fixed at boot). Each MCP server app owns ONE
      `createApp(env, deps?)` (`src/app.ts`) that `src/index.ts` AND the e2e suites boot, never a
-     test-only re-implementation. Readiness never probes engines or Prometheus (it answers 503
+     test-only re-implementation. Readiness never probes engines (it answers 503
      only while the server drains); metric labels stay bounded (tool catalogue + known routes,
      never users or arguments). A route answers under its own path only: the listener refuses a
      raw `req.url` that is not its own normal form with 404 (`isNormalTarget`: dot and empty
@@ -613,10 +606,9 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      `scripts/tool-name-refs.test.mjs` checks every `<module>_…` literal against the full
      surface of the admin golden and finds no raw cross-module name; the apps the source guards
      read are listed in `APP_SCAN` (`scripts/source-scan.mjs`), where a new app adds its entry
-     (an app missing there fails). Hand-offs and model contexts name no tool of either module
-     (invariant 6). A module's tool texts and
-     instructions name only its own tools (`crossModuleNames` in the app's
-     `tools-list.golden.test.ts`): the other module may be off.
+     (an app missing there fails). Hand-offs and model contexts name no tool (invariant 6). A
+     module's tool texts and instructions name only its own tools, since another module may be
+     off; the app composes one module, so review holds that.
    - **A write registers only through the registrar**, whose toolset filter decides it
      (`withToolsetFilter`/`isToolInToolset` in the engine module), never an ad-hoc `toolset === …`
      compare; an in-widget write asks `engine_widget_actions_data` whether it exists.
@@ -634,33 +626,19 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 
 ## Contracts
 
-- **`packages/connectors/analytics/analytics-client/metrics-contract.json` is the single source
-  of truth for metric names and labels: when changing a metric, change it here first.** The
-  engine plugin `io.miragon.mcp:cibseven-history-metrics` emits them; Pulse no longer builds it,
-  and 0.27.1 on Maven Central is its last version. Read a counter or histogram only through
-  `increaseIn` (`queries/helpers.ts`): `increase()`/`rate()` never count a series' first sample,
-  so the first incident at an activity would read 0; fold a gauge over a clustered engine's
-  nodes as `max by (<its contract labels>)`. TS queries (via `METRIC_NAMES`) are checked by
-  `packages/connectors/analytics/analytics-client/src/metrics-contract.test.ts` and
-  `src/metrics-contract-labels.test.ts` (a new query export needs a `SCENARIOS` entry). Attach
-  only model-bounded labels (definition key, activity id, engine id …), never instance ids,
-  business keys or variable values.
 - **Never aggregate a RATE across engines.** Engines host different process definitions, so a
-  rate or duration summed per `engine_id` measures the engine's process mix and can even
-  invert the per-process truth. Cross-engine views report absolute counts plus the
-  engine-owned backlog: the engine module's landscape sums counts only
-  (`packages/connectors/engine/engine-connector/src/lib/shared/fleet-landscape.ts`, its test),
-  analytics' `queries/engine-landscape.ts` reads gauges labelled by `engine_id` ONLY. A
-  like-for-like comparison holds the process fixed, which is
-  why `analytics_show_engine_compare` REQUIRES a `processDefinitionKey`; keep it required
-  (`src/widget-tools/engine-{compare,landscape}.test.ts`).
+  rate or duration summed per engine measures the engine's process mix and can even invert the
+  per-process truth. Cross-engine views report absolute counts plus the engine-owned backlog:
+  the engine module's landscape sums counts only
+  (`packages/connectors/engine/engine-connector/src/lib/shared/fleet-landscape.ts`, its test). A
+  like-for-like comparison holds the process fixed.
 - **Pinning is split by dependency stanza.** `dependencies`/`devDependencies` stay EXACT
   (`save-exact=true` in `.npmrc`). Consumer-shared libraries are RANGED `peerDependencies`, so
   a downstream app dedupes them (`react`/`react-dom` `^19.2.0`, `zod` `^4.4.0`, `bpmn-js`
   `^18.31.1`, `@miragon/pulse-ui` and `@miragon/pulse-widget-shell` as `workspace:^`, packed to
   `^<version>`), each also an EXACT devDependency. `bpmn-js` is a peer of widget-shell
-  (`./widgets` exports the BPMN viewer, so every view bundle imports it) and of the two
-  connectors, which draw diagrams. A published package imports only what its `dependencies` or
+  (`./widgets` exports the BPMN viewer, so every view bundle imports it) and of the engine
+  connector, which draws diagrams. A published package imports only what its `dependencies` or
   `peerDependencies` declare (`scripts/published-imports.test.mjs`), and its tarball ships no
   test, every module its entries reach and every source its maps name
   (`scripts/pack-contents.mjs`, run by `scripts/test-template.sh`): each library ships `dist`
@@ -715,7 +693,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 - **The server reads no `PULSE_*` variable.** PulseAudio owns `PULSE_*` and `PULSE_CLI_*` is
   the CLI's; the typo warner watches the prefix of every known variable, so one server name
   under `PULSE_` would make it warn about both in a shared environment. A server setting goes
-  into its own family (`ENGINE_*`, `ENGINES_*`, `PROMETHEUS_*`, `ANALYTICS_*`, `MCP_*`;
+  into its own family (`ENGINE_*`, `ENGINES_*`, `MCP_*`;
   `scripts/server-env-names.test.mjs` and the app's `test/setup.test.ts`).
 
 ## Releases
@@ -725,11 +703,11 @@ The release workflows hold the publish credentials and no pull request runs them
 workspace (its header lists each check).
 
 - **One release-please train.** Conventional commits on `main` drive `release-please.yml`: one
-  Release PR (tag `v<version>`) bumps the root, every app, the seven packages, the template's
+  Release PR (tag `v<version>`) bumps the root, every app, the five packages, the template's
   pins and the engine-client User-Agent in lockstep (`extra-files` in `release-please-config.json`).
   Merging it creates the release; every publish job then waits for manual approval of the
   `release` environment gate.
-- **npm:** the seven packages and `@miragon/pulse-cli` publish through
+- **npm:** the five packages and `@miragon/pulse-cli` publish through
   `publish-npm-package.yml` with OIDC trusted publishing (no NPM_TOKEN, provenance attached).
   Each names this repository in its `repository` field, since npm refuses a provenance publish
   from another repository. The pack job runs `pnpm pack`, which rewrites `workspace:*` (npm's
@@ -764,7 +742,7 @@ workspace (its header lists each check).
 | Check             | Coverage                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `pnpm build`      | turbo `build` everywhere: tsc emit of the packages and server code, the server app's Vite widget bundle (`build:ui`), the CLI's tsdown bundle (`apps/cli/dist`) and the VS Code extension's esbuild bundles; excludes widget `.tsx` type errors in packages                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `pnpm typecheck`  | **The only check that type-checks widget code**: `tsc -p tsconfig.widgets.json` in the two connector packages and widget-shell (its view half), `tsc -p tsconfig.ui.json` (and `tsconfig.test.json`) in the server app; the VS Code extension per layer, each with that layer's runtime globals only                                                                                                                                                                                                                                                                                                                                                                                  |
+| `pnpm typecheck`  | **The only check that type-checks widget code**: `tsc -p tsconfig.widgets.json` in the engine connector and widget-shell (its view half), `tsc -p tsconfig.ui.json` (and `tsconfig.test.json`) in the server app; the VS Code extension per layer, each with that layer's runtime globals only                                                                                                                                                                                                                                                                                                                                                                                        |
 | `pnpm test`       | Vitest unit tests, the server app's wire-contract tests and tools/list goldens (in-process boot, loopback HTTP), the VS Code extension's architecture tests, the per-package coverage floors, then `node --test` over `scripts/*.test.mjs` (repo guards and gate self-tests, below the table); docs-refs, old-names and `lint:package-scripts` also run in Lint + Format; **no widget rendering** (the VS Code webview tests render in Chromium; locally once: `pnpm --filter pulse-cockpit exec playwright install chromium`)                                                                                                                                                        |
 | `pnpm lint`       | The build-free gates first (`lint:naming`, `lint:package-scripts`, `lint:github`, `lint:ratchets`, which needs `git fetch origin`), then ESLint per package incl. the pattern gates, dependency-cruiser (`lint:architecture`, `:cli`, `:vscode`) and knip (`lint:deadcode`: everything but exports and types; `:exports`: exports and types in every workspace but the vendored docs kit), and last `lint:configs` (the config files no tsconfig holds and no package lints: `DEFAULT_PROJECT_FILES` in `eslint.config.mjs`)                                                                                                                                                          |
 | `pnpm fitness`    | Report: architecture graph, per-package coverage and engine-core's mutation score; locally after `pnpm test` (no CI job on a pull request), else the "Mutation summary" job of `.github/workflows/mutation-nightly.yml`                                                                                                                                                                                                                                                                                                                                                                                                                                                               |

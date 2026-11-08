@@ -134,8 +134,8 @@ describe("buildJobPanelData: exact totals from /job/count", () => {
     expect(calls(engine, "/process-definition/K1:1:a/xml")).toHaveLength(1)
   })
 
-  // One rule with analytics (`readBpmnNames`): the job panel showed "Rechnung&#10;prüfen" literally.
-  it("names a Modeler diagram's activity and process as analytics does", async () => {
+  // One rule (`readBpmnNames`): the job panel showed "Rechnung&#10;prüfen" literally.
+  it("names a Modeler diagram's activity and process as every view does", async () => {
     const xml = `<definitions>
   <collaboration id="C"><participant id="Pool" name="Miravelo - Bike Leasing" processRef="K1"/></collaboration>
   <process id="K1"><serviceTask id="charge" name="Rechnung&#10;prüfen &#38; buchen"/></process>

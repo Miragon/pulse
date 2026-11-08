@@ -173,7 +173,7 @@ describe("testOnePlan", () => {
       /needs Docker.*test:engines/,
     )
     assert.match(
-      plan(["apps/cli/test-host/analytics.spec.ts"]).message,
+      plan(["apps/cli/test-host/fleet.spec.ts"]).message,
       /needs Playwright.*--filter @x\/cli test:host/,
     )
     assert.match(
@@ -183,7 +183,7 @@ describe("testOnePlan", () => {
   })
 
   it("knows those suites by the path inside the package, however the file was given", () => {
-    const fromTestHost = plan(["analytics.spec.ts"], { cwd: "/repo/apps/cli/test-host" })
+    const fromTestHost = plan(["fleet.spec.ts"], { cwd: "/repo/apps/cli/test-host" })
     assert.match(fromTestHost.message, /needs Playwright.*test:host/)
     assert.match(plan(["apps/cli/test-host"]).message, /needs Playwright.*test:host/)
     assert.equal(plan(["apps/cli/test/test-host-fake.test.ts"]).runs.length, 1)

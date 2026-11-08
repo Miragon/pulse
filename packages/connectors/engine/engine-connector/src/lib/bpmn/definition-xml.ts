@@ -10,8 +10,8 @@ const xmlCache = new WeakMap<object, Map<string, Promise<string | null>>>()
 /**
  * The engine client behind `client`: every call reaches its engine through a per-call view
  * (`withCallerSignal`, bound to the MCP request's signal) that shares the client's interceptors,
- * so the cache keys on them, not on the view, and the tools, the feeds and analytics' BPMN lookup
- * share one cache per configured engine. A stand-in client without interceptors keys on itself.
+ * so the cache keys on them, not on the view, and the tools and the feeds share one cache per
+ * configured engine. A stand-in client without interceptors keys on itself.
  */
 function cacheKeyOf(client: Client): object {
   const { interceptors } = client as Partial<Pick<Client, "interceptors">>

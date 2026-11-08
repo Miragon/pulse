@@ -83,10 +83,8 @@ jobs:
           - packages/core/ui
           - packages/connectors/engine/engine-core
           - packages/connectors/engine/engine-client
-          - packages/connectors/analytics/analytics-client
           - packages/core/widget-shell
           - packages/connectors/engine/engine-connector
-          - packages/connectors/analytics/analytics-connector
           - apps/cli
     uses: ./.github/workflows/publish-npm-package.yml
     with:

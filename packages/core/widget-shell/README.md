@@ -25,8 +25,9 @@ To build your own MCP server on it, start from [pulse-starter](https://github.co
 ## Overview
 
 Shared widget plumbing for the [Pulse](../../../README.md) MCP App widgets. It is the common base
-both widget modules ([`engine-connector`](../../connectors/engine/engine-connector), [`analytics-connector`](../../connectors/analytics/analytics-connector)) build on,
-so every widget gets the same data-loading, refresh and view-composition behaviour.
+the engine module ([`engine-connector`](../../connectors/engine/engine-connector)) and your own
+modules build on, so every widget gets the same data-loading, refresh and view-composition
+behaviour.
 
 Published to the public npm registry as `@miragon/pulse-widget-shell`, the foundation
 package customers build their own connectors and composed servers on (see the
@@ -121,7 +122,9 @@ package customers build their own connectors and composed servers on (see the
   that registers all its tools, prompts and resources on a `ModuleServer`, the official SDK's own
   `registerTool`/`registerPrompt`/`registerResource` (`Pick<McpServer, …>`, so the SDK's docs and
   ext-apps' `registerAppTool` and `registerAppResource` apply as they are); `shared(entries)` is
-  your wiring of what the active modules hand each other. The boot log states each module's toolset
+  the port for what the modules of a composition share (a module of yours that needs the engine
+  module's engine access gets it there, never by importing it); the Pulse server and the starter
+  hand nothing through today. The boot log states each module's toolset
   and why. A module's tests register on `recordingModuleServer()` (`./testing`), which calls a
   handler and reads a resource (`resource(uri).read()`) the way the SDK does
   (`testServerContext(signal?)` builds its context).
@@ -209,7 +212,7 @@ needs an exact pin.
 ## Where it fits
 
 ```
-engine-connector / analytics-connector widgets
+engine-connector widgets (and your modules')
             │  use
             ▼
    @miragon/pulse-widget-shell   ──  view runtime · view builders · host-bound UI

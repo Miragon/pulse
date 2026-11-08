@@ -165,8 +165,8 @@ describe("createComposedServer: boot", () => {
     )
   })
 
-  // A module may key per-boot state on its config object (the engine module's one engine registry,
-  // shared by its tools and the BPMN lookup it hands analytics through `shared`).
+  // A module may key per-boot state on its config object, so a capability it hands another
+  // module through `shared` runs on the same state as its own tools.
   it("hands `shared` and createPlugin the same config object of an entry", async () => {
     const { module, createPlugin } = spiedAlpha()
     const seen: Record<string, unknown>[] = []

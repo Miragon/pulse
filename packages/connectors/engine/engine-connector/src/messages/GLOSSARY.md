@@ -9,20 +9,20 @@ der Zahl). Neue Begriffe kommen erst hier hinein, dann in den Test, dann in den 
 
 ## Gemeinsame Begriffe aller Module
 
-Diese Begriffe stehen in den Ansichten mehrerer Module. Sie gelten deshalb in jedem Modul gleich.
+Diese Begriffe gelten in jedem Modul gleich, auch in einem, das eine Komposition dazunimmt.
 Die Regeln stehen einmal in widget-shell (`PRODUCT_GLOSSARY` in
 `@miragon/pulse-widget-shell/testing`), und `glossary.test.ts` jedes Moduls prüft damit seine
-Kataloge. Das Glossar von analytics führt dieselbe Tabelle.
+Kataloge.
 
-| Sache                                                                       | Deutsch                                                            | Nicht                                | Englisch                  | Nicht                  |
-| --------------------------------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------ | ------------------------- | ---------------------- |
-| Fehler, den die Engine meldet                                               | Incident, Incidents                                                | Vorfall, Vorfälle, Störung           | incident                  | occurrence             |
-| Jobs, deren Versuche aufgebraucht sind (`failedJobs`, `engine_jobs_failed`) | Jobs ohne Versuche („3 ohne Versuche“)                             | Fehlgeschlagene Jobs, tote Jobs      | jobs without retries      | failed jobs, dead jobs |
-| BPMN-Modell auf die Engine bringen                                          | bereitstellen, bereitgestellt (das Ergebnis heißt Deployment)      | deployen, deployst, deployt          | deploy, deployed          | –                      |
-| Business Key                                                                | Geschäftsschlüssel                                                 | GK, Business Key                     | business key              | BK                     |
-| Instanz anhalten                                                            | aussetzen, ausgesetzt                                              | anhalten, angehalten, pausieren      | suspend, suspended        | pause, halt            |
-| Retries eines Jobs                                                          | Versuche („Noch 2 Versuche“, „Keine Versuche mehr“), neu versuchen | Wiederholungen, wiederholen, Retries | retries, retry            | –                      |
-| Alle Engines zusammen                                                       | alle Engines, Engine-übergreifend                                  | Flotte                               | all engines, cross-engine | fleet                  |
+| Sache                                                 | Deutsch                                                            | Nicht                                | Englisch                  | Nicht                  |
+| ----------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------ | ------------------------- | ---------------------- |
+| Fehler, den die Engine meldet                         | Incident, Incidents                                                | Vorfall, Vorfälle, Störung           | incident                  | occurrence             |
+| Jobs, deren Versuche aufgebraucht sind (`failedJobs`) | Jobs ohne Versuche („3 ohne Versuche“)                             | Fehlgeschlagene Jobs, tote Jobs      | jobs without retries      | failed jobs, dead jobs |
+| BPMN-Modell auf die Engine bringen                    | bereitstellen, bereitgestellt (das Ergebnis heißt Deployment)      | deployen, deployst, deployt          | deploy, deployed          | –                      |
+| Business Key                                          | Geschäftsschlüssel                                                 | GK, Business Key                     | business key              | BK                     |
+| Instanz anhalten                                      | aussetzen, ausgesetzt                                              | anhalten, angehalten, pausieren      | suspend, suspended        | pause, halt            |
+| Retries eines Jobs                                    | Versuche („Noch 2 Versuche“, „Keine Versuche mehr“), neu versuchen | Wiederholungen, wiederholen, Retries | retries, retry            | –                      |
+| Alle Engines zusammen                                 | alle Engines, Engine-übergreifend                                  | Flotte                               | all engines, cross-engine | fleet                  |
 
 ## Begriffe des Engine-Moduls
 
@@ -47,25 +47,22 @@ Arbeit im Chat passiert. Beides steht einmal in widget-shell: `HandOffButton` mi
 `@miragon/pulse-widget-shell/widgets`. Jede Funktion hat in jedem Modul dasselbe Icon und dasselbe
 Label, kein Icon steht für zwei Funktionen. Ein Widget eines Connectors rendert Übergaben nur
 über `HandOffButton` (ein ESLint-Gate verbietet `AskAiButton` dort); eine neue Funktion kommt
-mit ihrem Icon und beiden Labels ins Kit. Das Glossar von analytics führt dieselbe Tabelle.
+mit ihrem Icon und beiden Labels ins Kit.
 
-| Funktion                         | Icon           | Deutsch                         | Englisch                    |
-| -------------------------------- | -------------- | ------------------------------- | --------------------------- |
-| Lage einordnen                   | ListChecks     | Im Chat bewerten                | Assess in chat              |
-| Ursache finden                   | ScanSearch     | Ursache im Chat klären          | Find cause in chat          |
-| Fehler erklären                  | FileSearch     | Fehler im Chat erklären         | Explain error in chat       |
-| Behebung planen                  | Wrench         | Behebung im Chat planen         | Plan a fix in chat          |
-| Ticket entwerfen                 | ClipboardList  | Ticket im Chat entwerfen        | Draft ticket in chat        |
-| Verlauf erklären                 | Route          | Verlauf im Chat erklären        | Explain timeline in chat    |
-| Dauer erklären                   | Timer          | Dauer im Chat erklären          | Explain duration in chat    |
-| Variablen prüfen                 | Braces         | Variablen im Chat prüfen        | Check variables in chat     |
-| Diagramm erklären                | Workflow       | Zustand im Chat erklären        | Explain state in chat       |
-| Zustand prüfen                   | Stethoscope    | Zustand im Chat prüfen          | Check health in chat        |
-| Fehler über Engines              | Bug            | Fehler im Chat analysieren      | Analyze failures in chat    |
-| Performance über Engines         | Gauge          | Performance im Chat analysieren | Analyze performance in chat |
-| Engpass erklären                 | Hourglass      | Engpass im Chat erklären        | Explain bottleneck in chat  |
-| Nach Dringlichkeit ordnen        | ListOrdered    | Im Chat priorisieren            | Prioritize in chat          |
-| Prozess über Engines vergleichen | ArrowLeftRight | Engines im Chat vergleichen     | Compare engines in chat     |
+| Funktion                  | Icon          | Deutsch                    | Englisch                 |
+| ------------------------- | ------------- | -------------------------- | ------------------------ |
+| Lage einordnen            | ListChecks    | Im Chat bewerten           | Assess in chat           |
+| Ursache finden            | ScanSearch    | Ursache im Chat klären     | Find cause in chat       |
+| Fehler erklären           | FileSearch    | Fehler im Chat erklären    | Explain error in chat    |
+| Behebung planen           | Wrench        | Behebung im Chat planen    | Plan a fix in chat       |
+| Ticket entwerfen          | ClipboardList | Ticket im Chat entwerfen   | Draft ticket in chat     |
+| Verlauf erklären          | Route         | Verlauf im Chat erklären   | Explain timeline in chat |
+| Dauer erklären            | Timer         | Dauer im Chat erklären     | Explain duration in chat |
+| Variablen prüfen          | Braces        | Variablen im Chat prüfen   | Check variables in chat  |
+| Diagramm erklären         | Workflow      | Zustand im Chat erklären   | Explain state in chat    |
+| Zustand prüfen            | Stethoscope   | Zustand im Chat prüfen     | Check health in chat     |
+| Fehler über Engines       | Bug           | Fehler im Chat analysieren | Analyze failures in chat |
+| Nach Dringlichkeit ordnen | ListOrdered   | Im Chat priorisieren       | Prioritize in chat       |
 
 ## Texte
 

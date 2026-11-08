@@ -263,7 +263,7 @@ export interface InstanceDetailData {
   }
   /** The process's name, from the instance's diagram; null without one or unreadable. */
   processDefinitionName: string | null
-  /** Null for a generated id (long keys); the timeline's analytics hand-offs are omitted then. */
+  /** Null for a generated id (long keys). */
   definitionKey: string | null
   activityTree: ActivityTree | null
   variables: Record<string, VariableValue>
