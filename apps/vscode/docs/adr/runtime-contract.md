@@ -1,8 +1,8 @@
 # Runtime contract
 
 - Status: accepted
-- Last reviewed: 2026-11-09 (the engine contract is the package `@miragon/pulse-engine-contract`,
-  with the four changes Camunda 8 needs)
+- Last reviewed: 2026-11-09 (the engine contract is the engine family's core
+  `@miragon/pulse-engine-core`, with the four changes Camunda 8 needs)
 
 ## Context
 
@@ -18,11 +18,12 @@ search results are eventually consistent and page with cursors.
 ### Three ports
 
 The engine's ports are interfaces of the engine contract, the package
-`@miragon/pulse-engine-contract` (`packages/core/engine-contract/src/ports`); what they exchange
-lives in `packages/core/engine-contract/src/model`. It is the shared language of the dialects, a
-package of its own since 2026-11-09 (owner decision 2026-11-08: the contract sits above the
-dialects); the extension's contract layer (`apps/vscode/src/contract`) re-exports it next to the
-ports of the IDE, so the core, the adapters and the host import one entry. Adapters implement the
+`@miragon/pulse-engine-core` (`packages/connectors/engine/engine-core/src/ports`); what they
+exchange lives in `packages/connectors/engine/engine-core/src/model`. It is the shared language of
+the dialects, a package of its own since 2026-11-09 and the core of the engine family, the neutral
+layer above the dialects (owner decisions 2026-11-08 and 2026-11-09); the extension's contract
+layer (`apps/vscode/src/contract`) re-exports it next to the ports of the IDE, so the core, the
+adapters and the host import one entry. Adapters implement the
 ports with classes ([code-structure.md](code-structure.md)).
 
 `ProcessRuntime` (`ports/process-runtime.ts`) has one method per
@@ -205,7 +206,7 @@ flowchart LR
   saboteurs[Saboteurs: broken runtimes] -- each must fail its law --> kit
 ```
 
-`@miragon/pulse-engine-contract/testing` (`packages/core/engine-contract/src/testing/conformance`)
+`@miragon/pulse-engine-core/testing` (`packages/connectors/engine/engine-core/src/testing/conformance`)
 holds 48 read laws and 15 command laws as executable cases, modelled on
 `@miragon/modeler-api/conformance`:
 `new ConformanceKit(test).registerRuntimeLaws(prepare)` and `.registerCommandLaws(prepare)`
@@ -316,8 +317,8 @@ business key fail the ids law too, as does a search that ignores the instance id
   and migration planning as an optional pair of methods. Its undivided element statistics above
   the incident search's cap stay a documented exception until that adapter lands.
 - Every change to the contract is a change to a published package: a new port, read model or
-  law lands in `packages/core/engine-contract` with its saboteur, and the kit's self-tests run
-  there (`packages/core/engine-contract/test`, 71 saboteurs). Below 1.0 the package makes no
+  law lands in `packages/connectors/engine/engine-core` with its saboteur, and the kit's
+  self-tests run there (`packages/connectors/engine/engine-core/test`, 71 saboteurs). Below 1.0 the package makes no
   stability promise; its laws and its fake follow the extension.
 - Panel loads have fixed engine-call budgets (definition ≤ 7, three of them the scope
   counts queried in parallel with the page; instance ≤ 2 plus lazy details; both + 1

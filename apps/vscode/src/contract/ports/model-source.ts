@@ -1,4 +1,4 @@
-import type { BpmnProcessId, ElementId } from "@miragon/pulse-engine-contract"
+import type { BpmnProcessId, ElementId } from "@miragon/pulse-engine-core"
 import type { ModelElement, ModelFile } from "../model/local-sources.js"
 
 export interface ModelSource {

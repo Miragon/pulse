@@ -1,19 +1,23 @@
-# @miragon/pulse-engine-contract
+# @miragon/pulse-engine-core
 
-[![npm](https://img.shields.io/npm/v/@miragon/pulse-engine-contract?style=flat-square)](https://www.npmjs.com/package/@miragon/pulse-engine-contract)
+[![npm](https://img.shields.io/npm/v/@miragon/pulse-engine-core?style=flat-square)](https://www.npmjs.com/package/@miragon/pulse-engine-core)
 [![CI](https://img.shields.io/github/actions/workflow/status/Miragon/pulse/ci.yml?style=flat-square&label=ci)](https://github.com/Miragon/pulse/actions/workflows/ci.yml)
 [![Docs](https://img.shields.io/badge/docs-miragon.github.io%2Fpulse-335DE5?style=flat-square)](https://miragon.github.io/pulse/)
 
-The shared language of the engine dialects Pulse speaks. Camunda 7 family engines (Operaton,
+The neutral core of Pulse's engine family: the contract every engine dialect implements, the
+shared language of the dialects Pulse speaks. Camunda 7 family engines (Operaton,
 CIB seven, Camunda 7) and Camunda 8 hold the same runtime data, named, numbered and paged
 differently. This package fixes the questions Pulse asks a process engine and the words of the
 answers, in Pulse's own vocabulary: process, version, instance and element ids, read models,
 queries, bulk operations, migration plans and one error. Each dialect answers them with an
 implementation of its own, and the conformance kit proves that it means the same thing.
 
-Pulse for VS Code speaks it today: its core asks these ports, and its C7 adapter answers them
-over the Camunda 7 REST API. [@miragon/pulse-c7-core](https://www.npmjs.com/package/@miragon/pulse-c7-core),
-the core of that dialect, applies its root-cause rule for the Pulse CLI and the MCP server.
+The engine family is the neutral layer above the dialects: its module, the MCP server's engine
+module, serves every dialect, and this package is its core. A dialect (Camunda 7 REST today,
+Camunda 8 later) is a family of its own whose core implements this contract. Pulse for VS Code
+speaks it today: its core asks these ports, and its C7 adapter answers them over the Camunda 7
+REST API. [@miragon/pulse-c7-core](https://www.npmjs.com/package/@miragon/pulse-c7-core), the
+core of that dialect, applies its root-cause rule for the Pulse CLI and the MCP server.
 
 ## What it is not
 
@@ -26,7 +30,7 @@ triage, verdicts and which recovery to offer.
 ## Install
 
 ```sh
-npm install @miragon/pulse-engine-contract
+npm install @miragon/pulse-engine-core
 ```
 
 ## What it holds
@@ -52,7 +56,7 @@ npm install @miragon/pulse-engine-contract
 ## Prove an implementation
 
 ```ts
-import { ConformanceKit } from "@miragon/pulse-engine-contract/testing"
+import { ConformanceKit } from "@miragon/pulse-engine-core/testing"
 import { test } from "vitest"
 
 const kit = new ConformanceKit(test)
@@ -105,13 +109,15 @@ never with a flag that can disagree with what the engine does:
 
 ## The admission rule
 
-A port, read model or rule enters `@miragon/pulse-engine-contract` when two dialects answer it with
-the same meaning, proven by the conformance laws on both. Only dialect implementations import the
-contract (Pulse for VS Code's contract barrel for its adapters, and a family core's `src`, its main
-entry alone: c7-core applies `RootCauses`; the gate keys on the role, so it admits every family's
-core). A surface reaches it through them; the engine connector or the CLI importing it directly is
-an admission decision in review, the case #488 reopens on: a second interface needing the same
-use case with the same rules.
+A port, read model or rule enters `@miragon/pulse-engine-core` when two dialects answer it with
+the same meaning, proven by the conformance laws on both. It stays narrow: a further rule (the
+verdict, the message signature, durations) moves here only when a second dialect needs it in the
+CLI or the MCP server. Only dialect implementations import it (Pulse for VS Code's contract barrel
+for its adapters, and the `src` of a dialect's core, its main entry alone and never from the
+core's `./testing`: c7-core applies `RootCauses`). A surface reaches it through them; the engine
+connector (although this is its own family's core) or the CLI importing it directly waits until
+it serves a second dialect, an admission decision in review, the case #488 reopens on: a second
+interface needing the same use case with the same rules.
 
 Two admissions came ahead of their second dialect, by the owner's decision, on the evidence of the
 Camunda 8 adapter's branch (#543):
@@ -127,8 +133,8 @@ Camunda 8 adapter's branch (#543):
   name their root cause in one line and point at a line of their text" holds every adapter to
   the bounds both readings keep.
 
-The repository holds that to its import graph (`engine-contract-consumers` in its
-dependency-cruiser config) and the package to its own modules (`engine-contract-is-a-leaf`).
+The repository holds that to its import graph (`engine-core-consumers` in its
+dependency-cruiser config) and the package to its own modules (`family-core-is-a-leaf`).
 
 ## Stability
 
@@ -141,9 +147,9 @@ that breaks an implementation says so in the changelog.
 The house rules of Pulse for VS Code, which this package came from: classes, not module
 functions (one class per file, public methods first, static utility classes per topic, the
 branded id constructors aside), no comments (names and types carry the intent, and no rule is
-switched off inline), complexity 10, 300 lines per file, 60 per function, no engine word such as
-a vendor's name or `processDefinitionKey` anywhere in it. The repository's ESLint config holds the
-package to them.
+switched off inline), complexity 10, 300 lines per file (400 for a test file), 60 per function,
+no engine word such as a vendor's name or `processDefinitionKey` anywhere in it. The repository's
+ESLint config holds the package to them.
 
 ## License
 

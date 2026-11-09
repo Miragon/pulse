@@ -4,7 +4,7 @@ import {
   FakeWorld,
   NEUTRAL_DIAGRAMS,
   PatchedRuntime,
-} from "@miragon/pulse-engine-contract/testing"
+} from "@miragon/pulse-engine-core/testing"
 import { describe, expect, test } from "vitest"
 import { BpmnProcessIds } from "../../src/core/bpmn/bpmn-process-ids.js"
 import { ElementNames } from "../../src/core/bpmn/element-names.js"

@@ -32,7 +32,7 @@ export const DEFAULT_PROJECT_FILES = [
   "packages/connectors/c7/c7-core/vitest.config.ts",
   "packages/connectors/c7/c7-core/vitest.stryker.config.ts",
   "packages/connectors/engine/engine-connector/vitest.config.ts",
-  "packages/core/engine-contract/vitest.config.ts",
+  "packages/connectors/engine/engine-core/vitest.config.ts",
   "packages/core/http/vitest.config.ts",
   "packages/core/http/vitest.stryker.config.ts",
   "packages/core/profile/vitest.config.ts",
@@ -258,18 +258,20 @@ const widgetHandOffGate = [
 // no engine words in the contract, the core and the webview, no --vscode-* colour in
 // the webview, dates and numbers in the core and the webview through pulse-ui's formatters (the
 // date and number gates of the widget trees). apps/vscode/test/architecture/lint-rules.test.ts
-// lints a probe per rule. The engine contract (packages/core/engine-contract), which left
-// apps/vscode/src/contract for a package of its own, keeps every one of these rules: each block
-// that held it names the package's path next to the extension's (ENGINE_CONTRACT_SRC,
-// ENGINE_CONTRACT_TESTS, and its config files as the extension's own: ENGINE_CONTRACT_CONFIGS).
-// Its no-restricted-syntax blocks name apps/vscode and the contract's paths only, so they never
-// replace a selector of the MCP gates above (and no MCP block reaches either); the contract's
-// engine words say where they belong in its own terms (ENGINE_CONTRACT_WORDS_MESSAGE), since the
-// package is not the extension's.
-const ENGINE_CONTRACT_SRC = "packages/core/engine-contract/src/**/*.ts"
-const ENGINE_CONTRACT_TESTS = "packages/core/engine-contract/test/**/*.ts"
-const ENGINE_CONTRACT_CONFIGS = "packages/core/engine-contract/*.ts"
-const ENGINE_CONTRACT_PROBE = "packages/core/engine-contract/test/runtime.boundary.ts"
+// lints a probe per rule. The engine family's neutral core, the contract every dialect implements
+// (packages/connectors/engine/engine-core), which left apps/vscode/src/contract for a package of
+// its own, keeps every one of these rules: each block that held it names the package's path next
+// to the extension's (ENGINE_CORE_SRC, ENGINE_CORE_TESTS, and its config files as the
+// extension's own: ENGINE_CORE_CONFIGS). As a package of a family its src also sits under the
+// connector resource gate of the MCP blocks above (packages/connectors/*/*/src), so its
+// no-restricted-syntax blocks carry that gate in their union (no-restricted-syntax is ONE rule:
+// a later block replaces an earlier one's selectors); its engine words say where they belong in
+// its own terms (ENGINE_CORE_WORDS_MESSAGE), since the package is not the extension's. Its src
+// glob names every TypeScript extension, so no file there steps out of the rules by its name.
+const ENGINE_CORE_SRC = "packages/connectors/engine/engine-core/src/**/*.{ts,mts,cts,tsx}"
+const ENGINE_CORE_TESTS = "packages/connectors/engine/engine-core/test/**/*.ts"
+const ENGINE_CORE_CONFIGS = "packages/connectors/engine/engine-core/*.ts"
+const ENGINE_CORE_PROBE = "packages/connectors/engine/engine-core/test/runtime.boundary.ts"
 const vscodeNoComments = {
   meta: {
     type: "suggestion",
@@ -294,8 +296,8 @@ const VSCODE_ENGINE_WORDS =
   "camunda|zeebe|operaton|cib ?seven|processDefinitionKey|processInstanceKey|activityId|\\bc[78]\\b"
 const VSCODE_ENGINE_WORDS_MESSAGE =
   "Engine vocabulary belongs in apps/vscode/src/adapters/<engine> and the composition root. Use the neutral words of the contract here (elementId, definitionId, bpmnProcessId, instanceId)."
-const ENGINE_CONTRACT_WORDS_MESSAGE =
-  "Engine vocabulary belongs in a dialect's implementation (its engine adapter, its core), never in the engine contract. Use the contract's neutral words (elementId, definitionId, bpmnProcessId, instanceId)."
+const ENGINE_CORE_WORDS_MESSAGE =
+  "Engine vocabulary belongs in a dialect's implementation (its engine adapter, its core), never in the engine family's neutral core, the contract every dialect implements. Use the contract's neutral words (elementId, definitionId, bpmnProcessId, instanceId)."
 const VSCODE_HOST_COLOUR_MESSAGE =
   "The webview takes no colour from VS Code. Use a Miragon token (--cd-*) from apps/vscode/src/webview/theme instead of a --vscode-* variable."
 const VSCODE_CLASS_MESSAGE =
@@ -322,10 +324,7 @@ const vscodeModuleFunctions = (allowedNames) => {
 }
 
 const vscodeNeutralCode = vscodeForbiddenWords(VSCODE_ENGINE_WORDS, VSCODE_ENGINE_WORDS_MESSAGE)
-const engineContractNeutralCode = vscodeForbiddenWords(
-  VSCODE_ENGINE_WORDS,
-  ENGINE_CONTRACT_WORDS_MESSAGE,
-)
+const engineCoreNeutralCode = vscodeForbiddenWords(VSCODE_ENGINE_WORDS, ENGINE_CORE_WORDS_MESSAGE)
 const vscodeHostColours = vscodeForbiddenWords("--vscode-", VSCODE_HOST_COLOUR_MESSAGE)
 const vscodeHostEngineWords = vscodeForbiddenWords(
   `${VSCODE_ENGINE_WORDS}|\\bengine-cli\\b`,
@@ -628,12 +627,7 @@ export default tseslint.config(
   },
   // ── The VS Code extension (apps/vscode) ─────────────────────────────────
   {
-    files: [
-      "apps/vscode/**/*.{ts,tsx}",
-      ENGINE_CONTRACT_SRC,
-      ENGINE_CONTRACT_TESTS,
-      ENGINE_CONTRACT_CONFIGS,
-    ],
+    files: ["apps/vscode/**/*.{ts,tsx}", ENGINE_CORE_SRC, ENGINE_CORE_TESTS, ENGINE_CORE_CONFIGS],
     extends: [tseslint.configs.strictTypeChecked, tseslint.configs.stylisticTypeChecked],
   },
   // The JS files keep the strict and stylistic rules that need no types. Only their rule
@@ -649,9 +643,9 @@ export default tseslint.config(
   {
     files: [
       "apps/vscode/**/*.{ts,tsx,js,mjs,cjs}",
-      ENGINE_CONTRACT_SRC,
-      ENGINE_CONTRACT_TESTS,
-      ENGINE_CONTRACT_CONFIGS,
+      ENGINE_CORE_SRC,
+      ENGINE_CORE_TESTS,
+      ENGINE_CORE_CONFIGS,
     ],
     plugins: { "pulse-vscode": { rules: { "no-comments": vscodeNoComments } } },
     linterOptions: { noInlineConfig: true, reportUnusedDisableDirectives: "error" },
@@ -672,7 +666,7 @@ export default tseslint.config(
       "apps/vscode/{src,dev,scripts,sandbox}/**/*.{ts,tsx,js,mjs,cjs}",
       "apps/vscode/test/webview/harness.tsx",
       "apps/vscode/test/smoke/*.cjs",
-      ENGINE_CONTRACT_SRC,
+      ENGINE_CORE_SRC,
     ],
     rules: {
       "max-lines": ["error", { max: 300, skipBlankLines: true }],
@@ -682,11 +676,22 @@ export default tseslint.config(
     },
   },
   {
-    files: ["apps/vscode/test/**/*.ts", "apps/vscode/test/**/*.test.tsx", ENGINE_CONTRACT_TESTS],
+    files: ["apps/vscode/test/**/*.ts", "apps/vscode/test/**/*.test.tsx", ENGINE_CORE_TESTS],
     rules: { "@typescript-eslint/no-non-null-assertion": "off" },
   },
+  // engine-core's tests and config files keep the budgets their paths held before the package
+  // took them, as the CLI's and c7-core's have them: 300 effective lines for a config file and a
+  // test support module, 400 for a test file (the extension's tests and configs have none).
   {
-    files: ["apps/vscode/test/*/runtime.boundary.ts", ENGINE_CONTRACT_PROBE],
+    files: [ENGINE_CORE_TESTS, ENGINE_CORE_CONFIGS],
+    rules: { "max-lines": ["error", { max: 300, skipBlankLines: true, skipComments: true }] },
+  },
+  {
+    files: ["packages/connectors/engine/engine-core/test/**/*.test.ts"],
+    rules: { "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }] },
+  },
+  {
+    files: ["apps/vscode/test/*/runtime.boundary.ts", ENGINE_CORE_PROBE],
     rules: { "pulse-vscode/no-comments": "off" },
   },
   {
@@ -709,17 +714,27 @@ export default tseslint.config(
     files: ["apps/vscode/src/contract/**/*.ts"],
     rules: { "no-restricted-syntax": ["error", ...vscodeNeutralCode, ...vscodeModuleFunctionGate] },
   },
+  // engine-core's src: its engine words and module functions, with the connector resource gate
+  // of every family's package in the union (the block that set it is replaced here).
   {
-    files: [ENGINE_CONTRACT_SRC],
+    files: [ENGINE_CORE_SRC],
     rules: {
-      "no-restricted-syntax": ["error", ...engineContractNeutralCode, ...vscodeModuleFunctionGate],
+      "no-restricted-syntax": [
+        "error",
+        ...engineCoreNeutralCode,
+        ...vscodeModuleFunctionGate,
+        ...connectorResourceGate,
+      ],
     },
   },
   // The branded id constructors are module functions by design: this block replaces the
-  // contract's selectors for the one file (flat config never merges a rule's options).
+  // package's selectors for the one file (flat config never merges a rule's options), the
+  // resource gate kept in the union.
   {
-    files: ["packages/core/engine-contract/src/model/ids.ts"],
-    rules: { "no-restricted-syntax": ["error", ...engineContractNeutralCode] },
+    files: ["packages/connectors/engine/engine-core/src/model/ids.ts"],
+    rules: {
+      "no-restricted-syntax": ["error", ...engineCoreNeutralCode, ...connectorResourceGate],
+    },
   },
   {
     files: ["apps/vscode/src/adapters/**/*.ts", "apps/vscode/src/model/**/*.ts"],
@@ -783,7 +798,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["apps/vscode/src/**/*.{ts,tsx}", ENGINE_CONTRACT_SRC],
+    files: ["apps/vscode/src/**/*.{ts,tsx}", ENGINE_CORE_SRC],
     rules: {
       "max-classes-per-file": ["error", 1],
       "@typescript-eslint/member-ordering": [

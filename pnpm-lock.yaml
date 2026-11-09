@@ -204,9 +204,9 @@ importers:
       '@miragon/pulse-c7-core':
         specifier: workspace:*
         version: link:../../packages/connectors/c7/c7-core
-      '@miragon/pulse-engine-contract':
+      '@miragon/pulse-engine-core':
         specifier: workspace:*
-        version: link:../../packages/core/engine-contract
+        version: link:../../packages/connectors/engine/engine-core
       '@miragon/pulse-ui':
         specifier: workspace:*
         version: link:../../packages/core/ui
@@ -319,9 +319,9 @@ importers:
 
   packages/connectors/c7/c7-core:
     dependencies:
-      '@miragon/pulse-engine-contract':
+      '@miragon/pulse-engine-core':
         specifier: workspace:*
-        version: link:../../../core/engine-contract
+        version: link:../../engine/engine-core
     devDependencies:
       '@stryker-mutator/core':
         specifier: 10.1.1
@@ -388,7 +388,7 @@ importers:
         specifier: 4.6.7
         version: 4.6.7
 
-  packages/core/engine-contract:
+  packages/connectors/engine/engine-core:
     devDependencies:
       fast-check:
         specifier: 4.10.2

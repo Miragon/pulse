@@ -4,7 +4,7 @@ import { join } from "node:path"
 import { CI_ICON_SIZES, scanColors, scanGlyphs, scanIconSizes } from "@miragon/pulse-ui/testing"
 import { afterAll, describe, expect, test } from "vitest"
 import { APP_ROOT, REPO_ROOT } from "./support/files.js"
-import { ENGINE_CONTRACT_SOURCES, WORDED_LAYERS } from "./support/layers.js"
+import { ENGINE_CORE_SOURCES, WORDED_LAYERS } from "./support/layers.js"
 
 const SOURCES = join(APP_ROOT, "src")
 const WEBVIEW = join(SOURCES, "webview")
@@ -51,8 +51,8 @@ describe("the extension follows pulse-ui's brand gates", () => {
     },
   )
 
-  test("the texts of the engine contract the extension re-exports draw no glyph either", () => {
-    expect(scanGlyphs(join(REPO_ROOT, ENGINE_CONTRACT_SOURCES))).toEqual([])
+  test("the texts of engine-core, whose contract the extension re-exports, draw no glyph either", () => {
+    expect(scanGlyphs(join(REPO_ROOT, ENGINE_CORE_SOURCES))).toEqual([])
   })
 
   test(`the webview draws icons at the CI sizes, ${CI_ICON_SIZES.join(" and ")} px, or at ${DENSE_ICON_SIZE} px where the named deviation lists it, beside dense text and on the diagram's 20 px overlays`, () => {

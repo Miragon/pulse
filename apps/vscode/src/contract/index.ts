@@ -1,4 +1,4 @@
-export * from "@miragon/pulse-engine-contract"
+export * from "@miragon/pulse-engine-core"
 export type {
   ElementConfiguration,
   ElementImplementation,

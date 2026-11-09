@@ -10,7 +10,7 @@ import {
   type ProcessCommands,
   type ProcessRuntime,
 } from "../../src/contract/index.js"
-import { FakeEngine, FakeWorld } from "@miragon/pulse-engine-contract/testing"
+import { FakeEngine, FakeWorld } from "@miragon/pulse-engine-core/testing"
 import {
   BulkRuns,
   DefinitionPanel,

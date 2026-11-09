@@ -18,7 +18,7 @@ written for the MCP server, so this file holds the CLI's own. The pages for peop
 - One runtime dependency, commander. The workflow domain and engine REST rules,
   `@miragon/pulse-c7-core` (`packages/connectors/c7/c7-core`, the core of the Camunda 7 REST
   dialect family c7), are a devDependency that tsdown bundles, with the root-cause rule c7-core
-  takes from the engine contract (`@miragon/pulse-engine-contract`, c7-core's one dependency);
+  takes from the engine family's core (`@miragon/pulse-engine-core`, c7-core's one dependency);
   everything else that ships is the code in `apps/cli/src/`. The built bundle imports only
   commander and Node built-ins, and stays within its size budget
   (`scripts/published-imports.test.mjs` reads `apps/cli/dist` and the ceiling in
@@ -63,10 +63,11 @@ format, `@miragon/pulse-profile`, in `apps/cli/src/config/` (`CLI_BUNDLES` and
 `profile-consumers` in the root `.dependency-cruiser.cjs`), for the config layer to read the
 profiles with, and the transport, `@miragon/pulse-http`, in `apps/cli/src/http/`,
 `apps/cli/src/auth/` and `apps/cli/src/operation/` (`CLI_BUNDLES` and `http-consumers`), for the
-requests to go out through it; neither is used yet. The engine contract,
-`@miragon/pulse-engine-contract`, is not the CLI's to import: it reaches the engine through
-c7-core, a job's root cause included (`causeOf`, over the contract's `RootCauses`), and a direct
-import is an admission decision in review (`engine-contract-consumers`).
+requests to go out through it; neither is used yet. The engine family's core,
+`@miragon/pulse-engine-core`, the contract every dialect implements, is not the CLI's to import
+until it serves a second dialect: it reaches the engine through c7-core, a job's root cause
+included (`causeOf`, over engine-core's `RootCauses`), and a direct import is an admission
+decision in review (`engine-core-consumers`).
 
 ## Budgets
 

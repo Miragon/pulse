@@ -304,7 +304,7 @@
     "@fontsource-variable/geist-mono": "5.3.0",
     "@miragon/modeler-shell": "0.10.0",
     "@miragon/pulse-c7-core": "workspace:*",
-    "@miragon/pulse-engine-contract": "workspace:*",
+    "@miragon/pulse-engine-core": "workspace:*",
     "@miragon/pulse-ui": "workspace:*",
     "bpmn-js": "18.31.1",
     "bpmn-moddle": "10.3.1",

@@ -3,7 +3,7 @@ import type {
   InstanceSummary,
   ProcessCommands,
   ProcessRuntime,
-} from "@miragon/pulse-engine-contract"
+} from "@miragon/pulse-engine-core"
 
 export type EngineCredentials =
   | { readonly kind: "none" }

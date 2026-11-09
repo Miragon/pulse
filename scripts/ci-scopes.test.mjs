@@ -283,8 +283,11 @@ describe("the real workspace", () => {
     assert.ok(changed.has("vscode") && changed.has("vscode-package") && changed.has("cli"))
   })
 
-  it("runs the CLI's checks for the engine contract, which c7-core imports", () => {
-    const changed = scopesFor(["packages/core/engine-contract/src/model/root-causes.ts"], packages)
+  it("runs the CLI's checks for engine-core, which c7-core imports", () => {
+    const changed = scopesFor(
+      ["packages/connectors/engine/engine-core/src/model/root-causes.ts"],
+      packages,
+    )
     for (const scope of ["cli", "vscode", "vscode-package", "mcp", "template"]) {
       assert.ok(changed.has(scope), scope)
     }

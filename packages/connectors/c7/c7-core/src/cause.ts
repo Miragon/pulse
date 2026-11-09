@@ -1,10 +1,10 @@
 /**
  * The cause the family shows for a failure: the root cause of its text (a job's stack trace, an
- * external task's error details) by the engine contract's rule, `RootCauses.of`, the one rule of
- * every dialect. The CLI's job outcomes and the inspect view both name it this way.
+ * external task's error details) by the rule of the engine family's neutral core, `RootCauses.of`,
+ * the one rule of every dialect. The CLI's job outcomes and the inspect view both name it this way.
  */
 
-import { RootCauses } from "@miragon/pulse-engine-contract"
+import { RootCauses } from "@miragon/pulse-engine-core"
 
 /**
  * The root cause of `text`, or `fallback` (the incident or engine message) when there is no text

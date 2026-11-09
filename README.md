@@ -60,13 +60,13 @@ start one locally with `docker run -p 8080:8080 operaton/operaton:2.1.5`.
 | [`apps/cli/`](apps/cli)                                                                       | `@miragon/pulse-cli`              | The command line interface                                                    |
 | [`apps/vscode/`](apps/vscode)                                                                 | `pulse-cockpit` (a .vsix)         | Pulse for VS Code                                                             |
 | [`packages/connectors/engine/engine-connector/`](packages/connectors/engine/engine-connector) | `@miragon/pulse-engine-connector` | Operations tools and widgets for Camunda 7 engines                            |
+| [`packages/connectors/engine/engine-core/`](packages/connectors/engine/engine-core)           | `@miragon/pulse-engine-core`      | Core of the engine family: the contract every dialect implements              |
 | [`packages/connectors/c7/c7-client/`](packages/connectors/c7/c7-client)                       | `@miragon/pulse-c7-client`        | SDK of the Camunda 7 REST dialect family: typed REST SDK and client           |
 | [`packages/connectors/c7/c7-core/`](packages/connectors/c7/c7-core)                           | `@miragon/pulse-c7-core`          | Core of the Camunda 7 REST dialect family: workflow domain, engine REST rules |
 | [`packages/core/ui/`](packages/core/ui)                                                       | `@miragon/pulse-ui`               | Design kit for Pulse views and your own React UIs                             |
 | [`packages/core/widget-shell/`](packages/core/widget-shell)                                   | `@miragon/pulse-widget-shell`     | View runtime and server boot for composed MCP servers                         |
 | [`packages/core/profile/`](packages/core/profile)                                             | `@miragon/pulse-profile`          | One profile format for the CLI, VS Code and the MCP server                    |
 | [`packages/core/http/`](packages/core/http)                                                   | `@miragon/pulse-http`             | One engine transport for the CLI, VS Code and the MCP server                  |
-| [`packages/core/engine-contract/`](packages/core/engine-contract)                             | `@miragon/pulse-engine-contract`  | The engine contract: the shared language of the dialects                      |
 | [`playground/`](playground)                                                                   | —                                 | Demo engine, Compose stack and the public playground                          |
 | [`templates/composed-server/`](templates/composed-server)                                     | `Miragon/pulse-starter`           | [Starter](docs/mcp/build-your-own.md) for your own server                     |
 

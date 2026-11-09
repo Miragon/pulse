@@ -8,8 +8,9 @@ Operaton and CIB seven are forks of Camunda 7 and keep its REST API, so one adap
 three. It calls that REST API itself with `fetch` ([c7-adapter.md](../../../docs/adr/c7-adapter.md)),
 no child process, and runs the core of the dialect family c7, `@miragon/pulse-c7-core` (the
 inspection of an instance, its wait states), which the CLI and the MCP server share; esbuild
-bundles it into the extension. The root cause of a failure text is the engine contract's rule,
-`RootCauses`, which the adapter takes from the contract like c7-core does.
+bundles it into the extension. The root cause of a failure text is the rule of the engine
+family's core, `RootCauses` of `@miragon/pulse-engine-core`, which the adapter takes from the
+contract barrel and c7-core from engine-core itself.
 
 ## How it works
 

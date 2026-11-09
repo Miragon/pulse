@@ -40,11 +40,6 @@
         },
         {
           "type": "json",
-          "path": "packages/core/engine-contract/package.json",
-          "jsonpath": "$.version"
-        },
-        {
-          "type": "json",
           "path": "packages/core/http/package.json",
           "jsonpath": "$.version"
         },
@@ -61,6 +56,11 @@
         {
           "type": "json",
           "path": "packages/connectors/engine/engine-connector/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "packages/connectors/engine/engine-core/package.json",
           "jsonpath": "$.version"
         },
         {

@@ -31,9 +31,9 @@ One port per API family: the vendors differ in runtime configuration, never in t
 ## What it is not
 
 No HTTP and no authentication. Its one runtime dependency is
-[@miragon/pulse-engine-contract](https://www.npmjs.com/package/@miragon/pulse-engine-contract),
-the language of every engine dialect, whose rules it applies (the root cause of a failure text,
-`RootCauses`); it imports nothing else but its own modules. It names
+[@miragon/pulse-engine-core](https://www.npmjs.com/package/@miragon/pulse-engine-core), the
+engine family's core and the contract every engine dialect implements, whose rules it applies (the
+root cause of a failure text, `RootCauses`); it imports nothing else but its own modules. It names
 no command, flag or tool: next steps are structured (`{ action: "retry", processInstanceId }`),
 errors are `WorkflowError`s with a `reason` (`{ kind: "selection-ambiguous", candidates, more }`),
 and the caller words both. The English texts that describe the engine's state are the package's
@@ -77,7 +77,7 @@ npm install @miragon/pulse-c7-core
   incident recovery (`incidentRecovery`), the raw variable read flag (`RAW_VARIABLES`, and
   `RAW_VARIABLES_QUERY`, its text form for a port's query), the history timeline of activity rows
   (`timelineOf`) and the cause of a failure (`causeOf(text, fallback)`: the root cause of a stack
-  trace or error details by the engine contract's `RootCauses.of`, else the fallback, such as the
+  trace or error details by engine-core's `RootCauses.of`, else the fallback, such as the
   incident's message).
 
 ```ts

@@ -1,4 +1,4 @@
-import type { BpmnProcessId } from "@miragon/pulse-engine-contract"
+import type { BpmnProcessId } from "@miragon/pulse-engine-core"
 
 export interface SourceLocation {
   readonly uri: string

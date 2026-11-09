@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import fs from "node:fs"
 import path from "node:path"
 import { describe, it } from "node:test"
 import { repoTextFiles } from "./check-package-scripts.mjs"
@@ -51,18 +52,57 @@ const RULES = [
   // on the toolkit any more (an import of it fails to resolve); a doc or a skill that names one
   // installs the old library next to Pulse. The toolkit's repository stays citable as the origin.
   { name: "retired toolkit package", pattern: /@miragon\/mcp-toolkit-/ },
-  // The Camunda 7 REST API is the dialect family c7: its core and its SDK moved from the engine
-  // family to @miragon/pulse-c7-core (packages/connectors/c7/c7-core) and
-  // @miragon/pulse-c7-client (packages/connectors/c7/c7-client) in 0.28, and the old names get
-  // no further release, so a doc or a manifest that names one installs 0.27 forever. The engine
-  // module keeps its names (@miragon/pulse-engine-connector), and the words engine-core and
-  // engine-client stay citable as history.
+  // The Camunda 7 REST API is the dialect family c7: its SDK moved from the engine family to
+  // @miragon/pulse-c7-client (packages/connectors/c7/c7-client) in 0.28, and the old name gets no
+  // further release, so a doc or a manifest that names it installs 0.27 forever. The engine
+  // family keeps its module (@miragon/pulse-engine-connector) and its core, whose name and path
+  // live on with a new meaning: @miragon/pulse-engine-core is the neutral core every dialect
+  // implements from 0.28 on, where c7's rules up to 0.27 are @miragon/pulse-c7-core. The word
+  // engine-client stays citable as history.
   {
     name: "retired engine family package",
     pattern:
-      /@miragon\/pulse-engine-(?:core|client)(?![\w-])|packages\/connectors\/engine\/engine-(?:core|client)(?![\w-])/,
+      /@miragon\/pulse-engine-client(?![\w-])|packages\/connectors\/engine\/engine-client(?![\w-])/,
+  },
+  // The neutral core was first built as @miragon/pulse-engine-contract under
+  // packages/core/engine-contract, until the owner placed it in the engine family (2026-11-09).
+  // No release ever shipped that name, so a doc, a manifest or a plan that names it installs
+  // nothing. The contract as a word stays (Pulse for VS Code's contract layer, its barrel).
+  {
+    name: "unshipped engine contract package",
+    pattern: /@miragon\/pulse-engine-contract(?![\w-])|packages\/core\/engine-contract(?![\w-])/,
+  },
+  // Up to 0.27 @miragon/pulse-engine-core held the Camunda 7 REST rules, now c7-core's: an import
+  // of a name c7-core exports (or of rootCause and rootCauseLine, which became RootCauses) from
+  // engine-core is a doc or a skill that still reads the old meaning.
+  {
+    name: "c7-core name imported from engine-core",
+    pattern: new RegExp(
+      String.raw`\b(?:import|export)\b[^;\n]*\b(?:${c7CoreNames().join("|")})\b[^;\n]*\bfrom\s*["']@miragon/pulse-engine-core["']`,
+    ),
   },
 ]
+
+/**
+ * The value names c7-core's index exports but engine-core's does not, plus the root-cause pair
+ * that left c7-core for engine-core's RootCauses: what an import from engine-core meant up to
+ * 0.27. Read from the two index files, so a rule that moves to engine-core leaves the list.
+ */
+function c7CoreNames() {
+  const exported = (rel) => {
+    const text = fs
+      .readFileSync(path.resolve(import.meta.dirname, "..", rel), "utf8")
+      .replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "")
+    return [...text.matchAll(/\bexport\s*\{([^}]*)\}/g)]
+      .flatMap((match) => match[1].split(","))
+      .map((entry) => entry.trim())
+      .filter((entry) => entry !== "" && !entry.startsWith("type "))
+      .map((entry) => entry.split(/\s+as\s+/).pop())
+  }
+  const engineCore = new Set(exported("packages/connectors/engine/engine-core/src/index.ts"))
+  const c7Core = exported("packages/connectors/c7/c7-core/src/index.ts")
+  return [...c7Core.filter((name) => !engineCore.has(name)), "rootCause", "rootCauseLine"]
+}
 
 /**
  * Never read: what `repoTextFiles` leaves out (the changelog release-please owns, the
@@ -132,17 +172,6 @@ describe("the name rules", () => {
     ['"@miragon/mcp-toolkit-core": "2.6.0"', "retired toolkit package"],
     ["pnpm add @miragon/mcp-toolkit-ui@2.8.1", "retired toolkit package"],
     [
-      'import { inspectInstance } from "@miragon/pulse-engine-core"',
-      "retired engine family package",
-    ],
-    ['"@miragon/pulse-engine-core": "workspace:*"', "retired engine family package"],
-    ["npm install @miragon/pulse-engine-core@0.27.1", "retired engine family package"],
-    [
-      'import { fakePort } from "@miragon/pulse-engine-core/testing"',
-      "retired engine family package",
-    ],
-    ["packages/connectors/engine/engine-core/src/index.ts", "retired engine family package"],
-    [
       'import { createEngineClient } from "@miragon/pulse-engine-client"',
       "retired engine family package",
     ],
@@ -152,6 +181,32 @@ describe("the name rules", () => {
     [
       "packages/connectors/engine/engine-client/src/generated/sdk.gen.ts",
       "retired engine family package",
+    ],
+    ['"@miragon/pulse-engine-contract": "workspace:*"', "unshipped engine contract package"],
+    [
+      'import { FakeEngine } from "@miragon/pulse-engine-contract/testing"',
+      "unshipped engine contract package",
+    ],
+    ["packages/core/engine-contract/src/index.ts", "unshipped engine contract package"],
+    [
+      'import { inspectInstance } from "@miragon/pulse-engine-core"',
+      "c7-core name imported from engine-core",
+    ],
+    [
+      "import { toEngineDate, engineSorting } from '@miragon/pulse-engine-core'",
+      "c7-core name imported from engine-core",
+    ],
+    [
+      'import { type Verdict, engineVerdict } from "@miragon/pulse-engine-core"',
+      "c7-core name imported from engine-core",
+    ],
+    [
+      'import { rootCause, rootCauseLine } from "@miragon/pulse-engine-core"',
+      "c7-core name imported from engine-core",
+    ],
+    [
+      'export { causeOf } from "@miragon/pulse-engine-core"',
+      "c7-core name imported from engine-core",
     ],
   ]) {
     it(`${text} is ${rule}`, () => {
@@ -191,7 +246,7 @@ describe("the name rules", () => {
     'import { McpServer } from "@modelcontextprotocol/server"',
     'import { App } from "@modelcontextprotocol/ext-apps"',
     "pnpm exec mcp-inspector --cli --method tools/list",
-    // The dialect family c7, the engine module's own names, engine-core and engine-client as
+    // The dialect family c7, the engine family's module and its neutral core, engine-client as
     // history, and the VS Code extension's own engine client.
     "@miragon/pulse-c7-core",
     "packages/connectors/c7/c7-core/src/index.ts",
@@ -199,8 +254,15 @@ describe("the name rules", () => {
     "packages/connectors/c7/c7-client/src/sdk-reads/reads.ts",
     "@miragon/pulse-engine-connector",
     "packages/connectors/engine/engine-connector/src/module.ts",
+    'import { RootCauses } from "@miragon/pulse-engine-core"',
+    'import { RootCauses, RuntimeError, type ProcessRuntime } from "@miragon/pulse-engine-core"',
+    'import { inspectInstance, toEngineDate } from "@miragon/pulse-c7-core"',
+    "apps/vscode/src/contract/index.ts",
+    "the engine contract every dialect implements",
+    '"@miragon/pulse-engine-core": "workspace:*"',
+    'import { FakeEngine } from "@miragon/pulse-engine-core/testing"',
+    "packages/connectors/engine/engine-core/src/index.ts",
     "c7-core (engine-core until 0.27) holds the pure engine rules",
-    "@miragon/pulse-engine-cores",
     "c7-client (engine-client until 0.27) sends the User-Agent",
     "@miragon/pulse-engine-clients",
     'import { engineClient } from "./support/engine-client.mjs"',

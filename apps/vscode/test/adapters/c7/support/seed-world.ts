@@ -24,7 +24,7 @@ import {
   type WorldDeployment,
   type WorldInstance,
   type WorldValue,
-} from "@miragon/pulse-engine-contract/testing"
+} from "@miragon/pulse-engine-core/testing"
 
 const DEPLOYMENT_ORDER: readonly DeploymentAlias[] = ["label@1", "order@1", "order@2", "dispatch@1"]
 const EXPECTED_ROOT_INCIDENTS = 2

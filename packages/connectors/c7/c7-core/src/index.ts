@@ -2,8 +2,8 @@
  * @miragon/pulse-c7-core: the workflow domain of the Camunda 7 REST API family (Operaton,
  * CIB seven, Camunda 7), and the one home of its pure engine REST rules (dates, filters,
  * sorting, variable writes and typing, incident recovery, raw variable reads, the missing
- * resource). The root cause of a failure text is the engine contract's rule
- * (`RootCauses` of @miragon/pulse-engine-contract, its one runtime dependency), which `causeOf`
+ * resource). The root cause of a failure text is the rule of the engine family's neutral core
+ * (`RootCauses` of @miragon/pulse-engine-core, its one runtime dependency), which `causeOf`
  * applies. Runs on a caller's `EnginePort`; returns data and throws
  * `WorkflowError` reasons, and names no command, flag or tool: next steps and error reasons are
  * structured, the caller words them. The pure rules behind these functions that only tests reach

@@ -1,5 +1,5 @@
 {
-  "extends": "../../../tsconfig.base.json",
+  "extends": "../../../../tsconfig.base.json",
   "compilerOptions": {
     "target": "ES2023",
     // No DOM and no Node types, as in Pulse for VS Code's contract layer

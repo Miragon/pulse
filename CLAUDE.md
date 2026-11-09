@@ -14,8 +14,8 @@ Docs are held to the code:
   page stays within its line budget.
 - `scripts/old-names.test.mjs` fails on a technical name of the retired operate CLI, on the
   unscoped npm packages pulse and pulse-cli (someone else's), on an image off GHCR, on a package
-  of the retired MCP toolkit and on the npm names and paths the c7 family's core and client had up
-  to 0.27.
+  of the retired MCP toolkit and on the npm name and path the c7 family's client had up to 0.27
+  (engine-client; engine-core's name and path live on as the engine family's neutral core).
 - `scripts/check-package-scripts.mjs` (`pnpm lint:package-scripts`) fails on a `--filter`
   naming no workspace package and on a pnpm filter without `--fail-if-no-match` on a gate path
   (pnpm 10 exits 0 when a filter matches nothing, so a stale name turns a gate green).
@@ -44,14 +44,14 @@ command line interface (`apps/cli`) and a VS Code extension (`apps/vscode`) for 
 | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `apps/mcp-server/`                             | The MCP host: composes plugins, bundles the widget UI, serves HTTP on `:8400`                                                                                                                                                                                                                                                                                                                                     |
 | `apps/cli/`                                    | The CLI (npm `@miragon/pulse-cli`): every REST operation of the engine as a command, generated from its OpenAPI spec, plus the workflow commands; its rules in `apps/cli/CLAUDE.md`                                                                                                                                                                                                                               |
-| `apps/vscode/`                                 | Pulse for VS Code (`pulse-cockpit`, a .vsix): a Preact webview over an engine-neutral core and the engine contract, the C7 adapter; its rules in `apps/vscode/CLAUDE.md`                                                                                                                                                                                                                                          |
+| `apps/vscode/`                                 | Pulse for VS Code (`pulse-cockpit`, a .vsix): a Preact webview over an engine-neutral core and the contract of `engine-core`, the C7 adapter; its rules in `apps/vscode/CLAUDE.md`                                                                                                                                                                                                                                |
 | `packages/connectors/engine/engine-connector/` | engine module, the one MCP module of every dialect: operations tools, widget tools, widgets                                                                                                                                                                                                                                                                                                                       |
+| `packages/connectors/engine/engine-core/`      | The neutral core of the engine family (npm `@miragon/pulse-engine-core`), the contract every dialect implements: the ports a process engine answers (`ProcessRuntime`, `ProcessCommands`), ids, read models, queries, `RuntimeError`, `RootCauses`; the conformance kit with its laws, its fixed world and the in-memory `FakeEngine` (`/testing`); no runtime dependency, Pulse for VS Code's house rules        |
 | `packages/connectors/c7/c7-client/`            | The SDK of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-client`): the generated CIB seven REST SDK (`src/generated/`), `createEngineClient`, `EngineRequestError` and the SDK-bound reads (`src/sdk-reads/`); a leaf                                                                                                                                                                              |
-| `packages/connectors/c7/c7-core/`              | The core of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-core`), its workflow domain and pure engine REST rules: port, selection, inspect, status triage, the root cause of an incident (`causeOf`), retry/advance plans, dates, filters, variable writes; one runtime dependency, the engine contract                                                                                            |
+| `packages/connectors/c7/c7-core/`              | The core of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-core`), its workflow domain and pure engine REST rules: port, selection, inspect, status triage, the root cause of an incident (`causeOf`), retry/advance plans, dates, filters, variable writes; one runtime dependency, engine-core's main entry                                                                                       |
 | `packages/core/ui/`                            | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the formatters and the tones without React under `/format` and `/tones`, the brand gates under `/testing`                                                                        |
 | `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), a module's test server (`/testing`)                                                                                                                                                    |
 | `packages/core/profile/`                       | The one profile format of the CLI, Pulse for VS Code and the MCP server (npm `@miragon/pulse-profile`): a parser from a file's text to a verdict per profile as data (a code and a key, never a value), the credential policy by where the file comes from, `refusalsOn` for what a reader cannot serve, the JSON Schema (`schema/pulse.schema.json`) and the shared fixtures (`/testing`); no runtime dependency |
-| `packages/core/engine-contract/`               | The engine contract, the shared language of the dialects (npm `@miragon/pulse-engine-contract`): the read and write ports a process engine answers (`ProcessRuntime`, `ProcessCommands`), ids, read models, queries, `RuntimeError`, `RootCauses`; the conformance kit with its laws, its fixed world and the in-memory `FakeEngine` (`/testing`); no runtime dependency, Pulse for VS Code's house rules         |
 | `packages/core/http/`                          | The one engine transport of the MCP server, the CLI and Pulse for VS Code (npm `@miragon/pulse-http`) over the `fetch` each hands in (`createHttp`): a deadline to the last byte, no redirect, a 64 MiB cap, one retry after a 401, failure reasons as data, lossless JSON, masked secrets, the path value rule; the conformance cases and a recording fake fetch (`/testing`); no runtime dependency             |
 | `playground/`                                  | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                                                                                                                                                                 |
 | `docs/`                                        | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                                                                                                                                                                                                        |
@@ -66,13 +66,15 @@ Three axes decide where code goes, and they stay apart:
 - Dialect (an engine API family; one today, the Camunda 7 REST API all three vendors serve):
   one package family under `packages/connectors/<dialect>/`, named for the API family it speaks
   (`c7` today, with its client `@miragon/pulse-c7-client` and its core `@miragon/pulse-c7-core`;
-  `c8` later). ONE MCP server app (`apps/mcp-server`) and ONE module, `engine`
-  (`packages/connectors/engine/engine-connector`), serve every dialect (owner decisions
-  2026-11-07 and 2026-11-08): the engine module spans the dialect families, importing the
-  clients and cores of the families `ENGINE_DIALECTS` names (`engine-connector-spans-the-dialects`
-  in `.dependency-cruiser.cjs`), and a dialect joins that list in the commit that first imports
-  it. A new dialect is a family, never an MCP server app or a module of its own, and inherits its
-  gates from the layout.
+  `c8` later), whose core implements the contract of the engine family's core. The engine family
+  (`packages/connectors/engine/`) is the neutral layer above the dialects (owner decisions
+  2026-11-07, 2026-11-08 and 2026-11-09): ONE MCP server app (`apps/mcp-server`) and ONE module,
+  `engine` (`engine-connector`), serve every dialect, the module importing the clients and cores
+  of the families `ENGINE_DIALECTS` names (`engine-connector-spans-the-dialects` in
+  `.dependency-cruiser.cjs`; a dialect joins that list in the commit that first imports it), and
+  ONE core, `@miragon/pulse-engine-core` (`engine-core`), holds the contract every dialect
+  implements. A new dialect is a family, never an MCP server app or a module of its own, and
+  inherits its gates from the layout.
 - Interface (how a person or an agent reaches an engine): an app under `apps/`, today the
   MCP server, the CLI (`apps/cli`, rules in `apps/cli/CLAUDE.md`) and the VS Code extension
   (`apps/vscode`, rules in `apps/vscode/CLAUDE.md`). Another interface (a second editor
@@ -86,29 +88,32 @@ Three axes decide where code goes, and they stay apart:
   they share building blocks again.
 
 A family is one source the MCP server reads, a dialect or another source (a metrics store,
-say), or `engine`, the family of the one module that serves every dialect. Its packages are
+say), or `engine`, the neutral family above the dialects. Its packages are
 named `<family>-<role>`: `<family>-connector` (the MCP module; a dialect brings none, the
 engine module of the family `engine` serves it), `<family>-client` (the wire:
 SDK, client, the SDK-bound reads) and, when the family's interfaces share a pure domain,
-`<family>-core` (no runtime dependency but the engine contract's main entry, one port per
-family, the home of the family's pure rules; extracted on its second consumer, like `c7-core`,
-which the CLI and the VS Code extension's C7 adapter bundle and the engine connector runs). A
-family's tool input
+`<family>-core` (no runtime dependency, but a dialect's core imports engine-core's main entry;
+one port per family, the home of the family's pure rules; extracted on its second consumer, like
+`c7-core`, which the CLI and the VS Code extension's C7 adapter bundle and the engine connector
+runs). A family's tool input
 schemas live in its connector, next to the tools
 (`packages/connectors/engine/engine-connector/src/schemas/`), so a client carries no zod:
 validating tool input is the connector's concern, and the wire takes typed parameters.
 Family code stays in its family: `packages/core/` holds what every family builds on (pulse-ui,
-widget-shell, the profile format, the transport), never one family's code, and the engine
-contract above the dialects (`@miragon/pulse-engine-contract`, owner decision 2026-11-08): the
-ports, read models and laws a dialect answers in, which Pulse for VS Code's C7 adapter speaks
-today. Its admission rule: a port, read model or rule enters `@miragon/pulse-engine-contract` when
-two dialects answer it with the same meaning, proven by the conformance laws on both (what the
-owner admitted ahead of a second dialect, its README lists). Only dialect
-implementations import the contract (Pulse for VS Code's contract barrel for its adapters, and a
-family core's `src`, the gate keyed on the role: c7-core applies its root-cause rule `RootCauses`). A surface reaches it
-through them; the engine connector or the CLI importing it directly is an admission decision in
-review, the case #488 reopens on: a second interface needing the same use case with the same
-rules.
+widget-shell, the profile format, the transport), never one family's code. The engine family's
+core, `@miragon/pulse-engine-core` (owner decisions 2026-11-08 and 2026-11-09), is the contract
+every dialect implements: the ports, read models, failure kinds and laws a dialect answers in,
+which Pulse for VS Code's C7 adapter speaks today, and the rules every dialect shares
+(`RootCauses`). It stays narrow: a further rule (the verdict, the message signature, durations)
+moves there only when a second dialect needs it in the CLI or the MCP server. Its admission rule:
+a port, read model or rule enters `@miragon/pulse-engine-core` when two dialects answer it with
+the same meaning, proven by the conformance laws on both (what the owner admitted ahead of a
+second dialect, its README lists). Only dialect implementations import it (Pulse for VS Code's
+contract barrel for its adapters, and the `src` of a dialect's core, never its `./testing`:
+c7-core applies the root-cause rule `RootCauses`). A surface reaches it through them; the engine
+connector (although engine-core is its own family's core) or the CLI importing it directly waits
+until it serves a second dialect, an admission decision in review, the case #488 reopens on: a
+second interface needing the same use case with the same rules.
 
 The architecture invariants below are written for the MCP server, its modules and its widgets.
 The package rules of invariant 8 (layout, naming, dependency edges) hold for every workspace
@@ -524,8 +529,9 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      (and by the CLI): the pure rules (`toEngineDate`, `engineSorting`, the filters,
      `toEngineVariable(s)`, `autoTypedValue`, `incidentRecovery`, `RAW_VARIABLES`, the
      missing-resource rule `isMissing`) in `@miragon/pulse-c7-core`; the root cause of a failure
-     text, the one rule every dialect shares, in `@miragon/pulse-engine-contract`
-     (`RootCauses.of`, `RootCauses.lineOf`), which c7-core applies as `causeOf` (the root cause,
+     text, the one rule every dialect shares, in the engine family's core,
+     `@miragon/pulse-engine-core` (`RootCauses.of`, `RootCauses.lineOf`), which c7-core applies
+     as `causeOf` (the root cause,
      else the incident's or the engine's message) for the inspect view and the CLI's jobs; the
      reads bound to the SDK (text/plain endpoints, raw variable reads, `readBatch`, queued
      batches) in c7-client's `packages/connectors/c7/c7-client/src/sdk-reads/`,
@@ -593,13 +599,13 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      `apps/vscode/CLAUDE.md`): connectors never import each other, a connector imports only its
      own family's client and core (`connectors-own-their-family`) and the engine module also
      those of the dialect families (`engine-connector-spans-the-dialects`, `ENGINE_DIALECTS`:
-     `c7`), clients and family cores are leaves (a family core's one foreign edge is the engine
-     contract's main entry), core is the foundation and pulse-ui its leaf, no package or app
+     `c7`), clients and family cores are leaves (a dialect core's one foreign edge is engine-core's
+     main entry), core is the foundation and pulse-ui its leaf, no package or app
      imports an app, no cross-package deep imports. The
      interface apps import nothing of the MCP/UI/server stack, zod included, and no workspace
      package except a family core they bundle (`@miragon/pulse-c7-core`: the CLI's, and the
-     VS Code extension's in its C7 adapter alone, `apps/vscode/src/adapters/c7`), the engine
-     contract where a dialect is implemented (the VS Code extension's contract barrel,
+     VS Code extension's in its C7 adapter alone, `apps/vscode/src/adapters/c7`, and
+     `@miragon/pulse-engine-core`, the VS Code extension's in its contract barrel alone,
      `apps/vscode/src/contract`), the profile
      format where they read their profiles (what `profile-consumers` admits; the CLI may bundle
      it with its core, `CLI_BUNDLES`), the transport where they send their engine requests (what
@@ -623,17 +629,19 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      imported: the CLI's `src/http`, `src/auth` and `src/operation`, Pulse for VS Code's
      `src/adapters/<dialect>`, a connector, and tests anywhere, never the MCP server app's shipped
      code (`http-consumers`, `HTTP_USERS`; until a surface switches to it, only its own tests
-     do); the engine contract (`@miragon/pulse-engine-contract`, `packages/core/engine-contract`)
-     is a leaf too (`engine-contract-is-a-leaf`), imported only where a dialect is implemented:
-     a family core's `src` (keyed on the role, its `./testing` entry included), its main entry
-     alone (`family-core-is-a-leaf`; c7-core takes
+     do); the engine family's core (`@miragon/pulse-engine-core`,
+     `packages/connectors/engine/engine-core`) is a family core like any other, importing only its
+     own modules (`family-core-is-a-leaf`), and is imported only where a dialect is implemented:
+     the `src` of a dialect's core (`ENGINE_DIALECTS`, never its `./testing` entry), its main
+     entry alone (`family-core-is-a-leaf`; c7-core takes
      `RootCauses` from it, so the CLI bundles it with c7-core and never imports it), Pulse for
      VS Code's contract barrel, its tests and its dev host (its closed world holds the last two
-     to the package's entries), and test files anywhere, never the engine connector, the
-     CLI or another package's `./testing` entry, which ships (`engine-contract-consumers`,
-     `ENGINE_CONTRACT_IMPLEMENTERS`), and it keeps the extension's ESLint house rules, its config
-     files included; and no shipped code imports a `./testing` entry
-     (`shipped-code-not-to-testing`).
+     to the package's entries), and test files anywhere; never the engine connector (although
+     it is its own family's core) or the CLI until they serve a second dialect, another family's
+     core or a `./testing` entry, which ships (`engine-core-consumers`,
+     `ENGINE_CORE_IMPLEMENTERS`), and it keeps the extension's ESLint house rules, its config
+     files included, with the connector resource gate in their union; and no shipped code
+     imports a `./testing` entry (`shipped-code-not-to-testing`).
      The family rules key on the roles, so a
      new family inherits them. The seams keep browser code apart from the server: widget-shell's
      view half (`src/ui`) imports only itself, `src/protocol` (the wire both halves share: tool
@@ -814,8 +822,8 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
   ceilings that `test-host/bundle-budget.spec.ts` checks; growth needs a `Ratchet-Exception:`
   trailer that says why. Two more shipped bundles have a shrink-only ceiling: the VS Code
   webview's (`apps/vscode/test/__golden__/bundle-budget.json`, gzip) and the CLI's npm dist
-  (`apps/cli/test/__golden__/bundle-budget.json`, raw bytes, c7-core bundled in with the engine
-  contract's root-cause rule, read by `scripts/published-imports.test.mjs`, which also makes it
+  (`apps/cli/test/__golden__/bundle-budget.json`, raw bytes, c7-core bundled in with
+  engine-core's root-cause rule, read by `scripts/published-imports.test.mjs`, which also makes it
   come down once the dist shrinks more than 10 % below it). The CLI's standalone bundle
   (`build/standalone`, the single executables and the image) has none.
 - **Federation happens in an external MCP gateway (agentgateway) IN FRONT of this server;
@@ -847,9 +855,10 @@ workspace (its header lists each check).
   from another repository. The pack job runs `pnpm pack`, which rewrites `workspace:*` (npm's
   own pack would ship it verbatim); the one job that holds `id-token: write` runs no package
   manager. Only the server app and the VS Code extension stay private. The `miragon-ai` names
-  used up to 0.20.0 are retired, and so are the npm names of engine-core and engine-client, the
-  c7 family's core and client up to 0.27 (now `@miragon/pulse-c7-core` and
-  `@miragon/pulse-c7-client`); never reuse them.
+  used up to 0.20.0 are retired, and so is the npm name of engine-client, the c7 family's client
+  up to 0.27 (now `@miragon/pulse-c7-client`); never reuse them. `@miragon/pulse-engine-core`
+  held the c7 family's rules up to 0.27 (now `@miragon/pulse-c7-core`) and from 0.28 on is the
+  engine family's neutral core, a breaking change of the same name.
 - **The starter** reaches customers as `Miragon/pulse-starter`, the read-only mirror of
   `templates/composed-server` and the customer-facing composition path, through
   `sync-template-mirror.yml` after the npm publish (before it, the template's pins would not
@@ -934,6 +943,6 @@ flips `scripts/mutation-pause.mjs` and drops the schedule. Locally:
 `pnpm --fail-if-no-match --filter @miragon/pulse-c7-core exec stryker run` and
 `pnpm --fail-if-no-match --filter @miragon/pulse-http exec stryker run` (`--mutate <file>`
 narrows it), with each package's `vitest.stryker.config.ts`: coverage off, since a threshold
-failure would read as a killed mutant. The engine contract's rules, its `RootCauses` among them
-(mutated with c7-core until it moved there), are not mutated until the owner decides on the
-contract.
+failure would read as a killed mutant. The rules of the engine family's core, its `RootCauses`
+among them (mutated with c7-core until it moved there), are not mutated until the owner decides
+on engine-core.

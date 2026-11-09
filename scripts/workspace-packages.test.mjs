@@ -41,7 +41,7 @@ describe("workspace-packages", () => {
       "@miragon/pulse-c7-client",
       "@miragon/pulse-c7-core",
       "@miragon/pulse-engine-connector",
-      "@miragon/pulse-engine-contract",
+      "@miragon/pulse-engine-core",
       "@miragon/pulse-http",
       "@miragon/pulse-profile",
       "@miragon/pulse-ui",

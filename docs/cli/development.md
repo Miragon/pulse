@@ -110,8 +110,8 @@ adapters import `src/api`, only `auth login` reaches the interactive login, and 
 - **fast-check** property tests for naming, patches, variable parsing, dates, query building,
   projection, table width, config and auth precedence, PKCE, token expiry, the token cache, body
   validation and secret masking.
-- **StrykerJS** mutates the workflow rules the CLI bundles from `@miragon/pulse-c7-core`, nightly in CI, but not the
-  root-cause rule c7-core takes from `@miragon/pulse-engine-contract` (an open owner decision) nor the CLI's own code (owner decision, 2026-11-04).
+- **StrykerJS** mutates the workflow rules the CLI bundles from c7-core, nightly in CI, but not
+  engine-core's root-cause rule (undecided) nor the CLI's own code (owner decision, 2026-11-04).
 - **Testcontainers** suites against the three engines, with and without Basic auth, behind
   Keycloak and an Envoy JWT gateway for OAuth, through the workflow commands, plus a test of the
   packed tarball. CI runs them, the packaging smoke tests and `claude plugin validate --strict` on

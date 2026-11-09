@@ -1,4 +1,4 @@
-import { PatchedCommands, PatchedRuntime } from "@miragon/pulse-engine-contract/testing"
+import { PatchedCommands, PatchedRuntime } from "@miragon/pulse-engine-core/testing"
 import {
   BpmnProcessId,
   ElementId,

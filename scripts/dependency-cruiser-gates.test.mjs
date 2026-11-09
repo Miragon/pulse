@@ -31,8 +31,8 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 const CONFIG = path.join(repoRoot, ".dependency-cruiser.cjs")
 
 // The fixture workspace: directory -> package.json extras. Every package's `main` is its
-// src/index.ts, so nothing needs a build, but the engine contract's: its main is its build, as in
-// the repo, so a family core's import of it resolves to the one shape family-core-is-a-leaf admits.
+// src/index.ts, so nothing needs a build, but engine-core's: its main is its build, as in the repo,
+// so a dialect core's import of it resolves to the one shape family-core-is-a-leaf admits.
 const SERVER = "apps/mcp-server"
 const CLI = "apps/cli"
 const EXT = "apps/vscode"
@@ -40,7 +40,7 @@ const SHELL = "packages/core/widget-shell"
 const UI = "packages/core/ui"
 const PROFILE = "packages/core/profile"
 const HTTP = "packages/core/http"
-const CONTRACT = "packages/core/engine-contract"
+const ENGINE_CORE = "packages/connectors/engine/engine-core"
 const C7 = "packages/connectors/c7/c7-core"
 const C7_CLIENT = "packages/connectors/c7/c7-client"
 const ENGINE_CONNECTOR = "packages/connectors/engine/engine-connector"
@@ -58,7 +58,7 @@ const WORKSPACE = {
   [UI]: { name: "@miragon/pulse-ui" },
   [PROFILE]: { name: "@miragon/pulse-profile" },
   [HTTP]: { name: "@miragon/pulse-http" },
-  [CONTRACT]: { name: "@miragon/pulse-engine-contract", main: "dist/index.js" },
+  [ENGINE_CORE]: { name: "@miragon/pulse-engine-core", main: "dist/index.js" },
   [C7]: { name: "@miragon/pulse-c7-core" },
   [C7_CLIENT]: { name: "@miragon/pulse-c7-client" },
   [ENGINE_CONNECTOR]: { name: "@miragon/pulse-engine-connector" },
@@ -68,9 +68,9 @@ const WORKSPACE = {
 }
 
 // The links the fixture leaves out, importer directory -> package name: the billing core imports
-// the engine contract as a tree before its build does, bare and unresolved (shape 3), where
-// c7-core's import resolves to the build (shape 2), so family-core-is-a-leaf meets both.
-const UNLINKED = new Map([[BILLING_CORE, WORKSPACE[CONTRACT].name]])
+// engine-core as a tree before its build does, bare and unresolved (shape 3), where c7-core's
+// import resolves to the build (shape 2), so family-core-is-a-leaf meets both.
+const UNLINKED = new Map([[BILLING_CORE, WORKSPACE[ENGINE_CORE].name]])
 
 // Third-party stubs installed into every importer's own node_modules. `vscode` is left out
 // on purpose: the extension host provides it at runtime, so it stays a bare specifier.
@@ -123,8 +123,7 @@ const PROFILE_LEAF = "profile-is-a-leaf"
 const PROFILE_USERS = "profile-consumers"
 const HTTP_LEAF = "http-is-a-leaf"
 const HTTP_USERS = "http-consumers"
-const CONTRACT_LEAF = "engine-contract-is-a-leaf"
-const CONTRACT_USERS = "engine-contract-consumers"
+const ENGINE_CORE_USERS = "engine-core-consumers"
 const CORE_USERS = "family-core-consumers"
 const CLI_CORE_LAYERS = "cli-family-core-only-in-named-layers"
 const NO_TESTING = "shipped-code-not-to-testing"
@@ -169,8 +168,8 @@ const PROFILE_NAME = "@miragon/pulse-profile"
 const PROFILE_SRC = `${PROFILE}/src/index.ts`
 const HTTP_NAME = "@miragon/pulse-http"
 const HTTP_SRC = `${HTTP}/src/index.ts`
-const CONTRACT_NAME = "@miragon/pulse-engine-contract"
-const CONTRACT_SRC = `${CONTRACT}/src/index.ts`
+const ENGINE_CORE_NAME = "@miragon/pulse-engine-core"
+const ENGINE_CORE_SRC = `${ENGINE_CORE}/src/index.ts`
 const BILLING_CORE_SRC = `${BILLING_CORE}/src/index.ts`
 const C7_CLIENT_SRC = `${C7_CLIENT}/src/index.ts`
 const ENGINE_CONNECTOR_SRC = `${ENGINE_CONNECTOR}/src/index.ts`
@@ -218,11 +217,11 @@ const LEAVES = [
   `${PROFILE}/src/lib.ts`,
   `${HTTP}/src/target.ts`,
   `${HTTP}/src/lib.ts`,
-  `${CONTRACT}/src/target.ts`,
-  `${CONTRACT}/src/lib.ts`,
-  `${CONTRACT}/dist/index.js`,
-  `${CONTRACT}/dist/testing/index.js`,
-  `${CONTRACT}/dist/model/root-causes.js`,
+  `${ENGINE_CORE}/src/target.ts`,
+  `${ENGINE_CORE}/src/lib.ts`,
+  `${ENGINE_CORE}/dist/index.js`,
+  `${ENGINE_CORE}/dist/testing/index.js`,
+  `${ENGINE_CORE}/dist/model/root-causes.js`,
   `${BILLING_CORE}/src/lib.ts`,
   `${BILLING_CORE}/src/a.test.ts`,
   `${C7_CLIENT}/src/target.ts`,
@@ -498,93 +497,89 @@ const SUITES = [
     ],
   },
   {
-    rule: CONTRACT_LEAF,
-    title:
-      "the engine contract imports only its own modules: no package, no npm module, no built-in",
+    rule: ENGINE_CORE_USERS,
+    title: "engine-core is imported where a dialect is implemented, and in tests",
     cases: [
-      // Not even a sibling of packages/core: core-is-foundation lets the others import one.
-      [CONTRACT_SRC, "@miragon/pulse-ui", [CONTRACT_LEAF]],
-      [CONTRACT_SRC, "@miragon/pulse-widget-shell/server", [CONTRACT_LEAF]],
-      [CONTRACT_SRC, PROFILE_NAME, [CONTRACT_LEAF, PROFILE_USERS]],
-      [CONTRACT_SRC, HTTP_NAME, [CONTRACT_LEAF, HTTP_USERS]],
-      // No dialect below it: a dialect's core implements the contract, never the other way round.
-      [CONTRACT_SRC, C7_CORE, [CORE, CONTRACT_LEAF]],
-      [CONTRACT_SRC, "@miragon/pulse-c7-client", [CORE, CONTRACT_LEAF]],
-      [CONTRACT_SRC, "pulse-cockpit", [NO_APP, CONTRACT_LEAF]],
-      ...["zod", "react", "preact", "reactive", "node:fs"].map((spec) => [
-        CONTRACT_SRC,
-        spec,
-        [CONTRACT_LEAF],
-      ]),
-      [`${CONTRACT}/src/escape.ts`, "../../ui/src/target.ts", [CONTRACT_LEAF, DEEP]],
-      // The shipped ./testing export (kit, world, fake) is no test file: no vitest in it.
-      [`${CONTRACT}/src/testing/index.ts`, "vitest", [CONTRACT_LEAF]],
-      [`${CONTRACT}/src/testing/fake.ts`, "../lib.ts", []],
-      [`${CONTRACT}/src/ports.ts`, "./lib.ts", []],
-      [`${CONTRACT}/src/a.test.ts`, "vitest", []],
-    ],
-  },
-  {
-    rule: CONTRACT_USERS,
-    title: "the engine contract is imported where a dialect is implemented, and in tests",
-    cases: [
-      [SERVER_SRC, CONTRACT_NAME, [CONTRACT_USERS]],
-      [SHELL_SRC, CONTRACT_NAME, [CONTRACT_USERS]],
-      [UI_SRC, CONTRACT_NAME, [UI_LEAF, CONTRACT_USERS]],
-      [PROFILE_SRC, CONTRACT_NAME, [PROFILE_LEAF, CONTRACT_USERS]],
-      [HTTP_SRC, CONTRACT_NAME, [HTTP_LEAF, CONTRACT_USERS]],
-      [C7_CLIENT_SRC, CONTRACT_NAME, [CLIENT_LEAF, CONTRACT_USERS]],
-      // The engine connector and the CLI reach the contract through a dialect's core (c7-core's
-      // causeOf), so a direct import is an admission decision (owner decision ND10).
-      [ENGINE_CONNECTOR_SRC, CONTRACT_NAME, [CONTRACT_USERS]],
-      [`${ENGINE_CONNECTOR}/src/lib/core-adapter/contract.ts`, CONTRACT_NAME, [CONTRACT_USERS]],
-      [BILLING_CONNECTOR_SRC, CONTRACT_NAME, [CONTRACT_USERS]],
-      [`${CLI}/src/workflow/contract.ts`, CONTRACT_NAME, [HEADLESS, CONTRACT_USERS]],
-      [`${CLI}/test/support/contract.ts`, `${CONTRACT_NAME}/testing`, [HEADLESS, CONTRACT_USERS]],
+      [SERVER_SRC, ENGINE_CORE_NAME, [CORE_USERS, ENGINE_CORE_USERS]],
+      [SHELL_SRC, ENGINE_CORE_NAME, [CORE, ENGINE_CORE_USERS]],
+      [UI_SRC, ENGINE_CORE_NAME, [UI_LEAF, CORE, ENGINE_CORE_USERS]],
+      [PROFILE_SRC, ENGINE_CORE_NAME, [PROFILE_LEAF, CORE, ENGINE_CORE_USERS]],
+      [HTTP_SRC, ENGINE_CORE_NAME, [HTTP_LEAF, CORE, ENGINE_CORE_USERS]],
+      [C7_CLIENT_SRC, ENGINE_CORE_NAME, [CLIENT_LEAF, ENGINE_CORE_USERS]],
+      // The engine connector: engine-core is its own family's core, which
+      // engine-connector-spans-the-dialects lets through, but it reaches the contract through a
+      // dialect's core (c7-core's causeOf) until it serves a second dialect (owner decision
+      // 2026-11-09). In all three shapes: resolved, bare (a subpath) and a relative escape.
+      [ENGINE_CONNECTOR_SRC, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
+      [
+        `${ENGINE_CONNECTOR}/src/lib/core-adapter/contract.ts`,
+        ENGINE_CORE_NAME,
+        [ENGINE_CORE_USERS],
+      ],
+      [`${ENGINE_CONNECTOR}/src/core-model.ts`, `${ENGINE_CORE_NAME}/model`, [ENGINE_CORE_USERS]],
+      [
+        `${ENGINE_CONNECTOR}/src/escape-engine-core.ts`,
+        "../../engine-core/src/target.ts",
+        [ENGINE_CORE_USERS, DEEP],
+      ],
+      [BILLING_CONNECTOR_SRC, ENGINE_CORE_NAME, [OWN_FAMILY, ENGINE_CORE_USERS]],
+      // The CLI gets it inlined through c7-core and never imports it, until it serves a second
+      // dialect.
+      [`${CLI}/src/workflow/contract.ts`, ENGINE_CORE_NAME, [HEADLESS, ENGINE_CORE_USERS]],
+      [
+        `${CLI}/test/support/contract.ts`,
+        `${ENGINE_CORE_NAME}/testing`,
+        [HEADLESS, ENGINE_CORE_USERS],
+      ],
+      [
+        `${CLI}/src/workflow/escape-engine-core.ts`,
+        "../../../../packages/connectors/engine/engine-core/src/target.ts",
+        [HEADLESS, ENGINE_CORE_USERS, DEEP],
+      ],
       // A package's ./testing entry ships on npm: no test file, so the rule holds it too.
-      [`${ENGINE_CONNECTOR}/src/testing/contract.ts`, CONTRACT_NAME, [CONTRACT_USERS]],
-      [`${SHELL}/src/testing/contract.ts`, CONTRACT_NAME, [CONTRACT_USERS]],
-      [`${CLI}/src/testing/contract.ts`, CONTRACT_NAME, [HEADLESS, CONTRACT_USERS]],
+      [`${ENGINE_CONNECTOR}/src/testing/contract.ts`, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
+      [`${SHELL}/src/testing/contract.ts`, ENGINE_CORE_NAME, [CORE, ENGINE_CORE_USERS]],
+      [`${CLI}/src/testing/contract.ts`, ENGINE_CORE_NAME, [HEADLESS, ENGINE_CORE_USERS]],
       // In Pulse for VS Code the contract barrel alone: the core, the adapters and the host
       // reach it through the barrel.
-      [`${EXT}/src/core/contract.ts`, CONTRACT_NAME, [CONTRACT_USERS]],
-      [`${EXT}/src/adapters/c7/contract.ts`, CONTRACT_NAME, [CONTRACT_USERS]],
-      [`${EXT}/src/host/contract.ts`, CONTRACT_NAME, [CONTRACT_USERS]],
-      [`${EXT}/src/contractx/index.ts`, CONTRACT_NAME, [CONTRACT_USERS]],
+      [`${EXT}/src/core/contract.ts`, ENGINE_CORE_NAME, [CORE_USERS, ENGINE_CORE_USERS]],
+      [`${EXT}/src/adapters/c7/contract.ts`, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
+      [`${EXT}/src/host/contract.ts`, ENGINE_CORE_NAME, [CORE_USERS, ENGINE_CORE_USERS]],
+      [`${EXT}/src/contractx/index.ts`, ENGINE_CORE_NAME, [CORE_USERS, ENGINE_CORE_USERS]],
       [
         `${EXT}/src/core/escape-contract.ts`,
-        "../../../../packages/core/engine-contract/src/target.ts",
-        [CONTRACT_USERS, DEEP],
+        "../../../../packages/connectors/engine/engine-core/src/target.ts",
+        [CORE_USERS, ENGINE_CORE_USERS, DEEP],
       ],
       // The barrel imports the package, never its tree, and no ./testing entry either.
       [
         `${EXT}/src/contract/escape.ts`,
-        "../../../../packages/core/engine-contract/src/target.ts",
+        "../../../../packages/connectors/engine/engine-core/src/target.ts",
         [DEEP],
       ],
-      [`${EXT}/src/contract/kit.ts`, `${CONTRACT_NAME}/testing`, [NO_TESTING]],
+      [`${EXT}/src/contract/kit.ts`, `${ENGINE_CORE_NAME}/testing`, [NO_TESTING]],
       // Unresolved subpaths (shape 3: dependency-cruiser reads no exports map).
-      [`${SHELL}/src/contract-sub.ts`, `${CONTRACT_NAME}/model`, [CONTRACT_USERS]],
+      [`${SHELL}/src/contract-sub.ts`, `${ENGINE_CORE_NAME}/model`, [CORE, ENGINE_CORE_USERS]],
       [
         `${SERVER}/src/contract-testing.ts`,
-        `${CONTRACT_NAME}/testing`,
-        [CONTRACT_USERS, NO_TESTING],
+        `${ENGINE_CORE_NAME}/testing`,
+        [CORE_USERS, ENGINE_CORE_USERS, NO_TESTING],
       ],
-      // Allowed: a family core's src (family-core-is-a-leaf holds it to the main entry), the
+      // Allowed: a dialect core's src (family-core-is-a-leaf holds it to the main entry), the
       // contract barrel, the package's own modules, and tests anywhere.
-      [C7_SRC, CONTRACT_NAME, []],
-      [`${EXT}/src/contract/index.ts`, CONTRACT_NAME, []],
-      [`${EXT}/src/contract/ports/engine-adapter.ts`, CONTRACT_NAME, [], "type"],
-      [`${EXT}/src/core/panel.test.ts`, `${CONTRACT_NAME}/testing`, []],
-      [`${C7}/src/cause.test.ts`, `${CONTRACT_NAME}/testing`, []],
-      [`${SHELL}/src/contract.test-support.ts`, `${CONTRACT_NAME}/testing`, []],
-      [`${CONTRACT}/src/testing/kit.ts`, "../ports.ts", []],
+      [C7_SRC, ENGINE_CORE_NAME, []],
+      [`${EXT}/src/contract/index.ts`, ENGINE_CORE_NAME, []],
+      [`${EXT}/src/contract/ports/engine-adapter.ts`, ENGINE_CORE_NAME, [], "type"],
+      [`${ENGINE_CONNECTOR}/src/core-adapter.test.ts`, `${ENGINE_CORE_NAME}/testing`, []],
+      [`${C7}/src/cause.test.ts`, `${ENGINE_CORE_NAME}/testing`, []],
+      [`${ENGINE_CONNECTOR}/src/contract.test-support.ts`, `${ENGINE_CORE_NAME}/testing`, []],
+      [`${ENGINE_CORE}/src/testing/kit.ts`, "../ports.ts", []],
     ],
   },
   {
     rule: CORE_LEAF,
     title:
-      "a family core imports only its own modules and the engine contract's main entry: no other " +
+      "a family core imports only its own modules and engine-core's main entry: no other " +
       "package, no npm module, no built-in",
     cases: [
       [C7_SRC, "@miragon/pulse-c7-client", [CORE_LEAF]],
@@ -607,38 +602,64 @@ const SUITES = [
       [`${C7}/src/escape-client.ts`, "../../c7-client/src/target.ts", [CORE_LEAF, DEEP]],
       // The shipped ./testing export is no test file: only *.test.ts may import vitest.
       [`${C7}/src/testing/index.ts`, "vitest", [CORE_LEAF]],
-      // Its one edge out: the engine contract's main entry, from its ./testing entry too, resolved
-      // to the build (c7-core) or bare before a build (the billing core, UNLINKED). Never another
-      // subpath, its ./testing entry least of all (not even from c7-core's own ./testing),
-      // unresolved or resolved into the build, never a relative escape into its sources or its
-      // build, never a look-alike name. A specifier naming the entry's own file is that entry.
-      [`${C7}/src/cause.ts`, CONTRACT_NAME, []],
-      [`${C7}/src/testing/contract.ts`, CONTRACT_NAME, []],
-      [`${C7}/src/entry-file.ts`, `${CONTRACT_NAME}/dist/index.js`, []],
-      [`${C7}/src/kit.ts`, `${CONTRACT_NAME}/testing`, [CORE_LEAF, NO_TESTING]],
-      [`${C7}/src/testing/kit.ts`, `${CONTRACT_NAME}/testing`, [CORE_LEAF]],
-      [`${C7}/src/contract-model.ts`, `${CONTRACT_NAME}/model`, [CORE_LEAF]],
-      [`${C7}/src/testing/deep-kit.ts`, `${CONTRACT_NAME}/dist/testing/index.js`, [CORE_LEAF]],
-      [`${C7}/src/deep-model.ts`, `${CONTRACT_NAME}/dist/model/root-causes.js`, [CORE_LEAF]],
-      [`${C7}/src/contract-x.ts`, `${CONTRACT_NAME}x`, [CORE_LEAF]],
+      // Its one edge out: engine-core's main entry, resolved to the build (c7-core) or bare
+      // before a build (the billing core, UNLINKED). Never another subpath, its ./testing entry
+      // least of all, unresolved or resolved into the build, never a relative escape into its
+      // sources or its build, never a look-alike name. A specifier naming the entry's own file is
+      // that entry. The dialect core's own ./testing entry ships its fixtures, so
+      // engine-core-consumers keeps engine-core out of it, its main entry too.
+      [`${C7}/src/cause.ts`, ENGINE_CORE_NAME, []],
+      [`${C7}/src/testing/contract.ts`, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
+      [`${C7}/src/entry-file.ts`, `${ENGINE_CORE_NAME}/dist/index.js`, []],
+      [`${C7}/src/kit.ts`, `${ENGINE_CORE_NAME}/testing`, [CORE_LEAF, NO_TESTING]],
+      [`${C7}/src/testing/kit.ts`, `${ENGINE_CORE_NAME}/testing`, [CORE_LEAF, ENGINE_CORE_USERS]],
+      [`${C7}/src/contract-model.ts`, `${ENGINE_CORE_NAME}/model`, [CORE_LEAF]],
+      [
+        `${C7}/src/testing/deep-kit.ts`,
+        `${ENGINE_CORE_NAME}/dist/testing/index.js`,
+        [CORE_LEAF, ENGINE_CORE_USERS],
+      ],
+      [`${C7}/src/deep-model.ts`, `${ENGINE_CORE_NAME}/dist/model/root-causes.js`, [CORE_LEAF]],
+      [`${C7}/src/contract-x.ts`, `${ENGINE_CORE_NAME}x`, [CORE_LEAF]],
       [
         `${C7}/src/escape-contract.ts`,
-        "../../../../core/engine-contract/src/target.ts",
+        "../../../engine/engine-core/src/target.ts",
         [CORE_LEAF, DEEP],
       ],
       [
         `${C7}/src/escape-contract-build.ts`,
-        "../../../../core/engine-contract/dist/index.js",
+        "../../../engine/engine-core/dist/index.js",
         [CORE_LEAF, DEEP],
       ],
       [C7_SRC, "./lib.ts", []],
       [`${C7}/src/a.test.ts`, "vitest", []],
-      // Keyed on the role: any family's core is a leaf, by the layout alone, and may import the
-      // contract's main entry (here bare, shape 3).
+      // Keyed on the role: any family's core is a leaf, by the layout alone. The main entry of
+      // engine-core passes the leaf rule here too (bare, shape 3), but only a dialect's core may
+      // import it (engine-core-consumers).
       [BILLING_CORE_SRC, "@miragon/pulse-billing-client", [CORE_LEAF]],
       [BILLING_CORE_SRC, "zod", [CORE_LEAF]],
-      [BILLING_CORE_SRC, CONTRACT_NAME, []],
+      [BILLING_CORE_SRC, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
       [BILLING_CORE_SRC, "./lib.ts", []],
+      // engine-core is a family core like any other: no package, no npm module, no built-in.
+      [ENGINE_CORE_SRC, "@miragon/pulse-ui", [CORE_LEAF]],
+      [ENGINE_CORE_SRC, "@miragon/pulse-widget-shell/server", [CORE_LEAF]],
+      [ENGINE_CORE_SRC, PROFILE_NAME, [CORE_LEAF, PROFILE_USERS]],
+      [ENGINE_CORE_SRC, HTTP_NAME, [CORE_LEAF, HTTP_USERS]],
+      // No dialect below it: a dialect's core implements engine-core, never the other way round.
+      [ENGINE_CORE_SRC, C7_CORE, [CORE_LEAF]],
+      [ENGINE_CORE_SRC, "@miragon/pulse-c7-client", [CORE_LEAF]],
+      [ENGINE_CORE_SRC, "pulse-cockpit", [NO_APP, CORE_LEAF]],
+      ...["zod", "react", "preact", "reactive", "node:fs"].map((spec) => [
+        ENGINE_CORE_SRC,
+        spec,
+        [CORE_LEAF],
+      ]),
+      [`${ENGINE_CORE}/src/escape.ts`, "../../../../core/ui/src/target.ts", [CORE_LEAF, DEEP]],
+      // The shipped ./testing export (kit, world, fake) is no test file: no vitest in it.
+      [`${ENGINE_CORE}/src/testing/index.ts`, "vitest", [CORE_LEAF]],
+      [`${ENGINE_CORE}/src/testing/fake.ts`, "../lib.ts", []],
+      [`${ENGINE_CORE}/src/ports.ts`, "./lib.ts", []],
+      [`${ENGINE_CORE}/src/a.test.ts`, "vitest", []],
     ],
   },
   {
@@ -672,7 +693,9 @@ const SUITES = [
         [DEEP],
       ],
       // Allowed: the engine module, which spans the dialect families, the CLI and the extension's
-      // C7 adapter, which bundle c7-core.
+      // C7 adapter, which bundle c7-core, and the extension's contract barrel, which bundles
+      // engine-core (keyed on that subtree).
+      [`${EXT}/src/contract/engine.ts`, ENGINE_CORE_NAME, []],
       [`${EXT}/src/adapters/c7/inspect.ts`, C7_CORE, []],
       [`${EXT}/src/adapters/c7/engine-rest/inspect/port.ts`, C7_CORE, []],
       [ENGINE_CONNECTOR_SRC, C7_CORE, []],
@@ -799,6 +822,20 @@ const SUITES = [
       [ENGINE_CONNECTOR_SRC, "pulse-cockpit", [NO_APP]],
       // A package named like the server is no app.
       [ENGINE_CONNECTOR_SRC, "@miragon/pulse-mcp-server-kit", []],
+      // A package's tests (its test/ folder, cruised since engine-core's left the extension's
+      // closed world) reach no app and no other package's sources either; their own package's
+      // sources, its ./testing tree and their runner are theirs.
+      [
+        `${ENGINE_CORE}/test/escape-app.test.ts`,
+        "../../../../../apps/mcp-server/src/target.ts",
+        [NO_APP, DEEP],
+      ],
+      [`${ENGINE_CORE}/test/support/escape.ts`, "../../../../c7/c7-core/src/target.ts", [DEEP]],
+      [`${ENGINE_CORE}/test/kit.test.ts`, "../src/index.ts", []],
+      [`${ENGINE_CORE}/test/support/harness.ts`, "../../src/testing/index.ts", []],
+      [`${ENGINE_CORE}/test/support/harness.ts`, "vitest", []],
+      [`${HTTP}/test/escape-app.ts`, "../../../../apps/mcp-server/src/target.ts", [NO_APP, DEEP]],
+      [`${PROFILE}/test/escape.test.ts`, "../../ui/src/target.ts", [DEEP]],
     ],
   },
   {
@@ -1836,22 +1873,29 @@ for (const { rule, title, cases } of SUITES) {
   })
 }
 
-describe("the fixture plants a family core's edges to the engine contract in their shapes", () => {
-  const link = `${C7}/node_modules/${CONTRACT_NAME}`
+describe("the fixture plants a family core's edges to engine-core in their shapes", () => {
+  const link = `${C7}/node_modules/${ENGINE_CORE_NAME}`
   it("resolves c7-core's to the build, its main entry and the deep files (shape 2)", () => {
-    assert.equal(edgeOf(`${C7}/src/cause.ts`, CONTRACT_NAME).resolved, `${link}/dist/index.js`)
+    assert.equal(edgeOf(`${C7}/src/cause.ts`, ENGINE_CORE_NAME).resolved, `${link}/dist/index.js`)
     assert.equal(
-      edgeOf(`${C7}/src/testing/deep-kit.ts`, `${CONTRACT_NAME}/dist/testing/index.js`).resolved,
+      edgeOf(`${C7}/src/testing/deep-kit.ts`, `${ENGINE_CORE_NAME}/dist/testing/index.js`).resolved,
       `${link}/dist/testing/index.js`,
     )
     assert.equal(
-      edgeOf(`${C7}/src/deep-model.ts`, `${CONTRACT_NAME}/dist/model/root-causes.js`).resolved,
+      edgeOf(`${C7}/src/deep-model.ts`, `${ENGINE_CORE_NAME}/dist/model/root-causes.js`).resolved,
       `${link}/dist/model/root-causes.js`,
     )
   })
 
+  it("resolves the engine connector's to the build too: its own family's core (shape 2)", () => {
+    assert.equal(
+      edgeOf(ENGINE_CONNECTOR_SRC, ENGINE_CORE_NAME).resolved,
+      `${ENGINE_CONNECTOR}/node_modules/${ENGINE_CORE_NAME}/dist/index.js`,
+    )
+  })
+
   it("leaves the billing core's bare and unresolved (shape 3)", () => {
-    assert.equal(edgeOf(BILLING_CORE_SRC, CONTRACT_NAME).resolved, CONTRACT_NAME)
+    assert.equal(edgeOf(BILLING_CORE_SRC, ENGINE_CORE_NAME).resolved, ENGINE_CORE_NAME)
   })
 })
 
@@ -1924,9 +1968,10 @@ function spannedFamilies(config) {
 }
 
 /**
- * Where the npm half of the exemptions names other families than the relative half. No planted
- * case reaches an npm name of the engine family any more (old-names bans its client and core),
- * so this check holds that half of the exemption.
+ * Where the npm half of the exemptions names other families than the relative half. The planted
+ * cases reach the engine family's core by its npm name only where engine-core-consumers fires as
+ * well, and none reaches its client (old-names bans the name), so this check holds that half of
+ * the exemption.
  */
 function spannedHalfFindings(to) {
   const { relative, npm } = spannedFamilyHalves(to)

@@ -24,8 +24,8 @@ import { REPO_ROOT } from "./source-scan.mjs"
  *
  * An app that BUNDLES workspace packages it lists only as devDependencies
  * would fail the src scan by design, so a bundled app (BUNDLED_APPS: the CLI,
- * which bundles @miragon/pulse-c7-core and, through it, the engine contract's
- * main entry) is read from its BUILT bundle
+ * which bundles @miragon/pulse-c7-core and, through it, the main entry of
+ * @miragon/pulse-engine-core) is read from its BUILT bundle
  * instead: every module under its dist imports only Node built-ins and its
  * declared dependencies (a workspace package left external fails), and the
  * bundle stays within its size budget and close to it. `pnpm build` runs first (CI's
@@ -613,7 +613,7 @@ describe("published packages declare what their shipped source imports", () => {
   it("reads the repo's nine npm packages (the scanner is not blind)", () => {
     const names = publishedPackages().map(({ manifest }) => manifest.name)
     for (const name of [
-      "@miragon/pulse-engine-contract",
+      "@miragon/pulse-engine-core",
       "@miragon/pulse-http",
       "@miragon/pulse-profile",
       "@miragon/pulse-c7-core",

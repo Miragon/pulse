@@ -4,7 +4,7 @@ import {
   type ProcessCommands,
   type ProcessRuntime,
 } from "../../src/contract/index.js"
-import { FakeEngine, FakeWorld, PatchedRuntime } from "@miragon/pulse-engine-contract/testing"
+import { FakeEngine, FakeWorld, PatchedRuntime } from "@miragon/pulse-engine-core/testing"
 import { DiagramCache } from "../../src/core/index.js"
 import { ConnectionLive } from "./support/connection-live.js"
 import { describe, expect, test, vi } from "vitest"

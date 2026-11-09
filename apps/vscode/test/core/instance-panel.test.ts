@@ -1,4 +1,4 @@
-import { PatchedRuntime } from "@miragon/pulse-engine-contract/testing"
+import { PatchedRuntime } from "@miragon/pulse-engine-core/testing"
 import { InstanceId, RuntimeError, type ProcessRuntime } from "../../src/contract/index.js"
 import { describe, expect, test } from "vitest"
 import { InstancePanel } from "../../src/core/panels/instance-panel.js"

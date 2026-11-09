@@ -1,7 +1,7 @@
 # Architecture
 
 - Status: accepted
-- Last reviewed: 2026-11-09 (the engine contract leaves the app for `@miragon/pulse-engine-contract`; before that 2026-11-08, Pulse's UI foundation in core and webview)
+- Last reviewed: 2026-11-09 (the engine contract leaves the app for `@miragon/pulse-engine-core`, the engine family's neutral core; before that 2026-11-08, Pulse's UI foundation in core and webview)
 
 ## Context
 
@@ -21,7 +21,7 @@ host as CommonJS for Node 22, the webview as an IIFE.
 
 | Layer         | Responsibility                                                                                                                                                                                                                                                                                                                                                                | Runtime                               |
 | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| `contract`    | The barrel of the engine contract `@miragon/pulse-engine-contract` (`packages/core/engine-contract`: the `ProcessRuntime` and `ProcessCommands` ports, read models and `RuntimeError`; its `./testing` the kit and the in-memory reference engine) plus the ports of the IDE: `EngineAdapter`, the local `ModelSource` and `CodeLocator` ports with the `WorkspaceFiles` seam | none (no DOM, no Node)                |
+| `contract`    | The barrel of the engine contract `@miragon/pulse-engine-core` (`packages/connectors/engine/engine-core`: the `ProcessRuntime` and `ProcessCommands` ports, read models and `RuntimeError`; its `./testing` the kit and an in-memory `FakeEngine`) plus the ports of the IDE: `EngineAdapter`, the local `ModelSource` and `CodeLocator` ports with the `WorkspaceFiles` seam | none (no DOM, no Node)                |
 | `core`        | Engine-neutral logic: use cases turn read models into view models, panel sessions handle webview intents; `apps/vscode/src/core/protocol` holds the JSON-only messages and view models                                                                                                                                                                                        | none                                  |
 | `webview`     | Preact UI and bpmn-js diagram. Renders protocol view models, sends intents                                                                                                                                                                                                                                                                                                    | browser                               |
 | `adapters/c7` | `EngineAdapter`, `ProcessRuntime`, `ProcessCommands` and the Cockpit web UI for the Camunda 7 family ([c7-adapter.md](c7-adapter.md)); `apps/vscode/src/adapters/c7/engine-rest` reads and writes the engine's REST API                                                                                                                                                       | Node                                  |
@@ -43,7 +43,7 @@ flowchart TB
   extension --> contract
   extension -- composition root only --> adapterC7[adapter-c7]
   extension -- composition root only --> modelAdapter[model-adapter]
-  contract -- re-exports --> engineContract["@miragon/pulse-engine-contract"]
+  contract -- re-exports --> engineCore["@miragon/pulse-engine-core"]
   modelAdapter --> contract
   core --> contract
   core --> tones["@miragon/pulse-ui/tones"]
@@ -56,7 +56,7 @@ flowchart TB
 ```
 
 ```text
-contract    → @miragon/pulse-engine-contract (main entry only)
+contract    → @miragon/pulse-engine-core (main entry only)
 core        → contract (entry only), @miragon/pulse-ui/tones,
               @miragon/pulse-ui/format (only from views/labels.ts)
 protocol    → (nothing outside protocol)
@@ -69,20 +69,23 @@ model       → contract (entry only), bpmn-moddle, camunda-bpmn-moddle, zeebe-b
               (nothing else may import these)
 host        → core, protocol, contract, vscode, modeler-shell, Node built-ins
               adapters and the model adapter only from host/composition-root.ts
-tests, scripts, dev tooling → anything (the kit and FakeEngine: @miragon/pulse-engine-contract/testing)
+tests, scripts, dev tooling → anything (the kit and FakeEngine: @miragon/pulse-engine-core/testing)
 ```
 
-The engine contract is a workspace package of its own, `packages/core/engine-contract`, which
-esbuild bundles like c7-core. It holds what every dialect answers (the read and write ports, ids,
+The engine contract is the core of the engine family, the neutral layer above the dialects:
+`@miragon/pulse-engine-core` in `packages/connectors/engine/engine-core`, which esbuild bundles
+like c7-core. It holds what every dialect answers (the read and write ports, ids,
 read models, queries, `RuntimeError`, `FailingRuntime`, `ValueKinds`, `MoveReasons`,
 `RootCauses`) and, in `./testing`, the conformance kit, its world and the fake. What only the IDE needs stays here:
 `EngineAdapter` with the connection, the credentials and `EngineWebUi` (the links into an engine's
 web UI differ between the MCP server and the extension), the local ports and their read models.
 The package keeps the extension's house rules (the repository's ESLint config names its paths next
-to the extension's) and imports nothing (`engine-contract-is-a-leaf`); in the repository only this
-layer, the extension's tests and its dev host import it, besides a dialect's core (c7-core takes
-`RootCauses` from its main entry) and tests anywhere (`engine-contract-consumers`). They import its entries, never a file of the package by path
-(`engine-contract-only-by-its-entries`): a module reached by path would be a second copy of the
+to the extension's) and imports nothing (the repository's `family-core-is-a-leaf`); in the
+repository only this layer, the extension's tests and its dev host import it, besides the `src` of
+a dialect's core (c7-core takes `RootCauses` from its main entry) and tests anywhere; the engine
+connector and the CLI do not until they serve a second dialect (`engine-core-consumers`). They
+import its entries, never a file of the package by path
+(`engine-core-only-by-its-entries`): a module reached by path would be a second copy of the
 contract, whose `RuntimeError` the first copy's `RuntimeError.is` no longer recognises.
 
 `@miragon/pulse-ui/tones` and `@miragon/pulse-ui/format` are the part of Pulse's UI foundation
@@ -223,7 +226,7 @@ file's current content when _Show Runtime Data for This Model_ runs again.
   layer (`apps/vscode/test/<layer>/runtime.boundary.ts`).
 - A new engine takes `apps/vscode/src/adapters/<engine>` with a class implementing
   `EngineAdapter`, an engine test that runs the `ConformanceKit` of
-  `@miragon/pulse-engine-contract/testing` and one entry in the composition root; core,
+  `@miragon/pulse-engine-core/testing` and one entry in the composition root; core,
   protocol and webview stay untouched. A new engine question is a change to that package: a
   port, a read model, a law and a saboteur there, the use in the core here. ESLint keeps engine words
   out of them, and dependency-cruiser fails while a new adapter has no engine test. The
@@ -245,8 +248,9 @@ blocks the browser dev host).
 Revised on 2026-11-09: one package per app no longer holds for the contract. The product owner
 decided on 2026-11-08 that the contract sits above the engine dialects, with Camunda 8 the second
 dialect to speak it, so its ports, read models, kit and fake moved to the public workspace package
-`@miragon/pulse-engine-contract` (`packages/core/engine-contract`), with their floors, their tests
-and their house rules. The extension stays one package with six layers; its contract layer became
+`@miragon/pulse-engine-core` (`packages/connectors/engine/engine-core`), the core of the engine
+family, which the owner made the neutral layer above the dialects on 2026-11-09, with their
+floors, their tests and their house rules. The extension stays one package with six layers; its contract layer became
 the barrel of that package plus the ports of the IDE, so no import of the core, the adapters or the
 host changed. No `EngineDialect` seam and no C7 runtime moved with it: the C7 adapter stays in
 `apps/vscode/src/adapters/c7`.

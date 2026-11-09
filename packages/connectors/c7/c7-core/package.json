@@ -1,7 +1,7 @@
 {
   "name": "@miragon/pulse-c7-core",
   "version": "0.27.1",
-  "description": "The core of the Camunda 7 REST dialect family (Operaton, CIB seven, Camunda 7), its workflow domain: the engine port, instance selection, the inspect view, the status triage, the root cause of an incident and the plans of retry and advance, and the pure engine REST rules (dates, filters, sorting, variable writes, incident recovery). Its one runtime dependency is @miragon/pulse-engine-contract, whose root-cause rule it applies.",
+  "description": "The core of the Camunda 7 REST dialect family (Operaton, CIB seven, Camunda 7), its workflow domain: the engine port, instance selection, the inspect view, the status triage, the root cause of an incident and the plans of retry and advance, and the pure engine REST rules (dates, filters, sorting, variable writes, incident recovery). Its one runtime dependency is @miragon/pulse-engine-core, whose root-cause rule it applies.",
   "license": "MIT",
   "keywords": [
     "camunda",
@@ -55,7 +55,7 @@
     "lint:fix": "eslint src --fix"
   },
   "dependencies": {
-    "@miragon/pulse-engine-contract": "workspace:*"
+    "@miragon/pulse-engine-core": "workspace:*"
   },
   "devDependencies": {
     "@stryker-mutator/core": "10.1.1",

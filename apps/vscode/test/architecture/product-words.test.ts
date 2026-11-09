@@ -10,11 +10,7 @@ import {
 } from "@miragon/pulse-ui/testing"
 import { afterAll, describe, expect, test } from "vitest"
 import { APP_ROOT, REPO_ROOT } from "./support/files.js"
-import {
-  ENGINE_CONTRACT_SOURCES,
-  ENGINE_VOCABULARY_LAYER,
-  WORDED_LAYERS,
-} from "./support/layers.js"
+import { ENGINE_CORE_SOURCES, ENGINE_VOCABULARY_LAYER, WORDED_LAYERS } from "./support/layers.js"
 
 const SOURCES = join(APP_ROOT, "src")
 
@@ -42,8 +38,8 @@ describe("the extension's texts", PARSING_A_LAYER_ON_A_BUSY_CI_RUNNER, () => {
     expect(wordFindings(join(SOURCES, layer))).toEqual([])
   })
 
-  test("in the engine contract the extension re-exports use the product's words too", () => {
-    const contract = join(REPO_ROOT, ENGINE_CONTRACT_SOURCES)
+  test("in engine-core, whose contract the extension re-exports, use the product's words too", () => {
+    const contract = join(REPO_ROOT, ENGINE_CORE_SOURCES)
     expect(Object.keys(sourceTexts(contract))).toEqual(
       expect.arrayContaining([expect.stringMatching(/^model\/move-reasons\.ts:/)]),
     )

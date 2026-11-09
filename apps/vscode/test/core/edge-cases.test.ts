@@ -1,5 +1,5 @@
 import { BpmnProcessId, DefinitionId, InstanceId } from "../../src/contract/index.js"
-import { FakeEngine, FakeWorld, PatchedRuntime } from "@miragon/pulse-engine-contract/testing"
+import { FakeEngine, FakeWorld, PatchedRuntime } from "@miragon/pulse-engine-core/testing"
 import { describe, expect, test } from "vitest"
 import { DefinitionNodes } from "../../src/core/explorer/definition-nodes.js"
 import { ElementNames } from "../../src/core/bpmn/element-names.js"

@@ -202,11 +202,11 @@ describe("testOnePlan", () => {
     const extension = real("apps/vscode/test/webview/a.test.tsx")
     assert.deepEqual(extension.builds, ["pulse-cockpit^..."])
     assert.match(extension.runs[0].hint, /install chromium/)
-    // c7-core's tests run on the engine contract's build; the contract depends on nothing.
+    // c7-core's tests run on engine-core's build; engine-core depends on nothing.
     assert.deepEqual(real("packages/connectors/c7/c7-core/src/a.test.ts").builds, [
       "@miragon/pulse-c7-core^...",
     ])
-    assert.deepEqual(real("packages/core/engine-contract/test/a.test.ts").builds, [])
+    assert.deepEqual(real("packages/connectors/engine/engine-core/test/a.test.ts").builds, [])
     assert.equal(
       real("packages/connectors/engine/engine-connector/src/a.test.tsx").runs[0].dir,
       "packages/connectors/engine/engine-connector",

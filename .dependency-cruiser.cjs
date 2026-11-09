@@ -8,8 +8,9 @@
  *
  * Layout + naming carry the layer semantics. A family under `packages/connectors/<family>/` is
  * one source the MCP server reads, an engine API family (a dialect; today `c7`, the Camunda 7
- * REST API) or another source (a metrics store, say), or `engine`, the family of the one module
- * that serves every dialect. Its packages are named `<family>-<role>` (npm
+ * REST API) or another source (a metrics store, say), or `engine`, the neutral family above the
+ * dialects: the one module that serves every dialect and the core every dialect implements. Its
+ * packages are named `<family>-<role>` (npm
  * `@miragon/pulse-<family>-<role>`; the naming gate holds the family name), keyed by the role
  * suffix:
  *   - `<family>-connector`: the MCP module (tools and their input schemas, widget tools,
@@ -17,28 +18,29 @@
  *   - `<family>-client`: its SDK leaf (the generated REST SDK, say; c7-client);
  *   - `<family>-core`, when the family's interfaces share a pure domain: a leaf that the
  *     family's connector (for a dialect's core the engine module) and the interface apps that
- *     bundle it import (c7-core); its one edge out of its own tree is the engine contract's main
- *     entry (family-core-is-a-leaf).
- * The engine module (`packages/connectors/engine/engine-connector`) is the one MCP module of
- * every dialect: the family `engine` holds it, and it imports the clients and cores of the
- * dialect families ENGINE_DIALECTS names (engine-connector-spans-the-dialects; the self-test
- * holds each entry to a family of the tree that brings no connector of its own).
+ *     bundle it import (c7-core); a dialect's core has one edge out of its own tree, the main
+ *     entry of the engine family's core (family-core-is-a-leaf, engine-core-consumers).
+ * The engine family is the neutral layer. Its module
+ * (`packages/connectors/engine/engine-connector`) is the one MCP module of every dialect and
+ * imports the clients and cores of the dialect families ENGINE_DIALECTS names
+ * (engine-connector-spans-the-dialects; the self-test holds each entry to a family of the tree
+ * that brings no connector of its own). Its core
+ * (`packages/connectors/engine/engine-core`, `@miragon/pulse-engine-core`, ENGINE_CORE) is the
+ * contract every dialect implements, imported only where a dialect is implemented: a dialect
+ * core's src and Pulse for VS Code's contract barrel (engine-core-consumers).
  * The foundation packages every family builds on live under `packages/core/` (npm names
- * without a role suffix, e.g. `@miragon/pulse-widget-shell`), never one family's code; three of
+ * without a role suffix, e.g. `@miragon/pulse-widget-shell`), never one family's code; two of
  * them are leaves only their consumers import: the profile format (`@miragon/pulse-profile`,
- * PROFILE), read where a surface reads its profiles, the transport (`@miragon/pulse-http`,
- * HTTP), used where a surface sends its engine requests, and the engine contract
- * (`@miragon/pulse-engine-contract`, ENGINE_CONTRACT), the neutral language above the dialects,
- * imported where a dialect is implemented (a family core, keyed on the role, and Pulse for VS
- * Code's contract barrel). The apps under `apps/` sit ON TOP of
+ * PROFILE), read where a surface reads its profiles, and the transport (`@miragon/pulse-http`,
+ * HTTP), used where a surface sends its engine requests. The apps under `apps/` sit ON TOP of
  * the packages: the MCP server (`@miragon/pulse-mcp-server`) composes the
  * connectors; of the two interface apps, the CLI (apps/cli, `@miragon/pulse-cli`) imports no
  * workspace package but the ones CLI_BUNDLES names, which tsdown inlines (its family core, with
- * the engine contract's main entry that core imports, the profile format for its config layer and
+ * the main entry of engine-core that core imports, the profile format for its config layer and
  * the transport for its http layer), and the VS Code
  * extension (apps/vscode, the unscoped `pulse-cockpit`, because vsce rejects scoped names)
- * imports its family core in its C7 adapter alone (apps/vscode/src/adapters/c7) and the engine
- * contract in its contract barrel alone (apps/vscode/src/contract), both bundled by esbuild.
+ * imports c7-core in its C7 adapter alone (apps/vscode/src/adapters/c7) and engine-core in its
+ * contract barrel alone (apps/vscode/src/contract), both bundled by esbuild.
  * No package and no app imports an app
  * (the extension's own closed-world rules live in apps/vscode/.dependency-cruiser.cjs).
  * APP_PACKAGES below names every app's npm name; the
@@ -101,8 +103,9 @@ const FAMILY_CORE_TREE = "^packages/connectors/[^/]+/[^/]+-core/"
  * The engine module, `packages/connectors/engine/engine-connector` (npm
  * `@miragon/pulse-engine-connector`): one MCP server and one module, engine, for every dialect
  * (owner decisions 2026-11-07 and 2026-11-08). It imports the clients and cores of the dialect
- * families ENGINE_DIALECTS names, and may import those of its own family, which has neither since
- * c7 took them (engine-connector-spans-the-dialects); every other connector keeps to its own
+ * families ENGINE_DIALECTS names, and the rule lets it import those of its own family, which has
+ * no client and whose core, engine-core, engine-core-consumers keeps out until the module serves
+ * a second dialect (engine-connector-spans-the-dialects); every other connector keeps to its own
  * family (connectors-own-their-family). A dialect joins ENGINE_DIALECTS in the commit that first
  * imports it from the engine module.
  */
@@ -114,11 +117,13 @@ const ENGINE_MODULE_FAMILIES = ["engine", ...ENGINE_DIALECTS]
  * The interface apps (or the one part of an app) that bundle a family core (tsdown or esbuild
  * inlines it), each with the one core it bundles. The keys are, with the family's own connector
  * (for a dialect's core the engine module), the only importers of a family core
- * (family-core-consumers). This config reads the name and
- * tree of the CLI's entry only: the CLI's rules below hold the core it bundles as part of the
- * CLI. The extension's entry documents its core here; its own config
- * (apps/vscode/.dependency-cruiser.cjs, c7-core-only-in-the-c7-adapter) holds the C7 adapter
- * to that core's main entry and keeps the core out of every other layer.
+ * (family-core-consumers; engine-core-consumers narrows who imports engine-core). This config
+ * reads the name and tree of the CLI's entry only: the CLI's rules below hold the core it
+ * bundles as part of the CLI, which gets engine-core only inlined through c7-core and never
+ * imports it (cli-is-headless). The extension's entries document its two cores here; its own
+ * config (apps/vscode/.dependency-cruiser.cjs) holds the C7 adapter to c7-core's main entry
+ * (c7-core-only-in-the-c7-adapter) and the contract barrel to engine-core's, and keeps both
+ * cores out of every other layer.
  */
 const CORE_BUNDLES = {
   "^apps/cli/": {
@@ -128,6 +133,10 @@ const CORE_BUNDLES = {
   "^apps/vscode/src/adapters/c7/": {
     name: "@miragon/pulse-c7-core",
     tree: "packages/connectors/c7/c7-core",
+  },
+  "^apps/vscode/src/contract/": {
+    name: "@miragon/pulse-engine-core",
+    tree: "packages/connectors/engine/engine-core",
   },
 }
 const CORE_BUNDLERS = Object.keys(CORE_BUNDLES)
@@ -189,42 +198,45 @@ const CLI_BUNDLE_NAMES = CLI_BUNDLES.map(({ name }) => escapeRegExp(name)).join(
 const CLI_BUNDLE_TREES = CLI_BUNDLES.map(({ tree }) => escapeRegExp(tree)).join("|")
 
 /**
- * The engine contract (packages/core/engine-contract, npm `@miragon/pulse-engine-contract`): the
- * ports, read models, queries and errors a process engine answers in, whatever its dialect, and
- * in ./testing the conformance kit and the fake (owner decision 2026-11-08: the contract sits
- * above the dialects). A foundation package and a leaf, out of CORE_BUNDLES: its own rules are
- * engine-contract-is-a-leaf and engine-contract-consumers.
+ * The engine family's core (packages/connectors/engine/engine-core, npm
+ * `@miragon/pulse-engine-core`): the contract every dialect implements, the ports, read models,
+ * queries and failure kinds a process engine answers in, whatever its dialect, the rules every
+ * dialect shares (RootCauses), and in ./testing the conformance kit and the fake (owner
+ * decisions 2026-11-08 and 2026-11-09: the engine family is the neutral layer, c7 and later c8
+ * the dialect families below it). A family core, so family-core-is-a-leaf holds it as it holds
+ * every core; engine-core-consumers holds who imports it.
  */
-const ENGINE_CONTRACT = {
-  name: "@miragon/pulse-engine-contract",
-  tree: "packages/core/engine-contract",
+const ENGINE_CORE = {
+  name: "@miragon/pulse-engine-core",
+  tree: "packages/connectors/engine/engine-core",
 }
 
 /**
- * Where a dialect is implemented, the only shipped importers of ENGINE_CONTRACT: a family core's
- * src, its ./testing entry included (keyed on the role like family-core-is-a-leaf, which admits
- * the contract's main entry alone; that only a dialect's core takes rules from it, as c7-core
- * takes the root-cause rule, is review knowledge) and Pulse for VS Code's contract barrel, which
+ * Where a dialect is implemented, the only shipped importers of ENGINE_CORE: the src of a
+ * dialect's core (a family ENGINE_DIALECTS names), never its ./testing entry (src/testing/, the
+ * dialect's fixtures, which ship on npm), and Pulse for VS Code's contract barrel, which
  * re-exports it to the extension's core, adapters and host. The extension's tests and dev host
- * import it too, but this config never
- * cruises apps/vscode/test or apps/vscode/dev: its closed world
- * (apps/vscode/.dependency-cruiser.cjs) holds them and the barrel's edge to the main entry. Test
- * files import it anywhere. The engine connector and the CLI do not: they reach it through
- * c7-core, and their importing it directly is an admission decision in review (CLAUDE.md, the
- * family paragraph).
+ * import it too, but this config never cruises apps/vscode/test or apps/vscode/dev: its closed
+ * world (apps/vscode/.dependency-cruiser.cjs) holds them and the barrel's edge to the main entry.
+ * Test files import it anywhere. The engine connector (although engine-core is its own family's
+ * core, which engine-connector-spans-the-dialects admits) and the CLI do not, until they serve a
+ * second dialect (owner decision 2026-11-09): they reach it through c7-core's causeOf.
  */
-const ENGINE_CONTRACT_IMPLEMENTERS = [`${FAMILY_CORE_TREE}src/`, "^apps/vscode/src/contract/"]
+const ENGINE_CORE_IMPLEMENTERS = [
+  `^packages/connectors/(?:${ENGINE_DIALECTS.join("|")})/[^/]+-core/src/(?!testing/)`,
+  "^apps/vscode/src/contract/",
+]
 
 /**
- * The engine contract's main entry as an import reaches it: resolved through the importer's
+ * engine-core's main entry as an import reaches it: resolved through the importer's
  * node_modules to the build (shape 2) or bare and unresolved before a build (shape 3). Never
  * another subpath (./testing ships the kit, dist/model/… is a second way in), never a relative
  * escape into its tree. The patterns read the resolved path, so a specifier that names the entry's
  * own file (…/dist/index.js) is that entry; TypeScript refuses it through the exports map.
  */
-const ENGINE_CONTRACT_ENTRY = [
-  `(^|/)node_modules/${escapeRegExp(ENGINE_CONTRACT.name)}/dist/index[.](js|d[.]ts)$`,
-  `^${escapeRegExp(ENGINE_CONTRACT.name)}$`,
+const ENGINE_CORE_ENTRY = [
+  `(^|/)node_modules/${escapeRegExp(ENGINE_CORE.name)}/dist/index[.](js|d[.]ts)$`,
+  `^${escapeRegExp(ENGINE_CORE.name)}$`,
 ]
 
 /** Test-support modules: helpers of the tests, never shipped. */
@@ -358,9 +370,10 @@ module.exports = {
         "@miragon/pulse-engine-connector) is the one MCP module of every dialect: one MCP server " +
         "and one module, engine, for all dialects (owner decisions 2026-11-07 and 2026-11-08). " +
         "It imports the clients and cores of the dialect families ENGINE_DIALECTS names (today " +
-        "c7: @miragon/pulse-c7-client and @miragon/pulse-c7-core) and may import those of its " +
-        "own family engine, which has neither since c7 took them; never another family's. A " +
-        "dialect joins ENGINE_DIALECTS in the commit that first imports it from the engine " +
+        "c7: @miragon/pulse-c7-client and @miragon/pulse-c7-core), never another family's. Its " +
+        "own family engine has no client, and its core, engine-core, the contract every dialect " +
+        "implements, stays out until the module serves a second dialect (engine-core-consumers). " +
+        "A dialect joins ENGINE_DIALECTS in the commit that first imports it from the engine " +
         "module (CLAUDE.md invariant 8).",
       from: { path: ENGINE_CONNECTOR_TREE },
       to: {
@@ -403,9 +416,7 @@ module.exports = {
         "on a family package (a connector, a client or a family core). When connectors of two " +
         "families need the same thing, extract it INTO a core package (on the second concrete " +
         "consumer); what one family needs stays in that family (its -core), never in packages/core. " +
-        "The engine contract (packages/core/engine-contract) is the one core package above the " +
-        "dialects rather than below the connectors: the language every dialect answers in, by " +
-        "the owner's decision of 2026-11-08, with Pulse for VS Code's adapters its first speakers.",
+        "What every dialect implements lives in the engine family's core, engine-core, not here.",
       from: { path: "^packages/core/" },
       to: {
         path: ["^packages/connectors/", "@miragon/pulse-[^/]+-(connector|client|core)(/|$)"],
@@ -684,63 +695,44 @@ module.exports = {
       to: { path: [`^${escapeRegExp(HTTP.tree)}/`, ...npm(escapeRegExp(HTTP.name))] },
     },
     {
-      name: "engine-contract-is-a-leaf",
+      name: "engine-core-consumers",
       severity: "error",
       comment:
-        "The engine contract (packages/core/engine-contract, @miragon/pulse-engine-contract) " +
-        "has no runtime dependency: its shipped code (the ./testing export with the kit, the " +
-        "world and the fake included) imports only its own modules, no workspace package, no " +
-        "npm package and no Node built-in. It names what a process engine answers in neutral " +
-        "words; reaching an engine and wording a result for a person stay with the dialect's " +
-        "implementation and the surface. Its tests (test/) may import vitest.",
-      from: { path: `^${escapeRegExp(ENGINE_CONTRACT.tree)}/src/`, pathNot: ["[.]test[.]ts$"] },
-      to: { pathNot: `^${escapeRegExp(ENGINE_CONTRACT.tree)}/src/` },
-    },
-    {
-      name: "engine-contract-consumers",
-      severity: "error",
-      comment:
-        "The engine contract (@miragon/pulse-engine-contract) is imported only where a dialect " +
-        "is implemented (ENGINE_CONTRACT_IMPLEMENTERS): a family core's src, keyed on the role " +
-        "and its ./testing entry included (family-core-is-a-leaf holds it to the main entry), " +
-        "and Pulse for VS Code's contract barrel (apps/vscode/src/contract), and by test files " +
-        "and test-support anywhere. Another package's ./testing entry (src/testing/) ships on " +
-        "npm, so it is no test here. The " +
-        "extension's core, adapters and host reach it through the barrel. The engine connector, " +
-        "the CLI, the MCP server app and the other packages do not: a surface reaches the " +
-        "contract through a dialect (the CLI and the connector through c7-core's causeOf), and " +
-        "its importing the contract directly is an admission decision in review (CLAUDE.md, " +
-        "the family paragraph: a second interface needing the " +
-        "same use case with the same rules). A relative escape into " +
-        "packages/core/engine-contract is a violation too.",
+        "The engine family's core (@miragon/pulse-engine-core, the contract every dialect " +
+        "implements) is imported only where a dialect is implemented (ENGINE_CORE_IMPLEMENTERS): " +
+        "the src of a dialect's core (a family ENGINE_DIALECTS names), never its ./testing entry " +
+        "(src/testing/, which ships on npm), and Pulse for VS Code's contract barrel " +
+        "(apps/vscode/src/contract), and by test files and test-support anywhere. The " +
+        "extension's core, adapters and host reach it through the barrel. Not another family's " +
+        "core, not the engine connector (although engine-core is its own family's core) and not " +
+        "the CLI, until they serve a second dialect (owner decision 2026-11-09: they reach it " +
+        "through c7-core's causeOf), not the MCP server app and no other package. A relative " +
+        "escape into packages/connectors/engine/engine-core is a violation too.",
       from: {
         pathNot: [
-          ...ENGINE_CONTRACT_IMPLEMENTERS,
-          `^${escapeRegExp(ENGINE_CONTRACT.tree)}/(?:src|test)/`,
+          ...ENGINE_CORE_IMPLEMENTERS,
+          `^${escapeRegExp(ENGINE_CORE.tree)}/(?:src|test)/`,
           "[.]test[.]tsx?$",
           ...TEST_SUPPORT,
         ],
       },
-      to: {
-        path: [
-          `^${escapeRegExp(ENGINE_CONTRACT.tree)}/`,
-          ...npm(escapeRegExp(ENGINE_CONTRACT.name)),
-        ],
-      },
+      to: { path: [`^${escapeRegExp(ENGINE_CORE.tree)}/`, ...npm(escapeRegExp(ENGINE_CORE.name))] },
     },
     {
       name: "family-core-is-a-leaf",
       severity: "error",
       comment:
-        "A family core (packages/connectors/<family>/<family>-core, e.g. @miragon/pulse-c7-core) " +
-        "has one runtime dependency, the engine contract: its shipped code (the ./testing export " +
-        "included) imports only its own modules and the main entry of " +
-        "@miragon/pulse-engine-contract (the rules every dialect shares, such as RootCauses), no " +
-        "other workspace package, no subpath of the contract (./testing ships the kit), no " +
-        "relative escape into its tree, no npm package and no Node built-in. The caller supplies " +
-        "every effect through a port (c7-core's EngineTransport) and words the structured results.",
+        "A family core (packages/connectors/<family>/<family>-core, e.g. @miragon/pulse-c7-core " +
+        "or @miragon/pulse-engine-core) has no runtime dependency but the engine family's core: " +
+        "its shipped code (the ./testing export included) imports only its own modules and the " +
+        "main entry of @miragon/pulse-engine-core (the contract a dialect implements and the " +
+        "rules every dialect shares, such as RootCauses; engine-core-consumers admits only a " +
+        "dialect core's src, never its ./testing), no other workspace package, no subpath of " +
+        "engine-core (./testing ships the kit), no relative escape into its tree, no npm package " +
+        "and no Node built-in. The caller supplies every effect through a port (c7-core's " +
+        "EngineTransport) and words the structured results.",
       from: { path: "^packages/connectors/([^/]+)/([^/]+)-core/src/", pathNot: ["[.]test[.]ts$"] },
-      to: { pathNot: ["^packages/connectors/$1/$2-core/src/", ...ENGINE_CONTRACT_ENTRY] },
+      to: { pathNot: ["^packages/connectors/$1/$2-core/src/", ...ENGINE_CORE_ENTRY] },
     },
     {
       name: "family-core-consumers",
@@ -749,7 +741,8 @@ module.exports = {
         "A family core is imported by its own family's connector (connectors-own-their-family), " +
         "a dialect's core also by the engine module (engine-connector-spans-the-dialects), " +
         "and by the interface apps that bundle it (CORE_BUNDLERS: the CLI and the VS Code " +
-        "extension's C7 adapter, apps/vscode/src/adapters/c7, bundle c7-core), " +
+        "extension's C7 adapter, apps/vscode/src/adapters/c7, bundle c7-core, the extension's " +
+        "contract barrel, apps/vscode/src/contract, engine-core), " +
         "by no other app: the MCP server composes connectors, not their domain. The other " +
         "packages answer to their own rules: packages/core to core-is-foundation, a client to " +
         "clients-are-leaves, a family core to family-core-is-a-leaf.",

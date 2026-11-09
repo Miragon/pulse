@@ -17,7 +17,7 @@ flowchart LR
     rest[src/engine-rest: REST calls, parses and checks the JSON]
   end
   core[c7-core: inspect rounds, wait states, engine date format]
-  rules["@miragon/pulse-engine-contract: RootCauses"]
+  rules["@miragon/pulse-engine-core: RootCauses"]
   rest -- "EngineTransport over EngineHttp" --> core
   readers --> core
   readers -- root cause --> rules
@@ -88,7 +88,7 @@ the package the CLI and the MCP server run too.
   every historic incident of the instance on each live refresh. The view also guarantees the
   definition's version. When the view is ended, the path is read once more after it, so an
   instance that ended during the rounds shows its whole path (ended instances are not polled).
-- **Incident details carry their root cause.** `IncidentTexts` adds the engine contract's
+- **Incident details carry their root cause.** `IncidentTexts` adds engine-core's
   `RootCauses.of` and `RootCauses.lineOf` of the text to every `IncidentDetails` the adapter reads
   (`getIncidentDetails`, the details of `getInstanceDetail`); the core shows the root cause
   of complete details and the host opens the text at that line.

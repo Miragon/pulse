@@ -1,4 +1,4 @@
-import { FakeEngine, FakeWorld } from "@miragon/pulse-engine-contract/testing"
+import { FakeEngine, FakeWorld } from "@miragon/pulse-engine-core/testing"
 import { DiagramCache } from "../../src/core/index.js"
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 import type { Connection } from "../../src/host/connections/connection.js"

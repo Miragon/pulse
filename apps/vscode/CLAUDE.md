@@ -18,7 +18,7 @@ pnpm lint:architecture:vscode                   # the closed-world dependency ru
 pnpm lint:deadcode                              # knip over every workspace: dead files, dependencies, enum members
 pnpm lint:deadcode:exports                      # knip over every workspace but docs: unused exports and types
 pnpm --filter pulse-cockpit test                 # unit and webview (Chromium) tests, coverage floors
-pnpm --filter @miragon/pulse-engine-contract test # the kit's self-tests: the fake passes every law, 71 saboteurs fail theirs
+pnpm --filter @miragon/pulse-engine-core test   # the kit's self-tests: the fake passes every law, 71 saboteurs fail theirs
 pnpm --filter pulse-cockpit run test:engines     # adapter conformance on a real engine; needs podman/docker
 pnpm --filter pulse-cockpit run test:smoke       # the extension activates in a real VS Code
 pnpm --filter pulse-cockpit run test:e2e         # VS Code e2e; needs `engine:up`
@@ -30,12 +30,12 @@ pnpm --filter pulse-cockpit run docs:screenshots # one screenshot per use case (
 pnpm --filter pulse-cockpit run package          # the .vsix
 ```
 
-The extension bundles the engine contract and c7-core from their builds: after `pnpm install`,
+The extension bundles engine-core and c7-core from their builds: after `pnpm install`,
 build them once (`pnpm exec turbo run build --filter='pulse-cockpit^...'`, or `pnpm build`)
 before these commands, and again after a change to either.
 
 While you iterate, `pnpm test:one apps/vscode/test/<path>.test.ts` runs the files you touch
-(coverage off, the engine contract and c7-core built first; run alone, a file fails the floors,
+(coverage off, engine-core and c7-core built first; run alone, a file fails the floors,
 since `coverage.include` counts every file it does not load), then
 `pnpm exec turbo run typecheck test lint --filter=pulse-cockpit` the package. The bar for every
 change is the repository's: `pnpm check` at the root. The webview tests run in Chromium: install it
@@ -63,12 +63,12 @@ The app is one package with six layers under `apps/vscode/src`. Each layer has i
 
 | You want to…                                                    | Put it in                                                                                                                                                                                                                               | Never                                      |
 | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| Add an engine question                                          | `packages/core/engine-contract` (port + read model + a conformance law + a saboteur), re-exported by `apps/vscode/src/contract`                                                                                                         | engine words in the contract               |
+| Add an engine question                                          | `packages/connectors/engine/engine-core` (port + read model + a conformance law + a saboteur), re-exported by `apps/vscode/src/contract`                                                                                                | engine words in the contract               |
 | Add a write                                                     | `ProcessCommands` + a command law + a saboteur; policy and confirmation per `apps/vscode/docs/adr/writes.md`                                                                                                                            | authority in a webview intent              |
 | Interpret runtime data (grouping, view models, panel behaviour) | `apps/vscode/src/core`                                                                                                                                                                                                                  | `vscode`, DOM, Node, engine words          |
 | Change what the webview shows                                   | `apps/vscode/src/core/protocol` (types) and `apps/vscode/src/webview`                                                                                                                                                                   | logic in the webview, `--vscode-*` colours |
 | Talk to Operaton / CIB seven / Camunda 7                        | `apps/vscode/src/adapters/c7` (mapping) and `apps/vscode/src/adapters/c7/engine-rest` (REST client; its `inspect` runs c7-core over it); inspect and wait states in `@miragon/pulse-c7-core`, the root cause in `RootCauses`            | imports from core, webview or host; a copy |
-| Add an engine                                                   | `apps/vscode/src/adapters/<engine>` with a class implementing `EngineAdapter` + an `*.engine.test.ts` running the `ConformanceKit` (`@miragon/pulse-engine-contract/testing`) + one entry in `apps/vscode/src/host/composition-root.ts` | branching on engines anywhere else         |
+| Add an engine                                                   | `apps/vscode/src/adapters/<engine>` with one class implementing `EngineAdapter` + an `*.engine.test.ts` that runs the `ConformanceKit` (`@miragon/pulse-engine-core/testing`) + one entry in `apps/vscode/src/host/composition-root.ts` | branching on engines anywhere else         |
 | Read the local `.bpmn` model or find the implementing code      | `apps/vscode/src/model` (behind `ModelSource` / `CodeLocator`), per `apps/vscode/docs/adr/local-sources.md`                                                                                                                             | moddle or bpmn-modeler libs anywhere else  |
 | Wire VS Code                                                    | `apps/vscode/src/host`                                                                                                                                                                                                                  | business rules                             |
 
@@ -77,13 +77,13 @@ is not explicitly allowed fails `pnpm lint:architecture:vscode` with a message t
 it belongs (dependency-cruiser reports it as `not-in-allowed` and takes the wording from the
 forbidden rule of that name, which never fires itself). Nothing outside them is allowed, so no
 widget-shell, no React, no zod and three workspace packages only, each bundled by esbuild. The
-contract layer (`apps/vscode/src/contract`) re-exports the engine contract
-`@miragon/pulse-engine-contract` (`packages/core/engine-contract`, its main entry), the ports,
+contract layer (`apps/vscode/src/contract`) re-exports the contract of the engine family's core
+`@miragon/pulse-engine-core` (`packages/connectors/engine/engine-core`, its main entry), the ports,
 read models and errors every dialect answers in, next to the ports of the IDE (`EngineAdapter`,
 `EngineWebUi`, `ModelSource`, `CodeLocator`, `WorkspaceFiles`); the other layers reach it only
 through that barrel, and only tests and the dev host import its `./testing` entry (the kit, the
 world, `FakeEngine`); nothing here imports a file of the package by path
-(`engine-contract-only-by-its-entries`). The package keeps these house rules (the repository's
+(`engine-core-only-by-its-entries`). The package keeps these house rules (the repository's
 ESLint config names its paths next to the extension's), and it follows the extension: a question
 the views need lands there first, below 1.0 without a stability promise. The C7
 adapter (`apps/vscode/src/adapters/c7` and its tests in `apps/vscode/test/adapters/c7`) imports
@@ -106,7 +106,7 @@ in a text goes in through them too (`Labels.count`, `CountLabels.exact`), and th
 date and number gates keep `Intl`, `toFixed` and a locale-less `toLocaleString()` out of core
 and webview. A change to
 how an instance is inspected, where it waits or when a 404 names a missing resource
-(`isMissing`) goes into c7-core, one to what its root cause is into the engine contract's
+(`isMissing`) goes into c7-core, one to what its root cause is into engine-core's
 `RootCauses` (`RootCauses.of`, `RootCauses.lineOf`, which c7-core applies too), never into a copy
 here; the adapter's `InspectView` is c7-core's instance view, not a mirror of it. Contract,
 core, webview and host stay engine-neutral.

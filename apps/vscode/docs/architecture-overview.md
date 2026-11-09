@@ -96,7 +96,7 @@ flowchart LR
     next["adapter for the next engine"]
     c7Adapter[adapter-c7: C7Adapter]
     c7Commands[adapter-c7: C7ProcessCommands]
-    fake[engine contract testing: FakeEngine]
+    fake[engine-core testing: FakeEngine]
     c7Runtime[adapter-c7: C7ProcessRuntime]
   end
 
@@ -114,8 +114,9 @@ flowchart LR
 ```
 
 - **Contract:** the engine's ports are interfaces of the engine contract
-  (`packages/core/engine-contract/src/ports`, the package `@miragon/pulse-engine-contract`);
-  what they exchange are read models (`packages/core/engine-contract/src/model`). The
+  (`packages/connectors/engine/engine-core/src/ports`, the engine family's core
+  `@miragon/pulse-engine-core`); what they exchange are read models
+  (`packages/connectors/engine/engine-core/src/model`). The
   extension's contract layer (`apps/vscode/src/contract`) re-exports them next to
   `EngineAdapter` and the local ports. No engine word appears in them.
 - **Adapters:** a class per role (`C7ProcessRuntime implements ProcessRuntime`, …). The
@@ -131,7 +132,7 @@ flowchart TB
   extension --> core
   extension --> contract
   extension -- composition root only --> adapterC7[adapter-c7]
-  contract -- bundled --> engineContract["@miragon/pulse-engine-contract"]
+  contract -- bundled --> engineCore["@miragon/pulse-engine-core"]
   core --> contract
   webview -- types only --> protocol[core/protocol]
   adapterC7 --> contract
@@ -143,9 +144,10 @@ flowchart TB
 ```
 
 Every import edge not drawn fails `pnpm lint:architecture:vscode` (dependency-cruiser, closed world).
-Three workspace packages reach the extension, and esbuild bundles each. The engine contract is
-the language every engine dialect answers in, a package of its own that the extension's contract
-layer alone imports and re-exports (its kit and fake only in tests and the dev host). c7-core is the core of
+Three workspace packages reach the extension, and esbuild bundles each. engine-core, the core of
+the engine family, holds the contract every engine dialect implements, the language they answer
+in; the extension's contract layer alone imports and re-exports it (its kit and fake only in tests
+and the dev host). c7-core is the core of
 the Camunda 7 REST dialect family c7, the workflow domain the CLI and the MCP server run too:
 only the C7 adapter imports it. `@miragon/pulse-ui/tones` and `@miragon/pulse-ui/format` are
 Pulse's UI foundation without React: the tone vocabulary and the one tone per situation, and the
@@ -167,7 +169,7 @@ flowchart LR
     rest[src/engine-rest: REST calls, answers checked]
   end
   core["c7-core: inspect, wait states"]
-  rules["@miragon/pulse-engine-contract: RootCauses"]
+  rules["@miragon/pulse-engine-core: RootCauses"]
   subgraph family [Same REST API]
     camunda7[Camunda 7.24]
     operaton[Operaton 2.1]

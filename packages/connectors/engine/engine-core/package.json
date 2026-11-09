@@ -1,7 +1,7 @@
 {
-  "name": "@miragon/pulse-engine-contract",
+  "name": "@miragon/pulse-engine-core",
   "version": "0.27.1",
-  "description": "The engine contract of Pulse, the shared language of its engine dialects: the read and write ports a process engine answers (ProcessRuntime, ProcessCommands), their ids, read models, queries and errors, the rules every dialect shares (the root cause of a failure text among them), and in ./testing the conformance kit with its laws, its fixed world and an in-memory fake engine. No runtime dependency.",
+  "description": "The neutral core of the engine family of Pulse: the contract every dialect implements (the read and write ports ProcessRuntime and ProcessCommands, their ids, read models, queries and failure kinds, and RootCauses, the root-cause rule of every dialect), and in ./testing the conformance kit with its laws, its fixed world and an in-memory fake engine. No runtime dependency.",
   "license": "MIT",
   "keywords": [
     "bpmn",
@@ -11,7 +11,7 @@
     "conformance",
     "workflow"
   ],
-  "homepage": "https://github.com/Miragon/pulse/tree/main/packages/core/engine-contract#readme",
+  "homepage": "https://github.com/Miragon/pulse/tree/main/packages/connectors/engine/engine-core#readme",
   "bugs": "https://github.com/Miragon/pulse/issues",
   "engines": {
     "node": ">=22.22.2"
@@ -19,7 +19,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Miragon/pulse.git",
-    "directory": "packages/core/engine-contract"
+    "directory": "packages/connectors/engine/engine-core"
   },
   "publishConfig": {
     "access": "public"
