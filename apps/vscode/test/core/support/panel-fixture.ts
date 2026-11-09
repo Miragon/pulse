@@ -3,8 +3,7 @@ import type {
   ProcessCommands,
   ProcessRuntime,
 } from "../../../src/contract/index.js"
-import type { SeededWorld } from "../../../src/contract/conformance/index.js"
-import { FakeEngine, FakeWorld } from "../../../src/contract/fake/index.js"
+import { FakeEngine, FakeWorld, type SeededWorld } from "@miragon/pulse-engine-contract/testing"
 import { vi, type Mock } from "vitest"
 import { DiagramCache } from "../../../src/core/diagrams/diagram-cache.js"
 import { BulkRuns } from "../../../src/core/panels/bulk-runs.js"

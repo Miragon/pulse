@@ -20,13 +20,14 @@ visible responsibility per file.
 
 ### Ports are interfaces, adapters are classes
 
-| Where                               | What                                                                                                                                                     |
-| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/vscode/src/contract/ports`    | `ProcessRuntime` (read), `ProcessCommands` (write), `EngineAdapter` (one per engine family: turns a connection into a runtime and, if it can, commands)  |
-| `apps/vscode/src/contract/model`    | what the ports exchange: ids, read models, queries, `RuntimeError`, value kinds                                                                          |
-| `apps/vscode/src/adapters/<engine>` | `class <Engine>Adapter implements EngineAdapter`, `class <Engine>ProcessRuntime implements ProcessRuntime`, `class <Engine>ProcessCommands implements …` |
-| `apps/vscode/src/host`              | the composition root keeps one `EngineAdapter` per engine kind and hands the core what the active one returns                                            |
-| `apps/vscode/src/core`              | sees only `ProcessRuntime` and `ProcessCommands`, never an adapter                                                                                       |
+| Where                                     | What                                                                                                                                                     |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/core/engine-contract/src/ports` | `ProcessRuntime` (read), `ProcessCommands` (write): the engine contract, re-exported by `apps/vscode/src/contract`                                       |
+| `packages/core/engine-contract/src/model` | what the ports exchange: ids, read models, queries, `RuntimeError`, value kinds                                                                          |
+| `apps/vscode/src/contract/ports`          | `EngineAdapter` (one per engine family: turns a connection into a runtime and, if it can, commands) and the local ports                                  |
+| `apps/vscode/src/adapters/<engine>`       | `class <Engine>Adapter implements EngineAdapter`, `class <Engine>ProcessRuntime implements ProcessRuntime`, `class <Engine>ProcessCommands implements …` |
+| `apps/vscode/src/host`                    | the composition root keeps one `EngineAdapter` per engine kind and hands the core what the active one returns                                            |
+| `apps/vscode/src/core`                    | sees only `ProcessRuntime` and `ProcessCommands`, never an adapter                                                                                       |
 
 ### Classes own behaviour
 
@@ -57,7 +58,7 @@ visible responsibility per file.
 
 Exceptions, each for a reason outside our control:
 
-- branded id constructors in `apps/vscode/src/contract/model/ids.ts` (`InstanceId('…')`): a type and its value
+- branded id constructors in `packages/core/engine-contract/src/model/ids.ts` (`InstanceId('…')`): a type and its value
   constructor share a name, like `Number('3')`;
 - `activate` and `deactivate` in `apps/vscode/src/host/extension.ts`: VS Code calls
   these exported functions;

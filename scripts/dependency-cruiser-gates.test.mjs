@@ -39,6 +39,7 @@ const SHELL = "packages/core/widget-shell"
 const UI = "packages/core/ui"
 const PROFILE = "packages/core/profile"
 const HTTP = "packages/core/http"
+const CONTRACT = "packages/core/engine-contract"
 const C7 = "packages/connectors/c7/c7-core"
 const C7_CLIENT = "packages/connectors/c7/c7-client"
 const ENGINE_CONNECTOR = "packages/connectors/engine/engine-connector"
@@ -56,6 +57,7 @@ const WORKSPACE = {
   [UI]: { name: "@miragon/pulse-ui" },
   [PROFILE]: { name: "@miragon/pulse-profile" },
   [HTTP]: { name: "@miragon/pulse-http" },
+  [CONTRACT]: { name: "@miragon/pulse-engine-contract" },
   [C7]: { name: "@miragon/pulse-c7-core" },
   [C7_CLIENT]: { name: "@miragon/pulse-c7-client" },
   [ENGINE_CONNECTOR]: { name: "@miragon/pulse-engine-connector" },
@@ -115,6 +117,8 @@ const PROFILE_LEAF = "profile-is-a-leaf"
 const PROFILE_USERS = "profile-consumers"
 const HTTP_LEAF = "http-is-a-leaf"
 const HTTP_USERS = "http-consumers"
+const CONTRACT_LEAF = "engine-contract-is-a-leaf"
+const CONTRACT_USERS = "engine-contract-consumers"
 const CORE_USERS = "family-core-consumers"
 const CLI_CORE_LAYERS = "cli-family-core-only-in-named-layers"
 const NO_TESTING = "shipped-code-not-to-testing"
@@ -159,6 +163,8 @@ const PROFILE_NAME = "@miragon/pulse-profile"
 const PROFILE_SRC = `${PROFILE}/src/index.ts`
 const HTTP_NAME = "@miragon/pulse-http"
 const HTTP_SRC = `${HTTP}/src/index.ts`
+const CONTRACT_NAME = "@miragon/pulse-engine-contract"
+const CONTRACT_SRC = `${CONTRACT}/src/index.ts`
 const BILLING_CORE_SRC = `${BILLING_CORE}/src/index.ts`
 const C7_CLIENT_SRC = `${C7_CLIENT}/src/index.ts`
 const ENGINE_CONNECTOR_SRC = `${ENGINE_CONNECTOR}/src/index.ts`
@@ -206,6 +212,8 @@ const LEAVES = [
   `${PROFILE}/src/lib.ts`,
   `${HTTP}/src/target.ts`,
   `${HTTP}/src/lib.ts`,
+  `${CONTRACT}/src/target.ts`,
+  `${CONTRACT}/src/lib.ts`,
   `${BILLING_CORE}/src/lib.ts`,
   `${BILLING_CORE}/src/a.test.ts`,
   `${C7_CLIENT}/src/target.ts`,
@@ -478,6 +486,89 @@ const SUITES = [
       [`${CLI}/test/support/http.ts`, `${HTTP_NAME}/testing`, []],
       [`${EXT}/src/adapters/c7/http.test.ts`, `${HTTP_NAME}/testing`, []],
       [`${SERVER}/src/http.test.ts`, HTTP_NAME, []],
+    ],
+  },
+  {
+    rule: CONTRACT_LEAF,
+    title:
+      "the engine contract imports only its own modules: no package, no npm module, no built-in",
+    cases: [
+      // Not even a sibling of packages/core: core-is-foundation lets the others import one.
+      [CONTRACT_SRC, "@miragon/pulse-ui", [CONTRACT_LEAF]],
+      [CONTRACT_SRC, "@miragon/pulse-widget-shell/server", [CONTRACT_LEAF]],
+      [CONTRACT_SRC, PROFILE_NAME, [CONTRACT_LEAF, PROFILE_USERS]],
+      [CONTRACT_SRC, HTTP_NAME, [CONTRACT_LEAF, HTTP_USERS]],
+      // No dialect below it: a dialect's core implements the contract, never the other way round.
+      [CONTRACT_SRC, C7_CORE, [CORE, CONTRACT_LEAF]],
+      [CONTRACT_SRC, "@miragon/pulse-c7-client", [CORE, CONTRACT_LEAF]],
+      [CONTRACT_SRC, "pulse-cockpit", [NO_APP, CONTRACT_LEAF]],
+      ...["zod", "react", "preact", "reactive", "node:fs"].map((spec) => [
+        CONTRACT_SRC,
+        spec,
+        [CONTRACT_LEAF],
+      ]),
+      [`${CONTRACT}/src/escape.ts`, "../../ui/src/target.ts", [CONTRACT_LEAF, DEEP]],
+      // The shipped ./testing export (kit, world, fake) is no test file: no vitest in it.
+      [`${CONTRACT}/src/testing/index.ts`, "vitest", [CONTRACT_LEAF]],
+      [`${CONTRACT}/src/testing/fake.ts`, "../lib.ts", []],
+      [`${CONTRACT}/src/ports.ts`, "./lib.ts", []],
+      [`${CONTRACT}/src/a.test.ts`, "vitest", []],
+    ],
+  },
+  {
+    rule: CONTRACT_USERS,
+    title: "the engine contract is imported where a dialect is implemented, and in tests",
+    cases: [
+      [SERVER_SRC, CONTRACT_NAME, [CONTRACT_USERS]],
+      [SHELL_SRC, CONTRACT_NAME, [CONTRACT_USERS]],
+      [UI_SRC, CONTRACT_NAME, [UI_LEAF, CONTRACT_USERS]],
+      [PROFILE_SRC, CONTRACT_NAME, [PROFILE_LEAF, CONTRACT_USERS]],
+      [HTTP_SRC, CONTRACT_NAME, [HTTP_LEAF, CONTRACT_USERS]],
+      [C7_CLIENT_SRC, CONTRACT_NAME, [CLIENT_LEAF, CONTRACT_USERS]],
+      // c7-core implements no port of it yet; the engine connector and the CLI reach the contract
+      // through a dialect, so a direct import is an admission decision (owner decision ND10).
+      [C7_SRC, CONTRACT_NAME, [CORE_LEAF, CONTRACT_USERS]],
+      [ENGINE_CONNECTOR_SRC, CONTRACT_NAME, [CONTRACT_USERS]],
+      [`${ENGINE_CONNECTOR}/src/lib/core-adapter/contract.ts`, CONTRACT_NAME, [CONTRACT_USERS]],
+      [BILLING_CONNECTOR_SRC, CONTRACT_NAME, [CONTRACT_USERS]],
+      [`${CLI}/src/workflow/contract.ts`, CONTRACT_NAME, [HEADLESS, CONTRACT_USERS]],
+      [`${CLI}/test/support/contract.ts`, `${CONTRACT_NAME}/testing`, [HEADLESS, CONTRACT_USERS]],
+      // A package's ./testing entry ships on npm: no test file, so the rule holds it too.
+      [`${ENGINE_CONNECTOR}/src/testing/contract.ts`, CONTRACT_NAME, [CONTRACT_USERS]],
+      [`${SHELL}/src/testing/contract.ts`, CONTRACT_NAME, [CONTRACT_USERS]],
+      [`${CLI}/src/testing/contract.ts`, CONTRACT_NAME, [HEADLESS, CONTRACT_USERS]],
+      // In Pulse for VS Code the contract barrel alone: the core, the adapters and the host
+      // reach it through the barrel.
+      [`${EXT}/src/core/contract.ts`, CONTRACT_NAME, [CONTRACT_USERS]],
+      [`${EXT}/src/adapters/c7/contract.ts`, CONTRACT_NAME, [CONTRACT_USERS]],
+      [`${EXT}/src/host/contract.ts`, CONTRACT_NAME, [CONTRACT_USERS]],
+      [`${EXT}/src/contractx/index.ts`, CONTRACT_NAME, [CONTRACT_USERS]],
+      [
+        `${EXT}/src/core/escape-contract.ts`,
+        "../../../../packages/core/engine-contract/src/target.ts",
+        [CONTRACT_USERS, DEEP],
+      ],
+      // The barrel imports the package, never its tree, and no ./testing entry either.
+      [
+        `${EXT}/src/contract/escape.ts`,
+        "../../../../packages/core/engine-contract/src/target.ts",
+        [DEEP],
+      ],
+      [`${EXT}/src/contract/kit.ts`, `${CONTRACT_NAME}/testing`, [NO_TESTING]],
+      // Unresolved subpaths (shape 3: dependency-cruiser reads no exports map).
+      [`${SHELL}/src/contract-sub.ts`, `${CONTRACT_NAME}/model`, [CONTRACT_USERS]],
+      [
+        `${SERVER}/src/contract-testing.ts`,
+        `${CONTRACT_NAME}/testing`,
+        [CONTRACT_USERS, NO_TESTING],
+      ],
+      // Allowed: the contract barrel, the package's own modules, and tests anywhere.
+      [`${EXT}/src/contract/index.ts`, CONTRACT_NAME, []],
+      [`${EXT}/src/contract/ports/engine-adapter.ts`, CONTRACT_NAME, [], "type"],
+      [`${EXT}/src/core/panel.test.ts`, `${CONTRACT_NAME}/testing`, []],
+      [`${C7}/src/root-cause.test.ts`, CONTRACT_NAME, []],
+      [`${SHELL}/src/contract.test-support.ts`, `${CONTRACT_NAME}/testing`, []],
+      [`${CONTRACT}/src/testing/kit.ts`, "../ports.ts", []],
     ],
   },
   {

@@ -1,4 +1,4 @@
-import { PatchedRuntime } from "../../src/contract/fake/index.js"
+import { PatchedRuntime } from "@miragon/pulse-engine-contract/testing"
 import { BpmnProcessId, RuntimeError } from "../../src/contract/index.js"
 import { describe, expect, test } from "vitest"
 import { DefinitionPanel } from "../../src/core/panels/definition-panel.js"

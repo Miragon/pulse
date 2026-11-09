@@ -1,0 +1,11 @@
+{
+  // The tests under test/: the kit's self-tests with their saboteurs, the fake and the failing
+  // runtime. They see the same globals as src/ (no DOM, no Node), so the runtime probe
+  // test/runtime.boundary.ts fails here the moment either leaks in.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "."
+  },
+  "include": ["test"]
+}

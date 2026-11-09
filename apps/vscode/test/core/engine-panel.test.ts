@@ -5,7 +5,7 @@ import {
   type DefinitionSummary,
   type ProcessRuntime,
 } from "../../src/contract/index.js"
-import { PatchedRuntime } from "../../src/contract/fake/index.js"
+import { PatchedRuntime } from "@miragon/pulse-engine-contract/testing"
 import { describe, expect, test } from "vitest"
 import { EnginePanel } from "../../src/core/panels/engine-panel.js"
 import type { EngineView, PanelState } from "../../src/core/protocol/index.js"

@@ -6,7 +6,7 @@ import {
   type InstanceSummary,
   type ProcessRuntime,
 } from "../../../src/contract/index.js"
-import { FakeEngine, FakeWorld, PatchedRuntime } from "../../../src/contract/fake/index.js"
+import { FakeEngine, FakeWorld, PatchedRuntime } from "@miragon/pulse-engine-contract/testing"
 import { vi, type Mock } from "vitest"
 import type {
   BoardContext,

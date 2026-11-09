@@ -2,11 +2,15 @@ const APP = "^apps/vscode/"
 const TEST_CODE = `[.]test[.](tsx?|cjs)$|${APP}test/`
 const TOOLING = `${APP}(scripts|dev)/`
 const CONTRACT_ENTRY = `${APP}src/contract/index[.]ts$`
+const ENGINE_CONTRACT_ENTRY =
+  "(^|/)node_modules/@miragon/pulse-engine-contract/dist/index[.]d[.]ts$"
 const CORE_ENTRY = `${APP}src/core/index[.]ts$`
 const PROTOCOL_ENTRY = `${APP}src/core/protocol/index[.]ts$`
 const ADAPTER_ENTRY = `${APP}src/adapters/[^/]+/index[.]ts$`
 const ENGINE_TEST = "[.]engine[.]test[.]ts$"
-const CONFORMANCE_KIT = `${APP}src/contract/conformance/index[.]ts$`
+const CONFORMANCE_KIT =
+  "(^|/)node_modules/@miragon/pulse-engine-contract/dist/testing/index[.]d[.]ts$"
+const ENGINE_CONTRACT_TREE = "^packages/core/engine-contract/"
 const WEBVIEW_LIBRARIES =
   "(^|/)node_modules/(preact|bpmn-js|diagram-js|@miragon/modeler-shell|@fontsource-variable/[^/]+)/"
 const EXTENSION_LIBRARIES = "(^|/)node_modules/@miragon/modeler-shell/"
@@ -37,6 +41,12 @@ module.exports = {
       comment: "Tests and tooling may use anything.",
       from: { path: [TEST_CODE, TOOLING] },
       to: {},
+    },
+    {
+      comment:
+        "The contract re-exports the engine contract (@miragon/pulse-engine-contract, its main entry: the ports, read models and errors every dialect answers in), which esbuild bundles into the extension, next to the ports of the IDE; the other layers reach it only through the contract's index.ts.",
+      from: { path: `${APP}src/contract/` },
+      to: { path: ENGINE_CONTRACT_ENTRY },
     },
     {
       comment: "The core depends only on the contract.",
@@ -103,7 +113,7 @@ module.exports = {
       name: "not-in-allowed",
       severity: "error",
       comment:
-        "No entry of `allowed` in apps/vscode/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md). A layer uses its own modules and another layer only through its index.ts: core and adapters reach the contract, the C7 adapter also @miragon/pulse-c7-core's main entry (never a subpath), core and webview also @miragon/pulse-ui/tones and their label helpers (core/views/labels.ts, webview/format/) @miragon/pulse-ui/format, the model adapter the contract and the moddle libraries, the webview protocol types and its rendering libraries, the host core, protocol, contract, vscode, modeler-shell and Node built-ins, and only the host's composition root the engine adapters and the model adapter.",
+        "No entry of `allowed` in apps/vscode/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md). A layer uses its own modules and another layer only through its index.ts: the contract re-exports @miragon/pulse-engine-contract's main entry (never ./testing), core and adapters reach the contract, the C7 adapter also @miragon/pulse-c7-core's main entry (never a subpath), core and webview also @miragon/pulse-ui/tones and their label helpers (core/views/labels.ts, webview/format/) @miragon/pulse-ui/format, the model adapter the contract and the moddle libraries, the webview protocol types and its rendering libraries, the host core, protocol, contract, vscode, modeler-shell and Node built-ins, and only the host's composition root the engine adapters and the model adapter.",
       from: {},
       to: { path: "^$" },
     },
@@ -130,6 +140,14 @@ module.exports = {
         "@miragon/pulse-c7-core is the core of the Camunda 7 REST dialect family c7, its workflow domain: only apps/vscode/src/adapters/c7 and its tests in apps/vscode/test/adapters/c7 import it. The contract, the core, the webview, the host, the model adapter and other adapters stay engine-neutral; read what you need through a port of the contract.",
       from: { pathNot: [C7_ADAPTER_AND_TESTS, "(^|/)node_modules/"] },
       to: { path: C7_CORE },
+    },
+    {
+      name: "engine-contract-only-by-its-entries",
+      severity: "error",
+      comment:
+        "Import @miragon/pulse-engine-contract by its package entries (the main entry in apps/vscode/src/contract, ./testing in tests and the dev host), never a file of packages/core/engine-contract by path, its source or its build: the barrel loads the package's build, so a module reached by path is a second copy of the contract, and RuntimeError.is and instanceof no longer recognise an error of the other copy.",
+      from: { pathNot: "(^|/)node_modules/" },
+      to: { path: ENGINE_CONTRACT_TREE },
     },
     {
       name: "pulse-ui-only-its-foundation",
@@ -167,7 +185,7 @@ module.exports = {
       name: "adapter-proven-on-an-engine",
       severity: "error",
       comment:
-        "This engine adapter is not run by any *.engine.test.ts. Add apps/vscode/test/adapters/<engine>/<engine>-conformance.engine.test.ts that runs new ConformanceKit(test).registerRuntimeLaws(...) from src/contract/conformance against the engine or a mock of its API.",
+        "This engine adapter is not run by any *.engine.test.ts. Add apps/vscode/test/adapters/<engine>/<engine>-conformance.engine.test.ts that runs new ConformanceKit(test).registerRuntimeLaws(...) from @miragon/pulse-engine-contract/testing against the engine or a mock of its API.",
       from: { path: ENGINE_TEST },
       to: { path: ADAPTER_ENTRY, reachable: false },
     },
@@ -184,7 +202,7 @@ module.exports = {
       name: "engine-test-runs-the-conformance-kit",
       severity: "error",
       comment:
-        "An engine test proves an adapter with the conformance kit. Import ConformanceKit from src/contract/conformance and run new ConformanceKit(test).registerRuntimeLaws(...) with the adapter under test.",
+        "An engine test proves an adapter with the conformance kit. Import ConformanceKit from @miragon/pulse-engine-contract/testing and run new ConformanceKit(test).registerRuntimeLaws(...) with the adapter under test.",
       module: { path: ENGINE_TEST },
       to: { path: CONFORMANCE_KIT },
     },

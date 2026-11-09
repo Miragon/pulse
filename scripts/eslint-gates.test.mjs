@@ -720,6 +720,78 @@ describe("the transport keeps out what only a browser has (packages/core/http)",
   })
 })
 
+describe("the engine contract keeps the house rules of Pulse for VS Code (packages/core/engine-contract)", () => {
+  const CONTRACT_SRC = "packages/core/engine-contract/src"
+  const CONTRACT_TEST = "packages/core/engine-contract/test"
+  const SHIPPED = [`${CONTRACT_SRC}/__probe__.ts`, `${CONTRACT_SRC}/testing/fake/__probe__.ts`]
+  const budget = async (rel, rule) => (await ruleOptionsFor(rel, rule))?.slice(1)[0] ?? null
+  const isWordHit = (m) => m.includes("Engine vocabulary belongs in")
+  const isClassHit = (m) => m.includes("Put behaviour in a class")
+
+  it("holds its shipped code, the ./testing export included, to the extension's budgets and one class per file", async () => {
+    for (const rel of SHIPPED) {
+      assert.equal(await budget(rel, "complexity"), 10, rel)
+      assert.equal((await budget(rel, "max-lines"))?.max, 300, rel)
+      assert.equal((await budget(rel, "max-lines-per-function"))?.max, 60, rel)
+      assert.equal(await budget(rel, "max-statements"), 20, rel)
+      assert.equal(await budget(rel, "max-depth"), 3, rel)
+      assert.equal(await budget(rel, "max-params"), 4, rel)
+      assert.equal(await budget(rel, "max-nested-callbacks"), 3, rel)
+      assert.equal(await budget(rel, "max-classes-per-file"), 1, rel)
+      assert.ok(await ruleOptionsFor(rel, "@typescript-eslint/member-ordering"), rel)
+      assert.ok(await ruleOptionsFor(rel, "pulse-vscode/no-comments"), rel)
+    }
+  })
+
+  it("keeps engine words and module functions out of its shipped code, the id constructors aside", async () => {
+    for (const rel of SHIPPED) {
+      const words = await gateMessages(rel, 'export const key = "processInstanceKey"')
+      assert.equal(words.filter(isWordHit).length, 1, rel)
+      assert.deepEqual(
+        words.filter((m) => m.includes("apps/vscode")),
+        [],
+        `${rel}: a public package names no app's path`,
+      )
+      const helper = await gateMessages(rel, "export function helper(): number {\n  return 1\n}")
+      assert.equal(helper.filter(isClassHit).length, 1, rel)
+    }
+    const ids = `${CONTRACT_SRC}/model/ids.ts`
+    assert.equal(
+      (await gateMessages(ids, 'export const key = "activityId"')).filter(isWordHit).length,
+      1,
+    )
+    assert.deepEqual(
+      await gateMessages(ids, "export const Id = (value: string): string => value"),
+      [],
+    )
+  })
+
+  it("bans comments in its tests as well, never switched off inline, its runtime probe aside", async () => {
+    const rel = `${CONTRACT_TEST}/__probe__.test.ts`
+    const config = await eslint.calculateConfigForFile(path.join(repoRoot, rel))
+    assert.equal(config.linterOptions.noInlineConfig, true)
+    assert.ok(await ruleOptionsFor(rel, "pulse-vscode/no-comments"))
+    assert.equal(await ruleOptionsFor(rel, "max-lines-per-function"), null)
+    assert.equal(
+      await ruleOptionsFor(`${CONTRACT_TEST}/runtime.boundary.ts`, "pulse-vscode/no-comments"),
+      null,
+    )
+  })
+
+  it("holds its config files to the rules of the extension's own", async () => {
+    for (const rel of [
+      "packages/core/engine-contract/vitest.config.ts",
+      "apps/vscode/vitest.config.ts",
+    ]) {
+      const config = await eslint.calculateConfigForFile(path.join(repoRoot, rel))
+      assert.equal(config.linterOptions.noInlineConfig, true, rel)
+      assert.ok(await ruleOptionsFor(rel, "pulse-vscode/no-comments"), rel)
+      assert.equal(await budget(rel, "complexity"), 10, rel)
+      assert.ok(await ruleOptionsFor(rel, "@typescript-eslint/no-unnecessary-condition"), rel)
+    }
+  })
+})
+
 // D10 of the architecture review (2026-11-02): the type-safety rules are errors in every tree;
 // require-await is off in the MCP trees only (the reason sits next to it in eslint.config.mjs).
 // Read from the effective config of a real file per tree: linting planted text there depends on
@@ -755,6 +827,7 @@ describe("type-safety rules: errors everywhere, require-await off in the MCP tre
   const STRICT_TREES = [
     "apps/cli/src/util.ts",
     "packages/connectors/c7/c7-core/src/index.ts",
+    "packages/core/engine-contract/src/index.ts",
     "apps/vscode/src/core/boards/board-filters.ts",
   ]
 
@@ -768,7 +841,7 @@ describe("type-safety rules: errors everywhere, require-await off in the MCP tre
     }
   })
 
-  it("leaves require-await off in the MCP trees and at error in the CLI, c7-core and VS Code", async () => {
+  it("leaves require-await off in the MCP trees and at error in the CLI, c7-core, the engine contract and VS Code", async () => {
     for (const rel of MCP_TREES) assert.equal(await severityAt(rel, REQUIRE_AWAIT), "off", rel)
     for (const rel of STRICT_TREES) assert.equal(await severityAt(rel, REQUIRE_AWAIT), "error", rel)
   })

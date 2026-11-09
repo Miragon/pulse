@@ -61,7 +61,9 @@ format, `@miragon/pulse-profile`, in `apps/cli/src/config/` (`CLI_BUNDLES` and
 `profile-consumers` in the root `.dependency-cruiser.cjs`), for the config layer to read the
 profiles with, and the transport, `@miragon/pulse-http`, in `apps/cli/src/http/`,
 `apps/cli/src/auth/` and `apps/cli/src/operation/` (`CLI_BUNDLES` and `http-consumers`), for the
-requests to go out through it; neither is used yet.
+requests to go out through it; neither is used yet. The engine contract,
+`@miragon/pulse-engine-contract`, is not the CLI's: it reaches the engine through c7-core, and a
+direct import is an admission decision in review (`engine-contract-consumers`).
 
 ## Budgets
 

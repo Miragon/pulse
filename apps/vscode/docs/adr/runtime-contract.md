@@ -1,7 +1,7 @@
 # Runtime contract
 
 - Status: accepted
-- Last reviewed: 2026-11-03
+- Last reviewed: 2026-11-09 (the engine contract is the package `@miragon/pulse-engine-contract`)
 
 ## Context
 
@@ -16,9 +16,13 @@ search results are eventually consistent and page with cursors.
 
 ### Three ports
 
-The ports are interfaces in `apps/vscode/src/contract/ports`; what they exchange lives in
-`apps/vscode/src/contract/model`. Adapters implement them with classes
-([code-structure.md](code-structure.md)).
+The engine's ports are interfaces of the engine contract, the package
+`@miragon/pulse-engine-contract` (`packages/core/engine-contract/src/ports`); what they exchange
+lives in `packages/core/engine-contract/src/model`. It is the shared language of the dialects, a
+package of its own since 2026-11-09 (owner decision 2026-11-08: the contract sits above the
+dialects); the extension's contract layer (`apps/vscode/src/contract`) re-exports it next to the
+ports of the IDE, so the core, the adapters and the host import one entry. Adapters implement the
+ports with classes ([code-structure.md](code-structure.md)).
 
 `ProcessRuntime` (`ports/process-runtime.ts`) has one method per
 engine question:
@@ -60,7 +64,9 @@ connection without write access simply has none ([writes.md](writes.md)):
 | `migrateInstances`  | Migrate the given instances with a `MigrationPlan` as one asynchronous bulk operation of kind `migrateInstances`; ended and unknown ids are skipped, nothing left to migrate is `rejected` ([migrations.md](migrations.md))                                                                                                                                                                                                            |
 | `stopBulkOperation` | Halt a bulk operation: it stops running and soon cancels nothing more; what is done stays done; stopping an ended one resolves, an unknown one is `rejected`                                                                                                                                                                                                                                                                           |
 
-`EngineAdapter` (`ports/engine-adapter.ts`) is the plug every engine family provides:
+`EngineAdapter` (`apps/vscode/src/contract/ports/engine-adapter.ts`, in the extension, not in the
+package: connections, credentials and web UI links are the IDE's business) is the plug every
+engine family provides:
 given an `EngineConnection` (endpoint and credentials) it returns a `ProcessRuntime` and,
 when the family can write, `ProcessCommands`. `webUi(webUiUrl)` takes the configured URL
 of the engine's web UI and, when it fits the family's web UI, returns an `EngineWebUi`:
@@ -73,7 +79,7 @@ one adapter per engine kind of a target and is the only place that chooses betwe
 
 ### Local sources
 
-Next to the engine ports the contract holds `ModelSource` and `CodeLocator`, the ports for
+Next to the engine ports the extension's contract layer holds `ModelSource` and `CodeLocator`, the ports for
 the local `.bpmn` file and the code that implements an element, and the `WorkspaceFiles`
 seam they read through. They are no engine questions: the model adapter implements them
 for any workspace, and the conformance kit does not cover them
@@ -180,8 +186,9 @@ flowchart LR
   saboteurs[Saboteurs: broken runtimes] -- each must fail its law --> kit
 ```
 
-`apps/vscode/src/contract/conformance` holds 47 read laws and 15 command laws as
-executable cases, modelled on `@miragon/modeler-api/conformance`:
+`@miragon/pulse-engine-contract/testing` (`packages/core/engine-contract/src/testing/conformance`)
+holds 47 read laws and 15 command laws as executable cases, modelled on
+`@miragon/modeler-api/conformance`:
 `new ConformanceKit(test).registerRuntimeLaws(prepare)` and `.registerCommandLaws(prepare)`
 bind them to any `(name, fn)` runner and throw a `ConformanceViolation` when a law fails. Command laws run on
 their own instances (`CMD-*`, seeded after the read laws) so that writes never change
@@ -272,9 +279,16 @@ business key fail the ids law too, as does a search that ignores the instance id
 
 - Every adapter is proven against the same laws on a real engine
   (`*.engine.test.ts`); an architecture test fails when an adapter has none.
-- The contract is ready for engines beyond the C7 family: a Camunda 8 adapter on the
-  REST API v2 passed every law against an API mock with a read lag during the spike,
-  without a change to the contract, and was removed again to keep the prototype small.
+- The contract is meant for engines beyond the C7 family. During the spike a Camunda 8 adapter
+  on the REST API v2 passed every law against an API mock with a read lag and was removed again
+  to keep the prototype small. On a real Camunda 8 the adapter of #543 needs four neutral
+  changes to the contract: an instance count that may be a lower bound, the failure
+  `unsupported`, the variable conditions an engine declares it refuses, and migration planning
+  as an optional pair of methods.
+- Every change to the contract is a change to a published package: a new port, read model or
+  law lands in `packages/core/engine-contract` with its saboteur, and the kit's self-tests run
+  there (`packages/core/engine-contract/test`, 59 saboteurs). Below 1.0 the package makes no
+  stability promise; its laws and its fake follow the extension.
 - Panel loads have fixed engine-call budgets (definition ≤ 7, three of them the scope
   counts queried in parallel with the page; instance ≤ 2 plus lazy details; both + 1
   `getCalledProcesses` when the diagram has a call activity; engine overview exactly 2,

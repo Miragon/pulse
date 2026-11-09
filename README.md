@@ -66,6 +66,7 @@ start one locally with `docker run -p 8080:8080 operaton/operaton:2.1.5`.
 | [`packages/core/widget-shell/`](packages/core/widget-shell)                                   | `@miragon/pulse-widget-shell`     | View runtime and server boot for composed MCP servers                         |
 | [`packages/core/profile/`](packages/core/profile)                                             | `@miragon/pulse-profile`          | One profile format for the CLI, VS Code and the MCP server                    |
 | [`packages/core/http/`](packages/core/http)                                                   | `@miragon/pulse-http`             | One engine transport for the CLI, VS Code and the MCP server                  |
+| [`packages/core/engine-contract/`](packages/core/engine-contract)                             | `@miragon/pulse-engine-contract`  | The engine contract: the shared language of the dialects                      |
 | [`playground/`](playground)                                                                   | —                                 | Demo engine, Compose stack and the public playground                          |
 | [`templates/composed-server/`](templates/composed-server)                                     | `Miragon/pulse-starter`           | [Starter](docs/mcp/build-your-own.md) for your own server                     |
 

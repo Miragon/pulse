@@ -609,9 +609,10 @@ describe("published packages declare what their shipped source imports", () => {
     })
   })
 
-  it("reads the repo's eight npm packages (the scanner is not blind)", () => {
+  it("reads the repo's nine npm packages (the scanner is not blind)", () => {
     const names = publishedPackages().map(({ manifest }) => manifest.name)
     for (const name of [
+      "@miragon/pulse-engine-contract",
       "@miragon/pulse-http",
       "@miragon/pulse-profile",
       "@miragon/pulse-c7-core",

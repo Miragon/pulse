@@ -3,7 +3,8 @@ import { describe, expect, test } from "vitest"
 import { readRepoFile, REPO_ROOT } from "./support/files.js"
 
 const PROBE_FILE = "apps/vscode/src/core/views/labels.ts"
-const CLASS_PROBE = "apps/vscode/src/contract/model/value-kinds.ts"
+const ENGINE_CONTRACT = "packages/core/engine-contract/src"
+const CLASS_PROBE = `${ENGINE_CONTRACT}/model/value-kinds.ts`
 const COMPONENT_PROBE = "apps/vscode/src/webview/components/icon.tsx"
 
 const eslint = new ESLint({ cwd: REPO_ROOT })
@@ -64,8 +65,10 @@ describe("the lint gates", { timeout: 120_000 }, () => {
   })
 
   test.each([
-    "apps/vscode/src/contract/ports/process-runtime.ts",
-    "apps/vscode/src/contract/model/ids.ts",
+    `${ENGINE_CONTRACT}/ports/process-runtime.ts`,
+    `${ENGINE_CONTRACT}/model/ids.ts`,
+    `${ENGINE_CONTRACT}/testing/fake/fake-engine.ts`,
+    "apps/vscode/src/contract/ports/engine-adapter.ts",
   ])("keep engine words out of the contract: %s", async (filePath) => {
     expect(await rulesFiredOn(readRepoFile(filePath), filePath)).toEqual([])
     const probe = `${readRepoFile(filePath)}\nexport type Key = 'processInstanceKey';\n`
@@ -146,7 +149,7 @@ describe("the lint gates", { timeout: 120_000 }, () => {
 
   test("declare what a class does before how it does it", async () => {
     const probe = `${readRepoFile(CLASS_PROBE)}\nexport class Ordered {\n  private how(): number {\n    return 1;\n  }\n\n  what(): number {\n    return this.how();\n  }\n}\n`
-    expect(await rulesFiredOn(probe, "apps/vscode/src/contract/failing-runtime.ts")).toContain(
+    expect(await rulesFiredOn(probe, `${ENGINE_CONTRACT}/failing-runtime.ts`)).toContain(
       "@typescript-eslint/member-ordering",
     )
   })

@@ -91,8 +91,29 @@ const PLANTED: Readonly<Record<string, string>> = {
   "../../packages/core/ui/dist/tones/count-tone.js": "export const countTone = 1;\n",
   "test/core/reads-ui-testing.test.ts":
     "import { PRODUCT_GLOSSARY } from '@miragon/pulse-ui/testing';\nexport const glossary = PRODUCT_GLOSSARY;\n",
+  "src/contract/reads-engine-contract.ts":
+    "import { RuntimeError } from '@miragon/pulse-engine-contract';\nexport const error = RuntimeError;\n",
+  "src/contract/ships-the-kit.ts":
+    "import { ConformanceKit } from '@miragon/pulse-engine-contract/testing';\nexport const kit = ConformanceKit;\n",
+  "src/core/skips-the-contract.ts":
+    "import { RuntimeError } from '@miragon/pulse-engine-contract';\nexport const error = RuntimeError;\n",
+  "src/adapters/c7/skips-the-contract.ts":
+    "import { RuntimeError } from '@miragon/pulse-engine-contract';\nexport const error = RuntimeError;\n",
+  "src/host/ships-the-fake.ts":
+    "import { FakeEngine } from '@miragon/pulse-engine-contract/testing';\nexport const fake = FakeEngine;\n",
+  "test/adapters/c7/c7-kit.engine.test.ts":
+    "import { adapter } from '../../../src/adapters/c7/index.ts';\nimport { ConformanceKit } from '@miragon/pulse-engine-contract/testing';\nexport const proven = [adapter, ConformanceKit];\n",
+  "test/core/runs-the-fake.test.ts":
+    "import { FakeEngine } from '@miragon/pulse-engine-contract/testing';\nexport const fake = FakeEngine;\n",
+  "test/core/escapes-into-the-fake.test.ts":
+    "import { FakeEngine } from '../../../../packages/core/engine-contract/src/testing/fake/fake-engine.ts';\nexport const fake = FakeEngine;\n",
+  "dev/host/escapes-into-the-contract.ts":
+    "import { RuntimeError } from '../../../../packages/core/engine-contract/dist/index.js';\nexport const error = RuntimeError;\n",
+  "../../packages/core/engine-contract/src/testing/fake/fake-engine.ts":
+    "export const FakeEngine = 1;\n",
+  "../../packages/core/engine-contract/dist/index.js": "export const RuntimeError = 1;\n",
   "package.json":
-    '{ "name": "pulse", "private": true, "dependencies": { "@miragon/pulse-c7-core": "workspace:*", "@miragon/pulse-ui": "workspace:*" } }\n',
+    '{ "name": "pulse", "private": true, "dependencies": { "@miragon/pulse-c7-core": "workspace:*", "@miragon/pulse-engine-contract": "workspace:*", "@miragon/pulse-ui": "workspace:*" } }\n',
 }
 
 const roots: string[] = []
@@ -119,6 +140,7 @@ function cruiseArguments(outputType: string): string[] {
   return [
     "apps/vscode/src",
     "apps/vscode/test",
+    "apps/vscode/dev",
     "--config",
     join(APP_ROOT, ".dependency-cruiser.cjs"),
     "--output-type",
@@ -157,6 +179,9 @@ describe("the dependency rules", () => {
     const format = "apps/vscode/node_modules/@miragon/pulse-ui/dist/format/index.d.ts"
     const formatSource = "packages/core/ui/src/format/text.ts"
     const formatBuild = "packages/core/ui/dist/format/numbers.js"
+    const engineContract = "apps/vscode/node_modules/@miragon/pulse-engine-contract/dist/index.d.ts"
+    const engineContractTesting =
+      "apps/vscode/node_modules/@miragon/pulse-engine-contract/dist/testing/index.d.ts"
     expect(violationsIn(plantedTree()).sort()).toEqual(
       [
         `c7-core-only-in-the-c7-adapter: apps/vscode/src/adapters/other/runs-c7-core.ts -> ${c7Core}`,
@@ -202,6 +227,12 @@ describe("the dependency rules", () => {
         `not-in-allowed: apps/vscode/src/core/escapes-into-format.ts -> ${formatSource}`,
         `pulse-ui-only-its-foundation: apps/vscode/src/webview/escapes-into-built-format.ts -> ${formatBuild}`,
         `not-in-allowed: apps/vscode/src/webview/escapes-into-built-format.ts -> ${formatBuild}`,
+        `not-in-allowed: apps/vscode/src/contract/ships-the-kit.ts -> ${engineContractTesting}`,
+        `not-in-allowed: apps/vscode/src/core/skips-the-contract.ts -> ${engineContract}`,
+        `not-in-allowed: apps/vscode/src/adapters/c7/skips-the-contract.ts -> ${engineContract}`,
+        `not-in-allowed: apps/vscode/src/host/ships-the-fake.ts -> ${engineContractTesting}`,
+        "engine-contract-only-by-its-entries: apps/vscode/test/core/escapes-into-the-fake.test.ts -> packages/core/engine-contract/src/testing/fake/fake-engine.ts",
+        "engine-contract-only-by-its-entries: apps/vscode/dev/host/escapes-into-the-contract.ts -> packages/core/engine-contract/dist/index.js",
       ].sort(),
     )
   })

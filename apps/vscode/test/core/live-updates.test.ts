@@ -1,4 +1,4 @@
-import { PatchedRuntime } from "../../src/contract/fake/index.js"
+import { PatchedRuntime } from "@miragon/pulse-engine-contract/testing"
 import {
   BpmnProcessId,
   DefinitionId,

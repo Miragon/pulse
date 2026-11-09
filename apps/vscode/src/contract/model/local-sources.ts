@@ -1,4 +1,4 @@
-import type { BpmnProcessId } from "./ids.js"
+import type { BpmnProcessId } from "@miragon/pulse-engine-contract"
 
 export interface SourceLocation {
   readonly uri: string

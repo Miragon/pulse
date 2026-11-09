@@ -83,6 +83,7 @@ jobs:
           - packages/core/ui
           - packages/core/profile
           - packages/core/http
+          - packages/core/engine-contract
           - packages/connectors/c7/c7-core
           - packages/connectors/c7/c7-client
           - packages/core/widget-shell

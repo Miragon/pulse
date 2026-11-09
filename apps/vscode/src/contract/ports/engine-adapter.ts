@@ -1,6 +1,9 @@
-import type { DefinitionRef, InstanceSummary } from "../model/read-models.js"
-import type { ProcessCommands } from "./process-commands.js"
-import type { ProcessRuntime } from "./process-runtime.js"
+import type {
+  DefinitionRef,
+  InstanceSummary,
+  ProcessCommands,
+  ProcessRuntime,
+} from "@miragon/pulse-engine-contract"
 
 export type EngineCredentials =
   | { readonly kind: "none" }

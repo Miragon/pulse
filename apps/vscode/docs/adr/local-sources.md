@@ -25,7 +25,7 @@ Libraries considered:
 
 ## Decision
 
-### Two ports and one seam in the contract
+### Two ports and one seam in the contract layer
 
 `apps/vscode/src/contract/model/local-sources.ts` holds the neutral read models,
 `apps/vscode/src/contract/ports/` the ports:

@@ -1,4 +1,4 @@
-import { PatchedCommands, PatchedRuntime } from "../../src/contract/fake/index.js"
+import { PatchedCommands, PatchedRuntime } from "@miragon/pulse-engine-contract/testing"
 import {
   BpmnProcessId,
   ElementId,

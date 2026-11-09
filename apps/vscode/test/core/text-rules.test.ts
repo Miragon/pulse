@@ -1,5 +1,5 @@
 import { getFormatLocale } from "@miragon/pulse-ui/format"
-import { FakeEngine, FakeWorld } from "../../src/contract/fake/index.js"
+import { FakeEngine, FakeWorld } from "@miragon/pulse-engine-contract/testing"
 import { describe, expect, test } from "vitest"
 import { DefinitionNodes } from "../../src/core/explorer/definition-nodes.js"
 import { BulkRequests } from "../../src/core/views/bulk-requests.js"

@@ -1,4 +1,4 @@
-import { ConformanceKit, type ConformanceHarness } from "../../../src/contract/conformance/index.js"
+import { ConformanceKit, type ConformanceHarness } from "@miragon/pulse-engine-contract/testing"
 import { afterAll, beforeAll, describe, test } from "vitest"
 import { C7Adapter } from "../../../src/adapters/c7/index.js"
 import { ENGINE_IMAGE, startEngine, type RunningEngine } from "./support/engine-container.js"

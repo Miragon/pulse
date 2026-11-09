@@ -73,10 +73,9 @@ second engine dialect cheap:
   bring a finished HTML document as its own resource instead: nothing of it enters the bundle, so
   it shares no code with it, gets none of widget-shell's host contexts and states its own CSP. The
   boot keeps `ui://views/` for the bundle and fails on a tool that binds a resource nobody serves.
-- The MCP server app owns no domain UI. Widgets live in packages: `pulse-ui`
-  carries the design kit, `widget-shell` the view runtime;
-  each module carries its own and renders no other module's widget. A view that composes
-  modules goes in a dedicated package, created with the first real one.
+- The MCP server app owns no domain UI. Widgets live in packages: `pulse-ui` carries the design kit,
+  `widget-shell` the view runtime; each module carries its own and renders no other module's widget.
+  A view that composes modules goes in a dedicated package, created with the first real one.
 - One profile format. `@miragon/pulse-profile` (`packages/core/profile`) holds one format of the
   engine profiles for the CLI, the VS Code extension and the server: it takes a file's text and
   returns a verdict per profile as data, reads no file and no environment, imports nothing, and
@@ -85,6 +84,9 @@ second engine dialect cheap:
   connector, the CLI and the VS Code extension, over the `fetch` each hands in (they switch to it
   one by one): a deadline to the last byte, no redirect, a 64 MiB cap, one retry after a 401,
   failure reasons as data, masked secrets; every wiring passes its `TRANSPORT_CASES`.
+- One engine contract: `@miragon/pulse-engine-contract` holds the ports, read models and laws every
+  dialect answers in; the VS Code extension's adapters speak it, the engine connector and the CLI
+  reach an engine through c7-core.
 - Extract on the second consumer, never speculatively. A composed-views package appears with
   the first cross-module view. A second dialect joins the engine module (`ENGINE_DIALECTS`),
   never with a widget package or an MCP server app of its own.
@@ -100,9 +102,8 @@ locale as the view root does, so a widget test reads the same on every machine.
 
 The MCP Apps host is therefore one host among several possible ones. A web app that shows the
 same React components brings an adapter of its own and leaves the widgets as they are. The engine
-module's widgets still read the Camunda 7 REST family's data, though: components that serve
-another engine such as Camunda 8 need an engine-neutral contract first, as the VS Code extension
-keeps one for its webview (`apps/vscode`), and that is a design question of its own.
+module's widgets still read the Camunda 7 REST family's data: components for another engine such
+as Camunda 8 would read the engine contract the VS Code extension speaks, a design question of its own.
 
 ## Two UI families
 
@@ -142,7 +143,7 @@ holds when the two share building blocks again.
 | Path                   | Description                                                                     |
 | ---------------------- | ------------------------------------------------------------------------------- |
 | `apps/mcp-server/`     | The MCP server entry point and the widget bundle.                               |
-| `packages/core/`       | What every family builds on: widget-shell, pulse-ui, profile, transport.        |
+| `packages/core/`       | What every family builds on, and the engine contract above the dialects.        |
 | `packages/connectors/` | One folder per family: `engine` with the engine module, one per dialect (`c7`). |
 | `playground/`          | Demo env: showcases, Compose stack, Fly.io deployment.                          |
 
