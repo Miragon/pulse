@@ -17,7 +17,8 @@
  *   - `<family>-client`: its SDK leaf (the generated REST SDK, say; c7-client);
  *   - `<family>-core`, when the family's interfaces share a pure domain: a leaf that the
  *     family's connector (for a dialect's core the engine module) and the interface apps that
- *     bundle it import (c7-core).
+ *     bundle it import (c7-core); its one edge out of its own tree is the engine contract's main
+ *     entry (family-core-is-a-leaf).
  * The engine module (`packages/connectors/engine/engine-connector`) is the one MCP module of
  * every dialect: the family `engine` holds it, and it imports the clients and cores of the
  * dialect families ENGINE_DIALECTS names (engine-connector-spans-the-dialects; the self-test
@@ -28,11 +29,13 @@
  * PROFILE), read where a surface reads its profiles, the transport (`@miragon/pulse-http`,
  * HTTP), used where a surface sends its engine requests, and the engine contract
  * (`@miragon/pulse-engine-contract`, ENGINE_CONTRACT), the neutral language above the dialects,
- * imported where a dialect is implemented. The apps under `apps/` sit ON TOP of
+ * imported where a dialect is implemented (a family core, keyed on the role, and Pulse for VS
+ * Code's contract barrel). The apps under `apps/` sit ON TOP of
  * the packages: the MCP server (`@miragon/pulse-mcp-server`) composes the
  * connectors; of the two interface apps, the CLI (apps/cli, `@miragon/pulse-cli`) imports no
- * workspace package but the ones CLI_BUNDLES names, which tsdown inlines (its family core, the
- * profile format for its config layer and the transport for its http layer), and the VS Code
+ * workspace package but the ones CLI_BUNDLES names, which tsdown inlines (its family core, with
+ * the engine contract's main entry that core imports, the profile format for its config layer and
+ * the transport for its http layer), and the VS Code
  * extension (apps/vscode, the unscoped `pulse-cockpit`, because vsce rejects scoped names)
  * imports its family core in its C7 adapter alone (apps/vscode/src/adapters/c7) and the engine
  * contract in its contract barrel alone (apps/vscode/src/contract), both bundled by esbuild.
@@ -198,15 +201,31 @@ const ENGINE_CONTRACT = {
 }
 
 /**
- * Where a dialect is implemented, the only shipped importer of ENGINE_CONTRACT today: Pulse for
- * VS Code's contract barrel, which re-exports it to the extension's core, adapters and host. The
- * extension's tests and dev host import it too, but this config never cruises apps/vscode/test or
- * apps/vscode/dev: its closed world (apps/vscode/.dependency-cruiser.cjs) holds them and the
- * barrel's edge to the main entry. Test files import it anywhere. The engine connector and the
- * CLI do not: their importing it is an admission decision in review (CLAUDE.md, the family
- * paragraph).
+ * Where a dialect is implemented, the only shipped importers of ENGINE_CONTRACT: a family core's
+ * src, its ./testing entry included (keyed on the role like family-core-is-a-leaf, which admits
+ * the contract's main entry alone; that only a dialect's core takes rules from it, as c7-core
+ * takes the root-cause rule, is review knowledge) and Pulse for VS Code's contract barrel, which
+ * re-exports it to the extension's core, adapters and host. The extension's tests and dev host
+ * import it too, but this config never
+ * cruises apps/vscode/test or apps/vscode/dev: its closed world
+ * (apps/vscode/.dependency-cruiser.cjs) holds them and the barrel's edge to the main entry. Test
+ * files import it anywhere. The engine connector and the CLI do not: they reach it through
+ * c7-core, and their importing it directly is an admission decision in review (CLAUDE.md, the
+ * family paragraph).
  */
-const ENGINE_CONTRACT_IMPLEMENTERS = ["^apps/vscode/src/contract/"]
+const ENGINE_CONTRACT_IMPLEMENTERS = [`${FAMILY_CORE_TREE}src/`, "^apps/vscode/src/contract/"]
+
+/**
+ * The engine contract's main entry as an import reaches it: resolved through the importer's
+ * node_modules to the build (shape 2) or bare and unresolved before a build (shape 3). Never
+ * another subpath (./testing ships the kit, dist/model/… is a second way in), never a relative
+ * escape into its tree. The patterns read the resolved path, so a specifier that names the entry's
+ * own file (…/dist/index.js) is that entry; TypeScript refuses it through the exports map.
+ */
+const ENGINE_CONTRACT_ENTRY = [
+  `(^|/)node_modules/${escapeRegExp(ENGINE_CONTRACT.name)}/dist/index[.](js|d[.]ts)$`,
+  `^${escapeRegExp(ENGINE_CONTRACT.name)}$`,
+]
 
 /** Test-support modules: helpers of the tests, never shipped. */
 const TEST_SUPPORT = ["[.]test-support[.]tsx?$", "/test-support/"]
@@ -682,13 +701,16 @@ module.exports = {
       severity: "error",
       comment:
         "The engine contract (@miragon/pulse-engine-contract) is imported only where a dialect " +
-        "is implemented (ENGINE_CONTRACT_IMPLEMENTERS): Pulse for VS Code's contract barrel " +
-        "(apps/vscode/src/contract), and by test files and test-support anywhere. A package's " +
-        "own ./testing entry (src/testing/) ships on npm, so it is no test here. The " +
+        "is implemented (ENGINE_CONTRACT_IMPLEMENTERS): a family core's src, keyed on the role " +
+        "and its ./testing entry included (family-core-is-a-leaf holds it to the main entry), " +
+        "and Pulse for VS Code's contract barrel (apps/vscode/src/contract), and by test files " +
+        "and test-support anywhere. Another package's ./testing entry (src/testing/) ships on " +
+        "npm, so it is no test here. The " +
         "extension's core, adapters and host reach it through the barrel. The engine connector, " +
         "the CLI, the MCP server app and the other packages do not: a surface reaches the " +
-        "contract through a dialect, and its importing the contract directly is an admission " +
-        "decision in review (CLAUDE.md, the family paragraph: a second interface needing the " +
+        "contract through a dialect (the CLI and the connector through c7-core's causeOf), and " +
+        "its importing the contract directly is an admission decision in review (CLAUDE.md, " +
+        "the family paragraph: a second interface needing the " +
         "same use case with the same rules). A relative escape into " +
         "packages/core/engine-contract is a violation too.",
       from: {
@@ -711,12 +733,14 @@ module.exports = {
       severity: "error",
       comment:
         "A family core (packages/connectors/<family>/<family>-core, e.g. @miragon/pulse-c7-core) " +
-        "has no runtime dependency: its shipped code (the ./testing export included) imports only " +
-        "its own modules, no workspace package, no npm package and no Node built-in. The caller " +
-        "supplies every effect through a port (c7-core's EngineTransport) and words the " +
-        "structured results.",
+        "has one runtime dependency, the engine contract: its shipped code (the ./testing export " +
+        "included) imports only its own modules and the main entry of " +
+        "@miragon/pulse-engine-contract (the rules every dialect shares, such as RootCauses), no " +
+        "other workspace package, no subpath of the contract (./testing ships the kit), no " +
+        "relative escape into its tree, no npm package and no Node built-in. The caller supplies " +
+        "every effect through a port (c7-core's EngineTransport) and words the structured results.",
       from: { path: "^packages/connectors/([^/]+)/([^/]+)-core/src/", pathNot: ["[.]test[.]ts$"] },
-      to: { pathNot: "^packages/connectors/$1/$2-core/src/" },
+      to: { pathNot: ["^packages/connectors/$1/$2-core/src/", ...ENGINE_CONTRACT_ENTRY] },
     },
     {
       name: "family-core-consumers",

@@ -1,8 +1,10 @@
 /**
  * @miragon/pulse-c7-core: the workflow domain of the Camunda 7 REST API family (Operaton,
  * CIB seven, Camunda 7), and the one home of its pure engine REST rules (dates, filters,
- * sorting, variable writes and typing, incident recovery, root causes, raw variable reads, the
- * missing resource). Runs on a caller's `EnginePort`; returns data and throws
+ * sorting, variable writes and typing, incident recovery, raw variable reads, the missing
+ * resource). The root cause of a failure text is the engine contract's rule
+ * (`RootCauses` of @miragon/pulse-engine-contract, its one runtime dependency), which `causeOf`
+ * applies. Runs on a caller's `EnginePort`; returns data and throws
  * `WorkflowError` reasons, and names no command, flag or tool: next steps and error reasons are
  * structured, the caller words them. The pure rules behind these functions that only tests reach
  * are exported from `@miragon/pulse-c7-core/testing`.
@@ -68,7 +70,7 @@ export { RAW_VARIABLES, RAW_VARIABLES_QUERY } from "./variables.js"
 export { incidentRecovery, type IncidentRecovery } from "./incident-recovery.js"
 export { mapLimit } from "./util.js"
 export { formatDuration } from "./durations.js"
-export { rootCause, rootCauseLine } from "./root-cause.js"
+export { causeOf } from "./cause.js"
 export { MESSAGE_SIGNATURE_LENGTH, messageSignature } from "./message-signature.js"
 export {
   type CauseFields,

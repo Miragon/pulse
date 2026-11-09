@@ -84,9 +84,9 @@ second engine dialect cheap:
   connector, the CLI and the VS Code extension, over the `fetch` each hands in (they switch to it
   one by one): a deadline to the last byte, no redirect, a 64 MiB cap, one retry after a 401,
   failure reasons as data, masked secrets; every wiring passes its `TRANSPORT_CASES`.
-- One engine contract: `@miragon/pulse-engine-contract` holds the ports, read models and laws every
-  dialect answers in; the VS Code extension's adapters speak it, the engine connector and the CLI
-  reach an engine through c7-core.
+- One engine contract: `@miragon/pulse-engine-contract` holds the ports, read models, laws and
+  shared rules (`RootCauses`) of every dialect; the VS Code extension's adapters and c7-core use
+  it, the engine connector and the CLI reach an engine and the contract's rules through c7-core.
 - Extract on the second consumer, never speculatively. A composed-views package appears with
   the first cross-module view. A second dialect joins the engine module (`ENGINE_DIALECTS`),
   never with a widget package or an MCP server app of its own.

@@ -3,11 +3,11 @@
  * wait states, root causes) and assembles the instance view.
  */
 
+import { causeOf } from "./cause.js"
 import { isWorkflowError, WorkflowError } from "./errors.js"
 import { type EnginePort, isMissing, PARALLEL, type PlannedRequest } from "./port.js"
 import { field, type Rec, records, str } from "./records.js"
 import { listByIds } from "./requests.js"
-import { rootCause } from "./root-cause.js"
 import { selectInstance } from "./select.js"
 import { instanceView, rootIncidents } from "./snapshot.js"
 import { activeTree } from "./tree.js"
@@ -230,7 +230,7 @@ export async function incidentCause(
   const message = str(incident, "incidentMessage")
   const lines = text?.trimEnd().split(/\r?\n/).slice(0, MAX_STACKTRACE_LINES)
   return compact({
-    rootCause: (text === undefined ? undefined : rootCause(text)) ?? message,
+    rootCause: causeOf(text, message),
     stacktrace: stacktrace ? lines : undefined,
   })
 }

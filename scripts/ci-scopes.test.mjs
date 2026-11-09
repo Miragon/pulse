@@ -279,8 +279,15 @@ describe("the real workspace", () => {
   })
 
   it("runs the extension's checks for c7-core, which its C7 adapter bundles", () => {
-    const changed = scopesFor(["packages/connectors/c7/c7-core/src/root-cause.ts"], packages)
+    const changed = scopesFor(["packages/connectors/c7/c7-core/src/cause.ts"], packages)
     assert.ok(changed.has("vscode") && changed.has("vscode-package") && changed.has("cli"))
+  })
+
+  it("runs the CLI's checks for the engine contract, which c7-core imports", () => {
+    const changed = scopesFor(["packages/core/engine-contract/src/model/root-causes.ts"], packages)
+    for (const scope of ["cli", "vscode", "vscode-package", "mcp", "template"]) {
+      assert.ok(changed.has(scope), scope)
+    }
   })
 
   it("keeps the CLI and the extension apart from the MCP server's packages", () => {

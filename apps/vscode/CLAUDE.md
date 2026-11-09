@@ -67,7 +67,7 @@ The app is one package with six layers under `apps/vscode/src`. Each layer has i
 | Add a write                                                     | `ProcessCommands` + a command law + a saboteur; policy and confirmation per `apps/vscode/docs/adr/writes.md`                                                                                                                            | authority in a webview intent              |
 | Interpret runtime data (grouping, view models, panel behaviour) | `apps/vscode/src/core`                                                                                                                                                                                                                  | `vscode`, DOM, Node, engine words          |
 | Change what the webview shows                                   | `apps/vscode/src/core/protocol` (types) and `apps/vscode/src/webview`                                                                                                                                                                   | logic in the webview, `--vscode-*` colours |
-| Talk to Operaton / CIB seven / Camunda 7                        | `apps/vscode/src/adapters/c7` (mapping) and `apps/vscode/src/adapters/c7/engine-rest` (REST client; its `inspect` runs c7-core over it); inspect, wait states, root causes in `@miragon/pulse-c7-core`                                  | imports from core, webview or host; a copy |
+| Talk to Operaton / CIB seven / Camunda 7                        | `apps/vscode/src/adapters/c7` (mapping) and `apps/vscode/src/adapters/c7/engine-rest` (REST client; its `inspect` runs c7-core over it); inspect and wait states in `@miragon/pulse-c7-core`, the root cause in `RootCauses`            | imports from core, webview or host; a copy |
 | Add an engine                                                   | `apps/vscode/src/adapters/<engine>` with a class implementing `EngineAdapter` + an `*.engine.test.ts` running the `ConformanceKit` (`@miragon/pulse-engine-contract/testing`) + one entry in `apps/vscode/src/host/composition-root.ts` | branching on engines anywhere else         |
 | Read the local `.bpmn` model or find the implementing code      | `apps/vscode/src/model` (behind `ModelSource` / `CodeLocator`), per `apps/vscode/docs/adr/local-sources.md`                                                                                                                             | moddle or bpmn-modeler libs anywhere else  |
 | Wire VS Code                                                    | `apps/vscode/src/host`                                                                                                                                                                                                                  | business rules                             |
@@ -105,10 +105,11 @@ English with a 24-hour clock and alone may import them (the closed world allows
 in a text goes in through them too (`Labels.count`, `CountLabels.exact`), and the repository's
 date and number gates keep `Intl`, `toFixed` and a locale-less `toLocaleString()` out of core
 and webview. A change to
-how an instance is inspected, where it waits, what its root cause is or when a 404 names a
-missing resource (`isMissing`) goes into c7-core, never into a copy here; the adapter's
-`InspectView` is c7-core's instance view, not a mirror of it. Contract, core, webview and
-host stay engine-neutral.
+how an instance is inspected, where it waits or when a 404 names a missing resource
+(`isMissing`) goes into c7-core, one to what its root cause is into the engine contract's
+`RootCauses` (`RootCauses.of`, `RootCauses.lineOf`, which c7-core applies too), never into a copy
+here; the adapter's `InspectView` is c7-core's instance view, not a mirror of it. Contract,
+core, webview and host stay engine-neutral.
 
 ## Rules
 

@@ -22,7 +22,7 @@ failure clusters and health verdict from the same `messageSignature` (the incide
 pass), so the CLI's `status`, `engine_status` and the cockpit count one cause alike and judge an
 engine by one rule.
 Pulse for VS Code bundles it in its C7 adapter: an instance's panel reads the instance through
-`loadInstance` and the root cause of an incident through `rootCause` and `rootCauseLine`.
+`loadInstance`.
 It is the shared domain of every Pulse interface to this API family, so an MCP tool and a CLI
 command answer the same question by the same rules.
 
@@ -30,7 +30,10 @@ One port per API family: the vendors differ in runtime configuration, never in t
 
 ## What it is not
 
-No HTTP, no authentication and no runtime dependency: it imports only its own modules. It names
+No HTTP and no authentication. Its one runtime dependency is
+[@miragon/pulse-engine-contract](https://www.npmjs.com/package/@miragon/pulse-engine-contract),
+the language of every engine dialect, whose rules it applies (the root cause of a failure text,
+`RootCauses`); it imports nothing else but its own modules. It names
 no command, flag or tool: next steps are structured (`{ action: "retry", processInstanceId }`),
 errors are `WorkflowError`s with a `reason` (`{ kind: "selection-ambiguous", candidates, more }`),
 and the caller words both. The English texts that describe the engine's state are the package's
@@ -73,8 +76,9 @@ npm install @miragon/pulse-c7-core
   (`engineSorting`), variable writes and typing (`toEngineVariable(s)`, `autoTypedValue`),
   incident recovery (`incidentRecovery`), the raw variable read flag (`RAW_VARIABLES`, and
   `RAW_VARIABLES_QUERY`, its text form for a port's query), the history timeline of activity rows
-  (`timelineOf`) and root causes (`rootCause`, and `rootCauseLine`, the line a viewer opens the
-  text at).
+  (`timelineOf`) and the cause of a failure (`causeOf(text, fallback)`: the root cause of a stack
+  trace or error details by the engine contract's `RootCauses.of`, else the fallback, such as the
+  incident's message).
 
 ```ts
 import { createEnginePort, type EngineTransport, inspectInstance } from "@miragon/pulse-c7-core"

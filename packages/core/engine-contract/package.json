@@ -1,7 +1,7 @@
 {
   "name": "@miragon/pulse-engine-contract",
   "version": "0.27.1",
-  "description": "The engine contract of Pulse, the shared language of its engine dialects: the read and write ports a process engine answers (ProcessRuntime, ProcessCommands), their ids, read models, queries and errors, and in ./testing the conformance kit with its laws, its fixed world and an in-memory fake engine. No runtime dependency.",
+  "description": "The engine contract of Pulse, the shared language of its engine dialects: the read and write ports a process engine answers (ProcessRuntime, ProcessCommands), their ids, read models, queries and errors, the rules every dialect shares (the root cause of a failure text among them), and in ./testing the conformance kit with its laws, its fixed world and an in-memory fake engine. No runtime dependency.",
   "license": "MIT",
   "keywords": [
     "bpmn",
@@ -55,6 +55,7 @@
     "lint:fix": "eslint src test --fix"
   },
   "devDependencies": {
+    "fast-check": "4.10.2",
     "typescript": "6.0.3",
     "vitest": "5.1.0"
   }

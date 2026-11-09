@@ -318,6 +318,10 @@ importers:
         version: 5.1.0(@opentelemetry/api@1.9.1)(@types/node@26.6.5)(@vitest/browser-playwright@5.1.0)(@vitest/coverage-v8@5.1.0)(@vitest/ui@5.1.0)(happy-dom@21.0.4)(jsdom@29.0.0)(vite@8.3.6(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/connectors/c7/c7-core:
+    dependencies:
+      '@miragon/pulse-engine-contract':
+        specifier: workspace:*
+        version: link:../../../core/engine-contract
     devDependencies:
       '@stryker-mutator/core':
         specifier: 10.1.1
@@ -386,6 +390,9 @@ importers:
 
   packages/core/engine-contract:
     devDependencies:
+      fast-check:
+        specifier: 4.10.2
+        version: 4.10.2
       typescript:
         specifier: 6.0.3
         version: 6.0.3

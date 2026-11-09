@@ -47,6 +47,7 @@ export type {
   WaitStateKind,
 } from "./model/read-models.js"
 export { MoveReasons } from "./model/move-reasons.js"
+export { RootCauses } from "./model/root-causes.js"
 export { RuntimeError } from "./model/runtime-error.js"
 export type { RuntimeFailure } from "./model/runtime-error.js"
 export { ValueKinds } from "./model/value-kinds.js"

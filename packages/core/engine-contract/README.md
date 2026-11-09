@@ -12,7 +12,8 @@ queries, bulk operations, migration plans and one error. Each dialect answers th
 implementation of its own, and the conformance kit proves that it means the same thing.
 
 Pulse for VS Code speaks it today: its core asks these ports, and its C7 adapter answers them
-over the Camunda 7 REST API.
+over the Camunda 7 REST API. [@miragon/pulse-c7-core](https://www.npmjs.com/package/@miragon/pulse-c7-core),
+the core of that dialect, applies its root-cause rule for the Pulse CLI and the MCP server.
 
 ## What it is not
 
@@ -37,8 +38,12 @@ npm install @miragon/pulse-engine-contract
   (`InstanceSummary`, `InstanceDetail`, `Incident`, `ElementStatistics`, `Variable` …), the queries
   (`InstanceFilter`, `VariableCondition`, `PageRequest`, `Page`, `InstanceCount`), bulk operations and migration
   plans; `RuntimeError` with its closed `RuntimeFailure`, and `FailingRuntime`, a runtime that
-  refuses every call with one error; the rules `ValueKinds` (the kind of a JSON value) and
-  `MoveReasons` (when a reason for a token move is valid).
+  refuses every call with one error; the rules `ValueKinds` (the kind of a JSON value),
+  `MoveReasons` (when a reason for a token move is valid) and `RootCauses`, the root cause of a
+  failure text in every dialect: `of` takes the last `Caused by:` line of a stack trace, else its
+  first non-blank line, a leading class name shortened to its simple name, in one line of at most
+  300 characters; `lineOf` is the line a viewer opens the text at, none without a `Caused by:`
+  line.
 - **`./testing`:** the conformance kit (`ConformanceKit` with 48 read laws and 15 command laws),
   its fixed world (`WORLD_*`, the three neutral diagrams `NEUTRAL_DIAGRAMS` with fixed element
   ids) and `FakeEngine`, an in-memory engine that passes every law, with `PatchedRuntime` and
@@ -102,17 +107,25 @@ never with a flag that can disagree with what the engine does:
 
 A port, read model or rule enters `@miragon/pulse-engine-contract` when two dialects answer it with
 the same meaning, proven by the conformance laws on both. Only dialect implementations import the
-contract (Pulse for VS Code's contract barrel for its adapters, and a dialect core's `src` once it
-uses a rule of the contract). A surface reaches it through them; the engine connector or the CLI
-importing it directly is an admission decision in review, the case #488 reopens on: a second
-interface needing the same use case with the same rules.
+contract (Pulse for VS Code's contract barrel for its adapters, and a family core's `src`, its main
+entry alone: c7-core applies `RootCauses`; the gate keys on the role, so it admits every family's
+core). A surface reaches it through them; the engine connector or the CLI importing it directly is
+an admission decision in review, the case #488 reopens on: a second interface needing the same
+use case with the same rules.
 
-One admission came ahead of its second dialect, by the owner's decision: the four answers
-Camunda 8 needs (a count that may be a lower bound, the failure `unsupported`, the declared
-variable conditions and migration planning as an optional pair) entered before the first
-release, on the evidence of the Camunda 8 adapter's branch (#543), so that adapter lands
-without a break. Here the laws run them on the fake and the C7 adapter, which count exactly,
-answer every condition and plan migrations; the saboteurs prove the other side.
+Two admissions came ahead of their second dialect, by the owner's decision, on the evidence of the
+Camunda 8 adapter's branch (#543):
+
+- The four answers Camunda 8 needs (a count that may be a lower bound, the failure `unsupported`,
+  the declared variable conditions and migration planning as an optional pair) entered before
+  the first release, so that adapter lands without a break. Here the laws run them on the fake
+  and the C7 adapter, which count exactly, answer every condition and plan migrations; the
+  saboteurs prove the other side.
+- `RootCauses` moved here from c7-core, since that branch copies its `of` character for
+  character. Its `lineOf` keeps c7-core's reading, no line without a `Caused by:` line (by the
+  owner's decision), where the copy points at the first non-blank line; the law "incidents: details
+  name their root cause in one line and point at a line of their text" holds every adapter to
+  the bounds both readings keep.
 
 The repository holds that to its import graph (`engine-contract-consumers` in its
 dependency-cruiser config) and the package to its own modules (`engine-contract-is-a-leaf`).

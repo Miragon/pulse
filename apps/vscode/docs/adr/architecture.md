@@ -74,14 +74,14 @@ tests, scripts, dev tooling → anything (the kit and FakeEngine: @miragon/pulse
 
 The engine contract is a workspace package of its own, `packages/core/engine-contract`, which
 esbuild bundles like c7-core. It holds what every dialect answers (the read and write ports, ids,
-read models, queries, `RuntimeError`, `FailingRuntime`, `ValueKinds`, `MoveReasons`) and, in
-`./testing`, the conformance kit, its world and the fake. What only the IDE needs stays here:
+read models, queries, `RuntimeError`, `FailingRuntime`, `ValueKinds`, `MoveReasons`,
+`RootCauses`) and, in `./testing`, the conformance kit, its world and the fake. What only the IDE needs stays here:
 `EngineAdapter` with the connection, the credentials and `EngineWebUi` (the links into an engine's
 web UI differ between the MCP server and the extension), the local ports and their read models.
 The package keeps the extension's house rules (the repository's ESLint config names its paths next
 to the extension's) and imports nothing (`engine-contract-is-a-leaf`); in the repository only this
-layer, the extension's tests and its dev host import it, and tests anywhere
-(`engine-contract-consumers`). They import its entries, never a file of the package by path
+layer, the extension's tests and its dev host import it, besides a dialect's core (c7-core takes
+`RootCauses` from its main entry) and tests anywhere (`engine-contract-consumers`). They import its entries, never a file of the package by path
 (`engine-contract-only-by-its-entries`): a module reached by path would be a second copy of the
 contract, whose `RuntimeError` the first copy's `RuntimeError.is` no longer recognises.
 

@@ -24,7 +24,8 @@ import { REPO_ROOT } from "./source-scan.mjs"
  *
  * An app that BUNDLES workspace packages it lists only as devDependencies
  * would fail the src scan by design, so a bundled app (BUNDLED_APPS: the CLI,
- * which bundles @miragon/pulse-c7-core) is read from its BUILT bundle
+ * which bundles @miragon/pulse-c7-core and, through it, the engine contract's
+ * main entry) is read from its BUILT bundle
  * instead: every module under its dist imports only Node built-ins and its
  * declared dependencies (a workspace package left external fails), and the
  * bundle stays within its size budget and close to it. `pnpm build` runs first (CI's
@@ -174,7 +175,7 @@ function bundleFindings(root, { manifest }, bundled) {
   const size =
     bytes > maxBytes
       ? [
-          `${bundled.dist}: ${bytes} bytes, over the budget of ${maxBytes} (${bundledNames(bundled.bundles)} bundled into it, so a change there counts too). Shrink the bundle, or set "dist" in ${bundled.budget} to ${budgetFor(bytes)} in a commit whose Ratchet-Exception: trailer says why it grew`,
+          `${bundled.dist}: ${bytes} bytes, over the budget of ${maxBytes} (${bundledNames(bundled.bundles)} bundled into it with what ${bundled.bundles.length === 1 ? "it imports" : "they import"}, so a change there counts too). Shrink the bundle, or set "dist" in ${bundled.budget} to ${budgetFor(bytes)} in a commit whose Ratchet-Exception: trailer says why it grew`,
         ]
       : bytes < Math.floor(maxBytes * BUDGET_TIGHT)
         ? [
@@ -512,7 +513,7 @@ describe("published packages declare what their shipped source imports", () => {
 
       it("fails a bundle over its budget and a missing bundle with the build hint", () => {
         assert.deepEqual(bundleFindings(sized(1001), CLI, BUNDLED), [
-          'apps/cli/dist: 1001 bytes, over the budget of 1000 (@miragon/pulse-c7-core is bundled into it, so a change there counts too). Shrink the bundle, or set "dist" in apps/cli/test/__golden__/bundle-budget.json to 16384 in a commit whose Ratchet-Exception: trailer says why it grew',
+          'apps/cli/dist: 1001 bytes, over the budget of 1000 (@miragon/pulse-c7-core is bundled into it with what it imports, so a change there counts too). Shrink the bundle, or set "dist" in apps/cli/test/__golden__/bundle-budget.json to 16384 in a commit whose Ratchet-Exception: trailer says why it grew',
         ])
         assert.deepEqual(bundleFindings(sized(1000), CLI, BUNDLED), [])
         const both = {
@@ -521,7 +522,7 @@ describe("published packages declare what their shipped source imports", () => {
         }
         assert.match(
           bundleFindings(sized(1001), CLI, both)[0],
-          /\(@miragon\/pulse-c7-core and @miragon\/pulse-profile are bundled into it, /,
+          /\(@miragon\/pulse-c7-core and @miragon\/pulse-profile are bundled into it with what they import, /,
         )
         assert.deepEqual(bundleFindings(fixture(withBudget({}, 1000)), CLI, BUNDLED), [
           "apps/cli/dist is missing: run pnpm build first",

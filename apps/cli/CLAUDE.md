@@ -17,11 +17,13 @@ written for the MCP server, so this file holds the CLI's own. The pages for peop
   stderr with a documented exit code. A change to any of that is a change to the docs.
 - One runtime dependency, commander. The workflow domain and engine REST rules,
   `@miragon/pulse-c7-core` (`packages/connectors/c7/c7-core`, the core of the Camunda 7 REST
-  dialect family c7), are a devDependency that tsdown bundles; everything else that ships is
-  the code in `apps/cli/src/`. The built bundle imports only commander and Node built-ins, and
-  stays within its size budget (`scripts/published-imports.test.mjs` reads `apps/cli/dist` and
-  the ceiling in `apps/cli/test/__golden__/bundle-budget.json`, which `pnpm lint:ratchets` holds
-  shrink-only: growth needs a `Ratchet-Exception:` trailer that says why).
+  dialect family c7), are a devDependency that tsdown bundles, with the root-cause rule c7-core
+  takes from the engine contract (`@miragon/pulse-engine-contract`, c7-core's one dependency);
+  everything else that ships is the code in `apps/cli/src/`. The built bundle imports only
+  commander and Node built-ins, and stays within its size budget
+  (`scripts/published-imports.test.mjs` reads `apps/cli/dist` and the ceiling in
+  `apps/cli/test/__golden__/bundle-budget.json`, which `pnpm lint:ratchets` holds shrink-only:
+  growth needs a `Ratchet-Exception:` trailer that says why).
 
 ## Layers
 
@@ -62,8 +64,9 @@ format, `@miragon/pulse-profile`, in `apps/cli/src/config/` (`CLI_BUNDLES` and
 profiles with, and the transport, `@miragon/pulse-http`, in `apps/cli/src/http/`,
 `apps/cli/src/auth/` and `apps/cli/src/operation/` (`CLI_BUNDLES` and `http-consumers`), for the
 requests to go out through it; neither is used yet. The engine contract,
-`@miragon/pulse-engine-contract`, is not the CLI's: it reaches the engine through c7-core, and a
-direct import is an admission decision in review (`engine-contract-consumers`).
+`@miragon/pulse-engine-contract`, is not the CLI's to import: it reaches the engine through
+c7-core, a job's root cause included (`causeOf`, over the contract's `RootCauses`), and a direct
+import is an admission decision in review (`engine-contract-consumers`).
 
 ## Budgets
 

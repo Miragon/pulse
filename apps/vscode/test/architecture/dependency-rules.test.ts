@@ -37,24 +37,24 @@ const PLANTED: Readonly<Record<string, string>> = {
   "test/adapters/c7/c7.engine.test.ts":
     "import { adapter } from '../../../src/adapters/c7/index.ts';\nexport const proven = adapter;\n",
   "src/adapters/c7/runs-c7-core.ts":
-    "import { rootCause } from '@miragon/pulse-c7-core';\nexport const cause = rootCause;\n",
+    "import { causeOf } from '@miragon/pulse-c7-core';\nexport const cause = causeOf;\n",
   "src/adapters/c7/ships-c7-core-testing.ts":
     "import { pageQuery } from '@miragon/pulse-c7-core/testing';\nexport const page = pageQuery;\n",
   "src/adapters/other/runs-c7-core.ts":
-    "import { rootCause } from '@miragon/pulse-c7-core';\nexport const cause = rootCause;\n",
+    "import { causeOf } from '@miragon/pulse-c7-core';\nexport const cause = causeOf;\n",
   "src/core/runs-c7-core.ts":
     "import type { WaitState } from '@miragon/pulse-c7-core';\nexport type Wait = WaitState;\n",
   "src/host/reads-c7-core-subpath.ts":
-    "import { rootCause } from '@miragon/pulse-c7-core/root-cause';\nexport const cause = rootCause;\n",
+    "import { causeOf } from '@miragon/pulse-c7-core/cause';\nexport const cause = causeOf;\n",
   "test/adapters/c7/c7-core.test.ts":
     "import { pageQuery } from '@miragon/pulse-c7-core/testing';\nexport const page = pageQuery;\n",
   "test/adapters/c7-other/c7-core.test.ts":
-    "import { rootCause } from '@miragon/pulse-c7-core';\nexport const cause = rootCause;\n",
+    "import { causeOf } from '@miragon/pulse-c7-core';\nexport const cause = causeOf;\n",
   "test/core/c7-core.test.ts":
-    "import { rootCause } from '@miragon/pulse-c7-core';\nexport const cause = rootCause;\n",
+    "import { causeOf } from '@miragon/pulse-c7-core';\nexport const cause = causeOf;\n",
   "test/core/escapes-into-c7-core.test.ts":
-    "import { rootCause } from '../../../../packages/connectors/c7/c7-core/src/root-cause.ts';\nexport const cause = rootCause;\n",
-  "../../packages/connectors/c7/c7-core/src/root-cause.ts": "export const rootCause = 1;\n",
+    "import { causeOf } from '../../../../packages/connectors/c7/c7-core/src/cause.ts';\nexport const cause = causeOf;\n",
+  "../../packages/connectors/c7/c7-core/src/cause.ts": "export const causeOf = 1;\n",
   "src/webview/reads-tones.ts":
     "import { SITUATION_TONES } from '@miragon/pulse-ui/tones';\nexport const tones = SITUATION_TONES;\n",
   "src/core/reads-tones.ts":
@@ -188,10 +188,10 @@ describe("the dependency rules", () => {
         `c7-core-only-in-the-c7-adapter: apps/vscode/src/core/runs-c7-core.ts -> ${c7Core}`,
         `c7-core-only-in-the-c7-adapter: apps/vscode/test/adapters/c7-other/c7-core.test.ts -> ${c7Core}`,
         `c7-core-only-in-the-c7-adapter: apps/vscode/test/core/c7-core.test.ts -> ${c7Core}`,
-        "c7-core-only-in-the-c7-adapter: apps/vscode/test/core/escapes-into-c7-core.test.ts -> packages/connectors/c7/c7-core/src/root-cause.ts",
-        "c7-core-only-in-the-c7-adapter: apps/vscode/src/host/reads-c7-core-subpath.ts -> @miragon/pulse-c7-core/root-cause",
-        "not-in-allowed: apps/vscode/src/host/reads-c7-core-subpath.ts -> @miragon/pulse-c7-core/root-cause",
-        "not-to-unresolvable: apps/vscode/src/host/reads-c7-core-subpath.ts -> @miragon/pulse-c7-core/root-cause",
+        "c7-core-only-in-the-c7-adapter: apps/vscode/test/core/escapes-into-c7-core.test.ts -> packages/connectors/c7/c7-core/src/cause.ts",
+        "c7-core-only-in-the-c7-adapter: apps/vscode/src/host/reads-c7-core-subpath.ts -> @miragon/pulse-c7-core/cause",
+        "not-in-allowed: apps/vscode/src/host/reads-c7-core-subpath.ts -> @miragon/pulse-c7-core/cause",
+        "not-to-unresolvable: apps/vscode/src/host/reads-c7-core-subpath.ts -> @miragon/pulse-c7-core/cause",
         `not-in-allowed: apps/vscode/src/adapters/c7/ships-c7-core-testing.ts -> ${c7CoreTesting}`,
         `not-in-allowed: apps/vscode/src/adapters/other/runs-c7-core.ts -> ${c7Core}`,
         `not-in-allowed: apps/vscode/src/core/runs-c7-core.ts -> ${c7Core}`,

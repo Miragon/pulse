@@ -166,13 +166,15 @@ flowchart LR
     readers[Readers: C7 answers to contract read models]
     rest[src/engine-rest: REST calls, answers checked]
   end
-  core["c7-core: inspect, wait states, root cause"]
+  core["c7-core: inspect, wait states"]
+  rules["@miragon/pulse-engine-contract: RootCauses"]
   subgraph family [Same REST API]
     camunda7[Camunda 7.24]
     operaton[Operaton 2.1]
     cibseven[CIB seven 2.2]
   end
   readers --> rest
+  readers -- root cause --> rules
   rest -- its port over EngineHttp --> core
   rest -- HTTP /engine-rest --> family
 ```

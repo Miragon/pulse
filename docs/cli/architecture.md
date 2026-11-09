@@ -7,7 +7,7 @@ only its adapter changes.
 ```mermaid
 flowchart TB
   workflow["src/workflow<br/>advance, inspect, retry …"]
-  core["@miragon/pulse-c7-core<br/>the c7 family's core: workflow domain and engine REST rules, bundled"]
+  core["@miragon/pulse-c7-core<br/>the c7 family's core: workflow domain, engine REST rules<br/>and engine-contract's root-cause rule, bundled"]
   operation["src/operation<br/>dates, --var typing"]
   cli["src/cli<br/>commands, help, describe"]
   port["src/engine-port<br/>EnginePort, EngineAdapter"]

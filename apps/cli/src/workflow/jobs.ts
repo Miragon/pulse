@@ -4,7 +4,7 @@
  * one retry less), so every error is checked against the job itself.
  */
 
-import { type Rec, records, rootCause, str } from "@miragon/pulse-c7-core"
+import { causeOf, type Rec, records, str } from "@miragon/pulse-c7-core"
 import type { EnginePort } from "../engine-port/engine-port.js"
 import { PulseCliError } from "../errors.js"
 import { compact } from "../util.js"
@@ -60,7 +60,7 @@ async function afterError(
     result: "failed",
     jobId,
     message,
-    rootCause: (stacktrace === undefined ? undefined : rootCause(stacktrace)) ?? message,
+    rootCause: causeOf(stacktrace, message),
     ...compact({
       activityId: str(job, "failedActivityId"),
       processInstanceId: str(job, "processInstanceId"),

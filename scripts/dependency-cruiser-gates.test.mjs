@@ -31,7 +31,8 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 const CONFIG = path.join(repoRoot, ".dependency-cruiser.cjs")
 
 // The fixture workspace: directory -> package.json extras. Every package's `main` is its
-// src/index.ts, so nothing needs a build.
+// src/index.ts, so nothing needs a build, but the engine contract's: its main is its build, as in
+// the repo, so a family core's import of it resolves to the one shape family-core-is-a-leaf admits.
 const SERVER = "apps/mcp-server"
 const CLI = "apps/cli"
 const EXT = "apps/vscode"
@@ -57,7 +58,7 @@ const WORKSPACE = {
   [UI]: { name: "@miragon/pulse-ui" },
   [PROFILE]: { name: "@miragon/pulse-profile" },
   [HTTP]: { name: "@miragon/pulse-http" },
-  [CONTRACT]: { name: "@miragon/pulse-engine-contract" },
+  [CONTRACT]: { name: "@miragon/pulse-engine-contract", main: "dist/index.js" },
   [C7]: { name: "@miragon/pulse-c7-core" },
   [C7_CLIENT]: { name: "@miragon/pulse-c7-client" },
   [ENGINE_CONNECTOR]: { name: "@miragon/pulse-engine-connector" },
@@ -65,6 +66,11 @@ const WORKSPACE = {
   [BILLING_CONNECTOR]: { name: "@miragon/pulse-billing-connector" },
   [BILLING_CORE]: { name: "@miragon/pulse-billing-core" },
 }
+
+// The links the fixture leaves out, importer directory -> package name: the billing core imports
+// the engine contract as a tree before its build does, bare and unresolved (shape 3), where
+// c7-core's import resolves to the build (shape 2), so family-core-is-a-leaf meets both.
+const UNLINKED = new Map([[BILLING_CORE, WORKSPACE[CONTRACT].name]])
 
 // Third-party stubs installed into every importer's own node_modules. `vscode` is left out
 // on purpose: the extension host provides it at runtime, so it stays a bare specifier.
@@ -214,6 +220,9 @@ const LEAVES = [
   `${HTTP}/src/lib.ts`,
   `${CONTRACT}/src/target.ts`,
   `${CONTRACT}/src/lib.ts`,
+  `${CONTRACT}/dist/index.js`,
+  `${CONTRACT}/dist/testing/index.js`,
+  `${CONTRACT}/dist/model/root-causes.js`,
   `${BILLING_CORE}/src/lib.ts`,
   `${BILLING_CORE}/src/a.test.ts`,
   `${C7_CLIENT}/src/target.ts`,
@@ -525,9 +534,8 @@ const SUITES = [
       [PROFILE_SRC, CONTRACT_NAME, [PROFILE_LEAF, CONTRACT_USERS]],
       [HTTP_SRC, CONTRACT_NAME, [HTTP_LEAF, CONTRACT_USERS]],
       [C7_CLIENT_SRC, CONTRACT_NAME, [CLIENT_LEAF, CONTRACT_USERS]],
-      // c7-core implements no port of it yet; the engine connector and the CLI reach the contract
-      // through a dialect, so a direct import is an admission decision (owner decision ND10).
-      [C7_SRC, CONTRACT_NAME, [CORE_LEAF, CONTRACT_USERS]],
+      // The engine connector and the CLI reach the contract through a dialect's core (c7-core's
+      // causeOf), so a direct import is an admission decision (owner decision ND10).
       [ENGINE_CONNECTOR_SRC, CONTRACT_NAME, [CONTRACT_USERS]],
       [`${ENGINE_CONNECTOR}/src/lib/core-adapter/contract.ts`, CONTRACT_NAME, [CONTRACT_USERS]],
       [BILLING_CONNECTOR_SRC, CONTRACT_NAME, [CONTRACT_USERS]],
@@ -562,18 +570,22 @@ const SUITES = [
         `${CONTRACT_NAME}/testing`,
         [CONTRACT_USERS, NO_TESTING],
       ],
-      // Allowed: the contract barrel, the package's own modules, and tests anywhere.
+      // Allowed: a family core's src (family-core-is-a-leaf holds it to the main entry), the
+      // contract barrel, the package's own modules, and tests anywhere.
+      [C7_SRC, CONTRACT_NAME, []],
       [`${EXT}/src/contract/index.ts`, CONTRACT_NAME, []],
       [`${EXT}/src/contract/ports/engine-adapter.ts`, CONTRACT_NAME, [], "type"],
       [`${EXT}/src/core/panel.test.ts`, `${CONTRACT_NAME}/testing`, []],
-      [`${C7}/src/root-cause.test.ts`, CONTRACT_NAME, []],
+      [`${C7}/src/cause.test.ts`, `${CONTRACT_NAME}/testing`, []],
       [`${SHELL}/src/contract.test-support.ts`, `${CONTRACT_NAME}/testing`, []],
       [`${CONTRACT}/src/testing/kit.ts`, "../ports.ts", []],
     ],
   },
   {
     rule: CORE_LEAF,
-    title: "a family core imports only its own modules: no package, no npm module, no built-in",
+    title:
+      "a family core imports only its own modules and the engine contract's main entry: no other " +
+      "package, no npm module, no built-in",
     cases: [
       [C7_SRC, "@miragon/pulse-c7-client", [CORE_LEAF]],
       // The engine module imports the core, never the other way round.
@@ -595,11 +607,37 @@ const SUITES = [
       [`${C7}/src/escape-client.ts`, "../../c7-client/src/target.ts", [CORE_LEAF, DEEP]],
       // The shipped ./testing export is no test file: only *.test.ts may import vitest.
       [`${C7}/src/testing/index.ts`, "vitest", [CORE_LEAF]],
+      // Its one edge out: the engine contract's main entry, from its ./testing entry too, resolved
+      // to the build (c7-core) or bare before a build (the billing core, UNLINKED). Never another
+      // subpath, its ./testing entry least of all (not even from c7-core's own ./testing),
+      // unresolved or resolved into the build, never a relative escape into its sources or its
+      // build, never a look-alike name. A specifier naming the entry's own file is that entry.
+      [`${C7}/src/cause.ts`, CONTRACT_NAME, []],
+      [`${C7}/src/testing/contract.ts`, CONTRACT_NAME, []],
+      [`${C7}/src/entry-file.ts`, `${CONTRACT_NAME}/dist/index.js`, []],
+      [`${C7}/src/kit.ts`, `${CONTRACT_NAME}/testing`, [CORE_LEAF, NO_TESTING]],
+      [`${C7}/src/testing/kit.ts`, `${CONTRACT_NAME}/testing`, [CORE_LEAF]],
+      [`${C7}/src/contract-model.ts`, `${CONTRACT_NAME}/model`, [CORE_LEAF]],
+      [`${C7}/src/testing/deep-kit.ts`, `${CONTRACT_NAME}/dist/testing/index.js`, [CORE_LEAF]],
+      [`${C7}/src/deep-model.ts`, `${CONTRACT_NAME}/dist/model/root-causes.js`, [CORE_LEAF]],
+      [`${C7}/src/contract-x.ts`, `${CONTRACT_NAME}x`, [CORE_LEAF]],
+      [
+        `${C7}/src/escape-contract.ts`,
+        "../../../../core/engine-contract/src/target.ts",
+        [CORE_LEAF, DEEP],
+      ],
+      [
+        `${C7}/src/escape-contract-build.ts`,
+        "../../../../core/engine-contract/dist/index.js",
+        [CORE_LEAF, DEEP],
+      ],
       [C7_SRC, "./lib.ts", []],
       [`${C7}/src/a.test.ts`, "vitest", []],
-      // Keyed on the role: any family's core is a leaf, by the layout alone.
+      // Keyed on the role: any family's core is a leaf, by the layout alone, and may import the
+      // contract's main entry (here bare, shape 3).
       [BILLING_CORE_SRC, "@miragon/pulse-billing-client", [CORE_LEAF]],
       [BILLING_CORE_SRC, "zod", [CORE_LEAF]],
+      [BILLING_CORE_SRC, CONTRACT_NAME, []],
       [BILLING_CORE_SRC, "./lib.ts", []],
     ],
   },
@@ -1696,10 +1734,10 @@ function buildFixture(root) {
     const dependencies = Object.fromEntries(
       [...names, ...THIRD_PARTY].filter((n) => n !== extras.name).map((n) => [n, "*"]),
     )
-    write(`${dir}/package.json`, JSON.stringify({ ...extras, main: "src/index.ts", dependencies }))
+    write(`${dir}/package.json`, JSON.stringify({ main: "src/index.ts", ...extras, dependencies }))
     // pnpm's shape of a declared workspace dependency: a relative directory symlink.
     for (const [otherDir, other] of Object.entries(WORKSPACE)) {
-      if (otherDir === dir) continue
+      if (otherDir === dir || UNLINKED.get(dir) === other.name) continue
       const link = path.join(root, dir, "node_modules", other.name)
       fs.mkdirSync(path.dirname(link), { recursive: true })
       fs.symlinkSync(path.relative(path.dirname(link), path.join(root, otherDir)), link, "dir")
@@ -1797,6 +1835,25 @@ for (const { rule, title, cases } of SUITES) {
     }
   })
 }
+
+describe("the fixture plants a family core's edges to the engine contract in their shapes", () => {
+  const link = `${C7}/node_modules/${CONTRACT_NAME}`
+  it("resolves c7-core's to the build, its main entry and the deep files (shape 2)", () => {
+    assert.equal(edgeOf(`${C7}/src/cause.ts`, CONTRACT_NAME).resolved, `${link}/dist/index.js`)
+    assert.equal(
+      edgeOf(`${C7}/src/testing/deep-kit.ts`, `${CONTRACT_NAME}/dist/testing/index.js`).resolved,
+      `${link}/dist/testing/index.js`,
+    )
+    assert.equal(
+      edgeOf(`${C7}/src/deep-model.ts`, `${CONTRACT_NAME}/dist/model/root-causes.js`).resolved,
+      `${link}/dist/model/root-causes.js`,
+    )
+  })
+
+  it("leaves the billing core's bare and unresolved (shape 3)", () => {
+    assert.equal(edgeOf(BILLING_CORE_SRC, CONTRACT_NAME).resolved, CONTRACT_NAME)
+  })
+})
 
 describe("options.exclude keeps only the hey-api SDK out of the graph", () => {
   it("cruises a generated tree anywhere else (a CLI command catalog, a connector catalog)", () => {

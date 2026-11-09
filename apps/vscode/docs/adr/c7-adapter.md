@@ -16,9 +16,12 @@ flowchart LR
     readers[Readers: C7 answers to contract read models]
     rest[src/engine-rest: REST calls, parses and checks the JSON]
   end
-  core[c7-core: inspect rounds, wait states, root cause, engine date format]
+  core[c7-core: inspect rounds, wait states, engine date format]
+  rules["@miragon/pulse-engine-contract: RootCauses"]
   rest -- "EngineTransport over EngineHttp" --> core
   readers --> core
+  readers -- root cause --> rules
+  core -- root cause --> rules
   subgraph family [Same REST API]
     camunda7[Camunda 7.24]
     operaton[Operaton 2.1]
@@ -35,14 +38,15 @@ on top of a **small REST client** in `apps/vscode/src/adapters/c7/engine-rest/` 
 core of the Camunda 7 REST dialect family c7, `@miragon/pulse-c7-core` (its workflow domain),
 the package the CLI and the MCP server run too.
 
-- **One edge to c7-core, bundled.** c7-core has no runtime dependency and no Node
-  built-in, takes its engine through a caller's port and returns data. Only this adapter
+- **One edge to c7-core, bundled.** c7-core has no runtime dependency but the engine
+  contract's main entry and no Node built-in, takes its engine through a caller's port and
+  returns data. Only this adapter
   imports it (its main entry; `apps/vscode/.dependency-cruiser.cjs`:
   `c7-core-only-in-the-c7-adapter`, and the root rule `family-core-consumers` with the
   adapter in `CORE_BUNDLES`); the contract, the core, the webview and the host stay
   engine-neutral. esbuild inlines it into `dist/extension.cjs`, the .vsix ships no
-  `node_modules`. One home: a fix to wait states or root causes lands once, and the
-  conformance laws run c7-core on all three engines.
+  `node_modules`. One home: a fix to wait states (c7-core) or root causes (the engine
+  contract's `RootCauses`) lands once, and the conformance laws run both on all three engines.
 - **c7-core's port over `EngineHttp`.** `HttpEngineTransport` implements c7-core's
   `EngineTransport`: `InspectOperations` maps each operation id c7-core's inspection
   sends to its REST path (a test holds the table equal to c7-core's
@@ -84,8 +88,8 @@ the package the CLI and the MCP server run too.
   every historic incident of the instance on each live refresh. The view also guarantees the
   definition's version. When the view is ended, the path is read once more after it, so an
   instance that ended during the rounds shows its whole path (ended instances are not polled).
-- **Incident details carry their root cause.** `IncidentTexts` adds c7-core's
-  `rootCause` and `rootCauseLine` of the text to every `IncidentDetails` the adapter reads
+- **Incident details carry their root cause.** `IncidentTexts` adds the engine contract's
+  `RootCauses.of` and `RootCauses.lineOf` of the text to every `IncidentDetails` the adapter reads
   (`getIncidentDetails`, the details of `getInstanceDetail`); the core shows the root cause
   of complete details and the host opens the text at that line.
 - **Writes** are seven requests:
@@ -256,7 +260,7 @@ instance, the definitions by instance) goes in as a parameter, never as construc
 | `apps/vscode/src/adapters/c7/web-ui`              | `CockpitWebUi`                                                                                                                                                                                                                      | the routes into Cockpit or the CIB seven webclient                                                                                             |
 | `apps/vscode/src/adapters/c7`                     | `C7Adapter`, `C7ProcessRuntime`, `C7ProcessCommands`                                                                                                                                                                                | the entry and the two ports; every port call runs through `ErrorTranslation`                                                                   |
 | `apps/vscode/src/adapters/c7/reading`             | `EngineReader`, `DefinitionReader`, `ElementStatisticsReader`, `CalledProcessReader`, `InstanceSearch`, `InstanceDetailReader`, `IncidentSearch`, `IncidentDetailsReader`, `BulkOperationReader`, `MigrationReader`, `OffsetPaging` | which engine calls answer a port method, in parallel where possible, and their answers as read models; offset paging behind the cursor         |
-| `apps/vscode/src/adapters/c7/mapping`             | `DefinitionRefs`, `InstanceStates`, `Timestamps`, `RootIncident`, `IncidentTexts`, `InspectedVariables`                                                                                                                             | the translations several readers share, without I/O; the root cause of incident details (c7-core)                                              |
+| `apps/vscode/src/adapters/c7/mapping`             | `DefinitionRefs`, `InstanceStates`, `Timestamps`, `RootIncident`, `IncidentTexts`, `InspectedVariables`                                                                                                                             | the translations several readers share, without I/O; the root cause of incident details (`RootCauses`)                                         |
 | `apps/vscode/src/adapters/c7/writing`             | `VariableBody`, `CancelBody`, `MigrationBody`, `EngineValues`, `Redaction`, `SourceToken`, `MoveBody`                                                                                                                               | the bodies of a variable change, a move, a cancel and a migration, the allowed types and their engine form, what to keep out of error messages |
 | `apps/vscode/src/adapters/c7/errors`              | `ErrorTranslation`                                                                                                                                                                                                                  | engine failures to `RuntimeError`: `translated`, `unlessMissing`, `commanded<Result>`, `submitted<Result>`, `isRefusal`                        |
 | `apps/vscode/src/adapters/c7/engine-rest`         | `EngineClient`/`RestEngineClient`, `EngineWriter`/`RestEngineWriter`, `RequestArguments`, `Present`                                                                                                                                 | one method per engine call; strict ids and variable names                                                                                      |
