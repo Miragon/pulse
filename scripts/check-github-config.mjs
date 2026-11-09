@@ -17,9 +17,10 @@
  *   the formula of a release again) and hold their tokens like the npm publish
  *   (checkReleaseGate, checkCliPublishWorkflows);
  * - every VS Code extension is packaged by exactly one release job through
- *   publish-vscode-extension.yml, after the release gate, and that workflow keeps the store
- *   credentials in its one job in the vscode-marketplace environment, which installs with
- *   --ignore-scripts and builds nothing (checkVscodePublish);
+ *   publish-vscode-extension.yml, after the release gate, and that workflow publishes by
+ *   trusted publishing on both stores (no secret anywhere) from its one job in the
+ *   vscode-marketplace environment, which installs with --ignore-scripts and builds nothing
+ *   (checkVscodePublish);
  * - the docs site deploys with a release: docs.yml runs on no push, its one deploy job in the
  *   github-pages environment holds only the Pages grants, and one job of release-please.yml calls
  *   it after the approval, once a release is created (checkDocsDeploy);
@@ -639,20 +640,22 @@ export function checkCliPublishWorkflows(workflows) {
 
 // ── publish-vscode-extension.yml ────────────────────────────────────────────
 
-/** The one environment whose job holds the store credentials (or the trusted-publishing token). */
+/**
+ * The one environment whose job holds the trusted-publishing token (id-token). Both stores bind
+ * their trusted publisher to it and to the caller's file name, release-please.yml.
+ */
 export const VSCODE_ENVIRONMENT = "vscode-marketplace"
 /** The directories the Resolve extension step of the workflow accepts. */
 export const VSCODE_APP_DIR = /^apps\/[a-z0-9][a-z0-9-]*$/
 /**
- * The store tokens the caller hands down: the organization's secrets, the same ones every Miragon
- * extension publishes with (Miragon/modeler-suite, Miragon/bpmn-modeler), each by name.
+ * The scripts the publish job runs by name (pinned by scripts/check-ratchets.mjs), each with the
+ * flag that makes its store tool trade the job's OIDC token instead of looking for a store token.
  */
-export const VSCODE_SECRETS = {
-  VSCE_PUBLISH: "${{ secrets.VSCE_PUBLISH }}",
-  OVSX_PUBLISH: "${{ secrets.OVSX_PUBLISH }}",
+const VSCODE_PUBLISH_SCRIPTS = {
+  "marketplace:publish": "--oidc",
+  "open-vsx:publish": "--trusted-publishing",
 }
-/** The scripts the publish job runs by name (pinned by scripts/check-ratchets.mjs). */
-const VSCODE_PUBLISH_SCRIPTS = ["marketplace:publish", "open-vsx:publish"]
+const VSCODE_PUBLISH_SCRIPT_NAMES = Object.keys(VSCODE_PUBLISH_SCRIPTS)
 
 const callsVscodePublish = (job) => job?.uses === `./${VSCODE_PUBLISH_WORKFLOW}`
 const usesCache = (step) =>
@@ -662,7 +665,7 @@ const runsScript = (step, script) =>
 
 /**
  * The release job that calls the workflow for one extension: after the release approval, with the
- * ceiling of the called jobs and the two store tokens by name, never `secrets: inherit` (pure).
+ * ceiling of the called jobs and no secrets, `secrets: inherit` least of all (pure).
  */
 function checkVscodeCaller(id, job) {
   const errors = []
@@ -679,11 +682,11 @@ function checkVscodeCaller(id, job) {
         `package, publish and attach jobs (found ${JSON.stringify(job.permissions)})`,
     )
   }
-  if (!isDeepStrictEqual(job.secrets, VSCODE_SECRETS)) {
+  if (job.secrets !== undefined) {
     errors.push(
-      `${at} must pass exactly the secrets ${JSON.stringify(VSCODE_SECRETS)} (found ` +
-        `${JSON.stringify(job.secrets)}): the organization's store tokens by name, never ` +
-        `secrets: inherit`,
+      `${at} must pass no secrets (found ${JSON.stringify(job.secrets)}): both stores publish ` +
+        `by trusted publishing, so no store token exists, and secrets: inherit would hand ` +
+        `every secret of the repository down`,
     )
   }
   return errors
@@ -715,7 +718,7 @@ const passesFlag = (words, flag) => {
 
 /**
  * The command lines of the credential job that start a package manager or a build: only the one
- * install and the two publish scripts may run next to the store credentials.
+ * install and the two publish scripts may run next to the trusted-publishing token.
  */
 const foreignCommands = (job) =>
   stepsOf(job)
@@ -725,7 +728,7 @@ const foreignCommands = (job) =>
     .filter(
       (command) =>
         !/^pnpm install\b/.test(command) &&
-        !VSCODE_PUBLISH_SCRIPTS.some((script) => runsScript({ run: command }, script)),
+        !VSCODE_PUBLISH_SCRIPT_NAMES.some((script) => runsScript({ run: command }, script)),
     )
 
 /** The job in the environment: the token, the dry-run gate, the install, the publish steps. */
@@ -766,13 +769,23 @@ function checkVscodeCredentialJob(id, job) {
   for (const line of foreignCommands(job)) {
     errors.push(
       `${at} runs "${line}": next to the credentials only the one pnpm install and the scripts ` +
-        `${VSCODE_PUBLISH_SCRIPTS.join(" and ")} run, and nothing builds`,
+        `${VSCODE_PUBLISH_SCRIPT_NAMES.join(" and ")} run, and nothing builds`,
     )
   }
-  for (const script of VSCODE_PUBLISH_SCRIPTS) {
+  for (const [script, flag] of Object.entries(VSCODE_PUBLISH_SCRIPTS)) {
     const steps = stepsOf(job).filter((step) => runsScript(step, script))
     if (steps.length !== 1) {
       errors.push(`${at} must run ${script} in exactly one step, found ${steps.length}`)
+      continue
+    }
+    const publishCommands = commandsOf(steps[0]).filter((command) =>
+      runsScript({ run: command }, script),
+    )
+    if (!publishCommands.every((command) => passesFlag(wordsOf(command), flag))) {
+      errors.push(
+        `${at}: ${script} must pass ${flag}, and no word that switches it back off: the store ` +
+          `takes the job's OIDC token (trusted publishing), never a store token`,
+      )
     }
   }
   return errors
@@ -783,11 +796,11 @@ function checkVscodeWorkflow(doc) {
   const where = VSCODE_PUBLISH_WORKFLOW
   if (doc === undefined) return [`${where} is missing: a release never packages the extension`]
   const errors = []
-  const secrets = doc.on?.workflow_call?.secrets ?? {}
-  if (!isDeepStrictEqual(Object.keys(secrets).sort(), Object.keys(VSCODE_SECRETS).sort())) {
+  const secrets = doc.on?.workflow_call?.secrets
+  if (secrets !== undefined) {
     errors.push(
-      `${where}: must declare exactly the secrets ${Object.keys(VSCODE_SECRETS).join(" and ")} ` +
-        `(found ${JSON.stringify(Object.keys(secrets))})`,
+      `${where}: must declare no secrets (found ${JSON.stringify(Object.keys(secrets ?? {}))}): ` +
+        `both stores publish by trusted publishing`,
     )
   }
   if (!isDeepStrictEqual(doc.permissions, {})) {
@@ -824,8 +837,13 @@ function checkVscodeWorkflow(doc) {
           `string such as write-all or read-all counts)`,
       )
     }
+  }
+  for (const [id, job] of jobs) {
     if (JSON.stringify(job).includes("secrets.")) {
-      errors.push(`${where}: job ${id} reads secrets: only the job in ${VSCODE_ENVIRONMENT} may`)
+      errors.push(
+        `${where}: job ${id} reads secrets: both stores publish by trusted publishing, so no ` +
+          `job holds a store token`,
+      )
     }
   }
 
@@ -859,7 +877,7 @@ function checkVscodeWorkflow(doc) {
 
 /**
  * Every VS Code extension (an app that declares engines.vscode) is packaged by exactly one release
- * job through publish-vscode-extension.yml, and that workflow keeps the store credentials in one
+ * job through publish-vscode-extension.yml, and that workflow keeps the trusted-publishing token (id-token) in one
  * job that builds nothing (pure).
  */
 export function checkVscodePublish(releaseDoc, publishDoc, packages) {

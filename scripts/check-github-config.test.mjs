@@ -941,17 +941,12 @@ describe("checkVscodePublish", () => {
     [
       "secrets: inherit",
       ({ caller }) => (caller.secrets = "inherit"),
-      [/must pass exactly the secrets .* never secrets: inherit/],
+      [/must pass no secrets \(found "inherit"\).* secrets: inherit/],
     ],
     [
-      "a store token missing",
-      ({ caller }) => delete caller.secrets.OVSX_PUBLISH,
-      [/must pass exactly the secrets/],
-    ],
-    [
-      "a store token renamed",
-      ({ caller }) => (caller.secrets.VSCE_PUBLISH = "${{ secrets.VSCE_PAT }}"),
-      [/must pass exactly the secrets/],
+      "a store token handed down",
+      ({ caller }) => (caller.secrets = { VSCE_PUBLISH: "${{ secrets.VSCE_PUBLISH }}" }),
+      [/must pass no secrets .* trusted publishing/],
     ],
     [
       "write-all on the caller",
@@ -964,9 +959,40 @@ describe("checkVscodePublish", () => {
       [/exactly \{ contents: write, id-token: write \}/],
     ],
     [
-      "no store token declared",
-      ({ publish }) => delete publish.on.workflow_call.secrets.OVSX_PUBLISH,
-      [/must declare exactly the secrets VSCE_PUBLISH and OVSX_PUBLISH/],
+      "a store token declared",
+      ({ publish }) => (publish.on.workflow_call.secrets = { OVSX_PUBLISH: { required: false } }),
+      [/must declare no secrets \(found \["OVSX_PUBLISH"\]\)/],
+    ],
+    [
+      "a store token in the publish job",
+      ({ jobs }) =>
+        (stepNamed(jobs.publish, "Publish to Open VSX").env.OVSX_PAT =
+          "${{ secrets.OVSX_PUBLISH }}"),
+      [/job publish reads secrets: both stores publish by trusted publishing/],
+    ],
+    [
+      "a Marketplace publish without --oidc",
+      ({ jobs }) => {
+        const step = stepNamed(jobs.publish, "Publish to the Visual Studio Marketplace")
+        step.run = step.run.replace(" --oidc", "")
+      },
+      [/marketplace:publish must pass --oidc/],
+    ],
+    [
+      "an Open VSX publish with a token instead of --trusted-publishing",
+      ({ jobs }) => {
+        const step = stepNamed(jobs.publish, "Publish to Open VSX")
+        step.run = step.run.replace(" --trusted-publishing", ' --pat "$OVSX_PAT"')
+      },
+      [/open-vsx:publish must pass --trusted-publishing/],
+    ],
+    [
+      "an Open VSX publish that switches --trusted-publishing back off",
+      ({ jobs }) => {
+        const step = stepNamed(jobs.publish, "Publish to Open VSX")
+        step.run = step.run.replace(" --trusted-publishing", " --trusted-publishing=false")
+      },
+      [/open-vsx:publish must pass --trusted-publishing/],
     ],
     [
       "top-level permissions",

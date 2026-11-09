@@ -751,8 +751,9 @@ workspace (its header lists each check).
 - **The VS Code extension ships as a .vsix, never through npm**
   (`.github/workflows/publish-vscode-extension.yml`): packaged without credentials, published
   to the Visual Studio Marketplace and Open VSX from one job in the `vscode-marketplace`
-  environment that builds nothing; `VSCE_PUBLISH`/`OVSX_PUBLISH` are handed down by name, never
-  `secrets: inherit`.
+  environment that builds nothing, by trusted publishing on both stores (`vsce publish --oidc`,
+  `ovsx publish --trusted-publishing`): no store token and no secret, bound to the calling file
+  `release-please.yml` and that environment (`docs/vscode/releasing.md`).
 - **Engine plugins** publish to Maven Central via `publish-to-maven.yml` (Vanniktech Maven
   Publish, GPG-signed) under the group `io.miragon.mcp` with the engine in the artifactId
   (`io.miragon.mcp:cibseven-history-metrics`); publishing config lives in each module's own

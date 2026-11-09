@@ -74,7 +74,8 @@ with every Pulse release (tag `v<version>`), and after the release approval
 plain release to the Visual Studio Marketplace and Open VSX and attaches it to the GitHub
 release. Every pull
 request packages it too (CI job "VS Code package (vsce dry run)"); to check the release path by
-hand, run the Release workflow with `dry_run`. The whole train:
+hand, run the Release workflow with `dry_run`. Both stores publish by trusted publishing (OIDC),
+with no store token: [Releasing](../../docs/vscode/releasing.md). The whole train:
 [the repository's CLAUDE.md](../../CLAUDE.md#releases).
 
 ## License
