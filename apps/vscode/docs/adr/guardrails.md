@@ -112,7 +112,8 @@ repository's CI (`.github/workflows/ci.yml`) next to the server's.
   | `pnpm --filter pulse-cockpit run test:engines` | 13.5 s per image (measured in the original repository)                       |
 
 - The extension runs no mutation testing (owner decision, 2026-11-04): the repository
-  mutates only `@miragon/pulse-engine-core`, whose engine rules the C7 adapter bundles.
+  mutates only `@miragon/pulse-engine-core`, whose engine rules the C7 adapter bundles, and
+  `@miragon/pulse-http`, the transport the adapters are to send through (owner decision 2026-11-08).
 - Thresholds sit just below the measured baseline: coverage lines/statements/functions/
   branches globally 93/93/94/83, contract 97/97/98/90, core 98/98/98/90, the C7 adapter
   92/92/98/80, the model adapter 98/98/98/88, webview 78/78/78/68; bundle 200 000 B,

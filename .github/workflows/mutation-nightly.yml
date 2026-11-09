@@ -4,8 +4,8 @@ name: Mutation (nightly)
 # package's whole `mutate` allowlist, and the only mutation testing CI runs (owner decision): no
 # pull request runs Stryker, and this run is no required check. A red leg means the package
 # scores below its thresholds.break. Only the packages in MUTATED_PACKAGES
-# (scripts/check-package-scripts.mjs) carry a config, today engine-core alone (owner decision,
-# 2026-11-04).
+# (scripts/check-package-scripts.mjs) carry a config: engine-core (owner decision, 2026-11-04)
+# and the transport, @miragon/pulse-http (owner decision 2026-11-08).
 #
 # Each leg keeps its package's Stryker incremental file in the Actions cache (every
 # stryker.config.json sets incremental: true and incrementalFile reports/stryker-incremental.json,
@@ -17,9 +17,9 @@ name: Mutation (nightly)
 # the Node major, so a change there starts the package cold.
 #
 # Nightly at 02:00 UTC, and by dispatch. Mutation testing resumed on 2026-11-04 after the MCP
-# server rebuild, for engine-core alone. A pause flips scripts/mutation-pause.mjs to true and
-# removes the schedule here (a workflow cannot read that switch); resuming flips it back and
-# restores the schedule.
+# server rebuild, for engine-core alone; the transport joined with its package. A pause flips
+# scripts/mutation-pause.mjs to true and removes the schedule here (a workflow cannot read that
+# switch); resuming flips it back and restores the schedule.
 on:
   schedule:
     - cron: "0 2 * * *"
@@ -70,9 +70,10 @@ jobs:
     if: ${{ needs.packages.outputs.packages != '[]' }}
     runs-on: ubuntu-latest
     # A cold or forced run of a package mutates its whole allowlist; the other nights re-run only
-    # what changed. engine-core runs cold in about 2 min on 8 local workers, so 30 min leaves room
-    # for a hosted runner's 4 and the build before it. A package that joins MUTATED_PACKAGES
-    # brings its own measured time here.
+    # what changed. engine-core runs cold in about 2 min on 8 local workers, the transport
+    # (packages/core/http, about 1,370 mutants, its conformance cases on loopback sockets
+    # included) in about 1 min on 17, so 30 min leaves room for a hosted runner's 4 and the build
+    # before it. A package that joins MUTATED_PACKAGES brings its own measured time here.
     timeout-minutes: 30
     strategy:
       fail-fast: false

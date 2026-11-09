@@ -382,9 +382,10 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
     }
   })
 
-  it("the real map lists engine-core alone, with the owner's decision as its reason", () => {
-    assert.deepEqual(Object.keys(MUTATED_PACKAGES), [CORE])
+  it("the real map lists engine-core and the transport, each with the owner's decision", () => {
+    assert.deepEqual(Object.keys(MUTATED_PACKAGES), [CORE, "packages/core/http"])
     assert.match(MUTATED_PACKAGES[CORE], /owner decision 2026-11-04/)
+    assert.match(MUTATED_PACKAGES["packages/core/http"], /owner decision 2026-11-08/)
   })
 })
 

@@ -50,6 +50,7 @@ command line interface (`apps/cli`) and a VS Code extension (`apps/vscode`) for 
 | `packages/core/ui/`                            | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the formatters and the tones without React under `/format` and `/tones`, the brand gates under `/testing`                                                                        |
 | `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), a module's test server (`/testing`)                                                                                                                                                    |
 | `packages/core/profile/`                       | The one profile format of the CLI, Pulse for VS Code and the MCP server (npm `@miragon/pulse-profile`): a parser from a file's text to a verdict per profile as data (a code and a key, never a value), the credential policy by where the file comes from, `refusalsOn` for what a reader cannot serve, the JSON Schema (`schema/pulse.schema.json`) and the shared fixtures (`/testing`); no runtime dependency |
+| `packages/core/http/`                          | The one engine transport of the MCP server, the CLI and Pulse for VS Code (npm `@miragon/pulse-http`) over the `fetch` each hands in (`createHttp`): a deadline to the last byte, no redirect, a 64 MiB cap, one retry after a 401, failure reasons as data, lossless JSON, masked secrets, the path value rule; the conformance cases and a recording fake fetch (`/testing`); no runtime dependency             |
 | `playground/`                                  | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                                                                                                                                                                 |
 | `docs/`                                        | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                                                                                                                                                                                                        |
 | `docs/mcp/`                                    | The MCP server's pages of the docs site (getting started, usage, reference, operations, architecture, build your own, developer)                                                                                                                                                                                                                                                                                  |
@@ -87,7 +88,7 @@ schemas live in its connector, next to the tools
 (`packages/connectors/engine/engine-connector/src/schemas/`), so a client carries no zod:
 validating tool input is the connector's concern, and the wire takes typed parameters.
 Family code stays in its family: `packages/core/` holds what every family builds on (pulse-ui,
-widget-shell, the profile format), never one family's code.
+widget-shell, the profile format, the transport), never one family's code.
 
 The architecture invariants below are written for the MCP server, its modules and its widgets.
 The package rules of invariant 8 (layout, naming, dependency edges) hold for every workspace
@@ -519,7 +520,13 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      `src/lib/core-adapter/engine-port.test.ts`), and the CLI's endpoint hint in
      `apps/cli/src/http/errors.ts` (its http layer does not import the core;
      `apps/cli/src/http/errors.test.ts`). No client
-     follows a redirect: a 3xx fails with a message that names the fix. Every write tool has a
+     follows a redirect: a 3xx fails with a message that names the fix. That rule and the other
+     wire rules (the deadline to the last byte, the 64 MiB cap, Basic as UTF-8, one retry after a
+     401 only when the credential renewed, the write caveat only for a write, the masking, the
+     path value rule) get one home in `@miragon/pulse-http` (`packages/core/http`), whose
+     `TRANSPORT_CASES` every wiring passes (each case its surface can express, `casesFor`); the
+     server, the CLI and the VS Code extension each keep their own until each switches to it.
+     Every write tool has a
      recording-fake-engine case in `src/tools/*.wire.test.ts`.
    - The workflow rules the CLI and the read composites (`engine_inspect_process_instance`,
      `engine_status`, `src/lib/core-adapter/composites.ts`) share live in
@@ -567,7 +574,8 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      package except a family core they bundle (`@miragon/pulse-engine-core`: the CLI's, and the
      VS Code extension's in its C7 adapter alone, `apps/vscode/src/adapters/c7`), the profile
      format where they read their profiles (what `profile-consumers` admits; the CLI may bundle
-     it with its core, `CLI_BUNDLES`) and, in the
+     it with its core, `CLI_BUNDLES`), the transport where they send their engine requests (what
+     `http-consumers` admits; the CLI may bundle it too) and, in the
      VS Code extension's core and webview, pulse-ui's framework-free formatters and tones
      (`@miragon/pulse-ui/format`, `@miragon/pulse-ui/tones`, which import nothing:
      `ui-foundation-entries-import-nothing`; the extension's `pulse-ui-only-its-foundation`
@@ -579,7 +587,14 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      environment (`profile-is-a-leaf`), and only the readers of profiles import it: the CLI's
      config layer, Pulse for VS Code's connections, the engine connector's configuration, and
      tests (`profile-consumers`, `PROFILE_READERS`; until a reader switches to it, only its own
-     tests do); and no shipped code imports a `./testing` entry (`shipped-code-not-to-testing`).
+     tests do); the transport (`@miragon/pulse-http`, `packages/core/http`) is a leaf too, which
+     runs over an injected `fetch` on the web platform's globals, no npm package and no Node
+     built-in (`http-is-a-leaf`; ESLint's `no-restricted-globals` keeps out what only a browser
+     has, `HTTP_BROWSER_GLOBALS`), and only where a surface sends its engine requests is it
+     imported: the CLI's `src/http`, `src/auth` and `src/operation`, Pulse for VS Code's
+     `src/adapters/<dialect>`, a connector, and tests anywhere, never the MCP server app's shipped
+     code (`http-consumers`, `HTTP_USERS`; until a surface switches to it, only its own tests
+     do); and no shipped code imports a `./testing` entry (`shipped-code-not-to-testing`).
      The family rules key on the roles, so a
      new family inherits them. The seams keep browser code apart from the server: widget-shell's
      view half (`src/ui`) imports only itself, `src/protocol` (the wire both halves share: tool
@@ -783,11 +798,11 @@ The release workflows hold the publish credentials and no pull request runs them
 workspace (its header lists each check).
 
 - **One release-please train.** Conventional commits on `main` drive `release-please.yml`: one
-  Release PR (tag `v<version>`) bumps the root, every app, the six packages, the template's
+  Release PR (tag `v<version>`) bumps the root, every app, the seven packages, the template's
   pins and the engine-client User-Agent in lockstep (`extra-files` in `release-please-config.json`).
   Merging it creates the release; every publish job then waits for manual approval of the
   `release` environment gate.
-- **npm:** the six packages and `@miragon/pulse-cli` publish through
+- **npm:** the seven packages and `@miragon/pulse-cli` publish through
   `publish-npm-package.yml` with OIDC trusted publishing (no NPM_TOKEN, provenance attached).
   Each names this repository in its `repository` field, since npm refuses a provenance publish
   from another repository. The pack job runs `pnpm pack`, which rewrites `workspace:*` (npm's
@@ -825,7 +840,7 @@ workspace (its header lists each check).
 | `pnpm typecheck`  | **The only check that type-checks widget code**: `tsc -p tsconfig.widgets.json` in the engine connector and widget-shell (its view half), `tsc -p tsconfig.ui.json` (and `tsconfig.test.json`) in the server app; the VS Code extension per layer, each with that layer's runtime globals only                                                                                                                                                                                                                                                                                                                                                                                        |
 | `pnpm test`       | Vitest unit tests, the server app's wire-contract tests and tools/list goldens (in-process boot, loopback HTTP), the engine output and error-path goldens of the three interfaces, the VS Code extension's architecture tests, the per-package coverage floors, then `node --test` over `scripts/*.test.mjs` (repo guards and gate self-tests, below the table); docs-refs, old-names and `lint:package-scripts` also run in Lint + Format; **no widget rendering** (the VS Code webview tests render in Chromium; locally once: `pnpm --filter pulse-cockpit exec playwright install chromium`)                                                                                      |
 | `pnpm lint`       | The build-free gates first (`lint:naming`, `lint:package-scripts`, `lint:github`, `lint:ratchets`, which needs `git fetch origin`), then ESLint per package incl. the pattern gates, dependency-cruiser (`lint:architecture`, `:cli`, `:vscode`) and knip (`lint:deadcode`: everything but exports and types; `:exports`: exports and types in every workspace but the vendored docs kit), and last `lint:configs` (the config files no tsconfig holds and no package lints: `DEFAULT_PROJECT_FILES` in `eslint.config.mjs`)                                                                                                                                                          |
-| `pnpm fitness`    | Report: architecture graph, per-package coverage and engine-core's mutation score; locally after `pnpm test` (no CI job on a pull request), else the "Mutation summary" job of `.github/workflows/mutation-nightly.yml`                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `pnpm fitness`    | Report: architecture graph, per-package coverage and the mutation scores of engine-core and the transport; locally after `pnpm test` (no CI job on a pull request), else the "Mutation summary" job of `.github/workflows/mutation-nightly.yml`                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `./gradlew build` | The playground engine (`playground/cibseven-example/`): Kotlin compile + unit tests of its processes; CI "CIB Seven Example (Build + Test)", in `pnpm check:all`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `test:host`       | `pnpm --filter @miragon/pulse-mcp-server test:host`: Playwright host simulation of the **built** widget bundle behind a SEP-1865 host shim, the real `engine_open_cockpit` against a stub engine (`pinned …` scenarios are known defects, flipped when fixed); CI "Widget host simulation (test:host)"; run it for changes to widget-shell, pulse-ui, `src/ui/` or the `@modelcontextprotocol/ext-apps` pin                                                                                                                                                                                                                                                                           |
 | Template          | `scripts/test-template.sh` (in `pnpm check:all`; CI "Composed-server template (Build + Test)"): packs the published libraries (`scripts/workspace-packages.mjs`), checks their contents (`scripts/pack-contents.mjs`), points a copy of `templates/composed-server` at them and runs its build, typecheck, test and format check, its pins matched to the workspace first (`scripts/template-pins.mjs`), then build, typecheck and test again with the fixture module `templates/fixtures/prebuilt-module` installed (`scripts/prebuilt-module.mjs`). ESLint, knip and dependency-cruiser skip `templates/`: the template's composition-root rules (invariant 8) are review knowledge |
@@ -866,13 +881,15 @@ makes it carries one.
 `vitest.config.ts`, and a valid `stryker.config.json` sits in each package `MUTATED_PACKAGES`
 lists and in no other.
 
-**Mutation testing covers `@miragon/pulse-engine-core` only** (owner decision, 2026-11-04). It
-holds the pure engine rules the CLI, the MCP server and the VS Code extension share, so a
-surviving mutant there is a wrong rule in all three; in every other package a full run costs
-more than it finds. A package joins only by an owner decision, as an entry in
+**Mutation testing covers `@miragon/pulse-engine-core` and `@miragon/pulse-http`** (owner
+decisions: engine-core 2026-11-04, the transport 2026-11-08). The one holds the pure engine
+rules, the other the wire rules the CLI, the MCP server and the VS Code extension share, so a
+surviving mutant there is a wrong rule in all three; in every other package a full run costs more
+than it finds. A package joins only by an owner decision, as an entry in
 `MUTATED_PACKAGES` (`scripts/check-package-scripts.mjs`). It runs nightly
 (`.github/workflows/mutation-nightly.yml`), never on a pull request (owner decision); a pause
 flips `scripts/mutation-pause.mjs` and drops the schedule. Locally:
-`pnpm --fail-if-no-match --filter @miragon/pulse-engine-core exec stryker run` (`--mutate <file>`
-narrows it), with `vitest.stryker.config.ts`: coverage off, since a threshold failure would read
-as a killed mutant.
+`pnpm --fail-if-no-match --filter @miragon/pulse-engine-core exec stryker run` and
+`pnpm --fail-if-no-match --filter @miragon/pulse-http exec stryker run` (`--mutate <file>`
+narrows it), with each package's `vitest.stryker.config.ts`: coverage off, since a threshold
+failure would read as a killed mutant.

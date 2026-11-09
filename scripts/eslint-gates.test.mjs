@@ -5,7 +5,7 @@ import { before, describe, it } from "node:test"
 import { fileURLToPath } from "node:url"
 import { ESLint, Linter } from "eslint"
 import tseslint from "typescript-eslint"
-import { DEFAULT_PROJECT_FILES } from "../eslint.config.mjs"
+import { DEFAULT_PROJECT_FILES, HTTP_BROWSER_GLOBALS } from "../eslint.config.mjs"
 
 /**
  * Self-test of the architecture pattern gates in eslint.config.mjs (a gate
@@ -681,6 +681,42 @@ describe("engine-core keeps the CLI's budgets (the CLI block of eslint.config.mj
     const rel = `${ENGINE}/__probe__.test.ts`
     assert.equal((await budget(rel, "max-lines"))?.max, 400)
     assert.equal(await ruleOptionsFor(rel, "max-lines-per-function"), null)
+  })
+})
+
+describe("the transport keeps out what only a browser has (packages/core/http)", () => {
+  const HTTP_SRC = "packages/core/http/src"
+  const isHit = (m) => m.includes("The transport runs outside a browser")
+  const globalsGate = (rel, code) => gateMessages(rel, code, "no-restricted-globals")
+
+  it("bans each name of HTTP_BROWSER_GLOBALS in its shipped code, the ./testing export included", async () => {
+    for (const name of [
+      "window",
+      "document",
+      "XMLHttpRequest",
+      "WebSocket",
+      "EventSource",
+      "alert",
+    ]) {
+      assert.ok(HTTP_BROWSER_GLOBALS.includes(name), name)
+    }
+    for (const rel of [`${HTTP_SRC}/__probe__.ts`, `${HTTP_SRC}/testing/__probe__.ts`]) {
+      for (const name of HTTP_BROWSER_GLOBALS) {
+        const messages = await globalsGate(rel, `export const probe = ${name}`)
+        assert.equal(messages.filter(isHit).length, 1, `${rel}: ${name}`)
+      }
+    }
+  })
+
+  it("leaves fetch's own globals, a local binding of a banned name and the tests alone", async () => {
+    const code =
+      "const close = (): number => 1\n" +
+      "export const probe = [fetch, Request, Response, Headers, AbortSignal, URL, close()]"
+    assert.deepEqual(await globalsGate(`${HTTP_SRC}/__probe__.ts`, code), [])
+    assert.equal(
+      await ruleOptionsFor("packages/core/http/test/__probe__.ts", "no-restricted-globals"),
+      null,
+    )
   })
 })
 

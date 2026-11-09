@@ -40,6 +40,11 @@
         },
         {
           "type": "json",
+          "path": "packages/core/http/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
           "path": "packages/core/ui/package.json",
           "jsonpath": "$.version"
         },

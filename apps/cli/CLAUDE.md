@@ -59,12 +59,15 @@ returns data (next steps, error reasons); `next-text.ts` and `error-text.ts` in
 `apps/cli/src/workflow/` word them as the CLI prints them. The CLI's rules also admit the profile
 format, `@miragon/pulse-profile`, in `apps/cli/src/config/` (`CLI_BUNDLES` and
 `profile-consumers` in the root `.dependency-cruiser.cjs`), for the config layer to read the
-profiles with.
+profiles with, and the transport, `@miragon/pulse-http`, in `apps/cli/src/http/`,
+`apps/cli/src/auth/` and `apps/cli/src/operation/` (`CLI_BUNDLES` and `http-consumers`), for the
+requests to go out through it; neither is used yet.
 
 ## Budgets
 
 The CLI's blocks in the root `eslint.config.mjs` (which also hold
-`packages/connectors/engine/engine-core` and `packages/core/profile`, the packages it may bundle)
+`packages/connectors/engine/engine-core`, `packages/core/profile` and `packages/core/http`, the
+packages it may bundle)
 are stricter than the global ones and only tighten: the strict type-checked rules of
 typescript-eslint, complexity 10, 300 effective lines per file for shipped code and scripts, 60
 lines per function, 20 statements, depth 3, 4 parameters. Every test file stays within 400
@@ -117,8 +120,9 @@ no `generate` script, so turbo's cached `generate` task never replays a stale ca
 - The Testcontainers suites (`test:engines`, Docker, build first) run the built CLI against
   Operaton and CIB seven (Camunda 7's image left Docker Hub in November 2026), with Basic auth,
   behind Keycloak and an Envoy gateway, and pack the tarball.
-- No mutation testing (owner decision, 2026-11-04): the repository mutates only
-  `@miragon/pulse-engine-core`, which holds the workflow rules the CLI bundles.
+- No mutation testing of the CLI itself (owner decision, 2026-11-04): the repository mutates
+  only `@miragon/pulse-engine-core`, which holds the workflow rules the CLI bundles, and
+  `@miragon/pulse-http`, the transport it may bundle (owner decision 2026-11-08).
 - Coverage floors in `apps/cli/vitest.config.ts` only rise.
 
 ## The command and its second name

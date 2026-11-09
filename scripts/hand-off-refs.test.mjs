@@ -165,6 +165,10 @@ describe("the hand-off readers", () => {
       'const e = { id: "jobs", intent: { type: "jobs" }, icon }',
       "const f = { summary: { total: 1 }, definitions }",
       "const g = { query, summary, tone }",
+      // A request of the transport says whether it writes: data, not a hand-off.
+      'const h = { method: "GET", url, intent: "read" }',
+      'const i = { method: "PUT", url: `${root}/x`, intent: "write", body }',
+      'const j = { method: "POST", path: "/process-instance", intent: "read", body: QUERY }',
     ].join("\n")
     assert.deepEqual(findHandOffSpecs("x.ts", text), [
       { kind: "hand-off", at: "x.ts:1", staticText: true, namedTools: [], extraMembers: [] },

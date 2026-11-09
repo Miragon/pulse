@@ -80,9 +80,13 @@ export const REQUIRED_SCRIPTS = {
  */
 export const MUTATED_PACKAGES = {
   "packages/connectors/engine/engine-core":
-    "owner decision 2026-11-04: mutation testing covers engine-core only. It holds the pure " +
-    "engine rules the CLI, the MCP server and the VS Code extension share, where a surviving " +
-    "mutant is a wrong rule in all three; in every other package a full run costs more than it finds",
+    "owner decision 2026-11-04: engine-core holds the pure engine rules the CLI, the MCP server " +
+    "and the VS Code extension share, where a surviving mutant is a wrong rule in all three; in " +
+    "a package without such rules a full run costs more than it finds",
+  "packages/core/http":
+    "owner decision 2026-11-08: the transport the MCP server, the CLI and the " +
+    "VS Code extension send through (deadline, redirects, cap, credentials, failure reasons, " +
+    "masking), where a surviving mutant is a wrong wire rule in all three",
 }
 
 /** The one path the CI mutation artifact and scripts/fitness-report.mjs read. */

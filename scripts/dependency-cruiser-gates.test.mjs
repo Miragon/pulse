@@ -38,6 +38,7 @@ const EXT = "apps/vscode"
 const SHELL = "packages/core/widget-shell"
 const UI = "packages/core/ui"
 const PROFILE = "packages/core/profile"
+const HTTP = "packages/core/http"
 const ENGINE = "packages/connectors/engine/engine-core"
 const ENGINE_CLIENT = "packages/connectors/engine/engine-client"
 const ENGINE_CONNECTOR = "packages/connectors/engine/engine-connector"
@@ -54,6 +55,7 @@ const WORKSPACE = {
   [SHELL]: { name: "@miragon/pulse-widget-shell" },
   [UI]: { name: "@miragon/pulse-ui" },
   [PROFILE]: { name: "@miragon/pulse-profile" },
+  [HTTP]: { name: "@miragon/pulse-http" },
   [ENGINE]: { name: "@miragon/pulse-engine-core" },
   [ENGINE_CLIENT]: { name: "@miragon/pulse-engine-client" },
   [ENGINE_CONNECTOR]: { name: "@miragon/pulse-engine-connector" },
@@ -110,6 +112,8 @@ const HEADLESS = "cli-is-headless"
 const CORE_LEAF = "family-core-is-a-leaf"
 const PROFILE_LEAF = "profile-is-a-leaf"
 const PROFILE_USERS = "profile-consumers"
+const HTTP_LEAF = "http-is-a-leaf"
+const HTTP_USERS = "http-consumers"
 const CORE_USERS = "family-core-consumers"
 const CLI_CORE_LAYERS = "cli-family-core-only-in-named-layers"
 const NO_TESTING = "shipped-code-not-to-testing"
@@ -152,6 +156,8 @@ const ENGINE_CORE = "@miragon/pulse-engine-core"
 const BILLING_CORE_NAME = "@miragon/pulse-billing-core"
 const PROFILE_NAME = "@miragon/pulse-profile"
 const PROFILE_SRC = `${PROFILE}/src/index.ts`
+const HTTP_NAME = "@miragon/pulse-http"
+const HTTP_SRC = `${HTTP}/src/index.ts`
 const BILLING_CORE_SRC = `${BILLING_CORE}/src/index.ts`
 const ENGINE_CLIENT_SRC = `${ENGINE_CLIENT}/src/index.ts`
 const ENGINE_CONNECTOR_SRC = `${ENGINE_CONNECTOR}/src/index.ts`
@@ -197,6 +203,8 @@ const LEAVES = [
   `${ENGINE}/src/testing/fixture.ts`,
   `${PROFILE}/src/target.ts`,
   `${PROFILE}/src/lib.ts`,
+  `${HTTP}/src/target.ts`,
+  `${HTTP}/src/lib.ts`,
   `${BILLING_CORE}/src/lib.ts`,
   `${BILLING_CORE}/src/a.test.ts`,
   `${ENGINE_CLIENT}/src/target.ts`,
@@ -321,6 +329,14 @@ const SUITES = [
         "../../../../packages/core/profile/src/target.ts",
         [HEADLESS, DEEP],
       ],
+      // So is the transport (CLI_BUNDLES): its name is exempt, anchored, and its tree is not
+      // (http-consumers decides where in the CLI it is used).
+      [`${CLI}/src/http/http-x.ts`, "@miragon/pulse-httpx", [HEADLESS]],
+      [
+        `${CLI}/src/http/escape-http.ts`,
+        "../../../../packages/core/http/src/target.ts",
+        [HEADLESS, DEEP],
+      ],
     ],
   },
   {
@@ -391,6 +407,76 @@ const SUITES = [
       [`${ENGINE_CONNECTOR}/src/module.test.ts`, `${PROFILE_NAME}/testing`, []],
       [`${SHELL}/src/profile.test.ts`, PROFILE_NAME, []],
       [`${CLI}/test/support/profiles.ts`, `${PROFILE_NAME}/testing`, []],
+    ],
+  },
+  {
+    rule: HTTP_LEAF,
+    title: "the transport imports only its own modules: no package, no npm module, no built-in",
+    cases: [
+      // Not even a sibling of packages/core: core-is-foundation lets the others import one.
+      [HTTP_SRC, "@miragon/pulse-ui", [HTTP_LEAF]],
+      [HTTP_SRC, "@miragon/pulse-widget-shell/server", [HTTP_LEAF]],
+      [HTTP_SRC, PROFILE_NAME, [HTTP_LEAF, PROFILE_USERS]],
+      [HTTP_SRC, ENGINE_CORE, [CORE, HTTP_LEAF]],
+      [HTTP_SRC, "@miragon/pulse-engine-client", [CORE, HTTP_LEAF]],
+      [HTTP_SRC, "@miragon/pulse-cli", [NO_APP, HTTP_LEAF]],
+      // No HTTP library under the injected fetch, no token verifier, no schema, no UI.
+      ...["undici", "jose", "zod", "react", "reactive", "node:http"].map((spec) => [
+        HTTP_SRC,
+        spec,
+        [HTTP_LEAF],
+      ]),
+      [`${HTTP}/src/url.ts`, "url", [HTTP_LEAF]],
+      [`${HTTP}/src/escape.ts`, "../../ui/src/target.ts", [HTTP_LEAF, DEEP]],
+      // The shipped ./testing export is no test file: its conformance cases are data, no vitest.
+      [`${HTTP}/src/testing/index.ts`, "vitest", [HTTP_LEAF]],
+      [`${HTTP}/src/testing/cases.ts`, "../lib.ts", []],
+      [`${HTTP}/src/http.ts`, "./lib.ts", []],
+      [`${HTTP}/src/a.test.ts`, "vitest", []],
+    ],
+  },
+  {
+    rule: HTTP_USERS,
+    title: "the transport is used where a surface sends its engine requests, and in tests",
+    cases: [
+      [SERVER_SRC, HTTP_NAME, [HTTP_USERS]],
+      [SHELL_SRC, HTTP_NAME, [HTTP_USERS]],
+      [UI_SRC, HTTP_NAME, [UI_LEAF, HTTP_USERS]],
+      [PROFILE_SRC, HTTP_NAME, [PROFILE_LEAF, HTTP_USERS]],
+      [ENGINE_SRC, HTTP_NAME, [CORE_LEAF, HTTP_USERS]],
+      [ENGINE_CLIENT_SRC, HTTP_NAME, [CLIENT_LEAF, HTTP_USERS]],
+      // A connector may, its widgets may not: they are browser code.
+      [`${ENGINE_CONNECTOR}/src/widgets/http.ts`, HTTP_NAME, [WIDGETS_BROWSER]],
+      [`${CLI}/src/workflow/http.ts`, HTTP_NAME, [HTTP_USERS]],
+      [`${CLI}/src/config/http.ts`, HTTP_NAME, [HTTP_USERS]],
+      [`${CLI}/src/httpx/client.ts`, HTTP_NAME, [HTTP_USERS]],
+      [`${EXT}/src/core/http.ts`, HTTP_NAME, [HTTP_USERS]],
+      [`${EXT}/src/host/http.ts`, HTTP_NAME, [HTTP_USERS]],
+      // The adapters, one folder per dialect: not a file beside them.
+      [`${EXT}/src/adapters/http.ts`, HTTP_NAME, [HTTP_USERS]],
+      [
+        `${SERVER}/src/escape-http.ts`,
+        "../../../packages/core/http/src/target.ts",
+        [HTTP_USERS, DEEP],
+      ],
+      // Unresolved subpaths (shape 3: dependency-cruiser reads no exports map).
+      [`${SHELL}/src/http-sub.ts`, `${HTTP_NAME}/oauth`, [HTTP_USERS]],
+      [`${SERVER}/src/http-testing.ts`, `${HTTP_NAME}/testing`, [HTTP_USERS, NO_TESTING]],
+      // A user's shipped code reaches no ./testing entry either.
+      [`${CLI}/src/http/cases.ts`, `${HTTP_NAME}/testing`, [NO_TESTING]],
+      // Allowed: the layers that send, a connector of any family, and tests anywhere.
+      [`${CLI}/src/http/transport.ts`, HTTP_NAME, []],
+      [`${CLI}/src/auth/http.ts`, HTTP_NAME, []],
+      [`${CLI}/src/operation/http.ts`, HTTP_NAME, []],
+      [`${EXT}/src/adapters/c7/http.ts`, HTTP_NAME, []],
+      [`${EXT}/src/adapters/c8/http.ts`, `${HTTP_NAME}/oauth`, []],
+      [`${ENGINE_CONNECTOR}/src/lib/engine/http.ts`, HTTP_NAME, []],
+      [`${BILLING_CONNECTOR}/src/http.ts`, HTTP_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/http.test.ts`, `${HTTP_NAME}/testing`, []],
+      [`${SHELL}/src/http.test.ts`, HTTP_NAME, []],
+      [`${CLI}/test/support/http.ts`, `${HTTP_NAME}/testing`, []],
+      [`${EXT}/src/adapters/c7/http.test.ts`, `${HTTP_NAME}/testing`, []],
+      [`${SERVER}/src/http.test.ts`, HTTP_NAME, []],
     ],
   },
   {
@@ -1157,6 +1243,9 @@ const SUITES = [
       // So is the profile format, which the CLI bundles as well.
       [`${PROFILE}/src/type-cycle-a.ts`, "./type-cycle-b.ts", [CLI_CYCLE], "type"],
       [`${PROFILE}/src/type-cycle-b.ts`, "./type-cycle-a.ts", [CLI_CYCLE], "type"],
+      // And the transport.
+      [`${HTTP}/src/type-cycle-a.ts`, "./type-cycle-b.ts", [CLI_CYCLE], "type"],
+      [`${HTTP}/src/type-cycle-b.ts`, "./type-cycle-a.ts", [CLI_CYCLE], "type"],
       // A core the CLI does not bundle is out of the CLI's rules: no-circular tolerates the type.
       [`${BILLING_CORE}/src/type-cycle-a.ts`, "./type-cycle-b.ts", [], "type"],
       [`${BILLING_CORE}/src/type-cycle-b.ts`, "./type-cycle-a.ts", [], "type"],
@@ -1179,6 +1268,7 @@ const SUITES = [
       [`${ENGINE}/src/testing/to-test.ts`, "../a.test.ts", [CLI_NOT_TEST]],
       [`${ENGINE}/src/c.test.ts`, "./a.test.ts", [CLI_NOT_TEST]],
       [`${PROFILE}/src/c.test.ts`, "./a.test.ts", [CLI_NOT_TEST]],
+      [`${HTTP}/src/c.test.ts`, "./a.test.ts", [CLI_NOT_TEST]],
       // A core the CLI does not bundle is out of the CLI's rules.
       [`${BILLING_CORE}/src/to-test.ts`, "./a.test.ts", []],
       // Each package's own tests only: the CLI's rule never reaches into the core's tree.

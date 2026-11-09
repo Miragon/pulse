@@ -17,13 +17,14 @@
  *   - `<family>-core`, when the family's interfaces share a pure domain: a leaf that the
  *     family's connector and the interface apps that bundle it import (engine-core).
  * The foundation packages every family builds on live under `packages/core/` (npm names
- * without a role suffix, e.g. `@miragon/pulse-widget-shell`), never one family's code; one of
- * them, the profile format (`@miragon/pulse-profile`, PROFILE), is a leaf only the readers of
- * profiles import. The apps under `apps/` sit ON TOP of
+ * without a role suffix, e.g. `@miragon/pulse-widget-shell`), never one family's code; two of
+ * them are leaves only their consumers import: the profile format (`@miragon/pulse-profile`,
+ * PROFILE), read where a surface reads its profiles, and the transport (`@miragon/pulse-http`,
+ * HTTP), used where a surface sends its engine requests. The apps under `apps/` sit ON TOP of
  * the packages: the MCP server (`@miragon/pulse-mcp-server`) composes the
  * connectors; of the two interface apps, the CLI (apps/cli, `@miragon/pulse-cli`) imports no
- * workspace package but the ones CLI_BUNDLES names, which tsdown inlines (its family core, and
- * the profile format for its config layer), and the VS Code
+ * workspace package but the ones CLI_BUNDLES names, which tsdown inlines (its family core, the
+ * profile format for its config layer and the transport for its http layer), and the VS Code
  * extension (apps/vscode, the unscoped `pulse-cockpit`, because vsce rejects scoped names)
  * imports it in its C7 adapter alone (apps/vscode/src/adapters/c7, esbuild bundles it).
  * No package and no app imports an app
@@ -128,13 +129,36 @@ const PROFILE_READERS = [
 ]
 
 /**
- * The workspace packages the CLI may bundle (tsdown inlines what it imports, so the published CLI
- * depends on none of them): its family core, CORE_BUNDLES' entry for apps/cli, and the profile
- * format, admitted for the config layer before the CLI reads its profiles with it. The only
- * workspace packages cli-is-headless lets the CLI import; cli-no-circular and cli-not-to-test
- * hold their trees as part of the CLI.
+ * The transport (packages/core/http, npm `@miragon/pulse-http`): one HTTP client over an
+ * injected fetch for the MCP server's engine connector, the CLI and Pulse for VS Code's adapters.
+ * A foundation package and a leaf, so it stays out of CORE_BUNDLES too: its own rules are
+ * http-is-a-leaf and http-consumers.
  */
-const CLI_BUNDLES = [CORE_BUNDLES["^apps/cli/"], PROFILE]
+const HTTP = { name: "@miragon/pulse-http", tree: "packages/core/http" }
+
+/**
+ * Where a surface sends its engine requests, the only shipped importers of HTTP: the CLI's
+ * http, auth and operation layers, the adapters of Pulse for VS Code (one folder per dialect
+ * under src/adapters; its closed world, apps/vscode/.dependency-cruiser.cjs, admits the edge on
+ * its own) and a connector (keyed by the role, so a new family's connector inherits it; its
+ * widgets stay browser code, connector-widgets-are-browser-code). Never the MCP server app's
+ * shipped code: it composes connectors. Tests import it anywhere, as they do the profile format.
+ */
+const HTTP_USERS = [
+  "^apps/cli/src/(?:http|auth|operation)/",
+  "^apps/vscode/src/adapters/[^/]+/",
+  "^packages/connectors/[^/]+/[^/]+-connector/(?:src|test)/",
+]
+
+/**
+ * The workspace packages the CLI may bundle (tsdown inlines what it imports, so the published CLI
+ * depends on none of them): its family core, CORE_BUNDLES' entry for apps/cli, the profile
+ * format, admitted for the config layer before the CLI reads its profiles with it, and the
+ * transport, admitted for the http, auth and operation layers before the CLI sends with it. The
+ * only workspace packages cli-is-headless lets the CLI import; cli-no-circular and
+ * cli-not-to-test hold their trees as part of the CLI.
+ */
+const CLI_BUNDLES = [CORE_BUNDLES["^apps/cli/"], PROFILE, HTTP]
 const CLI_BUNDLE_NAMES = CLI_BUNDLES.map(({ name }) => escapeRegExp(name)).join("|")
 const CLI_BUNDLE_TREES = CLI_BUNDLES.map(({ tree }) => escapeRegExp(tree)).join("|")
 
@@ -471,8 +495,9 @@ module.exports = {
       comment:
         "The CLI (apps/cli) is a terminal interface, not an MCP host: it imports no workspace " +
         "package except the ones CLI_BUNDLES names, which tsdown inlines (" +
-        "@miragon/pulse-engine-core, the engine family's workflow domain, and " +
-        "@miragon/pulse-profile, the profile format), and nothing of the MCP/UI/server " +
+        "@miragon/pulse-engine-core, the engine family's workflow domain, " +
+        "@miragon/pulse-profile, the profile format, and @miragon/pulse-http, the transport), " +
+        "and nothing of the MCP/UI/server " +
         "stack (react, react-dom, lucide-react, preact, bpmn-js, diagram-js, " +
         "@modelcontextprotocol, hono, jose, TanStack, prom-client, " +
         "zod, @hey-api, vscode, @miragon/modeler-shell). A relative escape into a bundled " +
@@ -522,6 +547,43 @@ module.exports = {
         ],
       },
       to: { path: [`^${escapeRegExp(PROFILE.tree)}/`, ...npm(escapeRegExp(PROFILE.name))] },
+    },
+    {
+      name: "http-is-a-leaf",
+      severity: "error",
+      comment:
+        "The transport (packages/core/http, @miragon/pulse-http) has no runtime dependency: its " +
+        "shipped code (the ./testing export included) imports only its own modules, no " +
+        "workspace package, no npm package (no undici, jose, zod or react) and no Node " +
+        "built-in. It runs over the fetch a surface hands it (Node's, the VS Code extension " +
+        "host's with its proxy and certificates), on the web platform's globals alone; where " +
+        "the secrets come from, how a request is built and every word a person reads stay with " +
+        "the surface. Its tests (test/) may import vitest, fast-check and Node built-ins for " +
+        "the loopback engines of the conformance cases.",
+      from: { path: `^${escapeRegExp(HTTP.tree)}/src/`, pathNot: ["[.]test[.]ts$"] },
+      to: { pathNot: `^${escapeRegExp(HTTP.tree)}/src/` },
+    },
+    {
+      name: "http-consumers",
+      severity: "error",
+      comment:
+        "The transport (@miragon/pulse-http) may be imported only where a surface sends its " +
+        "engine requests (HTTP_USERS): the CLI's http, auth and operation layers " +
+        "(apps/cli/src/http, src/auth, src/operation), the adapters of Pulse for VS Code " +
+        "(apps/vscode/src/adapters/<dialect>) and a connector, and by tests anywhere. Not the " +
+        "MCP server app's shipped code (it composes connectors, which send), no " +
+        "other foundation package (widget-shell verifies the server's own OAuth with jose), no " +
+        "client and no family core (leaves). A relative escape into packages/core/http is a " +
+        "violation too.",
+      from: {
+        pathNot: [
+          ...HTTP_USERS,
+          `^${escapeRegExp(HTTP.tree)}/(?:src|test)/`,
+          ...SRC_TEST_CODE,
+          "^apps/[^/]+/(?:test|test-host)/",
+        ],
+      },
+      to: { path: [`^${escapeRegExp(HTTP.tree)}/`, ...npm(escapeRegExp(HTTP.name))] },
     },
     {
       name: "family-core-is-a-leaf",
@@ -615,7 +677,7 @@ module.exports = {
       severity: "error",
       comment:
         "The CLI (apps/cli) and the packages CLI_BUNDLES names (engine-core, the profile " +
-        "format) have no import cycle at all, type-only cycles included (stricter than " +
+        "format, the transport) have no import cycle at all, type-only cycles included (stricter than " +
         "no-circular above). Extract the shared part into its own module.",
       from: { path: `^(?:apps/cli|${CLI_BUNDLE_TREES})/` },
       to: { circular: true },
@@ -635,7 +697,7 @@ module.exports = {
       severity: "error",
       comment:
         "Nothing in the CLI or in the packages CLI_BUNDLES names (engine-core, the profile " +
-        "format) imports a test file (*.test.ts) of its own tree. Shared test helpers live in " +
+        "format, the transport) imports a test file (*.test.ts) of its own tree. Shared test helpers live in " +
         "apps/cli/test/support/ and in a bundled package's src/testing/.",
       from: { path: `^(apps/cli|${CLI_BUNDLE_TREES})/` },
       to: { path: "^$1/.*[.]test[.]ts$" },

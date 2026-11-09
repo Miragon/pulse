@@ -1,0 +1,12 @@
+{
+  // The tests under test/: the loopback engines of the conformance cases (node:http,
+  // node:https, node:crypto) and the fakes, the one place the package's code sees Node types.
+  // src/ keeps its own project (tsconfig.json), where they stay compile errors.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "noEmit": true,
+    "rootDir": "."
+  },
+  "include": ["test"]
+}

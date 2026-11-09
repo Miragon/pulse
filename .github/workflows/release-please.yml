@@ -82,6 +82,7 @@ jobs:
         directory:
           - packages/core/ui
           - packages/core/profile
+          - packages/core/http
           - packages/connectors/engine/engine-core
           - packages/connectors/engine/engine-client
           - packages/core/widget-shell

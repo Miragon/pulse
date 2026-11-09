@@ -78,6 +78,12 @@
       },
     },
 
+    "packages/core/http": {
+      "vitest": {
+        "config": ["vitest.config.ts", "vitest.stryker.config.ts"],
+      },
+    },
+
     "docs": {
       // `lint:deadcode:exports` skips this workspace: its code is the vendored kit,
       // whose exports (miragonLegal, MiragonGitHub, …) are the kit's API for every

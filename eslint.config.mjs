@@ -32,11 +32,43 @@ export const DEFAULT_PROJECT_FILES = [
   "packages/connectors/engine/engine-client/openapi-ts.config.ts",
   "packages/connectors/engine/engine-core/vitest.config.ts",
   "packages/connectors/engine/engine-core/vitest.stryker.config.ts",
+  "packages/core/http/vitest.config.ts",
+  "packages/core/http/vitest.stryker.config.ts",
   "packages/core/profile/vitest.config.ts",
   "packages/core/ui/vitest.config.ts",
   "packages/core/widget-shell/vitest.config.ts",
   "docs/.vitepress/config.ts",
   "docs/.vitepress/theme/index.ts",
+]
+
+// What only a browser has, which the transport (packages/core/http) never reaches for: its
+// tsconfig types the web platform's globals through lib DOM, which brings them along.
+export const HTTP_BROWSER_GLOBALS = [
+  "window",
+  "document",
+  "navigator",
+  "location",
+  "history",
+  "self",
+  "top",
+  "parent",
+  "frames",
+  "opener",
+  "localStorage",
+  "sessionStorage",
+  "indexedDB",
+  "caches",
+  "XMLHttpRequest",
+  "WebSocket",
+  "EventSource",
+  "alert",
+  "confirm",
+  "prompt",
+  "open",
+  "close",
+  "print",
+  "HTMLElement",
+  "Element",
 ]
 
 // The VS Code extension's runtime probes (apps/vscode/test/<layer>/runtime.boundary.ts)
@@ -506,13 +538,14 @@ export default tseslint.config(
   // nesting, function length and statement budgets. No `ignores` and no no-restricted-syntax here: the tests get their own
   // block below, and a no-restricted-syntax setting would REPLACE the pattern gates. The CLI's
   // workflow domain, @miragon/pulse-engine-core (packages/connectors/engine/engine-core), keeps
-  // these budgets, and so does the profile format the CLI bundles too, @miragon/pulse-profile
-  // (packages/core/profile).
+  // these budgets, and so do the profile format and the transport the CLI bundles too,
+  // @miragon/pulse-profile (packages/core/profile) and @miragon/pulse-http (packages/core/http).
   {
     files: [
       "apps/cli/**/*.ts",
       "packages/connectors/engine/engine-core/**/*.ts",
       "packages/core/profile/**/*.ts",
+      "packages/core/http/**/*.ts",
     ],
     extends: [tseslint.configs.strictTypeChecked, tseslint.configs.stylisticTypeChecked],
     rules: {
@@ -533,14 +566,16 @@ export default tseslint.config(
   // global test budget of 400 effective lines, also for the tests and fakes outside src/ (the
   // global budget block reads apps/*/src only), and none of the per-function budgets; the
   // non-null assertion and the unsafe assignment/member access that fixtures need stay allowed.
-  // The same for engine-core's and the profile format's tests. Their ./testing exports (fixtures,
-  // the fake port) ship on npm and keep the budgets of shipped code.
+  // The same for engine-core's, the profile format's and the transport's tests (the transport's
+  // fakes and loopback engines under its test/ too). Their ./testing exports (fixtures, the fake
+  // port, the conformance cases) ship on npm and keep the budgets of shipped code.
   {
     files: [
       "apps/cli/**/*.test.ts",
       "apps/cli/test/**/*.ts",
       "packages/connectors/engine/engine-core/**/*.test.ts",
       "packages/core/profile/**/*.test.ts",
+      "packages/core/http/test/**/*.ts",
     ],
     rules: {
       "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }],
@@ -550,6 +585,22 @@ export default tseslint.config(
       "@typescript-eslint/no-non-null-assertion": "off",
       "@typescript-eslint/no-unsafe-assignment": "off",
       "@typescript-eslint/no-unsafe-member-access": "off",
+    },
+  },
+  // The transport (packages/core/http) runs over the fetch it is handed, in Node, in the VS Code
+  // extension host and wherever else fetch exists: its tsconfig types the web platform's globals
+  // (lib DOM) and no Node, and this keeps out what only a browser has (HTTP_BROWSER_GLOBALS:
+  // the window, the page, the browser's own requests and sockets, its dialogs and storage).
+  {
+    files: ["packages/core/http/src/**/*.ts"],
+    rules: {
+      "no-restricted-globals": [
+        "error",
+        ...HTTP_BROWSER_GLOBALS.map((name) => ({
+          name,
+          message: "The transport runs outside a browser: only fetch's globals.",
+        })),
+      ],
     },
   },
   // The CLI's build and catalog scripts report on the console.

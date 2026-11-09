@@ -10,7 +10,9 @@ import { REPO_ROOT } from "./source-scan.mjs"
  * (W0) read the same engine. Apps share no code, so each surface keeps its own copy of the case
  * list and its answers (error-cases.ts), its test and its fixtures; each surface's own test holds
  * its README table to its list and its golden files, and this guard holds the three tables, the
- * three case files and the two world copies to one another, below their headers.
+ * three case files and the two world copies to one another, below their headers. Each case is a
+ * conformance case of the transport too (@miragon/pulse-http/testing, TRANSPORT_CASES), under the
+ * same name, which every wiring of the transport runs.
  */
 
 const SURFACES = ["apps/mcp-server", "apps/cli", "apps/vscode"]
@@ -21,10 +23,20 @@ const CASE_FILES = [
   "apps/vscode/test/adapters/c7/goldens/error-cases.ts",
 ]
 
+/** The files of the transport's conformance cases, one per group. */
+const TRANSPORT_CASE_FILES = ["wire-cases.ts", "credential-cases.ts", "request-cases.ts"].map(
+  (file) => `packages/core/http/src/testing/${file}`,
+)
+
 const WORLDS = [
   "apps/mcp-server/test/engine-goldens/world.ts",
   "apps/cli/test/support/golden-world.ts",
 ]
+
+/** The names of a transport case file: each case's `name: "…",` line. */
+function transportNames(source) {
+  return [...source.matchAll(/^ {4}name: "([a-z0-9-]+)",$/gm)].map((match) => match[1])
+}
 
 /** The case names of a README table, in order: rows of the form `| \`case\` | status |`. */
 function caseNames(markdown) {
@@ -88,5 +100,23 @@ describe("the shared files", () => {
     const [mcp, cli] = WORLDS.map((rel) => sharedBody(read(rel)))
     assert.ok(mcp.includes('"/process-instance/pi-1"'), "the scanner reads no world")
     assert.equal(cli, mcp, `${WORLDS[1]} drifted from ${WORLDS[0]}: change both together`)
+  })
+})
+
+describe("the transport's conformance cases", () => {
+  it("read a case file's names and nothing else", () => {
+    const source = '  {\n    name: "redirect",\n    about: "x",\n    request: { name: "no" },\n'
+    assert.deepEqual(transportNames(source), ["redirect"])
+  })
+
+  it("carry the name of every error-path case, since each is a transport case too", () => {
+    const golden = caseNames(read("apps/mcp-server/test/__golden__/error-paths/README.md"))
+    const transport = TRANSPORT_CASE_FILES.flatMap((rel) => transportNames(read(rel)))
+    assert.ok(transport.length > golden.length, "the scanner reads no transport cases")
+    assert.deepEqual(
+      golden.filter((name) => !transport.includes(name)),
+      [],
+      "add a conformance case of this name to packages/core/http/src/testing/",
+    )
   })
 })
