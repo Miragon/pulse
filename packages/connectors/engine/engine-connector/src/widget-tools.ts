@@ -1,5 +1,5 @@
 import type { ModuleServer } from "@miragon/pulse-widget-shell/server"
-import type { VerdictThresholds } from "@miragon/pulse-engine-core"
+import type { VerdictThresholds } from "@miragon/pulse-c7-core"
 import type { EngineRegistry } from "./lib/engine/resolve-engine.js"
 import { engineParamShapeFor } from "./lib/engine/with-engine.js"
 import type { EngineToolset } from "./lib/mcp/toolsets.js"

@@ -73,7 +73,7 @@ export function errorCodeForStatus(status: number): ErrorCode {
  * True when a 404 comes from routing rather than from the engine: no ExceptionDto at all (a servlet
  * container or Spring Boot error page at the wrong root) or the JAX-RS `NotFoundException` the REST
  * API reports for unknown paths. Missing resources are reported as `InvalidRequestException`.
- * Restates engine-core's `isUnknownEndpoint` (the http layer does not import the core,
+ * Restates c7-core's `isUnknownEndpoint` (the http layer does not import the core,
  * cli-family-core-only-in-named-layers); `errors.test.ts` holds the two equal.
  */
 function isUnknownEndpoint(engine: EngineError | undefined): boolean {

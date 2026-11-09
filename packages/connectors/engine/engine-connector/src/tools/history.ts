@@ -13,7 +13,7 @@ import {
   engineSorting,
   toOptionalEngineDate,
   trueOnly,
-} from "@miragon/pulse-engine-core"
+} from "@miragon/pulse-c7-core"
 import {
   getHistoricProcessInstances,
   getHistoricProcessInstancesCount,

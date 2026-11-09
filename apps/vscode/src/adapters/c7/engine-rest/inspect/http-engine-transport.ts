@@ -1,4 +1,4 @@
-import type { EngineFailure, EngineTransport, OperationInput } from "@miragon/pulse-engine-core"
+import type { EngineFailure, EngineTransport, OperationInput } from "@miragon/pulse-c7-core"
 import { Present } from "../present.js"
 import type { EngineHttp } from "../http/engine-http.js"
 import { EngineRequestError } from "../http/engine-request-error.js"

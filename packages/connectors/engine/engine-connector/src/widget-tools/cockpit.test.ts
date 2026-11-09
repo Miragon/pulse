@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest"
 import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
 import type { z } from "zod"
-import { DEFAULT_VERDICT_THRESHOLDS, type VerdictThresholds } from "@miragon/pulse-engine-core"
+import { DEFAULT_VERDICT_THRESHOLDS, type VerdictThresholds } from "@miragon/pulse-c7-core"
 import type { EngineEntry } from "../engine-provider.js"
 import { createEngineRegistry } from "../lib/engine/resolve-engine.js"
 import { providerForEntry } from "../providers/index.js"

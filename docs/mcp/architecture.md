@@ -40,21 +40,20 @@ second engine dialect cheap:
   _vendors_ (CIB seven, Operaton, Camunda 7) are per-engine runtime configuration
   (`flavor` on the engine entry, resolved to an `EngineProvider` carrying only the
   real differences: cockpit routes, branding, client hook), never packages or apps.
-  A _dialect_ (an engine API family: Camunda 7 today, Flowable would be another) is
-  one package family under `packages/connectors/<family>/`. A family is one source the
-  server reads, a dialect or another source (a metrics store, say): its client,
-  its connector (the MCP module) and, when its interfaces share a pure domain, its core.
-  A package two interfaces share is extracted on its second consumer into the family's core,
-  like `@miragon/pulse-engine-core`, the Camunda 7 family's workflow domain that the CLI and
-  the VS Code extension's C7 adapter bundle and the engine connector runs over its client
-  (one port per API family; it names
-  no command, flag or tool). `packages/core/` holds what every family builds on, never one
-  family's code. An
-  _interface_ is an app:
-  `apps/mcp-server` is the thin composition root of the Camunda-7-dialect
-  MCP server (the engine module); a different dialect gets a family and an MCP server app
-  named after it.
-  The CLI (`apps/cli`) and the VS Code extension (`apps/vscode`) are interfaces of their own.
+  A _dialect_ (an engine API family: Camunda 7 today, Camunda 8 later) is one package
+  family under `packages/connectors/<dialect>/` (`c7` today). A family is one source the
+  server reads, a dialect or another source (a metrics store, say): its client, its core when
+  its interfaces share a pure domain and, for a source that is no dialect, its connector (the
+  MCP module). A package two interfaces share is extracted on its second consumer into the
+  family's core, like `@miragon/pulse-c7-core`, the core of the Camunda 7 REST dialect family
+  that the CLI and the VS Code extension's C7 adapter bundle and the engine connector runs over
+  its client (one port per API family; it names no command, flag or tool). `packages/core/`
+  holds what every family builds on, never one family's code. One MCP server app and one module
+  serve every dialect (owner decisions 2026-11-07 and 2026-11-08): `apps/mcp-server` is the
+  thin composition root, and the engine module (`packages/connectors/engine/engine-connector`)
+  spans the dialect families, which join it one by one (`ENGINE_DIALECTS` in
+  `.dependency-cruiser.cjs`). An _interface_ is an app: the MCP server, the CLI (`apps/cli`)
+  and the VS Code extension (`apps/vscode`).
 - Modules are peers. Connector packages (`*-connector`) never import each other. What one
   module needs of another the app injects through `shared` (`SharedResources` in
   `apps/mcp-server/src/setup.ts`), the port for what the modules of a composition share; today
@@ -86,9 +85,9 @@ second engine dialect cheap:
   connector, the CLI and the VS Code extension, over the `fetch` each hands in (they switch to it
   one by one): a deadline to the last byte, no redirect, a 64 MiB cap, one retry after a 401,
   failure reasons as data, masked secrets; every wiring passes its `TRANSPORT_CASES`.
-- Extract on the second consumer, never speculatively. A composed-views
-  package appears with the first cross-module view, a shared domain-widget
-  package with a second dialect, a host-kit with a second MCP server app.
+- Extract on the second consumer, never speculatively. A composed-views package appears with
+  the first cross-module view. A second dialect joins the engine module (`ENGINE_DIALECTS`),
+  never with a widget package or an MCP server app of its own.
 
 ## Views and hosts
 
@@ -140,11 +139,11 @@ holds when the two share building blocks again.
 
 ## Repository layout
 
-| Path                   | Description                                                              |
-| ---------------------- | ------------------------------------------------------------------------ |
-| `apps/mcp-server/`     | The MCP server entry point and the widget bundle.                        |
-| `packages/core/`       | What every family builds on: widget-shell, pulse-ui, profile, transport. |
-| `packages/connectors/` | One folder per family: client, connector (MCP plugin), optional core.    |
-| `playground/`          | Demo env: showcases, Compose stack, Fly.io deployment.                   |
+| Path                   | Description                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------- |
+| `apps/mcp-server/`     | The MCP server entry point and the widget bundle.                               |
+| `packages/core/`       | What every family builds on: widget-shell, pulse-ui, profile, transport.        |
+| `packages/connectors/` | One folder per family: `engine` with the engine module, one per dialect (`c7`). |
+| `playground/`          | Demo env: showcases, Compose stack, Fly.io deployment.                          |
 
 For deeper detail, [Reference](reference.md) lists every tool and toolset.

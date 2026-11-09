@@ -4,7 +4,7 @@ import {
   engineDateMillis,
   incidentRecovery,
   latestEngineDate,
-} from "@miragon/pulse-engine-core"
+} from "@miragon/pulse-c7-core"
 import { getIncidents, getProcessInstances } from "@miragon/pulse-engine-client/sdk"
 import type { IncidentInstance } from "../view-models.js"
 import type { EngineProvider } from "../engine-provider.js"

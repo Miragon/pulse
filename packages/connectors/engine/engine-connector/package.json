@@ -54,8 +54,8 @@
     "lint:fix": "eslint src --fix"
   },
   "dependencies": {
-    "@miragon/pulse-engine-client": "workspace:*",
-    "@miragon/pulse-engine-core": "workspace:*"
+    "@miragon/pulse-c7-core": "workspace:*",
+    "@miragon/pulse-engine-client": "workspace:*"
   },
   "peerDependencies": {
     "@miragon/pulse-ui": "workspace:^",

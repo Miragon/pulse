@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest"
 import type { Client } from "@miragon/pulse-engine-client"
 import { registerEngineTools } from "./engines.js"
-import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-engine-core"
+import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-c7-core"
 import { captureTools } from "./test-support/fake-engine.js"
 import type { EngineEntry } from "../engine-provider.js"
 import { createEngineRegistry, type EngineRegistry } from "../lib/engine/resolve-engine.js"

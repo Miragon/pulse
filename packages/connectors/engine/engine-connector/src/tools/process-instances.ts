@@ -18,7 +18,7 @@ import {
   trueOnly,
   toEngineVariable,
   toEngineVariables,
-} from "@miragon/pulse-engine-core"
+} from "@miragon/pulse-c7-core"
 import {
   startProcessInstanceByKey,
   getProcessInstances,

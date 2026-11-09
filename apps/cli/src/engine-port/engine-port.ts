@@ -1,10 +1,10 @@
 /**
- * What the workflow commands need from an engine: the port of @miragon/pulse-engine-core plus the
+ * What the workflow commands need from an engine: the port of @miragon/pulse-c7-core plus the
  * catalog request, the `--dry-run` preview and the route of a request. Types only: the engine
  * adapters in src/engines implement it.
  */
 
-import type * as core from "@miragon/pulse-engine-core"
+import type * as core from "@miragon/pulse-c7-core"
 import type { OperationInput } from "../operation/request.js"
 import type { OperationResult, RequestPreview } from "../operation/result.js"
 

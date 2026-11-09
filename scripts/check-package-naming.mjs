@@ -15,7 +15,7 @@
  *   connectors-own-their-family matches a connector's own client and core by that
  *   name; apps and foundation packages carry no suffix, because the
  *   dependency-cruiser rules match the suffix by name. A family's -core (its pure
- *   domain, e.g. engine-core) is family code: it lives in the family, never under
+ *   domain, e.g. c7-core) is family code: it lives in the family, never under
  *   packages/core/, which holds what every family builds on and no family's code.
  * - The npm name is @miragon/pulse-<dir>. The one exception is a VS Code
  *   extension, an app whose package.json declares engines.vscode: vsce takes no

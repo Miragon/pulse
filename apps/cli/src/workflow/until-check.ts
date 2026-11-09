@@ -6,13 +6,7 @@
  * tree, an XML it cannot read) skips the check.
  */
 
-import {
-  activeTree,
-  type Condition,
-  definitionKeyOf,
-  records,
-  str,
-} from "@miragon/pulse-engine-core"
+import { activeTree, type Condition, definitionKeyOf, records, str } from "@miragon/pulse-c7-core"
 import type { EnginePort } from "../engine-port/engine-port.js"
 import { PulseCliError, usageError } from "../errors.js"
 import { closeNames } from "../util.js"

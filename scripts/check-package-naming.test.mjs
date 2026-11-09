@@ -92,7 +92,7 @@ describe("checkPackageName: today's packages", () => {
         { name: "@miragon/pulse-mcp-server", private: true, bin: { x: "dist/index.js" } },
       ],
       ["packages/core/widget-shell", { name: "@miragon/pulse-widget-shell" }],
-      ["packages/connectors/engine/engine-core", { name: "@miragon/pulse-engine-core" }],
+      ["packages/connectors/c7/c7-core", { name: "@miragon/pulse-c7-core" }],
       ["packages/connectors/engine/engine-client", scoped("engine-client")],
       ["packages/connectors/engine/engine-connector", scoped("engine-connector")],
       ["docs", { name: "@miragon/pulse-docs", private: true }],
@@ -230,7 +230,7 @@ describe("checkPackageName: connector families", () => {
   })
 
   it("accepts a family's pure domain as its -core", () => {
-    for (const base of ["engine-core", "billing-core"]) {
+    for (const base of ["c7-core", "billing-core"]) {
       const dir = `packages/connectors/${base.split("-")[0]}/${base}`
       assert.deepEqual(checkPackageName(dir, scoped(dir)), [], dir)
     }
@@ -251,7 +251,7 @@ describe("checkPackageName: directory rules", () => {
       "packages/core/engine-connector",
       "packages/core/shared-client",
       // A family's domain is family code: packages/core holds no family's code.
-      "packages/core/engine-core",
+      "packages/core/c7-core",
       "apps/foo-connector",
       "apps/vscode-core",
     ]) {

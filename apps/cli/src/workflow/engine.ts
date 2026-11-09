@@ -3,7 +3,7 @@
  * `buildRequest` + `sendRequest` exactly like `ping`, so `--engine`, auth, `-H`, `--timeout`,
  * `--verbose` traces, redirect refusal and the error hints apply unchanged, and hints name the
  * generated command of the request (`pulse task complete`). The read rules (paging, missing
- * resources, text answers) are the engine port's of @miragon/pulse-engine-core.
+ * resources, text answers) are the engine port's of @miragon/pulse-c7-core.
  */
 
 import {
@@ -11,7 +11,7 @@ import {
   type EngineFailure,
   type EngineTransport,
   Slots,
-} from "@miragon/pulse-engine-core"
+} from "@miragon/pulse-c7-core"
 import { findByOperationId } from "../catalog/catalog.js"
 import type { Catalog, OperationSpec } from "../catalog/types.js"
 import type { AuthorizedPreview, EnginePort, PlannedRequest } from "../engine-port/engine-port.js"

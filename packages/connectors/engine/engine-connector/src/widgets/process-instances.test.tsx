@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
-import { complementaryFlags } from "@miragon/pulse-engine-core"
+import { complementaryFlags } from "@miragon/pulse-c7-core"
 import { ENGINE_PROCESS_INSTANCES_DATA } from "../tool-names.js"
 import type { ProcessInstancesData } from "../view-models.js"
 import { ProcessInstancesView } from "./process-instances/list.js"

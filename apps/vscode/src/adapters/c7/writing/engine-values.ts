@@ -1,4 +1,4 @@
-import { toEngineDate } from "@miragon/pulse-engine-core"
+import { toEngineDate } from "@miragon/pulse-c7-core"
 import { ValueKinds, type ValueKind } from "../../../contract/index.js"
 
 const NUMBER_KINDS: ReadonlySet<ValueKind> = new Set<ValueKind>(["integer", "decimal"])

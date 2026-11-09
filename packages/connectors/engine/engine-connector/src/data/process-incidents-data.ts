@@ -1,5 +1,5 @@
 import type { Client } from "@miragon/pulse-engine-client"
-import { latestEngineDate, toEngineDate } from "@miragon/pulse-engine-core"
+import { latestEngineDate, toEngineDate } from "@miragon/pulse-c7-core"
 import {
   getActivityStatistics,
   getIncidents,

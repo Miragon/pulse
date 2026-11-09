@@ -16,12 +16,12 @@ written for the MCP server, so this file holds the CLI's own. The pages for peop
   delete, has a read-only mode, and writes its answers as JSON and its errors as one JSON line on
   stderr with a documented exit code. A change to any of that is a change to the docs.
 - One runtime dependency, commander. The workflow domain and engine REST rules,
-  `@miragon/pulse-engine-core` (`packages/connectors/engine/engine-core`, the engine family's
-  core), are a devDependency that tsdown bundles; everything else that ships is the code in
-  `apps/cli/src/`. The built bundle imports only commander and Node built-ins, and stays within
-  its size budget (`scripts/published-imports.test.mjs` reads `apps/cli/dist` and the ceiling in
-  `apps/cli/test/__golden__/bundle-budget.json`, which `pnpm lint:ratchets` holds shrink-only:
-  growth needs a `Ratchet-Exception:` trailer that says why).
+  `@miragon/pulse-c7-core` (`packages/connectors/c7/c7-core`, the core of the Camunda 7 REST
+  dialect family c7), are a devDependency that tsdown bundles; everything else that ships is
+  the code in `apps/cli/src/`. The built bundle imports only commander and Node built-ins, and
+  stays within its size budget (`scripts/published-imports.test.mjs` reads `apps/cli/dist` and
+  the ceiling in `apps/cli/test/__golden__/bundle-budget.json`, which `pnpm lint:ratchets` holds
+  shrink-only: growth needs a `Ratchet-Exception:` trailer that says why).
 
 ## Layers
 
@@ -33,8 +33,8 @@ cruises `apps/cli/src`, `pnpm lint:architecture:cli` its `scripts/` and `test/`.
 | `apps/cli/src/bin/`         | The entry point and the Node runtime (`createNodeRuntime`)                 |
 | `apps/cli/src/cli/`         | commander wiring and the utility commands; the only layer with commander   |
 | `apps/cli/src/operation/`   | Input building, guards, requests, execution, paging                        |
-| `apps/cli/src/workflow/`    | The workflow commands, pure: engine-core's bindings, its CLI text, waiting |
-| `apps/cli/src/engine-port/` | engine-core's port plus `call`, `preview`, `route`: types only             |
+| `apps/cli/src/workflow/`    | The workflow commands, pure: c7-core's bindings, its CLI text, waiting     |
+| `apps/cli/src/engine-port/` | c7-core's port plus `call`, `preview`, `route`: types only                 |
 | `apps/cli/src/engines/`     | One adapter per engine, all on the one generated catalog                   |
 | `apps/cli/src/api/`         | One folder per engine API; only the adapters use one                       |
 | `apps/cli/src/docs/`        | The guide, `describe`, examples: the texts agents read                     |
@@ -50,7 +50,7 @@ cruises `apps/cli/src`, `pnpm lint:architecture:cli` its `scripts/` and `test/`.
 No cycle, a type-only one included. The pure layers import no Node built-in (WebCrypto and the
 timers are globals). Only the `auth login` command reaches the interactive login (loopback
 server, browser), so no other command can ever wait for a person. The CLI imports no workspace
-package but `@miragon/pulse-engine-core`, and that only from `apps/cli/src/workflow/`,
+package but `@miragon/pulse-c7-core`, and that only from `apps/cli/src/workflow/`,
 `apps/cli/src/engine-port/` and the two operation modules that apply its engine REST rules,
 `apps/cli/src/operation/dates.ts` (the `UTC_WITHOUT_OFFSET` date reading) and
 `apps/cli/src/operation/variables.ts` (`autoTypedValue`) (tests anywhere), and nothing of the MCP
@@ -66,7 +66,7 @@ requests to go out through it; neither is used yet.
 ## Budgets
 
 The CLI's blocks in the root `eslint.config.mjs` (which also hold
-`packages/connectors/engine/engine-core`, `packages/core/profile` and `packages/core/http`, the
+`packages/connectors/c7/c7-core`, `packages/core/profile` and `packages/core/http`, the
 packages it may bundle)
 are stricter than the global ones and only tighten: the strict type-checked rules of
 typescript-eslint, complexity 10, 300 effective lines per file for shipped code and scripts, 60
@@ -104,7 +104,7 @@ no `generate` script, so turbo's cached `generate` task never replays a stale ca
 ## Tests
 
 - While you iterate, run the files you touch with `pnpm test:one apps/cli/src/<name>.test.ts`
-  (coverage off, engine-core built first): run alone, a file fails the floors, since
+  (coverage off, c7-core built first): run alone, a file fails the floors, since
   `coverage.include` counts every file it does not load. Then
   `pnpm exec turbo run typecheck test lint --filter=@miragon/pulse-cli`; `pnpm check` is the bar.
 - Unit and fast-check property tests drive the CLI through `fakeRuntime`, an in-memory runtime;
@@ -121,7 +121,7 @@ no `generate` script, so turbo's cached `generate` task never replays a stale ca
   Operaton and CIB seven (Camunda 7's image left Docker Hub in November 2026), with Basic auth,
   behind Keycloak and an Envoy gateway, and pack the tarball.
 - No mutation testing of the CLI itself (owner decision, 2026-11-04): the repository mutates
-  only `@miragon/pulse-engine-core`, which holds the workflow rules the CLI bundles, and
+  only `@miragon/pulse-c7-core`, which holds the workflow rules the CLI bundles, and
   `@miragon/pulse-http`, the transport it may bundle (owner decision 2026-11-08).
 - Coverage floors in `apps/cli/vitest.config.ts` only rise.
 

@@ -1,24 +1,26 @@
-# @miragon/pulse-engine-core
+# @miragon/pulse-c7-core
 
-[![npm](https://img.shields.io/npm/v/@miragon/pulse-engine-core?style=flat-square)](https://www.npmjs.com/package/@miragon/pulse-engine-core)
+[![npm](https://img.shields.io/npm/v/@miragon/pulse-c7-core?style=flat-square)](https://www.npmjs.com/package/@miragon/pulse-c7-core)
 [![CI](https://img.shields.io/github/actions/workflow/status/Miragon/pulse/ci.yml?style=flat-square&label=ci)](https://github.com/Miragon/pulse/actions/workflows/ci.yml)
 [![Docs](https://img.shields.io/badge/docs-miragon.github.io%2Fpulse-335DE5?style=flat-square)](https://miragon.github.io/pulse/)
 
-The workflow domain of the Camunda 7 REST API family (Operaton, CIB seven, Camunda 7): where a
-process instance waits and why, how an engine is doing, and what retry and advance would send,
-and the pure engine REST rules every caller of this API needs (dates, filters, sorting, variable
-writes, incident recovery). It runs on an engine port you implement and returns data.
+The core of the Camunda 7 REST dialect family c7 (Operaton, CIB seven, Camunda 7), its workflow
+domain: where a process instance waits and why, how an engine is doing, and what retry and
+advance would send, and the pure engine REST rules every caller of this API needs (dates,
+filters, sorting, variable writes, incident recovery). It runs on an engine port you implement
+and returns data.
 
 ## Who uses it
 
 [pulse-cli](https://www.npmjs.com/package/@miragon/pulse-cli) bundles it: `inspect`, `status`,
 `wait`, `advance` and `retry` run on it and word its results as command lines and CLI errors.
-[@miragon/pulse-engine-connector](https://www.npmjs.com/package/@miragon/pulse-engine-connector)
-runs inspect and status on it over its client, as the MCP tools `engine_inspect_process_instance`
-and `engine_status`, and builds its cockpit's failure clusters and health verdict from the same
-`messageSignature` (the incident mask), `causeKeyOf` (one cause) and `engineVerdict` (`ok`,
-`warning` or `critical`, by thresholds you pass), so the CLI's `status`, `engine_status` and the
-cockpit count one cause alike and judge an engine by one rule.
+[@miragon/pulse-engine-connector](https://www.npmjs.com/package/@miragon/pulse-engine-connector),
+the engine module that serves every dialect, runs inspect and status on it over its client, as
+the MCP tools `engine_inspect_process_instance` and `engine_status`, and builds its cockpit's
+failure clusters and health verdict from the same `messageSignature` (the incident mask),
+`causeKeyOf` (one cause) and `engineVerdict` (`ok`, `warning` or `critical`, by thresholds you
+pass), so the CLI's `status`, `engine_status` and the cockpit count one cause alike and judge an
+engine by one rule.
 Pulse for VS Code bundles it in its C7 adapter: an instance's panel reads the instance through
 `loadInstance` and the root cause of an incident through `rootCause` and `rootCauseLine`.
 It is the shared domain of every Pulse interface to this API family, so an MCP tool and a CLI
@@ -38,7 +40,7 @@ the summaries of planned writes (`execute job j1`).
 ## Install
 
 ```sh
-npm install @miragon/pulse-engine-core
+npm install @miragon/pulse-c7-core
 ```
 
 ## The API in brief
@@ -75,7 +77,7 @@ npm install @miragon/pulse-engine-core
   text at).
 
 ```ts
-import { createEnginePort, type EngineTransport, inspectInstance } from "@miragon/pulse-engine-core"
+import { createEnginePort, type EngineTransport, inspectInstance } from "@miragon/pulse-c7-core"
 
 // Your client's answer of one request, read right after it arrived.
 type Answer = { readonly body?: unknown; readonly text?: string }
@@ -99,7 +101,7 @@ const view = await inspectInstance(
 
 ## Testing helpers
 
-`@miragon/pulse-engine-core/testing` exports the verified workflow fixture, the status fixture,
+`@miragon/pulse-c7-core/testing` exports the verified workflow fixture, the status fixture,
 wait states of every kind, `fakePort` (a recording port over canned answers that refuses any
 operation without a route) and `fakeClock`. It also exports the rules behind the entry's
 functions that tests reach directly, and `INSPECT_OPERATIONS` and `STATUS_OPERATIONS`, the

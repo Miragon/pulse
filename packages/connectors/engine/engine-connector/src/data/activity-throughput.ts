@@ -5,7 +5,7 @@ import {
   getHistoricProcessInstancesCount,
   getProcessInstances,
 } from "@miragon/pulse-engine-client/sdk"
-import { mapLimit, toEngineDate } from "@miragon/pulse-engine-core"
+import { mapLimit, toEngineDate } from "@miragon/pulse-c7-core"
 import { createCallerCache, oneAtATime } from "../lib/engine/per-engine.js"
 import type { ActivityThroughputActivity, ActivityThroughputData } from "../view-models.js"
 import { MULTI_INSTANCE_BODY, placeOnDiagram, readDiagramXml } from "./activity-diagram.js"

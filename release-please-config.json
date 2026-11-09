@@ -30,7 +30,7 @@
         },
         {
           "type": "json",
-          "path": "packages/connectors/engine/engine-core/package.json",
+          "path": "packages/connectors/c7/c7-core/package.json",
           "jsonpath": "$.version"
         },
         {

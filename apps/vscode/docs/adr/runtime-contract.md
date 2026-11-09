@@ -165,7 +165,7 @@ for any workspace, and the conformance kit does not cover them
 - **Details name their root cause.** `IncidentDetails.rootCause` is one line out of the
   text (for a stack trace its last cause, short class name, at most 300 characters) and
   `rootCauseLine` the line of the text a viewer opens at. Reading a stack trace is engine
-  knowledge, so the adapter delivers both (the C7 adapter through engine-core's
+  knowledge, so the adapter delivers both (the C7 adapter through c7-core's
   `rootCause` and `rootCauseLine`); the law
   "incidents: details name their root cause in one line and point at a line of their
   text" holds every adapter to it.

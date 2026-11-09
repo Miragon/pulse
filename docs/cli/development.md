@@ -74,7 +74,7 @@ The command surface is data, not hand-written code:
 src/bin/        entry point and the Node runtime (I/O, timers, loopback server, browser, lock file, shell)
 src/cli/        commander wiring and the utility commands; the only layer that imports commander
 src/operation/  input building, variables, dates, guards, request building, execution, pagination
-src/workflow/   the workflow commands on @miragon/pulse-engine-core (bundled): its text, waiting (pure)
+src/workflow/   the workflow commands on @miragon/pulse-c7-core (bundled): its text, waiting (pure)
 src/engine-port/ what the CLI needs from an engine: EnginePort and EngineAdapter (types only)
 src/engines/    one adapter per engine (operaton, cibseven, camunda7) and the list of them (pure)
 src/api/        one folder per engine API; camunda7-rest builds catalog and port for the adapters (pure)
@@ -94,7 +94,7 @@ The overview with diagrams is in [Architecture](architecture.md), the decisions 
 (`pnpm lint:architecture` cruises `apps/cli/src`, `pnpm lint:architecture:cli` its `scripts/` and
 `test/`): no cycle (a type-only one included), only `src/bin` imports `src/cli`, only `src/cli`
 imports commander, the pure layers import no Node built-in, `workflow` knows engines only through
-`src/engine-port`, only they and `src/operation/{dates,variables}.ts` import engine-core, only the
+`src/engine-port`, only they and `src/operation/{dates,variables}.ts` import c7-core, only the
 adapters import `src/api`, only `auth login` reaches the interactive login, and only
 `src/catalog/catalog.ts` and the adapters (each its own) read the catalogs.
 
@@ -110,7 +110,7 @@ adapters import `src/api`, only `auth login` reaches the interactive login, and 
 - **fast-check** property tests for naming, patches, variable parsing, dates, query building,
   projection, table width, config and auth precedence, PKCE, token expiry, the token cache, body
   validation and secret masking.
-- **StrykerJS** mutates the workflow rules the CLI bundles from `@miragon/pulse-engine-core`,
+- **StrykerJS** mutates the workflow rules the CLI bundles from `@miragon/pulse-c7-core`,
   nightly in CI; the CLI's own code is not mutation-tested (owner decision, 2026-11-04).
 - **Testcontainers** suites against the three engines, with and without Basic auth, behind
   Keycloak and an Envoy JWT gateway for OAuth, through the workflow commands, plus a test of the

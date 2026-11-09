@@ -12,7 +12,7 @@ import {
   records,
   str,
   type Waited,
-} from "@miragon/pulse-engine-core"
+} from "@miragon/pulse-c7-core"
 import { findByOperationId } from "../catalog/catalog.js"
 import type { Catalog, MultipartBodySpec } from "../catalog/types.js"
 import type { EnginePort, PlannedRequest } from "../engine-port/engine-port.js"

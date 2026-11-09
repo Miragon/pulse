@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { WorkflowError, type WorkflowErrorReason } from "@miragon/pulse-engine-core"
+import { WorkflowError, type WorkflowErrorReason } from "@miragon/pulse-c7-core"
 import { asToolError, WorkflowToolError } from "./workflow-errors.js"
 
 const of = (reason: WorkflowErrorReason) => {

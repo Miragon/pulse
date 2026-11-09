@@ -22,7 +22,7 @@ import {
   engineVerdict,
   largestCause,
   type VerdictThresholds,
-} from "@miragon/pulse-engine-core"
+} from "@miragon/pulse-c7-core"
 import { buildEngineHealthData, healthVerdictRule } from "./health-data.js"
 
 const mockedGetIncidents = vi.mocked(getIncidents)
@@ -209,7 +209,7 @@ describe("buildEngineHealthData verdict", () => {
     expect(data.statusRule).toBe(healthVerdictRule(T))
   })
 
-  it("is engine-core's verdict, the one engine_status gives", async () => {
+  it("is c7-core's verdict, the one engine_status gives", async () => {
     for (const sizes of [[], [1], [3, 3, 3], [3, 3, 3, 1], [3], [4], [2, 2]]) {
       const data = await verdict(sizes)
       const openIncidents = sizes.reduce((a, b) => a + b, 0)
@@ -219,7 +219,7 @@ describe("buildEngineHealthData verdict", () => {
     }
   })
 
-  it("counts one cause across definitions, engine-core's largestCause, as engine_status does", async () => {
+  it("counts one cause across definitions, c7-core's largestCause, as engine_status does", async () => {
     // 2 + 2 incidents of one activity, type and message in two definitions: one cause of 4
     const rows = [
       ...scan([2]),

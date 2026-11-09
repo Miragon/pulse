@@ -24,7 +24,7 @@ import { REPO_ROOT } from "./source-scan.mjs"
  *
  * An app that BUNDLES workspace packages it lists only as devDependencies
  * would fail the src scan by design, so a bundled app (BUNDLED_APPS: the CLI,
- * which bundles @miragon/pulse-engine-core) is read from its BUILT bundle
+ * which bundles @miragon/pulse-c7-core) is read from its BUILT bundle
  * instead: every module under its dist imports only Node built-ins and its
  * declared dependencies (a workspace package left external fails), and the
  * bundle stays within its size budget and close to it. `pnpm build` runs first (CI's
@@ -47,7 +47,7 @@ const BUNDLED_APPS = {
   "@miragon/pulse-cli": {
     dist: "apps/cli/dist",
     budget: "apps/cli/test/__golden__/bundle-budget.json",
-    bundles: ["@miragon/pulse-engine-core"],
+    bundles: ["@miragon/pulse-c7-core"],
   },
 }
 
@@ -357,18 +357,18 @@ describe("published packages declare what their shipped source imports", () => {
       "overrides:",
       '  qs: "^6.16.0"',
     ].join("\n")
-    const DOMAIN = "packages/connectors/engine/engine-core"
+    const DOMAIN = "packages/connectors/c7/c7-core"
     const LAYOUT = {
       "pnpm-workspace.yaml": WORKSPACE,
       "apps/cli/package.json": json({
         name: "@miragon/pulse-cli",
         bin: { "pulse-cli": "dist/pulse-cli.js" },
         dependencies: { commander: "14.0.0" },
-        devDependencies: { "@miragon/pulse-engine-core": "workspace:*" },
+        devDependencies: { "@miragon/pulse-c7-core": "workspace:*" },
       }),
       "apps/cli/src/index.ts": [
         "import { Command } from 'commander'",
-        "import { routes } from '@miragon/pulse-engine-core'",
+        "import { routes } from '@miragon/pulse-c7-core'",
       ].join("\n"),
       "apps/cli/src/cli.mts": "import u from 'undeclared-mts'",
       "apps/cli/src/a.test.ts": "import { it } from 'vitest'",
@@ -386,7 +386,7 @@ describe("published packages declare what their shipped source imports", () => {
         peerDependencies: { react: "^19.2.0" },
       }),
       "packages/core/widget-shell/src/ui/a.tsx": "import { useState } from 'react'",
-      [`${DOMAIN}/package.json`]: json({ name: "@miragon/pulse-engine-core" }),
+      [`${DOMAIN}/package.json`]: json({ name: "@miragon/pulse-c7-core" }),
       [`${DOMAIN}/src/index.ts`]: "import { z } from 'zod'",
       "docs/package.json": json({ name: "@miragon/pulse-docs", private: true }),
     }
@@ -408,15 +408,15 @@ describe("published packages declare what their shipped source imports", () => {
           "@miragon/pulse-mcp-server",
           "pulse",
           "@miragon/pulse-docs",
-          "@miragon/pulse-engine-core",
+          "@miragon/pulse-c7-core",
           "@miragon/pulse-widget-shell",
         ],
       )
       // The src scan of an app that bundles its domain reports the domain.
       assert.deepEqual(findings(root), {
-        "@miragon/pulse-cli": ["cli.mts: undeclared-mts", "index.ts: @miragon/pulse-engine-core"],
+        "@miragon/pulse-cli": ["cli.mts: undeclared-mts", "index.ts: @miragon/pulse-c7-core"],
         "@miragon/pulse-widget-shell": [],
-        "@miragon/pulse-engine-core": ["index.ts: zod"],
+        "@miragon/pulse-c7-core": ["index.ts: zod"],
       })
     })
 
@@ -424,7 +424,7 @@ describe("published packages declare what their shipped source imports", () => {
       const root = fixture({
         ...LAYOUT,
         [`${DOMAIN}/package.json`]: json({
-          name: "@miragon/pulse-engine-core",
+          name: "@miragon/pulse-c7-core",
           peerDependencies: { zod: "^4.4.0" },
         }),
         "apps/vscode/package.json": json({
@@ -433,7 +433,7 @@ describe("published packages declare what their shipped source imports", () => {
           engines: { vscode: "^1.101.0" },
         }),
       })
-      assert.deepEqual(findings(root)["@miragon/pulse-engine-core"], [])
+      assert.deepEqual(findings(root)["@miragon/pulse-c7-core"], [])
       assert.ok(!Object.keys(findings(root)).includes("pulse"))
     })
 
@@ -457,7 +457,7 @@ describe("published packages declare what their shipped source imports", () => {
           Object.entries(LAYOUT).filter(([rel]) => !rel.startsWith(`${DOMAIN}/src/`)),
         ),
       )
-      const [only, ...rest] = findings(root)["@miragon/pulse-engine-core"]
+      const [only, ...rest] = findings(root)["@miragon/pulse-c7-core"]
       assert.match(only, /^src\/: missing/)
       assert.deepEqual(rest, [])
     })
@@ -468,7 +468,7 @@ describe("published packages declare what their shipped source imports", () => {
       const BUNDLED = {
         dist: "apps/cli/dist",
         budget: BUDGET,
-        bundles: ["@miragon/pulse-engine-core"],
+        bundles: ["@miragon/pulse-c7-core"],
       }
       /** The layout with these dist files and a budget file; the budget defaults to their size. */
       const withBudget = (files, budget) => ({
@@ -497,13 +497,13 @@ describe("published packages declare what their shipped source imports", () => {
       it("fails a bundle that left a workspace package external", () => {
         const root = fixture(
           withBudget({
-            "apps/cli/dist/pulse-cli.js": "import { routes } from '@miragon/pulse-engine-core'",
+            "apps/cli/dist/pulse-cli.js": "import { routes } from '@miragon/pulse-c7-core'",
             "apps/cli/dist/chunk.mjs": "const lazy = () => import(name)",
           }),
         )
         assert.deepEqual(bundleFindings(root, CLI, BUNDLED), [
           `chunk.mjs: ${NON_LITERAL}`,
-          "pulse-cli.js: @miragon/pulse-engine-core",
+          "pulse-cli.js: @miragon/pulse-c7-core",
         ])
       })
 
@@ -512,16 +512,16 @@ describe("published packages declare what their shipped source imports", () => {
 
       it("fails a bundle over its budget and a missing bundle with the build hint", () => {
         assert.deepEqual(bundleFindings(sized(1001), CLI, BUNDLED), [
-          'apps/cli/dist: 1001 bytes, over the budget of 1000 (@miragon/pulse-engine-core is bundled into it, so a change there counts too). Shrink the bundle, or set "dist" in apps/cli/test/__golden__/bundle-budget.json to 16384 in a commit whose Ratchet-Exception: trailer says why it grew',
+          'apps/cli/dist: 1001 bytes, over the budget of 1000 (@miragon/pulse-c7-core is bundled into it, so a change there counts too). Shrink the bundle, or set "dist" in apps/cli/test/__golden__/bundle-budget.json to 16384 in a commit whose Ratchet-Exception: trailer says why it grew',
         ])
         assert.deepEqual(bundleFindings(sized(1000), CLI, BUNDLED), [])
         const both = {
           ...BUNDLED,
-          bundles: ["@miragon/pulse-engine-core", "@miragon/pulse-profile"],
+          bundles: ["@miragon/pulse-c7-core", "@miragon/pulse-profile"],
         }
         assert.match(
           bundleFindings(sized(1001), CLI, both)[0],
-          /\(@miragon\/pulse-engine-core and @miragon\/pulse-profile are bundled into it, /,
+          /\(@miragon\/pulse-c7-core and @miragon\/pulse-profile are bundled into it, /,
         )
         assert.deepEqual(bundleFindings(fixture(withBudget({}, 1000)), CLI, BUNDLED), [
           "apps/cli/dist is missing: run pnpm build first",
@@ -614,7 +614,7 @@ describe("published packages declare what their shipped source imports", () => {
     for (const name of [
       "@miragon/pulse-http",
       "@miragon/pulse-profile",
-      "@miragon/pulse-engine-core",
+      "@miragon/pulse-c7-core",
       "@miragon/pulse-ui",
       "@miragon/pulse-widget-shell",
       "@miragon/pulse-engine-connector",

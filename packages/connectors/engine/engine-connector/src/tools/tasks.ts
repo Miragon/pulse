@@ -9,7 +9,7 @@ import {
 } from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { readTaskVariables } from "@miragon/pulse-engine-client"
-import { complementaryFlags, engineSorting, trueOnly } from "@miragon/pulse-engine-core"
+import { complementaryFlags, engineSorting, trueOnly } from "@miragon/pulse-c7-core"
 import {
   getTasks,
   getTasksCount,

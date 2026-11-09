@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest"
 import { engineWith, status, stopFakeEngines } from "./composites.test-support.js"
 import type { FakeRoutes } from "../../tools/test-support/fake-engine.js"
-import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-engine-core"
+import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-c7-core"
 import { FINDING_RULES, MAX_STATUS_ROWS, statusRule } from "./composites.js"
 
 /** engine_status on the wire (helpers: composites.test-support.ts). */
@@ -143,7 +143,7 @@ describe("engineStatusForModel", () => {
     expect(triage.truncated).toEqual(["external-task topics: 10 of 13 shown"])
   })
 
-  it("states every finding engine-core raises under its severity in statusRule", async () => {
+  it("states every finding c7-core raises under its severity in statusRule", async () => {
     const routes: FakeRoutes = {
       ...STATUS_ROUTES,
       "GET /job": { body: [{ id: "j9", dueDate: "2026-01-01T11:00:00.000+0000" }] },

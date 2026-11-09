@@ -1,13 +1,9 @@
 /**
- * The reasons of @miragon/pulse-engine-core as the usage and NOT_FOUND errors of the workflow
+ * The reasons of @miragon/pulse-c7-core as the usage and NOT_FOUND errors of the workflow
  * commands: one entry per reason, naming the flags and the ready commands. Pure.
  */
 
-import {
-  isWorkflowError,
-  type Selection,
-  type WorkflowErrorReason,
-} from "@miragon/pulse-engine-core"
+import { isWorkflowError, type Selection, type WorkflowErrorReason } from "@miragon/pulse-c7-core"
 import { PulseCliError, usageError } from "../errors.js"
 import { inputRule, nothing, optionKind, several } from "./advance-text.js"
 

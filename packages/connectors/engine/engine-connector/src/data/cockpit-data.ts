@@ -4,7 +4,7 @@ import {
   engineInstanceSearch,
   engineLike,
   trueOnly,
-} from "@miragon/pulse-engine-core"
+} from "@miragon/pulse-c7-core"
 import {
   LIST_PAGE_SIZE,
   type CockpitDashboardData,

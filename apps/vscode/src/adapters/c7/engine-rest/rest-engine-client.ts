@@ -1,4 +1,4 @@
-import { RAW_VARIABLES_QUERY } from "@miragon/pulse-engine-core"
+import { RAW_VARIABLES_QUERY } from "@miragon/pulse-c7-core"
 import type { EngineClient } from "./engine-client.js"
 import type { EngineHttp } from "./http/engine-http.js"
 import { InstanceInspection } from "./inspect/instance-inspection.js"

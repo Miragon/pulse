@@ -1,10 +1,10 @@
 /**
- * `pulse status`: engine triage in one call, @miragon/pulse-engine-core's `readStatus` with the
+ * `pulse status`: engine triage in one call, @miragon/pulse-c7-core's `readStatus` with the
  * engine address (masked) and the next steps as command lines; `--fail-on` turns the status into
  * CHECK_FAILED.
  */
 
-import * as core from "@miragon/pulse-engine-core"
+import * as core from "@miragon/pulse-c7-core"
 import type { EnginePort, PlannedRequest } from "../engine-port/engine-port.js"
 import { maskUrl } from "../output/secrets.js"
 import { compact } from "../util.js"

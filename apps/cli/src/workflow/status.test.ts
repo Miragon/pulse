@@ -1,6 +1,6 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
-import { messageSignature } from "@miragon/pulse-engine-core"
+import { messageSignature } from "@miragon/pulse-c7-core"
 import {
   definitionStatus,
   jobStatus,
@@ -8,7 +8,7 @@ import {
   statistics,
   topicStatus,
   unknownKeys,
-} from "@miragon/pulse-engine-core/testing"
+} from "@miragon/pulse-c7-core/testing"
 import { groupIncidents } from "../../test/support/workflow-status.js"
 import { omit } from "../util.js"
 

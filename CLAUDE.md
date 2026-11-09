@@ -13,8 +13,8 @@ Docs are held to the code:
   repo path exists, the identifiers of the skills and nested agent files exist, and each docs
   page stays within its line budget.
 - `scripts/old-names.test.mjs` fails on a technical name of the retired operate CLI, on the
-  unscoped npm packages pulse and pulse-cli (someone else's), on an image off GHCR and on a package
-  of the retired MCP toolkit.
+  unscoped npm packages pulse and pulse-cli (someone else's), on an image off GHCR, on a package
+  of the retired MCP toolkit and on the npm name and path the c7 family's core had up to 0.27.
 - `scripts/check-package-scripts.mjs` (`pnpm lint:package-scripts`) fails on a `--filter`
   naming no workspace package and on a pnpm filter without `--fail-if-no-match` on a gate path
   (pnpm 10 exits 0 when a filter matches nothing, so a stale name turns a gate green).
@@ -44,9 +44,9 @@ command line interface (`apps/cli`) and a VS Code extension (`apps/vscode`) for 
 | `apps/mcp-server/`                             | The MCP host: composes plugins, bundles the widget UI, serves HTTP on `:8400`                                                                                                                                                                                                                                                                                                                                     |
 | `apps/cli/`                                    | The CLI (npm `@miragon/pulse-cli`): every REST operation of the engine as a command, generated from its OpenAPI spec, plus the workflow commands; its rules in `apps/cli/CLAUDE.md`                                                                                                                                                                                                                               |
 | `apps/vscode/`                                 | Pulse for VS Code (`pulse-cockpit`, a .vsix): a Preact webview over an engine-neutral contract and core, the C7 adapter; its rules in `apps/vscode/CLAUDE.md`                                                                                                                                                                                                                                                     |
-| `packages/connectors/engine/engine-connector/` | engine module: operations tools, widget tools, widgets                                                                                                                                                                                                                                                                                                                                                            |
+| `packages/connectors/engine/engine-connector/` | engine module, the one MCP module of every dialect: operations tools, widget tools, widgets                                                                                                                                                                                                                                                                                                                       |
 | `packages/connectors/engine/engine-client/`    | Generated CIB seven REST SDK (`src/generated/`), `createEngineClient`, `EngineRequestError` and the SDK-bound reads (`src/engine-contract/`); a leaf                                                                                                                                                                                                                                                              |
-| `packages/connectors/engine/engine-core/`      | The Camunda 7 REST API family's workflow domain and pure engine REST rules (npm `@miragon/pulse-engine-core`): port, selection, inspect, status triage, root causes, retry/advance plans, dates, filters, variable writes; no runtime dependency                                                                                                                                                                  |
+| `packages/connectors/c7/c7-core/`              | The core of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-core`), its workflow domain and pure engine REST rules: port, selection, inspect, status triage, root causes, retry/advance plans, dates, filters, variable writes; no runtime dependency                                                                                                                                                |
 | `packages/core/ui/`                            | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the formatters and the tones without React under `/format` and `/tones`, the brand gates under `/testing`                                                                        |
 | `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), a module's test server (`/testing`)                                                                                                                                                    |
 | `packages/core/profile/`                       | The one profile format of the CLI, Pulse for VS Code and the MCP server (npm `@miragon/pulse-profile`): a parser from a file's text to a verdict per profile as data (a code and a key, never a value), the credential policy by where the file comes from, `refusalsOn` for what a reader cannot serve, the JSON Schema (`schema/pulse.schema.json`) and the shared fixtures (`/testing`); no runtime dependency |
@@ -62,10 +62,14 @@ Three axes decide where code goes, and they stay apart:
 - Vendor (CIB seven, Operaton, Camunda 7): runtime config per engine, `flavor` →
   `EngineProvider` (invariant 8), never a package or an app.
 - Dialect (an engine API family; one today, the Camunda 7 REST API all three vendors serve):
-  one package family under `packages/connectors/<family>/`, named for the API family it speaks
-  (the Camunda 7 REST family is `engine`, its MCP server `apps/mcp-server`). A different
-  dialect is a new family plus its own MCP server app, both named after that dialect, and
-  inherits its gates from the layout.
+  one package family under `packages/connectors/<dialect>/`, named for the API family it speaks
+  (`c7` today, with its core `@miragon/pulse-c7-core`; `c8` later). ONE MCP server app
+  (`apps/mcp-server`) and ONE module, `engine` (`packages/connectors/engine/engine-connector`),
+  serve every dialect (owner decisions 2026-11-07 and 2026-11-08): the engine module spans the
+  dialect families, importing the clients and cores of the families `ENGINE_DIALECTS` names
+  (`engine-connector-spans-the-dialects` in `.dependency-cruiser.cjs`), and a dialect joins that
+  list in the commit that first imports it. A new dialect is a family, never an MCP server app or
+  a module of its own, and inherits its gates from the layout.
 - Interface (how a person or an agent reaches an engine): an app under `apps/`, today the
   MCP server, the CLI (`apps/cli`, rules in `apps/cli/CLAUDE.md`) and the VS Code extension
   (`apps/vscode`, rules in `apps/vscode/CLAUDE.md`). Another interface (a second editor
@@ -78,12 +82,14 @@ Three axes decide where code goes, and they stay apart:
   `docs/vscode/parity.md` lists what differs between the views both show, and #586 holds when
   they share building blocks again.
 
-A family is one source the MCP server reads: a dialect, or another source (a metrics store,
-say). Its packages are named `<family>-<role>`: `<family>-connector` (the MCP module),
-`<family>-client` (the wire: SDK, client, the SDK-bound reads) and, when the family's interfaces
-share a pure domain, `<family>-core` (no runtime dependency, one port per family, the home of the
-family's pure rules; extracted on its second consumer, like `engine-core`, which the CLI and the
-VS Code extension's C7 adapter bundle and the engine connector runs). A family's tool input
+A family is one source the MCP server reads, a dialect or another source (a metrics store,
+say), or `engine`, the family of the one module that serves every dialect. Its packages are
+named `<family>-<role>`: `<family>-connector` (the MCP module; a dialect brings none, the
+engine module of the family `engine` serves it), `<family>-client` (the wire:
+SDK, client, the SDK-bound reads) and, when the family's interfaces share a pure domain,
+`<family>-core` (no runtime dependency, one port per family, the home of the family's pure
+rules; extracted on its second consumer, like `c7-core`, which the CLI and the VS Code
+extension's C7 adapter bundle and the engine connector runs). A family's tool input
 schemas live in its connector, next to the tools
 (`packages/connectors/engine/engine-connector/src/schemas/`), so a client carries no zod:
 validating tool input is the connector's concern, and the wire takes typed parameters.
@@ -503,10 +509,10 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
    - Each engine REST rule the client defaults miss has one home, used by `tools/` AND `data/`
      (and by the CLI): the pure rules (`toEngineDate`, `engineSorting`, the filters,
      `toEngineVariable(s)`, `autoTypedValue`, `incidentRecovery`, `RAW_VARIABLES`, root causes,
-     the missing-resource rule `isMissing`) in `@miragon/pulse-engine-core`, the
+     the missing-resource rule `isMissing`) in `@miragon/pulse-c7-core`, the
      reads bound to the SDK (text/plain endpoints, raw variable reads, `readBatch`, queued
      batches) in engine-client's `packages/connectors/engine/engine-client/src/engine-contract/`,
-     which does not import engine-core. Dates parse in one parser, read in one of two named
+     which does not import c7-core. Dates parse in one parser, read in one of two named
      readings (`DateInputReading`: `OFFSET_REQUIRED` for the MCP tools, `UTC_WITHOUT_OFFSET` for
      the CLI). A 404 is "none" only by `isMissing` (a 404 `NotFoundException`, a
      `QueryParamException` or one without an engine answer is a wrong REST root or request and
@@ -530,7 +536,7 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      recording-fake-engine case in `src/tools/*.wire.test.ts`.
    - The workflow rules the CLI and the read composites (`engine_inspect_process_instance`,
      `engine_status`, `src/lib/core-adapter/composites.ts`) share live in
-     `@miragon/pulse-engine-core`: selection, root cause, the composites' paging and caps, the
+     `@miragon/pulse-c7-core`: selection, root cause, the composites' paging and caps, the
      ONE incident mask and cause (`messageSignature`, `causeKeyOf`: the status groups, the
      verdict's largest cause, the cockpit's cluster ids) and the ONE live verdict (`engineVerdict`:
      `engine_status`, `pulse status` and the cockpit's health route, `ok | warning | critical`;
@@ -540,9 +546,9 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      contract read. Deliberate carve-outs: the composites read definitions by id inside inspect (not `data/definition-info.ts`;
      `definitionKeyOf` only as a fallback), send UTC `+0000` dates (`engineFormat`, not
      `toEngineDate`), and count overdue jobs from a capped scan of 1,000 per key, named in
-     `truncated` (not a `/count`). The MCP side caps the result lists engine-core leaves uncapped
+     `truncated` (not a `/count`). The MCP side caps the result lists c7-core leaves uncapped
      for the CLI (wait states, incidents, timeline, variables, definitions, topics) and names each
-     cut in `truncated`; engine-core still loads them whole.
+     cut in `truncated`; c7-core still loads them whole.
    - **Caller identity** is read once per request by the MCP middleware
      (`installMcpRequestContext` → `callerUserId` in `packages/core/widget-shell/src/caller.ts`),
      from the server's own OAuth only: nothing a client chooses (a session id, a header)
@@ -568,10 +574,12 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
    - **Dependency edges** (`.dependency-cruiser.cjs`, `pnpm lint:architecture` +
      `pnpm lint:architecture:cli`; the VS Code extension's own closed-world rules:
      `apps/vscode/CLAUDE.md`): connectors never import each other, a connector imports only its
-     own family's client and core, clients and family cores are leaves, core is the foundation
-     and pulse-ui its leaf, no package or app imports an app, no cross-package deep imports. The
+     own family's client and core (`connectors-own-their-family`) and the engine module also
+     those of the dialect families (`engine-connector-spans-the-dialects`, `ENGINE_DIALECTS`:
+     `c7`), clients and family cores are leaves, core is the foundation and pulse-ui its leaf,
+     no package or app imports an app, no cross-package deep imports. The
      interface apps import nothing of the MCP/UI/server stack, zod included, and no workspace
-     package except a family core they bundle (`@miragon/pulse-engine-core`: the CLI's, and the
+     package except a family core they bundle (`@miragon/pulse-c7-core`: the CLI's, and the
      VS Code extension's in its C7 adapter alone, `apps/vscode/src/adapters/c7`), the profile
      format where they read their profiles (what `profile-consumers` admits; the CLI may bundle
      it with its core, `CLI_BUNDLES`), the transport where they send their engine requests (what
@@ -580,8 +588,9 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      (`@miragon/pulse-ui/format`, `@miragon/pulse-ui/tones`, which import nothing:
      `ui-foundation-entries-import-nothing`; the extension's `pulse-ui-only-its-foundation`
      keeps the React kit out; the decision: `apps/vscode/docs/adr/ui-foundation.md`); a family
-     core (`family-core-is-a-leaf`) is imported only by its family's connector and the apps (or
-     the app part) that bundle it (`family-core-consumers`, `CORE_BUNDLERS`); the profile format
+     core (`family-core-is-a-leaf`) is imported only by its family's connector (a dialect's core
+     by the engine module) and the apps (or the app part) that bundle it
+     (`family-core-consumers`, `CORE_BUNDLERS`); the profile format
      (`@miragon/pulse-profile`, `packages/core/profile`) is a leaf as well, which takes the text of
      a profile file and returns a verdict per profile as data, reading no file and no
      environment (`profile-is-a-leaf`), and only the readers of profiles import it: the CLI's
@@ -609,7 +618,7 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      view stack; anything else of the connector, its client, a server package or a Node built-in
      only as a type, and the other lib folders not even as a type
      (`connector-widgets-only-shared-lib`). Inside a connector the edges point one way: `src/data`
-     and the lib folders (`src/lib/engine` routing, `src/lib/core-adapter` the engine-core port,
+     and the lib folders (`src/lib/engine` routing, `src/lib/core-adapter` the c7-core port,
      `src/lib/bpmn` BPMN and task forms, `src/lib/mcp` the tool surface, `src/lib/shared` what the
      widgets share) never import `src/tools`, `src/widget-tools`, `src/widgets` or the
      connector's root (`src/index`, `src/plugin`, `src/module`)
@@ -775,7 +784,7 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
   ceilings that `test-host/bundle-budget.spec.ts` checks; growth needs a `Ratchet-Exception:`
   trailer that says why. Two more shipped bundles have a shrink-only ceiling: the VS Code
   webview's (`apps/vscode/test/__golden__/bundle-budget.json`, gzip) and the CLI's npm dist
-  (`apps/cli/test/__golden__/bundle-budget.json`, raw bytes, engine-core bundled in, read by
+  (`apps/cli/test/__golden__/bundle-budget.json`, raw bytes, c7-core bundled in, read by
   `scripts/published-imports.test.mjs`, which also makes it come down once the dist shrinks
   more than 10 % below it). The CLI's standalone bundle (`build/standalone`, the single
   executables and the image) has none.
@@ -808,7 +817,8 @@ workspace (its header lists each check).
   from another repository. The pack job runs `pnpm pack`, which rewrites `workspace:*` (npm's
   own pack would ship it verbatim); the one job that holds `id-token: write` runs no package
   manager. Only the server app and the VS Code extension stay private. The `miragon-ai` names
-  used up to 0.20.0 are retired; never reuse them.
+  used up to 0.20.0 are retired, and so is the npm name of engine-core, the c7 family's core up
+  to 0.27 (now `@miragon/pulse-c7-core`); never reuse them.
 - **The starter** reaches customers as `Miragon/pulse-starter`, the read-only mirror of
   `templates/composed-server` and the customer-facing composition path, through
   `sync-template-mirror.yml` after the npm publish (before it, the template's pins would not
@@ -840,7 +850,7 @@ workspace (its header lists each check).
 | `pnpm typecheck`  | **The only check that type-checks widget code**: `tsc -p tsconfig.widgets.json` in the engine connector and widget-shell (its view half), `tsc -p tsconfig.ui.json` (and `tsconfig.test.json`) in the server app; the VS Code extension per layer, each with that layer's runtime globals only                                                                                                                                                                                                                                                                                                                                                                                        |
 | `pnpm test`       | Vitest unit tests, the server app's wire-contract tests and tools/list goldens (in-process boot, loopback HTTP), the engine output and error-path goldens of the three interfaces, the VS Code extension's architecture tests, the per-package coverage floors, then `node --test` over `scripts/*.test.mjs` (repo guards and gate self-tests, below the table); docs-refs, old-names and `lint:package-scripts` also run in Lint + Format; **no widget rendering** (the VS Code webview tests render in Chromium; locally once: `pnpm --filter pulse-cockpit exec playwright install chromium`)                                                                                      |
 | `pnpm lint`       | The build-free gates first (`lint:naming`, `lint:package-scripts`, `lint:github`, `lint:ratchets`, which needs `git fetch origin`), then ESLint per package incl. the pattern gates, dependency-cruiser (`lint:architecture`, `:cli`, `:vscode`) and knip (`lint:deadcode`: everything but exports and types; `:exports`: exports and types in every workspace but the vendored docs kit), and last `lint:configs` (the config files no tsconfig holds and no package lints: `DEFAULT_PROJECT_FILES` in `eslint.config.mjs`)                                                                                                                                                          |
-| `pnpm fitness`    | Report: architecture graph, per-package coverage and the mutation scores of engine-core and the transport; locally after `pnpm test` (no CI job on a pull request), else the "Mutation summary" job of `.github/workflows/mutation-nightly.yml`                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `pnpm fitness`    | Report: architecture graph, per-package coverage and the mutation scores of c7-core and the transport; locally after `pnpm test` (no CI job on a pull request), else the "Mutation summary" job of `.github/workflows/mutation-nightly.yml`                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `./gradlew build` | The playground engine (`playground/cibseven-example/`): Kotlin compile + unit tests of its processes; CI "CIB Seven Example (Build + Test)", in `pnpm check:all`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `test:host`       | `pnpm --filter @miragon/pulse-mcp-server test:host`: Playwright host simulation of the **built** widget bundle behind a SEP-1865 host shim, the real `engine_open_cockpit` against a stub engine (`pinned …` scenarios are known defects, flipped when fixed); CI "Widget host simulation (test:host)"; run it for changes to widget-shell, pulse-ui, `src/ui/` or the `@modelcontextprotocol/ext-apps` pin                                                                                                                                                                                                                                                                           |
 | Template          | `scripts/test-template.sh` (in `pnpm check:all`; CI "Composed-server template (Build + Test)"): packs the published libraries (`scripts/workspace-packages.mjs`), checks their contents (`scripts/pack-contents.mjs`), points a copy of `templates/composed-server` at them and runs its build, typecheck, test and format check, its pins matched to the workspace first (`scripts/template-pins.mjs`), then build, typecheck and test again with the fixture module `templates/fixtures/prebuilt-module` installed (`scripts/prebuilt-module.mjs`). ESLint, knip and dependency-cruiser skip `templates/`: the template's composition-root rules (invariant 8) are review knowledge |
@@ -868,7 +878,7 @@ host simulation renders one real view, not every widget's data path).
 **Ratchets only move one way.** `scripts/check-ratchets.mjs` (`pnpm lint:ratchets`) compares
 each against the merge base with `origin/main`, and its header lists them: coverage floors in
 each `vitest.config.ts` rise (raise one when you better a file); a `stryker.config.json`'s
-`mutate` allowlist (the tested surface; today engine-core's alone) grows and its
+`mutate` allowlist (the tested surface; today c7-core's and the transport's) grows and its
 `thresholds.break` rises; the ESLint budgets (complexity 15 and 400 lines; the CLI and the
 VS Code extension 10 and 300), knip ignores (each with its reason), the char and bundle
 budgets (Contracts) and inline suppressions only shrink; gate commands stay as they are; a
@@ -881,15 +891,15 @@ makes it carries one.
 `vitest.config.ts`, and a valid `stryker.config.json` sits in each package `MUTATED_PACKAGES`
 lists and in no other.
 
-**Mutation testing covers `@miragon/pulse-engine-core` and `@miragon/pulse-http`** (owner
-decisions: engine-core 2026-11-04, the transport 2026-11-08). The one holds the pure engine
-rules, the other the wire rules the CLI, the MCP server and the VS Code extension share, so a
-surviving mutant there is a wrong rule in all three; in every other package a full run costs more
-than it finds. A package joins only by an owner decision, as an entry in
+**Mutation testing covers `@miragon/pulse-c7-core` and `@miragon/pulse-http`** (owner
+decisions: c7-core, engine-core until 0.27, 2026-11-04; the transport 2026-11-08). The one holds
+the pure engine rules, the other the wire rules the CLI, the MCP server and the VS Code extension
+share, so a surviving mutant there is a wrong rule in all three; in every other package a full
+run costs more than it finds. A package joins only by an owner decision, as an entry in
 `MUTATED_PACKAGES` (`scripts/check-package-scripts.mjs`). It runs nightly
 (`.github/workflows/mutation-nightly.yml`), never on a pull request (owner decision); a pause
 flips `scripts/mutation-pause.mjs` and drops the schedule. Locally:
-`pnpm --fail-if-no-match --filter @miragon/pulse-engine-core exec stryker run` and
+`pnpm --fail-if-no-match --filter @miragon/pulse-c7-core exec stryker run` and
 `pnpm --fail-if-no-match --filter @miragon/pulse-http exec stryker run` (`--mutate <file>`
 narrows it), with each package's `vitest.stryker.config.ts`: coverage off, since a threshold
 failure would read as a killed mutant.

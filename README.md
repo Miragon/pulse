@@ -54,20 +54,20 @@ start one locally with `docker run -p 8080:8080 operaton/operaton:2.1.5`.
 
 ## What's in this repository
 
-| Path                                                                                          | Package                           | Role                                                         |
-| --------------------------------------------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------ |
-| [`apps/mcp-server/`](apps/mcp-server)                                                         | `ghcr.io/miragon/pulse-server`    | The MCP server: composes the modules, serves HTTP on `:8400` |
-| [`apps/cli/`](apps/cli)                                                                       | `@miragon/pulse-cli`              | The command line interface                                   |
-| [`apps/vscode/`](apps/vscode)                                                                 | `pulse-cockpit` (a .vsix)         | Pulse for VS Code                                            |
-| [`packages/connectors/engine/engine-connector/`](packages/connectors/engine/engine-connector) | `@miragon/pulse-engine-connector` | Operations tools and widgets for Camunda 7 engines           |
-| [`packages/connectors/engine/engine-client/`](packages/connectors/engine/engine-client)       | `@miragon/pulse-engine-client`    | Typed REST SDK and client for the engine                     |
-| [`packages/connectors/engine/engine-core/`](packages/connectors/engine/engine-core)           | `@miragon/pulse-engine-core`      | Camunda 7 workflow domain and pure engine REST rules         |
-| [`packages/core/ui/`](packages/core/ui)                                                       | `@miragon/pulse-ui`               | Design kit for Pulse views and your own React UIs            |
-| [`packages/core/widget-shell/`](packages/core/widget-shell)                                   | `@miragon/pulse-widget-shell`     | View runtime and server boot for composed MCP servers        |
-| [`packages/core/profile/`](packages/core/profile)                                             | `@miragon/pulse-profile`          | One profile format for the CLI, VS Code and the MCP server   |
-| [`packages/core/http/`](packages/core/http)                                                   | `@miragon/pulse-http`             | One engine transport for the CLI, VS Code and the MCP server |
-| [`playground/`](playground)                                                                   | —                                 | Demo engine, Compose stack and the public playground         |
-| [`templates/composed-server/`](templates/composed-server)                                     | `Miragon/pulse-starter`           | [Starter](docs/mcp/build-your-own.md) for your own server    |
+| Path                                                                                          | Package                           | Role                                                                          |
+| --------------------------------------------------------------------------------------------- | --------------------------------- | ----------------------------------------------------------------------------- |
+| [`apps/mcp-server/`](apps/mcp-server)                                                         | `ghcr.io/miragon/pulse-server`    | The MCP server: composes the modules, serves HTTP on `:8400`                  |
+| [`apps/cli/`](apps/cli)                                                                       | `@miragon/pulse-cli`              | The command line interface                                                    |
+| [`apps/vscode/`](apps/vscode)                                                                 | `pulse-cockpit` (a .vsix)         | Pulse for VS Code                                                             |
+| [`packages/connectors/engine/engine-connector/`](packages/connectors/engine/engine-connector) | `@miragon/pulse-engine-connector` | Operations tools and widgets for Camunda 7 engines                            |
+| [`packages/connectors/engine/engine-client/`](packages/connectors/engine/engine-client)       | `@miragon/pulse-engine-client`    | Typed REST SDK and client for the engine                                      |
+| [`packages/connectors/c7/c7-core/`](packages/connectors/c7/c7-core)                           | `@miragon/pulse-c7-core`          | Core of the Camunda 7 REST dialect family: workflow domain, engine REST rules |
+| [`packages/core/ui/`](packages/core/ui)                                                       | `@miragon/pulse-ui`               | Design kit for Pulse views and your own React UIs                             |
+| [`packages/core/widget-shell/`](packages/core/widget-shell)                                   | `@miragon/pulse-widget-shell`     | View runtime and server boot for composed MCP servers                         |
+| [`packages/core/profile/`](packages/core/profile)                                             | `@miragon/pulse-profile`          | One profile format for the CLI, VS Code and the MCP server                    |
+| [`packages/core/http/`](packages/core/http)                                                   | `@miragon/pulse-http`             | One engine transport for the CLI, VS Code and the MCP server                  |
+| [`playground/`](playground)                                                                   | —                                 | Demo engine, Compose stack and the public playground                          |
+| [`templates/composed-server/`](templates/composed-server)                                     | `Miragon/pulse-starter`           | [Starter](docs/mcp/build-your-own.md) for your own server                     |
 
 ## Documentation
 

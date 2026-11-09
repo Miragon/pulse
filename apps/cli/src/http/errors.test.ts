@@ -1,4 +1,4 @@
-import { isUnknownEndpoint } from "@miragon/pulse-engine-core"
+import { isUnknownEndpoint } from "@miragon/pulse-c7-core"
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import { HINTS, REQUEST, response } from "../../test/support/http-errors.js"
@@ -153,7 +153,7 @@ describe("httpError", () => {
   })
 })
 
-describe("the endpoint hint follows engine-core's isUnknownEndpoint", () => {
+describe("the endpoint hint follows c7-core's isUnknownEndpoint", () => {
   it.each([
     [404, '{"type":"InvalidRequestException","message":"gone"}', "InvalidRequestException"],
     [404, '{"type":"RestException","message":"No such definition"}', "RestException"],

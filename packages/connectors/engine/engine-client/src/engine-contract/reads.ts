@@ -15,7 +15,7 @@
  *
  * These reads never decide what a failure means: every engine error throws
  * (an `EngineRequestError`), a 404 included. Whether a 404 names a missing
- * resource or a wrong REST root is engine-core's `isMissing`, the one rule of
+ * resource or a wrong REST root is c7-core's `isMissing`, the one rule of
  * the family; the caller reads the error through it (the engine connector's
  * port and tools).
  */
@@ -35,9 +35,9 @@ import { endedBatchReport, runningBatchReport, type BatchReport } from "./batche
 const TEXT_PLAIN = { parseAs: "text", headers: { Accept: "text/plain" } } as const
 
 /**
- * The query the variable reads send. The rule's home is engine-core's `RAW_VARIABLES`; this leaf
- * does not import engine-core, so its two SDK reads restate the flag, and the engine connector
- * (the one package that imports both) holds the copy equal to engine-core's in
+ * The query the variable reads send. The rule's home is c7-core's `RAW_VARIABLES`; this leaf
+ * does not import c7-core, so its two SDK reads restate the flag, and the engine connector
+ * (the one package that imports both) holds the copy equal to c7-core's in
  * `src/engine-contract.test.ts`.
  */
 const RAW_VARIABLES = { deserializeValues: false } as const
@@ -52,7 +52,7 @@ function textOrNull(text: unknown): string | null {
 /**
  * The exception stacktrace of a job; `null` when the job has none (an empty
  * body). Every failure throws, a 404 included: the caller decides through
- * engine-core's `isMissing` whether the job is gone or the REST root wrong.
+ * c7-core's `isMissing` whether the job is gone or the REST root wrong.
  */
 export async function fetchJobStacktrace(client: Client, jobId: string): Promise<string | null> {
   return textOrNull(await getStacktrace({ client, path: { id: jobId }, ...TEXT_PLAIN }))
@@ -94,7 +94,7 @@ export function readTaskVariables(client: Client, taskId: string): Promise<Varia
  * failed batch jobs), its history record once it ended. A batch neither
  * holds fails with the engine's error of the history read (a 404 when it
  * never existed, or ended on an engine without batch history); the caller
- * words it through engine-core's `isMissing`.
+ * words it through c7-core's `isMissing`.
  */
 export async function readBatch(client: Client, batchId: string): Promise<BatchReport> {
   const running = await getBatchStatistics({ client, query: { batchId } })

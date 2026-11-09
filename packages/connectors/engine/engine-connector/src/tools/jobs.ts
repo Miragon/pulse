@@ -6,7 +6,7 @@ import {
 } from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { fetchJobStacktrace, queuedBatch } from "@miragon/pulse-engine-client"
-import { complementaryFlags, engineSorting, toOptionalEngineDate } from "@miragon/pulse-engine-core"
+import { complementaryFlags, engineSorting, toOptionalEngineDate } from "@miragon/pulse-c7-core"
 import {
   getJobs,
   getJobsCount,

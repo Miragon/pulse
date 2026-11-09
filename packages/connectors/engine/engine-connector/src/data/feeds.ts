@@ -38,7 +38,7 @@ import {
   buildProcessInstancesData,
 } from "./cockpit-data.js"
 import { fetchDefinitionXml } from "./definition-info.js"
-import type { VerdictThresholds } from "@miragon/pulse-engine-core"
+import type { VerdictThresholds } from "@miragon/pulse-c7-core"
 import { buildEngineHealthData } from "./health-data.js"
 import { buildHistoryTimelineData } from "./history-timeline-data.js"
 import { buildIncidentDetailData } from "./incident-detail-data.js"

@@ -3,7 +3,7 @@ import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { afterEach, describe, expect, it } from "vitest"
 import { readProcessInstanceVariables, readTaskVariables } from "@miragon/pulse-engine-client"
-import { RAW_VARIABLES_QUERY } from "@miragon/pulse-engine-core"
+import { RAW_VARIABLES_QUERY } from "@miragon/pulse-c7-core"
 import { clientFor, startFakeEngine, type FakeEngine } from "./tools/test-support/fake-engine.js"
 
 // Outside `src/widgets`: it reads sources from disk (Node APIs).
@@ -72,7 +72,7 @@ describe("engine calls with a contract override go through the engine contract",
 
   it("engine dates are written by toEngineDate, never by a local rewrite", () => {
     for (const { file, text } of sources()) {
-      expect(text, `${file}: use toEngineDate (engine-core)`).not.toMatch(
+      expect(text, `${file}: use toEngineDate (c7-core)`).not.toMatch(
         /\.replace\(\s*["']Z["']\s*,\s*["']\+0000["']\s*\)/,
       )
     }
@@ -80,11 +80,11 @@ describe("engine calls with a contract override go through the engine contract",
 })
 
 /**
- * The raw-variable flag has ONE home, engine-core's `RAW_VARIABLES`. engine-client is a leaf and
- * does not import engine-core, so its two variable reads restate the flag; this package imports
+ * The raw-variable flag has ONE home, c7-core's `RAW_VARIABLES`. engine-client is a leaf and
+ * does not import c7-core, so its two variable reads restate the flag; this package imports
  * both and holds the copy equal on the wire: a change to either side fails here.
  */
-describe("engine-client's variable reads send engine-core's raw-variable flag", () => {
+describe("engine-client's variable reads send c7-core's raw-variable flag", () => {
   const engines: FakeEngine[] = []
   afterEach(async () => {
     await Promise.all(engines.splice(0).map((engine) => engine.close()))

@@ -7,15 +7,21 @@
  * each says what is forbidden and names the house path to use instead.
  *
  * Layout + naming carry the layer semantics. A family under `packages/connectors/<family>/` is
- * one source the MCP server reads: an engine API family (a dialect; today `engine`, the Camunda 7
- * REST API) or another source (a metrics store, say). Its packages are named
- * `<family>-<role>` (npm `@miragon/pulse-<family>-<role>`; the naming gate holds the family
- * name), keyed by the role suffix:
+ * one source the MCP server reads, an engine API family (a dialect; today `c7`, the Camunda 7
+ * REST API) or another source (a metrics store, say), or `engine`, the family of the one module
+ * that serves every dialect. Its packages are named `<family>-<role>` (npm
+ * `@miragon/pulse-<family>-<role>`; the naming gate holds the family name), keyed by the role
+ * suffix:
  *   - `<family>-connector`: the MCP module (tools and their input schemas, widget tools,
- *     widgets);
+ *     widgets); a dialect brings none;
  *   - `<family>-client`: its SDK leaf (the generated REST SDK, say);
  *   - `<family>-core`, when the family's interfaces share a pure domain: a leaf that the
- *     family's connector and the interface apps that bundle it import (engine-core).
+ *     family's connector (for a dialect's core the engine module) and the interface apps that
+ *     bundle it import (c7-core).
+ * The engine module (`packages/connectors/engine/engine-connector`) is the one MCP module of
+ * every dialect: the family `engine` holds it, and it imports the clients and cores of the
+ * dialect families ENGINE_DIALECTS names (engine-connector-spans-the-dialects; the self-test
+ * holds each entry to a family of the tree that brings no connector of its own).
  * The foundation packages every family builds on live under `packages/core/` (npm names
  * without a role suffix, e.g. `@miragon/pulse-widget-shell`), never one family's code; two of
  * them are leaves only their consumers import: the profile format (`@miragon/pulse-profile`,
@@ -86,22 +92,35 @@ const FAMILY_CORE = "@miragon/pulse-[^/]+-core"
 const FAMILY_CORE_TREE = "^packages/connectors/[^/]+/[^/]+-core/"
 
 /**
+ * The engine module, `packages/connectors/engine/engine-connector` (npm
+ * `@miragon/pulse-engine-connector`): one MCP server and one module, engine, for every dialect
+ * (owner decisions 2026-11-07 and 2026-11-08). It imports the clients and cores of its own family
+ * and of the dialect families ENGINE_DIALECTS names (engine-connector-spans-the-dialects); every
+ * other connector keeps to its own family (connectors-own-their-family). A dialect joins
+ * ENGINE_DIALECTS in the commit that first imports it from the engine module.
+ */
+const ENGINE_CONNECTOR_TREE = "^packages/connectors/engine/engine-connector/"
+const ENGINE_DIALECTS = ["c7"]
+const ENGINE_MODULE_FAMILIES = ["engine", ...ENGINE_DIALECTS]
+
+/**
  * The interface apps (or the one part of an app) that bundle a family core (tsdown or esbuild
- * inlines it), each with the one core it bundles. The keys are, with the family's own connector,
- * the only importers of a family core (family-core-consumers). This config reads the name and
+ * inlines it), each with the one core it bundles. The keys are, with the family's own connector
+ * (for a dialect's core the engine module), the only importers of a family core
+ * (family-core-consumers). This config reads the name and
  * tree of the CLI's entry only: the CLI's rules below hold the core it bundles as part of the
  * CLI. The extension's entry documents its core here; its own config
- * (apps/vscode/.dependency-cruiser.cjs, engine-core-only-in-the-c7-adapter) holds the C7 adapter
+ * (apps/vscode/.dependency-cruiser.cjs, c7-core-only-in-the-c7-adapter) holds the C7 adapter
  * to that core's main entry and keeps the core out of every other layer.
  */
 const CORE_BUNDLES = {
   "^apps/cli/": {
-    name: "@miragon/pulse-engine-core",
-    tree: "packages/connectors/engine/engine-core",
+    name: "@miragon/pulse-c7-core",
+    tree: "packages/connectors/c7/c7-core",
   },
   "^apps/vscode/src/adapters/c7/": {
-    name: "@miragon/pulse-engine-core",
-    tree: "packages/connectors/engine/engine-core",
+    name: "@miragon/pulse-c7-core",
+    tree: "packages/connectors/c7/c7-core",
   },
 }
 const CORE_BUNDLERS = Object.keys(CORE_BUNDLES)
@@ -264,11 +283,15 @@ module.exports = {
       name: "connectors-own-their-family",
       severity: "error",
       comment:
-        "A connector may only depend on its own family's client and core (engine-connector → " +
-        "engine-client, engine-core). Engine data a foreign module needs arrives as an injected " +
+        "A connector may only depend on its own family's client and core (<family>-connector → " +
+        "<family>-client, <family>-core). Engine data a foreign module needs arrives as an injected " +
         "port on SharedResources, the composition root's wiring of what the modules share, never " +
-        "as an engine-SDK dependency of that module (CLAUDE.md invariant 8).",
-      from: { path: "^packages/connectors/[^/]+/([^/]+)-connector/" },
+        "as an engine-SDK dependency of that module (CLAUDE.md invariant 8). The engine module " +
+        "spans the dialect families instead (engine-connector-spans-the-dialects).",
+      from: {
+        path: "^packages/connectors/[^/]+/([^/]+)-connector/",
+        pathNot: ENGINE_CONNECTOR_TREE,
+      },
       to: {
         path: [
           "^packages/connectors/.+-client/",
@@ -278,6 +301,31 @@ module.exports = {
         pathNot: [
           "^packages/connectors/[^/]+/$1-(?:client|core)/",
           "@miragon/pulse-$1-(?:client|core)(/|$)",
+        ],
+      },
+    },
+    {
+      name: "engine-connector-spans-the-dialects",
+      severity: "error",
+      comment:
+        "The engine module (packages/connectors/engine/engine-connector, " +
+        "@miragon/pulse-engine-connector) is the one MCP module of every dialect: one MCP server " +
+        "and one module, engine, for all dialects (owner decisions 2026-11-07 and 2026-11-08). " +
+        "It imports the clients and cores of its own family engine and of the dialect families " +
+        "ENGINE_DIALECTS names (today c7: @miragon/pulse-c7-core), never another family's. A " +
+        "dialect joins ENGINE_DIALECTS in the commit that first imports it from the engine " +
+        "module (CLAUDE.md invariant 8).",
+      from: { path: ENGINE_CONNECTOR_TREE },
+      to: {
+        path: [
+          "^packages/connectors/[^/]+/[^/]+-(?:client|core)/",
+          ...npm("@miragon/pulse-[^/]+-(?:client|core)"),
+        ],
+        pathNot: [
+          ...ENGINE_MODULE_FAMILIES.map(
+            (family) => `^packages/connectors/${family}/${family}-(?:client|core)/`,
+          ),
+          ...npm(`@miragon/pulse-(?:${ENGINE_MODULE_FAMILIES.join("|")})-(?:client|core)`),
         ],
       },
     },
@@ -432,7 +480,7 @@ module.exports = {
       name: "connector-widgets-only-shared-lib",
       severity: "error",
       comment:
-        "Of a connector's lib folders (src/lib/<job>: engine routing, the engine-core adapter, " +
+        "Of a connector's lib folders (src/lib/<job>: engine routing, the c7-core adapter, " +
         "BPMN reading, the MCP tool surface) its widgets import only src/lib/shared, not even " +
         "for a type: the other folders are server code, and a type a widget needs from the " +
         "server side is declared once in src/lib/shared (TaskCompletion) or in the view models.",
@@ -495,7 +543,7 @@ module.exports = {
       comment:
         "The CLI (apps/cli) is a terminal interface, not an MCP host: it imports no workspace " +
         "package except the ones CLI_BUNDLES names, which tsdown inlines (" +
-        "@miragon/pulse-engine-core, the engine family's workflow domain, " +
+        "@miragon/pulse-c7-core, the Camunda 7 REST family's core, " +
         "@miragon/pulse-profile, the profile format, and @miragon/pulse-http, the transport), " +
         "and nothing of the MCP/UI/server " +
         "stack (react, react-dom, lucide-react, preact, bpmn-js, diagram-js, " +
@@ -589,10 +637,10 @@ module.exports = {
       name: "family-core-is-a-leaf",
       severity: "error",
       comment:
-        "A family core (packages/connectors/<family>/<family>-core, e.g. @miragon/pulse-engine-core) " +
+        "A family core (packages/connectors/<family>/<family>-core, e.g. @miragon/pulse-c7-core) " +
         "has no runtime dependency: its shipped code (the ./testing export included) imports only " +
         "its own modules, no workspace package, no npm package and no Node built-in. The caller " +
-        "supplies every effect through a port (engine-core's EngineTransport) and words the " +
+        "supplies every effect through a port (c7-core's EngineTransport) and words the " +
         "structured results.",
       from: { path: "^packages/connectors/([^/]+)/([^/]+)-core/src/", pathNot: ["[.]test[.]ts$"] },
       to: { pathNot: "^packages/connectors/$1/$2-core/src/" },
@@ -601,9 +649,10 @@ module.exports = {
       name: "family-core-consumers",
       severity: "error",
       comment:
-        "A family core is imported by its own family's connector (connectors-own-their-family) " +
+        "A family core is imported by its own family's connector (connectors-own-their-family), " +
+        "a dialect's core also by the engine module (engine-connector-spans-the-dialects), " +
         "and by the interface apps that bundle it (CORE_BUNDLERS: the CLI and the VS Code " +
-        "extension's C7 adapter, apps/vscode/src/adapters/c7, bundle engine-core), " +
+        "extension's C7 adapter, apps/vscode/src/adapters/c7, bundle c7-core), " +
         "by no other app: the MCP server composes connectors, not their domain. The other " +
         "packages answer to their own rules: packages/core to core-is-foundation, a client to " +
         "clients-are-leaves, a family core to family-core-is-a-leaf.",
@@ -676,7 +725,7 @@ module.exports = {
       name: "cli-no-circular",
       severity: "error",
       comment:
-        "The CLI (apps/cli) and the packages CLI_BUNDLES names (engine-core, the profile " +
+        "The CLI (apps/cli) and the packages CLI_BUNDLES names (c7-core, the profile " +
         "format, the transport) have no import cycle at all, type-only cycles included (stricter than " +
         "no-circular above). Extract the shared part into its own module.",
       from: { path: `^(?:apps/cli|${CLI_BUNDLE_TREES})/` },
@@ -696,7 +745,7 @@ module.exports = {
       name: "cli-not-to-test",
       severity: "error",
       comment:
-        "Nothing in the CLI or in the packages CLI_BUNDLES names (engine-core, the profile " +
+        "Nothing in the CLI or in the packages CLI_BUNDLES names (c7-core, the profile " +
         "format, the transport) imports a test file (*.test.ts) of its own tree. Shared test helpers live in " +
         "apps/cli/test/support/ and in a bundled package's src/testing/.",
       from: { path: `^(apps/cli|${CLI_BUNDLE_TREES})/` },

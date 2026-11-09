@@ -244,7 +244,7 @@ describe("checkStrykerConfig: a config whose defaults would keep the gate green 
 
 const STRYKER_OK = { exists: true, config: GOOD_STRYKER }
 const NO_STRYKER = { exists: false }
-const CORE = "packages/connectors/engine/engine-core"
+const CORE = "packages/connectors/c7/c7-core"
 const CONNECTOR = "packages/connectors/engine/engine-connector"
 const CHOSEN = "owner decision: the shared pure rules"
 
@@ -286,7 +286,7 @@ describe("checkPackageConfigs: the configs a source package's scripts measure ag
     assert.equal(errors.length, 1)
     assert.match(
       errors[0],
-      /^packages\/connectors\/engine\/engine-core: listed in MUTATED_PACKAGES but has no stryker\.config\.json/,
+      /^packages\/connectors\/c7\/c7-core: listed in MUTATED_PACKAGES but has no stryker\.config\.json/,
     )
   })
 
@@ -314,7 +314,7 @@ describe("checkPackageConfigs: the configs a source package's scripts measure ag
     assert.equal(errors.length, 1)
     assert.match(
       errors[0],
-      /^packages\/connectors\/engine\/engine-core\/stryker\.config\.json: thresholds\.break/,
+      /^packages\/connectors\/c7\/c7-core\/stryker\.config\.json: thresholds\.break/,
     )
   })
 
@@ -327,7 +327,7 @@ describe("checkPackageConfigs: the configs a source package's scripts measure ag
     assert.equal(errors.length, 1)
     assert.match(
       errors[0],
-      /^packages\/connectors\/engine\/engine-core\/stryker\.config\.json is not valid JSON \(Unexpected token\)/,
+      /^packages\/connectors\/c7\/c7-core\/stryker\.config\.json is not valid JSON \(Unexpected token\)/,
     )
   })
 
@@ -356,7 +356,7 @@ describe("checkPackageConfigs: the configs a source package's scripts measure ag
       mutationPaused: true,
     })
     assert.equal(errors.length, 1)
-    assert.match(errors[0], /^packages\/connectors\/engine\/engine-core: no vitest\.config\.ts/)
+    assert.match(errors[0], /^packages\/connectors\/c7\/c7-core: no vitest\.config\.ts/)
   })
 })
 
@@ -382,9 +382,12 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
     }
   })
 
-  it("the real map lists engine-core and the transport, each with the owner's decision", () => {
+  it("the real map lists c7-core and the transport, each with the owner's decision", () => {
     assert.deepEqual(Object.keys(MUTATED_PACKAGES), [CORE, "packages/core/http"])
-    assert.match(MUTATED_PACKAGES[CORE], /owner decision 2026-11-04/)
+    assert.match(
+      MUTATED_PACKAGES[CORE],
+      /owner decision 2026-11-04: c7-core \(engine-core until 0\.27\)/,
+    )
     assert.match(MUTATED_PACKAGES["packages/core/http"], /owner decision 2026-11-08/)
   })
 })
@@ -402,7 +405,7 @@ const PACKAGES = {
   "apps/vscode": { name: "pulse", engines: { vscode: "^1.95.0" } },
   "apps/server": { name: "@miragon/pulse-fixture-root" },
   [CONNECTOR]: { name: "@miragon/pulse-engine-connector" },
-  [CORE]: { name: "@miragon/pulse-engine-core", stryker: GOOD_STRYKER },
+  [CORE]: { name: "@miragon/pulse-c7-core", stryker: GOOD_STRYKER },
 }
 const MUTATED = { [CORE]: "the fixture's chosen package" }
 
@@ -447,7 +450,7 @@ describe("checkWorkspace over fixture trees", () => {
   it("passes the fixture as built and checks only packages with src/", () => {
     const { errors, sourceDirs } = workspaceErrors()
     assert.deepEqual(errors, [])
-    assert.deepEqual(sourceDirs, ["apps/cli", "apps/server", "apps/vscode", CONNECTOR, CORE])
+    assert.deepEqual(sourceDirs, ["apps/cli", "apps/server", "apps/vscode", CORE, CONNECTOR])
   })
 
   it("flags a connector package without vitest.config.ts", () => {
@@ -462,10 +465,7 @@ describe("checkWorkspace over fixture trees", () => {
   it("flags a listed package without stryker.config.json", () => {
     const { errors } = workspaceErrors((p) => (p[CORE].stryker = null))
     assert.equal(errors.length, 1)
-    assert.match(
-      errors[0],
-      /^packages\/connectors\/engine\/engine-core: listed in MUTATED_PACKAGES/,
-    )
+    assert.match(errors[0], /^packages\/connectors\/c7\/c7-core: listed in MUTATED_PACKAGES/)
   })
 
   for (const dir of ["apps/cli", "apps/vscode", "apps/server", CONNECTOR]) {
@@ -482,10 +482,7 @@ describe("checkWorkspace over fixture trees", () => {
   it("flags the chosen package's config once the package leaves the list", () => {
     const { errors } = workspaceErrors(undefined, { mutatedPackages: {} })
     assert.equal(errors.length, 1)
-    assert.match(
-      errors[0],
-      /^packages\/connectors\/engine\/engine-core: carries a stryker\.config\.json/,
-    )
+    assert.match(errors[0], /^packages\/connectors\/c7\/c7-core: carries a stryker\.config\.json/)
   })
 
   for (const [label, stryker, pattern] of [
@@ -516,7 +513,7 @@ describe("checkWorkspace over fixture trees", () => {
     assert.equal(errors.length, 1)
     assert.match(
       errors[0],
-      /^packages\/connectors\/engine\/engine-core\/stryker\.config\.json is not valid JSON/,
+      /^packages\/connectors\/c7\/c7-core\/stryker\.config\.json is not valid JSON/,
     )
   })
 
@@ -525,7 +522,7 @@ describe("checkWorkspace over fixture trees", () => {
     assert.equal(errors.length, 1)
     assert.match(
       errors[0],
-      /"packages\/connectors\/engine\/engine-core" is not a workspace package with src\//,
+      /"packages\/connectors\/c7\/c7-core" is not a workspace package with src\//,
     )
   })
 
@@ -535,7 +532,7 @@ describe("checkWorkspace over fixture trees", () => {
     assert.equal(errors.length, 1)
     assert.match(
       errors[0],
-      /"packages\/connectors\/engine\/engine-core" is not a workspace package with src\//,
+      /"packages\/connectors\/c7\/c7-core" is not a workspace package with src\//,
     )
   })
 
@@ -561,7 +558,7 @@ describe("checkWorkspace over fixture trees", () => {
       "packages/core/widget-shell",
       "packages/connectors/engine/engine-client",
       "packages/connectors/engine/engine-connector",
-      "packages/connectors/engine/engine-core",
+      "packages/connectors/c7/c7-core",
     ]) {
       assert.ok(sourceDirs.includes(dir), dir)
     }

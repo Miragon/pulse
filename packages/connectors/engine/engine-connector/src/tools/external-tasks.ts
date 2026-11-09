@@ -6,7 +6,7 @@ import {
   handleExternalTaskFailureInput,
 } from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
-import { complementaryFlags, engineSorting, toEngineVariables } from "@miragon/pulse-engine-core"
+import { complementaryFlags, engineSorting, toEngineVariables } from "@miragon/pulse-c7-core"
 import {
   getExternalTasks,
   getExternalTasksCount,

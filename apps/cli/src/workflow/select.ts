@@ -1,10 +1,10 @@
 /**
  * Instance selection of inspect, wait, advance and retry: a process instance id,
  * or `--business-key` / `--process-definition-key` (with `--latest`) resolved against history
- * and runtime, by @miragon/pulse-engine-core; its errors name the flags and ready commands.
+ * and runtime, by @miragon/pulse-c7-core; its errors name the flags and ready commands.
  */
 
-import * as core from "@miragon/pulse-engine-core"
+import * as core from "@miragon/pulse-c7-core"
 import type { EnginePort } from "../engine-port/engine-port.js"
 import { rendered, renderedAsync } from "./error-text.js"
 

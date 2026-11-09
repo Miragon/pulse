@@ -262,7 +262,7 @@ function redirectError(response: Response, ctx: EngineErrorContext) {
 /**
  * A 404 that is no engine answer: no exception type (a servlet container's or a proxy's page) or
  * the JAX-RS `NotFoundException` of a path the REST API does not serve, most likely a wrong REST
- * root. Wording only, restated from engine-core's `isUnknownEndpoint` (this leaf cannot import
+ * root. Wording only, restated from c7-core's `isUnknownEndpoint` (this leaf cannot import
  * it); the engine connector holds the two equal (`src/lib/core-adapter/engine-port.test.ts`).
  */
 function isUnknownEndpoint(status: number, type: string | undefined): boolean {

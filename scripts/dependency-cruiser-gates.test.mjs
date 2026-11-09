@@ -39,7 +39,7 @@ const SHELL = "packages/core/widget-shell"
 const UI = "packages/core/ui"
 const PROFILE = "packages/core/profile"
 const HTTP = "packages/core/http"
-const ENGINE = "packages/connectors/engine/engine-core"
+const C7 = "packages/connectors/c7/c7-core"
 const ENGINE_CLIENT = "packages/connectors/engine/engine-client"
 const ENGINE_CONNECTOR = "packages/connectors/engine/engine-connector"
 // No such family exists: a second family's client, connector and core prove the family rules
@@ -56,7 +56,7 @@ const WORKSPACE = {
   [UI]: { name: "@miragon/pulse-ui" },
   [PROFILE]: { name: "@miragon/pulse-profile" },
   [HTTP]: { name: "@miragon/pulse-http" },
-  [ENGINE]: { name: "@miragon/pulse-engine-core" },
+  [C7]: { name: "@miragon/pulse-c7-core" },
   [ENGINE_CLIENT]: { name: "@miragon/pulse-engine-client" },
   [ENGINE_CONNECTOR]: { name: "@miragon/pulse-engine-connector" },
   [BILLING_CLIENT]: { name: "@miragon/pulse-billing-client" },
@@ -95,6 +95,7 @@ const THIRD_PARTY = [
 
 const PEERS = "connectors-are-peers"
 const OWN_FAMILY = "connectors-own-their-family"
+const SPANS = "engine-connector-spans-the-dialects"
 const CLIENT_LEAF = "clients-are-leaves"
 const CORE = "core-is-foundation"
 const UI_LEAF = "ui-is-a-leaf"
@@ -151,8 +152,8 @@ const SERVER_SRC = `${SERVER}/src/index.ts`
 const EXT_SRC = `${EXT}/src/extension.ts`
 const SHELL_SRC = `${SHELL}/src/index.ts`
 const UI_SRC = `${UI}/src/index.ts`
-const ENGINE_SRC = `${ENGINE}/src/index.ts`
-const ENGINE_CORE = "@miragon/pulse-engine-core"
+const C7_SRC = `${C7}/src/index.ts`
+const C7_CORE = "@miragon/pulse-c7-core"
 const BILLING_CORE_NAME = "@miragon/pulse-billing-core"
 const PROFILE_NAME = "@miragon/pulse-profile"
 const PROFILE_SRC = `${PROFILE}/src/index.ts`
@@ -198,9 +199,9 @@ const LEAVES = [
   `${UI}/src/testing/glyphs.ts`,
   `${UI}/src/tones/situations.ts`,
   `${UI}/src/format/numbers.ts`,
-  `${ENGINE}/src/target.ts`,
-  `${ENGINE}/src/lib.ts`,
-  `${ENGINE}/src/testing/fixture.ts`,
+  `${C7}/src/target.ts`,
+  `${C7}/src/lib.ts`,
+  `${C7}/src/testing/fixture.ts`,
   `${PROFILE}/src/target.ts`,
   `${PROFILE}/src/lib.ts`,
   `${HTTP}/src/target.ts`,
@@ -313,10 +314,10 @@ const SUITES = [
       [CLI_SRC, "reactive", []],
       [CLI_SRC, "pulse-tools", []],
       // The exemption is anchored: a look-alike name and a relative escape stay violations.
-      [`${CLI}/src/workflow/x.ts`, "@miragon/pulse-engine-corex", [HEADLESS]],
+      [`${CLI}/src/workflow/x.ts`, "@miragon/pulse-c7-corex", [HEADLESS]],
       [
         `${CLI}/src/workflow/escape-core.ts`,
-        "../../../../packages/connectors/engine/engine-core/src/target.ts",
+        "../../../../packages/connectors/c7/c7-core/src/target.ts",
         [HEADLESS, DEEP],
       ],
       // It names the one core the CLI bundles: another family's core stays a violation.
@@ -347,7 +348,7 @@ const SUITES = [
       // Not even a sibling of packages/core: core-is-foundation lets the others import one.
       [PROFILE_SRC, "@miragon/pulse-ui", [PROFILE_LEAF]],
       [PROFILE_SRC, "@miragon/pulse-widget-shell/server", [PROFILE_LEAF]],
-      [PROFILE_SRC, ENGINE_CORE, [CORE, PROFILE_LEAF]],
+      [PROFILE_SRC, C7_CORE, [CORE, PROFILE_LEAF]],
       [PROFILE_SRC, "@miragon/pulse-engine-client", [CORE, PROFILE_LEAF]],
       [PROFILE_SRC, "@miragon/pulse-cli", [NO_APP, PROFILE_LEAF]],
       ...["zod", "react", "commander", "reactive", "node:fs"].map((spec) => [
@@ -372,7 +373,7 @@ const SUITES = [
       [SERVER_SRC, PROFILE_NAME, [PROFILE_USERS]],
       [SHELL_SRC, PROFILE_NAME, [PROFILE_USERS]],
       [UI_SRC, PROFILE_NAME, [UI_LEAF, PROFILE_USERS]],
-      [ENGINE_SRC, PROFILE_NAME, [CORE_LEAF, PROFILE_USERS]],
+      [C7_SRC, PROFILE_NAME, [CORE_LEAF, PROFILE_USERS]],
       [ENGINE_CLIENT_SRC, PROFILE_NAME, [CLIENT_LEAF, PROFILE_USERS]],
       [ENGINE_CONNECTOR_SRC, PROFILE_NAME, [PROFILE_USERS]],
       [
@@ -417,7 +418,7 @@ const SUITES = [
       [HTTP_SRC, "@miragon/pulse-ui", [HTTP_LEAF]],
       [HTTP_SRC, "@miragon/pulse-widget-shell/server", [HTTP_LEAF]],
       [HTTP_SRC, PROFILE_NAME, [HTTP_LEAF, PROFILE_USERS]],
-      [HTTP_SRC, ENGINE_CORE, [CORE, HTTP_LEAF]],
+      [HTTP_SRC, C7_CORE, [CORE, HTTP_LEAF]],
       [HTTP_SRC, "@miragon/pulse-engine-client", [CORE, HTTP_LEAF]],
       [HTTP_SRC, "@miragon/pulse-cli", [NO_APP, HTTP_LEAF]],
       // No HTTP library under the injected fetch, no token verifier, no schema, no UI.
@@ -443,7 +444,7 @@ const SUITES = [
       [SHELL_SRC, HTTP_NAME, [HTTP_USERS]],
       [UI_SRC, HTTP_NAME, [UI_LEAF, HTTP_USERS]],
       [PROFILE_SRC, HTTP_NAME, [PROFILE_LEAF, HTTP_USERS]],
-      [ENGINE_SRC, HTTP_NAME, [CORE_LEAF, HTTP_USERS]],
+      [C7_SRC, HTTP_NAME, [CORE_LEAF, HTTP_USERS]],
       [ENGINE_CLIENT_SRC, HTTP_NAME, [CLIENT_LEAF, HTTP_USERS]],
       // A connector may, its widgets may not: they are browser code.
       [`${ENGINE_CONNECTOR}/src/widgets/http.ts`, HTTP_NAME, [WIDGETS_BROWSER]],
@@ -483,13 +484,13 @@ const SUITES = [
     rule: CORE_LEAF,
     title: "a family core imports only its own modules: no package, no npm module, no built-in",
     cases: [
-      [ENGINE_SRC, "@miragon/pulse-engine-client", [CORE_LEAF]],
-      // engine-core and the engine family share the stem: the family stays out of the leaf.
-      [ENGINE_SRC, "@miragon/pulse-engine-connector", [CORE_LEAF]],
-      [ENGINE_SRC, BILLING_CORE_NAME, [CORE_LEAF]],
-      [ENGINE_SRC, "@miragon/pulse-ui", [CORE_LEAF]],
-      [ENGINE_SRC, "@miragon/pulse-widget-shell/server", [CORE_LEAF]],
-      [ENGINE_SRC, "@miragon/pulse-cli", [NO_APP, CORE_LEAF]],
+      [C7_SRC, "@miragon/pulse-engine-client", [CORE_LEAF]],
+      // The engine module imports the core, never the other way round.
+      [C7_SRC, "@miragon/pulse-engine-connector", [CORE_LEAF]],
+      [C7_SRC, BILLING_CORE_NAME, [CORE_LEAF]],
+      [C7_SRC, "@miragon/pulse-ui", [CORE_LEAF]],
+      [C7_SRC, "@miragon/pulse-widget-shell/server", [CORE_LEAF]],
+      [C7_SRC, "@miragon/pulse-cli", [NO_APP, CORE_LEAF]],
       ...[
         "zod",
         "@modelcontextprotocol/server",
@@ -498,13 +499,17 @@ const SUITES = [
         "reactive",
         "node:fs",
         "path",
-      ].map((spec) => [ENGINE_SRC, spec, [CORE_LEAF]]),
-      [`${ENGINE}/src/escape.ts`, "../../../../core/ui/src/target.ts", [CORE_LEAF, DEEP]],
-      [`${ENGINE}/src/escape-client.ts`, "../../engine-client/src/target.ts", [CORE_LEAF, DEEP]],
+      ].map((spec) => [C7_SRC, spec, [CORE_LEAF]]),
+      [`${C7}/src/escape.ts`, "../../../../core/ui/src/target.ts", [CORE_LEAF, DEEP]],
+      [
+        `${C7}/src/escape-client.ts`,
+        "../../../engine/engine-client/src/target.ts",
+        [CORE_LEAF, DEEP],
+      ],
       // The shipped ./testing export is no test file: only *.test.ts may import vitest.
-      [`${ENGINE}/src/testing/index.ts`, "vitest", [CORE_LEAF]],
-      [ENGINE_SRC, "./lib.ts", []],
-      [`${ENGINE}/src/a.test.ts`, "vitest", []],
+      [`${C7}/src/testing/index.ts`, "vitest", [CORE_LEAF]],
+      [C7_SRC, "./lib.ts", []],
+      [`${C7}/src/a.test.ts`, "vitest", []],
       // Keyed on the role: any family's core is a leaf, by the layout alone.
       [BILLING_CORE_SRC, "@miragon/pulse-billing-client", [CORE_LEAF]],
       [BILLING_CORE_SRC, "zod", [CORE_LEAF]],
@@ -515,42 +520,42 @@ const SUITES = [
     rule: CORE_USERS,
     title: "a family core is imported by its family's connector and the apps that bundle it",
     cases: [
-      [SERVER_SRC, ENGINE_CORE, [CORE_USERS]],
+      [SERVER_SRC, C7_CORE, [CORE_USERS]],
       [SERVER_SRC, BILLING_CORE_NAME, [CORE_USERS]],
-      [EXT_SRC, ENGINE_CORE, [CORE_USERS]],
+      [EXT_SRC, C7_CORE, [CORE_USERS]],
       [
         `${SERVER}/src/escape-core.ts`,
-        "../../../packages/connectors/engine/engine-core/src/target.ts",
+        "../../../packages/connectors/c7/c7-core/src/target.ts",
         [CORE_USERS, DEEP],
       ],
       // The other packages answer to their own rule, each edge to exactly one.
-      [BILLING_CONNECTOR_SRC, ENGINE_CORE, [OWN_FAMILY]],
-      [ENGINE_CONNECTOR_SRC, BILLING_CORE_NAME, [OWN_FAMILY]],
-      [SHELL_SRC, ENGINE_CORE, [CORE]],
+      [BILLING_CONNECTOR_SRC, C7_CORE, [OWN_FAMILY]],
+      [ENGINE_CONNECTOR_SRC, BILLING_CORE_NAME, [SPANS]],
+      [SHELL_SRC, C7_CORE, [CORE]],
       [SHELL_SRC, BILLING_CORE_NAME, [CORE]],
-      [UI_SRC, ENGINE_CORE, [CORE, UI_LEAF]],
-      [ENGINE_CLIENT_SRC, ENGINE_CORE, [CLIENT_LEAF]],
-      [ENGINE_CLIENT_SRC, `${ENGINE_CORE}/testing`, [CLIENT_LEAF, NO_TESTING]],
-      // The extension bundles engine-core in its C7 adapter alone (keyed on that subtree).
-      [`${EXT}/src/core/a.ts`, ENGINE_CORE, [CORE_USERS]],
-      [`${EXT}/src/adapters/other/a.ts`, ENGINE_CORE, [CORE_USERS]],
-      [`${EXT}/src/adapters/c7-other/a.ts`, ENGINE_CORE, [CORE_USERS]],
-      [`${EXT}/src/adapters/c7/testing.ts`, `${ENGINE_CORE}/testing`, [NO_TESTING]],
+      [UI_SRC, C7_CORE, [CORE, UI_LEAF]],
+      [ENGINE_CLIENT_SRC, C7_CORE, [CLIENT_LEAF]],
+      [ENGINE_CLIENT_SRC, `${C7_CORE}/testing`, [CLIENT_LEAF, NO_TESTING]],
+      // The extension bundles c7-core in its C7 adapter alone (keyed on that subtree).
+      [`${EXT}/src/core/a.ts`, C7_CORE, [CORE_USERS]],
+      [`${EXT}/src/adapters/other/a.ts`, C7_CORE, [CORE_USERS]],
+      [`${EXT}/src/adapters/c7-other/a.ts`, C7_CORE, [CORE_USERS]],
+      [`${EXT}/src/adapters/c7/testing.ts`, `${C7_CORE}/testing`, [NO_TESTING]],
       [
         `${EXT}/src/adapters/c7/escape-core.ts`,
-        "../../../../../packages/connectors/engine/engine-core/src/target.ts",
+        "../../../../../packages/connectors/c7/c7-core/src/target.ts",
         [DEEP],
       ],
-      // Allowed: the family's own connector, the CLI and the extension's C7 adapter, which
-      // bundle engine-core.
-      [`${EXT}/src/adapters/c7/inspect.ts`, ENGINE_CORE, []],
-      [`${EXT}/src/adapters/c7/engine-rest/inspect/port.ts`, ENGINE_CORE, []],
-      [ENGINE_CONNECTOR_SRC, ENGINE_CORE, []],
+      // Allowed: the engine module, which spans the dialect families, the CLI and the extension's
+      // C7 adapter, which bundle c7-core.
+      [`${EXT}/src/adapters/c7/inspect.ts`, C7_CORE, []],
+      [`${EXT}/src/adapters/c7/engine-rest/inspect/port.ts`, C7_CORE, []],
+      [ENGINE_CONNECTOR_SRC, C7_CORE, []],
       [BILLING_CONNECTOR_SRC, BILLING_CORE_NAME, []],
-      [`${CLI}/src/workflow/inspect.ts`, ENGINE_CORE, []],
-      [`${CLI}/src/engine-port/port.ts`, ENGINE_CORE, [], "type"],
+      [`${CLI}/src/workflow/inspect.ts`, C7_CORE, []],
+      [`${CLI}/src/engine-port/port.ts`, C7_CORE, [], "type"],
       // The types-only rule of the engine port still bites on the new package.
-      [`${CLI}/src/engine-port/value.ts`, ENGINE_CORE, [CLI_PORT_TYPES]],
+      [`${CLI}/src/engine-port/value.ts`, C7_CORE, [CLI_PORT_TYPES]],
     ],
   },
   {
@@ -558,41 +563,41 @@ const SUITES = [
     title:
       "in the CLI only the workflow and engine-port layers, the two rule modules of operation (and tests) import the core",
     cases: [
-      [CLI_SRC, ENGINE_CORE, [CLI_CORE_LAYERS]],
+      [CLI_SRC, C7_CORE, [CLI_CORE_LAYERS]],
       // operation/ applies the core's date reading and auto typing in exactly two modules.
-      [`${CLI}/src/operation/dates.ts`, ENGINE_CORE, []],
-      [`${CLI}/src/operation/variables.ts`, ENGINE_CORE, []],
-      [`${CLI}/src/operation/values.ts`, ENGINE_CORE, [CLI_CORE_LAYERS]],
-      [`${CLI}/src/operation/dates.test-support.ts`, ENGINE_CORE, [CLI_CORE_LAYERS]],
-      [`${CLI}/src/operation/dates-other.ts`, ENGINE_CORE, [CLI_CORE_LAYERS]],
-      [`${CLI}/src/operation/sub/dates.ts`, ENGINE_CORE, [CLI_CORE_LAYERS]],
-      [`${CLI}/src/cli/target-core.ts`, ENGINE_CORE, [CLI_CORE_LAYERS]],
-      [`${CLI}/scripts/core.ts`, ENGINE_CORE, [CLI_CORE_LAYERS]],
-      [CLI_SRC, `${ENGINE_CORE}/testing`, [CLI_CORE_LAYERS, NO_TESTING]],
+      [`${CLI}/src/operation/dates.ts`, C7_CORE, []],
+      [`${CLI}/src/operation/variables.ts`, C7_CORE, []],
+      [`${CLI}/src/operation/values.ts`, C7_CORE, [CLI_CORE_LAYERS]],
+      [`${CLI}/src/operation/dates.test-support.ts`, C7_CORE, [CLI_CORE_LAYERS]],
+      [`${CLI}/src/operation/dates-other.ts`, C7_CORE, [CLI_CORE_LAYERS]],
+      [`${CLI}/src/operation/sub/dates.ts`, C7_CORE, [CLI_CORE_LAYERS]],
+      [`${CLI}/src/cli/target-core.ts`, C7_CORE, [CLI_CORE_LAYERS]],
+      [`${CLI}/scripts/core.ts`, C7_CORE, [CLI_CORE_LAYERS]],
+      [CLI_SRC, `${C7_CORE}/testing`, [CLI_CORE_LAYERS, NO_TESTING]],
       // Another family's core is cli-is-headless's alone.
       [`${CLI}/src/cli/other-core.ts`, BILLING_CORE_NAME, [HEADLESS]],
-      [`${CLI}/src/f.test.ts`, ENGINE_CORE, []],
+      [`${CLI}/src/f.test.ts`, C7_CORE, []],
     ],
   },
   {
     rule: NO_TESTING,
     title: "shipped code imports no ./testing entry, a package's own src/testing included",
     cases: [
-      [`${CLI}/src/workflow/fixture.ts`, `${ENGINE_CORE}/testing`, [NO_TESTING]],
+      [`${CLI}/src/workflow/fixture.ts`, `${C7_CORE}/testing`, [NO_TESTING]],
       [
         `${ENGINE_CONNECTOR}/src/lib/core-adapter/composites.ts`,
-        `${ENGINE_CORE}/testing`,
+        `${C7_CORE}/testing`,
         [NO_TESTING],
       ],
-      [ENGINE_CONNECTOR_SRC, `${ENGINE_CORE}/testing`, [NO_TESTING]],
+      [ENGINE_CONNECTOR_SRC, `${C7_CORE}/testing`, [NO_TESTING]],
       // pulse-ui/testing reads files and parses TypeScript: no shipped module imports it.
       [`${SHELL}/src/ui/brand.ts`, "@miragon/pulse-ui/testing", [NO_TESTING]],
       [`${SERVER}/src/ui/brand.ts`, "@miragon/pulse-ui/testing", [NO_TESTING]],
       [`${BILLING_CONNECTOR}/src/widgets/brand.ts`, "@miragon/pulse-ui/testing", [NO_TESTING]],
       [`${EXT}/src/brand.ts`, "@miragon/pulse-ui/testing", [NO_TESTING]],
       // A package's own testing tree, by relative path.
-      [ENGINE_SRC, "./testing/fixture.ts", [NO_TESTING]],
-      [`${ENGINE}/src/inspect.ts`, "./testing/fixture.ts", [NO_TESTING], "type"],
+      [C7_SRC, "./testing/fixture.ts", [NO_TESTING]],
+      [`${C7}/src/inspect.ts`, "./testing/fixture.ts", [NO_TESTING], "type"],
       [`${UI}/src/kit/scan.ts`, "../testing/glyphs.ts", [NO_TESTING]],
       // test-support may import ./testing, so shipped code may not import test-support.
       [`${CLI}/src/workflow/support.ts`, "./test-support/fixture.ts", [NO_TESTING]],
@@ -603,26 +608,26 @@ const SUITES = [
         [NO_TESTING, POINT_DOWN],
       ],
       [`${SHELL}/src/boot.ts`, "./composition.test-support.ts", [NO_TESTING]],
-      [`${CLI}/src/workflow/test-support/fixture.ts`, `${ENGINE_CORE}/testing`, []],
+      [`${CLI}/src/workflow/test-support/fixture.ts`, `${C7_CORE}/testing`, []],
       // A test file of its own tree is cli-not-to-test's.
-      [`${ENGINE}/src/to-test.ts`, "./a.test.ts", [CLI_NOT_TEST]],
+      [`${C7}/src/to-test.ts`, "./a.test.ts", [CLI_NOT_TEST]],
       // Anchored: a look-alike subpath is no ./testing entry.
       [`${SHELL}/src/ui/kit.ts`, "@miragon/pulse-ui/testing-kit", []],
       // Allowed: tests, their test-support, test/ trees and a ./testing entry itself.
-      [`${CLI}/test/support/fixture.ts`, `${ENGINE_CORE}/testing`, []],
+      [`${CLI}/test/support/fixture.ts`, `${C7_CORE}/testing`, []],
       [
         `${ENGINE_CONNECTOR}/src/lib/core-adapter/composites.wire.test.ts`,
-        `${ENGINE_CORE}/testing`,
+        `${C7_CORE}/testing`,
         [],
       ],
-      [`${ENGINE_CONNECTOR}/src/tools/test-support/fake-engine.ts`, `${ENGINE_CORE}/testing`, []],
+      [`${ENGINE_CONNECTOR}/src/tools/test-support/fake-engine.ts`, `${C7_CORE}/testing`, []],
       [`${SHELL}/src/testing/glossary.ts`, "@miragon/pulse-ui/testing", []],
       [`${SHELL}/src/composition.test-support.ts`, "@miragon/pulse-ui/testing", []],
       [`${SERVER}/src/brand.test.ts`, "@miragon/pulse-ui/testing", []],
       [`${UI}/src/testing/index.ts`, "./glyphs.ts", []],
-      [`${ENGINE}/src/testing/routes.ts`, "./fixture.ts", []],
-      [`${ENGINE}/src/testing/port.ts`, "../lib.ts", []],
-      [`${ENGINE}/src/b.test.ts`, "./testing/fixture.ts", []],
+      [`${C7}/src/testing/routes.ts`, "./fixture.ts", []],
+      [`${C7}/src/testing/port.ts`, "../lib.ts", []],
+      [`${C7}/src/b.test.ts`, "./testing/fixture.ts", []],
     ],
   },
   {
@@ -1168,16 +1173,43 @@ const SUITES = [
     rule: OWN_FAMILY,
     title: "a connector depends on its own family's client and core only",
     cases: [
-      [ENGINE_CONNECTOR_SRC, "@miragon/pulse-billing-client", [OWN_FAMILY]],
       [BILLING_CONNECTOR_SRC, "@miragon/pulse-engine-client/sdk", [OWN_FAMILY]],
       [BILLING_CONNECTOR_SRC, "@miragon/pulse-engine-client", [OWN_FAMILY]],
-      [BILLING_CONNECTOR_SRC, `${ENGINE_CORE}/testing`, [OWN_FAMILY, NO_TESTING]],
+      [BILLING_CONNECTOR_SRC, `${C7_CORE}/testing`, [OWN_FAMILY, NO_TESTING]],
       [
         `${BILLING_CONNECTOR}/src/escape-core.ts`,
-        "../../../engine/engine-core/src/target.ts",
+        "../../../c7/c7-core/src/target.ts",
         [OWN_FAMILY, DEEP],
       ],
       [BILLING_CONNECTOR_SRC, "@miragon/pulse-billing-client", []],
+    ],
+  },
+  {
+    rule: SPANS,
+    title: "the engine module imports the clients and cores of its family and the dialects only",
+    cases: [
+      [ENGINE_CONNECTOR_SRC, "@miragon/pulse-billing-client", [SPANS]],
+      [
+        `${ENGINE_CONNECTOR}/src/lib/engine/billing.ts`,
+        "@miragon/pulse-billing-client/sdk",
+        [SPANS],
+      ],
+      [
+        `${ENGINE_CONNECTOR}/src/escape-billing.ts`,
+        "../../../billing/billing-core/src/lib.ts",
+        [SPANS, DEEP],
+      ],
+      // A dialect joins ENGINE_DIALECTS with its first import: until then it is another family.
+      [`${ENGINE_CONNECTOR}/src/lib/engine/c8.ts`, "@miragon/pulse-c8-core", [SPANS]],
+      // Anchored: a family whose name starts like a dialect's is no dialect.
+      [`${ENGINE_CONNECTOR}/src/lib/engine/c70.ts`, "@miragon/pulse-c70-core", [SPANS]],
+      // Allowed: the dialect family c7 (its core, and its client once it has one), the engine
+      // family's own client, and tests.
+      [`${ENGINE_CONNECTOR}/src/lib/core-adapter/port.ts`, C7_CORE, []],
+      [`${ENGINE_CONNECTOR}/src/lib/core-adapter/types.ts`, C7_CORE, [], "type"],
+      [`${ENGINE_CONNECTOR}/src/lib/engine/c7.ts`, "@miragon/pulse-c7-client", []],
+      [`${ENGINE_CONNECTOR}/src/lib/engine/client.ts`, "@miragon/pulse-engine-client", []],
+      [`${ENGINE_CONNECTOR}/src/tools/core.test.ts`, `${C7_CORE}/testing`, []],
     ],
   },
   {
@@ -1213,8 +1245,8 @@ const SUITES = [
       // pulse-ui by path: the server half never imports the view stack at all.
       [`${SHELL}/src/escape-ui.ts`, "../../ui/src/target.ts", [DEEP, SHELL_HEADLESS]],
       [`${SHELL}/src/ui/escape-ui.ts`, "../../../ui/src/target.ts", [DEEP, SHELL_VIEWS]],
-      // The engine connector may import engine-core, but only by its name, never by a path.
-      [`${ENGINE_CONNECTOR}/src/escape-core.ts`, "../../engine-core/src/target.ts", [DEEP]],
+      // The engine connector may import c7-core, but only by its name, never by a path.
+      [`${ENGINE_CONNECTOR}/src/escape-core.ts`, "../../../c7/c7-core/src/target.ts", [DEEP]],
     ],
   },
   {
@@ -1236,10 +1268,10 @@ const SUITES = [
       [`${CLI}/src/type-cycle-a.ts`, "./type-cycle-b.ts", [CLI_CYCLE], "type"],
       [`${CLI}/src/type-cycle-b.ts`, "./type-cycle-a.ts", [CLI_CYCLE], "type"],
       // The workflow domain the CLI bundles is held to the same rule.
-      [`${ENGINE}/src/cycle-a.ts`, "./cycle-b.ts", [CIRCULAR, CLI_CYCLE]],
-      [`${ENGINE}/src/cycle-b.ts`, "./cycle-a.ts", [CIRCULAR, CLI_CYCLE]],
-      [`${ENGINE}/src/type-cycle-a.ts`, "./type-cycle-b.ts", [CLI_CYCLE], "type"],
-      [`${ENGINE}/src/type-cycle-b.ts`, "./type-cycle-a.ts", [CLI_CYCLE], "type"],
+      [`${C7}/src/cycle-a.ts`, "./cycle-b.ts", [CIRCULAR, CLI_CYCLE]],
+      [`${C7}/src/cycle-b.ts`, "./cycle-a.ts", [CIRCULAR, CLI_CYCLE]],
+      [`${C7}/src/type-cycle-a.ts`, "./type-cycle-b.ts", [CLI_CYCLE], "type"],
+      [`${C7}/src/type-cycle-b.ts`, "./type-cycle-a.ts", [CLI_CYCLE], "type"],
       // So is the profile format, which the CLI bundles as well.
       [`${PROFILE}/src/type-cycle-a.ts`, "./type-cycle-b.ts", [CLI_CYCLE], "type"],
       [`${PROFILE}/src/type-cycle-b.ts`, "./type-cycle-a.ts", [CLI_CYCLE], "type"],
@@ -1265,8 +1297,8 @@ const SUITES = [
     cases: [
       [`${CLI}/src/b.test.ts`, "./a.test.ts", [CLI_NOT_TEST]],
       [`${CLI}/src/c.test.ts`, "./target.ts", []],
-      [`${ENGINE}/src/testing/to-test.ts`, "../a.test.ts", [CLI_NOT_TEST]],
-      [`${ENGINE}/src/c.test.ts`, "./a.test.ts", [CLI_NOT_TEST]],
+      [`${C7}/src/testing/to-test.ts`, "../a.test.ts", [CLI_NOT_TEST]],
+      [`${C7}/src/c.test.ts`, "./a.test.ts", [CLI_NOT_TEST]],
       [`${PROFILE}/src/c.test.ts`, "./a.test.ts", [CLI_NOT_TEST]],
       [`${HTTP}/src/c.test.ts`, "./a.test.ts", [CLI_NOT_TEST]],
       // A core the CLI does not bundle is out of the CLI's rules.
@@ -1274,7 +1306,7 @@ const SUITES = [
       // Each package's own tests only: the CLI's rule never reaches into the core's tree.
       [
         `${CLI}/src/to-engine-test.ts`,
-        "../../../packages/connectors/engine/engine-core/src/a.test.ts",
+        "../../../packages/connectors/c7/c7-core/src/a.test.ts",
         [HEADLESS, DEEP],
       ],
     ],
@@ -1718,6 +1750,80 @@ describe("APP_PACKAGES names every real app of the repo", () => {
       )
     })
   }
+})
+
+/**
+ * The families engine-connector-spans-the-dialects lets the engine module import, read from the
+ * relative-escape exemptions it builds (the own family engine and ENGINE_DIALECTS).
+ */
+function spannedFamilies(config) {
+  const { to } = config.forbidden.find((rule) => rule.name === SPANS)
+  return to.pathNot.flatMap((pattern) => {
+    const match = /^\^packages\/connectors\/([^/]+)\/\1-\(\?:client\|core\)\/$/.exec(pattern)
+    return match ? [match[1]] : []
+  })
+}
+
+/**
+ * What the tree under `connectorsDir` says against ENGINE_DIALECTS: a dialect that is no family
+ * with a client or a core, and a connector a dialect brings (one module, engine, serves them all).
+ */
+function dialectFindings(dialects, connectorsDir) {
+  return dialects.flatMap((dialect) => {
+    const familyDir = path.join(connectorsDir, dialect)
+    const packages = fs.existsSync(familyDir)
+      ? fs
+          .readdirSync(familyDir, { withFileTypes: true })
+          .filter((entry) => entry.isDirectory())
+          .map((entry) => entry.name)
+      : []
+    if (!packages.some((name) => [`${dialect}-client`, `${dialect}-core`].includes(name))) {
+      return [
+        `ENGINE_DIALECTS names ${dialect}, but packages/connectors/${dialect}/ holds no ` +
+          `${dialect}-client or ${dialect}-core: a dialect joins with its first import`,
+      ]
+    }
+    return packages
+      .filter((name) => name.endsWith("-connector"))
+      .map(
+        (name) =>
+          `packages/connectors/${dialect}/${name} is a connector of the dialect ${dialect}: the ` +
+          "engine module serves every dialect, so its tools go into the engine connector",
+      )
+  })
+}
+
+describe("ENGINE_DIALECTS names dialect families of the tree, none with a connector", () => {
+  const config = createRequire(import.meta.url)(CONFIG)
+  const dialects = spannedFamilies(config).filter((family) => family !== "engine")
+
+  it("reads the engine family and at least one dialect from the rule", () => {
+    assert.ok(spannedFamilies(config).includes("engine"), "the engine family is not exempt")
+    assert.ok(dialects.length > 0, `no dialect read from ${SPANS}`)
+  })
+
+  it("holds the real tree", () => {
+    assert.deepEqual(dialectFindings(dialects, path.join(repoRoot, "packages/connectors")), [])
+  })
+
+  it("fails on a dialect without packages, a missing one and a dialect's connector", () => {
+    const planted = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "engine-dialects-")))
+    try {
+      for (const dir of ["c7/c7-core", "c8", "c9/c9-core", "c9/c9-connector"]) {
+        fs.mkdirSync(path.join(planted, dir), { recursive: true })
+      }
+      assert.deepEqual(dialectFindings(["c7", "c8", "c9", "c10"], planted), [
+        "ENGINE_DIALECTS names c8, but packages/connectors/c8/ holds no c8-client or c8-core: " +
+          "a dialect joins with its first import",
+        "packages/connectors/c9/c9-connector is a connector of the dialect c9: the engine " +
+          "module serves every dialect, so its tools go into the engine connector",
+        "ENGINE_DIALECTS names c10, but packages/connectors/c10/ holds no c10-client or " +
+          "c10-core: a dialect joins with its first import",
+      ])
+    } finally {
+      fs.rmSync(planted, { recursive: true, force: true })
+    }
+  })
 })
 
 describe("a failing cruise says the fix", () => {

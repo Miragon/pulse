@@ -1,4 +1,4 @@
-import { toEngineDate } from "@miragon/pulse-engine-core"
+import { toEngineDate } from "@miragon/pulse-c7-core"
 import {
   InstanceId,
   type InstanceFilter,

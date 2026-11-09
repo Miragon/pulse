@@ -1,7 +1,7 @@
 {
-  "name": "@miragon/pulse-engine-core",
+  "name": "@miragon/pulse-c7-core",
   "version": "0.27.1",
-  "description": "The workflow domain of the Camunda 7 REST API family (Operaton, CIB seven, Camunda 7): the engine port, instance selection, the inspect view, the status triage, root causes and the plans of retry and advance, and the pure engine REST rules (dates, filters, sorting, variable writes, incident recovery). No runtime dependency.",
+  "description": "The core of the Camunda 7 REST dialect family (Operaton, CIB seven, Camunda 7), its workflow domain: the engine port, instance selection, the inspect view, the status triage, root causes and the plans of retry and advance, and the pure engine REST rules (dates, filters, sorting, variable writes, incident recovery). No runtime dependency.",
   "license": "MIT",
   "keywords": [
     "camunda",
@@ -11,7 +11,7 @@
     "bpmn",
     "workflow"
   ],
-  "homepage": "https://github.com/Miragon/pulse/tree/main/packages/connectors/engine/engine-core#readme",
+  "homepage": "https://github.com/Miragon/pulse/tree/main/packages/connectors/c7/c7-core#readme",
   "bugs": "https://github.com/Miragon/pulse/issues",
   "engines": {
     "node": ">=22.22.2"
@@ -19,7 +19,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Miragon/pulse.git",
-    "directory": "packages/connectors/engine/engine-core"
+    "directory": "packages/connectors/c7/c7-core"
   },
   "publishConfig": {
     "access": "public"

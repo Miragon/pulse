@@ -15,7 +15,7 @@ import { createEngineRegistry, type EngineRegistry } from "../lib/engine/resolve
 import { registerTools } from "./index.js"
 import { registerIncidentIssueTools } from "./incident-issue.js"
 import { registerEngineTools } from "./engines.js"
-import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-engine-core"
+import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-c7-core"
 import { captureTools } from "./test-support/fake-engine.js"
 
 /** Mirrors plugin.ts, so a new tool lands under the guards without touching this test. */

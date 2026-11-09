@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest"
 import { EngineRequestError, fetchJobStacktrace } from "@miragon/pulse-engine-client"
-import { isUnknownEndpoint } from "@miragon/pulse-engine-core"
-import { INSPECT_OPERATIONS, STATUS_OPERATIONS } from "@miragon/pulse-engine-core/testing"
+import { isUnknownEndpoint } from "@miragon/pulse-c7-core"
+import { INSPECT_OPERATIONS, STATUS_OPERATIONS } from "@miragon/pulse-c7-core/testing"
 import {
   clientFor,
   type FakeEngine,
@@ -29,7 +29,7 @@ async function engineWith(...args: Parameters<typeof startFakeEngine>) {
 const NO_INPUT = { pathArgs: [], query: {} }
 
 describe("READS", () => {
-  it("maps exactly the operations engine-core's composites send", () => {
+  it("maps exactly the operations c7-core's composites send", () => {
     expect(Object.keys(READS).sort()).toEqual(
       [...new Set([...INSPECT_OPERATIONS, ...STATUS_OPERATIONS])].sort(),
     )
@@ -40,10 +40,10 @@ describe("enginePortFor", () => {
   it("refuses an operation it does not map and an operation without its id", async () => {
     const port = enginePortFor(clientFor(await engineWith()))
     await expect(port.json("getUsers", NO_INPUT)).rejects.toThrow(
-      "engine-core asked for getUsers, which the engine port does not map",
+      "c7-core asked for getUsers, which the engine port does not map",
     )
     await expect(port.json("getProcessInstance", NO_INPUT)).rejects.toThrow(
-      "engine-core sent an operation without its id",
+      "c7-core sent an operation without its id",
     )
   })
 
@@ -106,10 +106,10 @@ describe("a 404 of the port's text reads", () => {
 
 /**
  * engine-client words a 404 that is no engine answer as a likely wrong REST root; it is a leaf and
- * cannot ask engine-core. Its wording is held here, over real engine answers, to engine-core's
+ * cannot ask c7-core. Its wording is held here, over real engine answers, to c7-core's
  * `isUnknownEndpoint`, on which the one missing-resource rule `isMissing` builds.
  */
-describe("the wrong-root hint of engine-client's 404 follows engine-core's isUnknownEndpoint", () => {
+describe("the wrong-root hint of engine-client's 404 follows c7-core's isUnknownEndpoint", () => {
   const HINT = "check that the engine URL points at the REST API root"
   const answers = [
     { status: 404, body: { type: "InvalidRequestException", message: "gone" } },
@@ -139,7 +139,7 @@ describe("isMissingResource and noneIfMissing", () => {
     return new EngineRequestError("x", { kind: "http", httpStatus, type, engineMessage: "x" })
   }
 
-  it("are engine-core's isMissing over the client's error", () => {
+  it("are c7-core's isMissing over the client's error", () => {
     expect(isMissingResource(http(404, "InvalidRequestException"))).toBe(true)
     expect(isMissingResource(http(404, "NotFoundException"))).toBe(false)
     expect(isMissingResource(http(404, "QueryParamException"))).toBe(false)

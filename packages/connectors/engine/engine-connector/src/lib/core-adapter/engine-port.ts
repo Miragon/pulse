@@ -1,6 +1,6 @@
 /**
- * The engine port of @miragon/pulse-engine-core over the engine client: one typed SDK read per
- * operation the composites send (engine-core's INSPECT_OPERATIONS and STATUS_OPERATIONS), the
+ * The engine port of @miragon/pulse-c7-core over the engine client: one typed SDK read per
+ * operation the composites send (c7-core's INSPECT_OPERATIONS and STATUS_OPERATIONS), the
  * text and variable reads through the engine contract, at most 8 requests in flight per call.
  * Built per tool call on the client `withEngine` resolved (invariant 2): never cached.
  */
@@ -44,12 +44,12 @@ import {
   type EngineTransport,
   type OperationInput,
   Slots,
-} from "@miragon/pulse-engine-core"
+} from "@miragon/pulse-c7-core"
 
 type Read = (client: Client, input: OperationInput) => Promise<unknown>
 
 /**
- * The query as the SDK types it. The engine reads every query value as text, so engine-core's
+ * The query as the SDK types it. The engine reads every query value as text, so c7-core's
  * strings and the numbers and booleans the SDK types are the same wire value; undefined entries
  * are not sent.
  */
@@ -60,11 +60,11 @@ function engineQuery(input: OperationInput): never {
 /** The single path value (`{id}`) of the operation. */
 function idOf(input: OperationInput): string {
   const [id] = input.pathArgs
-  if (id === undefined) throw new Error("engine-core sent an operation without its id")
+  if (id === undefined) throw new Error("c7-core sent an operation without its id")
   return id
 }
 
-/** Every operation engine-core may send, by its operation id (the CLI catalog's names). */
+/** Every operation c7-core may send, by its operation id (the CLI catalog's names). */
 export const READS: Readonly<Record<string, Read>> = {
   getProcessInstance: (client, input) => getProcessInstance({ client, path: { id: idOf(input) } }),
   getHistoricProcessInstance: (client, input) =>
@@ -109,7 +109,7 @@ export const READS: Readonly<Record<string, Read>> = {
 
 /**
  * The engine answer of an `http` failure; unreachable, connection, timeout, cancelled and every
- * other error give undefined, so engine-core rethrows them unchanged.
+ * other error give undefined, so c7-core rethrows them unchanged.
  */
 export function engineFailure(error: unknown): EngineFailure | undefined {
   if (!(error instanceof EngineRequestError) || error.kind !== "http") return undefined
@@ -122,7 +122,7 @@ export function engineFailure(error: unknown): EngineFailure | undefined {
 }
 
 /**
- * engine-core's missing-resource rule (`isMissing`) over an engine-client error: an engine 404
+ * c7-core's missing-resource rule (`isMissing`) over an engine-client error: an engine 404
  * that names a missing resource. A wrong REST root (a 404 `NotFoundException`, or a 404 without
  * an engine answer) is no missing resource; it fails loud wherever a caller reads it.
  */
@@ -143,14 +143,14 @@ export async function noneIfMissing<T>(read: Promise<T>): Promise<T | null> {
   }
 }
 
-/** engine-core's port over `client`, with one set of 8 slots for this call. */
+/** c7-core's port over `client`, with one set of 8 slots for this call. */
 export function enginePortFor(client: Client): EnginePort {
   const slots = new Slots()
   const transport: EngineTransport = {
     async send(operationId, input) {
       const read = READS[operationId]
       if (read === undefined) {
-        throw new Error(`engine-core asked for ${operationId}, which the engine port does not map`)
+        throw new Error(`c7-core asked for ${operationId}, which the engine port does not map`)
       }
       return slots.run(() => read(client, input))
     },

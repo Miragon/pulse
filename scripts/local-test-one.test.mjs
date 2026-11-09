@@ -202,7 +202,7 @@ describe("testOnePlan", () => {
     const extension = real("apps/vscode/test/webview/a.test.tsx")
     assert.deepEqual(extension.builds, ["pulse-cockpit^..."])
     assert.match(extension.runs[0].hint, /install chromium/)
-    assert.deepEqual(real("packages/connectors/engine/engine-core/src/a.test.ts").builds, [])
+    assert.deepEqual(real("packages/connectors/c7/c7-core/src/a.test.ts").builds, [])
     assert.equal(
       real("packages/connectors/engine/engine-connector/src/a.test.tsx").runs[0].dir,
       "packages/connectors/engine/engine-connector",
@@ -215,7 +215,7 @@ describe("testOnePlan", () => {
     symlinkSync(REPO_ROOT, link, "dir")
     try {
       const { runs } = testOnePlan({
-        files: [path.join(link, "packages/connectors/engine/engine-core/src/dates.test.ts")],
+        files: [path.join(link, "packages/connectors/c7/c7-core/src/dates.test.ts")],
         watch: false,
         root: REPO_ROOT,
         cwd: link,
@@ -224,7 +224,7 @@ describe("testOnePlan", () => {
       })
       assert.deepEqual(
         [runs[0].dir, ...selected(runs[0])],
-        ["packages/connectors/engine/engine-core", "src/dates.test.ts"],
+        ["packages/connectors/c7/c7-core", "src/dates.test.ts"],
       )
     } finally {
       unlinkSync(link)

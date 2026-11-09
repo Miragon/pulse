@@ -6,7 +6,7 @@ import {
   CHILD_DEF,
   historyDto,
   P,
-} from "@miragon/pulse-engine-core/testing"
+} from "@miragon/pulse-c7-core/testing"
 import {
   engineWith,
   errorText,
@@ -130,7 +130,7 @@ describe("inspectForModel", () => {
     const engine = await engineWith({}, fixtureEngine(ended))
     const view = await inspect(engine, { processInstanceId: P, includeVariables: true })
     expect(view.state).toBe("COMPLETED")
-    // engine-core reads called instances from the running tree only: no claim about an ended one
+    // c7-core reads called instances from the running tree only: no claim about an ended one
     expect(view).not.toHaveProperty("children")
     expect(Object.keys(view.variables ?? {})).toHaveLength(MAX_VARIABLES)
     expect(view.variables?.v000).toMatchObject({ truncated: true, valueLength: 2500 })
@@ -140,7 +140,7 @@ describe("inspectForModel", () => {
     expect(read?.query.deserializeValues).toBe("false")
   })
 
-  it("names a cut instance tree in truncated instead of engine-core's flag", async () => {
+  it("names a cut instance tree in truncated instead of c7-core's flag", async () => {
     const children = Array.from({ length: 101 }, (_, index) => ({
       id: `c${index}`,
       definitionId: CHILD_DEF,
@@ -175,7 +175,7 @@ describe("inspectForModel", () => {
     expect(trace.at(-1)).toMatch(/framework\/internal frames trimmed$/)
   })
 
-  it("condenses the whole stacktrace, not engine-core's first 200 lines", async () => {
+  it("condenses the whole stacktrace, not c7-core's first 200 lines", async () => {
     const frames = Array.from(
       { length: 240 },
       (_, index) => `\tat org.springframework.Step${index}.run(Step.java:${index})`,

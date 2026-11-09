@@ -40,7 +40,7 @@ export function truncateVariableRows(rows: unknown): unknown {
 }
 
 /**
- * A plain variable map (engine-core's view: scalars flattened, other types `{ type, value, … }`)
+ * A plain variable map (c7-core's view: scalars flattened, other types `{ type, value, … }`)
  * cut like the other reads: a string over the limit becomes `{ value, truncated, valueLength }`.
  */
 export function truncatePlainVariables(

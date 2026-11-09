@@ -1,6 +1,6 @@
 ---
 name: add-bpm-feature
-description: Step-by-step house pattern for adding a new BPM operations tool, widget tool, or widget to the engine module (`packages/connectors/engine/engine-connector`, over `packages/connectors/engine/engine-client` and `packages/connectors/engine/engine-core`). Use whenever adding or changing Camunda 7 / CIB seven tools ("add a tool to suspend jobs", "expose X from the engine REST API"), input schemas, cockpit routes, `*_data` feeds, or React widgets in the cockpit. Takes precedence over generic MCP SDK examples.
+description: Step-by-step house pattern for adding a new BPM operations tool, widget tool, or widget to the engine module (`packages/connectors/engine/engine-connector`, over `packages/connectors/engine/engine-client` and `packages/connectors/c7/c7-core`). Use whenever adding or changing Camunda 7 / CIB seven tools ("add a tool to suspend jobs", "expose X from the engine REST API"), input schemas, cockpit routes, `*_data` feeds, or React widgets in the cockpit. Takes precedence over generic MCP SDK examples.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 ---
 
@@ -19,7 +19,7 @@ invariant 3). Follow the steps for the path you need.
 | JSON data for the model                                          | Registrar tool in `src/tools/<domain>.ts` (Steps 1–3)                                 |
 | A view for the user                                              | a cockpit route plus its builder and `*_data` feed (Step 4); never a second view tool |
 | App-only JSON for in-widget refresh/nav                          | `*_data` feed in `DATA_FEEDS` of `src/data/feeds.ts` (Step 4)                         |
-| An answer the CLI's workflow commands give too (inspect, status) | a composite on `@miragon/pulse-engine-core` over `src/lib/core-adapter/` (Step 2b)    |
+| An answer the CLI's workflow commands give too (inspect, status) | a composite on `@miragon/pulse-c7-core` over `src/lib/core-adapter/` (Step 2b)        |
 
 ## Step 1: input schema next to the tools
 
@@ -65,11 +65,11 @@ REST calls themselves use the generated SDK (imported from
 changed and you need `pnpm generate`, not a hand-written fetch. The engine's REST rules the
 handler applies (`toEngineDate`, `engineLike`, `complementaryFlags`, `engineSorting`,
 `toEngineVariables`, `incidentRecovery`, `RAW_VARIABLES`, `isMissing`) come from
-`@miragon/pulse-engine-core`, their one home, which the CLI uses too; the reads bound to the SDK
+`@miragon/pulse-c7-core`, their one home, which the CLI uses too; the reads bound to the SDK
 (`fetchJobStacktrace`, `readProcessInstanceVariables`, `readBatch`) from
 `@miragon/pulse-engine-client`. Those reads throw every 404: a handler that reads a missing
 resource as "none" wraps the read in `noneIfMissing` (`src/lib/core-adapter/engine-port.ts`,
-engine-core's `isMissing`), so a wrong REST root still fails loud.
+c7-core's `isMissing`), so a wrong REST root still fails loud.
 
 ### Parameter naming guide
 
@@ -109,7 +109,7 @@ Add the tool in `packages/connectors/engine/engine-connector/src/tools/<domain>.
 ```ts
 import { listProcessInstancesInput } from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
-import { complementaryFlags, engineLike, engineSorting } from "@miragon/pulse-engine-core"
+import { complementaryFlags, engineLike, engineSorting } from "@miragon/pulse-c7-core"
 import { getProcessInstances, getProcessInstancesCount } from "@miragon/pulse-engine-client/sdk"
 import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
 import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
@@ -200,11 +200,12 @@ same state. Every engine tool carries `openWorldHint: true` (it talks to an exte
 engine); a tool that only reads the server's own config (`engine_list_engines`) says
 `openWorldHint: false`.
 
-## Step 2b: a read composite on engine-core
+## Step 2b: a read composite on c7-core
 
 A question the CLI answers too (where an instance waits, how an engine is doing) runs on
-`@miragon/pulse-engine-core` (`packages/connectors/engine/engine-core`, the engine family's
-core), the workflow domain both share, never on a second copy here. A rule both need that it
+`@miragon/pulse-c7-core` (`packages/connectors/c7/c7-core`, the core of the Camunda 7 REST
+dialect family c7, which the engine module spans), the workflow domain both share, never on a
+second copy here. A rule both need that it
 lacks goes into that package (a leaf: no dependency, data rather than wording).
 The pattern is `engine_inspect_process_instance` and `engine_status`
 (`src/lib/core-adapter/composites.ts`, registered like any registrar tool):
@@ -212,18 +213,18 @@ The pattern is `engine_inspect_process_instance` and `engine_status`
 - Map every operation the composite sends in `READS` of `src/lib/core-adapter/engine-port.ts`, one typed
   SDK read each; text/plain and variable reads go through engine-client's SDK-bound reads
   (`fetchJobStacktrace`, `readProcessInstanceVariables`), as `engine-contract.test.ts`
-  demands. `src/lib/core-adapter/engine-port.test.ts` holds `READS` to engine-core's operation
+  demands. `src/lib/core-adapter/engine-port.test.ts` holds `READS` to c7-core's operation
   lists.
-- Word engine-core's error reasons in `src/lib/core-adapter/workflow-errors.ts` (`[CODE] message` in the
+- Word c7-core's error reasons in `src/lib/core-adapter/workflow-errors.ts` (`[CODE] message` in the
   tool's parameter names, no tool names).
 - Return data for the model: drop `next` (it would name tools a toolset may lack), cut
-  variables with `truncatePlainVariables`, and cap every list engine-core leaves uncapped for
+  variables with `truncatePlainVariables`, and cap every list c7-core leaves uncapped for
   the CLI (today wait states, incidents, timeline, variables, definitions, topics), naming each
   cut in `truncated`. The cap bounds the result, not the reads. Pin the wire and each cap in
   `src/lib/core-adapter/composites.wire.test.ts` (inspect) and
   `src/lib/core-adapter/composites-status.wire.test.ts` (status), over the helpers of
   `src/lib/core-adapter/composites.test-support.ts`.
-- How an engine is doing has one answer: mask incidents with engine-core's `messageSignature`,
+- How an engine is doing has one answer: mask incidents with c7-core's `messageSignature`,
   count one cause with its `causeKeyOf`/`largestCause` and judge with its `engineVerdict`
   (`ok | warning | critical`) by the `ENGINE_HEALTH_*` thresholds (`pulse status`: the
   defaults), as `engine_status` and the cockpit's health route (`src/data/health-data.ts`)
@@ -231,7 +232,7 @@ The pattern is `engine_inspect_process_instance` and `engine_status`
 
 `src/lib/` is split by job, and each helper goes into the folder of its job: `engine/`
 (routing: `resolveEngine`, `withEngine`, the cockpit links, passthrough auth), `core-adapter/`
-(the engine-core port, the composites, their error wording), `bpmn/` (the definition XML,
+(the c7-core port, the composites, their error wording), `bpmn/` (the definition XML,
 BPMN and task-form reading, completing a user task by its form), `mcp/` (the tool surface:
 toolsets, the paging envelope, the bounds on variable values and failure text) and `shared/`
 (pure code the widgets run too). `src/data/` and `src/lib/` never import `src/tools/`,
@@ -521,7 +522,7 @@ call's abort signal at `ctx.mcpReq.signal`):
   a process definition KEY spans every deployed version (key-scoped `/count`, statistics
   summed per key); only a diagram is one version, and it is labelled. Engine timestamps
   compare by instant (`engineDateMillis`/`latestEngineDate`/`earliestEngineDate` from
-  `@miragon/pulse-engine-core`), never as strings. A new builder adds its case to the
+  `@miragon/pulse-c7-core`), never as strings. A new builder adds its case to the
   rejection table in `src/data/honest-numbers.test.ts`; the table fails without it. The
   table breaks EVERY read the healthy build makes (method + path + query names), so a
   case declares only its enrichment reads; any other read whose failure is swallowed fails.

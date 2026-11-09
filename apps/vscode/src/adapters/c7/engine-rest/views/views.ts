@@ -2,7 +2,7 @@ import type {
   DefinitionView as InspectedDefinitionView,
   InstanceView,
   TimelineEntry,
-} from "@miragon/pulse-engine-core"
+} from "@miragon/pulse-c7-core"
 
 export interface ProductView {
   readonly name: string

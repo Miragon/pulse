@@ -3,7 +3,7 @@ import {
   type ChildView,
   type IncidentView,
   type WaitState as InspectedWait,
-} from "@miragon/pulse-engine-core"
+} from "@miragon/pulse-c7-core"
 import {
   BpmnProcessId,
   ElementId,

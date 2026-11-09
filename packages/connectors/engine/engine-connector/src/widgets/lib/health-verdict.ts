@@ -3,7 +3,7 @@ import type { EngineHealthData, EngineHealthStatus } from "../../view-models.js"
 import type { T } from "../../messages/use-t.js"
 
 /**
- * engine-core's one live verdict as a tone: the overview's badge and the engine's dot on the
+ * c7-core's one live verdict as a tone: the overview's badge and the engine's dot on the
  * landing and the fleet view, so one engine never shows two states. An engine that runs without a
  * problem is the table's `healthy`, neutral as a process is: never a green "healthy".
  */

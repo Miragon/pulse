@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react"
-import { DEFAULT_VERDICT_THRESHOLDS, engineVerdict } from "@miragon/pulse-engine-core"
+import { DEFAULT_VERDICT_THRESHOLDS, engineVerdict } from "@miragon/pulse-c7-core"
 import { SITUATION_TONES, TONE_DOT, type ToneVariant } from "@miragon/pulse-ui"
 import { TestViewHost, createTestQueryClient } from "@miragon/pulse-widget-shell/widgets"
 import { ENGINE_COCKPIT_OVERVIEW_DATA, ENGINE_HEALTH_DATA } from "../../tool-names.js"
@@ -54,7 +54,7 @@ function overviewFeed(args: Record<string, unknown>): CockpitDashboardData {
   }
 }
 
-/** The verdict as the health feed's builder computes it: engine-core's, on the default thresholds. */
+/** The verdict as the health feed's builder computes it: c7-core's, on the default thresholds. */
 function healthFeed(args: Record<string, unknown>): EngineHealthData {
   const e = countsOf(args)
   return {
@@ -102,7 +102,7 @@ function fleetCard(engineId: string): HTMLElement {
   return cards[0]
 }
 
-it("the fixture's verdicts are engine-core's: one incident is warning, the threshold critical", () => {
+it("the fixture's verdicts are c7-core's: one incident is warning, the threshold critical", () => {
   expect(healthFeed({ engine: "one-incident" }).status).toBe("warning")
   expect(healthFeed({ engine: "at-threshold" }).status).toBe("critical")
   expect(healthFeed({ engine: "stuck-jobs" }).status).toBe("ok")

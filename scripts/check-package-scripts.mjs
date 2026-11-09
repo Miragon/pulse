@@ -79,10 +79,10 @@ export const REQUIRED_SCRIPTS = {
  * A package joins only by an owner decision.
  */
 export const MUTATED_PACKAGES = {
-  "packages/connectors/engine/engine-core":
-    "owner decision 2026-11-04: engine-core holds the pure engine rules the CLI, the MCP server " +
-    "and the VS Code extension share, where a surviving mutant is a wrong rule in all three; in " +
-    "a package without such rules a full run costs more than it finds",
+  "packages/connectors/c7/c7-core":
+    "owner decision 2026-11-04: c7-core (engine-core until 0.27) holds the pure engine rules the " +
+    "CLI, the MCP server and the VS Code extension share, where a surviving mutant is a wrong " +
+    "rule in all three; in a package without such rules a full run costs more than it finds",
   "packages/core/http":
     "owner decision 2026-11-08: the transport the MCP server, the CLI and the " +
     "VS Code extension send through (deadline, redirects, cap, credentials, failure reasons, " +

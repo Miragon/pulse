@@ -21,7 +21,7 @@ defaults miss. There is no official TypeScript client for CIB seven; this
 package fills that gap for Pulse and is usable by any CIB seven / Camunda 7
 project. It has no runtime dependency. The pure engine REST rules (dates,
 filters, sorting, variable writes, incident recovery) live in
-[`@miragon/pulse-engine-core`](../engine-core/README.md), which this package
+[`@miragon/pulse-c7-core`](../../c7/c7-core/README.md), which this package
 does not import.
 
 ## Exports
@@ -117,8 +117,8 @@ body), variable reads with `deserializeValues=false`
 falls back from the runtime statistics to the history record. These reads
 decide nothing about a failure: every engine error rejects, a 404 included.
 Whether a 404 names a missing resource or a wrong REST root is
-`@miragon/pulse-engine-core`'s `isMissing`, which the caller applies; this
+`@miragon/pulse-c7-core`'s `isMissing`, which the caller applies; this
 package stays a leaf and does not import it. The variable reads restate
-engine-core's `RAW_VARIABLES`, and the engine connector holds the copy equal.
+c7-core's `RAW_VARIABLES`, and the engine connector holds the copy equal.
 The MCP tools' input schemas live in `@miragon/pulse-engine-connector` next to
 its tools.

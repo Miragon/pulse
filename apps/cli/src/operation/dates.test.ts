@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { PulseCliError } from "../errors.js"
 import { DATE_TIME_HINT, normalizeDateTime } from "./dates.js"
 
-// The reading itself is engine-core's UTC_WITHOUT_OFFSET, tested there (examples and properties).
+// The reading itself is c7-core's UTC_WITHOUT_OFFSET, tested there (examples and properties).
 
 function expectUsageError(raw: string): void {
   try {
@@ -23,7 +23,7 @@ describe("normalizeDateTime", () => {
     ["2024-05-01T10:00:00.5Z", "2024-05-01T10:00:00.500+0000"],
     ["2024-05-01T10:00", "2024-05-01T10:00:00.000+0000"],
     ["2024-05-01", "2024-05-01T00:00:00.000+0000"],
-  ])("normalizes %s like engine-core", (raw, expected) => {
+  ])("normalizes %s like c7-core", (raw, expected) => {
     expect(normalizeDateTime(raw)).toBe(expected)
   })
 

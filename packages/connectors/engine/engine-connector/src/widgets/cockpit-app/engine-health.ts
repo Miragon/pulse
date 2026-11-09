@@ -7,7 +7,7 @@ import { VERDICT_TONE } from "../lib/health-verdict.js"
 /**
  * An engine's live health on the landing and the fleet view, read through the engine overview's
  * own two feeds on its query keys, so a drill-in lands on a warm cache: the counts from its
- * definitions feed, the dot from its health feed's verdict (engine-core's `engineVerdict` on the
+ * definitions feed, the dot from its health feed's verdict (c7-core's `engineVerdict` on the
  * deployment's thresholds), the one the overview's badge shows. Failed jobs stay counted and
  * named; the dot is the verdict's alone.
  */

@@ -9,7 +9,7 @@ import {
   type InspectOptions,
   type InstanceView,
   type TimelineEntry,
-} from "@miragon/pulse-engine-core"
+} from "@miragon/pulse-c7-core"
 import type { EngineHttp } from "../http/engine-http.js"
 import { JsonObject } from "../views/json-object.js"
 import { UnexpectedAnswerError } from "../views/unexpected-answer-error.js"

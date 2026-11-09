@@ -13,8 +13,8 @@ import { findByOperationId, loadCatalog } from "../catalog/catalog.js"
 import { WORKFLOW_DOCS } from "../docs/workflow.js"
 import type { EnginePort } from "../engine-port/engine-port.js"
 import { PulseCliError } from "../errors.js"
-import { isMissing, listByIds, type OperationInput, queryInput } from "@miragon/pulse-engine-core"
-import { countByIds, ID_CHUNK, pageQuery } from "@miragon/pulse-engine-core/testing"
+import { isMissing, listByIds, type OperationInput, queryInput } from "@miragon/pulse-c7-core"
+import { countByIds, ID_CHUNK, pageQuery } from "@miragon/pulse-c7-core/testing"
 
 const jsonOf = (port: EnginePort, operationId: string, input: OperationInput) =>
   port.json(operationId, input)
@@ -203,7 +203,7 @@ describe("id chunks", () => {
 })
 
 describe("a missing resource", () => {
-  it("is engine-core's isMissing over the port's reading of every HTTP error", async () => {
+  it("is c7-core's isMissing over the port's reading of every HTTP error", async () => {
     const answers: readonly (readonly [Response, boolean])[] = [
       [engineError(404, "InvalidRequestException", "gone"), true],
       [engineError(404, "NotFoundException", "no such path"), false],

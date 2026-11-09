@@ -7,8 +7,9 @@ import { repoTextFiles } from "./check-package-scripts.mjs"
  * Names that fail SILENTLY where they survive: a package someone else owns installs a
  * stranger's code, an image off the GitHub Container Registry pulls nothing (nothing
  * publishes to Docker Hub), a technical name of the retired operate CLI points to an
- * archived product, and a package of the retired MCP toolkit installs a library Pulse no longer
- * builds on. No other gate reads them, so this guard reads every tracked text file (and every
+ * archived product, a package of the retired MCP toolkit installs a library Pulse no longer
+ * builds on, and a retired package of an engine family installs a release that never gets a fix
+ * again. No other gate reads them, so this guard reads every tracked text file (and every
  * untracked one git does not ignore) and fails on them.
  */
 
@@ -50,6 +51,16 @@ const RULES = [
   // on the toolkit any more (an import of it fails to resolve); a doc or a skill that names one
   // installs the old library next to Pulse. The toolkit's repository stays citable as the origin.
   { name: "retired toolkit package", pattern: /@miragon\/mcp-toolkit-/ },
+  // The Camunda 7 REST API is the dialect family c7: its core moved from the engine family to
+  // @miragon/pulse-c7-core (packages/connectors/c7/c7-core) in 0.28, and the old name gets no
+  // further release, so a doc or a manifest that names it installs 0.27 forever. The engine
+  // module keeps its names (@miragon/pulse-engine-connector), and the word engine-core stays
+  // citable as history.
+  {
+    name: "retired engine family package",
+    pattern:
+      /@miragon\/pulse-engine-core(?![\w-])|packages\/connectors\/engine\/engine-core(?![\w-])/,
+  },
 ]
 
 /**
@@ -119,6 +130,17 @@ describe("the name rules", () => {
     ['import { Button } from "@miragon/mcp-toolkit-ui"', "retired toolkit package"],
     ['"@miragon/mcp-toolkit-core": "2.6.0"', "retired toolkit package"],
     ["pnpm add @miragon/mcp-toolkit-ui@2.8.1", "retired toolkit package"],
+    [
+      'import { inspectInstance } from "@miragon/pulse-engine-core"',
+      "retired engine family package",
+    ],
+    ['"@miragon/pulse-engine-core": "workspace:*"', "retired engine family package"],
+    ["npm install @miragon/pulse-engine-core@0.27.1", "retired engine family package"],
+    [
+      'import { fakePort } from "@miragon/pulse-engine-core/testing"',
+      "retired engine family package",
+    ],
+    ["packages/connectors/engine/engine-core/src/index.ts", "retired engine family package"],
   ]) {
     it(`${text} is ${rule}`, () => {
       assert.ok(rulesMatching(text).includes(rule), rulesMatching(text).join(", "))
@@ -157,6 +179,13 @@ describe("the name rules", () => {
     'import { McpServer } from "@modelcontextprotocol/server"',
     'import { App } from "@modelcontextprotocol/ext-apps"',
     "pnpm exec mcp-inspector --cli --method tools/list",
+    // The dialect family c7, the engine module's own names and engine-core as history.
+    "@miragon/pulse-c7-core",
+    "packages/connectors/c7/c7-core/src/index.ts",
+    "@miragon/pulse-engine-connector",
+    "packages/connectors/engine/engine-connector/src/module.ts",
+    "c7-core (engine-core until 0.27) holds the pure engine rules",
+    "@miragon/pulse-engine-cores",
     // The toolkit as the origin of ported code stays citable.
     "ported from mcp-toolkit's examples/test/helpers/golden.ts",
     "the outline `Button` at that scale (Miragon/mcp-toolkit#194)",

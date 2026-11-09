@@ -1,9 +1,9 @@
 /**
- * Views printed by the workflow commands: the views of @miragon/pulse-engine-core with their next
+ * Views printed by the workflow commands: the views of @miragon/pulse-c7-core with their next
  * steps rendered as `pulse` command lines, and its writes. Types only.
  */
 
-import type * as core from "@miragon/pulse-engine-core"
+import type * as core from "@miragon/pulse-c7-core"
 import type { PlannedRequest } from "../engine-port/engine-port.js"
 import type { PulseCliError } from "../errors.js"
 

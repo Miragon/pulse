@@ -13,9 +13,9 @@ const EXTENSION_LIBRARIES = "(^|/)node_modules/@miragon/modeler-shell/"
 const MODEL_ADAPTER = `${APP}src/model/`
 const MODEL_ADAPTER_ENTRY = `${APP}src/model/index[.]ts$`
 const C7_ADAPTER_AND_TESTS = `${APP}(src|test)/adapters/c7/`
-const ENGINE_CORE =
-  "(^|/)node_modules/@miragon/pulse-engine-core/|^@miragon/pulse-engine-core(/|$)|^packages/connectors/engine/engine-core/"
-const ENGINE_CORE_ENTRY = "(^|/)node_modules/@miragon/pulse-engine-core/dist/index[.]d[.]ts$"
+const C7_CORE =
+  "(^|/)node_modules/@miragon/pulse-c7-core/|^@miragon/pulse-c7-core(/|$)|^packages/connectors/c7/c7-core/"
+const C7_CORE_ENTRY = "(^|/)node_modules/@miragon/pulse-c7-core/dist/index[.]d[.]ts$"
 const PULSE_UI = "(^|/)node_modules/@miragon/pulse-ui/|^@miragon/pulse-ui(/|$)|^packages/core/ui/"
 const UI_FOUNDATION =
   "(^|/)node_modules/@miragon/pulse-ui/dist/(format|tones)/|^@miragon/pulse-ui/(format|tones)$"
@@ -50,9 +50,9 @@ module.exports = {
     },
     {
       comment:
-        "The C7 adapter runs the Camunda 7 family's workflow domain (@miragon/pulse-engine-core, its main entry), which esbuild bundles into the extension.",
+        "The C7 adapter runs the core of the Camunda 7 REST dialect family c7 (@miragon/pulse-c7-core, its main entry: the workflow domain), which esbuild bundles into the extension.",
       from: { path: `${APP}src/adapters/c7/` },
-      to: { path: ENGINE_CORE_ENTRY },
+      to: { path: C7_CORE_ENTRY },
     },
     {
       comment:
@@ -103,7 +103,7 @@ module.exports = {
       name: "not-in-allowed",
       severity: "error",
       comment:
-        "No entry of `allowed` in apps/vscode/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md). A layer uses its own modules and another layer only through its index.ts: core and adapters reach the contract, the C7 adapter also @miragon/pulse-engine-core's main entry (never a subpath), core and webview also @miragon/pulse-ui/tones and their label helpers (core/views/labels.ts, webview/format/) @miragon/pulse-ui/format, the model adapter the contract and the moddle libraries, the webview protocol types and its rendering libraries, the host core, protocol, contract, vscode, modeler-shell and Node built-ins, and only the host's composition root the engine adapters and the model adapter.",
+        "No entry of `allowed` in apps/vscode/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md). A layer uses its own modules and another layer only through its index.ts: core and adapters reach the contract, the C7 adapter also @miragon/pulse-c7-core's main entry (never a subpath), core and webview also @miragon/pulse-ui/tones and their label helpers (core/views/labels.ts, webview/format/) @miragon/pulse-ui/format, the model adapter the contract and the moddle libraries, the webview protocol types and its rendering libraries, the host core, protocol, contract, vscode, modeler-shell and Node built-ins, and only the host's composition root the engine adapters and the model adapter.",
       from: {},
       to: { path: "^$" },
     },
@@ -124,12 +124,12 @@ module.exports = {
       to: { path: MODEL_LIBRARIES },
     },
     {
-      name: "engine-core-only-in-the-c7-adapter",
+      name: "c7-core-only-in-the-c7-adapter",
       severity: "error",
       comment:
-        "@miragon/pulse-engine-core is the Camunda 7 family's workflow domain: only apps/vscode/src/adapters/c7 and its tests in apps/vscode/test/adapters/c7 import it. The contract, the core, the webview, the host, the model adapter and other adapters stay engine-neutral; read what you need through a port of the contract.",
+        "@miragon/pulse-c7-core is the core of the Camunda 7 REST dialect family c7, its workflow domain: only apps/vscode/src/adapters/c7 and its tests in apps/vscode/test/adapters/c7 import it. The contract, the core, the webview, the host, the model adapter and other adapters stay engine-neutral; read what you need through a port of the contract.",
       from: { pathNot: [C7_ADAPTER_AND_TESTS, "(^|/)node_modules/"] },
-      to: { path: ENGINE_CORE },
+      to: { path: C7_CORE },
     },
     {
       name: "pulse-ui-only-its-foundation",

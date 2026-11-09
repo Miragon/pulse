@@ -1,7 +1,7 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import { parseJson } from "../util.js"
-import { historicVariableMap, plainVariables } from "@miragon/pulse-engine-core/testing"
+import { historicVariableMap, plainVariables } from "@miragon/pulse-c7-core/testing"
 
 describe("plainVariables", () => {
   it("flattens scalar types and keeps typed values of the other types, sorted by name", () => {

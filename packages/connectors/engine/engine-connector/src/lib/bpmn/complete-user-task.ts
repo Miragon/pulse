@@ -8,7 +8,7 @@
  * completes, and a delegated one is resolved and reported as such, never as completed.
  */
 import { readTaskVariables, type Client, type VariableMap } from "@miragon/pulse-engine-client"
-import { toEngineVariables, type EngineVariableInput } from "@miragon/pulse-engine-core"
+import { toEngineVariables, type EngineVariableInput } from "@miragon/pulse-c7-core"
 import { complete, getTask, resolve, submit } from "@miragon/pulse-engine-client/sdk"
 import { formFieldSubmitRules, type FormFieldSubmitRule } from "./bpmn-task-form.js"
 import type { TaskCompletion } from "../shared/task-completion.js"

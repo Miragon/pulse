@@ -1,4 +1,4 @@
-import { rootCause, rootCauseLine } from "@miragon/pulse-engine-core"
+import { rootCause, rootCauseLine } from "@miragon/pulse-c7-core"
 import type { IncidentDetails } from "../../../contract/index.js"
 import { Present } from "../engine-rest/index.js"
 

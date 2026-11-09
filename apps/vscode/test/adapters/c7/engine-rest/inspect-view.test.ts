@@ -29,7 +29,7 @@ describe("the inspect view", () => {
     get("/history/activity-instance", []),
   ]
 
-  test("is engine-core's instance view with the adapter's timeline", async () => {
+  test("is c7-core's instance view with the adapter's timeline", async () => {
     const engine = fakeEngineRest([
       ...RUNNING,
       get("/process-instance", []),

@@ -1,4 +1,4 @@
-import { earliestEngineDate, engineDateMillis } from "@miragon/pulse-engine-core"
+import { earliestEngineDate, engineDateMillis } from "@miragon/pulse-c7-core"
 
 export const HOUR_MS = 60 * 60 * 1000
 

@@ -27,11 +27,11 @@ export const DEFAULT_PROJECT_FILES = [
   "vitest.shared.ts",
   "apps/mcp-server/vite.config.ts",
   "apps/mcp-server/vitest.config.ts",
+  "packages/connectors/c7/c7-core/vitest.config.ts",
+  "packages/connectors/c7/c7-core/vitest.stryker.config.ts",
   "packages/connectors/engine/engine-connector/vitest.config.ts",
   "packages/connectors/engine/engine-client/vitest.config.ts",
   "packages/connectors/engine/engine-client/openapi-ts.config.ts",
-  "packages/connectors/engine/engine-core/vitest.config.ts",
-  "packages/connectors/engine/engine-core/vitest.stryker.config.ts",
   "packages/core/http/vitest.config.ts",
   "packages/core/http/vitest.stryker.config.ts",
   "packages/core/profile/vitest.config.ts",
@@ -403,7 +403,7 @@ export default tseslint.config(
     rules: {
       // The type-safety rules (no-explicit-any, no-unsafe-*, no-base-to-string) stay at the
       // recommendedTypeChecked level, error. require-await is off everywhere but the CLI,
-      // engine-core and the VS Code extension, whose blocks below set it at error again: in the
+      // c7-core and the VS Code extension, whose blocks below set it at error again: in the
       // MCP trees an async function without await is how they satisfy a Promise-returning
       // signature (the SDK's tool, prompt and resource callbacks, the health probes and the fetch
       // stubs of the tests), where the rule only asks for a Promise.resolve
@@ -535,15 +535,16 @@ export default tseslint.config(
   // which set the type-safety rules and require-await (off in the global block above) at error,
   // and budgets stricter than the global ones: complexity 10 (global 15) and 300 effective
   // lines per file (global 400) for the shipped code and the scripts, plus depth, parameter,
-  // nesting, function length and statement budgets. No `ignores` and no no-restricted-syntax here: the tests get their own
-  // block below, and a no-restricted-syntax setting would REPLACE the pattern gates. The CLI's
-  // workflow domain, @miragon/pulse-engine-core (packages/connectors/engine/engine-core), keeps
-  // these budgets, and so do the profile format and the transport the CLI bundles too,
+  // nesting, function length and statement budgets. No `ignores` and no no-restricted-syntax
+  // here: the tests get their own block below, and a no-restricted-syntax setting would REPLACE
+  // the pattern gates. The CLI's workflow domain, @miragon/pulse-c7-core
+  // (packages/connectors/c7/c7-core, the core of the Camunda 7 REST dialect family), keeps these
+  // budgets, and so do the profile format and the transport the CLI bundles too,
   // @miragon/pulse-profile (packages/core/profile) and @miragon/pulse-http (packages/core/http).
   {
     files: [
       "apps/cli/**/*.ts",
-      "packages/connectors/engine/engine-core/**/*.ts",
+      "packages/connectors/c7/c7-core/**/*.ts",
       "packages/core/profile/**/*.ts",
       "packages/core/http/**/*.ts",
     ],
@@ -566,14 +567,14 @@ export default tseslint.config(
   // global test budget of 400 effective lines, also for the tests and fakes outside src/ (the
   // global budget block reads apps/*/src only), and none of the per-function budgets; the
   // non-null assertion and the unsafe assignment/member access that fixtures need stay allowed.
-  // The same for engine-core's, the profile format's and the transport's tests (the transport's
+  // The same for c7-core's, the profile format's and the transport's tests (the transport's
   // fakes and loopback engines under its test/ too). Their ./testing exports (fixtures, the fake
   // port, the conformance cases) ship on npm and keep the budgets of shipped code.
   {
     files: [
       "apps/cli/**/*.test.ts",
       "apps/cli/test/**/*.ts",
-      "packages/connectors/engine/engine-core/**/*.test.ts",
+      "packages/connectors/c7/c7-core/**/*.test.ts",
       "packages/core/profile/**/*.test.ts",
       "packages/core/http/test/**/*.ts",
     ],

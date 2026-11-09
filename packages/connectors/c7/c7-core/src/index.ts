@@ -1,11 +1,11 @@
 /**
- * @miragon/pulse-engine-core: the workflow domain of the Camunda 7 REST API family (Operaton,
+ * @miragon/pulse-c7-core: the workflow domain of the Camunda 7 REST API family (Operaton,
  * CIB seven, Camunda 7), and the one home of its pure engine REST rules (dates, filters,
  * sorting, variable writes and typing, incident recovery, root causes, raw variable reads, the
  * missing resource). Runs on a caller's `EnginePort`; returns data and throws
  * `WorkflowError` reasons, and names no command, flag or tool: next steps and error reasons are
  * structured, the caller words them. The pure rules behind these functions that only tests reach
- * are exported from `@miragon/pulse-engine-core/testing`.
+ * are exported from `@miragon/pulse-c7-core/testing`.
  */
 
 export {

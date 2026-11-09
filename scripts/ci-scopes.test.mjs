@@ -13,29 +13,29 @@ const pkg = (dir, name, dependencies = {}) => ({ dir, manifest: { name, dependen
 
 const PACKAGES = [
   pkg("packages/core/ui", "@miragon/pulse-ui"),
-  pkg("packages/connectors/engine/engine-core", "@miragon/pulse-engine-core"),
+  pkg("packages/connectors/c7/c7-core", "@miragon/pulse-c7-core"),
   pkg("packages/core/widget-shell", "@miragon/pulse-widget-shell", {
     "@miragon/pulse-ui": "workspace:*",
   }),
   pkg("packages/connectors/engine/engine-client", "@miragon/pulse-engine-client"),
   pkg("packages/connectors/engine/engine-connector", "@miragon/pulse-engine-connector", {
     "@miragon/pulse-engine-client": "workspace:*",
-    "@miragon/pulse-engine-core": "workspace:*",
+    "@miragon/pulse-c7-core": "workspace:*",
     "@miragon/pulse-widget-shell": "workspace:*",
   }),
   pkg("apps/mcp-server", "@miragon/pulse-mcp-server", {
     "@miragon/pulse-engine-connector": "workspace:*",
   }),
-  // The CLI bundles engine-core: a devDependency reaches it too.
+  // The CLI bundles c7-core: a devDependency reaches it too.
   {
     dir: "apps/cli",
     manifest: {
       name: "@miragon/pulse-cli",
-      devDependencies: { "@miragon/pulse-engine-core": "workspace:*" },
+      devDependencies: { "@miragon/pulse-c7-core": "workspace:*" },
     },
   },
-  // The extension's C7 adapter bundles engine-core.
-  pkg("apps/vscode", "pulse-cockpit", { "@miragon/pulse-engine-core": "workspace:*" }),
+  // The extension's C7 adapter bundles c7-core.
+  pkg("apps/vscode", "pulse-cockpit", { "@miragon/pulse-c7-core": "workspace:*" }),
   pkg("docs", "@miragon/pulse-docs"),
 ]
 
@@ -111,8 +111,8 @@ describe("scopesFor: a package's code reaches its dependents", () => {
     ])
   })
 
-  it("runs the CLI's, the extension's and the MCP server's checks and the template for engine-core, its three users", () => {
-    assert.deepEqual(scopes("packages/connectors/engine/engine-core/src/inspect.ts"), [
+  it("runs the CLI's, the extension's and the MCP server's checks and the template for c7-core, its three users", () => {
+    assert.deepEqual(scopes("packages/connectors/c7/c7-core/src/inspect.ts"), [
       "cli",
       "mcp",
       "template",
@@ -278,11 +278,8 @@ describe("the real workspace", () => {
     assert.deepEqual(without, [])
   })
 
-  it("runs the extension's checks for engine-core, which its C7 adapter bundles", () => {
-    const changed = scopesFor(
-      ["packages/connectors/engine/engine-core/src/root-cause.ts"],
-      packages,
-    )
+  it("runs the extension's checks for c7-core, which its C7 adapter bundles", () => {
+    const changed = scopesFor(["packages/connectors/c7/c7-core/src/root-cause.ts"], packages)
     assert.ok(changed.has("vscode") && changed.has("vscode-package") && changed.has("cli"))
   })
 

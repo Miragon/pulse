@@ -1,5 +1,5 @@
 /**
- * Test helpers of @miragon/pulse-engine-core: the verified workflow fixture, the status fixture,
+ * Test helpers of @miragon/pulse-c7-core: the verified workflow fixture, the status fixture,
  * wait states of every kind, a recording fake port and a fake clock; and the seams tests reach
  * below the entry's API: the pure rules behind inspect and status, the paging rule of the port,
  * and the operations each composite sends (a port adapter's test holds its table equal to them).

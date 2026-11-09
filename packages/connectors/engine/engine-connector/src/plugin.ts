@@ -1,6 +1,6 @@
 import { createToolRegistrar, type ModulePlugin } from "@miragon/pulse-widget-shell/server"
 import type { EngineAuthType } from "@miragon/pulse-engine-client"
-import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-engine-core"
+import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-c7-core"
 import { providerForEntry } from "./providers/index.js"
 import { registerTools } from "./tools/index.js"
 import { registerIncidentIssuePrompt, registerIncidentIssueTools } from "./tools/incident-issue.js"
@@ -60,7 +60,7 @@ export function createPlugin(config: EnginePluginConfig): ModulePlugin {
   const registry = createConfiguredEngineRegistry(config)
   // Resolved once so every gate below reads the same toolset and an unknown name warns once.
   const toolset = resolveEngineToolset(config.toolset)
-  // The deployment's ENGINE_HEALTH_* over engine-core's defaults, one set for the cockpit's
+  // The deployment's ENGINE_HEALTH_* over c7-core's defaults, one set for the cockpit's
   // overview and engine_status, so both judge alike.
   const healthThresholds = { ...DEFAULT_VERDICT_THRESHOLDS, ...config.healthThresholds }
 

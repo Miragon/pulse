@@ -372,7 +372,7 @@ describe("installed package paths in the template docs", () => {
         /does not ship src/,
       ],
       ["server/node_modules/@miragon/pulse-widget-shell/dist/no-such.d.ts", /is no entry/],
-      ["server/node_modules/@miragon/pulse-engine-core/README.md", /does not declare/],
+      ["server/node_modules/@miragon/pulse-c7-core/README.md", /does not declare/],
       ["modules/mcp-notes/node_modules/@miragon/pulse-engine-connector/src", /does not declare/],
       ["server/node_modules/@miragon/pulse-nope/README.md", /is no library/],
     ]

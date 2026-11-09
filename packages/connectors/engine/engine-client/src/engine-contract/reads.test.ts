@@ -55,7 +55,7 @@ describe("fetchJobStacktrace: a text/plain-only endpoint", () => {
   })
 
   // The client decides nothing about a 404: whether it names a gone job or a wrong REST root is
-  // engine-core's isMissing, applied by the caller (the engine connector's port and tools).
+  // c7-core's isMissing, applied by the caller (the engine connector's port and tools).
   it.each(["InvalidRequestException", "NotFoundException", "QueryParamException"])(
     "throws a 404 of type %s for the caller to read",
     async (type) => {

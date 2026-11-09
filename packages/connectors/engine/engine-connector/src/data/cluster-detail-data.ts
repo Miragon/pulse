@@ -5,7 +5,7 @@ import {
   latestEngineDate,
   messageSignature,
   toEngineDate,
-} from "@miragon/pulse-engine-core"
+} from "@miragon/pulse-c7-core"
 import {
   getIncidents,
   getIncidentsCount,

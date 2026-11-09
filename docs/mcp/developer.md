@@ -59,7 +59,7 @@ and restart (Cloudflare's quick tunnels carry no Server-Sent Events, which the s
 calls hang, use a named tunnel). Anyone with that URL reaches the server, so keep the read-only default.
 To debug, press F5 in VS Code (`.vscode/launch.json`) or run any command in a JavaScript Debug Terminal.
 
-Mutation testing covers `@miragon/pulse-engine-core` and `@miragon/pulse-http` (`MUTATED_PACKAGES`), nightly, never on a pull request: `pnpm --fail-if-no-match --filter @miragon/pulse-engine-core exec stryker run`, the same with `@miragon/pulse-http`.
+Mutation testing covers `@miragon/pulse-c7-core` and `@miragon/pulse-http` (`MUTATED_PACKAGES`), nightly, never on a pull request: `pnpm --fail-if-no-match --filter @miragon/pulse-c7-core exec stryker run`, the same with `@miragon/pulse-http`.
 
 Editors read only `tsconfig.json`: each widget, host-bundle and test tree has a nested one extending the `tsconfig.<x>.json` that checks it (`pnpm lint:package-scripts`); `.vscode/` pins TypeScript.
 

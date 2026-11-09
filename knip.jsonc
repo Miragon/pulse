@@ -72,7 +72,7 @@
       "ignore": ["src/generated/**"],
     },
 
-    "packages/connectors/engine/engine-core": {
+    "packages/connectors/c7/c7-core": {
       "vitest": {
         "config": ["vitest.config.ts", "vitest.stryker.config.ts"],
       },

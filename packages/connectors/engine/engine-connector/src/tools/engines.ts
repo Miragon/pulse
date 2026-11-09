@@ -1,7 +1,7 @@
 import { engineStatusInput } from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { engineStatusForModel } from "../lib/core-adapter/composites.js"
-import type { VerdictThresholds } from "@miragon/pulse-engine-core"
+import type { VerdictThresholds } from "@miragon/pulse-c7-core"
 import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 import { environmentOf, groupEnginesByEnvironment } from "../lib/shared/environments.js"

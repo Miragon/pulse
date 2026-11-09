@@ -662,12 +662,12 @@ describe("gates sharing a glob are merged, not overridden", () => {
   })
 })
 
-describe("engine-core keeps the CLI's budgets (the CLI block of eslint.config.mjs)", () => {
-  const ENGINE = "packages/connectors/engine/engine-core/src"
+describe("c7-core keeps the CLI's budgets (the CLI block of eslint.config.mjs)", () => {
+  const C7_CORE = "packages/connectors/c7/c7-core/src"
   const budget = async (rel, rule) => (await ruleOptionsFor(rel, rule))?.slice(1)[0] ?? null
 
   it("holds its shipped code, the ./testing export included, to complexity 10, 300 lines, 60 per function, 20 statements, depth 3, 4 parameters", async () => {
-    for (const rel of [`${ENGINE}/__probe__.ts`, `${ENGINE}/testing/__probe__.ts`]) {
+    for (const rel of [`${C7_CORE}/__probe__.ts`, `${C7_CORE}/testing/__probe__.ts`]) {
       assert.equal(await budget(rel, "complexity"), 10, rel)
       assert.equal((await budget(rel, "max-lines"))?.max, 300, rel)
       assert.equal((await budget(rel, "max-lines-per-function"))?.max, 60, rel)
@@ -678,7 +678,7 @@ describe("engine-core keeps the CLI's budgets (the CLI block of eslint.config.mj
   })
 
   it("gives its tests 400 lines and no per-function budget", async () => {
-    const rel = `${ENGINE}/__probe__.test.ts`
+    const rel = `${C7_CORE}/__probe__.test.ts`
     assert.equal((await budget(rel, "max-lines"))?.max, 400)
     assert.equal(await ruleOptionsFor(rel, "max-lines-per-function"), null)
   })
@@ -754,7 +754,7 @@ describe("type-safety rules: errors everywhere, require-await off in the MCP tre
   ]
   const STRICT_TREES = [
     "apps/cli/src/util.ts",
-    "packages/connectors/engine/engine-core/src/index.ts",
+    "packages/connectors/c7/c7-core/src/index.ts",
     "apps/vscode/src/core/boards/board-filters.ts",
   ]
 
@@ -768,7 +768,7 @@ describe("type-safety rules: errors everywhere, require-await off in the MCP tre
     }
   })
 
-  it("leaves require-await off in the MCP trees and at error in the CLI, engine-core and VS Code", async () => {
+  it("leaves require-await off in the MCP trees and at error in the CLI, c7-core and VS Code", async () => {
     for (const rel of MCP_TREES) assert.equal(await severityAt(rel, REQUIRE_AWAIT), "off", rel)
     for (const rel of STRICT_TREES) assert.equal(await severityAt(rel, REQUIRE_AWAIT), "error", rel)
   })

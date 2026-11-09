@@ -1,5 +1,5 @@
 /** What the widgets render, not engine API types (those live in `@miragon/pulse-engine-client/types`). */
-import type { IncidentRecovery } from "@miragon/pulse-engine-core"
+import type { IncidentRecovery } from "@miragon/pulse-c7-core"
 import type { IncidentsDashboardFilters, JobsFilters } from "./feed-contracts.js"
 import type { ClusterDetailData, EngineHealthData } from "./view-models.health.js"
 
@@ -44,7 +44,7 @@ export interface CockpitDashboardData {
  * overview compares them across engines, since no process mix is in them.
  */
 export interface JobBacklogData {
-  /** Jobs the job executor runs next: retries left, due and active (engine-core's `EXECUTABLE`). */
+  /** Jobs the job executor runs next: retries left, due and active (c7-core's `EXECUTABLE`). */
   executableJobs: number
   suspendedJobs: number
   /** Jobs due later than now: timers, and retries waiting out their back-off. */
@@ -234,7 +234,7 @@ export interface VariableValue {
   valueInfo?: Record<string, unknown>
 }
 
-/** engine-core's `incidentRecovery`; `none`: propagated from a called instance, cleared at its root cause. */
+/** c7-core's `incidentRecovery`; `none`: propagated from a called instance, cleared at its root cause. */
 export type { IncidentRecovery }
 
 export interface IncidentInstance {

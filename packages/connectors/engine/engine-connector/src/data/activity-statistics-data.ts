@@ -1,6 +1,6 @@
 import type { Client } from "@miragon/pulse-engine-client"
 import { getActivityStatistics } from "@miragon/pulse-engine-client/sdk"
-import { mapLimit } from "@miragon/pulse-engine-core"
+import { mapLimit } from "@miragon/pulse-c7-core"
 import type { ActivityStatisticsArgs } from "../feed-contracts.js"
 import type {
   ActivityStatisticsActivity,

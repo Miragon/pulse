@@ -1,9 +1,9 @@
 /**
  * `pulse inspect`: where a process instance waits and why. The rounds of requests and the
- * instance view are @miragon/pulse-engine-core's; the view's next steps become command lines.
+ * instance view are @miragon/pulse-c7-core's; the view's next steps become command lines.
  */
 
-import * as core from "@miragon/pulse-engine-core"
+import * as core from "@miragon/pulse-c7-core"
 import type { EnginePort } from "../engine-port/engine-port.js"
 import { renderedAsync } from "./error-text.js"
 import { nextCommand } from "./next-text.js"

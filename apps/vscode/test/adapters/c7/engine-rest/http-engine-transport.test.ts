@@ -1,5 +1,5 @@
-import { isMissing } from "@miragon/pulse-engine-core"
-import { INSPECT_OPERATIONS } from "@miragon/pulse-engine-core/testing"
+import { isMissing } from "@miragon/pulse-c7-core"
+import { INSPECT_OPERATIONS } from "@miragon/pulse-c7-core/testing"
 import { describe, expect, test } from "vitest"
 import { EngineRequestError } from "../../../../src/adapters/c7/engine-rest/index.js"
 import { HttpEngineTransport } from "../../../../src/adapters/c7/engine-rest/inspect/http-engine-transport.js"
@@ -16,8 +16,8 @@ function transportOver(routes: readonly RestRoute[]) {
   return { transport: new HttpEngineTransport(httpOver(engine)), engine }
 }
 
-describe("engine-core's port over the adapter's HTTP", () => {
-  test("knows a REST path for exactly the operations engine-core's inspection sends", () => {
+describe("c7-core's port over the adapter's HTTP", () => {
+  test("knows a REST path for exactly the operations c7-core's inspection sends", () => {
     expect(InspectOperations.ids().sort()).toEqual([...INSPECT_OPERATIONS].sort())
   })
 
@@ -74,7 +74,7 @@ describe("engine-core's port over the adapter's HTTP", () => {
       EngineRequestError.answered(404, "x", "QueryParamException"),
     ],
     ["a 404 without an engine answer", EngineRequestError.answered(404, "x")],
-  ])("reads %s as no missing resource, by engine-core's one rule", (_name, error) => {
+  ])("reads %s as no missing resource, by c7-core's one rule", (_name, error) => {
     expect(EngineRequestError.isMissingResource(error)).toBe(false)
     expect(isMissing(new HttpEngineTransport(httpOver(fakeEngineRest([]))).failure(error))).toBe(
       false,

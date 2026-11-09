@@ -6,7 +6,7 @@ The adapter that answers Pulse's questions and writes for Operaton, CIB seven an
 
 Operaton and CIB seven are forks of Camunda 7 and keep its REST API, so one adapter serves all
 three. It calls that REST API itself with `fetch` ([c7-adapter.md](../../../docs/adr/c7-adapter.md)),
-no child process, and runs the family's workflow domain, `@miragon/pulse-engine-core` (the
+no child process, and runs the core of the dialect family c7, `@miragon/pulse-c7-core` (the
 inspection of an instance, its wait states, root causes), which the CLI and the MCP server
 share; esbuild bundles it into the extension.
 
@@ -42,11 +42,11 @@ Writes (`ProcessCommands`) take the same road on a connection that may write.
 - `apps/vscode/src/adapters/c7/writing`, `apps/vscode/src/adapters/c7/errors`: the bodies of a variable change and a move, the token a move cancels; failures to `RuntimeError`
 - `apps/vscode/src/adapters/c7/web-ui`: `CockpitWebUi`: links into Cockpit or the CIB seven webclient
 - `apps/vscode/src/adapters/c7/engine-rest`: the REST client: requests, paging, parsed and checked views
-- `apps/vscode/src/adapters/c7/engine-rest/inspect`: engine-core's port over `EngineHttp` (`HttpEngineTransport`); the adapter's `InspectView` is engine-core's instance view with its timeline, no mirror type
+- `apps/vscode/src/adapters/c7/engine-rest/inspect`: c7-core's port over `EngineHttp` (`HttpEngineTransport`); the adapter's `InspectView` is c7-core's instance view with its timeline, no mirror type
 
 ## Rules
 
-- `apps/vscode/src/adapters/c7` imports only the contract and the main entry of `@miragon/pulse-engine-core`, no Node built-in (dependency-cruiser); no other layer imports engine-core
+- `apps/vscode/src/adapters/c7` imports only the contract and the main entry of `@miragon/pulse-c7-core`, no Node built-in (dependency-cruiser); no other layer imports c7-core
 - Engine words are allowed here, not in contract, core or webview; classes, no comments (ESLint)
 
 ## Proven on

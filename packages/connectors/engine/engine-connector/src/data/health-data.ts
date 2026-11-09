@@ -9,7 +9,7 @@ import {
   latestEngineDate,
   toEngineDate,
   type VerdictThresholds,
-} from "@miragon/pulse-engine-core"
+} from "@miragon/pulse-c7-core"
 import {
   getHistoricProcessInstancesCount,
   getIncidents,
@@ -39,7 +39,7 @@ import { countOf, DAY_MS, rowsOf } from "./engine-reads.js"
 const MAX_CLUSTERS = 6
 
 interface ClusterAcc {
-  /** engine-core's cause key (`causeKeyOf`), the cluster's route id. */
+  /** c7-core's cause key (`causeKeyOf`), the cluster's route id. */
   key: string
   activityId: string
   incidentType: string
@@ -54,7 +54,7 @@ interface ClusterAcc {
   latest: string | null
 }
 
-/** How the overview's `status` comes about: engine-core's verdict over the open incidents. */
+/** How the overview's `status` comes about: c7-core's verdict over the open incidents. */
 export function healthVerdictRule(t: VerdictThresholds): string {
   return `From the engine's open incidents, read live: critical at ${criticalIncidentsRule(t)}, warning with any, else ok.`
 }
@@ -68,7 +68,7 @@ interface IncidentFacts {
   activityId: string
   incidentType: string
   signature: string
-  /** engine-core's cause key: same activity and type but another exception is another cause. */
+  /** c7-core's cause key: same activity and type but another exception is another cause. */
   clusterKey: string
   defKey: string
   ts: string
@@ -240,7 +240,7 @@ export async function buildEngineHealthData(
   // The affected activities are exact only when the scan read every incident.
   const affectedActivities = coverage.complete ? activitySet.size : null
 
-  // engine-core's verdict over engine-core's largest cause, as engine_status judges. The scanned
+  // c7-core's verdict over c7-core's largest cause, as engine_status judges. The scanned
   // share is a lower bound, so it never raises a false "critical"; a capped scan means at least
   // CLUSTER_SCAN_LIMIT incidents, which the total rule judges. The verdict travels as data; each
   // reader words it.

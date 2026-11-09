@@ -1,4 +1,4 @@
-import { mapLimit } from "@miragon/pulse-engine-core"
+import { mapLimit } from "@miragon/pulse-c7-core"
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import {

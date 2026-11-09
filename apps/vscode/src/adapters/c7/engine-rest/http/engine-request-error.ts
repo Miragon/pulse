@@ -1,4 +1,4 @@
-import { isMissing } from "@miragon/pulse-engine-core"
+import { isMissing } from "@miragon/pulse-c7-core"
 
 export type EngineRequestFailure = "refused" | "unanswered" | "answered"
 

@@ -26,8 +26,10 @@ To build your own MCP server on it, start from [pulse-starter](https://github.co
 The **engine module** for [Pulse](../../../../README.md): Camunda 7 / CIB seven BPM operations as
 `engine_*` MCP tools, plus the interactive cockpit widgets (MCP Apps). Built on
 [`@miragon/pulse-engine-client`](../engine-client), `@miragon/pulse-ui`,
-`@miragon/pulse-widget-shell` and [`@miragon/pulse-engine-core`](../engine-core), the
-workflow domain pulse-cli runs too, which this module runs over its client.
+`@miragon/pulse-widget-shell` and [`@miragon/pulse-c7-core`](../../c7/c7-core), the core of
+the Camunda 7 REST dialect family c7 and the workflow domain pulse-cli runs too, which this
+module runs over its client. It is the one MCP module of every dialect: a dialect family is a
+package family of its own (`c7` today), never a module or a server of its own.
 
 The server loads this module as `engine` via `engineModule` (`src/module.ts`), which conforms
 structurally to the app's `ModuleDefinition` port. The package is published to npm in lockstep with
@@ -55,7 +57,7 @@ SDK package of its own: widget-shell brings `@modelcontextprotocol/server` 2.4 a
 - **Read composites** (`src/lib/core-adapter/composites.ts`): `engine_inspect_process_instance` (where one
   instance waits and why, running or ended, selected by id, business key or definition key) and
   `engine_status` (the triage of one engine: findings by severity, counts and the live verdict,
-  engine-core's `engineVerdict`: the cockpit overview's incident thresholds plus its findings) answer in one call what took several reads. Both run `@miragon/pulse-engine-core` over
+  c7-core's `engineVerdict`: the cockpit overview's incident thresholds plus its findings) answer in one call what took several reads. Both run `@miragon/pulse-c7-core` over
   the client, return data without next steps and cap long lists, naming each cut in `truncated`.
 - **The view** (`src/widget-tools/cockpit.ts`): `engine_open_cockpit` renders the operations
   cockpit, opening on any of its views, and returns that view's facts as compact JSON; app-only
@@ -94,28 +96,28 @@ This module has strict house patterns: read the
 [`add-bpm-feature`](../../../../.claude/skills/add-bpm-feature) skill and the architecture invariants in
 [`CLAUDE.md`](../../../../CLAUDE.md) before adding tools, schemas, or widgets. In short: input schemas live
 in `src/schemas/` next to the tools, the pure engine rules in
-[`@miragon/pulse-engine-core`](../engine-core), tools register via the registrar (never a raw
+[`@miragon/pulse-c7-core`](../../c7/c7-core), tools register via the registrar (never a raw
 `server.registerTool()`), and a view is a cockpit route (its section, its builder and `*_data` feed, its
 start view), never a second view tool: see the add-bpm-feature skill.
 
 ## Layout
 
-| Path                     | Contents                                                                                                                                                   |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/tools/`             | Registrar operations tools, one file per domain (`index.ts` wires them)                                                                                    |
-| `src/schemas/`           | The tools' Zod input schemas and the one paging definition                                                                                                 |
-| `src/widget-tools.ts`    | `engine_open_cockpit` and the `*_data` feeds (`src/widget-tools/`)                                                                                         |
-| `src/data/`              | One builder per cockpit route; `feeds.ts` (the `*_data` feeds), `routes.ts` (the routes)                                                                   |
-| `src/widgets/`           | The cockpit app, its routes and widgets + `views.tsx`                                                                                                      |
-| `src/tool-names.ts`      | Tool-name constants for rename-safe in-widget feed calls                                                                                                   |
-| `src/lib/engine/`        | Engine routing (`with-engine.ts`, `resolve-engine.ts`), cockpit links, passthrough auth                                                                    |
-| `src/lib/core-adapter/`  | engine-core's port over the client (and engine-core's 404 rule applied to the client's errors, `noneIfMissing`), the read composites, `workflow-errors.ts` |
-| `src/lib/bpmn/`          | The definition XML read, BPMN and task-form reading, completing a user task by its form                                                                    |
-| `src/lib/mcp/`           | The tool surface: `toolsets.ts`, the paging envelope, variable and failure-text bounds                                                                     |
-| `src/lib/shared/`        | Pure code the widgets run too (environments, `TaskCompletion`, the landscape fold); the one lib widgets use                                                |
-| `src/module.ts`          | `engineModule` (config schema, env mapping, boot warnings, instructions, plugin factory)                                                                   |
-| `src/engine-provider.ts` | The vendor provider port (`EngineProvider`, `CockpitRef`)                                                                                                  |
-| `src/providers/`         | `cibseven` / `operaton` / `camunda7` providers (cockpit routes, branding)                                                                                  |
+| Path                     | Contents                                                                                                                                           |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/tools/`             | Registrar operations tools, one file per domain (`index.ts` wires them)                                                                            |
+| `src/schemas/`           | The tools' Zod input schemas and the one paging definition                                                                                         |
+| `src/widget-tools.ts`    | `engine_open_cockpit` and the `*_data` feeds (`src/widget-tools/`)                                                                                 |
+| `src/data/`              | One builder per cockpit route; `feeds.ts` (the `*_data` feeds), `routes.ts` (the routes)                                                           |
+| `src/widgets/`           | The cockpit app, its routes and widgets + `views.tsx`                                                                                              |
+| `src/tool-names.ts`      | Tool-name constants for rename-safe in-widget feed calls                                                                                           |
+| `src/lib/engine/`        | Engine routing (`with-engine.ts`, `resolve-engine.ts`), cockpit links, passthrough auth                                                            |
+| `src/lib/core-adapter/`  | c7-core's port over the client (and c7-core's 404 rule applied to the client's errors, `noneIfMissing`), the read composites, `workflow-errors.ts` |
+| `src/lib/bpmn/`          | The definition XML read, BPMN and task-form reading, completing a user task by its form                                                            |
+| `src/lib/mcp/`           | The tool surface: `toolsets.ts`, the paging envelope, variable and failure-text bounds                                                             |
+| `src/lib/shared/`        | Pure code the widgets run too (environments, `TaskCompletion`, the landscape fold); the one lib widgets use                                        |
+| `src/module.ts`          | `engineModule` (config schema, env mapping, boot warnings, instructions, plugin factory)                                                           |
+| `src/engine-provider.ts` | The vendor provider port (`EngineProvider`, `CockpitRef`)                                                                                          |
+| `src/providers/`         | `cibseven` / `operaton` / `camunda7` providers (cockpit routes, branding)                                                                          |
 
 ## Verify
 

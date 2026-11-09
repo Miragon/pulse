@@ -1,4 +1,4 @@
-import { MAX_STACKTRACE_LINES } from "@miragon/pulse-engine-core"
+import { MAX_STACKTRACE_LINES } from "@miragon/pulse-c7-core"
 import { describe, expect, test } from "vitest"
 import { RestEngineClient } from "../../../../src/adapters/c7/engine-rest/index.js"
 import { InspectedVariables } from "../../../../src/adapters/c7/mapping/inspected-variables.js"
@@ -207,7 +207,7 @@ describe("inspecting an instance over REST", () => {
     ])
   })
 
-  test("cuts a long stack trace at engine-core's limit", async () => {
+  test("cuts a long stack trace at c7-core's limit", async () => {
     const frames = Array.from({ length: 250 }, (_, index) => `\tat Frame${index}`)
     const details = get("/external-task/x1/errorDetails", new Response(frames.join("\n")))
     const routes = RUNNING_TREE.map((route) => (route.route === details.route ? details : route))

@@ -1,6 +1,6 @@
 /** An EnginePort of the workflow commands on a fake fetch, for unit tests of src/workflow. */
 
-import { fakeClock } from "@miragon/pulse-engine-core/testing"
+import { fakeClock } from "@miragon/pulse-c7-core/testing"
 import { noAuth } from "../../src/auth/none.js"
 import type { AuthProvider } from "../../src/auth/types.js"
 import type { EnginePort } from "../../src/engine-port/engine-port.js"
