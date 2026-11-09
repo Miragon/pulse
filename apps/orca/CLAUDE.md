@@ -100,6 +100,9 @@ file's path (the host kit's `CredentialStore`).
 
 - The house rules of the editor hosts hold here (`apps/vscode/CLAUDE.md`, Rules): no comments,
   classes, the budgets, strict TypeScript, English UI text in sentence case, ratchets one way.
+- The plugin's own texts (worker, panel, editor frames) use the product's words and draw no glyph
+  and no raw colour: pulse-ui's gates read them in `apps/orca/test/architecture/brand-gates.test.ts`,
+  as the extension's read the runtime view's.
 - Writes follow the extension's policy (`WritePolicy`, `ConfirmationPolicy` of the host kit). A
   confirmation waits in the Pulse panel and only a request from the panel
   (`PanelCaller { surface: "panel", contributionId: "engines" }`, set by Orca) settles it; a tab's

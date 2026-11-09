@@ -202,6 +202,9 @@ importers:
         specifier: workspace:*
         version: link:../../packages/core/runtime-view
     devDependencies:
+      '@miragon/pulse-ui':
+        specifier: workspace:*
+        version: link:../../packages/core/ui
       '@types/node':
         specifier: 22.20.5
         version: 22.20.5

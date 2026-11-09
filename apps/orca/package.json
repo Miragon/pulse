@@ -26,6 +26,7 @@
     "@miragon/pulse-runtime-view": "workspace:*"
   },
   "devDependencies": {
+    "@miragon/pulse-ui": "workspace:*",
     "@types/node": "22.20.5",
     "@vitest/coverage-v8": "5.1.0",
     "esbuild": "0.28.2",
