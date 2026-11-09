@@ -5,9 +5,9 @@ const PLANTED: Readonly<Record<string, string>> = {
   "src/host/wires-the-view.ts":
     "import { PanelTitle } from '@miragon/pulse-runtime-view/host-kit';\nimport type { StateMessage } from '@miragon/pulse-runtime-view/protocol';\nimport type { WorkspaceFiles } from '@miragon/pulse-runtime-view/ports';\nexport type Message = StateMessage | WorkspaceFiles;\nexport const title = PanelTitle;\n",
   "src/host/composition-root.ts":
-    "import { C7Adapter } from '@miragon/pulse-engine-adapter';\nimport { BpmnModelSource } from '@miragon/pulse-runtime-view/model';\nexport const wired = [C7Adapter, BpmnModelSource];\n",
+    "import { C7Adapter } from '@miragon/pulse-c7-adapter';\nimport { BpmnModelSource } from '@miragon/pulse-runtime-view/model';\nexport const wired = [C7Adapter, BpmnModelSource];\n",
   "src/host/not-the-root.ts":
-    "import { C7Adapter } from '@miragon/pulse-engine-adapter';\nexport const wired = C7Adapter;\n",
+    "import { C7Adapter } from '@miragon/pulse-c7-adapter';\nexport const wired = C7Adapter;\n",
   "src/host/reads-the-model.ts":
     "import { BpmnModelSource } from '@miragon/pulse-runtime-view/model';\nexport const source = BpmnModelSource;\n",
   "src/host/escapes-into-the-view.ts":
@@ -35,10 +35,10 @@ const PLANTED: Readonly<Record<string, string>> = {
   "src/host/cycle-a.ts": "import { b } from './cycle-b.ts';\nexport const a = () => b();\n",
   "src/host/cycle-b.ts": "import { a } from './cycle-a.ts';\nexport const b = () => a();\n",
   "test/host/anything.test.ts":
-    "import { C7Adapter } from '@miragon/pulse-engine-adapter';\nimport { FakeEngine } from '@miragon/pulse-engine-core/testing';\nexport const proven = [C7Adapter, FakeEngine];\n",
+    "import { C7Adapter } from '@miragon/pulse-c7-adapter';\nimport { FakeEngine } from '@miragon/pulse-engine-core/testing';\nexport const proven = [C7Adapter, FakeEngine];\n",
   "../../packages/core/runtime-view/src/core/index.ts": "export const core = 1;\n",
   "package.json":
-    '{ "name": "pulse-cockpit", "private": true, "dependencies": { "@miragon/pulse-runtime-view": "workspace:*", "@miragon/pulse-engine-adapter": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-c7-core": "workspace:*" } }\n',
+    '{ "name": "pulse-cockpit", "private": true, "dependencies": { "@miragon/pulse-runtime-view": "workspace:*", "@miragon/pulse-c7-adapter": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-c7-core": "workspace:*" } }\n',
 }
 
 const tree = new PlantedTree("apps/vscode", PLANTED)
@@ -50,12 +50,12 @@ afterAll(() => {
 describe("the dependency rules", () => {
   test("say where an import outside the closed world belongs", { timeout: 60_000 }, () => {
     expect(tree.report()).toContain(
-      "error not-in-allowed: apps/vscode/src/host/not-the-root.ts → apps/vscode/node_modules/@miragon/pulse-engine-adapter/dist/index.d.ts No entry of `allowed` in apps/vscode/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md)",
+      "error not-in-allowed: apps/vscode/src/host/not-the-root.ts → apps/vscode/node_modules/@miragon/pulse-c7-adapter/dist/index.d.ts No entry of `allowed` in apps/vscode/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md)",
     )
   })
 
   test("fire on every planted violation and on nothing else", { timeout: 60_000 }, () => {
-    const adapter = "apps/vscode/node_modules/@miragon/pulse-engine-adapter/dist/index.d.ts"
+    const adapter = "apps/vscode/node_modules/@miragon/pulse-c7-adapter/dist/index.d.ts"
     const model = "apps/vscode/node_modules/@miragon/pulse-runtime-view/dist/model/index.d.ts"
     const engineCoreTesting =
       "apps/vscode/node_modules/@miragon/pulse-engine-core/dist/testing/index.d.ts"

@@ -3,13 +3,13 @@
 What the C7 adapter of Pulse for VS Code and Pulse for Orca reports when an engine call fails,
 pinned byte for byte before its transport changes: each later step proves "the same report, except
 the named fixes". The test is
-`packages/connectors/engine/engine-adapter/test/goldens/error-paths.golden.test.ts`; it builds the
+`packages/connectors/c7/c7-adapter/test/goldens/error-paths.golden.test.ts`; it builds the
 adapter's runtime (`C7Adapter` over the real `fetch`) against loopback engines
-(`packages/connectors/engine/engine-adapter/test/goldens/loopback-engine.ts`) and asks
+(`packages/connectors/c7/c7-adapter/test/goldens/loopback-engine.ts`) and asks
 `describeEngine()` unless a case names its own calls. Where step 15 swaps the inspect path
 (`InspectOperations`), a case asks `getInstanceDetail` of one instance as well, its world in
-`packages/connectors/engine/engine-adapter/test/goldens/inspect-world.ts`. The cases and the engine
-answers that make them are `packages/connectors/engine/engine-adapter/test/goldens/error-cases.ts`,
+`packages/connectors/c7/c7-adapter/test/goldens/inspect-world.ts`. The cases and the engine
+answers that make them are `packages/connectors/c7/c7-adapter/test/goldens/error-cases.ts`,
 the same on every surface; that copy may carry no comment, so the server's and the CLI's copies
 explain the answers.
 
@@ -24,7 +24,7 @@ read still went out never depends on timing; a round the call does not fill fail
 two seconds and names the count to set.
 
 Never edit a golden by hand. An intended change runs
-`pnpm --fail-if-no-match --filter @miragon/pulse-engine-adapter golden:update` (refused in CI) and
+`pnpm --fail-if-no-match --filter @miragon/pulse-c7-adapter golden:update` (refused in CI) and
 commits the diff. The MCP server (`apps/mcp-server/test/__golden__/error-paths`) and the CLI
 (`apps/cli/test/__golden__/error-paths`) pin the same cases under the same names.
 

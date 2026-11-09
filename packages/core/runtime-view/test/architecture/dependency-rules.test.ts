@@ -61,7 +61,7 @@ const PLANTED: Readonly<Record<string, string>> = {
   "../../../node_modules/@miragon/pulse-c7-core/dist/index.d.ts":
     "export declare const causeOf: number;\n",
   "src/host-kit/wires-the-adapter.ts":
-    "import { C7Adapter } from '@miragon/pulse-engine-adapter';\nexport const adapter = C7Adapter;\n",
+    "import { C7Adapter } from '@miragon/pulse-c7-adapter';\nexport const adapter = C7Adapter;\n",
   "src/webview/reads-tones.ts":
     "import { SITUATION_TONES } from '@miragon/pulse-ui/tones';\nexport const tones = SITUATION_TONES;\n",
   "src/core/reads-tones.ts":
@@ -142,7 +142,7 @@ describe("the dependency rules", () => {
     const c7CoreSource = "packages/connectors/c7/c7-core/src/cause.ts"
     const tonesSource = "packages/core/ui/src/tones/count-tone.ts"
     const tonesBuild = "packages/core/ui/dist/tones/count-tone.js"
-    const adapter = "@miragon/pulse-engine-adapter"
+    const adapter = "@miragon/pulse-c7-adapter"
     expect(tree.violations()).toEqual(
       [
         `model-libraries-stay-in-the-model-adapter: ${at("src/host-kit/reads-model-library.ts")} -> ${moddle}`,

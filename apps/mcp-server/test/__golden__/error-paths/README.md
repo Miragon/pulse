@@ -26,7 +26,7 @@ round the call does not fill fails the case after two seconds and names the coun
 Never edit a golden by hand. An intended change runs
 `pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server golden:update` (refused in CI) and
 commits the diff. The CLI (`apps/cli/test/__golden__/error-paths`) and the C7 adapter of Pulse for
-VS Code and Pulse for Orca (`packages/connectors/engine/engine-adapter/test/__golden__/error-paths`)
+VS Code and Pulse for Orca (`packages/connectors/c7/c7-adapter/test/__golden__/error-paths`)
 pin the same cases under the same names.
 
 Some texts come from the runtime, not from Pulse: the network codes (ECONNREFUSED, ENOTFOUND,

@@ -46,7 +46,7 @@ second engine dialect cheap:
   its interfaces share a pure domain and, for a source that is no dialect, its connector (the
   MCP module). A package two interfaces share is extracted on its second consumer into the
   family's core, like `@miragon/pulse-c7-core`, the core of the Camunda 7 REST dialect family
-  that the CLI and the VS Code extension's C7 adapter bundle and the engine connector runs over
+  that the CLI bundles, the C7 adapter runs and the engine connector runs over
   its client (one port per API family; it names no command, flag or tool). `packages/core/`
   holds what every family builds on, never one family's code. The family `engine` is the neutral
   layer (owner decisions 2026-11-07 to 2026-11-09): one MCP server app, the thin composition root

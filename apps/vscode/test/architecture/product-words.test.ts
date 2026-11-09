@@ -34,7 +34,7 @@ function layersOf(root: string): string[] {
 }
 
 describe("the extension's texts", PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, () => {
-  test("are read in every layer of the runtime view and the host, the engine adapter aside", () => {
+  test("are read in every layer of the runtime view and the host, the C7 adapter aside", () => {
     expect(layersOf(RUNTIME_VIEW_SOURCES)).toEqual([...RUNTIME_VIEW_LAYERS].sort())
     expect(layersOf(HOST_SOURCES)).toEqual([...HOST_LAYERS].sort())
   })

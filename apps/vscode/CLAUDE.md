@@ -16,14 +16,14 @@ pnpm --filter pulse-cockpit run typecheck        # tsc over the app, then the ho
 pnpm --filter pulse-cockpit run lint             # ESLint with the house rules below
 pnpm lint:architecture:vscode                   # the closed-world dependency rules of the host
 pnpm lint:architecture:runtime-view             # the closed-world rules of the runtime view's layers
-pnpm lint:architecture:engine-adapter           # the closed-world rules of the C7 adapter
+pnpm lint:architecture:c7-adapter               # the closed-world rules of the C7 adapter
 pnpm lint:deadcode                              # knip over every workspace: dead files, dependencies, enum members
 pnpm lint:deadcode:exports                      # knip over every workspace but docs: unused exports and types
 pnpm --filter pulse-cockpit test                 # the host's unit and architecture tests, the brand and word scans
 pnpm --filter @miragon/pulse-runtime-view test   # core, model, host kit and webview (Chromium) tests, coverage floors
-pnpm --filter @miragon/pulse-engine-adapter test # the C7 adapter against a recorded REST API and its error-path goldens
+pnpm --filter @miragon/pulse-c7-adapter test     # the C7 adapter against a recorded REST API and its error-path goldens
 pnpm --filter @miragon/pulse-engine-core test   # the kit's self-tests: the fake passes every law, 71 saboteurs fail theirs
-pnpm --filter @miragon/pulse-engine-adapter run test:engines # adapter conformance on a real engine; needs podman/docker
+pnpm --filter @miragon/pulse-c7-adapter run test:engines # adapter conformance on a real engine; needs podman/docker
 pnpm --filter pulse-cockpit run test:smoke       # the extension activates in a real VS Code
 pnpm --filter pulse-cockpit run test:e2e         # VS Code e2e; needs `engine:up`
 pnpm --filter pulse-cockpit run test:smoke:docker # both in Docker under Xvfb: no VS Code window
@@ -69,8 +69,8 @@ too. The engine-neutral part lives in two packages the editor hosts share: the r
 (`packages/core/runtime-view`, layers under its `src`, each with its own
 `tsconfig.<layer>.json` and dependency rules) over the engine contract of
 `@miragon/pulse-engine-core`, and the C7 adapter of that contract
-(`packages/connectors/engine/engine-adapter`, the c7 dialect's, which still lives in the engine
-family). This app holds only the VS Code wiring.
+(`packages/connectors/c7/c7-adapter`, the c7 dialect family's). This app holds only the VS Code
+wiring.
 
 | You want to…                                                    | Put it in                                                                                                                                                                                                                                                                                                           | Never                                      |
 | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
@@ -78,7 +78,7 @@ family). This app holds only the VS Code wiring.
 | Add a write                                                     | `ProcessCommands` + a command law + a saboteur; policy and confirmation per `apps/vscode/docs/adr/writes.md`                                                                                                                                                                                                        | authority in a webview intent              |
 | Interpret runtime data (grouping, view models, panel behaviour) | `packages/core/runtime-view/src/core`                                                                                                                                                                                                                                                                               | `vscode`, DOM, Node, engine words          |
 | Change what the webview shows                                   | `packages/core/runtime-view/src/core/protocol` (types) and `packages/core/runtime-view/src/webview`                                                                                                                                                                                                                 | logic in the webview, `--vscode-*` colours |
-| Talk to Operaton / CIB seven / Camunda 7                        | `packages/connectors/engine/engine-adapter/src` (mapping) and `packages/connectors/engine/engine-adapter/src/engine-rest` (REST client; its `inspect` runs c7-core over it); inspect and wait states in `@miragon/pulse-c7-core`, the root cause in `RootCauses`                                                    | imports from core, webview or host; a copy |
+| Talk to Operaton / CIB seven / Camunda 7                        | `packages/connectors/c7/c7-adapter/src` (mapping) and `packages/connectors/c7/c7-adapter/src/engine-rest` (REST client; its `inspect` runs c7-core over it); inspect and wait states in `@miragon/pulse-c7-core`, the root cause in `RootCauses`                                                                    | imports from core, webview or host; a copy |
 | Add an engine family                                            | `packages/connectors/<family>/<family>-adapter` with a class implementing `EngineAdapter` + an `*.engine.test.ts` running the `ConformanceKit` (`@miragon/pulse-engine-core/testing`) + one entry in each composition root (`apps/vscode/src/host/composition-root.ts`, `apps/orca/src/worker/composition-root.ts`) | branching on engines anywhere else         |
 | Read the local `.bpmn` model or find the implementing code      | `packages/core/runtime-view/src/model` (behind `ModelSource` / `CodeLocator`), per `apps/vscode/docs/adr/local-sources.md`                                                                                                                                                                                          | moddle or bpmn-modeler libs anywhere else  |
 | Add a port only the editor hosts need                           | `packages/core/runtime-view/src/ports` (`EngineAdapter`, `EngineWebUi`, `ModelSource`, `CodeLocator`, `WorkspaceFiles`)                                                                                                                                                                                             | an IDE port in engine-core                 |
@@ -87,7 +87,7 @@ family). This app holds only the VS Code wiring.
 
 The dependency rules are closed-world, one config per package (`apps/vscode/.dependency-cruiser.cjs`,
 `packages/core/runtime-view/.dependency-cruiser.cjs`,
-`packages/connectors/engine/engine-adapter/.dependency-cruiser.cjs`): an import that is not
+`packages/connectors/c7/c7-adapter/.dependency-cruiser.cjs`): an import that is not
 explicitly allowed fails its `pnpm lint:architecture:<package>` with a message that says where it
 belongs (dependency-cruiser reports it as `not-in-allowed` and takes the wording from the
 forbidden rule of that name, which never fires itself). Nothing outside them is allowed, so no
@@ -104,11 +104,11 @@ house rules (the repository's ESLint config names its paths next to the editor t
 follows the views: a question the views need lands there first, below 1.0 without a stability
 promise. The host reaches the runtime view only through the entries of its ports, core,
 protocol and host kit, and only its composition root the adapter and the model reader. The C7
-adapter (`packages/connectors/engine/engine-adapter`, its tests beside it) imports
+adapter (`packages/connectors/c7/c7-adapter`, its tests beside it) imports
 `@miragon/pulse-c7-core`, the core of the Camunda 7 REST dialect family c7, the workflow domain
 the CLI and the MCP server run too, through its main entry; no other part of the editor hosts
 imports it (`runtime-view-is-dialect-neutral`, `extension-is-dialect-neutral`; the repository's
-`engine-adapter-runs-the-c7-dialect`). The host kit's connections
+`adapters-own-their-family`). The host kit's connections
 (`packages/core/runtime-view/src/host-kit/connections`) read the project files with Pulse's
 profile format, `@miragon/pulse-profile`, through its main entry (the runtime view's closed
 world; the repository's `profile-consumers`), as the CLI does. The runtime view's core and
@@ -147,10 +147,10 @@ Ports, core, webview, host kit and host stay engine-neutral.
   `pnpm lint:ratchets` holds them to the merge base like every other ratchet of the repo. Do
   not delete tests. An exception to a guardrail is a human's decision in review, never your
   own edit.
-- The C7 adapter's error-path goldens (`packages/connectors/engine/engine-adapter/test/goldens/`,
-  the files and the case table in `packages/connectors/engine/engine-adapter/test/__golden__/error-paths/`)
+- The C7 adapter's error-path goldens (`packages/connectors/c7/c7-adapter/test/goldens/`,
+  the files and the case table in `packages/connectors/c7/c7-adapter/test/__golden__/error-paths/`)
   pin what it reports for the engine failures that table lists. An intended change runs
-  `pnpm --fail-if-no-match --filter @miragon/pulse-engine-adapter golden:update` (refused in CI)
+  `pnpm --fail-if-no-match --filter @miragon/pulse-c7-adapter golden:update` (refused in CI)
   and commits the diff; never edit a golden by hand.
 - A new gate is a rule in a standard tool (ESLint, dependency-cruiser, knip, tsc, Vitest) or
   a test. A rule you write proves it bites with a case in the `test/architecture` of the package

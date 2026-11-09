@@ -28,7 +28,7 @@
         },
         {
           "type": "json",
-          "path": "packages/connectors/engine/engine-adapter/package.json",
+          "path": "packages/connectors/c7/c7-adapter/package.json",
           "jsonpath": "$.version"
         },
         {

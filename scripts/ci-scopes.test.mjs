@@ -36,16 +36,16 @@ const PACKAGES = [
   },
   // The editor hosts share the runtime view and bundle the C7 adapter, which runs c7-core.
   pkg("packages/core/runtime-view", "@miragon/pulse-runtime-view"),
-  pkg("packages/connectors/engine/engine-adapter", "@miragon/pulse-engine-adapter", {
+  pkg("packages/connectors/c7/c7-adapter", "@miragon/pulse-c7-adapter", {
     "@miragon/pulse-c7-core": "workspace:*",
     "@miragon/pulse-runtime-view": "workspace:*",
   }),
   pkg("apps/vscode", "pulse-cockpit", {
-    "@miragon/pulse-engine-adapter": "workspace:*",
+    "@miragon/pulse-c7-adapter": "workspace:*",
     "@miragon/pulse-runtime-view": "workspace:*",
   }),
   pkg("apps/orca", "@miragon/pulse-orca", {
-    "@miragon/pulse-engine-adapter": "workspace:*",
+    "@miragon/pulse-c7-adapter": "workspace:*",
     "@miragon/pulse-runtime-view": "workspace:*",
   }),
   pkg("docs", "@miragon/pulse-docs"),
@@ -138,7 +138,7 @@ describe("scopesFor: a package's code reaches its dependents", () => {
   it("runs the editor hosts' checks for the runtime view and the C7 adapter, not the MCP server's or the template", () => {
     for (const file of [
       "packages/core/runtime-view/src/core/index.ts",
-      "packages/connectors/engine/engine-adapter/src/index.ts",
+      "packages/connectors/c7/c7-adapter/src/index.ts",
     ]) {
       assert.deepEqual(scopes(file), ["orca", "typescript", "vscode", "vscode-package"], file)
     }
@@ -321,7 +321,7 @@ describe("the real workspace", () => {
     assert.deepEqual(without, [])
   })
 
-  it("runs the editor hosts' checks for c7-core, which their C7 adapter bundles", () => {
+  it("runs the editor hosts' checks for c7-core, which they bundle with their C7 adapter", () => {
     const changed = scopesFor(["packages/connectors/c7/c7-core/src/cause.ts"], packages)
     for (const scope of ["cli", "orca", "vscode", "vscode-package"]) {
       assert.ok(changed.has(scope), scope)
@@ -331,7 +331,7 @@ describe("the real workspace", () => {
   it("keeps the MCP server and the template apart from what only the editor hosts bundle", () => {
     for (const file of [
       "packages/core/runtime-view/src/core/index.ts",
-      "packages/connectors/engine/engine-adapter/src/index.ts",
+      "packages/connectors/c7/c7-adapter/src/index.ts",
     ]) {
       assert.deepEqual(
         [...scopesFor([file], packages)].sort(),

@@ -72,7 +72,7 @@
       "entry": ["src/webview/main.tsx", "dev/webview/stub.ts", "dev/webview/*.mjs"],
     },
 
-    "packages/connectors/engine/engine-adapter": {
+    "packages/connectors/c7/c7-adapter": {
       "vitest": {
         "config": ["vitest.config.ts", "vitest.engines.config.ts"],
       },

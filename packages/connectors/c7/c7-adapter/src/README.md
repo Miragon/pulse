@@ -12,14 +12,14 @@ wait states), which the CLI and the MCP server share; the editor hosts bundle it
 implements the engine contract of the engine family's core, `@miragon/pulse-engine-core`, and takes
 the root cause of a failure text from its rule `RootCauses`, as c7-core does. The plug it provides,
 `EngineAdapter`, is a port of the runtime view (`@miragon/pulse-runtime-view/ports`). The package
-still lives in the engine family; it implements the c7 dialect.
+belongs to the c7 family, whose dialect it implements.
 
 ## How it works
 
 ```mermaid
 flowchart LR
   core(["core"])
-  subgraph adapter ["adapter-c7"]
+  subgraph adapter ["c7-adapter"]
     reader["reader"]
     rest["engine-rest"]
   end
@@ -40,17 +40,17 @@ Writes (`ProcessCommands`) take the same road on a connection that may write.
 
 ## Where things are
 
-- `packages/connectors/engine/engine-adapter/src`: `C7Adapter` builds a runtime and commands per engine connection
-- `packages/connectors/engine/engine-adapter/src/reading`: one reader per question, e.g. `InstanceDetailReader`, with its own mapping
-- `packages/connectors/engine/engine-adapter/src/mapping`: what several readers share: definition refs, states, timestamps, root incidents, the root cause of incident details (`RootCauses`)
-- `packages/connectors/engine/engine-adapter/src/writing`, `packages/connectors/engine/engine-adapter/src/errors`: the bodies of a variable change and a move, the token a move cancels; failures to `RuntimeError`
-- `packages/connectors/engine/engine-adapter/src/web-ui`: `CockpitWebUi`: links into Cockpit or the CIB seven webclient
-- `packages/connectors/engine/engine-adapter/src/engine-rest`: the REST client: requests, paging, parsed and checked views
-- `packages/connectors/engine/engine-adapter/src/engine-rest/inspect`: c7-core's port over `EngineHttp` (`HttpEngineTransport`); the adapter's `InspectView` is c7-core's instance view with its timeline, no mirror type
+- `packages/connectors/c7/c7-adapter/src`: `C7Adapter` builds a runtime and commands per engine connection
+- `packages/connectors/c7/c7-adapter/src/reading`: one reader per question, e.g. `InstanceDetailReader`, with its own mapping
+- `packages/connectors/c7/c7-adapter/src/mapping`: what several readers share: definition refs, states, timestamps, root incidents, the root cause of incident details (`RootCauses`)
+- `packages/connectors/c7/c7-adapter/src/writing`, `packages/connectors/c7/c7-adapter/src/errors`: the bodies of a variable change and a move, the token a move cancels; failures to `RuntimeError`
+- `packages/connectors/c7/c7-adapter/src/web-ui`: `CockpitWebUi`: links into Cockpit or the CIB seven webclient
+- `packages/connectors/c7/c7-adapter/src/engine-rest`: the REST client: requests, paging, parsed and checked views
+- `packages/connectors/c7/c7-adapter/src/engine-rest/inspect`: c7-core's port over `EngineHttp` (`HttpEngineTransport`); the adapter's `InspectView` is c7-core's instance view with its timeline, no mirror type
 
 ## Rules
 
-- `packages/connectors/engine/engine-adapter/src` imports only the main entries of `@miragon/pulse-engine-core` (the contract) and `@miragon/pulse-c7-core`, the runtime view's ports and no Node built-in (dependency-cruiser); no other layer of the editor hosts imports c7-core
+- `packages/connectors/c7/c7-adapter/src` imports only the main entries of `@miragon/pulse-engine-core` (the contract) and `@miragon/pulse-c7-core`, the runtime view's ports and no Node built-in (dependency-cruiser); no other layer of the editor hosts imports c7-core
 - Engine words are allowed here, not in contract, core or webview; classes, no comments (ESLint)
 
 ## Proven on

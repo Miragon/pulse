@@ -1,9 +1,9 @@
 import { afterAll, describe, expect, test } from "vitest"
 import { PlantedTree } from "./support/planted-tree.js"
 
-const PACKAGE = "packages/connectors/engine/engine-adapter"
+const PACKAGE = "packages/connectors/c7/c7-adapter"
 const MANIFEST =
-  '{ "name": "@miragon/pulse-engine-adapter", "private": true, "dependencies": { "@miragon/pulse-c7-core": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-runtime-view": "workspace:*" } }\n'
+  '{ "name": "@miragon/pulse-c7-adapter", "private": true, "dependencies": { "@miragon/pulse-c7-core": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-runtime-view": "workspace:*" } }\n'
 
 const ADAPTER: Readonly<Record<string, string>> = {
   "src/index.ts":
@@ -18,6 +18,8 @@ const ADAPTER: Readonly<Record<string, string>> = {
     "import { routeOf } from '@miragon/pulse-c7-core/routes';\nexport const route = routeOf;\n",
   "src/reads-the-core.ts":
     "import { BoardParser } from '@miragon/pulse-runtime-view/core';\nexport const parser = BoardParser;\n",
+  "src/reads-the-client.ts":
+    "import { createEngineClient } from '@miragon/pulse-c7-client';\nexport const client = createEngineClient;\n",
   "test/c7.engine.test.ts":
     "import { adapter } from '../src/index.ts';\nexport const unproven = adapter;\n",
   "test/engine-core.test.ts":
@@ -57,9 +59,11 @@ describe("the dependency rules", () => {
       `engine-test-runs-the-conformance-kit: ${at("test/c7.engine.test.ts")} -> ${at("test/c7.engine.test.ts")}`,
       `not-in-allowed: ${at("src/mapping-uses-node.ts")} -> child_process`,
       `not-in-allowed: ${at("src/reads-c7-routes.ts")} -> ${c7Routes}`,
+      `not-in-allowed: ${at("src/reads-the-client.ts")} -> @miragon/pulse-c7-client`,
       `not-in-allowed: ${at("src/reads-the-core.ts")} -> ${view}`,
       `not-in-allowed: ${at("src/ships-c7-core-testing.ts")} -> ${c7Testing}`,
       `not-in-allowed: ${at("src/ships-engine-core-testing.ts")} -> ${testing}`,
+      `not-to-unresolvable: ${at("src/reads-the-client.ts")} -> @miragon/pulse-c7-client`,
     ])
   })
 

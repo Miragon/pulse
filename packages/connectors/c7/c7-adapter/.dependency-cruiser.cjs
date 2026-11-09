@@ -1,4 +1,4 @@
-const PACKAGE = "^packages/connectors/engine/engine-adapter/"
+const PACKAGE = "^packages/connectors/c7/c7-adapter/"
 const TEST_CODE = `[.]test[.](tsx?|cjs)$|${PACKAGE}test/`
 const ENTRY = `${PACKAGE}src/index[.]ts$`
 const ENGINE_TEST = "[.]engine[.]test[.]ts$"
@@ -44,7 +44,7 @@ module.exports = {
       name: "not-in-allowed",
       severity: "error",
       comment:
-        "No entry of `allowed` in packages/connectors/engine/engine-adapter/.dependency-cruiser.cjs permits this import. The adapter uses its own modules, the main entries of @miragon/pulse-engine-core (the contract) and @miragon/pulse-c7-core (the c7 dialect's workflow domain), never a subpath, the runtime view's ports (@miragon/pulse-runtime-view/ports), and no Node built-in: the REST client runs on fetch.",
+        "No entry of `allowed` in packages/connectors/c7/c7-adapter/.dependency-cruiser.cjs permits this import. The adapter uses its own modules, the main entries of @miragon/pulse-engine-core (the contract) and @miragon/pulse-c7-core (the c7 dialect's workflow domain), never a subpath, the runtime view's ports (@miragon/pulse-runtime-view/ports), and no Node built-in: the REST client runs on fetch.",
       from: {},
       to: { path: "^$" },
     },
@@ -60,7 +60,7 @@ module.exports = {
       name: "src-not-to-dev-dependencies",
       severity: "error",
       comment:
-        "Shipped code must not import a devDependency. Declare it in the dependencies of packages/connectors/engine/engine-adapter/package.json.",
+        "Shipped code must not import a devDependency. Declare it in the dependencies of packages/connectors/c7/c7-adapter/package.json.",
       from: { path: `${PACKAGE}src/`, pathNot: TEST_CODE },
       to: { dependencyTypes: ["npm-dev"] },
     },
@@ -68,7 +68,7 @@ module.exports = {
       name: "no-undeclared-dependencies",
       severity: "error",
       comment:
-        "This package is not declared in packages/connectors/engine/engine-adapter/package.json. Add it there (dependencies for shipped code, devDependencies for tests).",
+        "This package is not declared in packages/connectors/c7/c7-adapter/package.json. Add it there (dependencies for shipped code, devDependencies for tests).",
       from: {},
       to: { dependencyTypes: ["npm-no-pkg", "npm-unknown"] },
     },
@@ -76,7 +76,7 @@ module.exports = {
       name: "adapter-proven-on-an-engine",
       severity: "error",
       comment:
-        "The adapter is not run by any *.engine.test.ts. Add packages/connectors/engine/engine-adapter/test/<engine>-conformance.engine.test.ts that runs new ConformanceKit(test).registerRuntimeLaws(...) from @miragon/pulse-engine-core/testing against the engine or a mock of its API.",
+        "The adapter is not run by any *.engine.test.ts. Add packages/connectors/c7/c7-adapter/test/<engine>-conformance.engine.test.ts that runs new ConformanceKit(test).registerRuntimeLaws(...) from @miragon/pulse-engine-core/testing against the engine or a mock of its API.",
       from: { path: ENGINE_TEST },
       to: { path: ENTRY, reachable: false },
     },

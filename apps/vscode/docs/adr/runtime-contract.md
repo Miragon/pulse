@@ -1,8 +1,9 @@
 # Runtime contract
 
 - Status: accepted
-- Last reviewed: 2026-11-09 (the engine contract is the engine family's core
-  `@miragon/pulse-engine-core`, with the four changes Camunda 8 needs)
+- Last reviewed: 2026-11-10 (the plug every dialect family provides); 2026-11-09 (the engine
+  contract is the engine family's core `@miragon/pulse-engine-core`, with the four changes
+  Camunda 8 needs)
 
 ## Context
 
@@ -71,7 +72,7 @@ connection without write access simply has none ([writes.md](writes.md)):
 
 `EngineAdapter` (`packages/core/runtime-view/src/ports/engine-adapter.ts`, in the runtime view, not
 in engine-core: connections, credentials and web UI links are the editor hosts' business) is the
-plug every engine family provides:
+plug every dialect family provides:
 given an `EngineConnection` (endpoint and credentials) it returns a `ProcessRuntime` and,
 when the family can write, `ProcessCommands`. `webUi(webUiUrl)` takes the configured URL
 of the engine's web UI and, when it fits the family's web UI, returns an `EngineWebUi`:

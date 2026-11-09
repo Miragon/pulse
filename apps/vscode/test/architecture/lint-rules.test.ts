@@ -162,8 +162,8 @@ describe("the lint gates", { timeout: 120_000 }, () => {
   })
 
   test.each([
-    "packages/connectors/engine/engine-adapter/src/mapping/timestamps.ts",
-    "packages/connectors/engine/engine-adapter/src/engine-rest/present.ts",
+    "packages/connectors/c7/c7-adapter/src/mapping/timestamps.ts",
+    "packages/connectors/c7/c7-adapter/src/engine-rest/present.ts",
     "packages/core/runtime-view/src/host-kit/notification-text.ts",
     "packages/core/runtime-view/src/host-kit/connections/target-hosts.ts",
   ])("hold the adapters and the extension to the same class structure: %s", async (filePath) => {

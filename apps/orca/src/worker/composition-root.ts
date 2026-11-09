@@ -1,4 +1,4 @@
-import { C7Adapter } from "@miragon/pulse-engine-adapter"
+import { C7Adapter } from "@miragon/pulse-c7-adapter"
 import type { LocalSources } from "@miragon/pulse-runtime-view/core"
 import { BpmnModelSource, WorkspaceCodeLocator } from "@miragon/pulse-runtime-view/model"
 import {

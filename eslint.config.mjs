@@ -76,8 +76,8 @@ export const HTTP_BROWSER_GLOBALS = [
 
 // The editor hosts and the runtime view they share keep the VS Code extension's house rules.
 const RUNTIME_VIEW = "packages/core/runtime-view"
-const ENGINE_ADAPTER = "packages/connectors/engine/engine-adapter"
-const EDITOR_TREES = `{apps/vscode,apps/orca,${RUNTIME_VIEW},${ENGINE_ADAPTER}}`
+const C7_ADAPTER = "packages/connectors/c7/c7-adapter"
+const EDITOR_TREES = `{apps/vscode,apps/orca,${RUNTIME_VIEW},${C7_ADAPTER}}`
 
 // The runtime probes (<package>/test/<layer>/runtime.boundary.ts) expect the globals of their
 // layer to be missing, so the package's tsconfig.json (the union the editor and the project
@@ -258,7 +258,7 @@ const widgetHandOffGate = [
 
 // ── The editor hosts (apps/vscode, apps/orca) and the runtime view they share ──
 // Pulse for VS Code, Pulse for Orca, the runtime view (packages/core/runtime-view) and the
-// Camunda 7 family's adapter (packages/connectors/engine/engine-adapter) keep the stricter
+// Camunda 7 family's adapter (packages/connectors/c7/c7-adapter) keep the stricter
 // rules the extension was built with (apps/vscode/CLAUDE.md,
 // apps/vscode/docs/adr/guardrails.md): no comments (the inline rule below, never
 // switched off inline: noInlineConfig), behaviour in classes, one class per file,
@@ -276,7 +276,7 @@ const widgetHandOffGate = [
 // config files as the editor trees' own: ENGINE_CORE_CONFIGS). As a package of a family its src
 // also sits under the connector resource gate of the MCP blocks above (packages/connectors/*/*/src),
 // so its no-restricted-syntax blocks carry that gate in their union (no-restricted-syntax is ONE
-// rule: a later block replaces an earlier one's selectors), as the engine adapter's do; its engine
+// rule: a later block replaces an earlier one's selectors), as the C7 adapter's do; its engine
 // words say where they belong in its own terms (ENGINE_CORE_WORDS_MESSAGE), since the package is
 // not the editor hosts'. Its src glob names every TypeScript extension, so no file there steps out
 // of the rules by its name.
@@ -687,7 +687,7 @@ export default tseslint.config(
       "apps/vscode/{src,dev,scripts,sandbox}/**/*.{ts,tsx,js,mjs,cjs}",
       "apps/orca/{src,scripts}/**/*.{ts,tsx,js,mjs,cjs}",
       `${RUNTIME_VIEW}/{src,dev,scripts}/**/*.{ts,tsx,js,mjs,cjs}`,
-      `${ENGINE_ADAPTER}/src/**/*.{ts,tsx,js,mjs,cjs}`,
+      `${C7_ADAPTER}/src/**/*.{ts,tsx,js,mjs,cjs}`,
       `${RUNTIME_VIEW}/test/webview/harness.tsx`,
       "apps/vscode/test/smoke/*.cjs",
       ENGINE_CORE_SRC,
@@ -771,9 +771,9 @@ export default tseslint.config(
     files: [`${RUNTIME_VIEW}/src/model/**/*.ts`],
     rules: { "no-restricted-syntax": ["error", ...vscodeModuleFunctionGate] },
   },
-  // The engine adapter is a package of a family: the connector resource gate stays in its union.
+  // The C7 adapter is a package of a family: the connector resource gate stays in its union.
   {
-    files: [`${ENGINE_ADAPTER}/src/**/*.ts`],
+    files: [`${C7_ADAPTER}/src/**/*.ts`],
     rules: {
       "no-restricted-syntax": ["error", ...vscodeModuleFunctionGate, ...connectorResourceGate],
     },

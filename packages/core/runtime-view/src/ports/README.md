@@ -1,6 +1,6 @@
 # Ports
 
-The ports only the editor hosts need: the plug every engine family provides and the local
+The ports only the editor hosts need: the plug every dialect family provides and the local
 sources. The engine contract they plug into lives in
 [`@miragon/pulse-engine-core`](../../../../connectors/engine/engine-core/README.md).
 
@@ -26,11 +26,11 @@ flowchart LR
   host -- "1: target connection" --> plug
   plug -- "2: hands out" --> contract
   core["core"] <-- "3: ask, 6: read models" --> contract
-  contract -- "4: implemented by" --> adapter["engine-adapter or the next one"]
+  contract -- "4: implemented by" --> adapter["c7-adapter or the next one"]
   adapter -- "5: engine API calls" --> engine["process engine"]
 ```
 
-1. A host gives the adapter of a target's engine family a connection: endpoint, credentials.
+1. A host gives the adapter of a target's dialect family a connection: endpoint, credentials.
 2. The adapter hands out `ProcessRuntime` and, if it can write, `ProcessCommands`.
 3. The core asks in Pulse's words: process, version, instance and element ids.
 4. Only the adapter behind the ports knows which engine answers.
@@ -40,7 +40,7 @@ flowchart LR
 ## Where things are
 
 - `packages/core/runtime-view/src/ports/index.ts`: the one entry, `@miragon/pulse-runtime-view/ports`
-- `packages/core/runtime-view/src/ports/engine-adapter.ts`: the plug every engine family provides (`EngineAdapter` with `EngineConnection`, `EngineCredentials` and `EngineWebUi`)
+- `packages/core/runtime-view/src/ports/engine-adapter.ts`: the plug every dialect family provides (`EngineAdapter` with `EngineConnection`, `EngineCredentials` and `EngineWebUi`)
 - `packages/core/runtime-view/src/ports/model-source.ts`, `code-locator.ts`, `workspace-files.ts`: the local ports `ModelSource`, `CodeLocator` and `WorkspaceFiles`
 - `packages/core/runtime-view/src/ports/local-sources.ts`: the read models of the local sources (the `.bpmn` file and the code that implements an element)
 - `packages/connectors/engine/engine-core`: the engine's ports, read models, `RuntimeError`, the kit and the fake

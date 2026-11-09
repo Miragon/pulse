@@ -190,7 +190,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - id: build
-        run: pnpm turbo build --filter=@miragon/pulse-cli... --filter=@miragon/pulse-engine-adapter...
+        run: pnpm turbo build --filter=@miragon/pulse-cli... --filter=@miragon/pulse-c7-adapter...
 
       # Every suite runs even after a failure; the operaton leg also tests the packed tarball.
       - name: CLI integration (apps/cli)
@@ -200,11 +200,11 @@ jobs:
           PULSE_CLI_IT_SKIP_PACK: ${{ matrix.flavor == 'operaton' && '0' || '1' }}
         run: pnpm --fail-if-no-match --filter @miragon/pulse-cli run test:engines
 
-      - name: Adapter conformance (packages/connectors/engine/engine-adapter)
+      - name: Adapter conformance (packages/connectors/c7/c7-adapter)
         if: ${{ !cancelled() && steps.build.outcome == 'success' && needs.changes.outputs.vscode == 'true' }}
         env:
           PULSE_ENGINE_IMAGE: ${{ matrix.image }}
-        run: pnpm --fail-if-no-match --filter @miragon/pulse-engine-adapter run test:engines
+        run: pnpm --fail-if-no-match --filter @miragon/pulse-c7-adapter run test:engines
 
   # The one requirable check of the matrix; skipped passes.
   engines-result:

@@ -17,13 +17,12 @@
  *     widgets); a dialect brings none;
  *   - `<family>-client`: its SDK leaf (the generated REST SDK, say; c7-client);
  *   - `<family>-core`, when the family's interfaces share a pure domain: a leaf that the
- *     family's connector (for a dialect's core the engine module), the adapter of the dialect
- *     it implements and the interface apps that bundle it import (c7-core); a dialect's core has
- *     one edge out of its own tree, the main entry of the engine family's core
- *     (family-core-is-a-leaf, engine-core-consumers);
+ *     family's connector (for a dialect's core the engine module) and adapter and the interface
+ *     apps that bundle it import (c7-core); a dialect's core has one edge out of its own tree,
+ *     the main entry of the engine family's core (family-core-is-a-leaf, engine-core-consumers);
  *   - `<family>-adapter`: the family's adapter of the runtime view (packages/core/runtime-view):
  *     it implements the engine contract of engine-core for the editor hosts, which bundle it
- *     (engine-adapter, the C7 adapter, which still lives in the engine family and runs c7-core).
+ *     (c7-adapter, the C7 adapter, which runs c7-core).
  * The engine family is the neutral layer. Its module
  * (`packages/connectors/engine/engine-connector`) is the one MCP module of every dialect and
  * imports the clients and cores of the dialect families ENGINE_DIALECTS names
@@ -45,7 +44,7 @@
  * the transport for its http layer), and the two editor hosts, the VS Code extension
  * (apps/vscode, the unscoped `pulse-cockpit`, because vsce rejects scoped names) and the Orca
  * plugin (apps/orca, `@miragon/pulse-orca`), compose the runtime view (packages/core/runtime-view)
- * with a family adapter (engine-adapter) and read the contract's ids and read models from
+ * with a family adapter (c7-adapter) and read the contract's ids and read models from
  * engine-core's main entry, all of which esbuild bundles; the runtime view's host kit reads the
  * project files with the profile format. No package and no app imports an app (the closed-world
  * rules of the editor hosts and of the two packages they share live in each one's own
@@ -151,14 +150,6 @@ const FAMILY_ADAPTER_TREE = "^packages/connectors/[^/]+/[^/]+-adapter/"
 const EDITOR_HOSTS = ["^apps/vscode/", "^apps/orca/"]
 const EDITOR_HOST_SOURCES = EDITOR_HOSTS.map((host) => `${host}src/`)
 
-/**
- * The adapter of the runtime view that still lives in the engine family
- * (packages/connectors/engine/engine-adapter, `@miragon/pulse-engine-adapter`) is the C7 adapter:
- * it runs the core of the dialect it adapts, c7-core, the one edge of an adapter to another
- * family's core (engine-adapter-runs-the-c7-dialect), until it joins the c7 family it adapts.
- */
-const ENGINE_FAMILY_ADAPTER_TREE = "^packages/connectors/engine/engine-adapter/"
-const ADAPTED_DIALECT_CORE = "@miragon/pulse-c7-core"
 const CORE_BUNDLERS = Object.keys(CORE_BUNDLES)
 const CLI_CORE = escapeRegExp(CORE_BUNDLES["^apps/cli/"].name)
 
@@ -860,42 +851,19 @@ module.exports = {
       comment:
         "A family's adapter (packages/connectors/<family>/<family>-adapter) maps its engines onto " +
         "the engine contract of @miragon/pulse-engine-core for the runtime view: it imports its " +
-        "own family's core and client and ADAPTER_IMPORTS (engine-core, the runtime view " +
-        "@miragon/pulse-runtime-view, whose ./ports name the plug it provides, and the transport " +
-        "@miragon/pulse-http, HTTP_USERS), no other workspace package. What two families' " +
-        "adapters share belongs in engine-core, the contract, or in the runtime view. The C7 " +
-        "adapter, which still lives in the engine family, answers to " +
-        "engine-adapter-runs-the-c7-dialect.",
-      from: {
-        path: "^packages/connectors/[^/]+/([^/]+)-adapter/",
-        pathNot: ENGINE_FAMILY_ADAPTER_TREE,
-      },
+        "own family's core and client (the C7 adapter, @miragon/pulse-c7-adapter, runs " +
+        "@miragon/pulse-c7-core; its closed world holds its src to the main entry) and " +
+        "ADAPTER_IMPORTS (engine-core, the runtime view @miragon/pulse-runtime-view, whose " +
+        "./ports name the plug it provides, and the transport @miragon/pulse-http, HTTP_USERS), " +
+        "no other workspace package: no connector, another family's core or client, or the UI. " +
+        "What two families' adapters share belongs in engine-core, the contract, or in the " +
+        "runtime view.",
+      from: { path: "^packages/connectors/[^/]+/([^/]+)-adapter/" },
       to: {
         path: ["^packages/(core|connectors)/", "@miragon/pulse-"],
         pathNot: [
           "^packages/connectors/[^/]+/$1-adapter/(?!node_modules/@miragon/pulse-)",
           "@miragon/pulse-$1-(?:core|client)(/|$)",
-          ...ADAPTER_IMPORTS,
-        ],
-      },
-    },
-    {
-      name: "engine-adapter-runs-the-c7-dialect",
-      severity: "error",
-      comment:
-        "The C7 adapter of the runtime view (packages/connectors/engine/engine-adapter, " +
-        "@miragon/pulse-engine-adapter) still lives in the engine family: it imports what every " +
-        "family's adapter may (its family's core, engine-core, the contract, and ADAPTER_IMPORTS) " +
-        "and the core of the dialect it adapts, @miragon/pulse-c7-core (ADAPTED_DIALECT_CORE; " +
-        "its closed world holds its src to the main entry), until it joins the c7 family. No " +
-        "other workspace package: not c7-client, a connector, another family's core or the UI.",
-      from: { path: ENGINE_FAMILY_ADAPTER_TREE },
-      to: {
-        path: ["^packages/(core|connectors)/", "@miragon/pulse-"],
-        pathNot: [
-          `${ENGINE_FAMILY_ADAPTER_TREE}(?!node_modules/@miragon/pulse-)`,
-          "@miragon/pulse-engine-(?:core|client)(/|$)",
-          ...npm(escapeRegExp(ADAPTED_DIALECT_CORE)),
           ...ADAPTER_IMPORTS,
         ],
       },
@@ -930,9 +898,9 @@ module.exports = {
       comment:
         "A family core is imported by its own family's connector (connectors-own-their-family) " +
         "and adapter (adapters-own-their-family), a dialect's core also by the engine module " +
-        "(engine-connector-spans-the-dialects) and by the adapter that implements the dialect, " +
-        "and by the interface apps that bundle it (CORE_BUNDLERS: the CLI bundles c7-core), by " +
-        "no other app: the MCP server composes connectors, not their domain. The editor hosts " +
+        "(engine-connector-spans-the-dialects), and by the interface apps that bundle it " +
+        "(CORE_BUNDLERS: the CLI bundles c7-core), by no other app: the MCP server composes " +
+        "connectors, not their domain. The editor hosts " +
         "answer to editor-hosts-reach-dialects-through-adapters. The other " +
         "packages answer to their own rules: packages/core to core-is-foundation, a client to " +
         "clients-are-leaves, a family core to family-core-is-a-leaf.",

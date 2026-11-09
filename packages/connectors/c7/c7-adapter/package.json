@@ -1,5 +1,5 @@
 {
-  "name": "@miragon/pulse-engine-adapter",
+  "name": "@miragon/pulse-c7-adapter",
   "private": true,
   "version": "0.27.1",
   "description": "The Camunda 7 REST API family's adapter of Pulse's runtime view (Operaton, CIB seven, Camunda 7): its REST client and the mapping onto the engine contract of @miragon/pulse-engine-core, over the c7 dialect's workflow domain in @miragon/pulse-c7-core. Bundled by the editor hosts.",
@@ -7,7 +7,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Miragon/pulse.git",
-    "directory": "packages/connectors/engine/engine-adapter"
+    "directory": "packages/connectors/c7/c7-adapter"
   },
   "type": "module",
   "sideEffects": false,
@@ -21,7 +21,7 @@
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
     "test:engines": "vitest run --config vitest.engines.config.ts",
-    "golden:update": "turbo run build --filter=@miragon/pulse-engine-adapter^... --output-logs=errors-only && GOLDEN_UPDATE=1 vitest run --project unit --coverage.enabled=false",
+    "golden:update": "turbo run build --filter=@miragon/pulse-c7-adapter^... --output-logs=errors-only && GOLDEN_UPDATE=1 vitest run --project unit --coverage.enabled=false",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.build.json",
     "lint": "eslint src test",
     "lint:fix": "eslint src test --fix"

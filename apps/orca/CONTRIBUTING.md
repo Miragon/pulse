@@ -7,7 +7,7 @@ where code goes and how to try the plugin against the sandbox engines: [CLAUDE.m
 ## Architecture
 
 The plugin is the second editor host of the runtime view (`packages/core/runtime-view`) and the
-C7 adapter (`packages/connectors/engine/engine-adapter`), next to Pulse for VS Code. A trusted
+C7 adapter (`packages/connectors/c7/c7-adapter`), next to Pulse for VS Code. A trusted
 worker (`src/worker`) composes both, the Pulse panel (`src/panel`) is built from Orca's
 components, and the webview runs in isolated custom-editor frames (`src/editor`). What Orca does
 not offer yet: [the architecture page](https://miragon.github.io/pulse/orca/architecture).

@@ -16,9 +16,9 @@ flowchart TB
   subgraph host [Extension host: one Node process]
     extension["extension: wiring, connections, write policy"]
     core["core: panel sessions, view builders"]
-    subgraph adapters [Adapters: one per engine family]
+    subgraph adapters [Adapters: one per dialect family]
       direction LR
-      c7[adapter-c7]
+      c7[c7-adapter]
       next["adapter for the next engine"]
     end
   end
@@ -59,7 +59,7 @@ next engine plugs in: one more adapter package and one entry in the composition 
 | 3   | extension ⇄ core                | the intent for a panel session; host actions back: open a panel, pick an instance, confirm a write, copy, open the web UI | method calls: `Panel.handle`, `PanelEffects`                                       |
 | 4   | core → adapter                  | engine questions and writes; read models back, or a `RuntimeError`                                                        | the ports `ProcessRuntime` and `ProcessCommands`, async                            |
 | 5   | extension → adapter             | a configured target becomes a runtime, commands (wrapped in the audit) and web UI links                                   | `EngineAdapter`, only in `composition-root.ts`                                     |
-| 6   | adapter-c7 → C7 family          | definitions, instances, incidents, variables; retries and variable changes                                                | HTTP(S) REST `/engine-rest` with VS Code's `fetch`, basic auth; no redirects, 60 s |
+| 6   | c7-adapter → C7 family          | definitions, instances, incidents, variables; retries and variable changes                                                | HTTP(S) REST `/engine-rest` with VS Code's `fetch`, basic auth; no redirects, 60 s |
 | 7   | extension → your files          | the engines to show, the model to compare with a deployed version, stack frames to link to your sources                   | `.pulse.json` (watched), `.bpmn` files, `pulse.*` settings                         |
 | 8   | extension → SecretStorage       | user name and password per target, bound to the endpoint's origin                                                         | VS Code `SecretStorage`                                                            |
 | 9   | extension → output channel      | one audit line per confirmation and per write, without values                                                             | the "Pulse" output channel                                                         |
@@ -70,12 +70,12 @@ Pulse reads what an engine is running and shows it next to the models. Writes
 ([writes.md](adr/writes.md)). Each package has a README with its own picture:
 [engine contract](../../../packages/connectors/engine/engine-core/README.md), [ports](../../../packages/core/runtime-view/src/ports/README.md), [core](../../../packages/core/runtime-view/src/core/README.md),
 [webview](../../../packages/core/runtime-view/src/webview/README.md), [extension](../src/host/README.md),
-[adapter-c7](../../../packages/connectors/engine/engine-adapter/src/README.md).
+[c7-adapter](../../../packages/connectors/c7/c7-adapter/src/README.md).
 
 ## 2. Ports and adapters
 
 The core never knows which engine it talks to. It calls the ports of the contract; an
-adapter per engine family implements them.
+adapter per dialect family implements them.
 
 ```mermaid
 flowchart LR
@@ -94,10 +94,10 @@ flowchart LR
   end
   subgraph driven [Driven side: classes that implement the ports]
     next["adapter for the next engine"]
-    c7Adapter[adapter-c7: C7Adapter]
-    c7Commands[adapter-c7: C7ProcessCommands]
+    c7Adapter[c7-adapter: C7Adapter]
+    c7Commands[c7-adapter: C7ProcessCommands]
     fake[engine-core testing: FakeEngine]
-    c7Runtime[adapter-c7: C7ProcessRuntime]
+    c7Runtime[c7-adapter: C7ProcessRuntime]
   end
 
   ui --> extension
@@ -133,7 +133,7 @@ flowchart TB
   extension --> hostKit[host-kit]
   extension --> ports[ports]
   extension -- bundled --> engineCore["@miragon/pulse-engine-core"]
-  extension -- composition root only --> adapterC7[engine-adapter]
+  extension -- composition root only --> adapterC7[c7-adapter]
   hostKit -- connections only, bundled --> profile["@miragon/pulse-profile"]
   hostKit --> core
   ports --> engineCore
@@ -150,9 +150,9 @@ flowchart TB
 ```
 
 Every import edge not drawn fails the closed world of its package (dependency-cruiser:
-`pnpm lint:architecture:vscode`, `:runtime-view`, `:engine-adapter`). The layers live in the
+`pnpm lint:architecture:vscode`, `:runtime-view`, `:c7-adapter`). The layers live in the
 runtime view (`packages/core/runtime-view`) and the C7 adapter
-(`packages/connectors/engine/engine-adapter`), which Pulse for Orca hosts too, and esbuild
+(`packages/connectors/c7/c7-adapter`), which Pulse for Orca hosts too, and esbuild
 bundles each workspace package that reaches the extension. engine-core, the core of the engine
 family, holds the contract every engine dialect implements, the language they answer in, and is
 the runtime view's one contract: its ports, core, model reader and host kit, the adapter and the
@@ -175,7 +175,7 @@ different engine (Zeebe) with a different API, so it would get an adapter of its
 
 ```mermaid
 flowchart LR
-  subgraph adapter [adapter-c7]
+  subgraph adapter [c7-adapter]
     readers[Readers: C7 answers to contract read models]
     rest[src/engine-rest: REST calls, answers checked]
   end
@@ -196,7 +196,7 @@ flowchart LR
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | Does the C7 adapter cover all three? | Yes: all 48 read laws and 15 command laws pass on Operaton 2.1.5 and CIB seven 2.2.0; Camunda 7.24.0 passed until its image left Docker Hub |
 | Do we need an adapter per fork?      | No, only per API family                                                                                                                     |
-| What does a new engine family need?  | A package `adapter-<family>` with an `EngineAdapter`, its conformance test, one line in the composition root                                |
+| What does a new dialect family need? | A package `packages/connectors/<family>/<family>-adapter` with an `EngineAdapter`, its conformance test, one entry in each composition root |
 | Where does Camunda 8 stand?          | Not included. The spike built a C8 adapter on REST v2 against an API mock, then removed it to keep the prototype small                      |
 
 ## 5. Reading an instance

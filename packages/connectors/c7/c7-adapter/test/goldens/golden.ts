@@ -6,7 +6,7 @@ import { ERROR_PATH_CASES, type ErrorPathCase } from "./error-cases.js"
 export const ERROR_PATH_DIR = join(import.meta.dirname, "..", "__golden__", "error-paths")
 
 export const UPDATE_COMMAND =
-  "pnpm --fail-if-no-match --filter @miragon/pulse-engine-adapter golden:update"
+  "pnpm --fail-if-no-match --filter @miragon/pulse-c7-adapter golden:update"
 
 function stableSort(value: unknown): unknown {
   if (Array.isArray(value)) {

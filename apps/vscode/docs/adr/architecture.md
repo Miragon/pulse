@@ -1,7 +1,7 @@
 # Architecture
 
 - Status: accepted
-- Last reviewed: 2026-11-09 (#585 merged: the layers live in the runtime view and the engine adapter, which Pulse for Orca hosts too, the runtime view's contract is `@miragon/pulse-engine-core` and its own ports moved to `ports`; before that, the host kit's connections read the project file with `@miragon/pulse-profile`, the engine contract left the app for `@miragon/pulse-engine-core`, the engine family's neutral core, and 2026-11-08 Pulse's UI foundation in core and webview)
+- Last reviewed: 2026-11-10 (the C7 adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the layers live in the runtime view and the engine adapter, which Pulse for Orca hosts too, the runtime view's contract is `@miragon/pulse-engine-core` and its own ports moved to `ports`; before that, the host kit's connections read the project file with `@miragon/pulse-profile`, the engine contract left the app for `@miragon/pulse-engine-core`, the engine family's neutral core, and 2026-11-08 Pulse's UI foundation in core and webview)
 
 ## Context
 
@@ -19,19 +19,19 @@ Seven layers, as folders of three workspace packages since Pulse for Orca (`apps
 second host of the same runtime view: `ports`, `core`, `webview` and `model` (with the host
 kit, the engine-neutral host rules both hosts share) in `packages/core/runtime-view` over the
 engine contract of `@miragon/pulse-engine-core`, the C7 adapter in
-`packages/connectors/engine/engine-adapter`, the VS Code host in `apps/vscode/src/host`.
+`packages/connectors/c7/c7-adapter`, the VS Code host in `apps/vscode/src/host`.
 The packages build their declarations only; each host bundles their sources with esbuild: the
 extension its host as CommonJS for Node 22 and the webview as an IIFE.
 
-| Layer            | Responsibility                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Runtime                               |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| `ports`          | The ports only the editor hosts need, in `packages/core/runtime-view/src/ports`: `EngineAdapter` with the connection, the credentials and `EngineWebUi`, the local `ModelSource` and `CodeLocator` ports with the `WorkspaceFiles` seam and their read models. The engine contract they plug into is `@miragon/pulse-engine-core` (`packages/connectors/engine/engine-core`: the `ProcessRuntime` and `ProcessCommands` ports, read models and `RuntimeError`; its `./testing` the kit and an in-memory `FakeEngine`) | none (no DOM, no Node)                |
-| `core`           | Engine-neutral logic: use cases turn read models into view models, panel sessions handle webview intents; `packages/core/runtime-view/src/core/protocol` holds the JSON-only messages and view models                                                                                                                                                                                                                                                                                                                 | none                                  |
-| `webview`        | Preact UI and bpmn-js diagram. Renders protocol view models, sends intents                                                                                                                                                                                                                                                                                                                                                                                                                                            | browser                               |
-| `engine-adapter` | `EngineAdapter`, `ProcessRuntime`, `ProcessCommands` and the Cockpit web UI for the Camunda 7 family ([c7-adapter.md](c7-adapter.md)); `packages/connectors/engine/engine-adapter/src/engine-rest` reads and writes the engine's REST API                                                                                                                                                                                                                                                                             | Node                                  |
-| `model`          | `ModelSource` and `CodeLocator` for the local workspace: reads `.bpmn` files with bpmn-moddle and its vendor descriptors, finds the implementing code ([local-sources.md](local-sources.md)); the only layer with those libraries                                                                                                                                                                                                                                                                                     | none (files through `WorkspaceFiles`) |
-| `host-kit`       | The engine-neutral host rules both hosts share: targets from `.pulse.json`, the write and live policies, the write audit, logins, panel titles                                                                                                                                                                                                                                                                                                                                                                        | Node                                  |
-| `host`           | VS Code host: composition root, connections, tree, panels, commands, status bar                                                                                                                                                                                                                                                                                                                                                                                                                                       | Node + `vscode`                       |
+| Layer        | Responsibility                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Runtime                               |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `ports`      | The ports only the editor hosts need, in `packages/core/runtime-view/src/ports`: `EngineAdapter` with the connection, the credentials and `EngineWebUi`, the local `ModelSource` and `CodeLocator` ports with the `WorkspaceFiles` seam and their read models. The engine contract they plug into is `@miragon/pulse-engine-core` (`packages/connectors/engine/engine-core`: the `ProcessRuntime` and `ProcessCommands` ports, read models and `RuntimeError`; its `./testing` the kit and an in-memory `FakeEngine`) | none (no DOM, no Node)                |
+| `core`       | Engine-neutral logic: use cases turn read models into view models, panel sessions handle webview intents; `packages/core/runtime-view/src/core/protocol` holds the JSON-only messages and view models                                                                                                                                                                                                                                                                                                                 | none                                  |
+| `webview`    | Preact UI and bpmn-js diagram. Renders protocol view models, sends intents                                                                                                                                                                                                                                                                                                                                                                                                                                            | browser                               |
+| `c7-adapter` | `EngineAdapter`, `ProcessRuntime`, `ProcessCommands` and the Cockpit web UI for the Camunda 7 family ([c7-adapter.md](c7-adapter.md)); `packages/connectors/c7/c7-adapter/src/engine-rest` reads and writes the engine's REST API                                                                                                                                                                                                                                                                                     | Node                                  |
+| `model`      | `ModelSource` and `CodeLocator` for the local workspace: reads `.bpmn` files with bpmn-moddle and its vendor descriptors, finds the implementing code ([local-sources.md](local-sources.md)); the only layer with those libraries                                                                                                                                                                                                                                                                                     | none (files through `WorkspaceFiles`) |
+| `host-kit`   | The engine-neutral host rules both hosts share: targets from `.pulse.json`, the write and live policies, the write audit, logins, panel titles                                                                                                                                                                                                                                                                                                                                                                        | Node                                  |
+| `host`       | VS Code host: composition root, connections, tree, panels, commands, status bar                                                                                                                                                                                                                                                                                                                                                                                                                                       | Node + `vscode`                       |
 
 The core in the product owner's sense is everything that is engine-neutral
 (`core`, `webview`, `host`); adapters only provide data.
@@ -40,16 +40,16 @@ The core in the product owner's sense is everything that is engine-neutral
 
 The list is closed: every import edge not listed is an error
 (one closed-world config per package: `packages/core/runtime-view/.dependency-cruiser.cjs`,
-`packages/connectors/engine/engine-adapter/.dependency-cruiser.cjs`,
+`packages/connectors/c7/c7-adapter/.dependency-cruiser.cjs`,
 `apps/vscode/.dependency-cruiser.cjs`, each with `allowedSeverity: error`, run by
-`pnpm lint:architecture:runtime-view`, `:engine-adapter` and `:vscode`).
+`pnpm lint:architecture:runtime-view`, `:c7-adapter` and `:vscode`).
 
 ```mermaid
 flowchart TB
   extension --> core
   extension --> ports
   extension --> engineCore["@miragon/pulse-engine-core"]
-  extension -- composition root only --> adapterC7[engine-adapter]
+  extension -- composition root only --> adapterC7[c7-adapter]
   extension -- composition root only --> modelAdapter[model-adapter]
   ports --> engineCore
   modelAdapter --> ports
@@ -240,7 +240,7 @@ file's current content when _Show Runtime Data for This Model_ runs again.
 ## Consequences
 
 - An undeclared or forbidden import fails the closed world of its package
-  (`pnpm lint:architecture:vscode`, `:runtime-view`, `:engine-adapter`; negative tests in each
+  (`pnpm lint:architecture:vscode`, `:runtime-view`, `:c7-adapter`; negative tests in each
   package's `test/architecture`); a wrong global fails the package's `typecheck` through the
   `@ts-expect-error` probe of each layer (`packages/core/runtime-view/test/<layer>/runtime.boundary.ts`,
   `apps/vscode/test/host/runtime.boundary.ts`).
@@ -278,11 +278,11 @@ core, the adapters or the host changed. No `EngineDialect` seam and no C7 runtim
 Revised on 2026-11-09 again, when #585 (Pulse for Orca) joined: a second editor host runs the
 same layers, so they moved out of the app into the private packages
 `@miragon/pulse-runtime-view` (`packages/core/runtime-view`: ports, core, protocol, webview, model,
-host kit) and `@miragon/pulse-engine-adapter` (`packages/connectors/engine/engine-adapter`, the C7
+host kit) and `@miragon/pulse-c7-adapter` (`packages/connectors/c7/c7-adapter`, the C7
 adapter), each with a closed world of its own; apps never import each other. The product owner
 decided that the contract keeps its one home: the runtime view has no contract layer, its layers,
 the adapter and the hosts import `@miragon/pulse-engine-core` directly, and the barrel's ports of
 the IDE became the runtime view's `ports`. The runtime view importing a family's core is the one
-edge of `packages/core` into a family, accepted with that decision. The C7 adapter still lives in
-the engine family, an exception its own rule names (`engine-adapter-runs-the-c7-dialect`), until it
-joins the c7 family.
+edge of `packages/core` into a family, accepted with that decision. The C7 adapter, first an
+exception in the engine family, joined the c7 family it implements by the same decision and keeps
+to the rule of every family's adapter (`adapters-own-their-family`).

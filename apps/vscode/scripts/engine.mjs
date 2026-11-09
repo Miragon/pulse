@@ -5,7 +5,7 @@ const CONTAINER = "pulse-dev-engine"
 const IMAGE = process.env.PULSE_ENGINE_IMAGE ?? "operaton/operaton:2.1.5"
 const PORT = process.env.PULSE_ENGINE_PORT ?? "18080"
 const engine = engineClient(`http://localhost:${PORT}/engine-rest`)
-const WORLD = "../../packages/connectors/engine/engine-adapter/test/world"
+const WORLD = "../../packages/connectors/c7/c7-adapter/test/world"
 const WITHOUT_RUN_EXAMPLE = {
   CAMUNDA_BPM_RUN_EXAMPLE_ENABLED: "false",
   OPERATON_BPM_RUN_EXAMPLE_ENABLED: "false",

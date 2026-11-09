@@ -7,9 +7,9 @@ const PLANTED: Readonly<Record<string, string>> = {
   "src/worker/wires-the-view.ts":
     "import { PanelTitle } from '@miragon/pulse-runtime-view/host-kit';\nimport type { OrcaWorkerApi } from 'orca/worker';\nimport { readFile } from 'node:fs/promises';\nimport type { Message } from '../protocol.ts';\nexport type Api = OrcaWorkerApi | Message;\nexport const used = [PanelTitle, readFile];\n",
   "src/worker/composition-root.ts":
-    "import { C7Adapter } from '@miragon/pulse-engine-adapter';\nimport { BpmnModelSource } from '@miragon/pulse-runtime-view/model';\nexport const wired = [C7Adapter, BpmnModelSource];\n",
+    "import { C7Adapter } from '@miragon/pulse-c7-adapter';\nimport { BpmnModelSource } from '@miragon/pulse-runtime-view/model';\nexport const wired = [C7Adapter, BpmnModelSource];\n",
   "src/worker/not-the-root.ts":
-    "import { C7Adapter } from '@miragon/pulse-engine-adapter';\nexport const wired = C7Adapter;\n",
+    "import { C7Adapter } from '@miragon/pulse-c7-adapter';\nexport const wired = C7Adapter;\n",
   "src/worker/draws.ts": "import { Text } from 'orca';\nexport const text = Text;\n",
   "src/worker/names-an-id.ts":
     "import { InstanceId } from '@miragon/pulse-engine-core';\nimport type { WorkspaceFiles } from '@miragon/pulse-runtime-view/ports';\nexport type Files = WorkspaceFiles;\nexport const id = InstanceId;\n",
@@ -48,7 +48,7 @@ const PLANTED: Readonly<Record<string, string>> = {
   "test/worker/anything.test.ts":
     "import { FakeEngine } from '@miragon/pulse-engine-core/testing';\nexport const fake = FakeEngine;\n",
   "package.json":
-    '{ "name": "@miragon/pulse-orca", "private": true, "dependencies": { "@miragon/pulse-runtime-view": "workspace:*", "@miragon/pulse-engine-adapter": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-c7-core": "workspace:*" } }\n',
+    '{ "name": "@miragon/pulse-orca", "private": true, "dependencies": { "@miragon/pulse-runtime-view": "workspace:*", "@miragon/pulse-c7-adapter": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-c7-core": "workspace:*" } }\n',
 }
 
 const tree = new PlantedTree("apps/orca", PLANTED)
@@ -67,7 +67,7 @@ describe("the dependency rules", () => {
   test("fire on every planted violation and on nothing else", { timeout: 60_000 }, () => {
     const at = (path: string): string => `apps/orca/${path}`
     const view = at("node_modules/@miragon/pulse-runtime-view/dist/core/index.d.ts")
-    const adapter = at("node_modules/@miragon/pulse-engine-adapter/dist/index.d.ts")
+    const adapter = at("node_modules/@miragon/pulse-c7-adapter/dist/index.d.ts")
     const engineCore = at("node_modules/@miragon/pulse-engine-core/dist/index.d.ts")
     const engineCoreTesting = at("node_modules/@miragon/pulse-engine-core/dist/testing/index.d.ts")
     const contractBuild = "packages/connectors/engine/engine-core/dist/index.js"

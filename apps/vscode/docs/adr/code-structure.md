@@ -1,7 +1,7 @@
 # Code structure
 
 - Status: accepted
-- Last reviewed: 2026-10-28
+- Last reviewed: 2026-11-10 (one adapter per dialect family, the C7 adapter in the c7 family); 2026-10-28
 
 ## Context
 
@@ -24,7 +24,7 @@ visible responsibility per file.
 | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `packages/connectors/engine/engine-core/src/ports` | `ProcessRuntime` (read), `ProcessCommands` (write): the engine contract, which the runtime view and the adapters import                                  |
 | `packages/connectors/engine/engine-core/src/model` | what the ports exchange: ids, read models, queries, `RuntimeError`, value kinds                                                                          |
-| `packages/core/runtime-view/src/ports`             | `EngineAdapter` (one per engine family: turns a connection into a runtime and, if it can, commands) and the local ports                                  |
+| `packages/core/runtime-view/src/ports`             | `EngineAdapter` (one per dialect family: turns a connection into a runtime and, if it can, commands) and the local ports                                 |
 | `packages/connectors/<family>/<family>-adapter`    | `class <Engine>Adapter implements EngineAdapter`, `class <Engine>ProcessRuntime implements ProcessRuntime`, `class <Engine>ProcessCommands implements …` |
 | `apps/vscode/src/host`                             | the composition root keeps one `EngineAdapter` per engine kind and hands the core what the active one returns                                            |
 | `packages/core/runtime-view/src/core`              | sees only `ProcessRuntime` and `ProcessCommands`, never an adapter                                                                                       |

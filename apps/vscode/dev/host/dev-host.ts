@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto"
 import { readFile } from "node:fs/promises"
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http"
 import { extname, join } from "node:path"
-import { C7Adapter } from "@miragon/pulse-engine-adapter"
+import { C7Adapter } from "@miragon/pulse-c7-adapter"
 import {
   BpmnProcessId,
   DefinitionId,

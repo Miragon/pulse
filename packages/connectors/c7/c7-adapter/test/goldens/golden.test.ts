@@ -7,7 +7,7 @@ import { assertGolden, UPDATE_COMMAND } from "./golden.js"
 let scratch = ""
 
 beforeEach(() => {
-  scratch = mkdtempSync(join(tmpdir(), "pulse-engine-adapter-golden-"))
+  scratch = mkdtempSync(join(tmpdir(), "pulse-c7-adapter-golden-"))
   vi.stubEnv("GOLDEN_UPDATE", "")
   vi.stubEnv("CI", "")
 })
@@ -24,7 +24,7 @@ describe("the golden helper on a scratch directory, never the real goldens", () 
     }).toThrow(UPDATE_COMMAND)
     expect(readdirSync(scratch)).toEqual([])
     expect(UPDATE_COMMAND).toBe(
-      "pnpm --fail-if-no-match --filter @miragon/pulse-engine-adapter golden:update",
+      "pnpm --fail-if-no-match --filter @miragon/pulse-c7-adapter golden:update",
     )
   })
 

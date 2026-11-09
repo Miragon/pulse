@@ -24,7 +24,7 @@ Never edit a golden by hand. An intended change runs
 `pnpm --fail-if-no-match --filter @miragon/pulse-cli golden:update` (refused in CI) and commits
 the diff. The MCP server (`apps/mcp-server/test/__golden__/error-paths`) and the C7 adapter of
 Pulse for VS Code and Pulse for Orca
-(`packages/connectors/engine/engine-adapter/test/__golden__/error-paths`) pin the same cases under
+(`packages/connectors/c7/c7-adapter/test/__golden__/error-paths`) pin the same cases under
 the same names.
 
 The network codes (ECONNREFUSED, ENOTFOUND, DEPTH_ZERO_SELF_SIGNED_CERT) come from Node, not from

@@ -1,7 +1,7 @@
 # Camunda 7 family adapter
 
 - Status: accepted
-- Last reviewed: 2026-11-09 (#585 merged: the adapter is the package `@miragon/pulse-engine-adapter`, which Pulse for Orca bundles too)
+- Last reviewed: 2026-11-10 (the adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the adapter is a package, which Pulse for Orca bundles too)
 
 ## Context
 
@@ -12,7 +12,7 @@ REST API itself:
 
 ```mermaid
 flowchart LR
-  subgraph adapter [engine-adapter]
+  subgraph adapter [c7-adapter]
     readers[Readers: C7 answers to contract read models]
     rest[src/engine-rest: REST calls, parses and checks the JSON]
   end
@@ -33,21 +33,21 @@ flowchart LR
 
 ## Decision
 
-`packages/connectors/engine/engine-adapter/src` implements `EngineAdapter` (a port of the runtime
+`packages/connectors/c7/c7-adapter/src` implements `EngineAdapter` (a port of the runtime
 view, `@miragon/pulse-runtime-view/ports`), `ProcessRuntime` and `ProcessCommands` (the engine
 contract of `@miragon/pulse-engine-core`) on top of a **small REST client** in
-`packages/connectors/engine/engine-adapter/src/engine-rest/` and the core of the Camunda 7 REST
+`packages/connectors/c7/c7-adapter/src/engine-rest/` and the core of the Camunda 7 REST
 dialect family c7, `@miragon/pulse-c7-core` (its workflow domain), the package the CLI and the
-MCP server run too. The package still lives in the engine family; it implements the c7 dialect.
+MCP server run too. The package belongs to the c7 family, whose dialect it implements.
 
 - **One edge to c7-core, bundled.** c7-core has no runtime dependency but the engine
   contract's main entry and no Node built-in, takes its engine through a caller's port and
   returns data. Only this adapter
   imports it among the editor hosts' code (its main entry;
-  `packages/connectors/engine/engine-adapter/.dependency-cruiser.cjs`, the runtime view's
+  `packages/connectors/c7/c7-adapter/.dependency-cruiser.cjs`, the runtime view's
   `runtime-view-is-dialect-neutral`, the hosts' `extension-is-dialect-neutral` and
-  `plugin-is-dialect-neutral`, and the root rule `engine-adapter-runs-the-c7-dialect`, the one
-  edge of an adapter into another family until the adapter joins the c7 family); the runtime
+  `plugin-is-dialect-neutral`, and the root rule `adapters-own-their-family`, which lets a
+  family's adapter import its own family's core); the runtime
   view's ports, core, webview and host kit and the hosts stay engine-neutral. esbuild inlines it
   into `dist/extension.cjs` and the Orca plugin's worker, which ship no `node_modules`. One home: a fix to wait states (c7-core) or root causes (the engine
   contract's `RootCauses`) lands once, and the conformance laws run both on all three engines.
@@ -259,18 +259,18 @@ engine calls answer a port method and maps their answers to the contract's read 
 private methods; nothing else does either. What one call needs from another (the inspected
 instance, the definitions by instance) goes in as a parameter, never as constructor state.
 
-| Folder                                                              | Classes                                                                                                                                                                                                                             | Job                                                                                                                                            |
-| ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `packages/connectors/engine/engine-adapter/src/web-ui`              | `CockpitWebUi`                                                                                                                                                                                                                      | the routes into Cockpit or the CIB seven webclient                                                                                             |
-| `packages/connectors/engine/engine-adapter/src`                     | `C7Adapter`, `C7ProcessRuntime`, `C7ProcessCommands`                                                                                                                                                                                | the entry and the two ports; every port call runs through `ErrorTranslation`                                                                   |
-| `packages/connectors/engine/engine-adapter/src/reading`             | `EngineReader`, `DefinitionReader`, `ElementStatisticsReader`, `CalledProcessReader`, `InstanceSearch`, `InstanceDetailReader`, `IncidentSearch`, `IncidentDetailsReader`, `BulkOperationReader`, `MigrationReader`, `OffsetPaging` | which engine calls answer a port method, in parallel where possible, and their answers as read models; offset paging behind the cursor         |
-| `packages/connectors/engine/engine-adapter/src/mapping`             | `DefinitionRefs`, `InstanceStates`, `Timestamps`, `RootIncident`, `IncidentTexts`, `InspectedVariables`                                                                                                                             | the translations several readers share, without I/O; the root cause of incident details (`RootCauses`)                                         |
-| `packages/connectors/engine/engine-adapter/src/writing`             | `VariableBody`, `CancelBody`, `MigrationBody`, `EngineValues`, `Redaction`, `SourceToken`, `MoveBody`                                                                                                                               | the bodies of a variable change, a move, a cancel and a migration, the allowed types and their engine form, what to keep out of error messages |
-| `packages/connectors/engine/engine-adapter/src/errors`              | `ErrorTranslation`                                                                                                                                                                                                                  | engine failures to `RuntimeError`: `translated`, `unlessMissing`, `commanded<Result>`, `submitted<Result>`, `isRefusal`                        |
-| `packages/connectors/engine/engine-adapter/src/engine-rest`         | `EngineClient`/`RestEngineClient`, `EngineWriter`/`RestEngineWriter`, `RequestArguments`, `Present`                                                                                                                                 | one method per engine call; strict ids and variable names                                                                                      |
-| `packages/connectors/engine/engine-adapter/src/engine-rest/http`    | `EngineHttp`, `EngineRequestError`                                                                                                                                                                                                  | one request: URL, auth, deadline, size cap, no redirects, lossless JSON, failures with status and engine type                                  |
-| `packages/connectors/engine/engine-adapter/src/engine-rest/inspect` | `InstanceInspection`, `HttpEngineTransport`, `InspectOperations`                                                                                                                                                                    | `inspect`: c7-core's rounds over `EngineHttp`, its instance view as the adapter's `InspectView`, the path from the history                     |
-| `packages/connectors/engine/engine-adapter/src/engine-rest/views`   | `JsonObject`, `LosslessJson`, `UnexpectedAnswerError` and one parser per view                                                                                                                                                       | the engine's JSON to typed views, checked at runtime                                                                                           |
+| Folder                                                      | Classes                                                                                                                                                                                                                             | Job                                                                                                                                            |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/connectors/c7/c7-adapter/src/web-ui`              | `CockpitWebUi`                                                                                                                                                                                                                      | the routes into Cockpit or the CIB seven webclient                                                                                             |
+| `packages/connectors/c7/c7-adapter/src`                     | `C7Adapter`, `C7ProcessRuntime`, `C7ProcessCommands`                                                                                                                                                                                | the entry and the two ports; every port call runs through `ErrorTranslation`                                                                   |
+| `packages/connectors/c7/c7-adapter/src/reading`             | `EngineReader`, `DefinitionReader`, `ElementStatisticsReader`, `CalledProcessReader`, `InstanceSearch`, `InstanceDetailReader`, `IncidentSearch`, `IncidentDetailsReader`, `BulkOperationReader`, `MigrationReader`, `OffsetPaging` | which engine calls answer a port method, in parallel where possible, and their answers as read models; offset paging behind the cursor         |
+| `packages/connectors/c7/c7-adapter/src/mapping`             | `DefinitionRefs`, `InstanceStates`, `Timestamps`, `RootIncident`, `IncidentTexts`, `InspectedVariables`                                                                                                                             | the translations several readers share, without I/O; the root cause of incident details (`RootCauses`)                                         |
+| `packages/connectors/c7/c7-adapter/src/writing`             | `VariableBody`, `CancelBody`, `MigrationBody`, `EngineValues`, `Redaction`, `SourceToken`, `MoveBody`                                                                                                                               | the bodies of a variable change, a move, a cancel and a migration, the allowed types and their engine form, what to keep out of error messages |
+| `packages/connectors/c7/c7-adapter/src/errors`              | `ErrorTranslation`                                                                                                                                                                                                                  | engine failures to `RuntimeError`: `translated`, `unlessMissing`, `commanded<Result>`, `submitted<Result>`, `isRefusal`                        |
+| `packages/connectors/c7/c7-adapter/src/engine-rest`         | `EngineClient`/`RestEngineClient`, `EngineWriter`/`RestEngineWriter`, `RequestArguments`, `Present`                                                                                                                                 | one method per engine call; strict ids and variable names                                                                                      |
+| `packages/connectors/c7/c7-adapter/src/engine-rest/http`    | `EngineHttp`, `EngineRequestError`                                                                                                                                                                                                  | one request: URL, auth, deadline, size cap, no redirects, lossless JSON, failures with status and engine type                                  |
+| `packages/connectors/c7/c7-adapter/src/engine-rest/inspect` | `InstanceInspection`, `HttpEngineTransport`, `InspectOperations`                                                                                                                                                                    | `inspect`: c7-core's rounds over `EngineHttp`, its instance view as the adapter's `InspectView`, the path from the history                     |
+| `packages/connectors/c7/c7-adapter/src/engine-rest/views`   | `JsonObject`, `LosslessJson`, `UnexpectedAnswerError` and one parser per view                                                                                                                                                       | the engine's JSON to typed views, checked at runtime                                                                                           |
 
 Tests construct `new C7Adapter(send)` with a fake `fetch` that answers recorded REST
 routes and so run every class above.
@@ -279,7 +279,7 @@ routes and so run every class above.
 
 - The conformance kit passes all laws against `operaton/operaton:2.1.5` and
   `cibseven/cibseven:run-2.2.0` (and passed against Camunda 7.24.0 until its image left Docker Hub)
-  (`PULSE_ENGINE_IMAGE=… pnpm --filter @miragon/pulse-engine-adapter run test:engines`).
+  (`PULSE_ENGINE_IMAGE=… pnpm --filter @miragon/pulse-c7-adapter run test:engines`).
   The engines under test (`test:engines`, `engine:up`) run without their bundled invoice
   example: it sets the engine's global clock back by days while it seeds itself, after the
   REST API already answers, so instances seeded in that window got timestamps from the

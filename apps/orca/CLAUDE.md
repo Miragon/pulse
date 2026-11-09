@@ -3,7 +3,7 @@
 Guidance for agents working on Pulse for Orca: the Orca plugin `pulse-cockpit`
 (`@miragon/pulse-orca`), the runtime view of Pulse for VS Code inside Orca. It is an interface
 app of the Pulse monorepo and the second editor host of the runtime view
-(`packages/core/runtime-view`) and the C7 adapter (`packages/connectors/engine/engine-adapter`).
+(`packages/core/runtime-view`) and the C7 adapter (`packages/connectors/c7/c7-adapter`).
 The repository's package rules hold here (the root `CLAUDE.md`), and so do the rules of
 `apps/vscode/CLAUDE.md` for everything both hosts share (the house rules, the ADRs in
 `apps/vscode/docs/adr/`); this file adds what is Orca's.
@@ -113,7 +113,7 @@ file's path (the host kit's `CredentialStore`).
   ends when Orca aborts it: Orca has no close event, and `orca plugin check` waits for every
   request in flight.
 - Commit messages are Conventional Commits with the scope `orca`. The catalog's release notes
-  take the changelog lines of the scopes `orca`, `runtime-view` and `engine-adapter`
+  take the changelog lines of the scopes `orca`, `runtime-view` and `c7-adapter`
   (`apps/orca/scripts/release-notes.mjs`).
 - A release publishes `dist` into `Miragon/orca-modelers` as `plugins/pulse-cockpit`, listed as
   `miragon.pulse-cockpit` (`.github/workflows/publish-orca-plugin.yml`). The id is that
