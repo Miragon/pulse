@@ -17,7 +17,7 @@
         "url": "https://miragon.github.io/pulse/"
       },
       "shots": {
-        "page": "apps/vscode/dev/webview/index.html?fixture=definition&theme=light",
+        "page": "packages/core/runtime-view/dev/webview/index.html?fixture=definition&theme=light",
         "viewport": [1030, 820]
       },
       "recipe": ".miragon/shots/card-recipe.mjs"
@@ -73,7 +73,7 @@
         "url": "https://miragon.github.io/pulse/"
       },
       "shots": {
-        "page": "apps/vscode/dev/webview/index.html?fixture=definition&theme=dark",
+        "page": "packages/core/runtime-view/dev/webview/index.html?fixture=definition&theme=dark",
         "viewport": [1030, 820]
       },
       "recipe": ".miragon/shots/card-recipe.mjs"
