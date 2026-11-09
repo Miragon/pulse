@@ -48,24 +48,34 @@
     },
 
     "apps/vscode": {
-      // esbuild bundles the first four (scripts/build.mjs, scripts/webview-build-options.mjs,
-      // scripts/dev-server.mjs, dev/webview/serve.mjs), the webview's dev scripts run by
-      // hand (apps/vscode/src/webview/README.md) and @vscode/test-cli loads the smoke test
-      // (.vscode-test.mjs); knip reads none of them.
-      "entry": [
-        "src/host/extension.ts",
-        "src/webview/main.tsx",
-        "dev/host/dev-host.ts",
-        "dev/webview/stub.ts",
-        "dev/webview/*.mjs",
-        "test/smoke/*.test.cjs",
-      ],
-      "vitest": {
-        "config": ["vitest.config.ts", "vitest.engines.config.ts"],
-      },
+      // esbuild bundles the first two (scripts/build.mjs, scripts/dev-server.mjs) and
+      // @vscode/test-cli loads the smoke test (.vscode-test.mjs); knip reads none of them.
+      "entry": ["src/host/extension.ts", "dev/host/dev-host.ts", "test/smoke/*.test.cjs"],
       // The shop sandbox: a Java and JS project the extension's code links point at, not
       // code of the extension.
       "ignore": ["sandbox/**"],
+    },
+
+    "apps/orca": {
+      // scripts/build.mjs bundles the worker, the panel and the editor bridge with esbuild,
+      // and Orca loads them by the paths of orca-plugin.json; knip reads neither.
+      "entry": ["src/worker/main.ts", "src/panel/engines.tsx", "src/editor/bridge.ts"],
+      // Orca's own modules: Orca supplies them at run time, and types/ holds their typings as
+      // `orca plugin types` writes them; no package declares them.
+      "ignoreDependencies": ["orca"],
+    },
+
+    "packages/core/runtime-view": {
+      // The editor hosts bundle the webview with scripts/webview-build-options.mjs, and its
+      // dev harness (dev/webview/serve.mjs, the stub) runs by hand
+      // (packages/core/runtime-view/src/webview/README.md); knip reads none of them.
+      "entry": ["src/webview/main.tsx", "dev/webview/stub.ts", "dev/webview/*.mjs"],
+    },
+
+    "packages/connectors/engine/engine-adapter": {
+      "vitest": {
+        "config": ["vitest.config.ts", "vitest.engines.config.ts"],
+      },
     },
 
     "packages/connectors/c7/c7-client": {

@@ -2,10 +2,10 @@ import { ESLint } from "eslint"
 import { describe, expect, test } from "vitest"
 import { readRepoFile, REPO_ROOT } from "./support/files.js"
 
-const PROBE_FILE = "apps/vscode/src/core/views/labels.ts"
+const PROBE_FILE = "packages/core/runtime-view/src/core/views/labels.ts"
 const ENGINE_CORE = "packages/connectors/engine/engine-core/src"
 const CLASS_PROBE = `${ENGINE_CORE}/model/value-kinds.ts`
-const COMPONENT_PROBE = "apps/vscode/src/webview/components/icon.tsx"
+const COMPONENT_PROBE = "packages/core/runtime-view/src/webview/components/icon.tsx"
 
 const eslint = new ESLint({ cwd: REPO_ROOT })
 
@@ -68,7 +68,7 @@ describe("the lint gates", { timeout: 120_000 }, () => {
     `${ENGINE_CORE}/ports/process-runtime.ts`,
     `${ENGINE_CORE}/model/ids.ts`,
     `${ENGINE_CORE}/testing/fake/fake-engine.ts`,
-    "apps/vscode/src/contract/ports/engine-adapter.ts",
+    "packages/core/runtime-view/src/ports/engine-adapter.ts",
   ])("keep engine words out of the contract: %s", async (filePath) => {
     expect(await rulesFiredOn(readRepoFile(filePath), filePath)).toEqual([])
     const probe = `${readRepoFile(filePath)}\nexport type Key = 'processInstanceKey';\n`
@@ -104,7 +104,7 @@ describe("the lint gates", { timeout: 120_000 }, () => {
 
   test.each([
     [
-      "apps/vscode/src/webview/format/json-text.ts",
+      "packages/core/runtime-view/src/webview/format/json-text.ts",
       "export const colour = 'var(--vscode-foreground)';\n",
     ],
   ])("keep VS Code colours out of the webview: %s", async (filePath, text) => {
@@ -124,7 +124,7 @@ describe("the lint gates", { timeout: 120_000 }, () => {
     [COMPONENT_PROBE, "function helper(): number {\n  return 1;\n}\nexport const one = helper();"],
     [COMPONENT_PROBE, "export const helper = (): number => 1;"],
     [
-      "apps/vscode/src/webview/format/json-text.ts",
+      "packages/core/runtime-view/src/webview/format/json-text.ts",
       "export function useProbe(): number {\n  return 1;\n}",
     ],
   ])("keep the helpers of components in classes: %s", async (filePath, line) => {
@@ -162,10 +162,10 @@ describe("the lint gates", { timeout: 120_000 }, () => {
   })
 
   test.each([
-    "apps/vscode/src/adapters/c7/mapping/timestamps.ts",
-    "apps/vscode/src/adapters/c7/engine-rest/present.ts",
-    "apps/vscode/src/host/notification-text.ts",
-    "apps/vscode/src/host/connections/target-hosts.ts",
+    "packages/connectors/engine/engine-adapter/src/mapping/timestamps.ts",
+    "packages/connectors/engine/engine-adapter/src/engine-rest/present.ts",
+    "packages/core/runtime-view/src/host-kit/notification-text.ts",
+    "packages/core/runtime-view/src/host-kit/connections/target-hosts.ts",
   ])("hold the adapters and the extension to the same class structure: %s", async (filePath) => {
     const probe = `${readRepoFile(filePath)}\nexport function helper(): number {\n  return 1;\n}\nexport class Second {}\n`
     expect(await rulesFiredOn(probe, filePath)).toEqual(
@@ -174,7 +174,7 @@ describe("the lint gates", { timeout: 120_000 }, () => {
   })
 
   test("hold the webview test harness to the budgets and the non-null ban", async () => {
-    const harness = "apps/vscode/test/webview/harness.tsx"
+    const harness = "packages/core/runtime-view/test/webview/harness.tsx"
     expect(await rulesFiredOn(readRepoFile(harness), harness)).toEqual([])
     const statements = Array.from({ length: 21 }, (_, index) => `  void ${index}`)
     const probe = `${readRepoFile(harness)}\nexport const first = [1].at(0)!\n\nexport class Long {\n  run(): void {\n${statements.join("\n")}\n  }\n}\n`

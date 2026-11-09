@@ -284,10 +284,8 @@
     "dev": "node scripts/dev-server.mjs",
     "lint": "eslint src test dev scripts sandbox",
     "lint:fix": "eslint src test dev scripts sandbox --fix",
-    "typecheck": "tsc --noEmit && tsc -p tsconfig.contract.json && tsc -p tsconfig.core.json && tsc -p tsconfig.model.json && tsc -p tsconfig.adapters.json && tsc -p tsconfig.webview.json && tsc -p tsconfig.host.json && tsc -p tsconfig.tooling.json",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.host.json && tsc -p tsconfig.tooling.json",
     "test": "vitest run",
-    "test:engines": "vitest run --config vitest.engines.config.ts",
-    "golden:update": "turbo run build --filter=pulse-cockpit^... --output-logs=errors-only && GOLDEN_UPDATE=1 vitest run --project unit --coverage.enabled=false",
     "test:smoke": "node scripts/build.mjs && vscode-test --config .vscode-test.mjs",
     "test:e2e": "node scripts/build.mjs && node scripts/e2e.mjs",
     "test:smoke:docker": "node scripts/docker-test.mjs smoke",
@@ -304,21 +302,13 @@
     "open-vsx:publish": "ovsx publish"
   },
   "dependencies": {
-    "@fontsource-variable/geist": "5.3.0",
-    "@fontsource-variable/geist-mono": "5.3.0",
     "@miragon/modeler-shell": "0.10.0",
-    "@miragon/pulse-c7-core": "workspace:*",
+    "@miragon/pulse-engine-adapter": "workspace:*",
     "@miragon/pulse-engine-core": "workspace:*",
-    "@miragon/pulse-profile": "workspace:*",
-    "@miragon/pulse-ui": "workspace:*",
-    "bpmn-js": "18.31.1",
-    "bpmn-moddle": "10.3.1",
-    "camunda-bpmn-moddle": "8.0.2",
-    "diagram-js": "15.28.1",
-    "preact": "11.1.1",
-    "zeebe-bpmn-moddle": "2.0.0"
+    "@miragon/pulse-runtime-view": "workspace:*"
   },
   "devDependencies": {
+    "@miragon/pulse-ui": "workspace:*",
     "@types/node": "22.20.5",
     "@types/vscode": "1.101.0",
     "@vitest/browser-playwright": "5.1.0",
@@ -329,7 +319,6 @@
     "esbuild": "0.28.2",
     "ovsx": "1.3.0",
     "playwright": "1.64.1",
-    "testcontainers": "12.2.1",
     "typescript": "6.0.3",
     "vitest": "5.1.0"
   }

@@ -1,0 +1,163 @@
+name: Publish the Orca plugin
+
+# Publishes Pulse for Orca (apps/orca) of a Pulse release into Miragon/orca-modelers, the
+# repository whose catalog lists Miragon's Orca plugins. Orca installs a plugin from committed
+# files, pinned to a commit and the hash of its files, so the built folder lives there, never in
+# this repository. The build job builds apps/orca/dist without credentials and checks it with the
+# CLI of the Orca release CI pins; the publish job hands that folder, with the release tag and
+# its changelog lines, to orca-modelers' publish-plugin action, which checks it against that
+# repository's sources.json, commits it to plugins/pulse-cockpit and lists it in its catalog
+# through two pull requests the release-please app merges once orca-modelers validates them.
+# Called by release-please.yml after the release gate; a dry run builds and checks only, and so
+# does every release until the caller sets publish: orca-modelers does not list pulse-cockpit in
+# its sources.json yet. A failed publish closes its pull request: re-run the job, it skips what
+# is on main already.
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: Release tag (e.g. v1.2.0); the plugin must carry this version (empty on a dry run)
+        required: true
+        type: string
+      dry_run:
+        description: Build and check only, publish nothing
+        type: boolean
+        default: false
+      publish:
+        description: Publish into Miragon/orca-modelers; off until that repository lists the plugin
+        type: boolean
+        default: false
+    secrets:
+      RELEASE_PLEASE_APP_PRIVATE_KEY:
+        required: false
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  # The Orca release the plugin is checked against: the pins of ci.yml's Orca job.
+  ORCA_VERSION: 1.4.252
+  ORCA_DEB_SHA256: f2701cb671ac5ae7cbecb51fd20c0ba17ca4530180237dd9472bd4fcb204d323
+
+jobs:
+  build:
+    name: Build and check the plugin
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.version || github.ref }}
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v6.1.1
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - name: The plugin is the release
+        env:
+          TAG: ${{ inputs.version }}
+        run: |
+          read_version() {
+            node -p 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).version' "$1"
+          }
+          app="$(read_version apps/orca/package.json)"
+          plugin="$(read_version apps/orca/orca-plugin.json)"
+          if [ "$app" != "$plugin" ]; then
+            echo "::error::apps/orca/orca-plugin.json is ${plugin}, apps/orca/package.json ${app}: is the manifest in release-please-config.json extra-files?"
+            exit 1
+          fi
+          if [ -n "$TAG" ] && [ "v${plugin}" != "$TAG" ]; then
+            echo "::error::The plugin is ${plugin}, not the release ${TAG}"
+            exit 1
+          fi
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm turbo build --filter=@miragon/pulse-orca...
+
+      - name: Orca CLI ${{ env.ORCA_VERSION }}
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/orca.deb" \
+            "https://github.com/stablyai/orca/releases/download/v${ORCA_VERSION}/orca-ide_${ORCA_VERSION}_amd64.deb"
+          echo "${ORCA_DEB_SHA256}  $RUNNER_TEMP/orca.deb" | sha256sum --check --strict
+          dpkg-deb -x "$RUNNER_TEMP/orca.deb" "$RUNNER_TEMP/orca"
+          echo "ORCA_RESOURCES=$RUNNER_TEMP/orca/opt/Orca/resources" >> "$GITHUB_ENV"
+
+      - run: pnpm --fail-if-no-match --filter @miragon/pulse-orca run test:orca
+
+      - run: pnpm --fail-if-no-match --filter @miragon/pulse-orca run test:kit
+
+      - name: The folder holds the plugin and nothing else
+        run: |
+          listing="$(cd apps/orca/dist && find . -type f | sort)"
+          for file in ./orca-plugin.json ./worker.mjs ./panel/engines.js ./editor/index.html ./editor/board.html ./editor/bridge.js ./editor/webview.js ./assets/icon.png ./images/cover.webp; do
+            if ! grep -qxF "$file" <<<"$listing"; then
+              echo "::error::The plugin folder lacks ${file}"
+              exit 1
+            fi
+          done
+          if grep -E '\.(map|ts|tsx)$|/node_modules/' <<<"$listing"; then
+            echo "::error::The plugin folder ships sources, source maps or node_modules (listed above)"
+            exit 1
+          fi
+          echo "$listing"
+
+      # The artifact publish-plugin reads: the folder as plugin/, next to release.json with the
+      # tag and the lines of this release's CHANGELOG.md section that concern the plugin.
+      - name: Release notes for the catalog
+        env:
+          TAG: ${{ inputs.version }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/release"
+          cp -R apps/orca/dist "$RUNNER_TEMP/release/plugin"
+          node apps/orca/scripts/release-notes.mjs CHANGELOG.md "$TAG" "$REPOSITORY" > "$RUNNER_TEMP/release/release.json"
+          cat "$RUNNER_TEMP/release/release.json"
+
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: orca-plugin-pulse-cockpit
+          path: ${{ runner.temp }}/release/
+          if-no-files-found: error
+          retention-days: 7
+
+  # Holds the release-please app's token for Miragon/orca-modelers (the app is installed there
+  # with contents and pull requests write) and runs no package manager: the action commits the
+  # folder through two pull requests and merges them once orca-modelers' validate passes.
+  publish:
+    name: Publish to Miragon/orca-modelers
+    needs: build
+    if: ${{ inputs.publish && !inputs.dry_run }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          pattern: orca-plugin-*
+          path: orca-plugins
+
+      - uses: actions/create-github-app-token@v3.3.0
+        id: app-token
+        with:
+          client-id: ${{ vars.RELEASE_PLEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_PLEASE_APP_PRIVATE_KEY }}
+          owner: Miragon
+          repositories: orca-modelers
+
+      - uses: Miragon/orca-modelers/.github/actions/publish-plugin@27d04de633e38c0c3981975b5d57f309b43dd3c0
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          plugins-dir: orca-plugins
+          source-repo: ${{ github.repository }}
+          source-ref: ${{ github.sha }}

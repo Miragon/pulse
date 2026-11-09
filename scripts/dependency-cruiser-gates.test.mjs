@@ -36,6 +36,9 @@ const CONFIG = path.join(repoRoot, ".dependency-cruiser.cjs")
 const SERVER = "apps/mcp-server"
 const CLI = "apps/cli"
 const EXT = "apps/vscode"
+const ORCA = "apps/orca"
+const RUNTIME_VIEW = "packages/core/runtime-view"
+const ENGINE_ADAPTER = "packages/connectors/engine/engine-adapter"
 const SHELL = "packages/core/widget-shell"
 const UI = "packages/core/ui"
 const PROFILE = "packages/core/profile"
@@ -49,11 +52,16 @@ const ENGINE_CONNECTOR = "packages/connectors/engine/engine-connector"
 const BILLING_CLIENT = "packages/connectors/billing/billing-client"
 const BILLING_CONNECTOR = "packages/connectors/billing/billing-connector"
 const BILLING_CORE = "packages/connectors/billing/billing-core"
+// No such package exists: a second family's adapter proves the adapter rules key on the role.
+const BILLING_ADAPTER = "packages/connectors/billing/billing-adapter"
 
 const WORKSPACE = {
   [SERVER]: { name: "@miragon/pulse-mcp-server", private: true },
   [CLI]: { name: "@miragon/pulse-cli" },
   [EXT]: { name: "pulse-cockpit", engines: { vscode: "^1.101.0" } },
+  [ORCA]: { name: "@miragon/pulse-orca", private: true },
+  [RUNTIME_VIEW]: { name: "@miragon/pulse-runtime-view", private: true },
+  [ENGINE_ADAPTER]: { name: "@miragon/pulse-engine-adapter", private: true },
   [SHELL]: { name: "@miragon/pulse-widget-shell" },
   [UI]: { name: "@miragon/pulse-ui" },
   [PROFILE]: { name: "@miragon/pulse-profile" },
@@ -65,6 +73,7 @@ const WORKSPACE = {
   [BILLING_CLIENT]: { name: "@miragon/pulse-billing-client" },
   [BILLING_CONNECTOR]: { name: "@miragon/pulse-billing-connector" },
   [BILLING_CORE]: { name: "@miragon/pulse-billing-core" },
+  [BILLING_ADAPTER]: { name: "@miragon/pulse-billing-adapter", private: true },
 }
 
 // The links the fixture leaves out, importer directory -> package name: the billing core imports
@@ -126,6 +135,12 @@ const HTTP_USERS = "http-consumers"
 const HTTP_LOOPBACK = "http-loopback-only-its-sockets"
 const ENGINE_CORE_USERS = "engine-core-consumers"
 const CORE_USERS = "family-core-consumers"
+const ADAPTER_FAMILY = "adapters-own-their-family"
+const ENGINE_ADAPTER_DIALECT = "engine-adapter-runs-the-c7-dialect"
+const VIEW_USERS = "runtime-view-consumers"
+const VIEW_ENGINE = "runtime-view-builds-on-the-engine-contract"
+const ADAPTER_USERS = "adapter-consumers"
+const HOSTS = "editor-hosts-reach-dialects-through-adapters"
 const CLI_CORE_LAYERS = "cli-family-core-only-in-named-layers"
 const NO_TESTING = "shipped-code-not-to-testing"
 const DEEP = "no-cross-package-deep-imports"
@@ -160,6 +175,12 @@ const CLI_SCRIPTS = "cli-scripts-only-catalog-types-and-schema"
 const CLI_SRC = `${CLI}/src/index.ts`
 const SERVER_SRC = `${SERVER}/src/index.ts`
 const EXT_SRC = `${EXT}/src/extension.ts`
+const ORCA_SRC = `${ORCA}/src/worker/main.ts`
+const VIEW_SRC = `${RUNTIME_VIEW}/src/index.ts`
+const ADAPTER_SRC = `${ENGINE_ADAPTER}/src/index.ts`
+const BILLING_ADAPTER_SRC = `${BILLING_ADAPTER}/src/index.ts`
+const VIEW = "@miragon/pulse-runtime-view"
+const ADAPTER = "@miragon/pulse-engine-adapter"
 const SHELL_SRC = `${SHELL}/src/index.ts`
 const UI_SRC = `${UI}/src/index.ts`
 const C7_SRC = `${C7}/src/index.ts`
@@ -406,8 +427,13 @@ const SUITES = [
       [`${BILLING_CONNECTOR}/src/engine-profiles.ts`, PROFILE_NAME, [PROFILE_USERS]],
       [`${CLI}/src/workflow/profile.ts`, PROFILE_NAME, [PROFILE_USERS]],
       [`${CLI}/src/configx/profile.ts`, PROFILE_NAME, [PROFILE_USERS]],
-      [`${EXT}/src/core/profile.ts`, PROFILE_NAME, [PROFILE_USERS]],
-      [`${EXT}/src/host/other/profile.ts`, PROFILE_NAME, [PROFILE_USERS]],
+      // The editor hosts parse their project files in the runtime view's host kit, never
+      // themselves: their own connections read no profile.
+      [`${EXT}/src/host/connections/profile.ts`, PROFILE_NAME, [PROFILE_USERS]],
+      [`${ORCA}/src/worker/profile.ts`, PROFILE_NAME, [PROFILE_USERS]],
+      [`${RUNTIME_VIEW}/src/core/profile.ts`, PROFILE_NAME, [PROFILE_USERS]],
+      [`${RUNTIME_VIEW}/src/host-kit/panels/profile.ts`, PROFILE_NAME, [PROFILE_USERS]],
+      [ADAPTER_SRC, PROFILE_NAME, [ENGINE_ADAPTER_DIALECT, PROFILE_USERS]],
       [
         `${SERVER}/src/escape-profile.ts`,
         "../../../packages/core/profile/src/target.ts",
@@ -420,7 +446,8 @@ const SUITES = [
       [`${CLI}/src/config/fixtures.ts`, `${PROFILE_NAME}/testing`, [NO_TESTING]],
       // Allowed: the readers, and tests anywhere.
       [`${CLI}/src/config/profiles.ts`, PROFILE_NAME, []],
-      [`${EXT}/src/host/connections/profiles.ts`, PROFILE_NAME, []],
+      [`${RUNTIME_VIEW}/src/host-kit/connections/profiles.ts`, PROFILE_NAME, []],
+      [`${RUNTIME_VIEW}/test/host-kit/fixtures.test.ts`, `${PROFILE_NAME}/testing`, []],
       [`${ENGINE_CONNECTOR}/src/engine-profiles.ts`, PROFILE_NAME, []],
       [`${ENGINE_CONNECTOR}/src/module.test.ts`, `${PROFILE_NAME}/testing`, []],
       [`${SHELL}/src/profile.test.ts`, PROFILE_NAME, []],
@@ -507,10 +534,11 @@ const SUITES = [
       [`${CLI}/src/workflow/http.ts`, HTTP_NAME, [HTTP_USERS]],
       [`${CLI}/src/config/http.ts`, HTTP_NAME, [HTTP_USERS]],
       [`${CLI}/src/httpx/client.ts`, HTTP_NAME, [HTTP_USERS]],
-      [`${EXT}/src/core/http.ts`, HTTP_NAME, [HTTP_USERS]],
+      // The editor hosts and the runtime view send nothing: the family adapters do.
       [`${EXT}/src/host/http.ts`, HTTP_NAME, [HTTP_USERS]],
-      // The adapters, one folder per dialect: not a file beside them.
-      [`${EXT}/src/adapters/http.ts`, HTTP_NAME, [HTTP_USERS]],
+      [`${ORCA}/src/worker/http.ts`, HTTP_NAME, [HTTP_USERS]],
+      [`${RUNTIME_VIEW}/src/core/http.ts`, HTTP_NAME, [HTTP_USERS]],
+      [`${RUNTIME_VIEW}/src/host-kit/http.ts`, HTTP_NAME, [HTTP_USERS]],
       [
         `${SERVER}/src/escape-http.ts`,
         "../../../packages/core/http/src/target.ts",
@@ -525,21 +553,23 @@ const SUITES = [
       [`${CLI}/src/http/transport.ts`, HTTP_NAME, []],
       [`${CLI}/src/auth/http.ts`, HTTP_NAME, []],
       [`${CLI}/src/operation/http.ts`, HTTP_NAME, []],
-      [`${EXT}/src/adapters/c7/http.ts`, HTTP_NAME, []],
-      [`${EXT}/src/adapters/c8/http.ts`, `${HTTP_NAME}/oauth`, []],
+      [`${ENGINE_ADAPTER}/src/http.ts`, HTTP_NAME, []],
+      [`${BILLING_ADAPTER}/src/http.ts`, `${HTTP_NAME}/oauth`, []],
       [`${ENGINE_CONNECTOR}/src/lib/engine/http.ts`, HTTP_NAME, []],
       [`${BILLING_CONNECTOR}/src/lib/engine/http.ts`, HTTP_NAME, []],
       [`${ENGINE_CONNECTOR}/src/tools/http.test.ts`, HTTP_NAME, []],
       [`${ENGINE_CONNECTOR}/src/http.test.ts`, `${HTTP_NAME}/testing`, []],
       [`${SHELL}/src/http.test.ts`, HTTP_NAME, []],
       [`${CLI}/test/support/http.ts`, `${HTTP_NAME}/testing`, []],
-      [`${EXT}/src/adapters/c7/http.test.ts`, `${HTTP_NAME}/testing`, []],
+      [`${ENGINE_ADAPTER}/src/http.test.ts`, `${HTTP_NAME}/testing`, []],
       [`${SERVER}/src/http.test.ts`, HTTP_NAME, []],
     ],
   },
   {
     rule: ENGINE_CORE_USERS,
-    title: "engine-core is imported where a dialect is implemented, and in tests",
+    title:
+      "engine-core is imported where a dialect is implemented, where the runtime view reads " +
+      "its answers, and in tests",
     cases: [
       [SERVER_SRC, ENGINE_CORE_NAME, [CORE_USERS, ENGINE_CORE_USERS]],
       [SHELL_SRC, ENGINE_CORE_NAME, [CORE, ENGINE_CORE_USERS]],
@@ -581,24 +611,31 @@ const SUITES = [
       [`${ENGINE_CONNECTOR}/src/testing/contract.ts`, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
       [`${SHELL}/src/testing/contract.ts`, ENGINE_CORE_NAME, [CORE, ENGINE_CORE_USERS]],
       [`${CLI}/src/testing/contract.ts`, ENGINE_CORE_NAME, [HEADLESS, ENGINE_CORE_USERS]],
-      // In Pulse for VS Code the contract barrel alone: the core, the adapters and the host
-      // reach it through the barrel.
-      [`${EXT}/src/core/contract.ts`, ENGINE_CORE_NAME, [CORE_USERS, ENGINE_CORE_USERS]],
-      [`${EXT}/src/adapters/c7/contract.ts`, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
-      [`${EXT}/src/host/contract.ts`, ENGINE_CORE_NAME, [CORE_USERS, ENGINE_CORE_USERS]],
-      [`${EXT}/src/contractx/index.ts`, ENGINE_CORE_NAME, [CORE_USERS, ENGINE_CORE_USERS]],
+      // The runtime view: the layers that speak the contract, never its webview, which renders
+      // protocol view models, nor a folder beside the layers.
+      [`${RUNTIME_VIEW}/src/webview/contract.ts`, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
+      [`${RUNTIME_VIEW}/src/contract/index.ts`, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
+      [`${RUNTIME_VIEW}/src/corex/contract.ts`, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
       [
-        `${EXT}/src/core/escape-contract.ts`,
-        "../../../../packages/connectors/engine/engine-core/src/target.ts",
-        [CORE_USERS, ENGINE_CORE_USERS, DEEP],
+        `${RUNTIME_VIEW}/src/webview/escape-contract.ts`,
+        "../../../../connectors/engine/engine-core/src/target.ts",
+        [VIEW_ENGINE, ENGINE_CORE_USERS, DEEP],
       ],
-      // The barrel imports the package, never its tree, and no ./testing entry either.
+      // A reader imports the package, never its tree, and no ./testing entry in shipped code.
       [
-        `${EXT}/src/contract/escape.ts`,
-        "../../../../packages/connectors/engine/engine-core/src/target.ts",
-        [DEEP],
+        `${RUNTIME_VIEW}/src/core/escape-contract.ts`,
+        "../../../../connectors/engine/engine-core/src/target.ts",
+        [VIEW_ENGINE, DEEP],
       ],
-      [`${EXT}/src/contract/kit.ts`, `${ENGINE_CORE_NAME}/testing`, [NO_TESTING]],
+      [`${RUNTIME_VIEW}/src/core/kit.ts`, `${ENGINE_CORE_NAME}/testing`, [NO_TESTING]],
+      [`${EXT}/src/host/kit.ts`, `${ENGINE_CORE_NAME}/testing`, [NO_TESTING]],
+      [`${ENGINE_ADAPTER}/src/kit.ts`, `${ENGINE_CORE_NAME}/testing`, [NO_TESTING]],
+      // Unresolved subpaths (shape 3: dependency-cruiser reads no exports map).
+      [
+        `${RUNTIME_VIEW}/src/webview/contract-sub.ts`,
+        `${ENGINE_CORE_NAME}/model`,
+        [ENGINE_CORE_USERS],
+      ],
       // Unresolved subpaths (shape 3: dependency-cruiser reads no exports map).
       [`${SHELL}/src/contract-sub.ts`, `${ENGINE_CORE_NAME}/model`, [CORE, ENGINE_CORE_USERS]],
       [
@@ -606,11 +643,21 @@ const SUITES = [
         `${ENGINE_CORE_NAME}/testing`,
         [CORE_USERS, ENGINE_CORE_USERS, NO_TESTING],
       ],
-      // Allowed: a dialect core's src (family-core-is-a-leaf holds it to the main entry), the
-      // contract barrel, the package's own modules, and tests anywhere.
+      // Allowed: a dialect core's src (family-core-is-a-leaf holds it to the main entry), a
+      // family adapter's src, the runtime view's layers that speak the contract, the editor
+      // hosts' src (their closed worlds hold them to the main entry), the package's own modules,
+      // and tests and the test trees anywhere.
       [C7_SRC, ENGINE_CORE_NAME, []],
-      [`${EXT}/src/contract/index.ts`, ENGINE_CORE_NAME, []],
-      [`${EXT}/src/contract/ports/engine-adapter.ts`, ENGINE_CORE_NAME, [], "type"],
+      [`${ENGINE_ADAPTER}/src/contract.ts`, ENGINE_CORE_NAME, []],
+      [`${BILLING_ADAPTER}/src/contract.ts`, ENGINE_CORE_NAME, [], "type"],
+      [`${RUNTIME_VIEW}/src/ports/engine-adapter.ts`, ENGINE_CORE_NAME, [], "type"],
+      [`${RUNTIME_VIEW}/src/core/contract.ts`, ENGINE_CORE_NAME, []],
+      [`${RUNTIME_VIEW}/src/model/contract.ts`, ENGINE_CORE_NAME, []],
+      [`${RUNTIME_VIEW}/src/host-kit/contract.ts`, ENGINE_CORE_NAME, []],
+      [`${EXT}/src/host/ids.ts`, ENGINE_CORE_NAME, []],
+      [`${ORCA}/src/worker/ids.ts`, ENGINE_CORE_NAME, []],
+      [`${RUNTIME_VIEW}/test/core/support/fake.ts`, `${ENGINE_CORE_NAME}/testing`, []],
+      [`${ENGINE_ADAPTER}/test/support/world.ts`, `${ENGINE_CORE_NAME}/testing`, []],
       [`${ENGINE_CONNECTOR}/src/core-adapter.test.ts`, `${ENGINE_CORE_NAME}/testing`, []],
       [`${C7}/src/cause.test.ts`, `${ENGINE_CORE_NAME}/testing`, []],
       [`${ENGINE_CONNECTOR}/src/contract.test-support.ts`, `${ENGINE_CORE_NAME}/testing`, []],
@@ -709,7 +756,6 @@ const SUITES = [
     cases: [
       [SERVER_SRC, C7_CORE, [CORE_USERS]],
       [SERVER_SRC, BILLING_CORE_NAME, [CORE_USERS]],
-      [EXT_SRC, C7_CORE, [CORE_USERS]],
       [
         `${SERVER}/src/escape-core.ts`,
         "../../../packages/connectors/c7/c7-core/src/target.ts",
@@ -723,28 +769,173 @@ const SUITES = [
       [UI_SRC, C7_CORE, [CORE, UI_LEAF]],
       [C7_CLIENT_SRC, C7_CORE, [CLIENT_LEAF]],
       [C7_CLIENT_SRC, `${C7_CORE}/testing`, [CLIENT_LEAF, NO_TESTING]],
-      // The extension bundles c7-core in its C7 adapter alone (keyed on that subtree).
-      [`${EXT}/src/core/a.ts`, C7_CORE, [CORE_USERS]],
-      [`${EXT}/src/adapters/other/a.ts`, C7_CORE, [CORE_USERS]],
-      [`${EXT}/src/adapters/c7-other/a.ts`, C7_CORE, [CORE_USERS]],
-      [`${EXT}/src/adapters/c7/testing.ts`, `${C7_CORE}/testing`, [NO_TESTING]],
+      [`${RUNTIME_VIEW}/src/core/c7.ts`, C7_CORE, [VIEW_ENGINE]],
+      [EXT_SRC, C7_CORE, [HOSTS]],
+      [`${ORCA}/src/worker/a.ts`, C7_CORE, [HOSTS]],
+      // The C7 adapter, which still lives in the engine family, runs c7-core (its own
+      // node_modules), and its shipped code reaches no ./testing entry.
+      [`${ENGINE_ADAPTER}/src/testing.ts`, `${C7_CORE}/testing`, [NO_TESTING]],
       [
-        `${EXT}/src/adapters/c7/escape-core.ts`,
-        "../../../../../packages/connectors/c7/c7-core/src/target.ts",
-        [DEEP],
+        `${ENGINE_ADAPTER}/src/escape-core.ts`,
+        "../../../c7/c7-core/src/target.ts",
+        [ENGINE_ADAPTER_DIALECT, DEEP],
       ],
-      // Allowed: the engine module, which spans the dialect families, the CLI and the extension's
-      // C7 adapter, which bundle c7-core, and the extension's contract barrel, which bundles
-      // engine-core (keyed on that subtree).
-      [`${EXT}/src/contract/engine.ts`, ENGINE_CORE_NAME, []],
-      [`${EXT}/src/adapters/c7/inspect.ts`, C7_CORE, []],
-      [`${EXT}/src/adapters/c7/engine-rest/inspect/port.ts`, C7_CORE, []],
+      // Allowed: the engine module, which spans the dialect families, the CLI, which bundles
+      // c7-core, and the C7 adapter.
+      [`${ENGINE_ADAPTER}/src/inspect.ts`, C7_CORE, []],
+      [`${ENGINE_ADAPTER}/src/engine-rest/inspect/port.ts`, C7_CORE, [], "type"],
       [ENGINE_CONNECTOR_SRC, C7_CORE, []],
       [BILLING_CONNECTOR_SRC, BILLING_CORE_NAME, []],
       [`${CLI}/src/workflow/inspect.ts`, C7_CORE, []],
       [`${CLI}/src/engine-port/port.ts`, C7_CORE, [], "type"],
       // The types-only rule of the engine port still bites on the new package.
       [`${CLI}/src/engine-port/value.ts`, C7_CORE, [CLI_PORT_TYPES]],
+    ],
+  },
+  {
+    rule: ADAPTER_FAMILY,
+    title:
+      "a family's adapter imports its own family's core and client, engine-core, the runtime " +
+      "view and the transport",
+    cases: [
+      [BILLING_ADAPTER_SRC, "@miragon/pulse-billing-connector", [ADAPTER_FAMILY]],
+      [BILLING_ADAPTER_SRC, C7_CORE, [ADAPTER_FAMILY]],
+      [BILLING_ADAPTER_SRC, "@miragon/pulse-c7-client", [ADAPTER_FAMILY]],
+      [BILLING_ADAPTER_SRC, "@miragon/pulse-widget-shell", [ADAPTER_FAMILY]],
+      [BILLING_ADAPTER_SRC, ADAPTER, [ADAPTER_FAMILY]],
+      [`${BILLING_ADAPTER}/src/c7-sub.ts`, `${C7_CORE}/routes`, [ADAPTER_FAMILY]],
+      [
+        `${BILLING_ADAPTER}/src/escape-view.ts`,
+        "../../../../core/runtime-view/src/index.ts",
+        [ADAPTER_FAMILY, DEEP],
+      ],
+      // Allowed: its own modules and family, engine-core (the contract it implements), the
+      // runtime view (whose ports name the plug it provides), the transport and third-party
+      // libraries.
+      [BILLING_ADAPTER_SRC, BILLING_CORE_NAME, []],
+      [BILLING_ADAPTER_SRC, "@miragon/pulse-billing-client", []],
+      [BILLING_ADAPTER_SRC, ENGINE_CORE_NAME, []],
+      [`${BILLING_ADAPTER}/src/view.ts`, VIEW, [], "type"],
+      [BILLING_ADAPTER_SRC, "./lib.ts", []],
+      [BILLING_ADAPTER_SRC, "reactive", []],
+    ],
+  },
+  {
+    rule: ENGINE_ADAPTER_DIALECT,
+    title:
+      "the C7 adapter, still in the engine family, runs c7-core besides what every adapter imports",
+    cases: [
+      [ADAPTER_SRC, "@miragon/pulse-engine-connector", [ENGINE_ADAPTER_DIALECT]],
+      [ADAPTER_SRC, BILLING_CORE_NAME, [ENGINE_ADAPTER_DIALECT]],
+      [ADAPTER_SRC, "@miragon/pulse-c7-client", [ENGINE_ADAPTER_DIALECT]],
+      [ADAPTER_SRC, "@miragon/pulse-widget-shell", [ENGINE_ADAPTER_DIALECT]],
+      [ADAPTER_SRC, "@miragon/pulse-ui", [ENGINE_ADAPTER_DIALECT]],
+      [ADAPTER_SRC, "@miragon/pulse-billing-adapter", [ENGINE_ADAPTER_DIALECT]],
+      [
+        `${ENGINE_ADAPTER}/src/escape-view.ts`,
+        "../../../../core/runtime-view/src/index.ts",
+        [ENGINE_ADAPTER_DIALECT, DEEP],
+      ],
+      // Allowed: its own modules and family, c7-core in every shape a package entry takes (its
+      // closed world holds its src to the main entry), engine-core, the runtime view, the
+      // transport and third-party libraries.
+      [`${ENGINE_ADAPTER}/src/a.ts`, ENGINE_CORE_NAME, []],
+      [`${ENGINE_ADAPTER}/src/c7.ts`, C7_CORE, []],
+      [`${ENGINE_ADAPTER}/src/routes.ts`, `${C7_CORE}/routes`, []],
+      [`${ENGINE_ADAPTER}/test/support/inspect.ts`, `${C7_CORE}/testing`, []],
+      [`${ENGINE_ADAPTER}/src/ports.ts`, `${VIEW}/ports`, [], "type"],
+      [ADAPTER_SRC, "./lib.ts", []],
+      [ADAPTER_SRC, "reactive", []],
+    ],
+  },
+  {
+    rule: VIEW_USERS,
+    title:
+      "the runtime view is composed by the editor hosts and implemented by the family adapters",
+    cases: [
+      [SERVER_SRC, VIEW, [VIEW_USERS]],
+      [CLI_SRC, `${VIEW}/ports`, [HEADLESS, VIEW_USERS]],
+      [ENGINE_CONNECTOR_SRC, VIEW, [VIEW_USERS]],
+      [SHELL_SRC, VIEW, [VIEW_USERS]],
+      [
+        `${EXT}/src/host/escape-view.ts`,
+        "../../../../packages/core/runtime-view/src/index.ts",
+        [DEEP],
+      ],
+      // Allowed: the editor hosts, the adapters and the runtime view's own modules.
+      [`${EXT}/src/host/b.ts`, `${VIEW}/core`, []],
+      [ORCA_SRC, `${VIEW}/host-kit`, []],
+      [`${BILLING_ADAPTER}/src/ports.ts`, `${VIEW}/ports`, [], "type"],
+      [VIEW_SRC, "./lib.ts", []],
+    ],
+  },
+  {
+    rule: ADAPTER_USERS,
+    title: "a family's adapter is bundled by the editor hosts alone",
+    cases: [
+      [SERVER_SRC, ADAPTER, [ADAPTER_USERS]],
+      [`${CLI}/src/workflow/adapter.ts`, ADAPTER, [HEADLESS, ADAPTER_USERS]],
+      [ENGINE_CONNECTOR_SRC, ADAPTER, [ADAPTER_USERS]],
+      [VIEW_SRC, ADAPTER, [VIEW_ENGINE, ADAPTER_USERS]],
+      [
+        `${ORCA}/src/worker/escape-adapter.ts`,
+        "../../../../packages/connectors/engine/engine-adapter/src/index.ts",
+        [DEEP],
+      ],
+      // Allowed: the editor hosts' composition roots.
+      [`${EXT}/src/host/composition-root.ts`, ADAPTER, []],
+      [`${ORCA}/src/worker/composition-root.ts`, ADAPTER, []],
+    ],
+  },
+  {
+    rule: VIEW_ENGINE,
+    title:
+      "the runtime view builds on the engine contract: engine-core by its entries, no other " +
+      "family's package",
+    cases: [
+      [VIEW_SRC, "@miragon/pulse-engine-connector", [VIEW_ENGINE]],
+      [VIEW_SRC, "@miragon/pulse-c7-client", [VIEW_ENGINE]],
+      [`${RUNTIME_VIEW}/src/core/billing.ts`, BILLING_CORE_NAME, [VIEW_ENGINE]],
+      [`${RUNTIME_VIEW}/src/host-kit/c7-sub.ts`, `${C7_CORE}/routes`, [VIEW_ENGINE]],
+      [
+        `${RUNTIME_VIEW}/src/core/escape-c7.ts`,
+        "../../../../connectors/c7/c7-core/src/target.ts",
+        [VIEW_ENGINE, DEEP],
+      ],
+      [
+        `${RUNTIME_VIEW}/src/model/escape-build.ts`,
+        "../../../../connectors/engine/engine-core/dist/index.js",
+        [VIEW_ENGINE, DEEP],
+      ],
+      // Allowed: engine-core's main entry in a layer that speaks it, its ./testing entry in the
+      // tests, and the foundation siblings.
+      [`${RUNTIME_VIEW}/src/host-kit/engine.ts`, ENGINE_CORE_NAME, [], "type"],
+      [`${RUNTIME_VIEW}/test/core/kit.ts`, `${ENGINE_CORE_NAME}/testing`, []],
+      [`${RUNTIME_VIEW}/src/core/tones.ts`, "@miragon/pulse-ui/tones", [], "type"],
+    ],
+  },
+  {
+    rule: HOSTS,
+    title:
+      "the editor hosts import engine-core alone of the family cores, and reach a dialect " +
+      "through its adapter",
+    cases: [
+      [`${ORCA}/src/worker/billing.ts`, BILLING_CORE_NAME, [HOSTS]],
+      [`${EXT}/src/host/c7-sub.ts`, `${C7_CORE}/routes`, [HOSTS]],
+      [
+        `${EXT}/src/host/escape-core.ts`,
+        "../../../../packages/connectors/c7/c7-core/src/target.ts",
+        [HOSTS, DEEP],
+      ],
+      // Not engine-core by path either: its package entry only.
+      [
+        `${ORCA}/src/worker/escape-contract.ts`,
+        "../../../../packages/connectors/engine/engine-core/src/target.ts",
+        [HOSTS, DEEP],
+      ],
+      // Allowed: engine-core's entry, and the adapter in the composition root.
+      [`${ORCA}/src/worker/contract.ts`, ENGINE_CORE_NAME, [], "type"],
+      [`${EXT}/src/host/contract-sub.ts`, `${ENGINE_CORE_NAME}/model`, []],
     ],
   },
   {
@@ -962,14 +1153,14 @@ const SUITES = [
       [`${UI}/src/tones/situations.test.ts`, "vitest", []],
       [`${UI}/src/lib/tone-utils.ts`, "../tones/situations.ts", []],
       [UI_SRC, "./tones/situations.ts", []],
-      [`${EXT}/src/webview/tone.ts`, "@miragon/pulse-ui/tones", []],
-      [`${EXT}/src/core/tone.ts`, "@miragon/pulse-ui/tones", [], "type"],
+      [`${RUNTIME_VIEW}/src/webview/tone.ts`, "@miragon/pulse-ui/tones", []],
+      [`${RUNTIME_VIEW}/src/core/tone.ts`, "@miragon/pulse-ui/tones", [], "type"],
       [`${UI}/src/format/duration.ts`, "./numbers.ts", []],
       [`${UI}/src/format/format.test.ts`, "vitest", []],
       [`${UI}/src/kit/log-text.tsx`, "../format/numbers.ts", []],
       [UI_SRC, "./format/numbers.ts", []],
-      [`${EXT}/src/webview/format/time-labels.ts`, "@miragon/pulse-ui/format", []],
-      [`${EXT}/src/core/views/labels.ts`, "@miragon/pulse-ui/format", []],
+      [`${RUNTIME_VIEW}/src/webview/format/time-labels.ts`, "@miragon/pulse-ui/format", []],
+      [`${RUNTIME_VIEW}/src/core/views/labels.ts`, "@miragon/pulse-ui/format", []],
     ],
   },
   {
@@ -2122,15 +2313,32 @@ describe("a failing cruise says the fix", () => {
   const config = createRequire(import.meta.url)(CONFIG)
   const { scripts } = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"))
 
-  for (const script of [...ARCHITECTURE_SCRIPTS, "lint:architecture:vscode"]) {
+  // The closed worlds of the editor hosts and of the two packages they share, each with its
+  // own config and script.
+  const CLOSED_WORLDS = {
+    "lint:architecture:vscode": "apps/vscode/.dependency-cruiser.cjs",
+    "lint:architecture:orca": "apps/orca/.dependency-cruiser.cjs",
+    "lint:architecture:runtime-view": "packages/core/runtime-view/.dependency-cruiser.cjs",
+    "lint:architecture:engine-adapter":
+      "packages/connectors/engine/engine-adapter/.dependency-cruiser.cjs",
+  }
+
+  for (const script of [...ARCHITECTURE_SCRIPTS, ...Object.keys(CLOSED_WORLDS)]) {
     it(`${script} prints the comment of the rule that fired`, () => {
       assert.match(scripts[script], /--output-type err-long$/)
     })
   }
 
-  // The VS Code extension's config too: lint:architecture:vscode prints its comments, and its
-  // closed world's `not-in-allowed` takes the wording from the forbidden rule of that name.
-  for (const file of [CONFIG, path.join(repoRoot, "apps/vscode/.dependency-cruiser.cjs")]) {
+  for (const [script, file] of Object.entries(CLOSED_WORLDS)) {
+    it(`${script} cruises with ${file} and is chained into pnpm lint`, () => {
+      assert.ok(scripts[script].includes(`--config ${file}`), scripts[script])
+      assert.ok(scripts.lint.includes(`pnpm ${script} `), scripts.lint)
+    })
+  }
+
+  // Their configs too: each script prints its comments, and a closed world's `not-in-allowed`
+  // takes the wording from the forbidden rule of that name.
+  for (const file of [CONFIG, ...Object.values(CLOSED_WORLDS).map((f) => path.join(repoRoot, f))]) {
     it(`every rule of ${path.relative(repoRoot, file)} carries a comment to print`, () => {
       const { forbidden = [], required = [] } = createRequire(import.meta.url)(file)
       assert.ok(forbidden.length > 0, `${file} lists no forbidden rules`)
@@ -2141,13 +2349,13 @@ describe("a failing cruise says the fix", () => {
     })
   }
 
-  it("the VS Code closed world's not-in-allowed has the wording err-long prints for it", () => {
-    const { allowed, forbidden } = createRequire(import.meta.url)(
-      path.join(repoRoot, "apps/vscode/.dependency-cruiser.cjs"),
-    )
-    assert.ok(allowed.length > 0, "the VS Code config is no longer closed-world")
-    assert.ok(forbidden.some((rule) => rule.name === "not-in-allowed" && rule.comment?.trim()))
-  })
+  for (const file of Object.values(CLOSED_WORLDS)) {
+    it(`the closed world of ${file} has the wording err-long prints for not-in-allowed`, () => {
+      const { allowed, forbidden } = createRequire(import.meta.url)(path.join(repoRoot, file))
+      assert.ok(allowed.length > 0, `${file} is no longer closed-world`)
+      assert.ok(forbidden.some((rule) => rule.name === "not-in-allowed" && rule.comment?.trim()))
+    })
+  }
 
   it("the err-long reporter prints it under a planted violation, and fails the run", async () => {
     const { output: report, exitCode } = await format(output, { outputType: "err-long" })

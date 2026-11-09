@@ -1,0 +1,207 @@
+{
+  "$schema": "https://raw.githubusercontent.com/stablyai/orca/main/docs/schemas/plugins/orca-plugin.v2.schema.json",
+  "manifestVersion": 2,
+  "id": "pulse-cockpit",
+  "name": "Pulse",
+  "version": "0.27.1",
+  "description": "The Pulse engine cockpit for Operaton, CIB seven and Camunda 7 inside Orca.",
+  "author": {
+    "name": "Miragon GmbH",
+    "url": "https://www.miragon.io"
+  },
+  "repository": "https://github.com/Miragon/pulse",
+  "license": "MIT",
+  "icon": "assets/icon.png",
+  "cover": {
+    "path": "images/cover.webp",
+    "alt": "Miragon AI Pulse: your process engines next to your BPMN models, inside Orca."
+  },
+  "screenshots": [
+    {
+      "path": "images/cover.webp",
+      "alt": "Miragon AI Pulse: your process engines next to your BPMN models, inside Orca.",
+      "caption": "Your process engines, inside Orca"
+    },
+    {
+      "path": "images/screenshot-orca.webp",
+      "alt": "Orca with Order fulfillment v3 in a Pulse tab: badges for running instances and incidents on the diagram, the instances below, the Pulse panel on the right",
+      "caption": "Incidents and running instances on the deployed diagram",
+      "theme": "light"
+    },
+    {
+      "path": "images/screenshot-orca-dark.webp",
+      "alt": "Orca with Order fulfillment v3 in a Pulse tab: badges for running instances and incidents on the diagram, the instances below, the Pulse panel on the right",
+      "caption": "Incidents and running instances on the deployed diagram",
+      "theme": "dark"
+    },
+    {
+      "path": "images/screenshot-orca-2.webp",
+      "alt": "Orca with order-fulfillment.bpmn from the workspace against the deployed v3, the diagram with its badges and the Pulse panel listing the engine's processes",
+      "caption": "Your local model against what the engine runs",
+      "theme": "light"
+    },
+    {
+      "path": "images/screenshot-orca-2-dark.webp",
+      "alt": "Orca with order-fulfillment.bpmn from the workspace against the deployed v3, the diagram with its badges and the Pulse panel listing the engine's processes",
+      "caption": "Your local model against what the engine runs",
+      "theme": "dark"
+    }
+  ],
+  "engines": {
+    "orca": ">=1.4.252"
+  },
+  "execution": "trusted-worker",
+  "pluginApi": 1,
+  "main": "worker.mjs",
+  "contributes": {
+    "panels": [
+      {
+        "id": "engines",
+        "title": "Pulse",
+        "icon": "activity",
+        "entry": "panel/engines.js",
+        "ui": "components"
+      }
+    ],
+    "customEditors": [
+      {
+        "id": "pulse-view",
+        "title": "Pulse",
+        "extensions": [".pulse-view"],
+        "entry": "editor/index.html",
+        "frame": "isolated"
+      },
+      {
+        "id": "pulse-board",
+        "title": "Board",
+        "extensions": [".board.json"],
+        "entry": "editor/board.html",
+        "frame": "isolated"
+      }
+    ],
+    "settings": [
+      {
+        "key": "projectFile",
+        "title": "Project file",
+        "description": "Path of the .pulse.json that names your engines. Empty: the .pulse.json at the root of the focused workspace.",
+        "type": "string",
+        "default": "",
+        "placeholder": "/path/to/project/.pulse.json"
+      },
+      {
+        "key": "writes",
+        "title": "Writes",
+        "description": "Whether Pulse may retry incidents, change variables, move tokens, cancel and migrate instances.",
+        "type": "string",
+        "enum": ["localOnly", "enabled", "disabled"],
+        "enumLabels": [
+          "On engines on this machine only",
+          "Also on remote engines with a login",
+          "Never: Pulse stays read-only"
+        ],
+        "default": "localOnly"
+      },
+      {
+        "key": "environments",
+        "title": "Environments",
+        "description": "Environment of each engine by name, as JSON, e.g. {\"prod-eu\": \"production\"}. Loopback hosts are local without configuration.",
+        "type": "string",
+        "multiline": true,
+        "default": "{}"
+      },
+      {
+        "key": "liveUpdates.local",
+        "title": "Live updates: local engines",
+        "description": "Whether open Pulse views read local engines again on their own. Default: on.",
+        "type": "string",
+        "enum": ["default", "on", "off"],
+        "enumLabels": ["Default", "On", "Off"],
+        "default": "default"
+      },
+      {
+        "key": "liveUpdates.test",
+        "title": "Live updates: test engines",
+        "description": "Whether open Pulse views read test engines again on their own. Default: on.",
+        "type": "string",
+        "enum": ["default", "on", "off"],
+        "enumLabels": ["Default", "On", "Off"],
+        "default": "default"
+      },
+      {
+        "key": "liveUpdates.production",
+        "title": "Live updates: production engines",
+        "description": "Whether open Pulse views read production engines again on their own. Default: off.",
+        "type": "string",
+        "enum": ["default", "on", "off"],
+        "enumLabels": ["Default", "On", "Off"],
+        "default": "default"
+      },
+      {
+        "key": "liveUpdates.unclassified",
+        "title": "Live updates: unclassified engines",
+        "description": "Whether open Pulse views read unclassified engines again on their own. Default: off.",
+        "type": "string",
+        "enum": ["default", "on", "off"],
+        "enumLabels": ["Default", "On", "Off"],
+        "default": "default"
+      }
+    ],
+    "commands": [
+      {
+        "id": "pulse.refresh",
+        "title": "Pulse: Refresh engines"
+      },
+      {
+        "id": "pulse.openEngineOverview",
+        "title": "Pulse: Open engine overview"
+      },
+      {
+        "id": "pulse.switchEngine",
+        "title": "Pulse: Switch to the next engine"
+      },
+      {
+        "id": "pulse.configureEngines",
+        "title": "Pulse: Configure engines"
+      }
+    ],
+    "statusBarItems": [
+      {
+        "id": "engine",
+        "icon": "database",
+        "text": "Pulse",
+        "tooltip": "Pulse",
+        "command": "pulse.openEngineOverview"
+      }
+    ],
+    "events": [
+      {
+        "on": "workspace.changed"
+      }
+    ],
+    "hooks": [
+      {
+        "event": "editor.save.before"
+      }
+    ]
+  },
+  "capabilities": [
+    {
+      "kind": "secrets:own"
+    },
+    {
+      "kind": "settings:own"
+    },
+    {
+      "kind": "storage:own"
+    },
+    {
+      "kind": "workspace:read"
+    },
+    {
+      "kind": "workspace:write"
+    },
+    {
+      "kind": "notifications:show"
+    }
+  ]
+}

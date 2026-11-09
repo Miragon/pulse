@@ -15,12 +15,12 @@ import { REPO_ROOT } from "./source-scan.mjs"
  * same name, which every wiring of the transport runs.
  */
 
-const SURFACES = ["apps/mcp-server", "apps/cli", "apps/vscode"]
+const SURFACES = ["apps/mcp-server", "apps/cli", "packages/connectors/engine/engine-adapter"]
 
 const CASE_FILES = [
   "apps/mcp-server/test/engine-goldens/error-cases.ts",
   "apps/cli/test/support/error-cases.ts",
-  "apps/vscode/test/adapters/c7/goldens/error-cases.ts",
+  "packages/connectors/engine/engine-adapter/test/goldens/error-cases.ts",
 ]
 
 /** The files of the transport's conformance cases, one per group. */

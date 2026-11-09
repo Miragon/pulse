@@ -25,10 +25,11 @@ Libraries considered:
 
 ## Decision
 
-### Two ports and one seam in the contract layer
+### Two ports and one seam in the runtime view's ports
 
-`apps/vscode/src/contract/model/local-sources.ts` holds the neutral read models,
-`apps/vscode/src/contract/ports/` the ports:
+`packages/core/runtime-view/src/ports/local-sources.ts` holds the neutral read models,
+`packages/core/runtime-view/src/ports/` the ports (not in the engine contract, engine-core: they
+ask the workspace, not an engine):
 
 | Port             | Method                                    | Answer                                                                                                  |
 | ---------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------- |
@@ -44,7 +45,7 @@ Libraries considered:
 a job type. These ports are no engine questions, so the conformance kit does not cover
 them.
 
-### One adapter package: `apps/vscode/src/model`
+### One adapter package: `packages/core/runtime-view/src/model`
 
 The only package with the moddle libraries (and, should they be published one day, the
 bpmn-modeler libraries). It is not called `adapter-*`, because every `adapter-*` package
@@ -120,7 +121,7 @@ The extension declares no `extensionDependencies` (`manifest.test.ts` checks it)
 
 - dependency-cruiser's `model-libraries-stay-in-the-model-adapter` refuses
   `bpmn-moddle`, its descriptors and `@miragon/bpmn-modeler*` outside
-  `apps/vscode/src/model`; a planted import in the tree
+  `packages/core/runtime-view/src/model`; a planted import in the tree
   `apps/vscode/test/architecture/dependency-rules.test.ts` builds proves it bites. The cruiser no
   longer excludes every `dist/` folder, only our own build output, because libraries such as
   `bpmn-moddle` resolve into `node_modules/<lib>/dist/` and were invisible to every rule.

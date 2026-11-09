@@ -36,7 +36,7 @@ What they found:
 ### Format
 
 `.pulse/boards/<name>.board.json`, anywhere in the workspace, read by `BoardParser`
-(`apps/vscode/src/core/boards`) and validated by hand, unlike `.pulse.json`, which
+(`packages/core/runtime-view/src/core/boards`) and validated by hand, unlike `.pulse.json`, which
 `@miragon/pulse-profile` parses. Every problem names its JSON path and reason. `schemaVersion`
 1, `title`, `engines` (profile names of `.pulse.json`, the only engine id the extension has) and
 `rows`, each `{ "row": [...] }` of `{ "widget", "props" }`, the toolkit's layout grammar. The

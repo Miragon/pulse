@@ -1,5 +1,9 @@
 {
   "skillVersion": "1.29.0",
+  "orca": {
+    "folder": "shop",
+    "themes": ["light", "dark"]
+  },
   "products": [
     {
       "id": "pulse",
@@ -13,7 +17,7 @@
         "url": "https://miragon.github.io/pulse/"
       },
       "shots": {
-        "page": "apps/vscode/dev/webview/index.html?fixture=definition&theme=light",
+        "page": "packages/core/runtime-view/dev/webview/index.html?fixture=definition&theme=light",
         "viewport": [1030, 820]
       },
       "recipe": ".miragon/shots/card-recipe.mjs"
@@ -69,10 +73,43 @@
         "url": "https://miragon.github.io/pulse/"
       },
       "shots": {
-        "page": "apps/vscode/dev/webview/index.html?fixture=definition&theme=dark",
+        "page": "packages/core/runtime-view/dev/webview/index.html?fixture=definition&theme=dark",
         "viewport": [1030, 820]
       },
       "recipe": ".miragon/shots/card-recipe.mjs"
+    },
+    {
+      "id": "pulse-orca",
+      "target": "orca",
+      "title": "Pulse",
+      "label": "Miragon AI",
+      "claim": "Your process engines next to your BPMN models, inside Orca.",
+      "out": "apps/orca/images",
+      "orca": {
+        "plugin": "apps/orca/dist",
+        "panel": true,
+        "examples": [
+          {
+            "file": "apps/orca/demo/order-fulfillment.pulse-view"
+          },
+          {
+            "file": "apps/orca/demo/order-fulfillment.bpmn runtime.pulse-view"
+          }
+        ],
+        "files": [
+          {
+            "file": "apps/orca/demo/.pulse.json"
+          },
+          {
+            "file": "apps/orca/demo/.vscode/settings.json",
+            "name": ".vscode/settings.json"
+          },
+          {
+            "file": "apps/orca/demo/processes/order-fulfillment.bpmn",
+            "name": "processes/order-fulfillment.bpmn"
+          }
+        ]
+      }
     }
   ]
 }

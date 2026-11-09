@@ -6,8 +6,8 @@ import globals from "globals"
 // The widget trees: every tree of React views an MCP host renders (the host bundle's src/ui,
 // widget-shell's view half, the connector's widgets). They are excluded from their package's
 // tsconfig.json and typed by the browser-only tsconfig.widgets.json / tsconfig.ui.json projects
-// instead, and the date and number gates (invariant 6) hold all of them, and the VS Code
-// extension's core and webview too (its blocks below carry them in their unions).
+// instead, and the date and number gates (invariant 6) hold all of them, and the runtime view's
+// core and webview too (their blocks below carry them in their unions).
 const CONNECTOR_WIDGETS = ["packages/connectors/engine/engine-connector/src/widgets/**/*.{ts,tsx}"]
 const WIDGET_TREES = [
   "apps/mcp-server/src/ui/**/*.{ts,tsx}",
@@ -74,11 +74,15 @@ export const HTTP_BROWSER_GLOBALS = [
   "Element",
 ]
 
-// The VS Code extension's runtime probes (apps/vscode/test/<layer>/runtime.boundary.ts)
-// expect the globals of their layer to be missing, so apps/vscode/tsconfig.json (the
-// union the editor and the project service use) leaves them out; each is typed by its
-// layer's tsconfig instead.
-const vscodeBoundaryProbes = ["apps/vscode/test/*/runtime.boundary.ts"]
+// The editor hosts and the runtime view they share keep the VS Code extension's house rules.
+const RUNTIME_VIEW = "packages/core/runtime-view"
+const ENGINE_ADAPTER = "packages/connectors/engine/engine-adapter"
+const EDITOR_TREES = `{apps/vscode,apps/orca,${RUNTIME_VIEW},${ENGINE_ADAPTER}}`
+
+// The runtime probes (<package>/test/<layer>/runtime.boundary.ts) expect the globals of their
+// layer to be missing, so the package's tsconfig.json (the union the editor and the project
+// service use) leaves them out; each is typed by its layer's tsconfig instead.
+const editorBoundaryProbes = [`${EDITOR_TREES}/test/*/runtime.boundary.ts`]
 
 // ── Pattern-gate selectors (`no-restricted-syntax`) ─────────────────────────
 
@@ -252,24 +256,30 @@ const widgetHandOffGate = [
   "JSXOpeningElement[name.property.name='AskAiButton']",
 ].map((selector) => ({ selector, message: HAND_OFF_MESSAGE }))
 
-// ── The VS Code extension (apps/vscode): its own house rules ───────────────
-// The extension keeps the stricter rules it was built with (apps/vscode/CLAUDE.md,
+// ── The editor hosts (apps/vscode, apps/orca) and the runtime view they share ──
+// Pulse for VS Code, Pulse for Orca, the runtime view (packages/core/runtime-view) and the
+// Camunda 7 family's adapter (packages/connectors/engine/engine-adapter) keep the stricter
+// rules the extension was built with (apps/vscode/CLAUDE.md,
 // apps/vscode/docs/adr/guardrails.md): no comments (the inline rule below, never
 // switched off inline: noInlineConfig), behaviour in classes, one class per file,
 // budgets (complexity 10, 300 lines, 60 per function, 4 parameters, 20 statements),
 // no engine words in the contract, the core and the webview, no --vscode-* colour in
-// the webview, dates and numbers in the core and the webview through pulse-ui's formatters (the
-// date and number gates of the widget trees). apps/vscode/test/architecture/lint-rules.test.ts
-// lints a probe per rule. The engine family's neutral core, the contract every dialect implements
-// (packages/connectors/engine/engine-core), which left apps/vscode/src/contract for a package of
-// its own, keeps every one of these rules: each block that held it names the package's path next
-// to the extension's (ENGINE_CORE_SRC, ENGINE_CORE_TESTS, and its config files as the
-// extension's own: ENGINE_CORE_CONFIGS). As a package of a family its src also sits under the
-// connector resource gate of the MCP blocks above (packages/connectors/*/*/src), so its
-// no-restricted-syntax blocks carry that gate in their union (no-restricted-syntax is ONE rule:
-// a later block replaces an earlier one's selectors); its engine words say where they belong in
-// its own terms (ENGINE_CORE_WORDS_MESSAGE), since the package is not the extension's. Its src
-// glob names every TypeScript extension, so no file there steps out of the rules by its name.
+// the webview, dates and numbers in the runtime view's core and webview through pulse-ui's
+// formatters (the date and number gates of the widget trees).
+// apps/vscode/test/architecture/lint-rules.test.ts lints a probe per rule. Their
+// no-restricted-syntax blocks name these trees only, so they never replace a selector of the MCP
+// gates above, but for the family packages under packages/connectors/*/*/src, whose blocks carry
+// the connector resource gate in their union. The engine family's neutral core, the contract
+// every dialect implements (packages/connectors/engine/engine-core), which left the extension's
+// contract layer for a package of its own, keeps every one of these rules: each block that held it
+// names the package's path next to the editor trees (ENGINE_CORE_SRC, ENGINE_CORE_TESTS, and its
+// config files as the editor trees' own: ENGINE_CORE_CONFIGS). As a package of a family its src
+// also sits under the connector resource gate of the MCP blocks above (packages/connectors/*/*/src),
+// so its no-restricted-syntax blocks carry that gate in their union (no-restricted-syntax is ONE
+// rule: a later block replaces an earlier one's selectors), as the engine adapter's do; its engine
+// words say where they belong in its own terms (ENGINE_CORE_WORDS_MESSAGE), since the package is
+// not the editor hosts'. Its src glob names every TypeScript extension, so no file there steps out
+// of the rules by its name.
 const ENGINE_CORE_SRC = "packages/connectors/engine/engine-core/src/**/*.{ts,mts,cts,tsx}"
 const ENGINE_CORE_TESTS = "packages/connectors/engine/engine-core/test/**/*.ts"
 const ENGINE_CORE_CONFIGS = "packages/connectors/engine/engine-core/*.ts"
@@ -297,11 +307,11 @@ const vscodeNoComments = {
 const VSCODE_ENGINE_WORDS =
   "camunda|zeebe|operaton|cib ?seven|processDefinitionKey|processInstanceKey|activityId|\\bc[78]\\b"
 const VSCODE_ENGINE_WORDS_MESSAGE =
-  "Engine vocabulary belongs in apps/vscode/src/adapters/<engine> and the composition root. Use the neutral words of the contract here (elementId, definitionId, bpmnProcessId, instanceId)."
+  "Engine vocabulary belongs in packages/connectors/<family>/<family>-adapter and the composition roots. Use the neutral words of the contract here (elementId, definitionId, bpmnProcessId, instanceId)."
 const ENGINE_CORE_WORDS_MESSAGE =
   "Engine vocabulary belongs in a dialect's implementation (its engine adapter, its core), never in the engine family's neutral core, the contract every dialect implements. Use the contract's neutral words (elementId, definitionId, bpmnProcessId, instanceId)."
 const VSCODE_HOST_COLOUR_MESSAGE =
-  "The webview takes no colour from VS Code. Use a Miragon token (--cd-*) from apps/vscode/src/webview/theme instead of a --vscode-* variable."
+  "The webview takes no colour from VS Code. Use a Miragon token (--cd-*) from packages/core/runtime-view/src/webview/theme instead of a --vscode-* variable."
 const VSCODE_CLASS_MESSAGE =
   "Put behaviour in a class: a method of the class that owns the job, or a static method of a utility class named after its topic. See apps/vscode/docs/adr/code-structure.md."
 
@@ -352,6 +362,9 @@ export default tseslint.config(
       // The Miragon docs kit, vendored byte for byte from
       // Miragon/corporate-identity and linted there; check.mjs pins the copy.
       "docs/.vitepress/miragon/**",
+      // Orca's plugin typings, as `orca plugin types` writes them for the Orca release the
+      // plugin is checked against (apps/orca/CLAUDE.md); never edited by hand.
+      "apps/orca/types/**",
     ],
   },
 
@@ -360,7 +373,7 @@ export default tseslint.config(
 
   // Typed linting via the project service for everything the package tsconfigs cover
   {
-    ignores: [...WIDGET_TREES, ...serverTestFiles, ...vscodeBoundaryProbes],
+    ignores: [...WIDGET_TREES, ...serverTestFiles, ...editorBoundaryProbes],
     languageOptions: {
       parserOptions: {
         projectService: {
@@ -401,15 +414,15 @@ export default tseslint.config(
     },
   },
 
-  // The VS Code extension's runtime probes: typed via their layer's tsconfig
+  // The runtime probes of the editor hosts' layers: typed via their layer's tsconfig
   {
-    files: vscodeBoundaryProbes,
+    files: editorBoundaryProbes,
     languageOptions: {
       parserOptions: {
         project: [
-          "apps/vscode/tsconfig.contract.json",
-          "apps/vscode/tsconfig.core.json",
-          "apps/vscode/tsconfig.webview.json",
+          `${RUNTIME_VIEW}/tsconfig.ports.json`,
+          `${RUNTIME_VIEW}/tsconfig.core.json`,
+          `${RUNTIME_VIEW}/tsconfig.webview.json`,
           "apps/vscode/tsconfig.host.json",
         ],
         tsconfigRootDir: import.meta.dirname,
@@ -628,16 +641,21 @@ export default tseslint.config(
     files: ["apps/cli/scripts/**/*.ts"],
     rules: { "no-console": "off" },
   },
-  // ── The VS Code extension (apps/vscode) ─────────────────────────────────
+  // ── The editor hosts (apps/vscode, apps/orca) and the runtime view they share ──
   {
-    files: ["apps/vscode/**/*.{ts,tsx}", ENGINE_CORE_SRC, ENGINE_CORE_TESTS, ENGINE_CORE_CONFIGS],
+    files: [
+      `${EDITOR_TREES}/**/*.{ts,tsx}`,
+      ENGINE_CORE_SRC,
+      ENGINE_CORE_TESTS,
+      ENGINE_CORE_CONFIGS,
+    ],
     extends: [tseslint.configs.strictTypeChecked, tseslint.configs.stylisticTypeChecked],
   },
   // The JS files keep the strict and stylistic rules that need no types. Only their rule
   // sets: the configs' eslint-recommended part switches core checks such as no-undef off,
   // which TypeScript does for TS files but nothing does for JS.
   {
-    files: ["apps/vscode/**/*.{js,mjs,cjs}"],
+    files: [`${EDITOR_TREES}/**/*.{js,mjs,cjs}`],
     extends: [
       tseslint.configs.strict.find(({ name }) => name === "typescript-eslint/strict"),
       tseslint.configs.stylistic.find(({ name }) => name === "typescript-eslint/stylistic"),
@@ -645,7 +663,7 @@ export default tseslint.config(
   },
   {
     files: [
-      "apps/vscode/**/*.{ts,tsx,js,mjs,cjs}",
+      `${EDITOR_TREES}/**/*.{ts,tsx,js,mjs,cjs}`,
       ENGINE_CORE_SRC,
       ENGINE_CORE_TESTS,
       ENGINE_CORE_CONFIGS,
@@ -667,7 +685,10 @@ export default tseslint.config(
   {
     files: [
       "apps/vscode/{src,dev,scripts,sandbox}/**/*.{ts,tsx,js,mjs,cjs}",
-      "apps/vscode/test/webview/harness.tsx",
+      "apps/orca/{src,scripts}/**/*.{ts,tsx,js,mjs,cjs}",
+      `${RUNTIME_VIEW}/{src,dev,scripts}/**/*.{ts,tsx,js,mjs,cjs}`,
+      `${ENGINE_ADAPTER}/src/**/*.{ts,tsx,js,mjs,cjs}`,
+      `${RUNTIME_VIEW}/test/webview/harness.tsx`,
       "apps/vscode/test/smoke/*.cjs",
       ENGINE_CORE_SRC,
     ],
@@ -679,7 +700,11 @@ export default tseslint.config(
     },
   },
   {
-    files: ["apps/vscode/test/**/*.ts", "apps/vscode/test/**/*.test.tsx", ENGINE_CORE_TESTS],
+    files: [
+      `${EDITOR_TREES}/test/**/*.ts`,
+      `${EDITOR_TREES}/test/**/*.test.tsx`,
+      ENGINE_CORE_TESTS,
+    ],
     rules: { "@typescript-eslint/no-non-null-assertion": "off" },
   },
   // engine-core's tests and config files keep the budgets their paths held before the package
@@ -694,27 +719,30 @@ export default tseslint.config(
     rules: { "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }] },
   },
   {
-    files: ["apps/vscode/test/*/runtime.boundary.ts", ENGINE_CORE_PROBE],
+    files: [...editorBoundaryProbes, ENGINE_CORE_PROBE],
     rules: { "pulse-vscode/no-comments": "off" },
   },
   {
-    files: ["apps/vscode/dev/**/*.{ts,tsx}"],
+    files: [`${EDITOR_TREES}/dev/**/*.{ts,tsx}`],
     rules: { "no-console": "off" },
   },
   {
-    files: ["apps/vscode/**/*.{js,mjs}"],
+    files: [`${EDITOR_TREES}/**/*.{js,mjs}`],
     extends: [tseslint.configs.disableTypeChecked],
     languageOptions: { globals: globals.node },
     rules: { "no-console": "off" },
   },
   {
-    files: ["apps/vscode/**/*.cjs"],
+    files: [`${EDITOR_TREES}/**/*.cjs`],
     extends: [tseslint.configs.disableTypeChecked],
     languageOptions: { globals: { ...globals.node, ...globals.mocha }, sourceType: "commonjs" },
     rules: { "@typescript-eslint/no-require-imports": "off" },
   },
+  // Every layer of the runtime view is engine-neutral and keeps behaviour in classes (its ports
+  // take exactly this); the blocks of the core, the model reader, the webview and the host kit
+  // below replace it with their own unions.
   {
-    files: ["apps/vscode/src/contract/**/*.ts"],
+    files: [`${RUNTIME_VIEW}/src/**/*.ts`],
     rules: { "no-restricted-syntax": ["error", ...vscodeNeutralCode, ...vscodeModuleFunctionGate] },
   },
   // engine-core's src: its engine words and module functions, with the connector resource gate
@@ -740,14 +768,21 @@ export default tseslint.config(
     },
   },
   {
-    files: ["apps/vscode/src/adapters/**/*.ts", "apps/vscode/src/model/**/*.ts"],
+    files: [`${RUNTIME_VIEW}/src/model/**/*.ts`],
     rules: { "no-restricted-syntax": ["error", ...vscodeModuleFunctionGate] },
+  },
+  // The engine adapter is a package of a family: the connector resource gate stays in its union.
+  {
+    files: [`${ENGINE_ADAPTER}/src/**/*.ts`],
+    rules: {
+      "no-restricted-syntax": ["error", ...vscodeModuleFunctionGate, ...connectorResourceGate],
+    },
   },
   // The core and the webview format dates and numbers through pulse-ui's foundation
   // (`@miragon/pulse-ui/format`, behind TimeLabels, CountLabels and Labels): the date and number
   // gates of the widget trees join each block's union.
   {
-    files: ["apps/vscode/src/core/**/*.ts"],
+    files: [`${RUNTIME_VIEW}/src/core/**/*.ts`],
     rules: {
       "no-restricted-syntax": [
         "error",
@@ -759,7 +794,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["apps/vscode/src/webview/**/*.ts"],
+    files: [`${RUNTIME_VIEW}/src/webview/**/*.ts`],
     rules: {
       "no-restricted-syntax": [
         "error",
@@ -772,7 +807,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["apps/vscode/src/webview/**/*.tsx"],
+    files: [`${RUNTIME_VIEW}/src/webview/**/*.tsx`],
     rules: {
       "no-restricted-syntax": [
         "error",
@@ -785,23 +820,32 @@ export default tseslint.config(
     },
   },
   {
-    files: ["apps/vscode/src/host/**/*.ts"],
+    files: [
+      "apps/vscode/src/host/**/*.ts",
+      `${RUNTIME_VIEW}/src/host-kit/**/*.ts`,
+      "apps/orca/src/**/*.ts",
+    ],
     rules: {
       "no-restricted-syntax": ["error", ...vscodeHostEngineWords, ...vscodeModuleFunctionGate],
     },
   },
   {
-    files: ["apps/vscode/src/host/composition-root.ts", "apps/vscode/src/host/connections/**"],
+    files: [
+      "apps/vscode/src/host/composition-root.ts",
+      "apps/vscode/src/host/connections/**",
+      `${RUNTIME_VIEW}/src/host-kit/connections/**`,
+      "apps/orca/src/worker/composition-root.ts",
+    ],
     rules: { "no-restricted-syntax": ["error", ...vscodeModuleFunctionGate] },
   },
   {
-    files: ["apps/vscode/src/host/extension.ts"],
+    files: ["apps/vscode/src/host/extension.ts", "apps/orca/src/worker/main.ts"],
     rules: {
       "no-restricted-syntax": ["error", ...vscodeHostEngineWords, ...vscodeEntryFunctionGate],
     },
   },
   {
-    files: ["apps/vscode/src/**/*.{ts,tsx}", ENGINE_CORE_SRC],
+    files: [`${EDITOR_TREES}/src/**/*.{ts,tsx}`, ENGINE_CORE_SRC],
     rules: {
       "max-classes-per-file": ["error", 1],
       "@typescript-eslint/member-ordering": [
@@ -823,7 +867,14 @@ export default tseslint.config(
   // contract). The React Compiler rules of recommended-latest stay off here: they read
   // Preact's mutable refs and diagram handles as React state.
   {
-    files: ["apps/vscode/src/webview/**/*.{ts,tsx}", "apps/vscode/test/webview/**/*.{ts,tsx}"],
+    files: [`${EDITOR_TREES}/**/*.{ts,tsx}`],
+    plugins: { "react-hooks": reactHooks },
+    rules: Object.fromEntries(
+      Object.keys(reactHooks.configs["recommended-latest"].rules).map((rule) => [rule, "off"]),
+    ),
+  },
+  {
+    files: [`${RUNTIME_VIEW}/{src,test}/webview/**/*.{ts,tsx}`],
     plugins: { "react-hooks": reactHooks },
     rules: { "react-hooks/rules-of-hooks": "error" },
   },

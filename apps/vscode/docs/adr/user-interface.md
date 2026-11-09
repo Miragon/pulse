@@ -42,7 +42,7 @@ confronted with runtime data (#1688).
 ### Visual language
 
 - The webview uses only Miragon `--cd-*` tokens (mostly the `--cd-ui-*` roles) from
-  vendored, unchanged token files (`apps/vscode/src/webview/theme/`); no `--vscode-*` colour
+  vendored, unchanged token files (`packages/core/runtime-view/src/webview/theme/`); no `--vscode-*` colour
   (ESLint enforces it). The
   renderer draws with the two light roles plot and text; they are constants that a drift
   test pins to `cd-tokens.generated.json`, so the bundle carries no token map it does not
@@ -56,7 +56,7 @@ confronted with runtime data (#1688).
   (outline), running (blue badge), stale (outline). The tones of a state are Pulse's, the same
   the MCP widgets show: the state labels take theirs from `SITUATION_TONES`
   (`@miragon/pulse-ui/tones`: running info, suspended and ended neutral, an incident danger), and
-  `apps/vscode/test/webview/situation-tones.test.tsx` holds them to that table by their rendered
+  `packages/core/runtime-view/test/webview/situation-tones.test.tsx` holds them to that table by their rendered
   colour, the labels and the incident flag in the light and dark themes with and without high
   contrast, the badges in the light theme: the filled ones keep the palette's full colour under
   white text in every theme. The table tones a state only; the diagram's green path (the elements

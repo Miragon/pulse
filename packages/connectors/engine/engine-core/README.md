@@ -111,22 +111,23 @@ triage, verdicts and which recovery to offer.
 
 ## Who uses it
 
-- Pulse for VS Code speaks it today: its core asks these ports, and its C7 adapter answers them
-  over the Camunda 7 REST API.
+- Pulse for VS Code and Pulse for Orca speak it today: the runtime view they share asks these
+  ports, and their C7 adapter answers them over the Camunda 7 REST API.
 - [`@miragon/pulse-c7-core`](https://www.npmjs.com/package/@miragon/pulse-c7-core), the core of
   that dialect, applies its root-cause rule for the Pulse CLI and the MCP server.
 
 ## The admission rule
 
-A port, read model or rule enters `@miragon/pulse-engine-core` when two dialects answer it with
-the same meaning, proven by the conformance laws on both. It stays narrow: a further rule (the
-verdict, the message signature, durations) moves here only when a second dialect needs it in the
-CLI or the MCP server. Only dialect implementations import it (Pulse for VS Code's contract barrel
-for its adapters, and the `src` of a dialect's core, its main entry alone and never from the
-core's `./testing`: c7-core applies `RootCauses`). A surface reaches it through them; the engine
-connector (although this is its own family's core) or the CLI importing it directly waits until
-it serves a second dialect, an admission decision in review, the case #488 reopens on: a second
-interface needing the same use case with the same rules.
+A port, read model or rule enters `@miragon/pulse-engine-core` when two dialects answer it with the
+same meaning, proven by the conformance laws on both. It stays narrow: a further rule (the verdict,
+the message signature, durations) moves here only when a second dialect needs it in the CLI or the
+MCP server. It is imported where a dialect is implemented (the `src` of a dialect's core, its main
+entry alone and never from the core's `./testing`: c7-core applies `RootCauses`; the C7 adapter of
+the editor hosts) and where the runtime view of Pulse for VS Code and Pulse for Orca reads the
+answers, which keeps no contract of its own. A surface reaches it through them; the engine connector
+(although this is its own family's core) or the CLI importing it directly waits until it serves a
+second dialect, an admission decision in review, the case #488 reopens on: a second interface
+needing the same use case with the same rules.
 
 Two admissions came ahead of their second dialect, by the owner's decision, on the evidence of the
 Camunda 8 adapter's branch (#543):
@@ -167,8 +168,8 @@ The three rules, `RootCauses`, `ValueKinds` and `MoveReasons`, are mutation-test
 the repository (StrykerJS over `src/model/root-causes.ts`, `value-kinds.ts` and `move-reasons.ts`
 against the package's own tests; owner decision 2026-11-09). They are the contract's rules a
 dialect applies: `RootCauses` in all three interfaces of Pulse (the CLI and the MCP server reach it
-through c7-core), `ValueKinds` and `MoveReasons` today in Pulse for VS Code alone, its core and
-its C7 adapter. A surviving mutant is a wrong rule wherever one runs. Nothing else of the package
+through c7-core), `ValueKinds` and `MoveReasons` today in the editor hosts alone, the runtime
+view's core and the C7 adapter. A surviving mutant is a wrong rule wherever one runs. Nothing else of the package
 is mutated. Locally: `pnpm --fail-if-no-match --filter @miragon/pulse-engine-core exec stryker run`.
 
 ### Style

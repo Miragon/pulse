@@ -212,7 +212,7 @@ describe("checkPackageName: connector families", () => {
       const dir = `packages/connectors/engine/${base}`
       assertOne(
         checkPackageName(dir, scoped(dir)),
-        /must end in -connector, -client or -core/,
+        /must end in -connector, -client, -core or -adapter/,
         base,
       )
     }

@@ -9,10 +9,16 @@ import {
   sourceTexts,
 } from "@miragon/pulse-ui/testing"
 import { afterAll, describe, expect, test } from "vitest"
-import { APP_ROOT, PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, REPO_ROOT } from "./support/files.js"
-import { ENGINE_CORE_SOURCES, ENGINE_VOCABULARY_LAYER, WORDED_LAYERS } from "./support/layers.js"
-
-const SOURCES = join(APP_ROOT, "src")
+import { PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, REPO_ROOT } from "./support/files.js"
+import {
+  ENGINE_CORE_SOURCES,
+  HOST_LAYERS,
+  HOST_SOURCES,
+  RUNTIME_VIEW_LAYERS,
+  RUNTIME_VIEW_SOURCES,
+  WEBVIEW,
+  WORDED_LAYERS,
+} from "./support/layers.js"
 
 function wordFindings(root: string): string[] {
   return glossaryFindings(sourceTexts(root), PRODUCT_GLOSSARY.en).map(
@@ -28,15 +34,16 @@ function layersOf(root: string): string[] {
 }
 
 describe("the extension's texts", PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, () => {
-  test("are read in every layer that words what a user sees, the engine adapters aside", () => {
-    expect(layersOf(SOURCES)).toEqual([ENGINE_VOCABULARY_LAYER, ...WORDED_LAYERS].sort())
+  test("are read in every layer of the runtime view and the host, the engine adapter aside", () => {
+    expect(layersOf(RUNTIME_VIEW_SOURCES)).toEqual([...RUNTIME_VIEW_LAYERS].sort())
+    expect(layersOf(HOST_SOURCES)).toEqual([...HOST_LAYERS].sort())
   })
 
-  test.each(WORDED_LAYERS)("in %s use the product's words, never their synonyms", (layer) => {
-    expect(wordFindings(join(SOURCES, layer))).toEqual([])
+  test.each(WORDED_LAYERS)("in %s use the product's words, never their synonyms", (_, layer) => {
+    expect(wordFindings(layer)).toEqual([])
   })
 
-  test("in engine-core, whose contract the extension re-exports, use the product's words too", () => {
+  test("in engine-core, whose contract the runtime view speaks, use the product's words too", () => {
     const contract = join(REPO_ROOT, ENGINE_CORE_SOURCES)
     expect(Object.keys(sourceTexts(contract))).toEqual(
       expect.arrayContaining([expect.stringMatching(/^model\/move-reasons\.ts:/)]),
@@ -45,13 +52,13 @@ describe("the extension's texts", PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, () => {
   })
 
   test("name the counts with the count terms the MCP widgets use", () => {
-    const texts = Object.values(sourceTexts(join(SOURCES, "webview")))
+    const texts = Object.values(sourceTexts(WEBVIEW))
     expect(texts).toContain(COUNT_TERMS.withIncident.en)
     expect(texts).toContain(COUNT_TERMS.incidents.en)
   })
 
   test("name the version scope of the counts over every version, in the overview and the tree", () => {
-    const coreTexts = Object.entries(sourceTexts(join(SOURCES, "core")))
+    const coreTexts = Object.entries(sourceTexts(join(RUNTIME_VIEW_SOURCES, "core")))
     const scoped = (file: string) =>
       coreTexts
         .filter(([key]) => key.startsWith(file))

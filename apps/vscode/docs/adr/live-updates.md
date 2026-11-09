@@ -81,7 +81,7 @@ What they found:
 ### Bulk progress is not a tick
 
 A running bulk operation ([writes.md](writes.md)) is followed by a poll of its own
-(`BulkFollow` in `apps/vscode/src/core/panels`), not by the panel's ticks:
+(`BulkFollow` in `packages/core/runtime-view/src/core/panels`), not by the panel's ticks:
 
 - Cadence 2, 3 and 5 s after the submit (and after a panel picks the run up), then
   every 10 s, on every engine; the setting `pulse.liveUpdates` and the pause button do not
@@ -127,7 +127,7 @@ A running bulk operation ([writes.md](writes.md)) is followed by a poll of its o
 
 ### Where it lives
 
-- `apps/vscode/src/core/refresh`: `RefreshCadence` (intervals, self-throttle, backoff, jitter,
+- `packages/core/runtime-view/src/core/refresh`: `RefreshCadence` (intervals, self-throttle, backoff, jitter,
   history and version ticks), `RefreshLoop` (attention, pause, editor hold, nudge,
   single-flight, status), `EngineLane` (one automatic read per engine, blocked on auth
   failures), `LiveSwitch` (the engine's setting, switched in place), `SharedDefinitions`,

@@ -6,31 +6,33 @@ implements, bundled into the extension), and one adapter per engine family answe
 serves Operaton, CIB seven and Camunda 7 over their REST API, with the c7 family's core and workflow
 domain (`@miragon/pulse-c7-core`, shared with the CLI and the MCP server and bundled into the
 extension) for inspecting an instance, and with the contract's rule for the root cause of a failure
-(`RootCauses`, which c7-core applies too); a new engine is one more adapter folder, proven by the
-contract's conformance kit, and one entry in the composition root.
+(`RootCauses`, which c7-core applies too); a new engine family is one more adapter package, proven
+by the contract's conformance kit, and one entry in each composition root.
 
 ```mermaid
 flowchart LR
   webview["Webview panels (Preact, bpmn-js)"] <--> host["Extension host: wiring, write policy"]
   host --> core["core: panel sessions, view builders"]
-  core --> contract["contract: ports and read models"]
-  contract -- re-exports --> engineCore["@miragon/pulse-engine-core"]
-  c7["adapter c7"] -. implements .-> contract
+  core --> engineCore["@miragon/pulse-engine-core: ports and read models"]
+  c7["C7 adapter"] -. implements .-> engineCore
   c7 --> engines["Operaton, CIB seven, Camunda 7: /engine-rest"]
   c7 -- bundled --> c7core["c7-core: inspect, wait states"]
 ```
 
-The extension is one package with six layers under `apps/vscode/src`, each with its own globals
-and dependency rules:
+The layers live in two packages the extension shares with [Pulse for Orca](../orca/architecture.md),
+each layer with its own globals and dependency rules; `apps/vscode/src/host` is the VS Code
+wiring and the composition root:
 
-| Layer      | Holds                                                   |
-| ---------- | ------------------------------------------------------- |
-| `contract` | the engine contract re-exported, the ports of the IDE   |
-| `core`     | grouping, view models, panel behaviour                  |
-| `webview`  | what the panels draw                                    |
-| `host`     | the VS Code wiring and the composition root             |
-| `adapters` | one folder per engine family (`c7` today)               |
-| `model`    | the local `.bpmn` model and the code that implements it |
+| Package                                     | Layer      | Holds                                                         |
+| ------------------------------------------- | ---------- | ------------------------------------------------------------- |
+| `packages/connectors/engine/engine-core`    |            | the engine contract: ports, read models, conformance laws     |
+| `packages/core/runtime-view`                | `ports`    | the ports of the editor hosts: engine plug, local model       |
+|                                             | `core`     | grouping, view models, panel behaviour                        |
+|                                             | `protocol` | the messages between host and webview                         |
+|                                             | `webview`  | what the panels draw                                          |
+|                                             | `model`    | the local `.bpmn` model and the code that implements it       |
+|                                             | `host-kit` | the host-neutral rules: targets, writes, live updates, logins |
+| `packages/connectors/engine/engine-adapter` | adapter    | the C7 adapter of the contract                                |
 
 The webview stays Preact with its own stylesheets. Its tones come from `@miragon/pulse-ui/tones`
 and its times, durations, counts and short ids from `@miragon/pulse-ui/format`, the parts of

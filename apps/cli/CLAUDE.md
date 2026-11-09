@@ -98,7 +98,8 @@ a key the file holds twice, `settledTwice`) and fails only the command that uses
 flag, a `PULSE_CLI_*` variable). `apps/cli/src/config/profile-fixtures.test.ts` runs every
 fixture of `@miragon/pulse-profile/testing` through both readers and resolves each profile the
 format takes. A change to what a profile may hold changes the package, its schema and a fixture
-in the same commit; the CLI and Pulse for VS Code follow in theirs. The lookup fails (CONFIG) at a
+in the same commit; the CLI and the runtime view's host kit, which Pulse for VS Code and Pulse for
+Orca read their project files through, follow in theirs. The lookup fails (CONFIG) at a
 directory that holds the project file only under its former name (`FORMER_PROJECT_FILE` in
 `apps/cli/src/config/project.ts`, the one place of its code that names it) with a hint to rename
 it, so a command never runs with the user's own default where the repository meant its profiles.

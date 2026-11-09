@@ -1,6 +1,5 @@
-import type { LiveContext } from "../../core/index.js"
-import type { Connection } from "../connections/connection.js"
-import { TimerScheduler } from "./timer-scheduler.js"
+import type { LiveContext } from "@miragon/pulse-runtime-view/core"
+import { type Connection, TimerScheduler } from "@miragon/pulse-runtime-view/host-kit"
 import type { WindowAttention } from "./window-attention.js"
 
 export class LiveWiring {

@@ -8,6 +8,7 @@ import { appendFileSync, readFileSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { expandWorkspaceGlobs, workspaceGlobs } from "./check-package-scripts.mjs"
+import { INTERFACE_PACKAGES } from "./source-scan.mjs"
 
 /** The outputs of the `changes` job. */
 export const SCOPES = [
@@ -18,6 +19,7 @@ export const SCOPES = [
   "cli",
   "vscode",
   "vscode-package",
+  "orca",
   "cibseven-example",
   "brand",
 ]
@@ -85,10 +87,12 @@ export const ALSO_READ_BY = [
 
 export function packageScopes(dir) {
   const scopes = ["typescript"]
-  if (dir.startsWith("packages/")) scopes.push("mcp", "template")
+  const interfacePackage = INTERFACE_PACKAGES.some((name) => dir === `packages/${name}`)
+  if (dir.startsWith("packages/") && !interfacePackage) scopes.push("mcp", "template")
   if (dir === "apps/mcp-server") scopes.push("mcp")
   if (dir === "apps/cli") scopes.push("cli")
   if (dir === "apps/vscode") scopes.push("vscode", "vscode-package")
+  if (dir === "apps/orca") scopes.push("orca")
   return scopes
 }
 

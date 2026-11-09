@@ -1,0 +1,41 @@
+{
+  "name": "@miragon/pulse-engine-adapter",
+  "private": true,
+  "version": "0.27.1",
+  "description": "The Camunda 7 REST API family's adapter of Pulse's runtime view (Operaton, CIB seven, Camunda 7): its REST client and the mapping onto the engine contract of @miragon/pulse-engine-core, over the c7 dialect's workflow domain in @miragon/pulse-c7-core. Bundled by the editor hosts.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Miragon/pulse.git",
+    "directory": "packages/connectors/engine/engine-adapter"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "test:engines": "vitest run --config vitest.engines.config.ts",
+    "golden:update": "turbo run build --filter=@miragon/pulse-engine-adapter^... --output-logs=errors-only && GOLDEN_UPDATE=1 vitest run --project unit --coverage.enabled=false",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.build.json",
+    "lint": "eslint src test",
+    "lint:fix": "eslint src test --fix"
+  },
+  "dependencies": {
+    "@miragon/pulse-c7-core": "workspace:*",
+    "@miragon/pulse-engine-core": "workspace:*",
+    "@miragon/pulse-runtime-view": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "@vitest/coverage-v8": "5.1.0",
+    "testcontainers": "12.2.1",
+    "typescript": "6.0.3",
+    "vitest": "5.1.0"
+  }
+}

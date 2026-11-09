@@ -21,10 +21,12 @@ The engine's ports are interfaces of the engine contract, the package
 `@miragon/pulse-engine-core` (`packages/connectors/engine/engine-core/src/ports`); what they
 exchange lives in `packages/connectors/engine/engine-core/src/model`. It is the shared language of
 the dialects, a package of its own since 2026-11-09 and the core of the engine family, the neutral
-layer above the dialects (owner decisions 2026-11-08 and 2026-11-09); the extension's contract
-layer (`apps/vscode/src/contract`) re-exports it next to the ports of the IDE, so the core, the
-adapters and the host import one entry. Adapters implement the
-ports with classes ([code-structure.md](code-structure.md)).
+layer above the dialects (owner decisions 2026-11-08 and 2026-11-09), and the one contract of the
+runtime view both editor hosts run (owner decision 2026-11-09 on #585): the runtime view's ports,
+core, model reader and host kit, the C7 adapter and the hosts import it directly, and the ports
+only the editor hosts need (`EngineAdapter`, the local ports) live in the runtime view's
+`packages/core/runtime-view/src/ports`. Adapters implement the ports with classes
+([code-structure.md](code-structure.md)).
 
 `ProcessRuntime` (`ports/process-runtime.ts`) has one method per
 engine question:
@@ -67,9 +69,9 @@ connection without write access simply has none ([writes.md](writes.md)):
 | `migrateInstances`  | Migrate the given instances with a `MigrationPlan` as one asynchronous bulk operation of kind `migrateInstances`; ended and unknown ids are skipped, nothing left to migrate is `rejected` ([migrations.md](migrations.md))                                                                                                                                                                                                            |
 | `stopBulkOperation` | Halt a bulk operation: it stops running and soon cancels nothing more; what is done stays done; stopping an ended one resolves, an unknown one is `rejected`                                                                                                                                                                                                                                                                           |
 
-`EngineAdapter` (`apps/vscode/src/contract/ports/engine-adapter.ts`, in the extension, not in the
-package: connections, credentials and web UI links are the IDE's business) is the plug every
-engine family provides:
+`EngineAdapter` (`packages/core/runtime-view/src/ports/engine-adapter.ts`, in the runtime view, not
+in engine-core: connections, credentials and web UI links are the editor hosts' business) is the
+plug every engine family provides:
 given an `EngineConnection` (endpoint and credentials) it returns a `ProcessRuntime` and,
 when the family can write, `ProcessCommands`. `webUi(webUiUrl)` takes the configured URL
 of the engine's web UI and, when it fits the family's web UI, returns an `EngineWebUi`:
@@ -82,7 +84,7 @@ one adapter per engine kind of a target and is the only place that chooses betwe
 
 ### Local sources
 
-Next to the engine ports the extension's contract layer holds `ModelSource` and `CodeLocator`, the ports for
+Next to it the runtime view's ports hold `ModelSource` and `CodeLocator`, the ports for
 the local `.bpmn` file and the code that implements an element, and the `WorkspaceFiles`
 seam they read through. They are no engine questions: the model adapter implements them
 for any workspace, and the conformance kit does not cover them

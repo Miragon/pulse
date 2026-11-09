@@ -9,7 +9,9 @@ CHANGELOG.md
 # tools/list goldens: written byte-exact by the golden helper (JSON.stringify,
 # 2 spaces) under GOLDEN_UPDATE=1; Prettier would re-wrap their arrays and
 # the next update would fight it. Reviewed as JSON diffs, never hand-edited.
+# The C7 adapter's error-path goldens moved with its tests into its package.
 apps/*/test/__golden__/
+packages/connectors/engine/engine-adapter/test/__golden__/
 
 # Vite dev-server cache of the docs site (git-ignored via Vite's own nested
 # .gitignore, which Prettier does not read)
@@ -27,13 +29,14 @@ docs/.vitepress/miragon/
 # (packages/connectors/c7/c7-core/scripts/files.ts).
 packages/connectors/c7/c7-core/spec/
 
-# The VS Code extension (apps/vscode): the Miragon tokens of its webview, vendored byte for
-# byte from Miragon/corporate-identity and pinned by their manifest (the token drift test in
-# packages/core/ui/src/theme/token-drift.test.ts), and the screenshot index
-# scripts/screenshots/screenshots.mjs writes.
-apps/vscode/src/webview/theme/
+# The runtime view the editor hosts share (packages/core/runtime-view): the Miragon tokens of its
+# webview, vendored byte for byte from Miragon/corporate-identity and pinned by their manifest (the
+# token drift test in packages/core/ui/src/theme/token-drift.test.ts), and the screenshot index
+# the VS Code extension's scripts/screenshots/screenshots.mjs writes.
+packages/core/runtime-view/src/webview/theme/
 apps/vscode/docs/screenshots/README.md
 
 # pulse-ui (packages/core/ui): the Miragon tokens every view ships, vendored byte for byte and
 # pinned by their manifest (the token drift test in packages/core/ui/src/theme/token-drift.test.ts).
 packages/core/ui/src/tokens/
+apps/orca/types/

@@ -22,12 +22,12 @@ visible responsibility per file.
 
 | Where                                              | What                                                                                                                                                     |
 | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `packages/connectors/engine/engine-core/src/ports` | `ProcessRuntime` (read), `ProcessCommands` (write): the engine contract, re-exported by `apps/vscode/src/contract`                                       |
+| `packages/connectors/engine/engine-core/src/ports` | `ProcessRuntime` (read), `ProcessCommands` (write): the engine contract, which the runtime view and the adapters import                                  |
 | `packages/connectors/engine/engine-core/src/model` | what the ports exchange: ids, read models, queries, `RuntimeError`, value kinds                                                                          |
-| `apps/vscode/src/contract/ports`                   | `EngineAdapter` (one per engine family: turns a connection into a runtime and, if it can, commands) and the local ports                                  |
-| `apps/vscode/src/adapters/<engine>`                | `class <Engine>Adapter implements EngineAdapter`, `class <Engine>ProcessRuntime implements ProcessRuntime`, `class <Engine>ProcessCommands implements …` |
+| `packages/core/runtime-view/src/ports`             | `EngineAdapter` (one per engine family: turns a connection into a runtime and, if it can, commands) and the local ports                                  |
+| `packages/connectors/<family>/<family>-adapter`    | `class <Engine>Adapter implements EngineAdapter`, `class <Engine>ProcessRuntime implements ProcessRuntime`, `class <Engine>ProcessCommands implements …` |
 | `apps/vscode/src/host`                             | the composition root keeps one `EngineAdapter` per engine kind and hands the core what the active one returns                                            |
-| `apps/vscode/src/core`                             | sees only `ProcessRuntime` and `ProcessCommands`, never an adapter                                                                                       |
+| `packages/core/runtime-view/src/core`              | sees only `ProcessRuntime` and `ProcessCommands`, never an adapter                                                                                       |
 
 ### Classes own behaviour
 
@@ -97,13 +97,14 @@ classDiagram
 
 ### Enforcement
 
-ESLint, configured in the `apps/vscode` blocks of the repository's `eslint.config.mjs` and
-proven in `apps/vscode/test/architecture/lint-rules.test.ts`:
+ESLint, configured in the blocks of the editor trees (the hosts, the runtime view, the adapter) of
+the repository's `eslint.config.mjs` and proven in
+`apps/vscode/test/architecture/lint-rules.test.ts`:
 
 - `no-restricted-syntax` rejects module-level function declarations and functions
-  assigned to module-level constants in shipped code (`apps/vscode/src`), with the
-  exceptions above, in every layer: `contract`, `core`, `webview`, the adapters, `model`
-  and `host`;
+  assigned to module-level constants in shipped code (the `src` of the hosts, the runtime view
+  and the adapter), with the exceptions above, in every layer: `ports`, `core`, `webview`, the
+  adapter, `model`, `host-kit` and `host`, and in engine-core;
 - `max-classes-per-file: 1`;
 - `@typescript-eslint/member-ordering`: fields, constructor, public before private
   methods;
@@ -111,7 +112,7 @@ proven in `apps/vscode/test/architecture/lint-rules.test.ts`:
 
 The rules were switched on package by package while the code moved to classes; since the
 move into the monorepo they hold for every layer. In the webview, helpers of components are static utility
-classes (`JsonText` and `TimeLabels` in `apps/vscode/src/webview/format`, `VariableEditorText` next to its screen), and a file that
+classes (`JsonText` and `TimeLabels` in `packages/core/runtime-view/src/webview/format`, `VariableEditorText` next to its screen), and a file that
 holds a Preact context and its hook is a `.tsx` file. In the extension, every command
 is a class implementing `Command` (`id`, `run`) that `CommandRegistrar` registers;
 `PulseExtension` wires VS Code, `CompositionRoot` wires the engines, and the panel

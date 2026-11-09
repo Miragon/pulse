@@ -1,14 +1,16 @@
+import type { ProcessCommands, ProcessRuntime } from "@miragon/pulse-engine-core"
 import type {
   EngineAdapter,
   EngineConnection,
   EngineWebUi,
-  ProcessCommands,
-  ProcessRuntime,
-} from "../../src/contract/index.js"
+} from "@miragon/pulse-runtime-view/ports"
 import { describe, expect, test } from "vitest"
 import { CompositionRoot } from "../../src/host/composition-root.js"
-import type { Credentials } from "../../src/host/connections/connection.js"
-import { LOCAL_TARGET, type EngineTarget } from "../../src/host/connections/engine-target.js"
+import {
+  type Credentials,
+  LOCAL_TARGET,
+  type EngineTarget,
+} from "@miragon/pulse-runtime-view/host-kit"
 
 const NO_LOGIN: Credentials = { kind: "none" }
 const LOGIN: Credentials = { kind: "basic", username: "demo", password: "demo" }

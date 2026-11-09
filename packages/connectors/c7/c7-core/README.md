@@ -129,8 +129,8 @@ package.
   the engine module that serves every dialect, runs it as the MCP tools
   `engine_inspect_process_instance` and `engine_status`, and builds its cockpit's failure clusters
   and health verdict from the same rules.
-- Pulse for VS Code bundles it in its C7 adapter: an instance's panel reads through
-  `loadInstance`.
+- Pulse for VS Code and Pulse for Orca bundle it in their C7 adapter: an instance's panel reads
+  through `loadInstance`.
 
 ## Testing helpers
 

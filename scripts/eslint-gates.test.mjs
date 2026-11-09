@@ -75,20 +75,21 @@ const WIDGET_TREE_PATHS = [APP_UI, WS, `${ENGINE_CONNECTOR_SRC_DIR}/widgets`].fl
   `${dir}/__probe__.tsx`,
 ])
 /**
- * The VS Code extension's core and webview: they format through pulse-ui's foundation
- * (`@miragon/pulse-ui/format`), so the date and number gates join their own blocks' unions.
+ * The runtime view's core and webview, which Pulse for VS Code and Pulse for Orca host: they
+ * format through pulse-ui's foundation (`@miragon/pulse-ui/format`), so the date and number
+ * gates join their own blocks' unions.
  */
 const VSCODE_FORMAT_PATHS = [
-  "apps/vscode/src/core/views/__probe__.ts",
-  "apps/vscode/src/webview/format/__probe__.ts",
-  "apps/vscode/src/webview/screens/__probe__.tsx",
+  "packages/core/runtime-view/src/core/views/__probe__.ts",
+  "packages/core/runtime-view/src/webview/format/__probe__.ts",
+  "packages/core/runtime-view/src/webview/screens/__probe__.tsx",
 ]
 /** Every tree the date gate holds. */
 const DATE_PATHS = [...WIDGET_TREE_PATHS, ...VSCODE_FORMAT_PATHS]
 /** The number gate's probes: pulse-ui's code, every widget tree and the VS Code extension's. */
 const NUMBER_PATHS = [`${UI}/__probe__.ts`, `${UI}/__probe__.tsx`, ...DATE_PATHS]
 
-describe("date gate (invariant 6) in every widget tree and the VS Code core and webview", () => {
+describe("date gate (invariant 6) in every widget tree and the runtime view's core and webview", () => {
   it("catches Intl.DateTimeFormat and Intl.RelativeTimeFormat (new and called), toLocaleDateString and toLocaleTimeString", async () => {
     const code = [
       'new Intl.DateTimeFormat("de", opts).format(d)',
@@ -109,7 +110,9 @@ describe("date gate (invariant 6) in every widget tree and the VS Code core and 
       const messages = await gateMessages(rel, code)
       assert.equal(messages.filter(isDateHit).length, 1, rel)
       assert.ok(
-        messages.some((m) => m.includes("Engine vocabulary belongs in apps/vscode/src/adapters")),
+        messages.some((m) =>
+          m.includes("Engine vocabulary belongs in packages/connectors/<family>/<family>-adapter"),
+        ),
         rel,
       )
     }
@@ -186,8 +189,8 @@ describe("number gate (invariant 6) in pulse-ui and every widget tree", () => {
       `${UI}/format/format.test.ts`,
       `${UI}/format/duration.ts`,
       `${UI}/format/dates.ts`,
-      "apps/vscode/src/webview/format/count-labels.ts",
-      "apps/vscode/src/core/views/labels.ts",
+      "packages/core/runtime-view/src/webview/format/count-labels.ts",
+      "packages/core/runtime-view/src/core/views/labels.ts",
     ]) {
       const messages = await gateMessages(rel, 'new Intl.NumberFormat("en").format(n)')
       assert.equal(messages.filter(isNumberHit).length, 1, rel)
@@ -506,8 +509,9 @@ describe("connector resource gate (invariant 3): a connector's views belong in t
     `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.ts`,
     "packages/connectors/c7/c7-client/src/__probe__.ts",
     "packages/connectors/newfamily/newfamily-connector/src/__probe__.ts",
-    // engine-core's src, where the blocks of Pulse for VS Code's house rules carry the gate in
-    // their union, the id constructors' block too.
+    // engine-core's src and the engine adapter's, where the blocks of Pulse for VS Code's house
+    // rules carry the gate in their union, the id constructors' block too.
+    "packages/connectors/engine/engine-adapter/src/__probe__.ts",
     "packages/connectors/engine/engine-core/src/__probe__.ts",
     "packages/connectors/engine/engine-core/src/testing/fake/__probe__.ts",
     "packages/connectors/engine/engine-core/src/model/ids.ts",
@@ -871,7 +875,7 @@ describe("type-safety rules: errors everywhere, require-await off in the MCP tre
     "apps/cli/src/util.ts",
     "packages/connectors/c7/c7-core/src/index.ts",
     "packages/connectors/engine/engine-core/src/index.ts",
-    "apps/vscode/src/core/boards/board-filters.ts",
+    "packages/core/runtime-view/src/core/boards/board-filters.ts",
   ]
 
   it("reports every type-safety rule as an error, in the MCP trees and the strict ones", async () => {

@@ -22,8 +22,10 @@ command does not fill fails the case after two seconds and names the count to se
 
 Never edit a golden by hand. An intended change runs
 `pnpm --fail-if-no-match --filter @miragon/pulse-cli golden:update` (refused in CI) and commits
-the diff. The MCP server (`apps/mcp-server/test/__golden__/error-paths`) and Pulse for VS Code
-(`apps/vscode/test/__golden__/error-paths`) pin the same cases under the same names.
+the diff. The MCP server (`apps/mcp-server/test/__golden__/error-paths`) and the C7 adapter of
+Pulse for VS Code and Pulse for Orca
+(`packages/connectors/engine/engine-adapter/test/__golden__/error-paths`) pin the same cases under
+the same names.
 
 The network codes (ECONNREFUSED, ENOTFOUND, DEPTH_ZERO_SELF_SIGNED_CERT) come from Node, not from
 the CLI; they are checked with Node 22.23.4 (CI runs the newest Node 22) and 24.15.0. `dns-failure`

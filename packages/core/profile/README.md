@@ -5,10 +5,10 @@
 [![Docs](https://img.shields.io/badge/docs-miragon.github.io%2Fpulse-335DE5?style=flat-square)](https://miragon.github.io/pulse/)
 
 One profile format for the engines Pulse reaches: the file a repository shares with its team, the
-config file of the [Pulse CLI](https://www.npmjs.com/package/@miragon/pulse-cli), the project
-files Pulse for VS Code finds in a workspace and the profiles of a Pulse MCP server. This package
-holds the format: a parser that takes the text of a profile file and returns a verdict per
-profile as data, the JSON Schema for your editor, and the shared fixtures every reader tests
+config file of the [Pulse CLI](https://www.npmjs.com/package/@miragon/pulse-cli), the project files
+Pulse for VS Code and Pulse for Orca find in a workspace and the profiles of a Pulse MCP server.
+This package holds the format: a parser that takes the text of a profile file and returns a verdict
+per profile as data, the JSON Schema for your editor, and the shared fixtures every reader tests
 against. So a profile means the same in every Pulse client, and each refuses the same mistakes.
 
 ## What it is not
@@ -124,7 +124,7 @@ The rules are mutation-tested every night in the repository (StrykerJS over `src
 tests, `index.ts` and the testing helpers, against the package's own tests; owner decision
 2026-11-07): the parser, the URL, header and credential rules, the secret variable prefix, what a
 reader cannot serve and the sentences of `describeProblem`, which the package's tests pin word for
-word. They decide which secrets, variables and URLs the CLI, Pulse for VS Code and the MCP server
+word. They decide which secrets, variables and URLs the CLI, the editor hosts and the MCP server
 accept, so a surviving mutant is a wrong rule in all three. StrykerJS mutates nothing under an
 `as`, so the `as const` tables of `types.ts` (the keys, auth types, flavors and problem codes) are
 held by the tests alone. Locally:

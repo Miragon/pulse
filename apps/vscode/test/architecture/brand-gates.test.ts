@@ -3,11 +3,9 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { CI_ICON_SIZES, scanColors, scanGlyphs, scanIconSizes } from "@miragon/pulse-ui/testing"
 import { afterAll, describe, expect, test } from "vitest"
-import { APP_ROOT, PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, REPO_ROOT } from "./support/files.js"
-import { ENGINE_CORE_SOURCES, WORDED_LAYERS } from "./support/layers.js"
+import { PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, REPO_ROOT } from "./support/files.js"
+import { ENGINE_CORE_SOURCES, WEBVIEW, WORDED_LAYERS } from "./support/layers.js"
 
-const SOURCES = join(APP_ROOT, "src")
-const WEBVIEW = join(SOURCES, "webview")
 const DENSE_ICON_SIZE = 12
 const RENDERER_PAINT = "diagram/canvas-roles.ts"
 
@@ -49,12 +47,12 @@ describe(
   () => {
     test.each(WORDED_LAYERS)(
       "its texts in %s draw no glyph, emoji or sparkle as an icon",
-      (layer) => {
-        expect(scanGlyphs(join(SOURCES, layer))).toEqual([])
+      (_, layer) => {
+        expect(scanGlyphs(layer)).toEqual([])
       },
     )
 
-    test("the texts of engine-core, whose contract the extension re-exports, draw no glyph either", () => {
+    test("the texts of engine-core, whose contract the runtime view speaks, draw no glyph either", () => {
       expect(scanGlyphs(join(REPO_ROOT, ENGINE_CORE_SOURCES))).toEqual([])
     })
 

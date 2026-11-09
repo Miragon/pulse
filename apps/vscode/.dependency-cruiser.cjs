@@ -1,40 +1,25 @@
 const APP = "^apps/vscode/"
 const TEST_CODE = `[.]test[.](tsx?|cjs)$|${APP}test/`
 const TOOLING = `${APP}(scripts|dev)/`
-const CONTRACT_ENTRY = `${APP}src/contract/index[.]ts$`
+const RUNTIME_VIEW = "(^|/)node_modules/@miragon/pulse-runtime-view/"
+const LAYER_ENTRIES = `${RUNTIME_VIEW}dist/(ports|core|core/protocol|host-kit)/index[.]d[.]ts$`
+const MODEL_ENTRY = `${RUNTIME_VIEW}dist/model/index[.]d[.]ts$`
+const ADAPTER_ENTRY = "(^|/)node_modules/@miragon/pulse-[^/]+-adapter/dist/index[.]d[.]ts$"
 const ENGINE_CORE_ENTRY = "(^|/)node_modules/@miragon/pulse-engine-core/dist/index[.]d[.]ts$"
-const CORE_ENTRY = `${APP}src/core/index[.]ts$`
-const PROTOCOL_ENTRY = `${APP}src/core/protocol/index[.]ts$`
-const ADAPTER_ENTRY = `${APP}src/adapters/[^/]+/index[.]ts$`
-const ENGINE_TEST = "[.]engine[.]test[.]ts$"
-const CONFORMANCE_KIT = "(^|/)node_modules/@miragon/pulse-engine-core/dist/testing/index[.]d[.]ts$"
 const ENGINE_CORE_TREE = "^packages/connectors/engine/engine-core/"
-const WEBVIEW_LIBRARIES =
-  "(^|/)node_modules/(preact|bpmn-js|diagram-js|@miragon/modeler-shell|@fontsource-variable/[^/]+)/"
+const DIALECT_PACKAGES =
+  "(^|/)node_modules/@miragon/pulse-(?!engine-core/)[^/]+-(core|client|connector)/|^@miragon/pulse-(?!engine-core(/|$))[^/]+-(core|client|connector)(/|$)|^packages/connectors/(?!engine/engine-core/)[^/]+/[^/]+-(core|client|connector)/"
 const EXTENSION_LIBRARIES = "(^|/)node_modules/@miragon/modeler-shell/"
-const MODEL_ADAPTER = `${APP}src/model/`
-const MODEL_ADAPTER_ENTRY = `${APP}src/model/index[.]ts$`
-const C7_ADAPTER_AND_TESTS = `${APP}(src|test)/adapters/c7/`
-const C7_CORE =
-  "(^|/)node_modules/@miragon/pulse-c7-core/|^@miragon/pulse-c7-core(/|$)|^packages/connectors/c7/c7-core/"
-const C7_CORE_ENTRY = "(^|/)node_modules/@miragon/pulse-c7-core/dist/index[.]d[.]ts$"
-const PROFILE_ENTRY = "(^|/)node_modules/@miragon/pulse-profile/dist/index[.]d[.]ts$"
-const PULSE_UI = "(^|/)node_modules/@miragon/pulse-ui/|^@miragon/pulse-ui(/|$)|^packages/core/ui/"
-const UI_FOUNDATION =
-  "(^|/)node_modules/@miragon/pulse-ui/dist/(format|tones)/|^@miragon/pulse-ui/(format|tones)$"
-const UI_TONES_ENTRY = "(^|/)node_modules/@miragon/pulse-ui/dist/tones/index[.]d[.]ts$"
-const UI_FORMAT_ENTRY = "(^|/)node_modules/@miragon/pulse-ui/dist/format/index[.]d[.]ts$"
-const LABEL_HELPERS = `${APP}src/(core/views/labels[.]ts$|webview/format/)`
 const MODEL_LIBRARIES =
-  "(^|/)node_modules/(bpmn-moddle|camunda-bpmn-moddle|zeebe-bpmn-moddle|@miragon/bpmn-modeler[^/]*)/"
+  "(^|/)node_modules/(bpmn-moddle|camunda-bpmn-moddle|zeebe-bpmn-moddle|@miragon/bpmn-modeler[^/]*)/|^(bpmn-moddle|camunda-bpmn-moddle|zeebe-bpmn-moddle|@miragon/bpmn-modeler[^/]*)(/|$)"
 
 module.exports = {
   allowedSeverity: "error",
   allowed: [
     {
-      comment: "A layer may use its own modules.",
-      from: { path: `${APP}src/(contract|core|webview|model|host|adapters/[^/]+)/` },
-      to: { path: `${APP}src/$1/` },
+      comment: "The host may use its own modules.",
+      from: { path: `${APP}src/host/` },
+      to: { path: `${APP}src/host/` },
     },
     {
       comment: "Tests and tooling may use anything.",
@@ -43,64 +28,15 @@ module.exports = {
     },
     {
       comment:
-        "The contract re-exports @miragon/pulse-engine-core, the neutral core of the engine family (its main entry: the contract every dialect implements, the ports, read models and failure kinds every dialect answers in), which esbuild bundles into the extension, next to the ports of the IDE; the other layers reach it only through the contract's index.ts.",
-      from: { path: `${APP}src/contract/` },
-      to: { path: ENGINE_CORE_ENTRY },
-    },
-    {
-      comment: "The core depends only on the contract.",
-      from: { path: `${APP}src/core/` },
-      to: { path: CONTRACT_ENTRY },
-    },
-    {
-      comment: "Adapters depend only on the contract.",
-      from: { path: `${APP}src/adapters/[^/]+/` },
-      to: { path: CONTRACT_ENTRY },
-    },
-    {
-      comment:
-        "The C7 adapter runs the core of the Camunda 7 REST dialect family c7 (@miragon/pulse-c7-core, its main entry: the workflow domain), which esbuild bundles into the extension.",
-      from: { path: `${APP}src/adapters/c7/` },
-      to: { path: C7_CORE_ENTRY },
-    },
-    {
-      comment:
-        "The model adapter depends on the contract and reads models with the moddle libraries.",
-      from: { path: `${APP}src/model/` },
-      to: { path: [CONTRACT_ENTRY, MODEL_LIBRARIES] },
-    },
-    {
-      comment: "The webview renders protocol view models and nothing else of ours.",
-      from: { path: `${APP}src/webview/` },
-      to: { path: PROTOCOL_ENTRY, dependencyTypes: ["type-only"] },
-    },
-    {
-      comment:
-        "The core and the webview read Pulse's tones (@miragon/pulse-ui/tones: framework-free, it imports nothing), which esbuild bundles into the extension.",
-      from: { path: `${APP}src/(core|webview)/` },
-      to: { path: UI_TONES_ENTRY },
-    },
-    {
-      comment:
-        "Only the label helpers read Pulse's formatters (@miragon/pulse-ui/format: framework-free, it imports nothing): Labels in the core and the webview's format folder set their locale before they format, so no output depends on the machine's.",
-      from: { path: LABEL_HELPERS },
-      to: { path: UI_FORMAT_ENTRY },
-    },
-    {
-      comment: "The webview may use its rendering libraries.",
-      from: { path: `${APP}src/webview/` },
-      to: { path: WEBVIEW_LIBRARIES },
-    },
-    {
-      comment: "The extension host wires the core, the protocol and the contract into VS Code.",
+        "The extension host wires the runtime view's ports, core, protocol and host kit into VS Code.",
       from: { path: `${APP}src/host/` },
-      to: { path: [CORE_ENTRY, PROTOCOL_ENTRY, CONTRACT_ENTRY, EXTENSION_LIBRARIES, "^vscode$"] },
+      to: { path: [LAYER_ENTRIES, EXTENSION_LIBRARIES, "^vscode$"] },
     },
     {
       comment:
-        "The connections of the extension host read the project files with Pulse's profile format (@miragon/pulse-profile, its main entry: the parser, the surface rules and the wording, no runtime dependency), which esbuild bundles into the extension.",
-      from: { path: `${APP}src/host/connections/` },
-      to: { path: PROFILE_ENTRY },
+        "The extension host names the contract's ids and read models from @miragon/pulse-engine-core, the neutral core of the engine family (its main entry), which esbuild bundles into the extension.",
+      from: { path: `${APP}src/host/` },
+      to: { path: ENGINE_CORE_ENTRY },
     },
     {
       comment: "The extension host may use Node built-ins.",
@@ -110,7 +46,7 @@ module.exports = {
     {
       comment: "Only the composition root knows the engine adapters and the model adapter.",
       from: { path: `${APP}src/host/composition-root[.]ts$` },
-      to: { path: [ADAPTER_ENTRY, MODEL_ADAPTER_ENTRY] },
+      to: { path: [ADAPTER_ENTRY, MODEL_ENTRY] },
     },
   ],
   forbidden: [
@@ -118,7 +54,7 @@ module.exports = {
       name: "not-in-allowed",
       severity: "error",
       comment:
-        "No entry of `allowed` in apps/vscode/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md). A layer uses its own modules and another layer only through its index.ts: the contract re-exports the main entry of @miragon/pulse-engine-core, the engine family's neutral core (never ./testing), core and adapters reach the contract, the C7 adapter also @miragon/pulse-c7-core's main entry (never a subpath), core and webview also @miragon/pulse-ui/tones and their label helpers (core/views/labels.ts, webview/format/) @miragon/pulse-ui/format, the model adapter the contract and the moddle libraries, the webview protocol types and its rendering libraries, the host core, protocol, contract, vscode, modeler-shell and Node built-ins, the host's connections also @miragon/pulse-profile's main entry, and only the host's composition root the engine adapters and the model adapter.",
+        "No entry of `allowed` in apps/vscode/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md). The host uses its own modules, the runtime view (@miragon/pulse-runtime-view) through the entries of its ports, core, protocol and host kit, the main entry of @miragon/pulse-engine-core (never ./testing), vscode, modeler-shell and Node built-ins, and only its composition root the engine adapters (@miragon/pulse-<family>-adapter) and the model adapter (@miragon/pulse-runtime-view/model).",
       from: {},
       to: { path: "^$" },
     },
@@ -134,41 +70,25 @@ module.exports = {
       name: "model-libraries-stay-in-the-model-adapter",
       severity: "error",
       comment:
-        "BPMN model libraries (bpmn-moddle, its vendor descriptors, bpmn-modeler libs) belong in apps/vscode/src/model only. Read what you need through the ModelSource or CodeLocator port of the contract instead.",
-      from: { pathNot: [MODEL_ADAPTER, "(^|/)node_modules/"] },
+        "BPMN model libraries (bpmn-moddle, its vendor descriptors, bpmn-modeler libs) belong in packages/core/runtime-view/src/model only. Read what you need through the ModelSource or CodeLocator port instead.",
+      from: { pathNot: "(^|/)node_modules/" },
       to: { path: MODEL_LIBRARIES },
     },
     {
-      name: "c7-core-only-in-the-c7-adapter",
+      name: "extension-is-dialect-neutral",
       severity: "error",
       comment:
-        "@miragon/pulse-c7-core is the core of the Camunda 7 REST dialect family c7, its workflow domain: only apps/vscode/src/adapters/c7 and its tests in apps/vscode/test/adapters/c7 import it. The contract, the core, the webview, the host, the model adapter and other adapters stay engine-neutral; read what you need through a port of the contract.",
-      from: { pathNot: [C7_ADAPTER_AND_TESTS, "(^|/)node_modules/"] },
-      to: { path: C7_CORE },
+        "The extension speaks the engine contract of @miragon/pulse-engine-core only: no dialect's core (such as @miragon/pulse-c7-core, the workflow domain of the Camunda 7 REST API), client or connector. Only the family's adapter (packages/connectors/<family>/<family>-adapter) runs its dialect, and the composition root wires it in.",
+      from: { pathNot: "(^|/)node_modules/" },
+      to: { path: DIALECT_PACKAGES },
     },
     {
       name: "engine-core-only-by-its-entries",
       severity: "error",
       comment:
-        "Import @miragon/pulse-engine-core, the neutral core of the engine family, by its package entries (the main entry in apps/vscode/src/contract, ./testing in tests and the dev host), never a file of packages/connectors/engine/engine-core by path, its source or its build: the barrel loads the package's build, so a module reached by path is a second copy of the contract, and RuntimeError.is and instanceof no longer recognise an error of the other copy.",
+        "Import @miragon/pulse-engine-core, the neutral core of the engine family, by its package entries (the main entry in the host, ./testing in tests and the dev host), never a file of packages/connectors/engine/engine-core by path, its source or its build: the entries load the package's build, so a module reached by path is a second copy of the contract, and RuntimeError.is and instanceof no longer recognise an error of the other copy.",
       from: { pathNot: "(^|/)node_modules/" },
       to: { path: ENGINE_CORE_TREE },
-    },
-    {
-      name: "pulse-ui-only-its-foundation",
-      severity: "error",
-      comment:
-        "The extension shares Pulse's UI foundation, not its React kit: shipped code imports @miragon/pulse-ui only as @miragon/pulse-ui/format and @miragon/pulse-ui/tones (in the core and the webview), never its root (React, Radix, Tailwind classes), its stylesheets or ./testing, and never a file of it by path. Format through the extension's TimeLabels, CountLabels and Labels, draw a tone with the webview's own CSS classes; tests may import @miragon/pulse-ui/testing.",
-      from: { pathNot: [TEST_CODE, TOOLING, "(^|/)node_modules/"] },
-      to: { path: PULSE_UI, pathNot: UI_FOUNDATION },
-    },
-    {
-      name: "protocol-imports-nothing",
-      severity: "error",
-      comment:
-        "The protocol holds JSON-only message and view-model types shared by host and webview. Keep it free of imports outside apps/vscode/src/core/protocol.",
-      from: { path: `${APP}src/core/protocol/` },
-      to: { pathNot: `${APP}src/core/protocol/` },
     },
     {
       name: "src-not-to-dev-dependencies",
@@ -187,29 +107,11 @@ module.exports = {
       to: { dependencyTypes: ["npm-no-pkg", "npm-unknown"] },
     },
     {
-      name: "adapter-proven-on-an-engine",
-      severity: "error",
-      comment:
-        "This engine adapter is not run by any *.engine.test.ts. Add apps/vscode/test/adapters/<engine>/<engine>-conformance.engine.test.ts that runs new ConformanceKit(test).registerRuntimeLaws(...) from @miragon/pulse-engine-core/testing against the engine or a mock of its API.",
-      from: { path: ENGINE_TEST },
-      to: { path: ADAPTER_ENTRY, reachable: false },
-    },
-    {
       name: "not-to-unresolvable",
       severity: "error",
       comment: "This import cannot be resolved to a file or an installed package.",
       from: {},
       to: { couldNotResolve: true, pathNot: "^vscode$" },
-    },
-  ],
-  required: [
-    {
-      name: "engine-test-runs-the-conformance-kit",
-      severity: "error",
-      comment:
-        "An engine test proves an adapter with the conformance kit. Import ConformanceKit from @miragon/pulse-engine-core/testing and run new ConformanceKit(test).registerRuntimeLaws(...) with the adapter under test.",
-      module: { path: ENGINE_TEST },
-      to: { path: CONFORMANCE_KIT },
     },
   ],
   options: {

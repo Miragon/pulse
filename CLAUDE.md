@@ -38,26 +38,31 @@ Pulse (part of the Miragon AI tool family) is a pnpm + Turbo monorepo that ships
 (built on the official MCP TypeScript SDK, `@modelcontextprotocol/server` with the MCP Apps
 extension `@modelcontextprotocol/ext-apps`, its UI on `@miragon/pulse-ui`) for Camunda 7 / CIB seven BPM operations,
 including interactive React widgets (MCP Apps), plus a
-command line interface (`apps/cli`) and a VS Code extension (`apps/vscode`) for the same engines.
+command line interface (`apps/cli`), a VS Code extension (`apps/vscode`) and an Orca plugin
+(`apps/orca`) for the same engines.
 
-| Path                                           | Contents                                                                                                                                                                                                                                                                                                                                                                                                          |
-| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/mcp-server/`                             | The MCP host: composes plugins, bundles the widget UI, serves HTTP on `:8400`                                                                                                                                                                                                                                                                                                                                     |
-| `apps/cli/`                                    | The CLI (npm `@miragon/pulse-cli`): every REST operation of the engine as a command, generated from its OpenAPI spec, plus the workflow commands; its rules in `apps/cli/CLAUDE.md`                                                                                                                                                                                                                               |
-| `apps/vscode/`                                 | Pulse for VS Code (`pulse-cockpit`, a .vsix): a Preact webview over an engine-neutral core and the contract of `engine-core`, the C7 adapter; its rules in `apps/vscode/CLAUDE.md`                                                                                                                                                                                                                                |
-| `packages/connectors/engine/engine-connector/` | engine module, the one MCP module of every dialect: operations tools, widget tools, widgets                                                                                                                                                                                                                                                                                                                       |
-| `packages/connectors/engine/engine-core/`      | The neutral core of the engine family (npm `@miragon/pulse-engine-core`), the contract every dialect implements: the ports a process engine answers (`ProcessRuntime`, `ProcessCommands`), ids, read models, queries, `RuntimeError`, `RootCauses`; the conformance kit with its laws, its fixed world and the in-memory `FakeEngine` (`/testing`); no runtime dependency, Pulse for VS Code's house rules        |
-| `packages/connectors/c7/c7-client/`            | The SDK of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-client`): the REST SDK generated from c7-core's one spec (`src/generated/`), `createEngineClient` over the `fetch` it is handed and the SDK-bound reads (`src/sdk-reads/`); a leaf                                                                                                                                                        |
-| `packages/connectors/c7/c7-core/`              | The core of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-core`), its workflow domain and pure engine REST rules: port, selection, inspect, status triage, the root cause of an incident (`causeOf`), retry/advance plans, dates, filters, variable writes, the one spec and its routes (`routeOf`, `intentOf`, `./routes`); one runtime dependency, engine-core's main entry                      |
-| `packages/core/ui/`                            | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the formatters and the tones without React under `/format` and `/tones`, the brand gates under `/testing`                                                                        |
-| `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), a module's test server (`/testing`)                                                                                                                                                    |
-| `packages/core/profile/`                       | The one profile format of the CLI, Pulse for VS Code and the MCP server (npm `@miragon/pulse-profile`): a parser from a file's text to a verdict per profile as data (a code and a key, never a value), the credential policy by where the file comes from, `refusalsOn` for what a reader cannot serve, the JSON Schema (`schema/pulse.schema.json`) and the shared fixtures (`/testing`); no runtime dependency |
-| `packages/core/http/`                          | The one engine transport of the MCP server, the CLI and Pulse for VS Code (npm `@miragon/pulse-http`) over the `fetch` each hands in (`createHttp`): a deadline to the last byte, no redirect, a 64 MiB cap, one retry after a 401, failure reasons as data, lossless JSON, masked secrets, the path value rule; conformance cases, fake fetch (`/testing`), loopback engine (`/testing/loopback`); no dependency |
-| `playground/`                                  | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                                                                                                                                                                 |
-| `docs/`                                        | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                                                                                                                                                                                                        |
-| `docs/mcp/`                                    | The MCP server's pages of the docs site (getting started, usage, reference, operations, architecture, build your own, developer)                                                                                                                                                                                                                                                                                  |
-| `docs/cli/`                                    | The CLI's pages of the docs site (install, commands, configuration, authentication, AI agents, development)                                                                                                                                                                                                                                                                                                       |
-| `docs/vscode/`                                 | The VS Code extension's pages of the docs site (installation, configuration, usage, architecture, parity with the MCP cockpit)                                                                                                                                                                                                                                                                                    |
+| Path                                           | Contents                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/mcp-server/`                             | The MCP host: composes plugins, bundles the widget UI, serves HTTP on `:8400`                                                                                                                                                                                                                                                                                                                                              |
+| `apps/cli/`                                    | The CLI (npm `@miragon/pulse-cli`): every REST operation of the engine as a command, generated from its OpenAPI spec, plus the workflow commands; its rules in `apps/cli/CLAUDE.md`                                                                                                                                                                                                                                        |
+| `apps/vscode/`                                 | Pulse for VS Code (`pulse-cockpit`, a .vsix): the VS Code host of the runtime view; its rules in `apps/vscode/CLAUDE.md`                                                                                                                                                                                                                                                                                                   |
+| `apps/orca/`                                   | Pulse for Orca (`@miragon/pulse-orca`, an Orca plugin): the Orca host of the runtime view (worker, components panel, custom editors); its rules in `apps/orca/CLAUDE.md`                                                                                                                                                                                                                                                   |
+| `packages/connectors/engine/engine-connector/` | engine module, the one MCP module of every dialect: operations tools, widget tools, widgets                                                                                                                                                                                                                                                                                                                                |
+| `packages/connectors/engine/engine-core/`      | The neutral core of the engine family (npm `@miragon/pulse-engine-core`), the contract every dialect implements: the ports a process engine answers (`ProcessRuntime`, `ProcessCommands`), ids, read models, queries, `RuntimeError`, `RootCauses`; the conformance kit with its laws, its fixed world and the in-memory `FakeEngine` (`/testing`); no runtime dependency, Pulse for VS Code's house rules                 |
+| `packages/connectors/engine/engine-adapter/`   | The C7 adapter of the runtime view (`@miragon/pulse-engine-adapter`, private): its REST client and the mapping onto the contract of `engine-core`, over c7-core; bundled by the editor hosts, it still lives in the engine family                                                                                                                                                                                          |
+| `packages/connectors/c7/c7-client/`            | The SDK of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-client`): the REST SDK generated from c7-core's one spec (`src/generated/`), `createEngineClient` over the `fetch` it is handed and the SDK-bound reads (`src/sdk-reads/`); a leaf                                                                                                                                                                 |
+| `packages/connectors/c7/c7-core/`              | The core of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-core`), its workflow domain and pure engine REST rules: port, selection, inspect, status triage, the root cause of an incident (`causeOf`), retry/advance plans, dates, filters, variable writes, the one spec and its routes (`routeOf`, `intentOf`, `./routes`); one runtime dependency, engine-core's main entry                               |
+| `packages/core/ui/`                            | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the formatters and the tones without React under `/format` and `/tones`, the brand gates under `/testing`                                                                                 |
+| `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), a module's test server (`/testing`)                                                                                                                                                             |
+| `packages/core/runtime-view/`                  | The runtime view both editor hosts compose (`@miragon/pulse-runtime-view`, private) over the contract of `engine-core`: the ports a host and an engine family plug in, the core, the protocol, the Preact webview, the local model reader and the host kit (targets from `.pulse.json`, policies, the write audit)                                                                                                         |
+| `packages/core/profile/`                       | The one profile format of the CLI, the editor hosts and the MCP server (npm `@miragon/pulse-profile`): a parser from a file's text to a verdict per profile as data (a code and a key, never a value), the credential policy by where the file comes from, `refusalsOn` for what a reader cannot serve, the JSON Schema (`schema/pulse.schema.json`) and the shared fixtures (`/testing`); no runtime dependency           |
+| `packages/core/http/`                          | The one engine transport of the MCP server, the CLI and the editor hosts' adapters (npm `@miragon/pulse-http`) over the `fetch` each hands in (`createHttp`): a deadline to the last byte, no redirect, a 64 MiB cap, one retry after a 401, failure reasons as data, lossless JSON, masked secrets, the path value rule; conformance cases, fake fetch (`/testing`), loopback engine (`/testing/loopback`); no dependency |
+| `playground/`                                  | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                                                                                                                                                                          |
+| `docs/`                                        | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                                                                                                                                                                                                                 |
+| `docs/mcp/`                                    | The MCP server's pages of the docs site (getting started, usage, reference, operations, architecture, build your own, developer)                                                                                                                                                                                                                                                                                           |
+| `docs/cli/`                                    | The CLI's pages of the docs site (install, commands, configuration, authentication, AI agents, development)                                                                                                                                                                                                                                                                                                                |
+| `docs/vscode/`                                 | The VS Code extension's pages of the docs site (installation, configuration, usage, architecture, parity with the MCP cockpit)                                                                                                                                                                                                                                                                                             |
+| `docs/orca/`                                   | The Orca plugin's pages of the docs site (installation, configuration, usage, architecture)                                                                                                                                                                                                                                                                                                                                |
 
 Three axes decide where code goes, and they stay apart:
 
@@ -76,26 +81,32 @@ Three axes decide where code goes, and they stay apart:
   implements. A new dialect is a family, never an MCP server app or a module of its own, and
   inherits its gates from the layout.
 - Interface (how a person or an agent reaches an engine): an app under `apps/`, today the
-  MCP server, the CLI (`apps/cli`, rules in `apps/cli/CLAUDE.md`) and the VS Code extension
-  (`apps/vscode`, rules in `apps/vscode/CLAUDE.md`). Another interface (a second editor
-  extension, say) is an app of its own. Apps never import each other, and no package imports
-  an app. An interface's UI belongs to one of two UI families (owner decision 2026-11-08,
+  MCP server, the CLI (`apps/cli`, rules in `apps/cli/CLAUDE.md`) and the two editor hosts,
+  the VS Code extension (`apps/vscode`, rules in `apps/vscode/CLAUDE.md`) and the Orca plugin
+  (`apps/orca`, rules in `apps/orca/CLAUDE.md`). Another interface (a third editor, say) is an
+  app of its own. Apps never import each other, and no package imports an app: what the editor
+  hosts share is the runtime view (`packages/core/runtime-view`) and a dialect's adapter of the
+  engine contract (`packages/connectors/<family>/<family>-adapter`), private packages only they
+  bundle. An interface's UI belongs to one of two UI families (owner decision 2026-11-08,
   `apps/vscode/docs/adr/ui-foundation.md`): React on `@miragon/pulse-ui` and widget-shell (the
-  MCP widgets, a starter's, the web apps of #573) or Preact with its own components (the VS Code
-  webview). They share pulse-ui's framework-free foundation (`/format`, `/tones`, and in tests
-  the glossary, the count words and the brand gates of `/testing`), never a component;
-  `docs/vscode/parity.md` lists what differs between the views both show, and #586 holds when
-  they share building blocks again.
+  MCP widgets, a starter's, the web apps of #573) or Preact with its own components (the runtime
+  view's webview, which both editor hosts show). They share pulse-ui's framework-free foundation
+  (`/format`, `/tones`, and in tests the glossary, the count words and the brand gates of
+  `/testing`), never a component; `docs/vscode/parity.md` lists what differs between the views
+  both show, and #586 holds when they share building blocks again.
 
 A family is one source the MCP server reads, a dialect or another source (a metrics store,
 say), or `engine`, the neutral family above the dialects. Its packages are
 named `<family>-<role>`: `<family>-connector` (the MCP module; a dialect brings none, the
 engine module of the family `engine` serves it), `<family>-client` (the wire:
-SDK, client, the SDK-bound reads) and, when the family's interfaces share a pure domain,
+SDK, client, the SDK-bound reads), when the family's interfaces share a pure domain,
 `<family>-core` (no runtime dependency, but a dialect's core imports engine-core's main entry;
 one port per family, the home of the family's pure rules; extracted on its second consumer, like
-`c7-core`, which the CLI and the VS Code extension's C7 adapter bundle and the engine connector
-runs). A family's tool input
+`c7-core`, which the CLI and the C7 adapter bundle and the engine connector runs) and, when the
+editor hosts read a dialect's engines, `<family>-adapter` (the dialect's implementation of the
+engine contract for the runtime view, proven by engine-core's conformance kit on a real engine;
+today `engine-adapter`, the C7 adapter, which still lives in the engine family and runs c7-core).
+A family's tool input
 schemas live in its connector, next to the tools
 (`packages/connectors/engine/engine-connector/src/schemas/`), so a client carries no zod:
 validating tool input is the connector's concern, and the wire takes typed parameters.
@@ -103,17 +114,24 @@ Family code stays in its family: `packages/core/` holds what every family builds
 widget-shell, the profile format, the transport), never one family's code. The engine family's
 core, `@miragon/pulse-engine-core` (owner decisions 2026-11-08 and 2026-11-09), is the contract
 every dialect implements: the ports, read models, failure kinds and laws a dialect answers in,
-which Pulse for VS Code's C7 adapter speaks today, and the rules every dialect shares
+which the C7 adapter of the editor hosts speaks today, and the rules every dialect shares
 (`RootCauses`). It stays narrow: a further rule (the verdict, the message signature, durations)
 moves there only when a second dialect needs it in the CLI or the MCP server. Its admission rule:
 a port, read model or rule enters `@miragon/pulse-engine-core` when two dialects answer it with
 the same meaning, proven by the conformance laws on both (what the owner admitted ahead of a
-second dialect, its README lists). Only dialect implementations import it (Pulse for VS Code's
-contract barrel for its adapters, and the `src` of a dialect's core, never its `./testing`:
-c7-core applies the root-cause rule `RootCauses`). A surface reaches it through them; the engine
-connector (although engine-core is its own family's core) or the CLI importing it directly waits
-until it serves a second dialect, an admission decision in review, the case #488 reopens on: a
-second interface needing the same use case with the same rules.
+second dialect, its README lists). It is imported where a dialect is implemented (the `src` of a
+dialect's core, never its `./testing`: c7-core applies the root-cause rule `RootCauses`; the src
+of a family's adapter) and where the runtime view reads the contract's answers (owner decision
+2026-11-09 on #585: the runtime view's contract layer became engine-core, the one home of the
+contract): the runtime view's layers that speak it (`src/ports`, `src/core`, `src/model`,
+`src/host-kit`, never its webview) and the editor hosts' src, which name its ids
+(`engine-core-consumers`); `packages/core/runtime-view` importing a family's core is the one edge
+of the foundation into a family, which the owner accepted (`runtime-view-builds-on-the-engine-contract`).
+The ports only the editor hosts need (`EngineAdapter`, the engine's web UI, the local model and
+its code) stay in the runtime view's `src/ports`, never in engine-core. The engine connector
+(although engine-core is its own family's core) or the CLI importing it directly waits until it
+serves a second dialect, an admission decision in review, the case #488 reopens on: a second
+interface needing the same use case with the same rules.
 
 The architecture invariants below are written for the MCP server, its modules and its widgets.
 The package rules of invariant 8 (layout, naming, dependency edges) hold for every workspace
@@ -188,10 +206,11 @@ CI-Release neu vendoren, nie von Hand ändern).
 
 Ein `--cd-*` steht nur in vendorten Kopien, deren Manifest `SANCTIONED_TOKEN_MANIFESTS` freigibt:
 heute die Kopie in pulse-ui (`packages/core/ui/src/tokens/manifest.json`), das Doku-Kit und das
-Theme der VS-Code-Webview (`apps/vscode/src/webview/theme/manifest.json`). Eine weitere Kopie kommt
-mit einem Manifest im Format des Doku-Kits und einem Eintrag dort, nie als Ausnahme im Scan. Ein
-Token, das mehrere Kopien im selben Geltungsbereich setzen (`:root`, Hell, Dunkel), hat in allen
-denselben Wert: Ändert ein CI-Release einen Wert, kommt er in alle Kopien zugleich. Der
+Theme der Webview von VS Code und Orca (`packages/core/runtime-view/src/webview/theme/manifest.json`).
+Eine weitere Kopie kommt mit einem Manifest im Format des Doku-Kits und einem Eintrag dort, nie als
+Ausnahme im Scan. Ein Token, das mehrere Kopien im selben Geltungsbereich setzen (`:root`, Hell,
+Dunkel), hat in allen denselben Wert: Ändert ein CI-Release einen Wert, kommt er in alle Kopien
+zugleich. Der
 Drift-Test ist `packages/core/ui/src/theme/token-drift.test.ts` (mit
 `packages/core/ui/src/theme/vendored-tokens.test-support.ts`); `test:host` prüft das gebaute
 Stylesheet.
@@ -202,9 +221,10 @@ normale Groß- und Kleinschreibung, Fehlermeldungen sagen, was passiert ist und 
 kannst. Englisch übernimmt die übertragbaren Regeln: Sentence case, aktiv, kein Em-Dash als
 Verbinder. `.miragon/brand.json` schaltet den brand-lint-Hook für jede geänderte Datei ein;
 Strings in `.ts`/`.tsx` prüfen die Gates aus `@miragon/pulse-ui/testing` (Invariante 6). Dort
-liegen auch das Produkt-Glossar und die Zählbegriffe; die VS-Code-Erweiterung prüft ihre Texte im
-Code damit (`apps/vscode/test/architecture/product-words.test.ts`) und ihre Webview mit den
-Marken-Gates (`apps/vscode/test/architecture/brand-gates.test.ts`).
+liegen auch das Produkt-Glossar und die Zählbegriffe; die VS-Code-Erweiterung prüft damit die Texte
+der Laufzeitansicht, die sie mit Pulse for Orca teilt, und ihres Hosts
+(`apps/vscode/test/architecture/product-words.test.ts`) und die Webview mit den Marken-Gates
+(`apps/vscode/test/architecture/brand-gates.test.ts`).
 
 ### Abweichungen für eingebettete Chat-Widgets
 
@@ -238,7 +258,8 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 
 ### Abweichung für die VS-Code-Webview
 
-Die Webview der VS-Code-Erweiterung (Preact, eigenes CSS) teilt mit den Widgets das Fundament aus
+Die Webview der VS-Code-Erweiterung, die Pulse for Orca ebenso zeigt (Preact, eigenes CSS, in
+`packages/core/runtime-view`), teilt mit den Widgets das Fundament aus
 pulse-ui, nicht die Komponenten: Töne (`@miragon/pulse-ui/tones`), Formatierer
 (`@miragon/pulse-ui/format`), Tokens mit gleichen Werten, Glossar, Zählbegriffe und Marken-Gates
 (Owner-Entscheidung, `apps/vscode/docs/adr/ui-foundation.md`). Was die beiden Oberflächen
@@ -546,7 +567,7 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      `QueryParamException` or one without an engine answer is a wrong REST root or request and
      fails loud): the client's reads throw every 404 and their callers decide (the connector's
      `isMissingResource`/`noneIfMissing` in `src/lib/core-adapter/engine-port.ts`), the CLI and
-     the VS Code adapter call it. Two copies are left, each held equal by a test: in the leaf
+     the C7 adapter of the editor hosts call it. Two copies are left, each held equal by a test: in the leaf
      client the raw-variable flag (to `RAW_VARIABLES`, the connector's
      `src/sdk-reads.test.ts`), and the CLI's endpoint hint in `apps/cli/src/http/errors.ts`
      (its http layer does not import the core; `apps/cli/src/http/errors.test.ts`) until the CLI
@@ -560,7 +581,7 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      and hands the SDK client its `asFetch` and a `requestValidator` for the path values
      (`src/lib/engine/engine-connection.ts`), and words every failure for the model in one place
      (`src/lib/engine/engine-error.ts`, the wrong-root hint by `isUnknownEndpoint` itself); the
-     CLI and the VS Code extension keep their own until each switches to it.
+     CLI and the C7 adapter of the editor hosts keep their own until each switches to it.
      Every write tool has a
      recording-fake-engine case in `src/tools/*.wire.test.ts`.
    - **One Camunda 7 REST spec** (`packages/connectors/c7/c7-core/spec/api.json`, Operaton's,
@@ -575,7 +596,7 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      sends through `routedTransport` keeps no table of its own: the server's composites go out as
      routes of `CORE_ROUTES` through its client (`src/lib/core-adapter/engine-port.ts`), and the
      intent of each SDK request comes from `@miragon/pulse-c7-core/routes`, so a reading POST
-     never carries the write caveat; the VS Code adapter's `InspectOperations` stays until it
+     never carries the write caveat; the C7 adapter's `InspectOperations` stays until it
      does. The effect rule
      (`packages/connectors/c7/c7-core/scripts/effects.ts`) has one home: the CLI's catalog takes
      each effect from the table.
@@ -613,37 +634,49 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      `packages/connectors/<family>/<family>-core` (the role suffixes `CONNECTOR_ROLES`; the gate
      holds the family name), the foundation packages under `packages/core/` (npm
      `@miragon/pulse-<name>`, no role suffix), apps at `apps/<dir>` (npm
-     `@miragon/pulse-<dir>`); the VS Code extension is `pulse-cockpit` (vsce takes no scope).
+     `@miragon/pulse-<dir>`); the VS Code extension is `pulse-cockpit` (vsce takes no scope);
+     a family package ends in a role of `CONNECTOR_ROLES` (`-connector`, `-client`, `-core`,
+     `-adapter`).
      Rules key on `@miragon/pulse-`, never on bare `@miragon/`, which other Miragon packages
      share. Gate: `scripts/check-package-naming.mjs` (`pnpm lint:naming`).
    - **Dependency edges** (`.dependency-cruiser.cjs`, `pnpm lint:architecture` +
-     `pnpm lint:architecture:cli`; the VS Code extension's own closed-world rules:
-     `apps/vscode/CLAUDE.md`): connectors never import each other, a connector imports only its
+     `pnpm lint:architecture:cli`; the closed-world rules of the editor hosts and of the two
+     packages they share: `apps/vscode/CLAUDE.md`, `apps/orca/CLAUDE.md`): connectors never
+     import each other, a connector imports only its
      own family's client and core (`connectors-own-their-family`) and the engine module also
      those of the dialect families (`engine-connector-spans-the-dialects`, `ENGINE_DIALECTS`:
      `c7`), clients and family cores are leaves (a dialect core's one foreign edge is engine-core's
      main entry), core is the foundation and pulse-ui its leaf, no package or app
      imports an app, no cross-package deep imports. The
-     interface apps import nothing of the MCP/UI/server stack, zod included, and no workspace
-     package except a family core they bundle (`@miragon/pulse-c7-core`: the CLI's, and the
-     VS Code extension's in its C7 adapter alone, `apps/vscode/src/adapters/c7`, and
-     `@miragon/pulse-engine-core`, the VS Code extension's in its contract barrel alone,
-     `apps/vscode/src/contract`), the profile
-     format where they read their profiles (what `profile-consumers` admits; the CLI may bundle
-     it with its core, `CLI_BUNDLES`), the transport where they send their engine requests (what
-     `http-consumers` admits; the CLI may bundle it too) and, in the
-     VS Code extension's core and webview, pulse-ui's framework-free formatters and tones
-     (`@miragon/pulse-ui/format`, `@miragon/pulse-ui/tones`, which import nothing:
-     `ui-foundation-entries-import-nothing`; the extension's `pulse-ui-only-its-foundation`
-     keeps the React kit out; the decision: `apps/vscode/docs/adr/ui-foundation.md`); a family
+     interface apps import nothing of the MCP/UI/server stack, zod included. The CLI imports no
+     workspace package except a family core it bundles (`@miragon/pulse-c7-core`), the profile
+     format where it reads its profiles (what `profile-consumers` admits; it may bundle it with
+     its core, `CLI_BUNDLES`) and the transport where it sends its engine requests (what
+     `http-consumers` admits; it may bundle it too). The editor hosts import only the runtime view
+     and a family's adapter (`runtime-view-consumers`, `adapter-consumers`; their closed worlds
+     let only the composition roots wire the adapter) and of the family cores engine-core's main
+     entry alone, for the contract's ids and read models
+     (`editor-hosts-reach-dialects-through-adapters`). The runtime view
+     (`packages/core/runtime-view`) is foundation code with one edge into a family, the owner's
+     decision of 2026-11-09 on #585: engine-core by its entries
+     (`runtime-view-builds-on-the-engine-contract`); its core and webview import pulse-ui's
+     framework-free formatters and tones (`@miragon/pulse-ui/format`, `@miragon/pulse-ui/tones`,
+     which import nothing: `ui-foundation-entries-import-nothing`; its closed world's
+     `pulse-ui-only-its-foundation` keeps the React kit out; the decision:
+     `apps/vscode/docs/adr/ui-foundation.md`). A family's adapter imports only its own family's
+     core and client, engine-core, the runtime view and the transport
+     (`adapters-own-their-family`); the C7 adapter, which still lives in the engine family
+     (`packages/connectors/engine/engine-adapter`), also the core of the dialect it adapts,
+     c7-core (`engine-adapter-runs-the-c7-dialect`). A family
      core (`family-core-is-a-leaf`) is imported only by its family's connector (a dialect's core
-     by the engine module) and the apps (or the app part) that bundle it
-     (`family-core-consumers`, `CORE_BUNDLERS`); the profile format
+     by the engine module) and adapter, by the adapter that implements its dialect and by the apps
+     that bundle it (`family-core-consumers`, `CORE_BUNDLERS`); the profile format
      (`@miragon/pulse-profile`, `packages/core/profile`) is a leaf as well, which takes the text of
      a profile file and returns a verdict per profile as data, reading no file and no
      environment (`profile-is-a-leaf`), and only the readers of profiles import it: the CLI's
-     config layer, Pulse for VS Code's connections, the engine connector's configuration, and
-     tests (`profile-consumers`, `PROFILE_READERS`; the CLI, Pulse for VS Code and the engine
+     config layer, the connections of the runtime view's host kit (where Pulse for VS Code and
+     Pulse for Orca parse their project files), the engine connector's configuration, and
+     tests (`profile-consumers`, `PROFILE_READERS`; the CLI, the editor hosts and the engine
      connector read their profiles with it, the connector its engines under the credential
      policy `env`: a secret only by the name of an `ENGINE_SECRET_*` variable); the transport (`@miragon/pulse-http`, `packages/core/http`) is a leaf too, which
      runs over an injected `fetch` on the web platform's globals, no npm package and no Node
@@ -652,24 +685,26 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      (`@miragon/pulse-http/testing/loopback`: node:http, node:https and node:crypto alone,
      `http-loopback-only-its-sockets`, a project of its own with Node types; no other module of
      the package reaches it, `http-is-a-leaf`), and only where a surface sends its engine
-     requests is it imported: the CLI's `src/http`, `src/auth` and `src/operation`, Pulse for VS
-     Code's `src/adapters/<dialect>`, a connector's `src/lib/engine` (where the engine connector
-     sends through it, behind `resolveEngine`/`withEngine`; never its tools, data builders or
-     widgets), and tests anywhere, never the MCP server app's shipped code (`http-consumers`,
-     `HTTP_USERS`; until the CLI and the extension switch to it, only their tests may); the
-     engine family's core (`@miragon/pulse-engine-core`,
+     requests is it imported: the CLI's `src/http`, `src/auth` and `src/operation`, the src of a
+     family's adapter of the runtime view, a connector's `src/lib/engine` (where the engine
+     connector sends through it, behind `resolveEngine`/`withEngine`; never its tools, data
+     builders or widgets), and tests anywhere, never the MCP server app's shipped code
+     (`http-consumers`, `HTTP_USERS`; until the CLI and the adapter switch to it, only their
+     tests may); the engine family's core (`@miragon/pulse-engine-core`,
      `packages/connectors/engine/engine-core`) is a family core like any other, importing only its
-     own modules (`family-core-is-a-leaf`), and is imported only where a dialect is implemented:
+     own modules (`family-core-is-a-leaf`), and is imported only where a dialect is implemented,
      the `src` of a dialect's core (`ENGINE_DIALECTS`, never its `./testing` entry), its main
-     entry alone (`family-core-is-a-leaf`; c7-core takes
-     `RootCauses` from it, so the CLI bundles it with c7-core and never imports it), Pulse for
-     VS Code's contract barrel, its tests and its dev host (its closed world holds the last two
-     to the package's entries), and test files anywhere; never the engine connector (although
-     it is its own family's core) or the CLI until they serve a second dialect, another family's
-     core or a `./testing` entry, which ships (`engine-core-consumers`,
-     `ENGINE_CORE_IMPLEMENTERS`), and it keeps the extension's ESLint house rules, its config
-     files included, with the connector resource gate in their union; and no shipped code
-     imports a `./testing` entry (`shipped-code-not-to-testing`).
+     entry alone (`family-core-is-a-leaf`; c7-core takes `RootCauses` from it, so the CLI
+     bundles it with c7-core and never imports it), and the src of a family's adapter
+     (`ENGINE_CORE_IMPLEMENTERS`), where the runtime view reads the contract's answers, its
+     layers `src/ports`, `src/core`, `src/model` and `src/host-kit` (never its webview) and the
+     editor hosts' src (`ENGINE_CORE_READERS`; the closed worlds hold them to the main entry and
+     their tests and dev harnesses to the package's entries), and by test files and the
+     packages' test trees anywhere; never the engine connector (although it is its own family's
+     core) or the CLI until they serve a second dialect, another family's core or a `./testing`
+     entry, which ships (`engine-core-consumers`), and it keeps the extension's ESLint house
+     rules, its config files included, with the connector resource gate in their union; and no
+     shipped code imports a `./testing` entry (`shipped-code-not-to-testing`).
      The family rules key on the roles, so a
      new family inherits them. The seams keep browser code apart from the server: widget-shell's
      view half (`src/ui`) imports only itself, `src/protocol` (the wire both halves share: tool
@@ -841,7 +876,8 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
   `apps/mcp-server/test/engine-goldens/` pins `engine_list_engines`, `engine_status` and
   `engine_inspect_process_instance` as the model reads them, and the CLI's
   `apps/cli/src/cli/goldens/` what `pulse status` and `pulse inspect` print. All three
-  interfaces, Pulse for VS Code in `apps/vscode/test/adapters/c7/goldens/`, also pin one list of
+  interfaces, the C7 adapter of the editor hosts in
+  `packages/connectors/engine/engine-adapter/test/goldens/`, also pin one list of
   failures: redirect, 401 per auth type, wrong root, missing resource, a secret in an engine
   text, deadline, refused, TLS, DNS, size, `€`, `.` and `..`, `//`, token line breaks, integers
   beyond 2^53. Each `__golden__/error-paths/README.md` says per case what is pinned, not
@@ -878,8 +914,9 @@ The release workflows hold the publish credentials and no pull request runs them
 workspace (its header lists each check).
 
 - **One release-please train.** Conventional commits on `main` drive `release-please.yml`: one
-  Release PR (tag `v<version>`) bumps the root, every app, the eight packages, the template's
-  pins and the c7-client User-Agent in lockstep (`extra-files` in `release-please-config.json`).
+  Release PR (tag `v<version>`) bumps the root, every app, the eight packages, the two private
+  packages the editor hosts bundle, the Orca plugin's manifest, the template's pins and the
+  c7-client User-Agent in lockstep (`extra-files` in `release-please-config.json`).
   Merging it creates the release; every publish job then waits for manual approval of the
   `release` environment gate.
 - **npm:** the eight packages and `@miragon/pulse-cli` publish through
@@ -887,7 +924,8 @@ workspace (its header lists each check).
   Each names this repository in its `repository` field, since npm refuses a provenance publish
   from another repository. The pack job runs `pnpm pack`, which rewrites `workspace:*` (npm's
   own pack would ship it verbatim); the one job that holds `id-token: write` runs no package
-  manager. Only the server app and the VS Code extension stay private. The `miragon-ai` names
+  manager. The server app, the two editor hosts and the packages only they bundle (the runtime
+  view, the engine adapter) stay private. The `miragon-ai` names
   used up to 0.20.0 are retired, and so is the npm name of engine-client, the c7 family's client
   up to 0.27 (now `@miragon/pulse-c7-client`); never reuse them. `@miragon/pulse-engine-core`
   held the c7 family's rules up to 0.27 (now `@miragon/pulse-c7-core`) and from 0.28 on is the
@@ -904,6 +942,19 @@ workspace (its header lists each check).
   to the Visual Studio Marketplace and Open VSX from one job in the `vscode-marketplace`
   environment that builds nothing; `VSCE_PUBLISH`/`OVSX_PUBLISH` are handed down by name, never
   `secrets: inherit`.
+- **The Orca plugin ships into Miragon's Orca catalog, never through npm**
+  (`.github/workflows/publish-orca-plugin.yml`): Orca installs a plugin from committed files,
+  pinned to a commit and the hash of its files, so the built folder lives in
+  `Miragon/orca-modelers` (`plugins/pulse-cockpit`, listed as `miragon.pulse-cockpit` in its
+  `orca-catalog.json`), never in this repository. The workflow builds `apps/orca/dist` without
+  credentials, checks it with the CLI of the Orca release CI pins and hands it, with the release
+  tag and the plugin's lines of the changelog (`apps/orca/scripts/release-notes.mjs`), to that
+  repository's `publish-plugin` action, pinned to a commit, with a token of the release-please
+  app. The action admits only what its `sources.json` names (`pulse-cockpit` from
+  `Miragon/pulse`) and merges the folder and the catalog entry through two validated pull
+  requests; the job that holds the token installs nothing. Until `orca-modelers` lists
+  `pulse-cockpit` in its `sources.json`, release-please.yml calls it with `publish: false`: a
+  release builds and checks the plugin and publishes nothing; turning it on is that one line.
 - **The server image** publishes via `publish-to-docker.yml` to
   `ghcr.io/miragon/pulse-server` with the run's `GITHUB_TOKEN`; a reusable workflow gets no
   more than its caller grants, so the `publish-docker` job grants `packages: write` itself.
@@ -917,31 +968,33 @@ workspace (its header lists each check).
 
 ## Verification: what each check actually covers
 
-| Check             | Coverage                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm build`      | turbo `build` everywhere: tsc emit of the packages and server code, the server app's Vite widget bundle (`build:ui`), the CLI's tsdown bundle (`apps/cli/dist`) and the VS Code extension's esbuild bundles; excludes widget `.tsx` type errors in packages                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `pnpm typecheck`  | **The only check that type-checks widget code**: `tsc -p tsconfig.widgets.json` in the engine connector and widget-shell (its view half), `tsc -p tsconfig.ui.json` (and `tsconfig.test.json`) in the server app; the VS Code extension per layer, each with that layer's runtime globals only                                                                                                                                                                                                                                                                                                                                                                                        |
-| `pnpm test`       | Vitest unit tests, the server app's wire-contract tests and tools/list goldens (in-process boot, loopback HTTP), the engine output and error-path goldens of the three interfaces, the VS Code extension's architecture tests, the per-package coverage floors, then `node --test` over `scripts/*.test.mjs` (repo guards and gate self-tests, below the table); docs-refs, old-names and `lint:package-scripts` also run in Lint + Format; **no widget rendering** (the VS Code webview tests render in Chromium; locally once: `pnpm --filter pulse-cockpit exec playwright install chromium`)                                                                                      |
-| `pnpm lint`       | The build-free gates first (`lint:naming`, `lint:package-scripts`, `lint:github`, `lint:ratchets`, which needs `git fetch origin`), then ESLint per package incl. the pattern gates, dependency-cruiser (`lint:architecture`, `:cli`, `:vscode`) and knip (`lint:deadcode`: everything but exports and types; `:exports`: exports and types in every workspace but the vendored docs kit), and last `lint:configs` (the config files no tsconfig holds and no package lints: `DEFAULT_PROJECT_FILES` in `eslint.config.mjs`)                                                                                                                                                          |
-| `pnpm fitness`    | Report: architecture graph, per-package coverage and the mutation scores of c7-core, the transport, engine-core's rules and the profile format; locally after `pnpm test` (no CI job on a pull request), else the "Mutation summary" job of `.github/workflows/mutation-nightly.yml`                                                                                                                                                                                                                                                                                                                                                                                                  |
-| `./gradlew build` | The playground engine (`playground/cibseven-example/`): Kotlin compile + unit tests of its processes; CI "CIB Seven Example (Build + Test)", in `pnpm check:all`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| `test:host`       | `pnpm --filter @miragon/pulse-mcp-server test:host`: Playwright host simulation of the **built** widget bundle behind a SEP-1865 host shim, the real `engine_open_cockpit` against a stub engine (`pinned …` scenarios are known defects, flipped when fixed); CI "Widget host simulation (test:host)"; run it for changes to widget-shell, pulse-ui, `src/ui/` or the `@modelcontextprotocol/ext-apps` pin                                                                                                                                                                                                                                                                           |
-| Template          | `scripts/test-template.sh` (in `pnpm check:all`; CI "Composed-server template (Build + Test)"): packs the published libraries (`scripts/workspace-packages.mjs`), checks their contents (`scripts/pack-contents.mjs`), points a copy of `templates/composed-server` at them and runs its build, typecheck, test and format check, its pins matched to the workspace first (`scripts/template-pins.mjs`), then build, typecheck and test again with the fixture module `templates/fixtures/prebuilt-module` installed (`scripts/prebuilt-module.mjs`). ESLint, knip and dependency-cruiser skip `templates/`: the template's composition-root rules (invariant 8) are review knowledge |
-| Starter engine    | "Starter try-out engine" in `.github/workflows/ci.yml` (scope `starter-engine`: `templates/composed-server/compose.yaml` and the job itself): starts that engine on Linux and checks what a Run tag bump can break (healthy within 240 s, 401 without a login, 200 for demo/demo, invoice and ReviewInvoice deployed), then reaches it from a container on `pulse-starter_default`, the network of the starter's container recipe                                                                                                                                                                                                                                                     |
-| Docker build      | `.github/workflows/docker-build.yml`: plain `docker build` of the root `Dockerfile` (no push) on every PR touching what the build stage copies                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| Engines           | `Engines (<flavor>)` in `.github/workflows/ci.yml`: CIB seven and Operaton in Testcontainers (Camunda 7's image left Docker Hub in November 2026), running the CLI's suites and the VS Code extension's conformance laws (`test:engines`; images pinned in `apps/cli/test/integration/support/engines.ts`); the `Engines` job aggregates the legs                                                                                                                                                                                                                                                                                                                                     |
-| VS Code smoke     | activation, every contributed command and the project file under both names in VS Code stable under Xvfb, `test:smoke` (`.github/workflows/ci.yml`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| VS Code package   | `vsce package` dry run of the production build (`.github/workflows/ci.yml`): bundles in, no sources, maps or node_modules; the webview budget is `pnpm test`'s (`apps/vscode/test/architecture/bundle-budget.test.ts`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| CLI jobs          | `ci.yml` in the `cli` scope: `CLI binary (<target>)` (single executable on Linux x64, macOS arm64, Windows x64), `CLI image (build + smoke)`, `CLI plugin (validate)`, aggregated by `CLI (all checks)`                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| CI scopes         | The `changes` job runs `scripts/ci-scopes.mjs` over a PR's files and every other job runs only in its scope (a skipped job reports success); "Lint + Format" runs on every PR. A new job gets `needs: changes` and a scope; a test that starts reading a file outside its package adds that path to `PATH_RULES` or `ALSO_READ_BY`, unless that path already selects the job that runs the test (a package's code and data files select the TypeScript job)                                                                                                                                                                                                                           |
-| Manual            | `pnpm play` (or the playground + `pnpm dev` with a `.env`), then exercise tools/widgets in the MCP Inspector it starts. The default boot is read-only; write paths need an explicit suffix: `pnpm play --admin`, or `MCP_ACTIVE_MODULES=engine:admin` in `.env`                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Check             | Coverage                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pnpm build`      | turbo `build` everywhere: tsc emit of the packages and server code, the server app's Vite widget bundle (`build:ui`), the CLI's tsdown bundle (`apps/cli/dist`), the declarations of the runtime view and the engine adapter, and the esbuild bundles of the VS Code extension and the Orca plugin (`apps/orca/dist`, the plugin folder); excludes widget `.tsx` type errors in packages                                                                                                                                                                                                                                                                                                                           |
+| `pnpm typecheck`  | **The only check that type-checks widget code**: `tsc -p tsconfig.widgets.json` in the engine connector and widget-shell (its view half), `tsc -p tsconfig.ui.json` (and `tsconfig.test.json`) in the server app; the runtime view per layer (`packages/core/runtime-view/tsconfig.<layer>.json`), the editor hosts per part, each with that part's runtime globals only                                                                                                                                                                                                                                                                                                                                           |
+| `pnpm test`       | Vitest unit tests, the server app's wire-contract tests and tools/list goldens (in-process boot, loopback HTTP), the engine output and error-path goldens of the three interfaces (the CLI, the MCP server and the C7 adapter of the editor hosts), the architecture tests of the editor hosts and the packages they share, the per-package coverage floors, then `node --test` over `scripts/*.test.mjs` (repo guards and gate self-tests, below the table); docs-refs, old-names and `lint:package-scripts` also run in Lint + Format; **no widget rendering** (the runtime view's webview tests render in Chromium; locally once: `pnpm --filter @miragon/pulse-runtime-view exec playwright install chromium`) |
+| `pnpm lint`       | The build-free gates first (`lint:naming`, `lint:package-scripts`, `lint:github`, `lint:ratchets`, which needs `git fetch origin`), then ESLint per package incl. the pattern gates, dependency-cruiser (`lint:architecture`, `:cli`, `:vscode`, `:runtime-view`, `:engine-adapter`, `:orca`) and knip (`lint:deadcode`: everything but exports and types; `:exports`: exports and types in every workspace but the vendored docs kit), and last `lint:configs` (the config files no tsconfig holds and no package lints: `DEFAULT_PROJECT_FILES` in `eslint.config.mjs`)                                                                                                                                          |
+| `pnpm fitness`    | Report: architecture graph, per-package coverage and the mutation scores of c7-core, the transport, engine-core's rules and the profile format; locally after `pnpm test` (no CI job on a pull request), else the "Mutation summary" job of `.github/workflows/mutation-nightly.yml`                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `./gradlew build` | The playground engine (`playground/cibseven-example/`): Kotlin compile + unit tests of its processes; CI "CIB Seven Example (Build + Test)", in `pnpm check:all`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `test:host`       | `pnpm --filter @miragon/pulse-mcp-server test:host`: Playwright host simulation of the **built** widget bundle behind a SEP-1865 host shim, the real `engine_open_cockpit` against a stub engine (`pinned …` scenarios are known defects, flipped when fixed); CI "Widget host simulation (test:host)"; run it for changes to widget-shell, pulse-ui, `src/ui/` or the `@modelcontextprotocol/ext-apps` pin                                                                                                                                                                                                                                                                                                        |
+| Template          | `scripts/test-template.sh` (in `pnpm check:all`; CI "Composed-server template (Build + Test)"): packs the published libraries (`scripts/workspace-packages.mjs`), checks their contents (`scripts/pack-contents.mjs`), points a copy of `templates/composed-server` at them and runs its build, typecheck, test and format check, its pins matched to the workspace first (`scripts/template-pins.mjs`), then build, typecheck and test again with the fixture module `templates/fixtures/prebuilt-module` installed (`scripts/prebuilt-module.mjs`). ESLint, knip and dependency-cruiser skip `templates/`: the template's composition-root rules (invariant 8) are review knowledge                              |
+| Starter engine    | "Starter try-out engine" in `.github/workflows/ci.yml` (scope `starter-engine`: `templates/composed-server/compose.yaml` and the job itself): starts that engine on Linux and checks what a Run tag bump can break (healthy within 240 s, 401 without a login, 200 for demo/demo, invoice and ReviewInvoice deployed), then reaches it from a container on `pulse-starter_default`, the network of the starter's container recipe                                                                                                                                                                                                                                                                                  |
+| Docker build      | `.github/workflows/docker-build.yml`: plain `docker build` of the root `Dockerfile` (no push) on every PR touching what the build stage copies                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Engines           | `Engines (<flavor>)` in `.github/workflows/ci.yml`: CIB seven and Operaton in Testcontainers (Camunda 7's image left Docker Hub in November 2026), running the CLI's suites and the engine adapter's conformance laws (`test:engines`; images pinned in `apps/cli/test/integration/support/engines.ts`); the `Engines` job aggregates the legs                                                                                                                                                                                                                                                                                                                                                                     |
+| VS Code smoke     | activation, every contributed command and the project file under both names in VS Code stable under Xvfb, `test:smoke` (`.github/workflows/ci.yml`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| VS Code package   | `vsce package` dry run of the production build (`.github/workflows/ci.yml`): bundles in, no sources, maps or node_modules; the webview budget is `pnpm test`'s (`apps/vscode/test/architecture/bundle-budget.test.ts`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Orca plugin       | "Orca plugin (validate, check, kit tests)" in `.github/workflows/ci.yml` (scope `orca`): the built plugin folder through the CLI of a pinned Orca release, its .deb checked against the release digest and run on plain Node (`test:orca`: `orca plugin validate` and `orca plugin check`, which renders the panel once with the worker on a mock host and loads each custom editor), then the panel and the worker on that release's `orca/testing` (`test:kit`); locally `test:smoke` drives the installed Orca against the sandbox engines                                                                                                                                                                      |
+| CLI jobs          | `ci.yml` in the `cli` scope: `CLI binary (<target>)` (single executable on Linux x64, macOS arm64, Windows x64), `CLI image (build + smoke)`, `CLI plugin (validate)`, aggregated by `CLI (all checks)`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| CI scopes         | The `changes` job runs `scripts/ci-scopes.mjs` over a PR's files and every other job runs only in its scope (a skipped job reports success); "Lint + Format" runs on every PR. A new job gets `needs: changes` and a scope; a test that starts reading a file outside its package adds that path to `PATH_RULES` or `ALSO_READ_BY`, unless that path already selects the job that runs the test (a package's code and data files select the TypeScript job)                                                                                                                                                                                                                                                        |
+| Manual            | `pnpm play` (or the playground + `pnpm dev` with a `.env`), then exercise tools/widgets in the MCP Inspector it starts. The default boot is read-only; write paths need an explicit suffix: `pnpm play --admin`, or `MCP_ACTIVE_MODULES=engine:admin` in `.env`                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 
 The repo guards `pnpm test` runs over the real tree: docs-refs, old-names, published imports,
 tool-name and hand-off references, server env names, the source scan's `APP_SCAN` and the
 template's pins and shipped module list. Besides the dependency-cruiser and ESLint self-tests
 (invariants 8 and 1), the naming, package-scripts, ratchet, GitHub-config, CI-scope and pack-content checks each prove
-themselves on planted violations in fixtures; the extension's own gates live in
-`apps/vscode/test/architecture`.
+themselves on planted violations in fixtures; the gates of the editor hosts and of the packages
+they share live in the `test/architecture` of `apps/vscode`, `apps/orca`,
+`packages/core/runtime-view` and `packages/connectors/engine/engine-adapter`.
 
 A green `pnpm build && pnpm typecheck && pnpm test && pnpm lint` (`pnpm check` runs them) is the minimum bar for
 every change, in that order (`scripts/published-imports.test.mjs` reads the built CLI bundle);
@@ -953,7 +1006,7 @@ each against the merge base with `origin/main`, and its header lists them: cover
 each `vitest.config.ts` rise (raise one when you better a file); a `stryker.config.json`'s
 `mutate` allowlist (the tested surface; today c7-core's, the transport's, engine-core's three
 rule files and the profile format's) grows and its `thresholds.break` rises; the ESLint budgets
-(complexity 15 and 400 lines; the CLI and the VS Code extension 10 and 300), knip ignores (each
+(complexity 15 and 400 lines; the CLI, the editor hosts and their packages 10 and 300), knip ignores (each
 with its reason), the char and bundle budgets (Contracts) and inline suppressions only shrink;
 gate commands stay as they are; a second config that would shadow a ratcheted one fails. The one
 escape is a `Ratchet-Exception: <reason>` commit trailer, which turns the failures into warnings
@@ -969,16 +1022,16 @@ lists and in no other.
 `@miragon/pulse-engine-core` and `@miragon/pulse-profile`** (owner decisions: c7-core, engine-core
 until 0.27, 2026-11-04; the profile format 2026-11-07; the transport 2026-11-08; engine-core's
 rules 2026-11-09). c7-core holds the pure engine rules of the Camunda 7 REST family, the
-transport the wire rules the CLI, the MCP server and the VS Code extension share, and the profile
-format the rules that decide which secrets, variables and URLs all three accept (its `src`
+transport the wire rules the CLI, the MCP server and the editor hosts share, and the profile
+format the rules that decide which secrets, variables and URLs all of them accept (its `src`
 without the tests, `index.ts` and `testing/`; StrykerJS mutates nothing under an `as`, so only the
 tests hold the `as const` tables of its `types.ts`); engine-core's root-cause, value-kind and
 move-reason rules
 (`packages/connectors/engine/engine-core/src/model/root-causes.ts`, `value-kinds.ts` and
 `move-reasons.ts`, its only mutated files; `RootCauses` was mutated with c7-core until it moved)
 are the contract's rules a dialect applies: `RootCauses` in all three interfaces (the CLI and the
-MCP server reach it through c7-core), `ValueKinds` and `MoveReasons` today in the VS Code
-extension alone (its core and its C7 adapter). A surviving mutant there is a wrong rule
+MCP server reach it through c7-core), `ValueKinds` and `MoveReasons` today in the editor hosts
+alone (the runtime view's core and the C7 adapter). A surviving mutant there is a wrong rule
 everywhere it runs; in every other package a full run costs more than it finds. A package joins
 only by an owner decision, as an entry in `MUTATED_PACKAGES` (`scripts/check-package-scripts.mjs`).
 It runs nightly (`.github/workflows/mutation-nightly.yml`), never on a pull request (owner

@@ -1,10 +1,9 @@
+import { VSCODE_WRITES_WORDING } from "../../src/host/connections/writes-wording.js"
 import { join } from "node:path"
 import { beforeEach, describe, expect, test, vi } from "vitest"
-import { LOCAL_TARGET } from "../../src/host/connections/engine-target.js"
+import { LOCAL_TARGET, TargetsProblem, WritePolicy } from "@miragon/pulse-runtime-view/host-kit"
 import { TargetDiscovery } from "../../src/host/connections/target-discovery.js"
 import { TargetsFile } from "../../src/host/connections/targets-file.js"
-import { TargetsProblem } from "../../src/host/connections/targets-problem.js"
-import { WritePolicy } from "../../src/host/connections/write-policy.js"
 
 const files = vi.hoisted(() => new Map<string, string>())
 
@@ -106,9 +105,9 @@ describe("the project files Pulse reads", () => {
       readOnly: true,
       source: { kind: "file", path: CURRENT_A },
     } as const
-    expect(WritePolicy.access(fromFile, "enabled", { kind: "none" }).note).toBe(
-      `Read-only. local is a read-only profile in ${TargetsFile.NAME}.`,
-    )
+    expect(
+      WritePolicy.access(fromFile, "enabled", { kind: "none" }, VSCODE_WRITES_WORDING).note,
+    ).toBe(`Read-only. local is a read-only profile in ${TargetsFile.NAME}.`)
   })
 
   test("keeps a broken file an error", () => {

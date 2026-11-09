@@ -328,7 +328,7 @@ one kind literal (`BulkOperationKind` in the contract, `BulkKind` in the protoco
 Migration needed three reads besides its write (the proposal, the check and the reasons of
 failed items), because a plan has to be built and checked before it is confirmed; the
 reasons are kind-neutral and serve every bulk write.
-`BulkAction` (`apps/vscode/src/core/panels/bulk-action.ts`: `CancelInstancesAction` and
+`BulkAction` (`packages/core/runtime-view/src/core/panels/bulk-action.ts`: `CancelInstancesAction` and
 `MigrateInstancesAction`) owns
 what differs per kind: which instances are eligible and the filter that finds them, how
 many the scope counts offer, whether it sends a reason, and the port call. Its wording

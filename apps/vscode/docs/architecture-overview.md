@@ -68,9 +68,9 @@ next engine plugs in: one more adapter package and one entry in the composition 
 Pulse reads what an engine is running and shows it next to the models. Writes
 (retry an incident, change a variable) are guarded and audited
 ([writes.md](adr/writes.md)). Each package has a README with its own picture:
-[contract](../src/contract/README.md), [core](../src/core/README.md),
-[webview](../src/webview/README.md), [extension](../src/host/README.md),
-[adapter-c7](../src/adapters/c7/README.md).
+[engine contract](../../../packages/connectors/engine/engine-core/README.md), [ports](../../../packages/core/runtime-view/src/ports/README.md), [core](../../../packages/core/runtime-view/src/core/README.md),
+[webview](../../../packages/core/runtime-view/src/webview/README.md), [extension](../src/host/README.md),
+[adapter-c7](../../../packages/connectors/engine/engine-adapter/src/README.md).
 
 ## 2. Ports and adapters
 
@@ -86,7 +86,7 @@ flowchart LR
   subgraph neutral [Engine-neutral]
     extension[extension: composition root, connections, panel hosts]
     core[core: panels, views, drift]
-    subgraph ports [contract: ports]
+    subgraph ports [ports: engine-core and the runtime view's ports]
       adapterPort{{EngineAdapter: connect}}
       runtime{{ProcessRuntime: read}}
       commands{{ProcessCommands: write}}
@@ -116,9 +116,9 @@ flowchart LR
 - **Contract:** the engine's ports are interfaces of the engine contract
   (`packages/connectors/engine/engine-core/src/ports`, the engine family's core
   `@miragon/pulse-engine-core`); what they exchange are read models
-  (`packages/connectors/engine/engine-core/src/model`). The
-  extension's contract layer (`apps/vscode/src/contract`) re-exports them next to
-  `EngineAdapter` and the local ports. No engine word appears in them.
+  (`packages/connectors/engine/engine-core/src/model`). The runtime view
+  (`packages/core/runtime-view`) imports them directly; its `src/ports` holds `EngineAdapter` and
+  the local ports. No engine word appears in them.
 - **Adapters:** a class per role (`C7ProcessRuntime implements ProcessRuntime`, …). The
   composition root picks the adapter by the target's `engine` and is the only place that
   does.
@@ -130,13 +130,18 @@ flowchart LR
 ```mermaid
 flowchart TB
   extension --> core
-  extension --> contract
-  extension -- composition root only --> adapterC7[adapter-c7]
-  extension -- connections only, bundled --> profile["@miragon/pulse-profile"]
-  contract -- bundled --> engineCore["@miragon/pulse-engine-core"]
-  core --> contract
+  extension --> hostKit[host-kit]
+  extension --> ports[ports]
+  extension -- bundled --> engineCore["@miragon/pulse-engine-core"]
+  extension -- composition root only --> adapterC7[engine-adapter]
+  hostKit -- connections only, bundled --> profile["@miragon/pulse-profile"]
+  hostKit --> core
+  ports --> engineCore
+  core --> ports
+  core --> engineCore
   webview -- types only --> protocol[core/protocol]
-  adapterC7 --> contract
+  adapterC7 --> ports
+  adapterC7 --> engineCore
   adapterC7 -- bundled --> c7Core["@miragon/pulse-c7-core"]
   core -- bundled --> tones["@miragon/pulse-ui/tones"]
   webview -- bundled --> tones
@@ -144,15 +149,18 @@ flowchart TB
   webview -- bundled --> format
 ```
 
-Every import edge not drawn fails `pnpm lint:architecture:vscode` (dependency-cruiser, closed world).
-Four workspace packages reach the extension, and esbuild bundles each. engine-core, the core of
-the engine family, holds the contract every engine dialect implements, the language they answer
-in; the extension's contract layer alone imports and re-exports it (its kit and fake only in tests
-and the dev host). c7-core is the core of
-the Camunda 7 REST dialect family c7, the workflow domain the CLI and the MCP server run too:
+Every import edge not drawn fails the closed world of its package (dependency-cruiser:
+`pnpm lint:architecture:vscode`, `:runtime-view`, `:engine-adapter`). The layers live in the
+runtime view (`packages/core/runtime-view`) and the C7 adapter
+(`packages/connectors/engine/engine-adapter`), which Pulse for Orca hosts too, and esbuild
+bundles each workspace package that reaches the extension. engine-core, the core of the engine
+family, holds the contract every engine dialect implements, the language they answer in, and is
+the runtime view's one contract: its ports, core, model reader and host kit, the adapter and the
+host import its main entry (its kit and fake only in tests and the dev hosts). c7-core is the core
+of the Camunda 7 REST dialect family c7, the workflow domain the CLI and the MCP server run too:
 only the C7 adapter imports it. `@miragon/pulse-profile` is Pulse's profile format, which the CLI
-reads its files with too: only the host's connections import it, through its main entry, to read
-`.pulse.json`. `@miragon/pulse-ui/tones` and `@miragon/pulse-ui/format` are
+reads its files with too: only the host kit's connections import it, through its main entry, to
+read `.pulse.json`. `@miragon/pulse-ui/tones` and `@miragon/pulse-ui/format` are
 Pulse's UI foundation without React: the tone vocabulary and the one tone per situation, and the
 formatters for times, durations, counts and short ids, both as the MCP widgets show them. The
 core and the webview may import the tones, only their label helpers the formatters (they set the

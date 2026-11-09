@@ -2,7 +2,7 @@ import { writeFile } from "node:fs/promises"
 import { resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import * as esbuild from "esbuild"
-import { webviewBuildOptions } from "./webview-build-options.mjs"
+import { webviewBuildOptions } from "@miragon/pulse-runtime-view/webview-build-options"
 
 const here = fileURLToPath(new URL("../", import.meta.url))
 const dist = `${here}dist`

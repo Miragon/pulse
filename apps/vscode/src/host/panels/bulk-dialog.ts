@@ -1,7 +1,6 @@
-import type { BulkAnswer, BulkRequest } from "../../core/index.js"
+import type { BulkAnswer, BulkRequest } from "@miragon/pulse-runtime-view/core"
 import * as vscode from "vscode"
-import type { Confirmation } from "../connections/confirmation-policy.js"
-import { NotificationText } from "../notification-text.js"
+import { type Confirmation, NotificationText } from "@miragon/pulse-runtime-view/host-kit"
 import { WriteDialog, type WriteTargetEngine } from "./write-dialog.js"
 
 const MAX_REASON_LENGTH = 500

@@ -11,7 +11,7 @@
  *   directory is lowercase kebab-case and never repeats the product prefix
  *   ("pulse-"), and no pnpm-workspace.yaml glob reaches another layout.
  * - A connector-family package is named <family>-<role>: its family's directory
- *   name plus a role suffix (CONNECTOR_ROLES: -connector, -client, -core), since
+ *   name plus a role suffix (CONNECTOR_ROLES: -connector, -client, -core, -adapter), since
  *   connectors-own-their-family matches a connector's own client and core by that
  *   name; apps and foundation packages carry no suffix, because the
  *   dependency-cruiser rules match the suffix by name. A family's -core (its pure
@@ -60,7 +60,7 @@ import { expandWorkspaceGlobs, workspaceGlobs } from "./check-package-scripts.mj
  * dependency-cruiser rule (the lockstep test in check-package-naming.test.mjs
  * fails otherwise): add a role there in the same change as here.
  */
-export const CONNECTOR_ROLES = ["connector", "client", "core"]
+export const CONNECTOR_ROLES = ["connector", "client", "core", "adapter"]
 
 /**
  * The only generated/ directories under apps/ or packages/, each with the

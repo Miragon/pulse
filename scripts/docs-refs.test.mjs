@@ -536,6 +536,12 @@ const DOCS_BUDGETS = {
   // Every difference between the MCP cockpit and the webview, a row each: it grows with a
   // feature built on one side and shrinks with one that closes a row.
   "vscode/parity.md": 210,
+  // The Orca plugin's pages (docs/orca/).
+  "orca/index.md": 40,
+  "orca/installation.md": 50,
+  "orca/configuration.md": 50,
+  "orca/usage.md": 60,
+  "orca/architecture.md": 50,
 }
 
 /** A page's budget key: its path under docs/, so docs/index.md and docs/cli/index.md differ. */

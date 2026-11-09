@@ -17,7 +17,10 @@ interface WebviewBuild {
   }) => esbuild.BuildOptions
 }
 
-const BUILD_OPTIONS = new URL("../../scripts/webview-build-options.mjs", import.meta.url).href
+const BUILD_OPTIONS = new URL(
+  "../../node_modules/@miragon/pulse-runtime-view/scripts/webview-build-options.mjs",
+  import.meta.url,
+).href
 
 const outdir = mkdtempSync(join(tmpdir(), "pulse-vscode-webview-"))
 

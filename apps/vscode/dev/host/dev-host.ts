@@ -2,14 +2,14 @@ import { randomUUID } from "node:crypto"
 import { readFile } from "node:fs/promises"
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http"
 import { extname, join } from "node:path"
-import { C7Adapter } from "../../src/adapters/c7/index.js"
+import { C7Adapter } from "@miragon/pulse-engine-adapter"
 import {
   BpmnProcessId,
   DefinitionId,
   InstanceId,
   type ProcessCommands,
   type ProcessRuntime,
-} from "../../src/contract/index.js"
+} from "@miragon/pulse-engine-core"
 import { FakeEngine, FakeWorld } from "@miragon/pulse-engine-core/testing"
 import {
   BulkRuns,
@@ -25,8 +25,8 @@ import {
   type Panel,
   type PanelContext,
   type PanelEffects,
-} from "../../src/core/index.js"
-import { MessageGuards, type EngineBadge } from "../../src/core/protocol/index.js"
+} from "@miragon/pulse-runtime-view/core"
+import { MessageGuards, type EngineBadge } from "@miragon/pulse-runtime-view/protocol"
 import { renderWebviewHtml } from "@miragon/modeler-shell/vscode/extension"
 
 const PORT = Number(process.env.PULSE_DEV_PORT ?? "5180")

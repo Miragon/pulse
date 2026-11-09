@@ -1,7 +1,0 @@
-{
-  // The editor's project for the runtime probe apps/vscode/tsconfig.json leaves out: it expects
-  // the globals tsconfig.contract.json lacks. The contract's own tests moved with it to
-  // packages/connectors/engine/engine-core/test, which keeps a probe of its own.
-  "extends": "../../tsconfig.contract.json",
-  "include": ["runtime.boundary.ts"]
-}

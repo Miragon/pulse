@@ -1,14 +1,14 @@
-import { basename, dirname } from "node:path"
+import { ProjectFile } from "@miragon/pulse-runtime-view/host-kit"
 import * as vscode from "vscode"
 
 export class TargetsFile {
-  static readonly NAME = ".pulse.json"
+  static readonly NAME = ProjectFile.NAME
 
-  static readonly FORMER_NAME = ".pulse-cli.json"
+  static readonly FORMER_NAME = ProjectFile.FORMER_NAME
 
   static readonly GLOB = `**/{${TargetsFile.NAME},${TargetsFile.FORMER_NAME}}`
 
-  static readonly RENAME = `Pulse reads ${TargetsFile.NAME} now. Rename this file to ${TargetsFile.NAME}; its content stays.`
+  static readonly RENAME = ProjectFile.RENAME
 
   static readonly TEMPLATE = `${JSON.stringify(
     { profiles: { local: { url: "http://localhost:8080/engine-rest" } } },
@@ -21,14 +21,11 @@ export class TargetsFile {
   }
 
   static current<File extends { readonly fsPath: string }>(files: readonly File[]): File[] {
-    return files.filter((file) => basename(file.fsPath) === TargetsFile.NAME)
+    return files.filter((file) => ProjectFile.isCurrent(file.fsPath))
   }
 
   static formerOnly<File extends { readonly fsPath: string }>(files: readonly File[]): File[] {
-    const covered = new Set(TargetsFile.current(files).map((file) => dirname(file.fsPath)))
-    return files.filter(
-      (file) =>
-        basename(file.fsPath) === TargetsFile.FORMER_NAME && !covered.has(dirname(file.fsPath)),
-    )
+    const former = new Set(ProjectFile.formerOnly(files.map((file) => file.fsPath)))
+    return files.filter((file) => former.has(file.fsPath))
   }
 }

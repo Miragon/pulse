@@ -1,11 +1,10 @@
 import { FakeEngine, FakeWorld } from "@miragon/pulse-engine-core/testing"
-import { DiagramCache } from "../../src/core/index.js"
+import { DiagramCache } from "@miragon/pulse-runtime-view/core"
 import { ConnectionLive } from "./support/connection-live.js"
 import { describe, expect, test, vi } from "vitest"
 import type { ConnectionPicker } from "../../src/host/commands/connection-picker.js"
 import { OpenEngineOverviewCommand } from "../../src/host/commands/open-engine-overview-command.js"
-import type { Connection } from "../../src/host/connections/connection.js"
-import { LOCAL_TARGET } from "../../src/host/connections/engine-target.js"
+import { type Connection, LOCAL_TARGET } from "@miragon/pulse-runtime-view/host-kit"
 import { FakeRegistry } from "./support/fake-registry.js"
 
 vi.mock("vscode", () => import("./support/vscode-fake.js"))
