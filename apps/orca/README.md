@@ -1,28 +1,61 @@
 # Pulse for Orca
 
+[![CI](https://github.com/Miragon/pulse/actions/workflows/ci.yml/badge.svg)](https://github.com/Miragon/pulse/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/github/license/Miragon/pulse)](../../LICENSE)
 
 ![Miragon AI Pulse: your process engines next to your BPMN models, inside Orca](images/cover.webp)
 
-See what your process engine is running, right next to your BPMN models. In
-[Orca](https://www.onorca.dev), Pulse shows the definitions, instances, incidents and variables
-of your Operaton, CIB seven or Camunda 7 engine, with badges on the deployed diagram, and fixes
-what is stuck once you confirm it.
+An [Orca](https://www.onorca.dev) plugin that shows what your Camunda 7, CIB seven or Operaton
+engine is running, right next to your BPMN models: definitions, instances, incidents and
+variables. It is an early version, and its features can still change. It is not in Orca's plugin
+directory yet: until then you [load it from the source](#install). Pulse also runs in
+[VS Code, your AI chat and your terminal](https://github.com/Miragon/pulse#readme).
 
-Free and open source (MIT). No account and no cloud: Pulse talks only to the engines your project
-names, and writes nothing unless you allow it.
+## Why
 
-**[Open in Orca](https://www.onorca.dev/plugins/miragon/orca-modelers/pulse-cockpit)**
+When an instance gets stuck, you leave the editor for the engine's web UI, search the instance and
+read the stack trace. Pulse brings that view into Orca.
+
+## What you get
+
+- **The runtime on the model.** Running instances and incidents as badges on the deployed
+  diagram, per version, in Orca's editor tabs.
+- **Model and engine side by side.** **Local models** in the Pulse panel lists every `.bpmn` of
+  your project and tells you whether it still matches the deployed version.
+- **The root cause, not the noise.** Open an instance to see its variables, its history and the
+  root cause of an incident.
+- **Safe on real engines.** Retries, variable changes, token moves and migrations run on local
+  engines only until you allow more in the setting **Writes**, always after a confirmation in the
+  Pulse panel that names the engine.
+- **Boards in your repository.** A `.board.json` opens as a board: counts, incident summaries and
+  instance lists across your engines.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/screenshot-orca-dark.webp">
+  <img alt="Orca with Order fulfillment v3 in a Pulse tab: badges for running instances and incidents on the diagram, the instances below, the Pulse panel on the right" src="images/screenshot-orca.webp">
+</picture>
+
+## Install
+
+You need the Orca desktop app, version 1.4.252 or later, and turn on plugins once: Settings →
+Plugins → **Turn on plugins**. Until the plugin is listed in
+[Miragon's Orca catalog](https://github.com/Miragon/orca-modelers), build it from a clone of this
+repository and load it as a development plugin:
+
+```sh
+pnpm install && pnpm build
+orca plugin dev load apps/orca/dist                    # prints the approval command
+orca plugin dev load apps/orca/dist --approve <fingerprint>
+```
+
+Orca shows the access Pulse asks for before it runs: your engines over the network, its own
+secrets for logins, and files in your workspace for its tabs.
 
 ## Get started
 
-1. Turn on plugins in Orca once: Settings → Plugins → **Turn on plugins**.
-2. Open the plugin's page with the link above, or search for **Pulse** in Settings → Plugins, and
-   install it. Orca shows the access Pulse asks for: your engines over the network, its own
-   secrets for logins, and files in your workspace for its tabs. New releases reach you through
-   Orca.
-3. Name your engines in a `.pulse-cli.json` at the root of your project, the same file the
-   [Pulse CLI](https://miragon.github.io/pulse/cli/) reads:
+1. Name your engines in a `.pulse-cli.json` at the root of your project, the project file Pulse
+   shares with the [Pulse CLI](https://miragon.github.io/pulse/cli/); you don't need to install
+   the CLI:
 
    ```json
    {
@@ -32,57 +65,22 @@ names, and writes nothing unless you allow it.
    }
    ```
 
-4. Open the Pulse panel in Orca's right sidebar. Without a project file, Pulse tries an engine on
-   `localhost:8080`.
+2. Open the Pulse panel in Orca's right sidebar: it lists your engines and their processes.
+   Without a project file, Pulse tries an engine on `localhost:8080`.
+3. Open a process from the panel to see its deployed diagram with its badges, or a `.bpmn` under
+   **Local models** to compare it with the engine.
 
-## Incidents on the diagram
+Profiles, credentials, production engines and writes: [Configuration](https://miragon.github.io/pulse/orca/configuration).
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="images/screenshot-orca-dark.webp">
-  <img alt="Orca with Order fulfillment v3 in a Pulse tab: badges for running instances and incidents on the diagram, the instances below, the Pulse panel on the right" src="images/screenshot-orca.webp">
-</picture>
+## Help and feedback
 
-Open a process from the panel, and its deployed diagram shows how many instances wait at each
-step and where incidents are. Below it, the instances with their state; open one to see its
-variables, its history and the root cause of an incident. Tabs refresh on their own while you see
-them.
+- **Documentation:** installation, configuration and usage are explained at [miragon.github.io/pulse/orca](https://miragon.github.io/pulse/orca/).
+- **Bugs and ideas:** found a bug or missing something? [Open an issue](https://github.com/Miragon/pulse/issues).
 
-## Your model against the engine
+## Contributing
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="images/screenshot-orca-2-dark.webp">
-  <img alt="Orca with order-fulfillment.bpmn from the workspace against the deployed v3, the diagram with its badges and the Pulse panel listing the engine's processes" src="images/screenshot-orca-2.webp">
-</picture>
+How the plugin is built, tested and released is in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-**Local models** in the panel lists every `.bpmn` of your project. Open one, and you see the
-runtime data of the version it deploys, and whether your file still matches it.
+## License
 
-## Fix what is stuck
-
-Retry incidents, change variables, move tokens, cancel and migrate instances. Each write waits
-for your confirmation in the Pulse panel, with the engine, the instances and what changes. By
-default, Pulse writes only to engines on your machine; the setting **Writes** allows more. Every
-write lands in the plugin's log.
-
-## Boards
-
-A `.board.json` opens as a board: counters, incident summaries and instance lists across your
-engines, refreshed while you look at them. **Boards** in the panel creates one.
-
-## Good to know
-
-- Needs the Orca desktop app, version 1.4.252 or later.
-- Each tab is a small file in `.pulse/views/` next to your project file, which Git ignores.
-- Logins live in Orca's secret storage, in your operating system's key store.
-- Also available for [VS Code](https://miragon.github.io/pulse/vscode/), as a
-  [command line tool](https://miragon.github.io/pulse/cli/) and as an
-  [MCP server](https://miragon.github.io/pulse/mcp/) for your AI chat.
-
-## Links
-
-[Docs](https://miragon.github.io/pulse/orca/) · [Changelog](../../CHANGELOG.md) ·
-[Report an issue](https://github.com/Miragon/pulse/issues) ·
-[Source and contributing](CLAUDE.md) ·
-[All Miragon plugins for Orca](https://github.com/Miragon/orca-modelers)
-
-Made by [Miragon](https://www.miragon.io). MIT licence.
+[MIT](../../LICENSE) © Miragon GmbH
