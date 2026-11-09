@@ -7,7 +7,7 @@
 [![CI](https://github.com/Miragon/pulse/actions/workflows/ci.yml/badge.svg)](https://github.com/Miragon/pulse/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/github/license/Miragon/pulse)](LICENSE)
 
-![Pulse by Miragon AI: your process engine in your AI chat, your terminal and VS Code. The card shows pulse status finding four incidents at Charge payment with their root cause, and pulse retry resolving one](docs/assets/listing/pulse/cover.png)
+![Pulse by Miragon AI: your process engine in your AI chat, your terminal and VS Code. The card shows the deployed Order fulfillment process with instance and incident counts on its tasks, and its running instances](docs/assets/listing/pulse/cover.png)
 
 Pulse shows you why a process instance on your Camunda 7, CIB seven or Operaton engine is stuck,
 and lets you fix it from your AI chat, your terminal or VS Code. Below 1.0: pin the version

@@ -4,7 +4,7 @@
 [![Open VSX](https://img.shields.io/open-vsx/v/miragon-gmbh/pulse-cockpit?label=Open%20VSX)](https://open-vsx.org/extension/miragon-gmbh/pulse-cockpit)
 [![License: MIT](https://img.shields.io/github/license/Miragon/pulse)](https://github.com/Miragon/pulse/blob/main/apps/vscode/LICENSE)
 
-![Pulse for VS Code by Miragon AI, early: the runtime of your process engine, right next to your BPMN models](/docs/assets/listing/vscode/cover.png)
+![Pulse for VS Code by Miragon AI, early: the runtime of your process engine, right next to your BPMN models. The card shows the deployed Order fulfillment process with instance and incident counts on its tasks, and its running instances](/docs/assets/listing/vscode/cover.png)
 
 See what your Camunda 7, CIB seven or Operaton engine is running, right next to your BPMN models:
 the deployed diagram with its instances and incidents, the root cause of a failure next to your

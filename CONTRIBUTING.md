@@ -58,6 +58,13 @@ packages, the CLI (npm, binaries, image, Homebrew `miragon/tap/pulse-cli`), the 
 
 The banners of the READMEs come from the `product-shots` skill of
 [Miragon/corporate-identity](https://github.com/Miragon/corporate-identity), described in
-[`.miragon/product-shots.json`](.miragon/product-shots.json): the cover of each product shows a part
-of the docs site's landing demo, picked by the journeys in `.miragon/shots/`. Run the skill's `listing.mjs` from the repository root to render
-them again after the landing or the skill changed.
+[`.miragon/product-shots.json`](.miragon/product-shots.json). The CLI card shows the terminal of
+the docs site's landing demo (journey `.miragon/shots/landing-terminal.mjs`); the Pulse and VS Code
+cards show the extension's webview from its dev page (light and dark), the MCP card the incident
+view (`.miragon/shots/card-recipe.mjs`, at twice the card's size so it stays sharp). Render them again
+from the repository root after the views or the skill changed:
+
+```bash
+node apps/vscode/dev/webview/serve.mjs --build   # the webview dev page the VS Code card loads
+node "<product-shots skill>/scripts/listing.mjs"
+```
