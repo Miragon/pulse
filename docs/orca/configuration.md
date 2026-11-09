@@ -11,6 +11,8 @@ problem in the panel while the other profiles still list engines.
 
 The plugin takes the project file its setting names, else the `.pulse.json` at the root of the
 focused workspace, else one engine on `localhost:8080`. It reads the file again when it changes.
+A project file that is there but Pulse can't read (a folder of that name, a file without read
+access) shows as a problem and lists no engine, not even the one on `localhost:8080`.
 The gear in the panel opens it, created from a template when there is none. A workspace that holds
 the project file only under its former name, `.pulse-cli.json`, shows one problem asking you to
 rename it and lists none of its engines, not even the one on `localhost:8080`; the gear opens that

@@ -23,12 +23,19 @@ import type { OrcaWorkspaces } from "./orca-workspaces.js"
 
 const ACTIVE_KEY = "activeEngine"
 
+const CANT_READ = "Pulse can't read this file"
+
 type Listener = () => void
 
 interface Discovered {
   readonly files: readonly string[]
   readonly targets: readonly EngineTarget[]
   readonly problems: readonly TargetsProblem[]
+}
+
+interface ProjectText {
+  readonly text?: string
+  readonly missing: boolean
 }
 
 export class EngineRegistry {
@@ -172,21 +179,25 @@ export class EngineRegistry {
     const targets: EngineTarget[] = []
     const problems: TargetsProblem[] = []
     const found: string[] = []
+    let blocked = false
     for (const file of files) {
-      const text = await readFile(file, "utf8").catch(() => undefined)
-      if (text === undefined) {
-        problems.push(...(await EngineRegistry.unreadable(file, file === configured)))
+      const read = await EngineRegistry.read(file)
+      if (read.text === undefined) {
+        problems.push(...(await EngineRegistry.unreadable(file, file === configured, read.missing)))
+        blocked ||= !read.missing
         continue
       }
       found.push(file)
-      const parsed = new TargetsParser(file).parse(text)
+      const parsed = new TargetsParser(file).parse(read.text)
       targets.push(
         ...parsed.targets.filter((target) => !targets.some((known) => known.name === target.name)),
       )
       problems.push(...parsed.problems)
     }
-    const renamed = problems.some((problem) => problem.message === ProjectFile.RENAME)
-    const fallback = targets.length === 0 && !renamed
+    const fallback =
+      targets.length === 0 &&
+      !blocked &&
+      !problems.some((problem) => problem.message === ProjectFile.RENAME)
     return { files: found, targets: fallback ? [LOCAL_TARGET] : targets, problems }
   }
 
@@ -195,9 +206,25 @@ export class EngineRegistry {
     return focused === undefined ? [] : [join(focused.path, ProjectFile.NAME)]
   }
 
-  private static async unreadable(file: string, configured: boolean): Promise<TargetsProblem[]> {
-    if (configured) {
-      return [new TargetsProblem(file, "Pulse can't read this file")]
+  private static async read(file: string): Promise<ProjectText> {
+    try {
+      return { text: await readFile(file, "utf8"), missing: false }
+    } catch (error) {
+      return { missing: EngineRegistry.isMissing(error) }
+    }
+  }
+
+  private static isMissing(error: unknown): boolean {
+    return error instanceof Error && "code" in error && error.code === "ENOENT"
+  }
+
+  private static async unreadable(
+    file: string,
+    configured: boolean,
+    missing: boolean,
+  ): Promise<TargetsProblem[]> {
+    if (configured || !missing) {
+      return [new TargetsProblem(file, CANT_READ)]
     }
     const former = join(dirname(file), ProjectFile.FORMER_NAME)
     const present = await access(former).then(

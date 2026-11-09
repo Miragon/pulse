@@ -92,7 +92,9 @@ adapter and the model reader. No part imports a dialect's core (`plugin-is-diale
 The project file is `.pulse.json`, read through the host kit (`TargetsParser` over
 `@miragon/pulse-profile`, the rules in `apps/vscode/CLAUDE.md`); `ProjectFile` of the host kit
 names it and its former name, `.pulse-cli.json`, which the worker turns into one problem and no
-engine. Logins are keyed by the project file's path (the host kit's `CredentialStore`).
+engine. A project file that is there but can't be read is one problem too, and no local default
+engine takes its place; only a missing file falls back to it. Logins are keyed by the project
+file's path (the host kit's `CredentialStore`).
 
 ## Rules
 

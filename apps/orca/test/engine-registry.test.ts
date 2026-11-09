@@ -147,6 +147,36 @@ describe("the engine registry", () => {
     ])
   })
 
+  test("names a project file it finds but cannot read and lists no engine, nor the local one", async () => {
+    const harness = await RegistryHarness.loaded(async (worker) => {
+      await mkdir(worker.projectFile)
+      await writeFile(
+        worker.formerProjectFile,
+        JSON.stringify({ profiles: { old: { url: LOCAL_ENDPOINT } } }),
+      )
+    }, WorkerHarness.empty())
+
+    expect(harness.registry.projectFiles()).toEqual([])
+    expect(harness.registry.formerProjectFiles()).toEqual([])
+    expect(harness.registry.configurationProblems().map((problem) => problem.label())).toEqual([
+      ".pulse.json: Pulse can't read this file",
+    ])
+    expect(harness.registry.all()).toEqual([])
+  })
+
+  test("names a configured project file it cannot read and lists no engine in its place", async () => {
+    const harness = await RegistryHarness.loaded(async (worker) => {
+      const configured = join(worker.root, "engines")
+      await mkdir(configured)
+      worker.orca.settings.set("projectFile", configured)
+    }, WorkerHarness.empty())
+
+    expect(harness.registry.configurationProblems().map((problem) => problem.label())).toEqual([
+      "engines: Pulse can't read this file",
+    ])
+    expect(harness.registry.all()).toEqual([])
+  })
+
   test("reads a configured file whatever its name", async () => {
     const harness = await RegistryHarness.loaded((worker) => {
       worker.orca.settings.set("projectFile", worker.formerProjectFile)
