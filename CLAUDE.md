@@ -699,9 +699,10 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      (`ENGINE_CORE_IMPLEMENTERS`), where the runtime view reads the contract's answers, its
      layers `src/ports`, `src/core`, `src/model` and `src/host-kit` (never its webview) and the
      editor hosts' src (`ENGINE_CORE_READERS`; the closed worlds hold them to the main entry and
-     their tests and dev harnesses to the package's entries), and by test files and the
-     packages' test trees anywhere; never the engine connector (although it is its own family's
-     core) or the CLI until they serve a second dialect, another family's core or a `./testing`
+     their tests and dev harnesses to the package's entries), and by test files and test-support
+     anywhere and the test trees of the runtime view and the adapters (`ENGINE_CORE_TESTS`);
+     never the engine connector (although it is its own family's core) or the CLI until they
+     serve a second dialect, another family's core or a `./testing`
      entry, which ships (`engine-core-consumers`), and it keeps the extension's ESLint house
      rules, its config files included, with the connector resource gate in their union; and no
      shipped code imports a `./testing` entry (`shipped-code-not-to-testing`).

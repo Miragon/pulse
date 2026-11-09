@@ -638,6 +638,14 @@ const SUITES = [
       ],
       // Unresolved subpaths (shape 3: dependency-cruiser reads no exports map).
       [`${SHELL}/src/contract-sub.ts`, `${ENGINE_CORE_NAME}/model`, [CORE, ENGINE_CORE_USERS]],
+      // Only the test trees of the runtime view and the adapters import it from a module that
+      // is no test file: another package's test support reaches it as its src would.
+      [`${HTTP}/test/support/contract.ts`, ENGINE_CORE_NAME, [CORE, ENGINE_CORE_USERS]],
+      [
+        `${ENGINE_CONNECTOR}/test/support/contract.ts`,
+        `${ENGINE_CORE_NAME}/testing`,
+        [ENGINE_CORE_USERS],
+      ],
       [
         `${SERVER}/src/contract-testing.ts`,
         `${ENGINE_CORE_NAME}/testing`,
@@ -646,7 +654,7 @@ const SUITES = [
       // Allowed: a dialect core's src (family-core-is-a-leaf holds it to the main entry), a
       // family adapter's src, the runtime view's layers that speak the contract, the editor
       // hosts' src (their closed worlds hold them to the main entry), the package's own modules,
-      // and tests and the test trees anywhere.
+      // tests anywhere, and the test trees of the runtime view and the adapters.
       [C7_SRC, ENGINE_CORE_NAME, []],
       [`${ENGINE_ADAPTER}/src/contract.ts`, ENGINE_CORE_NAME, []],
       [`${BILLING_ADAPTER}/src/contract.ts`, ENGINE_CORE_NAME, [], "type"],
@@ -658,6 +666,7 @@ const SUITES = [
       [`${ORCA}/src/worker/ids.ts`, ENGINE_CORE_NAME, []],
       [`${RUNTIME_VIEW}/test/core/support/fake.ts`, `${ENGINE_CORE_NAME}/testing`, []],
       [`${ENGINE_ADAPTER}/test/support/world.ts`, `${ENGINE_CORE_NAME}/testing`, []],
+      [`${BILLING_ADAPTER}/test/support/world.ts`, `${ENGINE_CORE_NAME}/testing`, []],
       [`${ENGINE_CONNECTOR}/src/core-adapter.test.ts`, `${ENGINE_CORE_NAME}/testing`, []],
       [`${C7}/src/cause.test.ts`, `${ENGINE_CORE_NAME}/testing`, []],
       [`${ENGINE_CONNECTOR}/src/contract.test-support.ts`, `${ENGINE_CORE_NAME}/testing`, []],

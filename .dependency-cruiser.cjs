@@ -263,8 +263,8 @@ const ENGINE_CORE_IMPLEMENTERS = [
  * name ids. Their closed worlds hold each to engine-core's main entry. The engine connector
  * (although engine-core is its own family's core, which engine-connector-spans-the-dialects
  * admits) and the CLI do not, until they serve a second dialect (owner decision 2026-11-09): they
- * reach it through c7-core's causeOf. Tests, test-support and the test trees of the packages
- * import it anywhere (ENGINE_CORE_TESTS).
+ * reach it through c7-core's causeOf. Test files and test-support import it anywhere, the
+ * test trees of the runtime view and the adapters too (ENGINE_CORE_TESTS).
  */
 const ENGINE_CORE_READERS = [
   `${RUNTIME_VIEW_TREE}src/(?:ports|core|model|host-kit)/`,
@@ -272,11 +272,13 @@ const ENGINE_CORE_READERS = [
 ]
 
 /**
- * The test trees of the packages (the runtime view's and the adapters' test support among them):
- * they import engine-core and its ./testing entry. The editor hosts' test trees answer to their
- * closed worlds; the CLI's are cli-is-headless's.
+ * The test trees of the packages that run the contract, the runtime view's and the family
+ * adapters' (their support modules, fakes and worlds, which are no *.test.ts): they import
+ * engine-core and its ./testing entry. Another package's test tree imports it only from a test
+ * file or test-support, as its src does. The editor hosts' test trees answer to their closed
+ * worlds; the CLI's are cli-is-headless's.
  */
-const ENGINE_CORE_TESTS = ["^packages/(?:core/[^/]+|connectors/[^/]+/[^/]+)/test/"]
+const ENGINE_CORE_TESTS = [`${RUNTIME_VIEW_TREE}test/`, `${FAMILY_ADAPTER_TREE}test/`]
 
 /**
  * engine-core's main entry as an import reaches it: resolved through the importer's
@@ -817,7 +819,8 @@ module.exports = {
         "view; and where the runtime view reads the contract's answers (ENGINE_CORE_READERS): " +
         "its layers src/ports, src/core, src/model and src/host-kit (never its webview, which " +
         "renders protocol view models) and the src of the editor hosts, apps/vscode and apps/orca; " +
-        "by test files, test-support and the packages' test trees anywhere. Not another family's " +
+        "by test files and test-support anywhere and in the test trees of the runtime view and " +
+        "the adapters. Not another family's " +
         "core, not " +
         "the engine connector (although engine-core is its own family's core) and not the CLI, " +
         "until they serve a second dialect (owner decision 2026-11-09: they reach it through " +
