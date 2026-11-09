@@ -34,8 +34,20 @@ const PACKAGES = [
       devDependencies: { "@miragon/pulse-c7-core": "workspace:*" },
     },
   },
-  // The extension's C7 adapter bundles c7-core.
-  pkg("apps/vscode", "pulse-cockpit", { "@miragon/pulse-c7-core": "workspace:*" }),
+  // The editor hosts share the runtime view and bundle the C7 adapter, which runs c7-core.
+  pkg("packages/core/runtime-view", "@miragon/pulse-runtime-view"),
+  pkg("packages/connectors/engine/engine-adapter", "@miragon/pulse-engine-adapter", {
+    "@miragon/pulse-c7-core": "workspace:*",
+    "@miragon/pulse-runtime-view": "workspace:*",
+  }),
+  pkg("apps/vscode", "pulse-cockpit", {
+    "@miragon/pulse-engine-adapter": "workspace:*",
+    "@miragon/pulse-runtime-view": "workspace:*",
+  }),
+  pkg("apps/orca", "@miragon/pulse-orca", {
+    "@miragon/pulse-engine-adapter": "workspace:*",
+    "@miragon/pulse-runtime-view": "workspace:*",
+  }),
   pkg("docs", "@miragon/pulse-docs"),
 ]
 
@@ -111,15 +123,25 @@ describe("scopesFor: a package's code reaches its dependents", () => {
     ])
   })
 
-  it("runs the CLI's, the extension's and the MCP server's checks and the template for c7-core, its three users", () => {
+  it("runs the CLI's, the MCP server's and the template's checks for c7-core, and the editor hosts' through the C7 adapter", () => {
     assert.deepEqual(scopes("packages/connectors/c7/c7-core/src/inspect.ts"), [
       "cli",
       "mcp",
+      "orca",
       "template",
       "typescript",
       "vscode",
       "vscode-package",
     ])
+  })
+
+  it("runs the editor hosts' checks for the runtime view and the C7 adapter, not the MCP server's or the template", () => {
+    for (const file of [
+      "packages/core/runtime-view/src/core/index.ts",
+      "packages/connectors/engine/engine-adapter/src/index.ts",
+    ]) {
+      assert.deepEqual(scopes(file), ["orca", "typescript", "vscode", "vscode-package"], file)
+    }
   })
 
   it("runs the checks of the spec's readers for c7-core's spec and route table, dependents or not", () => {
@@ -148,11 +170,15 @@ describe("scopesFor: a package's code reaches its dependents", () => {
   })
 
   it("runs the extension's checks for the extension", () => {
-    assert.deepEqual(scopes("apps/vscode/src/core/index.ts"), [
+    assert.deepEqual(scopes("apps/vscode/src/host/extension.ts"), [
       "typescript",
       "vscode",
       "vscode-package",
     ])
+  })
+
+  it("runs only the Orca plugin's checks for the Orca plugin", () => {
+    assert.deepEqual(scopes("apps/orca/src/worker/main.ts"), ["orca", "typescript"])
   })
 })
 
@@ -295,9 +321,24 @@ describe("the real workspace", () => {
     assert.deepEqual(without, [])
   })
 
-  it("runs the extension's checks for c7-core, which its C7 adapter bundles", () => {
+  it("runs the editor hosts' checks for c7-core, which their C7 adapter bundles", () => {
     const changed = scopesFor(["packages/connectors/c7/c7-core/src/cause.ts"], packages)
-    assert.ok(changed.has("vscode") && changed.has("vscode-package") && changed.has("cli"))
+    for (const scope of ["cli", "orca", "vscode", "vscode-package"]) {
+      assert.ok(changed.has(scope), scope)
+    }
+  })
+
+  it("keeps the MCP server and the template apart from what only the editor hosts bundle", () => {
+    for (const file of [
+      "packages/core/runtime-view/src/core/index.ts",
+      "packages/connectors/engine/engine-adapter/src/index.ts",
+    ]) {
+      assert.deepEqual(
+        [...scopesFor([file], packages)].sort(),
+        ["orca", "typescript", "vscode", "vscode-package"],
+        file,
+      )
+    }
   })
 
   it("runs the CLI's checks for engine-core, which c7-core imports", () => {
@@ -305,7 +346,7 @@ describe("the real workspace", () => {
       ["packages/connectors/engine/engine-core/src/model/root-causes.ts"],
       packages,
     )
-    for (const scope of ["cli", "vscode", "vscode-package", "mcp", "template"]) {
+    for (const scope of ["cli", "orca", "vscode", "vscode-package", "mcp", "template"]) {
       assert.ok(changed.has(scope), scope)
     }
   })
