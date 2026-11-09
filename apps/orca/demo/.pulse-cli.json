@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "shop-dev": {
+      "url": "http://dev.shop.example:18090/engine-rest",
+      "flavor": "operaton",
+      "cockpitUrl": "http://dev.shop.example:18090/operaton/app/cockpit/default/"
+    }
+  }
+}

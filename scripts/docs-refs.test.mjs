@@ -555,6 +555,12 @@ const DOCS_BUDGETS = {
   "vscode/usage.md": 80,
   "vscode/boards.md": 70,
   "vscode/architecture.md": 50,
+  // The Orca plugin's pages (docs/orca/).
+  "orca/index.md": 40,
+  "orca/installation.md": 50,
+  "orca/configuration.md": 50,
+  "orca/usage.md": 60,
+  "orca/architecture.md": 50,
 }
 
 /** A page's budget key: its path under docs/, so docs/index.md and docs/cli/index.md differ. */

@@ -1,5 +1,5 @@
 import * as vscode from "vscode"
-import type { Connection } from "../connections/connection.js"
+import type { Connection } from "@miragon/pulse-runtime-view/host-kit"
 import type { OpenTargetsFileCommand } from "./open-targets-file-command.js"
 import type { SetCredentialsCommand } from "./set-credentials-command.js"
 

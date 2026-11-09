@@ -1,4 +1,4 @@
-import type { WriteRequest } from "../../src/core/index.js"
+import type { WriteRequest } from "@miragon/pulse-runtime-view/core"
 import { beforeEach, describe, expect, test, vi } from "vitest"
 import { WriteDialog } from "../../src/host/panels/write-dialog.js"
 

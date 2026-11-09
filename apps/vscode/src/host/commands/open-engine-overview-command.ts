@@ -1,4 +1,4 @@
-import type { Connection } from "../connections/connection.js"
+import type { Connection } from "@miragon/pulse-runtime-view/host-kit"
 import type { ConnectionRegistry } from "../connections/connection-registry.js"
 import type { PanelManager } from "../panels/panel-manager.js"
 import type { Command } from "./command.js"

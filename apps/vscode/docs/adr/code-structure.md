@@ -20,13 +20,13 @@ visible responsibility per file.
 
 ### Ports are interfaces, adapters are classes
 
-| Where                               | What                                                                                                                                                     |
-| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/vscode/src/contract/ports`    | `ProcessRuntime` (read), `ProcessCommands` (write), `EngineAdapter` (one per engine family: turns a connection into a runtime and, if it can, commands)  |
-| `apps/vscode/src/contract/model`    | what the ports exchange: ids, read models, queries, `RuntimeError`, value kinds                                                                          |
-| `apps/vscode/src/adapters/<engine>` | `class <Engine>Adapter implements EngineAdapter`, `class <Engine>ProcessRuntime implements ProcessRuntime`, `class <Engine>ProcessCommands implements …` |
-| `apps/vscode/src/host`              | the composition root keeps one `EngineAdapter` per engine kind and hands the core what the active one returns                                            |
-| `apps/vscode/src/core`              | sees only `ProcessRuntime` and `ProcessCommands`, never an adapter                                                                                       |
+| Where                                           | What                                                                                                                                                     |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/core/runtime-view/src/contract/ports` | `ProcessRuntime` (read), `ProcessCommands` (write), `EngineAdapter` (one per engine family: turns a connection into a runtime and, if it can, commands)  |
+| `packages/core/runtime-view/src/contract/model` | what the ports exchange: ids, read models, queries, `RuntimeError`, value kinds                                                                          |
+| `packages/connectors/<family>/<family>-adapter` | `class <Engine>Adapter implements EngineAdapter`, `class <Engine>ProcessRuntime implements ProcessRuntime`, `class <Engine>ProcessCommands implements …` |
+| `apps/vscode/src/host`                          | the composition root keeps one `EngineAdapter` per engine kind and hands the core what the active one returns                                            |
+| `packages/core/runtime-view/src/core`           | sees only `ProcessRuntime` and `ProcessCommands`, never an adapter                                                                                       |
 
 ### Classes own behaviour
 
@@ -57,7 +57,7 @@ visible responsibility per file.
 
 Exceptions, each for a reason outside our control:
 
-- branded id constructors in `apps/vscode/src/contract/model/ids.ts` (`InstanceId('…')`): a type and its value
+- branded id constructors in `packages/core/runtime-view/src/contract/model/ids.ts` (`InstanceId('…')`): a type and its value
   constructor share a name, like `Number('3')`;
 - `activate` and `deactivate` in `apps/vscode/src/host/extension.ts`: VS Code calls
   these exported functions;
@@ -110,7 +110,7 @@ proven in `apps/vscode/test/architecture/lint-rules.test.ts`:
 
 The rules were switched on package by package while the code moved to classes; since the
 move into the monorepo they hold for every layer. In the webview, helpers of components are static utility
-classes (`JsonText` and `TimeLabels` in `apps/vscode/src/webview/format`, `VariableEditorText` next to its screen), and a file that
+classes (`JsonText` and `TimeLabels` in `packages/core/runtime-view/src/webview/format`, `VariableEditorText` next to its screen), and a file that
 holds a Preact context and its hook is a `.tsx` file. In the extension, every command
 is a class implementing `Command` (`id`, `run`) that `CommandRegistrar` registers;
 `PulseExtension` wires VS Code, `CompositionRoot` wires the engines, and the panel

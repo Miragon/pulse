@@ -1,9 +1,9 @@
-import type { DefinitionSummary } from "../contract/index.js"
-import { BpmnProcessIds } from "../core/index.js"
+import type { DefinitionSummary } from "@miragon/pulse-runtime-view/contract"
+import { BpmnProcessIds } from "@miragon/pulse-runtime-view/core"
 import * as vscode from "vscode"
 import { ActiveModel } from "./active-model.js"
 import { COMMAND } from "./commands/command-ids.js"
-import type { Connection } from "./connections/connection.js"
+import type { Connection } from "@miragon/pulse-runtime-view/host-kit"
 import type { ConnectionRegistry } from "./connections/connection-registry.js"
 
 const ENVIRONMENT_NAMES = {

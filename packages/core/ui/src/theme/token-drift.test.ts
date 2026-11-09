@@ -41,7 +41,7 @@ const SANCTIONED_TOKEN_MANIFESTS = [
   "packages/core/ui/src/tokens/manifest.json",
   `${DOCS_KIT}/manifest.json`,
   // The VS Code webview (apps/vscode): the App and web variant of modeler-tool-design.
-  "apps/vscode/src/webview/theme/manifest.json",
+  "packages/core/runtime-view/src/webview/theme/manifest.json",
 ]
 
 /** Where a `--cd-*` declaration outside a sanctioned copy is a fork. */

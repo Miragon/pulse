@@ -5,13 +5,12 @@ import {
   type Panel,
   type PanelContext,
   type PanelEffects,
-} from "../../core/index.js"
-import { MessageGuards, type BackLink, type PanelState } from "../../core/protocol/index.js"
+} from "@miragon/pulse-runtime-view/core"
+import { MessageGuards, type BackLink, type PanelState } from "@miragon/pulse-runtime-view/protocol"
 import { connectThemeBridge } from "@miragon/modeler-shell/vscode/extension"
 import * as vscode from "vscode"
-import type { Connection } from "../connections/connection.js"
+import { type Connection, PanelTitle } from "@miragon/pulse-runtime-view/host-kit"
 import type { LiveWiring } from "../live/live-wiring.js"
-import { PanelTitle } from "./panel-title.js"
 
 export type SessionFactory<Session extends Panel> = (context: PanelContext) => Session
 

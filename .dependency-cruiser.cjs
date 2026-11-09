@@ -15,17 +15,20 @@
  *     widgets);
  *   - `<family>-client`: its SDK leaf (generated REST SDK or PromQL queries);
  *   - `<family>-core`, when the family's interfaces share a pure domain: a leaf that the
- *     family's connector and the interface apps that bundle it import (engine-core).
+ *     family's connector, its adapter and the interface apps that bundle it import (engine-core);
+ *   - `<family>-adapter`: the family's adapter of the runtime view's contract
+ *     (packages/core/runtime-view), which the editor hosts bundle (engine-adapter).
  * The foundation packages every family builds on live under `packages/core/` (npm names
  * without a role suffix, e.g. `@miragon/pulse-widget-shell`), never one family's code. The
  * apps under `apps/` sit ON TOP of
  * the packages: the MCP server (`@miragon/pulse-mcp-server`) composes the
- * connectors; of the two interface apps, the CLI (apps/cli, `@miragon/pulse-cli`) imports
- * exactly the family core it bundles (CLI_CORE), and the VS Code
- * extension (apps/vscode, the unscoped `pulse-cockpit`, because vsce rejects scoped names)
- * imports it in its C7 adapter alone (apps/vscode/src/adapters/c7, esbuild bundles it).
- * No package and no app imports an app
- * (the extension's own closed-world rules live in apps/vscode/.dependency-cruiser.cjs).
+ * connectors; of the interface apps, the CLI (apps/cli, `@miragon/pulse-cli`) imports
+ * exactly the family core it bundles (CLI_CORE), and the two editor hosts, the VS Code
+ * extension (apps/vscode, the unscoped `pulse-cockpit`, because vsce rejects scoped names) and
+ * the Orca plugin (apps/orca, `@miragon/pulse-orca`), compose the runtime view
+ * (packages/core/runtime-view) with a family adapter (engine-adapter), both of which esbuild
+ * bundles. No package and no app imports an app (the closed-world rules of the editor hosts and
+ * of the two packages they share live in each one's own .dependency-cruiser.cjs).
  * APP_PACKAGES below names every app's npm name; the
  * self-test fails when a real app's name is missing there. These rules see IMPORTS only: a
  * require.resolve, an import.meta.resolve, a bin or a spawned process records no edge.
@@ -68,7 +71,8 @@ const npm = (names) => [`(?:^|/)node_modules/(?:${names})(?:/|$)`, `^(?:${names}
 const SERVER_PACKAGE = "@miragon/pulse-mcp-server"
 const CLI_PACKAGE = "@miragon/pulse-cli"
 const EXTENSION_PACKAGE = "pulse-cockpit"
-const APP_PACKAGES = [SERVER_PACKAGE, CLI_PACKAGE, EXTENSION_PACKAGE]
+const ORCA_PACKAGE = "@miragon/pulse-orca"
+const APP_PACKAGES = [SERVER_PACKAGE, CLI_PACKAGE, EXTENSION_PACKAGE, ORCA_PACKAGE]
 const APP_NAMES = APP_PACKAGES.map(escapeRegExp).join("|")
 
 /** The root of a workspace package: an app, a foundation package or a family's package. */
@@ -83,24 +87,29 @@ const FAMILY_CORE = "@miragon/pulse-[^/]+-core"
 const FAMILY_CORE_TREE = "^packages/connectors/[^/]+/[^/]+-core/"
 
 /**
- * The interface apps (or the one part of an app) that bundle a family core (tsdown or esbuild
- * inlines it), each with the one core it bundles. The keys are, with the family's own connector,
- * the only importers of a family core (family-core-consumers). This config reads the name and
- * tree of the CLI's entry only: the CLI's rules below hold the core it bundles as part of the
- * CLI. The extension's entry documents its core here; its own config
- * (apps/vscode/.dependency-cruiser.cjs, engine-core-only-in-the-c7-adapter) holds the C7 adapter
- * to that core's main entry and keeps the core out of every other layer.
+ * The interface apps that bundle a family core (tsdown inlines it), each with the one core it
+ * bundles. The keys are, with the family's own connector and adapter, the only importers of a
+ * family core (family-core-consumers). The CLI's rules below hold the core it bundles as part of
+ * the CLI. The editor hosts reach engine-core only through the family's adapter, whose own config
+ * (packages/connectors/engine/engine-adapter/.dependency-cruiser.cjs) holds it to the core's
+ * main entry.
  */
 const CORE_BUNDLES = {
   "^apps/cli/": {
     name: "@miragon/pulse-engine-core",
     tree: "packages/connectors/engine/engine-core",
   },
-  "^apps/vscode/src/adapters/c7/": {
-    name: "@miragon/pulse-engine-core",
-    tree: "packages/connectors/engine/engine-core",
-  },
 }
+
+/**
+ * The runtime view (packages/core/runtime-view) and a family's adapter of its contract
+ * (packages/connectors/<family>/<family>-adapter): what the editor hosts compose, and only they.
+ */
+const RUNTIME_VIEW = "@miragon/pulse-runtime-view"
+const RUNTIME_VIEW_TREE = "^packages/core/runtime-view/"
+const FAMILY_ADAPTER = "@miragon/pulse-[^/]+-adapter"
+const FAMILY_ADAPTER_TREE = "^packages/connectors/[^/]+/[^/]+-adapter/"
+const EDITOR_HOSTS = ["^apps/vscode/", "^apps/orca/"]
 const CORE_BUNDLERS = Object.keys(CORE_BUNDLES)
 const CLI_CORE = escapeRegExp(CORE_BUNDLES["^apps/cli/"].name)
 const CLI_CORE_TREE = escapeRegExp(CORE_BUNDLES["^apps/cli/"].tree)
@@ -248,7 +257,10 @@ module.exports = {
         "consumer); what one family needs stays in that family (its -core), never in packages/core.",
       from: { path: "^packages/core/" },
       to: {
-        path: ["^packages/connectors/", "@miragon/pulse-[^/]+-(connector|client|core)(/|$)"],
+        path: [
+          "^packages/connectors/",
+          "@miragon/pulse-[^/]+-(connector|client|core|adapter)(/|$)",
+        ],
       },
     },
     {
@@ -448,13 +460,56 @@ module.exports = {
       to: { pathNot: "^packages/connectors/$1/$2-core/src/" },
     },
     {
+      name: "adapters-own-their-family",
+      severity: "error",
+      comment:
+        "A family's adapter (packages/connectors/<family>/<family>-adapter, e.g. engine-adapter) " +
+        "maps its engines onto the runtime view's contract: it imports its own family's core and " +
+        "client and the runtime view (@miragon/pulse-runtime-view), no other workspace package. " +
+        "What two families' adapters share belongs in the runtime view's contract.",
+      from: { path: "^packages/connectors/[^/]+/([^/]+)-adapter/" },
+      to: {
+        path: ["^packages/(core|connectors)/", "@miragon/pulse-"],
+        pathNot: [
+          "^packages/connectors/[^/]+/$1-adapter/(?!node_modules/@miragon/pulse-)",
+          "@miragon/pulse-$1-(?:core|client)(/|$)",
+          `${RUNTIME_VIEW}(/|$)`,
+        ],
+      },
+    },
+    {
+      name: "runtime-view-consumers",
+      severity: "error",
+      comment:
+        "The runtime view (packages/core/runtime-view, @miragon/pulse-runtime-view) is what the " +
+        "editor hosts share: Pulse for VS Code (apps/vscode) and Pulse for Orca (apps/orca) " +
+        "compose it, a family's adapter implements its contract. Nothing else imports it: the MCP " +
+        "server's views are widget-shell's and the connectors'.",
+      from: {
+        path: "^(?:apps|packages)/",
+        pathNot: [...EDITOR_HOSTS, FAMILY_ADAPTER_TREE, RUNTIME_VIEW_TREE],
+      },
+      to: { path: [RUNTIME_VIEW_TREE, ...npm(escapeRegExp(RUNTIME_VIEW))] },
+    },
+    {
+      name: "adapter-consumers",
+      severity: "error",
+      comment:
+        "A family's adapter of the runtime view (packages/connectors/<family>/<family>-adapter) is " +
+        "bundled by the editor hosts (apps/vscode, apps/orca) and imported by nothing else: the " +
+        "MCP server and the CLI reach the engines through the connector and the family core.",
+      from: { path: "^(?:apps|packages)/", pathNot: [...EDITOR_HOSTS, FAMILY_ADAPTER_TREE] },
+      to: { path: [FAMILY_ADAPTER_TREE, ...npm(FAMILY_ADAPTER)] },
+    },
+    {
       name: "family-core-consumers",
       severity: "error",
       comment:
         "A family core is imported by its own family's connector (connectors-own-their-family) " +
-        "and by the interface apps that bundle it (CORE_BUNDLERS: the CLI and the VS Code " +
-        "extension's C7 adapter, apps/vscode/src/adapters/c7, bundle engine-core), " +
-        "by no other app: the MCP server composes connectors, not their domain. The other " +
+        "and adapter (adapters-own-their-family) and by the interface apps that bundle it " +
+        "(CORE_BUNDLERS: the CLI bundles engine-core), by no other app: the MCP server composes " +
+        "connectors, not their domain, and the editor hosts reach it through the family's " +
+        "adapter (packages/connectors/<family>/<family>-adapter). The other " +
         "packages answer to their own rules: packages/core to core-is-foundation, a client to " +
         "clients-are-leaves, a family core to family-core-is-a-leaf.",
       from: { path: "^apps/", pathNot: CORE_BUNDLERS },

@@ -1,4 +1,4 @@
-import type { CodeLocator, SourceLocation } from "../../contract/index.js"
+import type { CodeLocator, SourceLocation } from "@miragon/pulse-runtime-view/contract"
 import * as vscode from "vscode"
 import { INCIDENT_SCHEME } from "./incident-documents.js"
 import { StackFrames, type ClassMention, type StackFrame } from "./stack-frames.js"

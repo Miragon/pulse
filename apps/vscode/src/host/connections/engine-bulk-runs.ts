@@ -1,6 +1,5 @@
-import { BulkRuns } from "../../core/index.js"
-import { EndpointPath } from "./endpoint-path.js"
-import type { EngineTarget } from "./engine-target.js"
+import { BulkRuns } from "@miragon/pulse-runtime-view/core"
+import { EndpointPath, type EngineTarget } from "@miragon/pulse-runtime-view/host-kit"
 
 export class EngineBulkRuns {
   private readonly runs = new Map<string, BulkRuns>()

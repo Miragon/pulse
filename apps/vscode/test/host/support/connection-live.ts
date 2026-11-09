@@ -1,5 +1,5 @@
-import type { ProcessRuntime } from "../../../src/contract/index.js"
-import { EngineLane, LiveSwitch, SharedDefinitions } from "../../../src/core/index.js"
+import type { ProcessRuntime } from "@miragon/pulse-runtime-view/contract"
+import { EngineLane, LiveSwitch, SharedDefinitions } from "@miragon/pulse-runtime-view/core"
 
 export class ConnectionLive {
   static of(runtime: ProcessRuntime) {

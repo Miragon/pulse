@@ -42,7 +42,7 @@ confronted with runtime data (#1688).
 ### Visual language
 
 - The webview uses only Miragon `--cd-*` tokens (mostly the `--cd-ui-*` roles) from
-  vendored, unchanged token files (`apps/vscode/src/webview/theme/`); no `--vscode-*` colour
+  vendored, unchanged token files (`packages/core/runtime-view/src/webview/theme/`); no `--vscode-*` colour
   (ESLint enforces it). The
   renderer draws with the two light roles plot and text; they are constants that a drift
   test pins to `cd-tokens.generated.json`, so the bundle carries no token map it does not

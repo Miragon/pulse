@@ -35,6 +35,11 @@ const CONFIG = path.join(repoRoot, ".dependency-cruiser.cjs")
 const SERVER = "apps/mcp-server"
 const CLI = "apps/cli"
 const EXT = "apps/vscode"
+const ORCA = "apps/orca"
+const RUNTIME_VIEW = "packages/core/runtime-view"
+const ENGINE_ADAPTER = "packages/connectors/engine/engine-adapter"
+// No such package exists: a second family's adapter proves the adapter rules key on the role.
+const AN_ADAPTER = "packages/connectors/analytics/analytics-adapter"
 const SHELL = "packages/core/widget-shell"
 const UI = "packages/core/ui"
 const ENGINE = "packages/connectors/engine/engine-core"
@@ -49,6 +54,10 @@ const WORKSPACE = {
   [SERVER]: { name: "@miragon/pulse-mcp-server", private: true },
   [CLI]: { name: "@miragon/pulse-cli" },
   [EXT]: { name: "pulse-cockpit", engines: { vscode: "^1.101.0" } },
+  [ORCA]: { name: "@miragon/pulse-orca", private: true },
+  [RUNTIME_VIEW]: { name: "@miragon/pulse-runtime-view", private: true },
+  [ENGINE_ADAPTER]: { name: "@miragon/pulse-engine-adapter", private: true },
+  [AN_ADAPTER]: { name: "@miragon/pulse-analytics-adapter", private: true },
   [SHELL]: { name: "@miragon/pulse-widget-shell" },
   [UI]: { name: "@miragon/pulse-ui" },
   [ENGINE]: { name: "@miragon/pulse-engine-core" },
@@ -105,6 +114,9 @@ const APP_APP = "apps-never-import-apps"
 const HEADLESS = "cli-is-headless"
 const CORE_LEAF = "family-core-is-a-leaf"
 const CORE_USERS = "family-core-consumers"
+const ADAPTER_FAMILY = "adapters-own-their-family"
+const VIEW_USERS = "runtime-view-consumers"
+const ADAPTER_USERS = "adapter-consumers"
 const CLI_CORE_LAYERS = "cli-family-core-only-in-named-layers"
 const NO_TESTING = "shipped-code-not-to-testing"
 const DEEP = "no-cross-package-deep-imports"
@@ -139,6 +151,12 @@ const CLI_SCRIPTS = "cli-scripts-only-catalog-types-and-schema"
 const CLI_SRC = `${CLI}/src/index.ts`
 const SERVER_SRC = `${SERVER}/src/index.ts`
 const EXT_SRC = `${EXT}/src/extension.ts`
+const ORCA_SRC = `${ORCA}/src/worker/main.ts`
+const VIEW_SRC = `${RUNTIME_VIEW}/src/index.ts`
+const ADAPTER_SRC = `${ENGINE_ADAPTER}/src/index.ts`
+const AN_ADAPTER_SRC = `${AN_ADAPTER}/src/index.ts`
+const VIEW = "@miragon/pulse-runtime-view"
+const ADAPTER = "@miragon/pulse-engine-adapter"
 const SHELL_SRC = `${SHELL}/src/index.ts`
 const UI_SRC = `${UI}/src/index.ts`
 const ENGINE_SRC = `${ENGINE}/src/index.ts`
@@ -351,26 +369,87 @@ const SUITES = [
       [UI_SRC, ENGINE_CORE, [CORE, UI_LEAF]],
       [ENGINE_CLIENT_SRC, ENGINE_CORE, [CLIENT_LEAF]],
       [ENGINE_CLIENT_SRC, `${ENGINE_CORE}/testing`, [CLIENT_LEAF, NO_TESTING]],
-      // The extension bundles engine-core in its C7 adapter alone (keyed on that subtree).
-      [`${EXT}/src/core/a.ts`, ENGINE_CORE, [CORE_USERS]],
-      [`${EXT}/src/adapters/other/a.ts`, ENGINE_CORE, [CORE_USERS]],
-      [`${EXT}/src/adapters/c7-other/a.ts`, ENGINE_CORE, [CORE_USERS]],
-      [`${EXT}/src/adapters/c7/testing.ts`, `${ENGINE_CORE}/testing`, [NO_TESTING]],
+      // The editor hosts reach engine-core through the family's adapter only.
+      [`${EXT}/src/host/a.ts`, ENGINE_CORE, [CORE_USERS]],
+      [`${ORCA}/src/worker/a.ts`, ENGINE_CORE, [CORE_USERS]],
+      [`${ENGINE_ADAPTER}/src/testing.ts`, `${ENGINE_CORE}/testing`, [NO_TESTING]],
       [
-        `${EXT}/src/adapters/c7/escape-core.ts`,
-        "../../../../../packages/connectors/engine/engine-core/src/target.ts",
-        [DEEP],
+        `${ENGINE_ADAPTER}/src/escape-core.ts`,
+        "../../engine-core/src/target.ts",
+        [ADAPTER_FAMILY, DEEP],
       ],
-      // Allowed: the family's own connector, the CLI and the extension's C7 adapter, which
-      // bundle engine-core.
-      [`${EXT}/src/adapters/c7/inspect.ts`, ENGINE_CORE, []],
-      [`${EXT}/src/adapters/c7/engine-rest/inspect/port.ts`, ENGINE_CORE, []],
+      // Allowed: the family's own connector and adapter, and the CLI, which bundles engine-core.
+      [`${ENGINE_ADAPTER}/src/inspect.ts`, ENGINE_CORE, []],
+      [`${ENGINE_ADAPTER}/src/engine-rest/inspect/port.ts`, ENGINE_CORE, []],
       [ENGINE_CONNECTOR_SRC, ENGINE_CORE, []],
       [AN_CONNECTOR_SRC, AN_CORE_NAME, []],
       [`${CLI}/src/workflow/inspect.ts`, ENGINE_CORE, []],
       [`${CLI}/src/engine-port/port.ts`, ENGINE_CORE, [], "type"],
       // The types-only rule of the engine port still bites on the new package.
       [`${CLI}/src/engine-port/value.ts`, ENGINE_CORE, [CLI_PORT_TYPES]],
+    ],
+  },
+  {
+    rule: ADAPTER_FAMILY,
+    title: "a family's adapter imports its own family's core and client and the runtime view",
+    cases: [
+      [ADAPTER_SRC, "@miragon/pulse-engine-connector", [ADAPTER_FAMILY]],
+      [ADAPTER_SRC, AN_CORE_NAME, [ADAPTER_FAMILY]],
+      [ADAPTER_SRC, "@miragon/pulse-widget-shell", [ADAPTER_FAMILY]],
+      [ADAPTER_SRC, "@miragon/pulse-ui", [ADAPTER_FAMILY]],
+      [ADAPTER_SRC, "@miragon/pulse-analytics-adapter", [ADAPTER_FAMILY]],
+      [
+        `${ENGINE_ADAPTER}/src/escape-view.ts`,
+        "../../../../core/runtime-view/src/index.ts",
+        [ADAPTER_FAMILY, DEEP],
+      ],
+      [AN_ADAPTER_SRC, ENGINE_CORE, [ADAPTER_FAMILY]],
+      // Allowed: its own modules and family, the runtime view and third-party libraries.
+      [`${ENGINE_ADAPTER}/src/a.ts`, ENGINE_CORE, []],
+      [`${ENGINE_ADAPTER}/src/client.ts`, "@miragon/pulse-engine-client", []],
+      [`${ENGINE_ADAPTER}/src/contract.ts`, `${VIEW}/contract`, []],
+      [ADAPTER_SRC, "./lib.ts", []],
+      [ADAPTER_SRC, "reactive", []],
+      [AN_ADAPTER_SRC, AN_CORE_NAME, []],
+    ],
+  },
+  {
+    rule: VIEW_USERS,
+    title:
+      "the runtime view is composed by the editor hosts and implemented by the family adapters",
+    cases: [
+      [SERVER_SRC, VIEW, [VIEW_USERS]],
+      [CLI_SRC, `${VIEW}/contract`, [HEADLESS, VIEW_USERS]],
+      [ENGINE_CONNECTOR_SRC, VIEW, [VIEW_USERS]],
+      [SHELL_SRC, VIEW, [VIEW_USERS]],
+      [
+        `${EXT}/src/host/escape-view.ts`,
+        "../../../../packages/core/runtime-view/src/index.ts",
+        [DEEP],
+      ],
+      // Allowed: the editor hosts, the adapters and the runtime view's own modules.
+      [`${EXT}/src/host/b.ts`, `${VIEW}/core`, []],
+      [ORCA_SRC, `${VIEW}/host-kit`, []],
+      [`${AN_ADAPTER}/src/contract.ts`, `${VIEW}/contract`, []],
+      [VIEW_SRC, "./lib.ts", []],
+    ],
+  },
+  {
+    rule: ADAPTER_USERS,
+    title: "a family's adapter is bundled by the editor hosts alone",
+    cases: [
+      [SERVER_SRC, ADAPTER, [ADAPTER_USERS]],
+      [`${CLI}/src/workflow/adapter.ts`, ADAPTER, [HEADLESS, ADAPTER_USERS]],
+      [ENGINE_CONNECTOR_SRC, ADAPTER, [ADAPTER_USERS]],
+      [VIEW_SRC, ADAPTER, [CORE, ADAPTER_USERS]],
+      [
+        `${ORCA}/src/worker/escape-adapter.ts`,
+        "../../../../packages/connectors/engine/engine-adapter/src/index.ts",
+        [DEEP],
+      ],
+      // Allowed: the editor hosts' composition roots.
+      [`${EXT}/src/host/composition-root.ts`, ADAPTER, []],
+      [`${ORCA}/src/worker/composition-root.ts`, ADAPTER, []],
     ],
   },
   {
@@ -1495,15 +1574,32 @@ describe("a failing cruise says the fix", () => {
   const config = createRequire(import.meta.url)(CONFIG)
   const { scripts } = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"))
 
-  for (const script of [...ARCHITECTURE_SCRIPTS, "lint:architecture:vscode"]) {
+  // The closed worlds of the editor hosts and of the two packages they share, each with its
+  // own config and script.
+  const CLOSED_WORLDS = {
+    "lint:architecture:vscode": "apps/vscode/.dependency-cruiser.cjs",
+    "lint:architecture:orca": "apps/orca/.dependency-cruiser.cjs",
+    "lint:architecture:runtime-view": "packages/core/runtime-view/.dependency-cruiser.cjs",
+    "lint:architecture:engine-adapter":
+      "packages/connectors/engine/engine-adapter/.dependency-cruiser.cjs",
+  }
+
+  for (const script of [...ARCHITECTURE_SCRIPTS, ...Object.keys(CLOSED_WORLDS)]) {
     it(`${script} prints the comment of the rule that fired`, () => {
       assert.match(scripts[script], /--output-type err-long$/)
     })
   }
 
-  // The VS Code extension's config too: lint:architecture:vscode prints its comments, and its
-  // closed world's `not-in-allowed` takes the wording from the forbidden rule of that name.
-  for (const file of [CONFIG, path.join(repoRoot, "apps/vscode/.dependency-cruiser.cjs")]) {
+  for (const [script, file] of Object.entries(CLOSED_WORLDS)) {
+    it(`${script} cruises with ${file} and is chained into pnpm lint`, () => {
+      assert.ok(scripts[script].includes(`--config ${file}`), scripts[script])
+      assert.ok(scripts.lint.includes(`pnpm ${script} `), scripts.lint)
+    })
+  }
+
+  // Their configs too: each script prints its comments, and a closed world's `not-in-allowed`
+  // takes the wording from the forbidden rule of that name.
+  for (const file of [CONFIG, ...Object.values(CLOSED_WORLDS).map((f) => path.join(repoRoot, f))]) {
     it(`every rule of ${path.relative(repoRoot, file)} carries a comment to print`, () => {
       const { forbidden = [], required = [] } = createRequire(import.meta.url)(file)
       assert.ok(forbidden.length > 0, `${file} lists no forbidden rules`)
@@ -1514,13 +1610,13 @@ describe("a failing cruise says the fix", () => {
     })
   }
 
-  it("the VS Code closed world's not-in-allowed has the wording err-long prints for it", () => {
-    const { allowed, forbidden } = createRequire(import.meta.url)(
-      path.join(repoRoot, "apps/vscode/.dependency-cruiser.cjs"),
-    )
-    assert.ok(allowed.length > 0, "the VS Code config is no longer closed-world")
-    assert.ok(forbidden.some((rule) => rule.name === "not-in-allowed" && rule.comment?.trim()))
-  })
+  for (const file of Object.values(CLOSED_WORLDS)) {
+    it(`the closed world of ${file} has the wording err-long prints for not-in-allowed`, () => {
+      const { allowed, forbidden } = createRequire(import.meta.url)(path.join(repoRoot, file))
+      assert.ok(allowed.length > 0, `${file} is no longer closed-world`)
+      assert.ok(forbidden.some((rule) => rule.name === "not-in-allowed" && rule.comment?.trim()))
+    })
+  }
 
   it("the err-long reporter prints it under a planted violation, and fails the run", async () => {
     const { output: report, exitCode } = await format(output, { outputType: "err-long" })

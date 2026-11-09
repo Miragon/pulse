@@ -1,5 +1,5 @@
-import { BpmnProcessId } from "../../contract/index.js"
-import type { Connection } from "../connections/connection.js"
+import { BpmnProcessId } from "@miragon/pulse-runtime-view/contract"
+import type { Connection } from "@miragon/pulse-runtime-view/host-kit"
 import type { ConnectionRegistry } from "../connections/connection-registry.js"
 import type { PanelManager } from "../panels/panel-manager.js"
 import { COMMAND } from "./command-ids.js"

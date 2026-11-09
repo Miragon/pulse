@@ -1,8 +1,10 @@
-import type { BulkAnswer, BulkRequest, WriteRequest } from "../../core/index.js"
-import { ConfirmationPolicy } from "../connections/confirmation-policy.js"
-import type { Connection } from "../connections/connection.js"
+import type { BulkAnswer, BulkRequest, WriteRequest } from "@miragon/pulse-runtime-view/core"
+import {
+  ConfirmationPolicy,
+  type Connection,
+  type WriteAudit,
+} from "@miragon/pulse-runtime-view/host-kit"
 import { PulseSettings } from "../connections/pulse-settings.js"
-import type { WriteAudit } from "../connections/write-audit.js"
 import { BulkDialog } from "./bulk-dialog.js"
 import { WriteDialog, type WriteTargetEngine } from "./write-dialog.js"
 

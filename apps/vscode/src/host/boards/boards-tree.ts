@@ -1,4 +1,4 @@
-import { BoardParser } from "../../core/index.js"
+import { BoardParser } from "@miragon/pulse-runtime-view/core"
 import * as vscode from "vscode"
 import { COMMAND } from "../commands/command-ids.js"
 import { BoardFiles } from "./board-files.js"

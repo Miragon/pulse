@@ -27,6 +27,7 @@ jobs:
       cli: ${{ steps.scopes.outputs.cli }}
       vscode: ${{ steps.scopes.outputs.vscode }}
       vscode-package: ${{ steps.scopes.outputs.vscode-package }}
+      orca: ${{ steps.scopes.outputs.orca }}
       kotlin: ${{ steps.scopes.outputs.kotlin }}
       cibseven-example: ${{ steps.scopes.outputs.cibseven-example }}
       brand: ${{ steps.scopes.outputs.brand }}
@@ -64,7 +65,7 @@ jobs:
 
       # Webview suites need Playwright's Chromium shell; cache shared with host-sim.
       - id: playwright
-        run: echo "version=$(node -p "require('./apps/vscode/package.json').devDependencies.playwright")" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(node -p "require('./packages/core/runtime-view/package.json').devDependencies.playwright")" >> "$GITHUB_OUTPUT"
 
       - id: playwright-cache
         uses: actions/cache@v6.1.0
@@ -73,10 +74,10 @@ jobs:
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium-shell
 
       - if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: pnpm --fail-if-no-match --filter pulse-cockpit exec playwright install --with-deps --only-shell chromium
+        run: pnpm --fail-if-no-match --filter @miragon/pulse-runtime-view exec playwright install --with-deps --only-shell chromium
 
       - if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: pnpm --fail-if-no-match --filter pulse-cockpit exec playwright install-deps chromium
+        run: pnpm --fail-if-no-match --filter @miragon/pulse-runtime-view exec playwright install-deps chromium
 
       - id: build
         run: pnpm build
@@ -179,7 +180,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - id: build
-        run: pnpm turbo build --filter=@miragon/pulse-cli... --filter=pulse-cockpit...
+        run: pnpm turbo build --filter=@miragon/pulse-cli... --filter=@miragon/pulse-engine-adapter...
 
       # Every suite runs even after a failure; the operaton leg also tests the packed tarball.
       - name: CLI integration (apps/cli)
@@ -189,11 +190,11 @@ jobs:
           PULSE_CLI_IT_SKIP_PACK: ${{ matrix.flavor == 'operaton' && '0' || '1' }}
         run: pnpm --fail-if-no-match --filter @miragon/pulse-cli run test:engines
 
-      - name: Extension conformance (apps/vscode)
+      - name: Adapter conformance (packages/connectors/engine/engine-adapter)
         if: ${{ !cancelled() && steps.build.outcome == 'success' && needs.changes.outputs.vscode == 'true' }}
         env:
           PULSE_ENGINE_IMAGE: ${{ matrix.image }}
-        run: pnpm --fail-if-no-match --filter pulse-cockpit run test:engines
+        run: pnpm --fail-if-no-match --filter @miragon/pulse-engine-adapter run test:engines
 
   # The one requirable check of the matrix; skipped passes.
   engines-result:
@@ -291,6 +292,48 @@ jobs:
             exit 1
           fi
           echo "$listing"
+
+  # Pulse for Orca as Orca loads it: the built plugin folder through the CLI of a pinned Orca
+  # release (its .deb, checked against the release's digest, runs on plain Node: no app, no
+  # display), and the kit tests on that release's orca/testing. Bump ORCA_VERSION and ORCA_DEB_SHA256 together with apps/orca/types.
+  orca:
+    name: Orca plugin (validate, check, kit tests)
+    needs: changes
+    if: needs.changes.outputs.orca == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ORCA_VERSION: 1.4.252
+      ORCA_DEB_SHA256: f2701cb671ac5ae7cbecb51fd20c0ba17ca4530180237dd9472bd4fcb204d323
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v6.1.1
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm turbo build --filter=@miragon/pulse-orca...
+
+      - name: Orca CLI ${{ env.ORCA_VERSION }}
+        shell: bash
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/orca.deb" \
+            "https://github.com/stablyai/orca/releases/download/v${ORCA_VERSION}/orca-ide_${ORCA_VERSION}_amd64.deb"
+          echo "${ORCA_DEB_SHA256}  $RUNNER_TEMP/orca.deb" | sha256sum --check --strict
+          dpkg-deb -x "$RUNNER_TEMP/orca.deb" "$RUNNER_TEMP/orca"
+          echo "ORCA_RESOURCES=$RUNNER_TEMP/orca/opt/Orca/resources" >> "$GITHUB_ENV"
+
+      - run: pnpm --fail-if-no-match --filter @miragon/pulse-orca run test:orca
+
+      # The panel and the worker on Orca's own test kit (orca/testing) of that release.
+      - run: pnpm --fail-if-no-match --filter @miragon/pulse-orca run test:kit
 
   # Every PR: prettier and the build-free repo guards; `pnpm lint` in the typescript scope.
   quality:
