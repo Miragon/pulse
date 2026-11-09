@@ -279,7 +279,7 @@ routes and so run every class above.
 
 - The conformance kit passes all laws against `operaton/operaton:2.1.5` and
   `cibseven/cibseven:run-2.2.0` (and passed against Camunda 7.24.0 until its image left Docker Hub)
-  (`PULSE_ENGINE_IMAGE=… pnpm --filter pulse-cockpit run test:engines`).
+  (`PULSE_ENGINE_IMAGE=… pnpm --filter @miragon/pulse-engine-adapter run test:engines`).
   The engines under test (`test:engines`, `engine:up`) run without their bundled invoice
   example: it sets the engine's global clock back by days while it seeds itself, after the
   REST API already answers, so instances seeded in that window got timestamps from the

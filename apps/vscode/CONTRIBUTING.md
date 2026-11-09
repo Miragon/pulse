@@ -31,28 +31,34 @@ Decisions and their reasons: [docs/adr](docs/adr/README.md).
 Run these from the repository root; the repository's bar (`pnpm build && pnpm typecheck &&
 pnpm test && pnpm lint`) covers the extension too.
 
-| Command                                                        | What it does                                                                                 |
-| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `pnpm --filter pulse-cockpit test`                             | unit tests and the webview tests in Chromium, with the coverage floors and the bundle budget |
-| `pnpm --filter pulse-cockpit run typecheck`                    | the whole app, then each layer with its runtime's globals only                               |
-| `pnpm --filter pulse-cockpit run lint`                         | ESLint with the extension's house rules                                                      |
-| `pnpm lint:architecture:vscode`                                | the closed-world dependency rules of the layers                                              |
-| `pnpm lint:deadcode`                                           | knip over every workspace, the extension included: no dead file, dependency or enum member   |
-| `pnpm lint:deadcode:exports`                                   | knip over every workspace but docs: no unused export or exported type                        |
-| `pnpm --filter @miragon/pulse-engine-adapter run test:engines` | conformance kit against a real engine (`PULSE_ENGINE_IMAGE`, testcontainers)                 |
-| `pnpm --filter pulse-cockpit run test:smoke`                   | activation test in VS Code (`@vscode/test-cli`)                                              |
-| `pnpm --filter pulse-cockpit run test:e2e`                     | Playwright drives VS Code against `engine:up`                                                |
-| `pnpm --filter pulse-cockpit run test:smoke:docker`            | the smoke test in Docker under Xvfb (`apps/vscode/test/docker`): no VS Code window opens     |
-| `pnpm --filter pulse-cockpit run test:e2e:docker`              | the e2e in Docker under Xvfb, against `engine:up`; screenshots land in test-results/e2e      |
-| `pnpm --filter pulse-cockpit run dev`                          | browser dev host for the webview (fake engine or `PULSE_DEV_ENGINE`)                         |
-| `pnpm --filter pulse-cockpit run sandbox:up`                   | shop sandbox for manual testing (`sandbox:traffic`, `sandbox:down`)                          |
-| `pnpm --filter pulse-cockpit run docs:screenshots`             | one VS Code screenshot per use case into `apps/vscode/docs/screenshots` (sandbox running)    |
-| `pnpm --filter pulse-cockpit run package`                      | the `.vsix`                                                                                  |
+| Command                                                        | What it does                                                                                                                 |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm --filter pulse-cockpit test`                             | the host's unit and architecture tests, the brand and word scans of the runtime view and the host, the webview bundle budget |
+| `pnpm --filter @miragon/pulse-runtime-view test`               | the core, model, host kit and webview tests (the webview's in Chromium), with the coverage floors                            |
+| `pnpm --filter @miragon/pulse-engine-adapter test`             | the C7 adapter against recorded REST routes and its error-path goldens, with the coverage floors                             |
+| `pnpm --filter pulse-cockpit run typecheck`                    | the app, then the host and the tooling with their globals only                                                               |
+| `pnpm --filter @miragon/pulse-runtime-view run typecheck`      | the runtime view, then each layer with its runtime's globals only                                                            |
+| `pnpm --filter pulse-cockpit run lint`                         | ESLint with the extension's house rules                                                                                      |
+| `pnpm lint:architecture:vscode`                                | the closed-world dependency rules of the host                                                                                |
+| `pnpm lint:architecture:runtime-view`                          | the closed-world dependency rules of the runtime view's layers                                                               |
+| `pnpm lint:architecture:engine-adapter`                        | the closed-world dependency rules of the C7 adapter                                                                          |
+| `pnpm lint:deadcode`                                           | knip over every workspace, the extension included: no dead file, dependency or enum member                                   |
+| `pnpm lint:deadcode:exports`                                   | knip over every workspace but docs: no unused export or exported type                                                        |
+| `pnpm --filter @miragon/pulse-engine-adapter run test:engines` | conformance kit against a real engine (`PULSE_ENGINE_IMAGE`, testcontainers)                                                 |
+| `pnpm --filter pulse-cockpit run test:smoke`                   | activation test in VS Code (`@vscode/test-cli`)                                                                              |
+| `pnpm --filter pulse-cockpit run test:e2e`                     | Playwright drives VS Code against `engine:up`                                                                                |
+| `pnpm --filter pulse-cockpit run test:smoke:docker`            | the smoke test in Docker under Xvfb (`apps/vscode/test/docker`): no VS Code window opens                                     |
+| `pnpm --filter pulse-cockpit run test:e2e:docker`              | the e2e in Docker under Xvfb, against `engine:up`; screenshots land in test-results/e2e                                      |
+| `pnpm --filter pulse-cockpit run dev`                          | browser dev host for the webview (fake engine or `PULSE_DEV_ENGINE`)                                                         |
+| `pnpm --filter pulse-cockpit run sandbox:up`                   | shop sandbox for manual testing (`sandbox:traffic`, `sandbox:down`)                                                          |
+| `pnpm --filter pulse-cockpit run docs:screenshots`             | one VS Code screenshot per use case into `apps/vscode/docs/screenshots` (sandbox running)                                    |
+| `pnpm --filter pulse-cockpit run package`                      | the `.vsix`                                                                                                                  |
 
-The C7 adapter bundles `@miragon/pulse-c7-core` from its build: after `pnpm install`, build it
-once (`pnpm exec turbo run build --filter='pulse-cockpit^...'`, or `pnpm build`) before these
-commands, and again after a change to c7-core. The webview tests need Chromium once:
-`pnpm --filter pulse-cockpit exec playwright install chromium`.
+The extension bundles the runtime view and the C7 adapter, and they bundle
+`@miragon/pulse-engine-core`, the adapter `@miragon/pulse-c7-core` too, from their builds: after
+`pnpm install`, build them once (`pnpm exec turbo run build --filter='pulse-cockpit^...'`, or
+`pnpm build`) before these commands, and again after a change to one of them. The webview tests
+need Chromium once: `pnpm --filter @miragon/pulse-runtime-view exec playwright install chromium`.
 
 The README's `apps/vscode/docs/demo.gif` comes from the `product-shots` skill in
 [Miragon/corporate-identity](https://github.com/Miragon/corporate-identity), see

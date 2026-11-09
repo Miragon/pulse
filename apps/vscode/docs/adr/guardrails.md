@@ -103,14 +103,16 @@ repository's CI (`.github/workflows/ci.yml`) next to the server's.
 
 ## Consequences
 
-- Measured on 2026-10-24 (18 cores):
+- Measured on 2026-10-24 (18 cores), when `pulse-cockpit` still held the runtime view and the
+  C7 adapter; since #585 their tests, typechecks and lint run in `@miragon/pulse-runtime-view`
+  and `@miragon/pulse-engine-adapter`, and `test:engines` in the adapter:
 
-  | Command                                        | Time                                                                         |
-  | ---------------------------------------------- | ---------------------------------------------------------------------------- |
-  | `pnpm --filter pulse-cockpit test`             | 16.5 s (84 files, 1 109 unit and browser tests, coverage, the bundle budget) |
-  | `pnpm --filter pulse-cockpit run typecheck`    | 11.3 s (the union, then the seven layer configs)                             |
-  | `pnpm --filter pulse-cockpit run lint`         | 14.7 s                                                                       |
-  | `pnpm --filter pulse-cockpit run test:engines` | 13.5 s per image (measured in the original repository)                       |
+  | Command                                                        | Time                                                                         |
+  | -------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+  | `pnpm --filter pulse-cockpit test`                             | 16.5 s (84 files, 1 109 unit and browser tests, coverage, the bundle budget) |
+  | `pnpm --filter pulse-cockpit run typecheck`                    | 11.3 s (the union, then the seven layer configs)                             |
+  | `pnpm --filter pulse-cockpit run lint`                         | 14.7 s                                                                       |
+  | `pnpm --filter @miragon/pulse-engine-adapter run test:engines` | 13.5 s per image (measured in the original repository)                       |
 
 - The extension runs no mutation testing (owner decision, 2026-11-04): the repository
   mutates only `@miragon/pulse-c7-core`, whose engine rules the C7 adapter bundles,
