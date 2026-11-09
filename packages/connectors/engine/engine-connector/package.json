@@ -55,7 +55,8 @@
   },
   "dependencies": {
     "@miragon/pulse-c7-client": "workspace:*",
-    "@miragon/pulse-c7-core": "workspace:*"
+    "@miragon/pulse-c7-core": "workspace:*",
+    "@miragon/pulse-http": "workspace:*"
   },
   "peerDependencies": {
     "@miragon/pulse-ui": "workspace:^",

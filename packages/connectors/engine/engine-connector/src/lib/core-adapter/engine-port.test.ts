@@ -1,19 +1,14 @@
 import { afterEach, describe, expect, it } from "vitest"
-import { EngineRequestError, fetchJobStacktrace } from "@miragon/pulse-c7-client"
-import { isUnknownEndpoint } from "@miragon/pulse-c7-core"
+import { fetchJobStacktrace } from "@miragon/pulse-c7-client"
+import { CORE_ROUTES, isUnknownEndpoint } from "@miragon/pulse-c7-core"
 import { INSPECT_OPERATIONS, STATUS_OPERATIONS } from "@miragon/pulse-c7-core/testing"
 import {
   clientFor,
   type FakeEngine,
   startFakeEngine,
 } from "../../tools/test-support/fake-engine.js"
-import {
-  engineFailure,
-  enginePortFor,
-  isMissingResource,
-  noneIfMissing,
-  READS,
-} from "./engine-port.js"
+import { EngineRequestError, type EngineFailureKind } from "../engine/engine-error.js"
+import { engineFailure, enginePortFor, isMissingResource, noneIfMissing } from "./engine-port.js"
 
 const engines: FakeEngine[] = []
 afterEach(async () => {
@@ -28,23 +23,50 @@ async function engineWith(...args: Parameters<typeof startFakeEngine>) {
 
 const NO_INPUT = { pathArgs: [], query: {} }
 
-describe("READS", () => {
-  it("maps exactly the operations c7-core's composites send", () => {
-    expect(Object.keys(READS).sort()).toEqual(
-      [...new Set([...INSPECT_OPERATIONS, ...STATUS_OPERATIONS])].sort(),
-    )
-  })
-})
-
 describe("enginePortFor", () => {
-  it("refuses an operation it does not map and an operation without its id", async () => {
-    const port = enginePortFor(clientFor(await engineWith()))
+  it("sends every operation c7-core's composites send as its route, all of them reads", () => {
+    for (const operationId of new Set([...INSPECT_OPERATIONS, ...STATUS_OPERATIONS])) {
+      expect(CORE_ROUTES[operationId]?.effect, operationId).toBe("read")
+    }
+  })
+
+  it("refuses an operation the route table lacks and one without its id, nothing sent", async () => {
+    const engine = await engineWith()
+    const port = enginePortFor(clientFor(engine))
     await expect(port.json("getUsers", NO_INPUT)).rejects.toThrow(
-      "c7-core asked for getUsers, which the engine port does not map",
+      "c7-core asked for getUsers, which the route table does not hold",
     )
     await expect(port.json("getProcessInstance", NO_INPUT)).rejects.toThrow(
-      "c7-core sent an operation without its id",
+      "getProcessInstance takes 1 path values, c7-core sent 0",
     )
+    expect(engine.requests).toEqual([])
+  })
+
+  it("fills a route's path values encoded and refuses one the URL would resolve away", async () => {
+    const engine = await engineWith({ "GET /process-instance/a b/c": { body: { id: "x" } } })
+    const port = enginePortFor(clientFor(engine))
+    expect(await port.json("getProcessInstance", { pathArgs: ["a b/c"], query: {} })).toEqual({
+      id: "x",
+    })
+    await expect(port.find("getProcessInstance", { pathArgs: [".."], query: {} })).rejects.toThrow(
+      'the path value ".." was refused before sending (dot-segment)',
+    )
+    expect(engine.requests.map((request) => request.path)).toEqual(["/process-instance/a b/c"])
+  })
+
+  it("reads a Long beyond 2^53 as its exact digits", async () => {
+    const engine = await engineWith({
+      "GET /process-instance/pi-1/variables": (request) => ({
+        body: `{"big":{"type":"Long","value":9223372036854775807},"q":"${request.query.deserializeValues ?? ""}"}`,
+        contentType: "application/json;charset=UTF-8",
+      }),
+    })
+    const port = enginePortFor(clientFor(engine))
+    const input = { pathArgs: ["pi-1"], query: { deserializeValues: "false" } }
+    expect(await port.json("getProcessInstanceVariables", input)).toEqual({
+      big: { type: "Long", value: "9223372036854775807" },
+      q: "false",
+    })
   })
 
   it("reaches /version for getRestAPIVersion and sends the query as text", async () => {
@@ -105,11 +127,11 @@ describe("a 404 of the port's text reads", () => {
 })
 
 /**
- * c7-client words a 404 that is no engine answer as a likely wrong REST root; it is a leaf and
- * cannot ask c7-core. Its wording is held here, over real engine answers, to c7-core's
- * `isUnknownEndpoint`, on which the one missing-resource rule `isMissing` builds.
+ * The connector words a 404 that is no engine answer as a likely wrong REST root, by c7-core's
+ * `isUnknownEndpoint`, on which the one missing-resource rule `isMissing` builds: held here over
+ * real engine answers, through the SDK-bound text read.
  */
-describe("the wrong-root hint of c7-client's 404 follows c7-core's isUnknownEndpoint", () => {
+describe("the wrong-root hint of an engine 404 follows c7-core's isUnknownEndpoint", () => {
   const HINT = "check that the engine URL points at the REST API root"
   const answers = [
     { status: 404, body: { type: "InvalidRequestException", message: "gone" } },
@@ -134,9 +156,17 @@ describe("the wrong-root hint of c7-client's 404 follows c7-core's isUnknownEndp
   })
 })
 
+/** An engine error as the client's error interceptor words it. */
+function engineError(
+  kind: EngineFailureKind,
+  details: { httpStatus?: number; type?: string } = {},
+) {
+  return new EngineRequestError("x", { kind, engineMessage: "x", engineId: "e", ...details })
+}
+
 describe("isMissingResource and noneIfMissing", () => {
   function http(httpStatus: number, type?: string) {
-    return new EngineRequestError("x", { kind: "http", httpStatus, type, engineMessage: "x" })
+    return engineError("http", { httpStatus, type })
   }
 
   it("are c7-core's isMissing over the client's error", () => {
@@ -158,21 +188,16 @@ describe("isMissingResource and noneIfMissing", () => {
 
 describe("engineFailure", () => {
   it("reads an http failure and nothing else", () => {
-    const http = new EngineRequestError("x", {
-      kind: "http",
-      httpStatus: 500,
-      type: "NullValueException",
-      engineMessage: "m",
-    })
+    const http = engineError("http", { httpStatus: 500, type: "NullValueException" })
     expect(engineFailure(http)).toEqual({
       status: 500,
       engineType: "NullValueException",
-      engineMessage: "m",
+      engineMessage: "x",
     })
-    const plain = new EngineRequestError("x", { kind: "http", httpStatus: 503, engineMessage: "" })
-    expect(engineFailure(plain)).toEqual({ status: 503, engineMessage: "" })
-    const noStatus = new EngineRequestError("x", { kind: "http", engineMessage: "" })
-    const down = new EngineRequestError("x", { kind: "unreachable", engineMessage: "" })
+    const plain = engineError("http", { httpStatus: 503 })
+    expect(engineFailure(plain)).toEqual({ status: 503, engineMessage: "x" })
+    const noStatus = engineError("http")
+    const down = engineError("unreachable")
     expect([engineFailure(noStatus), engineFailure(down), engineFailure(new Error("x"))]).toEqual([
       undefined,
       undefined,

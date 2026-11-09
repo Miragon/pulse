@@ -497,8 +497,13 @@ const SUITES = [
       [PROFILE_SRC, HTTP_NAME, [PROFILE_LEAF, HTTP_USERS]],
       [C7_SRC, HTTP_NAME, [CORE_LEAF, HTTP_USERS]],
       [C7_CLIENT_SRC, HTTP_NAME, [CLIENT_LEAF, HTTP_USERS]],
-      // A connector may, its widgets may not: they are browser code.
-      [`${ENGINE_CONNECTOR}/src/widgets/http.ts`, HTTP_NAME, [WIDGETS_BROWSER]],
+      // A connector's src/lib/engine may, its widgets may not: they are browser code.
+      [`${ENGINE_CONNECTOR}/src/widgets/http.ts`, HTTP_NAME, [WIDGETS_BROWSER, HTTP_USERS]],
+      // Nor its tools, data builders or root: they reach an engine through resolveEngine.
+      [`${ENGINE_CONNECTOR}/src/tools/http.ts`, HTTP_NAME, [HTTP_USERS]],
+      [`${ENGINE_CONNECTOR}/src/data/http.ts`, HTTP_NAME, [HTTP_USERS]],
+      [`${ENGINE_CONNECTOR}/src/http.ts`, HTTP_NAME, [HTTP_USERS]],
+      [`${BILLING_CONNECTOR}/src/http.ts`, HTTP_NAME, [HTTP_USERS]],
       [`${CLI}/src/workflow/http.ts`, HTTP_NAME, [HTTP_USERS]],
       [`${CLI}/src/config/http.ts`, HTTP_NAME, [HTTP_USERS]],
       [`${CLI}/src/httpx/client.ts`, HTTP_NAME, [HTTP_USERS]],
@@ -523,7 +528,8 @@ const SUITES = [
       [`${EXT}/src/adapters/c7/http.ts`, HTTP_NAME, []],
       [`${EXT}/src/adapters/c8/http.ts`, `${HTTP_NAME}/oauth`, []],
       [`${ENGINE_CONNECTOR}/src/lib/engine/http.ts`, HTTP_NAME, []],
-      [`${BILLING_CONNECTOR}/src/http.ts`, HTTP_NAME, []],
+      [`${BILLING_CONNECTOR}/src/lib/engine/http.ts`, HTTP_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/tools/http.test.ts`, HTTP_NAME, []],
       [`${ENGINE_CONNECTOR}/src/http.test.ts`, `${HTTP_NAME}/testing`, []],
       [`${SHELL}/src/http.test.ts`, HTTP_NAME, []],
       [`${CLI}/test/support/http.ts`, `${HTTP_NAME}/testing`, []],

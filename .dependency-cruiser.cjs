@@ -184,14 +184,16 @@ const HTTP_LOOPBACK = `^${escapeRegExp(HTTP.tree)}/src/testing/loopback/`
  * Where a surface sends its engine requests, the only shipped importers of HTTP: the CLI's
  * http, auth and operation layers, the adapters of Pulse for VS Code (one folder per dialect
  * under src/adapters; its closed world, apps/vscode/.dependency-cruiser.cjs, admits the edge on
- * its own) and a connector (keyed by the role, so a new family's connector inherits it; its
- * widgets stay browser code, connector-widgets-are-browser-code). Never the MCP server app's
- * shipped code: it composes connectors. Tests import it anywhere, as they do the profile format.
+ * its own) and a connector's src/lib/engine, where it builds each engine's transport once at
+ * boot behind resolveEngine/withEngine (keyed by the role, so a new family's connector inherits
+ * it). Not a connector's tools, data builders or widgets: a transport built there would bypass
+ * the routing and the credential of invariant 2. Never the MCP server app's shipped code: it
+ * composes connectors. Tests import it anywhere, as they do the profile format.
  */
 const HTTP_USERS = [
   "^apps/cli/src/(?:http|auth|operation)/",
   "^apps/vscode/src/adapters/[^/]+/",
-  "^packages/connectors/[^/]+/[^/]+-connector/(?:src|test)/",
+  "^packages/connectors/[^/]+/[^/]+-connector/src/lib/engine/",
 ]
 
 /**
@@ -707,7 +709,9 @@ module.exports = {
         "The transport (@miragon/pulse-http) may be imported only where a surface sends its " +
         "engine requests (HTTP_USERS): the CLI's http, auth and operation layers " +
         "(apps/cli/src/http, src/auth, src/operation), the adapters of Pulse for VS Code " +
-        "(apps/vscode/src/adapters/<dialect>) and a connector, and by tests anywhere. Not the " +
+        "(apps/vscode/src/adapters/<dialect>) and a connector's src/lib/engine, where it builds " +
+        "each engine's transport behind resolveEngine/withEngine, and by tests anywhere. Not a " +
+        "connector's tools, data builders or widgets (they would bypass that routing), not the " +
         "MCP server app's shipped code (it composes connectors, which send), no " +
         "other foundation package (widget-shell verifies the server's own OAuth with jose), no " +
         "client and no family core (leaves). A relative escape into packages/core/http is a " +

@@ -1,14 +1,15 @@
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { describe, expect, it } from "vitest"
 import { createEngineClient } from "./client.js"
 import { formDataBodySerializer, urlSearchParamsBodySerializer } from "./generated/client/index.js"
 
 /**
  * The wire of a `createEngineClient` client, called the way the generated SDK calls it (a URL
  * template, path and query values, the `basic` security every operation declares, the
- * multipart serializer of the deployment and form operations) against a recording `fetch`. The
- * SDK itself is not imported: loading it would put its hundreds of wrappers into this package's
- * coverage measurement. What survives to a real engine is asserted end to end by the engine
- * connector's recording fake engine (`src/tools/*.wire.test.ts`).
+ * multipart serializer of the deployment and form operations) against the recording `fetch` it
+ * is given. The SDK itself is not imported: loading it would put its hundreds of wrappers into
+ * this package's coverage measurement. What survives to a real engine, through the transport,
+ * is asserted end to end by the engine connector's recording fake engine
+ * (`src/tools/*.wire.test.ts`).
  */
 
 const BASE = "http://localhost:8410/engine-rest"
@@ -18,13 +19,17 @@ interface Sent {
   request: Request
 }
 
+let answering: { sent: Sent[]; answer: () => Response } = { sent: [], answer: () => json({}) }
+
+/** The `fetch` every client here is given: it records the request and answers as told. */
+const engineFetch = ((request: Request) => {
+  answering.sent.push({ request })
+  return Promise.resolve(answering.answer())
+}) as typeof fetch
+
 function recordFetch(answer: () => Response): Sent[] {
-  const sent: Sent[] = []
-  vi.stubGlobal("fetch", (request: Request) => {
-    sent.push({ request })
-    return Promise.resolve(answer())
-  })
-  return sent
+  answering = { sent: [], answer }
+  return answering.sent
 }
 
 function json(body: unknown, status = 200): Response {
@@ -34,14 +39,10 @@ function json(body: unknown, status = 200): Response {
   })
 }
 
-afterEach(() => {
-  vi.unstubAllGlobals()
-})
-
 describe("the request a client sends", () => {
   it("fills path values encoded, so an id cannot change the path", async () => {
     const sent = recordFetch(() => json({}))
-    const client = createEngineClient({ baseUrl: BASE })
+    const client = createEngineClient({ baseUrl: BASE, fetch: engineFetch })
     await client.get({
       url: "/process-instance/{id}/variables/{varName}",
       path: { id: "a b/../c", varName: "x?y" },
@@ -53,7 +54,7 @@ describe("the request a client sends", () => {
   // A deepObject key goes out unencoded (`variables[amount]`), as hey-api writes it.
   it("writes the query: primitives as given, arrays exploded, objects deep, absent values dropped", async () => {
     const sent = recordFetch(() => json([]))
-    const client = createEngineClient({ baseUrl: BASE })
+    const client = createEngineClient({ baseUrl: BASE, fetch: engineFetch })
     await client.get({
       url: "/process-instance",
       query: {
@@ -75,16 +76,16 @@ describe("the request a client sends", () => {
     )
   })
 
-  it("keeps the configured Authorization although every operation declares basic security", async () => {
+  it("adds no Authorization although every operation declares basic security", async () => {
     const sent = recordFetch(() => json({}))
-    const client = createEngineClient({ baseUrl: BASE, authType: "bearer", token: "tok-1" })
+    const client = createEngineClient({ baseUrl: BASE, fetch: engineFetch })
     await client.get({ url: "/engine", security: [...BASIC] })
-    expect(sent[0]?.request.headers.get("Authorization")).toBe("Bearer tok-1")
+    expect(sent[0]?.request.headers.has("Authorization")).toBe(false)
   })
 
   it("sends a JSON body as JSON, a Long beyond 2^53 as its exact digits", async () => {
     const sent = recordFetch(() => json({}))
-    const client = createEngineClient({ baseUrl: BASE })
+    const client = createEngineClient({ baseUrl: BASE, fetch: engineFetch })
     await client.post({
       url: "/process-definition/key/{key}/start",
       path: { key: "order" },
@@ -100,7 +101,7 @@ describe("the request a client sends", () => {
 
   it("sends a multipart body with its own boundary, files and fields as the deployment takes them", async () => {
     const sent = recordFetch(() => json({ id: "d-1" }))
-    const client = createEngineClient({ baseUrl: BASE })
+    const client = createEngineClient({ baseUrl: BASE, fetch: engineFetch })
     await client.post({
       url: "/deployment/create",
       ...formDataBodySerializer,
@@ -129,7 +130,7 @@ describe("the request a client sends", () => {
 
   it("serializes a form-encoded body pair by pair", async () => {
     const sent = recordFetch(() => json({}))
-    const client = createEngineClient({ baseUrl: BASE })
+    const client = createEngineClient({ baseUrl: BASE, fetch: engineFetch })
     await client.post({
       url: "/form",
       ...urlSearchParamsBodySerializer,
@@ -141,7 +142,7 @@ describe("the request a client sends", () => {
 
   it("sends no body and no Content-Type without one", async () => {
     const sent = recordFetch(() => new Response(null, { status: 204 }))
-    const client = createEngineClient({ baseUrl: BASE })
+    const client = createEngineClient({ baseUrl: BASE, fetch: engineFetch })
     await client.delete({ url: "/incident/{id}", path: { id: "i-1" } })
     const request = sent[0]?.request
     expect(request?.method).toBe("DELETE")
@@ -151,7 +152,7 @@ describe("the request a client sends", () => {
 })
 
 describe("the answer a client reads", () => {
-  const client = () => createEngineClient({ baseUrl: BASE })
+  const client = () => createEngineClient({ baseUrl: BASE, fetch: engineFetch })
 
   it("parses JSON, and an empty 200 body as an empty object", async () => {
     recordFetch(() => json([{ id: "pi-1" }]))
@@ -208,24 +209,30 @@ describe("the answer a client reads", () => {
     expect(result.response.status).toBe(200)
   })
 
+  // The words are the caller's, through the client's error interceptor (the engine connector's).
   it("rejects an engine error with its JSON body, and a text body as text", async () => {
     recordFetch(() => json({ type: "InvalidRequestException", message: "nope" }, 400))
-    await expect(client().get({ url: "/x" })).rejects.toMatchObject({
-      httpStatus: 400,
+    await expect(client().get({ url: "/x" })).rejects.toEqual({
       type: "InvalidRequestException",
-      engineMessage: "nope",
+      message: "nope",
     })
     recordFetch(() => new Response("Bad Gateway", { status: 502 }))
-    await expect(client().get({ url: "/x" })).rejects.toMatchObject({
-      httpStatus: 502,
-      engineMessage: "Bad Gateway",
+    await expect(client().get({ url: "/x" })).rejects.toBe("Bad Gateway")
+    recordFetch(() => new Response("", { status: 500 }))
+    let seen: Response | undefined
+    const reading = client()
+    reading.interceptors.error.use((error, response) => {
+      seen = response
+      return error
     })
+    await expect(reading.get({ url: "/x" })).rejects.toEqual({})
+    expect(seen?.status).toBe(500)
   })
 })
 
 describe("the client's own configuration", () => {
   it("builds a URL from the template, path and query without sending", () => {
-    const client = createEngineClient({ baseUrl: BASE })
+    const client = createEngineClient({ baseUrl: BASE, fetch: engineFetch })
     expect(
       client.buildUrl({ url: "/task/{id}/form", path: { id: "t 1" }, query: { a: ["1", "2"] } }),
     ).toBe(`${BASE}/task/t%201/form?a=1&a=2`)
@@ -233,7 +240,7 @@ describe("the client's own configuration", () => {
 
   it("lets a request interceptor be found, replaced and removed", async () => {
     const sent = recordFetch(() => json({}))
-    const client = createEngineClient({ baseUrl: BASE })
+    const client = createEngineClient({ baseUrl: BASE, fetch: engineFetch })
     const tag = (value: string) => (request: Request) => {
       request.headers.set("X-Tag", value)
       return request

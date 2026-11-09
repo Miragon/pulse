@@ -1,12 +1,11 @@
 import { createToolRegistrar, type ModulePlugin } from "@miragon/pulse-widget-shell/server"
-import type { EngineAuthType } from "@miragon/pulse-c7-client"
 import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-c7-core"
 import { providerForEntry } from "./providers/index.js"
 import { registerTools } from "./tools/index.js"
 import { registerIncidentIssuePrompt, registerIncidentIssueTools } from "./tools/incident-issue.js"
 import { registerEngineTools } from "./tools/engines.js"
 import { registerWidgetTools } from "./widget-tools.js"
-import type { EngineEntry } from "./engine-provider.js"
+import type { EngineAuthType, EngineEntry } from "./engine-provider.js"
 import { createEngineRegistry, type EngineRegistry } from "./lib/engine/resolve-engine.js"
 import { resolveEngineToolset, withToolsetFilter } from "./lib/mcp/toolsets.js"
 import { withEngineParam } from "./lib/engine/with-engine.js"
@@ -27,7 +26,7 @@ export interface EnginePluginConfig {
   toolset?: string
   /** Deploying is code execution in the engine JVM: needs this flag AND the `admin` toolset. */
   allowDeployments?: boolean
-  /** Unset: the client default (30 s). */
+  /** Unset: 30 s, to the answer's last byte. */
   requestTimeoutMs?: number
   /** Operator-fixed so no tool argument can redirect drafts; enables the prefilled issue URL. */
   incidentIssueRepository?: string

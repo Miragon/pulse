@@ -43,7 +43,17 @@ function answer(url: string, body: string, res: http.ServerResponse) {
     })
   }
   if (url.startsWith("/engine-rest/process-instance/empty")) {
-    res.writeHead(500)
+    // Tomcat's status line, without a reason phrase: the transport fills in the standard one.
+    res.writeHead(500, "")
+    return res.end()
+  }
+  if (url.startsWith("/engine-rest/process-instance/standard")) {
+    // A proxy's status line with Node's standard reason phrase, "Service Unavailable".
+    res.writeHead(503)
+    return res.end()
+  }
+  if (url.startsWith("/engine-rest/process-instance/phrase")) {
+    res.writeHead(502, "Upstream Engine Down")
     return res.end()
   }
   if (url.startsWith("/engine-rest/process-instance/text")) {
@@ -116,7 +126,19 @@ describe("engine errors as the model reads them (registrar tool)", () => {
 
   it("500 with an empty body", async () => {
     expect(await getInstanceError("empty", prodA())).toBe(
-      "[500] Internal Server Error — empty response body (engine prod-a)",
+      "[500] empty response body (engine prod-a)",
+    )
+  })
+
+  it("an empty body behind a standard reason phrase: the phrase is not repeated", async () => {
+    expect(await getInstanceError("standard", prodA())).toBe(
+      "[503] empty response body (engine prod-a)",
+    )
+  })
+
+  it("an empty body behind a reason phrase of the server's own", async () => {
+    expect(await getInstanceError("phrase", prodA())).toBe(
+      "[502] Upstream Engine Down — empty response body (engine prod-a)",
     )
   })
 

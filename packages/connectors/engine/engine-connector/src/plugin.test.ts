@@ -222,12 +222,23 @@ function registryOf(config: EnginePluginConfig) {
   return createConfiguredEngineRegistry(config)
 }
 
-function authHeader(client: Client): string | null {
-  return (client.getConfig().headers as Headers).get("Authorization")
+/** The Authorization a request of `client` carries on the wire, through its transport. */
+async function authHeader(client: Client): Promise<string | null> {
+  let sent: string | null = null
+  vi.stubGlobal("fetch", (_url: string, init: RequestInit) => {
+    sent = new Headers(init.headers).get("Authorization")
+    return Promise.resolve(Response.json({ version: "7.24.0" }))
+  })
+  try {
+    await client.get({ url: "/version" })
+  } finally {
+    vi.unstubAllGlobals()
+  }
+  return sent
 }
 
 describe("createPlugin per-engine auth", () => {
-  it("builds each engine's client from its own auth, falling back to the module-wide config", () => {
+  it("builds each engine's client from its own auth, falling back to the module-wide config", async () => {
     const registry = registryOf({
       engines: [
         { id: "a", baseUrl: "http://a.example/engine-rest" },
@@ -243,14 +254,14 @@ describe("createPlugin per-engine auth", () => {
       password: "secret",
     })
 
-    expect(authHeader(resolveEngine("a", registry).client)).toBe(
+    expect(await authHeader(resolveEngine("a", registry).client)).toBe(
       `Basic ${Buffer.from("demo:secret").toString("base64")}`,
     )
-    expect(authHeader(resolveEngine("b", registry).client)).toBe("Bearer tok-b")
-    expect(authHeader(resolveEngine("c", registry).client)).toBeNull()
+    expect(await authHeader(resolveEngine("b", registry).client)).toBe("Bearer tok-b")
+    expect(await authHeader(resolveEngine("c", registry).client)).toBeNull()
   })
 
-  it("does not mix per-engine auth fields with the module-wide credentials", () => {
+  it("does not mix per-engine auth fields with the module-wide credentials", async () => {
     const registry = registryOf({
       engines: [
         // Declares its own auth but no token, so it must NOT inherit the global
@@ -262,7 +273,7 @@ describe("createPlugin per-engine auth", () => {
       password: "secret",
     })
 
-    expect(authHeader(resolveEngine("solo", registry).client)).toBeNull()
+    expect(await authHeader(resolveEngine("solo", registry).client)).toBeNull()
   })
 })
 

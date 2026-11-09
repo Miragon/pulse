@@ -29,15 +29,15 @@ commits the diff. The CLI (`apps/cli/test/__golden__/error-paths`) and Pulse for
 (`apps/vscode/test/__golden__/error-paths`) pin the same cases under the same names.
 
 Some texts come from the runtime, not from Pulse: the network codes (ECONNREFUSED, ENOTFOUND,
-DEPTH_ZERO_SELF_SIGNED_CERT), the "Invalid character" of `basic-password-euro` (Node's `btoa`)
-and the header error of `token-line-break-inside` (undici's `Headers.set`). They are checked with
-Node 22.23.4 (CI runs the newest Node 22) and 24.15.0; a Node update that rewords one turns its
-golden red without a change in Pulse. `dns-failure` needs a resolver that answers `.invalid` with
-NXDOMAIN: offline the lookup fails with EAI_AGAIN, and a resolver that rewrites NXDOMAIN reaches a
-real host.
+DEPTH_ZERO_SELF_SIGNED_CERT). They are checked with Node 22.23.4 (CI runs the newest Node 22) and
+24.15.0; a Node update that renames one turns its golden red without a change in Pulse.
+`dns-failure` needs a resolver that answers `.invalid` with NXDOMAIN: offline the lookup fails
+with EAI_AGAIN, and a resolver that rewrites NXDOMAIN reaches a real host.
 
-Steps are those of the transport plan (3.1): 10 puts the server on `@miragon/pulse-http`, 12 moves
-its engine settings into the profile (the `config` blocks then change with it).
+Steps are those of the transport plan (3.1): 10 put the server on `@miragon/pulse-http` (the
+engine client sends through its transport, the composites through the same client over c7-core's
+route table), 12 moves its engine settings into the profile (the `config` blocks then change with
+it).
 
 | Case | Status | What the golden shows, or why there is none | Changes in step |
 | ---- | ------ | ------------------------------------------- | --------------- |
@@ -48,16 +48,16 @@ its engine settings into the profile (the `config` blocks then change with it).
 | `unauthorized-passthrough` | pinned | 401 to the caller's verified token, forwarded under OAuth | none planned |
 | `wrong-rest-root` | pinned | the URL lacks `/engine-rest`: a servlet container's HTML 404 and the root hint; for the inspect and a registrar read | none planned |
 | `missing-resource` | pinned | 404 `InvalidRequestException`: the inspect's NOT_FOUND for runtime and history (read by `isMissing`), the variables read's engine message | none planned |
-| `engine-text-echoes-secret-basic` | pinned | a 500 whose message echoes the Basic value, the password and a token: the configured password and Basic value read `***`, the text is cut after 500 characters | none planned (the masking must survive 10) |
-| `engine-text-echoes-secret-bearer` | pinned | the same message to a static bearer token: the token reads `***`, the rest is no credential of this engine | none planned (the masking must survive 10) |
-| `deadline-exceeded` | pinned | `ENGINE_REQUEST_TIMEOUT_MS=300` against an engine that never answers, under `engine:admin`; known bug: the reading POSTs (`engine_create_migration_plan`, the query and counts of the feed `engine_process_instances_data`) warn that they may have applied, like the real write `engine_start_process_instance` | 10 (no write caveat for reading POSTs) |
+| `engine-text-echoes-secret-basic` | pinned | a 500 whose message echoes the Basic value, the password and a token: the configured password and Basic value read `***`, the text is cut after 500 characters | none planned (the transport masks it since 10) |
+| `engine-text-echoes-secret-bearer` | pinned | the same message to a static bearer token: the token reads `***`, the rest is no credential of this engine | none planned (the transport masks it since 10) |
+| `deadline-exceeded` | pinned | `ENGINE_REQUEST_TIMEOUT_MS=300` against an engine that never answers, under `engine:admin`: the reading POSTs (`engine_create_migration_plan`, the query and counts of the feed `engine_process_instances_data`) carry no write caveat since step 10 (the route table says they read), the real write `engine_start_process_instance` does | none planned |
 | `unreachable` | pinned | a closed loopback port: ECONNREFUSED | none planned |
-| `tls-failure` | pinned | a self-signed certificate; known bug: the write probe warns that a PUT the handshake stopped may have applied | 10 (no write caveat for TLS) |
+| `tls-failure` | pinned | a self-signed certificate: the handshake fails before anything is sent, so the write probe carries no write caveat since step 10, and the text says nothing was sent | none planned |
 | `dns-failure` | pinned | a host under `.invalid`: ENOTFOUND | none planned |
-| `too-large-response` | deferred | the server has no size cap today, so only an answer above the coming 64 MiB cap could show a change, and the test would buffer it | 10 (64 MiB cap, then pinned) |
-| `basic-password-euro` | pinned | known bug: the boot fails with "Invalid character", naming no variable (Basic is Latin-1) | 10 (boots, Basic as UTF-8) |
-| `path-value-dot` | pinned | known bug: `processInstanceId` "." and ".." are resolved away, the reads go to `/process-instance/` and to the REST root | 10 (refused before sending) |
-| `double-slash-root` | pinned | known bug: a URL ending in `//` keeps one slash, the reads go to `/engine-rest//…` | 10 (slashes trimmed) |
-| `token-line-break-inside` | pinned | known bug: the boot fails with the header error, which echoes the token | 10 (refused without echo) |
-| `token-line-break-trailing` | pinned | a trailing line break: the header goes out trimmed already | none planned (10 trims it on purpose) |
-| `integer-beyond-2-53` | pinned | known bug: a Long variable 9223372036854775807 reaches the model as 9223372036854776000 | 10, only with E2 (a): exact digits as a string |
+| `too-large-response` | pinned | an announced Content-Length one byte above 64 MiB: since step 10 the read fails as too large before its body is read, nothing buffered | none planned |
+| `basic-password-euro` | pinned | since step 10 the server boots and sends Basic as UTF-8 (RFC 7617), as the CLI and Pulse for VS Code do; it failed the boot with "Invalid character" before (Basic was Latin-1) | none planned |
+| `path-value-dot` | pinned | since step 10 `processInstanceId` "." and ".." are refused before sending; before, they were resolved away and the reads went to `/process-instance/` and to the REST root | none planned |
+| `double-slash-root` | pinned | since step 10 the slashes at the end of the URL are trimmed, so the reads reach the engine; before, they went to `/engine-rest//…` | none planned |
+| `token-line-break-inside` | pinned | since step 10 the boot fails naming the engine and the setting, without the token; before, the header error echoed it | none planned |
+| `token-line-break-trailing` | pinned | a trailing line break: trimmed, the header goes out without it | none planned |
+| `integer-beyond-2-53` | pinned | since step 10 (owner decision E2 (a)) a Long variable 9223372036854775807 reaches the model as the string of its exact digits; before, as 9223372036854776000 | none planned |

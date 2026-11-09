@@ -14,7 +14,7 @@
  *   exactly the shape a variable write takes back.
  *
  * These reads never decide what a failure means: every engine error throws
- * (an `EngineRequestError`), a 404 included. Whether a 404 names a missing
+ * (as the client's error interceptor words it), a 404 included. Whether a 404 names a missing
  * resource or a wrong REST root is c7-core's `isMissing`, the one rule of
  * the family; the caller reads the error through it (the engine connector's
  * port and tools).

@@ -110,6 +110,15 @@ const nothingListens = (baseUrl: string): Engine => ({
   close: () => Promise.resolve(),
 })
 
+/** An announced body one byte above the transport's cap: refused before it is read. */
+const MORE_THAN_THE_CAP = String(64 * 1024 * 1024 + 1)
+
+const tooLarge: EngineAnswer = () => ({
+  raw: "{",
+  contentType: "application/json",
+  headers: { "Content-Length": MORE_THAN_THE_CAP },
+})
+
 const BASIC = { ENGINE_AUTH_TYPE: "basic", ENGINE_USERNAME: "demo" }
 const BEARER = { ENGINE_AUTH_TYPE: "bearer" }
 
@@ -169,6 +178,7 @@ const PINNED: PinnedCase[] = [
     name: "dns-failure",
     engine: () => Promise.resolve(nothingListens(`${UNRESOLVABLE_ORIGIN}/engine-rest`)),
   },
+  { name: "too-large-response", engine: restRoot(tooLarge) },
   {
     name: "basic-password-euro",
     engine: restRoot(worldAnswer),

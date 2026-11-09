@@ -1,8 +1,14 @@
-import type { EngineAuthType, Client } from "@miragon/pulse-c7-client"
+import type { Client } from "@miragon/pulse-c7-client"
 
 /** One per vendor of the C7 dialect: ONLY the real differences, never a mirror of the SDK. */
 
 export type EngineFlavor = "cibseven" | "operaton" | "camunda7"
+
+/**
+ * How the server signs in to an engine: not at all, Basic, a fixed bearer token, or the MCP
+ * caller's own bearer token passed through (`src/lib/engine/credentials.ts`).
+ */
+export type EngineAuthType = "basic" | "bearer" | "passthrough" | "none"
 
 /** Never mixed field-by-field with the module-wide fallback. */
 export interface EngineAuth {
@@ -14,7 +20,7 @@ export interface EngineAuth {
 
 /** Module-wide client settings (not per engine), handed to every provider's client factory. */
 export interface EngineClientSettings {
-  /** Per-request deadline in ms (`ENGINE_REQUEST_TIMEOUT_MS`); the client's default when unset. */
+  /** Per-request deadline in ms (`ENGINE_REQUEST_TIMEOUT_MS`), to the answer's last byte; 30 s when unset. */
   timeoutMs?: number
 }
 

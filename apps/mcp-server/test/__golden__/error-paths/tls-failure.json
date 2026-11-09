@@ -13,7 +13,7 @@
         "content": [
           {
             "textLines": [
-              "connection to engine default failed (DEPTH_ZERO_SELF_SIGNED_CERT)"
+              "connection to engine default failed (DEPTH_ZERO_SELF_SIGNED_CERT): the TLS handshake failed, so nothing was sent"
             ],
             "type": "text"
           }
@@ -32,7 +32,7 @@
         "content": [
           {
             "textLines": [
-              "connection to engine default failed (DEPTH_ZERO_SELF_SIGNED_CERT) — the PUT may still have been applied; check the current state before retrying"
+              "connection to engine default failed (DEPTH_ZERO_SELF_SIGNED_CERT): the TLS handshake failed, so nothing was sent"
             ],
             "type": "text"
           }

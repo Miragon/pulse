@@ -18,22 +18,23 @@ npm install @miragon/pulse-c7-client
 
 TypeScript client for the Camunda 7 REST API that CIB seven, Operaton and
 Camunda 7 serve: an SDK generated with
-[`@hey-api/openapi-ts`](https://heyapi.dev/), a client factory with deadlines
-and engine errors, and the reads whose REST contract the SDK defaults miss.
+[`@hey-api/openapi-ts`](https://heyapi.dev/), a client factory over the `fetch`
+you hand it, and the reads whose REST contract the SDK defaults miss.
 There is no official TypeScript client for CIB seven; this package fills that
 gap for Pulse and is usable by any CIB seven, Operaton or Camunda 7 project.
-It has no runtime dependency. The pure engine REST rules (dates,
-filters, sorting, variable writes, incident recovery) live in
-[`@miragon/pulse-c7-core`](../c7-core/README.md), which this package
-does not import.
+It has no runtime dependency and imports no other package: the wire
+(credentials, deadline, redirects, size cap, failures) is the `fetch`'s, the
+pure engine REST rules (dates, filters, sorting, variable writes, incident
+recovery, the route table) live in [`@miragon/pulse-c7-core`](../c7-core/README.md),
+which this package does not import.
 
 ## Exports
 
-| Subpath   | Contents                                                                                  |
-| --------- | ----------------------------------------------------------------------------------------- |
-| `.`       | `createEngineClient` factory, `EngineRequestError`, the SDK-bound reads and batch reports |
-| `./sdk`   | Generated SDK, one typed function per REST operation                                      |
-| `./types` | Generated request/response types                                                          |
+| Subpath   | Contents                                                                                   |
+| --------- | ------------------------------------------------------------------------------------------ |
+| `.`       | `createEngineClient`, `withCallerSignal`, `USER_AGENT`, the SDK-bound reads, batch reports |
+| `./sdk`   | Generated SDK, one typed function per REST operation                                       |
+| `./types` | Generated request/response types                                                           |
 
 Import only these three subpaths: the layout of the generated output
 (`dist/generated/**`) changes with any `@hey-api/openapi-ts` upgrade, so it is
@@ -47,48 +48,47 @@ declared once in the generator config (`openapi-ts.config.ts`) and applied at
 runtime through `createClientConfig` (`src/hey-api.ts`), which the generated
 default client and `createEngineClient` share, so generated types and runtime
 behavior always agree. Every request sends
-`User-Agent: @miragon/pulse-c7-client/<version>`, so the engine's access
-logs show Pulse's calls.
+`User-Agent: @miragon/pulse-c7-client/<version>` (`USER_AGENT`), so the
+engine's access logs show Pulse's calls.
+
+`createEngineClient({ baseUrl, fetch, requestValidator })` builds a client
+that sends every request through the `fetch` it is given, called with the
+finished `Request`, and adds nothing of its own: no credential, no deadline, no
+redirect rule, no error mapping. The Pulse MCP server hands it the `asFetch` of
+[`@miragon/pulse-http`](../../../core/http/README.md), which signs each request,
+holds the deadline to the last byte, never follows a redirect, caps the answer
+and masks secrets; its `requestValidator` refuses a path value `""`, `.` or
+`..`, which the `Request` would resolve away before the `fetch` sees it.
 
 ```ts
 import { createEngineClient } from "@miragon/pulse-c7-client"
 import { getProcessDefinitions } from "@miragon/pulse-c7-client/sdk"
+import { basicCredential, createHttp } from "@miragon/pulse-http"
 
+const http = createHttp(
+  {
+    url: "http://localhost:8410/engine-rest",
+    credential: basicCredential("demo", "demo"),
+    timeoutMs: 30_000,
+  },
+  { fetch: globalThis.fetch, now: Date.now },
+)
 const client = createEngineClient({
-  baseUrl: "http://localhost:8410/engine-rest",
-  authType: "basic",
-  username: "demo",
-  password: "demo",
+  baseUrl: http.root,
+  fetch: http.asFetch({ intentOf: (request) => (request.method === "GET" ? "read" : "write") }),
 })
 const definitions = await getProcessDefinitions({ client, query: { latestVersion: true } })
 ```
 
-Every `createEngineClient` client, whatever its auth type, rejects with an
-`EngineRequestError` (an `Error` with `kind`, `httpStatus`, `type`,
-`engineMessage`, `engineCode`, `engineId`) instead of the raw error body, with
-a message that is safe and useful to show a model (engine text truncated, the
-request's credentials masked):
-`[404 InvalidRequestException] Process instance with id x does not exist (engine prod-a)`,
-`engine prod-a unreachable (ECONNREFUSED)` (no connection: the engine never
-saw the request), `connection to engine prod-a failed (ECONNRESET)` (dropped
-mid-request; a write adds that it may still have been applied), or
-`engine prod-a did not respond within 30000 ms (timeout)`. A client never
-follows a redirect (a followed 302/303 turns a write into a GET): a 3xx
-rejects with `[302] redirect to https://sso.example/login (engine prod-a)` and
-the fix (point the engine URL at the REST API root itself, e.g. `https://`; a
-redirect to a login page means missing or expired credentials). A 404 that is
-no engine answer (a JAX-RS `NotFoundException` or an error page without an
-exception type) adds "No such endpoint: check that the engine URL points at the REST
-API root itself". Pass `engineId` to name the engine in those messages and `timeoutMs` to change the per-request
-deadline (default 30 000 ms). `withCallerSignal(client, signal)` returns a view
-whose reads (`GET`/`HEAD`/`OPTIONS`) also abort with the caller's signal;
+An engine error rejects with what the engine sent (its parsed `ExceptionDto`,
+the text, or `{}`) and a transport failure with what the `fetch` threw; install
+an error interceptor (`client.interceptors.error.use(…)`) to word them, as the
+Pulse engine connector does for the model. A call that brings a `fetch`, a
+`requestValidator` or an `auth` of its own, per call or through `setConfig`, is
+refused, even as `undefined`: it would leave the given one, and with it the
+credential or the path value rule, out. `withCallerSignal(client, signal)` returns a
+view whose reads (`GET`/`HEAD`/`OPTIONS`) also abort with the caller's signal;
 writes never do, since aborting a started write cannot undo it.
-
-The deadline lives in the client's `fetch`, so it binds each request after
-every request interceptor. A custom `fetch` (per call or via `setConfig`)
-replaces it, so wrap `client.getConfig().fetch` instead. Request interceptors
-should mutate the request (`request.headers.set(…)`): one that returns a new
-`Request` keeps the deadline, but can detach the caller's signal.
 
 ## OpenAPI spec: origin & refresh
 

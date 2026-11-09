@@ -210,11 +210,11 @@ lacks goes into that package (a leaf: no dependency, data rather than wording).
 The pattern is `engine_inspect_process_instance` and `engine_status`
 (`src/lib/core-adapter/composites.ts`, registered like any registrar tool):
 
-- Map every operation the composite sends in `READS` of `src/lib/core-adapter/engine-port.ts`, one typed
-  SDK read each; text/plain and variable reads go through c7-client's SDK-bound reads
-  (`fetchJobStacktrace`, `readProcessInstanceVariables`), as `sdk-reads.test.ts`
-  demands. `src/lib/core-adapter/engine-port.test.ts` holds `READS` to c7-core's operation
-  lists.
+- Map nothing by hand: the port (`src/lib/core-adapter/engine-port.ts`) sends every operation
+  the composite asks for as its route of c7-core's `CORE_ROUTES` (`routedTransport`) through the
+  engine's client, so a composite that needs an operation c7-core does not send yet adds it to
+  c7-core's `CORE_OPERATIONS`, and `src/lib/core-adapter/engine-port.test.ts` holds every
+  operation of c7-core's lists to a reading route.
 - Word c7-core's error reasons in `src/lib/core-adapter/workflow-errors.ts` (`[CODE] message` in the
   tool's parameter names, no tool names).
 - Return data for the model: drop `next` (it would name tools a toolset may lack), cut

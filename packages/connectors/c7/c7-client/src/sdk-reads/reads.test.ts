@@ -16,7 +16,6 @@ vi.mock("../generated/sdk.gen.js", () => ({
 
 import * as sdk from "../generated/sdk.gen.js"
 import type { Client } from "../generated/client/types.gen.js"
-import { EngineRequestError } from "../engine-error.js"
 import {
   fetchExternalTaskErrorDetails,
   fetchJobStacktrace,
@@ -28,12 +27,13 @@ import {
 const client = { fake: true } as unknown as Client
 const TEXT_PLAIN = { parseAs: "text", headers: { Accept: "text/plain" } }
 
+/** What the caller's error interceptor makes of an engine answer (the engine connector's words). */
+function engineError(message: string, fields: { httpStatus: number; type?: string }): Error {
+  return Object.assign(new Error(message), fields)
+}
+
 function httpError(status: number) {
-  return new EngineRequestError(`[${status}] boom`, {
-    kind: "http",
-    httpStatus: status,
-    engineMessage: "boom",
-  })
+  return engineError(`[${status}] boom`, { httpStatus: status })
 }
 
 beforeEach(() => {
@@ -59,14 +59,7 @@ describe("fetchJobStacktrace: a text/plain-only endpoint", () => {
   it.each(["InvalidRequestException", "NotFoundException", "QueryParamException"])(
     "throws a 404 of type %s for the caller to read",
     async (type) => {
-      mocked.mockRejectedValueOnce(
-        new EngineRequestError("[404] gone", {
-          kind: "http",
-          httpStatus: 404,
-          type,
-          engineMessage: "gone",
-        }),
-      )
+      mocked.mockRejectedValueOnce(engineError("[404] gone", { httpStatus: 404, type }))
       await expect(fetchJobStacktrace(client, "job-1")).rejects.toMatchObject({
         httpStatus: 404,
         type,

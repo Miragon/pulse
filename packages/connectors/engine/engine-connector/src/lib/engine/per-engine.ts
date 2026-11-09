@@ -1,5 +1,6 @@
-import { type Client, EngineRequestError } from "@miragon/pulse-c7-client"
+import type { Client } from "@miragon/pulse-c7-client"
 import { callerCacheKey } from "@miragon/pulse-widget-shell/server"
+import { EngineRequestError } from "./engine-error.js"
 
 /**
  * The engine client behind `client`: every call reaches its engine through a per-call view

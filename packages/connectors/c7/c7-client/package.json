@@ -1,7 +1,7 @@
 {
   "name": "@miragon/pulse-c7-client",
   "version": "0.27.1",
-  "description": "The SDK of the Camunda 7 REST dialect family (Operaton, CIB seven, Camunda 7): the generated REST SDK, its client with deadlines and engine errors, and the reads whose REST contract the SDK defaults miss.",
+  "description": "The SDK of the Camunda 7 REST dialect family (Operaton, CIB seven, Camunda 7): the generated REST SDK, its client over the fetch you hand it, and the reads whose REST contract the SDK defaults miss.",
   "license": "MIT",
   "keywords": [
     "camunda",

@@ -12,17 +12,14 @@
         "content": [
           {
             "textLines": [
-              "[404 NotFoundException] RESTEASY003210: Could not find resource (engine default). No such endpoint: check that the engine URL points at the REST API root itself (e.g. http://localhost:8080/engine-rest)."
+              "the path value \".\" was refused before sending (dot-segment): the URL would address another resource; nothing was sent (engine default)"
             ],
             "type": "text"
           }
         ],
         "isError": true
       },
-      "sent": [
-        "GET /engine-rest/history/process-instance/",
-        "GET /engine-rest/process-instance/"
-      ],
+      "sent": [],
       "tool": "engine_inspect_process_instance"
     },
     {
@@ -33,17 +30,14 @@
         "content": [
           {
             "textLines": [
-              "[404 NotFoundException] RESTEASY003210: Could not find resource (engine default). No such endpoint: check that the engine URL points at the REST API root itself (e.g. http://localhost:8080/engine-rest)."
+              "the path value \"..\" was refused before sending (dot-segment): the URL would address another resource; nothing was sent (engine default)"
             ],
             "type": "text"
           }
         ],
         "isError": true
       },
-      "sent": [
-        "GET /engine-rest/",
-        "GET /engine-rest/history/"
-      ],
+      "sent": [],
       "tool": "engine_inspect_process_instance"
     }
   ]

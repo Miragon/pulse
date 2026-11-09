@@ -55,7 +55,7 @@
         "content": [
           {
             "textLines": [
-              "engine default did not respond within 300 ms (timeout) — the POST may still have been applied; check the current state before retrying"
+              "engine default did not respond within 300 ms (timeout)"
             ],
             "type": "text"
           }
@@ -73,7 +73,7 @@
         "content": [
           {
             "textLines": [
-              "engine default did not respond within 300 ms (timeout) — the POST may still have been applied; check the current state before retrying"
+              "engine default did not respond within 300 ms (timeout)"
             ],
             "type": "text"
           }

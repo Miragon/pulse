@@ -1,4 +1,4 @@
-export { createEngineClient, withCallerSignal, DEFAULT_ENGINE_TIMEOUT_MS } from "./client.js"
-export type { Client, EngineClientOptions, EngineAuthType } from "./client.js"
-export { EngineRequestError, type EngineFailureKind } from "./engine-error.js"
+export { createEngineClient, withCallerSignal } from "./client.js"
+export type { Client, EngineClientOptions } from "./client.js"
+export { USER_AGENT } from "./hey-api.js"
 export * from "./sdk-reads/index.js"

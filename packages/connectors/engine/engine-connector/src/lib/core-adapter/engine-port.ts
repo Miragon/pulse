@@ -1,110 +1,74 @@
 /**
- * The engine port of @miragon/pulse-c7-core over the engine client: one typed SDK read per
- * operation the composites send (c7-core's INSPECT_OPERATIONS and STATUS_OPERATIONS), the
- * text and variable reads through c7-client's SDK-bound reads, at most 8 requests in flight
- * per call. Built per tool call on the client `withEngine` resolved (invariant 2): never cached.
+ * The engine port of @miragon/pulse-c7-core over the engine client: each operation the
+ * composites send (c7-core's INSPECT_OPERATIONS and STATUS_OPERATIONS) goes out as its route of
+ * `CORE_ROUTES` (`routedTransport`), through the client and so through the engine's one
+ * transport, at most 8 requests in flight per call. No table of operations to SDK functions: the
+ * route says the method, the path, the media type to accept and whether it only reads. Built per
+ * tool call on the client `withEngine` resolved (invariant 2): never cached.
  */
 
+import type { Client } from "@miragon/pulse-c7-client"
 import {
-  type Client,
-  EngineRequestError,
-  fetchExternalTaskErrorDetails,
-  fetchJobStacktrace,
-  readProcessInstanceVariables,
-} from "@miragon/pulse-c7-client"
-import {
-  getActivityInstanceTree,
-  getBatchStatistics,
-  getEventSubscriptions,
-  getExternalTasks,
-  getExternalTasksCount,
-  getHistoricActivityInstances,
-  getHistoricIncidents,
-  getHistoricProcessInstance,
-  getHistoricProcessInstances,
-  getHistoricVariableInstances,
-  getIncidents,
-  getIncidentsCount,
-  getJobDefinitions,
-  getJobs,
-  getJobsCount,
-  getProcessDefinitions,
-  getProcessDefinitionStatistics,
-  getProcessInstance,
-  getProcessInstances,
-  getRestApiVersion,
-  getTasks,
-  getTasksCount,
-} from "@miragon/pulse-c7-client/sdk"
-import {
+  CORE_ROUTES,
   createEnginePort,
   type EngineFailure,
   isMissing,
   type EnginePort,
-  type EngineTransport,
   type OperationInput,
+  type Route,
+  routedTransport,
+  type RoutedWire,
   Slots,
 } from "@miragon/pulse-c7-core"
+import { EngineRequestError } from "../engine/engine-error.js"
 
-type Read = (client: Client, input: OperationInput) => Promise<unknown>
+/** The names of a path template's placeholders, in path order: `{id}` gives `id`. */
+function placeholdersOf(path: string): string[] {
+  return [...path.matchAll(/\{([^}]+)\}/g)].map((match) => match[1] ?? "")
+}
+
+/** Whether a route answers text only (a stacktrace, error details), which the SDK reads as text. */
+function answersText(route: Route): boolean {
+  return route.accepts.length > 0 && route.accepts.every((type) => type === "text/plain")
+}
 
 /**
- * The query as the SDK types it. The engine reads every query value as text, so c7-core's
- * strings and the numbers and booleans the SDK types are the same wire value; undefined entries
- * are not sent.
+ * The SDK call of `route`, as the generated function of its operation sends it: the template, its
+ * values by name, the query, what to accept; a text route read as text.
  */
-function engineQuery(input: OperationInput): never {
-  return input.query as never
+function callOf(route: Route, input: OperationInput) {
+  const names = placeholdersOf(route.path)
+  return {
+    url: route.path,
+    path: Object.fromEntries(names.map((name, at) => [name, input.pathArgs[at]])),
+    query: input.query,
+    ...(input.body === undefined ? {} : { body: input.body }),
+    ...(route.accepts.length > 0 ? { headers: { Accept: route.accepts.join(", ") } } : {}),
+    ...(answersText(route) ? { parseAs: "text" as const } : {}),
+  }
 }
 
-/** The single path value (`{id}`) of the operation. */
-function idOf(input: OperationInput): string {
-  const [id] = input.pathArgs
-  if (id === undefined) throw new Error("c7-core sent an operation without its id")
-  return id
-}
+/** The client's methods by a route's method. */
+const SEND = {
+  GET: "get",
+  POST: "post",
+  PUT: "put",
+  DELETE: "delete",
+  OPTIONS: "options",
+} as const satisfies Record<Route["method"], keyof Client>
 
-/** Every operation c7-core may send, by its operation id (the CLI catalog's names). */
-export const READS: Readonly<Record<string, Read>> = {
-  getProcessInstance: (client, input) => getProcessInstance({ client, path: { id: idOf(input) } }),
-  getHistoricProcessInstance: (client, input) =>
-    getHistoricProcessInstance({ client, path: { id: idOf(input) } }),
-  getHistoricProcessInstances: (client, input) =>
-    getHistoricProcessInstances({ client, query: engineQuery(input) }),
-  getProcessInstances: (client, input) =>
-    getProcessInstances({ client, query: engineQuery(input) }),
-  getActivityInstanceTree: (client, input) =>
-    getActivityInstanceTree({ client, path: { id: idOf(input) } }),
-  getIncidents: (client, input) => getIncidents({ client, query: engineQuery(input) }),
-  getIncidentsCount: (client, input) => getIncidentsCount({ client, query: engineQuery(input) }),
-  getEventSubscriptions: (client, input) =>
-    getEventSubscriptions({ client, query: engineQuery(input) }),
-  getTasks: (client, input) => getTasks({ client, query: engineQuery(input) }),
-  getTasksCount: (client, input) => getTasksCount({ client, query: engineQuery(input) }),
-  getExternalTasks: (client, input) => getExternalTasks({ client, query: engineQuery(input) }),
-  getExternalTasksCount: (client, input) =>
-    getExternalTasksCount({ client, query: engineQuery(input) }),
-  getJobs: (client, input) => getJobs({ client, query: engineQuery(input) }),
-  getJobsCount: (client, input) => getJobsCount({ client, query: engineQuery(input) }),
-  getProcessDefinitions: (client, input) =>
-    getProcessDefinitions({ client, query: engineQuery(input) }),
-  getProcessDefinitionStatistics: (client, input) =>
-    getProcessDefinitionStatistics({ client, query: engineQuery(input) }),
-  getJobDefinitions: (client, input) => getJobDefinitions({ client, query: engineQuery(input) }),
-  // The SDK-bound reads: serialized variables, text/plain stacktraces and error details.
-  getProcessInstanceVariables: (client, input) => readProcessInstanceVariables(client, idOf(input)),
-  getHistoricVariableInstances: (client, input) =>
-    getHistoricVariableInstances({ client, query: engineQuery(input) }),
-  getHistoricActivityInstances: (client, input) =>
-    getHistoricActivityInstances({ client, query: engineQuery(input) }),
-  getHistoricIncidents: (client, input) =>
-    getHistoricIncidents({ client, query: engineQuery(input) }),
-  getStacktrace: (client, input) => fetchJobStacktrace(client, idOf(input)),
-  getExternalTaskErrorDetails: (client, input) =>
-    fetchExternalTaskErrorDetails(client, idOf(input)),
-  // The one operation id the SDK spells differently.
-  getRestAPIVersion: (client) => getRestApiVersion({ client }),
-  getBatchStatistics: (client, input) => getBatchStatistics({ client, query: engineQuery(input) }),
+/**
+ * How c7-core's routes go out through `client`: the answer is what the SDK read (JSON parsed,
+ * integers beyond 2^53 as exact-digit strings; a text route's text), a failure the client's
+ * `EngineRequestError`.
+ */
+function clientWire(client: Client): RoutedWire<unknown> {
+  return {
+    send: (route, input) => client[SEND[route.method]](callOf(route, input)),
+    json: (answer) => answer,
+    text: (answer) => (typeof answer === "string" ? answer : undefined),
+    failure: engineFailure,
+  }
 }
 
 /**
@@ -143,20 +107,12 @@ export async function noneIfMissing<T>(read: Promise<T>): Promise<T | null> {
   }
 }
 
-/** c7-core's port over `client`, with one set of 8 slots for this call. */
+/** c7-core's port over `client`, the operations c7-core sends only, with one set of 8 slots for this call. */
 export function enginePortFor(client: Client): EnginePort {
   const slots = new Slots()
-  const transport: EngineTransport = {
-    async send(operationId, input) {
-      const read = READS[operationId]
-      if (read === undefined) {
-        throw new Error(`c7-core asked for ${operationId}, which the engine port does not map`)
-      }
-      return slots.run(() => read(client, input))
-    },
-    json: (answer) => answer,
-    text: (answer) => (typeof answer === "string" ? answer : undefined),
-    failure: engineFailure,
-  }
-  return createEnginePort(transport)
+  const routed = routedTransport(CORE_ROUTES, clientWire(client))
+  return createEnginePort({
+    ...routed,
+    send: (operationId, input) => slots.run(() => routed.send(operationId, input)),
+  })
 }

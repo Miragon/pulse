@@ -47,7 +47,7 @@ command line interface (`apps/cli`) and a VS Code extension (`apps/vscode`) for 
 | `apps/vscode/`                                 | Pulse for VS Code (`pulse-cockpit`, a .vsix): a Preact webview over an engine-neutral core and the contract of `engine-core`, the C7 adapter; its rules in `apps/vscode/CLAUDE.md`                                                                                                                                                                                                                                |
 | `packages/connectors/engine/engine-connector/` | engine module, the one MCP module of every dialect: operations tools, widget tools, widgets                                                                                                                                                                                                                                                                                                                       |
 | `packages/connectors/engine/engine-core/`      | The neutral core of the engine family (npm `@miragon/pulse-engine-core`), the contract every dialect implements: the ports a process engine answers (`ProcessRuntime`, `ProcessCommands`), ids, read models, queries, `RuntimeError`, `RootCauses`; the conformance kit with its laws, its fixed world and the in-memory `FakeEngine` (`/testing`); no runtime dependency, Pulse for VS Code's house rules        |
-| `packages/connectors/c7/c7-client/`            | The SDK of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-client`): the REST SDK generated from c7-core's one spec (`src/generated/`), `createEngineClient`, `EngineRequestError` and the SDK-bound reads (`src/sdk-reads/`); a leaf                                                                                                                                                                |
+| `packages/connectors/c7/c7-client/`            | The SDK of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-client`): the REST SDK generated from c7-core's one spec (`src/generated/`), `createEngineClient` over the `fetch` it is handed and the SDK-bound reads (`src/sdk-reads/`); a leaf                                                                                                                                                        |
 | `packages/connectors/c7/c7-core/`              | The core of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-core`), its workflow domain and pure engine REST rules: port, selection, inspect, status triage, the root cause of an incident (`causeOf`), retry/advance plans, dates, filters, variable writes, the one spec and its routes (`routeOf`, `intentOf`, `./routes`); one runtime dependency, engine-core's main entry                      |
 | `packages/core/ui/`                            | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the formatters and the tones without React under `/format` and `/tones`, the brand gates under `/testing`                                                                        |
 | `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), a module's test server (`/testing`)                                                                                                                                                    |
@@ -541,20 +541,21 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      `QueryParamException` or one without an engine answer is a wrong REST root or request and
      fails loud): the client's reads throw every 404 and their callers decide (the connector's
      `isMissingResource`/`noneIfMissing` in `src/lib/core-adapter/engine-port.ts`), the CLI and
-     the VS Code adapter call it. Three copies are left, each held equal by a test: in the leaf
+     the VS Code adapter call it. Two copies are left, each held equal by a test: in the leaf
      client the raw-variable flag (to `RAW_VARIABLES`, the connector's
-     `src/sdk-reads.test.ts`) and the wrong-root hint of a 404 in
-     `packages/connectors/c7/c7-client/src/engine-error.ts` (wording only, to
-     `isUnknownEndpoint`, on which `isMissing` builds; the connector's
-     `src/lib/core-adapter/engine-port.test.ts`), and the CLI's endpoint hint in
-     `apps/cli/src/http/errors.ts` (its http layer does not import the core;
-     `apps/cli/src/http/errors.test.ts`). No client
-     follows a redirect: a 3xx fails with a message that names the fix. That rule and the other
-     wire rules (the deadline to the last byte, the 64 MiB cap, Basic as UTF-8, one retry after a
-     401 only when the credential renewed, the write caveat only for a write, the masking, the
-     path value rule) get one home in `@miragon/pulse-http` (`packages/core/http`), whose
-     `TRANSPORT_CASES` every wiring passes (each case its surface can express, `casesFor`); the
-     server, the CLI and the VS Code extension each keep their own until each switches to it.
+     `src/sdk-reads.test.ts`), and the CLI's endpoint hint in `apps/cli/src/http/errors.ts`
+     (its http layer does not import the core; `apps/cli/src/http/errors.test.ts`) until the CLI
+     sends through the transport. No client follows a redirect: a 3xx fails with a message that
+     names the fix, the rule of `@miragon/pulse-http` (`packages/core/http`), the one home of it
+     and of the other wire rules (the deadline to the last byte, the 64 MiB cap, Basic as UTF-8,
+     one retry after a 401 only when the credential renewed, the write caveat only for a write,
+     the masking, the path value rule), whose `TRANSPORT_CASES` every wiring passes against its
+     loopback engine (each case its surface can express, `casesFor`). The MCP server sends
+     through it: the engine connector builds each engine's credential and transport once at boot
+     and hands the SDK client its `asFetch` and a `requestValidator` for the path values
+     (`src/lib/engine/engine-connection.ts`), and words every failure for the model in one place
+     (`src/lib/engine/engine-error.ts`, the wrong-root hint by `isUnknownEndpoint` itself); the
+     CLI and the VS Code extension keep their own until each switches to it.
      Every write tool has a
      recording-fake-engine case in `src/tools/*.wire.test.ts`.
    - **One Camunda 7 REST spec** (`packages/connectors/c7/c7-core/spec/api.json`, Operaton's,
@@ -566,8 +567,11 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      `@miragon/pulse-c7-core/routes` all 399. Whether a request only reads is
      `intentOf(routeOf(…))` over it (literal segments before placeholders; an unknown request
      reads only as a GET or a HEAD), and `failureOf` reads an error answer, so a surface that
-     sends through `routedTransport` keeps no table of its own; the server's `POST_QUERY_PATHS`
-     and the VS Code adapter's `InspectOperations` stay until each does. The effect rule
+     sends through `routedTransport` keeps no table of its own: the server's composites go out as
+     routes of `CORE_ROUTES` through its client (`src/lib/core-adapter/engine-port.ts`), and the
+     intent of each SDK request comes from `@miragon/pulse-c7-core/routes`, so a reading POST
+     never carries the write caveat; the VS Code adapter's `InspectOperations` stays until it
+     does. The effect rule
      (`packages/connectors/c7/c7-core/scripts/effects.ts`) has one home: the CLI's catalog takes
      each effect from the table.
    - The workflow rules the CLI and the read composites (`engine_inspect_process_instance`,
@@ -643,9 +647,11 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      `http-loopback-only-its-sockets`, a project of its own with Node types; no other module of
      the package reaches it, `http-is-a-leaf`), and only where a surface sends its engine
      requests is it imported: the CLI's `src/http`, `src/auth` and `src/operation`, Pulse for VS
-     Code's `src/adapters/<dialect>`, a connector, and tests anywhere, never the MCP server app's
-     shipped code (`http-consumers`, `HTTP_USERS`; until a surface switches to it, only its own
-     tests do); the engine family's core (`@miragon/pulse-engine-core`,
+     Code's `src/adapters/<dialect>`, a connector's `src/lib/engine` (where the engine connector
+     sends through it, behind `resolveEngine`/`withEngine`; never its tools, data builders or
+     widgets), and tests anywhere, never the MCP server app's shipped code (`http-consumers`,
+     `HTTP_USERS`; until the CLI and the extension switch to it, only their tests may); the
+     engine family's core (`@miragon/pulse-engine-core`,
      `packages/connectors/engine/engine-core`) is a family core like any other, importing only its
      own modules (`family-core-is-a-leaf`), and is imported only where a dialect is implemented:
      the `src` of a dialect's core (`ENGINE_DIALECTS`, never its `./testing` entry), its main
