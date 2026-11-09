@@ -1,119 +1,95 @@
 # @miragon/pulse-analytics-connector
 
-[![npm](https://img.shields.io/npm/v/@miragon/pulse-analytics-connector?style=flat-square)](https://www.npmjs.com/package/@miragon/pulse-analytics-connector)
-[![CI](https://img.shields.io/github/actions/workflow/status/Miragon/pulse/ci.yml?style=flat-square&label=ci)](https://github.com/Miragon/pulse/actions/workflows/ci.yml)
-[![Docs](https://img.shields.io/badge/docs-miragon.github.io%2Fpulse-335DE5?style=flat-square)](https://miragon.github.io/pulse/)
+[![npm](https://img.shields.io/npm/v/@miragon/pulse-analytics-connector)](https://www.npmjs.com/package/@miragon/pulse-analytics-connector)
+[![CI](https://github.com/Miragon/pulse/actions/workflows/ci.yml/badge.svg)](https://github.com/Miragon/pulse/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/github/license/Miragon/pulse)](LICENSE)
 
-Process analytics for Camunda 7 engines in any MCP host: KPIs, bottlenecks and engine
-comparisons from Prometheus as `analytics_*` tools and dashboards.
+The analytics module of Pulse for your own MCP server: KPIs, bottlenecks and engine comparisons
+for Camunda 7 engines from Prometheus, as `analytics_*` tools and dashboards. Below 1.0: pin the
+exact version and update all `@miragon/pulse-*` packages together.
 
 ## Install
 
 ```sh
-npm install @miragon/pulse-analytics-connector @miragon/pulse-widget-shell
-npm install react react-dom zod lucide-react bpmn-js@18.31.1 @miragon/pulse-ui
+npm install @miragon/pulse-analytics-connector @miragon/pulse-widget-shell zod bpmn-js@18.31.1
+npm install react react-dom @miragon/pulse-ui lucide-react@1.67.0
 ```
 
-To build your own MCP server on it, start from [pulse-starter](https://github.com/Miragon/pulse-starter).
+`zod`, `bpmn-js` and `@miragon/pulse-widget-shell` are required peers, the second line is for the
+view bundle; the module needs no MCP SDK package and no engine SDK of its own. Its data comes from
+the `engine_*` series the
+[engine metrics plugin](https://github.com/Miragon/pulse/blob/main/engine-plugins/README.md)
+writes to Prometheus. The [pulse-starter](https://github.com/Miragon/pulse-starter) composes this
+module already: [Build your own server](https://miragon.github.io/pulse/mcp/build-your-own).
 
-## Overview
+## Minimal use
 
-The **analytics module** for [Pulse](../../../../README.md): Prometheus-backed process analytics as
-`analytics_*` MCP tools, plus dashboard and comparison widgets. Built on
-[`@miragon/pulse-analytics-client`](../analytics-client), `@miragon/pulse-ui` and
-`@miragon/pulse-widget-shell`.
+Hand `analyticsModule` to widget-shell's boot (`createComposedServer({ modules: [analyticsModule], … })`),
+and its views and host widgets to the view bundle:
 
-The server loads this module as `analytics` via `analyticsModule` (`src/module.ts`), which conforms
-structurally to the `ComposableModule` port of `@miragon/pulse-widget-shell/server`. The package is
-published to npm in lockstep with the other `@miragon/pulse-*` packages (pin them all to one
-version); the [pulse-starter](https://github.com/Miragon/pulse-starter) template shows how to
-compose it into your own MCP server.
+```ts
+import { mountViews } from "@miragon/pulse-widget-shell/widgets"
+import { analyticsHostWidgets, analyticsViews } from "@miragon/pulse-analytics-connector/widgets"
 
-The consumer-shared libraries are ranged **peer dependencies** so they dedupe against your app's
-copy: `react`/`react-dom` `^19.2.0`, `zod` `^4.4.0`, `@miragon/pulse-ui` and
-`@miragon/pulse-widget-shell` `^<this release>` (the design kit the widgets compose from, and the
-view runtime and boot your server shares with every module), `lucide-react` `^0.562.0 || ^1.0.0`
-(the widgets' icons; pin a 1.x copy (this repo pins 1.67.0): widget-shell's view root imports
-`LucideProvider`, which 0.x lacks, so a deduped 0.x copy fails the bundle build). Your view
-bundle's Vite config spreads widget-shell's `VIEW_BUNDLE_DEDUPE` into `resolve.dedupe`. `bpmn-js`
-is a peer (`^18.31.1`): the widgets draw BPMN diagrams. The module registers on widget-shell's
-`ModuleServer`, the official MCP TypeScript SDK's `registerTool`/`registerPrompt`, and needs no
-SDK package of its own: widget-shell brings `@modelcontextprotocol/server` 2.4 and
-`@modelcontextprotocol/ext-apps` 2.0.
+mountViews({ views: { ...analyticsViews }, hostWidgets: { ...analyticsHostWidgets } })
+```
+
+Your stylesheet scans the module's widget sources, since it ships them as TypeScript:
+`@source "../node_modules/@miragon/pulse-analytics-connector/src";`. Point it at Prometheus with
+`PROMETHEUS_URL` (default `http://localhost:9090`); every variable is in the
+[configuration reference](https://miragon.github.io/pulse/mcp/reference#configuration).
+
+Analytics reads only the engines you configured. Next to the engine module, your `shared` wiring
+hands it that module's `engineIds` and its `fetchBpmnXml` lookup, as
+[`@miragon/pulse-engine-connector`](https://www.npmjs.com/package/@miragon/pulse-engine-connector)
+shows; on its own it reads `ANALYTICS_ENGINE_IDS`. Without either, every analytics tool refuses
+instead of reading every `engine_id` a shared Prometheus holds.
 
 ## What it provides
 
-- **One tool per question**, each running PromQL through
-  [`@miragon/pulse-analytics-client`](../analytics-client): `show_dashboard` (a period's flows,
-  durations and live state per process and per activity), `show_period_compare` (two periods,
-  e.g. around a deployment), `show_version_compare`, `show_engine_compare`,
-  `show_engine_landscape` and `show_bpmn_heatmap`. Each renders a view (`src/widgets/`) and
-  returns its figures to the model as compact JSON (the heatmap: a summary).
-- **Host widgets** (`analyticsHostWidgets` from `./widgets`): what another module renders by raw
-  id, each fetching its own data. The engine module's fleet view shows
-  `analytics:engine-landscape`; its process flow shows the heat of one process on its own diagram
-  with `analytics:process-heatmap` (`processDefinitionKey`, `engine`, `mode`, the diagram's
-  `bpmnXml` and an `onUnavailable` fallback) and `analytics:process-heatmap-legend` (`mode`).
-  A composition root spreads them into its `hostWidgets`.
-- **`analytics_engine_health`** (`src/tools/`) returns JSON without a view: a live WIP, incidents, backlog
-  and alerts snapshot, its state from the alert rules as `metricsState`. The incidents open right
-  now and their instances are the [engine module](../../engine/engine-connector)'s.
-- **Configured engines only:** analytics reads exactly the server's configured engine ids:
-  `createPlugin({ engineIds })` (a composed server injects the engine module's engines through
-  `analyticsModule`'s shared `engineIds`), else `ANALYTICS_ENGINE_IDS` for a standalone boot.
-  Without either, every analytics tool refuses (fail-closed) instead of reading every `engine_id`
-  a shared Prometheus holds. Every tool takes an optional `engine` filter (one configured id or a
-  list); omitted, it covers all configured engines and the result's `engines` names them; any
-  other id is refused. Analytics are session-independent.
-- **No toolsets:** every analytics tool is a read (`src/module.test.ts` pins it), so the module
-  declares no toolset vocabulary and a suffix on it (`:read-only`, `:standard`) is ignored with a
-  warning.
+- **One tool per question.** `show_dashboard` (a period's flows, durations and live state per
+  process and per activity), `show_period_compare` (two periods, e.g. around a deployment),
+  `show_version_compare`, `show_engine_compare`, `show_engine_landscape` and `show_bpmn_heatmap`;
+  each renders a view and returns its figures to the model as compact JSON (the heatmap: a summary).
+- **A live snapshot.** `analytics_engine_health` returns WIP, incidents, backlog and alerts as JSON
+  without a view, its state from the alert rules as `metricsState`.
+- **Widgets for other modules.** `analyticsHostWidgets` renders `analytics:engine-landscape` in the
+  engine module's fleet view, and `analytics:process-heatmap` with `analytics:process-heatmap-legend`
+  on its process diagram, each fetching its own data.
+- **An engine filter on every tool.** The optional `engine` takes one configured id or a list;
+  omitted, a tool covers every configured engine and names them in the result's `engines`.
+- **Reads only.** Every analytics tool is a read, so the module declares no toolsets, and a suffix
+  on it (`:read-only`, `:standard`) is ignored with a warning.
 
-### Cross-engine: overview, not scoreboard
+The BPMN heatmap and the process and activity names in the views come from the injected
+`fetchBpmnXml(key, engineId?)`: it resolves `null` for a key not deployed on that engine, rejects
+a failed read, and is cached per caller. Without it the heatmap degrades and the views show ids.
 
-Engines host different process definitions, so a failure rate, incident rate or duration aggregated
-per engine describes that engine's **process mix**, not the engine. The same aggregation can even
-invert the per-process truth. Two consequences run through the module:
+## Comparing engines
 
-- `show_engine_landscape` is the cross-engine view. It reports the process × engine inventory, absolute
+Engines host different process definitions, so a failure rate, incident rate or duration
+aggregated per engine describes that engine's process mix, not the engine, and can even invert
+the per-process truth:
+
+- `show_engine_landscape` is the cross-engine view: the process × engine inventory, absolute
   counts (running instances, open incidents, failed jobs) and the engine-owned job backlog
-  (`jobs_executable`, `jobs_suspended`, `jobs_due_future`, `external_tasks_open`), the one metric
-  family whose contract labels are `engine_id` only, so no process mix can confound it. It covers
-  every configured engine, so one that reports nothing still gets a row (`reporting: false`).
-- `show_engine_compare` **requires** a `processDefinitionKey`. Holding the process fixed on both
-  sides is what makes a delta attributable to the engine; the landscape's `sharedProcessKeys`
-  lists the definitions that qualify.
+  (`jobs_executable`, `jobs_suspended`, `jobs_due_future`, `external_tasks_open`). An engine that
+  reports nothing still gets a row (`reporting: false`).
+- `show_engine_compare` **requires** a `processDefinitionKey`, so a delta is attributable to the
+  engine; the landscape's `sharedProcessKeys` lists the definitions that qualify.
 
-These tools read the `engine_*` series emitted by the
-[engine metrics plugin](../../../../engine-plugins). Per-instance drill-down (search by variable) is **not**
-metric-backed: use the `engine_query_historic_*` tools in the [engine module](../../engine/engine-connector).
+A drill-down to single instances (search by variable) is not metric-backed: use the
+`engine_query_historic_*` tools of the engine module.
 
-The BPMN heatmap gets its diagram XML via an injected `fetchBpmnXml` shared resource (wired by the
-host app from the engine module), and the dashboard and the landscape read
-the process and activity names behind their ids through the same lookup (`bpmn-name-lookup.ts`).
-This package has **no** engine-SDK dependency: the heatmap
-degrades gracefully without it and the views show ids. `fetchBpmnXml(key, engineId?)` reads on the
-named engine (without one, the engine module's precedence: `ENGINE_DEFAULT`, else its only engine,
-else it rejects), resolves `null` for a key not deployed there and rejects a failed read; the views
-ask the engines their rows come from, and the names are cached per caller
-(under passthrough auth the engine answers with each caller's own permissions).
+## Help and feedback
 
-## Adding an analytics capability
+- **Documentation:** every tool, setting and the metrics plugin are explained at [miragon.github.io/pulse](https://miragon.github.io/pulse/).
+- **Bugs and ideas:** found a bug or missing something? [Open an issue](https://github.com/Miragon/pulse/issues).
 
-Read the [`add-analytics-feature`](../../../../.claude/skills/add-analytics-feature) skill first. The house
-pattern: add a PromQL query function in [`@miragon/pulse-analytics-client`](../analytics-client) (using
-`METRIC_NAMES`, never raw metric strings), then the tool's Zod input schema in `src/schemas/` and
-one show tool and its view here (a registrar tool only for a read that needs no view). Metric names
-and labels are governed by the
-[metrics contract](../analytics-client/metrics-contract.json). Change it there first.
+## Contributing
 
-## Layout
+How to add an analytics capability and where the parts live is in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-| Path                  | Contents                                                    |
-| --------------------- | ----------------------------------------------------------- |
-| `src/schemas/`        | The tools' Zod input schemas                                |
-| `src/tools/`          | The engine health read (`index.ts` wires it)                |
-| `src/widget-tools.ts` | `show_*` dashboard/comparison widget tools                  |
-| `src/widgets/`        | React dashboard + comparison widgets                        |
-| `src/module.ts`       | `analyticsModule` (env mapping, `PROMETHEUS_URL` boot hint) |
-| `src/plugin.ts`       | `createPlugin`: the module's `register(server)`             |
+## License
+
+[MIT](LICENSE) © Miragon GmbH

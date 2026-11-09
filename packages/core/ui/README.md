@@ -1,11 +1,12 @@
 # @miragon/pulse-ui
 
-[![npm](https://img.shields.io/npm/v/@miragon/pulse-ui?style=flat-square)](https://www.npmjs.com/package/@miragon/pulse-ui)
-[![CI](https://img.shields.io/github/actions/workflow/status/Miragon/pulse/ci.yml?style=flat-square&label=ci)](https://github.com/Miragon/pulse/actions/workflows/ci.yml)
-[![Docs](https://img.shields.io/badge/docs-miragon.github.io%2Fpulse-335DE5?style=flat-square)](https://miragon.github.io/pulse/)
+[![npm](https://img.shields.io/npm/v/@miragon/pulse-ui)](https://www.npmjs.com/package/@miragon/pulse-ui)
+[![CI](https://github.com/Miragon/pulse/actions/workflows/ci.yml/badge.svg)](https://github.com/Miragon/pulse/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/github/license/Miragon/pulse)](LICENSE)
 
-Pulse's design kit: the React components, the tone model and the Miragon theme that every Pulse
-view is built from, ready for your own MCP App views and your own React UIs.
+The design kit every Pulse view is built from: React components, the tone model and the Miragon
+theme, ready for your own MCP App views and your own React UIs. Below 1.0: pin the exact version
+and update all `@miragon/pulse-*` packages together.
 
 ## Install
 
@@ -13,7 +14,7 @@ view is built from, ready for your own MCP App views and your own React UIs.
 npm install @miragon/pulse-ui react react-dom lucide-react tailwindcss
 ```
 
-`react`, `react-dom` and `lucide-react` are required peers. `tailwindcss` is needed for the
+`react`, `react-dom` and `lucide-react` are required peers; `tailwindcss` is needed for the
 stylesheets only, and `typescript` for the brand gates under `./testing` only.
 
 ## Minimal example
@@ -75,34 +76,8 @@ export function App() {
 }
 ```
 
-## What it provides
-
-- **The root entry** (`@miragon/pulse-ui`): the shadcn-based primitives (`Button`, `Card`,
-  `Table`, `Tabs`, `Dialog`, `Alert`, `Input`, `Switch`, …) and the components on top
-  (`WidgetHeader`, `KpiGrid`, `StatusBadge`/`LivePill`/`CountPill`, `FilterBar`, `GroupCard`,
-  `PagedListFooter`, `EmptyState`/`ErrorState`, `DrillButton`); the tone model (`TONE_*`,
-  `resolveTone`, `ToneVariant`), the type scale (`TYPE_SCALE`, `MICRO_LABEL`), the focus ring
-  (`FOCUS_RING`) and `cn`; the locale (`LocaleProvider`, `useLocale`, `createUseT`, the kit's own
-  catalogs in English and German) and the toasts (`ToastProvider`, `useToast`); the formatters
-  (`formatNumber`, `formatDuration`, `formatTimestamp`, … in the locale `setFormatLocale` sets,
-  see the minimal example); the pieces every list and form shares (`Th`/`Td`, `TableEmptyState`,
-  `NamedId`, `Icon`, `Section`, `RowCard`, `NativeSelect`, `SegmentedControl`, `LogText`); the Komet for app-level surfaces only
-  (`KometMark`/`AppEmptyState`: a landing, a first start, never in a widget); the font helpers
-  (`fontFaces`, `GEIST_FONT_FILES`, `adoptHostFontVariables`) and the tokens as data
-  (`CD_TOKENS`, `ROLE_TOKENS`).
-- **The brand gates** (`@miragon/pulse-ui/testing`, Node only): `catalogTextFindings` (the voice
-  rules over a message catalog), `scanTypeScale`, `scanGlyphs`, `scanIconSizes`, `scanColors` and
-  `stylesheetColorFindings` over your sources, `stylesheetShapeFindings` over a stylesheet every
-  view inlines (no height floor, no forced or inlined font, no raw colour, no `--cd-*` token), and
-  `contrastFindings` with `toneContrastPairs()` / `ROLE_CONTRAST_PAIRS` for WCAG AA in light and
-  dark (`LIGHT_STATUS_EXEMPTION` is the CI's own exemption for green and amber on light).
-- **The stylesheets**: `theme.css` (the Miragon theme without Tailwind's entry; it imports the
-  vendored `--cd-*` corporate-design tokens, `cd-tokens.generated.css`), `globals.css` (Tailwind,
-  the theme and the kit's sources in one line) and `fonts.css` (opt-in Geist, bundled).
-
-## Use with Tailwind v4
-
-Your stylesheet imports Tailwind, scans the kit's compiled sources and imports the theme after it:
+Your stylesheet imports Tailwind v4, scans the kit's compiled sources and imports the theme
+after it:
 
 ```css
 @import "tailwindcss";
@@ -111,24 +86,50 @@ Your stylesheet imports Tailwind, scans the kit's compiled sources and imports t
 ```
 
 Never import `globals.css` next to your own Tailwind entry (two Tailwind layers), and never
-`fonts.css` in an MCP App view: an inlining bundler embeds the font files in every view. Serve the
-fonts by URL with `fontFaces({ baseUrl })` instead.
+`fonts.css` in an MCP App view: an inlining bundler embeds the font files in every view. Serve
+the fonts by URL with `fontFaces({ baseUrl })` instead.
 
-## Theme
+## What it provides
+
+| Part                       | What you get                                                                                                                                                                                                                                                                                                                   |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Primitives                 | The shadcn-based `Button`, `Card`, `Table`, `Tabs`, `Dialog`, `Alert`, `Input`, `Switch`, …                                                                                                                                                                                                                                    |
+| Components                 | `WidgetHeader`, `KpiGrid`, `StatusBadge`/`LivePill`/`CountPill`, `FilterBar`, `GroupCard`, `PagedListFooter`, `EmptyState`/`ErrorState`, `DrillButton`                                                                                                                                                                         |
+| List and form pieces       | `Th`/`Td`, `TableEmptyState`, `NamedId`, `Icon`, `Section`, `RowCard`, `NativeSelect`, `SegmentedControl`, `LogText`                                                                                                                                                                                                           |
+| Tone, type and focus       | The tone model (`TONE_*`, `resolveTone`, `ToneVariant`), the type scale (`TYPE_SCALE`, `MICRO_LABEL`), the focus ring (`FOCUS_RING`) and `cn`                                                                                                                                                                                  |
+| Locale, toasts, formatters | `LocaleProvider`, `useLocale`, `createUseT` and the kit's own catalogs in English and German; `ToastProvider`, `useToast`; `formatNumber`, `formatDuration`, `formatTimestamp`, … in the locale `setFormatLocale` sets                                                                                                         |
+| Komet                      | `KometMark`/`AppEmptyState` for app-level surfaces only: a landing, a first start, never in a widget                                                                                                                                                                                                                           |
+| Fonts and tokens           | `fontFaces`, `GEIST_FONT_FILES`, `adoptHostFontVariables`, and the tokens as data (`CD_TOKENS`, `ROLE_TOKENS`)                                                                                                                                                                                                                 |
+| Stylesheets                | `theme.css` (the Miragon theme without Tailwind's entry, over the vendored `--cd-*` tokens of `cd-tokens.generated.css`), `globals.css` (Tailwind, the theme and the kit's sources in one line), `fonts.css` (opt-in Geist, bundled)                                                                                           |
+| Brand gates (`./testing`)  | Node only: `catalogTextFindings` (the voice rules over a message catalog), `scanTypeScale`, `scanGlyphs`, `scanIconSizes`, `scanColors` and `stylesheetColorFindings` over your sources, `stylesheetShapeFindings` over a stylesheet every view inlines, `contrastFindings` with `toneContrastPairs()` / `ROLE_CONTRAST_PAIRS` |
+
+`stylesheetShapeFindings` reports a height floor, a forced or inlined font, a raw colour and a
+`--cd-*` token. `contrastFindings` checks WCAG AA in light and dark; `LIGHT_STATUS_EXEMPTION` is
+the CI's own exemption for green and amber on light.
+
+The kit is pure React: no MCP SDK, no TanStack Query, no zod and no host. The view runtime that
+mounts a view in an MCP host and runs its tool calls is
+[`@miragon/pulse-widget-shell`](https://www.npmjs.com/package/@miragon/pulse-widget-shell), which
+builds on this kit.
+
+## Your own brand
 
 The theme maps role variables (`--primary`, `--link`, `--focus`, `--<tone>`, `--<tone>-soft`,
-`--<tone>-ink`, radii, shadows, fonts) onto the vendored `--cd-*` tokens, in light and dark. A
+`--<tone>-ink`, radii, shadows, fonts) onto the vendored `--cd-*` tokens, in light and dark. Your
 brand overrides role variables only, never a `--cd-*` token, under `:root` AND the dark scopes
 (`.dark, [data-theme="dark"], [data-theme-mode="dark"]`), or a light-only value shows in dark.
-Measure a brand in a test: `parseThemeVariables(...themeStylesheets(), brandCss)` and
+Measure it in a test with `@miragon/pulse-ui/testing`: `parseThemeVariables(...themeStylesheets(), brandCss)` and
 `contrastFindings` over `toneContrastPairs()` and `ROLE_CONTRAST_PAIRS`.
 
-## What it is not
+## Help and feedback
 
-Pure React: no MCP SDK, no TanStack Query, no zod and no host. The view runtime (a view
-mounted in an MCP host and its tool calls) is
-[`@miragon/pulse-widget-shell`](../widget-shell) (`/widgets`), which builds on this kit.
+- **Documentation:** building your own server and views is explained at [miragon.github.io/pulse](https://miragon.github.io/pulse/).
+- **Bugs and ideas:** found a bug or missing something? [Open an issue](https://github.com/Miragon/pulse/issues).
+
+## Contributing
+
+How to build, test and change Pulse is in [CONTRIBUTING.md](https://github.com/Miragon/pulse/blob/main/CONTRIBUTING.md).
 
 ## License
 
-MIT
+[MIT](LICENSE) © Miragon GmbH

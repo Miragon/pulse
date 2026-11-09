@@ -1,10 +1,18 @@
 # @miragon/pulse-analytics-client
 
-[![npm](https://img.shields.io/npm/v/@miragon/pulse-analytics-client?style=flat-square)](https://www.npmjs.com/package/@miragon/pulse-analytics-client)
-[![CI](https://img.shields.io/github/actions/workflow/status/Miragon/pulse/ci.yml?style=flat-square&label=ci)](https://github.com/Miragon/pulse/actions/workflows/ci.yml)
-[![Docs](https://img.shields.io/badge/docs-miragon.github.io%2Fpulse-335DE5?style=flat-square)](https://miragon.github.io/pulse/)
+[![npm](https://img.shields.io/npm/v/@miragon/pulse-analytics-client)](https://www.npmjs.com/package/@miragon/pulse-analytics-client)
+[![CI](https://github.com/Miragon/pulse/actions/workflows/ci.yml/badge.svg)](https://github.com/Miragon/pulse/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/github/license/Miragon/pulse)](LICENSE)
 
-Typed PromQL queries over the `engine_*` metrics of the Pulse engine plugin.
+Typed PromQL queries over the `engine_*` metrics of the Pulse engine plugin, with a Prometheus
+client and the metrics contract, for Camunda 7 and CIB seven process analytics. Below 1.0: pin the
+exact version and update all `@miragon/pulse-*` packages together.
+
+In a Pulse server you get it through
+[`@miragon/pulse-analytics-connector`](https://www.npmjs.com/package/@miragon/pulse-analytics-connector),
+which depends on it; install it yourself when your own code reads these metrics from Prometheus.
+The series come from the
+[engine metrics plugin](https://github.com/Miragon/pulse/blob/main/engine-plugins/README.md).
 
 ## Install
 
@@ -12,36 +20,9 @@ Typed PromQL queries over the `engine_*` metrics of the Pulse engine plugin.
 npm install @miragon/pulse-analytics-client
 ```
 
-## Overview
+It has no runtime dependency and no peers.
 
-Prometheus client and PromQL query layer for Camunda 7 / CIB seven process analytics. It pairs a thin
-HTTP client for the Prometheus query API with a set of typed, purpose-built query functions and the
-**metrics contract**, the single source of truth for the `engine_*` metric names and labels the
-[engine plugin](../../../../engine-plugins) emits.
-
-Used by [`@miragon/pulse-analytics-connector`](../analytics-connector) to power the `analytics_*` MCP tools, but
-usable by any project that reads Camunda process metrics from Prometheus.
-
-## Exports
-
-The package has one entry point, `.`: the Prometheus client (`createPrometheusClient`,
-`withCallerSignal`, `PrometheusRequestError`), `queries`, the result types, `PERIODS` (the periods a query takes),
-`increaseIn` and `ENGINE_METRICS_STATE_RULE` (how `engineHealth` reaches its `metricsState`). It has no
-runtime dependency: the `analytics_*` tools' input schemas (zod) live in
-[`@miragon/pulse-analytics-connector`](../analytics-connector), next to the tools.
-
-## Query functions
-
-`src/queries/` provides one composable function per analysis, each returning a typed result rather
-than a raw Prometheus matrix:
-
-- `dashboard`: a period's flows, durations and live state, per process definition and per
-  (process, activity)
-- `period-compare`, `version-compare`, `engine-compare`: side-by-side comparisons of two periods,
-  two versions or two engines
-- `engine-landscape`: which process runs on which engine, load and job backlog per engine
-- `element`: the per-element heat of a process (frequency and average duration)
-- `health`: live operational snapshot (running WIP, open incidents, failed jobs, backlog, alerts)
+## Minimal example
 
 ```ts
 import { createPrometheusClient, queries } from "@miragon/pulse-analytics-client"
@@ -53,49 +34,60 @@ const dashboard = await queries.dashboardData(prom, {
 })
 ```
 
-`createPrometheusClient` also takes optional auth (`bearerToken`, or
-`username` + `password`; userinfo in `url` is moved into the Basic header),
-extra `headers` (e.g. a tenant id) and a per-query `timeoutMs` (default
-30 000 ms). Ambiguous auth throws at construction. Query errors never carry
-the URL or a credential (an upstream's text is echoed with both masked), truncate
-upstream bodies and leave out a web page from a service that is not Prometheus,
-so they are safe to show a model. Each is a
-`PrometheusRequestError`, whose `kind` tells a caller which of its own settings
-to name. `withCallerSignal(client, signal)` makes every query abort with the
-caller's signal as well.
+`createPrometheusClient` also takes auth (`bearerToken`, or `username` + `password`; userinfo in
+`url` moves into the Basic header), extra `headers` (e.g. a tenant id) and a per-query `timeoutMs`
+(default 30 000 ms); ambiguous auth throws at construction. `withCallerSignal(client, signal)`
+makes every query abort with the caller's signal as well.
+
+## What it provides
+
+| Query (`queries.*`) | Answers                                                                                        |
+| ------------------- | ---------------------------------------------------------------------------------------------- |
+| `dashboardData`     | A period's flows, durations and live state, per process definition and per (process, activity) |
+| `periodCompare`     | Two periods side by side, e.g. around a deployment                                             |
+| `versionCompare`    | Two versions of one process side by side                                                       |
+| `engineCompare`     | One process on two engines side by side                                                        |
+| `engineLandscape`   | Which process runs on which engine, load and job backlog per engine                            |
+| `elementHeat`       | The per-element heat of a process (frequency and average duration)                             |
+| `engineHealth`      | A live snapshot: running WIP, open incidents, failed jobs, backlog, alerts                     |
+
+Each returns a typed result rather than a raw Prometheus matrix. Next to `queries` the entry
+exports the client (`createPrometheusClient`, `withCallerSignal`, `PrometheusRequestError`), the
+result types, `PERIODS` (the periods a query takes), `increaseIn` and `ENGINE_METRICS_STATE_RULE`
+(how `engineHealth` reaches its `metricsState`).
+
+Query errors are `PrometheusRequestError`s whose `kind` tells you which of your settings to name.
+They never carry the URL or a credential (an upstream's text is echoed with both masked), truncate
+upstream bodies and leave out a web page from a service that is not Prometheus, so they are safe
+to show a model.
 
 ## Metrics contract
 
-[`metrics-contract.json`](metrics-contract.json) is the **single source of truth** for metric names
-and labels. The Kotlin plugin emits the OTEL instruments (`otelName`) that surface in Prometheus as
-`engine_*` series (`promName`), and the queries reference them through `METRIC_NAMES`
-([`src/metric-names.ts`](src/metric-names.ts)), **never raw strings**. Both sides are verified
-against the contract:
+[`metrics-contract.json`](metrics-contract.json) ships in the package and is the single source of
+truth for the `engine_*` metric names and labels, so you can validate your own queries, alert rules
+or dashboards against it. PromQL of your own follows its reading rules:
 
-- TypeScript: [`src/metrics-contract.test.ts`](src/metrics-contract.test.ts) (vitest) checks the
-  metric names; [`src/metrics-contract-labels.test.ts`](src/metrics-contract-labels.test.ts) runs
-  every exported query function and checks each label its PromQL names (matchers, `by`/`without`,
-  `on`/`ignoring`/`group_*`) against the labels the contract declares for that series, alert
-  rules and Grafana dashboards included
-- Kotlin: `MetricsContractTest.kt` (Gradle), incl. the millisecond bucket bounds each histogram
-  registers
-
-The contract also sets how a series is READ, and the same tests check every query, alert rule and
-dashboard panel against it. PromQL of your own uses the exported helper `increaseIn`:
-
-- `increaseIn(series, window)` for a counter or histogram: a series is created on its first event,
-  and `increase()`/`rate()` never count a series' first sample, so the first incident of a type at
-  an activity would read 0. A series born inside the window counts with its whole value.
-- A gauge is folded over the nodes of a clustered engine: every node reports the same engine-wide
-  rows, so the queries fold them with `max by (<its labels>)` (`engineState`, internal) before
-  anything sums them.
+- Read a counter or histogram with `increaseIn(series, { range })`: a series is created on its
+  first event, and `increase()`/`rate()` never count a series' first sample, so the first incident
+  of a type at an activity would read 0. A series born inside the window counts with its whole
+  value.
+- Fold a gauge over the nodes of a clustered engine with `max by (<its labels>)` before you sum it:
+  every node reports the same engine-wide rows.
 - Durations are whole milliseconds (`*_duration_milliseconds`).
+- Attach only model-bounded labels (definition key, activity id, engine id), never instance ids,
+  business keys or variable values.
+- Never aggregate a rate across engines: engines host different processes, so compare one process
+  across engines, or report absolute counts and the engine-owned backlog gauges.
 
-A rename that skips the contract, or a consumer (queries, alert rules, Grafana dashboards), fails
-one of these tests. Only attach model-bounded labels (definition key, activity id, engine id);
-never instance ids, business keys, or variable values.
+## Help and feedback
 
-## Publishing
+- **Documentation:** the analytics tools and the metrics plugin are explained at [miragon.github.io/pulse](https://miragon.github.io/pulse/).
+- **Bugs and ideas:** found a bug or missing something? [Open an issue](https://github.com/Miragon/pulse/issues).
 
-Published to npm (public, with provenance) by the release-please train. The
-`metrics-contract.json` ships in the package so downstream consumers can validate against it.
+## Contributing
+
+How the queries are checked against the metrics contract is in [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+[MIT](LICENSE) © Miragon GmbH
