@@ -76,17 +76,18 @@ one is a choice and not an accident.
 
 ## Engine overview
 
-| Difference                                                                                   | Side    | Origin                                        | Status                   |
-| -------------------------------------------------------------------------------------------- | ------- | --------------------------------------------- | ------------------------ |
-| The engine's verdict, its badge and line (its "ok" neutral, the table's `healthy`)           | MCP     | history                                       | wanted                   |
-| Growth in the last hour and 24 h, affected activities, started and completed in 24 h         | MCP     | history                                       | wanted                   |
-| Error clusters: activity, type, sample message, affected, new in 24 h, processes             | MCP     | decided: UI (no incidents grouped by message) | wanted                   |
-| Links to the instances, the incidents, a cluster and a process's instances                   | MCP     | history                                       | wanted                   |
-| A tone dot per process                                                                       | MCP     | history                                       | wanted; its green closed |
-| 50 more rows at a time                                                                       | MCP     | host                                          | wanted                   |
-| Incidents per process: open incidents against instances with an incident                     | both    | decided: contract                             | wanted; the words closed |
-| Order: problems, then instances against incidents, running, name                             | both    | history                                       | wanted                   |
-| Product and version in the header, scopes All and With incident with counts, Open in Cockpit | VS Code | history                                       | wanted                   |
+| Difference                                                                                   | Side    | Origin                                        | Status                                                                       |
+| -------------------------------------------------------------------------------------------- | ------- | --------------------------------------------- | ---------------------------------------------------------------------------- |
+| The engine's verdict, its badge and line (its "ok" neutral, the table's `healthy`)           | MCP     | history                                       | wanted                                                                       |
+| Growth in the last hour and 24 h, affected activities, started and completed in 24 h         | MCP     | history                                       | wanted                                                                       |
+| Error clusters: activity, type, sample message, affected, new in 24 h, processes             | MCP     | decided: UI (no incidents grouped by message) | wanted                                                                       |
+| Links to the instances, the incidents, a cluster and a process's instances                   | MCP     | history                                       | wanted                                                                       |
+| A tone dot per process                                                                       | MCP     | history                                       | wanted; its green closed                                                     |
+| 50 more rows at a time                                                                       | MCP     | host                                          | wanted                                                                       |
+| Incidents per process: open incidents against instances with an incident                     | both    | decided: contract                             | wanted; the words closed                                                     |
+| Order: problems, then instances against incidents, running, name                             | both    | history                                       | wanted                                                                       |
+| The count of instances with an incident in red text, here and on a process board             | VS Code | history                                       | open: a number stays neutral, its tone goes on a dot or a pill (Tones above) |
+| Product and version in the header, scopes All and With incident with counts, Open in Cockpit | VS Code | history                                       | wanted                                                                       |
 
 ## Process
 
