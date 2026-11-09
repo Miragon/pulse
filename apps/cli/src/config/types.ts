@@ -1,14 +1,43 @@
-/** Configuration model: config file, profiles and the resolved effective configuration. */
+/**
+ * Configuration model: config file, profiles and the resolved effective configuration. The keys
+ * a profile may hold are the profile format's (@miragon/pulse-profile); the lists here are what
+ * the CLI serves of it, in the order its messages name them.
+ */
 
-export const OUTPUT_FORMATS = ["json", "table"] as const
-export type OutputFormat = (typeof OUTPUT_FORMATS)[number]
+import type {
+  AuthType as ProfileAuthType,
+  Flavor as ProfileFlavor,
+  OutputFormat,
+  Problem,
+} from "@miragon/pulse-profile"
+
+export {
+  BASIC_AUTH_KEYS,
+  BEARER_AUTH_KEYS,
+  OAUTH_AUTH_KEYS,
+  OUTPUT_FORMATS,
+  type OutputFormat,
+  AUTH_KEYS as PROFILE_AUTH_KEYS,
+  PROFILE_KEYS,
+  type ProfileKey,
+} from "@miragon/pulse-profile"
 
 /** The engine vendors pulse has an adapter for (`flavor`); without one it uses `camunda7`. */
-export const FLAVORS = ["operaton", "cibseven", "camunda7"] as const
+export const FLAVORS = [
+  "operaton",
+  "cibseven",
+  "camunda7",
+] as const satisfies readonly ProfileFlavor[]
 export type Flavor = (typeof FLAVORS)[number]
 export const DEFAULT_FLAVOR: Flavor = "camunda7"
 
-export const AUTH_TYPES = ["none", "basic", "oauth", "bearer"] as const
+/** The auth types the CLI authenticates with; a profile's `passthrough` is the MCP server's. */
+export const AUTH_TYPES = [
+  "none",
+  "basic",
+  "oauth",
+  "bearer",
+] as const satisfies readonly ProfileAuthType[]
 export type AuthType = (typeof AUTH_TYPES)[number]
 
 /**
@@ -35,38 +64,6 @@ export interface ProfileAuth {
   readonly tokenEnv?: string
   readonly token?: string
 }
-
-export const BASIC_AUTH_KEYS = [
-  "username",
-  "passwordEnv",
-  "password",
-] as const satisfies readonly (keyof ProfileAuth)[]
-
-export const OAUTH_AUTH_KEYS = [
-  "issuer",
-  "authorizationEndpoint",
-  "tokenEndpoint",
-  "clientId",
-  "clientSecretEnv",
-  "clientSecret",
-  "scopes",
-  "audience",
-  "redirectPort",
-] as const satisfies readonly (keyof ProfileAuth)[]
-
-/** Keys of a stored bearer token: the name of its variable, or the token itself. */
-export const BEARER_AUTH_KEYS = [
-  "tokenEnv",
-  "token",
-] as const satisfies readonly (keyof ProfileAuth)[]
-
-/** Keys of a profile's auth object, in the order they are written to the config file. */
-export const PROFILE_AUTH_KEYS = [
-  "type",
-  ...BASIC_AUTH_KEYS,
-  ...OAUTH_AUTH_KEYS,
-  ...BEARER_AUTH_KEYS,
-] as const satisfies readonly (keyof ProfileAuth)[]
 
 /** Scopes requested when neither PULSE_CLI_OAUTH_SCOPES nor the profile sets them. */
 export const DEFAULT_OAUTH_SCOPES = ["openid", "offline_access"] as const
@@ -210,26 +207,14 @@ export interface Profile {
   readonly cockpitUrl?: string
   readonly engine?: string
   readonly flavor?: Flavor
+  /** The environment the engine belongs to; the CLI keeps it and does not read it. */
+  readonly environment?: string
   readonly auth?: ProfileAuth
   readonly output?: OutputFormat
   readonly timeout?: number
   readonly headers?: Readonly<Record<string, string>>
   readonly readOnly?: boolean
 }
-
-/** Keys a profile may contain, in the order they are written to the config file. */
-export const PROFILE_KEYS = [
-  "url",
-  "cockpitUrl",
-  "engine",
-  "flavor",
-  "auth",
-  "output",
-  "timeout",
-  "headers",
-  "readOnly",
-] as const satisfies readonly (keyof Profile)[]
-export type ProfileKey = (typeof PROFILE_KEYS)[number]
 
 /**
  * The profile a command uses: none, or a profile of the config file with its name, where it comes
@@ -252,11 +237,28 @@ export type SelectedProfile =
       readonly configFile?: string
     }
 
+/**
+ * A config file or project file as the CLI reads it (profile-file.ts) and writes it. `profiles`
+ * holds every profile as the file holds it, so an edit keeps the ones it does not change (a file
+ * read under the policy `none` without the keys of a secret or its variable); a profile in
+ * `refused` is no usable Profile (it may not even be an object), and only the edit functions read
+ * it (`storedProfile`), everything else reads usable profiles (`findProfile`).
+ */
 export interface ConfigFile {
   /** The JSON Schema the file names for editors; kept when the CLI writes the file. */
   readonly $schema?: string
+  /** As the file holds it: a name that is no profile of the file fails when it is used. */
   readonly defaultProfile?: string
   readonly profiles: Readonly<Record<string, Profile>>
+  /**
+   * The profiles a command cannot use, by their key in `profiles`, with why
+   * (@miragon/pulse-profile's problems): a command fails when it uses one. Never written.
+   */
+  readonly refused?: Readonly<Record<string, readonly Problem[]>>
+  /** What is off at the root besides the profiles (an unknown key, a defaultProfile). Never written. */
+  readonly notes?: readonly Problem[]
+  /** The root keys the format does not know, as the file holds them: kept when the CLI writes. */
+  readonly unknown?: Readonly<Record<string, unknown>>
 }
 
 /** A project file (`.pulse-cli.json`) whose profiles a command uses. */
@@ -285,7 +287,15 @@ export interface LoadedConfig extends ConfigFile {
     readonly profiles: readonly string[]
     /** True when `defaultProfile` is the project file's. */
     readonly defaultProfile: boolean
+    /** What is off at the project file's root besides its profiles. */
+    readonly notes?: readonly Problem[]
   }
+  /**
+   * Why the default profile cannot be used although a file names one (a defaultProfile that is
+   * no string, no valid name or, in a project file, none of its own profiles), and the project
+   * file that names it (absent: the user's config file). A command without --profile fails then.
+   */
+  readonly defaultProblem?: { readonly problem: Problem; readonly project?: string }
 }
 
 /** Values given on the command line (raw strings, validated during resolution). */

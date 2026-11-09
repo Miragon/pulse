@@ -86,12 +86,12 @@ importers:
       '@miragon/pulse-c7-core':
         specifier: workspace:*
         version: link:../../packages/connectors/c7/c7-core
+      '@miragon/pulse-profile':
+        specifier: workspace:*
+        version: link:../../packages/core/profile
       '@types/node':
         specifier: 22.20.5
         version: 22.20.5
-      ajv:
-        specifier: 8.20.0
-        version: 8.20.0
       fast-check:
         specifier: 4.10.2
         version: 4.10.2
@@ -207,6 +207,9 @@ importers:
       '@miragon/pulse-engine-core':
         specifier: workspace:*
         version: link:../../packages/connectors/engine/engine-core
+      '@miragon/pulse-profile':
+        specifier: workspace:*
+        version: link:../../packages/core/profile
       '@miragon/pulse-ui':
         specifier: workspace:*
         version: link:../../packages/core/ui

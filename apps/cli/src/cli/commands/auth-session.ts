@@ -17,6 +17,7 @@ import type { CliContext } from "../context.js"
 import { configFlags, type GlobalOptions, readGlobals } from "../globals.js"
 import { loadConfig } from "../config-files.js"
 import { openSession, type Session } from "../session.js"
+import { profileToSet } from "../../util.js"
 import { bearerNotManaged } from "./auth-bearer.js"
 
 /**
@@ -44,7 +45,7 @@ export function notOAuthOf(config: ResolvedConfig): NotOAuth {
  * commands have no `--auth` option, so the hint never suggests one.
  */
 function notOAuthHint(state: NotOAuth, env: Env): string {
-  const profile = state.profile ?? "<profile>"
+  const profile = profileToSet(state.profile)
   const variable = oauthEnvVariable(env)
   const off = state.off?.includes("OAuth") === true ? state.off : undefined
   if (off === undefined) {
@@ -71,7 +72,7 @@ function statusHint(state: NotOAuth, env: Env): string {
   if (state.off?.startsWith("Bearer auth") === true) {
     const on =
       state.source === "profile"
-        ? `pulse config set ${state.profile ?? "<profile>"} --auth bearer`
+        ? `pulse config set ${profileToSet(state.profile)} --auth bearer`
         : `${ENV.auth}=bearer`
     return `${state.off}. Switch it on: ${on}`
   }

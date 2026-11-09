@@ -165,8 +165,8 @@ describe("config set", () => {
     )
     expect(stored(result.runtime)).toMatchObject({ profiles: { local: { output: "json" } } })
     // --output never chooses how config set prints: JSON in a pipe
-    const piped = await cli(["config", "set", "local", "--output", "table"])
-    expect(JSON.parse(piped.stdout)).toEqual({ name: "local", default: true, output: "table" })
+    const piped = await cli(["config", "set", "local", "--url", URL_A, "--output", "table"])
+    expect(JSON.parse(piped.stdout)).toMatchObject({ name: "local", url: URL_A, output: "table" })
   })
 
   it("takes -o before the command path, too", async () => {

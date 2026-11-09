@@ -137,14 +137,14 @@ describe("the project file in commands", () => {
     expect(JSON.parse(show.stdout)).toMatchObject({ projectFile: null, profile: null })
   })
 
-  it("is a CONFIG error when it stores a secret, also for best-effort readers", async () => {
+  it("refuses a profile that stores a secret, also for best-effort readers", async () => {
     const files = {
       [PROJECT]: json5({ profiles: { p: { auth: { type: "bearer", token: "Tk9-secret" } } } }),
     }
     const result = await cli(["ping"], { files })
     expect(result.code).toBe(3)
     expect(errorOf(result.stderr).message).toBe(
-      `Invalid project file ${PROJECT}: profile "p" sets auth.token; a project file is shared and names no credentials, so it comes from PULSE_CLI_TOKEN or PULSE_CLI_TOKEN_COMMAND or a profile "p" of your own config file`,
+      `Profile "p" of the project file ${PROJECT} cannot be used: auth.token is set, but a file others share names no credential, neither a secret nor the variable that holds one.`,
     )
     expect(result.stderr).not.toContain("Tk9-secret")
     // the docs commands still work, with the default output format
@@ -216,42 +216,25 @@ describe("config set|unset|use|delete --project", () => {
 
   it("refuses secrets before writing anything", async () => {
     const runtime = runtimeOf({ stdin: "Tk9-secret\n" })
-    const token = await sequence(runtime, [
-      "config",
-      "set",
-      "p",
-      "--project",
-      "--auth",
-      "bearer",
-      "--auth-token-stdin",
-    ])
+    const set = ["config", "set", "p", "--project", "--url", BASE_URL]
+    const token = await sequence(runtime, [...set, "--auth", "bearer", "--auth-token-stdin"])
     expect(token.code).toBe(3)
     expect(errorOf(token.stderr).message).toBe(
-      `The project file ${PROJECT} cannot be written: profile "p" sets auth.token; a project file is shared and names no credentials, so it comes from PULSE_CLI_TOKEN or PULSE_CLI_TOKEN_COMMAND or a profile "p" of your own config file`,
+      `The project file ${PROJECT} cannot be written: in profile "p", auth.token is set, but a file others share names no credential, neither a secret nor the variable that holds one.`,
     )
     expect(errorOf(token.stderr).hint).toBe(
-      "Credentials come from the environment (PULSE_CLI_TOKEN, PULSE_CLI_TOKEN_COMMAND, PULSE_CLI_PASSWORD, PULSE_CLI_OAUTH_CLIENT_SECRET) or from a profile of the same name in your own config file. Remove it from the project file, e.g. with `pulse config unset <profile> auth --project` (`headers` for a secret header), and a committed secret from the history of your repository, too.",
+      'A project file is shared and names no credentials: they come from the environment (PULSE_CLI_TOKEN or PULSE_CLI_TOKEN_COMMAND) or a profile "p" of your own config file. Remove it with `pulse config unset p auth --project`, and a committed secret from the history of your repository too.',
     )
     const variable = await sequence(runtime, [
-      "config",
-      "set",
-      "p",
-      "--project",
+      ...set,
       "--auth",
       "bearer",
       "--auth-token-env",
       "CI_TOKEN",
     ])
-    expect(errorOf(variable.stderr).message).toContain('profile "p" sets auth.tokenEnv;')
-    const header = await sequence(runtime, [
-      "config",
-      "set",
-      "p",
-      "--project",
-      "-H",
-      "X-Api-Key: k-1",
-    ])
-    expect(errorOf(header.stderr).message).toContain("stores the secret header X-Api-Key")
+    expect(errorOf(variable.stderr).message).toContain('in profile "p", auth.tokenEnv is set')
+    const header = await sequence(runtime, [...set, "-H", "X-Api-Key: k-1"])
+    expect(errorOf(header.stderr).message).toContain("headers.X-Api-Key carries a secret")
     expect(runtime.files.has(PROJECT)).toBe(false)
   })
 
@@ -267,8 +250,11 @@ describe("config set|unset|use|delete --project", () => {
     })
     const refused = await sequence(runtime, ["task", "list"])
     expect(refused.code).toBe(3)
-    expect(errorOf(refused.stderr).message).toContain('profile "p" sets auth.tokenEnv;')
-    expect(errorOf(refused.stderr).hint).toContain("pulse config unset <profile> auth --project")
+    expect(errorOf(refused.stderr).message).toContain(
+      `Profile "p" of the project file ${PROJECT} cannot be used: auth.tokenEnv is set`,
+    )
+    expect(errorOf(refused.stderr).hint).toContain("`pulse config unset p auth --project`")
+    expect(refused.stderr).not.toContain("ghp-secret")
     const unset = await sequence(runtime, ["config", "unset", "p", "tokenEnv", "--project"])
     expect(unset.code).toBe(0)
     expect(JSON.parse(fileText(runtime, PROJECT) ?? "")).toEqual({
@@ -303,7 +289,15 @@ describe("config set|unset|use|delete --project", () => {
     expect(mine.stderr).toBe(
       `Notice: in this repository the defaultProfile of the project file ${PROJECT} ("svc") wins; use --profile, PULSE_CLI_PROFILE or \`pulse config use <profile> --project\`.\n`,
     )
-    const set = await sequence(runtime, ["config", "set", "shared", "--engine", "mine"])
+    const set = await sequence(runtime, [
+      "config",
+      "set",
+      "shared",
+      "--url",
+      "http://mine/shared",
+      "--engine",
+      "mine",
+    ])
     expect(set.stderr).toBe(
       `Notice: profile "shared" of your config file now overrides the profile of the same name in the project file ${PROJECT} as a whole: none of the project's settings of "shared" apply. Add --project to change the project's profile instead.\n`,
     )
@@ -328,14 +322,16 @@ describe("config set|unset|use|delete --project", () => {
     const refused = await cli(["task", "list"], { files: { ...files, ...foreign } })
     expect(refused.code).toBe(3)
     expect(errorOf(refused.stderr).message).toBe(
-      `Invalid project file ${PROJECT}: defaultProfile "prod" is not one of its profiles; a project file chooses only among its own profiles`,
+      `The default profile of the project file ${PROJECT} cannot be used: defaultProfile names no profile of this file.`,
     )
-    // the hint's repair works on the invalid file
+    expect(errorOf(refused.stderr).hint).toContain("`pulse config use <profile> --project`")
+    // config list shows the note, and the hint's repair works on the file
     const runtime = runtimeOf({
       files: { [PROJECT]: json5({ defaultProfile: "prod", profiles: { svc: { url: BASE_URL } } }) },
     })
-    const hint = errorOf((await sequence(runtime, ["config", "list"])).stderr).hint
-    expect(hint).toContain("`pulse config use <profile> --project`")
+    expect((await sequence(runtime, ["config", "list"])).stderr).toBe(
+      `Notice: the project file ${PROJECT}: defaultProfile names no profile of this file.\n`,
+    )
     expect((await sequence(runtime, ["config", "use", "svc", "--project"])).code).toBe(0)
     expect(JSON.parse(fileText(runtime, PROJECT) ?? "")).toMatchObject({ defaultProfile: "svc" })
     expect((await sequence(runtime, ["task", "list"])).code).toBe(0)

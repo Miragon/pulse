@@ -1,12 +1,13 @@
 /** Parsing of the timeout, the extra headers and the read-only switch (resolve.ts, headers.ts). */
 
+import { isHeaderName, isHeaderValue, isTimeout } from "@miragon/pulse-profile"
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import { file } from "../../test/support/config-resolve.js"
 import { failure } from "../../test/support/failure.js"
 import { PulseCliError } from "../errors.js"
-import { isHeaderName, isHeaderValue, parseHeader, parseHeaders } from "./headers.js"
-import { MAX_TIMEOUT_MS, isTimeout, parseReadOnly, parseTimeout, resolveConfig } from "./resolve.js"
+import { parseHeader, parseHeaders } from "./headers.js"
+import { MAX_TIMEOUT_MS, parseReadOnly, parseTimeout, resolveConfig } from "./resolve.js"
 
 describe("parseTimeout", () => {
   it.each([

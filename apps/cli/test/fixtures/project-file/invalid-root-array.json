@@ -1,8 +1,0 @@
-{
-  "about": "The root is no object.",
-  "text": "[]\n",
-  "cli": {
-    "valid": false,
-    "error": "expected a JSON object"
-  }
-}

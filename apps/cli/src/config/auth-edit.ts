@@ -122,15 +122,14 @@ function checkFamilies(type: AuthType | undefined, families: readonly Family[]):
 
 /**
  * The stored type: `--auth` if given; else bearer token or OAuth options select their type; else
- * Basic auth options switch a profile stored with another type (none, oauth, bearer) to basic,
- * which they are meant for.
+ * Basic auth options select basic, also for a profile stored without a type or with another one
+ * (none, oauth, bearer), so a written profile always states its type.
  */
 function typeOf(existing: ProfileAuth | undefined, changes: AuthChanges): AuthType | undefined {
   if (changes.auth !== undefined) return validateAuthType(changes.auth.trim())
   if (hasBearerOptions(changes)) return "bearer"
   if (hasOAuthOptions(changes)) return "oauth"
-  const stored = existing?.type
-  return hasBasicOptions(changes) && stored !== undefined && stored !== "basic" ? "basic" : stored
+  return hasBasicOptions(changes) ? "basic" : existing?.type
 }
 
 /** The family the change is about; its keys stay, the other families' keys are dropped. */
@@ -140,7 +139,17 @@ function familyOf(type: AuthType | undefined, changes: AuthChanges): Family | un
   return FAMILIES.find((family) => family === type)
 }
 
-/** The changed auth object of a profile, or undefined when no auth option was given. */
+/** The keys of a stored auth object that the format does not know, as the file holds them. */
+function unknownKeys(existing: ProfileAuth | undefined) {
+  const known: readonly string[] = PROFILE_AUTH_KEYS
+  return Object.entries(existing ?? {}).filter(([key]) => !known.includes(key))
+}
+
+/**
+ * The changed auth object of a profile, or undefined when no auth option was given. Keys the
+ * format does not know stay behind the known ones, as the file held them: they still refuse the
+ * profile until `config unset <profile> auth.<key>` removes them, never silently.
+ */
 export function changedAuth(
   existing: ProfileAuth | undefined,
   changes: AuthChanges,
@@ -156,7 +165,10 @@ export function changedAuth(
     ...(keeps("oauth") ? changedOAuthKeys(existing, changes) : {}),
     ...(keeps("bearer") ? changedBearerKeys(existing, changes) : {}),
   }
-  return compact(Object.fromEntries(PROFILE_AUTH_KEYS.map((key) => [key, merged[key]])))
+  return {
+    ...compact(Object.fromEntries(PROFILE_AUTH_KEYS.map((key) => [key, merged[key]]))),
+    ...Object.fromEntries(unknownKeys(existing)),
+  }
 }
 
 function hasBasicKeys(auth: ProfileAuth | undefined): boolean {

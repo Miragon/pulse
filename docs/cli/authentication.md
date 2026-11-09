@@ -172,5 +172,5 @@ configuration error. Secret headers are masked unless `--show-secrets`.
 
 ```sh
 export PULSE_CLI_HEADERS='X-API-Key: k-7f3a...'
-pulse config set prod --header 'X-Tenant-Id: acme'
+pulse config set prod --url https://camunda.example.com/engine-rest --header 'X-Tenant-Id: acme'
 ```

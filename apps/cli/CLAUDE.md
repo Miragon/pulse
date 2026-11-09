@@ -19,9 +19,10 @@ written for the MCP server, so this file holds the CLI's own. The pages for peop
   stderr with a documented exit code. A change to any of that is a change to the docs.
 - One runtime dependency, commander. The workflow domain and engine REST rules,
   `@miragon/pulse-c7-core` (`packages/connectors/c7/c7-core`, the core of the Camunda 7 REST
-  dialect family c7), are a devDependency that tsdown bundles, with the root-cause rule c7-core
-  takes from the engine family's core (`@miragon/pulse-engine-core`, c7-core's one dependency);
-  everything else that ships is the code in `apps/cli/src/`. The built bundle imports only
+  dialect family c7), and the profile format, `@miragon/pulse-profile` (`packages/core/profile`),
+  are devDependencies that tsdown bundles, with the root-cause rule c7-core takes from the engine
+  family's core (`@miragon/pulse-engine-core`, c7-core's one dependency); everything else that
+  ships is the code in `apps/cli/src/`. The built bundle imports only
   commander and Node built-ins, and stays within its size budget
   (`scripts/published-imports.test.mjs` reads `apps/cli/dist` and the ceiling in
   `apps/cli/test/__golden__/bundle-budget.json`, which `pnpm lint:ratchets` holds shrink-only:
@@ -32,24 +33,23 @@ written for the MCP server, so this file holds the CLI's own. The pages for peop
 The `cli-*` rules of the root `.dependency-cruiser.cjs` enforce them; `pnpm lint:architecture`
 cruises `apps/cli/src`, `pnpm lint:architecture:cli` its `scripts/` and `test/`.
 
-| Path                        | Holds                                                                      |
-| --------------------------- | -------------------------------------------------------------------------- |
-| `apps/cli/src/bin/`         | The entry point and the Node runtime (`createNodeRuntime`)                 |
-| `apps/cli/src/cli/`         | commander wiring and the utility commands; the only layer with commander   |
-| `apps/cli/src/operation/`   | Input building, guards, requests, execution, paging                        |
-| `apps/cli/src/workflow/`    | The workflow commands, pure: c7-core's bindings, its CLI text, waiting     |
-| `apps/cli/src/engine-port/` | c7-core's port plus `call`, `preview`, `route`: types only                 |
-| `apps/cli/src/engines/`     | One adapter per engine, all on the one generated catalog                   |
-| `apps/cli/src/api/`         | One folder per engine API; only the adapters use one                       |
-| `apps/cli/src/docs/`        | The guide, `describe`, examples: the texts agents read                     |
-| `apps/cli/src/catalog/`     | Catalog access (`loadCatalog`), schemas, body validation                   |
-| `apps/cli/src/config/`      | Config resolution, profiles, project files                                 |
-| `apps/cli/src/auth/`        | Auth providers: Basic, bearer, token commands, OAuth                       |
-| `apps/cli/src/http/`        | The fetch client and the mapping of HTTP errors                            |
-| `apps/cli/src/output/`      | JSON, tables, field projection, errors, secret masking                     |
-| `apps/cli/scripts/`         | The catalog generator (`renderCatalog`), the executable build              |
-| `apps/cli/schema/`          | The JSON Schema of the project file, shipped in the npm package            |
-| `apps/cli/test/`            | Fakes (`apps/cli/test/support/`), the project file fixtures, engine suites |
+| Path                        | Holds                                                                    |
+| --------------------------- | ------------------------------------------------------------------------ |
+| `apps/cli/src/bin/`         | The entry point and the Node runtime (`createNodeRuntime`)               |
+| `apps/cli/src/cli/`         | commander wiring and the utility commands; the only layer with commander |
+| `apps/cli/src/operation/`   | Input building, guards, requests, execution, paging                      |
+| `apps/cli/src/workflow/`    | The workflow commands, pure: c7-core's bindings, its CLI text, waiting   |
+| `apps/cli/src/engine-port/` | c7-core's port plus `call`, `preview`, `route`: types only               |
+| `apps/cli/src/engines/`     | One adapter per engine, all on the one generated catalog                 |
+| `apps/cli/src/api/`         | One folder per engine API; only the adapters use one                     |
+| `apps/cli/src/docs/`        | The guide, `describe`, examples: the texts agents read                   |
+| `apps/cli/src/catalog/`     | Catalog access (`loadCatalog`), schemas, body validation                 |
+| `apps/cli/src/config/`      | Config resolution, profiles, project files; the profile format's wording |
+| `apps/cli/src/auth/`        | Auth providers: Basic, bearer, token commands, OAuth                     |
+| `apps/cli/src/http/`        | The fetch client and the mapping of HTTP errors                          |
+| `apps/cli/src/output/`      | JSON, tables, field projection, errors, secret masking                   |
+| `apps/cli/scripts/`         | The catalog generator (`renderCatalog`), the executable build            |
+| `apps/cli/test/`            | Fakes (`apps/cli/test/support/`), engine suites                          |
 
 No cycle, a type-only one included. The pure layers import no Node built-in (WebCrypto and the
 timers are globals). Only the `auth login` command reaches the interactive login (loopback
@@ -57,15 +57,14 @@ server, browser), so no other command can ever wait for a person. The CLI import
 package but `@miragon/pulse-c7-core`, and that only from `apps/cli/src/workflow/`,
 `apps/cli/src/engine-port/` and the two operation modules that apply its engine REST rules,
 `apps/cli/src/operation/dates.ts` (the `UTC_WITHOUT_OFFSET` date reading) and
-`apps/cli/src/operation/variables.ts` (`autoTypedValue`) (tests anywhere), and nothing of the MCP
-or UI stack. The package
-returns data (next steps, error reasons); `next-text.ts` and `error-text.ts` in
-`apps/cli/src/workflow/` word them as the CLI prints them. The CLI's rules also admit the profile
-format, `@miragon/pulse-profile`, in `apps/cli/src/config/` (`CLI_BUNDLES` and
-`profile-consumers` in the root `.dependency-cruiser.cjs`), for the config layer to read the
-profiles with, and the transport, `@miragon/pulse-http`, in `apps/cli/src/http/`,
+`apps/cli/src/operation/variables.ts` (`autoTypedValue`) (tests anywhere), and the profile format,
+`@miragon/pulse-profile`, only from `apps/cli/src/config/` (`CLI_BUNDLES` and `profile-consumers`
+in the root `.dependency-cruiser.cjs`), and nothing of the MCP or UI stack. The packages return
+data (next steps, error reasons, a profile's problems); `next-text.ts` and `error-text.ts` in
+`apps/cli/src/workflow/` and `apps/cli/src/config/profile-problems.ts` word them as the CLI prints
+them. The CLI's rules also admit the transport, `@miragon/pulse-http`, in `apps/cli/src/http/`,
 `apps/cli/src/auth/` and `apps/cli/src/operation/` (`CLI_BUNDLES` and `http-consumers`), for the
-requests to go out through it; neither is used yet. The engine family's core,
+requests to go out through it; it is not used yet. The engine family's core,
 `@miragon/pulse-engine-core`, the contract every dialect implements, is not the CLI's to import
 until it serves a second dialect: it reaches the engine through c7-core, a job's root cause
 included (`causeOf`, over engine-core's `RootCauses`), and a direct import is an admission
@@ -86,21 +85,20 @@ beside it.
 
 ## The project file schema
 
-The CLI owns the format of `.pulse-cli.json`: `apps/cli/schema/project-file.schema.json` (JSON
-Schema draft-07, shipped in the npm package, `$id` on unpkg) describes exactly what
-`parseProjectFile` accepts. The shared fixtures in `apps/cli/test/fixtures/project-file/` (one
-file each: the file and the CLI's verdict, the error or each profile as it resolves) hold both:
-`apps/cli/src/config/project-schema.test.ts` gives every fixture to the parser and the schema and
-resolves each profile, `apps/cli/src/config/project-schema-boundaries.test.ts` checks the edges
-both ways, as a table and as properties, the refused header names drawn from the CLI's own lists.
-The CLI owns the files and its verdict; Pulse for VS Code owns what it makes of them
-(`apps/vscode/test/host/project-file-fixtures.expected.json`), and its
-`apps/vscode/test/host/project-file-fixtures.test.ts` reads the fixtures as files. A change to
-what a project file may hold changes the parser, the schema and a fixture in the same commit; a
-new fixture needs an entry in the extension's expectations too. The one rule JSON Schema cannot
-express (a defaultProfile names one of the file's profiles) is checked next to the schema in
-`apps/cli/test/support/project-schema.ts`. An invalid fixture holds one violation, so the schema
-has to catch each on its own.
+The format of `.pulse-cli.json` and of the user's config file is Pulse's profile format,
+`@miragon/pulse-profile`: its parser, its JSON Schema (`schema/pulse.schema.json` in the package,
+the `$schema` URL on unpkg) and its shared fixtures. The config layer is thin over it:
+`apps/cli/src/config/profile-file.ts` reads a file under the credential policy of where it comes
+from (`env-or-literal` for the user's config file, `none` for a project file, so a project file
+names neither a secret nor a variable and no resolver reads a variable a repository chose; read
+under `none`, its profiles keep no key of either) and maps the verdicts onto the config types; a
+refused profile stays in the file as it stands (an edit keeps it, but never writes back a name or
+a key the file holds twice, `settledTwice`) and fails only the command that uses it, worded by
+`apps/cli/src/config/profile-problems.ts` with the CLI's way out (a `pulse config` command, a
+flag, a `PULSE_CLI_*` variable). `apps/cli/src/config/profile-fixtures.test.ts` runs every
+fixture of `@miragon/pulse-profile/testing` through both readers and resolves each profile the
+format takes. A change to what a profile may hold changes the package, its schema and a fixture
+in the same commit; the CLI and Pulse for VS Code follow in theirs.
 
 ## Catalogs
 

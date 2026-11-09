@@ -76,7 +76,7 @@ The dependency rules are closed-world (`apps/vscode/.dependency-cruiser.cjs`): a
 is not explicitly allowed fails `pnpm lint:architecture:vscode` with a message that says where
 it belongs (dependency-cruiser reports it as `not-in-allowed` and takes the wording from the
 forbidden rule of that name, which never fires itself). Nothing outside them is allowed, so no
-widget-shell, no React, no zod and three workspace packages only, each bundled by esbuild. The
+widget-shell, no React, no zod and four workspace packages only, each bundled by esbuild. The
 contract layer (`apps/vscode/src/contract`) re-exports the contract of the engine family's core
 `@miragon/pulse-engine-core` (`packages/connectors/engine/engine-core`, its main entry), the ports,
 read models and errors every dialect answers in, next to the ports of the IDE (`EngineAdapter`,
@@ -89,8 +89,11 @@ the views need lands there first, below 1.0 without a stability promise. The C7
 adapter (`apps/vscode/src/adapters/c7` and its tests in `apps/vscode/test/adapters/c7`) imports
 `@miragon/pulse-c7-core`, the core of the Camunda 7 REST dialect family c7, the workflow domain
 the CLI and the MCP server run too, through its main entry (`c7-core-only-in-the-c7-adapter`;
-the repository's `family-core-consumers`). The core and the webview import Pulse's UI foundation as
-`@miragon/pulse-ui/tones` and `@miragon/pulse-ui/format` only: the tone vocabulary and
+the repository's `family-core-consumers`). The host's connections
+(`apps/vscode/src/host/connections`) read the project files with Pulse's profile format,
+`@miragon/pulse-profile`, through its main entry (the closed world's `PROFILE_ENTRY`; the
+repository's `profile-consumers`), as the CLI does. The core and the webview import Pulse's UI
+foundation as `@miragon/pulse-ui/tones` and `@miragon/pulse-ui/format` only: the tone vocabulary and
 `SITUATION_TONES`, the one tone per situation the MCP widgets show too, and the formatters,
 framework-free (`pulse-ui-only-its-foundation`; the repository's
 `ui-foundation-entries-import-nothing`). That foundation is all the webview shares with the MCP
@@ -134,13 +137,16 @@ core, webview and host stay engine-neutral.
 - A new gate is a rule in a standard tool (ESLint, dependency-cruiser, knip, tsc, Vitest) or
   a test. A rule you write proves it bites with a case in `apps/vscode/test/architecture`;
   see `apps/vscode/docs/adr/guardrails.md`.
-- `.pulse-cli.json` follows the CLI's rules: the CLI owns its JSON Schema and the fixtures in
-  `apps/cli/test/fixtures/project-file/` (the file and the CLI's verdict), the extension its
-  expectations of them (`apps/vscode/test/host/project-file-fixtures.expected.json`, one entry
-  per fixture). `apps/vscode/test/host/project-file-fixtures.test.ts` reads the fixtures as files
-  (never an import) and holds `TargetsParser` to both. A profile the CLI accepts is a target with
-  the CLI's URL, auth type and read-only flag, or a named problem; a value the CLI refuses never
-  becomes a default. Change the parser with the fixtures, not apart.
+- `.pulse-cli.json` is read with Pulse's profile format, `@miragon/pulse-profile`, under the
+  credential policy `none`, which refuses a credential (a secret or the variable that holds one):
+  `TargetsParser` maps each verdict onto a target or a problem and refuses with `refusalsOn` what
+  the extension cannot serve (`headers`, the auth types bearer and passthrough, a named process
+  engine, a missing `url`), worded by the format's `describeProblem`. The package owns its JSON
+  Schema and the shared fixtures (its `./testing` entry), the extension its expectations of them
+  (`apps/vscode/test/host/project-file-fixtures.expected.json`, one entry per fixture);
+  `apps/vscode/test/host/project-file-fixtures.test.ts` holds `TargetsParser` to both. A profile
+  the format takes is a target with its URL, auth type and read-only flag, or a named problem; a
+  value the format refuses never becomes an engine. The extension still reads no user config.
 - When you change a boundary, the contract, the protocol or a dependency, update the matching
   record in `apps/vscode/docs/adr/` in the same commit.
 - The webview's colours are the Miragon tokens in `apps/vscode/src/webview/theme/`, vendored

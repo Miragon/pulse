@@ -80,8 +80,8 @@ describe("parsing the profiles of .pulse-cli.json", () => {
       }),
     ])
     expect(parsed.problems.map((problem) => problem.detail())).toEqual([
-      `${FILE}: profile "file" needs a cockpitUrl that is an http or https URL without credentials, query or fragment`,
-      `${FILE}: profile "secret" needs a cockpitUrl that is an http or https URL without credentials, query or fragment`,
+      `${FILE}: profile "file": cockpitUrl must start with http:// or https://.`,
+      `${FILE}: profile "secret": cockpitUrl must not contain credentials (they are not shown): put them into auth.`,
     ])
   })
 
@@ -102,11 +102,11 @@ describe("parsing the profiles of .pulse-cli.json", () => {
     expect(parsed.targets.map((target) => target.name)).toEqual(["ok"])
     expect(parsed.targets[0]?.auth).toEqual({ kind: "oauth2" })
     expect(parsed.problems.map((problem) => problem.detail())).toEqual([
-      `${FILE}: profile "cluster" uses the flavor camunda8, which Pulse does not support yet`,
-      `${FILE}: profile "named" names a process engine other than "default", which Pulse does not support yet`,
-      `${FILE}: profile "bad-url" needs a url that is an http or https URL without credentials, query or fragment`,
-      `${FILE}: profile "bearer" uses bearer auth, which Pulse does not support yet`,
-      `${FILE}: profile "nonsense" is not an object`,
+      `${FILE}: profile "cluster": flavor must be one of camunda7, cibseven, operaton (the value is not shown).`,
+      `${FILE}: profile "named": engine names a process engine this client does not reach: it reaches only "default".`,
+      `${FILE}: profile "bad-url": url is no URL: use a URL such as http://localhost:8080/engine-rest.`,
+      `${FILE}: profile "bearer": This client cannot authenticate with this auth.type.`,
+      `${FILE}: profile "nonsense": The profile must be a JSON object.`,
     ])
   })
 
@@ -124,9 +124,9 @@ describe("parsing the profiles of .pulse-cli.json", () => {
 
     expect(parsed.targets.map((target) => target.name)).toEqual(["current"])
     expect(parsed.problems.map((problem) => problem.detail())).toEqual([
-      `${FILE}: profile "renamed" uses the key platform, now called flavor`,
-      `${FILE}: profile "cluster" uses the key platform, now called flavor`,
-      `${FILE}: profile "both" uses the key platform, now called flavor`,
+      `${FILE}: profile "renamed": platform is no key of a profile.`,
+      `${FILE}: profile "cluster": platform is no key of a profile.`,
+      `${FILE}: profile "both": platform is no key of a profile.`,
     ])
   })
 
@@ -140,7 +140,8 @@ describe("parsing the profiles of .pulse-cli.json", () => {
       problems: [
         {
           path: FILE,
-          message: 'profile "typo" uses the flavor camunda, which Pulse does not support yet',
+          message:
+            'profile "typo": flavor must be one of camunda7, cibseven, operaton (the value is not shown).',
         },
       ],
     })
@@ -149,10 +150,13 @@ describe("parsing the profiles of .pulse-cli.json", () => {
   test("reports a malformed file instead of failing", () => {
     expect(new TargetsParser(FILE).parse("{")).toEqual({
       targets: [],
-      problems: [{ path: FILE, message: "the file is not valid JSON" }],
+      problems: [{ path: FILE, message: "The text is not valid JSON (line 1, column 2)." }],
     })
     expect(new TargetsParser(FILE).parse('{"profiles": []}').problems).toEqual([
-      { path: FILE, message: 'the file needs a "profiles" object' },
+      {
+        path: FILE,
+        message: "profiles must be a JSON object that maps each profile name to a profile.",
+      },
     ])
     expect(new TargetsParser(FILE).parse("{}")).toEqual({ targets: [], problems: [] })
   })
@@ -160,8 +164,8 @@ describe("parsing the profiles of .pulse-cli.json", () => {
   test("names the broken file and what is wrong, for the error item in the Engines tree", () => {
     const [problem] = new TargetsParser(FILE).parse("{").problems
 
-    expect(problem?.label()).toBe(".pulse-cli.json: the file is not valid JSON")
-    expect(problem?.detail()).toBe(`${FILE}: the file is not valid JSON`)
+    expect(problem?.label()).toBe(".pulse-cli.json: The text is not valid JSON (line 1, column 2).")
+    expect(problem?.detail()).toBe(`${FILE}: The text is not valid JSON (line 1, column 2).`)
     expect(problem?.path).toBe(FILE)
   })
 })

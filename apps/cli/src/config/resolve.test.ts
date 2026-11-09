@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest"
 import { file } from "../../test/support/config-resolve.js"
 import { failure } from "../../test/support/failure.js"
 import { parseEnvHeaders } from "./headers.js"
-import { MAX_TIMEOUT_MS, isEngineName, resolveConfig, validateEngine } from "./resolve.js"
+import { MAX_TIMEOUT_MS, resolveConfig, validateEngine } from "./resolve.js"
 import { type ConfigFlags, FLAVORS, type Profile } from "./types.js"
 
 const DEFAULT_SOURCES = {
@@ -200,9 +200,7 @@ describe("resolveConfig precedence", () => {
     )
     expect(resolveConfig({ engine: " second " }, {}, undefined).engine).toBe("second")
     expect(validateEngine("a.b")).toBe("a.b")
-    expect(isEngineName("...")).toBe(true)
-    expect(isEngineName(" ")).toBe(false)
-    expect(isEngineName(3)).toBe(false)
+    expect(validateEngine("...")).toBe("...")
   })
 
   it("reports headers from the profile as profile and empty flags as default", () => {

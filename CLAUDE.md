@@ -638,8 +638,8 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      a profile file and returns a verdict per profile as data, reading no file and no
      environment (`profile-is-a-leaf`), and only the readers of profiles import it: the CLI's
      config layer, Pulse for VS Code's connections, the engine connector's configuration, and
-     tests (`profile-consumers`, `PROFILE_READERS`; until a reader switches to it, only its own
-     tests do); the transport (`@miragon/pulse-http`, `packages/core/http`) is a leaf too, which
+     tests (`profile-consumers`, `PROFILE_READERS`; the CLI and Pulse for VS Code read their
+     profiles with it, the engine connector not yet); the transport (`@miragon/pulse-http`, `packages/core/http`) is a leaf too, which
      runs over an injected `fetch` on the web platform's globals, no npm package and no Node
      built-in (`http-is-a-leaf`; ESLint's `no-restricted-globals` keeps out what only a browser
      has, `HTTP_BROWSER_GLOBALS`) but in the loopback engine of its conformance cases

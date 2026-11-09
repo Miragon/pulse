@@ -112,7 +112,15 @@ describe("a login shared by the profiles of a repository", () => {
     const { cli } = machine({ [`${SHOP}/.pulse-cli.json`]: project(["orders", "billing"]) }, [
       `${SHOP}/.git`,
     ])
-    const options = ["--auth", "oauth", "--oauth-issuer", ISSUER, "--oauth-client-id"]
+    const options = [
+      "--url",
+      "http://shop/engine-rest",
+      "--auth",
+      "oauth",
+      "--oauth-issuer",
+      ISSUER,
+      "--oauth-client-id",
+    ]
     const before = await cli(SHOP, [
       "config",
       "set",
@@ -191,7 +199,7 @@ describe("a login shared by the profiles of a repository", () => {
     const { cli } = machine({})
     const args = ["config", "set", "p", "--config", "/home/tester/ci/pulse-cli.json"]
     const oauth = ["--auth", "oauth", "--oauth-issuer", ISSUER, "--oauth-client-id", "pulse-cli"]
-    const set = await cli("/home/tester", [...args, ...oauth])
+    const set = await cli("/home/tester", [...args, "--url", "http://x/engine-rest", ...oauth])
     expect(set.stderr).toBe(
       "Next: run `pulse auth login --config /home/tester/ci/pulse-cli.json --profile p` in a terminal to log in.\n",
     )

@@ -3,6 +3,14 @@
 /** The program name: the command, the help and every hint name it this way. */
 export const CLI_NAME = "pulse"
 
+/**
+ * The profile of a `pulse config set` hint: the selected one, else a new one, which needs its URL
+ * (`config set` refuses a new profile without one).
+ */
+export function profileToSet(profile: string | undefined): string {
+  return profile ?? "<profile> --url <url>"
+}
+
 type Defined<T> = { [K in keyof T]: Exclude<T[K], undefined> }
 
 /**
@@ -59,21 +67,15 @@ export function mergeHeaders(
   return Object.fromEntries(merged.values())
 }
 
-/** Headers that carry a secret by name (lower case); the project file schema refuses them too. */
-export const SECRET_HEADERS: ReadonlySet<string> = new Set([
+/** Headers that carry a secret by name (lower case); a project file refuses them too. */
+const SECRET_HEADERS: ReadonlySet<string> = new Set([
   "authorization",
   "proxy-authorization",
   "cookie",
   "set-cookie",
 ])
-/** Parts of a header name that mark a secret (lower case); the project file schema refuses them too. */
-export const SECRET_NAME_PARTS: readonly string[] = [
-  "token",
-  "secret",
-  "password",
-  "api-key",
-  "apikey",
-]
+/** Parts of a header name that mark a secret (lower case); a project file refuses them too. */
+const SECRET_NAME_PARTS: readonly string[] = ["token", "secret", "password", "api-key", "apikey"]
 
 /**
  * True for a header that carries a secret: credentials, cookies and names containing token,

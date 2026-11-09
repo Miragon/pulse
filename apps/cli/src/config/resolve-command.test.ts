@@ -65,13 +65,17 @@ describe("resolveAuth with a token command", () => {
     expect(resolveAuth({}, { CI_TOKEN: "ci" }, stored).auth).toMatchObject({ token: "ci" })
   })
 
-  it("is no key of a profile", () => {
+  it("is no key of a profile: the profile is refused when it is used", () => {
     const text = JSON.stringify({
       profiles: { p: { auth: { type: "bearer", tokenCommand: "c" } } },
     })
-    const error = failure(() => parseConfigFile(text, "/c.json"))
+    const file = parseConfigFile(text, "/c.json")
+    const error = failure(() => selectProfile({ profile: "p" }, {}, file))
     expect(error.message).toBe(
-      'Invalid config file /c.json: profile "p" sets auth.tokenCommand, which pulse no longer reads: remove the key from the file and export PULSE_CLI_TOKEN_COMMAND=<command> instead',
+      'Profile "p" of your config file cannot be used: auth.tokenCommand is no key of a profile.',
+    )
+    expect(error.details.hint).toBe(
+      "Remove it with `pulse config unset p auth.tokenCommand`, or fix its spelling in the file.",
     )
   })
 

@@ -85,8 +85,8 @@ describe("token command sources", () => {
     const files = { [CONFIG_PATH]: profiles({ type: "bearer", tokenCommand: "c" }) }
     const stored = await cli(["task", "list"], { files })
     expect(stored.code).toBe(3)
-    expect(errorOf(stored.stderr).message).toContain(
-      "sets auth.tokenCommand, which pulse no longer reads",
+    expect(errorOf(stored.stderr).message).toBe(
+      'Profile "dev" of your config file cannot be used: auth.tokenCommand is no key of a profile.',
     )
     expect(stored.runtime.commandRuns).toEqual([])
   })
@@ -274,7 +274,7 @@ describe("pulse auth with a token command", () => {
     })
     const env = await cli(["auth", "login"], { env: ENV })
     expect(errorOf(env.stderr).hint).toBe(
-      "Bearer auth is selected by a token command from PULSE_CLI_TOKEN_COMMAND without an auth type: pulse runs the token command (PULSE_CLI_TOKEN_COMMAND) whenever it needs a token and never logs in itself; `pulse auth status` runs it and shows the token's claims and expiry. For an OAuth login run by pulse: unset PULSE_CLI_TOKEN_COMMAND and configure OAuth: pulse config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>.",
+      "Bearer auth is selected by a token command from PULSE_CLI_TOKEN_COMMAND without an auth type: pulse runs the token command (PULSE_CLI_TOKEN_COMMAND) whenever it needs a token and never logs in itself; `pulse auth status` runs it and shows the token's claims and expiry. For an OAuth login run by pulse: unset PULSE_CLI_TOKEN_COMMAND and configure OAuth: pulse config set <profile> --url <url> --auth oauth --oauth-issuer <url> --oauth-client-id <id>.",
     )
     expect(env.runtime.commandRuns).toEqual([])
   })

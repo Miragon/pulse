@@ -12,7 +12,7 @@ import { ENV, type OAuthConfig } from "../../config/types.js"
 import { PulseCliError } from "../../errors.js"
 import { getJson, sanitize, type ServerAnswer, shownUrl, statusLine, statusOf } from "./http.js"
 import type { ClientAuthMethod, OAuthDeps, ServerMetadata } from "./types.js"
-import { withoutTrailingSlashes } from "../../util.js"
+import { profileToSet, withoutTrailingSlashes } from "../../util.js"
 
 const OIDC_PATH = "/.well-known/openid-configuration"
 const RFC8414_PATH = "/.well-known/oauth-authorization-server"
@@ -129,7 +129,7 @@ function clientAuthMethodOf(
 function issuerFix(config: OAuthConfig): string {
   return config.sources.endpoints === "env"
     ? `${ENV.oauthIssuer}=<issuer>`
-    : `pulse config set ${config.profile ?? "<profile>"} --oauth-issuer <issuer>`
+    : `pulse config set ${profileToSet(config.profile)} --oauth-issuer <issuer>`
 }
 
 function checkIssuer(answer: ServerAnswer, document: Record<string, unknown>, config: OAuthConfig) {

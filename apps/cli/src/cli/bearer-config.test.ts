@@ -26,7 +26,8 @@ async function cli(args: readonly string[], options: FakeRuntimeOptions = {}, st
 
 describe("pulse config with a bearer token", () => {
   it("stores a token from stdin with a plain text warning and prints it masked", async () => {
-    const result = await cli(["config", "set", "ci", "--auth-token-stdin", "-o", "json"], {
+    const url = ["--url", "https://camunda.example.com/engine-rest"]
+    const result = await cli(["config", "set", "ci", ...url, "--auth-token-stdin", "-o", "json"], {
       stdin: "Bearer lit.token\n",
     })
     expect(result.code).toBe(0)
@@ -170,11 +171,14 @@ describe("mistyped bearer flags", () => {
       await cli(["task", "list"], { files }),
       await cli(["config", "show"], { files }),
     ]
-    for (const result of results) {
+    for (const [index, result] of results.entries()) {
       expect(result.code).toBe(3)
       expect(errorOf(result.stderr)).toMatchObject({
         code: "CONFIG",
-        message: "Unsupported auth type (not one of none, basic, oauth, bearer)",
+        message:
+          index < 5
+            ? "Unsupported auth type (not one of none, basic, oauth, bearer)"
+            : 'Profile "p" of your config file cannot be used: auth.type must be one of none, basic, bearer, oauth, passthrough (the value is not shown).',
       })
       expect(errorOf(result.stderr).hint).toContain(
         "A bearer token itself goes into PULSE_CLI_TOKEN or --auth-token-stdin",
@@ -198,11 +202,12 @@ describe("mistyped bearer flags", () => {
     expect(result.stdout + result.stderr).not.toContain(token)
     expect(fileText(result.runtime, CONFIG_PATH)).toBeUndefined()
     // a set variable in any form is stored; an unset name in the usual form only warns
-    const set = await cli(["config", "set", "p", "--auth-token-env", "ci_token"], {
+    const url = ["--url", "https://camunda.example.com/engine-rest"]
+    const set = await cli(["config", "set", "p", ...url, "--auth-token-env", "ci_token"], {
       env: { ci_token: "v" },
     })
     expect(set.code).toBe(0)
-    const usual = await cli(["config", "set", "p", "--auth-token-env", "CI_ENGINE_TOKEN"])
+    const usual = await cli(["config", "set", "p", ...url, "--auth-token-env", "CI_ENGINE_TOKEN"])
     expect(usual.code).toBe(0)
     // a hand-edited file: an unusual unset name is not repeated either
     const files = { [CONFIG_PATH]: profiles({ p: { auth: { type: "bearer", tokenEnv: token } } }) }

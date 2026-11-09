@@ -1,8 +1,14 @@
 /**
  * What `pulse config list` and `pulse config show` print, pure: the profiles of both files with
- * the file each comes from, and the effective configuration with the source of every value.
+ * the file each comes from (a refused one with why instead of its values), and the effective
+ * configuration with the source of every value.
  */
 
+import { PROFILE_NAME } from "@miragon/pulse-profile"
+import { compact } from "../util.js"
+import { refusalOf } from "./profile-file.js"
+import { describeProblems } from "./profile-problems.js"
+import { findProfile } from "./resolve.js"
 import type {
   AuthConfig,
   ConfigFile,
@@ -25,6 +31,8 @@ export interface ProfileSummary {
   readonly auth: string | null
   readonly readOnly: boolean
   readonly scope: "user" | "project"
+  /** Why a command cannot use the profile (its values are not shown then); absent when it can. */
+  readonly problems?: string
 }
 
 interface ConfigValue<T> {
@@ -92,20 +100,41 @@ function byName(a: ProfileSummary, b: ProfileSummary): number {
   return a.name < b.name ? -1 : 1
 }
 
-/** Profiles sorted by name, with the file each comes from. */
+/** What `config list` shows of a profile: its values, or for a refused one why it is refused. */
+function summaryValues(file: ConfigFile, name: string) {
+  const profile = findProfile(file, name)
+  if (profile === undefined) {
+    const problems = describeProblems(refusalOf(file, name) ?? [])
+    return { url: null, engine: null, auth: null, readOnly: false, problems }
+  }
+  return {
+    url: profile.url ?? null,
+    engine: profile.engine ?? null,
+    auth: profile.auth?.type ?? (profile.auth?.username === undefined ? null : "basic"),
+    readOnly: profile.readOnly === true,
+  }
+}
+
+/**
+ * Profiles sorted by name, with the file each comes from. A refused profile shows why instead of
+ * its values; one whose name is no valid name is not listed (the name may be a secret pasted in
+ * the wrong place): `config list` reports it on stderr.
+ */
 export function listProfiles(file: LoadedConfig | undefined): ProfileSummary[] {
   const current = file ?? EMPTY
   const fromProject = file?.project?.profiles ?? []
-  return Object.entries(current.profiles)
-    .map(([name, profile]) => ({
-      name,
-      default: current.defaultProfile === name,
-      url: profile.url ?? null,
-      engine: profile.engine ?? null,
-      auth: profile.auth?.type ?? (profile.auth?.username === undefined ? null : "basic"),
-      readOnly: profile.readOnly === true,
-      scope: fromProject.includes(name) ? ("project" as const) : ("user" as const),
-    }))
+  return Object.keys(current.profiles)
+    .filter((name) => PROFILE_NAME.test(name))
+    .map((name) => {
+      const { problems, ...values } = summaryValues(current, name)
+      return {
+        name,
+        default: current.defaultProfile === name,
+        ...values,
+        scope: fromProject.includes(name) ? ("project" as const) : ("user" as const),
+        ...compact({ problems }),
+      }
+    })
     .sort(byName)
 }
 

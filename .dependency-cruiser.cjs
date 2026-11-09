@@ -39,8 +39,9 @@
  * the main entry of engine-core that core imports, the profile format for its config layer and
  * the transport for its http layer), and the VS Code
  * extension (apps/vscode, the unscoped `pulse-cockpit`, because vsce rejects scoped names)
- * imports c7-core in its C7 adapter alone (apps/vscode/src/adapters/c7) and engine-core in its
- * contract barrel alone (apps/vscode/src/contract), both bundled by esbuild.
+ * imports c7-core in its C7 adapter alone (apps/vscode/src/adapters/c7), engine-core in its
+ * contract barrel alone (apps/vscode/src/contract) and the profile format in its connections
+ * (apps/vscode/src/host/connections), all bundled by esbuild.
  * No package and no app imports an app
  * (the extension's own closed-world rules live in apps/vscode/.dependency-cruiser.cjs).
  * APP_PACKAGES below names every app's npm name; the
@@ -199,8 +200,8 @@ const HTTP_USERS = [
 /**
  * The workspace packages the CLI may bundle (tsdown inlines what it imports, so the published CLI
  * depends on none of them): its family core, CORE_BUNDLES' entry for apps/cli, the profile
- * format, admitted for the config layer before the CLI reads its profiles with it, and the
- * transport, admitted for the http, auth and operation layers before the CLI sends with it. The
+ * format, which its config layer reads the profiles with, and the transport, admitted for the
+ * http, auth and operation layers before the CLI sends with it. The
  * only workspace packages cli-is-headless lets the CLI import; cli-no-circular and
  * cli-not-to-test hold their trees as part of the CLI.
  */

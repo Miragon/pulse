@@ -135,7 +135,9 @@ describe("renewal", () => {
     expect(renewal(config("t", { ...stored, profile: "p" }))).toBe(
       "set PULSE_CLI_TOKEN (it overrides the stored token) or store it with `pulse config set p --auth-token-stdin`",
     )
-    expect(renewal(config("t", stored))).toContain("pulse config set <profile> --auth-token-stdin")
+    expect(renewal(config("t", stored))).toContain(
+      "pulse config set <profile> --url <url> --auth-token-stdin",
+    )
   })
 })
 

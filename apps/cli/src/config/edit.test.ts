@@ -58,7 +58,7 @@ describe("setProfile", () => {
   it("never stores Basic auth together with an Authorization header", () => {
     const file: ConfigFile = { profiles: { p: { headers: { Authorization: "Basic eDp5" } } } }
     expect(setProfile(file, "p", { authUser: "demo" }).profiles.p).toEqual({
-      auth: { username: "demo" },
+      auth: { type: "basic", username: "demo" },
     })
     const error = failure(() =>
       setProfile(file, "p", { url: "http://x", authUser: "demo", headers: ["Authorization: x"] }),
@@ -66,30 +66,69 @@ describe("setProfile", () => {
     expect(error.message).toBe('Profile "p" would have both Basic auth and an Authorization header')
   })
 
-  it("makes the first profile of an empty file the default even when it is empty", () => {
-    expect(setProfile({ profiles: {} }, "a", {})).toEqual({
+  it("makes the first profile of an empty file the default", () => {
+    expect(setProfile({ profiles: {} }, "a", { url: "http://a" })).toEqual({
       defaultProfile: "a",
-      profiles: { a: {} },
+      profiles: { a: { url: "http://a" } },
+    })
+  })
+
+  it("creates no profile without a URL, which would reach the default engine silently", () => {
+    const error = failure(() => setProfile({ profiles: {} }, "a", { readOnly: true }))
+    expect(error.code).toBe("CONFIG")
+    expect(error.message).toBe('Profile "a" needs a URL')
+    expect(error.details.hint).toBe(
+      "Create it with `pulse config set a --url <url>`, e.g. --url http://localhost:8080/engine-rest.",
+    )
+    expect(setProfile({ profiles: { a: {} } }, "a", { readOnly: true }).profiles.a).toEqual({
+      readOnly: true,
+    })
+  })
+
+  it("keeps the keys the format does not know, behind the known ones", () => {
+    const file: ConfigFile = {
+      profiles: { p: { flavour: "x", url: "http://x" } as never },
+      refused: { p: [{ code: "unknown-key", key: "flavour" }] },
+    }
+    const edited = setProfile(file, "p", { readOnly: true })
+    expect(Object.entries(edited.profiles.p ?? {})).toEqual([
+      ["url", "http://x"],
+      ["readOnly", true],
+      ["flavour", "x"],
+    ])
+    expect(edited).not.toHaveProperty("refused")
+  })
+
+  it("replaces a stored profile that is no object, and keeps the unknown root keys", () => {
+    const file: ConfigFile = {
+      profiles: { p: "x" as never },
+      refused: { p: [{ code: "invalid" }] },
+      unknown: { default: "p" },
+    }
+    expect(setProfile(file, "p", { url: "http://x" })).toEqual({
+      profiles: { p: { url: "http://x" } },
+      unknown: { default: "p" },
     })
   })
 
   it("does not change the default when adding a further profile", () => {
-    const result = setProfile(TWO, "qa", { engine: "qa" })
+    const result = setProfile(TWO, "qa", { url: "http://qa", engine: "qa" })
     expect(result.defaultProfile).toBe("dev")
-    expect(result.profiles.qa).toEqual({ engine: "qa" })
+    expect(result.profiles.qa).toEqual({ url: "http://qa", engine: "qa" })
     expect(Object.keys(result.profiles)).toEqual(["dev", "prod", "qa"])
   })
 
   it("keeps a file without default without default when adding a profile", () => {
-    const result = setProfile({ profiles: { a: {} } }, "b", {})
-    expect(result).toEqual({ profiles: { a: {}, b: {} } })
+    const result = setProfile({ profiles: { a: {} } }, "b", { url: "http://b" })
+    expect(result).toEqual({ profiles: { a: {}, b: { url: "http://b" } } })
     expect(result).not.toHaveProperty("defaultProfile")
   })
 
   it("makes the profile the default on request", () => {
     expect(setProfile(TWO, "prod", { makeDefault: true }).defaultProfile).toBe("prod")
-    expect(setProfile(TWO, "qa", { makeDefault: true }).defaultProfile).toBe("qa")
-    expect(setProfile(TWO, "qa", { makeDefault: false }).defaultProfile).toBe("dev")
+    const qa = { url: "http://qa" }
+    expect(setProfile(TWO, "qa", { ...qa, makeDefault: true }).defaultProfile).toBe("qa")
+    expect(setProfile(TWO, "qa", { ...qa, makeDefault: false }).defaultProfile).toBe("dev")
   })
 
   it("changes only the given keys", () => {
@@ -195,7 +234,7 @@ describe("setProfile", () => {
   it("does not modify its input", () => {
     const input = frozen(TWO)
     setProfile(input, "prod", { url: "http://new", headers: ["A: b"], makeDefault: true })
-    setProfile(input, "new", {})
+    setProfile(input, "new", { url: "http://new" })
     expect(input).toEqual(TWO)
   })
 
@@ -218,7 +257,7 @@ describe("setProfile", () => {
         readOnly: fc.boolean(),
         makeDefault: fc.boolean(),
       },
-      { requiredKeys: [] },
+      { requiredKeys: ["url"] },
     )
     const name = fc.stringMatching(/^[A-Za-z0-9][A-Za-z0-9._-]{0,10}$/)
     fc.assert(

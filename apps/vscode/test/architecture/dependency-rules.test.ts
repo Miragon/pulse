@@ -112,8 +112,21 @@ const PLANTED: Readonly<Record<string, string>> = {
   "../../packages/connectors/engine/engine-core/src/testing/fake/fake-engine.ts":
     "export const FakeEngine = 1;\n",
   "../../packages/connectors/engine/engine-core/dist/index.js": "export const RuntimeError = 1;\n",
+  "src/host/connections/reads-profiles.ts":
+    "import { parseProfileFile } from '@miragon/pulse-profile';\nexport const parse = parseProfileFile;\n",
+  "src/host/explorer/reads-profiles.ts":
+    "import { parseProfileFile } from '@miragon/pulse-profile';\nexport const parse = parseProfileFile;\n",
+  "src/core/reads-profiles.ts":
+    "import type { Profile } from '@miragon/pulse-profile';\nexport type Read = Profile;\n",
+  "src/host/connections/ships-profile-fixtures.ts":
+    "import { PROFILE_FIXTURES } from '@miragon/pulse-profile/testing';\nexport const fixtures = PROFILE_FIXTURES;\n",
+  "src/host/connections/escapes-into-profile.ts":
+    "import { parseProfileFile } from '../../../../../packages/core/profile/src/parse.ts';\nexport const parse = parseProfileFile;\n",
+  "../../packages/core/profile/src/parse.ts": "export const parseProfileFile = 1;\n",
+  "test/host/reads-profile-fixtures.test.ts":
+    "import { PROFILE_FIXTURES } from '@miragon/pulse-profile/testing';\nexport const fixtures = PROFILE_FIXTURES;\n",
   "package.json":
-    '{ "name": "pulse", "private": true, "dependencies": { "@miragon/pulse-c7-core": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-ui": "workspace:*" } }\n',
+    '{ "name": "pulse", "private": true, "dependencies": { "@miragon/pulse-c7-core": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-profile": "workspace:*", "@miragon/pulse-ui": "workspace:*" } }\n',
 }
 
 const roots: string[] = []
@@ -182,6 +195,8 @@ describe("the dependency rules", () => {
     const engineCore = "apps/vscode/node_modules/@miragon/pulse-engine-core/dist/index.d.ts"
     const engineCoreTesting =
       "apps/vscode/node_modules/@miragon/pulse-engine-core/dist/testing/index.d.ts"
+    const profile = "apps/vscode/node_modules/@miragon/pulse-profile/dist/index.d.ts"
+    const profileTesting = "apps/vscode/node_modules/@miragon/pulse-profile/dist/testing/index.d.ts"
     expect(violationsIn(plantedTree()).sort()).toEqual(
       [
         `c7-core-only-in-the-c7-adapter: apps/vscode/src/adapters/other/runs-c7-core.ts -> ${c7Core}`,
@@ -233,6 +248,10 @@ describe("the dependency rules", () => {
         `not-in-allowed: apps/vscode/src/host/ships-the-fake.ts -> ${engineCoreTesting}`,
         "engine-core-only-by-its-entries: apps/vscode/test/core/escapes-into-the-fake.test.ts -> packages/connectors/engine/engine-core/src/testing/fake/fake-engine.ts",
         "engine-core-only-by-its-entries: apps/vscode/dev/host/escapes-into-the-contract.ts -> packages/connectors/engine/engine-core/dist/index.js",
+        `not-in-allowed: apps/vscode/src/host/explorer/reads-profiles.ts -> ${profile}`,
+        `not-in-allowed: apps/vscode/src/core/reads-profiles.ts -> ${profile}`,
+        `not-in-allowed: apps/vscode/src/host/connections/ships-profile-fixtures.ts -> ${profileTesting}`,
+        "not-in-allowed: apps/vscode/src/host/connections/escapes-into-profile.ts -> packages/core/profile/src/parse.ts",
       ].sort(),
     )
   })

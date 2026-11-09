@@ -9,11 +9,10 @@ Every option: `pulse config <command> --help`.
 ## Global options
 
 These work on every API command, `api` and `ping`, after the command path
-(`pulse task list -o table`): target (`--url`, `--engine`, `--flavor`, `--profile`,
-`--config`), output
-(`-o/--output`, `--fields`, `--pretty`, `--out-file`, `--verbose`), guards (`--dry-run`, `--yes`,
-`--read-only`), requests (`--timeout`, `-H`) and [authentication](authentication.md). The list with
-meanings and variables: `pulse ping --help`.
+(`pulse task list -o table`): target (`--url`, `--engine`, `--flavor`, `--profile`, `--config`),
+output (`-o/--output`, `--fields`, `--pretty`, `--out-file`, `--verbose`), guards (`--dry-run`,
+`--yes`, `--read-only`), requests (`--timeout`, `-H`) and [authentication](authentication.md). The
+list with meanings and variables: `pulse ping --help`.
 
 ## Environment variables
 
@@ -72,10 +71,14 @@ The CLI validates every value and writes the file with mode `0600`; you can also
 }
 ```
 
-- Profile keys: `url`, `cockpitUrl` (for links only, never called), `engine`, `flavor`, `auth`
-  (see [Authentication](authentication.md)), `output`, `timeout`, `headers`, `readOnly`.
+- Profile keys: `url`, `cockpitUrl` (for links only, never called), `engine`, `flavor`,
+  `environment` (kept, not read), `auth` ([Authentication](authentication.md)), `output`,
+  `timeout`, `headers`, `readOnly`: the format of `@miragon/pulse-profile`, which the MCP server
+  reads too (its `auth.type` `passthrough` only the server serves).
 - Profile names use letters, digits, `.`, `_` and `-` and start with a letter or digit.
-- URLs with credentials or a query string are rejected.
+- A profile with a value the format refuses (a URL with credentials or a query, an unknown key, a
+  key twice) fails when a command uses it, naming why, as `config list` does; the others work.
+  Only text that gives no profiles (invalid JSON, a wrong outer shape) fails the whole file.
 
 ## Engines
 
@@ -85,7 +88,7 @@ selects the engine adapter and with it the commands, help and `describe`. Withou
 (`/engine/{name}`).
 
 ```sh
-pulse config set local --flavor operaton
+pulse config set local --url http://localhost:8080/engine-rest --flavor operaton
 PULSE_CLI_FLAVOR=cibseven pulse ping
 pulse ping --flavor camunda7
 ```
@@ -106,9 +109,11 @@ pulse config unset prod readOnly
 pulse config delete prod
 ```
 
-- `config set` creates or updates a profile; only the given values change. The first profile
-  becomes the default, `config use` picks another, `--profile` or `PULSE_CLI_PROFILE` pick one per
-  call.
+- `config set` creates or updates a profile; only the given values change, and a new profile
+  needs `--url`. The first profile becomes the default, `config use` picks another, `--profile`
+  or `PULSE_CLI_PROFILE` pick one per call. `config unset` removes any key a profile holds
+  (`auth.<key>` one of its auth object), so it repairs a refused one. A name or a key twice you
+  fix in an editor: the commands write the whole file and leave such a file as it is.
 - Changing or removing a profile's OAuth settings removes the cached login of the old ones, unless
   another profile shares it, see [shared logins](authentication.md#shared-logins).
 - `config show` accepts the global flags, so you can see what a combination resolves to.
@@ -128,24 +133,28 @@ pulse config path --project
 
 ```json
 {
-  "$schema": "https://unpkg.com/@miragon/pulse-cli/schema/project-file.schema.json",
+  "$schema": "https://unpkg.com/@miragon/pulse-profile/schema/pulse.schema.json",
   "defaultProfile": "orders",
   "profiles": { "orders": { "url": "http://localhost:8112/engine-rest/orders" } }
 }
 ```
 
 - Its profiles join yours. On a name clash your own profile wins as a whole. The project's
-  `defaultProfile` wins inside the repository, so a bare `pulse status` reaches its engine.
-- A project file names engines, never credentials: passwords, secrets, tokens, their `*Env`
-  variables and secret headers are refused. Credentials come from the environment
+  `defaultProfile`, without one its only profile, wins inside the repository, so a bare
+  `pulse status` reaches its engine. A `defaultProfile` that names none of its profiles, or an
+  only profile without a valid name, leaves no default (a command without `--profile` fails),
+  never yours.
+- A project file names engines, never credentials: a profile with a password, secret, token,
+  their `*Env` variable or a secret header is refused, so no command reads a variable a
+  repository chose. Credentials come from the environment
   (`PULSE_CLI_TOKEN`, [`PULSE_CLI_TOKEN_COMMAND`](authentication.md#token-commands),
   `PULSE_CLI_PASSWORD`, `PULSE_CLI_OAUTH_CLIENT_SECRET`), an OAuth login
   ([shared logins](authentication.md#shared-logins)) or a profile of the same name in your file.
 - `config set|unset|use|delete --project` write the project file (mode `0644`).
   `config list` shows each profile's `scope` (`user` or `project`).
-- `$schema` lets your editor check the file against the JSON Schema that ships with the CLI
-  (`schema/project-file.schema.json` in the npm package); the CLI keeps the key when it writes
-  the file. The URL above serves the latest release; `@miragon/pulse-cli@<version>` pins yours.
-  [Pulse for VS Code](../vscode/configuration.md) reads the same profiles.
+- `$schema` lets your editor check the file against the JSON Schema of the profile format
+  (`schema/pulse.schema.json` in `@miragon/pulse-profile`); the CLI keeps the key when it writes
+  the file. The URL above serves the latest release; `@miragon/pulse-profile@<version>` pins
+  yours. [Pulse for VS Code](../vscode/configuration.md) reads the same profiles.
 - Treat a project file like code: it decides where your credentials from the environment and its
   profiles' OAuth login are sent.

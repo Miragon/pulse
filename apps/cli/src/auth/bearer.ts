@@ -8,6 +8,7 @@
 
 import { ENV, type StaticBearerConfig } from "../config/types.js"
 import { PulseCliError } from "../errors.js"
+import { profileToSet } from "../util.js"
 import { isExpired, type JwtClaims, jwtClaims } from "./jwt.js"
 import type { AuthProvider, Principal } from "./types.js"
 
@@ -19,7 +20,7 @@ function iso(epochMs: number): string {
 export function renewal(config: StaticBearerConfig): string {
   if (config.source === "flag") return "pipe it into --auth-token-stdin"
   if (config.variable !== undefined) return `set ${config.variable}`
-  return `set ${ENV.token} (it overrides the stored token) or store it with \`pulse config set ${config.profile ?? "<profile>"} --auth-token-stdin\``
+  return `set ${ENV.token} (it overrides the stored token) or store it with \`pulse config set ${profileToSet(config.profile)} --auth-token-stdin\``
 }
 
 /** The TOKEN_EXPIRED error of a JWT whose `exp` lies more than 30 s in the past. */

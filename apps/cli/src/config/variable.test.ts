@@ -1,12 +1,12 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import { opaqueTokens } from "../../test/support/bearer.js"
+import { isConventionalVariable } from "@miragon/pulse-profile"
 import { PulseCliError } from "../errors.js"
 import {
   checkVariableName,
   checkVariableNames,
   CLIENT_SECRET_VARIABLE,
-  isConventionalVariable,
   PASSWORD_VARIABLE,
   type SecretVariable,
   TOKEN_VARIABLE,
@@ -82,33 +82,6 @@ describe("validateVariableName", () => {
       }
     },
   )
-})
-
-describe("isConventionalVariable", () => {
-  it("accepts upper-case names of words up to 24 characters, at most 64 in all", () => {
-    for (const name of ["CI_ENGINE_TOKEN", "_X", "A", "PULSE_CLI_ENGINE_PRODUCTION_BEARER_TOKEN"]) {
-      expect(isConventionalVariable(name)).toBe(true)
-    }
-    expect(isConventionalVariable(`${"A".repeat(24)}_B`)).toBe(true)
-    expect(isConventionalVariable(`A${"_B".repeat(31)}`)).toBe(true)
-  })
-
-  it("refuses lower case, long words and long names: opaque tokens look like that", () => {
-    for (const name of [
-      "tok_SECRETabcdefghijklmnopqrstuvwxyz0123",
-      "ci_token",
-      "hunter2",
-      "A1B2C3D4E5F6A7B8C9D0E1F2A3B4C5D6",
-      "A".repeat(25),
-      `A_${"B".repeat(25)}`,
-      `A${"_B".repeat(32)}`,
-      Array.from({ length: 14 }, () => "ABCD").join("_"),
-      "1ABC",
-      "",
-    ]) {
-      expect(isConventionalVariable(name)).toBe(false)
-    }
-  })
 })
 
 describe("checkVariableName", () => {

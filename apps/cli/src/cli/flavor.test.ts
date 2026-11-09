@@ -53,7 +53,8 @@ describe("platform, the name of flavor before the move to Pulse", () => {
     expect(JSON.parse(result.stderr)).toMatchObject({
       error: {
         code: "CONFIG",
-        message: `Invalid config file ${CONFIG_PATH}: unknown key(s) platform in profile "p" (allowed: url, cockpitUrl, engine, flavor, auth, output, timeout, headers, readOnly)`,
+        message: 'Profile "p" of your config file cannot be used: platform is no key of a profile.',
+        hint: "Remove it with `pulse config unset p platform`, or fix its spelling in the file.",
       },
     })
   })

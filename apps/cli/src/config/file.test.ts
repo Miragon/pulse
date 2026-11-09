@@ -6,9 +6,6 @@ import type { ConfigFile } from "./types.js"
 
 const PATH = "/home/me/.config/pulse-cli/config.json"
 const HINT = "Fix the file or recreate it with `pulse config set`."
-const HEADERS =
-  "an object mapping header names (not Connection, Content-Length, Expect, Keep-Alive, Transfer-Encoding or Upgrade) to ISO-8859-1 (Latin-1) string values without control characters"
-const ENGINE = 'a process engine name, not "." or ".."'
 const LINUX = { homedir: "/home/me", platform: "linux" }
 const WINDOWS = { homedir: "C:\\Users\\me", platform: "win32" }
 
@@ -52,10 +49,6 @@ function parseFailure(text: string): PulseCliError {
     throw error
   }
   throw new Error("expected parseConfigFile to fail")
-}
-
-function profileFailure(profile: unknown): string {
-  return parseFailure(JSON.stringify({ profiles: { prod: profile } })).message
 }
 
 describe("configFilePath", () => {
@@ -115,6 +108,7 @@ describe("parseConfigFile", () => {
       prod: {
         url: "https://camunda.example.com/engine-rest",
         engine: "default",
+        environment: "prod-eu",
         auth: { type: "none" },
         output: "table",
         timeout: 60000,
@@ -126,22 +120,24 @@ describe("parseConfigFile", () => {
   }
 
   it("accepts a complete file", () => {
-    expect(parseConfigFile(JSON.stringify(full), PATH)).toEqual(full)
+    expect(parseConfigFile(JSON.stringify(full), PATH)).toStrictEqual(full)
   })
 
-  it("keeps a $schema string and rejects any other value", () => {
+  it("keeps a $schema string; one of another kind is a note, and the file loads", () => {
     const parsed = parseConfigFile('{"$schema":"https://x/schema.json","profiles":{}}', PATH)
     expect(parsed).toStrictEqual({ $schema: "https://x/schema.json", profiles: {} })
-    expect(parseFailure('{"$schema":1}').message).toBe(
-      `Invalid config file ${PATH}: $schema must be a string (the URL or path of a JSON Schema)`,
-    )
+    expect(parseConfigFile('{"$schema":1}', PATH)).toStrictEqual({
+      profiles: {},
+      notes: [{ code: "invalid", key: "$schema" }],
+    })
   })
 
-  it("defaults missing profiles to an empty object", () => {
+  it("defaults missing profiles to an empty object, and notes a default that names none", () => {
     expect(parseConfigFile("{}", PATH)).toStrictEqual({ profiles: {} })
-    expect(parseConfigFile('{"defaultProfile":"a"}', PATH)).toEqual({
+    expect(parseConfigFile('{"defaultProfile":"a"}', PATH)).toStrictEqual({
       defaultProfile: "a",
       profiles: {},
+      notes: [{ code: "default-not-found", key: "defaultProfile" }],
     })
   })
 
@@ -149,182 +145,95 @@ describe("parseConfigFile", () => {
     const error = parseFailure('{"profiles": ')
     expect(error.code).toBe("CONFIG")
     expect(error.exitCode).toBe(3)
-    expect(error.message).toBe(`Invalid config file ${PATH}: not valid JSON (line 1, column 14)`)
+    expect(error.message).toBe(
+      `Invalid config file ${PATH}: The text is not valid JSON (line 1, column 14).`,
+    )
     expect(error.details.hint).toBe(HINT)
   })
 
   it("never quotes the file content, which may hold a credential", () => {
     const text = '{"profiles":{"prod":{\n  "headers":{"X-API-Key": sk_live_0123456789abcdef}}}}'
     const error = parseFailure(text)
-    expect(error.message).toBe(`Invalid config file ${PATH}: not valid JSON (line 2, column 27)`)
+    expect(error.message).toBe(
+      `Invalid config file ${PATH}: The text is not valid JSON (line 2, column 27).`,
+    )
     expect(error.message).not.toContain("sk_live")
   })
 
-  it.each(["[]", "null", '"text"', "1"])("rejects the root value %s", (text) => {
-    expect(parseFailure(text).message).toBe(`Invalid config file ${PATH}: expected a JSON object`)
-  })
-
-  it("rejects unknown root keys and lists the allowed ones", () => {
-    expect(parseFailure('{"profiles":{},"default":"a","x":1}').message).toBe(
-      `Invalid config file ${PATH}: unknown key(s) default, x in the root object (allowed: $schema, defaultProfile, profiles)`,
+  it.each(["[]", "null", '"text"', "1"])("fails the file for the root value %s", (text) => {
+    expect(parseFailure(text).message).toBe(
+      `Invalid config file ${PATH}: The file must hold one JSON object.`,
     )
   })
 
-  it("rejects a defaultProfile that is not a string", () => {
-    expect(parseFailure('{"defaultProfile":1}').message).toBe(
-      `Invalid config file ${PATH}: defaultProfile must be a string`,
-    )
-  })
-
-  it("rejects profile names that config set would refuse (they name token files)", () => {
-    const rule =
-      'use letters, digits, ".", "_" and "-", starting with a letter or digit; rename it in the file'
-    expect(parseFailure('{"profiles":{"x/../../victim/package":{}}}').message).toBe(
-      `Invalid config file ${PATH}: invalid profile name "x/../../victim/package" (${rule})`,
-    )
-    expect(parseFailure('{"profiles":{"a\\nb":{}}}').message).toBe(
-      `Invalid config file ${PATH}: invalid profile name "a\\nb" (${rule})`,
-    )
-    expect(parseFailure('{"profiles":{"ok":{}},"defaultProfile":" ../x "}').message).toBe(
-      `Invalid config file ${PATH}: invalid defaultProfile "../x" (${rule})`,
-    )
-    for (const name of [".hidden", "-x", "a b", "p;rm", ""]) {
-      expect(parseFailure(JSON.stringify({ profiles: { [name]: {} } })).message).toContain(
-        `invalid profile name ${JSON.stringify(name)}`,
-      )
-    }
-  })
-
-  it("accepts valid names and a blank defaultProfile", () => {
-    expect(
-      parseConfigFile('{"defaultProfile":" ","profiles":{"prod-EU_1.x":{},"9":{}}}', PATH),
-    ).toEqual({ defaultProfile: " ", profiles: { "prod-EU_1.x": {}, 9: {} } })
-  })
-
-  it.each(["[]", "null", '"a"'])("rejects profiles = %s", (profiles) => {
+  it.each(["[]", "null", '"a"'])("fails the file for profiles = %s", (profiles) => {
     expect(parseFailure(`{"profiles":${profiles}}`).message).toBe(
-      `Invalid config file ${PATH}: profiles must be an object`,
+      `Invalid config file ${PATH}: profiles must be a JSON object that maps each profile name to a profile.`,
     )
   })
 
-  it.each([[[]], [null], ["url"]])("rejects the profile value %j", (profile) => {
-    expect(profileFailure(profile)).toBe(
-      `Invalid config file ${PATH}: profile "prod" must be an object`,
+  it("fails the file for a root key twice, which JSON.parse would read silently", () => {
+    expect(parseFailure('{"profiles":{"a":{}},"profiles":{"b":{}}}').message).toBe(
+      `Invalid config file ${PATH}: profiles is set twice, and JSON keeps only the last one without a word: set it once.`,
     )
   })
 
-  it("accepts a cockpit URL and rejects a blank one", () => {
-    expect(
-      parseConfigFile(JSON.stringify({ profiles: { p: { cockpitUrl: "http://ops" } } }), PATH),
-    ).toEqual({ profiles: { p: { cockpitUrl: "http://ops" } } })
-    expect(profileFailure({ cockpitUrl: " " })).toContain("invalid cockpitUrl")
+  it("keeps a root key the format does not know, as a note", () => {
+    expect(parseConfigFile('{"profiles":{},"default":"a","x":1}', PATH)).toStrictEqual({
+      profiles: {},
+      notes: [
+        { code: "unknown-root-key", key: "default" },
+        { code: "unknown-root-key", key: "x" },
+      ],
+      unknown: { default: "a", x: 1 },
+    })
   })
 
-  it("rejects unknown profile keys", () => {
-    expect(profileFailure({ url: "http://x", user: "demo" })).toBe(
-      `Invalid config file ${PATH}: unknown key(s) user in profile "prod" (allowed: url, cockpitUrl, engine, flavor, auth, output, timeout, headers, readOnly)`,
-    )
+  it("refuses a broken profile and keeps it as the file holds it, the others load", () => {
+    const text = JSON.stringify({
+      profiles: { prod: { url: 42, flavour: "x" }, local: { url: "http://localhost:8080" } },
+    })
+    expect(parseConfigFile(text, PATH)).toStrictEqual({
+      profiles: { prod: { url: 42, flavour: "x" }, local: { url: "http://localhost:8080" } },
+      refused: {
+        prod: [
+          { code: "unknown-key", key: "flavour" },
+          { code: "invalid", key: "url" },
+        ],
+      },
+    })
   })
 
-  it.each([
-    ["url", 42, "a URL such as http://localhost:8080/engine-rest"],
-    ["url", " ", "a URL such as http://localhost:8080/engine-rest"],
-    ["engine", "", ENGINE],
-    ["engine", false, ENGINE],
-    ["engine", "..", ENGINE],
-    ["output", "yaml", "json or table"],
-    ["output", null, "json or table"],
-    ["timeout", 0, "a whole number of milliseconds between 1 and 2147483647"],
-    ["timeout", -1, "a whole number of milliseconds between 1 and 2147483647"],
-    ["timeout", 1.5, "a whole number of milliseconds between 1 and 2147483647"],
-    ["timeout", "1000", "a whole number of milliseconds between 1 and 2147483647"],
-    ["timeout", 2147483648, "a whole number of milliseconds between 1 and 2147483647"],
-    ["headers", ["X: y"], HEADERS],
-    ["headers", { "X-A": 1 }, HEADERS],
-    ["headers", { "X A": "b" }, HEADERS],
-    ["headers", "X: y", HEADERS],
-    ["headers", { "X-A": "a\r\nX-Injected: 1" }, HEADERS],
-    ["headers", { "X-A": "a\u0000" }, HEADERS],
-    ["headers", { "X-User": "日本" }, HEADERS],
-    ["headers", { "X-A": "a\u0001b" }, HEADERS],
-    ["headers", { "Transfer-Encoding": "chunked" }, HEADERS],
-    ["readOnly", "true", "true or false"],
-    ["readOnly", 1, "true or false"],
-  ])("rejects %s = %j", (key, value, expected) => {
-    expect(profileFailure({ [key]: value })).toBe(
-      `Invalid config file ${PATH}: profile "prod" has an invalid ${key} (expected ${expected})`,
-    )
+  it("refuses a profile whose name is no valid name under its key, without naming it", () => {
+    const parsed = parseConfigFile('{"profiles":{"x/../../victim":{},"ok":{},"a b":1}}', PATH)
+    expect(parsed.refused).toStrictEqual({
+      "x/../../victim": [{ code: "invalid-name" }],
+      "a b": [{ code: "invalid-name" }, { code: "invalid" }],
+    })
+    expect(Object.keys(parsed.profiles)).toEqual(["x/../../victim", "ok", "a b"])
   })
 
-  const AUTH_OBJECT = '{"type": "basic", "username": "demo", "passwordEnv": "CAMUNDA_PASSWORD"}'
-  const ENV_NAME = "the name of an environment variable, e.g. CAMUNDA_PASSWORD"
-
-  it.each([
-    [
-      "none",
-      `Invalid config file ${PATH}: profile "prod" has an invalid auth (expected ${AUTH_OBJECT})`,
-    ],
-    [
-      null,
-      `Invalid config file ${PATH}: profile "prod" has an invalid auth (expected ${AUTH_OBJECT})`,
-    ],
-    [
-      { type: "basic", user: "demo", pass: "x" },
-      `Invalid config file ${PATH}: unknown key(s) user, pass in the auth of profile "prod" (allowed: type, username, passwordEnv, password, issuer, authorizationEndpoint, tokenEndpoint, clientId, clientSecretEnv, clientSecret, scopes, audience, redirectPort, tokenEnv, token)`,
-    ],
-    [
-      { type: 1 },
-      `Invalid config file ${PATH}: profile "prod" has an invalid auth.type (expected none, basic, oauth or bearer)`,
-    ],
-    [
-      { username: " " },
-      `Invalid config file ${PATH}: profile "prod" has an invalid auth.username (expected a non-empty string)`,
-    ],
-    [
-      { username: "demo", passwordEnv: "MY-VAR" },
-      `Invalid config file ${PATH}: profile "prod" has an invalid auth.passwordEnv (expected ${ENV_NAME})`,
-    ],
-    [
-      { username: "demo", passwordEnv: 7 },
-      `Invalid config file ${PATH}: profile "prod" has an invalid auth.passwordEnv (expected ${ENV_NAME})`,
-    ],
-    [
-      { username: "demo", password: "" },
-      `Invalid config file ${PATH}: profile "prod" has an invalid auth.password (expected a non-empty string)`,
-    ],
-    [
-      { username: "demo", password: "secret-value", passwordEnv: "PW" },
-      `Invalid config file ${PATH}: profile "prod" sets both auth.password and auth.passwordEnv; keep one (passwordEnv is recommended)`,
-    ],
-  ])("rejects auth = %j", (auth, message) => {
-    expect(profileFailure({ auth })).toBe(message)
-    expect(profileFailure({ auth })).not.toContain("secret-value")
+  it("lets the user's own file hold a secret or the variable that holds it", () => {
+    const auth = { type: "basic", username: "demo", passwordEnv: "ANY_VARIABLE" }
+    const text = JSON.stringify({
+      profiles: { a: { auth }, b: { auth: { type: "bearer", token: "t0k3n" } } },
+    })
+    expect(parseConfigFile(text, PATH).refused).toBeUndefined()
   })
 
-  it("checks the profile keys in their order", () => {
-    expect(profileFailure({ output: "yaml", auth: "none", url: 1 })).toContain("invalid url")
-    expect(profileFailure({ output: "yaml", auth: "none" })).toContain("invalid auth (")
+  it("refuses the MCP server's passthrough, which the CLI cannot authenticate with", () => {
+    const text = JSON.stringify({ profiles: { gw: { auth: { type: "passthrough" } } } })
+    expect(parseConfigFile(text, PATH).refused).toStrictEqual({
+      gw: [{ code: "auth-type-not-served", key: "auth.type" }],
+    })
   })
 
-  it.each([
-    ["url", "http://localhost:8080/engine-rest"],
-    ["engine", "tenant1"],
-    ["auth", { type: "none" }],
-    ["auth", { type: "basic" }],
-    ["auth", {}],
-    ["auth", { username: "demo", passwordEnv: "CAMUNDA_PASSWORD" }],
-    ["auth", { type: "basic", username: "d:x", password: " p:ä " }],
-    ["output", "json"],
-    ["output", "table"],
-    ["timeout", 1],
-    ["timeout", 2147483647],
-    ["headers", {}],
-    ["headers", { Authorization: "Bearer x", "x-a": "" }],
-    ["headers", { "X-User": "Jos\u00e9 M\u00fcller \u00ff\ttab" }],
-    ["readOnly", false],
-  ])("accepts %s = %j", (key, value) => {
-    const text = JSON.stringify({ profiles: { prod: { [key]: value } } })
-    expect(parseConfigFile(text, PATH).profiles.prod).toEqual({ [key]: value })
+  it("refuses a profile name or a key the text repeats, which JSON.parse reads silently", () => {
+    const text = '{"profiles":{"a":{"readOnly":true,"readOnly":false},"b":{},"b":{}}}'
+    expect(parseConfigFile(text, PATH).refused).toStrictEqual({
+      a: [{ code: "duplicate-key", key: "readOnly" }],
+      b: [{ code: "duplicate-name" }],
+    })
   })
 })
 
@@ -402,6 +311,18 @@ describe("writeConfigFile", () => {
       code: "CONFIG",
       message: `Cannot write config file ${PATH} (disk on fire)`,
     })
+  })
+
+  it("writes the root keys the format does not know behind the profiles, never what it found", async () => {
+    const { fs, writes } = memoryFs()
+    const config: ConfigFile = {
+      profiles: { a: { url: 1 as unknown as string } },
+      refused: { a: [{ code: "invalid", key: "url" }] },
+      notes: [{ code: "unknown-root-key", key: "x" }],
+      unknown: { x: 1 },
+    }
+    await writeConfigFile(fs, PATH, config)
+    expect(JSON.parse(String(writes[0]?.data))).toStrictEqual({ profiles: { a: { url: 1 } }, x: 1 })
   })
 
   it("writes what parseConfigFile reads back", async () => {

@@ -19,14 +19,15 @@ Pulse reads your engines as profiles in `.pulse-cli.json`, the project file of t
 ```
 
 Pulse reads `url`, `flavor` (`camunda7`, `cibseven` or `operaton`; `camunda7` when absent),
-`engine` (the default engine only), `auth.type` (`none`, `basic`; without a type a `username`
-means `basic`), `cockpitUrl` and `readOnly` (no writes from Pulse either), with the CLI's rules:
-URLs lose trailing slashes, and a value the CLI refuses never becomes a default. Such a profile,
-and one Pulse cannot serve yet, shows up as a problem in the Engines view. Pulse reads no
-`PULSE_CLI_*` variable, so a profile needs its `url`, and it sends no profile `headers`. Pulse
-reads profile by profile and skips the keys it does not use (`headers`, `timeout`, `output`,
-credentials), so a file the CLI refuses as a whole, say one with a committed password, can still
-list engines here: check a project file with `pulse-cli config list`.
+`engine` (the default engine only), `auth.type` (`none`, `basic`, `oauth`; without a type a
+`username` means `basic`), `cockpitUrl` and `readOnly` (no writes from Pulse either), by the rules
+of the CLI and the MCP server: one profile format, `@miragon/pulse-profile`. URLs lose trailing
+slashes, and a profile with a value the format refuses never becomes an engine. Pulse reads profile
+by profile: a profile that names a credential (a password, a token or the variable that holds one),
+sets `headers`, uses a key the format does not know, the auth type `bearer` or `passthrough`, or
+lacks its `url` (Pulse reads no `PULSE_CLI_*` variable) shows up as a problem in the Engines view
+instead of connecting; the other profiles of the file still list engines. Pulse does not apply
+`environment`, `timeout` and `output`, yet a value of theirs the format refuses is a problem too.
 
 Set credentials with _Pulse: Set Credentials…_. They live in VS Code's secret storage.
 

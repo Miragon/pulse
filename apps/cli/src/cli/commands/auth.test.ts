@@ -107,7 +107,7 @@ describe("pulse auth login", () => {
     const none = await execute(run, ["auth", "status"], fakeRuntime())
     expect(errorOf(none.stderr)).toMatchObject({
       message: "pulse auth status needs OAuth or a bearer token, but the configuration uses none",
-      hint: "Configure it: pulse config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>. For a bearer token from elsewhere: PULSE_CLI_AUTH=bearer with PULSE_CLI_TOKEN or --auth-token-stdin.",
+      hint: "Configure it: pulse config set <profile> --url <url> --auth oauth --oauth-issuer <url> --oauth-client-id <id>. For a bearer token from elsewhere: PULSE_CLI_AUTH=bearer with PULSE_CLI_TOKEN or --auth-token-stdin.",
     })
   })
 
@@ -133,7 +133,7 @@ describe("pulse auth login", () => {
     )
     // a switched-off Basic auth is no OAuth setting: the usual way to configure OAuth
     expect(await hintOf(["auth", "login"], { env: { PULSE_CLI_PASSWORD: "pw" } })).toBe(
-      "Configure it: pulse config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>",
+      "Configure it: pulse config set <profile> --url <url> --auth oauth --oauth-issuer <url> --oauth-client-id <id>",
     )
   })
 

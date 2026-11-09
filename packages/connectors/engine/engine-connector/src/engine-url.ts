@@ -1,7 +1,8 @@
 import { z } from "zod"
 
 /**
- * The rule of the CLI's `validateUrl` and VS Code's `ProfileUrl`: `fetch` throws on credentials
+ * The rule of the CLI's `validateUrl` and of the profile format's `urlProblem`
+ * (`@miragon/pulse-profile`, which Pulse for VS Code reads with): `fetch` throws on credentials
  * with the URL in its message, which a tool error hands to the model. `?` and `#` are read off
  * the text, since `http://a/?` parses to an empty `search`. What does not parse is `z.url`'s.
  */

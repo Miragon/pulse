@@ -1,7 +1,7 @@
 # Boards
 
 - Status: accepted
-- Last reviewed: 2026-11-04 (the project file follows the CLI's rules)
+- Last reviewed: 2026-11-09 (the project file is read with `@miragon/pulse-profile`; before that 2026-11-04, the CLI's rules)
 
 ## Context
 
@@ -85,9 +85,9 @@ an open board on save, and **Pulse: New Board…** writes a starter board.
 - Deferred: `var:` columns (a variable projection in the contract with a law and a saboteur),
   oldest first and an age filter for stuck instances, a real incident count in the contract,
   and grouping incidents by message.
-- `.pulse-cli.json` is parsed in the CLI and in the extension, by the CLI's rules: the CLI owns
-  its JSON Schema and the fixtures that hold both parsers to it, no shared package
-  ([architecture.md](architecture.md)).
+- `.pulse-cli.json` is parsed in the CLI and in the extension by one package, Pulse's profile
+  format `@miragon/pulse-profile`, which owns its JSON Schema and the fixtures that hold both
+  readers to it ([architecture.md](architecture.md)).
 
 ## Decision log
 

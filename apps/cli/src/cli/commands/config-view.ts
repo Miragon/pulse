@@ -2,6 +2,8 @@
 
 import type { ConfigView } from "../../config/show.js"
 import type { Env } from "../../config/pick.js"
+import { refusalOf } from "../../config/profile-file.js"
+import { describeProblems } from "../../config/profile-problems.js"
 import { findProfile } from "../../config/resolve.js"
 import type { ConfigFile, ProfileAuth, Source } from "../../config/types.js"
 import { mayBeSecret } from "../../config/variable.js"
@@ -34,11 +36,26 @@ function maskedAuth(auth: ProfileAuth, env: Env): ProfileAuth {
  * the environment of the command).
  */
 export function profileView(file: ConfigFile, name: string, env: Env): Record<string, unknown> {
+  const problems = refusalOf(file, name)
+  if (problems !== undefined) {
+    // a refused profile's values may be credentials in the wrong place: only why it is refused
+    return { name, default: file.defaultProfile === name, problems: describeProblems(problems) }
+  }
   const profile = findProfile(file, name) ?? {}
   const headers =
     profile.headers === undefined ? {} : { headers: maskHeaders(profile.headers, false) }
   const auth = profile.auth === undefined ? {} : { auth: maskedAuth(profile.auth, env) }
   return { name, default: file.defaultProfile === name, ...profile, ...headers, ...auth }
+}
+
+/** After an edit: the profile still cannot be used, and why. */
+export function refusedNotices(file: ConfigFile, name: string): string[] {
+  const problems = refusalOf(file, name)
+  return problems === undefined
+    ? []
+    : [
+        `Notice: profile "${name}" is stored, but a command cannot use it yet: ${describeProblems(problems)}`,
+      ]
 }
 
 function masked<T>(entry: { value: T | null; source: Source }, show: boolean) {

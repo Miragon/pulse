@@ -9,10 +9,11 @@ import { readConfigFile, writeConfigFile } from "../../config/file.js"
 import {
   findProjectFile,
   PROJECT_FILE,
-  projectProblem,
+  projectWriteError,
   readProjectFile,
 } from "../../config/project.js"
-import { findProfile } from "../../config/resolve.js"
+import type { ProfileOrigin } from "../../config/profile-problems.js"
+import { storedProfile } from "../../config/resolve.js"
 import { type ConfigFile, ENV } from "../../config/types.js"
 import { usageError } from "../../errors.js"
 import type { Runtime } from "../../runtime.js"
@@ -74,18 +75,24 @@ export async function editTarget(
 }
 
 /**
- * The current content of the target. A project
- * file is read without its checks, so that an edit can remove what they refuse
- * (`config unset <profile> tokenEnv --project`); writeTarget checks.
+ * The current content of the target, every profile as the file holds it, a refused one too, so
+ * that an edit can remove what the checks refuse (`config unset <profile> tokenEnv --project`);
+ * writeTarget checks a project file.
  */
 export function readTarget(runtime: Runtime, target: EditTarget): Promise<ConfigFile | undefined> {
   return readConfigFile(runtime.fs, target.path)
 }
 
+/** Where the profiles of the edited file come from, for messages. */
+export function targetOrigin(target: EditTarget): ProfileOrigin {
+  if (target.project) return { project: target.path }
+  return target.explicit === true ? { configFile: target.path } : {}
+}
+
 /**
  * Writes the edited file. A project file must stay free of credentials and choose its default
- * among its own profiles (CONFIG, nothing written), and is readable by others (0644, it is
- * shared).
+ * among its own profiles (CONFIG, nothing written, projectWriteError), and is readable by others
+ * (0644, it is shared).
  */
 export async function writeTarget(
   runtime: Runtime,
@@ -96,13 +103,8 @@ export async function writeTarget(
     await writeConfigFile(runtime.fs, target.path, file)
     return
   }
-  const invalid = projectProblem(file)
-  if (invalid !== undefined) {
-    throw configError(
-      `The project file ${target.path} cannot be written: ${invalid.problem}`,
-      invalid.hint,
-    )
-  }
+  const invalid = projectWriteError(file, target.path)
+  if (invalid !== undefined) throw invalid
   await writeConfigFile(runtime.fs, target.path, file, 0o644)
 }
 
@@ -112,8 +114,8 @@ export async function writeTarget(
  */
 export function checkUserProfile(target: EditTarget, file: ConfigFile | undefined, name: string) {
   const other = target.other
-  if (target.project || other === undefined || findProfile(file, name) !== undefined) return
-  if (findProfile(other.file, name) === undefined) return
+  if (target.project || other === undefined || storedProfile(file, name) !== undefined) return
+  if (storedProfile(other.file, name) === undefined) return
   throw configError(
     `Profile "${name}" is a profile of the project file ${other.path}, not of your config file`,
     `Add --project to change the project file; \`pulse config set ${name} <options>\` without it creates a profile of your own that overrides the project's.`,
@@ -124,8 +126,9 @@ type Other = NonNullable<EditTarget["other"]>
 
 /** The user's file got a profile that the project file has, too: it now overrides it. */
 function overrideNotice(other: Other, name: string, before?: ConfigFile, after?: ConfigFile) {
-  const added = findProfile(before, name) === undefined && findProfile(after, name) !== undefined
-  if (!added || findProfile(other.file, name) === undefined) return undefined
+  const added =
+    storedProfile(before, name) === undefined && storedProfile(after, name) !== undefined
+  if (!added || storedProfile(other.file, name) === undefined) return undefined
   return `Notice: profile "${name}" of your config file now overrides the profile of the same name in the project file ${other.path} as a whole: none of the project's settings of "${name}" apply. Add --project to change the project's profile instead.`
 }
 
@@ -134,7 +137,7 @@ function defaultNotice(other: Other, before: ConfigFile | undefined, after: Conf
   const projectDefault = other.file.defaultProfile?.trim() ?? ""
   if (after.defaultProfile === before?.defaultProfile || projectDefault === "") return undefined
   // a profile of the user's file of the same name takes the project's default away
-  if (findProfile(after, projectDefault) !== undefined) return undefined
+  if (storedProfile(after, projectDefault) !== undefined) return undefined
   return `Notice: in this repository the defaultProfile of the project file ${other.path} ("${projectDefault}") wins; use --profile, ${ENV.profile} or \`pulse config use <profile> --project\`.`
 }
 

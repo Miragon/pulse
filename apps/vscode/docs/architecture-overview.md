@@ -132,6 +132,7 @@ flowchart TB
   extension --> core
   extension --> contract
   extension -- composition root only --> adapterC7[adapter-c7]
+  extension -- connections only, bundled --> profile["@miragon/pulse-profile"]
   contract -- bundled --> engineCore["@miragon/pulse-engine-core"]
   core --> contract
   webview -- types only --> protocol[core/protocol]
@@ -144,12 +145,14 @@ flowchart TB
 ```
 
 Every import edge not drawn fails `pnpm lint:architecture:vscode` (dependency-cruiser, closed world).
-Three workspace packages reach the extension, and esbuild bundles each. engine-core, the core of
+Four workspace packages reach the extension, and esbuild bundles each. engine-core, the core of
 the engine family, holds the contract every engine dialect implements, the language they answer
 in; the extension's contract layer alone imports and re-exports it (its kit and fake only in tests
 and the dev host). c7-core is the core of
 the Camunda 7 REST dialect family c7, the workflow domain the CLI and the MCP server run too:
-only the C7 adapter imports it. `@miragon/pulse-ui/tones` and `@miragon/pulse-ui/format` are
+only the C7 adapter imports it. `@miragon/pulse-profile` is Pulse's profile format, which the CLI
+reads its files with too: only the host's connections import it, through its main entry, to read
+`.pulse-cli.json`. `@miragon/pulse-ui/tones` and `@miragon/pulse-ui/format` are
 Pulse's UI foundation without React: the tone vocabulary and the one tone per situation, and the
 formatters for times, durations, counts and short ids, both as the MCP widgets show them. The
 core and the webview may import the tones, only their label helpers the formatters (they set the

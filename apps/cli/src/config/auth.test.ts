@@ -2,7 +2,7 @@ import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import { opaqueTokens } from "../../test/support/bearer.js"
 import { PulseCliError } from "../errors.js"
-import { profileAuthProblem, validateAuthType, validatePassword, validateUsername } from "./auth.js"
+import { validateAuthType, validatePassword, validateUsername } from "./auth.js"
 
 function failure(action: () => unknown): PulseCliError {
   try {
@@ -113,61 +113,6 @@ describe("validatePassword", () => {
             "The password (from --auth-password-stdin) must not contain control characters (line breaks, NUL, tab, ...)",
           )
           expect(error.details.hint).toBe(CONTROL_HINT)
-        },
-      ),
-    )
-  })
-})
-
-describe("profileAuthProblem", () => {
-  it("accepts the documented shapes", () => {
-    for (const auth of [
-      {},
-      { type: "none" },
-      { type: "basic", username: "demo", passwordEnv: "CAMUNDA_PASSWORD" },
-      { username: "demo", password: "demo" },
-      { type: "oauth" },
-      // the type is validated during resolution, with the supported types in the hint
-      { type: "digest" },
-    ]) {
-      expect(profileAuthProblem("p", auth)).toBeUndefined()
-    }
-  })
-
-  it("names the profile and the invalid key", () => {
-    expect(profileAuthProblem("prod", [])).toBe(
-      'profile "prod" has an invalid auth (expected {"type": "basic", "username": "demo", "passwordEnv": "CAMUNDA_PASSWORD"})',
-    )
-    expect(profileAuthProblem("prod", { username: "x", apiKey: "abc" })).toBe(
-      'unknown key(s) apiKey in the auth of profile "prod" (allowed: type, username, passwordEnv, password, issuer, authorizationEndpoint, tokenEndpoint, clientId, clientSecretEnv, clientSecret, scopes, audience, redirectPort, tokenEnv, token)',
-    )
-    expect(profileAuthProblem("prod", { username: 7 })).toBe(
-      'profile "prod" has an invalid auth.username (expected a non-empty string)',
-    )
-    // ["PW"] reads as "PW" for a regular expression; it is still no name
-    expect(profileAuthProblem("prod", { passwordEnv: ["PW"] })).toBe(
-      'profile "prod" has an invalid auth.passwordEnv (expected the name of an environment variable, e.g. CAMUNDA_PASSWORD)',
-    )
-  })
-
-  it("refuses password and passwordEnv together", () => {
-    expect(profileAuthProblem("p", { password: "x", passwordEnv: "PW" })).toBe(
-      'profile "p" sets both auth.password and auth.passwordEnv; keep one (passwordEnv is recommended)',
-    )
-  })
-
-  it("never quotes a value", () => {
-    fc.assert(
-      fc.property(
-        fc.string({ minLength: 8 }).map((value) => `secret-${value}`),
-        (secret) => {
-          for (const auth of [
-            { password: secret, passwordEnv: "PW" },
-            { username: "x", password: secret, extra: secret },
-            { passwordEnv: secret },
-          ]) {
-            expect(profileAuthProblem("p", auth) ?? "").not.toContain(secret)
-          }
         },
       ),
     )

@@ -80,13 +80,12 @@ src/engines/    one adapter per engine (operaton, cibseven, camunda7) and the li
 src/api/        one folder per engine API; camunda7-rest builds catalog and port for the adapters (pure)
 src/docs/       commands, describe, examples, workflow docs and the agent guide (pure)
 src/catalog/    catalog access, schema helpers, body validation (pure)
-src/config/     config resolution and profile editing (pure), file store, project files
+src/config/     config resolution and profile editing (pure), file store, project files, read with @miragon/pulse-profile (bundled)
 src/auth/       auth providers (none, basic, bearer with JWT expiry, token commands, OAuth; pure)
 src/http/       fetch based HTTP client and error mapping
 src/output/     JSON, tables, field projection, errors, secret masking (pure)
 scripts/        catalog generator, standalone executable build, packaging smoke test
-schema/         the JSON Schema of the project file .pulse-cli.json, shipped in the npm package
-test/           fakes for unit tests, the project file fixtures, Testcontainers engine suites
+test/           fakes for unit tests, Testcontainers engine suites
 ```
 
 The overview with diagrams is in [Architecture](architecture.md), the decisions in
@@ -94,9 +93,10 @@ The overview with diagrams is in [Architecture](architecture.md), the decisions 
 (`pnpm lint:architecture` cruises `apps/cli/src`, `pnpm lint:architecture:cli` its `scripts/` and
 `test/`): no cycle (a type-only one included), only `src/bin` imports `src/cli`, only `src/cli`
 imports commander, the pure layers import no Node built-in, `workflow` knows engines only through
-`src/engine-port`, only they and `src/operation/{dates,variables}.ts` import c7-core, only the
-adapters import `src/api`, only `auth login` reaches the interactive login, and only
-`src/catalog/catalog.ts` and the adapters (each its own) read the catalogs.
+`src/engine-port`, only they and `src/operation/{dates,variables}.ts` import c7-core, only
+`src/config` imports the profile format, only the adapters import `src/api`, only `auth login`
+reaches the interactive login, and only `src/catalog/catalog.ts` and the adapters (each its own)
+read the catalogs.
 
 ## Quality gates
 

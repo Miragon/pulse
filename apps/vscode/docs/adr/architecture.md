@@ -1,7 +1,7 @@
 # Architecture
 
 - Status: accepted
-- Last reviewed: 2026-11-09 (the engine contract leaves the app for `@miragon/pulse-engine-core`, the engine family's neutral core; before that 2026-11-08, Pulse's UI foundation in core and webview)
+- Last reviewed: 2026-11-09 (the host's connections read the project file with `@miragon/pulse-profile`; the engine contract leaves the app for `@miragon/pulse-engine-core`, the engine family's neutral core; before that 2026-11-08, Pulse's UI foundation in core and webview)
 
 ## Context
 
@@ -68,6 +68,7 @@ adapters/*  → contract (entry only)
 model       → contract (entry only), bpmn-moddle, camunda-bpmn-moddle, zeebe-bpmn-moddle
               (nothing else may import these)
 host        → core, protocol, contract, vscode, modeler-shell, Node built-ins
+              @miragon/pulse-profile (main entry only, from host/connections/)
               adapters and the model adapter only from host/composition-root.ts
 tests, scripts, dev tooling → anything (the kit and FakeEngine: @miragon/pulse-engine-core/testing)
 ```
@@ -106,20 +107,20 @@ webview's `format/` folder, the closed world's one entry for `@miragon/pulse-ui/
 formatters keep their locale in the module, so a module that called them directly would format
 in the machine's locale until a helper had loaded.
 
-One edge crosses into another app, and only as a file read: the CLI owns the format of
-`.pulse-cli.json` (its JSON Schema `apps/cli/schema/project-file.schema.json`) and the shared
-fixtures in `apps/cli/test/fixtures/project-file/`, each the file and the CLI's verdict. The
-extension owns what it makes of each fixture, in
+The host's connections read `.pulse-cli.json` with Pulse's profile format,
+`@miragon/pulse-profile` (`packages/core/profile`, its main entry, bundled by esbuild like
+c7-core): `TargetsParser` hands it the file's text under the credential policy `none` (a file
+others share names neither a secret nor the variable that holds one) and maps each verdict onto a
+target or a problem, `refusalsOn` with the extension's `Surface` for what it cannot serve (the
+auth types bearer and passthrough, a named process engine, a missing `url`, `headers`), and
+`describeProblem` for the wording. The format owns its JSON Schema and the shared fixtures (the
+`./testing` entry of the package); the extension owns what it makes of each, in
 `apps/vscode/test/host/project-file-fixtures.expected.json`, so rewording a problem changes no
-file of the CLI. The test `apps/vscode/test/host/project-file-fixtures.test.ts` reads the
-fixtures with `node:fs`, never through an import (apps never import each other; a file read is
-no import edge), and holds `TargetsParser` to them: every profile the CLI accepts is a target with
-the CLI's URL, auth type and read-only flag, or a named problem, and every fixture has exactly one
-expectation. A change to the CLI's rules changes the fixtures, and this test fails until the
-parser follows; `apps/vscode/turbo.json` names the fixtures as inputs of `test`, so a cached run
-never hides that. Pulse reads profile by profile and ignores keys it does not use, so a file the
-CLI refuses as a whole (a committed password, a secret header, an unknown key) can still list
-engines; the fixtures pin that.
+file of the package. The test `apps/vscode/test/host/project-file-fixtures.test.ts` holds
+`TargetsParser` to them: every profile the format takes is a target with the format's URL, auth
+type and read-only flag, or a named problem, and every fixture has exactly one expectation. The
+extension reads profile by profile: a credential, a header or a key the format does not know
+refuses that profile, never the file, and the other profiles still list engines.
 
 Each layer has its own `tsconfig.<layer>.json` with `lib`/`types` matching its runtime,
 so code that uses `document` in the core or `process` in the webview does not compile.

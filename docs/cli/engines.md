@@ -21,7 +21,7 @@ Set `flavor` in a profile, `PULSE_CLI_FLAVOR` or `--flavor`. Without it the CLI 
 `camunda7`, which works for all three engines today.
 
 ```sh
-pulse config set local --flavor operaton
+pulse config set local --url http://localhost:8080/engine-rest --flavor operaton
 pulse ping --flavor cibseven
 ```
 
