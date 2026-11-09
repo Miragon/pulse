@@ -47,9 +47,20 @@ export function urlProblem(url: string): UrlProblemCode | undefined {
   return /[?#]/.test(trimmed) ? "url-query-or-fragment" : undefined
 }
 
+/**
+ * `text` without the run of `chars` at its end. A loop from the end, not `replace(/[…]+$/)`: that
+ * pattern retries at every position of a long run that something else follows, quadratic in the
+ * length of a value the readers do not control.
+ */
+function withoutTrailing(text: string, chars: string): string {
+  let end = text.length
+  while (end > 0 && chars.includes(text.charAt(end - 1))) end -= 1
+  return text.slice(0, end)
+}
+
 /** A REST root as a profile keeps it: trimmed, without trailing slashes. */
 export function normalizeUrl(url: string): string {
-  return url.trim().replace(/\/+$/, "")
+  return withoutTrailing(url.trim(), "/")
 }
 
 /**
@@ -57,7 +68,7 @@ export function normalizeUrl(url: string): string {
  * trailing `#` or `#/` of a single-page app's start route, which a link appends its own route to.
  */
 export function normalizeCockpitUrl(url: string): string {
-  return url.trim().replace(/[/#]+$/, "")
+  return withoutTrailing(url.trim(), "/#")
 }
 
 /** True for a host on the loopback interface: localhost, [::1] and all of 127.0.0.0/8. */

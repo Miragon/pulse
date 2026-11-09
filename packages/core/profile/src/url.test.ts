@@ -42,6 +42,16 @@ describe("normalizing", () => {
       "url-query-or-fragment",
     )
   })
+
+  it("stays linear on a long run of slashes or hashes that something else follows", () => {
+    const run = (chars: string) => `http://a/${chars.repeat(50_000)}x`
+    const started = Date.now()
+    expect(normalizeUrl(run("/"))).toBe(run("/"))
+    expect(normalizeCockpitUrl(run("#/"))).toBe(run("#/"))
+    expect(normalizeUrl(`http://a/x${"/".repeat(100_000)}`)).toBe("http://a/x")
+    expect(normalizeCockpitUrl(`http://a/x${"#/".repeat(50_000)}`)).toBe("http://a/x")
+    expect(Date.now() - started).toBeLessThan(250)
+  })
 })
 
 describe("isLoopbackHost", () => {
