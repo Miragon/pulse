@@ -8,8 +8,10 @@ name: Publish the Orca plugin
 # its changelog lines, to orca-modelers' publish-plugin action, which checks it against that
 # repository's sources.json, commits it to plugins/pulse-cockpit and lists it in its catalog
 # through two pull requests the release-please app merges once orca-modelers validates them.
-# Called by release-please.yml after the release gate; a dry run builds and checks only. A
-# failed publish closes its pull request: re-run the job, it skips what is on main already.
+# Called by release-please.yml after the release gate; a dry run builds and checks only, and so
+# does every release until the caller sets publish: orca-modelers does not list pulse-cockpit in
+# its sources.json yet. A failed publish closes its pull request: re-run the job, it skips what
+# is on main already.
 on:
   workflow_call:
     inputs:
@@ -19,6 +21,10 @@ on:
         type: string
       dry_run:
         description: Build and check only, publish nothing
+        type: boolean
+        default: false
+      publish:
+        description: Publish into Miragon/orca-modelers; off until that repository lists the plugin
         type: boolean
         default: false
     secrets:
@@ -130,7 +136,7 @@ jobs:
   publish:
     name: Publish to Miragon/orca-modelers
     needs: build
-    if: ${{ !inputs.dry_run }}
+    if: ${{ inputs.publish && !inputs.dry_run }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:

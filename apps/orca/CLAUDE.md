@@ -106,4 +106,6 @@ adapter and the model reader. `pnpm lint:architecture:orca` says where an import
 - A release publishes `dist` into `Miragon/orca-modelers` as `plugins/pulse-cockpit`, listed as
   `miragon.pulse-cockpit` (`.github/workflows/publish-orca-plugin.yml`). The id is that
   repository's `sources.json` entry and every installation's key: a new id is a new plugin.
+  The publish is off for now (`publish: false` in `.github/workflows/release-please.yml`): a
+  release builds and checks the plugin only, until `orca-modelers` admits it.
 - `engines.orca` in the manifest names the Orca release CI pins, the oldest one tested.

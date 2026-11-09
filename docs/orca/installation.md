@@ -1,8 +1,9 @@
 # Installation
 
-Pulse for Orca needs Orca 1.4.252 or later on the desktop. Every Pulse release publishes a new
-version to [Miragon's Orca catalog](https://github.com/Miragon/orca-modelers), next to the
-Miragon modelers, which Orca's plugin directory lists.
+Pulse for Orca needs Orca 1.4.252 or later on the desktop. It is not published yet: until
+[Miragon's Orca catalog](https://github.com/Miragon/orca-modelers) lists it next to the Miragon
+modelers, you [load it from the source](#from-the-source). The two sections after it describe the
+install once it is listed.
 
 ## From Orca's plugin directory
 

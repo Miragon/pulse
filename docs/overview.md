@@ -13,7 +13,8 @@ Camunda 7, CIB seven and Operaton engines are running. It reaches the same engin
 The VS Code extension and the Orca plugin are early versions, built from one runtime view. The
 extension is published on the
 [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse-cockpit) and [Open VSX](https://open-vsx.org/extension/miragon-gmbh/pulse-cockpit),
-the Orca plugin in [Miragon's Orca catalog](https://github.com/Miragon/orca-modelers).
+the Orca plugin is not in [Miragon's Orca catalog](https://github.com/Miragon/orca-modelers)
+yet: until then you [load it from the source](./orca/installation.md#from-the-source).
 
 ## What they share
 
@@ -21,6 +22,6 @@ the Orca plugin in [Miragon's Orca catalog](https://github.com/Miragon/orca-mode
   The CLI, the extension and the Orca plugin read the same project file, `.pulse-cli.json`.
 - **Read first.** The server boots read-only, the CLI previews and asks before a write, the
   extension and the Orca plugin write only on local engines unless you allow more.
-- **One release.** All four ship with every Pulse release, the same version number:
-  the image `ghcr.io/miragon/pulse-server`, the npm package `@miragon/pulse-cli`, the
-  extension `pulse` and the Orca plugin `miragon.pulse-cockpit`.
+- **One release.** All four carry the same version number, and every Pulse release ships the
+  image `ghcr.io/miragon/pulse-server`, the npm package `@miragon/pulse-cli` and the extension
+  `pulse`; the Orca plugin `miragon.pulse-cockpit` follows once Miragon's catalog lists it.

@@ -160,8 +160,9 @@ jobs:
       OVSX_PUBLISH: ${{ secrets.OVSX_PUBLISH }}
 
   # The Orca plugin ships into Miragon/orca-modelers, whose catalog Orca reads, never through
-  # npm: the called workflow builds and checks it on every release and dry run and publishes it
-  # on every release, with a token of the release-please app for that repository only.
+  # npm: the called workflow builds and checks it on every release and dry run, and publishes it
+  # with a token of the release-please app for that repository only once publish is true. It
+  # stays false until orca-modelers lists pulse-cockpit in its sources.json.
   publish-orca:
     name: Publish the Orca plugin
     needs: [release-please, gate]
@@ -172,6 +173,7 @@ jobs:
     with:
       version: ${{ needs.release-please.outputs.tag_name }}
       dry_run: ${{ inputs.dry_run == true }}
+      publish: false
     secrets:
       RELEASE_PLEASE_APP_PRIVATE_KEY: ${{ secrets.RELEASE_PLEASE_APP_PRIVATE_KEY }}
 

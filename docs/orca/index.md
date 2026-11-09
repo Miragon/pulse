@@ -1,10 +1,10 @@
 # Pulse for Orca
 
 ::: warning Early version
-Pulse for Orca is an early version, listed in
-[Miragon's Orca catalog](https://github.com/Miragon/orca-modelers) and built from the same runtime
-view as [Pulse for VS Code](../vscode/index.md): expect rough edges and changes between releases
-([Installation](./installation.md)). Writes are off for every engine but a local one unless you
+Pulse for Orca is an early version, built from the same runtime view as
+[Pulse for VS Code](../vscode/index.md): expect rough edges and changes between releases. It is
+not in [Miragon's Orca catalog](https://github.com/Miragon/orca-modelers) yet, so for now you
+[load it from the source](./installation.md#from-the-source). Writes are off for every engine but a local one unless you
 turn them on.
 :::
 
@@ -25,9 +25,9 @@ It does what Pulse for VS Code does, with Orca's surfaces:
 | Write and bulk dialogs                             | The confirmation waits in the Pulse panel and in the status bar                 |
 | Settings `pulse.*`                                 | The plugin's settings in Orca: project file, writes, environments, live updates |
 
-| Page                                | What it covers                                                |
-| ----------------------------------- | ------------------------------------------------------------- |
-| [Installation](./installation.md)   | Install it from Miragon's catalog, or load it from the source |
-| [Configuration](./configuration.md) | Engine profiles, credentials and the plugin's settings        |
-| [Usage](./usage.md)                 | The panel, the tabs, writes and their confirmation            |
-| [Architecture](./architecture.md)   | Worker, panel and tabs, and what Orca does not offer yet      |
+| Page                                | What it covers                                             |
+| ----------------------------------- | ---------------------------------------------------------- |
+| [Installation](./installation.md)   | Load it from the source, later install it from the catalog |
+| [Configuration](./configuration.md) | Engine profiles, credentials and the plugin's settings     |
+| [Usage](./usage.md)                 | The panel, the tabs, writes and their confirmation         |
+| [Architecture](./architecture.md)   | Worker, panel and tabs, and what Orca does not offer yet   |
