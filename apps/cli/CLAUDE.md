@@ -85,7 +85,7 @@ beside it.
 
 ## The project file schema
 
-The format of `.pulse-cli.json` and of the user's config file is Pulse's profile format,
+The format of `.pulse.json` and of the user's config file is Pulse's profile format,
 `@miragon/pulse-profile`: its parser, its JSON Schema (`schema/pulse.schema.json` in the package,
 the `$schema` URL on unpkg) and its shared fixtures. The config layer is thin over it:
 `apps/cli/src/config/profile-file.ts` reads a file under the credential policy of where it comes
@@ -98,7 +98,10 @@ a key the file holds twice, `settledTwice`) and fails only the command that uses
 flag, a `PULSE_CLI_*` variable). `apps/cli/src/config/profile-fixtures.test.ts` runs every
 fixture of `@miragon/pulse-profile/testing` through both readers and resolves each profile the
 format takes. A change to what a profile may hold changes the package, its schema and a fixture
-in the same commit; the CLI and Pulse for VS Code follow in theirs.
+in the same commit; the CLI and Pulse for VS Code follow in theirs. The lookup fails (CONFIG) at a
+directory that holds the project file only under its former name (`FORMER_PROJECT_FILE` in
+`apps/cli/src/config/project.ts`, the one place of its code that names it) with a hint to rename
+it, so a command never runs with the user's own default where the repository meant its profiles.
 
 ## Catalogs
 
@@ -145,9 +148,9 @@ commander, the examples and the usage lines; the guide, the next steps and the h
 in their text, and the product-name test keeps them free of the second name. `pulse-cli` is a
 second `bin` of the same bundle, so scripts that call it work, and `npx @miragon/pulse-cli` runs
 the bin named like the package. Names that are no command keep their spelling: the npm package,
-`PULSE_CLI_*`, `.pulse-cli.json`, the config directory, the image, the release assets, the
-bundle file, the Homebrew formula, the plugin and its skill, and the worker id and deployment
-name and source the engine stores.
+`PULSE_CLI_*`, the config directory, the image, the release assets, the bundle file, the
+Homebrew formula, the plugin and its skill, and the worker id and deployment name and source the
+engine stores.
 `apps/cli/src/bin/bin-names.test.ts` holds the two bins to one entry,
 `apps/cli/src/product-name.test.ts` the shipped text to `pulse` outside its named exceptions, and
 the docs tests key on `CLI_NAME` and fail on a code block that runs `pulse-cli`, which they would

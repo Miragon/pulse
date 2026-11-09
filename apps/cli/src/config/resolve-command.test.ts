@@ -23,7 +23,7 @@ function failure(action: () => unknown): PulseCliError {
   throw new Error("expected an PulseCliError")
 }
 
-const PROJECT: ProjectSource = { path: "/repo/.pulse-cli.json", directory: "/repo" }
+const PROJECT: ProjectSource = { path: "/repo/.pulse.json", directory: "/repo" }
 
 function profile(auth: ProfileAuth): SelectedProfile {
   return { name: "dev", profile: { auth } }
@@ -163,7 +163,7 @@ describe("profiles of a project file", () => {
     const broken: LoadedConfig = { ...file, defaultProfile: "gone" }
     const error = failure(() => selectProfile({}, {}, broken))
     expect(error.details.hint).toBe(
-      "It is the defaultProfile of the project file /repo/.pulse-cli.json; choose another one with `pulse config use <profile> --project`. Known profiles: svc, mine. Create it with `pulse config set gone --url <url>`.",
+      "It is the defaultProfile of the project file /repo/.pulse.json; choose another one with `pulse config use <profile> --project`. Known profiles: svc, mine. Create it with `pulse config set gone --url <url>`.",
     )
     expect(missingProfileError("x", { profiles: {} }, "default").details.hint).toBe(
       "It is the defaultProfile of the config file; choose another one with `pulse config use <profile>`. Create it with `pulse config set x --url <url>`.",

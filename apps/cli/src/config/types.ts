@@ -261,7 +261,7 @@ export interface ConfigFile {
   readonly unknown?: Readonly<Record<string, unknown>>
 }
 
-/** A project file (`.pulse-cli.json`) whose profiles a command uses. */
+/** A project file (`.pulse.json`) whose profiles a command uses. */
 export interface ProjectSource {
   readonly path: string
   /** Its directory: commands below it share the cached token of PULSE_CLI_TOKEN_COMMAND. */

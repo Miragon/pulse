@@ -60,7 +60,7 @@ next engine plugs in: one more adapter package and one entry in the composition 
 | 4   | core → adapter                  | engine questions and writes; read models back, or a `RuntimeError`                                                        | the ports `ProcessRuntime` and `ProcessCommands`, async                            |
 | 5   | extension → adapter             | a configured target becomes a runtime, commands (wrapped in the audit) and web UI links                                   | `EngineAdapter`, only in `composition-root.ts`                                     |
 | 6   | adapter-c7 → C7 family          | definitions, instances, incidents, variables; retries and variable changes                                                | HTTP(S) REST `/engine-rest` with VS Code's `fetch`, basic auth; no redirects, 60 s |
-| 7   | extension → your files          | the engines to show, the model to compare with a deployed version, stack frames to link to your sources                   | `.pulse-cli.json` (watched), `.bpmn` files, `pulse.*` settings                     |
+| 7   | extension → your files          | the engines to show, the model to compare with a deployed version, stack frames to link to your sources                   | `.pulse.json` (watched), `.bpmn` files, `pulse.*` settings                         |
 | 8   | extension → SecretStorage       | user name and password per target, bound to the endpoint's origin                                                         | VS Code `SecretStorage`                                                            |
 | 9   | extension → output channel      | one audit line per confirmation and per write, without values                                                             | the "Pulse" output channel                                                         |
 | 10  | extension → the engine's web UI | the shown version or instance, or the engine's start page                                                                 | `vscode.env.openExternal` with a URL built from the target's `cockpitUrl`          |
@@ -152,7 +152,7 @@ and the dev host). c7-core is the core of
 the Camunda 7 REST dialect family c7, the workflow domain the CLI and the MCP server run too:
 only the C7 adapter imports it. `@miragon/pulse-profile` is Pulse's profile format, which the CLI
 reads its files with too: only the host's connections import it, through its main entry, to read
-`.pulse-cli.json`. `@miragon/pulse-ui/tones` and `@miragon/pulse-ui/format` are
+`.pulse.json`. `@miragon/pulse-ui/tones` and `@miragon/pulse-ui/format` are
 Pulse's UI foundation without React: the tone vocabulary and the one tone per situation, and the
 formatters for times, durations, counts and short ids, both as the MCP widgets show them. The
 core and the webview may import the tones, only their label helpers the formatters (they set the

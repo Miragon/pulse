@@ -23,7 +23,7 @@
         "type": "string",
         "minLength": 1
       },
-      "description": "Profile names from .pulse-cli.json.",
+      "description": "Profile names from .pulse.json.",
       "uniqueItems": true
     },
     "rows": {

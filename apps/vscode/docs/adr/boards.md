@@ -36,12 +36,12 @@ What they found:
 ### Format
 
 `.pulse/boards/<name>.board.json`, anywhere in the workspace, read by `BoardParser`
-(`apps/vscode/src/core/boards`), validated by hand like `.pulse-cli.json`. Every problem names
-its JSON path and reason. `schemaVersion` 1, `title`, `engines` (profile names of
-`.pulse-cli.json`, the only engine id the extension has) and `rows`, each `{ "row": [...] }`
-of `{ "widget", "props" }`, the toolkit's layout grammar. The widgets are `counter`,
-`instanceList`, `incidentSummary`, `processDiagram` and `incidentList`; a widget may narrow
-the board's engines, and a `processDiagram` names exactly one. One filter
+(`apps/vscode/src/core/boards`) and validated by hand, unlike `.pulse.json`, which
+`@miragon/pulse-profile` parses. Every problem names its JSON path and reason. `schemaVersion`
+1, `title`, `engines` (profile names of `.pulse.json`, the only engine id the extension has) and
+`rows`, each `{ "row": [...] }` of `{ "widget", "props" }`, the toolkit's layout grammar. The
+widgets are `counter`, `instanceList`, `incidentSummary`, `processDiagram` and `incidentList`; a
+widget may narrow the board's engines, and a `processDiagram` names exactly one. One filter
 vocabulary without aliases: `process`, `activeElement` (needs `process`, never with `ended`),
 `state` (`running` by default, `ended`), `withIncident`, `businessKey`. At most 12 widgets.
 The editor validates with `apps/vscode/schemas/board.schema.json` (`jsonValidation`, shipped in
@@ -85,18 +85,18 @@ an open board on save, and **Pulse: New Board…** writes a starter board.
 - Deferred: `var:` columns (a variable projection in the contract with a law and a saboteur),
   oldest first and an age filter for stuck instances, a real incident count in the contract,
   and grouping incidents by message.
-- `.pulse-cli.json` is parsed in the CLI and in the extension by one package, Pulse's profile
+- `.pulse.json` is parsed in the CLI and in the extension by one package, Pulse's profile
   format `@miragon/pulse-profile`, which owns its JSON Schema and the fixtures that hold both
   readers to it ([architecture.md](architecture.md)).
 
 ## Decision log
 
-| Question         | Decision                                                   | Why                                                  |
-| ---------------- | ---------------------------------------------------------- | ---------------------------------------------------- |
-| Name             | Boards                                                     | Cockpit, Dashboards and Views are taken              |
-| Shape            | Toolkit layout grammar, own widgets                        | One layout vocabulary; data binding differs          |
-| Engine reference | Profile name                                               | The only id; `.pulse-cli.json` is shared in the repo |
-| `health` widget  | Replaced by one status strip per engine                    | The engine overview exists; no green "healthy"       |
-| Merge of lists   | One table, rows of each engine together, totals per engine | No order across engines in the contract              |
-| Workspace trust  | No `capabilities`: off in untrusted folders                | `limited` would allow engine reads there             |
-| Diagram scope    | One engine, latest version                                 | Deployments and versions differ between engines      |
+| Question         | Decision                                                   | Why                                              |
+| ---------------- | ---------------------------------------------------------- | ------------------------------------------------ |
+| Name             | Boards                                                     | Cockpit, Dashboards and Views are taken          |
+| Shape            | Toolkit layout grammar, own widgets                        | One layout vocabulary; data binding differs      |
+| Engine reference | Profile name                                               | The only id; `.pulse.json` is shared in the repo |
+| `health` widget  | Replaced by one status strip per engine                    | The engine overview exists; no green "healthy"   |
+| Merge of lists   | One table, rows of each engine together, totals per engine | No order across engines in the contract          |
+| Workspace trust  | No `capabilities`: off in untrusted folders                | `limited` would allow engine reads there         |
+| Diagram scope    | One engine, latest version                                 | Deployments and versions differ between engines  |

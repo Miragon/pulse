@@ -12,7 +12,7 @@ import { mergeProject, parseProjectFile } from "./project.js"
 import { selectProfile } from "./resolve.js"
 import type { ConfigFile, ProjectSource } from "./types.js"
 
-const path = "/repo/.pulse-cli.json"
+const path = "/repo/.pulse.json"
 const source: ProjectSource = { path, directory: "/repo" }
 const ENGINE_URL = "http://h/engine-rest"
 

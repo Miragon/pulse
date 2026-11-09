@@ -7,7 +7,7 @@ import { EnvironmentClassifier } from "../../src/host/connections/environment-cl
 import { TargetPolicy } from "../../src/host/connections/target-policy.js"
 import { TargetsParser } from "../../src/host/connections/targets-parser.js"
 
-const FILE = "/work/.pulse-cli.json"
+const FILE = "/work/.pulse.json"
 const NONE = { user: undefined, workspace: [] }
 
 function userSaid(user: Record<string, string>) {
@@ -18,7 +18,7 @@ function remote(name: string, endpoint: string): EngineTarget {
   return { ...LOCAL_TARGET, name, endpoint, source: { kind: "file", path: FILE } }
 }
 
-describe("parsing the profiles of .pulse-cli.json", () => {
+describe("parsing the profiles of .pulse.json", () => {
   test("reads each profile as an engine with url and auth", () => {
     const content = JSON.stringify({
       defaultProfile: "dev",
@@ -164,7 +164,7 @@ describe("parsing the profiles of .pulse-cli.json", () => {
   test("names the broken file and what is wrong, for the error item in the Engines tree", () => {
     const [problem] = new TargetsParser(FILE).parse("{").problems
 
-    expect(problem?.label()).toBe(".pulse-cli.json: The text is not valid JSON (line 1, column 2).")
+    expect(problem?.label()).toBe(".pulse.json: The text is not valid JSON (line 1, column 2).")
     expect(problem?.detail()).toBe(`${FILE}: The text is not valid JSON (line 1, column 2).`)
     expect(problem?.path).toBe(FILE)
   })

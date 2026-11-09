@@ -107,7 +107,7 @@ webview's `format/` folder, the closed world's one entry for `@miragon/pulse-ui/
 formatters keep their locale in the module, so a module that called them directly would format
 in the machine's locale until a helper had loaded.
 
-The host's connections read `.pulse-cli.json` with Pulse's profile format,
+The host's connections read `.pulse.json` with Pulse's profile format,
 `@miragon/pulse-profile` (`packages/core/profile`, its main entry, bundled by esbuild like
 c7-core): `TargetsParser` hands it the file's text under the credential policy `none` (a file
 others share names neither a secret nor the variable that holds one) and maps each verdict onto a

@@ -90,7 +90,7 @@ console.log(token);
         "bearer",
       ])
       expect(expectSuccess(set).stderr).toContain(
-        `Created the project file ${join(repo, ".pulse-cli.json")}`,
+        `Created the project file ${join(repo, ".pulse.json")}`,
       )
       const env = { PULSE_CLI_TOKEN_COMMAND: command() }
       const count = await inRepo(countArgs(), env)

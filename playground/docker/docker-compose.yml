@@ -73,7 +73,7 @@ services:
     environment:
       # The REST API takes anonymous requests, like the default engine's: Run's default.yml
       # turns auth on with `authentication: pseudo`, which lets every request in, whatever its
-      # credentials. So .pulse-cli.json's `local` profile (no auth) reaches it, and so does the
+      # credentials. So .pulse.json's `local` profile (no auth) reaches it, and so does the
       # demo/demo login .env.example sends. demo/demo is also the web app's login.
       # Without the invoice example: it sets the engine clock back while it seeds itself,
       # after the REST API already answers, so data created then gets rewound timestamps.

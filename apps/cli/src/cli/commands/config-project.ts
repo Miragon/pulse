@@ -1,6 +1,6 @@
 /**
  * The project file part of `pulse config`: the file an edit writes (the user's
- * config file, or with `--project` the project file `.pulse-cli.json`), and the checks and notices
+ * config file, or with `--project` the project file `.pulse.json`), and the checks and notices
  * of edits next to a project file.
  */
 

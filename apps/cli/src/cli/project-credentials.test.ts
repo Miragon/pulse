@@ -18,7 +18,7 @@ import {
 import { run } from "./run.js"
 
 const REPO = "/home/tester/repo"
-const PROJECT = `${REPO}/.pulse-cli.json`
+const PROJECT = `${REPO}/.pulse.json`
 const SECRET = "S3cret-from-the-environment"
 const VARIABLE = "REPO_CHOSEN_VARIABLE"
 

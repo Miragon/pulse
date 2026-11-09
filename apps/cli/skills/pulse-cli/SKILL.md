@@ -25,7 +25,7 @@ export PULSE_CLI_URL=http://localhost:8080/engine-rest
 pulse ping
 ```
 
-A repository may ship its engines as profiles in a project file (`.pulse-cli.json`): check
+A repository may ship its engines as profiles in a project file (`.pulse.json`): check
 `pulse config list` first (scope `project`), a bare `pulse ping` then uses its default.
 
 Or keep each engine in a profile and pick one with `--profile`. `--url` and `PULSE_CLI_URL` override

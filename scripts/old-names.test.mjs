@@ -239,7 +239,7 @@ describe("the name rules", () => {
     "ghcr.io/miragon/pulse-cli:0.22.0",
     "PULSE_CLI_URL=http://localhost:8080/engine-rest",
     "~/.config/pulse-cli/config.json",
-    "reads ./.pulse-cli.json first",
+    "reads ./.pulse.json first",
     "deployment-source operate",
     'workerId: "operate"',
     // The official SDK and its inspector.

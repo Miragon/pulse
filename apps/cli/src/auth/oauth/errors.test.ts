@@ -83,8 +83,8 @@ describe("login hint", () => {
     expect(loginHint({ profile: "p", projectDirectory: "/work/shop" })).toContain(
       "Run `pulse auth login --profile p` in a terminal in /work/shop: a person",
     )
-    expect(loginCommand({ profile: "p", configFile: "/home/me/ci/pulse-cli.json" })).toBe(
-      "pulse auth login --config /home/me/ci/pulse-cli.json --profile p",
+    expect(loginCommand({ profile: "p", configFile: "/home/me/ci/pulse.json" })).toBe(
+      "pulse auth login --config /home/me/ci/pulse.json --profile p",
     )
     expect(loginCommand({ profile: "p", configFile: "/home/me/my files/it's.json" })).toBe(
       "pulse auth login --config '/home/me/my files/it'\\''s.json' --profile p",

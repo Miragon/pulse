@@ -79,7 +79,7 @@ function machine(files: Record<string, string>, dirs: readonly string[] = []) {
 describe("a login shared by the profiles of a repository", () => {
   it("serves every profile with the same settings, and the engine of each gets its token", async () => {
     const { cli, engine, idp, tokenFiles } = machine(
-      { [`${SHOP}/.pulse-cli.json`]: project(["orders", "billing", "invoices"]) },
+      { [`${SHOP}/.pulse.json`]: project(["orders", "billing", "invoices"]) },
       [`${SHOP}/.git`],
     )
     const login = await cli(`${SHOP}/services`, ["auth", "login", "--profile", "orders"])
@@ -96,8 +96,8 @@ describe("a login shared by the profiles of a repository", () => {
 
   it("is shared by every worktree that links back to the repository", async () => {
     const files = {
-      [`${SHOP}/.pulse-cli.json`]: project(["orders"]),
-      [`${WORKTREE}/.pulse-cli.json`]: project(["orders"]),
+      [`${SHOP}/.pulse.json`]: project(["orders"]),
+      [`${WORKTREE}/.pulse.json`]: project(["orders"]),
       [`${WORKTREE}/.git`]: `gitdir: ${SHOP}/.git/worktrees/one\n`,
       [`${SHOP}/.git/worktrees/one/gitdir`]: `${WORKTREE}/.git\n`,
     }
@@ -109,7 +109,7 @@ describe("a login shared by the profiles of a repository", () => {
   })
 
   it("says on config set whether a new profile shares a login or needs one", async () => {
-    const { cli } = machine({ [`${SHOP}/.pulse-cli.json`]: project(["orders", "billing"]) }, [
+    const { cli } = machine({ [`${SHOP}/.pulse.json`]: project(["orders", "billing"]) }, [
       `${SHOP}/.git`,
     ])
     const options = [
@@ -180,8 +180,8 @@ describe("a login shared by the profiles of a repository", () => {
 
   it("keeps the login of a repository on edits: another worktree may still use it", async () => {
     const files = {
-      [`${SHOP}/.pulse-cli.json`]: project(["orders"]),
-      [`${WORKTREE}/.pulse-cli.json`]: project(["orders"]),
+      [`${SHOP}/.pulse.json`]: project(["orders"]),
+      [`${WORKTREE}/.pulse.json`]: project(["orders"]),
       [`${WORKTREE}/.git`]: `gitdir: ${SHOP}/.git/worktrees/one\n`,
       [`${SHOP}/.git/worktrees/one/gitdir`]: `${WORKTREE}/.git\n`,
     }
@@ -197,22 +197,22 @@ describe("a login shared by the profiles of a repository", () => {
 
   it("names a config file of --config in the command to log in", async () => {
     const { cli } = machine({})
-    const args = ["config", "set", "p", "--config", "/home/tester/ci/pulse-cli.json"]
+    const args = ["config", "set", "p", "--config", "/home/tester/ci/pulse.json"]
     const oauth = ["--auth", "oauth", "--oauth-issuer", ISSUER, "--oauth-client-id", "pulse-cli"]
     const set = await cli("/home/tester", [...args, "--url", "http://x/engine-rest", ...oauth])
     expect(set.stderr).toBe(
-      "Next: run `pulse auth login --config /home/tester/ci/pulse-cli.json --profile p` in a terminal to log in.\n",
+      "Next: run `pulse auth login --config /home/tester/ci/pulse.json --profile p` in a terminal to log in.\n",
     )
     const status = await cli("/home/tester", [
       "auth",
       "status",
       "--config",
-      "/home/tester/ci/pulse-cli.json",
+      "/home/tester/ci/pulse.json",
       "--profile",
       "p",
     ])
     expect(errorOf(status.stderr).hint).toContain(
-      "Run `pulse auth login --config /home/tester/ci/pulse-cli.json --profile p` in a terminal:",
+      "Run `pulse auth login --config /home/tester/ci/pulse.json --profile p` in a terminal:",
     )
   })
 })
@@ -227,7 +227,7 @@ describe("a login never crosses origins", () => {
 
   it("never sends one repository's login to the URL of another's profile of the same name", async () => {
     const { cli, engine, has } = machine(
-      { [`${SHOP}/.pulse-cli.json`]: project(["orders"]), [`${OTHER}/.pulse-cli.json`]: COLLECTOR },
+      { [`${SHOP}/.pulse.json`]: project(["orders"]), [`${OTHER}/.pulse.json`]: COLLECTOR },
       [`${SHOP}/.git`, `${OTHER}/.git`],
     )
     expect((await cli(SHOP, ["auth", "login"])).code).toBe(0)
@@ -254,10 +254,10 @@ describe("a login never crosses origins", () => {
   it("never lets a copied .git file claim the repository of the login", async () => {
     const { cli } = machine(
       {
-        [`${SHOP}/.pulse-cli.json`]: project(["orders"]),
+        [`${SHOP}/.pulse.json`]: project(["orders"]),
         [`${WORKTREE}/.git`]: `gitdir: ${SHOP}/.git/worktrees/one\n`,
         [`${SHOP}/.git/worktrees/one/gitdir`]: `${WORKTREE}/.git\n`,
-        [`${OTHER}/.pulse-cli.json`]: COLLECTOR,
+        [`${OTHER}/.pulse.json`]: COLLECTOR,
         [`${OTHER}/.git`]: `gitdir: ${SHOP}/.git/worktrees/one\n`,
       },
       [`${SHOP}/.git`],
@@ -271,18 +271,14 @@ describe("a login never crosses origins", () => {
     const { cli, tokenFiles } = machine(
       {
         [CONFIG_PATH]: own,
-        "/home/tester/ci/pulse-cli.json": own,
-        [`${OTHER}/.pulse-cli.json`]: COLLECTOR,
+        "/home/tester/ci/pulse.json": own,
+        [`${OTHER}/.pulse.json`]: COLLECTOR,
       },
       [`${OTHER}/.git`],
     )
     expect((await cli("/home/tester", ["auth", "login"])).code).toBe(0)
     expect(tokenFiles()).toEqual([loginFile()])
-    const named = await cli("/home/tester/ci", [
-      "status",
-      "--config",
-      "/home/tester/ci/pulse-cli.json",
-    ])
+    const named = await cli("/home/tester/ci", ["status", "--config", "/home/tester/ci/pulse.json"])
     expect(errorOf(named.stderr)).toMatchObject({ code: "LOGIN_REQUIRED" })
     // in the repository the profile of your config file wins and keeps its login
     expect((await cli(OTHER, ["auth", "status"])).code).toBe(0)
@@ -291,13 +287,11 @@ describe("a login never crosses origins", () => {
 
   it("gives a project file outside a repository a login of its own", async () => {
     const { cli, tokenFiles } = machine({
-      "/srv/a/.pulse-cli.json": project(["orders"]),
-      "/srv/b/.pulse-cli.json": project(["orders"]),
+      "/srv/a/.pulse.json": project(["orders"]),
+      "/srv/b/.pulse.json": project(["orders"]),
     })
     expect((await cli("/srv/a", ["auth", "login"])).code).toBe(0)
-    expect(tokenFiles()).toEqual([
-      loginFile(loginKey({ origin: "project:/srv/a/.pulse-cli.json" })),
-    ])
+    expect(tokenFiles()).toEqual([loginFile(loginKey({ origin: "project:/srv/a/.pulse.json" }))])
     expect((await cli("/srv/b", ["auth", "status"])).code).toBe(4)
   })
 })

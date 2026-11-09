@@ -68,7 +68,7 @@ beforeEach(() => {
 })
 
 describe("Configure Engines and Open the project file", () => {
-  test("write a new pulse-cli project file only when the folder has none", async () => {
+  test("write a new project file only when the folder has none", async () => {
     expect(await runIn(registryOf([]))).toEqual([`write ${CURRENT}`, `open ${CURRENT}`])
   })
 
@@ -84,6 +84,13 @@ describe("Configure Engines and Open the project file", () => {
     expect(await runIn(registryOf([], [{ target: LOCAL_TARGET }, fromFile]))).toEqual([
       `open ${CURRENT}`,
     ])
+  })
+
+  test("open a file under its former name instead of writing a new one beside it", async () => {
+    const former = `/w/${TargetsFile.FORMER_NAME}`
+    const rename = new TargetsProblem(former, TargetsFile.RENAME)
+
+    expect(await runIn(registryOf([rename], []))).toEqual([`open ${former}`])
   })
 
   test("ask for a folder when none is open", async () => {

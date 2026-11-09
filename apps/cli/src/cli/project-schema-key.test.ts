@@ -14,7 +14,7 @@ import {
 import { run } from "./run.js"
 
 const REPO = "/home/tester/repo"
-const PROJECT = `${REPO}/.pulse-cli.json`
+const PROJECT = `${REPO}/.pulse.json`
 const SCHEMA = "https://unpkg.com/@miragon/pulse-profile/schema/pulse.schema.json"
 
 function runtimeOf(): FakeRuntime {

@@ -98,7 +98,7 @@ docker run --rm -it --user "$(id -u):$(id -g)" -v "$HOME/.config/pulse-cli:/conf
   `alias pulse='docker run --rm -i -e PULSE_CLI_URL ghcr.io/miragon/pulse-cli'`.
 - `pulse auth login` and token commands do not work in the container: use Basic auth or pass a
   token with `-e PULSE_CLI_TOKEN`.
-- A project file (`.pulse-cli.json`) in the mounted `/work` directory is used as on the host.
+- A project file (`.pulse.json`) in the mounted `/work` directory is used as on the host.
 - Each image carries an SBOM and SLSA provenance;
   `gh attestation verify oci://ghcr.io/miragon/pulse-cli:<version> --repo Miragon/pulse` verifies
   it.

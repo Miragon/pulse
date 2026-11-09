@@ -1,5 +1,5 @@
 /**
- * The project config file: `.pulse-cli.json`, looked up from the working directory
+ * The project config file: `.pulse.json`, looked up from the working directory
  * upwards, so a repository can ship its profiles. The lookup stops at the repository root (a
  * directory with `.git`), before the home directory and at the file system root; the nearest file
  * wins. Its profiles are merged with those of the user's config file: the user's profile wins on a
@@ -12,7 +12,9 @@
  * PULSE_CLI_PASSWORD, PULSE_CLI_OAUTH_CLIENT_SECRET) or the user's own config file. So a cloned
  * repository can neither run code through pulse nor send a variable of its choice to the URL it
  * names. Its profiles share OAuth logins only among the profiles of its repository
- * (`projectOrigin`).
+ * (`projectOrigin`). A directory on the way that holds the file only under its former name
+ * (FORMER_PROJECT_FILE) fails the lookup with a hint to rename it, so a command never runs with the
+ * user's own default where the repository meant its profiles.
  */
 
 import { describeProblem, type Problem, PROFILE_NAME } from "@miragon/pulse-profile"
@@ -22,9 +24,12 @@ import { configError } from "./config-error.js"
 import { type Location, pathModule, serializeConfigFile } from "./file.js"
 import { readProfileFile } from "./profile-file.js"
 import { invalidFileError, problemHint } from "./profile-problems.js"
-import type { ConfigFile, LoadedConfig, ProjectSource } from "./types.js"
+import { type ConfigFile, ENV, type LoadedConfig, type ProjectSource } from "./types.js"
 
-export const PROJECT_FILE = ".pulse-cli.json"
+export const PROJECT_FILE = ".pulse.json"
+
+/** The project file's name up to 0.27, read no more: named only to fail with a hint to rename it. */
+const FORMER_PROJECT_FILE = ".pulse-cli.json"
 
 /** The project file of a working directory: the nearest one, or where a new one goes. */
 export interface ProjectFile {
@@ -38,20 +43,38 @@ function comparable(path: string, platform: string): string {
   return platform === "win32" ? trimmed.toLowerCase() : trimmed
 }
 
-/** The project file of one directory (PROJECT_FILE). */
+/**
+ * A directory holds the project file only under its former name: CONFIG, rename it, or name your
+ * own config file, which skips the lookup (where the file cannot be renamed).
+ */
+function formerNameError(former: string, current: string) {
+  return configError(
+    `The project file ${former} has its former name; pulse reads ${PROJECT_FILE} only`,
+    `Rename it to ${current}; its content stays as it is. To skip the project file, name your config file with --config or ${ENV.config}.`,
+  )
+}
+
+/**
+ * The project file of one directory (PROJECT_FILE); the directory fails with formerNameError when
+ * it holds the file only under its former name (FORMER_PROJECT_FILE).
+ */
 async function projectFileIn(
   fs: FileSystem,
   directory: string,
   path: ReturnType<typeof pathModule>,
 ): Promise<ProjectFile | undefined> {
   const current = path.join(directory, PROJECT_FILE)
-  return (await fs.kind(current)) !== "missing" ? { path: current, exists: true } : undefined
+  if ((await fs.kind(current)) !== "missing") return { path: current, exists: true }
+  const former = path.join(directory, FORMER_PROJECT_FILE)
+  if ((await fs.kind(former)) !== "missing") throw formerNameError(former, current)
+  return undefined
 }
 
 /**
- * The project file for the working directory `cwd`: the nearest existing `.pulse-cli.json` from `cwd` up to the repository root, else where
+ * The project file for the working directory `cwd`: the nearest existing `.pulse.json` from `cwd` up to the repository root, else where
  * `config set --project` creates one (the repository root, else `cwd`). Undefined in the home
- * directory itself: it is nobody's project.
+ * directory itself: it is nobody's project. Fails (CONFIG) at the first directory on the way that
+ * holds the file only under its former name.
  */
 export async function findProjectFile(
   fs: FileSystem,
@@ -220,7 +243,7 @@ export async function readProjectFile(fs: FileSystem, path: string): Promise<Con
   } catch (error) {
     throw configError(
       `Cannot read project file ${path} (${reasonOf(error)})`,
-      "Check the file and its permissions; pulse looks up .pulse-cli.json from the working directory up to the repository root.",
+      "Check the file and its permissions; pulse looks up .pulse.json from the working directory up to the repository root.",
     )
   }
   return parseProjectFile(new TextDecoder().decode(content), path)

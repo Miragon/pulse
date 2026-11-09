@@ -100,7 +100,7 @@ describe("resolveAuth with OAuth", () => {
   it("has no login key without a profile, and names the directory of a project profile", () => {
     const env = { PULSE_CLI_OAUTH_ISSUER: ISSUER, PULSE_CLI_OAUTH_CLIENT_ID: "pulse-cli" }
     expect(oauth({ auth: "oauth" }, env).login).toBeUndefined()
-    const project = { path: "/work/shop/.pulse-cli.json", directory: "/work/shop" }
+    const project = { path: "/work/shop/.pulse.json", directory: "/work/shop" }
     const selected: SelectedProfile = {
       name: "p",
       profile: { auth: STORED },

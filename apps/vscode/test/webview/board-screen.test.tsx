@@ -58,7 +58,7 @@ describe("a board", () => {
 
     expect(texts(strips, ".status-strip__title")).toEqual([
       "Can't reach prod-eu.",
-      "billing-prod is not in .pulse-cli.json.",
+      "billing-prod is not in .pulse.json.",
     ])
     for (const button of strips.querySelectorAll<HTMLButtonElement>(".status-strip button")) {
       button.click()

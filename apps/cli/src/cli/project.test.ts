@@ -20,7 +20,7 @@ import { loginFile, loginKey } from "../../test/support/oauth.js"
 import { run } from "./run.js"
 
 const REPO = "/home/tester/repo"
-const PROJECT = `${REPO}/.pulse-cli.json`
+const PROJECT = `${REPO}/.pulse.json`
 /** The login of an OAuth profile of the user's config file and of one of the repository. */
 const OWN_LOGIN = loginFile()
 const REPO_LOGIN = loginFile(loginKey({ origin: `repository:${REPO}/.git` }))
@@ -132,7 +132,7 @@ describe("the project file in commands", () => {
   })
 
   it("is not looked up in the home directory", async () => {
-    const files = { "/home/tester/.pulse-cli.json": PROJECT_FILE }
+    const files = { "/home/tester/.pulse.json": PROJECT_FILE }
     const show = await cli(["config", "show"], { files, cwd: "/home/tester" })
     expect(JSON.parse(show.stdout)).toMatchObject({ projectFile: null, profile: null })
   })
@@ -359,5 +359,42 @@ describe("config set|unset|use|delete --project", () => {
     const user = await sequence(runtime, ["config", "delete", "shared"])
     expect(user.stderr).toContain(`Removed the OAuth login of profile "shared" (${OWN_LOGIN})`)
     expect(runtime.files.has(OWN_LOGIN)).toBe(false)
+  })
+})
+
+describe("a project file under its former name", () => {
+  const FORMER = `${REPO}/.pulse-cli.json`
+  const RENAME = {
+    code: "CONFIG",
+    exitCode: 3,
+    message: `The project file ${FORMER} has its former name; pulse reads .pulse.json only`,
+    hint: `Rename it to ${PROJECT}; its content stays as it is. To skip the project file, name your config file with --config or PULSE_CLI_CONFIG.`,
+  }
+
+  it("fails a command with CONFIG and the hint to rename it, never with your own default", async () => {
+    const files = { [FORMER]: PROJECT_FILE, [CONFIG_PATH]: USER_FILE }
+    const ping = await cli(["ping"], { files })
+    expect(ping.code).toBe(3)
+    expect(ping.stdout).toBe("")
+    expect(errorOf(ping.stderr)).toEqual(RENAME)
+    const list = await cli(["config", "list"], { files })
+    expect(errorOf(list.stderr)).toEqual(RENAME)
+  })
+
+  it("fails config set --project instead of writing a second file next to it", async () => {
+    const runtime = runtimeOf({ files: { [FORMER]: PROJECT_FILE } })
+    const set = await sequence(runtime, ["config", "set", "x", "--project", "--url", BASE_URL])
+    expect(set.code).toBe(3)
+    expect(errorOf(set.stderr)).toEqual(RENAME)
+    expect(runtime.files.has(PROJECT)).toBe(false)
+  })
+
+  it("is left alone next to a .pulse.json and with --config", async () => {
+    const files = { [FORMER]: "not JSON", [PROJECT]: PROJECT_FILE, "/other.json": USER_FILE }
+    const show = await cli(["config", "show"], { files })
+    expect(JSON.parse(show.stdout)).toMatchObject({ projectFile: PROJECT, profile: "svc" })
+    const only = { [FORMER]: PROJECT_FILE, "/other.json": USER_FILE }
+    const flag = await cli(["config", "show", "--config", "/other.json"], { files: only })
+    expect(JSON.parse(flag.stdout)).toMatchObject({ projectFile: null, profile: "mine" })
   })
 })

@@ -1,6 +1,6 @@
 /**
  * The configuration a command reads: the config file named by `--config` or
- * PULSE_CLI_CONFIG alone (it must exist), else the project file (`.pulse-cli.json`, looked up from the
+ * PULSE_CLI_CONFIG alone (it must exist), else the project file (`.pulse.json`, looked up from the
  * working directory up to the repository root) merged with the user's config file.
  */
 

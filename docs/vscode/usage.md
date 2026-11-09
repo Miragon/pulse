@@ -2,7 +2,7 @@
 
 ## Engines and processes
 
-The **Engines** view lists the profiles of `.pulse-cli.json` with their deployed processes,
+The **Engines** view lists the profiles of `.pulse.json` with their deployed processes,
 running counts and incident markers. A click on an engine opens its overview: every process
 with its latest version, running and with-incident counts, the ones in trouble first.
 

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest"
 import { TargetsParser } from "../../src/host/connections/targets-parser.js"
 
-const FILE = "/work/.pulse-cli.json"
+const FILE = "/work/.pulse.json"
 const URL = "http://localhost:8080/engine-rest"
 
 function problemsOf(profiles: Record<string, unknown>, root: Record<string, unknown> = {}) {

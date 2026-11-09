@@ -2,8 +2,8 @@
 
 ## Engines
 
-Pulse reads your engines as profiles in `.pulse-cli.json`, the project file of the
-[Pulse CLI](../cli/configuration.md), so the extension and the CLI see the same engines:
+Pulse reads your engines as profiles in `.pulse.json`, the project file the
+[Pulse CLI](../cli/configuration.md) reads too, so the extension and the CLI see the same engines:
 
 ```json
 {

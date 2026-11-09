@@ -268,7 +268,7 @@ export const configCommand: UtilityCommand = {
     const config = subcommand(program, "config")
       .summary("Manage the config file and its profiles")
       .description(
-        "Manage the config file and its profiles. The file is written with mode 0600; values are validated before they are stored. A repository can share profiles in a project file (.pulse-cli.json, written with --project); your own profiles of the same name override them.",
+        "Manage the config file and its profiles. The file is written with mode 0600; values are validated before they are stored. A repository can share profiles in a project file (.pulse.json, written with --project); your own profiles of the same name override them.",
       )
     registerReadCommands(config, context)
     registerEditCommands(config, context)

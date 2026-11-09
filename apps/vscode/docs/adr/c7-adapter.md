@@ -68,7 +68,7 @@ the package the CLI and the MCP server run too.
   connection for reads refuses every write before it leaves; `C7Adapter.commands` builds
   the writer on its own connection, a test holds both.
 - **The engine shown is the engine queried.** URL and credentials come only from the
-  selected target; Pulse reads the workspace's `.pulse-cli.json` with the profile format
+  selected target; Pulse reads the workspace's `.pulse.json` with the profile format
   (`TargetsParser` over `@miragon/pulse-profile`, held to its fixtures: the format's URL without
   trailing slashes, never an engine for a profile the format refuses).
   Ids must match `^[A-Za-z0-9_][\w.:-]*$` (no comma that would add ids to a list) and are

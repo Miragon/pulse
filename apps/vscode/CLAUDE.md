@@ -137,7 +137,7 @@ core, webview and host stay engine-neutral.
 - A new gate is a rule in a standard tool (ESLint, dependency-cruiser, knip, tsc, Vitest) or
   a test. A rule you write proves it bites with a case in `apps/vscode/test/architecture`;
   see `apps/vscode/docs/adr/guardrails.md`.
-- `.pulse-cli.json` is read with Pulse's profile format, `@miragon/pulse-profile`, under the
+- `.pulse.json` is read with Pulse's profile format, `@miragon/pulse-profile`, under the
   credential policy `none`, which refuses a credential (a secret or the variable that holds one):
   `TargetsParser` maps each verdict onto a target or a problem and refuses with `refusalsOn` what
   the extension cannot serve (`headers`, the auth types bearer and passthrough, a named process
@@ -147,6 +147,10 @@ core, webview and host stay engine-neutral.
   `apps/vscode/test/host/project-file-fixtures.test.ts` holds `TargetsParser` to both. A profile
   the format takes is a target with its URL, auth type and read-only flag, or a named problem; a
   value the format refuses never becomes an engine. The extension still reads no user config.
+  A folder that holds the project file only under its former name (`TargetsFile.FORMER_NAME`)
+  shows one problem asking to rename it and lists none of its engines, nor the local default
+  engine in its place (_Configure Engines_ opens that file and writes no second one); a stored
+  sign-in is keyed by the file's path, so the rename asks for it once more.
 - When you change a boundary, the contract, the protocol or a dependency, update the matching
   record in `apps/vscode/docs/adr/` in the same commit.
 - The webview's colours are the Miragon tokens in `apps/vscode/src/webview/theme/`, vendored

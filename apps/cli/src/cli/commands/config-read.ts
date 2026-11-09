@@ -121,7 +121,7 @@ export function registerReadCommands(config: Command, context: CliContext): void
     FILE_OPTIONS,
   ).option(
     PROJECT_OPTION[0],
-    "Print the project file (.pulse-cli.json from the working directory up to the repository root)",
+    "Print the project file (.pulse.json from the working directory up to the repository root)",
   )
   path.action(() => printPath(path, context))
   const show = configSubcommand(

@@ -22,7 +22,7 @@ import { mergeProject, parseProjectFile } from "./project.js"
 import { resolveConfig, selectProfile } from "./resolve.js"
 import { type ConfigFile, ENV, type LoadedConfig, type Profile, type ProfileAuth } from "./types.js"
 
-const PATH = "/repo/.pulse-cli.json"
+const PATH = "/repo/.pulse.json"
 
 const READERS = [
   ["config file", "env-or-literal", (text: string) => parseConfigFile(text, PATH)],

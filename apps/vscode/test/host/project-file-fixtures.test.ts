@@ -11,7 +11,7 @@ interface Expected {
 }
 
 const EXPECTED = new URL("project-file-fixtures.expected.json", import.meta.url)
-const FILE = "/work/.pulse-cli.json"
+const FILE = "/work/.pulse.json"
 const AUTH_KINDS: Readonly<Record<string, EngineTarget["auth"]["kind"]>> = {
   none: "none",
   basic: "basic",

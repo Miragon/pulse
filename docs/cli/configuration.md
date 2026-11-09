@@ -120,7 +120,7 @@ pulse config delete prod
 
 ## Project file
 
-A repository can ship its profiles in `.pulse-cli.json`, in the format of the config file, so
+A repository can ship its profiles in `.pulse.json`, in the format of the config file, so
 neither developers nor agents need a setup step. The CLI looks it up from the working directory
 up to the repository root; the nearest file wins. `--config` or `PULSE_CLI_CONFIG` turn the lookup
 off.

@@ -18,17 +18,17 @@ From a fresh clone with Node.js, pnpm and Docker (no JDK, no `.env`):
 pnpm stack:up       # the engine; waits until it answers
 pnpm play           # stack:up if needed, then the MCP server on :8400 against it
 pnpm play:cli -- ping   # pnpm -s play:cli -- ... leaves stdout to the CLI, for a pipe
-pulse status        # an installed pulse: .pulse-cli.json makes the stack's engine its default
+pulse status        # an installed pulse: .pulse.json makes the stack's engine its default
 pnpm stack:status   # what runs, healthy or not
 pnpm stack:down     # stop (volumes kept; --wipe drops them)
 ```
 
 - MCP endpoint: `http://localhost:8400/mcp`; `pnpm play` also starts the official MCP Inspector on
   `127.0.0.1` and prints its URL
-- `.pulse-cli.json`, the CLI's project file, holds the default profile `local` for the stack's
-  engine (CIB seven, no login: its REST API is anonymous). Inside the repo a bare `pulse`
-  (`npm install -g @miragon/pulse-cli`, or the build `node apps/cli/dist/pulse-cli.js`) reaches
-  it; your own profiles stay available with `--profile`.
+- `.pulse.json`, the project file of the CLI and Pulse for VS Code, holds the default profile
+  `local` for the stack's engine (CIB seven, no login: its REST API is anonymous). Inside the repo
+  a bare `pulse` (`npm install -g @miragon/pulse-cli`, or the build
+  `node apps/cli/dist/pulse-cli.js`) reaches it; your own profiles stay available with `--profile`.
 - Engine: `http://localhost:8410` (login `demo` / `demo`).
 - The engine image copies a jar (`cibseven-example/build/libs/`): `stack:up` builds it when it is
   missing or older than its sources, on a local JDK 21 or else in an `eclipse-temurin:21-jdk`

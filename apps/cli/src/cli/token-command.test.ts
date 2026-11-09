@@ -298,7 +298,7 @@ describe("config show with a token command", () => {
 describe("the cached token of a project", () => {
   it("is shared by the directories of a repository with a project file", async () => {
     const fake = server()
-    const files = { "/home/tester/repo/.pulse-cli.json": '{"profiles":{}}' }
+    const files = { "/home/tester/repo/.pulse.json": '{"profiles":{}}' }
     const options = {
       fetch: fake.fetch,
       env: { ...ENV, PULSE_CLI_URL: "http://localhost:8080/engine-rest" },
