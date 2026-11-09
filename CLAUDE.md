@@ -917,7 +917,8 @@ second config that would shadow a ratcheted one fails. The one escape is a
 `Ratchet-Exception: <reason>` commit trailer, which turns the failures into warnings for the
 reviewer; never weaken the checker instead. The trailer covers the commit that carries it: the
 checker replays the range commit by commit and waves a violation only when every commit that
-makes it carries one.
+makes it carries one; a commit that brings a ratchet file back to a path the merge base holds
+(after another commit removed it) makes what that file changes against the base's.
 `pnpm lint:package-scripts` holds a package's first configs: every package with `src/` has a
 `vitest.config.ts`, and a valid `stryker.config.json` sits in each package `MUTATED_PACKAGES`
 lists and in no other.

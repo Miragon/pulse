@@ -2135,6 +2135,49 @@ export default mergeConfig(sharedConfig, defineConfig({
     assert.match(out, /no single commit makes it/)
   })
 
+  it("holds a config brought back to a path the base holds to the commit that brings it back", async () => {
+    // Decision: A removes the config (trailer), B brings another one back with a lower floor.
+    // Against its parent B's file reads as introduced, so the lower floor would only add up
+    // from two steps and no trailer could cover it; compared with the base's file there, B
+    // makes it: without a trailer B fails, with one it is waved.
+    const config = (branches) => `import { defineConfig, mergeConfig } from "vitest/config"
+import { sharedConfig } from "../../../vitest.shared"
+export default mergeConfig(sharedConfig, defineConfig({
+  test: { coverage: { thresholds: { statements: 99, branches: ${branches}, functions: 99, lines: 99 } } },
+}))
+`
+    const removeThenBringBack = (trailerOnB) => {
+      const repo = synthetic({ [VITEST]: config(98) })
+      repo.commit(`refactor: the package moves away\n\n${TRAILER}`, () =>
+        repo.git("rm", "-q", VITEST),
+      )
+      const b = repo.commit(
+        `feat: another package at the path${trailerOnB ? `\n\n${TRAILER}` : ""}`,
+        () => repo.write(VITEST, config(90)),
+      )
+      return { repo, b }
+    }
+    const bare = removeThenBringBack(false)
+    const failed = await bare.repo.check()
+    assert.equal(failed.code, 1, failed.out)
+    assert.match(failed.out, /RATCHET VIOLATION .*branches: 98 -> 90/)
+    assert.ok(failed.out.includes(`made by ${bare.b.slice(0, 9)}`), failed.out)
+    assert.doesNotMatch(failed.out, /no single commit makes it/)
+
+    const covered = removeThenBringBack(true)
+    const waved = await covered.repo.check()
+    assert.equal(waved.code, 0, waved.out)
+    assert.match(waved.out, /RATCHET EXCEPTION APPLIED: .*branches: 98 -> 90/)
+    assert.ok(waved.out.includes(`waved by ${covered.b.slice(0, 9)}`), waved.out)
+
+    // Brought back with the base's floors, the path holds what it held: nothing to cover.
+    const same = synthetic({ [VITEST]: config(98) })
+    same.commit(`refactor: away\n\n${TRAILER}`, () => same.git("rm", "-q", VITEST))
+    same.commit("feat: back", () => same.write(VITEST, config(98)))
+    const kept = await same.check()
+    assert.doesNotMatch(kept.out, /branches/)
+  })
+
   it("fails every violation when no commit carries a trailer", async () => {
     const repo = synthetic()
     repo.commit("feat: a", () => repo.budget(120))

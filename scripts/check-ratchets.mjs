@@ -137,7 +137,10 @@
  * each commit and its reason, only when EVERY step that makes it carries the
  * trailer: one made in A and again in B needs both, and a trailer added to a
  * later commit covers nothing. One that no single step makes (the steps only
- * add up to it) fails closed.
+ * add up to it) fails closed. A step that brings a ratchet file back to a path
+ * the merge base holds, after an earlier step removed it, is compared with the
+ * base's file there (the side the net comparison reads): that step decides
+ * what the path holds, so it makes what the net comparison finds there.
  * CODEOWNERS review still applies to every PR. There is no other bypass.
  *
  * Run: node scripts/check-ratchets.mjs [baseRef]   (`pnpm lint:ratchets`;
@@ -1943,17 +1946,38 @@ async function netViolations(repo, eslint, mergeBase) {
 }
 
 /**
+ * The side a step compares a ratchet file with: its parent's, or the merge
+ * base's when the step brings the file back to a path the base holds and the
+ * parent does not (an earlier step of the range removed it). Against the
+ * parent such a file reads as introduced, and what it changes against the base
+ * would add up from two steps, which no trailer can cover; the step that
+ * brings it back decides what the path holds, so it carries the trailer.
+ * Ratchet files only: the effective ESLint probe of a path still compares each
+ * step with its parent, so a budget an earlier step took off a path and no step
+ * puts back stays that earlier step's finding.
+ */
+const stepSide = (repo, rel, from, to, mergeBase) =>
+  mergeBase !== undefined &&
+  !repo.exists(from, rel) &&
+  repo.exists(to, rel) &&
+  repo.exists(mergeBase, rel)
+    ? mergeBase
+    : from
+
+/**
  * One step of the replay: the same checks over the files `to` changes
  * against `from` only, so a state (a shadow config, a broken file) belongs
  * to the step that made it. The effective ESLint half runs only when the
  * net comparison has a finding of it to attribute (`effectiveFiles`: the
  * files those findings name, probed in every step that changes the config).
  */
-async function stepKeys(repo, eslint, from, to, { effectiveFiles }) {
+async function stepKeys(repo, eslint, from, to, { effectiveFiles, mergeBase }) {
   const changed = repo.changed(from, to)
   const messages = changed
     .filter(isComparedRatchet)
-    .flatMap((rel) => ratchetFileViolations(repo, rel, from, to))
+    .flatMap((rel) =>
+      ratchetFileViolations(repo, rel, stepSide(repo, rel, from, to, mergeBase), to),
+    )
   messages.push(...suppressionViolations(repo, from, to, changed, { scoped: true }))
   const violations = messages.map(plainViolation)
   if (effectiveFiles.length > 0 && changed.includes("eslint.config.mjs"))
@@ -2100,6 +2124,7 @@ async function check(repo, eslint, { argv, env, log, error }) {
 
   const steps = await replaySteps(repo, eslint, commits, {
     effectiveFiles: [...new Set(violations.flatMap(({ effectiveFiles = [] }) => effectiveFiles))],
+    mergeBase,
   })
   const verdicts = attributeViolations(violations, steps)
   for (const { violation, verdict, commits: makers } of verdicts) {
