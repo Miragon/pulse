@@ -6,6 +6,10 @@
   "description": "See what your process engine is running, right next to your BPMN models: definitions, instances, incidents and variables. Retry incidents and fix variables, guarded.",
   "publisher": "miragon-gmbh",
   "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#335DE5",
+    "theme": "dark"
+  },
   "license": "MIT",
   "homepage": "https://github.com/Miragon/pulse/tree/main/apps/vscode#readme",
   "bugs": "https://github.com/Miragon/pulse/issues",
