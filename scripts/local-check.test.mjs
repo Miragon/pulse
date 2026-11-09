@@ -35,6 +35,20 @@ describe("checkSteps", () => {
     ])
   })
 
+  it("installs Chromium through the runtime view, whose webview tests render in it", () => {
+    const [, browsers] = checkSteps()
+    assert.deepEqual(browsers.args.slice(0, 3), [
+      "--fail-if-no-match",
+      "--filter",
+      "@miragon/pulse-runtime-view",
+    ])
+    const manifest = JSON.parse(
+      readFileSync(new URL("../packages/core/runtime-view/package.json", import.meta.url)),
+    )
+    assert.ok(manifest.devDependencies["@vitest/browser-playwright"])
+    assert.ok(manifest.devDependencies.playwright)
+  })
+
   it("keeps turbo going past a red package", () => {
     assert.deepEqual(checkSteps()[2].args, [
       "exec",

@@ -47,12 +47,12 @@ export function chainSteps(script, chain) {
 export function checkSteps({ all = false, force = false, scripts = rootScripts() } = {}) {
   const steps = [
     pnpm("install", "install", "--frozen-lockfile"),
-    // The VS Code webview tests in `test` render in Chromium.
+    // The runtime view's webview tests in `test` render in Chromium.
     pnpm(
       "browsers",
       "--fail-if-no-match",
       "--filter",
-      "pulse-cockpit",
+      "@miragon/pulse-runtime-view",
       "exec",
       "playwright",
       "install",
