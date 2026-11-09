@@ -1,0 +1,82 @@
+{
+  "skillVersion": "1.29.0",
+  "products": [
+    {
+      "id": "pulse",
+      "target": "web",
+      "label": "Miragon AI",
+      "title": "Pulse",
+      "claim": "Your process engine in your AI chat, your terminal and VS Code.",
+      "icon": "apps/vscode/media/icon.png",
+      "out": "docs/assets/listing/pulse",
+      "web": {
+        "url": "https://miragon.github.io/pulse/"
+      },
+      "shots": {
+        "hero": {
+          "path": "./",
+          "journey": ".miragon/shots/landing-terminal.mjs",
+          "selector": ".panel.shown .screen"
+        }
+      }
+    },
+    {
+      "id": "mcp-server",
+      "target": "web",
+      "label": "Miragon AI",
+      "title": "Pulse MCP server",
+      "claim": "Ask your AI chat why a process is stuck, and get the answer as a view.",
+      "icon": "apps/vscode/media/icon.png",
+      "out": "docs/assets/listing/mcp-server",
+      "web": {
+        "url": "https://miragon.github.io/pulse/"
+      },
+      "shots": {
+        "hero": {
+          "path": "./",
+          "selector": ".panel.shown img.widget.light-only"
+        }
+      }
+    },
+    {
+      "id": "cli",
+      "target": "web",
+      "label": "Miragon AI",
+      "title": "Pulse CLI",
+      "claim": "Every engine operation as one short command, for you and your agent.",
+      "icon": "apps/vscode/media/icon.png",
+      "out": "docs/assets/listing/cli",
+      "web": {
+        "url": "https://miragon.github.io/pulse/"
+      },
+      "shots": {
+        "hero": {
+          "path": "./",
+          "journey": ".miragon/shots/landing-terminal.mjs",
+          "selector": ".panel.shown .screen"
+        }
+      }
+    },
+    {
+      "id": "vscode",
+      "target": "web",
+      "store": "vscode-marketplace",
+      "label": "Miragon AI",
+      "title": "Pulse for VS Code",
+      "claim": "The runtime of your process engine, right next to your BPMN models.",
+      "badge": "Early",
+      "icon": "apps/vscode/media/icon.png",
+      "out": "docs/assets/listing/vscode",
+      "web": {
+        "url": "https://miragon.github.io/pulse/"
+      },
+      "shots": {
+        "hero": {
+          "path": "./",
+          "journey": ".miragon/shots/landing-vscode.mjs",
+          "selector": ".panel.shown .screen"
+        }
+      }
+    }
+  ]
+}

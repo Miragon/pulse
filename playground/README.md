@@ -1,5 +1,11 @@
 # Playground
 
+> [!TIP]
+> Just want to try Pulse? The hosted playground needs no clone:
+> `claude mcp add --transport http pulse https://pulse-playground.miragon.ai/mcp`
+> ([Get started](https://miragon.github.io/pulse/mcp/getting-started)). This page is for running
+> and deploying the playground yourself.
+
 A self-contained demo environment for Pulse: a seeded
 CIB seven engine with live traffic, the full metric-first analytics stack,
 and the MCP server on top. Run it locally with Docker Compose, or deploy

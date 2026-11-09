@@ -1,56 +1,49 @@
 # Pulse CLI
 
-[![npm version](https://img.shields.io/npm/v/@miragon/pulse-cli.svg)](https://www.npmjs.com/package/@miragon/pulse-cli)
+[![npm](https://img.shields.io/npm/v/@miragon/pulse-cli)](https://www.npmjs.com/package/@miragon/pulse-cli)
+[![Homebrew](https://img.shields.io/badge/Homebrew-miragon%2Ftap%2Fpulse--cli-FBB040?logo=homebrew&logoColor=white)](https://github.com/Miragon/homebrew-tap)
 [![CI](https://github.com/Miragon/pulse/actions/workflows/ci.yml/badge.svg)](https://github.com/Miragon/pulse/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Documentation](https://img.shields.io/badge/docs-miragon.github.io%2Fpulse%2Fcli-blue.svg)](https://miragon.github.io/pulse/cli/)
+[![License: MIT](https://img.shields.io/github/license/Miragon/pulse)](LICENSE)
 
-A command line tool that lets an AI agent (or a human at a shell) **operate a Camunda 7 process
-engine**: [Operaton](https://operaton.org), [CIB seven](https://cibseven.org) and Camunda 7. Deploy
-processes and decisions, start and follow instances, work on tasks, fix incidents, migrate running
-instances, look into the history and administer users and permissions. The agent says what should
-happen, and the CLI talks to the REST API.
+![Pulse CLI by Miragon AI: every engine operation as one short command, for you and your agent. The card shows pulse status finding four incidents at Charge payment and pulse retry resolving one](https://raw.githubusercontent.com/Miragon/pulse/main/docs/assets/listing/cli/cover.png)
 
-![pulse-cli status finds five incidents at Charge payment, and pulse-cli inspect shows that order ORD-10130 waits there because the card expired, with the expiry date among its variables](https://raw.githubusercontent.com/Miragon/pulse/main/docs/assets/cli-triage.gif)
+A command line tool with which you and your AI agent run a Camunda 7, CIB seven or Operaton engine
+(not Camunda 8), one short command per step. Below 1.0: pin the version, since a release can
+rename a command.
 
 ## Why
 
-A language model writes its answer token by token, so the time and the cost of a task grow with
-the text it has to produce. Working with a process engine through its REST API is a lot of text.
-Completing a single task takes one request to find the instance, one to see where it waits, one to
-act and one to check the result, and each answer has to be read to build the next request. A
-deployment, a migration or a search through the history is no different. An agent that works this
-way is slow, and every id it copies is a chance to hit the wrong instance.
+An agent that works through the REST API needs a chain of requests for every step and copies ids
+from one answer into the next, which is slow and a chance to hit the wrong instance. With the Pulse
+CLI the agent names what should happen, and the CLI sends the requests.
 
-The Pulse CLI turns this around: the agent names what it means and what should happen, in one short
-command, and the CLI sends the requests. What you get:
+## What you get
 
-- One short command replaces a chain of requests, so the agent writes little and works fast.
-- Answers contain what the next step needs, not everything the engine knows.
-- The CLI lists its own commands and explains each one, so an agent looks things up instead of
-  inventing them.
-- Every change can be previewed, deleting needs an explicit yes, and an engine can be marked as
-  look-only, so it is safe on real engines.
-- Everything the REST API offers is a command: deployments, instances, tasks, incidents,
-  migrations, history, decisions, users and permissions.
-- It never asks questions, and both its answers and its errors are easy for a program to read, so
-  scripts can use it too.
+- **One command instead of a chain.** `inspect`, `status`, `retry` and `advance` each combine
+  several requests.
+- **Answers for the next step.** A table on a terminal, JSON for an agent or a script, each with
+  what the next step needs.
+- **Safe on real engines.** Every change can be previewed with `--dry-run`, deleting needs an
+  explicit yes, and an engine can be marked read-only.
+- **The engine's REST API.** Every other REST operation is a command too.
+
+![pulse-cli status finds five incidents at Charge payment, and pulse-cli inspect shows that order ORD-10130 waits there because the card expired, with the expiry date among its variables](https://raw.githubusercontent.com/Miragon/pulse/main/docs/assets/cli-triage.gif)
 
 ## Install
 
-Requires Node.js 22.12+, or use Homebrew, the standalone executable or the container image (see
-below).
+Each channel installs the command `pulse` (`pulse-cli` is a second name of the same program).
 
-```sh
-npm install -g @miragon/pulse-cli      # or, without Node.js: brew install miragon/tap/pulse-cli
-pulse guide
-```
+- **npm** (Node.js 22.12 or later): `npm install -g @miragon/pulse-cli`
+- **Homebrew** (macOS, Linux): `brew install miragon/tap/pulse-cli`
+- **Standalone executable** (Linux, macOS, Windows, no Node.js) or **container image**
+  `ghcr.io/miragon/pulse-cli`: see [Installation](https://miragon.github.io/pulse/cli/installation),
+  which also covers proxies and certificates.
 
-The command is `pulse`; `pulse-cli` is a second name of the same program.
+Which engine versions are tested: [Engines](https://miragon.github.io/pulse/cli/engines).
 
-## Quick start
+## Get started
 
-Start an engine, then deploy a process, start an instance and complete its first task.
+Start a local engine, then deploy a process, start an instance and complete its first task.
 `order.bpmn` is any process with a user task; the [walk-through](https://miragon.github.io/pulse/cli/getting-started#your-first-process) has one.
 
 ```sh
@@ -60,25 +53,14 @@ pulse deploy order.bpmn --start --business-key ORD-1001 --var amount=250
 pulse advance --business-key ORD-1001 --var approved=true
 ```
 
-```text
-Advanced  review (userTask) via POST /task/74ef8d30-c652-11f1-ac07-4a8ec87eee1e/complete
-
-Process instance  74ef661b-c652-11f1-ac07-4a8ec87eee1e
-State             COMPLETED
-Definition        order v1 (Order)
-Business key      ORD-1001
-Started           2026-10-12T15:34:47.666+0000
-Ended             2026-10-12T15:34:47.916+0000
-
-Variables:
-NAME      VALUE  TYPE
-amount    250
-approved  true
-```
-
-On a terminal the answer is a table, as above; an agent or a script gets JSON.
+`pulse` talks to `http://localhost:8080/engine-rest` until you set up a profile. Your own engine,
+logins and read-only profiles: [Configuration](https://miragon.github.io/pulse/cli/configuration),
+[Authentication](https://miragon.github.io/pulse/cli/authentication) and [Safety](https://miragon.github.io/pulse/cli/safety).
 
 ## Commands
+
+Which commands cover a task. The six top-level ones (`inspect`, `wait`, `advance`, `retry`,
+`deploy`, `status`) combine several requests; every other is one REST operation.
 
 | Task                           | Commands                                                                 |
 | ------------------------------ | ------------------------------------------------------------------------ |
@@ -93,64 +75,29 @@ On a terminal the answer is a table, as above; an agent or a script gets JSON.
 | Ask the CLI itself             | `guide`, `commands`, `describe`, `--help`                                |
 | Set up engines and logins      | `config`, `auth`, `ping`                                                 |
 
-The six top-level commands (`inspect`, `wait`, `advance`, `retry`, `deploy`, `status`) combine
-several requests; every other command is one operation of the REST API.
+Everyday command lines: [Recipes](https://miragon.github.io/pulse/cli/recipes).
 
-Details: [workflow commands](https://miragon.github.io/pulse/cli/workflow-commands),
-[command structure](https://miragon.github.io/pulse/cli/commands), [recipes](https://miragon.github.io/pulse/cli/recipes).
+## With your AI assistant
 
-## AI agents and the Claude Code plugin
-
-Everything an agent needs is in the CLI: `pulse guide` prints the usage guide, and one line in
-`AGENTS.md` or `CLAUDE.md` ("Run `pulse guide` before using `pulse`") is enough. The CLI
-is also a Claude Code plugin in the plugin marketplace of this repository, whose skill makes Claude
-use the CLI whenever a task touches an engine.
+`pulse guide` prints the usage guide for an agent, so one line in `AGENTS.md` or `CLAUDE.md`
+("Run `pulse guide` before using `pulse`") is enough. In Claude Code, the plugin makes Claude use
+the CLI whenever a task touches an engine:
 
 ```text
 /plugin marketplace add Miragon/pulse
 /plugin install pulse-cli@pulse
 ```
 
-Details: [using the CLI from AI agents](https://miragon.github.io/pulse/cli/agents).
+Details: [Using the CLI from AI agents](https://miragon.github.io/pulse/cli/agents).
 
-## Engines
+## Help and feedback
 
-The CLI works with Operaton, CIB seven and Camunda 7. Every change is tested against Operaton
-and CIB seven; Camunda 7 was tested with 7.24.0 until its image left Docker Hub in November 2026.
-Camunda 8 is not supported: it has a different API.
-
-Details: [engines](https://miragon.github.io/pulse/cli/engines).
-
-## Without Node.js
-
-Every release also has a standalone executable for Linux, macOS and Windows, and a container
-image, `ghcr.io/miragon/pulse-cli`.
-
-Details: [installation](https://miragon.github.io/pulse/cli/installation).
-
-## Documentation
-
-The documentation is a website, [miragon.github.io/pulse/cli](https://miragon.github.io/pulse/cli/),
-built from the pages in [`docs/cli/`](https://github.com/Miragon/pulse/tree/main/docs/cli):
-
-- [Getting started](https://miragon.github.io/pulse/cli/getting-started): a first triage, then your own engine, Claude Code or CI
-- [Installation](https://miragon.github.io/pulse/cli/installation): npm, Homebrew, standalone executable, container image
-- [Workflow commands](https://miragon.github.io/pulse/cli/workflow-commands): inspect, wait, advance, retry, deploy, status
-- [Command structure](https://miragon.github.io/pulse/cli/commands): names, arguments, variables, request bodies, files, dates
-- [Output and errors](https://miragon.github.io/pulse/cli/output-and-errors): formats, previews, error fields, exit codes
-- [Configuration](https://miragon.github.io/pulse/cli/configuration): options, environment variables, config and project files, profiles
-- [Authentication](https://miragon.github.io/pulse/cli/authentication): Basic auth, OAuth logins, bearer tokens, token commands, other headers
-- [Safety](https://miragon.github.io/pulse/cli/safety): previews, confirmation, read-only mode
-- [Recipes](https://miragon.github.io/pulse/cli/recipes): command lines for everyday tasks
-- [Using the CLI from AI agents](https://miragon.github.io/pulse/cli/agents): the guide, the Claude Code plugin and skill
-- [Engines](https://miragon.github.io/pulse/cli/engines): compatibility, choosing the engine, adding a difference or an engine
-- [Architecture](https://miragon.github.io/pulse/cli/architecture): engine port, adapters, catalog generation; [decisions](https://miragon.github.io/pulse/cli/adr/)
-- [Development](https://github.com/Miragon/pulse/blob/main/docs/cli/development.md): building and testing the CLI in the Pulse repository
+- **Documentation:** every command, option and setup is explained at [miragon.github.io/pulse/cli](https://miragon.github.io/pulse/cli/).
+- **Bugs and ideas:** found a bug or missing something? [Open an issue](https://github.com/Miragon/pulse/issues).
 
 ## Contributing
 
-See the [development guide](https://github.com/Miragon/pulse/blob/main/docs/cli/development.md).
-Bugs and ideas go to the [issues](https://github.com/Miragon/pulse/issues).
+How to build and test the CLI is in the [development guide](https://github.com/Miragon/pulse/blob/main/docs/cli/development.md).
 
 ## License
 
