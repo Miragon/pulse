@@ -1,5 +1,5 @@
-import type { Client } from "@miragon/pulse-engine-client"
-import { getProcessDefinitionBpmn20Xml } from "@miragon/pulse-engine-client/sdk"
+import type { Client } from "@miragon/pulse-c7-client"
+import { getProcessDefinitionBpmn20Xml } from "@miragon/pulse-c7-client/sdk"
 import { createCallerCache } from "../engine/per-engine.js"
 
 /** A definition's XML never changes (a redeploy mints a new id); the bound only caps memory. */

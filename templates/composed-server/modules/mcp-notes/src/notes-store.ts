@@ -1,7 +1,7 @@
 /**
  * In-memory demo data source so the example module runs with zero external
  * infrastructure. A real module would put its client/SDK access here (compare
- * `@miragon/pulse-engine-client` feeding the engine module); the tools and
+ * `@miragon/pulse-c7-client` feeding the engine module); the tools and
  * widgets only ever see the `NotesStore` interface.
  */
 

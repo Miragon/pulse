@@ -25,7 +25,7 @@ To build your own MCP server on it, start from [pulse-starter](https://github.co
 
 The **engine module** for [Pulse](../../../../README.md): Camunda 7 / CIB seven BPM operations as
 `engine_*` MCP tools, plus the interactive cockpit widgets (MCP Apps). Built on
-[`@miragon/pulse-engine-client`](../engine-client), `@miragon/pulse-ui`,
+[`@miragon/pulse-c7-client`](../../c7/c7-client), `@miragon/pulse-ui`,
 `@miragon/pulse-widget-shell` and [`@miragon/pulse-c7-core`](../../c7/c7-core), the core of
 the Camunda 7 REST dialect family c7 and the workflow domain pulse-cli runs too, which this
 module runs over its client. It is the one MCP module of every dialect: a dialect family is a

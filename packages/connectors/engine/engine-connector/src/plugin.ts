@@ -1,5 +1,5 @@
 import { createToolRegistrar, type ModulePlugin } from "@miragon/pulse-widget-shell/server"
-import type { EngineAuthType } from "@miragon/pulse-engine-client"
+import type { EngineAuthType } from "@miragon/pulse-c7-client"
 import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-c7-core"
 import { providerForEntry } from "./providers/index.js"
 import { registerTools } from "./tools/index.js"

@@ -1,4 +1,4 @@
-import { readProcessInstanceVariables, type Client } from "@miragon/pulse-engine-client"
+import { readProcessInstanceVariables, type Client } from "@miragon/pulse-c7-client"
 import { incidentRecovery } from "@miragon/pulse-c7-core"
 import type { InstanceDetailData, TaskData } from "../view-models.js"
 import {
@@ -8,7 +8,7 @@ import {
   getProcessInstance,
   getTasks,
   getTasksCount,
-} from "@miragon/pulse-engine-client/sdk"
+} from "@miragon/pulse-c7-client/sdk"
 import { buildTaskFormSchema } from "../lib/bpmn/task-form-schema.js"
 import { collectActiveActivityIds, collectIncidentActivityIds } from "../lib/bpmn/activity-tree.js"
 import { bpmnProcessNameOf, readBpmnNames } from "@miragon/pulse-widget-shell/server"

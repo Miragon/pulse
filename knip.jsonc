@@ -66,7 +66,7 @@
       "ignore": ["sandbox/**"],
     },
 
-    "packages/connectors/engine/engine-client": {
+    "packages/connectors/c7/c7-client": {
       // Generated CIB seven SDK (pnpm generate): its export surface mirrors
       // the OpenAPI spec, not our usage.
       "ignore": ["src/generated/**"],

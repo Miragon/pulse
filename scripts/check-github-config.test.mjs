@@ -77,8 +77,8 @@ const published = (dir, manifest) => ({
 const TODAY = {
   "apps/mcp-server": { name: "@miragon/pulse-mcp-server", private: true },
   ...published("packages/core/widget-shell", { name: "@miragon/pulse-widget-shell" }),
-  ...published("packages/connectors/engine/engine-client", {
-    name: "@miragon/pulse-engine-client",
+  ...published("packages/connectors/c7/c7-client", {
+    name: "@miragon/pulse-c7-client",
   }),
   ...published("packages/connectors/engine/engine-connector", {
     name: "@miragon/pulse-engine-connector",

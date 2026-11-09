@@ -1,4 +1,4 @@
-import type { Client } from "@miragon/pulse-engine-client"
+import type { Client } from "@miragon/pulse-c7-client"
 import { EXECUTABLE, queryInput, toEngineDate, type Query } from "@miragon/pulse-c7-core"
 import { enginePortFor } from "../lib/core-adapter/engine-port.js"
 import type { JobBacklogData } from "../view-models.js"

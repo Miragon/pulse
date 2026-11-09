@@ -1,4 +1,4 @@
-import type { Client } from "@miragon/pulse-engine-client"
+import type { Client } from "@miragon/pulse-c7-client"
 import { readBpmnNames } from "@miragon/pulse-widget-shell/server"
 import { bpmnActivityIds } from "../lib/bpmn/bpmn-parse.js"
 import type { DefinitionInfo } from "./definition-info.js"

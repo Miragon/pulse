@@ -11,8 +11,8 @@ import {
   getDeploymentsCount,
   getDeployment,
   createDeployment,
-} from "@miragon/pulse-engine-client/sdk"
-import type { MultiFormDeploymentDto } from "@miragon/pulse-engine-client/types"
+} from "@miragon/pulse-c7-client/sdk"
+import type { MultiFormDeploymentDto } from "@miragon/pulse-c7-client/types"
 import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
 import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"

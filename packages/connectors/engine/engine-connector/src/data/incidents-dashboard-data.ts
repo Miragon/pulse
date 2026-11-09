@@ -1,6 +1,6 @@
-import type { Client } from "@miragon/pulse-engine-client"
+import type { Client } from "@miragon/pulse-c7-client"
 import { latestEngineDate, toEngineDate } from "@miragon/pulse-c7-core"
-import { getIncidentsCount } from "@miragon/pulse-engine-client/sdk"
+import { getIncidentsCount } from "@miragon/pulse-c7-client/sdk"
 import type {
   IncidentsDashboardActivity,
   IncidentsDashboardData,

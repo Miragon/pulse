@@ -8,7 +8,7 @@ import {
   getTaskVariablesInput,
 } from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
-import { readTaskVariables } from "@miragon/pulse-engine-client"
+import { readTaskVariables } from "@miragon/pulse-c7-client"
 import { complementaryFlags, engineSorting, trueOnly } from "@miragon/pulse-c7-core"
 import {
   getTasks,
@@ -17,7 +17,7 @@ import {
   claim,
   unclaim,
   setAssignee,
-} from "@miragon/pulse-engine-client/sdk"
+} from "@miragon/pulse-c7-client/sdk"
 import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
 import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { CUT_VALUE_WRITE_RULE, variableRead } from "../lib/mcp/variable-truncation.js"

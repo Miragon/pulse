@@ -1,15 +1,17 @@
-# @miragon/pulse-engine-client
+# @miragon/pulse-c7-client
 
-[![npm](https://img.shields.io/npm/v/@miragon/pulse-engine-client?style=flat-square)](https://www.npmjs.com/package/@miragon/pulse-engine-client)
+[![npm](https://img.shields.io/npm/v/@miragon/pulse-c7-client?style=flat-square)](https://www.npmjs.com/package/@miragon/pulse-c7-client)
 [![CI](https://img.shields.io/github/actions/workflow/status/Miragon/pulse/ci.yml?style=flat-square&label=ci)](https://github.com/Miragon/pulse/actions/workflows/ci.yml)
 [![Docs](https://img.shields.io/badge/docs-miragon.github.io%2Fpulse-335DE5?style=flat-square)](https://miragon.github.io/pulse/)
 
-A typed TypeScript client for the REST API of Camunda 7, CIB seven and Operaton.
+A typed TypeScript client for the REST API of Camunda 7, CIB seven and Operaton: the SDK of the
+Camunda 7 REST dialect family c7, next to its core
+[`@miragon/pulse-c7-core`](../c7-core/README.md).
 
 ## Install
 
 ```sh
-npm install @miragon/pulse-engine-client
+npm install @miragon/pulse-c7-client
 ```
 
 ## Overview
@@ -21,7 +23,7 @@ defaults miss. There is no official TypeScript client for CIB seven; this
 package fills that gap for Pulse and is usable by any CIB seven / Camunda 7
 project. It has no runtime dependency. The pure engine REST rules (dates,
 filters, sorting, variable writes, incident recovery) live in
-[`@miragon/pulse-c7-core`](../../c7/c7-core/README.md), which this package
+[`@miragon/pulse-c7-core`](../c7-core/README.md), which this package
 does not import.
 
 ## Exports
@@ -44,12 +46,12 @@ declared once in the generator config (`openapi-ts.config.ts`) and applied at
 runtime through `createClientConfig` (`src/hey-api.ts`), which the generated
 default client and `createEngineClient` share, so generated types and runtime
 behavior always agree. Every request sends
-`User-Agent: @miragon/pulse-engine-client/<version>`, so the engine's access
+`User-Agent: @miragon/pulse-c7-client/<version>`, so the engine's access
 logs show Pulse's calls.
 
 ```ts
-import { createEngineClient } from "@miragon/pulse-engine-client"
-import { getProcessDefinitions } from "@miragon/pulse-engine-client/sdk"
+import { createEngineClient } from "@miragon/pulse-c7-client"
+import { getProcessDefinitions } from "@miragon/pulse-c7-client/sdk"
 
 const client = createEngineClient({
   baseUrl: "http://localhost:8410/engine-rest",
@@ -109,7 +111,7 @@ checked in and CI assumes it matches the spec.
 
 ## The SDK-bound reads
 
-`src/engine-contract/` holds the reads whose REST contract differs from the SDK
+`src/sdk-reads/` holds the reads whose REST contract differs from the SDK
 defaults: the `text/plain`-only stacktrace and error-details endpoints
 (`fetchJobStacktrace`, `fetchExternalTaskErrorDetails`, `null` for an empty
 body), variable reads with `deserializeValues=false`

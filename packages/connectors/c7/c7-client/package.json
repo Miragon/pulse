@@ -1,7 +1,7 @@
 {
-  "name": "@miragon/pulse-engine-client",
+  "name": "@miragon/pulse-c7-client",
   "version": "0.27.1",
-  "description": "Generated CIB seven / Camunda 7 REST SDK, its client with deadlines and engine errors, and the reads whose REST contract the SDK defaults miss.",
+  "description": "The SDK of the Camunda 7 REST dialect family (Operaton, CIB seven, Camunda 7): the generated REST SDK, its client with deadlines and engine errors, and the reads whose REST contract the SDK defaults miss.",
   "license": "MIT",
   "keywords": [
     "camunda",
@@ -11,7 +11,7 @@
     "rest-client",
     "sdk"
   ],
-  "homepage": "https://github.com/Miragon/pulse/tree/main/packages/connectors/engine/engine-client#readme",
+  "homepage": "https://github.com/Miragon/pulse/tree/main/packages/connectors/c7/c7-client#readme",
   "bugs": "https://github.com/Miragon/pulse/issues",
   "engines": {
     "node": ">=22"
@@ -19,7 +19,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Miragon/pulse.git",
-    "directory": "packages/connectors/engine/engine-client"
+    "directory": "packages/connectors/c7/c7-client"
   },
   "publishConfig": {
     "access": "public"

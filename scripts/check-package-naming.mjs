@@ -70,7 +70,7 @@ export const CONNECTOR_ROLES = ["connector", "client", "core"]
  * whose directory is gone fails as stale.
  */
 export const GENERATED_DIRS = {
-  "packages/connectors/engine/engine-client/src/generated":
+  "packages/connectors/c7/c7-client/src/generated":
     "the hey-api SDK `pnpm generate` regenerates from the CIB seven OpenAPI spec; never edited by hand",
   "apps/cli/src/generated":
     "the CLI's command catalog (catalog.json) of every engine, which `pnpm --fail-if-no-match --filter @miragon/pulse-cli catalog` renders from apps/cli/spec; never edited by hand (scripts/catalog/render.test.ts fails on a stale one)",

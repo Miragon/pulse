@@ -1,4 +1,4 @@
-import { withCallerSignal, type Client } from "@miragon/pulse-engine-client"
+import { withCallerSignal, type Client } from "@miragon/pulse-c7-client"
 import type { EngineEntry } from "../../engine-provider.js"
 import { providerForEntry } from "../../providers/index.js"
 import type { EngineLink } from "./cockpit-url.js"

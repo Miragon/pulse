@@ -14,7 +14,8 @@ Docs are held to the code:
   page stays within its line budget.
 - `scripts/old-names.test.mjs` fails on a technical name of the retired operate CLI, on the
   unscoped npm packages pulse and pulse-cli (someone else's), on an image off GHCR, on a package
-  of the retired MCP toolkit and on the npm name and path the c7 family's core had up to 0.27.
+  of the retired MCP toolkit and on the npm names and paths the c7 family's core and client had up
+  to 0.27.
 - `scripts/check-package-scripts.mjs` (`pnpm lint:package-scripts`) fails on a `--filter`
   naming no workspace package and on a pnpm filter without `--fail-if-no-match` on a gate path
   (pnpm 10 exits 0 when a filter matches nothing, so a stale name turns a gate green).
@@ -45,7 +46,7 @@ command line interface (`apps/cli`) and a VS Code extension (`apps/vscode`) for 
 | `apps/cli/`                                    | The CLI (npm `@miragon/pulse-cli`): every REST operation of the engine as a command, generated from its OpenAPI spec, plus the workflow commands; its rules in `apps/cli/CLAUDE.md`                                                                                                                                                                                                                               |
 | `apps/vscode/`                                 | Pulse for VS Code (`pulse-cockpit`, a .vsix): a Preact webview over an engine-neutral contract and core, the C7 adapter; its rules in `apps/vscode/CLAUDE.md`                                                                                                                                                                                                                                                     |
 | `packages/connectors/engine/engine-connector/` | engine module, the one MCP module of every dialect: operations tools, widget tools, widgets                                                                                                                                                                                                                                                                                                                       |
-| `packages/connectors/engine/engine-client/`    | Generated CIB seven REST SDK (`src/generated/`), `createEngineClient`, `EngineRequestError` and the SDK-bound reads (`src/engine-contract/`); a leaf                                                                                                                                                                                                                                                              |
+| `packages/connectors/c7/c7-client/`            | The SDK of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-client`): the generated CIB seven REST SDK (`src/generated/`), `createEngineClient`, `EngineRequestError` and the SDK-bound reads (`src/sdk-reads/`); a leaf                                                                                                                                                                              |
 | `packages/connectors/c7/c7-core/`              | The core of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-core`), its workflow domain and pure engine REST rules: port, selection, inspect, status triage, root causes, retry/advance plans, dates, filters, variable writes; no runtime dependency                                                                                                                                                |
 | `packages/core/ui/`                            | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the formatters and the tones without React under `/format` and `/tones`, the brand gates under `/testing`                                                                        |
 | `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), a module's test server (`/testing`)                                                                                                                                                    |
@@ -63,13 +64,14 @@ Three axes decide where code goes, and they stay apart:
   `EngineProvider` (invariant 8), never a package or an app.
 - Dialect (an engine API family; one today, the Camunda 7 REST API all three vendors serve):
   one package family under `packages/connectors/<dialect>/`, named for the API family it speaks
-  (`c7` today, with its core `@miragon/pulse-c7-core`; `c8` later). ONE MCP server app
-  (`apps/mcp-server`) and ONE module, `engine` (`packages/connectors/engine/engine-connector`),
-  serve every dialect (owner decisions 2026-11-07 and 2026-11-08): the engine module spans the
-  dialect families, importing the clients and cores of the families `ENGINE_DIALECTS` names
-  (`engine-connector-spans-the-dialects` in `.dependency-cruiser.cjs`), and a dialect joins that
-  list in the commit that first imports it. A new dialect is a family, never an MCP server app or
-  a module of its own, and inherits its gates from the layout.
+  (`c7` today, with its client `@miragon/pulse-c7-client` and its core `@miragon/pulse-c7-core`;
+  `c8` later). ONE MCP server app (`apps/mcp-server`) and ONE module, `engine`
+  (`packages/connectors/engine/engine-connector`), serve every dialect (owner decisions
+  2026-11-07 and 2026-11-08): the engine module spans the dialect families, importing the
+  clients and cores of the families `ENGINE_DIALECTS` names (`engine-connector-spans-the-dialects`
+  in `.dependency-cruiser.cjs`), and a dialect joins that list in the commit that first imports
+  it. A new dialect is a family, never an MCP server app or a module of its own, and inherits its
+  gates from the layout.
 - Interface (how a person or an agent reaches an engine): an app under `apps/`, today the
   MCP server, the CLI (`apps/cli`, rules in `apps/cli/CLAUDE.md`) and the VS Code extension
   (`apps/vscode`, rules in `apps/vscode/CLAUDE.md`). Another interface (a second editor
@@ -147,7 +149,7 @@ the tunnel's `https://` origin and the server restarted, or the `Host` check ref
 
 If generated SDK files look wrong (e.g. `client.gen.ts` importing `./src/hey-api.js`
 instead of `../hey-api.js`), the shared turbo cache replayed a poisoned `generate`
-output. Fix it with `pnpm exec turbo run generate --filter=@miragon/pulse-engine-client --force`.
+output. Fix it with `pnpm exec turbo run generate --filter=@miragon/pulse-c7-client --force`.
 
 ## Design-System (verbindlich)
 
@@ -511,7 +513,7 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      `toEngineVariable(s)`, `autoTypedValue`, `incidentRecovery`, `RAW_VARIABLES`, root causes,
      the missing-resource rule `isMissing`) in `@miragon/pulse-c7-core`, the
      reads bound to the SDK (text/plain endpoints, raw variable reads, `readBatch`, queued
-     batches) in engine-client's `packages/connectors/engine/engine-client/src/engine-contract/`,
+     batches) in c7-client's `packages/connectors/c7/c7-client/src/sdk-reads/`,
      which does not import c7-core. Dates parse in one parser, read in one of two named
      readings (`DateInputReading`: `OFFSET_REQUIRED` for the MCP tools, `UTC_WITHOUT_OFFSET` for
      the CLI). A 404 is "none" only by `isMissing` (a 404 `NotFoundException`, a
@@ -520,8 +522,8 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      `isMissingResource`/`noneIfMissing` in `src/lib/core-adapter/engine-port.ts`), the CLI and
      the VS Code adapter call it. Three copies are left, each held equal by a test: in the leaf
      client the raw-variable flag (to `RAW_VARIABLES`, the connector's
-     `src/engine-contract.test.ts`) and the wrong-root hint of a 404 in
-     `packages/connectors/engine/engine-client/src/engine-error.ts` (wording only, to
+     `src/sdk-reads.test.ts`) and the wrong-root hint of a 404 in
+     `packages/connectors/c7/c7-client/src/engine-error.ts` (wording only, to
      `isUnknownEndpoint`, on which `isMissing` builds; the connector's
      `src/lib/core-adapter/engine-port.test.ts`), and the CLI's endpoint hint in
      `apps/cli/src/http/errors.ts` (its http layer does not import the core;
@@ -543,7 +545,7 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      the MCP server's thresholds from `ENGINE_HEALTH_*`, the CLI's the defaults 50/25), a
      threshold breach a critical `INCIDENTS_CRITICAL` finding; the
      connector's port (`src/lib/core-adapter/engine-port.ts`) maps each operation to an SDK or
-     contract read. Deliberate carve-outs: the composites read definitions by id inside inspect (not `data/definition-info.ts`;
+     SDK-bound read. Deliberate carve-outs: the composites read definitions by id inside inspect (not `data/definition-info.ts`;
      `definitionKeyOf` only as a fallback), send UTC `+0000` dates (`engineFormat`, not
      `toEngineDate`), and count overdue jobs from a capped scan of 1,000 per key, named in
      `truncated` (not a `/count`). The MCP side caps the result lists c7-core leaves uncapped
@@ -808,7 +810,7 @@ workspace (its header lists each check).
 
 - **One release-please train.** Conventional commits on `main` drive `release-please.yml`: one
   Release PR (tag `v<version>`) bumps the root, every app, the seven packages, the template's
-  pins and the engine-client User-Agent in lockstep (`extra-files` in `release-please-config.json`).
+  pins and the c7-client User-Agent in lockstep (`extra-files` in `release-please-config.json`).
   Merging it creates the release; every publish job then waits for manual approval of the
   `release` environment gate.
 - **npm:** the seven packages and `@miragon/pulse-cli` publish through
@@ -817,8 +819,9 @@ workspace (its header lists each check).
   from another repository. The pack job runs `pnpm pack`, which rewrites `workspace:*` (npm's
   own pack would ship it verbatim); the one job that holds `id-token: write` runs no package
   manager. Only the server app and the VS Code extension stay private. The `miragon-ai` names
-  used up to 0.20.0 are retired, and so is the npm name of engine-core, the c7 family's core up
-  to 0.27 (now `@miragon/pulse-c7-core`); never reuse them.
+  used up to 0.20.0 are retired, and so are the npm names of engine-core and engine-client, the
+  c7 family's core and client up to 0.27 (now `@miragon/pulse-c7-core` and
+  `@miragon/pulse-c7-client`); never reuse them.
 - **The starter** reaches customers as `Miragon/pulse-starter`, the read-only mirror of
   `templates/composed-server` and the customer-facing composition path, through
   `sync-template-mirror.yml` after the npm publish (before it, the template's pins would not

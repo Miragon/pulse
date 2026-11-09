@@ -51,15 +51,16 @@ const RULES = [
   // on the toolkit any more (an import of it fails to resolve); a doc or a skill that names one
   // installs the old library next to Pulse. The toolkit's repository stays citable as the origin.
   { name: "retired toolkit package", pattern: /@miragon\/mcp-toolkit-/ },
-  // The Camunda 7 REST API is the dialect family c7: its core moved from the engine family to
-  // @miragon/pulse-c7-core (packages/connectors/c7/c7-core) in 0.28, and the old name gets no
-  // further release, so a doc or a manifest that names it installs 0.27 forever. The engine
-  // module keeps its names (@miragon/pulse-engine-connector), and the word engine-core stays
-  // citable as history.
+  // The Camunda 7 REST API is the dialect family c7: its core and its SDK moved from the engine
+  // family to @miragon/pulse-c7-core (packages/connectors/c7/c7-core) and
+  // @miragon/pulse-c7-client (packages/connectors/c7/c7-client) in 0.28, and the old names get
+  // no further release, so a doc or a manifest that names one installs 0.27 forever. The engine
+  // module keeps its names (@miragon/pulse-engine-connector), and the words engine-core and
+  // engine-client stay citable as history.
   {
     name: "retired engine family package",
     pattern:
-      /@miragon\/pulse-engine-core(?![\w-])|packages\/connectors\/engine\/engine-core(?![\w-])/,
+      /@miragon\/pulse-engine-(?:core|client)(?![\w-])|packages\/connectors\/engine\/engine-(?:core|client)(?![\w-])/,
   },
 ]
 
@@ -141,6 +142,17 @@ describe("the name rules", () => {
       "retired engine family package",
     ],
     ["packages/connectors/engine/engine-core/src/index.ts", "retired engine family package"],
+    [
+      'import { createEngineClient } from "@miragon/pulse-engine-client"',
+      "retired engine family package",
+    ],
+    ['import { getTask } from "@miragon/pulse-engine-client/sdk"', "retired engine family package"],
+    ['"@miragon/pulse-engine-client": "workspace:*"', "retired engine family package"],
+    ["npm install @miragon/pulse-engine-client@0.27.1", "retired engine family package"],
+    [
+      "packages/connectors/engine/engine-client/src/generated/sdk.gen.ts",
+      "retired engine family package",
+    ],
   ]) {
     it(`${text} is ${rule}`, () => {
       assert.ok(rulesMatching(text).includes(rule), rulesMatching(text).join(", "))
@@ -179,13 +191,20 @@ describe("the name rules", () => {
     'import { McpServer } from "@modelcontextprotocol/server"',
     'import { App } from "@modelcontextprotocol/ext-apps"',
     "pnpm exec mcp-inspector --cli --method tools/list",
-    // The dialect family c7, the engine module's own names and engine-core as history.
+    // The dialect family c7, the engine module's own names, engine-core and engine-client as
+    // history, and the VS Code extension's own engine client.
     "@miragon/pulse-c7-core",
     "packages/connectors/c7/c7-core/src/index.ts",
+    "@miragon/pulse-c7-client/sdk",
+    "packages/connectors/c7/c7-client/src/sdk-reads/reads.ts",
     "@miragon/pulse-engine-connector",
     "packages/connectors/engine/engine-connector/src/module.ts",
     "c7-core (engine-core until 0.27) holds the pure engine rules",
     "@miragon/pulse-engine-cores",
+    "c7-client (engine-client until 0.27) sends the User-Agent",
+    "@miragon/pulse-engine-clients",
+    'import { engineClient } from "./support/engine-client.mjs"',
+    "apps/vscode/src/adapters/c7/engine-rest/engine-client.ts",
     // The toolkit as the origin of ported code stays citable.
     "ported from mcp-toolkit's examples/test/helpers/golden.ts",
     "the outline `Button` at that scale (Miragon/mcp-toolkit#194)",

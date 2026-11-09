@@ -556,7 +556,7 @@ describe("checkWorkspace over fixture trees", () => {
     for (const dir of [
       "apps/mcp-server",
       "packages/core/widget-shell",
-      "packages/connectors/engine/engine-client",
+      "packages/connectors/c7/c7-client",
       "packages/connectors/engine/engine-connector",
       "packages/connectors/c7/c7-core",
     ]) {

@@ -1,4 +1,4 @@
-import { type Client, EngineRequestError } from "@miragon/pulse-engine-client"
+import { type Client, EngineRequestError } from "@miragon/pulse-c7-client"
 import { callerCacheKey } from "@miragon/pulse-widget-shell/server"
 
 /**

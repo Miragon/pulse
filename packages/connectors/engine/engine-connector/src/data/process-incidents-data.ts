@@ -1,4 +1,4 @@
-import type { Client } from "@miragon/pulse-engine-client"
+import type { Client } from "@miragon/pulse-c7-client"
 import { latestEngineDate, toEngineDate } from "@miragon/pulse-c7-core"
 import {
   getActivityStatistics,
@@ -6,7 +6,7 @@ import {
   getIncidentsCount,
   getJobsCount,
   getProcessInstancesCount,
-} from "@miragon/pulse-engine-client/sdk"
+} from "@miragon/pulse-c7-client/sdk"
 import { bpmnProcessNameOf, readBpmnNames } from "@miragon/pulse-widget-shell/server"
 import type {
   ActivityIncidentsData,

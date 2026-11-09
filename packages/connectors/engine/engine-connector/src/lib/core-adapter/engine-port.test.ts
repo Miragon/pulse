@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest"
-import { EngineRequestError, fetchJobStacktrace } from "@miragon/pulse-engine-client"
+import { EngineRequestError, fetchJobStacktrace } from "@miragon/pulse-c7-client"
 import { isUnknownEndpoint } from "@miragon/pulse-c7-core"
 import { INSPECT_OPERATIONS, STATUS_OPERATIONS } from "@miragon/pulse-c7-core/testing"
 import {
@@ -105,11 +105,11 @@ describe("a 404 of the port's text reads", () => {
 })
 
 /**
- * engine-client words a 404 that is no engine answer as a likely wrong REST root; it is a leaf and
+ * c7-client words a 404 that is no engine answer as a likely wrong REST root; it is a leaf and
  * cannot ask c7-core. Its wording is held here, over real engine answers, to c7-core's
  * `isUnknownEndpoint`, on which the one missing-resource rule `isMissing` builds.
  */
-describe("the wrong-root hint of engine-client's 404 follows c7-core's isUnknownEndpoint", () => {
+describe("the wrong-root hint of c7-client's 404 follows c7-core's isUnknownEndpoint", () => {
   const HINT = "check that the engine URL points at the REST API root"
   const answers = [
     { status: 404, body: { type: "InvalidRequestException", message: "gone" } },

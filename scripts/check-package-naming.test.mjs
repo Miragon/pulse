@@ -21,7 +21,7 @@ import {
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const require = createRequire(import.meta.url)
 
-const SDK = "packages/connectors/engine/engine-client/src/generated"
+const SDK = "packages/connectors/c7/c7-client/src/generated"
 const CONNECTOR = "packages/connectors/engine/engine-connector"
 const WORKSPACE = [
   "packages:",
@@ -49,7 +49,7 @@ const FUTURE = {
   "apps/cli/package.json": { name: "@miragon/pulse-cli", bin: { "pulse-cli": "dist/cli.js" } },
   "apps/vscode/package.json": EXTENSION,
   "packages/core/widget-shell/package.json": { name: "@miragon/pulse-widget-shell" },
-  "packages/connectors/engine/engine-client/package.json": scoped("engine-client"),
+  "packages/connectors/c7/c7-client/package.json": scoped("c7-client"),
   "packages/connectors/engine/engine-connector/package.json": scoped("engine-connector"),
   "docs/package.json": { name: "@miragon/pulse-docs", private: true },
 }
@@ -92,8 +92,8 @@ describe("checkPackageName: today's packages", () => {
         { name: "@miragon/pulse-mcp-server", private: true, bin: { x: "dist/index.js" } },
       ],
       ["packages/core/widget-shell", { name: "@miragon/pulse-widget-shell" }],
+      ["packages/connectors/c7/c7-client", { name: "@miragon/pulse-c7-client" }],
       ["packages/connectors/c7/c7-core", { name: "@miragon/pulse-c7-core" }],
-      ["packages/connectors/engine/engine-client", scoped("engine-client")],
       ["packages/connectors/engine/engine-connector", scoped("engine-connector")],
       ["docs", { name: "@miragon/pulse-docs", private: true }],
     ]) {
@@ -321,7 +321,7 @@ describe("checkPackageName: directory rules", () => {
       "docs/sub",
       "apps",
       "packages/core",
-      "packages/connectors/engine/engine-client/sub",
+      "packages/connectors/c7/c7-client/sub",
     ]) {
       assert.equal(packageKind(dir), undefined, dir)
       assertOne(checkPackageName(dir, scoped(dir)), /no naming rule covers/, dir)
@@ -436,7 +436,7 @@ describe("checkAppDependencies: no package declares an app", () => {
           extension({
             dependencies: { "some-engine-cli": "0.9.0", "pulse-tools": "1.0.0" },
             devDependencies: {
-              "@miragon/pulse-engine-client": "workspace:*",
+              "@miragon/pulse-c7-client": "workspace:*",
               "@miragon/pulse-client": "workspace:*",
               core: "workspace:^1.0.0",
               sibling: "link:../vscode-tools",

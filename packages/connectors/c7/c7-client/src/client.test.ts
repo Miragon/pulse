@@ -8,10 +8,10 @@ import { createEngineClient } from "./client.js"
  * `hey-api.ts`), so a stale copy fails here instead of in an operator's
  * access-log filter.
  */
-const { version } = JSON.parse(
+const { name, version } = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8"),
-) as { version: string }
-const USER_AGENT = `@miragon/pulse-engine-client/${version}`
+) as { name: string; version: string }
+const USER_AGENT = `${name}/${version}`
 
 afterEach(() => {
   vi.unstubAllGlobals()

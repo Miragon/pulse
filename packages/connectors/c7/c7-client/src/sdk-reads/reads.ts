@@ -38,7 +38,7 @@ const TEXT_PLAIN = { parseAs: "text", headers: { Accept: "text/plain" } } as con
  * The query the variable reads send. The rule's home is c7-core's `RAW_VARIABLES`; this leaf
  * does not import c7-core, so its two SDK reads restate the flag, and the engine connector
  * (the one package that imports both) holds the copy equal to c7-core's in
- * `src/engine-contract.test.ts`.
+ * `src/sdk-reads.test.ts`.
  */
 const RAW_VARIABLES = { deserializeValues: false } as const
 

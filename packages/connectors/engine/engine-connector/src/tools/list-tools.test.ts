@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import type { Client } from "@miragon/pulse-engine-client"
+import type { Client } from "@miragon/pulse-c7-client"
 
 // The guards capture the full registrar surface; no handler may reach a real engine.
-vi.mock("@miragon/pulse-engine-client/sdk", async (importOriginal) => {
+vi.mock("@miragon/pulse-c7-client/sdk", async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>()
   return Object.fromEntries(Object.keys(actual).map((name) => [name, vi.fn()]))
 })
 
 import { z } from "zod"
-import * as sdk from "@miragon/pulse-engine-client/sdk"
+import * as sdk from "@miragon/pulse-c7-client/sdk"
 import { MAX_PAGE_SIZE } from "../schemas/index.js"
 import { paginatedListOutput } from "../lib/mcp/pagination.js"
 import { createEngineRegistry, type EngineRegistry } from "../lib/engine/resolve-engine.js"

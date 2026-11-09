@@ -6,7 +6,7 @@ import { z } from "zod"
 import type {
   CreateDeploymentResponse,
   MultiFormDeploymentDto,
-} from "@miragon/pulse-engine-client/types"
+} from "@miragon/pulse-c7-client/types"
 import type { EngineEntry } from "../engine-provider.js"
 import { createEngineRegistry, type EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { providerForEntry } from "../providers/index.js"

@@ -12,7 +12,7 @@ import { RUNTIME_WRITE_CASES, type WireRequest } from "./test-support/write-case
 import { OPERATIONS_WRITE_CASES } from "./test-support/write-cases-operations.js"
 import { FORM_BPMN, TASK, TASK_WRITE_CASES, taskRoutes } from "./test-support/write-cases-tasks.js"
 
-/** #328: before this, no write tool had a handler test and the engine contract broke silently. */
+/** #328: before this, no write tool had a handler test and the REST contract broke silently. */
 
 const tools = captureTools((register) => registerTools(register, { allowDeployments: true }))
 const CASES = [...RUNTIME_WRITE_CASES, ...TASK_WRITE_CASES, ...OPERATIONS_WRITE_CASES]

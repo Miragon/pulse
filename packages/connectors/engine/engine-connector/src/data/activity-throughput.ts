@@ -1,10 +1,10 @@
-import type { Client } from "@miragon/pulse-engine-client"
+import type { Client } from "@miragon/pulse-c7-client"
 import {
   getHistoricActivityStatistics,
   getHistoricProcessInstances,
   getHistoricProcessInstancesCount,
   getProcessInstances,
-} from "@miragon/pulse-engine-client/sdk"
+} from "@miragon/pulse-c7-client/sdk"
 import { mapLimit, toEngineDate } from "@miragon/pulse-c7-core"
 import { createCallerCache, oneAtATime } from "../lib/engine/per-engine.js"
 import type { ActivityThroughputActivity, ActivityThroughputData } from "../view-models.js"

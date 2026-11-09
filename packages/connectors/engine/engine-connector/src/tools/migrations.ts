@@ -1,8 +1,8 @@
 import { createMigrationPlanInput, migrateProcessInstancesAsyncInput } from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
-import { queuedBatch, type Client } from "@miragon/pulse-engine-client"
-import { generateMigrationPlan, executeMigrationPlanAsync } from "@miragon/pulse-engine-client/sdk"
-import type { MigrationInstructionDto } from "@miragon/pulse-engine-client/types"
+import { queuedBatch, type Client } from "@miragon/pulse-c7-client"
+import { generateMigrationPlan, executeMigrationPlanAsync } from "@miragon/pulse-c7-client/sdk"
+import type { MigrationInstructionDto } from "@miragon/pulse-c7-client/types"
 import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 

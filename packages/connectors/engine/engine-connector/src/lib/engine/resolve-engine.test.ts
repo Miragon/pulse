@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import type { Client } from "@miragon/pulse-engine-client"
+import type { Client } from "@miragon/pulse-c7-client"
 import {
   cockpitEngineId,
   createEngineRegistry,

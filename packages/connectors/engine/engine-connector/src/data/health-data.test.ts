@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-vi.mock("@miragon/pulse-engine-client/sdk", () => ({
+vi.mock("@miragon/pulse-c7-client/sdk", () => ({
   getHistoricProcessInstancesCount: vi.fn(),
   getIncidents: vi.fn(),
   getIncidentsCount: vi.fn(),
@@ -14,8 +14,8 @@ import {
   getIncidentsCount,
   getProcessDefinitionStatistics,
   getProcessInstances,
-} from "@miragon/pulse-engine-client/sdk"
-import type { Client } from "@miragon/pulse-engine-client"
+} from "@miragon/pulse-c7-client/sdk"
+import type { Client } from "@miragon/pulse-c7-client"
 import { buildClusterDetailData } from "./cluster-detail-data.js"
 import {
   causeKeyOf,

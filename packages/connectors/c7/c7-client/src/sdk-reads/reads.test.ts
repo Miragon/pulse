@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 // The generated SDK is replaced by spies: these tests pin the request OPTIONS
-// each contract read adds (Accept/parseAs, deserializeValues, the batch
+// each SDK-bound read adds (Accept/parseAs, deserializeValues, the batch
 // fallback) and how failures map. That the options survive to the wire is
 // asserted end to end against a recording fake engine in the engine
 // connector (`src/tools/*.wire.test.ts`).

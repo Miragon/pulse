@@ -43,7 +43,7 @@ export default mergeConfig(sharedConfig, defineConfig({
   },
 }))
 `
-const PKG_VITEST = "packages/connectors/engine/engine-client/vitest.config.ts"
+const PKG_VITEST = "packages/connectors/c7/c7-client/vitest.config.ts"
 const BASE_THRESHOLDS = "thresholds: { statements: 44, branches: 32, functions: 45, lines: 44 },"
 // The apps and a new connector-family package: the ratchet covers each by its layout.
 const CLI_DIR = "apps/cli"
@@ -52,7 +52,7 @@ const FAMILY_DIR = "packages/connectors/fam/x-connector"
 const REAL_VITEST_CONFIGS = [
   "apps/mcp-server/vitest.config.ts",
   "packages/core/widget-shell/vitest.config.ts",
-  "packages/connectors/engine/engine-client/vitest.config.ts",
+  "packages/connectors/c7/c7-client/vitest.config.ts",
   "packages/connectors/engine/engine-connector/vitest.config.ts",
 ]
 
@@ -123,7 +123,7 @@ describe("shadowing configs (loaded BEFORE the ratcheted file)", () => {
     "packages/core/widget-shell/stryker.conf.json",
     "packages/core/widget-shell/.stryker.config.json",
     "packages/core/widget-shell/stryker.config.mjs",
-    "packages/connectors/engine/engine-client/stryker.conf.cjs",
+    "packages/connectors/c7/c7-client/stryker.conf.cjs",
   ]
 
   it("flags each one, also when the diff introduces it", () => {

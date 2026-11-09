@@ -16,7 +16,7 @@ describe("workspace-packages", () => {
   it("counts a library published from packages/ only", () => {
     const lib = (dir, manifest) => isPublishedLibrary({ dir, manifest: { name: "x", ...manifest } })
     assert.equal(lib("packages/core/widget-shell", {}), true)
-    assert.equal(lib("packages/connectors/engine/engine-client", {}), true)
+    assert.equal(lib("packages/connectors/c7/c7-client", {}), true)
     // The CLI is on npm, but no server imports an interface.
     assert.equal(lib("apps/cli", {}), false)
     assert.equal(lib("packages/core/widget-shell", { private: true }), false)
@@ -38,8 +38,8 @@ describe("workspace-packages", () => {
       publishedLibraries(REPO_ROOT).map(({ dir, manifest }) => [dir, manifest.name]),
     )
     assert.deepEqual(rows.map(([, name]) => name).sort(), [
+      "@miragon/pulse-c7-client",
       "@miragon/pulse-c7-core",
-      "@miragon/pulse-engine-client",
       "@miragon/pulse-engine-connector",
       "@miragon/pulse-http",
       "@miragon/pulse-profile",

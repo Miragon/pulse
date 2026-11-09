@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { afterEach, describe, expect, it } from "vitest"
-import { readProcessInstanceVariables, readTaskVariables } from "@miragon/pulse-engine-client"
+import { readProcessInstanceVariables, readTaskVariables } from "@miragon/pulse-c7-client"
 import { RAW_VARIABLES_QUERY } from "@miragon/pulse-c7-core"
 import { clientFor, startFakeEngine, type FakeEngine } from "./tools/test-support/fake-engine.js"
 
@@ -36,13 +36,13 @@ function sources(): Array<{ file: string; text: string }> {
 
 /** Names imported from the generated SDK, per file. */
 function sdkImports(text: string): string[] {
-  return [...text.matchAll(/import\s*\{([^}]*)\}\s*from\s*"@miragon\/pulse-engine-client\/sdk"/g)]
+  return [...text.matchAll(/import\s*\{([^}]*)\}\s*from\s*"@miragon\/pulse-c7-client\/sdk"/g)]
     .flatMap((m) => m[1].split(","))
     .map((name) => name.trim().split(/\s+as\s+/)[0])
     .filter(Boolean)
 }
 
-describe("engine calls with a contract override go through the engine contract", () => {
+describe("engine calls with a contract override go through the SDK-bound reads", () => {
   it("finds the SDK imports (the scan is not vacuous)", () => {
     expect(sources().filter(({ text }) => sdkImports(text).length > 0).length).toBeGreaterThan(10)
   })
@@ -54,7 +54,7 @@ describe("engine calls with a contract override go through the engine contract",
         if (file === home) continue
         expect(
           sdkImports(text),
-          `${file}: use ${wrapper} (engine contract) instead of the raw SDK ${raw}`,
+          `${file}: use ${wrapper} (SDK-bound reads) instead of the raw SDK ${raw}`,
         ).not.toContain(raw)
       }
     },
@@ -80,11 +80,11 @@ describe("engine calls with a contract override go through the engine contract",
 })
 
 /**
- * The raw-variable flag has ONE home, c7-core's `RAW_VARIABLES`. engine-client is a leaf and
+ * The raw-variable flag has ONE home, c7-core's `RAW_VARIABLES`. c7-client is a leaf and
  * does not import c7-core, so its two variable reads restate the flag; this package imports
  * both and holds the copy equal on the wire: a change to either side fails here.
  */
-describe("engine-client's variable reads send c7-core's raw-variable flag", () => {
+describe("c7-client's variable reads send c7-core's raw-variable flag", () => {
   const engines: FakeEngine[] = []
   afterEach(async () => {
     await Promise.all(engines.splice(0).map((engine) => engine.close()))

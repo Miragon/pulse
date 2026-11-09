@@ -21,12 +21,12 @@
         { "type": "json", "path": "apps/vscode/package.json", "jsonpath": "$.version" },
         {
           "type": "json",
-          "path": "packages/connectors/engine/engine-client/package.json",
+          "path": "packages/connectors/c7/c7-client/package.json",
           "jsonpath": "$.version"
         },
         {
           "type": "generic",
-          "path": "packages/connectors/engine/engine-client/src/hey-api.ts"
+          "path": "packages/connectors/c7/c7-client/src/hey-api.ts"
         },
         {
           "type": "json",

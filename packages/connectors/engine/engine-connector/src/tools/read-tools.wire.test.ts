@@ -13,7 +13,7 @@ import {
   type FakeRoutes,
 } from "./test-support/fake-engine.js"
 
-/** #328, read side: engine-contract rules every READ tool honours on the wire. */
+/** #328, read side: the REST contract rules every READ tool honours on the wire. */
 
 const tools = captureTools(
   (register) => registerTools(register, { allowDeployments: true }),

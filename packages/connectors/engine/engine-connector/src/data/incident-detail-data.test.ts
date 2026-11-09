@@ -57,7 +57,7 @@ async function build(routes: FakeRoutes) {
   return { data, engine }
 }
 
-describe("buildIncidentDetailData through the engine contract", () => {
+describe("buildIncidentDetailData through the REST contract", () => {
   it("offers a job retry for a failedJob and reads its stacktrace as text/plain", async () => {
     const { data, engine } = await build({
       "GET /incident/inc-1": { body: incident({}) },

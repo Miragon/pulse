@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { cibsevenProvider } from "../providers/index.js"
 
 // Primary-read failures are the rejection table in `honest-numbers.test.ts`.
-vi.mock("@miragon/pulse-engine-client/sdk", () => ({
+vi.mock("@miragon/pulse-c7-client/sdk", () => ({
   getActivityInstanceTree: vi.fn(),
   getIncidents: vi.fn(),
   getIncidentsCount: vi.fn(),
@@ -29,7 +29,7 @@ import {
   getProcessInstanceVariables,
   getTasks,
   getTasksCount,
-} from "@miragon/pulse-engine-client/sdk"
+} from "@miragon/pulse-c7-client/sdk"
 import { buildTaskFormSchema } from "../lib/bpmn/task-form-schema.js"
 
 import { buildInstanceDetailData } from "./instance-detail-data.js"

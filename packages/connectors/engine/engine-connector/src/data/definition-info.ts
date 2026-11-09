@@ -1,8 +1,5 @@
-import type { Client } from "@miragon/pulse-engine-client"
-import {
-  getProcessDefinitionStatistics,
-  getProcessDefinitions,
-} from "@miragon/pulse-engine-client/sdk"
+import type { Client } from "@miragon/pulse-c7-client"
+import { getProcessDefinitionStatistics, getProcessDefinitions } from "@miragon/pulse-c7-client/sdk"
 import {
   bpmnProcessNameOf,
   readBpmnNames,

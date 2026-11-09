@@ -1,6 +1,6 @@
 import { z } from "zod"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
-import type { Client } from "@miragon/pulse-engine-client"
+import type { Client } from "@miragon/pulse-c7-client"
 import type { EngineLink } from "./cockpit-url.js"
 import { resolveEngine, type EngineCallContext, type EngineRegistry } from "./resolve-engine.js"
 

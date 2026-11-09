@@ -1,4 +1,4 @@
-import type { Client } from "@miragon/pulse-engine-client"
+import type { Client } from "@miragon/pulse-c7-client"
 import {
   causeKeyOf,
   criticalIncidentsRule,
@@ -14,7 +14,7 @@ import {
   getHistoricProcessInstancesCount,
   getIncidents,
   getIncidentsCount,
-} from "@miragon/pulse-engine-client/sdk"
+} from "@miragon/pulse-c7-client/sdk"
 import type { EngineHealthCluster, EngineHealthData } from "../view-models.js"
 import {
   CLUSTER_SCAN_LIMIT,
@@ -181,7 +181,7 @@ export async function buildEngineHealthData(
   engineId: string,
   thresholds: VerdictThresholds = DEFAULT_VERDICT_THRESHOLDS,
 ): Promise<EngineHealthData> {
-  // History filters take the engine's date format (engine contract).
+  // History filters take the engine's date format (REST contract).
   const startMs = Date.now()
   const dayAgoParam = toEngineDate(new Date(startMs - DAY_MS))
   const hourAgoParam = toEngineDate(new Date(startMs - HOUR_MS))

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { feedPayload } from "./tools/test-support/feed-payload.js"
 import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
-import type { Client } from "@miragon/pulse-engine-client"
+import type { Client } from "@miragon/pulse-c7-client"
 import { z } from "zod"
 import { createConfiguredEngineRegistry, createPlugin, type EnginePluginConfig } from "./plugin.js"
 import { EngineNotSelectedError, resolveEngine } from "./lib/engine/resolve-engine.js"

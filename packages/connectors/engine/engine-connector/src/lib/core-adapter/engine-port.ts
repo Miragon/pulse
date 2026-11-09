@@ -1,8 +1,8 @@
 /**
  * The engine port of @miragon/pulse-c7-core over the engine client: one typed SDK read per
  * operation the composites send (c7-core's INSPECT_OPERATIONS and STATUS_OPERATIONS), the
- * text and variable reads through the engine contract, at most 8 requests in flight per call.
- * Built per tool call on the client `withEngine` resolved (invariant 2): never cached.
+ * text and variable reads through c7-client's SDK-bound reads, at most 8 requests in flight
+ * per call. Built per tool call on the client `withEngine` resolved (invariant 2): never cached.
  */
 
 import {
@@ -11,7 +11,7 @@ import {
   fetchExternalTaskErrorDetails,
   fetchJobStacktrace,
   readProcessInstanceVariables,
-} from "@miragon/pulse-engine-client"
+} from "@miragon/pulse-c7-client"
 import {
   getActivityInstanceTree,
   getBatchStatistics,
@@ -35,7 +35,7 @@ import {
   getRestApiVersion,
   getTasks,
   getTasksCount,
-} from "@miragon/pulse-engine-client/sdk"
+} from "@miragon/pulse-c7-client/sdk"
 import {
   createEnginePort,
   type EngineFailure,
@@ -91,7 +91,7 @@ export const READS: Readonly<Record<string, Read>> = {
   getProcessDefinitionStatistics: (client, input) =>
     getProcessDefinitionStatistics({ client, query: engineQuery(input) }),
   getJobDefinitions: (client, input) => getJobDefinitions({ client, query: engineQuery(input) }),
-  // The contract reads: serialized variables, text/plain stacktraces and error details.
+  // The SDK-bound reads: serialized variables, text/plain stacktraces and error details.
   getProcessInstanceVariables: (client, input) => readProcessInstanceVariables(client, idOf(input)),
   getHistoricVariableInstances: (client, input) =>
     getHistoricVariableInstances({ client, query: engineQuery(input) }),
@@ -122,7 +122,7 @@ export function engineFailure(error: unknown): EngineFailure | undefined {
 }
 
 /**
- * c7-core's missing-resource rule (`isMissing`) over an engine-client error: an engine 404
+ * c7-core's missing-resource rule (`isMissing`) over a c7-client error: an engine 404
  * that names a missing resource. A wrong REST root (a 404 `NotFoundException`, or a 404 without
  * an engine answer) is no missing resource; it fails loud wherever a caller reads it.
  */

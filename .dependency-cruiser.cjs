@@ -14,7 +14,7 @@
  * suffix:
  *   - `<family>-connector`: the MCP module (tools and their input schemas, widget tools,
  *     widgets); a dialect brings none;
- *   - `<family>-client`: its SDK leaf (the generated REST SDK, say);
+ *   - `<family>-client`: its SDK leaf (the generated REST SDK, say; c7-client);
  *   - `<family>-core`, when the family's interfaces share a pure domain: a leaf that the
  *     family's connector (for a dialect's core the engine module) and the interface apps that
  *     bundle it import (c7-core).
@@ -94,10 +94,11 @@ const FAMILY_CORE_TREE = "^packages/connectors/[^/]+/[^/]+-core/"
 /**
  * The engine module, `packages/connectors/engine/engine-connector` (npm
  * `@miragon/pulse-engine-connector`): one MCP server and one module, engine, for every dialect
- * (owner decisions 2026-11-07 and 2026-11-08). It imports the clients and cores of its own family
- * and of the dialect families ENGINE_DIALECTS names (engine-connector-spans-the-dialects); every
- * other connector keeps to its own family (connectors-own-their-family). A dialect joins
- * ENGINE_DIALECTS in the commit that first imports it from the engine module.
+ * (owner decisions 2026-11-07 and 2026-11-08). It imports the clients and cores of the dialect
+ * families ENGINE_DIALECTS names, and may import those of its own family, which has neither since
+ * c7 took them (engine-connector-spans-the-dialects); every other connector keeps to its own
+ * family (connectors-own-their-family). A dialect joins ENGINE_DIALECTS in the commit that first
+ * imports it from the engine module.
  */
 const ENGINE_CONNECTOR_TREE = "^packages/connectors/engine/engine-connector/"
 const ENGINE_DIALECTS = ["c7"]
@@ -311,8 +312,9 @@ module.exports = {
         "The engine module (packages/connectors/engine/engine-connector, " +
         "@miragon/pulse-engine-connector) is the one MCP module of every dialect: one MCP server " +
         "and one module, engine, for all dialects (owner decisions 2026-11-07 and 2026-11-08). " +
-        "It imports the clients and cores of its own family engine and of the dialect families " +
-        "ENGINE_DIALECTS names (today c7: @miragon/pulse-c7-core), never another family's. A " +
+        "It imports the clients and cores of the dialect families ENGINE_DIALECTS names (today " +
+        "c7: @miragon/pulse-c7-client and @miragon/pulse-c7-core) and may import those of its " +
+        "own family engine, which has neither since c7 took them; never another family's. A " +
         "dialect joins ENGINE_DIALECTS in the commit that first imports it from the engine " +
         "module (CLAUDE.md invariant 8).",
       from: { path: ENGINE_CONNECTOR_TREE },
@@ -962,11 +964,11 @@ module.exports = {
   ],
   options: {
     doNotFollow: { path: "node_modules" },
-    // The hey-api SDK is regenerated from the CIB seven OpenAPI spec (`pnpm generate`)
-    // and never edited by hand, so it is the one tree kept out of the graph. Any other
-    // generated tree (a command catalog, say) is cruised like hand-written code: list
-    // nothing else here.
-    exclude: { path: ["^packages/connectors/engine/engine-client/src/generated/"] },
+    // The hey-api SDK of the c7 family (c7-client) is regenerated from the CIB seven OpenAPI
+    // spec (`pnpm generate`) and never edited by hand, so it is the one tree kept out of the
+    // graph. Any other generated tree (a command catalog, say) is cruised like hand-written
+    // code: list nothing else here.
+    exclude: { path: ["^packages/connectors/c7/c7-client/src/generated/"] },
     tsPreCompilationDeps: true,
     tsConfig: { fileName: "tsconfig.base.json" },
     // Keep workspace imports as node_modules/@miragon/pulse-* paths instead of

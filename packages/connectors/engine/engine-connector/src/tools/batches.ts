@@ -1,6 +1,6 @@
 import { getBatchInput } from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
-import { readBatch, type Client } from "@miragon/pulse-engine-client"
+import { readBatch, type Client } from "@miragon/pulse-c7-client"
 import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 import { isMissingResource } from "../lib/core-adapter/engine-port.js"

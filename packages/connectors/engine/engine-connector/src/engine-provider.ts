@@ -1,4 +1,4 @@
-import type { EngineAuthType, Client } from "@miragon/pulse-engine-client"
+import type { EngineAuthType, Client } from "@miragon/pulse-c7-client"
 
 /** One per vendor of the C7 dialect: ONLY the real differences, never a mirror of the SDK. */
 

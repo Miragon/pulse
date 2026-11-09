@@ -1,4 +1,4 @@
-import { createEngineClient, type Client } from "@miragon/pulse-engine-client"
+import { createEngineClient, type Client } from "@miragon/pulse-c7-client"
 import type { EngineAuth, EngineClientSettings, EngineEntry } from "../engine-provider.js"
 import { resolveMcpBearerToken } from "../lib/engine/mcp-auth.js"
 

@@ -40,7 +40,7 @@ const UI = "packages/core/ui"
 const PROFILE = "packages/core/profile"
 const HTTP = "packages/core/http"
 const C7 = "packages/connectors/c7/c7-core"
-const ENGINE_CLIENT = "packages/connectors/engine/engine-client"
+const C7_CLIENT = "packages/connectors/c7/c7-client"
 const ENGINE_CONNECTOR = "packages/connectors/engine/engine-connector"
 // No such family exists: a second family's client, connector and core prove the family rules
 // key on the roles.
@@ -57,7 +57,7 @@ const WORKSPACE = {
   [PROFILE]: { name: "@miragon/pulse-profile" },
   [HTTP]: { name: "@miragon/pulse-http" },
   [C7]: { name: "@miragon/pulse-c7-core" },
-  [ENGINE_CLIENT]: { name: "@miragon/pulse-engine-client" },
+  [C7_CLIENT]: { name: "@miragon/pulse-c7-client" },
   [ENGINE_CONNECTOR]: { name: "@miragon/pulse-engine-connector" },
   [BILLING_CLIENT]: { name: "@miragon/pulse-billing-client" },
   [BILLING_CONNECTOR]: { name: "@miragon/pulse-billing-connector" },
@@ -160,7 +160,7 @@ const PROFILE_SRC = `${PROFILE}/src/index.ts`
 const HTTP_NAME = "@miragon/pulse-http"
 const HTTP_SRC = `${HTTP}/src/index.ts`
 const BILLING_CORE_SRC = `${BILLING_CORE}/src/index.ts`
-const ENGINE_CLIENT_SRC = `${ENGINE_CLIENT}/src/index.ts`
+const C7_CLIENT_SRC = `${C7_CLIENT}/src/index.ts`
 const ENGINE_CONNECTOR_SRC = `${ENGINE_CONNECTOR}/src/index.ts`
 const BILLING_CONNECTOR_SRC = `${BILLING_CONNECTOR}/src/index.ts`
 
@@ -208,10 +208,10 @@ const LEAVES = [
   `${HTTP}/src/lib.ts`,
   `${BILLING_CORE}/src/lib.ts`,
   `${BILLING_CORE}/src/a.test.ts`,
-  `${ENGINE_CLIENT}/src/target.ts`,
-  `${ENGINE_CLIENT}/src/lib.ts`,
-  `${ENGINE_CLIENT}/src/x-connector/y.ts`,
-  `${ENGINE_CLIENT}/src/generated/sdk.gen.ts`,
+  `${C7_CLIENT}/src/target.ts`,
+  `${C7_CLIENT}/src/lib.ts`,
+  `${C7_CLIENT}/src/x-connector/y.ts`,
+  `${C7_CLIENT}/src/generated/sdk.gen.ts`,
   `${ENGINE_CONNECTOR}/src/generated/catalog.ts`,
   `${SHELL}/src/composed-server.ts`,
   `${SHELL}/src/tool-registrar.ts`,
@@ -268,9 +268,9 @@ const SUITES = [
         "@miragon/pulse-widget-shell",
         "@miragon/pulse-widget-shell/server",
         "@miragon/pulse-engine-connector",
-        "@miragon/pulse-engine-client",
-        "@miragon/pulse-engine-client/sdk",
-        "@miragon/pulse-engine-client/routes",
+        "@miragon/pulse-c7-client",
+        "@miragon/pulse-c7-client/sdk",
+        "@miragon/pulse-c7-client/routes",
         "react",
         "react-dom/client",
         "lucide-react",
@@ -349,7 +349,7 @@ const SUITES = [
       [PROFILE_SRC, "@miragon/pulse-ui", [PROFILE_LEAF]],
       [PROFILE_SRC, "@miragon/pulse-widget-shell/server", [PROFILE_LEAF]],
       [PROFILE_SRC, C7_CORE, [CORE, PROFILE_LEAF]],
-      [PROFILE_SRC, "@miragon/pulse-engine-client", [CORE, PROFILE_LEAF]],
+      [PROFILE_SRC, "@miragon/pulse-c7-client", [CORE, PROFILE_LEAF]],
       [PROFILE_SRC, "@miragon/pulse-cli", [NO_APP, PROFILE_LEAF]],
       ...["zod", "react", "commander", "reactive", "node:fs"].map((spec) => [
         PROFILE_SRC,
@@ -374,7 +374,7 @@ const SUITES = [
       [SHELL_SRC, PROFILE_NAME, [PROFILE_USERS]],
       [UI_SRC, PROFILE_NAME, [UI_LEAF, PROFILE_USERS]],
       [C7_SRC, PROFILE_NAME, [CORE_LEAF, PROFILE_USERS]],
-      [ENGINE_CLIENT_SRC, PROFILE_NAME, [CLIENT_LEAF, PROFILE_USERS]],
+      [C7_CLIENT_SRC, PROFILE_NAME, [CLIENT_LEAF, PROFILE_USERS]],
       [ENGINE_CONNECTOR_SRC, PROFILE_NAME, [PROFILE_USERS]],
       [
         `${ENGINE_CONNECTOR}/src/widgets/profile.ts`,
@@ -419,7 +419,7 @@ const SUITES = [
       [HTTP_SRC, "@miragon/pulse-widget-shell/server", [HTTP_LEAF]],
       [HTTP_SRC, PROFILE_NAME, [HTTP_LEAF, PROFILE_USERS]],
       [HTTP_SRC, C7_CORE, [CORE, HTTP_LEAF]],
-      [HTTP_SRC, "@miragon/pulse-engine-client", [CORE, HTTP_LEAF]],
+      [HTTP_SRC, "@miragon/pulse-c7-client", [CORE, HTTP_LEAF]],
       [HTTP_SRC, "@miragon/pulse-cli", [NO_APP, HTTP_LEAF]],
       // No HTTP library under the injected fetch, no token verifier, no schema, no UI.
       ...["undici", "jose", "zod", "react", "reactive", "node:http"].map((spec) => [
@@ -445,7 +445,7 @@ const SUITES = [
       [UI_SRC, HTTP_NAME, [UI_LEAF, HTTP_USERS]],
       [PROFILE_SRC, HTTP_NAME, [PROFILE_LEAF, HTTP_USERS]],
       [C7_SRC, HTTP_NAME, [CORE_LEAF, HTTP_USERS]],
-      [ENGINE_CLIENT_SRC, HTTP_NAME, [CLIENT_LEAF, HTTP_USERS]],
+      [C7_CLIENT_SRC, HTTP_NAME, [CLIENT_LEAF, HTTP_USERS]],
       // A connector may, its widgets may not: they are browser code.
       [`${ENGINE_CONNECTOR}/src/widgets/http.ts`, HTTP_NAME, [WIDGETS_BROWSER]],
       [`${CLI}/src/workflow/http.ts`, HTTP_NAME, [HTTP_USERS]],
@@ -484,7 +484,7 @@ const SUITES = [
     rule: CORE_LEAF,
     title: "a family core imports only its own modules: no package, no npm module, no built-in",
     cases: [
-      [C7_SRC, "@miragon/pulse-engine-client", [CORE_LEAF]],
+      [C7_SRC, "@miragon/pulse-c7-client", [CORE_LEAF]],
       // The engine module imports the core, never the other way round.
       [C7_SRC, "@miragon/pulse-engine-connector", [CORE_LEAF]],
       [C7_SRC, BILLING_CORE_NAME, [CORE_LEAF]],
@@ -501,11 +501,7 @@ const SUITES = [
         "path",
       ].map((spec) => [C7_SRC, spec, [CORE_LEAF]]),
       [`${C7}/src/escape.ts`, "../../../../core/ui/src/target.ts", [CORE_LEAF, DEEP]],
-      [
-        `${C7}/src/escape-client.ts`,
-        "../../../engine/engine-client/src/target.ts",
-        [CORE_LEAF, DEEP],
-      ],
+      [`${C7}/src/escape-client.ts`, "../../c7-client/src/target.ts", [CORE_LEAF, DEEP]],
       // The shipped ./testing export is no test file: only *.test.ts may import vitest.
       [`${C7}/src/testing/index.ts`, "vitest", [CORE_LEAF]],
       [C7_SRC, "./lib.ts", []],
@@ -534,8 +530,8 @@ const SUITES = [
       [SHELL_SRC, C7_CORE, [CORE]],
       [SHELL_SRC, BILLING_CORE_NAME, [CORE]],
       [UI_SRC, C7_CORE, [CORE, UI_LEAF]],
-      [ENGINE_CLIENT_SRC, C7_CORE, [CLIENT_LEAF]],
-      [ENGINE_CLIENT_SRC, `${C7_CORE}/testing`, [CLIENT_LEAF, NO_TESTING]],
+      [C7_CLIENT_SRC, C7_CORE, [CLIENT_LEAF]],
+      [C7_CLIENT_SRC, `${C7_CORE}/testing`, [CLIENT_LEAF, NO_TESTING]],
       // The extension bundles c7-core in its C7 adapter alone (keyed on that subtree).
       [`${EXT}/src/core/a.ts`, C7_CORE, [CORE_USERS]],
       [`${EXT}/src/adapters/other/a.ts`, C7_CORE, [CORE_USERS]],
@@ -661,14 +657,14 @@ const SUITES = [
       [`${SHELL}/src/escape-app.ts`, "../../../../apps/mcp-server/src/target.ts", [NO_APP, DEEP]],
       [`${UI}/src/escape-app.ts`, "../../../../apps/mcp-server/src/target.ts", [NO_APP, DEEP]],
       [
-        `${ENGINE_CLIENT}/src/escape-app.ts`,
+        `${C7_CLIENT}/src/escape-app.ts`,
         "../../../../../apps/mcp-server/src/target.ts",
         [NO_APP, DEEP],
       ],
       [SHELL_SRC, "pulse-cockpit", [NO_APP]],
       [UI_SRC, "pulse-cockpit", [NO_APP]],
-      [ENGINE_CLIENT_SRC, "pulse-cockpit", [NO_APP]],
-      [ENGINE_CLIENT_SRC, "@miragon/pulse-mcp-server", [CLIENT_LEAF, NO_APP]],
+      [C7_CLIENT_SRC, "pulse-cockpit", [NO_APP]],
+      [C7_CLIENT_SRC, "@miragon/pulse-mcp-server", [CLIENT_LEAF, NO_APP]],
       [ENGINE_CONNECTOR_SRC, "@miragon/pulse-mcp-server", [NO_APP]],
       [ENGINE_CONNECTOR_SRC, "@miragon/pulse-cli", [NO_APP]],
       [ENGINE_CONNECTOR_SRC, "pulse-cockpit", [NO_APP]],
@@ -934,8 +930,8 @@ const SUITES = [
         "../instructions.ts",
         "../engine-provider.ts",
         "../providers/target.ts",
-        "@miragon/pulse-engine-client",
-        "@miragon/pulse-engine-client/sdk",
+        "@miragon/pulse-c7-client",
+        "@miragon/pulse-c7-client/sdk",
         "@miragon/pulse-widget-shell/server",
         // Server packages and Node built-ins.
         "@modelcontextprotocol/server",
@@ -955,7 +951,7 @@ const SUITES = [
       ],
       [
         `${ENGINE_CONNECTOR}/src/widgets/escape-client.ts`,
-        "../../../engine-client/src/target.ts",
+        "../../../../c7/c7-client/src/target.ts",
         [DEEP, WIDGETS_BROWSER],
       ],
       [
@@ -976,7 +972,7 @@ const SUITES = [
       // Another family's client is no browser code either (and connectors-own-their-family's).
       [
         `${BILLING_CONNECTOR}/src/widgets/engine-sdk.ts`,
-        "@miragon/pulse-engine-client",
+        "@miragon/pulse-c7-client",
         [OWN_FAMILY, WIDGETS_BROWSER],
       ],
       // Allowed: type-only edges to the server side (view-model and feed types).
@@ -984,7 +980,7 @@ const SUITES = [
         "../tools/target.ts",
         "../data/target.ts",
         "../feed-contracts.ts",
-        "@miragon/pulse-engine-client",
+        "@miragon/pulse-c7-client",
       ].map((spec) => [`${ENGINE_CONNECTOR}/src/widgets/types.ts`, spec, [], "type"]),
       [`${BILLING_CONNECTOR}/src/widgets/types.ts`, "@miragon/pulse-billing-client", [], "type"],
       // Allowed at runtime: the widgets' own modules, the shared words, names and view models, the
@@ -1015,7 +1011,7 @@ const SUITES = [
       ...[
         "../engine/with-engine.ts",
         "../../data/target.ts",
-        "@miragon/pulse-engine-client",
+        "@miragon/pulse-c7-client",
         "@miragon/pulse-widget-shell/server",
         "zod",
         "node:fs",
@@ -1159,10 +1155,10 @@ const SUITES = [
       // The old pattern's reach stays: a client folder named like a connector is still caught.
       [
         `${ENGINE_CONNECTOR}/src/escape.ts`,
-        "../../engine-client/src/x-connector/y.ts",
+        "../../../c7/c7-client/src/x-connector/y.ts",
         [PEERS, DEEP],
       ],
-      [ENGINE_CONNECTOR_SRC, "@miragon/pulse-engine-client", []],
+      [ENGINE_CONNECTOR_SRC, "@miragon/pulse-c7-client", []],
       [ENGINE_CONNECTOR_SRC, "@miragon/pulse-widget-shell", []],
       [ENGINE_CONNECTOR_SRC, "react", []],
       [ENGINE_CONNECTOR_SRC, "zod", []],
@@ -1173,8 +1169,8 @@ const SUITES = [
     rule: OWN_FAMILY,
     title: "a connector depends on its own family's client and core only",
     cases: [
-      [BILLING_CONNECTOR_SRC, "@miragon/pulse-engine-client/sdk", [OWN_FAMILY]],
-      [BILLING_CONNECTOR_SRC, "@miragon/pulse-engine-client", [OWN_FAMILY]],
+      [BILLING_CONNECTOR_SRC, "@miragon/pulse-c7-client/sdk", [OWN_FAMILY]],
+      [BILLING_CONNECTOR_SRC, "@miragon/pulse-c7-client", [OWN_FAMILY]],
       [BILLING_CONNECTOR_SRC, `${C7_CORE}/testing`, [OWN_FAMILY, NO_TESTING]],
       [
         `${BILLING_CONNECTOR}/src/escape-core.ts`,
@@ -1203,12 +1199,13 @@ const SUITES = [
       [`${ENGINE_CONNECTOR}/src/lib/engine/c8.ts`, "@miragon/pulse-c8-core", [SPANS]],
       // Anchored: a family whose name starts like a dialect's is no dialect.
       [`${ENGINE_CONNECTOR}/src/lib/engine/c70.ts`, "@miragon/pulse-c70-core", [SPANS]],
-      // Allowed: the dialect family c7 (its core, and its client once it has one), the engine
-      // family's own client, and tests.
+      // Allowed: the dialect family c7 (its core and its client, a subpath too) and tests. The
+      // engine family has no client or core of its own since 0.28; that the rule still exempts
+      // it is held by the ENGINE_DIALECTS suite below.
       [`${ENGINE_CONNECTOR}/src/lib/core-adapter/port.ts`, C7_CORE, []],
       [`${ENGINE_CONNECTOR}/src/lib/core-adapter/types.ts`, C7_CORE, [], "type"],
       [`${ENGINE_CONNECTOR}/src/lib/engine/c7.ts`, "@miragon/pulse-c7-client", []],
-      [`${ENGINE_CONNECTOR}/src/lib/engine/client.ts`, "@miragon/pulse-engine-client", []],
+      [`${ENGINE_CONNECTOR}/src/lib/engine/sdk.ts`, "@miragon/pulse-c7-client/sdk", []],
       [`${ENGINE_CONNECTOR}/src/tools/core.test.ts`, `${C7_CORE}/testing`, []],
     ],
   },
@@ -1216,16 +1213,16 @@ const SUITES = [
     rule: CLIENT_LEAF,
     title: "clients are leaves, also for workspace packages in their own node_modules",
     cases: [
-      [ENGINE_CLIENT_SRC, "@miragon/pulse-widget-shell", [CLIENT_LEAF]],
-      [ENGINE_CLIENT_SRC, "@miragon/pulse-billing-client", [CLIENT_LEAF]],
-      [ENGINE_CLIENT_SRC, "@miragon/pulse-engine-connector/widgets", [CLIENT_LEAF]],
+      [C7_CLIENT_SRC, "@miragon/pulse-widget-shell", [CLIENT_LEAF]],
+      [C7_CLIENT_SRC, "@miragon/pulse-billing-client", [CLIENT_LEAF]],
+      [C7_CLIENT_SRC, "@miragon/pulse-engine-connector/widgets", [CLIENT_LEAF]],
       [
-        `${ENGINE_CLIENT}/src/escape.ts`,
+        `${C7_CLIENT}/src/escape.ts`,
         "../../../../core/widget-shell/src/target.ts",
         [CLIENT_LEAF, DEEP],
       ],
-      [ENGINE_CLIENT_SRC, "zod", []],
-      [ENGINE_CLIENT_SRC, "./lib.ts", []],
+      [C7_CLIENT_SRC, "zod", []],
+      [C7_CLIENT_SRC, "./lib.ts", []],
     ],
   },
   {
@@ -1637,7 +1634,7 @@ function buildFixture(root) {
   for (const { cases } of SUITES) for (const [from, spec, , form] of cases) plant(from, spec, form)
   for (const { from, spec } of SYNC_CASES) plant(from, spec)
   plant(`${CLI}/src/catalog/catalog.ts`, "../generated/commands.json")
-  plant(ENGINE_CLIENT_SRC, "./generated/sdk.gen.ts")
+  plant(C7_CLIENT_SRC, "./generated/sdk.gen.ts")
   plant(ENGINE_CONNECTOR_SRC, "./generated/catalog.ts")
 
   for (const leaf of LEAVES) {
@@ -1724,8 +1721,8 @@ describe("options.exclude keeps only the hey-api SDK out of the graph", () => {
     )
   })
 
-  it("excludes engine-client/src/generated", () => {
-    const generated = `${ENGINE_CLIENT}/src/generated/`
+  it("excludes c7-client/src/generated", () => {
+    const generated = `${C7_CLIENT}/src/generated/`
     const hits = output.modules.flatMap((module) => [
       ...(module.source.startsWith(generated) ? [module.source] : []),
       ...module.dependencies
@@ -1753,14 +1750,45 @@ describe("APP_PACKAGES names every real app of the repo", () => {
 })
 
 /**
+ * The families engine-connector-spans-the-dialects exempts, per half of its `pathNot`: the
+ * relative-escape patterns, one family each, and the npm patterns (node_modules and the bare
+ * name), one alternation each.
+ */
+function spannedFamilyHalves({ pathNot }) {
+  const relative = []
+  const npm = []
+  for (const pattern of pathNot) {
+    const tree = /^\^packages\/connectors\/([^/]+)\/\1-\(\?:client\|core\)\/$/.exec(pattern)
+    if (tree) relative.push(tree[1])
+    const name = /@miragon\/pulse-\(\?:([^)]+)\)-\(\?:client\|core\)/.exec(pattern)
+    if (name) npm.push(name[1].split("|"))
+  }
+  return { relative, npm }
+}
+
+/**
  * The families engine-connector-spans-the-dialects lets the engine module import, read from the
  * relative-escape exemptions it builds (the own family engine and ENGINE_DIALECTS).
  */
 function spannedFamilies(config) {
   const { to } = config.forbidden.find((rule) => rule.name === SPANS)
-  return to.pathNot.flatMap((pattern) => {
-    const match = /^\^packages\/connectors\/([^/]+)\/\1-\(\?:client\|core\)\/$/.exec(pattern)
-    return match ? [match[1]] : []
+  return spannedFamilyHalves(to).relative
+}
+
+/**
+ * Where the npm half of the exemptions names other families than the relative half. No planted
+ * case reaches an npm name of the engine family any more (old-names bans its client and core),
+ * so this check holds that half of the exemption.
+ */
+function spannedHalfFindings(to) {
+  const { relative, npm } = spannedFamilyHalves(to)
+  const want = [...relative].sort().join(", ")
+  if (npm.length !== 2) {
+    return [`${SPANS} has ${npm.length} npm exemptions, not 2 (node_modules and the bare name)`]
+  }
+  return npm.flatMap((families) => {
+    const got = [...families].sort().join(", ")
+    return got === want ? [] : [`${SPANS} exempts the npm names of ${got}, its paths ${want}`]
   })
 }
 
@@ -1800,6 +1828,31 @@ describe("ENGINE_DIALECTS names dialect families of the tree, none with a connec
   it("reads the engine family and at least one dialect from the rule", () => {
     assert.ok(spannedFamilies(config).includes("engine"), "the engine family is not exempt")
     assert.ok(dialects.length > 0, `no dialect read from ${SPANS}`)
+  })
+
+  it("exempts the same families by path and by npm name", () => {
+    const { to } = config.forbidden.find((rule) => rule.name === SPANS)
+    assert.deepEqual(spannedHalfFindings(to), [])
+  })
+
+  it("fails on an npm exemption that names other families than the paths", () => {
+    const paths = ["engine", "c7"].map(
+      (family) => `^packages/connectors/${family}/${family}-(?:client|core)/`,
+    )
+    const names = (families) => `@miragon/pulse-(?:${families})-(?:client|core)`
+    assert.deepEqual(
+      spannedHalfFindings({
+        pathNot: [
+          ...paths,
+          `(?:^|/)node_modules/(?:${names("c7")})(?:/|$)`,
+          `^(?:${names("c7|engine")})(?:/|$)`,
+        ],
+      }),
+      [`${SPANS} exempts the npm names of c7, its paths c7, engine`],
+    )
+    assert.deepEqual(spannedHalfFindings({ pathNot: paths }), [
+      `${SPANS} has 0 npm exemptions, not 2 (node_modules and the bare name)`,
+    ])
   })
 
   it("holds the real tree", () => {

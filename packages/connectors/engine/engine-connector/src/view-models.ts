@@ -1,4 +1,4 @@
-/** What the widgets render, not engine API types (those live in `@miragon/pulse-engine-client/types`). */
+/** What the widgets render, not engine API types (those live in `@miragon/pulse-c7-client/types`). */
 import type { IncidentRecovery } from "@miragon/pulse-c7-core"
 import type { IncidentsDashboardFilters, JobsFilters } from "./feed-contracts.js"
 import type { ClusterDetailData, EngineHealthData } from "./view-models.health.js"

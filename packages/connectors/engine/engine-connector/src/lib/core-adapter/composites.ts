@@ -9,7 +9,7 @@
  * `truncated`. The caps bound the result, not the reads: c7-core still loads the whole lists.
  */
 
-import type { Client } from "@miragon/pulse-engine-client"
+import type { Client } from "@miragon/pulse-c7-client"
 import type { engineStatusInput, inspectProcessInstanceInput } from "../../schemas/index.js"
 import {
   criticalIncidentsRule,
@@ -231,7 +231,7 @@ export async function engineStatusForModel(
   engineId: string,
   thresholds: VerdictThresholds,
 ) {
-  // trimmed, unlike the contract's engineKeyList: a key of spaces names no definition either
+  // trimmed, unlike c7-core's engineKeyList: a key of spaces names no definition either
   const keys = (args.processDefinitionKeyIn ?? []).filter((key) => key.trim() !== "")
   const data = await readStatus(
     { port: enginePortFor(client), now: () => Date.now() },

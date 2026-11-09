@@ -504,7 +504,7 @@ describe("connector resource gate (invariant 3): a connector's views belong in t
     `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.tsx`,
     `${ENGINE_CONNECTOR_SRC_DIR}/plugin.test.ts`,
     `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.ts`,
-    "packages/connectors/engine/engine-client/src/__probe__.ts",
+    "packages/connectors/c7/c7-client/src/__probe__.ts",
     "packages/connectors/newfamily/newfamily-connector/src/__probe__.ts",
   ]
 
@@ -595,7 +595,7 @@ describe("the registration gates hold every source extension", () => {
         [`${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.${extension}`, true],
         [`${ENGINE_CONNECTOR_SRC_DIR}/__probe__.test.${extension}`, true],
         [`${ENGINE_CONNECTOR_SRC_DIR}/widget-tools/__probe__.${extension}`, false],
-        [`packages/connectors/engine/engine-client/src/__probe__.${extension}`, false],
+        [`packages/connectors/c7/c7-client/src/__probe__.${extension}`, false],
         [`packages/connectors/newfamily/newfamily-connector/src/__probe__.${extension}`, false],
       ]
       for (const [rel, registrar] of paths) {
@@ -750,7 +750,7 @@ describe("type-safety rules: errors everywhere, require-await off in the MCP tre
     "packages/core/widget-shell/src/caller.ts",
     "packages/core/ui/src/format/numbers.ts",
     "packages/connectors/engine/engine-connector/src/widgets/lib/engine-action.ts",
-    "packages/connectors/engine/engine-client/src/client.ts",
+    "packages/connectors/c7/c7-client/src/client.ts",
   ]
   const STRICT_TREES = [
     "apps/cli/src/util.ts",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import type { Client } from "@miragon/pulse-engine-client"
+import type { Client } from "@miragon/pulse-c7-client"
 import { createCallerCache, oneAtATime } from "./per-engine.js"
 
 // A stand-in engine client: what the module keeps per engine keys on its interceptors.

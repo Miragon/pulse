@@ -1,6 +1,6 @@
 ---
 name: add-bpm-feature
-description: Step-by-step house pattern for adding a new BPM operations tool, widget tool, or widget to the engine module (`packages/connectors/engine/engine-connector`, over `packages/connectors/engine/engine-client` and `packages/connectors/c7/c7-core`). Use whenever adding or changing Camunda 7 / CIB seven tools ("add a tool to suspend jobs", "expose X from the engine REST API"), input schemas, cockpit routes, `*_data` feeds, or React widgets in the cockpit. Takes precedence over generic MCP SDK examples.
+description: Step-by-step house pattern for adding a new BPM operations tool, widget tool, or widget to the engine module (`packages/connectors/engine/engine-connector`, over `packages/connectors/c7/c7-client` and `packages/connectors/c7/c7-core`). Use whenever adding or changing Camunda 7 / CIB seven tools ("add a tool to suspend jobs", "expose X from the engine REST API"), input schemas, cockpit routes, `*_data` feeds, or React widgets in the cockpit. Takes precedence over generic MCP SDK examples.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 ---
 
@@ -61,13 +61,13 @@ hand-rolled `maxResults` (a `*_data` feed spreads `pagingShape` from the same fi
 definition in its described, default-free form): `src/tools/list-tools.test.ts` treats every registrar tool that
 takes `maxResults` as a list and fails it without the cap or the envelope (Step 2). The
 REST calls themselves use the generated SDK (imported from
-`@miragon/pulse-engine-client/sdk`). If the endpoint is missing there, the OpenAPI spec
+`@miragon/pulse-c7-client/sdk`). If the endpoint is missing there, the OpenAPI spec
 changed and you need `pnpm generate`, not a hand-written fetch. The engine's REST rules the
 handler applies (`toEngineDate`, `engineLike`, `complementaryFlags`, `engineSorting`,
 `toEngineVariables`, `incidentRecovery`, `RAW_VARIABLES`, `isMissing`) come from
 `@miragon/pulse-c7-core`, their one home, which the CLI uses too; the reads bound to the SDK
 (`fetchJobStacktrace`, `readProcessInstanceVariables`, `readBatch`) from
-`@miragon/pulse-engine-client`. Those reads throw every 404: a handler that reads a missing
+`@miragon/pulse-c7-client`. Those reads throw every 404: a handler that reads a missing
 resource as "none" wraps the read in `noneIfMissing` (`src/lib/core-adapter/engine-port.ts`,
 c7-core's `isMissing`), so a wrong REST root still fails loud.
 
@@ -110,7 +110,7 @@ Add the tool in `packages/connectors/engine/engine-connector/src/tools/<domain>.
 import { listProcessInstancesInput } from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { complementaryFlags, engineLike, engineSorting } from "@miragon/pulse-c7-core"
-import { getProcessInstances, getProcessInstancesCount } from "@miragon/pulse-engine-client/sdk"
+import { getProcessInstances, getProcessInstancesCount } from "@miragon/pulse-c7-client/sdk"
 import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
 import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
@@ -211,8 +211,8 @@ The pattern is `engine_inspect_process_instance` and `engine_status`
 (`src/lib/core-adapter/composites.ts`, registered like any registrar tool):
 
 - Map every operation the composite sends in `READS` of `src/lib/core-adapter/engine-port.ts`, one typed
-  SDK read each; text/plain and variable reads go through engine-client's SDK-bound reads
-  (`fetchJobStacktrace`, `readProcessInstanceVariables`), as `engine-contract.test.ts`
+  SDK read each; text/plain and variable reads go through c7-client's SDK-bound reads
+  (`fetchJobStacktrace`, `readProcessInstanceVariables`), as `sdk-reads.test.ts`
   demands. `src/lib/core-adapter/engine-port.test.ts` holds `READS` to c7-core's operation
   lists.
 - Word c7-core's error reasons in `src/lib/core-adapter/workflow-errors.ts` (`[CODE] message` in the
@@ -257,7 +257,7 @@ these primitives. Widgets are browser code: at runtime they import only their ow
 `src/messages`, `src/tool-names.ts`, the view models, `@miragon/pulse-widget-shell/widgets` and the
 view stack, plus `src/lib/shared` (pure code the server runs too, held to the same allowlist);
 `src/tools`, `src/data`, the feed contracts, the plugin, the module,
-`@miragon/pulse-engine-client` and anything else only as types (`import type`), and the other
+`@miragon/pulse-c7-client` and anything else only as types (`import type`), and the other
 `src/lib` folders not even as types: a type both sides need is declared once in
 `src/lib/shared` (`TaskCompletion`). Data arrives through the view tool and the `*_data` feeds
 (`connector-widgets-are-browser-code` and `connector-widgets-only-shared-lib` in

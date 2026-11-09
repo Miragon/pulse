@@ -1,7 +1,7 @@
 import { listProcessDefinitionsInput, getProcessDefinitionXmlInput } from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { engineLike, engineSorting, trueOnly } from "@miragon/pulse-c7-core"
-import { getProcessDefinitions, getProcessDefinitionsCount } from "@miragon/pulse-engine-client/sdk"
+import { getProcessDefinitions, getProcessDefinitionsCount } from "@miragon/pulse-c7-client/sdk"
 import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
 import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"

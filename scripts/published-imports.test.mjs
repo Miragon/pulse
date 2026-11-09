@@ -618,7 +618,7 @@ describe("published packages declare what their shipped source imports", () => {
       "@miragon/pulse-ui",
       "@miragon/pulse-widget-shell",
       "@miragon/pulse-engine-connector",
-      "@miragon/pulse-engine-client",
+      "@miragon/pulse-c7-client",
     ]) {
       assert.ok(names.includes(name), name)
     }

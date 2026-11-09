@@ -17,9 +17,9 @@ const PACKAGES = [
   pkg("packages/core/widget-shell", "@miragon/pulse-widget-shell", {
     "@miragon/pulse-ui": "workspace:*",
   }),
-  pkg("packages/connectors/engine/engine-client", "@miragon/pulse-engine-client"),
+  pkg("packages/connectors/c7/c7-client", "@miragon/pulse-c7-client"),
   pkg("packages/connectors/engine/engine-connector", "@miragon/pulse-engine-connector", {
-    "@miragon/pulse-engine-client": "workspace:*",
+    "@miragon/pulse-c7-client": "workspace:*",
     "@miragon/pulse-c7-core": "workspace:*",
     "@miragon/pulse-widget-shell": "workspace:*",
   }),
@@ -104,7 +104,7 @@ describe("scopesFor: a package's code reaches its dependents", () => {
   })
 
   it("runs the MCP server's checks and the template for a client, through its connector", () => {
-    assert.deepEqual(scopes("packages/connectors/engine/engine-client/src/index.ts"), [
+    assert.deepEqual(scopes("packages/connectors/c7/c7-client/src/index.ts"), [
       "mcp",
       "template",
       "typescript",
