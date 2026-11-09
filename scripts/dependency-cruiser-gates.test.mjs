@@ -837,6 +837,11 @@ const SUITES = [
       [ADAPTER_SRC, "@miragon/pulse-engine-connector", [ENGINE_ADAPTER_DIALECT]],
       [ADAPTER_SRC, BILLING_CORE_NAME, [ENGINE_ADAPTER_DIALECT]],
       [ADAPTER_SRC, "@miragon/pulse-c7-client", [ENGINE_ADAPTER_DIALECT]],
+      [
+        `${ENGINE_ADAPTER}/src/client-sub.ts`,
+        "@miragon/pulse-c7-client/sdk",
+        [ENGINE_ADAPTER_DIALECT],
+      ],
       [ADAPTER_SRC, "@miragon/pulse-widget-shell", [ENGINE_ADAPTER_DIALECT]],
       [ADAPTER_SRC, "@miragon/pulse-ui", [ENGINE_ADAPTER_DIALECT]],
       [ADAPTER_SRC, "@miragon/pulse-billing-adapter", [ENGINE_ADAPTER_DIALECT]],
@@ -867,6 +872,11 @@ const SUITES = [
       [ENGINE_CONNECTOR_SRC, VIEW, [VIEW_USERS]],
       [SHELL_SRC, VIEW, [VIEW_USERS]],
       [
+        `${SERVER}/src/escape-view.ts`,
+        "../../../packages/core/runtime-view/src/index.ts",
+        [VIEW_USERS, DEEP],
+      ],
+      [
         `${EXT}/src/host/escape-view.ts`,
         "../../../../packages/core/runtime-view/src/index.ts",
         [DEEP],
@@ -886,6 +896,12 @@ const SUITES = [
       [`${CLI}/src/workflow/adapter.ts`, ADAPTER, [HEADLESS, ADAPTER_USERS]],
       [ENGINE_CONNECTOR_SRC, ADAPTER, [ADAPTER_USERS]],
       [VIEW_SRC, ADAPTER, [VIEW_ENGINE, ADAPTER_USERS]],
+      [`${SERVER}/src/adapter-sub.ts`, `${ADAPTER}/sub`, [ADAPTER_USERS]],
+      [
+        `${SERVER}/src/escape-adapter.ts`,
+        "../../../packages/connectors/engine/engine-adapter/src/index.ts",
+        [ADAPTER_USERS, DEEP],
+      ],
       [
         `${ORCA}/src/worker/escape-adapter.ts`,
         "../../../../packages/connectors/engine/engine-adapter/src/index.ts",

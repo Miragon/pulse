@@ -22,6 +22,15 @@ const PLANTED: Readonly<Record<string, string>> = {
   "../../packages/connectors/engine/engine-core/dist/index.js": "export const RuntimeError = 1;\n",
   "src/worker/runs-c7-core.ts":
     "import { causeOf } from '@miragon/pulse-c7-core';\nexport const cause = causeOf;\n",
+  "src/worker/reads-c7-core-subpath.ts":
+    "import { causeOf } from '@miragon/pulse-c7-core/cause';\nexport const cause = causeOf;\n",
+  "test/worker/escapes-into-c7-core.test.ts":
+    "import { causeOf } from '../../../../packages/connectors/c7/c7-core/src/cause.ts';\nexport const cause = causeOf;\n",
+  "../../packages/connectors/c7/c7-core/src/cause.ts": "export const causeOf = 1;\n",
+  "../../node_modules/@miragon/pulse-c7-core/package.json":
+    '{ "name": "@miragon/pulse-c7-core", "exports": { ".": { "types": "./dist/index.d.ts" } } }\n',
+  "../../node_modules/@miragon/pulse-c7-core/dist/index.d.ts":
+    "export declare const causeOf: number;\n",
   "src/panel/reaches-the-worker-api.ts":
     "import type { OrcaWorkerApi } from 'orca/worker';\nexport type Api = OrcaWorkerApi;\n",
   "src/panel/draws.ts":
@@ -39,7 +48,7 @@ const PLANTED: Readonly<Record<string, string>> = {
   "test/worker/anything.test.ts":
     "import { FakeEngine } from '@miragon/pulse-engine-core/testing';\nexport const fake = FakeEngine;\n",
   "package.json":
-    '{ "name": "@miragon/pulse-orca", "private": true, "dependencies": { "@miragon/pulse-runtime-view": "workspace:*", "@miragon/pulse-engine-adapter": "workspace:*", "@miragon/pulse-engine-core": "workspace:*" } }\n',
+    '{ "name": "@miragon/pulse-orca", "private": true, "dependencies": { "@miragon/pulse-runtime-view": "workspace:*", "@miragon/pulse-engine-adapter": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-c7-core": "workspace:*" } }\n',
 }
 
 const tree = new PlantedTree("apps/orca", PLANTED)
@@ -62,7 +71,9 @@ describe("the dependency rules", () => {
     const engineCore = at("node_modules/@miragon/pulse-engine-core/dist/index.d.ts")
     const engineCoreTesting = at("node_modules/@miragon/pulse-engine-core/dist/testing/index.d.ts")
     const contractBuild = "packages/connectors/engine/engine-core/dist/index.js"
-    const c7Core = "@miragon/pulse-c7-core"
+    const c7Core = "node_modules/@miragon/pulse-c7-core/dist/index.d.ts"
+    const c7CoreSubpath = "@miragon/pulse-c7-core/cause"
+    const c7CoreSource = "packages/connectors/c7/c7-core/src/cause.ts"
     expect(tree.violations()).toEqual(
       [
         `model-libraries-stay-in-the-model-adapter: ${at("src/editor/reads-model-library.ts")} -> bpmn-moddle`,
@@ -79,7 +90,10 @@ describe("the dependency rules", () => {
         `not-in-allowed: ${at("src/worker/escapes-into-the-contract.ts")} -> ${contractBuild}`,
         `plugin-is-dialect-neutral: ${at("src/worker/runs-c7-core.ts")} -> ${c7Core}`,
         `not-in-allowed: ${at("src/worker/runs-c7-core.ts")} -> ${c7Core}`,
-        `not-to-unresolvable: ${at("src/worker/runs-c7-core.ts")} -> ${c7Core}`,
+        `plugin-is-dialect-neutral: ${at("src/worker/reads-c7-core-subpath.ts")} -> ${c7CoreSubpath}`,
+        `not-in-allowed: ${at("src/worker/reads-c7-core-subpath.ts")} -> ${c7CoreSubpath}`,
+        `not-to-unresolvable: ${at("src/worker/reads-c7-core-subpath.ts")} -> ${c7CoreSubpath}`,
+        `plugin-is-dialect-neutral: ${at("test/worker/escapes-into-c7-core.test.ts")} -> ${c7CoreSource}`,
         `not-to-unresolvable: ${at("src/editor/reads-model-library.ts")} -> bpmn-moddle`,
       ].sort(),
     )

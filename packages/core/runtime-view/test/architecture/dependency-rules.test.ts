@@ -51,6 +51,15 @@ const PLANTED: Readonly<Record<string, string>> = {
     "import { causeOf } from '@miragon/pulse-c7-core';\nexport const cause = causeOf;\n",
   "test/core/runs-c7-core.test.ts":
     "import { causeOf } from '@miragon/pulse-c7-core';\nexport const cause = causeOf;\n",
+  "src/host-kit/reads-c7-core-subpath.ts":
+    "import { causeOf } from '@miragon/pulse-c7-core/cause';\nexport const cause = causeOf;\n",
+  "test/core/escapes-into-c7-core.test.ts":
+    "import { causeOf } from '../../../../connectors/c7/c7-core/src/cause.ts';\nexport const cause = causeOf;\n",
+  "../../connectors/c7/c7-core/src/cause.ts": "export const causeOf = 1;\n",
+  "../../../node_modules/@miragon/pulse-c7-core/package.json":
+    '{ "name": "@miragon/pulse-c7-core", "exports": { ".": { "types": "./dist/index.d.ts" } } }\n',
+  "../../../node_modules/@miragon/pulse-c7-core/dist/index.d.ts":
+    "export declare const causeOf: number;\n",
   "src/host-kit/wires-the-adapter.ts":
     "import { C7Adapter } from '@miragon/pulse-engine-adapter';\nexport const adapter = C7Adapter;\n",
   "src/webview/reads-tones.ts":
@@ -73,6 +82,12 @@ const PLANTED: Readonly<Record<string, string>> = {
     "import { formatCount } from '../../../ui/dist/format/numbers.js';\nexport const count = formatCount;\n",
   "../ui/src/format/text.ts": "export const shortId = 1;\n",
   "../ui/dist/format/numbers.js": "export const formatCount = 1;\n",
+  "src/webview/escapes-into-tones.ts":
+    "import { countTone } from '../../../ui/src/tones/count-tone.ts';\nexport const tone = countTone;\n",
+  "src/core/escapes-into-built-tones.ts":
+    "import { countTone } from '../../../ui/dist/tones/count-tone.js';\nexport const tone = countTone;\n",
+  "../ui/src/tones/count-tone.ts": "export const countTone = 1;\n",
+  "../ui/dist/tones/count-tone.js": "export const countTone = 1;\n",
   "src/webview/renders-kit.ts":
     "import { Button } from '@miragon/pulse-ui';\nexport const button = Button;\n",
   "src/core/ships-ui-testing.ts":
@@ -95,7 +110,7 @@ const PLANTED: Readonly<Record<string, string>> = {
   "test/host-kit/reads-profile-fixtures.test.ts":
     "import { PROFILE_FIXTURES } from '@miragon/pulse-profile/testing';\nexport const fixtures = PROFILE_FIXTURES;\n",
   "package.json":
-    '{ "name": "@miragon/pulse-runtime-view", "private": true, "dependencies": { "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-profile": "workspace:*", "@miragon/pulse-ui": "workspace:*", "bpmn-moddle": "10.3.1" } }\n',
+    '{ "name": "@miragon/pulse-runtime-view", "private": true, "dependencies": { "@miragon/pulse-c7-core": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-profile": "workspace:*", "@miragon/pulse-ui": "workspace:*", "bpmn-moddle": "10.3.1" } }\n',
 }
 
 const tree = new PlantedTree("packages/core/runtime-view", PLANTED)
@@ -122,7 +137,11 @@ describe("the dependency rules", () => {
     const format = at("node_modules/@miragon/pulse-ui/dist/format/index.d.ts")
     const profile = at("node_modules/@miragon/pulse-profile/dist/index.d.ts")
     const profileTesting = at("node_modules/@miragon/pulse-profile/dist/testing/index.d.ts")
-    const c7Core = "@miragon/pulse-c7-core"
+    const c7Core = "node_modules/@miragon/pulse-c7-core/dist/index.d.ts"
+    const c7CoreSubpath = "@miragon/pulse-c7-core/cause"
+    const c7CoreSource = "packages/connectors/c7/c7-core/src/cause.ts"
+    const tonesSource = "packages/core/ui/src/tones/count-tone.ts"
+    const tonesBuild = "packages/core/ui/dist/tones/count-tone.js"
     const adapter = "@miragon/pulse-engine-adapter"
     expect(tree.violations()).toEqual(
       [
@@ -142,9 +161,11 @@ describe("the dependency rules", () => {
         `engine-core-only-by-its-entries: ${at("test/core/escapes-into-the-fake.test.ts")} -> packages/connectors/engine/engine-core/src/testing/fake/fake-engine.ts`,
         `runtime-view-is-dialect-neutral: ${at("src/core/runs-c7-core.ts")} -> ${c7Core}`,
         `not-in-allowed: ${at("src/core/runs-c7-core.ts")} -> ${c7Core}`,
-        `not-to-unresolvable: ${at("src/core/runs-c7-core.ts")} -> ${c7Core}`,
         `runtime-view-is-dialect-neutral: ${at("test/core/runs-c7-core.test.ts")} -> ${c7Core}`,
-        `not-to-unresolvable: ${at("test/core/runs-c7-core.test.ts")} -> ${c7Core}`,
+        `runtime-view-is-dialect-neutral: ${at("src/host-kit/reads-c7-core-subpath.ts")} -> ${c7CoreSubpath}`,
+        `not-in-allowed: ${at("src/host-kit/reads-c7-core-subpath.ts")} -> ${c7CoreSubpath}`,
+        `not-to-unresolvable: ${at("src/host-kit/reads-c7-core-subpath.ts")} -> ${c7CoreSubpath}`,
+        `runtime-view-is-dialect-neutral: ${at("test/core/escapes-into-c7-core.test.ts")} -> ${c7CoreSource}`,
         `runtime-view-is-dialect-neutral: ${at("src/host-kit/wires-the-adapter.ts")} -> ${adapter}`,
         `not-in-allowed: ${at("src/host-kit/wires-the-adapter.ts")} -> ${adapter}`,
         `not-to-unresolvable: ${at("src/host-kit/wires-the-adapter.ts")} -> ${adapter}`,
@@ -155,6 +176,10 @@ describe("the dependency rules", () => {
         `not-in-allowed: ${at("src/core/escapes-into-format.ts")} -> packages/core/ui/src/format/text.ts`,
         `pulse-ui-only-its-foundation: ${at("src/webview/escapes-into-built-format.ts")} -> packages/core/ui/dist/format/numbers.js`,
         `not-in-allowed: ${at("src/webview/escapes-into-built-format.ts")} -> packages/core/ui/dist/format/numbers.js`,
+        `pulse-ui-only-its-foundation: ${at("src/webview/escapes-into-tones.ts")} -> ${tonesSource}`,
+        `not-in-allowed: ${at("src/webview/escapes-into-tones.ts")} -> ${tonesSource}`,
+        `pulse-ui-only-its-foundation: ${at("src/core/escapes-into-built-tones.ts")} -> ${tonesBuild}`,
+        `not-in-allowed: ${at("src/core/escapes-into-built-tones.ts")} -> ${tonesBuild}`,
         `pulse-ui-only-its-foundation: ${at("src/webview/renders-kit.ts")} -> ${kit}`,
         `not-in-allowed: ${at("src/webview/renders-kit.ts")} -> ${kit}`,
         `pulse-ui-only-its-foundation: ${at("src/core/ships-ui-testing.ts")} -> ${kitTesting}`,
