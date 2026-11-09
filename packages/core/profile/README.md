@@ -117,3 +117,15 @@ that names no profile) only the parser refuses.
 case with its verdict under every policy and whether the schema takes it, and `outcomeOf`, the
 form a reader's test compares a `ProfileFile` in. A reader runs the fixtures through its own path
 and keeps what it makes of each verdict next to its tests.
+
+## Mutation testing
+
+The rules are mutation-tested every night in the repository (StrykerJS over `src` without the
+tests, `index.ts` and the testing helpers, against the package's own tests; owner decision
+2026-11-07): the parser, the URL, header and credential rules, the secret variable prefix, what a
+reader cannot serve and the sentences of `describeProblem`, which the package's tests pin word for
+word. They decide which secrets, variables and URLs the CLI, Pulse for VS Code and the MCP server
+accept, so a surviving mutant is a wrong rule in all three. StrykerJS mutates nothing under an
+`as`, so the `as const` tables of `types.ts` (the keys, auth types, flavors and problem codes) are
+held by the tests alone. Locally:
+`pnpm --fail-if-no-match --filter @miragon/pulse-profile exec stryker run`.

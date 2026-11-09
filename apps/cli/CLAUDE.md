@@ -135,9 +135,10 @@ there, then c7-core's `generate` (`pnpm build` runs it) and `catalog` run in tha
   behind Keycloak and an Envoy gateway, and pack the tarball.
 - No mutation testing of the CLI itself (owner decision, 2026-11-04): the repository mutates
   only `@miragon/pulse-c7-core`, which holds the workflow rules the CLI bundles,
-  `@miragon/pulse-http`, the transport it may bundle (owner decision 2026-11-08), and the
+  `@miragon/pulse-http`, the transport it may bundle (owner decision 2026-11-08), the
   root-cause, value-kind and move-reason rules of `@miragon/pulse-engine-core`, whose root-cause
-  rule the CLI bundles through c7-core (owner decision 2026-11-09).
+  rule the CLI bundles through c7-core (owner decision 2026-11-09), and `@miragon/pulse-profile`,
+  the profile format it bundles (owner decision 2026-11-07).
 - Coverage floors in `apps/cli/vitest.config.ts` only rise.
 
 ## The command and its second name

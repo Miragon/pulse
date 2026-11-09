@@ -382,9 +382,15 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
     }
   })
 
-  it("the real map lists c7-core, the transport and engine-core's rules, each with the owner's decision", () => {
+  it("the real map lists c7-core, the transport, engine-core's rules and the profile format, each with the owner's decision", () => {
     const engineCore = "packages/connectors/engine/engine-core"
-    assert.deepEqual(Object.keys(MUTATED_PACKAGES), [CORE, "packages/core/http", engineCore])
+    const profile = "packages/core/profile"
+    assert.deepEqual(Object.keys(MUTATED_PACKAGES), [
+      CORE,
+      "packages/core/http",
+      engineCore,
+      profile,
+    ])
     assert.match(
       MUTATED_PACKAGES[CORE],
       /owner decision 2026-11-04: c7-core \(engine-core until 0\.27\)/,
@@ -395,6 +401,12 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
       "owner decision 2026-11-09: the root-cause, value-kind and move-reason rules every dialect " +
         "and every interface share, where a surviving mutant is a wrong rule everywhere; only " +
         "those three files are mutated",
+    )
+    assert.equal(
+      MUTATED_PACKAGES[profile],
+      "owner decision 2026-11-07: the profile rules decide which secrets, variables and URLs " +
+        "every surface accepts, so a surviving mutant is a wrong rule in the CLI, Pulse for " +
+        "VS Code and the MCP server",
     )
   })
 

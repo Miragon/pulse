@@ -15,6 +15,7 @@ describe("urlProblem", () => {
     ["", "url-invalid"],
     ["https://demo:demo@shop.example.com/engine-rest", "url-credentials"],
     ["https://demo@shop.example.com/engine-rest", "url-credentials"],
+    ["https://:demo@shop.example.com/engine-rest", "url-credentials"],
     ["ftp://demo:demo@shop.example.com/", "url-credentials"],
     ["ftp://localhost/engine-rest", "url-not-http"],
     ["localhost:8080/engine-rest", "url-not-http"],
@@ -25,12 +26,18 @@ describe("urlProblem", () => {
   ])("%j: %s", (url, problem) => {
     expect(urlProblem(url)).toBe(problem)
   })
+
+  it("trims a no-break space around a URL, which the URL parser keeps", () => {
+    expect(urlProblem("\u00a0https://engine.example.com/engine-rest\u00a0")).toBeUndefined()
+  })
 })
 
 describe("normalizing", () => {
   it("trims a REST root and drops its trailing slashes", () => {
     expect(normalizeUrl("  http://a:8080/engine-rest///  ")).toBe("http://a:8080/engine-rest")
     expect(normalizeUrl("http://a:8080/engine-rest#")).toBe("http://a:8080/engine-rest#")
+    expect(normalizeUrl(" /// ")).toBe("")
+    expect(normalizeCockpitUrl("#/#/")).toBe("")
   })
 
   it("also drops the start route of a web app, never a route inside it", () => {
@@ -64,6 +71,8 @@ describe("isLoopbackHost", () => {
     ["127.255.255.254", true],
     ["128.0.0.1", false],
     ["localhost.example.com", false],
+    ["127.0.0.1.example.com", false],
+    ["1127.0.0.1", false],
     ["0.0.0.0", false],
     ["engine", false],
   ])("%s: %s", (host, loopback) => {
@@ -76,6 +85,10 @@ describe("credentialsInClearText", () => {
     for (const type of ["basic", "bearer", "oauth", "passthrough"] as const) {
       expect(credentialsInClearText("http://engine:8080/engine-rest", type), type).toBe(true)
     }
+  })
+
+  it("trims a no-break space around a URL, which the URL parser keeps", () => {
+    expect(credentialsInClearText("\u00a0http://engine:8080/engine-rest\u00a0", "basic")).toBe(true)
   })
 
   it("is false without credentials, over https, on loopback or for no URL", () => {

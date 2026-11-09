@@ -91,6 +91,10 @@ export const MUTATED_PACKAGES = {
     "owner decision 2026-11-09: the root-cause, value-kind and move-reason rules every dialect " +
     "and every interface share, where a surviving mutant is a wrong rule everywhere; only those " +
     "three files are mutated",
+  "packages/core/profile":
+    "owner decision 2026-11-07: the profile rules decide which secrets, variables and URLs every " +
+    "surface accepts, so a surviving mutant is a wrong rule in the CLI, Pulse for VS Code and " +
+    "the MCP server",
 }
 
 /** The one path the CI mutation artifact and scripts/fitness-report.mjs read. */

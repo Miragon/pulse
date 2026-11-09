@@ -49,6 +49,7 @@ describe("isConventionalVariable", () => {
   it("is false for what looks like a secret: lower case, long runs, too long", () => {
     expect(isConventionalVariable("ghp_16C7e42F292c6912E7710c838347Ae178B4a")).toBe(false)
     expect(isConventionalVariable("A".repeat(25))).toBe(false)
+    expect(isConventionalVariable(`ENGINE_${"A".repeat(25)}`)).toBe(false)
     expect(isConventionalVariable(`A${"_B".repeat(32)}`)).toBe(false)
     expect(isConventionalVariable("hunter2")).toBe(false)
   })
@@ -63,6 +64,21 @@ describe("headers", () => {
     }
   })
 
+  it("refuses every header the client manages itself, in any spelling", () => {
+    const managed = [
+      "Connection",
+      "Content-Length",
+      "Expect",
+      "Keep-Alive",
+      "Transfer-Encoding",
+      "Upgrade",
+    ]
+    for (const name of managed) {
+      expect(isHeaderName(name), name).toBe(false)
+      expect(isHeaderName(name.toLowerCase()), name).toBe(false)
+    }
+  })
+
   it("takes a Latin-1 value with tabs, without other control characters", () => {
     expect(isHeaderValue("tab\there é ÿ")).toBe(true)
     for (const value of ["line\nbreak", "nul\u0000", "del\u007f", "euro €"]) {
@@ -72,6 +88,9 @@ describe("headers", () => {
 
   it("knows a secret header by its name", () => {
     for (const name of ["Authorization", "Cookie", "X-Api-Key", "X-APIKEY", "X-Auth-Token"]) {
+      expect(isSecretHeader(name), name).toBe(true)
+    }
+    for (const name of ["Proxy-Authorization", "Set-Cookie", "X-Client-Secret", "X-Password"]) {
       expect(isSecretHeader(name), name).toBe(true)
     }
     expect(isSecretHeader("X-Tenant-Id")).toBe(false)

@@ -77,6 +77,44 @@ describe("parseProfileFile", () => {
     })
   })
 
+  it("sets only what the file holds: a $schema that is a string as its schema, no empty key", () => {
+    const schema = "https://unpkg.com/@miragon/pulse-profile/schema/pulse.schema.json"
+    expect(parsed({ $schema: schema, profiles: {} })).toStrictEqual({
+      notes: [],
+      schema,
+      profiles: [],
+    })
+    expect(parsed({ profiles: {} })).toStrictEqual({ notes: [], profiles: [] })
+    expect(parsed({ $schema: 1, profiles: {} }).schema).toBeUndefined()
+  })
+
+  it("refuses a value of another type whose text would pass, and a list or map with one bad entry", () => {
+    const problems = (keys: Readonly<Record<string, unknown>>) =>
+      outcomeOf(parsed({ profiles: { p: { url: URL_A, ...keys } } })).profiles?.[0]?.problems
+    expect(problems({ environment: 1 })).toEqual(["invalid environment"])
+    expect(problems({ environment: true })).toEqual(["invalid environment"])
+    expect(problems({ headers: { "X-A": 1 } })).toEqual(["invalid headers"])
+    expect(problems({ headers: { "X-A": "b", "Bad Name": "c" } })).toEqual(["invalid headers"])
+    expect(problems({ auth: { username: "u", passwordEnv: true } })).toEqual([
+      "invalid auth.passwordEnv",
+    ])
+    expect(problems({ auth: { type: "oauth", scopes: ["openid", "a b"] } })).toEqual([
+      "invalid auth.scopes",
+    ])
+  })
+
+  it("takes the type none next to stored keys of any kind: it switches them off", () => {
+    const auths = [
+      { type: "none", username: "u", passwordEnv: "PASSWORD" },
+      { type: "none", issuer: "https://login.example.com/realms/engine", clientId: "c" },
+      { type: "none", tokenEnv: "TOKEN" },
+    ]
+    for (const auth of auths) {
+      const [verdict] = parsed({ profiles: { p: { url: URL_A, auth } } }).profiles
+      expect(verdict?.problems, JSON.stringify(auth)).toEqual([])
+    }
+  })
+
   it("keeps the notes of a file whose profiles are no object", () => {
     expect(outcomeOf(parsed({ extra: 1, profiles: "p" }))).toEqual({
       problem: "profiles-not-object profiles",
@@ -131,10 +169,18 @@ describe("defaultProfileOf", () => {
     expect(defaultProfileOf(file({ defaultProfile: " ", profiles: { a: {} } }))).toBe("a")
   })
 
+  it("falls back to the only profile past a note on another root key", () => {
+    expect(defaultProfileOf(file({ colour: 1, $schema: 2, profiles: { a: {} } }))).toBe("a")
+  })
+
   it("is none for a file that gives no profiles, or an only profile without a valid name", () => {
     expect(defaultProfileOf(parseProfileFile("[]", { credentials: "none" }))).toBeUndefined()
     expect(defaultProfileOf(file({ profiles: { "a b": {} } }))).toBeUndefined()
-    const failed: ProfileFile = { problem: { code: "root-not-object" }, notes: [], profiles: [] }
+    const failed: ProfileFile = {
+      problem: { code: "root-not-object" },
+      notes: [],
+      profiles: [{ name: "a", index: 0, problems: [] }],
+    }
     expect(defaultProfileOf(failed)).toBeUndefined()
   })
 })

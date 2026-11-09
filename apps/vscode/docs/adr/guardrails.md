@@ -114,10 +114,12 @@ repository's CI (`.github/workflows/ci.yml`) next to the server's.
 - The extension runs no mutation testing (owner decision, 2026-11-04): the repository
   mutates only `@miragon/pulse-c7-core`, whose engine rules the C7 adapter bundles,
   `@miragon/pulse-http`, the transport the adapters are to send through (owner decision 2026-11-08),
-  and the rules of `@miragon/pulse-engine-core` the contract layer exports, `RootCauses`,
+  the rules of `@miragon/pulse-engine-core` the contract layer exports, `RootCauses`,
   `ValueKinds` and `MoveReasons`
   (`packages/connectors/engine/engine-core/src/model/root-causes.ts`, `value-kinds.ts` and
-  `move-reasons.ts`, its only mutated files; owner decision 2026-11-09).
+  `move-reasons.ts`, its only mutated files; owner decision 2026-11-09), and
+  `@miragon/pulse-profile`, the profile format the extension's connections read (owner decision
+  2026-11-07).
 - Thresholds sit just below the measured baseline: coverage lines/statements/functions/
   branches globally 93/93/94/83, core 98/98/98/90, the C7 adapter 92/92/98/80, the model
   adapter 98/98/98/88, webview 78/78/78/68, and in its own package, engine-core, the engine
