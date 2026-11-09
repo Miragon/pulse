@@ -24,6 +24,10 @@ const LANGUAGE_ONLY: ts.CompilerOptions = {
   noEmit: true,
 }
 
+// A program over the language's own lib loads and checks it cold: on a CI runner the first one
+// took 5.9 s, past Vitest's default of 5 s.
+const COMPILE_TIMEOUT_MS = 60_000
+
 function sourcesOf(dir: string): string[] {
   return readdirSync(dir)
     .filter((file) => file.endsWith(".ts") && !file.endsWith(".test.ts"))
@@ -38,11 +42,15 @@ function compileErrors(files: string[]): string[] {
 }
 
 describe("the framework-free entries compile against the language alone", () => {
-  it.each(FOUNDATION_ENTRIES)("src/%s: no DOM, no Node", (entry) => {
-    const files = sourcesOf(join(SRC, entry))
-    expect(files).not.toEqual([])
-    expect(compileErrors(files)).toEqual([])
-  })
+  it.each(FOUNDATION_ENTRIES)(
+    "src/%s: no DOM, no Node",
+    (entry) => {
+      const files = sourcesOf(join(SRC, entry))
+      expect(files).not.toEqual([])
+      expect(compileErrors(files)).toEqual([])
+    },
+    COMPILE_TIMEOUT_MS,
+  )
 
   describe("the check is not blind", () => {
     const dir = mkdtempSync(join(tmpdir(), "foundation-runtime-"))
@@ -50,16 +58,20 @@ describe("the framework-free entries compile against the language alone", () => 
       rmSync(dir, { recursive: true, force: true })
     })
 
-    it("fails on a DOM global and on a Node global", () => {
-      const probe = join(dir, "probe.ts")
-      writeFileSync(
-        probe,
-        "export const here = () => window.location.href\nexport const mode = () => process.env.NODE_ENV\n",
-      )
-      const errors = compileErrors([probe])
-      expect(errors).toHaveLength(2)
-      expect(errors[0]).toContain("'window'")
-      expect(errors[1]).toContain("'process'")
-    })
+    it(
+      "fails on a DOM global and on a Node global",
+      () => {
+        const probe = join(dir, "probe.ts")
+        writeFileSync(
+          probe,
+          "export const here = () => window.location.href\nexport const mode = () => process.env.NODE_ENV\n",
+        )
+        const errors = compileErrors([probe])
+        expect(errors).toHaveLength(2)
+        expect(errors[0]).toContain("'window'")
+        expect(errors[1]).toContain("'process'")
+      },
+      COMPILE_TIMEOUT_MS,
+    )
   })
 })
