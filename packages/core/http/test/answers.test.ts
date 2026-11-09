@@ -266,6 +266,25 @@ describe("a credential the connection's headers carry", () => {
     expect(decodeText(await http.send(GET))).toBe("sent *** back")
   })
 
+  it("keeps an Authorization's scheme word, which is no secret, and masks a key whole", async () => {
+    const echo = (text: string) => new Response(text, { status: 500 })
+    const basic = httpOf([echo("sent Authorization: Basic ZGVtbzpkZW1vLXNlY3JldA== back")], {
+      credential: basicCredential("demo", "demo-secret"),
+    })
+    expect(decodeText(await basic.http.send(GET))).toBe("sent Authorization: Basic *** back")
+    const proxied = httpOf([echo("sent Proxy-Authorization: Basic cHJveHk6cHctNDcxMQ== back")], {
+      headers: { "Proxy-Authorization": "Basic cHJveHk6cHctNDcxMQ==" },
+    })
+    expect(decodeText(await proxied.http.send(GET))).toBe(
+      "sent Proxy-Authorization: Basic *** back",
+    )
+    const keyed = httpOf([echo("sent two words-4711 back")], {
+      headers: { "X-Api-Key": "two words-4711" },
+      secretHeaders: ["x-api-key"],
+    })
+    expect(decodeText(await keyed.http.send(GET))).toBe("sent *** back")
+  })
+
   it("is refused before sending when its value cannot be a header", async () => {
     const { http } = httpOf([jsonAnswer({})], { headers: { Authorization: "Bearer a\nb-secret" } })
     const failure = await failureOf(http.send({ ...GET, method: "get" }))

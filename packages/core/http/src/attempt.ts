@@ -37,9 +37,13 @@ export interface Attempted {
   readonly forms: readonly string[]
 }
 
+/** Headers whose value is a scheme and a credential (RFC 9110, 11.4): the scheme is no secret. */
+const SCHEMED: ReadonlySet<string> = new Set(["authorization", "proxy-authorization"])
+
 /**
- * The values of the secret headers among `headers`, each also without a leading scheme word
- * (`Bearer`, `Basic`), so an echo of the bare credential is found as well.
+ * The values of the secret headers among `headers`, each also without a leading word, so an
+ * echo of the bare credential is found as well. An Authorization's scheme (`Bearer`, `Basic`) is
+ * no secret: an echo reads `Basic ***`, as the MCP server has worded it since 0.27.
  */
 export function secretValues(
   context: Pick<Context, "secretHeaders">,
@@ -47,7 +51,10 @@ export function secretValues(
 ): string[] {
   return [...headers]
     .filter(([name]) => context.secretHeaders.has(name.toLowerCase()))
-    .flatMap(([, value]) => [value, value.replace(/^\S+\s+/, "")])
+    .flatMap(([name, value]) => {
+      const bare = value.replace(/^\S+\s+/, "")
+      return SCHEMED.has(name.toLowerCase()) ? [bare] : [value, bare]
+    })
 }
 
 type Sending = Pick<Prepared, "method" | "url" | "intent">
