@@ -1,6 +1,6 @@
 /**
  * A scripted fetch for the unit tests: each call takes the next step (the last repeats) and
- * records what was sent. The conformance cases run over real sockets instead (loopback.ts).
+ * records what was sent. The conformance cases run over real sockets instead (src/testing/loopback).
  */
 import type { Platform, TraceEvent } from "../src/index.js"
 

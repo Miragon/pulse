@@ -172,6 +172,15 @@ const PROFILE_READERS = [
 const HTTP = { name: "@miragon/pulse-http", tree: "packages/core/http" }
 
 /**
+ * The transport's one module with Node built-ins: the loopback engine of its conformance cases
+ * (`@miragon/pulse-http/testing/loopback`), on real sockets, which every wiring of the transport
+ * runs the cases against instead of a copy of its own. The named exception of http-is-a-leaf,
+ * held to its sockets by http-loopback-only-its-sockets; shipped-code-not-to-testing keeps it out
+ * of shipped code.
+ */
+const HTTP_LOOPBACK = `^${escapeRegExp(HTTP.tree)}/src/testing/loopback/`
+
+/**
  * Where a surface sends its engine requests, the only shipped importers of HTTP: the CLI's
  * http, auth and operation layers, the adapters of Pulse for VS Code (one folder per dialect
  * under src/adapters; its closed world, apps/vscode/.dependency-cruiser.cjs, admits the edge on
@@ -667,10 +676,29 @@ module.exports = {
         "built-in. It runs over the fetch a surface hands it (Node's, the VS Code extension " +
         "host's with its proxy and certificates), on the web platform's globals alone; where " +
         "the secrets come from, how a request is built and every word a person reads stay with " +
-        "the surface. Its tests (test/) may import vitest, fast-check and Node built-ins for " +
-        "the loopback engines of the conformance cases.",
-      from: { path: `^${escapeRegExp(HTTP.tree)}/src/`, pathNot: ["[.]test[.]ts$"] },
-      to: { pathNot: `^${escapeRegExp(HTTP.tree)}/src/` },
+        "the surface. Its tests (test/) may import vitest, fast-check and Node built-ins. The " +
+        "named exception is the loopback engine of the conformance cases " +
+        "(src/testing/loopback/, http-loopback-only-its-sockets), and no other module of the " +
+        "package reaches it, so the ./testing entry stays free of Node built-ins as well.",
+      from: { path: `^${escapeRegExp(HTTP.tree)}/src/`, pathNot: ["[.]test[.]ts$", HTTP_LOOPBACK] },
+      to: { pathNot: `^${escapeRegExp(HTTP.tree)}/src/(?!testing/loopback/)` },
+    },
+    {
+      name: "http-loopback-only-its-sockets",
+      severity: "error",
+      comment:
+        "The loopback engine of the transport's conformance cases " +
+        "(@miragon/pulse-http/testing/loopback, src/testing/loopback/) is the package's one " +
+        "module with Node built-ins (a decision taken for the owner on 2026-11-09, who may " +
+        "overturn it): node:http and node:https for its plain and TLS engines, node:crypto for " +
+        "the self-signed certificate it makes at test time, and the package's own modules (the " +
+        "case types). Nothing else: no npm package, no workspace package, no other built-in. It " +
+        "ships for the consumers' tests, so every wiring runs the cases against one engine; " +
+        "shipped-code-not-to-testing keeps it out of shipped code.",
+      from: { path: HTTP_LOOPBACK, pathNot: ["[.]test[.]ts$"] },
+      to: {
+        pathNot: [`^${escapeRegExp(HTTP.tree)}/src/`, "^(?:node:)?(?:http|https|crypto)$"],
+      },
     },
     {
       name: "http-consumers",

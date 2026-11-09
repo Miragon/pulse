@@ -15,8 +15,9 @@ secrets masked in every text the server sent back.
 
 No runtime dependency and no Node built-in: it runs over the `fetch` you hand it (Node's own, the
 VS Code extension host's, which carries the editor's proxy and certificates, a fake in a test) on
-the web platform's globals alone. Building requests, reading a dialect's error answers, finding
-the secrets and every word a person reads stay with the client that uses it.
+the web platform's globals alone (only the test engine of `./testing/loopback` uses Node).
+Building requests, reading a dialect's error answers, finding the secrets and every word a person
+reads stay with the client that uses it.
 
 ## Install
 
@@ -74,9 +75,10 @@ the path values before the URL is built, in the SDK's `requestValidator` with `p
 
 `@miragon/pulse-http/testing` exports `TRANSPORT_CASES`: each a connection, one request, the
 engine's answers and what every wiring of the transport must observe. Run each case your client
-can express (`casesFor(["basic", "bearer", …])`, and name the rest in your test) against a
-recording engine on loopback, map what your client got onto an `Observed` and assert that
-`caseFindings` finds nothing. Where a case is also one of the error-path goldens of the Pulse
+can express (`casesFor(["basic", "bearer", …])`, and name the rest in your test) against the
+recording engine of `@miragon/pulse-http/testing/loopback` (`startCaseEngine(kase)`: real sockets
+on 127.0.0.1, a self-signed certificate made at test time, Node only), map what your client got
+onto an `Observed` and assert that `caseFindings` finds nothing. Where a case is also one of the error-path goldens of the Pulse
 clients, it carries that golden's name. For unit tests without sockets, `recordingFetch(script)`
 records each request and answers it with the script's next entry: a `Response`, a function of the
 request, `{ fail: "ECONNREFUSED" }` or `{ hang: "headers" }`.

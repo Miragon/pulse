@@ -24,5 +24,7 @@
     "verbatimModuleSyntax": true,
     "isolatedModules": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  // The loopback engine of the conformance cases needs Node: tsconfig.loopback.json.
+  "exclude": ["src/testing/loopback"]
 }

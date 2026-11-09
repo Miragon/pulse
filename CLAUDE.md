@@ -52,7 +52,7 @@ command line interface (`apps/cli`) and a VS Code extension (`apps/vscode`) for 
 | `packages/core/ui/`                            | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the formatters and the tones without React under `/format` and `/tones`, the brand gates under `/testing`                                                                        |
 | `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), a module's test server (`/testing`)                                                                                                                                                    |
 | `packages/core/profile/`                       | The one profile format of the CLI, Pulse for VS Code and the MCP server (npm `@miragon/pulse-profile`): a parser from a file's text to a verdict per profile as data (a code and a key, never a value), the credential policy by where the file comes from, `refusalsOn` for what a reader cannot serve, the JSON Schema (`schema/pulse.schema.json`) and the shared fixtures (`/testing`); no runtime dependency |
-| `packages/core/http/`                          | The one engine transport of the MCP server, the CLI and Pulse for VS Code (npm `@miragon/pulse-http`) over the `fetch` each hands in (`createHttp`): a deadline to the last byte, no redirect, a 64 MiB cap, one retry after a 401, failure reasons as data, lossless JSON, masked secrets, the path value rule; the conformance cases and a recording fake fetch (`/testing`); no runtime dependency             |
+| `packages/core/http/`                          | The one engine transport of the MCP server, the CLI and Pulse for VS Code (npm `@miragon/pulse-http`) over the `fetch` each hands in (`createHttp`): a deadline to the last byte, no redirect, a 64 MiB cap, one retry after a 401, failure reasons as data, lossless JSON, masked secrets, the path value rule; conformance cases, fake fetch (`/testing`), loopback engine (`/testing/loopback`); no dependency |
 | `playground/`                                  | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                                                                                                                                                                 |
 | `docs/`                                        | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                                                                                                                                                                                                        |
 | `docs/mcp/`                                    | The MCP server's pages of the docs site (getting started, usage, reference, operations, architecture, build your own, developer)                                                                                                                                                                                                                                                                                  |
@@ -638,11 +638,14 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      tests do); the transport (`@miragon/pulse-http`, `packages/core/http`) is a leaf too, which
      runs over an injected `fetch` on the web platform's globals, no npm package and no Node
      built-in (`http-is-a-leaf`; ESLint's `no-restricted-globals` keeps out what only a browser
-     has, `HTTP_BROWSER_GLOBALS`), and only where a surface sends its engine requests is it
-     imported: the CLI's `src/http`, `src/auth` and `src/operation`, Pulse for VS Code's
-     `src/adapters/<dialect>`, a connector, and tests anywhere, never the MCP server app's shipped
-     code (`http-consumers`, `HTTP_USERS`; until a surface switches to it, only its own tests
-     do); the engine family's core (`@miragon/pulse-engine-core`,
+     has, `HTTP_BROWSER_GLOBALS`) but in the loopback engine of its conformance cases
+     (`@miragon/pulse-http/testing/loopback`: node:http, node:https and node:crypto alone,
+     `http-loopback-only-its-sockets`, a project of its own with Node types; no other module of
+     the package reaches it, `http-is-a-leaf`), and only where a surface sends its engine
+     requests is it imported: the CLI's `src/http`, `src/auth` and `src/operation`, Pulse for VS
+     Code's `src/adapters/<dialect>`, a connector, and tests anywhere, never the MCP server app's
+     shipped code (`http-consumers`, `HTTP_USERS`; until a surface switches to it, only its own
+     tests do); the engine family's core (`@miragon/pulse-engine-core`,
      `packages/connectors/engine/engine-core`) is a family core like any other, importing only its
      own modules (`family-core-is-a-leaf`), and is imported only where a dialect is implemented:
      the `src` of a dialect's core (`ENGINE_DIALECTS`, never its `./testing` entry), its main

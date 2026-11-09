@@ -1,17 +1,17 @@
 /**
- * The recording engine of a conformance case, on loopback: real sockets reached through Node's
- * fetch, so a case observes what the transport does on the wire (the network codes of a closed
- * port, a self-signed certificate and an unresolvable host included). It records each request as
- * it reached the socket and answers like Tomcat: a status line without a reason phrase. Every
- * wiring of the transport brings its own copy (an app never imports a package's tests); the
- * answers are the case's.
+ * @miragon/pulse-http/testing/loopback: the recording engine of a conformance case, on
+ * loopback. Real sockets reached through a real fetch, so a case observes what a wiring of the
+ * transport does on the wire (the network codes of a closed port, a self-signed certificate and
+ * an unresolvable host included). It records each request as it reached the socket and answers
+ * like Tomcat: a status line without a reason phrase. Every wiring runs the cases against this
+ * one engine, never a copy of its own; it is the package's one module with Node built-ins
+ * (node:http, node:https, node:crypto, the named exception of http-is-a-leaf), an entry of its
+ * own, so `@miragon/pulse-http/testing` stays free of them, and no shipped code imports it.
  */
 import { generateKeyPairSync, sign } from "node:crypto"
-import { once } from "node:events"
 import http, { type IncomingMessage, type ServerResponse } from "node:http"
 import https from "node:https"
-import type { AddressInfo } from "node:net"
-import type { CaseAnswer, Seen, TransportCase } from "../src/testing/index.js"
+import type { CaseAnswer, Seen, TransportCase } from "../types.js"
 
 export interface CaseEngine {
   /** Where the case's root is appended: `http(s)://127.0.0.1:<port>`, or an unresolvable host. */
@@ -108,10 +108,9 @@ async function listening(
   scheme: string,
   seen: Seen[],
   timers: Set<NodeJS.Timeout>,
-) {
-  server.listen(0, "127.0.0.1")
-  await once(server, "listening")
-  const { port } = server.address() as AddressInfo
+): Promise<CaseEngine> {
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve))
+  const { port } = server.address() as { readonly port: number }
   return {
     origin: `${scheme}://127.0.0.1:${String(port)}`,
     seen,
@@ -134,7 +133,7 @@ async function listening(
 const CLOSED_PORT = 2
 
 /** The engine of `kase`, recording every request and answering with the case's answers in order. */
-export async function startEngine(kase: TransportCase): Promise<CaseEngine> {
+export async function startCaseEngine(kase: TransportCase): Promise<CaseEngine> {
   const { endpoint } = kase.connection
   if (endpoint === "closed-port") {
     const origin = `http://127.0.0.1:${String(CLOSED_PORT)}`
@@ -151,13 +150,15 @@ export async function startEngine(kase: TransportCase): Promise<CaseEngine> {
     req.on("end", () => {
       const { authorization } = req.headers
       const body = Buffer.concat(chunks).toString("utf8")
+      // A Node server always has a method and a URL.
       seen.push({
-        method: req.method ?? "",
-        target: req.url ?? "",
+        method: String(req.method),
+        target: String(req.url),
         body,
         ...(authorization ? { authorization } : {}),
       })
-      const reply = kase.answers[Math.min(seen.length, kase.answers.length) - 1] ?? {}
+      // The last answer answers every request after it; a case without one answers 200.
+      const reply: CaseAnswer = { ...kase.answers[Math.min(seen.length, kase.answers.length) - 1] }
       answer(req, res, reply, timers)
     })
   }

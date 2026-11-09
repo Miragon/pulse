@@ -29,7 +29,7 @@ import {
   TRANSPORT_CASES,
   type TransportCase,
 } from "../src/testing/index.js"
-import { startEngine } from "./loopback.js"
+import { startCaseEngine } from "../src/testing/loopback/index.js"
 
 /** What a refusal before sending is, in the case's terms. */
 function refused(error: unknown): Observed | undefined {
@@ -179,7 +179,7 @@ describe.each(Object.entries(WIRINGS))(
     it.each(casesFor(CASE_CAPABILITIES).map((kase) => [kase.name, kase] as const))(
       "%s",
       async (_name, kase) => {
-        const engine = await startEngine(kase)
+        const engine = await startCaseEngine(kase)
         try {
           const observed = await observe(kase, engine.origin)
           expect(caseFindings(kase, observed, engine.seen)).toEqual([])

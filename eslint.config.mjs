@@ -585,8 +585,9 @@ export default tseslint.config(
   // global budget block reads apps/*/src only), and none of the per-function budgets; the
   // non-null assertion and the unsafe assignment/member access that fixtures need stay allowed.
   // The same for c7-core's, the profile format's and the transport's tests (the transport's
-  // fakes and loopback engines under its test/ too). Their ./testing exports (fixtures, the fake
-  // port, the conformance cases) ship on npm and keep the budgets of shipped code.
+  // fakes under its test/ too). Their ./testing exports (fixtures, the fake port, the
+  // conformance cases, the transport's loopback engine under src/testing/loopback) ship on npm
+  // and keep the budgets of shipped code.
   {
     files: [
       "apps/cli/**/*.test.ts",

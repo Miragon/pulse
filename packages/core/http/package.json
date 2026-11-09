@@ -46,12 +46,16 @@
     "./testing": {
       "types": "./dist/testing/index.d.ts",
       "import": "./dist/testing/index.js"
+    },
+    "./testing/loopback": {
+      "types": "./dist/testing/loopback/index.d.ts",
+      "import": "./dist/testing/loopback/index.js"
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && tsc -p tsconfig.loopback.json",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.loopback.json && tsc -p tsconfig.test.json",
     "lint": "eslint src test",
     "lint:fix": "eslint src test --fix"
   },

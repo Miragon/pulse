@@ -1,0 +1,7 @@
+{
+  // The editor's project for the loopback engine: tsserver reads only files named
+  // tsconfig.json. The settings are tsconfig.loopback.json's, which `typecheck` runs.
+  "extends": "../../../tsconfig.loopback.json",
+  "include": ["."],
+  "exclude": []
+}

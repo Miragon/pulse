@@ -13,7 +13,8 @@
     "!src/testing/types.ts",
     "!src/testing/parts.ts",
     "!src/testing/cases.ts",
-    "!src/testing/*-cases.ts"
+    "!src/testing/*-cases.ts",
+    "!src/testing/loopback/**"
   ],
   "inPlace": true,
   "incremental": true,

@@ -123,6 +123,7 @@ const PROFILE_LEAF = "profile-is-a-leaf"
 const PROFILE_USERS = "profile-consumers"
 const HTTP_LEAF = "http-is-a-leaf"
 const HTTP_USERS = "http-consumers"
+const HTTP_LOOPBACK = "http-loopback-only-its-sockets"
 const ENGINE_CORE_USERS = "engine-core-consumers"
 const CORE_USERS = "family-core-consumers"
 const CLI_CORE_LAYERS = "cli-family-core-only-in-named-layers"
@@ -450,6 +451,40 @@ const SUITES = [
       [`${HTTP}/src/testing/cases.ts`, "../lib.ts", []],
       [`${HTTP}/src/http.ts`, "./lib.ts", []],
       [`${HTTP}/src/a.test.ts`, "vitest", []],
+      // Its Node sockets live in the loopback engine alone, and no other testing module gets them.
+      [`${HTTP}/src/testing/parts.ts`, "node:http", [HTTP_LEAF]],
+      [`${HTTP}/src/testing/loopback/server.ts`, "node:http", []],
+      // No other module of the package reaches the loopback engine, so neither the ./testing
+      // entry nor the transport itself takes its sockets in.
+      [`${HTTP}/src/testing/index.ts`, "./loopback/index.ts", [HTTP_LEAF]],
+      [`${HTTP}/src/http.ts`, "./testing/loopback/index.ts", [HTTP_LEAF, NO_TESTING]],
+      [`${HTTP}/src/testing/loopback/index.ts`, "./server.ts", []],
+    ],
+  },
+  {
+    rule: HTTP_LOOPBACK,
+    title: "the loopback engine of the conformance cases imports its sockets and nothing else",
+    cases: [
+      [`${HTTP}/src/testing/loopback/plain.ts`, "node:http", []],
+      [`${HTTP}/src/testing/loopback/tls.ts`, "node:https", []],
+      [`${HTTP}/src/testing/loopback/certificate.ts`, "node:crypto", []],
+      [`${HTTP}/src/testing/loopback/types.ts`, "../../lib.ts", []],
+      [`${HTTP}/src/testing/loopback/files.ts`, "node:fs", [HTTP_LOOPBACK]],
+      [`${HTTP}/src/testing/loopback/spawn.ts`, "node:child_process", [HTTP_LOOPBACK]],
+      [`${HTTP}/src/testing/loopback/agent.ts`, "undici", [HTTP_LOOPBACK]],
+      [`${HTTP}/src/testing/loopback/ui.ts`, "@miragon/pulse-ui", [HTTP_LOOPBACK]],
+      [
+        `${HTTP}/src/testing/loopback/escape.ts`,
+        "../../../../ui/src/target.ts",
+        [HTTP_LOOPBACK, DEEP],
+      ],
+      // A wiring's test runs the cases against it; shipped code never reaches it.
+      [`${ENGINE_CONNECTOR}/src/lib/engine/cases.test.ts`, `${HTTP_NAME}/testing/loopback`, []],
+      [
+        `${ENGINE_CONNECTOR}/src/lib/engine/cases.ts`,
+        `${HTTP_NAME}/testing/loopback`,
+        [NO_TESTING],
+      ],
     ],
   },
   {
