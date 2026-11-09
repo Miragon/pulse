@@ -6,18 +6,21 @@ import { GROUP_DESCRIPTIONS } from "./groups.js"
 import { kebab, shortCommandName } from "./naming.js"
 import type { OpenApiDocument } from "./openapi.js"
 import { type UnnamedOperation, extractOperations } from "./operations.js"
-import { BULK_OPERATIONS, EFFECT_OVERRIDES } from "./effects.js"
 import { EXTRA_ALIASES, NAME_OVERRIDES } from "./overrides.js"
 import { applyPresets } from "./presets.js"
 import { assertResolvableRefs } from "./refs.js"
+import type { CatalogRoutes } from "./routes.js"
 import { assertUniqueSummaries, summarize } from "./summaries.js"
 
-export function buildCatalog(source: OpenApiDocument, sourceUrl: string): Catalog {
+/** The catalog of the spec; each operation's effect and engine scope come from `routes`. */
+export function buildCatalog(
+  source: OpenApiDocument,
+  sourceUrl: string,
+  routes: CatalogRoutes,
+): Catalog {
   const spec = markEngineDates(source)
   assertResolvableRefs(spec)
-  const unnamed = extractOperations(spec)
-  assertKnownOperations(unnamed, [...BULK_OPERATIONS], "Bulk classification")
-  assertKnownOperations(unnamed, Object.keys(EFFECT_OVERRIDES), "Effect overrides")
+  const unnamed = extractOperations(spec, routes)
   const operations = applyPresets(summarize(assignNames(unnamed))).sort(
     (a, b) => compareText(a.group, b.group) || compareText(a.name, b.name),
   )

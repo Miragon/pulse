@@ -68,6 +68,19 @@ npm install @miragon/pulse-c7-core
   every cut named in `truncated`.
 - **Plans:** the pure parts of retry (`planRetry`, `retriesWrite`), advance (`chooseWait`,
   `advanceSteps`) and wait (`parseCondition`, `decide`, `poll`).
+- **Routes:** the route of each operation of the REST API, generated from the one spec (below):
+  method, path template, effect (`read`, `write`, `delete`, `bulk`), whether a named engine
+  (`/engine/{name}`) serves it and the media types of its answers. `CORE_ROUTES` holds what this
+  package sends, reads only (a plan's writes are yours to send); `@miragon/pulse-c7-core/routes`
+  exports `ROUTES`, all 399, as an entry of its own, so a bundle that needs only the core's carries
+  no more. `routeOf(routes, method, path)` finds a request's route (a literal segment wins over a
+  placeholder from the left: `GET /process-instance/count` is no instance id),
+  `intentOf(route, method)` says whether it only reads (a `POST` query or evaluation does; a
+  request no route knows reads only as `GET` or `HEAD`), and `routedTransport(routes, wire)` is an
+  `EngineTransport` that sends each operation as its route over your `RoutedWire` (refusing one the
+  table lacks or the wrong number of path values before anything is sent).
+  `failureOf(status, problem)` is the engine failure of an error answer: the status and the
+  exception type, message and code its body states (`problemOf` of @miragon/pulse-http reads them).
 - **Engine REST rules:** the one home of what the engine expects other than what a caller
   naturally sends: dates (`toEngineDate`, `engineDateInput` in a `DateInputReading`:
   `OFFSET_REQUIRED` refuses a time without an offset, `UTC_WITHOUT_OFFSET` reads it as UTC;
@@ -81,7 +94,12 @@ npm install @miragon/pulse-c7-core
   incident's message).
 
 ```ts
-import { createEnginePort, type EngineTransport, inspectInstance } from "@miragon/pulse-c7-core"
+import {
+  createEnginePort,
+  type EngineTransport,
+  failureOf,
+  inspectInstance,
+} from "@miragon/pulse-c7-core"
 
 // Your client's answer of one request, read right after it arrived.
 type Answer = { readonly body?: unknown; readonly text?: string }
@@ -90,10 +108,9 @@ const transport: EngineTransport<Answer> = {
   send: (operationId, input) => yourClient.send(operationId, input),
   json: (answer) => answer.body,
   text: (answer) => answer.text,
+  // The status and what the body states: { type, message, code } of the engine's exception.
   failure: (error) =>
-    error instanceof YourHttpError
-      ? { status: error.status, engineType: error.type, engineMessage: error.message }
-      : undefined,
+    error instanceof YourHttpError ? failureOf(error.status, error.problem) : undefined,
 }
 const port = createEnginePort(transport)
 const view = await inspectInstance(
@@ -102,6 +119,23 @@ const view = await inspectInstance(
   { variables: true, history: false, stacktrace: false },
 )
 ```
+
+## The spec and the route table
+
+`spec/api.json` is the one OpenAPI spec of the Camunda 7 REST API in Pulse, Operaton's (from
+operaton-mcp's `operaton-rest-api.json`), vendored as it is; the same 399 operations as CIB seven's
+and Camunda 7's, which differ in descriptions, in the name of a task's form reference
+(`operatonFormRef`, `camundaFormRef`) and in `TelemetryInternalsDto`. `spec/patches.json` corrects
+it with RFC 6902 patches: bodies and parameters the engines read otherwise, and the form reference
+under both names. This package's `generate` (turbo runs it before every build;
+`packages/connectors/c7/c7-core/scripts/generate-routes.ts`) applies them
+(`packages/connectors/c7/c7-core/scripts/patches.ts`) and writes the patched spec (under
+`spec/patched/`, ignored by git) and, from it, `src/generated/routes.json` and
+`src/generated/core-routes.json`, with the effect rule in
+`packages/connectors/c7/c7-core/scripts/effects.ts`. @miragon/pulse-c7-client's `generate`
+(hey-api) writes its SDK from the patched spec, and the CLI's `catalog` its commands, each effect
+taken from the route table. Neither the spec nor the generator ships: the package carries the two
+tables only.
 
 ## Testing helpers
 

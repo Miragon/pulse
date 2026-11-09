@@ -1052,10 +1052,10 @@ module.exports = {
   ],
   options: {
     doNotFollow: { path: "node_modules" },
-    // The hey-api SDK of the c7 family (c7-client) is regenerated from the CIB seven OpenAPI
-    // spec (`pnpm generate`) and never edited by hand, so it is the one tree kept out of the
-    // graph. Any other generated tree (a command catalog, say) is cruised like hand-written
-    // code: list nothing else here.
+    // The hey-api SDK of the c7 family (c7-client) is regenerated from the one Camunda 7 REST
+    // spec (c7-core's spec/api.json, `pnpm generate`) and never edited by hand, so it is the one
+    // tree kept out of the graph. Any other generated tree (a command catalog, a route table, say)
+    // is cruised like hand-written code: list nothing else here.
     exclude: { path: ["^packages/connectors/c7/c7-client/src/generated/"] },
     tsPreCompilationDeps: true,
     tsConfig: { fileName: "tsconfig.base.json" },

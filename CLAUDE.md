@@ -47,8 +47,8 @@ command line interface (`apps/cli`) and a VS Code extension (`apps/vscode`) for 
 | `apps/vscode/`                                 | Pulse for VS Code (`pulse-cockpit`, a .vsix): a Preact webview over an engine-neutral core and the contract of `engine-core`, the C7 adapter; its rules in `apps/vscode/CLAUDE.md`                                                                                                                                                                                                                                |
 | `packages/connectors/engine/engine-connector/` | engine module, the one MCP module of every dialect: operations tools, widget tools, widgets                                                                                                                                                                                                                                                                                                                       |
 | `packages/connectors/engine/engine-core/`      | The neutral core of the engine family (npm `@miragon/pulse-engine-core`), the contract every dialect implements: the ports a process engine answers (`ProcessRuntime`, `ProcessCommands`), ids, read models, queries, `RuntimeError`, `RootCauses`; the conformance kit with its laws, its fixed world and the in-memory `FakeEngine` (`/testing`); no runtime dependency, Pulse for VS Code's house rules        |
-| `packages/connectors/c7/c7-client/`            | The SDK of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-client`): the generated CIB seven REST SDK (`src/generated/`), `createEngineClient`, `EngineRequestError` and the SDK-bound reads (`src/sdk-reads/`); a leaf                                                                                                                                                                              |
-| `packages/connectors/c7/c7-core/`              | The core of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-core`), its workflow domain and pure engine REST rules: port, selection, inspect, status triage, the root cause of an incident (`causeOf`), retry/advance plans, dates, filters, variable writes; one runtime dependency, engine-core's main entry                                                                                       |
+| `packages/connectors/c7/c7-client/`            | The SDK of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-client`): the REST SDK generated from c7-core's one spec (`src/generated/`), `createEngineClient`, `EngineRequestError` and the SDK-bound reads (`src/sdk-reads/`); a leaf                                                                                                                                                                |
+| `packages/connectors/c7/c7-core/`              | The core of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-core`), its workflow domain and pure engine REST rules: port, selection, inspect, status triage, the root cause of an incident (`causeOf`), retry/advance plans, dates, filters, variable writes, the one spec and its routes (`routeOf`, `intentOf`, `./routes`); one runtime dependency, engine-core's main entry                      |
 | `packages/core/ui/`                            | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the formatters and the tones without React under `/format` and `/tones`, the brand gates under `/testing`                                                                        |
 | `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), a module's test server (`/testing`)                                                                                                                                                    |
 | `packages/core/profile/`                       | The one profile format of the CLI, Pulse for VS Code and the MCP server (npm `@miragon/pulse-profile`): a parser from a file's text to a verdict per profile as data (a code and a key, never a value), the credential policy by where the file comes from, `refusalsOn` for what a reader cannot serve, the JSON Schema (`schema/pulse.schema.json`) and the shared fixtures (`/testing`); no runtime dependency |
@@ -138,7 +138,7 @@ pnpm test                            # vitest across the workspace
 pnpm test:one <file...> [--watch]    # inner loop: test files in their packages, deps built, coverage off
 pnpm lint                            # eslint per package (`pnpm lint:fix` to autofix)
 pnpm format:check                    # prettier check (`pnpm format` to write)
-pnpm generate                        # regenerate the CIB seven SDK from the OpenAPI spec
+pnpm generate                        # regenerate the c7 SDK and route tables from the one spec
 
 # The server with your own settings (a .env file, see .env.example; playground: pnpm stack:up):
 pnpm dev                             # MCP server on :8400 + MCP Inspector
@@ -557,6 +557,19 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      server, the CLI and the VS Code extension each keep their own until each switches to it.
      Every write tool has a
      recording-fake-engine case in `src/tools/*.wire.test.ts`.
+   - **One Camunda 7 REST spec** (`packages/connectors/c7/c7-core/spec/api.json`, Operaton's,
+     vendored as it is): c7-core's `generate` applies its `patches.json` (the one RFC 6902
+     applier, `packages/connectors/c7/c7-core/scripts/patches.ts`) and writes the patched spec,
+     which c7-client's SDK and the CLI's catalog read as a file, and the route table from it
+     (`packages/connectors/c7/c7-core/src/generated/`): each operation's method, path template,
+     effect, engine scope and media types, `CORE_ROUTES` the reads c7-core sends,
+     `@miragon/pulse-c7-core/routes` all 399. Whether a request only reads is
+     `intentOf(routeOf(…))` over it (literal segments before placeholders; an unknown request
+     reads only as a GET or a HEAD), and `failureOf` reads an error answer, so a surface that
+     sends through `routedTransport` keeps no table of its own; the server's `POST_QUERY_PATHS`
+     and the VS Code adapter's `InspectOperations` stay until each does. The effect rule
+     (`packages/connectors/c7/c7-core/scripts/effects.ts`) has one home: the CLI's catalog takes
+     each effect from the table.
    - The workflow rules the CLI and the read composites (`engine_inspect_process_instance`,
      `engine_status`, `src/lib/core-adapter/composites.ts`) share live in
      `@miragon/pulse-c7-core`: selection, the root cause (`causeOf`), the composites' paging and

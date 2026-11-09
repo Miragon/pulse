@@ -1,7 +1,10 @@
 import { defineConfig } from "@hey-api/openapi-ts"
 
 export default defineConfig({
-  input: "./cibseven-open-api-doc.json",
+  // The one Camunda 7 REST spec of the c7 family with its patches applied, as c7-core's
+  // `generate` writes it (its route table and the CLI's catalog read the same spec); a file
+  // read, no import, so turbo runs c7-core's `generate` first (turbo.json).
+  input: "../c7-core/spec/patched/api.json",
   output: { path: "./src/generated", module: { extension: ".js" } },
   plugins: [
     "@hey-api/typescript",

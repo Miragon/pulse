@@ -1,0 +1,14 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "generate": {
+      "dependsOn": ["@miragon/pulse-c7-core#generate"],
+      "inputs": [
+        "openapi-ts.config.ts",
+        "$TURBO_ROOT$/packages/connectors/c7/c7-core/spec/api.json",
+        "$TURBO_ROOT$/packages/connectors/c7/c7-core/spec/patches.json"
+      ]
+    }
+  }
+}

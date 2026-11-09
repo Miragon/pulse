@@ -16,12 +16,13 @@ npm install @miragon/pulse-c7-client
 
 ## Overview
 
-TypeScript client for the [CIB seven](https://cibseven.org/) REST API: an SDK
-generated with [`@hey-api/openapi-ts`](https://heyapi.dev/), a client factory
-with deadlines and engine errors, and the reads whose REST contract the SDK
-defaults miss. There is no official TypeScript client for CIB seven; this
-package fills that gap for Pulse and is usable by any CIB seven / Camunda 7
-project. It has no runtime dependency. The pure engine REST rules (dates,
+TypeScript client for the Camunda 7 REST API that CIB seven, Operaton and
+Camunda 7 serve: an SDK generated with
+[`@hey-api/openapi-ts`](https://heyapi.dev/), a client factory with deadlines
+and engine errors, and the reads whose REST contract the SDK defaults miss.
+There is no official TypeScript client for CIB seven; this package fills that
+gap for Pulse and is usable by any CIB seven, Operaton or Camunda 7 project.
+It has no runtime dependency. The pure engine REST rules (dates,
 filters, sorting, variable writes, incident recovery) live in
 [`@miragon/pulse-c7-core`](../c7-core/README.md), which this package
 does not import.
@@ -91,23 +92,25 @@ should mutate the request (`request.headers.set(…)`): one that returns a new
 
 ## OpenAPI spec: origin & refresh
 
-The spec is checked in as `cibseven-open-api-doc.json` (currently reporting
-`info.version` **2.1.2**). It originates from the engine's published OpenAPI
-artifact `org.cibseven.bpm:cibseven-engine-rest-openapi` (a jar containing
-`openapi.json`); Maven Central publishes the minor releases (2.1.0, 2.2.0, …).
-The running engine does not serve its spec over HTTP, so the artifact is the
-canonical source.
+The SDK is generated from the one Camunda 7 REST spec of the c7 family,
+`packages/connectors/c7/c7-core/spec/api.json` in the Pulse repository (Operaton's REST API
+1.0.1, the same operations CIB seven and Camunda 7 serve), with the RFC 6902 patches of
+`packages/connectors/c7/c7-core/spec/patches.json` applied: c7-core's `generate` writes that
+patched spec, which c7-core's route table and the CLI's catalog read too, and `pnpm generate`
+(turbo runs it before every build, c7-core's first) reads it as a file. A task's form reference
+is named both ways: `TaskDto` and `FormDto` carry `camundaFormRef` (CIB seven, Camunda 7) and
+`operatonFormRef` (Operaton), both of type `OperatonFormRef`. `TelemetryInternalsDto` is
+Operaton's (`operaton-integration`, no `license-key`).
 
-To refresh:
+To refresh, replace the spec and regenerate:
 
 ```bash
-pnpm spec:refresh <version>   # downloads + extracts the spec, e.g. pnpm spec:refresh 2.2.0
-pnpm generate                 # regenerate src/generated from the new spec
+pnpm generate                 # c7-core's patched spec and route tables, then the SDK here
 git diff                      # review spec + SDK changes, run the repo verification suite
 ```
 
 Commit the spec and the regenerated output together: `src/generated/` is
-checked in and CI assumes it matches the spec.
+checked in, and CI's TypeScript job fails when the build rewrites it.
 
 ## The SDK-bound reads
 

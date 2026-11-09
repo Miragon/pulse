@@ -2,17 +2,22 @@
  * @miragon/pulse-c7-core: the workflow domain of the Camunda 7 REST API family (Operaton,
  * CIB seven, Camunda 7), and the one home of its pure engine REST rules (dates, filters,
  * sorting, variable writes and typing, incident recovery, raw variable reads, the missing
- * resource). The root cause of a failure text is the rule of the engine family's neutral core
- * (`RootCauses` of @miragon/pulse-engine-core, its one runtime dependency), which `causeOf`
- * applies. Runs on a caller's `EnginePort`; returns data and throws
- * `WorkflowError` reasons, and names no command, flag or tool: next steps and error reasons are
- * structured, the caller words them. The pure rules behind these functions that only tests reach
- * are exported from `@miragon/pulse-c7-core/testing`.
+ * resource) and of its routes: the route of each operation c7-core sends (`CORE_ROUTES`, the
+ * whole table under `@miragon/pulse-c7-core/routes`), generated from the one spec, which request
+ * a route is (`routeOf`), whether it only reads (`intentOf`), a transport over routes
+ * (`routedTransport`) and the engine failure of an error answer (`failureOf`). The root cause of
+ * a failure text is the rule of the engine family's neutral core (`RootCauses` of
+ * @miragon/pulse-engine-core, its one runtime dependency), which `causeOf` applies. Runs on a
+ * caller's `EnginePort`; returns data and throws `WorkflowError` reasons, and names no command,
+ * flag or tool: next steps and error reasons are structured, the caller words them. The pure
+ * rules behind these functions that only tests reach are exported from
+ * `@miragon/pulse-c7-core/testing`.
  */
 
 export {
   type EngineFailure,
   type EnginePort,
+  type EngineProblem,
   type EngineTransport,
   type ListResult,
   type OperationInput,
@@ -20,11 +25,23 @@ export {
   type PlannedWrite,
   type Query,
   createEnginePort,
+  failureOf,
   isMissing,
   isUnknownEndpoint,
   PARALLEL,
   Slots,
 } from "./port.js"
+export {
+  type Effect,
+  intentOf,
+  type Route,
+  type RouteIntent,
+  type RouteMethod,
+  routeOf,
+  type Routes,
+} from "./route.js"
+export { CORE_ROUTES } from "./core-routes.js"
+export { routedTransport, type RoutedWire } from "./routed-transport.js"
 export { type IdRequest, listByIds, queryInput } from "./requests.js"
 export { isWorkflowError, WorkflowError, type WorkflowErrorReason } from "./errors.js"
 export {

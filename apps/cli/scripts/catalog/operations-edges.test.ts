@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest"
 import { json, ref, single } from "../../test/support/openapi-fixture.js"
 import type { Catalog } from "../../src/catalog/types.js"
 import { buildCatalog } from "./build-catalog.js"
-import { readPatchedSpec } from "./files.js"
+import { readSpec, readRoutes } from "./files.js"
 import type { OpenApiDocument, OpenApiPathItem } from "./openapi.js"
 import { clean, extractOperations, responseKind } from "./operations.js"
 import { SPEC_URL } from "./render.js"
@@ -16,6 +16,12 @@ describe("extractOperations edge cases", () => {
   })
 
   it("works for specs without components", () => {
+    const route = {
+      method: "POST",
+      path: "/thing/{id}",
+      effect: "write",
+      engineScoped: true,
+    } as const
     const [operation] = extractOperations(
       bare({
         "/thing/{id}": {
@@ -33,6 +39,7 @@ describe("extractOperations edge cases", () => {
           },
         },
       }),
+      { postThing: route },
     )
     expect(operation?.params.map((param) => param.name)).toEqual(["id", "q"])
     expect(operation?.body?.fields.map((field) => field.name)).toEqual(["a"])
@@ -133,7 +140,7 @@ let cachedCatalog: Catalog | undefined
  * at load time, so a generator failure fails that test instead of the whole file.
  */
 function realCatalog(): Catalog {
-  cachedCatalog ??= buildCatalog(readPatchedSpec(), SPEC_URL)
+  cachedCatalog ??= buildCatalog(readSpec(), SPEC_URL, readRoutes())
   return cachedCatalog
 }
 

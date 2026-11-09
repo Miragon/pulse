@@ -594,6 +594,7 @@ describe("checkLayout", () => {
     "apps/mcp-server/test/fixtures/mcp-app.js",
     "apps/cli/package.json",
     "apps/cli/src/generated/catalog.json",
+    "packages/connectors/c7/c7-core/src/generated/routes.json",
     "packages/core/widget-shell/src/ui/x.tsx",
     `${SDK}/client.gen.ts`,
     `${SDK}/client/index.ts`,

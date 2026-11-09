@@ -39,6 +39,33 @@ export interface EngineFailure {
 }
 
 /**
+ * What an engine's error body states, as a surface's HTTP client reads it: the exception's type,
+ * its message and the engine's numeric error code (`Problem` of @miragon/pulse-http is one).
+ */
+export interface EngineProblem {
+  readonly type?: string
+  readonly message?: string
+  readonly code?: number
+}
+
+/**
+ * The engine failure of an error answer: its status, and the exception type, message and error
+ * code its body states. The one reading of a Camunda 7 REST error, so a surface's
+ * `RoutedWire.failure` maps no field itself.
+ */
+export function failureOf(
+  status: number,
+  problem: EngineProblem | undefined,
+): EngineFailure & { readonly engineCode?: number } {
+  return {
+    status,
+    ...(problem?.type === undefined ? {} : { engineType: problem.type }),
+    ...(problem?.message === undefined ? {} : { engineMessage: problem.message }),
+    ...(problem?.code === undefined ? {} : { engineCode: problem.code }),
+  }
+}
+
+/**
  * How a caller reaches one engine. `A` is the caller's answer of a request, which the port reads
  * as JSON or as text right after awaiting it.
  */

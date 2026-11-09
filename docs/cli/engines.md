@@ -36,8 +36,10 @@ None that the CLI has to handle today, so every adapter reads the same generated
 ## Adding a difference
 
 1. If the API description differs, give that engine a catalog of its own: an RFC 6902 patch with a
-   `test` guard and a `reason`, applied after `apps/cli/spec/camunda7-rest/patches.json` by
-   `apps/cli/scripts/generate-catalog.ts`, and read by that engine's adapter only.
+   `test` guard and a `reason`, applied after `packages/connectors/c7/c7-core/spec/patches.json` by
+   c7-core's generator (`packages/connectors/c7/c7-core/scripts/generate-routes.ts`), which then
+   writes that engine's spec and route table, rendered by `apps/cli/scripts/generate-catalog.ts`
+   and read by that engine's adapter only.
 2. If the behaviour differs, wrap the port in `apps/cli/src/engines/<engine>/adapter.ts`.
 
 ## Adding an engine

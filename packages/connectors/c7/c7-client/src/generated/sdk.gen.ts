@@ -23,7 +23,7 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
  *
  * Queries for a list of authorizations using a list of parameters.
  * The size of the result set can be retrieved by using the
- * [Get Authorization Count](https://docs.cibseven.org/manual/2.1/reference/rest/authorization/get-query-count/) method.
+ * [Get Authorization Count](https://docs.operaton.org/manual/1.0/reference/rest/authorization/get-query-count/) method.
  */
 export const queryAuthorizations = <ThrowOnError extends boolean = true>(options?: Options<QueryAuthorizationsData, ThrowOnError>): RequestResult<QueryAuthorizationsResponses, QueryAuthorizationsErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<QueryAuthorizationsResponses, QueryAuthorizationsErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -147,7 +147,7 @@ export const updateAuthorization = <ThrowOnError extends boolean = true>(options
  *
  * Queries for batches that fulfill given parameters. Parameters may be the properties of batches, such as the id or type.
  * The size of the result set can be retrieved by using the
- * [Get Batch Count](https://docs.cibseven.org/manual/2.1/reference/rest/batch/get-query-count/) method.
+ * [Get Batch Count](https://docs.operaton.org/manual/1.0/reference/rest/batch/get-query-count/) method.
  */
 export const getBatches = <ThrowOnError extends boolean = true>(options?: Options<GetBatchesData, ThrowOnError>): RequestResult<GetBatchesResponses, GetBatchesErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetBatchesResponses, GetBatchesErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -160,7 +160,7 @@ export const getBatches = <ThrowOnError extends boolean = true>(options?: Option
  * Get List Count
  *
  * Requests the number of batches that fulfill the query criteria.
- * Takes the same filtering parameters as the [Get Batches](https://docs.cibseven.org/manual/2.1/reference/rest/batch/get-query/) method.
+ * Takes the same filtering parameters as the [Get Batches](https://docs.operaton.org/manual/1.0/reference/rest/batch/get-query/) method.
  */
 export const getBatchesCount = <ThrowOnError extends boolean = true>(options?: Options<GetBatchesCountData, ThrowOnError>): RequestResult<GetBatchesCountResponses, GetBatchesCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetBatchesCountResponses, GetBatchesCountErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -175,7 +175,7 @@ export const getBatchesCount = <ThrowOnError extends boolean = true>(options?: O
  * Queries for batch statistics that fulfill given parameters.
  * Parameters may be the properties of batches, such as the id or type.
  * The size of the result set can be retrieved by using the
- * [Get Batch Statistics Count](https://docs.cibseven.org/manual/2.1/reference/rest/batch/get-statistics-query-count/) method.
+ * [Get Batch Statistics Count](https://docs.operaton.org/manual/1.0/reference/rest/batch/get-statistics-query-count/) method.
  */
 export const getBatchStatistics = <ThrowOnError extends boolean = true>(options?: Options<GetBatchStatisticsData, ThrowOnError>): RequestResult<GetBatchStatisticsResponses, GetBatchStatisticsErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetBatchStatisticsResponses, GetBatchStatisticsErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -189,7 +189,7 @@ export const getBatchStatistics = <ThrowOnError extends boolean = true>(options?
  *
  * Requests the number of batch statistics that fulfill the query criteria.
  * Takes the same filtering parameters as the
- * [Get Batch Statistics](https://docs.cibseven.org/manual/2.1/reference/rest/batch/get-statistics-query/) method.
+ * [Get Batch Statistics](https://docs.operaton.org/manual/1.0/reference/rest/batch/get-statistics-query/) method.
  */
 export const getBatchStatisticsCount = <ThrowOnError extends boolean = true>(options?: Options<GetBatchStatisticsCountData, ThrowOnError>): RequestResult<GetBatchStatisticsCountResponses, GetBatchStatisticsCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetBatchStatisticsCountResponses, GetBatchStatisticsCountErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -244,8 +244,8 @@ export const updateBatchSuspensionState = <ThrowOnError extends boolean = true>(
  *
  * Triggers evaluation of conditions for conditional start event(s).
  * Internally this maps to the engines condition evaluation builder method ConditionEvaluationBuilder#evaluateStartConditions().
- * For more information see the [Conditional Start Events](https://docs.cibseven.org/manual/2.1/reference/bpmn20/events/conditional-events/#conditional-start-event)
- * section of the [BPMN 2.0 Implementation Reference](https://docs.cibseven.org/manual/2.1/reference/bpmn20/).
+ * For more information see the [Conditional Start Events](https://docs.operaton.org/manual/1.0/reference/bpmn20/events/conditional-events/#conditional-start-event)
+ * section of the [BPMN 2.0 Implementation Reference](https://docs.operaton.org/manual/1.0/reference/bpmn20/).
  */
 export const evaluateCondition = <ThrowOnError extends boolean = true>(options?: Options<EvaluateConditionData, ThrowOnError>): RequestResult<EvaluateConditionResponses, EvaluateConditionErrors, ThrowOnError, 'data'> => (options?.client ?? client).post<EvaluateConditionResponses, EvaluateConditionErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -264,7 +264,7 @@ export const evaluateCondition = <ThrowOnError extends boolean = true>(options?:
  * Queries for decision definitions that fulfill given parameters.
  * Parameters may be the properties of decision definitions, such as the name, key or version.
  * The size of the result set can be retrieved by using
- * the [Get Decision Definition Count](https://docs.cibseven.org/manual/2.1/reference/rest/decision-definition/get-query-count/) method.
+ * the [Get Decision Definition Count](https://docs.operaton.org/manual/1.0/reference/rest/decision-definition/get-query-count/) method.
  */
 export const getDecisionDefinitions = <ThrowOnError extends boolean = true>(options?: Options<GetDecisionDefinitionsData, ThrowOnError>): RequestResult<GetDecisionDefinitionsResponses, GetDecisionDefinitionsErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetDecisionDefinitionsResponses, GetDecisionDefinitionsErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -278,7 +278,7 @@ export const getDecisionDefinitions = <ThrowOnError extends boolean = true>(opti
  *
  * Requests the number of decision definitions that fulfill the query criteria.
  * Takes the same filtering parameters as the
- * [Get Decision Definition](https://docs.cibseven.org/manual/2.1/reference/rest/decision-definition/get-query/) method.
+ * [Get Decision Definition](https://docs.operaton.org/manual/1.0/reference/rest/decision-definition/get-query/) method.
  */
 export const getDecisionDefinitionsCount = <ThrowOnError extends boolean = true>(options?: Options<GetDecisionDefinitionsCountData, ThrowOnError>): RequestResult<GetDecisionDefinitionsCountResponses, GetDecisionDefinitionsCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetDecisionDefinitionsCountResponses, GetDecisionDefinitionsCountErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -332,7 +332,7 @@ export const evaluateDecisionByKey = <ThrowOnError extends boolean = true>(optio
  * Update History Time to Live By Key
  *
  * Updates the latest version of the decision definition which belongs to no tenant.
- * The field is used within [History cleanup](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/history/#history-cleanup).
+ * The field is used within [History cleanup](https://docs.operaton.org/manual/1.0/user-guide/process-engine/history/#history-cleanup).
  */
 export const updateHistoryTimeToLiveByDecisionDefinitionKey = <ThrowOnError extends boolean = true>(options: Options<UpdateHistoryTimeToLiveByDecisionDefinitionKeyData, ThrowOnError>): RequestResult<UpdateHistoryTimeToLiveByDecisionDefinitionKeyResponses, UpdateHistoryTimeToLiveByDecisionDefinitionKeyErrors, ThrowOnError, 'data'> => (options.client ?? client).put<UpdateHistoryTimeToLiveByDecisionDefinitionKeyResponses, UpdateHistoryTimeToLiveByDecisionDefinitionKeyErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -390,10 +390,10 @@ export const evaluateDecisionByKeyAndTenant = <ThrowOnError extends boolean = tr
  * Update History Time to Live By Key And Tenant
  *
  * Updates the latest version of the decision definition for tenant.
- * The field is used within [History cleanup](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/history/#history-cleanup).
+ * The field is used within [History cleanup](https://docs.operaton.org/manual/1.0/user-guide/process-engine/history/#history-cleanup).
  * The value of the update is mandatory by default and does not allow `null` values. To enable them, please
  * set the feature flag `enforceHistoryTimeToLive` to `false`. Read more in [Configuration Properties]
- * (https://docs.cibseven.org/manual/2.1/reference/deployment-descriptors/tags/process-engine#configuration-properties)
+ * (https://docs.operaton.org/manual/1.0/reference/deployment-descriptors/tags/process-engine#configuration-properties)
  */
 export const updateHistoryTimeToLiveByDecisionDefinitionKeyAndTenant = <ThrowOnError extends boolean = true>(options: Options<UpdateHistoryTimeToLiveByDecisionDefinitionKeyAndTenantData, ThrowOnError>): RequestResult<UpdateHistoryTimeToLiveByDecisionDefinitionKeyAndTenantResponses, UpdateHistoryTimeToLiveByDecisionDefinitionKeyAndTenantErrors, ThrowOnError, 'data'> => (options.client ?? client).put<UpdateHistoryTimeToLiveByDecisionDefinitionKeyAndTenantResponses, UpdateHistoryTimeToLiveByDecisionDefinitionKeyAndTenantErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -475,7 +475,7 @@ export const evaluateDecisionById = <ThrowOnError extends boolean = true>(option
  * Update History Time to Live
  *
  * Updates history time to live for decision definition.
- * The field is used within [History cleanup](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/history/#history-cleanup).
+ * The field is used within [History cleanup](https://docs.operaton.org/manual/1.0/user-guide/process-engine/history/#history-cleanup).
  */
 export const updateHistoryTimeToLiveByDecisionDefinitionId = <ThrowOnError extends boolean = true>(options: Options<UpdateHistoryTimeToLiveByDecisionDefinitionIdData, ThrowOnError>): RequestResult<UpdateHistoryTimeToLiveByDecisionDefinitionIdResponses, UpdateHistoryTimeToLiveByDecisionDefinitionIdErrors, ThrowOnError, 'data'> => (options.client ?? client).put<UpdateHistoryTimeToLiveByDecisionDefinitionIdResponses, UpdateHistoryTimeToLiveByDecisionDefinitionIdErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -506,7 +506,7 @@ export const getDecisionDefinitionDmnXmlById = <ThrowOnError extends boolean = t
  * Queries for decision requirements definitions that fulfill given parameters.
  * Parameters may be the properties of decision requirements definitions, such as the name,
  * key or version.  The size of the result set can be retrieved by using the
- * [Get Decision Requirements Definition Count](https://docs.cibseven.org/manual/2.1/reference/rest/decision-requirements-definition/get-query-count/)
+ * [Get Decision Requirements Definition Count](https://docs.operaton.org/manual/1.0/reference/rest/decision-requirements-definition/get-query-count/)
  * method.
  */
 export const getDecisionRequirementsDefinitions = <ThrowOnError extends boolean = true>(options?: Options<GetDecisionRequirementsDefinitionsData, ThrowOnError>): RequestResult<GetDecisionRequirementsDefinitionsResponses, GetDecisionRequirementsDefinitionsErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetDecisionRequirementsDefinitionsResponses, GetDecisionRequirementsDefinitionsErrors, ThrowOnError, 'data'>({
@@ -522,7 +522,7 @@ export const getDecisionRequirementsDefinitions = <ThrowOnError extends boolean 
  * Requests the number of decision requirements definitions that fulfill the query
  * criteria.
  * Takes the same filtering parameters as the
- * [Get Decision Requirements Definitions](https://docs.cibseven.org/manual/2.1/reference/rest/decision-requirements-definition/get-query/)
+ * [Get Decision Requirements Definitions](https://docs.operaton.org/manual/1.0/reference/rest/decision-requirements-definition/get-query/)
  * method.
  */
 export const getDecisionRequirementsDefinitionsCount = <ThrowOnError extends boolean = true>(options?: Options<GetDecisionRequirementsDefinitionsCountData, ThrowOnError>): RequestResult<GetDecisionRequirementsDefinitionsCountResponses, GetDecisionRequirementsDefinitionsCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetDecisionRequirementsDefinitionsCountResponses, GetDecisionRequirementsDefinitionsCountErrors, ThrowOnError, 'data'>({
@@ -660,7 +660,7 @@ export const getDecisionRequirementsDefinitionDmnXmlById = <ThrowOnError extends
  *
  * Queries for deployments that fulfill given parameters. Parameters may be the properties of deployments,
  * such as the id or name or a range of the deployment time. The size of the result set can be retrieved by
- * using the [Get Deployment count](https://docs.cibseven.org/manual/2.1/reference/rest/deployment/get-query-count/) method.
+ * using the [Get Deployment count](https://docs.operaton.org/manual/1.0/reference/rest/deployment/get-query-count/) method.
  */
 export const getDeployments = <ThrowOnError extends boolean = true>(options?: Options<GetDeploymentsData, ThrowOnError>): RequestResult<GetDeploymentsResponses, GetDeploymentsErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetDeploymentsResponses, GetDeploymentsErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -673,7 +673,7 @@ export const getDeployments = <ThrowOnError extends boolean = true>(options?: Op
  * Get List Count
  *
  * Queries for the number of deployments that fulfill given parameters. Takes the same parameters as the
- * [Get Deployments](https://docs.cibseven.org/manual/2.1/reference/rest/deployment/get-query/) method.
+ * [Get Deployments](https://docs.operaton.org/manual/1.0/reference/rest/deployment/get-query/) method.
  */
 export const getDeploymentsCount = <ThrowOnError extends boolean = true>(options?: Options<GetDeploymentsCountData, ThrowOnError>): RequestResult<GetDeploymentsCountResponses, GetDeploymentsCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetDeploymentsCountResponses, GetDeploymentsCountErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -751,7 +751,7 @@ export const getDeployment = <ThrowOnError extends boolean = true>(options: Opti
  *
  * **Warning**: Deployments can contain custom code in form of scripts or EL expressions to customize
  * process behavior. This may be abused for remote execution of arbitrary code. See the section on
- * [security considerations for custom code](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/securing-custom-code/) in
+ * [security considerations for custom code](https://docs.operaton.org/manual/1.0/user-guide/process-engine/securing-custom-code/) in
  * the user guide for details.
  */
 export const redeploy = <ThrowOnError extends boolean = true>(options: Options<RedeployData, ThrowOnError>): RequestResult<RedeployResponses, RedeployErrors, ThrowOnError, 'data'> => (options.client ?? client).post<RedeployResponses, RedeployErrors, ThrowOnError, 'data'>({
@@ -819,7 +819,7 @@ export const getProcessEngineNames = <ThrowOnError extends boolean = true>(optio
  *
  * Queries for event subscriptions that fulfill given parameters.
  * The size of the result set can be retrieved by using the
- * [Get Event Subscriptions count](https://docs.cibseven.org/manual/2.1/reference/rest/event-subscription/get-query-count/) method.
+ * [Get Event Subscriptions count](https://docs.operaton.org/manual/1.0/reference/rest/event-subscription/get-query-count/) method.
  */
 export const getEventSubscriptions = <ThrowOnError extends boolean = true>(options?: Options<GetEventSubscriptionsData, ThrowOnError>): RequestResult<GetEventSubscriptionsResponses, GetEventSubscriptionsErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetEventSubscriptionsResponses, GetEventSubscriptionsErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -833,7 +833,7 @@ export const getEventSubscriptions = <ThrowOnError extends boolean = true>(optio
  *
  * Queries for the number of event subscriptions that fulfill given parameters.
  * Takes the same parameters as the
- * [Get Event Subscriptions](https://docs.cibseven.org/manual/2.1/reference/rest/event-subscription/get-query/) method.
+ * [Get Event Subscriptions](https://docs.operaton.org/manual/1.0/reference/rest/event-subscription/get-query/) method.
  */
 export const getEventSubscriptionsCount = <ThrowOnError extends boolean = true>(options?: Options<GetEventSubscriptionsCountData, ThrowOnError>): RequestResult<GetEventSubscriptionsCountResponses, GetEventSubscriptionsCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetEventSubscriptionsCountResponses, GetEventSubscriptionsCountErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -849,7 +849,7 @@ export const getEventSubscriptionsCount = <ThrowOnError extends boolean = true>(
  * Parameters may be static as well as dynamic runtime properties of
  * executions.
  * The size of the result set can be retrieved by using the [Get
- * Execution Count](https://docs.cibseven.org/manual/2.1/reference/rest/execution/get-query-count/)
+ * Execution Count](https://docs.operaton.org/manual/1.0/reference/rest/execution/get-query-count/)
  * method.
  */
 export const getExecutions = <ThrowOnError extends boolean = true>(options?: Options<GetExecutionsData, ThrowOnError>): RequestResult<GetExecutionsResponses, GetExecutionsErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetExecutionsResponses, GetExecutionsErrors, ThrowOnError, 'data'>({
@@ -864,7 +864,7 @@ export const getExecutions = <ThrowOnError extends boolean = true>(options?: Opt
  *
  * Queries for executions that fulfill given parameters through a JSON object.
  * This method is slightly more powerful than the [Get
- * Executions](https://docs.cibseven.org/manual/2.1/reference/rest/execution/get-query/) method
+ * Executions](https://docs.operaton.org/manual/1.0/reference/rest/execution/get-query/) method
  * because it allows
  * to filter by multiple instance and execution variables of types
  * `String`, `Number` or `Boolean`.
@@ -885,7 +885,7 @@ export const queryExecutions = <ThrowOnError extends boolean = true>(options?: O
  *
  * Queries for the number of executions that fulfill given parameters.
  * Takes the same parameters as the [Get
- * Executions](https://docs.cibseven.org/manual/2.1/reference/rest/execution/get-query/) method.
+ * Executions](https://docs.operaton.org/manual/1.0/reference/rest/execution/get-query/) method.
  */
 export const getExecutionsCount = <ThrowOnError extends boolean = true>(options?: Options<GetExecutionsCountData, ThrowOnError>): RequestResult<GetExecutionsCountResponses, GetExecutionsCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetExecutionsCountResponses, GetExecutionsCountErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -899,9 +899,9 @@ export const getExecutionsCount = <ThrowOnError extends boolean = true>(options?
  *
  * Queries for the number of executions that fulfill given parameters. This method
  * takes the same message body as the [Get Executions
- * POST](https://docs.cibseven.org/manual/2.1/reference/rest/execution/post-query/) method and
+ * POST](https://docs.operaton.org/manual/1.0/reference/rest/execution/post-query/) method and
  * therefore it is slightly more powerful than the [Get Execution
- * Count](https://docs.cibseven.org/manual/2.1/reference/rest/execution/get-query-count/) method.
+ * Count](https://docs.operaton.org/manual/1.0/reference/rest/execution/get-query-count/) method.
  */
 export const queryExecutionsCount = <ThrowOnError extends boolean = true>(options?: Options<QueryExecutionsCountData, ThrowOnError>): RequestResult<QueryExecutionsCountResponses, QueryExecutionsCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).post<QueryExecutionsCountResponses, QueryExecutionsCountErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -1102,7 +1102,7 @@ export const signalExecution = <ThrowOnError extends boolean = true>(options: Op
  *
  * Queries for the external tasks that fulfill given parameters. Parameters may be static as well as dynamic
  * runtime properties of executions. The size of the result set can be retrieved by using the
- * [Get External Task Count](https://docs.cibseven.org/manual/2.1/reference/rest/external-task/get-query-count/) method.
+ * [Get External Task Count](https://docs.operaton.org/manual/1.0/reference/rest/external-task/get-query-count/) method.
  */
 export const getExternalTasks = <ThrowOnError extends boolean = true>(options?: Options<GetExternalTasksData, ThrowOnError>): RequestResult<GetExternalTasksResponses, GetExternalTasksErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetExternalTasksResponses, GetExternalTasksErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -1117,7 +1117,7 @@ export const getExternalTasks = <ThrowOnError extends boolean = true>(options?: 
  * Queries for external tasks that fulfill given parameters in the form of a JSON object.
  *
  * This method is slightly more powerful than the
- * [Get External Tasks](https://docs.cibseven.org/manual/2.1/reference/rest/external-task/get-query/) method because it allows to
+ * [Get External Tasks](https://docs.operaton.org/manual/1.0/reference/rest/external-task/get-query/) method because it allows to
  * specify a hierarchical result sorting.
  */
 export const queryExternalTasks = <ThrowOnError extends boolean = true>(options?: Options<QueryExternalTasksData, ThrowOnError>): RequestResult<QueryExternalTasksResponses, QueryExternalTasksErrors, ThrowOnError, 'data'> => (options?.client ?? client).post<QueryExternalTasksResponses, QueryExternalTasksErrors, ThrowOnError, 'data'>({
@@ -1135,7 +1135,7 @@ export const queryExternalTasks = <ThrowOnError extends boolean = true>(options?
  * Get List Count
  *
  * Queries for the number of external tasks that fulfill given parameters. Takes the same parameters as the
- * [Get External Tasks](https://docs.cibseven.org/manual/2.1/reference/rest/external-task/get-query/) method.
+ * [Get External Tasks](https://docs.operaton.org/manual/1.0/reference/rest/external-task/get-query/) method.
  */
 export const getExternalTasksCount = <ThrowOnError extends boolean = true>(options?: Options<GetExternalTasksCountData, ThrowOnError>): RequestResult<GetExternalTasksCountResponses, GetExternalTasksCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetExternalTasksCountResponses, GetExternalTasksCountErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -1148,7 +1148,7 @@ export const getExternalTasksCount = <ThrowOnError extends boolean = true>(optio
  * Get List Count (POST)
  *
  * Queries for the number of external tasks that fulfill given parameters. This method takes the same message
- * body as the [Get External Tasks (POST)](https://docs.cibseven.org/manual/2.1/reference/rest/external-task/post-query/) method.
+ * body as the [Get External Tasks (POST)](https://docs.operaton.org/manual/1.0/reference/rest/external-task/post-query/) method.
  */
 export const queryExternalTasksCount = <ThrowOnError extends boolean = true>(options?: Options<QueryExternalTasksCountData, ThrowOnError>): RequestResult<QueryExternalTasksCountResponses, QueryExternalTasksCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).post<QueryExternalTasksCountResponses, QueryExternalTasksCountErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -1382,7 +1382,7 @@ export const unlock = <ThrowOnError extends boolean = true>(options: Options<Unl
  *
  * Queries for a list of filters using a list of parameters. The size of the result
  * set can be retrieved
- * by using the [Get Filter Count](https://docs.cibseven.org/manual/2.1/reference/rest/filter/get-query-count/) method.
+ * by using the [Get Filter Count](https://docs.operaton.org/manual/1.0/reference/rest/filter/get-query-count/) method.
  */
 export const getFilterList = <ThrowOnError extends boolean = true>(options?: Options<GetFilterListData, ThrowOnError>): RequestResult<GetFilterListResponses, GetFilterListErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetFilterListResponses, GetFilterListErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -1412,7 +1412,7 @@ export const filterResourceOptions = <ThrowOnError extends boolean = true>(optio
  *
  * Retrieves the number of filters that fulfill a provided query. Corresponds to the
  * size of the result set when using the
- * [Get Filters](https://docs.cibseven.org/manual/2.1/reference/rest/filter/get-query/) method.
+ * [Get Filters](https://docs.operaton.org/manual/1.0/reference/rest/filter/get-query/) method.
  */
 export const getFilterCount = <ThrowOnError extends boolean = true>(options?: Options<GetFilterCountData, ThrowOnError>): RequestResult<GetFilterCountResponses, GetFilterCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetFilterCountResponses, GetFilterCountErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -1509,7 +1509,7 @@ export const executeFilterCount = <ThrowOnError extends boolean = true>(options:
  * Execute Filter Count (POST)
  *
  * Executes the saved query of the filter by id and returns the count. This method is
- * slightly more powerful then the [Get Execute Filter Count](https://docs.cibseven.org/manual/2.1/reference/rest/filter/get-execute-count/)
+ * slightly more powerful then the [Get Execute Filter Count](https://docs.operaton.org/manual/1.0/reference/rest/filter/get-execute-count/)
  * method because it allows to extend the saved query of the filter.
  */
 export const postExecuteFilterCount = <ThrowOnError extends boolean = true>(options: Options<PostExecuteFilterCountData, ThrowOnError>): RequestResult<PostExecuteFilterCountResponses, PostExecuteFilterCountErrors, ThrowOnError, 'data'> => (options.client ?? client).post<PostExecuteFilterCountResponses, PostExecuteFilterCountErrors, ThrowOnError, 'data'>({
@@ -1540,7 +1540,7 @@ export const executeFilterList = <ThrowOnError extends boolean = true>(options: 
  *
  * Executes the saved query of the filter by id and returns the result list. This
  * method is slightly more powerful then the
- * [Get Execute FilterList](https://docs.cibseven.org/manual/2.1/reference/rest/filter/get-execute-list/) method
+ * [Get Execute FilterList](https://docs.operaton.org/manual/1.0/reference/rest/filter/get-execute-list/) method
  * because it allows to extend the saved query of the filter.
  */
 export const postExecuteFilterList = <ThrowOnError extends boolean = true>(options: Options<PostExecuteFilterListData, ThrowOnError>): RequestResult<PostExecuteFilterListResponses, PostExecuteFilterListErrors, ThrowOnError, 'data'> => (options.client ?? client).post<PostExecuteFilterListResponses, PostExecuteFilterListErrors, ThrowOnError, 'data'>({
@@ -1570,7 +1570,7 @@ export const executeFilterSingleResult = <ThrowOnError extends boolean = true>(o
  * Execute Filter Single Result (POST)
  *
  * Executes the saved query of the filter by id and returns the single result. This method is slightly more
- * powerful then the [Get Execute Filter Single Result](https://docs.cibseven.org/manual/2.1/reference/rest/filter/get-execute-single-result/)
+ * powerful then the [Get Execute Filter Single Result](https://docs.operaton.org/manual/1.0/reference/rest/filter/get-execute-single-result/)
  * method because it allows to extend the saved query of the filter.
  */
 export const postExecuteFilterSingleResult = <ThrowOnError extends boolean = true>(options: Options<PostExecuteFilterSingleResultData, ThrowOnError>): RequestResult<PostExecuteFilterSingleResultResponses, PostExecuteFilterSingleResultErrors, ThrowOnError, 'data'> => (options.client ?? client).post<PostExecuteFilterSingleResultResponses, PostExecuteFilterSingleResultErrors, ThrowOnError, 'data'>({
@@ -1588,7 +1588,7 @@ export const postExecuteFilterSingleResult = <ThrowOnError extends boolean = tru
  * Get List
  *
  * Queries for a list of groups using a list of parameters. The size of the result set can be retrieved
- * by using the [Get Group Count](https://docs.cibseven.org/manual/2.1/reference/rest/group/get-query-count) method.
+ * by using the [Get Group Count](https://docs.operaton.org/manual/1.0/reference/rest/group/get-query-count) method.
  */
 export const getQueryGroups = <ThrowOnError extends boolean = true>(options?: Options<GetQueryGroupsData, ThrowOnError>): RequestResult<GetQueryGroupsResponses, GetQueryGroupsErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetQueryGroupsResponses, GetQueryGroupsErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -1618,7 +1618,7 @@ export const availableGroupOperations = <ThrowOnError extends boolean = true>(op
  *
  * Queries for a list of groups using a list of parameters.
  * The size of the result set can be retrieved by using the
- * [Get Group Count (POST)](https://docs.cibseven.org/manual/2.1/reference/rest/group/post-query-count/) method.
+ * [Get Group Count (POST)](https://docs.operaton.org/manual/1.0/reference/rest/group/post-query-count/) method.
  */
 export const postQueryGroups = <ThrowOnError extends boolean = true>(options?: Options<PostQueryGroupsData, ThrowOnError>): RequestResult<PostQueryGroupsResponses, PostQueryGroupsErrors, ThrowOnError, 'data'> => (options?.client ?? client).post<PostQueryGroupsResponses, PostQueryGroupsErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -1774,7 +1774,7 @@ export const createGroupMember = <ThrowOnError extends boolean = true>(options: 
  *
  * Queries for historic activity instances that fulfill the given parameters.
  * The size of the result set can be retrieved by using the
- * [Get Historic Activity Instance Count](https://docs.cibseven.org/manual/2.1/reference/rest/history/activity-instance/get-activity-instance-query-count/) method.
+ * [Get Historic Activity Instance Count](https://docs.operaton.org/manual/1.0/reference/rest/history/activity-instance/get-activity-instance-query-count/) method.
  */
 export const getHistoricActivityInstances = <ThrowOnError extends boolean = true>(options?: Options<GetHistoricActivityInstancesData, ThrowOnError>): RequestResult<GetHistoricActivityInstancesResponses, GetHistoricActivityInstancesErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetHistoricActivityInstancesResponses, GetHistoricActivityInstancesErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -1788,7 +1788,7 @@ export const getHistoricActivityInstances = <ThrowOnError extends boolean = true
  *
  * Queries for historic activity instances that fulfill the given parameters.
  * The size of the result set can be retrieved by using the
- * [Get Historic Activity Instance Count](https://docs.cibseven.org/manual/2.1/reference/rest/history/activity-instance/get-activity-instance-query-count/) method.
+ * [Get Historic Activity Instance Count](https://docs.operaton.org/manual/1.0/reference/rest/history/activity-instance/get-activity-instance-query-count/) method.
  */
 export const queryHistoricActivityInstances = <ThrowOnError extends boolean = true>(options?: Options<QueryHistoricActivityInstancesData, ThrowOnError>): RequestResult<QueryHistoricActivityInstancesResponses, QueryHistoricActivityInstancesErrors, ThrowOnError, 'data'> => (options?.client ?? client).post<QueryHistoricActivityInstancesResponses, QueryHistoricActivityInstancesErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -1805,7 +1805,7 @@ export const queryHistoricActivityInstances = <ThrowOnError extends boolean = tr
  * Get List Count
  *
  * Queries for the number of historic activity instances that fulfill the given parameters.
- * Takes the same parameters as the [Get Historic Activity Instance](https://docs.cibseven.org/manual/2.1/reference/rest/history/activity-instance/get-activity-instance-query/)  method.
+ * Takes the same parameters as the [Get Historic Activity Instance](https://docs.operaton.org/manual/1.0/reference/rest/history/activity-instance/get-activity-instance-query/)  method.
  */
 export const getHistoricActivityInstancesCount = <ThrowOnError extends boolean = true>(options?: Options<GetHistoricActivityInstancesCountData, ThrowOnError>): RequestResult<GetHistoricActivityInstancesCountResponses, GetHistoricActivityInstancesCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetHistoricActivityInstancesCountResponses, GetHistoricActivityInstancesCountErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -1848,7 +1848,7 @@ export const getHistoricActivityInstance = <ThrowOnError extends boolean = true>
  * Queries for historic batches that fulfill given parameters. Parameters may be
  * the properties of batches, such as the id or type. The
  * size of the result set can be retrieved by using the
- * [Get Historic Batch Count](https://docs.cibseven.org/manual/2.1/reference/rest/history/batch/get-query-count/)
+ * [Get Historic Batch Count](https://docs.operaton.org/manual/1.0/reference/rest/history/batch/get-query-count/)
  * method.
  */
 export const getHistoricBatches = <ThrowOnError extends boolean = true>(options?: Options<GetHistoricBatchesData, ThrowOnError>): RequestResult<GetHistoricBatchesResponses, GetHistoricBatchesErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetHistoricBatchesResponses, GetHistoricBatchesErrors, ThrowOnError, 'data'>({
@@ -1863,16 +1863,16 @@ export const getHistoricBatches = <ThrowOnError extends boolean = true>(options?
  *
  * Retrieves a report about a historic batch operations relevant to history cleanup
  * (see
- * [History cleanup](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/history/#history-cleanup)
+ * [History cleanup](https://docs.operaton.org/manual/1.0/user-guide/process-engine/history/#history-cleanup)
  * ) so that you can tune the history time to live.
  * These reports include the count of the finished batches, cleanable
  * batches and type of the batch.
  * The size of the result set can be retrieved by using the
- * [Get Cleanable Batch Report Count](https://docs.cibseven.org/manual/2.1/reference/rest/history/batch/get-cleanable-batch-report-count/)
+ * [Get Cleanable Batch Report Count](https://docs.operaton.org/manual/1.0/reference/rest/history/batch/get-cleanable-batch-report-count/)
  * method.
  *
  * **Please note:**
- * The history time to live for batch operations does not support [Multi-Tenancy](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/multi-tenancy.md).
+ * The history time to live for batch operations does not support [Multi-Tenancy](https://docs.operaton.org/manual/1.0/user-guide/process-engine/multi-tenancy.md).
  * The report will return an information for all batch operations (for all tenants) if you have permissions
  * to see the history.
  *
@@ -1889,10 +1889,10 @@ export const getCleanableHistoricBatchesReport = <ThrowOnError extends boolean =
  *
  * Queries for the number of report results about a historic batch operations relevant
  * to history cleanup (see
- * [History cleanup](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/history/#history-cleanup)
+ * [History cleanup](https://docs.operaton.org/manual/1.0/user-guide/process-engine/history/#history-cleanup)
  * ).
  * Takes the same parameters as the
- * [Get Cleanable Batch Report](https://docs.cibseven.org/manual/2.1/reference/rest/history/batch/get-cleanable-batch-report/)
+ * [Get Cleanable Batch Report](https://docs.operaton.org/manual/1.0/reference/rest/history/batch/get-cleanable-batch-report/)
  * method.
  */
 export const getCleanableHistoricBatchesReportCount = <ThrowOnError extends boolean = true>(options?: Options<GetCleanableHistoricBatchesReportCountData, ThrowOnError>): RequestResult<GetCleanableHistoricBatchesReportCountResponses, GetCleanableHistoricBatchesReportCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetCleanableHistoricBatchesReportCountResponses, GetCleanableHistoricBatchesReportCountErrors, ThrowOnError, 'data'>({
@@ -1907,7 +1907,7 @@ export const getCleanableHistoricBatchesReportCount = <ThrowOnError extends bool
  *
  * Requests the number of historic batches that fulfill the query criteria.
  * Takes the same filtering parameters as the
- * [Get Historic Batches](https://docs.cibseven.org/manual/2.1/reference/rest/history/batch/get-query/)
+ * [Get Historic Batches](https://docs.operaton.org/manual/1.0/reference/rest/history/batch/get-query/)
  * method.
  */
 export const getHistoricBatchesCount = <ThrowOnError extends boolean = true>(options?: Options<GetHistoricBatchesCountData, ThrowOnError>): RequestResult<GetHistoricBatchesCountResponses, GetHistoricBatchesCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetHistoricBatchesCountResponses, GetHistoricBatchesCountErrors, ThrowOnError, 'data'>({
@@ -1967,12 +1967,12 @@ export const getHistoricBatch = <ThrowOnError extends boolean = true>(options: O
  * Clean up history (POST)
  *
  * Schedules asynchronous history cleanup (See
- * [History cleanup](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/history/#history-cleanup)).
+ * [History cleanup](https://docs.operaton.org/manual/1.0/user-guide/process-engine/history/#history-cleanup)).
  *
  * **Note:** This endpoint will return at most a single history cleanup job.
  * Since version `7.9.0` it is possible to configure multiple
- * [parallel history cleanup jobs](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/history/#parallel-execution). Use
- * [`GET /history/cleanup/jobs`](https://docs.cibseven.org/manual/2.1/reference/rest/history/history-cleanup/get-history-cleanup-jobs)
+ * [parallel history cleanup jobs](https://docs.operaton.org/manual/1.0/user-guide/process-engine/history/#parallel-execution). Use
+ * [`GET /history/cleanup/jobs`](https://docs.operaton.org/manual/1.0/reference/rest/history/history-cleanup/get-history-cleanup-jobs)
  * to find all the available history cleanup jobs.
  */
 export const cleanupAsync = <ThrowOnError extends boolean = true>(options?: Options<CleanupAsyncData, ThrowOnError>): RequestResult<CleanupAsyncResponses, CleanupAsyncErrors, ThrowOnError, 'data'> => (options?.client ?? client).post<CleanupAsyncResponses, CleanupAsyncErrors, ThrowOnError, 'data'>({
@@ -1986,7 +1986,7 @@ export const cleanupAsync = <ThrowOnError extends boolean = true>(options?: Opti
  * Get History Cleanup Configuration
  *
  * Retrieves history cleanup batch window configuration (See
- * [History cleanup](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/history/#history-cleanup)).
+ * [History cleanup](https://docs.operaton.org/manual/1.0/user-guide/process-engine/history/#history-cleanup)).
  */
 export const getHistoryCleanupConfiguration = <ThrowOnError extends boolean = true>(options?: Options<GetHistoryCleanupConfigurationData, ThrowOnError>): RequestResult<GetHistoryCleanupConfigurationResponses, unknown, ThrowOnError, 'data'> => (options?.client ?? client).get<GetHistoryCleanupConfigurationResponses, unknown, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -2001,7 +2001,7 @@ export const getHistoryCleanupConfiguration = <ThrowOnError extends boolean = tr
  * **Deprecated!** Use `GET /history/cleanup/jobs` instead.
  *
  * Finds history cleanup job (See
- * [History cleanup](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/history/#history-cleanup)).
+ * [History cleanup](https://docs.operaton.org/manual/1.0/user-guide/process-engine/history/#history-cleanup)).
  *
  * @deprecated
  */
@@ -2016,7 +2016,7 @@ export const findCleanupJob = <ThrowOnError extends boolean = true>(options?: Op
  * Find clean up history jobs (GET)
  *
  * Finds history cleanup jobs (See
- * [History cleanup](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/history/#history-cleanup)).
+ * [History cleanup](https://docs.operaton.org/manual/1.0/user-guide/process-engine/history/#history-cleanup)).
  */
 export const findCleanupJobs = <ThrowOnError extends boolean = true>(options?: Options<FindCleanupJobsData, ThrowOnError>): RequestResult<FindCleanupJobsResponses, FindCleanupJobsErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<FindCleanupJobsResponses, FindCleanupJobsErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -2030,13 +2030,13 @@ export const findCleanupJobs = <ThrowOnError extends boolean = true>(options?: O
  *
  * Retrieves a report about a decision definition and finished decision instances
  * relevant to history cleanup (see
- * [History cleanup](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/history/#history-cleanup)),
+ * [History cleanup](https://docs.operaton.org/manual/1.0/user-guide/process-engine/history/#history-cleanup)),
  * so that you can tune the history time to live.
  * These reports include the count of the finished historic decision
  * instances, cleanable decision instances and basic decision definition
  * data - id, key, name and version.
  * The size of the result set can be retrieved by using the
- * [Get Cleanable Decision Instance Report Count](https://docs.cibseven.org/manual/2.1/reference/rest/history/decision-definition/get-cleanable-decision-instance-report-count/) method.
+ * [Get Cleanable Decision Instance Report Count](https://docs.operaton.org/manual/1.0/reference/rest/history/decision-definition/get-cleanable-decision-instance-report-count/) method.
  */
 export const getCleanableHistoricDecisionInstanceReport = <ThrowOnError extends boolean = true>(options?: Options<GetCleanableHistoricDecisionInstanceReportData, ThrowOnError>): RequestResult<GetCleanableHistoricDecisionInstanceReportResponses, GetCleanableHistoricDecisionInstanceReportErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetCleanableHistoricDecisionInstanceReportResponses, GetCleanableHistoricDecisionInstanceReportErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -2050,8 +2050,8 @@ export const getCleanableHistoricDecisionInstanceReport = <ThrowOnError extends 
  *
  * Queries for the number of report results about a decision definition and finished
  * decision instances relevant to history cleanup (see
- * [History cleanup](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/history/#history-cleanup)).
- * Takes the same parameters as the [Get Cleanable Decision Instance Report](https://docs.cibseven.org/manual/2.1/reference/rest/history/decision-definition/get-cleanable-decision-instance-report/)
+ * [History cleanup](https://docs.operaton.org/manual/1.0/user-guide/process-engine/history/#history-cleanup)).
+ * Takes the same parameters as the [Get Cleanable Decision Instance Report](https://docs.operaton.org/manual/1.0/reference/rest/history/decision-definition/get-cleanable-decision-instance-report/)
  * method.
  */
 export const getCleanableHistoricDecisionInstanceReportCount = <ThrowOnError extends boolean = true>(options?: Options<GetCleanableHistoricDecisionInstanceReportCountData, ThrowOnError>): RequestResult<GetCleanableHistoricDecisionInstanceReportCountResponses, GetCleanableHistoricDecisionInstanceReportCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetCleanableHistoricDecisionInstanceReportCountResponses, GetCleanableHistoricDecisionInstanceReportCountErrors, ThrowOnError, 'data'>({
@@ -2066,7 +2066,7 @@ export const getCleanableHistoricDecisionInstanceReportCount = <ThrowOnError ext
  *
  * Queries for historic decision instances that fulfill the given parameters.
  * The size of the result set can be retrieved by using the
- * [Get Historic Decision Instance Count](https://docs.cibseven.org/manual/2.1/reference/rest/history/decision-instance/get-decision-instance-query-count/)
+ * [Get Historic Decision Instance Count](https://docs.operaton.org/manual/1.0/reference/rest/history/decision-instance/get-decision-instance-query-count/)
  * method.
  */
 export const getHistoricDecisionInstances = <ThrowOnError extends boolean = true>(options?: Options<GetHistoricDecisionInstancesData, ThrowOnError>): RequestResult<GetHistoricDecisionInstancesResponses, GetHistoricDecisionInstancesErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetHistoricDecisionInstancesResponses, GetHistoricDecisionInstancesErrors, ThrowOnError, 'data'>({
@@ -2081,7 +2081,7 @@ export const getHistoricDecisionInstances = <ThrowOnError extends boolean = true
  *
  * Queries for the number of historic decision instances that fulfill the given parameters.
  * Takes the same parameters as the
- * [Get Historic Decision Instances](https://docs.cibseven.org/manual/2.1/reference/rest/history/decision-instance/get-decision-instance-query/)
+ * [Get Historic Decision Instances](https://docs.operaton.org/manual/1.0/reference/rest/history/decision-instance/get-decision-instance-query/)
  * method.
  */
 export const getHistoricDecisionInstancesCount = <ThrowOnError extends boolean = true>(options?: Options<GetHistoricDecisionInstancesCountData, ThrowOnError>): RequestResult<GetHistoricDecisionInstancesCountResponses, GetHistoricDecisionInstancesCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetHistoricDecisionInstancesCountResponses, GetHistoricDecisionInstancesCountErrors, ThrowOnError, 'data'>({
@@ -2162,7 +2162,7 @@ export const getDecisionStatistics = <ThrowOnError extends boolean = true>(optio
  *
  * Queries for historic details that fulfill the given parameters.
  * The size of the result set can be retrieved by using the
- * [Get Historic Detail Count](https://docs.cibseven.org/manual/2.1/reference/rest/history/detail/get-detail-query-count/) method.
+ * [Get Historic Detail Count](https://docs.operaton.org/manual/1.0/reference/rest/history/detail/get-detail-query-count/) method.
  */
 export const getHistoricDetails = <ThrowOnError extends boolean = true>(options?: Options<GetHistoricDetailsData, ThrowOnError>): RequestResult<GetHistoricDetailsResponses, GetHistoricDetailsErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetHistoricDetailsResponses, GetHistoricDetailsErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -2175,9 +2175,9 @@ export const getHistoricDetails = <ThrowOnError extends boolean = true>(options?
  * Get Historic Details (POST)
  *
  * Queries for historic details that fulfill the given parameters. This method is slightly more
- * powerful than the [Get Historic Details](https://docs.cibseven.org/manual/2.1/reference/rest/history/detail/get-detail-query/)
+ * powerful than the [Get Historic Details](https://docs.operaton.org/manual/1.0/reference/rest/history/detail/get-detail-query/)
  * method because it allows sorting by multiple parameters. The size of the result set can be retrieved by
- * using the [Get Historic Detail Count](https://docs.cibseven.org/manual/2.1/reference/rest/history/detail/get-detail-query-count/)
+ * using the [Get Historic Detail Count](https://docs.operaton.org/manual/1.0/reference/rest/history/detail/get-detail-query-count/)
  * method.
  */
 export const queryHistoricDetails = <ThrowOnError extends boolean = true>(options?: Options<QueryHistoricDetailsData, ThrowOnError>): RequestResult<QueryHistoricDetailsResponses, QueryHistoricDetailsErrors, ThrowOnError, 'data'> => (options?.client ?? client).post<QueryHistoricDetailsResponses, QueryHistoricDetailsErrors, ThrowOnError, 'data'>({
@@ -2196,7 +2196,7 @@ export const queryHistoricDetails = <ThrowOnError extends boolean = true>(option
  *
  * Queries for the number of historic details that fulfill the given parameters.
  * Takes the same parameters as the [Get Historic
- * Details](https://docs.cibseven.org/manual/2.1/reference/rest/history/detail/get-detail-query/)
+ * Details](https://docs.operaton.org/manual/1.0/reference/rest/history/detail/get-detail-query/)
  * method.
  */
 export const getHistoricDetailsCount = <ThrowOnError extends boolean = true>(options?: Options<GetHistoricDetailsCountData, ThrowOnError>): RequestResult<GetHistoricDetailsCountResponses, GetHistoricDetailsCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetHistoricDetailsCountResponses, GetHistoricDetailsCountErrors, ThrowOnError, 'data'>({
@@ -2236,7 +2236,7 @@ export const historicDetailBinary = <ThrowOnError extends boolean = true>(option
  *
  * Queries for historic external task logs that fulfill the given parameters.
  * The size of the result set can be retrieved by using the
- * [Get External Task Log Count](https://docs.cibseven.org/manual/2.1/reference/rest/history/external-task-log/get-external-task-log-query-count/)
+ * [Get External Task Log Count](https://docs.operaton.org/manual/1.0/reference/rest/history/external-task-log/get-external-task-log-query-count/)
  * method.
  */
 export const getHistoricExternalTaskLogs = <ThrowOnError extends boolean = true>(options?: Options<GetHistoricExternalTaskLogsData, ThrowOnError>): RequestResult<GetHistoricExternalTaskLogsResponses, GetHistoricExternalTaskLogsErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetHistoricExternalTaskLogsResponses, GetHistoricExternalTaskLogsErrors, ThrowOnError, 'data'>({
@@ -2251,7 +2251,7 @@ export const getHistoricExternalTaskLogs = <ThrowOnError extends boolean = true>
  *
  * Queries for historic external task logs that fulfill the given parameters.
  * This method is slightly more powerful than the
- * [Get External Task Logs](https://docs.cibseven.org/manual/2.1/reference/rest/history/external-task-log/get-external-task-log-query/)
+ * [Get External Task Logs](https://docs.operaton.org/manual/1.0/reference/rest/history/external-task-log/get-external-task-log-query/)
  * method because it allows filtering by historic external task logs
  * values of the different types `String`, `Number` or `Boolean`.
  */
@@ -2272,7 +2272,7 @@ export const queryHistoricExternalTaskLogs = <ThrowOnError extends boolean = tru
  * Queries for the number of historic external task logs that fulfill the given
  * parameters.
  * Takes the same parameters as the
- * [Get External Task Logs](https://docs.cibseven.org/manual/2.1/reference/rest/history/external-task-log/get-external-task-log-query/)
+ * [Get External Task Logs](https://docs.operaton.org/manual/1.0/reference/rest/history/external-task-log/get-external-task-log-query/)
  * method.
  */
 export const getHistoricExternalTaskLogsCount = <ThrowOnError extends boolean = true>(options?: Options<GetHistoricExternalTaskLogsCountData, ThrowOnError>): RequestResult<GetHistoricExternalTaskLogsCountResponses, GetHistoricExternalTaskLogsCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetHistoricExternalTaskLogsCountResponses, GetHistoricExternalTaskLogsCountErrors, ThrowOnError, 'data'>({
@@ -2288,9 +2288,9 @@ export const getHistoricExternalTaskLogsCount = <ThrowOnError extends boolean = 
  * Queries for the number of historic external task logs that fulfill the given
  * parameters.
  * This method takes the same message body as the
- * [Get External Task Logs (POST)](https://docs.cibseven.org/manual/2.1/reference/rest/history/external-task-log/post-external-task-log-query/)
+ * [Get External Task Logs (POST)](https://docs.operaton.org/manual/1.0/reference/rest/history/external-task-log/post-external-task-log-query/)
  * method and therefore it is slightly more powerful than the
- * [Get External Task Log Count](https://docs.cibseven.org/manual/2.1/reference/rest/history/external-task-log/get-external-task-log-query-count/)
+ * [Get External Task Log Count](https://docs.operaton.org/manual/1.0/reference/rest/history/external-task-log/get-external-task-log-query-count/)
  * method.
  */
 export const queryHistoricExternalTaskLogsCount = <ThrowOnError extends boolean = true>(options?: Options<QueryHistoricExternalTaskLogsCountData, ThrowOnError>): RequestResult<QueryHistoricExternalTaskLogsCountResponses, QueryHistoricExternalTaskLogsCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).post<QueryHistoricExternalTaskLogsCountResponses, QueryHistoricExternalTaskLogsCountErrors, ThrowOnError, 'data'>({
@@ -2334,7 +2334,7 @@ export const getErrorDetailsHistoricExternalTaskLog = <ThrowOnError extends bool
  *
  * Queries for historic identity link logs that fulfill given parameters.
  * The size of the result set can be retrieved by using the
- * [Get Identity-Link-Log Count](https://docs.cibseven.org/manual/2.1/reference/rest/history/identity-links/get-identity-link-query-count/)
+ * [Get Identity-Link-Log Count](https://docs.operaton.org/manual/1.0/reference/rest/history/identity-links/get-identity-link-query-count/)
  * method.
  */
 export const getHistoricIdentityLinks = <ThrowOnError extends boolean = true>(options?: Options<GetHistoricIdentityLinksData, ThrowOnError>): RequestResult<GetHistoricIdentityLinksResponses, GetHistoricIdentityLinksErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetHistoricIdentityLinksResponses, GetHistoricIdentityLinksErrors, ThrowOnError, 'data'>({
@@ -2349,7 +2349,7 @@ export const getHistoricIdentityLinks = <ThrowOnError extends boolean = true>(op
  *
  * Queries for the number of historic identity link logs that fulfill the given
  * parameters. Takes the same parameters as the
- * [Get Identity-Link-Logs](https://docs.cibseven.org/manual/2.1/reference/rest/history/identity-links/get-identity-link-query/)
+ * [Get Identity-Link-Logs](https://docs.operaton.org/manual/1.0/reference/rest/history/identity-links/get-identity-link-query/)
  * method.
  */
 export const getHistoricIdentityLinksCount = <ThrowOnError extends boolean = true>(options?: Options<GetHistoricIdentityLinksCountData, ThrowOnError>): RequestResult<GetHistoricIdentityLinksCountResponses, GetHistoricIdentityLinksCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetHistoricIdentityLinksCountResponses, GetHistoricIdentityLinksCountErrors, ThrowOnError, 'data'>({
@@ -2364,7 +2364,7 @@ export const getHistoricIdentityLinksCount = <ThrowOnError extends boolean = tru
  *
  * Queries for historic incidents that fulfill given parameters.
  * The size of the result set can be retrieved by using the
- * [Get Incident Count](https://docs.cibseven.org/manual/2.1/reference/rest/history/incident/get-incident-query-count/)
+ * [Get Incident Count](https://docs.operaton.org/manual/1.0/reference/rest/history/incident/get-incident-query-count/)
  * method.
  */
 export const getHistoricIncidents = <ThrowOnError extends boolean = true>(options?: Options<GetHistoricIncidentsData, ThrowOnError>): RequestResult<GetHistoricIncidentsResponses, GetHistoricIncidentsErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetHistoricIncidentsResponses, GetHistoricIncidentsErrors, ThrowOnError, 'data'>({
@@ -2379,7 +2379,7 @@ export const getHistoricIncidents = <ThrowOnError extends boolean = true>(option
  *
  * Queries for the number of historic incidents that fulfill the given parameters.
  * Takes the same parameters as the
- * [Get Incidents](https://docs.cibseven.org/manual/2.1/reference/rest/history/incident/get-incident-query/)
+ * [Get Incidents](https://docs.operaton.org/manual/1.0/reference/rest/history/incident/get-incident-query/)
  * method.
  */
 export const getHistoricIncidentsCount = <ThrowOnError extends boolean = true>(options?: Options<GetHistoricIncidentsCountData, ThrowOnError>): RequestResult<GetHistoricIncidentsCountResponses, GetHistoricIncidentsCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetHistoricIncidentsCountResponses, GetHistoricIncidentsCountErrors, ThrowOnError, 'data'>({
@@ -2394,7 +2394,7 @@ export const getHistoricIncidentsCount = <ThrowOnError extends boolean = true>(o
  *
  * Queries for historic job logs that fulfill the given parameters.
  * The size of the result set can be retrieved by using the
- * [Get Job Log Count](https://docs.cibseven.org/manual/2.1/reference/rest/history/job-log/get-job-log-query-count/)
+ * [Get Job Log Count](https://docs.operaton.org/manual/1.0/reference/rest/history/job-log/get-job-log-query-count/)
  * method.
  */
 export const getHistoricJobLogs = <ThrowOnError extends boolean = true>(options?: Options<GetHistoricJobLogsData, ThrowOnError>): RequestResult<GetHistoricJobLogsResponses, GetHistoricJobLogsErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetHistoricJobLogsResponses, GetHistoricJobLogsErrors, ThrowOnError, 'data'>({
@@ -2409,7 +2409,7 @@ export const getHistoricJobLogs = <ThrowOnError extends boolean = true>(options?
  *
  * Queries for historic job logs that fulfill the given parameters.
  * This method is slightly more powerful than the
- * [Get Job Logs](https://docs.cibseven.org/manual/2.1/reference/rest/history/job-log/get-job-log-query/)
+ * [Get Job Logs](https://docs.operaton.org/manual/1.0/reference/rest/history/job-log/get-job-log-query/)
  * method because it allows filtering by historic job logs values of the
  * different types `String`, `Number` or `Boolean`.
  */
@@ -2429,7 +2429,7 @@ export const queryHistoricJobLogs = <ThrowOnError extends boolean = true>(option
  *
  * Queries for the number of historic job logs that fulfill the given parameters.
  * Takes the same parameters as the
- * [Get Job Logs](https://docs.cibseven.org/manual/2.1/reference/rest/history/job-log/get-job-log-query/)
+ * [Get Job Logs](https://docs.operaton.org/manual/1.0/reference/rest/history/job-log/get-job-log-query/)
  * method.
  */
 export const getHistoricJobLogsCount = <ThrowOnError extends boolean = true>(options?: Options<GetHistoricJobLogsCountData, ThrowOnError>): RequestResult<GetHistoricJobLogsCountResponses, GetHistoricJobLogsCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetHistoricJobLogsCountResponses, GetHistoricJobLogsCountErrors, ThrowOnError, 'data'>({
@@ -2444,9 +2444,9 @@ export const getHistoricJobLogsCount = <ThrowOnError extends boolean = true>(opt
  *
  * Queries for the number of historic job logs that fulfill the given parameters.
  * This method takes the same message body as the
- * [Get Job Logs (POST)](https://docs.cibseven.org/manual/2.1/reference/rest/history/job-log/post-job-log-query/)
+ * [Get Job Logs (POST)](https://docs.operaton.org/manual/1.0/reference/rest/history/job-log/post-job-log-query/)
  * method and therefore it is slightly more powerful than the
- * [Get Job Log Count](https://docs.cibseven.org/manual/2.1/reference/rest/history/job-log/get-job-log-query-count/)
+ * [Get Job Log Count](https://docs.operaton.org/manual/1.0/reference/rest/history/job-log/get-job-log-query-count/)
  * method.
  */
 export const queryHistoricJobLogsCount = <ThrowOnError extends boolean = true>(options?: Options<QueryHistoricJobLogsCountData, ThrowOnError>): RequestResult<QueryHistoricJobLogsCountResponses, QueryHistoricJobLogsCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).post<QueryHistoricJobLogsCountResponses, QueryHistoricJobLogsCountErrors, ThrowOnError, 'data'>({
@@ -2490,13 +2490,13 @@ export const getStacktraceHistoricJobLog = <ThrowOnError extends boolean = true>
  *
  * Retrieves a report about a process definition and finished process instances
  * relevant to history cleanup (see
- * [History cleanup](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/history/#history-cleanup))
+ * [History cleanup](https://docs.operaton.org/manual/1.0/user-guide/process-engine/history/#history-cleanup))
  * so that you can tune the history time to live.
  * These reports include the count of the finished historic process
  * instances, cleanable process instances and basic process definition
  * data - id, key, name and version.
  * The size of the result set can be retrieved by using the
- * [Get Cleanable Process Instance Report Count](https://docs.cibseven.org/manual/2.1/reference/rest/history/process-definition/get-cleanable-process-instance-report-count/)
+ * [Get Cleanable Process Instance Report Count](https://docs.operaton.org/manual/1.0/reference/rest/history/process-definition/get-cleanable-process-instance-report-count/)
  * method.
  */
 export const getCleanableHistoricProcessInstanceReport = <ThrowOnError extends boolean = true>(options?: Options<GetCleanableHistoricProcessInstanceReportData, ThrowOnError>): RequestResult<GetCleanableHistoricProcessInstanceReportResponses, GetCleanableHistoricProcessInstanceReportErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetCleanableHistoricProcessInstanceReportResponses, GetCleanableHistoricProcessInstanceReportErrors, ThrowOnError, 'data'>({
@@ -2511,9 +2511,9 @@ export const getCleanableHistoricProcessInstanceReport = <ThrowOnError extends b
  *
  * Queries for the number of report results about a process definition and finished
  * process instances relevant to history cleanup (see
- * [History cleanup](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/history/#history-cleanup)).
+ * [History cleanup](https://docs.operaton.org/manual/1.0/user-guide/process-engine/history/#history-cleanup)).
  * Takes the same parameters as the
- * [Get Cleanable Process Instance Report](https://docs.cibseven.org/manual/2.1/reference/rest/history/process-definition/get-cleanable-process-instance-report/)
+ * [Get Cleanable Process Instance Report](https://docs.operaton.org/manual/1.0/reference/rest/history/process-definition/get-cleanable-process-instance-report/)
  * method.
  */
 export const getCleanableHistoricProcessInstanceReportCount = <ThrowOnError extends boolean = true>(options?: Options<GetCleanableHistoricProcessInstanceReportCountData, ThrowOnError>): RequestResult<GetCleanableHistoricProcessInstanceReportCountResponses, GetCleanableHistoricProcessInstanceReportCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetCleanableHistoricProcessInstanceReportCountResponses, GetCleanableHistoricProcessInstanceReportCountErrors, ThrowOnError, 'data'>({
@@ -2547,7 +2547,7 @@ export const getHistoricActivityStatistics = <ThrowOnError extends boolean = tru
  *
  * Queries for historic process instances that fulfill the given parameters.
  * The size of the result set can be retrieved by using the
- * [Get Process Instance Count](https://docs.cibseven.org/manual/2.1/reference/rest/history/process-instance/get-process-instance-query-count/) method.
+ * [Get Process Instance Count](https://docs.operaton.org/manual/1.0/reference/rest/history/process-instance/get-process-instance-query-count/) method.
  */
 export const getHistoricProcessInstances = <ThrowOnError extends boolean = true>(options?: Options<GetHistoricProcessInstancesData, ThrowOnError>): RequestResult<GetHistoricProcessInstancesResponses, GetHistoricProcessInstancesErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetHistoricProcessInstancesResponses, GetHistoricProcessInstancesErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -2561,7 +2561,7 @@ export const getHistoricProcessInstances = <ThrowOnError extends boolean = true>
  *
  * Queries for historic process instances that fulfill the given parameters.
  * This method is slightly more powerful than the
- * [Get Process Instance](https://docs.cibseven.org/manual/2.1/reference/rest/history/process-instance/get-process-instance-query/)
+ * [Get Process Instance](https://docs.operaton.org/manual/1.0/reference/rest/history/process-instance/get-process-instance-query/)
  * because it allows filtering by multiple process variables of types `String`, `Number` or `Boolean`.
  */
 export const queryHistoricProcessInstances = <ThrowOnError extends boolean = true>(options?: Options<QueryHistoricProcessInstancesData, ThrowOnError>): RequestResult<QueryHistoricProcessInstancesResponses, QueryHistoricProcessInstancesErrors, ThrowOnError, 'data'> => (options?.client ?? client).post<QueryHistoricProcessInstancesResponses, QueryHistoricProcessInstancesErrors, ThrowOnError, 'data'>({
@@ -2579,7 +2579,7 @@ export const queryHistoricProcessInstances = <ThrowOnError extends boolean = tru
  * Get List Count
  *
  * Queries for the number of historic process instances that fulfill the given parameters.
- * Takes the same parameters as the [Get Process Instances](https://docs.cibseven.org/manual/2.1/reference/rest/history/process-instance/get-process-instance-query/) method.
+ * Takes the same parameters as the [Get Process Instances](https://docs.operaton.org/manual/1.0/reference/rest/history/process-instance/get-process-instance-query/) method.
  */
 export const getHistoricProcessInstancesCount = <ThrowOnError extends boolean = true>(options?: Options<GetHistoricProcessInstancesCountData, ThrowOnError>): RequestResult<GetHistoricProcessInstancesCountResponses, GetHistoricProcessInstancesCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetHistoricProcessInstancesCountResponses, GetHistoricProcessInstancesCountErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -2592,8 +2592,8 @@ export const getHistoricProcessInstancesCount = <ThrowOnError extends boolean = 
  * Get List Count (POST)
  *
  * Queries for the number of historic process instances that fulfill the given parameters.
- * This method takes the same message body as the [Get Process Instances (POST)](https://docs.cibseven.org/manual/2.1/reference/rest/history/process-instance/get-process-instance-query/) method and
- * therefore it is slightly more powerful than the [Get Process Instance Count](https://docs.cibseven.org/manual/2.1/reference/rest/history/process-instance/post-process-instance-query-count/) method.
+ * This method takes the same message body as the [Get Process Instances (POST)](https://docs.operaton.org/manual/1.0/reference/rest/history/process-instance/get-process-instance-query/) method and
+ * therefore it is slightly more powerful than the [Get Process Instance Count](https://docs.operaton.org/manual/1.0/reference/rest/history/process-instance/post-process-instance-query-count/) method.
  */
 export const queryHistoricProcessInstancesCount = <ThrowOnError extends boolean = true>(options?: Options<QueryHistoricProcessInstancesCountData, ThrowOnError>): RequestResult<QueryHistoricProcessInstancesCountResponses, QueryHistoricProcessInstancesCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).post<QueryHistoricProcessInstancesCountResponses, QueryHistoricProcessInstancesCountErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -2699,7 +2699,7 @@ export const deleteHistoricVariableInstancesOfHistoricProcessInstance = <ThrowOn
  *
  * Queries for historic tasks that fulfill the given parameters. The size of the result
  * set can be retrieved by using the
- * [Get Task Count](https://docs.cibseven.org/manual/2.1/reference/rest/history/task/get-task-query-count/)
+ * [Get Task Count](https://docs.operaton.org/manual/1.0/reference/rest/history/task/get-task-query-count/)
  * method.
  */
 export const getHistoricTaskInstances = <ThrowOnError extends boolean = true>(options?: Options<GetHistoricTaskInstancesData, ThrowOnError>): RequestResult<GetHistoricTaskInstancesResponses, GetHistoricTaskInstancesErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetHistoricTaskInstancesResponses, GetHistoricTaskInstancesErrors, ThrowOnError, 'data'>({
@@ -2713,10 +2713,10 @@ export const getHistoricTaskInstances = <ThrowOnError extends boolean = true>(op
  * Get Tasks (Historic) (POST)
  *
  * Queries for historic tasks that fulfill the given parameters. This method is slightly more powerful
- * than the [Get Tasks (Historic)](https://docs.cibseven.org/manual/2.1/reference/rest/history/task/get-task-query/) method because
+ * than the [Get Tasks (Historic)](https://docs.operaton.org/manual/1.0/reference/rest/history/task/get-task-query/) method because
  * it allows filtering by multiple process or task variables of types `String`, `Number` or `Boolean`.
  * The size of the result set can be retrieved by using the
- * [Get Task Count (POST)](https://docs.cibseven.org/manual/2.1/reference/rest/history/task/post-task-query-count/)
+ * [Get Task Count (POST)](https://docs.operaton.org/manual/1.0/reference/rest/history/task/post-task-query-count/)
  * method.
  */
 export const queryHistoricTaskInstances = <ThrowOnError extends boolean = true>(options?: Options<QueryHistoricTaskInstancesData, ThrowOnError>): RequestResult<QueryHistoricTaskInstancesResponses, QueryHistoricTaskInstancesErrors, ThrowOnError, 'data'> => (options?.client ?? client).post<QueryHistoricTaskInstancesResponses, QueryHistoricTaskInstancesErrors, ThrowOnError, 'data'>({
@@ -2735,7 +2735,7 @@ export const queryHistoricTaskInstances = <ThrowOnError extends boolean = true>(
  *
  * Queries for the number of historic tasks that fulfill the given parameters.
  * Takes the same parameters as the
- * [Get Tasks (Historic)](https://docs.cibseven.org/manual/2.1/reference/rest/history/task/get-task-query/)
+ * [Get Tasks (Historic)](https://docs.operaton.org/manual/1.0/reference/rest/history/task/get-task-query/)
  * method.
  */
 export const getHistoricTaskInstancesCount = <ThrowOnError extends boolean = true>(options?: Options<GetHistoricTaskInstancesCountData, ThrowOnError>): RequestResult<GetHistoricTaskInstancesCountResponses, GetHistoricTaskInstancesCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetHistoricTaskInstancesCountResponses, GetHistoricTaskInstancesCountErrors, ThrowOnError, 'data'>({
@@ -2749,9 +2749,9 @@ export const getHistoricTaskInstancesCount = <ThrowOnError extends boolean = tru
  * Get Task Count (POST)
  *
  * Queries for the number of historic tasks that fulfill the given parameters. Takes the
- * same parameters as the [Get Tasks (Historic)](https://docs.cibseven.org/manual/2.1/reference/rest/history/task/get-task-query/)
+ * same parameters as the [Get Tasks (Historic)](https://docs.operaton.org/manual/1.0/reference/rest/history/task/get-task-query/)
  * method. Corresponds to the size of the result set of the
- * [Get Tasks (Historic) (POST)](https://docs.cibseven.org/manual/2.1/reference/rest/history/task/post-task-query/)
+ * [Get Tasks (Historic) (POST)](https://docs.operaton.org/manual/1.0/reference/rest/history/task/post-task-query/)
  * method and takes the same parameters.
  */
 export const queryHistoricTaskInstancesCount = <ThrowOnError extends boolean = true>(options?: Options<QueryHistoricTaskInstancesCountData, ThrowOnError>): RequestResult<QueryHistoricTaskInstancesCountResponses, QueryHistoricTaskInstancesCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).post<QueryHistoricTaskInstancesCountResponses, QueryHistoricTaskInstancesCountErrors, ThrowOnError, 'data'>({
@@ -2787,7 +2787,7 @@ export const getHistoricTaskInstanceReport = <ThrowOnError extends boolean = tru
  *
  * Queries for user operation log entries that fulfill the given parameters.
  * The size of the result set can be retrieved by using the
- * [Get User Operation Log Count](https://docs.cibseven.org/manual/2.1/reference/rest/history/user-operation-log/get-user-operation-log-query-count/)
+ * [Get User Operation Log Count](https://docs.operaton.org/manual/1.0/reference/rest/history/user-operation-log/get-user-operation-log-query-count/)
  * method.
  *
  * Note that the properties of operation log entries are interpreted as
@@ -2812,7 +2812,7 @@ export const queryUserOperationEntries = <ThrowOnError extends boolean = true>(o
  *
  * Queries for the number of user operation log entries that fulfill the given parameters.
  * Takes the same parameters as the
- * [Get User Operation Log (Historic)](https://docs.cibseven.org/manual/2.1/reference/rest/history/user-operation-log/get-user-operation-log-query/)
+ * [Get User Operation Log (Historic)](https://docs.operaton.org/manual/1.0/reference/rest/history/user-operation-log/get-user-operation-log-query/)
  * method.
  */
 export const queryUserOperationCount = <ThrowOnError extends boolean = true>(options?: Options<QueryUserOperationCountData, ThrowOnError>): RequestResult<QueryUserOperationCountResponses, QueryUserOperationCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<QueryUserOperationCountResponses, QueryUserOperationCountErrors, ThrowOnError, 'data'>({
@@ -2855,11 +2855,10 @@ export const setAnnotationUserOperationLog = <ThrowOnError extends boolean = tru
  *
  * Queries for historic variable instances that fulfill the given parameters.
  * The size of the result set can be retrieved by using the
- * [Get Variable Instance Count](https://docs.cibseven.org/manual/2.1/reference/rest/history/variable-instance/get-variable-instance-query-count/)
+ * [Get Variable Instance Count](https://docs.operaton.org/manual/1.0/reference/rest/history/variable-instance/get-variable-instance-query-count/)
  * method.
  */
 export const getHistoricVariableInstances = <ThrowOnError extends boolean = true>(options?: Options<GetHistoricVariableInstancesData, ThrowOnError>): RequestResult<GetHistoricVariableInstancesResponses, GetHistoricVariableInstancesErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetHistoricVariableInstancesResponses, GetHistoricVariableInstancesErrors, ThrowOnError, 'data'>({
-    querySerializer: { parameters: { variableValue: { object: { style: 'form' } } } },
     responseStyle: 'data',
     security: [{ scheme: 'basic', type: 'http' }],
     url: '/history/variable-instance',
@@ -2871,7 +2870,7 @@ export const getHistoricVariableInstances = <ThrowOnError extends boolean = true
  *
  * Queries for historic variable instances that fulfill the given parameters.
  * This method is slightly more powerful than the
- * [Get Variable Instances](https://docs.cibseven.org/manual/2.1/reference/rest/history/variable-instance/get-variable-instance-query/)
+ * [Get Variable Instances](https://docs.operaton.org/manual/1.0/reference/rest/history/variable-instance/get-variable-instance-query/)
  * method because it allows filtering by variable values of the different
  * types `String`, `Number` or `Boolean`.
  */
@@ -2892,11 +2891,10 @@ export const queryHistoricVariableInstances = <ThrowOnError extends boolean = tr
  * Queries for the number of historic variable instances that fulfill the given
  * parameters.
  * Takes the same parameters as the
- * [Get Variable Instances](https://docs.cibseven.org/manual/2.1/reference/rest/history/variable-instance/get-variable-instance-query/)
+ * [Get Variable Instances](https://docs.operaton.org/manual/1.0/reference/rest/history/variable-instance/get-variable-instance-query/)
  * method.
  */
 export const getHistoricVariableInstancesCount = <ThrowOnError extends boolean = true>(options?: Options<GetHistoricVariableInstancesCountData, ThrowOnError>): RequestResult<GetHistoricVariableInstancesCountResponses, GetHistoricVariableInstancesCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetHistoricVariableInstancesCountResponses, GetHistoricVariableInstancesCountErrors, ThrowOnError, 'data'>({
-    querySerializer: { parameters: { variableValue: { object: { style: 'form' } } } },
     responseStyle: 'data',
     security: [{ scheme: 'basic', type: 'http' }],
     url: '/history/variable-instance/count',
@@ -2908,10 +2906,10 @@ export const getHistoricVariableInstancesCount = <ThrowOnError extends boolean =
  *
  * Queries for historic variable instances that fulfill the given parameters.
  * This method takes the same message body as the
- * [Get Variable Instances (POST)](https://docs.cibseven.org/manual/2.1/reference/rest/history/variable-instance/post-variable-instance-query/)
+ * [Get Variable Instances (POST)](https://docs.operaton.org/manual/1.0/reference/rest/history/variable-instance/post-variable-instance-query/)
  * method and therefore it is more powerful regarding variable values
  * than the
- * [Get Variable Instance Count](https://docs.cibseven.org/manual/2.1/reference/rest/history/variable-instance/get-variable-instance-query-count/)
+ * [Get Variable Instance Count](https://docs.operaton.org/manual/1.0/reference/rest/history/variable-instance/get-variable-instance-query-count/)
  * method.
  */
 export const queryHistoricVariableInstancesCount = <ThrowOnError extends boolean = true>(options?: Options<QueryHistoricVariableInstancesCountData, ThrowOnError>): RequestResult<QueryHistoricVariableInstancesCountResponses, QueryHistoricVariableInstancesCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).post<QueryHistoricVariableInstancesCountResponses, QueryHistoricVariableInstancesCountErrors, ThrowOnError, 'data'>({
@@ -2980,9 +2978,9 @@ export const getGroupInfo = <ThrowOnError extends boolean = true>(options: Optio
  *
  * A password policy consists of a list of rules that new passwords must follow to be
  * policy compliant. This end point returns a JSON representation of the
- * list of policy rules. More information on password policies in Camunda can be found in the password policy
- * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/password-policy/) and in
- * the [security instructions](https://docs.cibseven.org/manual/2.1/user-guide/security/).
+ * list of policy rules. More information on password policies in Operaton can be found in the password policy
+ * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/password-policy/) and in
+ * the [security instructions](https://docs.operaton.org/manual/1.0/user-guide/security/).
  */
 export const getPasswordPolicy = <ThrowOnError extends boolean = true>(options?: Options<GetPasswordPolicyData, ThrowOnError>): RequestResult<GetPasswordPolicyResponses, GetPasswordPolicyErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetPasswordPolicyResponses, GetPasswordPolicyErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -2996,9 +2994,9 @@ export const getPasswordPolicy = <ThrowOnError extends boolean = true>(options?:
  *
  * A password policy consists of a list of rules that new passwords must follow to be
  * policy compliant. A password can be checked for compliancy via this
- * end point. More information on password policies in Camunda can be found in the password policy
- * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/password-policy/) and in
- * the [security instructions](https://docs.cibseven.org/manual/2.1/user-guide/security/).
+ * end point. More information on password policies in Operaton can be found in the password policy
+ * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/password-policy/) and in
+ * the [security instructions](https://docs.operaton.org/manual/1.0/user-guide/security/).
  */
 export const checkPassword = <ThrowOnError extends boolean = true>(options?: Options<CheckPasswordData, ThrowOnError>): RequestResult<CheckPasswordResponses, CheckPasswordErrors, ThrowOnError, 'data'> => (options?.client ?? client).post<CheckPasswordResponses, CheckPasswordErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -3031,7 +3029,7 @@ export const verifyUser = <ThrowOnError extends boolean = true>(options?: Option
  * Get List
  *
  * Queries for incidents that fulfill given parameters. The size of the result set can be retrieved by using
- * the [Get Incident Count](https://docs.cibseven.org/manual/2.1/reference/rest/incident/get-query-count/) method.
+ * the [Get Incident Count](https://docs.operaton.org/manual/1.0/reference/rest/incident/get-query-count/) method.
  */
 export const getIncidents = <ThrowOnError extends boolean = true>(options?: Options<GetIncidentsData, ThrowOnError>): RequestResult<GetIncidentsResponses, GetIncidentsErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetIncidentsResponses, GetIncidentsErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -3044,7 +3042,7 @@ export const getIncidents = <ThrowOnError extends boolean = true>(options?: Opti
  * Get List Count
  *
  * Queries for the number of incidents that fulfill given parameters. Takes the same parameters as the
- * [Get Incidents](https://docs.cibseven.org/manual/2.1/reference/rest/incident/get-query/) method.
+ * [Get Incidents](https://docs.operaton.org/manual/1.0/reference/rest/incident/get-query/) method.
  */
 export const getIncidentsCount = <ThrowOnError extends boolean = true>(options?: Options<GetIncidentsCountData, ThrowOnError>): RequestResult<GetIncidentsCountResponses, GetIncidentsCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetIncidentsCountResponses, GetIncidentsCountErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -3110,7 +3108,7 @@ export const setIncidentAnnotation = <ThrowOnError extends boolean = true>(optio
  *
  * Queries for jobs that fulfill given parameters.
  * The size of the result set can be retrieved by using the [Get Job
- * Count](https://docs.cibseven.org/manual/2.1/reference/rest/job/get-query-count/) method.
+ * Count](https://docs.operaton.org/manual/1.0/reference/rest/job/get-query-count/) method.
  */
 export const getJobs = <ThrowOnError extends boolean = true>(options?: Options<GetJobsData, ThrowOnError>): RequestResult<GetJobsResponses, GetJobsErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetJobsResponses, GetJobsErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -3123,7 +3121,7 @@ export const getJobs = <ThrowOnError extends boolean = true>(options?: Options<G
  * Get Jobs (POST)
  *
  * Queries for jobs that fulfill given parameters. This method is slightly more
- * powerful than the [Get Jobs](https://docs.cibseven.org/manual/2.1/reference/rest/job/get-query/)
+ * powerful than the [Get Jobs](https://docs.operaton.org/manual/1.0/reference/rest/job/get-query/)
  * method because it allows filtering by multiple jobs of types `String`,
  * `Number` or `Boolean`.
  */
@@ -3143,7 +3141,7 @@ export const queryJobs = <ThrowOnError extends boolean = true>(options?: Options
  *
  * Queries for job definitions that fulfill given parameters.
  * The size of the result set can be retrieved by using the
- * [Get Job Definition Count](https://docs.cibseven.org/manual/2.1/reference/rest/job-definition/get-query-count/)
+ * [Get Job Definition Count](https://docs.operaton.org/manual/1.0/reference/rest/job-definition/get-query-count/)
  * method.
  */
 export const getJobDefinitions = <ThrowOnError extends boolean = true>(options?: Options<GetJobDefinitionsData, ThrowOnError>): RequestResult<GetJobDefinitionsResponses, GetJobDefinitionsErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetJobDefinitionsResponses, GetJobDefinitionsErrors, ThrowOnError, 'data'>({
@@ -3158,7 +3156,7 @@ export const getJobDefinitions = <ThrowOnError extends boolean = true>(options?:
  *
  * Queries for job definitions that fulfill given parameters. This method is slightly
  * more powerful than the
- * [Get Job Definitions](https://docs.cibseven.org/manual/2.1/reference/rest/job-definition/get-query/)
+ * [Get Job Definitions](https://docs.operaton.org/manual/1.0/reference/rest/job-definition/get-query/)
  * method because it allows filtering by multiple job definitions of
  * types `String`, `Number` or `Boolean`.
  */
@@ -3178,7 +3176,7 @@ export const queryJobDefinitions = <ThrowOnError extends boolean = true>(options
  *
  * Queries for the number of job definitions that fulfill given parameters.
  * Takes the same parameters as the
- * [Get Job Definitions](https://docs.cibseven.org/manual/2.1/reference/rest/job-definition/get-query/)
+ * [Get Job Definitions](https://docs.operaton.org/manual/1.0/reference/rest/job-definition/get-query/)
  * method.
  */
 export const getJobDefinitionsCount = <ThrowOnError extends boolean = true>(options?: Options<GetJobDefinitionsCountData, ThrowOnError>): RequestResult<GetJobDefinitionsCountResponses, GetJobDefinitionsCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetJobDefinitionsCountResponses, GetJobDefinitionsCountErrors, ThrowOnError, 'data'>({
@@ -3193,9 +3191,9 @@ export const getJobDefinitionsCount = <ThrowOnError extends boolean = true>(opti
  *
  * Queries for the number of job definitions that fulfill given parameters. This
  * method takes the same message body as the
- * [Get Job Definitions (POST)](https://docs.cibseven.org/manual/2.1/reference/rest/job-definition/post-query/)
+ * [Get Job Definitions (POST)](https://docs.operaton.org/manual/1.0/reference/rest/job-definition/post-query/)
  * method and therefore it is slightly more powerful than the
- * [Get Job Definition Count](https://docs.cibseven.org/manual/2.1/reference/rest/job-definition/get-query-count/)
+ * [Get Job Definition Count](https://docs.operaton.org/manual/1.0/reference/rest/job-definition/get-query-count/)
  * method.
  */
 export const queryJobDefinitionsCount = <ThrowOnError extends boolean = true>(options?: Options<QueryJobDefinitionsCountData, ThrowOnError>): RequestResult<QueryJobDefinitionsCountResponses, QueryJobDefinitionsCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).post<QueryJobDefinitionsCountResponses, QueryJobDefinitionsCountErrors, ThrowOnError, 'data'>({
@@ -3245,7 +3243,7 @@ export const getJobDefinition = <ThrowOnError extends boolean = true>(options: O
  * updated accordingly. The priority can be reset by setting it to
  * `null`, meaning that a new job's priority will not be determined based
  * on its definition's priority any longer. See the
- * [user guide on job prioritization](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/the-job-executor/#set-job-definition-priorities-via-managementservice-api)
+ * [user guide on job prioritization](https://docs.operaton.org/manual/1.0/user-guide/process-engine/the-job-executor/#set-job-definition-priorities-via-managementservice-api)
  * for details.
  */
 export const setJobPriorityJobDefinition = <ThrowOnError extends boolean = true>(options: Options<SetJobPriorityJobDefinitionData, ThrowOnError>): RequestResult<SetJobPriorityJobDefinitionResponses, SetJobPriorityJobDefinitionErrors, ThrowOnError, 'data'> => (options.client ?? client).put<SetJobPriorityJobDefinitionResponses, SetJobPriorityJobDefinitionErrors, ThrowOnError, 'data'>({
@@ -3297,7 +3295,7 @@ export const updateSuspensionStateJobDefinition = <ThrowOnError extends boolean 
  *
  * Queries for the number of jobs that fulfill given parameters.
  * Takes the same parameters as the [Get
- * Jobs](https://docs.cibseven.org/manual/2.1/reference/rest/job/get-query/) method.
+ * Jobs](https://docs.operaton.org/manual/1.0/reference/rest/job/get-query/) method.
  */
 export const getJobsCount = <ThrowOnError extends boolean = true>(options?: Options<GetJobsCountData, ThrowOnError>): RequestResult<GetJobsCountResponses, GetJobsCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetJobsCountResponses, GetJobsCountErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -3310,9 +3308,9 @@ export const getJobsCount = <ThrowOnError extends boolean = true>(options?: Opti
  * Get Job Count (POST)
  *
  * Queries for jobs that fulfill given parameters. This method takes the same message
- * body as the [Get Jobs POST](https://docs.cibseven.org/manual/2.1/reference/rest/job/post-
+ * body as the [Get Jobs POST](https://docs.operaton.org/manual/1.0/reference/rest/job/post-
  * query/) method and therefore it is slightly more powerful than the
- * [Get Job Count](https://docs.cibseven.org/manual/2.1/reference/rest/job/get-query-count/)
+ * [Get Job Count](https://docs.operaton.org/manual/1.0/reference/rest/job/get-query-count/)
  * method.
  */
 export const queryJobsCount = <ThrowOnError extends boolean = true>(options?: Options<QueryJobsCountData, ThrowOnError>): RequestResult<QueryJobsCountResponses, QueryJobsCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).post<QueryJobsCountResponses, QueryJobsCountErrors, ThrowOnError, 'data'>({
@@ -3494,8 +3492,8 @@ export const updateJobSuspensionState = <ThrowOnError extends boolean = true>(op
  * Correlates a message to the process engine to either trigger a message start event or an intermediate message
  * catching event. Internally this maps to the engine's message correlation builder methods
  * `MessageCorrelationBuilder#correlateWithResult()` and `MessageCorrelationBuilder#correlateAllWithResult()`.
- * For more information about the correlation behavior, see the [Message Events](https://docs.cibseven.org/manual/2.1/bpmn20/events/message-events/)
- * section of the [BPMN 2.0 Implementation Reference](https://docs.cibseven.org/manual/2.1/reference/bpmn20/).
+ * For more information about the correlation behavior, see the [Message Events](https://docs.operaton.org/manual/1.0/bpmn20/events/message-events/)
+ * section of the [BPMN 2.0 Implementation Reference](https://docs.operaton.org/manual/1.0/reference/bpmn20/).
  */
 export const deliverMessage = <ThrowOnError extends boolean = true>(options?: Options<DeliverMessageData, ThrowOnError>): RequestResult<DeliverMessageResponses, DeliverMessageErrors, ThrowOnError, 'data'> => (options?.client ?? client).post<DeliverMessageResponses, DeliverMessageErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -3549,12 +3547,12 @@ export const getMetrics = <ThrowOnError extends boolean = true>(options: Options
  *
  * Executes a migration plan synchronously for multiple process instances. To execute
  * a migration plan asynchronously, use the
- * [Execute Migration Plan Async(Batch)](https://docs.cibseven.org/manual/2.1/reference/rest/migration/execute-migration-async/)
+ * [Execute Migration Plan Async(Batch)](https://docs.operaton.org/manual/1.0/reference/rest/migration/execute-migration-async/)
  * method.
  *
  * For more information about the difference between synchronous and asynchronous
  * execution of a migration plan, please refer to the related section of
- * [the user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/process-instance-migration/#executing-a-migration-plan).
+ * [the user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/process-instance-migration/#executing-a-migration-plan).
  */
 export const executeMigrationPlan = <ThrowOnError extends boolean = true>(options?: Options<ExecuteMigrationPlanData, ThrowOnError>): RequestResult<ExecuteMigrationPlanResponses, ExecuteMigrationPlanErrors, ThrowOnError, 'data'> => (options?.client ?? client).post<ExecuteMigrationPlanResponses, ExecuteMigrationPlanErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -3572,12 +3570,12 @@ export const executeMigrationPlan = <ThrowOnError extends boolean = true>(option
  *
  * Executes a migration plan asynchronously (batch) for multiple process instances.
  * To execute a migration plan synchronously, use the
- * [Execute MigrationPlan](https://docs.cibseven.org/manual/2.1/reference/rest/migration/execute-migration/)
+ * [Execute MigrationPlan](https://docs.operaton.org/manual/1.0/reference/rest/migration/execute-migration/)
  * method.
  *
  * For more information about the difference between synchronous and asynchronous
  * execution of a migration plan, please refer to the related section of
- * [the user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/process-instance-migration/#executing-a-migration-plan).
+ * [the user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/process-instance-migration/#executing-a-migration-plan).
  */
 export const executeMigrationPlanAsync = <ThrowOnError extends boolean = true>(options?: Options<ExecuteMigrationPlanAsyncData, ThrowOnError>): RequestResult<ExecuteMigrationPlanAsyncResponses, ExecuteMigrationPlanAsyncErrors, ThrowOnError, 'data'> => (options?.client ?? client).post<ExecuteMigrationPlanAsyncResponses, ExecuteMigrationPlanAsyncErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -3614,7 +3612,7 @@ export const generateMigrationPlan = <ThrowOnError extends boolean = true>(optio
  *
  * Validates a migration plan statically without executing it. This
  * corresponds to the
- * [creation time validation](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/process-instance-migration/#creation-time-validation)
+ * [creation time validation](https://docs.operaton.org/manual/1.0/user-guide/process-engine/process-instance-migration/#creation-time-validation)
  * described in the user guide.
  */
 export const validateMigrationPlan = <ThrowOnError extends boolean = true>(options?: Options<ValidateMigrationPlanData, ThrowOnError>): RequestResult<ValidateMigrationPlanResponses, ValidateMigrationPlanErrors, ThrowOnError, 'data'> => (options?.client ?? client).post<ValidateMigrationPlanResponses, ValidateMigrationPlanErrors, ThrowOnError, 'data'>({
@@ -3633,14 +3631,14 @@ export const validateMigrationPlan = <ThrowOnError extends boolean = true>(optio
  *
  * Executes a modification synchronously for multiple process instances.
  * To modify a single process instance, use the
- * [Modify Process Instance Execution State](https://docs.cibseven.org/manual/2.1/reference/rest/process-instance/post-modification/) method.
+ * [Modify Process Instance Execution State](https://docs.operaton.org/manual/1.0/reference/rest/process-instance/post-modification/) method.
  * To execute a modification asynchronously, use the
- * [Execute Modification Async (Batch)](https://docs.cibseven.org/manual/2.1/reference/rest/modification/post-modification-async/) method.
+ * [Execute Modification Async (Batch)](https://docs.operaton.org/manual/1.0/reference/rest/modification/post-modification-async/) method.
  *
  * For more information about the difference between synchronous and
  * asynchronous execution of a modification, please refer to the related
  * section of the
- * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/process-instance-migration.md#executing-a-migration-plan).
+ * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/process-instance-migration.md#executing-a-migration-plan).
  */
 export const executeModification = <ThrowOnError extends boolean = true>(options?: Options<ExecuteModificationData, ThrowOnError>): RequestResult<ExecuteModificationResponses, ExecuteModificationErrors, ThrowOnError, 'data'> => (options?.client ?? client).post<ExecuteModificationResponses, ExecuteModificationErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -3658,12 +3656,12 @@ export const executeModification = <ThrowOnError extends boolean = true>(options
  *
  * Executes a modification asynchronously for multiple process instances. To execute a
  * modification synchronously, use the
- * [Execute Modification](https://docs.cibseven.org/manual/2.1/reference/rest/modification/post-modification-sync/) method.
+ * [Execute Modification](https://docs.operaton.org/manual/1.0/reference/rest/modification/post-modification-sync/) method.
  *
  * For more information about the difference between synchronous and
  * asynchronous execution of a modification, please refer to the related
  * section of the
- * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/process-instance-migration.md#executing-a-migration-plan).
+ * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/process-instance-migration.md#executing-a-migration-plan).
  */
 export const executeModificationAsync = <ThrowOnError extends boolean = true>(options?: Options<ExecuteModificationAsyncData, ThrowOnError>): RequestResult<ExecuteModificationAsyncResponses, ExecuteModificationAsyncErrors, ThrowOnError, 'data'> => (options?.client ?? client).post<ExecuteModificationAsyncResponses, ExecuteModificationAsyncErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -3681,7 +3679,7 @@ export const executeModificationAsync = <ThrowOnError extends boolean = true>(op
  *
  * Queries for process definitions that fulfill given parameters. Parameters may be the properties of
  * process definitions, such as the name, key or version. The size of the result set can be retrieved
- * by using the [Get Definition Count](https://docs.cibseven.org/manual/2.1/reference/rest/process-definition/get-query-count/) method.
+ * by using the [Get Definition Count](https://docs.operaton.org/manual/1.0/reference/rest/process-definition/get-query-count/) method.
  */
 export const getProcessDefinitions = <ThrowOnError extends boolean = true>(options?: Options<GetProcessDefinitionsData, ThrowOnError>): RequestResult<GetProcessDefinitionsResponses, GetProcessDefinitionsErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetProcessDefinitionsResponses, GetProcessDefinitionsErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -3694,7 +3692,7 @@ export const getProcessDefinitions = <ThrowOnError extends boolean = true>(optio
  * Get List Count
  *
  * Requests the number of process definitions that fulfill the query criteria.
- * Takes the same filtering parameters as the [Get Definitions](https://docs.cibseven.org/manual/2.1/reference/rest/process-definition/get-query/) method.
+ * Takes the same filtering parameters as the [Get Definitions](https://docs.operaton.org/manual/1.0/reference/rest/process-definition/get-query/) method.
  */
 export const getProcessDefinitionsCount = <ThrowOnError extends boolean = true>(options?: Options<GetProcessDefinitionsCountData, ThrowOnError>): RequestResult<GetProcessDefinitionsCountResponses, GetProcessDefinitionsCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetProcessDefinitionsCountResponses, GetProcessDefinitionsCountErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -3731,7 +3729,7 @@ export const getProcessDefinitionByKey = <ThrowOnError extends boolean = true>(o
  * Get Deployed Start Form
  *
  * Retrieves the deployed form that can be referenced from a start event.
- * For further information please refer to [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/task-forms/#embedded-task-forms).
+ * For further information please refer to [User Guide](https://docs.operaton.org/manual/1.0/user-guide/task-forms/#embedded-task-forms).
  */
 export const getDeployedStartFormByKey = <ThrowOnError extends boolean = true>(options: Options<GetDeployedStartFormByKeyData, ThrowOnError>): RequestResult<GetDeployedStartFormByKeyResponses, GetDeployedStartFormByKeyErrors, ThrowOnError, 'data'> => (options.client ?? client).get<GetDeployedStartFormByKeyResponses, GetDeployedStartFormByKeyErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -3762,7 +3760,7 @@ export const getProcessDefinitionDiagramByKey = <ThrowOnError extends boolean = 
  *
  * Retrieves the start form variables for the latest process definition which belongs to no tenant
  * (only if they are defined via the
- * [Generated Task Form](https://docs.cibseven.org/manual/2.1/user-guide/task-forms/#generated-task-forms) approach).
+ * [Generated Task Form](https://docs.operaton.org/manual/1.0/user-guide/task-forms/#generated-task-forms) approach).
  * The start form variables take form data specified on the start event into account.
  * If form fields are defined, the variable types and default values
  * of the form fields are taken into account.
@@ -3778,10 +3776,10 @@ export const getStartFormVariablesByKey = <ThrowOnError extends boolean = true>(
  * Update History Time to Live
  *
  * Updates history time to live for the latest version of the process definition which belongs to no tenant.
- * The field is used within [History cleanup](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/history/#history-cleanup).
+ * The field is used within [History cleanup](https://docs.operaton.org/manual/1.0/user-guide/process-engine/history/#history-cleanup).
  * The value of the update is mandatory by default and does not allow `null` values. To enable them, please
  * set the feature flag `enforceHistoryTimeToLive` to `false`. Read more in [Configuration Properties]
- * (https://docs.cibseven.org/manual/2.1/reference/deployment-descriptors/tags/process-engine#configuration-properties)
+ * (https://docs.operaton.org/manual/1.0/reference/deployment-descriptors/tags/process-engine#configuration-properties)
  */
 export const updateHistoryTimeToLiveByProcessDefinitionKey = <ThrowOnError extends boolean = true>(options: Options<UpdateHistoryTimeToLiveByProcessDefinitionKeyData, ThrowOnError>): RequestResult<UpdateHistoryTimeToLiveByProcessDefinitionKeyResponses, UpdateHistoryTimeToLiveByProcessDefinitionKeyErrors, ThrowOnError, 'data'> => (options.client ?? client).put<UpdateHistoryTimeToLiveByProcessDefinitionKeyResponses, UpdateHistoryTimeToLiveByProcessDefinitionKeyErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -3799,7 +3797,7 @@ export const updateHistoryTimeToLiveByProcessDefinitionKey = <ThrowOnError exten
  *
  * Retrieves  the rendered form for the latest version of the process definition which belongs to no tenant.
  * This method can be used to get the HTML rendering of a
- * [Generated Task Form](https://docs.cibseven.org/manual/2.1/user-guide/task-forms/#generated-task-forms).
+ * [Generated Task Form](https://docs.operaton.org/manual/1.0/user-guide/task-forms/#generated-task-forms).
  */
 export const getRenderedStartFormByKey = <ThrowOnError extends boolean = true>(options: Options<GetRenderedStartFormByKeyData, ThrowOnError>): RequestResult<GetRenderedStartFormByKeyResponses, GetRenderedStartFormByKeyErrors, ThrowOnError, 'data'> => (options.client ?? client).get<GetRenderedStartFormByKeyResponses, GetRenderedStartFormByKeyErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -3864,7 +3862,7 @@ export const getActivityStatisticsByProcessDefinitionKey = <ThrowOnError extends
  * using a set of process variables and the business key.
  * If the start event has Form Field Metadata defined, the process engine will perform backend validation
  * for any form fields which have validators defined.
- * See [Documentation on Generated Task Forms](https://docs.cibseven.org/manual/2.1/user-guide/task-forms/#generated-task-forms).
+ * See [Documentation on Generated Task Forms](https://docs.operaton.org/manual/1.0/user-guide/task-forms/#generated-task-forms).
  */
 export const submitFormByKey = <ThrowOnError extends boolean = true>(options: Options<SubmitFormByKeyData, ThrowOnError>): RequestResult<SubmitFormByKeyResponses, SubmitFormByKeyErrors, ThrowOnError, 'data'> => (options.client ?? client).post<SubmitFormByKeyResponses, SubmitFormByKeyErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -3923,7 +3921,7 @@ export const getLatestProcessDefinitionByTenantId = <ThrowOnError extends boolea
  * Get Deployed Start Form
  *
  * Retrieves the deployed form that can be referenced from a start event.
- * For further information please refer to [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/task-forms/#embedded-task-forms).
+ * For further information please refer to [User Guide](https://docs.operaton.org/manual/1.0/user-guide/task-forms/#embedded-task-forms).
  */
 export const getDeployedStartFormByKeyAndTenantId = <ThrowOnError extends boolean = true>(options: Options<GetDeployedStartFormByKeyAndTenantIdData, ThrowOnError>): RequestResult<GetDeployedStartFormByKeyAndTenantIdResponses, GetDeployedStartFormByKeyAndTenantIdErrors, ThrowOnError, 'data'> => (options.client ?? client).get<GetDeployedStartFormByKeyAndTenantIdResponses, GetDeployedStartFormByKeyAndTenantIdErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -3954,7 +3952,7 @@ export const getProcessDefinitionDiagramByKeyAndTenantId = <ThrowOnError extends
  *
  * Retrieves the start form variables for the latest process definition for a tenant
  * (only if they are defined via the
- * [Generated Task Form](https://docs.cibseven.org/manual/2.1/user-guide/task-forms/#generated-task-forms) approach).
+ * [Generated Task Form](https://docs.operaton.org/manual/1.0/user-guide/task-forms/#generated-task-forms) approach).
  * The start form variables take form data specified on the start event into account.
  * If form fields are defined, the variable types and default values
  * of the form fields are taken into account.
@@ -3970,7 +3968,7 @@ export const getStartFormVariablesByKeyAndTenantId = <ThrowOnError extends boole
  * Update History Time to Live
  *
  * Updates history time to live for the latest version of the process definition for a tenant.
- * The field is used within [History cleanup](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/history/#history-cleanup).
+ * The field is used within [History cleanup](https://docs.operaton.org/manual/1.0/user-guide/process-engine/history/#history-cleanup).
  */
 export const updateHistoryTimeToLiveByProcessDefinitionKeyAndTenantId = <ThrowOnError extends boolean = true>(options: Options<UpdateHistoryTimeToLiveByProcessDefinitionKeyAndTenantIdData, ThrowOnError>): RequestResult<UpdateHistoryTimeToLiveByProcessDefinitionKeyAndTenantIdResponses, UpdateHistoryTimeToLiveByProcessDefinitionKeyAndTenantIdErrors, ThrowOnError, 'data'> => (options.client ?? client).put<UpdateHistoryTimeToLiveByProcessDefinitionKeyAndTenantIdResponses, UpdateHistoryTimeToLiveByProcessDefinitionKeyAndTenantIdErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -3988,7 +3986,7 @@ export const updateHistoryTimeToLiveByProcessDefinitionKeyAndTenantId = <ThrowOn
  *
  * Retrieves  the rendered form for the latest version of the process definition for a tenant.
  * This method can be used to get the HTML rendering of a
- * [Generated Task Form](https://docs.cibseven.org/manual/2.1/user-guide/task-forms/#generated-task-forms).
+ * [Generated Task Form](https://docs.operaton.org/manual/1.0/user-guide/task-forms/#generated-task-forms).
  */
 export const getRenderedStartFormByKeyAndTenantId = <ThrowOnError extends boolean = true>(options: Options<GetRenderedStartFormByKeyAndTenantIdData, ThrowOnError>): RequestResult<GetRenderedStartFormByKeyAndTenantIdResponses, GetRenderedStartFormByKeyAndTenantIdErrors, ThrowOnError, 'data'> => (options.client ?? client).get<GetRenderedStartFormByKeyAndTenantIdResponses, GetRenderedStartFormByKeyAndTenantIdErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -4051,7 +4049,7 @@ export const getActivityStatisticsByProcessDefinitionKeyAndTenantId = <ThrowOnEr
  * using a set of process variables and the business key.
  * If the start event has Form Field Metadata defined, the process engine will perform backend validation
  * for any form fields which have validators defined.
- * See [Documentation on Generated Task Forms](https://docs.cibseven.org/manual/2.1/user-guide/task-forms/#generated-task-forms).
+ * See [Documentation on Generated Task Forms](https://docs.operaton.org/manual/1.0/user-guide/task-forms/#generated-task-forms).
  */
 export const submitFormByKeyAndTenantId = <ThrowOnError extends boolean = true>(options: Options<SubmitFormByKeyAndTenantIdData, ThrowOnError>): RequestResult<SubmitFormByKeyAndTenantIdResponses, SubmitFormByKeyAndTenantIdErrors, ThrowOnError, 'data'> => (options.client ?? client).post<SubmitFormByKeyAndTenantIdResponses, SubmitFormByKeyAndTenantIdErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -4166,7 +4164,7 @@ export const getProcessDefinition = <ThrowOnError extends boolean = true>(option
  * Get Deployed Start Form
  *
  * Retrieves the deployed form that can be referenced from a start event.
- * For further information please refer to [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/task-forms/#embedded-task-forms).
+ * For further information please refer to [User Guide](https://docs.operaton.org/manual/1.0/user-guide/task-forms/#embedded-task-forms).
  */
 export const getDeployedStartForm = <ThrowOnError extends boolean = true>(options: Options<GetDeployedStartFormData, ThrowOnError>): RequestResult<GetDeployedStartFormResponses, GetDeployedStartFormErrors, ThrowOnError, 'data'> => (options.client ?? client).get<GetDeployedStartFormResponses, GetDeployedStartFormErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -4197,7 +4195,7 @@ export const getProcessDefinitionDiagram = <ThrowOnError extends boolean = true>
  *
  * Retrieves the start form variables for a process definition
  * (only if they are defined via the
- * [Generated Task Form](https://docs.cibseven.org/manual/2.1/user-guide/task-forms/#generated-task-forms) approach).
+ * [Generated Task Form](https://docs.operaton.org/manual/1.0/user-guide/task-forms/#generated-task-forms) approach).
  * The start form variables take form data specified on the start event into account.
  * If form fields are defined, the variable types and default values
  * of the form fields are taken into account.
@@ -4213,10 +4211,10 @@ export const getStartFormVariables = <ThrowOnError extends boolean = true>(optio
  * Update History Time to Live
  *
  * Updates history time to live for process definition.
- * The field is used within [History cleanup](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/history/#history-cleanup).
+ * The field is used within [History cleanup](https://docs.operaton.org/manual/1.0/user-guide/process-engine/history/#history-cleanup).
  * The value of the update is mandatory by default and does not allow `null` values. To enable them, please
  * set the feature flag `enforceHistoryTimeToLive` to `false`. Read more in [Configuration Properties]
- * (https://docs.cibseven.org/manual/2.1/reference/deployment-descriptors/tags/process-engine#configuration-properties)
+ * (https://docs.operaton.org/manual/1.0/reference/deployment-descriptors/tags/process-engine#configuration-properties)
  */
 export const updateHistoryTimeToLiveByProcessDefinitionId = <ThrowOnError extends boolean = true>(options: Options<UpdateHistoryTimeToLiveByProcessDefinitionIdData, ThrowOnError>): RequestResult<UpdateHistoryTimeToLiveByProcessDefinitionIdResponses, UpdateHistoryTimeToLiveByProcessDefinitionIdErrors, ThrowOnError, 'data'> => (options.client ?? client).put<UpdateHistoryTimeToLiveByProcessDefinitionIdResponses, UpdateHistoryTimeToLiveByProcessDefinitionIdErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -4234,7 +4232,7 @@ export const updateHistoryTimeToLiveByProcessDefinitionId = <ThrowOnError extend
  *
  * Retrieves the rendered form for a process definition.
  * This method can be used to get the HTML rendering of a
- * [Generated Task Form](https://docs.cibseven.org/manual/2.1/user-guide/task-forms/#generated-task-forms).
+ * [Generated Task Form](https://docs.operaton.org/manual/1.0/user-guide/task-forms/#generated-task-forms).
  */
 export const getRenderedStartForm = <ThrowOnError extends boolean = true>(options: Options<GetRenderedStartFormData, ThrowOnError>): RequestResult<GetRenderedStartFormResponses, GetRenderedStartFormErrors, ThrowOnError, 'data'> => (options.client ?? client).get<GetRenderedStartFormResponses, GetRenderedStartFormErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -4250,11 +4248,11 @@ export const getRenderedStartForm = <ThrowOnError extends boolean = true>(option
  * Can also restart completed process instances.
  * It will create a new instance using the original instance information.
  * To execute the restart asynchronously, use the
- * [Restart Process Instance Async](https://docs.cibseven.org/manual/2.1/reference/rest/process-definition/post-restart-process-instance-async/) method.
+ * [Restart Process Instance Async](https://docs.operaton.org/manual/1.0/reference/rest/process-definition/post-restart-process-instance-async/) method.
  *
  * For more information about the difference between synchronous and asynchronous execution,
  * please refer to the related section of the
- * [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/process-instance-restart/#execution).
+ * [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/process-instance-restart/#execution).
  */
 export const restartProcessInstance = <ThrowOnError extends boolean = true>(options: Options<RestartProcessInstanceData, ThrowOnError>): RequestResult<RestartProcessInstanceResponses, RestartProcessInstanceErrors, ThrowOnError, 'data'> => (options.client ?? client).post<RestartProcessInstanceResponses, RestartProcessInstanceErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -4274,11 +4272,11 @@ export const restartProcessInstance = <ThrowOnError extends boolean = true>(opti
  * Can also restart completed process instances.
  * It will create a new instance using the original instance information.
  * To execute the restart asynchronously, use the
- * [Restart Process Instance](https://docs.cibseven.org/manual/2.1/reference/rest/process-definition/post-restart-process-instance-sync/) method.
+ * [Restart Process Instance](https://docs.operaton.org/manual/1.0/reference/rest/process-definition/post-restart-process-instance-sync/) method.
  *
  * For more information about the difference between synchronous and asynchronous execution,
  * please refer to the related section of the
- * [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/process-instance-restart/#execution).
+ * [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/process-instance-restart/#execution).
  */
 export const restartProcessInstanceAsyncOperation = <ThrowOnError extends boolean = true>(options: Options<RestartProcessInstanceAsyncOperationData, ThrowOnError>): RequestResult<RestartProcessInstanceAsyncOperationResponses, RestartProcessInstanceAsyncOperationErrors, ThrowOnError, 'data'> => (options.client ?? client).post<RestartProcessInstanceAsyncOperationResponses, RestartProcessInstanceAsyncOperationErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -4365,7 +4363,7 @@ export const getActivityStatistics = <ThrowOnError extends boolean = true>(optio
  * Starts a process instance using a set of process variables and the business key.
  * If the start event has Form Field Metadata defined, the process engine will perform backend validation
  * for any form fields which have validators defined.
- * See [Documentation on Generated Task Forms](https://docs.cibseven.org/manual/2.1/user-guide/task-forms/#generated-task-forms).
+ * See [Documentation on Generated Task Forms](https://docs.operaton.org/manual/1.0/user-guide/task-forms/#generated-task-forms).
  */
 export const submitForm = <ThrowOnError extends boolean = true>(options: Options<SubmitFormData, ThrowOnError>): RequestResult<SubmitFormResponses, SubmitFormErrors, ThrowOnError, 'data'> => (options.client ?? client).post<SubmitFormResponses, SubmitFormErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -4717,7 +4715,7 @@ export const deleteProcessInstanceComment = <ThrowOnError extends boolean = true
  * Instructions are executed immediately and in the order they are provided in this request's body.
  * Variables can be provided with every starting instruction.
  *
- * The exact semantics of modification can be read about in the [User guide](https://docs.cibseven.org/manual/develop/user-guide/process-engine/process-instance-modification/).
+ * The exact semantics of modification can be read about in the [User guide](https://docs.operaton.org/manual/develop/user-guide/process-engine/process-instance-modification/).
  */
 export const modifyProcessInstance = <ThrowOnError extends boolean = true>(options: Options<ModifyProcessInstanceData, ThrowOnError>): RequestResult<ModifyProcessInstanceResponses, ModifyProcessInstanceErrors, ThrowOnError, 'data'> => (options.client ?? client).post<ModifyProcessInstanceResponses, ModifyProcessInstanceErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -4745,7 +4743,7 @@ export const modifyProcessInstance = <ThrowOnError extends boolean = true>(optio
  * Variables can be provided with every starting instruction.
  *
  * The exact semantics of modification can be read about in the
- * [User guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/process-instance-modification/).
+ * [User guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/process-instance-modification/).
  */
 export const modifyProcessInstanceAsyncOperation = <ThrowOnError extends boolean = true>(options: Options<ModifyProcessInstanceAsyncOperationData, ThrowOnError>): RequestResult<ModifyProcessInstanceAsyncOperationResponses, ModifyProcessInstanceAsyncOperationErrors, ThrowOnError, 'data'> => (options.client ?? client).post<ModifyProcessInstanceAsyncOperationResponses, ModifyProcessInstanceAsyncOperationErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -4907,8 +4905,8 @@ export const querySchemaLog = <ThrowOnError extends boolean = true>(options?: Op
  * A signal is an event of global scope (broadcast semantics) and is delivered to all
  * active handlers. Internally this maps to the engine's signal event received builder
  * method `RuntimeService#createSignalEvent()`. For more information about the signal
- * behavior, see the [Signal Events](https://docs.cibseven.org/manual/2.1/reference/bpmn20/events/signal-events/)
- * section of the [BPMN 2.0 Implementation Reference](https://docs.cibseven.org/manual/2.1/reference/bpmn20/).
+ * behavior, see the [Signal Events](https://docs.operaton.org/manual/1.0/reference/bpmn20/events/signal-events/)
+ * section of the [BPMN 2.0 Implementation Reference](https://docs.operaton.org/manual/1.0/reference/bpmn20/).
  */
 export const throwSignal = <ThrowOnError extends boolean = true>(options?: Options<ThrowSignalData, ThrowOnError>): RequestResult<ThrowSignalResponses, ThrowSignalErrors, ThrowOnError, 'data'> => (options?.client ?? client).post<ThrowSignalResponses, ThrowSignalErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -4930,7 +4928,7 @@ export const throwSignal = <ThrowOnError extends boolean = true>(options?: Optio
  * **Security Consideration:** There are several query parameters (such as
  * assigneeExpression) for specifying an EL expression. These are disabled by default to
  * prevent remote code execution. See the section on
- * [security considerations](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/securing-custom-code/)
+ * [security considerations](https://docs.operaton.org/manual/1.0/user-guide/process-engine/securing-custom-code/)
  * for custom code in the user guide for details.
  */
 export const getTasks = <ThrowOnError extends boolean = true>(options?: Options<GetTasksData, ThrowOnError>): RequestResult<GetTasksResponses, GetTasksErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetTasksResponses, GetTasksErrors, ThrowOnError, 'data'>({
@@ -4944,16 +4942,16 @@ export const getTasks = <ThrowOnError extends boolean = true>(options?: Options<
  * Get List (POST)
  *
  * Queries for tasks that fulfill a given filter. This method is slightly more powerful
- * than the [Get Tasks](https://docs.cibseven.org/manual/2.1/reference/rest/task/get-query/) method because it
+ * than the [Get Tasks](https://docs.operaton.org/manual/1.0/reference/rest/task/get-query/) method because it
  * allows filtering by multiple process or task variables of types `String`, `Number`
  * or `Boolean`. The size of the result set can be retrieved by using the
- * [Get Task Count (POST)](https://docs.cibseven.org/manual/2.1/reference/rest/task/post-query-count/) method.
+ * [Get Task Count (POST)](https://docs.operaton.org/manual/1.0/reference/rest/task/post-query-count/) method.
  *
  * **Security Consideration**:
  * There are several parameters (such as `assigneeExpression`) for specifying an EL
  * expression. These are disabled by default to prevent remote code execution. See the
  * section on
- * [security considerations for custom code](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/securing-custom-code/)
+ * [security considerations for custom code](https://docs.operaton.org/manual/1.0/user-guide/process-engine/securing-custom-code/)
  * in the user guide for details.
  */
 export const queryTasks = <ThrowOnError extends boolean = true>(options?: Options<QueryTasksData, ThrowOnError>): RequestResult<QueryTasksResponses, QueryTasksErrors, ThrowOnError, 'data'> => (options?.client ?? client).post<QueryTasksResponses, QueryTasksErrors, ThrowOnError, 'data'>({
@@ -4971,12 +4969,12 @@ export const queryTasks = <ThrowOnError extends boolean = true>(options?: Option
  * Get List Count
  *
  * Retrieves the number of tasks that fulfill a provided filter. Corresponds to the size
- * of the result set when using the [Get Tasks](https://docs.cibseven.org/manual/2.1/reference/rest/task/) method.
+ * of the result set when using the [Get Tasks](https://docs.operaton.org/manual/1.0/reference/rest/task/) method.
  *
  * **Security Consideration:** There are several query parameters (such as
  * assigneeExpression) for specifying an EL expression. These are disabled by default to
  * prevent remote code execution. See the section on
- * [security considerations](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/securing-custom-code/)
+ * [security considerations](https://docs.operaton.org/manual/1.0/user-guide/process-engine/securing-custom-code/)
  * for custom code in the user guide for details.
  */
 export const getTasksCount = <ThrowOnError extends boolean = true>(options?: Options<GetTasksCountData, ThrowOnError>): RequestResult<GetTasksCountResponses, GetTasksCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetTasksCountResponses, GetTasksCountErrors, ThrowOnError, 'data'>({
@@ -4990,14 +4988,14 @@ export const getTasksCount = <ThrowOnError extends boolean = true>(options?: Opt
  * Get List Count (POST)
  *
  * Retrieves the number of tasks that fulfill the given filter. Corresponds to the size
- * of the result set of the [Get Tasks (POST)](https://docs.cibseven.org/manual/2.1/reference/rest/task/post-query/)
+ * of the result set of the [Get Tasks (POST)](https://docs.operaton.org/manual/1.0/reference/rest/task/post-query/)
  * method and takes the same parameters.
  *
  * **Security Consideration**:
  * There are several parameters (such as `assigneeExpression`) for specifying an EL
  * expression. These are disabled by default to prevent remote code execution. See the
  * section on
- * [security considerations for custom code](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/securing-custom-code/)
+ * [security considerations for custom code](https://docs.operaton.org/manual/1.0/user-guide/process-engine/securing-custom-code/)
  * in the user guide for details.
  */
 export const queryTasksCount = <ThrowOnError extends boolean = true>(options?: Options<QueryTasksCountData, ThrowOnError>): RequestResult<QueryTasksCountResponses, QueryTasksCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).post<QueryTasksCountResponses, QueryTasksCountErrors, ThrowOnError, 'data'>({
@@ -5084,7 +5082,7 @@ export const updateTask = <ThrowOnError extends boolean = true>(options: Options
  *
  * Changes the assignee of a task to a specific user.
  *
- * **Note:** The difference with the [Claim Task](https://docs.cibseven.org/manual/2.1/reference/rest/task/post-claim/)
+ * **Note:** The difference with the [Claim Task](https://docs.operaton.org/manual/1.0/reference/rest/task/post-claim/)
  * method is that this method does not check if the task already has a user
  * assigned to it.
  */
@@ -5169,7 +5167,7 @@ export const getAttachmentData = <ThrowOnError extends boolean = true>(options: 
  *
  * Reports a business error in the context of a running task by id. The error code must
  * be specified to identify the BPMN error handler. See the documentation for
- * [Reporting Bpmn Error](https://docs.cibseven.org/manual/2.1/reference/bpmn20/tasks/user-task/#reporting-bpmn-error)
+ * [Reporting Bpmn Error](https://docs.operaton.org/manual/1.0/reference/bpmn20/tasks/user-task/#reporting-bpmn-error)
  * in User Tasks.
  */
 export const handleBpmnError = <ThrowOnError extends boolean = true>(options: Options<HandleBpmnErrorData, ThrowOnError>): RequestResult<HandleBpmnErrorResponses, HandleBpmnErrorErrors, ThrowOnError, 'data'> => (options.client ?? client).post<HandleBpmnErrorResponses, HandleBpmnErrorErrors, ThrowOnError, 'data'>({
@@ -5188,7 +5186,7 @@ export const handleBpmnError = <ThrowOnError extends boolean = true>(options: Op
  *
  * Reports an escalation in the context of a running task by id. The escalation code must
  * be specified to identify the escalation handler. See the documentation for
- * [Reporting Bpmn Escalation](https://docs.cibseven.org/manual/2.1/reference/bpmn20/tasks/user-task/#reporting-bpmn-escalation)
+ * [Reporting Bpmn Escalation](https://docs.operaton.org/manual/1.0/reference/bpmn20/tasks/user-task/#reporting-bpmn-escalation)
  * in User Tasks.
  */
 export const handleEscalation = <ThrowOnError extends boolean = true>(options: Options<HandleEscalationData, ThrowOnError>): RequestResult<HandleEscalationResponses, HandleEscalationErrors, ThrowOnError, 'data'> => (options.client ?? client).post<HandleEscalationResponses, HandleEscalationErrors, ThrowOnError, 'data'>({
@@ -5208,7 +5206,7 @@ export const handleEscalation = <ThrowOnError extends boolean = true>(options: O
  * Claims a task for a specific user.
  *
  * **Note:** The difference with the
- * [Set Assignee](https://docs.cibseven.org/manual/2.1/reference/rest/task/post-assignee/)
+ * [Set Assignee](https://docs.operaton.org/manual/1.0/reference/rest/task/post-assignee/)
  * method is that here a check is performed to see if the task already has a user
  * assigned to it.
  */
@@ -5340,7 +5338,7 @@ export const delegateTask = <ThrowOnError extends boolean = true>(options: Optio
  *
  * Retrieves the deployed form that is referenced from a given task. For further
  * information please refer to the
- * [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/task-forms/#embedded-task-forms).
+ * [User Guide](https://docs.operaton.org/manual/1.0/user-guide/task-forms/#embedded-task-forms).
  */
 export const getDeployedForm = <ThrowOnError extends boolean = true>(options: Options<GetDeployedFormData, ThrowOnError>): RequestResult<GetDeployedFormResponses, GetDeployedFormErrors, ThrowOnError, 'data'> => (options.client ?? client).get<GetDeployedFormResponses, GetDeployedFormErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -5528,7 +5526,7 @@ export const setBinaryTaskLocalVariable = <ThrowOnError extends boolean = true>(
  *
  * Retrieves the rendered form for a task. This method can be used to get the HTML
  * rendering of a
- * [Generated Task Form](https://docs.cibseven.org/manual/2.1/user-guide/task-forms/#generated-task-forms).
+ * [Generated Task Form](https://docs.operaton.org/manual/1.0/user-guide/task-forms/#generated-task-forms).
  */
 export const getRenderedForm = <ThrowOnError extends boolean = true>(options: Options<GetRenderedFormData, ThrowOnError>): RequestResult<GetRenderedFormResponses, GetRenderedFormErrors, ThrowOnError, 'data'> => (options.client ?? client).get<GetRenderedFormResponses, GetRenderedFormErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -5568,8 +5566,8 @@ export const resolve = <ThrowOnError extends boolean = true>(options: Options<Re
  * * If the task has Form Field Metadata defined, the process engine will perform backend
  * validation for any form fields which have validators defined.
  * See the
- * [Generated Task Forms](https://docs.cibseven.org/manual/2.1/user-guide/task-forms/_index/#generated-task-forms)
- * section of the [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/) for more information.
+ * [Generated Task Forms](https://docs.operaton.org/manual/1.0/user-guide/task-forms/_index/#generated-task-forms)
+ * section of the [User Guide](https://docs.operaton.org/manual/1.0/user-guide/) for more information.
  */
 export const submit = <ThrowOnError extends boolean = true>(options: Options<SubmitData, ThrowOnError>): RequestResult<SubmitResponses, SubmitErrors, ThrowOnError, 'data'> => (options.client ?? client).post<SubmitResponses, SubmitErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -5599,7 +5597,7 @@ export const unclaim = <ThrowOnError extends boolean = true>(options: Options<Un
  *
  * Retrieves all variables visible from the task. A variable is visible from the task if it is a local task
  * variable or declared in a parent scope of the task. See documentation on
- * [visiblity of variables](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/variables/).
+ * [visiblity of variables](https://docs.operaton.org/manual/1.0/user-guide/process-engine/variables/).
  */
 export const getTaskVariables = <ThrowOnError extends boolean = true>(options: Options<GetTaskVariablesData, ThrowOnError>): RequestResult<GetTaskVariablesResponses, GetTaskVariablesErrors, ThrowOnError, 'data'> => (options.client ?? client).get<GetTaskVariablesResponses, GetTaskVariablesErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -5614,7 +5612,7 @@ export const getTaskVariables = <ThrowOnError extends boolean = true>(options: O
  * Updates or deletes the variables visible from the task. Updates precede deletions. So, if a variable is
  * updated AND deleted, the deletion overrides the update. A variable is visible from the task if it is a
  * local task variable or declared in a parent scope of the task. See documentation on
- * [visiblity of variables](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/variables/).
+ * [visiblity of variables](https://docs.operaton.org/manual/1.0/user-guide/process-engine/variables/).
  */
 export const modifyTaskVariables = <ThrowOnError extends boolean = true>(options: Options<ModifyTaskVariablesData, ThrowOnError>): RequestResult<ModifyTaskVariablesResponses, ModifyTaskVariablesErrors, ThrowOnError, 'data'> => (options.client ?? client).post<ModifyTaskVariablesResponses, ModifyTaskVariablesErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -5632,7 +5630,7 @@ export const modifyTaskVariables = <ThrowOnError extends boolean = true>(options
  *
  * Removes a variable that is visible to a task. A variable is visible to a task if it is a local task
  * variable or declared in a parent scope of the task. See documentation on
- * [visiblity of variables](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/variables/).
+ * [visiblity of variables](https://docs.operaton.org/manual/1.0/user-guide/process-engine/variables/).
  */
 export const deleteTaskVariable = <ThrowOnError extends boolean = true>(options: Options<DeleteTaskVariableData, ThrowOnError>): RequestResult<DeleteTaskVariableResponses, DeleteTaskVariableErrors, ThrowOnError, 'data'> => (options.client ?? client).delete<DeleteTaskVariableResponses, DeleteTaskVariableErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -5647,7 +5645,7 @@ export const deleteTaskVariable = <ThrowOnError extends boolean = true>(options:
  * Retrieves a variable from the context of a given task.
  * The variable must be visible from the task. It is visible from the task if it is a local task variable or
  * declared in a parent scope of the task. See documentation on
- * [visiblity of variables](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/variables/).
+ * [visiblity of variables](https://docs.operaton.org/manual/1.0/user-guide/process-engine/variables/).
  */
 export const getTaskVariable = <ThrowOnError extends boolean = true>(options: Options<GetTaskVariableData, ThrowOnError>): RequestResult<GetTaskVariableResponses, GetTaskVariableErrors, ThrowOnError, 'data'> => (options.client ?? client).get<GetTaskVariableResponses, GetTaskVariableErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -5661,7 +5659,7 @@ export const getTaskVariable = <ThrowOnError extends boolean = true>(options: Op
  *
  * Updates a process variable that is visible from the Task scope. A variable is visible from the task if it
  * is a local task variable, or declared in a parent scope of the task. See the documentation on
- * [variable scopes and visibility](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/variables#variable-scopes-and-variable-visibility).
+ * [variable scopes and visibility](https://docs.operaton.org/manual/1.0/user-guide/process-engine/variables#variable-scopes-and-variable-visibility).
  *
  * **Note**: If a variable doesn't exist, the variable is created in the top-most scope
  * visible from the task.
@@ -5683,7 +5681,7 @@ export const putTaskVariable = <ThrowOnError extends boolean = true>(options: Op
  * Retrieves a binary variable from the context of a given task. Applicable for byte array and file
  * variables. The variable must be visible from the task. It is visible from the task if it is a local task
  * variable or declared in a parent scope of the task. See documentation on
- * [visiblity of variables](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/variables/).
+ * [visiblity of variables](https://docs.operaton.org/manual/1.0/user-guide/process-engine/variables/).
  */
 export const getTaskVariableBinary = <ThrowOnError extends boolean = true>(options: Options<GetTaskVariableBinaryData, ThrowOnError>): RequestResult<GetTaskVariableBinaryResponses, GetTaskVariableBinaryErrors, ThrowOnError, 'data'> => (options.client ?? client).get<GetTaskVariableBinaryResponses, GetTaskVariableBinaryErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -5698,7 +5696,7 @@ export const getTaskVariableBinary = <ThrowOnError extends boolean = true>(optio
  * Sets the serialized value for a binary variable or the binary value for a file variable visible from the
  * task. A variable is visible from the task if it is a local task variable or declared in a parent scope of
  * the task. See documentation on
- * [visiblity of variables](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/variables/).
+ * [visiblity of variables](https://docs.operaton.org/manual/1.0/user-guide/process-engine/variables/).
  */
 export const setBinaryTaskVariable = <ThrowOnError extends boolean = true>(options: Options<SetBinaryTaskVariableData, ThrowOnError>): RequestResult<SetBinaryTaskVariableResponses, SetBinaryTaskVariableErrors, ThrowOnError, 'data'> => (options.client ?? client).post<SetBinaryTaskVariableResponses, SetBinaryTaskVariableErrors, ThrowOnError, 'data'>({
     ...formDataBodySerializer,
@@ -5761,7 +5759,7 @@ export const getTelemetryData = <ThrowOnError extends boolean = true>(options?: 
  *
  * Query for a list of tenants using a list of parameters. The size of the result set
  * can be retrieved by using the [Get Tenant
- * Count](https://docs.cibseven.org/manual/2.1/reference/rest/tenant/get-query-count/) method.
+ * Count](https://docs.operaton.org/manual/1.0/reference/rest/tenant/get-query-count/) method.
  */
 export const queryTenants = <ThrowOnError extends boolean = true>(options?: Options<QueryTenantsData, ThrowOnError>): RequestResult<QueryTenantsResponses, QueryTenantsErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<QueryTenantsResponses, QueryTenantsErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -5889,9 +5887,9 @@ export const availableTenantGroupMembersOperations = <ThrowOnError extends boole
 });
 
 /**
- * Delete Tenant Group Membership
+ * Create Tenant Group Membership
  *
- * Deletes a membership between a tenant and a group.
+ * Creates a membership between a tenant and a group.
  */
 export const deleteGroupMembership = <ThrowOnError extends boolean = true>(options: Options<DeleteGroupMembershipData, ThrowOnError>): RequestResult<DeleteGroupMembershipResponses, DeleteGroupMembershipErrors, ThrowOnError, 'data'> => (options.client ?? client).delete<DeleteGroupMembershipResponses, DeleteGroupMembershipErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -5957,7 +5955,7 @@ export const createUserMembership = <ThrowOnError extends boolean = true>(option
  *
  * Query for a list of users using a list of parameters.
  * The size of the result set can be retrieved by using the Get User Count method.
- * [Get User Count](https://docs.cibseven.org/manual/2.1/reference/rest/user/get-query-count/) method.
+ * [Get User Count](https://docs.operaton.org/manual/1.0/reference/rest/user/get-query-count/) method.
  */
 export const getUsers = <ThrowOnError extends boolean = true>(options?: Options<GetUsersData, ThrowOnError>): RequestResult<GetUsersResponses, GetUsersErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetUsersResponses, GetUsersErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -5987,7 +5985,7 @@ export const availableOperations = <ThrowOnError extends boolean = true>(options
  * Get List Count
  *
  * Queries for the number of deployments that fulfill given parameters. Takes the same parameters as the
- * [Get Users](https://docs.cibseven.org/manual/2.1/reference/rest/user/get-query/) method.
+ * [Get Users](https://docs.operaton.org/manual/1.0/reference/rest/user/get-query/) method.
  */
 export const getUserCount = <ThrowOnError extends boolean = true>(options?: Options<GetUserCountData, ThrowOnError>): RequestResult<GetUserCountResponses, GetUserCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetUserCountResponses, GetUserCountErrors, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -6103,7 +6101,7 @@ export const unlockUser = <ThrowOnError extends boolean = true>(options: Options
  * Query for variable instances that fulfill given parameters. Parameters may be the
  * properties of variable instances, such as the name or type. The size
  * of the result set can be retrieved by using the [Get Variable Instance
- * Count](https://docs.cibseven.org/manual/2.1/reference/rest/variable-instance/get-query-count/)
+ * Count](https://docs.operaton.org/manual/1.0/reference/rest/variable-instance/get-query-count/)
  * method.
  */
 export const getVariableInstances = <ThrowOnError extends boolean = true>(options?: Options<GetVariableInstancesData, ThrowOnError>): RequestResult<GetVariableInstancesResponses, GetVariableInstancesErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetVariableInstancesResponses, GetVariableInstancesErrors, ThrowOnError, 'data'>({
@@ -6118,7 +6116,7 @@ export const getVariableInstances = <ThrowOnError extends boolean = true>(option
  *
  * Query for variable instances that fulfill given parameters through a JSON object.
  * This method is slightly more powerful than the
- * [Get Variable Instances](https://docs.cibseven.org/manual/2.1/reference/rest/variable-
+ * [Get Variable Instances](https://docs.operaton.org/manual/1.0/reference/rest/variable-
  * instance/get-query/) method because it allows filtering by multiple
  * variable instances of types `String`, `Number` or `Boolean`.
  */
@@ -6138,7 +6136,7 @@ export const queryVariableInstances = <ThrowOnError extends boolean = true>(opti
  *
  * Query for the number of variable instances that fulfill given parameters. Takes the
  * same parameters as the [Get Variable
- * Instances](https://docs.cibseven.org/manual/2.1/reference/rest/variable-instance/get-query/)
+ * Instances](https://docs.operaton.org/manual/1.0/reference/rest/variable-instance/get-query/)
  * method.
  */
 export const getVariableInstancesCount = <ThrowOnError extends boolean = true>(options?: Options<GetVariableInstancesCountData, ThrowOnError>): RequestResult<GetVariableInstancesCountResponses, GetVariableInstancesCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).get<GetVariableInstancesCountResponses, GetVariableInstancesCountErrors, ThrowOnError, 'data'>({
@@ -6153,10 +6151,10 @@ export const getVariableInstancesCount = <ThrowOnError extends boolean = true>(o
  *
  * Query for the number of variable instances that fulfill given parameters. This
  * method takes the same message body as the
- * [Get Variable Instances POST](https://docs.cibseven.org/manual/2.1/reference/rest/variable-
+ * [Get Variable Instances POST](https://docs.operaton.org/manual/1.0/reference/rest/variable-
  * instance/post-query/) method and therefore it is slightly more
  * powerful than the [Get Variable Instance
- * Count](https://docs.cibseven.org/manual/2.1/reference/rest/variable-instance/get-query-count/)
+ * Count](https://docs.operaton.org/manual/1.0/reference/rest/variable-instance/get-query-count/)
  * method.
  */
 export const queryVariableInstancesCount = <ThrowOnError extends boolean = true>(options?: Options<QueryVariableInstancesCountData, ThrowOnError>): RequestResult<QueryVariableInstancesCountResponses, QueryVariableInstancesCountErrors, ThrowOnError, 'data'> => (options?.client ?? client).post<QueryVariableInstancesCountResponses, QueryVariableInstancesCountErrors, ThrowOnError, 'data'>({

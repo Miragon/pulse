@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import type { BodySpec, Catalog, OperationSpec } from "../../src/catalog/types.js"
 import { buildCatalog } from "./build-catalog.js"
-import { readPatchedSpec } from "./files.js"
+import { readSpec, readRoutes } from "./files.js"
 import { PRESETS, applyPresets } from "./presets.js"
 import { SPEC_URL } from "./render.js"
 
@@ -124,7 +124,7 @@ let cachedCatalog: Catalog | undefined
  * at load time, so a generator failure fails that test instead of the whole file.
  */
 function realCatalog(): Catalog {
-  cachedCatalog ??= buildCatalog(readPatchedSpec(), SPEC_URL)
+  cachedCatalog ??= buildCatalog(readSpec(), SPEC_URL, readRoutes())
   return cachedCatalog
 }
 

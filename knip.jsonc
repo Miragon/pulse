@@ -67,8 +67,8 @@
     },
 
     "packages/connectors/c7/c7-client": {
-      // Generated CIB seven SDK (pnpm generate): its export surface mirrors
-      // the OpenAPI spec, not our usage.
+      // Generated Camunda 7 REST SDK (pnpm generate): its export surface
+      // mirrors the OpenAPI spec, not our usage.
       "ignore": ["src/generated/**"],
     },
 

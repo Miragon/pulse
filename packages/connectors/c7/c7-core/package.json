@@ -1,7 +1,7 @@
 {
   "name": "@miragon/pulse-c7-core",
   "version": "0.27.1",
-  "description": "The core of the Camunda 7 REST dialect family (Operaton, CIB seven, Camunda 7), its workflow domain: the engine port, instance selection, the inspect view, the status triage, the root cause of an incident and the plans of retry and advance, and the pure engine REST rules (dates, filters, sorting, variable writes, incident recovery). Its one runtime dependency is @miragon/pulse-engine-core, whose root-cause rule it applies.",
+  "description": "The core of the Camunda 7 REST dialect family (Operaton, CIB seven, Camunda 7), its workflow domain: the engine port, instance selection, the inspect view, the status triage, the root cause of an incident and the plans of retry and advance, the pure engine REST rules (dates, filters, sorting, variable writes, incident recovery) and the route of each REST operation (method, path, effect), generated from one spec. Its one runtime dependency is @miragon/pulse-engine-core, whose root-cause rule it applies.",
   "license": "MIT",
   "keywords": [
     "camunda",
@@ -42,6 +42,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./routes": {
+      "types": "./dist/routes.d.ts",
+      "import": "./dist/routes.js"
+    },
     "./testing": {
       "types": "./dist/testing/index.d.ts",
       "import": "./dist/testing/index.js"
@@ -50,9 +54,10 @@
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint src",
-    "lint:fix": "eslint src --fix"
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.scripts.json",
+    "lint": "eslint src scripts",
+    "lint:fix": "eslint src scripts --fix",
+    "generate": "tsx scripts/generate-routes.ts"
   },
   "dependencies": {
     "@miragon/pulse-engine-core": "workspace:*"
@@ -60,7 +65,9 @@
   "devDependencies": {
     "@stryker-mutator/core": "10.1.1",
     "@stryker-mutator/vitest-runner": "10.1.1",
+    "@types/node": "22.20.5",
     "fast-check": "4.10.2",
+    "tsx": "4.23.15",
     "typescript": "6.0.3",
     "vitest": "5.1.0"
   }

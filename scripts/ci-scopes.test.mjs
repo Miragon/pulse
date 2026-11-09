@@ -122,6 +122,23 @@ describe("scopesFor: a package's code reaches its dependents", () => {
     ])
   })
 
+  it("runs the checks of the spec's readers for c7-core's spec and route table, dependents or not", () => {
+    const spec = "packages/connectors/c7/c7-core/spec/api.json"
+    const routes = "packages/connectors/c7/c7-core/src/generated/routes.json"
+    assert.deepEqual(scopes(spec), scopes("packages/connectors/c7/c7-core/src/inspect.ts"))
+    const alone = [pkg("packages/connectors/c7/c7-core", "@miragon/pulse-c7-core")]
+    for (const file of [spec, "packages/connectors/c7/c7-core/spec/patches.json", routes]) {
+      assert.deepEqual([...scopesFor([file], alone)].sort(), [
+        "cli",
+        "mcp",
+        "template",
+        "typescript",
+      ])
+    }
+    const core = "packages/connectors/c7/c7-core/src/generated/core-routes.json"
+    assert.deepEqual([...scopesFor([core], alone)].sort(), ["mcp", "template", "typescript"])
+  })
+
   it("runs the MCP server's checks for the server app itself, not only through a package", () => {
     assert.deepEqual(scopes("apps/mcp-server/src/app.ts"), ["mcp", "typescript"])
   })

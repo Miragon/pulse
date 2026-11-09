@@ -80,6 +80,17 @@ jobs:
       - id: build
         run: pnpm build
 
+      # turbo runs every `generate` before the build, and the npm publish packs what is committed:
+      # a committed generated file the build rewrote (c7-client's SDK, c7-core's route tables) is
+      # stale and would ship so.
+      - name: Generated files are committed fresh
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git status --short
+            echo "::error::pnpm build changed committed files: run pnpm build and commit them"
+            exit 1
+          fi
+
       - run: pnpm typecheck
 
       # Runs on a red typecheck too. node:test reports as spec plus one annotation per failure.

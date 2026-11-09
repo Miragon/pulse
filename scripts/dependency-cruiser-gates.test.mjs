@@ -836,6 +836,11 @@ const SUITES = [
       [`${ENGINE_CORE}/test/support/harness.ts`, "vitest", []],
       [`${HTTP}/test/escape-app.ts`, "../../../../apps/mcp-server/src/target.ts", [NO_APP, DEEP]],
       [`${PROFILE}/test/escape.test.ts`, "../../ui/src/target.ts", [DEEP]],
+      // A connector package's scripts/ (c7-core's spec and route generator) likewise: no app,
+      // no other package's sources, its own package's sources are its own.
+      [`${C7}/scripts/escape-app.ts`, "../../../../../apps/cli/scripts/target.ts", [NO_APP, DEEP]],
+      [`${C7}/scripts/escape.ts`, "../../c7-client/src/target.ts", [DEEP]],
+      [`${C7}/scripts/generate.ts`, "../src/target.ts", []],
     ],
   },
   {

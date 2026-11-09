@@ -11,6 +11,7 @@ import type {
   OpenApiPathItem,
 } from "../../scripts/catalog/openapi.js"
 import { type UnnamedOperation, extractOperations } from "../../scripts/catalog/operations.js"
+import type { CatalogRoutes } from "../../scripts/catalog/routes.js"
 
 export const ref = (kind: string, name: string) => ({ $ref: `#/components/${kind}/${name}` })
 export const json = (schema: Schema) => ({ content: { "application/json": { schema } } })
@@ -52,12 +53,21 @@ export function document(paths: Record<string, OpenApiPathItem>): OpenApiDocumen
   return { info: { title: "t", version: "1" }, paths, components: COMPONENTS }
 }
 
+/** A route table that holds the one operation, as a read of a named engine. */
+function routeOfSingle(operation: OpenApiOperation, path: string, method: string): CatalogRoutes {
+  const { operationId } = operation
+  if (operationId === undefined) return {}
+  const route = { method: method.toUpperCase(), path, effect: "read", engineScoped: true } as const
+  return { [operationId]: route }
+}
+
 export function single(
   operation: OpenApiOperation,
   path = "/thing",
   method = "get",
 ): UnnamedOperation {
-  const [first] = extractOperations(document({ [path]: { [method]: operation } }))
+  const routes = routeOfSingle(operation, path, method)
+  const [first] = extractOperations(document({ [path]: { [method]: operation } }), routes)
   if (first === undefined) throw new Error("no operation extracted")
   return first
 }
@@ -140,9 +150,20 @@ export const SPEC = document({
   "/version": { get: { operationId: "getVersion", tags: ["Version"] } },
 })
 
+/** The routes of SPEC's operations, as c7-core's route table would hold them. */
+export const SPEC_ROUTES: CatalogRoutes = {
+  getSub: { method: "GET", path: "/thing/{a}/sub/{b}", effect: "read", engineScoped: true },
+  deleteSub: { method: "DELETE", path: "/thing/{a}/sub/{b}", effect: "delete", engineScoped: true },
+  createThing: { method: "POST", path: "/thing", effect: "write", engineScoped: true },
+  uploadThing: { method: "PUT", path: "/thing", effect: "write", engineScoped: true },
+  getEngines: { method: "GET", path: "/engine", effect: "read", engineScoped: false },
+  getVersion: { method: "GET", path: "/version", effect: "read", engineScoped: false },
+}
+
 /** Extracts inside the calling test, so a failure fails that test instead of the whole file. */
 export const byId = (id: string) => {
-  const operation = extractOperations(SPEC).find((candidate) => candidate.operationId === id)
+  const operations = extractOperations(SPEC, SPEC_ROUTES)
+  const operation = operations.find((candidate) => candidate.operationId === id)
   if (operation === undefined) throw new Error(`missing ${id}`)
   return operation
 }

@@ -58,8 +58,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
-    "generate": "openapi-ts",
-    "spec:refresh": "sh ./scripts/refresh-spec.sh"
+    "generate": "openapi-ts"
   },
   "devDependencies": {
     "@hey-api/openapi-ts": "0.99.0",

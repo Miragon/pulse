@@ -194,13 +194,13 @@ export type AttachmentDto = {
     url?: string | null;
     /**
      * The time the variable was inserted.
-     * [Default format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/)
+     * [Default format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/)
      * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     createTime?: string | null;
     /**
      * The time after which the attachment should be removed by the History Cleanup job.
-     * [Default format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/)
+     * [Default format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/)
      * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     removalTime?: string | null;
@@ -251,7 +251,7 @@ export type AuthorizationCheckResultDto = {
 export type AuthorizationCreateDto = {
     /**
      * The type of the authorization (0=global, 1=grant, 2=revoke). See the
-     * [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/authorization-service.md#authorization-type)
+     * [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/authorization-service.md#authorization-type)
      * for more information about authorization types.
      */
     type?: number | null;
@@ -270,7 +270,7 @@ export type AuthorizationCreateDto = {
     groupId?: string | null;
     /**
      * An integer representing the resource type. See the
-     * [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/authorization-service/#resources)
+     * [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/authorization-service/#resources)
      * for a list of integer representations of resource types.
      */
     resourceType?: number | null;
@@ -288,7 +288,7 @@ export type AuthorizationDto = {
     id?: string | null;
     /**
      * The type of the authorization (0=global, 1=grant, 2=revoke). See the
-     * [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/authorization-service.md#authorization-type)
+     * [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/authorization-service.md#authorization-type)
      * for more information about authorization types.
      */
     type?: number | null;
@@ -307,7 +307,7 @@ export type AuthorizationDto = {
     groupId?: string | null;
     /**
      * An integer representing the resource type. See the
-     * [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/authorization-service/#resources)
+     * [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/authorization-service/#resources)
      * for a list of integer representations of resource types.
      */
     resourceType?: number | null;
@@ -356,7 +356,7 @@ export type AuthorizationUpdateDto = {
     groupId?: string | null;
     /**
      * An integer representing the resource type. See the
-     * [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/authorization-service/#resources)
+     * [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/authorization-service/#resources)
      * for a list of integer representations of resource types.
      */
     resourceType?: number | null;
@@ -385,7 +385,7 @@ export type BatchDto = {
     id?: string | null;
     /**
      * The type of the batch.
-     * See the [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/batch/#creating-a-batch)
+     * See the [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/batch/#creating-a-batch)
      * for more information about batch types.
      */
     type?: string | null;
@@ -434,13 +434,13 @@ export type BatchDto = {
     createUserId?: string | null;
     /**
      * The time the batch was started. Default format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`. For further information,
-     * please see the [documentation] (https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/)
+     * please see the [documentation] (https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/)
      */
     startTime?: string | null;
     /**
      * The time the batch execution was started, i.e., at least one batch job has been executed. Default
      * format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`. For further information, please see the [documentation]
-     * (https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/)
+     * (https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/)
      */
     executionStartTime?: string | null;
 };
@@ -471,21 +471,6 @@ export type CalledProcessDefinitionDto = {
      */
     callingProcessDefinitionId?: string | null;
 } & ProcessDefinitionDto;
-
-export type CamundaFormRef = {
-    /**
-     * The key of the Camunda Form.
-     */
-    key?: string | null;
-    /**
-     * The binding of the Camunda Form. Can be `latest`, `deployment` or `version`.
-     */
-    binding?: string | null;
-    /**
-     * The specific version of a Camunda Form. This property is only set if `binding` is `version`.
-     */
-    version?: number | null;
-};
 
 export type CaseDefinitionDto = {
     /**
@@ -522,7 +507,7 @@ export type CaseDefinitionDto = {
     tenantId?: string | null;
     /**
      * History time to live value of the case definition.
-     * Is used within [History cleanup](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/history/#history-cleanup).
+     * Is used within [History cleanup](https://docs.operaton.org/manual/1.0/user-guide/process-engine/history/#history-cleanup).
      */
     historyTimeToLive?: number | null;
 };
@@ -932,7 +917,7 @@ export type DecisionDefinitionDto = {
     decisionRequirementsDefinitionKey?: string | null;
     /**
      * History time to live value of the decision definition.
-     * Is used within [History cleanup](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/history/#history-cleanup).
+     * Is used within [History cleanup](https://docs.operaton.org/manual/1.0/user-guide/process-engine/history/#history-cleanup).
      */
     historyTimeToLive?: number | null;
     /**
@@ -1035,7 +1020,7 @@ export type DeleteProcessInstancesDto = {
      */
     skipSubprocesses?: boolean | null;
     /**
-     * Skip execution of [input/output variable mappings](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/variables/#input-output-variable-mapping)
+     * Skip execution of [input/output variable mappings](https://docs.operaton.org/manual/1.0/user-guide/process-engine/variables/#input-output-variable-mapping)
      * for activities that are started or ended as part of this request.
      */
     skipIoMappings?: boolean | null;
@@ -1294,7 +1279,7 @@ export type ExceptionDto = {
     /**
      * The code allows your client application to identify the error in an automated fashion.
      * You can look up the meaning of all built-in codes and learn how to add custom codes
-     * in the [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/error-handling/#exception-codes).
+     * in the [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/error-handling/#exception-codes).
      */
     code?: number;
 };
@@ -1627,13 +1612,13 @@ export type ExternalTaskQueryDto = {
     noRetriesLeft?: boolean | null;
     /**
      * Restrict to external tasks that have a lock that expires after a given date. By
-     * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format
+     * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format
      * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
      */
     lockExpirationAfter?: string | null;
     /**
      * Restrict to external tasks that have a lock that expires before a given date. By
-     * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format
+     * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format
      * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
      */
     lockExpirationBefore?: string | null;
@@ -1825,7 +1810,7 @@ export type FetchExternalTaskTopicDto = {
     deserializeValues?: boolean | null;
     /**
      * Determines whether custom extension properties defined in the BPMN activity of the external task (e.g.
-     * via the Extensions tab in the Camunda modeler) should be included in the response. Default: false
+     * via the Extensions tab in the Operaton modeler) should be included in the response. Default: false
      */
     includeExtensionProperties?: boolean | null;
 };
@@ -1846,7 +1831,7 @@ export type FetchExternalTasksDto = {
      */
     usePriority?: boolean | null;
     /**
-     * The [Long Polling](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/external-tasks/#long-polling-to-fetch-and-lock-external-tasks)
+     * The [Long Polling](https://docs.operaton.org/manual/1.0/user-guide/process-engine/external-tasks/#long-polling-to-fetch-and-lock-external-tasks)
      * timeout in milliseconds.
      *
      * **Note:** The value cannot be set larger than 1.800.000 milliseconds (corresponds to 30 minutes).
@@ -1920,13 +1905,20 @@ export type FormDto = {
      * The form key.
      */
     key?: string | null;
-    camundaFormRef?: CamundaFormRef;
+    /**
+     * Reference to the form of the task (Operaton). Camunda 7 and CIB seven send and accept the same object as `camundaFormRef`.
+     */
+    operatonFormRef?: OperatonFormRef | null;
     /**
      * The context path of the process application. If the task (or the process definition) does not
      * belong to a process application deployment or a process definition at all, this
      * property is not set.
      */
     contextPath?: string | null;
+    /**
+     * Reference to the form of the task (Camunda 7, CIB seven). Operaton sends and accepts the same object as `operatonFormRef`.
+     */
+    camundaFormRef?: OperatonFormRef | null;
 };
 
 export type GroupDto = {
@@ -2056,12 +2048,12 @@ export type HistoricActivityInstanceDto = {
      */
     calledCaseInstanceId?: string | null;
     /**
-     * The time the instance was started. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+     * The time the instance was started. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
      * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
      */
     startTime?: string | null;
     /**
-     * The time the instance ended. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+     * The time the instance ended. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
      * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
      */
     endTime?: string | null;
@@ -2082,7 +2074,7 @@ export type HistoricActivityInstanceDto = {
      */
     tenantId?: string | null;
     /**
-     * The time after which the activity instance should be removed by the History Cleanup job. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+     * The time after which the activity instance should be removed by the History Cleanup job. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
      * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
      */
     removalTime?: string | null;
@@ -2149,22 +2141,22 @@ export type HistoricActivityInstanceQueryDto = {
      */
     completeScope?: boolean | null;
     /**
-     * Restrict to instances that were started before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+     * Restrict to instances that were started before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
      * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
      */
     startedBefore?: string | null;
     /**
-     * Restrict to instances that were started after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+     * Restrict to instances that were started after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
      * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
      */
     startedAfter?: string | null;
     /**
-     * Restrict to instances that were finished before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+     * Restrict to instances that were finished before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
      * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
      */
     finishedBefore?: string | null;
     /**
-     * Restrict to instances that were finished after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+     * Restrict to instances that were finished after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
      * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
      */
     finishedAfter?: string | null;
@@ -2242,7 +2234,7 @@ export type HistoricBatchDto = {
     id?: string | null;
     /**
      * The type of the batch. See the
-     * [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/batch/#creating-a-batch)
+     * [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/batch/#creating-a-batch)
      * for more information about batch types.
      */
     type?: string | null;
@@ -2292,24 +2284,24 @@ export type HistoricBatchDto = {
     createUserId?: string | null;
     /**
      * The time the batch was started. Default format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
-     * For further information, please see the [documentation](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/)
+     * For further information, please see the [documentation](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/)
      */
     startTime?: string | null;
     /**
      * The time the batch execution was started, i.e., at least one batch job has been executed. Default format
      * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`. For further information, please see the [documentation]
-     * (https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/)
+     * (https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/)
      */
     executionStartTime?: string | null;
     /**
      * The time the batch ended. Default format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
-     * For further information, please see the [documentation](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/)
+     * For further information, please see the [documentation](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/)
      */
     endTime?: string | null;
     /**
      * The time after which the historic batch should be removed by the History Cleanup
      * job. Default format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
-     * For further information, please see the [documentation](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/)
+     * For further information, please see the [documentation](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/)
      */
     removalTime?: string | null;
 };
@@ -2324,7 +2316,7 @@ export type HistoricBatchQueryDto = {
     batchId?: string | null;
     /**
      * Filter by batch type. See the
-     * [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/batch/#creating-a-batch)
+     * [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/batch/#creating-a-batch)
      * for more information about batch types.
      */
     type?: string | null;
@@ -2392,12 +2384,12 @@ export type HistoricDecisionInputInstanceDto = {
     type?: string | null;
     /**
      * The time the variable was inserted.
-     * [Default format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
+     * [Default format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     createTime?: string | null;
     /**
      * The time after which the entry should be removed by the History Cleanup job.
-     * [Default format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
+     * [Default format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     removalTime?: string | null;
     /**
@@ -2449,12 +2441,12 @@ export type HistoricDecisionInstanceDto = {
     decisionDefinitionName?: string | null;
     /**
      * The time the instance was evaluated.
-     * [Default format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
+     * [Default format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     evaluationTime?: string | null;
     /**
      * The time after which the instance should be removed by the History Cleanup job.
-     * [Default format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
+     * [Default format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     removalTime?: string | null;
     /**
@@ -2621,13 +2613,13 @@ export type HistoricDecisionInstanceQueryDto = {
     withoutTenantId?: boolean | null;
     /**
      * Restrict to instances that were evaluated before the given date.
-     * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-
+     * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-
      * dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
      */
     evaluatedBefore?: string | null;
     /**
      * Restrict to instances that were evaluated after the given date.
-     * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-
+     * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-
      * dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
      */
     evaluatedAfter?: string | null;
@@ -2725,12 +2717,12 @@ export type HistoricDecisionOutputInstanceDto = {
     type?: string | null;
     /**
      * The time the variable was inserted.
-     * [Default format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
+     * [Default format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     createTime?: string | null;
     /**
      * The time after which the entry should be removed by the History Cleanup job.
-     * [Default format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
+     * [Default format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     removalTime?: string | null;
     /**
@@ -2819,18 +2811,18 @@ export type HistoricDetailDto = {
     tenantId?: string | null;
     /**
      * The id of user operation which links historic detail with
-     * [user operation log](https://docs.cibseven.org/manual/2.1/reference/rest/history/user-operation-log/)
+     * [user operation log](https://docs.operaton.org/manual/1.0/reference/rest/history/user-operation-log/)
      * entries.
      */
     userOperationId?: string | null;
     /**
-     * The time when this historic detail occurred. Default [format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/)
+     * The time when this historic detail occurred. Default [format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/)
      * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     time?: string | null;
     /**
      * The time after which the historic detail should be removed by the History Cleanup job.
-     * Default [format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/)
+     * Default [format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/)
      * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     removalTime?: string | null;
@@ -2963,12 +2955,12 @@ export type HistoricDetailQueryDto = {
     /**
      * Only include historic details where the variable updates belong to one of the passed
      * list of variable types. A list of all supported variable types can be found
-     * [here](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/variables/#supported-variable-values).
+     * [here](https://docs.operaton.org/manual/1.0/user-guide/process-engine/variables/#supported-variable-values).
      * **Note:** All non-primitive variables are associated with the type `serializable`.
      */
     variableTypeIn?: Array<string> | null;
     /**
-     * Filter by variable name like. Example usage: `variableNameLike(%camunda%)`. The query will match the names of variables in a case-insensitive way.
+     * Filter by variable name like. Example usage: `variableNameLike(%operaton%)`. The query will match the names of variables in a case-insensitive way.
      */
     variableNameLike?: string | null;
     /**
@@ -3005,13 +2997,13 @@ export type HistoricDetailQueryDto = {
     initial?: boolean | null;
     /**
      * Restrict to historic details that occured before the given date (including the date).
-     * Default [format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/)
+     * Default [format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/)
      * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., 2013-01-23T14:42:45.000+0200.
      */
     occurredBefore?: string | null;
     /**
      * Restrict to historic details that occured after the given date (including the date).
-     * Default [format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/)
+     * Default [format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/)
      * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., 2013-01-23T14:42:45.000+0200.
      */
     occurredAfter?: string | null;
@@ -3118,7 +3110,7 @@ export type HistoricExternalTaskLogDto = {
     deletionLog?: boolean | null;
     /**
      * The time after which this log should be removed by the History Cleanup job. Default
-     * format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.  For further information, please see the [documentation](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/)
+     * format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.  For further information, please see the [documentation](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/)
      */
     removalTime?: string | null;
     /**
@@ -3240,7 +3232,7 @@ export type HistoricIdentityLinkLogDto = {
     id?: string | null;
     /**
      * The time when the identity link is logged.
-     * [Default format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
+     * [Default format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     time?: string | null;
     /**
@@ -3281,7 +3273,7 @@ export type HistoricIdentityLinkLogDto = {
     tenantId?: string | null;
     /**
      * The time after which the identity link should be removed by the History Cleanup job.
-     * [Default format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
+     * [Default format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     removalTime?: string | null;
     /**
@@ -3319,17 +3311,17 @@ export type HistoricIncidentDto = {
     rootProcessInstanceId?: string | null;
     /**
      * The time this incident happened.
-     * [Default format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
+     * [Default format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     createTime?: string | null;
     /**
      * The time this incident has been deleted or resolved.
-     * [Default format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
+     * [Default format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     endTime?: string | null;
     /**
      * The time after which the incident should be removed by the History Cleanup job.
-     * [Default format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
+     * [Default format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     removalTime?: string | null;
     /**
@@ -3406,7 +3398,7 @@ export type HistoricJobLogDto = {
     /**
      * The time after which the log entry should be removed by the History Cleanup job.
      * Default format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`. For further info see the
-     * [docs](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/)
+     * [docs](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/)
      */
     removalTime?: string | null;
     /**
@@ -3440,7 +3432,7 @@ export type HistoricJobLogDto = {
     jobDefinitionId?: string | null;
     /**
      * The job definition type of the associated job. See the
-     * [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/the-job-executor/#job-creation)
+     * [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/the-job-executor/#job-creation)
      * for more information about job definition types.
      */
     jobDefinitionType?: string | null;
@@ -3537,7 +3529,7 @@ export type HistoricJobLogQueryDto = {
     jobDefinitionId?: string | null;
     /**
      * Filter by job definition type. See the
-     * [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/the-job-executor/#job-creation)
+     * [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/the-job-executor/#job-creation)
      * for more information about job definition types.
      */
     jobDefinitionType?: string | null;
@@ -3675,15 +3667,15 @@ export type HistoricProcessInstanceDto = {
      */
     businessKey?: string | null;
     /**
-     * The time the instance was started. Default [format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
+     * The time the instance was started. Default [format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     startTime?: string | null;
     /**
-     * The time the instance ended. Default [format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
+     * The time the instance ended. Default [format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     endTime?: string | null;
     /**
-     * The time after which the instance should be removed by the History Cleanup job. Default [format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
+     * The time after which the instance should be removed by the History Cleanup job. Default [format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     removalTime?: string | null;
     /**
@@ -3813,7 +3805,7 @@ export type HistoricProcessInstanceQueryDto = {
      */
     incidentIdIn?: Array<string> | null;
     /**
-     * Filter by the incident type. See the [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/incidents/#incident-types) for a list of incident types.
+     * Filter by the incident type. See the [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/incidents/#incident-types) for a list of incident types.
      */
     incidentType?: string | null;
     /**
@@ -3830,42 +3822,42 @@ export type HistoricProcessInstanceQueryDto = {
     incidentMessageLike?: string | null;
     /**
      * Restrict to instances that were started before the given date.
-     * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
+     * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
      */
     startedBefore?: string | null;
     /**
      * Restrict to instances that were started after the given date.
-     * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
+     * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
      */
     startedAfter?: string | null;
     /**
      * Restrict to instances that were finished before the given date.
-     * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
+     * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
      */
     finishedBefore?: string | null;
     /**
      * Restrict to instances that were finished after the given date.
-     * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
+     * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
      */
     finishedAfter?: string | null;
     /**
      * Restrict to instances that executed an activity after the given date (inclusive).
-     * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
+     * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
      */
     executedActivityAfter?: string | null;
     /**
      * Restrict to instances that executed an activity before the given date (inclusive).
-     * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
+     * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
      */
     executedActivityBefore?: string | null;
     /**
      * Restrict to instances that executed an job after the given date (inclusive).
-     * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
+     * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
      */
     executedJobAfter?: string | null;
     /**
      * Restrict to instances that executed an job before the given date (inclusive).
-     * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
+     * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
      */
     executedJobBefore?: string | null;
     /**
@@ -3961,7 +3953,7 @@ export type HistoricProcessInstanceQueryDto = {
      *
      * All process instance query properties can be used except for: `sorting`
      *
-     * See the [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/process-engine-api/#or-queries) for more information about OR queries.
+     * See the [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/process-engine-api/#or-queries) for more information about OR queries.
      */
     orQueries?: Array<HistoricProcessInstanceQueryDto> | null;
     /**
@@ -4043,12 +4035,12 @@ export type HistoricTaskInstanceDto = {
      */
     assignee?: string | null;
     /**
-     * The time the task was started. Default [format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/)
+     * The time the task was started. Default [format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/)
      * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     startTime?: string | null;
     /**
-     * The time the task ended. Default [format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/)
+     * The time the task ended. Default [format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/)
      * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     endTime?: string | null;
@@ -4065,7 +4057,7 @@ export type HistoricTaskInstanceDto = {
      */
     priority?: number | null;
     /**
-     * The task's due date. Default [format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/)
+     * The task's due date. Default [format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/)
      * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     due?: string | null;
@@ -4074,7 +4066,7 @@ export type HistoricTaskInstanceDto = {
      */
     parentTaskId?: string | null;
     /**
-     * The follow-up date for the task. Default [format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/)
+     * The follow-up date for the task. Default [format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/)
      * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     followUp?: string | null;
@@ -4083,7 +4075,7 @@ export type HistoricTaskInstanceDto = {
      */
     tenantId?: string | null;
     /**
-     * The time after which the task should be removed by the History Cleanup job. Default [format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/)
+     * The time after which the task should be removed by the History Cleanup job. Default [format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/)
      * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     removalTime?: string | null;
@@ -4251,19 +4243,19 @@ export type HistoricTaskInstanceQueryDto = {
      */
     processUnfinished?: boolean | null;
     /**
-     * Restrict to tasks that are due on the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+     * Restrict to tasks that are due on the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
      * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
      * e.g., `2013-01-23T14:42:45.000+0200`.
      */
     taskDueDate?: string | null;
     /**
-     * Restrict to tasks that are due before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+     * Restrict to tasks that are due before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
      * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
      * e.g., `2013-01-23T14:42:45.000+0200`.
      */
     taskDueDateBefore?: string | null;
     /**
-     * Restrict to tasks that are due after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+     * Restrict to tasks that are due after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
      * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
      * e.g., `2013-01-23T14:42:45.000+0200`.
      */
@@ -4274,43 +4266,43 @@ export type HistoricTaskInstanceQueryDto = {
      */
     withoutTaskDueDate?: boolean | null;
     /**
-     * Restrict to tasks that have a followUp date on the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+     * Restrict to tasks that have a followUp date on the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
      * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
      * e.g., `2013-01-23T14:42:45.000+0200`.
      */
     taskFollowUpDate?: string | null;
     /**
-     * Restrict to tasks that have a followUp date before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+     * Restrict to tasks that have a followUp date before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
      * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
      * e.g., `2013-01-23T14:42:45.000+0200`.
      */
     taskFollowUpDateBefore?: string | null;
     /**
-     * Restrict to tasks that have a followUp date after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+     * Restrict to tasks that have a followUp date after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
      * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
      * e.g., `2013-01-23T14:42:45.000+0200`.
      */
     taskFollowUpDateAfter?: string | null;
     /**
-     * Restrict to tasks that were started before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+     * Restrict to tasks that were started before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
      * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
      * e.g., `2013-01-23T14:42:45.000+0200`.
      */
     startedBefore?: string | null;
     /**
-     * Restrict to tasks that were started after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+     * Restrict to tasks that were started after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
      * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
      * e.g., `2013-01-23T14:42:45.000+0200`.
      */
     startedAfter?: string | null;
     /**
-     * Restrict to tasks that were finished before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+     * Restrict to tasks that were finished before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
      * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
      * e.g., `2013-01-23T14:42:45.000+0200`.
      */
     finishedBefore?: string | null;
     /**
-     * Restrict to tasks that were finished after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+     * Restrict to tasks that were finished after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
      * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
      * e.g., `2013-01-23T14:42:45.000+0200`.
      */
@@ -4419,7 +4411,7 @@ export type HistoricTaskInstanceQueryDto = {
      *
      * All task instance query properties can be used except for: `sorting`, `withCandidateGroups`, ` withoutCandidateGroups`.
      *
-     * See the [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/process-engine-api/#or-queries) for more information about OR queries.
+     * See the [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/process-engine-api/#or-queries) for more information about OR queries.
      */
     orQueries?: Array<HistoricTaskInstanceQueryDto> | null;
     /**
@@ -4586,12 +4578,12 @@ export type HistoricVariableInstanceDto = {
      */
     state?: string | null;
     /**
-     * The time the variable was inserted. [Default format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
+     * The time the variable was inserted. [Default format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     createTime?: string | null;
     /**
      * The time after which the variable should be removed by the History Cleanup job.
-     * [Default format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
+     * [Default format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/) `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     removalTime?: string | null;
     /**
@@ -4633,7 +4625,7 @@ export type HistoricVariableInstanceQueryDto = {
     /**
      * Only include historic variable instances which belong to one of the passed and comma-
      * separated variable types. A list of all supported variable types can be found
-     * [here](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/variables/#supported-variable-values).
+     * [here](https://docs.operaton.org/manual/1.0/user-guide/process-engine/variables/#supported-variable-values).
      * **Note:** All non-primitive variables are associated with the type
      * 'serializable'.
      */
@@ -4718,13 +4710,13 @@ export type HistoricVariableInstanceQueryDto = {
 
 export type HistoryCleanupConfigurationDto = {
     /**
-     * Start time of the current or next batch window. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+     * Start time of the current or next batch window. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
      * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
      * e.g., `2013-01-23T14:42:45.000+0200`.
      */
     batchWindowStartTime?: string | null;
     /**
-     * End time of the current or next batch window. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+     * End time of the current or next batch window. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
      * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
      * e.g., `2013-01-23T14:42:45.000+0200`.
      */
@@ -4732,10 +4724,10 @@ export type HistoryCleanupConfigurationDto = {
     /**
      * Indicates whether the engine node participates in history cleanup or
      * not. The default is `true`. Participation can be disabled via
-     * [Process Engine Configuration](https://docs.cibseven.org/manual/2.1/reference/deployment-descriptors/tags/process-engine/#history-cleanup-enabled).
+     * [Process Engine Configuration](https://docs.operaton.org/manual/1.0/reference/deployment-descriptors/tags/process-engine/#history-cleanup-enabled).
      *
      * For more details, see
-     * [Cleanup Execution Participation per Node](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/history/#cleanup-execution-participation-per-node).
+     * [Cleanup Execution Participation per Node](https://docs.operaton.org/manual/1.0/user-guide/process-engine/history/#cleanup-execution-participation-per-node).
      */
     enabled?: boolean | null;
 };
@@ -4830,14 +4822,14 @@ export type IncidentDto = {
      */
     executionId?: string | null;
     /**
-     * The time this incident happened. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+     * The time this incident happened. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
      * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
      */
     incidentTimestamp?: string | null;
     /**
      * The type of incident, for example: `failedJobs` will be returned in case of an incident which identified
      * a failed job during the execution of a process instance. See the
-     * [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/incidents/#incident-types) for a list of incident types.
+     * [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/incidents/#incident-types) for a list of incident types.
      */
     incidentType?: string | null;
     /**
@@ -4881,7 +4873,7 @@ export type IncidentDto = {
 export type IncidentStatisticsResultDto = {
     /**
      * The type of the incident the number of incidents is aggregated for.
-     * See the [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/incidents/#incident-types) for a list of incident types.
+     * See the [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/incidents/#incident-types) for a list of incident types.
      */
     incidentType?: string | null;
     /**
@@ -4920,7 +4912,7 @@ export type JobDefinitionDto = {
     activityId?: string | null;
     /**
      * The type of the job which is running for this job definition. See the
-     * [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/the-job-executor/#job-creation)
+     * [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/the-job-executor/#job-creation)
      * for more information about job types.
      */
     jobType?: string | null;
@@ -4989,7 +4981,7 @@ export type JobDefinitionQueryDto = {
     processDefinitionKey?: string | null;
     /**
      * Only include job definitions which exist for the given job type. See the
-     * [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/the-job-executor/#job-creation)
+     * [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/the-job-executor/#job-creation)
      * for more information about job types.
      */
     jobType?: string | null;
@@ -5060,7 +5052,7 @@ export type JobDefinitionSuspensionStateDto = {
     /**
      * The date on which the referenced job definitions will be activated or suspended. If null,
      * the suspension state of the given job definitions is updated
-     * immediately. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-
+     * immediately. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-
      * dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
      */
     executionDate?: string | null;
@@ -5480,11 +5472,11 @@ export type LockedExternalTaskDto = {
 /**
  * The `processInstance` property only has a value if the resultType is set to `ProcessDefinition`.
  * The processInstance with the properties as described in the
- * [get single instance](https://docs.cibseven.org/manual/2.1/reference/rest/process-instance/get/) method.
+ * [get single instance](https://docs.operaton.org/manual/1.0/reference/rest/process-instance/get/) method.
  *
  * The `execution` property only has a value if the resultType is set to `Execution`.
  * The execution with the properties as described in the
- * [get single execution](https://docs.cibseven.org/manual/2.1/reference/rest/execution/get/) method.
+ * [get single execution](https://docs.operaton.org/manual/1.0/reference/rest/execution/get/) method.
  */
 export type MessageCorrelationResultWithVariableDto = {
     /**
@@ -5667,7 +5659,7 @@ export type ModificationDto = {
      */
     skipCustomListeners?: boolean | null;
     /**
-     * Skip execution of [input/output variable mappings](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/variables/#input-output-variable-mapping) for
+     * Skip execution of [input/output variable mappings](https://docs.operaton.org/manual/1.0/user-guide/process-engine/variables/#input-output-variable-mapping) for
      * activities that are started or ended as part of this request.
      */
     skipIoMappings?: boolean | null;
@@ -5739,7 +5731,7 @@ export type MultiFormDeploymentDto = {
     /**
      * Sets the date on which the process definitions contained in this deployment will be activated. This means that all process
      * definitions will be deployed as usual, but they will be suspended from the start until the given activation date.
-     * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+     * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
      * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
      */
     'deployment-activation-time'?: string | null;
@@ -5785,6 +5777,21 @@ export type MultipleProcessInstanceModificationInstructionDto = {
      * Can be used with instructions of type cancel. Prevents the deletion of new created activity instances.
      */
     cancelCurrentActiveActivityInstances?: boolean | null;
+};
+
+export type OperatonFormRef = {
+    /**
+     * The key of the Operaton Form.
+     */
+    key?: string | null;
+    /**
+     * The binding of the Operaton Form. Can be `latest`, `deployment` or `version`.
+     */
+    binding?: string | null;
+    /**
+     * The specific version of a Operaton Form. This property is only set if `binding` is `version`.
+     */
+    version?: number | null;
 };
 
 export type ParseExceptionDto = {
@@ -5933,7 +5940,7 @@ export type ProcessDefinitionDto = {
     versionTag?: string | null;
     /**
      * History time to live value of the process definition.
-     * Is used within [History cleanup](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/history/#history-cleanup).
+     * Is used within [History cleanup](https://docs.operaton.org/manual/1.0/user-guide/process-engine/history/#history-cleanup).
      */
     historyTimeToLive?: number | null;
     /**
@@ -5996,7 +6003,7 @@ export type ProcessDefinitionSuspensionStateDto = {
     /**
      * The date on which all process definitions with the given key will be activated or suspended.
      * If `null`, the suspension state of all process definitions with the given key is updated immediately.
-     * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+     * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
      * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
      */
     executionDate?: string | null;
@@ -6052,7 +6059,7 @@ export type ProcessInstanceModificationDto = {
      */
     skipCustomListeners?: boolean | null;
     /**
-     * Skip execution of [input/output variable mappings](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/variables/#input-output-variable-mapping)
+     * Skip execution of [input/output variable mappings](https://docs.operaton.org/manual/1.0/user-guide/process-engine/variables/#input-output-variable-mapping)
      * for activities that are started or ended as part of this request.
      */
     skipIoMappings?: boolean | null;
@@ -6076,7 +6083,12 @@ export type ProcessInstanceModificationInstructionDto = {
      * * A startTransition instruction requests to execute a specific sequence flow.
      */
     type: 'cancel' | 'startBeforeActivity' | 'startAfterActivity' | 'startTransition';
-    variables?: TriggerVariableValueDto;
+    /**
+     * A map of variables that are set in the scope of the instruction. Keys are variable names, values are typed variable values with an optional `local` flag.
+     */
+    variables?: {
+        [key: string]: TriggerVariableValueDto;
+    } | null;
     /**
      * Can be used with instructions of types `startTransition`. Specifies the sequence flow to start.
      */
@@ -6087,12 +6099,12 @@ export type ProcessInstanceModificationInstructionDto = {
     transitionId?: string | null;
     /**
      * Can be used with instructions of type `cancel`. Specifies the activity instance to cancel.
-     * Valid values are the activity instance IDs supplied by the [Get Activity Instance request](https://docs.cibseven.org/manual/2.1/reference/rest/process-instance/get-activity-instances/).
+     * Valid values are the activity instance IDs supplied by the [Get Activity Instance request](https://docs.operaton.org/manual/1.0/reference/rest/process-instance/get-activity-instances/).
      */
     activityInstanceId?: string | null;
     /**
      * Can be used with instructions of type `cancel`. Specifies the transition instance to cancel.
-     * Valid values are the transition instance IDs supplied by the [Get Activity Instance request](https://docs.cibseven.org/manual/2.1/reference/rest/process-instance/get-activity-instances/).
+     * Valid values are the transition instance IDs supplied by the [Get Activity Instance request](https://docs.operaton.org/manual/1.0/reference/rest/process-instance/get-activity-instances/).
      */
     transitionInstanceId?: string | null;
     /**
@@ -6254,7 +6266,7 @@ export type ProcessInstanceQueryDto = {
      * A process instance matches a nested query if it fulfills at least one of the query's predicates.
      * With multiple nested queries, a process instance must fulfill at least one predicate of each query (Conjunctive Normal Form).
      * All process instance query properties can be used except for: `sorting`
-     * See the [User guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/process-engine-api/#or-queries) for more information about OR queries.
+     * See the [User guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/process-engine-api/#or-queries) for more information about OR queries.
      */
     orQueries?: Array<ProcessInstanceQueryDto> | null;
     /**
@@ -6377,7 +6389,7 @@ export type RestartProcessInstanceDto = {
     skipCustomListeners?: boolean | null;
     /**
      * Skip execution of
-     * [input/output variable mappings](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/variables/#input-output-variable-mapping)
+     * [input/output variable mappings](https://docs.operaton.org/manual/1.0/user-guide/process-engine/variables/#input-output-variable-mapping)
      * for activities that are started as part of this request.
      */
     skipIoMappings?: boolean | null;
@@ -6654,7 +6666,7 @@ export type StartProcessInstanceDto = {
     skipCustomListeners?: boolean | null;
     /**
      * Skip execution of
-     * [input/output variable mappings](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/variables/#input-output-variable-mapping)
+     * [input/output variable mappings](https://docs.operaton.org/manual/1.0/user-guide/process-engine/variables/#input-output-variable-mapping)
      * for activities that are started or ended as part of this request.
      * **Note**: This option is currently only respected when start instructions are submitted
      * via the `startInstructions` property.
@@ -6736,25 +6748,25 @@ export type TaskDto = {
     owner?: string | null;
     /**
      * The date the task was created on.
-     * [Default format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/)
+     * [Default format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/)
      * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     created?: string | null;
     /**
-     * The date the task was last updated. Every action that fires a [task update event](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/delegation-code/#task-listener-event-lifecycle) will update this property.
-     * [Default format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/)
+     * The date the task was last updated. Every action that fires a [task update event](https://docs.operaton.org/manual/1.0/user-guide/process-engine/delegation-code/#task-listener-event-lifecycle) will update this property.
+     * [Default format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/)
      * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     lastUpdated?: string | null;
     /**
      * The task's due date.
-     * [Default format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/)
+     * [Default format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/)
      * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     due?: string | null;
     /**
      * The follow-up date for the task.
-     * [Default format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/)
+     * [Default format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/)
      * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     followUp?: string | null;
@@ -6810,7 +6822,10 @@ export type TaskDto = {
      * If not `null`, the form key for the task.
      */
     formKey?: string | null;
-    camundaFormRef?: CamundaFormRef;
+    /**
+     * Reference to the form of the task (Operaton). Camunda 7 and CIB seven send and accept the same object as `camundaFormRef`.
+     */
+    operatonFormRef?: OperatonFormRef | null;
     /**
      * If not `null`, the tenant id of the task.
      */
@@ -6819,6 +6834,10 @@ export type TaskDto = {
      * The task's state.
      */
     taskState?: string | null;
+    /**
+     * Reference to the form of the task (Camunda 7, CIB seven). Operaton sends and accepts the same object as `operatonFormRef`.
+     */
+    camundaFormRef?: OperatonFormRef | null;
 };
 
 export type TaskEscalationDto = {
@@ -6862,7 +6881,7 @@ export type TaskQueryDto = {
     /**
      * Restrict to tasks that belong to process instances with the given business key which
      * is described by an expression. See the
-     * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+     * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
      * for more information on available functions.
      */
     processInstanceBusinessKeyExpression?: string | null;
@@ -6879,7 +6898,7 @@ export type TaskQueryDto = {
     /**
      * Restrict to tasks that have a process instance business key that has the parameter
      * value as a substring and is described by an expression. See the
-     * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+     * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
      * for more information on available functions.
      */
     processInstanceBusinessKeyLikeExpression?: string | null;
@@ -6964,7 +6983,7 @@ export type TaskQueryDto = {
     assignee?: string | null;
     /**
      * Restrict to tasks that the user described by the given expression is assigned to. See the
-     * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+     * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
      * for more information on available functions.
      */
     assigneeExpression?: string | null;
@@ -6976,7 +6995,7 @@ export type TaskQueryDto = {
     /**
      * Restrict to tasks that have an assignee that has the parameter value described by the
      * given expression as a substring. See the
-     * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+     * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
      * for more information on available functions.
      */
     assigneeLikeExpression?: string | null;
@@ -6994,7 +7013,7 @@ export type TaskQueryDto = {
     owner?: string | null;
     /**
      * Restrict to tasks that the user described by the given expression owns. See the
-     * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+     * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
      * for more information on available functions.
      */
     ownerExpression?: string | null;
@@ -7009,7 +7028,7 @@ export type TaskQueryDto = {
     /**
      * Only include tasks that are offered to the group described by the given expression.
      * See the
-     * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+     * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
      * for more information on available functions.
      */
     candidateGroupExpression?: string | null;
@@ -7020,7 +7039,7 @@ export type TaskQueryDto = {
     /**
      * Only include tasks that are offered to the user described by the given expression.
      * See the
-     * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+     * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
      * for more information on available functions.
      */
     candidateUserExpression?: string | null;
@@ -7039,7 +7058,7 @@ export type TaskQueryDto = {
      * Only include tasks that the user described by the given expression is involved in.
      * A user is involved in a task if an identity link exists between task and user
      * (e.g., the user is the assignee). See the
-     * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+     * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
      * for more information on available functions.
      */
     involvedUserExpression?: string | null;
@@ -7107,41 +7126,41 @@ export type TaskQueryDto = {
     minPriority?: number | null;
     /**
      * Restrict to tasks that are due on the given date. By
-     * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format
+     * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format
      * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.546+0200`.
      */
     dueDate?: string | null;
     /**
      * Restrict to tasks that are due on the date described by the given expression. See the
-     * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+     * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
      * for more information on available functions. The expression must evaluate to a
      * `java.util.Date` or `org.joda.time.DateTime` object.
      */
     dueDateExpression?: string | null;
     /**
      * Restrict to tasks that are due after the given date. By
-     * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have
+     * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have
      * the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.435+0200`.
      */
     dueAfter?: string | null;
     /**
      * Restrict to tasks that are due after the date described by the given expression.
      * See the
-     * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+     * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
      * for more information on available functions. The expression must evaluate to a
      * `java.util.Date` or `org.joda.time.DateTime` object.
      */
     dueAfterExpression?: string | null;
     /**
      * Restrict to tasks that are due before the given date. By
-     * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have
+     * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have
      * the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.243+0200`.
      */
     dueBefore?: string | null;
     /**
      * Restrict to tasks that are due before the date described by the given expression.
      * See the
-     * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+     * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
      * for more information on available functions. The expression must evaluate to a
      * `java.util.Date` or `org.joda.time.DateTime` object.
      */
@@ -7153,49 +7172,49 @@ export type TaskQueryDto = {
     withoutDueDate?: boolean | null;
     /**
      * Restrict to tasks that have a followUp date on the given date. By
-     * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date
+     * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date
      * must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.342+0200`.
      */
     followUpDate?: string | null;
     /**
      * Restrict to tasks that have a followUp date on the date described by the given
      * expression. See the
-     * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+     * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
      * for more information on available functions. The expression must evaluate to a
      * `java.util.Date` or `org.joda.time.DateTime` object.
      */
     followUpDateExpression?: string | null;
     /**
      * Restrict to tasks that have a followUp date after the given date. By
-     * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have
+     * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have
      * the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.542+0200`.
      */
     followUpAfter?: string | null;
     /**
      * Restrict to tasks that have a followUp date after the date described by the given
      * expression. See the
-     * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+     * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
      * for more information on available functions. The expression must evaluate to a
      * `java.util.Date` or `org.joda.time.DateTime` object.
      */
     followUpAfterExpression?: string | null;
     /**
      * Restrict to tasks that have a followUp date before the given date. By
-     * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have
+     * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have
      * the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.234+0200`.
      */
     followUpBefore?: string | null;
     /**
      * Restrict to tasks that have a followUp date before the date described by the given
      * expression. See the
-     * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+     * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
      * for more information on available functions. The expression must evaluate to a
      * `java.util.Date` or `org.joda.time.DateTime` object.
      */
     followUpBeforeExpression?: string | null;
     /**
      * Restrict to tasks that have no followUp date or a followUp date before the given date.
-     * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have
+     * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have
      * the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.432+0200`. The typical use case
      * is to query all `active` tasks for a user for a given date.
      */
@@ -7203,65 +7222,65 @@ export type TaskQueryDto = {
     /**
      * Restrict to tasks that have no followUp date or a followUp date before the date
      * described by the given expression. See the
-     * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+     * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
      * for more information on available functions. The expression must evaluate to a
      * `java.util.Date` or `org.joda.time.DateTime` object.
      */
     followUpBeforeOrNotExistentExpression?: string | null;
     /**
      * Restrict to tasks that were created on the given date. By
-     * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have
+     * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have
      * the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.324+0200`.
      */
     createdOn?: string | null;
     /**
      * Restrict to tasks that were created on the date described by the given expression.
      * See the
-     * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+     * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
      * for more information on available functions. The expression must evaluate to a
      * `java.util.Date` or `org.joda.time.DateTime` object.
      */
     createdOnExpression?: string | null;
     /**
      * Restrict to tasks that were created after the given date. By
-     * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must
+     * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must
      * have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.342+0200`.
      */
     createdAfter?: string | null;
     /**
      * Restrict to tasks that were created after the date described by the given expression.
      * See the
-     * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+     * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
      * for more information on available functions. The expression must evaluate to a
      * `java.util.Date` or `org.joda.time.DateTime` object.
      */
     createdAfterExpression?: string | null;
     /**
      * Restrict to tasks that were created before the given date. By
-     * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must
+     * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must
      * have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.332+0200`.
      */
     createdBefore?: string | null;
     /**
      * Restrict to tasks that were created before the date described by the given expression.
      * See the
-     * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+     * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
      * for more information on available functions. The expression must evaluate to a
      * `java.util.Date` or `org.joda.time.DateTime` object.
      */
     createdBeforeExpression?: string | null;
     /**
      * Restrict to tasks that were updated after the given date. Every action that fires
-     * a [task update event](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/delegation-code/#task-listener-event-lifecycle) is considered as updating the task.
-     * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must
+     * a [task update event](https://docs.operaton.org/manual/1.0/user-guide/process-engine/delegation-code/#task-listener-event-lifecycle) is considered as updating the task.
+     * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must
      * have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.332+0200`.
      */
     updatedAfter?: string | null;
     /**
      * Restrict to tasks that were updated after the date described by the given expression. Every action that fires
-     * a [task update event](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/delegation-code/#task-listener-event-lifecycle) is considered as updating the task.
+     * a [task update event](https://docs.operaton.org/manual/1.0/user-guide/process-engine/delegation-code/#task-listener-event-lifecycle) is considered as updating the task.
      * See the
-     * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+     * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
      * for more information on available functions. The expression must evaluate to a
      * `java.util.Date` or `org.joda.time.DateTime` object.
      */
@@ -7280,7 +7299,7 @@ export type TaskQueryDto = {
     /**
      * Restrict to tasks that are offered to any of the candidate groups described by the
      * given expression. See the
-     * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+     * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
      * for more information on available functions. The expression must evaluate to
      * `java.util.List` of Strings.
      */
@@ -7390,7 +7409,7 @@ export type TaskQueryDto = {
      * All task query properties can be used except for: `sorting`, `withCandidateGroups`,
      * `withoutCandidateGroups`, `withCandidateUsers`, `withoutCandidateUsers`
      *
-     * See the [User guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/process-engine-api/#or-queries)
+     * See the [User guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/process-engine-api/#or-queries)
      * for more information about OR queries.
      */
     orQueries?: Array<TaskQueryDto> | null;
@@ -7448,9 +7467,9 @@ export type TelemetryCountDto = {
 
 export type TelemetryDataDto = {
     /**
-     * An id which is unique for each installation of Camunda. It is stored once per database so all
+     * An id which is unique for each installation of Operaton. It is stored once per database so all
      * engines connected to the same database will have the same installation ID.
-     * The ID is used to identify a single installation of Camunda Platform.
+     * The ID is used to identify a single installation of Operaton.
      */
     installation?: string | null;
     product?: TelemetryProductDto;
@@ -7459,11 +7478,10 @@ export type TelemetryDataDto = {
 export type TelemetryInternalsDto = {
     database?: AbstractVendorVersionInformationDto;
     'application-server'?: AbstractVendorVersionInformationDto;
-    'license-key'?: TelemetryLicenseKeyDto;
     /**
-     * List of Camunda integrations used (e.g., Camunda Spring Boot Starter, Camunda Run, WildFly/JBoss subsystem, Camunda EJB).
+     * List of Operaton integrations used (e.g., Operaton Spring Boot Starter, Operaton Run, WildFly/JBoss subsystem, Operaton EJB).
      */
-    'camunda-integration'?: Array<string> | null;
+    'operaton-integration'?: Array<string> | null;
     /**
      * The count of executed commands after the last retrieved data.
      */
@@ -7477,13 +7495,13 @@ export type TelemetryInternalsDto = {
         [key: string]: TelemetryCountDto;
     } | null;
     /**
-     * The webapps enabled in this installation of Camunda.
+     * The webapps enabled in this installation of Operaton.
      */
     webapps?: Array<string> | null;
     jdk?: AbstractVendorVersionInformationDto;
     /**
-     * The date when the engine started to collect dynamic data, such as command executions and metrics. If telemetry sending is enabled, dynamic data resets on sending the data to Camunda.
-     * Dynamic data and the date returned by this method are reset in three cases: engine startup, after engine start when sending telemetry data to Camunda is enabled via API, after sending telemetry data to Camunda (only when this was enabled)
+     * The date when the engine started to collect dynamic data, such as command executions and metrics. If telemetry sending is enabled, dynamic data resets on sending the data to Operaton.
+     * Dynamic data and the date returned by this method are reset in three cases: engine startup, after engine start when sending telemetry data to Operaton is enabled via API, after sending telemetry data to Operaton (only when this was enabled)
      * The date is in the format <code>YYYY-MM-DD'T'HH:mm:ss.SSSZ</code>.
      */
     'data-collection-start-date'?: string;
@@ -7520,7 +7538,7 @@ export type TelemetryLicenseKeyDto = {
 
 export type TelemetryProductDto = {
     /**
-     * The name of the product (i.e., Camunda BPM Runtime).
+     * The name of the product (i.e., Operaton BPM Runtime).
      */
     name?: string | null;
     /**
@@ -7737,7 +7755,7 @@ export type UserOperationLogEntryDto = {
     jobDefinitionId?: string | null;
     /**
      * The time after which the entry should be removed by the History Cleanup job.
-     * [Default format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/)
+     * [Default format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/)
      * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`.
      */
     removalTime?: string | null;
@@ -7942,7 +7960,7 @@ export type VariableValueDto = {
      * The following property can be provided for all value types:
      *
      * * `transient`: Indicates whether the variable should be transient or
-     * not. See [documentation](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/variables#transient-variables) for more informations.
+     * not. See [documentation](https://docs.operaton.org/manual/1.0/user-guide/process-engine/variables#transient-variables) for more informations.
      * (Not applicable for `decision-definition`, ` /process-instance/variables-async`, and `/migration/executeAsync` endpoints)
      */
     valueInfo?: {
@@ -7967,7 +7985,7 @@ export type QueryAuthorizationsData = {
         id?: string;
         /**
          * Filter by authorization type. (0=global, 1=grant, 2=revoke).
-         * See the [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/authorization-service/#authorization-type)
+         * See the [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/authorization-service/#authorization-type)
          * for more information about authorization types.
          */
         type?: number;
@@ -7981,7 +7999,7 @@ export type QueryAuthorizationsData = {
         groupIdIn?: string;
         /**
          * Filter by an integer representation of the resource type. See the
-         * [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/authorization-service/#resources)
+         * [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/authorization-service/#resources)
          * for a list of integer representations of resource types.
          */
         resourceType?: number;
@@ -8016,7 +8034,7 @@ export type QueryAuthorizationsErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy` is specified. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -8063,7 +8081,7 @@ export type IsUserAuthorizedData = {
         resourceName: string;
         /**
          * An integer representing the resource type to check permissions for.
-         * See the [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/authorization-service/#resources)
+         * See the [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/authorization-service/#resources)
          * for a list of integer representations of resource types.
          */
         resourceType: number;
@@ -8086,26 +8104,26 @@ export type IsUserAuthorizedErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a permission
      * parameterName is not valid for the provided resourceType. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * The user is not authenticated. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     401: ExceptionDto;
     /**
      * When a `userId` is passed and the user does not possess a READ permission for the
      * Authorization resource. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     403: ExceptionDto;
     /**
      * Authorization with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -8132,7 +8150,7 @@ export type GetAuthorizationCountData = {
         id?: string;
         /**
          * Filter by authorization type. (0=global, 1=grant, 2=revoke).
-         * See the [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/authorization-service/#authorization-type)
+         * See the [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/authorization-service/#authorization-type)
          * for more information about authorization types.
          */
         type?: number;
@@ -8146,7 +8164,7 @@ export type GetAuthorizationCountData = {
         groupIdIn?: string;
         /**
          * Filter by an integer representation of the resource type. See the
-         * [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/authorization-service/#resources)
+         * [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/authorization-service/#resources)
          * for a list of integer representations of resource types.
          */
         resourceType?: number;
@@ -8162,7 +8180,7 @@ export type GetAuthorizationCountErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy` is specified. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -8190,18 +8208,18 @@ export type CreateAuthorizationErrors = {
     /**
      * Returned if some of the properties in the request body are invalid, for example if
      * a permission parameter is not valid for the provided resourceType.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * The authenticated user is unauthorized to create an instance of this resource. See
-     * the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     403: ExceptionDto;
     /**
      * The authorization could not be updated due to an internal server error. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -8233,13 +8251,13 @@ export type DeleteAuthorizationData = {
 export type DeleteAuthorizationErrors = {
     /**
      * If the authenticated user is unauthorized to delete the resource instance. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     403: ExceptionDto;
     /**
      * Authorization cannot be found. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -8271,7 +8289,7 @@ export type GetAuthorizationData = {
 export type GetAuthorizationErrors = {
     /**
      * Authorization with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -8325,13 +8343,13 @@ export type UpdateAuthorizationErrors = {
     /**
      * Returned if some of the properties in the request body are invalid, for example if
      * a permission parameter is not valid for the provided resourceType.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * The authenticated user is unauthorized to update this resource. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     403: ExceptionDto;
@@ -8341,7 +8359,7 @@ export type UpdateAuthorizationErrors = {
     404: ExceptionDto;
     /**
      * The authorization could not be updated due to an internal server error. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -8387,7 +8405,7 @@ export type GetBatchesData = {
         batchId?: string;
         /**
          * Filter by batch type.
-         * See the [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/batch/#creating-a-batch)
+         * See the [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/batch/#creating-a-batch)
          * for more information about batch types.
          */
         type?: string;
@@ -8411,12 +8429,12 @@ export type GetBatchesData = {
          */
         createdBy?: string;
         /**
-         * Only include batches that were started before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Only include batches that were started before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         startedBefore?: string;
         /**
-         * Only include batches that were started after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Only include batches that were started after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         startedAfter?: string;
@@ -8438,7 +8456,7 @@ export type GetBatchesErrors = {
     /**
      * Returned if some of the query parameters are invalid,
      * for example if a `sortOrder` parameter is supplied, but no `sortBy`.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
 };
@@ -8464,7 +8482,7 @@ export type GetBatchesCountData = {
         batchId?: string;
         /**
          * Filter by batch type.
-         * See the [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/batch/#creating-a-batch)
+         * See the [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/batch/#creating-a-batch)
          * for more information about batch types.
          */
         type?: string;
@@ -8488,12 +8506,12 @@ export type GetBatchesCountData = {
          */
         createdBy?: string;
         /**
-         * Only include batches that were started before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Only include batches that were started before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         startedBefore?: string;
         /**
-         * Only include batches that were started after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Only include batches that were started after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         startedAfter?: string;
@@ -8514,7 +8532,7 @@ export type GetBatchesCountData = {
 export type GetBatchesCountErrors = {
     /**
      * Returned if some of the query parameters are invalid.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
 };
@@ -8559,7 +8577,7 @@ export type GetBatchStatisticsData = {
         batchId?: string;
         /**
          * Filter by batch type.
-         * See the [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/batch/#creating-a-batch)
+         * See the [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/batch/#creating-a-batch)
          * for more information about batch types.
          */
         type?: string;
@@ -8583,12 +8601,12 @@ export type GetBatchStatisticsData = {
          */
         createdBy?: string;
         /**
-         * Only include batches that were started before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Only include batches that were started before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         startedBefore?: string;
         /**
-         * Only include batches that were started after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Only include batches that were started after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         startedAfter?: string;
@@ -8610,7 +8628,7 @@ export type GetBatchStatisticsErrors = {
     /**
      * Returned if some of the query parameters are invalid,
      * for example if a `sortOrder` parameter is supplied, but no `sortBy`.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
 };
@@ -8636,7 +8654,7 @@ export type GetBatchStatisticsCountData = {
         batchId?: string;
         /**
          * Filter by batch type.
-         * See the [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/batch/#creating-a-batch)
+         * See the [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/batch/#creating-a-batch)
          * for more information about batch types.
          */
         type?: string;
@@ -8660,12 +8678,12 @@ export type GetBatchStatisticsCountData = {
          */
         createdBy?: string;
         /**
-         * Only include batches that were started before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Only include batches that were started before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         startedBefore?: string;
         /**
-         * Only include batches that were started after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Only include batches that were started after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         startedAfter?: string;
@@ -8686,7 +8704,7 @@ export type GetBatchStatisticsCountData = {
 export type GetBatchStatisticsCountErrors = {
     /**
      * Returned if some of the query parameters are invalid.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
 };
@@ -8722,7 +8740,7 @@ export type DeleteBatchData = {
 export type DeleteBatchErrors = {
     /**
      * Batch with given id does not exist.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
 };
@@ -8753,7 +8771,7 @@ export type GetBatchData = {
 export type GetBatchErrors = {
     /**
      * Batch with given id does not exist.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     404: ExceptionDto;
 };
@@ -8784,7 +8802,7 @@ export type UpdateBatchSuspensionStateData = {
 export type UpdateBatchSuspensionStateErrors = {
     /**
      * Returned if the batch cannot be suspended or activated.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
 };
@@ -8959,7 +8977,7 @@ export type GetDecisionDefinitionsErrors = {
     /**
      * Returned if some of the query parameters are invalid,
      * for example if a `sortOrder` parameter is supplied, but no `sortBy`.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
 };
@@ -9085,7 +9103,7 @@ export type GetDecisionDefinitionsCountData = {
 export type GetDecisionDefinitionsCountErrors = {
     /**
      * Returned if some of the query parameters are invalid.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
 };
@@ -9116,7 +9134,7 @@ export type GetDecisionDefinitionByKeyData = {
 export type GetDecisionDefinitionByKeyErrors = {
     /**
      * Decision definition with given key does not exist.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     404: ExceptionDto;
 };
@@ -9147,7 +9165,7 @@ export type GetDecisionDefinitionDiagramByKeyData = {
 export type GetDecisionDefinitionDiagramByKeyErrors = {
     /**
      * Decision definition with given key does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -9183,7 +9201,7 @@ export type EvaluateDecisionByKeyData = {
 export type EvaluateDecisionByKeyErrors = {
     /**
      * Decision definition with given key does not exist.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     404: ExceptionDto;
 };
@@ -9214,13 +9232,13 @@ export type UpdateHistoryTimeToLiveByDecisionDefinitionKeyData = {
 export type UpdateHistoryTimeToLiveByDecisionDefinitionKeyErrors = {
     /**
      * Returned if some of the request parameters are invalid. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Decision definition with given key does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -9256,7 +9274,7 @@ export type GetDecisionDefinitionByKeyAndTenantIdData = {
 export type GetDecisionDefinitionByKeyAndTenantIdErrors = {
     /**
      * Decision definition with given key does not exist.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     404: ExceptionDto;
 };
@@ -9291,7 +9309,7 @@ export type GetDecisionDefinitionDiagramByKeyAndTenantData = {
 export type GetDecisionDefinitionDiagramByKeyAndTenantErrors = {
     /**
      * Decision definition with given key does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -9331,7 +9349,7 @@ export type EvaluateDecisionByKeyAndTenantData = {
 export type EvaluateDecisionByKeyAndTenantErrors = {
     /**
      * Decision definition with given key does not exist.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     404: ExceptionDto;
 };
@@ -9366,13 +9384,13 @@ export type UpdateHistoryTimeToLiveByDecisionDefinitionKeyAndTenantData = {
 export type UpdateHistoryTimeToLiveByDecisionDefinitionKeyAndTenantErrors = {
     /**
      * Returned if some of the request parameters are invalid. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Decision definition with given key does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -9408,7 +9426,7 @@ export type GetDecisionDefinitionDmnXmlByKeyAndTenantData = {
 export type GetDecisionDefinitionDmnXmlByKeyAndTenantErrors = {
     /**
      * Decision definition with given key does not exist.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     404: ExceptionDto;
 };
@@ -9439,7 +9457,7 @@ export type GetDecisionDefinitionDmnXmlByKeyData = {
 export type GetDecisionDefinitionDmnXmlByKeyErrors = {
     /**
      * Decision definition with given key does not exist.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     404: ExceptionDto;
 };
@@ -9470,7 +9488,7 @@ export type GetDecisionDefinitionByIdData = {
 export type GetDecisionDefinitionByIdErrors = {
     /**
      * Decision definition with given id does not exist.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     404: ExceptionDto;
 };
@@ -9501,7 +9519,7 @@ export type GetDecisionDefinitionDiagramData = {
 export type GetDecisionDefinitionDiagramErrors = {
     /**
      * Decision definition with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -9537,7 +9555,7 @@ export type EvaluateDecisionByIdData = {
 export type EvaluateDecisionByIdErrors = {
     /**
      * Decision definition with given id does not exist.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     404: ExceptionDto;
 };
@@ -9568,13 +9586,13 @@ export type UpdateHistoryTimeToLiveByDecisionDefinitionIdData = {
 export type UpdateHistoryTimeToLiveByDecisionDefinitionIdErrors = {
     /**
      * Returned if some of the request parameters are invalid. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Decision definition with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -9606,7 +9624,7 @@ export type GetDecisionDefinitionDmnXmlByIdData = {
 export type GetDecisionDefinitionDmnXmlByIdErrors = {
     /**
      * Decision definition with given id does not exist.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     404: ExceptionDto;
 };
@@ -9725,7 +9743,7 @@ export type GetDecisionRequirementsDefinitionsErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if
      * a `sortOrder` parameter is supplied, but no `sortBy`. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -9826,7 +9844,7 @@ export type GetDecisionRequirementsDefinitionsCountErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if
      * a `sortOrder` parameter is supplied, but no `sortBy`. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -9859,7 +9877,7 @@ export type GetDecisionRequirementsDefinitionByKeyErrors = {
     /**
      * Decision requirements definition with given id or key does not
      * exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -9893,7 +9911,7 @@ export type GetDecisionRequirementsDefinitionDiagramByKeyErrors = {
     /**
      * Decision requirements definition with given id or key does not
      * exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -9935,7 +9953,7 @@ export type GetDecisionRequirementsDefinitionByKeyAndTenantIdErrors = {
     /**
      * Decision requirements definition with given id or key does not
      * exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -9973,7 +9991,7 @@ export type GetDecisionRequirementsDefinitionDiagramByKeyAndTenantIdErrors = {
     /**
      * Decision requirements definition with given id or key does not
      * exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -10018,7 +10036,7 @@ export type GetDecisionRequirementsDefinitionDmnXmlByKeyAndTenantIdErrors = {
      * Decision requirements definition with given id or key does not
      * exist.
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -10055,7 +10073,7 @@ export type GetDecisionRequirementsDefinitionDmnXmlByKeyErrors = {
      * Decision requirements definition with given id or key does not
      * exist.
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -10089,7 +10107,7 @@ export type GetDecisionRequirementsDefinitionByIdErrors = {
     /**
      * Decision requirements definition with given id or key does not
      * exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -10122,7 +10140,7 @@ export type GetDecisionRequirementsDefinitionDiagramByIdErrors = {
     /**
      * Decision requirements definition with given id or key does not
      * exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -10160,7 +10178,7 @@ export type GetDecisionRequirementsDefinitionDmnXmlByIdErrors = {
     /**
      * Decision requirements definition with given id or key does not
      * exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -10219,13 +10237,13 @@ export type GetDeploymentsData = {
         includeDeploymentsWithoutTenantId?: boolean;
         /**
          * Restricts to all deployments after the given date.
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format
          * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         after?: string;
         /**
          * Restricts to all deployments before the given date.
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format
          * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         before?: string;
@@ -10256,7 +10274,7 @@ export type GetDeploymentsErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder` parameter is supplied,
      * but no `sortBy`, or if an invalid operator for variable comparison is used. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -10315,13 +10333,13 @@ export type GetDeploymentsCountData = {
         includeDeploymentsWithoutTenantId?: boolean;
         /**
          * Restricts to all deployments after the given date.
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format
          * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         after?: string;
         /**
          * Restricts to all deployments before the given date.
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format
          * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         before?: string;
@@ -10332,7 +10350,7 @@ export type GetDeploymentsCountData = {
 export type GetDeploymentsCountErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example, if an invalid operator for variable
-     * comparison is used. See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * comparison is used. See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -10360,7 +10378,7 @@ export type CreateDeploymentErrors = {
     /**
      * Bad Request. In case one of the bpmn resources cannot be parsed.
      *
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#parse-exceptions) for
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#parse-exceptions) for
      * the error response format.
      */
     400: ParseExceptionDto;
@@ -10422,7 +10440,7 @@ export type DeleteDeploymentData = {
 export type DeleteDeploymentErrors = {
     /**
      * A Deployment with the provided id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -10454,7 +10472,7 @@ export type GetDeploymentData = {
 export type GetDeploymentErrors = {
     /**
      * Deployment with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -10486,7 +10504,7 @@ export type RedeployData = {
 export type RedeployErrors = {
     /**
      * Deployment or a deployment resource for the given deployment does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -10518,7 +10536,7 @@ export type GetDeploymentResourcesData = {
 export type GetDeploymentResourcesErrors = {
     /**
      * Deployment resources for the given deployment do not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -10554,7 +10572,7 @@ export type GetDeploymentResourceData = {
 export type GetDeploymentResourceErrors = {
     /**
      * Deployment Resource with given resource id or deployment id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -10590,7 +10608,7 @@ export type GetDeploymentResourceDataData = {
 export type GetDeploymentResourceDataErrors = {
     /**
      * Deployment Resource with given resource id or deployment id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -10696,7 +10714,7 @@ export type GetEventSubscriptionsErrors = {
      * Bad Request
      * Returned if some of the query parameters are invalid,
      * for example if a `sortOrder` parameter is supplied, but no `sortBy`.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -10765,7 +10783,7 @@ export type GetEventSubscriptionsCountData = {
 export type GetEventSubscriptionsCountErrors = {
     /**
      * Returned if some of the query parameters are invalid.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -10918,7 +10936,7 @@ export type GetExecutionsErrors = {
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy`, or if an invalid operator
      * for variable comparison is used. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -10957,7 +10975,7 @@ export type QueryExecutionsErrors = {
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy`, or if an invalid operator
      * for variable comparison is used. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -11090,7 +11108,7 @@ export type GetExecutionsCountErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if an invalid operator
      * for variable comparison is used. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -11118,7 +11136,7 @@ export type QueryExecutionsCountErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if an invalid operator
      * for variable comparison is used. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -11150,7 +11168,7 @@ export type GetExecutionData = {
 export type GetExecutionErrors = {
     /**
      * Execution with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -11235,7 +11253,7 @@ export type GetLocalExecutionVariablesData = {
 export type GetLocalExecutionVariablesErrors = {
     /**
      * Execution with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -11270,7 +11288,7 @@ export type ModifyLocalExecutionVariablesErrors = {
     /**
      * The variable value or type is invalid, for example if the value could not be parsed
      * to an Integer value or the passed variable type is not supported.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
     /**
@@ -11356,7 +11374,7 @@ export type GetLocalExecutionVariableData = {
 export type GetLocalExecutionVariableErrors = {
     /**
      * Variable with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -11393,7 +11411,7 @@ export type PutLocalExecutionVariableErrors = {
     /**
      * The variable value or type is invalid, for example if the value could not be parsed
      * to an Integer value or the passed variable type is not supported.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
 };
@@ -11428,13 +11446,13 @@ export type GetLocalExecutionVariableBinaryData = {
 export type GetLocalExecutionVariableBinaryErrors = {
     /**
      * Variable instance with given id exists but is not a binary variable. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Variable instance with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -11470,7 +11488,7 @@ export type SetLocalExecutionVariableBinaryData = {
 export type SetLocalExecutionVariableBinaryErrors = {
     /**
      * The variable value or type is invalid, for example if no filename is set. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -11509,7 +11527,7 @@ export type GetMessageEventSubscriptionErrors = {
      * This may either mean that the execution does not exist, or that
      * it is not subscribed on such a message.
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -11546,13 +11564,13 @@ export type TriggerEventErrors = {
     /**
      * The variable value or type is invalid, for example if the value could not be parsed
      * to an Integer value or the passed variable type is not supported.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
     /**
      * The addressed execution has no pending message subscriptions for the given message.
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -11585,7 +11603,7 @@ export type SignalExecutionErrors = {
     /**
      * The variable value or type is invalid, for example if the value could not be parsed
      * to an Integer value or the passed variable type is not supported.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
 };
@@ -11643,13 +11661,13 @@ export type GetExternalTasksData = {
         noRetriesLeft?: boolean;
         /**
          * Restrict to external tasks that have a lock that expires after a given date. By
-         * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format
+         * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format
          * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         lockExpirationAfter?: string;
         /**
          * Restrict to external tasks that have a lock that expires before a given date. By
-         * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format
+         * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format
          * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         lockExpirationBefore?: string;
@@ -11776,7 +11794,7 @@ export type GetExternalTasksData = {
 export type GetExternalTasksErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder` parameter is supplied,
-     * but no `sortBy`. See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * but no `sortBy`. See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -11813,7 +11831,7 @@ export type QueryExternalTasksData = {
 export type QueryExternalTasksErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder` parameter is supplied,
-     * but no `sortBy`. See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * but no `sortBy`. See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -11872,13 +11890,13 @@ export type GetExternalTasksCountData = {
         noRetriesLeft?: boolean;
         /**
          * Restrict to external tasks that have a lock that expires after a given date. By
-         * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format
+         * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format
          * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         lockExpirationAfter?: string;
         /**
          * Restrict to external tasks that have a lock that expires before a given date. By
-         * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format
+         * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format
          * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         lockExpirationBefore?: string;
@@ -11986,7 +12004,7 @@ export type GetExternalTasksCountData = {
 export type GetExternalTasksCountErrors = {
     /**
      * Returned if some of the query parameters are invalid. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -12013,7 +12031,7 @@ export type QueryExternalTasksCountData = {
 export type QueryExternalTasksCountErrors = {
     /**
      * Returned if some of the query parameters are invalid. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -12040,7 +12058,7 @@ export type FetchAndLockData = {
 export type FetchAndLockErrors = {
     /**
      * Bad Request. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -12067,14 +12085,14 @@ export type SetExternalTaskRetriesData = {
 export type SetExternalTaskRetriesErrors = {
     /**
      * In case the number of retries is negative or null, an exception of type `InvalidRequestException` is
-     * returned. See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * returned. See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Returned if the task does not exist. This could indicate a wrong task id as well as a cancelled task,
      * e.g., due to a caught BPMN boundary event. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -12102,14 +12120,14 @@ export type SetExternalTaskRetriesAsyncOperationErrors = {
     /**
      * If neither externalTaskIds nor externalTaskQuery are present or externalTaskIds contains null value or
      * the number of retries is negative or null, an exception of type `InvalidRequestException` is returned.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Returned if the task does not exist. This could indicate a wrong task id as well as a cancelled task,
      * e.g., due to a caught BPMN boundary event. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -12180,7 +12198,7 @@ export type GetExternalTaskData = {
 export type GetExternalTaskErrors = {
     /**
      * External task with the given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -12213,7 +12231,7 @@ export type HandleExternalTaskBpmnErrorErrors = {
     /**
      * Returned if the task's most recent lock was not acquired by the provided worker.
      *
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -12221,14 +12239,14 @@ export type HandleExternalTaskBpmnErrorErrors = {
      * Returned if the task does not exist. This could indicate a wrong task id as well as a cancelled task,
      * e.g., due to a caught BPMN boundary event.
      *
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
     /**
      * Returned if the corresponding process instance could not be resumed successfully.
      *
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -12260,20 +12278,20 @@ export type CompleteExternalTaskResourceData = {
 export type CompleteExternalTaskResourceErrors = {
     /**
      * Returned if the task's most recent lock was not acquired by the provided worker. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Returned if the task does not exist. This could indicate a wrong task id as well as a cancelled task,
      * e.g., due to a caught BPMN boundary event. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
     /**
      * Returned if the corresponding process instance could not be resumed successfully. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -12305,7 +12323,7 @@ export type GetExternalTaskErrorDetailsData = {
 export type GetExternalTaskErrorDetailsErrors = {
     /**
      * An external task with the given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -12342,14 +12360,14 @@ export type ExtendLockErrors = {
     /**
      * In case the new lock duration is negative or the external task is not locked by the given worker or not
      * locked at all, an exception of type `InvalidRequestException` is returned. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Returned if the task does not exist. This could indicate a wrong task id as well as a cancelled task,
      * e.g., due to a caught BPMN boundary event. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -12381,20 +12399,20 @@ export type HandleFailureData = {
 export type HandleFailureErrors = {
     /**
      * Returned if the task's most recent lock was not acquired by the provided worker. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Returned if the task does not exist. This could indicate a wrong task id as well as a cancelled task,
      * e.g., due to a caught BPMN boundary event. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
     /**
      * Returned if the corresponding process instance could not be resumed successfully. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -12427,14 +12445,14 @@ export type LockErrors = {
     /**
      * In case the lock duration is negative or the external task is already locked by
      * a different worker, an exception of type `InvalidRequestException` is returned. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Returned if the task does not exist. This could indicate a wrong task id as well as a cancelled task,
      * e.g., due to a caught BPMN boundary event. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -12467,7 +12485,7 @@ export type SetExternalTaskResourcePriorityErrors = {
     /**
      * Returned if the task does not exist. This could indicate a wrong task id as well as a cancelled task,
      * e.g., due to a caught BPMN boundary event. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -12500,13 +12518,13 @@ export type SetExternalTaskResourceRetriesErrors = {
     /**
      * Returned if the task does not exist. This could indicate a wrong task id as well as a cancelled task,
      * e.g., due to a caught BPMN boundary event. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * In case the number of retries is negative or null, an exception of type `InvalidRequestException`
-     * is returned. See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * is returned. See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -12539,7 +12557,7 @@ export type UnlockErrors = {
     /**
      * Returned if the task does not exist. This could indicate a wrong task id as well as a cancelled task,
      * e.g., due to a caught BPMN boundary event. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -12614,7 +12632,7 @@ export type GetFilterListErrors = {
      * Returned if some of the query parameters are invalid, for example if
      * a `sortOrder`
      * parameter is supplied, but no `sortBy` is specified. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -12682,7 +12700,7 @@ export type GetFilterCountErrors = {
      * Returned if some of the query parameters are invalid, for example if
      * a `sortOrder`parameter is supplied, but no `sortBy`, or if an invalid operator
      * for variable comparison is used. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -12711,7 +12729,7 @@ export type CreateFilterErrors = {
     /**
      *
      * Filter was invalid. See
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -12719,7 +12737,7 @@ export type CreateFilterErrors = {
     /**
      *
      * The authenticated user is unauthorized to create a new filter. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -12754,7 +12772,7 @@ export type DeleteFilterErrors = {
      *
      * The authenticated user is unauthorized to delete this filter.
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -12762,7 +12780,7 @@ export type DeleteFilterErrors = {
     /**
      *
      * Filter cannot be found. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -12802,13 +12820,13 @@ export type GetSingleFilterErrors = {
     /**
      * The authenticated user is unauthorized to read this filter.
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     403: ExceptionDto;
     /**
      * Filter with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -12862,7 +12880,7 @@ export type UpdateFilterErrors = {
     /**
      *
      * Filter was invalid. See
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -12871,7 +12889,7 @@ export type UpdateFilterErrors = {
      *
      * The authenticated user is unauthorized to update this filter.
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -12879,7 +12897,7 @@ export type UpdateFilterErrors = {
     /**
      *
      * Filter cannot be found. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -12913,7 +12931,7 @@ export type ExecuteFilterCountErrors = {
     /**
      *
      * The authenticated user is unauthorized to read this filter. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -12921,7 +12939,7 @@ export type ExecuteFilterCountErrors = {
     /**
      *
      * Filter with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -12960,7 +12978,7 @@ export type PostExecuteFilterCountErrors = {
     /**
      *
      * The extending query was invalid. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -12968,7 +12986,7 @@ export type PostExecuteFilterCountErrors = {
     /**
      *
      * The authenticated user is unauthorized to read this filter. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -12976,7 +12994,7 @@ export type PostExecuteFilterCountErrors = {
     /**
      *
      * Filter with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -13021,7 +13039,7 @@ export type ExecuteFilterListErrors = {
      *
      * The authenticated user is unauthorized to read this filter.
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -13029,7 +13047,7 @@ export type ExecuteFilterListErrors = {
     /**
      *
      * Filter with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -13080,7 +13098,7 @@ export type PostExecuteFilterListErrors = {
     /**
      *
      * The extending query was invalid. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -13089,7 +13107,7 @@ export type PostExecuteFilterListErrors = {
      *
      * The authenticated user is unauthorized to read this filter.
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -13097,7 +13115,7 @@ export type PostExecuteFilterListErrors = {
     /**
      *
      * Filter with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -13133,7 +13151,7 @@ export type ExecuteFilterSingleResultErrors = {
     /**
      *
      * The executed filter returned more than one single result. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -13142,7 +13160,7 @@ export type ExecuteFilterSingleResultErrors = {
      *
      * The authenticated user is unauthorized to read this filter.
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -13150,7 +13168,7 @@ export type ExecuteFilterSingleResultErrors = {
     /**
      *
      * Filter with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -13196,7 +13214,7 @@ export type PostExecuteFilterSingleResultErrors = {
      *
      * The executed filter returned more than one single result or the
      * extending query was invalid. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -13204,7 +13222,7 @@ export type PostExecuteFilterSingleResultErrors = {
     /**
      *
      * The authenticated user is unauthorized to read this filter. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -13212,7 +13230,7 @@ export type PostExecuteFilterSingleResultErrors = {
     /**
      *
      * Filter with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -13294,7 +13312,7 @@ export type GetQueryGroupsData = {
 export type GetQueryGroupsErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder` parameter is supplied,
-     * but no `sortBy` is specified. See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * but no `sortBy` is specified. See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -13347,7 +13365,7 @@ export type PostQueryGroupsData = {
 export type PostQueryGroupsErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder` parameter is supplied,
-     * but no `sortBy` is specified. See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * but no `sortBy` is specified. See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -13403,7 +13421,7 @@ export type GetGroupCountData = {
 export type GetGroupCountErrors = {
     /**
      * Returned if some of the query parameters are invalid. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response
      * format.
      */
     400: ExceptionDto;
@@ -13430,7 +13448,7 @@ export type QueryGroupCountData = {
 export type QueryGroupCountErrors = {
     /**
      * Returned if some of the query parameters are invalid. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response
      * format.
      */
     400: ExceptionDto;
@@ -13461,7 +13479,7 @@ export type CreateGroupErrors = {
     403: ExceptionDto;
     /**
      * The group could not be created due to an internal server error. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the
      * error response format.
      */
     500: ExceptionDto;
@@ -13496,7 +13514,7 @@ export type DeleteGroupErrors = {
      */
     403: ExceptionDto;
     /**
-     * Group cannot be found. See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for
+     * Group cannot be found. See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for
      * the error response format.
      */
     404: ExceptionDto;
@@ -13528,7 +13546,7 @@ export type GetGroupData = {
 export type GetGroupErrors = {
     /**
      * Group with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -13589,7 +13607,7 @@ export type UpdateGroupErrors = {
     404: ExceptionDto;
     /**
      * The group could not be updated due to an internal server error.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error
      * response format.
      */
     500: ExceptionDto;
@@ -13650,7 +13668,7 @@ export type DeleteGroupMemberErrors = {
     403: ExceptionDto;
     /**
      * In case an error occurs. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -13690,7 +13708,7 @@ export type CreateGroupMemberErrors = {
     403: ExceptionDto;
     /**
      * In case an internal error occurs. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -13783,22 +13801,22 @@ export type GetHistoricActivityInstancesData = {
          */
         completeScope?: boolean;
         /**
-         * Restrict to instances that were started before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to instances that were started before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         startedBefore?: string;
         /**
-         * Restrict to instances that were started after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to instances that were started after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         startedAfter?: string;
         /**
-         * Restrict to instances that were finished before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to instances that were finished before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         finishedBefore?: string;
         /**
-         * Restrict to instances that were finished after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to instances that were finished after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         finishedAfter?: string;
@@ -13818,7 +13836,7 @@ export type GetHistoricActivityInstancesErrors = {
     /**
      * Bad Request
      * Returned if some of the query parameters are invalid, for example if a sortOrder parameter is supplied, but no sortBy.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
 };
@@ -13855,7 +13873,7 @@ export type QueryHistoricActivityInstancesErrors = {
     /**
      * Bad Request
      * Returned if some of the query parameters are invalid, for example if a sortOrder parameter is supplied, but no sortBy.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
 };
@@ -13928,22 +13946,22 @@ export type GetHistoricActivityInstancesCountData = {
          */
         completeScope?: boolean;
         /**
-         * Restrict to instances that were started before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to instances that were started before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         startedBefore?: string;
         /**
-         * Restrict to instances that were started after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to instances that were started after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         startedAfter?: string;
         /**
-         * Restrict to instances that were finished before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to instances that were finished before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         finishedBefore?: string;
         /**
-         * Restrict to instances that were finished after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to instances that were finished after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         finishedAfter?: string;
@@ -13963,7 +13981,7 @@ export type GetHistoricActivityInstancesCountErrors = {
     /**
      * Bad Request
      * Returned if some of the query parameters are invalid.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
 };
@@ -13990,7 +14008,7 @@ export type QueryHistoricActivityInstancesCountErrors = {
     /**
      * Bad Request
      * Returned if some of the query parameters are invalid.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
 };
@@ -14022,7 +14040,7 @@ export type GetHistoricActivityInstanceErrors = {
     /**
      * Not Found
      * Historic activity instance with given id does not exist.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     404: ExceptionDto;
 };
@@ -14048,7 +14066,7 @@ export type GetHistoricBatchesData = {
         batchId?: string;
         /**
          * Filter by batch type. See the
-         * [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/batch/#creating-a-batch)
+         * [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/batch/#creating-a-batch)
          * for more information about batch types.
          */
         type?: string;
@@ -14098,7 +14116,7 @@ export type GetHistoricBatchesErrors = {
      * Returned if some of the query parameters are invalid, for example if
      * a `sortOrder` parameter is supplied, but no `sortBy`.
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -14146,7 +14164,7 @@ export type GetCleanableHistoricBatchesReportData = {
 export type GetCleanableHistoricBatchesReportErrors = {
     /**
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -14173,7 +14191,7 @@ export type GetCleanableHistoricBatchesReportCountData = {
 export type GetCleanableHistoricBatchesReportCountErrors = {
     /**
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -14200,7 +14218,7 @@ export type GetHistoricBatchesCountData = {
         batchId?: string;
         /**
          * Filter by batch type. See the
-         * [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/batch/#creating-a-batch)
+         * [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/batch/#creating-a-batch)
          * for more information about batch types.
          */
         type?: string;
@@ -14231,7 +14249,7 @@ export type GetHistoricBatchesCountErrors = {
      * Returned if some of the query parameters are invalid, for example if
      * a `sortOrder` parameter is supplied, but no `sortBy`.
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -14265,7 +14283,7 @@ export type SetRemovalTimeAsyncHistoricBatchErrors = {
      * specified.
      *
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -14298,7 +14316,7 @@ export type DeleteHistoricBatchData = {
 export type DeleteHistoricBatchErrors = {
     /**
      * Historic batch with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -14332,7 +14350,7 @@ export type GetHistoricBatchErrors = {
      *
      * Historic batch with given id does not exist.
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -14367,7 +14385,7 @@ export type CleanupAsyncErrors = {
     /**
      * Returned if some of the query parameters are invalid or the engine
      * does not participate in history cleanup. See
-     * [Cleanup Execution Participation per Node](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/history/#cleanup-execution-participation-per-node).
+     * [Cleanup Execution Participation per Node](https://docs.operaton.org/manual/1.0/user-guide/process-engine/history/#cleanup-execution-participation-per-node).
      */
     400: ExceptionDto;
 };
@@ -14501,7 +14519,7 @@ export type GetCleanableHistoricDecisionInstanceReportData = {
 
 export type GetCleanableHistoricDecisionInstanceReportErrors = {
     /**
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the
      * error response format.
      */
     500: ExceptionDto;
@@ -14551,7 +14569,7 @@ export type GetCleanableHistoricDecisionInstanceReportCountData = {
 
 export type GetCleanableHistoricDecisionInstanceReportCountErrors = {
     /**
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the
      * error response format.
      */
     500: ExceptionDto;
@@ -14653,13 +14671,13 @@ export type GetHistoricDecisionInstancesData = {
         withoutTenantId?: boolean;
         /**
          * Restrict to instances that were evaluated before the given date.
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-
          * dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         evaluatedBefore?: string;
         /**
          * Restrict to instances that were evaluated after the given date.
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-
          * dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         evaluatedAfter?: string;
@@ -14732,7 +14750,7 @@ export type GetHistoricDecisionInstancesErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy`. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -14834,13 +14852,13 @@ export type GetHistoricDecisionInstancesCountData = {
         withoutTenantId?: boolean;
         /**
          * Restrict to instances that were evaluated before the given date.
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-
          * dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         evaluatedBefore?: string;
         /**
          * Restrict to instances that were evaluated after the given date.
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-
          * dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         evaluatedAfter?: string;
@@ -14873,7 +14891,7 @@ export type GetHistoricDecisionInstancesCountData = {
 export type GetHistoricDecisionInstancesCountErrors = {
     /**
      * Returned if some of the query parameters are invalid. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -14901,7 +14919,7 @@ export type DeleteAsyncErrors = {
     /**
      * Returned if some of the query parameters are invalid, i.e. neither
      * `historicDecisionInstanceIds` nor `historicDecisionInstanceQuery` is
-     * present. See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * present. See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -14933,7 +14951,7 @@ export type SetRemovalTimeAsyncHistoricDecisionInstanceErrors = {
      * present or if no mode is specified.
      *
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -14986,7 +15004,7 @@ export type GetHistoricDecisionInstanceData = {
 export type GetHistoricDecisionInstanceErrors = {
     /**
      * Historic decision instance with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -15024,7 +15042,7 @@ export type GetDecisionStatisticsData = {
 export type GetDecisionStatisticsErrors = {
     /**
      * Returned if some of the query parameters are invalid. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -15080,12 +15098,12 @@ export type GetHistoricDetailsData = {
         /**
          * Only include historic details where the variable updates belong to one of the passed comma-separated
          * list of variable types. A list of all supported variable types can be found
-         * [here](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/variables/#supported-variable-values).
+         * [here](https://docs.operaton.org/manual/1.0/user-guide/process-engine/variables/#supported-variable-values).
          * **Note:** All non-primitive variables are associated with the type `serializable`.
          */
         variableTypeIn?: string;
         /**
-         * Filter by variable name like. Example usage: `variableNameLike(%camunda%)`. The query will match the names of variables in a case-insensitive way.
+         * Filter by variable name like. Example usage: `variableNameLike(%operaton%)`. The query will match the names of variables in a case-insensitive way.
          */
         variableNameLike?: string;
         /**
@@ -15122,13 +15140,13 @@ export type GetHistoricDetailsData = {
         initial?: boolean;
         /**
          * Restrict to historic details that occured before the given date (including the date).
-         * Default [format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/)
+         * Default [format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/)
          * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., 2013-01-23T14:42:45.000+0200.
          */
         occurredBefore?: string;
         /**
          * Restrict to historic details that occured after the given date (including the date).
-         * Default [format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/)
+         * Default [format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/)
          * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., 2013-01-23T14:42:45.000+0200.
          */
         occurredAfter?: string;
@@ -15180,7 +15198,7 @@ export type GetHistoricDetailsErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy`. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -15239,7 +15257,7 @@ export type QueryHistoricDetailsErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy`. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -15295,12 +15313,12 @@ export type GetHistoricDetailsCountData = {
         /**
          * Only include historic details where the variable updates belong to one of the passed comma-separated
          * list of variable types. A list of all supported variable types can be found
-         * [here](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/variables/#supported-variable-values).
+         * [here](https://docs.operaton.org/manual/1.0/user-guide/process-engine/variables/#supported-variable-values).
          * **Note:** All non-primitive variables are associated with the type `serializable`.
          */
         variableTypeIn?: string;
         /**
-         * Filter by variable name like. Example usage: `variableNameLike(%camunda%)`. The query will match the names of variables in a case-insensitive way.
+         * Filter by variable name like. Example usage: `variableNameLike(%operaton%)`. The query will match the names of variables in a case-insensitive way.
          */
         variableNameLike?: string;
         /**
@@ -15337,13 +15355,13 @@ export type GetHistoricDetailsCountData = {
         initial?: boolean;
         /**
          * Restrict to historic details that occured before the given date (including the date).
-         * Default [format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/)
+         * Default [format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/)
          * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., 2013-01-23T14:42:45.000+0200.
          */
         occurredBefore?: string;
         /**
          * Restrict to historic details that occured after the given date (including the date).
-         * Default [format](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/)
+         * Default [format](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/)
          * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., 2013-01-23T14:42:45.000+0200.
          */
         occurredAfter?: string;
@@ -15406,7 +15424,7 @@ export type HistoricDetailData = {
 export type HistoricDetailErrors = {
     /**
      * Variable with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -15438,13 +15456,13 @@ export type HistoricDetailBinaryData = {
 export type HistoricDetailBinaryErrors = {
     /**
      * Detail with given id exists but is not a binary variable. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Detail with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -15573,7 +15591,7 @@ export type GetHistoricExternalTaskLogsErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy`. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -15601,7 +15619,7 @@ export type QueryHistoricExternalTaskLogsErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy`. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -15735,7 +15753,7 @@ export type QueryHistoricExternalTaskLogsCountData = {
 export type QueryHistoricExternalTaskLogsCountErrors = {
     /**
      * Returned if some of the query parameters are invalid. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -15767,7 +15785,7 @@ export type GetHistoricExternalTaskLogData = {
 export type GetHistoricExternalTaskLogErrors = {
     /**
      * Historic external task log with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -15799,7 +15817,7 @@ export type GetErrorDetailsHistoricExternalTaskLogData = {
 export type GetErrorDetailsHistoricExternalTaskLogErrors = {
     /**
      * Historic external task log with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -15896,7 +15914,7 @@ export type GetHistoricIdentityLinksErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy`. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -15974,7 +15992,7 @@ export type GetHistoricIdentityLinksCountErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy`. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -16038,22 +16056,22 @@ export type GetHistoricIncidentsData = {
          */
         executionId?: string;
         /**
-         * Restricts to incidents that have a createTime date before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format
+         * Restricts to incidents that have a createTime date before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format
          * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         createTimeBefore?: string;
         /**
-         * Restricts to incidents that have a createTime date after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format
+         * Restricts to incidents that have a createTime date after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format
          * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         createTimeAfter?: string;
         /**
-         * Restricts to incidents that have an endTimeBefore date before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format
+         * Restricts to incidents that have an endTimeBefore date before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format
          * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         endTimeBefore?: string;
         /**
-         * Restricts to incidents that have an endTimeAfter date after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format
+         * Restricts to incidents that have an endTimeAfter date after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format
          * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         endTimeAfter?: string;
@@ -16134,7 +16152,7 @@ export type GetHistoricIncidentsErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy`. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -16198,22 +16216,22 @@ export type GetHistoricIncidentsCountData = {
          */
         executionId?: string;
         /**
-         * Restricts to incidents that have a createTime date before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format
+         * Restricts to incidents that have a createTime date before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format
          * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         createTimeBefore?: string;
         /**
-         * Restricts to incidents that have a createTime date after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format
+         * Restricts to incidents that have a createTime date after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format
          * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         createTimeAfter?: string;
         /**
-         * Restricts to incidents that have an endTimeBefore date before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format
+         * Restricts to incidents that have an endTimeBefore date before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format
          * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         endTimeBefore?: string;
         /**
-         * Restricts to incidents that have an endTimeAfter date after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format
+         * Restricts to incidents that have an endTimeAfter date after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format
          * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         endTimeAfter?: string;
@@ -16275,7 +16293,7 @@ export type GetHistoricIncidentsCountErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy`. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -16314,7 +16332,7 @@ export type GetHistoricJobLogsData = {
         jobDefinitionId?: string;
         /**
          * Filter by job definition type. See the
-         * [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/the-job-executor/#job-creation)
+         * [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/the-job-executor/#job-creation)
          * for more information about job definition types.
          */
         jobDefinitionType?: string;
@@ -16417,7 +16435,7 @@ export type GetHistoricJobLogsErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy`. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -16455,7 +16473,7 @@ export type QueryHistoricJobLogsErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy`. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -16494,7 +16512,7 @@ export type GetHistoricJobLogsCountData = {
         jobDefinitionId?: string;
         /**
          * Filter by job definition type. See the
-         * [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/the-job-executor/#job-creation)
+         * [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/the-job-executor/#job-creation)
          * for more information about job definition types.
          */
         jobDefinitionType?: string;
@@ -16602,7 +16620,7 @@ export type QueryHistoricJobLogsCountData = {
 export type QueryHistoricJobLogsCountErrors = {
     /**
      * Returned if some of the query parameters are invalid. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -16634,7 +16652,7 @@ export type GetHistoricJobLogData = {
 export type GetHistoricJobLogErrors = {
     /**
      * Historic job log with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -16666,7 +16684,7 @@ export type GetStacktraceHistoricJobLogData = {
 export type GetStacktraceHistoricJobLogErrors = {
     /**
      * Historic job log with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -16736,7 +16754,7 @@ export type GetCleanableHistoricProcessInstanceReportData = {
 export type GetCleanableHistoricProcessInstanceReportErrors = {
     /**
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -16787,7 +16805,7 @@ export type GetCleanableHistoricProcessInstanceReportCountData = {
 export type GetCleanableHistoricProcessInstanceReportCountErrors = {
     /**
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -16833,25 +16851,25 @@ export type GetHistoricActivityStatisticsData = {
          */
         incidents?: boolean;
         /**
-         * Restrict to process instances that were started before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to process instances that were started before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., `2013-01-23T14:42:45.000+0200`.
          */
         startedBefore?: string;
         /**
-         * Restrict to process instances that were started after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to process instances that were started after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., `2013-01-23T14:42:45.000+0200`.
          */
         startedAfter?: string;
         /**
-         * Restrict to process instances that were finished before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to process instances that were finished before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., `2013-01-23T14:42:45.000+0200`.
          */
         finishedBefore?: string;
         /**
-         * Restrict to process instances that were finished after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to process instances that were finished after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., `2013-01-23T14:42:45.000+0200`.
          */
@@ -16878,7 +16896,7 @@ export type GetHistoricActivityStatisticsData = {
 export type GetHistoricActivityStatisticsErrors = {
     /**
      * Returned if some of the query parameters are invalid. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -17001,7 +17019,7 @@ export type GetHistoricProcessInstancesData = {
          */
         incidentIdIn?: string;
         /**
-         * Filter by the incident type. See the [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/incidents/#incident-types) for a list of incident types.
+         * Filter by the incident type. See the [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/incidents/#incident-types) for a list of incident types.
          */
         incidentType?: string;
         /**
@@ -17018,42 +17036,42 @@ export type GetHistoricProcessInstancesData = {
         incidentMessageLike?: string;
         /**
          * Restrict to instances that were started before the given date.
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         startedBefore?: string;
         /**
          * Restrict to instances that were started after the given date.
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         startedAfter?: string;
         /**
          * Restrict to instances that were finished before the given date.
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         finishedBefore?: string;
         /**
          * Restrict to instances that were finished after the given date.
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         finishedAfter?: string;
         /**
          * Restrict to instances that executed an activity after the given date (inclusive).
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         executedActivityAfter?: string;
         /**
          * Restrict to instances that executed an activity before the given date (inclusive).
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         executedActivityBefore?: string;
         /**
          * Restrict to instances that executed an job after the given date (inclusive).
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         executedJobAfter?: string;
         /**
          * Restrict to instances that executed an job before the given date (inclusive).
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         executedJobBefore?: string;
         /**
@@ -17149,7 +17167,7 @@ export type GetHistoricProcessInstancesErrors = {
     /**
      * Bad Request
      * Returned if some of the query parameters are invalid, for example if a sortOrder parameter is supplied, but no sortBy.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
 };
@@ -17186,7 +17204,7 @@ export type QueryHistoricProcessInstancesErrors = {
     /**
      * Bad Request
      * Returned if some of the query parameters are invalid, for example if a sortOrder parameter is supplied, but no sortBy.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
 };
@@ -17289,7 +17307,7 @@ export type GetHistoricProcessInstancesCountData = {
          */
         incidentIdIn?: string;
         /**
-         * Filter by the incident type. See the [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/incidents/#incident-types) for a list of incident types.
+         * Filter by the incident type. See the [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/incidents/#incident-types) for a list of incident types.
          */
         incidentType?: string;
         /**
@@ -17306,42 +17324,42 @@ export type GetHistoricProcessInstancesCountData = {
         incidentMessageLike?: string;
         /**
          * Restrict to instances that were started before the given date.
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         startedBefore?: string;
         /**
          * Restrict to instances that were started after the given date.
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         startedAfter?: string;
         /**
          * Restrict to instances that were finished before the given date.
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         finishedBefore?: string;
         /**
          * Restrict to instances that were finished after the given date.
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         finishedAfter?: string;
         /**
          * Restrict to instances that executed an activity after the given date (inclusive).
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         executedActivityAfter?: string;
         /**
          * Restrict to instances that executed an activity before the given date (inclusive).
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         executedActivityBefore?: string;
         /**
          * Restrict to instances that executed an job after the given date (inclusive).
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         executedJobAfter?: string;
         /**
          * Restrict to instances that executed an job before the given date (inclusive).
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         executedJobBefore?: string;
         /**
@@ -17437,7 +17455,7 @@ export type GetHistoricProcessInstancesCountErrors = {
     /**
      * Bad Request
      * Returned if some of the query parameters are invalid.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
 };
@@ -17464,7 +17482,7 @@ export type QueryHistoricProcessInstancesCountErrors = {
     /**
      * Bad Request
      * Returned if some of the query parameters are invalid.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
 };
@@ -17490,7 +17508,7 @@ export type DeleteHistoricProcessInstancesAsyncData = {
 export type DeleteHistoricProcessInstancesAsyncErrors = {
     /**
      * Returned if some of the query parameters are invalid, i.e. neither historicProcessInstanceIds,
-     * nor historicProcessInstanceQuery is present. See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * nor historicProcessInstanceQuery is present. See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -17535,7 +17553,7 @@ export type GetHistoricProcessInstanceDurationReportData = {
         startedBefore?: string;
         /**
          * Restrict to instances that were started after the given date.
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2016-01-23T14:42:45.000+0200`.
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2016-01-23T14:42:45.000+0200`.
          */
         startedAfter?: string;
     };
@@ -17545,12 +17563,12 @@ export type GetHistoricProcessInstanceDurationReportData = {
 export type GetHistoricProcessInstanceDurationReportErrors = {
     /**
      * Returned if some of the query parameters are invalid or mandatory parameters are not supplied.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
     /**
      * If the authenticated user is unauthorized to read the history.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     403: ExceptionDto;
 };
@@ -17579,7 +17597,7 @@ export type SetRemovalTimeAsyncErrors = {
      * Request was unsuccessfull due to a bad user request. This occurs if some of the query parameters are invalid,
      * e. g. if neither `historicProcessInstances` nor `historicProcessInstanceQuery` is present or if no mode is specified.
      *
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
 };
@@ -17647,7 +17665,7 @@ export type GetHistoricProcessInstanceErrors = {
     /**
      * Not Found
      * Historic process instance with given id does not exist.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     404: ExceptionDto;
 };
@@ -17679,7 +17697,7 @@ export type DeleteHistoricVariableInstancesOfHistoricProcessInstanceErrors = {
     /**
      * Not found
      * Historic process instance with given id does not exist.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#parse-exceptions) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#parse-exceptions) for the error response format.
      */
     404: ExceptionDto;
 };
@@ -17848,19 +17866,19 @@ export type GetHistoricTaskInstancesData = {
          */
         processUnfinished?: boolean;
         /**
-         * Restrict to tasks that are due on the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to tasks that are due on the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., `2013-01-23T14:42:45.000+0200`.
          */
         taskDueDate?: string;
         /**
-         * Restrict to tasks that are due before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to tasks that are due before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., `2013-01-23T14:42:45.000+0200`.
          */
         taskDueDateBefore?: string;
         /**
-         * Restrict to tasks that are due after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to tasks that are due after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., `2013-01-23T14:42:45.000+0200`.
          */
@@ -17871,43 +17889,43 @@ export type GetHistoricTaskInstancesData = {
          */
         withoutTaskDueDate?: boolean;
         /**
-         * Restrict to tasks that have a followUp date on the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to tasks that have a followUp date on the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., `2013-01-23T14:42:45.000+0200`.
          */
         taskFollowUpDate?: string;
         /**
-         * Restrict to tasks that have a followUp date before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to tasks that have a followUp date before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., `2013-01-23T14:42:45.000+0200`.
          */
         taskFollowUpDateBefore?: string;
         /**
-         * Restrict to tasks that have a followUp date after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to tasks that have a followUp date after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., `2013-01-23T14:42:45.000+0200`.
          */
         taskFollowUpDateAfter?: string;
         /**
-         * Restrict to tasks that were started before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to tasks that were started before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., `2013-01-23T14:42:45.000+0200`.
          */
         startedBefore?: string;
         /**
-         * Restrict to tasks that were started after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to tasks that were started after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., `2013-01-23T14:42:45.000+0200`.
          */
         startedAfter?: string;
         /**
-         * Restrict to tasks that were finished before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to tasks that were finished before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., `2013-01-23T14:42:45.000+0200`.
          */
         finishedBefore?: string;
         /**
-         * Restrict to tasks that were finished after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to tasks that were finished after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., `2013-01-23T14:42:45.000+0200`.
          */
@@ -18033,7 +18051,7 @@ export type GetHistoricTaskInstancesErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy`. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -18071,7 +18089,7 @@ export type QueryHistoricTaskInstancesErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy`. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -18241,19 +18259,19 @@ export type GetHistoricTaskInstancesCountData = {
          */
         processUnfinished?: boolean;
         /**
-         * Restrict to tasks that are due on the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to tasks that are due on the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., `2013-01-23T14:42:45.000+0200`.
          */
         taskDueDate?: string;
         /**
-         * Restrict to tasks that are due before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to tasks that are due before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., `2013-01-23T14:42:45.000+0200`.
          */
         taskDueDateBefore?: string;
         /**
-         * Restrict to tasks that are due after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to tasks that are due after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., `2013-01-23T14:42:45.000+0200`.
          */
@@ -18264,43 +18282,43 @@ export type GetHistoricTaskInstancesCountData = {
          */
         withoutTaskDueDate?: boolean;
         /**
-         * Restrict to tasks that have a followUp date on the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to tasks that have a followUp date on the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., `2013-01-23T14:42:45.000+0200`.
          */
         taskFollowUpDate?: string;
         /**
-         * Restrict to tasks that have a followUp date before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to tasks that have a followUp date before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., `2013-01-23T14:42:45.000+0200`.
          */
         taskFollowUpDateBefore?: string;
         /**
-         * Restrict to tasks that have a followUp date after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to tasks that have a followUp date after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., `2013-01-23T14:42:45.000+0200`.
          */
         taskFollowUpDateAfter?: string;
         /**
-         * Restrict to tasks that were started before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to tasks that were started before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., `2013-01-23T14:42:45.000+0200`.
          */
         startedBefore?: string;
         /**
-         * Restrict to tasks that were started after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to tasks that were started after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., `2013-01-23T14:42:45.000+0200`.
          */
         startedAfter?: string;
         /**
-         * Restrict to tasks that were finished before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to tasks that were finished before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., `2013-01-23T14:42:45.000+0200`.
          */
         finishedBefore?: string;
         /**
-         * Restrict to tasks that were finished after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to tasks that were finished after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., `2013-01-23T14:42:45.000+0200`.
          */
@@ -18406,7 +18424,7 @@ export type GetHistoricTaskInstancesCountData = {
 export type GetHistoricTaskInstancesCountErrors = {
     /**
      * Returned if some of the query parameters are invalid. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -18433,7 +18451,7 @@ export type QueryHistoricTaskInstancesCountData = {
 export type QueryHistoricTaskInstancesCountErrors = {
     /**
      * Returned if some of the query parameters are invalid. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -18466,13 +18484,13 @@ export type GetHistoricTaskInstanceReportData = {
          */
         periodUnit?: 'MONTH' | 'QUARTER';
         /**
-         * Restrict to tasks that were completed before the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to tasks that were completed before the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., `2013-01-23T14:42:45.000+0200`.
          */
         completedBefore?: string;
         /**
-         * Restrict to tasks that were completed after the given date. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/),
+         * Restrict to tasks that were completed after the given date. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/),
          * the date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., `2013-01-23T14:42:45.000+0200`.
          */
@@ -18490,7 +18508,7 @@ export type GetHistoricTaskInstanceReportErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `completedAfter`
      * parameter is supplied, but the date format is wrong. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -18574,7 +18592,7 @@ export type QueryUserOperationEntriesData = {
         operationId?: string;
         /**
          * Filter by the type of the operation like `Claim` or `Delegate`. See the
-         * [Javadoc](https://docs.cibseven.org/manual/2.1/reference/javadoc/?org/cibseven/bpm/engine/history/UserOperationLogEntry.html)
+         * [Javadoc](https://docs.operaton.org/manual/1.0/reference/javadoc/?org/operaton/bpm/engine/history/UserOperationLogEntry.html)
          * for a list of available operation types.
          */
         operationType?: string;
@@ -18603,13 +18621,13 @@ export type QueryUserOperationEntriesData = {
          */
         property?: string;
         /**
-         * Restrict to entries that were created after the given timestamp. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the
+         * Restrict to entries that were created after the given timestamp. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the
          * timestamp must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., 2013-01-23T14:42:45.000+0200.
          */
         afterTimestamp?: string;
         /**
-         * Restrict to entries that were created before the given timestamp. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the
+         * Restrict to entries that were created before the given timestamp. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the
          * timestamp must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., 2013-01-23T14:42:45.000+0200.
          */
@@ -18641,7 +18659,7 @@ export type QueryUserOperationEntriesErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy`. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -18725,7 +18743,7 @@ export type QueryUserOperationCountData = {
         operationId?: string;
         /**
          * Filter by the type of the operation like `Claim` or `Delegate`. See the
-         * [Javadoc](https://docs.cibseven.org/manual/2.1/reference/javadoc/?org/cibseven/bpm/engine/history/UserOperationLogEntry.html)
+         * [Javadoc](https://docs.operaton.org/manual/1.0/reference/javadoc/?org/operaton/bpm/engine/history/UserOperationLogEntry.html)
          * for a list of available operation types.
          */
         operationType?: string;
@@ -18754,13 +18772,13 @@ export type QueryUserOperationCountData = {
          */
         property?: string;
         /**
-         * Restrict to entries that were created after the given timestamp. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the
+         * Restrict to entries that were created after the given timestamp. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the
          * timestamp must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., 2013-01-23T14:42:45.000+0200.
          */
         afterTimestamp?: string;
         /**
-         * Restrict to entries that were created before the given timestamp. By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the
+         * Restrict to entries that were created before the given timestamp. By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the
          * timestamp must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`,
          * e.g., 2013-01-23T14:42:45.000+0200.
          */
@@ -18772,7 +18790,7 @@ export type QueryUserOperationCountData = {
 export type QueryUserOperationCountErrors = {
     /**
      * Returned if some of the query parameters are invalid. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -18805,7 +18823,7 @@ export type ClearAnnotationUserOperationLogErrors = {
     /**
      * Returned if some of the request parameters are invalid, for example if the
      * `operationId` path parameter value does not exists. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -18838,7 +18856,7 @@ export type SetAnnotationUserOperationLogErrors = {
     /**
      * Returned if some of the request parameters are invalid, for example if the
      * `operationId` path parameter value does not exists. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -18870,9 +18888,7 @@ export type GetHistoricVariableInstancesData = {
         /**
          * Filter by variable value. Is treated as a `String` object on server side.
          */
-        variableValue?: {
-            [key: string]: unknown;
-        };
+        variableValue?: string;
         /**
          * Match the variable name provided in `variableName` and `variableNameLike` case-
          * insensitively. If set to `true` **variableName** and **variablename** are
@@ -18887,7 +18903,7 @@ export type GetHistoricVariableInstancesData = {
         /**
          * Only include historic variable instances which belong to one of the passed and comma-
          * separated variable types. A list of all supported variable types can be found
-         * [here](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/variables/#supported-variable-values).
+         * [here](https://docs.operaton.org/manual/1.0/user-guide/process-engine/variables/#supported-variable-values).
          * **Note:** All non-primitive variables are associated with the type
          * 'serializable'.
          */
@@ -18998,7 +19014,7 @@ export type GetHistoricVariableInstancesErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy`. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -19057,7 +19073,7 @@ export type QueryHistoricVariableInstancesErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy`. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -19089,9 +19105,7 @@ export type GetHistoricVariableInstancesCountData = {
         /**
          * Filter by variable value. Is treated as a `String` object on server side.
          */
-        variableValue?: {
-            [key: string]: unknown;
-        };
+        variableValue?: string;
         /**
          * Match the variable name provided in `variableName` and `variableNameLike` case-
          * insensitively. If set to `true` **variableName** and **variablename** are
@@ -19106,7 +19120,7 @@ export type GetHistoricVariableInstancesCountData = {
         /**
          * Only include historic variable instances which belong to one of the passed and comma-
          * separated variable types. A list of all supported variable types can be found
-         * [here](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/variables/#supported-variable-values).
+         * [here](https://docs.operaton.org/manual/1.0/user-guide/process-engine/variables/#supported-variable-values).
          * **Note:** All non-primitive variables are associated with the type
          * 'serializable'.
          */
@@ -19176,7 +19190,7 @@ export type GetHistoricVariableInstancesCountData = {
 export type GetHistoricVariableInstancesCountErrors = {
     /**
      * Returned if some of the query parameters are invalid. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -19203,7 +19217,7 @@ export type QueryHistoricVariableInstancesCountData = {
 export type QueryHistoricVariableInstancesCountErrors = {
     /**
      * Returned if some of the query parameters are invalid. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -19235,7 +19249,7 @@ export type DeleteHistoricVariableInstanceData = {
 export type DeleteHistoricVariableInstanceErrors = {
     /**
      * Variable with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -19289,7 +19303,7 @@ export type GetHistoricVariableInstanceData = {
 export type GetHistoricVariableInstanceErrors = {
     /**
      * Variable with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -19321,13 +19335,13 @@ export type GetHistoricVariableInstanceBinaryData = {
 export type GetHistoricVariableInstanceBinaryErrors = {
     /**
      * Variable with given id exists but is not a binary variable. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Variable with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -19359,7 +19373,7 @@ export type GetGroupInfoData = {
 export type GetGroupInfoErrors = {
     /**
      * If the `userId` query parameter is missing. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -19464,7 +19478,7 @@ export type GetIncidentsData = {
         incidentId?: string;
         /**
          * Restricts to incidents that belong to the given incident type. See the
-         * [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/incidents/#incident-types) for a list of incident
+         * [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/incidents/#incident-types) for a list of incident
          * types.
          */
         incidentType?: string;
@@ -19497,13 +19511,13 @@ export type GetIncidentsData = {
         executionId?: string;
         /**
          * Restricts to incidents that have an incidentTimestamp date before the given date.
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date
          * must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         incidentTimestampBefore?: string;
         /**
          * Restricts to incidents that have an incidentTimestamp date after the given date.
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date
          * must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         incidentTimestampAfter?: string;
@@ -19561,7 +19575,7 @@ export type GetIncidentsData = {
 export type GetIncidentsErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder` parameter is supplied,
-     * but no `sortBy`. See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error
+     * but no `sortBy`. See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error
      * response format.
      */
     400: ExceptionDto;
@@ -19588,7 +19602,7 @@ export type GetIncidentsCountData = {
         incidentId?: string;
         /**
          * Restricts to incidents that belong to the given incident type. See the
-         * [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/incidents/#incident-types) for a list of incident
+         * [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/incidents/#incident-types) for a list of incident
          * types.
          */
         incidentType?: string;
@@ -19621,13 +19635,13 @@ export type GetIncidentsCountData = {
         executionId?: string;
         /**
          * Restricts to incidents that have an incidentTimestamp date before the given date.
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date
          * must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         incidentTimestampBefore?: string;
         /**
          * Restricts to incidents that have an incidentTimestamp date after the given date.
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date
          * must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.000+0200`.
          */
         incidentTimestampAfter?: string;
@@ -19665,7 +19679,7 @@ export type GetIncidentsCountData = {
 
 export type GetIncidentsCountErrors = {
     /**
-     * Returned if some of the query parameters are invalid. See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error
+     * Returned if some of the query parameters are invalid. See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error
      * response format.
      */
     400: ExceptionDto;
@@ -19698,7 +19712,7 @@ export type ResolveIncidentErrors = {
     /**
      * Returned if an incident is not related to any execution or an incident is of type `failedJob` or
      * `failedExternalTask`. To resolve such an incident, please refer to the
-     * [Incident Types](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/incidents/#incident-types) section.
+     * [Incident Types](https://docs.operaton.org/manual/1.0/user-guide/process-engine/incidents/#incident-types) section.
      */
     400: ExceptionDto;
     /**
@@ -19980,7 +19994,7 @@ export type GetJobsErrors = {
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy`, or if an invalid operator
      * for due date comparison is used. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -20019,7 +20033,7 @@ export type QueryJobsErrors = {
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy`, or if an invalid operator
      * for due date comparison is used. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -20058,7 +20072,7 @@ export type GetJobDefinitionsData = {
         processDefinitionKey?: string;
         /**
          * Only include job definitions which exist for the given job type. See the
-         * [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/the-job-executor/#job-creation)
+         * [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/the-job-executor/#job-creation)
          * for more information about job types.
          */
         jobType?: string;
@@ -20124,7 +20138,7 @@ export type GetJobDefinitionsErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy`. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -20162,7 +20176,7 @@ export type QueryJobDefinitionsErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy`. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -20201,7 +20215,7 @@ export type GetJobDefinitionsCountData = {
         processDefinitionKey?: string;
         /**
          * Only include job definitions which exist for the given job type. See the
-         * [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/the-job-executor/#job-creation)
+         * [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/the-job-executor/#job-creation)
          * for more information about job types.
          */
         jobType?: string;
@@ -20248,7 +20262,7 @@ export type GetJobDefinitionsCountErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy`. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -20276,7 +20290,7 @@ export type QueryJobDefinitionsCountErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy`. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -20304,7 +20318,7 @@ export type UpdateSuspensionStateJobDefinitionsErrors = {
     /**
      * Returned if some of the request parameters are invalid, for example if the provided
      * `executionDate` parameter doesn't have the expected format. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -20336,7 +20350,7 @@ export type GetJobDefinitionData = {
 export type GetJobDefinitionErrors = {
     /**
      * Job definition with given id does not exist.  See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -20368,13 +20382,13 @@ export type SetJobPriorityJobDefinitionData = {
 export type SetJobPriorityJobDefinitionErrors = {
     /**
      * Job definition with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
     /**
      * The retries could not be set successfully. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -20406,7 +20420,7 @@ export type SetJobRetriesJobDefinitionData = {
 export type SetJobRetriesJobDefinitionErrors = {
     /**
      * The retries could not be set successfully. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -20439,7 +20453,7 @@ export type UpdateSuspensionStateJobDefinitionErrors = {
     /**
      * Returned if some of the request parameters are invalid, for example if the provided
      * `executionDate` parameter doesn't have the expected format. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -20608,7 +20622,7 @@ export type GetJobsCountErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example, if an invalid operator
      * for due date comparison is used. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -20636,7 +20650,7 @@ export type QueryJobsCountErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example, if an invalid operator
      * for due date comparison is used. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -20665,7 +20679,7 @@ export type SetJobRetriesAsyncOperationErrors = {
      * Returned if some of the query parameters are invalid, for example if neither
      * processInstanceIds nor processInstanceQuery is present. Or if the
      * retry count is not specified. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -20693,7 +20707,7 @@ export type UpdateSuspensionStateByErrors = {
     /**
      * Returned if the request parameters are invalid, for example, if `jobDefinitionId` and
      * `processDefinitionId` are both specified.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -20725,13 +20739,13 @@ export type DeleteJobData = {
 export type DeleteJobErrors = {
     /**
      * Job with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
     /**
      * The job could not be deleted. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -20763,7 +20777,7 @@ export type GetJobData = {
 export type GetJobErrors = {
     /**
      * Job with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -20795,13 +20809,13 @@ export type SetJobDuedateData = {
 export type SetJobDuedateErrors = {
     /**
      * Job with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
     /**
      * The due date could not be set successfully. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -20839,13 +20853,13 @@ export type RecalculateDuedateData = {
 export type RecalculateDuedateErrors = {
     /**
      * Job with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
     /**
      * The due date could not be recalculated successfully. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -20877,13 +20891,13 @@ export type ExecuteJobData = {
 export type ExecuteJobErrors = {
     /**
      * Job with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
     /**
      * The job could not be executed successfully. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -20915,13 +20929,13 @@ export type SetJobPriorityData = {
 export type SetJobPriorityErrors = {
     /**
      * Job with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
     /**
      * The priority could not be set successfully. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -20953,13 +20967,13 @@ export type SetJobRetriesData = {
 export type SetJobRetriesErrors = {
     /**
      * Job with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
     /**
      * The retries could not be set successfully. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -20991,7 +21005,7 @@ export type GetStacktraceData = {
 export type GetStacktraceErrors = {
     /**
      * Job with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -21044,7 +21058,7 @@ export type DeliverMessageErrors = {
      * * the message has not been correlated to exactly one entity (execution or process definition)
      * * the variable value or type is invalid, for example if the value could not be parsed to an Integer value or the passed variable type is not supported.
      *
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
 };
@@ -21076,7 +21090,7 @@ export type IntervalData = {
         name?: 'activity-instance-start' | 'activity-instance-end' | 'decision-instances' | 'flow-node-instances' | 'job-acquisition-attempt' | 'job-acquired-success' | 'job-acquired-failure' | 'job-execution-rejected' | 'job-successful' | 'job-failed' | 'job-locked-exclusive' | 'executed-decision-elements' | 'history-cleanup-removed-process-instances' | 'history-cleanup-removed-case-instances' | 'history-cleanup-removed-decision-instances' | 'history-cleanup-removed-batch-operations' | 'history-cleanup-removed-task-metrics' | 'process-instances';
         /**
          * The name of the reporter (host), on which the metrics was logged. This will have
-         * value provided by the [hostname configuration property](https://docs.cibseven.org/manual/2.1/reference/deployment-descriptors/tags/process-engine/#hostname).
+         * value provided by the [hostname configuration property](https://docs.operaton.org/manual/1.0/reference/deployment-descriptors/tags/process-engine/#hostname).
          */
         reporter?: string;
         /**
@@ -21141,7 +21155,7 @@ export type DeleteTaskMetricsData = {
 
 export type DeleteTaskMetricsErrors = {
     /**
-     * If the user who performs the operation is not a <b>camunda-admin</b> user.
+     * If the user who performs the operation is not a <b>operaton-admin</b> user.
      */
     403: ExceptionDto;
 };
@@ -21207,7 +21221,7 @@ export type ExecuteMigrationPlanErrors = {
      * exception of type `InvalidRequestException` is returned.
      *
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -21241,7 +21255,7 @@ export type ExecuteMigrationPlanAsyncErrors = {
      * exception of type `InvalidRequestException` is returned.
      *
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -21269,7 +21283,7 @@ export type GenerateMigrationPlanErrors = {
     /**
      *
      * The requested migration was invalid. See
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -21298,7 +21312,7 @@ export type ValidateMigrationPlanErrors = {
     /**
      * In case additional parameters of the request are unexpected, an
      * exception of type `InvalidRequestException` is returned. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -21329,7 +21343,7 @@ export type ExecuteModificationErrors = {
      * processDefinitionId, activityId or transitionId, processInstanceIds
      * or processInstanceQuery, an exception of type
      * `InvalidRequestException` is returned. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -21361,7 +21375,7 @@ export type ExecuteModificationAsyncErrors = {
      * processDefinitionId, activityId or transitionId, processInstanceIds
      * or processInstanceQuery, an exception of type
      * `InvalidRequestException` is returned. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      *
      */
@@ -21406,7 +21420,7 @@ export type GetProcessDefinitionsData = {
         /**
          * Filter by the deploy time of the deployment the process definition belongs to.
          * Only selects process definitions that have been deployed after (exclusive) a specific time.
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the
          * format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g.,
          * `2013-01-23T14:42:45.546+0200`.
          */
@@ -21414,7 +21428,7 @@ export type GetProcessDefinitionsData = {
         /**
          * Filter by the deploy time of the deployment the process definition belongs to.
          * Only selects process definitions that have been deployed at a specific time (exact match).
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the
          * format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g.,
          * `2013-01-23T14:42:45.546+0200`.
          */
@@ -21476,7 +21490,7 @@ export type GetProcessDefinitionsData = {
         incidentId?: string;
         /**
          * Filter by the incident type.
-         * See the [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/incidents/#incident-types)
+         * See the [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/incidents/#incident-types)
          * for a list of incident types.
          */
         incidentType?: string;
@@ -21558,7 +21572,7 @@ export type GetProcessDefinitionsErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder` parameter is supplied,
      * but no `sortBy`. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -21602,7 +21616,7 @@ export type GetProcessDefinitionsCountData = {
         /**
          * Filter by the deploy time of the deployment the process definition belongs to.
          * Only selects process definitions that have been deployed after (exclusive) a specific time.
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the
          * format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g.,
          * `2013-01-23T14:42:45.546+0200`.
          */
@@ -21610,7 +21624,7 @@ export type GetProcessDefinitionsCountData = {
         /**
          * Filter by the deploy time of the deployment the process definition belongs to.
          * Only selects process definitions that have been deployed at a specific time (exact match).
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the
          * format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g.,
          * `2013-01-23T14:42:45.546+0200`.
          */
@@ -21672,7 +21686,7 @@ export type GetProcessDefinitionsCountData = {
         incidentId?: string;
         /**
          * Filter by the incident type.
-         * See the [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/incidents/#incident-types)
+         * See the [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/incidents/#incident-types)
          * for a list of incident types.
          */
         incidentType?: string;
@@ -21735,7 +21749,7 @@ export type GetProcessDefinitionsCountErrors = {
     /**
      * Returned if some of the query parameters are invalid.
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -21783,14 +21797,14 @@ export type DeleteProcessDefinitionsByKeyErrors = {
     /**
      * Forbidden
      * The process definitions with the given `key` cannot be deleted due to missing permissions.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     403: AuthorizationExceptionDto;
     /**
      * Not found
      * Process definition with given `key` does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -21822,7 +21836,7 @@ export type GetProcessDefinitionByKeyData = {
 export type GetProcessDefinitionByKeyErrors = {
     /**
      * Process definition with given `key` does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -21854,19 +21868,19 @@ export type GetDeployedStartFormByKeyData = {
 export type GetDeployedStartFormByKeyErrors = {
     /**
      * The form key has wrong format.  See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * The deployed start form cannot be retrieved due to missing permissions on process definition resource.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     403: AuthorizationExceptionDto;
     /**
      * No deployed start form for a given process definition exists. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -21898,7 +21912,7 @@ export type GetProcessDefinitionDiagramByKeyData = {
 export type GetProcessDefinitionDiagramByKeyErrors = {
     /**
      * Process definition with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -21962,7 +21976,7 @@ export type GetStartFormVariablesByKeyData = {
 export type GetStartFormVariablesByKeyErrors = {
     /**
      * The key is null or does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -21996,13 +22010,13 @@ export type UpdateHistoryTimeToLiveByProcessDefinitionKeyData = {
 export type UpdateHistoryTimeToLiveByProcessDefinitionKeyErrors = {
     /**
      * Returned if some of the request parameters are invalid. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Process definition with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -22034,13 +22048,13 @@ export type GetRenderedStartFormByKeyData = {
 export type GetRenderedStartFormByKeyErrors = {
     /**
      * Process definition has no form field metadata defined. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Process definition with given key does not exist.  See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -22074,13 +22088,13 @@ export type StartProcessInstanceByKeyErrors = {
      * The instance could not be created due to an invalid variable value,
      * for example if the value could not be parsed to an `Integer` value or
      * the passed variable type is not supported.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * The instance could not be created successfully.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -22112,13 +22126,13 @@ export type GetStartFormByKeyData = {
 export type GetStartFormByKeyErrors = {
     /**
      * Process definition has no start form defined. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Process definition with given key does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -22160,7 +22174,7 @@ export type GetActivityStatisticsByProcessDefinitionKeyData = {
          * If this property has been set with any incident type (i.e., a string value) the result
          * will only include the number of incidents for the assigned incident type.
          * Cannot be used in combination with `incidents`.
-         * See the [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/incidents/#incident-types)
+         * See the [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/incidents/#incident-types)
          * for a list of incident types.
          */
         incidentsForType?: string;
@@ -22172,14 +22186,14 @@ export type GetActivityStatisticsByProcessDefinitionKeyErrors = {
     /**
      * Returned if some of the query parameters are invalid.
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Process definition with given key does not exist.
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -22213,19 +22227,19 @@ export type SubmitFormByKeyErrors = {
      * The instance could not be created due to an invalid variable value,
      * for example if the value could not be parsed to an `Integer` value or
      * the passed variable type is not supported.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Process definition with given key does not exist.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
     /**
      * The instance could not be created successfully.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -22262,13 +22276,13 @@ export type UpdateProcessDefinitionSuspensionStateByKeyErrors = {
      * Returned if some of the query parameters are invalid,
      * for example if the provided `executionDate` parameter doesn't have the expected format or
      * if the `processDefinitionKey` parameter is `null`. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Process definition with given key does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -22320,14 +22334,14 @@ export type DeleteProcessDefinitionsByKeyAndTenantIdErrors = {
     /**
      * Forbidden
      * The process definitions with the given `key` cannot be deleted due to missing permissions.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     403: AuthorizationExceptionDto;
     /**
      * Not found
      * Process definition with given key does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -22363,7 +22377,7 @@ export type GetLatestProcessDefinitionByTenantIdData = {
 export type GetLatestProcessDefinitionByTenantIdErrors = {
     /**
      * Process definition with given `key` does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -22399,19 +22413,19 @@ export type GetDeployedStartFormByKeyAndTenantIdData = {
 export type GetDeployedStartFormByKeyAndTenantIdErrors = {
     /**
      * The form key has wrong format.  See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * The deployed start form cannot be retrieved due to missing permissions on process definition resource.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     403: AuthorizationExceptionDto;
     /**
      * No deployed start form for a given process definition exists. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -22447,7 +22461,7 @@ export type GetProcessDefinitionDiagramByKeyAndTenantIdData = {
 export type GetProcessDefinitionDiagramByKeyAndTenantIdErrors = {
     /**
      * Process definition with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -22515,7 +22529,7 @@ export type GetStartFormVariablesByKeyAndTenantIdData = {
 export type GetStartFormVariablesByKeyAndTenantIdErrors = {
     /**
      * The key is null or does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -22553,13 +22567,13 @@ export type UpdateHistoryTimeToLiveByProcessDefinitionKeyAndTenantIdData = {
 export type UpdateHistoryTimeToLiveByProcessDefinitionKeyAndTenantIdErrors = {
     /**
      * Returned if some of the request parameters are invalid. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Process definition with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -22595,13 +22609,13 @@ export type GetRenderedStartFormByKeyAndTenantIdData = {
 export type GetRenderedStartFormByKeyAndTenantIdErrors = {
     /**
      * Process definition has no form field metadata defined. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Process definition with given key does not exist.  See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -22639,13 +22653,13 @@ export type StartProcessInstanceByKeyAndTenantIdErrors = {
      * The instance could not be created due to an invalid variable value,
      * for example if the value could not be parsed to an `Integer` value or
      * the passed variable type is not supported.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * The instance could not be created successfully.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -22681,13 +22695,13 @@ export type GetStartFormByKeyAndTenantIdData = {
 export type GetStartFormByKeyAndTenantIdErrors = {
     /**
      * Process definition has no start form defined. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Process definition with given key does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -22733,7 +22747,7 @@ export type GetActivityStatisticsByProcessDefinitionKeyAndTenantIdData = {
          * If this property has been set with any incident type (i.e., a string value) the result
          * will only include the number of incidents for the assigned incident type.
          * Cannot be used in combination with `incidents`.
-         * See the [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/incidents/#incident-types)
+         * See the [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/incidents/#incident-types)
          * for a list of incident types.
          */
         incidentsForType?: string;
@@ -22745,14 +22759,14 @@ export type GetActivityStatisticsByProcessDefinitionKeyAndTenantIdErrors = {
     /**
      * Returned if some of the query parameters are invalid.
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Process definition with given key does not exist.
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -22790,19 +22804,19 @@ export type SubmitFormByKeyAndTenantIdErrors = {
      * The instance could not be created due to an invalid variable value,
      * for example if the value could not be parsed to an `Integer` value or
      * the passed variable type is not supported.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Process definition with given key does not exist.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
     /**
      * The instance could not be created successfully.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -22843,13 +22857,13 @@ export type UpdateProcessDefinitionSuspensionStateByKeyAndTenantIdErrors = {
      * Returned if some of the query parameters are invalid,
      * for example if the provided `executionDate` parameter doesn't have the expected format or
      * if the `processDefinitionKey` parameter is `null`. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Process definition with given key does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -22885,13 +22899,13 @@ export type GetProcessDefinitionBpmn20XmlByKeyAndTenantIdData = {
 export type GetProcessDefinitionBpmn20XmlByKeyAndTenantIdErrors = {
     /**
      * The Process Definition xml cannot be retrieved due to missing permissions on the Process Definition resource.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     403: AuthorizationExceptionDto;
     /**
      * Process definition with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -22923,13 +22937,13 @@ export type GetProcessDefinitionBpmn20XmlByKeyData = {
 export type GetProcessDefinitionBpmn20XmlByKeyErrors = {
     /**
      * The Process Definition xml cannot be retrieved due to missing permissions on the Process Definition resource.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     403: AuthorizationExceptionDto;
     /**
      * Process definition with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -22966,7 +22980,7 @@ export type GetProcessDefinitionStatisticsData = {
          * If this property has been set with any incident type (i.e., a string value) the result
          * will only include the number of incidents for the assigned incident type.
          * Cannot be used in combination with `incidents`.
-         * See the [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/incidents/#incident-types)
+         * See the [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/incidents/#incident-types)
          * for a list of incident types.
          */
         incidentsForType?: string;
@@ -22986,7 +23000,7 @@ export type GetProcessDefinitionStatisticsErrors = {
     /**
      * Returned if some of the query parameters are invalid.
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -23018,13 +23032,13 @@ export type UpdateProcessDefinitionSuspensionStateErrors = {
      * Returned if some of the query parameters are invalid,
      * for example if the provided `executionDate` parameter doesn't have the expected format or
      * if the `processDefinitionKey` parameter is `null`. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Process definition with given key does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -23072,7 +23086,7 @@ export type DeleteProcessDefinitionErrors = {
     /**
      * Not found
      * Process definition with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -23104,7 +23118,7 @@ export type GetProcessDefinitionData = {
 export type GetProcessDefinitionErrors = {
     /**
      * Process definition with given `id` does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -23136,19 +23150,19 @@ export type GetDeployedStartFormData = {
 export type GetDeployedStartFormErrors = {
     /**
      * The form key has wrong format.  See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * The deployed start form cannot be retrieved due to missing permissions on process definition resource.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     403: AuthorizationExceptionDto;
     /**
      * No deployed start form for a given process definition exists. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -23180,7 +23194,7 @@ export type GetProcessDefinitionDiagramData = {
 export type GetProcessDefinitionDiagramErrors = {
     /**
      * Process definition with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -23244,7 +23258,7 @@ export type GetStartFormVariablesData = {
 export type GetStartFormVariablesErrors = {
     /**
      * The id is null or does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -23278,13 +23292,13 @@ export type UpdateHistoryTimeToLiveByProcessDefinitionIdData = {
 export type UpdateHistoryTimeToLiveByProcessDefinitionIdErrors = {
     /**
      * Returned if some of the request parameters are invalid. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Process definition with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -23316,13 +23330,13 @@ export type GetRenderedStartFormData = {
 export type GetRenderedStartFormErrors = {
     /**
      * Process definition has no form field metadata defined. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Process definition with given id does not exist.  See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -23355,13 +23369,13 @@ export type RestartProcessInstanceErrors = {
     /**
      * In case following parameters are missing: `instructions`, `activityId` or `transitionId`,
      * `processInstanceIds` or `historicProcessInstanceQuery`, an exception of type `InvalidRequestException` is returned.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Process definition with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -23395,13 +23409,13 @@ export type RestartProcessInstanceAsyncOperationErrors = {
      * In case following parameters are missing: `instructions`, `activityId` or `transitionId`,
      * `processInstanceIds` or `historicProcessInstanceQuery`,
      * an exception of type `InvalidRequestException` is returned.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Process definition with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -23435,13 +23449,13 @@ export type StartProcessInstanceErrors = {
      * The instance could not be created due to an invalid variable value,
      * for example if the value could not be parsed to an `Integer` value or
      * the passed variable type is not supported.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * The instance could not be created successfully.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -23473,13 +23487,13 @@ export type GetStartFormData = {
 export type GetStartFormErrors = {
     /**
      * Process definition has no start form defined. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Process definition with given id does not exist.  See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -23512,7 +23526,7 @@ export type GetStaticCalledProcessDefinitionsErrors = {
     /**
      * Process definition with given key does not exist.
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -23554,7 +23568,7 @@ export type GetActivityStatisticsData = {
          * If this property has been set with any incident type (i.e., a string value) the result
          * will only include the number of incidents for the assigned incident type.
          * Cannot be used in combination with `incidents`.
-         * See the [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/incidents/#incident-types)
+         * See the [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/incidents/#incident-types)
          * for a list of incident types.
          */
         incidentsForType?: string;
@@ -23566,14 +23580,14 @@ export type GetActivityStatisticsErrors = {
     /**
      * Returned if some of the query parameters are invalid.
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Process definition with given key does not exist.
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -23607,19 +23621,19 @@ export type SubmitFormErrors = {
      * The instance could not be created due to an invalid variable value,
      * for example if the value could not be parsed to an `Integer` value or
      * the passed variable type is not supported.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Process definition with given id does not exist.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
     /**
      * The instance could not be created successfully.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -23656,13 +23670,13 @@ export type UpdateProcessDefinitionSuspensionStateByIdErrors = {
      * Returned if some of the query parameters are invalid,
      * for example if the provided `executionDate` parameter doesn't have the expected format or
      * if the `processDefinitionKey` parameter is `null`. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Process definition with given key does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -23695,19 +23709,19 @@ export type GetProcessDefinitionBpmn20XmlErrors = {
     /**
      * Returned if some of the query parameters are invalid.
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * The Process Definition xml cannot be retrieved due to missing permissions on the Process Definition resource.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     403: AuthorizationExceptionDto;
     /**
      * Process definition with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -23825,7 +23839,7 @@ export type GetProcessInstancesData = {
         incidentId?: string;
         /**
          * Filter by the incident type.
-         * See the [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/incidents/#incident-types)
+         * See the [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/incidents/#incident-types)
          * for a list of incident types.
          */
         incidentType?: string;
@@ -24039,7 +24053,7 @@ export type GetProcessInstancesCountData = {
         incidentId?: string;
         /**
          * Filter by the incident type.
-         * See the [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/incidents/#incident-types)
+         * See the [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/incidents/#incident-types)
          * for a list of incident types.
          */
         incidentType?: string;
@@ -24298,7 +24312,7 @@ export type CorrelateMessageAsyncOperationErrors = {
     /**
      * Returned if the user is not allowed to create the batch.
      *
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the
      * error response format.
      */
     403: AuthorizationExceptionDto;
@@ -24391,7 +24405,7 @@ export type SetVariablesAsyncOperationErrors = {
     /**
      * Returned if the user is not allowed to create the batch.
      *
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the
      * error response format.
      */
     403: AuthorizationExceptionDto;
@@ -24471,7 +24485,7 @@ export type GetProcessInstanceData = {
 export type GetProcessInstanceErrors = {
     /**
      * Process instance with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     404: ExceptionDto;
 };
@@ -24532,13 +24546,13 @@ export type DeleteProcessInstanceCommentsData = {
 export type DeleteProcessInstanceCommentsErrors = {
     /**
      * Process instance doesn't exist or history is not enabled.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * The authenticated user is unauthorized to delete this resource. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     403: AuthorizationExceptionDto;
@@ -24570,7 +24584,7 @@ export type GetProcessInstanceCommentsData = {
 export type GetProcessInstanceCommentsErrors = {
     /**
      * No process instance exists for the given process instance id. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -24606,12 +24620,12 @@ export type UpdateProcessInstanceCommentData = {
 export type UpdateProcessInstanceCommentErrors = {
     /**
      * Returned if a given process instance id or comment id is invalid or history is disabled in the engine.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
     /**
      * The authenticated user is unauthorized to update this resource. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: AuthorizationExceptionDto;
@@ -24647,12 +24661,12 @@ export type DeleteProcessInstanceCommentData = {
 export type DeleteProcessInstanceCommentErrors = {
     /**
      * Returned if a given process instance id or comment id is invalid or history is disabled in the engine.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
     /**
      * The authenticated user is unauthorized to delete this resource. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: AuthorizationExceptionDto;
@@ -25072,7 +25086,7 @@ export type GetSchemaLogData = {
 export type GetSchemaLogResponses = {
     /**
      * Request successful.
-     * **Note**: In order to get any results a user of group `camunda-admin` must
+     * **Note**: In order to get any results a user of group `operaton-admin` must
      * be authenticated.
      */
     200: Array<SchemaLogEntryDto>;
@@ -25100,7 +25114,7 @@ export type QuerySchemaLogData = {
 export type QuerySchemaLogResponses = {
     /**
      * Request successful.
-     * **Note**: In order to get any results a user of group camunda-admin must be
+     * **Note**: In order to get any results a user of group operaton-admin must be
      * authenticated.
      */
     200: Array<SchemaLogEntryDto>;
@@ -25124,14 +25138,14 @@ export type ThrowSignalErrors = {
      * parsed to an integer value or the passed variable type is not supported
      * * a tenant id and an execution id is specified.
      *
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the
      * error response format.
      */
     400: ExceptionDto;
     /**
      * Returned if the user is not allowed to throw a signal event.
      *
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the
      * error response format.
      */
     403: AuthorizationExceptionDto;
@@ -25139,7 +25153,7 @@ export type ThrowSignalErrors = {
      * Returned if a single execution is specified and no such execution exists or has not
      * subscribed to the signal.
      *
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the
      * error response format.
      */
     500: ExceptionDto;
@@ -25183,7 +25197,7 @@ export type GetTasksData = {
         /**
          * Restrict to tasks that belong to process instances with the given business key which
          * is described by an expression. See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions.
          */
         processInstanceBusinessKeyExpression?: string;
@@ -25200,7 +25214,7 @@ export type GetTasksData = {
         /**
          * Restrict to tasks that have a process instance business key that has the parameter
          * value as a substring and is described by an expression. See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions.
          */
         processInstanceBusinessKeyLikeExpression?: string;
@@ -25286,7 +25300,7 @@ export type GetTasksData = {
         /**
          * Restrict to tasks that the user described by the given expression is assigned to.
          * See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions.
          */
         assigneeExpression?: string;
@@ -25298,7 +25312,7 @@ export type GetTasksData = {
         /**
          * Restrict to tasks that have an assignee that has the parameter value described by the
          * given expression as a substring. See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions.
          */
         assigneeLikeExpression?: string;
@@ -25318,7 +25332,7 @@ export type GetTasksData = {
         owner?: string;
         /**
          * Restrict to tasks that the user described by the given expression owns. See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions.
          */
         ownerExpression?: string;
@@ -25333,7 +25347,7 @@ export type GetTasksData = {
         /**
          * Only include tasks that are offered to the group described by the given expression.
          * See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions.
          */
         candidateGroupExpression?: string;
@@ -25344,7 +25358,7 @@ export type GetTasksData = {
         /**
          * Only include tasks that are offered to the user described by the given expression.
          * See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions.
          */
         candidateUserExpression?: string;
@@ -25363,7 +25377,7 @@ export type GetTasksData = {
          * Only include tasks that the user described by the given expression is involved in.
          * A user is involved in a task if an identity link exists between task and user
          * (e.g., the user is the assignee). See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions.
          */
         involvedUserExpression?: string;
@@ -25433,21 +25447,21 @@ export type GetTasksData = {
         minPriority?: number;
         /**
          * Restrict to tasks that are due on the given date. By
-         * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the
+         * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the
          * format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g.,
          * `2013-01-23T14:42:45.546+0200`.
          */
         dueDate?: string;
         /**
          * Restrict to tasks that are due on the date described by the given expression. See the
-         * [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions. The expression must evaluate to a
          * `java.util.Date` or `org.joda.time.DateTime` object.
          */
         dueDateExpression?: string;
         /**
          * Restrict to tasks that are due after the given date. By
-         * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have
+         * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have
          * the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g.,
          * `2013-01-23T14:42:45.435+0200`.
          */
@@ -25455,14 +25469,14 @@ export type GetTasksData = {
         /**
          * Restrict to tasks that are due after the date described by the given expression.
          * See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions. The expression must evaluate to a
          * `java.util.Date` or `org.joda.time.DateTime` object.
          */
         dueAfterExpression?: string;
         /**
          * Restrict to tasks that are due before the given date. By
-         * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have
+         * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have
          * the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g.,
          * `2013-01-23T14:42:45.243+0200`.
          */
@@ -25470,7 +25484,7 @@ export type GetTasksData = {
         /**
          * Restrict to tasks that are due before the date described by the given expression.
          * See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions. The expression must evaluate to a
          * `java.util.Date` or `org.joda.time.DateTime` object.
          */
@@ -25482,7 +25496,7 @@ export type GetTasksData = {
         withoutDueDate?: boolean;
         /**
          * Restrict to tasks that have a followUp date on the given date. By
-         * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date
+         * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date
          * must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g.,
          * `2013-01-23T14:42:45.342+0200`.
          */
@@ -25490,14 +25504,14 @@ export type GetTasksData = {
         /**
          * Restrict to tasks that have a followUp date on the date described by the given
          * expression. See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions. The expression must evaluate to a
          * `java.util.Date` or `org.joda.time.DateTime` object.
          */
         followUpDateExpression?: string;
         /**
          * Restrict to tasks that have a followUp date after the given date. By
-         * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the
+         * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the
          * date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g.,
          * `2013-01-23T14:42:45.542+0200`.
          */
@@ -25505,14 +25519,14 @@ export type GetTasksData = {
         /**
          * Restrict to tasks that have a followUp date after the date described by the given
          * expression. See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions. The expression must evaluate to a
          * `java.util.Date` or `org.joda.time.DateTime` object.
          */
         followUpAfterExpression?: string;
         /**
          * Restrict to tasks that have a followUp date before the given date. By
-         * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the
+         * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the
          * date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g.,
          * `2013-01-23T14:42:45.234+0200`.
          */
@@ -25520,14 +25534,14 @@ export type GetTasksData = {
         /**
          * Restrict to tasks that have a followUp date before the date described by the given
          * expression. See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions. The expression must evaluate to a
          * `java.util.Date` or `org.joda.time.DateTime` object.
          */
         followUpBeforeExpression?: string;
         /**
          * Restrict to tasks that have no followUp date or a followUp date before the given date.
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the
          * format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.432+0200`. The
          * typical use case is to query all `active` tasks for a user for a given date.
          */
@@ -25535,65 +25549,65 @@ export type GetTasksData = {
         /**
          * Restrict to tasks that have no followUp date or a followUp date before the date
          * described by the given expression. See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions. The expression must evaluate to a
          * `java.util.Date` or `org.joda.time.DateTime` object.
          */
         followUpBeforeOrNotExistentExpression?: string;
         /**
          * Restrict to tasks that were created on the given date. By
-         * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have
+         * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have
          * the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.324+0200`.
          */
         createdOn?: string;
         /**
          * Restrict to tasks that were created on the date described by the given expression.
          * See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions. The expression must evaluate to a
          * `java.util.Date` or `org.joda.time.DateTime` object.
          */
         createdOnExpression?: string;
         /**
          * Restrict to tasks that were created after the given date. By
-         * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the
+         * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the
          * format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.342+0200`.
          */
         createdAfter?: string;
         /**
          * Restrict to tasks that were created after the date described by the given expression.
          * See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions. The expression must evaluate to a
          * `java.util.Date` or `org.joda.time.DateTime` object.
          */
         createdAfterExpression?: string;
         /**
          * Restrict to tasks that were created before the given date. By
-         * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the
+         * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the
          * format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.332+0200`.
          */
         createdBefore?: string;
         /**
          * Restrict to tasks that were created before the date described by the given expression.
          * See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions. The expression must evaluate to a
          * `java.util.Date` or `org.joda.time.DateTime` object.
          */
         createdBeforeExpression?: string;
         /**
          * Restrict to tasks that were updated after the given date. Every action that fires
-         * a [task update event](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/delegation-code/#task-listener-event-lifecycle) is considered as updating the task.
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must
+         * a [task update event](https://docs.operaton.org/manual/1.0/user-guide/process-engine/delegation-code/#task-listener-event-lifecycle) is considered as updating the task.
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must
          * have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.332+0200`.
          */
         updatedAfter?: string;
         /**
          * Restrict to tasks that were updated after the date described by the given expression. Every action that fires
-         * a [task update event](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/delegation-code/#task-listener-event-lifecycle) is considered as updating the task.
+         * a [task update event](https://docs.operaton.org/manual/1.0/user-guide/process-engine/delegation-code/#task-listener-event-lifecycle) is considered as updating the task.
          * See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions. The expression must evaluate to a
          * `java.util.Date` or `org.joda.time.DateTime` object.
          */
@@ -25611,7 +25625,7 @@ export type GetTasksData = {
         /**
          * Restrict to tasks that are offered to any of the candidate groups described by the
          * given expression. See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions. The expression must evaluate to
          * `java.util.List` of Strings.
          */
@@ -25770,7 +25784,7 @@ export type GetTasksErrors = {
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy`, or if an invalid operator for variable
      * comparison is used. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -25809,7 +25823,7 @@ export type QueryTasksErrors = {
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy`, or if an invalid operator for variable
      * comparison is used. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -25853,7 +25867,7 @@ export type GetTasksCountData = {
         /**
          * Restrict to tasks that belong to process instances with the given business key which
          * is described by an expression. See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions.
          */
         processInstanceBusinessKeyExpression?: string;
@@ -25870,7 +25884,7 @@ export type GetTasksCountData = {
         /**
          * Restrict to tasks that have a process instance business key that has the parameter
          * value as a substring and is described by an expression. See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions.
          */
         processInstanceBusinessKeyLikeExpression?: string;
@@ -25956,7 +25970,7 @@ export type GetTasksCountData = {
         /**
          * Restrict to tasks that the user described by the given expression is assigned to.
          * See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions.
          */
         assigneeExpression?: string;
@@ -25968,7 +25982,7 @@ export type GetTasksCountData = {
         /**
          * Restrict to tasks that have an assignee that has the parameter value described by the
          * given expression as a substring. See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions.
          */
         assigneeLikeExpression?: string;
@@ -25988,7 +26002,7 @@ export type GetTasksCountData = {
         owner?: string;
         /**
          * Restrict to tasks that the user described by the given expression owns. See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions.
          */
         ownerExpression?: string;
@@ -26003,7 +26017,7 @@ export type GetTasksCountData = {
         /**
          * Only include tasks that are offered to the group described by the given expression.
          * See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions.
          */
         candidateGroupExpression?: string;
@@ -26014,7 +26028,7 @@ export type GetTasksCountData = {
         /**
          * Only include tasks that are offered to the user described by the given expression.
          * See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions.
          */
         candidateUserExpression?: string;
@@ -26033,7 +26047,7 @@ export type GetTasksCountData = {
          * Only include tasks that the user described by the given expression is involved in.
          * A user is involved in a task if an identity link exists between task and user
          * (e.g., the user is the assignee). See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions.
          */
         involvedUserExpression?: string;
@@ -26103,21 +26117,21 @@ export type GetTasksCountData = {
         minPriority?: number;
         /**
          * Restrict to tasks that are due on the given date. By
-         * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the
+         * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the
          * format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g.,
          * `2013-01-23T14:42:45.546+0200`.
          */
         dueDate?: string;
         /**
          * Restrict to tasks that are due on the date described by the given expression. See the
-         * [User Guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [User Guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions. The expression must evaluate to a
          * `java.util.Date` or `org.joda.time.DateTime` object.
          */
         dueDateExpression?: string;
         /**
          * Restrict to tasks that are due after the given date. By
-         * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have
+         * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have
          * the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g.,
          * `2013-01-23T14:42:45.435+0200`.
          */
@@ -26125,14 +26139,14 @@ export type GetTasksCountData = {
         /**
          * Restrict to tasks that are due after the date described by the given expression.
          * See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions. The expression must evaluate to a
          * `java.util.Date` or `org.joda.time.DateTime` object.
          */
         dueAfterExpression?: string;
         /**
          * Restrict to tasks that are due before the given date. By
-         * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have
+         * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have
          * the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g.,
          * `2013-01-23T14:42:45.243+0200`.
          */
@@ -26140,7 +26154,7 @@ export type GetTasksCountData = {
         /**
          * Restrict to tasks that are due before the date described by the given expression.
          * See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions. The expression must evaluate to a
          * `java.util.Date` or `org.joda.time.DateTime` object.
          */
@@ -26152,7 +26166,7 @@ export type GetTasksCountData = {
         withoutDueDate?: boolean;
         /**
          * Restrict to tasks that have a followUp date on the given date. By
-         * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date
+         * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date
          * must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g.,
          * `2013-01-23T14:42:45.342+0200`.
          */
@@ -26160,14 +26174,14 @@ export type GetTasksCountData = {
         /**
          * Restrict to tasks that have a followUp date on the date described by the given
          * expression. See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions. The expression must evaluate to a
          * `java.util.Date` or `org.joda.time.DateTime` object.
          */
         followUpDateExpression?: string;
         /**
          * Restrict to tasks that have a followUp date after the given date. By
-         * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the
+         * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the
          * date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g.,
          * `2013-01-23T14:42:45.542+0200`.
          */
@@ -26175,14 +26189,14 @@ export type GetTasksCountData = {
         /**
          * Restrict to tasks that have a followUp date after the date described by the given
          * expression. See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions. The expression must evaluate to a
          * `java.util.Date` or `org.joda.time.DateTime` object.
          */
         followUpAfterExpression?: string;
         /**
          * Restrict to tasks that have a followUp date before the given date. By
-         * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the
+         * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the
          * date must have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g.,
          * `2013-01-23T14:42:45.234+0200`.
          */
@@ -26190,14 +26204,14 @@ export type GetTasksCountData = {
         /**
          * Restrict to tasks that have a followUp date before the date described by the given
          * expression. See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions. The expression must evaluate to a
          * `java.util.Date` or `org.joda.time.DateTime` object.
          */
         followUpBeforeExpression?: string;
         /**
          * Restrict to tasks that have no followUp date or a followUp date before the given date.
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the
          * format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.432+0200`. The
          * typical use case is to query all `active` tasks for a user for a given date.
          */
@@ -26205,65 +26219,65 @@ export type GetTasksCountData = {
         /**
          * Restrict to tasks that have no followUp date or a followUp date before the date
          * described by the given expression. See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions. The expression must evaluate to a
          * `java.util.Date` or `org.joda.time.DateTime` object.
          */
         followUpBeforeOrNotExistentExpression?: string;
         /**
          * Restrict to tasks that were created on the given date. By
-         * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have
+         * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have
          * the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.324+0200`.
          */
         createdOn?: string;
         /**
          * Restrict to tasks that were created on the date described by the given expression.
          * See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions. The expression must evaluate to a
          * `java.util.Date` or `org.joda.time.DateTime` object.
          */
         createdOnExpression?: string;
         /**
          * Restrict to tasks that were created after the given date. By
-         * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the
+         * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the
          * format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.342+0200`.
          */
         createdAfter?: string;
         /**
          * Restrict to tasks that were created after the date described by the given expression.
          * See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions. The expression must evaluate to a
          * `java.util.Date` or `org.joda.time.DateTime` object.
          */
         createdAfterExpression?: string;
         /**
          * Restrict to tasks that were created before the given date. By
-         * [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must have the
+         * [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must have the
          * format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.332+0200`.
          */
         createdBefore?: string;
         /**
          * Restrict to tasks that were created before the date described by the given expression.
          * See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions. The expression must evaluate to a
          * `java.util.Date` or `org.joda.time.DateTime` object.
          */
         createdBeforeExpression?: string;
         /**
          * Restrict to tasks that were updated after the given date. Every action that fires
-         * a [task update event](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/delegation-code/#task-listener-event-lifecycle) is considered as updating the task.
-         * By [default](https://docs.cibseven.org/manual/2.1/reference/rest/overview/date-format/), the date must
+         * a [task update event](https://docs.operaton.org/manual/1.0/user-guide/process-engine/delegation-code/#task-listener-event-lifecycle) is considered as updating the task.
+         * By [default](https://docs.operaton.org/manual/1.0/reference/rest/overview/date-format/), the date must
          * have the format `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, e.g., `2013-01-23T14:42:45.332+0200`.
          */
         updatedAfter?: string;
         /**
          * Restrict to tasks that were updated after the date described by the given expression. Every action that fires
-         * a [task update event](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/delegation-code/#task-listener-event-lifecycle) is considered as updating the task.
+         * a [task update event](https://docs.operaton.org/manual/1.0/user-guide/process-engine/delegation-code/#task-listener-event-lifecycle) is considered as updating the task.
          * See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions. The expression must evaluate to a
          * `java.util.Date` or `org.joda.time.DateTime` object.
          */
@@ -26281,7 +26295,7 @@ export type GetTasksCountData = {
         /**
          * Restrict to tasks that are offered to any of the candidate groups described by the
          * given expression. See the
-         * [user guide](https://docs.cibseven.org/manual/2.1/user-guide/process-engine/expression-language/#internal-context-functions)
+         * [user guide](https://docs.operaton.org/manual/1.0/user-guide/process-engine/expression-language/#internal-context-functions)
          * for more information on available functions. The expression must evaluate to
          * `java.util.List` of Strings.
          */
@@ -26419,7 +26433,7 @@ export type GetTasksCountData = {
 export type GetTasksCountErrors = {
     /**
      * Returned if some of the query parameters are invalid. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -26446,7 +26460,7 @@ export type QueryTasksCountData = {
 export type QueryTasksCountErrors = {
     /**
      * Returned if some of the query parameters are invalid. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -26473,7 +26487,7 @@ export type CreateTaskData = {
 export type CreateTaskErrors = {
     /**
      * Returned if a not valid `delegationState` is supplied. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -26500,13 +26514,13 @@ export type GetTaskCountByCandidateGroupData = {
 export type GetTaskCountByCandidateGroupErrors = {
     /**
      * Returned if some of the query parameters are invalid or mandatory parameters are not supplied. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * If the authenticated user is unauthorized to read the history. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     403: ExceptionDto;
@@ -26538,12 +26552,12 @@ export type DeleteTaskData = {
 export type DeleteTaskErrors = {
     /**
      * Bad Request. The Task with the given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
     /**
      * The Task with the given id cannot be deleted because it is part of a running process or case instance.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for
      * the error response format.
      */
     500: ExceptionDto;
@@ -26575,7 +26589,7 @@ export type GetTaskData = {
 export type GetTaskErrors = {
     /**
      * Task with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -26607,7 +26621,7 @@ export type UpdateTaskData = {
 export type UpdateTaskErrors = {
     /**
      * Returned if a not valid `delegationState` is supplied. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -26647,7 +26661,7 @@ export type SetAssigneeErrors = {
     /**
      * Task with given id does not exist or setting the assignee was not successful.
      * See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -26861,19 +26875,19 @@ export type HandleBpmnErrorData = {
 export type HandleBpmnErrorErrors = {
     /**
      * Returned if the `errorCode` or `id` are not present in the request. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * If the authenticated user is unauthorized to update the task. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     403: AuthorizationExceptionDto;
     /**
      * Returned if the task does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -26906,19 +26920,19 @@ export type HandleEscalationErrors = {
     /**
      * Returned if the <code>escalationCode</code> is not provided in
      * the request. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * If the authenticated user is unauthorized to update the process instance. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     403: AuthorizationExceptionDto;
     /**
      * Returned if the task does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -26953,7 +26967,7 @@ export type ClaimData = {
 export type ClaimErrors = {
     /**
      * Task with given id does not exist or claiming was not successful. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -26985,12 +26999,12 @@ export type DeleteTaskCommentsData = {
 export type DeleteTaskCommentsErrors = {
     /**
      * Returned if a given task id is invalid. Orhe history of the engine is disabled.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
     /**
      * The authenticated user is unauthorized to delete this resource. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: AuthorizationExceptionDto;
@@ -27022,7 +27036,7 @@ export type GetCommentsData = {
 export type GetCommentsErrors = {
     /**
      * No task exists for the given task id. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -27058,12 +27072,12 @@ export type UpdateTaskCommentData = {
 export type UpdateTaskCommentErrors = {
     /**
      * Returned if a given task id or comment id is invalid. Or the history of the engine is disabled.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
     /**
      * The authenticated user is unauthorized to update this resource. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: AuthorizationExceptionDto;
@@ -27098,13 +27112,13 @@ export type CreateCommentData = {
 export type CreateCommentErrors = {
     /**
      * The task does not exist or no comment message was submitted. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * The history of the engine is disabled. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     403: AuthorizationExceptionDto;
@@ -27140,12 +27154,12 @@ export type DeleteTaskCommentData = {
 export type DeleteTaskCommentErrors = {
     /**
      * Returned if a given task id or comment id is invalid. Or history of the engine is disabled.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
     /**
      * The authenticated user is unauthorized to delete this resource. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: AuthorizationExceptionDto;
@@ -27182,7 +27196,7 @@ export type GetCommentErrors = {
     /**
      * The task or comment with given task and comment id does not exist, or the history of
      * the engine is disabled. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -27215,14 +27229,14 @@ export type CompleteErrors = {
     /**
      * The variable value or type is invalid, for example if the value could not be parsed
      * to an Integer value or the passed variable type is not supported. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * If the task does not exist or the corresponding process instance could not be
      * resumed successfully. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -27263,7 +27277,7 @@ export type DelegateTaskData = {
 export type DelegateTaskErrors = {
     /**
      * If the task does not exist or delegation was not successful. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -27295,19 +27309,19 @@ export type GetDeployedFormData = {
 export type GetDeployedFormErrors = {
     /**
      * The form key has wrong format. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * The deployed form cannot be retrieved due to missing permissions on task resource.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     403: AuthorizationExceptionDto;
     /**
      * No deployed form for a given task exists. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -27339,7 +27353,7 @@ export type GetFormData = {
 export type GetFormErrors = {
     /**
      * Task with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -27399,7 +27413,7 @@ export type GetFormVariablesData = {
 export type GetFormVariablesErrors = {
     /**
      *  id is null or does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -27438,7 +27452,7 @@ export type GetIdentityLinksData = {
 export type GetIdentityLinksErrors = {
     /**
      * Task with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
 };
@@ -27469,7 +27483,7 @@ export type AddIdentityLinkData = {
 export type AddIdentityLinkErrors = {
     /**
      * Task with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for the error response format.
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for the error response format.
      */
     400: ExceptionDto;
 };
@@ -27500,7 +27514,7 @@ export type DeleteIdentityLinkData = {
 export type DeleteIdentityLinkErrors = {
     /**
      * Task with given id does not exist.
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for
      * the error response format.
      */
     400: ExceptionDto;
@@ -27549,7 +27563,7 @@ export type GetTaskLocalVariablesData = {
 export type GetTaskLocalVariablesErrors = {
     /**
      * Task id is `null` or does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -27584,13 +27598,13 @@ export type ModifyTaskLocalVariablesErrors = {
     /**
      * The variable value or type is invalid. For example the value could not be parsed to an `Integer` value
      * or the passed variable type is not supported. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Update or delete could not be executed because the task is `null` or does not exist.. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -27626,7 +27640,7 @@ export type DeleteTaskLocalVariableData = {
 export type DeleteTaskLocalVariableErrors = {
     /**
      * Task id is `null` or does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -27679,13 +27693,13 @@ export type GetTaskLocalVariableData = {
 export type GetTaskLocalVariableErrors = {
     /**
      * Variable with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
     /**
      * Task id is `null` or does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -27722,13 +27736,13 @@ export type PutTaskLocalVariableErrors = {
     /**
      * The variable name, value or type is invalid, for example if the value could not be parsed to an `Integer`
      * value or the passed variable type is not supported or a new transient variable has the name that is
-     * already persisted. See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * already persisted. See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * The variable name is `null`, or the Task id is `null` or does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -27764,13 +27778,13 @@ export type GetTaskLocalVariableBinaryData = {
 export type GetTaskLocalVariableBinaryErrors = {
     /**
      * Variable with given id exists but is not a binary variable.See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Variable with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -27809,13 +27823,13 @@ export type SetBinaryTaskLocalVariableData = {
 export type SetBinaryTaskLocalVariableErrors = {
     /**
      * The variable value or type is invalid, for example if no filename is set. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Variable name is `null`, or the Task id is `null` or does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -27848,7 +27862,7 @@ export type GetRenderedFormErrors = {
     /**
      * The task with the given id does not exist or has no form field metadata defined for
      * this task. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -27881,14 +27895,14 @@ export type ResolveErrors = {
     /**
      * The variable value or type is invalid, for example if the value could not be parsed
      * to an Integer value or the passed variable type is not supported. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * If the task does not exist or the corresponding process instance could not be
      * resumed successfully. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -27922,14 +27936,14 @@ export type SubmitErrors = {
      * The variable value or type is invalid, for example if the value could not be parsed to an Integer value
      * or the passed variable type is not supported.
      *
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for
      * the error response format.
      */
     400: ExceptionDto;
     /**
      * If the task does not exist or the corresponding process instance could not be resumed successfully.
      *
-     * See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling) for
+     * See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling) for
      * the error response format.
      */
     500: ExceptionDto;
@@ -27967,7 +27981,7 @@ export type UnclaimData = {
 export type UnclaimErrors = {
     /**
      * The Task with the given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -28015,7 +28029,7 @@ export type GetTaskVariablesData = {
 export type GetTaskVariablesErrors = {
     /**
      * Task id is `null` or does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -28050,13 +28064,13 @@ export type ModifyTaskVariablesErrors = {
     /**
      * The variable value or type is invalid. For example the value could not be parsed to an `Integer` value
      * or the passed variable type is not supported. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Update or delete could not be executed because the task is `null` or does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -28092,7 +28106,7 @@ export type DeleteTaskVariableData = {
 export type DeleteTaskVariableErrors = {
     /**
      * Task id is null or does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -28145,13 +28159,13 @@ export type GetTaskVariableData = {
 export type GetTaskVariableErrors = {
     /**
      * Variable with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
     /**
      * Task id is `null` or does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -28188,13 +28202,13 @@ export type PutTaskVariableErrors = {
     /**
      * The variable name, value or type is invalid, for example if the value could not be parsed to an `Integer`
      * value or the passed variable type is not supported or a new transient variable has the name that is
-     * already persisted. See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * already persisted. See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * The variable name is `null`, or the Task id is `null` or does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -28230,13 +28244,13 @@ export type GetTaskVariableBinaryData = {
 export type GetTaskVariableBinaryErrors = {
     /**
      * Variable with given id exists but is not a binary variable.See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Variable with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -28275,13 +28289,13 @@ export type SetBinaryTaskVariableData = {
 export type SetBinaryTaskVariableErrors = {
     /**
      * The variable value or type is invalid, for example if no filename is set. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Variable name is `null`, or the Task id is `null` or does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -28307,7 +28321,7 @@ export type GetTelemetryConfigurationData = {
 
 export type GetTelemetryConfigurationErrors = {
     /**
-     * If the user who perform the operation is not a <b>camunda-admin</b> user.
+     * If the user who perform the operation is not a <b>operaton-admin</b> user.
      */
     401: ExceptionDto;
 };
@@ -28332,7 +28346,7 @@ export type ConfigureTelemetryData = {
 
 export type ConfigureTelemetryErrors = {
     /**
-     * If the user who perform the operation is not a <b>camunda-admin</b> user.
+     * If the user who perform the operation is not a <b>operaton-admin</b> user.
      */
     401: ExceptionDto;
 };
@@ -28421,7 +28435,7 @@ export type QueryTenantsErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy` is specified. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -28491,7 +28505,7 @@ export type GetTenantCountData = {
 export type GetTenantCountErrors = {
     /**
      * Returned if some of the query parameters are invalid. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -28522,7 +28536,7 @@ export type CreateTenantErrors = {
     403: ExceptionDto;
     /**
      * The tenant could not be created due to an internal server error. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -28558,7 +28572,7 @@ export type DeleteTenantErrors = {
     403: ExceptionDto;
     /**
      * Tenant cannot be found. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -28590,7 +28604,7 @@ export type GetTenantData = {
 export type GetTenantErrors = {
     /**
      * Tenant with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -28651,7 +28665,7 @@ export type UpdateTenantErrors = {
     404: ExceptionDto;
     /**
      * The tenant could not be updated due to an internal server error. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -28712,7 +28726,7 @@ export type DeleteGroupMembershipErrors = {
     403: ExceptionDto;
     /**
      * In case an internal error occurs. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -28752,7 +28766,7 @@ export type CreateGroupMembershipErrors = {
     403: ExceptionDto;
     /**
      * In case an internal error occurs. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -28813,7 +28827,7 @@ export type DeleteUserMembershipErrors = {
     403: ExceptionDto;
     /**
      * In case an error occurs. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -28853,7 +28867,7 @@ export type CreateUserMembershipErrors = {
     403: ExceptionDto;
     /**
      * In case an internal error occurs. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -28945,7 +28959,7 @@ export type GetUsersErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if a `sortOrder` parameter is supplied,
      * but no `sortBy`, or if an invalid operator for variable comparison is used. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -29033,7 +29047,7 @@ export type GetUserCountData = {
 export type GetUserCountErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example, if an invalid operator for variable
-     * comparison is used. See the [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * comparison is used. See the [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -29085,7 +29099,7 @@ export type DeleteUserErrors = {
     403: unknown;
     /**
      * A Deployment with the provided id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -29150,7 +29164,7 @@ export type UpdateCredentialsErrors = {
     404: ExceptionDto;
     /**
      * The user could not be updated due to an internal server error. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -29182,7 +29196,7 @@ export type GetUserProfileData = {
 export type GetUserProfileErrors = {
     /**
      * Execution with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -29222,7 +29236,7 @@ export type UpdateProfileErrors = {
     404: ExceptionDto;
     /**
      * The user could not be updated due to an internal server error. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     500: ExceptionDto;
@@ -29253,12 +29267,12 @@ export type UnlockUserData = {
 
 export type UnlockUserErrors = {
     /**
-     * The user who performed the operation is not a Camunda admin user.
+     * The user who performed the operation is not a Operaton admin user.
      */
     403: unknown;
     /**
      * User cannot be found. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -29409,7 +29423,7 @@ export type GetVariableInstancesErrors = {
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy`, or if an invalid operator
      * for variable comparison is used. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -29469,7 +29483,7 @@ export type QueryVariableInstancesErrors = {
      * Returned if some of the query parameters are invalid, for example if a `sortOrder`
      * parameter is supplied, but no `sortBy`, or if an invalid operator
      * for variable comparison is used. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -29579,7 +29593,7 @@ export type GetVariableInstancesCountErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if an invalid operator for variable
      * comparison is used. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -29607,7 +29621,7 @@ export type QueryVariableInstancesCountErrors = {
     /**
      * Returned if some of the query parameters are invalid, for example if an invalid operator for variable
      * comparison is used. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
@@ -29656,7 +29670,7 @@ export type GetVariableInstanceData = {
 export type GetVariableInstanceErrors = {
     /**
      * Variable with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;
@@ -29688,13 +29702,13 @@ export type GetVariableInstanceBinaryData = {
 export type GetVariableInstanceBinaryErrors = {
     /**
      * Variable with given id exists but does not serialize as binary data. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     400: ExceptionDto;
     /**
      * Variable with given id does not exist. See the
-     * [Introduction](https://docs.cibseven.org/manual/2.1/reference/rest/overview/#error-handling)
+     * [Introduction](https://docs.operaton.org/manual/1.0/reference/rest/overview/#error-handling)
      * for the error response format.
      */
     404: ExceptionDto;

@@ -3,6 +3,7 @@ import {
   createEnginePort,
   type EngineFailure,
   type EngineTransport,
+  failureOf,
   isMissing,
   isUnknownEndpoint,
   type OperationInput,
@@ -42,6 +43,34 @@ function transport(answer: (operationId: string, input: OperationInput) => Answe
 }
 
 const NO_INPUT = { pathArgs: [], query: {} }
+
+describe("failureOf", () => {
+  it("carries the status and the exception type, message and code the body states", () => {
+    const problem = { type: "InvalidRequestException", message: "No job j1", code: 7 }
+    expect(failureOf(400, problem)).toStrictEqual({
+      status: 400,
+      engineType: "InvalidRequestException",
+      engineMessage: "No job j1",
+      engineCode: 7,
+    })
+  })
+
+  it("carries only what the body states, so a page without an exception stays an unknown endpoint", () => {
+    expect(failureOf(404, undefined)).toStrictEqual({ status: 404 })
+    expect(failureOf(502, {})).toStrictEqual({ status: 502 })
+    expect(failureOf(500, { message: "boom" })).toStrictEqual({
+      status: 500,
+      engineMessage: "boom",
+    })
+    expect(failureOf(404, { type: "NullValueException", code: 0 })).toStrictEqual({
+      status: 404,
+      engineType: "NullValueException",
+      engineCode: 0,
+    })
+    expect(isUnknownEndpoint(failureOf(404, { message: "Not Found" }))).toBe(true)
+    expect(isMissing(failureOf(404, { type: "InvalidRequestException" }))).toBe(true)
+  })
+})
 
 describe("isMissing", () => {
   it("is true only for an engine 404 that names a missing resource", () => {

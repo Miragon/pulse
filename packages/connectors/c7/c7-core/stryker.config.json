@@ -10,7 +10,12 @@
     "!src/**/*.test.ts",
     "!src/testing/**",
     "!src/index.ts",
-    "!src/types.ts"
+    "!src/types.ts",
+    "scripts/build-routes.ts",
+    "scripts/effects.ts",
+    "scripts/openapi.ts",
+    "scripts/patches.ts",
+    "scripts/render.ts"
   ],
   "inPlace": true,
   "incremental": true,

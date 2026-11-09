@@ -9,9 +9,11 @@ written for the MCP server, so this file holds the CLI's own. The pages for peop
 
 - One command per REST operation of a Camunda 7 engine (Operaton, CIB seven, Camunda 7), plus
   the workflow commands (inspect, wait, advance, retry, deploy, status). The commands are data:
-  `apps/cli/src/generated/catalog.json`, generated from the vendored OpenAPI spec in
-  `apps/cli/spec/`, serves every engine. Command registration, help, `describe`, input building and body
-  validation all read the same catalog.
+  `apps/cli/src/generated/catalog.json`, generated from the one Camunda 7 REST spec of the c7
+  family, `packages/connectors/c7/c7-core/spec/api.json` with its patches applied (as c7-client's
+  SDK reads it), and from c7-core's route table, each operation's effect, serves every engine.
+  Command registration, help, `describe`, input building and body validation all read the same
+  catalog.
 - AI first: it never asks a question, previews every write (`--dry-run`), needs `--yes` to
   delete, has a read-only mode, and writes its answers as JSON and its errors as one JSON line on
   stderr with a documented exit code. A change to any of that is a change to the docs.
@@ -104,7 +106,11 @@ has to catch each on its own.
 
 Regenerate with `pnpm --fail-if-no-match --filter @miragon/pulse-cli catalog`; the package has
 no `generate` script, so turbo's cached `generate` task never replays a stale catalog. Never edit
-`apps/cli/src/generated/` by hand: change the spec patches or the generator.
+`apps/cli/src/generated/` by hand: change the spec patches
+(`packages/connectors/c7/c7-core/spec/patches.json`) or the generator. The generator reads the
+patched spec and the route table c7-core's `generate` writes as files, never as an import: a
+patch or an effect (the rule of `packages/connectors/c7/c7-core/scripts/effects.ts`) changes
+there, then c7-core's `generate` (`pnpm build` runs it) and `catalog` run in that order.
 `apps/cli/scripts/catalog/render.test.ts` fails on a stale catalog.
 
 ## Tests

@@ -56,7 +56,7 @@ it and sends requests over HTTP.
 
 ```mermaid
 flowchart LR
-  spec["spec/camunda7-rest<br/>api.json + patches.json"] --> gen["pnpm catalog<br/>scripts/catalog"]
+  spec["c7-core generate<br/>api.json + patches.json:<br/>patched spec, route table"] --> gen["pnpm catalog<br/>scripts/catalog"]
   gen --> catalog["src/generated<br/>catalog.json"]
   catalog -- loaded by --> adapter["src/engines/&lt;engine&gt;/adapter.ts"]
   adapter --> cli["src/cli<br/>commands, help, describe"]

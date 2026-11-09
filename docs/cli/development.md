@@ -54,16 +54,16 @@ docker build -t pulse-cli apps/cli && apps/cli/scripts/smoke-test.sh docker run 
 
 The command surface is data, not hand-written code:
 
-1. `apps/cli/spec/camunda7-rest/api.json` is the vendored OpenAPI spec of the Camunda 7 /
-   Operaton REST API. `apps/cli/spec/camunda7-rest/patches.json` corrects it with RFC 6902 JSON
-   patches (each with a `test` guard and a `reason`).
+1. `packages/connectors/c7/c7-core/spec/api.json` is the one OpenAPI spec of the Camunda 7 REST
+   API; c7-core's `generate` applies its `patches.json` (RFC 6902, a `test` guard and a `reason`
+   each) for every reader: the catalog, c7-client's SDK and c7-core's route table.
 2. `catalog` (`apps/cli/scripts/generate-catalog.ts`, `apps/cli/scripts/catalog`) turns it into one
    catalog per engine in `apps/cli/src/generated/`: operations with group, command name, aliases,
    effect, parameters, body and response descriptions, plus the referenced schemas. Naming
    overrides live in `apps/cli/scripts/catalog/overrides.ts`, summaries in
    `apps/cli/scripts/catalog/summaries.ts` and `apps/cli/scripts/catalog/summary-overrides.ts`,
-   effects in `apps/cli/scripts/catalog/effects.ts`. The generator fails on unresolvable `$ref`s,
-   unknown HTTP methods and command names or summaries that are not unique in their group.
+   effects in c7-core's route table (`packages/connectors/c7/c7-core/scripts/effects.ts`). It fails
+   on unresolvable `$ref`s, unknown HTTP methods or routes and non-unique names or summaries.
 3. The catalogs are committed; `apps/cli/scripts/catalog/render.test.ts` fails on a stale one. At
    runtime the same catalog drives registration, help, `describe`, input building and body
    validation, so help, docs and behavior cannot drift apart.

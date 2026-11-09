@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest"
+import { type Condition, measure } from "./conditions.js"
 import { readStatus } from "./engine-status.js"
 import { inspectInstance } from "./inspect.js"
-import { INSPECT_OPERATIONS, STATUS_OPERATIONS } from "./operations.js"
+import {
+  CONDITION_OPERATIONS,
+  CORE_OPERATIONS,
+  INSPECT_OPERATIONS,
+  STATUS_OPERATIONS,
+} from "./operations.js"
 import type { Route } from "./testing/fake-port.js"
 import { fakePort } from "./testing/fake-port.js"
 import { P } from "./testing/fixture.js"
@@ -45,5 +51,32 @@ describe("the declared operations", () => {
     expect([...sent].sort()).toEqual(
       STATUS_OPERATIONS.filter((id) => id !== "getExternalTaskErrorDetails").toSorted(),
     )
+  })
+
+  it("are all wait counts", async () => {
+    const counts: Record<string, Route> = {}
+    for (const id of CONDITION_OPERATIONS) counts[id] = () => ({ count: 0 })
+    const port = fakePort(counts)
+    const conditions: Condition[] = [
+      { kind: "idle" },
+      { kind: "task", key: "approve" },
+      { kind: "activity", id: "book" },
+    ]
+    await measure(port, { id: "p1", ended: false, tree: ["p1"] }, conditions, true)
+    const sent = new Set(port.calls.map((call) => call.operationId))
+    expect([...sent].sort()).toEqual([...CONDITION_OPERATIONS].sort())
+  })
+})
+
+describe("CORE_OPERATIONS", () => {
+  it("is every operation of the composites and the wait, once each, in order", () => {
+    const all = new Set<string>([
+      ...INSPECT_OPERATIONS,
+      ...STATUS_OPERATIONS,
+      ...CONDITION_OPERATIONS,
+    ])
+    expect(CORE_OPERATIONS).toHaveLength(all.size)
+    expect(new Set(CORE_OPERATIONS)).toEqual(all)
+    expect(CORE_OPERATIONS).toEqual([...all].sort())
   })
 })

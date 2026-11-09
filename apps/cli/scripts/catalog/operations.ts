@@ -11,7 +11,6 @@ import type {
   Schema,
 } from "../../src/catalog/types.js"
 import { jsonBody, multipartBody } from "./bodies.js"
-import { classifyEffect } from "./effects.js"
 import { assignFlags } from "./flags.js"
 import { flagName } from "./naming.js"
 import {
@@ -22,6 +21,7 @@ import {
   type Reference,
   resolve,
 } from "./openapi.js"
+import { type CatalogRoutes, routeFor } from "./routes.js"
 
 export type UnnamedOperation = Omit<OperationSpec, "group" | "name" | "aliases"> & {
   readonly tag: string
@@ -53,9 +53,6 @@ const INT32_PARAMS: ReadonlySet<string> = new Set([
   "maxPriority",
 ])
 
-/** Endpoints that are not scoped to a named process engine. */
-const ENGINE_INDEPENDENT_PATHS = new Set(["/engine", "/version"])
-
 const TRUE_ONLY = /may only be `?true`?/i
 
 interface RawOperation {
@@ -73,22 +70,29 @@ function methodOf(key: string, path: string): HttpMethod | undefined {
   return method
 }
 
-export function extractOperations(spec: OpenApiDocument): UnnamedOperation[] {
+/** The operations of the spec; each one's effect and engine scope are its route's in `routes`. */
+export function extractOperations(
+  spec: OpenApiDocument,
+  routes: CatalogRoutes,
+): UnnamedOperation[] {
   const operations: UnnamedOperation[] = []
   for (const [path, item] of Object.entries(spec.paths)) {
     for (const [key, operation] of Object.entries(item)) {
       const method = methodOf(key, path)
       if (method !== undefined) {
-        operations.push(
-          toOperation(spec, { path, method, item, operation: operation as OpenApiOperation }),
-        )
+        const raw = { path, method, item, operation: operation as OpenApiOperation }
+        operations.push(toOperation(spec, raw, routes))
       }
     }
   }
   return operations
 }
 
-function toOperation(spec: OpenApiDocument, raw: RawOperation): UnnamedOperation {
+function toOperation(
+  spec: OpenApiDocument,
+  raw: RawOperation,
+  routes: CatalogRoutes,
+): UnnamedOperation {
   const { path, method, item, operation } = raw
   const { operationId, tags } = operation
   const tag = tags?.[0]
@@ -99,6 +103,7 @@ function toOperation(spec: OpenApiDocument, raw: RawOperation): UnnamedOperation
   const responses = toResponses(spec, operation)
   const body = assignFlags(params, toBody(spec, operation, operationId))
   const unwrap = unwrapProperty(spec, responses)
+  const { effect, engineScoped } = routeFor(routes, operationId, method, path)
   return {
     operationId,
     tag,
@@ -107,8 +112,8 @@ function toOperation(spec: OpenApiDocument, raw: RawOperation): UnnamedOperation
     summary: clean(operation.summary ?? operationId),
     description: clean(operation.description ?? ""),
     deprecated: operation.deprecated === true,
-    effect: classifyEffect({ operationId, method, path, params, body, responses }, spec),
-    engineScoped: !ENGINE_INDEPENDENT_PATHS.has(path),
+    effect,
+    engineScoped,
     params,
     ...(body === undefined ? {} : { body }),
     responses,
