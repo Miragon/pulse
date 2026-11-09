@@ -30,6 +30,13 @@ describe("element names from the deployed model", () => {
       BpmnProcessIds.of('<process id="a"/><bpmn2:process isExecutable="true" id="b">'),
     ).toEqual(["a", "b"])
   })
+
+  test("read a file of unclosed process tags in linear time", () => {
+    const unclosed = "<process\t".repeat(50_000)
+    const started = performance.now()
+    expect(BpmnProcessIds.of(`${unclosed}<process id="last">`)).toEqual(["last"])
+    expect(performance.now() - started).toBeLessThan(1_000)
+  })
 })
 
 describe("the drift between the open file and the engine", () => {

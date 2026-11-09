@@ -23,7 +23,7 @@ export class MemoryFiles implements WorkspaceFiles {
   private static patternOf(glob: string): RegExp {
     const source = glob
       .replace(/[.+^$()|[\]\\]/g, "\\$&")
-      .replace(/\{([^}]*)\}/g, (_, options: string) => `(?:${options.split(",").join("|")})`)
+      .replace(/\{([^{}]*)\}/g, (_, options: string) => `(?:${options.split(",").join("|")})`)
       .replace(/\*\*\//g, "(?:.*/)?")
       .replace(/(?<!\.)\*/g, "[^/]*")
     return new RegExp(`^file:///workspace/${source}$`)

@@ -1,5 +1,5 @@
 const ID_ATTRIBUTE = /\bid="([^"]+)"/
-const PROCESS_TAG = /<(?:[\w-]+:)?process\s[^>]*>/g
+const PROCESS_TAG = /<(?:[\w-]+:)?process\s[^<>]*>/g
 
 export class BpmnProcessIds {
   static of(xml: string): string[] {
