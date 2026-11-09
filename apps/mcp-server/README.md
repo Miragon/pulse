@@ -1,32 +1,17 @@
 # Pulse MCP server
 
 [![Server image](https://img.shields.io/badge/image-ghcr.io%2Fmiragon%2Fpulse--server-2496ED?logo=docker&logoColor=white)](https://github.com/Miragon/pulse/pkgs/container/pulse-server)
-[![CI](https://github.com/Miragon/pulse/actions/workflows/ci.yml/badge.svg)](https://github.com/Miragon/pulse/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/github/license/Miragon/pulse)](../../LICENSE)
 
 ![Pulse MCP server by Miragon AI: ask your AI chat why a process is stuck, and get the answer as a view. The card shows the incident view the chat answers with: Charge payment failed because the card expired, with a Retry task button](../../docs/assets/listing/mcp-server/cover.png)
 
-An MCP server, the standard way AI assistants call tools, that answers questions about your
-Camunda 7, CIB seven and Operaton engines in Claude, ChatGPT or any other MCP client. Below 1.0:
-pin a version tag for anything beyond a first try.
+Ask Claude, ChatGPT or any other AI assistant about your Camunda 7, CIB seven or Operaton engines,
+and get the answer as an interactive view in the chat: the incident, the diagram and the root cause.
+Pulse is an MCP server, the standard way AI assistants call tools. Below 1.0: pin a version tag for
+anything beyond a first try.
 
-## Why
-
-When an order is stuck, the answer is spread over a cockpit, REST calls and logs. With Pulse you
-ask your assistant instead.
-
-## What you get
-
-- **Answers as views.** Incidents, instances, process diagrams and the engine's health render as
-  interactive views in the chat, in your host's language and theme.
-- **Read-only until you allow more.** Retries, task completion and other changes need a
-  [toolset](https://miragon.github.io/pulse/mcp/reference#toolsets) you turn on, or an OAuth login.
-- **Your whole fleet.** [Several engines](https://miragon.github.io/pulse/mcp/reference#multi-engine)
-  behind one server, with a default engine and an override per question.
-- **Process analytics.** KPIs, bottlenecks and engine comparisons from Prometheus, when you run the
-  [metrics plugin](../../engine-plugins/README.md).
-
-What you can ask, with example questions: [Usage](https://miragon.github.io/pulse/mcp/usage#what-you-can-ask).
+Free and open source (MIT). One container image you run next to your engines; no account, and your
+engine data stays in your network.
 
 ## Get started
 
@@ -37,13 +22,40 @@ at `https://pulse-playground.miragon.ai/mcp`. In Claude Code:
 claude mcp add --transport http pulse https://pulse-playground.miragon.ai/mcp
 ```
 
-claude.ai, Claude Desktop, ChatGPT and other hosts add the same URL as [Usage](https://miragon.github.io/pulse/mcp/usage#connect-your-assistant)
-shows. Then ask _"Which processes have open incidents right now?"_.
+claude.ai, Claude Desktop, ChatGPT and other hosts add the same URL as
+[Usage](https://miragon.github.io/pulse/mcp/usage#connect-your-assistant) shows. Then ask _"Which
+processes have open incidents right now?"_.
+
+## Ask why an order is stuck
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/widget-incident-dark.png">
   <img alt="Asking why an order is stuck opens the incident view: the payment task failed because the card expired, with a retry button and the process diagram with the failing step marked" src="../../docs/assets/widget-incident.png">
 </picture>
+
+Incidents, instances, process diagrams and the engine's health come back as views in the chat, in
+your host's language and theme. Click through them like a cockpit, or hand a finding back to the
+chat to explain an error or draft a ticket. What else you can ask:
+[Usage](https://miragon.github.io/pulse/mcp/usage#what-you-can-ask).
+
+## Read-only until you allow more
+
+The server only reads until you name a toolset: `engine:operations` adds retries, task completion
+and other day-to-day changes, `engine:admin` deletions and migrations. Your assistant
+asks before a change as its tool-approval settings say, and a button in a view names what it acts
+on. [Toolsets](https://miragon.github.io/pulse/mcp/reference#toolsets) lists what each one allows.
+
+## Your whole fleet
+
+One server reaches [several engines](https://miragon.github.io/pulse/mcp/reference#multi-engine),
+with a default engine and an override per question. With passthrough auth behind OAuth, each
+caller's own login reaches the engine.
+
+## Process analytics
+
+With the [metrics plugin](../../engine-plugins/README.md) in your engine and a Prometheus, Pulse
+answers where instances spend their time, how this week compares with the last and how your
+engines compare, without a query on the engine database.
 
 ## Run it on your own engine
 
@@ -60,21 +72,26 @@ claude mcp add --transport http pulse http://localhost:8400/mcp
 ```
 
 A REST API with a login takes `ENGINE_AUTH_TYPE=basic` with `ENGINE_USERNAME` and
-`ENGINE_PASSWORD`. claude.ai and ChatGPT reach only a public HTTPS URL, not `localhost`. More on
-links to CIB seven or Operaton and on Docker networks:
+`ENGINE_PASSWORD`. More on CIB seven and Operaton links and Docker networks:
 [Get started](https://miragon.github.io/pulse/mcp/getting-started#run-it-on-your-own-engine).
-Several engines, OAuth and write toolsets: [Operations](https://miragon.github.io/pulse/mcp/operations).
-A server of your own, with modules for your own systems: [Build your own server](https://miragon.github.io/pulse/mcp/build-your-own).
+OAuth, write toolsets and deployment: [Operations](https://miragon.github.io/pulse/mcp/operations).
 
-## Help and feedback
+## Good to know
 
-- **Documentation:** every tool, setting and deployment option is explained at [miragon.github.io/pulse/mcp](https://miragon.github.io/pulse/mcp/).
-- **Bugs and ideas:** found a bug or missing something? [Open an issue](https://github.com/Miragon/pulse/issues).
+- claude.ai and ChatGPT reach only a public HTTPS URL, not `localhost`; Claude Desktop needs a
+  bridge, as [Usage](https://miragon.github.io/pulse/mcp/usage#connect-your-assistant) shows.
+- Works with Operaton, CIB seven and Camunda 7, not with Camunda 8.
+- Modules for your own systems next to Pulse's: [Build your own server](https://miragon.github.io/pulse/mcp/build-your-own).
+- Pulse also runs in your terminal and in VS Code: [Pulse](../../README.md).
 
-## Contributing
+## Links
 
-How the server is built and how to run it from source is in [CONTRIBUTING.md](CONTRIBUTING.md).
+[Documentation](https://miragon.github.io/pulse/mcp/)
+·
+[Changelog](../../CHANGELOG.md)
+·
+[Report an issue](https://github.com/Miragon/pulse/issues)
+·
+[Source and contributing](CONTRIBUTING.md)
 
-## License
-
-[MIT](../../LICENSE) © Miragon GmbH
+Made by [Miragon](https://www.miragon.io). MIT licence.

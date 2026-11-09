@@ -4,7 +4,11 @@ How the extension is built, tested and released. Using it is on the
 [docs site](https://miragon.github.io/pulse/vscode/); the repository's setup and bar are in the
 root [CONTRIBUTING.md](../../CONTRIBUTING.md). Screenshots of every use case:
 [docs/screenshots](docs/screenshots/README.md). The Marketplace page is
-[MARKETPLACE.md](MARKETPLACE.md): keep it in step with [README.md](README.md).
+[MARKETPLACE.md](MARKETPLACE.md), a copy of [README.md](README.md): change both together. Their
+images use paths from the repository root (`/docs/assets/listing/vscode/…`), which GitHub resolves
+and `vsce` rewrites to `https://github.com/Miragon/pulse/raw/HEAD/…`. The gallery images are the
+screenshots of `docs/assets/vscode/` in a window frame from the `product-shots` skill
+(`render.mjs --image … --chrome mac --theme dark`).
 
 ## Architecture
 
