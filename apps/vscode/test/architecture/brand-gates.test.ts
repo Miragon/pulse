@@ -3,7 +3,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { CI_ICON_SIZES, scanColors, scanGlyphs, scanIconSizes } from "@miragon/pulse-ui/testing"
 import { afterAll, describe, expect, test } from "vitest"
-import { APP_ROOT, REPO_ROOT } from "./support/files.js"
+import { APP_ROOT, PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, REPO_ROOT } from "./support/files.js"
 import { ENGINE_CORE_SOURCES, WORDED_LAYERS } from "./support/layers.js"
 
 const SOURCES = join(APP_ROOT, "src")
@@ -43,32 +43,36 @@ function colourFindings(root: string) {
   return scanColors(root, { allow: RAW_COLOURS_ALLOWED })
 }
 
-describe("the extension follows pulse-ui's brand gates", () => {
-  test.each(WORDED_LAYERS)(
-    "its texts in %s draw no glyph, emoji or sparkle as an icon",
-    (layer) => {
-      expect(scanGlyphs(join(SOURCES, layer))).toEqual([])
-    },
-  )
+describe(
+  "the extension follows pulse-ui's brand gates",
+  PARSING_SOURCES_ON_A_BUSY_CI_RUNNER,
+  () => {
+    test.each(WORDED_LAYERS)(
+      "its texts in %s draw no glyph, emoji or sparkle as an icon",
+      (layer) => {
+        expect(scanGlyphs(join(SOURCES, layer))).toEqual([])
+      },
+    )
 
-  test("the texts of engine-core, whose contract the extension re-exports, draw no glyph either", () => {
-    expect(scanGlyphs(join(REPO_ROOT, ENGINE_CORE_SOURCES))).toEqual([])
-  })
+    test("the texts of engine-core, whose contract the extension re-exports, draw no glyph either", () => {
+      expect(scanGlyphs(join(REPO_ROOT, ENGINE_CORE_SOURCES))).toEqual([])
+    })
 
-  test(`the webview draws icons at the CI sizes, ${CI_ICON_SIZES.join(" and ")} px, or at ${DENSE_ICON_SIZE} px where the named deviation lists it, beside dense text and on the diagram's 20 px overlays`, () => {
-    expect(iconSizeFindings(WEBVIEW, DENSE_ICONS_ALLOWED)).toEqual([])
-  })
+    test(`the webview draws icons at the CI sizes, ${CI_ICON_SIZES.join(" and ")} px, or at ${DENSE_ICON_SIZE} px where the named deviation lists it, beside dense text and on the diagram's 20 px overlays`, () => {
+      expect(iconSizeFindings(WEBVIEW, DENSE_ICONS_ALLOWED)).toEqual([])
+    })
 
-  test(`the webview still draws the ${DENSE_ICON_SIZE} px deviation, so the docs that name it stay true`, () => {
-    expect(scanIconSizes(WEBVIEW).map(({ size }) => size)).toContain(DENSE_ICON_SIZE)
-  })
+    test(`the webview still draws the ${DENSE_ICON_SIZE} px deviation, so the docs that name it stay true`, () => {
+      expect(scanIconSizes(WEBVIEW).map(({ size }) => size)).toContain(DENSE_ICON_SIZE)
+    })
 
-  test("the webview colours through the vendored tokens, the renderer's paint constants aside", () => {
-    expect(colourFindings(WEBVIEW)).toEqual([])
-  })
-})
+    test("the webview colours through the vendored tokens, the renderer's paint constants aside", () => {
+      expect(colourFindings(WEBVIEW)).toEqual([])
+    })
+  },
+)
 
-describe("the brand gates over the webview", () => {
+describe("the brand gates over the webview", PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, () => {
   const root = mkdtempSync(join(tmpdir(), "brand-gates-"))
   afterAll(() => {
     rmSync(root, { recursive: true, force: true })

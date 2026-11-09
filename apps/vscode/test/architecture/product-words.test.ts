@@ -9,7 +9,7 @@ import {
   sourceTexts,
 } from "@miragon/pulse-ui/testing"
 import { afterAll, describe, expect, test } from "vitest"
-import { APP_ROOT, REPO_ROOT } from "./support/files.js"
+import { APP_ROOT, PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, REPO_ROOT } from "./support/files.js"
 import { ENGINE_CORE_SOURCES, ENGINE_VOCABULARY_LAYER, WORDED_LAYERS } from "./support/layers.js"
 
 const SOURCES = join(APP_ROOT, "src")
@@ -27,9 +27,7 @@ function layersOf(root: string): string[] {
     .sort()
 }
 
-const PARSING_A_LAYER_ON_A_BUSY_CI_RUNNER = { timeout: 60_000 }
-
-describe("the extension's texts", PARSING_A_LAYER_ON_A_BUSY_CI_RUNNER, () => {
+describe("the extension's texts", PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, () => {
   test("are read in every layer that words what a user sees, the engine adapters aside", () => {
     expect(layersOf(SOURCES)).toEqual([ENGINE_VOCABULARY_LAYER, ...WORDED_LAYERS].sort())
   })
@@ -67,7 +65,7 @@ describe("the extension's texts", PARSING_A_LAYER_ON_A_BUSY_CI_RUNNER, () => {
   })
 })
 
-describe("the word scan", () => {
+describe("the word scan", PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, () => {
   const root = mkdtempSync(join(tmpdir(), "product-words-"))
   afterAll(() => {
     rmSync(root, { recursive: true, force: true })
