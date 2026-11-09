@@ -127,8 +127,10 @@ no `generate` script, so turbo's cached `generate` task never replays a stale ca
   Operaton and CIB seven (Camunda 7's image left Docker Hub in November 2026), with Basic auth,
   behind Keycloak and an Envoy gateway, and pack the tarball.
 - No mutation testing of the CLI itself (owner decision, 2026-11-04): the repository mutates
-  only `@miragon/pulse-c7-core`, which holds the workflow rules the CLI bundles, and
-  `@miragon/pulse-http`, the transport it may bundle (owner decision 2026-11-08).
+  only `@miragon/pulse-c7-core`, which holds the workflow rules the CLI bundles,
+  `@miragon/pulse-http`, the transport it may bundle (owner decision 2026-11-08), and the
+  root-cause, value-kind and move-reason rules of `@miragon/pulse-engine-core`, whose root-cause
+  rule the CLI bundles through c7-core (owner decision 2026-11-09).
 - Coverage floors in `apps/cli/vitest.config.ts` only rise.
 
 ## The command and its second name

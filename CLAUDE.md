@@ -890,7 +890,7 @@ workspace (its header lists each check).
 | `pnpm typecheck`  | **The only check that type-checks widget code**: `tsc -p tsconfig.widgets.json` in the engine connector and widget-shell (its view half), `tsc -p tsconfig.ui.json` (and `tsconfig.test.json`) in the server app; the VS Code extension per layer, each with that layer's runtime globals only                                                                                                                                                                                                                                                                                                                                                                                        |
 | `pnpm test`       | Vitest unit tests, the server app's wire-contract tests and tools/list goldens (in-process boot, loopback HTTP), the engine output and error-path goldens of the three interfaces, the VS Code extension's architecture tests, the per-package coverage floors, then `node --test` over `scripts/*.test.mjs` (repo guards and gate self-tests, below the table); docs-refs, old-names and `lint:package-scripts` also run in Lint + Format; **no widget rendering** (the VS Code webview tests render in Chromium; locally once: `pnpm --filter pulse-cockpit exec playwright install chromium`)                                                                                      |
 | `pnpm lint`       | The build-free gates first (`lint:naming`, `lint:package-scripts`, `lint:github`, `lint:ratchets`, which needs `git fetch origin`), then ESLint per package incl. the pattern gates, dependency-cruiser (`lint:architecture`, `:cli`, `:vscode`) and knip (`lint:deadcode`: everything but exports and types; `:exports`: exports and types in every workspace but the vendored docs kit), and last `lint:configs` (the config files no tsconfig holds and no package lints: `DEFAULT_PROJECT_FILES` in `eslint.config.mjs`)                                                                                                                                                          |
-| `pnpm fitness`    | Report: architecture graph, per-package coverage and the mutation scores of c7-core and the transport; locally after `pnpm test` (no CI job on a pull request), else the "Mutation summary" job of `.github/workflows/mutation-nightly.yml`                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `pnpm fitness`    | Report: architecture graph, per-package coverage and the mutation scores of c7-core, the transport and engine-core's rules; locally after `pnpm test` (no CI job on a pull request), else the "Mutation summary" job of `.github/workflows/mutation-nightly.yml`                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `./gradlew build` | The playground engine (`playground/cibseven-example/`): Kotlin compile + unit tests of its processes; CI "CIB Seven Example (Build + Test)", in `pnpm check:all`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `test:host`       | `pnpm --filter @miragon/pulse-mcp-server test:host`: Playwright host simulation of the **built** widget bundle behind a SEP-1865 host shim, the real `engine_open_cockpit` against a stub engine (`pinned …` scenarios are known defects, flipped when fixed); CI "Widget host simulation (test:host)"; run it for changes to widget-shell, pulse-ui, `src/ui/` or the `@modelcontextprotocol/ext-apps` pin                                                                                                                                                                                                                                                                           |
 | Template          | `scripts/test-template.sh` (in `pnpm check:all`; CI "Composed-server template (Build + Test)"): packs the published libraries (`scripts/workspace-packages.mjs`), checks their contents (`scripts/pack-contents.mjs`), points a copy of `templates/composed-server` at them and runs its build, typecheck, test and format check, its pins matched to the workspace first (`scripts/template-pins.mjs`), then build, typecheck and test again with the fixture module `templates/fixtures/prebuilt-module` installed (`scripts/prebuilt-module.mjs`). ESLint, knip and dependency-cruiser skip `templates/`: the template's composition-root rules (invariant 8) are review knowledge |
@@ -918,11 +918,11 @@ host simulation renders one real view, not every widget's data path).
 **Ratchets only move one way.** `scripts/check-ratchets.mjs` (`pnpm lint:ratchets`) compares
 each against the merge base with `origin/main`, and its header lists them: coverage floors in
 each `vitest.config.ts` rise (raise one when you better a file); a `stryker.config.json`'s
-`mutate` allowlist (the tested surface; today c7-core's and the transport's) grows and its
-`thresholds.break` rises; the ESLint budgets (complexity 15 and 400 lines; the CLI and the
-VS Code extension 10 and 300), knip ignores (each with its reason), the char and bundle
-budgets (Contracts) and inline suppressions only shrink; gate commands stay as they are; a
-second config that would shadow a ratcheted one fails. The one escape is a
+`mutate` allowlist (the tested surface; today c7-core's, the transport's and engine-core's three
+rule files) grows and its `thresholds.break` rises; the ESLint budgets (complexity 15 and 400
+lines; the CLI and the VS Code extension 10 and 300), knip ignores (each with its reason), the
+char and bundle budgets (Contracts) and inline suppressions only shrink; gate commands stay as
+they are; a second config that would shadow a ratcheted one fails. The one escape is a
 `Ratchet-Exception: <reason>` commit trailer, which turns the failures into warnings for the
 reviewer; never weaken the checker instead. The trailer covers the commit that carries it: the
 checker replays the range commit by commit and waves a violation only when every commit that
@@ -932,17 +932,21 @@ makes it carries one; a commit that brings a ratchet file back to a path the mer
 `vitest.config.ts`, and a valid `stryker.config.json` sits in each package `MUTATED_PACKAGES`
 lists and in no other.
 
-**Mutation testing covers `@miragon/pulse-c7-core` and `@miragon/pulse-http`** (owner
-decisions: c7-core, engine-core until 0.27, 2026-11-04; the transport 2026-11-08). The one holds
-the pure engine rules, the other the wire rules the CLI, the MCP server and the VS Code extension
-share, so a surviving mutant there is a wrong rule in all three; in every other package a full
-run costs more than it finds. A package joins only by an owner decision, as an entry in
-`MUTATED_PACKAGES` (`scripts/check-package-scripts.mjs`). It runs nightly
-(`.github/workflows/mutation-nightly.yml`), never on a pull request (owner decision); a pause
-flips `scripts/mutation-pause.mjs` and drops the schedule. Locally:
-`pnpm --fail-if-no-match --filter @miragon/pulse-c7-core exec stryker run` and
-`pnpm --fail-if-no-match --filter @miragon/pulse-http exec stryker run` (`--mutate <file>`
-narrows it), with each package's `vitest.stryker.config.ts`: coverage off, since a threshold
-failure would read as a killed mutant. The rules of the engine family's core, its `RootCauses`
-among them (mutated with c7-core until it moved there), are not mutated until the owner decides
-on engine-core.
+**Mutation testing covers `@miragon/pulse-c7-core`, `@miragon/pulse-http` and the rules of
+`@miragon/pulse-engine-core`** (owner decisions: c7-core, engine-core until 0.27, 2026-11-04; the
+transport 2026-11-08; engine-core's rules 2026-11-09). c7-core holds the pure engine rules of the
+Camunda 7 REST family and the transport the wire rules the CLI, the MCP server and the VS Code
+extension share; engine-core's root-cause, value-kind and move-reason rules
+(`packages/connectors/engine/engine-core/src/model/root-causes.ts`, `value-kinds.ts` and
+`move-reasons.ts`, its only mutated files; `RootCauses` was mutated with c7-core until it moved)
+are the contract's rules a dialect applies: `RootCauses` in all three interfaces (the CLI and the
+MCP server reach it through c7-core), `ValueKinds` and `MoveReasons` today in the VS Code
+extension alone (its core and its C7 adapter). A surviving mutant there is a wrong rule
+everywhere it runs; in every other package a full run costs more than it finds. A package joins
+only by an owner decision, as an entry in `MUTATED_PACKAGES` (`scripts/check-package-scripts.mjs`).
+It runs nightly (`.github/workflows/mutation-nightly.yml`), never on a pull request (owner
+decision); a pause flips `scripts/mutation-pause.mjs` and drops the schedule. Locally:
+`pnpm --fail-if-no-match --filter @miragon/pulse-c7-core exec stryker run`, the same with
+`@miragon/pulse-http` and `@miragon/pulse-engine-core` (`--mutate <file>` narrows it), with each
+package's `vitest.stryker.config.ts`: coverage off, since a threshold failure would read as a
+killed mutant.

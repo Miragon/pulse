@@ -78,6 +78,12 @@
       },
     },
 
+    "packages/connectors/engine/engine-core": {
+      "vitest": {
+        "config": ["vitest.config.ts", "vitest.stryker.config.ts"],
+      },
+    },
+
     "packages/core/http": {
       "vitest": {
         "config": ["vitest.config.ts", "vitest.stryker.config.ts"],

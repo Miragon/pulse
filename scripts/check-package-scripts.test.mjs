@@ -382,13 +382,34 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
     }
   })
 
-  it("the real map lists c7-core and the transport, each with the owner's decision", () => {
-    assert.deepEqual(Object.keys(MUTATED_PACKAGES), [CORE, "packages/core/http"])
+  it("the real map lists c7-core, the transport and engine-core's rules, each with the owner's decision", () => {
+    const engineCore = "packages/connectors/engine/engine-core"
+    assert.deepEqual(Object.keys(MUTATED_PACKAGES), [CORE, "packages/core/http", engineCore])
     assert.match(
       MUTATED_PACKAGES[CORE],
       /owner decision 2026-11-04: c7-core \(engine-core until 0\.27\)/,
     )
     assert.match(MUTATED_PACKAGES["packages/core/http"], /owner decision 2026-11-08/)
+    assert.equal(
+      MUTATED_PACKAGES[engineCore],
+      "owner decision 2026-11-09: the root-cause, value-kind and move-reason rules every dialect " +
+        "and every interface share, where a surviving mutant is a wrong rule everywhere; only " +
+        "those three files are mutated",
+    )
+  })
+
+  it("engine-core's config mutates exactly its three rule files, as its reason says", () => {
+    const config = JSON.parse(
+      readFileSync(
+        path.join(repoRoot, "packages/connectors/engine/engine-core/stryker.config.json"),
+        "utf8",
+      ),
+    )
+    assert.deepEqual(config.mutate, [
+      "src/model/root-causes.ts",
+      "src/model/value-kinds.ts",
+      "src/model/move-reasons.ts",
+    ])
   })
 })
 

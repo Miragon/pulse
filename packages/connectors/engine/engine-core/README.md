@@ -136,6 +136,16 @@ Camunda 8 adapter's branch (#543):
 The repository holds that to its import graph (`engine-core-consumers` in its
 dependency-cruiser config) and the package to its own modules (`family-core-is-a-leaf`).
 
+## Mutation testing
+
+The three rules, `RootCauses`, `ValueKinds` and `MoveReasons`, are mutation-tested every night in
+the repository (StrykerJS over `src/model/root-causes.ts`, `value-kinds.ts` and `move-reasons.ts`
+against the package's own tests; owner decision 2026-11-09). They are the contract's rules a
+dialect applies: `RootCauses` in all three interfaces of Pulse (the CLI and the MCP server reach it
+through c7-core), `ValueKinds` and `MoveReasons` today in Pulse for VS Code alone, its core and
+its C7 adapter. A surviving mutant is a wrong rule wherever one runs. Nothing else of the package
+is mutated. Locally: `pnpm --fail-if-no-match --filter @miragon/pulse-engine-core exec stryker run`.
+
 ## Stability
 
 Below 1.0 without a stability promise: the laws and the fake follow Pulse for VS Code, and a new

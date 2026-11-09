@@ -72,6 +72,10 @@ describe("RootCauses.of in detail", () => {
     expect(RootCauses.of("org.x.F bar")).toBe("F bar")
     expect(RootCauses.of("a \t  b")).toBe("a b")
   })
+
+  test('drops the blanks between "Caused by:" and its cause', () => {
+    expect(RootCauses.of("Caused by:   spaced out")).toBe("spaced out")
+  })
 })
 
 describe("RootCauses.lineOf", () => {

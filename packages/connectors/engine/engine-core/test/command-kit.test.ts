@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { ElementId, RuntimeError, ValueKinds, type ProcessCommands } from "../src/index.js"
+import { ElementId, RuntimeError, type ProcessCommands } from "../src/index.js"
 import {
   COMMAND_CASE,
   ConformanceKit,
@@ -230,20 +230,6 @@ describe("a move that starts its target but keeps its source", () => {
       }),
     }
     expect(await CommandHarnesses.failingCases(keepsSource)).toEqual([COMMAND_CASE.moveSkips])
-  })
-})
-
-describe("the kind of a JSON value", () => {
-  test.each([
-    ['"text"', "string"],
-    ["42", "integer"],
-    ["-4.5e3", "decimal"],
-    ["true", "boolean"],
-    ["null", "null"],
-    ['{"a":1}', "json"],
-    ["[1]", "json"],
-  ])("%s is %s", (valueJson, kind) => {
-    expect(ValueKinds.ofJson(valueJson)).toBe(kind)
   })
 })
 
