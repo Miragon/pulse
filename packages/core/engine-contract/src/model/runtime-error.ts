@@ -6,6 +6,7 @@ export type RuntimeFailure =
   | "engineFailure"
   | "unexpectedResponse"
   | "rejected"
+  | "unsupported"
 
 export interface RuntimeErrorOptions {
   readonly hint?: string

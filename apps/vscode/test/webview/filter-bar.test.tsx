@@ -94,6 +94,29 @@ describe("the filter bar of the definition panel", () => {
     expect(harness.root.querySelector(".segmented__count--danger")).toBeNull()
   })
 
+  it("marks a count that is only a lower bound", async () => {
+    harness = mountApp()
+    harness.publish({
+      status: "ready",
+      refreshing: false,
+      view: {
+        ...DEFINITION_VIEW,
+        scopeCounts: {
+          running: 10000,
+          withIncident: 0,
+          ended: 2,
+          all: 10002,
+          atLeast: ["running", "all"],
+        },
+      },
+    })
+    await waitForElement(harness.root, '[role="radiogroup"]')
+
+    expect(radioNamed(harness.root, "Running").textContent).toBe("Running 10k+")
+    expect(radioNamed(harness.root, "Running").querySelector("span")?.title).toBe("≥ 10,000")
+    expect(radioNamed(harness.root, "Ended").textContent).toBe("Ended 2")
+  })
+
   it("puts the element chip and the search on a second row when it is narrow", async () => {
     harness = mountApp({ width: 600 })
     harness.publish(FILTERED)

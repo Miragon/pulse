@@ -1,18 +1,12 @@
 import { useEffect, useId, useRef, useState } from "preact/hooks"
-import type { VariableConditionView } from "../../core/protocol/index.js"
-import {
-  COMPARE_AS,
-  OPERATORS_OF,
-  VariableDraft,
-  type CompareAs,
-  type Draft,
-  type DraftErrors,
-} from "./variable-draft.js"
+import type { RefusedVariableCondition, VariableConditionView } from "../../core/protocol/index.js"
+import { VariableDraft, type CompareAs, type Draft, type DraftErrors } from "./variable-draft.js"
 
 export interface VariableConditionDialogProps {
   readonly initial?: VariableConditionView | undefined
   readonly others: number
   readonly suggestions: readonly string[]
+  readonly refused?: readonly RefusedVariableCondition[]
   readonly onApply: (condition: VariableConditionView) => void
   readonly onClose: () => void
 }
@@ -70,7 +64,11 @@ function NameField({
   )
 }
 
-function ComparisonFields({ draft, onDraft }: FieldProps) {
+function ComparisonFields({
+  draft,
+  onDraft,
+  refused,
+}: FieldProps & { readonly refused: readonly RefusedVariableCondition[] }) {
   const compareAsId = useId()
   const operatorId = useId()
   return (
@@ -87,7 +85,7 @@ function ComparisonFields({ draft, onDraft }: FieldProps) {
             onDraft((current) => VariableDraft.withCompareAs(current, compareAs))
           }}
         >
-          {COMPARE_AS.map(([value, label]) => (
+          {VariableDraft.compareAsOptions(refused).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
             </option>
@@ -108,7 +106,7 @@ function ComparisonFields({ draft, onDraft }: FieldProps) {
             onDraft((current) => ({ ...current, operator: chosen }))
           }}
         >
-          {OPERATORS_OF[draft.compareAs].map((option) => (
+          {VariableDraft.operatorsOf(draft.compareAs, refused).map((option) => (
             <option key={option} value={option}>
               {VariableDraft.operatorLabel(draft.compareAs, option)}
             </option>
@@ -237,7 +235,12 @@ export function VariableConditionDialog(props: VariableConditionDialogProps) {
         </h2>
         <p class="muted">An instance matches when all conditions hold.</p>
         <NameField draft={draft} errors={errors} onDraft={setDraft} suggestions={suggestions} />
-        <ComparisonFields draft={draft} errors={errors} onDraft={setDraft} />
+        <ComparisonFields
+          draft={draft}
+          errors={errors}
+          onDraft={setDraft}
+          refused={props.refused ?? []}
+        />
         <ValueField draft={draft} errors={errors} onDraft={setDraft} />
         {errors.count !== undefined && (
           <p class="condition-dialog__error" role="alert">

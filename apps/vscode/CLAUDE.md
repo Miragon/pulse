@@ -18,7 +18,7 @@ pnpm lint:architecture:vscode                   # the closed-world dependency ru
 pnpm lint:deadcode                              # knip over every workspace: dead files, dependencies, enum members
 pnpm lint:deadcode:exports                      # knip over every workspace but docs: unused exports and types
 pnpm --filter pulse-cockpit test                 # unit and webview (Chromium) tests, coverage floors
-pnpm --filter @miragon/pulse-engine-contract test # the kit's self-tests: the fake passes every law, 59 saboteurs fail theirs
+pnpm --filter @miragon/pulse-engine-contract test # the kit's self-tests: the fake passes every law, 71 saboteurs fail theirs
 pnpm --filter pulse-cockpit run test:engines     # adapter conformance on a real engine; needs podman/docker
 pnpm --filter pulse-cockpit run test:smoke       # the extension activates in a real VS Code
 pnpm --filter pulse-cockpit run test:e2e         # VS Code e2e; needs `engine:up`

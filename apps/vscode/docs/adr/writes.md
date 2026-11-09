@@ -38,8 +38,8 @@ a plan the engine proposes and the user can change. Its own record is
 `ProcessRuntime` stays read-only. Writes go through a second, optional port
 `ProcessCommands` (`retryIncident`, `setVariable`, `moveToken`, `cancelInstances`,
 `migrateInstances`, `stopBulkOperation`); progress and what a write needs to be planned
-are reads (`ProcessRuntime.getBulkOperation`, `getBulkFailures`, `proposeMigration`,
-`checkMigration`). See
+are reads (`ProcessRuntime.getBulkOperation`, `getBulkFailures`, `proposeMigration?`,
+`checkMigration?`). See
 [runtime-contract.md](runtime-contract.md). A connection carries commands only when the
 policy allows writes for it, so the core and the webview never decide whether writing
 is allowed; they only see whether commands are there.
@@ -205,7 +205,9 @@ submit; it comes back when the engine refused the start. Ticks and Load more kee
 **The cap refuses, it never cuts.** A bulk operation takes at most 1000 instances. When
 more run, the selection bar says "1234 match · narrow the filter to 1000 or fewer" and
 offers no Select all; a toggle that would go beyond 1000 is refused as a whole. Pulse
-never cancels the first 1000 of more without saying so.
+never cancels the first 1000 of more without saying so. The bar reads the scope counts as
+exact: a count that is only a lower bound (`atLeast`) comes from a dialect that does not write
+today, and the first one that does carries the bound into "Select all" and the cap note.
 
 **Re-read before the dialog.** `BulkWrite` reads the selected ids again
 (`searchInstances` with `instanceIds` and the panel's `definitionId`, one call). Only

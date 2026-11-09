@@ -2,6 +2,7 @@ import { PatchedRuntime } from "@miragon/pulse-engine-contract/testing"
 import { BpmnProcessId, RuntimeError } from "../../src/contract/index.js"
 import { describe, expect, test } from "vitest"
 import { DefinitionPanel } from "../../src/core/panels/definition-panel.js"
+import { EnginePanel } from "../../src/core/panels/engine-panel.js"
 import type { DefinitionView, PanelState } from "../../src/core/protocol/index.js"
 import { panelFixture } from "./support/panel-fixture.js"
 
@@ -90,6 +91,71 @@ describe("the definition panel", () => {
       ended: 1,
       all: 1,
     })
+  })
+
+  test("says which counts are lower bounds, and that a sum over one is too", async () => {
+    const fixture = panelFixture(
+      (runtime) =>
+        new PatchedRuntime(runtime, {
+          countInstances: (filter) =>
+            Promise.resolve(
+              filter.lifecycle === "running" && filter.withIncident !== true
+                ? { count: 10000, atLeast: true }
+                : { count: 2 },
+            ),
+        }),
+    )
+    const definitionId = fixture.world.definitionIds["order@1"]
+    const panel = new DefinitionPanel(fixture.context, { bpmnProcessId: ORDER, definitionId })
+
+    await panel.handle({ type: "ready" })
+
+    expect(readyView(fixture.lastState()).scopeCounts).toEqual({
+      running: 10000,
+      withIncident: 2,
+      ended: 2,
+      all: 10002,
+      atLeast: ["running", "all"],
+    })
+  })
+
+  test("keeps all exact when only the count with an incident is a lower bound", async () => {
+    const fixture = panelFixture(
+      (runtime) =>
+        new PatchedRuntime(runtime, {
+          countInstances: (filter) =>
+            filter.withIncident === true
+              ? Promise.resolve({ count: 10000, atLeast: true })
+              : runtime.countInstances(filter),
+        }),
+    )
+    const definitionId = fixture.world.definitionIds["order@1"]
+    const panel = new DefinitionPanel(fixture.context, { bpmnProcessId: ORDER, definitionId })
+
+    await panel.handle({ type: "ready" })
+
+    expect(readyView(fixture.lastState()).scopeCounts).toMatchObject({
+      withIncident: 10000,
+      atLeast: ["withIncident"],
+    })
+  })
+
+  test("names the variable conditions the engine refuses, and none when it refuses none", async () => {
+    const refusing = panelFixture(
+      (runtime) =>
+        new PatchedRuntime(runtime, { refusedVariableConditions: () => ["ordering", "date"] }),
+    )
+    const definitionId = refusing.world.definitionIds["order@1"]
+    await new DefinitionPanel(refusing.context, { bpmnProcessId: ORDER, definitionId }).handle({
+      type: "ready",
+    })
+    expect(readyView(refusing.lastState()).refusedVariableConditions).toEqual(["ordering", "date"])
+
+    const answering = panelFixture()
+    await new DefinitionPanel(answering.context, { bpmnProcessId: ORDER, definitionId }).handle({
+      type: "ready",
+    })
+    expect(readyView(answering.lastState()).refusedVariableConditions).toBeUndefined()
   })
 
   test("keeps the counts when it loads more instances", async () => {
@@ -207,6 +273,51 @@ describe("the definition panel", () => {
       status: "failed",
       problem: { title: "The process nope was not found." },
     })
+  })
+
+  test("names a search the engine cannot do, and the engine's live updates go on", async () => {
+    const fixture = panelFixture(
+      (runtime) =>
+        new PatchedRuntime(runtime, {
+          searchInstances: (filter, page) =>
+            filter.variables === undefined
+              ? runtime.searchInstances(filter, page)
+              : Promise.reject(
+                  new RuntimeError("unsupported", "The engine compares no variable by size."),
+                ),
+        }),
+      { live: "on" },
+    )
+    const panel = new DefinitionPanel(fixture.context, { bpmnProcessId: ORDER })
+    const engine = new EnginePanel(fixture.context)
+    await panel.handle({ type: "ready" })
+    await engine.handle({ type: "ready" })
+    panel.attend("watched")
+    engine.attend("watched")
+
+    await panel.handle({
+      type: "filterInstances",
+      filter: {
+        scope: "running",
+        variables: [{ name: "amount", operator: "greaterThan", value: "5" }],
+      },
+    })
+
+    expect(fixture.lastState()).toMatchObject({
+      status: "failed",
+      problem: {
+        title: "local cannot do this.",
+        detail: "The engine compares no variable by size.",
+        canEditConnection: false,
+      },
+      staleView: { kind: "definition" },
+    })
+    expect(fixture.context.live?.lane.isBlocked).toBe(false)
+    expect(fixture.log.some((line) => line.includes("engine blocked"))).toBe(false)
+    fixture.calls.length = 0
+    await fixture.scheduler.advance(30_000)
+    expect(fixture.calls).toContain("getElementStatistics")
+    expect(fixture.calls).toContain("listDefinitions")
   })
 
   test("hands host actions to the effects", async () => {

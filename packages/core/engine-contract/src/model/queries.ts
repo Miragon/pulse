@@ -37,6 +37,13 @@ export type VariableCondition =
       readonly pattern: string
     }
 
+export type VariableConditionKind = "ordering" | "date"
+
+export interface InstanceCount {
+  readonly count: number
+  readonly atLeast?: true
+}
+
 export interface IncidentFilter {
   readonly bpmnProcessId?: BpmnProcessId
   readonly definitionId?: DefinitionId

@@ -137,7 +137,9 @@ the diagram, the "Instances … · n running" header and the toolbar.
   quotes) has its remove button and keeps its width up to 240 px, the bar wrapping into a
   second row instead; all conditions must hold, at most 5. Automatic reads
   `42` and `-4.5` as a number, `true` and `false` as true or false and anything else as
-  text; _matches_ compares text and _is greater than_ and _is less than_ numbers.
+  text; _matches_ compares text and _is greater than_ and _is less than_ numbers. The dialog
+  leaves out what the engine refuses (`DefinitionView.refusedVariableConditions`): _Date and
+  time_ for `date`, _is greater than_ and _is less than_ for `ordering`.
   `VariableConditionRules` in the protocol holds these rules for the guard and the core,
   which also labels the chips (`DefinitionView.variableLabels`); the webview imports the
   protocol as types only, so the dialog keeps its operator table, number and date patterns and cap
@@ -192,8 +194,8 @@ Bulk cancel lives in the definition panel; who may and how it is confirmed is in
   selected: "12 selected" (or "All 117 running selected", announced politely),
   "Select all 117 running" while more run than are selected, "1234 match · narrow the
   filter to 1000 or fewer" above the cap instead, then _Cancel instances…_ and, when the
-  process has another version, _Migrate to version…_ or, while a run of the process is
-  active, "Wait until cancelling 44 instances ends", and _Clear_.
+  process has another version and the engine plans migrations, _Migrate to version…_ or,
+  while a run of the process is active, "Wait until cancelling 44 instances ends", and _Clear_.
   The button is never greyed out. Below 760 px the bar wraps and the note takes a row of
   its own.
 - **Bulk strip**, docked under the header above the notices, one per process and engine,

@@ -130,7 +130,8 @@
   font-variant-numeric: tabular-nums;
 }
 
-.counter__threshold.counter__threshold--above {
+.counter__threshold.counter__threshold--above,
+.counter__threshold.counter__threshold--undecided {
   color: var(--cd-ui-warning);
 }
 

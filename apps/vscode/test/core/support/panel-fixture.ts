@@ -43,14 +43,18 @@ const RUNTIME_METHODS = [
   "getIncidentDetails",
   "getBulkOperation",
   "getBulkFailures",
+] as const satisfies readonly (keyof ProcessRuntime)[]
+
+const PLANNING_METHODS = [
   "proposeMigration",
   "checkMigration",
 ] as const satisfies readonly (keyof ProcessRuntime)[]
 
 function counting(runtime: ProcessRuntime): CountingRuntime {
   const calls: string[] = []
+  const planning = PLANNING_METHODS.filter((name) => runtime[name] !== undefined)
   const counted = Object.fromEntries(
-    RUNTIME_METHODS.map((name) => [
+    [...RUNTIME_METHODS, ...planning].map((name) => [
       name,
       (...args: unknown[]) => {
         calls.push(name)
@@ -58,7 +62,11 @@ function counting(runtime: ProcessRuntime): CountingRuntime {
       },
     ]),
   ) as unknown as ProcessRuntime
-  return { runtime: counted, calls }
+  const refused = runtime.refusedVariableConditions?.bind(runtime)
+  return {
+    runtime: refused === undefined ? counted : { ...counted, refusedVariableConditions: refused },
+    calls,
+  }
 }
 
 export interface PanelFixture {

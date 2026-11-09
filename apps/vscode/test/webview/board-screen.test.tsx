@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest"
-import type { BoardView, PanelState } from "../../src/core/protocol/index.js"
+import type {
+  BoardView,
+  CounterEntry,
+  CounterTile,
+  PanelState,
+} from "../../src/core/protocol/index.js"
 import { BOARD_VIEW, BROKEN_BOARD_VIEW } from "../../dev/webview/fixtures/board.js"
 import { TimeLabels } from "../../src/webview/format/time-labels.js"
 import { buttonNamed, mountApp, waitForElement } from "./harness.js"
@@ -150,6 +155,71 @@ describe("a board", () => {
     expect(counter.querySelector(".counter__partial")).toBeNull()
   })
 
+  it("warns in the warning style when an engine stopped counting at or below the threshold", async () => {
+    const tile = {
+      kind: "counter",
+      title: "Running",
+      total: 10002,
+      totalAtLeast: true,
+      known: 2,
+      warnAbove: 20000,
+      entries: [
+        { engine: "capped", count: 10000, atLeast: true, undecided: true },
+        { engine: "local", count: 2 },
+      ],
+    } as const
+    harness = mountApp()
+    harness.publish(ready({ ...BOARD_VIEW, rows: [[tile]] }))
+    const counter = await waitForElement(harness.root, ".board-card--counter")
+    const threshold = counter.querySelector(".counter__threshold")
+
+    expect(threshold?.textContent).toBe("capped stopped counting at 10,000 · warns above 20,000")
+    expect(threshold?.classList).toContain("counter__threshold--undecided")
+    expect(threshold?.querySelector(".icon")).not.toBeNull()
+    expect(counter.querySelector(".counter__value")?.textContent).toBe("≥ 10,002")
+    expect(texts(counter, ".counter__engine")).toEqual(["capped≥ 10,000", "local2"])
+    expect(counter.querySelector(".counter__entry--above")).toBeNull()
+  })
+
+  it("names the engines that stopped counting next to the engines above the threshold", async () => {
+    const capped = { engine: "capped", count: 10000, atLeast: true, undecided: true } as const
+    const search = { ...capped, engine: "search" } as const
+    const local = { engine: "local", count: 25000, above: true } as const
+    const shop = { ...local, engine: "shop-test" } as const
+    const counter = (entries: readonly CounterEntry[]): CounterTile => ({
+      kind: "counter",
+      title: "Running",
+      total: entries.reduce((sum, entry) => sum + (entry.count ?? 0), 0),
+      totalAtLeast: true,
+      known: entries.length,
+      warnAbove: 20000,
+      entries,
+    })
+    const tiles = [
+      [capped, search],
+      [capped, local],
+      [capped, search, local],
+      [capped, local, shop],
+    ]
+    harness = mountApp()
+    harness.publish(ready({ ...BOARD_VIEW, rows: [tiles.map(counter)] }))
+    await waitForElement(harness.root, ".board-card--counter")
+
+    const lines = [
+      "local above 20,000 · capped stopped counting at 10,000 · warns above 20,000",
+      "local above 20,000 · 2 engines stopped counting · warns above 20,000",
+      "2 engines above 20,000 · capped stopped counting at 10,000 · warns above 20,000",
+    ]
+    expect(texts(harness.root, ".counter__threshold")).toEqual([
+      "2 engines stopped counting · warns above 20,000",
+      ...lines,
+    ])
+    expect(texts(harness.root, ".counter__threshold--above")).toEqual(lines)
+    expect(texts(harness.root, ".counter__threshold--undecided")).toEqual([
+      "2 engines stopped counting · warns above 20,000",
+    ])
+  })
+
   it("lists instances with incident per process and opens a process with its filter", async () => {
     harness = mountApp()
     harness.publish(ready(BOARD_VIEW))
@@ -268,6 +338,43 @@ describe("a board", () => {
     expect(cells[2]).toBe(TimeLabels.clock(row.endedAt))
     expect(cells[3]).toBe("81a2e0b4…")
     expect(texts(harness.root, ".board-groups__note")).toEqual(["local: showing 1 of ?"])
+  })
+
+  it("says of a list's total that an engine stopped counting there", async () => {
+    const row = {
+      engine: "capped",
+      id: "81a2e0b4-3c1d-11ef-9a3e-0242ac120002",
+      shortId: "81a2e0b4…",
+      processName: "Order fulfillment",
+      bpmnProcessId: "order-fulfillment",
+      version: 3,
+      state: "Running",
+      hasIncident: false,
+    } as const
+    const capped = {
+      ...BOARD_VIEW,
+      rows: [
+        [
+          {
+            kind: "instanceList",
+            title: "Running orders",
+            columns: ["engine", "process"],
+            groups: [
+              { engine: "capped", total: 10000, totalAtLeast: true, rows: [row] },
+              { engine: "local", total: 1, rows: [{ ...row, engine: "local" }] },
+            ],
+          },
+        ],
+      ],
+    } satisfies BoardView
+    harness = mountApp()
+    harness.publish(ready(capped))
+    await waitForElement(harness.root, ".board-card--instanceList tbody tr")
+
+    expect(texts(harness.root, ".board-groups__note")).toEqual([
+      "capped: showing 1 of ≥ 10,000",
+      "local: showing 1 of 1",
+    ])
   })
 
   it("lists each problem of a broken file with its path and reason", async () => {

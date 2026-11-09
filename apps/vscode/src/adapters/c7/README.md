@@ -51,7 +51,8 @@ Writes (`ProcessCommands`) take the same road on a connection that may write.
 
 ## Proven on
 
-CI runs all conformance laws on real Operaton 2.1.5, CIB seven 2.2.0 and Camunda 7.24.0.
+CI runs all conformance laws on real Operaton 2.1.5 and CIB seven 2.2.0; Camunda 7.24.0 ran
+there until its image left Docker Hub in November 2026.
 
 ## More
 

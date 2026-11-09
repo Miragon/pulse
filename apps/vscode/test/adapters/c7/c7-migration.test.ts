@@ -105,7 +105,7 @@ describe("proposing a migration", () => {
       },
     ])
 
-    expect(await runtime.proposeMigration(SOURCE, TARGET)).toEqual(PLAN)
+    expect(await runtime.proposeMigration!(SOURCE, TARGET)).toEqual(PLAN)
     expect(bodySent(engine.requests[0])).toEqual({
       sourceProcessDefinitionId: SOURCE,
       targetProcessDefinitionId: TARGET,
@@ -138,7 +138,7 @@ describe("checking a migration", () => {
     ])
     const plan = { ...PLAN, mappings: [{ sourceElementId: REVIEW, targetElementId: CHARGE }] }
 
-    expect(await runtime.checkMigration(plan)).toEqual({
+    expect(await runtime.checkMigration!(plan)).toEqual({
       problems: [
         {
           mapping: { sourceElementId: REVIEW, targetElementId: CHARGE },
@@ -165,7 +165,7 @@ describe("checking a migration", () => {
       { route: VALIDATE, answer: { instructionReports: [], variableReports: {} } },
     ])
 
-    expect(await runtime.checkMigration(PLAN)).toEqual({ problems: [] })
+    expect(await runtime.checkMigration!(PLAN)).toEqual({ problems: [] })
   })
 })
 

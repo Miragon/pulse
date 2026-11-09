@@ -29,7 +29,9 @@ flowchart LR
 ```
 
 1. The extension gives the adapter of a target's engine family a connection: endpoint, credentials.
-2. The adapter hands out `ProcessRuntime` with 16 reads and, if it can write, `ProcessCommands`.
+2. The adapter hands out `ProcessRuntime` with 17 methods, three of them optional
+   (`refusedVariableConditions?`, `proposeMigration?`, `checkMigration?`), and, if it can write,
+   `ProcessCommands`.
 3. Core and extension ask in Pulse's words: process, version, instance and element ids.
 4. Only the adapter behind the ports knows which engine answers.
 5. The adapter turns each question into engine API calls and normalises the answer.

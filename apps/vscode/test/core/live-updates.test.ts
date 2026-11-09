@@ -326,6 +326,31 @@ describe("a live definition panel", () => {
     expect(perTick).toEqual([2, 2, 2, 3])
   })
 
+  test("keeps the ended count a lower bound on a tick that reads no history", async () => {
+    const fixture = panelFixture(
+      (runtime): ProcessRuntime =>
+        new PatchedRuntime(runtime, {
+          countInstances: (filter) =>
+            filter.lifecycle === "ended"
+              ? Promise.resolve({ count: 10000, atLeast: true })
+              : runtime.countInstances(filter),
+        }),
+      { live: "on" },
+    )
+    const panel = new DefinitionPanel(fixture.context, { bpmnProcessId: ORDER })
+    await panel.handle({ type: "ready" })
+    panel.attend("watched")
+    fixture.calls.length = 0
+
+    await fixture.scheduler.advance(LOCAL_DEFINITION_MS)
+
+    expect(fixture.calls.filter((call) => call === "countInstances")).toHaveLength(2)
+    expect(definitionView(fixture).scopeCounts).toMatchObject({
+      ended: 10000,
+      atLeast: ["ended", "all"],
+    })
+  })
+
   test("does not read the ended count on production at all", async () => {
     const fixture = panelFixture((runtime) => runtime, {
       live: "on",

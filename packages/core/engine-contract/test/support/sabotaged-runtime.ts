@@ -29,6 +29,26 @@ export class SabotagedRuntime {
     return { ...harness, runtime: broken }
   }
 
+  static without(methods: readonly (keyof ProcessRuntime)[]): ConformanceHarness {
+    const harness = SabotagedRuntime.conforming()
+    return { ...harness, runtime: SabotagedRuntime.stripped(harness.runtime, methods) }
+  }
+
+  static stripped(
+    runtime: ProcessRuntime,
+    methods: readonly (keyof ProcessRuntime)[],
+  ): ProcessRuntime {
+    return new Proxy(runtime, {
+      get(target, key) {
+        const value: unknown = Reflect.get(target, key)
+        if (methods.some((method) => method === key)) {
+          return undefined
+        }
+        return typeof value === "function" ? (value.bind(target) as unknown) : value
+      },
+    })
+  }
+
   static async failingCases(harness: ConformanceHarness): Promise<CaseName[]> {
     const failing: CaseName[] = []
     for (const conformanceCase of ConformanceKit.runtimeLaws()) {

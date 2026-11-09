@@ -18,11 +18,13 @@ export type {
 } from "./model/migrations.js"
 export type {
   IncidentFilter,
+  InstanceCount,
   InstanceFilter,
   Page,
   PageRequest,
   VariableComparison,
   VariableCondition,
+  VariableConditionKind,
 } from "./model/queries.js"
 export type {
   CalledInstance,

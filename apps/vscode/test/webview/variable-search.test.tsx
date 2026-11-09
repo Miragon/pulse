@@ -68,6 +68,10 @@ function enter(control: HTMLInputElement | HTMLSelectElement, value: string): vo
   control.dispatchEvent(new Event(control instanceof HTMLSelectElement ? "change" : "input"))
 }
 
+function optionsOf(dialog: HTMLDialogElement, label: string): (string | null)[] {
+  return [...field(dialog, label).options].map((option) => option.textContent)
+}
+
 async function apply(dialog: HTMLDialogElement): Promise<void> {
   await nextFrame()
   buttonNamed(dialog, "Apply").click()
@@ -159,6 +163,44 @@ describe("the variable search of the definition panel", () => {
         { name: "dueAt", operator: "lessThan", value: "2026-03-15T10:00", as: "date" },
       ])
     })
+  })
+
+  it("offers no date comparison and no greater or less than where the engine refuses them", async () => {
+    harness = mountApp()
+    harness.publish(ready({ ...DEFINITION_VIEW, refusedVariableConditions: ["ordering", "date"] }))
+    const dialog = await openDialog(
+      harness,
+      await vi.waitFor(() => labelled(harness.root, "Filter by variables")),
+    )
+
+    expect(optionsOf(dialog, "Compare as")).toEqual([
+      "Automatic",
+      "Text",
+      "Number",
+      "True or false",
+      "Null",
+    ])
+    expect(optionsOf(dialog, "Operator")).toEqual(["is", "is not", "matches"])
+    enter(field(dialog, "Compare as"), "number")
+    await nextFrame()
+    expect(optionsOf(dialog, "Operator")).toEqual(["is", "is not"])
+  })
+
+  it("keeps is after and is before where the engine refuses only greater and less than", async () => {
+    harness = mountApp()
+    harness.publish(ready({ ...DEFINITION_VIEW, refusedVariableConditions: ["ordering"] }))
+    const dialog = await openDialog(
+      harness,
+      await vi.waitFor(() => labelled(harness.root, "Filter by variables")),
+    )
+
+    expect(optionsOf(dialog, "Compare as")).toContain("Date and time")
+    enter(field(dialog, "Compare as"), "number")
+    await nextFrame()
+    expect(optionsOf(dialog, "Operator")).toEqual(["is", "is not"])
+    enter(field(dialog, "Compare as"), "date")
+    await nextFrame()
+    expect(optionsOf(dialog, "Operator")).toEqual(["is", "is not", "is after", "is before"])
   })
 
   it("asks for no value when it compares with null", async () => {
@@ -311,6 +353,16 @@ describe("the variable dialog", () => {
     [{ name: "giftNote", operator: "equals", value: "", compareAs: "null" }, undefined],
   ] as const)("finds in %o a wrong %s", (draft, wrong) => {
     expect(Object.keys(VariableDraft.errors(draft, 0))).toEqual(wrong === undefined ? [] : [wrong])
+  })
+
+  it("offers no date and no ordering where the engine refuses them", () => {
+    const compareAs = VariableDraft.compareAsOptions(["date"]).map(([value]) => value)
+    expect(compareAs).not.toContain("date")
+    expect(VariableDraft.compareAsOptions([]).map(([value]) => value)).toContain("date")
+    expect(VariableDraft.operatorsOf("number", ["ordering"])).toEqual(["equals", "notEquals"])
+    expect(VariableDraft.operatorsOf("auto", ["ordering"])).toEqual(["equals", "notEquals", "like"])
+    expect(VariableDraft.operatorsOf("number", [])).toEqual(OPERATORS_OF.number)
+    expect(VariableDraft.operatorsOf("date", ["ordering"])).toEqual(OPERATORS_OF.date)
   })
 
   it("refuses a sixth condition", () => {

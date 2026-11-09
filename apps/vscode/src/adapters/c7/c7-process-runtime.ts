@@ -12,6 +12,7 @@ import type {
   IncidentDetails,
   IncidentFilter,
   IncidentId,
+  InstanceCount,
   InstanceDetail,
   InstanceFilter,
   InstanceId,
@@ -99,8 +100,8 @@ export class C7ProcessRuntime implements ProcessRuntime {
     return ErrorTranslation.translated(() => this.readers.instances.search(filter, page))
   }
 
-  countInstances(filter: InstanceFilter): Promise<number> {
-    return ErrorTranslation.translated(() => this.readers.instances.count(filter))
+  async countInstances(filter: InstanceFilter): Promise<InstanceCount> {
+    return { count: await ErrorTranslation.translated(() => this.readers.instances.count(filter)) }
   }
 
   listVariableNames(definitionId: DefinitionId): Promise<readonly string[]> {

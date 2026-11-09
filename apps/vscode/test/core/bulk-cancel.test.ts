@@ -135,7 +135,7 @@ describe("selecting instances for a bulk operation", () => {
       (runtime) =>
         new PatchedRuntime(runtime, {
           countInstances: async (filter) =>
-            filter.lifecycle === "running" ? 1500 : runtime.countInstances(filter),
+            filter.lifecycle === "running" ? { count: 1500 } : runtime.countInstances(filter),
         }),
     )
     await selectRunning(opened)

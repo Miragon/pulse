@@ -5,6 +5,7 @@ import {
   ConformanceKit,
   PatchedRuntime,
   WORLD_ELEMENT,
+  WORLD_PROCESS,
   type CaseName,
 } from "../src/testing/index.js"
 import { SabotagedRuntime, type Sabotage } from "./support/sabotaged-runtime.js"
@@ -153,8 +154,11 @@ const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] =
     (runtime) => ({
       countInstances: async (filter) =>
         filter.withIncident === false
-          ? (await runtime.countInstances({ ...filter, withIncident: false })) +
-            (await runtime.countInstances({ ...filter, withIncident: true }))
+          ? {
+              count:
+                (await runtime.countInstances({ ...filter, withIncident: false })).count +
+                (await runtime.countInstances({ ...filter, withIncident: true })).count,
+            }
           : runtime.countInstances(filter),
     }),
     [CASE.instancesCounted],
@@ -289,6 +293,56 @@ const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] =
     [CASE.instancesByActiveElement],
   ],
   [
+    "the oldest instances come first",
+    (runtime) => ({
+      searchInstances: async (filter, page) => {
+        const found = await runtime.searchInstances(filter, page)
+        return {
+          ...found,
+          items: found.items.map((item, index) => ({
+            ...item,
+            startedAt: IsoTimestamp(`2026-01-01T00:00:0${String(index)}.000Z`),
+          })),
+        }
+      },
+    }),
+    [CASE.instancesNewestFirst],
+  ],
+  [
+    "each read returns another order",
+    (runtime) => {
+      let reads = 0
+      return {
+        searchInstances: async (filter, page) => {
+          const found = await runtime.searchInstances(filter, page)
+          reads += 1
+          return reads % 2 === 0 ? { ...found, items: [...found.items].reverse() } : found
+        },
+      }
+    },
+    [CASE.instancesNewestFirst],
+  ],
+  [
+    "an incident in a called instance does not flag its caller",
+    (runtime) => ({
+      searchInstances: (filter, page) =>
+        filter.bpmnProcessId === WORLD_PROCESS.dispatch && filter.withIncident === true
+          ? Promise.resolve({ items: [] })
+          : runtime.searchInstances(filter, page),
+    }),
+    [CASE.instancesWithIncident],
+  ],
+  [
+    "a count within the world calls itself a lower bound",
+    (runtime) => ({
+      countInstances: async (filter) => ({
+        ...(await runtime.countInstances(filter)),
+        atLeast: true,
+      }),
+    }),
+    [CASE.instancesCounted],
+  ],
+  [
     "the migration check finds nothing",
     () => ({ checkMigration: () => Promise.resolve({ problems: [] }) }),
     [CASE.migrationCheck],
@@ -297,7 +351,7 @@ const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] =
     "a migration problem does not name its mapping",
     (runtime) => ({
       checkMigration: async (plan) => {
-        const check = await runtime.checkMigration(plan)
+        const check = await runtime.checkMigration!(plan)
         return { problems: check.problems.map(({ message }) => ({ message })) }
       },
     }),
@@ -307,7 +361,7 @@ const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] =
     "the migration proposal maps only user tasks",
     (runtime) => ({
       proposeMigration: async (source, target) => {
-        const plan = await runtime.proposeMigration(source, target)
+        const plan = await runtime.proposeMigration!(source, target)
         return {
           ...plan,
           mappings: plan.mappings.filter(
@@ -346,6 +400,29 @@ describe("the kit", () => {
       }),
     }
     expect(await SabotagedRuntime.failingCases(rawErrors)).toEqual([CASE.unreachableEngine])
+  })
+
+  test("accepts a runtime that plans no migrations", async () => {
+    const planless = SabotagedRuntime.without(["proposeMigration", "checkMigration"])
+
+    expect(await SabotagedRuntime.failingCases(planless)).toEqual([])
+  })
+
+  test("keeps a patched runtime over one that plans no migrations without planning", async () => {
+    const planless = SabotagedRuntime.without(["proposeMigration", "checkMigration"])
+    const patched = new PatchedRuntime(planless.runtime, {})
+
+    expect(patched.proposeMigration).toBeUndefined()
+    expect(patched.checkMigration).toBeUndefined()
+    expect(await SabotagedRuntime.failingCases({ ...planless, runtime: patched })).toEqual([])
+  })
+
+  test("refuses a runtime that only does half of migration planning", async () => {
+    const half = SabotagedRuntime.without(["checkMigration"])
+
+    expect(await SabotagedRuntime.failingCases(half)).toEqual(
+      [CASE.migrationCheck, CASE.migrationProposal].sort(),
+    )
   })
 
   test.each(SABOTAGES)("catches a runtime where %s", async (_flaw, sabotage, expected) => {

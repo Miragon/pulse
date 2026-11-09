@@ -28,7 +28,11 @@ export class FakeQueries {
     return this.state.instances
       .filter((instance) => this.matchesInstance(instance, filter))
       .map((instance) => instance.summary)
-      .sort((left, right) => (right.startedAt ?? "").localeCompare(left.startedAt ?? ""))
+      .sort(
+        (left, right) =>
+          FakeQueries.byCodePoint(right.startedAt ?? "", left.startedAt ?? "") ||
+          FakeQueries.byCodePoint(left.id, right.id),
+      )
   }
 
   incidents(filter: IncidentFilter): readonly Incident[] {
@@ -65,6 +69,13 @@ export class FakeQueries {
       incidents: incidents.get(elementId) ?? 0,
       incidentsInCalledInstances: called.get(elementId) ?? 0,
     }))
+  }
+
+  private static byCodePoint(left: string, right: string): number {
+    if (left === right) {
+      return 0
+    }
+    return left < right ? -1 : 1
   }
 
   private matchesProcess(

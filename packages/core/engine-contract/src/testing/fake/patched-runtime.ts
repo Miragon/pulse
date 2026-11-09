@@ -1,5 +1,4 @@
 import type { BulkFailure, BulkOperation } from "../../model/bulk-operations.js"
-import type { MigrationCheck, MigrationPlan } from "../../model/migrations.js"
 import type {
   BpmnProcessId,
   BulkOperationId,
@@ -7,7 +6,13 @@ import type {
   IncidentId,
   InstanceId,
 } from "../../model/ids.js"
-import type { IncidentFilter, InstanceFilter, Page, PageRequest } from "../../model/queries.js"
+import type {
+  IncidentFilter,
+  InstanceCount,
+  InstanceFilter,
+  Page,
+  PageRequest,
+} from "../../model/queries.js"
 import type {
   CalledProcess,
   DefinitionSummary,
@@ -22,10 +27,29 @@ import type {
 import type { ProcessRuntime } from "../../ports/process-runtime.js"
 
 export class PatchedRuntime implements ProcessRuntime {
+  readonly refusedVariableConditions?: NonNullable<ProcessRuntime["refusedVariableConditions"]>
+
+  readonly proposeMigration?: NonNullable<ProcessRuntime["proposeMigration"]>
+
+  readonly checkMigration?: NonNullable<ProcessRuntime["checkMigration"]>
+
   constructor(
     private readonly base: ProcessRuntime,
     private readonly patch: Partial<ProcessRuntime>,
-  ) {}
+  ) {
+    const refused = patch.refusedVariableConditions ?? base.refusedVariableConditions?.bind(base)
+    const propose = patch.proposeMigration ?? base.proposeMigration?.bind(base)
+    const check = patch.checkMigration ?? base.checkMigration?.bind(base)
+    if (refused !== undefined) {
+      this.refusedVariableConditions = refused
+    }
+    if (propose !== undefined) {
+      this.proposeMigration = propose
+    }
+    if (check !== undefined) {
+      this.checkMigration = check
+    }
+  }
 
   describeEngine(): Promise<EngineInfo> {
     return this.patch.describeEngine?.() ?? this.base.describeEngine()
@@ -64,7 +88,7 @@ export class PatchedRuntime implements ProcessRuntime {
     return this.patch.searchInstances?.(filter, page) ?? this.base.searchInstances(filter, page)
   }
 
-  countInstances(filter: InstanceFilter): Promise<number> {
+  countInstances(filter: InstanceFilter): Promise<InstanceCount> {
     return this.patch.countInstances?.(filter) ?? this.base.countInstances(filter)
   }
 
@@ -90,15 +114,5 @@ export class PatchedRuntime implements ProcessRuntime {
     return (
       this.patch.getBulkFailures?.(bulkOperationId) ?? this.base.getBulkFailures(bulkOperationId)
     )
-  }
-
-  proposeMigration(source: DefinitionId, target: DefinitionId): Promise<MigrationPlan> {
-    return (
-      this.patch.proposeMigration?.(source, target) ?? this.base.proposeMigration(source, target)
-    )
-  }
-
-  checkMigration(plan: MigrationPlan): Promise<MigrationCheck> {
-    return this.patch.checkMigration?.(plan) ?? this.base.checkMigration(plan)
   }
 }

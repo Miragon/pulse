@@ -23,10 +23,14 @@ class MigrationSteps {
     return harness.world.definitionIds[WORLD_MIGRATION.target]
   }
 
-  static proposal(harness: CommandHarness): Promise<MigrationPlan> {
-    return harness.runtime.proposeMigration(
-      MigrationSteps.source(harness),
-      MigrationSteps.target(harness),
+  static proposal(harness: CommandHarness, law: string): Promise<MigrationPlan> {
+    return Ensure.defined(
+      harness.runtime.proposeMigration?.(
+        MigrationSteps.source(harness),
+        MigrationSteps.target(harness),
+      ),
+      law,
+      "an engine that migrates also proposes migration plans",
     )
   }
 
@@ -60,12 +64,17 @@ class MigrationSteps {
     return operation
   }
 
-  static count(
+  static async count(
     harness: CommandHarness,
     definitionId: DefinitionId,
     instanceIds: readonly InstanceId[],
   ): Promise<number> {
-    return harness.runtime.countInstances({ definitionId, instanceIds, lifecycle: "running" })
+    const { count } = await harness.runtime.countInstances({
+      definitionId,
+      instanceIds,
+      lifecycle: "running",
+    })
+    return count
   }
 
   static async footprints(
@@ -96,7 +105,8 @@ const migrationMovesExactly: CommandConformanceCase = {
   async run(harness) {
     const ids = harness.world.migrationInstanceIds.whole
     const before = await MigrationSteps.footprints(harness, ids)
-    const id = await harness.commands.migrateInstances(await MigrationSteps.proposal(harness), ids)
+    const plan = await MigrationSteps.proposal(harness, this.name)
+    const id = await harness.commands.migrateInstances(plan, ids)
     const operation = await MigrationSteps.workedOff(harness, id, this.name)
     Ensure.that((operation.failed ?? 0) === 0, this.name, `${operation.failed} items failed`)
     await Ensure.eventually(async () => {
@@ -118,7 +128,7 @@ const migrationMovesExactly: CommandConformanceCase = {
 const migrationReportsFailures: CommandConformanceCase = {
   name: COMMAND_CASE.migrationReportsFailures,
   async run(harness) {
-    const proposal = await MigrationSteps.proposal(harness)
+    const proposal = await MigrationSteps.proposal(harness, this.name)
     const plan: MigrationPlan = {
       ...proposal,
       mappings: proposal.mappings.filter(
@@ -155,7 +165,7 @@ const migrationReportsFailures: CommandConformanceCase = {
 const migrationSkipsEnded: CommandConformanceCase = {
   name: COMMAND_CASE.migrationSkipsEnded,
   async run(harness) {
-    const plan = await MigrationSteps.proposal(harness)
+    const plan = await MigrationSteps.proposal(harness, this.name)
     const ended = harness.world.instanceIds["CMD-ENDED"]
     const gone = [ended, harness.world.unknown.instanceId]
     const running = harness.world.migrationInstanceIds.skip

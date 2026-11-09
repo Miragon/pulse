@@ -30,16 +30,16 @@ npm install @miragon/pulse-engine-contract
 
 ## What it holds
 
-- **`.`:** the ports `ProcessRuntime` (16 read questions, from `describeEngine` to
-  `checkMigration`) and `ProcessCommands` (6 writes: retry an incident, set a variable, move a
+- **`.`:** the ports `ProcessRuntime` (17 methods, from `describeEngine` to `checkMigration?`,
+  three of them optional) and `ProcessCommands` (6 writes: retry an incident, set a variable, move a
   token, cancel and migrate instances in bulk, stop a bulk operation); the branded ids
   (`InstanceId("…")`, `DefinitionId`, `BpmnProcessId`, `ElementId` and more); the read models
   (`InstanceSummary`, `InstanceDetail`, `Incident`, `ElementStatistics`, `Variable` …), the queries
-  (`InstanceFilter`, `VariableCondition`, `PageRequest`, `Page`), bulk operations and migration
+  (`InstanceFilter`, `VariableCondition`, `PageRequest`, `Page`, `InstanceCount`), bulk operations and migration
   plans; `RuntimeError` with its closed `RuntimeFailure`, and `FailingRuntime`, a runtime that
   refuses every call with one error; the rules `ValueKinds` (the kind of a JSON value) and
   `MoveReasons` (when a reason for a token move is valid).
-- **`./testing`:** the conformance kit (`ConformanceKit` with 47 read laws and 15 command laws),
+- **`./testing`:** the conformance kit (`ConformanceKit` with 48 read laws and 15 command laws),
   its fixed world (`WORLD_*`, the three neutral diagrams `NEUTRAL_DIAGRAMS` with fixed element
   ids) and `FakeEngine`, an in-memory engine that passes every law, with `PatchedRuntime` and
   `PatchedCommands` to change one answer of it in a test.
@@ -67,8 +67,36 @@ The kit binds every law to any `(name, fn)` runner and throws an `Error` naming 
 it found when one fails. Your harness deploys diagrams with the world's element ids into your engine and seeds the
 world's instances; the fake seeds it in memory. An engine whose reads lag behind its writes
 declares `writeVisibility`, one whose bulk work runs in the background `asyncWork`. The kit
-proves itself: 59 saboteurs, each the fake with one flaw, fail exactly their laws (the package's
+proves itself: 71 saboteurs, each the fake with one flaw, fail exactly their laws (the package's
 `test/`).
+
+## Where dialects differ
+
+Two dialects answer the same question with the same meaning, or the contract says where they part,
+never with a flag that can disagree with what the engine does:
+
+- **A count may be a lower bound.** `countInstances` returns an `InstanceCount`: `{ count }` is
+  exact, `{ count, atLeast: true }` means the engine stopped counting there (Camunda 8's search
+  stops at 10,000). The laws require an exact count over the world, and a surface shows a lower
+  bound as one (`≥ 10,000`, `10k+`).
+- **A question an engine cannot answer** fails as `RuntimeError` `unsupported`, never as
+  `rejected` (a refused change) or `misconfigured` (a connection to fix).
+- **Refused variable conditions are declared.** `refusedVariableConditions?()` names the kinds an
+  engine refuses: `ordering` is `greaterThan` and `lessThan` on a value (`valueJson`), `date` every
+  condition on a point in time (`at`), after and before included. The variable laws hold the
+  declaration to behaviour: a declared kind fails as `unsupported` in the search and the count, and
+  every other condition answers correctly.
+- **Migration planning is optional, as a pair.** An engine without `proposeMigration?` and
+  `checkMigration?` plans no migration, and a surface offers none; an engine with one of them
+  only fails the plan laws. An engine that migrates (`ProcessCommands.migrateInstances`) plans
+  too: the migration command laws take their plan from `proposeMigration` and fail without it.
+- **Element statistics on Camunda 8 can stay undivided.** Camunda 8 keeps an incident at the
+  element that raised it and counts it at every container around it, so its adapter splits a
+  container's row with one incident search per container. When that search stops counting (above
+  10,000 on Elasticsearch), the row keeps the cluster's counts: every incident inside the
+  container reads as raised there and none as in a called instance. "Statistics are disjoint"
+  (`active + incidents` is what the element holds) does not hold for such a row. The contract has
+  no field for it yet; `ElementStatistics` gains an optional one with the Camunda 8 adapter.
 
 ## The admission rule
 
@@ -78,6 +106,13 @@ contract (Pulse for VS Code's contract barrel for its adapters, and a dialect co
 uses a rule of the contract). A surface reaches it through them; the engine connector or the CLI
 importing it directly is an admission decision in review, the case #488 reopens on: a second
 interface needing the same use case with the same rules.
+
+One admission came ahead of its second dialect, by the owner's decision: the four answers
+Camunda 8 needs (a count that may be a lower bound, the failure `unsupported`, the declared
+variable conditions and migration planning as an optional pair) entered before the first
+release, on the evidence of the Camunda 8 adapter's branch (#543), so that adapter lands
+without a break. Here the laws run them on the fake and the C7 adapter, which count exactly,
+answer every condition and plan migrations; the saboteurs prove the other side.
 
 The repository holds that to its import graph (`engine-contract-consumers` in its
 dependency-cruiser config) and the package to its own modules (`engine-contract-is-a-leaf`).

@@ -10,6 +10,7 @@ import {
 import { describe, expect, test } from "vitest"
 import { DefinitionPanel } from "../../src/core/panels/definition-panel.js"
 import { MigrationPanel } from "../../src/core/panels/migration-panel.js"
+import { MigrationPlanning } from "../../src/core/panels/migration-planning.js"
 import { MigrationReads } from "../../src/core/panels/migration-reads.js"
 import type { PanelContext } from "../../src/core/panels/panel-context.js"
 import {
@@ -38,6 +39,18 @@ interface Opened {
   readonly gate: WaitGate
   readonly ids: readonly InstanceId[]
   view(): MigrationView
+}
+
+function planless(runtime: ProcessRuntime): ProcessRuntime {
+  return new Proxy(runtime, {
+    get(target, key) {
+      const value: unknown = Reflect.get(target, key)
+      if (key === "proposeMigration" || key === "checkMigration") {
+        return undefined
+      }
+      return typeof value === "function" ? (value.bind(target) as unknown) : value
+    },
+  })
 }
 
 async function openMigration(
@@ -206,7 +219,7 @@ describe("changing the mapping", () => {
         new PatchedRuntime(runtime, {
           checkMigration: async (plan) =>
             plan.mappings.length === 2
-              ? runtime.checkMigration(plan)
+              ? runtime.checkMigration!(plan)
               : {
                   problems: [
                     { mapping: plan.mappings[0]!, message: "Activities have incompatible types" },
@@ -235,7 +248,7 @@ describe("changing the mapping", () => {
         new PatchedRuntime(runtime, {
           checkMigration: async (plan) =>
             plan.mappings.length === 2
-              ? runtime.checkMigration(plan)
+              ? runtime.checkMigration!(plan)
               : Promise.reject(new RuntimeError("unreachable", "gone")),
         }),
     )
@@ -299,7 +312,7 @@ describe("migrating", () => {
       (runtime) =>
         new PatchedRuntime(runtime, {
           proposeMigration: async (source, target) => {
-            const plan = await runtime.proposeMigration(source, target)
+            const plan = await runtime.proposeMigration!(source, target)
             return { ...plan, mappings: plan.mappings.filter((m) => m.sourceElementId !== REVIEW) }
           },
           getElementStatistics: async (definitionId) =>
@@ -435,6 +448,53 @@ describe("the definition panel", () => {
       instanceIds: ids,
     })
     expect(definitionView(fixture.lastState()).selection).toBeUndefined()
+  })
+
+  test("offers no migration where the engine plans none", async () => {
+    const fixture = panelFixture(planless, { writable: true })
+    const panel = new DefinitionPanel(fixture.context, {
+      bpmnProcessId: ORDER,
+      definitionId: fixture.world.definitionIds["order@1"],
+    })
+    await panel.handle({ type: "ready" })
+    const ids = definitionView(fixture.lastState()).instances.map((row) => row.id)
+    await panel.handle({ type: "toggleInstances", ids, selected: true })
+
+    expect(definitionView(fixture.lastState()).selection?.count).toBe(ids.length)
+    expect(definitionView(fixture.lastState()).selection).not.toHaveProperty("migration")
+
+    await panel.handle({ type: "openMigration" })
+
+    expect(fixture.effects.openMigration).not.toHaveBeenCalled()
+  })
+
+  test("fails a check on an engine without migration plans as unsupported", async () => {
+    const fixture = panelFixture(planless)
+    const plan = {
+      sourceDefinitionId: fixture.world.definitionIds["order@1"],
+      targetDefinitionId: fixture.world.definitionIds["order@2"],
+      mappings: [],
+    }
+
+    await expect(MigrationPlanning.check(fixture.context.runtime, plan)).rejects.toMatchObject({
+      failure: "unsupported",
+      message: "This engine does not plan migrations of instances.",
+    })
+    expect(fixture.calls).not.toContain("checkMigration")
+  })
+
+  test("says that an engine without migration plans cannot do it", async () => {
+    const opened = await openMigration({ writable: true }, planless)
+
+    expect(opened.fixture.lastState()).toMatchObject({
+      status: "failed",
+      problem: {
+        title: "local cannot do this.",
+        detail: "This engine does not plan migrations of instances.",
+        canEditConnection: false,
+      },
+    })
+    expect(opened.fixture.calls).not.toContain("proposeMigration")
   })
 })
 
@@ -668,7 +728,7 @@ describe("findings of the review", () => {
           checkMigration: async (plan) => {
             checks += 1
             return checks === 1
-              ? runtime.checkMigration(plan)
+              ? runtime.checkMigration!(plan)
               : { problems: [{ mapping: plan.mappings[0]!, message: "v2 changed meanwhile" }] }
           },
         }),
@@ -859,7 +919,7 @@ describe("findings of the review", () => {
               await new Promise<void>((resolve) => (releaseFirst = resolve))
               return { problems: [{ mapping: plan.mappings[0]!, message: "stale answer" }] }
             }
-            return runtime.checkMigration(plan)
+            return runtime.checkMigration!(plan)
           },
         }),
     )

@@ -62,6 +62,18 @@ describe("the problem shown for a failure", () => {
     })
   })
 
+  test("names what the engine cannot do without offering to edit the connection", () => {
+    const error = new RuntimeError("unsupported", "No ordering on variables.", {
+      hint: "Use equals instead.",
+    })
+
+    expect(Problems.of(error, ENGINE)).toEqual({
+      title: "dev cannot do this.",
+      detail: "No ordering on variables. Use equals instead.",
+      canEditConnection: false,
+    })
+  })
+
   test("adds the hint of the adapter", () => {
     const error = new RuntimeError("unauthorized", "HTTP 401.", { hint: "Set the credentials." })
     expect(Problems.of(error, ENGINE).detail).toBe("HTTP 401. Set the credentials.")

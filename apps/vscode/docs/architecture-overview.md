@@ -177,12 +177,12 @@ flowchart LR
   rest -- HTTP /engine-rest --> family
 ```
 
-| Question                             | Answer                                                                                                                 |
-| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| Does the C7 adapter cover all three? | Yes: all 47 read laws and 15 command laws pass on Operaton 2.1.5, CIB seven 2.2.0, Camunda 7.24.0                      |
-| Do we need an adapter per fork?      | No, only per API family                                                                                                |
-| What does a new engine family need?  | A package `adapter-<family>` with an `EngineAdapter`, its conformance test, one line in the composition root           |
-| Where does Camunda 8 stand?          | Not included. The spike built a C8 adapter on REST v2 against an API mock, then removed it to keep the prototype small |
+| Question                             | Answer                                                                                                                                      |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Does the C7 adapter cover all three? | Yes: all 48 read laws and 15 command laws pass on Operaton 2.1.5 and CIB seven 2.2.0; Camunda 7.24.0 passed until its image left Docker Hub |
+| Do we need an adapter per fork?      | No, only per API family                                                                                                                     |
+| What does a new engine family need?  | A package `adapter-<family>` with an `EngineAdapter`, its conformance test, one line in the composition root                                |
+| Where does Camunda 8 stand?          | Not included. The spike built a C8 adapter on REST v2 against an API mock, then removed it to keep the prototype small                      |
 
 ## 5. Reading an instance
 
@@ -237,9 +237,9 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-  kit[ConformanceKit: 47 read laws, 15 command laws]
+  kit[ConformanceKit: 48 read laws, 15 command laws]
   kit --> fake[FakeEngine in memory]
-  kit --> c7[C7Adapter on Operaton, CIB seven, Camunda 7 in containers]
+  kit --> c7[C7Adapter on Operaton and CIB seven in containers]
   saboteurs[Saboteurs: broken runtimes] -- each must fail its law --> kit
 ```
 

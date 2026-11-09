@@ -17,6 +17,7 @@ import {
   type CommandCaseName,
   type CommandHarness,
 } from "../src/testing/index.js"
+import { SabotagedRuntime } from "./support/sabotaged-runtime.js"
 
 type Sabotage = (commands: ProcessCommands, harness: CommandHarness) => Partial<ProcessCommands>
 
@@ -174,7 +175,7 @@ const BULK_SABOTAGES: readonly (readonly [string, HarnessSabotage, readonly Comm
         ...harness,
         commands: new PatchedCommands(harness.commands, {
           cancelInstances: async (instanceIds, options) => {
-            const running = await harness.runtime.countInstances({
+            const { count: running } = await harness.runtime.countInstances({
               instanceIds,
               lifecycle: "running",
             })
@@ -195,7 +196,7 @@ const BULK_SABOTAGES: readonly (readonly [string, HarnessSabotage, readonly Comm
           ...harness,
           commands: new PatchedCommands(harness.commands, {
             cancelInstances: async (instanceIds, options) => {
-              const running = await harness.runtime.countInstances({
+              const { count: running } = await harness.runtime.countInstances({
                 instanceIds,
                 lifecycle: "running",
               })
@@ -305,7 +306,7 @@ const BULK_SABOTAGES: readonly (readonly [string, HarnessSabotage, readonly Comm
           ...harness,
           commands: new PatchedCommands(harness.commands, {
             migrateInstances: async (plan, instanceIds) => {
-              const running = await harness.runtime.countInstances({
+              const { count: running } = await harness.runtime.countInstances({
                 instanceIds,
                 definitionId: plan.sourceDefinitionId,
                 lifecycle: "running",
@@ -420,6 +421,30 @@ describe("the command kit", () => {
     expect(await failingCases({ runtime, commands, world })).toEqual([
       COMMAND_CASE.bulkCancelEndsExactly,
     ])
+  })
+})
+
+describe("an engine that migrates but plans no migrations", () => {
+  test("fails exactly the migration laws, each under its own name", async () => {
+    const harness = conformingHarness()
+    const planless: CommandHarness = {
+      ...harness,
+      runtime: SabotagedRuntime.stripped(harness.runtime, ["proposeMigration", "checkMigration"]),
+    }
+    const migrations: readonly string[] = [
+      COMMAND_CASE.migrationMovesExactly,
+      COMMAND_CASE.migrationReportsFailures,
+      COMMAND_CASE.migrationSkipsEnded,
+    ]
+
+    expect(await failingCases(planless)).toEqual([...migrations].sort())
+    for (const law of ConformanceKit.commandLaws()) {
+      if (migrations.includes(law.name)) {
+        await expect(law.run(planless)).rejects.toThrow(
+          `${law.name}: an engine that migrates also proposes migration plans`,
+        )
+      }
+    }
   })
 })
 

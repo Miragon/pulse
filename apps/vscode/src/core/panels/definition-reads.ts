@@ -208,6 +208,7 @@ export class DefinitionReads {
       hasMoreInstances: state.next !== undefined,
       filter: state.filter,
       scopeCounts: state.scopeCounts,
+      refusedVariableConditions: this.context.runtime.refusedVariableConditions?.() ?? [],
       extraNotices:
         state.deployed === undefined ? state.notices : [...state.notices, state.deployed],
     }).build()
