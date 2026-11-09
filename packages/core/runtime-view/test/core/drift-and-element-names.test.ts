@@ -33,9 +33,9 @@ describe("element names from the deployed model", () => {
 
   test("read a file of unclosed process tags in linear time", () => {
     const unclosed = "<process\t".repeat(50_000)
-    const started = performance.now()
+    const started = Date.now()
     expect(BpmnProcessIds.of(`${unclosed}<process id="last">`)).toEqual(["last"])
-    expect(performance.now() - started).toBeLessThan(1_000)
+    expect(Date.now() - started).toBeLessThan(1_000)
   })
 })
 
