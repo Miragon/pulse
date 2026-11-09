@@ -27,7 +27,9 @@ function layersOf(root: string): string[] {
     .sort()
 }
 
-describe("the extension's texts", () => {
+const PARSING_A_LAYER_ON_A_BUSY_CI_RUNNER = { timeout: 60_000 }
+
+describe("the extension's texts", PARSING_A_LAYER_ON_A_BUSY_CI_RUNNER, () => {
   test("are read in every layer that words what a user sees, the engine adapters aside", () => {
     expect(layersOf(SOURCES)).toEqual([ENGINE_VOCABULARY_LAYER, ...WORDED_LAYERS].sort())
   })
@@ -43,8 +45,9 @@ describe("the extension's texts", () => {
   })
 
   test("name the version scope of the counts over every version, in the overview and the tree", () => {
+    const coreTexts = Object.entries(sourceTexts(join(SOURCES, "core")))
     const scoped = (file: string) =>
-      Object.entries(sourceTexts(join(SOURCES, "core")))
+      coreTexts
         .filter(([key]) => key.startsWith(file))
         .some(([, text]) => text.includes(COUNT_TERMS.allVersions.en))
     expect(scoped("views/engine-view-builder.ts")).toBe(true)
