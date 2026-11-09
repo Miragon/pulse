@@ -96,7 +96,7 @@ function clusterProcesses(data: ClusterDetailData, unknown: string): string {
 function ClusterHeader({ data, engineId }: { data: ClusterDetailData; engineId: string }) {
   const t = useT()
   const { ask } = useHandOff()
-  const canFix = useActionAllowed("engine_set_job_retries")
+  const canFix = useActionAllowed("engine_set_job_retries", engineId)
   const handOff = remediationHandOff(
     {
       activityId: data.activityId,

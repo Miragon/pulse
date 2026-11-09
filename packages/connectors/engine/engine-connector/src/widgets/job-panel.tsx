@@ -274,6 +274,7 @@ export function JobPanelWidget({
   // The marks only bridge until the refetch; fresh page-0 data wins.
   const retry = useEngineAction<RetryArgs>({
     tool: "engine_set_job_retries",
+    engine,
     target: (args) => args.jobId,
     resetOn: data,
   })

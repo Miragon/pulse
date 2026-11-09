@@ -44,6 +44,11 @@ describe("PRODUCT_GLOSSARY: the terms every Pulse UI shares", () => {
     ["Open incidents", "en"],
     ["Mit Incident", "de"],
     ["Aktivitäten mit Incidents", "de"],
+    // A refused profile; the engine rejecting the credentials keeps its own words.
+    ["ihr Profil ist abgelehnt", "de"],
+    ["Profil abgelehnt", "de"],
+    ["its profile is refused", "en"],
+    ["The engine rejected the credentials", "en"],
   ] as const)("spares the glossary words: %s", (text, language) => {
     expect(glossaryFindings({ text }, PRODUCT_GLOSSARY[language])).toEqual([])
   })
@@ -66,6 +71,10 @@ describe("PRODUCT_GLOSSARY: the terms every Pulse UI shares", () => {
     ["Instances with incidents", "en", "With incident"],
     ["Mit Incidents", "de", "Mit Incident"],
     ["Instanzen mit Incidents", "de", "Mit Incident"],
+    ["Das Profil der Engine ist ungültig", "de", "abgelehnt"],
+    ["Ungültiges Profil", "de", "abgelehnt"],
+    ["The engine's profile was rejected", "en", "refused"],
+    ["Invalid profile", "en", "refused"],
   ] as const)("flags %s", (text, language, use) => {
     expect(glossaryFindings({ text }, PRODUCT_GLOSSARY[language]).map((f) => f.use)).toEqual([use])
   })

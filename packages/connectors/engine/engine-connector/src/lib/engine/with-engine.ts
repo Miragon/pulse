@@ -18,10 +18,10 @@ export interface EngineParamShape {
 
 /**
  * A single engine still yields an enum, never a dropped property: hand-offs pass `engine` and strict input refuses unknown keys.
- * The enum names the valid ids; the routing rule is the instructions'.
+ * The enum names every configured id, a refused profile's too (a call to it says why); the routing rule is the instructions'.
  */
-export function engineParamShapeFor(engines: readonly { id: string }[]): EngineParamShape {
-  const [first, ...rest] = engines.map((e) => e.id)
+export function engineParamShapeFor(engineIds: readonly string[]): EngineParamShape {
+  const [first, ...rest] = engineIds
   if (first === undefined) return engineParamShape
   return { engine: z.enum([first, ...rest]).optional() }
 }
@@ -29,9 +29,9 @@ export function engineParamShapeFor(engines: readonly { id: string }[]): EngineP
 /** Swaps only the exact placeholder; a tool with its own `engine` field keeps it. */
 export function withEngineParam(
   register: ToolRegistrar<EngineRegistry>,
-  engines: readonly { id: string }[],
+  engineIds: readonly string[],
 ): ToolRegistrar<EngineRegistry> {
-  const { engine } = engineParamShapeFor(engines)
+  const { engine } = engineParamShapeFor(engineIds)
   return (config) => {
     const shape = config.inputSchema
     if (shape?.engine !== engineParamShape.engine) return register(config)

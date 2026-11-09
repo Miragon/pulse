@@ -25,7 +25,7 @@ export function registerWidgetTools(
     registry,
     healthThresholds: options.healthThresholds,
     toolset: options.toolset,
-    engineParam: engineParamShapeFor(registry.engines),
+    engineParam: engineParamShapeFor(registry.engineIds),
   }
   registerCockpitWidgetTools(ctx)
   registerWidgetDataFeeds(ctx)

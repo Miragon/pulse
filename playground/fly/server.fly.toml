@@ -28,12 +28,21 @@ primary_region = "fra"
   # overrides [env]: if `fly secrets list -a miragon-ai-playground` shows
   # MCP_ACTIVE_MODULES, keep it in sync with this value (or unset it).
   MCP_ACTIVE_MODULES = "engine:read-only"
-  # demo/demo is the engine's seeded admin user; its REST API does not enforce
-  # auth. The engine has no public IP, but it sits on the org's private 6PN
-  # network, which other apps in the org share; treat it as reachable by
-  # them, not as isolated. The engine is CIB seven: without `flavor` the
-  # server would take it for Camunda 7 and name and link it as one.
-  ENGINES_JSON = '[{"id":"prod-a","baseUrl":"http://miragon-ai-playground-engine.internal:8410/engine-rest","flavor":"cibseven","auth":{"type":"basic","username":"demo","password":"demo"}}]'
+  # One engine, so the single-engine variables describe it (the server makes
+  # them its one profile; a profile file in ENGINES_JSON would hold its password
+  # only by the name of an ENGINE_SECRET_* variable). demo/demo is the engine's
+  # seeded admin user; its REST API does not enforce auth. The engine has no
+  # public IP, but it sits on the org's private 6PN network, which other apps in
+  # the org share; treat it as reachable by them, not as isolated. The engine is
+  # CIB seven: without the flavor the server would take it for Camunda 7 and
+  # name and link it as one. A Fly SECRET named ENGINES_JSON or ENGINES_FILE
+  # would replace all of this: `fly secrets list` must show neither.
+  ENGINE_BASE_URL = "http://miragon-ai-playground-engine.internal:8410/engine-rest"
+  ENGINE_ID = "prod-a"
+  ENGINE_FLAVOR = "cibseven"
+  ENGINE_AUTH_TYPE = "basic"
+  ENGINE_USERNAME = "demo"
+  ENGINE_PASSWORD = "demo"
 
 [http_service]
   internal_port = 8400

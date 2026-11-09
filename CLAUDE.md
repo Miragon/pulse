@@ -296,8 +296,12 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
 2. **Never talk to an engine directly.** All engine access goes through
    `resolveEngine`/`withEngine` (`packages/connectors/engine/engine-connector/src/lib/engine/`),
    which routes by precedence: per-call `engine` > the operator default
-   `ENGINE_DEFAULT` (it must name a configured engine, else the boot fails) > the only
-   configured engine > `ENGINE_NOT_SELECTED` listing the engines. There is deliberately NO
+   `ENGINE_DEFAULT` > the profile file's `defaultProfile` (each must name a profile, else the boot
+   fails) > the only profile (counted with the refused ones) > `ENGINE_NOT_SELECTED` listing the
+   engines. The engines are profiles of `@miragon/pulse-profile` (`src/engine-profiles.ts`): a
+   profile the server cannot use is refused on its own (the boot warns, `engine_list_engines`
+   lists it under `refused`), and a call to it, a default on it included, fails with
+   `ENGINE_PROFILE_REFUSED`, never rerouted. There is deliberately NO
    per-user or in-memory selection (replica-unsafe; the server is stateless, one `McpServer`
    per request, no session ids). A client
    you construct or cache yourself breaks multi-engine routing; `resolveEngine` already returns
@@ -483,8 +487,9 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      deviation of the design section). One term per thing across the product, the VS Code
      extension included: `PRODUCT_GLOSSARY` (`@miragon/pulse-ui/testing`, with the brand gates; Incident,
      "Jobs ohne Versuche" / "jobs without retries", "bereitstellen", Geschäftsschlüssel,
-     aussetzen, Versuche, alle Engines), checked with each connector's own terms by
-     `src/messages/glossary.test.ts` and listed in `src/messages/GLOSSARY.md`, and over the
+     aussetzen, Versuche, alle Engines, ein Profil "abgelehnt" / "refused"), checked with each
+     connector's own terms by `src/messages/glossary.test.ts` and listed in
+     `src/messages/GLOSSARY.md`, and over the
      extension's sources by `apps/vscode/test/architecture/product-words.test.ts`. The counts
      both tools show take the words of `COUNT_TERMS` (owner decision E2): "Incidents" are the open
      incidents of the thing shown, "With incident" the instances that have one, and a count's
@@ -638,8 +643,9 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      a profile file and returns a verdict per profile as data, reading no file and no
      environment (`profile-is-a-leaf`), and only the readers of profiles import it: the CLI's
      config layer, Pulse for VS Code's connections, the engine connector's configuration, and
-     tests (`profile-consumers`, `PROFILE_READERS`; the CLI and Pulse for VS Code read their
-     profiles with it, the engine connector not yet); the transport (`@miragon/pulse-http`, `packages/core/http`) is a leaf too, which
+     tests (`profile-consumers`, `PROFILE_READERS`; the CLI, Pulse for VS Code and the engine
+     connector read their profiles with it, the connector its engines under the credential
+     policy `env`: a secret only by the name of an `ENGINE_SECRET_*` variable); the transport (`@miragon/pulse-http`, `packages/core/http`) is a leaf too, which
      runs over an injected `fetch` on the web platform's globals, no npm package and no Node
      built-in (`http-is-a-leaf`; ESLint's `no-restricted-globals` keeps out what only a browser
      has, `HTTP_BROWSER_GLOBALS`) but in the loopback engine of its conformance cases
@@ -688,7 +694,8 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      (a relative escape, `<importer>/node_modules/<name>/`, a bare specifier) and never exempts a
      package's own directory in a `pathNot`.
    - **The module port.** Each module exports its definition in `src/module.ts` (config schema,
-     `configFromEnv`, `knownEnvVars`, `toolsets`, `bootWarnings`, `instructions`, the rules for
+     `configFromEnv`, `knownEnvVars`, `referencedEnvVars` (the variables its own settings name,
+     which the typo warner then knows), `toolsets`, `bootWarnings`, `instructions`, the rules for
      every tool instead of 60 descriptions; plugin factory), conforming STRUCTURALLY to
      `ComposableModule<TShared>`. Its `createPlugin(config, shared)` returns a `ModulePlugin`,
      `{ name, register(server) }`: `register` puts every tool, prompt and resource of the module
@@ -761,10 +768,14 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      off; the app composes one module, so review holds that.
    - **A write registers only through the registrar**, whose toolset filter decides it
      (`withToolsetFilter`/`isToolInToolset` in the engine module), never an ad-hoc `toolset === …`
-     compare; an in-widget write asks `engine_widget_actions_data` whether it exists.
+     compare; an in-widget write asks `engine_widget_actions_data` whether it exists. The
+     registrar is also where a profile's `readOnly` holds: `withReadOnlyEngines`
+     (`src/lib/engine/read-only.ts`) fails every tool without `readOnlyHint` on such an engine
+     with `ENGINE_READ_ONLY` before its handler runs, and its transport refuses a write too.
    - **In-widget engine writes** run through ONE primitive, `useEngineAction`
      (`engine-connector/src/widgets/lib/engine-action.ts`): the gate (`allowed` from
-     `engine_widget_actions_data`, AND `available`: no write on an ended, cancelled or
+     `engine_widget_actions_data` for the engine it writes to, its `readOnlyEngines` included,
+     AND `available`: no write on an ended, cancelled or
      unconfirmed instance), the confirmation that names its target, the targeted invalidation
      through the view's one `QueryClient` (`useQueryClient`) and the optimistic marks
      (`WRITE_POLICY`); controls are hidden, not disabled (`src/widget-actions.test.ts`,

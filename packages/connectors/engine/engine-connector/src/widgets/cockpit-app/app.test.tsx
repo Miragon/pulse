@@ -53,16 +53,35 @@ function boot(
 const FULLSCREEN = { displayMode: "fullscreen" } as const
 const INLINE = { displayMode: "inline" } as const
 
-/** `list` is mutable, so a test can reload it. */
+/** What the server answers for an engine whose profile it refused. */
+const REFUSED_TEXT =
+  '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask the operator to fix it.'
+
+/** `list` is mutable, so a test can reload it; its `refused` are the profiles the server refused. */
 function renderCockpit(
   bootstrap: CockpitAppData = boot(null, ENGINES),
-  list: { engines: CockpitAppData["engines"] } = { engines: ENGINES },
+  list: {
+    engines: CockpitAppData["engines"]
+    refused?: Array<{ id: string; environment?: string; reason: string }>
+  } = { engines: ENGINES },
   displayMode: typeof FULLSCREEN | typeof INLINE = FULLSCREEN,
 ) {
   const modelContexts: string[] = []
   const actions: HostAction[] = []
-  const listEngines = () => ({ engines: list.engines, environments: [], defaultEngineId: "prod-b" })
-  const overview = (args: Record<string, unknown>) => ({
+  const listEngines = () => ({
+    engines: list.engines,
+    environments: [],
+    defaultEngineId: "prod-b",
+    ...(list.refused ? { refused: list.refused } : {}),
+  })
+  const refusedEngine = (args: Record<string, unknown>) => {
+    if (list.refused?.some(({ id }) => id === args.engine)) throw new Error(REFUSED_TEXT)
+  }
+  const overview = (args: Record<string, unknown>) => {
+    refusedEngine(args)
+    return overviewOf(args)
+  }
+  const overviewOf = (args: Record<string, unknown>) => ({
     summary: {
       totalDefinitions: 0,
       totalRunningInstances: 0,
@@ -72,7 +91,11 @@ function renderCockpit(
     definitions: [],
     engineId: args.engine,
   })
-  const health = (args: Record<string, unknown>): EngineHealthData => ({
+  const health = (args: Record<string, unknown>): EngineHealthData => {
+    refusedEngine(args)
+    return healthOf(args)
+  }
+  const healthOf = (args: Record<string, unknown>): EngineHealthData => ({
     status: "ok",
     statusRule: "ok without open incidents",
     summary: {
@@ -121,6 +144,40 @@ function renderCockpit(
     actions.flatMap((a) => (a.type === "callTool" && a.name === feed ? [a.args] : []))
   return { modelContexts, redeliver, reads }
 }
+
+/** A profile the server refused: the picker lists it as not answering, and opening it says why. */
+describe("CockpitApp lists a refused engine with the others", () => {
+  const REFUSED = [{ id: "locked", environment: "prod", reason: "auth.tokenEnv is missing." }]
+
+  it("the picker shows it among the engines, its profile refused in words", async () => {
+    renderCockpit(boot(null, ENGINES), { engines: ENGINES, refused: REFUSED })
+    expect(
+      await screen.findByRole("button", { name: /^locked\b.*refused$/ }, { timeout: 5_000 }),
+    ).toBeTruthy()
+    expect(screen.getByRole("button", { name: /^prod-a\b/ })).toBeTruthy()
+  })
+
+  it("keeps the order of the profiles when the engine list answers", async () => {
+    // The start data names the profiles in their order, the list names the usable ones first.
+    const locked = { id: "locked", environment: "default" }
+    const refused = [{ ...locked, reason: "auth.tokenEnv is missing." }]
+    renderCockpit(boot(null, [ENGINES[0], locked, ENGINES[1]]), { engines: ENGINES, refused })
+    // The list names prod-b the default: once that shows, the list has answered.
+    await screen.findByRole("button", { name: /^prod-b\b.*\bdefault\b/ }, { timeout: 5_000 })
+    const rows = screen.getAllByRole("button", { name: /^(prod-a|prod-b|locked)\b/ })
+    expect(rows.map((row) => row.textContent?.slice(0, 6))).toEqual(["prod-a", "locked", "prod-b"])
+  })
+
+  it("opening it shows why it cannot be used, from the server's code", async () => {
+    renderCockpit(boot(null, ENGINES), { engines: ENGINES, refused: REFUSED })
+    fireEvent.click(await screen.findByRole("button", { name: /^locked\b/ }))
+    expect(
+      await screen.findByText("Engine locked cannot be used: its profile is refused", undefined, {
+        timeout: 5_000,
+      }),
+    ).toBeTruthy()
+  })
+})
 
 describe("CockpitApp navigation is side-effect free", () => {
   // Navigation never moves the default engine, so the model must learn the viewed engine.

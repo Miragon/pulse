@@ -75,7 +75,15 @@ describe("kit copy follows the voice rules", () => {
 
 describe("kit copy uses the product glossary", () => {
   // The MCP views pause nothing of their own, so any "pause" here means the engine's suspension.
-  const rules = { de: PRODUCT_GLOSSARY.de, en: [...PRODUCT_GLOSSARY.en, BARE_PAUSE_RULE_EN] }
+  const rules = {
+    de: PRODUCT_GLOSSARY.de,
+    en: [...PRODUCT_GLOSSARY.en, BARE_PAUSE_RULE_EN],
+  }
+
+  it("holds the profile refusal's words: the kit words it (profileRefused)", () => {
+    expect(PRODUCT_GLOSSARY.de.map((rule) => rule.use)).toContain("abgelehnt")
+    expect(PRODUCT_GLOSSARY.en.map((rule) => rule.use)).toContain("refused")
+  })
 
   // The kit's labels sit in every module's views (hand-offs, list chrome).
   it.each(["de", "en"] as const)("kit labels (%s)", (language) => {

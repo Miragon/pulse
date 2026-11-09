@@ -41,7 +41,12 @@ const DEFINITIONS: Record<string, DefinitionStat[]> = {
   ],
 }
 
+/** What the server answers for an engine whose profile it refused: it never asks that engine. */
+const REFUSED =
+  '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask the operator to fix it.'
+
 function overviewFeed(args: Record<string, unknown>): CockpitDashboardData {
+  if (args.engine === "locked") throw new Error(REFUSED)
   const definitions = DEFINITIONS[String(args.engine)]
   if (!definitions) throw new Error("ECONNREFUSED")
   return {
@@ -183,6 +188,24 @@ describe("the cross-engine landscape, read from each engine", () => {
         "No engine has answered, so there are no process definitions to show. Check that the engines are reachable.",
       ),
     ).toBeTruthy()
+  })
+
+  it("counts a refused profile apart from an unreachable engine, and words it", async () => {
+    render(
+      <TestViewHost tools={TOOLS} client={queryClient}>
+        <FleetView
+          engines={[{ id: "prod-a" }, { id: "down" }, { id: "locked" }]}
+          onEnterEngine={() => {}}
+        />
+      </TestViewHost>,
+    )
+    const landscape = screen.getByRole("region", { name: "Process landscape" })
+    await waitFor(() =>
+      expect(within(landscape).getByText("1 unreachable · 1 refused")).toBeTruthy(),
+    )
+    const table = screen.getByRole("region", { name: "Load and job backlog per engine" })
+    expect(within(table).getByText("profile refused")).toBeTruthy()
+    expect(within(table).getByText("unreachable")).toBeTruthy()
   })
 
   it("speaks German on a German host", async () => {

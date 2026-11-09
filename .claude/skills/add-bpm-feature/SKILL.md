@@ -9,8 +9,9 @@ allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 The engine module never registers operations tools with a raw `server.registerTool()`. Tools go
 through the registrar (`createToolRegistrar` from `@miragon/pulse-widget-shell/server`);
 engine access goes through `withEngine`/`resolveEngine` (per-call `engine` override >
-`ENGINE_DEFAULT` > the only configured engine). A view is registered in three places (CLAUDE.md
-invariant 3). Follow the steps for the path you need.
+`ENGINE_DEFAULT` > the profile file's `defaultProfile` > the only profile, refused ones counted;
+a refused target fails with `ENGINE_PROFILE_REFUSED`, CLAUDE.md invariant 2). A view is
+registered in three places (CLAUDE.md invariant 3). Follow the steps for the path you need.
 
 ## Step 0: pick the render path
 

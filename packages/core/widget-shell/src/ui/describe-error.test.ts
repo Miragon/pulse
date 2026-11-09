@@ -276,6 +276,43 @@ describe("describeError: the words, en and de", () => {
     expect(describeError(raw, "en")).toMatchObject({ title, hint })
   })
 
+  /** The engine module's codes for an engine it does not use and a write it does not send. */
+  const REFUSED =
+    '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask the operator to fix it.'
+  const READ_ONLY =
+    '[ENGINE_READ_ONLY] Engine "ro" is read-only on this server: its profile sets readOnly, so no tool writes to it. Nothing was sent.'
+
+  it("a refused profile: names the engine and where its reason is, the code's text under Details", () => {
+    expect(describeError(new Error(REFUSED), "en")).toEqual({
+      kind: "profileRefused",
+      title: "Engine locked cannot be used: its profile is refused",
+      hint: "Whoever runs this server finds the reason in its log at startup and can fix the profile. Until then, pick another engine.",
+      details: REFUSED,
+    })
+    expect(describeError(new Error(REFUSED), "de")).toMatchObject({
+      title: "Die Engine locked ist nicht nutzbar: ihr Profil ist abgelehnt",
+      hint: "Die Person, die den Server betreibt, findet den Grund im Log beim Start und kann das Profil korrigieren. Wähl bis dahin eine andere Engine.",
+    })
+    expect(classifyError(REFUSED)).toMatchObject({
+      kind: "profileRefused",
+      source: { type: "engine", id: "locked" },
+      reason:
+        'Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask the operator to fix it.',
+    })
+  })
+
+  it("a read-only engine: says nothing was changed, en and de", () => {
+    expect(describeError(READ_ONLY, "en")).toMatchObject({
+      kind: "readOnly",
+      title: "Engine ro is read-only on this server",
+      hint: "Its profile allows reads only, so nothing was changed. Ask whoever runs this server if you need to change something there.",
+    })
+    expect(describeError(READ_ONLY, "de")).toMatchObject({
+      title: "Die Engine ro ist auf diesem Server nur lesbar",
+      hint: "Das Profil dieser Engine erlaubt nur Lesezugriffe, darum hat sich nichts geändert. Bitte die Person, die den Server betreibt, wenn du dort etwas ändern musst.",
+    })
+  })
+
   it("English for an unsupported or missing locale", () => {
     expect(describeError("odd", "fr-FR").title).toBe("Something went wrong")
     expect(describeError("odd", undefined).title).toBe("Something went wrong")

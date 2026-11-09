@@ -5,6 +5,7 @@ import type { Client } from "@miragon/pulse-c7-client"
 import { z } from "zod"
 import { createConfiguredEngineRegistry, createPlugin, type EnginePluginConfig } from "./plugin.js"
 import { EngineNotSelectedError, resolveEngine } from "./lib/engine/resolve-engine.js"
+import { camunda7Provider } from "./providers/index.js"
 import { ENGINE_ADMIN_ONLY_TOOLS } from "./lib/mcp/toolsets.js"
 import {
   ENGINE_LIST_ENGINES,
@@ -37,15 +38,17 @@ async function bootSurface(config: Partial<EnginePluginConfig>) {
       { definition: { name, ...config } as Definition, handler: call },
     ]),
   )
-  const feed = feedPayload<{ allowedActions: string[] }>(
+  const feed = feedPayload<{ allowedActions: string[]; readOnlyEngines: string[] }>(
     await byName.get(ENGINE_WIDGET_ACTIONS_DATA)!.handler({}),
   )
-  // The feed answers one question, which writes the widgets may offer; its shape is the contract.
-  expect(Object.keys(feed)).toEqual(["allowedActions"])
+  // The feed answers which writes the widgets may offer, and on which engines none: its shape is
+  // the contract.
+  expect(Object.keys(feed)).toEqual(["allowedActions", "readOnlyEngines"])
   return {
     names: [...byName.keys()],
     byName,
     allowedActions: feed.allowedActions,
+    readOnlyEngines: feed.readOnlyEngines,
   }
 }
 
@@ -237,21 +240,22 @@ async function authHeader(client: Client): Promise<string | null> {
   return sent
 }
 
-describe("createPlugin per-engine auth", () => {
-  it("builds each engine's client from its own auth, falling back to the module-wide config", async () => {
+describe("createPlugin per-profile auth and deadline", () => {
+  it("builds each engine's client from its own profile's auth, none without one", async () => {
     const registry = registryOf({
       engines: [
-        { id: "a", baseUrl: "http://a.example/engine-rest" },
+        {
+          id: "a",
+          baseUrl: "http://a.example/engine-rest",
+          auth: { type: "basic", username: "demo", password: "secret" },
+        },
         {
           id: "b",
           baseUrl: "http://b.example/engine-rest",
           auth: { type: "bearer", token: "tok-b" },
         },
-        { id: "c", baseUrl: "http://c.example/engine-rest", auth: { type: "none" } },
+        { id: "c", baseUrl: "http://c.example/engine-rest" },
       ],
-      authType: "basic",
-      username: "demo",
-      password: "secret",
     })
 
     expect(await authHeader(resolveEngine("a", registry).client)).toBe(
@@ -261,19 +265,19 @@ describe("createPlugin per-engine auth", () => {
     expect(await authHeader(resolveEngine("c", registry).client)).toBeNull()
   })
 
-  it("does not mix per-engine auth fields with the module-wide credentials", async () => {
-    const registry = registryOf({
+  it("hands each client its profile's timeout, else ENGINE_REQUEST_TIMEOUT_MS, and its readOnly", () => {
+    const createClient = vi.spyOn(camunda7Provider, "createClient")
+    registryOf({
       engines: [
-        // Declares its own auth but no token, so it must NOT inherit the global
-        // basic credentials and must send no Authorization header at all.
-        { id: "solo", baseUrl: "http://solo.example/engine-rest", auth: { type: "bearer" } },
+        { id: "a", baseUrl: "http://a.example/engine-rest", timeoutMs: 5_000, readOnly: true },
+        { id: "b", baseUrl: "http://b.example/engine-rest" },
       ],
-      authType: "basic",
-      username: "demo",
-      password: "secret",
+      requestTimeoutMs: 12_000,
     })
-
-    expect(await authHeader(resolveEngine("solo", registry).client)).toBeNull()
+    expect(createClient.mock.calls.map(([entry, , settings]) => [entry.id, settings])).toEqual([
+      ["a", { timeoutMs: 5_000, readOnly: true }],
+      ["b", { timeoutMs: 12_000, readOnly: false }],
+    ])
   })
 })
 

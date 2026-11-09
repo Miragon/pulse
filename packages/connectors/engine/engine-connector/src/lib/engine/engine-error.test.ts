@@ -272,7 +272,7 @@ describe("the words of every transport reason", () => {
       "the bearer token cannot be sent (token-syntax); nothing was sent (engine e)",
     )
     expect(failed("refused-write").message).toBe(
-      "this server only reads from the engine; nothing was sent (engine e)",
+      "the profile of this engine is read-only on this server; nothing was sent (engine e)",
     )
     expect(failed("tls", { code: "CERT_HAS_EXPIRED" }).message).toBe(
       "connection to engine e failed (CERT_HAS_EXPIRED): the TLS handshake failed, so nothing was sent",

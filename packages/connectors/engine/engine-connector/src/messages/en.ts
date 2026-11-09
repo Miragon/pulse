@@ -35,6 +35,7 @@ export const en: MessageCatalog = {
   "cockpit.landing.envLabel": ({ env }) => `Environment ${String(env).toUpperCase()}`,
   "cockpit.landing.default": "default",
   "cockpit.landing.status.loading": "loading…",
+  "cockpit.landing.status.refused": "profile refused",
   "cockpit.landing.status.unreachable": "unreachable",
   "cockpit.landing.status.empty": "empty",
   "cockpit.landing.status.incidents": ({ count }) => countOf(count, "incident", "incidents"),

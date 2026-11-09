@@ -359,6 +359,9 @@ importers:
       '@miragon/pulse-http':
         specifier: workspace:*
         version: link:../../../core/http
+      '@miragon/pulse-profile':
+        specifier: workspace:*
+        version: link:../../../core/profile
     devDependencies:
       '@miragon/pulse-ui':
         specifier: workspace:*

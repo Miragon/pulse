@@ -159,11 +159,13 @@ services:
       # need ENGINE_ALLOW_DEPLOYMENTS=true). Safe here only because the port is
       # bound to 127.0.0.1; never widen an unauthenticated server reachable
       # from a network.
-      # Pass either a single ENGINE_BASE_URL (single engine) OR
-      # ENGINES_JSON with a list. Below: single-engine default; for
-      # multi-engine override by exporting ENGINES_JSON in the host
-      # shell before `docker compose up`, or by overriding via a compose
-      # override file.
+      # One engine: ENGINE_BASE_URL and its siblings below, which the
+      # server makes its one profile. Several: a profile file in ENGINES_JSON
+      # instead of them (the boot names each one left set as ignored), set
+      # here or in a compose override file (the service passes no variable of
+      # the host shell through), its secrets in ENGINE_SECRET_* variables:
+      #   - 'ENGINES_JSON={"profiles":{"prod-a":{"url":"http://cibseven:8410/engine-rest","flavor":"cibseven","cockpitUrl":"http://localhost:8410/webapp","auth":{"type":"basic","username":"demo","passwordEnv":"ENGINE_SECRET_DEMO_PASSWORD"}},"prod-b":{"url":"http://cibseven-b:8410/engine-rest","flavor":"cibseven","cockpitUrl":"http://localhost:8411/webapp","auth":{"type":"basic","username":"demo","passwordEnv":"ENGINE_SECRET_DEMO_PASSWORD"}}}}'
+      #   - ENGINE_SECRET_DEMO_PASSWORD=demo
       - ENGINE_BASE_URL=http://cibseven:8410/engine-rest
       # The id the server knows the engine by.
       - ENGINE_ID=prod-a

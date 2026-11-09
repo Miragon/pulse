@@ -19,14 +19,30 @@ afterEach(() => {
 describe("the boot refuses a setting it cannot use, before it logs the toolsets", () => {
   it.each([
     [
-      "an engine entry that breaks the schema",
-      { ENGINES_JSON: '[{"id":"Prod_A","baseUrl":"http://localhost:8410/engine-rest"}]' },
-      "ENGINES_JSON[0].id: Engine id must be lowercase alphanumeric / dashes, starting with a letter or digit",
+      "a list of engines, the form ENGINES_JSON held up to 0.27",
+      { ENGINES_JSON: '[{"id":"prod-a","baseUrl":"http://localhost:8410/engine-rest"}]' },
+      "ENGINES_JSON holds a JSON array, the form up to 0.27. It now holds one profile file:",
+    ],
+    [
+      "a profile file without a usable profile",
+      {
+        ENGINES_JSON:
+          '{"profiles":{"prod-a":{"url":"http://localhost:8410/engine-rest","headers":{}}}}',
+      },
+      'ENGINES_JSON: no profile is usable. Profile "prod-a" (ENGINES_JSON) is refused: This server does not apply headers',
+    ],
+    [
+      "a defaultProfile that names no profile",
+      {
+        ENGINES_JSON:
+          '{"defaultProfile":"prod-b","profiles":{"prod-a":{"url":"http://localhost:8410/engine-rest"}}}',
+      },
+      "ENGINES_JSON: defaultProfile names no profile of this file. It must name one of its profiles: prod-a.",
     ],
     [
       "an engine URL without a scheme",
       { ENGINE_BASE_URL: "localhost:8410/engine-rest" },
-      "ENGINE_BASE_URL: Expected an http:// or https:// URL of the REST API root, e.g. http://localhost:8410/engine-rest",
+      "ENGINE_BASE_URL: url must start with http:// or https://.",
     ],
     [
       "an unknown module",
@@ -51,23 +67,27 @@ describe("the boot refuses a setting it cannot use, before it logs the toolsets"
     expect(info).not.toHaveBeenCalled()
   })
 
-  /** `bootWarnings` names the ids of a passthrough engine: only a checked config reaches it. */
+  /** `bootWarnings` names the ids of a passthrough engine: only a profile the server took. */
   it("logs no secret of an engine setting in front of its error", async () => {
     const SECRET = "pl4nted-S3cret"
     const info = vi.spyOn(console, "info").mockImplementation(() => {})
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     stubNeutralEnv({
-      ENGINES_JSON: JSON.stringify([
-        {
-          id: SECRET,
-          baseUrl: `https://svc:${SECRET}@engine.example/engine-rest`,
-          auth: { type: "passthrough" },
+      ENGINES_JSON: JSON.stringify({
+        profiles: {
+          a: {
+            url: `https://svc:${SECRET}@engine.example/engine-rest`,
+            auth: { type: "passthrough" },
+          },
+          [`${SECRET} b`]: { url: "http://b.example/engine-rest" },
         },
-      ]),
+      }),
       ENGINE_DEFAULT: `${SECRET}-other`,
     })
     const refused = (await boot().catch((error: unknown) => error)) as Error
-    expect(refused.message).toContain("ENGINES_JSON[0].baseUrl: Must not contain credentials")
+    expect(refused.message).toContain(
+      'Profile "a" (ENGINES_JSON) is refused: url must not contain credentials',
+    )
     expect(refused.message).not.toContain(SECRET)
     expect(JSON.stringify([info.mock.calls, warn.mock.calls])).not.toContain(SECRET)
   })

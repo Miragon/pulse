@@ -128,7 +128,9 @@ package customers build their own connectors and composed servers on (see the
   handler and reads a resource (`resource(uri).read()`) the way the SDK does
   (`testServerContext(signal?)` builds its context).
   `composedEnvVars(modules)` names every variable such a boot reads (the boot's own and each
-  module's `knownEnvVars`), e.g. for a `.env.example` check.
+  module's `knownEnvVars`), e.g. for a `.env.example` check; a module's optional
+  `referencedEnvVars(env)` names the variables its own settings point at (the engine module's
+  profiles name `ENGINE_SECRET_*` variables), which the typo warner then takes as known.
 - **Toolset vocabularies** (`./server`): a module declares its toolsets as
   `toolsets: createToolsetVocabulary(module, names, floor, { authenticatedDefault })` on its
   definition; a module without one has no toolsets (a suffix is ignored with a warning) and

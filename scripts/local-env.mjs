@@ -114,9 +114,14 @@ const ENGINE_B = {
   cockpitUrl: "http://localhost:8411/webapp",
 }
 
+/** The variable the playground's engine profiles name for their demo password (ENGINE_SECRET_*). */
+export const PLAYGROUND_PASSWORD_VARIABLE = "ENGINE_SECRET_PLAYGROUND_PASSWORD"
+
 /**
  * The MCP server's settings against the playground: the playground's public demo login, the
- * engine module, loopback only. `admin` widens the
+ * engine module, loopback only. One engine is the single-engine settings (ENGINE_BASE_URL and its
+ * siblings); `multiEngine` names both as profiles in ENGINES_JSON, each with its own login, the
+ * password read from PLAYGROUND_PASSWORD_VARIABLE. `admin` widens the
  * toolset, `deploy` registers deployments, `auth` puts the server behind the playground's
  * Keycloak (.env.example, "Local playground"), with MCP_URL on localhost and the server's
  * `port`: OAuth needs it, and the realm stamps http://localhost:8400/mcp into every token's aud.
@@ -128,28 +133,30 @@ export function serverPreset({
   auth = false,
   port = DEFAULT_SERVER_PORT,
 } = {}) {
+  const login = { type: "basic", username: "demo", passwordEnv: PLAYGROUND_PASSWORD_VARIABLE }
   const engines = multiEngine
     ? {
-        ENGINES_JSON: JSON.stringify(
-          [ENGINE_A, ENGINE_B].map(({ id, baseUrl, cockpitUrl }) => ({
-            id,
-            baseUrl,
-            flavor: "cibseven",
-            cockpitUrl,
-          })),
-        ),
+        ENGINES_JSON: JSON.stringify({
+          profiles: Object.fromEntries(
+            [ENGINE_A, ENGINE_B].map(({ id, baseUrl, cockpitUrl }) => [
+              id,
+              { url: baseUrl, cockpitUrl, flavor: "cibseven", auth: login },
+            ]),
+          ),
+        }),
+        [PLAYGROUND_PASSWORD_VARIABLE]: "demo",
       }
     : {
         ENGINE_BASE_URL: ENGINE_A.baseUrl,
         ENGINE_ID: ENGINE_A.id,
         ENGINE_FLAVOR: "cibseven",
         ENGINE_COCKPIT_URL: ENGINE_A.cockpitUrl,
+        ENGINE_AUTH_TYPE: "basic",
+        ENGINE_USERNAME: "demo",
+        ENGINE_PASSWORD: "demo",
       }
   return {
     ...engines,
-    ENGINE_AUTH_TYPE: "basic",
-    ENGINE_USERNAME: "demo",
-    ENGINE_PASSWORD: "demo",
     HOST: "127.0.0.1",
     MCP_ACTIVE_MODULES: admin ? "engine:admin" : "engine",
     ...(deploy ? { ENGINE_ALLOW_DEPLOYMENTS: "true" } : {}),
@@ -172,7 +179,7 @@ export const presetToolsets = (preset, { auth = false } = {}) =>
     ? preset.MCP_ACTIVE_MODULES
     : `${preset.MCP_ACTIVE_MODULES}, ${auth ? "its default under OAuth" : "read-only"}`
 
-/** Where the engine module reads its engines from, the first one set wins (its module.ts). */
+/** Where the engine module reads its engines from, the first one set wins (its engine-profiles.ts). */
 export const ENGINE_SOURCES = ["ENGINES_FILE", "ENGINES_JSON", "ENGINE_BASE_URL"]
 
 /** The CLI's settings against the playground engine. */

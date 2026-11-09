@@ -8,6 +8,8 @@ import {
   OWN_VIEW_HOST_ENV,
   REALISTIC_ENGINE,
   REALISTIC_HOST_ENV,
+  REFUSED_ENGINE,
+  REFUSED_HOST_ENV,
 } from "./engines.js"
 import { startHostBackend, type HostBackend } from "./host-backend.js"
 import { ownViewModule } from "./own-view-module.js"
@@ -49,17 +51,20 @@ async function deploy(env: Record<string, string>, deps?: AppDeps): Promise<Depl
  * checkouts can never collide or be reused by accident. The workers find the
  * host page via `HOST_SIM_URL`, the write-capable deployment via
  * `HOST_SIM_OPERATIONS_URL`, the realistic engine's deployment via
- * `HOST_SIM_REALISTIC_URL`, the one with a module's own view via
+ * `HOST_SIM_REALISTIC_URL`, the one with a refused profile via `HOST_SIM_REFUSED_URL`, the
+ * one with a module's own view via
  * `HOST_SIM_OWN_VIEW_URL` and the stub engine's scenario control via
  * `HOST_SIM_ENGINE_URL` (all inherited from this process).
  */
 export default async function globalSetup(): Promise<() => Promise<void>> {
   const engine = await startStubEngine()
   const engines = {
-    ENGINES_JSON: JSON.stringify([
-      { id: HEALTHY_ENGINE, baseUrl: engine.baseUrl },
-      { id: BROKEN_ENGINE, baseUrl: engine.brokenBaseUrl },
-    ]),
+    ENGINES_JSON: JSON.stringify({
+      profiles: {
+        [HEALTHY_ENGINE]: { url: engine.baseUrl },
+        [BROKEN_ENGINE]: { url: engine.brokenBaseUrl },
+      },
+    }),
   }
   // The default deployment (no OAuth, so the engine module runs read-only) is the
   // widest audience a view has to work for.
@@ -70,7 +75,22 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   // Real-sized data on its own deployment (inline-fit.spec.ts), so the other
   // scenarios keep their engine landscape.
   const realistic = await deploy({
-    ENGINES_JSON: JSON.stringify([{ id: REALISTIC_ENGINE, baseUrl: engine.realisticBaseUrl }]),
+    ENGINES_JSON: JSON.stringify({
+      profiles: { [REALISTIC_ENGINE]: { url: engine.realisticBaseUrl } },
+    }),
+  })
+  // A profile the server refuses next to a usable one (refused-profile.spec.ts): its secret's
+  // variable is not set, so the landing lists it as not answering and opening it says why.
+  const refused = await deploy({
+    ENGINES_JSON: JSON.stringify({
+      profiles: {
+        [HEALTHY_ENGINE]: { url: engine.baseUrl },
+        [REFUSED_ENGINE]: {
+          url: engine.baseUrl,
+          auth: { type: "bearer", tokenEnv: "ENGINE_SECRET_HOST_SIM_NEVER_SET" },
+        },
+      },
+    }),
   })
   // A module with a finished HTML view of its own next to the bundle's (own-view.spec.ts).
   const ownView = await deploy(
@@ -80,6 +100,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   process.env.HOST_SIM_URL = readOnly.host.url
   process.env.HOST_SIM_OPERATIONS_URL = operations.host.url
   process.env[REALISTIC_HOST_ENV] = realistic.host.url
+  process.env[REFUSED_HOST_ENV] = refused.host.url
   process.env[OWN_VIEW_HOST_ENV] = ownView.host.url
   process.env[ENGINE_CONTROL_ENV] = engine.controlUrl
 
@@ -87,6 +108,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     await readOnly.close()
     await operations.close()
     await realistic.close()
+    await refused.close()
     await ownView.close()
     await engine.close()
   }

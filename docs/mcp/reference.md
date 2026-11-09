@@ -78,50 +78,65 @@ The most common variables. See [Operations](operations.md#environment-variables)
 | `ENGINE_BASE_URL`                                      | `http://localhost:8410/engine-rest` | Single-engine REST base URL                                                                                                                                                          |
 | `ENGINE_ID`                                            | `default`                           | Id of that engine: the per-call `engine` selector and the name the cockpit shows                                                                                                     |
 | `ENGINE_FLAVOR`                                        | `camunda7`                          | Vendor of that engine (`cibseven`, `operaton` or `camunda7`): picks its cockpit links and product name                                                                               |
-| `ENGINES_JSON` / `ENGINES_FILE`                        | —                                   | Register multiple engines (see [Multi-engine](#multi-engine))                                                                                                                        |
-| `ENGINE_DEFAULT`                                       | —                                   | Where a call without `engine` routes when several engines are configured; must name a configured engine, else the boot fails                                                         |
+| `ENGINES_JSON` / `ENGINES_FILE`                        | —                                   | A profile file of several engines (see [Multi-engine](#multi-engine)); replaces the single-engine variables                                                                          |
+| `ENGINE_DEFAULT`                                       | —                                   | Where a call without `engine` routes; beats the file's `defaultProfile`; must name a profile, else the boot fails                                                                    |
 | `ENGINE_COCKPIT_URL`                                   | derived                             | Cockpit web base for jump-out links                                                                                                                                                  |
-| `ENGINE_AUTH_TYPE`                                     | `none`                              | `basic`, `bearer`, `passthrough`, or `none`: fallback for engines without an `auth`                                                                                                  |
+| `ENGINE_AUTH_TYPE`                                     | `none`                              | `basic`, `bearer`, `passthrough`, or `none` of the single engine; a profile states its own `auth`                                                                                    |
 | `ENGINE_USERNAME` / `ENGINE_PASSWORD` / `ENGINE_TOKEN` | —                                   | Credentials for `basic`/`bearer`; `passthrough` forwards each caller's bearer token (trusted single-audience setups only: the engine could replay it against this server)            |
 | `ENGINE_REQUEST_TIMEOUT_MS`                            | `30000`                             | Per-request deadline in ms for engine calls; a hung engine fails the tool call with a timeout error                                                                                  |
 
 ### Multi-engine
 
 The server can route to several engines: CIB seven, Operaton and Camunda 7 mixed in one fleet.
-Register them in the server (`ENGINES_JSON` / `ENGINES_FILE`), and the
-host discovers them via `engine_list_engines` (read-only), which lists every configured engine.
-Every operations tool also accepts a per-call `engine` override
-(advertised as an enum of the configured ids). A call routes to its `engine` argument, else to
-`ENGINE_DEFAULT`, else to the only configured engine, else fails with
-`ENGINE_NOT_SELECTED` listing the engines; a default that names no configured engine fails the
-boot. The server
-`instructions` state the routing rule once for every tool. Each engine entry may carry its own `auth`
-(`{type, username?, password?, token?}`); entries without one use the global `ENGINE_*` settings.
-Entries may also declare their vendor via `flavor` (`cibseven` | `operaton` | `camunda7`, default
-`camunda7`; the single-engine shorthand takes `ENGINE_FLAVOR`), which selects the engine's
-cockpit-link routes and display name.
+Describe them in one profile file, the format of the CLI and of Pulse for VS Code
+(`@miragon/pulse-profile`), inline in `ENGINES_JSON` or as a path in `ENGINES_FILE` (which wins).
+It replaces the single-engine variables, which the boot then names as ignored:
+
+```json
+{
+  "defaultProfile": "prod-a",
+  "profiles": {
+    "prod-a": {
+      "url": "http://engine-a:8410/engine-rest",
+      "flavor": "cibseven",
+      "environment": "prod-eu",
+      "auth": { "type": "basic", "username": "svc", "passwordEnv": "ENGINE_SECRET_PROD_A" }
+    },
+    "prod-b": {
+      "url": "http://engine-b:8410/engine-rest",
+      "environment": "prod-us",
+      "readOnly": true
+    }
+  }
+}
+```
+
+A profile's name is its engine id: the per-call `engine` selector, advertised as an enum of every
+configured id, and the name the cockpit shows. `url` is the REST root; `flavor` (`cibseven` |
+`operaton` | `camunda7`, default `camunda7`) selects the cockpit-link routes and display name;
+`cockpitUrl`, `timeout` (it beats `ENGINE_REQUEST_TIMEOUT_MS`) and `readOnly` (no tool writes to that
+engine, whatever the toolset) are optional. Each profile signs in on its own (`none`, `basic`,
+`bearer`, `passthrough`), and a secret never sits in the file: `auth.passwordEnv` or
+`auth.tokenEnv` names the variable that holds it, and the server reads only names that start with
+`ENGINE_SECRET_`. Whoever may change the file reaches those variables and the URLs.
+
+A call routes to its `engine` argument, else to `ENGINE_DEFAULT`, else to `defaultProfile`, else to
+the only profile, else fails with `ENGINE_NOT_SELECTED`; a default that names no profile fails the
+boot. The server `instructions` state the routing rule once for every tool. A profile the server
+cannot use (an unknown key, an unset variable, a literal secret, `headers`, a process engine name,
+OAuth, a URL with credentials) is refused on its own: the boot warns, `engine_list_engines` lists it
+under `refused` with the reason, and a call to it fails with `ENGINE_PROFILE_REFUSED`, also as the
+default, never rerouted. The boot fails only when the file gives no profile, none is usable or a
+default names no profile.
 
 With several engines, the cockpit landing lists every engine with its live health in words (open
-incidents, empty, unreachable, loading), read from the engine itself. Its dot, there and in the
+incidents, empty, unreachable, loading), read from the engine itself; a refused one reads "profile
+refused", counted apart from an unreachable one, and opening it says why. Its dot, there and in the
 cross-engine view, has the tone of the engine overview's verdict (ok, warning, critical), so one
 open incident below the thresholds is a warning, not an alarm. With two engines or more the
 cockpit offers the cross-engine view: each engine's health, its job backlog and which processes
 run where, read from every engine itself, as counts, never a ranking of the engines.
-
-Fleets that span several environments (each environment hosting some services with an engine)
-group their engines per environment: the cockpit landing lists the engines under their
-environment, the engine switcher and `engine_list_engines` group them by
-environment, and every engine view names the environment as a chip ("PROD") next to the engine,
-write confirmations included. Either write the
-engines JSON as a map keyed by environment id, or tag entries individually:
-
-```json
-{
-  "prod-eu": [{ "id": "prod-a", "baseUrl": "http://engine-a:8410/engine-rest" }],
-  "prod-us": [{ "id": "prod-b", "baseUrl": "http://engine-b:8410/engine-rest" }]
-}
-```
-
-Engine ids stay globally unique across environments: the id remains the per-call `engine`
-selector; the environment is a grouping level only.
+`environment` groups the engines: the landing lists them under their environment, the engine
+switcher and `engine_list_engines` group them, and every engine view names the environment as a
+chip ("PROD") next to the engine, write confirmations included.
 Full walkthrough in [Operations](operations.md).

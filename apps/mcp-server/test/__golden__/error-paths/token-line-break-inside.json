@@ -1,5 +1,5 @@
 {
-  "boot": "Engine \"default\" cannot send its credentials: its bearer token holds a character no bearer token (RFC 6750) carries, a line break inside it, say (one at its end is trimmed). Check ENGINE_TOKEN, or the token in the auth of its entry; the value is not shown.",
+  "boot": "ENGINE_TOKEN holds a character no bearer token (RFC 6750) carries, a line break inside it, say (one at its end is trimmed); the value is not shown.",
   "case": "token-line-break-inside",
   "config": {
     "ENGINE_AUTH_TYPE": "bearer",

@@ -8,13 +8,15 @@ import { useEngineAction, type ActionConfirmation } from "./engine-action.js"
 import { WRITE_POLICY } from "./write-policy.js"
 
 let allowed: string[]
+/** The engines the feed names read-only. */
+let readOnlyEngines: string[]
 const write = vi.fn<(name: string, args: object) => unknown>()
 
 // One retry-free client per test; the test reads and spies on its cache.
 let queryClient = createTestQueryClient()
 
 const TOOLS: Record<string, unknown> = {
-  [ENGINE_WIDGET_ACTIONS_DATA]: () => ({ allowedActions: allowed }),
+  [ENGINE_WIDGET_ACTIONS_DATA]: () => ({ allowedActions: allowed, readOnlyEngines }),
   ...Object.fromEntries(
     Object.keys(WRITE_POLICY).map((name) => [
       name,
@@ -42,6 +44,7 @@ function retryAction(resetOn?: unknown) {
     ({ reset }: { reset: unknown }) =>
       useEngineAction<RetryArgs>({
         tool: "engine_set_job_retries",
+        engine: "prod",
         target: (args) => args.jobId,
         resetOn: reset,
       }),
@@ -61,6 +64,7 @@ const CONFIRM: ActionConfirmation = {
 
 beforeEach(() => {
   allowed = ["engine_set_job_retries", "engine_resolve_incident"]
+  readOnlyEngines = []
   write.mockReset()
   write.mockReturnValue({ success: true })
 })
@@ -86,6 +90,7 @@ describe("useEngineAction: the gate", () => {
       ({ available }: { available: boolean }) =>
         useEngineAction<RetryArgs>({
           tool: "engine_set_job_retries",
+          engine: "prod",
           target: (args) => args.jobId,
           available,
         }),
@@ -98,6 +103,27 @@ describe("useEngineAction: the gate", () => {
 
     rerender({ available: true })
     expect(result.current.allowed).toBe(true)
+  })
+
+  /** Without an engine the write goes to the default engine, which may be the read-only one. */
+  it.each<[string, string | undefined, string[], boolean]>([
+    ["closed on the read-only engine", "prod", ["prod"], false],
+    ["open on another engine than the read-only one", "test", ["prod"], true],
+    ["closed without an engine while one profile is read-only", undefined, ["prod"], false],
+    ["open without an engine while no profile is read-only", undefined, [], true],
+  ])("%s", async (_case, engine, readOnly, expected) => {
+    readOnlyEngines = readOnly
+    const { result } = renderHook(
+      () =>
+        useEngineAction<RetryArgs>({
+          tool: "engine_set_job_retries",
+          engine,
+          target: (args) => args.jobId,
+        }),
+      { wrapper },
+    )
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+    expect(result.current.allowed).toBe(expected)
   })
 })
 
@@ -177,6 +203,7 @@ describe("useEngineAction: a write that asks first", () => {
       ({ available }: { available: boolean }) =>
         useEngineAction<{ incidentId: string }>({
           tool: "engine_resolve_incident",
+          engine: "prod",
           target: (args) => args.incidentId,
           available,
         }),
@@ -298,6 +325,7 @@ describe("useEngineAction: the feedback (U9: a write is never silent)", () => {
       () =>
         useEngineAction<Record<string, unknown>, TResult>({
           tool,
+          engine: "prod",
           target: (args) => String(args.jobId ?? args.incidentId),
         }),
       { wrapper: toastWrapper },

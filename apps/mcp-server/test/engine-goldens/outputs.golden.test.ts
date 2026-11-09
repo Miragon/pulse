@@ -9,7 +9,7 @@ import { worldAnswer } from "./world.js"
  * Output goldens (W0): what the model reads from the three engine reads the CLI has twins of
  * (`pulse status`, `pulse inspect`), byte for byte: the content text (as `textLines`) and the
  * structuredContent of each result, and the requests the engine saw. One boot of the real app
- * (`createApp`) with two engines in two environments, one of them the loopback world
+ * (`createApp`) with two engine profiles in two environments, one of them the loopback world
  * (world.ts), under a fixed clock and in UTC. The golden file sorts every object's keys, so the
  * structuredContent is pinned by its values, the content text byte for byte. Intended change:
  * `pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server golden:update`, then commit the
@@ -39,15 +39,15 @@ beforeAll(async () => {
   server = await bootServer({
     env: {
       ENGINES_JSON: JSON.stringify({
-        prod: [
-          {
-            id: "prod-eu",
-            baseUrl: `${engine.origin}/engine-rest`,
+        profiles: {
+          "prod-eu": {
+            url: `${engine.origin}/engine-rest`,
             cockpitUrl: "https://ops.example.com/camunda/app/cockpit/default/",
             flavor: "cibseven",
+            environment: "prod",
           },
-        ],
-        test: [{ id: "test", baseUrl: "http://localhost:1/engine-rest", flavor: "operaton" }],
+          test: { url: "http://localhost:1/engine-rest", flavor: "operaton", environment: "test" },
+        },
       }),
       ENGINE_DEFAULT: "prod-eu",
     },

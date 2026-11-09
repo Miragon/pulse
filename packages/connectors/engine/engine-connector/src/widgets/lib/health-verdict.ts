@@ -1,4 +1,5 @@
 import { formatNumber, SITUATION_TONES, type ToneVariant } from "@miragon/pulse-ui"
+import { describeError } from "@miragon/pulse-widget-shell/widgets"
 import type { EngineHealthData, EngineHealthStatus } from "../../view-models.js"
 import type { T } from "../../messages/use-t.js"
 
@@ -29,4 +30,12 @@ export function healthVerdictLine(t: T, data: Pick<EngineHealthData, "summary">)
         count,
         activities: formatNumber(affectedActivities),
       })
+}
+
+/**
+ * The server refused the engine's profile (ENGINE_PROFILE_REFUSED): it never asks that engine, so
+ * this is no outage of the engine but the operator's to fix, and never counted as unreachable.
+ */
+export function isProfileRefusal(error: unknown): boolean {
+  return describeError(error, undefined).kind === "profileRefused"
 }

@@ -7,9 +7,9 @@ import {
   type HostAction,
   createTestQueryClient,
 } from "@miragon/pulse-widget-shell/widgets"
-import { EngineHealthVerdict } from "./engine-health.js"
+import { EngineHealthVerdict, EngineHealthView } from "./engine-health.js"
 import type { EngineHealthData } from "../view-models.js"
-import { ENGINE_WIDGET_ACTIONS_DATA } from "../tool-names.js"
+import { ENGINE_HEALTH_DATA, ENGINE_WIDGET_ACTIONS_DATA } from "../tool-names.js"
 import { widgetActionsFeedFor } from "./lib/hand-off.test-support.js"
 
 // One retry-free client per test; the test reads and pokes its cache.
@@ -344,5 +344,25 @@ describe("the verdict line and the hand-offs speak the view's language", () => {
     expect(explain).toHaveLength(2)
     expect(explain[0].querySelector("svg")!.getAttribute("class")).toContain("lucide-file-search")
     expect(screen.queryByRole("button", { name: "Behebung im Chat planen" })).toBeNull()
+  })
+})
+
+/** The chat can look for why an engine does not answer; a refused profile's reason is on screen. */
+describe("an engine whose health cannot be read", () => {
+  const REFUSED =
+    '[ENGINE_PROFILE_REFUSED] Engine "default" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask the operator to fix it.'
+
+  it.each([
+    ["an unreachable engine offers the chat the cause", "engine default unreachable", true],
+    ["a refused profile offers no chat: only the operator can fix it", REFUSED, false],
+  ])("%s", async (_case, message, offered) => {
+    const failing = () => Promise.reject(new Error(message))
+    render(
+      <TestViewHost tools={{ ...tools, [ENGINE_HEALTH_DATA]: failing }} client={queryClient}>
+        <EngineHealthView engine="default" />
+      </TestViewHost>,
+    )
+    await screen.findByRole("button", { name: "Try again" })
+    expect(screen.queryByRole("button", { name: "Find cause in chat" }) !== null).toBe(offered)
   })
 })

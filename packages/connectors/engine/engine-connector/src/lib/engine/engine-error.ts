@@ -297,7 +297,7 @@ const WORDING: Readonly<Record<FailureReason, Worded>> = {
       },
     ),
   "invalid-request": refused((failure) => `the request cannot be sent (${codeOf(failure)})`),
-  "refused-write": refused(() => "this server only reads from the engine"),
+  "refused-write": refused(() => "the profile of this engine is read-only on this server"),
   credential: refused((failure) => `the bearer token cannot be sent (${codeOf(failure)})`),
 }
 

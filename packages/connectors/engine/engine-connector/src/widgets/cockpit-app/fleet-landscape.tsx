@@ -27,11 +27,23 @@ import {
   type LandscapeEngine,
 } from "../../lib/shared/fleet-landscape.js"
 import { useT, type T } from "../../messages/use-t.js"
+import { isProfileRefusal } from "../lib/health-verdict.js"
 import { ENGINE_COCKPIT_OVERVIEW_DATA, ENGINE_JOB_BACKLOG_DATA } from "../../tool-names.js"
 import type { CockpitDashboardData, JobBacklogData } from "../../view-models.js"
 
-/** Where an engine's overview stands: the chooser's words for it (#322 U15). */
-type EngineState = "read" | "loading" | "unreachable"
+/**
+ * Where an engine's overview stands: the chooser's words for it (#322 U15). A refused profile is
+ * no outage: the server never asks that engine.
+ */
+type EngineState = "read" | "loading" | "refused" | "unreachable"
+
+function stateOf(
+  overview: { data?: unknown; isError: boolean; error: unknown } | undefined,
+): EngineState {
+  if (overview?.data) return "read"
+  if (!overview?.isError) return "loading"
+  return isProfileRefusal(overview.error) ? "refused" : "unreachable"
+}
 
 interface Landscape {
   figures: FleetLandscapeFigures
@@ -60,7 +72,7 @@ function useLandscape(engineIds: readonly string[]): Landscape {
   const states: Record<string, EngineState> = {}
   const reads = engineIds.map((engineId, i) => {
     const overview = overviews[i]
-    states[engineId] = overview?.data ? "read" : overview?.isError ? "unreachable" : "loading"
+    states[engineId] = stateOf(overview)
     return {
       engineId,
       definitions: overview?.data?.definitions ?? null,
@@ -80,16 +92,22 @@ function LandscapeKpis({ figures, states, t }: Landscape & { t: T }) {
   const complete = totals.readEngineCount === totals.engineCount
   // No engine read yet: no count of processes either, never a 0.
   const processes = totals.readEngineCount === 0 ? null : totals.processKeyCount
-  const unreachable = Object.values(states).filter((state) => state === "unreachable").length
+  const counted = (wanted: EngineState) =>
+    Object.values(states).filter((state) => state === wanted).length
+  const unreachable = counted("unreachable")
+  const refused = counted("refused")
+  const trend = [
+    ...(unreachable > 0
+      ? [t("fleet.landscape.kpiUnreachable", { count: formatNumber(unreachable) })]
+      : []),
+    ...(refused > 0 ? [t("fleet.landscape.kpiRefused", { count: formatNumber(refused) })] : []),
+  ]
   const cells: KpiCell[] = [
     {
       label: t("fleet.landscape.kpiEngines"),
       value: formatNumber(totals.engineCount),
-      trend:
-        unreachable > 0
-          ? t("fleet.landscape.kpiUnreachable", { count: formatNumber(unreachable) })
-          : undefined,
-      trendTone: unreachable > 0 ? "danger" : undefined,
+      trend: trend.length > 0 ? trend.join(" · ") : undefined,
+      trendTone: unreachable > 0 ? "danger" : refused > 0 ? "warning" : undefined,
     },
     {
       label: t("fleet.landscape.kpiProcesses"),

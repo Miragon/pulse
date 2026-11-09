@@ -17,7 +17,7 @@ function registerFeed(toolset: EngineToolset) {
   const recording = recordingModuleServer()
   registerWidgetActionsFeed({
     server: recording.server,
-    registry: { engines: [] } as unknown as EngineRegistry,
+    registry: { engines: [], backends: new Map() } as unknown as EngineRegistry,
     healthThresholds: DEFAULT_VERDICT_THRESHOLDS,
     toolset,
     engineParam: engineParamShape,

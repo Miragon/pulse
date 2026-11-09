@@ -15,6 +15,10 @@ export const REALISTIC_ENGINE = "realistic"
 export const ENGINE_CONTROL_ENV = "HOST_SIM_ENGINE_URL"
 /** Env var carrying the host page of the realistic engine's deployment (set by global-setup.ts). */
 export const REALISTIC_HOST_ENV = "HOST_SIM_REALISTIC_URL"
+/** A profile the server refuses (its secret's variable is not set): the landing lists it. */
+export const REFUSED_ENGINE = "locked"
+/** Env var carrying the host page of the deployment with a refused profile (global-setup.ts). */
+export const REFUSED_HOST_ENV = "HOST_SIM_REFUSED_URL"
 /** Env var carrying the host page of the deployment with a module's own view (global-setup.ts). */
 export const OWN_VIEW_HOST_ENV = "HOST_SIM_OWN_VIEW_URL"
 /** That module's view tool and feed (own-view-module.ts). */

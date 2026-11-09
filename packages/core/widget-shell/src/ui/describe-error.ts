@@ -1,8 +1,14 @@
 import { resolveLanguage } from "./host-context.js"
 import { ERROR_LABELS, type ErrorKindLabels, type ErrorSource } from "./error-labels.js"
 
-/** `unreachable` covers 502/503, `timeout` 408/504, `notOnServer` an inactive module. */
+/**
+ * `unreachable` covers 502/503, `timeout` 408/504, `notOnServer` an inactive module,
+ * `profileRefused` an engine whose profile the server refused (ENGINE_PROFILE_REFUSED) and
+ * `readOnly` a write to an engine whose profile is read-only (ENGINE_READ_ONLY).
+ */
 export const ERROR_KINDS = [
+  "profileRefused",
+  "readOnly",
   "unreachable",
   "timeout",
   "notOnServer",
@@ -35,10 +41,13 @@ export interface DescribedError {
 }
 
 const BRACKET_STATUS = /\[(\d{3})(?:[\s\]])/
-/** The engine id the engine client appends or leads with. */
+/** The engine id the engine client appends or leads with, or the engine module's errors quote. */
 const ENGINE_ID =
-  /\(engine ([^\s)]+)\)|\bengine (\S+) (?:unreachable|did not respond)|connection to engine (\S+) failed/
+  /\(engine ([^\s)]+)\)|\bengine (\S+) (?:unreachable|did not respond)|connection to engine (\S+) failed|\bEngine "([^"\s]{1,120})"/
 const ENGINE = /\bengine\b|ProcessEngineException|\bCamunda\b|\bCIB seven\b/i
+/** The engine module's codes for an engine it does not use, and for a write it does not send. */
+const PROFILE_REFUSED = /\[ENGINE_PROFILE_REFUSED\]/
+const READ_ONLY = /\[ENGINE_READ_ONLY\]/
 const TOOL_MISSING = /\btool\b[^\n]*\bnot found\b|\bunknown tool\b|-32601\b|\bmethod not found\b/i
 const TIMEOUT = /\(timeout\)|\btimed? ?out\b|-32001\b|did not respond within/i
 const UNREACHABLE =
@@ -97,7 +106,7 @@ function statusOf(error: unknown, text: string): number | undefined {
 
 function sourceOf(text: string): ErrorSource {
   const id = ENGINE_ID.exec(text)
-  if (id) return { type: "engine", id: id[1] ?? id[2] ?? id[3] }
+  if (id) return { type: "engine", id: id[1] ?? id[2] ?? id[3] ?? id[4] }
   if (ENGINE.test(text)) return { type: "engine" }
   return { type: "unknown" }
 }
@@ -112,6 +121,8 @@ function kindOfStatus(status: number): ErrorKind {
 }
 
 function kindOf(text: string, status: number | undefined): ErrorKind {
+  if (PROFILE_REFUSED.test(text)) return "profileRefused"
+  if (READ_ONLY.test(text)) return "readOnly"
   if (TOOL_MISSING.test(text)) return "notOnServer"
   if (status !== undefined) return kindOfStatus(status)
   if (TIMEOUT.test(text)) return "timeout"

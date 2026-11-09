@@ -72,8 +72,8 @@ function refusePathValues(ctx: EngineErrorContext): (options: unknown) => Promis
 
 /**
  * The client of `entry` over its transport: the credential of `auth` (a credential that cannot
- * be sent fails here, at boot), the deadline of `settings`, the 64 MiB cap, integers beyond 2^53
- * as their exact digits, and every failure worded for the model.
+ * be sent fails here, at boot), the deadline and the write gate of `settings`, the 64 MiB cap,
+ * integers beyond 2^53 as their exact digits, and every failure worded for the model.
  */
 export function createEngineConnection(
   entry: Pick<EngineEntry, "id" | "baseUrl">,
@@ -89,6 +89,8 @@ export function createEngineConnection(
       credential: credentialFor(entry.id, auth),
       timeoutMs: settings.timeoutMs ?? DEFAULT_ENGINE_TIMEOUT_MS,
       maxAnswerBytes: settings.maxAnswerBytes ?? MAX_ANSWER_BYTES,
+      // A read-only profile: a request the route table does not mark as a read never leaves.
+      readOnly: settings.readOnly === true,
       userAgent: USER_AGENT,
     },
     // Looked up per request, never at boot: the global `fetch` as it is then.

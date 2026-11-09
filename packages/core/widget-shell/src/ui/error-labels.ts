@@ -13,6 +13,8 @@ export interface ErrorLabels {
   source: (p: { source: ErrorSource }) => string
   /** The HTTP status as a title suffix (" (HTTP 503)"). */
   status: (p: { status: number }) => string
+  profileRefused: ErrorKindLabels
+  readOnly: ErrorKindLabels
   unreachable: ErrorKindLabels
   timeout: ErrorKindLabels
   notOnServer: ErrorKindLabels
@@ -41,6 +43,16 @@ const EN: ErrorLabels = {
         : "The engine"
       : "The data source",
   status: ({ status }) => ` (HTTP ${status})`,
+  profileRefused: {
+    title: ({ source }) => `${source} cannot be used: its profile is refused`,
+    hint: () =>
+      "Whoever runs this server finds the reason in its log at startup and can fix the profile. Until then, pick another engine.",
+  },
+  readOnly: {
+    title: ({ source }) => `${source} is read-only on this server`,
+    hint: () =>
+      "Its profile allows reads only, so nothing was changed. Ask whoever runs this server if you need to change something there.",
+  },
   unreachable: {
     title: ({ source, status }) => `${source} is unreachable${status}`,
     hint: ({ source }) =>
@@ -96,6 +108,16 @@ const DE: ErrorLabels = {
         : "Die Engine"
       : "Die Datenquelle",
   status: ({ status }) => ` (HTTP ${status})`,
+  profileRefused: {
+    title: ({ source }) => `${source} ist nicht nutzbar: ihr Profil ist abgelehnt`,
+    hint: () =>
+      "Die Person, die den Server betreibt, findet den Grund im Log beim Start und kann das Profil korrigieren. Wähl bis dahin eine andere Engine.",
+  },
+  readOnly: {
+    title: ({ source }) => `${source} ist auf diesem Server nur lesbar`,
+    hint: () =>
+      "Das Profil dieser Engine erlaubt nur Lesezugriffe, darum hat sich nichts geändert. Bitte die Person, die den Server betreibt, wenn du dort etwas ändern musst.",
+  },
   unreachable: {
     title: ({ source, status }) => `${source} ist nicht erreichbar${status}`,
     hint: ({ source }) =>

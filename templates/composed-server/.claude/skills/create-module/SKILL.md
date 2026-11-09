@@ -91,7 +91,9 @@ The contract, field by field (see `notesModule`):
 - `knownEnvVars`: every env var your module reads. This feeds the server's
   boot-time typo warner, and each var contributes its prefix (`ACME_URL` →
   `ACME_`) to the watched set, so your module gets the same typo coverage as
-  the built-in ones.
+  the built-in ones. A variable whose name your own settings carry (the engine
+  module's profiles name `ENGINE_SECRET_*` variables) goes into the optional
+  `referencedEnvVars(env)` instead, which never throws.
 - `toolsets`: required as soon as your module registers a tool without
   `readOnlyHint: true` and the server may run without OAuth (Step 5). A
   module of reads only, like notes, leaves it out; a `<name>:<toolset>`

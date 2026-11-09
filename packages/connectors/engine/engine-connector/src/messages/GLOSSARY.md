@@ -14,15 +14,16 @@ in der VS-Code-Erweiterung. Die Regeln stehen einmal in pulse-ui (`PRODUCT_GLOSS
 `@miragon/pulse-ui/testing`), und `glossary.test.ts` jedes Moduls prüft damit seine Kataloge;
 die Erweiterung prüft ihre Texte im Code (`apps/vscode/test/architecture/product-words.test.ts`).
 
-| Sache                                                 | Deutsch                                                            | Nicht                                | Englisch                  | Nicht                  |
-| ----------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------ | ------------------------- | ---------------------- |
-| Fehler, den die Engine meldet                         | Incident, Incidents                                                | Vorfall, Vorfälle, Störung           | incident                  | occurrence             |
-| Jobs, deren Versuche aufgebraucht sind (`failedJobs`) | Jobs ohne Versuche („3 ohne Versuche“)                             | Fehlgeschlagene Jobs, tote Jobs      | jobs without retries      | failed jobs, dead jobs |
-| BPMN-Modell auf die Engine bringen                    | bereitstellen, bereitgestellt (das Ergebnis heißt Deployment)      | deployen, deployst, deployt          | deploy, deployed          | –                      |
-| Business Key                                          | Geschäftsschlüssel                                                 | GK, Business Key                     | business key              | BK                     |
-| Instanz anhalten                                      | aussetzen, ausgesetzt                                              | anhalten, angehalten, pausieren      | suspend, suspended        | pause, halt (¹)        |
-| Retries eines Jobs                                    | Versuche („Noch 2 Versuche“, „Keine Versuche mehr“), neu versuchen | Wiederholungen, wiederholen, Retries | retries, retry            | –                      |
-| Alle Engines zusammen                                 | alle Engines, Engine-übergreifend                                  | Flotte                               | all engines, cross-engine | fleet                  |
+| Sache                                                 | Deutsch                                                            | Nicht                                | Englisch                           | Nicht                  |
+| ----------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------ | ---------------------------------- | ---------------------- |
+| Fehler, den die Engine meldet                         | Incident, Incidents                                                | Vorfall, Vorfälle, Störung           | incident                           | occurrence             |
+| Jobs, deren Versuche aufgebraucht sind (`failedJobs`) | Jobs ohne Versuche („3 ohne Versuche“)                             | Fehlgeschlagene Jobs, tote Jobs      | jobs without retries               | failed jobs, dead jobs |
+| BPMN-Modell auf die Engine bringen                    | bereitstellen, bereitgestellt (das Ergebnis heißt Deployment)      | deployen, deployst, deployt          | deploy, deployed                   | –                      |
+| Business Key                                          | Geschäftsschlüssel                                                 | GK, Business Key                     | business key                       | BK                     |
+| Instanz anhalten                                      | aussetzen, ausgesetzt                                              | anhalten, angehalten, pausieren      | suspend, suspended                 | pause, halt (¹)        |
+| Retries eines Jobs                                    | Versuche („Noch 2 Versuche“, „Keine Versuche mehr“), neu versuchen | Wiederholungen, wiederholen, Retries | retries, retry                     | –                      |
+| Alle Engines zusammen                                 | alle Engines, Engine-übergreifend                                  | Flotte                               | all engines, cross-engine          | fleet                  |
+| Engine-Profil, das eine Oberfläche nicht nutzt (²)    | abgelehnt („ihr Profil ist abgelehnt“)                             | verworfen, zurückgewiesen, ungültig  | refused („its profile is refused“) | rejected, invalid      |
 
 (¹) Englisch prüft die gemeinsame Regel „pause“ und „halt“ nur in drei Wörtern Abstand zu dem,
 was die Engine aussetzt (Instanz, Prozess, Definition, Version, Job): VS Code pausiert seine
@@ -30,6 +31,10 @@ Live-Updates und hält einen Bulk-Lauf an, und das bleibt so. Das Cockpit pausie
 darum verbietet `glossary.test.ts` hier jedes „pause“ und „halt“, mit der strengen Regel
 `BARE_PAUSE_RULE_EN` aus `@miragon/pulse-ui/testing`, die auch die Wörter der Kits von widget-shell
 und pulse-ui prüft.
+
+(²) Der Server lehnt ein Profil ab, das er nicht nutzen kann (Code `ENGINE_PROFILE_REFUSED`), Pulse
+for VS Code eines, das es nicht bedienen kann. Die Wörter stehen in `describeError` von widget-shell
+(die Art `profileRefused`) und auf der Landing des Cockpits („Profil abgelehnt“).
 
 ## Zählbegriffe
 

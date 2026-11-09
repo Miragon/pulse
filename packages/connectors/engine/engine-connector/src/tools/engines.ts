@@ -2,11 +2,16 @@ import { engineStatusInput } from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { engineStatusForModel } from "../lib/core-adapter/composites.js"
 import type { VerdictThresholds } from "@miragon/pulse-c7-core"
-import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
+import type { EngineRegistry, RefusedProfile } from "../lib/engine/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 import { environmentOf, groupEnginesByEnvironment } from "../lib/shared/environments.js"
 import { providerForEntry } from "../providers/index.js"
 import { ENGINE_LIST_ENGINES } from "../tool-names.js"
+
+/** A refused profile as the model reads it: its id, its environment and why, never a value. */
+function refusedEntry({ id, environment, reason }: RefusedProfile) {
+  return { id, ...(environment === undefined ? {} : { environment }), reason }
+}
 
 /**
  * Reads: the engine list (so even a read-only multi-engine deployment can route) and the triage,
@@ -42,6 +47,8 @@ export function registerEngineTools(
           engineIds: g.engines.map((e) => e.id),
         })),
         defaultEngineId: reg.defaultEngineId ?? null,
+        // Only when there is one: a call to it fails with ENGINE_PROFILE_REFUSED and this reason.
+        ...(reg.refused.size > 0 ? { refused: [...reg.refused.values()].map(refusedEntry) } : {}),
       }),
   })
 

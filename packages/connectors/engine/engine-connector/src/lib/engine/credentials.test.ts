@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { runWithMcpRequestInfo } from "@miragon/pulse-widget-shell/server"
-import { CREDENTIALS, credentialFor, unauthorizedHint } from "./credentials.js"
+import { CREDENTIALS, credentialFor, credentialProblemOf, unauthorizedHint } from "./credentials.js"
 
 /** The Authorization header a credential sends, or undefined for none. */
 async function header(engineId: string, auth: Parameters<typeof credentialFor>[1]) {
@@ -46,6 +46,23 @@ describe("the credential of each auth type", () => {
       }
       expect(message).not.toMatch(/second-line|de:mo|secret-1/)
     }
+  })
+})
+
+describe("the check the profiles are judged with at boot", () => {
+  it("names the problem of a credential the transport cannot send, none for one it can", () => {
+    expect(credentialProblemOf({ type: "bearer", token: "tok-1\nsecond-line" })).toBe(
+      "token-syntax",
+    )
+    expect(credentialProblemOf({ type: "basic", username: "de:mo", password: "p" })).toBe(
+      "user-colon",
+    )
+    expect(credentialProblemOf({ type: "basic", username: "demo", password: "p\n" })).toBe(
+      "control-character",
+    )
+    expect(credentialProblemOf({ type: "bearer", token: "tok-1\n" })).toBeUndefined()
+    expect(credentialProblemOf({ type: "passthrough" })).toBeUndefined()
+    expect(credentialProblemOf({ type: "none" })).toBeUndefined()
   })
 })
 

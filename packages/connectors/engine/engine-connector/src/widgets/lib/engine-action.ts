@@ -38,9 +38,14 @@ interface RunOptions<TResult> {
   onError?: (error: Error) => void
 }
 
-/** The toolset decides (`engine_widget_actions_data`), AND `available`. */
+/** The toolset and the engine's profile decide (`engine_widget_actions_data`), AND `available`. */
 export interface EngineActionOptions<TArgs> {
   tool: EngineWidgetAction
+  /**
+   * The engine the write goes to: none runs on one whose profile is read-only. Required, so no
+   * call site forgets it; undefined (the default engine) stays closed while any profile is.
+   */
+  engine: string | undefined
   target?: (args: TArgs) => string
   /** The optimistic success marks drop when its identity changes. */
   resetOn?: unknown
@@ -102,22 +107,23 @@ function invalidateAfter(client: QueryClient, tool: EngineWidgetAction): void {
 }
 
 /**
- * The deployment gate of one write, for a surface that only words an offer (fix or diagnose)
- * without running the write itself. Fail-closed until the gate feed answered; the gate stays in
- * this primitive (`src/widget-actions.test.ts`).
+ * The deployment gate of one write on `engine`, for a surface that only words an offer (fix or
+ * diagnose) without running the write itself. Fail-closed until the gate feed answered; the gate
+ * stays in this primitive (`src/widget-actions.test.ts`).
  */
-export function useActionAllowed(tool: EngineWidgetAction): boolean {
-  return useCanRun()(tool)
+export function useActionAllowed(tool: EngineWidgetAction, engine: string | undefined): boolean {
+  return useCanRun()(tool, engine)
 }
 
 /** The one in-widget write primitive (`src/widget-actions.test.ts`); fail-closed until the gate feed answered. */
 export function useEngineAction<TArgs extends Record<string, unknown>, TResult = unknown>({
   tool,
+  engine,
   target = SINGLE_TARGET,
   resetOn,
   available = true,
 }: EngineActionOptions<TArgs>): EngineAction<TArgs, TResult> {
-  const allowed = useActionAllowed(tool) && available
+  const allowed = useActionAllowed(tool, engine) && available
   const mutation = useToolMutation<TResult>(tool)
   const client = useQueryClient()
   const toasts = useActionFeedback()

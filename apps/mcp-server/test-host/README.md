@@ -5,12 +5,13 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
 
 - `global-setup.ts` boots the real composition root (`createApp` from
   `src/app.ts`, default read-only deployment, plus a `engine:operations`
-  one for the write scenario) serving `dist/mcp-app.{js,css}`, a CIB seven
-  REST stub (`stub-engine.ts`, `fixtures/process-definitions.json` with their
-  statistics and no open incident, the `invoice` diagram `fixtures/invoice.bpmn`
-  with two instances at `approveInvoice` and twelve started in the last 30 days in its history,
-  three failed jobs, their backlog counts, one invoice instance with two open incidents that only
-  its own reads see; under
+  one for the write scenario and one whose second profile the server refuses,
+  its secret's variable unset, at `HOST_SIM_REFUSED_URL`) serving
+  `dist/mcp-app.{js,css}`, a CIB seven REST stub (`stub-engine.ts`,
+  `fixtures/process-definitions.json` with their statistics and no open incident, the `invoice`
+  diagram `fixtures/invoice.bpmn` with two instances at `approveInvoice` and twelve started in
+  the last 30 days in its history, three failed jobs, their backlog counts, one invoice instance
+  with two open incidents that only its own reads see; under
   `/realistic`, real-sized data in `realistic-engine.ts`) and the host's
   server side (`host-backend.ts`, a real MCP client), all on ephemeral
   loopback ports. A scenario can hold the stub's answers to one search term
@@ -75,6 +76,7 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
 | cross-engine overview      | the picker's "Cross-engine overview" at 760 px    | the landscape from both engines: column groups headed, backlog columns in their region, the 503 engine "unreachable" with no column; en, de (`fleet.spec.ts`)      |
 | axe (cross-engine)         | the overview, light and dark, 760 px              | zero WCAG 2.1 A/AA violations (`fleet.spec.ts`)                                                                                                                    |
 | a module's own view        | a tool bound to a resource of its module          | the finished document renders from that URI under its own CSP, no prelude, its feed answers through the host (`own-view.spec.ts`)                                  |
+| refused profile            | the picker, one profile refused                   | the refused engine reads "profile refused", opening it says why in en and de, `engine_open_cockpit` on it opens the picker (`refused-profile.spec.ts`)             |
 
 **The cockpit's chrome inline.** Every scenario of the engine module renders the cockpit, whose head
 (sections, engine switch, Refresh) sits above the route. Inline the head is the only row: a

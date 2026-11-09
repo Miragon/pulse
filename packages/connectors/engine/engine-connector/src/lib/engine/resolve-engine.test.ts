@@ -1,10 +1,13 @@
 import { describe, it, expect } from "vitest"
 import type { Client } from "@miragon/pulse-c7-client"
 import {
+  assertWritable,
   cockpitEngineId,
   createEngineRegistry,
   resolveEngine,
   EngineNotSelectedError,
+  EngineProfileRefusedError,
+  EngineReadOnlyError,
   UnknownEngineError,
 } from "./resolve-engine.js"
 
@@ -124,5 +127,52 @@ describe("createEngineRegistry", () => {
 
   it("keeps the engines in configuration order", () => {
     expect([...createEngineRegistry(MULTI, clientFor).backends.keys()]).toEqual(["alpha", "beta"])
+  })
+})
+
+/** A profile the server refused: in the enum and the count, never a backend; a call says why. */
+describe("a refused profile in the registry", () => {
+  const client = (e: { id: string }) => ({ __engine: e.id }) as unknown as Client
+  const REFUSED = { id: "locked", reason: "auth.tokenEnv is missing." }
+  const registry = (defaultEngineId?: string) =>
+    createEngineRegistry([MULTI[0], { ...MULTI[1], readOnly: true }], client, {
+      refused: [REFUSED],
+      defaultEngineId,
+    })
+
+  it("counts it with the engines and names it after them by default", () => {
+    const { engineIds, profileCount, refused } = registry()
+    expect([engineIds, profileCount, [...refused.keys()]]).toEqual([
+      ["alpha", "beta", "locked"],
+      3,
+      ["locked"],
+    ])
+  })
+
+  it("never routes to it: a call naming it, or a default on it, fails with its reason", () => {
+    expect(() => resolveEngine("locked", registry())).toThrow(EngineProfileRefusedError)
+    expect(() => resolveEngine(undefined, registry("locked"))).toThrow(
+      'Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv is missing. Ask the operator to fix it.',
+    )
+  })
+
+  it("one usable and one refused profile: no default, so a call without engine is not selected", () => {
+    const pair = createEngineRegistry([MULTI[0]], client, { refused: [REFUSED] })
+    expect(() => resolveEngine(undefined, pair)).toThrow(EngineNotSelectedError)
+    expect(cockpitEngineId(undefined, pair)).toBeNull()
+  })
+
+  it("the cockpit opens the picker on it instead of failing", () => {
+    expect(cockpitEngineId("locked", registry())).toBeNull()
+    expect(cockpitEngineId(undefined, registry("locked"))).toBeNull()
+  })
+
+  it("assertWritable refuses a write to a read-only engine and lets the others through", () => {
+    expect(() => assertWritable("beta", registry())).toThrow(EngineReadOnlyError)
+    expect(() => assertWritable("beta", registry())).toThrow(
+      'Engine "beta" is read-only on this server: its profile sets readOnly, so no tool writes to it. Nothing was sent.',
+    )
+    expect(() => assertWritable("alpha", registry())).not.toThrow()
+    expect(() => assertWritable("locked", registry())).toThrow(EngineProfileRefusedError)
   })
 })

@@ -214,6 +214,7 @@ export function VariablesTable({
   // Saved values shadow the shown ones only until the refetch.
   const setVariable = useEngineAction<SetVariableArgs>({
     tool: "engine_set_process_instance_variable",
+    engine,
     target: (args) => args.variableName,
     resetOn: variables,
     available: !readOnly,

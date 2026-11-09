@@ -46,6 +46,16 @@ export const BARE_PAUSE_RULE_EN: GlossaryRule = {
   probe: "Paused",
 }
 
+/**
+ * An engine profile a surface does not use is refused, abgelehnt (the MCP server's
+ * ENGINE_PROFILE_REFUSED, a profile Pulse for VS Code cannot serve); the engine rejecting
+ * credentials keeps its own words.
+ */
+const REFUSED_PROFILE_DE =
+  /Profil[\p{L}]*\s+(?:\S+\s+){0,3}?(?:verworfen|zurückgewiesen|abgewiesen|ungültig)|(?:verworfen|zurückgewiesen|abgewiesen|ungültig)\S*\s+(?:\S+\s+){0,3}?Profil/iu
+const REFUSED_PROFILE_EN =
+  /\bprofile\b\s+(?:\S+\s+){0,3}?(?:rejected|declined|invalid)\b|\b(?:rejected|declined|invalid)\s+(?:\S+\s+){0,3}?profile\b/i
+
 export const PRODUCT_GLOSSARY: Readonly<Record<CatalogLanguage, readonly GlossaryRule[]>> = {
   de: [
     { pattern: /Vorf[aä]ll/i, use: "Incident", probe: "Offene Vorfälle" },
@@ -79,6 +89,7 @@ export const PRODUCT_GLOSSARY: Readonly<Record<CatalogLanguage, readonly Glossar
       use: COUNT_TERMS.withIncident.de,
       probe: "Mit Incidents",
     },
+    { pattern: REFUSED_PROFILE_DE, use: "abgelehnt", probe: "Ihr Profil wurde verworfen" },
   ],
   en: [
     {
@@ -97,6 +108,7 @@ export const PRODUCT_GLOSSARY: Readonly<Record<CatalogLanguage, readonly Glossar
       use: COUNT_TERMS.withIncident.en,
       probe: "With incidents",
     },
+    { pattern: REFUSED_PROFILE_EN, use: "refused", probe: "Its profile was rejected" },
   ],
 }
 

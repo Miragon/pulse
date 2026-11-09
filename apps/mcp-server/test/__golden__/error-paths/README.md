@@ -58,6 +58,6 @@ it).
 | `basic-password-euro` | pinned | since step 10 the server boots and sends Basic as UTF-8 (RFC 7617), as the CLI and Pulse for VS Code do; it failed the boot with "Invalid character" before (Basic was Latin-1) | none planned |
 | `path-value-dot` | pinned | since step 10 `processInstanceId` "." and ".." are refused before sending; before, they were resolved away and the reads went to `/process-instance/` and to the REST root | none planned |
 | `double-slash-root` | pinned | since step 10 the slashes at the end of the URL are trimmed, so the reads reach the engine; before, they went to `/engine-rest//…` | none planned |
-| `token-line-break-inside` | pinned | since step 10 the boot fails naming the engine and the setting, without the token; before, the header error echoed it | none planned |
+| `token-line-break-inside` | pinned | since step 10 the boot fails naming the setting, without the token; before, the header error echoed it. Since the profile step the single engine's profile is refused for it, and with no other profile the boot fails naming ENGINE_TOKEN | none planned |
 | `token-line-break-trailing` | pinned | a trailing line break: trimmed, the header goes out without it | none planned |
 | `integer-beyond-2-53` | pinned | since step 10 (owner decision E2 (a)) a Long variable 9223372036854775807 reaches the model as the string of its exact digits; before, as 9223372036854776000 | none planned |

@@ -43,6 +43,7 @@ export function InstanceDetailWidget({
   const { complete, visibleTasks, activeTaskId, onToggleTask, onTaskCompleted } = useOpenTasks(
     data?.openTasks,
     actions.canCompleteTasks,
+    engine,
   )
 
   if (!data) return guard

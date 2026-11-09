@@ -126,6 +126,7 @@ export const deSweep: MessageCatalog = {
   "fleet.landscape.kpiEngines": "Engines",
   "fleet.landscape.kpiIncidents": "Offene Incidents",
   "fleet.landscape.kpiProcesses": "Prozessdefinitionen",
+  "fleet.landscape.kpiRefused": "{count} abgelehnt",
   "fleet.landscape.kpiRunning": "Laufende Instanzen",
   "fleet.landscape.kpiShared": "{count} auf mehreren Engines",
   "fleet.landscape.kpiUnreachable": "{count} nicht erreichbar",

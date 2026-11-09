@@ -9,9 +9,14 @@ import { TaskCompleteForm } from "../task-complete-form.js"
 import { useT } from "../../messages/use-t.js"
 
 /** The done mark bridges until the refetched `openTasks` arrive; a delegated task resolves back to its owner and stays. */
-export function useOpenTasks(openTasks: OpenUserTask[] | undefined, available: boolean) {
+export function useOpenTasks(
+  openTasks: OpenUserTask[] | undefined,
+  available: boolean,
+  engine: string,
+) {
   const complete = useEngineAction<CompleteTaskArgs, TaskCompletion>({
     tool: "engine_complete_task",
+    engine,
     target: (args) => args.taskId,
     resetOn: openTasks,
     available,

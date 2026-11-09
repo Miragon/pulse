@@ -71,21 +71,24 @@ For your own engine, edit `.env` (every field is documented inline in `.env.exam
   picks the cockpit-link routes and the product name the views show, so a CIB seven engine (the
   one in `compose.yaml`, the playground's) sets `cibseven`.
 - `ENGINE_AUTH_TYPE`: `none | basic | bearer | passthrough`; `basic` needs
-  `ENGINE_USERNAME`/`ENGINE_PASSWORD`, `bearer` needs `ENGINE_TOKEN` (both
-  enforced at boot); `passthrough` forwards each MCP caller's own bearer token.
+  `ENGINE_USERNAME`/`ENGINE_PASSWORD`, `bearer` needs `ENGINE_TOKEN` (the boot
+  fails without them); `passthrough` forwards each MCP caller's own bearer token.
 - `ENGINE_COCKPIT_URL`: set explicitly whenever the engine URL is not
   reachable from the user's browser (container hostname), otherwise "open in
   cockpit" links point nowhere.
-- Multiple engines: `ENGINES_JSON` (or `ENGINES_FILE`) with
-  per-engine `id`, `baseUrl`, optional `environment`, `flavor` (`cibseven |
-operaton | camunda7`, default `camunda7`) and `auth`; overrides the single-engine shorthand
-  above. To group engines by environment, either set `environment` per entry
-  or write the JSON as a map keyed by environment id
-  (`{"<environment>": [engines…]}`); pickers and `engine_list_engines`
-  then group the engines by environment. Engine ids stay
-  globally unique across environments. A call without `engine` routes to
-  `ENGINE_DEFAULT` (it must name a configured engine, else the boot
-  fails); without one it fails with `ENGINE_NOT_SELECTED` listing the engines.
+- Multiple engines: one profile file, the format of the Pulse CLI and Pulse for
+  VS Code, in `ENGINES_JSON` (or a path in `ENGINES_FILE`), which replaces the
+  single-engine variables above:
+  `{"defaultProfile": "prod-a", "profiles": {"prod-a": {"url": "…", "flavor": "cibseven", "auth": {"type": "basic", "username": "demo", "passwordEnv": "ENGINE_SECRET_PROD_A_PASSWORD"}}}}`.
+  A profile's name is its engine id; optional `environment` groups the pickers
+  and `engine_list_engines`, `readOnly: true` blocks every write to that
+  engine. A secret never sits in the JSON: `auth.passwordEnv` or
+  `auth.tokenEnv` names the variable that holds it, and only names that start
+  with `ENGINE_SECRET_` are read (set that variable in `.env` too). A profile
+  the server cannot use is refused on its own: the boot warns, the other
+  engines run. A call without `engine` routes to `ENGINE_DEFAULT`, else
+  `defaultProfile` (each must name a profile, else the boot fails); without
+  either it fails with `ENGINE_NOT_SELECTED` listing the engines.
 - `ENGINE_REQUEST_TIMEOUT_MS`: the per-request deadline (default 30000 ms); a
   hung engine then fails the tool call with a timeout error instead of
   holding it.

@@ -70,7 +70,7 @@ function FleetEngineCard({
 }) {
   const { query: q, summary: s, incidents, failed, tone } = useEngineHealth(engineId)
   const t = useT()
-  const kind = engineStatusKind({ isError: q.isError, summary: s })
+  const kind = engineStatusKind({ isError: q.isError, error: q.error, summary: s })
 
   return (
     <button
@@ -95,7 +95,7 @@ function FleetEngineCard({
       </div>
 
       {/* The same words as the chooser: "nicht erreichbar", "lädt …" (#322 U15). */}
-      {kind === "unreachable" || kind === "loading" || !s ? (
+      {kind === "refused" || kind === "unreachable" || kind === "loading" || !s ? (
         <span className="text-muted-foreground text-small">
           {t(`cockpit.landing.status.${kind}`)}
         </span>

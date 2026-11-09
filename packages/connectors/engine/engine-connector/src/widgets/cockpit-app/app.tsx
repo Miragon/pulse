@@ -1,4 +1,4 @@
-import { useReducer } from "react"
+import { useMemo, useReducer } from "react"
 import { EmptyState, NavigationFocus, useLocale, useResetOnChange } from "@miragon/pulse-ui"
 import {
   HostModelContext,
@@ -28,6 +28,25 @@ export type { CockpitAppData }
 interface EnginesResult {
   engines: Array<{ id: string; environment?: string }>
   defaultEngineId: string | null
+  /** Profiles the server refused: the picker lists them too, and opening one says why. */
+  refused?: Array<{ id: string; environment?: string }>
+}
+
+type ListedEngine = { id: string; environment?: string }
+
+/**
+ * Every configured engine the list names, the refused ones too, in the order the start data gave
+ * them (the profiles'), so no row moves when the list answers; one the start data does not name
+ * comes last.
+ */
+function listedEngines(result: EnginesResult, order: readonly ListedEngine[]): ListedEngine[] {
+  const named = [...result.engines, ...(result.refused ?? [])].map(({ id, environment }) => ({
+    id,
+    ...(environment === undefined ? {} : { environment }),
+  }))
+  const rank = new Map(order.map(({ id }, index) => [id, index]))
+  const place = (id: string) => rank.get(id) ?? rank.size
+  return named.sort((a, b) => place(a.id) - place(b.id))
 }
 
 /** A head section's own view; the jobs of one process are a drill, not the head section. */
@@ -220,7 +239,12 @@ function startSeed(
 export function CockpitApp({ data }: { data: CockpitAppData | null }) {
   // Decoupled from the open_cockpit bootstrap so picker and switcher work however the app launched.
   const enginesQuery = useToolQuery<EnginesResult>(["engine:engines"], ENGINE_LIST_ENGINES, {})
-  const engines = enginesQuery.data?.engines ?? data?.engines ?? []
+  const listed = enginesQuery.data
+  const bootEngines = data?.engines
+  const engines = useMemo(
+    () => (listed ? listedEngines(listed, bootEngines ?? []) : (bootEngines ?? [])),
+    [listed, bootEngines],
+  )
   const engineGroups = groupEnginesByEnvironment(engines)
 
   const locale = useLocale()

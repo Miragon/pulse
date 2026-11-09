@@ -126,6 +126,7 @@ export const enSweep: MessageCatalog = {
   "fleet.landscape.kpiEngines": "Engines",
   "fleet.landscape.kpiIncidents": "Open incidents",
   "fleet.landscape.kpiProcesses": "Process definitions",
+  "fleet.landscape.kpiRefused": "{count} refused",
   "fleet.landscape.kpiRunning": "Running instances",
   "fleet.landscape.kpiShared": "{count} on several engines",
   "fleet.landscape.kpiUnreachable": "{count} unreachable",

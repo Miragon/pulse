@@ -29,7 +29,7 @@ import { ENGINE_HEALTH_DATA } from "../tool-names.js"
 import { remediationHandOff, UNKNOWN_KEY as UNKNOWN } from "./remediation.js"
 import { useActionAllowed } from "./lib/engine-action.js"
 import { useHandOff, type HandOff, type ViewContext } from "./lib/hand-off.js"
-import { healthVerdictLine, VERDICT_TONE } from "./lib/health-verdict.js"
+import { healthVerdictLine, isProfileRefusal, VERDICT_TONE } from "./lib/health-verdict.js"
 import { useT } from "../messages/use-t.js"
 
 const STATUS_LABEL: Record<EngineHealthStatus, string> = {
@@ -115,7 +115,7 @@ function ClusterRow({
 }) {
   const t = useT()
   const { ask } = useHandOff()
-  const canFix = useActionAllowed("engine_set_job_retries")
+  const canFix = useActionAllowed("engine_set_job_retries", engine)
   const handOff = remediationHandOff(cluster, engine, canFix)
   const primaryKey = cluster.processDefinitionKeys.find((k) => k !== UNKNOWN)
   const name = cluster.activityName ?? cluster.activityId
@@ -199,8 +199,9 @@ function HealthUnavailable({
         className="w-full"
       />
       {/* An unreachable engine is a failure to understand too: the chat can
-          look for the cause while the operator retries. */}
-      {error && (
+          look for the cause while the operator retries. A refused profile has its
+          reason on screen, and only the operator can fix it. */}
+      {error && !isProfileRefusal(error) && (
         <HandOffButton action="findCause" prompt={ask(diagnoseHandOff(engine, error.message))} />
       )}
     </div>

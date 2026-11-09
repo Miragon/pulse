@@ -194,6 +194,22 @@ describe("engineModule.instructions", () => {
     expect(text).not.toContain("ENGINE_NOT_SELECTED")
   })
 
+  // PGP 5d: a refused profile counts, so the rule never says `engine` may be omitted while a
+  // call without it fails with ENGINE_NOT_SELECTED.
+  it("counts refused profiles: one usable and one refused is the several-engines rule", () => {
+    const refused = [{ id: "locked", reason: "auth.tokenEnv is missing." }]
+    for (const config of [
+      { engines: [TWO[0]], refused },
+      { engines: [TWO[0]], engineIds: ["prod-a"], profileCount: 2 },
+    ]) {
+      const text = engineModule.instructions({ ...config, toolset: "operations" })
+      expect(text).not.toContain("may be omitted")
+      expect(text).toContain("else fails with ENGINE_NOT_SELECTED")
+    }
+    const text = engineModule.instructions({ engines: [TWO[0]], refused, toolset: "operations" })
+    expect(text).toContain("engines prod-a, locked (engine_list_engines")
+  })
+
   it("several engines, no default: a call without `engine` fails with the ENGINE_NOT_SELECTED it names", async () => {
     const recording = recordingModuleServer()
     engineModule.createPlugin({ engines: TWO, toolset: "read-only" }).register(recording.server)

@@ -15,19 +15,28 @@ import { IncidentTable } from "./process-incidents/incident-table.js"
 import { useIncidentRecovery } from "./process-incidents/use-incident-recovery.js"
 import { TestViewHost, type QueryClient } from "@miragon/pulse-widget-shell/widgets"
 
-/** `client` is the test's, so it can wait for the gate feed to settle. */
-type Renderer = (allowedActions: readonly string[], client: QueryClient) => ReactElement
+/**
+ * `client` is the test's, so it can wait for the gate feed to settle; `readOnlyEngines` the
+ * engines the feed names read-only (every site writes to "prod").
+ */
+type Renderer = (
+  allowedActions: readonly string[],
+  client: QueryClient,
+  readOnlyEngines?: readonly string[],
+) => ReactElement
 
 function host(
   widget: ComponentType<Record<string, unknown>>,
-  allowedActions: readonly string[],
-  client: QueryClient,
+  [allowedActions, client, readOnlyEngines = []]: Parameters<Renderer>,
   data?: unknown,
 ): ReactElement {
   return (
     <TestViewHost
       tools={{
-        [ENGINE_WIDGET_ACTIONS_DATA]: { allowedActions: [...allowedActions] },
+        [ENGINE_WIDGET_ACTIONS_DATA]: {
+          allowedActions: [...allowedActions],
+          readOnlyEngines: [...readOnlyEngines],
+        },
       }}
       client={client}
     >
@@ -127,36 +136,33 @@ const Jobs: ComponentType<Record<string, unknown>> = ({ data }) => (
   <JobPanelWidget data={data as JobPanelData} engine="prod" />
 )
 const Variables: ComponentType<Record<string, unknown>> = () => (
-  <VariablesTable variables={{ amount: { value: 42, type: "Integer" } }} instanceId="pi-1" />
+  <VariablesTable
+    variables={{ amount: { value: 42, type: "Integer" } }}
+    instanceId="pi-1"
+    engine="prod"
+  />
 )
 
 /** Render-level half of the write guard (#341): keyed exhaustively, so a site without a surface does not compile. */
 export const GATING_RENDERERS: Record<GatingSite, Renderer> = {
-  "job-panel.tsx#engine_set_job_retries": (allowed, client) => host(Jobs, allowed, client, JOBS),
-  "instance-sections.tsx#engine_set_process_instance_variable": (allowed, client) =>
-    host(Variables, allowed, client),
-  "instance-detail/open-tasks.tsx#engine_complete_task": (allowed, client) =>
-    host(Instance, allowed, client, INSTANCE),
-  "instance-detail/use-instance-actions.ts#engine_set_process_instance_suspension": (
-    allowed,
-    client,
-  ) => host(Instance, allowed, client, INSTANCE),
-  "instance-detail/use-instance-actions.ts#engine_delete_process_instance": (allowed, client) =>
-    host(Instance, allowed, client, INSTANCE),
-  "process-incidents/use-incident-recovery.ts#engine_resolve_incident": (allowed, client) =>
-    host(incidentRows("invoiceMismatch", { action: "resolve" }), allowed, client),
-  "process-incidents/use-incident-recovery.ts#engine_set_job_retries": (allowed, client) =>
-    host(incidentRows("failedJob", { action: "retry-job", jobId: "job-1" }), allowed, client),
-  "process-incidents/use-incident-recovery.ts#engine_set_external_task_retries": (
-    allowed,
-    client,
-  ) =>
+  "job-panel.tsx#engine_set_job_retries": (...gate) => host(Jobs, gate, JOBS),
+  "instance-sections.tsx#engine_set_process_instance_variable": (...gate) => host(Variables, gate),
+  "instance-detail/open-tasks.tsx#engine_complete_task": (...gate) =>
+    host(Instance, gate, INSTANCE),
+  "instance-detail/use-instance-actions.ts#engine_set_process_instance_suspension": (...gate) =>
+    host(Instance, gate, INSTANCE),
+  "instance-detail/use-instance-actions.ts#engine_delete_process_instance": (...gate) =>
+    host(Instance, gate, INSTANCE),
+  "process-incidents/use-incident-recovery.ts#engine_resolve_incident": (...gate) =>
+    host(incidentRows("invoiceMismatch", { action: "resolve" }), gate),
+  "process-incidents/use-incident-recovery.ts#engine_set_job_retries": (...gate) =>
+    host(incidentRows("failedJob", { action: "retry-job", jobId: "job-1" }), gate),
+  "process-incidents/use-incident-recovery.ts#engine_set_external_task_retries": (...gate) =>
     host(
       incidentRows("failedExternalTask", {
         action: "retry-external-task",
         externalTaskId: "ext-1",
       }),
-      allowed,
-      client,
+      gate,
     ),
 }

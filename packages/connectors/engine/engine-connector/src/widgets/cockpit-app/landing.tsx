@@ -12,18 +12,23 @@ import {
   type ToneVariant,
 } from "@miragon/pulse-ui"
 import { WidgetShell } from "@miragon/pulse-widget-shell/widgets"
-import { ArrowRight, CircleDashed, Layers, LoaderCircle, Unplug } from "lucide-react"
+import { ArrowRight, Ban, CircleDashed, Layers, LoaderCircle, Unplug } from "lucide-react"
 import { DEFAULT_ENVIRONMENT_ID, groupEnginesByEnvironment } from "../../lib/shared/environments.js"
 import { translator } from "../../messages/use-t.js"
+import { isProfileRefusal } from "../lib/health-verdict.js"
 import { useEngineHealth } from "./engine-health.js"
 
 /** In words, so colour is never the only signal. */
 export type EngineStatusKind =
-  "loading" | "unreachable" | "empty" | "incidents" | "failedJobs" | "idle" | "healthy"
+  "loading" | "refused" | "unreachable" | "empty" | "incidents" | "failedJobs" | "idle" | "healthy"
 
-/** #322 U15, from the same live health as the engine's overview. */
+/**
+ * #322 U15, from the same live health as the engine's overview. A profile the server refused is
+ * its own state: the server never asks that engine, so it is not unreachable.
+ */
 export function engineStatusKind(health: {
   isError: boolean
+  error: unknown
   summary:
     | {
         totalDefinitions: number
@@ -33,7 +38,7 @@ export function engineStatusKind(health: {
       }
     | undefined
 }): EngineStatusKind {
-  if (health.isError) return "unreachable"
+  if (health.isError) return isProfileRefusal(health.error) ? "refused" : "unreachable"
   const s = health.summary
   if (!s) return "loading"
   if (s.totalDefinitions === 0) return "empty"
@@ -48,6 +53,7 @@ function StatusMark({ kind, tone }: { kind: EngineStatusKind; tone: ToneVariant 
   if (kind === "loading") {
     return <Icon icon={LoaderCircle} className="text-muted-foreground motion-safe:animate-spin" />
   }
+  if (kind === "refused") return <Icon icon={Ban} className={TONE_ICON.warning} />
   if (kind === "unreachable") return <Icon icon={Unplug} className={TONE_ICON.danger} />
   if (kind === "empty") return <Icon icon={CircleDashed} className="text-muted-foreground" />
   return (
@@ -70,7 +76,7 @@ function EngineRow({
   const locale = useLocale()
   const tr = (key: string, params?: Record<string, unknown>) => translator(locale, key, params)
   const { query, summary, tone } = useEngineHealth(engineId)
-  const kind = engineStatusKind({ isError: query.isError, summary })
+  const kind = engineStatusKind({ isError: query.isError, error: query.error, summary })
   const status =
     kind === "incidents"
       ? tr("cockpit.landing.status.incidents", {

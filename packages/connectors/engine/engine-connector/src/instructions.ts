@@ -4,15 +4,21 @@ import type { EngineToolset } from "./lib/mcp/toolsets.js"
 
 /** Rules for EVERY engine tool, once instead of per description (the `engine` text alone was a fifth of the surface). */
 export interface EngineInstructionsInput {
+  /** Every configured engine id, refused profiles included: a call may name each. */
   engineIds: readonly string[]
-  /** `ENGINE_DEFAULT`, already checked against `engineIds` by the config schema. */
+  /**
+   * Every profile, refused and nameless ones included (default: the ids): only one alone is the
+   * default, so a refused neighbour never reroutes a call without `engine` to the other.
+   */
+  profileCount?: number
+  /** `ENGINE_DEFAULT` or `defaultProfile`, already checked against `engineIds` by the config schema. */
   defaultEngine?: string
   /** The playbooks name only the writes the toolset registers (checked by the app's instructions test). */
   toolset: EngineToolset
 }
 
-function routingRule({ engineIds, defaultEngine }: EngineInstructionsInput): string {
-  if (engineIds.length === 1) {
+function routingRule({ engineIds, profileCount, defaultEngine }: EngineInstructionsInput): string {
+  if (engineIds.length === 1 && (profileCount ?? 1) === 1) {
     return `one engine is configured ("${engineIds[0]}"); \`engine\` may be omitted.`
   }
   const head = `engines ${engineIds.join(", ")} (engine_list_engines groups them by environment). `

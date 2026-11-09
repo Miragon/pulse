@@ -11,13 +11,15 @@ import {
 import type { EngineAuth, EngineAuthType } from "../../engine-provider.js"
 import { resolveMcpBearerToken } from "./mcp-auth.js"
 
+export type { CredentialProblem }
+
 type Factory = (auth: EngineAuth) => Credential
 
 /**
  * The credential of each auth type, total over `EngineAuthType`: Basic as UTF-8 (RFC 7617),
  * a fixed bearer token checked now (trimmed, so a secret file's final line break is no
  * problem), or the MCP caller's verified bearer token, read per request and never renewed. An
- * incomplete one sends nothing, as the config schema refuses it before.
+ * incomplete one sends nothing, as the profiles refuse it before (engine-profiles.ts).
  */
 export const CREDENTIALS: Readonly<Record<EngineAuthType, Factory>> = {
   none: () => noCredential,
@@ -31,20 +33,35 @@ export const CREDENTIALS: Readonly<Record<EngineAuthType, Factory>> = {
 const REFUSED: Readonly<Record<CredentialProblem, string>> = {
   "user-colon":
     "its user name holds a colon, which Basic auth (RFC 7617) cannot carry. Check " +
-    "ENGINE_USERNAME, or the username in the auth of its entry",
+    "auth.username of its profile, or ENGINE_USERNAME",
   "control-character":
     "its user name or password holds a control character (a line break, say), which Basic " +
-    "auth (RFC 7617) cannot carry. Check ENGINE_USERNAME and ENGINE_PASSWORD, or the auth of " +
-    "its entry",
+    "auth (RFC 7617) cannot carry. Check auth.username of its profile and the variable its " +
+    "auth.passwordEnv names, or ENGINE_USERNAME and ENGINE_PASSWORD",
   "token-syntax":
     "its bearer token holds a character no bearer token (RFC 6750) carries, a line break " +
-    "inside it, say (one at its end is trimmed). Check ENGINE_TOKEN, or the token in the auth " +
-    "of its entry",
+    "inside it, say (one at its end is trimmed). Check the variable auth.tokenEnv of its " +
+    "profile names, or ENGINE_TOKEN",
 }
 
 /**
- * The credential `engineId` signs in with: built once, at boot, so a credential that cannot be
- * sent fails the boot naming the engine and the setting to check, never the value.
+ * Why the credential of `auth` cannot be sent, or undefined when it can: the profiles are judged
+ * at boot with it, so such a profile is refused on its own, never with a value in the reason.
+ */
+export function credentialProblemOf(auth: EngineAuth): CredentialProblem | undefined {
+  try {
+    CREDENTIALS[auth.type](auth)
+    return undefined
+  } catch (error) {
+    if (error instanceof CredentialError) return error.problem
+    throw error
+  }
+}
+
+/**
+ * The credential `engineId` signs in with, built once at boot. The profiles were judged with
+ * `credentialProblemOf` before, so a credential that cannot be sent fails here only for a
+ * direct caller: the boot then fails naming the engine and the setting to check, never the value.
  */
 export function credentialFor(engineId: string, auth: EngineAuth): Credential {
   try {

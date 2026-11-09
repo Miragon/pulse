@@ -69,10 +69,19 @@ SDK package of its own: widget-shell brings `@modelcontextprotocol/server` 2.4 a
   cluster, process, instances, instance, incident, jobs, history), and with two engines or more
   the cross-engine overview (each engine's health, job backlog and processes, counts only);
   `src/widgets/views.tsx` maps the tool to the cockpit.
+- **Engine profiles** (`src/engine-profiles.ts`): `ENGINES_FILE` or `ENGINES_JSON` hold a
+  profile file of `@miragon/pulse-profile`, the format of the CLI and Pulse for VS Code; without
+  one, `ENGINE_BASE_URL` and its siblings yield the profile of a single engine. A profile's name is
+  the engine id, a secret only the name of an `ENGINE_SECRET_*` variable. A profile the server
+  cannot use is refused on its own: the boot warns, `engine_list_engines` lists it under
+  `refused`, a call to it fails with `ENGINE_PROFILE_REFUSED`. `readOnly` on a profile blocks every
+  tool without `readOnlyHint` on that engine (`withReadOnlyEngines`, `src/lib/engine/read-only.ts`)
+  and hides the widgets' write controls there.
 - **Multi-engine routing:** every tool resolves its engine through `withEngine` / `resolveEngine`
-  (`src/lib/engine/`): per-call override → `ENGINE_DEFAULT` (it must name a configured engine,
-  else the boot fails) → the only configured engine, else `ENGINE_NOT_SELECTED` listing the
-  engines.
+  (`src/lib/engine/`): per-call override → `ENGINE_DEFAULT` → the file's `defaultProfile` (each
+  must name a profile, else the boot fails) → the only profile (counted with the refused ones),
+  else `ENGINE_NOT_SELECTED` listing the engines. A refused target, a default included, fails
+  with `ENGINE_PROFILE_REFUSED` and is never rerouted.
 - **Engine providers** (`src/engine-provider.ts`, `src/providers/`): each engine entry carries a
   vendor `flavor` (`cibseven` | `operaton` | `camunda7`, default `camunda7`; the `ENGINE_BASE_URL`
   shorthand takes `ENGINE_FLAVOR`) resolved to an `EngineProvider` holding only the real
