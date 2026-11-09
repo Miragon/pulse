@@ -1,0 +1,15 @@
+{
+  "about": "A defaultProfile that is no valid profile name.",
+  "file": {
+    "defaultProfile": "my engine",
+    "profiles": {
+      "dev": {
+        "url": "http://localhost:8080/engine-rest"
+      }
+    }
+  },
+  "cli": {
+    "valid": false,
+    "error": "invalid defaultProfile \"my engine\""
+  }
+}

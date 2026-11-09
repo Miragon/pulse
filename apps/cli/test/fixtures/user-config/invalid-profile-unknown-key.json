@@ -1,0 +1,15 @@
+{
+  "about": "A profile key the CLI does not know; Pulse for VS Code skips the keys it does not use.",
+  "file": {
+    "profiles": {
+      "dev": {
+        "url": "http://localhost:8080/engine-rest",
+        "proxy": "http://proxy.example.com:3128"
+      }
+    }
+  },
+  "cli": {
+    "valid": false,
+    "error": "unknown key(s) proxy in profile \"dev\""
+  }
+}

@@ -1,7 +1,8 @@
 import * as vscode from "vscode"
+import { ProfileFileName } from "./profile-file-name.js"
 
 export class TargetsFile {
-  static readonly NAME = ".pulse-cli.json"
+  static readonly NAME = ProfileFileName.PROJECT
 
   static readonly GLOB = `**/${TargetsFile.NAME}`
 

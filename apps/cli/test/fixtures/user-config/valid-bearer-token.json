@@ -1,0 +1,38 @@
+{
+  "about": "A stored bearer token, or the variable that holds it, is the CLI's; Pulse for VS Code names it.",
+  "file": {
+    "profiles": {
+      "token": {
+        "url": "http://localhost:8080/engine-rest",
+        "auth": {
+          "type": "bearer",
+          "token": "bearer-secret"
+        }
+      },
+      "token-env": {
+        "url": "http://localhost:8080/engine-rest",
+        "auth": {
+          "type": "bearer",
+          "tokenEnv": "CI_TOKEN"
+        }
+      }
+    }
+  },
+  "cli": {
+    "valid": true,
+    "profiles": {
+      "token": {
+        "url": "http://localhost:8080/engine-rest",
+        "flavor": "camunda7",
+        "readOnly": false,
+        "auth": "bearer"
+      },
+      "token-env": {
+        "url": "http://localhost:8080/engine-rest",
+        "flavor": "camunda7",
+        "readOnly": false,
+        "auth": "bearer"
+      }
+    }
+  }
+}

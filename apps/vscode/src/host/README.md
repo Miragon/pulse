@@ -20,7 +20,7 @@ flowchart TB
   panel <-- "5: intents, host actions" --> session{{"core session"}}
 ```
 
-1. It reads every `.pulse-cli.json` and each target's login from SecretStorage.
+1. It reads every `.pulse-cli.json` and the CLI's user config, and each target's login from SecretStorage.
 2. The composition root picks the adapter for the target's engine; it supplies runtime and commands.
 3. Trees, status bar and panels show the connections; a reload rebinds open panels.
 4. The webview sends intents and gets the complete panel state back.

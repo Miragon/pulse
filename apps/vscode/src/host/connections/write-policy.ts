@@ -1,4 +1,4 @@
-import { basename } from "node:path"
+import { ProfileFileName } from "./profile-file-name.js"
 import type { EngineAccess } from "../../core/protocol/index.js"
 import type { Credentials } from "./connection.js"
 import type { EngineTarget } from "./engine-target.js"
@@ -48,6 +48,8 @@ export class WritePolicy {
   }
 
   private static fileOf(target: EngineTarget): string {
-    return target.source.kind === "file" ? basename(target.source.path) : "its project file"
+    return target.source.kind === "file"
+      ? ProfileFileName.inSentence(target.source.path)
+      : "its project file"
   }
 }

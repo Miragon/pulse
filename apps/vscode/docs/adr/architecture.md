@@ -1,7 +1,7 @@
 # Architecture
 
 - Status: accepted
-- Last reviewed: 2026-11-04 (the CLI's project file fixtures)
+- Last reviewed: 2026-11-07 (the CLI's user config next to the project files)
 
 ## Context
 
@@ -77,6 +77,16 @@ parser follows; `apps/vscode/turbo.json` names the fixtures as inputs of `test`,
 never hides that. Pulse reads profile by profile and ignores keys it does not use, so a file the
 CLI refuses as a whole (a committed password, a secret header, an unknown key) can still list
 engines; the fixtures pin that.
+
+The CLI's user config (`~/.config/pulse-cli/config.json`, found as the CLI finds it, or the file
+`PULSE_CLI_CONFIG` names) is the second home of profiles, read by the same `TargetsParser` and
+held to the CLI's fixtures in `apps/cli/test/fixtures/user-config/` the same way
+(`apps/vscode/test/host/user-config-fixtures.test.ts`). `TargetMerge` joins the files with the
+CLI's rule: the user's profile wins a name clash as a whole, and `PULSE_CLI_CONFIG` turns the
+project files off. Profiles are engine-neutral up to the parser, so the files, the merge, the
+watcher and _Configure Engines_ serve every engine a parser accepts. Pulse reads no credential
+from either file and writes only two things: a missing project file from its template, and a
+missing user config with no profiles and mode `0600`, both through _Configure Engines_.
 
 Each layer has its own `tsconfig.<layer>.json` with `lib`/`types` matching its runtime,
 so code that uses `document` in the core or `process` in the webview does not compile.

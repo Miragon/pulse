@@ -3,7 +3,11 @@
   "extends": ["//"],
   "tasks": {
     "test": {
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/apps/cli/test/fixtures/project-file/**"]
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/apps/cli/test/fixtures/project-file/**",
+        "$TURBO_ROOT$/apps/cli/test/fixtures/user-config/**"
+      ]
     }
   }
 }

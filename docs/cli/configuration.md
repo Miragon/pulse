@@ -146,6 +146,7 @@ pulse config path --project
 - `$schema` lets your editor check the file against the JSON Schema that ships with the CLI
   (`schema/project-file.schema.json` in the npm package); the CLI keeps the key when it writes
   the file. The URL above serves the latest release; `@miragon/pulse-cli@<version>` pins yours.
-  [Pulse for VS Code](../vscode/configuration.md) reads the same profiles.
+  [Pulse for VS Code](../vscode/configuration.md) reads the same profiles, from the project file
+  and from your config file.
 - Treat a project file like code: it decides where your credentials from the environment and its
   profiles' OAuth login are sent.
