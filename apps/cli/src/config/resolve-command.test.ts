@@ -6,7 +6,7 @@
 import { describe, expect, it } from "vitest"
 import { PulseCliError } from "../errors.js"
 import { parseConfigFile } from "./file.js"
-import { showConfig } from "./edit.js"
+import { showConfig } from "./show.js"
 import { mergeProject } from "./project.js"
 import { bearerSource, unusedTokenNote } from "./resolve-bearer.js"
 import { resolveAuth, selectedAuth } from "./resolve-auth.js"

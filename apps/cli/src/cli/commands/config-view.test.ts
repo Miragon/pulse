@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import type { ConfigView } from "../../config/edit.js"
+import type { ConfigView } from "../../config/show.js"
 import { maskedView, profileView, showHeader, showRows } from "./config-view.js"
 
 const VIEW: ConfigView = {

@@ -5,11 +5,11 @@ import { failure } from "../../test/support/failure.js"
 import {
   type ProfileChanges,
   deleteProfile,
-  listProfiles,
   setProfile,
   useProfile,
   validateProfileName,
 } from "./edit.js"
+import { listProfiles } from "./show.js"
 import { parseConfigFile } from "./file.js"
 import type { ConfigFile } from "./types.js"
 

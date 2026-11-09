@@ -1,6 +1,6 @@
 /** What the `pulse config` commands print: profiles and the effective configuration. Pure. */
 
-import type { ConfigView } from "../../config/edit.js"
+import type { ConfigView } from "../../config/show.js"
 import type { Env } from "../../config/pick.js"
 import { findProfile } from "../../config/resolve.js"
 import type { ConfigFile, ProfileAuth, Source } from "../../config/types.js"

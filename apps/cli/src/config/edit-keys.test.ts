@@ -1,9 +1,10 @@
-/** unsetProfileKeys, showConfig and Basic auth in profiles (edit.ts). */
+/** unsetProfileKeys, showConfig and Basic auth in profiles (edit.ts, show.ts). */
 
 import { describe, expect, it } from "vitest"
 import { frozen } from "../../test/support/config-edit.js"
 import { failure } from "../../test/support/failure.js"
-import { listProfiles, setProfile, showConfig, unsetProfileKeys } from "./edit.js"
+import { setProfile, unsetProfileKeys } from "./edit.js"
+import { listProfiles, showConfig } from "./show.js"
 import { parseConfigFile } from "./file.js"
 import { resolveConfig } from "./resolve.js"
 import type { ConfigFile } from "./types.js"

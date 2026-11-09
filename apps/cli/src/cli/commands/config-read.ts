@@ -5,7 +5,7 @@
  */
 
 import type { Command } from "commander"
-import { listProfiles, showConfig } from "../../config/edit.js"
+import { listProfiles, showConfig } from "../../config/show.js"
 import { validateOutput } from "../../config/resolve.js"
 import { renderValue } from "../../output/render.js"
 import { compact } from "../../util.js"
