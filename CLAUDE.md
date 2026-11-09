@@ -753,7 +753,7 @@ workspace (its header lists each check).
   to the Visual Studio Marketplace and Open VSX from one job in the `vscode-marketplace`
   environment that builds nothing, by trusted publishing on both stores (`vsce publish --oidc`,
   `ovsx publish --trusted-publishing`): no store token and no secret, bound to the calling file
-  `release-please.yml` and that environment (`docs/vscode/releasing.md`).
+  `release-please.yml` and that environment (the registered values: the workflow's header).
 - **Engine plugins** publish to Maven Central via `publish-to-maven.yml` (Vanniktech Maven
   Publish, GPG-signed) under the group `io.miragon.mcp` with the engine in the artifactId
   (`io.miragon.mcp:cibseven-history-metrics`); publishing config lives in each module's own

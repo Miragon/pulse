@@ -141,7 +141,8 @@ jobs:
   # as a plain release, never a pre-release.
   # Both stores publish by trusted publishing (OIDC), so no store token is handed down. They bind
   # to THIS file's name and to the called publish job's environment vscode-marketplace: renaming
-  # either breaks publishing until the stores are updated (docs/vscode/releasing.md).
+  # either breaks publishing until the stores are updated (the header of
+  # publish-vscode-extension.yml lists the registered values).
   publish-vscode:
     name: Publish VS Code extension
     needs: [release-please, gate]

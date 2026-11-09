@@ -75,7 +75,7 @@ plain release to the Visual Studio Marketplace and Open VSX and attaches it to t
 release. Every pull
 request packages it too (CI job "VS Code package (vsce dry run)"); to check the release path by
 hand, run the Release workflow with `dry_run`. Both stores publish by trusted publishing (OIDC),
-with no store token: [Releasing](../../docs/vscode/releasing.md). The whole train:
+with no store token (the registered values: the workflow's header). The whole train:
 [the repository's CLAUDE.md](../../CLAUDE.md#releases).
 
 ## License

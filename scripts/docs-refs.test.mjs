@@ -555,7 +555,6 @@ const DOCS_BUDGETS = {
   "vscode/usage.md": 80,
   "vscode/boards.md": 70,
   "vscode/architecture.md": 50,
-  "vscode/releasing.md": 60,
 }
 
 /** A page's budget key: its path under docs/, so docs/index.md and docs/cli/index.md differ. */

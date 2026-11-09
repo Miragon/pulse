@@ -91,7 +91,6 @@ export default miragonDocs({
         { text: "Usage", link: "/vscode/usage" },
         { text: "Boards", link: "/vscode/boards" },
         { text: "Architecture", link: "/vscode/architecture" },
-        { text: "Releasing", link: "/vscode/releasing" },
       ],
     },
   ],

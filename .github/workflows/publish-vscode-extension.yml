@@ -12,14 +12,20 @@ name: Publish VS Code extension
 #            lockfile's vsce and ovsx with --ignore-scripts, builds nothing and publishes the
 #            .vsix by trusted publishing on both stores (OIDC, id-token: write; vsce --oidc,
 #            ovsx --trusted-publishing), so no store token exists. The environment is the gate
-#            (main only). Both stores bind to the calling workflow's file name, release-please.yml,
-#            and to this environment: renaming either breaks publishing until the Marketplace
-#            policy of the publisher miragon-gmbh and the extension's trusted publisher on Open VSX
-#            are updated (docs/vscode/releasing.md).
+#            (main only).
 #   attach   uploads the .vsix to the release v<version> (contents: write, no credentials).
 # Every release publishes a plain release, never a pre-release. --skip-duplicate makes a re-run
 # after a partial failure publish only what is missing. scripts/check-github-config.mjs
 # (`pnpm lint:github`) pins its credential shape.
+#
+# Trusted publishing is registered on both stores with the same four values: owner Miragon,
+# repository pulse, workflow release-please.yml (the CALLING file: Open VSX matches the token's
+# workflow_ref claim, not job_workflow_ref) and environment vscode-marketplace. The Visual Studio
+# Marketplace holds it as a Trusted Publishing policy of the publisher miragon-gmbh, Open VSX as a
+# trusted publisher of miragon-gmbh/pulse-cockpit (Settings, Trusted Publishers; it binds only to
+# an extension that exists). Renaming release-please.yml or the environment breaks publishing until
+# both are updated. The Marketplace does not document which claim its workflow field matches: if
+# its exchange refuses the token, add a policy for publish-vscode-extension.yml and re-run.
 on:
   workflow_call:
     inputs:
