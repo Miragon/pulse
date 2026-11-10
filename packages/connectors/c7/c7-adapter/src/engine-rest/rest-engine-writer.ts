@@ -1,15 +1,12 @@
 import type { EngineWriter, RetryOutcome } from "./engine-writer.js"
 import { EngineRequestError } from "./http/engine-request-error.js"
 import type { EngineHttp } from "./http/engine-http.js"
+import { RecoveryTargets } from "./recovery-targets.js"
 import { RequestArguments } from "./request-arguments.js"
 import { BatchViewParser } from "./views/batch-view-parser.js"
 import { JsonObject } from "./views/json-object.js"
 import type { BatchRef } from "./views/views.js"
 
-const RETRY_PATHS: ReadonlyMap<string, string> = new Map([
-  ["failedJob", "/job"],
-  ["failedExternalTask", "/external-task"],
-])
 const ONE_RETRY = JSON.stringify({ retries: 1 })
 
 export class RestEngineWriter implements EngineWriter {
@@ -20,15 +17,17 @@ export class RestEngineWriter implements EngineWriter {
     if (root === undefined) {
       return "gone"
     }
-    const path = RETRY_PATHS.get(root.requiredString("incidentType"))
-    const configuration = root.optionalString("configuration")
-    if (path === undefined || configuration === undefined) {
+    const target = RecoveryTargets.of({
+      incidentType: root.requiredString("incidentType"),
+      configuration: root.optionalString("configuration"),
+    })
+    if (target === undefined) {
       return "skipped"
     }
     try {
       await this.http.write(
         "PUT",
-        `${path}/${RequestArguments.segment(configuration)}/retries`,
+        `${target.resource}/${RequestArguments.segment(target.id)}/retries`,
         ONE_RETRY,
       )
       return "retried"

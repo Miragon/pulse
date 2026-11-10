@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest"
 import { isWorkflowError, type WorkflowErrorReason } from "./errors.js"
+import { BUILT_IN_INCIDENT_TYPES } from "./incident-recovery.js"
 import {
+  CAUSE_OPERATIONS,
   incidentCause,
   inspectInstance,
   instanceRequests,
   loadInstance,
   loadView,
 } from "./inspect.js"
+import { INSPECT_OPERATIONS, STATUS_OPERATIONS } from "./operations.js"
 import { fakeFailure, fakePort, type Route } from "./testing/fake-port.js"
 import { C, historyDto, P } from "./testing/fixture.js"
 import { approveRoutes, STACKTRACE } from "./testing/inspect-routes.js"
@@ -143,6 +146,14 @@ describe("incidentCause", () => {
     incidentType,
     incidentMessage: "the message",
     ...(configuration === undefined ? {} : { configuration }),
+  })
+
+  it("names the request of each built-in incident type, one the inspection and the status send", () => {
+    expect([...CAUSE_OPERATIONS.keys()]).toEqual([...BUILT_IN_INCIDENT_TYPES])
+    for (const operation of CAUSE_OPERATIONS.values()) {
+      expect(INSPECT_OPERATIONS).toContain(operation)
+      expect(STATUS_OPERATIONS).toContain(operation)
+    }
   })
 
   it("reads the stacktrace of a failed job and the details of a failed external task", async () => {

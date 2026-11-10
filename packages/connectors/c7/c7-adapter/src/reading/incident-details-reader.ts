@@ -1,8 +1,9 @@
+import { CAUSE_OPERATIONS } from "@miragon/pulse-c7-core"
 import type { IncidentDetails, IncidentId } from "@miragon/pulse-engine-core"
 import { ErrorTranslation } from "../errors/error-translation.js"
 import { IncidentTexts } from "../mapping/incident-texts.js"
 import { RootIncident } from "../mapping/root-incident.js"
-import type { IncidentView, EngineClient } from "../engine-rest/index.js"
+import { RecoveryTargets, type IncidentView, type EngineClient } from "../engine-rest/index.js"
 
 export class IncidentDetailsReader {
   constructor(private readonly client: EngineClient) {}
@@ -24,16 +25,11 @@ export class IncidentDetailsReader {
   }
 
   private engineTextOf(incident: IncidentView): Promise<string | undefined> {
-    const resourceId = incident.configuration
-    if (resourceId === undefined) {
+    const operation = CAUSE_OPERATIONS.get(incident.incidentType)
+    const target = RecoveryTargets.of(incident)
+    if (operation === undefined || target === undefined) {
       return Promise.resolve(undefined)
     }
-    if (incident.incidentType === "failedJob") {
-      return ErrorTranslation.unlessMissing(() => this.client.jobStacktrace(resourceId))
-    }
-    if (incident.incidentType === "failedExternalTask") {
-      return ErrorTranslation.unlessMissing(() => this.client.externalTaskErrorDetails(resourceId))
-    }
-    return Promise.resolve(undefined)
+    return ErrorTranslation.unlessMissing(() => this.client.causeText(operation, target.id))
   }
 }

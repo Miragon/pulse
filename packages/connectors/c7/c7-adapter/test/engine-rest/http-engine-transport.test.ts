@@ -1,7 +1,7 @@
-import { isMissing } from "@miragon/pulse-c7-core"
+import { CAUSE_OPERATIONS, isMissing } from "@miragon/pulse-c7-core"
 import { INSPECT_OPERATIONS } from "@miragon/pulse-c7-core/testing"
 import { describe, expect, test } from "vitest"
-import { EngineRequestError } from "../../src/engine-rest/index.js"
+import { EngineRequestError, RestEngineClient } from "../../src/engine-rest/index.js"
 import { HttpEngineTransport } from "../../src/engine-rest/inspect/http-engine-transport.js"
 import { InspectOperations } from "../../src/engine-rest/inspect/inspect-operations.js"
 import { httpOver } from "../support/fake-engine.js"
@@ -19,6 +19,19 @@ function transportOver(routes: readonly RestRoute[]) {
 describe("c7-core's port over the adapter's HTTP", () => {
   test("knows a REST path for exactly the operations c7-core's inspection sends", () => {
     expect(InspectOperations.ids().sort()).toEqual([...INSPECT_OPERATIONS].sort())
+  })
+
+  test("reads the text of each request that holds an incident's cause in c7-core", () => {
+    for (const operation of CAUSE_OPERATIONS.values()) {
+      expect(InspectOperations.requestOf(operation, ["r1"]).text).toBe(true)
+    }
+  })
+
+  test("reads a cause only through a request that answers with text", () => {
+    const engine = fakeEngineRest([])
+    const client = new RestEngineClient(httpOver(engine))
+    expect(() => client.causeText("getJobs", "j1")).toThrow(RangeError)
+    expect(engine.requests).toEqual([])
   })
 
   test("fills the path arguments encoded and refuses an operation it does not know", () => {

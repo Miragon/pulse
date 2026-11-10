@@ -84,7 +84,11 @@ export {
   toEngineVariables,
 } from "./variable-writes.js"
 export { RAW_VARIABLES, RAW_VARIABLES_QUERY } from "./variables.js"
-export { incidentRecovery, type IncidentRecovery } from "./incident-recovery.js"
+export {
+  BUILT_IN_INCIDENT_TYPES,
+  incidentRecovery,
+  type IncidentRecovery,
+} from "./incident-recovery.js"
 export { mapLimit } from "./util.js"
 export { formatDuration } from "./durations.js"
 export { causeOf } from "./cause.js"
@@ -126,6 +130,7 @@ export type {
 } from "./types.js"
 export { checkSelection, selectInstance, selectionRequests } from "./select.js"
 export {
+  CAUSE_OPERATIONS,
   type InspectOptions,
   inspectInstance,
   instanceRequests,

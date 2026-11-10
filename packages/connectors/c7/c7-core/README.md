@@ -97,10 +97,12 @@ missing.
   `engineDateMillis`, `latestEngineDate`), true-only and `…Like` filters (`trueOnly`,
   `complementaryFlags`, `engineLike`, `engineKeyList`, `engineInstanceSearch`), paired sorting
   (`engineSorting`), variable writes and typing (`toEngineVariable(s)`, `autoTypedValue`),
-  incident recovery (`incidentRecovery`), the raw variable read flag (`RAW_VARIABLES`, and
-  `RAW_VARIABLES_QUERY` for a port's query), the history timeline (`timelineOf`) and the cause of
-  a failure (`causeOf(text, fallback)`: the root cause of a stack trace or error details by
-  engine-core's `RootCauses.of`, else the fallback, such as the incident's message).
+  incident recovery (`incidentRecovery`, over `BUILT_IN_INCIDENT_TYPES`, the two types the engine
+  raises itself), the raw variable read flag (`RAW_VARIABLES`, and `RAW_VARIABLES_QUERY` for a
+  port's query), the history timeline (`timelineOf`), the request that holds an incident's cause
+  (`CAUSE_OPERATIONS`, an operation id per built-in type) and the cause of a failure
+  (`causeOf(text, fallback)`: the root cause of a stack trace or error details by engine-core's
+  `RootCauses.of`, else the fallback, such as the incident's message).
 
 The routes come from one OpenAPI spec of the Camunda 7 REST API, Operaton's, vendored as it is and
 corrected with RFC 6902 patches: the same 399 operations as CIB seven's and Camunda 7's, which
@@ -130,7 +132,8 @@ package.
   `engine_inspect_process_instance` and `engine_status`, and builds its cockpit's failure clusters
   and health verdict from the same rules.
 - Pulse for VS Code and Pulse for Orca bundle it in their C7 adapter: an instance's panel reads
-  through `loadInstance`.
+  through `loadInstance`, an incident's retry takes its target from `incidentRecovery` and its
+  details their request from `CAUSE_OPERATIONS`.
 
 ## Testing helpers
 

@@ -17,10 +17,10 @@ const RETRY_JOB = `PUT /job/${JOB}/retries`
 const NO_CONTENT = new Response(null, { status: 204 })
 const CONNECTION = { endpoint: REST_URL, credentials: { kind: "none" } } as const
 
-function incidentOf(incidentType: string): RestRoute {
+function incidentOf(incidentType: string, configuration: string | null = JOB): RestRoute {
   return {
     route: GET_INCIDENT,
-    answer: { id: INCIDENT, rootCauseIncidentId: INCIDENT, incidentType, configuration: JOB },
+    answer: { id: INCIDENT, rootCauseIncidentId: INCIDENT, incidentType, configuration },
   }
 }
 
@@ -68,6 +68,31 @@ describe("retrying an incident", () => {
 
     await expect(commands.retryIncident(INCIDENT)).rejects.toThrow(/did not retry.*skipped/)
   })
+
+  test("gives the external task of a failed external task its retry", async () => {
+    const retryTask = `PUT /external-task/${JOB}/retries`
+    const { commands, engine } = fakeCommands([
+      incidentOf("failedExternalTask"),
+      { route: retryTask, answer: NO_CONTENT },
+    ])
+
+    await commands.retryIncident(INCIDENT)
+
+    expect(engine.requests.map((request) => request.route)).toEqual([GET_INCIDENT, retryTask])
+  })
+
+  test.each([
+    ["an empty", ""],
+    ["no", null],
+  ])(
+    "skips a built-in incident with %s configuration, by c7-core's incident recovery, and writes nothing",
+    async (_kind, configuration) => {
+      const { commands, engine } = fakeCommands([incidentOf("failedJob", configuration)])
+
+      await expect(commands.retryIncident(INCIDENT)).rejects.toThrow(/did not retry.*skipped/)
+      expect(engine.requests.map((request) => request.route)).toEqual([GET_INCIDENT])
+    },
+  )
 
   test.each([
     [

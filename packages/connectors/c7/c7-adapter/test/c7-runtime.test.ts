@@ -717,6 +717,32 @@ describe("the C7 runtime over recorded engine answers", () => {
     expect(engine.requests).toHaveLength(2)
   })
 
+  test("lists the job of an incident type the engine raises itself, never of a custom one", async () => {
+    const [charge] = JSON.parse(fixture("incidents.json")) as Record<string, unknown>[]
+    const rowOf = (id: string, incidentType: string) => ({
+      ...charge,
+      id,
+      causeIncidentId: id,
+      rootCauseIncidentId: id,
+      incidentType,
+      configuration: `${id}-target`,
+    })
+    const { runtime } = fakeRuntime([
+      {
+        route: "GET /incident",
+        answer: [rowOf("external", "failedExternalTask"), rowOf("custom", "invoiceMismatch")],
+      },
+      ROUTE.definitionStatistics,
+    ])
+
+    const page = await runtime.searchIncidents({}, { limit: 50 })
+
+    expect(page.items.map((incident) => [incident.id, incident.job])).toEqual([
+      ["external", { id: "external-target" }],
+      ["custom", undefined],
+    ])
+  })
+
   test("delivers the complete stacktrace of a root incident", async () => {
     const { runtime } = fakeRuntime([ROUTE.rootIncident, ROUTE.chargeStacktrace])
 
@@ -772,6 +798,37 @@ describe("the C7 runtime over recorded engine answers", () => {
       truncated: false,
       rootCause: "Customer service is down",
     })
+  })
+
+  test("reads no engine text where c7-core's incident recovery names no job or external task", async () => {
+    const incidentAt = (id: string, incidentType: string, configuration: string) => ({
+      route: `GET /incident/${id}`,
+      answer: {
+        ...(JSON.parse(fixture("incident-root.json")) as Record<string, unknown>),
+        id,
+        rootCauseIncidentId: id,
+        incidentType,
+        configuration,
+        incidentMessage: "Invoice total does not match",
+      },
+    })
+    const { runtime, engine } = fakeRuntime([
+      incidentAt("custom", "invoiceMismatch", "inv-1"),
+      incidentAt("no-job", "failedJob", ""),
+    ])
+
+    for (const id of ["custom", "no-job"]) {
+      expect(await runtime.getIncidentDetails(IncidentId(id))).toEqual({
+        kind: "errorMessage",
+        text: "Invoice total does not match",
+        truncated: false,
+        rootCause: "Invoice total does not match",
+      })
+    }
+    expect(engine.requests.map((request) => request.route)).toEqual([
+      "GET /incident/custom",
+      "GET /incident/no-job",
+    ])
   })
 
   test("has no details for a propagated or an unknown incident", async () => {

@@ -1,3 +1,4 @@
+import { BUILT_IN_INCIDENT_TYPES } from "@miragon/pulse-c7-core"
 import {
   ElementId,
   IncidentId,
@@ -14,7 +15,7 @@ import { Present, type EngineClient, type IncidentView } from "../engine-rest/in
 import type { DefinitionReader } from "./definition-reader.js"
 import { OffsetPaging } from "./offset-paging.js"
 
-const WORK_INCIDENT_TYPES: ReadonlySet<string> = new Set(["failedJob", "failedExternalTask"])
+const BUILT_IN_TYPES: ReadonlySet<string> = new Set(BUILT_IN_INCIDENT_TYPES)
 
 export class IncidentSearch {
   constructor(
@@ -46,7 +47,7 @@ export class IncidentSearch {
       return []
     }
     const job =
-      row.configuration !== undefined && WORK_INCIDENT_TYPES.has(row.incidentType)
+      row.configuration !== undefined && BUILT_IN_TYPES.has(row.incidentType)
         ? { id: row.configuration }
         : undefined
     return [

@@ -8,7 +8,10 @@ answers into the contract's read models and commands, and `C7Adapter` is the plu
 view's ports (`@miragon/pulse-runtime-view/ports`). Private: the editor hosts (`apps/vscode`,
 `apps/orca`) bundle it through their composition roots. It is the adapter of the c7 family,
 whose dialect it implements (`adapters-own-their-family` in the repository's
-`.dependency-cruiser.cjs`).
+`.dependency-cruiser.cjs`). It takes these C7 REST rules from c7-core, never as a copy: the
+inspection of an instance, which incident types the engine raises itself
+(`BUILT_IN_INCIDENT_TYPES`), what a retry retries (`incidentRecovery`) and which request holds an
+incident's cause (`CAUSE_OPERATIONS`).
 
 The conformance kit of the contract (`@miragon/pulse-engine-core/testing`) proves it on a real
 engine (`test/c7-conformance.engine.test.ts`, `test:engines`, in Testcontainers; the CI's

@@ -33,8 +33,7 @@ export interface EngineClient {
   activityInstances(instanceId: string): Promise<ActivityInstanceView>
   variables(instanceId: string): Promise<VariableView[]>
   historicVariableNames(instanceIds: readonly string[]): Promise<string[]>
-  jobStacktrace(jobId: string): Promise<string>
-  externalTaskErrorDetails(externalTaskId: string): Promise<string>
+  causeText(operationId: string, resourceId: string): Promise<string>
   batchStatistics(batchId: string): Promise<BatchStatisticsView | undefined>
   historicBatch(batchId: string): Promise<HistoricBatchView>
   failedJobs(jobDefinitionId: string): Promise<FailedJobView[]>

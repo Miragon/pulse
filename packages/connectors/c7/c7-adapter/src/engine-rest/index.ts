@@ -6,6 +6,7 @@ export { EngineHttp } from "./http/engine-http.js"
 export { EngineRequestError } from "./http/engine-request-error.js"
 export { RestEngineClient, VARIABLE_PAGE_SIZE } from "./rest-engine-client.js"
 export { RestEngineWriter } from "./rest-engine-writer.js"
+export { RecoveryTargets } from "./recovery-targets.js"
 export type { EngineClient } from "./engine-client.js"
 export type { EngineWriter } from "./engine-writer.js"
 export type {

@@ -1,7 +1,7 @@
 # Camunda 7 family adapter
 
 - Status: accepted
-- Last reviewed: 2026-11-10 (the adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the adapter is a package, which Pulse for Orca bundles too)
+- Last reviewed: 2026-11-10 (the incident retry's target, the built-in incident types and the request of an incident's cause come from c7-core; the adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the adapter is a package, which Pulse for Orca bundles too)
 
 ## Context
 
@@ -61,10 +61,11 @@ MCP server run too. The package belongs to the c7 family, whose dialect it imple
 
 - **Typed calls.** The `EngineClient` interface exposes `definitionStatistics`,
   `activityStatistics`, `diagramXml`, `historicInstances`, `historicInstanceCount`,
-  `inspect`, `variables`, `incidents`, `incidentInstances`, `incident`, `jobStacktrace`,
-  `externalTaskErrorDetails`, `activityInstances`, `batchStatistics`, `historicBatch`,
-  `failedJobs`, `migrationPlan`, `migrationReport`, `product` and `version` with typed
-  views; `RestEngineClient` implements it, `EngineWriter`/`RestEngineWriter` the writes.
+  `inspect`, `variables`, `incidents`, `incidentInstances`, `incident`, `causeText` (a text
+  request of `InspectOperations` by operation id, any other refused before it leaves),
+  `activityInstances`, `batchStatistics`, `historicBatch`, `failedJobs`, `migrationPlan`,
+  `migrationReport`, `product` and `version` with typed views; `RestEngineClient`
+  implements it, `EngineWriter`/`RestEngineWriter` the writes.
 - **One HTTP seam.** `EngineHttp` sends every request with `fetch` (VS Code's, so its proxy
   and certificate settings apply): `redirect: "manual"` (a redirect is an error, credentials
   never travel to another host), a 60 s deadline, at most 64 MiB of an answer, basic auth
@@ -95,24 +96,29 @@ MCP server run too. The package belongs to the c7 family, whose dialect it imple
 - **Incident details carry their root cause.** `IncidentTexts` adds engine-core's
   `RootCauses.of` and `RootCauses.lineOf` of the text to every `IncidentDetails` the adapter reads
   (`getIncidentDetails`, the details of `getInstanceDetail`); the core shows the root cause
-  of complete details and the host opens the text at that line.
+  of complete details and the host opens the text at that line. `getIncidentDetails` reads the
+  text from the request c7-core's `CAUSE_OPERATIONS` names for the incident's type (the stack
+  trace or the error details, the request c7-core's inspection sends), of the job or external
+  task c7-core's `incidentRecovery` names (`RecoveryTargets`); without one (a custom type, no or
+  an empty `configuration`) or when it is gone, the incident's message.
 - **Writes** are seven requests:
 
-  | Request                                                           | For                              |
-  | ----------------------------------------------------------------- | -------------------------------- |
-  | `PUT /job/{id}/retries` or `/external-task/{id}/retries`, 1 retry | `retryIncident`                  |
-  | `PUT /process-instance/{id}/variables/{name}`                     | `setVariable`                    |
-  | `POST /process-instance/{id}/modification`                        | `moveToken`                      |
-  | `POST /process-instance/delete`                                   | `cancelInstances`                |
-  | `POST /migration/executeAsync`                                    | `migrateInstances`               |
-  | `PUT /batch/{id}/suspended`                                       | `stopBulkOperation`, first step  |
-  | `DELETE /batch/{id}?cascade=false`                                | `stopBulkOperation`, second step |
+  | Request                                                           | For                                                           |
+  | ----------------------------------------------------------------- | ------------------------------------------------------------- |
+  | `PUT /job/{id}/retries` or `/external-task/{id}/retries`, 1 retry | `retryIncident`, the target from c7-core's `incidentRecovery` |
+  | `PUT /process-instance/{id}/variables/{name}`                     | `setVariable`                                                 |
+  | `POST /process-instance/{id}/modification`                        | `moveToken`                                                   |
+  | `POST /process-instance/delete`                                   | `cancelInstances`                                             |
+  | `POST /migration/executeAsync`                                    | `migrateInstances`                                            |
+  | `PUT /batch/{id}/suspended`                                       | `stopBulkOperation`, first step                               |
+  | `DELETE /batch/{id}?cascade=false`                                | `stopBulkOperation`, second step                              |
 
   A retry reads the incident and, for a propagated one, its root cause; the job or
-  external task of the root cause gets one retry. Another type is `skipped`, a root cause
-  or resource that is gone is `gone`; both reject. Never cascade (the historic batch
-  stays). The bodies: the variable body `{"value":…,"type":…}` losslessly, the move body
-  (below), the cancel body
+  external task that c7-core's `incidentRecovery` names for the root cause gets one retry
+  (`RecoveryTargets`). Another type, or a built-in one without a `configuration` (an empty
+  one too), is `skipped`, a root cause or resource that is gone is `gone`; both reject.
+  Never cascade (the historic batch stays). The bodies: the variable body
+  `{"value":…,"type":…}` losslessly, the move body (below), the cancel body
   `{"processInstanceIds":[…],"deleteReason":…,"skipCustomListeners":false,"skipSubprocesses":false,"skipIoMappings":false}`
   (`writing/cancel-body.ts`; no `deleteReason` without a reason), the migration body
   `{"migrationPlan":{"sourceProcessDefinitionId":…,"targetProcessDefinitionId":…,"instructions":[{"sourceActivityIds":[…],"targetActivityIds":[…],"updateEventTrigger":false}]},"processInstanceIds":[…],"skipCustomListeners":false,"skipIoMappings":false}`
@@ -206,7 +212,8 @@ MCP server run too. The package belongs to the c7 family, whose dialect it imple
   from `inspect` across called instances with their `processInstanceId`; `active` is the
   activity's `instances` minus its root incidents (floored at 0); `workerTask.taskType` is
   the external task topic; `Incident.job` is the `jobId`/`externalTaskId` of `inspect`
-  (topic as type) or the incident `configuration` of failed jobs and external tasks;
+  (topic as type) or the incident `configuration` of the built-in incident types (c7-core's
+  `BUILT_IN_INCIDENT_TYPES`);
   `Incident.definition` comes from the `inspect` view (own incidents), one historic query
   for the called instances that hold incidents, or one join with the definition
   statistics (`searchIncidents`), never one call per incident.
@@ -267,7 +274,7 @@ instance, the definitions by instance) goes in as a parameter, never as construc
 | `packages/connectors/c7/c7-adapter/src/mapping`             | `DefinitionRefs`, `InstanceStates`, `Timestamps`, `RootIncident`, `IncidentTexts`, `InspectedVariables`                                                                                                                             | the translations several readers share, without I/O; the root cause of incident details (`RootCauses`)                                         |
 | `packages/connectors/c7/c7-adapter/src/writing`             | `VariableBody`, `CancelBody`, `MigrationBody`, `EngineValues`, `Redaction`, `SourceToken`, `MoveBody`                                                                                                                               | the bodies of a variable change, a move, a cancel and a migration, the allowed types and their engine form, what to keep out of error messages |
 | `packages/connectors/c7/c7-adapter/src/errors`              | `ErrorTranslation`                                                                                                                                                                                                                  | engine failures to `RuntimeError`: `translated`, `unlessMissing`, `commanded<Result>`, `submitted<Result>`, `isRefusal`                        |
-| `packages/connectors/c7/c7-adapter/src/engine-rest`         | `EngineClient`/`RestEngineClient`, `EngineWriter`/`RestEngineWriter`, `RequestArguments`, `Present`                                                                                                                                 | one method per engine call; strict ids and variable names                                                                                      |
+| `packages/connectors/c7/c7-adapter/src/engine-rest`         | `EngineClient`/`RestEngineClient`, `EngineWriter`/`RestEngineWriter`, `RecoveryTargets`, `RequestArguments`, `Present`                                                                                                              | one method per engine call; the job or external task c7-core's `incidentRecovery` names; strict ids and variable names                         |
 | `packages/connectors/c7/c7-adapter/src/engine-rest/http`    | `EngineHttp`, `EngineRequestError`                                                                                                                                                                                                  | one request: URL, auth, deadline, size cap, no redirects, lossless JSON, failures with status and engine type                                  |
 | `packages/connectors/c7/c7-adapter/src/engine-rest/inspect` | `InstanceInspection`, `HttpEngineTransport`, `InspectOperations`                                                                                                                                                                    | `inspect`: c7-core's rounds over `EngineHttp`, its instance view as the adapter's `InspectView`, the path from the history                     |
 | `packages/connectors/c7/c7-adapter/src/engine-rest/views`   | `JsonObject`, `LosslessJson`, `UnexpectedAnswerError` and one parser per view                                                                                                                                                       | the engine's JSON to typed views, checked at runtime                                                                                           |
@@ -296,11 +303,14 @@ routes and so run every class above.
   `firstResult=0`, the caller of an instance without history with `maxResults=2`), for
   an id the engine does not know one history read more, and for an ended instance one
   read of its path more (the parallel one, before the adapter knows that it ended).
-- Rules the adapter still holds next to c7-core, for a later cut: which text holds an
-  incident's cause and its fallbacks (`IncidentDetailsReader`, c7-core's cause read is
-  not exported), the root incident (`RootIncident`), the incident retry, the date input and
-  the Integer/Long inference of a variable, and the readings of `HttpEngineTransport` beyond
-  c7-core's missing 404 (a refused id, a 500 `NullValueException`).
+- Rules the adapter still holds next to c7-core, for a later cut: the fallbacks of an
+  incident's cause text (`IncidentDetailsReader`), the root incident (`RootIncident`), the
+  date input and the Integer/Long inference of a variable, and the readings of
+  `HttpEngineTransport` beyond c7-core's missing 404 (a refused id, a 500
+  `NullValueException`). Which incident types the engine raises itself, what a retry retries
+  and which request holds an incident's cause are c7-core's (`BUILT_IN_INCIDENT_TYPES`,
+  `incidentRecovery`, `CAUSE_OPERATIONS`), so a built-in incident with an empty
+  `configuration` is `skipped` as one without, no longer `gone`.
 - Since the adapter reads a 404 by c7-core's `isMissing`, a 404 `QueryParamException`
   (a query value the engine cannot read) is no missing resource any more: a read fails as
   `misconfigured` instead of answering "none".

@@ -32,8 +32,12 @@ const MAX_CAUSES = 10
 /** A stack trace an instance view carries is cut after this many lines. */
 export const MAX_STACKTRACE_LINES = 200
 const JOBS = { operationId: "getJobs", key: "processInstanceIds" }
-/** The request that holds the root cause of an incident type. */
-const CAUSE_OPERATIONS: ReadonlyMap<string, string> = new Map([
+/**
+ * The request that holds the root cause of an incident type, by operation id: the stack trace of
+ * the job a `failedJob` names, the error details of the external task a `failedExternalTask`
+ * names (its `configuration`, the target `incidentRecovery` retries).
+ */
+export const CAUSE_OPERATIONS: ReadonlyMap<string, string> = new Map([
   ["failedJob", "getStacktrace"],
   ["failedExternalTask", "getExternalTaskErrorDetails"],
 ])

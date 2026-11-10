@@ -1,6 +1,7 @@
 import { RAW_VARIABLES_QUERY } from "@miragon/pulse-c7-core"
 import type { EngineClient } from "./engine-client.js"
 import type { EngineHttp } from "./http/engine-http.js"
+import { InspectOperations } from "./inspect/inspect-operations.js"
 import { InstanceInspection } from "./inspect/instance-inspection.js"
 import { RequestArguments } from "./request-arguments.js"
 import { ActivityInstanceViewParser } from "./views/activity-instance-view-parser.js"
@@ -145,12 +146,13 @@ export class RestEngineClient implements EngineClient {
     )
   }
 
-  jobStacktrace(jobId: string): Promise<string> {
-    return this.http.text(`/job/${RequestArguments.segment(jobId)}/stacktrace`)
-  }
-
-  externalTaskErrorDetails(externalTaskId: string): Promise<string> {
-    return this.http.text(`/external-task/${RequestArguments.segment(externalTaskId)}/errorDetails`)
+  causeText(operationId: string, resourceId: string): Promise<string> {
+    const id = RequestArguments.identifier(resourceId)
+    const request = InspectOperations.requestOf(operationId, [id])
+    if (!request.text) {
+      throw new RangeError(`The operation ${operationId} reads no text`)
+    }
+    return this.http.text(request.path)
   }
 
   async batchStatistics(batchId: string): Promise<BatchStatisticsView | undefined> {

@@ -8,7 +8,8 @@ Operaton and CIB seven are forks of Camunda 7 and keep its REST API, so one adap
 three. It calls that REST API itself with `fetch`
 ([c7-adapter.md](../../../../../apps/vscode/docs/adr/c7-adapter.md)), no child process, and runs
 the core of the dialect family c7, `@miragon/pulse-c7-core` (the inspection of an instance, its
-wait states), which the CLI and the MCP server share; the editor hosts bundle it with esbuild. It
+wait states, the target of an incident's retry and the request that holds its cause), which the
+CLI and the MCP server share; the editor hosts bundle it with esbuild. It
 implements the engine contract of the engine family's core, `@miragon/pulse-engine-core`, and takes
 the root cause of a failure text from its rule `RootCauses`, as c7-core does. The plug it provides,
 `EngineAdapter`, is a port of the runtime view (`@miragon/pulse-runtime-view/ports`). The package
