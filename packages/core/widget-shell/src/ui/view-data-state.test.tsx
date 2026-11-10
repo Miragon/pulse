@@ -46,6 +46,24 @@ describe("ViewDataState: the error (U1)", () => {
     expect(screen.getByRole("button", { name: "Nochmal" })).toBeTruthy()
   })
 
+  it.each([
+    [
+      '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask the operator to fix it.',
+      "Engine locked cannot be used: its profile is refused",
+    ],
+    [
+      '[ENGINE_READ_ONLY] Engine "ro" is read-only on this server: its profile sets readOnly, so no tool writes to it. Nothing was sent.',
+      "Engine ro is read-only on this server",
+    ],
+  ])("a permanent refusal says why, and offers no Try again: %s", (text, title) => {
+    render(
+      <ViewDataState loading={false} error={new Error(text)} onRetry={vi.fn()} emptyText="e" />,
+    )
+    expect(screen.getByRole("heading", { name: title })).toBeTruthy()
+    expect(screen.getByText(text).closest("details")).toBeTruthy()
+    expect(screen.queryByRole("button")).toBeNull()
+  })
+
   it("heads an unclassified error with the caller's title", () => {
     render(
       <ViewDataState

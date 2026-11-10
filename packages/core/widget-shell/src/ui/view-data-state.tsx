@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { cn, EmptyState, ErrorState, Skeleton, useLocale } from "@miragon/pulse-ui"
-import { describeError } from "./describe-error.js"
+import { describeError, isPermanentError } from "./describe-error.js"
 import { kitLabels } from "./kit-labels.js"
 
 /** The rough geometry of a widget body. */
@@ -32,7 +32,10 @@ export function LoadingStatus({
   )
 }
 
-/** Loading, error and no-data boundary; the retry is mandatory, a failed load is never a dead end. */
+/**
+ * Loading, error and no-data boundary; the retry is mandatory, a failed load is never a dead end.
+ * A permanent refusal (`isPermanentError`) shows no Try again: its hint names the way out.
+ */
 export function ViewDataState({
   loading,
   error,
@@ -67,7 +70,7 @@ export function ViewDataState({
         title={described.title}
         description={described.hint}
         details={described.details ?? undefined}
-        onRetry={onRetry}
+        onRetry={isPermanentError(error) ? undefined : onRetry}
         retryLabel={retryLabel}
       />
     )

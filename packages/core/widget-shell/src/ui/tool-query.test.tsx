@@ -45,10 +45,45 @@ afterEach(async () => {
   await host.dispose()
 })
 
+/** The engine module's codes for an engine it does not use and a write it does not send. */
+const REFUSED = {
+  isError: true,
+  content: [
+    {
+      type: "text",
+      text: '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask the operator to fix it.',
+    },
+  ],
+}
+const READ_ONLY = {
+  isError: true,
+  content: [
+    {
+      type: "text",
+      text: '[ENGINE_READ_ONLY] Engine "ro" is read-only on this server: its profile sets readOnly, so no tool writes to it. Nothing was sent.',
+    },
+  ],
+}
+
 describe("createViewQueryClient", () => {
-  it("keeps reads fresh for 30 s, never refetches on focus and keeps TanStack's retries", () => {
-    const queries = createViewQueryClient().getDefaultOptions().queries
-    expect(queries).toEqual({ staleTime: 30_000, refetchOnWindowFocus: false })
+  it("keeps reads fresh for 30 s, never refetches on focus and leaves writes unretried", () => {
+    const options = createViewQueryClient().getDefaultOptions()
+    expect(options.queries).toMatchObject({ staleTime: 30_000, refetchOnWindowFocus: false })
+    // TanStack's default for a write: no retry.
+    expect(options.mutations).toBeUndefined()
+  })
+
+  it("retries a transient failure three times, as TanStack does, and a permanent refusal never", () => {
+    const retry = createViewQueryClient().getDefaultOptions().queries?.retry
+    if (typeof retry !== "function") throw new Error("expected a retry rule")
+    const down = new Error("engine prod unreachable (ECONNREFUSED)")
+    expect([0, 1, 2, 3].map((failures) => retry(failures, down))).toEqual([true, true, true, false])
+    for (const answer of [REFUSED, READ_ONLY]) {
+      expect(retry(0, new ToolResultError(answer))).toBe(false)
+    }
+    // Only the server leads with the code: an engine message that quotes one is retried.
+    const quoted = new Error('[500] Script failed on "[ENGINE_PROFILE_REFUSED]" (engine prod)')
+    expect(retry(0, quoted)).toBe(true)
   })
 })
 
@@ -70,6 +105,18 @@ describe("useToolQuery", () => {
     })
     await waitFor(() => expect(result.current.error).toBeInstanceOf(ToolResultError))
     expect(result.current.error?.message).toBe("no such id")
+  })
+
+  it("fails at once on a refused engine: one call, no retry, no backoff", async () => {
+    host.withRetries()
+    callTool.mockResolvedValue(REFUSED)
+    const { result } = renderHook(() => useToolQuery<Answer>(KEY, "test_view_data", ARGS), {
+      wrapper,
+    })
+    // With a retry the error would wait out the backoff (1 + 2 + 4 s): 3 s stays well below it.
+    await waitFor(() => expect(result.current.isError).toBe(true), { timeout: 3_000 })
+    expect(result.current.isFetching).toBe(false)
+    expect(callTool).toHaveBeenCalledTimes(1)
   })
 
   it("passes TanStack's options through (enabled)", async () => {
@@ -139,6 +186,14 @@ describe("useToolMutation", () => {
     expect(callTool).toHaveBeenCalledWith("test_view_data", { value: "v2" })
     // The reader under the invalidated prefix re-read the feed.
     await waitFor(() => expect(reader.result.current.data).toEqual({ value: "v2" }))
+  })
+
+  it("sends a write to a read-only engine once: no retry", async () => {
+    host.withRetries()
+    callTool.mockResolvedValue(READ_ONLY)
+    const { result } = renderHook(() => useToolMutation("test_view_data"), { wrapper })
+    await expect(result.current.mutateAsync({})).rejects.toThrow("[ENGINE_READ_ONLY]")
+    expect(callTool).toHaveBeenCalledTimes(1)
   })
 
   it("rejects on an isError answer and invalidates nothing", async () => {

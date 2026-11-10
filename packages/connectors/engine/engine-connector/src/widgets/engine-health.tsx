@@ -15,6 +15,7 @@ import {
 } from "@miragon/pulse-ui"
 import {
   HandOffButton,
+  isPermanentError,
   ViewDataState,
   ViewMeta,
   WidgetShell,
@@ -358,7 +359,8 @@ export function EngineHealthView({
         }
       />
 
-      {/* A failed re-pull keeps the last verdict and says it is not current. */}
+      {/* A failed re-pull keeps the last verdict and says it is not current; a refusal no
+          retry changes offers no retry. */}
       {refreshError && !refreshing && (
         <ErrorState
           variant="inline"
@@ -366,7 +368,7 @@ export function EngineHealthView({
           title={t("engineHealth.refreshFailedTitle")}
           description={t("engineHealth.refreshFailedHint")}
           details={refreshError.message}
-          onRetry={refetch}
+          onRetry={isPermanentError(refreshError) ? undefined : refetch}
         />
       )}
 

@@ -16,14 +16,28 @@ import {
   type UseQueryResult,
 } from "@tanstack/react-query"
 import { decodeToolResult } from "../protocol/tool-result.js"
+import { isPermanentError } from "./describe-error.js"
 import { useViewHost } from "./view-host.js"
 
 export { useQueryClient, type QueryClient } from "@tanstack/react-query"
 
-/** Reads stay fresh for 30 s; TanStack's default retry (3) rides out a transient failure. */
+/** TanStack's default for a read: three retries after the first attempt, its backoff 1, 2, 4 s. */
+const READ_RETRIES = 3
+
+/**
+ * Reads stay fresh for 30 s; TanStack's three retries ride out a transient failure, never a
+ * permanent refusal (`isPermanentError`), which the view shows at once. Writes keep TanStack's
+ * default: none is retried.
+ */
 export function createViewQueryClient(): QueryClient {
   return new QueryClient({
-    defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
+    defaultOptions: {
+      queries: {
+        staleTime: 30_000,
+        refetchOnWindowFocus: false,
+        retry: (failureCount, error) => failureCount < READ_RETRIES && !isPermanentError(error),
+      },
+    },
   })
 }
 

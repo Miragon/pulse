@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useResetOnChange } from "@miragon/pulse-ui"
 import {
+  isPermanentError,
   useActionFeedback,
   useQueryClient,
   useToolMutation,
@@ -27,7 +28,10 @@ export interface ActionConfirmation {
 /** U9: toasts that name the object, never a silent row change. */
 export interface WriteFeedback<TResult> {
   success: string | ((result: TResult) => string)
-  /** Not raised for a confirmed write: its dialog shows the failure. */
+  /**
+   * Not raised for a confirmed write, whose dialog shows the failure, nor for a refusal no retry
+   * changes (a read-only engine): the control's own error words it, once.
+   */
   failure: string
 }
 
@@ -170,7 +174,7 @@ export function useEngineAction<TArgs extends Record<string, unknown>, TResult =
           pending: withoutMember(s.pending, key),
           errors: withEntry(s.errors, key, error.message),
         }))
-        if (!runOptions.confirm) toasts.failed(feedback.failure, error)
+        if (!runOptions.confirm && !isPermanentError(error)) toasts.failed(feedback.failure, error)
         runOptions.onError?.(error)
       },
     )

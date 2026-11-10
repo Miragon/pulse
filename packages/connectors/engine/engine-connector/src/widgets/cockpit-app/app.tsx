@@ -14,7 +14,12 @@ import { environmentIn } from "../lib/engine-context.js"
 import { NavProvider, type NavIntent, type OnNavigate } from "../navigation.js"
 import { type CockpitScope, intentToView, popTo, pushView, viewKey } from "../nav-core.js"
 import { useHandOff } from "../lib/hand-off.js"
-import { cockpitContext, fleetContext, landingContext } from "./model-context.js"
+import {
+  cockpitContext,
+  fleetContext,
+  landingContext,
+  refusedEngineContext,
+} from "./model-context.js"
 import { translator } from "../../messages/use-t.js"
 import { ENGINE_LIST_ENGINES } from "../../tool-names.js"
 import { FleetCrumbs, NavBreadcrumb, navigationOf } from "./breadcrumb.js"
@@ -22,6 +27,7 @@ import { CockpitHead, EngineSwitch, type TopSection } from "./head.js"
 import { CockpitRoute } from "./routes.js"
 import { FleetView } from "./fleet-view.js"
 import { LandingChooser, LandingHeader } from "./landing.js"
+import { RefusedEngineGate, useProfileRefusal } from "./refused-engine.js"
 
 export type { CockpitAppData }
 
@@ -47,6 +53,14 @@ function listedEngines(result: EnginesResult, order: readonly ListedEngine[]): L
   const rank = new Map(order.map(({ id }, index) => [id, index]))
   const place = (id: string) => rank.get(id) ?? rank.size
   return named.sort((a, b) => place(a.id) - place(b.id))
+}
+
+/**
+ * The list names the engine's profile refused: its view is one state (`RefusedEngineGate`), as
+ * when a read of it already met the refusal (`useProfileRefusal`).
+ */
+function isRefused(result: EnginesResult | undefined, engineId: string): boolean {
+  return result?.refused?.some(({ id }) => id === engineId) ?? false
 }
 
 /** A head section's own view; the jobs of one process are a drill, not the head section. */
@@ -253,6 +267,8 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
 
   const [state, dispatch] = useCockpitState(data, engines)
   const { scope, stack, goneEngineId } = state
+  // Also before the engine list answers, or when it fails: a read already met the refusal.
+  const metRefusal = useProfileRefusal(scope.kind === "engine" ? scope.engineId : null)
 
   // The cross-engine view reads every engine itself, so two engines are all it needs.
   const offerFleet = engines.length > 1
@@ -321,7 +337,11 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
   return (
     <NavigationFocus viewKey={nav.key} label={nav.label}>
       <WidgetShell>
-        <HostModelContext content={context(cockpitContext(engineId, current))}>
+        <HostModelContext
+          content={context(
+            metRefusal ? refusedEngineContext(engineId) : cockpitContext(engineId, current),
+          )}
+        >
           {null}
         </HostModelContext>
         <CockpitHead
@@ -347,10 +367,15 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
             the client-side navigation seam: widgets call `useNav()`, which
             resolves to this in-app router instead of a chat follow-up. The head
             names the engine, so the views leave it out of their own meta line.
-            A crashing view never takes the cockpit down. */}
+            A crashing view never takes the cockpit down, a refused engine shows once. */}
           <NavProvider value={navigate}>
             <ViewErrorBoundary resetKey={viewKey(current)}>
-              <CockpitRoute view={current} engine={engineId} seed={startSeed(data, state)} />
+              <RefusedEngineGate
+                engine={engineId}
+                refused={metRefusal || isRefused(listed, engineId)}
+              >
+                <CockpitRoute view={current} engine={engineId} seed={startSeed(data, state)} />
+              </RefusedEngineGate>
             </ViewErrorBoundary>
           </NavProvider>
         </main>

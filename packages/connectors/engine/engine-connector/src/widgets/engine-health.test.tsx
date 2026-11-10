@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeAll, describe, expect, it } from "vitest"
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react"
 import { LocaleProvider, formatNumber } from "@miragon/pulse-ui"
 import {
   TestViewHost,
@@ -347,14 +347,17 @@ describe("the verdict line and the hand-offs speak the view's language", () => {
   })
 })
 
-/** The chat can look for why an engine does not answer; a refused profile's reason is on screen. */
+/**
+ * The chat can look for why an engine does not answer, and a retry may reach it; a refused
+ * profile's reason is on screen, and neither helps until the operator fixes the profile.
+ */
 describe("an engine whose health cannot be read", () => {
   const REFUSED =
     '[ENGINE_PROFILE_REFUSED] Engine "default" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask the operator to fix it.'
 
   it.each([
-    ["an unreachable engine offers the chat the cause", "engine default unreachable", true],
-    ["a refused profile offers no chat: only the operator can fix it", REFUSED, false],
+    ["an unreachable engine offers Try again and the chat", "engine default unreachable", true],
+    ["a refused profile offers neither: only the operator can fix it", REFUSED, false],
   ])("%s", async (_case, message, offered) => {
     const failing = () => Promise.reject(new Error(message))
     render(
@@ -362,7 +365,24 @@ describe("an engine whose health cannot be read", () => {
         <EngineHealthView engine="default" />
       </TestViewHost>,
     )
-    await screen.findByRole("button", { name: "Try again" })
+    await screen.findByRole("alert")
+    expect(screen.queryByRole("button", { name: "Try again" }) !== null).toBe(offered)
     expect(screen.queryByRole("button", { name: "Find cause in chat" }) !== null).toBe(offered)
+  })
+
+  it.each([
+    ["an unreachable engine's failed re-pull offers Try again", "engine default unreachable", true],
+    ["a refused profile's failed re-pull offers none", REFUSED, false],
+  ])("%s", async (_case, message, offered) => {
+    const failing = () => Promise.reject(new Error(message))
+    render(
+      <TestViewHost tools={{ ...tools, [ENGINE_HEALTH_DATA]: failing }} client={queryClient}>
+        <EngineHealthView data={DEGRADED} engine="default" />
+      </TestViewHost>,
+    )
+    await act(() => queryClient.invalidateQueries({ queryKey: ["engine:health"] }))
+    const banner = await screen.findByRole("alert")
+    expect(banner.textContent).toContain("This overview is not current")
+    expect(within(banner).queryByRole("button", { name: "Try again" }) !== null).toBe(offered)
   })
 })

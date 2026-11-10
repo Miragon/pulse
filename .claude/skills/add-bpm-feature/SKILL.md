@@ -265,7 +265,9 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
 `.dependency-cruiser.cjs`):
 
 - `ViewDataState` is the loading/error/no-data guard (no inline Alert/loading ternary):
-  `onRetry` is required (`paged.retry`, a query's `refetch`), loading is a `skeleton`
+  `onRetry` is required (`paged.retry`, a query's `refetch`), though a refusal no retry
+  changes (`isPermanentError`: a refused profile, a read-only engine) shows no Try again, and
+  the view's query client never retries one; loading is a `skeleton`
   slot under a polite sr-only status ("Ansicht wird geladen…" unless `loadingText`),
   no data pulse-ui's `EmptyState`
 - Self-fetching widgets: skeleton + error via `QueryFallback` (+ `TableSkeleton`). A
@@ -550,7 +552,8 @@ call's abort signal at `ctx.mcpReq.signal`):
   `src/widgets/lib/write-feedback.ts` (`writeFeedback.jobRetry(t, instanceName(id,
 businessKey))` …; add an entry and its `feedback.*` keys in `messages/{en,de}.feedback.ts`
   for a new write): a success toast, a failure toast with the reason in words
-  (`useActionFeedback`); a confirmed write's failure stays in its dialog. Optimistic state reads `action.done` (dropped when
+  (`useActionFeedback`); a confirmed write's failure stays in its dialog, a read-only
+  engine's refusal at its control, without a toast. Optimistic state reads `action.done` (dropped when
   `resetOn` changes; pass the data the marked ROWS come from, not a sibling feed).
   `src/widget-actions.test.ts` enforces all of it structurally; add
   the new call site to `src/widgets/action-gating.sites.ts` + its renderer in

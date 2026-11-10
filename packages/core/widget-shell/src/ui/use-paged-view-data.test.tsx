@@ -349,6 +349,18 @@ describe("usePagedViewData: page-0 fetch states", () => {
     await waitFor(() => expect(result.current.error).toBeNull())
   })
 
+  it("tells the footer which failure a retry cannot change: a refusal that holds", async () => {
+    const { result } = await settledOnA()
+    callTool.mockResolvedValueOnce({
+      isError: true,
+      content: [{ type: "text", text: '[ENGINE_PROFILE_REFUSED] Engine "prod" is configured…' }],
+    })
+    await invalidate()
+    await waitFor(() => expect(result.current.error).not.toBeNull())
+    expect(result.current.canRetry?.(result.current.error!)).toBe(false)
+    expect(result.current.canRetry?.(new Error("timeout"))).toBe(true)
+  })
+
   it("an initial page-0 failure has nothing to keep: no rows, the error for the caller's guard", async () => {
     callTool.mockRejectedValueOnce(new Error("engine down"))
     const { result } = setup({ initialData: null, args: {} })

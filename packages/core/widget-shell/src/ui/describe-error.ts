@@ -45,9 +45,12 @@ const BRACKET_STATUS = /\[(\d{3})(?:[\s\]])/
 const ENGINE_ID =
   /\(engine ([^\s)]+)\)|\bengine (\S+) (?:unreachable|did not respond)|connection to engine (\S+) failed|\bEngine "([^"\s]{1,120})"/
 const ENGINE = /\bengine\b|ProcessEngineException|\bCamunda\b|\bCIB seven\b/i
-/** The engine module's codes for an engine it does not use, and for a write it does not send. */
-const PROFILE_REFUSED = /\[ENGINE_PROFILE_REFUSED\]/
-const READ_ONLY = /\[ENGINE_READ_ONLY\]/
+/**
+ * The engine module's codes for an engine it does not use, and for a write it does not send. The
+ * server leads its text with them; anchored, so an engine's message that quotes one is no refusal.
+ */
+const PROFILE_REFUSED = /^\[ENGINE_PROFILE_REFUSED\]/
+const READ_ONLY = /^\[ENGINE_READ_ONLY\]/
 const TOOL_MISSING = /\btool\b[^\n]*\bnot found\b|\bunknown tool\b|-32601\b|\bmethod not found\b/i
 const TIMEOUT = /\(timeout\)|\btimed? ?out\b|-32001\b|did not respond within/i
 const UNREACHABLE =
@@ -143,6 +146,18 @@ export function classifyError(error: unknown): ErrorFacts {
     reason: reasonOf(text),
     mayHaveApplied: WRITE_CAVEAT.test(text),
   }
+}
+
+/**
+ * The server's refusals no retry changes: it refuses at once and keeps refusing until its operator
+ * changes the profile. A refused profile fails every read and write to its engine; a read-only one
+ * fails only writes, which the view's data layer never retries anyway.
+ */
+const PERMANENT_KINDS: ReadonlySet<ErrorKind> = new Set(["profileRefused", "readOnly"])
+
+/** A failure the view neither retries by itself nor offers Try again for: its hint says the way out. */
+export function isPermanentError(error: unknown): boolean {
+  return PERMANENT_KINDS.has(classifyError(error).kind)
 }
 
 export interface DescribeErrorOptions {

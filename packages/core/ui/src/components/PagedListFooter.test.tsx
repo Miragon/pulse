@@ -118,6 +118,16 @@ describe("PagedListFooter: two failures, two retries", () => {
     expect(html.match(/Erneut versuchen<\/button>/g)).toHaveLength(2)
   })
 
+  it("offers no retry where the caller says none changes the failure, and keeps the others", () => {
+    const refused = new Error("refused until someone changes a setting")
+    const canRetry = (error: Error) => error !== refused
+    const html = render(paged({ stale: true, error: refused, loadMoreError: refused, canRetry }))
+    expect(alerts(html)).toHaveLength(2)
+    expect(html).not.toContain("Try again</button>")
+    const mixed = render(paged({ stale: true, error: refused, loadMoreError: failed, canRetry }))
+    expect(mixed.match(/Try again<\/button>/g)).toHaveLength(1)
+  })
+
   it("offers no retry it cannot run, and takes the caller's labels", () => {
     // A paged state without a page-0 retry callback.
     const noRetryState = paged({ error: failed })

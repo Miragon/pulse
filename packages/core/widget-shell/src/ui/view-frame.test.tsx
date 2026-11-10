@@ -82,6 +82,17 @@ describe("ViewFrame: before the view", () => {
     expect(lines.at(-1)).toContain("could not be shown")
   })
 
+  it("shows a refused engine's reason without Try again when the view tool fails on it", () => {
+    const error = new Error(
+      '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask the operator to fix it.',
+    )
+    renderFrame({ phase: "error", error })
+    expect(
+      screen.getByRole("heading", { name: "Engine locked cannot be used: its profile is refused" }),
+    ).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull()
+  })
+
   it("falls back to the frame's own title for a reason the kit cannot classify", () => {
     renderFrame({ phase: "error", error: new Error("odd") })
     expect(screen.getByRole("heading", { name: "This view couldn't be loaded" })).toBeTruthy()

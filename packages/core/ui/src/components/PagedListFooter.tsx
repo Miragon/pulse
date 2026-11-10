@@ -34,6 +34,11 @@ export interface PagedListState {
   retry?: () => void
   /** The last load-more failure; {@link loadMore} retries it, the rows above stay current. */
   loadMoreError?: Error | null
+  /**
+   * Whether a retry can change a failure; false offers none for it (a refusal that holds until
+   * someone changes a setting, say). Without it every failure offers its retry.
+   */
+  canRetry?: (error: Error) => boolean
 }
 
 export interface PagedListFooterProps {
@@ -57,7 +62,8 @@ function rawReason(error: Error): string {
  * Two failures stay apart because their retries differ: a failed first page
  * over the rows still on screen ("You're seeing the previous result", its
  * retry re-runs page 0) and a failed load-more ("The entries above are
- * current", its retry fetches the next offset). Each is an inline
+ * current", its retry fetches the next offset), each offered unless
+ * `paged.canRetry` says no retry changes the failure. Each is an inline
  * `ErrorState` (role="alert") with the raw reason under "Details". The
  * footer's count line is a polite live region that says "Updating…" while a
  * first page is in flight, hides the count while the rows are stale, and
@@ -68,6 +74,8 @@ export function PagedListFooter({ paged, noun, labels, retryLabel }: PagedListFo
   const catalog = useUiMessages().listFooter
   const L = { ...catalog, ...labels }
   const refreshError = paged.firstPage != null ? (paged.error ?? null) : null
+  const retryOf = (error: Error, retry: (() => void) | undefined) =>
+    paged.canRetry?.(error) === false ? undefined : retry
   return (
     <div data-slot="paged-list-footer" className="flex flex-col gap-2">
       {refreshError && (
@@ -77,7 +85,7 @@ export function PagedListFooter({ paged, noun, labels, retryLabel }: PagedListFo
           title={L.refreshFailed}
           description={L.refreshFailedHint}
           details={rawReason(refreshError)}
-          onRetry={paged.retry}
+          onRetry={retryOf(refreshError, paged.retry)}
           retryLabel={retryLabel}
         />
       )}
@@ -87,7 +95,7 @@ export function PagedListFooter({ paged, noun, labels, retryLabel }: PagedListFo
           title={L.loadMoreFailed}
           description={L.loadMoreFailedHint}
           details={rawReason(paged.loadMoreError)}
-          onRetry={paged.loadMore}
+          onRetry={retryOf(paged.loadMoreError, paged.loadMore)}
           retryLabel={retryLabel}
         />
       )}

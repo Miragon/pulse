@@ -139,6 +139,16 @@ describe("viewCallContext", () => {
     expect(line).not.toMatch(/engine_/)
   })
 
+  it("tells the user's retry button apart: none on a refusal no retry changes", () => {
+    expect(text({ phase: "error", error: new Error("engine prod unreachable") })).toContain(
+      "with a retry button",
+    )
+    const refused = new Error(
+      '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask the operator to fix it.',
+    )
+    expect(text({ phase: "error", error: refused })).toContain("without a retry button")
+  })
+
   it("says the call was cancelled", () => {
     expect(text({ phase: "cancelled" })).toContain("cancelled before it rendered")
   })

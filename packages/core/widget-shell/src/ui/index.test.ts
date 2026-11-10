@@ -46,6 +46,7 @@ describe("the /widgets entry", () => {
       "describeError",
       "formatLookback",
       "injectBpmnOverlayCss",
+      "isPermanentError",
       "modelContextText",
       "mountView",
       "mountViews",

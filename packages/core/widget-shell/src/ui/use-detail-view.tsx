@@ -1,6 +1,6 @@
 import type { ReactElement, ReactNode } from "react"
 import { ErrorState, useLocale } from "@miragon/pulse-ui"
-import { describeError } from "./describe-error.js"
+import { describeError, isPermanentError } from "./describe-error.js"
 import { kitLabels } from "./kit-labels.js"
 import { useViewData } from "./tool-query.js"
 import { viewRefreshState } from "./view-refresh-state.js"
@@ -63,7 +63,8 @@ export function useDetailView<TData>(opts: {
         title={opts.refreshErrorTitle ?? defaults.refreshFailed}
         description={`${described.title}. ${defaults.refreshStale}`}
         details={described.details ?? undefined}
-        onRetry={retry}
+        // A refusal no retry changes (`isPermanentError`) offers none here either.
+        onRetry={isPermanentError(refreshError) ? undefined : retry}
         retryLabel={retryText}
       />
     )

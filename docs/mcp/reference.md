@@ -131,7 +131,8 @@ default names no profile.
 
 With several engines, the cockpit landing lists every engine with its live health in words (open
 incidents, empty, unreachable, loading), read from the engine itself; a refused one reads "profile
-refused", counted apart from an unreachable one, and opening it says why. Its dot, there and in the
+refused", counted apart from an unreachable one, and opening it says why at once, as its view's one
+state and without Try again, since only whoever runs the server can fix it. Its dot, there and in the
 cross-engine view, has the tone of the engine overview's verdict (ok, warning, critical), so one
 open incident below the thresholds is a warning, not an alarm. With two engines or more the
 cockpit offers the cross-engine view: each engine's health, its job backlog and which processes

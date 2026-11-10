@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { classifyError, describeError, type ErrorKind } from "./describe-error.js"
+import { classifyError, describeError, isPermanentError, type ErrorKind } from "./describe-error.js"
 
 /** The mapping table (U1): every error text the wire carries onto one kind, status and source. */
 const TABLE: Array<[raw: string, kind: ErrorKind, status: number | undefined, source: string]> = [
@@ -299,6 +299,17 @@ describe("describeError: the words, en and de", () => {
       reason:
         'Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask the operator to fix it.',
     })
+  })
+
+  it("a code an engine's own message quotes is no refusal: only the server leads with one", () => {
+    // A script error that echoes a variable's value: retried, and Try again stays.
+    for (const code of ["[ENGINE_PROFILE_REFUSED]", "[ENGINE_READ_ONLY]"]) {
+      const quoted = `[500 ProcessEngineException] Script failed on value "${code} x" (engine prod)`
+      expect(classifyError(quoted).kind).toBe("failed")
+      expect(isPermanentError(new Error(quoted))).toBe(false)
+    }
+    expect(isPermanentError(new Error(REFUSED))).toBe(true)
+    expect(isPermanentError(READ_ONLY)).toBe(true)
   })
 
   it("a read-only engine: says nothing was changed, en and de", () => {

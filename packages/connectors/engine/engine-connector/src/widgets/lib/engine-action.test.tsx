@@ -2,7 +2,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { ReactNode } from "react"
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react"
-import { createTestQueryClient, TestViewHost } from "@miragon/pulse-widget-shell/widgets"
+import {
+  createTestQueryClient,
+  createViewQueryClient,
+  TestViewHost,
+} from "@miragon/pulse-widget-shell/widgets"
 import { ENGINE_WIDGET_ACTIONS_DATA } from "../../tool-names.js"
 import { useEngineAction, type ActionConfirmation } from "./engine-action.js"
 import { WRITE_POLICY } from "./write-policy.js"
@@ -364,6 +368,22 @@ describe("useEngineAction: the feedback (U9: a write is never silent)", () => {
     expect(shown.getAttribute("data-tone")).toBe("danger")
     expect(shown.textContent).toContain("Engine prod is unreachable (HTTP 503).")
     expect(shown.textContent).not.toContain("ProcessEngineException")
+  })
+
+  it("sends a write the read-only engine refuses once, and words it once: at its control", async () => {
+    // The view's own client: no write is retried, a refusal no retry changes least of all.
+    queryClient = createViewQueryClient()
+    const refusal =
+      '[ENGINE_READ_ONLY] Engine "prod" is read-only on this server: its profile sets readOnly, so no tool writes to it. Nothing was sent.'
+    write.mockImplementation(() => {
+      throw new Error(refusal)
+    })
+    const { result } = action()
+    await waitFor(() => expect(result.current.allowed).toBe(true))
+    act(() => result.current.run({ jobId: "job-1", retries: 1 }, { feedback: FEEDBACK }))
+    await waitFor(() => expect(result.current.error("job-1")).toBe(refusal))
+    expect(write).toHaveBeenCalledTimes(1)
+    expect(document.querySelector(`[data-slot="toast"]`)).toBeNull()
   })
 
   it("leaves a confirmed write's failure to its dialog: no second, toast-shaped copy", async () => {

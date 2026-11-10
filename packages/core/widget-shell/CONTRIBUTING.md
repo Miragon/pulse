@@ -30,7 +30,8 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   root's call hook (`useViewCall` over `resolveViewCall`) owns the stripped-result recovery: a host that
   drops `structuredContent` (claude.ai) gets the view re-running its own show tool ONCE (every
   view-bound tool is a read), stamped "Reloaded at"; the view frame renders the phases (waiting,
-  error with a retry, cancelled, ready) and keeps a crashing view, and each `ViewStack` row,
+  error with a retry, none for a refusal no retry changes (`isPermanentError`), cancelled, ready)
+  and keeps a crashing view, and each `ViewStack` row,
   inside its own error boundary. Widgets reach the host only through the view
   host seam (`useViewHost`: `callTool`, `sendFollowUp`, `openExternal`; `HostModelContext`) and the query
   hooks (`useToolQuery`, `useToolQueries` (one read per entry of a list, under `useToolQuery`'s

@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react"
 import { useLocale } from "@miragon/pulse-ui"
 import { decodeToolResult } from "../protocol/tool-result.js"
+import { isPermanentError } from "./describe-error.js"
 import { useInlineBudget } from "./inline-budget.js"
 import { useInlineRows, type InlineRows } from "./inline-fit.js"
 import { kitLabels } from "./kit-labels.js"
@@ -44,6 +45,11 @@ export interface PagedViewData<TItem, TData = unknown> {
   /** A new read at once, also during the client's retry backoff. */
   retry: () => void
   loadMoreError: Error | null
+  /**
+   * False for a refusal no retry changes (`isPermanentError`): the footer offers no retry for it.
+   * Always set by the hook; optional, so a hand-built list state needs none.
+   */
+  canRetry?: (error: Error) => boolean
   fit: InlineRows
   /** While `loadMore` opens fullscreen, its button says "Show all". */
   footerLabels: { loadMore: string } | undefined
@@ -186,7 +192,13 @@ export function usePagedViewData<TItem, TData>(opts: {
     error: page0.error ?? (first ? page0.failureReason : null),
     retry: page0.refetch,
     loadMoreError: pages.error,
+    canRetry,
   }
+}
+
+/** A retry may change a failure, unless the server refuses for good (`isPermanentError`). */
+function canRetry(error: Error): boolean {
+  return !isPermanentError(error)
 }
 
 /** Inline, the rows that fit the budget (#396); more is fullscreen, else the next rows in place. */

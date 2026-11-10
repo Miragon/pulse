@@ -4,7 +4,12 @@
 // behind `mountViews` and the components.
 export { WidgetShell, useHostDisplayMode } from "./widget-shell.js"
 export { ViewDataState } from "./view-data-state.js"
-export { describeError, type DescribeErrorOptions, type DescribedError } from "./describe-error.js"
+export {
+  describeError,
+  isPermanentError,
+  type DescribeErrorOptions,
+  type DescribedError,
+} from "./describe-error.js"
 export { ListTable, type ListTableColumn, type ListTableGroup } from "./list-table.js"
 export { IdText, IdCell } from "./id-text.js"
 export { ConfirmDialog, type ConfirmDialogProps, type ConfirmTarget } from "./confirm-dialog.js"
