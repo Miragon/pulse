@@ -34,7 +34,7 @@ pnpm test && pnpm lint`) covers the extension too.
 | Command                                                    | What it does                                                                                                                 |
 | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `pnpm --filter pulse-cockpit test`                         | the host's unit and architecture tests, coverage floors, brand and word scans of runtime view and host, the bundle budget    |
-| `pnpm --filter @miragon/pulse-runtime-view test`           | the core, model, host kit and webview tests (the webview's in Chromium), with the coverage floors but none over the host kit |
+| `pnpm --filter @miragon/pulse-runtime-view test`           | the core, model, host kit and webview tests (the webview's in Chromium), with the coverage floors, the host kit's among them |
 | `pnpm --filter @miragon/pulse-c7-adapter test`             | the C7 adapter against recorded REST routes and its error-path goldens, with the coverage floors                             |
 | `pnpm --filter pulse-cockpit run typecheck`                | the app, then the host and the tooling with their globals only                                                               |
 | `pnpm --filter @miragon/pulse-runtime-view run typecheck`  | the runtime view, then each layer with its runtime's globals only                                                            |

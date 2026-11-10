@@ -20,7 +20,7 @@ export default mergeConfig(
       restoreMocks: true,
       coverage: {
         include: ["src/**/*.{ts,tsx}"],
-        exclude: ["src/**/*.d.ts", "src/host-kit/**"],
+        exclude: ["src/**/*.d.ts"],
         thresholds: {
           lines: 93,
           statements: 93,
@@ -29,6 +29,7 @@ export default mergeConfig(
           "src/core/**": { lines: 98, statements: 98, functions: 98, branches: 90 },
           "src/model/**": { lines: 98, statements: 98, functions: 98, branches: 88 },
           "src/webview/**": { lines: 78, statements: 78, functions: 78, branches: 68 },
+          "src/host-kit/**": { lines: 46, statements: 47, functions: 47, branches: 46 },
         },
       },
       projects: [

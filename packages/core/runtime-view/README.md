@@ -29,6 +29,17 @@ The hosts read the types from the build (`dist`, declarations only) and bundle t
 The architecture decisions are the extension's (`apps/vscode/docs/adr/`), where the runtime view
 grew up; the house rules are in `apps/vscode/CLAUDE.md`.
 
+The coverage floors (`vitest.config.ts`, ratchets that only rise) hold all of `src` but its
+declaration files, as a whole and per layer: the core, the model reader, the webview and the host
+kit. Outside `src`, `dev/` and `scripts/` are not measured. The host kit's floor is what this
+package's tests reach, about half of it, since a host's coverage counts no file of the runtime
+view: the hosts' tests run the write and confirmation policies, the write audit, the audited
+commands, the connection builder, the timer scheduler, most of the credential store,
+`NotificationText.printable` and part of the panel titles. No test anywhere runs two of its safety
+rules: the credential store's refusal of a login saved for another origin
+(`savedForAnotherEndpoint`) and `NotificationText.withoutLinks`, which defuses links in engine
+text. A new rule of the host kit brings its test under `test/host-kit/`.
+
 ```sh
 pnpm --filter @miragon/pulse-runtime-view test       # unit and webview (Chromium) tests, coverage floors
 pnpm --filter @miragon/pulse-runtime-view run typecheck

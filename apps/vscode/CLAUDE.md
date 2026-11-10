@@ -20,7 +20,7 @@ pnpm lint:architecture:c7-adapter               # the closed-world rules of the 
 pnpm lint:deadcode                              # knip over every workspace: dead files, dependencies, enum members
 pnpm lint:deadcode:exports                      # knip over every workspace but docs: unused exports and types
 pnpm --filter pulse-cockpit test                 # the host's unit and architecture tests, coverage floors, the brand and word scans
-pnpm --filter @miragon/pulse-runtime-view test   # core, model, host kit and webview (Chromium) tests, coverage floors but for the host kit
+pnpm --filter @miragon/pulse-runtime-view test   # core, model, host kit and webview (Chromium) tests, coverage floors per layer
 pnpm --filter @miragon/pulse-c7-adapter test     # the C7 adapter against a recorded REST API and its error-path goldens
 pnpm --filter @miragon/pulse-engine-core test   # the kit's self-tests: the fake passes every law, 71 saboteurs fail theirs
 pnpm --filter @miragon/pulse-c7-adapter run test:engines # adapter conformance on a real engine; needs podman/docker
@@ -159,7 +159,11 @@ Ports, core, webview, host kit and host stay engine-neutral.
   entry VS Code calls, and `apps/vscode/src/host/pulse-extension.ts`, the activation wiring that
   builds the whole host from the `ExtensionContext`. No unit test runs them; the smoke test
   activates them in a real VS Code and finds every contributed command registered. The runtime
-  view's floors leave its host kit out (`packages/core/runtime-view/src/host-kit`).
+  view's floors measure its host kit too (`packages/core/runtime-view/src/host-kit`, a floor of
+  its own): no file of it stays out, since none needs an editor process. A host's test of one of
+  its rules counts for no floor (a host measures its own `src` only), so the rule stays uncovered
+  until a test of the runtime view runs it: a new rule of the host kit brings its test under
+  `packages/core/runtime-view/test/host-kit/`.
 - The C7 adapter's error-path goldens (`packages/connectors/c7/c7-adapter/test/goldens/`,
   the files and the case table in `packages/connectors/c7/c7-adapter/test/__golden__/error-paths/`)
   pin what it reports for the engine failures that table lists. An intended change runs
