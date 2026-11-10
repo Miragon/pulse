@@ -7,14 +7,14 @@ import type { ExpiryPolicy, TokenRecord } from "./types.js"
 
 /**
  * The shared policy: renew `min(60 s, a tenth of the lifetime)` before expiry, at least 5 s
- * before (a token of 5 s or less is renewed for every request); a lifetime of 300 s when the
- * answer names none; after a 401, renew only a token at least 30 s old.
+ * before (a token of 5 s or less is renewed for every request); after a 401, renew only a token
+ * at least 30 s old. It assumes no lifetime: a token whose answer names none is renewed only after
+ * a 401 (client credentials assume one of their own, `clientCredentialsTokens`).
  */
 export const EXPIRY: ExpiryPolicy = {
   maxMarginMs: 60_000,
   lifetimeShare: 0.1,
   floorMs: 5_000,
-  defaultLifetimeS: 300,
   youngTokenMs: 30_000,
 }
 
@@ -24,22 +24,22 @@ export function marginOf(lifetimeMs: number, policy: ExpiryPolicy = EXPIRY): num
   return Math.max(policy.floorMs, Math.min(policy.maxMarginMs, share))
 }
 
-/** The lifetime of a token in ms: from its expiry, else the policy's default; none without either. */
-function lifetimeOf(record: TokenRecord, policy: ExpiryPolicy): number | undefined {
-  if (record.expiresAt !== undefined) return record.expiresAt - record.receivedAt
-  return policy.defaultLifetimeS === undefined ? undefined : policy.defaultLifetimeS * 1000
-}
-
-/** When a token is due for renewal (epoch ms); undefined when it never is (no lifetime known). */
+/**
+ * When a token is due for renewal (epoch ms); undefined when it never is by this policy (its
+ * expiry unknown). A client credentials token of unknown expiry is renewed all the same, 270 s
+ * after its receipt: `clientCredentialsTokens` reads it as one of 300 s, which this function does
+ * not know.
+ */
 export function refreshAt(record: TokenRecord, policy: ExpiryPolicy = EXPIRY): number | undefined {
-  const lifetimeMs = lifetimeOf(record, policy)
-  if (lifetimeMs === undefined) return undefined
-  return record.receivedAt + lifetimeMs - marginOf(lifetimeMs, policy)
+  const { receivedAt, expiresAt } = record
+  if (expiresAt === undefined) return undefined
+  return expiresAt - marginOf(expiresAt - receivedAt, policy)
 }
 
 /**
  * Whether a token is due for renewal at `now`: from `refreshAt` on, and whenever the clock stands
- * before its receipt (a clock that stepped back cannot tell how old the token is).
+ * before its receipt (a clock that stepped back cannot tell how old the token is); a token of
+ * unknown expiry only then.
  */
 export function isDue(record: TokenRecord, now: number, policy: ExpiryPolicy = EXPIRY): boolean {
   const at = refreshAt(record, policy)

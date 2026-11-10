@@ -349,6 +349,19 @@ describe("a 401", () => {
     expect(test.server.requests).toBe(1)
   })
 
+  it("is the only renewal of a token whose answer named no lifetime, a young one kept", async () => {
+    const test = await setup(omit(LOGIN, "expiresAt", "refreshExpiresAt"))
+    const tokens = test.tokens()
+    test.server.clock.now = T0 + 29_999
+    await expect(tokens.rejected(String(await tokens.token()))).resolves.toBe(false)
+    test.server.clock.now = T0 + 10 * 3_600_000
+    await expect(tokens.token()).resolves.toBe("cached-access")
+    expect(test.server.requests).toBe(0)
+    await expect(tokens.rejected("cached-access")).resolves.toBe(true)
+    await expect(tokens.token()).resolves.toBe("access-1")
+    expect(test.server.requests).toBe(1)
+  })
+
   it("keeps a young token or one without a refresh token, and lets another renewal count", async () => {
     const test = await setup()
     const tokens = test.tokens()

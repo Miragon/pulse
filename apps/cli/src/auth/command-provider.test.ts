@@ -100,13 +100,18 @@ describe("commandBearerAuth", () => {
     expect(runtime.commandRuns).toHaveLength(2)
   })
 
-  it("reuses an opaque token for the policy's lifetime of 300 s and never caches it", async () => {
+  it("reuses an opaque token within its call until a 401 and never caches it", async () => {
     const runtime = printing("opaque-1", "opaque-2", "opaque-3")
     const auth = provider(runtime)
     await headersOf(auth)
-    await runtime.sleep(269_999)
+    // a token younger than 30 s was refused for another reason than its age
+    await runtime.sleep(29_999)
+    await expect(renewalOf(auth)).resolves.toBe(false)
+    expect(runtime.commandRuns).toHaveLength(1)
+    await runtime.sleep(10 * 3_600_000)
     await expect(headersOf(auth)).resolves.toEqual({ Authorization: "Bearer opaque-1" })
-    await runtime.sleep(1)
+    expect(runtime.commandRuns).toHaveLength(1)
+    await expect(renewalOf(auth)).resolves.toBe(true)
     await expect(headersOf(auth)).resolves.toEqual({ Authorization: "Bearer opaque-2" })
     expect([...runtime.files.keys()]).toEqual([])
     await expect(headersOf(provider(runtime))).resolves.toEqual({

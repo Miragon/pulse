@@ -126,12 +126,12 @@ describe("OAuth provider: proactive refresh", () => {
     events.length = 0
     await headersOf(quiet.provider())
     expect(events).toEqual([])
-    // a token whose answer named no lifetime counts as 300 s: due at 270 s, its expiry unknown
+    // a token whose answer named no lifetime is due only while the clock stands before its receipt
     const unknown = setup(cachedLogin(T0, { expiresAt: null }), {
       deps: { trace: (event) => events.push(event) },
     })
     unknown.idp.queue("token", new Response("", { status: 503 }))
-    unknown.clock = T0 + 270_000
+    unknown.clock = T0 - 1
     await expect(headersOf(unknown.provider())).resolves.toEqual({
       Authorization: "Bearer cached-access",
     })

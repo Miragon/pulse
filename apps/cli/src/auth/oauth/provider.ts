@@ -1,10 +1,11 @@
 /**
  * The OAuth AuthProvider: Bearer tokens from the cache of `pulse auth login`, renewed by
  * @miragon/pulse-http/oauth's `refreshingTokens` on the cache file (store.ts) under the shared
- * policy: shortly before they expire, and after a 401 when the token is old enough for a new one
- * to help. It never starts a login: without a usable token a command fails with LOGIN_REQUIRED
- * (exit 4) and the hint names the command a person runs in a terminal. Network problems, a slow
- * authorization server or a busy lock do not fail a command whose token is still valid.
+ * policy: shortly before they expire (one of unknown expiry never), and after a 401 when the token
+ * is old enough for a new one to help. It never starts a login: without a usable token a command
+ * fails with LOGIN_REQUIRED (exit 4) and the hint names the command a person runs in a terminal.
+ * Network problems, a slow authorization server or a busy lock do not fail a command whose token
+ * is still valid.
  */
 
 import { bearerCredential, type Credential, type TokenSource } from "@miragon/pulse-http"
@@ -60,9 +61,15 @@ function rejectedHint(
   return `The engine (or the gateway in front of it) rejected the OAuth access token of ${user}${again}. The authorization server issued it, but it is not accepted here: the gateway must expect exactly the issuer pulse logged in with (auth.issuer: ${config.issuer ?? "not set"}; localhost and 127.0.0.1 are different issuers), and its clock must agree; \`${statusCommand(config)}\` shows scopes and expiry. If the login was revoked, run ${inTerminal(config)}.`
 }
 
-/** When the cached access token expires, for a note: received at a time when it names no expiry. */
-function expiryNote(login: CachedLogin, expired: boolean): string {
-  if (login.expiresAt === null) return `has no known expiry (received at ${iso(receivedAt(login))})`
+/**
+ * Why the cached access token is due, for a note: a receipt later than the clock (a clock that
+ * stepped back cannot tell its age; a token of unknown expiry is due only then), else its expiry.
+ */
+function dueNote(login: CachedLogin, now: number, expired: boolean): string {
+  const received = receivedAt(login)
+  if (now < received || login.expiresAt === null) {
+    return `was received at ${iso(received)} (later than this machine's clock shows)`
+  }
   return `${expired ? "expired" : "expires"} at ${iso(login.expiresAt)}`
 }
 
@@ -72,7 +79,7 @@ function previewNote(login: CachedLogin, now: number, who: LoginOwner): string |
   }
   if (!isDue(recordOf(login), now, EXPIRY)) return undefined
   const expired = isExpired(now, login.expiresAt)
-  const when = expiryNote(login, expired)
+  const when = dueNote(login, now, expired)
   if (canRefresh(login, now)) {
     return `The cached access token ${when}; pulse would refresh it before sending.`
   }

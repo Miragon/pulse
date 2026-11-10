@@ -43,11 +43,16 @@ describe("a token command", () => {
     expect(tokens.renewable).toBe(true)
   })
 
-  it("renews an opaque token after the default lifetime, or by the expiry a caller reads", async () => {
+  it("uses an opaque token until a 401 renews it, or renews it by the expiry a caller reads", async () => {
     const test = setup(["opaque-1", "opaque-2"])
     const tokens = test.tokens()
     await tokens.token()
-    test.clock.now = T0 + 270_000
+    test.clock.now = T0 + 29_999
+    await expect(tokens.rejected("opaque-1")).resolves.toBe(false)
+    test.clock.now = T0 + 10 * 3_600_000
+    await expect(tokens.token()).resolves.toBe("opaque-1")
+    expect(test.runs()).toBe(1)
+    await expect(tokens.rejected("opaque-1")).resolves.toBe(true)
     await expect(tokens.token()).resolves.toBe("opaque-2")
     const read = setup(["opaque-1", "opaque-2"], { expiryOf: () => T0 + 10_000 })
     const short = read.tokens()

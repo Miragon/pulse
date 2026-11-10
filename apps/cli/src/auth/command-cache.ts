@@ -51,7 +51,7 @@ export function recordOf(entry: CommandToken): TokenRecord {
 
 /**
  * True while the token may still be sent without running the command again: until the shared
- * policy renews it (an opaque token after the policy's lifetime of 300 s).
+ * policy renews it (an opaque token until a 401, or a clock that stands before its receipt).
  */
 export function isFresh(entry: CommandToken, now: number): boolean {
   return !isDue(recordOf(entry), now, EXPIRY)

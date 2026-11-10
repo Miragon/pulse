@@ -3,8 +3,8 @@
  * @miragon/pulse-http/oauth's `commandTokens` renews it by the shared policy. A JWT with `exp` is
  * reused, also across calls (the cache file of command-cache.ts), until shortly before it
  * expires, then the command runs again, so a long `pulse wait` keeps a valid token; an opaque
- * token is reused for the policy's lifetime of 300 s. After a 401 the command runs once more when
- * the token is old enough for a new one to help (30 s), and the request is retried when it printed
+ * token is reused within its call until a 401. After a 401 the command runs once more when the
+ * token is old enough for a new one to help (30 s), and the request is retried when it printed
  * another token. `--dry-run` never runs the command: it shows a fresh token of this call or of the
  * cache, else a note.
  */

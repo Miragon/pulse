@@ -61,10 +61,10 @@ describe("isFresh", () => {
     expect(isFresh(shortest, NOW + 15_000)).toBe(false)
   })
 
-  it("keeps a token without expiry (opaque) for the policy's lifetime of 300 s", () => {
+  it("keeps a token without expiry (opaque) until a 401, unless the clock stands before it", () => {
     const opaque = { token: "opaque", expiresAt: null, fetchedAt: NOW }
-    expect(isFresh(opaque, NOW + 269_999)).toBe(true)
-    expect(isFresh(opaque, NOW + 270_000)).toBe(false)
+    expect(isFresh(opaque, NOW + 1e9)).toBe(true)
+    expect(isFresh(opaque, NOW - 1)).toBe(false)
   })
 
   it("is never fresh past exp", () => {

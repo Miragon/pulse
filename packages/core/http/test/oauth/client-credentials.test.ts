@@ -8,6 +8,7 @@ import {
   type ClientCredentialsOptions,
   memoryTokenStore,
   tokenKey,
+  type TokenRecord,
   type TokenStore,
 } from "../../src/oauth/index.js"
 import { jsonAnswer } from "../fake-fetch.js"
@@ -98,7 +99,7 @@ describe("client credentials", () => {
   })
 
   it.each([[undefined], [0], [-60], ["0"], ["-60"], ["1e3"], ["soon"], [null], [true]])(
-    "assume the default lifetime when expires_in is %j, so no read asks again at once",
+    "assume a lifetime of 300 s when expires_in is %j, so no read asks again at once",
     async (expiresIn) => {
       const server = new TokenServer()
       server.answer = () => jsonAnswer({ access_token: "plain", expires_in: expiresIn })
@@ -341,6 +342,26 @@ describe("a store", () => {
       grant: { type: "client_credentials" },
     }).token()
     expect(server.requests).toBe(2)
+  })
+
+  it("takes over a token whose answer named no lifetime for 270 s, kept without an expiry", async () => {
+    const server = new TokenServer()
+    server.answer = () => jsonAnswer({ access_token: `plain-${String(server.requests)}` })
+    const written: TokenRecord[] = []
+    const memory = memoryTokenStore()
+    const store: TokenStore = {
+      ...memory,
+      write: (key, record) => {
+        written.push(record)
+        return memory.write(key, record)
+      },
+    }
+    await tokensOf(server, { store }).token()
+    server.clock.now += 269_999
+    await expect(tokensOf(server, { store }).token()).resolves.toBe("plain-1")
+    server.clock.now += 1
+    await expect(tokensOf(server, { store }).token()).resolves.toBe("plain-2")
+    expect(written.map((record) => record.expiresAt)).toEqual([undefined, undefined])
   })
 
   it("never takes over a token the API refused, nor one that is due", async () => {

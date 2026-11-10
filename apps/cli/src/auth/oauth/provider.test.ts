@@ -223,6 +223,24 @@ describe("OAuth provider: reactive refresh", () => {
     expect(test.idp.tokenRequests()).toHaveLength(1)
   })
 
+  it("refreshes a token whose answer named no lifetime only after a 401", async () => {
+    const login = cachedLogin(T0, { expiresAt: null, refreshExpiresAt: null })
+    const test = setup(login, { idp: { expiresIn: null } })
+    const auth = test.provider()
+    // a token younger than 30 s was refused for another reason than its age
+    test.clock = T0 + 29_999
+    await expect(renewalOf(auth)).resolves.toBe(false)
+    expect(test.idp.tokenRequests()).toEqual([])
+    test.clock = T0 + 10 * 3_600_000
+    await expect(headersOf(auth)).resolves.toEqual({ Authorization: "Bearer cached-access" })
+    expect(test.idp.tokenRequests()).toEqual([])
+    await expect(renewalOf(auth)).resolves.toBe(true)
+    await expect(headersOf(auth)).resolves.toEqual({ Authorization: "Bearer access-1" })
+    test.clock += 10 * 3_600_000
+    await expect(headersOf(auth)).resolves.toEqual({ Authorization: "Bearer access-1" })
+    expect(test.idp.tokenRequests()).toHaveLength(1)
+  })
+
   it("sends the token a 401 brought as it is, even one of 5 s: one token request per 401", async () => {
     const test = setup(undefined, { idp: { expiresIn: 5 } })
     const auth = test.provider()
@@ -322,17 +340,28 @@ describe("OAuth provider: dry-run preview", () => {
     expect(refresh.idp.requests).toEqual([])
   })
 
-  it("notes a token without a known expiry by when it was received", async () => {
+  it("notes a token received later than the clock shows, the only due one of unknown expiry", async () => {
     const unknown = { expiresAt: null }
+    const fresh = setup(cachedLogin(T0, unknown))
+    fresh.clock = T0 + 10 * 3_600_000
+    await expect(fresh.provider().preview?.()).resolves.toEqual({
+      headers: { Authorization: "Bearer cached-access" },
+    })
     const refresh = setup(cachedLogin(T0, unknown))
-    refresh.clock = T0 + 270_000
+    refresh.clock = T0 - 1
     await expect(refresh.provider().preview?.()).resolves.toMatchObject({
-      note: "The cached access token has no known expiry (received at 2023-11-14T22:13:20.000Z); pulse would refresh it before sending.",
+      note: "The cached access token was received at 2023-11-14T22:13:20.000Z (later than this machine's clock shows); pulse would refresh it before sending.",
     })
     const kept = setup(cachedLogin(T0, { ...unknown, refreshToken: null }))
-    kept.clock = T0 + 270_000
+    kept.clock = T0 - 1
     await expect(kept.provider().preview?.()).resolves.toMatchObject({
-      note: "The cached access token has no known expiry (received at 2023-11-14T22:13:20.000Z) and pulse cannot refresh it.",
+      note: "The cached access token was received at 2023-11-14T22:13:20.000Z (later than this machine's clock shows) and pulse cannot refresh it.",
+    })
+    // a token of known expiry is due then too, for the same reason
+    const known = setup()
+    known.clock = T0 - 1
+    await expect(known.provider().preview?.()).resolves.toMatchObject({
+      note: "The cached access token was received at 2023-11-14T22:13:20.000Z (later than this machine's clock shows); pulse would refresh it before sending.",
     })
   })
 

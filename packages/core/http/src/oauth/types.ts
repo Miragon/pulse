@@ -75,15 +75,15 @@ export interface TokenLimits {
 
 /**
  * When a token is renewed: `max(floorMs, min(maxMarginMs, lifetime × lifetimeShare))` before it
- * expires, a lifetime of `defaultLifetimeS` when the answer names none, and after a 401 only a
- * token at least `youngTokenMs` old (a token that young was refused for another reason, a wrong
- * audience, which a new token does not mend).
+ * expires, and after a 401 only a token at least `youngTokenMs` old (a token that young was refused
+ * for another reason, a wrong audience, which a new token does not mend). Whenever the clock stands
+ * before its receipt it is renewed too, since its age cannot be told. A token of unknown expiry is
+ * renewed only then and after a 401; `clientCredentialsTokens` alone reads it as one of 300 s.
  */
 export interface ExpiryPolicy {
   readonly maxMarginMs: number
   readonly lifetimeShare: number
   readonly floorMs: number
-  readonly defaultLifetimeS?: number
   readonly youngTokenMs: number
 }
 

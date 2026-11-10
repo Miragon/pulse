@@ -83,7 +83,7 @@ an error answer, and a URL with a user or a password refused before sending (a `
 | Part           | What it does                                                                                                                                                                                                                                                                                                  |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Token endpoint | `requestToken` for the code, refresh token and client credentials grants and `revokeToken` (RFC 7009), the client authenticated by `basic`, `post` or as a public client. An answer is checked (a b64token, a Bearer type); a refusal is a `TokenFailure`: its kind, the server's `error` as sent and a hold. |
-| Renewal        | `EXPIRY`, one policy for every surface: renew `min(60 s, a tenth of the lifetime)` before expiry, at least 5 s before; a lifetime of 300 s when the answer names none; after a 401 only a token at least 30 s old (`refreshAt`, `isDue`, `renewsAfterRefusal`).                                               |
+| Renewal        | `EXPIRY`, one policy for every surface: renew `min(60 s, a tenth of the lifetime)` before expiry, at least 5 s before; a token of unknown lifetime only after a 401 (client credentials assume 300 s); after a 401 only a token at least 30 s old (`refreshAt`, `isDue`, `renewsAfterRefusal`).               |
 | Token sources  | `clientCredentialsTokens` (one request at a time; a hold of a minute after a refusal, 5 s after a failure, a rate limit as long as its `Retry-After` asks), `refreshingTokens` (a login renewed under its store's lock), `commandTokens` (a command's token). Each is a `TokenSource` for `bearerCredential`. |
 | Store          | `TokenStore` (read, write, a lock per key), `memoryTokenStore` and `tokenKey`, the SHA-256 of what a token is kept for, so no secret stands in clear as a key.                                                                                                                                                |
 | Login          | `discover` and `serverMetadata` (the issuer exactly, PKCE S256, endpoints on https or on a host the caller's `isLoopback` accepts), `createPkce`, `authorizationUrl`, `callbackResult` (the state in constant time, then `iss` by RFC 9207).                                                                  |
@@ -95,10 +95,13 @@ Keycloak ends the session for), keeps a rotated one and records a refused one, s
 it again; a renewal that fails for a passing reason (no answer, a 5xx, a rate limit, a busy lock)
 keeps a token that is still valid. `clientCredentialsTokens` keeps none: while its renewal fails,
 a request fails until the hold ends, also before the old token expires (the rule of the C8 adapter
-it comes from). After a 401 a token source renews once, and the token it got goes out with the
-second attempt even when the policy finds it due at once (a lifetime of 5 s or less): one renewal
-per attempt. Where tokens are kept, how a person logs in and every word a person reads stay with
-the surface.
+it comes from). It alone assumes a lifetime, 300 s, for a token whose answer names none, since it
+asks for a token by itself; a login would spend its refresh token early (and a refusal of it would
+end a login whose access token may still hold) and a command would run for nothing, so
+`refreshingTokens` and `commandTokens` renew such a token only after a 401. After a 401 a token
+source renews once, and the token it got goes out with the second attempt even when the policy
+finds it due at once (a lifetime of 5 s or less): one renewal per attempt. Where tokens are kept,
+how a person logs in and every word a person reads stay with the surface.
 
 ## The conformance cases
 

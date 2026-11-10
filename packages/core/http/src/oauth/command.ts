@@ -1,9 +1,10 @@
 /**
  * Tokens a command prints (the CLI's token command, a cloud CLI's `print-access-token`): run when
  * no token is fresh, a token of known expiry kept in the store until shortly before it expires,
- * so later and parallel callers do not run the command again, and after a 401 run once more
- * (an old enough token only), which helps only when the command printed another token. That token
- * goes out with the attempt it was printed for, even when the policy finds it due at once.
+ * so later and parallel callers do not run the command again, one of unknown expiry (an opaque
+ * token) used by this source until a 401, and after a 401 run once more (an old enough token
+ * only), which helps only when the command printed another token. That token goes out with the
+ * attempt it was printed for, even when the policy finds it due at once.
  */
 import type { TokenSource } from "../credential.js"
 import { EXPIRY, isDue, isExpired, renewsAfterRefusal } from "./expiry.js"

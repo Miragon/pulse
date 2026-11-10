@@ -5,8 +5,11 @@
  * (Keycloak's reuse detection). A newer token in the store is taken over without a request, so
  * concurrent renewals send one refresh token exactly once. A refused refresh token is recorded in
  * the store, so nothing asks with it again, and a renewal that fails for a passing reason keeps
- * the still valid token. A token renewed after a 401 goes out with the attempt it was renewed for,
- * even when the policy finds it due at once (a lifetime of 5 s or less): one renewal per attempt.
+ * the still valid token. A token whose answer named no lifetime is renewed only after a 401: a
+ * lifetime assumed for it would spend the refresh token early, and a refusal then would end a
+ * login whose access token may still hold. A token renewed after a 401 goes out with the attempt
+ * it was renewed for, even when the policy finds it due at once (a lifetime of 5 s or less): one
+ * renewal per attempt.
  */
 import type { TokenSource } from "../credential.js"
 import type { Platform } from "../types.js"

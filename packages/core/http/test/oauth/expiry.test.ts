@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest"
 import {
   canRefresh,
   EXPIRY,
-  type ExpiryPolicy,
   isDue,
   isExpired,
   marginOf,
@@ -18,15 +17,13 @@ const lived = (seconds: number): TokenRecord => ({
   receivedAt: T0,
   expiresAt: T0 + seconds * 1000,
 })
-const NO_DEFAULT: ExpiryPolicy = omit(EXPIRY, "defaultLifetimeS")
 
 describe("the shared policy", () => {
-  it("is a tenth of the lifetime, at most 60 s, at least 5 s, 300 s by default, 30 s young", () => {
+  it("is a tenth of the lifetime, at most 60 s, at least 5 s, 30 s young, no assumed lifetime", () => {
     expect(EXPIRY).toEqual({
       maxMarginMs: 60_000,
       lifetimeShare: 0.1,
       floorMs: 5_000,
-      defaultLifetimeS: 300,
       youngTokenMs: 30_000,
     })
   })
@@ -50,11 +47,11 @@ describe("the shared policy", () => {
     expect(refreshAt(lived(60), half)).toBe(T0 + 30_000)
   })
 
-  it("assumes the default lifetime for a token of unknown lifetime, or never renews it", () => {
+  it("never renews a token of unknown lifetime, unless the clock stands before its receipt", () => {
     const unknown = { accessToken: "a", receivedAt: T0 }
-    expect(refreshAt(unknown)).toBe(T0 + 270_000)
-    expect(refreshAt(unknown, NO_DEFAULT)).toBeUndefined()
-    expect(isDue(unknown, T0 + 10 ** 12, NO_DEFAULT)).toBe(false)
+    expect(refreshAt(unknown)).toBeUndefined()
+    expect(isDue(unknown, T0 + 10 ** 12)).toBe(false)
+    expect(isDue(unknown, T0 - 1)).toBe(true)
   })
 
   it("is due from its renewal time on, and whenever the clock stands before the receipt", () => {
