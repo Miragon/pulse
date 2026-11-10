@@ -10,7 +10,7 @@
 # Dependabot updates the digest (.github/dependabot.yml, directory /apps/cli). ci.yml builds and
 # smoke-tests the image on every pull request, .github/workflows/publish-cli.yml pushes
 # ghcr.io/miragon/pulse-cli on a release.
-FROM gcr.io/distroless/nodejs24-debian13:nonroot@sha256:b8cec4b2f2126ff7bd034ec9ac207ffb3272667dfdc48376e3b035d3270549ba
+FROM gcr.io/distroless/nodejs24-debian13:nonroot@sha256:088a01637f22908632ba09018be2e0b516f2fa6f7869c191d29491139db43c78
 
 # GHCR links the package to the repository through image.source; publish-cli.yml adds the
 # version, revision and creation time and repeats these as annotations of the multi-platform
