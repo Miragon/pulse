@@ -93,6 +93,14 @@ describe("scopesFor: prose reaches only the checks that read it", () => {
     assert.deepEqual(scopes("docs/.vitepress/theme/HomeLanding.vue"), ["brand"])
   })
 
+  it("runs pulse-ui's token tests for the brand-assets list and its checksums, not for the shots", () => {
+    assert.deepEqual(scopes(".miragon/brand-assets.yaml", ".miragon/brand-assets.sha256"), [
+      "brand",
+      "typescript",
+    ])
+    assert.deepEqual(scopes(".miragon/product-shots.yaml", ".miragon/brand.json"), ["brand"])
+  })
+
   it("runs the token drift scan for a stylesheet anywhere in the docs site", () => {
     assert.deepEqual(scopes("docs/.vitepress/theme/custom.css"), ["brand", "typescript"])
   })

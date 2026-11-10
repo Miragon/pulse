@@ -49,6 +49,8 @@ export const PATH_RULES = [
   { pattern: /^\.env\.example$/, scopes: ["typescript"] },
   { pattern: /^README\.md$/, scopes: ["brand"] },
   { pattern: /^[^/]+\.md$/, scopes: [] },
+  // Read by pulse-ui's token tests (cd-tokens.test.ts, token-drift.test.ts); CI checks the sums too.
+  { pattern: /^\.miragon\/brand-assets\.(?:yaml|sha256)$/, scopes: ["brand", "typescript"] },
   { pattern: /^\.miragon\//, scopes: ["brand"] },
   { pattern: /^\.claude\//, scopes: [] },
   { pattern: /^\.claude-plugin\//, scopes: ["cli"] },
