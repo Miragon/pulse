@@ -52,7 +52,7 @@ reconnect after `$O plugin restart local.pulse-cockpit`.
 
 The cover and the screenshots in `apps/orca/images/` are the plugin's page in Orca's directory
 (`cover`, `screenshots` in `orca-plugin.json`) and the pictures of `README.md`. The skill
-`miragon-brand:product-shots` makes them from `.miragon/product-shots.json`: Orca in a Linux
+`miragon-brand:product-shots` makes them from `.miragon/product-shots.yaml`: Orca in a Linux
 container, the demo workspace `apps/orca/demo/` (a project file, a model and the tabs it opens) against the
 sandbox's shop-dev, reached as `dev.shop.example`. With the sandbox up and the plugin built, from
 the repository root:

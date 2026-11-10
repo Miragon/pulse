@@ -2,6 +2,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import {
   EQUAL_FIX,
+  FORK,
+  FORK_FIX,
   fixtureRepo,
   manifestOf,
   sha,
@@ -14,7 +16,9 @@ import { rootTokens } from "./vendored-tokens.test-support.js"
  * over fixture repos (`vendored-token-fixtures.test-support.ts`). The cases
  * include copies the repo does not hold yet (a second sanctioned copy, the App
  * and web variant of the CI token file under an extension's webview), so the
- * guard is ready before they land. Token equality: `token-equality.test.ts`.
+ * guard is ready before they land. Token equality: `token-equality.test.ts`;
+ * the sha256sum list of brand-assets.mjs and `valuesOnly`:
+ * `vendored-tokens-checksums.test.ts`.
  */
 
 const PALETTE = new Map([
@@ -78,8 +82,6 @@ const write = (files: Record<string, string>) => {
 
 const findings = (manifests: string[], scanRoots?: string[]) => repo.findings(manifests, scanRoots)
 
-const FORK = "declares --cd-* outside a sanctioned vendored copy (a fork)"
-
 describe("vendoredTokenFindings: sanctioned copies pass", () => {
   it("a copy its sanctioned manifest lists, byte-equal and on the palette", () => {
     write({
@@ -141,7 +143,7 @@ describe("vendoredTokenFindings: sanctioned copies pass", () => {
       "app/.temp/t/cd-tokens.generated.css": TOKENS,
     })
     expect(findings([], ["docs", "app"])).toEqual([
-      `app/.temp/t/cd-tokens.generated.css: ${FORK}: ${forkFix()}`,
+      `app/.temp/t/cd-tokens.generated.css: ${FORK}: ${FORK_FIX}`,
     ])
   })
 })
@@ -149,7 +151,7 @@ describe("vendoredTokenFindings: sanctioned copies pass", () => {
 describe("vendoredTokenFindings: forks fail", () => {
   it("a stylesheet that declares a --cd-* with no manifest", () => {
     write({ "apps/x/src/app.css": ".a { --cd-blau: red; }\n" })
-    expect(findings([], ["apps"])).toEqual([`apps/x/src/app.css: ${FORK}: ${forkFix()}`])
+    expect(findings([], ["apps"])).toEqual([`apps/x/src/app.css: ${FORK}: ${FORK_FIX}`])
   })
 
   it("a valid manifest next to the copy sanctions nothing unless the caller lists it", () => {
@@ -157,7 +159,7 @@ describe("vendoredTokenFindings: forks fail", () => {
       "app/theme/cd-tokens.generated.css": TOKENS,
       "app/theme/manifest.json": manifestOf({ "app/theme/cd-tokens.generated.css": TOKENS }),
     })
-    expect(findings([])).toEqual([`app/theme/cd-tokens.generated.css: ${FORK}: ${forkFix()}`])
+    expect(findings([])).toEqual([`app/theme/cd-tokens.generated.css: ${FORK}: ${FORK_FIX}`])
   })
 
   it("a copy edited after vendoring is reported and loses its sanction", () => {
@@ -167,7 +169,7 @@ describe("vendoredTokenFindings: forks fail", () => {
     })
     expect(findings(["app/theme/manifest.json"])).toEqual([
       "app/theme/cd-tokens.generated.css: differs from app/theme/manifest.json: re-vendor it, never edit it in the repo",
-      `app/theme/cd-tokens.generated.css: ${FORK}: ${forkFix()}`,
+      `app/theme/cd-tokens.generated.css: ${FORK}: ${FORK_FIX}`,
     ])
   })
 
@@ -177,7 +179,7 @@ describe("vendoredTokenFindings: forks fail", () => {
       "app/theme/manifest.json": manifestOf({ "other/x.css": TOKENS }),
     })
     expect(findings(["app/theme/manifest.json"], ["app", "other"])).toEqual([
-      `other/x.css: ${FORK}: ${forkFix()}`,
+      `other/x.css: ${FORK}: ${FORK_FIX}`,
     ])
   })
 })
@@ -224,7 +226,7 @@ describe("vendoredTokenFindings: a sanctioned manifest fails closed", () => {
     const result = findings(["app/theme/manifest.json"])
     expect(result).toEqual([
       expect.stringMatching(/^app\/theme\/manifest\.json: not a vendor manifest \(version x\.y\.z/),
-      `app/theme/t.css: ${FORK}: ${forkFix()}`,
+      `app/theme/t.css: ${FORK}: ${FORK_FIX}`,
     ])
   })
 
@@ -403,7 +405,3 @@ describe("rootTokens", () => {
     expect(rootTokens("").size).toBe(0)
   })
 })
-
-function forkFix(): string {
-  return "reference pulse-ui's tokens and roles with var(), or vendor the CI file unchanged with a manifest listed in SANCTIONED_TOKEN_MANIFESTS"
-}

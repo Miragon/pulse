@@ -189,11 +189,11 @@ Ports, core, webview, host kit and host stay engine-neutral.
   record in `apps/vscode/docs/adr/` in the same commit; the records cover the runtime view and
   the adapter, which both editor hosts run.
 - The webview's colours are the Miragon tokens in `packages/core/runtime-view/src/webview/theme/`, vendored
-  unchanged from Miragon/corporate-identity and pinned by its `manifest.json`: re-vendor,
-  never edit (the repository's token drift test reads that manifest and holds every token the
-  copy shares with pulse-ui's and the docs kit's to one value per scope, so a release that
-  changes a value is vendored into every copy at once). pulse-ui's brand gates scan the webview
-  and the texts of the runtime view and the host
+  unchanged from Miragon/corporate-identity by `brand-assets.mjs` (`.miragon/brand-assets.yaml`) and
+  pinned by `.miragon/brand-assets.sha256`: re-copy, never edit (the repository's token drift
+  test reads those checksums and holds every token the copy shares with pulse-ui's and the docs
+  kit's to one value per scope, so a release that changes a value is copied into every copy at
+  once). pulse-ui's brand gates scan the webview and the texts of the runtime view and the host
   (`apps/vscode/test/architecture/brand-gates.test.ts`, `product-words.test.ts`): Lucide icons, never a glyph, at
   16 px or at 12 px beside dense text and on the diagram's overlays (the named deviation, each
   file listed there with its reason), and no raw colour outside the renderer's paint constants

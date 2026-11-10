@@ -17,7 +17,7 @@
   "workspaces": {
     ".": {
       // .miragon/shots: the journeys the product-shots skill runs for the README banners
-      // (.miragon/product-shots.json names them); nothing in the repository imports them.
+      // (.miragon/product-shots.yaml names them); nothing in the repository imports them.
       "entry": ["scripts/*.mjs", "vitest.shared.ts", ".miragon/shots/*.mjs"],
     },
 

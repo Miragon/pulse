@@ -1,4 +1,10 @@
 {
   "_comment": "Activates brand-lint from the miragon-brand plugin (Claude Code hook, and the brand job in .github/workflows/ci.yml). Every rule stays on, since the UI speaks German and English. The docs kit in docs/.vitepress/miragon/ is linted at its source in Miragon/corporate-identity.",
-  "ignorieren": ["docs/.vitepress/miragon/"]
+  "ignorieren": [
+    "docs/.vitepress/miragon/",
+    "packages/core/ui/src/tokens/cd-tokens.generated.css",
+    "packages/core/runtime-view/src/webview/theme/cd-tokens.generated.css",
+    "packages/core/runtime-view/src/webview/theme/cd-tokens.generated.json",
+    "packages/core/runtime-view/src/webview/theme/cd-canvas.css"
+  ]
 }

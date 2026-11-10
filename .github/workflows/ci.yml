@@ -505,6 +505,19 @@ jobs:
         if: always()
         run: docker compose down -v
 
+  # The copies in .miragon/brand-assets.yaml, unchanged since brand-assets.mjs copied them; every PR.
+  brand-assets:
+    name: Brand assets (checksums)
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - run: sha256sum -c .miragon/brand-assets.sha256
+
   # Docs kit vs. Miragon/corporate-identity + brand-lint; skipped without the secret.
   brand:
     name: Brand (CI source + brand-lint)

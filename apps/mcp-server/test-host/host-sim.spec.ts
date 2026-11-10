@@ -51,12 +51,16 @@ const CHROME = {
 
 /**
  * The Miragon corporate-design tokens as pulse-ui vendors them
- * (`--cd-blau: #335DE5` …), colour values only: the drift guard's
- * reference for what the BUILT stylesheet must carry.
+ * (`--cd-blau: #335DE5` …), colour values only, from the top-level `:root`
+ * (the dark and high-contrast scopes switch only under `data-cd-theme` and
+ * `data-cd-kontrast`): the drift guard's reference for what the BUILT
+ * stylesheet must carry.
  */
 function vendoredColourTokens(): [string, string][] {
   const [css] = themeStylesheets()
-  return [...css.matchAll(/(--cd-[\w-]+):\s*(#[0-9a-fA-F]{3,8});/g)].map(([, name, value]) => [
+  const rootStart = css.indexOf(":root {")
+  const root = css.slice(rootStart, css.indexOf("\n}", rootStart))
+  return [...root.matchAll(/(--cd-[\w-]+):\s*(#[0-9a-fA-F]{3,8});/g)].map(([, name, value]) => [
     name,
     value,
   ])
