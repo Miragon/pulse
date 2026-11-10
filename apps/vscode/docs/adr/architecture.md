@@ -63,7 +63,8 @@ flowchart TB
   adapterC7 --> ports
   adapterC7 --> engineCore
   adapterC7 --> c7core["@miragon/pulse-c7-core"]
-  adapterC7 -. "fetch" .-> rest[[engine REST API]]
+  adapterC7 --> http["@miragon/pulse-http"]
+  http -. "fetch" .-> rest[[engine REST API]]
 ```
 
 ```text
@@ -75,7 +76,8 @@ webview     → protocol (type-only), @miragon/pulse-ui/tones,
               @miragon/pulse-ui/format (only from format/), preact,
               bpmn-js, diagram-js, modeler-shell, fonts
               (nothing else of @miragon/pulse-ui ships: no React kit, no stylesheet, no ./testing)
-adapter     → @miragon/pulse-engine-core, @miragon/pulse-c7-core (main entries only), ports
+adapter     → @miragon/pulse-engine-core, @miragon/pulse-c7-core (main entries only), ports,
+              @miragon/pulse-http (main entry only, from src/engine-rest/http)
 model       → ports (entry only), @miragon/pulse-engine-core (main entry only),
               bpmn-moddle, camunda-bpmn-moddle, zeebe-bpmn-moddle (nothing else may import these)
 host-kit    → core, protocol, ports, @miragon/pulse-engine-core (main entry only), Node built-ins
