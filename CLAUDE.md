@@ -561,7 +561,7 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      `lib/engine/per-engine.ts`, the XML read's cache too). Its widget query sits outside the
      cockpit's Refresh (`THROUGHPUT_QUERY_ROOT`) and never retries by itself.
    - Each engine REST rule the client defaults miss has one home, used by `tools/` AND `data/`
-     (and by the CLI): the pure rules (`toEngineDate`, `engineSorting`, the filters,
+     (and by the CLI and the C7 adapter of the editor hosts): the pure rules (`toEngineDate`, `engineSorting`, the filters,
      `toEngineVariable(s)`, `autoTypedValue`, `incidentRecovery`, `RAW_VARIABLES`, the
      missing-resource rule `isMissing`) in `@miragon/pulse-c7-core`; the root cause of a failure
      text, the one rule every dialect shares, in the engine family's core,
@@ -571,8 +571,8 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      reads bound to the SDK (text/plain endpoints, raw variable reads, `readBatch`, queued
      batches) in c7-client's `packages/connectors/c7/c7-client/src/sdk-reads/`,
      which does not import c7-core. Dates parse in one parser, read in one of two named
-     readings (`DateInputReading`: `OFFSET_REQUIRED` for the MCP tools, `UTC_WITHOUT_OFFSET` for
-     the CLI). A 404 is "none" only by `isMissing` (a 404 `NotFoundException`, a
+     readings (`DateInputReading`: `OFFSET_REQUIRED` for the MCP tools and the C7 adapter's
+     variable writes, `UTC_WITHOUT_OFFSET` for the CLI). A 404 is "none" only by `isMissing` (a 404 `NotFoundException`, a
      `QueryParamException` or one without an engine answer is a wrong REST root or request and
      fails loud): the client's reads throw every 404 and their callers decide (the connector's
      `isMissingResource`/`noneIfMissing` in `src/lib/core-adapter/engine-port.ts`), the CLI and

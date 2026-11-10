@@ -142,16 +142,20 @@ describe("changing a variable", () => {
 
   test.each([
     ["String", '"IBAN DE02 1203"', '{"value":"IBAN DE02 1203","type":"String"}'],
+    ["Short", "-7", '{"value":-7,"type":"Short"}'],
     ["Long", "9007199254740993", '{"value":9007199254740993,"type":"Long"}'],
     ["Double", "107.65", '{"value":107.65,"type":"Double"}'],
+    ["Double", "1e3", '{"value":1000,"type":"Double"}'],
     ["Boolean", "false", '{"value":false,"type":"Boolean"}'],
     [
       "Date",
       '"2026-10-22T12:00:00+02:00"',
-      '{"value":"2026-10-22T10:00:00.000+0000","type":"Date"}',
+      '{"value":"2026-10-22T12:00:00.000+0200","type":"Date"}',
     ],
+    ["Date", '"2026-10-22"', '{"value":"2026-10-22T00:00:00.000+0000","type":"Date"}'],
     ["Json", '{"big":9007199254740993}', '{"value":"{\\"big\\":9007199254740993}","type":"Json"}'],
     ["String", "null", '{"value":null,"type":"String"}'],
+    ["Null", "null", '{"value":null,"type":"Null"}'],
   ])("writes a %s losslessly", async (type, valueJson, body) => {
     const { commands, engine } = fakeCommands([accepting("value")])
 
@@ -161,29 +165,92 @@ describe("changing a variable", () => {
   })
 
   test.each([
-    ['"text"', "String"],
-    ["42", "Integer"],
-    ["2147483648", "Long"],
-    ["1.5", "Double"],
-    ["true", "Boolean"],
-    ["null", "Null"],
-    ['{"city":"Munich"}', "Json"],
-  ])("infers the type of a new variable from %s", async (valueJson, type) => {
+    ['"text"', '{"value":"text","type":"String"}'],
+    ['"42"', '{"value":"42","type":"String"}'],
+    ["42", '{"value":42,"type":"Integer"}'],
+    ["-2147483648", '{"value":-2147483648,"type":"Integer"}'],
+    ["2147483648", '{"value":2147483648,"type":"Long"}'],
+    ["9007199254740993", '{"value":9007199254740993,"type":"Long"}'],
+    ["-9223372036854775808", '{"value":-9223372036854775808,"type":"Long"}'],
+    ["1.5", '{"value":1.5,"type":"Double"}'],
+    ["true", '{"value":true,"type":"Boolean"}'],
+    ["null", '{"value":null,"type":"Null"}'],
+    ['{"city":"Munich"}', '{"value":"{\\"city\\":\\"Munich\\"}","type":"Json"}'],
+    ["[1, 2]", '{"value":"[1, 2]","type":"Json"}'],
+  ])("types a new variable from %s by c7-core's autoTypedValue", async (valueJson, body) => {
     const { commands, engine } = fakeCommands([accepting("fresh")])
 
     await commands.setVariable(INSTANCE, { name: "fresh", valueJson })
 
-    expect(JSON.parse(engine.requests[0]?.body ?? "{}")).toMatchObject({ type })
+    expect(engine.requests[0]?.body).toBe(body)
   })
 
   test.each([
+    ["9223372036854775808", '{"value":"9223372036854775808","type":"String"}'],
+    ["-9223372036854775809", '{"value":"-9223372036854775809","type":"String"}'],
+  ])(
+    "writes a new variable from %s as a String, as c7-core types an integer beyond int64",
+    async (valueJson, body) => {
+      const { commands, engine } = fakeCommands([accepting("fresh")])
+
+      await commands.setVariable(INSTANCE, { name: "fresh", valueJson })
+
+      expect(engine.requests[0]?.body).toBe(body)
+    },
+  )
+
+  test.each([
+    ["1e3", '{"value":1000,"type":"Double"}'],
+    ["-1.5E-3", '{"value":-0.0015,"type":"Double"}'],
+  ])(
+    "writes a new variable from %s, a JSON number in exponent form, as a Double",
+    async (valueJson, body) => {
+      const { commands, engine } = fakeCommands([accepting("fresh")])
+
+      await commands.setVariable(INSTANCE, { name: "fresh", valueJson })
+
+      expect(engine.requests[0]?.body).toBe(body)
+    },
+  )
+
+  test.each([
+    ["a Double", "Double", "1e400", "Double"],
+    ["a negative Double", "Double", "-1e400", "Double"],
+    ["a Long", "Long", `1${"0".repeat(400)}`, "Long"],
+    ["an Integer", "Integer", `1${"0".repeat(400)}`, "Integer"],
+    ["a Short", "Short", `-1${"0".repeat(400)}`, "Short"],
+    ["a decimal without a type", undefined, `1${"0".repeat(400)}.5`, "Double"],
+    ["an exponent without a type", undefined, "1e400", "Double"],
+  ])(
+    "rejects %s beyond the range of a double, which JSON would send as null, before calling the engine",
+    async (_label, type, valueJson, named) => {
+      const { commands, engine } = fakeCommands([])
+
+      await expect(
+        commands.setVariable(INSTANCE, { name: "amount", valueJson, ...(type ? { type } : {}) }),
+      ).rejects.toThrow(`The new value of amount is not a valid ${named}.`)
+      expect(engine.requests).toEqual([])
+    },
+  )
+
+  test.each([
     ["Integer", "4.5"],
+    ["Integer", "007"],
+    ["Short", "1.5"],
+    ["Long", '"9"'],
+    ["Double", "01.5"],
     ["Boolean", "yes"],
     ["Date", '"tomorrow"'],
+    ["Date", '"2026-10-22T12:00:00"'],
+    ["Date", '"2026-02-30T10:00:00Z"'],
+    ["Date", '"2026-10-22T24:00:00Z"'],
+    ["Date", "1792663200000"],
     ["String", "4117"],
     ["Json", "{broken"],
+    ["Null", "0"],
     ["Object", '"rO0AB"'],
     ["Bytes", '"AAAA"'],
+    ["Xml", '"<a/>"'],
     ["constructor", "5"],
     ["toString", "5"],
     ["__proto__", "5"],
@@ -194,6 +261,30 @@ describe("changing a variable", () => {
       await failureOf(commands.setVariable(INSTANCE, { name: "value", valueJson, type })),
     ).toBe("rejected")
     expect(engine.requests).toEqual([])
+  })
+
+  test.each(["{broken", "text", "007", "1."])(
+    "rejects a new variable from %s, which is no JSON, before calling the engine",
+    async (valueJson) => {
+      const { commands, engine } = fakeCommands([])
+
+      await expect(commands.setVariable(INSTANCE, { name: "fresh", valueJson })).rejects.toThrow(
+        "The new value of fresh is not valid JSON.",
+      )
+      expect(engine.requests).toEqual([])
+    },
+  )
+
+  test("names the variable and its type when c7-core refuses a date", async () => {
+    const { commands } = fakeCommands([])
+
+    await expect(
+      commands.setVariable(INSTANCE, {
+        name: "due",
+        valueJson: '"2026-10-22T12:00:00"',
+        type: "Date",
+      }),
+    ).rejects.toThrow("The new value of due is not a valid Date.")
   })
 
   test("refuses names with control characters and ids with commas", async () => {
@@ -237,7 +328,7 @@ describe("redacting a date", () => {
         answer: engineFailure(
           400,
           "InvalidRequestException",
-          "Cannot store '2026-10-22T10:00:00.000+0000' for due",
+          "Cannot store '2026-10-22T12:00:00.000+0200' for due",
         ),
       },
     ])
@@ -249,6 +340,36 @@ describe("redacting a date", () => {
     })
 
     await expect(attempt).rejects.toThrow("Cannot store '‹value›' for due")
+  })
+})
+
+describe("redacting a number", () => {
+  test.each([
+    ["a Double", "Double", "107.650", "107.65"],
+    ["a number without a type", undefined, "1e3", "1000"],
+  ])("removes the form %s is sent in too", async (_label, type, valueJson, sent) => {
+    const { commands } = fakeCommands([
+      {
+        route: setVariableRoute("amount"),
+        answer: engineFailure(400, "InvalidRequestException", `Cannot store '${sent}' for amount`),
+      },
+    ])
+
+    const attempt = commands.setVariable(INSTANCE, {
+      name: "amount",
+      valueJson,
+      ...(type ? { type } : {}),
+    })
+
+    await expect(attempt).rejects.toThrow("Cannot store '‹value›' for amount")
+  })
+
+  test("leaves the message of a value it rejects before sending whole", async () => {
+    const { commands } = fakeCommands([])
+
+    await expect(
+      commands.setVariable(INSTANCE, { name: "nullable", valueJson: "1e400", type: "Double" }),
+    ).rejects.toThrow("The new value of nullable is not a valid Double.")
   })
 })
 

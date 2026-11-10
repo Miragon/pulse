@@ -133,7 +133,9 @@ package.
   and health verdict from the same rules.
 - Pulse for VS Code and Pulse for Orca bundle it in their C7 adapter: an instance's panel reads
   through `loadInstance`, an incident's retry and the incident list take its job or external task
-  from `incidentRecovery`, its details their request from `CAUSE_OPERATIONS`.
+  from `incidentRecovery`, its details their request from `CAUSE_OPERATIONS`; a variable change
+  without a type that is no JSON string, object or array is typed by `autoTypedValue`, and every
+  change is sent in the form of `toEngineVariable`.
 
 ## Testing helpers
 

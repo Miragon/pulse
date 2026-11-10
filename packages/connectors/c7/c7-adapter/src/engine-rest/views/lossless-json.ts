@@ -21,7 +21,9 @@ export class LosslessJson {
   }
 
   static stringify(value: unknown): string {
-    const text = JSON.stringify(value) as string | undefined
+    const text = JSON.stringify(value, (_key: string, entry: unknown) =>
+      typeof entry === "bigint" ? rawJsonSupport.rawJSON(entry.toString()) : entry,
+    ) as string | undefined
     return text ?? "null"
   }
 

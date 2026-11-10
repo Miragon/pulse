@@ -1,7 +1,7 @@
 # Guarded writes
 
 - Status: accepted
-- Last reviewed: 2026-10-23
+- Last reviewed: 2026-11-10 (the C7 adapter writes a whole number beyond 64 bits for a variable that holds null as text); 2026-10-23
 
 ## Context
 
@@ -111,7 +111,10 @@ variable must be an editable instance-scope variable of a running instance whose
 is not cut off; the type always comes from the snapshot. Values are checked per kind
 before anything is sent. A variable that is currently null asks which type to write
 ("Write as": text, whole number, number, true or false, JSON), and the dialog names it
-("Null → text"), so `4117` never turns into a number by accident.
+("Null → text"), so `4117` never turns into a number by accident. The adapter picks the
+engine's type within that kind; one exception: the C7 adapter writes a whole number beyond
+64 bits as text, by c7-core's rule, as the CLI does, while the dialog still names a whole
+number.
 
 ### Moving a token
 

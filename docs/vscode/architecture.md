@@ -2,12 +2,12 @@
 
 The core never knows which engine it talks to: it asks the ports of the engine contract
 (`@miragon/pulse-engine-core`, the engine family's core: the shared language every engine dialect
-implements, bundled into the extension), and one adapter per dialect family answers. The C7
-adapter serves Operaton, CIB seven and Camunda 7 over their REST API, with the c7 family's core and
-workflow domain (`@miragon/pulse-c7-core`, shared with the CLI and the MCP server and bundled) for
-inspecting an instance and for an incident's retry target and cause, and with the contract's rule
-for the root cause of a failure (`RootCauses`, c7-core applies it too); a new dialect family is one
-more adapter package, proven by the contract's conformance kit, and one entry per composition root.
+implements, bundled into the extension), and one adapter per dialect family answers. The C7 adapter
+serves Operaton, CIB seven and Camunda 7 over their REST API, with the c7 family's core and workflow
+domain (`@miragon/pulse-c7-core`, shared with the CLI and the MCP server, bundled) for inspecting an
+instance, an incident's retry target and cause and a variable's type, and with the contract's rule
+for a failure's root cause (`RootCauses`, c7-core applies it too); a new dialect family is one more
+adapter package, proven by the conformance kit, and one entry per composition root.
 
 ```mermaid
 flowchart LR
@@ -16,7 +16,7 @@ flowchart LR
   core --> engineCore["@miragon/pulse-engine-core: ports and read models"]
   c7["C7 adapter"] -. implements .-> engineCore
   c7 --> engines["Operaton, CIB seven, Camunda 7: /engine-rest"]
-  c7 -- bundled --> c7core["c7-core: inspect, wait states, incident recovery"]
+  c7 -- bundled --> c7core["c7-core: inspect, wait states, incident recovery, variable typing"]
 ```
 
 The layers live in two packages the extension shares with [Pulse for Orca](../orca/architecture.md),

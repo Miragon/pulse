@@ -1,7 +1,7 @@
 # Camunda 7 family adapter
 
 - Status: accepted
-- Last reviewed: 2026-11-10 (the incident retry's target, the built-in incident types and the request of an incident's cause come from c7-core; the adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the adapter is a package, which Pulse for Orca bundles too)
+- Last reviewed: 2026-11-10 (the incident retry's target, the built-in incident types, the request of an incident's cause and the typing of a written variable come from c7-core; the adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the adapter is a package, which Pulse for Orca bundles too)
 
 ## Context
 
@@ -118,14 +118,30 @@ MCP server run too. The package belongs to the c7 family, whose dialect it imple
   (`RecoveryTargets`). Another type, or a built-in one without a `configuration` (an empty
   one too), is `skipped`, a root cause or resource that is gone is `gone`; both reject.
   Never cascade (the historic batch stays). The bodies: the variable body
-  `{"value":…,"type":…}` losslessly, the move body (below), the cancel body
+  `{"value":…,"type":…}` losslessly, typed by c7-core's rules (below), the move body
+  (below), the cancel body
   `{"processInstanceIds":[…],"deleteReason":…,"skipCustomListeners":false,"skipSubprocesses":false,"skipIoMappings":false}`
   (`writing/cancel-body.ts`; no `deleteReason` without a reason), the migration body
   `{"migrationPlan":{"sourceProcessDefinitionId":…,"targetProcessDefinitionId":…,"instructions":[{"sourceActivityIds":[…],"targetActivityIds":[…],"updateEventTrigger":false}]},"processInstanceIds":[…],"skipCustomListeners":false,"skipIoMappings":false}`
   (`writing/migration-body.ts`). The commands read the batch for Stop through a client on
   the read connection. Allowed variable types: String, Boolean, Short, Integer, Long,
-  Double, Date, Json, Null (a new variable infers its type); anything else, including
-  names of object properties such as `constructor`, is rejected before sending.
+  Double, Date, Json, Null; anything else, including names of object properties such as
+  `constructor`, is rejected before sending, a choice of the editor hosts, which edit only
+  values they show as JSON (c7-core would write an Xml or an Object with its type name too).
+  A variable change is JSON text (`VariableChange.valueJson`), the editor hosts' input form,
+  and keeps the variable's type: the text must be a value of that type (a JSON string for
+  String and Date, an integer for Short, Integer and Long, a number for Double). Without a
+  type (a new variable, or one that holds null) a JSON string is a String, an object or an
+  array Json, and any other value gets the type c7-core's `autoTypedValue` gives its text, as
+  the CLI's `--var` does: an integer is an Integer within int32, else a Long within int64,
+  else a String; a plain decimal is a Double. A JSON number in exponent form (`1e3`), which
+  `autoTypedValue` leaves a String, stays a Double: the editor hosts' "Write as: Number"
+  writes a number. Text that is no JSON, and a number beyond the range of a double (`1e400`,
+  309 digits or more), which JSON would send as null, are rejected before sending.
+  c7-core's `toEngineVariable` gives the wire form: a Json value as its serialized text, a
+  Date in the engine's format with its own offset (c7-core's `OFFSET_REQUIRED` reading: a
+  time without an offset, `24:00`, a day the calendar lacks or a date without a day is
+  rejected before sending), a Long beyond 2^53 with all its digits.
   `ErrorTranslation` reads failures: no answer (network, deadline) is `unreachable`, 401
   `unauthorized`, 403 `forbidden`, a redirect or a 404 on a read `misconfigured`, any other
   4xx or 5xx `engineFailure`, an answer that is no JSON or not the expected shape
@@ -133,9 +149,11 @@ MCP server run too. The package belongs to the c7 family, whose dialect it imple
   another 4xx or 5xx (C7 also reports rule violations as 500) is `rejected`, except on the
   submit of a cancel or a migration (`ErrorTranslation.submitted`): there only 4xx is
   `rejected`, while 5xx is `engineFailure`, because the engine may have failed after it
-  created the batch and the core treats that outcome as unknown. The submitted value or
-  the cancel reason (raw and JSON-escaped, `Redaction.ofValue` and `Redaction.ofText`) is
-  removed from the engine's message, also when the engine reports something as not found.
+  created the batch and the core treats that outcome as unknown. The submitted value (as
+  typed and in the form it is sent in, a number as its JSON number, a Date in the engine's
+  format) or the cancel reason (raw and JSON-escaped; `Redaction.ofValue` and
+  `Redaction.ofText`) is removed from the engine's message, also when the engine reports
+  something as not found.
   A missing resource is an engine 404 that c7-core's `isMissing` reads as missing (an
   exception other than `NotFoundException`, the 404 of a wrong REST root, and
   `QueryParamException`, an unreadable query value), a 500 `NullValueException` (a
@@ -272,7 +290,7 @@ instance, the definitions by instance) goes in as a parameter, never as construc
 | `packages/connectors/c7/c7-adapter/src`                     | `C7Adapter`, `C7ProcessRuntime`, `C7ProcessCommands`                                                                                                                                                                                | the entry and the two ports; every port call runs through `ErrorTranslation`                                                                   |
 | `packages/connectors/c7/c7-adapter/src/reading`             | `EngineReader`, `DefinitionReader`, `ElementStatisticsReader`, `CalledProcessReader`, `InstanceSearch`, `InstanceDetailReader`, `IncidentSearch`, `IncidentDetailsReader`, `BulkOperationReader`, `MigrationReader`, `OffsetPaging` | which engine calls answer a port method, in parallel where possible, and their answers as read models; offset paging behind the cursor         |
 | `packages/connectors/c7/c7-adapter/src/mapping`             | `DefinitionRefs`, `InstanceStates`, `Timestamps`, `RootIncident`, `IncidentTexts`, `InspectedVariables`                                                                                                                             | the translations several readers share, without I/O; the root cause of incident details (`RootCauses`)                                         |
-| `packages/connectors/c7/c7-adapter/src/writing`             | `VariableBody`, `CancelBody`, `MigrationBody`, `EngineValues`, `Redaction`, `SourceToken`, `MoveBody`                                                                                                                               | the bodies of a variable change, a move, a cancel and a migration, the allowed types and their engine form, what to keep out of error messages |
+| `packages/connectors/c7/c7-adapter/src/writing`             | `VariableBody`, `CancelBody`, `MigrationBody`, `Redaction`, `SourceToken`, `MoveBody`                                                                                                                                               | the bodies of a variable change (typed by c7-core), a move, a cancel and a migration, the allowed types, what to keep out of any error message |
 | `packages/connectors/c7/c7-adapter/src/errors`              | `ErrorTranslation`                                                                                                                                                                                                                  | engine failures to `RuntimeError`: `translated`, `unlessMissing`, `commanded<Result>`, `submitted<Result>`, `isRefusal`                        |
 | `packages/connectors/c7/c7-adapter/src/engine-rest`         | `EngineClient`/`RestEngineClient`, `EngineWriter`/`RestEngineWriter`, `RecoveryTargets`, `RequestArguments`, `Present`                                                                                                              | one method per engine call; the job or external task c7-core's `incidentRecovery` names; strict ids and variable names                         |
 | `packages/connectors/c7/c7-adapter/src/engine-rest/http`    | `EngineHttp`, `EngineRequestError`                                                                                                                                                                                                  | one request: URL, auth, deadline, size cap, no redirects, lossless JSON, failures with status and engine type                                  |
@@ -304,14 +322,22 @@ routes and so run every class above.
   an id the engine does not know one history read more, and for an ended instance one
   read of its path more (the parallel one, before the adapter knows that it ended).
 - Rules the adapter still holds next to c7-core, for a later cut: the fallbacks of an
-  incident's cause text (`IncidentDetailsReader`), the root incident (`RootIncident`), the
-  date input and the Integer/Long inference of a variable, and the readings of
-  `HttpEngineTransport` beyond c7-core's missing 404 (a refused id, a 500
+  incident's cause text (`IncidentDetailsReader`), the root incident (`RootIncident`) and the
+  readings of `HttpEngineTransport` beyond c7-core's missing 404 (a refused id, a 500
   `NullValueException`). Which incident types the engine raises itself, what a retry retries
   and which request holds an incident's cause are c7-core's (`BUILT_IN_INCIDENT_TYPES`,
   `incidentRecovery`, `CAUSE_OPERATIONS`), so a built-in incident with an empty
   `configuration` is `skipped` as one without, no longer `gone`, and `searchIncidents` lists
   it without a job, as `inspect` always did.
+- Since a written variable is typed by c7-core (`autoTypedValue`, `toEngineVariable`), a new
+  variable (or one that holds null) given an integer beyond int64 is a String, no longer a
+  Long the engine refused, while the editor hosts' confirmation still names a whole number
+  (`writes.md`); a Date is sent with the offset it was given instead of in UTC (the same
+  instant), and one with a day the calendar lacks, which `Date.parse` rolled over into the
+  next month, or with `24:00`, which it read as the next day's midnight, is rejected before
+  sending, as is an integer with a leading zero, which went out as JSON the engine refused,
+  and a number beyond the range of a double, which went out as written for the engine to
+  judge.
 - Since the adapter reads a 404 by c7-core's `isMissing`, a 404 `QueryParamException`
   (a query value the engine cannot read) is no missing resource any more: a read fails as
   `misconfigured` instead of answering "none".
