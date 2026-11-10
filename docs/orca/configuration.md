@@ -20,9 +20,7 @@ file and creates no second one.
 
 Credentials go in with the login form of the panel, which opens when an engine needs one. They
 live in Orca's secret storage, in the OS key store, bound to the project file's path and the
-engine's address: after you rename `.pulse-cli.json` to `.pulse.json`, the panel asks for each
-login once more. The tabs Pulse opens (`.pulse/views` in the workspace) do not depend on the
-file's name and stay.
+engine's address.
 
 ## Settings
 
