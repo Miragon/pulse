@@ -296,9 +296,9 @@ describe("moving a token from the instance screen", () => {
       expect(harness.root.querySelector('.move-panel [role="status"]')?.textContent).toBe(
         "This token is no longer at Approve order.",
       )
+      expect(harness.root.querySelector(".move-badge")).toBeNull()
+      expect(harness.root.querySelector(".pulse-move-from")).toBeNull()
+      expect(document.activeElement?.textContent).toBe("Close")
     })
-    expect(harness.root.querySelector(".move-badge")).toBeNull()
-    expect(harness.root.querySelector(".pulse-move-from")).toBeNull()
-    expect(document.activeElement?.textContent).toBe("Close")
   })
 })
