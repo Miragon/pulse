@@ -1,6 +1,6 @@
 import { isMissing } from "@miragon/pulse-c7-core"
 
-export type EngineRequestFailure = "refused" | "unusable" | "unanswered" | "answered"
+export type EngineRequestFailure = "refused" | "readOnly" | "unusable" | "unanswered" | "answered"
 
 export interface EngineRequestDetails {
   readonly engineType?: string
@@ -28,6 +28,10 @@ export class EngineRequestError extends Error {
 
   static refused(message: string, details: EngineRequestDetails = {}): EngineRequestError {
     return new EngineRequestError(message, "refused", undefined, details)
+  }
+
+  static readOnly(message: string, details: EngineRequestDetails = {}): EngineRequestError {
+    return new EngineRequestError(message, "readOnly", undefined, details)
   }
 
   static unusable(message: string, details: EngineRequestDetails = {}): EngineRequestError {

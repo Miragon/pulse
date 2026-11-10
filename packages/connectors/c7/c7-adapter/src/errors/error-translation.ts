@@ -4,10 +4,19 @@ import {
   EngineTexts,
   Present,
   UnexpectedAnswerError,
+  type EngineRequestFailure,
 } from "../engine-rest/index.js"
 import { Redaction } from "../writing/redaction.js"
 
 type Refusal = "byEngine" | "beforeWork"
+
+const WITHOUT_STATUS: Readonly<Record<EngineRequestFailure, RuntimeFailure>> = {
+  refused: "misconfigured",
+  readOnly: "unsupported",
+  unusable: "misconfigured",
+  unanswered: "unreachable",
+  answered: "misconfigured",
+}
 
 export class ErrorTranslation {
   static async translated<Result>(work: () => Promise<Result>): Promise<Result> {
@@ -74,7 +83,7 @@ export class ErrorTranslation {
   private static failureOf(error: EngineRequestError): RuntimeFailure {
     const status = error.status
     if (status === undefined) {
-      return error.failure === "unanswered" ? "unreachable" : "misconfigured"
+      return WITHOUT_STATUS[error.failure]
     }
     if (status === 401 || status === 403) {
       return status === 403 ? "forbidden" : "unauthorized"

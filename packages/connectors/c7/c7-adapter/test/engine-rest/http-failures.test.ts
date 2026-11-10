@@ -70,8 +70,8 @@ const EXPECTED: Readonly<Record<FailureReason, Worded>> = {
     message: `GET ${TARGET} cannot be sent (dot-segment)`,
   },
   "refused-write": {
-    kind: "refused",
-    message: `GET ${TARGET} writes, and this connection only reads`,
+    kind: "readOnly",
+    message: `Read-only. This connection only reads, so Pulse did not send GET ${TARGET}.`,
   },
   credential: { kind: "unusable", message: `The credentials for ${TARGET} cannot be sent` },
 }
@@ -131,6 +131,21 @@ describe("the transport's failures as the adapter words them", () => {
         message: `GET ${TARGET} cannot be sent${code === undefined ? "" : ` (${code})`}`,
       })
       expect(EngineRequestError.isMissingResource(error)).toBe(kind === "refused")
+    },
+  )
+
+  test.each([...FAILURE_REASONS])(
+    "read %s as a missing resource only for a path value no resource carries",
+    (reason) => {
+      const failure = new HttpFailure(reason, {
+        method: "PUT",
+        target: TARGET,
+        mayHaveApplied: false,
+        ...DETAILS[reason],
+      })
+      expect(EngineRequestError.isMissingResource(HttpFailures.errorOf(failure))).toBe(
+        reason === "invalid-request",
+      )
     },
   )
 

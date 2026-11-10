@@ -34,7 +34,7 @@ flowchart LR
 
 1. The core asks a question through the `ProcessRuntime` port, e.g. "details of instance X".
 2. A reader turns it into one or more engine calls and runs them in parallel where it can.
-3. `engine-rest` sends them through the transport with the connection's credentials: it never follows a redirect, stops after 60 s or 64 MiB, masks the credentials in the engine's error answers (a password of four characters or more); a connection for reads refuses every write.
+3. `engine-rest` sends them through the transport with the connection's credentials: it never follows a redirect, stops after 60 s or 64 MiB, masks the credentials in the engine's error answers (a password of four characters or more); a connection for reads refuses every write before it leaves, as `unsupported` ("Read-only."), never as a missing resource.
 4. It parses the JSON without losing digits and checks each field it reads.
 5. The reader turns these views into the contract's read model; failures become a `RuntimeError`.
 

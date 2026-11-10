@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from "vitest"
-import { EngineHttp } from "../../src/engine-rest/index.js"
+import { EngineHttp, EngineRequestError } from "../../src/engine-rest/index.js"
 import type { EngineCredentials } from "../../src/engine-rest/http/engine-wire.js"
 import { engineFailure, REST_URL } from "../support/fake-engine-rest.js"
 
@@ -149,12 +149,14 @@ describe("the engine's HTTP connection", () => {
     expect(performance.now() - start).toBeLessThan(1000)
   })
 
-  test("refuses to write on a connection that only reads", async () => {
+  test("refuses to write on a connection that only reads, and reads that as no missing resource", async () => {
     const http = httpAnswering(() => Promise.reject(new Error("never sent")))
-    await expect(http.write("DELETE", "/batch/b1")).rejects.toMatchObject({
-      failure: "refused",
-      message: `DELETE ${REST_URL}/batch/b1 writes, and this connection only reads`,
+    const refused = await http.write("DELETE", "/batch/b1").catch((error: unknown) => error)
+    expect(refused).toMatchObject({
+      failure: "readOnly",
+      message: `Read-only. This connection only reads, so Pulse did not send DELETE ${REST_URL}/batch/b1.`,
     })
+    expect(EngineRequestError.isMissingResource(refused)).toBe(false)
   })
 
   test("names the status with its phrase, and the REST root when the path is unknown", async () => {

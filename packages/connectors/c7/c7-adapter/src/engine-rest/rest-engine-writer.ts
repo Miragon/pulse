@@ -24,12 +24,9 @@ export class RestEngineWriter implements EngineWriter {
     if (target === undefined) {
       return "skipped"
     }
+    const retries = `${target.resource}/${RequestArguments.segment(target.id)}/retries`
     try {
-      await this.http.write(
-        "PUT",
-        `${target.resource}/${RequestArguments.segment(target.id)}/retries`,
-        ONE_RETRY,
-      )
+      await this.http.write("PUT", retries, ONE_RETRY)
       return "retried"
     } catch (error: unknown) {
       if (EngineRequestError.isMissingResource(error)) {

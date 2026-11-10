@@ -83,7 +83,8 @@ never with a flag that can disagree with what the engine does:
   stops at 10,000). The laws require an exact count over the world, and a surface shows a lower
   bound as one (`≥ 10,000`, `10k+`).
 - **A question an engine cannot answer** fails as `RuntimeError` `unsupported`, never as
-  `rejected` (a refused change) or `misconfigured` (a connection to fix).
+  `rejected` (a refused change) or `misconfigured` (a connection to fix). So does a command on a
+  connection that only reads: it fails before the write leaves, never as a missing item.
 - **Refused variable conditions are declared.** `refusedVariableConditions?()` names the kinds an
   engine refuses: `ordering` is `greaterThan` and `lessThan` on a value (`valueJson`), `date` every
   condition on a point in time (`at`), after and before included. The variable laws hold the

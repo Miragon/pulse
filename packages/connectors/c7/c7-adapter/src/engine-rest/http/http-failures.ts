@@ -45,7 +45,10 @@ export class HttpFailures {
       new UnexpectedAnswerError("the engine answered no JSON", { cause: failure }),
     "invalid-request": (failure) => HttpFailures.unsendable(failure),
     "refused-write": (failure) =>
-      HttpFailures.refused(failure, "writes, and this connection only reads"),
+      EngineRequestError.readOnly(
+        `Read-only. This connection only reads, so Pulse did not send ${failure.method} ${failure.target}.`,
+        { cause: failure },
+      ),
     credential: (failure) =>
       EngineRequestError.unusable(`The credentials for ${failure.target} cannot be sent`, {
         cause: failure,
@@ -80,23 +83,11 @@ export class HttpFailures {
   }
 
   private static unsendable(failure: HttpFailure): Error {
+    const message = `${failure.method} ${failure.target} cannot be sent${HttpFailures.codeNote(failure)}`
     if (failure.code !== undefined && PATH_VALUE_CODES.has(failure.code)) {
-      return HttpFailures.refused(failure, "cannot be sent")
+      return EngineRequestError.refused(message, { cause: failure })
     }
-    const code = HttpFailures.codeNote(failure)
-    return EngineRequestError.unusable(
-      `${failure.method} ${failure.target} cannot be sent${code}`,
-      {
-        cause: failure,
-      },
-    )
-  }
-
-  private static refused(failure: HttpFailure, what: string): Error {
-    const code = HttpFailures.codeNote(failure)
-    return EngineRequestError.refused(`${failure.method} ${failure.target} ${what}${code}`, {
-      cause: failure,
-    })
+    return EngineRequestError.unusable(message, { cause: failure })
   }
 
   private static codeNote(failure: HttpFailure): string {

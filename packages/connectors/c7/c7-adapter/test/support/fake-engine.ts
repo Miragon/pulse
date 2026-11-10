@@ -49,9 +49,10 @@ export function fakeRuntime(
 export function fakeCommands(
   routes: readonly RestRoute[],
   snapshots: Snapshots = {},
+  writes = true,
 ): { commands: ProcessCommands; engine: FakeEngineRest } {
   const engine = fakeEngineRest(routes)
-  const writer = new RestEngineWriter(httpOver(engine, true))
+  const writer = new RestEngineWriter(httpOver(engine, writes))
   const client = new SnapshotEngineClient(httpOver(engine), snapshots)
   return { commands: new C7ProcessCommands(writer, client), engine }
 }

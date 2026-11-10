@@ -79,8 +79,8 @@ MCP server run too. The package belongs to the c7 family, whose dialect it imple
   four characters or more) and Basic value masked in each error answer the engine sends back
   (an answer that succeeds comes as the engine sent it). A list without a page reads every
   page of 500. A connection for reads is the transport's `readOnly` and refuses every write
-  before it leaves; `C7Adapter.commands` builds the writer on its own connection, a test
-  holds both. A URL or credentials the transport cannot use (a user name with a colon) fail
+  before it leaves (`unsupported`, below); `C7Adapter.commands` builds the writer on its own
+  connection, a test holds both. A URL or credentials the transport cannot use (a user name with a colon) fail
   each call as `misconfigured`, sending nothing. Only the wire imports the transport, by its
   main entry (`http-only-in-the-wire`, `http-by-its-main-entry` in
   `packages/connectors/c7/c7-adapter/.dependency-cruiser.cjs`); the runtime view and the
@@ -176,7 +176,10 @@ MCP server run too. The package belongs to the c7 family, whose dialect it imple
   deadline, TLS, DNS) is `unreachable`, 401 `unauthorized`, 403 `forbidden`, a redirect or a
   404 on a read `misconfigured`, any other 4xx or 5xx `engineFailure`, an answer that is no
   JSON, above the cap or not the expected shape `unexpectedResponse`, a refused id or a
-  connection the transport cannot use `misconfigured`; a hint goes along. An engine text is
+  connection the transport cannot use `misconfigured`; the wire's hint goes along. A write a
+  connection for reads refuses is `unsupported`, without a hint ("Read-only. This connection
+  only reads, so Pulse did not send PUT …", in both hosts under "… cannot do this."): the write
+  is not sent (the reads a command needs first are), live updates go on. An engine text is
   cut after 500 characters on one line, after the redaction below. A write the engine refuses with 404,
   another 4xx or 5xx (C7 also reports rule violations as 500) is `rejected`, except on the
   submit of a cancel or a migration (`ErrorTranslation.submitted`): there only 4xx is
@@ -189,7 +192,10 @@ MCP server run too. The package belongs to the c7 family, whose dialect it imple
   A missing resource is an engine 404 that c7-core's `isMissing` reads as missing (an
   exception other than `NotFoundException`, the 404 of a wrong REST root, and
   `QueryParamException`, an unreadable query value), a 500 `NullValueException` (a
-  resource that ended between two reads) or a refused id.
+  resource that ended between two reads) or a refused id, never a write a connection for reads
+  refuses: a retry there is no incident `gone`. A retry builds the path of the job or external
+  task before it sends, so an id of the engine's that the adapter refuses there is a `rejected`
+  retry ("… as an identifier is not accepted"), not a `gone` incident.
 
 - **A move pins the token it cancels.** `moveToken` costs two calls: the activity instance
   tree (`GET /process-instance/{id}/activity-instances`, read connection) and one

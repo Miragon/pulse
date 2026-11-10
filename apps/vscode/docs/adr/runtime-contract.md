@@ -111,10 +111,11 @@ for any workspace, and the conformance kit does not cover them
 - **Errors.** A missing single item is `undefined`. Everything else throws
   `RuntimeError` with a closed `failure` (`unreachable`, `unauthorized`, `forbidden`,
   `misconfigured`, `engineFailure`, `unexpectedResponse`, `unsupported` when the engine
-  cannot answer this kind of question at all, and `rejected` when the engine refuses a
-  command: unknown or closed incident, ended instance, invalid value, a move without
-  exactly one token at its source, unknown bulk operation). `unsupported` concerns one view
-  and does not stop live updates.
+  cannot answer this kind of question at all or the command's connection only reads (the
+  write does not leave), and `rejected` when the engine refuses a command: unknown or
+  closed incident, ended instance, invalid value, a move without exactly one token at its
+  source, unknown bulk operation). `unsupported` concerns one view or one command and does
+  not stop live updates.
   `new FailingRuntime(error)` is the one runtime that rejects every call with a given
   error (unreachable engine, unsupported target).
 - **Counts** mean instances, not incidents (`withIncident`), on both engines.

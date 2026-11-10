@@ -127,6 +127,16 @@ describe("retrying an incident", () => {
     expect(await failureOf(commands.retryIncident(IncidentId("--now")))).toBe("rejected")
     expect(engine.requests).toEqual([])
   })
+
+  test("refuses a job id of the engine's that it cannot send as rejected, never as a gone incident", async () => {
+    const { commands, engine } = fakeCommands([incidentOf("failedJob", "job 1")])
+
+    await expect(commands.retryIncident(INCIDENT)).rejects.toMatchObject({
+      failure: "rejected",
+      message: '"job 1" as an identifier is not accepted',
+    })
+    expect(engine.requests.map((request) => request.route)).toEqual([GET_INCIDENT])
+  })
 })
 
 describe("changing a variable", () => {
