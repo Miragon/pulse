@@ -212,8 +212,8 @@ MCP server run too. The package belongs to the c7 family, whose dialect it imple
   from `inspect` across called instances with their `processInstanceId`; `active` is the
   activity's `instances` minus its root incidents (floored at 0); `workerTask.taskType` is
   the external task topic; `Incident.job` is the `jobId`/`externalTaskId` of `inspect`
-  (topic as type) or the incident `configuration` of the built-in incident types (c7-core's
-  `BUILT_IN_INCIDENT_TYPES`);
+  (topic as type) or, in `searchIncidents`, the job or external task c7-core's
+  `incidentRecovery` names (`RecoveryTargets`), both none for an empty `configuration`;
   `Incident.definition` comes from the `inspect` view (own incidents), one historic query
   for the called instances that hold incidents, or one join with the definition
   statistics (`searchIncidents`), never one call per incident.
@@ -310,7 +310,8 @@ routes and so run every class above.
   `NullValueException`). Which incident types the engine raises itself, what a retry retries
   and which request holds an incident's cause are c7-core's (`BUILT_IN_INCIDENT_TYPES`,
   `incidentRecovery`, `CAUSE_OPERATIONS`), so a built-in incident with an empty
-  `configuration` is `skipped` as one without, no longer `gone`.
+  `configuration` is `skipped` as one without, no longer `gone`, and `searchIncidents` lists
+  it without a job, as `inspect` always did.
 - Since the adapter reads a 404 by c7-core's `isMissing`, a 404 `QueryParamException`
   (a query value the engine cannot read) is no missing resource any more: a read fails as
   `misconfigured` instead of answering "none".

@@ -132,8 +132,8 @@ package.
   `engine_inspect_process_instance` and `engine_status`, and builds its cockpit's failure clusters
   and health verdict from the same rules.
 - Pulse for VS Code and Pulse for Orca bundle it in their C7 adapter: an instance's panel reads
-  through `loadInstance`, an incident's retry takes its target from `incidentRecovery` and its
-  details their request from `CAUSE_OPERATIONS`.
+  through `loadInstance`, an incident's retry and the incident list take its job or external task
+  from `incidentRecovery`, its details their request from `CAUSE_OPERATIONS`.
 
 ## Testing helpers
 

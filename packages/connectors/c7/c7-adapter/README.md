@@ -10,8 +10,9 @@ view's ports (`@miragon/pulse-runtime-view/ports`). Private: the editor hosts (`
 whose dialect it implements (`adapters-own-their-family` in the repository's
 `.dependency-cruiser.cjs`). It takes these C7 REST rules from c7-core, never as a copy: the
 inspection of an instance, which incident types the engine raises itself
-(`BUILT_IN_INCIDENT_TYPES`), what a retry retries (`incidentRecovery`) and which request holds an
-incident's cause (`CAUSE_OPERATIONS`).
+(`BUILT_IN_INCIDENT_TYPES`), which job or external task an incident names, for its retry and in
+the incident list (`incidentRecovery`), and which request holds an incident's cause
+(`CAUSE_OPERATIONS`).
 
 The conformance kit of the contract (`@miragon/pulse-engine-core/testing`) proves it on a real
 engine (`test/c7-conformance.engine.test.ts`, `test:engines`, in Testcontainers; the CI's

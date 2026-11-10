@@ -1,4 +1,3 @@
-import { BUILT_IN_INCIDENT_TYPES } from "@miragon/pulse-c7-core"
 import {
   ElementId,
   IncidentId,
@@ -11,11 +10,14 @@ import {
 } from "@miragon/pulse-engine-core"
 import { RootIncident } from "../mapping/root-incident.js"
 import { Timestamps } from "../mapping/timestamps.js"
-import { Present, type EngineClient, type IncidentView } from "../engine-rest/index.js"
+import {
+  Present,
+  RecoveryTargets,
+  type EngineClient,
+  type IncidentView,
+} from "../engine-rest/index.js"
 import type { DefinitionReader } from "./definition-reader.js"
 import { OffsetPaging } from "./offset-paging.js"
-
-const BUILT_IN_TYPES: ReadonlySet<string> = new Set(BUILT_IN_INCIDENT_TYPES)
 
 export class IncidentSearch {
   constructor(
@@ -46,10 +48,8 @@ export class IncidentSearch {
     if (row.processInstanceId === undefined || definition === undefined) {
       return []
     }
-    const job =
-      row.configuration !== undefined && BUILT_IN_TYPES.has(row.incidentType)
-        ? { id: row.configuration }
-        : undefined
+    const target = RecoveryTargets.of(row)
+    const job = target === undefined ? undefined : { id: target.id }
     return [
       {
         id: IncidentId(row.id),

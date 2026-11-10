@@ -743,6 +743,37 @@ describe("the C7 runtime over recorded engine answers", () => {
     ])
   })
 
+  test("lists no job where c7-core's incident recovery names none, as the instance does", async () => {
+    const [charge] = JSON.parse(fixture("incidents.json")) as Record<string, unknown>[]
+    const rowOf = (id: string, incidentType: string, configuration: string | null) => ({
+      ...charge,
+      id,
+      causeIncidentId: id,
+      rootCauseIncidentId: id,
+      incidentType,
+      configuration,
+    })
+    const { runtime } = fakeRuntime([
+      {
+        route: "GET /incident",
+        answer: [
+          rowOf("empty-job", "failedJob", ""),
+          rowOf("empty-task", "failedExternalTask", ""),
+          rowOf("no-job", "failedJob", null),
+        ],
+      },
+      ROUTE.definitionStatistics,
+    ])
+
+    const page = await runtime.searchIncidents({}, { limit: 50 })
+
+    expect(page.items.map((incident) => [incident.id, incident.job])).toEqual([
+      ["empty-job", undefined],
+      ["empty-task", undefined],
+      ["no-job", undefined],
+    ])
+  })
+
   test("delivers the complete stacktrace of a root incident", async () => {
     const { runtime } = fakeRuntime([ROUTE.rootIncident, ROUTE.chargeStacktrace])
 
