@@ -62,7 +62,7 @@ packages, the CLI (npm, binaries, image, Homebrew `miragon/tap/pulse-cli`), the 
 
 The banners of the READMEs come from the `product-shots` skill of
 [Miragon/corporate-identity](https://github.com/Miragon/corporate-identity), described in
-[`.miragon/product-shots.json`](.miragon/product-shots.json). The CLI card shows the terminal of
+[`.miragon/product-shots.yaml`](.miragon/product-shots.yaml). The CLI card shows the terminal of
 the docs site's landing demo (journey `.miragon/shots/landing-terminal.mjs`); the Pulse and VS Code
 cards show the extension's webview from its dev page (light and dark), the MCP card the incident
 view (`.miragon/shots/card-recipe.mjs`, at twice the card's size so it stays sharp). Render them again
