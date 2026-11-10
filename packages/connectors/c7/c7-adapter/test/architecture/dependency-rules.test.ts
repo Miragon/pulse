@@ -26,6 +26,8 @@ const ADAPTER: Readonly<Record<string, string>> = {
     "import { startCaseEngine } from '@miragon/pulse-http/testing/loopback';\nexport const engine = startCaseEngine;\n",
   "src/engine-rest/http/reads-an-unexported-file.ts":
     "import { attempt } from '@miragon/pulse-http/attempt';\nexport const tried = attempt;\n",
+  "src/engine-rest/http/reads-oauth.ts":
+    "import { requestToken } from '@miragon/pulse-http/oauth';\nexport const asks = requestToken;\n",
   "src/engine-rest/http/escapes-into-http.ts":
     "import { createHttp } from '../../../../../../core/http/src/http.ts';\nexport const send = createHttp;\n",
   "src/reading/sends-itself.ts":
@@ -74,18 +76,21 @@ describe("the dependency rules", () => {
     const c7Routes = at("node_modules/@miragon/pulse-c7-core/dist/routes.d.ts")
     const http = at("node_modules/@miragon/pulse-http/dist/index.d.ts")
     const loopback = at("node_modules/@miragon/pulse-http/dist/testing/loopback/index.d.ts")
+    const oauth = at("node_modules/@miragon/pulse-http/dist/oauth/index.d.ts")
     const httpSubpath = "@miragon/pulse-http/attempt"
     const httpSource = "packages/core/http/src/http.ts"
     expect(adapter.violations()).toEqual([
       `engine-test-runs-the-conformance-kit: ${at("test/c7.engine.test.ts")} -> ${at("test/c7.engine.test.ts")}`,
       `http-by-its-main-entry: ${at("src/engine-rest/http/escapes-into-http.ts")} -> ${httpSource}`,
       `http-by-its-main-entry: ${at("src/engine-rest/http/reads-an-unexported-file.ts")} -> ${httpSubpath}`,
+      `http-by-its-main-entry: ${at("src/engine-rest/http/reads-oauth.ts")} -> ${oauth}`,
       `http-by-its-main-entry: ${at("src/engine-rest/http/sends-a-test-engine.ts")} -> ${loopback}`,
       `http-only-in-the-wire: ${at("src/errors/escapes-into-http.ts")} -> ${httpSource}`,
       `http-only-in-the-wire: ${at("src/mapping/reads-http-subpath.ts")} -> ${httpSubpath}`,
       `http-only-in-the-wire: ${at("src/reading/sends-itself.ts")} -> ${http}`,
       `not-in-allowed: ${at("src/engine-rest/http/escapes-into-http.ts")} -> ${httpSource}`,
       `not-in-allowed: ${at("src/engine-rest/http/reads-an-unexported-file.ts")} -> ${httpSubpath}`,
+      `not-in-allowed: ${at("src/engine-rest/http/reads-oauth.ts")} -> ${oauth}`,
       `not-in-allowed: ${at("src/engine-rest/http/sends-a-test-engine.ts")} -> ${loopback}`,
       `not-in-allowed: ${at("src/errors/escapes-into-http.ts")} -> ${httpSource}`,
       `not-in-allowed: ${at("src/mapping-uses-node.ts")} -> child_process`,

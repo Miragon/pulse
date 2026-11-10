@@ -1,13 +1,21 @@
 /**
- * Token endpoint requests: code exchange, refresh and revocation (RFC 7009), the
- * validation of token responses and the mapping of token errors. Messages show the
- * sanitized `error` and `error_description` of the answer, never other parts of a body.
+ * Token endpoint requests: code exchange, refresh and revocation (RFC 7009), sent and read by
+ * @miragon/pulse-http/oauth and worded here. Messages show the sanitized `error` and
+ * `error_description` of the answer, never other parts of a body.
  */
 
+import {
+  decodeBase64Url,
+  type Grant,
+  requestToken,
+  revokeToken as revoke,
+  type TokenEndpoint,
+  type TokenFailure,
+  type TokenRecord,
+} from "@miragon/pulse-http/oauth"
 import { configError } from "../../config/config-error.js"
 import { PulseCliError } from "../../errors.js"
 import { isRecord } from "../../util.js"
-import { decodeBase64Url } from "../jwt.js"
 import {
   loginCommand,
   loginFailed,
@@ -17,15 +25,24 @@ import {
   REFRESH_REJECTED,
 } from "./errors.js"
 import {
-  type ClientCredentials,
   type Endpoint,
-  postForm,
+  isUnanswered,
+  limitsOf,
+  platformOf,
   sanitize,
-  type ServerAnswer,
   shownUrl,
   statusLine,
+  statusOfFailure,
+  unreachable,
 } from "./http.js"
-import type { OAuthDeps, TokenResponse } from "./types.js"
+import type { ClientAuthMethod, OAuthDeps, TokenResponse } from "./types.js"
+
+/** How the client authenticates: public (client id in the form) or with a secret. */
+interface ClientCredentials {
+  readonly clientId: string
+  readonly clientSecret?: string | undefined
+  readonly method: ClientAuthMethod
+}
 
 /** A token request: endpoint, client authentication and whose login it is. */
 export interface TokenClient extends ClientCredentials {
@@ -33,42 +50,27 @@ export interface TokenClient extends ClientCredentials {
   readonly who: LoginOwner
 }
 
-/** RFC 6750 b64token. */
-const B64TOKEN = /^[A-Za-z0-9\-._~+/]+=*$/
+/** The kinds of a refusal of the client registration: CONFIG, a new login would not help. */
+const CLIENT_KINDS: ReadonlySet<string> = new Set(["client", "scope"])
 
-/** Whether `value` is an access token pulse can send: RFC 6750's b64token. */
-export function isAccessToken(value: unknown): value is string {
-  return typeof value === "string" && B64TOKEN.test(value)
+type GrantKind = "exchange" | "refresh"
+
+/** The client as @miragon/pulse-http/oauth sends it: public without a secret. */
+function endpointOf(client: TokenClient): TokenEndpoint {
+  const { clientId, clientSecret, method } = client
+  const clientAuth = method === "client_secret_post" ? "post" : "basic"
+  return clientSecret === undefined
+    ? { url: client.endpoint.url, clientId, clientAuth: "none" }
+    : { url: client.endpoint.url, clientId, clientSecret, clientAuth }
 }
-const NUMERIC = /^\d+(?:\.\d+)?$/
-
-/** Token errors about the client registration: CONFIG, a new login would not help. */
-const CLIENT_ERRORS: ReadonlySet<string> = new Set([
-  "invalid_client",
-  "unauthorized_client",
-  "unsupported_grant_type",
-  "invalid_scope",
-])
-
-type Grant = "exchange" | "refresh"
 
 function unusable(hint: string): PulseCliError {
   return configError("The authorization server answered without a usable access token", hint)
 }
 
-/** Seconds of a positive `expires_in` (number or numeric string), else null. */
-function seconds(value: unknown): number | null {
-  const number = typeof value === "string" && NUMERIC.test(value) ? Number(value) : value
-  return typeof number === "number" && Number.isFinite(number) && number > 0 ? number : null
-}
-
-function text(value: unknown): string | null {
-  return typeof value === "string" && value !== "" ? value : null
-}
-
 function displayClaim(claims: Record<string, unknown>, key: string): string | null {
-  const value = text(claims[key])
-  return value === null ? null : sanitize(value)
+  const value = claims[key]
+  return typeof value === "string" && value !== "" ? sanitize(value) : null
 }
 
 /**
@@ -88,41 +90,39 @@ export function idTokenClaims(idToken: unknown): { subject: string | null; user:
   }
 }
 
-function checkTokenType(tokenType: unknown): void {
-  if (
-    tokenType === undefined ||
-    (typeof tokenType === "string" && tokenType.toLowerCase() === "bearer")
-  ) {
-    return
+/** A token answer as the CLI keeps it: the record and the display values of its ID token. */
+function responseOf(record: TokenRecord): TokenResponse {
+  return {
+    accessToken: record.accessToken,
+    receivedAt: record.receivedAt,
+    expiresAt: record.expiresAt ?? null,
+    refreshToken: record.refreshToken ?? null,
+    refreshExpiresAt: record.refreshExpiresAt ?? null,
+    scope: record.scope ?? null,
+    ...(record.idToken === undefined
+      ? { subject: null, user: null }
+      : idTokenClaims(record.idToken)),
   }
-  throw configError(
+}
+
+/** A 200 answer without a usable token (RFC 6749 §5.1). */
+function answerError(failure: TokenFailure): PulseCliError {
+  if (failure.problem === "not-json") {
+    return unusable("The token endpoint did not answer with a JSON object.")
+  }
+  if (failure.problem !== "token-type") {
+    return unusable("The token response has no access_token in the Bearer token syntax (RFC 6750).")
+  }
+  const { tokenType } = failure
+  return configError(
     `Unsupported token type "${sanitize(typeof tokenType === "string" ? tokenType : JSON.stringify(tokenType))}"; pulse sends Bearer tokens only`,
     "Configure the client at the authorization server for Bearer tokens (no DPoP or mTLS binding).",
   )
 }
 
-/** Validates a 200 token response (RFC 6749 §5.1). */
-export function parseTokenResponse(json: Record<string, unknown> | undefined): TokenResponse {
-  if (json === undefined) throw unusable("The token endpoint did not answer with a JSON object.")
-  const accessToken = json.access_token
-  if (!isAccessToken(accessToken)) {
-    throw unusable("The token response has no access_token in the Bearer token syntax (RFC 6750).")
-  }
-  checkTokenType(json.token_type)
-  return {
-    accessToken,
-    expiresIn: seconds(json.expires_in),
-    refreshToken: text(json.refresh_token),
-    refreshExpiresIn: seconds(json.refresh_expires_in),
-    scope: typeof json.scope === "string" ? json.scope : null,
-    ...(json.id_token === undefined ? { subject: null, user: null } : idTokenClaims(json.id_token)),
-  }
-}
-
 /** `(error: description)` of a token error answer, sanitized. */
-function errorDetail(error: string, description: unknown): string {
-  const detail =
-    typeof description === "string" && description !== "" ? `: ${sanitize(description)}` : ""
+function errorDetail(error: string, description: string | undefined): string {
+  const detail = description === undefined || description === "" ? "" : `: ${sanitize(description)}`
   return `(${sanitize(error)}${detail})`
 }
 
@@ -159,7 +159,7 @@ function refreshError(error: string, detail: string, who: LoginOwner): PulseCliE
 }
 
 function grantError(
-  grant: Grant,
+  grant: GrantKind,
   error: string,
   detail: string,
   client: TokenClient,
@@ -177,54 +177,61 @@ function grantError(
       )
 }
 
-function serverError(answer: ServerAnswer, grant: Grant): PulseCliError {
+function serverError(failure: TokenFailure, grant: GrantKind, client: TokenClient) {
   return new PulseCliError(
     "HTTP_SERVER_ERROR",
-    `The authorization server failed: ${statusLine(answer)}`,
+    `The authorization server failed: ${statusLine(statusOfFailure(failure))}`,
     {
-      status: answer.status,
-      request: { method: "POST", url: shownUrl(answer.url) },
+      status: Number(failure.status),
+      request: { method: "POST", url: shownUrl(client.endpoint.url) },
       hint: grant === "refresh" ? "Retry later; the login is kept." : "Retry later.",
     },
   )
 }
 
-/** The `error` of a 400/401 token error answer (RFC 6749 §5.2), if it has one. */
-function errorCodeOf(answer: ServerAnswer): string | undefined {
-  const error = answer.json?.error
-  const rejected = answer.status === 400 || answer.status === 401
-  return rejected && typeof error === "string" && error !== "" ? error : undefined
+/** The `error` of a 400/401 refusal (RFC 6749 §5.2), if it has one. */
+function errorCodeOf(failure: TokenFailure): string | undefined {
+  const { error } = failure
+  const coded = failure.kind === "client" || failure.kind === "scope" || failure.kind === "grant"
+  return coded && error !== undefined && error !== "" ? error : undefined
 }
 
-function unexpected(answer: ServerAnswer, client: TokenClient): PulseCliError {
-  const redirect =
-    answer.status >= 300 && answer.status < 400 ? " (pulse follows no redirects)" : ""
+function unexpected(failure: TokenFailure, client: TokenClient): PulseCliError {
+  const redirect = failure.kind === "redirect" ? " (pulse follows no redirects)" : ""
   return configError(
-    `Unexpected answer from ${shownUrl(answer.url)}: ${statusLine(answer)}${redirect}`,
+    `Unexpected answer from ${shownUrl(client.endpoint.url)}: ${statusLine(statusOfFailure(failure))}${redirect}`,
     `Check the token endpoint (${client.endpoint.source}).`,
   )
 }
 
-/** The error of a failed token request. */
-export function tokenError(answer: ServerAnswer, grant: Grant, client: TokenClient): PulseCliError {
-  if (answer.status >= 500) return serverError(answer, grant)
-  const error = errorCodeOf(answer)
-  if (error === undefined) return unexpected(answer, client)
-  const detail = errorDetail(error, answer.json?.error_description)
-  return CLIENT_ERRORS.has(error)
+/** The error of a failed token request, as the CLI words it. */
+function tokenError(
+  failure: TokenFailure,
+  grant: GrantKind,
+  client: TokenClient,
+  timeoutMs: number,
+): PulseCliError {
+  if (isUnanswered(failure)) return unreachable(failure, "POST", client.endpoint, timeoutMs)
+  if (failure.problem !== undefined) return answerError(failure)
+  if (Number(failure.status) >= 500) return serverError(failure, grant, client)
+  const error = errorCodeOf(failure)
+  if (error === undefined) return unexpected(failure, client)
+  const detail = errorDetail(error, failure.description)
+  return CLIENT_KINDS.has(failure.kind)
     ? clientError(client.clientId, detail)
     : grantError(grant, error, detail, client)
 }
 
-async function tokenRequest(
-  grant: Grant,
-  form: URLSearchParams,
-  client: TokenClient,
-  deps: OAuthDeps,
-) {
-  const answer = await postForm(client.endpoint, form, client, deps)
-  if (answer.status !== 200) throw tokenError(answer, grant, client)
-  return parseTokenResponse(answer.json)
+async function tokenRequest(grant: Grant, client: TokenClient, deps: OAuthDeps) {
+  try {
+    return responseOf(
+      await requestToken(endpointOf(client), grant, platformOf(deps), limitsOf(deps)),
+    )
+  } catch (error) {
+    const kind = grant.type === "refresh_token" ? "refresh" : "exchange"
+    // requestToken fails with a TokenFailure only, for the URLs the CLI checks at login.
+    throw tokenError(error as TokenFailure, kind, client, deps.timeoutMs)
+  }
 }
 
 /** Exchanges the authorization code (with the PKCE verifier and the redirect URI as sent). */
@@ -233,19 +240,21 @@ export function exchangeCode(
   code: { readonly code: string; readonly redirectUri: string; readonly verifier: string },
   deps: OAuthDeps,
 ): Promise<TokenResponse> {
-  const form = new URLSearchParams({
-    grant_type: "authorization_code",
-    code: code.code,
-    redirect_uri: code.redirectUri,
-    code_verifier: code.verifier,
-  })
-  return tokenRequest("exchange", form, client, deps)
+  return tokenRequest({ type: "authorization_code", ...code }, client, deps)
 }
 
 /** Refreshes the tokens; no `scope`, so the original grant is kept. */
 export function refreshTokens(client: TokenClient, refreshToken: string, deps: OAuthDeps) {
-  const form = new URLSearchParams({ grant_type: "refresh_token", refresh_token: refreshToken })
-  return tokenRequest("refresh", form, client, deps)
+  return tokenRequest({ type: "refresh_token", refreshToken }, client, deps)
+}
+
+/** Why a revocation failed, as a warning shows it. */
+function revocationReason(failure: TokenFailure, client: TokenClient, timeoutMs: number) {
+  if (isUnanswered(failure)) return unreachable(failure, "POST", client.endpoint, timeoutMs).message
+  const status = statusLine(statusOfFailure(failure))
+  return failure.error === undefined
+    ? status
+    : `${status} ${errorDetail(failure.error, failure.description)}`
 }
 
 /**
@@ -257,15 +266,11 @@ export async function revokeToken(
   token: { readonly value: string; readonly hint: "refresh_token" | "access_token" },
   deps: OAuthDeps,
 ): Promise<string | undefined> {
-  const form = new URLSearchParams({ token: token.value, token_type_hint: token.hint })
   try {
-    const answer = await postForm(client.endpoint, form, client, deps)
-    if (answer.status === 200) return undefined
-    const error = answer.json?.error
-    return typeof error === "string"
-      ? `${statusLine(answer)} ${errorDetail(error, answer.json?.error_description)}`
-      : statusLine(answer)
+    await revoke(endpointOf(client), token, platformOf(deps), limitsOf(deps))
+    return undefined
   } catch (error) {
-    return error instanceof Error ? error.message : String(error)
+    // revoke fails with a TokenFailure only, for the URLs the CLI checks at login.
+    return revocationReason(error as TokenFailure, client, deps.timeoutMs)
   }
 }

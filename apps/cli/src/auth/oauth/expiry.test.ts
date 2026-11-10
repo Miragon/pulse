@@ -2,7 +2,6 @@ import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import {
   canRefresh,
-  expiryOf,
   isExpired,
   needsRefresh,
   receivedAt,
@@ -16,28 +15,6 @@ function login(lifetimeSeconds: number, refreshedAt: number | null = null) {
   const received = refreshedAt ?? T0
   return { expiresAt: received + lifetimeSeconds * 1000, loggedInAt: T0, refreshedAt }
 }
-
-describe("expiryOf", () => {
-  it("adds expires_in seconds to the receipt time", () => {
-    fc.assert(
-      fc.property(
-        fc.integer({ min: 0, max: T0 }),
-        fc.integer({ min: 1, max: 10_000_000 }),
-        (at, seconds) => {
-          expect(expiryOf(at, seconds)).toBe(at + seconds * 1000)
-        },
-      ),
-    )
-    expect(expiryOf(T0, 0.5)).toBe(T0 + 500)
-  })
-
-  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY, null, undefined])(
-    "is unknown for %s",
-    (seconds) => {
-      expect(expiryOf(T0, seconds)).toBeNull()
-    },
-  )
-})
 
 describe("receivedAt", () => {
   it("is the last refresh, else the login", () => {

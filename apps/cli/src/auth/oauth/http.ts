@@ -1,32 +1,18 @@
 /**
- * HTTP to the authorization server: every request goes through `deps.fetch`, never
- * follows redirects, is bounded by `--timeout` and asks for JSON; forms are
- * application/x-www-form-urlencoded. `--verbose` traces method, URL, headers (the client
- * credentials always masked: the trace writer cannot tell them from the engine's Bearer token)
- * and status, never bodies: codes, verifiers, tokens and secrets travel only in bodies.
+ * The CLI's side of the authorization server. Its requests go out through
+ * @miragon/pulse-http/oauth on the command's fetch, clock and `--verbose` trace: never a
+ * redirect, bounded by `--timeout`, every answer read whole (as the CLI reads an engine's), and
+ * the client's own credentials always `Basic ***` in the trace, also with `--show-secrets` (the
+ * trace writer cannot tell them from the engine's Bearer token), bodies never. What the server
+ * answered is worded here.
  */
 
-import { statusTextOf } from "@miragon/pulse-http"
+import type { HttpFailure, Platform } from "@miragon/pulse-http"
+import type { TokenFailure, TokenLimits } from "@miragon/pulse-http/oauth"
 import { redactUrl } from "../../config/redact.js"
 import { PulseCliError } from "../../errors.js"
-import { failureDetail, networkError } from "../../http/client.js"
-import { isRecord } from "../../util.js"
-import type { ClientAuthMethod, OAuthDeps } from "./types.js"
-
-/** How the client authenticates: public (client id in the form) or with a secret. */
-export interface ClientCredentials {
-  readonly clientId: string
-  readonly clientSecret?: string | undefined
-  readonly method: ClientAuthMethod
-}
-
-/** An answer of the authorization server; `json` is the body when it is a JSON object. */
-export interface ServerAnswer {
-  readonly url: string
-  readonly status: number
-  readonly statusText: string
-  readonly json: Record<string, unknown> | undefined
-}
+import { failureDetail } from "../../http/client.js"
+import type { OAuthDeps } from "./types.js"
 
 /** Where the requests go, for messages: the issuer or endpoint and where it was configured. */
 export interface Endpoint {
@@ -35,51 +21,21 @@ export interface Endpoint {
   readonly source: string
 }
 
-const MASKED_BASIC = "Basic ***"
-
-/** Standard Base64 of the UTF-8 encoding of `text`. */
-function base64(text: string): string {
-  let binary = ""
-  for (const byte of new TextEncoder().encode(text)) binary += String.fromCharCode(byte)
-  return btoa(binary)
+/** A status line's parts, of an answer or of a failure that had one. */
+export interface Status {
+  readonly status: number
+  readonly statusText: string
 }
 
-/** RFC 6749 §2.3.1: id and secret are form-encoded before they are joined and Base64 encoded. */
-function formEncode(text: string): string {
-  return new URLSearchParams({ x: text }).toString().slice(2)
+/** The outside world of the OAuth requests; it never reveals the secrets of a trace. */
+export function platformOf(deps: OAuthDeps): Platform {
+  const { fetch, now, trace } = deps
+  return trace === undefined ? { fetch, now } : { fetch, now, trace }
 }
 
-/** Basic client authentication: `Basic base64(utf8(formEncode(id) ":" formEncode(secret)))`. */
-export function clientBasicHeader(clientId: string, clientSecret: string): string {
-  return `Basic ${base64(`${formEncode(clientId)}:${formEncode(clientSecret)}`)}`
-}
-
-/**
- * Adds the client authentication to a token request: `client_id` in the form for a public
- * client, the Authorization header (client_secret_basic) or `client_id` + `client_secret` in the
- * form (client_secret_post) for a confidential one. Returns the extra headers.
- */
-export function authenticate(form: URLSearchParams, client: ClientCredentials) {
-  const { clientId, clientSecret } = client
-  if (clientSecret === undefined) {
-    form.set("client_id", clientId)
-    return {}
-  }
-  if (client.method === "client_secret_post") {
-    form.set("client_id", clientId)
-    form.set("client_secret", clientSecret)
-    return {}
-  }
-  return { Authorization: clientBasicHeader(clientId, clientSecret) }
-}
-
-function parseObject(text: string): Record<string, unknown> | undefined {
-  try {
-    const value: unknown = JSON.parse(text)
-    return isRecord(value) ? value : undefined
-  } catch {
-    return undefined
-  }
+/** `--timeout` to the last byte; no cap on an answer, as for an engine's (transport plan 2.4). */
+export function limitsOf(deps: Pick<OAuthDeps, "timeoutMs">): TokenLimits {
+  return { timeoutMs: deps.timeoutMs, maxAnswerBytes: Infinity }
 }
 
 /** Longest excerpt of a text from the authorization server that messages show. */
@@ -96,88 +52,47 @@ export function shownUrl(url: string): string {
   return redactUrl(url)
 }
 
-function unreachable(error: unknown, method: string, endpoint: Endpoint, deps: OAuthDeps) {
-  const { url } = endpoint
-  const mapped = networkError(error, { method, url }, deps.timeoutMs)
-  const detail =
-    mapped.code === "TIMEOUT" ? `timed out after ${deps.timeoutMs} ms` : failureDetail(error)
+/** The status line of a failure that had an answer. */
+export function statusOfFailure(failure: TokenFailure): Status {
+  return { status: Number(failure.status), statusText: failure.statusText ?? "" }
+}
+
+/** Whether a failure came without an answer: no connection, or its deadline. */
+export function isUnanswered(failure: TokenFailure): boolean {
+  return failure.kind === "unreachable" || failure.kind === "timeout"
+}
+
+/**
+ * A request to the authorization server without an answer: TIMEOUT at its deadline, else
+ * NETWORK with the system code (or the most specific message) of what `fetch` threw.
+ */
+export function unreachable(
+  failure: TokenFailure,
+  method: string,
+  endpoint: Endpoint,
+  timeoutMs: number,
+): PulseCliError {
+  const timeout = failure.kind === "timeout"
+  const thrown = (failure.cause as HttpFailure | undefined)?.cause
+  const detail = timeout ? `timed out after ${timeoutMs} ms` : failureDetail(thrown)
+  const url = shownUrl(endpoint.url)
   return new PulseCliError(
-    mapped.code === "TIMEOUT" ? "TIMEOUT" : "NETWORK",
-    `Cannot reach the authorization server at ${shownUrl(url)}${detail === undefined ? "" : ` (${detail})`}`,
+    timeout ? "TIMEOUT" : "NETWORK",
+    `Cannot reach the authorization server at ${url}${detail === undefined ? "" : ` (${detail})`}`,
     {
-      request: { method, url: shownUrl(url) },
+      request: { method, url },
       hint: `Check the issuer or endpoint (${endpoint.source}) and the network; a private CA needs NODE_EXTRA_CA_CERTS.`,
     },
-    error,
+    failure,
   )
 }
 
-function traceHeaders(headers: Readonly<Record<string, string>>): Record<string, string> {
-  return headers.Authorization === undefined
-    ? { ...headers }
-    : { ...headers, Authorization: MASKED_BASIC }
-}
-
-async function request(
-  method: "GET" | "POST",
-  endpoint: Endpoint,
-  init: { headers: Record<string, string>; body?: string },
-  deps: OAuthDeps,
-): Promise<ServerAnswer> {
-  const headers = { Accept: "application/json", ...init.headers }
-  deps.trace?.({ type: "request", method, url: endpoint.url, headers: traceHeaders(headers) })
-  const started = deps.now()
-  let response: Response
-  let body: Uint8Array
-  try {
-    response = await deps.fetch(endpoint.url, {
-      method,
-      headers,
-      ...(init.body === undefined ? {} : { body: init.body }),
-      redirect: "manual",
-      signal: AbortSignal.timeout(deps.timeoutMs),
-    })
-    body = new Uint8Array(await response.arrayBuffer())
-  } catch (error) {
-    throw unreachable(error, method, endpoint, deps)
-  }
-  const statusText = statusTextOf(response.status, response.statusText)
-  deps.trace?.({
-    type: "response",
-    status: response.status,
-    statusText,
-    durationMs: deps.now() - started,
-    bytes: body.length,
-  })
-  const json = parseObject(new TextDecoder().decode(body))
-  return { url: endpoint.url, status: response.status, statusText, json }
-}
-
-/** GET a JSON document (discovery). */
-export function getJson(endpoint: Endpoint, deps: OAuthDeps): Promise<ServerAnswer> {
-  return request("GET", endpoint, { headers: {} }, deps)
-}
-
-/** POST a form with client authentication (token and revocation requests). */
-export function postForm(
-  endpoint: Endpoint,
-  form: URLSearchParams,
-  client: ClientCredentials,
-  deps: OAuthDeps,
-): Promise<ServerAnswer> {
-  const headers = {
-    "Content-Type": "application/x-www-form-urlencoded",
-    ...authenticate(form, client),
-  }
-  return request("POST", endpoint, { headers, body: form.toString() }, deps)
-}
-
 /** `503 Service Unavailable`. */
-export function statusOf(answer: Pick<ServerAnswer, "status" | "statusText">): string {
+export function statusOf(answer: Status): string {
   return `${answer.status}${answer.statusText === "" ? "" : ` ${answer.statusText}`}`
 }
 
 /** `HTTP 503 Service Unavailable`. */
-export function statusLine(answer: Pick<ServerAnswer, "status" | "statusText">): string {
+export function statusLine(answer: Status): string {
   return `HTTP ${statusOf(answer)}`
 }

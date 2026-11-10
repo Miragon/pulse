@@ -1,20 +1,14 @@
 /**
- * Token expiry math. Expiries come from the local receipt time and the relative
- * `expires_in`, never from token claims or the server's clock. A token is refreshed shortly
- * before it expires: the margin is 60 s, but at most half the token's lifetime, so short-lived
- * tokens (Keycloak realms with 60 s or 5 s) are not refreshed on every request.
+ * Token expiry math. Expiries come from the local receipt time and the relative `expires_in`
+ * (@miragon/pulse-http/oauth counts them so), never from token claims or the server's clock. A
+ * token is refreshed shortly before it expires: the margin is 60 s, but at most half the token's
+ * lifetime, so short-lived tokens (Keycloak realms with 60 s or 5 s) are not refreshed on every
+ * request.
  */
 
 import type { CachedLogin } from "./types.js"
 
 export const REFRESH_MARGIN_MS = 60_000
-
-/** Epoch ms of `receivedAt + expiresIn` seconds for a finite `expiresIn > 0`, else null. */
-export function expiryOf(receivedAt: number, expiresIn: number | null | undefined): number | null {
-  return typeof expiresIn === "number" && Number.isFinite(expiresIn) && expiresIn > 0
-    ? receivedAt + expiresIn * 1000
-    : null
-}
 
 /** When the current access token was received: the last refresh, else the login. */
 export function receivedAt(login: Pick<CachedLogin, "loggedInAt" | "refreshedAt">): number {

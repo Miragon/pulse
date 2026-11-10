@@ -1,4 +1,4 @@
 {
   "$comment": "Byte ceiling (raw bytes, not gzip) of the CLI's npm bundle: every .js, .mjs and .cjs module under apps/cli/dist, the bundle the npm package ships (the single executables and the image ship the separate standalone bundle, build/standalone, which has no budget). Checked by scripts/published-imports.test.mjs against the BUILT dist (pnpm build first); set to the measured size rounded up to the next 16 KiB, and a dist that shrank more than 10 % below it must lower it. Shrink-only (scripts/check-ratchets.mjs): growth needs a Ratchet-Exception trailer that says why.",
-  "dist": 2441216
+  "dist": 2457600
 }

@@ -65,7 +65,7 @@ function hasControlCharacter(text: string): boolean {
 }
 
 /** Standard Base64 of the UTF-8 encoding of `text`. */
-function base64(text: string): string {
+export function base64(text: string): string {
   let binary = ""
   for (const byte of new TextEncoder().encode(text)) binary += String.fromCharCode(byte)
   return btoa(binary)

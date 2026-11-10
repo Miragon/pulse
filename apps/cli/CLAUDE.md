@@ -79,9 +79,12 @@ transport's credential (`AuthProvider.credential`: Basic from the package, a bea
 source is the CLI's) and keeps the CLI's preview and hints. The workflow commands send through
 c7-core's `routedTransport`, whose route table is the catalog. A `--verbose` trace shows the
 secrets only with `--show-secrets`: the CLI is the one caller that sets the transport's
-`revealSecrets` (`scripts/trace-secrets.test.mjs`). The OAuth token client
-(`apps/cli/src/auth/oauth/http.ts`) keeps its own fetch until it moves into the transport. The
-engine family's core,
+`revealSecrets` (`scripts/trace-secrets.test.mjs`). The OAuth client protocol is the
+transport's too, `@miragon/pulse-http/oauth`: discovery, PKCE, the callback's check, the token and
+revocation requests on the same wire (the client's own credentials read `Basic ***` in a trace,
+also with `--show-secrets`), and the CLI words what they return (`apps/cli/src/auth/oauth/`); the
+token cache files and their lock, the loopback login, the renewal of a login and every message
+stay the CLI's. The engine family's core,
 `@miragon/pulse-engine-core`, the contract every dialect implements, is not the CLI's to import
 until it serves a second dialect: it reaches the engine through c7-core, a job's root cause
 included (`causeOf`, over engine-core's `RootCauses`), and a direct import is an admission

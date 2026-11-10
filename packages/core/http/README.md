@@ -6,11 +6,11 @@
 
 One HTTP transport for the engines Pulse reaches: the Pulse MCP server's engine connector, the
 [Pulse CLI](https://www.npmjs.com/package/@miragon/pulse-cli) and the C7 adapter of Pulse for VS
-Code and Pulse for Orca. It holds the
-rules of the wire once, so every client keeps them alike: a deadline to the last byte of the
-answer, never a redirect, a size cap, one credential seam with exactly one second attempt after
-a 401 when the credential renewed, failure reasons as data, lossless JSON and the request's
-secrets masked in each error answer, failure and trace.
+Code and Pulse for Orca, and the OAuth client protocol they share (`./oauth`). It holds the rules
+of the wire once, so every client keeps them alike: a deadline to the last byte of the answer,
+never a redirect, a size cap, one credential seam with exactly one second attempt after a 401
+when the credential renewed, failure reasons as data, lossless JSON and the request's secrets
+masked in each error answer, failure and trace.
 
 ## What it is not
 
@@ -72,6 +72,33 @@ the path values before the URL is built, in the SDK's `requestValidator` with `p
 | Trace           | `trace` gets each request with its headers as you wrote them, secrets masked, and each answer, a 3xx included; only `revealSecrets: true` shows a request as sent, for a person who asked on this run (the CLI's `--show-secrets`). What a trace throws is dropped. |
 | Lossless JSON   | `parseJson` keeps an integer beyond 2^53 as an exact-digit string, a BigInt or a raw JSON number; `stringifyJson` writes a BigInt back digit for digit.                                                                                                             |
 | Path values     | `pathValueProblem` and `encodePathValue` refuse `""`, `.` and `..`, which the URL parser would resolve into another resource; `send` refuses such a URL as well, and one with a user or a password.                                                                 |
+
+## OAuth
+
+`@miragon/pulse-http/oauth` holds the OAuth client protocol of every Pulse surface, on the same
+wire: the deadline to the last byte, never a redirect, a 1 MiB cap on an answer by default, every
+secret of a request (the client's, by `basic` or `post`, and the grant's) masked in a trace and in
+an error answer, and a URL with a user or a password refused before sending (a `RangeError`).
+
+| Part           | What it does                                                                                                                                                                                                                                                                                                  |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Token endpoint | `requestToken` for the code, refresh token and client credentials grants and `revokeToken` (RFC 7009), the client authenticated by `basic`, `post` or as a public client. An answer is checked (a b64token, a Bearer type); a refusal is a `TokenFailure`: its kind, the server's `error` as sent and a hold. |
+| Renewal        | `EXPIRY`, one policy for every surface: renew `min(60 s, a tenth of the lifetime)` before expiry, at least 5 s before; a lifetime of 300 s when the answer names none; after a 401 only a token at least 30 s old (`refreshAt`, `isDue`, `renewsAfterRefusal`).                                               |
+| Token sources  | `clientCredentialsTokens` (one request at a time; a hold of a minute after a refusal, 5 s after a failure, a rate limit as long as its `Retry-After` asks), `refreshingTokens` (a login renewed under its store's lock), `commandTokens` (a command's token). Each is a `TokenSource` for `bearerCredential`. |
+| Store          | `TokenStore` (read, write, a lock per key), `memoryTokenStore` and `tokenKey`, the SHA-256 of what a token is kept for, so no secret stands in clear as a key.                                                                                                                                                |
+| Login          | `discover` and `serverMetadata` (the issuer exactly, PKCE S256, endpoints on https or on a host the caller's `isLoopback` accepts), `createPkce`, `authorizationUrl`, `callbackResult` (the state in constant time, then `iss` by RFC 9207).                                                                  |
+| JWT            | `jwtClaims`: expiry, subject, user, issuer and audience, without checking the signature.                                                                                                                                                                                                                      |
+
+`refreshingTokens` keeps the refresh token in the store only: under the lock it takes over a newer
+token another process got, sends the stored refresh token (never one from memory, a replay that
+Keycloak ends the session for), keeps a rotated one and records a refused one, so nothing asks with
+it again; a renewal that fails for a passing reason (no answer, a 5xx, a rate limit, a busy lock)
+keeps a token that is still valid. `clientCredentialsTokens` keeps none: while its renewal fails,
+a request fails until the hold ends, also before the old token expires (the rule of the C8 adapter
+it comes from). After a 401 a token source renews once, and the token it got goes out with the
+second attempt even when the policy finds it due at once (a lifetime of 5 s or less): one renewal
+per attempt. Where tokens are kept, how a person logs in and every word a person reads stay with
+the surface.
 
 ## The conformance cases
 

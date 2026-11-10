@@ -70,7 +70,7 @@ module.exports = {
       name: "http-by-its-main-entry",
       severity: "error",
       comment:
-        "The adapter's wire imports @miragon/pulse-http by its main entry only: never ./testing or ./testing/loopback (the conformance cases and their engine, for tests), never a file of packages/core/http by path, which would bundle a second copy of the transport.",
+        "The adapter's wire imports @miragon/pulse-http by its main entry only: never ./oauth (the OAuth client protocol, which the C7 adapter does not speak), ./testing or ./testing/loopback (the conformance cases and their engine, for tests), never a file of packages/core/http by path, which would bundle a second copy of the transport.",
       from: { path: WIRE, pathNot: TEST_CODE },
       to: { path: HTTP_PACKAGE, pathNot: HTTP_ENTRY },
     },

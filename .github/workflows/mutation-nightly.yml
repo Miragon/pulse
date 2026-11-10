@@ -76,12 +76,12 @@ jobs:
     runs-on: ubuntu-latest
     # A cold or forced run of a package mutates its whole allowlist; the other nights re-run only
     # what changed. c7-core runs cold in about 2 min on 8 local workers, the transport
-    # (packages/core/http, about 1,370 mutants, its conformance cases on loopback sockets
-    # included) in about 1 min on 17, the neutral core's three rule files
-    # (packages/connectors/engine/engine-core, 115 mutants) in about 10 s on 17 and 15 s on 4, the
-    # profile format (packages/core/profile, 1,168 mutants) in about 3 min on 4 local workers, so
-    # 30 min leaves room for a hosted runner's 4 and the build before it. A package that joins
-    # MUTATED_PACKAGES brings its own measured time here.
+    # (packages/core/http with its OAuth client ./oauth, about 2,550 mutants, its conformance
+    # cases on loopback sockets included) in about 2 min on 17, the neutral core's three rule
+    # files (packages/connectors/engine/engine-core, 115 mutants) in about 10 s on 17 and 15 s
+    # on 4, the profile format (packages/core/profile, 1,168 mutants) in about 3 min on 4 local
+    # workers, so 30 min leaves room for a hosted runner's 4 and the build before it. A package
+    # that joins MUTATED_PACKAGES brings its own measured time here.
     timeout-minutes: 30
     strategy:
       fail-fast: false

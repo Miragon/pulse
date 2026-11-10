@@ -81,7 +81,7 @@ src/api/        one folder per engine API; camunda7-rest builds catalog and port
 src/docs/       commands, describe, examples, workflow docs and the agent guide (pure)
 src/catalog/    catalog access, schema helpers, body validation (pure)
 src/config/     config resolution and profile editing (pure), file store, project files, read with @miragon/pulse-profile (bundled)
-src/auth/       auth providers around the transport's credential (none, basic, bearer with JWT expiry, token commands, OAuth; pure)
+src/auth/       auth providers around the transport's credential (none, basic, bearer with JWT expiry, token commands, OAuth on @miragon/pulse-http/oauth; pure)
 src/http/       the engine client on @miragon/pulse-http (bundled) and the wording of what fails
 src/output/     JSON, tables, field projection, errors, secret masking (pure)
 scripts/        catalog generator, standalone executable build, packaging smoke test

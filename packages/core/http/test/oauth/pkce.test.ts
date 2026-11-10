@@ -1,7 +1,8 @@
+// Moved from the Pulse CLI (apps/cli/src/auth/oauth/pkce.test.ts) with the code it tests.
 import { createHash } from "node:crypto"
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
-import { base64Url, challengeOf, createPkce, sha256 } from "./pkce.js"
+import { base64Url, challengeOf, createPkce } from "../../src/oauth/index.js"
 
 const VERIFIER = /^[A-Za-z0-9\-._~]{43}$/
 
@@ -29,42 +30,8 @@ describe("base64Url", () => {
 
 describe("PKCE (RFC 7636)", () => {
   it("computes the S256 challenge of the test vector of Appendix B", async () => {
-    const bytes = Uint8Array.of(
-      116,
-      24,
-      223,
-      180,
-      151,
-      153,
-      224,
-      37,
-      79,
-      250,
-      96,
-      125,
-      216,
-      173,
-      187,
-      186,
-      22,
-      212,
-      37,
-      77,
-      105,
-      214,
-      191,
-      240,
-      91,
-      88,
-      5,
-      88,
-      83,
-      132,
-      141,
-      121,
-    )
-    const verifier = base64Url(bytes)
-    expect(verifier).toBe("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk")
+    const verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+    expect(base64Url(decode(verifier))).toBe(verifier)
     await expect(challengeOf(verifier)).resolves.toBe("E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM")
   })
 
@@ -76,29 +43,8 @@ describe("PKCE (RFC 7636)", () => {
         expect(decode(verifier)).toEqual(bytes)
         const challenge = await challengeOf(verifier)
         expect(challenge).toBe(createHash("sha256").update(verifier, "ascii").digest("base64url"))
-        expect(challenge).toHaveLength(43)
-        expect(challenge).not.toMatch(/[+/=]/)
       }),
       { numRuns: 50 },
-    )
-  })
-
-  it("maps different bytes to different verifiers", () => {
-    fc.assert(
-      fc.property(
-        fc.uint8Array({ minLength: 32, maxLength: 32 }),
-        fc.uint8Array({ minLength: 32, maxLength: 32 }),
-        (left, right) => {
-          fc.pre(Buffer.compare(left, right) !== 0)
-          expect(base64Url(left)).not.toBe(base64Url(right))
-        },
-      ),
-    )
-  })
-
-  it("hashes UTF-8 text with SHA-256", async () => {
-    expect(Buffer.from(await sha256("abc")).toString("hex")).toBe(
-      "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
     )
   })
 })
@@ -114,29 +60,16 @@ describe("createPkce", () => {
     expect(requests).toEqual([32, 32])
     expect(pkce.verifier).toBe(base64Url(values[0]!))
     expect(pkce.state).toBe(base64Url(values[1]!))
-    expect(pkce.state).not.toBe(pkce.verifier)
     expect(pkce.challenge).toBe(await challengeOf(pkce.verifier))
   })
 
-  it("gives different states for different random values (injective)", async () => {
-    await fc.assert(
-      fc.asyncProperty(
-        fc.uint8Array({ minLength: 32, maxLength: 32 }),
-        fc.uint8Array({ minLength: 32, maxLength: 32 }),
-        async (first, second) => {
-          fc.pre(Buffer.compare(first, second) !== 0)
-          const pkce = await createPkce(
-            (() => {
-              const queue = [first, second]
-              return () => queue.shift() ?? new Uint8Array(32)
-            })(),
-          )
-          expect(pkce.verifier).toMatch(VERIFIER)
-          expect(pkce.state).toMatch(VERIFIER)
-          expect(pkce.state).not.toBe(pkce.verifier)
-        },
-      ),
-      { numRuns: 25 },
-    )
+  it("draws from the platform's random source by default", async () => {
+    const [one, two] = await Promise.all([createPkce(), createPkce()])
+    for (const pkce of [one, two]) {
+      expect(pkce.verifier).toMatch(VERIFIER)
+      expect(pkce.state).toMatch(VERIFIER)
+      expect(pkce.state).not.toBe(pkce.verifier)
+    }
+    expect(one.verifier).not.toBe(two.verifier)
   })
 })

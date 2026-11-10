@@ -23,7 +23,7 @@ import { requestUrlProblem, rootOf } from "./url.js"
 const MAX_TIMEOUT_MS = 2_147_483_647
 
 /** Headers that always carry a secret. */
-const SECRET_HEADERS = ["authorization", "proxy-authorization", "cookie"]
+export const SECRET_HEADERS: readonly string[] = ["authorization", "proxy-authorization", "cookie"]
 
 /** An HTTP method token (RFC 9110). */
 const METHOD = /^[!#$%&'*+.^_`|~\dA-Za-z-]+$/

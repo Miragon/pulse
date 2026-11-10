@@ -107,12 +107,6 @@ const CERTIFICATE_ERRORS: ReadonlySet<string | undefined> = new Set([
 
 const DNS_ERRORS: ReadonlySet<string | undefined> = new Set(["ENOTFOUND", "EAI_AGAIN"])
 
-/** undici refuses to build the request (e.g. a header it does not allow): nothing was sent. */
-const REQUEST_ERRORS: ReadonlySet<string | undefined> = new Set([
-  "UND_ERR_INVALID_ARG",
-  "UND_ERR_NOT_SUPPORTED",
-])
-
 /** Generic message of undici's fetch; the useful information is in `cause`. */
 const GENERIC_FETCH_MESSAGE = "fetch failed"
 
@@ -169,26 +163,6 @@ function reachError(error: unknown, target: Target, cause: unknown = error): Pul
     { request: target, hint: networkHint(errorCode(error)) },
     cause,
   )
-}
-
-/**
- * A failed `fetch` of the OAuth client (src/auth/oauth/http.ts, which keeps its own wire until
- * the token client moves into @miragon/pulse-http/oauth): its timeout, an invalid request or the
- * network.
- */
-export function networkError(
-  error: unknown,
-  request: Pick<HttpRequest, "method" | "url">,
-  timeoutMs: number,
-): PulseCliError {
-  const target = { method: request.method, url: request.url }
-  const name = stringProperty(error, "name")
-  if (name === "TimeoutError" || name === "AbortError")
-    return timeoutError(target, timeoutMs, error)
-  if (REQUEST_ERRORS.has(errorCode(error))) {
-    return invalidRequestError(invalidReason(error) ?? "unknown reason", target, error)
-  }
-  return reachError(error, target)
 }
 
 const HEADER_HINT =

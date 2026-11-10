@@ -6,6 +6,7 @@
  */
 
 import { isLoopbackHost, isRedirectPort } from "@miragon/pulse-profile"
+import type { PulseCliError } from "../errors.js"
 import { isRecord } from "../util.js"
 import { configError } from "./config-error.js"
 import { redactUrl } from "./redact.js"
@@ -17,6 +18,9 @@ const VSCHAR = /^[\x20-\x7e]+$/
 /** RFC 6749 §3.3 scope-token: printable ASCII except space, `"` and `\`. */
 const SCOPE_TOKEN = /^[\x21\x23-\x5b\x5d-\x7e]+$/
 const PORT = /^\d+$/
+
+/** The profile format's one rule of a loopback host, for the endpoints a discovery names too. */
+export { isLoopbackHost }
 
 export const ISSUER_EXAMPLE = "https://login.example.com/realms/camunda"
 
@@ -33,25 +37,52 @@ export function plainHttpHost(url: string): string | undefined {
   return parsed.protocol === "http:" && !isLoopbackHost(parsed.hostname) ? parsed.host : undefined
 }
 
-function parseOAuthUrl(url: string, kind: OAuthUrlKind, label: string): URL {
-  try {
-    return new URL(url)
-  } catch {
-    throw configError(
+/**
+ * Why an OAuth URL cannot be used: @miragon/pulse-http/oauth's `OAuthUrlProblem`, by which a
+ * discovery checks the endpoints it finds, and the query of an issuer (RFC 8414 §2).
+ * src/auth/oauth/discovery.test.ts holds the two rules equal.
+ */
+export type OAuthUrlProblem = "not-a-url" | "credentials" | "insecure" | "fragment" | "query"
+
+const PROBLEM_TEXT: Readonly<Record<Exclude<OAuthUrlProblem, "not-a-url">, string>> = {
+  credentials: "must not contain credentials",
+  insecure: "must use https:// (http:// only for localhost, 127.0.0.1 or [::1])",
+  fragment: "must not contain a fragment",
+  query: "must not contain a query",
+}
+
+/** https, or http on a loopback host. */
+function isSecure({ protocol, hostname }: URL): boolean {
+  return protocol === "https:" || (protocol === "http:" && isLoopbackHost(hostname))
+}
+
+/** Why a trimmed OAuth URL is not acceptable, or undefined. */
+function urlProblem(url: string, kind: OAuthUrlKind): OAuthUrlProblem | undefined {
+  if (!URL.canParse(url)) return "not-a-url"
+  const parsed = new URL(url)
+  if (parsed.username !== "" || parsed.password !== "") return "credentials"
+  if (!isSecure(parsed)) return "insecure"
+  if (parsed.hash !== "" || parsed.href.endsWith("#")) return "fragment"
+  return kind === "issuer" && parsed.search !== "" ? "query" : undefined
+}
+
+/** The CONFIG error of a trimmed OAuth URL refused for `problem`; it never shows a password. */
+export function oauthUrlError(
+  url: string,
+  kind: OAuthUrlKind,
+  label: string,
+  problem: OAuthUrlProblem,
+): PulseCliError {
+  if (problem === "not-a-url") {
+    return configError(
       `Invalid OAuth ${kind} "${redactUrl(url)}" (${label})`,
       `Use an absolute URL, e.g. ${ISSUER_EXAMPLE} for the issuer.`,
     )
   }
-}
-
-/** Why an absolute OAuth URL is not acceptable, or undefined. */
-function urlProblem(parsed: URL, kind: OAuthUrlKind): string | undefined {
-  if (parsed.username !== "" || parsed.password !== "") return "must not contain credentials"
-  const secure =
-    parsed.protocol === "https:" || (parsed.protocol === "http:" && isLoopbackHost(parsed.hostname))
-  if (!secure) return "must use https:// (http:// only for localhost, 127.0.0.1 or [::1])"
-  if (parsed.hash !== "" || parsed.href.endsWith("#")) return "must not contain a fragment"
-  return kind === "issuer" && parsed.search !== "" ? "must not contain a query" : undefined
+  return configError(
+    `The OAuth ${kind} (${label}) ${PROBLEM_TEXT[problem]}, got "${redactUrl(url)}"`,
+    `Example issuer: ${ISSUER_EXAMPLE}. Local test identity providers may use http://localhost.`,
+  )
 }
 
 /**
@@ -61,12 +92,9 @@ function urlProblem(parsed: URL, kind: OAuthUrlKind): string | undefined {
  */
 export function validateOAuthUrl(url: string, kind: OAuthUrlKind, label: string): string {
   const trimmed = url.trim()
-  const problem = urlProblem(parseOAuthUrl(trimmed, kind, label), kind)
+  const problem = urlProblem(trimmed, kind)
   if (problem === undefined) return trimmed
-  throw configError(
-    `The OAuth ${kind} (${label}) ${problem}, got "${redactUrl(trimmed)}"`,
-    `Example issuer: ${ISSUER_EXAMPLE}. Local test identity providers may use http://localhost.`,
-  )
+  throw oauthUrlError(trimmed, kind, label, problem)
 }
 
 /** Checks a client id (RFC 6749 VSCHAR, not blank) and trims it. */

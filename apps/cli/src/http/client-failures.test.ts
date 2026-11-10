@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest"
 import { fakeFetch, httpClient, json, REQUEST, ROOT, URL_ } from "../../test/support/http-client.js"
 import type { AuthProvider } from "../auth/types.js"
 import { PulseCliError } from "../errors.js"
-import { networkError, send } from "./client.js"
+import { send } from "./client.js"
 
 async function failure(promise: Promise<unknown>): Promise<PulseCliError> {
   const error: unknown = await promise.then(
@@ -205,83 +205,4 @@ describe("send: what the CLI's connection never meets", () => {
       expect(error.cause).toBe(thrown)
     })
   }
-})
-
-describe("networkError (the OAuth client's own wire)", () => {
-  it.each(["TimeoutError", "AbortError"])("maps %s to TIMEOUT", (name) => {
-    const error = networkError(new DOMException("aborted", name), REQUEST, 250)
-    expect(error.code).toBe("TIMEOUT")
-    expect(error.message).toBe("Request timed out after 250 ms")
-  })
-
-  it("takes the first code of an AggregateError-style cause", () => {
-    const cause = { errors: [{ code: "ECONNREFUSED" }, { code: "EHOSTUNREACH" }], message: "" }
-    const error = networkError(fetchFailed(cause), REQUEST, 1)
-    expect(error.message).toBe(`Cannot reach ${URL_} (ECONNREFUSED)`)
-    expect(error.details.hint).toBe(HINTS.generic)
-  })
-
-  it("prefers cause.code over cause.errors", () => {
-    const cause = { code: "ETIMEDOUT", errors: [{ code: "ECONNREFUSED" }] }
-    expect(networkError(fetchFailed(cause), REQUEST, 1).message).toBe(
-      `Cannot reach ${URL_} (ETIMEDOUT)`,
-    )
-  })
-
-  it.each([
-    "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
-    "UNABLE_TO_GET_ISSUER_CERT_LOCALLY",
-    "SELF_SIGNED_CERT_IN_CHAIN",
-    "DEPTH_ZERO_SELF_SIGNED_CERT",
-    "CERT_HAS_EXPIRED",
-    "ERR_TLS_CERT_ALTNAME_INVALID",
-  ])("hints at the CA bundle for %s", (code) => {
-    const error = networkError(fetchFailed({ code }), REQUEST, 1)
-    expect(error.code).toBe("NETWORK")
-    expect(error.message).toBe(`Cannot reach ${URL_} (${code})`)
-    expect(error.details.hint).toBe(HINTS.tls)
-  })
-
-  it.each(["ENOTFOUND", "EAI_AGAIN"])("hints at the host name for %s", (code) => {
-    expect(networkError(fetchFailed({ code }), REQUEST, 1).details.hint).toBe(HINTS.dns)
-  })
-
-  it("uses the cause message when there is no code, else the error's", () => {
-    const error = networkError(fetchFailed(new Error("other side closed")), REQUEST, 1)
-    expect(error.message).toBe(`Cannot reach ${URL_} (other side closed)`)
-    const thrown = new TypeError("Headers.append: invalid header value")
-    expect(networkError(thrown, REQUEST, 1).message).toBe(
-      `Cannot reach ${URL_} (Headers.append: invalid header value)`,
-    )
-  })
-
-  it('drops the generic "fetch failed" message and ignores empty and non-string codes', () => {
-    expect(networkError(new TypeError("fetch failed"), REQUEST, 1).message).toBe(
-      `Cannot reach ${URL_}`,
-    )
-    expect(networkError(fetchFailed({ code: "" }), REQUEST, 1).message).toBe(`Cannot reach ${URL_}`)
-    expect(networkError(fetchFailed({ code: 42, errors: "x" }), REQUEST, 1).message).toBe(
-      `Cannot reach ${URL_}`,
-    )
-  })
-
-  it.each([
-    ["UND_ERR_INVALID_ARG", "invalid keep-alive header"],
-    ["UND_ERR_NOT_SUPPORTED", "expect header not supported"],
-  ])("reports %s as an invalid request (USAGE), not as network error", (code, message) => {
-    const error = networkError(fetchFailed(Object.assign(new Error(message), { code })), REQUEST, 1)
-    expect(error.code).toBe("USAGE")
-    expect(error.message).toBe(`Cannot send GET ${URL_}: invalid request (${message})`)
-    const bare = networkError(fetchFailed({ code }), REQUEST, 1)
-    expect(bare.message).toBe(`Cannot send GET ${URL_}: invalid request (${code})`)
-  })
-
-  it("copes with thrown values that are not objects", () => {
-    for (const thrown of [undefined, null, "boom", 7]) {
-      const error = networkError(thrown, REQUEST, 1)
-      expect(error.code).toBe("NETWORK")
-      expect(error.message).toBe(`Cannot reach ${URL_}`)
-      expect(error.details).toEqual({ request: { method: "GET", url: URL_ }, hint: HINTS.generic })
-    }
-  })
 })

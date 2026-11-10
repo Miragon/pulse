@@ -30,6 +30,8 @@ export interface Context {
 export interface Prepared extends Omit<HttpRequest, "signal" | "headers"> {
   readonly headers: Readonly<Record<string, string>>
   readonly signal: AbortSignal | undefined
+  /** Secrets the body carries (an OAuth client's secret in a form), masked as a credential's. */
+  readonly secrets?: readonly string[] | undefined
 }
 
 export interface Attempted {
@@ -233,7 +235,11 @@ export async function attempt(
 ): Promise<Attempted> {
   const written = writtenHeaders(context, request, authorization)
   const headers = headersOf(written)
-  const secrets = [...(authorization?.secrets ?? []), ...secretValues(context, written)]
+  const secrets = [
+    ...(authorization?.secrets ?? []),
+    ...(request.secrets ?? []),
+    ...secretValues(context, written),
+  ]
   const sent = sentOf(request, secrets)
   if (headers === undefined) {
     throw new HttpFailure("invalid-request", { ...sent, code: "header", mayHaveApplied: false })

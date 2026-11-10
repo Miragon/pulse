@@ -10,7 +10,7 @@ import { endpointSource } from "../../config/resolve-oauth.js"
 import type { OAuthConfig } from "../../config/types.js"
 import { clientAuthOf, readCache, withCacheLock, writeCache } from "./cache.js"
 import { cannotRefresh, otherIdentity, removedWhileRunning } from "./errors.js"
-import { canRefresh, expiryOf, isExpired } from "./expiry.js"
+import { canRefresh, isExpired } from "./expiry.js"
 import { identityOf, sameIdentity } from "./identity.js"
 import { refreshRejection, refreshTokens, type TokenClient } from "./token.js"
 import type { CachedLogin, OAuthDeps, TokenResponse } from "./types.js"
@@ -27,8 +27,8 @@ function cachedClient(config: OAuthConfig, login: CachedLogin): TokenClient {
 }
 
 /** `refresh_expires_in` given: its expiry; else none after a rotation, else unchanged. */
-function refreshExpiry(stored: CachedLogin, tokens: TokenResponse, now: number): number | null {
-  if (tokens.refreshExpiresIn !== null) return expiryOf(now, tokens.refreshExpiresIn)
+function refreshExpiry(stored: CachedLogin, tokens: TokenResponse): number | null {
+  if (tokens.refreshExpiresAt !== null) return tokens.refreshExpiresAt
   return tokens.refreshToken === null ? stored.refreshExpiresAt : null
 }
 
@@ -36,18 +36,18 @@ function refreshExpiry(stored: CachedLogin, tokens: TokenResponse, now: number):
  * The login after a refresh: the new access token; the new refresh token when the server rotated
  * it (the old one is discarded, RFC 6749 §6), else the old one; display values when present.
  */
-function mergeRefresh(stored: CachedLogin, tokens: TokenResponse, now: number): CachedLogin {
+function mergeRefresh(stored: CachedLogin, tokens: TokenResponse): CachedLogin {
   return {
     ...stored,
     tokenType: "Bearer",
     accessToken: tokens.accessToken,
-    expiresAt: expiryOf(now, tokens.expiresIn),
+    expiresAt: tokens.expiresAt,
     refreshToken: tokens.refreshToken ?? stored.refreshToken,
-    refreshExpiresAt: refreshExpiry(stored, tokens, now),
+    refreshExpiresAt: refreshExpiry(stored, tokens),
     scope: tokens.scope ?? stored.scope,
     subject: tokens.subject ?? stored.subject,
     user: tokens.user ?? stored.user,
-    refreshedAt: now,
+    refreshedAt: tokens.receivedAt,
   }
 }
 
@@ -78,7 +78,7 @@ export function refreshUnderLock(
       return stored
     }
     const tokens = await refreshOrRecord(config, path, stored, deps)
-    const refreshed = mergeRefresh(stored, tokens, deps.now())
+    const refreshed = mergeRefresh(stored, tokens)
     await writeCache(path, refreshed, deps)
     return refreshed
   })

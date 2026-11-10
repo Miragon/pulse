@@ -86,7 +86,8 @@ export const MUTATED_PACKAGES = {
   "packages/core/http":
     "owner decision 2026-11-08: the transport the MCP server, the CLI and the " +
     "VS Code extension send through (deadline, redirects, cap, credentials, failure reasons, " +
-    "masking), where a surviving mutant is a wrong wire rule in all three",
+    "masking) and the OAuth client protocol of every surface (./oauth: token requests, " +
+    "renewal policy, token sources), where a surviving mutant is a wrong rule in all of them",
   "packages/connectors/engine/engine-core":
     "owner decision 2026-11-09: the root-cause, value-kind and move-reason rules every dialect " +
     "and every interface share, where a surviving mutant is a wrong rule everywhere; only those " +
