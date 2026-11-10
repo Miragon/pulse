@@ -323,6 +323,9 @@ importers:
       '@miragon/pulse-engine-core':
         specifier: workspace:*
         version: link:../../engine/engine-core
+      '@miragon/pulse-http':
+        specifier: workspace:*
+        version: link:../../../core/http
       '@miragon/pulse-runtime-view':
         specifier: workspace:*
         version: link:../../../core/runtime-view

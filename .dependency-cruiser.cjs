@@ -196,7 +196,8 @@ const HTTP_LOOPBACK = `^${escapeRegExp(HTTP.tree)}/src/testing/loopback/`
  * Where a surface sends its engine requests, the only shipped importers of HTTP: the CLI's
  * http, auth and operation layers, the family adapters of the runtime view that Pulse for VS Code
  * and Pulse for Orca bundle (packages/connectors/<family>/<family>-adapter/src; its closed world
- * admits the edge on its own once an adapter sends with it) and a connector's src/lib/engine, where it builds each engine's transport once at
+ * narrows the edge: the C7 adapter's to its wire, src/engine-rest/http, and the transport's main
+ * entry) and a connector's src/lib/engine, where it builds each engine's transport once at
  * boot behind resolveEngine/withEngine (keyed by the role, so a new family's connector inherits
  * it). Not a connector's tools, data builders or widgets: a transport built there would bypass
  * the routing and the credential of invariant 2. Never the MCP server app's shipped code: it

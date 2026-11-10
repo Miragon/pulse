@@ -108,8 +108,12 @@ adapter (`packages/connectors/c7/c7-adapter`, its tests beside it) imports
 `@miragon/pulse-c7-core`, the core of the Camunda 7 REST dialect family c7, the workflow domain
 the CLI and the MCP server run too, through its main entry; no other part of the editor hosts
 imports it (`runtime-view-is-dialect-neutral`, `extension-is-dialect-neutral`; the repository's
-`adapters-own-their-family`). The host kit's connections
-(`packages/core/runtime-view/src/host-kit/connections`) read the project files with Pulse's
+`adapters-own-their-family`). The adapter's wire (`packages/connectors/c7/c7-adapter/src/engine-rest/http`,
+`EngineHttp`) sends through `@miragon/pulse-http`, the transport the CLI and the MCP server send
+through, by its main entry and nowhere else in the adapter (`http-only-in-the-wire`,
+`http-by-its-main-entry`); the runtime view and the hosts never import it (the repository's
+`http-consumers`); the adapter sends over the global `fetch` of the host's runtime. The host
+kit's connections (`packages/core/runtime-view/src/host-kit/connections`) read the project files with Pulse's
 profile format, `@miragon/pulse-profile`, through its main entry (the runtime view's closed
 world; the repository's `profile-consumers`), as the CLI does. The runtime view's core and
 webview import Pulse's UI foundation as `@miragon/pulse-ui/tones` and `@miragon/pulse-ui/format`

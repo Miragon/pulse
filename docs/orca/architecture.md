@@ -11,7 +11,7 @@ flowchart LR
   view --> contract["engine contract: @miragon/pulse-engine-core"]
   worker --> adapter["C7 adapter: REST"]
   adapter --> contract
-  adapter --> engines["Operaton, CIB seven, Camunda 7: /engine-rest"]
+  adapter -- "@miragon/pulse-http" --> engines["Operaton, CIB seven, Camunda 7: /engine-rest"]
 ```
 
 | Part                      | Holds                                                                                        |

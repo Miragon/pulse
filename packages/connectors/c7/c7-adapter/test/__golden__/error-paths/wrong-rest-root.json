@@ -11,8 +11,8 @@
       "call": "describeEngine",
       "outcome": {
         "failure": "misconfigured",
-        "hint": null,
-        "message": "HTTP 404"
+        "hint": "Check that the engine URL points at the REST API root itself, such as http://localhost:8080/engine-rest.",
+        "message": "HTTP 404 Not Found"
       },
       "sent": [
         "GET /telemetry/data",
@@ -23,8 +23,8 @@
       "call": "getInstanceDetail pi-1",
       "outcome": {
         "failure": "misconfigured",
-        "hint": null,
-        "message": "HTTP 404"
+        "hint": "Check that the engine URL points at the REST API root itself, such as http://localhost:8080/engine-rest.",
+        "message": "HTTP 404 Not Found"
       },
       "sent": [
         "GET /history/activity-instance?processInstanceId=pi-1&sortBy=occurrence&sortOrder=asc&firstResult=0&maxResults=500",

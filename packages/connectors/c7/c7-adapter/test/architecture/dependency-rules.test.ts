@@ -3,7 +3,7 @@ import { PlantedTree } from "./support/planted-tree.js"
 
 const PACKAGE = "packages/connectors/c7/c7-adapter"
 const MANIFEST =
-  '{ "name": "@miragon/pulse-c7-adapter", "private": true, "dependencies": { "@miragon/pulse-c7-core": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-runtime-view": "workspace:*" } }\n'
+  '{ "name": "@miragon/pulse-c7-adapter", "private": true, "dependencies": { "@miragon/pulse-c7-core": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-http": "workspace:*", "@miragon/pulse-runtime-view": "workspace:*" } }\n'
 
 const ADAPTER: Readonly<Record<string, string>> = {
   "src/index.ts":
@@ -20,6 +20,23 @@ const ADAPTER: Readonly<Record<string, string>> = {
     "import { BoardParser } from '@miragon/pulse-runtime-view/core';\nexport const parser = BoardParser;\n",
   "src/reads-the-client.ts":
     "import { createEngineClient } from '@miragon/pulse-c7-client';\nexport const client = createEngineClient;\n",
+  "src/engine-rest/http/sends.ts":
+    "import { createHttp } from '@miragon/pulse-http';\nexport const send = createHttp;\n",
+  "src/engine-rest/http/sends-a-test-engine.ts":
+    "import { startCaseEngine } from '@miragon/pulse-http/testing/loopback';\nexport const engine = startCaseEngine;\n",
+  "src/engine-rest/http/reads-an-unexported-file.ts":
+    "import { attempt } from '@miragon/pulse-http/attempt';\nexport const tried = attempt;\n",
+  "src/engine-rest/http/escapes-into-http.ts":
+    "import { createHttp } from '../../../../../../core/http/src/http.ts';\nexport const send = createHttp;\n",
+  "src/reading/sends-itself.ts":
+    "import { createHttp } from '@miragon/pulse-http';\nexport const send = createHttp;\n",
+  "src/mapping/reads-http-subpath.ts":
+    "import { attempt } from '@miragon/pulse-http/attempt';\nexport const tried = attempt;\n",
+  "src/errors/escapes-into-http.ts":
+    "import { createHttp } from '../../../../../core/http/src/http.ts';\nexport const send = createHttp;\n",
+  "../../../core/http/src/http.ts": "export const createHttp = 1;\n",
+  "test/engine-rest/sends.test.ts":
+    "import { createHttp } from '@miragon/pulse-http';\nimport { recordingFetch } from '@miragon/pulse-http/testing';\nexport const both = [createHttp, recordingFetch];\n",
   "test/c7.engine.test.ts":
     "import { adapter } from '../src/index.ts';\nexport const unproven = adapter;\n",
   "test/engine-core.test.ts":
@@ -55,14 +72,32 @@ describe("the dependency rules", () => {
     const testing = at("node_modules/@miragon/pulse-engine-core/dist/testing/index.d.ts")
     const c7Testing = at("node_modules/@miragon/pulse-c7-core/dist/testing/index.d.ts")
     const c7Routes = at("node_modules/@miragon/pulse-c7-core/dist/routes.d.ts")
+    const http = at("node_modules/@miragon/pulse-http/dist/index.d.ts")
+    const loopback = at("node_modules/@miragon/pulse-http/dist/testing/loopback/index.d.ts")
+    const httpSubpath = "@miragon/pulse-http/attempt"
+    const httpSource = "packages/core/http/src/http.ts"
     expect(adapter.violations()).toEqual([
       `engine-test-runs-the-conformance-kit: ${at("test/c7.engine.test.ts")} -> ${at("test/c7.engine.test.ts")}`,
+      `http-by-its-main-entry: ${at("src/engine-rest/http/escapes-into-http.ts")} -> ${httpSource}`,
+      `http-by-its-main-entry: ${at("src/engine-rest/http/reads-an-unexported-file.ts")} -> ${httpSubpath}`,
+      `http-by-its-main-entry: ${at("src/engine-rest/http/sends-a-test-engine.ts")} -> ${loopback}`,
+      `http-only-in-the-wire: ${at("src/errors/escapes-into-http.ts")} -> ${httpSource}`,
+      `http-only-in-the-wire: ${at("src/mapping/reads-http-subpath.ts")} -> ${httpSubpath}`,
+      `http-only-in-the-wire: ${at("src/reading/sends-itself.ts")} -> ${http}`,
+      `not-in-allowed: ${at("src/engine-rest/http/escapes-into-http.ts")} -> ${httpSource}`,
+      `not-in-allowed: ${at("src/engine-rest/http/reads-an-unexported-file.ts")} -> ${httpSubpath}`,
+      `not-in-allowed: ${at("src/engine-rest/http/sends-a-test-engine.ts")} -> ${loopback}`,
+      `not-in-allowed: ${at("src/errors/escapes-into-http.ts")} -> ${httpSource}`,
       `not-in-allowed: ${at("src/mapping-uses-node.ts")} -> child_process`,
+      `not-in-allowed: ${at("src/mapping/reads-http-subpath.ts")} -> ${httpSubpath}`,
+      `not-in-allowed: ${at("src/reading/sends-itself.ts")} -> ${http}`,
       `not-in-allowed: ${at("src/reads-c7-routes.ts")} -> ${c7Routes}`,
       `not-in-allowed: ${at("src/reads-the-client.ts")} -> @miragon/pulse-c7-client`,
       `not-in-allowed: ${at("src/reads-the-core.ts")} -> ${view}`,
       `not-in-allowed: ${at("src/ships-c7-core-testing.ts")} -> ${c7Testing}`,
       `not-in-allowed: ${at("src/ships-engine-core-testing.ts")} -> ${testing}`,
+      `not-to-unresolvable: ${at("src/engine-rest/http/reads-an-unexported-file.ts")} -> ${httpSubpath}`,
+      `not-to-unresolvable: ${at("src/mapping/reads-http-subpath.ts")} -> ${httpSubpath}`,
       `not-to-unresolvable: ${at("src/reads-the-client.ts")} -> @miragon/pulse-c7-client`,
     ])
   })

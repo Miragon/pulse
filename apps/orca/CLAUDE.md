@@ -86,7 +86,9 @@ The dependency rules are closed-world (`apps/orca/.dependency-cruiser.cjs`): the
 runtime view's ports, core, protocol and host kit, the main entry of the engine contract
 `@miragon/pulse-engine-core` (its ids and read models), `orca/worker` and Node built-ins; the panel
 `orca` and the protocol's types; the frames the protocol's types; only the composition root the
-adapter and the model reader. No part imports a dialect's core (`plugin-is-dialect-neutral`).
+adapter and the model reader. No part imports a dialect's core (`plugin-is-dialect-neutral`) or
+the transport `@miragon/pulse-http`, which the C7 adapter's wire alone sends through (the
+repository's `http-consumers`), over the worker's global `fetch`.
 `pnpm lint:architecture:orca` says where an import belongs.
 
 The project file is `.pulse.json`, read through the host kit (`TargetsParser` over

@@ -11,8 +11,8 @@
       "call": "describeEngine",
       "outcome": {
         "failure": "unreachable",
-        "hint": null,
-        "message": "Cannot reach https://127.0.0.1:<port>/engine-rest/telemetry/data (DEPTH_ZERO_SELF_SIGNED_CERT)"
+        "hint": "Check that this computer trusts the engine's certificate and that the engine serves https at this URL.",
+        "message": "Cannot reach https://127.0.0.1:<port>/engine-rest/telemetry/data: the TLS handshake failed (DEPTH_ZERO_SELF_SIGNED_CERT)"
       },
       "sent": []
     }

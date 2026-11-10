@@ -12,6 +12,8 @@ const TITLES: Readonly<Record<RuntimeFailure, (engine: string) => string>> = {
   unsupported: (engine) => `${engine} cannot do this.`,
 }
 
+const SENTENCE_END = /[.!?…]$/u
+
 const CONNECTION_FAILURES: ReadonlySet<RuntimeFailure> = new Set<RuntimeFailure>([
   "unreachable",
   "unauthorized",
@@ -30,7 +32,10 @@ export class Problems {
     }
     return {
       title: TITLES[error.failure](engine.name),
-      detail: error.hint === undefined ? error.message : `${error.message} ${error.hint}`,
+      detail:
+        error.hint === undefined
+          ? error.message
+          : `${Problems.sentence(error.message)} ${error.hint}`,
       canEditConnection: CONNECTION_FAILURES.has(error.failure),
       ...(error.failure === "unauthorized" ? { needsCredentials: true } : {}),
       ...Problems.loginRefusal(error.failure),
@@ -43,6 +48,10 @@ export class Problems {
       detail: "It may have been deleted.",
       canEditConnection: false,
     }
+  }
+
+  private static sentence(message: string): string {
+    return SENTENCE_END.test(message) ? message : `${message}.`
   }
 
   private static loginRefusal(failure: RuntimeFailure): Pick<Problem, "loginRefused"> {

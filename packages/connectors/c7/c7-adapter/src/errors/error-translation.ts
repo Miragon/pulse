@@ -1,5 +1,10 @@
 import { RuntimeError, type RuntimeFailure } from "@miragon/pulse-engine-core"
-import { EngineRequestError, UnexpectedAnswerError } from "../engine-rest/index.js"
+import {
+  EngineRequestError,
+  EngineTexts,
+  Present,
+  UnexpectedAnswerError,
+} from "../engine-rest/index.js"
 import { Redaction } from "../writing/redaction.js"
 
 type Refusal = "byEngine" | "beforeWork"
@@ -9,7 +14,9 @@ export class ErrorTranslation {
     try {
       return await work()
     } catch (error: unknown) {
-      throw ErrorTranslation.runtimeErrorOf(error)
+      throw RuntimeError.is(error)
+        ? error
+        : ErrorTranslation.runtimeErrorOf(error, Redaction.NOTHING)
     }
   }
 
@@ -50,22 +57,25 @@ export class ErrorTranslation {
     return ErrorTranslation.isRefused(error, "byEngine")
   }
 
-  private static runtimeErrorOf(error: unknown): RuntimeError {
-    if (RuntimeError.is(error)) {
-      return error
-    }
+  private static runtimeErrorOf(error: unknown, redaction: Redaction): RuntimeError {
     if (error instanceof EngineRequestError) {
-      return new RuntimeError(ErrorTranslation.failureOf(error), error.message, { cause: error })
+      return new RuntimeError(
+        ErrorTranslation.failureOf(error),
+        ErrorTranslation.shown(error.message, redaction),
+        { cause: error, ...Present.fields({ hint: error.hint }) },
+      )
     }
     const message = error instanceof UnexpectedAnswerError ? error.message : String(error)
-    return new RuntimeError("unexpectedResponse", message, { cause: error })
+    return new RuntimeError("unexpectedResponse", ErrorTranslation.shown(message, redaction), {
+      cause: error,
+    })
   }
 
   private static failureOf(error: EngineRequestError): RuntimeFailure {
-    if (error.failure === "unanswered") {
-      return "unreachable"
+    const status = error.status
+    if (status === undefined) {
+      return error.failure === "unanswered" ? "unreachable" : "misconfigured"
     }
-    const status = error.status ?? 0
     if (status === 401 || status === 403) {
       return status === 403 ? "forbidden" : "unauthorized"
     }
@@ -91,12 +101,21 @@ export class ErrorTranslation {
   ): RuntimeError {
     if (ErrorTranslation.isArgument(error) || ErrorTranslation.isRefused(error, refusal)) {
       const message = error instanceof Error ? error.message : String(error)
-      return new RuntimeError("rejected", redaction.applyTo(message), { cause: error })
+      return new RuntimeError("rejected", ErrorTranslation.shown(message, redaction), {
+        cause: error,
+        ...Present.fields({ hint: EngineRequestError.hintOf(error) }),
+      })
     }
-    const translated = ErrorTranslation.runtimeErrorOf(error)
-    return new RuntimeError(translated.failure, redaction.applyTo(translated.message), {
+    if (!RuntimeError.is(error)) {
+      return ErrorTranslation.runtimeErrorOf(error, redaction)
+    }
+    return new RuntimeError(error.failure, redaction.applyTo(error.message), {
       cause: error,
-      ...(translated.hint === undefined ? {} : { hint: translated.hint }),
+      ...Present.fields({ hint: error.hint }),
     })
+  }
+
+  private static shown(message: string, redaction: Redaction): string {
+    return EngineTexts.cut(redaction.applyTo(message))
   }
 }

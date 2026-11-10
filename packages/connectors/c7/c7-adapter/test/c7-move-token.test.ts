@@ -257,7 +257,7 @@ describe("moving a token", () => {
 
     await expect(attempt).rejects.toMatchObject({
       failure: "rejected",
-      message: "HTTP 400: Cannot start Unknown_Element: ‹value›",
+      message: "HTTP 400 Bad Request: Cannot start Unknown_Element: ‹value›",
     })
   })
 

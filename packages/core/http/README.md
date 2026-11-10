@@ -5,11 +5,12 @@
 [![Docs](https://img.shields.io/badge/docs-miragon.github.io%2Fpulse-335DE5?style=flat-square)](https://miragon.github.io/pulse/)
 
 One HTTP transport for the engines Pulse reaches: the Pulse MCP server's engine connector, the
-[Pulse CLI](https://www.npmjs.com/package/@miragon/pulse-cli) and Pulse for VS Code. It holds the
+[Pulse CLI](https://www.npmjs.com/package/@miragon/pulse-cli) and the C7 adapter of Pulse for VS
+Code and Pulse for Orca. It holds the
 rules of the wire once, so every client keeps them alike: a deadline to the last byte of the
 answer, never a redirect, a size cap, one credential seam with exactly one second attempt after
 a 401 when the credential renewed, failure reasons as data, lossless JSON and the request's
-secrets masked in every text the server sent back.
+secrets masked in each error answer, failure and trace.
 
 ## What it is not
 

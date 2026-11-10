@@ -591,8 +591,12 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      CLI sends through it as well (`apps/cli/src/http/client.ts`, the connection mapped from its
      resolved configuration; its cases in `apps/cli/src/http/transport-cases.test.ts`) and words
      every failure itself (`apps/cli/src/http/errors.ts`, the wrong-root hint by
-     `isUnknownEndpoint` too); the C7 adapter of the editor hosts keeps its own until it switches
-     to it.
+     `isUnknownEndpoint` too), and so does the C7 adapter of the editor hosts from its wire
+     (`packages/connectors/c7/c7-adapter/src/engine-rest/http`: `EngineHttp` over `Http.send`,
+     60 s and 64 MiB, a read-only connection the transport's `readOnly`), which words every failure
+     itself (the reason of each `HttpFailure`, the root hint by `isUnknownEndpoint`) before its
+     `ErrorTranslation` maps it onto the contract's failures (TLS and DNS stay `unreachable`;
+     its cases in `packages/connectors/c7/c7-adapter/test/engine-rest/transport-cases.test.ts`).
      Every write tool has a
      recording-fake-engine case in `src/tools/*.wire.test.ts`.
    - **One Camunda 7 REST spec** (`packages/connectors/c7/c7-core/spec/api.json`, Operaton's,
@@ -607,8 +611,8 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      sends through `routedTransport` keeps no table of its own: the server's composites go out as
      routes of `CORE_ROUTES` through its client (`src/lib/core-adapter/engine-port.ts`), and the
      intent of each SDK request comes from `@miragon/pulse-c7-core/routes`, so a reading POST
-     never carries the write caveat; the C7 adapter's `InspectOperations` stays until it
-     does. The effect rule
+     never carries the write caveat; the C7 adapter's inspection goes out as routes of
+     `CORE_ROUTES` over its `EngineHttp` (`HttpEngineTransport`). The effect rule
      (`packages/connectors/c7/c7-core/scripts/effects.ts`) has one home: the CLI's catalog takes
      each effect from the table.
    - The workflow rules the CLI and the read composites (`engine_inspect_process_instance`,
@@ -698,7 +702,8 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      family's adapter of the runtime view, a connector's `src/lib/engine` (where the engine
      connector sends through it, behind `resolveEngine`/`withEngine`; never its tools, data
      builders or widgets), and tests anywhere, never the MCP server app's shipped code
-     (`http-consumers`, `HTTP_USERS`; until the adapter switches to it, only its tests do); the
+     (`http-consumers`, `HTTP_USERS`; in the C7 adapter only its wire, `src/engine-rest/http`, by
+     its closed world's `http-only-in-the-wire`, and only by the main entry); the
      engine family's core (`@miragon/pulse-engine-core`,
      `packages/connectors/engine/engine-core`) is a family core like any other, importing only its
      own modules (`family-core-is-a-leaf`), and is imported only where a dialect is implemented,

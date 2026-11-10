@@ -29,6 +29,7 @@
   "dependencies": {
     "@miragon/pulse-c7-core": "workspace:*",
     "@miragon/pulse-engine-core": "workspace:*",
+    "@miragon/pulse-http": "workspace:*",
     "@miragon/pulse-runtime-view": "workspace:*"
   },
   "devDependencies": {

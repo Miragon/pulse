@@ -298,6 +298,26 @@ describe("changing a variable", () => {
     expect(engine.requests).toEqual([])
   })
 
+  test("names the REST root when a write meets a container's 404 instead of the engine", async () => {
+    const { commands } = fakeCommands([
+      {
+        route: setVariableRoute("amount"),
+        answer: new Response("<html><body><h1>HTTP Status 404 – Not Found</h1></body></html>", {
+          status: 404,
+          headers: { "Content-Type": "text/html;charset=utf-8" },
+        }),
+      },
+    ])
+
+    const attempt = commands.setVariable(INSTANCE, { name: "amount", valueJson: "43" })
+
+    await expect(attempt).rejects.toMatchObject({
+      failure: "rejected",
+      message: "HTTP 404 Not Found",
+      hint: "Check that the engine URL points at the REST API root itself, such as http://localhost:8080/engine-rest.",
+    })
+  })
+
   test("keeps the value out of the error the engine sends back", async () => {
     const { commands } = fakeCommands([
       {

@@ -11,8 +11,8 @@
       "call": "describeEngine",
       "outcome": {
         "failure": "misconfigured",
-        "hint": null,
-        "message": "HTTP 302"
+        "hint": "Pulse never follows a redirect: point the engine URL at the REST API root itself (https:// if the engine redirects from http://). A redirect to a login page means the credentials are missing or expired.",
+        "message": "HTTP 302 Found: redirects to https://sso.example.com/realms/ops/protocol/openid-connect/auth"
       },
       "sent": [
         "GET /engine-rest/telemetry/data"
@@ -22,8 +22,8 @@
       "call": "getInstanceDetail pi-1",
       "outcome": {
         "failure": "misconfigured",
-        "hint": null,
-        "message": "HTTP 302"
+        "hint": "Pulse never follows a redirect: point the engine URL at the REST API root itself (https:// if the engine redirects from http://). A redirect to a login page means the credentials are missing or expired.",
+        "message": "HTTP 302 Found: redirects to https://sso.example.com/realms/ops/protocol/openid-connect/auth"
       },
       "sent": [
         "GET /engine-rest/history/activity-instance?processInstanceId=pi-1&sortBy=occurrence&sortOrder=asc&firstResult=0&maxResults=500",

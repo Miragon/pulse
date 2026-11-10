@@ -16,6 +16,8 @@ const HISTORIC = `GET /history/batch/${BATCH}`
 const SUSPEND = `PUT /batch/${BATCH}/suspended`
 const DELETE = `DELETE /batch/${BATCH}`
 const NO_CONTENT = new Response(null, { status: 204 })
+const STATUS_LINE = "HTTP 500 Internal Server Error: "
+const CUT = 500
 
 const BATCH_FIELDS = {
   id: BATCH,
@@ -120,6 +122,33 @@ describe("cancelling instances", () => {
     expect(error).toMatchObject({ failure: "engineFailure" })
     expect(error?.message).not.toContain("ticket")
   })
+
+  test.each([
+    ["early in it", 100],
+    ["across the cut", CUT - STATUS_LINE.length - " reason ".length - "cle".length],
+  ])(
+    "keeps a reason of several lines out of a long engine error, %s, before cutting it",
+    async (_name, before) => {
+      const reason = "cleanup\nof ticket 42"
+      const text = `${"x".repeat(before)} reason ${reason} and more ${"y".repeat(600)}`
+      const { commands } = fakeCommands([
+        {
+          route: "POST /process-instance/delete",
+          answer: engineFailure(500, "ProcessEngineException", text),
+        },
+      ])
+
+      const error = await commands.cancelInstances(IDS, { reason }).then(
+        () => undefined,
+        (caught: unknown) => caught as RuntimeError,
+      )
+
+      const redacted = `${STATUS_LINE}${"x".repeat(before)} reason ‹value› and more ${"y".repeat(600)}`
+      expect(error?.message).toBe(`${redacted.slice(0, CUT)}…`)
+      expect(error?.message).not.toContain("cle")
+      expect(error?.message).not.toContain("ticket")
+    },
+  )
 })
 
 describe("reading a bulk operation", () => {

@@ -116,7 +116,7 @@ repository's CI (`.github/workflows/ci.yml`) next to the server's.
 
 - The extension runs no mutation testing (owner decision, 2026-11-04): the repository
   mutates only `@miragon/pulse-c7-core`, whose engine rules the C7 adapter runs,
-  `@miragon/pulse-http`, the transport the adapters are to send through (owner decision 2026-11-08),
+  `@miragon/pulse-http`, the transport the C7 adapter sends through (owner decision 2026-11-08),
   the rules of `@miragon/pulse-engine-core`, the contract the runtime view speaks, `RootCauses`,
   `ValueKinds` and `MoveReasons`
   (`packages/connectors/engine/engine-core/src/model/root-causes.ts`, `value-kinds.ts` and

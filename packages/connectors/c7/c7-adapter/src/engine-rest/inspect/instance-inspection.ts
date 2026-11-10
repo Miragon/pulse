@@ -24,7 +24,7 @@ export class InstanceInspection {
   private readonly port: EnginePort
 
   constructor(private readonly http: EngineHttp) {
-    this.port = createEnginePort(new HttpEngineTransport(http))
+    this.port = createEnginePort(HttpEngineTransport.over(http))
   }
 
   async inspect(id: string): Promise<InspectView | undefined> {

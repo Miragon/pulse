@@ -5,7 +5,8 @@ The adapter that answers Pulse's questions and writes for Operaton, CIB seven an
 ## Why
 
 Operaton and CIB seven are forks of Camunda 7 and keep its REST API, so one adapter serves all
-three. It calls that REST API itself with `fetch`
+three. It calls that REST API itself through `@miragon/pulse-http`, the transport the CLI and
+the MCP server send through, over the global `fetch` of its host's runtime
 ([c7-adapter.md](../../../../../apps/vscode/docs/adr/c7-adapter.md)), no child process, and runs
 the core of the dialect family c7, `@miragon/pulse-c7-core` (the inspection of an instance, its
 wait states, the target of an incident's retry, the request that holds its cause and the typing
@@ -33,7 +34,7 @@ flowchart LR
 
 1. The core asks a question through the `ProcessRuntime` port, e.g. "details of instance X".
 2. A reader turns it into one or more engine calls and runs them in parallel where it can.
-3. `engine-rest` sends them with the connection's credentials, never follows a redirect, stops after 60 s or 64 MiB; a connection for reads refuses every write.
+3. `engine-rest` sends them through the transport with the connection's credentials: it never follows a redirect, stops after 60 s or 64 MiB, masks the credentials in the engine's error answers (a password of four characters or more); a connection for reads refuses every write.
 4. It parses the JSON without losing digits and checks each field it reads.
 5. The reader turns these views into the contract's read model; failures become a `RuntimeError`.
 
@@ -47,11 +48,12 @@ Writes (`ProcessCommands`) take the same road on a connection that may write.
 - `packages/connectors/c7/c7-adapter/src/writing`, `packages/connectors/c7/c7-adapter/src/errors`: the bodies of a variable change and a move, the token a move cancels; failures to `RuntimeError`
 - `packages/connectors/c7/c7-adapter/src/web-ui`: `CockpitWebUi`: links into Cockpit or the CIB seven webclient
 - `packages/connectors/c7/c7-adapter/src/engine-rest`: the REST client: requests, paging, parsed and checked views
-- `packages/connectors/c7/c7-adapter/src/engine-rest/inspect`: c7-core's port over `EngineHttp` (`HttpEngineTransport`); the adapter's `InspectView` is c7-core's instance view with its timeline, no mirror type
+- `packages/connectors/c7/c7-adapter/src/engine-rest/http`: the wire: `EngineHttp` over the transport, and how each of its failures reads
+- `packages/connectors/c7/c7-adapter/src/engine-rest/inspect`: c7-core's port over `EngineHttp` (`HttpEngineTransport`, the routes of `CORE_ROUTES`); the adapter's `InspectView` is c7-core's instance view with its timeline, no mirror type
 
 ## Rules
 
-- `packages/connectors/c7/c7-adapter/src` imports only the main entries of `@miragon/pulse-engine-core` (the contract) and `@miragon/pulse-c7-core`, the runtime view's ports and no Node built-in (dependency-cruiser); no other layer of the editor hosts imports c7-core
+- `packages/connectors/c7/c7-adapter/src` imports only the main entries of `@miragon/pulse-engine-core` (the contract) and `@miragon/pulse-c7-core`, the runtime view's ports, in its wire (`src/engine-rest/http`) the main entry of `@miragon/pulse-http`, and no Node built-in (dependency-cruiser); no other layer of the editor hosts imports c7-core or the transport
 - Engine words are allowed here, not in contract, core or webview; classes, no comments (ESLint)
 
 ## Proven on

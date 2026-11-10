@@ -13,14 +13,20 @@ inspection of an instance, which incident types the engine raises itself
 (`BUILT_IN_INCIDENT_TYPES`), which job or external task an incident names, for its retry and in
 the incident list (`incidentRecovery`), which request holds an incident's cause
 (`CAUSE_OPERATIONS`), and how a written variable is typed (`autoTypedValue`, `toEngineVariable`).
+It sends every request through `@miragon/pulse-http`, the transport the CLI and the MCP server
+send through, from its wire alone (`src/engine-rest/http`: `EngineHttp`, 60 s and 64 MiB, over
+the global `fetch` of its host's runtime), and its inspection goes out as routes of c7-core's
+`CORE_ROUTES`.
 
 The conformance kit of the contract (`@miragon/pulse-engine-core/testing`) proves it on a real
 engine (`test/c7-conformance.engine.test.ts`, `test:engines`, in Testcontainers; the CI's
 `Engines (<flavor>)` legs). Its error-path goldens (`test/__golden__/error-paths/`, the same cases
 the CLI and the MCP server pin) change only through
-`pnpm --fail-if-no-match --filter @miragon/pulse-c7-adapter golden:update`. Its closed-world
-dependency rules are `.dependency-cruiser.cjs` (`pnpm lint:architecture:c7-adapter`); the
-decisions behind it are `apps/vscode/docs/adr/c7-adapter.md`.
+`pnpm --fail-if-no-match --filter @miragon/pulse-c7-adapter golden:update`. Its wire passes the transport's
+conformance cases it can express (`test/engine-rest/transport-cases.test.ts`). Its closed-world
+dependency rules are `.dependency-cruiser.cjs` (`pnpm lint:architecture:c7-adapter`; only the
+wire imports the transport, by its main entry); the decisions behind it are
+`apps/vscode/docs/adr/c7-adapter.md`.
 
 ```sh
 pnpm --filter @miragon/pulse-c7-adapter test               # against a recorded REST API, coverage floors

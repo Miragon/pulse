@@ -41,10 +41,11 @@ interface PinnedCase {
   readonly name: ErrorPathCase
   readonly engine: () => Promise<Engine>
   readonly credentials?: EngineCredentials
-  readonly send?: typeof fetch
+  readonly shortDeadline?: true
   readonly probes?: readonly Probe[]
 }
 
+const ADAPTER_DEADLINE_MS = 60_000
 const DEADLINE_MS = 300
 const MORE_THAN_THE_CAP = String(64 * 1024 * 1024 + 1)
 
@@ -62,9 +63,6 @@ const nothingListens = (endpoint: string): Engine => ({
   shortRound: () => undefined,
   close: () => Promise.resolve(),
 })
-
-const shortDeadline: typeof fetch = (input, init) =>
-  fetch(input, { ...init, signal: AbortSignal.timeout(DEADLINE_MS) })
 
 const basic = (password: string): EngineCredentials => ({
   kind: "basic",
@@ -99,7 +97,7 @@ const PINNED: readonly PinnedCase[] = [
       const engine = await startSilentEngine()
       return { ...engine, endpoint: `${engine.origin}/engine-rest` }
     },
-    send: shortDeadline,
+    shortDeadline: true,
     probes: BOTH_PATHS,
   },
   {
@@ -159,6 +157,19 @@ async function outcomeOf(attempt: Promise<unknown>): Promise<Record<string, unkn
   }
 }
 
+async function withShortDeadline<T>(attempt: () => Promise<T>): Promise<T> {
+  const setTimer = globalThis.setTimeout
+  const timers = vi.spyOn(globalThis, "setTimeout")
+  timers.mockImplementation((handler, delay, ...args) =>
+    setTimer(handler, delay === ADAPTER_DEADLINE_MS ? DEADLINE_MS : delay, ...args),
+  )
+  try {
+    return await attempt()
+  } finally {
+    timers.mockRestore()
+  }
+}
+
 async function probed<T>(engine: Engine, probe: Probe, attempt: () => Promise<T>): Promise<T> {
   engine.begin(ROUNDS[probe])
   const outcome = await attempt()
@@ -178,10 +189,13 @@ async function goldenOf(pinned: PinnedCase): Promise<Record<string, unknown>> {
     credentials: pinned.credentials ?? { kind: "none" },
   }
   try {
-    const runtime = new C7Adapter(pinned.send ?? fetch).runtime(connection)
+    const runtime = new C7Adapter(fetch).runtime(connection)
     const probes = []
     for (const probe of pinned.probes ?? ["describeEngine"]) {
-      const outcome = await probed(engine, probe, () => outcomeOf(call(runtime, probe)))
+      const attempt = () => outcomeOf(call(runtime, probe))
+      const outcome = await probed(engine, probe, () =>
+        pinned.shortDeadline ? withShortDeadline(attempt) : attempt(),
+      )
       const sent = sentLines(engine.requests, probe === "describeEngine")
       probes.push({ call: probe, outcome, sent })
     }

@@ -14,7 +14,7 @@
       "outcome": {
         "failure": "unauthorized",
         "hint": null,
-        "message": "HTTP 401"
+        "message": "HTTP 401 Unauthorized"
       },
       "sent": [
         "GET /engine-rest/telemetry/data [Basic ZGVtbzpkZW1vLXNlY3JldA==]"

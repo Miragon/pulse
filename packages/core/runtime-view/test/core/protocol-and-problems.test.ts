@@ -80,6 +80,26 @@ describe("the problem shown for a failure", () => {
     expect(Problems.of(error, ENGINE).detail).toBe("HTTP 401. Set the credentials.")
   })
 
+  test.each([
+    [
+      "HTTP 404 Not Found",
+      "HTTP 404 Not Found. Check that the engine URL points at the REST API root itself.",
+    ],
+    [
+      "Cannot reach https://dev.invalid/engine-rest: the host name does not resolve (ENOTFOUND)",
+      "Cannot reach https://dev.invalid/engine-rest: the host name does not resolve (ENOTFOUND). Check that the engine URL points at the REST API root itself.",
+    ],
+    [
+      "HTTP 500 Internal Server Error: xxx…",
+      "HTTP 500 Internal Server Error: xxx… Check that the engine URL points at the REST API root itself.",
+    ],
+  ])("ends the message %j as a sentence before the hint", (message, detail) => {
+    const error = new RuntimeError("misconfigured", message, {
+      hint: "Check that the engine URL points at the REST API root itself.",
+    })
+    expect(Problems.of(error, ENGINE).detail).toBe(detail)
+  })
+
   test("stays readable for errors that are not runtime errors", () => {
     expect(Problems.of(new Error("kaputt"), ENGINE)).toEqual({
       title: "Loading from dev failed.",

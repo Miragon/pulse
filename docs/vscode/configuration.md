@@ -61,5 +61,8 @@ never guesses this URL. It must be an `http` or `https` URL without credentials:
 ## Proxy and certificates
 
 Pulse calls the engine's REST API from the extension host with VS Code's network settings
-(`http.proxy`, `http.systemCertificates`, `http.proxyStrictSSL`). It never follows a redirect,
-reads at most 64 MiB of an answer and gives up on a call after 60 s.
+(`http.proxy`, `http.systemCertificates`, `http.proxyStrictSSL`), through `@miragon/pulse-http`,
+the transport the CLI and the MCP server send through too. It never follows a redirect, reads at
+most 64 MiB of an answer, gives up on a call after 60 s and shows a password the engine echoes
+in an error as `***` (a password of four characters or more). A certificate VS Code does not trust and a host name that does not resolve each say so,
+with what to check.

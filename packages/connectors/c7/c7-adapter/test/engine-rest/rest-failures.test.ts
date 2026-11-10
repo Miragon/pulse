@@ -55,6 +55,59 @@ describe("REST failures as runtime errors", () => {
     expect(await failureOf(runtime.describeEngine())).toBe("unreachable")
   })
 
+  test.each([
+    ["a host name that does not resolve", "ENOTFOUND", "Check the host name in the engine URL."],
+    [
+      "a certificate the engine is not trusted with",
+      "SELF_SIGNED_CERT_IN_CHAIN",
+      "Check that this computer trusts the engine's certificate and that the engine serves https at this URL.",
+    ],
+  ])("reads %s as unreachable, with what to check", async (_name, code, hint) => {
+    const failed = Object.assign(new TypeError("fetch failed"), {
+      cause: Object.assign(new Error(code), { code }),
+    })
+    const outcome = await runtimeAnswering(() => Promise.reject(failed))
+      .describeEngine()
+      .catch((error: unknown) => error)
+    expect(outcome).toMatchObject({ failure: "unreachable", hint })
+    expect(outcome).toHaveProperty("message", expect.stringContaining(`(${code})`))
+  })
+
+  test("reads a REST root without the engine as misconfigured, naming the root", async () => {
+    const outcome = await runtimeAnswering(engineFailure(404, "NotFoundException", "no route"))
+      .describeEngine()
+      .catch((error: unknown) => error)
+    expect(outcome).toMatchObject({
+      failure: "misconfigured",
+      message: "HTTP 404 Not Found: no route",
+      hint: "Check that the engine URL points at the REST API root itself, such as http://localhost:8080/engine-rest.",
+    })
+  })
+
+  test("reads a connection whose credentials cannot be sent as misconfigured, sending nothing", async () => {
+    const engine = fakeEngineRest([])
+    const runtime = new C7Adapter(engine.send).runtime({
+      endpoint: REST_URL,
+      credentials: { kind: "basic", username: "de:mo", password: "s3cret" },
+    })
+    expect(await failureOf(runtime.describeEngine())).toBe("misconfigured")
+    expect(engine.requests).toEqual([])
+  })
+
+  test("cuts a long engine text after 500 characters, on one line", async () => {
+    const text = `boom\n${"\tat com.example.Worker.run(Worker.java:1)\n".repeat(40)}`
+    const outcome = await runtimeAnswering(engineFailure(500, "ProcessEngineException", text))
+      .describeEngine()
+      .then(
+        () => undefined,
+        (error: unknown) => error as Error,
+      )
+    expect(outcome).toMatchObject({ failure: "engineFailure" })
+    expect(outcome?.message).toMatch(/^HTTP 500 Internal Server Error: boom at com\.example/)
+    expect(outcome?.message).not.toContain("\n")
+    expect(outcome?.message.length).toBe(501)
+  })
+
   test("reads an answer past the size cap as unexpected", async () => {
     const huge = new Response("x", { headers: { "Content-Length": String(65 * 1024 * 1024) } })
     expect(await failureOf(runtimeAnswering(huge).describeEngine())).toBe("unexpectedResponse")
@@ -78,6 +131,14 @@ describe("REST failures as runtime errors", () => {
     ])
     const runtime = new C7Adapter(engine.send).runtime(CONNECTION)
     expect(await runtime.getInstanceDetail(InstanceId("gone"))).toBeUndefined()
+  })
+
+  test("reads a request the platform cannot build as misconfigured, never as no detail", async () => {
+    const invalid = Object.assign(new TypeError("fetch failed"), {
+      cause: Object.assign(new Error("invalid argument"), { code: "UND_ERR_INVALID_ARG" }),
+    })
+    const runtime = runtimeAnswering(() => Promise.reject(invalid))
+    expect(await failureOf(runtime.getInstanceDetail(InstanceId("x")))).toBe("misconfigured")
   })
 
   test.each([

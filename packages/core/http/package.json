@@ -1,7 +1,7 @@
 {
   "name": "@miragon/pulse-http",
   "version": "0.27.1",
-  "description": "One HTTP transport for the Pulse MCP server, the Pulse CLI and Pulse for VS Code: a deadline to the last byte, no redirect, a size cap, one credential seam with one retry after 401, failure reasons as data, lossless JSON and masked secrets, over the fetch you hand it. No runtime dependency.",
+  "description": "One HTTP transport for the Pulse MCP server, the Pulse CLI and the C7 adapter of Pulse for VS Code and Pulse for Orca: a deadline to the last byte, no redirect, a size cap, one credential seam with one retry after 401, failure reasons as data, lossless JSON and masked secrets, over the fetch you hand it. No runtime dependency.",
   "license": "MIT",
   "keywords": [
     "http",

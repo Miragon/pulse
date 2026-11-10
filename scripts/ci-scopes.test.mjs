@@ -328,6 +328,13 @@ describe("the real workspace", () => {
     }
   })
 
+  it("runs the editor hosts' checks for the transport, which their C7 adapter sends through", () => {
+    const changed = scopesFor(["packages/core/http/src/http.ts"], packages)
+    for (const scope of ["cli", "mcp", "orca", "template", "vscode", "vscode-package"]) {
+      assert.ok(changed.has(scope), scope)
+    }
+  })
+
   it("keeps the MCP server and the template apart from what only the editor hosts bundle", () => {
     for (const file of [
       "packages/core/runtime-view/src/core/index.ts",

@@ -1,35 +1,57 @@
 import { isMissing } from "@miragon/pulse-c7-core"
 
-export type EngineRequestFailure = "refused" | "unanswered" | "answered"
+export type EngineRequestFailure = "refused" | "unusable" | "unanswered" | "answered"
+
+export interface EngineRequestDetails {
+  readonly engineType?: string
+  readonly hint?: string
+  readonly cause?: unknown
+}
 
 const RESOURCE_GONE = "NullValueException"
 
 export class EngineRequestError extends Error {
   override readonly name = "EngineRequestError"
+  readonly engineType: string | undefined
+  readonly hint: string | undefined
 
   private constructor(
     message: string,
     readonly failure: EngineRequestFailure,
-    readonly status?: number,
-    readonly engineType?: string,
+    readonly status: number | undefined,
+    details: EngineRequestDetails,
   ) {
-    super(message)
+    super(message, details.cause === undefined ? {} : { cause: details.cause })
+    this.engineType = details.engineType
+    this.hint = details.hint
   }
 
-  static refused(message: string): EngineRequestError {
-    return new EngineRequestError(message, "refused")
+  static refused(message: string, details: EngineRequestDetails = {}): EngineRequestError {
+    return new EngineRequestError(message, "refused", undefined, details)
   }
 
-  static unanswered(message: string): EngineRequestError {
-    return new EngineRequestError(message, "unanswered")
+  static unusable(message: string, details: EngineRequestDetails = {}): EngineRequestError {
+    return new EngineRequestError(message, "unusable", undefined, details)
   }
 
-  static answered(status: number, message: string, engineType?: string): EngineRequestError {
-    return new EngineRequestError(message, "answered", status, engineType)
+  static unanswered(message: string, details: EngineRequestDetails = {}): EngineRequestError {
+    return new EngineRequestError(message, "unanswered", undefined, details)
+  }
+
+  static answered(
+    status: number,
+    message: string,
+    details: EngineRequestDetails = {},
+  ): EngineRequestError {
+    return new EngineRequestError(message, "answered", status, details)
   }
 
   static statusOf(error: unknown): number | undefined {
     return error instanceof EngineRequestError ? error.status : undefined
+  }
+
+  static hintOf(error: unknown): string | undefined {
+    return error instanceof EngineRequestError ? error.hint : undefined
   }
 
   static isMissingResource(error: unknown): boolean {

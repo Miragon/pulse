@@ -15,7 +15,7 @@ flowchart LR
   host --> core["core: panel sessions, view builders"]
   core --> engineCore["@miragon/pulse-engine-core: ports and read models"]
   c7["C7 adapter"] -. implements .-> engineCore
-  c7 --> engines["Operaton, CIB seven, Camunda 7: /engine-rest"]
+  c7 -- "@miragon/pulse-http" --> engines["Operaton, CIB seven, Camunda 7: /engine-rest"]
   c7 -- bundled --> c7core["c7-core: inspect, wait states, incident recovery, variable typing"]
 ```
 
