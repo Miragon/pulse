@@ -37,7 +37,13 @@ function locationOf(response: Response, sent: Sent): string | undefined {
   return clipText(maskSecrets(targetOf(new URL(location, sent.url).href), sent.forms), MAX_LOCATION)
 }
 
-function redirectFailure(response: Response, sent: Sent): HttpFailure {
+/** Whether `response` is a 3xx, which is never followed. */
+export function isRedirect(response: Response): boolean {
+  return response.type === "opaqueredirect" || (response.status >= 300 && response.status < 400)
+}
+
+/** A 3xx as a failure: its body is never read, its target masked and cut. */
+export function redirectFailure(response: Response, sent: Sent): HttpFailure {
   response.body?.cancel().catch(ignore)
   const location = locationOf(response, sent)
   return new HttpFailure("redirect", {
@@ -81,15 +87,18 @@ function maskedAnswer(answer: HttpAnswer, forms: readonly string[]): HttpAnswer 
   )
 }
 
-/** The answer to `sent`: a 3xx fails, the body is read to its last byte or fails. */
+/** An answer read, and the size of its body as the server sent it, before any mask. */
+export interface Read {
+  readonly answer: HttpAnswer
+  readonly bytes: number
+}
+
+/** The answer to `sent`, never a 3xx (`isRedirect`): the body is read to its last byte or fails. */
 export async function answerOf(
   response: Response,
   sent: Sent,
   limits: { readonly cap: number; readonly signal: AbortSignal },
-): Promise<HttpAnswer> {
-  if (response.type === "opaqueredirect" || (response.status >= 300 && response.status < 400)) {
-    throw redirectFailure(response, sent)
-  }
+): Promise<Read> {
   const body = await readBody(response, limits.cap, limits.signal)
   if (body === undefined) {
     throw new HttpFailure("too-large", {
@@ -107,5 +116,6 @@ export async function answerOf(
     headers: Object.fromEntries(response.headers),
     body,
   }
-  return answer.status >= 400 ? maskedAnswer(answer, sent.forms) : answer
+  const read = answer.status >= 400 ? maskedAnswer(answer, sent.forms) : answer
+  return { answer: read, bytes: body.byteLength }
 }

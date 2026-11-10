@@ -228,17 +228,18 @@ describe("the edges of a request", () => {
   })
 
   it("is a redirect from 300 on, and measures each answer by the platform's clock", async () => {
-    // The redirect reads the clock once (it ends before an answer), the answer twice.
-    const clock = [0, 1_000, 1_250]
+    // Each answer reads the clock twice, a redirect included.
+    const clock = [0, 40, 1_000, 1_250]
     const fake = platformOf([new Response(null, { status: 300 }), jsonAnswer({})])
     const http = createHttp(
       { url: ROOT, credential: noCredential, timeoutMs: 1_000 },
       { ...fake.platform, now: () => clock.shift() ?? 0 },
     )
     expect(await failureOf(http.send(GET))).toMatchObject({ reason: "redirect", status: 300 })
+    expect(fake.events.at(-1)).toMatchObject({ status: 300, durationMs: 40 })
     await http.send({ ...GET, headers: { "X-Plain": "1", "Proxy-Authorization": "Basic x" } })
     expect(fake.events.at(-2)).toMatchObject({
-      headers: { "proxy-authorization": "***", "x-plain": "1" },
+      headers: { "X-Plain": "1", "Proxy-Authorization": "Basic ***" },
       secretHeaders: ["proxy-authorization"],
     })
     expect(fake.events.at(-1)).toMatchObject({ durationMs: 250 })

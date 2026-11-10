@@ -997,8 +997,10 @@ workspace (its header lists each check).
 | Manual            | `pnpm play` (or the playground + `pnpm dev` with a `.env`), then exercise tools/widgets in the MCP Inspector it starts. The default boot is read-only; write paths need an explicit suffix: `pnpm play --admin`, or `MCP_ACTIVE_MODULES=engine:admin` in `.env`                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 
 The repo guards `pnpm test` runs over the real tree: docs-refs, old-names, published imports,
-tool-name and hand-off references, server env names, the source scan's `APP_SCAN` and the
-template's pins and shipped module list. Besides the dependency-cruiser and ESLint self-tests
+tool-name and hand-off references, server env names, the source scan's `APP_SCAN`, the
+template's pins and shipped module list, and that only the CLI's sources set
+`@miragon/pulse-http`'s `revealSecrets` (`scripts/trace-secrets.test.mjs`: a trace shows a
+request's secrets only for its `--show-secrets`, owner decision 2026-11-10). Besides the dependency-cruiser and ESLint self-tests
 (invariants 8 and 1), the naming, package-scripts, ratchet, GitHub-config, CI-scope and pack-content checks each prove
 themselves on planted violations in fixtures; the gates of the editor hosts and of the packages
 they share live in the `test/architecture` of `apps/vscode`, `apps/orca`,

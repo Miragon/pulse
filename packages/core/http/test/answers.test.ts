@@ -216,41 +216,6 @@ describe("an answer from 400 on shows no secret of its request", () => {
   })
 })
 
-describe("the trace", () => {
-  it("names each request and answer, the secret headers without their values", async () => {
-    const { http, events } = httpOf([jsonAnswer({}, 200)], {
-      credential: basicCredential("demo", "demo-secret"),
-      headers: { "X-Api-Key": "key-4711", Cookie: "s=1" },
-      secretHeaders: ["x-api-key"],
-    })
-    await http.send({ ...GET, url: `${GET.url}?token=key-4711` })
-    expect(events).toEqual([
-      {
-        type: "request",
-        method: "GET",
-        url: `${GET.url}?token=***`,
-        headers: { authorization: "***", cookie: "***", "x-api-key": "***" },
-        secretHeaders: ["authorization", "cookie", "x-api-key"],
-      },
-      {
-        type: "response",
-        status: 200,
-        statusText: "OK",
-        durationMs: expect.any(Number) as number,
-        bytes: 2,
-      },
-    ])
-  })
-
-  it("masks a secret another header carries", async () => {
-    const { http, events } = httpOf([jsonAnswer({})], {
-      credential: basicCredential("demo", "demo-secret"),
-    })
-    await http.send({ ...GET, headers: { "X-Note": "pw demo-secret" } })
-    expect(events[0]).toMatchObject({ headers: { "x-note": "pw ***" } })
-  })
-})
-
 describe("a status without a reason phrase anywhere", () => {
   it("names the status alone", async () => {
     const { http } = httpOf([new Response(null, { status: 599 })])

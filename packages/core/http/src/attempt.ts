@@ -2,13 +2,14 @@
  * One attempt on the wire: the headers, the trace, the deadline from sending to the last byte,
  * never a redirect, and whatever `fetch` throws read as a reason.
  */
-import { answerOf, type Sent } from "./answer.js"
+import { answerOf, isRedirect, redirectFailure, type Sent } from "./answer.js"
 import { beforeAbort } from "./body.js"
 import type { Authorization, Credential } from "./credential.js"
 import { HttpFailure } from "./failure.js"
 import { MASK, maskSecrets, secretForms } from "./mask.js"
+import { statusTextOf } from "./status.js"
 import { reasonOfCode, systemCode } from "./thrown.js"
-import type { HttpAnswer, HttpRequest, Platform } from "./types.js"
+import type { HttpAnswer, HttpRequest, Platform, TraceEvent } from "./types.js"
 import { targetOf } from "./url.js"
 
 /** A connection, checked: what every attempt reads. */
@@ -69,38 +70,91 @@ export function sentOf(request: Sending, secrets: readonly string[]): Sent {
   return sentWith(request, secretForms(secrets))
 }
 
-function headersOf(
+/** A header as its caller wrote it: the name in the caller's spelling, the value as given. */
+type Written = readonly [name: string, value: string]
+
+/**
+ * The headers of an attempt as their callers wrote them, in order: the connection's, the
+ * request's, the credential's Authorization, then the connection's User-Agent unless one is
+ * there. A later name replaces an earlier one of any case, as `Headers` merges them, and goes to
+ * the end in its own spelling.
+ */
+function writtenHeaders(
   context: Context,
   request: Prepared,
   authorization: Authorization | undefined,
-): Headers | undefined {
+): Written[] {
+  const merged = new Map<string, Written>()
+  const put = (name: string, value: string): void => {
+    merged.delete(name.toLowerCase())
+    merged.set(name.toLowerCase(), [name, value])
+  }
+  for (const [name, value] of Object.entries(context.headers)) put(name, value)
+  for (const [name, value] of Object.entries(request.headers)) put(name, value)
+  if (authorization !== undefined) put("Authorization", authorization.header)
+  if (context.userAgent !== undefined && !merged.has("user-agent")) {
+    put("User-Agent", context.userAgent)
+  }
+  return [...merged.values()]
+}
+
+function headersOf(written: readonly Written[]): Headers | undefined {
   try {
-    const headers = new Headers(context.headers)
-    for (const [name, value] of Object.entries(request.headers)) headers.set(name, value)
-    if (authorization !== undefined) headers.set("Authorization", authorization.header)
-    if (context.userAgent !== undefined && !headers.has("User-Agent")) {
-      headers.set("User-Agent", context.userAgent)
-    }
-    return headers
+    return new Headers(written.map(([name, value]): [string, string] => [name, value]))
   } catch {
     // The runtime's error quotes the value it refused, which may be a secret: dropped.
     return undefined
   }
 }
 
-function trace(context: Context, sent: Sent, headers: Headers): void {
-  if (context.platform.trace === undefined) return
-  const shown = [...headers].map(([name, value]): [string, string] => [
-    name,
-    context.secretHeaders.has(name) ? MASK : maskSecrets(value, sent.forms),
-  ])
-  context.platform.trace({
+/** A secret header's value in a trace: `***`, behind the scheme word an Authorization starts with. */
+function maskedValue(name: string, value: string): string {
+  const scheme = SCHEMED.has(name.toLowerCase()) ? /^\S+\s+/.exec(value)?.[0] : undefined
+  return `${scheme ?? ""}${MASK}`
+}
+
+/**
+ * Hands the event `build` makes to the platform's trace, built only when there is one. A trace
+ * only watches: what it throws is dropped, so the attempt ends as it would without it.
+ */
+function emit(platform: Platform, build: () => TraceEvent): void {
+  if (platform.trace === undefined) return
+  try {
+    platform.trace(build())
+  } catch {
+    // The observer's own failure, never the request's.
+  }
+}
+
+/**
+ * The request event of an attempt: its headers as written, each secret header's value masked and
+ * every other text with the request's secrets masked, unless the platform reveals the secrets.
+ */
+function requestEvent(context: Context, sent: Sent, written: readonly Written[]): TraceEvent {
+  const reveal = context.platform.revealSecrets === true
+  const isSecret = (name: string): boolean => context.secretHeaders.has(name.toLowerCase())
+  const shown = written.map(([name, value]): Written => {
+    if (reveal) return [name, value]
+    return [name, isSecret(name) ? maskedValue(name, value) : maskSecrets(value, sent.forms)]
+  })
+  return {
     type: "request",
     method: sent.method,
-    url: maskSecrets(sent.url, sent.forms),
+    url: reveal ? sent.url : maskSecrets(sent.url, sent.forms),
     headers: Object.fromEntries(shown),
-    secretHeaders: shown.map(([name]) => name).filter((name) => context.secretHeaders.has(name)),
-  })
+    secretHeaders: written.map(([name]) => name.toLowerCase()).filter(isSecret),
+  }
+}
+
+type Answered = Omit<Extract<TraceEvent, { type: "response" }>, "type" | "durationMs">
+
+/** The response event of an attempt, timed from `started`: no trace, no second clock reading. */
+function traceAnswer(context: Context, started: number, answered: Answered): void {
+  emit(context.platform, () => ({
+    type: "response",
+    ...answered,
+    durationMs: context.platform.now() - started,
+  }))
 }
 
 /** What `fetch` threw, as a failure: the deadline, the caller, else the system code. */
@@ -159,14 +213,15 @@ async function onWire(context: Context, wire: Wire): Promise<HttpAnswer> {
     context.platform.fetch(request.url, { ...init, ...body }),
     signal,
   )
-  const answer = await answerOf(response, sent, { cap: context.cap, signal })
-  context.platform.trace?.({
-    type: "response",
-    status: answer.status,
-    statusText: answer.statusText,
-    durationMs: context.platform.now() - started,
-    bytes: answer.body.byteLength,
-  })
+  if (isRedirect(response)) {
+    // Its reason phrase masked as a failure's text; its body is never read, so it has no size.
+    const statusText = statusTextOf(response.status, response.statusText)
+    const masked = { status: response.status, statusText: maskSecrets(statusText, sent.forms) }
+    traceAnswer(context, started, masked)
+    throw redirectFailure(response, sent)
+  }
+  const { answer, bytes } = await answerOf(response, sent, { cap: context.cap, signal })
+  traceAnswer(context, started, { status: answer.status, statusText: answer.statusText, bytes })
   return answer
 }
 
@@ -176,13 +231,14 @@ export async function attempt(
   request: Prepared,
   authorization: Authorization | undefined,
 ): Promise<Attempted> {
-  const headers = headersOf(context, request, authorization)
-  const secrets = [...(authorization?.secrets ?? []), ...secretValues(context, headers ?? [])]
+  const written = writtenHeaders(context, request, authorization)
+  const headers = headersOf(written)
+  const secrets = [...(authorization?.secrets ?? []), ...secretValues(context, written)]
   const sent = sentOf(request, secrets)
   if (headers === undefined) {
     throw new HttpFailure("invalid-request", { ...sent, code: "header", mayHaveApplied: false })
   }
-  trace(context, sent, headers)
+  emit(context.platform, () => requestEvent(context, sent, written))
   const deadline = new AbortController()
   const timer = setTimeout(() => {
     deadline.abort()

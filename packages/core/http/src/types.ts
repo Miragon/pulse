@@ -24,8 +24,8 @@ export interface Connection {
   readonly headers?: Readonly<Record<string, string>>
   /**
    * Names of further headers that carry a secret (an API key): their values are kept out of
-   * every trace and masked in every text from the server. Authorization, Proxy-Authorization
-   * and Cookie always are.
+   * every trace (but one that reveals them, `Platform.revealSecrets`) and masked in every text
+   * from the server. Authorization, Proxy-Authorization and Cookie always are.
    */
   readonly secretHeaders?: readonly string[]
   /** Any request not marked as a read fails before sending ("refused-write"). */
@@ -40,7 +40,16 @@ export interface Connection {
 export interface Platform {
   readonly fetch: typeof fetch
   now(): number
+  /** Watches each attempt; what it throws is dropped, so it never changes an outcome. */
   trace?(event: TraceEvent): void
+  /**
+   * Whether the trace shows the secrets of a request as sent: the value of every secret header
+   * and a secret in the URL. Off unless set, so a trace names each secret header and shows `***`
+   * for its value. Set it only when a person asked for the secrets on this run (the CLI's
+   * `--show-secrets`); no server and no editor sets it. Error answers and failures stay masked
+   * either way.
+   */
+  readonly revealSecrets?: boolean
 }
 
 /** A request, its URL built by the caller (see `joinUrl`, `encodePathValue`). */
@@ -68,25 +77,35 @@ export interface HttpAnswer {
   readonly body: Uint8Array<ArrayBuffer>
 }
 
-/** One trace event per attempt and answer; no event carries a secret. */
+/**
+ * One trace event per attempt and per answer, a 3xx included; no event carries a secret unless
+ * the platform reveals them (`Platform.revealSecrets`).
+ */
 export type TraceEvent =
   | {
       readonly type: "request"
       readonly method: string
       /** Masked like every text: a secret in the query reads `***`. */
       readonly url: string
-      /** As sent, but the value of every secret header reads `***`. */
+      /**
+       * As written: the connection's, the request's, the credential's Authorization and the
+       * User-Agent, each name in its caller's spelling and in that order. The value of every
+       * secret header reads `***`, behind the scheme word of an Authorization (`Basic ***`), and
+       * a secret of the request in any other header is masked as in every text.
+       */
       readonly headers: Readonly<Record<string, string>>
-      /** The names (lower case) of the headers whose value the event leaves out. */
+      /** The names (lower case) of the secret headers among them. */
       readonly secretHeaders: readonly string[]
     }
   | {
       readonly type: "response"
       readonly status: number
+      /** As in the answer: from status 300 on with the request's secrets masked. */
       readonly statusText: string
       /** From sending until the last byte of the body. */
       readonly durationMs: number
-      readonly bytes: number
+      /** The body's size as the server sent it, before any mask; none for a 3xx, never read. */
+      readonly bytes?: number
     }
 
 export interface AsFetchOptions {
