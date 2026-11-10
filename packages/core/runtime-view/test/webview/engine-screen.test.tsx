@@ -157,9 +157,11 @@ describe("the engine overview", () => {
         detail: "HTTP 401.",
         canEditConnection: true,
         needsCredentials: true,
+        loginRefused: "unauthorized",
       },
     })
     await waitForElement(harness.root, ".status-box")
+    expect(harness.root.querySelector(".freshness")?.textContent).toBe("Credentials rejected")
 
     buttonNamed(harness.root, "Set credentials…").click()
 

@@ -121,7 +121,7 @@ test.describe("the cross-engine overview at the inline width (760 px)", () => {
     await expect(processes.getByRole("columnheader", { name: HEALTHY_ENGINE })).toBeVisible()
     await expect(processes.getByRole("columnheader", { name: BROKEN_ENGINE })).toHaveCount(0)
     await expect(
-      app.getByText(`No column for ${BROKEN_ENGINE}: this engine has not answered.`),
+      app.getByText(`No column for ${BROKEN_ENGINE}: its row above says why.`),
     ).toBeVisible()
     await expect(app.getByRole("button", { name: "Analyze performance in chat" })).toHaveCount(0)
   })

@@ -18,6 +18,7 @@ import {
 } from "../../lib/shared/environments.js"
 import { useT } from "../../messages/use-t.js"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
+import { isHealthFailure } from "../lib/health-verdict.js"
 import { useEngineHealth } from "./engine-health.js"
 import { FleetLandscape } from "./fleet-landscape.js"
 import { engineStatusKind } from "./landing.js"
@@ -94,8 +95,9 @@ function FleetEngineCard({
         </span>
       </div>
 
-      {/* The same words as the chooser: "nicht erreichbar", "lädt …" (#322 U15). */}
-      {kind === "refused" || kind === "unreachable" || kind === "loading" || !s ? (
+      {/* The same words as the chooser: "nicht erreichbar", "lädt …" (#322 U15). A failed
+          refresh keeps the last summary in the cache: the words win over it. */}
+      {kind === "loading" || isHealthFailure(kind) || !s ? (
         <span className="text-muted-foreground text-small">
           {t(`cockpit.landing.status.${kind}`)}
         </span>

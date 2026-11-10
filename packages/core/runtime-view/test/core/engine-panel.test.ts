@@ -250,6 +250,7 @@ describe("the engine panel", () => {
         detail: "HTTP 401.",
         canEditConnection: true,
         needsCredentials: true,
+        loginRefused: "unauthorized",
       },
     })
     expect(fixture.effects.setCredentials).toHaveBeenCalledOnce()

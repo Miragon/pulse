@@ -202,6 +202,7 @@ describe("a board across engines", () => {
         detail: "HTTP 401",
         canEditConnection: true,
         needsCredentials: true,
+        loginRefused: "unauthorized",
       },
     })
     expect(tileOf(fixture, "counter")).toMatchObject({ total: 12, known: 1 })

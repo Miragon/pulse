@@ -36,6 +36,8 @@ export const de: MessageCatalog = {
   "cockpit.landing.status.loading": "lädt …",
   "cockpit.landing.status.refused": "Profil abgelehnt",
   "cockpit.landing.status.unreachable": "nicht erreichbar",
+  "cockpit.landing.status.unauthorized": "Zugangsdaten abgelehnt",
+  "cockpit.landing.status.forbidden": "Zugriff verweigert",
   "cockpit.landing.status.empty": "leer",
   "cockpit.landing.status.incidents": ({ count }) => countOf(count, "Incident", "Incidents"),
   "cockpit.landing.status.failedJobs": ({ count }) =>

@@ -65,6 +65,15 @@ die Regel jedes Werkzeugs. Die Tabelle steht einmal in pulse-ui (`COUNT_TERMS` i
 | Ladezustand                                     | Wird geladen…                                                        | Laden…                    | Loading…                                      | –                     |
 | Herstellerprodukt                               | CIB seven, Camunda 7, Operaton (aus `provider.branding.displayName`) | CIB Seven                 | CIB seven                                     | CIB Seven             |
 | Künstliche Intelligenz                          | AI                                                                   | KI                        | AI                                            | –                     |
+| Engine lehnt die Anmeldung des Servers ab (³)   | Zugangsdaten abgelehnt (HTTP 401), Zugriff verweigert (HTTP 403)     | nicht erreichbar          | credentials rejected, access denied           | unreachable           |
+
+(³) Die Kurzform der Titel, die `describeError` für 401 und 403 zeigt, auf der Landing und in der
+Engine-übergreifenden Übersicht, dort auch gezählt („1 mit abgelehnten Zugangsdaten“). Die Engine hat
+geantwortet, also ist sie erreichbar; der Ton ist der eines abgelehnten Profils (warning), nicht der
+eines Ausfalls. Die Übersicht sagt deshalb zu einer Engine, die sie nicht lesen konnte, nie „hat nicht
+geantwortet“, sondern verweist auf ihre Zeile, und „Ursache finden“ auf der Übersicht der Engine fragt
+nach der abgelehnten Anmeldung. `glossary.test.ts` hält die Wörter fest; eine Regel gegen „nicht
+erreichbar“ gibt es nicht, weil das Wort für eine Engine ohne Antwort richtig ist.
 
 ## Übergaben an den Chat
 

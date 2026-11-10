@@ -483,7 +483,10 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      ladder over it pulse-ui's `countTone`/`severityTone`. An engine's own state is the tone of its
      one verdict (`VERDICT_TONE`, the health feed's `status`; `ok` is the table's `healthy`,
      neutral; the VS Code extension shows no verdict): the overview's badge and the engine's dot
-     on the landing and the fleet view alike. Each tone has three
+     on the landing and the fleet view alike. A failed health read has no verdict: its tone is
+     the engine module's `HEALTH_FAILURE_TONE`
+     (`packages/connectors/engine/engine-connector/src/widgets/lib/health-verdict.ts`), an
+     unreachable engine `danger`, a refused profile or login `warning`. Each tone has three
      roles: `--<tone>` (dot, edge, icon), `--<tone>-soft` (tint, black text) and `--<tone>-ink`
      (text on card or page, never on a tint, never a number). Numbers stay neutral. Components use
      role names only (`scanColors`); `packages/core/ui/src/theme/tone-contrast.test.ts` holds every

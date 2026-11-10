@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import type { WebviewIntent } from "../../src/core/protocol/index.js"
 import { FIXTURES } from "../../dev/webview/fixtures/states.js"
+import { glyphs } from "../../src/webview/components/lucide-glyphs.json"
 import { HostBridge } from "../../src/webview/host/host-bridge.js"
 import {
   buttonNamed,
@@ -10,6 +11,12 @@ import {
   waitForElement,
   type Harness,
 } from "./harness.js"
+
+function drawn(glyph: string): string {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
+  svg.innerHTML = glyph
+  return svg.innerHTML
+}
 
 describe("host bridge", () => {
   it("ignores a state whose revision is older than the one shown", async () => {
@@ -75,6 +82,46 @@ describe("panel states", () => {
     )
     expect(harness.root.querySelector(".freshness--offline")).not.toBeNull()
     expect(harness.root.querySelector(".context-bar")?.textContent).not.toContain("PROD")
+  })
+
+  it.each([
+    ["unauthorized", "Credentials rejected"],
+    ["forbidden", "Access denied"],
+  ] as const)(
+    "stamps a refused login (%s) %s with a key, never Offline",
+    async (refusal, label) => {
+      harness = mountApp()
+      const failed = FIXTURES["failed-empty"]
+      harness.publish({ ...failed, problem: { ...failed.problem, loginRefused: refusal } })
+
+      const stamp = await waitForElement<HTMLElement>(harness.root, ".freshness--offline")
+
+      expect(stamp.textContent).toBe(label)
+      expect(stamp.querySelector("svg")?.innerHTML).toBe(drawn(glyphs.KeyRound))
+    },
+  )
+
+  it("keeps the stale data's time beside a refused login", async () => {
+    harness = mountApp()
+    harness.publish({
+      ...FIXTURES.failed,
+      problem: { ...FIXTURES.failed.problem, loginRefused: "unauthorized" },
+    })
+    await waitForElement(harness.root, ".count-badge--stale")
+
+    const stamp = harness.root.querySelector(".freshness--offline")
+    expect(stamp?.textContent).toMatch(/^Credentials rejected · data from /)
+    expect(stamp?.textContent).not.toContain("Offline")
+  })
+
+  it("stamps an engine that does not answer Offline with an unplugged cable", async () => {
+    harness = mountApp()
+    harness.publish(FIXTURES["failed-empty"])
+
+    const stamp = await waitForElement<HTMLElement>(harness.root, ".freshness--offline")
+
+    expect(stamp.textContent).toBe("Offline")
+    expect(stamp.querySelector("svg")?.innerHTML).toBe(drawn(glyphs.Unplug))
   })
 
   it("shows the skeleton only after the loading delay", async () => {

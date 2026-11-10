@@ -112,8 +112,11 @@ A running bulk operation ([writes.md](writes.md)) is followed by a poll of its o
   `As of … · 2m ago` with a clock when nothing succeeded for two intervals and 10 s,
   `Reconnecting… · data from …` (tooltip: when Pulse tries again), `Stopped · data from …`
   when the engine refused the login or the subject is gone, `Offline · data from …` after a
-  failed user load, the ended tooltip for an ended instance, and the Off tooltip naming the
-  setting and the cadence it would have.
+  failed user load, or with a key `Credentials rejected · data from …` (401) and
+  `Access denied · data from …` (403) when the engine answered it by refusing the login, so
+  an engine that runs is never called offline (`Problem.loginRefused`), the ended tooltip
+  for an ended instance, and the Off tooltip naming the setting and the cadence it would
+  have.
 - A pause button left of the stamp pauses this panel; it never resumes on its own, and
   resume reads at once.
 - Nothing moves on its own: a definition panel stays on the version it shows and adds an

@@ -33,9 +33,37 @@ export function healthVerdictLine(t: T, data: Pick<EngineHealthData, "summary">)
 }
 
 /**
- * The server refused the engine's profile (ENGINE_PROFILE_REFUSED): it never asks that engine, so
- * this is no outage of the engine but the operator's to fix, and never counted as unreachable.
+ * Why an engine's live health could not be read, as the landing, the cross-engine view's cards and
+ * its landscape name it (#322 U15) and the overview's hand-off asks it: a profile the server refused
+ * (ENGINE_PROFILE_REFUSED: it never asks that engine, so only the operator can fix it), an engine
+ * that answered but refused the server's login (HTTP 401, its credentials, or 403, its access:
+ * describeError's kinds and words), or one that did not answer as asked. Only the last is
+ * unreachable; an engine that sends a 401 runs.
  */
-export function isProfileRefusal(error: unknown): boolean {
-  return describeError(error, undefined).kind === "profileRefused"
+export const HEALTH_FAILURES = ["unreachable", "refused", "unauthorized", "forbidden"] as const
+
+export type HealthFailure = (typeof HEALTH_FAILURES)[number]
+
+export function healthFailureOf(error: unknown): HealthFailure {
+  const { kind } = describeError(error, undefined)
+  if (kind === "profileRefused") return "refused"
+  if (kind === "unauthorized" || kind === "forbidden") return kind
+  return "unreachable"
+}
+
+export function isHealthFailure(kind: string): kind is HealthFailure {
+  return (HEALTH_FAILURES as readonly string[]).includes(kind)
+}
+
+/**
+ * The tone of a failed read. These are no situations on the engine (`SITUATION_TONES` tones those)
+ * but the server's way to it: an engine that does not answer may be down, an outage, so danger; a
+ * refused profile or login leaves the engine running and waits only for whoever runs the server to
+ * fix its configuration, a degraded engine, so warning.
+ */
+export const HEALTH_FAILURE_TONE: Readonly<Record<HealthFailure, ToneVariant>> = {
+  unreachable: "danger",
+  refused: "warning",
+  unauthorized: "warning",
+  forbidden: "warning",
 }

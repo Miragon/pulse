@@ -59,6 +59,7 @@ describe("the problem shown for a failure", () => {
       detail: "boom",
       canEditConnection,
       ...(failure === "unauthorized" ? { needsCredentials: true } : {}),
+      ...(failure === "unauthorized" || failure === "forbidden" ? { loginRefused: failure } : {}),
     })
   })
 

@@ -124,11 +124,13 @@ export const enSweep: MessageCatalog = {
   "fleet.landscape.groupLoad": "Load (absolute)",
   "fleet.landscape.hint": "what runs where, not a ranking of the engines",
   "fleet.landscape.kpiEngines": "Engines",
+  "fleet.landscape.kpiForbidden": "{count} with access denied",
   "fleet.landscape.kpiIncidents": "Open incidents",
   "fleet.landscape.kpiProcesses": "Process definitions",
   "fleet.landscape.kpiRefused": "{count} refused",
   "fleet.landscape.kpiRunning": "Running instances",
   "fleet.landscape.kpiShared": "{count} on several engines",
+  "fleet.landscape.kpiUnauthorized": "{count} with credentials rejected",
   "fleet.landscape.kpiUnreachable": "{count} unreachable",
   "fleet.landscape.legendNotDeployed":
     "An empty cell means the process is not deployed on that engine.",
@@ -138,16 +140,16 @@ export const enSweep: MessageCatalog = {
   "fleet.landscape.mixNote":
     "Engines run different processes, so their failure rates and durations describe the process mix, not the engine. This view therefore shows counts.",
   "fleet.landscape.noAnswer":
-    "No engine has answered, so there are no process definitions to show. Check that the engines are reachable.",
+    "The server could not read any engine, so there are no process definitions to show. Each engine's row above says why.",
   "fleet.landscape.noDefinitions": "No process definition is deployed on these engines.",
   "fleet.landscape.notDeployed": "not deployed on this engine",
   "fleet.landscape.sharedBadge": ({ count }) => `on ${countOf(count, "engine", "engines")}`,
   "fleet.landscape.title": "Process landscape",
-  "fleet.landscape.unknown": "No answer from this engine: figure unknown",
+  "fleet.landscape.unknown": "Not read from this engine: figure unknown",
   "fleet.landscape.unreadNote": ({ count, engines }) =>
     isOne(count)
-      ? `No column for ${String(engines)}: this engine has not answered.`
-      : `No columns for ${String(engines)}: these engines have not answered.`,
+      ? `No column for ${String(engines)}: its row above says why.`
+      : `No columns for ${String(engines)}: their rows above say why.`,
   "fleet.operate": "Open",
   "fleet.processDefinitions": ({ count }) =>
     countOf(count, "process definition", "process definitions"),

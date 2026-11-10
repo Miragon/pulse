@@ -140,6 +140,20 @@ describe("the decided wording", () => {
     // What the last 30 days' instances passed: a cohort read from the history, never "Häufigkeit".
     ["procIncFlow.modeThroughput", "Durchlauf · 30 Tage", "Throughput · 30 days"],
     ["procIncFlow.valuesColPassed", "Durchläufe", "Passes"],
+    // An engine that refuses the server's login runs (F2): describeError's 401 and 403 in short,
+    // never "unreachable", and its count says the same.
+    ["cockpit.landing.status.unauthorized", "Zugangsdaten abgelehnt", "credentials rejected"],
+    ["cockpit.landing.status.forbidden", "Zugriff verweigert", "access denied"],
+    [
+      "fleet.landscape.kpiUnauthorized",
+      "{count} mit abgelehnten Zugangsdaten",
+      "{count} with credentials rejected",
+    ],
+    [
+      "fleet.landscape.kpiForbidden",
+      "{count} mit verweigertem Zugriff",
+      "{count} with access denied",
+    ],
   ])("%s", (key, german, english) => {
     expect(catalogs.de[key]).toBe(german)
     expect(catalogs.en[key]).toBe(english)

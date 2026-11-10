@@ -281,4 +281,5 @@ export interface Problem {
   readonly detail: string
   readonly canEditConnection: boolean
   readonly needsCredentials?: true
+  readonly loginRefused?: "unauthorized" | "forbidden"
 }

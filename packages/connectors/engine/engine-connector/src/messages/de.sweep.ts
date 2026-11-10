@@ -124,11 +124,13 @@ export const deSweep: MessageCatalog = {
   "fleet.landscape.groupLoad": "Last (absolut)",
   "fleet.landscape.hint": "was wo läuft, keine Rangliste der Engines",
   "fleet.landscape.kpiEngines": "Engines",
+  "fleet.landscape.kpiForbidden": "{count} mit verweigertem Zugriff",
   "fleet.landscape.kpiIncidents": "Offene Incidents",
   "fleet.landscape.kpiProcesses": "Prozessdefinitionen",
   "fleet.landscape.kpiRefused": "{count} abgelehnt",
   "fleet.landscape.kpiRunning": "Laufende Instanzen",
   "fleet.landscape.kpiShared": "{count} auf mehreren Engines",
+  "fleet.landscape.kpiUnauthorized": "{count} mit abgelehnten Zugangsdaten",
   "fleet.landscape.kpiUnreachable": "{count} nicht erreichbar",
   "fleet.landscape.legendNotDeployed":
     "Eine leere Zelle heißt: Der Prozess ist auf dieser Engine nicht bereitgestellt.",
@@ -138,16 +140,16 @@ export const deSweep: MessageCatalog = {
   "fleet.landscape.mixNote":
     "Auf den Engines laufen unterschiedliche Prozesse. Fehlerquoten und Laufzeiten einer Engine beschreiben deshalb ihren Prozess-Mix und nicht die Engine selbst, also zeigt diese Ansicht absolute Zahlen.",
   "fleet.landscape.noAnswer":
-    "Keine Engine hat geantwortet, deshalb gibt es keine Prozessdefinitionen zu zeigen. Prüf, ob die Engines erreichbar sind.",
+    "Der Server konnte keine Engine lesen, deshalb gibt es keine Prozessdefinitionen zu zeigen. Warum, steht oben in der Zeile jeder Engine.",
   "fleet.landscape.noDefinitions": "Auf diesen Engines ist keine Prozessdefinition bereitgestellt.",
   "fleet.landscape.notDeployed": "auf dieser Engine nicht bereitgestellt",
   "fleet.landscape.sharedBadge": ({ count }) => `auf ${countOf(count, "Engine", "Engines")}`,
   "fleet.landscape.title": "Prozesslandschaft",
-  "fleet.landscape.unknown": "Keine Antwort von dieser Engine: Wert unbekannt",
+  "fleet.landscape.unknown": "Von dieser Engine nicht gelesen: Wert unbekannt",
   "fleet.landscape.unreadNote": ({ count, engines }) =>
     isOne(count)
-      ? `Keine Spalte für ${String(engines)}: Diese Engine hat nicht geantwortet.`
-      : `Keine Spalten für ${String(engines)}: Diese Engines haben nicht geantwortet.`,
+      ? `Keine Spalte für ${String(engines)}: Warum, steht oben in ihrer Zeile.`
+      : `Keine Spalten für ${String(engines)}: Warum, steht oben in ihren Zeilen.`,
   "fleet.operate": "Öffnen",
   "fleet.processDefinitions": ({ count }) =>
     countOf(count, "Prozessdefinition", "Prozessdefinitionen"),

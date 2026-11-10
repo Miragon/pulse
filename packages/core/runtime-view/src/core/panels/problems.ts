@@ -33,6 +33,7 @@ export class Problems {
       detail: error.hint === undefined ? error.message : `${error.message} ${error.hint}`,
       canEditConnection: CONNECTION_FAILURES.has(error.failure),
       ...(error.failure === "unauthorized" ? { needsCredentials: true } : {}),
+      ...Problems.loginRefusal(error.failure),
     }
   }
 
@@ -42,5 +43,9 @@ export class Problems {
       detail: "It may have been deleted.",
       canEditConnection: false,
     }
+  }
+
+  private static loginRefusal(failure: RuntimeFailure): Pick<Problem, "loginRefused"> {
+    return failure === "unauthorized" || failure === "forbidden" ? { loginRefused: failure } : {}
   }
 }

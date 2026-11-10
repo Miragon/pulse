@@ -45,8 +45,18 @@ const DEFINITIONS: Record<string, DefinitionStat[]> = {
 const REFUSED =
   '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask the operator to fix it.'
 
+/** What the server answers for an engine that refuses its login: 401 and 403, the engine runs. */
+const LOGIN_REFUSED: Record<string, string> = {
+  "locked-out":
+    "[401] empty response body (engine locked-out). The engine rejected the configured credentials.",
+  "no-access":
+    "[403 AuthorizationException] The user 'pulse' does not have READ permission (engine no-access)",
+}
+
 function overviewFeed(args: Record<string, unknown>): CockpitDashboardData {
   if (args.engine === "locked") throw new Error(REFUSED)
+  const login = LOGIN_REFUSED[String(args.engine)]
+  if (login) throw new Error(login)
   const definitions = DEFINITIONS[String(args.engine)]
   if (!definitions) throw new Error("ECONNREFUSED")
   return {
@@ -137,7 +147,7 @@ describe("the cross-engine landscape, read from each engine", () => {
     // The overview answered, the backlog did not: unknown, never 0.
     expect(cells(rows[1]).slice(4, 8)).toEqual(Array(4).fill(expect.stringContaining("—")))
     expect(cells(rows[2]).slice(1)).toEqual(Array(8).fill(expect.stringContaining("—")))
-    expect(screen.getByText("— No answer from this engine: figure unknown")).toBeTruthy()
+    expect(screen.getByText("— Not read from this engine: figure unknown")).toBeTruthy()
     expect(within(table).getByRole("columnheader", { name: "Load (absolute)" })).toBeTruthy()
     expect(
       within(table).getByRole("columnheader", { name: "Job backlog, comparable across engines" }),
@@ -161,7 +171,7 @@ describe("the cross-engine landscape, read from each engine", () => {
       "0",
       "0",
     ])
-    expect(screen.getByText("No column for down: this engine has not answered.")).toBeTruthy()
+    expect(screen.getByText("No column for down: its row above says why.")).toBeTruthy()
   })
 
   it("asks only the engine module's feeds and offers no performance hand-off", async () => {
@@ -185,7 +195,7 @@ describe("the cross-engine landscape, read from each engine", () => {
     expect(within(landscape).queryByText(/^(≥\s)?0$/)).toBeNull()
     expect(
       screen.getByText(
-        "No engine has answered, so there are no process definitions to show. Check that the engines are reachable.",
+        "The server could not read any engine, so there are no process definitions to show. Each engine's row above says why.",
       ),
     ).toBeTruthy()
   })
@@ -208,13 +218,123 @@ describe("the cross-engine landscape, read from each engine", () => {
     expect(within(table).getByText("unreachable")).toBeTruthy()
   })
 
+  /** F2: an engine that refuses the server's login answered, so it is not counted unreachable. */
+  describe("an engine that refuses the server's login", () => {
+    const ENGINES = [{ id: "prod-a" }, { id: "locked-out" }, { id: "no-access" }, { id: "locked" }]
+
+    function renderLogin(engines = ENGINES, locale?: string) {
+      render(
+        <TestViewHost tools={TOOLS} client={queryClient} locale={locale}>
+          <FleetView engines={engines} onEnterEngine={() => {}} />
+        </TestViewHost>,
+      )
+      return screen.getByRole("region", {
+        name: locale === "de" ? "Prozesslandschaft" : "Process landscape",
+      })
+    }
+
+    const trendOf = (landscape: HTMLElement, text: string) =>
+      within(landscape).getByText(text, { exact: true })
+    /** The tone of the dot beside a KPI's trend line. */
+    const toneOf = (landscape: HTMLElement, text: string) =>
+      trendOf(landscape, text)
+        .closest("[data-slot='kpi-trend']")
+        ?.querySelector("[data-tone]")
+        ?.getAttribute("data-tone")
+
+    it("counts a 401 and a 403 apart, never as unreachable, with a refused profile's tone", async () => {
+      const landscape = renderLogin()
+      await waitFor(() =>
+        expect(
+          trendOf(landscape, "1 refused · 1 with credentials rejected · 1 with access denied"),
+        ).toBeTruthy(),
+      )
+      expect(within(landscape).queryByText(/unreachable/)).toBeNull()
+      expect(
+        toneOf(landscape, "1 refused · 1 with credentials rejected · 1 with access denied"),
+      ).toBe("warning")
+      const table = screen.getByRole("region", { name: "Load and job backlog per engine" })
+      expect(within(table).getByText("credentials rejected")).toBeTruthy()
+      expect(within(table).getByText("access denied")).toBeTruthy()
+      expect(within(table).queryByText("unreachable")).toBeNull()
+    })
+
+    it("keeps the outage's tone when an engine is unreachable too", async () => {
+      const landscape = renderLogin([{ id: "prod-a" }, { id: "down" }, { id: "locked-out" }])
+      await waitFor(() =>
+        expect(trendOf(landscape, "1 unreachable · 1 with credentials rejected")).toBeTruthy(),
+      )
+      expect(toneOf(landscape, "1 unreachable · 1 with credentials rejected")).toBe("danger")
+    })
+
+    /** The landscape's notes on an engine it could not read never say it did not answer. */
+    it("names them below the table and the matrix without saying they did not answer", async () => {
+      const landscape = renderLogin()
+      expect(
+        await within(landscape).findByText(
+          "No columns for locked-out, no-access, locked: their rows above say why.",
+        ),
+      ).toBeTruthy()
+      expect(
+        within(landscape).getByText("— Not read from this engine: figure unknown"),
+      ).toBeTruthy()
+      expect(within(landscape).queryByText(/answer/)).toBeNull()
+    })
+
+    it("says why no process shows when every engine refuses the login, not to check reachability", async () => {
+      const landscape = renderLogin([{ id: "locked-out" }, { id: "no-access" }])
+      await waitFor(() =>
+        expect(
+          within(landscape).getByText(
+            "The server could not read any engine, so there are no process definitions to show. Each engine's row above says why.",
+          ),
+        ).toBeTruthy(),
+      )
+      expect(within(landscape).queryByText(/reachable|answer/)).toBeNull()
+      const de = renderLogin([{ id: "locked-out" }], "de")
+      await waitFor(() =>
+        expect(
+          within(de).getByText(
+            "Der Server konnte keine Engine lesen, deshalb gibt es keine Prozessdefinitionen zu zeigen. Warum, steht oben in der Zeile jeder Engine.",
+          ),
+        ).toBeTruthy(),
+      )
+      expect(within(de).queryByText(/erreichbar|geantwortet/)).toBeNull()
+    })
+
+    it("words them on the engine cards as the landing does", async () => {
+      renderLogin()
+      expect(
+        await screen.findByRole("button", { name: /^locked-out\b.*credentials rejected/ }),
+      ).toBeTruthy()
+      expect(
+        await screen.findByRole("button", { name: /^no-access\b.*access denied/ }),
+      ).toBeTruthy()
+    })
+
+    it("speaks German on a German host", async () => {
+      const landscape = renderLogin(ENGINES, "de")
+      await waitFor(() =>
+        expect(
+          trendOf(
+            landscape,
+            "1 abgelehnt · 1 mit abgelehnten Zugangsdaten · 1 mit verweigertem Zugriff",
+          ),
+        ).toBeTruthy(),
+      )
+      const table = screen.getByRole("region", { name: "Last und Job-Rückstand je Engine" })
+      expect(within(table).getByText("Zugangsdaten abgelehnt")).toBeTruthy()
+      expect(within(table).getByText("Zugriff verweigert")).toBeTruthy()
+    })
+  })
+
   it("speaks German on a German host", async () => {
     renderFleet("de")
     const table = await screen.findByRole("region", { name: "Last und Job-Rückstand je Engine" })
     await waitFor(() => expect(within(table).getByText("nicht erreichbar")).toBeTruthy())
     expect(screen.getByRole("region", { name: "Prozesslandschaft" })).toBeTruthy()
     expect(
-      screen.getByText("Keine Spalte für down: Diese Engine hat nicht geantwortet."),
+      screen.getByText("Keine Spalte für down: Warum, steht oben in ihrer Zeile."),
     ).toBeTruthy()
   })
 })

@@ -370,6 +370,45 @@ describe("an engine whose health cannot be read", () => {
     expect(screen.queryByRole("button", { name: "Find cause in chat" }) !== null).toBe(offered)
   })
 
+  /** F2: an engine that refused the server's login runs, so the chat never looks for an outage. */
+  it.each([
+    [
+      "a 401 asks why the engine refused the server's login",
+      "[401] empty response body (engine default). The engine rejected the configured credentials.",
+      "The engine refused the server's login.",
+      "not reachable",
+    ],
+    [
+      "a 403 asks the same",
+      "[403 AuthorizationException] The user 'pulse' does not have READ permission (engine default)",
+      "The engine refused the server's login.",
+      "not reachable",
+    ],
+    [
+      "an unreachable engine asks why it is not reachable",
+      "engine default unreachable",
+      "Find out why the engine is not reachable",
+      "refused the server's login",
+    ],
+  ])("%s", async (_case, message, intent, absent) => {
+    const failing = () => Promise.reject(new Error(message))
+    const actions: HostAction[] = []
+    render(
+      <TestViewHost
+        tools={{ ...tools, [ENGINE_HEALTH_DATA]: failing }}
+        onHostAction={(action) => actions.push(action)}
+        client={queryClient}
+      >
+        <EngineHealthView engine="default" />
+      </TestViewHost>,
+    )
+    fireEvent.click(await screen.findByRole("button", { name: "Find cause in chat" }))
+    const prompts = actions.flatMap((a) => (a.type === "sendFollowUp" ? [a.prompt] : []))
+    expect(prompts).toHaveLength(1)
+    expect(prompts[0]).toContain(intent)
+    expect(prompts[0]).not.toContain(absent)
+  })
+
   it.each([
     ["an unreachable engine's failed re-pull offers Try again", "engine default unreachable", true],
     ["a refused profile's failed re-pull offers none", REFUSED, false],

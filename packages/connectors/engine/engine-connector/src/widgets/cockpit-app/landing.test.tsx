@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it } from "vitest"
 import type { ComponentType } from "react"
 import { cleanup, render, screen, within } from "@testing-library/react"
+import { TONE_ICON } from "@miragon/pulse-ui"
 import { ENGINE_COCKPIT_OVERVIEW_DATA } from "../../tool-names.js"
 import { LandingChooser } from "./landing.js"
 import { TestViewHost, createTestQueryClient } from "@miragon/pulse-widget-shell/widgets"
@@ -99,6 +100,77 @@ describe("LandingChooser", () => {
     expect(
       await screen.findByRole("button", { name: /^prod-b\s*default\s*,\s*no incidents$/ }),
     ).toBeTruthy()
+  })
+
+  /**
+   * F2 (Inspector run of 2026-11-09): an engine that answers the server's login with 401 or 403
+   * runs, so its row says what describeError's title says in short, never "unreachable", with the
+   * warning tone of a refused profile instead of an outage's danger.
+   */
+  describe("an engine that refuses the server's login", () => {
+    const LOGIN = [{ id: "locked-out" }, { id: "no-access" }, { id: "down" }, { id: "locked" }]
+
+    /** What the server answers for each: the engine's 401 and 403, no answer, a refused profile. */
+    function loginFeed(args: Record<string, unknown>) {
+      if (args.engine === "locked-out")
+        throw new Error(
+          "[401] empty response body (engine locked-out). The engine rejected the configured credentials.",
+        )
+      if (args.engine === "no-access")
+        throw new Error(
+          "[403 AuthorizationException] The user 'pulse' does not have READ permission (engine no-access)",
+        )
+      if (args.engine === "locked")
+        throw new Error(
+          '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask the operator to fix it.',
+        )
+      throw new Error("engine down unreachable (ECONNREFUSED)")
+    }
+
+    function renderLogin(locale?: string) {
+      render(
+        <TestViewHost
+          tools={{ [ENGINE_COCKPIT_OVERVIEW_DATA]: loginFeed }}
+          client={queryClient}
+          locale={locale}
+        >
+          <LandingChooser engines={LOGIN} onEnterEngine={() => {}} />
+        </TestViewHost>,
+      )
+    }
+
+    const row = async (name: RegExp) => await screen.findByRole("button", { name })
+    const mark = (button: HTMLElement) => button.querySelector("svg")?.getAttribute("class") ?? ""
+
+    it("words a 401 and a 403 apart from an unreachable engine and a refused profile", async () => {
+      renderLogin()
+      const lockedOut = await row(/^locked-out\s*,\s*credentials rejected$/)
+      const noAccess = await row(/^no-access\s*,\s*access denied$/)
+      const down = await row(/^down\s*,\s*unreachable$/)
+      const locked = await row(/^locked\s*,\s*profile refused$/)
+      expect(lockedOut.dataset.status).toBe("unauthorized")
+      expect(noAccess.dataset.status).toBe("forbidden")
+      // The tone of a refused profile, never the outage's.
+      expect(mark(lockedOut)).toContain(TONE_ICON.warning)
+      expect(mark(noAccess)).toContain(TONE_ICON.warning)
+      expect(mark(locked)).toContain(TONE_ICON.warning)
+      expect(mark(down)).toContain(TONE_ICON.danger)
+      expect(mark(lockedOut)).not.toContain(TONE_ICON.danger)
+      // The server's key for a refused login, never the unplugged cable of an engine that is down.
+      expect(mark(lockedOut)).toContain("lucide-key-round")
+      expect(mark(noAccess)).toContain("lucide-key-round")
+      expect(mark(down)).toContain("lucide-unplug")
+      expect(mark(lockedOut)).not.toContain("lucide-unplug")
+      expect(mark(noAccess)).not.toContain("lucide-unplug")
+    })
+
+    it("speaks German on a German host", async () => {
+      renderLogin("de")
+      expect(await row(/^locked-out\s*,\s*Zugangsdaten abgelehnt$/)).toBeTruthy()
+      expect(await row(/^no-access\s*,\s*Zugriff verweigert$/)).toBeTruthy()
+      expect(await row(/^down\s*,\s*nicht erreichbar$/)).toBeTruthy()
+      expect(await row(/^locked\s*,\s*Profil abgelehnt$/)).toBeTruthy()
+    })
   })
 
   it("no named environment: one flat list, no environment heading", () => {

@@ -37,6 +37,9 @@ export const en: MessageCatalog = {
   "cockpit.landing.status.loading": "loading…",
   "cockpit.landing.status.refused": "profile refused",
   "cockpit.landing.status.unreachable": "unreachable",
+  // describeError's 401 and 403 in short: the engine answered, so it is not unreachable.
+  "cockpit.landing.status.unauthorized": "credentials rejected",
+  "cockpit.landing.status.forbidden": "access denied",
   "cockpit.landing.status.empty": "empty",
   "cockpit.landing.status.incidents": ({ count }) => countOf(count, "incident", "incidents"),
   "cockpit.landing.status.failedJobs": ({ count }) =>

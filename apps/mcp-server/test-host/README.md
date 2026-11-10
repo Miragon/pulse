@@ -77,6 +77,7 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
 | axe (cross-engine)         | the overview, light and dark, 760 px              | zero WCAG 2.1 A/AA violations (`fleet.spec.ts`)                                                                                                                    |
 | a module's own view        | a tool bound to a resource of its module          | the finished document renders from that URI under its own CSP, no prelude, its feed answers through the host (`own-view.spec.ts`)                                  |
 | refused profile            | the picker, one profile refused                   | the refused engine reads "profile refused", opening it says why in en and de, `engine_open_cockpit` on it opens the picker (`refused-profile.spec.ts`)             |
+| refused login              | the picker, engines that answer 401 and 403       | "credentials rejected", "access denied", a key (en, de), not "unreachable"; counted apart as a warning, never "not answered" (`refused-login.spec.ts`)             |
 
 **The cockpit's chrome inline.** Every scenario of the engine module renders the cockpit, whose head
 (sections, engine switch, Refresh) sits above the route. Inline the head is the only row: a

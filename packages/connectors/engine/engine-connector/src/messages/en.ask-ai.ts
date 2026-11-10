@@ -14,6 +14,8 @@ export const enAskAi = {
     "Assess this engine's health: rank the incident clusters by impact, name the most urgent problem in business terms, its likely root cause and the first step to fix it. Change nothing without my confirmation.",
   "askAi.health.diagnoseUnreachable":
     "The engine health check failed. Find out why the engine is not reachable (down, wrong base URL, authentication or network) and name the next step. Change nothing.",
+  "askAi.health.diagnoseLogin":
+    "The engine refused the server's login. Find out why (wrong or expired credentials, or permissions the server's account lacks) and name the next step. Change nothing.",
   "askAi.cluster.fix":
     "Help me fix this incident cluster: confirm the root cause, then propose a fix for exactly this cluster. Show me the plan and how many instances it affects, and run nothing until I confirm.",
   "askAi.cluster.diagnose":

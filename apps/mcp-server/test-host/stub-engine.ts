@@ -9,6 +9,10 @@ export interface StubEngine {
   baseUrl: string
   /** `baseUrl` of an engine that answers every request with a 503. */
   brokenBaseUrl: string
+  /** `baseUrl` of an engine that refuses every login with a 401, as CIB seven's auth filter does. */
+  loginRefusedBaseUrl: string
+  /** `baseUrl` of an engine that denies the server's account every read with a 403. */
+  accessDeniedBaseUrl: string
   /** `baseUrl` of the realistic engine (`realistic-engine.ts`): long names, 160 instances, 73 jobs. */
   realisticBaseUrl: string
   /** Origin of the scenario control routes (see {@link startStubEngine}). */
@@ -226,6 +230,18 @@ function route(url: URL): { status: number; body: unknown } {
       body: { type: "ProcessEngineException", message: "Engine is shutting down" },
     }
   }
+  // The engine runs and answers, but not to these credentials: a 401 without a body.
+  if (pathname.startsWith("/login-refused/")) return { status: 401, body: undefined }
+  // The engine takes the login but denies the account the read: a 403 with the engine's own body.
+  if (pathname.startsWith("/access-denied/")) {
+    return {
+      status: 403,
+      body: {
+        type: "AuthorizationException",
+        message: "The user with id 'viewer' does not have 'READ' permission on resource '*'.",
+      },
+    }
+  }
   if (pathname === "/engine-rest/process-definition/count") {
     return { status: 200, body: { count: filterDefinitions(searchParams).length } }
   }
@@ -438,6 +454,8 @@ export async function startStubEngine(): Promise<StubEngine> {
   return {
     baseUrl: `${origin}/engine-rest`,
     brokenBaseUrl: `${origin}/broken/engine-rest`,
+    loginRefusedBaseUrl: `${origin}/login-refused/engine-rest`,
+    accessDeniedBaseUrl: `${origin}/access-denied/engine-rest`,
     realisticBaseUrl: `${origin}${REALISTIC_PREFIX}/engine-rest`,
     controlUrl: origin,
     close: () =>

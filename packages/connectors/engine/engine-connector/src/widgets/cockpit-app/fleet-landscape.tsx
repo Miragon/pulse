@@ -27,22 +27,35 @@ import {
   type LandscapeEngine,
 } from "../../lib/shared/fleet-landscape.js"
 import { useT, type T } from "../../messages/use-t.js"
-import { isProfileRefusal } from "../lib/health-verdict.js"
+import {
+  HEALTH_FAILURE_TONE,
+  HEALTH_FAILURES,
+  healthFailureOf,
+  type HealthFailure,
+} from "../lib/health-verdict.js"
 import { ENGINE_COCKPIT_OVERVIEW_DATA, ENGINE_JOB_BACKLOG_DATA } from "../../tool-names.js"
 import type { CockpitDashboardData, JobBacklogData } from "../../view-models.js"
 
 /**
- * Where an engine's overview stands: the chooser's words for it (#322 U15). A refused profile is
- * no outage: the server never asks that engine.
+ * Where an engine's overview stands: the chooser's words for it (#322 U15). A refused profile or
+ * login is no outage: the server never asks the one engine, and the other answered.
  */
-type EngineState = "read" | "loading" | "refused" | "unreachable"
+type EngineState = "read" | "loading" | HealthFailure
 
 function stateOf(
   overview: { data?: unknown; isError: boolean; error: unknown } | undefined,
 ): EngineState {
   if (overview?.data) return "read"
   if (!overview?.isError) return "loading"
-  return isProfileRefusal(overview.error) ? "refused" : "unreachable"
+  return healthFailureOf(overview.error)
+}
+
+/** Each failure counted under its own word, in the order of {@link HEALTH_FAILURES}. */
+const FAILURE_COUNT: Readonly<Record<HealthFailure, string>> = {
+  unreachable: "fleet.landscape.kpiUnreachable",
+  refused: "fleet.landscape.kpiRefused",
+  unauthorized: "fleet.landscape.kpiUnauthorized",
+  forbidden: "fleet.landscape.kpiForbidden",
 }
 
 interface Landscape {
@@ -92,22 +105,25 @@ function LandscapeKpis({ figures, states, t }: Landscape & { t: T }) {
   const complete = totals.readEngineCount === totals.engineCount
   // No engine read yet: no count of processes either, never a 0.
   const processes = totals.readEngineCount === 0 ? null : totals.processKeyCount
-  const counted = (wanted: EngineState) =>
-    Object.values(states).filter((state) => state === wanted).length
-  const unreachable = counted("unreachable")
-  const refused = counted("refused")
-  const trend = [
-    ...(unreachable > 0
-      ? [t("fleet.landscape.kpiUnreachable", { count: formatNumber(unreachable) })]
-      : []),
-    ...(refused > 0 ? [t("fleet.landscape.kpiRefused", { count: formatNumber(refused) })] : []),
-  ]
+  const failures = HEALTH_FAILURES.map((failure) => ({
+    failure,
+    count: Object.values(states).filter((state) => state === failure).length,
+  })).filter(({ count }) => count > 0)
+  const trend = failures.map(({ failure, count }) =>
+    t(FAILURE_COUNT[failure], { count: formatNumber(count) }),
+  )
+  // The worst failure's tone: an unreachable engine over a refused profile or login.
+  const tones = failures.map(({ failure }) => HEALTH_FAILURE_TONE[failure])
   const cells: KpiCell[] = [
     {
       label: t("fleet.landscape.kpiEngines"),
       value: formatNumber(totals.engineCount),
       trend: trend.length > 0 ? trend.join(" · ") : undefined,
-      trendTone: unreachable > 0 ? "danger" : refused > 0 ? "warning" : undefined,
+      trendTone: tones.includes("danger")
+        ? "danger"
+        : tones.includes("warning")
+          ? "warning"
+          : undefined,
     },
     {
       label: t("fleet.landscape.kpiProcesses"),

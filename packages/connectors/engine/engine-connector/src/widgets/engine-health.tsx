@@ -30,7 +30,7 @@ import { ENGINE_HEALTH_DATA } from "../tool-names.js"
 import { remediationHandOff, UNKNOWN_KEY as UNKNOWN } from "./remediation.js"
 import { useActionAllowed } from "./lib/engine-action.js"
 import { useHandOff, type HandOff, type ViewContext } from "./lib/hand-off.js"
-import { healthVerdictLine, isProfileRefusal, VERDICT_TONE } from "./lib/health-verdict.js"
+import { healthFailureOf, healthVerdictLine, VERDICT_TONE } from "./lib/health-verdict.js"
 import { useT } from "../messages/use-t.js"
 
 const STATUS_LABEL: Record<EngineHealthStatus, string> = {
@@ -95,12 +95,20 @@ function triageHandOff(data: EngineHealthData, engine: string): HandOff {
   }
 }
 
-/** An unreachable engine is itself an incident: hand it to the agent. The error text is quoted, never inlined. */
-function diagnoseHandOff(engine: string, message: string): HandOff {
+/**
+ * A failed health read is itself an incident: hand it to the agent, asked as the landing words it,
+ * so an engine that refused the server's login is never "not reachable" (F2). The error text is
+ * quoted, never inlined.
+ */
+function diagnoseHandOff(engine: string, error: Error): HandOff {
+  const failure = healthFailureOf(error)
   return {
-    intent: "askAi.health.diagnoseUnreachable",
+    intent:
+      failure === "unauthorized" || failure === "forbidden"
+        ? "askAi.health.diagnoseLogin"
+        : "askAi.health.diagnoseUnreachable",
     ids: { engine },
-    untrusted: [{ label: "error", text: message }],
+    untrusted: [{ label: "error", text: error.message }],
   }
 }
 
@@ -199,11 +207,11 @@ function HealthUnavailable({
         emptyText={t("engineHealth.noData")}
         className="w-full"
       />
-      {/* An unreachable engine is a failure to understand too: the chat can
-          look for the cause while the operator retries. A refused profile has its
-          reason on screen, and only the operator can fix it. */}
-      {error && !isProfileRefusal(error) && (
-        <HandOffButton action="findCause" prompt={ask(diagnoseHandOff(engine, error.message))} />
+      {/* An unreachable engine or a refused login is a failure to understand too: the
+          chat can look for the cause while the operator retries. A refused profile has
+          its reason on screen, and only the operator can fix it. */}
+      {error && healthFailureOf(error) !== "refused" && (
+        <HandOffButton action="findCause" prompt={ask(diagnoseHandOff(engine, error))} />
       )}
     </div>
   )

@@ -1,4 +1,4 @@
-import type { LiveUpdates } from "../../core/protocol/index.js"
+import type { LiveUpdates, Problem } from "../../core/protocol/index.js"
 import { useEffect, useState } from "preact/hooks"
 import { glyphs } from "./lucide-glyphs.json"
 import { LiveLabels } from "../format/live-labels.js"
@@ -14,7 +14,13 @@ export type Freshness =
       readonly kind: "offline"
       readonly at?: string | undefined
       readonly live?: LiveUpdates | undefined
+      readonly loginRefused?: Problem["loginRefused"]
     }
+
+const REFUSED_LOGIN_LABELS = {
+  unauthorized: "Credentials rejected",
+  forbidden: "Access denied",
+} as const
 
 const CLOCK_TICK_MS = 15_000
 
@@ -55,17 +61,20 @@ export function LiveButton({ live }: { readonly live: LiveUpdates | undefined })
 function OfflineStamp({
   at,
   live,
+  loginRefused,
 }: {
   readonly at?: string | undefined
   readonly live?: LiveUpdates | undefined
+  readonly loginRefused?: Problem["loginRefused"]
 }) {
   const since = at === undefined ? "" : ` · data from ${TimeLabels.asOf(at)}`
   const note = LiveLabels.note(live)
   const title = at === undefined ? undefined : `Last read ${TimeLabels.tooltip(at)}. ${note}`.trim()
+  const state = loginRefused === undefined ? "Offline" : REFUSED_LOGIN_LABELS[loginRefused]
   return (
     <span class="freshness freshness--offline" title={title}>
-      <Icon of={glyphs.Unplug} />
-      {`Offline${since}`}
+      <Icon of={loginRefused === undefined ? glyphs.Unplug : glyphs.KeyRound} />
+      {`${state}${since}`}
     </span>
   )
 }
@@ -117,7 +126,9 @@ export function FreshnessStamp({ freshness }: { readonly freshness: Freshness })
     )
   }
   if (freshness.kind === "offline") {
-    return <OfflineStamp at={freshness.at} live={freshness.live} />
+    return (
+      <OfflineStamp at={freshness.at} live={freshness.live} loginRefused={freshness.loginRefused} />
+    )
   }
   return <ReadStamp at={freshness.at} live={freshness.live} />
 }

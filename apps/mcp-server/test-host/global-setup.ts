@@ -2,9 +2,11 @@ import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/cli
 import { createApp, type AppDeps } from "../src/app.js"
 import { MODULES } from "../src/setup.js"
 import {
+  ACCESS_DENIED_ENGINE,
   BROKEN_ENGINE,
   ENGINE_CONTROL_ENV,
   HEALTHY_ENGINE,
+  LOGIN_REFUSED_ENGINE,
   OWN_VIEW_HOST_ENV,
   REALISTIC_ENGINE,
   REALISTIC_HOST_ENV,
@@ -51,7 +53,8 @@ async function deploy(env: Record<string, string>, deps?: AppDeps): Promise<Depl
  * checkouts can never collide or be reused by accident. The workers find the
  * host page via `HOST_SIM_URL`, the write-capable deployment via
  * `HOST_SIM_OPERATIONS_URL`, the realistic engine's deployment via
- * `HOST_SIM_REALISTIC_URL`, the one with a refused profile via `HOST_SIM_REFUSED_URL`, the
+ * `HOST_SIM_REALISTIC_URL`, the one with a refused profile and refused logins via
+ * `HOST_SIM_REFUSED_URL`, the
  * one with a module's own view via
  * `HOST_SIM_OWN_VIEW_URL` and the stub engine's scenario control via
  * `HOST_SIM_ENGINE_URL` (all inherited from this process).
@@ -80,7 +83,10 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     }),
   })
   // A profile the server refuses next to a usable one (refused-profile.spec.ts): its secret's
-  // variable is not set, so the landing lists it as not answering and opening it says why.
+  // variable is not set, so the landing lists it as not answering and opening it says why. And two
+  // engines that refuse the server's Basic login, one with a 401 and one with a 403
+  // (refused-login.spec.ts): they answer, so the landing and the cross-engine view never call
+  // them unreachable.
   const refused = await deploy({
     ENGINES_JSON: JSON.stringify({
       profiles: {
@@ -89,8 +95,26 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
           url: engine.baseUrl,
           auth: { type: "bearer", tokenEnv: "ENGINE_SECRET_HOST_SIM_NEVER_SET" },
         },
+        [LOGIN_REFUSED_ENGINE]: {
+          url: engine.loginRefusedBaseUrl,
+          auth: {
+            type: "basic",
+            username: "demo",
+            passwordEnv: "ENGINE_SECRET_HOST_SIM_WRONG_PASSWORD",
+          },
+        },
+        [ACCESS_DENIED_ENGINE]: {
+          url: engine.accessDeniedBaseUrl,
+          auth: {
+            type: "basic",
+            username: "viewer",
+            passwordEnv: "ENGINE_SECRET_HOST_SIM_VIEWER_PASSWORD",
+          },
+        },
       },
     }),
+    ENGINE_SECRET_HOST_SIM_WRONG_PASSWORD: "not-the-password",
+    ENGINE_SECRET_HOST_SIM_VIEWER_PASSWORD: "viewer-password",
   })
   // A module with a finished HTML view of its own next to the bundle's (own-view.spec.ts).
   const ownView = await deploy(

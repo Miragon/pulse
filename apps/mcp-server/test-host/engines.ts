@@ -17,7 +17,14 @@ export const ENGINE_CONTROL_ENV = "HOST_SIM_ENGINE_URL"
 export const REALISTIC_HOST_ENV = "HOST_SIM_REALISTIC_URL"
 /** A profile the server refuses (its secret's variable is not set): the landing lists it. */
 export const REFUSED_ENGINE = "locked"
-/** Env var carrying the host page of the deployment with a refused profile (global-setup.ts). */
+/** An engine that answers the server's login with a 401: it runs, so it is not unreachable. */
+export const LOGIN_REFUSED_ENGINE = "wrong-login"
+/** An engine that denies the server's account the read with a 403: it runs too. */
+export const ACCESS_DENIED_ENGINE = "no-access"
+/**
+ * Env var carrying the host page of the deployment with a refused profile and two engines that
+ * refuse the server's login (global-setup.ts).
+ */
 export const REFUSED_HOST_ENV = "HOST_SIM_REFUSED_URL"
 /** Env var carrying the host page of the deployment with a module's own view (global-setup.ts). */
 export const OWN_VIEW_HOST_ENV = "HOST_SIM_OWN_VIEW_URL"

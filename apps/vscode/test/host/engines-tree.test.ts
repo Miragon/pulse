@@ -1,8 +1,10 @@
 import {
   BpmnProcessId,
+  RuntimeError,
   type EngineInfo,
   type ProcessCommands,
   type ProcessRuntime,
+  type RuntimeFailure,
 } from "@miragon/pulse-engine-core"
 import { FakeEngine, FakeWorld, PatchedRuntime } from "@miragon/pulse-engine-core/testing"
 import { DiagramCache } from "@miragon/pulse-runtime-view/core"
@@ -199,4 +201,27 @@ describe("a problem of a project file in the Engines tree", () => {
     expect(item.iconPath).toEqual(new ThemeIcon(icon, new ThemeColor(colour)))
     expect(item.accessibilityInformation?.label).toBe(`${words}: /work/engines.json: what is wrong`)
   })
+})
+
+describe("an engine whose processes cannot be read in the Engines tree", () => {
+  test.each([
+    ["unauthorized", "key", "local-operaton rejected the credentials."],
+    ["forbidden", "key", "local-operaton does not allow this request."],
+    ["unreachable", "debug-disconnect", "Can't reach local-operaton."],
+  ] as const)(
+    "shows a %s read with the %s icon, never a cut cable for a refused login",
+    async (failure: RuntimeFailure, icon, title) => {
+      const runtime = new PatchedRuntime(new FakeEngine(FakeWorld.seed().state), {
+        describeEngine: () => Promise.resolve(ENGINE),
+        listDefinitions: () => Promise.reject(new RuntimeError(failure, "boom")),
+      })
+      const { tree } = treeOf(new FakeRegistry([connection(runtime)]))
+
+      const children = await tree.getChildren(await firstEngine(tree))
+      const item = tree.getTreeItem(children[0]!)
+
+      expect(item.label).toBe(title)
+      expect(item.iconPath).toEqual(new ThemeIcon(icon))
+    },
+  )
 })
