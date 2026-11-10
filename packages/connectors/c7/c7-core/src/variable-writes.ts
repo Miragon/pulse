@@ -119,15 +119,29 @@ function autoInteger(raw: string): TypedValue | undefined {
 }
 
 /**
+ * Plain decimals: Double, else beyond the range of a double a String. Such a number is no finite
+ * double (`Infinity`), which JSON would send as null: the text keeps every digit. Both checks are
+ * `if`s, whose tests Stryker mutates; it leaves the test of a ternary alone.
+ */
+function autoDecimal(raw: string): TypedValue | undefined {
+  if (!DECIMAL.test(raw)) return undefined
+  const value = Number(raw)
+  if (!Number.isFinite(value)) return undefined
+  return { value, type: "Double" }
+}
+
+/**
  * A variable value given as text, typed by its form: `true`/`false` → Boolean, `null` → Null,
  * integers → Integer (int32) or Long (int64, a BigInt beyond 2^53), plain decimals → Double,
- * everything else (also an integer beyond int64, `01234`, `1e3`) → String.
+ * everything else (also an integer beyond int64, a decimal beyond the range of a double,
+ * `01234`, `1e3`) → String.
  */
 export function autoTypedValue(raw: string): TypedValue {
   if (raw === "true" || raw === "false") return { value: raw === "true", type: "Boolean" }
   if (raw === "null") return { value: null, type: "Null" }
   const integer = INTEGER.test(raw) ? autoInteger(raw) : undefined
   if (integer !== undefined) return integer
-  if (DECIMAL.test(raw)) return { value: Number(raw), type: "Double" }
+  const decimal = autoDecimal(raw)
+  if (decimal !== undefined) return decimal
   return { value: raw, type: "String" }
 }

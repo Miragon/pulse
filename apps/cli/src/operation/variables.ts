@@ -3,7 +3,8 @@
  *
  *   name=value          auto typed (c7-core's autoTypedValue): true/false → Boolean,
  *                       integers → Integer/Long, decimals → Double, null → Null, everything
- *                       else → String
+ *                       else → String, also an integer beyond int64 and a decimal beyond the
+ *                       range of a double (their exact text)
  *   name:Type=value     explicit type, e.g. zip:String=01234, order:Json={"id":1}
  *
  * The typed conversions are the ones of option values (values.ts): `Date` values are normalized

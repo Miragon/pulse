@@ -202,6 +202,7 @@ describe("changing a variable", () => {
   test.each([
     ["1e3", '{"value":1000,"type":"Double"}'],
     ["-1.5E-3", '{"value":-0.0015,"type":"Double"}'],
+    ["1e20", '{"value":1e20,"type":"Double"}'],
   ])(
     "writes a new variable from %s, a JSON number in exponent form, as a Double",
     async (valueJson, body) => {
@@ -214,24 +215,51 @@ describe("changing a variable", () => {
   )
 
   test.each([
-    ["a Double", "Double", "1e400", "Double"],
-    ["a negative Double", "Double", "-1e400", "Double"],
-    ["a Long", "Long", `1${"0".repeat(400)}`, "Long"],
-    ["an Integer", "Integer", `1${"0".repeat(400)}`, "Integer"],
-    ["a Short", "Short", `-1${"0".repeat(400)}`, "Short"],
-    ["a decimal without a type", undefined, `1${"0".repeat(400)}.5`, "Double"],
-    ["an exponent without a type", undefined, "1e400", "Double"],
+    ["a Double", "Double", "1e400"],
+    ["a negative Double", "Double", "-1e400"],
+    ["a Long", "Long", `1${"0".repeat(400)}`],
+    ["an Integer", "Integer", `1${"0".repeat(400)}`],
+    ["a Short", "Short", `-1${"0".repeat(400)}`],
   ])(
     "rejects %s beyond the range of a double, which JSON would send as null, before calling the engine",
-    async (_label, type, valueJson, named) => {
+    async (_label, type, valueJson) => {
       const { commands, engine } = fakeCommands([])
 
       await expect(
-        commands.setVariable(INSTANCE, { name: "amount", valueJson, ...(type ? { type } : {}) }),
-      ).rejects.toThrow(`The new value of amount is not a valid ${named}.`)
+        commands.setVariable(INSTANCE, { name: "amount", valueJson, type }),
+      ).rejects.toThrow(`The new value of amount is not a valid ${type}.`)
       expect(engine.requests).toEqual([])
     },
   )
+
+  const BEYOND_A_DOUBLE = `1${"0".repeat(400)}.5`
+  test.each([
+    [BEYOND_A_DOUBLE, `{"value":"${BEYOND_A_DOUBLE}","type":"String"}`],
+    [`-${BEYOND_A_DOUBLE}`, `{"value":"-${BEYOND_A_DOUBLE}","type":"String"}`],
+    ["1e400", '{"value":"1e400","type":"String"}'],
+    ["-1.5E400", '{"value":"-1.5E400","type":"String"}'],
+  ])(
+    "writes a new variable from %s, a number beyond the range of a double, as a String of its exact text",
+    async (valueJson, body) => {
+      const { commands, engine } = fakeCommands([accepting("fresh")])
+
+      await commands.setVariable(INSTANCE, { name: "fresh", valueJson })
+
+      expect(engine.requests[0]?.body).toBe(body)
+    },
+  )
+
+  test.each([
+    [`${BigInt(Number.MAX_VALUE)}.0`, '{"value":1.7976931348623157e+308,"type":"Double"}'],
+    [`-${BigInt(Number.MAX_VALUE)}.0`, '{"value":-1.7976931348623157e+308,"type":"Double"}'],
+    ["1.7976931348623157e308", '{"value":1.7976931348623157e308,"type":"Double"}'],
+  ])("writes a new variable from %s, the largest double, as a Double", async (valueJson, body) => {
+    const { commands, engine } = fakeCommands([accepting("fresh")])
+
+    await commands.setVariable(INSTANCE, { name: "fresh", valueJson })
+
+    expect(engine.requests[0]?.body).toBe(body)
+  })
 
   test.each([
     ["Integer", "4.5"],

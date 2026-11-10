@@ -70,7 +70,8 @@ export class VariableBody {
       return { value: text, type: "Json" }
     }
     const typed = autoTypedValue(text)
-    return kind === "decimal" && typed.type === "String" ? { value, type: "Double" } : typed
+    const finiteNumber = kind === "decimal" && Number.isFinite(Number(text))
+    return finiteNumber && typed.type === "String" ? { value, type: "Double" } : typed
   }
 
   private static engineVariable(name: string, typed: TypedValue): unknown {

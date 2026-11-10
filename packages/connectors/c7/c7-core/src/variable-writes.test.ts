@@ -170,6 +170,10 @@ describe("autoTypedValue", () => {
     ["1e3", "1e3", "String"],
     ["x1.5", "x1.5", "String"],
     ["1.5x", "1.5x", "String"],
+    // Number() reads these as 1.5: only the form of the text keeps them a String.
+    [" 1.5", " 1.5", "String"],
+    ["1.5 ", "1.5 ", "String"],
+    ["+1.5", "+1.5", "String"],
     ["x15", "x15", "String"],
     ["15x", "15x", "String"],
     ["TRUE", "TRUE", "String"],
@@ -204,6 +208,36 @@ describe("autoTypedValue", () => {
       fc.property(fc.integer(), fc.stringMatching(/^\d{1,6}$/), (whole, fraction) => {
         const raw = `${whole}.${fraction}`
         expect(autoTypedValue(raw)).toEqual({ value: Number(raw), type: "Double" })
+      }),
+    )
+  })
+
+  // Number() reads a decimal beyond the range of a double as Infinity, which JSON sends as null:
+  // a Double without a value. Its text keeps every digit.
+  const LARGEST = `${BigInt(Number.MAX_VALUE)}.0`
+  const BEYOND = `${2n ** 1024n}.0`
+  const HUGE = `${"9".repeat(400)}.5`
+  it.each([
+    ["the largest double as a Double", LARGEST, Number.MAX_VALUE, "Double"],
+    ["the most negative double as a Double", `-${LARGEST}`, -Number.MAX_VALUE, "Double"],
+    ["2^1024 as a String", BEYOND, BEYOND, "String"],
+    ["-2^1024 as a String", `-${BEYOND}`, `-${BEYOND}`, "String"],
+    ["400 digits and .5 as a String", HUGE, HUGE, "String"],
+    ["-(400 digits and .5) as a String", `-${HUGE}`, `-${HUGE}`, "String"],
+  ])("types the decimal %s", (_label, raw, value, type) => {
+    expect(autoTypedValue(raw)).toEqual({ value, type })
+  })
+
+  it("keeps a decimal beyond the range of a double as a String of its exact text", () => {
+    const beyond = fc.tuple(
+      fc.constantFrom("", "-"),
+      fc.stringMatching(/^[1-9]\d{309,400}$/),
+      fc.stringMatching(/^\d{1,6}$/),
+    )
+    fc.assert(
+      fc.property(beyond, ([sign, whole, fraction]) => {
+        const raw = `${sign}${whole}.${fraction}`
+        expect(autoTypedValue(raw)).toEqual({ value: raw, type: "String" })
       }),
     )
   })

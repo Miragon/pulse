@@ -150,14 +150,17 @@ MCP server run too. The package belongs to the c7 family, whose dialect it imple
   values they show as JSON (c7-core would write an Xml or an Object with its type name too).
   A variable change is JSON text (`VariableChange.valueJson`), the editor hosts' input form,
   and keeps the variable's type: the text must be a value of that type (a JSON string for
-  String and Date, an integer for Short, Integer and Long, a number for Double). Without a
-  type (a new variable, or one that holds null) a JSON string is a String, an object or an
+  String and Date, an integer for Short, Integer and Long, a number for Double); for each of
+  these types a number beyond the range of a double (`1e400`), which JSON would send as null,
+  is rejected before sending. Without a type (a new variable, or one that holds null) text
+  that is no JSON is rejected before sending, a JSON string is a String, an object or an
   array Json, and any other value gets the type c7-core's `autoTypedValue` gives its text, as
   the CLI's `--var` does: an integer is an Integer within int32, else a Long within int64,
-  else a String; a plain decimal is a Double. A JSON number in exponent form (`1e3`), which
-  `autoTypedValue` leaves a String, stays a Double: the editor hosts' "Write as: Number"
-  writes a number. Text that is no JSON, and a number beyond the range of a double (`1e400`,
-  309 digits or more), which JSON would send as null, are rejected before sending.
+  else a String; a plain decimal is a Double within the range of a double, else a String. A
+  JSON number in exponent form (`1e3`), which `autoTypedValue` leaves a String, is a Double
+  within that range, since the editor hosts' "Write as: Number" writes a number. So without a
+  type a number beyond the range of a double, in any form, goes out as a String of its exact
+  text, as in the CLI, and so does an integer beyond int64.
   c7-core's `toEngineVariable` gives the wire form: a Json value as its serialized text, a
   Date in the engine's format with its own offset (c7-core's `OFFSET_REQUIRED` reading: a
   time without an offset, `24:00`, a day the calendar lacks or a date without a day is
@@ -360,14 +363,15 @@ routes and so run every class above.
   `configuration` is `skipped` as one without, no longer `gone`, and `searchIncidents` lists
   it without a job, as `inspect` always did.
 - Since a written variable is typed by c7-core (`autoTypedValue`, `toEngineVariable`), a new
-  variable (or one that holds null) given an integer beyond int64 is a String, no longer a
-  Long the engine refused, while the editor hosts' confirmation still names a whole number
-  (`writes.md`); a Date is sent with the offset it was given instead of in UTC (the same
-  instant), and one with a day the calendar lacks, which `Date.parse` rolled over into the
-  next month, or with `24:00`, which it read as the next day's midnight, is rejected before
-  sending, as is an integer with a leading zero, which went out as JSON the engine refused,
-  and a number beyond the range of a double, which went out as written for the engine to
-  judge.
+  variable (or one that holds null) given an integer beyond int64 or a number beyond the
+  range of a double is a String of its exact text, no longer a Long the engine refused or a
+  number sent as written for the engine to judge, while the editor hosts' confirmation still
+  names a whole number or a number (`writes.md`); a Date is sent with the offset it was given
+  instead of in UTC (the same instant), and one with a day the calendar lacks, which
+  `Date.parse` rolled over into the next month, or with `24:00`, which it read as the next
+  day's midnight, is rejected before sending, as is an integer with a leading zero, which went
+  out as JSON the engine refused, and a number beyond the range of a double for a Short,
+  Integer, Long or Double, which went out as written for the engine to judge.
 - Since the adapter reads a 404 by c7-core's `isMissing`, a 404 `QueryParamException`
   (a query value the engine cannot read) is no missing resource any more: a read fails as
   `misconfigured` instead of answering "none".
