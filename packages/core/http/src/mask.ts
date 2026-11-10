@@ -89,10 +89,27 @@ function maskedLiteral(literal: string, forms: readonly string[]): string {
   return masked === value ? literal : JSON.stringify(masked)
 }
 
+/** A JSON number. */
+const NUMBER = /-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/g
+
+/** Text between string literals with each number that carries a secret written as `"***"`. */
+function maskedNumbers(text: string, forms: readonly string[]): string {
+  return text.replace(NUMBER, (number) =>
+    forms.some((form) => patternOf(form).test(number)) ? JSON.stringify(MASK) : number,
+  )
+}
+
+/** `masked`, or all of it masked as plain text when a secret is still in it. */
+function finished(masked: string, forms: readonly string[]): string {
+  return forms.some((form) => patternOf(form).test(masked)) ? maskSecrets(masked, forms) : masked
+}
+
 /**
  * A JSON text masked inside its string literals, so it stays JSON and a secret written with
- * escapes is found as well. A form still left outside them (a number) masks the whole text: then
- * it may no longer parse, but it shows no secret.
+ * escapes is found as well; a number that carries a secret (an error code that holds a password
+ * of digits) becomes the string `"***"`, so the text stays JSON then too. A secret still left
+ * outside them (in `true`, across a comma) masks the whole text: then it may no longer parse, but
+ * it shows no secret.
  */
 export function maskJsonText(text: string, forms: readonly string[]): string {
   if (forms.length === 0) return text
@@ -100,12 +117,13 @@ export function maskJsonText(text: string, forms: readonly string[]): string {
   let at = 0
   for (let start = text.indexOf('"'); start !== -1; start = text.indexOf('"', at)) {
     const end = literalEnd(text, start)
-    if (end === -1) break
-    masked += text.slice(at, start) + maskedLiteral(text.slice(start, end + 1), forms)
+    // An unterminated literal: no JSON, so its rest stays as it is for `finished` to mask.
+    if (end === -1) return finished(masked + text.slice(at), forms)
+    const literal = maskedLiteral(text.slice(start, end + 1), forms)
+    masked += maskedNumbers(text.slice(at, start), forms) + literal
     at = end + 1
   }
-  masked += text.slice(at)
-  return forms.some((form) => patternOf(form).test(masked)) ? maskSecrets(masked, forms) : masked
+  return finished(masked + maskedNumbers(text.slice(at), forms), forms)
 }
 
 /** Text for one line of a message: whitespace collapsed, cut after `max` characters. */

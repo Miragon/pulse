@@ -323,8 +323,9 @@ describe("the edges of the rules", () => {
     expect(new CredentialError("token-syntax").name).toBe("CredentialError")
   })
 
-  it("masks a whole JSON text when any secret is left outside its literals", () => {
-    const forms = secretForms(["12345678", "other-secret"])
-    expect(maskJsonText('{"code":12345678}', forms)).toBe('{"code":***}')
+  it("masks a whole JSON text when any secret is left outside its literals and numbers", () => {
+    const forms = secretForms(["other-secret", "1234,5678"])
+    expect(maskJsonText('{"code":[1234,5678]}', forms)).toBe('{"code":[***]}')
+    expect(maskJsonText('{"code":12345678}', secretForms(["12345678"]))).toBe('{"code":"***"}')
   })
 })

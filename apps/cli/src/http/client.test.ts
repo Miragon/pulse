@@ -4,6 +4,7 @@ import { basicAuth } from "../auth/basic.js"
 import type { AuthProvider } from "../auth/types.js"
 import { httpClient, fakeFetch, json, REQUEST, URL_ } from "../../test/support/http-client.js"
 import { send } from "./client.js"
+import { httpError } from "./errors.js"
 import type { HttpRequest, TraceEvent } from "./types.js"
 
 /** A provider whose bearer token renews as `renew` says, counting each 401. */
@@ -148,6 +149,25 @@ describe("send: a credential that renews", () => {
 })
 
 describe("send: the secrets of a request in what the engine sends back", () => {
+  it("leave an engine's error readable when a password of digits stands in its code", async () => {
+    const auth = basicAuth({
+      type: "basic",
+      username: "demo",
+      password: "10000",
+      sources: { username: "env", password: "env" },
+    })
+    const message = "Process instance with id pi-1 does not exist"
+    const { fetch } = fakeFetch(
+      json(404, { type: "InvalidRequestException", message, code: 10000 }),
+    )
+    const response = await send(REQUEST, httpClient(fetch, { auth }))
+    const error = httpError(response, REQUEST)
+    expect(error.code).toBe("NOT_FOUND")
+    expect(error.details).toMatchObject({ engineType: "InvalidRequestException" })
+    expect(error.details).not.toHaveProperty("engineCode")
+    expect(error.details.hint).not.toContain("REST API root")
+  })
+
   const echo = (text: string) =>
     new Response(JSON.stringify({ type: "ProcessEngineException", message: text }), {
       status: 500,

@@ -110,14 +110,33 @@ describe("maskJsonText", () => {
     expect(maskJsonText(text, [])).toBe(text)
   })
 
-  it("masks the whole text when a secret sits outside the literals", () => {
-    const masked = maskJsonText('{"code":12345678,"m":"12345678"}', secretForms(["12345678"]))
-    expect(masked).toBe('{"code":***,"m":"***"}')
+  it("writes a number that carries a secret as the string ***, so the text stays JSON", () => {
+    const forms = secretForms(["10000"])
+    const text = '{"type":"X","message":"pw 10000","code":10000,"n":[-110000.5e3, 1000],"m":2}'
+    const masked = maskJsonText(text, forms)
+    expect(masked).toBe('{"type":"X","message":"pw ***","code":"***","n":["***", 1000],"m":2}')
+    expect(maskJsonText("10000", forms)).toBe('"***"')
+    expect(maskJsonText('[10000,"a"] ', forms)).toBe('["***","a"] ')
+  })
+
+  it("takes a number whole, its fraction and its signed exponent included", () => {
+    const forms = secretForms(["other-secret", "10000"])
+    const text = '[1.2510000,3e+10000,4E-10000,5,"other-secret"]'
+    expect(maskJsonText(text, forms)).toBe('["***","***","***",5,"***"]')
+  })
+
+  it("masks the whole text when a secret sits outside the literals and their numbers", () => {
+    const masked = maskJsonText('{"n":[1234,5678],"m":"1234,5678"}', secretForms(["1234,5678"]))
+    expect(masked).toBe('{"n":[***],"m":"***"}')
+    expect(maskJsonText('{"ok":true}', secretForms(["true"]))).toBe('{"ok":***}')
   })
 
   it("masks text that is no JSON, an unterminated literal included", () => {
     const forms = secretForms(["demo-secret"])
     expect(maskJsonText('{"m":"demo-secret', forms)).toBe('{"m":"***')
+    expect(maskJsonText('{"m":"x","pw 10000 n:10000', secretForms(["10000"]))).toBe(
+      '{"m":"x","pw *** n:***',
+    )
     expect(maskJsonText('{"m":"x"} demo-secret', forms)).toBe('{"m":"x"} ***')
     expect(maskJsonText('"\\x demo-secret"', forms)).toBe('"\\x ***"')
   })
@@ -129,6 +148,19 @@ describe("maskJsonText", () => {
         const masked = maskJsonText(JSON.stringify(document), secretForms([value]))
         expect(masked).not.toContain(value)
         expect(masked).not.toContain(JSON.stringify(value).slice(1, -1))
+      }),
+    )
+  })
+
+  it("keeps JSON JSON when a secret of digits stands in its numbers", () => {
+    const digits = fc.stringMatching(/^[1-9]\d{3,9}$/)
+    fc.assert(
+      fc.property(fc.json(), digits, fc.nat(99), (base, value, around) => {
+        const code = Number(`${String(around)}${value}`)
+        const document = { base: JSON.parse(base) as unknown, code, said: `pw ${value}` }
+        const masked = maskJsonText(JSON.stringify(document), secretForms([value]))
+        expect(masked).not.toContain(value)
+        expect(JSON.parse(masked)).toMatchObject({ code: MASK, said: `pw ${MASK}` })
       }),
     )
   })
