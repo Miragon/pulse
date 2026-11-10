@@ -14,6 +14,7 @@ import { isRecord } from "../../util.js"
 import { type LoginOwner, unknownFormat } from "./errors.js"
 import { identityOf } from "./identity.js"
 import { sha256 } from "./pkce.js"
+import { isAccessToken } from "./token.js"
 import type { CachedLogin, ClientAuthMethod, LoginIdentity, OAuthDeps } from "./types.js"
 
 /** How much longer than one token request a lock holder may keep the lock. */
@@ -93,7 +94,8 @@ const LOGIN: Readonly<Record<keyof CachedLogin, Check>> = {
   identity: (value) => matches(value, IDENTITY),
   endpoints: (value) => matches(value, ENDPOINTS),
   tokenType: isString,
-  accessToken: (value) => typeof value === "string" && value !== "",
+  // what the token response had to be (`parseTokenResponse`), so an edited cache is no login
+  accessToken: isAccessToken,
   expiresAt: orNull(isNumber),
   refreshToken: orNull((value) => typeof value === "string" && value !== ""),
   refreshExpiresAt: orNull(isNumber),

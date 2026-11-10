@@ -42,7 +42,7 @@ dependency-cruiser enforces the boundaries (`pnpm lint:architecture && pnpm lint
 
 - `workflow` imports `engine-port` and `@miragon/pulse-c7-core`, never `engines` or `api`.
   It turns the package's steps and reasons into the command lines and errors the CLI prints.
-  Only `operation/dates.ts` and `operation/variables.ts` also import c7-core, for its rules.
+  Only `operation/dates.ts`, `operation/variables.ts` and `http/errors.ts` import c7-core too.
 - Only `engines/<name>/adapter.ts` imports `api`.
 - Adapters do not import each other. An API does not import another API.
 - `engine-port` imports types only. `api`, `engine-port` and `engines` use no Node built-ins.
@@ -52,7 +52,7 @@ dependency-cruiser enforces the boundaries (`pnpm lint:architecture && pnpm lint
 
 The commands are data. A generator turns the OpenAPI spec into one catalog that every engine
 shares. The selected adapter hands it to the CLI, which registers commands, help and `describe` from
-it and sends requests over HTTP.
+it and sends requests through the transport `@miragon/pulse-http`.
 
 ```mermaid
 flowchart LR
@@ -60,7 +60,7 @@ flowchart LR
   gen --> catalog["src/generated<br/>catalog.json"]
   catalog -- loaded by --> adapter["src/engines/&lt;engine&gt;/adapter.ts"]
   adapter --> cli["src/cli<br/>commands, help, describe"]
-  cli --> http["operation + http<br/>request, auth, errors"]
+  cli --> http["operation + http<br/>request, auth, errors<br/>over @miragon/pulse-http"]
   http -- HTTP --> engine["Engine<br/>/engine-rest"]
 ```
 

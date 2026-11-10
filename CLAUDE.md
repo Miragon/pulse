@@ -576,11 +576,9 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      `QueryParamException` or one without an engine answer is a wrong REST root or request and
      fails loud): the client's reads throw every 404 and their callers decide (the connector's
      `isMissingResource`/`noneIfMissing` in `src/lib/core-adapter/engine-port.ts`), the CLI and
-     the C7 adapter of the editor hosts call it. Two copies are left, each held equal by a test: in the leaf
+     the C7 adapter of the editor hosts call it. One copy is left, held equal by a test: in the leaf
      client the raw-variable flag (to `RAW_VARIABLES`, the connector's
-     `src/sdk-reads.test.ts`), and the CLI's endpoint hint in `apps/cli/src/http/errors.ts`
-     (its http layer does not import the core; `apps/cli/src/http/errors.test.ts`) until the CLI
-     sends through the transport. No client follows a redirect: a 3xx fails with a message that
+     `src/sdk-reads.test.ts`). No client follows a redirect: a 3xx fails with a message that
      names the fix, the rule of `@miragon/pulse-http` (`packages/core/http`), the one home of it
      and of the other wire rules (the deadline to the last byte, the 64 MiB cap, Basic as UTF-8,
      one retry after a 401 only when the credential renewed, the write caveat only for a write,
@@ -589,8 +587,12 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      through it: the engine connector builds each engine's credential and transport once at boot
      and hands the SDK client its `asFetch` and a `requestValidator` for the path values
      (`src/lib/engine/engine-connection.ts`), and words every failure for the model in one place
-     (`src/lib/engine/engine-error.ts`, the wrong-root hint by `isUnknownEndpoint` itself); the
-     CLI and the C7 adapter of the editor hosts keep their own until each switches to it.
+     (`src/lib/engine/engine-error.ts`, the wrong-root hint by `isUnknownEndpoint` itself). The
+     CLI sends through it as well (`apps/cli/src/http/client.ts`, the connection mapped from its
+     resolved configuration; its cases in `apps/cli/src/http/transport-cases.test.ts`) and words
+     every failure itself (`apps/cli/src/http/errors.ts`, the wrong-root hint by
+     `isUnknownEndpoint` too); the C7 adapter of the editor hosts keeps its own until it switches
+     to it.
      Every write tool has a
      recording-fake-engine case in `src/tools/*.wire.test.ts`.
    - **One Camunda 7 REST spec** (`packages/connectors/c7/c7-core/spec/api.json`, Operaton's,
@@ -661,7 +663,7 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      workspace package except a family core it bundles (`@miragon/pulse-c7-core`), the profile
      format where it reads its profiles (what `profile-consumers` admits; it may bundle it with
      its core, `CLI_BUNDLES`) and the transport where it sends its engine requests (what
-     `http-consumers` admits; it may bundle it too). The editor hosts import only the runtime view
+     `http-consumers` admits; it bundles it too). The editor hosts import only the runtime view
      and a family's adapter (`runtime-view-consumers`, `adapter-consumers`; their closed worlds
      let only the composition roots wire the adapter) and of the family cores engine-core's main
      entry alone, for the contract's ids and read models
@@ -696,8 +698,8 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      family's adapter of the runtime view, a connector's `src/lib/engine` (where the engine
      connector sends through it, behind `resolveEngine`/`withEngine`; never its tools, data
      builders or widgets), and tests anywhere, never the MCP server app's shipped code
-     (`http-consumers`, `HTTP_USERS`; until the CLI and the adapter switch to it, only their
-     tests may); the engine family's core (`@miragon/pulse-engine-core`,
+     (`http-consumers`, `HTTP_USERS`; until the adapter switches to it, only its tests do); the
+     engine family's core (`@miragon/pulse-engine-core`,
      `packages/connectors/engine/engine-core`) is a family core like any other, importing only its
      own modules (`family-core-is-a-leaf`), and is imported only where a dialect is implemented,
      the `src` of a dialect's core (`ENGINE_DIALECTS`, never its `./testing` entry), its main

@@ -93,35 +93,18 @@ export async function sha256Hex(data: string | Uint8Array): Promise<string> {
   return [...digest].map((byte) => byte.toString(16).padStart(2, "0")).join("")
 }
 
-/** The parts of `JSON` that TypeScript's ES2023 lib does not describe (Node.js >= 21 has them). */
+/** The part of `JSON` that TypeScript's ES2023 lib does not describe (Node.js >= 21 has it). */
 interface SourceJson {
-  parse(
-    text: string,
-    reviver: (key: string, value: unknown, context: { readonly source?: string }) => unknown,
-  ): unknown
   rawJSON(text: string): unknown
 }
 
 const SOURCE_JSON = JSON as unknown as SourceJson
-const INTEGER_LITERAL = /^-?\d+$/
 
 /**
- * JSON.parse without losing integers beyond 2^53 (engine `Long` values such as
- * 9223372036854775807): they become BigInts, which `stringifyJson` writes back digit for digit.
- * Other numbers are parsed as usual. Throws like JSON.parse.
+ * JSON.stringify that writes BigInts as plain JSON numbers, digit for digit: the integers beyond
+ * 2^53 (engine `Long` values such as 9223372036854775807) that @miragon/pulse-http's
+ * `parseJson(text, "bigint")` reads from an answer, a body or a preview.
  */
-export function parseJson(text: string): unknown {
-  return SOURCE_JSON.parse(text, (_key, value, context) =>
-    typeof value === "number" &&
-    !Number.isSafeInteger(value) &&
-    context.source !== undefined &&
-    INTEGER_LITERAL.test(context.source)
-      ? BigInt(context.source)
-      : value,
-  )
-}
-
-/** JSON.stringify that writes BigInts (from `parseJson`) as plain JSON numbers. */
 export function stringifyJson(value: unknown, indent?: number): string | undefined {
   return JSON.stringify(
     value,

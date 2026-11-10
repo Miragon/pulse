@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import { headersOf } from "../../test/support/credential.js"
 import { fakeRuntime } from "../../test/support/fake-runtime.js"
 import { authDeps, oauthConfig } from "../../test/support/oauth.js"
 import type { AuthConfig } from "../config/types.js"
@@ -11,7 +12,7 @@ describe("createAuthProvider", () => {
   it("creates the none provider", async () => {
     const provider = createAuthProvider({ type: "none" }, deps)
     expect(provider.type).toBe("none")
-    await expect(provider.headers()).resolves.toEqual({})
+    await expect(headersOf(provider)).resolves.toEqual({})
     expect(provider.principal).toBeUndefined()
     expect(provider.off).toBeUndefined()
     expect(createAuthProvider({ type: "none", off: "switched off" }, deps).off).toBe("switched off")
@@ -28,7 +29,7 @@ describe("createAuthProvider", () => {
       deps,
     )
     expect(provider.type).toBe("basic")
-    await expect(provider.headers()).resolves.toEqual({ Authorization: "Basic ZGVtbzpkZW1v" })
+    await expect(headersOf(provider)).resolves.toEqual({ Authorization: "Basic ZGVtbzpkZW1v" })
     expect(provider.principal).toEqual({ user: "demo", source: "env" })
   })
 
@@ -37,8 +38,8 @@ describe("createAuthProvider", () => {
     const provider = createAuthProvider(oauthConfig(), authDeps(runtime))
     expect(provider.type).toBe("oauth")
     expect(provider.principal).toBeUndefined()
-    expect(typeof provider.refresh).toBe("function")
-    await expect(provider.headers()).rejects.toMatchObject({ code: "LOGIN_REQUIRED" })
+    expect(provider.credential).toMatchObject({ scheme: "bearer", renewable: true })
+    await expect(headersOf(provider)).rejects.toMatchObject({ code: "LOGIN_REQUIRED" })
     expect(runtime.loopback.listens).toEqual([])
     expect(runtime.browserUrls).toEqual([])
   })

@@ -1,11 +1,13 @@
 /**
  * Bearer tokens obtained outside pulse: company SSO tooling, a CI secret, `az
  * account get-access-token`, `gcloud auth print-access-token`. pulse sends `Authorization:
- * Bearer <token>` and nothing else: no login, no refresh, no cache. A JWT whose `exp` lies more
+ * Bearer <token>` (the bearer credential of @miragon/pulse-http, which masks the token in what the
+ * engine sends back) and nothing else: no login, no refresh, no cache. A JWT whose `exp` lies more
  * than 30 s in the past fails before any request with TOKEN_EXPIRED (exit 4); the claims also
  * explain a 401 or 403. Opaque tokens are sent as they are. Never shows the token.
  */
 
+import { bearerCredential, staticToken, type TokenSource } from "@miragon/pulse-http"
 import { ENV, type StaticBearerConfig } from "../config/types.js"
 import { PulseCliError } from "../errors.js"
 import { profileToSet } from "../util.js"
@@ -111,12 +113,18 @@ export function bearerAuth(config: StaticBearerConfig, now: () => number): AuthP
       : undefined
   const principal = principalOf(config.origin, claims)
   const next = `fetch a new token (e.g. with your identity provider's CLI) and ${renewal(config)}. pulse sends the token as it is and never refreshes it.`
+  // A fixed token, never renewed (a 401 earns no second attempt), checked for expiry per request.
+  const fixed = staticToken(config.token)
+  const source: TokenSource = {
+    ...fixed,
+    token: () => {
+      const error = expired()
+      return error === undefined ? fixed.token() : Promise.reject(error)
+    },
+  }
   return {
     type: "bearer",
-    headers: () => {
-      const error = expired()
-      return error === undefined ? Promise.resolve(headers) : Promise.reject(error)
-    },
+    credential: bearerCredential(source),
     preview: () => {
       const error = expired()
       if (error === undefined) return Promise.resolve({ headers })

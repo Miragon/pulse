@@ -5,7 +5,7 @@ each later step proves "the same output, except the named fixes". The test is
 `apps/cli/src/cli/goldens/error-paths.golden.test.ts`; it runs the CLI (`run`, the fake runtime
 with the real `fetch`) against loopback engines (`apps/cli/test/support/loopback-engine.ts`) and
 reads one process instance (`pulse process-instance get pi-1`, a generated command, a single GET)
-unless a case names its own command lines. Where step 14 swaps the workflow commands' own path
+unless a case names its own command lines. Where step 14 swapped the workflow commands' own path
 (their operation lookup and failure mapping), a case runs `pulse inspect pi-1` as well; three
 cases run the generated command once more with `-o table`, the error as a person reads it. The
 cases and the engine answers that make them are `apps/cli/test/support/error-cases.ts`, the same
@@ -32,10 +32,10 @@ the CLI; they are checked with Node 22.23.4 (CI runs the newest Node 22) and 24.
 needs a resolver that answers `.invalid` with NXDOMAIN: offline the lookup fails with EAI_AGAIN,
 and a resolver that rewrites NXDOMAIN reaches a real host.
 
-Steps are those of the transport plan (3.1): 11 moves the CLI's settings into the shared profile,
-14 puts it on `@miragon/pulse-http` ("byte for byte except the masking": passwords and tokens
-masked in engine texts, JSON messages cut). Only the two `engine-text-echoes-secret-*` cases echo
-a secret or a long message, so only they should change.
+Steps are those of the transport plan (3.1): 11 moved the CLI's settings into the shared profile,
+14 put it on `@miragon/pulse-http` ("byte for byte except the masking": passwords and tokens
+masked in engine texts, JSON messages cut after 500 characters). Only the two
+`engine-text-echoes-secret-*` cases echo a secret or a long message, and only they changed.
 
 | Case | Status | What the golden shows, or why there is none | Changes in step |
 | ---- | ------ | ------------------------------------------- | --------------- |
@@ -46,13 +46,13 @@ a secret or a long message, so only they should change.
 | `unauthorized-passthrough` | not reachable | the CLI has no caller whose token it could forward: passthrough is the MCP server's alone | |
 | `wrong-rest-root` | pinned | the URL lacks `/engine-rest`: a servlet container's HTML 404, NOT_FOUND with the root hint; for `get` as JSON and as text and for `inspect` | none planned |
 | `missing-resource` | pinned | 404 `InvalidRequestException`: NOT_FOUND, exit 5, the engine's message for `get`, the instance missing at runtime and in the history for `inspect` | none planned |
-| `engine-text-echoes-secret-basic` | pinned | known bug: a 500 whose message echoes the Basic value, the password and a token comes out whole, the configured password and Basic value unmasked | 14 (masked, cut) |
-| `engine-text-echoes-secret-bearer` | pinned | known bug: the same message to a static bearer token, the token unmasked | 14 (masked, cut) |
+| `engine-text-echoes-secret-basic` | pinned | a 500 whose message echoes the Basic value, the password and a token: the configured password and Basic value read `***`, the other token stays, the message cut after 500 characters | 14 (masked, cut) |
+| `engine-text-echoes-secret-bearer` | pinned | the same message to a static bearer token: the token reads `***`, the message is cut | 14 (masked, cut) |
 | `deadline-exceeded` | pinned | PULSE_CLI_TIMEOUT=300 against an engine that never answers: TIMEOUT, exit 8; for `get` and `inspect` | none planned |
 | `unreachable` | pinned | a closed loopback port: NETWORK, ECONNREFUSED; as JSON and as text | none planned |
 | `tls-failure` | pinned | a self-signed certificate: NETWORK with the certificate hint | none planned |
 | `dns-failure` | pinned | a host under `.invalid`: NETWORK with the host name hint | none planned |
-| `too-large-response` | deferred | the CLI buffers any answer and the plan gives it no cap (2.4), so an answer of any size only succeeds; pinned once a cap arrives | |
+| `too-large-response` | deferred | the CLI reads any answer whole and sets the transport no cap (plan 2.4), so an answer of any size only succeeds; pinned once a cap arrives | |
 | `basic-password-euro` | pinned | Basic as UTF-8: the read succeeds, the header as sent | none planned |
 | `path-value-dot` | pinned | `pulse process-instance get .` and `..` are refused before anything is sent: USAGE, exit 2 | none planned |
 | `double-slash-root` | pinned | a URL ending in `//`: the slashes are trimmed, the read succeeds | none planned |

@@ -58,6 +58,7 @@
   },
   "devDependencies": {
     "@miragon/pulse-c7-core": "workspace:*",
+    "@miragon/pulse-http": "workspace:*",
     "@miragon/pulse-profile": "workspace:*",
     "@types/node": "22.20.5",
     "fast-check": "4.10.2",

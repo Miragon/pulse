@@ -3,9 +3,10 @@
  * then preset properties, then field flags, then variable map flags (per key), then `--value`.
  */
 
+import { parseJson } from "@miragon/pulse-http"
 import type { BodyFieldSpec, JsonBodySpec, OperationSpec } from "../catalog/types.js"
 import { usageError } from "../errors.js"
-import { isRecord, parseJson, stringifyJson } from "../util.js"
+import { isRecord, stringifyJson } from "../util.js"
 import {
   type CommandValues,
   type InputDeps,
@@ -43,7 +44,7 @@ function sourceOf(raw: string): string {
 export async function readBody(raw: string, deps: InputDeps): Promise<unknown> {
   const text = await bodyText(raw, deps)
   try {
-    return parseJson(text)
+    return parseJson(text, "bigint")
   } catch (error) {
     const reason = (error as Error).message
     throw usageError(`Invalid JSON in --body${sourceOf(raw)}: ${reason}`, BODY_HINT)

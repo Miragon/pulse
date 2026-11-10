@@ -211,8 +211,8 @@ const HTTP_USERS = [
 /**
  * The workspace packages the CLI may bundle (tsdown inlines what it imports, so the published CLI
  * depends on none of them): its family core, CORE_BUNDLES' entry for apps/cli, the profile
- * format, which its config layer reads the profiles with, and the transport, admitted for the
- * http, auth and operation layers before the CLI sends with it. The
+ * format, which its config layer reads the profiles with, and the transport, which its http,
+ * auth and operation layers send the engine requests with. The
  * only workspace packages cli-is-headless lets the CLI import; cli-no-circular and
  * cli-not-to-test hold their trees as part of the CLI.
  */
@@ -929,16 +929,18 @@ module.exports = {
       severity: "error",
       comment:
         "In the CLI only the workflow commands (apps/cli/src/workflow), the engine port " +
-        "(apps/cli/src/engine-port) and the two operation modules that apply the core's engine " +
+        "(apps/cli/src/engine-port), the two operation modules that apply the core's engine " +
         "REST rules to option values (operation/dates.ts: the date reading, operation/variables.ts: " +
-        "the auto typing) import the family core it bundles (CLI_CORE); the command layer " +
-        "reaches it through the workflow modules, tests may import it anywhere. Any other core " +
-        "is cli-is-headless's.",
+        "the auto typing) and the mapping of HTTP errors (http/errors.ts: the wrong-root rule " +
+        "isUnknownEndpoint, so the CLI keeps no copy of it) import the family core it bundles " +
+        "(CLI_CORE); the command layer reaches it through the workflow modules, tests may import " +
+        "it anywhere. Any other core is cli-is-headless's.",
       from: {
         path: "^apps/cli/",
         pathNot: [
           "^apps/cli/src/(?:workflow|engine-port)/",
           "^apps/cli/src/operation/(?:dates|variables)[.]ts$",
+          "^apps/cli/src/http/errors[.]ts$",
           ...CLI_TEST_CODE,
         ],
       },
@@ -1079,12 +1081,12 @@ module.exports = {
       severity: "error",
       comment:
         "apps/cli/src/auth imports from the CLI's src only auth/**, config/**, " +
-        "http/{client,status,types}.ts, errors.ts, util.ts and runtime.ts.",
+        "http/{client,types}.ts, errors.ts, util.ts and runtime.ts.",
       from: { path: "^apps/cli/src/auth/", pathNot: CLI_TEST_CODE },
       to: {
         path: "^apps/cli/src/",
         pathNot:
-          "^apps/cli/src/(?:auth|config)/|^apps/cli/src/http/(?:client|status|types)[.]ts$|^apps/cli/src/(?:errors|util|runtime)[.]ts$",
+          "^apps/cli/src/(?:auth|config)/|^apps/cli/src/http/(?:client|types)[.]ts$|^apps/cli/src/(?:errors|util|runtime)[.]ts$",
       },
     },
     {

@@ -6,6 +6,7 @@
  * fail a command whose token is still valid.
  */
 
+import { bearerCredential, type Credential } from "@miragon/pulse-http"
 import type { OAuthConfig } from "../../config/types.js"
 import { PulseCliError } from "../../errors.js"
 import type { AuthPreview, AuthProvider, Principal } from "../types.js"
@@ -74,6 +75,12 @@ function previewNote(login: CachedLogin, now: number, who: LoginOwner): string |
 class OAuthProvider implements AuthProvider {
   readonly type = "oauth"
   readonly loginStatusCommand: string
+  /** A bearer credential over the login's access token, refreshed once after a 401. */
+  readonly credential: Credential = bearerCredential({
+    renewable: true,
+    token: () => this.token(),
+    rejected: () => this.refresh(),
+  })
   private path: string | undefined
   private current: CachedLogin | undefined
   private inflight: Promise<CachedLogin> | undefined
@@ -135,17 +142,18 @@ class OAuthProvider implements AuthProvider {
     }
   }
 
-  async headers(): Promise<Readonly<Record<string, string>>> {
+  /** The access token of the login, refreshed before it expires. */
+  private async token(): Promise<string> {
     const login = await this.load()
     const now = this.deps.now()
-    if (login.refreshRejected === undefined && !needsRefresh(now, login)) return bearer(login)
-    if (canRefresh(login, now)) return bearer(await this.proactive(login))
+    if (login.refreshRejected === undefined && !needsRefresh(now, login)) return login.accessToken
+    if (canRefresh(login, now)) return (await this.proactive(login)).accessToken
     checkUsable(login, now, this.config)
-    return bearer(login)
+    return login.accessToken
   }
 
   /** After a 401: at most one refresh per process (a rejected fresh token stays rejected). */
-  async refresh(): Promise<boolean> {
+  private async refresh(): Promise<boolean> {
     const login = await this.load()
     if (login.refreshToken === null || this.reactiveRefreshDone) return false
     this.reactiveRefreshDone = true

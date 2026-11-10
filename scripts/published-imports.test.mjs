@@ -25,9 +25,9 @@ import { REPO_ROOT } from "./source-scan.mjs"
  * An app that BUNDLES workspace packages it lists only as devDependencies
  * would fail the src scan by design, so a bundled app (BUNDLED_APPS: the CLI,
  * which bundles @miragon/pulse-c7-core and, through it, the main entry of
- * @miragon/pulse-engine-core, and @miragon/pulse-profile) is read from its BUILT bundle
- * instead: every module under its dist imports only Node built-ins and its
- * declared dependencies (a workspace package left external fails), and the
+ * @miragon/pulse-engine-core, @miragon/pulse-http and @miragon/pulse-profile) is read
+ * from its BUILT bundle instead: every module under its dist imports only Node built-ins
+ * and its declared dependencies (a workspace package left external fails), and the
  * bundle stays within its size budget and close to it. `pnpm build` runs first (CI's
  * TypeScript job and the minimum bar build before `pnpm test`).
  */
@@ -48,7 +48,7 @@ const BUNDLED_APPS = {
   "@miragon/pulse-cli": {
     dist: "apps/cli/dist",
     budget: "apps/cli/test/__golden__/bundle-budget.json",
-    bundles: ["@miragon/pulse-c7-core", "@miragon/pulse-profile"],
+    bundles: ["@miragon/pulse-c7-core", "@miragon/pulse-http", "@miragon/pulse-profile"],
   },
 }
 

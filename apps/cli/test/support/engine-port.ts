@@ -5,6 +5,7 @@ import { noAuth } from "../../src/auth/none.js"
 import type { AuthProvider } from "../../src/auth/types.js"
 import type { EnginePort } from "../../src/engine-port/engine-port.js"
 import { camunda7 } from "../../src/engines/camunda7/adapter.js"
+import { createClient } from "../../src/http/client.js"
 import type { WaitDeps } from "../../src/workflow/wait.js"
 import { BASE_URL } from "./fake-fetch.js"
 
@@ -19,12 +20,16 @@ export function portOf(fetch: typeof globalThis.fetch, options: PortOptions = {}
     headers: {},
     ...(options.engine === undefined ? {} : { engine: options.engine }),
   }
-  return camunda7.port(target, {
-    fetch,
-    auth: options.auth ?? noAuth(),
-    timeoutMs: 5000,
-    now: () => 0,
-  })
+  return camunda7.port(
+    target,
+    createClient({
+      url: BASE_URL,
+      fetch,
+      auth: options.auth ?? noAuth(),
+      timeoutMs: 5000,
+      now: () => 0,
+    }),
+  )
 }
 
 export { fakeClock }

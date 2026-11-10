@@ -81,9 +81,9 @@ second engine dialect cheap:
   returns a verdict per profile as data, reads no file and no environment, imports nothing, and
   lets an interface state what it serves (`refusalsOn`), so a key is applied or refuses the profile.
 - One transport. `@miragon/pulse-http` (`packages/core/http`) is the one HTTP client of the engine
-  connector (its SDK client's `fetch`; the CLI and the VS Code extension switch to it next): a
-  deadline to the last byte, no redirect, a 64 MiB cap, one retry after a 401, failure reasons as
-  data, masked secrets; every wiring passes its `TRANSPORT_CASES`.
+  connector (its SDK client's `fetch`) and of the CLI; the VS Code extension switches to it next:
+  a deadline to the last byte, no redirect, a 64 MiB cap (none in the CLI), one retry after a 401,
+  failure reasons as data, masked secrets; every wiring passes its `TRANSPORT_CASES`.
 - One engine contract: `@miragon/pulse-engine-core`, the engine family's core, holds the ports,
   read models, laws and shared rules (`RootCauses`) of every dialect; the VS Code extension's
   adapters and c7-core use it, the engine connector and the CLI reach its rules through c7-core.

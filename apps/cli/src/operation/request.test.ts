@@ -7,6 +7,7 @@ import {
   buildRequest,
   enginePrefix,
   expandPath,
+  intentOf,
   joinUrl,
   jsonBody,
   queryString,
@@ -285,8 +286,19 @@ describe("buildRequest", () => {
     expect(buildRequest(op, { pathArgs: ["a b"], query: { q: "x" } }, target)).toEqual({
       method: "GET",
       url: "http://localhost:8080/engine-rest/thing/a%20b?q=x",
+      intent: "read",
       headers: { Accept: "application/json" },
     })
+  })
+
+  it("says from the operation's effect whether the request only reads", () => {
+    const input = { pathArgs: [], query: {} }
+    const query = operation({ method: "POST", effect: "read" })
+    expect(buildRequest(query, input, target).intent).toBe("read")
+    for (const effect of ["write", "delete", "bulk"] as const) {
+      expect(buildRequest(operation({ effect }), input, target).intent).toBe("write")
+    }
+    expect(intentOf("read")).toBe("read")
   })
 
   it("adds the engine prefix and target headers; target headers win", () => {

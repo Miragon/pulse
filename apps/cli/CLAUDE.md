@@ -19,10 +19,11 @@ written for the MCP server, so this file holds the CLI's own. The pages for peop
   stderr with a documented exit code. A change to any of that is a change to the docs.
 - One runtime dependency, commander. The workflow domain and engine REST rules,
   `@miragon/pulse-c7-core` (`packages/connectors/c7/c7-core`, the core of the Camunda 7 REST
-  dialect family c7), and the profile format, `@miragon/pulse-profile` (`packages/core/profile`),
-  are devDependencies that tsdown bundles, with the root-cause rule c7-core takes from the engine
-  family's core (`@miragon/pulse-engine-core`, c7-core's one dependency); everything else that
-  ships is the code in `apps/cli/src/`. The built bundle imports only
+  dialect family c7), the profile format, `@miragon/pulse-profile` (`packages/core/profile`), and
+  the transport, `@miragon/pulse-http` (`packages/core/http`), are devDependencies that tsdown
+  bundles, with the root-cause rule c7-core takes from the engine family's core
+  (`@miragon/pulse-engine-core`, c7-core's one dependency); everything else that ships is the code
+  in `apps/cli/src/`. The built bundle imports only
   commander and Node built-ins, and stays within its size budget
   (`scripts/published-imports.test.mjs` reads `apps/cli/dist` and the ceiling in
   `apps/cli/test/__golden__/bundle-budget.json`, which `pnpm lint:ratchets` holds shrink-only:
@@ -45,8 +46,8 @@ cruises `apps/cli/src`, `pnpm lint:architecture:cli` its `scripts/` and `test/`.
 | `apps/cli/src/docs/`        | The guide, `describe`, examples: the texts agents read                   |
 | `apps/cli/src/catalog/`     | Catalog access (`loadCatalog`), schemas, body validation                 |
 | `apps/cli/src/config/`      | Config resolution, profiles, project files; the profile format's wording |
-| `apps/cli/src/auth/`        | Auth providers: Basic, bearer, token commands, OAuth                     |
-| `apps/cli/src/http/`        | The fetch client and the mapping of HTTP errors                          |
+| `apps/cli/src/auth/`        | Auth providers around the transport's credential: Basic, bearer, OAuth   |
+| `apps/cli/src/http/`        | The client over `@miragon/pulse-http` and the wording of what fails      |
 | `apps/cli/src/output/`      | JSON, tables, field projection, errors, secret masking                   |
 | `apps/cli/scripts/`         | The catalog generator (`renderCatalog`), the executable build            |
 | `apps/cli/test/`            | Fakes (`apps/cli/test/support/`), engine suites                          |
@@ -55,16 +56,32 @@ No cycle, a type-only one included. The pure layers import no Node built-in (Web
 timers are globals). Only the `auth login` command reaches the interactive login (loopback
 server, browser), so no other command can ever wait for a person. The CLI imports no workspace
 package but `@miragon/pulse-c7-core`, and that only from `apps/cli/src/workflow/`,
-`apps/cli/src/engine-port/` and the two operation modules that apply its engine REST rules,
+`apps/cli/src/engine-port/`, the two operation modules that apply its engine REST rules,
 `apps/cli/src/operation/dates.ts` (the `UTC_WITHOUT_OFFSET` date reading) and
-`apps/cli/src/operation/variables.ts` (`autoTypedValue`) (tests anywhere), and the profile format,
-`@miragon/pulse-profile`, only from `apps/cli/src/config/` (`CLI_BUNDLES` and `profile-consumers`
-in the root `.dependency-cruiser.cjs`), and nothing of the MCP or UI stack. The packages return
-data (next steps, error reasons, a profile's problems); `next-text.ts` and `error-text.ts` in
-`apps/cli/src/workflow/` and `apps/cli/src/config/profile-problems.ts` word them as the CLI prints
-them. The CLI's rules also admit the transport, `@miragon/pulse-http`, in `apps/cli/src/http/`,
-`apps/cli/src/auth/` and `apps/cli/src/operation/` (`CLI_BUNDLES` and `http-consumers`), for the
-requests to go out through it; it is not used yet. The engine family's core,
+`apps/cli/src/operation/variables.ts` (`autoTypedValue`), and the mapping of HTTP errors,
+`apps/cli/src/http/errors.ts` (the wrong-root rule `isUnknownEndpoint`) (tests anywhere), the
+profile format, `@miragon/pulse-profile`, only from `apps/cli/src/config/` (`CLI_BUNDLES` and
+`profile-consumers` in the root `.dependency-cruiser.cjs`), and the transport,
+`@miragon/pulse-http`, only from `apps/cli/src/http/`, `apps/cli/src/auth/` and
+`apps/cli/src/operation/` (`CLI_BUNDLES` and `http-consumers`), and nothing of the MCP or UI stack.
+The packages return data (next steps, error reasons, a profile's problems, a failure's reason);
+`next-text.ts` and `error-text.ts` in `apps/cli/src/workflow/`,
+`apps/cli/src/config/profile-problems.ts` and `apps/cli/src/http/client.ts` and `errors.ts` word
+them as the CLI prints them.
+
+Every engine request goes out through the transport (`createClient` and `send` in
+`apps/cli/src/http/client.ts`, over the connection `clientOf` in `apps/cli/src/cli/session.ts`
+maps the resolved configuration onto): the deadline to the last byte, no redirect, no cap on an
+answer, exactly one retry after a 401 when the credential renewed, and the request's secrets
+(the password, the Basic value, the token, the secret extra headers) masked in what the engine
+sends back; the CLI cuts an engine's message after 500 characters. An auth provider wraps the
+transport's credential (`AuthProvider.credential`: Basic from the package, a bearer token whose
+source is the CLI's) and keeps the CLI's preview and hints. The workflow commands send through
+c7-core's `routedTransport`, whose route table is the catalog. A `--verbose` trace shows the
+secrets only with `--show-secrets`: the CLI is the one caller that sets the transport's
+`revealSecrets` (`scripts/trace-secrets.test.mjs`). The OAuth token client
+(`apps/cli/src/auth/oauth/http.ts`) keeps its own fetch until it moves into the transport. The
+engine family's core,
 `@miragon/pulse-engine-core`, the contract every dialect implements, is not the CLI's to import
 until it serves a second dialect: it reaches the engine through c7-core, a job's root cause
 included (`causeOf`, over engine-core's `RootCauses`), and a direct import is an admission
@@ -131,12 +148,16 @@ there, then c7-core's `generate` (`pnpm build` runs it) and `catalog` run in tha
   `dns-failure` asks the system resolver. An intended change runs
   `pnpm --fail-if-no-match --filter @miragon/pulse-cli golden:update` (refused in CI) and
   commits the diff; never edit a golden by hand.
+- `apps/cli/src/http/transport-cases.test.ts` runs every case of the transport's
+  `TRANSPORT_CASES` the CLI can express through its wiring (the variables, the provider, the
+  client, the generated command) against the package's loopback engine, and names the cases it
+  leaves out and why.
 - The Testcontainers suites (`test:engines`, Docker, build first) run the built CLI against
   Operaton and CIB seven (Camunda 7's image left Docker Hub in November 2026), with Basic auth,
   behind Keycloak and an Envoy gateway, and pack the tarball.
 - No mutation testing of the CLI itself (owner decision, 2026-11-04): the repository mutates
   only `@miragon/pulse-c7-core`, which holds the workflow rules the CLI bundles,
-  `@miragon/pulse-http`, the transport it may bundle (owner decision 2026-11-08), the
+  `@miragon/pulse-http`, the transport it bundles (owner decision 2026-11-08), the
   root-cause, value-kind and move-reason rules of `@miragon/pulse-engine-core`, whose root-cause
   rule the CLI bundles through c7-core (owner decision 2026-11-09), and `@miragon/pulse-profile`,
   the profile format it bundles (owner decision 2026-11-07).

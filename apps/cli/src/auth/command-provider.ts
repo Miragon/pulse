@@ -3,10 +3,12 @@
  * token. A JWT with `exp` is reused, also across calls (command-cache.ts), until shortly before it
  * expires, then the command runs again, so a long `pulse wait` keeps a valid token; an opaque
  * token is fetched once per call. After a 401 the command runs once more and the request is
- * retried with the new token (the client retries a request once). `--dry-run` never runs the
- * command: it shows a fresh token of this call or of the cache, else a note.
+ * retried with the new token (the transport retries a request once, when the command printed
+ * another token). `--dry-run` never runs the command: it shows a fresh token of this call or of
+ * the cache, else a note.
  */
 
+import { bearerCredential, type Credential } from "@miragon/pulse-http"
 import type { CommandBearerConfig } from "../config/types.js"
 import { bearerRejectedHint, principalOf } from "./bearer.js"
 import {
@@ -72,6 +74,12 @@ function header(entry: CommandToken): Readonly<Record<string, string>> {
 
 class CommandProvider implements AuthProvider {
   readonly type = "bearer"
+  /** A bearer credential over the command's token, renewed by running the command after a 401. */
+  readonly credential: Credential = bearerCredential({
+    renewable: true,
+    token: () => this.token(),
+    rejected: () => this.refresh(),
+  })
   private current: CommandToken | undefined
   /** The command ran again after a 401, for the hint of the 401 that may follow. */
   private rerun = false
@@ -93,14 +101,15 @@ class CommandProvider implements AuthProvider {
     return current !== undefined && isFresh(current, this.deps.now()) ? current : undefined
   }
 
-  async headers(): Promise<Readonly<Record<string, string>>> {
+  /** The token of this call while it is fresh, else the cached one, else the command's. */
+  private async token(): Promise<string> {
     // the cache first: a parallel command may have run the command already
     this.current = this.fresh() ?? (await commandToken(this.config, this.deps)).entry
-    return header(this.current)
+    return this.current.token
   }
 
   /** After a 401: runs the command again; true when it printed another token. */
-  async refresh(): Promise<boolean> {
+  private async refresh(): Promise<boolean> {
     this.rerun = true
     const before = this.current?.token
     this.current = await fetchCommandToken(this.config, this.deps)

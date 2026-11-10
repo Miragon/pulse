@@ -6,12 +6,11 @@
  * and status, never bodies: codes, verifiers, tokens and secrets travel only in bodies.
  */
 
+import { statusTextOf } from "@miragon/pulse-http"
 import { redactUrl } from "../../config/redact.js"
 import { PulseCliError } from "../../errors.js"
 import { failureDetail, networkError } from "../../http/client.js"
-import { statusTextOf } from "../../http/status.js"
 import { isRecord } from "../../util.js"
-import { base64 } from "../basic.js"
 import type { ClientAuthMethod, OAuthDeps } from "./types.js"
 
 /** How the client authenticates: public (client id in the form) or with a secret. */
@@ -37,6 +36,13 @@ export interface Endpoint {
 }
 
 const MASKED_BASIC = "Basic ***"
+
+/** Standard Base64 of the UTF-8 encoding of `text`. */
+function base64(text: string): string {
+  let binary = ""
+  for (const byte of new TextEncoder().encode(text)) binary += String.fromCharCode(byte)
+  return btoa(binary)
+}
 
 /** RFC 6749 §2.3.1: id and secret are form-encoded before they are joined and Base64 encoded. */
 function formEncode(text: string): string {
@@ -92,7 +98,7 @@ export function shownUrl(url: string): string {
 
 function unreachable(error: unknown, method: string, endpoint: Endpoint, deps: OAuthDeps) {
   const { url } = endpoint
-  const mapped = networkError(error, { method, url, headers: {} }, deps.timeoutMs)
+  const mapped = networkError(error, { method, url }, deps.timeoutMs)
   const detail =
     mapped.code === "TIMEOUT" ? `timed out after ${deps.timeoutMs} ms` : failureDetail(error)
   return new PulseCliError(

@@ -141,9 +141,15 @@ describe("enginePort", () => {
     expect(port.route("getRestAPIVersion", NO_INPUT)).toBe("GET /version")
   })
 
-  it("refuses unknown operations and query parameters as internal errors", async () => {
+  it("refuses unknown operations (c7-core's routedTransport) and query parameters", async () => {
     const port = portOf(fakeServer().fetch)
-    expect((await caught(port.call("noSuchOperation", NO_INPUT))).message).toBe(
+    await expect(port.call("noSuchOperation", NO_INPUT)).rejects.toThrow(
+      "c7-core asked for noSuchOperation, which the route table does not hold",
+    )
+    await expect(port.call("getProcessInstance", NO_INPUT)).rejects.toThrow(
+      "getProcessInstance takes 1 path values, c7-core sent 0",
+    )
+    await expect(port.preview({ operationId: "noSuchOperation", input: NO_INPUT })).rejects.toThrow(
       "The catalog has no operation noSuchOperation",
     )
     expect((await caught(port.call("getIncidents", queryInput({ nope: "x" })))).message).toBe(
@@ -253,6 +259,8 @@ describe("enginePort details", () => {
       "INTERNAL",
       "getStacktrace has no query parameter id",
     ])
-    expect((await caught(port.call("noSuchOperation", NO_INPUT))).code).toBe("INTERNAL")
+    expect(() => port.route("noSuchOperation", NO_INPUT)).toThrow(
+      new PulseCliError("INTERNAL", "The catalog has no operation noSuchOperation"),
+    )
   })
 })

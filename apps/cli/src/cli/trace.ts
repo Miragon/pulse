@@ -1,7 +1,11 @@
 /**
- * `--verbose`: formats the structured trace events of the HTTP client as `> METHOD url`,
- * `> Name: value` and `< status text (N ms, M bytes)` lines on stderr, secrets masked, and notes
- * about decisions without an answer of their own as `* message` (like `curl -v`).
+ * `--verbose`: formats the structured trace events of the transport (and of the OAuth client) as
+ * `> METHOD url`, `> Name: value` and `< status text (N ms, M bytes)` lines on stderr (a redirect,
+ * whose body is never read, without its size), secrets
+ * masked, and notes about decisions without an answer of their own as `* message` (like `curl -v`).
+ * The transport hands over the secret headers masked already unless `--show-secrets` asked it to
+ * reveal them (`revealSecrets`); masking here again by name is the CLI's own rule, which a masked
+ * value passes unchanged.
  */
 
 import type { TraceEvent } from "../http/types.js"
@@ -19,7 +23,8 @@ export function formatTrace(event: TraceEvent, showSecrets: boolean): string {
   }
   if (event.type === "note") return `* ${event.message}\n`
   const status = [String(event.status), event.statusText].filter((part) => part !== "").join(" ")
-  return `< ${status} (${event.durationMs} ms, ${event.bytes} bytes)\n`
+  const size = event.bytes === undefined ? "" : `, ${event.bytes} bytes`
+  return `< ${status} (${event.durationMs} ms${size})\n`
 }
 
 /** The `trace` callback of the HTTP client, writing to `stream`. */

@@ -20,13 +20,14 @@ const OPTION = new RegExp(String.raw`\b${NAME}\b`)
 
 /**
  * Where the name must stand, so that renaming the option past this guard turns it red rather than
- * blind: the package's declaration.
+ * blind: the package's declaration and the CLI's one setting of it.
  */
 const ANCHORS = [
   [
     "packages/core/http/src/types.ts",
     new RegExp(String.raw`^\s*readonly ${NAME}\?: boolean$`, "m"),
   ],
+  ["apps/cli/src/http/client.ts", new RegExp(String.raw`\b${NAME}: options\.showSecrets\b`)],
 ]
 
 /** Where the name may stand: the package itself, the CLI's src and this guard. */

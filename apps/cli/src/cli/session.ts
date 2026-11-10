@@ -11,7 +11,7 @@ import { plainHttpHost } from "../config/oauth.js"
 import { resolveConfig } from "../config/resolve.js"
 import { unusedTokenNote } from "../config/resolve-bearer.js"
 import { ENV, type LoadedConfig, type OutputFormat, type ResolvedConfig } from "../config/types.js"
-import type { ClientOptions } from "../http/client.js"
+import { type Client, createClient } from "../http/client.js"
 import type { GuardOptions } from "../operation/guards.js"
 import type { Target } from "../operation/request.js"
 import type { RenderOptions } from "../output/render.js"
@@ -171,21 +171,29 @@ function unusedNote(config: ResolvedConfig): string | undefined {
     : unusedTokenNote(unusedToken)
 }
 
-/** The HTTP client of a command; the auth provider reads the token cache lazily (OAuth). */
-export function clientOf(session: Session, runtime: Runtime): ClientOptions {
+/**
+ * The engine client of a command: the resolved configuration mapped onto the transport's
+ * connection (`createClient`: the URL, the auth provider's credential, the timeout, the secret
+ * ones of the extra headers), with the `--verbose` trace, which shows the secrets only with
+ * `--show-secrets`. The auth provider reads the token cache lazily (OAuth).
+ */
+export function clientOf(session: Session, runtime: Runtime): Client {
   const { config, globals } = session
   const warning = plainHttpWarning(session)
   if (warning !== undefined) runtime.stderr.write(`${warning}\n`)
   const provider = createAuthProvider(config.auth, sessionAuthDeps(session, runtime))
-  const client: ClientOptions = {
+  const trace = globals.verbose
+    ? { trace: traceWriter(runtime.stderr, globals.showSecrets), showSecrets: globals.showSecrets }
+    : {}
+  return createClient({
+    url: config.url,
     fetch: runtime.fetch,
     auth: withAuthNote(provider, unusedNote(config)),
     timeoutMs: config.timeoutMs,
     now: () => runtime.now(),
-  }
-  return globals.verbose
-    ? { ...client, trace: traceWriter(runtime.stderr, globals.showSecrets) }
-    : client
+    headers: config.headers,
+    ...trace,
+  })
 }
 
 /** Where read-only mode was switched on, for the READ_ONLY hint. */

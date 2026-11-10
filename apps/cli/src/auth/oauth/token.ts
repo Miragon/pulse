@@ -35,6 +35,11 @@ export interface TokenClient extends ClientCredentials {
 
 /** RFC 6750 b64token. */
 const B64TOKEN = /^[A-Za-z0-9\-._~+/]+=*$/
+
+/** Whether `value` is an access token pulse can send: RFC 6750's b64token. */
+export function isAccessToken(value: unknown): value is string {
+  return typeof value === "string" && B64TOKEN.test(value)
+}
 const NUMERIC = /^\d+(?:\.\d+)?$/
 
 /** Token errors about the client registration: CONFIG, a new login would not help. */
@@ -100,7 +105,7 @@ function checkTokenType(tokenType: unknown): void {
 export function parseTokenResponse(json: Record<string, unknown> | undefined): TokenResponse {
   if (json === undefined) throw unusable("The token endpoint did not answer with a JSON object.")
   const accessToken = json.access_token
-  if (typeof accessToken !== "string" || !B64TOKEN.test(accessToken)) {
+  if (!isAccessToken(accessToken)) {
     throw unusable("The token response has no access_token in the Bearer token syntax (RFC 6750).")
   }
   checkTokenType(json.token_type)

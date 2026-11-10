@@ -81,8 +81,8 @@ src/api/        one folder per engine API; camunda7-rest builds catalog and port
 src/docs/       commands, describe, examples, workflow docs and the agent guide (pure)
 src/catalog/    catalog access, schema helpers, body validation (pure)
 src/config/     config resolution and profile editing (pure), file store, project files, read with @miragon/pulse-profile (bundled)
-src/auth/       auth providers (none, basic, bearer with JWT expiry, token commands, OAuth; pure)
-src/http/       fetch based HTTP client and error mapping
+src/auth/       auth providers around the transport's credential (none, basic, bearer with JWT expiry, token commands, OAuth; pure)
+src/http/       the engine client on @miragon/pulse-http (bundled) and the wording of what fails
 src/output/     JSON, tables, field projection, errors, secret masking (pure)
 scripts/        catalog generator, standalone executable build, packaging smoke test
 test/           fakes for unit tests, Testcontainers engine suites
@@ -93,10 +93,10 @@ The overview with diagrams is in [Architecture](architecture.md), the decisions 
 (`pnpm lint:architecture` cruises `apps/cli/src`, `pnpm lint:architecture:cli` its `scripts/` and
 `test/`): no cycle (a type-only one included), only `src/bin` imports `src/cli`, only `src/cli`
 imports commander, the pure layers import no Node built-in, `workflow` knows engines only through
-`src/engine-port`, only they and `src/operation/{dates,variables}.ts` import c7-core, only
-`src/config` imports the profile format, only the adapters import `src/api`, only `auth login`
-reaches the interactive login, and only `src/catalog/catalog.ts` and the adapters (each its own)
-read the catalogs.
+`src/engine-port`, only they, `src/operation/{dates,variables}.ts` and `src/http/errors.ts` import
+c7-core, only `src/{http,auth,operation}` the transport, only `src/config` the profile format, only
+the adapters `src/api`, only `auth login` reaches the interactive login, and only
+`src/catalog/catalog.ts` and the adapters (each its own) read the catalogs.
 
 ## Quality gates
 
@@ -110,8 +110,8 @@ read the catalogs.
 - **fast-check** property tests for naming, patches, variable parsing, dates, query building,
   projection, table width, config and auth precedence, PKCE, token expiry, the token cache, body
   validation and secret masking.
-- **StrykerJS** mutates the workflow rules the CLI bundles from c7-core, engine-core's root-cause
-  rule and the profile format, nightly in CI, not the CLI's own code (owner decision, 2026-11-04).
+- **StrykerJS** mutates what the CLI bundles (c7-core's workflow rules, engine-core's root-cause
+  rule, the profile format, the transport) nightly in CI, not the CLI's own code (owner decision).
 - **Testcontainers** suites against the three engines, with and without Basic auth, behind
   Keycloak and an Envoy JWT gateway for OAuth, through the workflow commands, plus a test of the
   packed tarball. CI runs them, the packaging smoke tests and `claude plugin validate --strict` on

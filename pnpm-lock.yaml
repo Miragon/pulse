@@ -86,6 +86,9 @@ importers:
       '@miragon/pulse-c7-core':
         specifier: workspace:*
         version: link:../../packages/connectors/c7/c7-core
+      '@miragon/pulse-http':
+        specifier: workspace:*
+        version: link:../../packages/core/http
       '@miragon/pulse-profile':
         specifier: workspace:*
         version: link:../../packages/core/profile

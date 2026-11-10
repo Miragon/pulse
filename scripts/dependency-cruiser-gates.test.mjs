@@ -218,7 +218,9 @@ const LEAVES = [
   `${CLI}/src/operation/result.ts`,
   `${CLI}/src/output/target.ts`,
   `${CLI}/src/http/client.ts`,
+  `${CLI}/src/http/mapping.ts`,
   `${CLI}/src/http/target.ts`,
+  `${CLI}/src/http/types.ts`,
   `${CLI}/src/engine-port/target.ts`,
   `${CLI}/src/errors.ts`,
   `${CLI}/src/runtime.ts`,
@@ -958,12 +960,16 @@ const SUITES = [
   {
     rule: CLI_CORE_LAYERS,
     title:
-      "in the CLI only the workflow and engine-port layers, the two rule modules of operation (and tests) import the core",
+      "in the CLI only the workflow and engine-port layers, the two rule modules of operation, the HTTP error mapping (and tests) import the core",
     cases: [
       [CLI_SRC, C7_CORE, [CLI_CORE_LAYERS]],
       // operation/ applies the core's date reading and auto typing in exactly two modules.
       [`${CLI}/src/operation/dates.ts`, C7_CORE, []],
       [`${CLI}/src/operation/variables.ts`, C7_CORE, []],
+      // http/ reads the wrong-root rule in its error mapping alone, never in the client.
+      [`${CLI}/src/http/errors.ts`, C7_CORE, []],
+      [`${CLI}/src/http/client-core.ts`, C7_CORE, [CLI_CORE_LAYERS]],
+      [`${CLI}/src/http/errors-hints.ts`, C7_CORE, [CLI_CORE_LAYERS]],
       [`${CLI}/src/operation/values.ts`, C7_CORE, [CLI_CORE_LAYERS]],
       [`${CLI}/src/operation/dates.test-support.ts`, C7_CORE, [CLI_CORE_LAYERS]],
       [`${CLI}/src/operation/dates-other.ts`, C7_CORE, [CLI_CORE_LAYERS]],
@@ -1804,6 +1810,8 @@ const SUITES = [
       [`${CLI}/src/auth/to-http.ts`, "../http/target.ts", [CLI_AUTH]],
       [`${CLI}/src/auth/to-config.ts`, "../config/target.ts", []],
       [`${CLI}/src/auth/to-client.ts`, "../http/client.ts", []],
+      [`${CLI}/src/auth/to-types.ts`, "../http/types.ts", []],
+      [`${CLI}/src/auth/to-mapping.ts`, "../http/mapping.ts", [CLI_AUTH]],
       [`${CLI}/src/auth/to-runtime.ts`, "../runtime.ts", []],
     ],
   },

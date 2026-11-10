@@ -2,22 +2,22 @@ import { describe, expect, it } from "vitest"
 import { basicAuth } from "../auth/basic.js"
 import { noAuth } from "../auth/none.js"
 import { PulseCliError } from "../errors.js"
-import type { ClientOptions } from "../http/client.js"
+import type { AuthProvider } from "../auth/types.js"
+import { type Client, createClient } from "../http/client.js"
+import type { HttpRequest } from "../http/types.js"
 import { sendRequest } from "./send.js"
 
-function client(response: () => Response): ClientOptions & { urls: string[] } {
+function client(
+  response: () => Response,
+  auth: AuthProvider = noAuth(),
+): Client & { urls: string[] } {
   const urls: string[] = []
   const fetch = (input: string | URL | Request) => {
     urls.push(input as string)
     return Promise.resolve(response())
   }
-  return {
-    urls,
-    fetch: fetch,
-    auth: noAuth(),
-    timeoutMs: 1000,
-    now: () => 0,
-  }
+  const url = "http://h/engine-rest"
+  return { urls, ...createClient({ url, fetch, auth, timeoutMs: 1000, now: () => 0 }) }
 }
 
 async function caught(promise: Promise<unknown>): Promise<PulseCliError> {
@@ -33,9 +33,10 @@ async function caught(promise: Promise<unknown>): Promise<PulseCliError> {
 const request = {
   method: "POST",
   url: "http://h/engine-rest/process-definition/key/x/start",
+  intent: "write",
   headers: { Accept: "application/json", "Content-Type": "application/json" },
   body: '{"businessKey":"b"}',
-}
+} satisfies HttpRequest
 
 describe("sendRequest", () => {
   it("decodes JSON responses and attaches the request preview", async () => {

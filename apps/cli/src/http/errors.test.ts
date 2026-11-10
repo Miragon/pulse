@@ -3,7 +3,6 @@ import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import { HINTS, REQUEST, response } from "../../test/support/http-errors.js"
 import { errorCodeForStatus, httpError, parseEngineError, redirectError } from "./errors.js"
-import type { HttpResponse } from "./types.js"
 
 describe("errorCodeForStatus", () => {
   it.each([
@@ -153,7 +152,7 @@ describe("httpError", () => {
   })
 })
 
-describe("the endpoint hint follows c7-core's isUnknownEndpoint", () => {
+describe("the endpoint hint is c7-core's isUnknownEndpoint", () => {
   it.each([
     [404, '{"type":"InvalidRequestException","message":"gone"}', "InvalidRequestException"],
     [404, '{"type":"RestException","message":"No such definition"}', "RestException"],
@@ -171,16 +170,9 @@ describe("the endpoint hint follows c7-core's isUnknownEndpoint", () => {
 })
 
 describe("redirectError", () => {
-  const redirect = (status: number, location?: string): HttpResponse => ({
-    status,
-    statusText: "Found",
-    contentType: "text/html",
-    headers: location === undefined ? {} : { Location: location },
-    body: new Uint8Array(),
-  })
-
-  it("names the target without query and fragment, as configuration error", () => {
-    const error = redirectError(redirect(302, "/login?next=/x&token=SECRET#f"), REQUEST)
+  // Where the redirect pointed comes from @miragon/pulse-http: origin and path, masked, cut.
+  it("names the target, as configuration error", () => {
+    const error = redirectError({ status: 302, location: "http://localhost:8080/login" }, REQUEST)
     expect(error.code).toBe("HTTP_REDIRECT")
     expect(error.exitCode).toBe(3)
     expect(error.message).toBe("HTTP 302 Found: redirect to http://localhost:8080/login")
@@ -189,23 +181,23 @@ describe("redirectError", () => {
   })
 
   it("points to pulse auth status for OAuth", () => {
-    const oauth = redirectError(redirect(302, "/login"), {
-      ...REQUEST,
-      loginStatusCommand: "pulse auth status --profile p",
-    })
+    const oauth = redirectError(
+      { status: 302, location: "http://localhost:8080/login" },
+      REQUEST,
+      "pulse auth status --profile p",
+    )
     expect(oauth.details.hint).toMatch(
       /expired\. `pulse auth status --profile p` shows whether the OAuth login is usable\.$/,
     )
-    expect(redirectError(redirect(302), REQUEST).details.hint).not.toContain("auth status")
+    expect(redirectError({ status: 302 }, REQUEST).details.hint).not.toContain("auth status")
   })
 
-  it("works without or with an unusable Location", () => {
-    expect(redirectError(redirect(307), REQUEST).message).toBe("HTTP 307 Found: redirect")
-    expect(redirectError(redirect(301, "http://[::1"), REQUEST).message).toBe(
-      "HTTP 301 Found: redirect",
+  it("works without a target and names the standard reason phrase", () => {
+    expect(redirectError({ status: 307 }, REQUEST).message).toBe(
+      "HTTP 307 Temporary Redirect: redirect",
     )
-    const absolute = redirectError(redirect(308, "https://other.example/engine-rest/"), REQUEST)
-    expect(absolute.message).toBe("HTTP 308 Found: redirect to https://other.example/engine-rest/")
+    expect(redirectError({ status: 399 }, REQUEST).message).toBe("HTTP 399: redirect")
+    expect(redirectError({}, REQUEST)).toMatchObject({ message: "HTTP 0: redirect" })
   })
 })
 
