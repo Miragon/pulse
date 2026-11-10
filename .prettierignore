@@ -26,14 +26,19 @@ docs/.vitepress/miragon/
 # generator reads them byte for byte (apps/cli/scripts/catalog/files.ts).
 apps/cli/spec/
 
-# The VS Code extension (apps/vscode): the Miragon tokens of its webview, vendored byte for
-# byte from Miragon/corporate-identity and pinned by their manifest (the token drift test in
-# packages/core/ui/src/theme/token-drift.test.ts), and the screenshot index
-# scripts/screenshots/screenshots.mjs writes.
+# The VS Code extension (apps/vscode): the Miragon tokens of its webview, copied byte for
+# byte by brand-assets.mjs (.miragon/brand-assets.yaml) and pinned by .miragon/brand-assets.sha256
+# (the token drift test in packages/core/ui/src/theme/token-drift.test.ts), and the screenshot
+# index scripts/screenshots/screenshots.mjs writes.
 packages/core/runtime-view/src/webview/theme/
 apps/vscode/docs/screenshots/README.md
 
-# pulse-ui (packages/core/ui): the Miragon tokens every view ships, vendored byte for byte and
-# pinned by their manifest (the token drift test in packages/core/ui/src/theme/token-drift.test.ts).
+# pulse-ui (packages/core/ui): the Miragon tokens every view ships, copied byte for byte by
+# brand-assets.mjs and pinned by .miragon/brand-assets.sha256 (the token drift test in
+# packages/core/ui/src/theme/token-drift.test.ts).
 packages/core/ui/src/tokens/
+
+# brand-assets.mjs writes its config and the checksums of the copies; sha256sum -c reads them in CI.
+.miragon/brand-assets.yaml
+.miragon/brand-assets.sha256
 apps/orca/types/

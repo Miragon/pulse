@@ -169,9 +169,10 @@ nimmt das Doku-Kit der CI unverändert (`docs/.vitepress/miragon/`, `docs/public
 CI-Release neu vendoren, nie von Hand ändern).
 
 Ein `--cd-*` steht nur in vendorten Kopien, deren Manifest `SANCTIONED_TOKEN_MANIFESTS` freigibt:
-heute die Kopie in pulse-ui (`packages/core/ui/src/tokens/manifest.json`), das Doku-Kit und das
-Theme der VS-Code-Webview (`packages/core/runtime-view/src/webview/theme/manifest.json`). Eine weitere Kopie kommt
-mit einem Manifest im Format des Doku-Kits und einem Eintrag dort, nie als Ausnahme im Scan. Der
+die Kopien aus `.miragon/brand-assets.yaml` (pulse-ui in `packages/core/ui/src/tokens/` und das
+Theme der VS-Code-Webview in `packages/core/runtime-view/src/webview/theme/`, Prüfsummen in
+`.miragon/brand-assets.sha256`) und das Doku-Kit. Eine weitere Kopie kommt mit
+`brand-assets.mjs --add` aus dem Plugin miragon-brand, nie als Ausnahme im Scan. Der
 Drift-Test ist `packages/core/ui/src/theme/token-drift.test.ts` (mit
 `packages/core/ui/src/theme/vendored-tokens.test-support.ts`); `test:host` prüft das gebaute
 Stylesheet.
