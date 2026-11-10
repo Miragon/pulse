@@ -11,12 +11,17 @@ import { dirname, isAbsolute, join, relative, sep } from "node:path"
  * view ships, is one of them). The manifest has the docs kit's format (`version` x.y.z,
  * `dateien: [{ pfad, quelle, sha256 }]`, at least one file; extra keys such as
  * `$kommentar` are fine) and sanctions a stylesheet only when it lies inside
- * the manifest's own folder and matches its sha256 byte for byte. A manifest
+ * the manifest's own folder and matches its sha256 byte for byte. A sanctioned
+ * entry ending in `.sha256` is a sha256sum list instead, as `brand-assets.mjs`
+ * writes `.miragon/brand-assets.sha256`: it sanctions each copy it lists in
+ * that copy's folder, and each such folder holds only listed copies. A manifest
  * sanctions nothing by being there: the caller names the manifests it trusts.
  * A sanctioned stylesheet keeps every palette value it declares in a top-level
- * `:root`, and once any stylesheet of a manifest declares a `--cd-*` at all,
- * those stylesheets' top-level `:root` blocks together declare EVERY token of
- * the palette: a copy that drops one forks the palette by omission.
+ * `:root`, and once any stylesheet of a manifest (or of one folder of a
+ * sha256sum list) declares a `--cd-*` at all, those stylesheets' top-level
+ * `:root` blocks together declare EVERY token of the palette: a copy that drops
+ * one forks the palette by omission. A manifest the caller names in
+ * `valuesOnly` is held to the values it declares, not to the whole palette.
  *
  * Every rule fails closed: a sanctioned manifest that is missing, malformed,
  * lists a path outside the repo, a missing or edited file, or sits next to a
@@ -38,6 +43,7 @@ const SKIPPED = ["node_modules", "dist", "cache", ".vitepress-cache", "test-resu
 const DOCS_BUILD_DIR = "docs/.vitepress/.temp"
 
 const SHA256 = /^[0-9a-f]{64}$/
+const CHECKSUM_LINE = /^([0-9a-f]{64}) {2}(.+)$/
 const VERSION = /^\d+\.\d+\.\d+$/
 const CD_DECLARATION = /--cd-[\w-]+\s*:/
 
@@ -52,6 +58,9 @@ interface VendoredFile {
   /** sha256 of the file as vendored, lowercase hex. */
   sha256: string
 }
+
+/** A copy as a sha256sum list names it: no `quelle`. */
+type ListedCopy = Pick<VendoredFile, "pfad" | "sha256">
 
 interface VendorManifest {
   version: string
@@ -71,6 +80,8 @@ export interface VendoredTokenOptions {
    * all of them.
    */
   palette: ReadonlyMap<string, string>
+  /** Sanctioned manifests whose copies may declare fewer tokens than the palette (an older release). */
+  valuesOnly?: readonly string[]
 }
 
 /** Rules only: a comment may name what it forbids. */
@@ -116,6 +127,24 @@ function readManifest(root: string, manifest: string): VendorManifest | string {
   return isVendorManifest(data)
     ? data
     : `${manifest}: not a vendor manifest (${SHAPE}): take the manifest the CI generated, or write one in the docs kit's format`
+}
+
+/** The copies of a sha256sum list (`<sha256>  <path>` per line), or the finding that says why it cannot be trusted. */
+function readChecksums(root: string, checksums: string): ListedCopy[] | string {
+  let text: string
+  try {
+    text = readFileSync(join(root, checksums), "utf8")
+  } catch (error) {
+    return `${checksums}: missing (${String(error)}): copy the brand assets again with brand-assets.mjs, or remove the entry in SANCTIONED_TOKEN_MANIFESTS`
+  }
+  const lines = text.split("\n").filter((line) => line !== "")
+  const copies = lines.flatMap((line) => {
+    const match = CHECKSUM_LINE.exec(line)
+    return match ? [{ sha256: match[1], pfad: match[2] }] : []
+  })
+  return copies.length > 0 && copies.length === lines.length
+    ? copies
+    : `${checksums}: not a sha256sum list (one "<sha256>  <path>" per line, at least one): let brand-assets.mjs write it`
 }
 
 /** Every file under `dir`, recursively; `.DS_Store` is ignored, as the docs kit's check.mjs does. */
@@ -195,7 +224,7 @@ interface Sanction {
 const isRepoRelative = (pfad: string) => !isAbsolute(pfad) && !pfad.split(/[\\/]/).includes("..")
 
 /** The finding for a listed copy that is missing or edited, else none. */
-function copyFinding(manifest: string, { pfad, sha256 }: VendoredFile, file: string) {
+function copyFinding(manifest: string, { pfad, sha256 }: ListedCopy, file: string) {
   if (!isFile(file)) {
     return `${pfad}: listed in ${manifest} but missing: re-vendor it from the CI, or regenerate the manifest`
   }
@@ -204,33 +233,49 @@ function copyFinding(manifest: string, { pfad, sha256 }: VendoredFile, file: str
     : `${pfad}: differs from ${manifest}: re-vendor it, never edit it in the repo`
 }
 
-/** The files in the manifest's folder that it does not list (the folder rule). */
-function unlistedFindings(root: string, manifest: string, listed: ReadonlySet<string>): string[] {
-  return filesUnder(join(root, dirname(manifest)))
+/** Copies listed together: what lists them, the folder they are sanctioned in, and the key their palette is held by. */
+interface CopyGroup {
+  /** The manifest or sha256sum list, repo-relative. */
+  lister: string
+  /** Repo-relative folder that holds only listed files. */
+  folder: string
+  /** The key the group's copies are held to the palette by. */
+  paletteKey: string
+  copies: readonly ListedCopy[]
+  /** The files in the folder that belong there without being copies (the manifest itself). */
+  alsoListed: readonly string[]
+}
+
+const notRepoRelative = (lister: string, pfad: string) =>
+  `${lister}: ${pfad} is not a repo-relative path: name the copy from the repo root, without a ".." segment`
+
+/** The files in the group's folder that it does not list (the folder rule). */
+function unlistedFindings(
+  root: string,
+  { lister, folder }: CopyGroup,
+  listed: ReadonlySet<string>,
+) {
+  return filesUnder(join(root, folder))
     .filter((file) => !listed.has(file))
     .map(
       (file) =>
-        `${posix(relative(root, file))}: in ${posix(dirname(manifest))}/ but not in ${manifest}: the manifest's folder holds only the vendored files, so move your own file out of it`,
+        `${posix(relative(root, file))}: in ${posix(folder)}/ but not in ${lister}: the manifest's folder holds only the vendored files, so move your own file out of it`,
     )
 }
 
-/** One manifest: its findings, and the copies it sanctions into `sanction`. */
-function manifestFindings(root: string, manifest: string, sanction: Sanction): string[] {
-  const data = readManifest(root, manifest)
-  if (typeof data === "string") return [data]
+/** One group of copies: its findings, and the copies it sanctions into `sanction`. */
+function groupFindings(root: string, group: CopyGroup, sanction: Sanction): string[] {
   const findings: string[] = []
-  const folder = join(root, dirname(manifest))
-  const listed = new Set([join(root, manifest)])
-  for (const entry of data.dateien) {
+  const folder = join(root, group.folder)
+  const listed = new Set(group.alsoListed.map((file) => join(root, file)))
+  for (const entry of group.copies) {
     if (!isRepoRelative(entry.pfad)) {
-      findings.push(
-        `${manifest}: ${entry.pfad} is not a repo-relative path: name the copy from the repo root, without a ".." segment`,
-      )
+      findings.push(notRepoRelative(group.lister, entry.pfad))
       continue
     }
     const file = join(root, entry.pfad)
     listed.add(file)
-    const finding = copyFinding(manifest, entry, file)
+    const finding = copyFinding(group.lister, entry, file)
     if (finding !== null) {
       findings.push(finding)
       continue
@@ -239,10 +284,49 @@ function manifestFindings(root: string, manifest: string, sanction: Sanction): s
     // also lists its logos under docs/public/logo/: pinned, not sanctioned).
     if (relative(folder, file).split(sep)[0] !== "..") {
       sanction.files.add(file)
-      sanction.byManifest.set(manifest, [...(sanction.byManifest.get(manifest) ?? []), file])
+      const sanctioned = sanction.byManifest.get(group.paletteKey) ?? []
+      sanction.byManifest.set(group.paletteKey, [...sanctioned, file])
     }
   }
-  return [...findings, ...unlistedFindings(root, manifest, listed)]
+  return [...findings, ...unlistedFindings(root, group, listed)]
+}
+
+/** One manifest: its findings, and the copies it sanctions into `sanction`. */
+function manifestFindings(root: string, manifest: string, sanction: Sanction): string[] {
+  const data = readManifest(root, manifest)
+  if (typeof data === "string") return [data]
+  const group = {
+    lister: manifest,
+    folder: dirname(manifest),
+    paletteKey: manifest,
+    copies: data.dateien,
+    alsoListed: [manifest],
+  }
+  return groupFindings(root, group, sanction)
+}
+
+/** One sha256sum list: each folder of its copies is a group of its own. */
+function checksumFindings(root: string, checksums: string, sanction: Sanction): string[] {
+  const copies = readChecksums(root, checksums)
+  if (typeof copies === "string") return [copies]
+  const findings = copies
+    .filter(({ pfad }) => !isRepoRelative(pfad))
+    .map(({ pfad }) => notRepoRelative(checksums, pfad))
+  const byFolder = new Map<string, ListedCopy[]>()
+  for (const copy of copies.filter(({ pfad }) => isRepoRelative(pfad))) {
+    byFolder.set(dirname(copy.pfad), [...(byFolder.get(dirname(copy.pfad)) ?? []), copy])
+  }
+  for (const [folder, inFolder] of byFolder) {
+    const group = {
+      lister: checksums,
+      folder,
+      paletteKey: `${checksums} (${posix(folder)}/)`,
+      copies: inFolder,
+      alsoListed: [],
+    }
+    findings.push(...groupFindings(root, group, sanction))
+  }
+  return findings
 }
 
 /** The stylesheets under the scan roots that declare a `--cd-*` outside a sanctioned copy. */
@@ -269,6 +353,7 @@ function paletteFindings(
   manifest: string,
   files: readonly string[],
   palette: ReadonlyMap<string, string>,
+  wholePalette: boolean,
 ): string[] {
   const findings: string[] = []
   const declared = new Set<string>()
@@ -287,7 +372,7 @@ function paletteFindings(
     }
   }
   const missing = [...palette.keys()].filter((name) => !declared.has(name))
-  if (declaresTokens && missing.length > 0) {
+  if (wholePalette && declaresTokens && missing.length > 0) {
     findings.push(
       `${manifest}: its vendored stylesheets declare --cd-* tokens, but no top-level :root among them declares ${missing.join(", ")}, which pulse-ui's copy does: a copy without a palette token forks the palette by omission, so vendor the CI token file whole (a re-vendor), never trim it`,
     )
@@ -305,12 +390,19 @@ export function vendoredTokenFindings({
   manifests,
   scanRoots,
   palette,
+  valuesOnly = [],
 }: VendoredTokenOptions): string[] {
   const sanction: Sanction = { files: new Set(), byManifest: new Map() }
-  const findings = manifests.flatMap((manifest) => manifestFindings(root, manifest, sanction))
+  const findings = manifests.flatMap((manifest) =>
+    manifest.endsWith(".sha256")
+      ? checksumFindings(root, manifest, sanction)
+      : manifestFindings(root, manifest, sanction),
+  )
   findings.push(...forkFindings(root, scanRoots, sanction.files))
   for (const [manifest, files] of sanction.byManifest) {
-    findings.push(...paletteFindings(root, manifest, files, palette))
+    findings.push(
+      ...paletteFindings(root, manifest, files, palette, !valuesOnly.includes(manifest)),
+    )
   }
   return findings
 }

@@ -125,8 +125,9 @@ mirror of it. Contract, core, webview, host kit and host stay engine-neutral.
   record in `apps/vscode/docs/adr/` in the same commit; the records cover the runtime view and
   the adapter, which both editor hosts run.
 - The webview's colours are the Miragon tokens in `packages/core/runtime-view/src/webview/theme/`, vendored
-  unchanged from Miragon/corporate-identity and pinned by its `manifest.json`: re-vendor,
-  never edit (the repository's token drift test reads that manifest).
+  unchanged from Miragon/corporate-identity by `brand-assets.mjs` (`.miragon/brand-assets.yaml`) and
+  pinned by `.miragon/brand-assets.sha256`: re-copy, never edit (the repository's token drift
+  test reads those checksums).
 - UI text is English and follows the English rules of the brand tone: sentence case, active
   voice, no dash as a connector.
 - Commit messages are Conventional Commits with the scope `vscode`.

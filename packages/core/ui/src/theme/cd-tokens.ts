@@ -5,7 +5,8 @@
  * `--cd-` prefix.
  *
  * The source of truth is the vendored `cd-tokens.generated.css` next to this
- * file (miragon-brand 1.8.0, copied unchanged from Miragon/corporate-identity).
+ * file (miragon-brand 1.32.0, copied unchanged from Miragon/corporate-identity
+ * with `.miragon/brand-assets.yaml`).
  * This module mirrors it value for value; `cd-tokens.test.ts` fails on any
  * drift (modeler-tool-design §13). Never edit a value here without re-vendoring
  * the CSS first.
@@ -58,10 +59,62 @@ export const CD_TOKENS = {
   "motion-slow": "400ms",
   ease: "cubic-bezier(0.4, 0, 0.2, 1)",
   "ease-out": "cubic-bezier(0, 0, 0.2, 1)",
+  "shell-rand": "12px",
+  "shell-luecke": "8px",
+  "shell-zeile": "40px",
+  "shell-ziel": "32px",
+  "shell-eintrag": "36px",
+  "shell-frei": "64px",
+  "shell-menue-breite": "248px",
+  "shell-inspector-breite": "288px",
+  "shell-einpassen-oben": "88px",
+  "shell-einpassen-oben-schmal": "140px",
+  "shell-einpassen-seite": "24px",
+  "shell-einpassen-unten": "64px",
+  "shell-einpassen-unten-web": "92px",
+  "shell-schmal": "760px",
+  "shell-sehr-schmal": "440px",
+  "shell-niedrig": "820px",
+  "shell-ebene-inseln": "20",
+  "shell-ebene-inspector": "25",
+  "shell-ebene-reihe": "30",
+  "shell-ebene-aufklapper": "40",
+  "shell-ebene-dialog": "50",
+  "shell-ebene-toast": "60",
+  "kachel-glas": "rgba(255, 255, 255, 0.08)",
+  "kachel-glas-kontur": "rgba(255, 255, 255, 0.25)",
+  "kachel-glas-dunkel": "rgba(29, 29, 29, 0.42)",
+  "kachel-glas-blur": "32px",
+  "ui-grund": "#F9F7F7",
+  "ui-flaeche": "#FFFFFF",
+  "ui-flaeche-hoch": "#FFFFFF",
+  "ui-hover": "#EEF1FD",
+  "ui-plot": "#FFFFFF",
+  "ui-seite": "#FFFFFF",
+  "ui-abschnitt": "#F9F7F7",
+  "ui-linie": "#E6E2E2",
+  "ui-kontur": "#8F8A8A",
+  "ui-text": "#1D1D1D",
+  "ui-text-leise": "#6B6666",
+  "ui-link": "#2B50D4",
+  "ui-icon-akzent": "#335DE5",
+  "ui-fokus": "#2B50D4",
+  "ui-interaktion": "#335DE5",
+  "ui-success": "#00E676",
+  "ui-warning": "#FFB000",
+  "ui-danger": "#CD1839",
+  "ui-info": "#335DE5",
+  "ui-success-flaeche": "#DAFBEB",
+  "ui-warning-flaeche": "#FFF1D2",
+  "ui-danger-flaeche": "#FBEEF0",
+  "ui-info-flaeche": "#EEF1FD",
+  "ui-wortmarke": "#00E676",
+  "ui-backdrop": "rgba(29, 29, 29, 0.42)",
+  "ui-chrome-deckkraft": "84%",
 } as const
 
 /** A key of {@link CD_TOKENS} — the `--cd-*` name without its prefix. */
 export type CdTokenName = keyof typeof CD_TOKENS
 
 /** The miragon-brand release the vendored tokens come from. */
-export const CD_TOKENS_VERSION = "1.8.0"
+export const CD_TOKENS_VERSION = "1.32.0"

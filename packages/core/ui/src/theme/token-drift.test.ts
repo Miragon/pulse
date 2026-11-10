@@ -11,16 +11,19 @@ import { rootTokens, vendoredTokenFindings } from "./vendored-tokens.test-suppor
  * fork a value). The token file every view ships is pulse-ui's vendored copy
  * (`packages/core/ui/src/tokens/`): its `theme.css` imports it. A `--cd-*` is
  * declared only in a vendored copy that a manifest in
- * SANCTIONED_TOKEN_MANIFESTS lists: inside that manifest's folder, byte-equal
- * to the manifest's sha256, nothing else in the folder, and, once the
- * manifest's stylesheets declare a `--cd-*` at all, their top-level `:root`
- * blocks together declaring every token of pulse-ui's copy with its value
+ * SANCTIONED_TOKEN_MANIFESTS lists: inside that manifest's folder (for
+ * `.miragon/brand-assets.sha256`, the copy's own folder), byte-equal to the
+ * listed sha256, nothing else in the folder, and, once the copies of a folder
+ * declare a `--cd-*` at all, their top-level `:root` blocks together declaring
+ * every token of pulse-ui's copy with its value
  * (`vendored-tokens.test-support.ts`). The scan reads every stylesheet of the
  * repo's apps, packages, templates and docs. Besides pulse-ui's copy that is
  * the Miragon docs kit (`docs/.vitepress/miragon/`, vendored from
  * Miragon/corporate-identity, skill docs-site): its token file, theme and
  * logos are pinned by the kit's own manifest, which `check.mjs` verifies as
- * well; the kit's contrast and role mapping are tested at its source.
+ * well; the kit's contrast and role mapping are tested at its source. The kit
+ * may ship an older token release than pulse-ui, so it keeps every value it
+ * declares but need not declare every token.
  */
 
 const REPO_ROOT = resolve(import.meta.dirname, "../../../../..")
@@ -29,20 +32,15 @@ const REPO_ROOT = resolve(import.meta.dirname, "../../../../..")
 const DOCS_KIT = "docs/.vitepress/miragon"
 
 /**
- * The vendored CI token copies, by manifest (the docs kit's format:
- * `version`, `dateien: [{ pfad, quelle, sha256 }]`). A copy is sanctioned only
- * by an entry here, never by a manifest's mere presence next to it. A second
- * copy (say the App and web variant of the token file from
- * modeler-tool-design) lands with its manifest and adds that manifest's path
- * here; it never becomes an exception in the scan.
+ * The vendored CI token copies, by manifest: the docs kit's (`version`,
+ * `dateien: [{ pfad, quelle, sha256 }]`) and the sha256sum list that
+ * `brand-assets.mjs` writes for the copies in `.miragon/brand-assets.yaml`
+ * (pulse-ui's token file every view ships, and the App and web variant of the
+ * VS Code webview, apps/vscode). A copy is sanctioned only by an entry here,
+ * never by a manifest's mere presence next to it. A new copy is added with
+ * `brand-assets.mjs --add`; it never becomes an exception in the scan.
  */
-const SANCTIONED_TOKEN_MANIFESTS = [
-  // pulse-ui's copy, the token file every view ships (its theme.css imports it).
-  "packages/core/ui/src/tokens/manifest.json",
-  `${DOCS_KIT}/manifest.json`,
-  // The VS Code webview (apps/vscode): the App and web variant of modeler-tool-design.
-  "packages/core/runtime-view/src/webview/theme/manifest.json",
-]
+const SANCTIONED_TOKEN_MANIFESTS = [".miragon/brand-assets.sha256", `${DOCS_KIT}/manifest.json`]
 
 /** Where a `--cd-*` declaration outside a sanctioned copy is a fork. */
 const TOKEN_SCAN_ROOTS = ["apps", "packages", "templates", "docs"]
@@ -69,19 +67,20 @@ describe("Miragon tokens: vendored copies listed by manifest", () => {
   it("a --cd-* token is declared only in a sanctioned vendored copy, byte-equal to its manifest and on pulse-ui's palette (no fork)", () => {
     const palette = rootTokens(uiTokens)
     // The palette rule is not blind: pulse-ui's copy yields its palette, and
-    // the docs kit's copy declares every token of it (vendoredTokenFindings
-    // requires that too), so each value is compared.
+    // every token the docs kit's copy declares is on it, so each kit value is compared.
     expect(palette.get("--cd-blau")).toMatch(/^#[0-9A-Fa-f]{6}$/)
     const kitTokens = rootTokens(
       readFileSync(join(REPO_ROOT, DOCS_KIT, "theme", "cd-tokens.generated.css"), "utf8"),
     )
-    expect([...palette.keys()].filter((name) => !kitTokens.has(name))).toEqual([])
+    expect(kitTokens.get("--cd-blau")).toBe(palette.get("--cd-blau"))
+    expect([...kitTokens.keys()].filter((name) => !palette.has(name))).toEqual([])
     expect(
       vendoredTokenFindings({
         root: REPO_ROOT,
         manifests: SANCTIONED_TOKEN_MANIFESTS,
         scanRoots: TOKEN_SCAN_ROOTS,
         palette,
+        valuesOnly: [`${DOCS_KIT}/manifest.json`],
       }),
     ).toEqual([])
   })

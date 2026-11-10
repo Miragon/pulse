@@ -21,22 +21,62 @@
 .cd-c-fill-danger { fill: var(--cd-ui-danger) !important; }
 .cd-c-stroke-info { stroke: var(--cd-ui-info) !important; }
 
-/* Nur dunkel: Bereiche mit Deckkraft verlieren die Füllung und zeigen den Rand in der Statusrolle,
-   Unterleger unter schwachen Fremdstrichen werden sichtbar (hell stroke none, im Export unsichtbar).
-   Wie alle Dunkel-Blöcke nur auf dem Bildschirm. */
+/* Regeln für einen Modus. Sie gelten wie die Rollen im Modus des nächsten Trägers von
+   data-cd-theme, nie durch einen Träger mit anderem Modus hindurch: Ein heller Modeler in einer
+   dunklen Seite bleibt hell, ein dunkler in einer hellen Seite wird dunkel. Wie alle Dunkel-Blöcke
+   nur auf dem Bildschirm.
+   Unterleger (zweiter Pfad unter einem schwachen Strich, im Attribut stroke none, im Export
+   unsichtbar) lesen Schalter, die jeder Träger neu setzt: none, wo sie unsichtbar bleiben,
+   --cd-ui-kontur, wo sie gelten. cd-c-unterleger zeigt sich dunkel, unter Fremdstrichen unter 3:1
+   auf Schwarz. cd-c-unterleger-hoch zeigt sich bei data-cd-kontrast="hoch" in beiden Modi, unter
+   den Konturen offizieller Notationsfarben, die im Hellen unter 3:1 bleiben. cd-c-unterleger-schrift
+   zeigt sich nur dunkel, als Rand in --cd-ui-text (Weiß) unter Schrift in einer selbst gesetzten
+   Hex-Farbe, die auf dem dunklen Plot unter 4,5:1 fällt, nie unter Farben, die über Rollen gezeichnet sind.
+   Die Schalter heißen --cdc-*, nicht --cd-*: --cd-* sind die Tokens, die ein Modeler in einer
+   Schicht lädt, damit die Variablen seines Hosts gewinnen. Diese Datei steht ohne Schicht. */
+:root, [data-cd-theme] {
+  --cdc-unterleger: none;
+  --cdc-unterleger-hoch: none;
+  --cdc-unterleger-schrift: none;
+}
+[data-cd-kontrast="hoch"] {
+  --cdc-unterleger-hoch: var(--cd-ui-kontur);
+}
 @media screen {
-  [data-cd-theme="dark"] .cd-c-bereich { fill: none !important; }
-  [data-cd-theme="dark"] .cd-c-bereich-success { stroke: var(--cd-ui-success) !important; }
-  [data-cd-theme="dark"] .cd-c-bereich-warning { stroke: var(--cd-ui-warning) !important; }
-  [data-cd-theme="dark"] .cd-c-bereich-info { stroke: var(--cd-ui-info) !important; }
-  [data-cd-theme="dark"] .cd-c-unterleger { stroke: var(--cd-ui-kontur) !important; }
+  [data-cd-theme="dark"] {
+    --cdc-unterleger: var(--cd-ui-kontur);
+    --cdc-unterleger-schrift: var(--cd-ui-text);
+  }
 }
 @media screen and (prefers-color-scheme: dark) {
-  [data-cd-theme="system"] .cd-c-bereich { fill: none !important; }
-  [data-cd-theme="system"] .cd-c-bereich-success { stroke: var(--cd-ui-success) !important; }
-  [data-cd-theme="system"] .cd-c-bereich-warning { stroke: var(--cd-ui-warning) !important; }
-  [data-cd-theme="system"] .cd-c-bereich-info { stroke: var(--cd-ui-info) !important; }
-  [data-cd-theme="system"] .cd-c-unterleger { stroke: var(--cd-ui-kontur) !important; }
+  [data-cd-theme="system"] {
+    --cdc-unterleger: var(--cd-ui-kontur);
+    --cdc-unterleger-schrift: var(--cd-ui-text);
+  }
+}
+.cd-c-unterleger { stroke: var(--cdc-unterleger) !important; }
+.cd-c-unterleger-hoch { stroke: var(--cdc-unterleger-hoch) !important; }
+.cd-c-unterleger-schrift { stroke: var(--cdc-unterleger-schrift) !important; }
+
+/* Nur dunkel: Bereiche mit Deckkraft verlieren die Füllung und zeigen den Rand in der Statusrolle.
+   Hell zeichnet jeder Bereich seine eigene Tönung und seinen eigenen Rand, dafür gibt es keinen
+   Wert für einen Schalter. @scope endet am nächsten Träger darunter (Chromium 118, Safari 17.4,
+   Firefox 146). */
+@media screen {
+  @scope ([data-cd-theme="dark"]) to ([data-cd-theme]) {
+    .cd-c-bereich { fill: none !important; }
+    .cd-c-bereich-success { stroke: var(--cd-ui-success) !important; }
+    .cd-c-bereich-warning { stroke: var(--cd-ui-warning) !important; }
+    .cd-c-bereich-info { stroke: var(--cd-ui-info) !important; }
+  }
+}
+@media screen and (prefers-color-scheme: dark) {
+  @scope ([data-cd-theme="system"]) to ([data-cd-theme]) {
+    .cd-c-bereich { fill: none !important; }
+    .cd-c-bereich-success { stroke: var(--cd-ui-success) !important; }
+    .cd-c-bereich-warning { stroke: var(--cd-ui-warning) !important; }
+    .cd-c-bereich-info { stroke: var(--cd-ui-info) !important; }
+  }
 }
 
 /* diagram-js ab 15.28 und bpmn-js: Chrome über die --bio-* Variablen, für beide Modi. Steht auf :root
