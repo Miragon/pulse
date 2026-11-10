@@ -33,9 +33,31 @@
  *                                   `extends` pinned, the list never appearing
  *                                   or disappearing; the one coverage block is
  *                                   the root `test.coverage` (vitest reads no
- *                                   other); every shape the AST cannot read (a
- *                                   spread, shorthand, accessor, computed key
- *                                   or non-literal value) frozen. A config the
+ *                                   other); every include/exclude list read
+ *                                   entry by entry, also where it names,
+ *                                   spreads or is shorthand for a constant of
+ *                                   the file, declared once as a top-level
+ *                                   const (`as const` too): a string (literal,
+ *                                   or a template of such strings), or an
+ *                                   unexported array the file names only as
+ *                                   such a list or in a spread, so no code
+ *                                   that names it can change it unseen; an
+ *                                   entry that names any other binding of the
+ *                                   file (an array pushed to, passed on or
+ *                                   exported, a let, a shadowed name, a
+ *                                   function; every binding of a file that
+ *                                   calls eval) is opaque, with its reason;
+ *                                   an import such as
+ *                                   `coverageConfigDefaults.exclude` stays one
+ *                                   entry of its own text (its content is the
+ *                                   other module's). The reader runs nothing:
+ *                                   a list changed through the config object
+ *                                   after the config was built is out of its
+ *                                   sight, a literal as much as a constant.
+ *                                   Every other shape the AST cannot read (a
+ *                                   spread or shorthand member, accessor,
+ *                                   computed key or non-literal value) is
+ *                                   opaque, frozen by its text. A config the
  *                                   ratchet cannot read on the base is held to
  *                                   the rules of an introduced one, and one it
  *                                   cannot read on either side fails. An
@@ -338,44 +360,403 @@ function literalValue(node) {
   return undefined
 }
 
+/** TypeScript's wrappers that leave a value as it is at runtime: `( )`, `as`, `satisfies`, `<T>`, `!`. */
+const isTypeWrapper = (node) =>
+  ts.isParenthesizedExpression(node) ||
+  ts.isAsExpression(node) ||
+  ts.isSatisfiesExpression(node) ||
+  ts.isTypeAssertionExpression(node) ||
+  ts.isNonNullExpression(node)
+
+/** An expression without its type wrappers (`["a"] as const` is the array literal). */
+function unwrapped(node) {
+  let inner = node
+  while (inner && isTypeWrapper(inner)) inner = inner.expression
+  return inner
+}
+
+/** `read()` with `name` marked as being followed, so a cycle of constants ends. */
+function following(seen, name, read) {
+  seen.add(name)
+  try {
+    return read()
+  } finally {
+    seen.delete(name)
+  }
+}
+
 /**
- * Array-literal elements as comparable strings: literal values, else
- * normalized source. `consts` (name → array-literal node) resolves an
- * identifier or `...identifier` to the top-level array it names, so moving a
- * list into a constant is not read as new entries.
+ * The string an entry holds when the ratchet sees all of it: a string literal,
+ * a string constant of `consts`, or a template whose every part is one of
+ * these or a literal; else undefined.
  */
-function arrayEntries(node, consts = new Map(), depth = 0) {
-  if (ts.isIdentifier(node) && consts.has(node.text) && depth < 8)
-    return arrayEntries(consts.get(node.text), consts, depth + 1)
-  if (!ts.isArrayLiteralExpression(node)) return null
-  return node.elements.flatMap((element) => {
-    if (ts.isSpreadElement(element) && depth < 8) {
-      const spread = arrayEntries(element.expression, consts, depth + 1)
+function stringValue(node, consts, seen) {
+  const value = unwrapped(node)
+  if (ts.isIdentifier(value)) {
+    const target = consts.get(value.text)
+    if (!target || ts.isArrayLiteralExpression(target) || seen.has(value.text)) return undefined
+    return following(seen, value.text, () => stringValue(target, consts, seen))
+  }
+  if (ts.isTemplateExpression(value)) {
+    let text = value.head.text
+    for (const span of value.templateSpans) {
+      const part =
+        stringValue(span.expression, consts, seen) ?? literalValue(unwrapped(span.expression))
+      if (part === undefined) return undefined
+      text += `${part}${span.literal.text}`
+    }
+    return text
+  }
+  const literal = literalValue(value)
+  return typeof literal === "string" ? literal : undefined
+}
+
+/**
+ * Array-literal elements as comparable strings: strings the ratchet sees
+ * whole (stringValue), else normalized source. `consts` (name → initializer)
+ * resolves an identifier or `...identifier` to the top-level array it names
+ * and an entry to the string a constant holds, so moving a list or a glob
+ * into a constant is not read as new entries. `unread` collects every
+ * element read as its own text; null when `node` is no array the ratchet can
+ * see.
+ */
+function arrayEntries(node, consts = new Map(), unread = [], seen = new Set()) {
+  const value = unwrapped(node)
+  if (value && ts.isIdentifier(value)) {
+    const target = consts.get(value.text)
+    if (!target || !ts.isArrayLiteralExpression(target) || seen.has(value.text)) return null
+    return following(seen, value.text, () => arrayEntries(target, consts, unread, seen))
+  }
+  if (!value || !ts.isArrayLiteralExpression(value)) return null
+  return value.elements.flatMap((element) => {
+    if (ts.isSpreadElement(element)) {
+      const spread = arrayEntries(element.expression, consts, unread, seen)
       if (spread) return spread
     }
-    const value = literalValue(element)
-    return [typeof value === "string" ? value : normalize(element.getText())]
+    const text = stringValue(element, consts, seen)
+    if (text !== undefined) return [text]
+    unread.push(element)
+    return [normalize(element.getText())]
   })
 }
 
-/** Top-level `const name = [ … ]` declarations of a source file. */
-function topLevelArrays(sourceFile) {
+/** Top-level `name = …` variable declarations whose value `keep` takes (type wrappers dropped). */
+function topLevelValues(sourceFile, keep) {
   const consts = new Map()
   for (const statement of sourceFile.statements) {
     if (!ts.isVariableStatement(statement)) continue
     for (const decl of statement.declarationList.declarations) {
-      if (ts.isIdentifier(decl.name) && decl.initializer)
-        if (ts.isArrayLiteralExpression(decl.initializer))
-          consts.set(decl.name.text, decl.initializer)
+      const initializer = unwrapped(decl.initializer)
+      if (ts.isIdentifier(decl.name) && initializer && keep(initializer))
+        consts.set(decl.name.text, initializer)
     }
   }
   return consts
 }
 
+/** Top-level `const name = [ … ]` declarations of a source file (type wrappers dropped). */
+const topLevelArrays = (sourceFile) => topLevelValues(sourceFile, ts.isArrayLiteralExpression)
+
 const COVERAGE_METRICS = ["statements", "branches", "functions", "lines"]
 
-/** Entries of an `include`/`exclude` list: literal strings, else normalized source. */
-const listEntries = (node) => arrayEntries(node) ?? [normalize(node.getText())]
+/** The vitest keys whose value is a list of globs. */
+const LIST_KEYS = ["include", "exclude"]
+
+/**
+ * Whether `member` is an `include`/`exclude` key of a `test` or `coverage`
+ * block. extractVitestCoverage reads every such block or fails on the file
+ * (a second root `test` or `coverage` block, a project `test` block it does
+ * not reach), so the list in it is one the ratchet compares.
+ */
+function isListKeyOfBlock(member) {
+  const block = member.parent
+  const owner = block?.parent
+  return (
+    LIST_KEYS.includes(staticName(member.name)) &&
+    ts.isObjectLiteralExpression(block) &&
+    ts.isPropertyAssignment(owner) &&
+    owner.initializer === block &&
+    ["test", "coverage"].includes(staticName(owner.name))
+  )
+}
+
+/**
+ * Whether one read of an array constant leaves it as its literal shows it:
+ * the value of an `include`/`exclude` key of a `test` or `coverage` block
+ * (also as shorthand, also through type wrappers) or a spread, which copies
+ * it. Anything else could change it at runtime (`EXTRA.push(…)`, a call, a
+ * key of an object some function receives) or is no read of it at all.
+ */
+function keepsArrayAsWritten(identifier) {
+  if (ts.isShorthandPropertyAssignment(identifier.parent))
+    return isListKeyOfBlock(identifier.parent)
+  let outer = identifier
+  while (isTypeWrapper(outer.parent)) outer = outer.parent
+  const reader = outer.parent
+  if (ts.isSpreadElement(reader)) return true
+  return ts.isPropertyAssignment(reader) && reader.initializer === outer && isListKeyOfBlock(reader)
+}
+
+/** Whether `parent.name` is a key, member or type name, never a value binding. */
+const namedNotBinding = (parent) =>
+  ts.isPropertyAssignment(parent) ||
+  ts.isPropertyAccessExpression(parent) ||
+  ts.isMethodDeclaration(parent) ||
+  ts.isPropertyDeclaration(parent) ||
+  ts.isGetAccessorDeclaration(parent) ||
+  ts.isSetAccessorDeclaration(parent) ||
+  ts.isPropertySignature(parent) ||
+  ts.isMethodSignature(parent) ||
+  ts.isEnumMember(parent) ||
+  ts.isMetaProperty(parent) ||
+  ts.isInterfaceDeclaration(parent) ||
+  ts.isTypeAliasDeclaration(parent) ||
+  ts.isTypeParameterDeclaration(parent)
+
+/**
+ * Whether an identifier declares or reads a value binding: not a key or
+ * member name (`exclude:`, `coverageConfigDefaults.exclude`), the remote
+ * name of an import, export or destructuring, a label or a name in a type.
+ */
+function namesBinding(identifier) {
+  const parent = identifier.parent
+  if (namedNotBinding(parent) && parent.name === identifier) return false
+  if (
+    (ts.isImportSpecifier(parent) || ts.isBindingElement(parent)) &&
+    parent.propertyName === identifier
+  )
+    return false
+  if (
+    ts.isExportSpecifier(parent) &&
+    parent.propertyName !== undefined &&
+    parent.name === identifier
+  )
+    return false
+  if (
+    (ts.isLabeledStatement(parent) || ts.isBreakOrContinueStatement(parent)) &&
+    parent.label === identifier
+  )
+    return false
+  for (let up = parent; up; up = up.parent)
+    if (ts.isTypeNode(up) && !ts.isExpressionWithTypeArguments(up)) return false
+  return true
+}
+
+/** "import" or "local" when an identifier declares a value binding, else undefined. */
+function bindingDeclared(identifier) {
+  const parent = identifier.parent
+  if (parent.name !== identifier) return undefined
+  if (
+    ts.isImportClause(parent) ||
+    ts.isNamespaceImport(parent) ||
+    ts.isImportSpecifier(parent) ||
+    ts.isImportEqualsDeclaration(parent)
+  )
+    return "import"
+  if (
+    ts.isVariableDeclaration(parent) ||
+    ts.isParameter(parent) ||
+    ts.isBindingElement(parent) ||
+    ts.isFunctionDeclaration(parent) ||
+    ts.isFunctionExpression(parent) ||
+    ts.isClassDeclaration(parent) ||
+    ts.isClassExpression(parent) ||
+    ts.isEnumDeclaration(parent) ||
+    ts.isModuleDeclaration(parent)
+  )
+    return "local"
+  return undefined
+}
+
+/** The values a vitest list may take from a constant: an array, or a string (literal or template). */
+const isListValue = (node) =>
+  ts.isArrayLiteralExpression(node) ||
+  ts.isStringLiteral(node) ||
+  ts.isNoSubstitutionTemplateLiteral(node) ||
+  ts.isTemplateExpression(node)
+
+const isExportedRead = (identifier) =>
+  ts.isExportSpecifier(identifier.parent) || ts.isExportAssignment(identifier.parent)
+
+/**
+ * Why the ratchet cannot read a binding the file declares (`declared`: its
+ * declaring identifiers, `value`: topLevelValues' initializer, `reads`: every
+ * other identifier that names it), or undefined when it can.
+ */
+function constantProblem(declared, value, reads) {
+  if (declared.length > 1) return "declared more than once"
+  const decl = declared[0].parent
+  const list = decl.parent
+  if (
+    !ts.isVariableDeclaration(decl) ||
+    !ts.isVariableStatement(list.parent) ||
+    !ts.isSourceFile(list.parent.parent)
+  )
+    return "no top-level const"
+  if ((list.flags & ts.NodeFlags.Const) === 0) return "declared with let or var"
+  // Declared once, so topLevelValues read this declaration, if it holds a list value.
+  if (!value) return "its value is no array, string or template literal"
+  // A string cannot change; an array can, through any code that reaches it.
+  if (!ts.isArrayLiteralExpression(value)) return undefined
+  if (
+    list.parent.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword) ||
+    reads.some(isExportedRead)
+  )
+    return "exported, so another module can change it"
+  if (!reads.every(keepsArrayAsWritten))
+    return "named other than as an include/exclude list of a test or coverage block or in a spread, where a push, a call or another key can change it"
+  return undefined
+}
+
+const EVAL_PROBLEM = "the file calls eval, which can change a binding without naming it"
+
+/**
+ * How a vitest config's include/exclude lists read the bindings the file
+ * declares itself (an import's content is the other module's: a list keeps
+ * reading it as one entry of its own text, `...coverageConfigDefaults.exclude`).
+ * `consts` holds those a list may name, spread or write as shorthand and is
+ * read through entry by entry, so the constant cannot change unseen by code
+ * that names it; `unread` says for every other one why not, and a list entry
+ * that names one is opaque with that reason (listEntries); `declarations`
+ * and `reads` map each name to the identifiers that declare or read it. A
+ * binding is read when the file declares its name once, as a top-level
+ * `const` holding an array or a string (a literal, or a template of such
+ * strings and literals), and, for an array, never exports it and names it
+ * only as the value of an include/exclude key of a test or coverage block or
+ * in a spread (keepsArrayAsWritten). Only a name that declares or reads the
+ * binding counts (namesBinding): a key, a member name, a label or a type
+ * does not. A direct `eval` reaches a binding without naming it, so a file
+ * that names eval has none read. The reader does not run the file: a list
+ * changed through the config object after the config was built is out of its
+ * sight, a literal one as much as one from a constant.
+ */
+function vitestListConstants(sourceFile) {
+  const values = topLevelValues(sourceFile, isListValue)
+  const declarations = new Map()
+  const reads = new Map()
+  walk(sourceFile, (node) => {
+    if (!ts.isIdentifier(node) || !namesBinding(node)) return
+    const into = bindingDeclared(node) ? declarations : reads
+    if (!into.has(node.text)) into.set(node.text, [])
+    into.get(node.text).push(node)
+  })
+  const consts = new Map()
+  const unread = new Map()
+  for (const [name, declared] of declarations) {
+    if (declared.every((identifier) => bindingDeclared(identifier) === "import")) continue
+    const problem = reads.has("eval")
+      ? EVAL_PROBLEM
+      : constantProblem(declared, values.get(name), reads.get(name) ?? [])
+    if (problem) unread.set(name, problem)
+    else consts.set(name, values.get(name))
+  }
+  return { consts, unread, declarations, reads }
+}
+
+const isWithin = (node, ancestor) => {
+  for (let up = node; up; up = up.parent) if (up === ancestor) return true
+  return false
+}
+
+/** Whether `name` is a binding the file declares itself (vitestListConstants). */
+const isOwnBinding = (name, lists) => lists.consts.has(name) || lists.unread.has(name)
+
+/**
+ * Why each binding of the file an entry read as its own text names was not
+ * read through, as name -> reason; a name the entry declares itself (a
+ * callback's parameter) is pinned by the entry's text.
+ */
+function unreadBindings(entry, lists) {
+  const found = new Map()
+  walk(entry, (node) => {
+    if (!ts.isIdentifier(node) || !namesBinding(node) || bindingDeclared(node)) return
+    const declared = lists.declarations.get(node.text) ?? []
+    if (!declared.some((id) => bindingDeclared(id) === "local" && !isWithin(id, entry))) return
+    const value = lists.consts.get(node.text)
+    found.set(
+      node.text,
+      lists.unread.get(node.text) ??
+        (!ts.isArrayLiteralExpression(value) &&
+        stringValue(value, lists.consts, new Set([node.text])) === undefined
+          ? "its template holds a part the ratchet cannot read"
+          : "the ratchet reads a constant only as a whole list, a spread, an entry or a template part"),
+    )
+  })
+  return found
+}
+
+/**
+ * The code an unread binding's content hangs on, as far as the file shows
+ * it: around every declaration and read of `names`, and in turn of every
+ * binding of the file (and `eval`) that code names, the statement or member
+ * next to the one that holds `entry` (the config itself), normalized in file
+ * order. A helper the binding is passed to is in it; code that reaches the
+ * binding through the config object is not.
+ */
+function bindingTrace(names, entry, lists) {
+  const units = new Set()
+  const queue = lists.reads.has("eval") ? [...names, "eval"] : [...names]
+  const done = new Set()
+  while (queue.length > 0) {
+    const name = queue.pop()
+    if (done.has(name)) continue
+    done.add(name)
+    const occurrences = [...(lists.declarations.get(name) ?? []), ...(lists.reads.get(name) ?? [])]
+    for (const occurrence of occurrences) {
+      if (isWithin(occurrence, entry)) continue
+      let unit = occurrence
+      while (unit.parent && !isWithin(entry, unit.parent)) unit = unit.parent
+      if (units.has(unit)) continue
+      units.add(unit)
+      walk(unit, (node) => {
+        if (ts.isIdentifier(node) && namesBinding(node) && isOwnBinding(node.text, lists))
+          queue.push(node.text)
+      })
+    }
+  }
+  return [...units]
+    .sort((a, b) => a.pos - b.pos)
+    .map((unit) => normalize(unit.getText()))
+    .join(";")
+}
+
+/**
+ * Entries of an `include`/`exclude` list (arrayEntries over the file's
+ * constants, else the list's own text). An entry read as its own text that
+ * names a binding of the file lands in `opaque` as `where: entry (name:
+ * reason) from <trace>` (bindingTrace): a config may not introduce one, and
+ * once there it is frozen like any other opaque member, its trace with it,
+ * so an edit to the code the binding hangs on reads as a new one.
+ */
+function listEntries(node, lists, where, opaque) {
+  const unread = []
+  const entries = arrayEntries(node, lists.consts, unread)
+  if (!entries) unread.push(node)
+  for (const entry of unread) {
+    const bindings = unreadBindings(entry, lists)
+    if (bindings.size === 0) continue
+    const reasons = [...bindings].map(([name, reason]) => `${name}: ${reason}`).join("; ")
+    const trace = bindingTrace(bindings.keys(), entry, lists)
+    opaque.push(`${where}: ${normalize(entry.getText())} (${reasons}) from ${trace}`)
+  }
+  return entries ?? [normalize(node.getText())]
+}
+
+/**
+ * A member of a vitest `test`, `coverage` or project `test` block as `{ key,
+ * value }`: a `key: value` assignment, or an `include`/`exclude` shorthand
+ * of a binding the file declares (read as `exclude: exclude`, see
+ * listEntries); undefined for any other member (a spread, another shorthand,
+ * a method or accessor), which the caller keeps opaque.
+ */
+function readableMember(member, lists) {
+  if (ts.isPropertyAssignment(member))
+    return { key: staticName(member.name), value: member.initializer }
+  const name = ts.isShorthandPropertyAssignment(member) ? member.name.text : undefined
+  if (LIST_KEYS.includes(name) && (lists.consts.has(name) || lists.unread.has(name)))
+    return { key: name, value: member.name }
+  return undefined
+}
 
 /**
  * The floors of one thresholds object, the global one or a glob's, as
@@ -498,9 +879,12 @@ const PROJECT_NAME_NEEDED =
  * an object literal (a config-file path or glob, which loads an unratcheted
  * file; a function; a spread), an `extends` that is not a boolean literal (a
  * path loads another unratcheted file) and a spread or shorthand anywhere in
- * a project land in `opaque`.
+ * a project (but an `include`/`exclude` shorthand of a binding the file
+ * declares, see readableMember) land in `opaque`, so does a list entry that names a binding
+ * of the file the ratchet cannot read through (listEntries). `lists`:
+ * vitestListConstants.
  */
-function readProjects(node, opaque) {
+function readProjects(node, opaque, lists) {
   const projects = {}
   const reached = new Set()
   if (!ts.isArrayLiteralExpression(node)) {
@@ -535,13 +919,13 @@ function readProjects(node, opaque) {
       else opaque.push(`${label}.extends: ${normalize(extendsProp.initializer.getText())}`)
     }
     for (const member of testProp.initializer.properties) {
-      if (!ts.isPropertyAssignment(member)) {
+      const read = readableMember(member, lists)
+      if (!read) {
         opaque.push(`${label}: ${normalize(member.getText())}`)
         continue
       }
-      const key = staticName(member.name)
-      if (key === "include") project.include = listEntries(member.initializer)
-      else if (key === "exclude") project.exclude = listEntries(member.initializer)
+      if (LIST_KEYS.includes(read.key))
+        project[read.key] = listEntries(read.value, lists, `${label}.${read.key}`, opaque)
     }
     projects[name] = project
   }
@@ -555,8 +939,12 @@ function readProjects(node, opaque) {
  * cannot be read unambiguously (the comparison then fails closed).
  * `include`/`testInclude` are null when the key is absent, `projects` when
  * the root test has no `projects` list (else name -> `{ include, exclude,
- * extends }`, see readProjects). `opaque` holds every member the ratchet
- * cannot read: a spread or shorthand inside coverage or test, a non-literal
+ * extends }`, see readProjects). The include and exclude lists read the
+ * file's constants (vitestListConstants) entry by entry, by name, spread or
+ * shorthand. `opaque` holds every member the ratchet cannot read: a spread
+ * or shorthand inside coverage or test (but an `include`/`exclude` shorthand
+ * of a binding the file declares), a list entry that names a binding of the
+ * file it cannot read through, with the reason (listEntries), a non-literal
  * threshold, and every computed key of the file whose name is no literal
  * (`[KEY]: ...` could BE coverage, test, thresholds or enabled).
  * `usesShared`: the config passes `sharedConfig` (vitest.shared.ts, where
@@ -568,7 +956,9 @@ export function extractVitestCoverage(relPath, text) {
   const testBlocks = []
   const computed = []
   let usesShared = false
-  walk(parseSource(relPath, text), (node) => {
+  const sourceFile = parseSource(relPath, text)
+  const lists = vitestListConstants(sourceFile)
+  walk(sourceFile, (node) => {
     if (ts.isPropertyAssignment(node) && staticName(node.name) === "coverage") blocks.push(node)
     if (ts.isPropertyAssignment(node) && staticName(node.name) === "test") testBlocks.push(node)
     if (ts.isComputedPropertyName(node) && staticName(node) === undefined)
@@ -603,16 +993,19 @@ export function extractVitestCoverage(relPath, text) {
     if (!ts.isObjectLiteralExpression(rootTest))
       return { error: "`test` is not an object literal: the ratchet cannot read it" }
     for (const prop of rootTest.properties) {
-      if (!ts.isPropertyAssignment(prop)) {
+      const member = readableMember(prop, lists)
+      if (!member) {
         // A spread or shorthand could carry include/exclude the AST cannot see.
         result.opaque.push(`test: ${normalize(prop.getText())}`)
         continue
       }
-      const name = staticName(prop.name)
-      if (name === "include") result.testInclude = listEntries(prop.initializer)
-      else if (name === "exclude") result.testExclude = listEntries(prop.initializer)
+      const { key: name, value } = member
+      if (name === "include")
+        result.testInclude = listEntries(value, lists, "test.include", result.opaque)
+      else if (name === "exclude")
+        result.testExclude = listEntries(value, lists, "test.exclude", result.opaque)
       else if (name === "projects") {
-        const read = readProjects(prop.initializer, result.opaque)
+        const read = readProjects(value, result.opaque, lists)
         if (read.error) return { error: read.error }
         result.projects = read.projects
         reached = read.reached
@@ -641,21 +1034,22 @@ export function extractVitestCoverage(relPath, text) {
   if (!ts.isObjectLiteralExpression(coverage))
     return { error: "`coverage` is not an object literal: the ratchet cannot read it" }
   for (const prop of coverage.properties) {
-    if (!ts.isPropertyAssignment(prop)) {
+    const member = readableMember(prop, lists)
+    if (!member) {
       // A spread or shorthand could carry thresholds/exclude the AST cannot see.
       result.opaque.push(normalize(prop.getText()))
       continue
     }
-    const name = staticName(prop.name)
+    const { key: name, value } = member
     if (name === "thresholds") {
-      Object.assign(result, readThresholds(prop.initializer, result.opaque))
+      Object.assign(result, readThresholds(value, result.opaque))
     } else if (name === "exclude") {
-      result.exclude = listEntries(prop.initializer)
+      result.exclude = listEntries(value, lists, "coverage.exclude", result.opaque)
     } else if (name === "include") {
-      result.include = listEntries(prop.initializer)
+      result.include = listEntries(value, lists, "coverage.include", result.opaque)
     } else if (name === "enabled") {
-      const value = literalValue(prop.initializer)
-      result.enabled = typeof value === "boolean" ? value : normalize(prop.initializer.getText())
+      const literal = literalValue(value)
+      result.enabled = typeof literal === "boolean" ? literal : normalize(value.getText())
     }
   }
   return result
@@ -1003,6 +1397,10 @@ function projectChanges(relPath, before, after) {
   return violations
 }
 
+/** What the ratchet reads in a vitest config, for the message on an opaque member. */
+const VITEST_READS =
+  "The ratchet reads literals, and a constant of the file only where it sees all the constant can hold (a top-level const string, or a const array the file names only as an include/exclude list or in a spread); for one it cannot read, the reason follows its name in parentheses"
+
 /**
  * The rules for a package vitest config with nothing to compare against (the
  * diff introduces it, or the ratchet could not read its base): from the next
@@ -1014,7 +1412,7 @@ function projectChanges(relPath, before, after) {
 function newVitestConfigViolations(relPath, cur) {
   const violations = cur.opaque.map(
     (entry) =>
-      `${relPath} -> spread/shorthand or non-literal \`${entry}\` in a vitest config with nothing to compare against. The ratchet reads literals only: inline the values, or it can never see them change.`,
+      `${relPath} -> spread/shorthand or non-literal \`${entry}\` in a vitest config with nothing to compare against. ${VITEST_READS}: inline the values, or it can never see them change.`,
   )
   violations.push(...sharedFloorViolations(relPath, cur))
   if (relPath === "vitest.shared.ts") return violations
@@ -1152,7 +1550,7 @@ function compareVitest(relPath, oldText, newText) {
   for (const entry of cur.opaque) {
     if (!old.opaque.includes(entry)) {
       violations.push(
-        `${relPath} -> new spread/shorthand or non-literal \`${entry}\` in the vitest config. The ratchet reads literals only: inline the values (a spread written after the literals overrides them at runtime).`,
+        `${relPath} -> new spread/shorthand or non-literal \`${entry}\` in the vitest config. ${VITEST_READS}: inline the values (a spread written after the literals overrides them at runtime).`,
       )
     }
   }

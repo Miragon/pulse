@@ -779,11 +779,12 @@ export default defineConfig({
     assert.deepEqual(read.projects, {
       unit: {
         include: ["src/**/*.test.ts"],
-        exclude: ["ENGINE_TEST", "test/fixtures/**"],
+        // A string constant is read as the glob it holds.
+        exclude: ["test/**/*.engine.test.ts", "test/fixtures/**"],
         extends: true,
       },
       browser: { include: ["src/webview/**/*.test.tsx"], exclude: [], extends: true },
-      engine: { include: ["ENGINE_TEST"], exclude: [], extends: true },
+      engine: { include: ["test/**/*.engine.test.ts"], exclude: [], extends: true },
     })
     assert.deepEqual(checkRatchetFile(VSCODE, null, base), [])
   })
@@ -1169,6 +1170,323 @@ describe("measured surface: include lists only grow (the counterpart of exclude)
     assert.match(checkRatchetFile(PKG_VITEST, base, excluded)[0], /new test\.exclude entry/)
     const grown = base.replace('["src/**/*.test.ts"]', '["src/**/*.test.ts", "test/**/*.test.ts"]')
     assert.deepEqual(checkRatchetFile(PKG_VITEST, base, grown), [])
+  })
+})
+
+describe("include and exclude lists built from a constant (read entry by entry)", () => {
+  const listConst = (...entries) => `const EXCLUDED = ${JSON.stringify(entries)}`
+  // A package config whose coverage list names, spreads or is shorthand for a constant.
+  const config = ({
+    decl = listConst("src/a.ts"),
+    use = "exclude: EXCLUDED,",
+    after = "",
+    test = 'include: ["src/**/*.test.ts"],',
+  } = {}) => `
+import { coverageConfigDefaults, defineConfig, mergeConfig } from "vitest/config"
+import { sharedConfig } from "../../vitest.shared"
+${decl}
+${after}
+export default mergeConfig(sharedConfig, defineConfig({
+  test: {
+    ${test}
+    coverage: {
+      ${use}
+      ${BASE_THRESHOLDS}
+    },
+  },
+}))
+`
+  const check = (before, after) => checkRatchetFile(PKG_VITEST, before, after)
+  const read = (options) => extractVitestCoverage(PKG_VITEST, config(options))
+  const SPREAD = 'exclude: ["src/**/*.d.ts", ...EXCLUDED],'
+  const literal = vitestConfig({ thresholds: BASE_THRESHOLDS, exclude: 'exclude: ["src/a.ts"],' })
+
+  it("fails an exclude constant that grows, named or spread", () => {
+    for (const use of ["exclude: EXCLUDED,", SPREAD]) {
+      const violations = check(
+        config({ use }),
+        config({ use, decl: listConst("src/a.ts", "src/host/b.ts") }),
+      )
+      assert.equal(violations.length, 1, use)
+      assert.match(violations[0], /new coverage\.exclude entry "src\/host\/b\.ts"/, use)
+    }
+  })
+
+  it("passes an exclude constant that shrinks, and a literal list moved into a constant and back", () => {
+    for (const use of ["exclude: EXCLUDED,", SPREAD])
+      assert.deepEqual(
+        check(config({ use, decl: listConst("src/a.ts", "src/host/b.ts") }), config({ use })),
+        [],
+        use,
+      )
+    assert.deepEqual(check(literal, config()), [])
+    assert.deepEqual(check(config(), literal), [])
+    // A config that introduces a constant it reads through has nothing opaque.
+    assert.deepEqual(checkRatchetFile(PKG_VITEST, null, config()), [])
+  })
+
+  it("reads a spread of it, a constant built from another and its type wrappers entry by entry", () => {
+    assert.deepEqual(read({ use: SPREAD, decl: listConst("src/a.ts", "src/b.ts") }).exclude, [
+      "src/**/*.d.ts",
+      "src/a.ts",
+      "src/b.ts",
+    ])
+    const chained = `${listConst("src/a.ts")}\nconst HOST = [...EXCLUDED, "src/host/**"]`
+    assert.deepEqual(read({ decl: chained, use: "exclude: HOST," }).exclude, [
+      "src/a.ts",
+      "src/host/**",
+    ])
+    assert.deepEqual(read({ decl: chained, use: "exclude: [...EXCLUDED, ...HOST]," }).exclude, [
+      "src/a.ts",
+      "src/a.ts",
+      "src/host/**",
+    ])
+    // A cycle (a TDZ error at runtime) ends, as an entry of its own text that is opaque.
+    const cycle = read({ decl: "const A = [...B]\nconst B = [...A]", use: "exclude: A," })
+    assert.deepEqual(cycle.exclude, ["...A"])
+    assert.match(cycle.opaque.join("\n"), /^coverage\.exclude: \.\.\.A \(A: /)
+    // A chain of any length is followed: the first link grows, the list grows.
+    const links = (...first) =>
+      [`const A0 = ${JSON.stringify(first)}`]
+        .concat([1, 2, 3, 4, 5].map((i) => `const A${i} = [...A${i - 1}]`))
+        .join("\n")
+    assert.match(
+      check(
+        config({ decl: links("src/a.ts"), use: "exclude: A5," }),
+        config({ decl: links("src/a.ts", "src/**"), use: "exclude: A5," }),
+      )[0],
+      /new coverage\.exclude entry "src\/\*\*"/,
+    )
+    for (const decl of [
+      'const EXCLUDED = ["src/a.ts"] as const',
+      'const EXCLUDED = (["src/a.ts"]) satisfies string[]',
+      'const EXCLUDED: string[] = ["src/a.ts"]',
+    ])
+      for (const use of ["exclude: [...EXCLUDED] as string[],", "exclude: EXCLUDED as string[],"])
+        assert.deepEqual(read({ decl, use }).exclude, ["src/a.ts"], `${decl} / ${use}`)
+    // An import stays one entry of its own text: its content is the dependency's,
+    // and a name the entry declares itself is pinned by that text.
+    const imported = read({ use: "exclude: [...coverageConfigDefaults.exclude]," })
+    assert.deepEqual(imported.exclude, ["...coverageConfigDefaults.exclude"])
+    assert.deepEqual(imported.opaque, [])
+    const filtered = read({
+      use: 'exclude: coverageConfigDefaults.exclude.filter((glob) => glob !== "x"),',
+    })
+    assert.deepEqual(filtered.exclude, [
+      'coverageConfigDefaults.exclude.filter((glob)=>glob!=="x")',
+    ])
+    assert.deepEqual(filtered.opaque, [])
+  })
+
+  it("reads a string constant and a template of constants as the glob it holds", () => {
+    const glob = (value) => config({ decl: `const GEN = ${value}`, use: "exclude: [GEN]," })
+    assert.deepEqual(read({ decl: 'const GEN = "src/gen/**"', use: "exclude: [GEN]," }).exclude, [
+      "src/gen/**",
+    ])
+    assert.match(
+      check(glob('"src/gen/**"'), glob('"src/**"'))[0],
+      /new coverage\.exclude entry "src\/\*\*"/,
+    )
+    const template = (dir) =>
+      config({
+        decl: `export const DIR = "${dir}"\nconst GEN = \`\${DIR}/**\``,
+        use: "exclude: [GEN, `${DIR}/*.d.ts`, `v${1}`],",
+      })
+    assert.deepEqual(extractVitestCoverage(PKG_VITEST, template("src/gen")).exclude, [
+      "src/gen/**",
+      "src/gen/*.d.ts",
+      "v1",
+    ])
+    const widened = check(template("src/gen"), template("src"))
+    assert.deepEqual(
+      widened.map((v) => v.match(/entry "(.*?)"/)[1]),
+      ["src/**", "src/*.d.ts"],
+    )
+    // A glob moved into a string constant is no change.
+    const asLiteral = vitestConfig({
+      thresholds: BASE_THRESHOLDS,
+      exclude: 'exclude: ["src/gen/**"],',
+    })
+    assert.deepEqual(check(asLiteral, glob('"src/gen/**"')), [])
+  })
+
+  it("reads a list shorthand of a constant also next to keys and members of its name", () => {
+    const shorthand = (...entries) =>
+      config({ decl: `const exclude = ${JSON.stringify(entries)}`, use: "exclude," })
+    assert.deepEqual(extractVitestCoverage(PKG_VITEST, shorthand("src/a.ts")).opaque, [])
+    assert.match(
+      check(shorthand("src/a.ts"), shorthand("src/a.ts", "src/b.ts"))[0],
+      /new coverage\.exclude entry "src\/b\.ts"/,
+    )
+    // A key `exclude:`, a member `.exclude` or a type names no binding.
+    const crowded = read({
+      decl: 'const exclude = ["src/a.ts"]\ntype Excluded = typeof exclude',
+      use: "exclude,",
+      test: 'include: ["src/**/*.test.ts"], exclude: [...coverageConfigDefaults.exclude],',
+    })
+    assert.deepEqual(crowded.opaque, [])
+    assert.deepEqual(crowded.exclude, ["src/a.ts"])
+    const include = read({ decl: 'const include = ["src/**"]', use: "include," })
+    assert.deepEqual([include.include, include.opaque], [["src/**"], []])
+    // A shorthand of anything else stays opaque: another key, or an import.
+    const other = config({ decl: "const reporter = ['text']", use: "reporter," })
+    assert.deepEqual(extractVitestCoverage(PKG_VITEST, other).opaque, ["reporter"])
+    const fromModule = config({ decl: 'import { exclude } from "./excluded"', use: "exclude," })
+    assert.deepEqual(extractVitestCoverage(PKG_VITEST, fromModule).opaque, ["exclude"])
+  })
+
+  it("reads include, test and project lists from constants too", () => {
+    const include = (...globs) =>
+      config({ decl: `const MEASURED = ${JSON.stringify(globs)}`, use: "include: MEASURED," })
+    assert.match(
+      check(include("src/**", "scripts/**"), include("src/**"))[0],
+      /coverage\.include lost "scripts\/\*\*"/,
+    )
+    const testList = (key, ...globs) =>
+      config({
+        decl: `const TESTS = ${JSON.stringify(globs)}`,
+        use: "",
+        test: key === "include" ? "include: [...TESTS]," : 'include: ["src/**"], exclude: TESTS,',
+      })
+    assert.match(
+      check(
+        testList("exclude", "src/slow/**"),
+        testList("exclude", "src/slow/**", "src/flaky/**"),
+      )[0],
+      /new test\.exclude entry "src\/flaky\/\*\*"/,
+    )
+    assert.match(
+      check(testList("include", "src/**", "test/**"), testList("include", "src/**"))[0],
+      /test\.include lost "test\/\*\*"/,
+    )
+    const project = (include, exclude) => `
+import { defineConfig } from "vitest/config"
+const UNIT = ${JSON.stringify(include)}
+const ENGINE_TESTS = ${JSON.stringify(exclude)}
+export default defineConfig({
+  test: {
+    coverage: { enabled: true, ${BASE_THRESHOLDS} },
+    projects: [{ extends: true, test: { name: "unit", include: UNIT, exclude: ENGINE_TESTS } }],
+  },
+})`
+    const ENGINE = "test/**/*.engine.test.ts"
+    assert.match(
+      check(project(["test/**"], [ENGINE]), project(["test/**"], [ENGINE, "test/ui/**"]))[0],
+      /new test\.projects\["unit"\]\.exclude entry "test\/ui\/\*\*"/,
+    )
+    assert.match(
+      check(project(["test/**", "src/**"], [ENGINE]), project(["test/**"], [ENGINE]))[0],
+      /test\.projects\["unit"\]\.include lost "src\/\*\*"/,
+    )
+  })
+
+  it("makes an entry that names a binding it cannot read through opaque, with the reason", () => {
+    const shadowed = `
+import { defineConfig } from "vitest/config"
+${listConst("src/a.ts")}
+export default defineConfig(() => {
+  const EXCLUDED = ["src/a.ts", "src/b.ts"]
+  return { test: { coverage: { enabled: true, exclude: EXCLUDED, ${BASE_THRESHOLDS} } } }
+})`
+    // Each push below names no member of the constant's name, so only the
+    // read itself can tell that the constant may hold more than its literal.
+    const viaValues = 'function widen(o) { Object.values(o)[0].push("src/b.ts") }'
+    const viaBlock = 'function widen(o) { Object.values(o)[0].exclude.push("src/b.ts") }'
+    const NAMED = /named other than as an include\/exclude list/
+    for (const [label, after, reason] of [
+      ["pushed to", config({ after: 'EXCLUDED.push("src/b.ts")' }), NAMED],
+      ["passed on", config({ after: "widen(EXCLUDED)" }), NAMED],
+      ["passed on in a shorthand", config({ after: `${viaValues}\nwiden({ EXCLUDED })` }), NAMED],
+      [
+        "a list shorthand passed on",
+        config({
+          decl: 'const exclude = ["src/a.ts"]',
+          use: "exclude,",
+          after: `${viaValues}\nwiden({ exclude })`,
+        }),
+        NAMED,
+      ],
+      [
+        "the list key of another block",
+        config({ after: `${viaBlock}\nwiden({ opts: { exclude: EXCLUDED } })` }),
+        NAMED,
+      ],
+      [
+        "another key of the block",
+        config({ use: "exclude: EXCLUDED, reportsDirectory: EXCLUDED," }),
+        NAMED,
+      ],
+      ["exported", config({ decl: `export ${listConst("src/a.ts")}` }), /exported/],
+      ["exported by name", config({ after: "export { EXCLUDED }" }), /exported/],
+      [
+        "declared with let",
+        config({ decl: listConst("src/a.ts").replace("const", "let") }),
+        /let or var/,
+      ],
+      ["shadowed", shadowed, /declared more than once/],
+      ["local", shadowed.replace(`${listConst("src/a.ts")}\n`, ""), /no top-level const/],
+      [
+        "no literal",
+        config({ decl: 'const EXCLUDED = ["src/a.ts"].filter(Boolean)' }),
+        /no array, string or template literal/,
+      ],
+      [
+        "a function",
+        config({
+          decl: 'function EXCLUDED() { return ["src/a.ts"] }',
+          use: "exclude: EXCLUDED(),",
+        }),
+        /no top-level const/,
+      ],
+      ["changed in eval", config({ after: `eval('EXCLUDED.push("src/b.ts")')` }), /calls eval/],
+    ]) {
+      const violations = check(literal, after).join("\n")
+      assert.match(violations, /new coverage\.exclude entry "(EXCLUDED|exclude)(\(\))?"/, label)
+      assert.match(violations, /new spread\/shorthand or non-literal `coverage\.exclude: /, label)
+      assert.match(violations, reason, label)
+      // A config that introduces one fails: from then on it could grow unseen.
+      const introduced = checkRatchetFile(PKG_VITEST, null, after).join("\n")
+      assert.match(introduced, /nothing to compare against/, label)
+      assert.match(introduced, reason, label)
+    }
+  })
+
+  it("keeps the code an unread binding hangs on in sight: an edit to it is a new opaque entry", () => {
+    const PUSH = 'EXCLUDED.push("src/b.ts")'
+    const helper = (globs) => `function widen(list) { list.push(${globs}) }\nwiden(EXCLUDED)`
+    const evaluated = (globs) => `eval('EXCLUDED.push(${globs})')`
+    for (const [label, before, after] of [
+      ["the literal", { after: PUSH }, { after: PUSH, decl: listConst("src/a.ts", "src/**") }],
+      ["the push", { after: PUSH }, { after: 'EXCLUDED.push("src/b.ts", "src/**")' }],
+      ["a helper it is passed to", { after: helper('"b"') }, { after: helper('"b", "src/**"') }],
+      ["the code eval runs", { after: evaluated('"b"') }, { after: evaluated('"b", "src/**"') }],
+    ]) {
+      const violations = check(config(before), config(after))
+      assert.equal(violations.length, 1, label)
+      assert.match(
+        violations[0],
+        /new spread\/shorthand or non-literal `coverage\.exclude: EXCLUDED/,
+        label,
+      )
+    }
+    // Unchanged, it stays as the base had it.
+    assert.deepEqual(check(config({ after: PUSH }), config({ after: PUSH })), [])
+  })
+
+  it("holds a helper object with a block of its own to the one-block rule", () => {
+    // A list key of a test or coverage block reads as harmless only because the
+    // ratchet reads every such block or fails on the file.
+    for (const [after, error] of [
+      [
+        'const helper = { coverage: { exclude: EXCLUDED } }\nhelper.coverage.exclude.push("src/**")',
+        /2 `coverage` blocks/,
+      ],
+      [
+        'const helper = { test: { exclude: EXCLUDED } }\nhelper.test.exclude.push("src/**")',
+        /2 `test` blocks/,
+      ],
+    ])
+      assert.match(check(config(), config({ after })).join("\n"), error)
   })
 })
 
