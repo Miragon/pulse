@@ -19,12 +19,12 @@ export default mergeConfig(
       restoreMocks: true,
       coverage: {
         include: ["src/**/*.{ts,tsx}"],
-        exclude: ["src/**/*.d.ts", "src/host/**"],
+        exclude: ["src/**/*.d.ts", "src/host/extension.ts", "src/host/pulse-extension.ts"],
         thresholds: {
-          lines: 93,
-          statements: 93,
-          functions: 94,
-          branches: 83,
+          lines: 54,
+          statements: 54,
+          functions: 52,
+          branches: 49,
         },
       },
       projects: [

@@ -19,8 +19,8 @@ pnpm lint:architecture:runtime-view             # the closed-world rules of the 
 pnpm lint:architecture:c7-adapter               # the closed-world rules of the C7 adapter
 pnpm lint:deadcode                              # knip over every workspace: dead files, dependencies, enum members
 pnpm lint:deadcode:exports                      # knip over every workspace but docs: unused exports and types
-pnpm --filter pulse-cockpit test                 # the host's unit and architecture tests, the brand and word scans
-pnpm --filter @miragon/pulse-runtime-view test   # core, model, host kit and webview (Chromium) tests, coverage floors
+pnpm --filter pulse-cockpit test                 # the host's unit and architecture tests, coverage floors, the brand and word scans
+pnpm --filter @miragon/pulse-runtime-view test   # core, model, host kit and webview (Chromium) tests, coverage floors but for the host kit
 pnpm --filter @miragon/pulse-c7-adapter test     # the C7 adapter against a recorded REST API and its error-path goldens
 pnpm --filter @miragon/pulse-engine-core test   # the kit's self-tests: the fake passes every law, 71 saboteurs fail theirs
 pnpm --filter @miragon/pulse-c7-adapter run test:engines # adapter conformance on a real engine; needs podman/docker
@@ -142,11 +142,17 @@ Ports, core, webview, host kit and host stay engine-neutral.
 - Budgets: complexity 10, 300 lines per file, 60 per function, 4 parameters, 20 statements.
   Split instead of raising.
 - Strict TypeScript (`exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`).
-- Thresholds only move one way: the coverage floors (the `vitest.config.ts` of the runtime view
-  and of the adapter) and the webview bundle budget (`apps/vscode/test/__golden__/bundle-budget.json`).
+- Thresholds only move one way: the coverage floors (the `vitest.config.ts` of the runtime view,
+  of the adapter and of this app) and the webview bundle budget (`apps/vscode/test/__golden__/bundle-budget.json`).
   `pnpm lint:ratchets` holds them to the merge base like every other ratchet of the repo. Do
   not delete tests. An exception to a guardrail is a human's decision in review, never your
   own edit.
+- This app's floors measure the host. Two files stay out, and since the config holds no comment
+  (`pulse-vscode/no-comments`), their reason stands here: `apps/vscode/src/host/extension.ts`, the
+  entry VS Code calls, and `apps/vscode/src/host/pulse-extension.ts`, the activation wiring that
+  builds the whole host from the `ExtensionContext`. No unit test runs them; the smoke test
+  activates them in a real VS Code and finds every contributed command registered. The runtime
+  view's floors leave its host kit out (`packages/core/runtime-view/src/host-kit`).
 - The C7 adapter's error-path goldens (`packages/connectors/c7/c7-adapter/test/goldens/`,
   the files and the case table in `packages/connectors/c7/c7-adapter/test/__golden__/error-paths/`)
   pin what it reports for the engine failures that table lists. An intended change runs

@@ -124,11 +124,21 @@ repository's CI (`.github/workflows/ci.yml`) next to the server's.
   `@miragon/pulse-profile`, the profile format the host kit's connections read (owner decision
   2026-11-07).
 - Thresholds sit just below the measured baseline: coverage lines/statements/functions/
-  branches globally 93/93/94/83, core 98/98/98/90, the C7 adapter 92/92/98/80, the model
+  branches globally in the runtime view 93/93/94/83, the extension's host 54/54/52/49 (since
+  2026-11-10), core 98/98/98/90, the C7 adapter 92/92/98/80, the model
   adapter 98/98/98/88, webview 78/78/78/68, and in its own package, engine-core, the engine
   contract 99/99/99/90 (it held 97/97/98/90 as the extension's layer until 2026-11-09); bundle 200 000 B,
   raised from 108 000 B by the maintainer on 2026-10-22 for the back navigation and the
   drilldown button (108.2 kB), with room for the next UI features.
-- The host layer (`apps/vscode/src/host`) is excluded from coverage (VS Code glue); its pure
-  modules are unit-tested, the glue is covered by the smoke and e2e tests.
-- Not measured: the scripts under `apps/vscode/scripts/`.
+- The host layer (`apps/vscode/src/host`) was excluded from coverage as VS Code glue; once #585
+  moved the other layers out, the extension's floors measured no file. Since 2026-11-10 they
+  measure the host but `extension.ts`, the entry VS Code calls, and `pulse-extension.ts`, the
+  activation wiring that builds the whole host from the `ExtensionContext`: no unit test runs
+  them, the smoke test (CI "VS Code smoke") activates them in a real VS Code. The host's unit
+  tests run the parts they test under a `vscode` stand-in of their own (`vi.mock`); the panels
+  and the commands without such a test count as uncovered. The local e2e test (`test:e2e`, against
+  `engine:up`, no CI job) drives the panels and some commands in a real VS Code.
+- Not measured: the scripts under `apps/vscode/scripts/`, and the runtime view's host kit
+  (`packages/core/runtime-view/src/host-kit`), whose exclusion #585 carried over from the host;
+  part of its tests run in the hosts (`apps/vscode/test/host`, `apps/orca/test`), whose coverage
+  counts no file of the runtime view.
