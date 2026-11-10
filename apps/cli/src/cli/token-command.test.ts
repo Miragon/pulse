@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from "vitest"
-import { jwtWith, VALID_CLAIMS } from "../../test/support/bearer.js"
+import { jwtWith, NOW_S, VALID_CLAIMS } from "../../test/support/bearer.js"
 import { fakeServer, json, type RecordedRequest } from "../../test/support/fake-fetch.js"
 import {
   CONFIG_PATH,
@@ -13,7 +13,8 @@ import {
   fakeRuntime,
   type FakeRuntimeOptions,
 } from "../../test/support/fake-runtime.js"
-import { TOKEN_DIR } from "../../test/support/oauth.js"
+import { authDeps, TOKEN_DIR } from "../../test/support/oauth.js"
+import { commandCachePath } from "../auth/command-cache.js"
 import { run } from "./run.js"
 
 const JWT = jwtWith(VALID_CLAIMS)
@@ -104,9 +105,20 @@ describe("token command sources", () => {
   })
 })
 
+/** The command cache of print-token holding `token`, printed a minute ago. */
+async function cachedAMinuteAgo(token: string): Promise<Record<string, string>> {
+  const path = await commandCachePath(ENV.PULSE_CLI_TOKEN_COMMAND, authDeps(fakeRuntime()))
+  return { [path]: JSON.stringify({ token, fetchedAt: NOW_S * 1000 - 60_000 }) }
+}
+
 describe("a token command and the engine", () => {
-  it("runs the command again after a 401 and retries with the new token", async () => {
-    const result = await cli(["task", "list"], { env: ENV, commands: printing(JWT, OTHER) }, OTHER)
+  it("runs the command again after a 401 for a token 30 s old or older, and retries", async () => {
+    const files = await cachedAMinuteAgo(JWT)
+    const result = await cli(
+      ["task", "list"],
+      { env: ENV, files, commands: printing(OTHER) },
+      OTHER,
+    )
     expect(result.code).toBe(0)
     expect(result.requests.map((request) => request.headers.authorization)).toEqual([
       `Bearer ${JWT}`,
@@ -114,8 +126,17 @@ describe("a token command and the engine", () => {
     ])
   })
 
+  it("keeps a token the command just printed after a 401: a new one would not help", async () => {
+    const result = await cli(["task", "list"], { env: ENV, commands: printing(JWT, OTHER) }, OTHER)
+    expect(result.code).toBe(4)
+    expect(result.requests).toHaveLength(1)
+    expect(result.runtime.commandRuns).toHaveLength(1)
+    expect(String(errorOf(result.stderr).hint)).toContain("pulse ran the command for this request")
+  })
+
   it("reports a 401 after the second run, naming the command", async () => {
-    const result = await cli(["task", "list"], { env: ENV, commands: printing(JWT, OTHER) }, "x")
+    const files = await cachedAMinuteAgo(JWT)
+    const result = await cli(["task", "list"], { env: ENV, files, commands: printing(OTHER) }, "x")
     expect(result.code).toBe(4)
     expect(result.requests).toHaveLength(2)
     const hint = String(errorOf(result.stderr).hint)

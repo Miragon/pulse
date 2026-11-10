@@ -50,16 +50,21 @@ describe("commandCachePath", () => {
 })
 
 describe("isFresh", () => {
-  it("keeps a token until 60 s before exp, at most half its lifetime", () => {
+  it("keeps a token until 60 s before exp, at most a tenth of its lifetime, at least 5 s", () => {
     expect(isFresh(ENTRY, NOW + 3_540_000 - 1)).toBe(true)
     expect(isFresh(ENTRY, NOW + 3_540_000)).toBe(false)
     const short = { token: JWT, expiresAt: NOW + 60_000, fetchedAt: NOW }
-    expect(isFresh(short, NOW + 29_999)).toBe(true)
-    expect(isFresh(short, NOW + 30_000)).toBe(false)
+    expect(isFresh(short, NOW + 53_999)).toBe(true)
+    expect(isFresh(short, NOW + 54_000)).toBe(false)
+    const shortest = { token: JWT, expiresAt: NOW + 20_000, fetchedAt: NOW }
+    expect(isFresh(shortest, NOW + 14_999)).toBe(true)
+    expect(isFresh(shortest, NOW + 15_000)).toBe(false)
   })
 
-  it("keeps a token without expiry (opaque) for the whole call", () => {
-    expect(isFresh({ token: "opaque", expiresAt: null, fetchedAt: NOW }, NOW + 1e9)).toBe(true)
+  it("keeps a token without expiry (opaque) for the policy's lifetime of 300 s", () => {
+    const opaque = { token: "opaque", expiresAt: null, fetchedAt: NOW }
+    expect(isFresh(opaque, NOW + 269_999)).toBe(true)
+    expect(isFresh(opaque, NOW + 270_000)).toBe(false)
   })
 
   it("is never fresh past exp", () => {

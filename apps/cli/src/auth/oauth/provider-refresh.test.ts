@@ -15,13 +15,13 @@ const HINT =
   "Run `pulse auth login --profile p` in a terminal: a person logs in once in the browser, pulse refreshes the token afterwards. Agents cannot log in themselves."
 
 describe("OAuth provider: proactive refresh", () => {
-  it("refreshes from min(60 s, lifetime/2) before expiry on, not before", async () => {
+  it("refreshes a tenth of the lifetime (at most 60 s, at least 5 s) before expiry, not before", async () => {
     const before = setup()
-    before.clock = T0 + 239_999
+    before.clock = T0 + 269_999
     await headersOf(before.provider())
     expect(before.idp.tokenRequests()).toEqual([])
     const at = setup()
-    at.clock = T0 + 240_000
+    at.clock = T0 + 270_000
     await expect(headersOf(at.provider())).resolves.toEqual({ Authorization: "Bearer access-1" })
     expect(
       at.idp.tokenRequests("refresh_token").map((request) => request.form.get("refresh_token")),
@@ -30,14 +30,14 @@ describe("OAuth provider: proactive refresh", () => {
 
   it("stores the rotated refresh token and the new expiries", async () => {
     const test = setup(undefined, { idp: { expiresIn: 300, refreshExpiresIn: 1800 } })
-    test.clock = T0 + 250_000
+    test.clock = T0 + 280_000
     await headersOf(test.provider())
     expect(test.stored()).toMatchObject({
       accessToken: "access-1",
-      expiresAt: T0 + 550_000,
+      expiresAt: T0 + 580_000,
       refreshToken: "refresh-1",
-      refreshExpiresAt: T0 + 250_000 + 1_800_000,
-      refreshedAt: T0 + 250_000,
+      refreshExpiresAt: T0 + 280_000 + 1_800_000,
+      refreshedAt: T0 + 280_000,
       loggedInAt: T0,
       tokenType: "Bearer",
     })
@@ -46,7 +46,7 @@ describe("OAuth provider: proactive refresh", () => {
 
   it("keeps the old refresh token and its expiry when the server returns none", async () => {
     const test = setup(undefined, { idp: { rotate: false, refreshExpiresIn: null } })
-    test.clock = T0 + 250_000
+    test.clock = T0 + 280_000
     await headersOf(test.provider())
     expect(test.stored()).toMatchObject({
       accessToken: "access-1",
@@ -57,7 +57,7 @@ describe("OAuth provider: proactive refresh", () => {
 
   it("forgets the refresh expiry after a rotation without refresh_expires_in", async () => {
     const test = setup(undefined, { idp: { refreshExpiresIn: null, expiresIn: null } })
-    test.clock = T0 + 250_000
+    test.clock = T0 + 280_000
     await headersOf(test.provider())
     expect(test.stored()).toMatchObject({
       refreshToken: "refresh-1",
@@ -68,7 +68,7 @@ describe("OAuth provider: proactive refresh", () => {
 
   it("keeps the display values when the refresh has none", async () => {
     const test = setup(undefined, { idp: { idToken: null, scope: null } })
-    test.clock = T0 + 250_000
+    test.clock = T0 + 280_000
     await headersOf(test.provider())
     expect(test.stored()).toMatchObject({
       user: "alice",
@@ -78,14 +78,14 @@ describe("OAuth provider: proactive refresh", () => {
     const updated = setup(undefined, {
       idp: { idToken: { sub: "s-2", preferred_username: "bob" }, scope: "openid" },
     })
-    updated.clock = T0 + 250_000
+    updated.clock = T0 + 280_000
     await headersOf(updated.provider())
     expect(updated.stored()).toMatchObject({ user: "bob", subject: "s-2", scope: "openid" })
   })
 
   it("holds the lock for the timeout plus 10 s", async () => {
     const test = setup(undefined, { deps: { timeoutMs: 4_000 } })
-    test.clock = T0 + 250_000
+    test.clock = T0 + 280_000
     await headersOf(test.provider())
     expect(test.runtime.locks).toEqual([{ path: `${TOKEN_FILE}.lock`, holdMs: 14_000 }])
   })
@@ -93,18 +93,18 @@ describe("OAuth provider: proactive refresh", () => {
   it("falls back to the valid token after a network error, a server error or a lock timeout", async () => {
     const network = setup()
     network.idp.queue("token", connectionRefused())
-    network.clock = T0 + 250_000
+    network.clock = T0 + 280_000
     await expect(headersOf(network.provider())).resolves.toEqual({
       Authorization: "Bearer cached-access",
     })
     const server = setup()
     server.idp.queue("token", new Response("", { status: 503 }))
-    server.clock = T0 + 250_000
+    server.clock = T0 + 280_000
     await expect(headersOf(server.provider())).resolves.toEqual({
       Authorization: "Bearer cached-access",
     })
     const locked = setup(undefined, { runtime: { lockTimeout: true } })
-    locked.clock = T0 + 250_000
+    locked.clock = T0 + 280_000
     await expect(headersOf(locked.provider())).resolves.toEqual({
       Authorization: "Bearer cached-access",
     })
@@ -115,7 +115,7 @@ describe("OAuth provider: proactive refresh", () => {
     const events: unknown[] = []
     const test = setup(undefined, { deps: { trace: (event) => events.push(event) } })
     test.idp.queue("token", new Response("", { status: 503 }))
-    test.clock = T0 + 250_000
+    test.clock = T0 + 280_000
     await headersOf(test.provider())
     expect(events.at(-1)).toEqual({
       type: "note",
@@ -126,6 +126,20 @@ describe("OAuth provider: proactive refresh", () => {
     events.length = 0
     await headersOf(quiet.provider())
     expect(events).toEqual([])
+    // a token whose answer named no lifetime counts as 300 s: due at 270 s, its expiry unknown
+    const unknown = setup(cachedLogin(T0, { expiresAt: null }), {
+      deps: { trace: (event) => events.push(event) },
+    })
+    unknown.idp.queue("token", new Response("", { status: 503 }))
+    unknown.clock = T0 + 270_000
+    await expect(headersOf(unknown.provider())).resolves.toEqual({
+      Authorization: "Bearer cached-access",
+    })
+    expect(events.at(-1)).toEqual({
+      type: "note",
+      message:
+        "Refreshing the access token failed (The authorization server failed: HTTP 503 Service Unavailable); using the cached one, whose expiry is unknown.",
+    })
   })
 
   it("does not fall back for an expired token or a rejected login", async () => {
@@ -140,11 +154,11 @@ describe("OAuth provider: proactive refresh", () => {
     )
     const rejected = setup()
     rejected.idp.queue("token", oauthError(400, "invalid_grant", "Session not active"))
-    rejected.clock = T0 + 250_000
+    rejected.clock = T0 + 280_000
     expect((await rejection(headersOf(rejected.provider()))).code).toBe("LOGIN_REQUIRED")
     const client = setup()
     client.idp.queue("token", oauthError(401, "unauthorized_client"))
-    client.clock = T0 + 250_000
+    client.clock = T0 + 280_000
     expect((await rejection(headersOf(client.provider()))).code).toBe("CONFIG")
   })
 
@@ -155,7 +169,7 @@ describe("OAuth provider: proactive refresh", () => {
       "token",
       oauthError(400, "invalid_grant", "Maximum allowed refresh token reuse exceeded"),
     )
-    test.clock = T0 + 250_000
+    test.clock = T0 + 280_000
     const error = await rejection(headersOf(test.provider()))
     expect(error.message).toBe(
       'The authorization server rejected the refresh token of profile "p" (invalid_grant: Maximum allowed refresh token reuse exceeded)',
@@ -163,24 +177,24 @@ describe("OAuth provider: proactive refresh", () => {
     expect(test.stored()).toEqual({
       ...before,
       refreshRejected: {
-        at: T0 + 250_000,
+        at: T0 + 280_000,
         error: "invalid_grant: Maximum allowed refresh token reuse exceeded",
       },
     })
     expect(test.runtime.files.get(TOKEN_FILE)?.mode).toBe(0o600)
 
     // later commands fail at once, the dry-run says so, a reactive refresh sends nothing
-    test.clock = T0 + 260_000
+    test.clock = T0 + 290_000
     const later = await rejection(headersOf(test.provider()))
     expect(later.message).toBe(
-      'The authorization server rejected the refresh token of profile "p" at 2023-11-14T22:17:30.000Z (invalid_grant: Maximum allowed refresh token reuse exceeded)',
+      'The authorization server rejected the refresh token of profile "p" at 2023-11-14T22:18:00.000Z (invalid_grant: Maximum allowed refresh token reuse exceeded)',
     )
     expect(later.details.hint).toBe(
       `The session expired, was revoked, or the refresh token was replayed. ${HINT}`,
     )
     await expect(test.provider().preview?.()).resolves.toEqual({
       headers: { Authorization: "Bearer cached-access" },
-      note: "The authorization server rejected the refresh token at 2023-11-14T22:17:30.000Z: the request would fail with LOGIN_REQUIRED. Run `pulse auth login --profile p` in a terminal.",
+      note: "The authorization server rejected the refresh token at 2023-11-14T22:18:00.000Z: the request would fail with LOGIN_REQUIRED. Run `pulse auth login --profile p` in a terminal.",
     })
     expect((await rejection(renewalOf(test.provider()) ?? Promise.resolve())).message).toBe(
       later.message,
@@ -191,10 +205,10 @@ describe("OAuth provider: proactive refresh", () => {
   it("records other refused refreshes, never client errors or server failures", async () => {
     const refused = setup()
     refused.idp.queue("token", oauthError(400, "not_allowed", "Offline tokens not allowed"))
-    refused.clock = T0 + 250_000
+    refused.clock = T0 + 280_000
     await rejection(headersOf(refused.provider()))
     expect(refused.stored().refreshRejected).toEqual({
-      at: T0 + 250_000,
+      at: T0 + 280_000,
       error: "not_allowed: Offline tokens not allowed",
     })
     for (const answer of [
@@ -212,7 +226,7 @@ describe("OAuth provider: proactive refresh", () => {
   it("reports the refusal even when it cannot be recorded", async () => {
     const test = setup()
     test.idp.queue("token", oauthError(400, "invalid_grant", "Session not active"))
-    test.clock = T0 + 250_000
+    test.clock = T0 + 280_000
     const auth = oauthAuth(oauthConfig(), {
       ...test.deps,
       fs: { ...test.deps.fs, writeFile: () => Promise.reject(new Error("EROFS")) },
@@ -220,7 +234,7 @@ describe("OAuth provider: proactive refresh", () => {
     expect((await rejection(headersOf(auth))).code).toBe("LOGIN_REQUIRED")
   })
 
-  it("adopts a new login that replaced a refused one", async () => {
+  it("takes a new login that replaced a refused one", async () => {
     const test = setup(
       cachedLogin(T0, { refreshRejected: { at: T0, error: "invalid_grant: x" }, expiresAt: T0 }),
     )
@@ -230,14 +244,13 @@ describe("OAuth provider: proactive refresh", () => {
     test.runtime.files.set(TOKEN_FILE, {
       data: new TextEncoder().encode(cacheText(cachedLogin(T0, { accessToken: "new-login" }))),
     })
-    await expect(renewalOf(auth)).resolves.toBe(true)
     await expect(headersOf(auth)).resolves.toEqual({ Authorization: "Bearer new-login" })
     expect(test.idp.requests).toEqual([])
   })
 
   it("shares one refresh between concurrent calls of one process", async () => {
     const test = setup()
-    test.clock = T0 + 250_000
+    test.clock = T0 + 280_000
     const auth = test.provider()
     const headers = await Promise.all([headersOf(auth), headersOf(auth), headersOf(auth)])
     expect(headers).toEqual(Array(3).fill({ Authorization: "Bearer access-1" }))

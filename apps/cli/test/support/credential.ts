@@ -12,12 +12,17 @@ export async function headersOf(provider: AuthProvider): Promise<Readonly<Record
 }
 
 /**
- * After a 401: whether the credential renewed, so the transport sends once more; undefined for a
- * credential that never renews, which the transport never asks.
+ * After a 401 to the header the credential sends now (as the transport asks it): whether it
+ * renewed, so the transport sends once more; undefined for a credential that never renews, which
+ * the transport never asks. `sent` names another header, as when another request renewed the
+ * token meanwhile.
  */
-export function renewalOf(provider: AuthProvider): Promise<boolean> | undefined {
+export function renewalOf(provider: AuthProvider, sent?: string): Promise<boolean> | undefined {
   const { credential } = provider
-  return credential.renewable
-    ? credential.rejected({ header: "Bearer rejected", secrets: [] })
-    : undefined
+  if (!credential.renewable) return undefined
+  const rejected = async () => {
+    const header = sent ?? (await credential.authorization())?.header ?? "Bearer none"
+    return credential.rejected({ header, secrets: [] })
+  }
+  return rejected()
 }

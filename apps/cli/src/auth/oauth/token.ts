@@ -56,7 +56,7 @@ const CLIENT_KINDS: ReadonlySet<string> = new Set(["client", "scope"])
 type GrantKind = "exchange" | "refresh"
 
 /** The client as @miragon/pulse-http/oauth sends it: public without a secret. */
-function endpointOf(client: TokenClient): TokenEndpoint {
+export function tokenEndpointOf(client: TokenClient): TokenEndpoint {
   const { clientId, clientSecret, method } = client
   const clientAuth = method === "client_secret_post" ? "post" : "basic"
   return clientSecret === undefined
@@ -133,29 +133,15 @@ function clientError(clientId: string, detail: string): PulseCliError {
   )
 }
 
-/** The `error: description` of refresh errors that need a new login, by error object. */
-const rejections = new WeakMap<PulseCliError, string>()
-
-/**
- * `invalid_grant: <description>` (or another error code) when `error` is the LOGIN_REQUIRED of
- * a refresh the authorization server refused; undefined for every other error.
- */
-export function refreshRejection(error: unknown): string | undefined {
-  return error instanceof PulseCliError ? rejections.get(error) : undefined
-}
-
 function refreshError(error: string, detail: string, who: LoginOwner): PulseCliError {
   const whose = owner(who.profile)
-  const rejected =
-    error === "invalid_grant"
-      ? loginRequired(
-          `The authorization server rejected the refresh token of ${whose} ${detail}`,
-          who,
-          REFRESH_REJECTED,
-        )
-      : loginRequired(`Refreshing the OAuth login of ${whose} failed ${detail}`, who)
-  rejections.set(rejected, detail.slice(1, -1))
-  return rejected
+  return error === "invalid_grant"
+    ? loginRequired(
+        `The authorization server rejected the refresh token of ${whose} ${detail}`,
+        who,
+        REFRESH_REJECTED,
+      )
+    : loginRequired(`Refreshing the OAuth login of ${whose} failed ${detail}`, who)
 }
 
 function grantError(
@@ -205,7 +191,7 @@ function unexpected(failure: TokenFailure, client: TokenClient): PulseCliError {
 }
 
 /** The error of a failed token request, as the CLI words it. */
-function tokenError(
+export function tokenError(
   failure: TokenFailure,
   grant: GrantKind,
   client: TokenClient,
@@ -225,7 +211,7 @@ function tokenError(
 async function tokenRequest(grant: Grant, client: TokenClient, deps: OAuthDeps) {
   try {
     return responseOf(
-      await requestToken(endpointOf(client), grant, platformOf(deps), limitsOf(deps)),
+      await requestToken(tokenEndpointOf(client), grant, platformOf(deps), limitsOf(deps)),
     )
   } catch (error) {
     const kind = grant.type === "refresh_token" ? "refresh" : "exchange"
@@ -267,7 +253,7 @@ export async function revokeToken(
   deps: OAuthDeps,
 ): Promise<string | undefined> {
   try {
-    await revoke(endpointOf(client), token, platformOf(deps), limitsOf(deps))
+    await revoke(tokenEndpointOf(client), token, platformOf(deps), limitsOf(deps))
     return undefined
   } catch (error) {
     // revoke fails with a TokenFailure only, for the URLs the CLI checks at login.

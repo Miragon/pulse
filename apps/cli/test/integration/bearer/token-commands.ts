@@ -4,7 +4,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { beforeAll, describe, expect, it } from "vitest"
 import { globalFlag } from "../support/catalog.js"
-import { expectSuccess, required } from "../support/expect.js"
+import { expectError, expectSuccess, required } from "../support/expect.js"
 import { CI_CLIENT_SECRET, CLIENTS, endpointsOf } from "../support/keycloak.js"
 import type { EnvOverrides } from "../support/process.js"
 import { MASKED_BEARER } from "../support/trace.js"
@@ -116,7 +116,7 @@ console.log(token);
       })
     })
 
-    it("runs the command again after a 401 and retries with the new token", async () => {
+    it("keeps a token the command just printed after a 401: a new one would not help", async () => {
       const retryRuns = join(required(suite.workdir, "the work directory"), "retry-runs.log")
       const result = await inRepo(countArgs(globalFlag("verbose")), {
         PULSE_CLI_TOKEN_COMMAND: command(),
@@ -125,10 +125,14 @@ console.log(token);
         IT_GARBAGE_FIRST: "1",
         IT_RUNS: retryRuns,
       })
-      expectSuccess(result)
+      // a token younger than 30 s was refused for another reason than its age (the shared
+      // policy of @miragon/pulse-http/oauth); the unit tests run the command again for an older one
+      expect(expectError(result, "UNAUTHORIZED", 4).hint).toContain(
+        "pulse ran the command for this request",
+      )
       const answers = trace(result).filter((event) => event.startsWith("< "))
-      expect(answers).toEqual(["< 401", "< 200"])
-      expect((await readFile(retryRuns, "utf8")).split("\n").filter(Boolean)).toHaveLength(2)
+      expect(answers).toEqual(["< 401"])
+      expect((await readFile(retryRuns, "utf8")).split("\n").filter(Boolean)).toHaveLength(1)
     })
   })
 }

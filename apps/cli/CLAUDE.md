@@ -82,9 +82,11 @@ secrets only with `--show-secrets`: the CLI is the one caller that sets the tran
 `revealSecrets` (`scripts/trace-secrets.test.mjs`). The OAuth client protocol is the
 transport's too, `@miragon/pulse-http/oauth`: discovery, PKCE, the callback's check, the token and
 revocation requests on the same wire (the client's own credentials read `Basic ***` in a trace,
-also with `--show-secrets`), and the CLI words what they return (`apps/cli/src/auth/oauth/`); the
-token cache files and their lock, the loopback login, the renewal of a login and every message
-stay the CLI's. The engine family's core,
+also with `--show-secrets`), and the renewal of a login (`refreshingTokens` over the token cache,
+which `apps/cli/src/auth/oauth/store.ts` maps onto the package's `TokenStore`) and of a token
+command's token (`commandTokens`), both by the shared policy `EXPIRY`. The CLI keeps the token
+cache files (their format unchanged) and their lock, the loopback login and every message. The
+engine family's core,
 `@miragon/pulse-engine-core`, the contract every dialect implements, is not the CLI's to import
 until it serves a second dialect: it reaches the engine through c7-core, a job's root cause
 included (`causeOf`, over engine-core's `RootCauses`), and a direct import is an admission
