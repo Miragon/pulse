@@ -204,7 +204,12 @@ export type WriteTarget =
 
 export type WriteState =
   | { readonly status: "pending" | "done" | "cancelled"; readonly target: WriteTarget }
-  | { readonly status: "failed"; readonly target: WriteTarget; readonly message: string }
+  | {
+      readonly status: "failed"
+      readonly target: WriteTarget
+      readonly message: string
+      readonly inputRefusal?: number
+    }
 
 export interface ParentLink {
   readonly instanceId: string

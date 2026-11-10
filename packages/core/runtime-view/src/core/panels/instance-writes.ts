@@ -56,6 +56,7 @@ export class InstanceWrites {
   private busy = false
   private rechecking = false
   private generation = 0
+  private inputRefusals = 0
 
   constructor(
     private readonly context: PanelContext,
@@ -122,7 +123,8 @@ export class InstanceWrites {
     const target: WriteTarget = { kind: "variable", name }
     const invalid = VariableValues.whyInvalid({ ...row, editor: row.editor }, valueJson)
     if (invalid !== undefined) {
-      this.show({ status: "failed", target, message: invalid })
+      this.inputRefusals += 1
+      this.show({ status: "failed", target, message: invalid, inputRefusal: this.inputRefusals })
       return
     }
     const change = this.changeOf(loaded.detail, name, valueJson)

@@ -222,6 +222,16 @@ describe("the value check", () => {
     ["integer", "null", true],
     ["any", '"text"', true],
     ["any", "text", false],
+    ["integer", "9223372036854775807", true],
+    ["integer", "-9223372036854775808", true],
+    ["integer", "9223372036854775808", false],
+    ["integer", " -9223372036854775809 ", false],
+    ["any", "9223372036854775807", true],
+    ["any", "9223372036854775808", false],
+    ["any", '"9223372036854775808"', true],
+    ["any", "9223372036854775808.5", true],
+    ["decimal", "9223372036854775808", true],
+    ["json", "9223372036854775808", true],
   ] as const)("%s accepts %s: %s", (editor, valueJson, valid) => {
     const problem = VariableValues.whyInvalid({ name: "value", editor }, valueJson)
     expect(problem === undefined).toBe(valid)
@@ -231,6 +241,41 @@ describe("the value check", () => {
     expect(
       VariableValues.whyInvalid({ name: "when", editor: "date", type: "Date" }, '"soon"'),
     ).toBe("when takes a date and time with a zone, such as 2026-10-22T10:00:00Z (Date).")
+  })
+
+  test("names the variable, its type and the range Pulse writes, and for a null variable how to keep the digits", () => {
+    expect(
+      VariableValues.whyInvalid(
+        { name: "ledger", editor: "integer", type: "Long" },
+        "-9223372036854775809",
+      ),
+    ).toBe(
+      "ledger takes a whole number (Long), and Pulse writes none outside -9223372036854775808 to 9223372036854775807.",
+    )
+    expect(
+      VariableValues.whyInvalid(
+        { name: "amount", editor: "integer", type: "Integer" },
+        "9223372036854775808",
+      ),
+    ).toBe(
+      "amount takes a whole number (Integer), and Pulse writes none outside -9223372036854775808 to 9223372036854775807.",
+    )
+    expect(
+      VariableValues.whyInvalid({ name: "count", editor: "integer" }, "9223372036854775808"),
+    ).toBe(
+      "count takes a whole number (integer), and Pulse writes none outside -9223372036854775808 to 9223372036854775807.",
+    )
+    expect(
+      VariableValues.whyInvalid(
+        { name: "note", editor: "any", type: "Null" },
+        "9223372036854775808",
+      ),
+    ).toBe(
+      "Pulse writes no number without a fraction outside -9223372036854775808 to 9223372036854775807. Write note as text to keep every digit.",
+    )
+    expect(
+      VariableValues.whyInvalid({ name: "amount", editor: "integer", type: "Integer" }, "4.5"),
+    ).toBe("amount takes a whole number (Integer).")
   })
 })
 

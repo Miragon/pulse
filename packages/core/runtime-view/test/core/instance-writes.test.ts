@@ -295,6 +295,74 @@ describe("changing a variable", () => {
       status: "failed",
       target: { kind: "variable", name: "amount" },
       message: "amount takes a whole number (Integer).",
+      inputRefusal: 1,
+    })
+  })
+
+  test("numbers every refusal of an input, so the same reason twice is a new state", async () => {
+    const { panel, view } = await openPanel("ORD-1002", { writable: true })
+
+    await panel.handle({ type: "setVariable", name: "amount", valueJson: "4.5" })
+    await panel.handle({ type: "setVariable", name: "amount", valueJson: "4.5" })
+
+    expect(view().write).toEqual({
+      status: "failed",
+      target: { kind: "variable", name: "amount" },
+      message: "amount takes a whole number (Integer).",
+      inputRefusal: 2,
+    })
+  })
+
+  test.each([
+    [
+      "amount",
+      "-9223372036854775809",
+      "amount takes a whole number (Integer), and Pulse writes none outside -9223372036854775808 to 9223372036854775807.",
+    ],
+    [
+      "giftNote",
+      "9223372036854775808",
+      "Pulse writes no number without a fraction outside -9223372036854775808 to 9223372036854775807. Write giftNote as text to keep every digit.",
+    ],
+  ])(
+    "refuses a whole number beyond 64 bits for %s before asking and sends nothing",
+    async (name, valueJson, message) => {
+      let commands: ReturnType<typeof spied> | undefined
+      const { fixture, panel, view } = await openPanel("ORD-1002", {
+        writable: true,
+        adaptCommands: (given) => (commands = spied(given)),
+      })
+      const before = view().variables.find((row) => row.name === name)
+
+      await panel.handle({ type: "setVariable", name, valueJson })
+
+      expect(fixture.effects.confirmWrite).not.toHaveBeenCalled()
+      expect(commands?.setVariable).not.toHaveBeenCalled()
+      expect(view().write).toEqual({
+        status: "failed",
+        target: { kind: "variable", name },
+        message,
+        inputRefusal: 1,
+      })
+      expect(view().variables.find((row) => row.name === name)).toEqual(before)
+    },
+  )
+
+  test("writes the largest whole number for a variable that holds null", async () => {
+    let commands: ReturnType<typeof spied> | undefined
+    const { fixture, panel } = await openPanel("ORD-1002", {
+      writable: true,
+      adaptCommands: (given) => (commands = spied(given)),
+    })
+
+    await panel.handle({ type: "setVariable", name: "giftNote", valueJson: "9223372036854775807" })
+
+    expect(fixture.effects.confirmWrite.mock.calls[0]?.[0].facts).toContain(
+      "Null → whole number: null → 9223372036854775807",
+    )
+    expect(commands?.setVariable).toHaveBeenCalledWith(fixture.world.instanceIds["ORD-1002"], {
+      name: "giftNote",
+      valueJson: "9223372036854775807",
     })
   })
 

@@ -1,7 +1,8 @@
 # Runtime contract
 
 - Status: accepted
-- Last reviewed: 2026-11-10 (the plug every dialect family provides); 2026-11-09 (the engine
+- Last reviewed: 2026-11-10 (the plug every dialect family provides; a whole number holds 64
+  bits); 2026-11-09 (the engine
   contract is the engine family's core `@miragon/pulse-engine-core`, with the four changes
   Camunda 8 needs)
 
@@ -199,6 +200,17 @@ for any workspace, and the conformance kit does not cover them
   server too); the law
   "incidents: details name their root cause in one line and point at a line of their
   text" holds every adapter to it.
+- **A whole number holds 64 bits.** `ValueKinds.isWholeNumber` says whether a value is an
+  integer from `ValueKinds.WHOLE_NUMBER_MIN` to `ValueKinds.WHOLE_NUMBER_MAX`
+  (-9223372036854775808 to 9223372036854775807), exactly on its digits, never through a
+  rounded `Number`. The runtime view refuses a whole number beyond that before it asks
+  ([writes.md](writes.md)), so no adapter of any engine receives one from the editor hosts
+  as the value of a whole-number variable or of one that holds null (owner decision
+  2026-11-10); a Double or a Json variable still takes such digits, and a number in a variable
+  condition is a filter, not a write. The rule judges the value, not its spelling: an optional
+  minus and ASCII digits, as `ofJson` reads an integer, so leading zeros count for nothing
+  (`007` is 7). A dialect that cannot send such a spelling refuses it itself: the C7 adapter
+  refuses a leading zero before sending, for a whole-number variable after the dialog.
 
 ### Conformance kit
 

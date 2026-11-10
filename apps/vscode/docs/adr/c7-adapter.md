@@ -372,12 +372,14 @@ routes and so run every class above.
   variable (or one that holds null) given an integer beyond int64 or a number beyond the
   range of a double is a String of its exact text, no longer a Long the engine refused or a
   number sent as written for the engine to judge, while the editor hosts' confirmation still
-  names a whole number or a number (`writes.md`); a Date is sent with the offset it was given
-  instead of in UTC (the same instant), and one with a day the calendar lacks, which
-  `Date.parse` rolled over into the next month, or with `24:00`, which it read as the next
-  day's midnight, is rejected before sending, as is an integer with a leading zero, which went
-  out as JSON the engine refused, and a number beyond the range of a double for a Short,
-  Integer, Long or Double, which went out as written for the engine to judge.
+  names a number; such an integer no longer reaches the adapter from the editor hosts for a
+  variable that holds null, since their runtime view refuses a whole number beyond 64 bits
+  before it asks (`writes.md`); a Date is sent with the offset it was given instead of in
+  UTC (the same instant), and one with a day the calendar lacks, which `Date.parse` rolled
+  over into the next month, or with `24:00`, which it read as the next day's midnight, is
+  rejected before sending, as is an integer with a leading zero, which went out as JSON the
+  engine refused, and a number beyond the range of a double for a Short, Integer, Long or
+  Double, which went out as written for the engine to judge.
 - Since the adapter reads a 404 by c7-core's `isMissing`, a 404 `QueryParamException`
   (a query value the engine cannot read) is no missing resource any more: a read fails as
   `misconfigured` instead of answering "none".
