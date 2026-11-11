@@ -27,14 +27,14 @@ flowchart LR
 | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **MCP Server** (`apps/mcp-server/`)                         | Hosts the HTTP transport on port `8400` on the official MCP TypeScript SDK, loads modules from `MCP_ACTIVE_MODULES`, and serves the Vite-built React widget bundle (see **widgets**).                                          |
 | **CLI** (`apps/cli/`)                                       | Every engine REST operation as a command, generated from the OpenAPI spec, plus the workflow commands; on npm, Homebrew, GHCR and the GitHub release. See the [CLI docs](../cli/index.md); rules in `apps/cli/CLAUDE.md`.      |
-| **VS Code extension** (`apps/vscode/`)                      | Shows what an engine runs next to the BPMN models in VS Code: a Preact webview over an engine-neutral contract and the C7 adapter. Ships as a .vsix on the Marketplace and Open VSX; rules in `apps/vscode/CLAUDE.md`.         |
+| **Pulse for VS Code** (`apps/vscode/`)                      | Shows what an engine runs next to the BPMN models in VS Code: the runtime view (`packages/core/runtime-view`, a Preact webview over the engine contract) and the C7 adapter. A .vsix; rules in `apps/vscode/CLAUDE.md`.        |
+| **Pulse for Orca** (`apps/orca/`)                           | The same runtime view and C7 adapter in Orca's editor tabs and a Pulse panel; an Orca plugin, rules in `apps/orca/CLAUDE.md`.                                                                                                  |
 | **engine** (`packages/connectors/engine/engine-connector/`) | Wraps the Camunda 7 / CIB seven REST API via an OpenAPI-generated client. Exposes process, task, incident, deployment, and history tools plus widgets.                                                                         |
 | **widgets** (`apps/mcp-server/dist/mcp-app.js` + `.css`)    | One Vite-built ES module + stylesheet containing React, Tailwind, and every widget. The server serves it behind one `ui://views/<tool>.html` resource per widget tool, which declares that view on itself (`showToolBinding`). |
 
 ## Composition rules
 
-A small set of layering rules keeps modules independently usable and a future
-second engine dialect cheap:
+A few layering rules keep modules independently usable and a second engine dialect cheap:
 
 - Three axes keep a second engine dialect and a second interface cheap. Engine
   _vendors_ (CIB seven, Operaton, Camunda 7) are per-engine runtime configuration
@@ -49,11 +49,10 @@ second engine dialect cheap:
   that the CLI bundles, the C7 adapter runs and the engine connector runs over
   its client (one port per API family; it names no command, flag or tool). `packages/core/`
   holds what every family builds on, never one family's code. The family `engine` is the neutral
-  layer (owner decisions 2026-11-07 to 2026-11-09): one MCP server app, the thin composition root
-  `apps/mcp-server`, and one module (`packages/connectors/engine/engine-connector`) serve every
-  dialect, spanning the families as they join (`ENGINE_DIALECTS` in `.dependency-cruiser.cjs`),
-  and its core (`packages/connectors/engine/engine-core`) is the contract each dialect implements.
-  An _interface_ is an app: the MCP server, the CLI (`apps/cli`) and the VS Code extension.
+  layer: one MCP server app, the thin composition root `apps/mcp-server`, and one module
+  (`packages/connectors/engine/engine-connector`) serve every dialect, and its core
+  (`packages/connectors/engine/engine-core`) is the contract each dialect implements. An
+  _interface_ is an app: the MCP server, the CLI, Pulse for VS Code and Pulse for Orca.
 - Modules are peers. Connector packages (`*-connector`) never import each other. What one
   module needs of another the app injects through `shared` (`SharedResources` in
   `apps/mcp-server/src/setup.ts`), the port for what the modules of a composition share; today
@@ -76,17 +75,18 @@ second engine dialect cheap:
 - The MCP server app owns no domain UI. Widgets live in packages: `pulse-ui` carries the design kit,
   `widget-shell` the view runtime; each module carries its own and renders no other module's widget.
   A view that composes modules goes in a dedicated package, created with the first real one.
-- One profile format. `@miragon/pulse-profile` (`packages/core/profile`) holds one format of the
-  engine profiles for the CLI, the VS Code extension and the server: it takes a file's text and
-  returns a verdict per profile as data, reads no file and no environment, imports nothing, and
-  lets an interface state what it serves (`refusalsOn`), so a key is applied or refuses the profile.
+- One profile format. `@miragon/pulse-profile` (`packages/core/profile`) is the one format of the
+  engine profiles of the CLI, Pulse for VS Code, Pulse for Orca and the server: it takes a file's
+  text, returns a verdict per profile as data, reads no file or environment, imports nothing, and
+  lets an interface state what it serves (`refusalsOn`), so a key is applied or refuses a profile.
 - One transport. `@miragon/pulse-http` (`packages/core/http`) is the one HTTP client of the engine
-  connector (its SDK client's `fetch`) and of the CLI; the VS Code extension switches to it next:
-  a deadline to the last byte, no redirect, a 64 MiB cap (none in the CLI), one retry after a 401,
-  failure reasons as data, masked secrets; every wiring passes its `TRANSPORT_CASES`.
-- One engine contract: `@miragon/pulse-engine-core`, the engine family's core, holds the ports,
-  read models, laws and shared rules (`RootCauses`) of every dialect; the VS Code extension's
-  adapters and c7-core use it, the engine connector and the CLI reach its rules through c7-core.
+  connector (its SDK client's `fetch`), of the CLI and of the C7 adapter of Pulse for VS Code and
+  Pulse for Orca: a deadline to the last byte, no redirect, a 64 MiB cap (none in the CLI), one
+  retry after a 401, failure reasons as data, masked secrets; every wiring passes `TRANSPORT_CASES`.
+- One engine contract: `@miragon/pulse-engine-core` holds the ports, read models, laws and shared
+  rules (`RootCauses`) of every dialect; the runtime view and its two editor hosts, c7-core and the
+  C7 adapter (`packages/connectors/c7/c7-adapter`) use it, the engine connector and the CLI through
+  c7-core.
 - Extract on the second consumer, never speculatively. A composed-views package appears with
   the first cross-module view. A second dialect joins the engine module (`ENGINE_DIALECTS`),
   never with a widget package or an MCP server app of its own.
@@ -103,23 +103,23 @@ locale as the view root does, so a widget test reads the same on every machine.
 The MCP Apps host is therefore one host among several possible ones. A web app that shows the
 same React components brings an adapter of its own and leaves the widgets as they are. The engine
 module's widgets still read the Camunda 7 REST family's data. Components for Camunda 8 would read
-engine-core's contract, as the VS Code extension does: a design question of its own.
+engine-core's contract, as the runtime view does: a design question of its own.
 
 ## Two UI families
 
 Pulse's UIs come in two families. React on `@miragon/pulse-ui` and widget-shell: the MCP widgets,
 a starter's widgets and the web apps of [#573](https://github.com/Miragon/pulse/issues/573).
-Preact with components and stylesheets of its own: the VS Code extension's webview, which has no
-host adapter and never renders a widget. The two share pulse-ui's foundation, never a component:
-the framework-free `@miragon/pulse-ui/tones` (one tone per situation, `SITUATION_TONES`) and
-`@miragon/pulse-ui/format` (dates, durations, counts, short ids), which the extension bundles, and
-from `@miragon/pulse-ui/testing` the product glossary, the count words and the brand gates its
-tests run. So the same count has the same word, the same situation the same tone and a duration
-the same form in both, while each tool shows what its audience needs: six cockpit views have a
-counterpart in VS Code, and [Parity with the MCP cockpit](../vscode/parity.md) lists every
-difference between them as closed, wanted or open. The decision is
-`apps/vscode/docs/adr/ui-foundation.md`; [#586](https://github.com/Miragon/pulse/issues/586)
-holds when the two share building blocks again.
+Preact with components and stylesheets of its own: the runtime view's webview (Pulse for VS Code
+and Pulse for Orca), which has no host adapter and never renders a widget. The two share
+pulse-ui's foundation, never a component: the framework-free `@miragon/pulse-ui/tones` (one tone
+per situation, `SITUATION_TONES`) and `@miragon/pulse-ui/format` (dates, durations, counts, short
+ids), which both hosts bundle, and from `@miragon/pulse-ui/testing` the product glossary, the
+count words and the brand gates their tests run. So the same count has the same word, the same
+situation the same tone and a duration the same form in both, while each tool shows what its
+audience needs: six cockpit views have a counterpart in the editors, and
+[Parity with the MCP cockpit](../vscode/parity.md) lists every difference between them as closed,
+wanted or open. The decision is `apps/vscode/docs/adr/ui-foundation.md`;
+[#586](https://github.com/Miragon/pulse/issues/586) holds when the two share building blocks again.
 
 ## External systems
 

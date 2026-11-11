@@ -51,7 +51,8 @@ MCP server run too. The package belongs to the c7 family, whose dialect it imple
   family's adapter import its own family's core); the runtime
   view's ports, core, webview and host kit and the hosts stay engine-neutral. esbuild inlines it
   into `dist/extension.cjs` and the Orca plugin's worker, which ship no `node_modules`. One home: a fix to wait states (c7-core) or root causes (the engine
-  contract's `RootCauses`) lands once, and the conformance laws run both on all three engines.
+  contract's `RootCauses`) lands once, and the conformance laws run it on CIB seven and
+  Operaton (on Camunda 7 until its image left Docker Hub).
 - **c7-core's port over `EngineHttp`.** `HttpEngineTransport` is the wire of c7-core's
   `routedTransport` over `CORE_ROUTES` (c7-core's main entry): each operation id c7-core's
   inspection sends goes out as its route, the path template filled with its encoded values

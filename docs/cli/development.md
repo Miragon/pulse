@@ -20,7 +20,7 @@ pnpm --fail-if-no-match --filter @miragon/pulse-cli test:engines
 ```
 
 `test:engines` runs the Testcontainers suites against the built CLI (Docker or Podman, `build`
-first). `PULSE_CLI_IT_ENGINES=operaton,camunda` picks engines (`operaton`, `cibseven`, `camunda`),
+first). `PULSE_CLI_IT_ENGINES=operaton` picks engines (`operaton`, `cibseven`; both when unset),
 `PULSE_CLI_IT_SKIP_PACK=1` skips the tarball test, `PULSE_CLI_IT_BINARY=<absolute path>` tests a
 standalone executable and `PULSE_CLI_IT_CLI=<script>` another entry script.
 
@@ -112,10 +112,10 @@ the adapters `src/api`, only `auth login` reaches the interactive login, and onl
   validation and secret masking.
 - **StrykerJS** mutates what the CLI bundles (c7-core's workflow rules, engine-core's root-cause
   rule, the profile format, the transport) nightly in CI, not the CLI's own code (owner decision).
-- **Testcontainers** suites against the three engines, with and without Basic auth, behind
+- **Testcontainers** suites against CIB seven and Operaton, with and without Basic auth, behind
   Keycloak and an Envoy JWT gateway for OAuth, through the workflow commands, plus a test of the
   packed tarball. CI runs them, the packaging smoke tests and `claude plugin validate --strict` on
-  every pull request. The plugin evals in `apps/cli/skills/pulse-cli/evals/` call the model on
+  a push to `main` and a pull request in the `cli` CI scope. The plugin evals call the model on
   your account, so they run locally: `claude plugin eval apps/cli/skills/pulse-cli --no-publish`.
 
 ## Ground rules
