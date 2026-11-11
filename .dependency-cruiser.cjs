@@ -16,15 +16,17 @@
  *   - `<family>-connector`: the MCP module (tools and their input schemas, widget tools,
  *     widgets); a dialect brings none;
  *   - `<family>-client`: its SDK leaf (the generated REST SDK, say; c7-client), which only the
- *     family's connector (for a dialect's client the engine module) and adapter and tests import
- *     (client-consumers), never an app;
+ *     family's connector (for a dialect's client the engine module) and tests import
+ *     (client-consumers), never the family's adapter or an app;
  *   - `<family>-core`, when the family's interfaces share a pure domain: a leaf that the
  *     family's connector (for a dialect's core the engine module) and adapter and the interface
  *     apps that bundle it import (c7-core); a dialect's core has one edge out of its own tree,
  *     the main entry of the engine family's core (family-core-is-a-leaf, engine-core-consumers);
  *   - `<family>-adapter`: the family's adapter of the runtime view (packages/core/runtime-view):
  *     it implements the engine contract of engine-core for the editor hosts, which bundle it
- *     (c7-adapter, the C7 adapter, which runs c7-core).
+ *     (c7-adapter, the C7 adapter, which runs c7-core); it sends through its family's core and
+ *     the transport, never through a client (client-consumers; another family's client trips
+ *     adapters-own-their-family too, in the adapter's tests as well).
  * The engine family is the neutral layer. Its module
  * (`packages/connectors/engine/engine-connector`) is the one MCP module of every dialect and
  * imports the clients and cores of the dialect families ENGINE_DIALECTS names
@@ -295,9 +297,9 @@ const ENGINE_CORE_ENTRY = [
 ]
 
 /**
- * What a family's adapter of the runtime view imports of the workspace beside its own family: the
- * contract it implements (engine-core), the runtime view, whose ./ports name the plug it provides,
- * and the transport it sends with (HTTP_USERS). The adapter rules key on the role.
+ * What a family's adapter of the runtime view imports of the workspace beside its own family's
+ * core: the contract it implements (engine-core), the runtime view, whose ./ports name the plug it
+ * provides, and the transport it sends with (HTTP_USERS). The adapter rules key on the role.
  */
 const ADAPTER_IMPORTS = [
   ...npm(escapeRegExp(ENGINE_CORE.name)),
@@ -481,9 +483,10 @@ module.exports = {
         "@miragon/pulse-c7-client with its ./sdk) is the wire its family's connector sends " +
         "through: it is imported by that connector (connectors-own-their-family; the engine module " +
         "imports the clients of the dialects ENGINE_DIALECTS names, " +
-        "engine-connector-spans-the-dialects), by the family's adapter (adapters-own-their-family; " +
-        "the C7 adapter's closed world keeps c7-client out) and by tests (a test file, " +
-        "test-support, a test tree). No app imports one: the MCP server composes connectors, not " +
+        "engine-connector-spans-the-dialects) and by tests (a test file, test-support, a test " +
+        "tree). No family's adapter imports one, its own family's included: an adapter of the " +
+        "runtime view sends through its family's core and the transport, @miragon/pulse-http " +
+        "(owner decision 2026-11-11). No app imports one: the MCP server composes connectors, not " +
         "their wire, and reaches an engine through resolveEngine/withEngine (CLAUDE.md invariant " +
         "2); the CLI sends through its own http layer, the editor hosts through a family's " +
         "adapter. No other package either: no foundation package, not the runtime view, no " +
@@ -491,10 +494,11 @@ module.exports = {
         "into a client's tree, its generated SDK included, is a violation too.",
       from: {
         pathNot: [
-          // A connector, an adapter and a client answer to their own rules for a client:
-          // connectors-own-their-family or engine-connector-spans-the-dialects,
-          // adapters-own-their-family, clients-are-leaves.
-          "^packages/connectors/[^/]+/[^/]+-(?:connector|adapter|client)/",
+          // A connector and a client answer to their own rules for a client:
+          // connectors-own-their-family or engine-connector-spans-the-dialects, clients-are-leaves.
+          // An adapter answers to this rule: adapters-own-their-family leaves its own family's
+          // client to it and refuses another family's client as well.
+          "^packages/connectors/[^/]+/[^/]+-(?:connector|client)/",
           "[.]test[.]tsx?$",
           ...TEST_SUPPORT,
           `^${PACKAGE_ROOT}/(?:test|test-host)/`,
@@ -891,20 +895,27 @@ module.exports = {
       comment:
         "A family's adapter (packages/connectors/<family>/<family>-adapter) maps its engines onto " +
         "the engine contract of @miragon/pulse-engine-core for the runtime view: it imports its " +
-        "own family's core and client (the C7 adapter, @miragon/pulse-c7-adapter, runs " +
+        "own family's core (the C7 adapter, @miragon/pulse-c7-adapter, runs " +
         "@miragon/pulse-c7-core; its closed world holds its src to the main entry) and " +
         "ADAPTER_IMPORTS (engine-core, the runtime view @miragon/pulse-runtime-view, whose " +
         "./ports name the plug it provides, and the transport @miragon/pulse-http, HTTP_USERS), " +
         "no other workspace package: no connector, another family's core or client, or the UI. " +
-        "What two families' adapters share belongs in engine-core, the contract, or in the " +
-        "runtime view.",
+        "It sends through its family's core and the transport, never through a client, its own " +
+        "family's included (owner decision 2026-11-11): client-consumers refuses its own " +
+        "family's client, this rule leaves that edge to it. What two families' adapters share " +
+        "belongs in engine-core, the contract, or in the runtime view.",
       from: { path: "^packages/connectors/[^/]+/([^/]+)-adapter/" },
       to: {
         path: ["^packages/(core|connectors)/", "@miragon/pulse-"],
         pathNot: [
           "^packages/connectors/[^/]+/$1-adapter/(?!node_modules/@miragon/pulse-)",
-          "@miragon/pulse-$1-(?:core|client)(/|$)",
+          "@miragon/pulse-$1-core(/|$)",
           ...ADAPTER_IMPORTS,
+          // Its own family's client, in each shape, is client-consumers', so that edge trips that
+          // rule alone; another family's client stays this rule's too, in the adapter's tests as
+          // well, where client-consumers admits every client.
+          "^packages/connectors/[^/]+/$1-client/",
+          ...npm("@miragon/pulse-$1-client"),
         ],
       },
     },

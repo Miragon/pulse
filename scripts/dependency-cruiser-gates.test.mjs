@@ -812,12 +812,11 @@ const SUITES = [
   {
     rule: ADAPTER_FAMILY,
     title:
-      "a family's adapter imports its own family's core and client, engine-core, the runtime " +
-      "view and the transport",
+      "a family's adapter imports its own family's core, engine-core, the runtime view and the " +
+      "transport",
     cases: [
       [BILLING_ADAPTER_SRC, "@miragon/pulse-billing-connector", [ADAPTER_FAMILY]],
       [BILLING_ADAPTER_SRC, C7_CORE, [ADAPTER_FAMILY]],
-      [BILLING_ADAPTER_SRC, "@miragon/pulse-c7-client", [ADAPTER_FAMILY]],
       [BILLING_ADAPTER_SRC, "@miragon/pulse-widget-shell", [ADAPTER_FAMILY]],
       [BILLING_ADAPTER_SRC, ADAPTER, [ADAPTER_FAMILY]],
       [`${BILLING_ADAPTER}/src/c7-sub.ts`, `${C7_CORE}/routes`, [ADAPTER_FAMILY]],
@@ -827,7 +826,9 @@ const SUITES = [
         [ADAPTER_FAMILY, DEEP],
       ],
       // The C7 adapter is the c7 family's: no connector, another family's core, client or
-      // adapter, or the UI, in each shape (resolved, a bare subpath, a relative escape).
+      // adapter, or the UI, in each shape (resolved, a bare subpath, a relative escape). Its own
+      // family's client is client-consumers' alone, another family's client trips both rules
+      // (that suite plants them).
       [ADAPTER_SRC, "@miragon/pulse-engine-connector", [ADAPTER_FAMILY]],
       [ADAPTER_SRC, BILLING_CORE_NAME, [ADAPTER_FAMILY]],
       [ADAPTER_SRC, "@miragon/pulse-widget-shell", [ADAPTER_FAMILY]],
@@ -835,32 +836,35 @@ const SUITES = [
       [ADAPTER_SRC, "@miragon/pulse-billing-adapter", [ADAPTER_FAMILY]],
       [`${C7_ADAPTER}/src/billing-sub.ts`, `${BILLING_CORE_NAME}/sub`, [ADAPTER_FAMILY]],
       [
-        `${C7_ADAPTER}/src/billing-client-sub.ts`,
-        "@miragon/pulse-billing-client/sdk",
-        [ADAPTER_FAMILY],
-      ],
-      [
         `${C7_ADAPTER}/src/escape-view.ts`,
         "../../../../core/runtime-view/src/index.ts",
         [ADAPTER_FAMILY, DEEP],
       ],
-      // Allowed: its own modules and family, engine-core (the contract it implements), the
+      // An adapter's tests stay in its family too: client-consumers admits every client in a
+      // test, this rule refuses another family's.
+      [
+        `${BILLING_ADAPTER}/test/support/c7-client.ts`,
+        "@miragon/pulse-c7-client",
+        [ADAPTER_FAMILY],
+      ],
+      [
+        `${C7_ADAPTER}/src/billing-client.test.ts`,
+        "@miragon/pulse-billing-client",
+        [ADAPTER_FAMILY],
+      ],
+      // Allowed: its own modules and family core, engine-core (the contract it implements), the
       // runtime view (whose ports name the plug it provides), the transport and third-party
       // libraries.
       [BILLING_ADAPTER_SRC, BILLING_CORE_NAME, []],
-      [BILLING_ADAPTER_SRC, "@miragon/pulse-billing-client", []],
       [BILLING_ADAPTER_SRC, ENGINE_CORE_NAME, []],
       [`${BILLING_ADAPTER}/src/view.ts`, VIEW, [], "type"],
       [BILLING_ADAPTER_SRC, "./lib.ts", []],
       [BILLING_ADAPTER_SRC, "reactive", []],
       // The C7 adapter runs its family's core in every shape a package entry takes (its closed
-      // world holds its src to the main entry) and may reach its family's client, which its closed
-      // world does not admit.
+      // world holds its src to the main entry).
       [`${C7_ADAPTER}/src/a.ts`, ENGINE_CORE_NAME, []],
       [`${C7_ADAPTER}/src/c7.ts`, C7_CORE, []],
       [`${C7_ADAPTER}/src/routes.ts`, `${C7_CORE}/routes`, []],
-      [ADAPTER_SRC, "@miragon/pulse-c7-client", []],
-      [`${C7_ADAPTER}/src/client-sub.ts`, "@miragon/pulse-c7-client/sdk", []],
       [`${C7_ADAPTER}/test/support/inspect.ts`, `${C7_CORE}/testing`, []],
       [`${C7_ADAPTER}/src/ports.ts`, `${VIEW}/ports`, [], "type"],
       [ADAPTER_SRC, "./lib.ts", []],
@@ -1666,7 +1670,7 @@ const SUITES = [
   {
     rule: CLIENT_USERS,
     title:
-      "a family's client is imported by its family's connector and adapter and by tests, by no " +
+      "a family's client is imported by its family's connector and by tests, by no adapter, no " +
       "app and no other package",
     cases: [
       // The MCP server composes connectors, not their wire: in every shape (resolved through its
@@ -1705,11 +1709,61 @@ const SUITES = [
       ],
       // Anchored: a look-alike name is no client.
       [`${SERVER}/src/client-x.ts`, "@miragon/pulse-c7-clientx", []],
-      // Allowed: the engine module (the dialects' clients), a connector and an adapter of its own
-      // family, and tests anywhere (the CLI's stay cli-is-headless's).
+      // A family's adapter sends through its family's core and the transport, never through a
+      // client, its own family's included (owner decision 2026-11-11): keyed on the role (the
+      // billing adapter, as a new dialect's adapter would import its client) and on the C7
+      // adapter, in every shape (resolved through its node_modules, ./sdk bare, a relative
+      // escape into the client and into its generated SDK), as a type too, from its shipped
+      // ./testing entry and its scripts/ as well. This rule alone refuses the edge to its own
+      // family's client: adapters-own-their-family leaves that one to it.
+      [BILLING_ADAPTER_SRC, "@miragon/pulse-billing-client", [CLIENT_USERS]],
+      [`${BILLING_ADAPTER}/src/client.ts`, "@miragon/pulse-billing-client/sdk", [CLIENT_USERS]],
+      [
+        `${BILLING_ADAPTER}/src/escape-client.ts`,
+        "../../billing-client/src/index.ts",
+        [CLIENT_USERS, DEEP],
+      ],
+      [
+        `${BILLING_ADAPTER}/src/client-types.ts`,
+        "@miragon/pulse-billing-client",
+        [CLIENT_USERS],
+        "type",
+      ],
+      [ADAPTER_SRC, "@miragon/pulse-c7-client", [CLIENT_USERS]],
+      [`${C7_ADAPTER}/src/client-sub.ts`, "@miragon/pulse-c7-client/sdk", [CLIENT_USERS]],
+      [`${C7_ADAPTER}/src/escape-client.ts`, "../../c7-client/src/target.ts", [CLIENT_USERS, DEEP]],
+      [
+        `${C7_ADAPTER}/src/escape-sdk.ts`,
+        "../../c7-client/src/generated/sdk.gen.ts",
+        [CLIENT_USERS, DEEP],
+      ],
+      [`${BILLING_ADAPTER}/src/testing/client.ts`, "@miragon/pulse-billing-client", [CLIENT_USERS]],
+      [`${BILLING_ADAPTER}/scripts/gen.ts`, "@miragon/pulse-billing-client", [CLIENT_USERS]],
+      // Another family's client is no adapter's either, in every shape: it trips
+      // adapters-own-their-family as well, which keeps an adapter to its own family.
+      [BILLING_ADAPTER_SRC, "@miragon/pulse-c7-client", [ADAPTER_FAMILY, CLIENT_USERS]],
+      [
+        `${C7_ADAPTER}/src/billing-client-sub.ts`,
+        "@miragon/pulse-billing-client/sdk",
+        [ADAPTER_FAMILY, CLIENT_USERS],
+      ],
+      [
+        `${BILLING_ADAPTER}/src/escape-c7-client.ts`,
+        "../../../c7/c7-client/src/target.ts",
+        [ADAPTER_FAMILY, CLIENT_USERS, DEEP],
+      ],
+      [
+        `${C7_ADAPTER}/src/escape-billing-client.ts`,
+        "../../../billing/billing-client/src/index.ts",
+        [ADAPTER_FAMILY, CLIENT_USERS, DEEP],
+      ],
+      // Allowed: the engine module (the dialects' clients), a connector of its own family, and
+      // tests anywhere (the CLI's stay cli-is-headless's), an adapter's with its own family's
+      // client too (its tests with another family's client stay adapters-own-their-family's).
       [`${ENGINE_CONNECTOR}/src/providers/create-client.ts`, "@miragon/pulse-c7-client", []],
       [`${BILLING_CONNECTOR}/src/lib/engine/client.ts`, "@miragon/pulse-billing-client/sdk", []],
-      [`${BILLING_ADAPTER}/src/client.ts`, "@miragon/pulse-billing-client/sdk", []],
+      [`${BILLING_ADAPTER}/test/support/client.ts`, "@miragon/pulse-billing-client", []],
+      [`${C7_ADAPTER}/src/client.test.ts`, "@miragon/pulse-c7-client/sdk", []],
       [`${SERVER}/src/client.test.ts`, "@miragon/pulse-c7-client", []],
       [`${EXT}/src/host/client.test-support.ts`, "@miragon/pulse-c7-client/sdk", []],
       [`${C7}/test/support/client.ts`, "@miragon/pulse-c7-client", []],

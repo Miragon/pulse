@@ -662,19 +662,18 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      own family's client and core (`connectors-own-their-family`) and the engine module also
      those of the dialect families (`engine-connector-spans-the-dialects`, `ENGINE_DIALECTS`:
      `c7`), clients and family cores are leaves (a dialect core's one foreign edge is engine-core's
-     main entry), a family's client is imported only by its family's connector (a dialect's
-     client by the engine module) and adapter and by tests, never by an app (the MCP server
-     composes connectors, not their wire) or another package (`client-consumers`), core is the
-     foundation and pulse-ui its leaf, no package or app
-     imports an app, no cross-package deep imports. The
-     interface apps import nothing of the MCP/UI/server stack, zod included. The CLI imports no
-     workspace package except a family core it bundles (`@miragon/pulse-c7-core`), the profile
-     format where it reads its profiles (what `profile-consumers` admits; it may bundle it with
-     its core, `CLI_BUNDLES`) and the transport where it sends its engine requests (what
-     `http-consumers` admits; it bundles it too). The editor hosts import only the runtime view
-     and a family's adapter (`runtime-view-consumers`, `adapter-consumers`; their closed worlds
-     let only the composition roots wire the adapter) and of the family cores engine-core's main
-     entry alone, for the contract's ids and read models
+     main entry), a family's client is imported only by its family's connector (a dialect's client
+     by the engine module) and by tests, never by a family's adapter (it sends through its family's
+     core and the transport), an app (the MCP server composes connectors, not their wire) or another
+     package (`client-consumers`), core is the foundation and pulse-ui its leaf, no package or app
+     imports an app, no cross-package deep imports. The interface apps import nothing of the
+     MCP/UI/server stack, zod included. The CLI imports no workspace package except a family core it
+     bundles (`@miragon/pulse-c7-core`), the profile format where it reads its profiles (what
+     `profile-consumers` admits; it may bundle it with its core, `CLI_BUNDLES`) and the transport
+     where it sends its engine requests (what `http-consumers` admits; it bundles it too). The
+     editor hosts import only the runtime view and a family's adapter (`runtime-view-consumers`,
+     `adapter-consumers`; their closed worlds let only the composition roots wire the adapter) and
+     of the family cores engine-core's main entry alone, for the contract's ids and read models
      (`editor-hosts-reach-dialects-through-adapters`). The runtime view
      (`packages/core/runtime-view`) is foundation code with one edge into a family, the owner's
      decision of 2026-11-09 on #585: engine-core by its entries
@@ -683,19 +682,20 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      which import nothing: `ui-foundation-entries-import-nothing`; its closed world's
      `pulse-ui-only-its-foundation` keeps the React kit out; the decision:
      `apps/vscode/docs/adr/ui-foundation.md`). A family's adapter imports only its own family's
-     core and client, engine-core, the runtime view and the transport
-     (`adapters-own-their-family`; the C7 adapter, `packages/connectors/c7/c7-adapter`, runs
-     c7-core). A family core (`family-core-is-a-leaf`) is imported only by its family's connector
-     (a dialect's core by the engine module) and adapter and by the apps that bundle it
-     (`family-core-consumers`, `CORE_BUNDLERS`); the profile format
-     (`@miragon/pulse-profile`, `packages/core/profile`) is a leaf as well, which takes the text of
-     a profile file and returns a verdict per profile as data, reading no file and no
-     environment (`profile-is-a-leaf`), and only the readers of profiles import it: the CLI's
-     config layer, the connections of the runtime view's host kit (where Pulse for VS Code and
-     Pulse for Orca parse their project files), the engine connector's configuration, and
-     tests (`profile-consumers`, `PROFILE_READERS`; the CLI, the editor hosts and the engine
-     connector read their profiles with it, the connector its engines under the credential
-     policy `env`: a secret only by the name of an `ENGINE_SECRET_*` variable); the transport (`@miragon/pulse-http`, `packages/core/http`) is a leaf too, which
+     core, engine-core, the runtime view and the transport (`adapters-own-their-family`; the C7
+     adapter, `packages/connectors/c7/c7-adapter`, runs c7-core), never a client, its own family's
+     included (`client-consumers`, owner decision 2026-11-11). A family core
+     (`family-core-is-a-leaf`) is imported only by its family's connector (a dialect's core by the
+     engine module) and adapter and by the apps that bundle it (`family-core-consumers`,
+     `CORE_BUNDLERS`); the profile format (`@miragon/pulse-profile`, `packages/core/profile`) is a
+     leaf as well, which takes the text of a profile file and returns a verdict per profile as data,
+     reading no file and no environment (`profile-is-a-leaf`), and only the readers of profiles
+     import it: the CLI's config layer, the connections of the runtime view's host kit (where Pulse
+     for VS Code and Pulse for Orca parse their project files), the engine connector's
+     configuration, and tests (`profile-consumers`, `PROFILE_READERS`; the CLI, the editor hosts and
+     the engine connector read their profiles with it, the connector its engines under the
+     credential policy `env`: a secret only by the name of an `ENGINE_SECRET_*` variable); the
+     transport (`@miragon/pulse-http`, `packages/core/http`) is a leaf too, which
      runs over an injected `fetch` on the web platform's globals, no npm package and no Node
      built-in (`http-is-a-leaf`; ESLint's `no-restricted-globals` keeps out what only a browser
      has, `HTTP_BROWSER_GLOBALS`) but in the loopback engine of its conformance cases
