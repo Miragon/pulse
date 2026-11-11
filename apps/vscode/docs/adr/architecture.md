@@ -134,9 +134,12 @@ target or a problem, `refusalsOn` with the extension's `Surface` for what it can
 auth types bearer and passthrough, a named process engine, a missing `url`, `headers`), and
 `describeProblem` for the wording, behind which `TargetsParser` puts the way out the format leaves
 to each reader: after an auth type it refuses or the format does not take, the auth types a target
-then connects with (those `TargetPolicy` lets connect, so not `oauth`, whose profile lists its
-engine and is refused on connect by `TargetPolicy.refusal`, which names `none`, or `basic` without
-the OAuth keys, since `basic` does not take them); after `headers`, to remove them. The format owns its JSON Schema and the shared fixtures (the
+then connects with (those `EditorAuth.connectsWith` lets connect, so not `oauth`, whose profile
+lists its engine and is refused on connect by `TargetPolicy.refusal`, which names `none`, or
+`basic` without the OAuth keys, since `basic` does not take them); after `headers`, to remove
+them. `EditorAuth` (`packages/core/runtime-view/src/host-kit/connections/editor-auth.ts`) words
+every way out, on reading and on connecting, once, next to the auth kinds and
+`EditorAuth.connectsWith`. The format owns its JSON Schema and the shared fixtures (the
 `./testing` entry of the package); the runtime view owns what it makes of each, in
 `packages/core/runtime-view/test/host-kit/project-file-fixtures.expected.json`, so rewording a
 problem changes no file of the package. The test

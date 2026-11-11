@@ -180,13 +180,16 @@ Ports, core, webview, host kit and host stay engine-neutral.
   editor hosts cannot serve (`headers`, the auth types bearer and passthrough, a named process
   engine, a missing `url`), worded by the format's `describeProblem`, and adds its own way out
   behind an auth type it refuses or the format does not take and behind `headers`: the auth
-  types a target then connects with (`TargetPolicy.connectsWith`, so not `oauth`, whose profile
+  types a target then connects with (`EditorAuth.connectsWith`, so not `oauth`, whose profile
   lists its engine and is refused on connect by `TargetPolicy.refusal`, which names `none`, or
   `basic` without the OAuth keys, since `basic` does not take them), and to remove `headers`,
-  naming no editor, since both hosts show it. The package owns its JSON
-  Schema and the shared fixtures (its `./testing` entry), the runtime view its expectations of
-  them (`packages/core/runtime-view/test/host-kit/project-file-fixtures.expected.json`, one entry
-  per fixture); `packages/core/runtime-view/test/host-kit/project-file-fixtures.test.ts` holds
+  naming no editor, since both hosts show it. `EditorAuth`
+  (`packages/core/runtime-view/src/host-kit/connections/editor-auth.ts`) words every way out, on
+  reading and on connecting, once, next to the auth kinds and `EditorAuth.connectsWith`. The
+  package owns its JSON Schema and the shared fixtures (its `./testing` entry), the runtime view
+  its expectations of them
+  (`packages/core/runtime-view/test/host-kit/project-file-fixtures.expected.json`, one entry per
+  fixture); `packages/core/runtime-view/test/host-kit/project-file-fixtures.test.ts` holds
   `TargetsParser` to both. A profile the format takes is a target with its URL, auth type and
   read-only flag, or a named problem; a value the format refuses never becomes an engine. The
   extension still reads no user config. A folder that holds the project file only under its

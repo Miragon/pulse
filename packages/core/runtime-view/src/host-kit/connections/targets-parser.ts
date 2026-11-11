@@ -10,8 +10,8 @@ import {
   refusalsOn,
   type Surface,
 } from "@miragon/pulse-profile"
-import type { EngineTarget, TargetAuth } from "./engine-target.js"
-import { TargetPolicy } from "./target-policy.js"
+import { EditorAuth } from "./editor-auth.js"
+import type { EngineTarget } from "./engine-target.js"
 import { TargetsProblem } from "./targets-problem.js"
 
 export interface ParsedTargets {
@@ -26,26 +26,6 @@ const SURFACE: Surface = {
   defaultEngineOnly: true,
   refusedKeys: ["headers"],
 }
-
-const AUTH_KINDS: Readonly<Record<string, TargetAuth>> = {
-  none: { kind: "none" },
-  basic: { kind: "basic" },
-  oauth: { kind: "oauth2" },
-}
-
-const CONNECTING = new Intl.ListFormat("en", { type: "disjunction" }).format(
-  SURFACE.authTypes.filter((type) => {
-    const auth = AUTH_KINDS[type]
-    return auth !== undefined && TargetPolicy.connectsWith(auth)
-  }),
-)
-
-const WAYS_OUT = {
-  authType: `Set auth.type to ${CONNECTING}, or keep this profile for the CLI.`,
-  passthrough: `Set auth.type to ${CONNECTING}, or keep this profile for the MCP server.`,
-  authKeys: `This client connects with auth.type ${CONNECTING}: use one of them.`,
-  headers: "Remove headers from this profile, or use one without them.",
-} as const
 
 const AUTH_KEY_CODES: ReadonlySet<ProblemCode> = new Set([
   "auth-type-unknown",
@@ -77,7 +57,7 @@ export class TargetsParser {
   private targetOf(verdict: ProfileVerdict): EngineTarget | TargetsProblem {
     const { name, profile } = verdict
     const refusals = profile === undefined ? verdict.problems : refusalsOn(profile, SURFACE)
-    const auth = profile === undefined ? undefined : AUTH_KINDS[authTypeOf(profile)]
+    const auth = profile === undefined ? undefined : EditorAuth.kindOf(authTypeOf(profile))
     if (
       refusals.length > 0 ||
       name === undefined ||
@@ -116,17 +96,17 @@ export class TargetsParser {
   private wayOut(problem: Problem, profile: Profile | undefined): string | undefined {
     const { code, key } = problem
     if (AUTH_KEY_CODES.has(code) || (code === "invalid" && key === "auth.type")) {
-      return WAYS_OUT.authKeys
+      return EditorAuth.WAYS_OUT.authKeys
     }
     if (code === "key-not-served") {
-      return key === "headers" ? WAYS_OUT.headers : undefined
+      return key === "headers" ? EditorAuth.WAYS_OUT.headers : undefined
     }
     if (code !== "auth-type-not-served") {
       return undefined
     }
     return profile !== undefined && authTypeOf(profile) === "passthrough"
-      ? WAYS_OUT.passthrough
-      : WAYS_OUT.authType
+      ? EditorAuth.WAYS_OUT.passthrough
+      : EditorAuth.WAYS_OUT.authType
   }
 
   private problem(message: string, severity?: "warning"): TargetsProblem {
