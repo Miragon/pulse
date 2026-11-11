@@ -127,7 +127,7 @@ export const deSweep: MessageCatalog = {
   "fleet.landscape.kpiForbidden": "{count} mit verweigertem Zugriff",
   "fleet.landscape.kpiIncidents": "Offene Incidents",
   "fleet.landscape.kpiProcesses": "Prozessdefinitionen",
-  "fleet.landscape.kpiRefused": "{count} abgelehnt",
+  "fleet.landscape.kpiRefused": "{count} mit abgelehntem Profil",
   "fleet.landscape.kpiRunning": "Laufende Instanzen",
   "fleet.landscape.kpiShared": "{count} auf mehreren Engines",
   "fleet.landscape.kpiUnauthorized": "{count} mit abgelehnten Zugangsdaten",

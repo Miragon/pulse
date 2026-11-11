@@ -211,7 +211,7 @@ describe("the cross-engine landscape, read from each engine", () => {
     )
     const landscape = screen.getByRole("region", { name: "Process landscape" })
     await waitFor(() =>
-      expect(within(landscape).getByText("1 unreachable · 1 refused")).toBeTruthy(),
+      expect(within(landscape).getByText("1 unreachable · 1 with profile refused")).toBeTruthy(),
     )
     const table = screen.getByRole("region", { name: "Load and job backlog per engine" })
     expect(within(table).getByText("profile refused")).toBeTruthy()
@@ -246,12 +246,18 @@ describe("the cross-engine landscape, read from each engine", () => {
       const landscape = renderLogin()
       await waitFor(() =>
         expect(
-          trendOf(landscape, "1 refused · 1 with credentials rejected · 1 with access denied"),
+          trendOf(
+            landscape,
+            "1 with profile refused · 1 with credentials rejected · 1 with access denied",
+          ),
         ).toBeTruthy(),
       )
       expect(within(landscape).queryByText(/unreachable/)).toBeNull()
       expect(
-        toneOf(landscape, "1 refused · 1 with credentials rejected · 1 with access denied"),
+        toneOf(
+          landscape,
+          "1 with profile refused · 1 with credentials rejected · 1 with access denied",
+        ),
       ).toBe("warning")
       const table = screen.getByRole("region", { name: "Load and job backlog per engine" })
       expect(within(table).getByText("credentials rejected")).toBeTruthy()
@@ -318,7 +324,7 @@ describe("the cross-engine landscape, read from each engine", () => {
         expect(
           trendOf(
             landscape,
-            "1 abgelehnt · 1 mit abgelehnten Zugangsdaten · 1 mit verweigertem Zugriff",
+            "1 mit abgelehntem Profil · 1 mit abgelehnten Zugangsdaten · 1 mit verweigertem Zugriff",
           ),
         ).toBeTruthy(),
       )

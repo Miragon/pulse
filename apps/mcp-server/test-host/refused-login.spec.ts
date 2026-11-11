@@ -77,7 +77,7 @@ test.describe("landing with an engine that refuses the server's login", () => {
     const app = await openCockpit(page)
     await app.getByRole("button", { name: "Cross-engine overview" }).click({ timeout: 15_000 })
     const landscape = app.getByRole("region", { name: "Process landscape" })
-    const words = "1 refused · 1 with credentials rejected · 1 with access denied"
+    const words = "1 with profile refused · 1 with credentials rejected · 1 with access denied"
     await expect(landscape.getByText(words, { exact: true })).toBeVisible({ timeout: RETRIED_MS })
     // The trend's dot carries the tone: a refused profile's warning, not an outage's danger.
     await expect(

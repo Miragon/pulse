@@ -154,6 +154,13 @@ describe("the decided wording", () => {
       "{count} mit verweigertem Zugriff",
       "{count} with access denied",
     ],
+    // A refused profile's count names the profile, so it never reads like the refused login
+    // beside it; the glossary's word for it, abgelehnt / refused.
+    [
+      "fleet.landscape.kpiRefused",
+      "{count} mit abgelehntem Profil",
+      "{count} with profile refused",
+    ],
   ])("%s", (key, german, english) => {
     expect(catalogs.de[key]).toBe(german)
     expect(catalogs.en[key]).toBe(english)

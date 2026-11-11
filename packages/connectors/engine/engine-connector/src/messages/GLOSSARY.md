@@ -34,7 +34,9 @@ und pulse-ui prüft.
 
 (²) Der Server lehnt ein Profil ab, das er nicht nutzen kann (Code `ENGINE_PROFILE_REFUSED`), Pulse
 for VS Code eines, das es nicht bedienen kann. Die Wörter stehen in `describeError` von widget-shell
-(die Art `profileRefused`) und auf der Landing des Cockpits („Profil abgelehnt“).
+(die Art `profileRefused`), auf der Landing des Cockpits („Profil abgelehnt“) und in der
+Engine-übergreifenden Übersicht, die solche Engines zählt („1 mit abgelehntem Profil“, nie nur „1
+abgelehnt“: neben „1 mit abgelehnten Zugangsdaten“ läse sich das wie die Anmeldung).
 
 ## Zählbegriffe
 

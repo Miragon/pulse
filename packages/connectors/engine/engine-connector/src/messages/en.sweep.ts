@@ -127,7 +127,7 @@ export const enSweep: MessageCatalog = {
   "fleet.landscape.kpiForbidden": "{count} with access denied",
   "fleet.landscape.kpiIncidents": "Open incidents",
   "fleet.landscape.kpiProcesses": "Process definitions",
-  "fleet.landscape.kpiRefused": "{count} refused",
+  "fleet.landscape.kpiRefused": "{count} with profile refused",
   "fleet.landscape.kpiRunning": "Running instances",
   "fleet.landscape.kpiShared": "{count} on several engines",
   "fleet.landscape.kpiUnauthorized": "{count} with credentials rejected",
