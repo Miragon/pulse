@@ -392,7 +392,9 @@ routes and so run every class above.
   `misconfigured` instead of answering "none".
 - A call costs its HTTP round trip, no process start. Certificates and proxies come from
   VS Code's settings, no longer from environment variables such as `NODE_EXTRA_CA_CERTS`.
-- OAuth2 targets are refused with a clear message in v0.1.
+- OAuth2 targets are refused when they connect (the host kit's `TargetPolicy`), with a message
+  that names the way out: auth.type none, or basic without the OAuth keys, or the profile kept
+  for the CLI.
 - Known limits: pages can come back shorter than the limit when filters run after
   paging (root incidents only, `withIncident: false`); ended instances show the
   variables `inspect` reports, without engine types for plain values. Below history

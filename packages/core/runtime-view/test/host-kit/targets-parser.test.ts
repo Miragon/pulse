@@ -38,6 +38,20 @@ const REFUSED_BY_THIS_CLIENT: Record<string, readonly [Record<string, unknown>, 
   ],
 }
 
+const OAUTH_KEYS = {
+  issuer: "https://idp.example.com/realms/pulse",
+  clientId: "pulse-cli",
+  scopes: ["openid"],
+  audience: "engine",
+}
+
+function refusalOnConnecting(auth: Record<string, unknown>) {
+  const [target] = new TargetsParser(FILE).parse(
+    JSON.stringify({ profiles: { p: { url: URL, auth } } }),
+  ).targets
+  return target === undefined ? "no target" : TargetPolicy.refusal(target, { kind: "none" })
+}
+
 function problemsOf(profiles: Record<string, unknown>, root: Record<string, unknown> = {}) {
   const parsed = new TargetsParser(FILE).parse(JSON.stringify({ ...root, profiles }))
   return {
@@ -112,13 +126,8 @@ describe("a project file the extension reads", () => {
     })
   })
 
-  test("names only the auth types a target of it then connects with", () => {
-    const connecting = AUTH_TYPES.filter((type) => {
-      const [target] = new TargetsParser(FILE).parse(
-        JSON.stringify({ profiles: { p: { url: URL, auth: { type } } } }),
-      ).targets
-      return target !== undefined && TargetPolicy.refusal(target, { kind: "none" }) === undefined
-    })
+  test("names only the auth types a target of it then connects with, on reading and on connecting", () => {
+    const connecting = AUTH_TYPES.filter((type) => refusalOnConnecting({ type }) === undefined)
     expect(connecting).toEqual(["none", "basic"])
     const named = connecting.join(" or ")
     expect(problemsOf({ p: { url: URL, auth: { type: "bearer" } } }).problems[0]?.[0]).toContain(
@@ -131,6 +140,17 @@ describe("a project file the extension reads", () => {
       targets: ["p"],
       problems: [],
     })
+    const onConnect = refusalOnConnecting({ type: "oauth" }) ?? ""
+    expect([...onConnect.matchAll(/\bto (\w+)/g)].map(([, type]) => type)).toEqual(connecting)
+  })
+
+  test("refuses an oauth profile on connecting with ways out that each connect, OAuth keys and all", () => {
+    expect(refusalOnConnecting({ type: "oauth", ...OAUTH_KEYS })).toBe(
+      'Profile "p" uses auth.type oauth, which this client cannot authenticate with. Set auth.type to none, or to basic without the OAuth keys, or keep this profile for the CLI.',
+    )
+    expect(refusalOnConnecting({ type: "none", ...OAUTH_KEYS })).toBeUndefined()
+    expect(refusalOnConnecting({ type: "basic" })).toBeUndefined()
+    expect(refusalOnConnecting({ type: "basic", ...OAUTH_KEYS })).toBe("no target")
   })
 
   test("says the ways out after every sentence of the format, each once", () => {

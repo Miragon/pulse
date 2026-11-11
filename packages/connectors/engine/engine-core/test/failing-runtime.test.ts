@@ -43,7 +43,7 @@ describe("a failing runtime", () => {
   test.each(Object.entries(EVERY_METHOD))(
     "rejects %s with the given error",
     async (_name, call) => {
-      const error = new RuntimeError("misconfigured", "OAuth2 targets are not supported yet")
+      const error = new RuntimeError("misconfigured", "The connection is not set up correctly.")
 
       await expect(call(new FailingRuntime(error))).rejects.toBe(error)
     },

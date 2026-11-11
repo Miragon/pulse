@@ -271,12 +271,14 @@ describe("the target policy", () => {
     ).toBeUndefined()
   })
 
-  test("refuses OAuth2 until it is supported", () => {
+  test("refuses OAuth2 and names the way out, promising nothing", () => {
     expect(
       TargetPolicy.refusal(
         { ...remote("o", "https://o.example.com"), auth: { kind: "oauth2" } },
         { kind: "none" },
       ),
-    ).toContain("OAuth2")
+    ).toBe(
+      'Profile "o" uses auth.type oauth, which this client cannot authenticate with. Set auth.type to none, or to basic without the OAuth keys, or keep this profile for the CLI.',
+    )
   })
 })

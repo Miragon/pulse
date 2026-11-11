@@ -19,16 +19,18 @@ Pulse reads your engines as profiles in `.pulse.json`, the project file the
 ```
 
 Pulse reads `url`, `flavor` (`camunda7`, `cibseven` or `operaton`; `camunda7` when absent), `engine`
-(the default engine only), `auth.type` (`none`, `basic`, `oauth`, which lists the engine but does
-not connect yet; without a type a `username` means `basic`), `cockpitUrl` and `readOnly` (no writes
-from Pulse either), by the rules of the CLI and the MCP server: one profile format,
-`@miragon/pulse-profile`. URLs lose trailing slashes, and a profile with a value the format refuses
-never becomes an engine. Pulse reads profile by profile: a profile that names a credential (a
-password, a token or the variable that holds one), sets `headers`, uses a key the format does not
-know, the auth type `bearer` or `passthrough`, or lacks its `url` (Pulse reads no `PULSE_CLI_*`
-variable) shows up as a problem in the Engines view instead of connecting, and the problem says what
-to change; the other profiles of the file still list engines. Pulse does not apply `environment`,
-`timeout` and `output`, yet a value of theirs the format refuses is a problem too.
+(the default engine only), `auth.type` (`none`, `basic` or `oauth`; without a type a `username`
+means `basic`), `cockpitUrl` and `readOnly` (no writes from Pulse either), by the rules of the CLI
+and the MCP server: one profile format, `@miragon/pulse-profile`. URLs lose trailing slashes, and a
+profile with a value the format refuses never becomes an engine. Pulse reads profile by profile: a
+profile that names a credential (a password, a token or the variable that holds one), sets
+`headers`, uses a key the format does not know, the auth type `bearer` or `passthrough`, or lacks
+its `url` (Pulse reads no `PULSE_CLI_*` variable) shows up as a problem in the Engines view instead
+of connecting, and the problem says what to change; the other profiles of the file still list
+engines. A profile with `oauth` lists its engine, but Pulse does not connect to it and says to set
+`auth.type` to `none`, or to `basic` without the OAuth keys, or to keep the profile for the CLI.
+Pulse does not apply `environment`, `timeout` and `output`, yet a value of theirs the format refuses
+is a problem too.
 
 Set credentials with _Pulse: Set Credentials…_. They live in VS Code's secret storage.
 

@@ -94,7 +94,8 @@ describe("the composition root", () => {
 
     await expect(root.runtime(oauth, NO_LOGIN).listDefinitions()).rejects.toMatchObject({
       failure: "misconfigured",
-      message: expect.stringContaining("uses OAuth2") as unknown,
+      message:
+        'Profile "shop-c7" uses auth.type oauth, which this client cannot authenticate with. Set auth.type to none, or to basic without the OAuth keys, or keep this profile for the CLI.',
     })
     expect(root.commands(oauth, NO_LOGIN)).toBeUndefined()
     expect(c7.connections).toEqual([])

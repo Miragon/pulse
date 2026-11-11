@@ -31,6 +31,20 @@ describe("the composition root of the worker", () => {
     expect(root.commands(remote, LOGIN)).toBeUndefined()
   })
 
+  test("refuses an engine that signs in with OAuth2 and names the way out", async () => {
+    const adapter = new FakeAdapter()
+    const root = adapter.root()
+    const oauth: EngineTarget = { ...LOCAL_TARGET, name: "shop", auth: { kind: "oauth2" } }
+
+    await expect(root.runtime(oauth, LOGIN).listDefinitions()).rejects.toMatchObject({
+      failure: "misconfigured",
+      message:
+        'Profile "shop" uses auth.type oauth, which this client cannot authenticate with. Set auth.type to none, or to basic without the OAuth keys, or keep this profile for the CLI.',
+    })
+    expect(root.commands(oauth, LOGIN)).toBeUndefined()
+    expect(adapter.connections).toEqual([])
+  })
+
   test("knows the web app only of an engine with its URL", () => {
     const root = new FakeAdapter().root()
 

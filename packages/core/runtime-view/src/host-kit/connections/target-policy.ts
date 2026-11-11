@@ -9,7 +9,7 @@ export class TargetPolicy {
 
   static refusal(target: EngineTarget, credentials: Credentials): string | undefined {
     if (!TargetPolicy.connectsWith(target.auth)) {
-      return `${target.name} uses OAuth2. This client connects with basic authentication or none; OAuth2 follows.`
+      return `Profile "${target.name}" uses auth.type oauth, which this client cannot authenticate with. Set auth.type to none, or to basic without the OAuth keys, or keep this profile for the CLI.`
     }
     if (target.auth.kind === "basic" && credentials.kind === "savedForAnotherEndpoint") {
       return `The endpoint of ${target.name} changed since its credentials were saved for ${credentials.savedFor}. Set the credentials again to send them to the new endpoint.`
