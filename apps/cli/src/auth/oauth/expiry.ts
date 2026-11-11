@@ -2,11 +2,12 @@
  * The expiries of a cached login, as `pulse auth status`, the previews and the messages read
  * them. They come from the local receipt time and the relative `expires_in`
  * (@miragon/pulse-http/oauth counts them so), never from token claims or the server's clock. When
- * a token is renewed is the package's shared policy (`EXPIRY`), not this module's, and so is
- * whether its refresh token can renew it (`canRefresh`).
+ * a token is renewed is the package's shared policy (`EXPIRY`), not this module's, and so are
+ * whether a token expired (`isExpired`) and whether its refresh token can renew it
+ * (`canRefresh`); this module asks those two of the cache's fields, where null stands for none.
  */
 
-import { canRefresh as refreshable } from "@miragon/pulse-http/oauth"
+import { canRefresh as refreshable, isExpired as expired } from "@miragon/pulse-http/oauth"
 import type { CachedLogin } from "./types.js"
 
 /** When the current access token was received: the last refresh, else the login. */
@@ -14,8 +15,12 @@ export function receivedAt(login: Pick<CachedLogin, "loggedInAt" | "refreshedAt"
   return login.refreshedAt ?? login.loggedInAt
 }
 
+/**
+ * True from the expiry `at` on, never when it is unknown (null): the package's rule over the
+ * cache's field.
+ */
 export function isExpired(now: number, at: number | null): boolean {
-  return at !== null && now >= at
+  return expired({ expiresAt: at ?? undefined }, now)
 }
 
 /**

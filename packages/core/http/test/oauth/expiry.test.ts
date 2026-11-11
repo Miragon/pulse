@@ -1,10 +1,11 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
-import { isExpired, marginOf } from "../../src/oauth/expiry.js"
+import { marginOf } from "../../src/oauth/expiry.js"
 import {
   canRefresh,
   EXPIRY,
   isDue,
+  isExpired,
   refreshAt,
   renewsAfterRefusal,
   type TokenRecord,

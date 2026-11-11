@@ -265,6 +265,7 @@ describe("the entries", () => {
       "discover",
       "isAccessToken",
       "isDue",
+      "isExpired",
       "jwtClaims",
       "memoryTokenStore",
       "oauthUrlProblem",

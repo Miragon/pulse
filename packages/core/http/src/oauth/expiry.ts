@@ -46,7 +46,7 @@ export function isDue(record: TokenRecord, now: number, policy: ExpiryPolicy = E
   return now < record.receivedAt || (at !== undefined && now >= at)
 }
 
-/** Whether a token expired by `now`; never one of unknown lifetime. */
+/** Whether a token has expired at `now`: from `expiresAt` on, never one of unknown lifetime. */
 export function isExpired(record: Pick<TokenRecord, "expiresAt">, now: number): boolean {
   return record.expiresAt !== undefined && now >= record.expiresAt
 }
@@ -67,13 +67,14 @@ export function renewsAfterRefusal(
 
 /**
  * Whether a token can be renewed with its refresh token: there is one, the authorization server
- * did not refuse it before, and it is not known to have expired. It reads those three fields only,
- * so a surface asks it of a login in its own format too.
+ * did not refuse it before, and it is not known to have expired (`isExpired` over its
+ * `refreshExpiresAt`). It reads those three fields only, so a surface asks it of a login in its own
+ * format too.
  */
 export function canRefresh<
   T extends Pick<TokenRecord, "refreshToken" | "refreshRejected" | "refreshExpiresAt">,
 >(record: T, now: number): record is T & { readonly refreshToken: string } {
   const { refreshToken, refreshRejected, refreshExpiresAt } = record
-  const refreshExpired = refreshExpiresAt !== undefined && now >= refreshExpiresAt
+  const refreshExpired = isExpired({ expiresAt: refreshExpiresAt }, now)
   return refreshToken !== undefined && refreshRejected === undefined && !refreshExpired
 }

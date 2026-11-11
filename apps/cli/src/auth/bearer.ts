@@ -8,6 +8,7 @@
  */
 
 import { bearerCredential, staticToken, type TokenSource } from "@miragon/pulse-http"
+import { isExpired as hasExpired } from "@miragon/pulse-http/oauth"
 import { ENV, type StaticBearerConfig } from "../config/types.js"
 import { PulseCliError } from "../errors.js"
 import { profileToSet } from "../util.js"
@@ -33,9 +34,12 @@ export function tokenExpired(config: StaticBearerConfig, expiresAt: number): Pul
   })
 }
 
-/** True once `exp` has passed (without the 30 s grace of TOKEN_EXPIRED). */
+/**
+ * True once `exp` has passed (without the 30 s grace of TOKEN_EXPIRED), never without an `exp`:
+ * the rule of @miragon/pulse-http/oauth over the claim, where null stands for none.
+ */
 function pastExpiry(claims: Pick<JwtClaims, "expiresAt">, now: number): boolean {
-  return claims.expiresAt !== null && now >= claims.expiresAt
+  return hasExpired({ expiresAt: claims.expiresAt ?? undefined }, now)
 }
 
 /**

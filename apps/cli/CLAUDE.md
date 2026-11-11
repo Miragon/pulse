@@ -84,9 +84,11 @@ transport's too, `@miragon/pulse-http/oauth`: discovery, PKCE, the callback's ch
 revocation requests on the same wire (the client's own credentials read `Basic ***` in a trace,
 also with `--show-secrets`), and the renewal of a login (`refreshingTokens` over the token cache,
 which `apps/cli/src/auth/oauth/store.ts` maps onto the package's `TokenStore`) and of a token
-command's token (`commandTokens`), both by the shared policy `EXPIRY`. The CLI keeps the token
-cache files (their format unchanged) and their lock, the loopback login and every message. The
-engine family's core,
+command's token (`commandTokens`), both by the shared policy `EXPIRY`; whether a cached token or a
+bearer JWT has expired and whether a refresh token can renew it are the package's rules too
+(`isExpired`, `canRefresh`), the CLI's own only the 30 s of clock skew before `TOKEN_EXPIRED`
+(`apps/cli/src/auth/jwt.ts`). The CLI keeps the token cache files (their format unchanged) and
+their lock, the loopback login and every message. The engine family's core,
 `@miragon/pulse-engine-core`, the contract every dialect implements, is not the CLI's to import
 until it serves a second dialect: it reaches the engine through c7-core, a job's root cause
 included (`causeOf`, over engine-core's `RootCauses`), and a direct import is an admission
