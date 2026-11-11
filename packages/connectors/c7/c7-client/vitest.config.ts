@@ -7,6 +7,12 @@ export default mergeConfig(
     test: {
       include: ["src/**/*.test.ts"],
       coverage: {
+        // The generated SDK behind ./sdk, one function per operation of the spec: no test here
+        // calls them (the engine connector's wire tests and the engine suites do), and only
+        // src/index.test.ts loads the file, to hold the entries' lists of names (the root's
+        // reads import it). Counted, its 399 uncalled functions would bury the floors below,
+        // which never counted it. The exclusion goes once a test here calls the SDK.
+        exclude: ["src/generated/sdk.gen.ts"],
         // Ratchet: frozen 2 points under the baseline. Raise when you push
         // coverage up; never lower. Raised 2026-10-08 with the engine error
         // mapping under test, again with its review fixes (measured

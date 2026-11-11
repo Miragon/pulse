@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest"
 import * as http from "../src/index.js"
 import { CredentialError, FAILURE_REASONS } from "../src/index.js"
+import * as oauth from "../src/oauth/index.js"
 import * as testing from "../src/testing/index.js"
+import * as loopback from "../src/testing/loopback/index.js"
 import {
   CASE_CAPABILITIES,
   caseFindings,
@@ -198,6 +200,11 @@ describe("credentialOfCase and pathOfCase", () => {
   })
 })
 
+/**
+ * The published entries' lists: knip never reports what an entry exports, so a name added or
+ * dropped is held here and decided in review. Types are erased at runtime: these are the runtime
+ * names.
+ */
 describe("the entries", () => {
   it("export exactly the public API", () => {
     expect(Object.keys(http).sort()).toEqual([
@@ -242,5 +249,47 @@ describe("the entries", () => {
       "recordingFetch",
       "requirementsOf",
     ])
+  })
+
+  it("export exactly the OAuth client protocol from ./oauth", () => {
+    expect(Object.keys(oauth).sort()).toEqual([
+      "EXPIRY",
+      "MAX_TOKEN_ANSWER_BYTES",
+      "REFUSED_HOLD_MS",
+      "TOKEN_TIMEOUT_MS",
+      "TokenFailure",
+      "UNAVAILABLE_HOLD_MS",
+      "authorizationUrl",
+      "base64Url",
+      "callbackResult",
+      "canRefresh",
+      "challengeOf",
+      "clientCredentialsTokens",
+      "commandTokens",
+      "createPkce",
+      "decodeBase64Url",
+      "discover",
+      "discoveryUrls",
+      "isAccessToken",
+      "isDue",
+      "isExpired",
+      "jwtClaims",
+      "marginOf",
+      "memoryTokenStore",
+      "oauthUrlProblem",
+      "refreshAt",
+      "refreshingTokens",
+      "renewsAfterRefusal",
+      "requestToken",
+      "retryAfterMs",
+      "revokeToken",
+      "safeEqual",
+      "serverMetadata",
+      "tokenKey",
+    ])
+  })
+
+  it("export exactly the recording engine of a case from ./testing/loopback", () => {
+    expect(Object.keys(loopback)).toEqual(["startCaseEngine"])
   })
 })
