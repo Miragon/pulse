@@ -138,8 +138,8 @@ pulse config set ci --url https://camunda.example.com/engine-rest --auth bearer 
 
 - `PULSE_CLI_TOKEN` or `--auth-token-stdin` select `bearer` when no type is set. An explicit `basic`
   or `oauth` type wins: add `--auth bearer` or `PULSE_CLI_AUTH=bearer`.
-- A JWT whose `exp` has passed fails before any request with `TOKEN_EXPIRED` (exit 4). Fetch a new
-  token, or use a [token command](#token-commands). Opaque tokens are sent as they are.
+- A JWT more than 30 s past its `exp` fails before any request with `TOKEN_EXPIRED` (exit 4). Fetch
+  a new token, or use a [token command](#token-commands). Opaque tokens are sent as they are.
 - `pulse auth status` shows the token's source and, for a JWT, its claims and expiry.
 
 ## Token commands
