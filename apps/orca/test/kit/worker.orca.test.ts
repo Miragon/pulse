@@ -106,7 +106,9 @@ describe("the engines", () => {
     await running.request("engines.setProjectFile", { path: missing })
     const list = await running.request("engines.list")
 
-    expect(list.problems).toEqual([".pulse.json: Pulse can't read this file"])
+    expect(list.problems).toEqual([
+      { text: ".pulse.json: Pulse can't read this file", tone: "danger" },
+    ])
     expect(namesOf(list)).toEqual(["local"])
   })
 

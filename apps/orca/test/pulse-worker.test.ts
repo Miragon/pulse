@@ -1,7 +1,8 @@
+import { writeFile } from "node:fs/promises"
 import { afterEach, describe, expect, test, vi } from "vitest"
 import type { EngineList } from "../src/protocol.js"
 import activate, { deactivate } from "../src/worker/main.js"
-import { REMOTE_ENDPOINT, WorkerHarness } from "./worker-harness.js"
+import { PROFILES, REMOTE_ENDPOINT, WorkerHarness } from "./worker-harness.js"
 
 afterEach(() => {
   deactivate()
@@ -80,7 +81,32 @@ describe("the Pulse worker", () => {
 
     const list = (await harness.request("engines.list")) as EngineList
 
-    expect(list.problems).toEqual([expect.stringContaining("Pulse can't read this file")])
+    expect(list.problems).toEqual([
+      { text: expect.stringContaining("Pulse can't read this file") as unknown, tone: "danger" },
+    ])
+  })
+
+  test("tells a note of the project file from a refused profile by its tone", async () => {
+    const harness = await WorkerHarness.empty()
+    await writeFile(
+      harness.projectFile,
+      JSON.stringify({
+        defaultProfile: "missing",
+        profiles: { ...PROFILES, gateway: { url: REMOTE_ENDPOINT, headers: { "X-Team": "ops" } } },
+      }),
+    )
+    activate(harness.orca.api())
+
+    const list = (await harness.request("engines.list")) as EngineList
+
+    expect(list.problems).toEqual([
+      { text: ".pulse.json: defaultProfile names no profile of this file.", tone: "warning" },
+      {
+        text: expect.stringMatching(/^\.pulse\.json: profile "gateway": /) as unknown,
+        tone: "danger",
+      },
+    ])
+    expect(list.engines.map((row) => row.name)).toEqual(["shop-dev", "prod-eu"])
   })
 
   test("switches the active engine and tells the panel", async () => {

@@ -1,5 +1,5 @@
 import { mockHost, type MockHost, type MockRequests } from "orca/testing"
-import type { EngineList, EngineRow } from "../../../src/protocol.js"
+import type { ConfigurationProblem, EngineList, EngineRow } from "../../../src/protocol.js"
 
 export const SHOP_DEV: EngineRow = {
   name: "shop-dev",
@@ -30,7 +30,10 @@ export const SIGN_IN_PROBLEM = {
 
 export function engineList(
   engines: readonly EngineRow[],
-  options: { readonly projectFile?: string; readonly problems?: readonly string[] } = {},
+  options: {
+    readonly projectFile?: string
+    readonly problems?: readonly ConfigurationProblem[]
+  } = {},
 ): EngineList {
   return {
     projectFile: options.projectFile ?? "/work/shop/.pulse.json",

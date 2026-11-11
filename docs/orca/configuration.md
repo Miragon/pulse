@@ -7,7 +7,8 @@ Pulse for Orca reads your engines as profiles in `.pulse.json`, the project file
 [Pulse for VS Code](../vscode/configuration.md#engines): one profile format,
 `@miragon/pulse-profile`; `url`, `flavor`, `engine`, `auth.type`, `cockpitUrl` and `readOnly`,
 and a profile that names a credential, sets `headers` or that the format refuses shows as a
-problem in the panel while the other profiles still list engines.
+problem in the panel while the other profiles still list engines. A note on the file itself (a
+`defaultProfile` that names no profile, a key the format does not know) shows as a warning.
 
 The plugin takes the project file its setting names, else the `.pulse.json` at the root of the
 focused workspace, else one engine on `localhost:8080`. It reads the file again when it changes.

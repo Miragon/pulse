@@ -157,7 +157,7 @@ export default function Panel() {
         <Callout key={`${index}|${notice.text}`} tone={notice.tone} title={notice.text} />
       ))}
       {answer.problems.map((problem) => (
-        <Callout key={problem} tone="danger" title={problem} />
+        <Callout key={problem.text} tone={problem.tone} title={problem.text} />
       ))}
       <ActiveEngine engines={answer.engines} />
       {active === undefined ? null : <GoToInstance engine={active.name} />}
