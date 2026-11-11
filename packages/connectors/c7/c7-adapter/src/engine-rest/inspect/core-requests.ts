@@ -1,6 +1,6 @@
 import { CORE_ROUTES, type Route } from "@miragon/pulse-c7-core"
 
-const PLACEHOLDER = /\{[^}]+\}/
+const PLACEHOLDER = /\{[^{}]+\}/
 const TEXT = "text/plain"
 
 export class CoreRequests {
