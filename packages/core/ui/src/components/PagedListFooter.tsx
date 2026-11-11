@@ -39,6 +39,15 @@ export interface PagedListState {
    * someone changes a setting, say). Without it every failure offers its retry.
    */
   canRetry?: (error: Error) => boolean
+  /**
+   * What a failure no retry changes means and what to do, in the active locale, whole sentences:
+   * said after what you see where {@link canRetry} says no, in place of "try again". This leaf
+   * words no failure itself, so the caller brings it (widget-shell's paged lists, from
+   * `describeError`); without it the line says only what you see. Catalog words only, never the
+   * raw reason (`error.message`), which the footer shows under "Details": the kit's gate against a
+   * raw error in a description cannot read a callback's words, so this is the caller's to keep.
+   */
+  describeRefusal?: (error: Error) => string
 }
 
 export interface PagedListFooterProps {
@@ -57,14 +66,33 @@ function rawReason(error: Error): string {
   return error.message || error.name
 }
 
+/** Whether `paged` says no retry changes `error`. */
+function isFinal(paged: PagedListState, error: Error): boolean {
+  return paged.canRetry?.(error) === false
+}
+
+/**
+ * The line under a failure: its `hint`, or for a refusal no retry changes what you see
+ * (`finalHint`) and the caller's words for it, never "try again". It takes the error to ask
+ * `canRetry` and `describeRefusal` about it, so the kit's raw-error gate, which flags every
+ * error-named value in a description, would flag it in the JSX: the line is built before, out of
+ * the gate's sight, and `PagedListFooter.test.tsx` holds what the gate cannot, that the raw reason
+ * shows only under "Details".
+ */
+function failureLine(paged: PagedListState, error: Error, hint: string, finalHint: string): string {
+  if (!isFinal(paged, error)) return hint
+  return [finalHint, paged.describeRefusal?.(error)].filter(Boolean).join(" ")
+}
+
 /**
  * The tail of a paged list: its failures and the honest {@link ListFooter}.
  * Two failures stay apart because their retries differ: a failed first page
  * over the rows still on screen ("You're seeing the previous result", its
  * retry re-runs page 0) and a failed load-more ("The entries above are
  * current", its retry fetches the next offset), each offered unless
- * `paged.canRetry` says no retry changes the failure. Each is an inline
- * `ErrorState` (role="alert") with the raw reason under "Details". The
+ * `paged.canRetry` says no retry changes the failure; then neither the button
+ * nor the line says "try again", and `paged.describeRefusal` says why. Each is
+ * an inline `ErrorState` (role="alert") with the raw reason under "Details". The
  * footer's count line is a polite live region that says "Updating…" while a
  * first page is in flight, hides the count while the rows are stale, and
  * stays mounted at zero rows ("No entries", visually hidden), so a search
@@ -75,7 +103,12 @@ export function PagedListFooter({ paged, noun, labels, retryLabel }: PagedListFo
   const L = { ...catalog, ...labels }
   const refreshError = paged.firstPage != null ? (paged.error ?? null) : null
   const retryOf = (error: Error, retry: (() => void) | undefined) =>
-    paged.canRetry?.(error) === false ? undefined : retry
+    isFinal(paged, error) ? undefined : retry
+  const refreshLine =
+    refreshError && failureLine(paged, refreshError, L.refreshFailedHint, L.refreshFailedFinalHint)
+  const loadMoreLine =
+    paged.loadMoreError &&
+    failureLine(paged, paged.loadMoreError, L.loadMoreFailedHint, L.loadMoreFailedFinalHint)
   return (
     <div data-slot="paged-list-footer" className="flex flex-col gap-2">
       {refreshError && (
@@ -83,7 +116,7 @@ export function PagedListFooter({ paged, noun, labels, retryLabel }: PagedListFo
           variant="inline"
           tone="warning"
           title={L.refreshFailed}
-          description={L.refreshFailedHint}
+          description={refreshLine}
           details={rawReason(refreshError)}
           onRetry={retryOf(refreshError, paged.retry)}
           retryLabel={retryLabel}
@@ -93,7 +126,7 @@ export function PagedListFooter({ paged, noun, labels, retryLabel }: PagedListFo
         <ErrorState
           variant="inline"
           title={L.loadMoreFailed}
-          description={L.loadMoreFailedHint}
+          description={loadMoreLine}
           details={rawReason(paged.loadMoreError)}
           onRetry={retryOf(paged.loadMoreError, paged.loadMore)}
           retryLabel={retryLabel}

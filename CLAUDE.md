@@ -442,7 +442,8 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      `describeError`, the raw engine text only under "Details". A refusal no retry changes
      (`isPermanentError`: a refused profile, a write to a read-only engine) is not retried by the
      view's query client and offers no Try again, in an error state or a failed refresh's notice
-     (a paged list's footer through `canRetry`); a write words it once, at its control or in its
+     (a paged list's footer through `canRetry`, which then says why through `describeRefusal`,
+     never "try again"); a write words it once, at its control or in its
      confirmation's dialog, and the cockpit shows a refused engine once, as its view's one state
      (`RefusedEngineGate`), also before the engine list answers. A write reports through
      `useActionFeedback()` toasts that name the object and confirms through `ConfirmDialog`;
