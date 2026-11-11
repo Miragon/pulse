@@ -69,12 +69,22 @@ const PAGING_RULE =
   `nextOffset. maxResults: default in each schema, at most ${MAX_PAGE_SIZE}. ` +
   "sortBy sorts ascending unless sortOrder is desc; without sortBy the engine's order applies."
 
-/** `toEngineVariable` shapes every written variable; read-only registers no tool that takes one. */
+/**
+ * `toEngineVariable` shapes every written variable; read-only registers no tool that takes one.
+ * The SDK parses a call's JSON before the tool sees it, so an integer beyond ±2^53 written as a
+ * number arrives rounded, also inside a Json or Object value given as parsed JSON; as a string of
+ * type Long (the form the variable reads return), or inside a Json or Object value given as JSON
+ * text, it reaches the engine with every digit: on every input that takes a variable's value in
+ * `tools/write-tools.wire.test.ts`, through the SDK in the server app's
+ * `test/long-digits.e2e.test.ts`.
+ */
 const VARIABLE_INPUT_RULE =
   "- Variable inputs (variables, correlationKeys, processVariables, " +
   "engine_set_process_instance_variable): type is String, Long, Boolean, Date (ISO 8601), Json, " +
   "Object, …; a Json or Object value is a serialized string or parsed JSON; an Object needs " +
-  "valueInfo.objectTypeName."
+  "valueInfo.objectTypeName. An integer beyond ±2^53 goes in as a string with type Long, the " +
+  "form the reads return, and a Json or Object value that holds one as JSON text; a JSON number " +
+  "that large arrives rounded."
 
 /** Names only the writes `toolset` registers. */
 function remediationRule(toolset: EngineToolset): string {

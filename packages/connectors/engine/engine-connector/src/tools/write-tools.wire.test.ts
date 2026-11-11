@@ -9,6 +9,7 @@ import {
   registryFor,
   startFakeEngine,
   type FakeEngine,
+  type FakeRoutes,
   type RecordedRequest,
 } from "./test-support/fake-engine.js"
 import { RUNTIME_WRITE_CASES, type WireRequest } from "./test-support/write-cases.js"
@@ -262,6 +263,108 @@ describe("a variable whose number is not finite is refused before any request", 
     expect(result.content.map((part) => part.text)).toEqual([refusal])
     expect(engine.requests).toEqual([])
   })
+})
+
+/** A whole number beyond ±2^53: written as a JSON number, it would read as …992. */
+const BEYOND_2_53 = "9007199254740993"
+const LONG_TEXT = `{"value":"${BEYOND_2_53}","type":"Long"}`
+/** A Json or Object value that holds it, as JSON text. */
+const HOLDING_TEXT = JSON.stringify(`{"id":${BEYOND_2_53}}`)
+const MESSAGE_ROUTES: FakeRoutes = { "POST /message": { body: [{ resultType: "Execution" }] } }
+
+/**
+ * The forms the module instructions ask for (final review S3): an integer beyond ±2^53 as a string
+ * of type Long, a Json or Object value that holds one as JSON text. Parsed from the request's JSON
+ * as the SDK parses it, each reaches the engine digit for digit; the engine's body is read back as
+ * JSON, where a string keeps every digit and a number could not. One case per tool and input that
+ * takes a variable's value; `sent` is the variable as the engine's body must carry it.
+ */
+const EXACT_DIGIT_WRITES: ReadonlyArray<
+  readonly [toolName: string, input: string, argsJson: string, sent: string, routes: FakeRoutes]
+> = [
+  [
+    "engine_set_process_instance_variable",
+    "value",
+    `{"processInstanceId":"pi-1","variableName":"big","value":"-${BEYOND_2_53}","type":"Long"}`,
+    `{"value":"-${BEYOND_2_53}","type":"Long"}`,
+    {},
+  ],
+  [
+    "engine_set_process_instance_variable",
+    "value",
+    `{"processInstanceId":"pi-1","variableName":"big","value":${HOLDING_TEXT},"type":"Json"}`,
+    `{"value":${HOLDING_TEXT},"type":"Json"}`,
+    {},
+  ],
+  [
+    "engine_start_process_instance",
+    "variables",
+    `{"processDefinitionKey":"invoice","variables":{"big":${LONG_TEXT}}}`,
+    `"big":${LONG_TEXT}`,
+    { "POST /process-definition/key/invoice/start": { body: { id: "pi-1" } } },
+  ],
+  [
+    "engine_complete_task",
+    "variables",
+    `{"taskId":"t-1","variables":{"big":${LONG_TEXT}}}`,
+    `"big":${LONG_TEXT}`,
+    { "GET /task/t-1": { body: { ...TASK, processDefinitionId: null } } },
+  ],
+  [
+    "engine_complete_external_task",
+    "variables",
+    `{"externalTaskId":"ext-1","workerId":"w-1","variables":{"big":${LONG_TEXT}}}`,
+    `"big":${LONG_TEXT}`,
+    {},
+  ],
+  [
+    "engine_correlate_message",
+    "correlationKeys",
+    `{"messageName":"paid","correlationKeys":{"big":${LONG_TEXT}}}`,
+    `"big":${LONG_TEXT}`,
+    MESSAGE_ROUTES,
+  ],
+  [
+    "engine_correlate_message",
+    "processVariables",
+    `{"messageName":"paid","processVariables":{"big":{"value":${HOLDING_TEXT},"type":"Object",` +
+      `"valueInfo":{"objectTypeName":"java.util.HashMap","serializationDataFormat":"application/json"}}}}`,
+    `"big":{"value":${HOLDING_TEXT},"type":"Object"`,
+    MESSAGE_ROUTES,
+  ],
+  [
+    "engine_throw_signal",
+    "variables",
+    `{"name":"alarm","variables":{"big":${LONG_TEXT}}}`,
+    `"big":${LONG_TEXT}`,
+    {},
+  ],
+]
+
+const inputsOf = (table: ReadonlyArray<readonly [toolName: string, input: string, ...unknown[]]>) =>
+  [...new Set(table.map(([toolName, input]) => `${toolName} ${input}`))].sort()
+
+describe("a whole number beyond ±2^53 in the form the instructions ask for keeps every digit", () => {
+  it("covers every input the refusal of a number that is not finite covers", () => {
+    expect(inputsOf(EXACT_DIGIT_WRITES)).toEqual(inputsOf(NOT_FINITE_WRITES))
+  })
+
+  it.each(EXACT_DIGIT_WRITES)(
+    "%s sends it whole from %s",
+    async (toolName, _input, argsJson, sent, routes) => {
+      const engine = await engineWith(routes)
+
+      await callTool(
+        toolConfig(toolName),
+        registryFor(engine),
+        JSON.parse(argsJson) as Record<string, unknown>,
+      )
+
+      const writes = engine.requests.filter((request) => request.method !== "GET")
+      expect(writes).toHaveLength(1)
+      expect(JSON.stringify(writes[0]?.body)).toContain(sent)
+    },
+  )
 })
 
 describe("complete_task never picks its endpoint on a guess", () => {

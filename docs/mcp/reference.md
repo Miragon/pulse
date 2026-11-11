@@ -34,7 +34,11 @@ BPM operations across these domains (`category`): `engines`, `process-definition
 - **Variable writes:** a value that is or holds a number that is not finite (`1e400`, beyond the
   range of a double, reads as Infinity) fails the call before anything is sent, since JSON would
   carry it as null; a variable of type String with the digits as text keeps such a number, a Json
-  or Object value sent as JSON text keeps it too
+  or Object value sent as JSON text keeps it too. An integer beyond ±2^53 reaches the engine whole
+  as a string with type Long, the form the reads return, and inside a Json or Object value sent as
+  JSON text; as a JSON number, also inside a Json or Object value given as parsed JSON, it arrives
+  rounded, since the MCP SDK parses a call before the server sees it. The server instructions ask
+  for the string and the JSON text
 - **View:** `open_cockpit`, the operations cockpit and the module's one view: `view` opens it on
   the overview (default), the incidents, a failure cluster, a process, its instances, an
   instance, an incident, the jobs or an instance's history; the result carries that view's facts

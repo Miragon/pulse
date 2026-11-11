@@ -83,7 +83,9 @@ describe("engineModule.instructions", () => {
       "- Variable inputs (variables, correlationKeys, processVariables, " +
       "engine_set_process_instance_variable): type is String, Long, Boolean, Date (ISO 8601), Json, " +
       "Object, …; a Json or Object value is a serialized string or parsed JSON; an Object needs " +
-      "valueInfo.objectTypeName.\n"
+      "valueInfo.objectTypeName. An integer beyond ±2^53 goes in as a string with type Long, the " +
+      "form the reads return, and a Json or Object value that holds one as JSON text; a JSON number " +
+      "that large arrives rounded.\n"
     expect(snippet(TWO, toolset).includes(rule)).toBe(has)
   })
 
