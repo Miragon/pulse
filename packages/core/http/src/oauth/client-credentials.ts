@@ -16,8 +16,8 @@
 import type { TokenSource } from "../credential.js"
 import type { Platform } from "../types.js"
 import { EXPIRY, isDue, isExpired, renewsAfterRefusal } from "./expiry.js"
-import { isPassing, TokenFailure } from "./failure.js"
-import { tokenKey } from "./store.js"
+import { TokenFailure } from "./failure.js"
+import { causeOf, isPassingRenewal, tokenKey, underLock } from "./store.js"
 import { requestToken } from "./token.js"
 import type {
   ExpiryPolicy,
@@ -52,11 +52,6 @@ interface Hold {
   readonly until: number
 }
 
-/** The store could not take its lock, so nothing was sent: `cause` is the store's own failure. */
-class Busy {
-  constructor(readonly cause: unknown) {}
-}
-
 /**
  * The lifetime of a token whose answer names none, for this grant alone (owner decision
  * 2026-11-10): the client gets a new token by itself whenever it asks, so the guess costs one
@@ -87,19 +82,6 @@ function keyOf({ endpoint, grant }: ClientCredentialsOptions): Promise<string> {
   ])
 }
 
-/** `keep.exclusive`, with a lock it cannot take thrown as `Busy`. */
-async function exclusive<T>(keep: TokenStore, key: string, work: () => Promise<T>): Promise<T> {
-  const lock = { taken: false }
-  try {
-    return await keep.exclusive(key, () => {
-      lock.taken = true
-      return work()
-    })
-  } catch (error) {
-    throw lock.taken ? error : new Busy(error)
-  }
-}
-
 /** The failure `hold` holds at `now`, if any: none before it began (a clock that stepped back). */
 function heldAt(hold: Hold | undefined, now: number): TokenFailure | undefined {
   return hold !== undefined && hold.since <= now && now < hold.until ? hold.failure : undefined
@@ -110,9 +92,8 @@ function heldAt(hold: Hold | undefined, now: number): TokenFailure | undefined {
  * failure passes; else the failure is thrown, the store's own for a busy lock.
  */
 function keptToken(failure: unknown, record: TokenRecord | undefined, now: number): string {
-  const passing = failure instanceof Busy || isPassing(failure)
-  if (!passing || record === undefined || isExpired(withLifetime(record), now)) {
-    throw failure instanceof Busy ? failure.cause : failure
+  if (!isPassingRenewal(failure) || record === undefined || isExpired(withLifetime(record), now)) {
+    throw causeOf(failure)
   }
   return record.accessToken
 }
@@ -145,7 +126,7 @@ export function clientCredentialsTokens(options: ClientCredentialsOptions): Toke
 
   const stored = async (keep: TokenStore): Promise<TokenRecord> => {
     const key = await keyOf(options)
-    return exclusive(keep, key, async () => {
+    return underLock(keep, key, async () => {
       const found = await keep.read(key)
       if (found !== undefined && found.accessToken !== refused) {
         if (!due(found, platform.now())) {

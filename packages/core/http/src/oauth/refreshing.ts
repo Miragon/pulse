@@ -14,7 +14,8 @@
 import type { TokenSource } from "../credential.js"
 import type { Platform } from "../types.js"
 import { canRefresh, EXPIRY, isDue, isExpired, renewsAfterRefusal } from "./expiry.js"
-import { isPassing, TokenFailure } from "./failure.js"
+import { TokenFailure } from "./failure.js"
+import { causeOf, isPassingRenewal, underLock } from "./store.js"
 import { requestToken } from "./token.js"
 import type {
   ExpiryPolicy,
@@ -44,14 +45,6 @@ export interface RefreshingOptions {
    */
   readonly kept?: (failure: unknown, record: TokenRecord) => void
 }
-
-/** The store could not take its lock: nothing was sent. */
-class Busy {
-  constructor(readonly cause: unknown) {}
-}
-
-/** What a renewal threw, as its caller sees it: the store's own failure for a busy lock. */
-const causeOf = (error: unknown): unknown => (error instanceof Busy ? error.cause : error)
 
 /** A refusal recorded earlier: no request asks again, a new login is needed. */
 function recordedFailure({ at, error, description }: RefreshRejection): TokenFailure {
@@ -135,7 +128,7 @@ class RefreshingTokens implements TokenSource {
     try {
       return await this.shared(record)
     } catch (error) {
-      const passing = error instanceof Busy || isPassing(error)
+      const passing = isPassingRenewal(error)
       if (!passing || isExpired(record, this.options.platform.now())) throw causeOf(error)
       this.options.kept?.(causeOf(error), record)
       return record
@@ -144,24 +137,13 @@ class RefreshingTokens implements TokenSource {
 
   /** One renewal at a time for every caller of this source. */
   private shared(sent: TokenRecord): Promise<TokenRecord> {
-    this.inflight ??= this.locked(sent)
+    const { store, key } = this.options
+    this.inflight ??= underLock(store, key, () => this.renewed(sent))
       .then((record) => (this.current = record))
       .finally(() => {
         this.inflight = undefined
       })
     return this.inflight
-  }
-
-  private async locked(sent: TokenRecord): Promise<TokenRecord> {
-    const lock = { taken: false }
-    try {
-      return await this.options.store.exclusive(this.options.key, () => {
-        lock.taken = true
-        return this.renewed(sent)
-      })
-    } catch (error) {
-      throw lock.taken ? error : new Busy(error)
-    }
   }
 
   /** Under the lock: take over a newer token, else refresh with the stored refresh token. */
