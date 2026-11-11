@@ -27,9 +27,6 @@ export class VariableBody {
 
   static of(change: VariableChange): string {
     const typed = VariableBody.typedValueOf(change)
-    if (typeof typed.value === "number" && !Number.isFinite(typed.value)) {
-      throw VariableBody.invalid(change.name, typed.type)
-    }
     return LosslessJson.stringify(VariableBody.engineVariable(change.name, typed))
   }
 

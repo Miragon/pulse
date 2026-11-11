@@ -96,7 +96,8 @@ missing.
   `OFFSET_REQUIRED` refuses a time without an offset, `UTC_WITHOUT_OFFSET` reads it as UTC;
   `engineDateMillis`, `latestEngineDate`), true-only and `…Like` filters (`trueOnly`,
   `complementaryFlags`, `engineLike`, `engineKeyList`, `engineInstanceSearch`), paired sorting
-  (`engineSorting`), variable writes and typing (`toEngineVariable(s)`, `autoTypedValue`),
+  (`engineSorting`), variable writes and typing (`toEngineVariable(s)`, which refuses a value that
+  is or holds a number that is not finite, since JSON would carry it as null; `autoTypedValue`),
   incident recovery (`incidentRecovery`, over `BUILT_IN_INCIDENT_TYPES`, the two types the engine
   raises itself), the raw variable read flag (`RAW_VARIABLES`, and `RAW_VARIABLES_QUERY` for a
   port's query), the history timeline (`timelineOf`), the request that holds an incident's cause

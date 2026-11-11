@@ -1,4 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest"
+import { z } from "zod"
+import { createToolRegistrar } from "@miragon/pulse-widget-shell/server"
+import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
 import { registerTools } from "./index.js"
 import {
   callTool,
@@ -125,6 +128,139 @@ describe("writes the engine would misread are refused before any request", () =>
       }),
     ).toThrow(/ISO 8601/)
     expect(engine.requests).toHaveLength(0)
+  })
+})
+
+const NOT_FINITE =
+  "a number that is not finite (a number beyond the range of a double, such as 1e400, reads as " +
+  "Infinity)"
+/** c7-core's refusal of such a number as the value. */
+const REFUSAL =
+  `Variable "amount": ${NOT_FINITE} would go out as null; ` +
+  "send it as a variable of type String with its digits as text"
+/** c7-core's refusal of a value that holds such a number. */
+const HELD_REFUSAL =
+  `Variable "amount": the value holds ${NOT_FINITE} that would go out as null; ` +
+  "send the whole value as JSON text, which keeps its digits"
+
+/**
+ * The arguments as the SDK hands them over, parsed from the request's JSON: `1e400`, beyond the
+ * range of a double, reads as Infinity, and `value: z.unknown()` lets it through. JSON would send
+ * it as null, so the write stored null and reported success (final review S3). One case per tool
+ * and input that takes a variable's value.
+ */
+const NOT_FINITE_WRITES: ReadonlyArray<
+  readonly [toolName: string, input: string, argsJson: string, refusal: string]
+> = [
+  [
+    "engine_set_process_instance_variable",
+    "value",
+    '{"processInstanceId":"pi-1","variableName":"amount","value":1e400,"type":"Double"}',
+    REFUSAL,
+  ],
+  [
+    "engine_set_process_instance_variable",
+    "value",
+    '{"processInstanceId":"pi-1","variableName":"amount","value":{"total":-1e400},"type":"Json"}',
+    HELD_REFUSAL,
+  ],
+  [
+    "engine_start_process_instance",
+    "variables",
+    '{"processDefinitionKey":"invoice","variables":{"amount":{"value":1e400,"type":"Double"}}}',
+    REFUSAL,
+  ],
+  [
+    "engine_complete_task",
+    "variables",
+    '{"taskId":"t-1","variables":{"amount":{"value":[1,1e400]}}}',
+    HELD_REFUSAL,
+  ],
+  [
+    "engine_complete_external_task",
+    "variables",
+    '{"externalTaskId":"ext-1","workerId":"w-1","variables":{"amount":{"value":1e400,"type":"Long"}}}',
+    REFUSAL,
+  ],
+  [
+    "engine_correlate_message",
+    "correlationKeys",
+    '{"messageName":"paid","correlationKeys":{"amount":{"value":1e400,"type":"Double"}}}',
+    REFUSAL,
+  ],
+  [
+    "engine_correlate_message",
+    "processVariables",
+    '{"messageName":"paid","processVariables":{"amount":{"value":-1e400,"type":"Double"}}}',
+    REFUSAL,
+  ],
+  [
+    "engine_throw_signal",
+    "variables",
+    '{"name":"alarm","variables":{"amount":{"value":1e400,"type":"Double"}}}',
+    REFUSAL,
+  ],
+]
+
+/** The parts of a zod schema's definition that hold further schemas. */
+interface SchemaDef {
+  type: string
+  shape?: Record<string, z.ZodType>
+  innerType?: z.ZodType
+  valueType?: z.ZodType
+  element?: z.ZodType
+  options?: z.ZodType[]
+  items?: z.ZodType[]
+  in?: z.ZodType
+  out?: z.ZodType
+}
+
+const defOf = (schema: z.ZodType) => schema._zod.def as unknown as SchemaDef
+
+/** An object shape that takes a variable's value: `value: z.unknown()`, whatever its name. */
+const takesAValue = (shape: Record<string, z.ZodType>) =>
+  shape.value !== undefined && defOf(shape.value).type === "unknown"
+
+/** Whether a schema holds, at any depth, an object that takes a variable's value. */
+function holdsAValue(schema: z.ZodType): boolean {
+  const def = defOf(schema)
+  if (def.shape && takesAValue(def.shape)) return true
+  const inner = [def.innerType, def.valueType, def.element, def.in, def.out]
+  return [...inner, ...(def.options ?? []), ...(def.items ?? []), ...Object.values(def.shape ?? {})]
+    .filter((child) => child !== undefined)
+    .some(holdsAValue)
+}
+
+describe("a variable whose number is not finite is refused before any request", () => {
+  it("covers every input of every tool that takes a variable's value", () => {
+    // Found by the schema, not by a name: a variables map (variableSchema) or a value of its own.
+    const taking = [...tools.values()].flatMap(({ name, inputSchema = {} }) => [
+      ...(takesAValue(inputSchema) ? [`${name} value`] : []),
+      ...Object.entries(inputSchema)
+        .filter(([, schema]) => holdsAValue(schema))
+        .map(([input]) => `${name} ${input}`),
+    ])
+    const covered = new Set(NOT_FINITE_WRITES.map(([toolName, input]) => `${toolName} ${input}`))
+    expect(taking.length).toBeGreaterThanOrEqual(7)
+    expect([...covered].sort()).toEqual([...new Set(taking)].sort())
+  })
+
+  it.each(NOT_FINITE_WRITES)("%s refuses it in %s", async (toolName, _input, argsJson, refusal) => {
+    const engine = await engineWith()
+    const recording = recordingModuleServer()
+    registerTools(createToolRegistrar(recording.server, registryFor(engine)), {
+      allowDeployments: true,
+    })
+    // Validated as the SDK validates a call's arguments before the registrar's callback runs.
+    const args = z
+      .strictObject(toolConfig(toolName).inputSchema ?? {})
+      .parse(JSON.parse(argsJson)) as Record<string, unknown>
+
+    const result = await recording.tool(toolName).call(args)
+
+    expect(result.isError).toBe(true)
+    expect(result.content.map((part) => part.text)).toEqual([refusal])
+    expect(engine.requests).toEqual([])
   })
 })
 

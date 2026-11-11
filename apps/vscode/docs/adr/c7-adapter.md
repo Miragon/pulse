@@ -1,7 +1,7 @@
 # Camunda 7 family adapter
 
 - Status: accepted
-- Last reviewed: 2026-11-11 (the editor hosts send the adapter no number beyond the range of a double, which it writes as text without a type); 2026-11-10 (the adapter sends through `@miragon/pulse-http` and its inspection goes out as routes of c7-core's `CORE_ROUTES`; the incident retry's target, the built-in incident types, the request of an incident's cause and the typing of a written variable come from c7-core; the adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the adapter is a package, which Pulse for Orca bundles too)
+- Last reviewed: 2026-11-11 (the editor hosts send the adapter no number beyond the range of a double, which it writes as text without a type; the refusal of a number that is not finite is c7-core's `toEngineVariable`, of which the adapter keeps no copy); 2026-11-10 (the adapter sends through `@miragon/pulse-http` and its inspection goes out as routes of c7-core's `CORE_ROUTES`; the incident retry's target, the built-in incident types, the request of an incident's cause and the typing of a written variable come from c7-core; the adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the adapter is a package, which Pulse for Orca bundles too)
 
 ## Context
 
@@ -167,7 +167,10 @@ MCP server run too. The package belongs to the c7 family, whose dialect it imple
   c7-core's `toEngineVariable` gives the wire form: a Json value as its serialized text, a
   Date in the engine's format with its own offset (c7-core's `OFFSET_REQUIRED` reading: a
   time without an offset, `24:00`, a day the calendar lacks or a date without a day is
-  rejected before sending), a Long beyond 2^53 with all its digits.
+  rejected before sending), a Long beyond 2^53 with all its digits. The rejection of a number
+  beyond the range of a double for one of the types above (its parsed text reads as Infinity)
+  is `toEngineVariable`'s as well, c7-core's rule for a number that is not finite, which the MCP
+  server's tools share; the adapter keeps no copy of it.
   The wire words each reason of the transport (`HttpFailures`, total over its
   `FailureReason`) and each error answer (`ErrorAnswers`: the status with its phrase, what
   the body states, a hint to the REST root for a 404 of no engine resource by c7-core's

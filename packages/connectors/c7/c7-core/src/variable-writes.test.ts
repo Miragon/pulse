@@ -126,6 +126,116 @@ describe("toEngineVariable", () => {
     ).toEqual({ value: "x", type: "String", valueInfo: { transient: true } })
     expect(toEngineVariable("f", { value: "x", type: "String" })).not.toHaveProperty("valueInfo")
   })
+
+  it("leaves an absent value absent", () => {
+    expect(toEngineVariable("v", { type: "String" })).toEqual({ value: undefined, type: "String" })
+    expect(toEngineVariable("v", {})).toEqual({ value: undefined, type: undefined })
+  })
+})
+
+/**
+ * JSON has no number that is not finite: `JSON.stringify` writes Infinity, -Infinity and NaN as
+ * null. A model's `1e400` reads as Infinity once the tool's arguments are parsed, so it went out as
+ * null and the write reported success (final review S3).
+ */
+describe("toEngineVariable refuses a number that is not finite", () => {
+  const NOT_FINITE =
+    "a number that is not finite (a number beyond the range of a double, such as 1e400, reads as " +
+    "Infinity)"
+  // A Double's text still reads as Infinity in the engine: a String keeps the number's digits.
+  const REFUSAL =
+    `Variable "amount": ${NOT_FINITE} would go out as null; ` +
+    "send it as a variable of type String with its digits as text"
+  // A Json or Object value's text passes through as it is, so JSON text keeps the digits.
+  const HELD_REFUSAL =
+    `Variable "amount": the value holds ${NOT_FINITE} that would go out as null; ` +
+    "send the whole value as JSON text, which keeps its digits"
+  // The scalar types, those toEngineVariable shapes itself (Json, Object, Date) and none.
+  const TYPES = ["Double", "Long", "Integer", "String", "Json", "Object", "Date", undefined]
+
+  it.each([
+    ["1e400 as a tool's arguments read it", (JSON.parse('{"v":1e400}') as { v: number }).v],
+    ["-1e400 as a tool's arguments read it", (JSON.parse('{"v":-1e400}') as { v: number }).v],
+    ["Infinity", Number.POSITIVE_INFINITY],
+    ["-Infinity", Number.NEGATIVE_INFINITY],
+    ["NaN", Number.NaN],
+  ])("refuses %s, whatever the type", (_label, value) => {
+    for (const type of TYPES) {
+      const write = () => toEngineVariable("amount", { value, type })
+      expect(write, `type ${type}`).toThrow(RangeError)
+      expect(write, `type ${type}`).toThrow(REFUSAL)
+    }
+  })
+
+  it.each([
+    ["an object", { total: Number.POSITIVE_INFINITY }],
+    ["an array", [Number.NEGATIVE_INFINITY]],
+    ["an object next to finite numbers", { count: 1, total: Number.NaN, label: "x" }],
+    ["an array next to finite numbers", [1, 2, Number.POSITIVE_INFINITY]],
+    ["deep down", { lines: [{ amount: 1 }, { amount: [null, true, Number.NaN] }] }],
+  ])("refuses one inside %s, which JSON would write as null", (_label, value) => {
+    for (const type of ["Json", "Object", undefined]) {
+      const write = () =>
+        toEngineVariable("amount", {
+          value,
+          type,
+          valueInfo: { objectTypeName: "java.util.HashMap" },
+        })
+      expect(write, `type ${type}`).toThrow(RangeError)
+      expect(write, `type ${type}`).toThrow(HELD_REFUSAL)
+    }
+  })
+
+  it("lets the JSON text of such a value through, which keeps the digits", () => {
+    const text = '{"total":1e400,"lines":[-1e400]}'
+    for (const type of ["Json", "Object"]) {
+      expect(
+        toEngineVariable("amount", {
+          value: text,
+          type,
+          valueInfo: { objectTypeName: "java.util.HashMap" },
+        }).value,
+      ).toBe(text)
+    }
+    expect(toEngineVariable("amount", { value: "1e400", type: "String" })).toEqual({
+      value: "1e400",
+      type: "String",
+    })
+  })
+
+  it("keeps a finite number of every size, the largest double included", () => {
+    for (const value of [0, -0, Number.MIN_VALUE, Number.MAX_VALUE, -Number.MAX_VALUE, 1.5]) {
+      expect(toEngineVariable("amount", { value, type: "Double" })).toEqual({
+        value,
+        type: "Double",
+      })
+    }
+    const nested = { total: Number.MAX_VALUE, lines: [{ amount: -1.5 }], note: null, ok: true }
+    expect(toEngineVariable("amount", { value: nested, type: "Json" }).value).toBe(
+      JSON.stringify(nested),
+    )
+  })
+
+  it("refuses exactly the numbers JSON cannot carry", () => {
+    // fc.double() draws NaN and the infinities only now and then: every run gets them as well.
+    const NOT_FINITE_NUMBERS = [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]
+    fc.assert(
+      fc.property(fc.oneof(fc.constantFrom(...NOT_FINITE_NUMBERS), fc.double()), (value) => {
+        const write = () => toEngineVariable("amount", { value, type: "Double" })
+        if (Number.isFinite(value)) expect(write()).toEqual({ value, type: "Double" })
+        else expect(write).toThrow(REFUSAL)
+      }),
+    )
+  })
+
+  it("refuses the whole map in toEngineVariables, naming the variable", () => {
+    expect(() =>
+      toEngineVariables({
+        note: { value: "fine", type: "String" },
+        amount: { value: Number.POSITIVE_INFINITY, type: "Double" },
+      }),
+    ).toThrow(REFUSAL)
+  })
 })
 
 describe("toEngineVariables", () => {
