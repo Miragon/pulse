@@ -894,6 +894,136 @@ describe("type-safety rules: errors everywhere, require-await off in the MCP tre
   })
 })
 
+/**
+ * Messages the effective setting of `rule` reports for `code` at `rel`, parsed with the path's own
+ * parser options (its jsxPragma among them) and the plugin that brings the rule, without a
+ * program: the rules below read syntax and scopes only.
+ */
+async function syntaxRuleMessages(rel, code, rule) {
+  const config = await eslint.calculateConfigForFile(path.join(repoRoot, rel))
+  const setting = config?.rules?.[rule]
+  if (!setting || setting[0] === 0) return []
+  const namespace = rule.includes("/") ? rule.slice(0, rule.lastIndexOf("/")) : undefined
+  const {
+    project: _project,
+    projectService: _projectService,
+    tsconfigRootDir: _root,
+    ...parserOptions
+  } = config.languageOptions.parserOptions ?? {}
+  return linter
+    .verify(
+      code,
+      [
+        {
+          files: SOURCE_EXTENSIONS.map((extension) => `**/*.${extension}`),
+          plugins: namespace ? { [namespace]: config.plugins[namespace] } : {},
+          languageOptions: {
+            parser: tseslint.parser,
+            parserOptions: { ...parserOptions, ecmaFeatures: { jsx: true } },
+          },
+          rules: { [rule]: setting },
+        },
+      ],
+      { filename: path.join(repoRoot, rel) },
+    )
+    .map((m) => m.message)
+}
+
+// Every program compiles with verbatimModuleSyntax (scripts/module-syntax.mjs), so an import or
+// re-export not marked `type` stays in the emitted JavaScript as written. Each planted form below
+// passed tsc and ESLint before these rules and left a side-effect import (`import {} from`,
+// `export {} from`) or a namespace import that only types use.
+describe("no import or re-export of types alone stays in the emitted JavaScript", () => {
+  const IMPORT_RULE = "@typescript-eslint/no-import-type-side-effects"
+  const EXPORT_RULE = "pulse/no-export-type-side-effects"
+  const TYPE_IMPORTS = "@typescript-eslint/consistent-type-imports"
+  /** A source of every tree, shipped code and tests, MCP and the strict ones. */
+  const TREES = [
+    "apps/mcp-server/src/__probe__.ts",
+    "apps/mcp-server/test/__probe__.ts",
+    "apps/cli/src/__probe__.ts",
+    "apps/vscode/src/host/__probe__.ts",
+    "apps/orca/src/worker/__probe__.ts",
+    `${UI}/__probe__.ts`,
+    "packages/core/widget-shell/src/__probe__.ts",
+    "packages/core/http/src/testing/loopback/__probe__.ts",
+    "packages/core/profile/src/__probe__.ts",
+    "packages/core/runtime-view/src/host-kit/__probe__.ts",
+    "packages/core/runtime-view/test/core/__probe__.test.ts",
+    "packages/connectors/c7/c7-client/src/__probe__.ts",
+    "packages/connectors/c7/c7-core/src/__probe__.ts",
+    "packages/connectors/c7/c7-adapter/test/__probe__.test.ts",
+    `${ENGINE_CONNECTOR_SRC_DIR}/__probe__.ts`,
+    "packages/connectors/engine/engine-core/src/__probe__.ts",
+    ...WIDGET_TREE_PATHS,
+  ]
+  /** A JSX file of every tree with JSX: React, Preact (the runtime view) and Orca's own runtime. */
+  const JSX_TREES = [
+    `${UI}/primitives/__probe__.tsx`,
+    ...WIDGET_TREE_PATHS.filter((rel) => rel.endsWith(".tsx")),
+    "packages/core/runtime-view/src/webview/components/__probe__.tsx",
+    "apps/orca/src/__probe__.tsx",
+  ]
+
+  it("reports an import whose names all carry an inline type, in every tree", async () => {
+    const code = 'import { type A, type B } from "./a.js"\nexport type C = A | B'
+    for (const rel of TREES) {
+      assert.equal((await syntaxRuleMessages(rel, code, IMPORT_RULE)).length, 1, rel)
+    }
+  })
+
+  it("reports a re-export whose names all carry an inline type, in every tree", async () => {
+    const code = 'export { type A, type B as C } from "./a.js"'
+    for (const rel of TREES) {
+      assert.equal((await syntaxRuleMessages(rel, code, EXPORT_RULE)).length, 1, rel)
+    }
+  })
+
+  it("fixes the re-export to `export type`, aliases kept", async () => {
+    const config = await eslint.calculateConfigForFile(path.join(repoRoot, `${UI}/__probe__.ts`))
+    const { output } = linter.verifyAndFix(
+      'export {\n  type A,\n  type B as C,\n} from "./a.js"\n',
+      [
+        {
+          files: ["**/*.ts"],
+          plugins: { pulse: config.plugins.pulse },
+          languageOptions: { parser: tseslint.parser },
+          rules: { [EXPORT_RULE]: "error" },
+        },
+      ],
+      { filename: path.join(repoRoot, `${UI}/__probe__.ts`) },
+    )
+    assert.equal(output, 'export type {\n  A,\n  B as C,\n} from "./a.js"\n')
+  })
+
+  it("leaves the forms the emitted JavaScript drops or needs alone", async () => {
+    const imports = [
+      'import type { A } from "./a.js"\nexport type C = A',
+      'import { type A, b } from "./a.js"\nexport const c: A = b',
+      'import "./side-effect.js"',
+    ].join("\n")
+    const exports = [
+      'export type { A } from "./a.js"',
+      'export { type B, b } from "./b.js"',
+      'export * from "./c.js"',
+      "type D = string\nexport { type D }",
+    ].join("\n")
+    for (const rel of TREES) {
+      assert.deepEqual(await syntaxRuleMessages(rel, imports, IMPORT_RULE), [], rel)
+      assert.deepEqual(await syntaxRuleMessages(rel, exports, EXPORT_RULE), [], rel)
+    }
+  })
+
+  it("reads JSX with the automatic runtime: a namespace import only types use is reported", async () => {
+    const typeOnly = 'import * as React from "react"\nexport const node: React.ReactNode = <div />'
+    const used = 'import * as React from "react"\nexport const node = React.createElement("div")'
+    for (const rel of JSX_TREES) {
+      assert.equal((await syntaxRuleMessages(rel, typeOnly, TYPE_IMPORTS)).length, 1, rel)
+      assert.deepEqual(await syntaxRuleMessages(rel, used, TYPE_IMPORTS), [], rel)
+    }
+  })
+})
+
 describe("the default project: the config files no tsconfig holds", () => {
   let projectService
   before(async () => {

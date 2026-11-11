@@ -4,10 +4,10 @@ import {
   type ProcessCommands,
   type ProcessRuntime,
 } from "@miragon/pulse-engine-core"
-import {
-  type EngineAdapter,
-  type EngineConnection,
-  type EngineWebUi,
+import type {
+  EngineAdapter,
+  EngineConnection,
+  EngineWebUi,
 } from "@miragon/pulse-runtime-view/ports"
 import { FakeEngine, FakeWorld } from "@miragon/pulse-engine-core/testing"
 import { CompositionRoot } from "../src/worker/composition-root.js"

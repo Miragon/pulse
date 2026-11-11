@@ -17,7 +17,7 @@ import {
   validateOAuthUrl,
   validateScopes,
 } from "./oauth.js"
-import { type OAUTH_AUTH_KEYS, type ProfileAuth } from "./types.js"
+import type { OAUTH_AUTH_KEYS, ProfileAuth } from "./types.js"
 import { CLIENT_SECRET_VARIABLE, validateVariableName } from "./variable.js"
 
 export interface OAuthChanges {

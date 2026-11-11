@@ -1044,7 +1044,11 @@ lists and in no other, and every program of a package (each tsconfig, the nested
 included) compiles with `verbatimModuleSyntax` and `isolatedModules`, so tsc refuses a type
 re-exported without `type`, which vitest would keep as a name without a value
 (`scripts/module-syntax.mjs`; `MODULE_SYNTAX_EXEMPT` leaves out the server app, which publishes
-no entry).
+no entry). With both, an import or re-export whose names all carry an inline `type` stays in the
+emitted JavaScript as a side-effect import, so ESLint refuses it
+(`@typescript-eslint/no-import-type-side-effects`, the config's own
+`pulse/no-export-type-side-effects`) and reads JSX with the automatic runtime (`jsxPragma: null`),
+which reports a namespace import that only types use (`scripts/eslint-gates.test.mjs`).
 
 **Mutation testing covers `@miragon/pulse-c7-core`, `@miragon/pulse-http`, the rules of
 `@miragon/pulse-engine-core` and `@miragon/pulse-profile`** (owner decisions: c7-core, engine-core

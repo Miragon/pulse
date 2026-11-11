@@ -7,12 +7,12 @@ import {
   type ProcessCommands,
   type ProcessRuntime,
 } from "@miragon/pulse-engine-core"
-import {
-  type EngineAdapter,
-  type EngineConnection,
-  type EngineCredentials,
-  type EngineWebUi,
-  type WorkspaceFiles,
+import type {
+  EngineAdapter,
+  EngineConnection,
+  EngineCredentials,
+  EngineWebUi,
+  WorkspaceFiles,
 } from "@miragon/pulse-runtime-view/ports"
 import {
   type Credentials,

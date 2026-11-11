@@ -11,7 +11,7 @@ import {
   type TokenMove,
   type VariableChange,
 } from "@miragon/pulse-engine-core"
-import { type ModelFile } from "../../ports/index.js"
+import type { ModelFile } from "../../ports/index.js"
 import type {
   IncidentRow,
   InstanceView,

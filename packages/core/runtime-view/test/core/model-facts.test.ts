@@ -1,5 +1,5 @@
 import { BpmnProcessId, ElementId } from "@miragon/pulse-engine-core"
-import { type ElementImplementation } from "../../src/ports/index.js"
+import type { ElementImplementation } from "../../src/ports/index.js"
 import { describe, expect, test } from "vitest"
 import type { ElementLink } from "../../src/core/panels/model-links.js"
 import { ModelFactsView } from "../../src/core/views/model-facts-view.js"

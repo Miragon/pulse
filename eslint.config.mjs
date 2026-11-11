@@ -256,6 +256,48 @@ const widgetHandOffGate = [
   "JSXOpeningElement[name.property.name='AskAiButton']",
 ].map((selector) => ({ selector, message: HAND_OFF_MESSAGE }))
 
+// Every program of the workspace compiles with verbatimModuleSyntax (scripts/module-syntax.mjs),
+// so tsc and the bundlers (Vite, esbuild, tsdown) keep each import and re-export not marked `type`
+// as it is written. One whose names all carry an inline `type` still loads its module:
+// `export { type A } from "./a.js"` emits `export {} from "./a.js"`. typescript-eslint's no-import-type-side-effects reports the
+// import; this rule reports the re-export, which no rule of typescript-eslint does, and fixes it to
+// `export type { A } from "./a.js"`.
+const noExportTypeSideEffects = {
+  meta: {
+    type: "problem",
+    fixable: "code",
+    messages: {
+      sideEffect:
+        "Every name of this re-export carries an inline `type`, so the emitted JavaScript keeps `export {} from` its module and loads it. Write `export type { … } from` instead.",
+    },
+    schema: [],
+  },
+  create(context) {
+    const { sourceCode } = context
+    return {
+      ExportNamedDeclaration(node) {
+        const { source, specifiers } = node
+        if (source === null || node.exportKind === "type" || specifiers.length === 0) return
+        if (!specifiers.every((specifier) => specifier.exportKind === "type")) return
+        context.report({
+          node,
+          messageId: "sideEffect",
+          *fix(fixer) {
+            yield fixer.insertTextAfter(sourceCode.getFirstToken(node), " type")
+            for (const specifier of specifiers) {
+              const keyword = sourceCode.getFirstToken(specifier)
+              yield fixer.removeRange([
+                keyword.range[0],
+                sourceCode.getTokenAfter(keyword).range[0],
+              ])
+            }
+          },
+        })
+      },
+    }
+  },
+}
+
 // ── The editor hosts (apps/vscode, apps/orca) and the runtime view they share ──
 // Pulse for VS Code, Pulse for Orca, the runtime view (packages/core/runtime-view) and the
 // Camunda 7 family's adapter (packages/connectors/c7/c7-adapter) keep the stricter
@@ -430,7 +472,18 @@ export default tseslint.config(
     },
   },
 
+  // Every tree with JSX compiles it with the automatic runtime (react-jsx: React, Preact, Orca),
+  // which needs no `React` in scope. typescript-eslint takes the classic pragma `React` unless told
+  // otherwise, and so counts a JSX file's `import * as React` as used, even where the file names
+  // React only in types: consistent-type-imports then misses the import that verbatimModuleSyntax
+  // keeps in the emitted JavaScript.
   {
+    files: ["**/*.{ts,tsx,mts,cts}"],
+    languageOptions: { parserOptions: { jsxPragma: null } },
+  },
+
+  {
+    plugins: { pulse: { rules: { "no-export-type-side-effects": noExportTypeSideEffects } } },
     rules: {
       // The type-safety rules (no-explicit-any, no-unsafe-*, no-base-to-string) stay at the
       // recommendedTypeChecked level, error. require-await is off everywhere but the CLI,
@@ -444,6 +497,11 @@ export default tseslint.config(
         "error",
         { prefer: "type-imports", fixStyle: "inline-type-imports" },
       ],
+      // An import or re-export whose names all carry an inline `type` stays in the emitted
+      // JavaScript as a side-effect import (verbatimModuleSyntax): both rules fix it to
+      // `import type` / `export type`.
+      "@typescript-eslint/no-import-type-side-effects": "error",
+      "pulse/no-export-type-side-effects": "error",
       "no-console": ["warn", { allow: ["warn", "error"] }],
     },
   },

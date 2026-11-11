@@ -10,7 +10,7 @@ import {
   type PageCursor,
   type VersionSummary,
 } from "@miragon/pulse-engine-core"
-import { type ModelFile } from "../../ports/index.js"
+import type { ModelFile } from "../../ports/index.js"
 import type { DriftCheck } from "../drift/drift-check.js"
 import type {
   DefinitionView,

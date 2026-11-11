@@ -1,5 +1,5 @@
 import { IncidentId } from "@miragon/pulse-engine-core"
-import { type EngineConnection } from "@miragon/pulse-runtime-view/ports"
+import type { EngineConnection } from "@miragon/pulse-runtime-view/ports"
 import { describe, expect, test } from "vitest"
 import { C7Adapter } from "../src/index.js"
 import { fakeEngineRest, REST_URL } from "./support/fake-engine-rest.js"
