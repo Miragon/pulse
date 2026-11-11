@@ -1039,8 +1039,12 @@ it: the checker replays the range commit by commit and waves a violation only wh
 that makes it carries one; a commit that brings a ratchet file back to a path the merge base
 holds (after another commit removed it) makes what that file changes against the base's.
 `pnpm lint:package-scripts` holds a package's first configs: every package with `src/` has a
-`vitest.config.ts`, and a valid `stryker.config.json` sits in each package `MUTATED_PACKAGES`
-lists and in no other.
+`vitest.config.ts`, a valid `stryker.config.json` sits in each package `MUTATED_PACKAGES`
+lists and in no other, and every program of a package (each tsconfig, the nested editor projects
+included) compiles with `verbatimModuleSyntax` and `isolatedModules`, so tsc refuses a type
+re-exported without `type`, which vitest would keep as a name without a value
+(`scripts/module-syntax.mjs`; `MODULE_SYNTAX_EXEMPT` leaves out the server app, which publishes
+no entry).
 
 **Mutation testing covers `@miragon/pulse-c7-core`, `@miragon/pulse-http`, the rules of
 `@miragon/pulse-engine-core` and `@miragon/pulse-profile`** (owner decisions: c7-core, engine-core

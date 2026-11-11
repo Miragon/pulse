@@ -261,9 +261,10 @@ describe("the @miragon/pulse-ui/testing entry", () => {
 })
 
 /**
- * The lists above are what vitest sees of the sources. A type re-exported without `type` is one
- * of its names, with no value, while tsc leaves it out of dist: a list that held it would promise
- * a name the published package does not export. So each name carries a runtime value.
+ * The lists above are what vitest sees of the sources. A type re-exported without `type` would be
+ * one of its names, with no value, and a list that held it would promise a name the published
+ * package does not export. tsc refuses that re-export (TS1205, verbatimModuleSyntax), and each name
+ * carrying a runtime value holds vitest's side of it too.
  */
 describe("the @miragon/pulse-ui entries", () => {
   it("give each of their names a runtime value", () => {

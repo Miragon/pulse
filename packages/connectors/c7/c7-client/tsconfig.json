@@ -5,7 +5,9 @@
     "moduleResolution": "bundler",
     "outDir": "dist",
     "rootDir": "src",
-    "composite": false
+    "composite": false,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true
   },
   "include": ["src"]
 }
