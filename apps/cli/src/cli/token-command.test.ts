@@ -1,11 +1,13 @@
 /**
  * The bearer token command of PULSE_CLI_TOKEN_COMMAND end to end through `run()`: the
- * header on the wire, the run again after a 401, the cache per project, failures, masking in
- * --verbose and --dry-run, `ping`, `auth status|login|logout` and `config show`.
+ * header on the wire, the run again after a 401, one run for parallel reads, the cache per
+ * project, failures, masking in --verbose and --dry-run, `ping`, `auth status|login|logout` and
+ * `config show`.
  */
 
 import { describe, expect, it } from "vitest"
 import { jwtWith, NOW_S, VALID_CLAIMS } from "../../test/support/bearer.js"
+import { workflowSetup } from "../../test/support/cli-workflow.js"
 import { fakeServer, json, type RecordedRequest } from "../../test/support/fake-fetch.js"
 import {
   CONFIG_PATH,
@@ -155,6 +157,66 @@ describe("a token command and the engine", () => {
     expect(opaque.commandRuns).toHaveLength(1)
     await execute(run, ["ping"], opaque)
     expect(opaque.commandRuns).toHaveLength(2)
+  })
+
+  // `status` and `inspect` send their reads in parallel: they share one run of the command
+  it.each([
+    ["status", "an opaque token", "opaque-1"],
+    ["inspect pi-1", "a JWT", JWT],
+  ])("runs it once for the parallel reads of %s, with %s", async (line, _kind, token) => {
+    const { engine, runtime, cli } = workflowSetup(run, "failed", {
+      env: ENV,
+      commands: printing(token, OTHER),
+    })
+    expect((await cli(line.split(" "))).code).toBe(0)
+    expect(runtime.commandRuns).toHaveLength(1)
+    expect(engine.requests.length).toBeGreaterThan(1)
+    const sent = new Set(engine.requests.map((request) => request.headers.authorization))
+    expect([...sent]).toEqual([`Bearer ${token}`])
+  })
+
+  it("runs it once for the 401s of parallel reads, and each read retries with its token", async () => {
+    const files = await cachedAMinuteAgo(JWT)
+    const refused: string[] = []
+    const { engine, runtime, cli } = workflowSetup(run, "failed", {
+      env: ENV,
+      files,
+      commands: printing(OTHER),
+      // the engine refuses the cached token, a minute old, and takes the one the command prints
+      fetch: (input, init) => {
+        if (new Headers(init?.headers).get("authorization") === `Bearer ${OTHER}`) {
+          return engine.fetch(input, init)
+        }
+        const url = new URL(input instanceof Request ? input.url : input)
+        refused.push(`${init?.method ?? "GET"} ${url.href}`)
+        return Promise.resolve(new Response("Jwt is expired", { status: 401 }))
+      },
+    })
+    expect((await cli(["status"])).code).toBe(0)
+    expect(runtime.commandRuns).toHaveLength(1)
+    expect(refused.length).toBeGreaterThan(1)
+    // every refused read went out once more, with the token of the one run
+    const accepted = engine.requests.map((request) => `${request.method} ${request.url}`)
+    const unretried = refused.filter((line) => {
+      const at = accepted.indexOf(line)
+      if (at >= 0) accepted.splice(at, 1)
+      return at < 0
+    })
+    expect(unretried).toEqual([])
+  })
+
+  it("runs a failing command once for the reads under way, and exits 4", async () => {
+    const { engine, runtime, cli } = workflowSetup(run, "failed", {
+      env: ENV,
+      commands: { exitCode: 7, stderr: "curl: (7) Failed to connect\n" },
+    })
+    const result = await cli(["inspect", "pi-1"])
+    // a read the failure left behind would run the command once more after the call returned
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(result.code).toBe(4)
+    expect(errorOf(result.stderr)).toMatchObject({ code: "LOGIN_FAILED" })
+    expect(runtime.commandRuns).toHaveLength(1)
+    expect(engine.requests).toEqual([])
   })
 
   it("caches the JWT of a command per working directory", async () => {

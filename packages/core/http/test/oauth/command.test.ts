@@ -12,13 +12,14 @@ const segment = (value: unknown) => btoa(JSON.stringify(value)).replace(/=+$/, "
 const jwt = (id: string, seconds: number) =>
   `${segment({ alg: "none" })}.${segment({ sub: id, exp: T0 / 1000 + seconds })}.sig`
 
-function setup(printed: readonly string[], options: Partial<CommandOptions> = {}) {
+/** A command that prints the next of `printed` (the last again when they run out); an Error fails. */
+function setup(printed: readonly (string | Error)[], options: Partial<CommandOptions> = {}) {
   const clock = { now: T0 }
   let runs = 0
   const run = () => {
     const token = printed[Math.min(runs, printed.length - 1)] ?? ""
     runs += 1
-    return Promise.resolve(token)
+    return token instanceof Error ? Promise.reject(token) : Promise.resolve(token)
   }
   const tokens = (overrides: Partial<CommandOptions> = {}) =>
     commandTokens(run, {
@@ -132,5 +133,102 @@ describe("a token command", () => {
     test.clock.now = T0 + 60_000
     await expect(tokens.rejected("from-another")).resolves.toBe(true)
     await expect(tokens.token()).resolves.toBe(jwt("c", 3600))
+  })
+})
+
+describe("parallel callers of a token command", () => {
+  it("wait for one run and send its token, with a store or without", async () => {
+    for (const store of [undefined, memoryTokenStore()]) {
+      const test = setup(["opaque-1", "opaque-2"], store === undefined ? {} : { store })
+      const tokens = test.tokens()
+      const reads = Promise.all([tokens.token(), tokens.token(), tokens.token()])
+      await expect(reads).resolves.toEqual(["opaque-1", "opaque-1", "opaque-1"])
+      expect(test.runs()).toBe(1)
+    }
+  })
+
+  it("wait for one run after their 401s, and a read meanwhile waits for it too", async () => {
+    const test = setup(["opaque-1", "opaque-2", "opaque-3"])
+    const tokens = test.tokens()
+    await tokens.token()
+    test.clock.now = T0 + 30_000
+    const renewals = [tokens.rejected("opaque-1"), tokens.rejected("opaque-1"), tokens.token()]
+    await expect(Promise.all(renewals)).resolves.toEqual([true, true, "opaque-2"])
+    await expect(Promise.all([tokens.token(), tokens.token()])).resolves.toEqual([
+      "opaque-2",
+      "opaque-2",
+    ])
+    expect(test.runs()).toBe(2)
+  })
+
+  it("run nothing after their 401s to a young token", async () => {
+    const test = setup(["opaque-1", "opaque-2"])
+    const tokens = test.tokens()
+    await tokens.token()
+    test.clock.now = T0 + 29_999
+    const renewals = Promise.all([tokens.rejected("opaque-1"), tokens.rejected("opaque-1")])
+    await expect(renewals).resolves.toEqual([false, false])
+    await expect(tokens.token()).resolves.toBe("opaque-1")
+    expect(test.runs()).toBe(1)
+  })
+
+  it("each fail once with a run that fails; the next read runs the command again", async () => {
+    const failure = new Error("exit code 7")
+    const test = setup([failure, "opaque-1"])
+    const tokens = test.tokens()
+    const reads = await Promise.allSettled([tokens.token(), tokens.token()])
+    expect(reads).toEqual([
+      { status: "rejected", reason: failure },
+      { status: "rejected", reason: failure },
+    ])
+    expect(test.runs()).toBe(1)
+    await expect(Promise.all([tokens.token(), tokens.token()])).resolves.toEqual([
+      "opaque-1",
+      "opaque-1",
+    ])
+    expect(test.runs()).toBe(2)
+  })
+
+  it("each fail once with a run after their 401s that fails; the next read runs it again", async () => {
+    const failure = new Error("exit code 7")
+    const test = setup(["opaque-1", failure, "opaque-2"])
+    const tokens = test.tokens()
+    await tokens.token()
+    test.clock.now = T0 + 30_000
+    const renewals = [tokens.rejected("opaque-1"), tokens.rejected("opaque-1"), tokens.token()]
+    const settled = await Promise.allSettled(renewals)
+    expect(settled.map((outcome) => outcome.status)).toEqual(["rejected", "rejected", "rejected"])
+    expect(test.runs()).toBe(2)
+    await expect(Promise.all([tokens.token(), tokens.token()])).resolves.toEqual([
+      "opaque-2",
+      "opaque-2",
+    ])
+    expect(test.runs()).toBe(3)
+  })
+
+  it("never send the refused token after a run that failed, also not the store's", async () => {
+    const failure = new Error("exit code 7")
+    const test = setup([jwt("a", 3600), failure, jwt("c", 3600)], { store: memoryTokenStore() })
+    const tokens = test.tokens()
+    const sent = String(await tokens.token())
+    test.clock.now = T0 + 30_000
+    await expect(tokens.rejected(sent)).rejects.toBe(failure)
+    await expect(tokens.token()).resolves.toBe(jwt("c", 3600))
+    await expect(tokens.rejected(sent)).resolves.toBe(true)
+    expect(test.runs()).toBe(3)
+  })
+
+  it("send a token due at once with one retry only; the others run again, as for any read", async () => {
+    const test = setup([jwt("a", 3600), jwt("b", 35), jwt("c", 3600)])
+    const tokens = test.tokens()
+    const sent = String(await tokens.token())
+    test.clock.now = T0 + 30_000
+    const renewals = Promise.all([tokens.rejected(sent), tokens.rejected(sent)])
+    await expect(renewals).resolves.toEqual([true, true])
+    await expect(Promise.all([tokens.token(), tokens.token()])).resolves.toEqual([
+      jwt("b", 35),
+      jwt("c", 3600),
+    ])
+    expect(test.runs()).toBe(3)
   })
 })

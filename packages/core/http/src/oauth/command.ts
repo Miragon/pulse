@@ -1,10 +1,14 @@
 /**
  * Tokens a command prints (the CLI's token command, a cloud CLI's `print-access-token`): run when
- * no token is fresh, a token of known expiry kept in the store until shortly before it expires,
- * so later and parallel callers do not run the command again, one of unknown expiry (an opaque
- * token) used by this source until a 401, and after a 401 run once more (an old enough token
- * only), which helps only when the command printed another token. That token goes out with the
- * attempt it was printed for, even when the policy finds it due at once.
+ * no token is fresh, once for every caller at a time, so parallel reads (and the 401s they get)
+ * wait for one run and send its token; a run that fails fails each of them once, and the next read
+ * runs the command anew, never sending the token a 401 refused. A token of known expiry is kept in
+ * the store until shortly before it expires, so later callers and a source built anew do not run
+ * the command again, one of unknown expiry (an opaque token) is used by this source until a 401;
+ * after a 401 the command runs once more (for an old enough token only), which helps only when it
+ * printed another token. That token goes out with the attempt it was printed for even when the
+ * policy finds it due at once (a lifetime of 5 s or less), for one attempt only: after parallel
+ * 401s the others run the command again, as the policy renews such a token for every request.
  */
 import type { TokenSource } from "../credential.js"
 import { EXPIRY, isDue, isExpired, renewsAfterRefusal } from "./expiry.js"
@@ -35,6 +39,10 @@ export function commandTokens(run: () => Promise<string>, options: CommandOption
   let current: TokenRecord | undefined
   /** The token a 401 brought, sent once more without asking the policy. */
   let retry: string | undefined
+  /** The token a 401 refused, until a run brings one: no read sends it, a run never takes it. */
+  let refused: string | undefined
+  /** The run under way: every caller meanwhile waits for it instead of running the command. */
+  let pending: Promise<TokenRecord> | undefined
 
   const fresh = (record: TokenRecord | undefined): record is TokenRecord =>
     record !== undefined && !isDue(record, now(), policy)
@@ -48,12 +56,25 @@ export function commandTokens(run: () => Promise<string>, options: CommandOption
   }
 
   /** The store's token while it is fresh and not `refused`, else the command's. */
-  const renewed = async (refused?: string): Promise<TokenRecord> => {
+  const renewed = async (): Promise<TokenRecord> => {
     if (store === undefined) return ran()
     return store.exclusive(key, async () => {
       const kept = await store.read(key)
       return fresh(kept) && kept.accessToken !== refused ? kept : ran()
     })
+  }
+
+  /** One renewal for every caller at a time; once it ends, failed or not, the next may start. */
+  const shared = (): Promise<TokenRecord> => {
+    pending ??= renewed()
+      .then((record) => {
+        refused = undefined
+        return (current = record)
+      })
+      .finally(() => {
+        pending = undefined
+      })
+    return pending
   }
 
   return {
@@ -64,15 +85,17 @@ export function commandTokens(run: () => Promise<string>, options: CommandOption
       if (current !== undefined && current.accessToken === retried && !isExpired(current, now())) {
         return current.accessToken
       }
-      if (!fresh(current)) current = await renewed()
-      return current.accessToken
+      // A token a 401 refused waits for the run under way, or after one that failed, starts one.
+      if (fresh(current) && current.accessToken !== refused) return current.accessToken
+      return (await shared()).accessToken
     },
     async rejected(sent) {
       if (current?.accessToken !== sent) return true
       if (!renewsAfterRefusal(current, now(), policy)) return false
-      current = await renewed(sent)
-      if (current.accessToken === sent) return false
-      retry = current.accessToken
+      refused = sent
+      const renewal = await shared()
+      if (renewal.accessToken === sent) return false
+      retry = renewal.accessToken
       return true
     },
   }

@@ -1,7 +1,9 @@
 /**
  * The AuthProvider of PULSE_CLI_TOKEN_COMMAND: pulse runs the command when it needs a token, and
- * @miragon/pulse-http/oauth's `commandTokens` renews it by the shared policy. A JWT with `exp` is
- * reused, also across calls (the cache file of command-cache.ts), until shortly before it
+ * @miragon/pulse-http/oauth's `commandTokens` renews it by the shared policy, one run at a time:
+ * all reads under way at once (as `status`, `inspect`, `wait` and `deploy` send several) and their
+ * 401s wait for one run; a read that starts after a run failed runs the command again. A JWT with
+ * `exp` is reused, also across calls (the cache file of command-cache.ts), until shortly before it
  * expires, then the command runs again, so a long `pulse wait` keeps a valid token; an opaque
  * token is reused within its call until a 401. After a 401 the command runs once more when the
  * token is old enough for a new one to help (30 s), and the request is retried when it printed
@@ -67,7 +69,8 @@ async function cachedToken(
 /**
  * The command's cache file as the package's TokenStore: a read hands over a fresh cached token
  * (the package takes it over unless a 401 refused it) and tells `offered`, a write caches a token
- * of known expiry; no lock, since a cache that cannot be used only makes the command run again.
+ * of known expiry; no lock: within a call the package runs the command once at a time, and
+ * between calls a cache that cannot be used only makes the command run again.
  */
 function commandStore(
   config: CommandBearerConfig,

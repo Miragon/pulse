@@ -156,9 +156,9 @@ pulse task list
 
 - Token sources in order: `--auth-token-stdin`, `PULSE_CLI_TOKEN`, `PULSE_CLI_TOKEN_COMMAND`, then
   the profile's `tokenEnv` or `token`.
-- It runs in the working directory with stdin closed and must print the token, not JSON (use
-  e.g. `jq -r .access_token`). Use an absolute path or no path: a relative one runs the script of
-  whatever directory the CLI runs in.
+- It runs in the working directory with stdin closed and must print the token, not JSON (use e.g.
+  `jq -r .access_token`); all reads under way at once share one run (`status` sends several). Use
+  an absolute path or no path: a relative one runs the script of whatever directory the CLI runs in.
 - A JWT is cached until due (like an OAuth token), also for later calls; an opaque token within its
   call until a 401. A 401 to a token at least 30 s old runs the command again and retries once.
 - A failing command exits 4 with `LOGIN_FAILED` and the end of its stderr. `auth status` runs it

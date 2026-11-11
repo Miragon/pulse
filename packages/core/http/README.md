@@ -103,10 +103,13 @@ endpoint that does not answer up to the request's deadline (`timeoutMs`, 30 s by
 `clientCredentialsTokens` alone assumes a lifetime, 300 s, for a token whose answer names none,
 since it asks for a token by itself; a login would spend its refresh token early (and a refusal of
 it would end a login whose access token may still hold) and a command would run for nothing, so
-`refreshingTokens` and `commandTokens` renew such a token only after a 401. After a 401 a token
-source renews once, and the token it got goes out with the second attempt even when the policy finds
-it due at once (a lifetime of 5 s or less): one renewal per attempt. Where tokens are kept, how a
-person logs in and every word a person reads stay with the surface.
+`refreshingTokens` and `commandTokens` renew such a token only after a 401. `commandTokens` runs its
+command once for every caller at a time: parallel reads, and the 401s they get, wait for one run and
+send its token; a run that fails fails each of them once, and the next read runs it anew instead of
+sending the token a 401 refused. After a 401 a token source renews once, and the token it got goes
+out with the second attempt even when the policy finds it due at once (a lifetime of 5 s or less),
+with one attempt only: after parallel 401s the others renew such a token again, as for any request.
+Where tokens are kept, how a person logs in and every word a person reads stay with the surface.
 
 ## The conformance cases
 
