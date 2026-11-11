@@ -37,7 +37,7 @@
           "pattern": "\\S"
         },
         "cockpitUrl": {
-          "description": "The engine's web app, for links only, e.g. http://localhost:8080/camunda/app/cockpit/default/: an http or https URL without credentials, query or fragment.",
+          "description": "The engine's web app, for links only, e.g. http://localhost:8080/camunda/app/cockpit/default/: an http or https URL without credentials, query or fragment. It may end in the web app's start route #/, which links drop; a deeper route such as #/processes refuses the profile.",
           "type": "string",
           "pattern": "\\S"
         },
