@@ -3,13 +3,20 @@
  * Code (#543): one request for every caller at a time, a new token shortly before the old one
  * expires (one whose answer names no lifetime counts as 300 s), and after a refusal or a failure
  * a hold, so a wrong secret costs one request a minute and a rate limit is waited out as its
- * Retry-After asks. After a 401 only a token old enough gets renewed: a young one was refused for
+ * Retry-After asks. A renewal that fails for a passing reason (no answer, a 5xx, a rate limit, a
+ * busy lock) keeps the token that is still valid, as a login's renewal does (owner decision
+ * 2026-11-10; the adapter failed the request): it goes out until it expires, and the renewal is
+ * tried again once the hold ends. Over a store the token that lives longer is kept, the stored one
+ * when another source renewed it meanwhile. The kept token goes out only once the renewal failed:
+ * the read that started it and every read meanwhile wait for its answer, for an endpoint that does
+ * not answer up to the request's deadline (30 s by default), as a login's do. A refusal fails the
+ * request at once. After a 401 only a token old enough gets renewed: a young one was refused for
  * another reason (a wrong audience), which a new token does not mend.
  */
 import type { TokenSource } from "../credential.js"
 import type { Platform } from "../types.js"
-import { EXPIRY, isDue, renewsAfterRefusal } from "./expiry.js"
-import { TokenFailure } from "./failure.js"
+import { EXPIRY, isDue, isExpired, renewsAfterRefusal } from "./expiry.js"
+import { isPassing, TokenFailure } from "./failure.js"
 import { tokenKey } from "./store.js"
 import { requestToken } from "./token.js"
 import type {
@@ -45,6 +52,11 @@ interface Hold {
   readonly until: number
 }
 
+/** The store could not take its lock, so nothing was sent: `cause` is the store's own failure. */
+class Busy {
+  constructor(readonly cause: unknown) {}
+}
+
 /**
  * The lifetime of a token whose answer names none, for this grant alone (owner decision
  * 2026-11-10): the client gets a new token by itself whenever it asks, so the guess costs one
@@ -53,10 +65,14 @@ interface Hold {
  */
 const ASSUMED_LIFETIME_MS = 300_000
 
+/** When `record` expires: at its expiry, else the assumed lifetime after its receipt. */
+function expiryOf(record: TokenRecord): number {
+  return record.expiresAt ?? record.receivedAt + ASSUMED_LIFETIME_MS
+}
+
 /** `record` as its renewal reads it: with the assumed lifetime when its answer named none. */
 function withLifetime(record: TokenRecord): TokenRecord {
-  if (record.expiresAt !== undefined) return record
-  return { ...record, expiresAt: record.receivedAt + ASSUMED_LIFETIME_MS }
+  return { ...record, expiresAt: expiryOf(record) }
 }
 
 /** The key of a client credentials token: no secret in clear, the scopes in any order alike. */
@@ -69,6 +85,36 @@ function keyOf({ endpoint, grant }: ClientCredentialsOptions): Promise<string> {
     grant.audience ?? null,
     [...(grant.scopes ?? [])].sort(),
   ])
+}
+
+/** `keep.exclusive`, with a lock it cannot take thrown as `Busy`. */
+async function exclusive<T>(keep: TokenStore, key: string, work: () => Promise<T>): Promise<T> {
+  const lock = { taken: false }
+  try {
+    return await keep.exclusive(key, () => {
+      lock.taken = true
+      return work()
+    })
+  } catch (error) {
+    throw lock.taken ? error : new Busy(error)
+  }
+}
+
+/** The failure `hold` holds at `now`, if any: none before it began (a clock that stepped back). */
+function heldAt(hold: Hold | undefined, now: number): TokenFailure | undefined {
+  return hold !== undefined && hold.since <= now && now < hold.until ? hold.failure : undefined
+}
+
+/**
+ * The token a read sends while its renewal fails or is held: `record` while it is valid and the
+ * failure passes; else the failure is thrown, the store's own for a busy lock.
+ */
+function keptToken(failure: unknown, record: TokenRecord | undefined, now: number): string {
+  const passing = failure instanceof Busy || isPassing(failure)
+  if (!passing || record === undefined || isExpired(withLifetime(record), now)) {
+    throw failure instanceof Busy ? failure.cause : failure
+  }
+  return record.accessToken
 }
 
 /** A renewing token source over the client credentials grant: see the module comment. */
@@ -99,11 +145,16 @@ export function clientCredentialsTokens(options: ClientCredentialsOptions): Toke
 
   const stored = async (keep: TokenStore): Promise<TokenRecord> => {
     const key = await keyOf(options)
-    return keep.exclusive(key, async () => {
+    return exclusive(keep, key, async () => {
       const found = await keep.read(key)
-      if (found !== undefined && found.accessToken !== refused && !due(found, platform.now())) {
-        current = found
-        return found
+      if (found !== undefined && found.accessToken !== refused) {
+        if (!due(found, platform.now())) {
+          current = found
+          return found
+        }
+        // While the renewal fails the token that lives longer is kept: the stored one for a
+        // source built anew, or when another source renewed it meanwhile.
+        if (current === undefined || expiryOf(found) > expiryOf(current)) current = found
       }
       const record = await requested()
       await keep.write(key, record)
@@ -111,20 +162,20 @@ export function clientCredentialsTokens(options: ClientCredentialsOptions): Toke
     })
   }
 
-  const held = (now: number): TokenFailure | undefined =>
-    hold !== undefined && hold.since <= now && now < hold.until ? hold.failure : undefined
-
   return {
     renewable: true,
     async token() {
       const now = platform.now()
       if (current !== undefined && !due(current, now)) return current.accessToken
-      const failure = held(now)
-      if (failure !== undefined) throw failure
+      const failure = heldAt(hold, now)
+      if (failure !== undefined) return keptToken(failure, current, now)
       pending ??= (store === undefined ? requested() : stored(store)).finally(() => {
         pending = undefined
       })
-      return (await pending).accessToken
+      return pending.then(
+        (record) => record.accessToken,
+        (error: unknown) => keptToken(error, current, platform.now()),
+      )
     },
     rejected(sent) {
       // Another request renewed it meanwhile: the next attempt takes that one.
