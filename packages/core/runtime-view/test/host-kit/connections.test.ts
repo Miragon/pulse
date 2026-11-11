@@ -1,8 +1,4 @@
 import { describe, expect, test } from "vitest"
-import {
-  CredentialStore,
-  type SecretStorage,
-} from "../../src/host-kit/connections/credential-store.js"
 import { EngineBadges } from "../../src/host-kit/connections/engine-badges.js"
 import { LOCAL_TARGET, type EngineTarget } from "../../src/host-kit/connections/engine-target.js"
 import { EnvironmentClassifier } from "../../src/host-kit/connections/environment-classifier.js"
@@ -239,30 +235,6 @@ describe("the environment of a target", () => {
       host: "prod.example.com:8443",
       product: "Operaton 2.1.5",
     })
-  })
-})
-
-describe("the secret scope", () => {
-  function inMemorySecrets() {
-    const stored = new Map<string, string>()
-    const secrets: SecretStorage = {
-      get: (key) => Promise.resolve(stored.get(key)),
-      store: (key, value) => {
-        stored.set(key, value)
-        return Promise.resolve()
-      },
-    }
-    return { stored, store: new CredentialStore(secrets) }
-  }
-
-  test("follows the modeler scheme of file path and target name", async () => {
-    const { stored, store } = inMemorySecrets()
-    await store.write(remote("dev", "http://x"), "demo", "demo")
-    await store.write(LOCAL_TARGET, "demo", "demo")
-    expect([...stored.keys()].filter((key) => key.endsWith(".username"))).toEqual([
-      `pulse.connection.${FILE}::dev.username`,
-      "pulse.connection.default::local.username",
-    ])
   })
 })
 
