@@ -62,9 +62,10 @@ proves itself: 71 saboteurs, each the fake with one flaw, fail exactly their law
   (`InstanceSummary`, `InstanceDetail`, `Incident`, `ElementStatistics`, `Variable` …), the queries
   (`InstanceFilter`, `VariableCondition`, `PageRequest`, `Page`, `InstanceCount`), bulk operations and migration
   plans; `RuntimeError` with its closed `RuntimeFailure`, and `FailingRuntime`, a runtime that
-  refuses every call with one error; the rules `ValueKinds` (the kind of a JSON value, and with
+  refuses every call with one error; the rules `ValueKinds` (the kind of a JSON value, with
   `isWholeNumber` whether it is a whole number of 64 bits, from `WHOLE_NUMBER_MIN` to
-  `WHOLE_NUMBER_MAX`, exact on its digits),
+  `WHOLE_NUMBER_MAX`, exact on its digits, and with `isFiniteNumber` whether it is a number a
+  double holds, decided on its text: `Number()` of it is finite),
   `MoveReasons` (when a reason for a token move is valid) and `RootCauses`, the root cause of a
   failure text in every dialect: `of` takes the last `Caused by:` line of a stack trace, else its
   first non-blank line, a leading class name shortened to its simple name, in one line of at most

@@ -232,6 +232,21 @@ describe("the value check", () => {
     ["any", "9223372036854775808.5", true],
     ["decimal", "9223372036854775808", true],
     ["json", "9223372036854775808", true],
+    ["decimal", "1.7976931348623157e308", true],
+    ["decimal", " -1.7976931348623157e308 ", true],
+    ["decimal", "5e-324", true],
+    ["decimal", "1.8e308", false],
+    ["decimal", "-1e400", false],
+    ["decimal", `${"9".repeat(400)}.5`, false],
+    ["decimal", `1${"0".repeat(400)}`, false],
+    ["any", "1.7976931348623157e308", true],
+    ["any", "1e400", false],
+    ["any", ` -${"9".repeat(400)}.5 `, false],
+    ["any", '"1e400"', true],
+    ["any", "[1e400]", true],
+    ["json", "1e400", true],
+    ["integer", "1e400", false],
+    ["text", "1e400", false],
   ] as const)("%s accepts %s: %s", (editor, valueJson, valid) => {
     const problem = VariableValues.whyInvalid({ name: "value", editor }, valueJson)
     expect(problem === undefined).toBe(valid)
@@ -276,6 +291,31 @@ describe("the value check", () => {
     expect(
       VariableValues.whyInvalid({ name: "amount", editor: "integer", type: "Integer" }, "4.5"),
     ).toBe("amount takes a whole number (Integer).")
+  })
+
+  test("names the variable, its type and the range of a double, and for a null variable how to keep the number as written", () => {
+    expect(
+      VariableValues.whyInvalid({ name: "ratio", editor: "decimal", type: "Double" }, "1.8e308"),
+    ).toBe(
+      "ratio takes a number (Double), and Pulse writes none outside -1.7976931348623157e308 to 1.7976931348623157e308.",
+    )
+    expect(VariableValues.whyInvalid({ name: "share", editor: "decimal" }, "-1e400")).toBe(
+      "share takes a number (decimal), and Pulse writes none outside -1.7976931348623157e308 to 1.7976931348623157e308.",
+    )
+    expect(
+      VariableValues.whyInvalid(
+        { name: "note", editor: "any", type: "Null" },
+        `${"9".repeat(400)}.5`,
+      ),
+    ).toBe(
+      "Pulse writes no number outside -1.7976931348623157e308 to 1.7976931348623157e308, the range of a double. Write note as text to keep it as written.",
+    )
+    expect(
+      VariableValues.whyInvalid({ name: "note", editor: "any", type: "Null" }, "9".repeat(400)),
+    ).toBe(
+      "Pulse writes no number without a fraction outside -9223372036854775808 to 9223372036854775807. Write note as text to keep every digit.",
+    )
+    expect(Number("1.7976931348623157e308")).toBe(Number.MAX_VALUE)
   })
 })
 

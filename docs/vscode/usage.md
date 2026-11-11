@@ -55,12 +55,12 @@ Retry incidents, change variables and move tokens: on local engines by default, 
 when `pulse.writes` allows it ([Configuration](./configuration.md#settings)). Every write asks
 first, names its exact target and leaves an audit line in the output channel "Pulse". A changed
 variable keeps its type. One that holds null is written as what you pick under _Write as_ (text,
-whole number, number, true or false, JSON); a number beyond the range of a double becomes text, as
-in the CLI, while the confirmation names the kind you picked. The editor marks a value it cannot
-write and says why before it asks, and nothing is sent: a value of the wrong kind, or a whole
-number beyond -9223372036854775808 to 9223372036854775807 (64 bits, on every engine) for a
-whole-number variable or one that holds null. For the latter, write such a number as text to
-keep its digits.
+whole number, number, true or false, JSON). The editor marks a value it cannot write and says why
+before it asks, and nothing is sent, on every engine: a value of the wrong kind, a whole number
+beyond -9223372036854775808 to 9223372036854775807 (64 bits) for a whole-number variable or one
+that holds null, and a number too large for a double, such as `1e400`, for a Double variable or one
+that holds null (a number a double rounds to ±1.7976931348623157e308, the largest, still goes out).
+For one that holds null, write such a number as text to keep it as written.
 
 ![Changing a variable](../assets/vscode/08-edit-variable.png)
 

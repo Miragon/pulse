@@ -6,6 +6,8 @@ const WHOLE_NUMBER_EDITORS: ReadonlySet<VariableEditor> = new Set<VariableEditor
   "integer",
   "any",
 ])
+const NUMBER_EDITORS: ReadonlySet<VariableEditor> = new Set<VariableEditor>(["decimal", "any"])
+const DOUBLE_RANGE = "-1.7976931348623157e308 to 1.7976931348623157e308"
 const ZONED_TIMESTAMP =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:?\d{2})$/
 
@@ -44,6 +46,9 @@ export class VariableValues {
     if (VariableValues.isBeyondWholeNumbers(target.editor, text)) {
       return VariableValues.beyondWholeNumbers(target)
     }
+    if (VariableValues.isBeyondDoubles(target.editor, text)) {
+      return VariableValues.beyondDoubles(target)
+    }
     return VariableValues.CHECKS[target.editor](text)
       ? undefined
       : `${target.name} takes ${EXPECTED[target.editor]} (${target.type ?? target.editor}).`
@@ -63,6 +68,21 @@ export class VariableValues {
       return `Pulse writes no number without a fraction outside ${range}. Write ${target.name} as text to keep every digit.`
     }
     return `${target.name} takes a whole number (${target.type ?? target.editor}), and Pulse writes none outside ${range}.`
+  }
+
+  private static isBeyondDoubles(editor: VariableEditor, text: string): boolean {
+    return (
+      NUMBER_EDITORS.has(editor) &&
+      NUMBER_KINDS.has(ValueKinds.ofJson(text)) &&
+      !ValueKinds.isFiniteNumber(text)
+    )
+  }
+
+  private static beyondDoubles(target: VariableTarget): string {
+    if (target.editor === "any") {
+      return `Pulse writes no number outside ${DOUBLE_RANGE}, the range of a double. Write ${target.name} as text to keep it as written.`
+    }
+    return `${target.name} takes a number (${target.type ?? target.editor}), and Pulse writes none outside ${DOUBLE_RANGE}.`
   }
 
   private static parsed(text: string): unknown {

@@ -41,6 +41,28 @@ function spied(commands: ProcessCommands) {
   }
 }
 
+async function openWithRatio() {
+  let commands: ReturnType<typeof spied> | undefined
+  let engine: ProcessCommands | undefined
+  const fixture = panelFixture((runtime) => runtime, {
+    writable: true,
+    adaptCommands: (given) => {
+      engine = given
+      return (commands = spied(given))
+    },
+  })
+  const instanceId = fixture.world.instanceIds["ORD-1002"]
+  await engine?.setVariable(instanceId, { name: "ratio", valueJson: "0.5", type: "Double" })
+  const panel = new InstancePanel(fixture.context, instanceId)
+  await panel.handle({ type: "ready" })
+  const view = () => readyView(fixture.lastState())
+  expect(view().variables.find((row) => row.name === "ratio")).toMatchObject({
+    type: "Double",
+    editor: "decimal",
+  })
+  return { fixture, panel, commands, view }
+}
+
 describe("an instance on a read-only engine", () => {
   test("offers neither retry nor editing and ignores write intents", async () => {
     const { fixture, panel, view } = await openPanel("ORD-1002", {})
@@ -363,6 +385,63 @@ describe("changing a variable", () => {
     expect(commands?.setVariable).toHaveBeenCalledWith(fixture.world.instanceIds["ORD-1002"], {
       name: "giftNote",
       valueJson: "9223372036854775807",
+    })
+  })
+
+  test.each([
+    [
+      "ratio",
+      "1.8e308",
+      "ratio takes a number (Double), and Pulse writes none outside -1.7976931348623157e308 to 1.7976931348623157e308.",
+    ],
+    [
+      "ratio",
+      `-${"9".repeat(400)}.5`,
+      "ratio takes a number (Double), and Pulse writes none outside -1.7976931348623157e308 to 1.7976931348623157e308.",
+    ],
+    [
+      "giftNote",
+      "1e400",
+      "Pulse writes no number outside -1.7976931348623157e308 to 1.7976931348623157e308, the range of a double. Write giftNote as text to keep it as written.",
+    ],
+    [
+      "giftNote",
+      `${"9".repeat(400)}.5`,
+      "Pulse writes no number outside -1.7976931348623157e308 to 1.7976931348623157e308, the range of a double. Write giftNote as text to keep it as written.",
+    ],
+  ])(
+    "refuses a number beyond the range of a double for %s before asking and sends nothing",
+    async (name, valueJson, message) => {
+      const { fixture, panel, commands, view } = await openWithRatio()
+      const before = view().variables.find((row) => row.name === name)
+
+      await panel.handle({ type: "setVariable", name, valueJson })
+
+      expect(fixture.effects.confirmWrite).not.toHaveBeenCalled()
+      expect(commands?.setVariable).not.toHaveBeenCalled()
+      expect(view().write).toEqual({
+        status: "failed",
+        target: { kind: "variable", name },
+        message,
+        inputRefusal: 1,
+      })
+      expect(view().variables.find((row) => row.name === name)).toEqual(before)
+    },
+  )
+
+  test.each([
+    ["ratio", "1.7976931348623157e308", "Double: 0.5 → 1.7976931348623157e308", { type: "Double" }],
+    ["giftNote", "-1.7976931348623157e308", "Null → number: null → -1.7976931348623157e308", {}],
+  ])("writes the largest double for %s", async (name, valueJson, fact, typed) => {
+    const { fixture, panel, commands } = await openWithRatio()
+
+    await panel.handle({ type: "setVariable", name, valueJson })
+
+    expect(fixture.effects.confirmWrite.mock.calls[0]?.[0].facts).toContain(fact)
+    expect(commands?.setVariable).toHaveBeenCalledWith(fixture.world.instanceIds["ORD-1002"], {
+      name,
+      valueJson,
+      ...typed,
     })
   })
 

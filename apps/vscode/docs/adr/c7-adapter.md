@@ -1,7 +1,7 @@
 # Camunda 7 family adapter
 
 - Status: accepted
-- Last reviewed: 2026-11-10 (the adapter sends through `@miragon/pulse-http` and its inspection goes out as routes of c7-core's `CORE_ROUTES`; the incident retry's target, the built-in incident types, the request of an incident's cause and the typing of a written variable come from c7-core; the adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the adapter is a package, which Pulse for Orca bundles too)
+- Last reviewed: 2026-11-11 (the editor hosts send the adapter no number beyond the range of a double, which it writes as text without a type); 2026-11-10 (the adapter sends through `@miragon/pulse-http` and its inspection goes out as routes of c7-core's `CORE_ROUTES`; the incident retry's target, the built-in incident types, the request of an incident's cause and the typing of a written variable come from c7-core; the adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the adapter is a package, which Pulse for Orca bundles too)
 
 ## Context
 
@@ -160,7 +160,10 @@ MCP server run too. The package belongs to the c7 family, whose dialect it imple
   JSON number in exponent form (`1e3`), which `autoTypedValue` leaves a String, is a Double
   within that range, since the editor hosts' "Write as: Number" writes a number. So without a
   type a number beyond the range of a double, in any form, goes out as a String of its exact
-  text, as in the CLI, and so does an integer beyond int64.
+  text, as in the CLI, and so does an integer beyond int64. The editor hosts send neither: their
+  runtime view refuses both before it asks for a variable that holds null, and a number beyond
+  the range of a double for a Double variable (`writes.md`), by engine-core's `ValueKinds`, to
+  which `packages/connectors/c7/c7-adapter/test/c7-number-parity.test.ts` holds this reading.
   c7-core's `toEngineVariable` gives the wire form: a Json value as its serialized text, a
   Date in the engine's format with its own offset (c7-core's `OFFSET_REQUIRED` reading: a
   time without an offset, `24:00`, a day the calendar lacks or a date without a day is
@@ -371,10 +374,10 @@ routes and so run every class above.
 - Since a written variable is typed by c7-core (`autoTypedValue`, `toEngineVariable`), a new
   variable (or one that holds null) given an integer beyond int64 or a number beyond the
   range of a double is a String of its exact text, no longer a Long the engine refused or a
-  number sent as written for the engine to judge, while the editor hosts' confirmation still
-  names a number; such an integer no longer reaches the adapter from the editor hosts for a
-  variable that holds null, since their runtime view refuses a whole number beyond 64 bits
-  before it asks (`writes.md`); a Date is sent with the offset it was given instead of in
+  number sent as written for the engine to judge; neither reaches the adapter from the editor
+  hosts for a variable that holds null any more, whose confirmation would name a number, since
+  their runtime view refuses a whole number beyond 64 bits and a number beyond the range of a
+  double before it asks (`writes.md`); a Date is sent with the offset it was given instead of in
   UTC (the same instant), and one with a day the calendar lacks, which `Date.parse` rolled
   over into the next month, or with `24:00`, which it read as the next day's midnight, is
   rejected before sending, as is an integer with a leading zero, which went out as JSON the

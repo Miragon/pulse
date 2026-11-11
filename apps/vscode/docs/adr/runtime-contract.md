@@ -1,8 +1,8 @@
 # Runtime contract
 
 - Status: accepted
-- Last reviewed: 2026-11-10 (the plug every dialect family provides; a whole number holds 64
-  bits); 2026-11-09 (the engine
+- Last reviewed: 2026-11-11 (a number holds a double); 2026-11-10 (the plug every dialect
+  family provides; a whole number holds 64 bits); 2026-11-09 (the engine
   contract is the engine family's core `@miragon/pulse-engine-core`, with the four changes
   Camunda 8 needs)
 
@@ -211,6 +211,20 @@ for any workspace, and the conformance kit does not cover them
   minus and ASCII digits, as `ofJson` reads an integer, so leading zeros count for nothing
   (`007` is 7). A dialect that cannot send such a spelling refuses it itself: the C7 adapter
   refuses a leading zero before sending, for a whole-number variable after the dialog.
+- **A number holds a double.** `ValueKinds.isFiniteNumber` says whether a value is a JSON
+  number a double holds, decided on its text: an integer or a decimal as `ofJson` reads one
+  (exponents included), whose `Number()` is finite, the reading of the C7 adapter and c7-core.
+  So the largest double (`1.7976931348623157e308`), its negative, a subnormal and a number that
+  underflows to 0 are numbers a double holds, and so is one that rounds to the largest double
+  (`1.7976931348623158e308`): the range is that of a double once rounded, not of the digits;
+  `1.8e308`, `-1e400` and 400 digits with `.5` are not. The runtime view refuses a number
+  beyond that before it asks ([writes.md](writes.md)), so no adapter of any engine receives one
+  from the editor hosts as the value of a Double variable or of one that holds null (owner
+  decision 2026-11-11); a Json variable still takes it as JSON text, a number inside JSON is no
+  such value, and the CLI still writes a decimal beyond that range as text (c7-core's
+  `autoTypedValue`), as the C7 adapter would for a variable without a type. A test of the C7
+  adapter holds its reading of a variable without a type and of a Double variable to
+  `isWholeNumber` and `isFiniteNumber`.
 
 ### Conformance kit
 

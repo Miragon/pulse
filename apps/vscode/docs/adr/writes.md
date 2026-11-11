@@ -1,7 +1,7 @@
 # Guarded writes
 
 - Status: accepted
-- Last reviewed: 2026-11-10 (the editor refuses a whole number beyond 64 bits before it asks, on every engine; the C7 adapter writes a number beyond the range of a double for a variable that holds null as text); 2026-10-23
+- Last reviewed: 2026-11-11 (the editor refuses a number beyond the range of a double before it asks, on every engine); 2026-11-10 (the editor refuses a whole number beyond 64 bits before it asks, on every engine); 2026-10-23
 
 ## Context
 
@@ -112,20 +112,28 @@ is not cut off; the type always comes from the snapshot. Values are checked per 
 before anything is sent. A variable that is currently null asks which type to write
 ("Write as": text, whole number, number, true or false, JSON), and the dialog names it
 ("Null → text"), so `4117` never turns into a number by accident. The adapter picks the
-engine's type within that kind; one exception: the C7 adapter writes a number beyond the
-range of a double as text, by c7-core's rule, as the CLI does, while the dialog still names a
-number. A whole number holds 64 bits, on every engine (owner decision 2026-11-10): the core
-refuses one beyond -9223372036854775808 to 9223372036854775807 (the contract's
-`ValueKinds.isWholeNumber`, exact on the digits) for a whole-number variable, with its name and
-type, and for one that holds null, with the advice to write it as text, which keeps every
-digit; a Double or a Json variable still takes it. The core checks no narrower range of a type
-(a Short or an Integer refuses a larger number only at the engine, after the dialog). Every
-value the core refuses before the dialog, of the wrong kind or beyond 64 bits, comes back
-numbered (`inputRefusal`, from 1 per panel): the editor marks its field `aria-invalid` with a
-red edge, points it at the reason inline and moves the focus there, and a second refusal with
-the same reason is a new state, so the focus moves back and the reason is announced again. An
-engine's refusal shows inline too, but leaves the field unmarked, without `aria-invalid` and
-without the red edge.
+engine's type within that kind. A whole number holds 64 bits, on every engine (owner decision
+2026-11-10): the core refuses one beyond -9223372036854775808 to 9223372036854775807 (the
+contract's `ValueKinds.isWholeNumber`, exact on the digits) for a whole-number variable, with its
+name and type, and for one that holds null, with the advice to write it as text, which keeps
+every digit; a Double or a Json variable still takes it. A number holds a double, on every
+engine (owner decision 2026-11-11): the core refuses one beyond -1.7976931348623157e308 to
+1.7976931348623157e308 once rounded to a double (the contract's `ValueKinds.isFiniteNumber`:
+`Number()` of its text is finite, as the C7 adapter and c7-core read it, so `1e400` or 400 digits
+and `.5` are beyond, while `1.7976931348623158e308`, which rounds to the largest double, goes out)
+for a Double variable, with its name and type, and for one that holds null, whatever "Write as"
+picked (number, whole number and JSON send the same text), with the advice to write it as text,
+which keeps it as written. So the C7 adapter, which writes such a number for a variable without a
+type as text, by c7-core's rule, as the CLI does, gets none from the editor hosts, whose dialog
+would name a number; a test of the adapter holds its reading to `ValueKinds` on the edges of both
+ranges. A Json variable still takes it, as JSON text, and so does a number inside JSON. The core
+checks no narrower range of a type (a Short or an Integer refuses a larger number only at the
+engine, after the dialog). Every value the core refuses before the dialog, of the wrong kind,
+beyond 64 bits or beyond a double, comes back numbered (`inputRefusal`, from 1 per panel): the
+editor marks its field `aria-invalid` with a red edge, points it at the reason inline and moves
+the focus there, and a second refusal with the same reason is a new state, so the focus moves
+back and the reason is announced again. An engine's refusal shows inline too, but leaves the
+field unmarked, without `aria-invalid` and without the red edge.
 
 ### Moving a token
 

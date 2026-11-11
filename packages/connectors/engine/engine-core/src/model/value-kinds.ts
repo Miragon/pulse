@@ -34,4 +34,9 @@ export class ValueKinds {
     const value = BigInt(text)
     return value >= ValueKinds.WHOLE_NUMBER_MIN && value <= ValueKinds.WHOLE_NUMBER_MAX
   }
+
+  static isFiniteNumber(valueJson: string): boolean {
+    const text = valueJson.trim()
+    return DECIMAL.test(text) && Number.isFinite(Number(text))
+  }
 }
