@@ -15,7 +15,9 @@
  * suffix:
  *   - `<family>-connector`: the MCP module (tools and their input schemas, widget tools,
  *     widgets); a dialect brings none;
- *   - `<family>-client`: its SDK leaf (the generated REST SDK, say; c7-client);
+ *   - `<family>-client`: its SDK leaf (the generated REST SDK, say; c7-client), which only the
+ *     family's connector (for a dialect's client the engine module) and adapter and tests import
+ *     (client-consumers), never an app;
  *   - `<family>-core`, when the family's interfaces share a pure domain: a leaf that the
  *     family's connector (for a dialect's core the engine module) and adapter and the interface
  *     apps that bundle it import (c7-core); a dialect's core has one edge out of its own tree,
@@ -105,6 +107,14 @@ const PACKAGE_ROOT = "(?:apps/[^/]+|packages/core/[^/]+|packages/connectors/[^/]
  */
 const FAMILY_CORE = "@miragon/pulse-[^/]+-core"
 const FAMILY_CORE_TREE = "^packages/connectors/[^/]+/[^/]+-core/"
+
+/**
+ * A family's client, `packages/connectors/<family>/<family>-client` (npm
+ * `@miragon/pulse-<family>-client`, e.g. c7-client with its ./sdk): the wire the family's
+ * connector sends through. Its rules key on the role, so a new dialect's client inherits them.
+ */
+const FAMILY_CLIENT = "@miragon/pulse-[^/]+-client"
+const FAMILY_CLIENT_TREE = "^packages/connectors/[^/]+/[^/]+-client/"
 
 /**
  * The engine module, `packages/connectors/engine/engine-connector` (npm
@@ -462,6 +472,35 @@ module.exports = {
           "@miragon/pulse-$1-client(/|$)",
         ],
       },
+    },
+    {
+      name: "client-consumers",
+      severity: "error",
+      comment:
+        "A family's client (packages/connectors/<family>/<family>-client, e.g. " +
+        "@miragon/pulse-c7-client with its ./sdk) is the wire its family's connector sends " +
+        "through: it is imported by that connector (connectors-own-their-family; the engine module " +
+        "imports the clients of the dialects ENGINE_DIALECTS names, " +
+        "engine-connector-spans-the-dialects), by the family's adapter (adapters-own-their-family; " +
+        "the C7 adapter's closed world keeps c7-client out) and by tests (a test file, " +
+        "test-support, a test tree). No app imports one: the MCP server composes connectors, not " +
+        "their wire, and reaches an engine through resolveEngine/withEngine (CLAUDE.md invariant " +
+        "2); the CLI sends through its own http layer, the editor hosts through a family's " +
+        "adapter. No other package either: no foundation package, not the runtime view, no " +
+        "family core (its scripts/ included), no shipped ./testing entry. A relative escape " +
+        "into a client's tree, its generated SDK included, is a violation too.",
+      from: {
+        pathNot: [
+          // A connector, an adapter and a client answer to their own rules for a client:
+          // connectors-own-their-family or engine-connector-spans-the-dialects,
+          // adapters-own-their-family, clients-are-leaves.
+          "^packages/connectors/[^/]+/[^/]+-(?:connector|adapter|client)/",
+          "[.]test[.]tsx?$",
+          ...TEST_SUPPORT,
+          `^${PACKAGE_ROOT}/(?:test|test-host)/`,
+        ],
+      },
+      to: { path: [FAMILY_CLIENT_TREE, ...npm(FAMILY_CLIENT)] },
     },
     {
       name: "core-is-foundation",
@@ -1229,12 +1268,14 @@ module.exports = {
     },
   ],
   options: {
-    doNotFollow: { path: "node_modules" },
     // The hey-api SDK of the c7 family (c7-client) is regenerated from the one Camunda 7 REST
     // spec (c7-core's spec/api.json, `pnpm generate`) and never edited by hand, so it is the one
-    // tree kept out of the graph. Any other generated tree (a command catalog, a route table, say)
-    // is cruised like hand-written code: list nothing else here.
-    exclude: { path: ["^packages/connectors/c7/c7-client/src/generated/"] },
+    // tree whose own imports are not followed. It stays in the graph as a target (doNotFollow,
+    // never exclude, which would drop every edge into it), so a relative escape into the SDK's
+    // sources (the files behind ./sdk and ./types) trips client-consumers like one into the
+    // rest of the client. Any other generated tree (a command catalog, a route table, say) is
+    // cruised like hand-written code: list nothing else here.
+    doNotFollow: { path: ["node_modules", "^packages/connectors/c7/c7-client/src/generated/"] },
     tsPreCompilationDeps: true,
     tsConfig: { fileName: "tsconfig.base.json" },
     // Keep workspace imports as node_modules/@miragon/pulse-* paths instead of

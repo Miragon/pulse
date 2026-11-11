@@ -114,6 +114,7 @@ const PEERS = "connectors-are-peers"
 const OWN_FAMILY = "connectors-own-their-family"
 const SPANS = "engine-connector-spans-the-dialects"
 const CLIENT_LEAF = "clients-are-leaves"
+const CLIENT_USERS = "client-consumers"
 const CORE = "core-is-foundation"
 const UI_LEAF = "ui-is-a-leaf"
 const UI_FOUNDATION = "ui-foundation-entries-import-nothing"
@@ -193,6 +194,9 @@ const ENGINE_CORE_NAME = "@miragon/pulse-engine-core"
 const ENGINE_CORE_SRC = `${ENGINE_CORE}/src/index.ts`
 const BILLING_CORE_SRC = `${BILLING_CORE}/src/index.ts`
 const C7_CLIENT_SRC = `${C7_CLIENT}/src/index.ts`
+// The hey-api SDK the config never follows (options.doNotFollow) and one file of it.
+const GENERATED_SDK = `${C7_CLIENT}/src/generated/`
+const GENERATED_CLIENT = `${GENERATED_SDK}client.gen.ts`
 const ENGINE_CONNECTOR_SRC = `${ENGINE_CONNECTOR}/src/index.ts`
 const BILLING_CONNECTOR_SRC = `${BILLING_CONNECTOR}/src/index.ts`
 
@@ -307,9 +311,6 @@ const SUITES = [
         "@miragon/pulse-widget-shell",
         "@miragon/pulse-widget-shell/server",
         "@miragon/pulse-engine-connector",
-        "@miragon/pulse-c7-client",
-        "@miragon/pulse-c7-client/sdk",
-        "@miragon/pulse-c7-client/routes",
         "react",
         "react-dom/client",
         "lucide-react",
@@ -331,6 +332,12 @@ const SUITES = [
         "@miragon/modeler-shell",
         "vscode",
       ].map((spec) => [CLI_SRC, spec, [HEADLESS]]),
+      // A family's client is client-consumers' as well: no app imports one.
+      ...[
+        "@miragon/pulse-c7-client",
+        "@miragon/pulse-c7-client/sdk",
+        "@miragon/pulse-c7-client/routes",
+      ].map((spec) => [CLI_SRC, spec, [HEADLESS, CLIENT_USERS]]),
       // The MCP Apps runtime is the host adapter's rule as well.
       ...["@modelcontextprotocol/ext-apps", "@modelcontextprotocol/ext-apps/react"].map((spec) => [
         CLI_SRC,
@@ -388,7 +395,7 @@ const SUITES = [
       [PROFILE_SRC, "@miragon/pulse-ui", [PROFILE_LEAF]],
       [PROFILE_SRC, "@miragon/pulse-widget-shell/server", [PROFILE_LEAF]],
       [PROFILE_SRC, C7_CORE, [CORE, PROFILE_LEAF]],
-      [PROFILE_SRC, "@miragon/pulse-c7-client", [CORE, PROFILE_LEAF]],
+      [PROFILE_SRC, "@miragon/pulse-c7-client", [CORE, PROFILE_LEAF, CLIENT_USERS]],
       [PROFILE_SRC, "@miragon/pulse-cli", [NO_APP, PROFILE_LEAF]],
       ...["zod", "react", "commander", "reactive", "node:fs"].map((spec) => [
         PROFILE_SRC,
@@ -464,7 +471,7 @@ const SUITES = [
       [HTTP_SRC, "@miragon/pulse-widget-shell/server", [HTTP_LEAF]],
       [HTTP_SRC, PROFILE_NAME, [HTTP_LEAF, PROFILE_USERS]],
       [HTTP_SRC, C7_CORE, [CORE, HTTP_LEAF]],
-      [HTTP_SRC, "@miragon/pulse-c7-client", [CORE, HTTP_LEAF]],
+      [HTTP_SRC, "@miragon/pulse-c7-client", [CORE, HTTP_LEAF, CLIENT_USERS]],
       [HTTP_SRC, "@miragon/pulse-cli", [NO_APP, HTTP_LEAF]],
       // No HTTP library under the injected fetch, no token verifier, no schema, no UI.
       ...["undici", "jose", "zod", "react", "reactive", "node:http"].map((spec) => [
@@ -680,7 +687,7 @@ const SUITES = [
       "a family core imports only its own modules and engine-core's main entry: no other " +
       "package, no npm module, no built-in",
     cases: [
-      [C7_SRC, "@miragon/pulse-c7-client", [CORE_LEAF]],
+      [C7_SRC, "@miragon/pulse-c7-client", [CORE_LEAF, CLIENT_USERS]],
       // The engine module imports the core, never the other way round.
       [C7_SRC, "@miragon/pulse-engine-connector", [CORE_LEAF]],
       [C7_SRC, BILLING_CORE_NAME, [CORE_LEAF]],
@@ -697,7 +704,11 @@ const SUITES = [
         "path",
       ].map((spec) => [C7_SRC, spec, [CORE_LEAF]]),
       [`${C7}/src/escape.ts`, "../../../../core/ui/src/target.ts", [CORE_LEAF, DEEP]],
-      [`${C7}/src/escape-client.ts`, "../../c7-client/src/target.ts", [CORE_LEAF, DEEP]],
+      [
+        `${C7}/src/escape-client.ts`,
+        "../../c7-client/src/target.ts",
+        [CORE_LEAF, CLIENT_USERS, DEEP],
+      ],
       // The shipped ./testing export is no test file: only *.test.ts may import vitest.
       [`${C7}/src/testing/index.ts`, "vitest", [CORE_LEAF]],
       // Its one edge out: engine-core's main entry, resolved to the build (c7-core) or bare
@@ -734,7 +745,7 @@ const SUITES = [
       // Keyed on the role: any family's core is a leaf, by the layout alone. The main entry of
       // engine-core passes the leaf rule here too (bare, shape 3), but only a dialect's core may
       // import it (engine-core-consumers).
-      [BILLING_CORE_SRC, "@miragon/pulse-billing-client", [CORE_LEAF]],
+      [BILLING_CORE_SRC, "@miragon/pulse-billing-client", [CORE_LEAF, CLIENT_USERS]],
       [BILLING_CORE_SRC, "zod", [CORE_LEAF]],
       [BILLING_CORE_SRC, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
       [BILLING_CORE_SRC, "./lib.ts", []],
@@ -745,7 +756,7 @@ const SUITES = [
       [ENGINE_CORE_SRC, HTTP_NAME, [CORE_LEAF, HTTP_USERS]],
       // No dialect below it: a dialect's core implements engine-core, never the other way round.
       [ENGINE_CORE_SRC, C7_CORE, [CORE_LEAF]],
-      [ENGINE_CORE_SRC, "@miragon/pulse-c7-client", [CORE_LEAF]],
+      [ENGINE_CORE_SRC, "@miragon/pulse-c7-client", [CORE_LEAF, CLIENT_USERS]],
       [ENGINE_CORE_SRC, "pulse-cockpit", [NO_APP, CORE_LEAF]],
       ...["zod", "react", "preact", "reactive", "node:fs"].map((spec) => [
         ENGINE_CORE_SRC,
@@ -913,7 +924,7 @@ const SUITES = [
       "family's package",
     cases: [
       [VIEW_SRC, "@miragon/pulse-engine-connector", [VIEW_ENGINE]],
-      [VIEW_SRC, "@miragon/pulse-c7-client", [VIEW_ENGINE]],
+      [VIEW_SRC, "@miragon/pulse-c7-client", [VIEW_ENGINE, CLIENT_USERS]],
       [`${RUNTIME_VIEW}/src/core/billing.ts`, BILLING_CORE_NAME, [VIEW_ENGINE]],
       [`${RUNTIME_VIEW}/src/host-kit/c7-sub.ts`, `${C7_CORE}/routes`, [VIEW_ENGINE]],
       [
@@ -1094,7 +1105,7 @@ const SUITES = [
       // A connector package's scripts/ (c7-core's spec and route generator) likewise: no app,
       // no other package's sources, its own package's sources are its own.
       [`${C7}/scripts/escape-app.ts`, "../../../../../apps/cli/scripts/target.ts", [NO_APP, DEEP]],
-      [`${C7}/scripts/escape.ts`, "../../c7-client/src/target.ts", [DEEP]],
+      [`${C7}/scripts/escape.ts`, "../../c7-client/src/target.ts", [CLIENT_USERS, DEEP]],
       [`${C7}/scripts/generate.ts`, "../src/target.ts", []],
     ],
   },
@@ -1103,7 +1114,7 @@ const SUITES = [
     title: "packages/core reaches up into no connector, client or app",
     cases: [
       [SHELL_SRC, "@miragon/pulse-engine-connector", [CORE]],
-      [SHELL_SRC, "@miragon/pulse-billing-client", [CORE]],
+      [SHELL_SRC, "@miragon/pulse-billing-client", [CORE, CLIENT_USERS]],
       // React and the kit are the view half's (the server half is widget-shell-server-headless's).
       [`${SHELL}/src/ui/view.ts`, "react", []],
       [SHELL_SRC, "zod", []],
@@ -1120,7 +1131,7 @@ const SUITES = [
       [UI_SRC, "@miragon/pulse-widget-shell", [UI_LEAF]],
       [UI_SRC, "@miragon/pulse-widget-shell/widgets", [UI_LEAF]],
       [UI_SRC, "@miragon/pulse-engine-connector", [CORE, UI_LEAF]],
-      [UI_SRC, "@miragon/pulse-billing-client", [CORE, UI_LEAF]],
+      [UI_SRC, "@miragon/pulse-billing-client", [CORE, UI_LEAF, CLIENT_USERS]],
       // A scoped app name is a workspace package name as well: the leaf rule bites with the app rule.
       [UI_SRC, "@miragon/pulse-mcp-server", [NO_APP, UI_LEAF]],
       ...[
@@ -1626,8 +1637,9 @@ const SUITES = [
       // Anchored: a family whose name starts like a dialect's is no dialect.
       [`${ENGINE_CONNECTOR}/src/lib/engine/c70.ts`, "@miragon/pulse-c70-core", [SPANS]],
       // Allowed: the dialect family c7 (its core and its client, a subpath too) and tests. The
-      // engine family has no client or core of its own since 0.28; that the rule still exempts
-      // it is held by the ENGINE_DIALECTS suite below.
+      // engine family has no client; its core, engine-core, is exempt here but kept out by
+      // engine-core-consumers (the ENGINE_CORE_USERS suite); that the rule exempts the family is
+      // held by the ENGINE_DIALECTS suite below.
       [`${ENGINE_CONNECTOR}/src/lib/core-adapter/port.ts`, C7_CORE, []],
       [`${ENGINE_CONNECTOR}/src/lib/core-adapter/types.ts`, C7_CORE, [], "type"],
       [`${ENGINE_CONNECTOR}/src/lib/engine/c7.ts`, "@miragon/pulse-c7-client", []],
@@ -1649,6 +1661,59 @@ const SUITES = [
       ],
       [C7_CLIENT_SRC, "zod", []],
       [C7_CLIENT_SRC, "./lib.ts", []],
+    ],
+  },
+  {
+    rule: CLIENT_USERS,
+    title:
+      "a family's client is imported by its family's connector and adapter and by tests, by no " +
+      "app and no other package",
+    cases: [
+      // The MCP server composes connectors, not their wire: in every shape (resolved through its
+      // node_modules, a bare subpath, a relative escape), as a type too.
+      [SERVER_SRC, "@miragon/pulse-c7-client", [CLIENT_USERS]],
+      [`${SERVER}/src/client-sdk.ts`, "@miragon/pulse-c7-client/sdk", [CLIENT_USERS]],
+      [
+        `${SERVER}/src/escape-client.ts`,
+        "../../../packages/connectors/c7/c7-client/src/target.ts",
+        [CLIENT_USERS, DEEP],
+      ],
+      // The generated SDK behind ./sdk is a target like the rest of the client (doNotFollow,
+      // never exclude: an excluded tree drops every edge into it).
+      [
+        `${SERVER}/src/escape-sdk.ts`,
+        "../../../packages/connectors/c7/c7-client/src/generated/sdk.gen.ts",
+        [CLIENT_USERS, DEEP],
+      ],
+      [`${SERVER}/src/client-types.ts`, "@miragon/pulse-c7-client", [CLIENT_USERS], "type"],
+      // Keyed on the role: another family's client, and a new dialect's that no package.json
+      // declares yet (bare and unresolved).
+      [`${SERVER}/src/billing-client.ts`, "@miragon/pulse-billing-client", [CLIENT_USERS]],
+      [`${SERVER}/src/c8-client.ts`, "@miragon/pulse-c8-client", [CLIENT_USERS]],
+      // A shipped ./testing entry is no test.
+      [`${SERVER}/src/testing/client.ts`, "@miragon/pulse-c7-client", [CLIENT_USERS]],
+      // A family core's scripts/ (c7-core's spec and route generator): family-core-is-a-leaf
+      // holds only its src/, so this rule alone keeps a client out of it.
+      [`${C7}/scripts/client.ts`, "@miragon/pulse-c7-client", [CLIENT_USERS]],
+      // The editor hosts reach a dialect through its adapter (their closed worlds agree).
+      [EXT_SRC, "@miragon/pulse-c7-client", [CLIENT_USERS]],
+      [`${ORCA}/src/worker/client.ts`, "@miragon/pulse-c7-client/sdk", [CLIENT_USERS]],
+      [
+        `${ORCA}/src/worker/escape-client.ts`,
+        "../../../../packages/connectors/c7/c7-client/src/target.ts",
+        [CLIENT_USERS, DEEP],
+      ],
+      // Anchored: a look-alike name is no client.
+      [`${SERVER}/src/client-x.ts`, "@miragon/pulse-c7-clientx", []],
+      // Allowed: the engine module (the dialects' clients), a connector and an adapter of its own
+      // family, and tests anywhere (the CLI's stay cli-is-headless's).
+      [`${ENGINE_CONNECTOR}/src/providers/create-client.ts`, "@miragon/pulse-c7-client", []],
+      [`${BILLING_CONNECTOR}/src/lib/engine/client.ts`, "@miragon/pulse-billing-client/sdk", []],
+      [`${BILLING_ADAPTER}/src/client.ts`, "@miragon/pulse-billing-client/sdk", []],
+      [`${SERVER}/src/client.test.ts`, "@miragon/pulse-c7-client", []],
+      [`${EXT}/src/host/client.test-support.ts`, "@miragon/pulse-c7-client/sdk", []],
+      [`${C7}/test/support/client.ts`, "@miragon/pulse-c7-client", []],
+      [`${CLI}/test/support/client.ts`, "@miragon/pulse-c7-client", [HEADLESS]],
     ],
   },
   {
@@ -2063,6 +2128,9 @@ function buildFixture(root) {
   for (const { from, spec } of SYNC_CASES) plant(from, spec)
   plant(`${CLI}/src/catalog/catalog.ts`, "../generated/commands.json")
   plant(C7_CLIENT_SRC, "./generated/sdk.gen.ts")
+  // A generated SDK file with an import clients-are-leaves forbids: never followed.
+  plant(C7_CLIENT_SRC, "./generated/client.gen.ts")
+  plant(GENERATED_CLIENT, "@miragon/pulse-widget-shell")
   plant(ENGINE_CONNECTOR_SRC, "./generated/catalog.ts")
 
   for (const leaf of LEAVES) {
@@ -2161,7 +2229,7 @@ describe("the fixture plants a family core's edges to engine-core in their shape
   })
 })
 
-describe("options.exclude keeps only the hey-api SDK out of the graph", () => {
+describe("options.doNotFollow keeps only the hey-api SDK's own imports out of the graph", () => {
   it("cruises a generated tree anywhere else (a CLI command catalog, a connector catalog)", () => {
     const sources = new Set(output.modules.map((module) => module.source))
     assert.ok(sources.has(`${CLI}/src/generated/commands.json`), "apps/cli/src/generated dropped")
@@ -2175,15 +2243,23 @@ describe("options.exclude keeps only the hey-api SDK out of the graph", () => {
     )
   })
 
-  it("excludes c7-client/src/generated", () => {
-    const generated = `${C7_CLIENT}/src/generated/`
-    const hits = output.modules.flatMap((module) => [
-      ...(module.source.startsWith(generated) ? [module.source] : []),
-      ...module.dependencies
-        .filter((dependency) => dependency.resolved.startsWith(generated))
-        .map((dependency) => `${module.source} -> ${dependency.resolved}`),
-    ])
-    assert.deepEqual(hits, [])
+  it("follows no import of c7-client/src/generated (its client.gen.ts imports widget-shell)", () => {
+    const followed = output.modules
+      .filter((module) => module.source.startsWith(GENERATED_SDK))
+      .flatMap((module) =>
+        module.dependencies.map((dependency) => `${module.source} -> ${dependency.module}`),
+      )
+    assert.deepEqual(followed, [])
+  })
+
+  it("keeps c7-client/src/generated in the graph as a target: every edge into it stays", () => {
+    const reached = output.modules
+      .map((module) => module.source)
+      .filter((source) => source.startsWith(GENERATED_SDK))
+      .sort()
+    assert.deepEqual(reached, [GENERATED_CLIENT, `${GENERATED_SDK}sdk.gen.ts`])
+    assert.deepEqual(edgeOf(C7_CLIENT_SRC, "./generated/sdk.gen.ts").rules, [])
+    assert.deepEqual(edgeOf(C7_CLIENT_SRC, "./generated/client.gen.ts").rules, [])
   })
 })
 

@@ -661,7 +661,10 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      own family's client and core (`connectors-own-their-family`) and the engine module also
      those of the dialect families (`engine-connector-spans-the-dialects`, `ENGINE_DIALECTS`:
      `c7`), clients and family cores are leaves (a dialect core's one foreign edge is engine-core's
-     main entry), core is the foundation and pulse-ui its leaf, no package or app
+     main entry), a family's client is imported only by its family's connector (a dialect's
+     client by the engine module) and adapter and by tests, never by an app (the MCP server
+     composes connectors, not their wire) or another package (`client-consumers`), core is the
+     foundation and pulse-ui its leaf, no package or app
      imports an app, no cross-package deep imports. The
      interface apps import nothing of the MCP/UI/server stack, zod included. The CLI imports no
      workspace package except a family core it bundles (`@miragon/pulse-c7-core`), the profile
