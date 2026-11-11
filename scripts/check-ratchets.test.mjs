@@ -1625,12 +1625,13 @@ export default [
 ]`
   const base = config()
 
-  it("reads the real eslint.config.mjs: its ignores and no local import", () => {
-    const { ignores, imports } = extractEslintRatchets(
+  it("reads the real eslint.config.mjs: its ignores, no opaque entry and no local import", () => {
+    const { ignores, opaque, imports } = extractEslintRatchets(
       "eslint.config.mjs",
       readFileSync("eslint.config.mjs", "utf8"),
     )
     assert.ok(ignores.length > 0)
+    assert.deepEqual(opaque, [])
     assert.deepEqual(imports, [])
   })
 
@@ -1752,6 +1753,491 @@ export default [
         partition('"ui/**", "widgets/**"'),
       ),
       [],
+    )
+  })
+})
+
+describe("eslint ignores built from a constant (read entry by entry only where nothing can grow it)", () => {
+  const exempt = (...globs) => `const EXEMPT = ${JSON.stringify(globs)}`
+  // A config whose gate block's `ignores` names, spreads or is shorthand for a constant.
+  const config = ({
+    decl = exempt("src/widget-tools.ts"),
+    after = "",
+    use = "ignores: EXEMPT,",
+    blocks = "",
+    callee = "tseslint.config",
+  } = {}) => `import tseslint from "typescript-eslint"
+${decl}
+${after}
+export default ${callee}(
+  { ignores: ["**/dist/**"] },
+  { files: ["src/**"], ${use} rules: { "no-restricted-syntax": ["error", "X"] } },
+  ${blocks}
+)`
+  const check = (before, after) => checkRatchetFile("eslint.config.mjs", before, after)
+  const read = (options) => extractEslintRatchets("eslint.config.mjs", config(options))
+  const GATE = "rules no-restricted-syntax :: "
+  const GLOBAL = "every rule (global ignores) :: **/dist/**"
+  // The constant shared with the files list of another gate and the ignores of a partition.
+  const SHARED =
+    '{ files: EXEMPT, rules: { complexity: ["error", 15] } }, { ignores: [...EXEMPT], languageOptions: {} },'
+  const literal = config({ decl: "", use: 'ignores: ["src/widget-tools.ts"],' })
+
+  it("reads a constant the blocks share as files and ignores lists entry by entry", () => {
+    for (const use of ["ignores: EXEMPT,", "ignores: [...EXEMPT],", "ignores: (EXEMPT),"]) {
+      const shared = read({ use, blocks: SHARED })
+      assert.deepEqual(shared.opaque, [], use)
+      assert.deepEqual(shared.ignores, [GLOBAL, `${GATE}src/widget-tools.ts`], use)
+    }
+    // A literal computed key is the same key to ESLint.
+    const computed = read({
+      blocks: '{ ["files"]: EXEMPT, rules: { complexity: ["error", 15] } },',
+    })
+    assert.deepEqual(
+      [computed.ignores, computed.opaque],
+      [[GLOBAL, `${GATE}src/widget-tools.ts`], []],
+    )
+    const shorthand = read({ decl: 'const ignores = ["src/widget-tools.ts"]', use: "ignores," })
+    assert.deepEqual(
+      [shorthand.ignores, shorthand.opaque],
+      [[GLOBAL, `${GATE}src/widget-tools.ts`], []],
+    )
+    // Moving a literal list into a constant and back is no change, also for a config it introduces.
+    assert.deepEqual(check(literal, config({ blocks: SHARED })), [])
+    assert.deepEqual(check(config({ blocks: SHARED }), literal), [])
+    assert.deepEqual(check(null, config({ blocks: SHARED })), [])
+  })
+
+  it("fails a shared constant that grows and passes one that shrinks", () => {
+    for (const use of ["ignores: EXEMPT,", 'ignores: ["src/x.ts", ...EXEMPT],']) {
+      const grown = check(
+        config({ use, blocks: SHARED }),
+        config({ use, blocks: SHARED, decl: exempt("src/widget-tools.ts", "src/tools/**") }),
+      )
+      assert.equal(grown.length, 1, use)
+      assert.match(
+        grown[0],
+        /new `ignores` entry "src\/tools\/\*\*" \(exempts from: rules no-restricted-syntax\)/,
+        use,
+      )
+      assert.deepEqual(
+        check(
+          config({ use, blocks: SHARED, decl: exempt("src/widget-tools.ts", "src/tools/**") }),
+          config({ use, blocks: SHARED }),
+        ),
+        [],
+        use,
+      )
+    }
+  })
+
+  it("reads a string constant and a template of constants as the glob it holds", () => {
+    const glob = (dir) =>
+      config({
+        decl: `const DIR = "${dir}"\nconst GEN = \`\${DIR}/**\``,
+        use: "ignores: [GEN, `${DIR}/*.d.ts`],",
+      })
+    assert.deepEqual(extractEslintRatchets("eslint.config.mjs", glob("src/gen")).ignores, [
+      GLOBAL,
+      `${GATE}src/gen/**`,
+      `${GATE}src/gen/*.d.ts`,
+    ])
+    assert.deepEqual(
+      check(glob("src/gen"), glob("src")).map((v) => v.match(/entry "(.*?)"/)[1]),
+      ["src/**", "src/*.d.ts"],
+    )
+    assert.deepEqual(
+      check(
+        config({ decl: "", use: 'ignores: ["src/gen/**", "src/gen/*.d.ts"],' }),
+        glob("src/gen"),
+      ),
+      [],
+    )
+  })
+
+  it("reads blocks the exported config holds through arrays, spreads and its imported helper's call", () => {
+    const gate = '{ files: ["src/**"], ignores: EXEMPT, rules: { complexity: ["error", 15] } }'
+    const exporting = (exported, pre = "") =>
+      extractEslintRatchets(
+        "eslint.config.mjs",
+        `import js from "@eslint/js"
+import tseslint from "typescript-eslint"
+import { defineConfig } from "eslint/config"
+${exempt("src/widget-tools.ts")}
+const BLOCKS = [{ rules: {} }]
+let LET_BLOCKS = [{ rules: {} }]
+function widen(...blocks) { return blocks }
+const HANDED = [widen]
+const CYCLE = [CYCLE_BACK]
+const CYCLE_BACK = [CYCLE]
+const lib = { config: widen }
+${pre}
+export default ${exported}`,
+      )
+    const readable = [["rules complexity :: src/widget-tools.ts"], []]
+    for (const exported of [
+      gate,
+      `[${gate}]`,
+      `[[${gate}]]`,
+      `[...[${gate}]]`,
+      `([(${gate})])`,
+      `tseslint.config(${gate})`,
+      `tseslint.config([${gate}])`,
+      `(tseslint.config(...[${gate}]))`,
+      `(tseslint as any).config(${gate})`,
+      `(tseslint.config)(${gate})`,
+      `defineConfig([${gate}])`,
+      // An import's value and a const of the file holding blocks hand the helper no code.
+      `tseslint.config(js.configs.recommended, ...tseslint.configs.strict, ${gate}, ...BLOCKS)`,
+    ]) {
+      const { ignores, opaque } = exporting(exported)
+      assert.deepEqual([ignores, opaque], readable, exported)
+    }
+    // Other reads of the helper's import that leave its callee as it is.
+    for (const [pre, exported = `tseslint.config(${gate})`] of [
+      ["const strict = tseslint.configs.strict"],
+      ["const strict = (tseslint as any).configs.strict"],
+      ["tseslint.configs.strict = []"],
+      ["const unused = tseslint.config({})"],
+      ["const unused = (tseslint.config as any)({})"],
+      ["const name = tseslint.config.name"],
+      ['const name = tseslint.config["name"]'],
+      ["const unused = defineConfig([])", `defineConfig([${gate}])`],
+      // A second import cannot rebind an import binding called itself.
+      ['import { defineConfig as again } from "eslint/config"', `defineConfig([${gate}])`],
+    ]) {
+      const { ignores, opaque } = exporting(exported, pre)
+      assert.deepEqual([ignores, opaque], readable, pre)
+    }
+    const NO_BLOCK = /no block of the exported config/
+    const CALLEE = /callee is no import of the file/
+    const HANDS = /may hand the helper code/
+    const IMPORT = /hands on or writes the import/
+    const AGAIN = /imports the module of the exported call's helper a second time/
+    // A block another function receives, or the callee of the exported call, is none, nor
+    // is a block of a call that is no imported helper's, can be changed or receives code.
+    for (const [exported, reason, pre] of [
+      [`tseslint.config(widen(${gate}))`, NO_BLOCK],
+      [`[widen(${gate})]`, NO_BLOCK],
+      [`new Config(${gate})`, NO_BLOCK],
+      [`(${gate})()`, NO_BLOCK],
+      [`[${gate}].map((block) => block)`, NO_BLOCK],
+      [`[tseslint.config(${gate})]`, NO_BLOCK],
+      [`widen(${gate})`, CALLEE],
+      [`lib.config(${gate})`, CALLEE],
+      [`Reflect.apply(widen, null, [${gate}])`, CALLEE],
+      // A callee that does not rest on a name is no import either.
+      [`((...blocks) => blocks)(${gate})`, CALLEE],
+      [`tseslint.config.bind(null)(${gate})`, CALLEE],
+      [`tseslint.config(${gate}, widen)`, HANDS],
+      // The first argument hands code as much as any other ...
+      [`tseslint.config(widen, ${gate})`, HANDS],
+      [`tseslint.config(${gate}, (blocks) => blocks)`, HANDS],
+      [`tseslint.config(${gate}, [widen])`, HANDS],
+      // ... and so does an array with one element that hands it, whatever the others hold.
+      [`tseslint.config(${gate}, [widen, {}])`, HANDS],
+      [`tseslint.config(${gate}, ...HANDED)`, HANDS],
+      [`tseslint.config(${gate}, ...LET_BLOCKS)`, HANDS],
+      // A name declared twice may be either declaration, whichever comes first.
+      [
+        `tseslint.config(${gate}, ...TWICE)`,
+        HANDS,
+        "function shadow() { const TWICE = [{ rules: {} }] }\nconst TWICE = [widen]",
+      ],
+      [
+        `tseslint.config(${gate}, ...TWICE)`,
+        HANDS,
+        "const TWICE = [widen]\nfunction shadow() { const TWICE = [{ rules: {} }] }",
+      ],
+      [`tseslint.config(${gate}, ...CYCLE)`, HANDS],
+      [`tseslint.config(${gate}, ...BLOCKS.map(widen))`, HANDS],
+      [`tseslint.config(${gate})`, IMPORT, "tseslint.config = widen"],
+      [`tseslint.config(${gate})`, IMPORT, "(tseslint as any).config = widen"],
+      [`tseslint.config(${gate})`, IMPORT, 'tseslint["config"] = widen'],
+      [`tseslint.config(${gate})`, IMPORT, "Object.assign(tseslint, lib)"],
+      [`tseslint.config(${gate})`, IMPORT, "delete tseslint.config"],
+      [`tseslint.config(${gate})`, /calls eval/, "eval('')"],
+      [
+        `tseslint.config(${gate})`,
+        AGAIN,
+        'import * as again from "typescript-eslint"\nagain.default.config = widen',
+      ],
+      [`tseslint.config(${gate})`, AGAIN, 'import { config } from "typescript-eslint"'],
+      [`tseslint.config(${gate})`, AGAIN, 'import again from "typescript-eslint"'],
+      // An import the reader cannot place counts as a second one.
+      [`cfg.config(${gate})`, AGAIN, 'import cfg = require("typescript-eslint")'],
+    ]) {
+      const label = `${pre ?? ""} ${exported}`
+      const { ignores, opaque } = exporting(exported, pre)
+      assert.deepEqual(ignores, ["rules complexity :: EXEMPT"], label)
+      assert.match(opaque.join("\n"), /\(EXEMPT: /, label)
+      const block = opaque.find((entry) => entry.includes(": the list of its block ("))
+      assert.match(block, reason, label)
+    }
+  })
+
+  it("makes an ignores entry opaque wherever the constant could grow, with the reason, and fails it", () => {
+    // Each push below names no member of the constant's name, so only the read
+    // itself can tell that the constant may hold more than its literal.
+    const viaValues = 'function widen(o) { Object.values(o)[0].push("src/**") }'
+    const viaBlock = 'function widen(o) { o.files.push("src/**"); return o }'
+    const NAMED = /named other than as a files\/ignores list of a block of the exported config/
+    for (const [label, options, reason] of [
+      ["pushed to", { after: 'EXEMPT.push("src/**")' }, NAMED],
+      ["spliced", { after: 'EXEMPT.splice(0, 0, "src/**")' }, NAMED],
+      ["assigned to", { after: 'EXEMPT[1] = "src/**"' }, NAMED],
+      ["passed on", { after: "widen(EXEMPT)" }, NAMED],
+      ["passed on in a shorthand", { after: `${viaValues}\nwiden({ EXEMPT })` }, NAMED],
+      [
+        "the files list of a block outside the config",
+        { after: `${viaValues}\nwiden({ files: EXEMPT })` },
+        NAMED,
+      ],
+      [
+        "the ignores list of a named block",
+        { after: 'const block = { ignores: EXEMPT, rules: {} }\nblock.ignores.push("src/**")' },
+        NAMED,
+      ],
+      [
+        "a block the config passes to another function",
+        { after: viaBlock, blocks: "widen({ files: EXEMPT, rules: {} })," },
+        NAMED,
+      ],
+      [
+        "a block nested in another key",
+        { blocks: "{ settings: { nested: { files: EXEMPT } } }," },
+        NAMED,
+      ],
+      // A rule can change what it receives through settings.
+      ["another key of a block", { blocks: "{ files: [], settings: EXEMPT }," }, NAMED],
+      // A block's own code reaches its lists as `this`.
+      [
+        "the files list of a block with an accessor",
+        { blocks: "{ files: EXEMPT, get languageOptions() { return {} } }," },
+        NAMED,
+      ],
+      [
+        "the files list of a block with a setter",
+        { blocks: "{ files: EXEMPT, set languageOptions(value) {} }," },
+        NAMED,
+      ],
+      [
+        "the files list of a block with a method",
+        { blocks: "{ files: EXEMPT, toJSON() { return {} } }," },
+        NAMED,
+      ],
+      [
+        "the files list of a block with a function a caller runs as its method",
+        { blocks: "{ files: EXEMPT, toJSON: (function () { return {} }) }," },
+        NAMED,
+      ],
+      [
+        "the files list of a block with __proto__",
+        { blocks: "{ files: EXEMPT, __proto__: {} }," },
+        NAMED,
+      ],
+      [
+        'the files list of a block with "__proto__"',
+        { blocks: '{ files: EXEMPT, "__proto__": {} },' },
+        NAMED,
+      ],
+      [
+        "a block of a local function's call",
+        { after: "function widen(...blocks) { return blocks }", callee: "widen" },
+        NAMED,
+      ],
+      [
+        "a block of a local object's config",
+        { after: "const lib = { config: (...blocks) => blocks }", callee: "lib.config" },
+        NAMED,
+      ],
+      [
+        "a block of a helper whose import the file writes",
+        { after: "tseslint.config = (...blocks) => blocks" },
+        NAMED,
+      ],
+      ["a block of a helper handed a function", { blocks: "(blocks) => blocks," }, NAMED],
+      ["a member of a block", { blocks: "...({ files: EXEMPT }).files.concat([])," }, NAMED],
+      ["exported", { decl: `export ${exempt("src/widget-tools.ts")}` }, /exported/],
+      ["exported by name", { after: "export { EXEMPT }" }, /exported/],
+      [
+        "declared with let",
+        { decl: exempt("src/widget-tools.ts").replace("const", "let") },
+        /let or var/,
+      ],
+      [
+        "shadowed",
+        { after: "function widen(EXEMPT) { return EXEMPT }" },
+        /declared more than once/,
+      ],
+      [
+        "no literal",
+        { decl: 'const EXEMPT = ["src/widget-tools.ts"].concat([])' },
+        /no array, string or template literal/,
+      ],
+      [
+        "a function",
+        { decl: 'function EXEMPT() { return ["src/widget-tools.ts"] }', use: "ignores: EXEMPT()," },
+        /no top-level const/,
+      ],
+      ["changed in eval", { after: `eval('EXEMPT.push("src/**")')` }, /calls eval/],
+    ]) {
+      const after = config(options)
+      const violations = check(literal, after).join("\n")
+      assert.match(violations, /new `ignores` entry "EXEMPT(\(\))?"/, label)
+      assert.match(
+        violations,
+        /new `ignores` entry the ratchet cannot read through: `ignores \(exempts from: rules no-restricted-syntax\): EXEMPT(\(\))? \(EXEMPT: /,
+        label,
+      )
+      assert.match(violations, reason, label)
+      // A config that introduces one fails: from then on it could grow unseen.
+      const introduced = check(null, after).join("\n")
+      assert.match(
+        introduced,
+        /nothing to compare against: `ignores \(exempts from: rules no-restricted-syntax\): EXEMPT/,
+        label,
+      )
+      assert.match(introduced, reason, label)
+    }
+  })
+
+  it("keeps the code an unread constant hangs on in sight: an edit to it is a new opaque entry", () => {
+    const PUSH = 'EXEMPT.push("src/b.ts")'
+    // A block of the exported config that names the constant other than in a list holds it
+    // whole: code anywhere in that block reaches it, here as `this.settings.list`.
+    const HOLDER = '{ files: ["x/**"], settings: { list: EXEMPT }'
+    const GETTER = 'get languageOptions() { this.settings.list.push("src/**"); return {} }'
+    for (const [label, before, after] of [
+      [
+        "the literal",
+        { after: PUSH },
+        { after: PUSH, decl: exempt("src/widget-tools.ts", "src/**") },
+      ],
+      ["the push", { after: PUSH }, { after: 'EXEMPT.push("src/b.ts", "src/**")' }],
+      [
+        "the block that names it",
+        { blocks: `${HOLDER} },` },
+        { blocks: `${HOLDER}, ${GETTER} },` },
+      ],
+    ]) {
+      const violations = check(config(before), config(after))
+      assert.equal(violations.length, 1, label)
+      assert.match(
+        violations[0],
+        /read through: `ignores \(exempts from: [^)]*\): EXEMPT \(EXEMPT: /,
+        label,
+      )
+    }
+    // Unchanged, it stays as the base had it.
+    assert.deepEqual(check(config({ after: PUSH }), config({ after: PUSH })), [])
+  })
+
+  it("keeps the list of any other exempting block opaque, with the code that reaches the block", () => {
+    const head = 'import tseslint from "typescript-eslint"\n'
+    const LIST = 'ignores: ["src/a.ts"], rules: { "no-restricted-imports": "error" }'
+    const NO_BLOCK = /\(the block is no block of the exported config/
+    const RUNS = /\(the block runs code of its own/
+    for (const [label, before, after, reason] of [
+      [
+        "a named block",
+        `const gate = { files: ["src/**"], ${LIST} }\nexport default tseslint.config(gate)`,
+        `const gate = { files: ["src/**"], ${LIST} }\ngate.ignores.push("src/**")\nexport default tseslint.config(gate)`,
+        NO_BLOCK,
+      ],
+      [
+        "a named block whose list is an unread constant",
+        `const EXEMPT = ["src/a.ts"]\nconst gate = { ignores: EXEMPT, rules: {} }\nexport default [gate]`,
+        `const EXEMPT = ["src/a.ts"]\nconst gate = { ignores: EXEMPT, rules: {} }\ngate.ignores.push("src/**")\nexport default [gate]`,
+        NO_BLOCK,
+      ],
+      [
+        "a block a local function receives",
+        `function widen(block) { return block }\nexport default [widen({ ${LIST} })]`,
+        `function widen(block) { block.ignores.push("src/**"); return block }\nexport default [widen({ ${LIST} })]`,
+        NO_BLOCK,
+      ],
+      [
+        "a block a global hands to a local function",
+        `function widen(...blocks) { return blocks }\nexport default Reflect.apply(widen, null, [{ ${LIST} }])`,
+        `function widen(...blocks) { blocks[0].ignores.push("src/**"); return blocks }\nexport default Reflect.apply(widen, null, [{ ${LIST} }])`,
+        /\(the exported call's callee is no import of the file/,
+      ],
+      [
+        "a block an object with a getter holds",
+        `const all = { gate: { ${LIST} }, get other() { return {} } }\nexport default [all.gate]`,
+        `const all = { gate: { ${LIST} }, get other() { this.gate.ignores.push("src/**"); return {} } }\nexport default [all.gate]`,
+        NO_BLOCK,
+      ],
+      [
+        "a block with an accessor",
+        `export default [{ ${LIST}, get languageOptions() { return {} } }]`,
+        `export default [{ ${LIST}, get languageOptions() { this.ignores.push("src/**"); return {} } }]`,
+        RUNS,
+      ],
+      // A block in a callee's place is handed every argument of the call, data too: the reader
+      // does not tell that calling an object throws.
+      [
+        "the arguments of a call of a block",
+        `export default [({ ${LIST} })({ files: ["x"] })]`,
+        `export default [({ ${LIST} })({ files: ["y"] })]`,
+        NO_BLOCK,
+      ],
+    ]) {
+      // An edit to the code that reaches the block is a new opaque entry ...
+      const violations = check(head + before, head + after)
+      assert.equal(violations.length, 1, label)
+      assert.match(
+        violations[0],
+        /new `ignores` entry the ratchet cannot read through: `ignores \(exempts from: rules [^)]*\): the list of its block \(/,
+        label,
+      )
+      assert.match(violations[0], reason, label)
+      // ... unchanged, it stays as the base had it, and a config that introduces one fails.
+      assert.deepEqual(check(head + before, head + before), [], label)
+      assert.match(
+        check(null, head + before).join("\n"),
+        /nothing to compare against: `ignores \(exempts from: rules [^)]*\): the list of its block/,
+        label,
+      )
+    }
+    // The entries themselves compare as ever: the list may shrink, not grow.
+    const named = (globs, other = "x") =>
+      `${head}const gate = { files: ["src/**"], ignores: ${JSON.stringify(globs)}, rules: { "no-restricted-imports": "error" } }
+export default tseslint.config(gate, { files: ["${other}"], rules: {} })`
+    assert.deepEqual(check(named(["src/a.ts", "src/b.ts"]), named(["src/a.ts"])), [])
+    // Data next to the block reaches it no more than other blocks of the exported config do,
+    // so an edit to them is no new entry.
+    const GATE_BLOCK = `{ ${LIST} }`
+    for (const [label, config] of [
+      ["another block of the exported config", (other) => named(["src/a.ts"], other)],
+      [
+        "another element of an array",
+        (other) =>
+          `${head}function widen(block) { return block }\nexport default [widen(${GATE_BLOCK}), { files: ["${other}"], rules: {} }]`,
+      ],
+      [
+        "an object argument of the call",
+        (other) =>
+          `${head}function widen(block) { return block }\nexport default [widen(${GATE_BLOCK}, { files: ["${other}"] })]`,
+      ],
+      [
+        "an object argument of a constructor call",
+        (other) =>
+          `${head}function Widen(block) { return block }\nexport default [new Widen(${GATE_BLOCK}, { files: ["${other}"] })]`,
+      ],
+      [
+        "another key of an object",
+        (other) =>
+          `${head}const all = { gate: ${GATE_BLOCK}, other: { files: ["${other}"] } }\nexport default [all.gate]`,
+      ],
+    ])
+      assert.deepEqual(check(config("x"), config("y")), [], label)
+    const grown = check(named(["src/a.ts"]), named(["src/a.ts", "src/**"]))
+    assert.equal(grown.length, 1)
+    assert.match(
+      grown[0],
+      /new `ignores` entry "src\/\*\*" \(exempts from: rules no-restricted-imports\)/,
     )
   })
 })
