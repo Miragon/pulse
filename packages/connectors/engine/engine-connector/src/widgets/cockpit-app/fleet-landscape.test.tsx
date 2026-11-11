@@ -43,7 +43,7 @@ const DEFINITIONS: Record<string, DefinitionStat[]> = {
 
 /** What the server answers for an engine whose profile it refused: it never asks that engine. */
 const REFUSED =
-  '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask the operator to fix it.'
+  '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask whoever runs this server to fix it.'
 
 /** What the server answers for an engine that refuses its login: 401 and 403, the engine runs. */
 const LOGIN_REFUSED: Record<string, string> = {

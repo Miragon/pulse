@@ -43,7 +43,7 @@ const SOON = { timeout: 3_000 }
 
 /** What the server answers for an engine whose profile it refused. */
 const REFUSED_TEXT =
-  '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask the operator to fix it.'
+  '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask whoever runs this server to fix it.'
 const TITLE = "Engine locked cannot be used: its profile is refused"
 
 const healthOf = (engine: unknown): EngineHealthData => ({

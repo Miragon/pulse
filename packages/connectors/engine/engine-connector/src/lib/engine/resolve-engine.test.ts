@@ -152,7 +152,7 @@ describe("a refused profile in the registry", () => {
   it("never routes to it: a call naming it, or a default on it, fails with its reason", () => {
     expect(() => resolveEngine("locked", registry())).toThrow(EngineProfileRefusedError)
     expect(() => resolveEngine(undefined, registry("locked"))).toThrow(
-      'Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv is missing. Ask the operator to fix it.',
+      'Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv is missing. Ask whoever runs this server to fix it.',
     )
   })
 

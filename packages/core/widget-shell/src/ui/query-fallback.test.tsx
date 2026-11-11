@@ -48,7 +48,7 @@ describe("QueryFallback: never an eternal skeleton, never a dead end (U1, U22)",
 
   it("a refused engine says why in the active locale, and offers no Try again", () => {
     const refused =
-      '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask the operator to fix it.'
+      '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask whoever runs this server to fix it.'
     render(
       <LocaleProvider locale="de">
         <QueryFallback isError error={new Error(refused)} onRetry={vi.fn()} skeleton={SKELETON} />

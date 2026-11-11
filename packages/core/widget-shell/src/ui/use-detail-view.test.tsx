@@ -192,7 +192,7 @@ describe("useDetailView", () => {
       content: [
         {
           type: "text",
-          text: '[ENGINE_PROFILE_REFUSED] Engine "prod" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask the operator to fix it.',
+          text: '[ENGINE_PROFILE_REFUSED] Engine "prod" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask whoever runs this server to fix it.',
         },
       ],
     })

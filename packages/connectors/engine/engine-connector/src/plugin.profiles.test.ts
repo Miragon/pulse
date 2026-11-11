@@ -155,7 +155,7 @@ describe("a refused profile: listed, named in the enum, never routed to", () => 
 
   it("a call naming it fails with ENGINE_PROFILE_REFUSED and the reason, never a variable", async () => {
     expect(await boot(config).text("engine_status", { engine: "locked" })).toBe(
-      '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask the operator to fix it.',
+      '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask whoever runs this server to fix it.',
     )
   })
 

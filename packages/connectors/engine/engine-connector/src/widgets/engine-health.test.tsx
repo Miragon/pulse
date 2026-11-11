@@ -353,7 +353,7 @@ describe("the verdict line and the hand-offs speak the view's language", () => {
  */
 describe("an engine whose health cannot be read", () => {
   const REFUSED =
-    '[ENGINE_PROFILE_REFUSED] Engine "default" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask the operator to fix it.'
+    '[ENGINE_PROFILE_REFUSED] Engine "default" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask whoever runs this server to fix it.'
 
   it.each([
     ["an unreachable engine offers Try again and the chat", "engine default unreachable", true],

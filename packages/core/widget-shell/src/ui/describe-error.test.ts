@@ -278,7 +278,7 @@ describe("describeError: the words, en and de", () => {
 
   /** The engine module's codes for an engine it does not use and a write it does not send. */
   const REFUSED =
-    '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask the operator to fix it.'
+    '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask whoever runs this server to fix it.'
   const READ_ONLY =
     '[ENGINE_READ_ONLY] Engine "ro" is read-only on this server: its profile sets readOnly, so no tool writes to it. Nothing was sent.'
 
@@ -297,7 +297,7 @@ describe("describeError: the words, en and de", () => {
       kind: "profileRefused",
       source: { type: "engine", id: "locked" },
       reason:
-        'Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask the operator to fix it.',
+        'Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask whoever runs this server to fix it.',
     })
   })
 

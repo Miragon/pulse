@@ -122,7 +122,7 @@ describe("LandingChooser", () => {
         )
       if (args.engine === "locked")
         throw new Error(
-          '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask the operator to fix it.',
+          '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask whoever runs this server to fix it.',
         )
       throw new Error("engine down unreachable (ECONNREFUSED)")
     }

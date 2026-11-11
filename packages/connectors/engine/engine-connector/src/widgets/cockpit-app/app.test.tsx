@@ -55,7 +55,7 @@ const INLINE = { displayMode: "inline" } as const
 
 /** What the server answers for an engine whose profile it refused. */
 const REFUSED_TEXT =
-  '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask the operator to fix it.'
+  '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask whoever runs this server to fix it.'
 
 /** `list` is mutable, so a test can reload it; its `refused` are the profiles the server refused. */
 function renderCockpit(

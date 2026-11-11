@@ -107,14 +107,15 @@ export class UnknownEngineError extends Error {
 
 /**
  * A call to an engine whose profile the server refused: the reason names keys only, never a
- * value or a variable, so the model can tell the user what the operator has to fix.
+ * value or a variable, so the model can tell the user what whoever runs the server has to fix
+ * (the instructions and the widgets' model contexts call the person at the widget the operator).
  */
 export class EngineProfileRefusedError extends Error {
   readonly code = "ENGINE_PROFILE_REFUSED" as const
   readonly engineId: string
   constructor({ id, reason }: RefusedProfile) {
     super(
-      `Engine "${id}" is configured, but its profile cannot be used: ${reason} Ask the operator to fix it.`,
+      `Engine "${id}" is configured, but its profile cannot be used: ${reason} Ask whoever runs this server to fix it.`,
     )
     this.name = "EngineProfileRefusedError"
     this.engineId = id

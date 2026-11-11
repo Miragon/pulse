@@ -144,7 +144,7 @@ describe("viewCallContext", () => {
       "with a retry button",
     )
     const refused = new Error(
-      '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask the operator to fix it.',
+      '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask whoever runs this server to fix it.',
     )
     expect(text({ phase: "error", error: refused })).toContain("without a retry button")
   })

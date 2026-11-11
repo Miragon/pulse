@@ -48,7 +48,7 @@ describe("ViewDataState: the error (U1)", () => {
 
   it.each([
     [
-      '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask the operator to fix it.',
+      '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask whoever runs this server to fix it.',
       "Engine locked cannot be used: its profile is refused",
     ],
     [
