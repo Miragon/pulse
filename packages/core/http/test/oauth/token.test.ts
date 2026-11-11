@@ -3,12 +3,11 @@ import { describe, expect, it } from "vitest"
 import {
   type Grant,
   isAccessToken,
-  MAX_TOKEN_ANSWER_BYTES,
   requestToken,
   revokeToken,
-  TOKEN_TIMEOUT_MS,
   type TokenEndpoint,
 } from "../../src/oauth/index.js"
+import { MAX_TOKEN_ANSWER_BYTES, TOKEN_TIMEOUT_MS } from "../../src/oauth/wire.js"
 import { jsonAnswer } from "../fake-fetch.js"
 import { failureOf, formOf, oauthPlatform, T0, TOKEN_URL } from "./support.js"
 

@@ -1,7 +1,7 @@
 // Ported from the C8 adapter of Pulse for VS Code (#543, Thomas Heinrichs:
 // test/adapters/c8/c8-token-retry-after.test.ts), onto the headers of an answer.
 import { describe, expect, test } from "vitest"
-import { retryAfterMs } from "../../src/oauth/index.js"
+import { retryAfterMs } from "../../src/oauth/retry-after.js"
 
 const NOW = Date.UTC(2026, 10, 5, 20, 0, 0)
 const MINUTE_MS = 60_000

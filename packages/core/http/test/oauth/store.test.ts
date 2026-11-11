@@ -1,13 +1,8 @@
 import { createHash } from "node:crypto"
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
-import {
-  memoryTokenStore,
-  REFUSED_HOLD_MS,
-  tokenKey,
-  TokenFailure,
-  UNAVAILABLE_HOLD_MS,
-} from "../../src/oauth/index.js"
+import { REFUSED_HOLD_MS, UNAVAILABLE_HOLD_MS } from "../../src/oauth/failure.js"
+import { memoryTokenStore, tokenKey, TokenFailure } from "../../src/oauth/index.js"
 
 const RECORD = { accessToken: "a", receivedAt: 1 }
 

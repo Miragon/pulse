@@ -2,7 +2,8 @@
 import { createHash } from "node:crypto"
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
-import { base64Url, challengeOf, createPkce } from "../../src/oauth/index.js"
+import { createPkce } from "../../src/oauth/index.js"
+import { base64Url, challengeOf } from "../../src/oauth/pkce.js"
 
 const VERIFIER = /^[A-Za-z0-9\-._~]{43}$/
 

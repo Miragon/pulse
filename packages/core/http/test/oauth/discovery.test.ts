@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
+import { discoveryUrls } from "../../src/oauth/discovery.js"
 import {
   discover,
-  discoveryUrls,
   type MetadataNeeds,
   oauthUrlProblem,
   serverMetadata,

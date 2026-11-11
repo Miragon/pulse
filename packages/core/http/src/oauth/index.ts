@@ -6,6 +6,9 @@
  * store port, discovery, PKCE, the authorization request and its callback, and the claims of a
  * JWT. Where a secret or a token is kept, how a person logs in and every word a person reads stay
  * with each surface: failures are data (`TokenFailure`, the problems of discovery and callback).
+ * The rules behind these (the default limits and holds, the reading of `Retry-After`, the renewal
+ * margin, whether a token expired, the discovery URLs, PKCE's encoding, the constant-time compare)
+ * stay in their modules, where the package's tests reach them.
  */
 
 export type {
@@ -20,24 +23,12 @@ export type {
 } from "./types.js"
 export {
   type AnswerProblem,
-  REFUSED_HOLD_MS,
   TokenFailure,
   type TokenFailureDetails,
   type TokenFailureKind,
-  UNAVAILABLE_HOLD_MS,
 } from "./failure.js"
-export { MAX_TOKEN_ANSWER_BYTES, TOKEN_TIMEOUT_MS } from "./wire.js"
 export { isAccessToken, requestToken, revokeToken } from "./token.js"
-export { retryAfterMs } from "./retry-after.js"
-export {
-  canRefresh,
-  EXPIRY,
-  isDue,
-  isExpired,
-  marginOf,
-  refreshAt,
-  renewsAfterRefusal,
-} from "./expiry.js"
+export { canRefresh, EXPIRY, isDue, refreshAt, renewsAfterRefusal } from "./expiry.js"
 export { memoryTokenStore, tokenKey } from "./store.js"
 export { type ClientCredentialsOptions, clientCredentialsTokens } from "./client-credentials.js"
 export { type RefreshingOptions, refreshingTokens } from "./refreshing.js"
@@ -45,7 +36,6 @@ export { type CommandOptions, commandTokens } from "./command.js"
 export {
   type DiscoveryAnswer,
   discover,
-  discoveryUrls,
   type MetadataNeeds,
   type MetadataProblem,
   oauthUrlProblem,
@@ -53,13 +43,12 @@ export {
   type ServerMetadata,
   serverMetadata,
 } from "./discovery.js"
-export { base64Url, challengeOf, createPkce, type Pkce } from "./pkce.js"
+export { createPkce, type Pkce } from "./pkce.js"
 export {
   type AuthorizationRequest,
   authorizationUrl,
   type CallbackProblem,
   callbackResult,
   type ExpectedCallback,
-  safeEqual,
 } from "./authorize.js"
 export { decodeBase64Url, type JwtClaims, jwtClaims } from "./jwt.js"

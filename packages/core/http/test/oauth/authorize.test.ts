@@ -2,12 +2,8 @@
 // the CLI's wording of a problem stays in the CLI.
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
-import {
-  authorizationUrl,
-  callbackResult,
-  type ExpectedCallback,
-  safeEqual,
-} from "../../src/oauth/index.js"
+import { safeEqual } from "../../src/oauth/authorize.js"
+import { authorizationUrl, callbackResult, type ExpectedCallback } from "../../src/oauth/index.js"
 import { omit } from "./support.js"
 
 const ISSUER = "https://login.example.com/realms/camunda"
