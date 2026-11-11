@@ -50,6 +50,15 @@ describe("the single engine: ENGINE_BASE_URL and its siblings yield one profile"
     ).toEqual([{ id: "local", baseUrl: "http://localhost:8410/engine-rest" }])
   })
 
+  it("takes a cockpit URL that ends in the web app's start route, kept as written", () => {
+    expect(
+      loadEngineProfiles({
+        ENGINE_BASE_URL: A,
+        ENGINE_COCKPIT_URL: "https://ops.example.com/webapp/#/",
+      }).engines,
+    ).toEqual([{ id: "default", baseUrl: A, cockpitUrl: "https://ops.example.com/webapp/#/" }])
+  })
+
   it("takes a user name only with Basic auth, a token only with a bearer", () => {
     expect(
       loadEngineProfiles({
@@ -73,6 +82,10 @@ describe("the single engine: ENGINE_BASE_URL and its siblings yield one profile"
     [
       { ENGINE_BASE_URL: A, ENGINE_COCKPIT_URL: "a.example/camunda" },
       "ENGINE_COCKPIT_URL: cockpitUrl is no URL: use a URL such as http://localhost:8080/engine-rest.",
+    ],
+    [
+      { ENGINE_BASE_URL: A, ENGINE_COCKPIT_URL: "https://ops.example.com/webapp/#/processes" },
+      "ENGINE_COCKPIT_URL: cockpitUrl must not contain a query string or a fragment.",
     ],
     [
       { ENGINE_ID: "-x", ENGINE_FLAVOR: "flowable" },
