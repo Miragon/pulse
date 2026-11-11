@@ -2,67 +2,146 @@ import { readFileSync } from "node:fs"
 import { describe, expect, it } from "vitest"
 import * as format from "./format/index.js"
 import * as ui from "./index.js"
+import * as testing from "./testing/index.js"
 import * as tones from "./tones/index.js"
 
-/** A piece missing from the root entry is a piece no view can import. */
+/**
+ * The published entries' lists: knip never reports what an entry exports, so a name added or
+ * dropped is held here and decided in review. Types are erased at runtime: these are the runtime
+ * names. A piece missing from the root entry is a piece no view can import.
+ */
 describe("the @miragon/pulse-ui entry", () => {
-  it.each([
-    // The kit pieces that came from widget-shell.
-    "Icon",
-    "ICON_STROKE",
-    "Th",
-    "Td",
-    "TableEmptyState",
-    "VersionChip",
-    "Section",
-    "NativeSelect",
-    "SegmentedControl",
-    "RowCard",
-    "NamedId",
-    "LogText",
-    "LOG_TEXT_PREVIEW",
-    "TEXT_BLOCK_FRAME",
-    "KometMark",
-    "AppEmptyState",
-    "NavigationFocus",
-    "MENU_ITEM",
-    "createUseT",
-    "useResetOnChange",
-    "formatDate",
-    "formatDuration",
-    "formatNumber",
-    "formatPercent",
-    "formatPercentPoints",
-    "formatPeriod",
-    "formatTime",
-    "formatTimestamp",
-    "truncate",
-    // The formatters both Pulse UIs share, and the short id that came from widget-shell.
-    "formatClock",
-    "formatInstant",
-    "formatRelativeTime",
-    "formatCount",
-    "formatCompactCount",
-    "shortId",
-    "setFormatLocale",
-    "getFormatLocale",
-    "subscribeFormatLocale",
-    // The tone ladder that came from widget-shell, and the situation table.
-    "countTone",
-    "severityTone",
-    "SITUATION_TONES",
-    // A sample of the design kit that came from the toolkit.
-    "Button",
-    "KpiGrid",
-    "WidgetHeader",
-    "LocaleProvider",
-    "ToastProvider",
-    "TONE_DOT",
-    "cn",
-    "ROLE_TOKENS",
-  ])("exports %s", (name) => {
-    expect(ui).toHaveProperty(name)
-    expect(ui[name as keyof typeof ui]).toBeDefined()
+  it("exports exactly these runtime names", () => {
+    expect(Object.keys(ui).sort()).toEqual([
+      "Alert",
+      "AlertDescription",
+      "AlertTitle",
+      "AppEmptyState",
+      "Badge",
+      "Button",
+      "CD_TOKENS",
+      "CD_TOKENS_VERSION",
+      "Card",
+      "CardAction",
+      "CardContent",
+      "CardDescription",
+      "CardFooter",
+      "CardHeader",
+      "CardTitle",
+      "CountPill",
+      "Dialog",
+      "DialogClose",
+      "DialogContent",
+      "DialogDescription",
+      "DialogFooter",
+      "DialogHeader",
+      "DialogOverlay",
+      "DialogPortal",
+      "DialogTitle",
+      "DialogTrigger",
+      "DrillButton",
+      "EmptyState",
+      "ErrorState",
+      "FOCUS_RING",
+      "FOCUS_RING_INSET",
+      "FilterBar",
+      "GEIST_FONT_FILES",
+      "GroupCard",
+      "HOST_FONT_VARIABLES",
+      "ICON_STROKE",
+      "Icon",
+      "Input",
+      "KometMark",
+      "KpiGrid",
+      "KpiGridSkeleton",
+      "LOG_TEXT_PREVIEW",
+      "ListFooter",
+      "LivePill",
+      "LocaleProvider",
+      "LogText",
+      "MENU_ITEM",
+      "MICRO_LABEL",
+      "NamedId",
+      "NativeSelect",
+      "NavigationFocus",
+      "PagedListFooter",
+      "ROLE_TOKENS",
+      "RowCard",
+      "SITUATION_TONES",
+      "Section",
+      "SectionHeading",
+      "SegmentedControl",
+      "Skeleton",
+      "StatusBadge",
+      "Switch",
+      "TEXT_BLOCK_FRAME",
+      "TONE_ALIASES",
+      "TONE_BORDER",
+      "TONE_DOT",
+      "TONE_ICON",
+      "TONE_INK",
+      "TONE_SOFT",
+      "TONE_TINT",
+      "TONE_VARIANTS",
+      "TYPE_FLOOR_PX",
+      "TYPE_SCALE",
+      "TYPE_STEPS",
+      "Table",
+      "TableBody",
+      "TableCaption",
+      "TableCell",
+      "TableEmptyState",
+      "TableFooter",
+      "TableHead",
+      "TableHeader",
+      "TableRow",
+      "Tabs",
+      "TabsContent",
+      "TabsList",
+      "TabsTrigger",
+      "Td",
+      "Th",
+      "ToastProvider",
+      "UI_MESSAGES",
+      "VersionChip",
+      "WidgetHeader",
+      "adoptHostFontVariables",
+      "badgeVariants",
+      "buttonVariants",
+      "cn",
+      "countTone",
+      "createUseT",
+      "fontFaces",
+      "formatClock",
+      "formatCompactCount",
+      "formatCount",
+      "formatDate",
+      "formatDuration",
+      "formatInstant",
+      "formatNumber",
+      "formatPercent",
+      "formatPercentPoints",
+      "formatPeriod",
+      "formatRelativeTime",
+      "formatTime",
+      "formatTimestamp",
+      "getFormatLocale",
+      "isToneVariant",
+      "resolveTone",
+      "resolveUiMessages",
+      "setFormatLocale",
+      "severityTone",
+      "shortId",
+      "subscribeFormatLocale",
+      "truncate",
+      "useDebouncedValue",
+      "useLocale",
+      "usePortalContainer",
+      "useResetOnChange",
+      "useToast",
+      "useTranslate",
+      "useUiMessages",
+    ])
   })
 
   it("keeps the internals internal", () => {
@@ -135,6 +214,64 @@ describe("the @miragon/pulse-ui/format entry", () => {
   it("hands out the root's own bindings", () => {
     for (const [name, value] of Object.entries(format)) {
       expect(ui[name as keyof typeof ui], name).toBe(value)
+    }
+  })
+})
+
+/**
+ * `./testing` holds the brand gates and the product's words every Pulse UI runs in its own test
+ * suite (Node, never bundled).
+ */
+describe("the @miragon/pulse-ui/testing entry", () => {
+  it("exports exactly these runtime names", () => {
+    expect(Object.keys(testing).sort()).toEqual([
+      "BARE_PAUSE_RULE_EN",
+      "CI_ICON_SIZES",
+      "COUNT_TERMS",
+      "FORBIDDEN_GLYPHS",
+      "LIGHT_STATUS_EXEMPTION",
+      "PRODUCT_GLOSSARY",
+      "ROLE_CONTRAST_PAIRS",
+      "blindGlossaryRules",
+      "catalogTextFindings",
+      "colorFindings",
+      "composite",
+      "contrastFindings",
+      "contrastRatio",
+      "glossaryFindings",
+      "glyphFindings",
+      "iconSizeFindings",
+      "measureContrast",
+      "parseThemeVariables",
+      "resolveColor",
+      "scanColors",
+      "scanGlyphs",
+      "scanIconSizes",
+      "scanTypeScale",
+      "sourceTexts",
+      "stylesheetColorFindings",
+      "stylesheetRules",
+      "stylesheetShapeFindings",
+      "themeStylesheets",
+      "toneContrastPairs",
+      "typeScaleFindings",
+      "unnamedGlossaryTerms",
+    ])
+  })
+})
+
+/**
+ * The lists above are what vitest sees of the sources. A type re-exported without `type` is one
+ * of its names, with no value, while tsc leaves it out of dist: a list that held it would promise
+ * a name the published package does not export. So each name carries a runtime value.
+ */
+describe("the @miragon/pulse-ui entries", () => {
+  it("give each of their names a runtime value", () => {
+    const entries = { ".": ui, "./format": format, "./testing": testing, "./tones": tones }
+    for (const [entry, names] of Object.entries(entries)) {
+      for (const [name, value] of Object.entries(names)) {
+        expect(value, `${entry} ${name}`).toBeDefined()
+      }
     }
   })
 })

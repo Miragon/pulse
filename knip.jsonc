@@ -6,11 +6,8 @@
   // workspace but docs (below). Together they report every issue type in every
   // workspace (docs: all but exports and types), so no workspace runs on its own.
   // knip never reports what an ENTRY file exports (includeEntryExports is off):
-  // a test of its package holds a published entry's sorted runtime names instead
-  // (an index, entries or testing test). Without such a list today: the root of
-  // @miragon/pulse-ui (its test checks names, not the whole list),
-  // @miragon/pulse-ui/testing, @miragon/pulse-widget-shell/testing and
-  // @miragon/pulse-engine-connector/widgets.
+  // a test of its package holds each published entry's sorted runtime names
+  // instead (an index, entries or testing test, next to the entry or in test/).
   // Every ignore below is a documented exception: the list is shrink-only,
   // same convention as the ESLint ratchet lists.
 
