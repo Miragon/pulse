@@ -178,7 +178,10 @@ Ports, core, webview, host kit and host stay engine-neutral.
   `TargetsParser` in the runtime view's host kit, which Pulse for Orca reads its project file
   with too, maps each verdict onto a target or a problem and refuses with `refusalsOn` what the
   editor hosts cannot serve (`headers`, the auth types bearer and passthrough, a named process
-  engine, a missing `url`), worded by the format's `describeProblem`. The package owns its JSON
+  engine, a missing `url`), worded by the format's `describeProblem`, and adds its own way out
+  behind an auth type it refuses or the format does not take and behind `headers`: the auth
+  types a target then connects with (`TargetPolicy.connectsWith`, so not `oauth` yet), and to
+  remove `headers`, naming no editor, since both hosts show it. The package owns its JSON
   Schema and the shared fixtures (its `./testing` entry), the runtime view its expectations of
   them (`packages/core/runtime-view/test/host-kit/project-file-fixtures.expected.json`, one entry
   per fixture); `packages/core/runtime-view/test/host-kit/project-file-fixtures.test.ts` holds

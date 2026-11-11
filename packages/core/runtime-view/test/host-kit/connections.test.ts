@@ -103,7 +103,7 @@ describe("parsing the profiles of .pulse.json", () => {
       `${FILE}: profile "cluster": flavor must be one of camunda7, cibseven, operaton (the value is not shown).`,
       `${FILE}: profile "named": engine names a process engine this client does not reach: it reaches only "default".`,
       `${FILE}: profile "bad-url": url is no URL: use a URL such as http://localhost:8080/engine-rest.`,
-      `${FILE}: profile "bearer": This client cannot authenticate with this auth.type.`,
+      `${FILE}: profile "bearer": This client cannot authenticate with this auth.type. Set auth.type to none or basic, or keep this profile for the CLI.`,
       `${FILE}: profile "nonsense": The profile must be a JSON object.`,
     ])
   })

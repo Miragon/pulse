@@ -24,13 +24,13 @@
   "auth-mixed": {
     "targets": [],
     "problems": [
-      "profile \"local\": auth mixes the keys of two kinds of credentials (Basic auth, OAuth, a bearer token): keep one."
+      "profile \"local\": auth mixes the keys of two kinds of credentials (Basic auth, OAuth, a bearer token): keep one. This client connects with auth.type none or basic: use one of them."
     ]
   },
   "auth-mixed-token": {
     "targets": [],
     "problems": [
-      "profile \"local\": auth.token is set, but a file others share names no credential, neither a secret nor the variable that holds one. auth mixes the keys of two kinds of credentials (Basic auth, OAuth, a bearer token): keep one."
+      "profile \"local\": auth.token is set, but a file others share names no credential, neither a secret nor the variable that holds one. auth mixes the keys of two kinds of credentials (Basic auth, OAuth, a bearer token): keep one. This client connects with auth.type none or basic: use one of them."
     ]
   },
   "auth-not-object": {
@@ -42,7 +42,7 @@
   "auth-oauth-keys-basic-type": {
     "targets": [],
     "problems": [
-      "profile \"local\": auth.type does not fit the other auth keys: OAuth keys need \"oauth\", a stored token \"bearer\", Basic auth keys \"basic\" or no type, \"passthrough\" takes none, and \"none\" switches them off."
+      "profile \"local\": auth.type does not fit the other auth keys: OAuth keys need \"oauth\", a stored token \"bearer\", Basic auth keys \"basic\" or no type, \"passthrough\" takes none, and \"none\" switches them off. This client connects with auth.type none or basic: use one of them."
     ]
   },
   "auth-oauth-values-invalid": {
@@ -60,7 +60,7 @@
   "auth-oauth-without-type": {
     "targets": [],
     "problems": [
-      "profile \"local\": auth.type does not fit the other auth keys: OAuth keys need \"oauth\", a stored token \"bearer\", Basic auth keys \"basic\" or no type, \"passthrough\" takes none, and \"none\" switches them off."
+      "profile \"local\": auth.type does not fit the other auth keys: OAuth keys need \"oauth\", a stored token \"bearer\", Basic auth keys \"basic\" or no type, \"passthrough\" takes none, and \"none\" switches them off. This client connects with auth.type none or basic: use one of them."
     ]
   },
   "auth-one-endpoint": {
@@ -76,7 +76,7 @@
   "auth-passthrough-keys": {
     "targets": [],
     "problems": [
-      "profile \"local\": auth.type does not fit the other auth keys: OAuth keys need \"oauth\", a stored token \"bearer\", Basic auth keys \"basic\" or no type, \"passthrough\" takes none, and \"none\" switches them off."
+      "profile \"local\": auth.type does not fit the other auth keys: OAuth keys need \"oauth\", a stored token \"bearer\", Basic auth keys \"basic\" or no type, \"passthrough\" takes none, and \"none\" switches them off. This client connects with auth.type none or basic: use one of them."
     ]
   },
   "auth-password": {
@@ -107,8 +107,8 @@
   "auth-supported": {
     "targets": ["none", "basic", "oauth", "endpoints", "absent"],
     "problems": [
-      "profile \"bearer\": This client cannot authenticate with this auth.type.",
-      "profile \"passthrough\": This client cannot authenticate with this auth.type."
+      "profile \"bearer\": This client cannot authenticate with this auth.type. Set auth.type to none or basic, or keep this profile for the CLI.",
+      "profile \"passthrough\": This client cannot authenticate with this auth.type. Set auth.type to none or basic, or keep this profile for the MCP server."
     ]
   },
   "auth-token": {
@@ -130,22 +130,22 @@
   "auth-token-without-type": {
     "targets": [],
     "problems": [
-      "profile \"local\": auth.tokenEnv is set, but a file others share names no credential, neither a secret nor the variable that holds one. auth.type does not fit the other auth keys: OAuth keys need \"oauth\", a stored token \"bearer\", Basic auth keys \"basic\" or no type, \"passthrough\" takes none, and \"none\" switches them off."
+      "profile \"local\": auth.tokenEnv is set, but a file others share names no credential, neither a secret nor the variable that holds one. auth.type does not fit the other auth keys: OAuth keys need \"oauth\", a stored token \"bearer\", Basic auth keys \"basic\" or no type, \"passthrough\" takes none, and \"none\" switches them off. This client connects with auth.type none or basic: use one of them."
     ]
   },
   "auth-type-not-string": {
     "targets": [],
     "problems": [
-      "profile \"local\": auth.type must be a string, one of none, basic, bearer, oauth, passthrough."
+      "profile \"local\": auth.type must be a string, one of none, basic, bearer, oauth, passthrough. This client connects with auth.type none or basic: use one of them."
     ]
   },
   "auth-type-unknown": {
     "targets": [],
     "problems": [
-      "profile \"kerberos\": auth.type must be one of none, basic, bearer, oauth, passthrough (the value is not shown).",
-      "profile \"blank\": auth.type must be one of none, basic, bearer, oauth, passthrough (the value is not shown).",
-      "profile \"padded\": auth.type must be one of none, basic, bearer, oauth, passthrough (the value is not shown).",
-      "profile \"oauth-kerberos\": auth.type must be one of none, basic, bearer, oauth, passthrough (the value is not shown)."
+      "profile \"kerberos\": auth.type must be one of none, basic, bearer, oauth, passthrough (the value is not shown). This client connects with auth.type none or basic: use one of them.",
+      "profile \"blank\": auth.type must be one of none, basic, bearer, oauth, passthrough (the value is not shown). This client connects with auth.type none or basic: use one of them.",
+      "profile \"padded\": auth.type must be one of none, basic, bearer, oauth, passthrough (the value is not shown). This client connects with auth.type none or basic: use one of them.",
+      "profile \"oauth-kerberos\": auth.type must be one of none, basic, bearer, oauth, passthrough (the value is not shown). This client connects with auth.type none or basic: use one of them."
     ]
   },
   "auth-unknown-key": {
@@ -163,7 +163,7 @@
   "auth-username-oauth-type": {
     "targets": [],
     "problems": [
-      "profile \"local\": auth.type does not fit the other auth keys: OAuth keys need \"oauth\", a stored token \"bearer\", Basic auth keys \"basic\" or no type, \"passthrough\" takes none, and \"none\" switches them off."
+      "profile \"local\": auth.type does not fit the other auth keys: OAuth keys need \"oauth\", a stored token \"bearer\", Basic auth keys \"basic\" or no type, \"passthrough\" takes none, and \"none\" switches them off. This client connects with auth.type none or basic: use one of them."
     ]
   },
   "auth-variable-not-a-name": {
@@ -243,7 +243,7 @@
   "every-profile-key": {
     "targets": [],
     "problems": [
-      "profile \"shop\": This client does not apply headers, so it refuses the profile rather than ignore it."
+      "profile \"shop\": This client does not apply headers, so it refuses the profile rather than ignore it. Remove headers from this profile, or use one without them."
     ]
   },
   "flavor-not-string": {
@@ -269,13 +269,13 @@
   "future-dialect": {
     "targets": ["c7"],
     "problems": [
-      "profile \"c8\": flavor must be one of camunda7, cibseven, operaton (the value is not shown). auth.type must be one of none, basic, bearer, oauth, passthrough (the value is not shown). auth.clientSecretEnv is set, but a file others share names no credential, neither a secret nor the variable that holds one."
+      "profile \"c8\": flavor must be one of camunda7, cibseven, operaton (the value is not shown). auth.type must be one of none, basic, bearer, oauth, passthrough (the value is not shown). auth.clientSecretEnv is set, but a file others share names no credential, neither a secret nor the variable that holds one. This client connects with auth.type none or basic: use one of them."
     ]
   },
   "header-boundaries": {
     "targets": [],
     "problems": [
-      "profile \"local\": This client does not apply headers, so it refuses the profile rather than ignore it."
+      "profile \"local\": This client does not apply headers, so it refuses the profile rather than ignore it. Remove headers from this profile, or use one without them."
     ]
   },
   "header-invalid": {
@@ -321,7 +321,7 @@
       "profile \"local\": auth.passwordEnv is set, but a file others share names no credential, neither a secret nor the variable that holds one.",
       "profile \"prod-a\": auth.passwordEnv is set, but a file others share names no credential, neither a secret nor the variable that holds one.",
       "profile \"prod-b\": auth.tokenEnv is set, but a file others share names no credential, neither a secret nor the variable that holds one.",
-      "profile \"staging\": This client cannot authenticate with this auth.type.",
+      "profile \"staging\": This client cannot authenticate with this auth.type. Set auth.type to none or basic, or keep this profile for the MCP server.",
       "profile \"dev.sso\": engine names a process engine this client does not reach: it reaches only \"default\"."
     ]
   },

@@ -132,7 +132,10 @@ bundled by esbuild like c7-core): `TargetsParser` hands it the file's text under
 others share names neither a secret nor the variable that holds one) and maps each verdict onto a
 target or a problem, `refusalsOn` with the extension's `Surface` for what it cannot serve (the
 auth types bearer and passthrough, a named process engine, a missing `url`, `headers`), and
-`describeProblem` for the wording. The format owns its JSON Schema and the shared fixtures (the
+`describeProblem` for the wording, behind which `TargetsParser` puts the way out the format leaves
+to each reader: after an auth type it refuses or the format does not take, the auth types a target
+then connects with (those `TargetPolicy` lets connect, so not `oauth` yet); after `headers`, to
+remove them. The format owns its JSON Schema and the shared fixtures (the
 `./testing` entry of the package); the runtime view owns what it makes of each, in
 `packages/core/runtime-view/test/host-kit/project-file-fixtures.expected.json`, so rewording a
 problem changes no file of the package. The test
