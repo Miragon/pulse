@@ -7,7 +7,9 @@
   // workspace (docs: all but exports and types), so no workspace runs on its own.
   // knip never reports what an ENTRY file exports (includeEntryExports is off):
   // a test of its package holds each published entry's sorted runtime names
-  // instead (an index, entries or testing test, next to the entry or in test/).
+  // instead (an index, entries or testing test, next to the entry or in test/),
+  // and scripts/entry-lists.test.mjs fails an entry, a new one included, that no
+  // such test holds.
   // Every ignore below is a documented exception: the list is shrink-only,
   // same convention as the ESLint ratchet lists.
 

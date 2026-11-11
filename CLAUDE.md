@@ -1009,10 +1009,13 @@ workspace (its header lists each check).
 
 The repo guards `pnpm test` runs over the real tree: docs-refs, old-names, published imports,
 tool-name and hand-off references, server env names, the source scan's `APP_SCAN`, the
-template's pins and shipped module list, and that only the CLI's sources set
+template's pins and shipped module list, that a test vitest runs in its package holds the
+sorted runtime names of every published entry, since knip reports no entry's exports
+(`scripts/entry-lists.test.mjs`, owner decision 2026-11-11; its header names the form it reads),
+and that only the CLI's sources set
 `@miragon/pulse-http`'s `revealSecrets` (`scripts/trace-secrets.test.mjs`: a trace shows a
 request's secrets only for its `--show-secrets`, owner decision 2026-11-10). Besides the dependency-cruiser and ESLint self-tests
-(invariants 8 and 1), the naming, package-scripts, ratchet, GitHub-config, CI-scope and pack-content checks each prove
+(invariants 8 and 1), the naming, package-scripts, ratchet, GitHub-config, CI-scope, entry-list and pack-content checks each prove
 themselves on planted violations in fixtures; the gates of the editor hosts and of the packages
 they share live in the `test/architecture` of `apps/vscode`, `apps/orca`,
 `packages/core/runtime-view` and `packages/connectors/c7/c7-adapter`.
