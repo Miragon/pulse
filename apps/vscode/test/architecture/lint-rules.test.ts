@@ -60,6 +60,8 @@ describe("the lint gates", { timeout: 120_000 }, () => {
     "export const engine = 'Camunda 7';",
     "export const label = `zeebe ${String(1)}`;",
     "export type Engine = 'c8';",
+    "export const flag = '--activity-id';",
+    "export const column = `activity_id ${String(1)}`;",
   ])("keep engine words out of the core: %s", async (line) => {
     expect(await rulesFiredOn(withProbe(line))).toContain("no-restricted-syntax")
   })

@@ -348,6 +348,9 @@ const vscodeNoComments = {
 
 const VSCODE_ENGINE_WORDS =
   "camunda|zeebe|operaton|cib ?seven|processDefinitionKey|processInstanceKey|activityId|\\bc[78]\\b"
+// activityId in a kebab or snake spelling (a CLI flag, a column): kept apart from the words above,
+// so that their selectors, which the ratchet compares file by file, stay as they were.
+const VSCODE_ENGINE_SPELLINGS = "activity[-_]id"
 const VSCODE_ENGINE_WORDS_MESSAGE =
   "Engine vocabulary belongs in packages/connectors/<family>/<family>-adapter and the composition roots. Use the neutral words of the contract here (elementId, definitionId, bpmnProcessId, instanceId)."
 const ENGINE_CORE_WORDS_MESSAGE =
@@ -377,13 +380,19 @@ const vscodeModuleFunctions = (allowedNames) => {
   ].map((selector) => ({ selector, message: VSCODE_CLASS_MESSAGE }))
 }
 
-const vscodeNeutralCode = vscodeForbiddenWords(VSCODE_ENGINE_WORDS, VSCODE_ENGINE_WORDS_MESSAGE)
-const engineCoreNeutralCode = vscodeForbiddenWords(VSCODE_ENGINE_WORDS, ENGINE_CORE_WORDS_MESSAGE)
+const vscodeNeutralCode = [
+  ...vscodeForbiddenWords(VSCODE_ENGINE_WORDS, VSCODE_ENGINE_WORDS_MESSAGE),
+  ...vscodeForbiddenWords(VSCODE_ENGINE_SPELLINGS, VSCODE_ENGINE_WORDS_MESSAGE),
+]
+const engineCoreNeutralCode = [
+  ...vscodeForbiddenWords(VSCODE_ENGINE_WORDS, ENGINE_CORE_WORDS_MESSAGE),
+  ...vscodeForbiddenWords(VSCODE_ENGINE_SPELLINGS, ENGINE_CORE_WORDS_MESSAGE),
+]
 const vscodeHostColours = vscodeForbiddenWords("--vscode-", VSCODE_HOST_COLOUR_MESSAGE)
-const vscodeHostEngineWords = vscodeForbiddenWords(
-  `${VSCODE_ENGINE_WORDS}|\\bengine-cli\\b`,
-  VSCODE_ENGINE_WORDS_MESSAGE,
-)
+const vscodeHostEngineWords = [
+  ...vscodeForbiddenWords(`${VSCODE_ENGINE_WORDS}|\\bengine-cli\\b`, VSCODE_ENGINE_WORDS_MESSAGE),
+  ...vscodeForbiddenWords(VSCODE_ENGINE_SPELLINGS, VSCODE_ENGINE_WORDS_MESSAGE),
+]
 const vscodeModuleFunctionGate = vscodeModuleFunctions()
 const vscodeComponentFunctionGate = vscodeModuleFunctions("/^(use)?[A-Z]/")
 const vscodeEntryFunctionGate = vscodeModuleFunctions("/^(activate|deactivate)$/")
