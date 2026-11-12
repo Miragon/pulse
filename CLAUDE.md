@@ -876,7 +876,10 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
   in isolation. Dependabot's one npm entry covers the root and the template, so a grouped minor
   or patch bump moves both; a major or a
   security update can arrive for one directory only and turns `pnpm test` red until the
-  template pins the same version: bump both in that pull request.
+  template pins the same version: bump both in that pull request. A bump of a package an
+  artifact bundles turns that artifact's licence test red (the licence item below) until
+  `pnpm third-party-licenses` (after `pnpm build`; every package's `third-party-licenses`
+  script) writes the lists again in that pull request.
 - **The widget `_meta` carries two halves; never hand-write either.** `showToolBinding`
   stamps both on a view tool: MCP Apps' `ui.resourceUri` (with the flat `ui/resourceUri`, as
   ext-apps' `registerAppTool` writes it) and the OpenAI Apps SDK's `openai/*` keys; `appOnly`
@@ -925,6 +928,19 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
   invisible to this server: without an OAuth provider (`MCP_OAUTH_*`) it boots read-only
   with no caller identity, so
   such a deployment names its toolsets in `MCP_ACTIVE_MODULES`.
+- **An artifact ships the licences of the works of others it holds** (owner decision
+  2026-11-12): a generated, checked-in `THIRD_PARTY_LICENSES.txt` beside its `LICENSE`, today
+  the CLI's (`apps/cli/CLAUDE.md`, "Licences") and `@miragon/pulse-c7-client`'s (its generated
+  SDK). The shared licence list `scripts/third-party-licenses.mjs` (Node built-ins only, typed by
+  its `.d.mts`, in `scripts/` because apps never import each other) reads what the artifact really
+  holds: its bundler's module graph (`renderedModules` for rolldown, rollup and Vite) or its
+  generated files. A module under node_modules is its package's, a virtual module the
+  bundler's (named in the artifact's layout), a file of the repository Miragon's, and one of
+  Pulse's packages must share the artifact's MIT; a module that carries another work's text names
+  that work (`embedded`). Anything else fails, and so does a work without a licence file unless
+  the layout names a copy (`licenceFiles`). Each artifact's drift test fails while its file misses
+  a work or lists one it holds no more, and its package's `third-party-licenses` script writes it;
+  `scripts/third-party-licenses.test.mjs` holds the shared part to planted cases.
 - **The server reads no `PULSE_*` variable.** PulseAudio owns `PULSE_*` and `PULSE_CLI_*` is
   the CLI's; the typo warner watches the prefix of every known variable, so one server name
   under `PULSE_` would make it warn about both in a shared environment. A server setting goes

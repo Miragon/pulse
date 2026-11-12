@@ -152,9 +152,11 @@ bundles hold, each with its licence and notice files as it ships them. Like the 
 the file is generated and checked in:
 `pnpm --fail-if-no-match --filter @miragon/pulse-cli third-party-licenses` writes it from the module
 graphs tsdown builds of both bundles' configs without writing a file (`apps/cli/scripts/licenses/`),
-and `apps/cli/scripts/third-party-licenses.test.ts` fails while it misses a bundled work, lists
-one no bundle holds or differs otherwise (a version, a text), so a bump of commander or tsdown
-(rolldown) regenerates it in its pull request. Every module is a package's under node_modules,
+listed by the repository's licence list (`scripts/third-party-licenses.mjs`, the root
+`CLAUDE.md`, Contracts), and `apps/cli/scripts/third-party-licenses.test.ts` fails
+while it misses a bundled work, lists one no bundle holds or differs otherwise (a
+version, a text), so a bump of commander or tsdown (rolldown) regenerates it in its
+pull request. Every module is a package's under node_modules,
 a virtual module of the bundler or a file of this repository, Miragon's under MIT like each of
 Pulse's packages in a bundle; anything else fails the generator, and so does a work without a
 licence file or one that keeps its licence texts in a folder. A module of the CLI that carries

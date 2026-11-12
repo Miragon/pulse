@@ -14,6 +14,7 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test --continue=dependencies-successful && pnpm test:scripts",
     "test:scripts": "node --test \"scripts/*.test.mjs\"",
+    "third-party-licenses": "pnpm -r --if-present run third-party-licenses",
     "lint": "pnpm lint:naming && pnpm lint:package-scripts && pnpm lint:github && pnpm lint:ratchets && turbo run lint --continue=dependencies-successful && pnpm lint:architecture && pnpm lint:architecture:cli && pnpm lint:architecture:vscode && pnpm lint:architecture:runtime-view && pnpm lint:architecture:c7-adapter && pnpm lint:architecture:orca && pnpm lint:deadcode && pnpm lint:deadcode:exports && pnpm lint:configs",
     "lint:architecture": "depcruise apps/*/src packages/core/*/src packages/connectors/*/*/src packages/core/*/test packages/connectors/*/*/test packages/connectors/*/*/scripts --config .dependency-cruiser.cjs --output-type err-long",
     "lint:architecture:cli": "depcruise apps/cli/scripts apps/cli/test --config .dependency-cruiser.cjs --output-type err-long",

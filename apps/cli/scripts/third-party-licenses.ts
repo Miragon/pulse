@@ -3,15 +3,17 @@
  * single executables ship beside LICENSE and a release attaches as
  * pulse-cli-THIRD_PARTY_LICENSES.txt (scripts/release-licenses.sh): the works of others the CLI's
  * bundles hold, each with its licence and notice files, from the module graphs tsdown builds of
- * both bundles (scripts/licenses/). scripts/third-party-licenses.test.ts fails while the file is
+ * both bundles (scripts/licenses/), listed by the repository's licence list
+ * (scripts/third-party-licenses.mjs). scripts/third-party-licenses.test.ts fails while the file is
  * out of date.
  * Usage: pnpm --fail-if-no-match --filter @miragon/pulse-cli third-party-licenses
  */
 
 import { writeFile } from "node:fs/promises"
+import { inventoryOf, renderLicences } from "../../../scripts/third-party-licenses.mjs"
 import { bundledModules, CLI_LAYOUT, LICENCES_FILE } from "./licenses/bundles.js"
-import { inventoryOf } from "./licenses/inventory.js"
-import { renderLicences } from "./licenses/render.js"
+import { CLI_TEXT } from "./licenses/text.js"
 
-await writeFile(LICENCES_FILE, renderLicences(inventoryOf(await bundledModules(), CLI_LAYOUT)))
+const inventory = inventoryOf(await bundledModules(), CLI_LAYOUT)
+await writeFile(LICENCES_FILE, renderLicences(inventory, CLI_TEXT))
 console.log(`Wrote ${LICENCES_FILE}`)

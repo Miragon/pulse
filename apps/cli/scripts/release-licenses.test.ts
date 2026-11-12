@@ -15,7 +15,7 @@ import { parse } from "yaml"
 import { EXE_TARGETS, exeTarget } from "./exe/sea.js"
 import { CLI_LAYOUT, LICENCES_FILE } from "./licenses/bundles.js"
 
-const cliFile = (path: string): string => readFileSync(join(CLI_LAYOUT.cli, path), "utf8")
+const cliFile = (path: string): string => readFileSync(join(CLI_LAYOUT.home, path), "utf8")
 
 /** The parts of publish-cli.yml the licences of a release pass through. */
 interface Step {
@@ -187,7 +187,7 @@ describe.skipIf(process.platform === "win32")("the licences a release attaches",
       if (text !== undefined) writeFileSync(join(dir, "node-license", name), text)
     }
     const args = [join(dir, "node-license"), join(dir, "assets")]
-    return spawnSync("bash", [join(CLI_LAYOUT.cli, "scripts", "release-licenses.sh"), ...args], {
+    return spawnSync("bash", [join(CLI_LAYOUT.home, "scripts", "release-licenses.sh"), ...args], {
       encoding: "utf8",
     })
   }

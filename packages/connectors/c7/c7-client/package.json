@@ -29,6 +29,7 @@
     "!dist/**/*.test.*",
     "!dist/**/*.test-support.*",
     "!dist/**/test-support",
+    "THIRD_PARTY_LICENSES.txt",
     "src",
     "!src/**/*.test.*",
     "!src/**/*.test-support.*",
@@ -55,6 +56,7 @@
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
+    "third-party-licenses": "THIRD_PARTY_LICENSES_UPDATE=1 vitest run src/third-party-licenses.test.ts --coverage.enabled=false",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",

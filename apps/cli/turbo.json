@@ -8,6 +8,8 @@
     "test": {
       "inputs": [
         "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/scripts/third-party-licenses.mjs",
+        "$TURBO_ROOT$/scripts/third-party-licenses.d.mts",
         "$TURBO_ROOT$/packages/connectors/c7/c7-core/spec/*",
         "$TURBO_ROOT$/packages/connectors/c7/c7-core/src/generated/routes.json",
         "$TURBO_ROOT$/docs/cli/**",

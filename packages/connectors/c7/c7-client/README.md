@@ -106,4 +106,8 @@ How the client is generated from the c7 family's one spec is in [CONTRIBUTING.md
 
 ## License
 
-[MIT](LICENSE) © Miragon GmbH
+[MIT](LICENSE) © Miragon GmbH. The generated SDK holds works of others, each under its own licence:
+the descriptions of the Operaton REST API's OpenAPI document (Apache License 2.0, with Operaton's
+NOTICE) and the fetch client and comments of `@hey-api/openapi-ts` (MIT). Their licence and notice
+files are in [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt), which the tarball ships beside
+`LICENSE`.
