@@ -190,8 +190,9 @@ Ports, core, webview, host kit and host stay engine-neutral.
   (the C7 adapter's `PulseCli`) on the engine its `CliTarget` names: the profile of the target's
   project file, or the URL of the default engine with `--auth none`, beside which the CLI still
   sends the headers and engine name of a profile it selects itself, a credential header too
-  (`apps/vscode/docs/adr/writes.md`). The package owns its JSON Schema and the shared fixtures (its
-  `./testing` entry), the runtime view its expectations of them
+  (`apps/vscode/docs/adr/writes.md`); the wait row carries the command apart from the sentence
+  (`WaitRow.cliCommand`) for the copy button beside the can't-move sign. The package owns its JSON
+  Schema and the shared fixtures (its `./testing` entry), the runtime view its expectations of them
   (`packages/core/runtime-view/test/host-kit/project-file-fixtures.expected.json`, one entry per
   fixture); `packages/core/runtime-view/test/host-kit/project-file-fixtures.test.ts` holds
   `TargetsParser` to both. A profile the format takes is a target with its URL, auth type and

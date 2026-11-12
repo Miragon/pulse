@@ -1,7 +1,7 @@
 # User interface
 
 - Status: accepted
-- Last reviewed: 2026-11-09 (the Engines tree's problems in the profile format's words, a cockpitUrl's trailing `#/` dropped); 2026-11-08 (the tones of Pulse's situation table; times, durations, counts and short ids from Pulse's formatters; 2026-10-26: boards, see [boards.md](boards.md); live updates, see [live-updates.md](live-updates.md); moving a token; bulk cancel, see [writes.md](writes.md); migration, see [migrations.md](migrations.md))
+- Last reviewed: 2026-11-12 (a button beside the "can't move" sign copies the CLI command its reason names); 2026-11-09 (the Engines tree's problems in the profile format's words, a cockpitUrl's trailing `#/` dropped); 2026-11-08 (the tones of Pulse's situation table; times, durations, counts and short ids from Pulse's formatters; 2026-10-26: boards, see [boards.md](boards.md); live updates, see [live-updates.md](live-updates.md); moving a token; bulk cancel, see [writes.md](writes.md); migration, see [migrations.md](migrations.md))
 
 ## Context
 
@@ -84,7 +84,9 @@ confronted with runtime data (#1688).
 A move starts on the diagram, where the token is: selecting an element that holds a
 token puts a move button (arrow) below its shape, beside the code button, where every
 element action sits like a bpmn-io overlay; a token that cannot move gets a "can't move"
-sign there with the reason as its tooltip, so no button is greyed out. The tables stay free of write columns; on a writable engine the element names in the Waiting tab select the element on the diagram and focus its move button, the keyboard path to a move. The move panel takes the place of the tabs: the diagram outlines the allowed
+sign there with the reason as its tooltip, so no button is greyed out. When the reason names a
+CLI command (a token behind an event-based gateway, [writes.md](writes.md)), a copy button
+beside the sign, "Copy CLI command", copies that command. The tables stay free of write columns; on a writable engine the element names in the Waiting tab select the element on the diagram and focus its move button, or that copy button, the keyboard path to a move. The move panel takes the place of the tabs: the diagram outlines the allowed
 targets dashed and dims the refused ones, a click on a refused one says why in the
 panel's status line, and a "To" list is the keyboard path to the same targets. Once a
 target is picked, the source shows "−1" with a struck-through label and the target "+1"

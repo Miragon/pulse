@@ -5,7 +5,7 @@ import type { MoveOption, WaitRow } from "../protocol/index.js"
 import { ActiveTokens } from "./active-tokens.js"
 import { CliWayOut } from "./cli-way-out.js"
 import { ElementLabels } from "./element-labels.js"
-import { MoveSources } from "./move-sources.js"
+import { MoveSources, type MoveRefusal } from "./move-sources.js"
 import { MoveTargets } from "./move-targets.js"
 
 const TRUNCATED = "Pulse sees only part of this instance; moving a token needs all of it."
@@ -41,7 +41,7 @@ export class MoveOptions {
       const waitState = this.detail.waitStates[index]
       const refusal = waitState === undefined ? undefined : this.refusalOf(waitState)
       if (refusal !== undefined) {
-        return { ...row, moveRefusal: refusal }
+        return { ...row, ...refusal }
       }
       moves.push(this.optionFor(row.elementId, waitState?.incidentId !== undefined))
       return row
@@ -49,9 +49,9 @@ export class MoveOptions {
     return { rows: marked, moves }
   }
 
-  private refusalOf(waitState: WaitState): string | undefined {
+  private refusalOf(waitState: WaitState): MoveRefusal | undefined {
     return this.detail.truncated
-      ? TRUNCATED
+      ? { moveRefusal: TRUNCATED }
       : this.sources.refusalOf(waitState, this.detail.instance.id)
   }
 

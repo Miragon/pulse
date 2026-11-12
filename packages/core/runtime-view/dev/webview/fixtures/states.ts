@@ -7,7 +7,12 @@ import { ENGINE_VIEW } from "./engine.js"
 import { LOCAL_ENGINE, PROD_ENGINE } from "./engines.js"
 import { INSTANCE_WAITING, INSTANCE_WITH_CALLED_INCIDENT } from "./instance.js"
 import { MIGRATION_VIEW, RUNNING_MIGRATION_VIEW, UNMAPPED_MIGRATION_VIEW } from "./migration.js"
-import { MOVABLE_INSTANCE, WRITABLE_INCIDENT_ID, WRITABLE_INSTANCE } from "./writable.js"
+import {
+  GATEWAY_INSTANCE,
+  MOVABLE_INSTANCE,
+  WRITABLE_INCIDENT_ID,
+  WRITABLE_INSTANCE,
+} from "./writable.js"
 
 const UNREACHABLE = {
   title: "Couldn't reach prod-eu.",
@@ -40,6 +45,7 @@ export const FIXTURES = {
   "instance-waiting": { status: "ready", view: INSTANCE_WAITING, refreshing: false },
   "instance-writable": { status: "ready", view: WRITABLE_INSTANCE, refreshing: false },
   "instance-movable": { status: "ready", view: MOVABLE_INSTANCE, refreshing: false },
+  "instance-gateway": { status: "ready", view: GATEWAY_INSTANCE, refreshing: false },
   "instance-retrying": {
     status: "ready",
     view: {

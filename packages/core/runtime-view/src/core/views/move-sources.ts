@@ -7,6 +7,11 @@ import { Labels } from "./labels.js"
 
 const ANY_OF = new Intl.ListFormat("en", { type: "disjunction" })
 
+export interface MoveRefusal {
+  readonly moveRefusal: string
+  readonly cliCommand?: string
+}
+
 export class MoveSources {
   constructor(
     private readonly nodes: FlowNodes,
@@ -15,9 +20,9 @@ export class MoveSources {
     private readonly cli: CliWayOut,
   ) {}
 
-  refusalOf(waitState: WaitState, instanceId: string): string | undefined {
+  refusalOf(waitState: WaitState, instanceId: string): MoveRefusal | undefined {
     if (waitState.instanceId !== instanceId) {
-      return "Open the called instance to move this token."
+      return { moveRefusal: "Open the called instance to move this token." }
     }
     const gateway = this.nodes.eventGatewayBefore(waitState.elementId)
     if (gateway !== undefined && waitState.kind !== "asyncContinuation") {
@@ -25,12 +30,13 @@ export class MoveSources {
     }
     if (waitState.attachedToElementId !== undefined) {
       const host = this.labels.of(waitState.attachedToElementId)
-      return `This event belongs to ${host}; move the token at ${host} instead.`
+      return { moveRefusal: `This event belongs to ${host}; move the token at ${host} instead.` }
     }
-    return this.elementRefusal(waitState.elementId)
+    const refusal = this.elementRefusal(waitState.elementId)
+    return refusal === undefined ? undefined : { moveRefusal: refusal }
   }
 
-  private gatewayRefusal(gateway: string, waitState: WaitState): string {
+  private gatewayRefusal(gateway: string, waitState: WaitState): MoveRefusal {
     const waits = `The token waits at the gateway ${this.labels.of(gateway)} until one of the events after it occurs; Pulse does not move a token away from an event-based gateway.`
     const conditions = this.nodes.conditionsAfter(gateway).map((id) => this.labels.of(id))
     const variables =
@@ -38,7 +44,10 @@ export class MoveSources {
         ? undefined
         : `Change a variable on the Variables tab to meet the condition of ${ANY_OF.format(conditions)}.`
     const trigger = this.cli.triggering(waitState, this.labels.of(waitState.elementId))
-    return [waits, variables, trigger].filter((sentence) => sentence !== undefined).join(" ")
+    const moveRefusal = [waits, variables, trigger?.sentence]
+      .filter((sentence) => sentence !== undefined)
+      .join(" ")
+    return trigger === undefined ? { moveRefusal } : { moveRefusal, cliCommand: trigger.command }
   }
 
   private elementRefusal(elementId: string): string | undefined {

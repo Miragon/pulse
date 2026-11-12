@@ -62,14 +62,21 @@ describe("moving a token behind an event-based gateway", () => {
       { writable: true, cli },
     )
     const instanceId = fixture.world.instanceIds["ORD-1001"]
-    await new InstancePanel(fixture.context, instanceId).handle({ type: "ready" })
+    const panel = new InstancePanel(fixture.context, instanceId)
+    await panel.handle({ type: "ready" })
 
-    expect(readyView(fixture.lastState()).waitStates[0]?.moveRefusal).toBe(
-      `The token waits at the gateway Paid? until one of the events after it occurs; Pulse does not move a token away from an event-based gateway. Trigger Review order with the CLI: pulse advance ${instanceId} --activity-id ${REVIEW}`,
-    )
+    const command = `pulse advance ${instanceId} --activity-id ${REVIEW}`
+    expect(readyView(fixture.lastState()).waitStates[0]).toMatchObject({
+      moveRefusal: `The token waits at the gateway Paid? until one of the events after it occurs; Pulse does not move a token away from an event-based gateway. Trigger Review order with the CLI: ${command}`,
+      cliCommand: command,
+    })
     expect(asked.map(([detail, waitState]) => [detail.instance.id, waitState.elementId])).toEqual([
       [instanceId, REVIEW],
     ])
+
+    await panel.handle({ type: "copy", text: command, label: "CLI command" })
+
+    expect(fixture.effects.copyToClipboard).toHaveBeenCalledExactlyOnceWith(command, "CLI command")
   })
 })
 

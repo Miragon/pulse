@@ -183,6 +183,7 @@ export interface WaitRow {
   readonly dueAt?: string
   readonly calledInstance?: CalledInstanceLink
   readonly moveRefusal?: string
+  readonly cliCommand?: string
 }
 
 export type VariableEditor = "text" | "integer" | "decimal" | "boolean" | "date" | "json" | "any"

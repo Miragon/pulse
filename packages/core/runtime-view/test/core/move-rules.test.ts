@@ -419,6 +419,7 @@ describe("the tokens that can be moved", () => {
   ])("refuse %o with runs %o", (tokens, runs, reason) => {
     const { rows, moves } = movesOf(detailOf(tokens, { runs }))
     expect(rows[0]).toMatchObject({ moveRefusal: reason })
+    expect(rows[0]).not.toHaveProperty("cliCommand")
     expect(moves).toEqual([])
   })
 
@@ -437,6 +438,12 @@ describe("the tokens that can be moved", () => {
       PAID_REFUSAL,
       PAID_REFUSAL,
     ])
+    expect(rows.map((row) => row.cliCommand)).toEqual([
+      "pulse advance instance-1 --activity-id Paid",
+      undefined,
+      undefined,
+    ])
+    expect(rows[1]).not.toHaveProperty("cliCommand")
     expect(moves).toEqual([])
   })
 
@@ -455,9 +462,11 @@ describe("the tokens that can be moved", () => {
 
   test("refuse every token of a truncated instance", () => {
     const { rows } = movesOf(detailOf([{ at: "Review" }], { truncated: true }))
-    expect(rows[0]?.moveRefusal).toBe(
-      "Pulse sees only part of this instance; moving a token needs all of it.",
-    )
+    expect(rows[0]).toEqual({
+      elementId: "Review",
+      kindLabel: "User task",
+      moveRefusal: "Pulse sees only part of this instance; moving a token needs all of it.",
+    })
   })
 
   test.each(["suspended", "completed"] as const)("offer nothing in a %s instance", (state) => {
@@ -468,10 +477,14 @@ describe("the tokens that can be moved", () => {
 })
 
 describe("the way on from an event-based gateway", () => {
-  function refusalAt(token: Token, cli?: EngineCli): string | undefined {
+  function rowAt(token: Token, cli?: EngineCli): WaitRow | undefined {
     const { rows, moves } = movesOf(detailOf([token]), EVENTS, cli)
     expect(moves).toEqual([])
-    return rows[0]?.moveRefusal
+    return rows[0]
+  }
+
+  function refusalAt(token: Token, cli?: EngineCli): string | undefined {
+    return rowAt(token, cli)?.moveRefusal
   }
 
   test.each([
@@ -481,17 +494,23 @@ describe("the way on from an event-based gateway", () => {
     ["timer catch event", { at: "Window", kind: "timer" }, "14 days"],
   ] as const)("names the CLI command the engine's adapter gives for a %s", (_, token, label) => {
     const cli = new RecordingCli()
-    expect(refusalAt(token, cli)).toBe(
-      `${RETURNED_REFUSAL} Trigger ${label} with the CLI: pulse advance instance-1 --activity-id ${token.at}`,
-    )
+    const command = `pulse advance instance-1 --activity-id ${token.at}`
+    expect(rowAt(token, cli)).toMatchObject({
+      moveRefusal: `${RETURNED_REFUSAL} Trigger ${label} with the CLI: ${command}`,
+      cliCommand: command,
+    })
     expect(cli.asked.map(({ detail, waitState }) => [detail.instance.id, waitState])).toEqual([
       ["instance-1", expect.objectContaining({ elementId: token.at, kind: token.kind })],
     ])
   })
 
   test("names no command when the adapter has none for the row or the engine no CLI", () => {
-    expect(refusalAt({ at: "Pickup", kind: "other" }, new RecordingCli())).toBe(RETURNED_REFUSAL)
-    expect(refusalAt({ at: "Parcel", kind: "message" })).toBe(RETURNED_REFUSAL)
+    const withoutCommand = rowAt({ at: "Pickup", kind: "other" }, new RecordingCli())
+    const withoutCli = rowAt({ at: "Parcel", kind: "message" })
+    for (const row of [withoutCommand, withoutCli]) {
+      expect(row?.moveRefusal).toBe(RETURNED_REFUSAL)
+      expect(row).not.toHaveProperty("cliCommand")
+    }
   })
 
   test("keeps the called instance's refusal for a token behind a gateway of another instance", () => {
@@ -506,6 +525,7 @@ describe("the way on from an event-based gateway", () => {
     const cli = new RecordingCli()
     const { rows } = movesOf(detailOf([{ at: "Pack" }, { at: "Pack" }]), XML, cli)
     expect(rows[0]?.moveRefusal).toBe("2 tokens wait here; Pulse moves only a single one.")
+    expect(rows[0]).not.toHaveProperty("cliCommand")
     expect(cli.asked).toEqual([])
   })
 

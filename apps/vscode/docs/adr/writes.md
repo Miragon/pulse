@@ -1,7 +1,7 @@
 # Guarded writes
 
 - Status: accepted
-- Last reviewed: 2026-11-12 (the command for the default engine names its URL with `--auth none`, beside which a profile the CLI selects itself still adds its headers and engine name; a target without commands names the target policy's refusal as its read-only note; a token behind an event-based gateway is told to change a variable when a conditional event follows the gateway, and a row the engine's CLI can trigger names its command, with the profile of its project file; a token at the continuation after its event moves); 2026-11-11 (the editor refuses a number beyond the range of a double before it asks, on every engine); 2026-11-10 (the editor refuses a whole number beyond 64 bits before it asks, on every engine); 2026-10-23
+- Last reviewed: 2026-11-12 (a button beside the can't-move sign copies the command; the command for the default engine names its URL with `--auth none`, beside which a profile the CLI selects itself still adds its headers and engine name; a target without commands names the target policy's refusal as its read-only note; a token behind an event-based gateway is told to change a variable when a conditional event follows the gateway, and a row the engine's CLI can trigger names its command, with the profile of its project file; a token at the continuation after its event moves); 2026-11-11 (the editor refuses a number beyond the range of a double before it asks, on every engine); 2026-11-10 (the editor refuses a whole number beyond 64 bits before it asks, on every engine); 2026-10-23
 
 ## Context
 
@@ -176,8 +176,13 @@ is missing or refused, or a broken default profile, fails it. Closing that needs
 selects no profile. The command delivers that event to this token's execution or executes its timer
 job, nothing beyond this instance, and the instance runs on to its next wait state as when the event
 occurs. The CLI refuses a suspended timer job, which the contract does not tell. The command shows
-in the tooltip and the accessible name of the diagram's can't-move sign, where it is read, not
-copied.
+in the tooltip and the accessible name of the diagram's can't-move sign, and a button beside the
+sign, "Copy CLI command", copies it. The view model carries the command apart from the sentence
+(`WaitRow.cliCommand`, set only on a row whose refusal names one, never read back from the text),
+and the webview sends it through the panels' `copy` intent, so each host copies it with the feedback
+it gives every copy (VS Code's status bar, Orca's frame). On a writable engine the element's name in
+the Waiting tab focuses that button, the keyboard path to it; the button names the refusal as its
+description.
 
 The C7 adapter reads the activity instance tree (read-only), refuses 0, more than one or
 a multi-instance body at the source, and sends one modification on stdin: start before
