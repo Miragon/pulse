@@ -13,7 +13,7 @@ together.
 
 ```sh
 npm install @miragon/pulse-engine-connector @miragon/pulse-widget-shell zod bpmn-js@18.31.1
-npm install react react-dom @miragon/pulse-ui lucide-react@1.67.0
+npm install react react-dom @miragon/pulse-ui lucide-react@1.70.0
 ```
 
 `zod`, `bpmn-js` and `@miragon/pulse-widget-shell` are required peers, the second line is for the
