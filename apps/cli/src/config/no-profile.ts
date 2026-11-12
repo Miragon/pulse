@@ -1,5 +1,6 @@
 /** A URL without `--profile` selects no profile (resolve.ts): what it leaves out. */
 
+import { PROFILE_NAME } from "@miragon/pulse-profile"
 import { type Env, nonEmpty } from "./pick.js"
 import { type AuthConfig, type ConfigFlags, ENV, type LoadedConfig } from "./types.js"
 
@@ -54,4 +55,18 @@ export function withoutProfile(
   if (leftOut(env, file) === undefined) return { auth, noProfile }
   if (auth.type !== "none" || auth.off !== undefined) return { auth, noProfile }
   return { auth: { ...auth, off: noProfile }, noProfile }
+}
+
+/**
+ * The warning a command writes on stderr, once, when a URL without `--profile` leaves out the
+ * PULSE_CLI_PROFILE the user set (not a defaultProfile). It names the variable's value only as a
+ * profile name, so nothing else of the environment reaches the terminal.
+ */
+export function profileNotice(flags: ConfigFlags, env: Env): string | undefined {
+  const by = urlWithoutProfile(flags, env)
+  const name = nonEmpty(env[ENV.profile])
+  if (by === undefined || name === undefined) return undefined
+  return PROFILE_NAME.test(name)
+    ? `Warning: ${ENV.profile}=${name} does not apply beside ${by}; pass --profile ${name} to use it.\n`
+    : `Warning: ${ENV.profile} does not apply beside ${by}; pass --profile <name> to use a profile.\n`
 }
