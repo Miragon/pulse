@@ -125,3 +125,14 @@ export interface RenderedChunk {
   readonly modules?: Readonly<Record<string, { readonly renderedLength: number } | undefined>>
 }
 export declare function renderedModules(chunks: readonly RenderedChunk[]): string[]
+
+/** A Vite plugin, as far as `cssDependencies` needs one. */
+export interface CssDependencyPlugin {
+  readonly name: string
+  configResolved(config: { readonly plugins: readonly object[] }): void
+}
+export declare function cssDependencies(): {
+  readonly plugin: CssDependencyPlugin
+  /** The stylesheets of the chunks' modules and what their `@import`s pull in, real paths. */
+  readonly files: (chunks: readonly RenderedChunk[]) => string[]
+}

@@ -136,4 +136,7 @@ How to build, test and change Pulse is in [CONTRIBUTING.md](https://github.com/M
 
 ## License
 
-[MIT](LICENSE) © Miragon GmbH
+[MIT](LICENSE) © Miragon GmbH. The primitives build on the components of
+[shadcn/ui](https://github.com/shadcn-ui/ui), MIT © shadcn: its licence is in
+[src/primitives/LICENSE](src/primitives/LICENSE), which the tarball ships with them. A bundle that
+holds them lists it with its licences, as the Pulse server image does.

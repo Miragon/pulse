@@ -97,4 +97,4 @@ OAuth, write toolsets and deployment: [Operations](https://miragon.github.io/pul
 ·
 [Source and contributing](CONTRIBUTING.md)
 
-Made by [Miragon](https://www.miragon.io). MIT licence.
+Made by [Miragon](https://www.miragon.io). MIT licence; the licences of the works of others its view bundle holds are in [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt), which the image ships in `/usr/share/doc/pulse-server`.

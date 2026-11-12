@@ -29,6 +29,13 @@ built by the root `Dockerfile`. Setup and the repository's bar: [CONTRIBUTING.md
   [`vite.config.ts`](vite.config.ts) is load-bearing: it spreads widget-shell's `VIEW_BUNDLE_DEDUPE`
   and so keeps a single React / TanStack Query / pulse-ui / widget-shell / lucide-react instance, so a
   widget finds the view host and the one `QueryClient`.
+  The image ships `THIRD_PARTY_LICENSES.txt` in `/usr/share/doc/pulse-server`, the works of others
+  the bundle holds with their licence files (the bundle carries none, for its size), read from
+  the module graph Vite builds and the stylesheets it inlines:
+  `test/third-party-licenses.test.ts` fails while the file misses a work or lists one the bundle
+  no longer holds, so a bump of a package the bundle holds writes it again in its pull request
+  (`pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server third-party-licenses`). A package
+  that ships no licence file gets a copy of its repository's licence under `licences/`.
 - **Serves HTTP:** streamable-HTTP MCP on `:8400/mcp` (POST only, stateless: GET, DELETE and HEAD
   get 405), `/health/*` and `/metrics`. No inspector ships with the server: `pnpm dev` starts the
   official MCP Inspector as a process of its own.

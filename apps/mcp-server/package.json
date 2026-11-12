@@ -25,6 +25,7 @@
     "typecheck": "tsc --noEmit && tsc -p tsconfig.ui.json && tsc -p tsconfig.test.json",
     "test": "vitest run",
     "test:host": "pnpm run build:ui && playwright test -c test-host",
+    "third-party-licenses": "THIRD_PARTY_LICENSES_UPDATE=1 vitest run test/third-party-licenses.test.ts --coverage.enabled=false",
     "golden:update": "turbo run build --filter=@miragon/pulse-mcp-server^... --output-logs=errors-only && GOLDEN_UPDATE=1 vitest run --coverage.enabled=false",
     "lint": "eslint src test test-host",
     "lint:fix": "eslint src test test-host --fix",

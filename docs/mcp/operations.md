@@ -11,10 +11,11 @@ docker run --rm -p 127.0.0.1:8400:8400 -e ENGINE_BASE_URL=... -e ENGINE_ID=... \
   ghcr.io/miragon/pulse-server:latest
 ```
 
-SIGTERM stops accepting, lets in-flight requests finish (≤ 4 s; readiness answers them 503
-`draining`, so add a Kubernetes `preStop` sleep), then exits. release-please tags `v<version>`,
-which `publish-to-docker.yml` pushes after manual approval. `playground/docker/docker-compose.yml`
-binds every port to `127.0.0.1` (`--profile full` adds the server); Fly.io: `playground/README.md`.
+The image keeps the server's `LICENSE` and `THIRD_PARTY_LICENSES.txt` (the works of others its view bundle holds, with their licence files) in `/usr/share/doc/pulse-server`, the licences of its dependencies (the Geist fonts it serves among them) in `/app/node_modules` and Node.js's in `/usr/local/LICENSE`.
+
+SIGTERM stops accepting, lets in-flight requests finish (≤ 4 s; readiness answers them 503 `draining`, so add a Kubernetes `preStop` sleep),
+then exits. release-please tags `v<version>`, which `publish-to-docker.yml` pushes after manual approval.
+`playground/docker/docker-compose.yml` binds every port to `127.0.0.1` (`--profile full` adds the server); Fly.io: `playground/README.md`.
 
 ## Security
 

@@ -1,10 +1,19 @@
 import assert from "node:assert/strict"
-import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs"
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import { after, before, describe, it } from "node:test"
 import * as list from "./third-party-licenses.mjs"
 import {
+  cssDependencies,
   inventoryOf,
   licenceFindings,
   licenceTexts,
@@ -79,9 +88,39 @@ const FILES = {
   "repo/node_modules/.pnpm/bare@1.0.0/node_modules/bare/index.js": "x",
   "repo/node_modules/.pnpm/reuse@1.0.0/node_modules/reuse/LICENSE": "MIT, and see LICENSES",
   "repo/node_modules/.pnpm/reuse@1.0.0/node_modules/reuse/LICENSES/MIT.txt": "MIT",
+  "repo/node_modules/.pnpm/tw@1.0.0/node_modules/tw/package.json": JSON.stringify({
+    name: "tw",
+    version: "1.0.0",
+    license: "MIT",
+  }),
+  "repo/node_modules/.pnpm/tw@1.0.0/node_modules/tw/LICENSE": "MIT, tw's",
+  "repo/node_modules/.pnpm/tw@1.0.0/node_modules/tw/index.css": "@layer base {}",
+  "repo/node_modules/.pnpm/styled@1.0.0/node_modules/styled/package.json": JSON.stringify({
+    name: "styled",
+    version: "1.0.0",
+    license: "MIT",
+    exports: { ".": { style: "./dist/styled.css", import: "./index.js" } },
+  }),
+  "repo/node_modules/.pnpm/styled@1.0.0/node_modules/styled/index.js": "x",
+  "repo/node_modules/.pnpm/styled@1.0.0/node_modules/styled/dist/styled.css": "b {}",
+  "repo/node_modules/.pnpm/styled@1.0.0/node_modules/styled/extra.css":
+    '@import "./dist/styled.css";',
+  "repo/apps/cli/src/ui/main.css":
+    '@import "tw";\n/* @import "gone"; */\n@import "./theme" layer(theme);\n' +
+    '@import url("https://fonts.example.org/a.css");\n',
+  "repo/apps/cli/src/ui/theme.css": "@import 'styled';\n",
+  "repo/apps/cli/src/ui/scanned.css": "c {}",
+  "repo/apps/cli/src/ui/other.scss": "d {}",
+  "repo/apps/cli/src/ui/plugin.css": '@plugin "./p.js";\n',
   "bundler/package.json": JSON.stringify({ name: "bundler", version: "9.0.0", license: "MIT" }),
   "bundler/LICENSE": "MIT, the bundler's",
   "outside/x.js": "x",
+}
+
+/** The packages of the artifact's node_modules, as pnpm links them. */
+const LINKS = {
+  "repo/apps/cli/node_modules/tw": "repo/node_modules/.pnpm/tw@1.0.0/node_modules/tw",
+  "repo/apps/cli/node_modules/styled": "repo/node_modules/.pnpm/styled@1.0.0/node_modules/styled",
 }
 
 let root = ""
@@ -115,6 +154,10 @@ before(() => {
   for (const [path, text] of Object.entries(FILES)) {
     mkdirSync(dirname(at(path)), { recursive: true })
     writeFileSync(at(path), text)
+  }
+  for (const [path, target] of Object.entries(LINKS)) {
+    mkdirSync(dirname(at(path)), { recursive: true })
+    symlinkSync(at(target), at(path))
   }
   layout = {
     repo: at("repo"),
@@ -560,6 +603,85 @@ describe("renderedModules", () => {
       { type: "asset", fileName: "style.css" },
     ]
     assert.deepEqual(renderedModules(chunks), ["/a.js", "\0rolldown/runtime.js"])
+  })
+})
+
+describe("cssDependencies", () => {
+  const UI = "repo/apps/cli/src/ui"
+  const TW = "repo/node_modules/.pnpm/tw@1.0.0/node_modules/tw/index.css"
+  const STYLED = "repo/node_modules/.pnpm/styled@1.0.0/node_modules/styled"
+
+  /** The list's plugin in a build whose CSS plugin watches `watched` in its transform hook. */
+  async function built(watched) {
+    const { plugin, files } = cssDependencies()
+    const watchedByVite = []
+    const transform = {
+      name: "tailwind",
+      transform: {
+        filter: { id: /\.css$/ },
+        handler(code) {
+          for (const id of watched) this.addWatchFile(id)
+          return `${code} ${this.meta.name}`
+        },
+      },
+    }
+    const load = {
+      name: "css",
+      load(id) {
+        this.addWatchFile(at("repo/missing.css"))
+        return id
+      },
+    }
+    plugin.configResolved({ plugins: [transform, load, { name: "none" }] })
+    const context = { meta: { name: "ctx" }, addWatchFile: (id) => watchedByVite.push(id) }
+    assert.equal(await transform.transform.handler.call(context, "a{}", "/x.css"), "a{} ctx")
+    assert.deepEqual(transform.transform.filter, { id: /\.css$/ })
+    assert.equal(load.load.call(context, "/y.css"), "/y.css")
+    assert.equal(watchedByVite.length, watched.length + 1)
+    return files
+  }
+
+  const chunk = (...ids) => ({
+    type: "chunk",
+    moduleIds: [at("repo/apps/cli/src/main.ts"), "\0vite/preload-helper.js", ...ids.map(at)],
+    modules: {},
+  })
+
+  it("follows the chunks' stylesheets' @imports to files the build read, not one it scanned", async () => {
+    const files = await built([
+      at(TW),
+      at(`${UI}/theme.css`),
+      at(`${STYLED}/dist/styled.css`),
+      at(`${UI}/scanned.css`),
+      at("repo/apps/cli/src/main.ts"),
+      "src/**/*.{css,ts}",
+    ])
+    // a package's stylesheet a module imports, with its query
+    const chunks = [chunk(`${UI}/main.css`, `${STYLED}/extra.css?direct`), { type: "asset" }]
+    assert.deepEqual(
+      files(chunks),
+      [
+        `${UI}/main.css`,
+        `${UI}/theme.css`,
+        `${STYLED}/dist/styled.css`,
+        `${STYLED}/extra.css`,
+        TW,
+      ].map(at),
+    )
+  })
+
+  it("fails on an @import that names no file the build read", async () => {
+    const files = await built([at(TW), at(`${STYLED}/dist/styled.css`)])
+    assert.throws(
+      () => files([chunk(`${UI}/main.css`)]),
+      /main\.css imports "\.\/theme", which names no stylesheet the build read/,
+    )
+  })
+
+  it("fails on a stylesheet in another language and on code Tailwind loads", async () => {
+    const files = await built([])
+    assert.throws(() => files([chunk(`${UI}/other.scss`)]), /other\.scss is no CSS/)
+    assert.throws(() => files([chunk(`${UI}/plugin.css`)]), /plugin\.css loads code into Tailwind/)
   })
 })
 
