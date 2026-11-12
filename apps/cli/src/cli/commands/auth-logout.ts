@@ -117,7 +117,7 @@ async function logoutTarget(globals: GlobalOptions, context: CliContext) {
   // without a profile the file name is derived from the resolved OAuth settings
   if (target.settings === undefined) {
     if ("error" in resolution) throw resolution.error
-    throw notOAuth("logout", notOAuthOf(resolution.config), runtime.env)
+    throw notOAuth("logout", notOAuthOf(resolution.config, runtime.env), runtime.env)
   }
   return { target, deps, tokenCache: await cachePath(target.settings, deps), profiles: [] }
 }

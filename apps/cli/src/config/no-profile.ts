@@ -27,20 +27,24 @@ function leftOut(env: Env, file: LoadedConfig | undefined): string | undefined {
   return nonEmpty(env[ENV.profile]) === undefined ? defaultLeftOut(file) : ENV.profile
 }
 
+/** Why a URL (`by`) selects no profile, and the profile it leaves out, if any. */
+function reasonOf(by: string, env: Env, file: LoadedConfig | undefined): string {
+  const selectsNone = `${by} without --profile selects no profile`
+  const left = leftOut(env, file)
+  return left === undefined ? selectsNone : `${selectsNone}, so ${left} does not apply`
+}
+
 /**
  * Why no profile applies (`config show`, the hints of the auth commands): what gives the URL and
  * the profile it leaves out, if any.
  */
-export function noProfileReason(
+function noProfileReason(
   flags: ConfigFlags,
   env: Env,
   file: LoadedConfig | undefined,
 ): string | undefined {
   const by = urlWithoutProfile(flags, env)
-  if (by === undefined) return undefined
-  const selectsNone = `${by} without --profile selects no profile`
-  const left = leftOut(env, file)
-  return left === undefined ? selectsNone : `${selectsNone}, so ${left} does not apply`
+  return by === undefined ? undefined : reasonOf(by, env, file)
 }
 
 /** `noProfileReason`, which a 401's hint also names when a profile was left out (`off`). */
@@ -58,15 +62,36 @@ export function withoutProfile(
 }
 
 /**
+ * How a profile applies again beside a URL that selects none (`by`, what gives it: `--url` or
+ * PULSE_CLI_URL): without the URL, each one that is set (`--url`, a non-empty PULSE_CLI_URL). Never
+ * `--profile` beside the URL, which would take the profile's credentials there.
+ */
+export function withoutTheUrl(by: string, env: Env): string {
+  if (by !== "--url") return `unset ${ENV.url}`
+  return nonEmpty(env[ENV.url]) === undefined ? "drop --url" : `drop --url and unset ${ENV.url}`
+}
+
+/** Why no profile applies (`noProfileReason`) and how to leave that URL out (the auth hints). */
+export function noProfileAdvice(
+  flags: ConfigFlags,
+  env: Env,
+  file: LoadedConfig | undefined,
+): { readonly reason: string; readonly withoutUrl: string } | undefined {
+  const by = urlWithoutProfile(flags, env)
+  if (by === undefined) return undefined
+  return { reason: reasonOf(by, env, file), withoutUrl: withoutTheUrl(by, env) }
+}
+
+/**
  * The warning a command writes on stderr, once, when a URL without `--profile` leaves out the
- * PULSE_CLI_PROFILE the user set (not a defaultProfile). It names the variable's value only as a
- * profile name, so nothing else of the environment reaches the terminal.
+ * PULSE_CLI_PROFILE the user set (not a defaultProfile), and the advice to drop that URL. It names
+ * the variable's value only as a profile name, so nothing else of the environment reaches the
+ * terminal.
  */
 export function profileNotice(flags: ConfigFlags, env: Env): string | undefined {
   const by = urlWithoutProfile(flags, env)
   const name = nonEmpty(env[ENV.profile])
   if (by === undefined || name === undefined) return undefined
-  return PROFILE_NAME.test(name)
-    ? `Warning: ${ENV.profile}=${name} does not apply beside ${by}; pass --profile ${name} to use it.\n`
-    : `Warning: ${ENV.profile} does not apply beside ${by}; pass --profile <name> to use a profile.\n`
+  const variable = PROFILE_NAME.test(name) ? `${ENV.profile}=${name}` : ENV.profile
+  return `Warning: ${variable} does not apply beside ${by}; ${withoutTheUrl(by, env)} to use it.\n`
 }

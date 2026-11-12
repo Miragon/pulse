@@ -1,8 +1,9 @@
 /**
  * The warning on stderr when a URL without `--profile` (`--url` or PULSE_CLI_URL) leaves out the
  * PULSE_CLI_PROFILE the user set, through `run()`: one line, once per command, naming where the URL
- * came from; none for a defaultProfile, beside `--profile` or without the variable. It never
- * changes stdout, a JSON or a table output, nor the exit code, and an error stays the last line.
+ * came from and advising to drop each URL that is set, never `--profile` beside it; none for a
+ * defaultProfile, beside `--profile` or without the variable. It never changes stdout, a JSON or a
+ * table output, nor the exit code, and an error stays the last line.
  */
 
 import { describe, expect, it } from "vitest"
@@ -19,9 +20,12 @@ import { run } from "./run.js"
 const ORDERS_URL = "https://orders.example.com/engine-rest"
 
 const BY_FLAG =
-  "Warning: PULSE_CLI_PROFILE=orders does not apply beside --url; pass --profile orders to use it.\n"
+  "Warning: PULSE_CLI_PROFILE=orders does not apply beside --url; drop --url to use it.\n"
 const BY_VARIABLE =
-  "Warning: PULSE_CLI_PROFILE=orders does not apply beside PULSE_CLI_URL; pass --profile orders to use it.\n"
+  "Warning: PULSE_CLI_PROFILE=orders does not apply beside PULSE_CLI_URL; unset PULSE_CLI_URL to use it.\n"
+/** Both give a URL: the flag wins, and the advice names both. */
+const BY_BOTH =
+  "Warning: PULSE_CLI_PROFILE=orders does not apply beside --url; drop --url and unset PULSE_CLI_URL to use it.\n"
 
 /** One run of `args` on a fresh fake engine with the default profile and the given variables. */
 async function runWith(args: readonly string[], env: Record<string, string>) {
@@ -47,7 +51,7 @@ describe("a URL without --profile beside PULSE_CLI_PROFILE", () => {
     }
   })
 
-  it("names PULSE_CLI_URL when the variable gives the URL, and --url when both do", async () => {
+  it("advises unsetting PULSE_CLI_URL when it gives the URL, and dropping both when both do", async () => {
     const env = { PULSE_CLI_URL: ENGINE_URL }
     const warned = await runWith(ADVANCE, { ...env, PULSE_CLI_PROFILE: "orders" })
     const quiet = await runWith(ADVANCE, env)
@@ -58,7 +62,13 @@ describe("a URL without --profile beside PULSE_CLI_PROFILE", () => {
       ...env,
       PULSE_CLI_PROFILE: "orders",
     })
-    expect(both.stderr).toBe(BY_FLAG)
+    expect(both.stderr).toBe(BY_BOTH)
+    // a blank PULSE_CLI_URL is none: only --url gives the URL, and only it has to go
+    const blank = await runWith([...ADVANCE, "--url", ENGINE_URL], {
+      PULSE_CLI_URL: " ",
+      PULSE_CLI_PROFILE: "orders",
+    })
+    expect(blank.stderr).toBe(BY_FLAG)
   })
 
   it("says nothing for a defaultProfile, beside --profile, or without a URL", async () => {
@@ -76,7 +86,7 @@ describe("a URL without --profile beside PULSE_CLI_PROFILE", () => {
   it("names no value that is no profile name", async () => {
     const odd = await runWith([...ADVANCE, "--url", ENGINE_URL], { PULSE_CLI_PROFILE: "a b" })
     expect(odd.stderr).toBe(
-      "Warning: PULSE_CLI_PROFILE does not apply beside --url; pass --profile <name> to use a profile.\n",
+      "Warning: PULSE_CLI_PROFILE does not apply beside --url; drop --url to use it.\n",
     )
   })
 

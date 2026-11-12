@@ -185,9 +185,13 @@ describe("an OAuth login from the environment beside PULSE_CLI_URL", () => {
   })
 })
 
-/** The way to OAuth the auth commands name when a URL selects no profile. */
-const WAY_TO_OAUTH =
-  "pass --profile <profile>, a profile with OAuth (pulse config set <profile> --url <url> --auth oauth --oauth-issuer <url> --oauth-client-id <id> sets one up), or set PULSE_CLI_AUTH=oauth with PULSE_CLI_OAUTH_ISSUER and PULSE_CLI_OAUTH_CLIENT_ID"
+/**
+ * The way to OAuth the auth commands name when a URL selects no profile: leave out the URL that is
+ * set (`withoutUrl`) before `--profile`, which beside it would take the profile's login there.
+ */
+function wayToOAuth(withoutUrl: string): string {
+  return `${withoutUrl}, then pass --profile <profile>, a profile with OAuth (pulse config set <profile> --url <url> --auth oauth --oauth-issuer <url> --oauth-client-id <id> sets one up), or set PULSE_CLI_AUTH=oauth with PULSE_CLI_OAUTH_ISSUER and PULSE_CLI_OAUTH_CLIENT_ID`
+}
 
 describe("the auth commands beside a default OAuth profile", () => {
   it("say that the URL leaves it out and how to log in instead", async () => {
@@ -195,13 +199,18 @@ describe("the auth commands beside a default OAuth profile", () => {
       env: { PULSE_CLI_URL: ENGINE_URL },
       files: { [CONFIG_PATH]: oauthProfiles() },
     })
-    const how = `selects no profile, so the default profile of the config file does not apply: ${WAY_TO_OAUTH}`
+    const how = "selects no profile, so the default profile of the config file does not apply"
     for (const command of [["login"], ["status"], ["logout"], ["login", "--url", ENGINE_URL]]) {
       runtime.stderr.chunks.length = 0
       const error = lastErrorOf((await execute(run, ["auth", ...command], runtime)).stderr)
-      const by = command.includes("--url") ? "--url" : "PULSE_CLI_URL"
+      const flag = command.includes("--url")
+      // beside the flag, PULSE_CLI_URL is still set: both go
+      const [by, without] = flag
+        ? ["--url", "drop --url and unset PULSE_CLI_URL"]
+        : ["PULSE_CLI_URL", "unset PULSE_CLI_URL"]
       expect(error).toMatchObject({ code: "CONFIG" })
-      expect(String(error.hint).startsWith(`${by} without --profile ${how}`)).toBe(true)
+      const hint = `${by} without --profile ${how}: ${wayToOAuth(without)}`
+      expect(String(error.hint).startsWith(hint)).toBe(true)
     }
   })
 
@@ -212,11 +221,13 @@ describe("the auth commands beside a default OAuth profile", () => {
         : { PULSE_CLI_URL: ENGINE_URL }
       const runtime = fakeRuntime({ env })
       const error = lastErrorOf((await execute(run, ["auth", ...command], runtime)).stderr)
-      const by = command.includes("--url") ? "--url" : "PULSE_CLI_URL"
+      const [by, without] = command.includes("--url")
+        ? ["--url", "drop --url"]
+        : ["PULSE_CLI_URL", "unset PULSE_CLI_URL"]
       expect(error).toMatchObject({
         code: "CONFIG",
         message: "pulse auth login needs OAuth, but the configuration uses none",
-        hint: `${by} without --profile selects no profile: ${WAY_TO_OAUTH}`,
+        hint: `${by} without --profile selects no profile: ${wayToOAuth(without)}`,
       })
     }
   })
@@ -228,7 +239,7 @@ describe("the auth commands beside a default OAuth profile", () => {
       env: { PULSE_CLI_URL: ENGINE_URL, PULSE_CLI_USERNAME: "u" },
       files: { [CONFIG_PATH]: PROFILE_FILE },
     })
-    const how = `PULSE_CLI_URL without --profile selects no profile, so the default profile of the config file does not apply: ${WAY_TO_OAUTH}`
+    const how = `PULSE_CLI_URL without --profile selects no profile, so the default profile of the config file does not apply: ${wayToOAuth("unset PULSE_CLI_URL")}`
     for (const command of ["login", "status"]) {
       runtime.stderr.chunks.length = 0
       const result = await execute(run, ["auth", command], runtime)

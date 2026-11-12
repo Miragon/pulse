@@ -16,8 +16,8 @@ $ pulse process-instance delete abc
   refuse every command whose effect is not `read` (exit 2, `READ_ONLY`). Use read-only profiles for
   production engines; a profile guards only the commands that use it, and a URL without
   `--profile` (`--url` or `PULSE_CLI_URL`) [uses none](configuration.md#profiles). When such a URL
-  leaves out the `PULSE_CLI_PROFILE` you set, the command warns once on stderr and names the
-  `--profile` that keeps it:
+  leaves out the `PULSE_CLI_PROFILE` you set, the command warns once on stderr and advises dropping
+  that URL. Name the guarded profile without a URL:
 
 ```sh
 pulse config set prod --url https://camunda.example.com/engine-rest --read-only
