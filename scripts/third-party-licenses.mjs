@@ -8,9 +8,10 @@
  * carries the text of another work names that work in `Layout.embedded`. Anything else fails, and
  * so does a work without a licence file, so nothing reaches an artifact unlisted.
  *
- * Node built-ins only, so each artifact's generator and drift test reads it, whatever builds the
- * artifact: the CLI (apps/cli/scripts/licenses/, tsdown), @miragon/pulse-c7-client (its generated
- * SDK), the server image (Vite) and Pulse for VS Code (esbuild). The readers of the module graphs
+ * Node built-ins only (the closed worlds of the editor hosts hold it to that), so each artifact's
+ * generator and drift test reads it, whatever builds the artifact: the CLI
+ * (apps/cli/scripts/licenses/, tsdown), @miragon/pulse-c7-client (its generated SDK), the server
+ * image (Vite), Pulse for VS Code and Pulse for Orca (esbuild). The readers of the module graphs
  * are here too: `renderedModules` (rolldown, rollup, Vite), `esbuildModules` (an esbuild
  * metafile) and `cssDependencies` (what Vite inlines into a stylesheet).
  * scripts/third-party-licenses.d.mts types it, scripts/third-party-licenses.test.mjs holds it to

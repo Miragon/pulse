@@ -932,19 +932,20 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
   2026-11-12): a generated, checked-in `THIRD_PARTY_LICENSES.txt` beside its `LICENSE`, today
   the CLI's (`apps/cli/CLAUDE.md`, "Licences"), `@miragon/pulse-c7-client`'s (its generated SDK),
   the server image's (`/usr/share/doc/pulse-server`: the view bundle's works, which the bundle
-  itself never carries, for its gzip budget) and the .vsix's (`apps/vscode/CLAUDE.md`). The
-  shared licence list `scripts/third-party-licenses.mjs` (Node built-ins only, typed by its
-  `.d.mts`, in `scripts/` because apps never import each other) reads what the artifact really
-  holds: its bundler's module graph (`renderedModules` for rolldown, rollup and Vite,
-  `cssDependencies` for the stylesheets Vite inlines, `esbuildModules` for an esbuild metafile and
-  esbuild's runtime helpers) or its generated files. A module under node_modules is its
-  package's, a virtual module the bundler's (named in the artifact's layout), a file of the
-  repository Miragon's, and one of Pulse's packages must share the artifact's MIT; a module that
-  carries another work's text names that work (`embedded`). Anything else fails, and so does a
-  work without a licence file unless the layout names a copy (`licenceFiles`). Each artifact's
-  drift test fails while its file misses a work or lists one it holds no more, and its package's
-  `third-party-licenses` script writes it; `scripts/third-party-licenses.test.mjs` holds the
-  shared part to planted cases.
+  itself never carries, for its gzip budget), the .vsix's (`apps/vscode/CLAUDE.md`) and the Orca
+  plugin folder's (`apps/orca/CLAUDE.md`). The shared licence list
+  `scripts/third-party-licenses.mjs` (Node built-ins only, typed by its `.d.mts`, in `scripts/`
+  because apps never import each other) reads what the artifact really holds: its bundler's
+  module graph (`renderedModules` for rolldown, rollup and Vite, `cssDependencies` for the
+  stylesheets Vite inlines, `esbuildModules` for an esbuild metafile and esbuild's runtime
+  helpers) or its generated files. A module under node_modules is its package's, a virtual module
+  the bundler's (named in the artifact's layout), a file of the repository Miragon's, and one of
+  Pulse's packages must share the artifact's MIT; a module that carries another work's text names
+  that work (`embedded`). Anything else fails, and so does a work without a licence file unless
+  the layout names a copy (`licenceFiles`). Each artifact's drift test fails while its file misses
+  a work or lists one it holds no more, and its package's `third-party-licenses` script writes it;
+  `scripts/third-party-licenses.test.mjs` holds the shared part to planted cases. The editor
+  hosts' closed worlds allow the list Node built-ins only.
 - **The server reads no `PULSE_*` variable.** PulseAudio owns `PULSE_*` and `PULSE_CLI_*` is
   the CLI's; the typo warner watches the prefix of every known variable, so one server name
   under `PULSE_` would make it warn about both in a shared environment. A server setting goes

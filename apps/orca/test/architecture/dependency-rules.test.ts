@@ -45,6 +45,10 @@ const PLANTED: Readonly<Record<string, string>> = {
     "import { readFile } from 'node:fs/promises';\nexport const read = readFile;\n",
   "src/editor/reads-model-library.ts":
     "import { BpmnModdle } from 'bpmn-moddle';\nexport const moddle = BpmnModdle;\n",
+  "test/reads-the-licences.test.ts":
+    "import { inventoryOf } from '../../../scripts/third-party-licenses.mjs';\nexport const read = inventoryOf;\n",
+  "../../scripts/third-party-licenses.mjs":
+    "import { readFileSync } from 'node:fs';\nimport * as esbuild from 'esbuild';\nimport { causeOf } from '../packages/connectors/c7/c7-core/src/cause.ts';\nexport const inventoryOf = [readFileSync, esbuild, causeOf];\n",
   "test/worker/anything.test.ts":
     "import { FakeEngine } from '@miragon/pulse-engine-core/testing';\nexport const fake = FakeEngine;\n",
   "package.json":
@@ -95,6 +99,10 @@ describe("the dependency rules", () => {
         `not-to-unresolvable: ${at("src/worker/reads-c7-core-subpath.ts")} -> ${c7CoreSubpath}`,
         `plugin-is-dialect-neutral: ${at("test/worker/escapes-into-c7-core.test.ts")} -> ${c7CoreSource}`,
         `not-to-unresolvable: ${at("src/editor/reads-model-library.ts")} -> bpmn-moddle`,
+        `plugin-is-dialect-neutral: scripts/third-party-licenses.mjs -> ${c7CoreSource}`,
+        `not-in-allowed: scripts/third-party-licenses.mjs -> ${c7CoreSource}`,
+        "not-in-allowed: scripts/third-party-licenses.mjs -> esbuild",
+        "not-to-unresolvable: scripts/third-party-licenses.mjs -> esbuild",
       ].sort(),
     )
   })

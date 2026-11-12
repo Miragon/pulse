@@ -31,6 +31,12 @@ module.exports = {
       to: {},
     },
     {
+      comment:
+        "The repository's licence list (scripts/third-party-licenses.mjs), which the licence test reads, uses Node built-ins only.",
+      from: { path: "^scripts/third-party-licenses[.]mjs$" },
+      to: { dependencyTypes: ["core"] },
+    },
+    {
       comment: "The plugin's own protocol is the types of the runtime view's protocol it carries.",
       from: { path: PLUGIN_PROTOCOL },
       to: { path: PROTOCOL_ENTRY, dependencyTypes: ["type-only"] },

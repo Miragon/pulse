@@ -88,8 +88,9 @@ runtime view's ports, core, protocol and host kit, the main entry of the engine 
 `orca` and the protocol's types; the frames the protocol's types; only the composition root the
 adapter and the model reader. No part imports a dialect's core (`plugin-is-dialect-neutral`) or
 the transport `@miragon/pulse-http`, which the C7 adapter's wire alone sends through (the
-repository's `http-consumers`), over the worker's global `fetch`.
-`pnpm lint:architecture:orca` says where an import belongs.
+repository's `http-consumers`), over the worker's global `fetch`. The repository's licence list
+(`scripts/third-party-licenses.mjs`), which the licence test reads, may use Node built-ins and
+nothing else. `pnpm lint:architecture:orca` says where an import belongs.
 
 The project file is `.pulse.json`, read through the host kit (`TargetsParser` over
 `@miragon/pulse-profile`, the rules in `apps/vscode/CLAUDE.md`); `ProjectFile` of the host kit
@@ -127,3 +128,12 @@ file's path (the host kit's `CredentialStore`).
   The publish is off for now (`publish: false` in `.github/workflows/release-please.yml`): a
   release builds and checks the plugin only, until `orca-modelers` admits it.
 - `engines.orca` in the manifest names the Orca release CI pins, the oldest one tested.
+- The plugin folder ships `LICENSE` and `THIRD_PARTY_LICENSES.txt` (`PLUGIN_FILES` of
+  `apps/orca/scripts/build.mjs`; the release's folder check in
+  `.github/workflows/publish-orca-plugin.yml` names both): the works of others esbuild bundles
+  into the worker, the panel, the frames' bridge and the webview (packages, fonts, the Lucide
+  geometry of `lucide-glyphs.json`) with their licence files, read from the metafiles of the four
+  builds (`pluginBuilds`) by the repository's licence list (`scripts/third-party-licenses.mjs`).
+  `apps/orca/test/third-party-licenses.test.ts` fails while it misses a work or lists one the
+  bundles hold no more, so a bump of a bundled package writes it again in its pull request:
+  `pnpm --fail-if-no-match --filter @miragon/pulse-orca third-party-licenses`.

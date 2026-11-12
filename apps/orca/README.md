@@ -83,4 +83,6 @@ How the plugin is built, tested and released is in [CONTRIBUTING.md](CONTRIBUTIN
 
 ## License
 
-[MIT](../../LICENSE) © Miragon GmbH
+[MIT](LICENSE) © Miragon GmbH. The plugin folder ships `LICENSE` and
+[THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt), the licences of the works of others it
+bundles.

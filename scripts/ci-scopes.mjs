@@ -35,8 +35,9 @@ export const PATH_RULES = [
   // Checked by lint:github, and licence tests read workflows: the CLI's release licence test
   // publish-cli.yml (apps/cli/scripts/release-licenses.test.ts), the server image's licence test
   // docker-build.yml (apps/mcp-server/test/third-party-licenses.test.ts), Pulse for VS Code's
-  // publish-vscode-extension.yml (apps/vscode/test/architecture/third-party-licenses.test.ts):
-  // this scope runs them.
+  // publish-vscode-extension.yml (apps/vscode/test/architecture/third-party-licenses.test.ts),
+  // Pulse for Orca's publish-orca-plugin.yml (apps/orca/test/third-party-licenses.test.ts): this
+  // scope runs them.
   { pattern: /^\.github\//, scopes: ["typescript"] },
   // Read by the CLI's tests and bundled into the CLI as its guide topics.
   { pattern: /^docs\/cli\//, scopes: ["typescript", "brand", "cli"] },
