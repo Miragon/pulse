@@ -27,7 +27,11 @@ written for the MCP server, so this file holds the CLI's own. The pages for peop
   commander and Node built-ins, and stays within its size budget
   (`scripts/published-imports.test.mjs` reads `apps/cli/dist` and the ceiling in
   `apps/cli/test/__golden__/bundle-budget.json`, which `pnpm lint:ratchets` holds shrink-only:
-  growth needs a `Ratchet-Exception:` trailer that says why).
+  growth needs a `Ratchet-Exception:` trailer that says why). The npm bundle leaves out every
+  comment of the sources but legal ones and is not minified (owner decision 2026-11-12), so a
+  comment that is not a legal one costs the budget nothing; the line rolldown writes where each
+  module starts (`// src/errors.ts`) stays, so a new source file costs one. The standalone
+  bundle keeps the same comments (`apps/cli/scripts/bundles.test.ts` holds both).
 
 ## Layers
 
