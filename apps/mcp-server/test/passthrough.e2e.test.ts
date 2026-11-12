@@ -1,10 +1,10 @@
-import crypto from "node:crypto"
 import http from "node:http"
 import type { AddressInfo } from "node:net"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { createApp } from "../src/app.js"
 import { stubNeutralEnv } from "./boot-server.js"
+import { postToolCall, startRealm } from "./realm.js"
 
 /**
  * Passthrough auth on the wire: the engine gets exactly the bearer token the OAuth gate verified,
@@ -26,27 +26,6 @@ async function listen(handler: http.RequestListener): Promise<Listening> {
   return {
     url: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
     close: () => new Promise((resolve) => server.close(() => resolve())),
-  }
-}
-
-/** A loopback Keycloak realm that serves only its key set; `sign` issues its RS256 tokens. */
-async function startRealm() {
-  const { privateKey, publicKey } = crypto.generateKeyPairSync("rsa", { modulusLength: 2048 })
-  const jwk = { ...publicKey.export({ format: "jwk" }), kid: "k1", alg: "RS256", use: "sig" }
-  const server = await listen((_req, res) => {
-    res.setHeader("content-type", "application/json")
-    res.end(JSON.stringify({ keys: [jwk] }))
-  })
-  const segment = (value: object) => Buffer.from(JSON.stringify(value)).toString("base64url")
-  return {
-    ...server,
-    sign(claims: Record<string, unknown>) {
-      const exp = Math.floor(Date.now() / 1000) + 3600
-      const body = { iss: `${server.url}/realms/platform`, exp, ...claims }
-      const signed = `${segment({ alg: "RS256", kid: "k1", typ: "JWT" })}.${segment(body)}`
-      const signature = crypto.sign("RSA-SHA256", Buffer.from(signed), privateKey)
-      return `${signed}.${signature.toString("base64url")}`
-    },
   }
 }
 
@@ -93,24 +72,7 @@ async function bootPassthrough() {
 const listDefinitions = (
   composed: Awaited<ReturnType<typeof bootPassthrough>>,
   authorization: string,
-) =>
-  composed.app.fetch(
-    new Request("http://localhost/mcp", {
-      method: "POST",
-      headers: {
-        host: "localhost",
-        "content-type": "application/json",
-        accept: "application/json, text/event-stream",
-        authorization,
-      },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "tools/call",
-        params: { name: "engine_list_process_definitions", arguments: {} },
-      }),
-    }),
-  )
+) => postToolCall(composed, authorization, "engine_list_process_definitions", {})
 
 describe("passthrough auth forwards the verified token, and only it", () => {
   it("hands the engine the token the gate verified, without what trails it", async () => {

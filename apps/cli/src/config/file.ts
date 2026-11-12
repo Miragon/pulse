@@ -1,28 +1,19 @@
-/** Location, parsing, validation and persistence of the config file. */
+/**
+ * Location, reading and persistence of the config file. Its profiles are read by
+ * @miragon/pulse-profile (profile-file.ts): a secret itself or the variable that holds it may
+ * stand in it (the file is the user's own, written with mode 0600).
+ */
 
 import { dirname, posix, win32 } from "node:path"
 import { PulseCliError } from "../errors.js"
 import type { FileSystem } from "../runtime.js"
 import { isRecord } from "../util.js"
-import { jsonErrorPosition } from "./json-position.js"
-import { profileAuthProblem } from "./auth.js"
-import { PROFILE_NAME } from "./syntax.js"
 import { configError } from "./config-error.js"
-import { isHeaderName, isHeaderValue } from "./headers.js"
-import { MAX_TIMEOUT_MS, isEngineName, isFlavor, isTimeout } from "./resolve.js"
-import {
-  type ConfigFile,
-  ENV,
-  OUTPUT_FORMATS,
-  FLAVORS,
-  PROFILE_KEYS,
-  type Profile,
-  type ProfileKey,
-} from "./types.js"
+import { readProfileFile, refusalOf } from "./profile-file.js"
+import { invalidFileError } from "./profile-problems.js"
+import { type ConfigFile, ENV } from "./types.js"
 
 type Env = Readonly<Record<string, string | undefined>>
-
-const ROOT_KEYS: readonly string[] = ["$schema", "defaultProfile", "profiles"]
 
 function given(value: string | undefined): string | undefined {
   return value === undefined || value.trim() === "" ? undefined : value
@@ -88,137 +79,14 @@ export function tokenPath(directory: string, fileName: string, platform: string)
   return pathModule(platform).join(directory, fileName)
 }
 
-function fail(path: string, problem: string): never {
-  throw configError(
-    `Invalid config file ${path}: ${problem}`,
-    "Fix the file or recreate it with `pulse config set`.",
-  )
-}
-
-function checkKeys(
-  value: Record<string, unknown>,
-  allowed: readonly string[],
-  where: string,
-  path: string,
-): void {
-  const unknown = Object.keys(value).filter((key) => !allowed.includes(key))
-  if (unknown.length > 0) {
-    fail(path, `unknown key(s) ${unknown.join(", ")} in ${where} (allowed: ${allowed.join(", ")})`)
-  }
-}
-
-function isNonEmptyString(value: unknown): boolean {
-  return typeof value === "string" && value.trim() !== ""
-}
-
-function isHeaderMap(value: unknown): boolean {
-  return (
-    isRecord(value) &&
-    Object.entries(value).every(
-      ([name, entry]) => isHeaderName(name) && typeof entry === "string" && isHeaderValue(entry),
-    )
-  )
-}
-
-type Check = readonly [check: (value: unknown) => boolean, expected: string]
-
-/** Checks of the plain profile values; the auth object has its own (`profileAuthProblem`). */
-const PROFILE_CHECKS: Readonly<Record<Exclude<ProfileKey, "auth">, Check>> = {
-  url: [isNonEmptyString, "a URL such as http://localhost:8080/engine-rest"],
-  cockpitUrl: [
-    isNonEmptyString,
-    "a URL such as http://localhost:8080/operaton/app/cockpit/default/",
-  ],
-  engine: [isEngineName, 'a process engine name, not "." or ".."'],
-  flavor: [isFlavor, `one of ${FLAVORS.join(", ")}`],
-  output: [
-    (value) => OUTPUT_FORMATS.some((format) => format === value),
-    OUTPUT_FORMATS.join(" or "),
-  ],
-  timeout: [isTimeout, `a whole number of milliseconds between 1 and ${MAX_TIMEOUT_MS}`],
-  headers: [
-    isHeaderMap,
-    "an object mapping header names (not Connection, Content-Length, Expect, Keep-Alive, Transfer-Encoding or Upgrade) to ISO-8859-1 (Latin-1) string values without control characters",
-  ],
-  readOnly: [(value) => typeof value === "boolean", "true or false"],
-}
-
-function valueProblem(name: string, key: ProfileKey, value: unknown): string | undefined {
-  if (key === "auth") return profileAuthProblem(name, value)
-  const [check, expected] = PROFILE_CHECKS[key]
-  return check(value) ? undefined : `profile "${name}" has an invalid ${key} (expected ${expected})`
-}
-
-/** A profile name as JSON (control characters escaped: the file may come from anywhere). */
-function quoted(name: string): string {
-  return JSON.stringify(name)
-}
-
-const NAME_RULE =
-  'use letters, digits, ".", "_" and "-", starting with a letter or digit; rename it in the file'
-
-function validateProfile(name: string, value: unknown, path: string): Profile {
-  if (!PROFILE_NAME.test(name)) fail(path, `invalid profile name ${quoted(name)} (${NAME_RULE})`)
-  if (!isRecord(value)) fail(path, `profile "${name}" must be an object`)
-  checkKeys(value, PROFILE_KEYS, `profile "${name}"`, path)
-  for (const key of PROFILE_KEYS) {
-    const problem = Object.hasOwn(value, key) ? valueProblem(name, key, value[key]) : undefined
-    if (problem !== undefined) fail(path, problem)
-  }
-  return value
-}
-
 /**
- * "not valid JSON (line 3, column 14)". Never the parser message: V8 quotes the text around the
- * error, which may be a stored credential.
+ * The config file's profiles from its text. Only text that gives no profiles fails the file
+ * (CONFIG); a profile the format refuses fails when a command uses it.
  */
-function syntaxProblem(text: string): string {
-  const position = jsonErrorPosition(text)
-  return position === undefined
-    ? "not valid JSON"
-    : `not valid JSON (line ${position.line}, column ${position.column})`
-}
-
-/** defaultProfile: a string; blank means none, anything else must be a valid profile name. */
-function checkDefaultProfile(value: unknown, path: string): asserts value is string | undefined {
-  if (value === undefined) return
-  if (typeof value !== "string") fail(path, "defaultProfile must be a string")
-  const name = value.trim()
-  if (name !== "" && !PROFILE_NAME.test(name)) {
-    fail(path, `invalid defaultProfile ${quoted(name)} (${NAME_RULE})`)
-  }
-}
-
-/** $schema: the URL or path of a JSON Schema for editors, e.g. the project file's. */
-function checkSchema(value: unknown, path: string): asserts value is string | undefined {
-  if (value !== undefined && typeof value !== "string") {
-    fail(path, "$schema must be a string (the URL or path of a JSON Schema)")
-  }
-}
-
 export function parseConfigFile(text: string, path: string): ConfigFile {
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(text)
-  } catch {
-    fail(path, syntaxProblem(text))
-  }
-  if (!isRecord(parsed)) fail(path, "expected a JSON object")
-  checkKeys(parsed, ROOT_KEYS, "the root object", path)
-  const { $schema, defaultProfile, profiles = {} } = parsed
-  checkSchema($schema, path)
-  checkDefaultProfile(defaultProfile, path)
-  if (!isRecord(profiles)) fail(path, "profiles must be an object")
-  return {
-    ...($schema === undefined ? {} : { $schema }),
-    ...(defaultProfile === undefined ? {} : { defaultProfile }),
-    profiles: Object.fromEntries(
-      Object.entries(profiles).map(([name, profile]) => [
-        name,
-        validateProfile(name, profile, path),
-      ]),
-    ),
-  }
+  const read = readProfileFile(text, "env-or-literal")
+  if ("problem" in read) throw invalidFileError(false, path, read.problem)
+  return read.file
 }
 
 /** `EACCES`, `EISDIR`, ... of a file system error, else its message. */
@@ -262,17 +130,50 @@ export async function readConfigFile(
 }
 
 /**
- * The text of a config file: its $schema, default profile and profiles, indented, with a final
- * newline.
+ * The text of a config file: its $schema, default profile and profiles, then the root keys the
+ * format does not know as the file held them, indented, with a final newline. What the CLI found
+ * (refused profiles, notes) is never written.
  */
-function serializeConfigFile(config: ConfigFile): string {
-  const { $schema, defaultProfile, profiles } = config
+export function serializeConfigFile(config: ConfigFile): string {
+  const { $schema, defaultProfile, profiles, unknown } = config
   const file = {
     ...($schema === undefined ? {} : { $schema }),
     ...(defaultProfile === undefined ? {} : { defaultProfile }),
     profiles,
+    ...unknown,
   }
   return `${JSON.stringify(file, null, 2)}\n`
+}
+
+/**
+ * The file an edit wrote, as the next command reads it: what `pulse config` shows after an edit,
+ * a profile it leaves refused included. A project file is read under its own policy (`none`).
+ */
+export function writtenFile(config: ConfigFile, project: boolean): ConfigFile {
+  const read = readProfileFile(serializeConfigFile(config), project ? "none" : "env-or-literal")
+  return "file" in read ? read.file : config
+}
+
+/** A name or a key twice: JSON keeps only the last one, so the parsed file has lost the others. */
+const TWICE: ReadonlySet<string> = new Set(["duplicate-key", "duplicate-name"])
+
+/**
+ * A profile that the file `before` refuses for a name or a key twice and that writing `after` (as
+ * `writtenFile` reads it back) would settle without a word, keeping only the last value: an edit
+ * must not write that. A profile the edit deletes settles nothing, nor does a twice that survives
+ * the write (a header name in two spellings).
+ */
+export function settledTwice(before: ConfigFile | undefined, after: ConfigFile) {
+  for (const [name, problems] of Object.entries(before?.refused ?? {})) {
+    if (!Object.hasOwn(after.profiles, name)) continue
+    const kept = refusalOf(after, name) ?? []
+    const lost = problems.find(
+      ({ code, key }) =>
+        TWICE.has(code) && !kept.some((problem) => problem.code === code && problem.key === key),
+    )
+    if (lost !== undefined) return { name, problem: lost }
+  }
+  return undefined
 }
 
 /**

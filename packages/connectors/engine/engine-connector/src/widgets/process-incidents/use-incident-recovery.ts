@@ -62,18 +62,21 @@ export function useIncidentRecovery(
   const environment = useEngineEnvironment(engineId)
   const resolve = useEngineAction<ResolveArgs>({
     tool: "engine_resolve_incident",
+    engine: engineId,
     target: (args) => args.incidentId,
     resetOn,
     available,
   })
   const jobRetry = useEngineAction<JobRetryArgs>({
     tool: "engine_set_job_retries",
+    engine: engineId,
     target: (args) => args.jobId,
     resetOn,
     available,
   })
   const taskRetry = useEngineAction<ExternalTaskRetryArgs>({
     tool: "engine_set_external_task_retries",
+    engine: engineId,
     target: (args) => args.externalTaskId,
     resetOn,
     available,

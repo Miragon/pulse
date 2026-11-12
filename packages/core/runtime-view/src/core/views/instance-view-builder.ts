@@ -24,7 +24,7 @@ export class InstanceViewBuilder {
     const header = this.header()
     const waitRows = new WaitRows(detail, links).rows()
     const waits = this.snapshot.writable
-      ? new MoveOptions(detail, this.snapshot.diagramXml).applied(waitRows)
+      ? new MoveOptions(detail, this.snapshot.diagramXml, this.snapshot.cli).applied(waitRows)
       : { rows: waitRows, moves: [] }
     return {
       kind: "instance",

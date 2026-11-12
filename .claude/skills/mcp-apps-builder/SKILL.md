@@ -21,8 +21,6 @@ the UI in `@miragon/pulse-ui`. Read these, in this order:
 2. **The house skill for the change:**
    - `add-bpm-feature`: an engine tool, a cockpit route, a `*_data` feed or a
      widget.
-   - `add-analytics-feature`: a PromQL query, an analytics tool or a dashboard
-     widget.
 3. **widget-shell's README** (`packages/core/widget-shell/README.md`) for
    everything a widget does: the bundle root, the view host seam, the query
    hooks and `TestViewHost`; its UI comes from the design kit

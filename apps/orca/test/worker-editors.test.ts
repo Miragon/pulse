@@ -161,7 +161,7 @@ describe("boards in editor tabs", () => {
     await vi.waitFor(() => {
       expect(harness.orca.callsOf("editor.open")).toEqual(
         expect.arrayContaining([
-          { workspaceId: "shop", path: ".pulse-cli.json" },
+          { workspaceId: "shop", path: ".pulse.json" },
           { workspaceId: "shop", path: ".pulse/views/shop-dev/shop-dev processes.pulse-view" },
         ]),
       )

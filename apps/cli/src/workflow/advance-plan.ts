@@ -1,9 +1,9 @@
 /**
- * Planning of `pulse advance`: @miragon/pulse-engine-core's advance plan with the worker id
+ * Planning of `pulse advance`: @miragon/pulse-c7-core's advance plan with the worker id
  * `pulse` and usage errors that name the flags and ready commands.
  */
 
-import * as core from "@miragon/pulse-engine-core"
+import * as core from "@miragon/pulse-c7-core"
 import { rendered } from "./error-text.js"
 import type { InstanceView, PlannedWrite } from "./types.js"
 import { plannedWrite } from "./writes.js"

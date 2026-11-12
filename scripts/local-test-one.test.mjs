@@ -173,7 +173,7 @@ describe("testOnePlan", () => {
       /needs Docker.*test:engines/,
     )
     assert.match(
-      plan(["apps/cli/test-host/analytics.spec.ts"]).message,
+      plan(["apps/cli/test-host/fleet.spec.ts"]).message,
       /needs Playwright.*--filter @x\/cli test:host/,
     )
     assert.match(
@@ -183,7 +183,7 @@ describe("testOnePlan", () => {
   })
 
   it("knows those suites by the path inside the package, however the file was given", () => {
-    const fromTestHost = plan(["analytics.spec.ts"], { cwd: "/repo/apps/cli/test-host" })
+    const fromTestHost = plan(["fleet.spec.ts"], { cwd: "/repo/apps/cli/test-host" })
     assert.match(fromTestHost.message, /needs Playwright.*test:host/)
     assert.match(plan(["apps/cli/test-host"]).message, /needs Playwright.*test:host/)
     assert.equal(plan(["apps/cli/test/test-host-fake.test.ts"]).runs.length, 1)
@@ -202,7 +202,11 @@ describe("testOnePlan", () => {
     const extension = real("apps/vscode/test/webview/a.test.tsx")
     assert.deepEqual(extension.builds, ["pulse-cockpit^..."])
     assert.match(extension.runs[0].hint, /install chromium/)
-    assert.deepEqual(real("packages/connectors/engine/engine-core/src/a.test.ts").builds, [])
+    // c7-core's tests run on engine-core's build; engine-core depends on nothing.
+    assert.deepEqual(real("packages/connectors/c7/c7-core/src/a.test.ts").builds, [
+      "@miragon/pulse-c7-core^...",
+    ])
+    assert.deepEqual(real("packages/connectors/engine/engine-core/test/a.test.ts").builds, [])
     assert.equal(
       real("packages/connectors/engine/engine-connector/src/a.test.tsx").runs[0].dir,
       "packages/connectors/engine/engine-connector",
@@ -215,7 +219,7 @@ describe("testOnePlan", () => {
     symlinkSync(REPO_ROOT, link, "dir")
     try {
       const { runs } = testOnePlan({
-        files: [path.join(link, "packages/connectors/engine/engine-core/src/dates.test.ts")],
+        files: [path.join(link, "packages/connectors/c7/c7-core/src/dates.test.ts")],
         watch: false,
         root: REPO_ROOT,
         cwd: link,
@@ -224,7 +228,7 @@ describe("testOnePlan", () => {
       })
       assert.deepEqual(
         [runs[0].dir, ...selected(runs[0])],
-        ["packages/connectors/engine/engine-core", "src/dates.test.ts"],
+        ["packages/connectors/c7/c7-core", "src/dates.test.ts"],
       )
     } finally {
       unlinkSync(link)

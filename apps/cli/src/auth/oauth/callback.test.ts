@@ -1,8 +1,7 @@
-import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import { ISSUER } from "../../../test/support/fake-idp.js"
 import { oauthConfig } from "../../../test/support/oauth.js"
-import { authorizationUrl, callbackCode, hasState, safeEqual } from "./callback.js"
+import { authorizationUrl, callbackCode } from "./callback.js"
 import type { ServerMetadata } from "./types.js"
 
 const METADATA: ServerMetadata = {
@@ -47,45 +46,34 @@ describe("authorizationUrl", () => {
   })
 })
 
-describe("safeEqual", () => {
-  it("equals string equality", () => {
-    fc.assert(
-      fc.property(fc.string(), fc.string(), (left, right) => {
-        expect(safeEqual(left, right)).toBe(left === right)
-        expect(safeEqual(left, left)).toBe(true)
-      }),
-    )
-    expect(safeEqual("abc", "abd")).toBe(false)
-    expect(safeEqual("abc", "ab")).toBe(false)
-    expect(safeEqual("ä", "a")).toBe(false)
-  })
-})
-
-describe("hasState", () => {
-  it("needs exactly one state equal to the expected one", () => {
-    expect(hasState(new URLSearchParams({ state: "x" }), "x")).toBe(true)
-    expect(hasState(new URLSearchParams(), "x")).toBe(false)
-    expect(hasState(new URLSearchParams({ state: "y" }), "x")).toBe(false)
-    expect(hasState(new URLSearchParams("state=x&state=x"), "x")).toBe(false)
-  })
-})
-
 describe("callbackCode", () => {
   const config = oauthConfig()
-  const query = (value: string) => new URLSearchParams(value)
+  const query = (value: string) => new URLSearchParams(`state=${PKCE.state}&${value}`)
+
+  it("ignores a callback without exactly the right state (another login's, a stale tab)", () => {
+    for (const value of ["code=c", "state=y&code=c", `state=${PKCE.state}&state=${PKCE.state}`]) {
+      expect(callbackCode(new URLSearchParams(value), METADATA, PKCE.state, config)).toBeUndefined()
+    }
+  })
 
   it("returns the code of a complete callback", () => {
     expect(
       callbackCode(
         query(`iss=${encodeURIComponent(ISSUER)}&code=c-1&session_state=s`),
         METADATA,
+        PKCE.state,
         config,
       ),
     ).toEqual({ code: "c-1" })
   })
 
   it("checks iss against the expected issuer (RFC 9207)", () => {
-    const mismatch = callbackCode(query("iss=https%3A%2F%2Fevil&code=c"), METADATA, config)
+    const mismatch = callbackCode(
+      query("iss=https%3A%2F%2Fevil&code=c"),
+      METADATA,
+      PKCE.state,
+      config,
+    )
     expect(mismatch).toMatchObject({
       error: {
         code: "LOGIN_FAILED",
@@ -93,18 +81,23 @@ describe("callbackCode", () => {
       },
       reason: "The login response came from another issuer.",
     })
-    expect(callbackCode(query("code=c"), METADATA, config)).toMatchObject({
+    expect(callbackCode(query("code=c"), METADATA, PKCE.state, config)).toMatchObject({
       reason: "The login response came from another issuer.",
     })
     expect(
-      callbackCode(query(`iss=${ISSUER}&iss=${ISSUER}&code=c`), METADATA, config),
+      callbackCode(query(`iss=${ISSUER}&iss=${ISSUER}&code=c`), METADATA, PKCE.state, config),
     ).toMatchObject({
       reason: "The login response came from another issuer.",
     })
     const optional = { ...METADATA, issParameterRequired: false }
-    expect(callbackCode(query("code=c"), optional, config)).toEqual({ code: "c" })
+    expect(callbackCode(query("code=c"), optional, PKCE.state, config)).toEqual({ code: "c" })
     expect(
-      callbackCode(query("iss=https%3A%2F%2Fevil&code=c"), { ...optional, issuer: null }, config),
+      callbackCode(
+        query("iss=https%3A%2F%2Fevil&code=c"),
+        { ...optional, issuer: null },
+        PKCE.state,
+        config,
+      ),
     ).toEqual({ code: "c" })
   })
 
@@ -113,6 +106,7 @@ describe("callbackCode", () => {
     const denied = callbackCode(
       query("error=access_denied&error_description=User%20cancelled"),
       optional,
+      PKCE.state,
       config,
     )
     expect(denied).toMatchObject({
@@ -122,7 +116,7 @@ describe("callbackCode", () => {
       },
       reason: "The authorization server reported access_denied.",
     })
-    expect("error" in denied && denied.error.details.hint).toBe(
+    expect(denied !== undefined && "error" in denied && denied.error.details.hint).toBe(
       "The user cancelled the login or may not use client pulse-cli; run `pulse auth login --profile p` again.",
     )
     for (const code of [
@@ -131,7 +125,7 @@ describe("callbackCode", () => {
       "unsupported_response_type",
       "invalid_scope",
     ]) {
-      expect(callbackCode(query(`error=${code}`), optional, config)).toMatchObject({
+      expect(callbackCode(query(`error=${code}`), optional, PKCE.state, config)).toMatchObject({
         error: {
           code: "CONFIG",
           message: `The authorization server refused the login request (${code})`,
@@ -139,11 +133,16 @@ describe("callbackCode", () => {
       })
     }
     expect(
-      callbackCode(query("error=server_error&error_description=down"), optional, config),
+      callbackCode(
+        query("error=server_error&error_description=down"),
+        optional,
+        PKCE.state,
+        config,
+      ),
     ).toMatchObject({
       error: { code: "LOGIN_FAILED", message: "The login failed (server_error: down)" },
     })
-    expect(callbackCode(query("error=%22bad%22"), optional, config)).toMatchObject({
+    expect(callbackCode(query("error=%22bad%22"), optional, PKCE.state, config)).toMatchObject({
       error: { message: "The login failed (invalid_error_code)" },
       reason: "The authorization server reported invalid_error_code.",
     })
@@ -152,7 +151,7 @@ describe("callbackCode", () => {
   it("needs exactly one non-empty code and no repeated error", () => {
     const optional = { ...METADATA, issParameterRequired: false }
     for (const value of ["", "code=", "code=a&code=b", "error=a&error=b&code=c"]) {
-      expect(callbackCode(query(value), optional, config)).toMatchObject({
+      expect(callbackCode(query(value), optional, PKCE.state, config)).toMatchObject({
         error: {
           code: "LOGIN_FAILED",
           message: "The login callback carried no authorization code",

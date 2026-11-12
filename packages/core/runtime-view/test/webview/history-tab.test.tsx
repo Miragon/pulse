@@ -18,14 +18,14 @@ describe("the History tab of an instance", () => {
 
     const rows = [...table.querySelectorAll("tbody tr")].map((row) =>
       [...row.querySelectorAll("td")].map((cell, index) =>
-        index === 2 || index === 3 ? cell.textContent !== "–" : cell.textContent,
+        index === 2 || index === 3 ? cell.textContent !== "—" : cell.textContent,
       ),
     )
 
     expect(rows).toEqual([
-      ["Order received", "Completed", true, true, "4 ms"],
-      ["Reserve stock", "Completed", true, true, "1 min 2 s"],
-      ["Check credit", "Active", true, false, "–"],
+      ["Order received", "Completed", true, true, "4ms"],
+      ["Reserve stock", "Completed", true, true, "1m 2s"],
+      ["Check credit", "Active", true, false, "—"],
     ])
   })
 })

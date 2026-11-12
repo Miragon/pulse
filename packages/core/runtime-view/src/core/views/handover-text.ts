@@ -1,4 +1,5 @@
 import type { IncidentRow, InstanceView } from "../protocol/index.js"
+import { Labels } from "./labels.js"
 
 export class HandoverText {
   static of(view: InstanceView): string {
@@ -12,7 +13,7 @@ export class HandoverText {
       "",
       view.incidents.length === 0
         ? "No open incidents."
-        : `${view.incidents.length} open incident(s):`,
+        : `${Labels.plural(view.incidents.length, "open incident")}:`,
       ...view.incidents.flatMap((incident) => HandoverText.incidentLines(incident)),
       "",
       `As of ${HandoverText.utc(view.asOf)}. Variables are left out on purpose.`,

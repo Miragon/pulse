@@ -1,0 +1,12 @@
+{
+  // The tests under test/, which read the package's files (the JSON Schema, the manifest) with
+  // node:fs: the one place the package's code sees Node types. src/ keeps its own project
+  // (tsconfig.json), where they stay compile errors.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "noEmit": true,
+    "rootDir": "."
+  },
+  "include": ["test"]
+}

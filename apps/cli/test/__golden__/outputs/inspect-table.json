@@ -1,0 +1,63 @@
+{
+  "argv": [
+    "inspect",
+    "pi-1",
+    "--stacktrace",
+    "-o",
+    "table"
+  ],
+  "exitCode": 0,
+  "sent": [
+    "GET /engine-rest/event-subscription?processInstanceId=pi-1&firstResult=0&maxResults=500",
+    "GET /engine-rest/external-task?processInstanceIdIn=pi-1&firstResult=0&maxResults=500",
+    "GET /engine-rest/history/process-instance/pi-1",
+    "GET /engine-rest/incident?processInstanceId=pi-1&firstResult=0&maxResults=500",
+    "GET /engine-rest/job-definition?processDefinitionId=order%3A2%3A6f1e8a&firstResult=0&maxResults=500",
+    "GET /engine-rest/job/job-1/stacktrace",
+    "GET /engine-rest/job?processInstanceIds=pi-1&firstResult=0&maxResults=500",
+    "GET /engine-rest/job?processInstanceIds=pi-1&timers=true&firstResult=0&maxResults=500",
+    "GET /engine-rest/process-definition?processDefinitionIdIn=order%3A2%3A6f1e8a&firstResult=0&maxResults=500",
+    "GET /engine-rest/process-instance/pi-1",
+    "GET /engine-rest/process-instance/pi-1/activity-instances",
+    "GET /engine-rest/process-instance/pi-1/variables?deserializeValues=false",
+    "GET /engine-rest/process-instance?firstResult=0&maxResults=101&superProcessInstance=pi-1",
+    "GET /engine-rest/task?processInstanceIdIn=pi-1&firstResult=0&maxResults=500"
+  ],
+  "stderrLines": [
+    ""
+  ],
+  "stdoutLines": [
+    "Process instance  pi-1",
+    "State             ACTIVE",
+    "Definition        order v2 (Order)",
+    "Business key      B-7",
+    "Started           2026-10-09T13:38:15.430+0000",
+    "",
+    "Waiting at:",
+    "ACTIVITY  KIND               ID      DETAIL         INSTANCE",
+    "approve   userTask           task-1  assignee demo",
+    "charge    asyncContinuation  job-1   retries 0",
+    "",
+    "Incidents:",
+    "TYPE       ACTIVITY  ROOT CAUSE                                   INSTANCE",
+    "failedJob  charge    PaymentRefusedException: insufficient funds",
+    "",
+    "Stacktrace (failedJob at charge, incident inc-1):",
+    "  org.cibseven.bpm.engine.ProcessEngineException: Card declined: insufficient funds (order B-7)",
+    "   at com.example.order.ChargeDelegate.execute(ChargeDelegate.java:42)",
+    "  Caused by: com.example.payment.PaymentRefusedException: insufficient funds",
+    "   at com.example.payment.Gateway.charge(Gateway.java:17)",
+    "",
+    "Variables:",
+    "NAME      VALUE      TYPE",
+    "amount    250",
+    "customer  ACME Corp",
+    "express   true",
+    "",
+    "Next:",
+    "  pulse retry pi-1",
+    "  pulse advance pi-1 --activity-id approve",
+    "  pulse advance pi-1 --activity-id charge",
+    ""
+  ]
+}

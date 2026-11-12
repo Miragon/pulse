@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises"
 import { basename } from "node:path"
-import { BpmnProcessId, DefinitionId, InstanceId } from "@miragon/pulse-runtime-view/contract"
+import { BpmnProcessId, DefinitionId, InstanceId } from "@miragon/pulse-engine-core"
 import {
   DefinitionPanel,
   EnginePanel,

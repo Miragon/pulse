@@ -2,6 +2,7 @@ import {
   Td,
   formatDuration,
   formatTimestamp,
+  SITUATION_TONES,
   StatusBadge,
   type ToneVariant,
 } from "@miragon/pulse-ui"
@@ -34,10 +35,10 @@ export function historyStepState(
 }
 
 export const STEP_TONE: Record<HistoryStepState, ToneVariant> = {
-  incident: "danger",
-  running: "info",
-  canceled: "neutral",
-  completed: "neutral",
+  incident: SITUATION_TONES.openIncident,
+  running: SITUATION_TONES.running,
+  canceled: SITUATION_TONES.ended,
+  completed: SITUATION_TONES.ended,
 }
 
 /** The step's state in words, as a badge (for the states that need saying). */
@@ -50,14 +51,14 @@ export function StepBadge({ state }: { state: HistoryStepState }) {
 export function instanceStateLabel(t: T, state: string): { label: string; tone: ToneVariant } {
   switch (state) {
     case "ACTIVE":
-      return { label: t("historyTimeline.state.active"), tone: "info" }
+      return { label: t("historyTimeline.state.active"), tone: SITUATION_TONES.running }
     case "SUSPENDED":
-      return { label: t("historyTimeline.state.suspended"), tone: "warning" }
+      return { label: t("historyTimeline.state.suspended"), tone: SITUATION_TONES.suspended }
     case "COMPLETED":
-      return { label: t("historyTimeline.state.completed"), tone: "neutral" }
+      return { label: t("historyTimeline.state.completed"), tone: SITUATION_TONES.ended }
     case "EXTERNALLY_TERMINATED":
     case "INTERNALLY_TERMINATED":
-      return { label: t("historyTimeline.state.terminated"), tone: "neutral" }
+      return { label: t("historyTimeline.state.terminated"), tone: SITUATION_TONES.ended }
     default:
       return { label: state, tone: "neutral" }
   }

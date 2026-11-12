@@ -1,9 +1,10 @@
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
-import type { IncidentDetails, SourceLocation } from "@miragon/pulse-runtime-view/contract"
+import type { IncidentDetails } from "@miragon/pulse-engine-core"
+import type { SourceLocation } from "@miragon/pulse-runtime-view/ports"
 import type { InstanceChoice } from "@miragon/pulse-runtime-view/core"
 import type { Environment } from "@miragon/pulse-runtime-view/protocol"
-import type { Connection } from "@miragon/pulse-runtime-view/host-kit"
+import { type Connection, ProjectFile } from "@miragon/pulse-runtime-view/host-kit"
 import type { OrcaWorkerApi } from "orca/worker"
 import type { Notice, PromptAnswer } from "../protocol.js"
 import type { ServiceHost } from "./effects-host.js"
@@ -14,8 +15,6 @@ import type { OrcaWorkspaces } from "./orca-workspaces.js"
 import type { Prompts } from "./prompts.js"
 import { ViewHandles } from "./view-handles.js"
 import type { WriteConfirmation } from "./write-confirmation.js"
-
-const PROJECT_FILE = ".pulse-cli.json"
 
 export class WorkerServices implements ServiceHost {
   private focusedRoot: string | undefined
@@ -78,9 +77,10 @@ export class WorkerServices implements ServiceHost {
   }
 
   async configure(): Promise<string> {
-    const known = this.registry.projectFiles()[0]
+    const known = this.registry.projectFiles()[0] ?? this.registry.formerProjectFiles()[0]
     const configured = await this.parts.settings.projectFile()
-    const file = known ?? (configured === "" ? join(await this.root(), PROJECT_FILE) : configured)
+    const file =
+      known ?? (configured === "" ? join(await this.root(), ProjectFile.NAME) : configured)
     await LocalFiles.ensureProjectFile(file)
     await this.workspaces.openFile(file)
     if (known === undefined) {

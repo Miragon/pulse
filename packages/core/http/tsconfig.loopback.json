@@ -1,0 +1,12 @@
+{
+  // The loopback engine of the conformance cases (src/testing/loopback), the package's one
+  // module with Node built-ins (node:http, node:https, node:crypto): a project of its own with
+  // Node types, so they stay compile errors everywhere else under src/ (tsconfig.json leaves the
+  // folder out). `build` emits it next to the rest of dist/, `typecheck` checks it.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["src/testing/loopback"],
+  "exclude": []
+}

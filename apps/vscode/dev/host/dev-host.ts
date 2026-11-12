@@ -2,15 +2,15 @@ import { randomUUID } from "node:crypto"
 import { readFile } from "node:fs/promises"
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http"
 import { extname, join } from "node:path"
-import { C7Adapter } from "@miragon/pulse-engine-adapter"
+import { C7Adapter } from "@miragon/pulse-c7-adapter"
 import {
   BpmnProcessId,
   DefinitionId,
   InstanceId,
   type ProcessCommands,
   type ProcessRuntime,
-} from "@miragon/pulse-runtime-view/contract"
-import { FakeEngine, FakeWorld } from "@miragon/pulse-runtime-view/contract/fake"
+} from "@miragon/pulse-engine-core"
+import { FakeEngine, FakeWorld } from "@miragon/pulse-engine-core/testing"
 import {
   BulkRuns,
   DefinitionPanel,

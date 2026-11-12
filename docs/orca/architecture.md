@@ -7,9 +7,11 @@ decide lives in two packages they bundle; each host only wires it into its edito
 flowchart LR
   frames["Editor tabs: the webview in isolated frames"] <--> worker["Orca worker: wiring, write policy"]
   panel["Pulse panel: Orca's components"] <--> worker
-  worker --> view["runtime view: core, protocol, host kit"]
-  worker --> adapter["engine adapter: C7 REST"]
-  adapter --> engines["Operaton, CIB seven, Camunda 7: /engine-rest"]
+  worker --> view["runtime view: ports, core, protocol, host kit"]
+  view --> contract["engine contract: @miragon/pulse-engine-core"]
+  worker --> adapter["C7 adapter: REST"]
+  adapter --> contract
+  adapter -- "@miragon/pulse-http" --> engines["Operaton, CIB seven, Camunda 7: /engine-rest"]
 ```
 
 | Part                      | Holds                                                                                        |

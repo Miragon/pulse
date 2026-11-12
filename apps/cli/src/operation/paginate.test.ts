@@ -4,7 +4,7 @@ import { noAuth } from "../auth/none.js"
 import { findByOperationId, loadCatalog } from "../catalog/catalog.js"
 import type { OperationSpec } from "../catalog/types.js"
 import { PulseCliError } from "../errors.js"
-import type { ClientOptions } from "../http/client.js"
+import { createClient } from "../http/client.js"
 import { isPaginated } from "../catalog/rules.js"
 import { fetchAllPages, firstPageInput } from "./paginate.js"
 import type { OperationInput } from "./request.js"
@@ -38,12 +38,13 @@ function engine(total: number, respond?: (url: URL) => Response) {
       }),
     )
   }
-  const client: ClientOptions = {
+  const client = createClient({
+    url: target.baseUrl,
     fetch: fetch,
     auth: noAuth(),
     timeoutMs: 1000,
     now: () => 0,
-  }
+  })
   return { urls, context: { target, client } }
 }
 

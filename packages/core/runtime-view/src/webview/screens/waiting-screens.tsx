@@ -74,7 +74,11 @@ export function FailedScreen({
 }) {
   return (
     <div class="screen">
-      <ContextBar title={engine.name} engine={engine} freshness={{ kind: "offline" }} />
+      <ContextBar
+        title={engine.name}
+        engine={engine}
+        freshness={{ kind: "offline", loginRefused: problem.loginRefused }}
+      />
       <div class="failed-layout">
         <ProblemBox problem={problem} />
       </div>

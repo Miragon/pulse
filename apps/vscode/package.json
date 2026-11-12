@@ -66,7 +66,7 @@
     "viewsWelcome": [
       {
         "view": "pulse.engines",
-        "contents": "See what your process engine is running: definitions, instances, incidents. Retry incidents and fix variables on local engines.\n[Configure Engines](command:pulse.openTargetsFile)\nEngines from .pulse-cli.json show up here on their own. Works with Operaton, CIB seven and Camunda 7."
+        "contents": "See what your process engine is running: definitions, instances, incidents. Retry incidents and fix variables on local engines.\n[Configure Engines](command:pulse.openTargetsFile)\nEngines from .pulse.json show up here on their own. Works with Operaton, CIB seven and Camunda 7."
       }
     ],
     "commands": [
@@ -286,6 +286,7 @@
     "lint:fix": "eslint src test dev scripts sandbox --fix",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.host.json && tsc -p tsconfig.tooling.json",
     "test": "vitest run",
+    "third-party-licenses": "THIRD_PARTY_LICENSES_UPDATE=1 vitest run test/architecture/third-party-licenses.test.ts --coverage.enabled=false",
     "test:smoke": "node scripts/build.mjs && vscode-test --config .vscode-test.mjs",
     "test:e2e": "node scripts/build.mjs && node scripts/e2e.mjs",
     "test:smoke:docker": "node scripts/docker-test.mjs smoke",
@@ -303,10 +304,12 @@
   },
   "dependencies": {
     "@miragon/modeler-shell": "0.10.0",
-    "@miragon/pulse-engine-adapter": "workspace:*",
+    "@miragon/pulse-c7-adapter": "workspace:*",
+    "@miragon/pulse-engine-core": "workspace:*",
     "@miragon/pulse-runtime-view": "workspace:*"
   },
   "devDependencies": {
+    "@miragon/pulse-ui": "workspace:*",
     "@types/node": "22.20.5",
     "@types/vscode": "1.101.0",
     "@vitest/browser-playwright": "5.1.0",

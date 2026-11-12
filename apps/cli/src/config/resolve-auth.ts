@@ -280,15 +280,6 @@ function typeOf(context: Context) {
   return { explicit, username, type: explicit ?? impliedType(username, context) }
 }
 
-/** The auth type resolveAuth picks, before it reads a credential; undefined means none. */
-export function pickAuthType(
-  flags: ConfigFlags,
-  env: Env,
-  selected: SelectedProfile,
-): AuthType | undefined {
-  return typeOf({ flags, env, selected }).type?.value
-}
-
 /** `authCommand`: for `pulse auth` commands, whose hints never suggest `--auth`. */
 export function resolveAuth(
   flags: ConfigFlags,

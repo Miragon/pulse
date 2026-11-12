@@ -3,7 +3,7 @@
  * deployed now, and the definitions in effect for every resource.
  */
 
-import { amount, compareText, field, type Rec, records, str } from "@miragon/pulse-engine-core"
+import { amount, compareText, field, type Rec, records, str } from "@miragon/pulse-c7-core"
 import type { EnginePort } from "../engine-port/engine-port.js"
 import type { Resource } from "../operation/multipart.js"
 import { isBpmn, isDmn } from "../operation/resources.js"

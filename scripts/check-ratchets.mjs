@@ -33,9 +33,31 @@
  *                                   `extends` pinned, the list never appearing
  *                                   or disappearing; the one coverage block is
  *                                   the root `test.coverage` (vitest reads no
- *                                   other); every shape the AST cannot read (a
- *                                   spread, shorthand, accessor, computed key
- *                                   or non-literal value) frozen. A config the
+ *                                   other); every include/exclude list read
+ *                                   entry by entry, also where it names,
+ *                                   spreads or is shorthand for a constant of
+ *                                   the file, declared once as a top-level
+ *                                   const (`as const` too): a string (literal,
+ *                                   or a template of such strings), or an
+ *                                   unexported array the file names only as
+ *                                   such a list or in a spread, so no code
+ *                                   that names it can change it unseen; an
+ *                                   entry that names any other binding of the
+ *                                   file (an array pushed to, passed on or
+ *                                   exported, a let, a shadowed name, a
+ *                                   function; every binding of a file that
+ *                                   calls eval) is opaque, with its reason;
+ *                                   an import such as
+ *                                   `coverageConfigDefaults.exclude` stays one
+ *                                   entry of its own text (its content is the
+ *                                   other module's). The reader runs nothing:
+ *                                   a list changed through the config object
+ *                                   after the config was built is out of its
+ *                                   sight, a literal as much as a constant.
+ *                                   Every other shape the AST cannot read (a
+ *                                   spread or shorthand member, accessor,
+ *                                   computed key or non-literal value) is
+ *                                   opaque, frozen by its text. A config the
  *                                   ratchet cannot read on the base is held to
  *                                   the rules of an introduced one, and one it
  *                                   cannot read on either side fails. An
@@ -56,9 +78,44 @@
  *                                   complexity / max-lines / no-restricted-syntax
  *                                   never loosened, no file newly ignored);
  *                                   from the source: `ignores` shrink-only per
- *                                   block scope (a block of any rule), and no
- *                                   new local or dynamic import (the base
- *                                   config is evaluated next to today's files)
+ *                                   block scope (a block of any rule), each
+ *                                   list read entry by entry as a vitest list
+ *                                   is, also where it names, spreads or is
+ *                                   shorthand for a constant of the file,
+ *                                   declared once as a top-level const: a
+ *                                   string (literal, or a template of such
+ *                                   strings), or an unexported array the file
+ *                                   names only as a `files`/`ignores` list of
+ *                                   a block of the exported config (the
+ *                                   blocks share such constants) or in a
+ *                                   spread. Such a block is an object literal
+ *                                   ESLint reads as an element of the `export
+ *                                   default` value, through arrays, spreads
+ *                                   and the arguments of its call of an
+ *                                   imported config helper (`tseslint.config`,
+ *                                   `defineConfig`; one whose import the file
+ *                                   neither writes, hands on nor imports a
+ *                                   second time, with every argument an
+ *                                   object literal, an array or spread of
+ *                                   such, an import's value or a const
+ *                                   holding one), and holds no method,
+ *                                   accessor, function or `__proto__` (code
+ *                                   that reaches it as `this`). An entry that
+ *                                   names any other binding of the file (an
+ *                                   array pushed to, passed on, exported or
+ *                                   named in any other block, a let, a
+ *                                   shadowed name, a function; every binding
+ *                                   of a file that calls eval) is opaque, with
+ *                                   its reason, and so is the list of any
+ *                                   other exempting block, with the code that
+ *                                   reaches the block; a new opaque entry
+ *                                   fails, in an introduced config too. The
+ *                                   reader runs nothing: code that reaches a
+ *                                   block without naming it (a getter on
+ *                                   Object.prototype) is out of its sight, a
+ *                                   literal list as much. And no new local or
+ *                                   dynamic import (the base config is
+ *                                   evaluated next to today's files)
  *   knip.jsonc                      every ignore list, the issue-type `exclude`,
  *                                   non-"error" `rules` and `entry` globs
  *                                   shrink-only; `include`/`project` never
@@ -137,7 +194,10 @@
  * each commit and its reason, only when EVERY step that makes it carries the
  * trailer: one made in A and again in B needs both, and a trailer added to a
  * later commit covers nothing. One that no single step makes (the steps only
- * add up to it) fails closed.
+ * add up to it) fails closed. A step that brings a ratchet file back to a path
+ * the merge base holds, after an earlier step removed it, is compared with the
+ * base's file there (the side the net comparison reads): that step decides
+ * what the path holds, so it makes what the net comparison finds there.
  * CODEOWNERS review still applies to every PR. There is no other bypass.
  *
  * Run: node scripts/check-ratchets.mjs [baseRef]   (`pnpm lint:ratchets`;
@@ -335,35 +395,95 @@ function literalValue(node) {
   return undefined
 }
 
+/** TypeScript's wrappers that leave a value as it is at runtime: `( )`, `as`, `satisfies`, `<T>`, `!`. */
+const isTypeWrapper = (node) =>
+  ts.isParenthesizedExpression(node) ||
+  ts.isAsExpression(node) ||
+  ts.isSatisfiesExpression(node) ||
+  ts.isTypeAssertionExpression(node) ||
+  ts.isNonNullExpression(node)
+
+/** An expression without its type wrappers (`["a"] as const` is the array literal). */
+function unwrapped(node) {
+  let inner = node
+  while (inner && isTypeWrapper(inner)) inner = inner.expression
+  return inner
+}
+
+/** `read()` with `name` marked as being followed, so a cycle of constants ends. */
+function following(seen, name, read) {
+  seen.add(name)
+  try {
+    return read()
+  } finally {
+    seen.delete(name)
+  }
+}
+
 /**
- * Array-literal elements as comparable strings: literal values, else
- * normalized source. `consts` (name → array-literal node) resolves an
- * identifier or `...identifier` to the top-level array it names, so moving a
- * list into a constant is not read as new entries.
+ * The string an entry holds when the ratchet sees all of it: a string literal,
+ * a string constant of `consts`, or a template whose every part is one of
+ * these or a literal; else undefined.
  */
-function arrayEntries(node, consts = new Map(), depth = 0) {
-  if (ts.isIdentifier(node) && consts.has(node.text) && depth < 8)
-    return arrayEntries(consts.get(node.text), consts, depth + 1)
-  if (!ts.isArrayLiteralExpression(node)) return null
-  return node.elements.flatMap((element) => {
-    if (ts.isSpreadElement(element) && depth < 8) {
-      const spread = arrayEntries(element.expression, consts, depth + 1)
+function stringValue(node, consts, seen) {
+  const value = unwrapped(node)
+  if (ts.isIdentifier(value)) {
+    const target = consts.get(value.text)
+    if (!target || ts.isArrayLiteralExpression(target) || seen.has(value.text)) return undefined
+    return following(seen, value.text, () => stringValue(target, consts, seen))
+  }
+  if (ts.isTemplateExpression(value)) {
+    let text = value.head.text
+    for (const span of value.templateSpans) {
+      const part =
+        stringValue(span.expression, consts, seen) ?? literalValue(unwrapped(span.expression))
+      if (part === undefined) return undefined
+      text += `${part}${span.literal.text}`
+    }
+    return text
+  }
+  const literal = literalValue(value)
+  return typeof literal === "string" ? literal : undefined
+}
+
+/**
+ * Array-literal elements as comparable strings: strings the ratchet sees
+ * whole (stringValue), else normalized source. `consts` (name → initializer)
+ * resolves an identifier or `...identifier` to the top-level array it names
+ * and an entry to the string a constant holds, so moving a list or a glob
+ * into a constant is not read as new entries. `unread` collects every
+ * element read as its own text; null when `node` is no array the ratchet can
+ * see.
+ */
+function arrayEntries(node, consts = new Map(), unread = [], seen = new Set()) {
+  const value = unwrapped(node)
+  if (value && ts.isIdentifier(value)) {
+    const target = consts.get(value.text)
+    if (!target || !ts.isArrayLiteralExpression(target) || seen.has(value.text)) return null
+    return following(seen, value.text, () => arrayEntries(target, consts, unread, seen))
+  }
+  if (!value || !ts.isArrayLiteralExpression(value)) return null
+  return value.elements.flatMap((element) => {
+    if (ts.isSpreadElement(element)) {
+      const spread = arrayEntries(element.expression, consts, unread, seen)
       if (spread) return spread
     }
-    const value = literalValue(element)
-    return [typeof value === "string" ? value : normalize(element.getText())]
+    const text = stringValue(element, consts, seen)
+    if (text !== undefined) return [text]
+    unread.push(element)
+    return [normalize(element.getText())]
   })
 }
 
-/** Top-level `const name = [ … ]` declarations of a source file. */
-function topLevelArrays(sourceFile) {
+/** Top-level `name = …` variable declarations whose value `keep` takes (type wrappers dropped). */
+function topLevelValues(sourceFile, keep) {
   const consts = new Map()
   for (const statement of sourceFile.statements) {
     if (!ts.isVariableStatement(statement)) continue
     for (const decl of statement.declarationList.declarations) {
-      if (ts.isIdentifier(decl.name) && decl.initializer)
-        if (ts.isArrayLiteralExpression(decl.initializer))
-          consts.set(decl.name.text, decl.initializer)
+      const initializer = unwrapped(decl.initializer)
+      if (ts.isIdentifier(decl.name) && initializer && keep(initializer))
+        consts.set(decl.name.text, initializer)
     }
   }
   return consts
@@ -371,8 +491,575 @@ function topLevelArrays(sourceFile) {
 
 const COVERAGE_METRICS = ["statements", "branches", "functions", "lines"]
 
-/** Entries of an `include`/`exclude` list: literal strings, else normalized source. */
-const listEntries = (node) => arrayEntries(node) ?? [normalize(node.getText())]
+/** The vitest keys whose value is a list of globs. */
+const LIST_KEYS = ["include", "exclude"]
+
+/**
+ * Whether `member` is an `include`/`exclude` key of a `test` or `coverage`
+ * block. extractVitestCoverage reads every such block or fails on the file
+ * (a second root `test` or `coverage` block, a project `test` block it does
+ * not reach), so the list in it is one the ratchet compares.
+ */
+function isListKeyOfBlock(member) {
+  const block = member.parent
+  const owner = block?.parent
+  return (
+    LIST_KEYS.includes(staticName(member.name)) &&
+    ts.isObjectLiteralExpression(block) &&
+    ts.isPropertyAssignment(owner) &&
+    owner.initializer === block &&
+    ["test", "coverage"].includes(staticName(owner.name))
+  )
+}
+
+/** The ESLint keys whose value is a list of globs. */
+const ESLINT_LIST_KEYS = ["files", "ignores"]
+
+/** Whether `node` is the value of `export default`, type wrappers aside. */
+function isExportedValue(node) {
+  let outer = node
+  while (isTypeWrapper(outer.parent)) outer = outer.parent
+  return ts.isExportAssignment(outer.parent)
+}
+
+/** Whether the file binds `name` by an import only: its value is the other module's. */
+function isImportBinding(name, scope) {
+  const declared = scope.declarations.get(name) ?? []
+  return declared.length > 0 && declared.every((id) => bindingDeclared(id) === "import")
+}
+
+/** A member chain `root.a.b` as its root and member names, type wrappers aside. */
+function memberChain(node) {
+  const path = []
+  let root = unwrapped(node)
+  while (ts.isPropertyAccessExpression(root)) {
+    path.unshift(root.name.text)
+    root = unwrapped(root.expression)
+  }
+  return { root, path }
+}
+
+/** The names an import declaration binds: its default, namespace and named bindings. */
+function importedNames(statement) {
+  const clause = statement.importClause
+  const bindings = clause?.namedBindings
+  return [
+    ...(clause?.name ? [clause.name.text] : []),
+    ...(bindings && ts.isNamespaceImport(bindings) ? [bindings.name.text] : []),
+    ...(bindings && ts.isNamedImports(bindings) ? bindings.elements.map((e) => e.name.text) : []),
+  ]
+}
+
+/**
+ * Whether the file binds anything but `root` from the module `root` is
+ * imported from (`import * as again from "typescript-eslint"` next to
+ * `import tseslint from "typescript-eslint"`): that binding reaches the same
+ * module, so `again.default.config = widen` changes the helper without naming
+ * `root`. An import the reader cannot place (`import x = require(…)`) counts.
+ * It matters only for a callee read from an object (`tseslint.config`): an
+ * import binding called itself (`defineConfig`) cannot be rebound.
+ */
+function importsModuleAgain(root, scope) {
+  let declaration = scope.declarations.get(root.text)[0]
+  while (declaration && !ts.isImportDeclaration(declaration)) declaration = declaration.parent
+  if (!declaration || !ts.isStringLiteral(declaration.moduleSpecifier)) return true
+  const from = declaration.moduleSpecifier.text
+  return declaration.parent.statements.some(
+    (statement) =>
+      ts.isImportDeclaration(statement) &&
+      ts.isStringLiteral(statement.moduleSpecifier) &&
+      statement.moduleSpecifier.text === from &&
+      importedNames(statement).some((name) => name !== root.text),
+  )
+}
+
+/**
+ * Whether a read of the import a config helper is called on leaves the chain
+ * `path` the callee hangs on, as the exported call's own read does: it reads
+ * another member on the way (`tseslint.configs.strict` next to
+ * `tseslint.config`), or the callee itself only to call it, to pass it or to
+ * read a member of it. A read that hands on an object on the way
+ * (`widen(tseslint)`, `tseslint["config"]`) or writes the callee
+ * (`tseslint.config = widen`, `delete tseslint.config`) can change what the
+ * call runs. An import binding itself cannot be rebound.
+ */
+function leavesCallee(read, path) {
+  if (path.length === 0) return true
+  let node = read
+  for (const member of path) {
+    while (isTypeWrapper(node.parent)) node = node.parent
+    const parent = node.parent
+    if (!ts.isPropertyAccessExpression(parent)) return false
+    if (parent.name.text !== member) return true
+    node = parent
+  }
+  while (isTypeWrapper(node.parent)) node = node.parent
+  const reader = node.parent
+  return (
+    ts.isCallExpression(reader) ||
+    ts.isPropertyAccessExpression(reader) ||
+    ts.isElementAccessExpression(reader)
+  )
+}
+
+/**
+ * Whether an argument hands a config helper code of the file it could call
+ * with the blocks: anything but an object literal, an array or spread of such
+ * arguments, an import's value (`js.configs.recommended`) or a const of the
+ * file holding one of these. A function, a call or a let could be one.
+ */
+function handsCode(node, scope, seen = new Set()) {
+  const value = unwrapped(ts.isSpreadElement(node) ? node.expression : node)
+  if (ts.isObjectLiteralExpression(value)) return false
+  if (ts.isArrayLiteralExpression(value))
+    return value.elements.some((element) => handsCode(element, scope, seen))
+  const { root } = memberChain(value)
+  if (ts.isIdentifier(root) && isImportBinding(root.text, scope)) return false
+  if (!ts.isIdentifier(value) || seen.has(value.text)) return true
+  const declared = scope.declarations.get(value.text) ?? []
+  const decl = declared.length === 1 ? declared[0].parent : undefined
+  if (!decl || !ts.isVariableDeclaration(decl) || !decl.initializer) return true
+  if ((decl.parent.flags & ts.NodeFlags.Const) === 0) return true
+  seen.add(value.text)
+  return handsCode(decl.initializer, scope, seen)
+}
+
+/**
+ * Why the exported call (the `export default` value) is no call of an
+ * imported config helper (`tseslint.config(…)`, `defineConfig([…])`), or
+ * undefined when it is one: called on an import of the file or a member
+ * chain on one that no code of the file can change (leavesCallee,
+ * importsModuleAgain; a file that calls eval has none), with no argument
+ * that hands it code (handsCode). A local function (`widen(…)`), a global
+ * (`Reflect.apply(widen, …)`) or a local object (`lib.config(…)`) can change
+ * the blocks it receives.
+ */
+function exportedCallProblem(call, scope) {
+  if (scope.reads.has("eval"))
+    return "the file calls eval, which can change the exported call's helper without naming it"
+  const { root, path } = memberChain(call.expression)
+  if (!ts.isIdentifier(root) || !isImportBinding(root.text, scope))
+    return "the exported call's callee is no import of the file or member chain on one, so it can change the blocks it receives"
+  if (path.length > 0 && importsModuleAgain(root, scope))
+    return "the file imports the module of the exported call's helper a second time, which can change the helper without naming its import"
+  const reads = scope.reads.get(root.text) ?? []
+  if (!reads.every((read) => leavesCallee(read, path)))
+    return "the file hands on or writes the import the exported call's callee hangs on, which can change what the call runs"
+  if (call.arguments.some((argument) => handsCode(argument, scope)))
+    return "an argument of the exported call may hand the helper code to run on the blocks (any but an object literal, an array or spread of such, an import's value or a const holding one)"
+  return undefined
+}
+
+const NO_CONFIG_BLOCK =
+  "the block is no block of the exported config, so code that names or receives it can change its lists"
+
+/**
+ * Why ESLint does not read `node` as an element of the exported config, or
+ * undefined when it does: the `export default` value, or inside it through
+ * arrays, spreads and type wrappers, also as an argument of the exported
+ * call of an imported config helper (exportedCallProblem). No code but
+ * ESLint's and the helper's reaches an element it does not name.
+ */
+function configElementProblem(node, scope) {
+  let outer = node
+  while (
+    ts.isArrayLiteralExpression(outer.parent) ||
+    ts.isSpreadElement(outer.parent) ||
+    isTypeWrapper(outer.parent)
+  )
+    outer = outer.parent
+  if (isExportedValue(outer)) return undefined
+  const call = outer.parent
+  if (ts.isCallExpression(call) && call.arguments.includes(outer) && isExportedValue(call))
+    return exportedCallProblem(call, scope)
+  return NO_CONFIG_BLOCK
+}
+
+/** Whether ESLint reads `node` as an element of the exported config (configElementProblem). */
+const isConfigElement = (node, scope) => !configElementProblem(node, scope)
+
+/**
+ * Whether an object member runs code with the object as `this`: a method, an
+ * accessor, a function a caller can run as a method, or `__proto__:` (not a
+ * computed key, which propName does not name), whose getters and traps get
+ * the object as their receiver.
+ */
+const runsCode = (member) =>
+  ts.isMethodDeclaration(member) ||
+  ts.isGetAccessorDeclaration(member) ||
+  ts.isSetAccessorDeclaration(member) ||
+  (ts.isPropertyAssignment(member) &&
+    (ts.isFunctionExpression(unwrapped(member.initializer)) ||
+      propName(member.name) === "__proto__"))
+
+/**
+ * Why an object literal is no block of the exported ESLint config, or
+ * undefined when it is one: an element of the exported config
+ * (configElementProblem) that runs no code of its own (runsCode). No code of
+ * the file reaches such a block, so its lists change only through the config
+ * object, out of the reader's sight for a literal list as much. Any other
+ * block is named, passed to a function or runs code, which can change its
+ * lists: extractEslintRatchets keeps its exempting list opaque, and a
+ * constant it names is unread (listConstants).
+ */
+function configBlockProblem(object, scope) {
+  if (object.properties.some(runsCode))
+    return "the block runs code of its own (a method, an accessor, a function or __proto__), which can change its lists"
+  return configElementProblem(object, scope)
+}
+
+/**
+ * Whether `member` is a `files`/`ignores` key of a block of the exported
+ * ESLint config (configBlockProblem): ESLint only reads such a list, and the
+ * blocks share one constant between them (`files: WIDGET_TREES` here,
+ * `ignores: [...WIDGET_TREES]` there).
+ */
+function isConfigListKey(member, scope) {
+  return (
+    ESLINT_LIST_KEYS.includes(staticName(member.name)) && !configBlockProblem(member.parent, scope)
+  )
+}
+
+/**
+ * The code that can reach an object literal no code names: its members that
+ * run code, and on its way up to the statement that holds it, what each
+ * enclosing node hands it to: the callee and every argument that hands code
+ * of a call that receives it, the members that run code of an object that
+ * holds it, every other part of any other node (the name a declaration gives
+ * it, a key, a type). The other elements of an array reach none of its
+ * elements. bindingTrace follows the bindings these name.
+ */
+function blockReach(block, scope) {
+  const seeds = block.properties.filter(runsCode)
+  let node = block
+  for (let parent = node.parent; !ts.isSourceFile(parent); node = parent, parent = parent.parent) {
+    if (ts.isArrayLiteralExpression(parent)) continue
+    if (ts.isObjectLiteralExpression(parent)) seeds.push(...parent.properties.filter(runsCode))
+    else if (
+      (ts.isCallExpression(parent) || ts.isNewExpression(parent)) &&
+      parent.arguments?.includes(node)
+    ) {
+      const others = parent.arguments.filter((arg) => arg !== node && handsCode(arg, scope))
+      seeds.push(parent.expression, ...others)
+    } else {
+      const reached = node
+      ts.forEachChild(parent, (child) => {
+        if (child !== reached) seeds.push(child)
+      })
+    }
+  }
+  return seeds
+}
+
+/**
+ * The lists of the two configs whose lists read the file's constants:
+ * `isListKey(member, scope)` says whether an object member's value is a list
+ * the tool only reads, in a block the ratchet reads (`scope`: listConstants'
+ * declarations and reads); `lists` names them in the reason an array
+ * constant goes unread (constantProblem); `isElement(node, scope)` whether
+ * the tool reads `node` by itself, so code around it cannot reach it
+ * (bindingTrace).
+ */
+const VITEST_LISTS = {
+  isListKey: isListKeyOfBlock,
+  lists: "an include/exclude list of a test or coverage block",
+  isElement: () => false,
+}
+const ESLINT_LISTS = {
+  isListKey: isConfigListKey,
+  lists: "a files/ignores list of a block of the exported config",
+  isElement: isConfigElement,
+}
+
+/**
+ * Whether one read of an array constant leaves it as its literal shows it:
+ * the value of a list key `isListKey` takes (also as shorthand, also through
+ * type wrappers) or a spread, which copies it. Anything else could change it
+ * at runtime (`EXTRA.push(…)`, a call, a key of an object some function
+ * receives) or is no read of it at all.
+ */
+function keepsArrayAsWritten(identifier, isListKey) {
+  if (ts.isShorthandPropertyAssignment(identifier.parent)) return isListKey(identifier.parent)
+  let outer = identifier
+  while (isTypeWrapper(outer.parent)) outer = outer.parent
+  const reader = outer.parent
+  if (ts.isSpreadElement(reader)) return true
+  return ts.isPropertyAssignment(reader) && reader.initializer === outer && isListKey(reader)
+}
+
+/** Whether `parent.name` is a key, member or type name, never a value binding. */
+const namedNotBinding = (parent) =>
+  ts.isPropertyAssignment(parent) ||
+  ts.isPropertyAccessExpression(parent) ||
+  ts.isMethodDeclaration(parent) ||
+  ts.isPropertyDeclaration(parent) ||
+  ts.isGetAccessorDeclaration(parent) ||
+  ts.isSetAccessorDeclaration(parent) ||
+  ts.isPropertySignature(parent) ||
+  ts.isMethodSignature(parent) ||
+  ts.isEnumMember(parent) ||
+  ts.isMetaProperty(parent) ||
+  ts.isInterfaceDeclaration(parent) ||
+  ts.isTypeAliasDeclaration(parent) ||
+  ts.isTypeParameterDeclaration(parent)
+
+/**
+ * Whether an identifier declares or reads a value binding: not a key or
+ * member name (`exclude:`, `coverageConfigDefaults.exclude`), the remote
+ * name of an import, export or destructuring, a label or a name in a type.
+ */
+function namesBinding(identifier) {
+  const parent = identifier.parent
+  if (namedNotBinding(parent) && parent.name === identifier) return false
+  if (
+    (ts.isImportSpecifier(parent) || ts.isBindingElement(parent)) &&
+    parent.propertyName === identifier
+  )
+    return false
+  if (
+    ts.isExportSpecifier(parent) &&
+    parent.propertyName !== undefined &&
+    parent.name === identifier
+  )
+    return false
+  if (
+    (ts.isLabeledStatement(parent) || ts.isBreakOrContinueStatement(parent)) &&
+    parent.label === identifier
+  )
+    return false
+  for (let up = parent; up; up = up.parent)
+    if (ts.isTypeNode(up) && !ts.isExpressionWithTypeArguments(up)) return false
+  return true
+}
+
+/** "import" or "local" when an identifier declares a value binding, else undefined. */
+function bindingDeclared(identifier) {
+  const parent = identifier.parent
+  if (parent.name !== identifier) return undefined
+  if (
+    ts.isImportClause(parent) ||
+    ts.isNamespaceImport(parent) ||
+    ts.isImportSpecifier(parent) ||
+    ts.isImportEqualsDeclaration(parent)
+  )
+    return "import"
+  if (
+    ts.isVariableDeclaration(parent) ||
+    ts.isParameter(parent) ||
+    ts.isBindingElement(parent) ||
+    ts.isFunctionDeclaration(parent) ||
+    ts.isFunctionExpression(parent) ||
+    ts.isClassDeclaration(parent) ||
+    ts.isClassExpression(parent) ||
+    ts.isEnumDeclaration(parent) ||
+    ts.isModuleDeclaration(parent)
+  )
+    return "local"
+  return undefined
+}
+
+/** The values a vitest list may take from a constant: an array, or a string (literal or template). */
+const isListValue = (node) =>
+  ts.isArrayLiteralExpression(node) ||
+  ts.isStringLiteral(node) ||
+  ts.isNoSubstitutionTemplateLiteral(node) ||
+  ts.isTemplateExpression(node)
+
+const isExportedRead = (identifier) =>
+  ts.isExportSpecifier(identifier.parent) || ts.isExportAssignment(identifier.parent)
+
+/**
+ * Why the ratchet cannot read a binding the file declares (`declared`: its
+ * declaring identifiers, `value`: topLevelValues' initializer, `reads`: every
+ * other identifier that names it, `tool`: VITEST_LISTS or ESLINT_LISTS,
+ * `scope`: the file's declarations and reads), or undefined when it can.
+ */
+function constantProblem(declared, value, reads, tool, scope) {
+  if (declared.length > 1) return "declared more than once"
+  const decl = declared[0].parent
+  const list = decl.parent
+  if (
+    !ts.isVariableDeclaration(decl) ||
+    !ts.isVariableStatement(list.parent) ||
+    !ts.isSourceFile(list.parent.parent)
+  )
+    return "no top-level const"
+  if ((list.flags & ts.NodeFlags.Const) === 0) return "declared with let or var"
+  // Declared once, so topLevelValues read this declaration, if it holds a list value.
+  if (!value) return "its value is no array, string or template literal"
+  // A string cannot change; an array can, through any code that reaches it.
+  if (!ts.isArrayLiteralExpression(value)) return undefined
+  if (
+    list.parent.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword) ||
+    reads.some(isExportedRead)
+  )
+    return "exported, so another module can change it"
+  const isListKey = (member) => tool.isListKey(member, scope)
+  if (!reads.every((read) => keepsArrayAsWritten(read, isListKey)))
+    return `named other than as ${tool.lists} or in a spread, where a push, a call or another key can change it`
+  return undefined
+}
+
+const EVAL_PROBLEM = "the file calls eval, which can change a binding without naming it"
+
+/**
+ * How a config's lists read the bindings the file declares itself, the
+ * include/exclude lists of a vitest config (`tool` VITEST_LISTS) or the
+ * exempting `ignores` lists of an ESLint config (ESLINT_LISTS); an import's
+ * content is the other module's: a list keeps reading it as one entry of its
+ * own text, `...coverageConfigDefaults.exclude`. `consts` holds those a list
+ * may name, spread or write as shorthand and is read through entry by entry,
+ * so the constant cannot change unseen by code that names it; `unread` says
+ * for every other one why not, and a list entry that names one is opaque with
+ * that reason (listEntries); `declarations` and `reads` map each name to the
+ * identifiers that declare or read it; `isElement(node)` is the tool's
+ * (VITEST_LISTS). A binding is read when the file declares its name once, as
+ * a top-level `const` holding an array or a string (a literal, or a template
+ * of such strings and literals), and, for an array, never exports it and
+ * names it only as the value of a list key the tool only reads
+ * (`tool.isListKey`: an include/exclude key of a test or coverage block, a
+ * files/ignores key of a block of the exported ESLint config) or in a spread
+ * (keepsArrayAsWritten). Only a name that declares or reads the binding
+ * counts (namesBinding): a key, a member name, a label or a type does not. A
+ * direct `eval` reaches a binding without naming it, so a file that names
+ * eval has none read. The reader does not run the file: a list changed
+ * through the config object after the config was built is out of its sight,
+ * a literal one as much as one from a constant.
+ */
+function listConstants(sourceFile, tool) {
+  const values = topLevelValues(sourceFile, isListValue)
+  const lists = { consts: new Map(), unread: new Map(), declarations: new Map(), reads: new Map() }
+  lists.isElement = (node) => tool.isElement(node, lists)
+  const { declarations, reads } = lists
+  walk(sourceFile, (node) => {
+    if (!ts.isIdentifier(node) || !namesBinding(node)) return
+    const into = bindingDeclared(node) ? declarations : reads
+    if (!into.has(node.text)) into.set(node.text, [])
+    into.get(node.text).push(node)
+  })
+  for (const [name, declared] of declarations) {
+    if (declared.every((identifier) => bindingDeclared(identifier) === "import")) continue
+    const problem = reads.has("eval")
+      ? EVAL_PROBLEM
+      : constantProblem(declared, values.get(name), reads.get(name) ?? [], tool, lists)
+    if (problem) lists.unread.set(name, problem)
+    else lists.consts.set(name, values.get(name))
+  }
+  return lists
+}
+
+const isWithin = (node, ancestor) => {
+  for (let up = node; up; up = up.parent) if (up === ancestor) return true
+  return false
+}
+
+/** Whether `name` is a binding the file declares itself (listConstants). */
+const isOwnBinding = (name, lists) => lists.consts.has(name) || lists.unread.has(name)
+
+/**
+ * Why each binding of the file an entry read as its own text names was not
+ * read through, as name -> reason; a name the entry declares itself (a
+ * callback's parameter) is pinned by the entry's text.
+ */
+function unreadBindings(entry, lists) {
+  const found = new Map()
+  walk(entry, (node) => {
+    if (!ts.isIdentifier(node) || !namesBinding(node) || bindingDeclared(node)) return
+    const declared = lists.declarations.get(node.text) ?? []
+    if (!declared.some((id) => bindingDeclared(id) === "local" && !isWithin(id, entry))) return
+    const value = lists.consts.get(node.text)
+    found.set(
+      node.text,
+      lists.unread.get(node.text) ??
+        (!ts.isArrayLiteralExpression(value) &&
+        stringValue(value, lists.consts, new Set([node.text])) === undefined
+          ? "its template holds a part the ratchet cannot read"
+          : "the ratchet reads a constant only as a whole list, a spread, an entry or a template part"),
+    )
+  })
+  return found
+}
+
+/**
+ * The code an unread binding's content hangs on, as far as the file shows
+ * it: around every declaration and read of `names`, and in turn of every
+ * binding of the file (and `eval`) that code names, the statement or member
+ * next to the one that holds `entry` (the config itself), or an element the
+ * tool reads by itself (`lists.isElement`: a block or element of the exported
+ * ESLint config, which no code around it reaches), normalized in file order,
+ * together with `seeds`, code that reaches `entry` without naming it
+ * (blockReach), and the bindings the seeds name. A helper the binding is
+ * passed to is in it; code that reaches the binding through the config
+ * object is not.
+ */
+function bindingTrace(names, entry, lists, seeds = []) {
+  const units = new Set()
+  const queue = lists.reads.has("eval") ? [...names, "eval"] : [...names]
+  const done = new Set()
+  const add = (unit) => {
+    units.add(unit)
+    walk(unit, (node) => {
+      if (ts.isIdentifier(node) && namesBinding(node) && isOwnBinding(node.text, lists))
+        queue.push(node.text)
+    })
+  }
+  seeds.forEach(add)
+  while (queue.length > 0) {
+    const name = queue.pop()
+    if (done.has(name)) continue
+    done.add(name)
+    const occurrences = [...(lists.declarations.get(name) ?? []), ...(lists.reads.get(name) ?? [])]
+    for (const occurrence of occurrences) {
+      if (isWithin(occurrence, entry)) continue
+      let unit = occurrence
+      while (unit.parent && !isWithin(entry, unit.parent) && !lists.isElement(unit))
+        unit = unit.parent
+      if (!units.has(unit)) add(unit)
+    }
+  }
+  return [...units]
+    .sort((a, b) => a.pos - b.pos)
+    .map((unit) => normalize(unit.getText()))
+    .join(";")
+}
+
+/**
+ * Entries of an `include`/`exclude` list (arrayEntries over the file's
+ * constants, else the list's own text). An entry read as its own text that
+ * names a binding of the file lands in `opaque` as `where: entry (name:
+ * reason) from <trace>` (bindingTrace): a config may not introduce one, and
+ * once there it is frozen like any other opaque member, its trace with it,
+ * so an edit to the code the binding hangs on reads as a new one.
+ */
+function listEntries(node, lists, where, opaque) {
+  const unread = []
+  const entries = arrayEntries(node, lists.consts, unread)
+  if (!entries) unread.push(node)
+  for (const entry of unread) {
+    const bindings = unreadBindings(entry, lists)
+    if (bindings.size === 0) continue
+    const reasons = [...bindings].map(([name, reason]) => `${name}: ${reason}`).join("; ")
+    const trace = bindingTrace(bindings.keys(), entry, lists)
+    opaque.push(`${where}: ${normalize(entry.getText())} (${reasons}) from ${trace}`)
+  }
+  return entries ?? [normalize(node.getText())]
+}
+
+/**
+ * A member of a vitest `test`, `coverage` or project `test` block as `{ key,
+ * value }`: a `key: value` assignment, or an `include`/`exclude` shorthand
+ * of a binding the file declares (read as `exclude: exclude`, see
+ * listEntries); undefined for any other member (a spread, another shorthand,
+ * a method or accessor), which the caller keeps opaque.
+ */
+function readableMember(member, lists) {
+  if (ts.isPropertyAssignment(member))
+    return { key: staticName(member.name), value: member.initializer }
+  const name = ts.isShorthandPropertyAssignment(member) ? member.name.text : undefined
+  if (LIST_KEYS.includes(name) && (lists.consts.has(name) || lists.unread.has(name)))
+    return { key: name, value: member.name }
+  return undefined
+}
 
 /**
  * The floors of one thresholds object, the global one or a glob's, as
@@ -495,9 +1182,12 @@ const PROJECT_NAME_NEEDED =
  * an object literal (a config-file path or glob, which loads an unratcheted
  * file; a function; a spread), an `extends` that is not a boolean literal (a
  * path loads another unratcheted file) and a spread or shorthand anywhere in
- * a project land in `opaque`.
+ * a project (but an `include`/`exclude` shorthand of a binding the file
+ * declares, see readableMember) land in `opaque`, so does a list entry that names a binding
+ * of the file the ratchet cannot read through (listEntries). `lists`:
+ * listConstants over VITEST_LISTS.
  */
-function readProjects(node, opaque) {
+function readProjects(node, opaque, lists) {
   const projects = {}
   const reached = new Set()
   if (!ts.isArrayLiteralExpression(node)) {
@@ -532,13 +1222,13 @@ function readProjects(node, opaque) {
       else opaque.push(`${label}.extends: ${normalize(extendsProp.initializer.getText())}`)
     }
     for (const member of testProp.initializer.properties) {
-      if (!ts.isPropertyAssignment(member)) {
+      const read = readableMember(member, lists)
+      if (!read) {
         opaque.push(`${label}: ${normalize(member.getText())}`)
         continue
       }
-      const key = staticName(member.name)
-      if (key === "include") project.include = listEntries(member.initializer)
-      else if (key === "exclude") project.exclude = listEntries(member.initializer)
+      if (LIST_KEYS.includes(read.key))
+        project[read.key] = listEntries(read.value, lists, `${label}.${read.key}`, opaque)
     }
     projects[name] = project
   }
@@ -552,8 +1242,12 @@ function readProjects(node, opaque) {
  * cannot be read unambiguously (the comparison then fails closed).
  * `include`/`testInclude` are null when the key is absent, `projects` when
  * the root test has no `projects` list (else name -> `{ include, exclude,
- * extends }`, see readProjects). `opaque` holds every member the ratchet
- * cannot read: a spread or shorthand inside coverage or test, a non-literal
+ * extends }`, see readProjects). The include and exclude lists read the
+ * file's constants (listConstants) entry by entry, by name, spread or
+ * shorthand. `opaque` holds every member the ratchet cannot read: a spread
+ * or shorthand inside coverage or test (but an `include`/`exclude` shorthand
+ * of a binding the file declares), a list entry that names a binding of the
+ * file it cannot read through, with the reason (listEntries), a non-literal
  * threshold, and every computed key of the file whose name is no literal
  * (`[KEY]: ...` could BE coverage, test, thresholds or enabled).
  * `usesShared`: the config passes `sharedConfig` (vitest.shared.ts, where
@@ -565,7 +1259,9 @@ export function extractVitestCoverage(relPath, text) {
   const testBlocks = []
   const computed = []
   let usesShared = false
-  walk(parseSource(relPath, text), (node) => {
+  const sourceFile = parseSource(relPath, text)
+  const lists = listConstants(sourceFile, VITEST_LISTS)
+  walk(sourceFile, (node) => {
     if (ts.isPropertyAssignment(node) && staticName(node.name) === "coverage") blocks.push(node)
     if (ts.isPropertyAssignment(node) && staticName(node.name) === "test") testBlocks.push(node)
     if (ts.isComputedPropertyName(node) && staticName(node) === undefined)
@@ -600,16 +1296,19 @@ export function extractVitestCoverage(relPath, text) {
     if (!ts.isObjectLiteralExpression(rootTest))
       return { error: "`test` is not an object literal: the ratchet cannot read it" }
     for (const prop of rootTest.properties) {
-      if (!ts.isPropertyAssignment(prop)) {
+      const member = readableMember(prop, lists)
+      if (!member) {
         // A spread or shorthand could carry include/exclude the AST cannot see.
         result.opaque.push(`test: ${normalize(prop.getText())}`)
         continue
       }
-      const name = staticName(prop.name)
-      if (name === "include") result.testInclude = listEntries(prop.initializer)
-      else if (name === "exclude") result.testExclude = listEntries(prop.initializer)
+      const { key: name, value } = member
+      if (name === "include")
+        result.testInclude = listEntries(value, lists, "test.include", result.opaque)
+      else if (name === "exclude")
+        result.testExclude = listEntries(value, lists, "test.exclude", result.opaque)
       else if (name === "projects") {
-        const read = readProjects(prop.initializer, result.opaque)
+        const read = readProjects(value, result.opaque, lists)
         if (read.error) return { error: read.error }
         result.projects = read.projects
         reached = read.reached
@@ -638,21 +1337,22 @@ export function extractVitestCoverage(relPath, text) {
   if (!ts.isObjectLiteralExpression(coverage))
     return { error: "`coverage` is not an object literal: the ratchet cannot read it" }
   for (const prop of coverage.properties) {
-    if (!ts.isPropertyAssignment(prop)) {
+    const member = readableMember(prop, lists)
+    if (!member) {
       // A spread or shorthand could carry thresholds/exclude the AST cannot see.
       result.opaque.push(normalize(prop.getText()))
       continue
     }
-    const name = staticName(prop.name)
+    const { key: name, value } = member
     if (name === "thresholds") {
-      Object.assign(result, readThresholds(prop.initializer, result.opaque))
+      Object.assign(result, readThresholds(value, result.opaque))
     } else if (name === "exclude") {
-      result.exclude = listEntries(prop.initializer)
+      result.exclude = listEntries(value, lists, "coverage.exclude", result.opaque)
     } else if (name === "include") {
-      result.include = listEntries(prop.initializer)
+      result.include = listEntries(value, lists, "coverage.include", result.opaque)
     } else if (name === "enabled") {
-      const value = literalValue(prop.initializer)
-      result.enabled = typeof value === "boolean" ? value : normalize(prop.initializer.getText())
+      const literal = literalValue(value)
+      result.enabled = typeof literal === "boolean" ? literal : normalize(value.getText())
     }
   }
   return result
@@ -698,13 +1398,25 @@ const GATE_RULES = ["complexity", "max-lines", "no-restricted-syntax"]
  * What the source of eslint.config.mjs shows that the effective-config
  * comparison cannot:
  * - `ignores`: every entry of every exempting `ignores` list, keyed by the
- *   scope it exempts from (see ignoresScope), whatever rule the block sets;
+ *   scope it exempts from (see ignoresScope), whatever rule the block sets.
+ *   A list reads the file's constants as a vitest list does (listConstants
+ *   over ESLINT_LISTS, listEntries): entry by entry where it names, spreads
+ *   or is shorthand for a constant no code can make hold more than its
+ *   literal, which the blocks of the exported config may share as `files`
+ *   and `ignores` lists;
+ * - `opaque`: every `ignores` entry that names any other binding of the file
+ *   (an array pushed to, passed on or exported, a let, a shadowed name, a
+ *   function), with its reason and the code it hangs on (listEntries), and
+ *   every exempting list in a block that is no block of the exported config
+ *   (configBlockProblem), with the code that reaches the block (blockReach,
+ *   bindingTrace) but not its entries, which `ignores` compares;
  * - `imports`: every local or dynamic import. The base config is evaluated
  *   from a sibling file, so a local module it imports would be today's.
  */
 export function extractEslintRatchets(relPath, text) {
   const sourceFile = parseSource(relPath, text)
   const ignores = []
+  const opaque = []
   const imports = []
   for (const statement of sourceFile.statements) {
     if (ts.isImportDeclaration(statement) && ts.isStringLiteral(statement.moduleSpecifier)) {
@@ -712,17 +1424,23 @@ export function extractEslintRatchets(relPath, text) {
       if (specifier.startsWith(".")) imports.push(`local import "${specifier}"`)
     }
   }
-  const consts = topLevelArrays(sourceFile)
+  const lists = listConstants(sourceFile, ESLINT_LISTS)
   walk(sourceFile, (node) => {
     if (isDynamicImport(node)) imports.push(`dynamic import \`${normalize(node.getText())}\``)
     if (!ts.isPropertyAssignment(node) && !ts.isShorthandPropertyAssignment(node)) return
     if (propName(node.name) !== "ignores" || !isExemptionBlock(node.parent)) return
     const value = ts.isShorthandPropertyAssignment(node) ? node.name : node.initializer
     const scope = ignoresScope(node.parent)
-    for (const entry of arrayEntries(value, consts) ?? [normalize(value.getText())])
+    const where = `ignores (exempts from: ${scope})`
+    for (const entry of listEntries(value, lists, where, opaque))
       ignores.push(`${scope} :: ${entry}`)
+    const problem = configBlockProblem(node.parent, lists)
+    if (problem) {
+      const trace = bindingTrace([], node.parent, lists, blockReach(node.parent, lists))
+      opaque.push(`${where}: the list of its block (${problem}) from ${trace}`)
+    }
   })
-  return { ignores, imports }
+  return { ignores, opaque, imports }
 }
 
 export function collectKnipIgnores(node, prefix = "", into = new Set()) {
@@ -1000,6 +1718,10 @@ function projectChanges(relPath, before, after) {
   return violations
 }
 
+/** What the ratchet reads in a vitest config, for the message on an opaque member. */
+const VITEST_READS =
+  "The ratchet reads literals, and a constant of the file only where it sees all the constant can hold (a top-level const string, or a const array the file names only as an include/exclude list or in a spread); for one it cannot read, the reason follows its name in parentheses"
+
 /**
  * The rules for a package vitest config with nothing to compare against (the
  * diff introduces it, or the ratchet could not read its base): from the next
@@ -1011,7 +1733,7 @@ function projectChanges(relPath, before, after) {
 function newVitestConfigViolations(relPath, cur) {
   const violations = cur.opaque.map(
     (entry) =>
-      `${relPath} -> spread/shorthand or non-literal \`${entry}\` in a vitest config with nothing to compare against. The ratchet reads literals only: inline the values, or it can never see them change.`,
+      `${relPath} -> spread/shorthand or non-literal \`${entry}\` in a vitest config with nothing to compare against. ${VITEST_READS}: inline the values, or it can never see them change.`,
   )
   violations.push(...sharedFloorViolations(relPath, cur))
   if (relPath === "vitest.shared.ts") return violations
@@ -1149,7 +1871,7 @@ function compareVitest(relPath, oldText, newText) {
   for (const entry of cur.opaque) {
     if (!old.opaque.includes(entry)) {
       violations.push(
-        `${relPath} -> new spread/shorthand or non-literal \`${entry}\` in the vitest config. The ratchet reads literals only: inline the values (a spread written after the literals overrides them at runtime).`,
+        `${relPath} -> new spread/shorthand or non-literal \`${entry}\` in the vitest config. ${VITEST_READS}: inline the values (a spread written after the literals overrides them at runtime).`,
       )
     }
   }
@@ -1265,6 +1987,36 @@ function compareStryker(relPath, oldJson, newJson, fileExists) {
   return violations
 }
 
+/** What the ratchet reads in an exempting `ignores` list, for the message on an opaque entry. */
+const ESLINT_READS =
+  "The ratchet reads a list only in a block of the exported config (an object literal in the export default value or its call of an imported config helper, with no method, accessor, function or __proto__), and there literals, and a constant of the file only where it sees all the constant can hold (a top-level const string, or a const array the file names only as a files/ignores list of such a block or in a spread); for what it cannot read, the reason follows in parentheses"
+
+/**
+ * A violation for each `ignores` entry the ratchet cannot read through
+ * (extractEslintRatchets' `opaque`) that `before` lacks: once there, the
+ * constant it names or the code that reaches its block could exempt more
+ * files unseen. `what` leads the message.
+ */
+const newOpaqueIgnores = (relPath, before, after, what) =>
+  after
+    .filter((entry) => !before.includes(entry))
+    .map(
+      (entry) =>
+        `${relPath} -> ${what}: \`${entry}\`. ${ESLINT_READS}: inline the globs and the block into the exported config, or the list can exempt more files unseen.`,
+    )
+
+/**
+ * An ESLint config the diff introduces: its ignores are free, but from the
+ * next diff on it IS the ratchet, so it may hold no entry it cannot read.
+ */
+const introducedEslint = (relPath, newText) =>
+  newOpaqueIgnores(
+    relPath,
+    [],
+    extractEslintRatchets(relPath, newText).opaque,
+    "`ignores` entry the ratchet cannot read through, in an ESLint config with nothing to compare against",
+  )
+
 function compareEslint(relPath, oldText, newText) {
   if (newText === null) return [`${relPath} was removed: every ESLint gate goes with it.`]
   const old = extractEslintRatchets(relPath, oldText)
@@ -1285,6 +2037,14 @@ function compareEslint(relPath, oldText, newText) {
       )
     }
   }
+  violations.push(
+    ...newOpaqueIgnores(
+      relPath,
+      old.opaque,
+      cur.opaque,
+      "new `ignores` entry the ratchet cannot read through",
+    ),
+  )
   return violations
 }
 
@@ -1532,13 +2292,15 @@ const invalidJson = (relPath) => [
 
 /**
  * A ratchet file with nothing to compare against (absent on the base, or
- * unreadable there) is free, with two exceptions: a package vitest config
- * must already be a working ratchet (introducedVitest), and a workspace
+ * unreadable there) is free, with three exceptions: a package vitest config
+ * must already be a working ratchet (introducedVitest), an ESLint config
+ * reads every exempting `ignores` entry (introducedEslint), and a workspace
  * package.json carries no `prettier` key.
  */
 function introducedViolations(kind, relPath, newText) {
   if (newText === null || newText === undefined) return []
   if (kind === "vitest") return introducedVitest(relPath, newText)
+  if (kind === "eslint") return introducedEslint(relPath, newText)
   if (!MANIFEST_KINDS.has(kind)) return []
   let json
   try {
@@ -1943,17 +2705,38 @@ async function netViolations(repo, eslint, mergeBase) {
 }
 
 /**
+ * The side a step compares a ratchet file with: its parent's, or the merge
+ * base's when the step brings the file back to a path the base holds and the
+ * parent does not (an earlier step of the range removed it). Against the
+ * parent such a file reads as introduced, and what it changes against the base
+ * would add up from two steps, which no trailer can cover; the step that
+ * brings it back decides what the path holds, so it carries the trailer.
+ * Ratchet files only: the effective ESLint probe of a path still compares each
+ * step with its parent, so a budget an earlier step took off a path and no step
+ * puts back stays that earlier step's finding.
+ */
+const stepSide = (repo, rel, from, to, mergeBase) =>
+  mergeBase !== undefined &&
+  !repo.exists(from, rel) &&
+  repo.exists(to, rel) &&
+  repo.exists(mergeBase, rel)
+    ? mergeBase
+    : from
+
+/**
  * One step of the replay: the same checks over the files `to` changes
  * against `from` only, so a state (a shadow config, a broken file) belongs
  * to the step that made it. The effective ESLint half runs only when the
  * net comparison has a finding of it to attribute (`effectiveFiles`: the
  * files those findings name, probed in every step that changes the config).
  */
-async function stepKeys(repo, eslint, from, to, { effectiveFiles }) {
+async function stepKeys(repo, eslint, from, to, { effectiveFiles, mergeBase }) {
   const changed = repo.changed(from, to)
   const messages = changed
     .filter(isComparedRatchet)
-    .flatMap((rel) => ratchetFileViolations(repo, rel, from, to))
+    .flatMap((rel) =>
+      ratchetFileViolations(repo, rel, stepSide(repo, rel, from, to, mergeBase), to),
+    )
   messages.push(...suppressionViolations(repo, from, to, changed, { scoped: true }))
   const violations = messages.map(plainViolation)
   if (effectiveFiles.length > 0 && changed.includes("eslint.config.mjs"))
@@ -2100,6 +2883,7 @@ async function check(repo, eslint, { argv, env, log, error }) {
 
   const steps = await replaySteps(repo, eslint, commits, {
     effectiveFiles: [...new Set(violations.flatMap(({ effectiveFiles = [] }) => effectiveFiles))],
+    mergeBase,
   })
   const verdicts = attributeViolations(violations, steps)
   for (const { violation, verdict, commits: makers } of verdicts) {

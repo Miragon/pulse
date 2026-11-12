@@ -1,16 +1,14 @@
 import type {
   BpmnProcessId,
-  CodeLocator,
   DefinitionId,
   DefinitionRef,
   IncidentDetails,
   InstanceId,
   InstanceSummary,
-  ModelSource,
   ProcessCommands,
   ProcessRuntime,
-  SourceLocation,
-} from "../../contract/index.js"
+} from "@miragon/pulse-engine-core"
+import type { CodeLocator, EngineCli, ModelSource, SourceLocation } from "../../ports/index.js"
 import type { BulkKind, EngineBadge, Environment, PanelState, Problem } from "../protocol/index.js"
 import type { DiagramCache } from "../diagrams/diagram-cache.js"
 import type { LiveContext } from "../refresh/live-context.js"
@@ -116,6 +114,7 @@ export interface PanelContext {
   readonly now: () => Date
   readonly wait: (milliseconds: number) => Promise<void>
   readonly commands?: ProcessCommands
+  readonly cli?: EngineCli
   readonly sources?: LocalSources
   readonly live?: LiveContext
   readonly bulkRuns: BulkRuns

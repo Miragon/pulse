@@ -1,4 +1,4 @@
-import type { BpmnProcessId, InstanceId } from "@miragon/pulse-runtime-view/contract"
+import type { BpmnProcessId, InstanceId } from "@miragon/pulse-engine-core"
 import type { BackLink } from "@miragon/pulse-runtime-view/protocol"
 import {
   DefinitionPanel,

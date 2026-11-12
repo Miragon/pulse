@@ -1,0 +1,31 @@
+{
+  "case": "unauthorized-bearer",
+  "config": {
+    "ENGINE_AUTH_TYPE": "bearer",
+    "ENGINE_BASE_URL": "http://127.0.0.1:<port>/engine-rest",
+    "ENGINE_TOKEN": "tok-demo-123"
+  },
+  "probes": [
+    {
+      "arguments": {
+        "processInstanceId": "pi-1"
+      },
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "[401] empty response body (engine default). The engine rejected the configured credentials."
+            ],
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "sent": [
+        "GET /engine-rest/history/process-instance/pi-1 [Bearer tok-demo-123]",
+        "GET /engine-rest/process-instance/pi-1 [Bearer tok-demo-123]"
+      ],
+      "tool": "engine_inspect_process_instance"
+    }
+  ]
+}

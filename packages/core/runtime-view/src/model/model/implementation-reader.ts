@@ -1,4 +1,4 @@
-import type { ElementImplementation } from "../../contract/index.js"
+import type { ElementImplementation } from "../../ports/index.js"
 import type { ModdleElement } from "bpmn-moddle"
 import { ModelParser } from "./model-parser.js"
 

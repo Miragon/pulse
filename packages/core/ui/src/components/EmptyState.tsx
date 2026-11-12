@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
-import { resolveTone, TONE_ICON } from "../lib/tone-utils.js"
+import { TONE_ICON } from "../lib/tone-utils.js"
+import { resolveTone } from "../tones/index.js"
 import { cn } from "../lib/utils.js"
 
 /** Heading element for an empty/error state title (the surface decides the outline level). */

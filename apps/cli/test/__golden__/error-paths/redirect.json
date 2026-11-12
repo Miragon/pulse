@@ -1,0 +1,44 @@
+{
+  "case": "redirect",
+  "config": {
+    "PULSE_CLI_URL": "http://127.0.0.1:<port>/engine-rest"
+  },
+  "probes": [
+    {
+      "argv": [
+        "process-instance",
+        "get",
+        "pi-1"
+      ],
+      "exitCode": 3,
+      "sent": [
+        "GET /engine-rest/process-instance/pi-1"
+      ],
+      "stderrLines": [
+        "{\"error\":{\"code\":\"HTTP_REDIRECT\",\"exitCode\":3,\"message\":\"HTTP 302 Found: redirect to https://sso.example.com/realms/ops/protocol/openid-connect/auth\",\"status\":302,\"hint\":\"pulse does not follow redirects. Point --url (PULSE_CLI_URL or the profile url) at the REST API root itself, e.g. https:// when the server redirects from http://. A redirect to a login page means the credentials (headers) are missing or expired.\",\"request\":{\"method\":\"GET\",\"url\":\"http://127.0.0.1:<port>/engine-rest/process-instance/pi-1\"}}}",
+        ""
+      ],
+      "stdoutLines": [
+        ""
+      ]
+    },
+    {
+      "argv": [
+        "inspect",
+        "pi-1"
+      ],
+      "exitCode": 3,
+      "sent": [
+        "GET /engine-rest/history/process-instance/pi-1",
+        "GET /engine-rest/process-instance/pi-1"
+      ],
+      "stderrLines": [
+        "{\"error\":{\"code\":\"HTTP_REDIRECT\",\"exitCode\":3,\"message\":\"HTTP 302 Found: redirect to https://sso.example.com/realms/ops/protocol/openid-connect/auth\",\"status\":302,\"hint\":\"pulse does not follow redirects. Point --url (PULSE_CLI_URL or the profile url) at the REST API root itself, e.g. https:// when the server redirects from http://. A redirect to a login page means the credentials (headers) are missing or expired.\",\"request\":{\"method\":\"GET\",\"url\":\"http://127.0.0.1:<port>/engine-rest/process-instance/pi-1\"}}}",
+        ""
+      ],
+      "stdoutLines": [
+        ""
+      ]
+    }
+  ]
+}

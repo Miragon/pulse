@@ -1,4 +1,4 @@
-import type { DefinitionSummary, EngineInfo } from "../../contract/index.js"
+import type { DefinitionSummary, EngineInfo } from "@miragon/pulse-engine-core"
 import type { EngineView, ProcessListFilter, WebviewIntent } from "../protocol/index.js"
 import type { Attention } from "../refresh/live-context.js"
 import { PanelLive } from "../refresh/panel-live.js"

@@ -13,6 +13,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "test": "vitest run",
+    "third-party-licenses": "THIRD_PARTY_LICENSES_UPDATE=1 vitest run test/third-party-licenses.test.ts --coverage.enabled=false",
     "test:kit": "vitest run --config vitest.kit.config.ts",
     "test:orca": "node scripts/orca-types.mjs && node scripts/orca.mjs plugin validate dist && node scripts/orca.mjs plugin check dist",
     "test:smoke": "node scripts/build.mjs && node scripts/smoke.mjs",
@@ -21,10 +22,12 @@
     "lint:fix": "eslint src test scripts --fix"
   },
   "dependencies": {
-    "@miragon/pulse-engine-adapter": "workspace:*",
+    "@miragon/pulse-c7-adapter": "workspace:*",
+    "@miragon/pulse-engine-core": "workspace:*",
     "@miragon/pulse-runtime-view": "workspace:*"
   },
   "devDependencies": {
+    "@miragon/pulse-ui": "workspace:*",
     "@types/node": "22.20.5",
     "@vitest/coverage-v8": "5.1.0",
     "esbuild": "0.28.2",

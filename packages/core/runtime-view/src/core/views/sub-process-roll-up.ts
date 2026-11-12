@@ -1,4 +1,4 @@
-import { ElementId, type ElementStatistics } from "../../contract/index.js"
+import { ElementId, type ElementStatistics } from "@miragon/pulse-engine-core"
 import type { BpmnStructure } from "../bpmn/bpmn-structure.js"
 import type { ElementMarker } from "../protocol/index.js"
 

@@ -1,4 +1,4 @@
-import { BpmnProcessId, DefinitionId, IncidentId, InstanceId } from "../../contract/index.js"
+import { BpmnProcessId, DefinitionId, IncidentId, InstanceId } from "@miragon/pulse-engine-core"
 import type { WebviewIntent } from "../protocol/index.js"
 import { PanelLive } from "../refresh/panel-live.js"
 import { Labels } from "../views/labels.js"

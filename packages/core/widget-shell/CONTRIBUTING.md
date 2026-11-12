@@ -1,8 +1,9 @@
 # Developing @miragon/pulse-widget-shell
 
 Shared widget plumbing for the [Pulse](../../../README.md) MCP App widgets. It is the common base
-both widget modules ([`engine-connector`](../../connectors/engine/engine-connector), [`analytics-connector`](../../connectors/analytics/analytics-connector)) build on,
-so every widget gets the same data-loading, refresh and view-composition behaviour. Its UI builds
+the engine module ([`engine-connector`](../../connectors/engine/engine-connector)) and your own
+modules build on, so every widget gets the same data-loading, refresh and view-composition
+behaviour. Its UI builds
 on the design kit [`@miragon/pulse-ui`](../ui). Setup and the repository's bar:
 [CONTRIBUTING.md](../../../CONTRIBUTING.md); the architecture invariants in
 [`CLAUDE.md`](../../../CLAUDE.md) say how a view is registered.
@@ -18,7 +19,7 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
 
 ## How the parts work
 
-- **The view runtime** (`./widgets`): the bundle root `mountViews({ views, hostWidgets })` picks
+- **The view runtime** (`./widgets`): the bundle root `mountViews({ views })` picks
   the view the document's prelude names (the show tool's name) from your view map and mounts it
   under the view root (the host adapter over ext-apps' official `App`, ONE `QueryClient` per
   document, `HostDocument`, `LocaleGate`, toasts); `mountView` mounts one view without a map. The
@@ -29,13 +30,15 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   root's call hook (`useViewCall` over `resolveViewCall`) owns the stripped-result recovery: a host that
   drops `structuredContent` (claude.ai) gets the view re-running its own show tool ONCE (every
   view-bound tool is a read), stamped "Reloaded at"; the view frame renders the phases (waiting,
-  error with a retry, cancelled, ready) and keeps a crashing view, and each `ViewStack` row and
-  `HostWidgetSlot`, inside its own error boundary. Widgets reach the host only through the view
+  error with a retry, none for a refusal no retry changes (`isPermanentError`), cancelled, ready)
+  and keeps a crashing view, and each `ViewStack` row,
+  inside its own error boundary. Widgets reach the host only through the view
   host seam (`useViewHost`: `callTool`, `sendFollowUp`, `openExternal`; `HostModelContext`) and the query
-  hooks (`useToolQuery`, `useToolMutation`, `useViewData` (which seeds a feed with the view's
-  data), `useQueryClient`), never ext-apps, so a widget renders under `TestViewHost`
-  (fake tools, a log of host actions and model contexts) in a plain test. Another module's
-  widget renders by raw id through the host widgets (`useHostWidget`, `HostWidgetSlot`).
+  hooks (`useToolQuery`, `useToolQueries` (one read per entry of a list, under `useToolQuery`'s
+  keys), `useToolMutation`, `useViewData` (which seeds a feed with the view's data),
+  `useQueryClient`), never ext-apps, so a widget renders under `TestViewHost`
+  (fake tools, a log of host actions and model contexts) in a plain test. No module renders
+  another's widget, and the view root keeps no map for one.
 - **View builders** (`./server`): `buildViewResult(data, summary)` (a show tool's result: the
   `structuredContent` IS the view's data, the text what the model reads: a short summary or,
   where the model needs the figures, the result as compact JSON) and
@@ -71,8 +74,8 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   Layout, states and feedback: `ListTable` scrolls inside a named, keyboard-reachable region
   (column priorities via `hideBelow`, the row actions pinned with `sticky`, the sorted
   column marked with `sort`, heads over adjacent columns with `groups`), `IdCell`/`IdText`
-  show an id shortened in Geist Mono with a copy button, `countTone`/`severityTone` are the one
-  severity ladder for incident and job counts, `describeError` turns an engine or
+  show an id shortened in Geist Mono with a copy button (the short form, `shortId`, and the
+  severity ladder for incident and job counts, `countTone`/`severityTone`, are pulse-ui's), `describeError` turns an engine or
   transport failure into what happened and what you can do (pulse-ui's `ErrorState` in
   `ViewDataState`, `QueryFallback`, `useDetailView`, raw text under "Details", retry
   required), `useActionFeedback` raises pulse-ui's toasts after a write (an engine
@@ -84,10 +87,9 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   cells `Th`/`Td`, `TableEmptyState`, `NamedId`, `KometMark`/`AppEmptyState`,
   `TEXT_BLOCK_FRAME`, …) is imported from `@miragon/pulse-ui`: widget-shell neither forks nor
   re-exports it.
-- **Product glossary** (`./testing`): `PRODUCT_GLOSSARY` (one word per thing across the Pulse
-  modules), `glossaryFindings`, `blindGlossaryRules` and `unnamedGlossaryTerms`, which every
-  widget package checks its catalogs against. The generic brand gates (`catalogTextFindings`,
-  the scanners, the contrast helpers) are `@miragon/pulse-ui/testing`. Node only.
+- **Test server** (`./testing`): `recordingModuleServer`, the `ModuleServer` a module's tests
+  register on, and `testServerContext`. The brand gates and the product glossary every widget
+  package checks its catalogs against are `@miragon/pulse-ui/testing`. Node only.
 - **Theme:** none of its own. The widgets colour through the role variables of pulse-ui's
   Miragon theme (`@miragon/pulse-ui/theme.css`: the vendored `--cd-*` corporate-design
   tokens and the roles on top, light and dark). Your stylesheet imports it after `tailwindcss`,
@@ -104,12 +106,16 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   that registers all its tools, prompts and resources on a `ModuleServer`, the official SDK's own
   `registerTool`/`registerPrompt`/`registerResource` (`Pick<McpServer, …>`, so the SDK's docs and
   ext-apps' `registerAppTool` and `registerAppResource` apply as they are); `shared(entries)` is
-  your wiring of what the active modules hand each other. The boot log states each module's toolset
+  the port for what the modules of a composition share (a module of yours that needs the engine
+  module's engine access gets it there, never by importing it); the Pulse server and the starter
+  hand nothing through today. The boot log states each module's toolset
   and why. A module's tests register on `recordingModuleServer()` (`./testing`), which calls a
   handler and reads a resource (`resource(uri).read()`) the way the SDK does
   (`testServerContext(signal?)` builds its context).
   `composedEnvVars(modules)` names every variable such a boot reads (the boot's own and each
-  module's `knownEnvVars`), e.g. for a `.env.example` check.
+  module's `knownEnvVars`), e.g. for a `.env.example` check; a module's optional
+  `referencedEnvVars(env)` names the variables its own settings point at (the engine module's
+  profiles name `ENGINE_SECRET_*` variables), which the typo warner then takes as known.
 - **Toolset vocabularies** (`./server`): a module declares its toolsets as
   `toolsets: createToolsetVocabulary(module, names, floor, { authenticatedDefault })` on its
   definition; a module without one has no toolsets (a suffix is ignored with a warning) and
@@ -159,7 +165,7 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
 ## Where it fits
 
 ```
-engine-connector / analytics-connector widgets
+engine-connector widgets (and your modules')
             │  use
             ▼
    @miragon/pulse-widget-shell   ──  view runtime · view builders · host-bound UI

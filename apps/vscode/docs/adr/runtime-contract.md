@@ -1,7 +1,10 @@
 # Runtime contract
 
 - Status: accepted
-- Last reviewed: 2026-11-03
+- Last reviewed: 2026-11-11 (a number holds a double); 2026-11-10 (the plug every dialect
+  family provides; a whole number holds 64 bits); 2026-11-09 (the engine
+  contract is the engine family's core `@miragon/pulse-engine-core`, with the four changes
+  Camunda 8 needs)
 
 ## Context
 
@@ -16,31 +19,39 @@ search results are eventually consistent and page with cursors.
 
 ### Three ports
 
-The ports are interfaces in `packages/core/runtime-view/src/contract/ports`; what they exchange lives in
-`packages/core/runtime-view/src/contract/model`. Adapters implement them with classes
+The engine's ports are interfaces of the engine contract, the package
+`@miragon/pulse-engine-core` (`packages/connectors/engine/engine-core/src/ports`); what they
+exchange lives in `packages/connectors/engine/engine-core/src/model`. It is the shared language of
+the dialects, a package of its own since 2026-11-09 and the core of the engine family, the neutral
+layer above the dialects (owner decisions 2026-11-08 and 2026-11-09), and the one contract of the
+runtime view both editor hosts run (owner decision 2026-11-09 on #585): the runtime view's ports,
+core, model reader and host kit, the C7 adapter and the hosts import it directly, and the ports
+only the editor hosts need (`EngineAdapter`, the local ports) live in the runtime view's
+`packages/core/runtime-view/src/ports`. Adapters implement the ports with classes
 ([code-structure.md](code-structure.md)).
 
 `ProcessRuntime` (`ports/process-runtime.ts`) has one method per
 engine question:
 
-| Method                 | Question                                                                                                                        |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `describeEngine`       | Which product and version answers?                                                                                              |
-| `listDefinitions`      | Which processes are deployed, latest version, running and with-incident counts?                                                 |
-| `listVersions`         | Per version of one process: running and with-incident counts, newest first                                                      |
-| `getDiagramXml`        | The deployed XML of one version                                                                                                 |
-| `getElementStatistics` | Per element of one version: active, incidents raised here, incidents in called instances                                        |
-| `getCalledProcesses`   | Per call activity of one version: the process it calls and the deployed version its binding starts                              |
-| `searchInstances`      | Instances by version or process, lifecycle, incident, business key, active element, variable conditions; cursor paging          |
-| `countInstances`       | How many instances the same filter finds, without paging                                                                        |
-| `listVariableNames`    | The names of the variables the instances of one version hold, at any scope, sorted and once each; a hint, not a complete list   |
-| `getInstanceDetail`    | Wait states (across called instances), root incidents, called instances, variables, the path (elements run, with start and end) |
-| `searchIncidents`      | Root incidents by process, version or instance; cursor paging                                                                   |
-| `getIncidentDetails`   | The complete stack trace or error message of one incident                                                                       |
-| `getBulkOperation`     | State and item counts of one bulk operation; `undefined` when the engine does not know it (any more)                            |
-| `getBulkFailures`      | At most 100 reasons why items of a bulk operation failed, each naming its instance when the engine can; `[]` when none failed   |
-| `proposeMigration`     | The engine's mapping of elements between two versions (`MigrationPlan`)                                                         |
-| `checkMigration`       | The problems the engine finds in a plan, each naming its mapping when it can (`MigrationCheck`); tokens are not its concern     |
+| Method                       | Question                                                                                                                             |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `describeEngine`             | Which product and version answers?                                                                                                   |
+| `listDefinitions`            | Which processes are deployed, latest version, running and with-incident counts?                                                      |
+| `listVersions`               | Per version of one process: running and with-incident counts, newest first                                                           |
+| `getDiagramXml`              | The deployed XML of one version                                                                                                      |
+| `getElementStatistics`       | Per element of one version: active, incidents raised here, incidents in called instances                                             |
+| `getCalledProcesses`         | Per call activity of one version: the process it calls and the deployed version its binding starts                                   |
+| `searchInstances`            | Instances by version or process, lifecycle, incident, business key, active element, variable conditions; cursor paging               |
+| `countInstances`             | How many instances the same filter finds, without paging; a lower bound with `atLeast` when the engine stops counting                |
+| `listVariableNames`          | The names of the variables the instances of one version hold, at any scope, sorted and once each; a hint, not a complete list        |
+| `getInstanceDetail`          | Wait states (across called instances), root incidents, called instances, variables, the path (elements run, with start and end)      |
+| `searchIncidents`            | Root incidents by process, version or instance; cursor paging                                                                        |
+| `getIncidentDetails`         | The complete stack trace or error message of one incident                                                                            |
+| `getBulkOperation`           | State and item counts of one bulk operation; `undefined` when the engine does not know it (any more)                                 |
+| `getBulkFailures`            | At most 100 reasons why items of a bulk operation failed, each naming its instance when the engine can; `[]` when none failed        |
+| `proposeMigration?`          | The engine's mapping of elements between two versions (`MigrationPlan`); absent, with `checkMigration?`, where an engine cannot plan |
+| `checkMigration?`            | The problems the engine finds in a plan, each naming its mapping when it can (`MigrationCheck`); tokens are not its concern          |
+| `refusedVariableConditions?` | The kinds of variable condition the engine refuses (`ordering` on a value, `date` on a point in time); each fails as `unsupported`   |
 
 `InstanceDetail.path` lists the instance's own element runs (`ElementRun`: element, start,
 end, canceled) in start order; called instances keep their own path. A run that has not
@@ -60,7 +71,9 @@ connection without write access simply has none ([writes.md](writes.md)):
 | `migrateInstances`  | Migrate the given instances with a `MigrationPlan` as one asynchronous bulk operation of kind `migrateInstances`; ended and unknown ids are skipped, nothing left to migrate is `rejected` ([migrations.md](migrations.md))                                                                                                                                                                                                            |
 | `stopBulkOperation` | Halt a bulk operation: it stops running and soon cancels nothing more; what is done stays done; stopping an ended one resolves, an unknown one is `rejected`                                                                                                                                                                                                                                                                           |
 
-`EngineAdapter` (`ports/engine-adapter.ts`) is the plug every engine family provides:
+`EngineAdapter` (`packages/core/runtime-view/src/ports/engine-adapter.ts`, in the runtime view, not
+in engine-core: connections, credentials and web UI links are the editor hosts' business) is the
+plug every dialect family provides:
 given an `EngineConnection` (endpoint and credentials) it returns a `ProcessRuntime` and,
 when the family can write, `ProcessCommands`. `webUi(webUiUrl)` takes the configured URL
 of the engine's web UI and, when it fits the family's web UI, returns an `EngineWebUi`:
@@ -73,7 +86,7 @@ one adapter per engine kind of a target and is the only place that chooses betwe
 
 ### Local sources
 
-Next to the engine ports the contract holds `ModelSource` and `CodeLocator`, the ports for
+Next to it the runtime view's ports hold `ModelSource` and `CodeLocator`, the ports for
 the local `.bpmn` file and the code that implements an element, and the `WorkspaceFiles`
 seam they read through. They are no engine questions: the model adapter implements them
 for any workspace, and the conformance kit does not cover them
@@ -87,25 +100,42 @@ for any workspace, and the conformance kit does not cover them
   (UTC ISO timestamps, lossless big integers, root incidents only, error mapping, the
   root cause of an engine's stack trace). The core interprets: grouping, overlays, notices.
 - **Optional fields, no capability flags.** What one engine cannot deliver is an
-  optional field (`details?`, `calledFromElementId?`, `retriesLeft?`). A later real
-  capability gap becomes an optional method, never a flags object that can disagree
-  with behaviour. No engine family enum crosses the port.
+  optional field (`details?`, `calledFromElementId?`, `retriesLeft?`). A real capability
+  gap is an optional method (`proposeMigration?` and `checkMigration?`, as a pair; without
+  them the core offers no migration, and an engine that migrates has them), never a flags
+  object that can disagree with behaviour. The one declaration is
+  `refusedVariableConditions?()`, and the laws hold it to behaviour: what it names fails as
+  `unsupported`, everything else answers correctly, and the variable dialog offers no refused
+  kind. `ordering` is _greater than_ and _less than_ on a value (`valueJson`), `date` every
+  condition on a point in time (`at`), _after_ and _before_ included. No engine family enum
+  crosses the port.
 - **Errors.** A missing single item is `undefined`. Everything else throws
   `RuntimeError` with a closed `failure` (`unreachable`, `unauthorized`, `forbidden`,
-  `misconfigured`, `engineFailure`, `unexpectedResponse`, and `rejected` when the engine
-  refuses a command: unknown or closed incident, ended instance, invalid value, a move
-  without exactly one token at its source, unknown bulk operation).
+  `misconfigured`, `engineFailure`, `unexpectedResponse`, `unsupported` when the engine
+  cannot answer this kind of question at all or the command's connection only reads (the
+  write does not leave), and `rejected` when the engine refuses a command: unknown or
+  closed incident, ended instance, invalid value, a move without exactly one token at its
+  source, unknown bulk operation). `unsupported` concerns one view or one command and does
+  not stop live updates.
   `new FailingRuntime(error)` is the one runtime that rejects every call with a given
   error (unreachable engine, unsupported target).
 - **Counts** mean instances, not incidents (`withIncident`), on both engines.
-  `countInstances(filter)` counts exactly what `searchInstances(filter, …)` pages through.
+  `countInstances(filter)` counts what `searchInstances(filter, …)` pages through, as an
+  `InstanceCount`: exact, or with `atLeast` when the engine stopped counting (Camunda 8 at
+  10,000). The laws require an exact count over the world; a sum over a lower bound is one
+  too, and a board threshold at or above a lower bound reads "stopped counting", never calm.
 - **Statistics** always address one version (`definitionId`), never a process.
 - **Incidents name their version.** `Incident.definition` is the `DefinitionRef` of the
   version the incident was raised in, so grouping by process and version needs no
   further call.
 - **Statistics are disjoint.** `active` counts element instances without an incident
   raised at that element, so `active + incidents` is what the element holds;
-  `incidentsInCalledInstances` marks active tokens whose called instance failed.
+  `incidentsInCalledInstances` marks active tokens whose called instance failed. One known
+  exception, documented instead of typed for now: Camunda 8 splits a container's row with one
+  incident search per container, and when that search stops counting (above 10,000 on
+  Elasticsearch) the row keeps the cluster's counts, every incident inside the container as
+  raised there. The rule does not hold for such a row; an optional field of
+  `ElementStatistics` for it comes with the Camunda 8 adapter.
 - **Neutral work vocabulary.** A `workerTask` wait names its `taskType` (C7 topic, C8
   job type); `Incident.job?` names the unit of work that failed (C7 job or external
   task with its topic, C8 job key and type).
@@ -164,24 +194,51 @@ for any workspace, and the conformance kit does not cover them
   details.
 - **Details name their root cause.** `IncidentDetails.rootCause` is one line out of the
   text (for a stack trace its last cause, short class name, at most 300 characters) and
-  `rootCauseLine` the line of the text a viewer opens at. Reading a stack trace is engine
-  knowledge, so the adapter delivers both (the C7 adapter through engine-core's
-  `rootCause` and `rootCauseLine`); the law
+  `rootCauseLine` the line of the text a viewer opens at, none without a "Caused by:" line.
+  The adapter delivers both, through the contract's one rule for every dialect,
+  `RootCauses.of` and `RootCauses.lineOf` (which c7-core applies for the CLI and the MCP
+  server too); the law
   "incidents: details name their root cause in one line and point at a line of their
   text" holds every adapter to it.
+- **A whole number holds 64 bits.** `ValueKinds.isWholeNumber` says whether a value is an
+  integer from `ValueKinds.WHOLE_NUMBER_MIN` to `ValueKinds.WHOLE_NUMBER_MAX`
+  (-9223372036854775808 to 9223372036854775807), exactly on its digits, never through a
+  rounded `Number`. The runtime view refuses a whole number beyond that before it asks
+  ([writes.md](writes.md)), so no adapter of any engine receives one from the editor hosts
+  as the value of a whole-number variable or of one that holds null (owner decision
+  2026-11-10); a Double or a Json variable still takes such digits, and a number in a variable
+  condition is a filter, not a write. The rule judges the value, not its spelling: an optional
+  minus and ASCII digits, as `ofJson` reads an integer, so leading zeros count for nothing
+  (`007` is 7). A dialect that cannot send such a spelling refuses it itself: the C7 adapter
+  refuses a leading zero before sending, for a whole-number variable after the dialog.
+- **A number holds a double.** `ValueKinds.isFiniteNumber` says whether a value is a JSON
+  number a double holds, decided on its text: an integer or a decimal as `ofJson` reads one
+  (exponents included), whose `Number()` is finite, the reading of the C7 adapter and c7-core.
+  So the largest double (`1.7976931348623157e308`), its negative, a subnormal and a number that
+  underflows to 0 are numbers a double holds, and so is one that rounds to the largest double
+  (`1.7976931348623158e308`): the range is that of a double once rounded, not of the digits;
+  `1.8e308`, `-1e400` and 400 digits with `.5` are not. The runtime view refuses a number
+  beyond that before it asks ([writes.md](writes.md)), so no adapter of any engine receives one
+  from the editor hosts as the value of a Double variable or of one that holds null (owner
+  decision 2026-11-11); a Json variable still takes it as JSON text, a number inside JSON is no
+  such value, and the CLI still writes a decimal beyond that range as text (c7-core's
+  `autoTypedValue`), as the C7 adapter would for a variable without a type. A test of the C7
+  adapter holds its reading of a variable without a type and of a Double variable to
+  `isWholeNumber` and `isFiniteNumber`.
 
 ### Conformance kit
 
 ```mermaid
 flowchart LR
-  kit[ConformanceKit: 47 read laws, 15 command laws]
+  kit[ConformanceKit: 48 read laws, 15 command laws]
   kit --> fake[FakeEngine in memory]
-  kit --> c7[C7Adapter on Operaton, CIB seven, Camunda 7 in containers]
+  kit --> c7[C7Adapter on Operaton and CIB seven in containers]
   saboteurs[Saboteurs: broken runtimes] -- each must fail its law --> kit
 ```
 
-`packages/core/runtime-view/src/contract/conformance` holds 47 read laws and 15 command laws as
-executable cases, modelled on `@miragon/modeler-api/conformance`:
+`@miragon/pulse-engine-core/testing` (`packages/connectors/engine/engine-core/src/testing/conformance`)
+holds 48 read laws and 15 command laws as executable cases, modelled on
+`@miragon/modeler-api/conformance`:
 `new ConformanceKit(test).registerRuntimeLaws(prepare)` and `.registerCommandLaws(prepare)`
 bind them to any `(name, fn)` runner and throw a `ConformanceViolation` when a law fails. Command laws run on
 their own instances (`CMD-*`, seeded after the read laws) so that writes never change
@@ -203,17 +260,23 @@ and stopping it is rejected. The read law `instances: filter by up to 1000 insta
 finds and counts exactly two known ids among 1000, combines the ids with the lifecycle
 and with a `definitionId` (an id of the other version is not found), and finds and counts
 nothing for an empty list. The read law `instances: filter by the element they wait at`
-also finds an instance whose token waits before an asynchronous task. Two read laws cover
-migration plans: the proposal from order v1 to v2 maps `Activity_ReviewOrder` and
-`Activity_ChargePayment` onto themselves and checks clean, and the check names the
-mapping of a user task onto a service task. Three migration laws (`laws/migration-laws.ts`,
+also finds an instance whose token waits before an asynchronous task. `instances: the newest
+come first, in the same order on every read` holds the order of a search;
+`instances: filter and flag instances with an incident` also finds a caller by an incident in
+its called instance; `instances: counts agree with the search` requires exact counts. The
+variable laws read `?` in a `like` pattern as itself and hold a declared refusal to an
+`unsupported` failure of the search and the count. Two read laws cover migration plans, on a
+runtime that plans (and fail one that has only half the pair): the proposal from order v1 to
+v2 maps `Activity_ReviewOrder` and `Activity_ChargePayment` onto themselves and checks clean,
+and the check names the mapping of a user task onto a service task. Three migration laws (`laws/migration-laws.ts`,
 own instances `CMD-MIG-*` on order v1) follow the bulk laws: migrating with the proposal
 moves exactly the given instances to v2, at the same elements, the incident kept, a
 neighbour left alone, nothing failed, kind `migrateInstances`; dropping the mapping of
 Review order leaves the two instances there on v1, moves the one at Charge payment and
 names non-empty reasons, only for submitted instances; ended and unknown ids are left
-alone and not counted as failed, and a submit of only those is rejected. The fake closes
-the element runs of every instance it cancels and keeps a migration with failed items
+alone and not counted as failed, and a submit of only those is rejected. They take their plan
+from `proposeMigration`, so an engine that migrates without planning fails all three, each under
+its own name. The fake closes the element runs of every instance it cancels and keeps a migration with failed items
 running, as C7 does. The kit owns a canonical world
 (an order process in two versions, a dispatch process calling a label process, five
 instances with a user-task wait, a failed task, a completed instance and an incident
@@ -247,9 +310,13 @@ timestamps, truncated details, throwing on unknown ids, per-version definition l
 errors, missing kinds, flattened scopes, counts that ignore the element and the business
 key, counts without an incident that include those with one, variable conditions that are
 ignored by the search or the count, one condition instead of all, numbers compared as
-text, `%` and `_` read as wildcards, not equals finding instances without the variable,
+text, `%`, `_` or `?` read as wildcards, not equals finding instances without the variable,
 task-local variables left out, ended instances left out, an empty list that finds
-nothing; for commands: a retry that
+nothing, the oldest instances first, another order on each read, a caller not flagged by the
+incident of its called instance, a count within the world that calls itself a lower bound,
+a declared refusal that answers anyway, in the search or in the count alone, a refusal without
+a declaration, a declared refusal that fails with another failure or with an error that is no
+`RuntimeError`; for commands: a retry that
 closes everything, a silently ignored retry, values stored as text, numbers through a
 double, engine failures instead of
 rejections, a move that cancels without starting, a silently ignored refused move, a
@@ -272,9 +339,17 @@ business key fail the ids law too, as does a search that ignores the instance id
 
 - Every adapter is proven against the same laws on a real engine
   (`*.engine.test.ts`); an architecture test fails when an adapter has none.
-- The contract is ready for engines beyond the C7 family: a Camunda 8 adapter on the
-  REST API v2 passed every law against an API mock with a read lag during the spike,
-  without a change to the contract, and was removed again to keep the prototype small.
+- The contract is meant for engines beyond the C7 family. During the spike a Camunda 8 adapter
+  on the REST API v2 passed every law against an API mock with a read lag and was removed again
+  to keep the prototype small. On a real Camunda 8 the adapter of #543 needed four neutral
+  changes, which the contract carries since its first release: an instance count that may be a
+  lower bound, the failure `unsupported`, the variable conditions an engine declares it refuses,
+  and migration planning as an optional pair of methods. Its undivided element statistics above
+  the incident search's cap stay a documented exception until that adapter lands.
+- Every change to the contract is a change to a published package: a new port, read model or
+  law lands in `packages/connectors/engine/engine-core` with its saboteur, and the kit's
+  self-tests run there (`packages/connectors/engine/engine-core/test`, 71 saboteurs). Below 1.0 the package makes no
+  stability promise; its laws and its fake follow the extension.
 - Panel loads have fixed engine-call budgets (definition ≤ 7, three of them the scope
   counts queried in parallel with the page; instance ≤ 2 plus lazy details; both + 1
   `getCalledProcesses` when the diagram has a call activity; engine overview exactly 2,

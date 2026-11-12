@@ -53,6 +53,23 @@ describe("every in-widget write renders its control only where it is allowed", (
   )
 })
 
+/** `readOnly` per profile: the deployment offers every write, the engine's profile takes none. */
+describe("every in-widget write hides its control on an engine whose profile is read-only", () => {
+  it.each(GATING_SITES)("$site: hidden on the read-only engine", async ({ site, control }) => {
+    render(GATING_RENDERERS[site](EVERY_WRITE, queryClient, ["prod"]))
+    await feedSettled()
+    expect(screen.queryByRole("button", { name: control })).toBeNull()
+  })
+
+  it.each(GATING_SITES)(
+    "$site: shown when another engine is read-only",
+    async ({ site, control }) => {
+      render(GATING_RENDERERS[site](EVERY_WRITE, queryClient, ["other"]))
+      expect(await screen.findByRole("button", { name: control })).toBeTruthy()
+    },
+  )
+})
+
 const JOBS: JobPanelData = {
   totalCount: 1,
   failedCount: 1,

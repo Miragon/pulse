@@ -1,11 +1,11 @@
-import type { Client } from "@miragon/pulse-engine-client"
+import type { Client } from "@miragon/pulse-c7-client"
 import {
   earliestEngineDate,
   engineDateMillis,
   incidentRecovery,
   latestEngineDate,
-} from "@miragon/pulse-engine-core"
-import { getIncidents, getProcessInstances } from "@miragon/pulse-engine-client/sdk"
+} from "@miragon/pulse-c7-core"
+import { getIncidents, getProcessInstances } from "@miragon/pulse-c7-client/sdk"
 import type { IncidentInstance } from "../view-models.js"
 import type { EngineProvider } from "../engine-provider.js"
 import { buildInstanceCockpitUrl } from "../lib/engine/cockpit-url.js"
@@ -148,6 +148,9 @@ export function toIncidentInstance(
     incidentType: r.incidentType,
     incidentMessage: r.incidentMessage ?? null,
     incidentTimestamp: r.incidentTimestamp,
+    activityId: r.activityId,
+    // The activity's group names it; its page reads no diagram.
+    activityName: null,
     recovery: incidentRecovery(r),
     cockpitInstanceUrl: buildInstanceCockpitUrl(
       ctx,

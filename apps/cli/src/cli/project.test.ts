@@ -20,7 +20,7 @@ import { loginFile, loginKey } from "../../test/support/oauth.js"
 import { run } from "./run.js"
 
 const REPO = "/home/tester/repo"
-const PROJECT = `${REPO}/.pulse-cli.json`
+const PROJECT = `${REPO}/.pulse.json`
 /** The login of an OAuth profile of the user's config file and of one of the repository. */
 const OWN_LOGIN = loginFile()
 const REPO_LOGIN = loginFile(loginKey({ origin: `repository:${REPO}/.git` }))
@@ -132,19 +132,19 @@ describe("the project file in commands", () => {
   })
 
   it("is not looked up in the home directory", async () => {
-    const files = { "/home/tester/.pulse-cli.json": PROJECT_FILE }
+    const files = { "/home/tester/.pulse.json": PROJECT_FILE }
     const show = await cli(["config", "show"], { files, cwd: "/home/tester" })
     expect(JSON.parse(show.stdout)).toMatchObject({ projectFile: null, profile: null })
   })
 
-  it("is a CONFIG error when it stores a secret, also for best-effort readers", async () => {
+  it("refuses a profile that stores a secret, also for best-effort readers", async () => {
     const files = {
       [PROJECT]: json5({ profiles: { p: { auth: { type: "bearer", token: "Tk9-secret" } } } }),
     }
     const result = await cli(["ping"], { files })
     expect(result.code).toBe(3)
     expect(errorOf(result.stderr).message).toBe(
-      `Invalid project file ${PROJECT}: profile "p" sets auth.token; a project file is shared and names no credentials, so it comes from PULSE_CLI_TOKEN or PULSE_CLI_TOKEN_COMMAND or a profile "p" of your own config file`,
+      `Profile "p" of the project file ${PROJECT} cannot be used: auth.token is set, but a file others share names no credential, neither a secret nor the variable that holds one.`,
     )
     expect(result.stderr).not.toContain("Tk9-secret")
     // the docs commands still work, with the default output format
@@ -216,42 +216,25 @@ describe("config set|unset|use|delete --project", () => {
 
   it("refuses secrets before writing anything", async () => {
     const runtime = runtimeOf({ stdin: "Tk9-secret\n" })
-    const token = await sequence(runtime, [
-      "config",
-      "set",
-      "p",
-      "--project",
-      "--auth",
-      "bearer",
-      "--auth-token-stdin",
-    ])
+    const set = ["config", "set", "p", "--project", "--url", BASE_URL]
+    const token = await sequence(runtime, [...set, "--auth", "bearer", "--auth-token-stdin"])
     expect(token.code).toBe(3)
     expect(errorOf(token.stderr).message).toBe(
-      `The project file ${PROJECT} cannot be written: profile "p" sets auth.token; a project file is shared and names no credentials, so it comes from PULSE_CLI_TOKEN or PULSE_CLI_TOKEN_COMMAND or a profile "p" of your own config file`,
+      `The project file ${PROJECT} cannot be written: in profile "p", auth.token is set, but a file others share names no credential, neither a secret nor the variable that holds one.`,
     )
     expect(errorOf(token.stderr).hint).toBe(
-      "Credentials come from the environment (PULSE_CLI_TOKEN, PULSE_CLI_TOKEN_COMMAND, PULSE_CLI_PASSWORD, PULSE_CLI_OAUTH_CLIENT_SECRET) or from a profile of the same name in your own config file. Remove it from the project file, e.g. with `pulse config unset <profile> auth --project` (`headers` for a secret header), and a committed secret from the history of your repository, too.",
+      'A project file is shared and names no credentials: they come from the environment (PULSE_CLI_TOKEN or PULSE_CLI_TOKEN_COMMAND) or a profile "p" of your own config file. Remove it with `pulse config unset p auth --project`, and a committed secret from the history of your repository too.',
     )
     const variable = await sequence(runtime, [
-      "config",
-      "set",
-      "p",
-      "--project",
+      ...set,
       "--auth",
       "bearer",
       "--auth-token-env",
       "CI_TOKEN",
     ])
-    expect(errorOf(variable.stderr).message).toContain('profile "p" sets auth.tokenEnv;')
-    const header = await sequence(runtime, [
-      "config",
-      "set",
-      "p",
-      "--project",
-      "-H",
-      "X-Api-Key: k-1",
-    ])
-    expect(errorOf(header.stderr).message).toContain("stores the secret header X-Api-Key")
+    expect(errorOf(variable.stderr).message).toContain('in profile "p", auth.tokenEnv is set')
+    const header = await sequence(runtime, [...set, "-H", "X-Api-Key: k-1"])
+    expect(errorOf(header.stderr).message).toContain("headers.X-Api-Key carries a secret")
     expect(runtime.files.has(PROJECT)).toBe(false)
   })
 
@@ -267,8 +250,11 @@ describe("config set|unset|use|delete --project", () => {
     })
     const refused = await sequence(runtime, ["task", "list"])
     expect(refused.code).toBe(3)
-    expect(errorOf(refused.stderr).message).toContain('profile "p" sets auth.tokenEnv;')
-    expect(errorOf(refused.stderr).hint).toContain("pulse config unset <profile> auth --project")
+    expect(errorOf(refused.stderr).message).toContain(
+      `Profile "p" of the project file ${PROJECT} cannot be used: auth.tokenEnv is set`,
+    )
+    expect(errorOf(refused.stderr).hint).toContain("`pulse config unset p auth --project`")
+    expect(refused.stderr).not.toContain("ghp-secret")
     const unset = await sequence(runtime, ["config", "unset", "p", "tokenEnv", "--project"])
     expect(unset.code).toBe(0)
     expect(JSON.parse(fileText(runtime, PROJECT) ?? "")).toEqual({
@@ -303,7 +289,15 @@ describe("config set|unset|use|delete --project", () => {
     expect(mine.stderr).toBe(
       `Notice: in this repository the defaultProfile of the project file ${PROJECT} ("svc") wins; use --profile, PULSE_CLI_PROFILE or \`pulse config use <profile> --project\`.\n`,
     )
-    const set = await sequence(runtime, ["config", "set", "shared", "--engine", "mine"])
+    const set = await sequence(runtime, [
+      "config",
+      "set",
+      "shared",
+      "--url",
+      "http://mine/shared",
+      "--engine",
+      "mine",
+    ])
     expect(set.stderr).toBe(
       `Notice: profile "shared" of your config file now overrides the profile of the same name in the project file ${PROJECT} as a whole: none of the project's settings of "shared" apply. Add --project to change the project's profile instead.\n`,
     )
@@ -328,14 +322,16 @@ describe("config set|unset|use|delete --project", () => {
     const refused = await cli(["task", "list"], { files: { ...files, ...foreign } })
     expect(refused.code).toBe(3)
     expect(errorOf(refused.stderr).message).toBe(
-      `Invalid project file ${PROJECT}: defaultProfile "prod" is not one of its profiles; a project file chooses only among its own profiles`,
+      `The default profile of the project file ${PROJECT} cannot be used: defaultProfile names no profile of this file.`,
     )
-    // the hint's repair works on the invalid file
+    expect(errorOf(refused.stderr).hint).toContain("`pulse config use <profile> --project`")
+    // config list shows the note, and the hint's repair works on the file
     const runtime = runtimeOf({
       files: { [PROJECT]: json5({ defaultProfile: "prod", profiles: { svc: { url: BASE_URL } } }) },
     })
-    const hint = errorOf((await sequence(runtime, ["config", "list"])).stderr).hint
-    expect(hint).toContain("`pulse config use <profile> --project`")
+    expect((await sequence(runtime, ["config", "list"])).stderr).toBe(
+      `Notice: the project file ${PROJECT}: defaultProfile names no profile of this file.\n`,
+    )
     expect((await sequence(runtime, ["config", "use", "svc", "--project"])).code).toBe(0)
     expect(JSON.parse(fileText(runtime, PROJECT) ?? "")).toMatchObject({ defaultProfile: "svc" })
     expect((await sequence(runtime, ["task", "list"])).code).toBe(0)
@@ -363,5 +359,42 @@ describe("config set|unset|use|delete --project", () => {
     const user = await sequence(runtime, ["config", "delete", "shared"])
     expect(user.stderr).toContain(`Removed the OAuth login of profile "shared" (${OWN_LOGIN})`)
     expect(runtime.files.has(OWN_LOGIN)).toBe(false)
+  })
+})
+
+describe("a project file under its former name", () => {
+  const FORMER = `${REPO}/.pulse-cli.json`
+  const RENAME = {
+    code: "CONFIG",
+    exitCode: 3,
+    message: `The project file ${FORMER} has its former name; pulse reads .pulse.json only`,
+    hint: `Rename it to ${PROJECT}; its content stays as it is. To skip the project file, name your config file with --config or PULSE_CLI_CONFIG.`,
+  }
+
+  it("fails a command with CONFIG and the hint to rename it, never with your own default", async () => {
+    const files = { [FORMER]: PROJECT_FILE, [CONFIG_PATH]: USER_FILE }
+    const ping = await cli(["ping"], { files })
+    expect(ping.code).toBe(3)
+    expect(ping.stdout).toBe("")
+    expect(errorOf(ping.stderr)).toEqual(RENAME)
+    const list = await cli(["config", "list"], { files })
+    expect(errorOf(list.stderr)).toEqual(RENAME)
+  })
+
+  it("fails config set --project instead of writing a second file next to it", async () => {
+    const runtime = runtimeOf({ files: { [FORMER]: PROJECT_FILE } })
+    const set = await sequence(runtime, ["config", "set", "x", "--project", "--url", BASE_URL])
+    expect(set.code).toBe(3)
+    expect(errorOf(set.stderr)).toEqual(RENAME)
+    expect(runtime.files.has(PROJECT)).toBe(false)
+  })
+
+  it("is left alone next to a .pulse.json and with --config", async () => {
+    const files = { [FORMER]: "not JSON", [PROJECT]: PROJECT_FILE, "/other.json": USER_FILE }
+    const show = await cli(["config", "show"], { files })
+    expect(JSON.parse(show.stdout)).toMatchObject({ projectFile: PROJECT, profile: "svc" })
+    const only = { [FORMER]: PROJECT_FILE, "/other.json": USER_FILE }
+    const flag = await cli(["config", "show", "--config", "/other.json"], { files: only })
+    expect(JSON.parse(flag.stdout)).toMatchObject({ projectFile: null, profile: "mine" })
   })
 })

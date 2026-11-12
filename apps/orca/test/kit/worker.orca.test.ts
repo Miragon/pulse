@@ -56,7 +56,7 @@ function expectNoRefusals(running: TestWorker): void {
 
 beforeEach(async () => {
   root = await mkdtemp(join(tmpdir(), "pulse-orca-kit-"))
-  projectFile = join(root, ".pulse-cli.json")
+  projectFile = join(root, ".pulse.json")
   await writeFile(projectFile, JSON.stringify(PROJECT))
 })
 
@@ -101,12 +101,14 @@ describe("the engines", () => {
 
   test("name a project file Pulse can't read as a problem", async () => {
     const running = await started()
-    const missing = join(root, "missing", ".pulse-cli.json")
+    const missing = join(root, "missing", ".pulse.json")
 
     await running.request("engines.setProjectFile", { path: missing })
     const list = await running.request("engines.list")
 
-    expect(list.problems).toEqual([".pulse-cli.json: Pulse can't read this file"])
+    expect(list.problems).toEqual([
+      { text: ".pulse.json: Pulse can't read this file", tone: "danger" },
+    ])
     expect(namesOf(list)).toEqual(["local"])
   })
 
@@ -184,7 +186,7 @@ describe("the commands of the manifest", () => {
 
     expect(await running.command("pulse.configureEngines")).toBe(`Opened ${projectFile}.`)
     expect(running.host.callsOf("editor.open")).toEqual([
-      { workspaceId: "w1", path: ".pulse-cli.json" },
+      { workspaceId: "w1", path: ".pulse.json" },
     ])
     expectNoRefusals(running)
   })

@@ -1,4 +1,4 @@
-import { FakeEngine, FakeWorld } from "@miragon/pulse-runtime-view/contract/fake"
+import { FakeEngine, FakeWorld } from "@miragon/pulse-engine-core/testing"
 import { DiagramCache } from "@miragon/pulse-runtime-view/core"
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 import { type Connection, LOCAL_TARGET } from "@miragon/pulse-runtime-view/host-kit"

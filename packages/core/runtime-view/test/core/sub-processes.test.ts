@@ -7,7 +7,7 @@ import {
   IsoTimestamp,
   type ElementStatistics,
   type InstanceDetail,
-} from "../../src/contract/index.js"
+} from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
 import parcelReturnXml from "../../dev/webview/fixtures/parcel-return.bpmn"
 import { BpmnStructure } from "../../src/core/bpmn/bpmn-structure.js"

@@ -3,7 +3,8 @@ import { describe, expect, test } from "vitest"
 import { readRepoFile, REPO_ROOT } from "./support/files.js"
 
 const PROBE_FILE = "packages/core/runtime-view/src/core/views/labels.ts"
-const CLASS_PROBE = "packages/core/runtime-view/src/contract/model/value-kinds.ts"
+const ENGINE_CORE = "packages/connectors/engine/engine-core/src"
+const CLASS_PROBE = `${ENGINE_CORE}/model/value-kinds.ts`
 const COMPONENT_PROBE = "packages/core/runtime-view/src/webview/components/icon.tsx"
 
 const eslint = new ESLint({ cwd: REPO_ROOT })
@@ -59,13 +60,17 @@ describe("the lint gates", { timeout: 120_000 }, () => {
     "export const engine = 'Camunda 7';",
     "export const label = `zeebe ${String(1)}`;",
     "export type Engine = 'c8';",
+    "export const flag = '--activity-id';",
+    "export const column = `activity_id ${String(1)}`;",
   ])("keep engine words out of the core: %s", async (line) => {
     expect(await rulesFiredOn(withProbe(line))).toContain("no-restricted-syntax")
   })
 
   test.each([
-    "packages/core/runtime-view/src/contract/ports/process-runtime.ts",
-    "packages/core/runtime-view/src/contract/model/ids.ts",
+    `${ENGINE_CORE}/ports/process-runtime.ts`,
+    `${ENGINE_CORE}/model/ids.ts`,
+    `${ENGINE_CORE}/testing/fake/fake-engine.ts`,
+    "packages/core/runtime-view/src/ports/engine-adapter.ts",
   ])("keep engine words out of the contract: %s", async (filePath) => {
     expect(await rulesFiredOn(readRepoFile(filePath), filePath)).toEqual([])
     const probe = `${readRepoFile(filePath)}\nexport type Key = 'processInstanceKey';\n`
@@ -85,6 +90,18 @@ describe("the lint gates", { timeout: 120_000 }, () => {
     expect(await rulesFiredOn(host, "apps/vscode/src/host/composition-root.ts")).not.toContain(
       "no-restricted-syntax",
     )
+  })
+
+  test.each([
+    [PROBE_FILE, "export const share = (0.5).toFixed(1);"],
+    [PROBE_FILE, "export const count = new Intl.NumberFormat('en').format(1);"],
+    [PROBE_FILE, "export const ago = new Intl.RelativeTimeFormat('en').format(-1, 'day');"],
+    [COMPONENT_PROBE, "export const at = new Date(0).toLocaleTimeString('en');"],
+    [COMPONENT_PROBE, "export const day = new Intl.DateTimeFormat('en').format(new Date(0));"],
+    [COMPONENT_PROBE, "export const total = (1234).toLocaleString();"],
+  ])("format dates and numbers through the UI foundation only: %s", async (filePath, line) => {
+    const probe = `${readRepoFile(filePath)}\n${line}\n`
+    expect(await rulesFiredOn(probe, filePath)).toContain("no-restricted-syntax")
   })
 
   test.each([
@@ -134,9 +151,9 @@ describe("the lint gates", { timeout: 120_000 }, () => {
 
   test("declare what a class does before how it does it", async () => {
     const probe = `${readRepoFile(CLASS_PROBE)}\nexport class Ordered {\n  private how(): number {\n    return 1;\n  }\n\n  what(): number {\n    return this.how();\n  }\n}\n`
-    expect(
-      await rulesFiredOn(probe, "packages/core/runtime-view/src/contract/failing-runtime.ts"),
-    ).toContain("@typescript-eslint/member-ordering")
+    expect(await rulesFiredOn(probe, `${ENGINE_CORE}/failing-runtime.ts`)).toContain(
+      "@typescript-eslint/member-ordering",
+    )
   })
 
   test("let VS Code call activate and deactivate in the extension entry, nothing else", async () => {
@@ -147,8 +164,8 @@ describe("the lint gates", { timeout: 120_000 }, () => {
   })
 
   test.each([
-    "packages/connectors/engine/engine-adapter/src/mapping/timestamps.ts",
-    "packages/connectors/engine/engine-adapter/src/engine-rest/present.ts",
+    "packages/connectors/c7/c7-adapter/src/mapping/timestamps.ts",
+    "packages/connectors/c7/c7-adapter/src/engine-rest/present.ts",
     "packages/core/runtime-view/src/host-kit/notification-text.ts",
     "packages/core/runtime-view/src/host-kit/connections/target-hosts.ts",
   ])("hold the adapters and the extension to the same class structure: %s", async (filePath) => {

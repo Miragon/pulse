@@ -186,6 +186,24 @@ describe("useDetailView", () => {
     expect(screen.getByRole("button", { name: "Act" })).toBeTruthy()
   })
 
+  it("offers no retry from the notice when the refetch met a refusal no retry changes", async () => {
+    callTool.mockResolvedValueOnce({
+      isError: true,
+      content: [
+        {
+          type: "text",
+          text: '[ENGINE_PROFILE_REFUSED] Engine "prod" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask whoever runs this server to fix it.',
+        },
+      ],
+    })
+    render(<Detail seed={{ name: "seed" }} />, { wrapper })
+    await invalidate()
+    const notice = await screen.findByRole("alert")
+    expect(notice.textContent).toContain("Engine prod cannot be used: its profile is refused.")
+    expect(screen.queryByRole("button", { name: "Retry now" })).toBeNull()
+    expect(screen.getByText("seed")).toBeTruthy()
+  })
+
   function Bare() {
     const { data, guard, notice } = useDetailView<Detail>({
       initialData: { name: "seed" },

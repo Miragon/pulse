@@ -1,4 +1,4 @@
-import type { DefinitionSummary } from "@miragon/pulse-runtime-view/contract"
+import type { DefinitionSummary } from "@miragon/pulse-engine-core"
 import { BpmnProcessIds } from "@miragon/pulse-runtime-view/core"
 import * as vscode from "vscode"
 import { ActiveModel } from "./active-model.js"

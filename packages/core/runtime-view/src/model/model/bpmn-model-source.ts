@@ -1,12 +1,11 @@
+import type { BpmnProcessId, ElementId } from "@miragon/pulse-engine-core"
 import type {
-  BpmnProcessId,
   ElementConfiguration,
-  ElementId,
   ModelElement,
   ModelFile,
   ModelSource,
   WorkspaceFiles,
-} from "../../contract/index.js"
+} from "../../ports/index.js"
 import type { ModdleElement, ParseResult } from "bpmn-moddle"
 import { ElementLine } from "./element-line.js"
 import { ErrorReader } from "./error-reader.js"

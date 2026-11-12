@@ -1,4 +1,4 @@
-import { DefinitionId, type InstanceId } from "../../contract/index.js"
+import { DefinitionId, type InstanceId } from "@miragon/pulse-engine-core"
 import type { MigrationView, WebviewIntent } from "../protocol/index.js"
 import type { Attention } from "../refresh/live-context.js"
 import { MigrationViewBuilder } from "../views/migration-view-builder.js"

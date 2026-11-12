@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { toEngineDate } from "@miragon/pulse-engine-core"
+import { toEngineDate } from "@miragon/pulse-c7-core"
 import { resolveEngine } from "../lib/engine/resolve-engine.js"
 import {
   registryFor,
@@ -10,10 +10,10 @@ import {
 } from "../tools/test-support/fake-engine.js"
 import { WORLD, worldReply } from "../tools/test-support/engine-world.js"
 import type { CockpitView } from "../view-models.js"
-import { messageSignature } from "@miragon/pulse-engine-core"
+import { messageSignature } from "@miragon/pulse-c7-core"
 import { CLUSTER_SCAN_LIMIT } from "./cluster-scan.js"
 import { buildCockpitStart, cockpitFacts } from "./cockpit-start.js"
-import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-engine-core"
+import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-c7-core"
 import { healthVerdictRule } from "./health-data.js"
 
 // The clock the incidents' age is read against: the world's incident is 2h old.

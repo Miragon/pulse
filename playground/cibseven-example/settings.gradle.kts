@@ -7,16 +7,10 @@ pluginManagement {
     }
 }
 
+// The version catalog `libs` is gradle/libs.versions.toml, which Gradle reads by itself.
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
     repositories {
         mavenCentral()
     }
-    versionCatalogs {
-        create("libs") {
-            from(files("../../engine-plugins/gradle/libs.versions.toml"))
-        }
-    }
 }
-
-includeBuild("../../engine-plugins")

@@ -1,4 +1,4 @@
-import type { CalledProcess, DefinitionId } from "../../contract/index.js"
+import type { CalledProcess, DefinitionId } from "@miragon/pulse-engine-core"
 import { BpmnStructure } from "../bpmn/bpmn-structure.js"
 import { ElementNames } from "../bpmn/element-names.js"
 import type { Notice } from "../protocol/index.js"
@@ -74,7 +74,7 @@ export class CallJumps {
     }
     const element = ElementNames.of(jump.diagramXml).get(jump.elementId) ?? jump.elementId
     const chosen = await this.context.effects.pickInstance(
-      `${choices.length} instances called from ${element}`,
+      `${Labels.count(choices.length)} instances called from ${element}`,
       choices.map((choice) => this.choiceOf(choice)),
     )
     if (chosen !== undefined) {

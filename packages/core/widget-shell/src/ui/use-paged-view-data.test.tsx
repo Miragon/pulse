@@ -1,6 +1,8 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import type { ReactNode } from "react"
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react"
+import { TestViewHost } from "./test-view-host.js"
 import { spyHost } from "./tool-host.test-support.js"
 import { usePagedViewData } from "./use-paged-view-data.js"
 
@@ -347,6 +349,47 @@ describe("usePagedViewData: page-0 fetch states", () => {
     act(() => result.current.retry())
     await waitFor(() => expect(page0Calls({})).toHaveLength(3))
     await waitFor(() => expect(result.current.error).toBeNull())
+  })
+
+  it("tells the footer which failure a retry cannot change: a refusal that holds", async () => {
+    const { result } = await settledOnA()
+    callTool.mockResolvedValueOnce({
+      isError: true,
+      content: [{ type: "text", text: '[ENGINE_PROFILE_REFUSED] Engine "prod" is configured…' }],
+    })
+    await invalidate()
+    await waitFor(() => expect(result.current.error).not.toBeNull())
+    expect(result.current.canRetry?.(result.current.error!)).toBe(false)
+    expect(result.current.canRetry?.(new Error("timeout"))).toBe(true)
+    // What the footer says instead of "try again": describeError's sentence and its way out.
+    expect(result.current.describeRefusal?.(result.current.error!)).toBe(
+      "Engine prod cannot be used: its profile is refused. Whoever runs this server finds the reason in its log at startup and can fix the profile. Until then, pick another engine.",
+    )
+  })
+
+  it("describes a refusal in the host's language", () => {
+    const refused = new Error('[ENGINE_PROFILE_REFUSED] Engine "prod" is configured…')
+    const { result } = renderHook(
+      () =>
+        usePagedViewData<string, Page>({
+          initialData: page(["a"], 1),
+          key: ["test:list", "german"],
+          tool: "test_list_data",
+          args: {},
+          pageSize: 2,
+          ready: false,
+          selectItems,
+          selectTotal,
+        }),
+      {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <TestViewHost locale="de">{children}</TestViewHost>
+        ),
+      },
+    )
+    expect(result.current.describeRefusal?.(refused)).toBe(
+      "Die Engine prod ist nicht nutzbar: ihr Profil ist abgelehnt. Die Person, die den Server betreibt, findet den Grund im Log beim Start und kann das Profil korrigieren. Wähl bis dahin eine andere Engine.",
+    )
   })
 
   it("an initial page-0 failure has nothing to keep: no rows, the error for the caller's guard", async () => {

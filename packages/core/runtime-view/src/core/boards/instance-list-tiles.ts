@@ -1,4 +1,4 @@
-import type { InstanceSummary } from "../../contract/index.js"
+import type { InstanceSummary } from "@miragon/pulse-engine-core"
 import type {
   BoardColumn,
   BoardInstanceRow,
@@ -35,7 +35,8 @@ export class InstanceListTiles {
         return {
           engine: name,
           rows: items.map((item) => InstanceListTiles.row(name, item)),
-          ...(counted === undefined ? {} : { total: counted }),
+          ...(counted === undefined ? {} : { total: counted.count }),
+          ...(counted?.atLeast === true ? { totalAtLeast: true as const } : {}),
         }
       }),
     )

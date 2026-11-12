@@ -1,5 +1,5 @@
 import { vi } from "vitest"
-import { FakeEngine, FakeWorld } from "@miragon/pulse-runtime-view/contract/fake"
+import { FakeEngine, FakeWorld } from "@miragon/pulse-engine-core/testing"
 import { DiagramCache, type LocalSources } from "@miragon/pulse-runtime-view/core"
 import { type Connection, LOCAL_TARGET, WriteAudit } from "@miragon/pulse-runtime-view/host-kit"
 import { CockpitViews } from "../src/worker/cockpit-views.js"
@@ -20,7 +20,7 @@ export class ViewsFixture {
   readonly views: CockpitViews
   openFails = false
 
-  constructor() {
+  constructor(sources = {} as LocalSources) {
     const runtime = new FakeEngine(FakeWorld.seed().state)
     this.connection = {
       target: LOCAL_TARGET,
@@ -43,7 +43,7 @@ export class ViewsFixture {
       registry,
       live: this.live,
       audit: new WriteAudit({ info: () => undefined }),
-      sources: {} as LocalSources,
+      sources,
       services: { notice: vi.fn() } as unknown as ServiceHost,
       openFile: (request) => {
         this.opened.push(request)

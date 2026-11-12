@@ -49,14 +49,18 @@ export interface ServerMetadata {
   readonly clientAuthMethod: ClientAuthMethod
 }
 
-/** A validated token endpoint answer. */
+/**
+ * A token endpoint answer as @miragon/pulse-http/oauth checked it, its expiries counted from its
+ * receipt (epoch ms by the local clock).
+ */
 export interface TokenResponse {
   readonly accessToken: string
-  /** Seconds, or null when unknown. */
-  readonly expiresIn: number | null
+  readonly receivedAt: number
+  /** null when unknown. */
+  readonly expiresAt: number | null
   readonly refreshToken: string | null
-  /** Seconds (Keycloak's `refresh_expires_in`), or null when unknown. */
-  readonly refreshExpiresIn: number | null
+  /** Keycloak's `refresh_expires_in` from the receipt, or null when unknown. */
+  readonly refreshExpiresAt: number | null
   readonly scope: string | null
   /** `sub` of the ID token (display only). */
   readonly subject: string | null

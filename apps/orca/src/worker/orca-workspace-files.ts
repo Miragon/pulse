@@ -1,7 +1,7 @@
 import { glob, readFile } from "node:fs/promises"
 import { join } from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
-import type { WorkspaceFiles } from "@miragon/pulse-runtime-view/contract"
+import type { WorkspaceFiles } from "@miragon/pulse-runtime-view/ports"
 
 const EXCLUDED = /(^|\/)(node_modules|target|build|dist|dist-orca|out|\.git|\.pulse\/views)(\/|$)/
 

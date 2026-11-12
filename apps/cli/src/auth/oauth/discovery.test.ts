@@ -1,10 +1,12 @@
+import { oauthUrlProblem } from "@miragon/pulse-http/oauth"
 import { describe, expect, it } from "vitest"
 import { connectionRefused } from "../../../test/support/fake-fetch.js"
 import { fakeIdp, ISSUER, tokenJson } from "../../../test/support/fake-idp.js"
 import { fakeRuntime } from "../../../test/support/fake-runtime.js"
 import { oauthConfig, oauthDeps } from "../../../test/support/oauth.js"
+import { isLoopbackHost, oauthUrlError, validateOAuthUrl } from "../../config/oauth.js"
 import { PulseCliError } from "../../errors.js"
-import { discoveryUrls, serverMetadata } from "./discovery.js"
+import { serverMetadata } from "./discovery.js"
 
 async function rejection(promise: Promise<unknown>): Promise<PulseCliError> {
   try {
@@ -21,19 +23,6 @@ function setup(options: Parameters<typeof fakeIdp>[0] = {}) {
   const deps = oauthDeps(fakeRuntime({ fetch: idp.fetch }))
   return { idp, deps }
 }
-
-describe("discoveryUrls", () => {
-  it("appends the OIDC path and builds the RFC 8414 location from the issuer path", () => {
-    expect(discoveryUrls("https://as/realms/x/")).toEqual([
-      "https://as/realms/x/.well-known/openid-configuration",
-      "https://as/.well-known/oauth-authorization-server/realms/x",
-    ])
-    expect(discoveryUrls("https://as")).toEqual([
-      "https://as/.well-known/openid-configuration",
-      "https://as/.well-known/oauth-authorization-server",
-    ])
-  })
-})
 
 describe("serverMetadata", () => {
   it("discovers the endpoints with OpenID Connect discovery", async () => {
@@ -233,5 +222,41 @@ describe("serverMetadata", () => {
     expect(error.details.hint).toBe(
       'Check the issuer or endpoint (auth.issuer of profile "p") and the network; a private CA needs NODE_EXTRA_CA_CERTS.',
     )
+  })
+})
+
+describe("the OAuth URL rule", () => {
+  it.each([
+    "https://login.example.com/token",
+    "  https://login.example.com/token?realm=a  ",
+    "http://localhost:8080/token",
+    "HTTP://LOCALHOST/token",
+    "http://127.0.0.1/token",
+    "http://[::1]:9000/token",
+    "http://login.example.com/token",
+    "http://localhost.example.com/token",
+    "ftp://login.example.com/token",
+    "https://user@login.example.com/token",
+    "https://user:pa55word@login.example.com/token",
+    "https://login.example.com/token#",
+    "https://login.example.com/token#part",
+    "https://login.example.com/token?q=#",
+    "login.example.com/token",
+    "",
+  ])("is the package's for a discovered endpoint: %j", (url) => {
+    // The package checks what a discovery names, validateOAuthUrl what a person configures.
+    const problem = oauthUrlProblem(url, isLoopbackHost)
+    const label = "token_endpoint of the discovery document"
+    let refused: string | undefined
+    try {
+      validateOAuthUrl(url, "token endpoint", label)
+    } catch (error) {
+      refused = (error as PulseCliError).message
+    }
+    const expected =
+      problem === undefined
+        ? undefined
+        : oauthUrlError(url.trim(), "token endpoint", label, problem).message
+    expect(refused).toBe(expected)
   })
 })

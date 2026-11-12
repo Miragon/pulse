@@ -9,7 +9,7 @@ import {
   isAdvanceable,
   isSuspendedJob,
   type WaitState,
-} from "@miragon/pulse-engine-core"
+} from "@miragon/pulse-c7-core"
 import { PulseCliError } from "../errors.js"
 import { compact } from "../util.js"
 

@@ -1,4 +1,4 @@
-import type { DefinitionId, VersionSummary } from "../../contract/index.js"
+import type { DefinitionId, VersionSummary } from "@miragon/pulse-engine-core"
 import type { Notice } from "../protocol/index.js"
 import type { DriftFinding, LocalModel, ModelDrift } from "./model-drift.js"
 

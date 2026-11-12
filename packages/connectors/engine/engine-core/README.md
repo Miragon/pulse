@@ -4,13 +4,18 @@
 [![CI](https://github.com/Miragon/pulse/actions/workflows/ci.yml/badge.svg)](https://github.com/Miragon/pulse/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/github/license/Miragon/pulse)](LICENSE)
 
-The workflow rules of the Camunda 7 REST API family (Operaton, CIB seven, Camunda 7) for your own
-tool: where a process instance waits and why, how an engine is doing, what retry and advance would
-send, and the REST details every caller of this API needs. Below 1.0: pin the exact version and
-update all `@miragon/pulse-*` packages together.
+The neutral core of Pulse's engine family: the contract every engine dialect implements, the
+shared language of the dialects Pulse speaks. Camunda 7 family engines (Operaton,
+CIB seven, Camunda 7) and Camunda 8 hold the same runtime data, named, numbered and paged
+differently. This package fixes the questions Pulse asks a process engine and the words of the
+answers, in Pulse's own vocabulary: process, version, instance and element ids, read models,
+queries, bulk operations, migration plans and one error. Each dialect answers them with an
+implementation of its own, and the conformance kit proves that it means the same thing. Below
+1.0: pin the exact version and update all `@miragon/pulse-*` packages together.
 
-It runs on an engine port you implement over any HTTP client and returns data, so an MCP tool, a
-CLI command and an editor panel answer the same question by the same rules.
+The engine family is the neutral layer above the dialects: its module, the MCP server's engine
+module, serves every dialect, and this package is its core. A dialect (Camunda 7 REST today,
+Camunda 8 later) is a family of its own whose core implements this contract.
 
 ## Install
 
@@ -22,100 +27,163 @@ It has no runtime dependency and no peers.
 
 ## Minimal example
 
-Wrap your client in an `EngineTransport`, turn it into a port, and run a workflow on it:
+Prove that your implementation of the ports means what the contract says:
 
 ```ts
-import { createEnginePort, type EngineTransport, inspectInstance } from "@miragon/pulse-engine-core"
+import { ConformanceKit } from "@miragon/pulse-engine-core/testing"
+import { test } from "vitest"
 
-// Your client's answer of one request, read right after it arrived.
-type Answer = { readonly body?: unknown; readonly text?: string }
-
-const transport: EngineTransport<Answer> = {
-  send: (operationId, input) => yourClient.send(operationId, input),
-  json: (answer) => answer.body,
-  text: (answer) => answer.text,
-  failure: (error) =>
-    error instanceof YourHttpError
-      ? { status: error.status, engineType: error.type, engineMessage: error.message }
-      : undefined,
-}
-const port = createEnginePort(transport)
-const view = await inspectInstance(
-  port,
-  { businessKey: "B-1", latest: true },
-  { variables: true, history: false, stacktrace: false },
-)
+const kit = new ConformanceKit(test)
+kit.registerRuntimeLaws(async () => ({
+  runtime: myRuntime,
+  unreachableRuntime: myRuntimeAt("http://127.0.0.1:9"),
+  world: await seedWorld(myEngine),
+}))
+kit.registerCommandLaws(async () => ({
+  runtime: myRuntime,
+  commands: myCommands,
+  world: await seedCommandWorld(myEngine),
+}))
 ```
 
-`send` sends one operation by its REST operation id; `json`, `text` and `failure` read its answer
-and an engine failure. Your `failure` reading must carry the engine's `engineType`: without it a
-missing instance fails instead of reading as missing.
+The kit binds every law to any `(name, fn)` runner and throws an `Error` naming the law and what
+it found when one fails. Your harness deploys diagrams with the world's element ids into your engine and seeds the
+world's instances; the fake seeds it in memory. An engine whose reads lag behind its writes
+declares `writeVisibility`, one whose bulk work runs in the background `asyncWork`. The kit
+proves itself: 71 saboteurs, each the fake with one flaw, fail exactly their laws (the package's
+`test/`).
 
 ## What it provides
 
-- **Port:** `createEnginePort(transport)` adds the shared read rules: pages of 500, a missing
-  resource as undefined, blank texts as undefined. `isMissing(failure)` is the one
-  missing-resource rule (an engine 404 whose exception type is neither `NotFoundException` nor
-  `QueryParamException`), so a wrong REST root fails loud instead of reading as "none";
-  `isUnknownEndpoint(failure)` tells a 404 that is no engine answer, for a hint to check the REST
-  root.
-- **Inspect:** `inspectInstance(port, selection, options)` selects an instance by id, by business
-  key or by key with `latest`, and loads its wait states with their ids, root-cause incidents,
-  called instances, optionally variables, the history timeline and stacktraces (cut after
-  `MAX_STACKTRACE_LINES` lines).
-- **Status:** `readStatus({ port, now }, options)` triages one engine: findings with severity, the
-  overall status, definitions, incident groups with their root cause, topics, jobs and batches,
-  every cut named in `truncated`. `engineVerdict` judges an engine `ok`, `warning` or `critical` by
-  thresholds you pass; `messageSignature` (the incident mask) and `causeKeyOf` (one cause) group
-  incidents alike everywhere.
-- **Plans:** the pure parts of retry (`planRetry`, `retriesWrite`), advance (`chooseWait`,
-  `advanceSteps`) and wait (`parseCondition`, `decide`, `poll`).
-- **Engine REST rules:** dates (`toEngineDate`, `engineDateInput` in a `DateInputReading`:
-  `OFFSET_REQUIRED` refuses a time without an offset, `UTC_WITHOUT_OFFSET` reads it as UTC;
-  `engineDateMillis`, `latestEngineDate`), true-only and `…Like` filters (`trueOnly`,
-  `complementaryFlags`, `engineLike`, `engineKeyList`, `engineInstanceSearch`), paired sorting
-  (`engineSorting`), variable writes and typing (`toEngineVariable(s)`, `autoTypedValue`),
-  incident recovery (`incidentRecovery`), the raw variable read flag (`RAW_VARIABLES`, and
-  `RAW_VARIABLES_QUERY` for a port's query), the history timeline (`timelineOf`) and root causes
-  (`rootCause`, and `rootCauseLine`, the line a viewer opens the text at).
+- **`.`:** the ports `ProcessRuntime` (17 methods, from `describeEngine` to `checkMigration?`,
+  three of them optional) and `ProcessCommands` (6 writes: retry an incident, set a variable, move a
+  token, cancel and migrate instances in bulk, stop a bulk operation); the branded ids
+  (`InstanceId("…")`, `DefinitionId`, `BpmnProcessId`, `ElementId` and more); the read models
+  (`InstanceSummary`, `InstanceDetail`, `Incident`, `ElementStatistics`, `Variable` …), the queries
+  (`InstanceFilter`, `VariableCondition`, `PageRequest`, `Page`, `InstanceCount`), bulk operations and migration
+  plans; `RuntimeError` with its closed `RuntimeFailure`, and `FailingRuntime`, a runtime that
+  refuses every call with one error; the rules `ValueKinds` (the kind of a JSON value, with
+  `isWholeNumber` whether it is a whole number of 64 bits, from `WHOLE_NUMBER_MIN` to
+  `WHOLE_NUMBER_MAX`, exact on its digits, and with `isFiniteNumber` whether it is a number a
+  double holds, decided on its text: `Number()` of it is finite),
+  `MoveReasons` (when a reason for a token move is valid) and `RootCauses`, the root cause of a
+  failure text in every dialect: `of` takes the last `Caused by:` line of a stack trace, else its
+  first non-blank line, a leading class name shortened to its simple name, in one line of at most
+  300 characters; `lineOf` is the line a viewer opens the text at, none without a `Caused by:`
+  line.
+- **`./testing`:** the conformance kit (`ConformanceKit` with 48 read laws and 15 command laws),
+  its fixed world (`WORLD_*`, the three neutral diagrams `NEUTRAL_DIAGRAMS` with fixed element
+  ids) and `FakeEngine`, an in-memory engine that passes every law, with `PatchedRuntime` and
+  `PatchedCommands` to change one answer of it in a test.
+
+## Where dialects differ
+
+Two dialects answer the same question with the same meaning, or the contract says where they part,
+never with a flag that can disagree with what the engine does:
+
+- **A count may be a lower bound.** `countInstances` returns an `InstanceCount`: `{ count }` is
+  exact, `{ count, atLeast: true }` means the engine stopped counting there (Camunda 8's search
+  stops at 10,000). The laws require an exact count over the world, and a surface shows a lower
+  bound as one (`≥ 10,000`, `10k+`).
+- **A question an engine cannot answer** fails as `RuntimeError` `unsupported`, never as
+  `rejected` (a refused change) or `misconfigured` (a connection to fix). So does a command on a
+  connection that only reads: it fails before the write leaves, never as a missing item.
+- **Refused variable conditions are declared.** `refusedVariableConditions?()` names the kinds an
+  engine refuses: `ordering` is `greaterThan` and `lessThan` on a value (`valueJson`), `date` every
+  condition on a point in time (`at`), after and before included. The variable laws hold the
+  declaration to behaviour: a declared kind fails as `unsupported` in the search and the count, and
+  every other condition answers correctly.
+- **Migration planning is optional, as a pair.** An engine without `proposeMigration?` and
+  `checkMigration?` plans no migration, and a surface offers none; an engine with one of them
+  only fails the plan laws. An engine that migrates (`ProcessCommands.migrateInstances`) plans
+  too: the migration command laws take their plan from `proposeMigration` and fail without it.
+- **Element statistics on Camunda 8 can stay undivided.** Camunda 8 keeps an incident at the
+  element that raised it and counts it at every container around it, so its adapter splits a
+  container's row with one incident search per container. When that search stops counting (above
+  10,000 on Elasticsearch), the row keeps the cluster's counts: every incident inside the
+  container reads as raised there and none as in a called instance. "Statistics are disjoint"
+  (`active + incidents` is what the element holds) does not hold for such a row. The contract has
+  no field for it yet; `ElementStatistics` gains an optional one with the Camunda 8 adapter.
 
 ## What it leaves to you
 
-No HTTP, no authentication and no runtime dependency. It names no command, flag or tool: next
-steps are structured (`{ action: "retry", processInstanceId }`), errors are `WorkflowError`s with a
-`reason` (`{ kind: "selection-ambiguous", candidates, more }`), and your code words both. The
-English texts that describe the engine's state are the package's: the finding messages of the
-status triage, its truncation notes and the summaries of planned writes (`execute job j1`).
-
-One port serves the whole API family: the vendors differ in runtime configuration, never in this
-package.
+No runtime dependency, no DOM and no Node globals: it imports only its own modules and runs in any
+JavaScript host. Reaching an engine (HTTP, credentials, the dialect's REST paths), the links into
+an engine's web UI and every word a person reads about a failure stay with the dialect's
+implementation and the surface that uses it. So do the use cases of the surfaces: grouping,
+triage, verdicts and which recovery to offer.
 
 ## Who uses it
 
-- [`@miragon/pulse-cli`](https://www.npmjs.com/package/@miragon/pulse-cli) bundles it: `inspect`,
-  `status`, `wait`, `advance` and `retry` run on it.
-- [`@miragon/pulse-engine-connector`](https://www.npmjs.com/package/@miragon/pulse-engine-connector)
-  runs it as the MCP tools `engine_inspect_process_instance` and `engine_status`, and builds its
-  cockpit's failure clusters and health verdict from the same rules.
-- Pulse for VS Code bundles it in its C7 adapter: an instance's panel reads through
-  `loadInstance`, `rootCause` and `rootCauseLine`.
+- Pulse for VS Code and Pulse for Orca speak it today: the runtime view they share asks these
+  ports, and their C7 adapter answers them over the Camunda 7 REST API.
+- [`@miragon/pulse-c7-core`](https://www.npmjs.com/package/@miragon/pulse-c7-core), the core of
+  that dialect, applies its root-cause rule for the Pulse CLI and the MCP server.
 
-## Testing helpers
+## The admission rule
 
-`@miragon/pulse-engine-core/testing` exports the verified workflow fixture, the status fixture,
-wait states of every kind, `fakePort` (a recording port over canned answers that refuses any
-operation without a route) and `fakeClock`. It also exports the rules behind the entry's functions
-that tests reach directly, and `INSPECT_OPERATIONS` and `STATUS_OPERATIONS`, the operations each
-composite sends: a port that maps operations one by one holds its table equal to them in a test.
+A port, read model or rule enters `@miragon/pulse-engine-core` when two dialects answer it with the
+same meaning, proven by the conformance laws on both. It stays narrow: a further rule (the verdict,
+the message signature, durations) moves here only when a second dialect needs it in the CLI or the
+MCP server. It is imported where a dialect is implemented (the `src` of a dialect's core, its main
+entry alone and never from the core's `./testing`: c7-core applies `RootCauses`; the C7 adapter of
+the editor hosts) and where the runtime view of Pulse for VS Code and Pulse for Orca reads the
+answers, which keeps no contract of its own. A surface reaches it through them; the engine connector
+(although this is its own family's core) or the CLI importing it directly waits until it serves a
+second dialect, an admission decision in review, the case #488 reopens on: a second interface
+needing the same use case with the same rules.
+
+Two admissions came ahead of their second dialect, by the owner's decision, on the evidence of the
+Camunda 8 adapter's branch (#543):
+
+- The four answers Camunda 8 needs (a count that may be a lower bound, the failure `unsupported`,
+  the declared variable conditions and migration planning as an optional pair) entered before
+  the first release, so that adapter lands without a break. Here the laws run them on the fake
+  and the C7 adapter, which count exactly, answer every condition and plan migrations; the
+  saboteurs prove the other side.
+- `RootCauses` moved here from c7-core, since that branch copies its `of` character for
+  character. Its `lineOf` keeps c7-core's reading, no line without a `Caused by:` line (by the
+  owner's decision), where the copy points at the first non-blank line; the law "incidents: details
+  name their root cause in one line and point at a line of their text" holds every adapter to
+  the bounds both readings keep.
+
+The repository holds that to its import graph (`engine-core-consumers` in its
+dependency-cruiser config) and the package to its own modules (`family-core-is-a-leaf`).
+
+## Stability
+
+Below 1.0 without a stability promise: the laws and the fake follow Pulse for VS Code, and a new
+question its views need lands here first, as a port, a read model, a law and a saboteur. A change
+that breaks an implementation says so in the changelog.
 
 ## Help and feedback
 
-- **Documentation:** the Pulse servers, CLI and modules built on these rules are explained at [miragon.github.io/pulse](https://miragon.github.io/pulse/).
+- **Documentation:** the Pulse servers, CLI and VS Code extension built on this contract are explained at [miragon.github.io/pulse](https://miragon.github.io/pulse/).
 - **Bugs and ideas:** found a bug or missing something? [Open an issue](https://github.com/Miragon/pulse/issues).
 
 ## Contributing
 
 How to build, test and change Pulse is in [CONTRIBUTING.md](https://github.com/Miragon/pulse/blob/main/CONTRIBUTING.md).
+Two rules hold this package on top of the repository's.
+
+### Mutation testing
+
+The three rules, `RootCauses`, `ValueKinds` and `MoveReasons`, are mutation-tested every night in
+the repository (StrykerJS over `src/model/root-causes.ts`, `value-kinds.ts` and `move-reasons.ts`
+against the package's own tests; owner decision 2026-11-09). They are the contract's rules a
+dialect applies: `RootCauses` in all three interfaces of Pulse (the CLI and the MCP server reach it
+through c7-core), `ValueKinds` and `MoveReasons` today in the editor hosts alone, the runtime
+view's core and the C7 adapter. A surviving mutant is a wrong rule wherever one runs. Nothing else of the package
+is mutated. Locally: `pnpm --fail-if-no-match --filter @miragon/pulse-engine-core exec stryker run`.
+
+### Style
+
+The house rules of Pulse for VS Code, which this package came from: classes, not module
+functions (one class per file, public methods first, static utility classes per topic, the
+branded id constructors aside), no comments (names and types carry the intent, and no rule is
+switched off inline), complexity 10, 300 lines per file (400 for a test file), 60 per function,
+no engine word such as a vendor's name or `processDefinitionKey` anywhere in it. The repository's
+ESLint config holds the package to them.
 
 ## License
 

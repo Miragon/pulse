@@ -207,16 +207,14 @@ describe("the board parser", () => {
     }
   })
 
-  test("refuses variable columns and unknown columns with a reason each", () => {
+  test("refuses a variable column and an unknown column, naming the columns a board shows", () => {
     const widget = { widget: "instanceList", props: { columns: ["engine", "var:amount", "owner"] } }
+    const known =
+      "must be one of engine, process, version, businessKey, state, startedAt, endedAt, incident"
 
     expect(problemsOf(parseBoard(withWidget(widget)))).toEqual([
-      { path: "rows[0].row[0].props.columns[1]", reason: "variable columns are not supported yet" },
-      {
-        path: "rows[0].row[0].props.columns[2]",
-        reason:
-          "must be one of engine, process, version, businessKey, state, startedAt, endedAt, incident",
-      },
+      { path: "rows[0].row[0].props.columns[1]", reason: `cannot show a variable; ${known}` },
+      { path: "rows[0].row[0].props.columns[2]", reason: known },
     ])
     expect(
       problemsOf(parseBoard(withWidget({ widget: "instanceList", props: { columns: "engine" } }))),

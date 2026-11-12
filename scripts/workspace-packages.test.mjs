@@ -16,14 +16,14 @@ describe("workspace-packages", () => {
   it("counts a library published from packages/ only", () => {
     const lib = (dir, manifest) => isPublishedLibrary({ dir, manifest: { name: "x", ...manifest } })
     assert.equal(lib("packages/core/widget-shell", {}), true)
-    assert.equal(lib("packages/connectors/engine/engine-client", {}), true)
+    assert.equal(lib("packages/connectors/c7/c7-client", {}), true)
     // The CLI is on npm, but no server imports an interface.
     assert.equal(lib("apps/cli", {}), false)
     assert.equal(lib("packages/core/widget-shell", { private: true }), false)
     assert.equal(lib("packages/core/x", { engines: { vscode: "^1.101.0" } }), false)
   })
 
-  it("lists the repo's seven libraries, what test-template.sh packs and the mirror waits for", () => {
+  it("lists the repo's eight libraries, what test-template.sh packs and the mirror waits for", () => {
     const out = execFileSync(
       process.execPath,
       [path.join(REPO_ROOT, "scripts/workspace-packages.mjs"), "libraries"],
@@ -38,11 +38,12 @@ describe("workspace-packages", () => {
       publishedLibraries(REPO_ROOT).map(({ dir, manifest }) => [dir, manifest.name]),
     )
     assert.deepEqual(rows.map(([, name]) => name).sort(), [
-      "@miragon/pulse-analytics-client",
-      "@miragon/pulse-analytics-connector",
-      "@miragon/pulse-engine-client",
+      "@miragon/pulse-c7-client",
+      "@miragon/pulse-c7-core",
       "@miragon/pulse-engine-connector",
       "@miragon/pulse-engine-core",
+      "@miragon/pulse-http",
+      "@miragon/pulse-profile",
       "@miragon/pulse-ui",
       "@miragon/pulse-widget-shell",
     ])

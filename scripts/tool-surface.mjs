@@ -12,12 +12,6 @@ const ADMIN_GOLDEN = path.join(
   "apps/mcp-server/test/__golden__/tools-admin.json",
 )
 
-const METRICS_CONTRACT = path.join(
-  import.meta.dirname,
-  "..",
-  "packages/connectors/analytics/analytics-client/metrics-contract.json",
-)
-
 /**
  * @typedef {object} SurfaceTool
  * @property {string} name
@@ -49,24 +43,5 @@ export function appOnlyFeeds() {
     fullSurface()
       .filter((tool) => !isModelVisible(tool))
       .map((tool) => tool.name),
-  )
-}
-
-/**
- * The metric names and labels of the metrics contract: every `promName`, a histogram's
- * `_bucket`/`_sum`/`_count` series and every label. They share the engine module's tool prefix
- * (`engine_jobs_failed`, `engine_id`), so a scanner that reads `<module>_…` as a tool name skips
- * exactly these, and every OTHER `engine_…` token still has to be a tool.
- * @returns {Set<string>}
- */
-export function metricVocabulary() {
-  /** @type {{ metrics: { promName: string, type: string, labels: string[] }[] }} */
-  const contract = JSON.parse(readFileSync(METRICS_CONTRACT, "utf8"))
-  return new Set(
-    contract.metrics.flatMap(({ promName, type, labels }) => [
-      promName,
-      ...(type === "histogram" ? ["_bucket", "_sum", "_count"].map((s) => promName + s) : []),
-      ...labels,
-    ]),
   )
 }

@@ -28,7 +28,7 @@ describe("remediationHandOff follows the deployment's gate", () => {
     const handOff = remediationHandOff(CLUSTER, "prod-a", canFix)
     expect(handOff.intent).toBe("askAi.cluster.diagnose")
     const prompt = bindHandOff("en").ask(handOff)!
-    expect(prompt).not.toMatch(/\b(engine|analytics)_[a-z0-9_]+/)
+    expect(prompt).not.toMatch(/\bengine_[a-z0-9_]+/)
   })
 
   it("operations and admin: the fix, still naming no tool", async () => {
@@ -37,7 +37,7 @@ describe("remediationHandOff follows the deployment's gate", () => {
       expect(canFix, toolset).toBe(true)
       const handOff = remediationHandOff(CLUSTER, "prod-a", canFix)
       expect(handOff.intent).toBe("askAi.cluster.fix")
-      expect(bindHandOff("en").ask(handOff)!).not.toMatch(/\b(engine|analytics)_[a-z0-9_]+/)
+      expect(bindHandOff("en").ask(handOff)!).not.toMatch(/\bengine_[a-z0-9_]+/)
     }
   })
 })

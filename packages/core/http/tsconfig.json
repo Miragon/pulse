@@ -1,0 +1,30 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2023",
+    // The web platform's globals (fetch, Request, Response, Headers, AbortSignal, TextEncoder,
+    // URL, btoa, the timers) and no Node types: the transport runs over the fetch it is handed,
+    // in Node, in the VS Code extension host and anywhere else fetch exists, so `process`,
+    // `Buffer` and `node:` modules stay compile errors. ESLint's no-restricted-globals keeps the
+    // DOM's document and window out (eslint.config.mjs).
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": [],
+    "composite": false,
+    "outDir": "dist",
+    "rootDir": "src",
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true
+  },
+  "include": ["src"],
+  // The loopback engine of the conformance cases needs Node: tsconfig.loopback.json.
+  "exclude": ["src/testing/loopback"]
+}

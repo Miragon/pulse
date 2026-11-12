@@ -1,5 +1,5 @@
-import { PatchedRuntime } from "../../src/contract/fake/index.js"
-import { InstanceId, RuntimeError, type ProcessRuntime } from "../../src/contract/index.js"
+import { PatchedRuntime } from "@miragon/pulse-engine-core/testing"
+import { InstanceId, RuntimeError, type ProcessRuntime } from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
 import { InstancePanel } from "../../src/core/panels/instance-panel.js"
 import type { InstanceView, PanelState } from "../../src/core/protocol/index.js"
@@ -107,8 +107,8 @@ describe("the instance panel", () => {
       { elementId: "Flow_OrderReceivedToRoute", kind: "taken" },
     ])
     expect(view.path.map((row) => [row.elementId, row.state, row.duration])).toEqual([
-      ["Event_OrderReceived", "completed", "1.0 s"],
-      ["Gateway_Route", "completed", "1.0 s"],
+      ["Event_OrderReceived", "completed", "1s"],
+      ["Gateway_Route", "completed", "1s"],
       ["Activity_ReviewOrder", "active", undefined],
     ])
     expect(view.headline).toBeUndefined()

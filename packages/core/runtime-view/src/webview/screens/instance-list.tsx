@@ -3,6 +3,7 @@ import { DataTable, type Column } from "../components/data-table.js"
 import { EmptyHint } from "../components/empty-hint.js"
 import { IdText } from "../components/id-text.js"
 import { IncidentFlag, StateLabel } from "../components/state-label.js"
+import { NoValue } from "../components/no-value.js"
 import { TimeLabels } from "../format/time-labels.js"
 import { useHost } from "../host/host-context.js"
 import { InstanceFilter } from "./instance-filter.js"
@@ -12,7 +13,7 @@ import { SelectionBar } from "./selection-bar.js"
 
 function StartedCell({ row }: { readonly row: InstanceRow }) {
   if (row.startedAt === undefined) {
-    return <span class="muted">–</span>
+    return <NoValue />
   }
   return (
     <span title={TimeLabels.tooltip(row.startedAt)}>
@@ -31,7 +32,7 @@ const COLUMNS: readonly Column<InstanceRow>[] = [
   {
     key: "businessKey",
     label: "Business key",
-    render: (row) => row.businessKey ?? <span class="muted">–</span>,
+    render: (row) => row.businessKey ?? <NoValue />,
   },
   {
     key: "state",
@@ -84,11 +85,9 @@ export interface InstanceListProps {
   readonly busy: boolean
 }
 
-export function InstanceList({ view, elementName, onFilter, refreshing, busy }: InstanceListProps) {
+function LoadMore({ busy }: { readonly busy: boolean }) {
   const host = useHost()
-  const selectionColumn = useSelectionColumn(view.instances, view.selection?.count ?? 0)
-  const columns = selectionColumn === undefined ? COLUMNS : [selectionColumn, ...COLUMNS]
-  const footer = view.hasMoreInstances ? (
+  return (
     <button
       type="button"
       class="button button--ghost"
@@ -100,7 +99,13 @@ export function InstanceList({ view, elementName, onFilter, refreshing, busy }: 
     >
       Load more
     </button>
-  ) : undefined
+  )
+}
+
+export function InstanceList({ view, elementName, onFilter, refreshing, busy }: InstanceListProps) {
+  const host = useHost()
+  const selectionColumn = useSelectionColumn(view.instances, view.selection?.count ?? 0)
+  const columns = selectionColumn === undefined ? COLUMNS : [selectionColumn, ...COLUMNS]
   return (
     <section class="list-region" aria-label="Instances">
       <InstanceFilterBar
@@ -111,6 +116,7 @@ export function InstanceList({ view, elementName, onFilter, refreshing, busy }: 
         historyNote={view.historyNote}
         variableLabels={view.variableLabels}
         variableNames={view.variableNames}
+        refusedConditions={view.refusedVariableConditions}
         elementName={elementName}
         onFilter={onFilter}
       />
@@ -139,7 +145,7 @@ export function InstanceList({ view, elementName, onFilter, refreshing, busy }: 
           },
         }}
         empty={<NoMatches filter={view.filter} onFilter={onFilter} />}
-        footer={footer}
+        footer={view.hasMoreInstances ? <LoadMore busy={busy} /> : undefined}
       />
     </section>
   )

@@ -1,10 +1,6 @@
 import { describe, expect, test, vi } from "vitest"
-import {
-  FailingRuntime,
-  type ProcessRuntime,
-  RuntimeError,
-} from "@miragon/pulse-runtime-view/contract"
-import { FakeEngine, FakeWorld } from "@miragon/pulse-runtime-view/contract/fake"
+import { FailingRuntime, type ProcessRuntime, RuntimeError } from "@miragon/pulse-engine-core"
+import { FakeEngine, FakeWorld } from "@miragon/pulse-engine-core/testing"
 import type { BoardTile, BoardView } from "@miragon/pulse-runtime-view/protocol"
 import { type Connection, LOCAL_TARGET } from "@miragon/pulse-runtime-view/host-kit"
 import { BoardTemplate } from "../src/worker/board-template.js"

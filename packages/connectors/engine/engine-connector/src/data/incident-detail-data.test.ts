@@ -57,7 +57,7 @@ async function build(routes: FakeRoutes) {
   return { data, engine }
 }
 
-describe("buildIncidentDetailData through the engine contract", () => {
+describe("buildIncidentDetailData through the REST contract", () => {
   it("offers a job retry for a failedJob and reads its stacktrace as text/plain", async () => {
     const { data, engine } = await build({
       "GET /incident/inc-1": { body: incident({}) },
@@ -179,7 +179,7 @@ describe("buildIncidentDetailData: the definition's real key", () => {
   })
 })
 
-// One rule with analytics (`readBpmnNames`): the head showed "Rechnung&#10;prüfen".
+// One rule (`readBpmnNames`): the head showed "Rechnung&#10;prüfen".
 describe("buildIncidentDetailData: names from a Modeler diagram", () => {
   it("names the activity with its references decoded and the process by its pool", async () => {
     const xml = `<definitions>

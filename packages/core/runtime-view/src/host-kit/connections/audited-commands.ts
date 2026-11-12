@@ -7,7 +7,7 @@ import type {
   ProcessCommands,
   TokenMove,
   VariableChange,
-} from "../../contract/index.js"
+} from "@miragon/pulse-engine-core"
 import type { AuditedEngine, WriteAudit } from "./write-audit.js"
 
 export class AuditedCommands implements ProcessCommands {

@@ -76,7 +76,11 @@ export interface InstanceListFilter {
   readonly variables?: readonly VariableConditionView[]
 }
 
-export type ScopeCounts = Readonly<Record<InstanceScope, number>>
+export type ScopeCounts = Readonly<Record<InstanceScope, number>> & {
+  readonly atLeast?: readonly InstanceScope[]
+}
+
+export type RefusedVariableCondition = "ordering" | "date"
 
 export interface DefinitionView {
   readonly kind: "definition"
@@ -95,6 +99,7 @@ export interface DefinitionView {
   readonly filter: InstanceListFilter
   readonly variableLabels?: readonly string[]
   readonly variableNames?: readonly string[]
+  readonly refusedVariableConditions?: readonly RefusedVariableCondition[]
   readonly scopeCounts: ScopeCounts
   readonly historyNote?: string
   readonly notices: readonly Notice[]
@@ -178,6 +183,7 @@ export interface WaitRow {
   readonly dueAt?: string
   readonly calledInstance?: CalledInstanceLink
   readonly moveRefusal?: string
+  readonly cliCommand?: string
 }
 
 export type VariableEditor = "text" | "integer" | "decimal" | "boolean" | "date" | "json" | "any"
@@ -199,7 +205,12 @@ export type WriteTarget =
 
 export type WriteState =
   | { readonly status: "pending" | "done" | "cancelled"; readonly target: WriteTarget }
-  | { readonly status: "failed"; readonly target: WriteTarget; readonly message: string }
+  | {
+      readonly status: "failed"
+      readonly target: WriteTarget
+      readonly message: string
+      readonly inputRefusal?: number
+    }
 
 export interface ParentLink {
   readonly instanceId: string
@@ -276,4 +287,5 @@ export interface Problem {
   readonly detail: string
   readonly canEditConnection: boolean
   readonly needsCredentials?: true
+  readonly loginRefused?: "unauthorized" | "forbidden"
 }

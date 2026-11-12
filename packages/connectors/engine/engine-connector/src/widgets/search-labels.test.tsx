@@ -28,6 +28,7 @@ const INSTANCES: ProcessInstancesData = {
   processDefinitionName: "Invoice",
   totalCount: 1,
   returnedCount: 1,
+  allCount: 1,
   withIncidentCount: 0,
   suspendedCount: 0,
   instances: [

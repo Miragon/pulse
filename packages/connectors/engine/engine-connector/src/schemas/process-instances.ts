@@ -33,7 +33,7 @@ export const listProcessInstancesInput = z.object({
 
 /**
  * The inspect composite: select the instance by id, by business key (optionally with its key), or
- * by key with `latest`; the selection rules are engine-core's `checkSelection`, one rule, one place.
+ * by key with `latest`; the selection rules are c7-core's `checkSelection`, one rule, one place.
  */
 export const inspectProcessInstanceInput = z.object({
   processInstanceId: z.string().optional(),

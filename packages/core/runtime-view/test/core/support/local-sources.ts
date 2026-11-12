@@ -1,10 +1,10 @@
+import type { BpmnProcessId } from "@miragon/pulse-engine-core"
 import type {
-  BpmnProcessId,
   ElementConfiguration,
   ElementImplementation,
   ModelFile,
   SourceLocation,
-} from "../../../src/contract/index.js"
+} from "../../../src/ports/index.js"
 import { vi } from "vitest"
 import type { LocalSources } from "../../../src/core/panels/panel-context.js"
 

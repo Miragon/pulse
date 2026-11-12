@@ -8,6 +8,7 @@ on:
     paths:
       - Dockerfile
       - .dockerignore
+      - LICENSE
       - .npmrc
       - package.json
       - pnpm-lock.yaml
@@ -35,3 +36,15 @@ jobs:
       - uses: actions/checkout@v7.0.1
 
       - run: docker build --tag pulse-server:pr-${{ github.event.pull_request.number }} .
+
+      # What the runtime stage copies (docs/mcp/operations.md) and Node.js's own licence, which
+      # THIRD_PARTY_LICENSES.txt points to: apps/mcp-server/test/third-party-licenses.test.ts holds
+      # this list to the Dockerfile.
+      - name: The image ships the licences
+        env:
+          IMAGE: pulse-server:pr-${{ github.event.pull_request.number }}
+        run: >-
+          docker run --rm --entrypoint sh "$IMAGE" -c
+          'test -s /usr/share/doc/pulse-server/LICENSE &&
+          test -s /usr/share/doc/pulse-server/THIRD_PARTY_LICENSES.txt &&
+          test -s /usr/local/LICENSE'

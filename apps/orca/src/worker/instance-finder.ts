@@ -1,4 +1,4 @@
-import { InstanceId, type InstanceSummary } from "@miragon/pulse-runtime-view/contract"
+import { InstanceId, type InstanceSummary } from "@miragon/pulse-engine-core"
 import { Labels } from "@miragon/pulse-runtime-view/core"
 import type { Connection } from "@miragon/pulse-runtime-view/host-kit"
 import type { FoundInstance } from "../protocol.js"

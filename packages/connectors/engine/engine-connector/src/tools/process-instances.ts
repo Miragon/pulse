@@ -10,7 +10,7 @@ import {
   setProcessInstanceSuspensionInput,
 } from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
-import { readProcessInstanceVariables } from "@miragon/pulse-engine-client"
+import { readProcessInstanceVariables } from "@miragon/pulse-c7-client"
 import {
   complementaryFlags,
   engineLike,
@@ -18,7 +18,7 @@ import {
   trueOnly,
   toEngineVariable,
   toEngineVariables,
-} from "@miragon/pulse-engine-core"
+} from "@miragon/pulse-c7-core"
 import {
   startProcessInstanceByKey,
   getProcessInstances,
@@ -28,7 +28,7 @@ import {
   getActivityInstanceTree,
   setProcessInstanceVariable,
   updateSuspensionStateById,
-} from "@miragon/pulse-engine-client/sdk"
+} from "@miragon/pulse-c7-client/sdk"
 import { inspectForModel } from "../lib/core-adapter/composites.js"
 import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
 import type { EngineRegistry } from "../lib/engine/resolve-engine.js"

@@ -1,11 +1,11 @@
 /**
  * The instance view of an ended instance as `pulse inspect` prints it: its next step as a
- * command line. The view's fallbacks and defaults are engine-core's (its snapshot-edges.test.ts).
+ * command line. The view's fallbacks and defaults are c7-core's (its snapshot-edges.test.ts).
  */
 
 import { describe, expect, it } from "vitest"
-import type { InstanceData } from "@miragon/pulse-engine-core"
-import { instanceView as viewOf } from "@miragon/pulse-engine-core/testing"
+import type { InstanceData } from "@miragon/pulse-c7-core"
+import { instanceView as viewOf } from "@miragon/pulse-c7-core/testing"
 import { cliView } from "./inspect.js"
 
 const instanceView = (data: InstanceData) => cliView(viewOf(data))

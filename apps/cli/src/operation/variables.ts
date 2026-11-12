@@ -1,20 +1,21 @@
 /**
  * Parses `--var` arguments into Camunda typed variable values.
  *
- *   name=value          auto typed (engine-core's autoTypedValue): true/false → Boolean,
+ *   name=value          auto typed (c7-core's autoTypedValue): true/false → Boolean,
  *                       integers → Integer/Long, decimals → Double, null → Null, everything
- *                       else → String
+ *                       else → String, also an integer beyond int64 and a decimal beyond the
+ *                       range of a double (their exact text)
  *   name:Type=value     explicit type, e.g. zip:String=01234, order:Json={"id":1}
  *
  * The typed conversions are the ones of option values (values.ts): `Date` values are normalized
  * like date-time options, `Long` keeps all 64 bits (as BigInt beyond 2^53).
  */
 
-import { autoTypedValue, type TypedValue } from "@miragon/pulse-engine-core"
+import { autoTypedValue, type TypedValue } from "@miragon/pulse-c7-core"
 import { usageError } from "../errors.js"
 import { convertScalar, type ScalarSpec } from "./values.js"
 
-/** A typed variable value as the engine takes it (engine-core's). */
+/** A typed variable value as the engine takes it (c7-core's). */
 export type { TypedValue }
 
 /** How a variable value appears in messages: `label` (`--var amount`) and an example for a type. */

@@ -1,4 +1,4 @@
-import { DefinitionId } from "../../contract/index.js"
+import { DefinitionId } from "@miragon/pulse-engine-core"
 import type { DefinitionView } from "../protocol/index.js"
 import type { PanelContext } from "./panel-context.js"
 

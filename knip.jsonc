@@ -6,7 +6,10 @@
   // workspace but docs (below). Together they report every issue type in every
   // workspace (docs: all but exports and types), so no workspace runs on its own.
   // knip never reports what an ENTRY file exports (includeEntryExports is off):
-  // the published entries' own lists are locked by their index tests.
+  // a test of its package holds each published entry's sorted runtime names
+  // instead (an index, entries or testing test, next to the entry or in test/),
+  // and scripts/entry-lists.test.mjs fails an entry, a new one included, that no
+  // such test holds.
   // Every ignore below is a documented exception: the list is shrink-only,
   // same convention as the ESLint ratchet lists.
 
@@ -72,19 +75,37 @@
       "entry": ["src/webview/main.tsx", "dev/webview/stub.ts", "dev/webview/*.mjs"],
     },
 
-    "packages/connectors/engine/engine-adapter": {
+    "packages/connectors/c7/c7-adapter": {
       "vitest": {
         "config": ["vitest.config.ts", "vitest.engines.config.ts"],
       },
     },
 
-    "packages/connectors/engine/engine-client": {
-      // Generated CIB seven SDK (pnpm generate): its export surface mirrors
-      // the OpenAPI spec, not our usage.
+    "packages/connectors/c7/c7-client": {
+      // Generated Camunda 7 REST SDK (pnpm generate): its export surface
+      // mirrors the OpenAPI spec, not our usage.
       "ignore": ["src/generated/**"],
     },
 
+    "packages/connectors/c7/c7-core": {
+      "vitest": {
+        "config": ["vitest.config.ts", "vitest.stryker.config.ts"],
+      },
+    },
+
     "packages/connectors/engine/engine-core": {
+      "vitest": {
+        "config": ["vitest.config.ts", "vitest.stryker.config.ts"],
+      },
+    },
+
+    "packages/core/http": {
+      "vitest": {
+        "config": ["vitest.config.ts", "vitest.stryker.config.ts"],
+      },
+    },
+
+    "packages/core/profile": {
       "vitest": {
         "config": ["vitest.config.ts", "vitest.stryker.config.ts"],
       },

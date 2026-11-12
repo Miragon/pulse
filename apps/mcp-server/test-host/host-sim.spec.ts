@@ -968,31 +968,80 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
     }
   })
 
-  // The engine module's flow and analytics' host widgets meet only here: each side pins the
-  // props in its own suite, so a drift between them shows in this render.
-  test("the process flow paints analytics' heat through its host widgets", async ({ page }) => {
+  // The flow's "Running" end to end: the server's real feed against the stub's statistics, its
+  // count on the built diagram and the values under it.
+  test("the process flow shows what runs at each element now, read from the engine", async ({
+    page,
+  }) => {
     const app = await openView(page, {
       args: { engine: HEALTHY_ENGINE, view: "process-detail", processDefinitionKey: "invoice" },
     })
     const modes = app.getByRole("group", { name: "Process flow display" })
-    // Offered once the analytics probe answered and both host widgets are in the bundle.
-    const frequency = modes.getByRole("button", { name: "Frequency" })
-    await expect(frequency).toBeVisible({ timeout: 15_000 })
-    await frequency.click()
+    await expect(modes).toBeVisible({ timeout: 15_000 })
+    // No other module's mode: the flow offers what the engine reads, nothing to probe.
+    await expect(modes.getByRole("button")).toHaveText([
+      "Incidents",
+      "Running",
+      "Throughput · 30 days",
+    ])
+    await modes.getByRole("button", { name: "Running" }).click()
 
-    // The stub Prometheus holds the heat of `invoice` on `stub` only: the key and the engine
-    // reached the feed, and the diagram the flow passed is drawn under the heat.
-    const heat = app.getByRole("img", {
-      name: "BPMN process diagram with an execution heat overlay",
+    await expect(
+      app.getByText("diagram v3 (latest) · running now, counts span 1 version"),
+    ).toBeVisible({
+      timeout: 15_000,
     })
-    await expect(heat.locator(".djs-connection")).toHaveCount(4, { timeout: 15_000 })
-    await expect(app.getByText("Executions per element · 30 days")).toBeVisible()
-    await expect(app.getByText("No metrics for this engine in this period.")).toHaveCount(0)
+    const canvas = app.getByRole("img", { name: "BPMN process diagram" })
+    await expect(canvas.locator(".djs-connection")).toHaveCount(4, { timeout: 15_000 })
+    // The two instances at approveInvoice, as a badge on that element.
+    await expect(app.locator(".bpmn-overlay-badge--instance-count")).toHaveText(["2"])
 
-    await modes.getByRole("button", { name: "Duration" }).click()
-    await expect(app.getByText("Avg duration per element · 30 days")).toBeVisible()
-    await expect(heat).toBeVisible()
-    await expect(app.getByText(/Could not load the heatmap/)).toHaveCount(0)
+    await app.getByText("Values per activity").click()
+    const values = app.getByRole("region", { name: "Values per activity" })
+    await expect(values.getByRole("row")).toHaveCount(2)
+    await expect(values.getByRole("row").nth(1)).toContainText("Approve Invoice")
+    await expect(values.getByRole("row").nth(1)).toContainText("approveInvoice")
+  })
+
+  // The flow's "Throughput" end to end: the real feed's history reads against the stub, the heat
+  // painted in the theme's ramp on the built diagram, and the values under it.
+  test("the process flow paints what the last 30 days' instances passed, read from the history", async ({
+    page,
+  }) => {
+    const app = await openView(page, {
+      args: { engine: HEALTHY_ENGINE, view: "process-detail", processDefinitionKey: "invoice" },
+    })
+    const modes = app.getByRole("group", { name: "Process flow display" })
+    await expect(modes).toBeVisible({ timeout: 15_000 })
+    await modes.getByRole("button", { name: "Throughput · 30 days" }).click()
+
+    await expect(
+      app.getByText(/^diagram v3 \(latest\) · 12 instances started since .+, on 1 version$/),
+    ).toBeVisible({ timeout: 15_000 })
+    const heat = app.getByRole("img", { name: "BPMN process diagram with the throughput as heat" })
+    await expect(heat.locator(".djs-connection")).toHaveCount(4, { timeout: 15_000 })
+    await expect(
+      app.getByText(/Read from the engine's history \(history level activity or higher\)/),
+    ).toBeVisible()
+    // The layer took its ramp from the theme's --cd-* variables: something is painted.
+    const painted = app.locator("canvas[aria-hidden='true']")
+    await expect
+      .poll(() =>
+        painted.evaluate((canvas: HTMLCanvasElement) => {
+          const pixels = canvas.getContext("2d")?.getImageData(0, 0, canvas.width, canvas.height)
+          return pixels ? pixels.data.some((value, i) => i % 4 === 3 && value > 0) : false
+        }),
+      )
+      .toBe(true)
+
+    await app.getByText("Values per activity").click()
+    const values = app.getByRole("region", { name: "Values per activity" })
+    // Most passed first: the twelve started; approveInvoice passed ten, and two still wait there.
+    await expect(values.getByRole("row").nth(1)).toContainText("Invoice received")
+    await expect(values.getByRole("row").nth(1)).toContainText("12")
+    await expect(values.getByRole("row").nth(2)).toContainText("Approve Invoice")
+    await expect(values.getByRole("row").nth(2).getByRole("cell").nth(1)).toHaveText("10")
+    await expect(values.getByRole("row").nth(2).getByRole("cell").nth(2)).toHaveText("2")
   })
 })
 
@@ -1425,5 +1474,60 @@ test.describe("cockpit (engine_open_cockpit)", () => {
       app.getByRole("button", { name: new RegExp(`^${BROKEN_ENGINE}\\b.*\\bunreachable$`) }),
     ).toBeVisible({ timeout: 15_000 })
     await expect(app.getByLabel("Selected engine")).toHaveCount(0)
+  })
+})
+
+/**
+ * What the VS Code extension showed and the cockpit lacked: an instance names the element of
+ * each incident and leads to its process, and the instance list's chips count what each lists.
+ */
+test.describe("an instance and the instance list (engine_open_cockpit)", () => {
+  test("an instance names each incident's element and leads to its process", async ({ page }) => {
+    const errors = collectErrors(page)
+    // The stub's one instance with open incidents (stub-engine.ts), no open task: the view
+    // opens on its Incidents tab.
+    const app = await openView(page, {
+      args: { engine: HEALTHY_ENGINE, view: "instance-detail", processInstanceId: "pi-invoice-42" },
+    })
+    const table = app.getByRole("region", { name: "Incidents of this instance" })
+    await expect(table).toBeVisible({ timeout: 15_000 })
+    await expect(table.getByRole("columnheader").first()).toHaveText("Activity")
+    const elements = table.locator("tbody > tr > td:first-child")
+    // The diagram's name leads with the id below it; an element the diagram lacks shows its id.
+    await expect(elements).toHaveText(["Approve InvoiceapproveInvoice", "chargeCard"])
+
+    await app.getByRole("button", { name: "View process" }).click()
+    await expect(app.getByRole("heading", { name: "Invoice Receipt" })).toBeVisible({
+      timeout: 15_000,
+    })
+    await expect(app.getByRole("navigation", { name: "Breadcrumb" })).toContainText(
+      "Invoice Receipt",
+    )
+    expect(errors).toEqual([])
+  })
+
+  test("the chips count what each lists, whichever chip is on", async ({ page }) => {
+    // The realistic engine: 160 running instances, 54 with an incident, 10 suspended.
+    const app = await openView(page, {
+      hostEnv: REALISTIC_HOST_ENV,
+      args: { engine: REALISTIC_ENGINE, view: "process-instances" },
+    })
+    const chips = app.getByRole("group", { name: "Instance filters" })
+    // Exact names and texts: a substring would let 540 pass for 54 and 154 running for 54.
+    const all = chips.getByRole("button", { name: "All 160", exact: true })
+    const withIncidents = chips.getByRole("button", { name: "With incident 54", exact: true })
+    const suspended = chips.getByRole("button", { name: "Suspended 10", exact: true })
+    await expect(all).toBeVisible({ timeout: 15_000 })
+    await expect(withIncidents).toBeVisible()
+    await expect(suspended).toBeVisible()
+    await expect(app.getByText("160 running", { exact: true })).toBeVisible()
+
+    await chips.getByRole("button", { name: /^With incident/ }).click()
+    await expect(app.getByText("54 running", { exact: true })).toBeVisible({ timeout: 15_000 })
+    // Still the whole list and its suspended ones, not those that also have an incident.
+    await expect(all).toBeVisible()
+    await expect(suspended).toBeVisible()
+    await expect(withIncidents).toHaveAttribute("aria-pressed", "true")
+    await expect(all).toHaveAttribute("aria-pressed", "false")
   })
 })

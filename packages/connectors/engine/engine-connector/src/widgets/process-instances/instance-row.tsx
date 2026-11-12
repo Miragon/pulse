@@ -5,6 +5,7 @@ import {
   Td,
   VersionChip,
   CountPill,
+  SITUATION_TONES,
   StatusBadge,
   TONE_DOT,
   type ToneVariant,
@@ -20,9 +21,9 @@ import { useT } from "../../messages/use-t.js"
 import { rootCauseHandOff } from "./hand-offs.js"
 
 function rowTone(row: ProcessInstanceRow): ToneVariant {
-  if (row.hasIncident) return "danger"
-  if (row.suspended) return "warning"
-  return "neutral"
+  if (row.hasIncident) return SITUATION_TONES.openIncident
+  if (row.suspended) return SITUATION_TONES.suspended
+  return SITUATION_TONES.running
 }
 
 export function InstanceRow({
@@ -56,7 +57,9 @@ export function InstanceRow({
             state still shows in words, never as the dot's colour alone. */}
         {showProcessColumn && row.suspended && (
           <span className="mt-1 flex @min-[48rem]:hidden">
-            <StatusBadge tone="warning">{t("processInstances.stateSuspended")}</StatusBadge>
+            <StatusBadge tone={SITUATION_TONES.suspended}>
+              {t("processInstances.stateSuspended")}
+            </StatusBadge>
           </span>
         )}
       </Td>
@@ -103,16 +106,18 @@ export function InstanceRow({
       )}
       <Td>
         {row.suspended ? (
-          <StatusBadge tone="warning">{t("processInstances.stateSuspended")}</StatusBadge>
+          <StatusBadge tone={SITUATION_TONES.suspended}>
+            {t("processInstances.stateSuspended")}
+          </StatusBadge>
         ) : (
-          <span className="text-muted-foreground text-small">
+          <StatusBadge tone={SITUATION_TONES.running}>
             {t("processInstances.stateRunning")}
-          </span>
+          </StatusBadge>
         )}
       </Td>
       <Td align="right">
         {row.hasIncident ? (
-          <CountPill tone="danger">
+          <CountPill tone={SITUATION_TONES.openIncident}>
             <Icon icon={TriangleAlert} dense label={t("processInstances.hasIncident")} />
           </CountPill>
         ) : (

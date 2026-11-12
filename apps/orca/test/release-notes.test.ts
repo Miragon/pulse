@@ -22,6 +22,7 @@ const CHANGELOG = `# Changelog
 
 * **engine:** a server fix ([#3](https://github.com/Miragon/pulse/issues/3))
 * **runtime-view:** a tab keeps its scroll position ([#4](https://github.com/Miragon/pulse/issues/4))
+* **c7-adapter:** a variable keeps its type ([#6](https://github.com/Miragon/pulse/issues/6))
 
 ## [0.27.1](https://github.com/Miragon/pulse/compare/v0.27.0...v0.27.1) (2026-11-07)
 
@@ -59,6 +60,7 @@ describe("the catalog's release notes", () => {
         "### Bug Fixes",
         "",
         "* **runtime-view:** a tab keeps its scroll position ([#4](https://github.com/Miragon/pulse/issues/4))",
+        "* **c7-adapter:** a variable keeps its type ([#6](https://github.com/Miragon/pulse/issues/6))",
         "",
         "[Every change of Pulse v0.28.0](https://github.com/Miragon/pulse/releases/tag/v0.28.0)",
       ].join("\n"),
@@ -74,7 +76,9 @@ describe("the catalog's release notes", () => {
 
   test("say so when the release leaves the plugin as it was", async () => {
     const notes = await notesFor(
-      CHANGELOG.replaceAll("**orca:**", "**cli:**").replaceAll("**runtime-view:**", "**cli:**"),
+      CHANGELOG.replaceAll("**orca:**", "**cli:**")
+        .replaceAll("**runtime-view:**", "**cli:**")
+        .replaceAll("**c7-adapter:**", "**cli:**"),
       "v0.28.0",
     )
 

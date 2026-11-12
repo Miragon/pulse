@@ -1,10 +1,7 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import { PulseCliError } from "../errors.js"
-import { profileAuthProblem } from "./auth.js"
 import {
-  hasOAuthKeys,
-  isLoopbackHost,
   parseRedirectPort,
   parseScopes,
   validateAudience,
@@ -83,13 +80,6 @@ describe("validateOAuthUrl", () => {
     const scheme = failure(() => validateOAuthUrl("user:pw@as", "issuer", LABEL))
     expect(scheme.message).toContain('got "***@as"')
     expect(scheme.message).not.toContain("pw")
-  })
-
-  it("knows the loopback hosts", () => {
-    for (const host of ["localhost", "127.0.0.1", "127.255.0.9", "[::1]"])
-      expect(isLoopbackHost(host)).toBe(true)
-    for (const host of ["localhost.x", "128.0.0.1", "10.0.0.1", "::1", "127.0.0"])
-      expect(isLoopbackHost(host)).toBe(false)
   })
 })
 
@@ -171,108 +161,5 @@ describe("parseRedirectPort", () => {
     ).toBe(
       `The OAuth redirect port (from PULSE_CLI_OAUTH_REDIRECT_PORT) must be a whole number between 0 and 65535, got "${value}"`,
     )
-  })
-})
-
-describe("profileAuthProblem with OAuth keys", () => {
-  it("accepts the documented OAuth shapes", () => {
-    for (const auth of [
-      {
-        type: "oauth",
-        issuer: "https://as",
-        clientId: "c",
-        scopes: ["openid"],
-        audience: "a",
-        redirectPort: 0,
-      },
-      {
-        type: "oauth",
-        authorizationEndpoint: "https://as/a",
-        tokenEndpoint: "https://as/t",
-        clientId: "c",
-        clientSecretEnv: "S",
-      },
-      { type: "oauth", clientSecret: "literal", scopes: [] },
-      { type: "none", issuer: "https://as", clientId: "c" },
-      { type: "oauth" },
-    ]) {
-      expect(profileAuthProblem("p", auth), JSON.stringify(auth)).toBeUndefined()
-    }
-  })
-
-  it.each([
-    [
-      { type: "oauth", issuer: "" },
-      'profile "p" has an invalid auth.issuer (expected a URL such as https://login.example.com/realms/x)',
-    ],
-    [
-      { type: "oauth", scopes: "openid" },
-      'profile "p" has an invalid auth.scopes (expected an array of distinct scopes such as ["openid", "offline_access"])',
-    ],
-    [
-      { type: "oauth", scopes: ["openid", "openid"] },
-      'profile "p" has an invalid auth.scopes (expected an array of distinct scopes such as ["openid", "offline_access"])',
-    ],
-    [
-      { type: "oauth", scopes: ["a b"] },
-      'profile "p" has an invalid auth.scopes (expected an array of distinct scopes such as ["openid", "offline_access"])',
-    ],
-    [
-      { type: "oauth", redirectPort: 70000 },
-      'profile "p" has an invalid auth.redirectPort (expected a whole number between 0 and 65535)',
-    ],
-    [
-      { type: "oauth", redirectPort: "8080" },
-      'profile "p" has an invalid auth.redirectPort (expected a whole number between 0 and 65535)',
-    ],
-    [
-      { type: "oauth", clientSecretEnv: "my-secret" },
-      'profile "p" has an invalid auth.clientSecretEnv (expected the name of an environment variable, e.g. PULSE_CLI_CLIENT_SECRET)',
-    ],
-    [
-      { type: "oauth", clientId: " " },
-      'profile "p" has an invalid auth.clientId (expected a non-empty string)',
-    ],
-    [
-      { type: "oauth", username: "u", issuer: "https://as", clientId: "c" },
-      'profile "p" mixes Basic auth keys (username) and OAuth keys (issuer, clientId); keep one',
-    ],
-    [
-      { type: "basic", issuer: "https://as" },
-      'profile "p" has OAuth keys (issuer) but its auth.type is basic; set "type": "oauth"',
-    ],
-    [
-      { clientId: "c" },
-      'profile "p" has OAuth keys (clientId) but its auth.type is not set; set "type": "oauth"',
-    ],
-    [
-      { type: "oauth", username: "u" },
-      'profile "p" has Basic auth keys (username) but its auth.type is oauth; set "type": "basic"',
-    ],
-    [
-      { type: "oauth", clientSecret: "x", clientSecretEnv: "S" },
-      'profile "p" sets both auth.clientSecret and auth.clientSecretEnv; keep one (clientSecretEnv is recommended)',
-    ],
-    [
-      { type: "oauth", tokenEndpoint: "https://as/t" },
-      'profile "p" sets auth.tokenEndpoint without the other endpoint; set both auth.authorizationEndpoint and auth.tokenEndpoint, or neither (discovery from auth.issuer)',
-    ],
-  ])("reports %j", (auth, problem) => {
-    expect(profileAuthProblem("p", auth)).toBe(problem)
-  })
-
-  it("leaves unknown types to resolution", () => {
-    expect(profileAuthProblem("p", { type: "digest", clientId: "c" })).toBeUndefined()
-  })
-
-  it("never quotes values", () => {
-    const problem = profileAuthProblem("p", { type: "basic", clientSecret: "very-secret" })
-    expect(problem).not.toContain("very-secret")
-  })
-
-  it("knows when a stored auth object has OAuth settings", () => {
-    expect(hasOAuthKeys({ type: "none", clientId: "c" })).toBe(true)
-    expect(hasOAuthKeys({ type: "oauth" })).toBe(false)
-    expect(hasOAuthKeys(undefined)).toBe(false)
   })
 })

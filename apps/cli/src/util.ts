@@ -3,6 +3,14 @@
 /** The program name: the command, the help and every hint name it this way. */
 export const CLI_NAME = "pulse"
 
+/**
+ * The profile of a `pulse config set` hint: the selected one, else a new one, which needs its URL
+ * (`config set` refuses a new profile without one).
+ */
+export function profileToSet(profile: string | undefined): string {
+  return profile ?? "<profile> --url <url>"
+}
+
 type Defined<T> = { [K in keyof T]: Exclude<T[K], undefined> }
 
 /**
@@ -59,21 +67,15 @@ export function mergeHeaders(
   return Object.fromEntries(merged.values())
 }
 
-/** Headers that carry a secret by name (lower case); the project file schema refuses them too. */
-export const SECRET_HEADERS: ReadonlySet<string> = new Set([
+/** Headers that carry a secret by name (lower case); a project file refuses them too. */
+const SECRET_HEADERS: ReadonlySet<string> = new Set([
   "authorization",
   "proxy-authorization",
   "cookie",
   "set-cookie",
 ])
-/** Parts of a header name that mark a secret (lower case); the project file schema refuses them too. */
-export const SECRET_NAME_PARTS: readonly string[] = [
-  "token",
-  "secret",
-  "password",
-  "api-key",
-  "apikey",
-]
+/** Parts of a header name that mark a secret (lower case); a project file refuses them too. */
+const SECRET_NAME_PARTS: readonly string[] = ["token", "secret", "password", "api-key", "apikey"]
 
 /**
  * True for a header that carries a secret: credentials, cookies and names containing token,
@@ -91,35 +93,18 @@ export async function sha256Hex(data: string | Uint8Array): Promise<string> {
   return [...digest].map((byte) => byte.toString(16).padStart(2, "0")).join("")
 }
 
-/** The parts of `JSON` that TypeScript's ES2023 lib does not describe (Node.js >= 21 has them). */
+/** The part of `JSON` that TypeScript's ES2023 lib does not describe (Node.js >= 21 has it). */
 interface SourceJson {
-  parse(
-    text: string,
-    reviver: (key: string, value: unknown, context: { readonly source?: string }) => unknown,
-  ): unknown
   rawJSON(text: string): unknown
 }
 
 const SOURCE_JSON = JSON as unknown as SourceJson
-const INTEGER_LITERAL = /^-?\d+$/
 
 /**
- * JSON.parse without losing integers beyond 2^53 (engine `Long` values such as
- * 9223372036854775807): they become BigInts, which `stringifyJson` writes back digit for digit.
- * Other numbers are parsed as usual. Throws like JSON.parse.
+ * JSON.stringify that writes BigInts as plain JSON numbers, digit for digit: the integers beyond
+ * 2^53 (engine `Long` values such as 9223372036854775807) that @miragon/pulse-http's
+ * `parseJson(text, "bigint")` reads from an answer, a body or a preview.
  */
-export function parseJson(text: string): unknown {
-  return SOURCE_JSON.parse(text, (_key, value, context) =>
-    typeof value === "number" &&
-    !Number.isSafeInteger(value) &&
-    context.source !== undefined &&
-    INTEGER_LITERAL.test(context.source)
-      ? BigInt(context.source)
-      : value,
-  )
-}
-
-/** JSON.stringify that writes BigInts (from `parseJson`) as plain JSON numbers. */
 export function stringifyJson(value: unknown, indent?: number): string | undefined {
   return JSON.stringify(
     value,

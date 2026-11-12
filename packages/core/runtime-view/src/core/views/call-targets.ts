@@ -5,7 +5,7 @@ import type {
   DefinitionRef,
   InstanceDetail,
   InstanceId,
-} from "../../contract/index.js"
+} from "@miragon/pulse-engine-core"
 
 export interface CalledInstanceChoice {
   readonly instance: CalledInstance

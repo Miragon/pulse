@@ -7,7 +7,7 @@ import {
   IsoTimestamp,
   type InstanceDetail,
   type WaitState,
-} from "../../src/contract/index.js"
+} from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
 import type { IncidentRow } from "../../src/core/protocol/index.js"
 import { InstanceHeadline } from "../../src/core/views/instance-headline.js"

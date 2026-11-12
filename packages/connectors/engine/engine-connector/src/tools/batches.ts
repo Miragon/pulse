@@ -1,13 +1,13 @@
 import { getBatchInput } from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
-import { readBatch, type Client } from "@miragon/pulse-engine-client"
+import { readBatch, type Client } from "@miragon/pulse-c7-client"
 import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 import { isMissingResource } from "../lib/core-adapter/engine-port.js"
 
 /**
  * The batch, or an error that says neither the runtime nor the history knows it (a missing
- * resource by engine-core's rule); any other failure, a wrong REST root included, as it is.
+ * resource by c7-core's rule); any other failure, a wrong REST root included, as it is.
  */
 async function batchReport(client: Client, batchId: string) {
   try {

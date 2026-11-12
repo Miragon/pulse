@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { engineVerdict, type IncidentGroup } from "@miragon/pulse-engine-core"
-import { type FindingInput, findings as coreFindings } from "@miragon/pulse-engine-core/testing"
+import { engineVerdict, type IncidentGroup } from "@miragon/pulse-c7-core"
+import { type FindingInput, findings as coreFindings } from "@miragon/pulse-c7-core/testing"
 import { checkFailure } from "./findings.js"
 import { omit } from "../util.js"
 import { renderFinding } from "./status-command.js"

@@ -1,15 +1,21 @@
 /// <reference types="node" />
-import { createHash } from "node:crypto"
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { basename, dirname, join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { vendoredTokenFindings } from "./vendored-tokens.test-support.js"
+import {
+  EQUAL_FIX,
+  FORK,
+  FORK_FIX,
+  checksumsOf,
+  fixtureRepo,
+  manifestOf,
+  sha,
+  type FixtureRepo,
+} from "./vendored-token-fixtures.test-support.js"
 
 /**
- * Fixture repos for the parts of the vendored-token verifier that
- * `vendored-tokens.test.ts` does not reach: the sha256sum list that
- * brand-assets.mjs writes (`.miragon/brand-assets.sha256`) and `valuesOnly`.
+ * The parts of the vendored-token verifier that `vendored-tokens.test.ts` does
+ * not reach: the sha256sum list that brand-assets.mjs writes
+ * (`.miragon/brand-assets.sha256`) and `valuesOnly`, over fixture repos
+ * (`vendored-token-fixtures.test-support.ts`).
  */
 
 const PALETTE = new Map([
@@ -19,52 +25,24 @@ const PALETTE = new Map([
 
 const TOKENS = ":root {\n  --cd-blau: #335DE5;\n  --cd-gruen: #00E676;\n}\n"
 
-const FORK = "declares --cd-* outside a sanctioned vendored copy (a fork)"
-const FORK_FIX =
-  "reference pulse-ui's tokens and roles with var(), or vendor the CI file unchanged with a manifest listed in SANCTIONED_TOKEN_MANIFESTS"
-
-const sha = (text: string) => createHash("sha256").update(text).digest("hex")
-
-/** A manifest in the docs kit's format for the given files (`pfad` to its content). */
-function manifestOf(files: Record<string, string>): string {
-  return JSON.stringify({
-    version: "1.25.1",
-    dateien: Object.entries(files).map(([pfad, content]) => ({
-      pfad,
-      quelle: `assets/${basename(pfad)}`,
-      sha256: sha(content),
-    })),
-  })
-}
-
-/** A sha256sum list as brand-assets.mjs writes `.miragon/brand-assets.sha256`. */
-function checksumsOf(files: Record<string, string>): string {
-  return Object.entries(files)
-    .map(([path, content]) => `${sha(content)}  ${path}\n`)
-    .join("")
-}
-
 const CHECKSUMS = ".miragon/brand-assets.sha256"
 
-let root: string
+let repo: FixtureRepo
 
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), "vendored-checksums-"))
+  repo = fixtureRepo(PALETTE)
 })
 
 afterEach(() => {
-  rmSync(root, { recursive: true, force: true })
+  repo.remove()
 })
 
-function write(files: Record<string, string>): void {
-  for (const [path, content] of Object.entries(files)) {
-    mkdirSync(dirname(join(root, path)), { recursive: true })
-    writeFileSync(join(root, path), content)
-  }
+const write = (files: Record<string, string>) => {
+  repo.write(files)
 }
 
-const findings = (manifests: string[], scanRoots: string[] = ["app"], valuesOnly?: string[]) =>
-  vendoredTokenFindings({ root, manifests, scanRoots, palette: PALETTE, valuesOnly })
+const findings = (manifests: string[], scanRoots?: string[], valuesOnly?: string[]) =>
+  repo.findings(manifests, scanRoots, valuesOnly)
 
 describe("vendoredTokenFindings: a sha256sum list from brand-assets.mjs", () => {
   it("sanctions each listed copy in its own folder, a folder at a time", () => {
@@ -145,7 +123,25 @@ describe("vendoredTokenFindings: valuesOnly", () => {
         ["app/kit/manifest.json", "app/old/manifest.json"],
       ),
     ).toEqual([
-      "app/old/cd-tokens.generated.css: --cd-blau is #1D1D1D, pulse-ui's copy says #335DE5: vendor both from the same CI release (a re-vendor), never change a value in the repo",
+      `--cd-blau in :root differs between the vendored copies (#335DE5 in pulse-ui's palette, app/kit/cd-tokens.generated.css; #1D1D1D in app/old/cd-tokens.generated.css): ${EQUAL_FIX}`,
+    ])
+  })
+
+  it("lifts only the whole-palette rule: an older copy's theme value is held to the brand-assets copies by scope", () => {
+    const dark = (value: string) =>
+      `@media screen {\n  [data-cd-theme="dark"] {\n    --cd-ui-grund: ${value};\n  }\n}\n`
+    const copies = { "app/ui/cd-tokens.generated.css": `${TOKENS}${dark("#1D1D1D")}` }
+    const kit = `:root { --cd-blau: #335DE5; }\n${dark("#6B6666")}`
+    write({
+      ...copies,
+      [CHECKSUMS]: checksumsOf(copies),
+      "app/kit/cd-tokens.generated.css": kit,
+      "app/kit/manifest.json": manifestOf({ "app/kit/cd-tokens.generated.css": kit }),
+    })
+    expect(
+      findings([CHECKSUMS, "app/kit/manifest.json"], ["app"], ["app/kit/manifest.json"]),
+    ).toEqual([
+      `--cd-ui-grund in @media screen { [data-cd-theme="dark"] } differs between the vendored copies (#1D1D1D in app/ui/cd-tokens.generated.css; #6B6666 in app/kit/cd-tokens.generated.css): ${EQUAL_FIX}`,
     ])
   })
 })

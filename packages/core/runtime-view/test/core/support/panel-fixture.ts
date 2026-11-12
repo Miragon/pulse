@@ -1,10 +1,5 @@
-import type {
-  IncidentDetails,
-  ProcessCommands,
-  ProcessRuntime,
-} from "../../../src/contract/index.js"
-import type { SeededWorld } from "../../../src/contract/conformance/index.js"
-import { FakeEngine, FakeWorld } from "../../../src/contract/fake/index.js"
+import type { IncidentDetails, ProcessCommands, ProcessRuntime } from "@miragon/pulse-engine-core"
+import { FakeEngine, FakeWorld, type SeededWorld } from "@miragon/pulse-engine-core/testing"
 import { vi, type Mock } from "vitest"
 import { DiagramCache } from "../../../src/core/diagrams/diagram-cache.js"
 import { BulkRuns } from "../../../src/core/panels/bulk-runs.js"
@@ -19,6 +14,7 @@ import type {
   PanelEffects,
 } from "../../../src/core/panels/panel-context.js"
 import type { EngineBadge, PanelState } from "../../../src/core/protocol/index.js"
+import type { EngineCli } from "../../../src/ports/index.js"
 
 const ENGINE: EngineBadge = { name: "local", environment: "local", host: "localhost" }
 const NOW = new Date("2026-10-21T09:00:00Z")
@@ -43,14 +39,18 @@ const RUNTIME_METHODS = [
   "getIncidentDetails",
   "getBulkOperation",
   "getBulkFailures",
+] as const satisfies readonly (keyof ProcessRuntime)[]
+
+const PLANNING_METHODS = [
   "proposeMigration",
   "checkMigration",
 ] as const satisfies readonly (keyof ProcessRuntime)[]
 
 function counting(runtime: ProcessRuntime): CountingRuntime {
   const calls: string[] = []
+  const planning = PLANNING_METHODS.filter((name) => runtime[name] !== undefined)
   const counted = Object.fromEntries(
-    RUNTIME_METHODS.map((name) => [
+    [...RUNTIME_METHODS, ...planning].map((name) => [
       name,
       (...args: unknown[]) => {
         calls.push(name)
@@ -58,7 +58,11 @@ function counting(runtime: ProcessRuntime): CountingRuntime {
       },
     ]),
   ) as unknown as ProcessRuntime
-  return { runtime: counted, calls }
+  const refused = runtime.refusedVariableConditions?.bind(runtime)
+  return {
+    runtime: refused === undefined ? counted : { ...counted, refusedVariableConditions: refused },
+    calls,
+  }
 }
 
 export interface PanelFixture {
@@ -76,9 +80,23 @@ export interface FixtureOptions {
   readonly writable?: boolean
   readonly engine?: EngineBadge
   readonly adaptCommands?: (commands: ProcessCommands) => ProcessCommands
+  readonly cli?: EngineCli
   readonly sources?: LocalSources
   readonly live?: LiveSetting
   readonly now?: () => Date
+}
+
+function optionalPorts(
+  options: FixtureOptions,
+  commands: ProcessCommands,
+  live: LiveContext | undefined,
+): Pick<PanelContext, "commands" | "cli" | "sources" | "live"> {
+  return {
+    ...(options.writable === true ? { commands } : {}),
+    ...(options.cli === undefined ? {} : { cli: options.cli }),
+    ...(options.sources === undefined ? {} : { sources: options.sources }),
+    ...(live === undefined ? {} : { live }),
+  }
 }
 
 export function panelFixture(
@@ -134,9 +152,7 @@ export function panelFixture(
     publish: (published) => states.push(published),
     now,
     wait: vi.fn(() => Promise.resolve()),
-    ...(options.writable === true ? { commands } : {}),
-    ...(options.sources === undefined ? {} : { sources: options.sources }),
-    ...(live === undefined ? {} : { live }),
+    ...optionalPorts(options, commands, live),
     bulkRuns: new BulkRuns(),
   }
   return {

@@ -122,6 +122,23 @@ export function registerValues(scenario: Scenario): void {
     expect(stored.stdout).toMatch(/"value":9007199254740993[,}]/)
   })
 
+  // The form the MCP server's instructions ask a model for (a JSON number that large reaches the
+  // server rounded): the engine reads a Long given as a string with every digit.
+  it("stores a Long beyond 2^53 given as a string with every digit", async () => {
+    const instanceId = await startOrder("LONG-TEXT")
+    const set = await cli([
+      "api",
+      "PUT",
+      `/process-instance/${instanceId}/variables/big`,
+      "--body",
+      '{"value":"9007199254740993","type":"Long"}',
+    ])
+    expectSuccess(set)
+    const get = await cli(argv("process-instance get-variable", [instanceId, "big"]))
+    expect(expectSuccess(get).stdout).toMatch(/"type":"Long"/)
+    expect(get.stdout).toMatch(/"value":9007199254740993[,}]/)
+  })
+
   it("passes --version to the operation instead of printing the CLI version", async () => {
     const result = await cli(argv("process-definition list", [], { key: PROCESS_KEY, version: 1 }))
     expect(expectSuccess(result).json<ProcessDefinition[]>()).toEqual([

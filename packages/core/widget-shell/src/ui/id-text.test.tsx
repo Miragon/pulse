@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { LocaleProvider, ToastProvider } from "@miragon/pulse-ui"
-import { copyText, IdCell, IdText, shortId } from "./id-text.js"
+import { copyText, IdCell, IdText } from "./id-text.js"
 
 const UUID = "5f0ce78e-6b1d-11ef-9c3a-0242ac120002"
 
@@ -22,15 +22,6 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   vi.useRealTimers()
-})
-
-describe("shortId", () => {
-  it("keeps a short id whole and cuts a long one to its head", () => {
-    expect(shortId("LEA-2026-04")).toBe("LEA-2026-04")
-    expect(shortId("123456789012")).toBe("123456789012")
-    expect(shortId("1234567890123")).toBe("12345678…")
-    expect(shortId(UUID)).toBe("5f0ce78e…")
-  })
 })
 
 describe("IdText (U2, U13)", () => {

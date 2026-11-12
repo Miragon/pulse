@@ -3,7 +3,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import { describe, expect, test, vi } from "vitest"
-import { InstanceId } from "@miragon/pulse-runtime-view/contract"
+import { InstanceId } from "@miragon/pulse-engine-core"
 import type { Connection } from "@miragon/pulse-runtime-view/host-kit"
 import type { EngineRegistry } from "../src/worker/engine-registry.js"
 import { OrcaSettings } from "../src/worker/orca-settings.js"
@@ -19,6 +19,7 @@ class Harness {
   readonly files: string[] = []
   readonly registry = {
     projectFiles: () => this.files,
+    formerProjectFiles: (): string[] => [],
     reload: vi.fn(() => Promise.resolve()),
     applyLiveSettings: vi.fn(() => Promise.resolve()),
     noteWrite: vi.fn(),
@@ -208,7 +209,7 @@ describe("the services of the worker", () => {
     expect(harness.services.roots()).toEqual([])
     await harness.services.learnRoots()
     expect(harness.services.roots()).toEqual([harness.root])
-    harness.files.push("/a/.pulse-cli.json", "/b/.pulse-cli.json")
+    harness.files.push("/a/.pulse.json", "/b/.pulse.json")
     expect(harness.services.roots()).toEqual(["/a", "/b"])
     expect(await harness.services.root()).toBe("/a")
   })

@@ -12,6 +12,8 @@ export const deAskAi: Record<EngineAskAiKey, string> = {
     "Bewerte den Zustand dieser Engine: Ordne die Incident-Cluster nach Auswirkung, nenn das dringendste Problem fachlich, seine wahrscheinliche Ursache und den ersten Schritt zur Behebung. Ändere nichts ohne meine Bestätigung.",
   "askAi.health.diagnoseUnreachable":
     "Die Zustandsprüfung der Engine ist fehlgeschlagen. Finde heraus, warum die Engine nicht erreichbar ist (ausgefallen, falsche Basis-URL, Anmeldung oder Netzwerk), und nenn den nächsten Schritt. Ändere nichts.",
+  "askAi.health.diagnoseLogin":
+    "Die Engine hat die Anmeldung des Servers abgelehnt. Finde heraus, warum (falsche oder abgelaufene Zugangsdaten oder Berechtigungen, die dem Konto des Servers fehlen), und nenn den nächsten Schritt. Ändere nichts.",
   "askAi.cluster.fix":
     "Hilf mir, diesen Incident-Cluster zu beheben: Bestätige die Ursache und schlag dann eine Behebung genau für diesen Cluster vor. Zeig mir den Plan und wie viele Instanzen betroffen sind, und führ nichts aus, bevor ich bestätige.",
   "askAi.cluster.diagnose":
@@ -24,8 +26,6 @@ export const deAskAi: Record<EngineAskAiKey, string> = {
     "Gib mir einen Überblick über diese Engines: Wo liegt die meiste Arbeit, wo liegen die meisten Probleme, gibt es einen Job-Rückstau oder eine stille Engine, und wo fange ich an? Nur empfehlen.",
   "askAi.fleet.failures":
     "Analysier die Fehler über diese Engines: der häufigste Fehler-Cluster, ob er einzeln oder systematisch auftritt, und die Behebung mit der größten Wirkung.",
-  "askAi.fleet.performance":
-    "Gib mir einen Überblick über die Prozess-Performance dieser Engines: die langsamsten Prozesse und der größte Engpass. Vergleich Prozesse, nicht Engines.",
   "askAi.instances.rootCause":
     "Finde die Ursache des Incidents dieser Instanz, prüf, ob andere Instanzen des Prozesses genauso fehlschlagen, und empfiehl eine Behebung für diese Instanz oder den ganzen Cluster.",
   "askAi.instances.triageProcess":

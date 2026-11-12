@@ -2,7 +2,7 @@
 
 import type { Catalog } from "../catalog/types.js"
 import type { Flavor } from "../config/types.js"
-import type { ClientOptions } from "../http/client.js"
+import type { Client } from "../http/client.js"
 import type { Target } from "../operation/request.js"
 import type { EnginePort } from "./engine-port.js"
 
@@ -11,5 +11,5 @@ export type EngineName = Flavor
 export interface EngineAdapter {
   readonly name: EngineName
   readonly catalog: Catalog
-  port(target: Target, client: ClientOptions): EnginePort
+  port(target: Target, client: Client): EnginePort
 }

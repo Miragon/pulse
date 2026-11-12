@@ -51,6 +51,24 @@ describe("HandOffButton: one icon and one verb per function, in every module", (
     }
   })
 
+  // Name by name: a function joins or leaves the kit by a decision made in review.
+  it("holds exactly these functions", () => {
+    expect([...ACTIONS].sort()).toEqual([
+      "analyzeFailures",
+      "assess",
+      "checkHealth",
+      "checkVariables",
+      "draftTicket",
+      "explainDiagram",
+      "explainDuration",
+      "explainError",
+      "explainTimeline",
+      "findCause",
+      "planFix",
+      "prioritize",
+    ])
+  })
+
   it("no two functions share an icon (two hand-offs in one row stay distinguishable)", () => {
     const icons = Object.values(HAND_OFF_ACTIONS)
     expect(new Set(icons).size).toBe(icons.length)
@@ -83,17 +101,17 @@ describe("HandOffButton: one icon and one verb per function, in every module", (
     render(
       <LocaleProvider locale="en">
         <HandOffButton
-          action="compareEngines"
+          action="findCause"
           variant="icon"
-          title="Compare “order” across its engines in chat"
+          title="Find the cause of “order” in chat"
           prompt={prompt}
         />
       </LocaleProvider>,
     )
     const button = screen.getByRole("button", {
-      name: "Compare “order” across its engines in chat",
+      name: "Find the cause of “order” in chat",
     })
-    expect(button.getAttribute("title")).toBe("Compare “order” across its engines in chat")
+    expect(button.getAttribute("title")).toBe("Find the cause of “order” in chat")
   })
 
   it("renders nothing for a hand-off this deployment cannot offer", () => {

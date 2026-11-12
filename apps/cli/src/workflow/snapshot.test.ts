@@ -16,8 +16,8 @@ import {
   paidStage,
   instanceView as viewOf,
   waitSignalStage,
-} from "@miragon/pulse-engine-core/testing"
-import { type InstanceData, type Rec, type WaitState, waitId } from "@miragon/pulse-engine-core"
+} from "@miragon/pulse-c7-core/testing"
+import { type InstanceData, type Rec, type WaitState, waitId } from "@miragon/pulse-c7-core"
 import { cliView } from "./inspect.js"
 
 const instanceView = (data: InstanceData) => cliView(viewOf(data))

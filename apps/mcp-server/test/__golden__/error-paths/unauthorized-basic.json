@@ -1,0 +1,32 @@
+{
+  "case": "unauthorized-basic",
+  "config": {
+    "ENGINE_AUTH_TYPE": "basic",
+    "ENGINE_BASE_URL": "http://127.0.0.1:<port>/engine-rest",
+    "ENGINE_PASSWORD": "demo-secret",
+    "ENGINE_USERNAME": "demo"
+  },
+  "probes": [
+    {
+      "arguments": {
+        "processInstanceId": "pi-1"
+      },
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "[401] empty response body (engine default). The engine rejected the configured credentials."
+            ],
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "sent": [
+        "GET /engine-rest/history/process-instance/pi-1 [Basic ZGVtbzpkZW1vLXNlY3JldA==]",
+        "GET /engine-rest/process-instance/pi-1 [Basic ZGVtbzpkZW1vLXNlY3JldA==]"
+      ],
+      "tool": "engine_inspect_process_instance"
+    }
+  ]
+}

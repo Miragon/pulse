@@ -7,7 +7,7 @@ only its adapter changes.
 ```mermaid
 flowchart TB
   workflow["src/workflow<br/>advance, inspect, retry …"]
-  core["@miragon/pulse-engine-core<br/>the workflow domain and engine REST rules, bundled"]
+  core["@miragon/pulse-c7-core<br/>the c7 family's core: workflow domain, engine REST rules<br/>and engine-core's root-cause rule, bundled"]
   operation["src/operation<br/>dates, --var typing"]
   cli["src/cli<br/>commands, help, describe"]
   port["src/engine-port<br/>EnginePort, EngineAdapter"]
@@ -29,20 +29,20 @@ flowchart TB
 
 ## Layers
 
-| Folder            | What it holds                                                                                  |
-| ----------------- | ---------------------------------------------------------------------------------------------- |
-| `src/engine-port` | What the CLI needs from an engine: `EnginePort` and `EngineAdapter`. Types only                |
-| `src/engines`     | One adapter per engine: `operaton`, `cibseven`, `camunda7`                                     |
-| `src/api`         | One folder per engine API. `camunda7-rest` builds catalog and port                             |
-| `src/workflow`    | The workflow commands. They know the port, never an adapter or an API                          |
-| engine-core       | `packages/connectors/engine/engine-core`: selection, inspect, status, plans, engine REST rules |
-| `src/cli`         | Selects the adapter and registers its commands                                                 |
+| Folder            | What it holds                                                                                                            |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `src/engine-port` | What the CLI needs from an engine: `EnginePort` and `EngineAdapter`. Types only                                          |
+| `src/engines`     | One adapter per engine: `operaton`, `cibseven`, `camunda7`                                                               |
+| `src/api`         | One folder per engine API. `camunda7-rest` builds catalog and port                                                       |
+| `src/workflow`    | The workflow commands. They know the port, never an adapter or an API                                                    |
+| c7-core           | `packages/connectors/c7/c7-core`, the Camunda 7 REST family's core: selection, inspect, status, plans, engine REST rules |
+| `src/cli`         | Selects the adapter and registers its commands                                                                           |
 
 dependency-cruiser enforces the boundaries (`pnpm lint:architecture && pnpm lint:architecture:cli`):
 
-- `workflow` imports `engine-port` and `@miragon/pulse-engine-core`, never `engines` or `api`.
+- `workflow` imports `engine-port` and `@miragon/pulse-c7-core`, never `engines` or `api`.
   It turns the package's steps and reasons into the command lines and errors the CLI prints.
-  Only `operation/dates.ts` and `operation/variables.ts` also import engine-core, for its rules.
+  Only `operation/dates.ts`, `operation/variables.ts` and `http/errors.ts` import c7-core too.
 - Only `engines/<name>/adapter.ts` imports `api`.
 - Adapters do not import each other. An API does not import another API.
 - `engine-port` imports types only. `api`, `engine-port` and `engines` use no Node built-ins.
@@ -52,15 +52,15 @@ dependency-cruiser enforces the boundaries (`pnpm lint:architecture && pnpm lint
 
 The commands are data. A generator turns the OpenAPI spec into one catalog that every engine
 shares. The selected adapter hands it to the CLI, which registers commands, help and `describe` from
-it and sends requests over HTTP.
+it and sends requests through the transport `@miragon/pulse-http`.
 
 ```mermaid
 flowchart LR
-  spec["spec/camunda7-rest<br/>api.json + patches.json"] --> gen["pnpm catalog<br/>scripts/catalog"]
+  spec["c7-core generate<br/>api.json + patches.json:<br/>patched spec, route table"] --> gen["pnpm catalog<br/>scripts/catalog"]
   gen --> catalog["src/generated<br/>catalog.json"]
   catalog -- loaded by --> adapter["src/engines/&lt;engine&gt;/adapter.ts"]
   adapter --> cli["src/cli<br/>commands, help, describe"]
-  cli --> http["operation + http<br/>request, auth, errors"]
+  cli --> http["operation + http<br/>request, auth, errors<br/>over @miragon/pulse-http"]
   http -- HTTP --> engine["Engine<br/>/engine-rest"]
 ```
 

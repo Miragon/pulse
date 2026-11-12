@@ -1,11 +1,10 @@
 import type {
   BpmnProcessId,
   DefinitionId,
-  EngineWebUi,
   IncidentDetails,
   InstanceId,
-  SourceLocation,
-} from "@miragon/pulse-runtime-view/contract"
+} from "@miragon/pulse-engine-core"
+import type { EngineWebUi, SourceLocation } from "@miragon/pulse-runtime-view/ports"
 import type {
   BulkAnswer,
   BulkOutcomeReport,

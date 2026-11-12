@@ -25,10 +25,11 @@ Libraries considered:
 
 ## Decision
 
-### Two ports and one seam in the contract
+### Two ports and one seam in the runtime view's ports
 
-`packages/core/runtime-view/src/contract/model/local-sources.ts` holds the neutral read models,
-`packages/core/runtime-view/src/contract/ports/` the ports:
+`packages/core/runtime-view/src/ports/local-sources.ts` holds the neutral read models,
+`packages/core/runtime-view/src/ports/` the ports (not in the engine contract, engine-core: they
+ask the workspace, not an engine):
 
 | Port             | Method                                    | Answer                                                                                                  |
 | ---------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------- |

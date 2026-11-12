@@ -4,7 +4,7 @@ import type {
   ElementImplementation,
   ErrorReference,
   VariableMapping,
-} from "../../contract/index.js"
+} from "../../ports/index.js"
 import type { ElementLink } from "../panels/model-links.js"
 import { ModelXml } from "../drift/model-xml.js"
 import type { DefinitionView, ModelFacts, ModelSetting } from "../protocol/index.js"

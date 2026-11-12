@@ -15,7 +15,7 @@ from your editor.
 
 ## Get started
 
-1. List your engines as profiles in `.pulse-cli.json` in your workspace, the project file Pulse
+1. List your engines as profiles in `.pulse.json` in your workspace, the project file Pulse
    shares with the [Pulse CLI](https://miragon.github.io/pulse/cli/) (you don't need to install the
    CLI):
 
@@ -101,4 +101,4 @@ deployed diagram across engines, so your team shares one view of its processes.
 ·
 [Source and contributing](https://github.com/Miragon/pulse/blob/main/apps/vscode/CONTRIBUTING.md)
 
-Made by [Miragon](https://www.miragon.io). MIT licence.
+Made by [Miragon](https://www.miragon.io). MIT licence; the licences of the works of others it bundles are in [THIRD_PARTY_LICENSES.txt](https://github.com/Miragon/pulse/blob/main/apps/vscode/THIRD_PARTY_LICENSES.txt), which the .vsix ships.

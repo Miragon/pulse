@@ -4,7 +4,7 @@ import type {
   InstanceId,
   InstanceSummary,
   ProcessCommands,
-} from "../../contract/index.js"
+} from "@miragon/pulse-engine-core"
 import type {
   BulkKind,
   InstanceListFilter,

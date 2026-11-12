@@ -13,7 +13,9 @@ import {
   inspectorLink,
   inspectorPorts,
   portConflict,
+  PLAYGROUND_PASSWORD_VARIABLE,
   portOwners,
+  presetToolsets,
   profilesFor,
   SERVICES,
   serverPreset,
@@ -38,8 +40,8 @@ describe("the playground services", () => {
 
   it("adds the second engine and Keycloak only with their options", () => {
     const ids = (options) => servicesFor(options).map(({ id }) => id)
-    assert.deepEqual(ids({}), ["engine", "otel-collector", "prometheus", "grafana"])
-    assert.deepEqual(ids({ multiEngine: true, auth: true }).slice(4), ["engine-b", "keycloak"])
+    assert.deepEqual(ids({}), ["engine"])
+    assert.deepEqual(ids({ multiEngine: true, auth: true }), ["engine", "engine-b", "keycloak"])
     assert.deepEqual(profilesFor({ auth: true }), ["auth"])
   })
 
@@ -57,7 +59,7 @@ describe("the playground services", () => {
 })
 
 describe("the presets", () => {
-  it("point the server at the playground engine, its Prometheus and loopback", () => {
+  it("point the server at the playground engine and loopback, the engine module", () => {
     assert.deepEqual(serverPreset(), {
       ENGINE_BASE_URL: "http://localhost:8410/engine-rest",
       ENGINE_ID: "prod-a",
@@ -66,43 +68,68 @@ describe("the presets", () => {
       ENGINE_AUTH_TYPE: "basic",
       ENGINE_USERNAME: "demo",
       ENGINE_PASSWORD: "demo",
-      PROMETHEUS_URL: "http://localhost:8460",
       HOST: "127.0.0.1",
+      MCP_ACTIVE_MODULES: "engine",
     })
   })
 
-  it("keeps the engine id of the Compose engine (the engine_id join key)", () => {
-    const engineId = (service) =>
-      compose.services[service].environment.find((entry) => entry.startsWith("ENGINE_ID="))
-    assert.equal(engineId("cibseven"), `ENGINE_ID=${serverPreset().ENGINE_ID}`)
-    const engines = JSON.parse(serverPreset({ multiEngine: true }).ENGINES_JSON)
-    assert.equal(engineId("cibseven-b"), `ENGINE_ID=${engines[1].id}`)
+  it("hands the Compose engines no metrics settings: no plugin in them reads one", () => {
+    for (const service of ["cibseven", "cibseven-b"]) {
+      const names = compose.services[service].environment.map((entry) => entry.split("=")[0])
+      const metrics = names.filter((name) => /^(?:ENGINE_ID|METRICS_ENABLED|OTEL_)/.test(name))
+      assert.deepEqual(metrics, [], service)
+    }
   })
 
-  it("lists both engines with --multi-engine instead of the single-engine shorthand", () => {
+  it("names both engines as profiles with --multi-engine, each with its own login", () => {
     const preset = serverPreset({ multiEngine: true })
-    assert.equal(preset.ENGINE_BASE_URL, undefined)
-    assert.deepEqual(JSON.parse(preset.ENGINES_JSON), [
-      {
-        id: "prod-a",
-        baseUrl: "http://localhost:8410/engine-rest",
-        flavor: "cibseven",
-        cockpitUrl: "http://localhost:8410/webapp",
+    const auth = { type: "basic", username: "demo", passwordEnv: PLAYGROUND_PASSWORD_VARIABLE }
+    assert.deepEqual(JSON.parse(preset.ENGINES_JSON), {
+      profiles: {
+        "prod-a": {
+          url: "http://localhost:8410/engine-rest",
+          cockpitUrl: "http://localhost:8410/webapp",
+          flavor: "cibseven",
+          auth,
+        },
+        "prod-b": {
+          url: "http://localhost:8411/engine-rest",
+          cockpitUrl: "http://localhost:8411/webapp",
+          flavor: "cibseven",
+          auth,
+        },
       },
-      {
-        id: "prod-b",
-        baseUrl: "http://localhost:8411/engine-rest",
-        flavor: "cibseven",
-        cockpitUrl: "http://localhost:8411/webapp",
-      },
-    ])
+    })
+    assert.equal(preset[PLAYGROUND_PASSWORD_VARIABLE], "demo")
+    // The profile names its secret's variable under the prefix the server reads.
+    assert.match(PLAYGROUND_PASSWORD_VARIABLE, /^ENGINE_SECRET_/)
+    // The single engine's settings would only be ignored next to the profiles (a boot warning).
+    for (const name of [
+      "ENGINE_BASE_URL",
+      "ENGINE_ID",
+      "ENGINE_AUTH_TYPE",
+      "ENGINE_USERNAME",
+      "ENGINE_PASSWORD",
+    ]) {
+      assert.equal(preset[name], undefined, name)
+    }
+    // --auth puts the same profiles behind the playground's Keycloak.
+    const behindAuth = serverPreset({ multiEngine: true, auth: true })
+    assert.equal(behindAuth.ENGINES_JSON, preset.ENGINES_JSON)
+    assert.equal(behindAuth.MCP_OAUTH_KEYCLOAK_REALM, "miragon")
   })
 
   it("widens the toolset with --admin and registers deployments with --deploy", () => {
-    assert.equal(serverPreset().MCP_ACTIVE_MODULES, undefined)
-    assert.equal(serverPreset({ admin: true }).MCP_ACTIVE_MODULES, "engine:admin,analytics")
+    assert.equal(serverPreset().MCP_ACTIVE_MODULES, "engine")
+    assert.equal(serverPreset({ admin: true }).MCP_ACTIVE_MODULES, "engine:admin")
     assert.equal(serverPreset({ admin: true }).ENGINE_ALLOW_DEPLOYMENTS, undefined)
     assert.equal(serverPreset({ admin: true, deploy: true }).ENGINE_ALLOW_DEPLOYMENTS, "true")
+  })
+
+  it("names the toolsets play starts: the --admin suffix, else the engine module's default", () => {
+    assert.equal(presetToolsets(serverPreset()), "engine, read-only")
+    assert.equal(presetToolsets(serverPreset(), { auth: true }), "engine, its default under OAuth")
+    assert.equal(presetToolsets(serverPreset({ admin: true }), { auth: true }), "engine:admin")
   })
 
   it("puts the server behind the playground's Keycloak with --auth", () => {
@@ -131,13 +158,13 @@ describe("the presets", () => {
 
   it("lets the caller's environment win and names what it replaced", () => {
     const { env, overridden } = withPreset(
-      { ENGINE_ID: "prod-a", HOST: "127.0.0.1", PROMETHEUS_URL: "http://localhost:8460" },
+      { ENGINE_ID: "prod-a", HOST: "127.0.0.1", ENGINE_FLAVOR: "cibseven" },
       { ENGINE_ID: "mine", HOST: "127.0.0.1", PATH: "/bin" },
     )
     assert.deepEqual(env, {
       ENGINE_ID: "mine",
       HOST: "127.0.0.1",
-      PROMETHEUS_URL: "http://localhost:8460",
+      ENGINE_FLAVOR: "cibseven",
       PATH: "/bin",
     })
     assert.deepEqual(overridden, ["ENGINE_ID"])
@@ -147,19 +174,22 @@ describe("the presets", () => {
     const single = serverPreset()
     assert.deepEqual(withPreset(single, {}).outranking, [])
     assert.deepEqual(
-      withPreset(single, { ENGINES_FILE: "e.json", ENGINES_JSON: "[]" }).outranking,
+      withPreset(single, { ENGINES_FILE: "e.json", ENGINES_JSON: "{}" }).outranking,
       ["ENGINES_FILE", "ENGINES_JSON"],
     )
     assert.deepEqual(withPreset(single, { ENGINES_FILE: " " }).outranking, [])
     const multi = serverPreset({ multiEngine: true })
-    assert.deepEqual(withPreset(multi, { ENGINES_JSON: "[]" }).outranking, [])
+    assert.deepEqual(withPreset(multi, { ENGINES_JSON: "{}" }).outranking, [])
     assert.deepEqual(withPreset(multi, { ENGINES_FILE: "e.json" }).outranking, ["ENGINES_FILE"])
     assert.deepEqual(withPreset(cliPreset(), { ENGINES_FILE: "e.json" }).outranking, [])
   })
 
   it("orders the engine sources as the engine module reads them", () => {
     const module = readFileSync(
-      new URL("../packages/connectors/engine/engine-connector/src/module.ts", import.meta.url),
+      new URL(
+        "../packages/connectors/engine/engine-connector/src/engine-profiles.ts",
+        import.meta.url,
+      ),
       "utf8",
     )
     assert.ok(module.includes(`Precedence: ${ENGINE_SOURCES.join(" > ")} >`))

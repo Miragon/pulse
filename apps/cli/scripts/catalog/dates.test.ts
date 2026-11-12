@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { demandsEngineDate, markEngineDates } from "./dates.js"
-import { readPatchedSpec } from "./files.js"
+import { readSpec } from "./files.js"
 import type { OpenApiDocument } from "./openapi.js"
 
 const ENGINE_TEXT =
@@ -140,7 +140,7 @@ describe("markEngineDates", () => {
   })
 
   it("marks exactly these single dates of the vendored spec", () => {
-    const vendored = readPatchedSpec()
+    const vendored = readSpec()
     const labels = addedFormats(vendored, markEngineDates(vendored)).map((pointer) =>
       label(vendored, pointer),
     )

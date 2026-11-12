@@ -1,4 +1,4 @@
-import { RuntimeError, type RuntimeFailure } from "../../contract/index.js"
+import { RuntimeError, type RuntimeFailure } from "@miragon/pulse-engine-core"
 
 const STOPPING: ReadonlySet<RuntimeFailure> = new Set<RuntimeFailure>([
   "unauthorized",

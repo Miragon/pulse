@@ -91,6 +91,15 @@ export function waitForElement<T extends Element>(root: ParentNode, selector: st
   )
 }
 
+export function colourOfVariable(variable: string): string {
+  const probe = document.createElement("span")
+  probe.style.color = `var(${variable})`
+  document.body.append(probe)
+  const colour = getComputedStyle(probe).color
+  probe.remove()
+  return colour
+}
+
 export function nextFrame(): Promise<void> {
   return new Promise((resolve) => {
     requestAnimationFrame(() => {

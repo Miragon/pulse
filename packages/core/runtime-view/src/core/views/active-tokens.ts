@@ -1,4 +1,4 @@
-import type { InstanceDetail } from "../../contract/index.js"
+import type { InstanceDetail } from "@miragon/pulse-engine-core"
 
 export class ActiveTokens {
   private readonly waiting = new Map<string, number>()

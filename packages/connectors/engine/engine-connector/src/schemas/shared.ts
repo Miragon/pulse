@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { ENGINE_DATE_INPUT_FORMS, isEngineDateInput } from "@miragon/pulse-engine-core"
+import { ENGINE_DATE_INPUT_FORMS, isEngineDateInput } from "@miragon/pulse-c7-core"
 
 /**
  * Variable metadata in the engine's `valueInfo` shape. Object values need

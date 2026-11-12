@@ -35,8 +35,8 @@ jobs:
           echo "eligible=true" >> "$GITHUB_OUTPUT"
         env:
           UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
-          PATCH_AUTOMERGE_PATHS: '^(pnpm-lock\.yaml|pnpm-workspace\.yaml|(apps|packages|templates|docs)/(.+/)?package\.json|package\.json|engine-plugins/.+|\.github/workflows/.+|apps/cli/Dockerfile)$'
-          MINOR_AUTOMERGE_PATHS: '^(pnpm-lock\.yaml|pnpm-workspace\.yaml|(apps|packages|templates|docs)/(.+/)?package\.json|package\.json|engine-plugins/.+|\.github/workflows/.+|apps/cli/Dockerfile)$'
+          PATCH_AUTOMERGE_PATHS: '^(pnpm-lock\.yaml|pnpm-workspace\.yaml|(apps|packages|templates|docs)/(.+/)?package\.json|package\.json|playground/cibseven-example/gradle/.+|\.github/workflows/.+|apps/cli/Dockerfile)$'
+          MINOR_AUTOMERGE_PATHS: '^(pnpm-lock\.yaml|pnpm-workspace\.yaml|(apps|packages|templates|docs)/(.+/)?package\.json|package\.json|playground/cibseven-example/gradle/.+|\.github/workflows/.+|apps/cli/Dockerfile)$'
           MAJOR_AUTOMERGE_PATHS: ""
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

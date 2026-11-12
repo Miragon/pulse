@@ -13,15 +13,14 @@ import kotlin.random.Random
 
 /**
  * Continuously starts (and completes) `miraveloLeasing` instances at real wall
- * time, so the metric-first analytics light up without manual nudging.
+ * time, so the cockpit keeps moving without manual nudging.
  *
  * The `seed-presentation` profile bulk-loads ~600 backdated instances in one
- * startup burst: great for historical depth, but invisible to
- * `increase()`/`rate()` over a window (the counters jump faster than a scrape).
+ * startup burst: great for historical depth, but all of it at once.
  * This generator adds the missing *live pulse*: a steady trickle of real-time
  * instances (same variable mix as the seed, including the ~20 % blacklist
- * failures) plus task completions, so throughput, p95 durations, incident
- * rates, and version/period comparisons all populate naturally.
+ * failures) plus task completions, so running instances, fresh incidents and
+ * recent history keep appearing.
  *
  * Opt-in and self-contained: `@EnableScheduling` is only switched on when
  * `live-traffic.enabled=true`. The job executor runs the async service tasks,
@@ -45,7 +44,7 @@ class LiveTrafficGenerator(
     private val segments = listOf("PRIVATE", "BUSINESS", "STUDENT")
     private val leaseTerms = listOf(12, 24, 36, 48)
 
-    // Default 5min: a steady trickle that keeps the analytics lit without piling
+    // Default 5min: a steady trickle that keeps the cockpit moving without piling
     // up tens of thousands of instances/day in the in-memory engine. Override via
     // live-traffic.interval-ms (env LIVE_TRAFFIC_INTERVAL_MS) for a denser pulse.
     @Scheduled(
@@ -86,7 +85,7 @@ class LiveTrafficGenerator(
     private fun completePendingDecisions() {
         // Only this generator's own instances (businessKey `LIVE-…`), never the
         // backdated seed's leftover tasks, whose completion would emit a huge
-        // (now − backdated-create-time) duration and pollute the live metrics.
+        // (now − backdated-create-time) duration and pollute the live history.
         val tasks = taskService.createTaskQuery()
             .processDefinitionKey("miraveloLeasing")
             .taskDefinitionKey("Activity_DecideOnApplication")

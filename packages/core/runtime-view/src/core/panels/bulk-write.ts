@@ -4,7 +4,7 @@ import {
   type InstanceId,
   type ProcessCommands,
   type RuntimeFailure,
-} from "../../contract/index.js"
+} from "@miragon/pulse-engine-core"
 import type { Problem } from "../protocol/index.js"
 import type { BulkPreview } from "../views/bulk-requests.js"
 import { Labels } from "../views/labels.js"

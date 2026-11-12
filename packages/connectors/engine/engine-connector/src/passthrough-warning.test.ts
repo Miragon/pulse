@@ -10,7 +10,7 @@ describe("engineModule.bootWarnings: passthrough", () => {
   const passthroughWarning = (env: NodeJS.ProcessEnv) =>
     engineModule.bootWarnings(env).filter((w) => w.startsWith("Passthrough auth"))
 
-  it("names the shorthand engine when ENGINE_AUTH_TYPE=passthrough", () => {
+  it("names the single engine when ENGINE_AUTH_TYPE=passthrough", () => {
     const [warning] = passthroughWarning({
       ENGINE_BASE_URL: "http://engine.example/engine-rest",
       ENGINE_ID: "prod-a",
@@ -21,29 +21,30 @@ describe("engineModule.bootWarnings: passthrough", () => {
     expect(warning).toContain("replay")
   })
 
-  it("names only the engines whose own or fallback auth is passthrough", () => {
-    const engines = [
-      { id: "a", baseUrl: "http://a.example/engine-rest", auth: { type: "passthrough" } },
-      {
-        id: "b",
-        baseUrl: "http://b.example/engine-rest",
-        auth: { type: "basic", username: "u", password: "p" },
+  it("names only the usable profiles whose own auth is passthrough", () => {
+    const profiles = {
+      a: { url: "http://a.example/engine-rest", auth: { type: "passthrough" } },
+      b: {
+        url: "http://b.example/engine-rest",
+        auth: { type: "basic", username: "u", passwordEnv: "ENGINE_SECRET_B" },
       },
-      { id: "c", baseUrl: "http://c.example/engine-rest" },
-    ]
-    const own = passthroughWarning({ ENGINES_JSON: JSON.stringify(engines) })
-    expect(own).toHaveLength(1)
-    expect(own[0]).toContain('on "a":')
-    const fallback = passthroughWarning({
-      ENGINES_JSON: JSON.stringify(engines),
-      ENGINE_AUTH_TYPE: "passthrough",
-    })
-    expect(fallback[0]).toContain('on "a", "c":')
+      c: { url: "http://c.example/engine-rest" },
+      d: { url: "http://d.example/engine-rest", auth: { type: "passthrough" }, headers: {} },
+    }
+    const env = { ENGINES_JSON: JSON.stringify({ profiles }), ENGINE_SECRET_B: "p" }
+    const warnings = passthroughWarning(env)
+    expect(warnings).toHaveLength(1)
+    expect(warnings[0]).toContain('on "a":')
   })
 
   it("stays silent without passthrough and on a config the boot rejects anyway", () => {
     expect(
-      passthroughWarning({ ENGINE_BASE_URL: "http://e.example", ENGINE_AUTH_TYPE: "basic" }),
+      passthroughWarning({
+        ENGINE_BASE_URL: "http://e.example",
+        ENGINE_AUTH_TYPE: "basic",
+        ENGINE_USERNAME: "u",
+        ENGINE_PASSWORD: "p",
+      }),
     ).toEqual([])
     expect(
       passthroughWarning({ ENGINES_JSON: "{not json", ENGINE_AUTH_TYPE: "passthrough" }),

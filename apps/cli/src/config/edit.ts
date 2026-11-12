@@ -1,10 +1,15 @@
 /**
- * Pure edit functions behind `pulse config set|unset|use|delete|list|show`. They take the parsed
+ * Pure edit functions behind `pulse config set|unset|use|delete` (what `list` and `show` print is
+ * show.ts's). They take the parsed
  * config file (undefined when it does not exist yet), never modify it and return a new one; the CLI
- * reads and writes the file. Values are validated with the validators of resolve.ts.
+ * reads and writes the file. Values are validated with the validators of resolve.ts. An edit works
+ * on a profile as the file holds it, a refused one too, so `config set` and `config unset` can
+ * repair it; it keeps the keys it does not know (they still refuse the profile) and the profiles
+ * it does not change.
  */
 
-import { compact, mergeHeaders } from "../util.js"
+import { PROFILE_NAME } from "@miragon/pulse-profile"
+import { compact, isRecord, mergeHeaders } from "../util.js"
 import { changedAuth, settleAuthorization } from "./auth-edit.js"
 import { type BearerChanges, BEARER_UNSET_KEYS, bearerUnsetKeys } from "./bearer-edit.js"
 import { configError } from "./config-error.js"
@@ -15,30 +20,17 @@ import {
   oauthUnsetKeys,
   withoutAuthKeys,
 } from "./oauth-edit.js"
-import { PROFILE_NAME } from "./syntax.js"
 import {
-  findProfile,
   missingProfileError,
   parseTimeout,
+  storedProfile,
   validateCockpitUrl,
   validateEngine,
   validateOutput,
   validateFlavor,
   validateUrl,
 } from "./resolve.js"
-import {
-  type AuthConfig,
-  type ConfigFile,
-  type LoadedConfig,
-  type OAuthConfig,
-  type OutputFormat,
-  PROFILE_KEYS,
-  type Profile,
-  type ProfileAuth,
-  type ProfileKey,
-  type ResolvedConfig,
-  type Source,
-} from "./types.js"
+import { type ConfigFile, PROFILE_KEYS, type Profile, type ProfileKey } from "./types.js"
 
 export interface ProfileChanges extends OAuthChanges, BearerChanges {
   readonly url?: string
@@ -60,78 +52,6 @@ export interface ProfileChanges extends OAuthChanges, BearerChanges {
   readonly readOnly?: boolean
   /** Make this profile the default profile. */
   readonly makeDefault?: boolean
-}
-
-/**
- * One row of `pulse config list`. Values the profile does not set are null; `scope` says
- * whether it comes from the project file or the user's (or the named) config file.
- */
-export interface ProfileSummary {
-  readonly name: string
-  readonly default: boolean
-  readonly url: string | null
-  readonly engine: string | null
-  readonly auth: string | null
-  readonly readOnly: boolean
-  readonly scope: "user" | "project"
-}
-
-interface ConfigValue<T> {
-  readonly value: T
-  readonly source: Source
-}
-
-/** The OAuth rows of `config show`, only for auth type oauth. */
-interface OAuthValues {
-  readonly issuer: ConfigValue<string | null>
-  readonly authorizationEndpoint: ConfigValue<string | null>
-  readonly tokenEndpoint: ConfigValue<string | null>
-  readonly clientId: ConfigValue<string>
-  readonly clientSecret: ConfigValue<string | null>
-  readonly scopes: ConfigValue<readonly string[]>
-  readonly audience: ConfigValue<string | null>
-  readonly redirectPort: ConfigValue<number>
-}
-
-/**
- * The `token` row of `config show`: the bearer token of type bearer, or a token that is set but
- * not used by the resolved type (`unused` says why). The `tokenCommand` row: the command of
- * PULSE_CLI_TOKEN_COMMAND that prints the token (`config show` never runs it).
- */
-interface TokenValue extends ConfigValue<string> {
-  readonly unused?: string
-}
-
-/**
- * Output of `pulse config show`: every effective value with its source (`auth` is the type,
- * `username` and `password` the Basic auth credentials, the OAuth settings only for type oauth,
- * `token` or `tokenCommand` for type bearer or an unused one). Header values, the password, the
- * client secret and the token are not masked here; the CLI masks them unless --show-secrets is
- * given. A token command is no secret: it is shown as it is.
- */
-export interface ConfigView {
-  readonly configFile: string
-  /** The project file in effect, null without one. */
-  readonly projectFile: string | null
-  readonly profile: string | null
-  /** The file the selected profile comes from: the project file or the config file. */
-  readonly profileFile: string | null
-  readonly values: {
-    readonly url: ConfigValue<string>
-    readonly cockpitUrl: ConfigValue<string | null>
-    readonly engine: ConfigValue<string | null>
-    readonly flavor: ConfigValue<ResolvedConfig["flavor"]>
-    readonly auth: ConfigValue<string>
-    readonly username: ConfigValue<string | null>
-    readonly password: ConfigValue<string | null>
-  } & Partial<OAuthValues> & {
-      readonly token?: TokenValue
-      readonly tokenCommand?: TokenValue
-      readonly output: ConfigValue<OutputFormat | null>
-      readonly timeout: ConfigValue<number>
-      readonly headers: ConfigValue<Readonly<Record<string, string>>>
-      readonly readOnly: ConfigValue<boolean>
-    }
 }
 
 /** Accepted spellings for `config unset` besides the profile keys themselves. */
@@ -157,11 +77,16 @@ function ifGiven<T, R>(value: T | undefined, convert: (value: T) => R): R | unde
   return value === undefined ? undefined : convert(value)
 }
 
+/** A stored object of a profile (its auth, its headers), unless the file holds something else. */
+function storedObject<T>(value: T | undefined): T | undefined {
+  return isRecord(value) ? value : undefined
+}
+
 function changedHeaders(
   existing: Profile | undefined,
   headers: readonly string[],
 ): Record<string, string> | undefined {
-  const merged = mergeHeaders(existing?.headers ?? {}, parseHeaders(headers))
+  const merged = mergeHeaders(storedObject(existing?.headers) ?? {}, parseHeaders(headers))
   return Object.keys(merged).length > 0 ? merged : undefined
 }
 
@@ -171,7 +96,7 @@ function changedValues(existing: Profile | undefined, changes: ProfileChanges): 
     cockpitUrl: ifGiven(changes.cockpitUrl, validateCockpitUrl),
     engine: ifGiven(changes.engine, validateEngine),
     flavor: ifGiven(changes.flavor, validateFlavor),
-    auth: changedAuth(existing?.auth, changes),
+    auth: changedAuth(storedObject(existing?.auth), changes),
     output: ifGiven(changes.output, validateOutput),
     timeout: ifGiven(changes.timeout, parseTimeout),
     headers: ifGiven(changes.headers, (headers) => changedHeaders(existing, headers)),
@@ -179,20 +104,46 @@ function changedValues(existing: Profile | undefined, changes: ProfileChanges): 
   })
 }
 
-/** Writes the keys in their canonical order and drops absent ones. */
+/**
+ * Writes the keys of the format in their canonical order and drops absent ones; keys the format
+ * does not know stay behind them, as the file held them, so an edit never drops one silently.
+ */
 function canonical(profile: Profile): Profile {
-  return compact(Object.fromEntries(PROFILE_KEYS.map((key) => [key, profile[key]])))
+  const known: readonly string[] = PROFILE_KEYS
+  const unknown = Object.entries(profile).filter(([key]) => !known.includes(key))
+  return {
+    ...compact(Object.fromEntries(PROFILE_KEYS.map((key) => [key, profile[key]]))),
+    ...Object.fromEntries(unknown),
+  }
 }
 
-/** The edited file: `current`'s $schema (an edit keeps it), the default profile and profiles. */
+/**
+ * The edited file: `current`'s $schema and unknown root keys (an edit keeps them), the default
+ * profile and profiles. What the reader found (refused profiles, notes) is the next read's.
+ */
 function buildFile(current: ConfigFile, profiles: ConfigFile["profiles"], defaultProfile?: string) {
-  return { ...compact({ $schema: current.$schema, defaultProfile }), profiles }
+  return {
+    ...compact({ $schema: current.$schema, defaultProfile, unknown: current.unknown }),
+    profiles,
+  }
 }
 
+/** The profile an edit changes, as the file holds it (a refused one too). */
 function requireProfile(file: ConfigFile, name: string): Profile {
-  const profile = findProfile(file, name)
-  if (profile === undefined) throw missingProfileError(name, file)
-  return profile
+  const profile = storedProfile(file, name)
+  if (profile === undefined && !Object.hasOwn(file.profiles, name)) {
+    throw missingProfileError(name, file)
+  }
+  return profile ?? {}
+}
+
+/** A new profile needs a URL: a profile without one would reach the default engine silently. */
+function checkNewProfile(name: string, existing: Profile | undefined, changes: ProfileChanges) {
+  if (existing !== undefined || changes.url !== undefined) return
+  throw configError(
+    `Profile "${name}" needs a URL`,
+    `Create it with \`pulse config set ${name} --url <url>\`, e.g. --url http://localhost:8080/engine-rest.`,
+  )
 }
 
 /**
@@ -207,8 +158,10 @@ export function setProfile(
 ): ConfigFile {
   validateProfileName(name)
   const current = file ?? EMPTY
-  const existing = findProfile(current, name)
-  const merged = { ...existing, ...changedValues(existing, changes) }
+  const existing = storedProfile(current, name)
+  const changed = changedValues(existing, changes)
+  checkNewProfile(name, existing, changes)
+  const merged = { ...existing, ...changed }
   const profile = canonical(settleAuthorization(merged, changes, name))
   const first = Object.keys(current.profiles).length === 0
   const makeDefault = changes.makeDefault === true || first
@@ -219,27 +172,36 @@ export function setProfile(
   )
 }
 
-function profileKey(key: string): ProfileKey {
+/** A key `config unset` removes from `profile`: a key of the format, or one the profile holds. */
+function profileKey(key: string, profile: Profile): string {
   const wanted = KEY_ALIASES[key] ?? key
   const known = PROFILE_KEYS.find((candidate) => candidate === wanted)
-  if (known === undefined) {
+  if (known === undefined && !Object.hasOwn(profile, key)) {
     throw configError(
       `Unknown profile key "${key}"`,
-      `Valid keys: ${PROFILE_KEYS.join(", ")}; OAuth settings: ${OAUTH_UNSET_KEYS.join(", ")}; bearer token: ${BEARER_UNSET_KEYS.join(", ")}.`,
+      `Valid keys: ${PROFILE_KEYS.join(", ")}; OAuth settings: ${OAUTH_UNSET_KEYS.join(", ")}; bearer token: ${BEARER_UNSET_KEYS.join(", ")}; or any key the profile holds, auth.<key> for one of its auth object.`,
     )
   }
-  return known
+  return known ?? key
 }
 
-/** The keys of the auth object an unset key name removes: OAuth settings or the bearer token. */
-function authUnsetKeys(key: string): readonly (keyof ProfileAuth)[] | undefined {
-  return oauthUnsetKeys(key) ?? bearerUnsetKeys(key)
+/**
+ * The keys of the auth object an unset key name removes: OAuth settings, the bearer token, or
+ * `auth.<key>` for any key the stored auth object holds (one the format does not know, too).
+ */
+function authUnsetKeys(key: string, profile: Profile): readonly string[] | undefined {
+  const named = oauthUnsetKeys(key) ?? bearerUnsetKeys(key)
+  if (named !== undefined) return named
+  const bare = key.startsWith("auth.") ? key.slice("auth.".length) : undefined
+  const auth: unknown = profile.auth
+  return bare !== undefined && isRecord(auth) && Object.hasOwn(auth, bare) ? [bare] : undefined
 }
 
 /**
  * Removes keys from a profile: profile keys, or single OAuth settings or the bearer token of its
- * auth object (`audience`, `clientSecret`, `token`, ...; `auth` removes all auth settings).
- * Unknown key names fail; keys the profile does not set are ignored.
+ * auth object (`audience`, `clientSecret`, `token`, ...; `auth` removes all auth settings), and
+ * any key the profile or its auth object holds (`auth.<key>`), so a key the format refuses can
+ * go. Unknown key names fail; keys of the format the profile does not set are ignored.
  */
 export function unsetProfileKeys(
   file: ConfigFile | undefined,
@@ -248,13 +210,13 @@ export function unsetProfileKeys(
 ): ConfigFile {
   const current = file ?? EMPTY
   const profile = requireProfile(current, name)
-  const authKeys = keys.flatMap((key) => authUnsetKeys(key) ?? [])
-  const plain = keys.filter((key) => authUnsetKeys(key) === undefined)
-  const removed = new Set<string>(plain.map(profileKey))
+  const authKeys = keys.flatMap((key) => authUnsetKeys(key, profile) ?? [])
+  const plain = keys.filter((key) => authUnsetKeys(key, profile) === undefined)
+  const removed = new Set<string>(plain.map((key) => profileKey(key, profile)))
   const { auth, ...kept }: Profile = Object.fromEntries(
     Object.entries(profile).filter(([key]) => !removed.has(key)),
   )
-  const rest = withoutAuthKeys(auth, authKeys)
+  const rest = withoutAuthKeys(isRecord(auth) ? auth : undefined, authKeys)
   const edited = canonical(rest === undefined ? kept : { ...kept, auth: rest })
   return buildFile(current, { ...current.profiles, [name]: edited }, current.defaultProfile)
 }
@@ -275,110 +237,4 @@ export function deleteProfile(file: ConfigFile | undefined, name: string): Confi
   )
   const defaultProfile = current.defaultProfile === name ? undefined : current.defaultProfile
   return buildFile(current, profiles, defaultProfile)
-}
-
-/** Profile names are unique, so two summaries never compare equal. */
-function byName(a: ProfileSummary, b: ProfileSummary): number {
-  return a.name < b.name ? -1 : 1
-}
-
-/** Profiles sorted by name, with the file each comes from. */
-export function listProfiles(file: LoadedConfig | undefined): ProfileSummary[] {
-  const current = file ?? EMPTY
-  const fromProject = file?.project?.profiles ?? []
-  return Object.entries(current.profiles)
-    .map(([name, profile]) => ({
-      name,
-      default: current.defaultProfile === name,
-      url: profile.url ?? null,
-      engine: profile.engine ?? null,
-      auth: profile.auth?.type ?? (profile.auth?.username === undefined ? null : "basic"),
-      readOnly: profile.readOnly === true,
-      scope: fromProject.includes(name) ? ("project" as const) : ("user" as const),
-    }))
-    .sort(byName)
-}
-
-const NOT_SET = { value: null, source: "default" } as const
-
-function optionalValue<T>(value: T | undefined, source: Source | undefined): ConfigValue<T | null> {
-  return value === undefined || source === undefined ? NOT_SET : { value, source }
-}
-
-/** The OAuth rows of `config show`; endpoints that are not set are null with source default. */
-function oauthValues(oauth: OAuthConfig): OAuthValues {
-  const { sources } = oauth
-  return {
-    issuer: optionalValue(oauth.issuer, sources.endpoints),
-    authorizationEndpoint: optionalValue(oauth.authorizationEndpoint, sources.endpoints),
-    tokenEndpoint: optionalValue(oauth.tokenEndpoint, sources.endpoints),
-    clientId: { value: oauth.clientId, source: sources.clientId },
-    clientSecret: optionalValue(oauth.clientSecret, sources.clientSecret),
-    scopes: { value: oauth.scopes, source: sources.scopes },
-    audience: optionalValue(oauth.audience, sources.audience),
-    redirectPort: { value: oauth.redirectPort, source: sources.redirectPort },
-  }
-}
-
-/**
- * The `token` (or `tokenCommand`) row: the bearer token or its command, or one the resolved type
- * leaves unused.
- */
-function tokenValue(resolved: ResolvedConfig): { token?: TokenValue; tokenCommand?: TokenValue } {
-  const { auth, unusedToken } = resolved
-  if (auth.type === "bearer") {
-    const { source, command } = auth
-    if (command === undefined) return { token: { value: auth.token, source } }
-    return { tokenCommand: { value: command, source } }
-  }
-  if (unusedToken === undefined) return {}
-  const { value, source, reason } = unusedToken
-  const row = { value, source, unused: reason }
-  return unusedToken.command === true ? { tokenCommand: row } : { token: row }
-}
-
-function credentialValues(auth: AuthConfig) {
-  if (auth.type !== "basic") {
-    return {
-      username: NOT_SET,
-      password: NOT_SET,
-      ...(auth.type === "oauth" ? oauthValues(auth) : {}),
-    }
-  }
-  return {
-    username: { value: auth.username, source: auth.sources.username },
-    password: { value: auth.password, source: auth.sources.password },
-  }
-}
-
-/**
- * The effective configuration with the source of every value; `projectFile` is the project file
- * in effect, if any. Values of source `profile` come from the file of the profile (`profileFile`).
- */
-export function showConfig(
-  resolved: ResolvedConfig,
-  configFile: string,
-  projectFile?: string,
-): ConfigView {
-  const { sources, auth } = resolved
-  const profileFile = resolved.project?.path ?? (resolved.profile === undefined ? null : configFile)
-  return {
-    configFile,
-    projectFile: projectFile ?? null,
-    profile: resolved.profile ?? null,
-    profileFile,
-    values: {
-      url: { value: resolved.url, source: sources.url },
-      cockpitUrl: optionalValue(resolved.cockpitUrl, "profile"),
-      engine: { value: resolved.engine ?? null, source: sources.engine },
-      flavor: { value: resolved.flavor, source: sources.flavor },
-      auth: { value: auth.type, source: sources.auth },
-      ...credentialValues(auth),
-      ...tokenValue(resolved),
-      output: { value: resolved.output ?? null, source: sources.output },
-      timeout: { value: resolved.timeoutMs, source: sources.timeout },
-      headers: { value: resolved.headers, source: sources.headers },
-      readOnly: { value: resolved.readOnly, source: sources.readOnly },
-    },
-  }
 }

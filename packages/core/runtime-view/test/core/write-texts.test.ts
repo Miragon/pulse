@@ -107,18 +107,18 @@ describe("the confirmation of a write", () => {
     const facts = (ageMs: number, live?: LiveUpdates) =>
       WriteRequests.retry(viewWith({}), INCIDENT, { ageMs, live }).facts.at(-1)
     expect(facts(1200)).toBe("Data read just now")
-    expect(facts(125_000, { status: "live", everySeconds: 30 })).toBe("Data read 2 min 5 s ago")
+    expect(facts(125_000, { status: "live", everySeconds: 30 })).toBe("Data read 2m 5s ago")
     expect(facts(125_000, { status: "paused", reason: "user" })).toBe(
-      "Data read 2 min 5 s ago · live updates are paused",
+      "Data read 2m 5s ago · live updates are paused",
     )
     expect(facts(9000, { status: "reconnecting", retryAt: "2026-10-21T09:00:20.000Z" })).toBe(
-      "Data read 9.0 s ago · the last live update failed",
+      "Data read 9s ago · the last live update failed",
     )
     expect(facts(9000, { status: "stopped", reason: "refused" })).toBe(
-      "Data read 9.0 s ago · live updates stopped",
+      "Data read 9s ago · live updates stopped",
     )
     expect(facts(9000, { status: "off", environment: "production", everySeconds: 30 })).toBe(
-      "Data read 9.0 s ago · live updates are off",
+      "Data read 9s ago · live updates are off",
     )
   })
 
@@ -222,6 +222,31 @@ describe("the value check", () => {
     ["integer", "null", true],
     ["any", '"text"', true],
     ["any", "text", false],
+    ["integer", "9223372036854775807", true],
+    ["integer", "-9223372036854775808", true],
+    ["integer", "9223372036854775808", false],
+    ["integer", " -9223372036854775809 ", false],
+    ["any", "9223372036854775807", true],
+    ["any", "9223372036854775808", false],
+    ["any", '"9223372036854775808"', true],
+    ["any", "9223372036854775808.5", true],
+    ["decimal", "9223372036854775808", true],
+    ["json", "9223372036854775808", true],
+    ["decimal", "1.7976931348623157e308", true],
+    ["decimal", " -1.7976931348623157e308 ", true],
+    ["decimal", "5e-324", true],
+    ["decimal", "1.8e308", false],
+    ["decimal", "-1e400", false],
+    ["decimal", `${"9".repeat(400)}.5`, false],
+    ["decimal", `1${"0".repeat(400)}`, false],
+    ["any", "1.7976931348623157e308", true],
+    ["any", "1e400", false],
+    ["any", ` -${"9".repeat(400)}.5 `, false],
+    ["any", '"1e400"', true],
+    ["any", "[1e400]", true],
+    ["json", "1e400", true],
+    ["integer", "1e400", false],
+    ["text", "1e400", false],
   ] as const)("%s accepts %s: %s", (editor, valueJson, valid) => {
     const problem = VariableValues.whyInvalid({ name: "value", editor }, valueJson)
     expect(problem === undefined).toBe(valid)
@@ -231,6 +256,66 @@ describe("the value check", () => {
     expect(
       VariableValues.whyInvalid({ name: "when", editor: "date", type: "Date" }, '"soon"'),
     ).toBe("when takes a date and time with a zone, such as 2026-10-22T10:00:00Z (Date).")
+  })
+
+  test("names the variable, its type and the range Pulse writes, and for a null variable how to keep the digits", () => {
+    expect(
+      VariableValues.whyInvalid(
+        { name: "ledger", editor: "integer", type: "Long" },
+        "-9223372036854775809",
+      ),
+    ).toBe(
+      "ledger takes a whole number (Long), and Pulse writes none outside -9223372036854775808 to 9223372036854775807.",
+    )
+    expect(
+      VariableValues.whyInvalid(
+        { name: "amount", editor: "integer", type: "Integer" },
+        "9223372036854775808",
+      ),
+    ).toBe(
+      "amount takes a whole number (Integer), and Pulse writes none outside -9223372036854775808 to 9223372036854775807.",
+    )
+    expect(
+      VariableValues.whyInvalid({ name: "count", editor: "integer" }, "9223372036854775808"),
+    ).toBe(
+      "count takes a whole number (integer), and Pulse writes none outside -9223372036854775808 to 9223372036854775807.",
+    )
+    expect(
+      VariableValues.whyInvalid(
+        { name: "note", editor: "any", type: "Null" },
+        "9223372036854775808",
+      ),
+    ).toBe(
+      "Pulse writes no number without a fraction outside -9223372036854775808 to 9223372036854775807. Write note as text to keep every digit.",
+    )
+    expect(
+      VariableValues.whyInvalid({ name: "amount", editor: "integer", type: "Integer" }, "4.5"),
+    ).toBe("amount takes a whole number (Integer).")
+  })
+
+  test("names the variable, its type and the range of a double, and for a null variable how to keep the number as written", () => {
+    expect(
+      VariableValues.whyInvalid({ name: "ratio", editor: "decimal", type: "Double" }, "1.8e308"),
+    ).toBe(
+      "ratio takes a number (Double), and Pulse writes none outside -1.7976931348623157e308 to 1.7976931348623157e308.",
+    )
+    expect(VariableValues.whyInvalid({ name: "share", editor: "decimal" }, "-1e400")).toBe(
+      "share takes a number (decimal), and Pulse writes none outside -1.7976931348623157e308 to 1.7976931348623157e308.",
+    )
+    expect(
+      VariableValues.whyInvalid(
+        { name: "note", editor: "any", type: "Null" },
+        `${"9".repeat(400)}.5`,
+      ),
+    ).toBe(
+      "Pulse writes no number outside -1.7976931348623157e308 to 1.7976931348623157e308, the range of a double. Write note as text to keep it as written.",
+    )
+    expect(
+      VariableValues.whyInvalid({ name: "note", editor: "any", type: "Null" }, "9".repeat(400)),
+    ).toBe(
+      "Pulse writes no number without a fraction outside -9223372036854775808 to 9223372036854775807. Write note as text to keep every digit.",
+    )
+    expect(Number("1.7976931348623157e308")).toBe(Number.MAX_VALUE)
   })
 })
 

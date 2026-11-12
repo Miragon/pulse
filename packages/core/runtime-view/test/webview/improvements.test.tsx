@@ -191,7 +191,7 @@ describe("timestamps", () => {
 
     expect(TimeLabels.precise(iso, at)).toBe("09:05:07.042")
     expect(TimeLabels.precise(iso, new Date(2026, 9, 22, 9))).toBe("Oct 21, 09:05:07.042")
-    expect(TimeLabels.precise("not a time", at)).toBe("not a time")
+    expect(TimeLabels.precise("not a time", at)).toBe("—")
     expect(TimeLabels.clock(iso, at)).toBe("09:05")
   })
 })

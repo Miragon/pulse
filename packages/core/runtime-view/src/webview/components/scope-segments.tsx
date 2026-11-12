@@ -12,18 +12,25 @@ export interface ScopeSegmentsProps<Scope extends string> {
   readonly options: readonly ScopeOption<Scope>[]
   readonly checked: Scope
   readonly counts: Readonly<Record<Scope, number>>
+  readonly atLeast?: readonly Scope[] | undefined
   readonly busy: boolean
   readonly notes?: Partial<Readonly<Record<Scope, string>>> | undefined
   readonly onSelect: (scope: Scope) => void
 }
 
-function ScopeCount({ alarming, count }: { readonly alarming: boolean; readonly count: number }) {
+interface ScopeCountProps {
+  readonly alarming: boolean
+  readonly count: number
+  readonly atLeast: boolean
+}
+
+function ScopeCount({ alarming, count, atLeast }: ScopeCountProps) {
   return (
     <span
       class={alarming ? "segmented__count segmented__count--danger" : "segmented__count"}
-      title={CountLabels.exact(count)}
+      title={CountLabels.exact(count, atLeast)}
     >
-      {CountLabels.compact(count)}
+      {CountLabels.compact(count, atLeast)}
     </span>
   )
 }
@@ -68,7 +75,11 @@ export function ScopeSegments<Scope extends string>(props: ScopeSegmentsProps<Sc
             }}
           >
             {`${option.label} `}
-            <ScopeCount alarming={option.scope === "withIncident" && count > 0} count={count} />
+            <ScopeCount
+              alarming={option.scope === "withIncident" && count > 0}
+              count={count}
+              atLeast={props.atLeast?.includes(option.scope) === true}
+            />
           </button>
         )
       })}

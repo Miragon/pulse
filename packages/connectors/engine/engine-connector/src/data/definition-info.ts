@@ -1,8 +1,5 @@
-import type { Client } from "@miragon/pulse-engine-client"
-import {
-  getProcessDefinitionStatistics,
-  getProcessDefinitions,
-} from "@miragon/pulse-engine-client/sdk"
+import type { Client } from "@miragon/pulse-c7-client"
+import { getProcessDefinitionStatistics, getProcessDefinitions } from "@miragon/pulse-c7-client/sdk"
 import {
   bpmnProcessNameOf,
   readBpmnNames,
@@ -47,6 +44,8 @@ interface RawDefinition {
   key?: string | null
   name?: string | null
   version?: number | null
+  historyTimeToLive?: number | null
+  tenantId?: string | null
 }
 
 function toDefinitionInfo(raw: RawDefinition, key: string): DefinitionInfo {
@@ -77,6 +76,51 @@ export async function fetchLatestDefinition(client: Client, key: string): Promis
   const latest = await findLatestDefinition(client, key)
   if (!latest) throw unknownKeyError(key)
   return latest
+}
+
+/**
+ * A deployed version, how many days the engine keeps its history (null: no limit) and its tenant
+ * (null: none), whose own versions count on.
+ */
+export interface DefinitionVersion extends DefinitionInfo {
+  historyTimeToLive: number | null
+  tenantId: string | null
+}
+
+/**
+ * Every deployed version of a key over every tenant, newest first, uncapped: a view that sums per
+ * version reads them all, and only the key's own versions (never the engine-wide statistics).
+ */
+export async function fetchDefinitionVersions(
+  client: Client,
+  key: string,
+): Promise<DefinitionVersion[]> {
+  const rows = rowsOf<RawDefinition>(
+    await getProcessDefinitions({ client, query: { key, sortBy: "version", sortOrder: "desc" } }),
+  )
+  return rows
+    .filter((row) => !!row.id)
+    .map((row) => ({
+      ...toDefinitionInfo(row, key),
+      historyTimeToLive: typeof row.historyTimeToLive === "number" ? row.historyTimeToLive : null,
+      tenantId: row.tenantId ?? null,
+    }))
+}
+
+/**
+ * The ids of a key's versions deployed after `deployedAfter` (an engine date), over every tenant,
+ * uncapped: with the version that was the latest at that time, the ones an instance started since
+ * then most likely ran on.
+ */
+export async function fetchVersionIdsDeployedAfter(
+  client: Client,
+  key: string,
+  deployedAfter: string,
+): Promise<Set<string>> {
+  const rows = rowsOf<RawDefinition>(
+    await getProcessDefinitions({ client, query: { key, deployedAfter } }),
+  )
+  return new Set(rows.flatMap((row) => (row.id ? [row.id] : [])))
 }
 
 export function unknownKeyError(key: string): Error {
@@ -132,8 +176,8 @@ export interface NameableDefinition {
 
 /**
  * Mutates in place. The engine names a process from `<process>` only, while the
- * Modeler names the POOL; without this the engine module showed `miraveloLeasing` where
- * analytics shows "Miravelo - Bike Leasing". A diagram without names keeps null.
+ * Modeler names the POOL; without this the engine module showed `miraveloLeasing`, not
+ * "Miravelo - Bike Leasing". A diagram without names keeps null.
  */
 export async function nameUnnamedDefinitions<T extends NameableDefinition>(
   client: Client,
@@ -169,15 +213,6 @@ export async function fetchDefinitionsById(
       .filter((row): row is RawDefinition & { id: string } => !!row.id)
       .map((row) => [row.id, toDefinitionInfo(row, row.key ?? definitionKeyInId(row.id) ?? "")]),
   )
-}
-
-/** Never `GET /process-definition/key/{key}/xml`: it only finds tenant-less definitions. */
-export async function fetchLatestDefinitionXml(
-  client: Client,
-  key: string,
-): Promise<string | null> {
-  const latest = await findLatestDefinition(client, key)
-  return latest?.id ? fetchDefinitionXml(client, latest.id) : null
 }
 
 interface IncidentStatRow {

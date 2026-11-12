@@ -1,4 +1,4 @@
-import type { BpmnProcessId } from "../../contract/index.js"
+import type { BpmnProcessId } from "@miragon/pulse-engine-core"
 import type { BulkRun } from "./bulk-run.js"
 
 export class BulkRuns {

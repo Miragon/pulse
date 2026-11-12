@@ -106,11 +106,13 @@ export PULSE_CLI_URL=http://localhost:8080/engine-rest
 pulse ping
 \`\`\`
 
-A repository may ship its engines as profiles in a project file (\`.pulse-cli.json\`): check
-\`pulse config list\` first (scope \`project\`), a bare \`pulse ping\` then uses its default.
+A repository may ship its engines as profiles in a project file (\`.pulse.json\`): check
+\`pulse config list\` first (scope \`project\`); without \`PULSE_CLI_URL\` a bare \`pulse ping\` then uses
+its default.
 
-Or keep each engine in a profile and pick one with \`--profile\`. \`--url\` and \`PULSE_CLI_URL\` override
-the URL of every profile (and its credentials go along), so unset \`PULSE_CLI_URL\` first:
+Or keep each engine in a profile and pick one with \`--profile\`. Unset \`PULSE_CLI_URL\` first: beside
+\`--profile\` it overrides the profile's URL (and its credentials go along), and without \`--profile\`
+it uses no profile, as a \`--url\` does:
 
 \`\`\`sh
 unset PULSE_CLI_URL
@@ -122,6 +124,9 @@ pulse ping --profile prod
 - \`pulse ping\` prints \`{url, engine, reachable, version, engines, latencyMs, auth}\` (\`user\`
   too).
 - Precedence for every setting: flag > environment variable > profile > default.
+  A URL (\`--url\`, \`PULSE_CLI_URL\`) without \`--profile\` selects no profile: nothing of one applies.
+  Beside \`--profile\`, a \`--url\` of another origin fails for a profile of yours that holds headers
+  or credentials.
 - Links to Cockpit: take \`values.cockpitUrl\` from \`pulse config show -o json\`; when it is null,
   ask the user for the Cockpit URL instead of guessing it from the engine URL.
 - Profiles, project files, environment variables, named engines and headers:
@@ -228,7 +233,8 @@ read \`engineMessage\` and fix the cause instead of retrying. On exit 4: \`pulse
   \`pulse retry --process-definition-key\` alone) refuse to run without \`--yes\` (exit 2,
   \`CONFIRMATION_REQUIRED\`). Add \`--yes\` only when the user asked for exactly that change.
 - \`--read-only\`, \`PULSE_CLI_READ_ONLY=1\` or a profile created with \`--read-only\` refuse every
-  command whose effect is not \`read\` (exit 2, \`READ_ONLY\`). Use read-only profiles for production.
+  command whose effect is not \`read\` (exit 2, \`READ_ONLY\`). Use read-only profiles for production;
+  a profile guards only the commands that use it, and a URL without \`--profile\` uses none.
 
 ## Topics
 

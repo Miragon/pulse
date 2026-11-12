@@ -21,7 +21,7 @@ import {
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const require = createRequire(import.meta.url)
 
-const SDK = "packages/connectors/engine/engine-client/src/generated"
+const SDK = "packages/connectors/c7/c7-client/src/generated"
 const CONNECTOR = "packages/connectors/engine/engine-connector"
 const WORKSPACE = [
   "packages:",
@@ -49,10 +49,8 @@ const FUTURE = {
   "apps/cli/package.json": { name: "@miragon/pulse-cli", bin: { "pulse-cli": "dist/cli.js" } },
   "apps/vscode/package.json": EXTENSION,
   "packages/core/widget-shell/package.json": { name: "@miragon/pulse-widget-shell" },
-  "packages/connectors/engine/engine-client/package.json": scoped("engine-client"),
+  "packages/connectors/c7/c7-client/package.json": scoped("c7-client"),
   "packages/connectors/engine/engine-connector/package.json": scoped("engine-connector"),
-  "packages/connectors/analytics/analytics-client/package.json": scoped("analytics-client"),
-  "packages/connectors/analytics/analytics-connector/package.json": scoped("analytics-connector"),
   "docs/package.json": { name: "@miragon/pulse-docs", private: true },
 }
 
@@ -94,11 +92,9 @@ describe("checkPackageName: today's packages", () => {
         { name: "@miragon/pulse-mcp-server", private: true, bin: { x: "dist/index.js" } },
       ],
       ["packages/core/widget-shell", { name: "@miragon/pulse-widget-shell" }],
-      ["packages/connectors/engine/engine-core", { name: "@miragon/pulse-engine-core" }],
-      ["packages/connectors/engine/engine-client", scoped("engine-client")],
+      ["packages/connectors/c7/c7-client", { name: "@miragon/pulse-c7-client" }],
+      ["packages/connectors/c7/c7-core", { name: "@miragon/pulse-c7-core" }],
       ["packages/connectors/engine/engine-connector", scoped("engine-connector")],
-      ["packages/connectors/analytics/analytics-client", scoped("analytics-client")],
-      ["packages/connectors/analytics/analytics-connector", scoped("analytics-connector")],
       ["docs", { name: "@miragon/pulse-docs", private: true }],
     ]) {
       assert.deepEqual(checkPackageName(dir, manifest), [], dir)
@@ -225,8 +221,8 @@ describe("checkPackageName: connector families", () => {
   it("names a family's package after its family: <family>-<role>", () => {
     for (const dir of [
       "packages/connectors/engine/c7-client",
-      "packages/connectors/engine/analytics-core",
-      "packages/connectors/analytics/engine-connector",
+      "packages/connectors/engine/billing-core",
+      "packages/connectors/billing/engine-connector",
       "packages/connectors/engine/engine-x-client",
     ]) {
       assertOne(checkPackageName(dir, scoped(dir)), /is named after its family/, dir)
@@ -234,7 +230,7 @@ describe("checkPackageName: connector families", () => {
   })
 
   it("accepts a family's pure domain as its -core", () => {
-    for (const base of ["engine-core", "analytics-core"]) {
+    for (const base of ["c7-core", "billing-core"]) {
       const dir = `packages/connectors/${base.split("-")[0]}/${base}`
       assert.deepEqual(checkPackageName(dir, scoped(dir)), [], dir)
     }
@@ -255,7 +251,7 @@ describe("checkPackageName: directory rules", () => {
       "packages/core/engine-connector",
       "packages/core/shared-client",
       // A family's domain is family code: packages/core holds no family's code.
-      "packages/core/engine-core",
+      "packages/core/c7-core",
       "apps/foo-connector",
       "apps/vscode-core",
     ]) {
@@ -325,7 +321,7 @@ describe("checkPackageName: directory rules", () => {
       "docs/sub",
       "apps",
       "packages/core",
-      "packages/connectors/engine/engine-client/sub",
+      "packages/connectors/c7/c7-client/sub",
     ]) {
       assert.equal(packageKind(dir), undefined, dir)
       assertOne(checkPackageName(dir, scoped(dir)), /no naming rule covers/, dir)
@@ -440,7 +436,7 @@ describe("checkAppDependencies: no package declares an app", () => {
           extension({
             dependencies: { "some-engine-cli": "0.9.0", "pulse-tools": "1.0.0" },
             devDependencies: {
-              "@miragon/pulse-engine-client": "workspace:*",
+              "@miragon/pulse-c7-client": "workspace:*",
               "@miragon/pulse-client": "workspace:*",
               core: "workspace:^1.0.0",
               sibling: "link:../vscode-tools",
@@ -467,7 +463,7 @@ describe("checkAppDependencies: no package declares an app", () => {
 describe("checkPackageNaming over a fixture tree", () => {
   it("passes the repo's layout: server, CLI, extension, core and connector families", () => {
     inTree(FUTURE, (root) => {
-      assert.deepEqual(checkPackageNaming(root), { errors: [], checked: 9 })
+      assert.deepEqual(checkPackageNaming(root), { errors: [], checked: 7 })
     })
   })
 
@@ -598,6 +594,7 @@ describe("checkLayout", () => {
     "apps/mcp-server/test/fixtures/mcp-app.js",
     "apps/cli/package.json",
     "apps/cli/src/generated/catalog.json",
+    "packages/connectors/c7/c7-core/src/generated/routes.json",
     "packages/core/widget-shell/src/ui/x.tsx",
     `${SDK}/client.gen.ts`,
     `${SDK}/client/index.ts`,

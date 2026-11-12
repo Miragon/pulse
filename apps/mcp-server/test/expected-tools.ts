@@ -11,11 +11,10 @@
  * review sees exactly what a toolset adds.
  *
  * - READ_ONLY: the unauthenticated default (no suffix, no OAuth provider) =
- *   `engine:read-only` plus analytics (which declares no toolsets). Only
- *   `readOnlyHint` tools.
- * - OPERATIONS: the default under OAuth = `engine:operations,analytics`,
- *   which adds the engine writes.
- * - ADMIN: `engine:admin,analytics` + `ENGINE_ALLOW_DEPLOYMENTS=true`:
+ *   `engine:read-only`. Only `readOnlyHint` tools.
+ * - OPERATIONS: the default under OAuth = `engine:operations`, which adds the
+ *   engine writes.
+ * - ADMIN: `engine:admin` + `ENGINE_ALLOW_DEPLOYMENTS=true`:
  *   the full surface. Never implied by a default.
  *
  * A new, renamed or re-tiered tool goes into its list here by hand (the golden
@@ -27,17 +26,8 @@
  * see golden.ts).
  */
 export const EXPECTED_TOOLS_READ_ONLY: readonly string[] = [
-  "analytics_bpmn_heatmap_data",
-  "analytics_bpmn_xml_data",
-  "analytics_engine_health",
-  "analytics_engine_landscape_data",
-  "analytics_show_bpmn_heatmap",
-  "analytics_show_dashboard",
-  "analytics_show_engine_compare",
-  "analytics_show_engine_landscape",
-  "analytics_show_period_compare",
-  "analytics_show_version_compare",
   "engine_activity_incidents_data",
+  "engine_activity_statistics_data",
   "engine_bpmn_xml_data",
   "engine_cluster_detail_data",
   "engine_cockpit_overview_data",
@@ -56,6 +46,7 @@ export const EXPECTED_TOOLS_READ_ONLY: readonly string[] = [
   "engine_incidents_data",
   "engine_inspect_process_instance",
   "engine_instance_detail_data",
+  "engine_job_backlog_data",
   "engine_jobs_data",
   "engine_list_deployments",
   "engine_list_engines",

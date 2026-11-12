@@ -107,6 +107,7 @@ const ROUTES: Record<string, unknown> = {
 const XML_BY_ID = /^\/process-definition\/(order:\d:d\d)\/xml$/
 const DEFINITION_BY_ID = /^\/process-definition\/order:(\d):d\d$/
 const ACTIVITY_STATS = /^\/process-definition\/order:(\d):d\d\/statistics$/
+const HISTORY_STATS = /^\/history\/process-definition\/order:\d:d\d\/statistics$/
 
 /** Unmapped lists answer `[]`, counts `{count: 1}`. */
 export function worldReply(request: RecordedRequest): FakeReply {
@@ -129,6 +130,9 @@ export function worldReply(request: RecordedRequest): FakeReply {
       ],
     }
   }
+  if (HISTORY_STATS.test(path)) {
+    return { body: [{ id: WORLD.activityId, instances: 1, finished: 3, canceled: 1 }] }
+  }
   const def = DEFINITION_BY_ID.exec(path)
   if (def) return { body: definition(Number(def[1]) as 1 | 2) }
   if (path === `/job/${WORLD.jobId}/stacktrace`) {
@@ -137,10 +141,65 @@ export function worldReply(request: RecordedRequest): FakeReply {
   return { body: [] }
 }
 
-/** Query parameter names only, since values vary (timestamps, page offsets). */
-export function readOf(request: Pick<RecordedRequest, "method" | "path" | "query">): string {
+/** Past 64 chars the engine stores a bare id that names no key; the definition's row names it. */
+export const BARE_DEFINITION_ID = "6f1c2a9e-0b7d-4c33-9a51-3d2e8f40b7aa"
+const BARE_KEY = "customerOnboardingApprovalProcess"
+const BARE_DEFINITION = {
+  id: BARE_DEFINITION_ID,
+  key: BARE_KEY,
+  name: "Customer onboarding",
+  version: 1,
+}
+const BARE_ID_STATS: FakeReply = {
+  body: [
+    {
+      id: BARE_DEFINITION_ID,
+      instances: 1,
+      incidents: [{ incidentType: "failedJob", incidentCount: 1 }],
+      definition: BARE_DEFINITION,
+    },
+  ],
+}
+/** The bare version's diagram, which names its process and the world's activity. */
+const BARE_XML = `<?xml version="1.0"?><definitions><process id="${BARE_KEY}" name="Customer onboarding"><serviceTask id="${WORLD.activityId}" name="Charge card"/></process></definitions>`
+
+/**
+ * Overrides of the world: `path` answers `body` on the bare id, with its statistics, its row of
+ * `GET /process-definition?processDefinitionIdIn` and its diagram.
+ */
+export function onBareDefinitionId(
+  path: string,
+  body: unknown,
+): (request: RecordedRequest) => FakeReply | undefined {
+  return (r) =>
+    r.path === path
+      ? { body }
+      : r.path === "/process-definition/statistics"
+        ? BARE_ID_STATS
+        : r.path === "/process-definition" &&
+            r.query.processDefinitionIdIn?.split(",").includes(BARE_DEFINITION_ID)
+          ? { body: [BARE_DEFINITION] }
+          : r.path === `/process-definition/${BARE_DEFINITION_ID}/xml`
+            ? { body: { id: BARE_DEFINITION_ID, bpmn20Xml: BARE_XML } }
+            : undefined
+}
+
+/**
+ * Parameter names only, since values vary (timestamps, page offsets): a query's, and a JSON body's
+ * fields, so two counts that differ only in their POST filters are two reads.
+ */
+export function readOf(
+  request: Pick<RecordedRequest, "method" | "path" | "query" | "body">,
+): string {
+  const { body } = request
   const params = Object.keys(request.query).sort()
-  return `${request.method} ${request.path}${params.length > 0 ? `?${params.join("&")}` : ""}`
+  const fields =
+    body !== null && typeof body === "object" && !Array.isArray(body)
+      ? Object.keys(body).sort()
+      : []
+  const query = params.length > 0 ? `?${params.join("&")}` : ""
+  const filters = fields.length > 0 ? ` {${fields.join(",")}}` : ""
+  return `${request.method} ${request.path}${query}${filters}`
 }
 
 export const ENGINE_FAILURE: FakeReply = {

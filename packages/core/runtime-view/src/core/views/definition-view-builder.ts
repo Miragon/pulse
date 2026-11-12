@@ -4,7 +4,7 @@ import type {
   ElementStatistics,
   InstanceSummary,
   VersionSummary,
-} from "../../contract/index.js"
+} from "@miragon/pulse-engine-core"
 import {
   VariableConditionRules,
   type DefinitionView,
@@ -13,6 +13,7 @@ import {
   type InstanceListFilter,
   type InstanceRow,
   type Notice,
+  type RefusedVariableCondition,
   type ScopeCounts,
   type VersionOption,
 } from "../protocol/index.js"
@@ -33,6 +34,7 @@ export interface DefinitionSnapshot {
   readonly hasMoreInstances: boolean
   readonly filter: InstanceListFilter
   readonly scopeCounts: ScopeCounts
+  readonly refusedVariableConditions?: readonly RefusedVariableCondition[]
   readonly extraNotices?: readonly Notice[]
 }
 
@@ -58,10 +60,16 @@ export class DefinitionViewBuilder {
       hasMoreInstances: this.snapshot.hasMoreInstances,
       filter: this.snapshot.filter,
       ...this.variableLabels(),
+      ...this.refusedConditions(),
       scopeCounts: this.snapshot.scopeCounts,
       notices: this.notices(),
       ...WebUiLinks.to(subject, this.snapshot.engine),
     }
+  }
+
+  private refusedConditions(): Pick<DefinitionView, "refusedVariableConditions"> {
+    const refused = this.snapshot.refusedVariableConditions ?? []
+    return refused.length === 0 ? {} : { refusedVariableConditions: refused }
   }
 
   private variableLabels(): Pick<DefinitionView, "variableLabels"> {

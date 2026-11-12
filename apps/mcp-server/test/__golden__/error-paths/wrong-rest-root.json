@@ -1,0 +1,48 @@
+{
+  "case": "wrong-rest-root",
+  "config": {
+    "ENGINE_BASE_URL": "http://127.0.0.1:<port>"
+  },
+  "probes": [
+    {
+      "arguments": {
+        "processInstanceId": "pi-1"
+      },
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "[404] <!doctype html><html lang=\"en\"><head><title>HTTP Status 404 – Not Found</title></head><body><h1>HTTP Status 404 – Not Found</h1></body></html> (engine default). No such endpoint: check that the engine URL points at the REST API root itself (e.g. http://localhost:8080/engine-rest)."
+            ],
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "sent": [
+        "GET /history/process-instance/pi-1",
+        "GET /process-instance/pi-1"
+      ],
+      "tool": "engine_inspect_process_instance"
+    },
+    {
+      "arguments": {},
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "[404] <!doctype html><html lang=\"en\"><head><title>HTTP Status 404 – Not Found</title></head><body><h1>HTTP Status 404 – Not Found</h1></body></html> (engine default). No such endpoint: check that the engine URL points at the REST API root itself (e.g. http://localhost:8080/engine-rest)."
+            ],
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "sent": [
+        "GET /process-instance/count",
+        "GET /process-instance?firstResult=0&maxResults=20"
+      ],
+      "tool": "engine_list_process_instances"
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import type { InstanceDetail, InstanceId } from "../../contract/index.js"
+import type { InstanceDetail, InstanceId } from "@miragon/pulse-engine-core"
 import type { CalledInstanceLink } from "../protocol/index.js"
 import { Labels } from "./labels.js"
 

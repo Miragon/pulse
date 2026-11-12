@@ -107,7 +107,9 @@ function fetchOf(secrets: Secrets, scenario: Scenario): typeof globalThis.fetch 
 
 function cacheOf(secrets: Secrets, scenario: Scenario): Record<string, string> {
   if (scenario.login === "none") return {}
-  const received = scenario.login === "expiring" ? T0 - 250_000 : T0
+  // A cached login is a minute old, so a 401 renews it (the shared policy keeps a token younger
+  // than 30 s); an expiring one is due (30 s before the expiry of its 300 s) and still valid.
+  const received = scenario.login === "expiring" ? T0 - 280_000 : T0 - 60_000
   return {
     [TOKEN_FILE]: cacheText(
       cachedLogin(received, { accessToken: secrets.access, refreshToken: secrets.refresh }),

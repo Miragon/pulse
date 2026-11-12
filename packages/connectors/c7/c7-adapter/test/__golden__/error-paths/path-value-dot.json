@@ -1,0 +1,25 @@
+{
+  "case": "path-value-dot",
+  "connection": {
+    "credentials": {
+      "kind": "none"
+    },
+    "endpoint": "http://127.0.0.1:<port>/engine-rest"
+  },
+  "probes": [
+    {
+      "call": "getInstanceDetail .",
+      "outcome": {
+        "returned": "undefined"
+      },
+      "sent": []
+    },
+    {
+      "call": "getInstanceDetail ..",
+      "outcome": {
+        "returned": "undefined"
+      },
+      "sent": []
+    }
+  ]
+}

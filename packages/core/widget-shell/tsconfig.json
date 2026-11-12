@@ -8,7 +8,9 @@
     "lib": ["ES2022"],
     "outDir": "dist",
     "rootDir": "src",
-    "composite": false
+    "composite": false,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true
   },
   "include": ["src"],
   "exclude": ["src/ui"]

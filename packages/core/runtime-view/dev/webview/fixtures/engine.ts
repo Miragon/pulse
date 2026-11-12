@@ -32,7 +32,7 @@ export const ENGINE_VIEW: EngineView = {
     access: { writable: true, note: "Writes allowed." },
   },
   asOf: AS_OF,
-  summary: "3 processes · 1369 running · 10 with incident",
+  summary: "3 processes · 1,369 running · 10 with incident · all versions",
   processes: [ORDER, RETURNS, SHIPMENT],
   filter: { scope: "all" },
   scopeCounts: { all: 3, withIncident: 2 },

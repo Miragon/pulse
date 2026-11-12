@@ -16,29 +16,29 @@ pnpm --fail-if-no-match --filter @miragon/pulse-cli build
 pnpm test:one apps/cli/src/util.test.ts
 pnpm --fail-if-no-match --filter @miragon/pulse-cli test
 pnpm --fail-if-no-match --filter @miragon/pulse-cli catalog
+pnpm --fail-if-no-match --filter @miragon/pulse-cli third-party-licenses
 pnpm --fail-if-no-match --filter @miragon/pulse-cli test:engines
 ```
 
 `test:engines` runs the Testcontainers suites against the built CLI (Docker or Podman, `build`
-first). `PULSE_CLI_IT_ENGINES=operaton,camunda` picks engines (`operaton`, `cibseven`, `camunda`),
+first). `PULSE_CLI_IT_ENGINES=operaton` picks engines (`operaton`, `cibseven`; both when unset),
 `PULSE_CLI_IT_SKIP_PACK=1` skips the tarball test, `PULSE_CLI_IT_BINARY=<absolute path>` tests a
 standalone executable and `PULSE_CLI_IT_CLI=<script>` another entry script.
 
 ## Standalone executable and container image
 
 Both start from one bundle, `build:standalone` (`apps/cli/tsdown.standalone.config.ts`): a
-CommonJS file with commander inlined, the only main script format a Node.js 24 single executable
-application runs.
+CommonJS file, commander inlined, the only main script format Node.js 24 single executables run.
 
 - `build:exe` (`apps/cli/scripts/build-exe.ts`) writes the preparation blob with
   `node --experimental-sea-config` (with V8 code cache), copies the running `node` binary, injects
-  the blob with [postject](https://github.com/nodejs/postject) and on macOS signs the result ad
-  hoc. It needs Node.js 24 (the repository's `.nvmrc` says 22) from an official build (nodejs.org,
-  nvm, fnm, Volta, setup-node): the script refuses a Homebrew or distribution build, whose shared
-  libraries the copy would need on every machine. The code cache only works on the platform that
-  built it, so every target builds on its own runner.
-- `apps/cli/Dockerfile` copies the bundle onto distroless Node.js 24; the build runs nothing on the
-  target platform, so a multi-platform build needs no emulation.
+  the blob with [postject](https://github.com/nodejs/postject), signs the copy ad hoc on macOS and
+  keeps that Node.js's `LICENSE` for the archive and the release. It needs an official Node.js 24
+  build (nodejs.org, nvm, fnm, Volta, setup-node; the `.nvmrc` says 22): it refuses a Homebrew or
+  distribution build, whose shared libraries the copy would need on every machine. The code cache
+  only works on the platform that built it, so every target builds on its own runner.
+- `apps/cli/Dockerfile` copies the bundle and the licences onto distroless Node.js 24; the build
+  runs nothing on the target platform, so a multi-platform build needs no emulation.
 - `apps/cli/scripts/smoke-test.sh <command...>` checks a packaging without an engine (version,
   help, catalog, dry-run, stdin, a network error).
 
@@ -54,16 +54,16 @@ docker build -t pulse-cli apps/cli && apps/cli/scripts/smoke-test.sh docker run 
 
 The command surface is data, not hand-written code:
 
-1. `apps/cli/spec/camunda7-rest/api.json` is the vendored OpenAPI spec of the Camunda 7 /
-   Operaton REST API. `apps/cli/spec/camunda7-rest/patches.json` corrects it with RFC 6902 JSON
-   patches (each with a `test` guard and a `reason`).
+1. `packages/connectors/c7/c7-core/spec/api.json` is the one OpenAPI spec of the Camunda 7 REST
+   API; c7-core's `generate` applies its `patches.json` (RFC 6902, a `test` guard and a `reason`
+   each) for every reader: the catalog, c7-client's SDK and c7-core's route table.
 2. `catalog` (`apps/cli/scripts/generate-catalog.ts`, `apps/cli/scripts/catalog`) turns it into one
    catalog per engine in `apps/cli/src/generated/`: operations with group, command name, aliases,
    effect, parameters, body and response descriptions, plus the referenced schemas. Naming
    overrides live in `apps/cli/scripts/catalog/overrides.ts`, summaries in
    `apps/cli/scripts/catalog/summaries.ts` and `apps/cli/scripts/catalog/summary-overrides.ts`,
-   effects in `apps/cli/scripts/catalog/effects.ts`. The generator fails on unresolvable `$ref`s,
-   unknown HTTP methods and command names or summaries that are not unique in their group.
+   effects in c7-core's route table (`packages/connectors/c7/c7-core/scripts/effects.ts`). It fails
+   on unresolvable `$ref`s, unknown HTTP methods or routes and non-unique names or summaries.
 3. The catalogs are committed; `apps/cli/scripts/catalog/render.test.ts` fails on a stale one. At
    runtime the same catalog drives registration, help, `describe`, input building and body
    validation, so help, docs and behavior cannot drift apart.
@@ -74,19 +74,18 @@ The command surface is data, not hand-written code:
 src/bin/        entry point and the Node runtime (I/O, timers, loopback server, browser, lock file, shell)
 src/cli/        commander wiring and the utility commands; the only layer that imports commander
 src/operation/  input building, variables, dates, guards, request building, execution, pagination
-src/workflow/   the workflow commands on @miragon/pulse-engine-core (bundled): its text, waiting (pure)
+src/workflow/   the workflow commands on @miragon/pulse-c7-core (bundled): its text, waiting (pure)
 src/engine-port/ what the CLI needs from an engine: EnginePort and EngineAdapter (types only)
 src/engines/    one adapter per engine (operaton, cibseven, camunda7) and the list of them (pure)
 src/api/        one folder per engine API; camunda7-rest builds catalog and port for the adapters (pure)
 src/docs/       commands, describe, examples, workflow docs and the agent guide (pure)
 src/catalog/    catalog access, schema helpers, body validation (pure)
-src/config/     config resolution and profile editing (pure), file store, project files
-src/auth/       auth providers (none, basic, bearer with JWT expiry, token commands, OAuth; pure)
-src/http/       fetch based HTTP client and error mapping
+src/config/     config resolution and profile editing (pure), file store, project files, read with @miragon/pulse-profile (bundled)
+src/auth/       auth providers around the transport's credential (none, basic, bearer with JWT expiry, token commands, OAuth on @miragon/pulse-http/oauth; pure)
+src/http/       the engine client on @miragon/pulse-http (bundled) and the wording of what fails
 src/output/     JSON, tables, field projection, errors, secret masking (pure)
-scripts/        catalog generator, standalone executable build, packaging smoke test
-schema/         the JSON Schema of the project file .pulse-cli.json, shipped in the npm package
-test/           fakes for unit tests, the project file fixtures, Testcontainers engine suites
+scripts/        catalog generator, licence list, standalone executable build, packaging, smoke test
+test/           fakes for unit tests, Testcontainers engine suites
 ```
 
 The overview with diagrams is in [Architecture](architecture.md), the decisions in
@@ -94,8 +93,9 @@ The overview with diagrams is in [Architecture](architecture.md), the decisions 
 (`pnpm lint:architecture` cruises `apps/cli/src`, `pnpm lint:architecture:cli` its `scripts/` and
 `test/`): no cycle (a type-only one included), only `src/bin` imports `src/cli`, only `src/cli`
 imports commander, the pure layers import no Node built-in, `workflow` knows engines only through
-`src/engine-port`, only they and `src/operation/{dates,variables}.ts` import engine-core, only the
-adapters import `src/api`, only `auth login` reaches the interactive login, and only
+`src/engine-port`, only they, `src/operation/{dates,variables}.ts` and `src/http/errors.ts` import
+c7-core, only `src/{http,auth,operation}` the transport, only `src/config` the profile format, only
+the adapters `src/api`, only `auth login` reaches the interactive login, and only
 `src/catalog/catalog.ts` and the adapters (each its own) read the catalogs.
 
 ## Quality gates
@@ -105,16 +105,17 @@ adapters import `src/api`, only `auth login` reaches the interactive login, and 
   (400 for tests), 60 lines per function, 20 statements, depth 3, 4 parameters. **Prettier**,
   **knip** on every issue type (`pnpm lint:deadcode`, `pnpm lint:deadcode:exports`).
 - **vitest** with v8 coverage floors of 90 % for lines, statements and functions and 85 % for
-  branches (`apps/cli/vitest.config.ts`); the floors only rise.
+  branches (`apps/cli/vitest.config.ts`); the floors only rise. Goldens pin what `status` and
+  `inspect` print and the engine failures their README lists (`apps/cli/test/__golden__/`); only `golden:update` writes them.
 - **fast-check** property tests for naming, patches, variable parsing, dates, query building,
   projection, table width, config and auth precedence, PKCE, token expiry, the token cache, body
   validation and secret masking.
-- **StrykerJS** mutates the workflow rules the CLI bundles from `@miragon/pulse-engine-core`,
-  nightly in CI; the CLI's own code is not mutation-tested (owner decision, 2026-11-04).
-- **Testcontainers** suites against the three engines, with and without Basic auth, behind
+- **StrykerJS** mutates what the CLI bundles (c7-core's workflow rules, engine-core's root-cause
+  rule, the profile format, the transport) nightly in CI, not the CLI's own code (owner decision).
+- **Testcontainers** suites against CIB seven and Operaton, with and without Basic auth, behind
   Keycloak and an Envoy JWT gateway for OAuth, through the workflow commands, plus a test of the
   packed tarball. CI runs them, the packaging smoke tests and `claude plugin validate --strict` on
-  every pull request. The plugin evals in `apps/cli/skills/pulse-cli/evals/` call the model on
+  a push to `main` and a pull request in the `cli` CI scope. The plugin evals call the model on
   your account, so they run locally: `claude plugin eval apps/cli/skills/pulse-cli --no-publish`.
 
 ## Ground rules
@@ -124,6 +125,6 @@ adapters import `src/api`, only `auth login` reaches the interactive login, and 
 - Documented commands are tested: the unit tests run every CLI line of a ` ```sh ` block in
   `apps/cli/README.md` and in `docs/cli/` against a fake engine. Write such blocks without a `$`
   prompt, and put transcripts with output into ` ```text ` blocks.
-- The catalog is generated: change the spec patches or the generator and run `catalog`; never
-  edit a file in `apps/cli/src/generated/` by hand.
+- Generated files are never edited by hand: run `catalog` after a change to the spec patches or the
+  generator, `third-party-licenses` after a bump of commander or tsdown.
 - Commits are conventional, with the scope `cli`: release-please writes the notes from their titles.

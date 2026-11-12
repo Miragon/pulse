@@ -26,6 +26,13 @@ describe("the engine jar", () => {
     for (const source of ENGINE_JAR_SOURCES) assert.ok(existsSync(repoFile(source)), source)
   })
 
+  it("is built from the example alone, its version catalog included", () => {
+    for (const source of ENGINE_JAR_SOURCES) {
+      assert.ok(source.startsWith("playground/cibseven-example/"), source)
+    }
+    assert.ok(ENGINE_JAR_SOURCES.includes("playground/cibseven-example/gradle/libs.versions.toml"))
+  })
+
   it("needs a build when missing or older than its newest source", () => {
     assert.equal(jarIsStale(undefined, 0), true)
     assert.equal(jarIsStale(1000, 2000), true)
@@ -89,19 +96,15 @@ describe("the JDK", () => {
     })
   })
 
-  it("names JDK 21 in the image and in both Gradle builds", () => {
+  it("names JDK 21 in the image and in the Gradle build", () => {
     assert.match(JDK_IMAGE, /:21-jdk$/)
-    for (const build of [
-      "playground/cibseven-example/build.gradle.kts",
-      "engine-plugins/build.gradle.kts",
-    ]) {
-      assert.match(readFileSync(repoFile(build), "utf8"), /jvmToolchain\(21\)/, build)
-    }
+    const build = "playground/cibseven-example/build.gradle.kts"
+    assert.match(readFileSync(repoFile(build), "utf8"), /jvmToolchain\(21\)/, build)
   })
 })
 
 describe("gradleCommand", () => {
-  const where = { repoRoot: "/repo-root", project: "engine-plugins", tasks: ["build"] }
+  const where = { repoRoot: "/repo-root", project: "playground/cibseven-example", tasks: ["build"] }
 
   it("runs the wrapper on the local JDK", () => {
     assert.deepEqual(
@@ -109,7 +112,7 @@ describe("gradleCommand", () => {
       {
         command: "./gradlew",
         args: ["build", "--no-daemon"],
-        cwd: "/repo-root/engine-plugins",
+        cwd: "/repo-root/playground/cibseven-example",
         env: { JAVA_HOME: "/jdk21" },
       },
     )
@@ -138,7 +141,7 @@ describe("gradleCommand", () => {
       "--mount",
       `type=volume,source=${GRADLE_CACHE_VOLUME},target=/root/.gradle`,
       "--workdir",
-      "/repo/engine-plugins",
+      "/repo/playground/cibseven-example",
     ])
     assert.deepEqual(args.slice(11), [JDK_IMAGE, "sh", "-c", "sh ./gradlew build --no-daemon"])
   })

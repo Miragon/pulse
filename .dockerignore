@@ -15,9 +15,6 @@
 .idea
 .playwright-mcp
 .ai
-engine-plugins/.gradle
-engine-plugins/build
-engine-plugins/**/build
 playground/cibseven-example/.gradle
 playground/cibseven-example/build
 # The CLI (apps/cli) builds its own image from its own context (apps/cli/Dockerfile); the

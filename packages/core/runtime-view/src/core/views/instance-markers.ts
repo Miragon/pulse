@@ -1,4 +1,9 @@
-import type { CalledInstance, ElementId, InstanceDetail, InstanceId } from "../../contract/index.js"
+import type {
+  CalledInstance,
+  ElementId,
+  InstanceDetail,
+  InstanceId,
+} from "@miragon/pulse-engine-core"
 import type { BpmnStructure } from "../bpmn/bpmn-structure.js"
 import type { ElementMarker, MarkerKind } from "../protocol/index.js"
 import { SubProcessRollUp } from "./sub-process-roll-up.js"

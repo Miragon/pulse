@@ -1,4 +1,4 @@
-import { IncidentId, type InstanceId } from "../../contract/index.js"
+import { IncidentId, type InstanceId } from "@miragon/pulse-engine-core"
 import type { InstanceView, WebviewIntent } from "../protocol/index.js"
 import type { Attention } from "../refresh/live-context.js"
 import { PanelLive } from "../refresh/panel-live.js"

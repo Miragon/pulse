@@ -9,10 +9,13 @@ import {
   DrillButton,
   Icon,
   NamedId,
+  formatCount,
   formatNumber,
+  SITUATION_TONES,
 } from "@miragon/pulse-ui"
 import {
   HandOffButton,
+  isPermanentError,
   ViewDataState,
   ViewMeta,
   WidgetShell,
@@ -27,8 +30,7 @@ import { ENGINE_HEALTH_DATA } from "../tool-names.js"
 import { remediationHandOff, UNKNOWN_KEY as UNKNOWN } from "./remediation.js"
 import { useActionAllowed } from "./lib/engine-action.js"
 import { useHandOff, type HandOff, type ViewContext } from "./lib/hand-off.js"
-import { formatCount, formatCountAtLeast } from "./lib/format-count.js"
-import { healthVerdictLine, VERDICT_TONE } from "./lib/health-verdict.js"
+import { healthFailureOf, healthVerdictLine, VERDICT_TONE } from "./lib/health-verdict.js"
 import { useT } from "../messages/use-t.js"
 
 const STATUS_LABEL: Record<EngineHealthStatus, string> = {
@@ -93,12 +95,20 @@ function triageHandOff(data: EngineHealthData, engine: string): HandOff {
   }
 }
 
-/** An unreachable engine is itself an incident: hand it to the agent. The error text is quoted, never inlined. */
-function diagnoseHandOff(engine: string, message: string): HandOff {
+/**
+ * A failed health read is itself an incident: hand it to the agent, asked as the landing words it,
+ * so an engine that refused the server's login is never "not reachable" (F2). The error text is
+ * quoted, never inlined.
+ */
+function diagnoseHandOff(engine: string, error: Error): HandOff {
+  const failure = healthFailureOf(error)
   return {
-    intent: "askAi.health.diagnoseUnreachable",
+    intent:
+      failure === "unauthorized" || failure === "forbidden"
+        ? "askAi.health.diagnoseLogin"
+        : "askAi.health.diagnoseUnreachable",
     ids: { engine },
-    untrusted: [{ label: "error", text: message }],
+    untrusted: [{ label: "error", text: error.message }],
   }
 }
 
@@ -114,7 +124,7 @@ function ClusterRow({
 }) {
   const t = useT()
   const { ask } = useHandOff()
-  const canFix = useActionAllowed("engine_set_job_retries")
+  const canFix = useActionAllowed("engine_set_job_retries", engine)
   const handOff = remediationHandOff(cluster, engine, canFix)
   const primaryKey = cluster.processDefinitionKeys.find((k) => k !== UNKNOWN)
   const name = cluster.activityName ?? cluster.activityId
@@ -136,7 +146,7 @@ function ClusterRow({
       : (cluster.processDefinitionName ?? primaryKey ?? UNKNOWN)
   const facts = [
     t("engineHealth.clusterAffected", {
-      count: formatCountAtLeast(cluster.incidentCount, cluster.scannedIncidentCount),
+      count: formatCount(cluster.incidentCount ?? { atLeast: cluster.scannedIncidentCount }),
     }),
     cluster.last24hCount !== null && cluster.last24hCount > 0
       ? t("engineHealth.clusterNew24h", { count: formatNumber(cluster.last24hCount) })
@@ -197,10 +207,11 @@ function HealthUnavailable({
         emptyText={t("engineHealth.noData")}
         className="w-full"
       />
-      {/* An unreachable engine is a failure to understand too: the chat can
-          look for the cause while the operator retries. */}
-      {error && (
-        <HandOffButton action="findCause" prompt={ask(diagnoseHandOff(engine, error.message))} />
+      {/* An unreachable engine or a refused login is a failure to understand too: the
+          chat can look for the cause while the operator retries. A refused profile has
+          its reason on screen, and only the operator can fix it. */}
+      {error && healthFailureOf(error) !== "refused" && (
+        <HandOffButton action="findCause" prompt={ask(diagnoseHandOff(engine, error))} />
       )}
     </div>
   )
@@ -234,7 +245,7 @@ function HealthKpis({ summary, go }: { summary: EngineHealthData["summary"]; go:
               : summary.last24hIncidents > 0
                 ? ` ${t("engineHealth.kpiIn24h", { count: formatNumber(summary.last24hIncidents) })}`
                 : undefined,
-          tone: summary.totalIncidents > 0 ? "danger" : undefined,
+          tone: summary.totalIncidents > 0 ? SITUATION_TONES.openIncident : undefined,
           onClick: () => go({ type: "incidents" }),
           actionHint: t("engineHealth.kpiOpenIncidentsAria"),
         },
@@ -356,7 +367,8 @@ export function EngineHealthView({
         }
       />
 
-      {/* A failed re-pull keeps the last verdict and says it is not current. */}
+      {/* A failed re-pull keeps the last verdict and says it is not current; a refusal no
+          retry changes offers no retry. */}
       {refreshError && !refreshing && (
         <ErrorState
           variant="inline"
@@ -364,7 +376,7 @@ export function EngineHealthView({
           title={t("engineHealth.refreshFailedTitle")}
           description={t("engineHealth.refreshFailedHint")}
           details={refreshError.message}
-          onRetry={refetch}
+          onRetry={isPermanentError(refreshError) ? undefined : refetch}
         />
       )}
 

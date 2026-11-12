@@ -23,7 +23,7 @@ describe("bindHandOff", () => {
     const prompt = bindHandOff("en").ask(HAND_OFF)!
     expect(prompt.startsWith(enAskAi["askAi.incident.diagnose"])).toBe(true)
     expect(prompt).toContain('Ids: engine="prod-b", incidentId="inc-1"')
-    expect(prompt).not.toMatch(/\b(engine|analytics)_[a-z0-9_]+/)
+    expect(prompt).not.toMatch(/\bengine_[a-z0-9_]+/)
   })
 
   it("states a view context in English from the same parts", () => {
@@ -48,7 +48,7 @@ describe("the history hand-offs carry the definition key as an id", () => {
     expect(prompt).toContain(
       'Ids: engine="prod-a", processInstanceId="pi-1", processDefinitionKey="order"\n',
     )
-    expect(prompt).not.toMatch(/\b(engine|analytics)_[a-z0-9_]+/)
+    expect(prompt).not.toMatch(/\bengine_[a-z0-9_]+/)
   })
 })
 
@@ -60,7 +60,7 @@ describe("the Ask-AI intent catalogues", () => {
   // A tool named in an intent would reach every deployment, the read-only floor included.
   it("name no tool and inline no data", () => {
     for (const [key, text] of intents) {
-      expect(text, key).not.toMatch(/\b(engine|analytics)_[a-z0-9_]+/)
+      expect(text, key).not.toMatch(/\bengine_[a-z0-9_]+/)
       expect(text, key).not.toMatch(/[{}`]|\$\{/)
     }
   })

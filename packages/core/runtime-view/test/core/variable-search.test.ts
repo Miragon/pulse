@@ -1,5 +1,5 @@
-import { BpmnProcessId, type InstanceFilter } from "../../src/contract/index.js"
-import { PatchedRuntime } from "../../src/contract/fake/index.js"
+import { BpmnProcessId, type InstanceFilter } from "@miragon/pulse-engine-core"
+import { PatchedRuntime } from "@miragon/pulse-engine-core/testing"
 import { describe, expect, test } from "vitest"
 import { DefinitionPanel } from "../../src/core/panels/definition-panel.js"
 import {

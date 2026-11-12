@@ -1,4 +1,4 @@
-import { InstanceId, type InstanceSummary } from "../../contract/index.js"
+import { InstanceId, type InstanceSummary } from "@miragon/pulse-engine-core"
 import type { OfferedBulkAction } from "../panels/bulk-action.js"
 import type { BulkRun } from "../panels/bulk-run.js"
 import type { BulkSelection } from "../panels/bulk-selection.js"

@@ -1,0 +1,26 @@
+{
+  "case": "unreachable",
+  "config": {
+    "ENGINE_BASE_URL": "http://127.0.0.1:<port>/engine-rest"
+  },
+  "probes": [
+    {
+      "arguments": {
+        "processInstanceId": "pi-1"
+      },
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "engine default unreachable (ECONNREFUSED)"
+            ],
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "sent": [],
+      "tool": "engine_inspect_process_instance"
+    }
+  ]
+}

@@ -100,7 +100,7 @@ jobs:
       - name: The folder holds the plugin and nothing else
         run: |
           listing="$(cd apps/orca/dist && find . -type f | sort)"
-          for file in ./orca-plugin.json ./worker.mjs ./panel/engines.js ./editor/index.html ./editor/board.html ./editor/bridge.js ./editor/webview.js ./assets/icon.png ./images/cover.webp; do
+          for file in ./orca-plugin.json ./worker.mjs ./panel/engines.js ./editor/index.html ./editor/board.html ./editor/bridge.js ./editor/webview.js ./assets/icon.png ./images/cover.webp ./LICENSE ./THIRD_PARTY_LICENSES.txt; do
             if ! grep -qxF "$file" <<<"$listing"; then
               echo "::error::The plugin folder lacks ${file}"
               exit 1

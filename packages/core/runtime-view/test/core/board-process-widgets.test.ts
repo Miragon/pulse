@@ -6,7 +6,7 @@ import {
   InstanceId,
   RuntimeError,
   type Incident,
-} from "../../src/contract/index.js"
+} from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
 import { BoardPanel } from "../../src/core/boards/board-panel.js"
 import { BoardParser, type BoardParse } from "../../src/core/boards/board-parser.js"

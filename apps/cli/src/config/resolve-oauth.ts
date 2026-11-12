@@ -18,6 +18,7 @@ import {
   validateScopes,
 } from "./oauth.js"
 import { selectedLoginKey } from "./login-key.js"
+import { urlWithoutProfile } from "./no-profile.js"
 import { type Env, nonEmpty } from "./pick.js"
 import {
   type ConfigFlags,
@@ -287,6 +288,7 @@ export function resolveOAuth(context: OAuthContext, selectedBy: string): OAuthCo
       login: loginOf(context.selected),
       projectDirectory: context.selected.project?.directory,
       configFile: context.selected.configFile,
+      byUrl: urlWithoutProfile(context.flags, context.env) === undefined ? undefined : true,
     }),
     clientId: validateClientId(clientId.value, clientId.label),
     scopes: validateScopes(scopes.value, scopes.label),

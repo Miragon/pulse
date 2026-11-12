@@ -1,0 +1,37 @@
+[versions]
+# Language / platform
+kotlin = "2.4.21"
+# Spring Boot 4.1.0 (latest). CIB seven 2.2.0's matrix officially lists 4.0.x, but
+# 4.1.0 boots and serves cleanly here (engine, REST and the Cockpit/Tasklist
+# webapp were all verified by actually running the cibseven-example app) once the
+# stray Spring Boot 3.5 webclient is excluded (see build.gradle.kts: it calls a
+# Spring MVC method removed in Spring Framework 7). Fallback is 4.0.7 (top of the
+# officially supported 4.0.x line). Consume the `-4` starters below.
+spring-boot = "4.1.2"
+spring-dependency-management = "1.1.7"
+
+# Engine SDKs
+cibseven = "2.2.0"
+
+[libraries]
+# CIB seven Spring Boot starters: the `-4` artifacts are the Spring Boot 4 build
+# (Jakarta EE 11 / Spring Framework 7). The suffix-less coordinates are the
+# Spring Boot 3.5 build; do not mix them with a Spring Boot 4 BOM.
+cibseven-starter-rest = { module = "org.cibseven.bpm.springboot:cibseven-bpm-spring-boot-starter-rest-4", version.ref = "cibseven" }
+cibseven-starter-webapp = { module = "org.cibseven.bpm.springboot:cibseven-bpm-spring-boot-starter-webapp-4", version.ref = "cibseven" }
+cibseven-bpm-junit5 = { module = "org.cibseven.bpm:cibseven-bpm-junit5", version.ref = "cibseven" }
+cibseven-bpm-assert = { module = "org.cibseven.bpm:cibseven-bpm-assert", version.ref = "cibseven" }
+
+# BOM-managed (version resolved from the Spring Boot BOM, listed for discoverability)
+spring-boot-starter-jdbc = { module = "org.springframework.boot:spring-boot-starter-jdbc" }
+spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
+spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
+h2 = { module = "com.h2database:h2" }
+kotlin-test-junit5 = { module = "org.jetbrains.kotlin:kotlin-test-junit5" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotlin" }
+spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
+spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "spring-dependency-management" }

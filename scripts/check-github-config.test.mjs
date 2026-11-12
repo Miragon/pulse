@@ -78,17 +78,11 @@ const published = (dir, manifest) => ({
 const TODAY = {
   "apps/mcp-server": { name: "@miragon/pulse-mcp-server", private: true },
   ...published("packages/core/widget-shell", { name: "@miragon/pulse-widget-shell" }),
-  ...published("packages/connectors/engine/engine-client", {
-    name: "@miragon/pulse-engine-client",
+  ...published("packages/connectors/c7/c7-client", {
+    name: "@miragon/pulse-c7-client",
   }),
   ...published("packages/connectors/engine/engine-connector", {
     name: "@miragon/pulse-engine-connector",
-  }),
-  ...published("packages/connectors/analytics/analytics-client", {
-    name: "@miragon/pulse-analytics-client",
-  }),
-  ...published("packages/connectors/analytics/analytics-connector", {
-    name: "@miragon/pulse-analytics-connector",
   }),
   docs: { name: "@miragon/pulse-docs", private: true },
 }
@@ -795,7 +789,6 @@ const fixtureConfig = (manifests) => ({
   packages: {
     ".": {
       "extra-files": [
-        { type: "generic", path: "engine-plugins/gradle.properties" },
         { type: "json", path: "package.json", jsonpath: "$.version" },
         ...Object.keys(manifests)
           .filter((dir) => /^(?:apps|packages)\//.test(dir))
@@ -1186,31 +1179,33 @@ describe("checkCiScopes", () => {
   })
 
   it("rejects a job that does not wait for the changes job", () => {
-    const errors = scopeErrors((doc) => delete doc.jobs.kotlin.needs)
-    assert.ok(matches(errors, /job kotlin does not wait for the changes job/))
+    const errors = scopeErrors((doc) => delete doc.jobs["cibseven-example"].needs)
+    assert.ok(matches(errors, /job cibseven-example does not wait for the changes job/))
   })
 
   it("rejects a job that reads a scope through another job: needs holds its own needs only", () => {
-    const errors = scopeErrors((doc) => (doc.jobs.kotlin.needs = ["template"]))
-    assert.ok(matches(errors, /job kotlin reads a scope but does not list changes in its needs/))
-    assert.ok(!matches(errors, /job kotlin does not wait/))
+    const errors = scopeErrors((doc) => (doc.jobs["cibseven-example"].needs = ["template"]))
+    assert.ok(
+      matches(errors, /job cibseven-example reads a scope but does not list changes in its needs/),
+    )
+    assert.ok(!matches(errors, /job cibseven-example does not wait/))
   })
 
   it("rejects a scope the changes job does not hand out, and an unknown output", () => {
     const errors = scopeErrors((doc) => {
-      delete doc.jobs.changes.outputs.kotlin
+      delete doc.jobs.changes.outputs["cibseven-example"]
       doc.jobs.changes.outputs.extra = "${{ steps.scopes.outputs.extra }}"
     })
-    assert.ok(matches(errors, /does not hand out the scope "kotlin"/))
+    assert.ok(matches(errors, /does not hand out the scope "cibseven-example"/))
     assert.ok(matches(errors, /hands out "extra", which scripts\/ci-scopes\.mjs does not compute/))
   })
 
   it("rejects a job that reads an unknown scope, and a scope no job reads", () => {
     const errors = scopeErrors(
-      (doc) => (doc.jobs.kotlin.if = "needs.changes.outputs.gradle == 'true'"),
+      (doc) => (doc.jobs["cibseven-example"].if = "needs.changes.outputs.gradle == 'true'"),
     )
-    assert.ok(matches(errors, /job kotlin reads the unknown scope "gradle"/))
-    assert.ok(matches(errors, /no job runs in the scope "kotlin"/))
+    assert.ok(matches(errors, /job cibseven-example reads the unknown scope "gradle"/))
+    assert.ok(matches(errors, /no job runs in the scope "cibseven-example"/))
   })
 
   it("rejects a workflow whose required jobs all skip when the changes job fails", () => {
@@ -1254,15 +1249,15 @@ describe("checkReleaseGate", () => {
     const doc = release()
     doc.jobs["publish-cli"].if = "${{ always() }}"
     doc.jobs["publish-npm"].if = "${{ !cancelled() && inputs.dry_run == true }}"
-    doc.jobs["publish-maven"].if = "${{ success() || true }}"
+    doc.jobs["publish-vscode"].if = "${{ success() || true }}"
     doc.jobs["publish-docker"].if = "failure ()"
     doc.jobs["sync-template-mirror"].if = "${{ cancelled() }}"
     const errors = checkReleaseGate(doc)
     assert.equal(errors.length, 5)
-    assert.match(errors[0], /job publish-maven's if uses the status check function success\(\)/)
-    assert.match(errors[1], /job publish-docker's if uses the status check function failure \(\)/)
-    assert.match(errors[2], /job publish-npm's if uses the status check function cancelled\(\)/)
-    assert.match(errors[3], /job publish-cli's if uses the status check function always\(\)/)
+    assert.match(errors[0], /job publish-docker's if uses the status check function failure \(\)/)
+    assert.match(errors[1], /job publish-npm's if uses the status check function cancelled\(\)/)
+    assert.match(errors[2], /job publish-cli's if uses the status check function always\(\)/)
+    assert.match(errors[3], /job publish-vscode's if uses the status check function success\(\)/)
     assert.match(errors[4], /job sync-template-mirror's .* cancelled\(\): it would run after/)
     // the gate's own condition and an output named like a function stay allowed
     const quiet = release()

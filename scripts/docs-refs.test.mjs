@@ -7,7 +7,7 @@ import { afterEach, describe, it } from "node:test"
 import { fileURLToPath } from "node:url"
 import { TEST_FILE } from "./pack-contents.mjs"
 import { REPO_ROOT } from "./source-scan.mjs"
-import { fullSurface, metricVocabulary } from "./tool-surface.mjs"
+import { fullSurface } from "./tool-surface.mjs"
 import { publishedLibraries } from "./workspace-packages.mjs"
 
 /**
@@ -162,40 +162,19 @@ function backticked(file, root = REPO_ROOT) {
 
 const where = (ref) => `${ref.file}:${ref.line} \`${ref.token}\``
 
-/**
- * A backticked token shaped like a tool: a module prefix, a `show_`, a `_data` feed. A metric
- * name or label of the metrics contract (`engine_jobs_failed`, `engine_id`) shares the engine
- * module's prefix and is none; every other `engine_…` token still has to be a tool.
- */
-const METRIC_VOCABULARY = metricVocabulary()
+/** A backticked token shaped like a tool: the module prefix, a `show_`, a `_data` feed. */
 const looksLikeTool = (token) =>
   /^[a-z0-9]+(?:_[a-z0-9]+)+$/.test(token) &&
-  !METRIC_VOCABULARY.has(token) &&
-  (/^(?:engine|analytics)_/.test(token) || /(?:^|_)show_/.test(token) || token.endsWith("_data"))
+  (/^engine_/.test(token) || /(?:^|_)show_/.test(token) || token.endsWith("_data"))
 
 describe("tool names in the docs", () => {
   const tools = new Set(fullSurface().map((tool) => tool.name))
-  // A short form (`show_dashboard`, `bpmn_heatmap_data`) names the module's tool.
-  const known = (name) =>
-    tools.has(name) || tools.has(`engine_${name}`) || tools.has(`analytics_${name}`)
+  // A short form (`open_cockpit`, `bpmn_xml_data`) names the module's tool.
+  const known = (name) => tools.has(name) || tools.has(`engine_${name}`)
 
   // The template's docs also name its own module's tools (`notes_show_notes`),
   // which its own suite checks; here only the shipped modules' names count.
-  const checked = (ref) =>
-    ref.file.startsWith("templates/") ? /^(?:engine|analytics)_/.test(ref.token) : true
-
-  it("reads a metric name or label as no tool, and every other engine_ token as one", () => {
-    for (const token of [
-      "engine_id",
-      "engine_jobs_failed",
-      "engine_usertask_duration_milliseconds_sum",
-    ]) {
-      assert.equal(looksLikeTool(token), false, token)
-    }
-    for (const token of ["engine_jobs_faild", "engine_stale_data", "engine_open_cockpit"]) {
-      assert.equal(looksLikeTool(token), true, token)
-    }
-  })
+  const checked = (ref) => (ref.file.startsWith("templates/") ? /^engine_/.test(ref.token) : true)
 
   it("names only tools the server registers", () => {
     const stale = docFiles
@@ -206,8 +185,7 @@ describe("tool names in the docs", () => {
 })
 
 describe("repo paths in the docs", () => {
-  const ROOTS =
-    /^(?:apps|packages|docs|scripts|playground|engine-plugins|templates|\.claude|\.github)\//
+  const ROOTS = /^(?:apps|packages|docs|scripts|playground|templates|\.claude|\.github)\//
   // Written by a build or a test run, not checked in.
   const GENERATED = /(?:^|\/)(?:dist|test-results|node_modules|generated-sources)(?:\/|$)/
   const pathOf = (token) => token.replace(/:\d+(?:-\d+)?$/, "").replace(/\/$/, "")
@@ -322,7 +300,7 @@ function installedPathProblem(cited, { root, libraries, declared }) {
  * What is wrong with `token`, a backticked path of a template doc, as a path into an installed
  * package; none when it is right or names no such package. `libraries` maps an npm name to its
  * workspace `{ dir, manifest }` (`dir` relative to `root`), `declared(folder)` names the packages
- * a template folder installs. A brace group (`pulse-{engine,analytics}-connector`) is checked
+ * a template folder installs. A brace group (`pulse-{ui,widget-shell}`) is checked
  * per alternative, and each problem names the path it is about.
  */
 function installedPathProblems(token, context) {
@@ -366,7 +344,7 @@ describe("installed package paths in the template docs", () => {
   it("accepts a shipped source, a README, an entry's typings and a module's own install", () => {
     for (const token of [
       "server/node_modules/@miragon/pulse-engine-connector/src/lib/mcp/toolsets.ts",
-      "server/node_modules/@miragon/pulse-{engine,analytics}-connector/src/widgets/",
+      "server/node_modules/@miragon/pulse-{ui,widget-shell}/README.md",
       "server/node_modules/@miragon/pulse-widget-shell/README.md",
       "server/node_modules/@miragon/pulse-widget-shell/dist/ui/index.d.ts",
       "server/node_modules/@miragon/pulse-ui/dist/index.d.ts",
@@ -382,7 +360,7 @@ describe("installed package paths in the template docs", () => {
     const cases = [
       ["node_modules/@miragon/pulse-engine-connector/src/lib/mcp/toolsets.ts", /never at a root/],
       ["server/node_modules/@miragon/pulse-engine-connector/src/lib/no-such.ts", /does not exist/],
-      ["server/node_modules/@miragon/pulse-{engine,analytics}-connector/src/nope/", /not exist/],
+      ["server/node_modules/@miragon/pulse-{ui,widget-shell}/src/nope/", /not exist/],
       // Files no `files` entry names: they stay unshipped once a library ships its `src` too.
       [
         "server/node_modules/@miragon/pulse-widget-shell/vitest.config.ts",
@@ -394,7 +372,7 @@ describe("installed package paths in the template docs", () => {
         /does not ship src/,
       ],
       ["server/node_modules/@miragon/pulse-widget-shell/dist/no-such.d.ts", /is no entry/],
-      ["server/node_modules/@miragon/pulse-engine-core/README.md", /does not declare/],
+      ["server/node_modules/@miragon/pulse-c7-core/README.md", /does not declare/],
       ["modules/mcp-notes/node_modules/@miragon/pulse-engine-connector/src", /does not declare/],
       ["server/node_modules/@miragon/pulse-nope/README.md", /is no library/],
     ]
@@ -482,9 +460,9 @@ describe("identifiers in the skills and the nested agent files", () => {
     fileURLToPath(import.meta.url),
     path.join(REPO_ROOT, "scripts", "old-names.test.mjs"),
   ])
-  const isSource = (file) => /\.(?:tsx?|mts|mjs|cjs|kt)$/.test(file) && !FIXTURE_SOURCES.has(file)
+  const isSource = (file) => /\.(?:tsx?|mts|mjs|cjs)$/.test(file) && !FIXTURE_SOURCES.has(file)
   const words = wordsOf([
-    ...["apps", "packages", "scripts", "templates", "engine-plugins"].flatMap((dir) =>
+    ...["apps", "packages", "scripts", "templates"].flatMap((dir) =>
       walk(path.join(REPO_ROOT, dir), isSource),
     ),
     ...typings,
@@ -555,6 +533,9 @@ const DOCS_BUDGETS = {
   "vscode/usage.md": 80,
   "vscode/boards.md": 70,
   "vscode/architecture.md": 50,
+  // Every difference between the MCP cockpit and the webview, a row each: it grows with a
+  // feature built on one side and shrinks with one that closes a row.
+  "vscode/parity.md": 210,
   // The Orca plugin's pages (docs/orca/).
   "orca/index.md": 40,
   "orca/installation.md": 50,
@@ -652,7 +633,7 @@ describe("what the guard reads", () => {
     "packages/connectors/engine/engine-connector/src/messages/GLOSSARY.md",
     ".claude/skills/shadcn/rules/forms.md",
     "templates/composed-server/server/README.md",
-    "engine-plugins/README.md",
+    "playground/README.md",
     "TODOS.md",
     "apps/cli/README.txt",
   ]) {
@@ -839,7 +820,6 @@ describe("what the guard reads", () => {
     assert.ok(docFiles.length >= 28)
     // Every skill by name: the scanner reads each one, not just enough of them.
     assert.deepEqual([...skillFiles].sort(), [
-      ".claude/skills/add-analytics-feature/SKILL.md",
       ".claude/skills/add-bpm-feature/SKILL.md",
       ".claude/skills/create-ticket/SKILL.md",
       ".claude/skills/mcp-apps-builder/SKILL.md",

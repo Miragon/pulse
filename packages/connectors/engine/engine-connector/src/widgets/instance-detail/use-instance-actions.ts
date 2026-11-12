@@ -92,6 +92,7 @@ export function useInstanceActions({
   // No reset: the runtime read after a cancel could only answer 404.
   const cancel = useEngineAction<CancelArgs>({
     tool: "engine_delete_process_instance",
+    engine: engineId,
     target: (args) => args.processInstanceId,
     available: current,
   })
@@ -99,6 +100,7 @@ export function useInstanceActions({
   const isActionable = current && !cancelled
   const suspension = useEngineAction<SuspensionArgs>({
     tool: "engine_set_process_instance_suspension",
+    engine: engineId,
     target: (args) => args.processInstanceId,
     resetOn: data,
     available: isActionable,

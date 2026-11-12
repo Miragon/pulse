@@ -5,11 +5,12 @@ import {
   type DefinitionSummary,
   type ElementStatistics,
   type Incident,
+  type InstanceCount,
   type InstanceFilter,
   type InstanceSummary,
   type Page,
   type ProcessRuntime,
-} from "../../contract/index.js"
+} from "@miragon/pulse-engine-core"
 import type { SharedDefinitions } from "../refresh/shared-definitions.js"
 import { BoardVocabulary } from "./board-vocabulary.js"
 
@@ -31,7 +32,7 @@ export class EngineReads {
     return this.once("summaries", () => this.definitions.read(0))
   }
 
-  count(filter: InstanceFilter): Promise<Read<number>> {
+  count(filter: InstanceFilter): Promise<Read<InstanceCount>> {
     return this.once(`count|${JSON.stringify(filter)}`, () => this.runtime.countInstances(filter))
   }
 

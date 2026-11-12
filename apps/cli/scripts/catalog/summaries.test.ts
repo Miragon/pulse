@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import type { Catalog, OperationSpec, ParamSpec } from "../../src/catalog/types.js"
 import { buildCatalog } from "./build-catalog.js"
-import { readPatchedSpec } from "./files.js"
+import { readSpec, readRoutes } from "./files.js"
 import { SPEC_URL } from "./render.js"
 import { assertUniqueSummaries, summarize } from "./summaries.js"
 import { SUMMARY_OVERRIDES } from "./summary-overrides.js"
@@ -121,7 +121,7 @@ describe("summarize", () => {
 let cachedCatalog: Catalog | undefined
 
 function realCatalog(): Catalog {
-  cachedCatalog ??= buildCatalog(readPatchedSpec(), SPEC_URL)
+  cachedCatalog ??= buildCatalog(readSpec(), SPEC_URL, readRoutes())
   return cachedCatalog
 }
 

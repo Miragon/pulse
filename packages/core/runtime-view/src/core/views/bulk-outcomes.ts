@@ -58,12 +58,12 @@ export class BulkOutcomes {
 
   private running(): Notice {
     const { done, failed, total } = this.run.progress
-    const title = `${this.doing(false)}: ${done} of ${total} done`
+    const title = `${this.doing(false)}: ${Labels.count(done)} of ${Labels.count(total)} done`
     const unread = this.unreadNote()
     if (unread !== undefined) {
       return { tone: "warning", title, detail: unread, actions: this.stopAction() }
     }
-    const detail = this.run.message ?? (failed > 0 ? `${failed} failed` : undefined)
+    const detail = this.run.message ?? (failed > 0 ? `${Labels.count(failed)} failed` : undefined)
     return this.info(title, detail, this.stopAction())
   }
 
@@ -72,7 +72,7 @@ export class BulkOutcomes {
     const idle = Labels.duration(this.scene.now - this.run.lastChangeAt)
     return {
       tone: "warning",
-      title: `No progress for ${idle}: ${done} of ${total} done`,
+      title: `No progress for ${idle}: ${Labels.count(done)} of ${Labels.count(total)} done`,
       detail: this.wording().stalled,
       actions: this.stopAction(),
     }
@@ -84,7 +84,7 @@ export class BulkOutcomes {
     const halted = this.run.halted
     return {
       tone: "warning",
-      title: `Stopped. ${this.doneCount()} of ${total} ${this.wording().done}, ${left} still ${this.wording().eligible}.`,
+      title: `Stopped. ${Labels.count(this.doneCount())} of ${Labels.count(total)} ${this.wording().done}, ${Labels.count(left)} still ${this.wording().eligible}.`,
       detail:
         this.run.message ??
         (halted
@@ -107,7 +107,7 @@ export class BulkOutcomes {
     if (left > 0) {
       return {
         tone: "danger",
-        title: `${done} ${this.doneCount()} of ${total}${arrival}. ${left} still ${this.wording().eligible}.`,
+        title: `${done} ${Labels.count(this.doneCount())} of ${Labels.count(total)}${arrival}. ${Labels.count(left)} still ${this.wording().eligible}.`,
         detail:
           this.sentences([this.run.message ?? this.wording().notDone, ...this.asides()]) ??
           this.wording().notDone,
@@ -139,7 +139,7 @@ export class BulkOutcomes {
       detail:
         left === undefined
           ? `${this.run.message ?? "The engine did not answer."} Check the instances before you try again.`
-          : `${left} of ${total} still ${this.wording().eligible}.`,
+          : `${Labels.count(left)} of ${Labels.count(total)} still ${this.wording().eligible}.`,
       actions: [{ kind: "checkBulk", label: "Check instances" }, DISMISS],
     }
   }
@@ -164,8 +164,10 @@ export class BulkOutcomes {
     const leftOut = this.run.plan.leftOut ?? 0
     const ended = this.endedMeanwhile()
     return [
-      ...(leftOut === 0 ? [] : [`${leftOut} left out, still ${this.wording().eligible}.`]),
-      ...(ended === 0 ? [] : [`${ended} ended meanwhile.`]),
+      ...(leftOut === 0
+        ? []
+        : [`${Labels.count(leftOut)} left out, still ${this.wording().eligible}.`]),
+      ...(ended === 0 ? [] : [`${Labels.count(ended)} ended meanwhile.`]),
       ...(this.run.lingers
         ? [
             `The engine keeps the batch with ${Labels.plural(this.run.progress.failed, "failed item")}.`,
@@ -213,7 +215,7 @@ export class BulkOutcomes {
     if (left === 0 || !shown || !this.scene.canWrite || this.scene.selectsRemaining === false) {
       return []
     }
-    const which = left === 1 ? "one" : String(left)
+    const which = left === 1 ? "one" : Labels.count(left)
     return [
       { kind: "selectRemaining", label: `Select the ${which} still ${this.wording().eligible}` },
     ]
@@ -231,7 +233,7 @@ export class BulkOutcomes {
 
   private doneSoFar(): string {
     const { done, total } = this.run.progress
-    return `${done} of ${total} ${this.wording().done}`
+    return `${Labels.count(done)} of ${Labels.count(total)} ${this.wording().done}`
   }
 
   private versionNote(): string {

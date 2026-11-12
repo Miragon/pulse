@@ -1,3 +1,4 @@
+import type { InstanceCount } from "@miragon/pulse-engine-core"
 import type { CounterEntry, CounterTile } from "../protocol/index.js"
 import type { CounterWidget } from "./board-definition.js"
 import { BoardFilters } from "./board-filters.js"
@@ -28,6 +29,7 @@ export class CounterTiles {
       ...(known.length === 0
         ? {}
         : { total: known.reduce((sum, entry) => sum + (entry.count ?? 0), 0) }),
+      ...(known.some((entry) => entry.atLeast === true) ? { totalAtLeast: true as const } : {}),
       ...(widget.warnAbove === undefined ? {} : { warnAbove: widget.warnAbove }),
       ...(widget.filter.withIncident === true ? { incident: true as const } : {}),
     }
@@ -36,9 +38,8 @@ export class CounterTiles {
   private static entry(
     widget: CounterWidget,
     engine: string,
-    count: number | undefined,
+    counted: InstanceCount | undefined,
   ): CounterEntry {
-    const above = count !== undefined && widget.warnAbove !== undefined && count > widget.warnAbove
     const filter = BoardFilters.listFilter(widget.filter)
     const process = widget.filter.process
     return {
@@ -52,8 +53,22 @@ export class CounterTiles {
               ...(process === undefined ? {} : { bpmnProcessId: process }),
             },
           }),
-      ...(count === undefined ? {} : { count }),
-      ...(above ? { above: true as const } : {}),
+      ...(counted === undefined ? {} : { count: counted.count }),
+      ...(counted?.atLeast === true ? { atLeast: true as const } : {}),
+      ...CounterTiles.threshold(counted, widget.warnAbove),
     }
+  }
+
+  private static threshold(
+    counted: InstanceCount | undefined,
+    warnAbove: number | undefined,
+  ): Pick<CounterEntry, "above" | "undecided"> {
+    if (counted === undefined || warnAbove === undefined) {
+      return {}
+    }
+    if (counted.count > warnAbove) {
+      return { above: true }
+    }
+    return counted.atLeast === true ? { undecided: true } : {}
   }
 }

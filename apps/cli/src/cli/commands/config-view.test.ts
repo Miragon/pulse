@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import type { ConfigView } from "../../config/edit.js"
+import type { ConfigView } from "../../config/show.js"
 import { maskedView, profileView, showHeader, showRows } from "./config-view.js"
 
 const VIEW: ConfigView = {
@@ -119,5 +119,13 @@ describe("showRows and showHeader", () => {
   it("names file and profile", () => {
     expect(showHeader(VIEW)).toBe("Config file: /c.json\nProfile: (none)\n\n")
     expect(showHeader({ ...VIEW, profile: "p" })).toBe("Config file: /c.json\nProfile: p\n\n")
+  })
+
+  it("says why no profile applies to a --url without --profile", () => {
+    const noProfile =
+      "--url without --profile selects no profile, so PULSE_CLI_PROFILE does not apply"
+    expect(showHeader({ ...VIEW, noProfile })).toBe(
+      `Config file: /c.json\nProfile: (none: ${noProfile})\n\n`,
+    )
   })
 })

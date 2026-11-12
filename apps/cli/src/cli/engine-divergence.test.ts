@@ -1,12 +1,12 @@
 /**
- * Contract of the engine seam: a spec patch that renames a body field (RetriesDto.retries →
- * retryCount) flows through the generator into the commands, help and describe of the adapter that
- * carries the patched catalog only.
+ * Contract of the engine seam: a spec that renames a body field (RetriesDto.retries → retryCount,
+ * as an engine's own patch on top of c7-core's spec/patches.json would) flows through the generator
+ * into the commands, help and describe of the adapter that carries that catalog only.
  */
 
 import { readFileSync } from "node:fs"
 import { describe, expect, it } from "vitest"
-import { PATCH_FILE, SPEC_FILE } from "../../scripts/catalog/files.js"
+import { ROUTES_FILE, readSpecText } from "../../scripts/catalog/files.js"
 import { renderCatalog } from "../../scripts/catalog/render.js"
 import { fakeRuntime } from "../../test/support/fake-runtime.js"
 import type { Catalog } from "../catalog/types.js"
@@ -14,17 +14,21 @@ import type { CliContext } from "./context.js"
 import { createProgram } from "./program.js"
 import { ENGINES } from "../engines/index.js"
 
-const RETRIES = "/components/schemas/RetriesDto/properties/retries"
-const specText = readFileSync(SPEC_FILE, "utf8")
-const retries: unknown = JSON.parse(specText).components.schemas.RetriesDto.properties.retries
-const RENAME_RETRIES = JSON.stringify([
-  ...(JSON.parse(readFileSync(PATCH_FILE, "utf8")) as unknown[]),
-  { op: "test", path: RETRIES, value: retries },
-  { op: "add", path: "/components/schemas/RetriesDto/properties/retryCount", value: retries },
-  { op: "remove", path: RETRIES },
-])
+interface RetriesSpec {
+  readonly components: { schemas: { RetriesDto: { properties: Record<string, unknown> } } }
+}
 
-const diverging = JSON.parse(renderCatalog(specText, RENAME_RETRIES)) as Catalog
+/** The patched spec with RetriesDto's `retries` renamed `retryCount`, as a text. */
+function renameRetries(specText: string): string {
+  const spec = JSON.parse(specText) as RetriesSpec
+  const properties = spec.components.schemas.RetriesDto.properties
+  properties.retryCount = properties.retries
+  delete properties.retries
+  return JSON.stringify(spec)
+}
+
+const routesText = readFileSync(ROUTES_FILE, "utf8")
+const diverging = JSON.parse(renderCatalog(renameRetries(readSpecText()), routesText)) as Catalog
 
 async function output(catalog: Catalog, args: readonly string[]): Promise<string> {
   const runtime = fakeRuntime()

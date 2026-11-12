@@ -1,4 +1,5 @@
-import type { IncidentDetails, SourceLocation } from "@miragon/pulse-runtime-view/contract"
+import type { IncidentDetails } from "@miragon/pulse-engine-core"
+import type { SourceLocation } from "@miragon/pulse-runtime-view/ports"
 import type { InstanceChoice, MigrationTarget } from "@miragon/pulse-runtime-view/core"
 import type { Environment } from "@miragon/pulse-runtime-view/protocol"
 import type { Connection } from "@miragon/pulse-runtime-view/host-kit"

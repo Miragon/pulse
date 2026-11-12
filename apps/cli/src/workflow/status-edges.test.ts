@@ -1,14 +1,14 @@
 /** Edge cases, ordering and grouping of the status reads (status.ts). */
 
 import { describe, expect, it } from "vitest"
-import { messageSignature } from "@miragon/pulse-engine-core"
+import { messageSignature } from "@miragon/pulse-c7-core"
 import {
   definitionStatus,
   jobStatus,
   NOW,
   statistics,
   topicStatus,
-} from "@miragon/pulse-engine-core/testing"
+} from "@miragon/pulse-c7-core/testing"
 import { groupIncidents } from "../../test/support/workflow-status.js"
 
 describe("status edge cases", () => {

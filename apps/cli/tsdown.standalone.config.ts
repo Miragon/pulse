@@ -16,6 +16,9 @@ export default defineConfig({
   sourcemap: false,
   loader: { ".md": "text" },
   fixedExtension: true,
+  // the same comments as the npm build (tsdown.config.ts; scripts/bundles.test.ts holds them
+  // equal): only legal ones and the line naming each module's source stay
+  outputOptions: { comments: { legal: true, annotation: false, jsdoc: false } },
   // nothing is loaded from node_modules at run time: a SEA can load only built-in modules
   deps: { alwaysBundle: Object.keys(pkg.dependencies), onlyBundle: false },
   // CommonJS on purpose (see above), not a library format choice

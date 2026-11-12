@@ -1,19 +1,6 @@
-import {
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useState,
-  useSyncExternalStore,
-  type ReactNode,
-} from "react"
-import {
-  LocaleProvider,
-  getFormatLocale,
-  setFormatLocale,
-  subscribeFormatLocale,
-  type FormatLocale,
-} from "@miragon/pulse-ui"
-import { formattingLocale, resolveLanguage, validTimeZone } from "./host-context.js"
+import { useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from "react"
+import { LocaleProvider } from "@miragon/pulse-ui"
+import { formatLocaleOf, isFormatLocale, usePublishedFormatLocale } from "./format-locale.js"
 import { useShellHost } from "./shell-host.js"
 import { useApplyTheme } from "./use-apply-theme.js"
 
@@ -41,34 +28,22 @@ export function LocaleGate({ children }: { children: ReactNode }) {
   const hostWaitedOut = useElapsed(HOST_WAIT_MS)
 
   useApplyTheme()
-  const language = resolveLanguage(host.locale)
-  const target = useMemo<FormatLocale>(
-    () => ({
-      language,
-      locale: formattingLocale(host.locale),
-      timeZone: validTimeZone(host.timeZone),
-    }),
-    [language, host.locale, host.timeZone],
+  const target = useMemo(
+    () => formatLocaleOf(host.locale, host.timeZone),
+    [host.locale, host.timeZone],
   )
   // The view document ships without `lang` (screen readers). The tree reads the
   // PUBLISHED value, so dates and strings never render in different locales.
   useLayoutEffect(() => {
     document.documentElement.lang = target.language
-    setFormatLocale(target)
   }, [target])
-  const published = useSyncExternalStore(subscribeFormatLocale, getFormatLocale, getFormatLocale)
+  const published = usePublishedFormatLocale(target)
 
   const [ready, setReady] = useState(false)
-  if (!ready && (host.connected || hostWaitedOut) && isPublished(published, target)) setReady(true)
+  if (!ready && (host.connected || hostWaitedOut) && isFormatLocale(published, target)) {
+    setReady(true)
+  }
 
   if (!ready) return null
-  return <LocaleProvider locale={published?.language ?? language}>{children}</LocaleProvider>
-}
-
-function isPublished(published: FormatLocale | undefined, target: FormatLocale): boolean {
-  return (
-    published?.language === target.language &&
-    published.locale === target.locale &&
-    published.timeZone === target.timeZone
-  )
+  return <LocaleProvider locale={published?.language ?? target.language}>{children}</LocaleProvider>
 }

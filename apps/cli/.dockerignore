@@ -1,4 +1,6 @@
-# The CLI image (Dockerfile, build context apps/cli) needs the standalone bundle only:
-# pnpm --fail-if-no-match --filter @miragon/pulse-cli run build:standalone writes it.
+# The CLI image (Dockerfile, build context apps/cli) needs the standalone bundle and the licences:
+# pnpm --fail-if-no-match --filter @miragon/pulse-cli run build:standalone writes the bundle.
 *
 !build/standalone/pulse-cli.cjs
+!LICENSE
+!THIRD_PARTY_LICENSES.txt

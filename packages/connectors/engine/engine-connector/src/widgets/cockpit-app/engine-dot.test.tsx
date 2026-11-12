@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react"
-import { DEFAULT_VERDICT_THRESHOLDS, engineVerdict } from "@miragon/pulse-engine-core"
-import { TONE_DOT, type ToneVariant } from "@miragon/pulse-ui"
+import { DEFAULT_VERDICT_THRESHOLDS, engineVerdict } from "@miragon/pulse-c7-core"
+import { SITUATION_TONES, TONE_DOT, type ToneVariant } from "@miragon/pulse-ui"
 import { TestViewHost, createTestQueryClient } from "@miragon/pulse-widget-shell/widgets"
 import { ENGINE_COCKPIT_OVERVIEW_DATA, ENGINE_HEALTH_DATA } from "../../tool-names.js"
 import type { CockpitDashboardData, EngineHealthData } from "../../view-models.js"
@@ -34,6 +34,7 @@ const ENGINES: Record<string, EngineCounts> = {
     running: 10,
   },
   "stuck-jobs": { openIncidents: 0, largestCause: 0, failedJobs: 4, running: 10 },
+  steady: { openIncidents: 0, largestCause: 0, failedJobs: 0, running: 10 },
   idle: { openIncidents: 0, largestCause: 0, failedJobs: 0, running: 0 },
 }
 
@@ -53,7 +54,7 @@ function overviewFeed(args: Record<string, unknown>): CockpitDashboardData {
   }
 }
 
-/** The verdict as the health feed's builder computes it: engine-core's, on the default thresholds. */
+/** The verdict as the health feed's builder computes it: c7-core's, on the default thresholds. */
 function healthFeed(args: Record<string, unknown>): EngineHealthData {
   const e = countsOf(args)
   return {
@@ -92,11 +93,16 @@ async function landingRow(engineId: string): Promise<HTMLElement> {
   return screen.findByRole("button", { name: new RegExp(`^${engineId}\\s*,`) })
 }
 
+/** The engine's card: the landscape below names the engine too, but in no button. */
 function fleetCard(engineId: string): HTMLElement {
-  return screen.getByText(engineId, { selector: "span" }).closest("button")!
+  const cards = screen
+    .getAllByText(engineId, { selector: "span" })
+    .flatMap((name) => name.closest("button") ?? [])
+  expect(cards).toHaveLength(1)
+  return cards[0]
 }
 
-it("the fixture's verdicts are engine-core's: one incident is warning, the threshold critical", () => {
+it("the fixture's verdicts are c7-core's: one incident is warning, the threshold critical", () => {
   expect(healthFeed({ engine: "one-incident" }).status).toBe("warning")
   expect(healthFeed({ engine: "at-threshold" }).status).toBe("critical")
   expect(healthFeed({ engine: "stuck-jobs" }).status).toBe("ok")
@@ -129,7 +135,16 @@ describe("the landing's engine dot follows the one verdict", () => {
     const row = await screen.findByRole("button", {
       name: /^stuck-jobs\s*,\s*4 jobs without retries$/,
     })
-    await waitFor(() => expect(dotTone(row)).toBe("success"))
+    await waitFor(() => expect(healthQueryDone("stuck-jobs")).toBe(true))
+    expect(dotTone(row)).toBe("neutral")
+  })
+
+  it("an engine the verdict calls ok is the table's healthy: neutral, never green", async () => {
+    renderLanding()
+    const row = await landingRow("steady")
+    await waitFor(() => expect(healthQueryDone("steady")).toBe(true))
+    expect(dotTone(row)).toBe(SITUATION_TONES.healthy)
+    expect(dotTone(row)).toBe("neutral")
   })
 
   it("an idle engine the verdict calls ok stays neutral, never green", async () => {
@@ -169,7 +184,8 @@ describe("the fleet view's engine dot follows the one verdict", () => {
 
   it("jobs without retries keep their danger count but do not colour the dot", async () => {
     renderFleet()
-    await waitFor(() => expect(dotTone(fleetCard("stuck-jobs"))).toBe("success"))
+    await waitFor(() => expect(healthQueryDone("stuck-jobs")).toBe(true))
+    expect(dotTone(fleetCard("stuck-jobs"))).toBe("neutral")
     const pill = within(fleetCard("stuck-jobs")).getByText("4")
     expect(pill.className).toContain("border-danger")
   })

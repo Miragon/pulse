@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import { headersOf } from "../../test/support/credential.js"
 import { jwtWith, NOW_S, VALID_CLAIMS } from "../../test/support/bearer.js"
 import { fakeRuntime } from "../../test/support/fake-runtime.js"
 import { authDeps } from "../../test/support/oauth.js"
@@ -30,11 +31,11 @@ describe("bearerAuth", () => {
   it("sends an opaque token as it is, without refresh, principal or note", async () => {
     const provider = bearerAuth(config("opaque-token"), () => NOW)
     expect(provider.type).toBe("bearer")
-    await expect(provider.headers()).resolves.toEqual({ Authorization: "Bearer opaque-token" })
+    await expect(headersOf(provider)).resolves.toEqual({ Authorization: "Bearer opaque-token" })
     await expect(provider.preview?.()).resolves.toEqual({
       headers: { Authorization: "Bearer opaque-token" },
     })
-    expect("refresh" in provider).toBe(false)
+    expect(provider.credential.renewable).toBe(false)
     expect(provider.principal).toBeUndefined()
     expect(provider.off).toBeUndefined()
   })
@@ -55,9 +56,9 @@ describe("bearerAuth", () => {
     let now = (NOW_S + 30) * 1000
     const token = jwtWith({ ...VALID_CLAIMS, exp: NOW_S })
     const provider = bearerAuth(config(token), () => now)
-    await expect(provider.headers()).resolves.toEqual({ Authorization: `Bearer ${token}` })
+    await expect(headersOf(provider)).resolves.toEqual({ Authorization: `Bearer ${token}` })
     now += 1
-    const error = await provider.headers().then(
+    const error = await headersOf(provider).then(
       () => undefined,
       (reason: unknown) => reason,
     )
@@ -135,7 +136,9 @@ describe("renewal", () => {
     expect(renewal(config("t", { ...stored, profile: "p" }))).toBe(
       "set PULSE_CLI_TOKEN (it overrides the stored token) or store it with `pulse config set p --auth-token-stdin`",
     )
-    expect(renewal(config("t", stored))).toContain("pulse config set <profile> --auth-token-stdin")
+    expect(renewal(config("t", stored))).toContain(
+      "pulse config set <profile> --url <url> --auth-token-stdin",
+    )
   })
 })
 
@@ -158,6 +161,6 @@ describe("createAuthProvider for bearer tokens", () => {
     const runtime = fakeRuntime()
     const provider = createAuthProvider(config(EXPIRED), authDeps(runtime))
     expect(provider.type).toBe("bearer")
-    await expect(provider.headers()).rejects.toMatchObject({ code: "TOKEN_EXPIRED" })
+    await expect(headersOf(provider)).rejects.toMatchObject({ code: "TOKEN_EXPIRED" })
   })
 })

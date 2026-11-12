@@ -6,6 +6,9 @@ export default mergeConfig(
   defineConfig({
     test: {
       include: ["test/**/*.test.ts"],
+      // The locale CI runs in, set before a worker starts (ICU reads it once): the engine goldens
+      // (test/engine-goldens) then read the same on every machine.
+      env: { LC_ALL: "C.UTF-8" },
       // A handful of in-process boots (the tools/list goldens, the wire contracts, strict input),
       // sub-second locally. The repo-wide source scans that once took over 30 s under CI load
       // (#452) live in scripts/ on node:test now; these are the template's values.

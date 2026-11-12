@@ -16,18 +16,8 @@ kotlin {
 }
 
 dependencies {
-    implementation("io.miragon.mcp:cibseven-history-metrics")
-
     implementation(libs.spring.boot.starter.web)
     implementation(libs.spring.boot.starter.jdbc)
-    // Metrics export: the plugin records into Micrometer's global registry;
-    // Actuator auto-configures the OTLP registry (management.otlp.metrics.export
-    // in application.yml) which pushes to the Collector; no OTEL Java agent.
-    // spring-boot-opentelemetry is required: Boot 4's OTLP export autoconfig is
-    // @ConditionalOnClass(OpenTelemetryProperties) from that module.
-    implementation(libs.spring.boot.starter.actuator)
-    runtimeOnly(libs.micrometer.registry.otlp)
-    runtimeOnly(libs.spring.boot.opentelemetry)
     implementation(libs.cibseven.starter.rest)
     implementation(libs.cibseven.starter.webapp)
 
@@ -72,9 +62,6 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
-// The plugin is consumed from the included (composite) build `engine-plugins` via the
-// `io.miragon.mcp:cibseven-history-metrics` coordinate above; Gradle substitutes it
-// with the module's normal `jar` and resolves `micrometer-core` transitively.
 tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
     archiveFileName.set("cibseven-example.jar")
 }

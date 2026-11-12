@@ -1,4 +1,4 @@
-import { ValueKinds, type ValueKind } from "../../contract/index.js"
+import { ValueKinds, type ValueKind } from "@miragon/pulse-engine-core"
 import type { WriteRequest } from "../panels/panel-context.js"
 import type {
   IncidentRow,

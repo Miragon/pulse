@@ -8,9 +8,10 @@ import {
   type InstanceId,
   type MigrationProblem,
   type VersionSummary,
-} from "../../contract/index.js"
+} from "@miragon/pulse-engine-core"
 import type { MigrationView } from "../protocol/index.js"
 import { MigrationElements } from "../views/migration-elements.js"
+import { MigrationPlanning } from "./migration-planning.js"
 import type { PanelContext } from "./panel-context.js"
 import { Problems } from "./problems.js"
 import type { Snapshot, Unavailable } from "./view-session.js"
@@ -78,7 +79,7 @@ export class MigrationReads {
     const [check, waiting] = await Promise.all([
       target === undefined
         ? Promise.resolve({ problems: [] })
-        : runtime.checkMigration({
+        : MigrationPlanning.check(runtime, {
             sourceDefinitionId: source,
             targetDefinitionId: target.id,
             mappings,
@@ -184,7 +185,7 @@ export class MigrationReads {
     const [targetXml, proposal] = await Promise.all([
       this.context.diagrams.get(target.id),
       mappings === undefined
-        ? this.context.runtime.proposeMigration(source, target.id)
+        ? MigrationPlanning.proposal(this.context.runtime, source, target.id)
         : Promise.resolve({ mappings }),
     ])
     return [targetXml, proposal.mappings]

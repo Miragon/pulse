@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { createRoot, type Root } from "react-dom/client"
 import { useLocale } from "@miragon/pulse-ui"
 import { SERVED_FONTS_STYLE_ID } from "./declare-served-fonts.js"
-import { useHostWidget } from "./host-widgets.js"
 import { AskAiButton } from "./ask-ai-button.js"
 import { askAiPrompt } from "./ask-ai-prompt.js"
 import { useInlineBudget } from "./inline-budget.js"
@@ -104,17 +103,14 @@ function createFakeHost(options: {
   }
 }
 
-/** Everything the stack provides, in one line: locale | display mode | host widget. */
-const ProbeView: ViewComponent<{ rows: string[] }> = ({ data }) => {
-  const Widget = useHostWidget("demo:panel")
-  return (
-    <HostModelContext content="Probe view.">
-      <output data-testid="probe">
-        {`${useLocale()}|${useHostDisplayMode()}|${data.rows.join(",")}|${Widget ? "widget" : "none"}`}
-      </output>
-    </HostModelContext>
-  )
-}
+/** Everything the stack provides, in one line: locale | display mode | the view's data. */
+const ProbeView: ViewComponent<{ rows: string[] }> = ({ data }) => (
+  <HostModelContext content="Probe view.">
+    <output data-testid="probe">
+      {`${useLocale()}|${useHostDisplayMode()}|${data.rows.join(",")}`}
+    </output>
+  </HostModelContext>
+)
 
 type Host = ReturnType<typeof createFakeHost>
 
@@ -131,14 +127,7 @@ function mount(host: Host, view: ViewComponent | null = ProbeView as ViewCompone
   container.id = "root"
   document.body.appendChild(container)
   reactRoot = createRoot(container)
-  reactRoot.render(
-    <ViewRoot
-      name={VIEW_TOOL}
-      view={view ?? undefined}
-      runtime={runtime}
-      hostWidgets={{ "demo:panel": () => null }}
-    />,
-  )
+  reactRoot.render(<ViewRoot name={VIEW_TOOL} view={view ?? undefined} runtime={runtime} />)
 }
 
 async function connected(host: Host) {
@@ -178,7 +167,7 @@ describe("ViewRoot: the host's own result", () => {
     host.notify("ui/notifications/tool-input", { arguments: { engine: "prod" } })
     host.notify("ui/notifications/tool-result", result(ROWS))
 
-    await vi.waitFor(() => expect(probe()).toBe("de|fullscreen|a,b|widget"))
+    await vi.waitFor(() => expect(probe()).toBe("de|fullscreen|a,b"))
     // The view's own tool never re-ran, and the gate calls none.
     expect(host.toolCalls()).toEqual([])
     expect(root.lang).toBe("de")
@@ -209,7 +198,7 @@ describe("ViewRoot: the host's own result", () => {
     mount(host)
     await connected(host)
     host.notify("ui/notifications/tool-result", result(ROWS))
-    await vi.waitFor(() => expect(probe()).toBe("de|fullscreen|a,b|widget"))
+    await vi.waitFor(() => expect(probe()).toBe("de|fullscreen|a,b"))
     expect(root.style.getPropertyValue("--host-font-sans")).toBe("HostSans, sans-serif")
     expect(document.getElementById("__mcp-host-fonts")?.textContent).toContain("HostSans")
     expect(document.getElementById(SERVED_FONTS_STYLE_ID)?.textContent).toContain(
@@ -218,7 +207,7 @@ describe("ViewRoot: the host's own result", () => {
     expect(root.style.height).toBe("100%")
 
     host.notify("ui/notifications/host-context-changed", { displayMode: "inline" })
-    await vi.waitFor(() => expect(probe()).toBe("de|inline|a,b|widget"))
+    await vi.waitFor(() => expect(probe()).toBe("de|inline|a,b"))
   })
 
   it("offers no fullscreen where the host offers none", async () => {
@@ -226,7 +215,7 @@ describe("ViewRoot: the host's own result", () => {
     mount(host)
     await connected(host)
     host.notify("ui/notifications/tool-result", result(ROWS))
-    await vi.waitFor(() => expect(probe()).toBe("en|inline|a,b|widget"))
+    await vi.waitFor(() => expect(probe()).toBe("en|inline|a,b"))
     expect(document.querySelector("[data-slot=view-toolbar]")).toBeNull()
   })
 
@@ -235,7 +224,7 @@ describe("ViewRoot: the host's own result", () => {
     mount(host)
     await connected(host)
     host.notify("ui/notifications/tool-result", result(ROWS))
-    await vi.waitFor(() => expect(probe()).toBe("en|inline|a,b|widget"), { timeout: 1_000 })
+    await vi.waitFor(() => expect(probe()).toBe("en|inline|a,b"), { timeout: 1_000 })
     expect(host.toolCalls()).toEqual([])
   })
 })
@@ -252,7 +241,7 @@ describe("ViewRoot: the stripped-result recovery", () => {
     // What claude.ai forwards: the model's text, no structuredContent.
     host.notify("ui/notifications/tool-result", { content: [{ type: "text", text: "Two rows." }] })
 
-    await vi.waitFor(() => expect(probe()).toBe("en|inline|a,b|widget"))
+    await vi.waitFor(() => expect(probe()).toBe("en|inline|a,b"))
     expect(host.toolCalls(VIEW_TOOL)).toEqual([{ name: VIEW_TOOL, arguments: { engine: "prod" } }])
     expect(text()).toMatch(/Reloaded at \d{1,2}:\d{2}/)
     await vi.waitFor(() =>
@@ -274,7 +263,7 @@ describe("ViewRoot: the stripped-result recovery", () => {
     expect(host.toolCalls(VIEW_TOOL)).toEqual([])
 
     host.notify("ui/notifications/tool-result", result(ROWS))
-    await vi.waitFor(() => expect(probe()).toBe("en|inline|a,b|widget"))
+    await vi.waitFor(() => expect(probe()).toBe("en|inline|a,b"))
     expect(host.toolCalls(VIEW_TOOL)).toEqual([])
   })
 
@@ -411,7 +400,7 @@ describe("ViewRoot: what a widget asks the host", () => {
 
     answer = result(ROWS)
     button("Try again")?.click()
-    await vi.waitFor(() => expect(probe()).toBe("en|inline|a,b|widget"))
+    await vi.waitFor(() => expect(probe()).toBe("en|inline|a,b"))
     // The chat had the stripped result's figures, so the re-run is stamped.
     expect(text()).toMatch(/Reloaded at/)
     expect(host.toolCalls(VIEW_TOOL)).toHaveLength(2)

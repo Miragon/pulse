@@ -1,0 +1,7 @@
+{
+  // The editor's project for the generator under scripts/: tsserver reads only files named
+  // tsconfig.json, and the package's covers src only. The settings are tsconfig.scripts.json's,
+  // which `typecheck` runs.
+  "extends": "../tsconfig.scripts.json",
+  "include": ["."]
+}

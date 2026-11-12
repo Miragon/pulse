@@ -1,4 +1,5 @@
-import type { MigrationCheck, MigrationPlan } from "../../contract/index.js"
+import type { MigrationCheck, MigrationPlan } from "@miragon/pulse-engine-core"
+import { MigrationPlanning } from "./migration-planning.js"
 import type { PanelContext } from "./panel-context.js"
 import { Problems } from "./problems.js"
 
@@ -53,7 +54,7 @@ export class MigrationChecks {
 
   private async outcomeOf(plan: MigrationPlan): Promise<CheckOutcome> {
     try {
-      return { kind: "checked", check: await this.context.runtime.checkMigration(plan) }
+      return { kind: "checked", check: await MigrationPlanning.check(this.context.runtime, plan) }
     } catch (error) {
       const problem = Problems.of(error, this.context.engine)
       return { kind: "failed", message: `${problem.title} ${problem.detail}` }

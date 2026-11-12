@@ -1,8 +1,14 @@
 import { resolveLanguage } from "./host-context.js"
 import { ERROR_LABELS, type ErrorKindLabels, type ErrorSource } from "./error-labels.js"
 
-/** `unreachable` covers 502/503, `timeout` 408/504, `notOnServer` an inactive module. */
+/**
+ * `unreachable` covers 502/503, `timeout` 408/504, `notOnServer` an inactive module,
+ * `profileRefused` an engine whose profile the server refused (ENGINE_PROFILE_REFUSED) and
+ * `readOnly` a write to an engine whose profile is read-only (ENGINE_READ_ONLY).
+ */
 export const ERROR_KINDS = [
+  "profileRefused",
+  "readOnly",
   "unreachable",
   "timeout",
   "notOnServer",
@@ -35,12 +41,16 @@ export interface DescribedError {
 }
 
 const BRACKET_STATUS = /\[(\d{3})(?:[\s\]])/
-const PROMETHEUS_STATUS = /Prometheus query failed \((\d{3})\b/
-/** The engine id the engine client appends or leads with. */
+/** The engine id the engine client appends or leads with, or the engine module's errors quote. */
 const ENGINE_ID =
-  /\(engine ([^\s)]+)\)|\bengine (\S+) (?:unreachable|did not respond)|connection to engine (\S+) failed/
+  /\(engine ([^\s)]+)\)|\bengine (\S+) (?:unreachable|did not respond)|connection to engine (\S+) failed|\bEngine "([^"\s]{1,120})"/
 const ENGINE = /\bengine\b|ProcessEngineException|\bCamunda\b|\bCIB seven\b/i
-const PROMETHEUS = /\bPrometheus\b/
+/**
+ * The engine module's codes for an engine it does not use, and for a write it does not send. The
+ * server leads its text with them; anchored, so an engine's message that quotes one is no refusal.
+ */
+const PROFILE_REFUSED = /^\[ENGINE_PROFILE_REFUSED\]/
+const READ_ONLY = /^\[ENGINE_READ_ONLY\]/
 const TOOL_MISSING = /\btool\b[^\n]*\bnot found\b|\bunknown tool\b|-32601\b|\bmethod not found\b/i
 const TIMEOUT = /\(timeout\)|\btimed? ?out\b|-32001\b|did not respond within/i
 const UNREACHABLE =
@@ -93,14 +103,13 @@ function statusOf(error: unknown, text: string): number | undefined {
       if (typeof value === "number" && value >= 100 && value <= 599) return value
     }
   }
-  const match = BRACKET_STATUS.exec(text) ?? PROMETHEUS_STATUS.exec(text)
+  const match = BRACKET_STATUS.exec(text)
   return match ? Number(match[1]) : undefined
 }
 
 function sourceOf(text: string): ErrorSource {
   const id = ENGINE_ID.exec(text)
-  if (id) return { type: "engine", id: id[1] ?? id[2] ?? id[3] }
-  if (PROMETHEUS.test(text)) return { type: "prometheus" }
+  if (id) return { type: "engine", id: id[1] ?? id[2] ?? id[3] ?? id[4] }
   if (ENGINE.test(text)) return { type: "engine" }
   return { type: "unknown" }
 }
@@ -115,9 +124,9 @@ function kindOfStatus(status: number): ErrorKind {
 }
 
 function kindOf(text: string, status: number | undefined): ErrorKind {
+  if (PROFILE_REFUSED.test(text)) return "profileRefused"
+  if (READ_ONLY.test(text)) return "readOnly"
   if (TOOL_MISSING.test(text)) return "notOnServer"
-  // Its query API is one fixed route: a 404 is a wrong address, never an entry that is gone.
-  if (status === 404 && PROMETHEUS_STATUS.test(text)) return "unreachable"
   if (status !== undefined) return kindOfStatus(status)
   if (TIMEOUT.test(text)) return "timeout"
   if (UNREACHABLE.test(text)) return "unreachable"
@@ -137,6 +146,18 @@ export function classifyError(error: unknown): ErrorFacts {
     reason: reasonOf(text),
     mayHaveApplied: WRITE_CAVEAT.test(text),
   }
+}
+
+/**
+ * The server's refusals no retry changes: it refuses at once and keeps refusing until its operator
+ * changes the profile. A refused profile fails every read and write to its engine; a read-only one
+ * fails only writes, which the view's data layer never retries anyway.
+ */
+const PERMANENT_KINDS: ReadonlySet<ErrorKind> = new Set(["profileRefused", "readOnly"])
+
+/** A failure the view neither retries by itself nor offers Try again for: its hint says the way out. */
+export function isPermanentError(error: unknown): boolean {
+  return PERMANENT_KINDS.has(classifyError(error).kind)
 }
 
 export interface DescribeErrorOptions {

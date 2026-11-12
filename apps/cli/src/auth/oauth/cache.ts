@@ -7,25 +7,21 @@
  * configuration counts as not logged in. Messages never quote the file content.
  */
 
+import { isAccessToken, tokenKey } from "@miragon/pulse-http/oauth"
 import { configError } from "../../config/config-error.js"
 import type { LoginKey, OAuthConfig } from "../../config/types.js"
 import { PulseCliError } from "../../errors.js"
 import { isRecord } from "../../util.js"
 import { type LoginOwner, unknownFormat } from "./errors.js"
 import { identityOf } from "./identity.js"
-import { sha256 } from "./pkce.js"
 import type { CachedLogin, ClientAuthMethod, LoginIdentity, OAuthDeps } from "./types.js"
 
 /** How much longer than one token request a lock holder may keep the lock. */
 const LOCK_GRACE_MS = 10_000
 
-function hex(bytes: Uint8Array): string {
-  return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("")
-}
-
-/** The first 32 hex characters of SHA-256 of the JSON of `value`. */
+/** The first 32 hex characters of SHA-256 of the JSON of `value` (`tokenKey`). */
 async function digestOf(value: unknown): Promise<string> {
-  return hex(await sha256(JSON.stringify(value))).slice(0, 32)
+  return (await tokenKey(value)).slice(0, 32)
 }
 
 /** `login-<digest of the key>.json`: the cache file of the profiles with this login key. */
@@ -93,7 +89,8 @@ const LOGIN: Readonly<Record<keyof CachedLogin, Check>> = {
   identity: (value) => matches(value, IDENTITY),
   endpoints: (value) => matches(value, ENDPOINTS),
   tokenType: isString,
-  accessToken: (value) => typeof value === "string" && value !== "",
+  // what the token response had to be (`parseTokenResponse`), so an edited cache is no login
+  accessToken: isAccessToken,
   expiresAt: orNull(isNumber),
   refreshToken: orNull((value) => typeof value === "string" && value !== ""),
   refreshExpiresAt: orNull(isNumber),

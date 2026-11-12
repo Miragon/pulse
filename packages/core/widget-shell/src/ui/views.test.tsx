@@ -1,7 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, render, screen } from "@testing-library/react"
-import { HostWidgetSlot } from "./host-widgets.js"
 import { TestViewHost } from "./test-view-host.js"
 import { ViewStack, type ViewComponent, type ViewMap } from "./views.js"
 
@@ -38,24 +37,6 @@ describe("ViewStack", () => {
     expect(screen.getByText("first")).toBeTruthy()
     expect(screen.getByText("This element couldn't be displayed.")).toBeTruthy()
     expect(screen.getByText("last")).toBeTruthy()
-    error.mockRestore()
-  })
-})
-
-describe("HostWidgetSlot", () => {
-  it("keeps another module's crashing widget inside the slot", () => {
-    const error = vi.spyOn(console, "error").mockImplementation(() => {})
-    const Broken = () => {
-      throw new Error("landscape bug")
-    }
-    render(
-      <TestViewHost locale="en" hostWidgets={{ "other:landscape": Broken }}>
-        <p>fleet</p>
-        <HostWidgetSlot id="other:landscape" />
-      </TestViewHost>,
-    )
-    expect(screen.getByText("fleet")).toBeTruthy()
-    expect(screen.getByText("This element couldn't be displayed.")).toBeTruthy()
     error.mockRestore()
   })
 })

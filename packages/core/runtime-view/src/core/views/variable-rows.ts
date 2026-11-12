@@ -1,4 +1,4 @@
-import type { InstanceDetail, ValueKind, Variable } from "../../contract/index.js"
+import type { InstanceDetail, ValueKind, Variable } from "@miragon/pulse-engine-core"
 import type { VariableEditor, VariableRow } from "../protocol/index.js"
 
 const EDITORS: Readonly<Partial<Record<ValueKind, VariableEditor>>> = {

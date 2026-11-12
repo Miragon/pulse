@@ -1,4 +1,4 @@
-import type { DefinitionSummary, ProcessRuntime } from "../../contract/index.js"
+import type { DefinitionSummary, ProcessRuntime } from "@miragon/pulse-engine-core"
 import type { EngineLane } from "./engine-lane.js"
 import { LiveFailures } from "./live-failures.js"
 

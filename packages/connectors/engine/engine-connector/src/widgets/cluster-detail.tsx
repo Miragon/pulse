@@ -3,6 +3,7 @@ import {
   NamedId,
   TableEmptyState,
   Td,
+  formatCount,
   formatNumber,
   formatTimestamp,
   FilterBar,
@@ -11,6 +12,7 @@ import {
   WidgetHeader,
   PagedListFooter,
   DrillButton,
+  SITUATION_TONES,
 } from "@miragon/pulse-ui"
 import {
   HandOffButton,
@@ -34,7 +36,6 @@ import {
 } from "./remediation.js"
 import { useActionAllowed } from "./lib/engine-action.js"
 import { useHandOff, type ViewContext } from "./lib/hand-off.js"
-import { formatCount, formatCountAtLeast } from "./lib/format-count.js"
 import { InstanceLabel } from "./lib/identity.js"
 import { instanceName } from "./lib/write-feedback.js"
 import { useT } from "../messages/use-t.js"
@@ -95,7 +96,7 @@ function clusterProcesses(data: ClusterDetailData, unknown: string): string {
 function ClusterHeader({ data, engineId }: { data: ClusterDetailData; engineId: string }) {
   const t = useT()
   const { ask } = useHandOff()
-  const canFix = useActionAllowed("engine_set_job_retries")
+  const canFix = useActionAllowed("engine_set_job_retries", engineId)
   const handOff = remediationHandOff(
     {
       activityId: data.activityId,
@@ -111,7 +112,7 @@ function ClusterHeader({ data, engineId }: { data: ClusterDetailData; engineId: 
   )
   return (
     <WidgetHeader
-      badge={<StatusBadge tone="danger">{data.incidentType}</StatusBadge>}
+      badge={<StatusBadge tone={SITUATION_TONES.openIncident}>{data.incidentType}</StatusBadge>}
       // The activity by its name; its BPMN id only where it has none (#322 U13).
       title={data.activityName ?? <span className="font-mono">{data.activityId}</span>}
       sub={
@@ -119,7 +120,7 @@ function ClusterHeader({ data, engineId }: { data: ClusterDetailData; engineId: 
           <ViewMeta asOf={data.fetchedAt} />
           <span>
             {t("clusterDetail.affectedAcross", {
-              count: formatCountAtLeast(data.incidentCount, data.scannedIncidentCount),
+              count: formatCount(data.incidentCount ?? { atLeast: data.scannedIncidentCount }),
               keys: clusterProcesses(data, t("clusterDetail.unknownKeys")),
             })}
             {/* A point in time is a fact of the line, not a KPI tile it
@@ -134,7 +135,7 @@ function ClusterHeader({ data, engineId }: { data: ClusterDetailData; engineId: 
   )
 }
 
-/** A count a capped scan cannot vouch for renders as a lower bound ("≥2,000") or "—". */
+/** A count a capped scan cannot vouch for renders as a lower bound ("≥ 2,000") or "—". */
 function ClusterKpis({ data }: { data: ClusterDetailData }) {
   const t = useT()
   return (
@@ -143,8 +144,8 @@ function ClusterKpis({ data }: { data: ClusterDetailData }) {
       cells={[
         {
           label: t("clusterDetail.kpiAffected"),
-          value: formatCountAtLeast(data.incidentCount, data.scannedIncidentCount),
-          tone: "danger",
+          value: formatCount(data.incidentCount ?? { atLeast: data.scannedIncidentCount }),
+          tone: SITUATION_TONES.openIncident,
         },
         // How fast it grows is a count, not a second state (#322 U14).
         { label: t("clusterDetail.kpiNewLastHour"), value: formatCount(data.lastHourCount) },

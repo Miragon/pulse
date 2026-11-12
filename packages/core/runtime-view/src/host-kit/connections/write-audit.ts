@@ -1,4 +1,4 @@
-import { RuntimeError } from "../../contract/index.js"
+import { RuntimeError } from "@miragon/pulse-engine-core"
 import type { BulkOutcomeReport } from "../../core/index.js"
 import type { Environment } from "../../core/protocol/index.js"
 import type { EngineTarget } from "./engine-target.js"

@@ -1,0 +1,29 @@
+{
+  "case": "too-large-response",
+  "config": {
+    "ENGINE_BASE_URL": "http://127.0.0.1:<port>/engine-rest"
+  },
+  "probes": [
+    {
+      "arguments": {
+        "processInstanceId": "pi-1"
+      },
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "the answer exceeds 67108864 bytes, the size cap, and was not read (engine default)"
+            ],
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "sent": [
+        "GET /engine-rest/history/process-instance/pi-1",
+        "GET /engine-rest/process-instance/pi-1"
+      ],
+      "tool": "engine_inspect_process_instance"
+    }
+  ]
+}

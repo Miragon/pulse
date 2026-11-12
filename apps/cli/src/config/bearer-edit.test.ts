@@ -8,7 +8,8 @@ import {
   usesCredentials,
 } from "./auth-edit.js"
 import { bearerUnsetKeys, changedBearerKeys, hasBearerOptions } from "./bearer-edit.js"
-import { listProfiles, setProfile, showConfig, unsetProfileKeys } from "./edit.js"
+import { setProfile, unsetProfileKeys } from "./edit.js"
+import { listProfiles, showConfig } from "./show.js"
 import { resolveConfig } from "./resolve.js"
 import type { ConfigFile, ProfileAuth } from "./types.js"
 

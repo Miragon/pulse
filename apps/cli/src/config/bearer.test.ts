@@ -2,7 +2,6 @@ import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import { b64tokens } from "../../test/support/bearer.js"
 import { PulseCliError } from "../errors.js"
-import { profileAuthProblem } from "./auth.js"
 import { hasBearerKeys, normalizeToken } from "./bearer.js"
 
 function failure(action: () => unknown): PulseCliError {
@@ -90,69 +89,6 @@ describe("normalizeToken", () => {
         "The bearer token from --auth-token-stdin contains line breaks or control characters (RFC 6750)",
       )
     }
-  })
-})
-
-describe("profileAuthProblem with bearer keys", () => {
-  it("accepts a stored token or its variable with type bearer or none", () => {
-    for (const type of ["bearer", "none"]) {
-      expect(profileAuthProblem("p", { type, tokenEnv: "CI_TOKEN" })).toBeUndefined()
-      expect(profileAuthProblem("p", { type, token: "abc" })).toBeUndefined()
-    }
-    expect(profileAuthProblem("p", { type: "bearer" })).toBeUndefined()
-  })
-
-  it("checks the shape of the keys without quoting values", () => {
-    expect(profileAuthProblem("p", { type: "bearer", tokenEnv: "not a name" })).toBe(
-      'profile "p" has an invalid auth.tokenEnv (expected the name of an environment variable, e.g. CI_ENGINE_TOKEN)',
-    )
-    expect(profileAuthProblem("p", { type: "bearer", token: " " })).toBe(
-      'profile "p" has an invalid auth.token (expected a non-empty string)',
-    )
-    expect(profileAuthProblem("p", { type: "bearer", token: 7 })).toBe(
-      'profile "p" has an invalid auth.token (expected a non-empty string)',
-    )
-  })
-
-  it("refuses both token sources", () => {
-    expect(profileAuthProblem("p", { type: "bearer", token: "abc", tokenEnv: "X" })).toBe(
-      'profile "p" sets both auth.token and auth.tokenEnv; keep one (tokenEnv is recommended)',
-    )
-  })
-
-  it("refuses bearer keys next to Basic auth or OAuth keys", () => {
-    expect(profileAuthProblem("p", { username: "u", tokenEnv: "X" })).toBe(
-      'profile "p" mixes bearer token keys (tokenEnv) and Basic auth keys (username); keep one',
-    )
-    expect(profileAuthProblem("p", { type: "bearer", username: "u", token: "t" })).toBe(
-      'profile "p" mixes bearer token keys (token) and Basic auth keys (username); keep one',
-    )
-    expect(profileAuthProblem("p", { type: "oauth", clientId: "c", token: "t" })).toBe(
-      'profile "p" mixes bearer token keys (token) and OAuth keys (clientId); keep one',
-    )
-  })
-
-  it("needs type bearer or none for bearer keys (a stored token implies no type)", () => {
-    expect(profileAuthProblem("p", { tokenEnv: "X" })).toBe(
-      'profile "p" has bearer token keys (tokenEnv) but its auth.type is not set; set "type": "bearer"',
-    )
-    expect(profileAuthProblem("p", { type: "basic", token: "t" })).toBe(
-      'profile "p" has bearer token keys (token) but its auth.type is basic; set "type": "bearer"',
-    )
-    expect(profileAuthProblem("p", { type: "oauth", token: "t" })).toBe(
-      'profile "p" has bearer token keys (token) but its auth.type is oauth; set "type": "bearer"',
-    )
-    // unknown types are left to resolution, which names the supported ones
-    expect(profileAuthProblem("p", { type: "digest", token: "t" })).toBeUndefined()
-  })
-
-  it("names the type rule of the other families for type bearer", () => {
-    expect(profileAuthProblem("p", { type: "bearer", username: "u" })).toBe(
-      'profile "p" has Basic auth keys (username) but its auth.type is bearer; set "type": "basic"',
-    )
-    expect(profileAuthProblem("p", { type: "bearer", issuer: "https://x" })).toBe(
-      'profile "p" has OAuth keys (issuer) but its auth.type is bearer; set "type": "oauth"',
-    )
   })
 })
 

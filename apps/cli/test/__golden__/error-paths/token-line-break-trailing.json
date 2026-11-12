@@ -1,0 +1,28 @@
+{
+  "case": "token-line-break-trailing",
+  "config": {
+    "PULSE_CLI_AUTH": "bearer",
+    "PULSE_CLI_TOKEN": "tok-demo-123\n",
+    "PULSE_CLI_URL": "http://127.0.0.1:<port>/engine-rest"
+  },
+  "probes": [
+    {
+      "argv": [
+        "process-instance",
+        "get",
+        "pi-1"
+      ],
+      "exitCode": 0,
+      "sent": [
+        "GET /engine-rest/process-instance/pi-1 [Bearer tok-demo-123]"
+      ],
+      "stderrLines": [
+        ""
+      ],
+      "stdoutLines": [
+        "{\"id\":\"pi-1\",\"definitionId\":\"order:2:6f1e8a\",\"definitionKey\":\"order\",\"businessKey\":\"B-7\",\"ended\":false,\"suspended\":false}",
+        ""
+      ]
+    }
+  ]
+}

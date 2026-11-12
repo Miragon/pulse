@@ -3,7 +3,7 @@ import type {
   IncidentId,
   InstanceDetail,
   InstanceId,
-} from "../../contract/index.js"
+} from "@miragon/pulse-engine-core"
 import { InstanceViewBuilder } from "../views/instance-view-builder.js"
 import { Labels } from "../views/labels.js"
 import { ModelFactsView } from "../views/model-facts-view.js"
@@ -93,6 +93,7 @@ export class InstanceReads {
       fullDetails: reading.fullDetails,
       writable: this.context.commands !== undefined,
       modelLinks: reading.modelLinks,
+      ...(this.context.cli === undefined ? {} : { cli: this.context.cli }),
     }).build()
     const model = reading.model
     return {

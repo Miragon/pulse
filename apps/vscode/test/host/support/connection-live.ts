@@ -1,4 +1,4 @@
-import type { ProcessRuntime } from "@miragon/pulse-runtime-view/contract"
+import type { ProcessRuntime } from "@miragon/pulse-engine-core"
 import { EngineLane, LiveSwitch, SharedDefinitions } from "@miragon/pulse-runtime-view/core"
 
 export class ConnectionLive {

@@ -23,6 +23,7 @@ vi.mock("vscode", () => ({
 
 const CURRENT_A = join("/work/a", TargetsFile.NAME)
 const CURRENT_B = join("/work/b", TargetsFile.NAME)
+const FORMER_B = join("/work/b", ".pulse-cli.json")
 
 function profiles(entries: Record<string, string>): string {
   return JSON.stringify({
@@ -35,11 +36,11 @@ beforeEach(() => {
 })
 
 describe("the project files Pulse reads", () => {
-  test("are the pulse-cli project files", () => {
-    expect(TargetsFile.GLOB).toBe(`**/${TargetsFile.NAME}`)
+  test("are the project files, found under their current and their former name", () => {
+    expect(TargetsFile.GLOB).toBe("**/{.pulse.json,.pulse-cli.json}")
   })
 
-  test("writes a new one under the pulse-cli name", () => {
+  test("writes a new one under the current name", () => {
     expect(TargetsFile.in({ fsPath: "/work" } as never)).toEqual({
       fsPath: `/work/${TargetsFile.NAME}`,
     })
@@ -59,6 +60,39 @@ describe("the project files Pulse reads", () => {
       ["b", "http://b:8080/engine-rest"],
     ])
     expect(problems).toEqual([])
+  })
+
+  test("show a folder with the file under its former name only as a problem, never its engines nor the local default", async () => {
+    files.set(FORMER_B, profiles({ old: "http://old:8080/engine-rest" }))
+
+    const { targets, problems } = await TargetDiscovery.discover()
+
+    expect(targets).toEqual([])
+    expect(problems).toEqual([new TargetsProblem(FORMER_B, TargetsFile.RENAME)])
+    expect(problems[0]?.severity).toBeUndefined()
+    expect(problems[0]?.label()).toBe(
+      ".pulse-cli.json: Pulse reads .pulse.json now. Rename this file to .pulse.json; its content stays.",
+    )
+  })
+
+  test("leave the former name alone in a folder that has the current one", async () => {
+    files.set(CURRENT_A, profiles({ a: "http://a:8080/engine-rest" }))
+    files.set(join("/work/a", ".pulse-cli.json"), "not JSON")
+
+    const { targets, problems } = await TargetDiscovery.discover()
+
+    expect(targets.map((target) => target.name)).toEqual(["a"])
+    expect(problems).toEqual([])
+  })
+
+  test("list the engines of another folder next to a folder with the former name only", async () => {
+    files.set(CURRENT_A, profiles({ a: "http://a:8080/engine-rest" }))
+    files.set(FORMER_B, profiles({ old: "http://old:8080/engine-rest" }))
+
+    const { targets, problems } = await TargetDiscovery.discover()
+
+    expect(targets.map((target) => target.name)).toEqual(["a"])
+    expect(problems).toEqual([new TargetsProblem(FORMER_B, TargetsFile.RENAME)])
   })
 
   test("falls back to the local engine without any project file", async () => {

@@ -126,7 +126,11 @@ export class WorkerTriggers {
     for (const watcher of this.watchers) {
       watcher.close()
     }
-    this.watchers = this.parts.registry.projectFiles().flatMap((file) => {
+    const files = [
+      ...this.parts.registry.projectFiles(),
+      ...this.parts.registry.formerProjectFiles(),
+    ]
+    this.watchers = files.flatMap((file) => {
       try {
         return [
           watch(file, () => {

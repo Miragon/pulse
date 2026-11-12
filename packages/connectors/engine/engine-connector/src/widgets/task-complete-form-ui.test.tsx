@@ -32,6 +32,7 @@ function renderForm(
   const Form: ComponentType<Record<string, unknown>> = () => {
     const complete = useEngineAction<CompleteTaskArgs, TaskCompletion>({
       tool: "engine_complete_task",
+      engine: "prod",
       target: (args) => args.taskId,
     })
     return (
@@ -137,6 +138,7 @@ describe("a Boolean field speaks the view's language", () => {
     const Form: ComponentType<Record<string, unknown>> = () => {
       const action = useEngineAction<CompleteTaskArgs, TaskCompletion>({
         tool: "engine_complete_task",
+        engine: "prod",
         target: (args) => args.taskId,
       })
       return (

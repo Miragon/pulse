@@ -24,7 +24,7 @@ export function registerRefresh(suite: OAuthSuite): void {
     let { cache } = await login(PROFILE.short)
     let spent = ""
     for (let round = 1; round <= 3; round += 1) {
-      // a 5 s token needs a refresh from 2.5 s on (margin: half the lifetime, at most 60 s)
+      // a 5 s token is due at once (the shared policy renews at least 5 s before expiry)
       await sleep(3_000)
       const result = await run(countArgs(PROFILE.short, globalFlag("verbose")))
       expectSuccess(result)
@@ -86,11 +86,17 @@ export function registerRefresh(suite: OAuthSuite): void {
     })
     expect(expired.status).toBe(401)
     expect(await expired.text()).toBe("Jwt is expired")
-    // pulse believes the token is good for another hour and sends it
-    await writeCache(cacheFile(PROFILE.short), { expiresAt: Date.now() + 3_600_000 })
+    // pulse believes the token is good for another hour and sends it; received a minute ago, it
+    // is old enough for a refresh after the 401 (the shared policy keeps a token below 30 s)
+    await writeCache(cacheFile(PROFILE.short), {
+      expiresAt: Date.now() + 3_600_000,
+      loggedInAt: Date.now() - 60_000,
+      refreshedAt: null,
+    })
 
     const result = await run(countArgs(PROFILE.short, globalFlag("verbose")))
     expect(expectSuccess(result).json<Count>()).toEqual({ count: expect.any(Number) })
+    // the 5 s token the 401 brought is due at once, yet goes out with the retry as it is
     expect(trace(result)).toEqual([
       COUNT_REQUEST,
       "< 401",
@@ -266,7 +272,7 @@ export function registerRefresh(suite: OAuthSuite): void {
     expect(trace(result)).toEqual([COUNT_REQUEST, "< 403"])
   })
 
-  it("reports a token of a differently spelled issuer as UNAUTHORIZED after one refresh", async (context) => {
+  it("reports a fresh token of a differently spelled issuer as UNAUTHORIZED without a refresh", async (context) => {
     const { host, keycloakPort, url } = top()
     if (host !== "localhost") context.skip("the 127.0.0.1 spelling needs Docker on localhost")
     const loopbackIssuer = `http://127.0.0.1:${keycloakPort}/realms/pulse`
@@ -277,10 +283,11 @@ export function registerRefresh(suite: OAuthSuite): void {
     const error = expectError(result, "UNAUTHORIZED", 4)
     expect(error.status).toBe(401)
     expect(error.message).toContain("Jwt issuer is not configured")
-    expect(error.hint).toContain("also after refreshing it")
+    expect(error.hint).not.toContain("also after refreshing it")
     expect(error.hint).toContain("localhost and 127.0.0.1 are different issuers")
+    // a token younger than 30 s was refused for its issuer, which a new one does not mend
     expect(
       traceOf(result.stderr, { engine: url, token: endpointsOf(loopbackIssuer).token }),
-    ).toEqual([COUNT_REQUEST, "< 401", "> POST <token>", "< 200", COUNT_REQUEST, "< 401"])
+    ).toEqual([COUNT_REQUEST, "< 401"])
   })
 }

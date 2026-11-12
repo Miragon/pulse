@@ -38,7 +38,7 @@ export interface CatalogTextOptions {
 }
 
 /** A stand-in parameter object: every property and its own primitive value is `n`. */
-function sampleParams(n: number): unknown {
+export function sampleParams(n: number): unknown {
   return new Proxy(Object.create(null) as object, {
     get: (_target, prop) => {
       if (prop === Symbol.toPrimitive) return (hint: string) => (hint === "number" ? n : String(n))

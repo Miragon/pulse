@@ -3,7 +3,7 @@ import type {
   ElementImplementation,
   SourceLocation,
   WorkspaceFiles,
-} from "../../contract/index.js"
+} from "../../ports/index.js"
 import { SourceSearch } from "./source-search.js"
 
 const JVM_SOURCES = "{java,kt,groovy,scala}"

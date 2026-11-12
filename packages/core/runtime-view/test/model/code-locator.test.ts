@@ -1,4 +1,4 @@
-import type { ElementImplementation } from "../../src/contract/index.js"
+import type { ElementImplementation } from "../../src/ports/index.js"
 import { describe, expect, test } from "vitest"
 import { WorkspaceCodeLocator } from "../../src/model/index.js"
 import { MemoryFiles } from "./support/memory-files.js"

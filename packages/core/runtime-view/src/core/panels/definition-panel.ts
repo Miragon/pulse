@@ -1,4 +1,4 @@
-import { DefinitionId, type BpmnProcessId } from "../../contract/index.js"
+import { DefinitionId, type BpmnProcessId } from "@miragon/pulse-engine-core"
 import { DriftCheck } from "../drift/drift-check.js"
 import { ModelDrift, type LocalModel } from "../drift/model-drift.js"
 import type { DefinitionView, InstanceListFilter, WebviewIntent } from "../protocol/index.js"

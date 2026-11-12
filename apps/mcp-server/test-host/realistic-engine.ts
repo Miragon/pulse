@@ -129,7 +129,7 @@ function matches(instance: Instance, filter: Filter): boolean {
 function byBusinessKey(a: Instance, b: Instance): number {
   const ka = a.businessKey ?? ""
   const kb = b.businessKey ?? ""
-  return ka === kb ? a.id.localeCompare(b.id) : ka.localeCompare(kb)
+  return ka === kb ? a.id.localeCompare(b.id, "en") : ka.localeCompare(kb, "en")
 }
 
 function page<T>(rows: T[], url: URL): T[] {

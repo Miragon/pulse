@@ -1,11 +1,13 @@
-import type { ProcessCommands } from "../../contract/index.js"
+import type { ProcessCommands } from "@miragon/pulse-engine-core"
 import { DiagramCache, LiveSwitch, SharedDefinitions, type EngineLane } from "../../core/index.js"
 import type { EngineAccess, Environment } from "../../core/protocol/index.js"
+import type { CliTarget } from "../../ports/index.js"
 import { LivePolicy } from "./live-policy.js"
 import { AuditedCommands } from "./audited-commands.js"
 import type { Connection, Credentials, EngineFactories } from "./connection.js"
 import { EngineBadges } from "./engine-badges.js"
 import type { EngineTarget } from "./engine-target.js"
+import { TargetPolicy } from "./target-policy.js"
 import type { WriteAudit } from "./write-audit.js"
 import { WritePolicy, type WritesSetting } from "./write-policy.js"
 import type { WritesWording } from "./writes-wording.js"
@@ -21,10 +23,7 @@ interface Writes {
   readonly commands?: ProcessCommands
 }
 
-const NO_ADAPTER: EngineAccess = {
-  writable: false,
-  note: "Read-only. Pulse cannot change data on this engine yet.",
-}
+const NO_ADAPTER = "Pulse does not change data on this engine."
 
 export class ConnectionBuilder {
   constructor(
@@ -42,6 +41,7 @@ export class ConnectionBuilder {
     const runtime = this.engines.runtime(target, credentials)
     const { access, commands } = this.writesOf(target, credentials, environment, settings.writes)
     const webUi = this.engines.webUi(target)
+    const cli = this.engines.cli(target, ConnectionBuilder.cliTargetOf(target))
     const identity = ConnectionBuilder.identityOf(target, credentials)
     return {
       target,
@@ -57,6 +57,7 @@ export class ConnectionBuilder {
       live: new LiveSwitch(LivePolicy.settingFor(environment, settings.live)),
       ...(commands === undefined ? {} : { commands }),
       ...(webUi === undefined ? {} : { webUi }),
+      ...(cli === undefined ? {} : { cli }),
       ...(identity === undefined ? {} : { identity }),
     }
   }
@@ -70,13 +71,26 @@ export class ConnectionBuilder {
     const access = WritePolicy.access(target, writes, credentials, this.wording)
     const commands = access.writable ? this.engines.commands(target, credentials) : undefined
     if (commands === undefined) {
-      return { access: access.writable ? NO_ADAPTER : access }
+      return {
+        access: access.writable ? ConnectionBuilder.withoutCommands(target, credentials) : access,
+      }
     }
     const signedIn = ConnectionBuilder.identityOf(target, credentials) !== undefined
     return {
       access,
       commands: new AuditedCommands(commands, { target, environment }, this.audit, signedIn),
     }
+  }
+
+  private static withoutCommands(target: EngineTarget, credentials: Credentials): EngineAccess {
+    const refusal = TargetPolicy.refusal(target, credentials)
+    return { writable: false, note: `Read-only. ${refusal ?? NO_ADAPTER}` }
+  }
+
+  private static cliTargetOf(target: EngineTarget): CliTarget {
+    return target.source.kind === "file"
+      ? { kind: "profile", name: target.name, endpoint: target.endpoint }
+      : { kind: "endpoint", endpoint: target.endpoint }
   }
 
   private static identityOf(target: EngineTarget, credentials: Credentials): string | undefined {

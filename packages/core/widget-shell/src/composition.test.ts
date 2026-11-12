@@ -322,6 +322,39 @@ describe("warnUnknownEnvVars", () => {
     expect(warn).toHaveBeenCalledTimes(1)
   })
 
+  // The engine module's profiles name ENGINE_SECRET_* variables: those the operator sets are read.
+  it("takes the variables an active module's own settings name as known, never a near-miss", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    const referencedEnvVars = vi.fn((env: NodeJS.ProcessEnv) =>
+      env.ALPHA_URL === "named" ? ["ALPHA_SECRET_A"] : [],
+    )
+    const composition = compose([moduleOf("alpha", { referencedEnvVars }), moduleOf("beta")])
+    const env = { ALPHA_URL: "named", ALPHA_SECRET_A: "s", ALPHA_SECRET_B: "s" }
+    expect(composition.warnUnknownEnvVars(env)).toEqual(["ALPHA_SECRET_B"])
+    expect(referencedEnvVars).toHaveBeenCalledWith(env)
+    expect(warn).toHaveBeenCalledOnce()
+    // A module the list leaves off names none.
+    expect(composition.warnUnknownEnvVars({ ...env, MCP_ACTIVE_MODULES: "beta" })).toEqual([
+      "ALPHA_SECRET_A",
+      "ALPHA_SECRET_B",
+    ])
+  })
+
+  it("names nothing referenced when a module's hook throws or the module list is refused", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {})
+    const throwing = moduleOf("alpha", {
+      referencedEnvVars: () => {
+        throw new Error("unreadable")
+      },
+    })
+    const env = { ALPHA_SECRET_A: "s" }
+    expect(compose([throwing]).warnUnknownEnvVars(env)).toEqual(["ALPHA_SECRET_A"])
+    const named = moduleOf("alpha", { referencedEnvVars: () => ["ALPHA_SECRET_A"] })
+    expect(compose([named]).warnUnknownEnvVars({ ...env, MCP_ACTIVE_MODULES: "nope" })).toEqual([
+      "ALPHA_SECRET_A",
+    ])
+  })
+
   it("appends the optional hint to the warning", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     composeModules<TestShared>({

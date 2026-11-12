@@ -6,9 +6,9 @@
 
 // The module port: what a module hands the boot, and the server its plugin registers on (the
 // official SDK's `registerTool`/`registerPrompt`/`registerResource`), the app the boot serves.
-export { type ComposableModule, type ModuleEntry, type ModulePlugin } from "./composition.js"
-export { type ModuleServer } from "./module-server.js"
-export { type McpHttpApp, type ToolAnnotations } from "./mcp-server.js"
+export type { ComposableModule, ModuleEntry, ModulePlugin } from "./composition.js"
+export type { ModuleServer } from "./module-server.js"
+export type { McpHttpApp, ToolAnnotations } from "./mcp-server.js"
 export { createToolsetVocabulary, type ToolsetVocabulary } from "./toolsets.js"
 
 // Tool authoring: the registrar, the view and feed bindings and results, the server i18n, the
@@ -21,7 +21,7 @@ export {
   strictToolInput,
   type OwnViewBinding,
 } from "./widget-tool-bindings.js"
-export { type AppResourceCsp } from "./view-csp.js"
+export type { AppResourceCsp } from "./view-csp.js"
 export { buildDataFeedResult, buildViewResult, type ViewResult } from "./view-results.js"
 // The two protocol helpers both halves use are also on `/widgets`, with their types: server
 // summaries and widget strings call createTranslator at runtime, and the server's tool tests

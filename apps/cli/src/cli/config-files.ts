@@ -1,6 +1,6 @@
 /**
  * The configuration a command reads: the config file named by `--config` or
- * PULSE_CLI_CONFIG alone (it must exist), else the project file (`.pulse-cli.json`, looked up from the
+ * PULSE_CLI_CONFIG alone (it must exist), else the project file (`.pulse.json`, looked up from the
  * working directory up to the repository root) merged with the user's config file.
  */
 
@@ -12,6 +12,7 @@ import {
   type ProjectFile,
   projectOrigin,
   readProjectFile,
+  userDefault,
 } from "../config/project.js"
 import type { ConfigFile, LoadedConfig, ProjectSource } from "../config/types.js"
 import type { Runtime } from "../runtime.js"
@@ -66,9 +67,9 @@ function withOrigin(
 ): LoadedConfig | undefined {
   if (file === undefined) return undefined
   const origin = configOrigin(path, runtime.cwd, runtime.platform)
-  if (!explicit) return { ...file, origin }
-  const configFile = pathModule(runtime.platform).resolve(runtime.cwd, path)
-  return { ...file, origin, configFile }
+  const loaded = { ...file, ...userDefault(file), origin }
+  if (!explicit) return loaded
+  return { ...loaded, configFile: pathModule(runtime.platform).resolve(runtime.cwd, path) }
 }
 
 /** Reads the config file(s) of a command. */

@@ -4,15 +4,18 @@
 // behind `mountViews` and the components.
 export { WidgetShell, useHostDisplayMode } from "./widget-shell.js"
 export { ViewDataState } from "./view-data-state.js"
-export { describeError, type DescribeErrorOptions, type DescribedError } from "./describe-error.js"
+export {
+  describeError,
+  isPermanentError,
+  type DescribeErrorOptions,
+  type DescribedError,
+} from "./describe-error.js"
 export { ListTable, type ListTableColumn, type ListTableGroup } from "./list-table.js"
-export { IdText, IdCell, shortId } from "./id-text.js"
-export { countTone, severityTone } from "./count-tone.js"
+export { IdText, IdCell } from "./id-text.js"
 export { ConfirmDialog, type ConfirmDialogProps, type ConfirmTarget } from "./confirm-dialog.js"
 export { useActionFeedback, type ActionFeedback } from "./action-feedback.js"
 export { QueryFallback, TableSkeleton } from "./query-fallback.js"
 export { ViewMeta, formatLookback, type ViewMetaEngines, type ViewMetaParts } from "./view-meta.js"
-export { HostWidgetSlot, useHostWidget, type HostWidget, type HostWidgets } from "./host-widgets.js"
 // The view runtime: the bundle root, the host seam, the data layer and the test host.
 export {
   mountView,
@@ -27,11 +30,13 @@ export {
   createViewQueryClient,
   useQueryClient,
   useToolMutation,
+  useToolQueries,
   useToolQuery,
   useViewData,
   type QueryClient,
   type ToolMutationOptions,
   type ToolQueryOptions,
+  type ToolRead,
   type ViewDataOptions,
   type ViewDataResult,
 } from "./tool-query.js"
@@ -88,5 +93,5 @@ export {
 } from "./use-bpmn-viewer.js"
 export { BpmnZoomControls, type BpmnZoomControlsProps } from "./bpmn-zoom-controls.js"
 // Also on `/server` (src/protocol/): the one rule every module names a model's process and elements
-// by, on the server and in a view (analytics' heatmap names its values table with it).
+// by, on the server and in a view.
 export { parseBpmnNames, readBpmnNames } from "../protocol/bpmn-names.js"

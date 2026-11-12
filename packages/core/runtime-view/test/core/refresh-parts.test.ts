@@ -1,4 +1,4 @@
-import type { DefinitionSummary } from "../../src/contract/index.js"
+import type { DefinitionSummary } from "@miragon/pulse-engine-core"
 import { describe, expect, test, vi } from "vitest"
 import { EngineLane } from "../../src/core/refresh/engine-lane.js"
 import { RefreshCadence } from "../../src/core/refresh/refresh-cadence.js"

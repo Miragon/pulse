@@ -1,4 +1,4 @@
-import type { DefinitionSummary } from "../../contract/index.js"
+import type { DefinitionSummary } from "@miragon/pulse-engine-core"
 import type { IncidentSummaryRow, IncidentSummaryTile } from "../protocol/index.js"
 import type { IncidentSummaryWidget } from "./board-definition.js"
 import { EngineReads } from "./engine-reads.js"

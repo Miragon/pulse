@@ -1,18 +1,31 @@
 /**
- * Resolves the effective configuration. Precedence per value: flag > environment > profile > default.
- * Pure: the config file content and the environment are passed in. The validators are shared with
- * the config file parser and the `pulse config` edit functions.
+ * Resolves the effective configuration. Precedence per value: flag > environment > profile >
+ * default, but a URL (`--url` or PULSE_CLI_URL) without `--profile` selects no profile
+ * (no-profile.ts). Pure: the config file content and the environment are passed in. The
+ * validators are shared with the config file parser and the `pulse config` edit functions.
  */
 
+import {
+  isEngineName,
+  isTimeout,
+  MAX_TIMEOUT_MS,
+  normalizeCockpitUrl,
+  PROFILE_NAME,
+} from "@miragon/pulse-profile"
 import type { PulseCliError } from "../errors.js"
-import { compact, withoutTrailingSlashes } from "../util.js"
+import { compact, isRecord, withoutTrailingSlashes } from "../util.js"
 import { configError } from "./config-error.js"
+import { refusalOf } from "./profile-file.js"
+import { defaultProfileError, refusedProfileError } from "./profile-problems.js"
 import { redactUrl } from "./redact.js"
 import { resolveHeaders } from "./headers.js"
+import { urlWithoutProfile, withoutProfile } from "./no-profile.js"
 import { type Env, nonEmpty, pick } from "./pick.js"
 import { originOf } from "./login-key.js"
 import { authorizationConflict, resolveAuth } from "./resolve-auth.js"
+import { foreignUrlError } from "./url-beside-profile.js"
 import {
+  type ConfigFile,
   type ConfigFlags,
   DEFAULT_TIMEOUT_MS,
   DEFAULT_FLAVOR,
@@ -30,8 +43,8 @@ import {
   type Source,
 } from "./types.js"
 
-/** Largest delay a Node.js timer supports (2^31 - 1 ms, about 24.8 days). */
-export const MAX_TIMEOUT_MS = 2_147_483_647
+/** Largest delay a Node.js timer supports (2^31 - 1 ms, about 24.8 days): the profile format's. */
+export { MAX_TIMEOUT_MS }
 
 const TRUE_VALUES: readonly string[] = ["1", "true", "yes", "on"]
 const FALSE_VALUES: readonly string[] = ["0", "false", "no", "off"]
@@ -55,7 +68,7 @@ export function missingProfileError(
   file: LoadedConfig | undefined,
   origin: ProfileOrigin = "flag",
 ): PulseCliError {
-  const known = Object.keys(file?.profiles ?? {})
+  const known = Object.keys(file?.profiles ?? {}).filter((known) => PROFILE_NAME.test(known))
   const listed = known.length > 0 ? `Known profiles: ${known.join(", ")}. ` : ""
   return configError(
     `Profile "${name}" does not exist`,
@@ -63,9 +76,22 @@ export function missingProfileError(
   )
 }
 
-/** The profile stored under `name`; inherited object properties never count as profiles. */
-export function findProfile(file: LoadedConfig | undefined, name: string): Profile | undefined {
-  return file !== undefined && Object.hasOwn(file.profiles, name) ? file.profiles[name] : undefined
+/**
+ * The profile the file stores under `name` as it stands there, a refused one too (the edit
+ * functions change it); undefined when there is none or it is no object. Inherited object
+ * properties never count as profiles.
+ */
+export function storedProfile(file: ConfigFile | undefined, name: string): Profile | undefined {
+  const stored =
+    file !== undefined && Object.hasOwn(file.profiles, name) ? file.profiles[name] : undefined
+  return isRecord(stored) ? stored : undefined
+}
+
+/** The usable profile stored under `name`: none for a profile the file refuses. */
+export function findProfile(file: ConfigFile | undefined, name: string): Profile | undefined {
+  return file === undefined || refusalOf(file, name) === undefined
+    ? storedProfile(file, name)
+    : undefined
 }
 
 function profileName(
@@ -75,8 +101,11 @@ function profileName(
 ): { name: string; origin: ProfileOrigin } | undefined {
   const flag = nonEmpty(flags.profile)
   if (flag !== undefined) return { name: flag, origin: "flag" }
+  if (urlWithoutProfile(flags, env) !== undefined) return undefined
   const fromEnv = nonEmpty(env[ENV.profile])
   if (fromEnv !== undefined) return { name: fromEnv, origin: "env" }
+  const broken = file?.defaultProblem
+  if (broken !== undefined) throw defaultProfileError(broken.problem, broken.project)
   const fallback = nonEmpty(file?.defaultProfile)
   return fallback === undefined ? undefined : { name: fallback, origin: "default" }
 }
@@ -87,8 +116,26 @@ function projectOf(file: LoadedConfig | undefined, name: string): ProjectSource 
 }
 
 /**
+ * Fails (CONFIG) on a `--url` flag beside a `--profile` flag that would take the headers or
+ * credentials of the `chosen` profile of the user's config file to another origin
+ * (url-beside-profile.ts); the flag's URL is validated first, so an invalid one fails as such.
+ */
+function checkUrlBesideProfile(
+  chosen: Extract<SelectedProfile, { name: string }>,
+  flags: ConfigFlags,
+  env: Env,
+): void {
+  const url = nonEmpty(flags.url)
+  if (url === undefined || nonEmpty(flags.profile) === undefined) return
+  const refusal = foreignUrlError(chosen, validateUrl(url), flags, env)
+  if (refusal !== undefined) throw refusal
+}
+
+/**
  * The selected profile, where it comes from and, when it comes from there, the
- * project file.
+ * project file. A profile the file refuses fails here, when a command uses it, and so does a
+ * `--url` beside `--profile` that would take the headers or credentials of a profile of the
+ * user's config file to another origin (url-beside-profile.ts).
  */
 export function selectProfile(
   flags: ConfigFlags,
@@ -97,6 +144,11 @@ export function selectProfile(
 ): SelectedProfile {
   const selected = profileName(flags, env, file)
   if (selected === undefined) return {}
+  const problems = file === undefined ? undefined : refusalOf(file, selected.name)
+  if (file !== undefined && problems !== undefined) {
+    const where = { project: projectOf(file, selected.name)?.path, configFile: file.configFile }
+    throw refusedProfileError(selected.name, problems, where)
+  }
   const profile = findProfile(file, selected.name)
   if (file === undefined || profile === undefined) {
     throw missingProfileError(selected.name, file, selected.origin)
@@ -104,7 +156,9 @@ export function selectProfile(
   const project = projectOf(file, selected.name)
   const origin = originOf(file, selected.name)
   const configFile = project === undefined ? file.configFile : undefined
-  return { name: selected.name, profile, ...compact({ project, origin, configFile }) }
+  const chosen = { name: selected.name, profile, ...compact({ project, origin, configFile }) }
+  checkUrlBesideProfile(chosen, flags, env)
+  return chosen
 }
 
 function parseUrl(url: string): URL {
@@ -141,15 +195,16 @@ export function validateUrl(url: string, label = "Engine URL", example = DEFAULT
   return withoutTrailingSlashes(trimmed)
 }
 
+/**
+ * Checks a Cockpit URL like the REST API root, after dropping the trailing `#` or `#/` of the web
+ * app's start route as the profile format does (a link appends its own route).
+ */
 export function validateCockpitUrl(url: string): string {
-  return validateUrl(url, "Cockpit URL", "http://localhost:8080/operaton/app/cockpit/default")
-}
-
-/** True for a usable engine name: not blank, not "." or ".." (they would leave /engine/{name}). */
-export function isEngineName(value: unknown): boolean {
-  if (typeof value !== "string") return false
-  const trimmed = value.trim()
-  return trimmed !== "" && trimmed !== "." && trimmed !== ".."
+  return validateUrl(
+    normalizeCockpitUrl(url),
+    "Cockpit URL",
+    "http://localhost:8080/operaton/app/cockpit/default",
+  )
 }
 
 /** Checks a process engine name and trims it. */
@@ -170,7 +225,7 @@ export function validateEngine(engine: string): string {
   return trimmed
 }
 
-export function isFlavor(value: unknown): value is Flavor {
+function isFlavor(value: unknown): value is Flavor {
   return FLAVORS.some((flavor) => flavor === value)
 }
 
@@ -207,15 +262,13 @@ export function validateOutput(output: string): OutputFormat {
 }
 
 /** True for a timeout a Node.js timer can handle: a whole number of ms in 1..MAX_TIMEOUT_MS. */
-export function isTimeout(value: unknown): value is number {
-  return (
-    typeof value === "number" && Number.isInteger(value) && value > 0 && value <= MAX_TIMEOUT_MS
-  )
+function isTimeoutValue(value: unknown): value is number {
+  return isTimeout(value)
 }
 
 export function parseTimeout(value: string | number): number {
   const timeout = typeof value === "string" && /^\s*\d+\s*$/.test(value) ? Number(value) : value
-  if (!isTimeout(timeout)) {
+  if (!isTimeoutValue(timeout)) {
     throw configError(
       `Timeout must be a positive number of milliseconds, got "${value}"`,
       `Use a whole number between 1 and ${MAX_TIMEOUT_MS}, e.g. 60000 for one minute.`,
@@ -283,10 +336,15 @@ export function resolveConfig(
     options.authCommand,
   )
   if (conflict !== undefined) throw conflict
+  const without = withoutProfile(auth.auth, flags, env, file)
   return {
     ...values,
-    auth: auth.auth,
-    ...compact({ unusedToken: auth.unusedToken, project: selected.project }),
+    auth: without.auth,
+    ...compact({
+      unusedToken: auth.unusedToken,
+      project: selected.project,
+      noProfile: without.noProfile,
+    }),
     sources: {
       url: url.source,
       engine: engine.source,

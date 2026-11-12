@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
-import { resolveTone, TONE_SOFT, type ToneName } from "../lib/tone-utils.js"
+import { TONE_SOFT } from "../lib/tone-utils.js"
+import { resolveTone, type ToneName } from "../tones/index.js"
 import { cn } from "../lib/utils.js"
 
 /** Heading element of a {@link WidgetHeader} title. */

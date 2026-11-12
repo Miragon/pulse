@@ -1,12 +1,5 @@
-import type {
-  BpmnProcessId,
-  ElementId,
-  Incident,
-  IncidentId,
-  ModelElement,
-  ModelFile,
-  SourceLocation,
-} from "../../contract/index.js"
+import type { BpmnProcessId, ElementId, Incident, IncidentId } from "@miragon/pulse-engine-core"
+import type { ModelElement, ModelFile, SourceLocation } from "../../ports/index.js"
 import { ModelXml } from "../drift/model-xml.js"
 import type { LocalSources, PanelContext } from "./panel-context.js"
 

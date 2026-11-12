@@ -1,4 +1,4 @@
-import { BpmnProcessId, type InstanceId, type ProcessRuntime } from "../../src/contract/index.js"
+import { BpmnProcessId, type InstanceId, type ProcessRuntime } from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
 import { DefinitionPanel } from "../../src/core/panels/definition-panel.js"
 import { InstancePanel } from "../../src/core/panels/instance-panel.js"

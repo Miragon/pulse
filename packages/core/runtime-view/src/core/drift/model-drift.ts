@@ -1,4 +1,4 @@
-import type { DefinitionId, VersionSummary } from "../../contract/index.js"
+import type { DefinitionId, VersionSummary } from "@miragon/pulse-engine-core"
 import type { DiagramCache } from "../diagrams/diagram-cache.js"
 import { ModelXml } from "./model-xml.js"
 

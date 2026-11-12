@@ -1,14 +1,9 @@
 name: Reset Playground
 
-# Nightly reset of the Fly.io playground back to a clean, known state:
-#
-#   1. Restart the CIB seven engine machine. Its H2 database lives in memory and
-#      reseeds from scratch on every boot (~600 process instances); live traffic
-#      resumes and metric export continues automatically.
-#   2. Wipe the Prometheus metric history. The TSDB persists on a Fly volume, so
-#      a restart alone would keep the old data: the history is deleted over the
-#      TSDB admin API instead. Prometheus keeps scraping, so a fresh metric
-#      window starts building immediately.
+# Nightly reset of the Fly.io playground back to a clean, known state: restart
+# the CIB seven engine machine. Its H2 database lives in memory and reseeds from
+# scratch on every boot (~600 process instances); live traffic resumes
+# automatically.
 #
 # Restart (not redeploy) is the right reset here: the engine seed lives in the
 # image, so a machine restart is enough. A full redeploy (fresh images) still
@@ -17,8 +12,6 @@ name: Reset Playground
 # Runs on the schedule below and can be triggered manually. Requires the same
 # org-scoped FLY_API_TOKEN repo secret as deploy-playground.yml: a token of
 # the org that owns the playground apps (`fly tokens create org -o miragon`).
-# An app-scoped deploy token (`fly tokens create deploy`) does not work: it
-# cannot reach two apps, and Fly rejects it as "unauthorized".
 #
 # NOTE ON TIMING: GitHub Actions cron is UTC and does not observe DST, so a fixed
 # UTC time drifts one hour across the year in Germany. 22:00 UTC = 00:00 local
@@ -40,8 +33,8 @@ concurrency:
 
 jobs:
   reset:
-    name: Reset playground (engine + metrics)
-    # Destructive against the shared playground (full TSDB wipe): only ever run
+    name: Reset playground (engine)
+    # Destructive against the shared playground (a reseeded engine): only ever run
     # from the canonical repo: a fork or repo transfer must not fire this,
     # and a copied workflow pointed at other Fly apps should fail this guard.
     if: github.repository == 'Miragon/pulse'
@@ -49,7 +42,6 @@ jobs:
     env:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
       ENGINE_APP: miragon-ai-playground-engine
-      PROM_APP: miragon-ai-playground-prometheus
     defaults:
       run:
         # An explicit `bash` runs with `-eo pipefail`. The implicit default runs
@@ -63,18 +55,15 @@ jobs:
         with:
           version: 0.4.67
 
-      # Preflight before anything destructive: the token must reach BOTH apps.
-      # A bad token then fails here with the real cause, instead of leaving
-      # the playground half-reset (engine restarted, metric history kept).
+      # Preflight before anything destructive: a bad token fails here with the
+      # real cause.
       - name: Check Fly access
         run: |
-          for app in "$ENGINE_APP" "$PROM_APP"; do
-            if ! out=$(flyctl machines list --app "$app" --json 2>&1); then
-              echo "$out" >&2
-              echo "::error title=FLY_API_TOKEN cannot reach $app::The token must be an org-scoped token of the org that owns the playground apps (fly tokens create org -o miragon). An app-scoped deploy token is rejected as unauthorized."
-              exit 1
-            fi
-          done
+          if ! out=$(flyctl machines list --app "$ENGINE_APP" --json 2>&1); then
+            echo "$out" >&2
+            echo "::error title=FLY_API_TOKEN cannot reach $ENGINE_APP::The token must be an org-scoped token of the org that owns the playground apps (fly tokens create org -o miragon)."
+            exit 1
+          fi
 
       - name: Restart engine (reseeds H2 database)
         run: |
@@ -111,42 +100,3 @@ jobs:
             fi
             sleep 20
           done
-
-      - name: Wipe Prometheus history
-        run: |
-          # Prometheus is private-only (6PN), so reach its admin API through a
-          # WireGuard proxy that flyctl brings up from the FLY_API_TOKEN. The
-          # image is scratch-based (no shell), so an in-container wipe over
-          # `ssh` is not an option; delete the series over HTTP instead.
-          flyctl proxy 9090:9090 --app "$PROM_APP" &
-          proxy_pid=$!
-          trap 'kill "$proxy_pid" 2>/dev/null || true' EXIT
-
-          # Wait for the tunnel + Prometheus to accept connections.
-          ready=""
-          for _ in $(seq 1 30); do
-            if curl -sf -o /dev/null http://localhost:9090/-/ready; then
-              ready=1
-              break
-            fi
-            sleep 2
-          done
-          if [ -z "$ready" ]; then
-            echo "Prometheus not reachable through the proxy" >&2
-            exit 1
-          fi
-
-          # The wipe needs --web.enable-admin-api (set in
-          # prometheus/Dockerfile.fly). A deployed image that predates the flag
-          # rejects it, so check first and name the fix: redeploy Prometheus.
-          admin_api=$(curl -sS http://localhost:9090/api/v1/status/flags | jq -r '.data["web.enable-admin-api"]')
-          if [ "$admin_api" != "true" ]; then
-            echo "::error title=Prometheus admin API disabled::The deployed $PROM_APP runs without --web.enable-admin-api (web.enable-admin-api=$admin_api). Redeploy it: Deploy Playground workflow, target prometheus."
-            exit 1
-          fi
-
-          # Delete every series, then release the disk immediately.
-          echo "==> deleting all series"
-          curl -sS --fail-with-body -g -X POST 'http://localhost:9090/api/v1/admin/tsdb/delete_series?match[]={__name__=~".+"}'
-          curl -sS --fail-with-body -X POST http://localhost:9090/api/v1/admin/tsdb/clean_tombstones
-          echo "==> Prometheus history wiped"

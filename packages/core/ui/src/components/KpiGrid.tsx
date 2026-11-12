@@ -1,17 +1,10 @@
 import { useId, type ReactNode } from "react"
 import { ChevronRight, Minus, TrendingDown, TrendingUp, type LucideIcon } from "lucide-react"
 import { FOCUS_RING_INSET, FOCUS_RING } from "../lib/focus-ring.js"
-import {
-  resolveTone,
-  TONE_BORDER,
-  TONE_DOT,
-  TONE_ICON,
-  TONE_TINT,
-  type ToneName,
-  type ToneVariant,
-} from "../lib/tone-utils.js"
+import { TONE_BORDER, TONE_DOT, TONE_ICON, TONE_TINT } from "../lib/tone-utils.js"
 import { MICRO_LABEL } from "../lib/typography.js"
 import { cn } from "../lib/utils.js"
+import { resolveTone, type ToneName, type ToneVariant } from "../tones/index.js"
 import { Skeleton } from "../primitives/skeleton.js"
 
 type TrendDirection = "up" | "down" | "flat"

@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
-import type { ToneVariant } from "../lib/tone-utils.js"
+import type { ToneVariant } from "../tones/index.js"
 import { KpiGrid } from "./KpiGrid.js"
 import { CountPill, LivePill } from "./Pills.js"
 

@@ -13,7 +13,7 @@ import {
   P,
   PARENT_DEF,
   runtimeDto,
-} from "@miragon/pulse-engine-core/testing"
+} from "@miragon/pulse-c7-core/testing"
 import { loadInstance, loadView } from "./inspect.js"
 
 describe("an instance that ends while inspect reads it", () => {

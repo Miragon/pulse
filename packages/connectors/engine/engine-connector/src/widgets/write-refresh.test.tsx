@@ -41,6 +41,7 @@ const INSTANCE_ROWS: ProcessInstancesData = {
   processDefinitionName: "Invoice",
   totalCount: 1,
   returnedCount: 1,
+  allCount: 1,
   withIncidentCount: 1,
   suspendedCount: 0,
   instances: [

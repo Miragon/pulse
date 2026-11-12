@@ -2,11 +2,37 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { afterAll, describe, expect, it } from "vitest"
+import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
 import { engineModule } from "./module.js"
 
+/**
+ * A value planted where a secret could land, and a name that may be one: a profile name, or a
+ * key in the operator's log, is shown only when it has the shape of one, so the planted name has
+ * a blank in it (a key-shaped one is `KEY_SHAPED`).
+ */
+const SECRET = "pl4nted-S3cret"
+const SECRET_NAME = "pl4nted S3cret"
+/**
+ * A GitHub token, which has the shape of a key: the parser names such a key to the operator.
+ * Joined at run time, so the source holds no token-shaped literal that a secret scanner (the docs
+ * preview's) takes for a leak.
+ */
+const KEY_SHAPED = ["ghp", "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8"].join("_")
+const BASE = "http://a.example/engine-rest"
+
+const thrownBy = (boot: () => unknown): Error => {
+  try {
+    boot()
+  } catch (error) {
+    return error as Error
+  }
+  throw new Error("the config was accepted")
+}
+const errorOf = (env: NodeJS.ProcessEnv) => thrownBy(() => engineModule.configFromEnv(env))
+const profiles = (entries: Record<string, unknown>) => JSON.stringify({ profiles: entries })
+
 /** The boot prints this error: one trailing comma must not put the engine passwords into the log. */
-describe("engineModule.configFromEnv never echoes the engine config", () => {
-  const SECRET = "pl4nted-S3cret"
+describe("engineModule.configFromEnv never echoes the profile file", () => {
   const HIDDEN = "is not shown because it may hold credentials"
   const HINT = "Look for a trailing comma or a missing quote, for example."
   const QUOTED =
@@ -14,42 +40,22 @@ describe("engineModule.configFromEnv never echoes the engine config", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pulse-engines-"))
   afterAll(() => fs.rmSync(dir, { recursive: true, force: true }))
 
-  const thrownBy = (boot: () => unknown): Error => {
-    try {
-      boot()
-    } catch (error) {
-      return error as Error
-    }
-    throw new Error("the config was accepted")
-  }
-  const errorOf = (env: NodeJS.ProcessEnv) => thrownBy(() => engineModule.configFromEnv(env))
-
   it.each([
-    // V8 quotes the input's tail here, and there is no position to pass on.
     [
-      "a trailing comma in the array",
-      `[{"id":"prod-a","baseUrl":"http://a.example/engine-rest","auth":{"type":"basic","username":"svc","password":"${SECRET}"}},]`,
-      "",
-    ],
-    // V8 names the unexpected character and quotes a slice around it, the secret included.
-    ["an unquoted value", `[{"id":"prod-a","auth":{"password":${SECRET}}}]`, ""],
-    // V8 quotes an input under 21 characters whole: only its own closing suffix is a position.
-    ["a position inside the value", "pw (line 9 column 9)", ""],
-    [
-      "a trailing comma in the map",
-      `{"prod-eu":[{"id":"a","password":"${SECRET}"}],}`,
-      " at line 1 column 53",
+      "a trailing comma",
+      `{"profiles":{"a":{"url":"${BASE}","auth":{"type":"basic","username":"svc","password":"${SECRET}"}}},}`,
+      " at line 1 column 127",
     ],
     [
-      "a missing comma between entries",
-      `[\n  {"id": "a", "password": "${SECRET}"}\n  {"id": "b"}\n]`,
+      "an unquoted value",
+      `{"profiles":{"a":{"auth":{"password":${SECRET}}}}}`,
+      " at line 1 column 38",
+    ],
+    ["text that is no JSON at all", "pw (line 9 column 9)", " at line 1 column 1"],
+    [
+      "a missing comma between profiles",
+      `{\n  "profiles": {"a": {"password": "${SECRET}"}\n  "b": {}}\n}`,
       " at line 3 column 3",
-    ],
-    // The duplicate-key scan runs on valid JSON only, so it never reads a value as a key.
-    [
-      "a repeated key in malformed JSON",
-      `{"prod-eu":[{"id":"a","password":"${SECRET}"}],"prod-eu":[{"id":"b"}],}`,
-      " at line 1 column 76",
     ],
   ])("ENGINES_JSON with %s names the variable and the position only", (_case, json, at) => {
     const error = errorOf({ ENGINES_JSON: json })
@@ -58,22 +64,19 @@ describe("engineModule.configFromEnv never echoes the engine config", () => {
     expect(error.cause).toBeUndefined()
   })
 
-  it("ENGINES_FILE with malformed content names the variable and the resolved path only", () => {
+  it("ENGINES_FILE with malformed content names the variable and the path only", () => {
     const file = path.join(dir, "engines.json")
-    fs.writeFileSync(
-      file,
-      `[{"id":"prod-a","auth":{"type":"basic","username":"svc","password":"${SECRET}"}},]`,
-    )
+    fs.writeFileSync(file, `{"profiles":{"a":{"auth":{"password":"${SECRET}"}}},}`)
     const error = errorOf({ ENGINES_FILE: file })
     expect(error.message).toBe(
-      `ENGINES_FILE=${file} is not valid JSON; its content ${HIDDEN}. ${HINT}`,
+      `ENGINES_FILE=${file} is not valid JSON at line 1 column 58; its content ${HIDDEN}. ${HINT}`,
     )
     expect(error.cause).toBeUndefined()
   })
 
   it.each([
-    ["single", `'[{"id":"a","password":"${SECRET}"}]'`, ""],
-    ["double", `"[{"id":"a","password":"${SECRET}"}]"`, " at line 1 column 5"],
+    ["single", `'{"profiles":{"a":{"auth":{"password":"${SECRET}"}}}}'`, " at line 1 column 1"],
+    ["double", `"{"profiles":{}}"`, " at line 1 column 4"],
   ])("ENGINES_JSON wrapped in %s quotes says so", (_case, json, at) => {
     expect(errorOf({ ENGINES_JSON: json }).message).toBe(
       `ENGINES_JSON is not valid JSON${at}; the value ${HIDDEN}. ${QUOTED}`,
@@ -82,9 +85,10 @@ describe("engineModule.configFromEnv never echoes the engine config", () => {
 
   it("ENGINES_FILE saved with a byte order mark loads", () => {
     const file = path.join(dir, "bom.json")
-    const engines = [{ id: "prod-a", baseUrl: "http://a.example/engine-rest" }]
-    fs.writeFileSync(file, `\uFEFF${JSON.stringify(engines)}`)
-    expect(engineModule.configFromEnv({ ENGINES_FILE: file }).engines).toEqual(engines)
+    fs.writeFileSync(file, `\uFEFF${profiles({ "prod-a": { url: BASE } })}`)
+    expect(engineModule.configFromEnv({ ENGINES_FILE: file }).engines).toEqual([
+      { id: "prod-a", baseUrl: BASE },
+    ])
   })
 
   it("an empty ENGINES_FILE says it is empty", () => {
@@ -104,93 +108,133 @@ describe("engineModule.configFromEnv never echoes the engine config", () => {
   })
 
   it("inline JSON in ENGINES_FILE is not echoed as a path", () => {
-    const error = errorOf({ ENGINES_FILE: `[{"id":"a","auth":{"password":"${SECRET}"}}]` })
+    const error = errorOf({ ENGINES_FILE: `{"profiles":{"a":{"auth":{"password":"${SECRET}"}}}}` })
     expect(error.message).toContain("ENGINES_FILE holds JSON instead of a file path")
     expect(error.message).not.toContain(SECRET)
     expect(error.cause).toBeUndefined()
   })
+})
 
-  it.each([
-    ["a repeated key", `{"${SECRET}":[{"id":"a"}],"${SECRET}":[{"id":"b"}]}`],
-    ["a key without an engine array", `{"${SECRET}":"x"}`],
-    ["a contradicting environment", `{"prod-eu":[{"id":"a","environment":{"p":"${SECRET}"}}]}`],
-  ])("names a key or value of %s only when it is an id", (_case, json) => {
-    const { message } = errorOf({ ENGINES_JSON: json })
-    expect(message).toContain("(not shown: not an id)")
-    expect(message).not.toContain(SECRET)
-  })
-
-  /**
-   * The rest of the sweep: a secret at every place of the settings. The one value a message
-   * repeats is ENGINES_FILE's own path, the thing to fix (above). A boot warning names only what
-   * this check let through, since the boot resolves the config before it warns (the app's
-   * `test/boot-errors.test.ts`).
-   */
-  const expectNoSecret = (error: Error) => {
-    expect(error.message).not.toContain(SECRET)
-    expect(error.cause).toBeUndefined()
+/**
+ * A secret at every place of the settings and the profiles: no boot error, no boot warning, no
+ * refused entry, no module config and no engine_list_engines result repeats it. The parser
+ * hands on no raw value of a refused profile, so the module config holds none either.
+ */
+describe("a planted secret appears nowhere", () => {
+  const expectNoSecret = (text: string) => {
+    expect(text).not.toContain(SECRET)
+    expect(text).not.toContain(SECRET_NAME)
   }
 
-  /** The array form, the environment map, a map whose key is the secret, and the file. */
-  const listErrors = (engines: unknown[]): Error[] => {
-    const file = path.join(dir, "secret-entry.json")
-    fs.writeFileSync(file, JSON.stringify(engines))
-    const envs: NodeJS.ProcessEnv[] = [
-      { ENGINES_JSON: JSON.stringify(engines) },
-      { ENGINES_JSON: JSON.stringify({ "prod-eu": engines }) },
-      { ENGINES_JSON: JSON.stringify({ [SECRET]: engines }) },
-      { ENGINES_FILE: file },
-    ]
-    return envs.map((env) => errorOf(env))
+  /** Every text a boot with `env` produces: its error, or its config, warnings and engine list. */
+  async function everythingSaid(env: NodeJS.ProcessEnv): Promise<string> {
+    const warnings = engineModule.bootWarnings(env)
+    let config: Record<string, unknown>
+    try {
+      config = engineModule.configFromEnv(env)
+    } catch (error) {
+      expect((error as Error).cause).toBeUndefined()
+      return JSON.stringify([(error as Error).message, warnings])
+    }
+    const recording = recordingModuleServer()
+    engineModule.createPlugin(config).register(recording.server)
+    const listed = await recording.tool("engine_list_engines").call({})
+    return JSON.stringify([config, warnings, listed, engineModule.instructions(config)])
   }
 
-  const BASE = "http://a.example/engine-rest"
-
   it.each([
-    ["a password", `https://svc:${SECRET}@engine.example.com/engine-rest`],
-    ["a user name", `https://${SECRET}@engine.example.com/engine-rest`],
-    ["a query string", `https://engine.example.com/engine-rest?token=${SECRET}`],
-    ["a fragment", `https://engine.example.com/engine-rest#${SECRET}`],
-    ["no scheme", `svc:${SECRET}@engine:8080/engine-rest`],
-    ["another scheme", `ftp://svc:${SECRET}@engine.example.com/engine-rest`],
-  ])("a URL with %s fails the boot, and no message repeats it", (_case, url) => {
-    expectNoSecret(errorOf({ ENGINE_BASE_URL: url }))
-    expectNoSecret(errorOf({ ENGINE_BASE_URL: BASE, ENGINE_COCKPIT_URL: url }))
-    for (const entry of [
-      { id: "a", baseUrl: url },
-      { id: "a", baseUrl: BASE, cockpitUrl: url },
+    ["a password in the url", { url: `https://svc:${SECRET}@engine.example.com/engine-rest` }],
+    ["a user name in the url", { url: `https://${SECRET}@engine.example.com/engine-rest` }],
+    ["a query string", { url: `https://engine.example.com/engine-rest?token=${SECRET}` }],
+    ["a fragment", { url: `https://engine.example.com/engine-rest#${SECRET}` }],
+    ["no scheme", { url: `svc:${SECRET}@engine:8080/engine-rest` }],
+    ["the cockpit url", { url: BASE, cockpitUrl: `https://svc:${SECRET}@ops.example/webapp` }],
+    ["a url that is no string", { url: { p: SECRET } }],
+    ["the environment", { url: BASE, environment: SECRET }],
+    ["the flavor", { url: BASE, flavor: SECRET }],
+    ["the process engine", { url: BASE, engine: SECRET }],
+    ["the auth type", { url: BASE, auth: { type: SECRET } }],
+    ["an auth that is no object", { url: BASE, auth: SECRET }],
+    ["a literal password", { url: BASE, auth: { type: "basic", username: "u", password: SECRET } }],
+    ["a literal token", { url: BASE, auth: { type: "bearer", token: SECRET } }],
+    ["a password on bearer", { url: BASE, auth: { type: "bearer", password: SECRET } }],
+    [
+      "a variable outside the prefix",
+      { url: BASE, auth: { type: "bearer", tokenEnv: SECRET.replace("-", "_") } },
+    ],
+    ["a header value", { url: BASE, headers: { "X-Api-Key": SECRET } }],
+    ["an unknown key", { url: BASE, [SECRET_NAME]: "x" }],
+    ["a profile that is no object", SECRET],
+  ])("in a refused profile: %s", async (_place, profile) => {
+    for (const env of [
+      // Alone, the boot fails; next to a usable one, it runs and refuses this one.
+      { ENGINES_JSON: profiles({ x: profile }) },
+      { ENGINES_JSON: profiles({ ok: { url: BASE }, x: profile }) },
     ]) {
-      listErrors([entry]).forEach(expectNoSecret)
-      // createPlugin parses a config no `configFromEnv` checked: a ZodError, its message the issues.
-      expect(thrownBy(() => engineModule.createPlugin({ engines: [entry] })).message).not.toContain(
-        SECRET,
-      )
+      expectNoSecret(await everythingSaid(env))
     }
   })
 
+  it("in a profile name or a defaultProfile", async () => {
+    expectNoSecret(
+      await everythingSaid({
+        ENGINES_JSON: profiles({ ok: { url: BASE }, [SECRET_NAME]: { url: BASE } }),
+      }),
+    )
+    expectNoSecret(
+      await everythingSaid({
+        ENGINES_JSON: JSON.stringify({
+          defaultProfile: SECRET_NAME,
+          profiles: { ok: { url: BASE } },
+        }),
+      }),
+    )
+  })
+
+  /**
+   * A token pasted as a key has the shape of one (`ghp_` and 36 characters), so the operator's
+   * log names it as the parser does; the model reads only the keys of the format.
+   */
   it.each([
-    ["the id", { id: SECRET, baseUrl: BASE }],
-    ["an id that is no string", { id: { p: SECRET }, baseUrl: BASE }],
-    ["a baseUrl that is no string", { id: "a", baseUrl: { p: SECRET } }],
-    ["a cockpitUrl that is no string", { id: "a", baseUrl: BASE, cockpitUrl: [SECRET] }],
-    ["the environment", { id: "a", baseUrl: BASE, environment: SECRET }],
-    ["the flavor", { id: "a", baseUrl: BASE, flavor: SECRET }],
-    ["the auth type", { id: "a", baseUrl: BASE, auth: { type: SECRET } }],
-    ["an auth that is no object", { id: "a", baseUrl: BASE, auth: SECRET }],
-    ["a lone password", { id: "a", baseUrl: BASE, auth: { type: "basic", password: SECRET } }],
-    ["a lone username", { id: "a", baseUrl: BASE, auth: { type: "basic", username: SECRET } }],
-    [
-      "a password on bearer",
-      { id: "a", baseUrl: BASE, auth: { type: "bearer", password: SECRET } },
-    ],
-    ["an unknown key", { id: "a", baseUrl: "no-url", [SECRET]: "x" }],
-    ["an entry that is no object", SECRET],
-  ])("an engine entry with a secret in %s fails the boot without it", (_place, entry) => {
-    listErrors([entry]).forEach(expectNoSecret)
+    ["of a profile", { url: BASE, [KEY_SHAPED]: "x" }],
+    ["of auth", { url: BASE, auth: { type: "none", [KEY_SHAPED]: "x" } }],
+  ])("in a key-shaped key %s: never to the model", async (_place, profile) => {
+    const env = { ENGINES_JSON: profiles({ ok: { url: BASE }, x: profile }) }
+    const config = engineModule.configFromEnv(env)
+    const recording = recordingModuleServer()
+    engineModule.createPlugin(config).register(recording.server)
+    const said = [
+      config,
+      await recording.tool("engine_list_engines").call({}),
+      await recording.tool("engine_status").call({ engine: "x" }),
+      engineModule.instructions(config),
+    ]
+    expect(JSON.stringify(said)).toContain("holds a key the profile format does not know")
+    expect(JSON.stringify(said)).not.toContain(KEY_SHAPED)
+    expect(engineModule.bootWarnings(env).join(" ")).toContain(KEY_SHAPED)
+  })
+
+  it("in a variable that holds a secret which the transport cannot send", async () => {
+    const env = {
+      ENGINES_JSON: profiles({
+        ok: { url: BASE },
+        x: { url: BASE, auth: { type: "bearer", tokenEnv: "ENGINE_SECRET_X" } },
+      }),
+      ENGINE_SECRET_X: `${SECRET}\n${SECRET}`,
+    }
+    expectNoSecret(await everythingSaid(env))
   })
 
   it.each<[string, NodeJS.ProcessEnv]>([
-    ["ENGINE_ID", { ENGINE_ID: SECRET }],
+    [
+      "ENGINE_BASE_URL",
+      { ENGINE_BASE_URL: `https://svc:${SECRET}@engine.example.com/engine-rest` },
+    ],
+    [
+      "ENGINE_COCKPIT_URL",
+      { ENGINE_BASE_URL: BASE, ENGINE_COCKPIT_URL: `https://svc:${SECRET}@c` },
+    ],
+    ["ENGINE_ID", { ENGINE_ID: SECRET_NAME }],
     ["ENGINE_FLAVOR", { ENGINE_FLAVOR: SECRET }],
     ["ENGINE_DEFAULT", { ENGINE_DEFAULT: SECRET }],
     ["ENGINE_AUTH_TYPE", { ENGINE_AUTH_TYPE: SECRET }],
@@ -203,38 +247,35 @@ describe("engineModule.configFromEnv never echoes the engine config", () => {
     ["ENGINE_HEALTH_CRITICAL_INCIDENTS", { ENGINE_HEALTH_CRITICAL_INCIDENTS: SECRET }],
     ["ENGINE_HEALTH_CRITICAL_CLUSTER_SIZE", { ENGINE_HEALTH_CRITICAL_CLUSTER_SIZE: SECRET }],
   ])("%s with a secret fails the boot without it", (_variable, env) => {
-    expectNoSecret(errorOf(env))
+    const error = errorOf(env)
+    expectNoSecret(error.message)
+    expect(error.cause).toBeUndefined()
   })
 
   describe("ENGINE_DEFAULT's error shows only ids", () => {
-    const NOT_SHOWN = "(not shown: not an id)"
-    const engines = [
-      { id: "prod-a", baseUrl: BASE },
-      { id: SECRET, baseUrl: BASE },
-    ]
-
     it("hides a default that is no id", () => {
-      const list = JSON.stringify([engines[0]])
-      expect(errorOf({ ENGINES_JSON: list, ENGINE_DEFAULT: SECRET }).message).toBe(
-        `ENGINE_DEFAULT=${NOT_SHOWN} names no configured engine (configured: prod-a).`,
+      const env = { ENGINES_JSON: profiles({ "prod-a": { url: BASE } }), ENGINE_DEFAULT: SECRET }
+      expect(errorOf(env).message).toBe(
+        "ENGINE_DEFAULT=(not shown: not an id) names no configured engine (configured: prod-a).",
       )
     })
 
-    it("hides a configured id that is no id", () => {
-      const list = JSON.stringify(engines)
-      const { message } = errorOf({ ENGINES_JSON: list, ENGINE_DEFAULT: "prod-z" })
-      expect(message).toContain(
-        `ENGINE_DEFAULT=prod-z names no configured engine (configured: prod-a, ${NOT_SHOWN}).`,
+    it("names the configured ids, a refused one too, and hides one a direct caller made up", () => {
+      const env = {
+        ENGINES_JSON: profiles({ "prod-a": { url: BASE }, "prod-b": { headers: {} } }),
+        ENGINE_DEFAULT: "prod-z",
+      }
+      expect(errorOf(env).message).toBe(
+        "ENGINE_DEFAULT=prod-z names no configured engine (configured: prod-a, prod-b).",
       )
-      expect(message).not.toContain(SECRET)
-    })
-
-    it("hides both from the ZodError a config no `configFromEnv` checked throws", () => {
       const error = thrownBy(() =>
-        engineModule.createPlugin({ engines, defaultEngine: `${SECRET}-other` }),
+        engineModule.createPlugin({
+          engines: [{ id: SECRET_NAME, baseUrl: BASE }],
+          defaultEngine: `${SECRET}-other`,
+        }),
       )
       expect(error.message).toContain("ENGINE_DEFAULT=")
-      expect(error.message).not.toContain(SECRET)
+      expectNoSecret(error.message)
     })
   })
 })

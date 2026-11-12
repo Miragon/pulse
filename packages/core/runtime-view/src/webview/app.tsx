@@ -56,7 +56,12 @@ function Panel({ state }: { readonly state: PanelState | undefined }) {
   return (
     <ViewScreen
       view={state.staleView}
-      freshness={{ kind: "offline", at: state.staleView.asOf, live: state.live }}
+      freshness={{
+        kind: "offline",
+        at: state.staleView.asOf,
+        live: state.live,
+        loginRefused: state.problem.loginRefused,
+      }}
       stale
       problem={<ProblemStrip problem={state.problem} />}
     />

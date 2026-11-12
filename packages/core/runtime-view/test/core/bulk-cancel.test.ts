@@ -1,4 +1,4 @@
-import { PatchedCommands, PatchedRuntime } from "../../src/contract/fake/index.js"
+import { PatchedCommands, PatchedRuntime } from "@miragon/pulse-engine-core/testing"
 import {
   BpmnProcessId,
   BulkOperationId,
@@ -8,7 +8,7 @@ import {
   type BulkOperation,
   type ProcessCommands,
   type ProcessRuntime,
-} from "../../src/contract/index.js"
+} from "@miragon/pulse-engine-core"
 import { describe, expect, test, vi } from "vitest"
 import { BulkRuns } from "../../src/core/panels/bulk-runs.js"
 import { DefinitionPanel } from "../../src/core/panels/definition-panel.js"
@@ -135,7 +135,7 @@ describe("selecting instances for a bulk operation", () => {
       (runtime) =>
         new PatchedRuntime(runtime, {
           countInstances: async (filter) =>
-            filter.lifecycle === "running" ? 1500 : runtime.countInstances(filter),
+            filter.lifecycle === "running" ? { count: 1500 } : runtime.countInstances(filter),
         }),
     )
     await selectRunning(opened)
@@ -388,7 +388,7 @@ describe("following a bulk cancel", () => {
 
     expect(opened.view().bulk).toMatchObject({
       status: "stalled",
-      notice: { tone: "warning", title: "No progress for 2 min 30 s: 0 of 2 done" },
+      notice: { tone: "warning", title: "No progress for 2m 30s: 0 of 2 done" },
     })
     opened.panel.dispose()
     await opened.gate.open()

@@ -1,15 +1,11 @@
 import { describe, expect, test } from "vitest"
-import {
-  CredentialStore,
-  type SecretStorage,
-} from "../../src/host-kit/connections/credential-store.js"
 import { EngineBadges } from "../../src/host-kit/connections/engine-badges.js"
 import { LOCAL_TARGET, type EngineTarget } from "../../src/host-kit/connections/engine-target.js"
 import { EnvironmentClassifier } from "../../src/host-kit/connections/environment-classifier.js"
 import { TargetPolicy } from "../../src/host-kit/connections/target-policy.js"
 import { TargetsParser } from "../../src/host-kit/connections/targets-parser.js"
 
-const FILE = "/work/.pulse-cli.json"
+const FILE = "/work/.pulse.json"
 const NONE = { user: undefined, workspace: [] }
 
 function userSaid(user: Record<string, string>) {
@@ -20,7 +16,7 @@ function remote(name: string, endpoint: string): EngineTarget {
   return { ...LOCAL_TARGET, name, endpoint, source: { kind: "file", path: FILE } }
 }
 
-describe("parsing the profiles of .pulse-cli.json", () => {
+describe("parsing the profiles of .pulse.json", () => {
   test("reads each profile as an engine with url and auth", () => {
     const content = JSON.stringify({
       defaultProfile: "dev",
@@ -82,8 +78,8 @@ describe("parsing the profiles of .pulse-cli.json", () => {
       }),
     ])
     expect(parsed.problems.map((problem) => problem.detail())).toEqual([
-      `${FILE}: profile "file" needs a cockpitUrl that is an http or https URL without credentials, query or fragment`,
-      `${FILE}: profile "secret" needs a cockpitUrl that is an http or https URL without credentials, query or fragment`,
+      `${FILE}: profile "file": cockpitUrl must start with http:// or https://.`,
+      `${FILE}: profile "secret": cockpitUrl must not contain credentials (they are not shown): put them into auth.`,
     ])
   })
 
@@ -104,11 +100,11 @@ describe("parsing the profiles of .pulse-cli.json", () => {
     expect(parsed.targets.map((target) => target.name)).toEqual(["ok"])
     expect(parsed.targets[0]?.auth).toEqual({ kind: "oauth2" })
     expect(parsed.problems.map((problem) => problem.detail())).toEqual([
-      `${FILE}: profile "cluster" uses the flavor camunda8, which Pulse does not support yet`,
-      `${FILE}: profile "named" names a process engine other than "default", which Pulse does not support yet`,
-      `${FILE}: profile "bad-url" needs a url that is an http or https URL without credentials, query or fragment`,
-      `${FILE}: profile "bearer" uses bearer auth, which Pulse does not support yet`,
-      `${FILE}: profile "nonsense" is not an object`,
+      `${FILE}: profile "cluster": flavor must be one of camunda7, cibseven, operaton (the value is not shown).`,
+      `${FILE}: profile "named": engine names a process engine this client does not reach: it reaches only "default".`,
+      `${FILE}: profile "bad-url": url is no URL: use a URL such as http://localhost:8080/engine-rest.`,
+      `${FILE}: profile "bearer": This client cannot authenticate with this auth.type. Set auth.type to none or basic, or keep this profile for the CLI.`,
+      `${FILE}: profile "nonsense": The profile must be a JSON object.`,
     ])
   })
 
@@ -126,9 +122,9 @@ describe("parsing the profiles of .pulse-cli.json", () => {
 
     expect(parsed.targets.map((target) => target.name)).toEqual(["current"])
     expect(parsed.problems.map((problem) => problem.detail())).toEqual([
-      `${FILE}: profile "renamed" uses the key platform, now called flavor`,
-      `${FILE}: profile "cluster" uses the key platform, now called flavor`,
-      `${FILE}: profile "both" uses the key platform, now called flavor`,
+      `${FILE}: profile "renamed": platform is no key of a profile.`,
+      `${FILE}: profile "cluster": platform is no key of a profile.`,
+      `${FILE}: profile "both": platform is no key of a profile.`,
     ])
   })
 
@@ -142,7 +138,8 @@ describe("parsing the profiles of .pulse-cli.json", () => {
       problems: [
         {
           path: FILE,
-          message: 'profile "typo" uses the flavor camunda, which Pulse does not support yet',
+          message:
+            'profile "typo": flavor must be one of camunda7, cibseven, operaton (the value is not shown).',
         },
       ],
     })
@@ -151,10 +148,13 @@ describe("parsing the profiles of .pulse-cli.json", () => {
   test("reports a malformed file instead of failing", () => {
     expect(new TargetsParser(FILE).parse("{")).toEqual({
       targets: [],
-      problems: [{ path: FILE, message: "the file is not valid JSON" }],
+      problems: [{ path: FILE, message: "The text is not valid JSON (line 1, column 2)." }],
     })
     expect(new TargetsParser(FILE).parse('{"profiles": []}').problems).toEqual([
-      { path: FILE, message: 'the file needs a "profiles" object' },
+      {
+        path: FILE,
+        message: "profiles must be a JSON object that maps each profile name to a profile.",
+      },
     ])
     expect(new TargetsParser(FILE).parse("{}")).toEqual({ targets: [], problems: [] })
   })
@@ -162,8 +162,8 @@ describe("parsing the profiles of .pulse-cli.json", () => {
   test("names the broken file and what is wrong, for the error item in the Engines tree", () => {
     const [problem] = new TargetsParser(FILE).parse("{").problems
 
-    expect(problem?.label()).toBe(".pulse-cli.json: the file is not valid JSON")
-    expect(problem?.detail()).toBe(`${FILE}: the file is not valid JSON`)
+    expect(problem?.label()).toBe(".pulse.json: The text is not valid JSON (line 1, column 2).")
+    expect(problem?.detail()).toBe(`${FILE}: The text is not valid JSON (line 1, column 2).`)
     expect(problem?.path).toBe(FILE)
   })
 })
@@ -238,30 +238,6 @@ describe("the environment of a target", () => {
   })
 })
 
-describe("the secret scope", () => {
-  function inMemorySecrets() {
-    const stored = new Map<string, string>()
-    const secrets: SecretStorage = {
-      get: (key) => Promise.resolve(stored.get(key)),
-      store: (key, value) => {
-        stored.set(key, value)
-        return Promise.resolve()
-      },
-    }
-    return { stored, store: new CredentialStore(secrets) }
-  }
-
-  test("follows the modeler scheme of file path and target name", async () => {
-    const { stored, store } = inMemorySecrets()
-    await store.write(remote("dev", "http://x"), "demo", "demo")
-    await store.write(LOCAL_TARGET, "demo", "demo")
-    expect([...stored.keys()].filter((key) => key.endsWith(".username"))).toEqual([
-      `pulse.connection.${FILE}::dev.username`,
-      "pulse.connection.default::local.username",
-    ])
-  })
-})
-
 describe("the target policy", () => {
   const basic = (name: string, endpoint: string): EngineTarget => ({
     ...remote(name, endpoint),
@@ -295,12 +271,14 @@ describe("the target policy", () => {
     ).toBeUndefined()
   })
 
-  test("refuses OAuth2 until it is supported", () => {
+  test("refuses OAuth2 and names the way out, promising nothing", () => {
     expect(
       TargetPolicy.refusal(
         { ...remote("o", "https://o.example.com"), auth: { kind: "oauth2" } },
         { kind: "none" },
       ),
-    ).toContain("OAuth2")
+    ).toBe(
+      'Profile "o" uses auth.type oauth, which this client cannot authenticate with. Set auth.type to none, or to basic without the OAuth keys, or keep this profile for the CLI.',
+    )
   })
 })
