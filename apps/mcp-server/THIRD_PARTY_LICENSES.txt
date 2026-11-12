@@ -33,8 +33,8 @@ Works of others in the view bundle:
   @radix-ui/react-use-effect-event 0.0.5         MIT                      the view bundle
   @radix-ui/react-use-is-hydrated 0.1.3          MIT                      the view bundle
   @radix-ui/react-use-layout-effect 1.1.4        MIT                      the view bundle
-  @tanstack/query-core 5.105.3                   MIT                      the view bundle
-  @tanstack/react-query 5.105.3                  MIT                      the view bundle
+  @tanstack/query-core 5.107.1                   MIT                      the view bundle
+  @tanstack/react-query 5.107.1                  MIT                      the view bundle
   aria-hidden 1.2.6                              MIT                      the view bundle
   bpmn-js 18.31.1                                SEE LICENSE IN LICENSE   the view bundle
   bpmn-moddle 10.3.1                             MIT                      the view bundle
@@ -46,7 +46,7 @@ Works of others in the view bundle:
   get-nonce 1.0.1                                MIT                      the view bundle
   ids 3.0.2                                      MIT                      the view bundle
   inherits-browser 0.1.0                         ISC                      the view bundle
-  lucide-react 1.67.0                            ISC                      the view bundle
+  lucide-react 1.70.0                            ISC                      the view bundle
   min-dash 5.1.0                                 MIT                      the view bundle
   min-dom 5.3.0                                  MIT                      the view bundle
   moddle 8.2.1                                   MIT                      the view bundle
@@ -59,12 +59,12 @@ Works of others in the view bundle:
   react-remove-scroll 2.7.2                      MIT                      the view bundle
   react-remove-scroll-bar 2.3.8                  MIT                      the view bundle
   react-style-singleton 2.2.3                    MIT                      the view bundle
-  rolldown 1.2.16                                MIT                      the view bundle
+  rolldown 1.2.19                                MIT                      the view bundle
   saxen 11.2.0                                   MIT                      the view bundle
   scheduler 0.28.0                               MIT                      the view bundle
   shadcn/ui new-york-v4                          MIT                      the view bundle
   tailwind-merge 3.7.0                           MIT                      the view bundle
-  tailwindcss 4.3.4                              MIT                      the view bundle
+  tailwindcss 4.3.5                              MIT                      the view bundle
   tiny-svg 4.1.4                                 MIT                      the view bundle
   tslib 2.8.1                                    0BSD                     the view bundle
   tw-animate-css 1.4.0                           MIT                      the view bundle
@@ -1387,7 +1387,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ================================================================================
-@tanstack/query-core 5.105.3
+@tanstack/query-core 5.107.1
 Licence: MIT
 In: the view bundle
 Source: https://github.com/TanStack/query
@@ -1417,7 +1417,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ================================================================================
-@tanstack/react-query 5.105.3
+@tanstack/react-query 5.107.1
 Licence: MIT
 In: the view bundle
 Source: https://github.com/TanStack/query
@@ -1920,7 +1920,7 @@ OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 
 ================================================================================
-lucide-react 1.67.0
+lucide-react 1.70.0
 Licence: ISC
 In: the view bundle
 Source: https://github.com/lucide-icons/lucide
@@ -2358,7 +2358,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ================================================================================
-rolldown 1.2.16
+rolldown 1.2.19
 Licence: MIT
 In: the view bundle
 Holds: the runtime helpers rolldown, Vite's bundler, writes into the bundle
@@ -2550,7 +2550,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ================================================================================
-tailwindcss 4.3.4
+tailwindcss 4.3.5
 Licence: MIT
 In: the view bundle
 Source: https://github.com/tailwindlabs/tailwindcss

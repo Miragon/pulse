@@ -12,7 +12,7 @@ Below 1.0: pin the exact version and update all `@miragon/pulse-*` packages toge
 
 ```sh
 npm install @miragon/pulse-widget-shell zod bpmn-js@18.31.1
-npm install react react-dom @miragon/pulse-ui lucide-react@1.67.0 @tanstack/react-query
+npm install react react-dom @miragon/pulse-ui lucide-react@1.70.0 @tanstack/react-query
 ```
 
 The second line is for the view bundle; the official MCP TypeScript SDK comes with this package
@@ -82,7 +82,7 @@ with toolsets runs its read-only floor; the providers and what fails the boot ar
 `@miragon/pulse-ui`, `react`/`react-dom`, `zod` and `@tanstack/react-query` are ranged peers
 (`react`/`react-dom` `^19.2.0`, `zod` `^4.4.0`, `@miragon/pulse-ui` `^<this release>`), so they
 resolve to one instance with your app's copy. **A view bundle needs a 1.x `lucide-react` that
-exports `LucideProvider`** (Pulse pins 1.67.0): a deduped 0.x copy fails the bundle build with a
+exports `LucideProvider`** (Pulse pins 1.70.0): a deduped 0.x copy fails the bundle build with a
 missing export. `bpmn-js` is a peer (`^18.31.1`), since `./widgets` exports the BPMN viewer.
 
 A module of your own peers this package (`^<this release>`), so your server's copy is the only
