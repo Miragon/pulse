@@ -97,15 +97,20 @@ export function showRows(view: ConfigView): Record<string, unknown>[] {
   }))
 }
 
+/** The profile line's value: the profile, else none, with why for a `--url` without `--profile`. */
+function profileText(view: ConfigView): string {
+  if (view.profile === null) {
+    return view.noProfile === undefined ? "(none)" : `(none: ${view.noProfile})`
+  }
+  const fromProject = view.profileFile !== null && view.profileFile === view.projectFile
+  return fromProject ? `${view.profile} (from the project file)` : view.profile
+}
+
 /**
  * Lines in front of the `config show` table: the config file, the project file in effect and
- * the profile with the file it comes from, when that is the project file.
+ * the profile with the file it comes from, when that is the project file, or why none applies.
  */
 export function showHeader(view: ConfigView): string {
   const project = view.projectFile === null ? "" : `Project file: ${view.projectFile}\n`
-  const from =
-    view.profileFile !== null && view.profileFile === view.projectFile
-      ? ` (from the project file)`
-      : ""
-  return `Config file: ${view.configFile}\n${project}Profile: ${view.profile ?? "(none)"}${from}\n\n`
+  return `Config file: ${view.configFile}\n${project}Profile: ${profileText(view)}\n\n`
 }

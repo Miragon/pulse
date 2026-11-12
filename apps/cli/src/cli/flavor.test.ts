@@ -23,6 +23,15 @@ describe("selectEngine", () => {
     expect(await engineOf(["ping"], { PULSE_CLI_PROFILE: "other" })).toBe("cibseven")
   })
 
+  it("takes no profile's flavor for a --url alone, a profile's for config set's --url", async () => {
+    expect(await engineOf(["ping", "--url", "http://x"])).toBe("camunda7")
+    expect(await engineOf(["ping", "--url", "http://x"], { PULSE_CLI_PROFILE: "other" })).toBe(
+      "camunda7",
+    )
+    expect(await engineOf(["ping", "--url", "http://x", "--profile", "other"])).toBe("cibseven")
+    expect(await engineOf(["config", "set", "p", "--url", "http://x"])).toBe("operaton")
+  })
+
   it("uses camunda7 without a flavor and when the config cannot be read", async () => {
     expect((await selectEngine(["ping"], fakeRuntime())).name).toBe("camunda7")
     expect(await engineOf(["ping", "--profile", "missing"])).toBe("camunda7")

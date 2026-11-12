@@ -103,6 +103,8 @@ export interface OAuthConfig {
   readonly projectDirectory?: string
   /** The config file named by `--config` or PULSE_CLI_CONFIG the profile comes from. */
   readonly configFile?: string
+  /** A `--url` without `--profile` left the profile out: the auth commands take it too. */
+  readonly byUrl?: boolean
   readonly sources: {
     readonly endpoints: Source
     readonly clientId: Source
@@ -338,6 +340,8 @@ export interface ResolvedConfig {
   readonly unusedToken?: UnusedToken
   /** The project file the selected profile comes from. */
   readonly project?: ProjectSource
+  /** Why no profile applies: a `--url` without `--profile`, and what it leaves out. */
+  readonly noProfile?: string
 }
 
 type ResolvedKey =

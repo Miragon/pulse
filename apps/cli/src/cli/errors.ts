@@ -9,7 +9,7 @@ import { renderError, toPulseCliError } from "../output/error.js"
 import { terminalSafe } from "../output/terminal.js"
 import type { Runtime } from "../runtime.js"
 import { closeNames } from "../util.js"
-import { globalFromArgv, outputFromArgv, verboseRequested } from "./argv.js"
+import { globalFromArgv, outputFromArgv, urlFromArgv, verboseRequested } from "./argv.js"
 import type { CliState } from "./context.js"
 import { commandPath } from "./help.js"
 import { envFormat, profileFormat, terminalFormat } from "./output-format.js"
@@ -178,6 +178,7 @@ export async function errorFormat(argv: readonly string[], runtime: Runtime, sta
     (await profileFormat(runtime, {
       config: globalFromArgv(argv, "config"),
       profile: globalFromArgv(argv, "profile"),
+      url: urlFromArgv(argv),
     })) ??
     terminalFormat(runtime)
   )

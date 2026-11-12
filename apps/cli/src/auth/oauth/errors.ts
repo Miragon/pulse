@@ -31,6 +31,8 @@ export interface LoginOwner {
   readonly projectDirectory?: string | undefined
   /** The config file named by `--config` or PULSE_CLI_CONFIG the profile comes from. */
   readonly configFile?: string | undefined
+  /** A `--url` without `--profile` left the profile out: the environment's login. */
+  readonly byUrl?: boolean | undefined
 }
 
 /** A path as one shell word: as it is when it needs no quotes, else in single quotes. */
@@ -38,9 +40,10 @@ function shellWord(path: string): string {
   return /^[\w@%+=:,./\\-]+$/.test(path) ? path : `'${path.replace(/'/g, `'\\''`)}'`
 }
 
-/** `pulse auth <command> [--config <file>] [--profile <p>]` for the login of `who`. */
+/** `pulse auth <command> [--config <file>] [--profile <p>]` or `[--url <url>]` for `who`. */
 function authCommand(command: string, who: LoginOwner): string {
-  if (who.profile === undefined) return `pulse auth ${command}`
+  const url = who.byUrl === true ? " --url <url>" : ""
+  if (who.profile === undefined) return `pulse auth ${command}${url}`
   const config = who.configFile === undefined ? "" : ` --config ${shellWord(who.configFile)}`
   return `pulse auth ${command}${config} --profile ${who.profile}`
 }

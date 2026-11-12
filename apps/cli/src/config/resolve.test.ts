@@ -132,8 +132,8 @@ describe("resolveConfig precedence", () => {
     })
   })
 
-  it("lets flags override the environment", () => {
-    const resolved = resolveConfig(flags, env, file(profile))
+  it("lets flags override the environment, the profile's headers kept by --profile", () => {
+    const resolved = resolveConfig({ ...flags, profile: "p" }, env, file(profile))
     expect(resolved).toMatchObject({
       url: "http://flag:8080/engine-rest",
       engine: "flag-engine",
@@ -255,6 +255,11 @@ describe("resolveConfig precedence", () => {
     return { value: fallback, source: "default" }
   }
 
+  /** The choice without its profile value when a `--url` without `--profile` selects none. */
+  function applied<T>([flag, env, profile]: Choice<T>, selected: boolean): Choice<T> {
+    return [flag, env, selected ? profile : undefined]
+  }
+
   it("always takes the value of the highest-precedence defined source", () => {
     const urls = fc.constantFrom("http://a:1/engine-rest", "https://b/rest", "http://c")
     const engines = fc.stringMatching(/^[a-z][a-z0-9-]{0,8}$/)
@@ -271,9 +276,13 @@ describe("resolveConfig precedence", () => {
           timeout: choice(timeouts),
           readOnly: choice(fc.boolean()),
           auth: fc.tuple(fc.constant(undefined), fc.boolean(), fc.boolean()),
+          profileFlag: fc.constantFrom(undefined, "p"),
         }),
         (c) => {
+          // the profile is the default one, or --profile names it; a --url alone selects none
+          const selected = c.profileFlag !== undefined || c.url[0] === undefined
           const flags = {
+            profile: c.profileFlag,
             url: c.url[0],
             engine: c.engine[0],
             flavor: c.flavor[0],
@@ -304,13 +313,19 @@ describe("resolveConfig precedence", () => {
             env,
             file(JSON.parse(JSON.stringify(profile)) as Profile),
           )
-          const url = expected(c.url, "http://localhost:8080/engine-rest")
-          const engine = expected(c.engine, undefined)
-          const flavor = expected(c.flavor, "camunda7")
-          const output = expected(c.output, undefined)
-          const timeout = expected(c.timeout, 30000)
-          const readOnly = expected(c.readOnly, false)
-          const auth = expected([undefined, c.auth[1] || undefined, c.auth[2] || undefined], false)
+          const url = expected(applied(c.url, selected), "http://localhost:8080/engine-rest")
+          const engine = expected(applied(c.engine, selected), undefined)
+          const flavor = expected(applied(c.flavor, selected), "camunda7")
+          const output = expected(applied(c.output, selected), undefined)
+          const timeout = expected(applied(c.timeout, selected), 30000)
+          const readOnly = expected(applied(c.readOnly, selected), false)
+          const authChoice: Choice<true> = [
+            undefined,
+            c.auth[1] || undefined,
+            c.auth[2] || undefined,
+          ]
+          const auth = expected(applied(authChoice, selected), false)
+          expect(resolved.profile === "p").toBe(selected)
           expect(resolved.url).toBe(url.value)
           expect(resolved.engine).toBe(engine.value)
           expect(resolved.flavor).toBe(flavor.value)

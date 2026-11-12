@@ -3,16 +3,16 @@
 `pulse` supports [Basic auth](#basic-auth), [OAuth 2.0](#oauth) (authorization code flow with
 PKCE, for Keycloak, Microsoft Entra ID, Auth0 or another OpenID Connect provider),
 [bearer tokens](#bearer-tokens) you get elsewhere, [token commands](#token-commands) that fetch
-one, and [headers](#other-headers) for other schemes.
+one, and [headers](#other-headers) for other schemes. Every option: `pulse auth <command> --help`.
 
 - The type comes from `--auth none|basic|oauth|bearer`, `PULSE_CLI_AUTH` or the profile. Without
   one, a username selects `basic` and a token selects `bearer`. OAuth is never implied.
-- Each value resolves on its own: flag > environment variable > profile. With `--url` or
-  `PULSE_CLI_URL` set, the profile's credentials go to that URL: check `pulse config show`.
+- Each value resolves on its own: flag > environment variable > profile. A `--url` without
+  `--profile` selects [no profile](configuration.md#profiles), so no profile's credentials or
+  headers go along. Beside `--profile`, and with `PULSE_CLI_URL`, the profile's credentials go to
+  that URL: check `pulse config show`.
 - Secrets are never plain flags and are masked (`***`) in output unless `--show-secrets`. In an
   engine's error text (`message`, `engineMessage`) they stay masked even then.
-
-Every option: `pulse auth <command> --help`.
 
 ## Basic auth
 
@@ -80,7 +80,8 @@ $ pulse process-instance list --profile sso
   `ssh -L 8765:127.0.0.1:8765 host` and open the URL locally.
 - `auth status` shows user, scopes and expiry without network access; exit 4 when a new login is
   needed. `auth logout` revokes the refresh token (if the provider supports it) and removes the
-  login.
+  login. A `--url` without `--profile` uses the login of the `PULSE_CLI_OAUTH_*` variables: give
+  `auth login`, `status` and `logout` the same `--url`.
 - Tokens are cached in `~/.config/pulse-cli/tokens` (mode `0600`). Changing issuer, client, audience
   or scopes needs a new login.
 - A token is refreshed a tenth of its lifetime before it expires, at most 60 s and at least 5 s
@@ -113,8 +114,7 @@ Client registration:
   `http://127.0.0.1/callback`, issuer `https://login.microsoftonline.com/<tenant-id>/v2.0`, and the
   API as a scope, e.g. `--oauth-scopes 'openid offline_access api://<app-id>/.default'`.
 - **Auth0**: issuer `https://<tenant>.auth0.com/` with the trailing slash, the API identifier as
-  `--oauth-audience`, redirect URI `http://127.0.0.1:8765/callback` with
-  `--oauth-redirect-port 8765`.
+  `--oauth-audience`, redirect URI `http://127.0.0.1:8765/callback` with `--oauth-redirect-port 8765`.
 
 ## Bearer tokens
 

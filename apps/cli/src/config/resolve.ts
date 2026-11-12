@@ -1,7 +1,8 @@
 /**
- * Resolves the effective configuration. Precedence per value: flag > environment > profile > default.
- * Pure: the config file content and the environment are passed in. The validators are shared with
- * the config file parser and the `pulse config` edit functions.
+ * Resolves the effective configuration. Precedence per value: flag > environment > profile >
+ * default, but a `--url` without `--profile` selects no profile (no-profile.ts). Pure: the config
+ * file content and the environment are passed in. The validators are shared with the config file
+ * parser and the `pulse config` edit functions.
  */
 
 import {
@@ -18,6 +19,7 @@ import { refusalOf } from "./profile-file.js"
 import { defaultProfileError, refusedProfileError } from "./profile-problems.js"
 import { redactUrl } from "./redact.js"
 import { resolveHeaders } from "./headers.js"
+import { urlWithoutProfile, withoutProfile } from "./no-profile.js"
 import { type Env, nonEmpty, pick } from "./pick.js"
 import { originOf } from "./login-key.js"
 import { authorizationConflict, resolveAuth } from "./resolve-auth.js"
@@ -98,6 +100,7 @@ function profileName(
 ): { name: string; origin: ProfileOrigin } | undefined {
   const flag = nonEmpty(flags.profile)
   if (flag !== undefined) return { name: flag, origin: "flag" }
+  if (urlWithoutProfile(flags)) return undefined
   const fromEnv = nonEmpty(env[ENV.profile])
   if (fromEnv !== undefined) return { name: fromEnv, origin: "env" }
   const broken = file?.defaultProblem
@@ -312,10 +315,15 @@ export function resolveConfig(
     options.authCommand,
   )
   if (conflict !== undefined) throw conflict
+  const without = withoutProfile(auth.auth, flags, env, file)
   return {
     ...values,
-    auth: auth.auth,
-    ...compact({ unusedToken: auth.unusedToken, project: selected.project }),
+    auth: without.auth,
+    ...compact({
+      unusedToken: auth.unusedToken,
+      project: selected.project,
+      noProfile: without.noProfile,
+    }),
     sources: {
       url: url.source,
       engine: engine.source,

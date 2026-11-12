@@ -212,7 +212,7 @@ describe("parseProjectFile", () => {
       `The default profile of the project file ${path} cannot be used: defaultProfile names no profile of this file.`,
     )
     expect(error.details.hint).toBe(
-      "Choose a profile with --profile or PULSE_CLI_PROFILE, or make one the default with `pulse config use <profile> --project`.",
+      "Choose a profile with --profile or PULSE_CLI_PROFILE, make one the default with `pulse config use <profile> --project`, or give --url, which selects no profile.",
     )
     const blank = JSON.stringify({ defaultProfile: " ", profiles: {} })
     expect(parseProjectFile(blank, path).profiles).toEqual({})

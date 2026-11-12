@@ -75,6 +75,8 @@ export interface ConfigView {
   readonly profile: string | null
   /** The file the selected profile comes from: the project file or the config file. */
   readonly profileFile: string | null
+  /** Why no profile applies to a `--url` without `--profile`; absent otherwise. */
+  readonly noProfile?: string
   readonly values: {
     readonly url: ConfigValue<string>
     readonly cockpitUrl: ConfigValue<string | null>
@@ -206,6 +208,7 @@ export function showConfig(
     projectFile: projectFile ?? null,
     profile: resolved.profile ?? null,
     profileFile,
+    ...compact({ noProfile: resolved.noProfile }),
     values: {
       url: { value: resolved.url, source: sources.url },
       cockpitUrl: optionalValue(resolved.cockpitUrl, "profile"),

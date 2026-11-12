@@ -113,8 +113,12 @@ describe("the core guide (pulse guide)", () => {
   it("keeps a shell URL away from the profiles: it would override them, credentials included", () => {
     const start = GUIDE.indexOf("\n## Setup\n")
     const setup = GUIDE.slice(start, GUIDE.indexOf("\n## ", start + 1))
-    expect(setup).toContain("`--url` and `PULSE_CLI_URL` override")
+    expect(setup).toContain("`PULSE_CLI_URL` overrides the URL of\nevery profile")
     expect(setup).toContain("its credentials go along")
+    expect(setup).toContain("a `--url` without `--profile` uses\nno profile")
+    expect(setup).toContain(
+      "A `--url` without `--profile` selects no profile, so nothing of one applies.",
+    )
     const unset = setup.indexOf("\nunset PULSE_CLI_URL\n")
     expect(unset).toBeGreaterThan(setup.indexOf("\nexport PULSE_CLI_URL="))
     expect(unset).toBeLessThan(setup.indexOf("\npulse ping --profile prod\n"))

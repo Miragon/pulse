@@ -8,6 +8,7 @@
 import { selectProfile, validateOutput } from "../config/resolve.js"
 import { ENV, OUTPUT_FORMATS, type OutputFormat } from "../config/types.js"
 import type { Runtime } from "../runtime.js"
+import { compact } from "../util.js"
 import { loadConfig } from "./config-files.js"
 
 /** Table width when stdout is not a terminal, or one that reports no usable width. */
@@ -39,10 +40,14 @@ export function envFormat(runtime: Runtime, strict: boolean): OutputFormat | und
   return strict ? validateOutput(value) : OUTPUT_FORMATS.find((format) => format === value)
 }
 
-/** Where the profile comes from: `--config` and `--profile` as given on the command line. */
+/**
+ * Where the profile comes from: `--config` and `--profile` as given on the command line, and a
+ * `--url`, which without `--profile` selects none.
+ */
 export interface ProfileFlags {
   readonly config?: string | undefined
   readonly profile?: string | undefined
+  readonly url?: string | undefined
 }
 
 /**
@@ -56,7 +61,7 @@ export async function profileFormat(
   try {
     const { config } = await loadConfig(runtime, flags.config)
     const selected = selectProfile(
-      flags.profile === undefined ? {} : { profile: flags.profile },
+      compact({ profile: flags.profile, url: flags.url }),
       runtime.env,
       config,
     )

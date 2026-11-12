@@ -5,6 +5,7 @@ import {
   globalOptionLength,
   normalizeArgv,
   outputFromArgv,
+  urlFromArgv,
   verboseRequested,
 } from "./argv.js"
 
@@ -127,6 +128,17 @@ describe("globalFromArgv", () => {
     expect(globalFromArgv(["--output=json"], "output", true)).toBeUndefined()
     expect(globalFromArgv(["-o", "json", "--output", "table"], "output", true)).toBe("json")
     expect(globalFromArgv(["--url", "u"], "url", true)).toBeUndefined()
+  })
+})
+
+describe("urlFromArgv", () => {
+  it("reads the --url that names the engine, not the one config set stores", () => {
+    expect(urlFromArgv(["task", "list", "--url", "http://a"])).toBe("http://a")
+    expect(urlFromArgv(["--url=http://a", "ping", "--url", "http://b"])).toBe("http://b")
+    expect(urlFromArgv(["config", "show", "--url", "http://a"])).toBe("http://a")
+    expect(urlFromArgv(["config", "set", "p", "--url", "http://a"])).toBeUndefined()
+    expect(urlFromArgv(["--url", "http://a", "config", "set", "p"])).toBeUndefined()
+    expect(urlFromArgv(["ping", "--", "--url", "http://a"])).toBeUndefined()
   })
 })
 

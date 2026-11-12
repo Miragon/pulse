@@ -120,4 +120,12 @@ describe("showRows and showHeader", () => {
     expect(showHeader(VIEW)).toBe("Config file: /c.json\nProfile: (none)\n\n")
     expect(showHeader({ ...VIEW, profile: "p" })).toBe("Config file: /c.json\nProfile: p\n\n")
   })
+
+  it("says why no profile applies to a --url without --profile", () => {
+    const noProfile =
+      "--url without --profile selects no profile, so PULSE_CLI_PROFILE does not apply"
+    expect(showHeader({ ...VIEW, noProfile })).toBe(
+      `Config file: /c.json\nProfile: (none: ${noProfile})\n\n`,
+    )
+  })
 })

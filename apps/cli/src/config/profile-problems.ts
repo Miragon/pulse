@@ -154,7 +154,7 @@ export function defaultProfileError(problem: Problem, project?: string): PulseCl
       : "`pulse config use <profile> --project`"
   return configError(
     `The default profile of ${fileOf({ project })} cannot be used: ${describeProblem(problem)}`,
-    `Choose a profile with --profile or ${ENV.profile}, or make one the default with ${use}.`,
+    `Choose a profile with --profile or ${ENV.profile}, make one the default with ${use}, or give --url, which selects no profile.`,
   )
 }
 

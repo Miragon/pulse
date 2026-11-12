@@ -253,7 +253,7 @@ describe("run: help and version", () => {
       "  $ pulse task claim 7c1d9e20-0f4a-11ef-a1b2-0242ac120002 --user-id demo\n",
     )
     expect(wide.stdout).toContain(
-      "--url <url>            REST API root, e.g. http://localhost:8080/engine-rest (env PULSE_CLI_URL)\n",
+      "--url <url>            REST API root, e.g. http://localhost:8080/engine-rest (env PULSE_CLI_URL); without --profile, the flag selects no profile\n",
     )
   })
 })

@@ -51,6 +51,12 @@ describe("profileFormat", () => {
     expect(await profileFormat(env, {})).toBeUndefined()
   })
 
+  it("reads none for a --url without --profile, which selects no profile", async () => {
+    const runtime = fakeRuntime({ files: { [CONFIG_PATH]: file } })
+    expect(await profileFormat(runtime, { url: "http://x" })).toBeUndefined()
+    expect(await profileFormat(runtime, { url: "http://x", profile: "a" })).toBe("table")
+  })
+
   it("never fails: missing files, broken files and unknown profiles give undefined", async () => {
     expect(await profileFormat(fakeRuntime(), {})).toBeUndefined()
     expect(await profileFormat(fakeRuntime(), { config: "/missing.json" })).toBeUndefined()
