@@ -230,8 +230,8 @@ importers:
   apps/vscode:
     dependencies:
       '@miragon/modeler-shell':
-        specifier: 0.10.0
-        version: 0.10.0(@vscode/test-electron@3.1.0)(playwright-core@1.64.1)
+        specifier: 0.12.0
+        version: 0.12.0(@vscode/test-electron@3.1.0)(playwright-core@1.64.1)
       '@miragon/pulse-c7-adapter':
         specifier: workspace:*
         version: link:../../packages/connectors/c7/c7-adapter
@@ -270,8 +270,8 @@ importers:
         specifier: 0.28.2
         version: 0.28.2
       ovsx:
-        specifier: 1.3.0
-        version: 1.3.0(@types/node@22.20.5)
+        specifier: 1.4.0
+        version: 1.4.0(@types/node@22.20.5)
       playwright:
         specifier: 1.64.1
         version: 1.64.1
@@ -516,8 +516,8 @@ importers:
         specifier: 5.3.0
         version: 5.3.0
       '@miragon/modeler-shell':
-        specifier: 0.10.0
-        version: 0.10.0(@vscode/test-electron@3.1.0)(playwright-core@1.64.1)
+        specifier: 0.12.0
+        version: 0.12.0(@vscode/test-electron@3.1.0)(playwright-core@1.64.1)
       '@miragon/pulse-engine-core':
         specifier: workspace:*
         version: link:../../connectors/engine/engine-core
@@ -540,8 +540,8 @@ importers:
         specifier: 15.28.1
         version: 15.28.1
       preact:
-        specifier: 11.1.1
-        version: 11.1.1
+        specifier: 11.2.0
+        version: 11.2.0
       zeebe-bpmn-moddle:
         specifier: 2.0.0
         version: 2.0.0(moddle@8.2.1)
@@ -1700,6 +1700,10 @@ packages:
     resolution: {integrity: sha512-S8qNSZiYzFd0wAcyG5AXCvUHC5Sr7xpZ9wZ2py9XR88jUz8wooStVx5M6dRzczbBWjic9NP7+rY0Xi7qqK/aMQ==}
     engines: {node: '>=18'}
 
+  '@inquirer/ansi@2.0.10':
+    resolution: {integrity: sha512-dwrc+1aqVZpHNkNDswXGtn1typ+Pxpo5FHZRyBw1le7onEJUkPUkYOY1FIFC1LvFMYUqqLuWBwElhAmencL7MQ==}
+    engines: {node: '>=23.5.0 || ^22.13.0 || ^20.17.0'}
+
   '@inquirer/ansi@2.0.9':
     resolution: {integrity: sha512-0Ywt3S8tqM6TWUcsRlBFQ1x+X3/o8kktX0ZiKAnByYb9GFDknnOhse1PVtfiD2BXPI8ar+BWx9PV9R0lQIcygw==}
     engines: {node: '>=23.5.0 || ^22.13.0 || ^20.17.0'}
@@ -1815,6 +1819,10 @@ packages:
   '@inquirer/figures@1.0.15':
     resolution: {integrity: sha512-t2IEY+unGHOzAaVM5Xx6DEWKeXlDDcNPeDyUpsRc6CUhBfU3VQOEl+Vssh7VNp1dR8MdUJBWhuObjXCsVpjN5g==}
     engines: {node: '>=18'}
+
+  '@inquirer/figures@2.0.10':
+    resolution: {integrity: sha512-51elrUJV3jZpvD0ygz8+U10Kc6+Lzqln+/tYmnbhy6jo5oXpE6hMCcv+OTBC0enwJXsb3JIuT3VtEinRNCSK2A==}
+    engines: {node: '>=23.5.0 || ^22.13.0 || ^20.17.0'}
 
   '@inquirer/figures@2.0.9':
     resolution: {integrity: sha512-EAWgUTGQ/Umgga51dE3B2PUHbufuXarDfg86uVgoSgNHNNQnyFKcOrQLWVqYMghuSyHh8+2HUH0Js9cTC1WAdg==}
@@ -2019,8 +2027,8 @@ packages:
     resolution: {integrity: sha512-j37dj/h6p6pots1L7pLPPNuABEEu9WP4OYg9pW1g+nYG331j0+3canE9OagtYdytYvdSAMG+2fKU5cxep6LgjA==}
     engines: {node: '>=22.12.0'}
 
-  '@miragon/modeler-shell@0.10.0':
-    resolution: {integrity: sha512-E9FAF1KxjmciNtIiUPopmyrz2a4HpRgxxc34JRXTdUMZA6/9vjWjQwaDU7RjDLL3ZM6doutpuLPlXtVMvzFlzA==}
+  '@miragon/modeler-shell@0.12.0':
+    resolution: {integrity: sha512-vNXo24u4Kf1xCHeY1llgSR0xWwvtaeL2uhC/S5IdLVqNgQfSFTBl4TOxLWacpaZ0wjwTX+DrQcWWIO1/mTw5Hw==}
     engines: {node: '>=20'}
     hasBin: true
     peerDependencies:
@@ -4761,8 +4769,9 @@ packages:
   chownr@1.1.4:
     resolution: {integrity: sha512-jJ0bqzaylmJtVnNgzTeSOs8DPavpbYgEr/b0YL8/2GO3xJEhInFmhKMUnEJQjZumK7KXGFhUy89PrsJWlakBVg==}
 
-  ci-info@2.0.0:
-    resolution: {integrity: sha512-5tK7EtrZ0N+OLFMthtqOj4fI2Jeb88C4CAZPu25LDVUgXJ0A3Js4PMGqrn0JU1W0Mh1/Z8wZzYPxqUrXeBboCQ==}
+  ci-info@4.5.0:
+    resolution: {integrity: sha512-d1uM8k5UZEyPza1n/MG3ko8nKupKN0KJpFsipgPcgaCCvV+IqIfJ+NzTjetlLM+UcXZx3+cLrNr76+eAO7G1Mw==}
+    engines: {node: '>=8'}
 
   class-variance-authority@0.7.1:
     resolution: {integrity: sha512-Ka+9Trutv7G8M6WT6SeiRWz792K5qEqIGEGzXKhAE6xOWAY6pPH8U+9IY3oCMv6kqTmLsv7Xh/2w2RigkePMsg==}
@@ -5728,10 +5737,6 @@ packages:
     resolution: {integrity: sha512-6xwYfHbajpoF0xLW+iwLkhwgvLoZDfjYfoFNu8ftMoXINzwuymNLd9u/KmwtdT2GbR+/Cz66otEGEVVUHX9QLQ==}
     engines: {node: '>=10.13.0'}
 
-  is-ci@2.0.0:
-    resolution: {integrity: sha512-YfJT7rkpQB0updsdHLGWrvhBJfcfzNNawYDNIyQXJz0IViGf75O8EBPKSdvw2rF+LGCsX4FZ8tcr3b19LcZq4w==}
-    hasBin: true
-
   is-core-module@2.18.0:
     resolution: {integrity: sha512-qyax9fgaKOEC4qK8WZn7Q4IcoZC9RC1O1fFxRcRTq/oMMkWT/uXpqpXa12kzWR409zAt1drYN9N9BO26UmBCmw==}
     engines: {node: '>= 0.4'}
@@ -6338,8 +6343,8 @@ packages:
     resolution: {integrity: sha512-weP+BZ8MVNnlCm8c0Qdc1WSWq4Qn7I+9CJGm7Qali6g44e/PUzbjNqJX5NJ9ljlNMosfJvg1fKEGILklK9cwnw==}
     engines: {node: '>=18'}
 
-  ovsx@1.3.0:
-    resolution: {integrity: sha512-U5B1YCo+6knEipsEF9O+iO+uwK+vTm8qNQyvc5zzE/2P6Zfzjhw4Xj4UJ7WZ1aU/kVGI70FuUWxv/GVXK5JmXw==}
+  ovsx@1.4.0:
+    resolution: {integrity: sha512-QrbKEXh9EEaDfZ8kojxtsRkJTXXdhX4zH3gweANSbonDlMF69vDjLm0cYQFQOExlVAQ+0A0F5CATawTG/iN4iw==}
     engines: {node: '>=22.0.0'}
     hasBin: true
 
@@ -6485,8 +6490,8 @@ packages:
       preact-render-to-string:
         optional: true
 
-  preact@11.1.1:
-    resolution: {integrity: sha512-vpFVfai437pbuLri7XVeslCPfrEZX6Z1S2gV+MOFrA/kji+NKUXvH7y01EnVjA1guLigfkVp77Sqipd4SIllCg==}
+  preact@11.2.0:
+    resolution: {integrity: sha512-/HfHI/7N84e6GrWBJ3J280z3mLaRJiDcSvj/A+y/4AbLnND/1UlGHe1sR6oYuTGwId0nP7dqDU9OnLxMPZ7xBg==}
     peerDependencies:
       preact-render-to-string: '>=6.7.0'
     peerDependenciesMeta:
@@ -8772,6 +8777,8 @@ snapshots:
 
   '@inquirer/ansi@1.0.2': {}
 
+  '@inquirer/ansi@2.0.10': {}
+
   '@inquirer/ansi@2.0.9': {}
 
   '@inquirer/checkbox@4.3.2(@types/node@22.20.5)':
@@ -8838,8 +8845,8 @@ snapshots:
 
   '@inquirer/core@12.0.5(@types/node@22.20.5)':
     dependencies:
-      '@inquirer/ansi': 2.0.9
-      '@inquirer/figures': 2.0.9
+      '@inquirer/ansi': 2.0.10
+      '@inquirer/figures': 2.0.10
       '@inquirer/type': 4.2.0(@types/node@22.20.5)
       cli-width: 4.1.0
       fast-wrap-ansi: 0.2.2
@@ -8850,8 +8857,8 @@ snapshots:
 
   '@inquirer/core@12.0.5(@types/node@26.6.5)':
     dependencies:
-      '@inquirer/ansi': 2.0.9
-      '@inquirer/figures': 2.0.9
+      '@inquirer/ansi': 2.0.10
+      '@inquirer/figures': 2.0.10
       '@inquirer/type': 4.2.0(@types/node@26.6.5)
       cli-width: 4.1.0
       fast-wrap-ansi: 0.2.2
@@ -8928,6 +8935,8 @@ snapshots:
       '@types/node': 26.6.5
 
   '@inquirer/figures@1.0.15': {}
+
+  '@inquirer/figures@2.0.10': {}
 
   '@inquirer/figures@2.0.9': {}
 
@@ -9192,7 +9201,7 @@ snapshots:
     dependencies:
       '@chevrotain/types': 13.2.0
 
-  '@miragon/modeler-shell@0.10.0(@vscode/test-electron@3.1.0)(playwright-core@1.64.1)':
+  '@miragon/modeler-shell@0.12.0(@vscode/test-electron@3.1.0)(playwright-core@1.64.1)':
     optionalDependencies:
       '@vscode/test-electron': 3.1.0
       playwright-core: 1.64.1
@@ -11877,7 +11886,7 @@ snapshots:
 
   chownr@1.1.4: {}
 
-  ci-info@2.0.0: {}
+  ci-info@4.5.0: {}
 
   class-variance-authority@0.7.1:
     dependencies:
@@ -12936,10 +12945,6 @@ snapshots:
 
   interpret@3.1.1: {}
 
-  is-ci@2.0.0:
-    dependencies:
-      ci-info: 2.0.0
-
   is-core-module@2.18.0:
     dependencies:
       hasown: 2.0.4
@@ -13534,14 +13539,14 @@ snapshots:
       string-width: 7.2.0
       strip-ansi: 7.2.0
 
-  ovsx@1.3.0(@types/node@22.20.5):
+  ovsx@1.4.0(@types/node@22.20.5):
     dependencies:
       '@inquirer/prompts': 7.10.1(@types/node@22.20.5)
       '@vscode/vsce': 4.1.0
+      ci-info: 4.5.0
       commander: 14.0.3
       cross-keychain: 1.1.0(@types/node@22.20.5)
-      is-ci: 2.0.0
-      semver: 7.8.5
+      semver: 7.8.6
       yauzl-promise: 4.0.0
     transitivePeerDependencies:
       - '@types/node'
@@ -13706,7 +13711,7 @@ snapshots:
 
   preact@10.29.8: {}
 
-  preact@11.1.1: {}
+  preact@11.2.0: {}
 
   prelude-ls@1.2.1: {}
 

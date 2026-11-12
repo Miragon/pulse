@@ -10,7 +10,7 @@ Works of others in the bundles:
 
   @fontsource-variable/geist 5.3.0        OFL-1.1                  the webview
   @fontsource-variable/geist-mono 5.3.0   OFL-1.1                  the webview
-  @miragon/modeler-shell 0.10.0           MIT                      the extension host and the webview
+  @miragon/modeler-shell 0.12.0           MIT                      the extension host and the webview
   bpmn-js 18.31.1                         SEE LICENSE IN LICENSE   the webview
   bpmn-moddle 10.3.1                      MIT                      the extension host and the webview
   camunda-bpmn-moddle 8.0.2               MIT                      the extension host
@@ -27,7 +27,7 @@ Works of others in the bundles:
   moddle-xml 12.3.1                       MIT                      the extension host and the webview
   object-refs 0.4.0                       MIT                      the webview
   path-intersection 4.2.1                 MIT                      the webview
-  preact 11.1.1                           MIT                      the webview
+  preact 11.2.0                           MIT                      the webview
   saxen 11.2.0                            MIT                      the extension host and the webview
   tiny-svg 4.1.4                          MIT                      the webview
   zeebe-bpmn-moddle 2.0.0                 MIT                      the extension host
@@ -247,7 +247,7 @@ FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
 
 ================================================================================
-@miragon/modeler-shell 0.10.0
+@miragon/modeler-shell 0.12.0
 Licence: MIT
 In: the extension host and the webview
 Source: https://github.com/Miragon/modeler-suite
@@ -809,7 +809,7 @@ Snap.svg. See license notice below:
     limitations under the License.
 
 ================================================================================
-preact 11.1.1
+preact 11.2.0
 Licence: MIT
 In: the webview
 Source: https://github.com/preactjs/preact
