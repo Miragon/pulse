@@ -14,7 +14,7 @@ commit and replace superseded text; Git keeps the history.
 | [writes.md](writes.md)                     | Guarded writes: who may write, confirmation, intents, feedback, audit, bulk cancel |
 | [migrations.md](migrations.md)             | Migrating instances to another version: plan, checks, batch, failures              |
 | [user-interface.md](user-interface.md)     | Information architecture, design tokens, naming, scope of v0.1                     |
-| [ui-foundation.md](ui-foundation.md)       | What the webview shares with the MCP widgets: the foundation, never a component    |
+| [ui-foundation.md](ui-foundation.md)       | What the surfaces share: formats, reads, numbers and React building blocks         |
 | [code-structure.md](code-structure.md)     | Classes implement the ports, one class per file, utility classes per topic         |
 | [local-sources.md](local-sources.md)       | Local model and code next to an incident: ports, model adapter, opening            |
 | [live-updates.md](live-updates.md)         | Views that read the engine again on their own: cadence, gating, safety             |

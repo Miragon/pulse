@@ -88,13 +88,27 @@ Three axes decide where code goes, and they stay apart:
   app of its own. Apps never import each other, and no package imports an app: what the editor
   hosts share is the runtime view (`packages/core/runtime-view`) and a dialect's adapter of the
   engine contract (`packages/connectors/<family>/<family>-adapter`), private packages only they
-  bundle. An interface's UI belongs to one of two UI families (owner decision 2026-11-08,
-  `apps/vscode/docs/adr/ui-foundation.md`): React on `@miragon/pulse-ui` and widget-shell (the
-  MCP widgets, a starter's, the web apps of #573) or Preact with its own components (the runtime
-  view's webview, which both editor hosts show). They share pulse-ui's framework-free foundation
-  (`/format`, `/tones`, and in tests the glossary, the count words and the brand gates of
-  `/testing`), never a component; `docs/vscode/parity.md` lists what differs between the views
-  both show, and #586 holds when they share building blocks again.
+  bundle. The surfaces (the MCP widgets and a starter's; the runtime view's webview, which both
+  editor hosts show; the web apps of #573) share a core up to building blocks, not
+  everything (owner decision 2026-11-12, `apps/vscode/docs/adr/ui-foundation.md`), in four
+  layers: the formats, the board file first; the engine reads and their rules (the Camunda 7
+  rules in c7-core, which the MCP server and the C7 adapter run over their `EnginePort`); the
+  numbers and view models of a feature more than one surface shows, built once and
+  framework-free over engine-core's read models; and building blocks, components written against
+  React's API that take props and callbacks only, with no host context inside (no
+  `useToolQuery`, `ConfirmDialog`, `HandOffButton` or `HostBridge`), which the MCP widgets and
+  the web apps render in React and the webview through `preact/compat`. Each surface keeps its
+  own screens and host wiring (hand-offs to the chat, live updates and the push protocol, native
+  confirmations, sign-in) and may build parts of its own; where two surfaces show the same
+  thing, a shared building block is the default, and no surface is forced to replace its own
+  screen. The foundation stays pulse-ui's framework-free `/format` and `/tones` and, in tests,
+  `/testing` (the glossary, the count words, the brand gates); the webview keeps Preact as its
+  runtime and for its own screens and may import pulse-ui's React kit and stylesheet for shared
+  building blocks. The board format and the board builder go into a new published package (the
+  planned @miragon/pulse-board, whose dependency rules arrive with it); a shared building block
+  goes into pulse-ui (a primitive) or into a shared package created with the first engine block
+  two surfaces render. `docs/vscode/parity.md` lists what still differs between the views both
+  show.
 
 A family is one source the MCP server reads, a dialect or another source (a metrics store,
 say), or `engine`, the neutral family above the dialects. Its packages are
@@ -261,13 +275,18 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 
 ### Abweichung für die VS-Code-Webview
 
-Die Webview der VS-Code-Erweiterung, die Pulse for Orca ebenso zeigt (Preact, eigenes CSS, in
-`packages/core/runtime-view`), teilt mit den Widgets das Fundament aus
-pulse-ui, nicht die Komponenten: Töne (`@miragon/pulse-ui/tones`), Formatierer
-(`@miragon/pulse-ui/format`), Tokens mit gleichen Werten, Glossar, Zählbegriffe und Marken-Gates
-(Owner-Entscheidung, `apps/vscode/docs/adr/ui-foundation.md`). Was die beiden Oberflächen
-unterscheidet und ob es gewollt ist, steht in `docs/vscode/parity.md`. Für die Webview gilt diese
-bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
+Die Webview der VS-Code-Erweiterung, die Pulse for Orca ebenso zeigt (in
+`packages/core/runtime-view`), läuft auf Preact und behält ihre eigenen Ansichten und ihr
+eigenes CSS. Mit den Widgets teilt sie das Fundament aus pulse-ui: Töne
+(`@miragon/pulse-ui/tones`), Formatierer (`@miragon/pulse-ui/format`), Tokens mit gleichen
+Werten, Glossar, Zählbegriffe und Marken-Gates. Dazu kommen gemeinsame Bausteine: Komponenten,
+gegen die API von React geschrieben, die nur Props und Callbacks nehmen und keinen Host-Kontext
+kennen. Die Widgets und die Web-Apps rendern sie in React, die Webview über `preact/compat`, mit
+dem React-Kit und dem Stylesheet von pulse-ui. Zeigen zwei Oberflächen dasselbe, ist ein gemeinsamer
+Baustein der Normalfall; keine Oberfläche muss dafür eine eigene Ansicht aufgeben
+(Owner-Entscheidung 2026-11-12, `apps/vscode/docs/adr/ui-foundation.md`). Was die Oberflächen
+noch unterscheidet und ob es gewollt ist, steht in `docs/vscode/parity.md`. Für die Webview gilt
+diese bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
 `apps/vscode/docs/adr/user-interface.md`):
 
 - Icons: 12 px neben dichtem Text und auf den 20-px-Overlays des Diagramms (Zähl- und
@@ -406,15 +425,23 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
    `@miragon/pulse-widget-shell/widgets`; never re-inline their primitives.** This covers
    the React views an MCP host renders (pulse-ui's and widget-shell's `src`, the connectors'
    `src/widgets`, the host bundle in `apps/mcp-server/src/ui/`); another interface
-   app's own UI follows the design system above, and the VS Code webview takes from pulse-ui
-   only its foundation (`/format`, `/tones`; `apps/vscode/docs/adr/ui-foundation.md`).
+   app's own UI follows the design system above, and the VS Code webview takes from pulse-ui its
+   foundation (`/format`, `/tones`) and, for shared building blocks, its React kit and
+   stylesheet through `preact/compat` (owner decision 2026-11-12,
+   `apps/vscode/docs/adr/ui-foundation.md`).
    - **Pairs.** Six cockpit views have a counterpart in the VS Code webview (the overview, a
      process, its instances, an instance, an incident, the history). A field, a count or an
-     action added to or changed in one is a pair feature: its pull request says whether the
-     other tool gets it and updates `docs/vscode/parity.md` by its review rule. Its content takes
-     props and callbacks only, no host context (`process-definitions-table-view.tsx` with
-     `renderActions`, `history-steps.tsx`), and stays in the connector until a second consumer
-     comes, so a shared building block (#586) costs little.
+     action added to or changed in one is a pair feature: where both show it, a shared building
+     block is the default (React's API, props and callbacks only, no host context inside: no
+     `useToolQuery`, `ConfirmDialog`, `HandOffButton` or `HostBridge`), which the widgets render
+     in React and the webview through `preact/compat`, and each side keeps its own screen and
+     host wiring around it; until the first one renders in the webview (the preconditions
+     `apps/vscode/CLAUDE.md` lists), a pair feature is still built on each side. Its pull request
+     updates `docs/vscode/parity.md` by its review rule. Which blocks two surfaces share is the
+     owner's decision in normal review. A primitive goes into pulse-ui, an engine block into a
+     shared package created with the first one two surfaces render; until then the cockpit side
+     keeps its props-only content in the connector (`process-definitions-table-view.tsx` with
+     `renderActions`, `history-steps.tsx`).
    - **One kit.** Primitives, components, the tone model (`TONE_*`, `resolveTone`), `cn`, the
      formatters and the kit pieces (`Icon`, `Th`/`Td`, `TableEmptyState`, `NativeSelect` …) come
      from `@miragon/pulse-ui`, a leaf (`ui-is-a-leaf`, invariant 8); widget-shell exports only
@@ -529,7 +556,10 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      holds a copy). The counts
      both tools show take the words of `COUNT_TERMS` (owner decision E2): "Incidents" are the open
      incidents of the thing shown, "With incident" the instances that have one, and a count's
-     header names its version scope; the numbers behind a word may differ per tool.
+     header names its version scope. A feature more than one surface shows (boards first) shows
+     the same numbers on every surface, from one builder over one read (owner decision D2 of
+     2026-11-12, amending E2); elsewhere a tool keeps its own numbers behind the same words until
+     its view moves onto shared numbers.
    - **Locale on the server.** Tool results for the model are English only (the engine module's
      cockpit facts are JSON keys); a
      verdict travels as data and the widget words it in the host's language. The server never
@@ -684,12 +714,16 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      decision of 2026-11-09 on #585: engine-core by its entries
      (`runtime-view-builds-on-the-engine-contract`); its core and webview import pulse-ui's
      framework-free formatters and tones (`@miragon/pulse-ui/format`, `@miragon/pulse-ui/tones`,
-     which import nothing: `ui-foundation-entries-import-nothing`; its closed world's
-     `pulse-ui-only-its-foundation` keeps the React kit out; the decision:
-     `apps/vscode/docs/adr/ui-foundation.md`). A family's adapter imports only its own family's
-     core, engine-core, the runtime view and the transport (`adapters-own-their-family`; the C7
-     adapter, `packages/connectors/c7/c7-adapter`, runs c7-core), never a client, its own family's
-     included (`client-consumers`, owner decision 2026-11-11). A family core
+     which import nothing: `ui-foundation-entries-import-nothing`). Its core, ports, model reader
+     and host kit stay framework-free, with nothing else of pulse-ui (its closed world's
+     `pulse-ui-only-its-foundation`); the webview may render pulse-ui's React kit and stylesheet
+     for shared building blocks through `preact/compat`, by the package's root and
+     `@miragon/pulse-ui/theme.css` only (`webview-pulse-ui-by-its-entries`; the decision of
+     2026-11-12: `apps/vscode/docs/adr/ui-foundation.md`). A family's adapter imports only its
+     own family's core, engine-core, the runtime view and the transport
+     (`adapters-own-their-family`; the C7 adapter, `packages/connectors/c7/c7-adapter`, runs
+     c7-core), never a client, its own family's included (`client-consumers`, owner decision
+     2026-11-11). A family core
      (`family-core-is-a-leaf`) is imported only by its family's connector (a dialect's core by the
      engine module) and adapter and by the apps that bundle it (`family-core-consumers`,
      `CORE_BUNDLERS`); the profile format (`@miragon/pulse-profile`, `packages/core/profile`) is a

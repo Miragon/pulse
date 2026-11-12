@@ -21,7 +21,8 @@ Each layer has its own `tsconfig.<layer>.json` with its runtime's globals only, 
 closed-world dependency rules (`.dependency-cruiser.cjs`, `pnpm lint:architecture:runtime-view`):
 the ports, the core, the model reader and the host kit import engine-core's main entry, the core
 and the webview Pulse's UI foundation (`@miragon/pulse-ui/tones`, `@miragon/pulse-ui/format`), the
-host kit's connections the profile format (`@miragon/pulse-profile`), and no layer a dialect's
+webview also pulse-ui's React kit and its `theme.css` for shared building blocks, the host kit's
+connections the profile format (`@miragon/pulse-profile`), and no layer a dialect's
 core. That edge of `packages/core` into the engine family is the one the owner accepted
 (`runtime-view-builds-on-the-engine-contract` in the repository's `.dependency-cruiser.cjs`).
 The hosts read the types from the build (`dist`, declarations only) and bundle the sources.

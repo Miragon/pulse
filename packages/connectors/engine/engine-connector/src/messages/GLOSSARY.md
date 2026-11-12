@@ -40,11 +40,13 @@ abgelehnt“: neben „1 mit abgelehnten Zugangsdaten“ läse sich das wie die 
 
 ## Zählbegriffe
 
-Owner-Entscheidung E2 (2026-11-08): Die MCP-Widgets und VS Code dürfen verschieden zählen (alle
-Incidents oder die Wurzeln, eine Version oder alle), darum sind die Wörter gleich, nicht die
-Zahlen. Ein Wort pro Zählung, kein Wort für zwei Zählungen; welche Zahl dahinter steht, bleibt
-die Regel jedes Werkzeugs. Die Tabelle steht einmal in pulse-ui (`COUNT_TERMS` in
-`@miragon/pulse-ui/testing`).
+Owner-Entscheidung E2 (2026-11-08), ergänzt durch D2 (2026-11-12): Die MCP-Widgets und VS Code
+dürfen verschieden zählen (alle Incidents oder die Wurzeln, eine Version oder alle), darum sind
+die Wörter gleich, nicht die Zahlen. Ein Wort pro Zählung, kein Wort für zwei Zählungen; welche
+Zahl dahinter steht, bleibt die Regel jedes Werkzeugs, bis eine Ansicht auf gemeinsame Zahlen
+umzieht. Eine Funktion, die mehr als eine Oberfläche zeigt (zuerst die Boards), zeigt dagegen
+überall dieselben Zahlen: ein Builder über einem Lesezugriff. Die Tabelle steht einmal in
+pulse-ui (`COUNT_TERMS` in `@miragon/pulse-ui/testing`).
 
 | Zählung                                                    | Deutsch                                              | Nicht         | Englisch                                         | Nicht          |
 | ---------------------------------------------------------- | ---------------------------------------------------- | ------------- | ------------------------------------------------ | -------------- |

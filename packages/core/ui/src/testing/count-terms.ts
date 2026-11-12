@@ -11,12 +11,14 @@ export interface CountTerm extends Readonly<Record<CatalogLanguage, string>> {
 }
 
 /**
- * The count terms (owner decision E2, 2026-11-08). The MCP widgets and the VS Code webview may
- * read a count differently (all incidents or the root ones, one version or every one), so the
- * words, not the numbers, are aligned: one word per count, and a word never names two counts.
- * Which number stands behind a word stays each tool's rule. A count's version scope is always
- * named in the header above it: "all versions" for every version of a process, the version
- * itself ("v3") for one.
+ * The count terms (owner decision E2, 2026-11-08, amended by D2, 2026-11-12). The MCP widgets and
+ * the VS Code webview may read a count differently (all incidents or the root ones, one version or
+ * every one), so the words, not the numbers, are aligned: one word per count, and a word never
+ * names two counts. Which number stands behind a word stays each tool's rule until its view moves
+ * onto shared numbers; a feature more than one surface shows (boards first) shows the same numbers
+ * on every surface, from one builder over one read. A count's version scope is always named in the
+ * header above it: "all versions" for every version of a process, the version itself ("v3") for
+ * one.
  */
 export const COUNT_TERMS = {
   incidents: {

@@ -90,7 +90,19 @@ const PLANTED: Readonly<Record<string, string>> = {
   "../ui/dist/tones/count-tone.js": "export const countTone = 1;\n",
   "src/webview/renders-kit.ts":
     "import { Button } from '@miragon/pulse-ui';\nexport const button = Button;\n",
+  "src/webview/reads-theme.ts":
+    "import '@miragon/pulse-ui/theme.css';\nexport const themed = true;\n",
+  "src/core/renders-kit.ts":
+    "import { Button } from '@miragon/pulse-ui';\nexport const button = Button;\n",
+  "src/core/reads-theme.ts": "import '@miragon/pulse-ui/theme.css';\nexport const themed = true;\n",
+  "src/webview/reads-globals.ts":
+    "import '@miragon/pulse-ui/globals.css';\nexport const themed = true;\n",
+  "src/webview/escapes-into-kit.ts":
+    "import { Button } from '../../../ui/src/index.ts';\nexport const button = Button;\n",
+  "../ui/src/index.ts": "export const Button = 1;\n",
   "src/core/ships-ui-testing.ts":
+    "import { PRODUCT_GLOSSARY } from '@miragon/pulse-ui/testing';\nexport const glossary = PRODUCT_GLOSSARY;\n",
+  "src/webview/ships-ui-testing.ts":
     "import { PRODUCT_GLOSSARY } from '@miragon/pulse-ui/testing';\nexport const glossary = PRODUCT_GLOSSARY;\n",
   "src/webview/reads-kit-subpath.ts":
     "import { Button } from '@miragon/pulse-ui/kit';\nexport const button = Button;\n",
@@ -133,6 +145,8 @@ describe("the dependency rules", () => {
     const engineCoreTesting = at("node_modules/@miragon/pulse-engine-core/dist/testing/index.d.ts")
     const kit = at("node_modules/@miragon/pulse-ui/dist/index.d.ts")
     const kitTesting = at("node_modules/@miragon/pulse-ui/dist/testing/index.d.ts")
+    const theme = at("node_modules/@miragon/pulse-ui/src/theme.css")
+    const globals = at("node_modules/@miragon/pulse-ui/src/globals.css")
     const tones = at("node_modules/@miragon/pulse-ui/dist/tones/index.d.ts")
     const format = at("node_modules/@miragon/pulse-ui/dist/format/index.d.ts")
     const profile = at("node_modules/@miragon/pulse-profile/dist/index.d.ts")
@@ -174,17 +188,25 @@ describe("the dependency rules", () => {
         `not-in-allowed: ${at("src/core/reads-format.ts")} -> ${format}`,
         `pulse-ui-only-its-foundation: ${at("src/core/escapes-into-format.ts")} -> packages/core/ui/src/format/text.ts`,
         `not-in-allowed: ${at("src/core/escapes-into-format.ts")} -> packages/core/ui/src/format/text.ts`,
-        `pulse-ui-only-its-foundation: ${at("src/webview/escapes-into-built-format.ts")} -> packages/core/ui/dist/format/numbers.js`,
+        `webview-pulse-ui-by-its-entries: ${at("src/webview/escapes-into-built-format.ts")} -> packages/core/ui/dist/format/numbers.js`,
         `not-in-allowed: ${at("src/webview/escapes-into-built-format.ts")} -> packages/core/ui/dist/format/numbers.js`,
-        `pulse-ui-only-its-foundation: ${at("src/webview/escapes-into-tones.ts")} -> ${tonesSource}`,
+        `webview-pulse-ui-by-its-entries: ${at("src/webview/escapes-into-tones.ts")} -> ${tonesSource}`,
         `not-in-allowed: ${at("src/webview/escapes-into-tones.ts")} -> ${tonesSource}`,
         `pulse-ui-only-its-foundation: ${at("src/core/escapes-into-built-tones.ts")} -> ${tonesBuild}`,
         `not-in-allowed: ${at("src/core/escapes-into-built-tones.ts")} -> ${tonesBuild}`,
-        `pulse-ui-only-its-foundation: ${at("src/webview/renders-kit.ts")} -> ${kit}`,
-        `not-in-allowed: ${at("src/webview/renders-kit.ts")} -> ${kit}`,
+        `webview-pulse-ui-by-its-entries: ${at("src/webview/escapes-into-kit.ts")} -> packages/core/ui/src/index.ts`,
+        `not-in-allowed: ${at("src/webview/escapes-into-kit.ts")} -> packages/core/ui/src/index.ts`,
+        `pulse-ui-only-its-foundation: ${at("src/core/renders-kit.ts")} -> ${kit}`,
+        `not-in-allowed: ${at("src/core/renders-kit.ts")} -> ${kit}`,
+        `pulse-ui-only-its-foundation: ${at("src/core/reads-theme.ts")} -> ${theme}`,
+        `not-in-allowed: ${at("src/core/reads-theme.ts")} -> ${theme}`,
+        `webview-pulse-ui-by-its-entries: ${at("src/webview/reads-globals.ts")} -> ${globals}`,
+        `not-in-allowed: ${at("src/webview/reads-globals.ts")} -> ${globals}`,
         `pulse-ui-only-its-foundation: ${at("src/core/ships-ui-testing.ts")} -> ${kitTesting}`,
         `not-in-allowed: ${at("src/core/ships-ui-testing.ts")} -> ${kitTesting}`,
-        `pulse-ui-only-its-foundation: ${at("src/webview/reads-kit-subpath.ts")} -> @miragon/pulse-ui/kit`,
+        `webview-pulse-ui-by-its-entries: ${at("src/webview/ships-ui-testing.ts")} -> ${kitTesting}`,
+        `not-in-allowed: ${at("src/webview/ships-ui-testing.ts")} -> ${kitTesting}`,
+        `webview-pulse-ui-by-its-entries: ${at("src/webview/reads-kit-subpath.ts")} -> @miragon/pulse-ui/kit`,
         `not-in-allowed: ${at("src/webview/reads-kit-subpath.ts")} -> @miragon/pulse-ui/kit`,
         `not-to-unresolvable: ${at("src/webview/reads-kit-subpath.ts")} -> @miragon/pulse-ui/kit`,
         `not-in-allowed: ${at("src/host-kit/panels/reads-profiles.ts")} -> ${profile}`,

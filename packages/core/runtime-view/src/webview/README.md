@@ -44,7 +44,9 @@ Only UI state (open tab, split, column widths, zoom) stays in the webview's own 
 
 ## Rules
 
-- Takes only the core's protocol types, nothing else of ours (dependency-cruiser)
+- Takes the core's protocol types, pulse-ui's `/tones` and `/format` (the latter from `format/`)
+  and, for shared building blocks rendered through `preact/compat`, pulse-ui's React kit and
+  `theme.css`; nothing else of ours (dependency-cruiser)
 - No `vscode` and no Node: it runs in a browser sandbox (dependency-cruiser, `packages/core/runtime-view/tsconfig.webview.json`)
 - Colours only from Miragon `--cd-*` tokens, never `--vscode-*`; no engine words (ESLint)
 

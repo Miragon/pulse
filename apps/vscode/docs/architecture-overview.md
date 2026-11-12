@@ -147,6 +147,7 @@ flowchart TB
   webview -- bundled --> tones
   core -- bundled --> format["@miragon/pulse-ui/format"]
   webview -- bundled --> format
+  webview -- shared building blocks, through preact/compat --> kit["@miragon/pulse-ui and its theme.css"]
 ```
 
 Every import edge not drawn fails the closed world of its package (dependency-cruiser:
@@ -164,7 +165,10 @@ read `.pulse.json`. `@miragon/pulse-ui/tones` and `@miragon/pulse-ui/format` are
 Pulse's UI foundation without React: the tone vocabulary and the one tone per situation, and the
 formatters for times, durations, counts and short ids, both as the MCP widgets show them. The
 core and the webview may import the tones, only their label helpers the formatters (they set the
-locale), and nothing of pulse-ui's React kit.
+locale). The webview alone may also import pulse-ui's React kit and its `theme.css`, for the
+building blocks the surfaces share, which it renders through `preact/compat`; the core, the ports,
+the model reader and the host kit import nothing else of pulse-ui
+(`apps/vscode/docs/adr/ui-foundation.md`).
 
 ## 4. One adapter for Operaton, CIB seven and Camunda 7
 

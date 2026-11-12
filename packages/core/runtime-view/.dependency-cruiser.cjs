@@ -12,6 +12,14 @@ const UI_FOUNDATION =
   "(^|/)node_modules/@miragon/pulse-ui/dist/(format|tones)/|^@miragon/pulse-ui/(format|tones)$"
 const UI_TONES_ENTRY = "(^|/)node_modules/@miragon/pulse-ui/dist/tones/index[.]d[.]ts$"
 const UI_FORMAT_ENTRY = "(^|/)node_modules/@miragon/pulse-ui/dist/format/index[.]d[.]ts$"
+const UI_KIT_ENTRY = "(^|/)node_modules/@miragon/pulse-ui/dist/index[.]d[.]ts$"
+const UI_THEME_ENTRY = "(^|/)node_modules/@miragon/pulse-ui/src/theme[.]css$"
+const UI_WEBVIEW_ENTRIES = [
+  UI_FOUNDATION,
+  UI_KIT_ENTRY,
+  UI_THEME_ENTRY,
+  "^@miragon/pulse-ui(/theme[.]css)?$",
+]
 const LABEL_HELPERS = `${PACKAGE}src/(core/views/labels[.]ts$|webview/format/)`
 const DIALECT_PACKAGES =
   "(^|/)node_modules/@miragon/pulse-(?!engine-core/)[^/]+-(core|client|connector|adapter)/|^@miragon/pulse-(?!engine-core(/|$))[^/]+-(core|client|connector|adapter)(/|$)|^packages/connectors/(?!engine/engine-core/)"
@@ -68,6 +76,12 @@ module.exports = {
       to: { path: UI_FORMAT_ENTRY },
     },
     {
+      comment:
+        "The webview renders the shared building blocks of Pulse's React kit through preact/compat (owner decision 2026-11-12, apps/vscode/docs/adr/ui-foundation.md): @miragon/pulse-ui by its root and its stylesheet @miragon/pulse-ui/theme.css, which the editor hosts bundle with esbuild. Its own screens stay on Preact.",
+      from: { path: `${PACKAGE}src/webview/` },
+      to: { path: [UI_KIT_ENTRY, UI_THEME_ENTRY] },
+    },
+    {
       comment: "The webview may use its rendering libraries.",
       from: { path: `${PACKAGE}src/webview/` },
       to: { path: WEBVIEW_LIBRARIES },
@@ -95,7 +109,7 @@ module.exports = {
       name: "not-in-allowed",
       severity: "error",
       comment:
-        "No entry of `allowed` in packages/core/runtime-view/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md). A layer uses its own modules and another layer only through its index.ts: the ports, the core, the model adapter and the host kit speak the main entry of @miragon/pulse-engine-core, the engine family's neutral core (never ./testing), the core and the model adapter reach the ports, the model adapter also the moddle libraries, core and webview @miragon/pulse-ui/tones and their label helpers (core/views/labels.ts, webview/format/) @miragon/pulse-ui/format, the webview protocol types and its rendering libraries, the host kit core, protocol, ports and Node built-ins, its connections also @miragon/pulse-profile's main entry. The runtime view knows no editor host and no dialect.",
+        "No entry of `allowed` in packages/core/runtime-view/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md). A layer uses its own modules and another layer only through its index.ts: the ports, the core, the model adapter and the host kit speak the main entry of @miragon/pulse-engine-core, the engine family's neutral core (never ./testing), the core and the model adapter reach the ports, the model adapter also the moddle libraries, core and webview @miragon/pulse-ui/tones and their label helpers (core/views/labels.ts, webview/format/) @miragon/pulse-ui/format, the webview protocol types, its rendering libraries and, for shared building blocks, @miragon/pulse-ui's root and @miragon/pulse-ui/theme.css, the host kit core, protocol, ports and Node built-ins, its connections also @miragon/pulse-profile's main entry. The runtime view knows no editor host and no dialect.",
       from: {},
       to: { path: "^$" },
     },
@@ -135,9 +149,17 @@ module.exports = {
       name: "pulse-ui-only-its-foundation",
       severity: "error",
       comment:
-        "The runtime view shares Pulse's UI foundation, not its React kit: shipped code imports @miragon/pulse-ui only as @miragon/pulse-ui/format and @miragon/pulse-ui/tones (in the core and the webview), never its root (React, Radix, Tailwind classes), its stylesheets or ./testing, and never a file of it by path. Format through TimeLabels, CountLabels and Labels, draw a tone with the webview's own CSS classes; tests may import @miragon/pulse-ui/testing.",
-      from: { pathNot: [TEST_CODE, TOOLING, "(^|/)node_modules/"] },
+        "The core, the ports, the model reader and the host kit stay framework-free: they share Pulse's UI foundation, not its React kit, and import @miragon/pulse-ui only as @miragon/pulse-ui/format and @miragon/pulse-ui/tones (today the core alone reads them), never its root (React, Radix, Tailwind classes), its stylesheets or ./testing, and never a file of it by path. Format through TimeLabels, CountLabels and Labels; tests may import @miragon/pulse-ui/testing. The webview answers to webview-pulse-ui-by-its-entries (owner decision 2026-11-12, apps/vscode/docs/adr/ui-foundation.md).",
+      from: { pathNot: [TEST_CODE, TOOLING, "(^|/)node_modules/", `${PACKAGE}src/webview/`] },
       to: { path: PULSE_UI, pathNot: UI_FOUNDATION },
+    },
+    {
+      name: "webview-pulse-ui-by-its-entries",
+      severity: "error",
+      comment:
+        "The webview imports @miragon/pulse-ui by its package entries only (owner decision 2026-11-12, apps/vscode/docs/adr/ui-foundation.md): its root, the React kit, and its stylesheet @miragon/pulse-ui/theme.css for the shared building blocks it renders through preact/compat, @miragon/pulse-ui/tones and, in its label helpers (webview/format/), @miragon/pulse-ui/format. Never ./testing (the brand gates read files with node:fs; tests may import it), never globals.css (Tailwind with its preflight; the shared blocks take Tailwind without it) or fonts.css (the webview loads Geist itself), never another subpath, and never a file of packages/core/ui by path, its source or its build: the entries load the package's build, so a module reached by path is a second copy of the kit.",
+      from: { path: `${PACKAGE}src/webview/`, pathNot: TEST_CODE },
+      to: { path: PULSE_UI, pathNot: UI_WEBVIEW_ENTRIES },
     },
     {
       name: "protocol-imports-nothing",

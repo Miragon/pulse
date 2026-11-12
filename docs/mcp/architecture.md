@@ -105,21 +105,20 @@ same React components brings an adapter of its own and leaves the widgets as the
 module's widgets still read the Camunda 7 REST family's data. Components for Camunda 8 would read
 engine-core's contract, as the runtime view does: a design question of its own.
 
-## Two UI families
+## What the UIs share
 
-Pulse's UIs come in two families. React on `@miragon/pulse-ui` and widget-shell: the MCP widgets,
-a starter's widgets and the web apps of [#573](https://github.com/Miragon/pulse/issues/573).
-Preact with components and stylesheets of its own: the runtime view's webview (Pulse for VS Code
-and Pulse for Orca), which has no host adapter and never renders a widget. The two share
-pulse-ui's foundation, never a component: the framework-free `@miragon/pulse-ui/tones` (one tone
-per situation, `SITUATION_TONES`) and `@miragon/pulse-ui/format` (dates, durations, counts, short
-ids), which both hosts bundle, and from `@miragon/pulse-ui/testing` the product glossary, the
-count words and the brand gates their tests run. So the same count has the same word, the same
-situation the same tone and a duration the same form in both, while each tool shows what its
-audience needs: six cockpit views have a counterpart in the editors, and
-[Parity with the MCP cockpit](../vscode/parity.md) lists every difference between them as closed,
-wanted or open. The decision is `apps/vscode/docs/adr/ui-foundation.md`;
-[#586](https://github.com/Miragon/pulse/issues/586) holds when the two share building blocks again.
+Pulse's UIs run on two runtimes. React on `@miragon/pulse-ui` and widget-shell: the MCP widgets, a
+starter's and the web apps of [#573](https://github.com/Miragon/pulse/issues/573). Preact with its
+own components and stylesheets: the runtime view's webview (Pulse for VS Code and Pulse for Orca),
+which has no host adapter and never renders a widget. They share a core up to building blocks: the
+formats (the board file first), pulse-ui's framework-free `@miragon/pulse-ui/tones` (one tone per
+situation, `SITUATION_TONES`) and `@miragon/pulse-ui/format` (dates, durations, counts, short ids),
+from `@miragon/pulse-ui/testing` the product glossary, the count words and the brand gates, the
+engine rules of c7-core, the numbers of a feature several show (boards first: one builder over one
+read) and building blocks written against React's API with props and callbacks only, which the
+webview renders through `preact/compat`. Each keeps its own screens and host wiring: six cockpit
+views have a counterpart in the editors, and [Parity with the MCP cockpit](../vscode/parity.md)
+lists what still differs. The decision, of 2026-11-12, is `apps/vscode/docs/adr/ui-foundation.md`.
 
 ## External systems
 

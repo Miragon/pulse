@@ -380,10 +380,12 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   `src/widgets` (`src/brand-gates.test.ts`; the gates, the glossary and the count terms come
   from `@miragon/pulse-ui/testing`)
 - A pair: the overview, a process, its instances, an instance, an incident and the history
-  have a counterpart in the VS Code webview, which shares only pulse-ui's foundation with the
-  widgets. A field, a count or an action you add to one says in its pull request whether the
-  webview gets it and updates `docs/vscode/parity.md`; its content takes props and callbacks
-  only, no host context (as `process-definitions-table-view.tsx` with `renderActions`)
+  have a counterpart in the VS Code webview, which shares a core up to building blocks with the
+  widgets (owner decision 2026-11-12, `apps/vscode/docs/adr/ui-foundation.md`). Where both show
+  a field, a count or an action, a shared building block is the default: React's API, props and
+  callbacks only, no host context (as `process-definitions-table-view.tsx` with
+  `renderActions`), rendered in the webview through `preact/compat`; until the first one renders
+  there, each side builds its own. Its pull request updates `docs/vscode/parity.md`
 - BPMN: viewer lifecycle and the fixed light canvas via `useBpmnViewer` (the container
   is a forced-light island, `data-theme-mode="light"`, on the paper token) +
   `BpmnZoomControls` (light in every theme, Lucide). The frame height comes from the

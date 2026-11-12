@@ -91,8 +91,9 @@ The dependency rules are closed-world, one config per package (`apps/vscode/.dep
 explicitly allowed fails its `pnpm lint:architecture:<package>` with a message that says where it
 belongs (dependency-cruiser reports it as `not-in-allowed` and takes the wording from the forbidden
 rule of that name, which never fires itself). Nothing outside them is allowed, so no widget-shell,
-no React, no zod; the repository's licence list (`scripts/third-party-licenses.mjs`), which the
-licence test reads, may use Node built-ins and nothing else. The engine contract has one home, the
+no React (a shared building block's React API renders through `preact/compat`, below), no zod;
+the repository's licence list (`scripts/third-party-licenses.mjs`), which the licence test
+reads, may use Node built-ins and nothing else. The engine contract has one home, the
 engine family's core `@miragon/pulse-engine-core` (`packages/connectors/engine/engine-core`, owner
 decision 2026-11-09 on #585): the ports, read models and errors every dialect answers in. The
 runtime view's ports, core, model reader and host kit and the host import its main entry, its tests,
@@ -117,13 +118,14 @@ through, by its main entry and nowhere else in the adapter (`http-only-in-the-wi
 kit's connections (`packages/core/runtime-view/src/host-kit/connections`) read the project files with Pulse's
 profile format, `@miragon/pulse-profile`, through its main entry (the runtime view's closed
 world; the repository's `profile-consumers`), as the CLI does. The runtime view's core and
-webview import Pulse's UI foundation as `@miragon/pulse-ui/tones` and `@miragon/pulse-ui/format`
-only: the tone vocabulary and `SITUATION_TONES`, the one tone per situation the MCP widgets show
-too, and the formatters, framework-free (`pulse-ui-only-its-foundation`; the repository's
-`ui-foundation-entries-import-nothing`). That foundation is all the webview shares with the MCP
-widgets, never a component, by the product owner's decision
-(`apps/vscode/docs/adr/ui-foundation.md`; #586 holds when they share building blocks again). The
-React kit stays out; the webview draws a tone with its own CSS classes, and
+webview import Pulse's UI foundation as `@miragon/pulse-ui/tones` and `@miragon/pulse-ui/format`:
+the tone vocabulary and `SITUATION_TONES`, the one tone per situation the MCP widgets show
+too, and the formatters, framework-free (the repository's
+`ui-foundation-entries-import-nothing`). The core, the ports, the model reader and the host kit
+import nothing else of pulse-ui (`pulse-ui-only-its-foundation`); the webview takes pulse-ui's
+React kit and its stylesheet only for shared building blocks, by the package's root and
+`@miragon/pulse-ui/theme.css` (`webview-pulse-ui-by-its-entries`, below). On its own screens the
+webview draws a tone with its own CSS classes, and
 `packages/core/runtime-view/test/webview/situation-tones.test.tsx` holds its state labels and
 diagram badges to the table. A time, a duration, a count or a short id goes through
 `TimeLabels`, `CountLabels` (webview) or `Labels` (core), which delegate to the formatters in
@@ -139,6 +141,33 @@ is typed (`autoTypedValue`, `toEngineVariable`) or when a 404 names a missing re
 engine-core's `RootCauses` (`RootCauses.of`, `RootCauses.lineOf`, which c7-core applies too),
 never into a copy; the adapter's `InspectView` is c7-core's instance view, not a mirror of it.
 Ports, core, webview, host kit and host stay engine-neutral.
+
+The surfaces share a core up to building blocks, not everything, by the product owner's decision
+of 2026-11-12 (`apps/vscode/docs/adr/ui-foundation.md`). The webview keeps Preact as its runtime
+and for its own screens, keeps its host wiring (the push protocol and live updates, the native
+confirmation, sign-in) and may build parts of its own; where it shows the same thing as the MCP
+widgets or the web apps of #573, a shared building block is the default, and no screen of it is
+replaced by force. A shared building block is a component written against React's API that takes
+props and callbacks only, with no host context inside (no `useToolQuery`, `ConfirmDialog`,
+`HandOffButton` or `HostBridge`); the webview renders it through `preact/compat` with pulse-ui's
+React kit and stylesheet. It lives in pulse-ui (a primitive) or in a shared package created with
+the first engine block two surfaces render. Before the first one renders here, these land: the
+`preact/compat` alias in the webview's esbuild build; pulse-ui's `theme.css` honouring
+`data-cd-theme`, `data-cd-kontrast="hoch"` and `forced-colors`; Tailwind without preflight,
+scoped to the shared blocks; the blocks' tests running under `preact/compat` too. The closed
+world admits the kit in the webview alone (`webview-pulse-ui-by-its-entries`: never `./testing`,
+`globals.css` with Tailwind's preflight or `fonts.css`), and the webview's bundle ceiling
+(200,000 B gzip, shrink-only) may grow for a block with a `Ratchet-Exception:` trailer that names
+the block. A feature more than one surface shows, boards first, shows the same numbers on every
+surface, from one framework-free builder over one read of engine-core's read models; elsewhere
+each tool keeps its own numbers behind the same words (`COUNT_TERMS`) until its view moves onto
+shared numbers. The board format and the board builder go into a new published package (the
+planned @miragon/pulse-board). The board's "with incident" reads two ways today, the counter as
+the history count with open incidents
+(`packages/connectors/c7/c7-adapter/src/reading/instance-search.ts`), the incident summary and
+the engine strip from a runtime incident scan
+(`packages/connectors/c7/c7-adapter/src/reading/definition-reader.ts`); settle that before
+boards move.
 
 ## Rules
 
@@ -230,8 +259,10 @@ Ports, core, webview, host kit and host stay engine-neutral.
   with its reason, and an allowance that spares nothing fails.
 - A field, a count or an action added to or changed in a view the MCP cockpit has too (the
   engine overview, a process, its instances, an instance, an incident, the history) is a pair
-  feature: its pull request says whether the MCP widgets get it and updates the parity list
-  `docs/vscode/parity.md` by its review rule.
+  feature: where both show it, a shared building block is the default (above); until the first
+  one renders here, it is still built on each side. Its pull request updates the parity list
+  `docs/vscode/parity.md` by its review rule. Decisions about shared building blocks are the
+  product owner's and go through normal review.
 - The .vsix ships `THIRD_PARTY_LICENSES.txt` beside `LICENSE` (`.vscodeignore`; the package job of
   `ci.yml` and the release's check in `publish-vscode-extension.yml` name it, one list): the works
   of others esbuild bundles into the extension host and the webview (packages, fonts, esbuild's
