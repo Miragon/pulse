@@ -15,6 +15,9 @@ import { ADVANCE, PROFILE_FILE } from "../../test/support/no-profile.js"
 import { ENGINE_URL, WorkflowEngine } from "../../test/support/workflow-engine.js"
 import { run } from "./run.js"
 
+/** The URL of the profile orders: beside --profile a --url of another origin fails. */
+const ORDERS_URL = "https://orders.example.com/engine-rest"
+
 const BY_FLAG =
   "Warning: PULSE_CLI_PROFILE=orders does not apply beside --url; pass --profile orders to use it.\n"
 const BY_VARIABLE =
@@ -60,7 +63,7 @@ describe("a URL without --profile beside PULSE_CLI_PROFILE", () => {
 
   it("says nothing for a defaultProfile, beside --profile, or without a URL", async () => {
     expect((await runWith([...ADVANCE, "--url", ENGINE_URL], {})).stderr).toBe("")
-    const named = ["inspect", "pi-1", "--profile", "orders", "--url", ENGINE_URL]
+    const named = ["inspect", "pi-1", "--profile", "orders", "--url", ORDERS_URL]
     expect((await runWith(named, { PULSE_CLI_PROFILE: "basic" })).stderr).toBe("")
     const variable = { PULSE_CLI_URL: ENGINE_URL, PULSE_CLI_PROFILE: "basic" }
     expect((await runWith(["inspect", "pi-1", "--profile", "orders"], variable)).stderr).toBe("")

@@ -1,7 +1,7 @@
 # Guarded writes
 
 - Status: accepted
-- Last reviewed: 2026-11-12 (a button beside the can't-move sign copies the command; the command for the default engine names its URL with `--auth none`, on which the CLI takes no profile, only the user's `PULSE_CLI_*` environment; the command for a project file's target names its profile with the target's URL, which a `PULSE_CLI_URL` of the user's shell does not replace; a target without commands names the target policy's refusal as its read-only note; a token behind an event-based gateway is told to change a variable when a conditional event follows the gateway, and a row the engine's CLI can trigger names its command, with the profile of its project file; a token at the continuation after its event moves); 2026-11-11 (the editor refuses a number beyond the range of a double before it asks, on every engine); 2026-11-10 (the editor refuses a whole number beyond 64 bits before it asks, on every engine); 2026-10-23
+- Last reviewed: 2026-11-12 (a button beside the can't-move sign copies the command; the command for the default engine names its URL with `--auth none`, on which the CLI takes no profile, only the user's `PULSE_CLI_*` environment; the command for a project file's target names its profile with the target's URL, which a `PULSE_CLI_URL` of the user's shell does not replace and which the CLI refuses beside a profile of the same name in the user's config file that holds credentials for another origin; a target without commands names the target policy's refusal as its read-only note; a token behind an event-based gateway is told to change a variable when a conditional event follows the gateway, and a row the engine's CLI can trigger names its command, with the profile of its project file; a token at the continuation after its event moves); 2026-11-11 (the editor refuses a number beyond the range of a double before it asks, on every engine); 2026-11-10 (the editor refuses a whole number beyond 64 bits before it asks, on every engine); 2026-10-23
 
 ## Context
 
@@ -180,17 +180,21 @@ beats the variable, so the command goes to the URL the editor shows; everything 
 per value. The profile's headers, login and process engine name go along, and a `PULSE_CLI_*`
 variable, the user's own shell setting, beats each of them: a process engine name, the profile's or
 `PULSE_CLI_ENGINE`'s, names `/engine/<name>` under that URL. A profile of the same name in the
-user's config file, which the CLI takes as a whole in place of the project file's, sends its own
-headers and login to that URL, not to its own. The command delivers that event to this token's
-execution or executes its timer job, nothing beyond this instance, and the instance runs on to its
-next wait state as when the event occurs. The CLI refuses a suspended timer job, which the contract
-does not tell. The command shows in the tooltip and the accessible name of the diagram's can't-move
-sign, and a button beside the sign, "Copy CLI command", copies it. The view model carries the
-command apart from the sentence (`WaitRow.cliCommand`, set only on a row whose refusal names one,
-never read back from the text), and the webview sends it through the panels' `copy` intent, so each
-host copies it with the feedback it gives every copy (VS Code's status bar, Orca's frame). On a
-writable engine the element's name in the Waiting tab focuses that button, the keyboard path to it;
-the button names the refusal as its description.
+user's config file, which the CLI takes as a whole in place of the project file's, sends its
+credentials there only when its own URL has that origin (scheme, host, port): beside a `--url` of
+another origin the CLI refuses a profile of the user's that holds credentials (a secret header,
+Basic auth, OAuth, a bearer token; CONFIG, owner decision 2026-11-12), so the copied command fails
+with the CLI's error instead of sending them to the URL the project file names. In the common case
+the user's profile names the project file's engine, and the command runs with it. The command
+delivers that event to this token's execution or executes its timer job, nothing beyond this
+instance, and the instance runs on to its next wait state as when the event occurs. The CLI refuses
+a suspended timer job, which the contract does not tell. The command shows in the tooltip and the
+accessible name of the diagram's can't-move sign, and a button beside the sign, "Copy CLI command",
+copies it. The view model carries the command apart from the sentence (`WaitRow.cliCommand`, set
+only on a row whose refusal names one, never read back from the text), and the webview sends it
+through the panels' `copy` intent, so each host copies it with the feedback it gives every copy (VS
+Code's status bar, Orca's frame). On a writable engine the element's name in the Waiting tab focuses
+that button, the keyboard path to it; the button names the refusal as its description.
 
 The C7 adapter reads the activity instance tree (read-only), refuses 0, more than one or
 a multi-instance body at the source, and sends one modification on stdin: start before

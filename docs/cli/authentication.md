@@ -9,8 +9,8 @@ one, and [headers](#other-headers) for other schemes. Every option: `pulse auth 
   one, a username selects `basic` and a token selects `bearer`. OAuth is never implied.
 - Each value resolves on its own: flag > environment variable > profile. A URL without `--profile`
   (`--url` or `PULSE_CLI_URL`) selects [no profile](configuration.md#profiles), so no profile's
-  credentials or headers go along. Beside `--profile` either URL replaces the profile's, and its
-  credentials go there: check `pulse config show`.
+  credentials or headers go along. Beside `--profile` either URL replaces the profile's and takes
+  its credentials along, but a `--url` of another origin fails for a profile of yours with them.
 - Secrets are never plain flags and are masked (`***`) in output unless `--show-secrets`. In an
   engine's error text (`message`, `engineMessage`) they stay masked even then.
 

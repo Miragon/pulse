@@ -23,6 +23,7 @@ import { urlWithoutProfile, withoutProfile } from "./no-profile.js"
 import { type Env, nonEmpty, pick } from "./pick.js"
 import { originOf } from "./login-key.js"
 import { authorizationConflict, resolveAuth } from "./resolve-auth.js"
+import { foreignUrlError } from "./url-beside-profile.js"
 import {
   type ConfigFile,
   type ConfigFlags,
@@ -115,8 +116,26 @@ function projectOf(file: LoadedConfig | undefined, name: string): ProjectSource 
 }
 
 /**
+ * Fails (CONFIG) on a `--url` flag beside a `--profile` flag that would take the credentials of
+ * the `chosen` profile of the user's config file to another origin (url-beside-profile.ts); the
+ * flag's URL is validated first, so an invalid one fails as such.
+ */
+function checkUrlBesideProfile(
+  chosen: Extract<SelectedProfile, { name: string }>,
+  flags: ConfigFlags,
+  env: Env,
+): void {
+  const url = nonEmpty(flags.url)
+  if (url === undefined || nonEmpty(flags.profile) === undefined) return
+  const refusal = foreignUrlError(chosen, validateUrl(url), flags, env)
+  if (refusal !== undefined) throw refusal
+}
+
+/**
  * The selected profile, where it comes from and, when it comes from there, the
- * project file. A profile the file refuses fails here, when a command uses it.
+ * project file. A profile the file refuses fails here, when a command uses it, and so does a
+ * `--url` beside `--profile` that would take the credentials of a profile of the user's config
+ * file to another origin (url-beside-profile.ts).
  */
 export function selectProfile(
   flags: ConfigFlags,
@@ -137,7 +156,9 @@ export function selectProfile(
   const project = projectOf(file, selected.name)
   const origin = originOf(file, selected.name)
   const configFile = project === undefined ? file.configFile : undefined
-  return { name: selected.name, profile, ...compact({ project, origin, configFile }) }
+  const chosen = { name: selected.name, profile, ...compact({ project, origin, configFile }) }
+  checkUrlBesideProfile(chosen, flags, env)
+  return chosen
 }
 
 function parseUrl(url: string): URL {

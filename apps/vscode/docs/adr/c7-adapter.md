@@ -1,7 +1,7 @@
 # Camunda 7 family adapter
 
 - Status: accepted
-- Last reviewed: 2026-11-12 (`C7Adapter.cli` gives the CLI command that triggers the event a token waits for, `PulseCli`, on the engine its `CliTarget` names: a profile with the target's URL, which beats a `PULSE_CLI_URL` of the user's shell, or the default engine's URL, on which the CLI takes no profile); 2026-11-11 (the editor hosts send the adapter no number beyond the range of a double, which it writes as text without a type; the refusal of a number that is not finite is c7-core's `toEngineVariable`, of which the adapter keeps no copy); 2026-11-10 (the adapter sends through `@miragon/pulse-http` and its inspection goes out as routes of c7-core's `CORE_ROUTES`; the incident retry's target, the built-in incident types, the request of an incident's cause and the typing of a written variable come from c7-core; the adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the adapter is a package, which Pulse for Orca bundles too)
+- Last reviewed: 2026-11-12 (`C7Adapter.cli` gives the CLI command that triggers the event a token waits for, `PulseCli`, on the engine its `CliTarget` names: a profile with the target's URL, which beats a `PULSE_CLI_URL` of the user's shell and which the CLI refuses beside a profile of the same name in the user's config file that holds credentials for another origin, or the default engine's URL, on which the CLI takes no profile); 2026-11-11 (the editor hosts send the adapter no number beyond the range of a double, which it writes as text without a type; the refusal of a number that is not finite is c7-core's `toEngineVariable`, of which the adapter keeps no copy); 2026-11-10 (the adapter sends through `@miragon/pulse-http` and its inspection goes out as routes of c7-core's `CORE_ROUTES`; the incident retry's target, the built-in incident types, the request of an incident's cause and the typing of a written variable come from c7-core; the adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the adapter is a package, which Pulse for Orca bundles too)
 
 ## Context
 
@@ -295,8 +295,10 @@ MCP server run too. The package belongs to the c7 family, whose dialect it imple
   ([writes.md](writes.md)): `pulse advance <instance> --activity-id <activity>`, on the engine the
   port's `CliTarget` names: `--profile <name> --url <endpoint>` when the editor read the target
   from a project file, whose `--url` beats a `PULSE_CLI_URL` of the user's shell, so the profile's
-  headers and login go to the URL the editor shows, those of a profile of the same name in the
-  user's config file too, which the CLI takes in place of the project file's, and
+  headers and login go to the URL the editor shows; a profile of the same name in the user's
+  config file, which the CLI takes in place of the project file's, sends its credentials there
+  only when its own URL has that origin: the CLI refuses one that holds credentials for another
+  origin (CONFIG), so the copied command fails with the CLI's error ([writes.md](writes.md)); and
   `--url <endpoint> --auth none` for its default engine, which it reaches without a login: a
   `--url` without `--profile` takes no profile in the CLI, so only the user's `PULSE_CLI_*`
   environment applies, whose login `--auth none` switches off ([writes.md](writes.md)). It names

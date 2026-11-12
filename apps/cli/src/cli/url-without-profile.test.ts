@@ -3,8 +3,8 @@
  * would select otherwise (a defaultProfile, PULSE_CLI_PROFILE) sends nothing, neither its headers
  * nor its login or token nor its engine name, and its read-only flag refuses nothing; the
  * environment's own headers and OAuth login still go, the auth commands reach that login with the
- * same `--url`. `--profile p --url X` stays per value, and `config show` and a 401 say why no
- * profile applies.
+ * same `--url`. `--profile p --url X` of the origin of p stays per value (url-beside-profile.test.ts
+ * refuses another origin), and `config show` and a 401 say why no profile applies.
  */
 
 import { describe, expect, it } from "vitest"
@@ -19,6 +19,9 @@ import { run } from "./run.js"
 
 /** The command Pulse for VS Code and Pulse for Orca show for their default engine. */
 const EDITOR_COMMAND = [...ADVANCE, "--url", ENGINE_URL]
+
+/** Another URL of the origin of the profile orders, spelled as the URL API normalises it away. */
+const ORDERS_ORIGIN = "HTTPS://Orders.Example.com:443/engine-rest"
 
 function setup(env: Record<string, string> = {}) {
   return workflowSetup(run, "approve", {
@@ -84,20 +87,29 @@ describe("a --url without --profile", () => {
   })
 })
 
-describe("--profile beside --url", () => {
+describe("--profile beside a --url of its origin", () => {
   it("replaces the profile's URL only: its engine name and headers go, its read-only refuses", async () => {
     const { cli, engine } = setup()
     expect(
-      await cli(["inspect", "pi-1", "--profile", "orders", "--url", ENGINE_URL]),
+      await cli(["inspect", "pi-1", "--profile", "orders", "--url", ORDERS_ORIGIN]),
     ).toMatchObject({ code: 0 })
+    expect(engine.requests.length).toBeGreaterThan(0)
     for (const { url, headers } of engine.requests) {
-      expect(url.startsWith(`${ENGINE_URL}/engine/orders/`)).toBe(true)
+      expect(url.startsWith("https://orders.example.com/engine-rest/engine/orders/")).toBe(true)
       expect(headers).toMatchObject({
         authorization: "Bearer profile-token",
         "x-api-key": "profile-key",
       })
     }
-    const refused = await cli([...EDITOR_COMMAND, "--profile", "orders", "-o", "json"])
+    const refused = await cli([
+      ...ADVANCE,
+      "--url",
+      ORDERS_ORIGIN,
+      "--profile",
+      "orders",
+      "-o",
+      "json",
+    ])
     expect(errorOf(refused.stderr)).toMatchObject({ code: "READ_ONLY" })
     expect(engine.stage).toBe("approve")
   })
@@ -117,7 +129,9 @@ describe("config show with a --url without --profile", () => {
     expect(table.stdout).toContain(
       "\nProfile: (none: --url without --profile selects no profile, so PULSE_CLI_PROFILE does not apply)\n",
     )
-    const named = await cli(["config", "show", "--url", ENGINE_URL, "--profile", "basic"])
+    const show = ["config", "show", "--url", ORDERS_ORIGIN, "--profile", "orders", "-o", "json"]
+    const named = await cli(show)
+    expect(JSON.parse(named.stdout)).toMatchObject({ profile: "orders" })
     expect(JSON.parse(named.stdout)).not.toHaveProperty("noProfile")
   })
 })

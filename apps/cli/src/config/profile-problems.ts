@@ -38,7 +38,8 @@ export interface ProfileOrigin {
   readonly configFile?: string | undefined
 }
 
-function fileOf(origin: ProfileOrigin): string {
+/** The file a profile comes from as messages name it: `your config file` for the user's own. */
+export function fileOf(origin: ProfileOrigin): string {
   if (origin.project !== undefined) return `the project file ${origin.project}`
   return origin.configFile === undefined
     ? "your config file"

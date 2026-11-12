@@ -2,7 +2,8 @@
  * A URL without `--profile`, `--url` or PULSE_CLI_URL, selects no profile (resolve.ts): nothing of
  * the profile the CLI would select otherwise applies (PULSE_CLI_PROFILE, a defaultProfile), a
  * profile it could not use fails nothing, and the environment's own settings still apply.
- * `--profile p` with either URL stays per value, and a blank one is none.
+ * `--profile p` with PULSE_CLI_URL stays per value, with a `--url` of the profile's own origin too
+ * (url-beside-profile.test.ts refuses another one), and a blank one is none.
  */
 
 import { describe, expect, it } from "vitest"
@@ -12,6 +13,8 @@ import type { LoadedConfig, Profile } from "./types.js"
 
 const URL = "http://127.0.0.1:8941/engine-rest"
 const PROFILE_URL = "https://orders.example.com/engine-rest"
+/** Another URL of the profile's origin, spelled as the URL API normalises it away. */
+const SAME_ORIGIN = "HTTPS://Orders.Example.com:443/v2/engine-rest"
 
 const ORDERS: Profile = {
   url: PROFILE_URL,
@@ -137,11 +140,11 @@ describe("a --url without --profile", () => {
 })
 
 describe("beside --profile or without a flag", () => {
-  it("--profile p --url X replaces the URL of p only", () => {
-    const resolved = resolveConfig({ profile: "orders", url: URL }, ENV, FILE)
+  it("--profile p --url X of the origin of p replaces the URL of p only", () => {
+    const resolved = resolveConfig({ profile: "orders", url: SAME_ORIGIN }, ENV, FILE)
     expect(resolved).toMatchObject({
       profile: "orders",
-      url: URL,
+      url: SAME_ORIGIN,
       engine: "orders",
       flavor: "operaton",
       cockpitUrl: ORDERS.cockpitUrl,
@@ -151,7 +154,7 @@ describe("beside --profile or without a flag", () => {
       sources: { url: "flag", engine: "profile", headers: "profile", readOnly: "profile" },
     })
     expect(resolved.noProfile).toBeUndefined()
-    const basic = resolveConfig({ profile: "basic", url: URL }, ENV, FILE).auth
+    const basic = resolveConfig({ profile: "basic", url: SAME_ORIGIN }, ENV, FILE).auth
     expect(basic).toMatchObject({ type: "basic", username: "demo", password: "profile-password" })
   })
 

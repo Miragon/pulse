@@ -116,14 +116,14 @@ pulse config delete prod
 - A URL without `--profile` (`--url`, a non-empty `PULSE_CLI_URL`) leaves out `PULSE_CLI_PROFILE`
   and the `defaultProfile`: nothing of a profile applies (headers, auth, engine, flavor,
   `cockpitUrl`, timeout, output, `readOnly`), your other `PULSE_CLI_*` variables do. Beside
-  `--profile p` either replaces only its URL. `config show` takes the flags and shows the result.
+  `--profile p` either replaces only its URL, but a `--url` of another origin fails (CONFIG) when
+  `p` is yours and holds credentials. `config show` takes the flags and shows the result.
 
 ## Project file
 
-A repository can ship its profiles in `.pulse.json`, in the format of the config file, so
-neither developers nor agents need a setup step. The CLI looks it up from the working directory
-up to the repository root; the nearest file wins. `--config` or `PULSE_CLI_CONFIG` turn the lookup
-off.
+A repository can ship its profiles in `.pulse.json`, in the format of the config file, so neither
+developers nor agents need a setup step. The CLI looks it up from the working directory up to the
+repository root; the nearest file wins. `--config` or `PULSE_CLI_CONFIG` turn the lookup off.
 
 ```sh
 pulse config set orders --project --url http://localhost:8112/engine-rest/orders --default
@@ -157,4 +157,4 @@ pulse config path --project
   the file. The URL above serves the latest release; `@miragon/pulse-profile@<version>` pins
   yours. [Pulse for VS Code](../vscode/configuration.md) reads the same profiles.
 - Treat a project file like code: it decides where your credentials from the environment and its
-  profiles' OAuth login are sent.
+  profiles' OAuth login are sent; your own profiles' credentials keep to their [origin](#profiles).
