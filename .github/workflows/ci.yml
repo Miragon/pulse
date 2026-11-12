@@ -626,6 +626,17 @@ jobs:
         working-directory: apps/cli
         run: bash scripts/smoke-test.sh "build/bin/${FILE}"
 
+      # The licence of the Node.js the binary embeds: the release attaches it for every target,
+      # the Windows one included (publish-cli.yml's licences job).
+      - name: The Node.js licence of the binary
+        working-directory: apps/cli
+        run: |
+          if [ ! -s "build/node-license/${FILE}" ]; then
+            echo "::error::build:exe kept no licence of the Node.js ${FILE} embeds in build/node-license"
+            exit 1
+          fi
+          head -n 1 "build/node-license/${FILE}"
+
       # The archive a release attaches (publish-cli.yml): the executable and its licences.
       - name: Pack the binary
         if: runner.os != 'Windows'

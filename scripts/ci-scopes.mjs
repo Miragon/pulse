@@ -32,7 +32,8 @@ const PACKAGE_CODE = /(?:^|\/)(?:src|test|test-host|dev|scripts)\//
 /** Paths outside the packages; first match wins, no match runs everything. */
 export const PATH_RULES = [
   { pattern: /^(?:\.github\/workflows\/ci\.yml$|\.github\/actions\/|scripts\/)/, scopes: SCOPES },
-  // Checked by lint:github only.
+  // Checked by lint:github, and the CLI's release licence test reads publish-cli.yml
+  // (apps/cli/scripts/release-licenses.test.ts): this scope runs both.
   { pattern: /^\.github\//, scopes: ["typescript"] },
   // Read by the CLI's tests and bundled into the CLI as its guide topics.
   { pattern: /^docs\/cli\//, scopes: ["typescript", "brand", "cli"] },

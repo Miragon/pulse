@@ -8,8 +8,12 @@ name: Publish the CLI
 #             native runner (the V8 code cache is valid only on the platform that built it), the
 #             macOS and Linux ones also as <file>.tar.xz holding an executable pulse-cli and the
 #             licences (LICENSE, THIRD_PARTY_LICENSES.txt, NODE_LICENSE);
-#   assets    the binaries, the archives and pulse-cli-SHA256SUMS on the GitHub release of the
-#             tag, with a build provenance attestation
+#   licences  the same three files as pulse-cli-LICENSE, pulse-cli-THIRD_PARTY_LICENSES.txt and
+#             pulse-cli-NODE_LICENSE, for the Windows executable and the raw ones: one Node.js
+#             licence, which the five share (each takes the newest 24.x when it builds), and the job
+#             fails when their licence texts differ (apps/cli/scripts/release-licenses.sh);
+#   assets    the binaries, the archives, the licences and pulse-cli-SHA256SUMS on the GitHub
+#             release of the tag, with a build provenance attestation
 #             (gh attestation verify <file> --repo Miragon/pulse); a re-run replaces them;
 #   image     ghcr.io/miragon/pulse-cli (apps/cli/Dockerfile: distroless Node.js 24, non-root,
 #             the licences in /usr/share/doc/pulse-cli, linux/amd64 and linux/arm64), tagged
@@ -133,7 +137,9 @@ jobs:
 
       - uses: pnpm/action-setup@v6.1.1
 
-      # The binary embeds this Node.js: the newest 24.x (security fixes), the same on every runner.
+      # The binary embeds this Node.js: the newest 24.x when the job runs (security fixes), the same
+      # on every runner unless Node.js releases during the run (the licences job fails when that
+      # release changed the licence text).
       - uses: actions/setup-node@v7.1.0
         with:
           node-version: 24.x
@@ -176,9 +182,49 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      # The licence of the Node.js this executable embeds, which build:exe kept; the licences job
+      # compares the targets' and the release attaches it once.
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: cli-node-license-${{ matrix.target }}
+          path: apps/cli/build/node-license/${{ matrix.file }}
+          if-no-files-found: error
+          retention-days: 7
+
+  licences:
+    name: CLI licences
+    needs: binaries
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          pattern: cli-node-license-*
+          path: ${{ runner.temp }}/node-licenses
+          merge-multiple: true
+
+      # LICENSE and THIRD_PARTY_LICENSES.txt of this commit and the one Node.js licence the five
+      # executables share; the step fails while their texts differ (line ends aside: the Windows
+      # build of Node.js ships its LICENSE with CRLF ones) and names the executables of each text.
+      - name: The licences of the executables
+        run: bash apps/cli/scripts/release-licenses.sh "$RUNNER_TEMP/node-licenses" "$RUNNER_TEMP/licences"
+
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: cli-licences
+          path: ${{ runner.temp }}/licences/pulse-cli-*
+          if-no-files-found: error
+          retention-days: 7
+
   assets:
     name: CLI release assets
-    needs: [bundle, binaries]
+    needs: [bundle, binaries, licences]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -191,18 +237,23 @@ jobs:
       - uses: actions/download-artifact@v8.0.2
         with:
           pattern: cli-binary-*
-          path: ${{ runner.temp }}/binaries
+          path: ${{ runner.temp }}/assets
           merge-multiple: true
 
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: cli-licences
+          path: ${{ runner.temp }}/assets
+
       # The checksums file is named after the CLI: the release of the tag carries every
-      # artifact of the train.
+      # artifact of the train. It lists the licences too, so the attestation covers them.
       - name: Write pulse-cli-SHA256SUMS
-        working-directory: ${{ runner.temp }}/binaries
+        working-directory: ${{ runner.temp }}/assets
         run: |
           shopt -s failglob
           files=(pulse-cli-*)
-          if [ "${#files[@]}" -ne 9 ]; then
-            echo "::error::Expected 5 binaries and 4 archives, got ${#files[@]}: ${files[*]}"
+          if [ "${#files[@]}" -ne 12 ]; then
+            echo "::error::Expected 5 binaries, 4 archives and 3 licences, got ${#files[@]}: ${files[*]}"
             exit 1
           fi
           sha256sum "${files[@]}" > pulse-cli-SHA256SUMS
@@ -211,11 +262,11 @@ jobs:
       - if: ${{ inputs.dry_run != true }}
         uses: actions/attest@v4.2.2
         with:
-          subject-checksums: ${{ runner.temp }}/binaries/pulse-cli-SHA256SUMS
+          subject-checksums: ${{ runner.temp }}/assets/pulse-cli-SHA256SUMS
 
       - name: Upload to the release
         if: ${{ inputs.dry_run != true }}
-        working-directory: ${{ runner.temp }}/binaries
+        working-directory: ${{ runner.temp }}/assets
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "$TAG" pulse-cli-* --clobber --repo "$GITHUB_REPOSITORY"

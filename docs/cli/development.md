@@ -32,9 +32,9 @@ CommonJS file, commander inlined, the only main script format Node.js 24 single 
 
 - `build:exe` (`apps/cli/scripts/build-exe.ts`) writes the preparation blob with
   `node --experimental-sea-config` (with V8 code cache), copies the running `node` binary, injects
-  the blob with [postject](https://github.com/nodejs/postject), signs the result ad hoc on macOS
-  and keeps that Node.js's `LICENSE` for the archive. It needs an official Node.js 24 build
-  (nodejs.org, nvm, fnm, Volta, setup-node; the `.nvmrc` says 22): it refuses a Homebrew or
+  the blob with [postject](https://github.com/nodejs/postject), signs the copy ad hoc on macOS and
+  keeps that Node.js's `LICENSE` for the archive and the release. It needs an official Node.js 24
+  build (nodejs.org, nvm, fnm, Volta, setup-node; the `.nvmrc` says 22): it refuses a Homebrew or
   distribution build, whose shared libraries the copy would need on every machine. The code cache
   only works on the platform that built it, so every target builds on its own runner.
 - `apps/cli/Dockerfile` copies the bundle and the licences onto distroless Node.js 24; the build

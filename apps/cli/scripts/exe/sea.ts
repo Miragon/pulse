@@ -94,8 +94,9 @@ export function injectOptions(target: ExeTarget): {
 
 /**
  * The LICENSE of the Node.js at `execPath`, the licence of an executable built from it, which its
- * archive ships as NODE_LICENSE (scripts/pack-binary.sh): an official build keeps it one level
- * above bin/node, and beside node.exe on Windows.
+ * archive ships as NODE_LICENSE (scripts/pack-binary.sh) and its release as pulse-cli-NODE_LICENSE
+ * (scripts/release-licenses.sh): an official build keeps it one level above bin/node, and beside
+ * node.exe on Windows.
  */
 export function nodeLicenceOf(execPath: string, platform: string): string {
   return platform === "win32"

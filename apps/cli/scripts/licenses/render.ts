@@ -34,7 +34,8 @@ const INTRO = [
 const NODE = [
   "Node.js is not listed: the npm package runs on yours, the image on the one of its base image,",
   "with its licence in /nodejs/LICENSE, and each executable embeds the Node.js that built it, whose",
-  "licence the .tar.xz archive of a macOS or Linux executable holds as NODE_LICENSE.",
+  "licence the .tar.xz archive of a macOS or Linux executable holds as NODE_LICENSE and the GitHub",
+  "release attaches for every executable as pulse-cli-NODE_LICENSE.",
 ]
 
 const section = (title: string, lines: readonly string[]): string[] =>

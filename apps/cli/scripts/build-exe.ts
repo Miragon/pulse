@@ -66,11 +66,16 @@ await inject(binary, SEA_RESOURCE, await readFile(blob), injectOptions(target))
 if (target.macho) run("codesign", ["--sign", "-", binary])
 
 // The licence of the Node.js the executable embeds, kept with the build: its archive ships it as
-// NODE_LICENSE (scripts/pack-binary.sh), whichever node a later step finds on the PATH.
+// NODE_LICENSE (scripts/pack-binary.sh) and its release as pulse-cli-NODE_LICENSE
+// (scripts/release-licenses.sh), whichever node a later step finds on the PATH.
 await mkdir(LICENCE_DIR, { recursive: true })
 await rm(licence, { force: true })
 if (existsSync(nodeLicence)) await copyFile(nodeLicence, licence)
-else console.error(`${nodeLicence} does not exist: scripts/pack-binary.sh needs it named.`)
+else {
+  console.error(
+    `${nodeLicence} does not exist: scripts/pack-binary.sh needs it named, and a release, which attaches it (scripts/release-licenses.sh), fails without it.`,
+  )
+}
 
 const megabytes = ((await stat(binary)).size / 1024 / 1024).toFixed(1)
 console.log(`Built ${binary} (${megabytes} MB, Node.js ${process.version})`)

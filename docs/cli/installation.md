@@ -2,9 +2,11 @@
 
 Four ways, the same CLI: the npm package (Node.js >= 22.12), Homebrew, a standalone executable
 for machines without Node.js, or the container image. The command is `pulse`, and
-`pulse-cli` is a second name of the same program. The npm package, the formula, the image and the
-`.tar.xz` archives of the macOS and Linux executables come with the CLI's licence, `LICENSE` (MIT),
-and `THIRD_PARTY_LICENSES.txt`, the licences of the works of others it bundles.
+`pulse-cli` is a second name of the same program. The npm package, the formula, the image and
+every standalone executable come with the CLI's licence, `LICENSE` (MIT), and
+`THIRD_PARTY_LICENSES.txt`, the licences of the works of others it bundles: the `.tar.xz` archives
+hold them, and each release also attaches them as files of their own, for the Windows executable
+and every executable downloaded without its archive.
 
 ## npm
 
@@ -40,8 +42,11 @@ platform that embeds Node.js 24, plus `pulse-cli-SHA256SUMS`:
 | Windows x64           | `pulse-cli-windows-x64.exe` | Windows 10 or Server 2016 or newer                       |
 
 Each macOS and Linux file also comes as `<file>.tar.xz` (about 25 MB instead of 125 MB), which
-holds the executable, the licences and `NODE_LICENSE`, the licence of the Node.js it embeds. On
-Alpine and other musl based systems, use the container image or the npm package.
+holds the executable, the licences and `NODE_LICENSE`, the licence of the Node.js it embeds. The
+release also attaches the three licence files for every executable, as `pulse-cli-LICENSE`,
+`pulse-cli-THIRD_PARTY_LICENSES.txt` and `pulse-cli-NODE_LICENSE` (all five share one Node.js
+licence), listed in `pulse-cli-SHA256SUMS` and attested like the executables. On Alpine and other
+musl based systems, use the container image or the npm package.
 
 ```sh
 base=https://github.com/Miragon/pulse/releases/latest/download

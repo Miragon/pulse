@@ -148,8 +148,7 @@ there, then c7-core's `generate` (`pnpm build` runs it) and `catalog` run in tha
 The npm package, the image (in `/usr/share/doc/pulse-cli`), the Homebrew formula and the `.tar.xz`
 archives of the macOS and Linux executables ship `apps/cli/LICENSE` and
 `apps/cli/THIRD_PARTY_LICENSES.txt` (owner decision 2026-11-12): the works of others the two
-bundles hold, each with its licence and notice files as it ships them. The raw executables a
-release attaches beside the archives, the Windows one included, carry neither. Like the catalog,
+bundles hold, each with its licence and notice files as it ships them. Like the catalog,
 the file is generated and checked in:
 `pnpm --fail-if-no-match --filter @miragon/pulse-cli third-party-licenses` writes it from the module
 graphs tsdown builds of both bundles' configs without writing a file (`apps/cli/scripts/licenses/`),
@@ -169,6 +168,21 @@ keeps the `LICENSE` of the node that runs it as `apps/cli/build/node-license/<ex
 `apps/cli/scripts/pack-binary.sh` (which `ci.yml` runs as the release does) packs it. The image
 keeps the base image's `/nodejs/LICENSE`, which `ci.yml`'s image job checks. The licence fields
 (npm, the image label, the formula) name the CLI's own, MIT.
+
+The raw executables a release attaches beside the archives, the Windows one included, get the
+same three files as release assets of their own (owner decision 2026-11-12): `pulse-cli-LICENSE`,
+`pulse-cli-THIRD_PARTY_LICENSES.txt` and `pulse-cli-NODE_LICENSE`. `publish-cli.yml`'s licences
+job writes them with `apps/cli/scripts/release-licenses.sh` from each target's kept `LICENSE`
+(an artifact of each binary job), and the assets job lists them in `pulse-cli-SHA256SUMS`,
+attests and uploads them like every asset. The release attaches one Node.js licence, which the
+five share: each target takes the newest Node.js 24 when it builds, and the script fails while
+their texts differ (carriage returns aside: the Windows build of Node.js ships its `LICENSE` with
+CRLF line ends), naming the executables of each text. It compares texts, not versions: patch
+releases of Node.js mostly share one text. `ci.yml`'s "CLI binary" legs check that each keeps one,
+the Windows one included. `apps/cli/scripts/release-licenses.test.ts` runs the script, also with
+planted licences that differ, miss or belong to no executable, and holds `publish-cli.yml` to the
+way of the licences from the binary jobs through the script to the upload, its count and its
+upload glob, each link with a planted break.
 
 ## Tests
 

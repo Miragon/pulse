@@ -1,8 +1,10 @@
 /**
  * Writes `THIRD_PARTY_LICENSES.txt`, which the npm package, the image and the archives of the
- * single executables ship beside LICENSE: the works of others the CLI's bundles hold, each with
- * its licence and notice files, from the module graphs tsdown builds of both bundles
- * (scripts/licenses/). scripts/third-party-licenses.test.ts fails while the file is out of date.
+ * single executables ship beside LICENSE and a release attaches as
+ * pulse-cli-THIRD_PARTY_LICENSES.txt (scripts/release-licenses.sh): the works of others the CLI's
+ * bundles hold, each with its licence and notice files, from the module graphs tsdown builds of
+ * both bundles (scripts/licenses/). scripts/third-party-licenses.test.ts fails while the file is
+ * out of date.
  * Usage: pnpm --fail-if-no-match --filter @miragon/pulse-cli third-party-licenses
  */
 
