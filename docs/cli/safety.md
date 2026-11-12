@@ -29,11 +29,12 @@ pulse process-instance list --profile prod --with-incident
 - `pulse api` normalizes the path before it checks the effect and sends the request
   (`/process-instance/./delete/` is `/process-instance/delete`, a bulk operation that needs
   `--yes`); paths with `#` or `;` are refused.
-- A `--url` beside `--profile` keeps a profile of your config file that holds credentials (a secret
-  header, Basic auth, OAuth, a bearer token) to the origin of its own URL: another scheme, host or
-  port fails (`CONFIG`) before any request, also in a command copied from an editor, and so does
-  every `--url` for such a profile without a URL. Drop `--url`, or point the profile at that engine
-  with `pulse config set <profile> --url <url>`. A header counts by its name, as masking reads it
-  (`Authorization`, `Cookie`, a name with token, secret, password or api-key): the value of another
-  one, such as `Ocp-Apim-Subscription-Key`, goes to that `--url`. Beside `--profile`,
-  `PULSE_CLI_URL` replaces only the URL and takes every credential of the profile there.
+- A `--url` beside `--profile` keeps a profile of your config file that holds headers or
+  credentials (Basic auth, OAuth, a bearer token) to the origin of its own URL, and every header it
+  stores counts, whatever its name: another scheme, host or port fails (`CONFIG`) before any
+  request, also in a command copied from an editor, and so does every `--url` for such a profile
+  without a URL. Drop `--url`, or point the profile at that engine with
+  `pulse config set <profile> --url <url>`. Your own `-H` and `PULSE_CLI_HEADERS` do not count (a
+  header the profile stores counts even when an `-H` replaces it) and go to the `--url` of a
+  command that runs. Beside `--profile`, `PULSE_CLI_URL` replaces only the URL and takes everything
+  the profile holds there.

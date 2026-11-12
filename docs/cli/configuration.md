@@ -117,7 +117,7 @@ pulse config delete prod
   and the `defaultProfile`: nothing of a profile applies (headers, auth, engine, flavor,
   `cockpitUrl`, timeout, output, `readOnly`), your other `PULSE_CLI_*` variables do. Beside
   `--profile p` either replaces only its URL, but a `--url` of another origin fails (CONFIG) when
-  `p` is yours and holds credentials. `config show` takes the flags and shows the result.
+  `p` is yours and holds headers or credentials. `config show` takes the flags and shows the result.
 
 ## Project file
 
@@ -156,5 +156,5 @@ pulse config path --project
   (`schema/pulse.schema.json` in `@miragon/pulse-profile`); the CLI keeps the key when it writes
   the file. The URL above serves the latest release; `@miragon/pulse-profile@<version>` pins
   yours. [Pulse for VS Code](../vscode/configuration.md) reads the same profiles.
-- Treat a project file like code: it decides where your credentials from the environment and its
-  profiles' OAuth login are sent; your own profiles' credentials keep to their [origin](#profiles).
+- Treat a project file like code: it decides where your environment's credentials and its profiles'
+  OAuth login go; your own profiles' headers and credentials keep to their [origin](#profiles).

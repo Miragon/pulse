@@ -77,8 +77,10 @@ describe("resolveConfig precedence", () => {
     PULSE_CLI_AUTH: "none",
     PULSE_CLI_READ_ONLY: "false",
   }
+  // beside --profile a --url of the profile's own origin: another one fails, since the profile
+  // holds a header (url-beside-profile.test.ts)
   const flags: ConfigFlags = {
-    url: "http://flag:8080/engine-rest/",
+    url: "http://profile:8080/flag-rest/",
     engine: "flag-engine",
     flavor: "camunda7",
     output: "table",
@@ -135,7 +137,7 @@ describe("resolveConfig precedence", () => {
   it("lets flags override the environment, the profile's headers kept by --profile", () => {
     const resolved = resolveConfig({ ...flags, profile: "p" }, env, file(profile))
     expect(resolved).toMatchObject({
-      url: "http://flag:8080/engine-rest",
+      url: "http://profile:8080/flag-rest",
       engine: "flag-engine",
       output: "table",
       timeoutMs: 1000,

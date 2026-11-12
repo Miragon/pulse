@@ -116,9 +116,9 @@ function projectOf(file: LoadedConfig | undefined, name: string): ProjectSource 
 }
 
 /**
- * Fails (CONFIG) on a `--url` flag beside a `--profile` flag that would take the credentials of
- * the `chosen` profile of the user's config file to another origin (url-beside-profile.ts); the
- * flag's URL is validated first, so an invalid one fails as such.
+ * Fails (CONFIG) on a `--url` flag beside a `--profile` flag that would take the headers or
+ * credentials of the `chosen` profile of the user's config file to another origin
+ * (url-beside-profile.ts); the flag's URL is validated first, so an invalid one fails as such.
  */
 function checkUrlBesideProfile(
   chosen: Extract<SelectedProfile, { name: string }>,
@@ -134,8 +134,8 @@ function checkUrlBesideProfile(
 /**
  * The selected profile, where it comes from and, when it comes from there, the
  * project file. A profile the file refuses fails here, when a command uses it, and so does a
- * `--url` beside `--profile` that would take the credentials of a profile of the user's config
- * file to another origin (url-beside-profile.ts).
+ * `--url` beside `--profile` that would take the headers or credentials of a profile of the
+ * user's config file to another origin (url-beside-profile.ts).
  */
 export function selectProfile(
   flags: ConfigFlags,

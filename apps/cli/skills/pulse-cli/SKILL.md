@@ -44,7 +44,8 @@ pulse ping --profile prod
   too).
 - Precedence for every setting: flag > environment variable > profile > default.
   A URL (`--url`, `PULSE_CLI_URL`) without `--profile` selects no profile: nothing of one applies.
-  Beside `--profile`, a `--url` of another origin fails for a profile of yours with credentials.
+  Beside `--profile`, a `--url` of another origin fails for a profile of yours that holds headers
+  or credentials.
 - Links to Cockpit: take `values.cockpitUrl` from `pulse config show -o json`; when it is null,
   ask the user for the Cockpit URL instead of guessing it from the engine URL.
 - Profiles, project files, environment variables, named engines and headers:

@@ -1,10 +1,11 @@
 /**
  * The editors' command for a project file's target, `--profile <name> --url <the project file's
  * URL>`, through `run()` in a repository (src/config/url-beside-profile.ts): a profile of the same
- * name in the user's config file that holds credentials for another origin fails (CONFIG) before
- * any request, the auth commands too before any login lookup; the user's profile of the project
- * file's origin, a profile of the project file alone and PULSE_CLI_URL beside `--profile` go on and
- * send what they send per value.
+ * name in the user's config file that holds a header (any, whatever its name) or a credential for
+ * another origin fails (CONFIG) before any request, the auth commands too before any login lookup;
+ * the user's profile of the project file's origin, one without headers or credentials beside the
+ * user's own `-H` and PULSE_CLI_HEADERS, a profile of the project file alone and PULSE_CLI_URL
+ * beside `--profile` go on and send what they send per value.
  */
 
 import { describe, expect, it, vi } from "vitest"
@@ -60,7 +61,7 @@ function inRepository(files: Record<string, string>, env: Record<string, string>
 }
 
 describe("the editors' command beside a profile of the same name in your config file", () => {
-  it("fails before any request when your profile holds credentials for another origin", async () => {
+  it("fails before any request when your profile holds secret headers for another origin", async () => {
     const { cli, sent } = inRepository(userFile({ url: OWN_URL, headers: SECRETS }))
     const result = await cli(EDITOR_COMMAND)
     expect(result).toMatchObject({ code: 3, stdout: "" })
@@ -68,11 +69,29 @@ describe("the editors' command beside a profile of the same name in your config 
       code: "CONFIG",
       exitCode: 3,
       message:
-        'Profile "orders" of your config file holds credentials (headers Authorization, X-Api-Key) for http://127.0.0.1:8941; pulse does not send them to http://127.0.0.1:8942, the origin --url names',
+        'Profile "orders" of your config file holds headers (Authorization, X-Api-Key) for http://127.0.0.1:8941; pulse does not send them to http://127.0.0.1:8942, the origin --url names',
       hint: "Drop --url to use the profile with its own URL, or point the profile at that engine with `pulse config set orders --url <url>`.",
     })
     expect(result.stderr).not.toMatch(/user-(token|key)/)
     expect(sent()).toEqual([])
+  })
+
+  it("fails for a header of your profile whatever its name, worded without a secret", async () => {
+    for (const name of ["X-Team", "Ocp-Apim-Subscription-Key"]) {
+      const { cli, sent } = inRepository(
+        userFile({ url: OWN_URL, headers: { [name]: "user-value" } }),
+      )
+      const result = await cli(EDITOR_COMMAND)
+      expect(result).toMatchObject({ code: 3, stdout: "" })
+      expect(errorOf(result.stderr)).toEqual({
+        code: "CONFIG",
+        exitCode: 3,
+        message: `Profile "orders" of your config file holds a header (${name}) for http://127.0.0.1:8941; pulse does not send it to http://127.0.0.1:8942, the origin --url names`,
+        hint: "Drop --url to use the profile with its own URL, or point the profile at that engine with `pulse config set orders --url <url>`.",
+      })
+      expect(result.stderr).not.toMatch(/user-value|secret|credential/i)
+      expect(sent()).toEqual([])
+    }
   })
 
   it("fails for Basic auth, OAuth and a bearer token of your profile alike", async () => {
@@ -104,6 +123,39 @@ describe("the editors' command beside a profile of the same name in your config 
       })
       // your profile replaces the project file's as a whole
       expect(headers).not.toHaveProperty("x-team")
+    }
+  })
+
+  it("goes on when your profile with a plain header names the project file's origin", async () => {
+    const { cli, engine } = inRepository(
+      userFile({ url: PROJECT_URL, headers: { "X-Team": "mine" } }),
+    )
+    expect(await cli(EDITOR_COMMAND)).toMatchObject({ code: 0, stderr: "" })
+    expect(engine.stage).toBe("book")
+    expect(engine.requests.length).toBeGreaterThan(0)
+    for (const { url, headers } of engine.requests) {
+      expect(url.startsWith(`${PROJECT_URL}/`)).toBe(true)
+      expect(headers["x-team"]).toBe("mine")
+    }
+  })
+
+  it("goes on for your profile without headers or credentials, with your own -H", async () => {
+    const own = userFile({ url: OWN_URL })
+    const bare = inRepository(own)
+    expect(await bare.cli(EDITOR_COMMAND)).toMatchObject({ code: 0, stderr: "" })
+    expect(bare.engine.stage).toBe("book")
+    for (const { url, headers } of bare.engine.requests) {
+      expect(url.startsWith(`${PROJECT_URL}/`)).toBe(true)
+      // your profile replaces the project file's as a whole, so not even its X-Team goes along
+      expect(Object.keys(headers).filter((name) => name.startsWith("x-"))).toEqual([])
+    }
+    // -H and PULSE_CLI_HEADERS are yours per run, not the profile's: they go to the --url
+    const { cli, engine } = inRepository(own, { PULSE_CLI_HEADERS: "X-Api-Key: run-key" })
+    expect(await cli([...EDITOR_COMMAND, "-H", "X-Team: run-team"])).toMatchObject({ code: 0 })
+    expect(engine.requests.length).toBeGreaterThan(0)
+    for (const { url, headers } of engine.requests) {
+      expect(url.startsWith(`${PROJECT_URL}/`)).toBe(true)
+      expect(headers).toMatchObject({ "x-team": "run-team", "x-api-key": "run-key" })
     }
   })
 
@@ -143,26 +195,32 @@ describe("the editors' command beside a profile of the same name in your config 
 describe("the auth commands with --profile beside a --url of another origin", () => {
   it("fail before any login lookup, and logout removes nothing", async () => {
     const sso = { url: OWN_URL, auth: { type: "oauth", issuer: ISSUER, clientId: "pulse-cli" } }
+    const team = { url: OWN_URL, headers: { "X-Team": "user-value" } }
     const login = cacheText(cachedLogin(T0))
-    const files = { ...userFile(sso), [TOKEN_FILE]: login }
-    for (const command of ["login", "status", "logout"]) {
-      const { cli, sent, runtime, tokensRead } = inRepository(files)
-      const result = await cli(["auth", command, "--profile", "orders", "--url", PROJECT_URL])
-      expect(result.code, command).toBe(3)
-      expect(errorOf(result.stderr)).toMatchObject({
-        code: "CONFIG",
-        message: expect.stringMatching(
-          /^Profile "orders" of your config file holds credentials \(an OAuth login\) for http:\/\/127\.0\.0\.1:8941;/,
-        ) as string,
-      })
-      expect(sent()).toEqual([])
-      expect(tokensRead()).toBe(0)
-      expect(runtime.locks).toEqual([])
-      expect(runtime.browserUrls).toEqual([])
-      expect(fileText(runtime, TOKEN_FILE)).toBe(login)
+    const cases = [
+      { orders: sso, holds: "an OAuth login" },
+      { orders: team, holds: "a header (X-Team)" },
+    ]
+    for (const { orders, holds } of cases) {
+      const files = { ...userFile(orders), [TOKEN_FILE]: login }
+      for (const command of ["login", "status", "logout"]) {
+        const { cli, sent, runtime, tokensRead } = inRepository(files)
+        const result = await cli(["auth", command, "--profile", "orders", "--url", PROJECT_URL])
+        expect(result.code, `${command}: ${holds}`).toBe(3)
+        expect(errorOf(result.stderr)).toMatchObject({
+          code: "CONFIG",
+          message: `Profile "orders" of your config file holds ${holds} for http://127.0.0.1:8941; pulse does not send it to http://127.0.0.1:8942, the origin --url names`,
+        })
+        expect(result.stderr).not.toContain("user-value")
+        expect(sent()).toEqual([])
+        expect(tokensRead()).toBe(0)
+        expect(runtime.locks).toEqual([])
+        expect(runtime.browserUrls).toEqual([])
+        expect(fileText(runtime, TOKEN_FILE)).toBe(login)
+      }
     }
     // the same command without --url reads the login, so the checks above are not vacuous
-    const { cli, tokensRead } = inRepository(files)
+    const { cli, tokensRead } = inRepository({ ...userFile(sso), [TOKEN_FILE]: login })
     expect(await cli(["auth", "status", "--profile", "orders"])).toMatchObject({ code: 0 })
     expect(tokensRead()).toBeGreaterThan(0)
   })
