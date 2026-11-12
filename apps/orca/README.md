@@ -39,7 +39,7 @@ read the stack trace. Pulse brings that view into Orca.
 
 You need the Orca desktop app, version 1.4.252 or later, and turn on plugins once: Settings →
 Plugins → **Turn on plugins**. Until the plugin is listed in
-[Miragon's Orca catalog](https://github.com/Miragon/orca-modelers), build it from a clone of this
+[Miragon's Orca catalog](https://github.com/Miragon/orca-plugins), build it from a clone of this
 repository and load it as a development plugin:
 
 ```sh

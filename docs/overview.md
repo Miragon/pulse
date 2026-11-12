@@ -13,7 +13,7 @@ Camunda 7, CIB seven and Operaton engines are running. It reaches the same engin
 The VS Code extension and the Orca plugin are early versions, built from one runtime view. The
 extension is published on the
 [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse-cockpit) and [Open VSX](https://open-vsx.org/extension/miragon-gmbh/pulse-cockpit),
-the Orca plugin is not in [Miragon's Orca catalog](https://github.com/Miragon/orca-modelers)
+the Orca plugin is not in [Miragon's Orca catalog](https://github.com/Miragon/orca-plugins)
 yet: until then you [load it from the source](./orca/installation.md#from-the-source).
 
 ## What they share
