@@ -117,7 +117,7 @@ describe("a connection the host kit builds", () => {
     expect(connection.badge).not.toHaveProperty("webUi")
   })
 
-  test("carries the engine's CLI, which names the profile of a project file's target and the URL of the default engine", () => {
+  test("carries the engine's CLI, which names the profile of a project file's target with its URL and the URL of the default engine", () => {
     const named: CliTarget[] = []
     const cli: EngineCli = { triggerCommand: () => undefined }
     const engines: EngineFactories = {
@@ -127,7 +127,11 @@ describe("a connection the host kit builds", () => {
         return cli
       },
     }
-    const fromFile: EngineTarget = { ...LOCAL, source: { kind: "file", path: "/shop/.pulse.json" } }
+    const fromFile: EngineTarget = {
+      ...LOCAL,
+      endpoint: "http://localhost:8112/engine-rest",
+      source: { kind: "file", path: "/shop/.pulse.json" },
+    }
 
     const connection = builderOver(engines).build(
       fromFile,
@@ -139,7 +143,7 @@ describe("a connection the host kit builds", () => {
 
     expect(connection.cli).toBe(cli)
     expect(named).toEqual([
-      { kind: "profile", name: "shop-dev" },
+      { kind: "profile", name: "shop-dev", endpoint: "http://localhost:8112/engine-rest" },
       { kind: "endpoint", endpoint: "http://localhost:8080/engine-rest" },
     ])
   })

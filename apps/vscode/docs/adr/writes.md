@@ -1,7 +1,7 @@
 # Guarded writes
 
 - Status: accepted
-- Last reviewed: 2026-11-12 (a button beside the can't-move sign copies the command; the command for the default engine names its URL with `--auth none`, on which the CLI takes no profile, only the user's `PULSE_CLI_*` environment, which beats a `--profile` command's profile too; a target without commands names the target policy's refusal as its read-only note; a token behind an event-based gateway is told to change a variable when a conditional event follows the gateway, and a row the engine's CLI can trigger names its command, with the profile of its project file; a token at the continuation after its event moves); 2026-11-11 (the editor refuses a number beyond the range of a double before it asks, on every engine); 2026-11-10 (the editor refuses a whole number beyond 64 bits before it asks, on every engine); 2026-10-23
+- Last reviewed: 2026-11-12 (a button beside the can't-move sign copies the command; the command for the default engine names its URL with `--auth none`, on which the CLI takes no profile, only the user's `PULSE_CLI_*` environment; the command for a project file's target names its profile with the target's URL, which a `PULSE_CLI_URL` of the user's shell does not replace; a target without commands names the target policy's refusal as its read-only note; a token behind an event-based gateway is told to change a variable when a conditional event follows the gateway, and a row the engine's CLI can trigger names its command, with the profile of its project file; a token at the continuation after its event moves); 2026-11-11 (the editor refuses a number beyond the range of a double before it asks, on every engine); 2026-11-10 (the editor refuses a whole number beyond 64 bits before it asks, on every engine); 2026-10-23
 
 ## Context
 
@@ -153,38 +153,44 @@ snapshot). The intent is resolved against that list; anything else is ignored.
 | A reason is required: trimmed, 1–500 characters, one line (`MoveReasons` in the contract, checked by core and adapter); it goes to the engine as the annotation of its operation log                                                                                                                                                                                                                                                                                   | the reason lives in the engine, not in our log                                   |
 | Variables are not part of a move in v1                                                                                                                                                                                                                                                                                                                                                                                                                                 | cancelling the source drops its locals; edit in the Variables tab first          |
 
-The refusal of a token behind an event-based gateway names the way on. A conditional event after
-the gateway goes on when a changed variable meets its condition, so every row there names the
-Variables tab. A row the engine's CLI can trigger names its command: the adapter gives it through
-the runtime view's port `EngineCli`, and the core words it after the editors' own way on
-(`CliWayOut`: "Trigger <event> with the CLI: <command>"), so no CLI command stands in the core.
-The C7 adapter's `PulseCli` gives `pulse advance <instance> --activity-id <event>` for a message, a
-signal or a timer that alone waits at its activity in the instance tree (the CLI refuses an activity
-where more than one waits), and names the engine the editor shows (`CliTarget`, from the connection
-builder): `--profile <name>` for a target of a project file, which the CLI finds when it runs in
-that file's folder or below it, and `--url <endpoint> --auth none` for the default engine of a
-folder without one, which the editor reaches without a login. A `--url` without `--profile` selects
-no profile in the CLI, so the command takes nothing of a profile the CLI would otherwise select
-itself (`PULSE_CLI_PROFILE`, else the default profile of a project file or of the user's config
-file): no headers, no login, no process engine name, no read-only flag, and such a profile that is
-missing or refused, or a broken default profile, fails nothing. Only the user's `PULSE_CLI_*`
-environment applies, the user's own shell settings: `PULSE_CLI_HEADERS`, `PULSE_CLI_ENGINE`,
-`PULSE_CLI_READ_ONLY`, `PULSE_CLI_TIMEOUT`, and `PULSE_CLI_AUTH` with its credentials, which
-`--auth none` overrides, as the editor sends no credentials to its default engine. A config file the
-CLI cannot read at all (no JSON, a project file under its former name) still fails the command, as
-it fails every command. With `--profile` the CLI resolves each value on its own as well: a
-`PULSE_CLI_*` variable beats the profile's value, so in a shell that exports `PULSE_CLI_URL` the
-command goes to that URL with the profile's engine name and headers, not to the engine the editor
-shows. The command delivers that event to this token's execution or executes its timer job, nothing
-beyond this instance, and the instance runs on to its next wait state as when the event occurs. The
-CLI refuses a suspended timer job, which the contract does not tell. The command shows in the
-tooltip and the accessible name of the diagram's can't-move sign, and a button beside the sign,
-"Copy CLI command", copies it. The view model carries the command apart from the sentence
-(`WaitRow.cliCommand`, set only on a row whose refusal names one, never read back from the text),
-and the webview sends it through the panels' `copy` intent, so each host copies it with the feedback
-it gives every copy (VS Code's status bar, Orca's frame). On a writable engine the element's name in
-the Waiting tab focuses that button, the keyboard path to it; the button names the refusal as its
-description.
+The refusal of a token behind an event-based gateway names the way on. A conditional event after the
+gateway goes on when a changed variable meets its condition, so every row there names the Variables
+tab. A row the engine's CLI can trigger names its command: the adapter gives it through the runtime
+view's port `EngineCli`, and the core words it after the editors' own way on (`CliWayOut`: "Trigger
+<event> with the CLI: <command>"), so no CLI command stands in the core. The C7 adapter's `PulseCli`
+gives `pulse advance <instance> --activity-id <event>` for a message, a signal or a timer that alone
+waits at its activity in the instance tree (the CLI refuses an activity where more than one waits),
+and names the engine the editor shows (`CliTarget`, from the connection builder): `--profile <name>
+--url <endpoint>` for a target of a project file, whose profile the CLI finds when it runs in that
+file's folder or below it, and `--url <endpoint> --auth none` for the default engine of a folder
+without one, which the editor reaches without a login. A `--url` without `--profile` selects no
+profile in the CLI, so that command takes nothing of a profile the CLI would otherwise select itself
+(`PULSE_CLI_PROFILE`, else the default profile of a project file or of the user's config file): no
+headers, no login, no process engine name, no read-only flag, and such a profile that is missing or
+refused, or a broken default profile, fails nothing. Only the user's `PULSE_CLI_*` environment
+applies, the user's own shell settings: `PULSE_CLI_HEADERS`, `PULSE_CLI_ENGINE`,
+`PULSE_CLI_READ_ONLY`, `PULSE_CLI_TIMEOUT`, and `PULSE_CLI_AUTH` with its credentials, which `--auth
+none` overrides, as the editor sends no credentials to its default engine. A config file the CLI
+cannot read at all (no JSON, a project file under its former name) still fails the command, as it
+fails every command. With `--profile` the CLI resolves each value on its own, a flag before a
+`PULSE_CLI_*` variable before the profile's value, so without the `--url` a shell that exports
+`PULSE_CLI_URL` sent the command, with the profile's engine name and headers, to that URL instead of
+the engine the editor shows. The `--url <endpoint>` beside `--profile` (owner decision 2026-11-12)
+beats the variable, so the command goes to the URL the editor shows; everything else still resolves
+per value. The profile's headers, login and process engine name go along, and a `PULSE_CLI_*`
+variable, the user's own shell setting, beats each of them: a process engine name, the profile's or
+`PULSE_CLI_ENGINE`'s, names `/engine/<name>` under that URL. A profile of the same name in the
+user's config file, which the CLI takes as a whole in place of the project file's, sends its own
+headers and login to that URL, not to its own. The command delivers that event to this token's
+execution or executes its timer job, nothing beyond this instance, and the instance runs on to its
+next wait state as when the event occurs. The CLI refuses a suspended timer job, which the contract
+does not tell. The command shows in the tooltip and the accessible name of the diagram's can't-move
+sign, and a button beside the sign, "Copy CLI command", copies it. The view model carries the
+command apart from the sentence (`WaitRow.cliCommand`, set only on a row whose refusal names one,
+never read back from the text), and the webview sends it through the panels' `copy` intent, so each
+host copies it with the feedback it gives every copy (VS Code's status bar, Orca's frame). On a
+writable engine the element's name in the Waiting tab focuses that button, the keyboard path to it;
+the button names the refusal as its description.
 
 The C7 adapter reads the activity instance tree (read-only), refuses 0, more than one or
 a multi-instance body at the source, and sends one modification on stdin: start before

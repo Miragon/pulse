@@ -89,7 +89,7 @@ export class ConnectionBuilder {
 
   private static cliTargetOf(target: EngineTarget): CliTarget {
     return target.source.kind === "file"
-      ? { kind: "profile", name: target.name }
+      ? { kind: "profile", name: target.name, endpoint: target.endpoint }
       : { kind: "endpoint", endpoint: target.endpoint }
   }
 

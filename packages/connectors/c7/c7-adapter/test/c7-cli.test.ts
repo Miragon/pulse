@@ -79,10 +79,14 @@ describe("the CLI command that triggers the event a token of a C7 family engine 
     },
   )
 
-  test("names the profile of the project file the editor reads the engine from", () => {
-    const target: CliTarget = { kind: "profile", name: "shop-dev" }
+  test("names the profile of the project file the editor reads the engine from with the editor's URL, which beats PULSE_CLI_URL", () => {
+    const target: CliTarget = {
+      kind: "profile",
+      name: "shop-dev",
+      endpoint: "http://127.0.0.1:18112/engine-rest",
+    }
     expect(commandFor(waitAt("Window", "timer"), { target })).toBe(
-      `pulse advance ${INSTANCE} --activity-id Window --profile shop-dev`,
+      `pulse advance ${INSTANCE} --activity-id Window --profile shop-dev --url http://127.0.0.1:18112/engine-rest`,
     )
   })
 
@@ -95,10 +99,10 @@ describe("the CLI command that triggers the event a token of a C7 family engine 
 
   test("quotes a word the shell would split or read, as the CLI's own ready commands do", () => {
     const wait = waitAt("Prüfung", "message", "return 'A' 7")
-    expect(commandFor(wait, { target: { kind: "profile", name: "shop dev" } })).toBe(
-      "pulse advance 'return '\\''A'\\'' 7' --activity-id 'Prüfung' --profile 'shop dev'",
-    )
     const endpoint = "http://localhost:8080/shop%20engine/engine-rest"
+    expect(commandFor(wait, { target: { kind: "profile", name: "shop dev", endpoint } })).toBe(
+      `pulse advance 'return '\\''A'\\'' 7' --activity-id 'Prüfung' --profile 'shop dev' --url '${endpoint}'`,
+    )
     expect(commandFor(waitAt("Parcel", "signal"), { target: { kind: "endpoint", endpoint } })).toBe(
       `pulse advance ${INSTANCE} --activity-id Parcel --url '${endpoint}' --auth none`,
     )

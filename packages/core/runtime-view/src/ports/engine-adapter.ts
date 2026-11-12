@@ -28,7 +28,7 @@ export interface EngineCli {
 }
 
 export type CliTarget =
-  | { readonly kind: "profile"; readonly name: string }
+  | { readonly kind: "profile"; readonly name: string; readonly endpoint: string }
   | { readonly kind: "endpoint"; readonly endpoint: string }
 
 export interface EngineAdapter {

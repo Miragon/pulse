@@ -76,7 +76,7 @@ describe("the composition root", () => {
 
   test("asks the adapter of the engine kind for its CLI, which names the target it is given", () => {
     const { c7, root } = rootWithRecorder()
-    const profile = { kind: "profile", name: "shop-c7" } as const
+    const profile = { kind: "profile", name: "shop-c7", endpoint: C7_TARGET.endpoint } as const
     const endpoint = { kind: "endpoint", endpoint: LOCAL_TARGET.endpoint } as const
 
     expect(root.cli(C7_TARGET, profile)).toBe(c7.cliOfIt)

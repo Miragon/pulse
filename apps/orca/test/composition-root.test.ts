@@ -57,7 +57,7 @@ describe("the composition root of the worker", () => {
   test("asks the adapter for its CLI, which names the target it is given", () => {
     const adapter = new FakeAdapter()
     const root = adapter.root()
-    const profile = { kind: "profile", name: "shop" } as const
+    const profile = { kind: "profile", name: "shop", endpoint: BASIC.endpoint } as const
     const endpoint = { kind: "endpoint", endpoint: LOCAL_TARGET.endpoint } as const
 
     expect(root.cli(BASIC, profile)).toBe(adapter.cliOfIt)

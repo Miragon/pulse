@@ -17,9 +17,10 @@ export class PulseCli implements EngineCli {
   }
 
   private targetOptions(): string {
+    const url = `--url ${PulseCli.shellWord(this.target.endpoint)}`
     return this.target.kind === "profile"
-      ? `--profile ${PulseCli.shellWord(this.target.name)}`
-      : `--url ${PulseCli.shellWord(this.target.endpoint)} --auth none`
+      ? `--profile ${PulseCli.shellWord(this.target.name)} ${url}`
+      : `${url} --auth none`
   }
 
   private static aloneAt(detail: InstanceDetail, waitState: WaitState): boolean {

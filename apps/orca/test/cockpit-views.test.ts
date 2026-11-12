@@ -108,9 +108,14 @@ describe("cockpit views in editor tabs", () => {
       "--url http://localhost:8080/engine-rest --auth none",
     ],
     [
-      "an engine of the project file by its profile",
-      { ...LOCAL_TARGET, name: "shop-dev", source: { kind: "file", path: "/shop/.pulse.json" } },
-      "--profile shop-dev",
+      "an engine of the project file by its profile with its URL, which beats PULSE_CLI_URL",
+      {
+        ...LOCAL_TARGET,
+        name: "shop-dev",
+        endpoint: "http://localhost:8112/engine-rest",
+        source: { kind: "file", path: "/shop/.pulse.json" },
+      },
+      "--profile shop-dev --url http://localhost:8112/engine-rest",
     ],
   ] as const)(
     "an instance behind an event-based gateway names the command of its engine's CLI for %s",
