@@ -541,10 +541,10 @@ export const CHANNEL_PUBLISH_TRIGGERS = {
 }
 
 /**
- * The action that publishes into Miragon/orca-modelers. Its tags count that repository's catalog
- * changes, not versions of the action, so only a commit pins it.
+ * The action that publishes into Miragon/orca-plugins. A full commit pins it, with its release of
+ * Miragon/orca-plugin-kit as a comment, so Dependabot moves the pin to each new release.
  */
-export const ORCA_PUBLISH_ACTION = "Miragon/orca-modelers/.github/actions/publish-plugin"
+export const ORCA_PUBLISH_ACTION = "Miragon/orca-plugin-kit/publish-plugin"
 const COMMIT_REF = /^[0-9a-f]{40}$/
 
 const grantsWrite = (job) =>
@@ -658,12 +658,12 @@ function checkOrcaPublishStep(at, job, step) {
   const ref = String(step.uses).split("@")[1] ?? ""
   if (!COMMIT_REF.test(ref)) {
     errors.push(
-      `${at}: ${ORCA_PUBLISH_ACTION} is pinned to "${ref}"; pin it to a full commit SHA, its ` +
-        `tags count catalog changes`,
+      `${at}: ${ORCA_PUBLISH_ACTION} is pinned to "${ref}"; pin it to a full commit SHA with ` +
+        `its release as a comment`,
     )
   }
   if (!String(job?.if ?? "").includes("!inputs.dry_run")) {
-    errors.push(`${at} publishes to Miragon/orca-modelers: it needs if: \${{ !inputs.dry_run }}`)
+    errors.push(`${at} publishes to Miragon/orca-plugins: it needs if: \${{ !inputs.dry_run }}`)
   }
   return errors
 }

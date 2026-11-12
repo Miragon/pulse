@@ -3,7 +3,7 @@
 ::: warning Early version
 Pulse for Orca is an early version, built from the same runtime view as
 [Pulse for VS Code](../vscode/index.md): expect rough edges and changes between releases. It is
-not in [Miragon's Orca catalog](https://github.com/Miragon/orca-modelers) yet, so for now you
+not in [Miragon's Orca catalog](https://github.com/Miragon/orca-plugins) yet, so for now you
 [load it from the source](./installation.md#from-the-source). Writes are off for every engine but a local one unless you
 turn them on.
 :::

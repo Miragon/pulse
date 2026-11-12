@@ -773,14 +773,14 @@ workspace (its header lists each check).
 - **The Orca plugin ships into Miragon's Orca catalog, never through npm**
   (`.github/workflows/publish-orca-plugin.yml`): Orca installs a plugin from committed files,
   pinned to a commit and the hash of its files, so the built folder lives in
-  `Miragon/orca-modelers` (`plugins/pulse-cockpit`, listed as `miragon.pulse-cockpit` in its
+  `Miragon/orca-plugins` (`plugins/pulse-cockpit`, listed as `miragon.pulse-cockpit` in its
   `orca-catalog.json`), never in this repository. The workflow builds `apps/orca/dist` without
   credentials, checks it with the CLI of the Orca release CI pins and hands it, with the release
   tag and the plugin's lines of the changelog (`apps/orca/scripts/release-notes.mjs`), to that
   repository's `publish-plugin` action, pinned to a commit, with a token of the release-please
   app. The action admits only what its `sources.json` names (`pulse-cockpit` from
   `Miragon/pulse`) and merges the folder and the catalog entry through two validated pull
-  requests; the job that holds the token installs nothing. Until `orca-modelers` lists
+  requests; the job that holds the token installs nothing. Until `orca-plugins` lists
   `pulse-cockpit` in its `sources.json`, release-please.yml calls it with `publish: false`: a
   release builds and checks the plugin and publishes nothing; turning it on is that one line.
 - **Engine plugins** publish to Maven Central via `publish-to-maven.yml` (Vanniktech Maven

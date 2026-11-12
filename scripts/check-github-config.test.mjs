@@ -1376,7 +1376,7 @@ describe("checkChannelPublishWorkflows", () => {
     const errors = checkChannelPublishWorkflows(docs)
     assert.equal(errors.length, 3)
     assert.match(errors[0], /publish-plugin is pinned to "main"; pin it to a full commit SHA/)
-    assert.match(errors[1], /job publish publishes to Miragon\/orca-modelers: it needs if:/)
+    assert.match(errors[1], /job publish publishes to Miragon\/orca-plugins: it needs if:/)
     assert.match(errors[2], /job publish holds an App token and runs "pnpm"/)
   })
 

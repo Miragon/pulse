@@ -1,15 +1,16 @@
 name: Publish the Orca plugin
 
-# Publishes Pulse for Orca (apps/orca) of a Pulse release into Miragon/orca-modelers, the
+# Publishes Pulse for Orca (apps/orca) of a Pulse release into Miragon/orca-plugins, the
 # repository whose catalog lists Miragon's Orca plugins. Orca installs a plugin from committed
 # files, pinned to a commit and the hash of its files, so the built folder lives there, never in
 # this repository. The build job builds apps/orca/dist without credentials and checks it with the
 # CLI of the Orca release CI pins; the publish job hands that folder, with the release tag and
-# its changelog lines, to orca-modelers' publish-plugin action, which checks it against that
-# repository's sources.json, commits it to plugins/pulse-cockpit and lists it in its catalog
-# through two pull requests the release-please app merges once orca-modelers validates them.
+# its changelog lines, to the publish-plugin action of Miragon/orca-plugin-kit, which checks it
+# against the sources.json of Miragon/orca-plugins, commits it to plugins/pulse-cockpit and lists it
+# in its catalog through two pull requests the release-please app merges once orca-plugins
+# validates them.
 # Called by release-please.yml after the release gate; a dry run builds and checks only, and so
-# does every release until the caller sets publish: orca-modelers does not list pulse-cockpit in
+# does every release until the caller sets publish: orca-plugins does not list pulse-cockpit in
 # its sources.json yet. A failed publish closes its pull request: re-run the job, it skips what
 # is on main already.
 on:
@@ -24,7 +25,7 @@ on:
         type: boolean
         default: false
       publish:
-        description: Publish into Miragon/orca-modelers; off until that repository lists the plugin
+        description: Publish into Miragon/orca-plugins; off until that repository lists the plugin
         type: boolean
         default: false
     secrets:
@@ -130,11 +131,11 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  # Holds the release-please app's token for Miragon/orca-modelers (the app is installed there
+  # Holds the release-please app's token for Miragon/orca-plugins (the app is installed there
   # with contents and pull requests write) and runs no package manager: the action commits the
-  # folder through two pull requests and merges them once orca-modelers' validate passes.
+  # folder through two pull requests and merges them once orca-plugins' validate passes.
   publish:
-    name: Publish to Miragon/orca-modelers
+    name: Publish to Miragon/orca-plugins
     needs: build
     if: ${{ inputs.publish && !inputs.dry_run }}
     runs-on: ubuntu-24.04
@@ -153,9 +154,9 @@ jobs:
           client-id: ${{ vars.RELEASE_PLEASE_APP_CLIENT_ID }}
           private-key: ${{ secrets.RELEASE_PLEASE_APP_PRIVATE_KEY }}
           owner: Miragon
-          repositories: orca-modelers
+          repositories: orca-plugins
 
-      - uses: Miragon/orca-modelers/.github/actions/publish-plugin@27d04de633e38c0c3981975b5d57f309b43dd3c0
+      - uses: Miragon/orca-plugin-kit/publish-plugin@6b56b4938c9352a8be5c666019b2f43e557235aa # v1.0.0
         with:
           token: ${{ steps.app-token.outputs.token }}
           plugins-dir: orca-plugins
