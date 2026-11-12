@@ -6,6 +6,7 @@ import { AuditedCommands } from "./audited-commands.js"
 import type { Connection, Credentials, EngineFactories } from "./connection.js"
 import { EngineBadges } from "./engine-badges.js"
 import type { EngineTarget } from "./engine-target.js"
+import { TargetPolicy } from "./target-policy.js"
 import type { WriteAudit } from "./write-audit.js"
 import { WritePolicy, type WritesSetting } from "./write-policy.js"
 import type { WritesWording } from "./writes-wording.js"
@@ -21,10 +22,7 @@ interface Writes {
   readonly commands?: ProcessCommands
 }
 
-const NO_ADAPTER: EngineAccess = {
-  writable: false,
-  note: "Read-only. Pulse cannot change data on this engine yet.",
-}
+const NO_ADAPTER = "Pulse does not change data on this engine."
 
 export class ConnectionBuilder {
   constructor(
@@ -70,13 +68,20 @@ export class ConnectionBuilder {
     const access = WritePolicy.access(target, writes, credentials, this.wording)
     const commands = access.writable ? this.engines.commands(target, credentials) : undefined
     if (commands === undefined) {
-      return { access: access.writable ? NO_ADAPTER : access }
+      return {
+        access: access.writable ? ConnectionBuilder.withoutCommands(target, credentials) : access,
+      }
     }
     const signedIn = ConnectionBuilder.identityOf(target, credentials) !== undefined
     return {
       access,
       commands: new AuditedCommands(commands, { target, environment }, this.audit, signedIn),
     }
+  }
+
+  private static withoutCommands(target: EngineTarget, credentials: Credentials): EngineAccess {
+    const refusal = TargetPolicy.refusal(target, credentials)
+    return { writable: false, note: `Read-only. ${refusal ?? NO_ADAPTER}` }
   }
 
   private static identityOf(target: EngineTarget, credentials: Credentials): string | undefined {

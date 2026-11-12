@@ -32,16 +32,17 @@ grew up; the house rules are in `apps/vscode/CLAUDE.md`.
 The coverage floors (`vitest.config.ts`, ratchets that only rise) hold all of `src` but its
 declaration files, as a whole and per layer: the core, the model reader, the webview and the host
 kit. Outside `src`, `dev/` and `scripts/` are not measured. The global floors and the host kit's
-are the values measured on 2026-11-11, rounded down; the global branches floor kept no room, so a
-new branch of `src` brings its test. The host kit's floor is what this package's tests reach,
-about half of it, since a host's coverage counts no file of the runtime view: the hosts' tests run
-the write and confirmation policies, the write audit, the audited commands, the connection
-builder, the timer scheduler, `NotificationText.printable` and part of the panel titles. Two of
-its safety rules have their tests here: the credential store's refusal of a login saved for
-another origin (`savedForAnotherEndpoint`, `test/host-kit/credential-store.test.ts`) and
+are the values measured on 2026-11-12, rounded down; a new branch of `src` brings its test. The
+host kit's floor is what this package's tests reach, about two thirds of it, since a host's
+coverage counts no file of the runtime view: the hosts' tests run the confirmation policy, the
+rest of the write policy, the write audit, the audited commands, the timer scheduler,
+`NotificationText.printable` and part of the panel titles. Two of its safety rules have their
+tests here: the credential store's refusal of a login saved for another origin
+(`savedForAnotherEndpoint`, `test/host-kit/credential-store.test.ts`) and
 `NotificationText.withoutLinks`, which defuses links in engine text
-(`test/host-kit/notification-text.test.ts`). A new rule of the host kit brings its test under
-`test/host-kit/`.
+(`test/host-kit/notification-text.test.ts`); so does the connection builder, which names a
+refused target's way out as its read-only note (`test/host-kit/connection-builder.test.ts`). A new
+rule of the host kit brings its test under `test/host-kit/`.
 
 ```sh
 pnpm --filter @miragon/pulse-runtime-view test       # unit and webview (Chromium) tests, coverage floors

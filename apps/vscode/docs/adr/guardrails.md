@@ -1,7 +1,7 @@
 # Guardrails
 
 - Status: accepted
-- Last reviewed: 2026-11-11 (two of the host kit's safety rules tested; the runtime view's global and host kit floors at the measured values); 2026-11-10 (the C7 adapter joined the c7 family as `@miragon/pulse-c7-adapter`: its closed world, knip workspace and configs on the new path; floors over the extension's host and the runtime view's host kit); 2026-11-09 (#585 merged: the closed worlds of the runtime view and the engine adapter beside the host's, the engine contract the runtime view's one contract; the profile format only in the host kit's connections; the engine contract keeps every rule in `packages/connectors/engine/engine-core`, the engine family's core); 2026-11-08 (the product's words over the extension's texts; the tones of Pulse's situation table; `@miragon/pulse-ui/tones` and `@miragon/pulse-ui/format` in the closed world; the date and number gates over core and webview; pulse-ui's brand gates over the webview)
+- Last reviewed: 2026-11-12 (the connection builder tested; the runtime view's global and host kit floors at the measured values); 2026-11-11 (two of the host kit's safety rules tested; the runtime view's global and host kit floors at the measured values); 2026-11-10 (the C7 adapter joined the c7 family as `@miragon/pulse-c7-adapter`: its closed world, knip workspace and configs on the new path; floors over the extension's host and the runtime view's host kit); 2026-11-09 (#585 merged: the closed worlds of the runtime view and the engine adapter beside the host's, the engine contract the runtime view's one contract; the profile format only in the host kit's connections; the engine contract keeps every rule in `packages/connectors/engine/engine-core`, the engine family's core); 2026-11-08 (the product's words over the extension's texts; the tones of Pulse's situation table; `@miragon/pulse-ui/tones` and `@miragon/pulse-ui/format` in the closed world; the date and number gates over core and webview; pulse-ui's brand gates over the webview)
 
 ## Context
 
@@ -124,8 +124,8 @@ repository's CI (`.github/workflows/ci.yml`) next to the server's.
   `@miragon/pulse-profile`, the profile format the host kit's connections read (owner decision
   2026-11-07).
 - Thresholds sit below the measured baseline: coverage lines/statements/functions/branches
-  globally in the runtime view 95/95/95/90 and its host kit 50/50/50/51 (both the measured values
-  rounded down since 2026-11-11, when two of the kit's safety rules got their tests), the
+  globally in the runtime view 96/96/95/90 and its host kit 67/67/66/70 (both the measured values
+  rounded down since 2026-11-12, when the connection builder got its test), the
   extension's host 54/54/52/49 (since 2026-11-10), core 98/98/98/90, the C7 adapter 92/92/98/80,
   the model adapter 98/98/98/88, webview 78/78/78/68, and in its own package, engine-core, the
   engine contract 99/99/99/90 (it held 97/97/98/90 as the extension's layer until 2026-11-09);
@@ -142,8 +142,8 @@ repository's CI (`.github/workflows/ci.yml`) next to the server's.
 - The runtime view's host kit (`packages/core/runtime-view/src/host-kit`) was left out of its
   coverage, an exclusion #585 carried over from the host. Since 2026-11-10 it is measured whole
   (none of its files needs an editor process) with a floor of its own at what the runtime view's
-  tests reach. The hosts' tests (`apps/vscode/test/host`, `apps/orca/test`) run the write and
-  confirmation policies, the write audit, the audited commands, the connection builder, the
+  tests reach. The hosts' tests (`apps/vscode/test/host`, `apps/orca/test`) run the
+  confirmation policy, the rest of the write policy, the write audit, the audited commands, the
   timer scheduler, `NotificationText.printable` and part of the panel titles, but a host's
   coverage counts no file of the runtime view, so in the runtime view's run these count as
   uncovered. Two of the kit's safety rules, which no test ran until 2026-11-11, have their tests
@@ -151,7 +151,9 @@ repository's CI (`.github/workflows/ci.yml`) next to the server's.
   (`savedForAnotherEndpoint`, in
   `packages/core/runtime-view/test/host-kit/credential-store.test.ts`) and
   `NotificationText.withoutLinks`, which defuses links in engine text
-  (`packages/core/runtime-view/test/host-kit/notification-text.test.ts`).
+  (`packages/core/runtime-view/test/host-kit/notification-text.test.ts`); so does the connection
+  builder since 2026-11-12, which names a refused target's way out as its read-only note
+  (`packages/core/runtime-view/test/host-kit/connection-builder.test.ts`).
 - Not measured: everything outside `src/`, the scripts and the dev tooling of this app and of the
   runtime view (`apps/vscode/scripts/`, `apps/vscode/dev/`, `packages/core/runtime-view/scripts/`,
   `packages/core/runtime-view/dev/`).

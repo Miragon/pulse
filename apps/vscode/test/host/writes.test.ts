@@ -349,7 +349,7 @@ describe("a connection", () => {
     expect(noAdapter.commands).toBeUndefined()
     expect(noAdapter.badge.access).toEqual({
       writable: false,
-      note: "Read-only. Pulse cannot change data on this engine yet.",
+      note: "Read-only. Pulse does not change data on this engine.",
     })
   })
 

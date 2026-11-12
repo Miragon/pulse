@@ -68,6 +68,23 @@ const XML = `<?xml version="1.0" encoding="UTF-8"?>
   <bpmn:process id="other"><bpmn:userTask id="Elsewhere" name="Elsewhere" /></bpmn:process>
 </bpmn:definitions>`
 
+const CONDITIONS = `<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="moves">
+    <bpmn:eventBasedGateway id="Gate" name="Paid?" />
+    <bpmn:intermediateCatchEvent id="Paid" name="Payment received"><bpmn:messageEventDefinition /></bpmn:intermediateCatchEvent>
+    <bpmn:intermediateCatchEvent id="Approved" name="Approved">
+      <bpmn:conditionalEventDefinition><bpmn:condition>approved</bpmn:condition></bpmn:conditionalEventDefinition>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:intermediateCatchEvent id="Waived" name="Fee waived"><bpmn:conditionalEventDefinition /></bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="g1" sourceRef="Gate" targetRef="Paid" />
+    <bpmn:sequenceFlow id="g2" sourceRef="Gate" targetRef="Approved" />
+    <bpmn:sequenceFlow id="g3" sourceRef="Gate" targetRef="Waived" />
+  </bpmn:process>
+</bpmn:definitions>`
+
+const GATEWAY_REFUSAL =
+  "The token waits at the gateway Answer? until one of the events after it occurs; Pulse does not move a token away from an event-based gateway."
+
 const INSTANCE = InstanceId("instance-1")
 const SINCE = IsoTimestamp("2026-10-21T08:00:00Z")
 
@@ -176,6 +193,12 @@ describe("the flow nodes of a deployed diagram", () => {
     expect(nodes.eventGatewayBefore("Check")).toBeUndefined()
   })
 
+  test("know the conditional events after an event-based gateway", () => {
+    expect(nodes.conditionsAfter("Wait")).toEqual([])
+    expect(nodes.conditionsAfter("End")).toEqual([])
+    expect(FlowNodes.of(CONDITIONS).conditionsAfter("Gate")).toEqual(["Approved", "Waived"])
+  })
+
   test("find the joins after an element, also when the path leaves a sub-process", () => {
     expect(nodes.joinsAfter("Review")).toEqual([])
     expect(nodes.joinsAfter("Pack")).toEqual(["Join"])
@@ -210,7 +233,7 @@ describe("the targets of a move", () => {
     ["Overdue", "A boundary event belongs to its task; pick the task instead."],
     ["End", "Moving the token to an end event can end the instance."],
     ["Answered", "This event waits behind Answer?; move the token to Answer? instead."],
-    ["Remind", "Pulse does not start multi-instance elements yet."],
+    ["Remind", "Pulse does not start multi-instance elements."],
     ["Refund", "Pulse does not start event sub-processes."],
     ["Elsewhere", "This element belongs to another process."],
   ])("refuse %s", (elementId, reason) => {
@@ -336,11 +359,7 @@ describe("the tokens that can be moved", () => {
       "This event belongs to Review order; move the token at Review order instead.",
     ],
     [[{ at: "Pack" }, { at: "Pack" }], [], "2 tokens wait here; Pulse moves only a single one."],
-    [
-      [{ at: "Answered" }],
-      [],
-      "The token waits at the gateway Answer?; Pulse does not move it yet.",
-    ],
+    [[{ at: "Answered" }], [], GATEWAY_REFUSAL],
     [
       [{ at: "Remind" }],
       [],
@@ -357,6 +376,17 @@ describe("the tokens that can be moved", () => {
   ])("refuse %o with runs %o", (tokens, runs, reason) => {
     const { rows, moves } = movesOf(detailOf(tokens, { runs }))
     expect(rows[0]).toMatchObject({ moveRefusal: reason })
+    expect(moves).toEqual([])
+  })
+
+  test("name the variables as the way on when a condition waits behind the gateway", () => {
+    const { rows, moves } = movesOf(
+      detailOf([{ at: "Paid" }, { at: "Approved" }, { at: "Waived" }]),
+      CONDITIONS,
+    )
+    const refusal =
+      "The token waits at the gateway Paid? until one of the events after it occurs; Pulse does not move a token away from an event-based gateway. Change a variable on the Variables tab to meet the condition of Approved or Fee waived."
+    expect(rows.map((row) => row.moveRefusal)).toEqual([refusal, refusal, refusal])
     expect(moves).toEqual([])
   })
 

@@ -22,14 +22,14 @@ export default mergeConfig(
         include: ["src/**/*.{ts,tsx}"],
         exclude: ["src/**/*.d.ts"],
         thresholds: {
-          lines: 95,
-          statements: 95,
+          lines: 96,
+          statements: 96,
           functions: 95,
           branches: 90,
           "src/core/**": { lines: 98, statements: 98, functions: 98, branches: 90 },
           "src/model/**": { lines: 98, statements: 98, functions: 98, branches: 88 },
           "src/webview/**": { lines: 78, statements: 78, functions: 78, branches: 68 },
-          "src/host-kit/**": { lines: 50, statements: 50, functions: 50, branches: 51 },
+          "src/host-kit/**": { lines: 67, statements: 67, functions: 66, branches: 70 },
         },
       },
       projects: [

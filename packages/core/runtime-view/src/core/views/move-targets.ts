@@ -67,7 +67,7 @@ export class MoveTargets {
       return "Pulse does not start event sub-processes."
     }
     if (this.nodes.isMultiInstance(elementId)) {
-      return "Pulse does not start multi-instance elements yet."
+      return "Pulse does not start multi-instance elements."
     }
     const repeated = this.nodes
       .scopesAround(elementId)
