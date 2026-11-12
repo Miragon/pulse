@@ -57,6 +57,14 @@ describe("profileFormat", () => {
     expect(await profileFormat(runtime, { url: "http://x", profile: "a" })).toBe("table")
   })
 
+  it("reads none for PULSE_CLI_URL without --profile, the profile's for an empty one", async () => {
+    const withUrl = (url: string) =>
+      fakeRuntime({ files: { [CONFIG_PATH]: file }, env: { PULSE_CLI_URL: url } })
+    expect(await profileFormat(withUrl("http://x"), {})).toBeUndefined()
+    expect(await profileFormat(withUrl("http://x"), { profile: "a" })).toBe("table")
+    expect(await profileFormat(withUrl(""), {})).toBe("table")
+  })
+
   it("never fails: missing files, broken files and unknown profiles give undefined", async () => {
     expect(await profileFormat(fakeRuntime(), {})).toBeUndefined()
     expect(await profileFormat(fakeRuntime(), { config: "/missing.json" })).toBeUndefined()

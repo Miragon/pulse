@@ -7,6 +7,7 @@
 
 import type { Command } from "commander"
 import { configError } from "../../config/config-error.js"
+import { noProfileReason } from "../../config/no-profile.js"
 import type { Env } from "../../config/pick.js"
 import { selectedAuth } from "../../config/resolve-auth.js"
 import { unusedToken, unusedTokenNote } from "../../config/resolve-bearer.js"
@@ -30,13 +31,27 @@ export interface NotOAuth {
   readonly source: Source
   readonly off?: string | undefined
   readonly unused?: string | undefined
+  /** Why no profile applies (a URL without `--profile`): a profile's OAuth would not help. */
+  readonly noProfile?: string | undefined
 }
 
 export function notOAuthOf(config: ResolvedConfig): NotOAuth {
-  const { auth, unusedToken } = config
+  const { auth, unusedToken, noProfile } = config
   const off = auth.type === "none" ? auth.off : undefined
   const unused = unusedToken === undefined ? undefined : unusedTokenNote(unusedToken, true)
-  return { profile: config.profile, type: auth.type, source: config.sources.auth, off, unused }
+  const { profile, sources } = config
+  return { profile, type: auth.type, source: sources.auth, off, unused, noProfile }
+}
+
+/**
+ * How to configure OAuth: a profile, or, when a URL selects no profile, a profile with OAuth passed
+ * with `--profile` (the command that sets one up) or the environment's OAuth.
+ */
+function configureHint(state: NotOAuth): string {
+  const configure = `pulse config set ${profileToSet(state.profile)} --auth oauth --oauth-issuer <url> --oauth-client-id <id>`
+  return state.noProfile === undefined
+    ? `Configure it: ${configure}`
+    : `${state.noProfile}: pass --profile <profile>, a profile with OAuth (${configure} sets one up), or set ${ENV.auth}=oauth with ${ENV.oauthIssuer} and ${ENV.oauthClientId}`
 }
 
 /**
@@ -48,9 +63,7 @@ function notOAuthHint(state: NotOAuth, env: Env): string {
   const profile = profileToSet(state.profile)
   const variable = oauthEnvVariable(env)
   const off = state.off?.includes("OAuth") === true ? state.off : undefined
-  if (off === undefined) {
-    return `Configure it: pulse config set ${profile} --auth oauth --oauth-issuer <url> --oauth-client-id <id>`
-  }
+  if (off === undefined) return configureHint(state)
   switch (state.source) {
     case "profile":
       return `${off}. Switch it on: pulse config set ${profile} --auth oauth`
@@ -117,7 +130,9 @@ async function otherTypeInstead(context: CliContext, globals: GlobalOptions, com
     if (auth?.type !== "basic") return undefined
     const unused = unusedToken({ flags, env, selected }, "basic", auth.label)
     const note = unused === undefined ? undefined : unusedTokenNote(unused, true)
-    return notOAuth(command, { profile, type: "basic", source: auth.source, unused: note }, env)
+    const noProfile = noProfileReason(flags, env, config)
+    const state = { profile, type: "basic", source: auth.source, unused: note, noProfile }
+    return notOAuth(command, state, env)
   } catch {
     return undefined
   }

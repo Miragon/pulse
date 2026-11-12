@@ -42,7 +42,7 @@ export function envFormat(runtime: Runtime, strict: boolean): OutputFormat | und
 
 /**
  * Where the profile comes from: `--config` and `--profile` as given on the command line, and a
- * `--url`, which without `--profile` selects none.
+ * `--url`, which without `--profile` selects none, as PULSE_CLI_URL does.
  */
 export interface ProfileFlags {
   readonly config?: string | undefined

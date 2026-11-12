@@ -10,45 +10,21 @@
 import { describe, expect, it } from "vitest"
 import { errorOf as lastErrorOf, T0 } from "../../test/support/cli-auth.js"
 import { errorOf, workflowSetup } from "../../test/support/cli-workflow.js"
-import { BASE_URL, fakeServer, type RecordedRequest } from "../../test/support/fake-fetch.js"
+import { BASE_URL, fakeServer } from "../../test/support/fake-fetch.js"
 import { fakeIdp, ISSUER, routeFetch } from "../../test/support/fake-idp.js"
 import { CONFIG_PATH, execute, fakeRuntime } from "../../test/support/fake-runtime.js"
+import { ADVANCE, expectBare, PROFILE_FILE as FILE } from "../../test/support/no-profile.js"
 import { ENGINE_URL, WorkflowEngine } from "../../test/support/workflow-engine.js"
 import { run } from "./run.js"
 
-const FILE = JSON.stringify({
-  defaultProfile: "orders",
-  profiles: {
-    orders: {
-      url: "https://orders.example.com/engine-rest",
-      engine: "orders",
-      output: "table",
-      headers: { Authorization: "Bearer profile-token", "X-Api-Key": "profile-key" },
-      readOnly: true,
-    },
-    basic: { auth: { type: "basic", username: "demo", passwordEnv: "ORDERS_PASSWORD" } },
-  },
-})
-
 /** The command Pulse for VS Code and Pulse for Orca show for their default engine. */
-const EDITOR_COMMAND = ["advance", "pi-1", "--activity-id", "approve", "--url", ENGINE_URL]
+const EDITOR_COMMAND = [...ADVANCE, "--url", ENGINE_URL]
 
 function setup(env: Record<string, string> = {}) {
   return workflowSetup(run, "approve", {
     env: { ORDERS_PASSWORD: "profile-password", ...env },
     files: { [CONFIG_PATH]: FILE },
   })
-}
-
-/** Every request went to the given URL, without an engine name and without a profile's header. */
-function expectBare(requests: readonly RecordedRequest[]): void {
-  expect(requests.length).toBeGreaterThan(0)
-  for (const { url, headers } of requests) {
-    expect(url.startsWith(`${ENGINE_URL}/`)).toBe(true)
-    expect(url).not.toContain("/engine/")
-    expect(headers).not.toHaveProperty("authorization")
-    expect(headers).not.toHaveProperty("x-api-key")
-  }
 }
 
 describe("a --url without --profile", () => {

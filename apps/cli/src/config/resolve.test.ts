@@ -112,8 +112,8 @@ describe("resolveConfig precedence", () => {
     })
   })
 
-  it("lets the environment override the profile", () => {
-    const resolved = resolveConfig({}, env, file(profile))
+  it("lets the environment override the profile --profile names, PULSE_CLI_URL its URL too", () => {
+    const resolved = resolveConfig({ profile: "p" }, env, file(profile))
     expect(resolved).toMatchObject({
       url: "http://env:8080/engine-rest",
       engine: "env-engine",
@@ -255,7 +255,7 @@ describe("resolveConfig precedence", () => {
     return { value: fallback, source: "default" }
   }
 
-  /** The choice without its profile value when a `--url` without `--profile` selects none. */
+  /** The choice without its profile value when a URL without `--profile` selects none. */
   function applied<T>([flag, env, profile]: Choice<T>, selected: boolean): Choice<T> {
     return [flag, env, selected ? profile : undefined]
   }
@@ -279,8 +279,10 @@ describe("resolveConfig precedence", () => {
           profileFlag: fc.constantFrom(undefined, "p"),
         }),
         (c) => {
-          // the profile is the default one, or --profile names it; a --url alone selects none
-          const selected = c.profileFlag !== undefined || c.url[0] === undefined
+          // the profile is the default one, or --profile names it; a URL alone (--url or
+          // PULSE_CLI_URL) selects none
+          const selected =
+            c.profileFlag !== undefined || (c.url[0] === undefined && c.url[1] === undefined)
           const flags = {
             profile: c.profileFlag,
             url: c.url[0],

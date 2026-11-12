@@ -1,6 +1,6 @@
 /**
  * The engine adapter of a run, chosen before the commands are registered: `--flavor`, then
- * PULSE_CLI_FLAVOR, then the `flavor` of the selected profile (none for a `--url` without
+ * PULSE_CLI_FLAVOR, then the `flavor` of the selected profile (none for a URL without
  * `--profile`), else camunda7.
  */
 

@@ -1,15 +1,16 @@
-/** A `--url` without `--profile` selects no profile (resolve.ts): what it leaves out. */
+/** A URL without `--profile` selects no profile (resolve.ts): what it leaves out. */
 
 import { type Env, nonEmpty } from "./pick.js"
 import { type AuthConfig, type ConfigFlags, ENV, type LoadedConfig } from "./types.js"
 
-export function urlWithoutProfile(flags: ConfigFlags): boolean {
-  return nonEmpty(flags.url) !== undefined && nonEmpty(flags.profile) === undefined
+/** What gives a URL that selects no profile: `--url`, else PULSE_CLI_URL; none beside `--profile`. */
+export function urlWithoutProfile(flags: ConfigFlags, env: Env): string | undefined {
+  if (nonEmpty(flags.profile) !== undefined) return undefined
+  if (nonEmpty(flags.url) !== undefined) return "--url"
+  return nonEmpty(env[ENV.url]) === undefined ? undefined : ENV.url
 }
 
-const URL_WITHOUT_PROFILE = "--url without --profile selects no profile"
-
-/** The default profile a `--url` leaves out, broken or not, by the file that names it. */
+/** The default profile a URL leaves out, broken or not, by the file that names it. */
 function defaultLeftOut(file: LoadedConfig | undefined): string | undefined {
   if (file === undefined) return undefined
   const broken = file.defaultProblem
@@ -20,17 +21,37 @@ function defaultLeftOut(file: LoadedConfig | undefined): string | undefined {
   return `the default profile of ${where}`
 }
 
-/** Why no profile applies (`config show`), also why no credentials went (a 401's hint). */
+/** The profile a URL without `--profile` leaves out: PULSE_CLI_PROFILE, else a default profile. */
+function leftOut(env: Env, file: LoadedConfig | undefined): string | undefined {
+  return nonEmpty(env[ENV.profile]) === undefined ? defaultLeftOut(file) : ENV.profile
+}
+
+/**
+ * Why no profile applies (`config show`, the hints of the auth commands): what gives the URL and
+ * the profile it leaves out, if any.
+ */
+export function noProfileReason(
+  flags: ConfigFlags,
+  env: Env,
+  file: LoadedConfig | undefined,
+): string | undefined {
+  const by = urlWithoutProfile(flags, env)
+  if (by === undefined) return undefined
+  const selectsNone = `${by} without --profile selects no profile`
+  const left = leftOut(env, file)
+  return left === undefined ? selectsNone : `${selectsNone}, so ${left} does not apply`
+}
+
+/** `noProfileReason`, which a 401's hint also names when a profile was left out (`off`). */
 export function withoutProfile(
   auth: AuthConfig,
   flags: ConfigFlags,
   env: Env,
   file: LoadedConfig | undefined,
 ): { readonly auth: AuthConfig; readonly noProfile?: string } {
-  if (!urlWithoutProfile(flags)) return { auth }
-  const left = nonEmpty(env[ENV.profile]) === undefined ? defaultLeftOut(file) : ENV.profile
-  if (left === undefined) return { auth, noProfile: URL_WITHOUT_PROFILE }
-  const noProfile = `${URL_WITHOUT_PROFILE}, so ${left} does not apply`
+  const noProfile = noProfileReason(flags, env, file)
+  if (noProfile === undefined) return { auth }
+  if (leftOut(env, file) === undefined) return { auth, noProfile }
   if (auth.type !== "none" || auth.off !== undefined) return { auth, noProfile }
   return { auth: { ...auth, off: noProfile }, noProfile }
 }

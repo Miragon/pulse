@@ -26,11 +26,12 @@ pulse ping
 ```
 
 A repository may ship its engines as profiles in a project file (`.pulse.json`): check
-`pulse config list` first (scope `project`), a bare `pulse ping` then uses its default.
+`pulse config list` first (scope `project`); without `PULSE_CLI_URL` a bare `pulse ping` then uses
+its default.
 
-Or keep each engine in a profile and pick one with `--profile`. `PULSE_CLI_URL` overrides the URL of
-every profile (and its credentials go along), so unset it first; a `--url` without `--profile` uses
-no profile:
+Or keep each engine in a profile and pick one with `--profile`. Unset `PULSE_CLI_URL` first: beside
+`--profile` it overrides the profile's URL (and its credentials go along), and without `--profile`
+it uses no profile, as a `--url` does:
 
 ```sh
 unset PULSE_CLI_URL
@@ -42,7 +43,7 @@ pulse ping --profile prod
 - `pulse ping` prints `{url, engine, reachable, version, engines, latencyMs, auth}` (`user`
   too).
 - Precedence for every setting: flag > environment variable > profile > default.
-  A `--url` without `--profile` selects no profile, so nothing of one applies.
+  A URL (`--url`, `PULSE_CLI_URL`) without `--profile` selects no profile: nothing of one applies.
 - Links to Cockpit: take `values.cockpitUrl` from `pulse config show -o json`; when it is null,
   ask the user for the Cockpit URL instead of guessing it from the engine URL.
 - Profiles, project files, environment variables, named engines and headers:
@@ -150,7 +151,7 @@ read `engineMessage` and fix the cause instead of retrying. On exit 4: `pulse gu
   `CONFIRMATION_REQUIRED`). Add `--yes` only when the user asked for exactly that change.
 - `--read-only`, `PULSE_CLI_READ_ONLY=1` or a profile created with `--read-only` refuse every
   command whose effect is not `read` (exit 2, `READ_ONLY`). Use read-only profiles for production;
-  a profile guards only the commands that use it, and a `--url` without `--profile` uses none.
+  a profile guards only the commands that use it, and a URL without `--profile` uses none.
 
 ## Topics
 

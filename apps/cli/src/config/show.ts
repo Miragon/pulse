@@ -75,7 +75,7 @@ export interface ConfigView {
   readonly profile: string | null
   /** The file the selected profile comes from: the project file or the config file. */
   readonly profileFile: string | null
-  /** Why no profile applies to a `--url` without `--profile`; absent otherwise. */
+  /** Why no profile applies to a URL without `--profile`; absent otherwise. */
   readonly noProfile?: string
   readonly values: {
     readonly url: ConfigValue<string>

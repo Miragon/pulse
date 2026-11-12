@@ -1,8 +1,8 @@
 /**
- * A `--url` without `--profile` selects no profile (resolve.ts): nothing of the profile the CLI
- * would select otherwise applies (PULSE_CLI_PROFILE, a defaultProfile), a profile it could not
- * use fails nothing, and the environment's own settings still apply. `--profile p --url X` stays
- * per value, and PULSE_CLI_URL keeps the profile.
+ * A URL without `--profile`, `--url` or PULSE_CLI_URL, selects no profile (resolve.ts): nothing of
+ * the profile the CLI would select otherwise applies (PULSE_CLI_PROFILE, a defaultProfile), a
+ * profile it could not use fails nothing, and the environment's own settings still apply.
+ * `--profile p` with either URL stays per value, and a blank one is none.
  */
 
 import { describe, expect, it } from "vitest"
@@ -155,13 +155,83 @@ describe("beside --profile or without a flag", () => {
     expect(basic).toMatchObject({ type: "basic", username: "demo", password: "profile-password" })
   })
 
-  it("a blank --url is no --url, and PULSE_CLI_URL replaces only the profile's URL", () => {
+  it("a blank --url is no --url", () => {
     expect(resolveConfig({ url: " " }, ENV, FILE)).toMatchObject({
       profile: "orders",
       url: PROFILE_URL,
     })
-    const fromEnv = resolveConfig({}, { ...ENV, PULSE_CLI_URL: URL }, FILE)
-    expect(fromEnv).toMatchObject({ profile: "orders", url: URL, headers: ORDERS.headers })
-    expect(fromEnv.noProfile).toBeUndefined()
+  })
+})
+
+describe("PULSE_CLI_URL without --profile, as a --url", () => {
+  const env = { ...ENV, PULSE_CLI_URL: URL }
+
+  /** leftOut, the URL from PULSE_CLI_URL, which the sentence names. */
+  function fromEnv(what: string) {
+    const noProfile = `PULSE_CLI_URL without --profile selects no profile, so ${what} does not apply`
+    const sources = { ...BARE.sources, url: "env" }
+    return { ...BARE, auth: { type: "none", off: noProfile }, noProfile, sources }
+  }
+
+  it("takes nothing of the default profile, nor of the one PULSE_CLI_PROFILE names", () => {
+    expect(resolveConfig({}, env, FILE)).toEqual(fromEnv("the default profile of the config file"))
+    expect(selectProfile({}, { PULSE_CLI_URL: ` ${URL} ` }, FILE)).toEqual({})
+    expect(resolveConfig({}, { ...env, PULSE_CLI_PROFILE: "basic" }, FILE)).toEqual(
+      fromEnv("PULSE_CLI_PROFILE"),
+    )
+  })
+
+  it("fails on no profile it would not use: a missing or refused one, a broken default", () => {
+    for (const name of ["gone", "broken"]) {
+      expect(resolveConfig({}, { ...env, PULSE_CLI_PROFILE: name }, FILE).url).toBe(URL)
+    }
+    const dangling: LoadedConfig = {
+      profiles: { orders: ORDERS },
+      defaultProblem: { problem: { code: "invalid-name", key: "defaultProfile" } },
+    }
+    expect(resolveConfig({}, env, dangling)).toEqual(
+      fromEnv("the default profile of the config file"),
+    )
+    expect(resolveConfig({}, { PULSE_CLI_URL: URL }, undefined)).toEqual({
+      ...BARE,
+      noProfile: "PULSE_CLI_URL without --profile selects no profile",
+      sources: { ...BARE.sources, url: "env" },
+    })
+  })
+
+  it("keeps the environment's own headers, never the profile's", () => {
+    const resolved = resolveConfig({}, { ...env, PULSE_CLI_HEADERS: "X-Shell: s" }, FILE)
+    expect(resolved.headers).toEqual({ "X-Shell": "s" })
+    expect(resolved.sources.headers).toBe("env")
+  })
+
+  it("beside --profile p replaces the URL of p only; beside --url the flag gives the URL", () => {
+    const resolved = resolveConfig({ profile: "orders" }, env, FILE)
+    expect(resolved).toMatchObject({
+      profile: "orders",
+      url: URL,
+      engine: "orders",
+      headers: ORDERS.headers,
+      readOnly: true,
+      sources: { url: "env", engine: "profile", headers: "profile", readOnly: "profile" },
+    })
+    expect(resolved.noProfile).toBeUndefined()
+    const flag = resolveConfig({ url: PROFILE_URL }, env, FILE)
+    expect(flag).toMatchObject({ url: PROFILE_URL, sources: { url: "flag" } })
+    expect(flag.noProfile).toBe(
+      `${LEFT_OUT}, so the default profile of the config file does not apply`,
+    )
+  })
+
+  it("an empty or blank PULSE_CLI_URL is none: the default profile applies", () => {
+    for (const blank of ["", " "]) {
+      const resolved = resolveConfig({}, { ...ENV, PULSE_CLI_URL: blank }, FILE)
+      expect(resolved).toMatchObject({
+        profile: "orders",
+        url: PROFILE_URL,
+        headers: ORDERS.headers,
+      })
+      expect(resolved.noProfile).toBeUndefined()
+    }
   })
 })

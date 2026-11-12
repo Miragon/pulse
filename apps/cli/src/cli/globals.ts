@@ -27,7 +27,7 @@ export const GLOBAL_OPTIONS: readonly GlobalOptionSpec[] = [
     long: "url",
     value: "<url>",
     description:
-      "REST API root, e.g. http://localhost:8080/engine-rest (env PULSE_CLI_URL); without --profile, the flag selects no profile",
+      "REST API root, e.g. http://localhost:8080/engine-rest (env PULSE_CLI_URL); without --profile, either selects no profile",
   },
   {
     long: "engine",

@@ -97,7 +97,7 @@ export function showRows(view: ConfigView): Record<string, unknown>[] {
   }))
 }
 
-/** The profile line's value: the profile, else none, with why for a `--url` without `--profile`. */
+/** The profile line's value: the profile, else none, with why for a URL without `--profile`. */
 function profileText(view: ConfigView): string {
   if (view.profile === null) {
     return view.noProfile === undefined ? "(none)" : `(none: ${view.noProfile})`

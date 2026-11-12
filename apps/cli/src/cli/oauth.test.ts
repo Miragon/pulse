@@ -314,12 +314,14 @@ describe("OAuth on dry-run, ping and api", () => {
   it("warns when the access token would travel over plain http beyond loopback", async () => {
     const warning =
       "Warning: pulse sends the OAuth access token over plain http to 192.168.1.125:9198; anyone on the network path can read and reuse it. Use https:// for the engine URL (RFC 6750 §5.3).\n"
+    // PULSE_CLI_URL replaces the URL of the profile --profile names; alone it selects none
+    const count = ["process-definition", "count", "--profile", "p"]
     const lan = setup({ env: { PULSE_CLI_URL: "http://192.168.1.125:9198/engine-rest" } })
-    const sent = await lan.cli(["process-definition", "count"])
+    const sent = await lan.cli(count)
     expect(sent.code).toBe(0)
     expect(sent.stderr).toBe(warning)
     const dryRun = setup({ env: { PULSE_CLI_URL: "http://192.168.1.125:9198/engine-rest" } })
-    const preview = await dryRun.cli(["process-definition", "count", "--dry-run"])
+    const preview = await dryRun.cli([...count, "--dry-run"])
     expect(preview.stderr).not.toContain("plain http")
     for (const url of [
       "http://localhost:8080/engine-rest",
@@ -328,12 +330,12 @@ describe("OAuth on dry-run, ping and api", () => {
       "https://camunda.example.com/engine-rest",
     ]) {
       const quiet = setup({ env: { PULSE_CLI_URL: url } })
-      expect((await quiet.cli(["process-definition", "count"])).stderr).toBe("")
+      expect((await quiet.cli(count)).stderr).toBe("")
     }
     const basic = setup({
       env: { PULSE_CLI_URL: "http://10.0.0.1/engine-rest", PULSE_CLI_AUTH: "none" },
     })
-    expect((await basic.cli(["process-definition", "count"])).stderr).not.toContain("plain http")
+    expect((await basic.cli(count)).stderr).not.toContain("plain http")
   })
 
   it("adds pulse auth status to the hint of a redirect", async () => {

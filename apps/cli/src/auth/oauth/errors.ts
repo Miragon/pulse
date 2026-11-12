@@ -31,7 +31,7 @@ export interface LoginOwner {
   readonly projectDirectory?: string | undefined
   /** The config file named by `--config` or PULSE_CLI_CONFIG the profile comes from. */
   readonly configFile?: string | undefined
-  /** A `--url` without `--profile` left the profile out: the environment's login. */
+  /** A URL without `--profile` left the profile out: the environment's login. */
   readonly byUrl?: boolean | undefined
 }
 

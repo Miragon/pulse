@@ -1,8 +1,8 @@
 /**
  * Resolves the effective configuration. Precedence per value: flag > environment > profile >
- * default, but a `--url` without `--profile` selects no profile (no-profile.ts). Pure: the config
- * file content and the environment are passed in. The validators are shared with the config file
- * parser and the `pulse config` edit functions.
+ * default, but a URL (`--url` or PULSE_CLI_URL) without `--profile` selects no profile
+ * (no-profile.ts). Pure: the config file content and the environment are passed in. The
+ * validators are shared with the config file parser and the `pulse config` edit functions.
  */
 
 import {
@@ -100,7 +100,7 @@ function profileName(
 ): { name: string; origin: ProfileOrigin } | undefined {
   const flag = nonEmpty(flags.profile)
   if (flag !== undefined) return { name: flag, origin: "flag" }
-  if (urlWithoutProfile(flags)) return undefined
+  if (urlWithoutProfile(flags, env) !== undefined) return undefined
   const fromEnv = nonEmpty(env[ENV.profile])
   if (fromEnv !== undefined) return { name: fromEnv, origin: "env" }
   const broken = file?.defaultProblem

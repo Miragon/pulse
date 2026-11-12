@@ -1,9 +1,9 @@
 # Configuration
 
-Every setting is resolved per value: **flag > environment variable > profile > default**, but a
-`--url` without `--profile` selects [no profile](#profiles). `pulse config show` prints the
-effective values and where each one comes from. Profiles live in your config file and, for a
-repository, in its [project file](#project-file). Every option: `pulse config <command> --help`.
+Each setting resolves per value: **flag > environment variable > profile > default**, but a URL
+(`--url`, `PULSE_CLI_URL`) without `--profile` selects [no profile](#profiles). `pulse config show`
+prints the effective values and where each comes from. Profiles live in your config file and, for
+a repository, in its [project file](#project-file). Every option: `pulse config <command> --help`.
 
 ## Global options
 
@@ -17,10 +17,10 @@ list with meanings and variables: `pulse ping --help`.
 
 | Variable                  | Meaning                                                                                    |
 | ------------------------- | ------------------------------------------------------------------------------------------ |
-| `PULSE_CLI_URL`           | REST API root                                                                              |
+| `PULSE_CLI_URL`           | REST API root; without `--profile` it selects [no profile](#profiles)                      |
 | `PULSE_CLI_ENGINE`        | Named process engine                                                                       |
 | `PULSE_CLI_FLAVOR`        | Engine product: `operaton`, `cibseven` or `camunda7` (default), see [Engines](#engines)    |
-| `PULSE_CLI_PROFILE`       | Profile to use instead of the default profile                                              |
+| `PULSE_CLI_PROFILE`       | Profile to use instead of the default profile; a URL without `--profile` leaves it out     |
 | `PULSE_CLI_CONFIG`        | Config file location; the file must exist, and no project file is used                     |
 | `PULSE_CLI_OUTPUT`        | `json` or `table`                                                                          |
 | `PULSE_CLI_TIMEOUT`       | Request timeout in milliseconds                                                            |
@@ -113,10 +113,10 @@ pulse config delete prod
   fix in an editor: the commands write the whole file and leave such a file as it is.
 - Changing or removing a profile's OAuth settings removes the cached login of the old ones, unless
   another profile shares it, see [shared logins](authentication.md#shared-logins).
-- A `--url` without `--profile` leaves out `PULSE_CLI_PROFILE` and the `defaultProfile`: nothing
-  of a profile applies (headers, auth, engine, flavor, `cockpitUrl`, timeout, output, `readOnly`),
-  your other `PULSE_CLI_*` variables do. `--profile p --url <url>` and `PULSE_CLI_URL` replace only
-  the profile's URL. `config show` takes the global flags and shows what a combination resolves to.
+- A URL without `--profile` (`--url`, a non-empty `PULSE_CLI_URL`) leaves out `PULSE_CLI_PROFILE`
+  and the `defaultProfile`: nothing of a profile applies (headers, auth, engine, flavor,
+  `cockpitUrl`, timeout, output, `readOnly`), your other `PULSE_CLI_*` variables do. Beside
+  `--profile p` either replaces only its URL. `config show` takes the flags and shows the result.
 
 ## Project file
 
@@ -141,9 +141,9 @@ pulse config path --project
 
 - Its profiles join yours. On a name clash your own profile wins as a whole. The project's
   `defaultProfile`, without one its only profile, wins inside the repository, so a bare
-  `pulse status` reaches its engine. A `defaultProfile` that names none of its profiles, or an
-  only profile without a valid name, leaves no default (a command needs `--profile`,
-  `PULSE_CLI_PROFILE` or `--url`), never yours.
+  `pulse status` reaches its engine unless `PULSE_CLI_URL` is set. A `defaultProfile` that names
+  none of its profiles, or an only profile without a valid name, leaves no default (a command
+  needs `--profile`, `PULSE_CLI_PROFILE` or a URL), never yours.
 - A project file names engines, never credentials: a profile with a password, secret, token,
   their `*Env` variable or a secret header is refused, so no command reads a variable a
   repository chose. Credentials come from the environment

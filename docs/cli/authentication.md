@@ -7,10 +7,10 @@ one, and [headers](#other-headers) for other schemes. Every option: `pulse auth 
 
 - The type comes from `--auth none|basic|oauth|bearer`, `PULSE_CLI_AUTH` or the profile. Without
   one, a username selects `basic` and a token selects `bearer`. OAuth is never implied.
-- Each value resolves on its own: flag > environment variable > profile. A `--url` without
-  `--profile` selects [no profile](configuration.md#profiles), so no profile's credentials or
-  headers go along. Beside `--profile`, and with `PULSE_CLI_URL`, the profile's credentials go to
-  that URL: check `pulse config show`.
+- Each value resolves on its own: flag > environment variable > profile. A URL without `--profile`
+  (`--url` or `PULSE_CLI_URL`) selects [no profile](configuration.md#profiles), so no profile's
+  credentials or headers go along. Beside `--profile` either URL replaces the profile's, and its
+  credentials go there: check `pulse config show`.
 - Secrets are never plain flags and are masked (`***`) in output unless `--show-secrets`. In an
   engine's error text (`message`, `engineMessage`) they stay masked even then.
 
@@ -80,8 +80,8 @@ $ pulse process-instance list --profile sso
   `ssh -L 8765:127.0.0.1:8765 host` and open the URL locally.
 - `auth status` shows user, scopes and expiry without network access; exit 4 when a new login is
   needed. `auth logout` revokes the refresh token (if the provider supports it) and removes the
-  login. A `--url` without `--profile` uses the login of the `PULSE_CLI_OAUTH_*` variables: give
-  `auth login`, `status` and `logout` the same `--url`.
+  login. A URL without `--profile` uses the login of the `PULSE_CLI_OAUTH_*` variables: give
+  `auth login`, `status` and `logout` the same `--url`, or run them with the same `PULSE_CLI_URL`.
 - Tokens are cached in `~/.config/pulse-cli/tokens` (mode `0600`). Changing issuer, client, audience
   or scopes needs a new login.
 - A token is refreshed a tenth of its lifetime before it expires, at most 60 s and at least 5 s

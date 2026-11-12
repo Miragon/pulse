@@ -288,7 +288,7 @@ export function resolveOAuth(context: OAuthContext, selectedBy: string): OAuthCo
       login: loginOf(context.selected),
       projectDirectory: context.selected.project?.directory,
       configFile: context.selected.configFile,
-      byUrl: urlWithoutProfile(context.flags) || undefined,
+      byUrl: urlWithoutProfile(context.flags, context.env) === undefined ? undefined : true,
     }),
     clientId: validateClientId(clientId.value, clientId.label),
     scopes: validateScopes(scopes.value, scopes.label),
