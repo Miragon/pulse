@@ -5,7 +5,7 @@ export default mergeConfig(
   sharedConfig,
   defineConfig({
     test: {
-      include: ["src/**/*.test.ts"],
+      include: ["src/**/*.test.ts", "test/**/*.test.ts"],
       coverage: {
         // The generated SDK behind ./sdk, one function per operation of the spec: no test here
         // calls them (the engine connector's wire tests and the engine suites do), and only

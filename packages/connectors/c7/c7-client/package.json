@@ -56,10 +56,10 @@
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
-    "third-party-licenses": "THIRD_PARTY_LICENSES_UPDATE=1 vitest run src/third-party-licenses.test.ts --coverage.enabled=false",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint src",
-    "lint:fix": "eslint src --fix",
+    "third-party-licenses": "THIRD_PARTY_LICENSES_UPDATE=1 vitest run test/third-party-licenses.test.ts --coverage.enabled=false",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
+    "lint": "eslint src test",
+    "lint:fix": "eslint src test --fix",
     "generate": "openapi-ts"
   },
   "devDependencies": {

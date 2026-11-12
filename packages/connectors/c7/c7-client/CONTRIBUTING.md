@@ -48,7 +48,7 @@ checked in, and CI's TypeScript job fails when the build rewrites it.
 The SDK holds works of others: the spec's descriptions (Apache License 2.0, Operaton's `LICENSE`
 and `NOTICE` in c7-core's `spec/`), the fetch client openapi-ts copies into `client/` and `core/`
 and the comments it writes into `client.gen.ts` and `sdk.gen.ts` (MIT). `THIRD_PARTY_LICENSES.txt`
-lists them with their licence files and ships in the tarball; `src/third-party-licenses.test.ts`
+lists them with their licence files and ships in the tarball; `test/third-party-licenses.test.ts`
 reads the generated files and every other source the tarball ships (a copy of the client must
 equal openapi-ts's template and no other file may copy one, only `sdk.gen.ts` and `types.gen.ts`
 may carry the spec's texts, only `client.gen.ts` and `sdk.gen.ts` openapi-ts's comments) and

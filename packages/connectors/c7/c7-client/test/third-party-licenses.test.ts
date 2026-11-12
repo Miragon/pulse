@@ -85,7 +85,7 @@ const TEXT: LicenceFileText = {
     "The npm package @miragon/pulse-c7-client holds Miragon's own code, under the MIT licence in",
     "LICENSE, and the SDK @hey-api/openapi-ts generates from the OpenAPI document of the Operaton",
     "REST API, which holds the works listed here, each under its own licence.",
-    "packages/connectors/c7/c7-client/src/third-party-licenses.test.ts of",
+    "packages/connectors/c7/c7-client/test/third-party-licenses.test.ts of",
     "https://github.com/Miragon/pulse writes this file from the generated SDK: src/generated,",
     "which tsc compiles into dist/generated.",
   ],
