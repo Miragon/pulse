@@ -56,7 +56,7 @@
     "golden:update": "turbo run build --filter=@miragon/pulse-cli^... --output-logs=errors-only && GOLDEN_UPDATE=1 vitest run --coverage.enabled=false"
   },
   "dependencies": {
-    "commander": "15.0.0"
+    "commander": "15.1.0"
   },
   "devDependencies": {
     "@miragon/pulse-c7-core": "workspace:*",

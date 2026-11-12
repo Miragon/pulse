@@ -36,7 +36,7 @@ folder of a release (CI extracts the pinned `.deb`).
 The plugin rides Pulse's release train: release-please bumps `apps/orca/package.json` and
 `apps/orca/orca-plugin.json` with every Pulse release, and after the release approval
 `.github/workflows/publish-orca-plugin.yml` builds and checks the plugin folder. Publishing it
-into [Miragon/orca-modelers](https://github.com/Miragon/orca-modelers) is off for now
+into [Miragon/orca-plugins](https://github.com/Miragon/orca-plugins) is off for now
 (`publish: false` in `.github/workflows/release-please.yml`), until that repository lists
 `pulse-cockpit` in its `sources.json`. The whole train:
 [the repository's CLAUDE.md](../../CLAUDE.md#releases).

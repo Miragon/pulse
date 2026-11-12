@@ -156,9 +156,9 @@ updates:
           - "minor"
 
   # Compose file, the playground stack (playground/docker/docker-compose.yml): moves the images
-  # it pins (the dev profile's CIB seven Run, Keycloak). dependabot-automerge.yml leaves these out
-  # (its paths name nothing under playground/docker), and no CI job starts the stack: before a
-  # merge, start it on the new image (pnpm stack:up, --auth for Keycloak).
+  # it pins (the dev profile's CIB seven Run, Keycloak). dependabot-automerge-eligibility.yml
+  # leaves these out (its paths name nothing under playground/docker), and no CI job starts the
+  # stack: before a merge, start it on the new image (pnpm stack:up, --auth for Keycloak).
   - package-ecosystem: "docker-compose"
     directory: "/playground/docker"
     schedule:
@@ -201,7 +201,7 @@ updates:
   # The bump runs ci.yml's "Starter try-out engine" (scope starter-engine): the new image turns
   # healthy, answers an anonymous call with 401 and demo/demo with 200, deploys invoice and
   # ReviewInvoice, and a container on pulse-starter_default reaches it, the README's container
-  # recipe. dependabot-automerge.yml leaves it out (its paths name no compose file), so it
+  # recipe. dependabot-automerge-eligibility.yml leaves it out (its paths name no compose file), so it
   # merges by hand once that job is green.
   - package-ecosystem: "docker-compose"
     directory: "/templates/composed-server"

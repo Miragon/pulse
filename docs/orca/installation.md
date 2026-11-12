@@ -1,7 +1,7 @@
 # Installation
 
 Pulse for Orca needs Orca 1.4.252 or later on the desktop. It is not published yet: until
-[Miragon's Orca catalog](https://github.com/Miragon/orca-modelers) lists it next to the Miragon
+[Miragon's Orca catalog](https://github.com/Miragon/orca-plugins) lists it next to the Miragon
 modelers, you [load it from the source](#from-the-source). The two sections after it describe the
 install once it is listed.
 
@@ -19,12 +19,12 @@ Orca, and a release asks again when its access changes.
 ## From Miragon's catalog
 
 If a release is not in Orca's directory yet, add the catalog in Settings → Plugins → ⋯ →
-**Catalog sources…** (`https://github.com/miragon/orca-modelers.git`, ref `main`), or on the
+**Catalog sources…** (`https://github.com/miragon/orca-plugins.git`, ref `main`), or on the
 command line. Each command prints the approval it needs and the same command with
 `--approve <fingerprint>`:
 
 ```sh
-orca plugin catalog add Miragon/orca-modelers
+orca plugin catalog add Miragon/orca-plugins
 orca plugin install miragon.pulse-cockpit
 ```
 

@@ -8,7 +8,7 @@ bundles: the npm package's and the standalone bundle of the image and the execut
 
 Works of others in the bundles:
 
-  commander 15.0.0          MIT          the image and the executables
+  commander 15.1.0          MIT          the image and the executables
   Operaton REST API 1.0.1   Apache-2.0   the npm package, the image and the executables
   rolldown 1.3.0            MIT          the image and the executables
 
@@ -22,7 +22,7 @@ Pulse's own packages in the bundles, under the MIT licence in LICENSE:
 
 Dependencies npm installs beside the npm package, each with its own licence:
 
-  commander 15.0.0
+  commander 15.1.0
 
 Node.js is not listed: the npm package runs on yours, the image on the one of its base image,
 with its licence in /nodejs/LICENSE, and each executable embeds the Node.js that built it, whose
@@ -30,7 +30,7 @@ licence the .tar.xz archive of a macOS or Linux executable holds as NODE_LICENSE
 release attaches for every executable as pulse-cli-NODE_LICENSE.
 
 ================================================================================
-commander 15.0.0
+commander 15.1.0
 Licence: MIT
 In: the image and the executables
 Source: https://github.com/tj/commander.js

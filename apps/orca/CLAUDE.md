@@ -122,11 +122,11 @@ file's path (the host kit's `CredentialStore`).
 - Commit messages are Conventional Commits with the scope `orca`. The catalog's release notes
   take the changelog lines of the scopes `orca`, `runtime-view` and `c7-adapter`
   (`apps/orca/scripts/release-notes.mjs`).
-- A release publishes `dist` into `Miragon/orca-modelers` as `plugins/pulse-cockpit`, listed as
+- A release publishes `dist` into `Miragon/orca-plugins` as `plugins/pulse-cockpit`, listed as
   `miragon.pulse-cockpit` (`.github/workflows/publish-orca-plugin.yml`). The id is that
   repository's `sources.json` entry and every installation's key: a new id is a new plugin.
   The publish is off for now (`publish: false` in `.github/workflows/release-please.yml`): a
-  release builds and checks the plugin only, until `orca-modelers` admits it.
+  release builds and checks the plugin only, until `orca-plugins` admits it.
 - `engines.orca` in the manifest names the Orca release CI pins, the oldest one tested.
 - The plugin folder ships `LICENSE` and `THIRD_PARTY_LICENSES.txt` (`PLUGIN_FILES` of
   `apps/orca/scripts/build.mjs`; the release's folder check in
