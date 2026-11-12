@@ -9,6 +9,7 @@ export type {
 } from "./local-sources.js"
 export type {
   EngineAdapter,
+  EngineCli,
   EngineConnection,
   EngineCredentials,
   EngineWebUi,

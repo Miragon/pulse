@@ -320,6 +320,7 @@ describe("a connection", () => {
       runtime: () => ({}) as never,
       commands: () => (withCommands ? commands : undefined),
       webUi: () => undefined,
+      cli: () => undefined,
     }
   }
 

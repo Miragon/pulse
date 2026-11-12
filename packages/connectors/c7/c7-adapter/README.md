@@ -5,7 +5,8 @@ Camunda 7 behind the engine contract of `@miragon/pulse-engine-core`, the neutra
 engine family. Its REST client (`src/engine-rest`) runs the c7 dialect's workflow domain
 (`@miragon/pulse-c7-core`) over the engine, its mapping (`src/mapping`, `src/writing`) turns the
 answers into the contract's read models and commands, and `C7Adapter` is the plug of the runtime
-view's ports (`@miragon/pulse-runtime-view/ports`). Private: the editor hosts (`apps/vscode`,
+view's ports (`@miragon/pulse-runtime-view/ports`), the web UI and the command of the CLI that
+triggers an event (`src/cli`) included. Private: the editor hosts (`apps/vscode`,
 `apps/orca`) bundle it through their composition roots. It is the adapter of the c7 family,
 whose dialect it implements (`adapters-own-their-family` in the repository's
 `.dependency-cruiser.cjs`). It takes these C7 REST rules from c7-core, never as a copy: the

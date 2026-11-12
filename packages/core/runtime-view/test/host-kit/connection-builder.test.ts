@@ -5,7 +5,7 @@ import {
 } from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
 import { EngineLane } from "../../src/core/index.js"
-import type { EngineWebUi } from "../../src/ports/index.js"
+import type { EngineCli, EngineWebUi } from "../../src/ports/index.js"
 import {
   ConnectionBuilder,
   type ConnectionSettings,
@@ -44,20 +44,32 @@ const REMOTE_PLAIN_HTTP: EngineTarget = {
   endpoint: "http://shop-eu.example.com/engine-rest",
 }
 
-function builder(
+function factories(
   commands: ProcessCommands | undefined,
   webUi?: EngineWebUi,
   asked: EngineTarget[] = [],
-): ConnectionBuilder {
-  const engines: EngineFactories = {
+): EngineFactories {
+  return {
     runtime: () => ({}) as ProcessRuntime,
     commands: (target) => {
       asked.push(target)
       return commands
     },
     webUi: () => webUi,
+    cli: () => undefined,
   }
+}
+
+function builderOver(engines: EngineFactories): ConnectionBuilder {
   return new ConnectionBuilder(engines, new WriteAudit({ info: () => undefined }), WORDING)
+}
+
+function builder(
+  commands: ProcessCommands | undefined,
+  webUi?: EngineWebUi,
+  asked: EngineTarget[] = [],
+): ConnectionBuilder {
+  return builderOver(factories(commands, webUi, asked))
 }
 
 function settings(writes: ConnectionSettings["writes"]): ConnectionSettings {
@@ -101,7 +113,32 @@ describe("a connection the host kit builds", () => {
     })
     expect(connection).not.toHaveProperty("identity")
     expect(connection).not.toHaveProperty("webUi")
+    expect(connection).not.toHaveProperty("cli")
     expect(connection.badge).not.toHaveProperty("webUi")
+  })
+
+  test("carries the engine's CLI, run with the profile of the project file and none for the default engine", () => {
+    const profiles: (string | undefined)[] = []
+    const cli: EngineCli = { triggerCommand: () => undefined }
+    const engines: EngineFactories = {
+      ...factories(COMMANDS),
+      cli: (_, profile) => {
+        profiles.push(profile)
+        return cli
+      },
+    }
+    const fromFile: EngineTarget = { ...LOCAL, source: { kind: "file", path: "/shop/.pulse.json" } }
+
+    const connection = builderOver(engines).build(
+      fromFile,
+      NO_LOGIN,
+      "local",
+      settings("localOnly"),
+    )
+    builderOver(engines).build(LOCAL_TARGET, NO_LOGIN, "local", settings("localOnly"))
+
+    expect(connection.cli).toBe(cli)
+    expect(profiles).toEqual(["shop-dev", undefined])
   })
 
   test("says that Pulse does not change data when the engine brings no commands", () => {

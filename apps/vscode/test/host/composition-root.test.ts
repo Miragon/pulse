@@ -1,6 +1,7 @@
 import type { ProcessCommands, ProcessRuntime } from "@miragon/pulse-engine-core"
 import type {
   EngineAdapter,
+  EngineCli,
   EngineConnection,
   EngineWebUi,
 } from "@miragon/pulse-runtime-view/ports"
@@ -20,6 +21,8 @@ const C7_TARGET: EngineTarget = { ...LOCAL_TARGET, name: "shop-c7" }
 class RecordingAdapter implements EngineAdapter {
   readonly connections: EngineConnection[] = []
   readonly webUiUrls: string[] = []
+  readonly cliProfiles: (string | undefined)[] = []
+  readonly cliOfIt: EngineCli = { triggerCommand: () => undefined }
   readonly runtimeOfIt = {} as ProcessRuntime
   readonly commandsOfIt = {} as ProcessCommands
 
@@ -44,6 +47,11 @@ class RecordingAdapter implements EngineAdapter {
       definitionUrl: () => "",
     }
   }
+
+  cli(profile: string | undefined): EngineCli {
+    this.cliProfiles.push(profile)
+    return this.cliOfIt
+  }
 }
 
 function rootWithRecorder() {
@@ -62,6 +70,15 @@ describe("the composition root", () => {
     expect(root.webUi(cockpit)?.name).toBe("c7")
     expect(root.webUi(C7_TARGET)).toBeUndefined()
     expect(c7.webUiUrls).toEqual(["http://localhost:18090/camunda/app/cockpit/default/"])
+    expect(c7.connections).toEqual([])
+  })
+
+  test("asks the adapter of the engine kind for its CLI, run with the profile it is given", () => {
+    const { c7, root } = rootWithRecorder()
+
+    expect(root.cli(C7_TARGET, "shop-c7")).toBe(c7.cliOfIt)
+    expect(root.cli(LOCAL_TARGET, undefined)).toBe(c7.cliOfIt)
+    expect(c7.cliProfiles).toEqual(["shop-c7", undefined])
     expect(c7.connections).toEqual([])
   })
 

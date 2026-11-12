@@ -54,6 +54,15 @@ describe("the composition root of the worker", () => {
     )
   })
 
+  test("asks the adapter for its CLI, run with the profile it is given", () => {
+    const adapter = new FakeAdapter()
+    const root = adapter.root()
+
+    expect(root.cli(BASIC, "shop")).toBe(adapter.cliOfIt)
+    expect(root.cli(LOCAL_TARGET, undefined)).toBe(adapter.cliOfIt)
+    expect(adapter.cliProfiles).toEqual(["shop", undefined])
+  })
+
   test("builds the real engines and the local sources", () => {
     expect(CompositionRoot.create()).toBeInstanceOf(CompositionRoot)
     expect(Object.keys(CompositionRoot.localSources(new OrcaWorkspaceFiles(() => [])))).toEqual([

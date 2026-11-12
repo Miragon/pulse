@@ -192,6 +192,7 @@ export class CockpitViews {
       now: () => new Date(),
       wait: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
       ...(connection.commands === undefined ? {} : { commands: connection.commands }),
+      ...(connection.cli === undefined ? {} : { cli: connection.cli }),
       sources: this.deps.sources,
       live: this.deps.live.contextFor(connection),
       bulkRuns: this.bulkRunsOf(connection),

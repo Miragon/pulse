@@ -1,7 +1,7 @@
 # Guardrails
 
 - Status: accepted
-- Last reviewed: 2026-11-12 (the connection builder tested; the runtime view's global and host kit floors at the measured values; the promise scan over the editors' texts, their manifests and the packages whose texts they show, a sentence a value or a tag splits read as one); 2026-11-11 (two of the host kit's safety rules tested; the runtime view's global and host kit floors at the measured values); 2026-11-10 (the C7 adapter joined the c7 family as `@miragon/pulse-c7-adapter`: its closed world, knip workspace and configs on the new path; floors over the extension's host and the runtime view's host kit); 2026-11-09 (#585 merged: the closed worlds of the runtime view and the engine adapter beside the host's, the engine contract the runtime view's one contract; the profile format only in the host kit's connections; the engine contract keeps every rule in `packages/connectors/engine/engine-core`, the engine family's core); 2026-11-08 (the product's words over the extension's texts; the tones of Pulse's situation table; `@miragon/pulse-ui/tones` and `@miragon/pulse-ui/format` in the closed world; the date and number gates over core and webview; pulse-ui's brand gates over the webview)
+- Last reviewed: 2026-11-12 (the connection builder tested; the panel's hand-over of the engine's CLI tested, the host's floors and the host kit's statements raised to the measured values; the runtime view's global and host kit floors at the measured values; the promise scan over the editors' texts, their manifests and the packages whose texts they show, a sentence a value or a tag splits read as one); 2026-11-11 (two of the host kit's safety rules tested; the runtime view's global and host kit floors at the measured values); 2026-11-10 (the C7 adapter joined the c7 family as `@miragon/pulse-c7-adapter`: its closed world, knip workspace and configs on the new path; floors over the extension's host and the runtime view's host kit); 2026-11-09 (#585 merged: the closed worlds of the runtime view and the engine adapter beside the host's, the engine contract the runtime view's one contract; the profile format only in the host kit's connections; the engine contract keeps every rule in `packages/connectors/engine/engine-core`, the engine family's core); 2026-11-08 (the product's words over the extension's texts; the tones of Pulse's situation table; `@miragon/pulse-ui/tones` and `@miragon/pulse-ui/format` in the closed world; the date and number gates over core and webview; pulse-ui's brand gates over the webview)
 
 ## Context
 
@@ -125,9 +125,10 @@ repository's CI (`.github/workflows/ci.yml`) next to the server's.
   `@miragon/pulse-profile`, the profile format the host kit's connections read (owner decision
   2026-11-07).
 - Thresholds sit below the measured baseline: coverage lines/statements/functions/branches
-  globally in the runtime view 96/96/95/90 and its host kit 67/67/66/70 (both the measured values
-  rounded down since 2026-11-12, when the connection builder got its test), the
-  extension's host 54/54/52/49 (since 2026-11-10), core 98/98/98/90, the C7 adapter 92/92/98/80,
+  globally in the runtime view 96/96/95/90 and its host kit 67/68/66/70 (both the measured values
+  rounded down since 2026-11-12, when the connection builder got its test and its CLI), the
+  extension's host 56/56/53/50 (measured since 2026-11-10, raised on 2026-11-12 when `OpenPanel`
+  got its first test), core 98/98/98/90, the C7 adapter 92/92/98/80,
   the model adapter 98/98/98/88, webview 78/78/78/68, and in its own package, engine-core, the
   engine contract 99/99/99/90 (it held 97/97/98/90 as the extension's layer until 2026-11-09);
   bundle 200 000 B, raised from 108 000 B by the maintainer on 2026-10-22 for the back navigation

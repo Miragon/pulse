@@ -1,6 +1,7 @@
 import type { WaitState } from "@miragon/pulse-engine-core"
 import type { FlowNodes } from "../bpmn/flow-nodes.js"
 import type { ActiveTokens } from "./active-tokens.js"
+import type { CliWayOut } from "./cli-way-out.js"
 import type { ElementLabels } from "./element-labels.js"
 import { Labels } from "./labels.js"
 
@@ -11,6 +12,7 @@ export class MoveSources {
     private readonly nodes: FlowNodes,
     private readonly tokens: ActiveTokens,
     private readonly labels: ElementLabels,
+    private readonly cli: CliWayOut,
   ) {}
 
   refusalOf(waitState: WaitState, instanceId: string): string | undefined {
@@ -18,8 +20,8 @@ export class MoveSources {
       return "Open the called instance to move this token."
     }
     const gateway = this.nodes.eventGatewayBefore(waitState.elementId)
-    if (gateway !== undefined) {
-      return this.gatewayRefusal(gateway)
+    if (gateway !== undefined && waitState.kind !== "asyncContinuation") {
+      return this.gatewayRefusal(gateway, waitState)
     }
     if (waitState.attachedToElementId !== undefined) {
       const host = this.labels.of(waitState.attachedToElementId)
@@ -28,12 +30,15 @@ export class MoveSources {
     return this.elementRefusal(waitState.elementId)
   }
 
-  private gatewayRefusal(gateway: string): string {
+  private gatewayRefusal(gateway: string, waitState: WaitState): string {
     const waits = `The token waits at the gateway ${this.labels.of(gateway)} until one of the events after it occurs; Pulse does not move a token away from an event-based gateway.`
     const conditions = this.nodes.conditionsAfter(gateway).map((id) => this.labels.of(id))
-    return conditions.length === 0
-      ? waits
-      : `${waits} Change a variable on the Variables tab to meet the condition of ${ANY_OF.format(conditions)}.`
+    const variables =
+      conditions.length === 0
+        ? undefined
+        : `Change a variable on the Variables tab to meet the condition of ${ANY_OF.format(conditions)}.`
+    const trigger = this.cli.triggering(waitState, this.labels.of(waitState.elementId))
+    return [waits, variables, trigger].filter((sentence) => sentence !== undefined).join(" ")
   }
 
   private elementRefusal(elementId: string): string | undefined {

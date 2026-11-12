@@ -6,6 +6,7 @@ import {
 } from "@miragon/pulse-engine-core"
 import type {
   EngineAdapter,
+  EngineCli,
   EngineConnection,
   EngineWebUi,
 } from "@miragon/pulse-runtime-view/ports"
@@ -17,6 +18,8 @@ export class FakeAdapter implements EngineAdapter {
   readonly connections: EngineConnection[] = []
   readonly unreachable = new Set<string>()
   readonly unauthorized = new Set<string>()
+  readonly cliProfiles: (string | undefined)[] = []
+  readonly cliOfIt: EngineCli = { triggerCommand: () => undefined }
 
   runtime(connection: EngineConnection): ProcessRuntime {
     this.connections.push(connection)
@@ -40,6 +43,11 @@ export class FakeAdapter implements EngineAdapter {
       instanceUrl: (instance) => `${webUiUrl}#/process-instance/${instance.id}`,
       definitionUrl: (definition) => `${webUiUrl}#/process-definition/${definition.id}`,
     }
+  }
+
+  cli(profile: string | undefined): EngineCli {
+    this.cliProfiles.push(profile)
+    return this.cliOfIt
   }
 
   root(): CompositionRoot {

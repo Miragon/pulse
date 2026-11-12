@@ -14,6 +14,7 @@ import type {
   PanelEffects,
 } from "../../../src/core/panels/panel-context.js"
 import type { EngineBadge, PanelState } from "../../../src/core/protocol/index.js"
+import type { EngineCli } from "../../../src/ports/index.js"
 
 const ENGINE: EngineBadge = { name: "local", environment: "local", host: "localhost" }
 const NOW = new Date("2026-10-21T09:00:00Z")
@@ -79,9 +80,23 @@ export interface FixtureOptions {
   readonly writable?: boolean
   readonly engine?: EngineBadge
   readonly adaptCommands?: (commands: ProcessCommands) => ProcessCommands
+  readonly cli?: EngineCli
   readonly sources?: LocalSources
   readonly live?: LiveSetting
   readonly now?: () => Date
+}
+
+function optionalPorts(
+  options: FixtureOptions,
+  commands: ProcessCommands,
+  live: LiveContext | undefined,
+): Pick<PanelContext, "commands" | "cli" | "sources" | "live"> {
+  return {
+    ...(options.writable === true ? { commands } : {}),
+    ...(options.cli === undefined ? {} : { cli: options.cli }),
+    ...(options.sources === undefined ? {} : { sources: options.sources }),
+    ...(live === undefined ? {} : { live }),
+  }
 }
 
 export function panelFixture(
@@ -137,9 +152,7 @@ export function panelFixture(
     publish: (published) => states.push(published),
     now,
     wait: vi.fn(() => Promise.resolve()),
-    ...(options.writable === true ? { commands } : {}),
-    ...(options.sources === undefined ? {} : { sources: options.sources }),
-    ...(live === undefined ? {} : { live }),
+    ...optionalPorts(options, commands, live),
     bulkRuns: new BulkRuns(),
   }
   return {

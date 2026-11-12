@@ -11,8 +11,10 @@ The engine contract, `@miragon/pulse-engine-core`, fixes Pulse's questions and t
 answers, so the core never learns which engine answers; it is the core of the engine family and
 the runtime view's one contract (owner decision 2026-11-09 on #585), imported directly by the
 layers that speak it. What only Pulse for VS Code and Pulse for Orca need stays here: connecting to
-an engine, the engine's web UI, the local model and its code. The web UI's links differ between the
-MCP server and the editor hosts, so none of these ports belongs in engine-core.
+an engine, the engine's web UI, the command of Pulse's CLI that triggers the event a token waits
+for, the local model and its code. The web UI's links differ between the MCP server and the editor
+hosts, and only the editors' move refusals name a CLI command, so none of these ports belongs in
+engine-core.
 
 ## How it works
 
@@ -40,7 +42,7 @@ flowchart LR
 ## Where things are
 
 - `packages/core/runtime-view/src/ports/index.ts`: the one entry, `@miragon/pulse-runtime-view/ports`
-- `packages/core/runtime-view/src/ports/engine-adapter.ts`: the plug every dialect family provides (`EngineAdapter` with `EngineConnection`, `EngineCredentials` and `EngineWebUi`)
+- `packages/core/runtime-view/src/ports/engine-adapter.ts`: the plug every dialect family provides (`EngineAdapter` with `EngineConnection`, `EngineCredentials`, `EngineWebUi` and `EngineCli`)
 - `packages/core/runtime-view/src/ports/model-source.ts`, `code-locator.ts`, `workspace-files.ts`: the local ports `ModelSource`, `CodeLocator` and `WorkspaceFiles`
 - `packages/core/runtime-view/src/ports/local-sources.ts`: the read models of the local sources (the `.bpmn` file and the code that implements an element)
 - `packages/connectors/engine/engine-core`: the engine's ports, read models, `RuntimeError`, the kit and the fake

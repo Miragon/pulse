@@ -1,5 +1,5 @@
 import type { ProcessCommands, ProcessRuntime } from "@miragon/pulse-engine-core"
-import type { EngineWebUi } from "../../ports/index.js"
+import type { EngineCli, EngineWebUi } from "../../ports/index.js"
 import type { DiagramCache, EngineLane, LiveSwitch, SharedDefinitions } from "../../core/index.js"
 import type { EngineBadge } from "../../core/protocol/index.js"
 import type { EngineTarget } from "./engine-target.js"
@@ -20,10 +20,12 @@ export interface Connection {
   readonly commands?: ProcessCommands
   readonly identity?: string
   readonly webUi?: EngineWebUi
+  readonly cli?: EngineCli
 }
 
 export interface EngineFactories {
   runtime(target: EngineTarget, credentials: Credentials): ProcessRuntime
   commands(target: EngineTarget, credentials: Credentials): ProcessCommands | undefined
   webUi(target: EngineTarget): EngineWebUi | undefined
+  cli(target: EngineTarget, profile: string | undefined): EngineCli | undefined
 }

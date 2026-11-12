@@ -1,7 +1,9 @@
 import type { InstanceDetail, WaitState } from "@miragon/pulse-engine-core"
+import type { EngineCli } from "../../ports/index.js"
 import { FlowNodes } from "../bpmn/flow-nodes.js"
 import type { MoveOption, WaitRow } from "../protocol/index.js"
 import { ActiveTokens } from "./active-tokens.js"
+import { CliWayOut } from "./cli-way-out.js"
 import { ElementLabels } from "./element-labels.js"
 import { MoveSources } from "./move-sources.js"
 import { MoveTargets } from "./move-targets.js"
@@ -21,11 +23,12 @@ export class MoveOptions {
   constructor(
     private readonly detail: InstanceDetail,
     diagramXml: string,
+    cli?: EngineCli,
   ) {
     const nodes = FlowNodes.of(diagramXml)
     const tokens = new ActiveTokens(detail)
     this.labels = new ElementLabels(diagramXml)
-    this.sources = new MoveSources(nodes, tokens, this.labels)
+    this.sources = new MoveSources(nodes, tokens, this.labels, new CliWayOut(detail, cli))
     this.targets = new MoveTargets(nodes, tokens, this.labels)
   }
 

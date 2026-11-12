@@ -1,8 +1,10 @@
 import type {
   DefinitionRef,
+  InstanceDetail,
   InstanceSummary,
   ProcessCommands,
   ProcessRuntime,
+  WaitState,
 } from "@miragon/pulse-engine-core"
 
 export type EngineCredentials =
@@ -21,8 +23,13 @@ export interface EngineWebUi {
   definitionUrl(definition: DefinitionRef): string
 }
 
+export interface EngineCli {
+  triggerCommand(detail: InstanceDetail, waitState: WaitState): string | undefined
+}
+
 export interface EngineAdapter {
   runtime(connection: EngineConnection): ProcessRuntime
   commands(connection: EngineConnection): ProcessCommands | undefined
   webUi(webUiUrl: string): EngineWebUi | undefined
+  cli(profile: string | undefined): EngineCli | undefined
 }

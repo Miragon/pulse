@@ -1,7 +1,15 @@
-import { ElementId, RuntimeError, type ProcessCommands } from "@miragon/pulse-engine-core"
+import {
+  ElementId,
+  RuntimeError,
+  type InstanceDetail,
+  type ProcessCommands,
+  type WaitState,
+} from "@miragon/pulse-engine-core"
+import { PatchedRuntime } from "@miragon/pulse-engine-core/testing"
 import { describe, expect, test, vi } from "vitest"
 import { InstancePanel } from "../../src/core/panels/instance-panel.js"
 import type { InstanceView, PanelState } from "../../src/core/protocol/index.js"
+import type { EngineCli } from "../../src/ports/index.js"
 import { panelFixture, type FixtureOptions } from "./support/panel-fixture.js"
 
 const CHARGE = "Activity_ChargePayment"
@@ -34,6 +42,36 @@ function spiedMoves(given: ProcessCommands) {
     ),
   }
 }
+
+describe("moving a token behind an event-based gateway", () => {
+  test("names the command the engine's CLI gives for the token", async () => {
+    const asked: [InstanceDetail, WaitState][] = []
+    const cli: EngineCli = {
+      triggerCommand: (detail, waitState) => {
+        asked.push([detail, waitState])
+        return `pulse advance ${detail.instance.id} --activity-id ${waitState.elementId}`
+      },
+    }
+    const gateway = `<bpmn:eventBasedGateway id="Gateway_Paid" name="Paid?" /><bpmn:sequenceFlow id="Flow_Paid" sourceRef="Gateway_Paid" targetRef="${REVIEW}" /></bpmn:process>`
+    const fixture = panelFixture(
+      (runtime) =>
+        new PatchedRuntime(runtime, {
+          getDiagramXml: async (definitionId) =>
+            (await runtime.getDiagramXml(definitionId))?.replace("</bpmn:process>", gateway),
+        }),
+      { writable: true, cli },
+    )
+    const instanceId = fixture.world.instanceIds["ORD-1001"]
+    await new InstancePanel(fixture.context, instanceId).handle({ type: "ready" })
+
+    expect(readyView(fixture.lastState()).waitStates[0]?.moveRefusal).toBe(
+      `The token waits at the gateway Paid? until one of the events after it occurs; Pulse does not move a token away from an event-based gateway. Trigger Review order with the CLI: pulse advance ${instanceId} --activity-id ${REVIEW}`,
+    )
+    expect(asked.map(([detail, waitState]) => [detail.instance.id, waitState.elementId])).toEqual([
+      [instanceId, REVIEW],
+    ])
+  })
+})
 
 describe("moving a token on a read-only engine", () => {
   test("offers no move and ignores the intent", async () => {

@@ -40,6 +40,7 @@ export class ConnectionBuilder {
     const runtime = this.engines.runtime(target, credentials)
     const { access, commands } = this.writesOf(target, credentials, environment, settings.writes)
     const webUi = this.engines.webUi(target)
+    const cli = this.engines.cli(target, ConnectionBuilder.profileOf(target))
     const identity = ConnectionBuilder.identityOf(target, credentials)
     return {
       target,
@@ -55,6 +56,7 @@ export class ConnectionBuilder {
       live: new LiveSwitch(LivePolicy.settingFor(environment, settings.live)),
       ...(commands === undefined ? {} : { commands }),
       ...(webUi === undefined ? {} : { webUi }),
+      ...(cli === undefined ? {} : { cli }),
       ...(identity === undefined ? {} : { identity }),
     }
   }
@@ -82,6 +84,10 @@ export class ConnectionBuilder {
   private static withoutCommands(target: EngineTarget, credentials: Credentials): EngineAccess {
     const refusal = TargetPolicy.refusal(target, credentials)
     return { writable: false, note: `Read-only. ${refusal ?? NO_ADAPTER}` }
+  }
+
+  private static profileOf(target: EngineTarget): string | undefined {
+    return target.source.kind === "file" ? target.name : undefined
   }
 
   private static identityOf(target: EngineTarget, credentials: Credentials): string | undefined {

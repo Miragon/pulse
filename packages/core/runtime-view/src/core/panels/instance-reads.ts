@@ -93,6 +93,7 @@ export class InstanceReads {
       fullDetails: reading.fullDetails,
       writable: this.context.commands !== undefined,
       modelLinks: reading.modelLinks,
+      ...(this.context.cli === undefined ? {} : { cli: this.context.cli }),
     }).build()
     const model = reading.model
     return {

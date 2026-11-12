@@ -1,11 +1,13 @@
 import type { ProcessCommands, ProcessRuntime } from "@miragon/pulse-engine-core"
 import type {
   EngineAdapter,
+  EngineCli,
   EngineConnection,
   EngineWebUi,
 } from "@miragon/pulse-runtime-view/ports"
 import { C7ProcessCommands } from "./c7-process-commands.js"
 import { C7ProcessRuntime } from "./c7-process-runtime.js"
+import { PulseCli } from "./cli/pulse-cli.js"
 import { EngineHttp, RestEngineClient, RestEngineWriter } from "./engine-rest/index.js"
 import { CockpitWebUi } from "./web-ui/cockpit-web-ui.js"
 
@@ -25,6 +27,10 @@ export class C7Adapter implements EngineAdapter {
 
   webUi(webUiUrl: string): EngineWebUi | undefined {
     return CockpitWebUi.at(webUiUrl)
+  }
+
+  cli(profile: string | undefined): EngineCli {
+    return new PulseCli(profile)
   }
 
   private httpOf(connection: EngineConnection, writes: boolean): EngineHttp {

@@ -13,6 +13,7 @@ import { describe, expect, test } from "vitest"
 import { FlowNodes } from "../../src/core/bpmn/flow-nodes.js"
 import type { MoveOption, WaitRow } from "../../src/core/protocol/index.js"
 import { MoveOptions } from "../../src/core/views/move-options.js"
+import type { EngineCli } from "../../src/ports/index.js"
 
 const XML = `<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
@@ -82,22 +83,49 @@ const CONDITIONS = `<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/2
   </bpmn:process>
 </bpmn:definitions>`
 
+const EVENTS = `<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="moves">
+    <bpmn:eventBasedGateway id="Returned" name="Parcel back?" />
+    <bpmn:intermediateCatchEvent id="Parcel" name="Parcel received"><bpmn:messageEventDefinition /></bpmn:intermediateCatchEvent>
+    <bpmn:receiveTask id="Pickup" name="Courier picks up" messageRef="PickedUp" />
+    <bpmn:intermediateCatchEvent id="Recall" name="Product recall announced"><bpmn:signalEventDefinition /></bpmn:intermediateCatchEvent>
+    <bpmn:intermediateCatchEvent id="Window" name="14 days"><bpmn:timerEventDefinition /></bpmn:intermediateCatchEvent>
+    <bpmn:userTask id="Refund" name="Refund" />
+    <bpmn:sequenceFlow id="r1" sourceRef="Returned" targetRef="Parcel" />
+    <bpmn:sequenceFlow id="r2" sourceRef="Returned" targetRef="Pickup" />
+    <bpmn:sequenceFlow id="r3" sourceRef="Returned" targetRef="Recall" />
+    <bpmn:sequenceFlow id="r4" sourceRef="Returned" targetRef="Window" />
+    <bpmn:sequenceFlow id="r5" sourceRef="Parcel" targetRef="Refund" />
+  </bpmn:process>
+</bpmn:definitions>`
+
 const GATEWAY_REFUSAL =
   "The token waits at the gateway Answer? until one of the events after it occurs; Pulse does not move a token away from an event-based gateway."
+const RETURNED_REFUSAL =
+  "The token waits at the gateway Parcel back? until one of the events after it occurs; Pulse does not move a token away from an event-based gateway."
+const PAID_REFUSAL =
+  "The token waits at the gateway Paid? until one of the events after it occurs; Pulse does not move a token away from an event-based gateway. Change a variable on the Variables tab to meet the condition of Approved or Fee waived."
 
 const INSTANCE = InstanceId("instance-1")
 const SINCE = IsoTimestamp("2026-10-21T08:00:00Z")
 
+type TokenKind = "userTask" | "asyncContinuation" | "message" | "signal" | "timer" | "other"
+
 interface Token {
   readonly at: string
+  readonly kind?: TokenKind
   readonly instanceId?: string
   readonly attachedTo?: string
   readonly incident?: boolean
 }
 
+function kindOf(kind: TokenKind = "userTask") {
+  return kind === "other" ? { kind, description: "waits for something else" } : { kind }
+}
+
 function waitOf(token: Token): WaitState {
   return {
-    kind: "userTask",
+    ...kindOf(token.kind),
     instanceId: InstanceId(token.instanceId ?? INSTANCE),
     elementId: ElementId(token.at),
     ...(token.attachedTo === undefined ? {} : { attachedToElementId: ElementId(token.attachedTo) }),
@@ -133,12 +161,27 @@ function detailOf(
   }
 }
 
-function movesOf(detail: InstanceDetail, xml = XML): { rows: WaitRow[]; moves: MoveOption[] } {
+class RecordingCli implements EngineCli {
+  readonly asked: { readonly detail: InstanceDetail; readonly waitState: WaitState }[] = []
+
+  triggerCommand(detail: InstanceDetail, waitState: WaitState): string | undefined {
+    this.asked.push({ detail, waitState })
+    return waitState.kind === "other"
+      ? undefined
+      : `pulse advance ${waitState.instanceId} --activity-id ${waitState.elementId}`
+  }
+}
+
+function movesOf(
+  detail: InstanceDetail,
+  xml = XML,
+  cli?: EngineCli,
+): { rows: WaitRow[]; moves: MoveOption[] } {
   const rows = detail.waitStates.map((waitState) => ({
     elementId: waitState.elementId,
     kindLabel: "User task",
   }))
-  return new MoveOptions(detail, xml).applied(rows)
+  return new MoveOptions(detail, xml, cli).applied(rows)
 }
 
 function optionAt(tokens: readonly Token[], runs: readonly string[] = []): MoveOption {
@@ -379,14 +422,21 @@ describe("the tokens that can be moved", () => {
     expect(moves).toEqual([])
   })
 
-  test("name the variables as the way on when a condition waits behind the gateway", () => {
+  test("name the variables as the way on when a condition waits behind the gateway, and the CLI for the message beside it", () => {
     const { rows, moves } = movesOf(
-      detailOf([{ at: "Paid" }, { at: "Approved" }, { at: "Waived" }]),
+      detailOf([
+        { at: "Paid", kind: "message" },
+        { at: "Approved", kind: "other" },
+        { at: "Waived", kind: "other" },
+      ]),
       CONDITIONS,
+      new RecordingCli(),
     )
-    const refusal =
-      "The token waits at the gateway Paid? until one of the events after it occurs; Pulse does not move a token away from an event-based gateway. Change a variable on the Variables tab to meet the condition of Approved or Fee waived."
-    expect(rows.map((row) => row.moveRefusal)).toEqual([refusal, refusal, refusal])
+    expect(rows.map((row) => row.moveRefusal)).toEqual([
+      `${PAID_REFUSAL} Trigger Payment received with the CLI: pulse advance instance-1 --activity-id Paid`,
+      PAID_REFUSAL,
+      PAID_REFUSAL,
+    ])
     expect(moves).toEqual([])
   })
 
@@ -414,5 +464,60 @@ describe("the tokens that can be moved", () => {
     const { rows, moves } = movesOf(detailOf([{ at: "Review" }], { state }))
     expect(rows[0]).toEqual({ elementId: "Review", kindLabel: "User task" })
     expect(moves).toEqual([])
+  })
+})
+
+describe("the way on from an event-based gateway", () => {
+  function refusalAt(token: Token, cli?: EngineCli): string | undefined {
+    const { rows, moves } = movesOf(detailOf([token]), EVENTS, cli)
+    expect(moves).toEqual([])
+    return rows[0]?.moveRefusal
+  }
+
+  test.each([
+    ["message catch event", { at: "Parcel", kind: "message" }, "Parcel received"],
+    ["receive task waiting for its message", { at: "Pickup", kind: "message" }, "Courier picks up"],
+    ["signal catch event", { at: "Recall", kind: "signal" }, "Product recall announced"],
+    ["timer catch event", { at: "Window", kind: "timer" }, "14 days"],
+  ] as const)("names the CLI command the engine's adapter gives for a %s", (_, token, label) => {
+    const cli = new RecordingCli()
+    expect(refusalAt(token, cli)).toBe(
+      `${RETURNED_REFUSAL} Trigger ${label} with the CLI: pulse advance instance-1 --activity-id ${token.at}`,
+    )
+    expect(cli.asked.map(({ detail, waitState }) => [detail.instance.id, waitState])).toEqual([
+      ["instance-1", expect.objectContaining({ elementId: token.at, kind: token.kind })],
+    ])
+  })
+
+  test("names no command when the adapter has none for the row or the engine no CLI", () => {
+    expect(refusalAt({ at: "Pickup", kind: "other" }, new RecordingCli())).toBe(RETURNED_REFUSAL)
+    expect(refusalAt({ at: "Parcel", kind: "message" })).toBe(RETURNED_REFUSAL)
+  })
+
+  test("keeps the called instance's refusal for a token behind a gateway of another instance", () => {
+    const cli = new RecordingCli()
+    expect(refusalAt({ at: "Parcel", kind: "message", instanceId: "called-1" }, cli)).toBe(
+      "Open the called instance to move this token.",
+    )
+    expect(cli.asked).toEqual([])
+  })
+
+  test("asks the CLI for no other refusal", () => {
+    const cli = new RecordingCli()
+    const { rows } = movesOf(detailOf([{ at: "Pack" }, { at: "Pack" }]), XML, cli)
+    expect(rows[0]?.moveRefusal).toBe("2 tokens wait here; Pulse moves only a single one.")
+    expect(cli.asked).toEqual([])
+  })
+
+  test("moves a token past its event, at the continuation after the event", () => {
+    const cli = new RecordingCli()
+    const { rows, moves } = movesOf(
+      detailOf([{ at: "Parcel", kind: "asyncContinuation" }]),
+      EVENTS,
+      cli,
+    )
+    expect(rows[0]).not.toHaveProperty("moveRefusal")
+    expect(moves.map((move) => move.fromElementId)).toEqual(["Parcel"])
+    expect(cli.asked).toEqual([])
   })
 })

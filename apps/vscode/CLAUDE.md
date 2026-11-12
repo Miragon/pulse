@@ -81,7 +81,7 @@ wiring.
 | Talk to Operaton / CIB seven / Camunda 7                        | `packages/connectors/c7/c7-adapter/src` (mapping) and `packages/connectors/c7/c7-adapter/src/engine-rest` (REST client; its `inspect` runs c7-core over it); inspect, wait states, an incident's retry target and cause request, variable typing in `@miragon/pulse-c7-core`, the root cause in `RootCauses`        | imports from core, webview or host; a copy |
 | Add an engine family                                            | `packages/connectors/<family>/<family>-adapter` with a class implementing `EngineAdapter` + an `*.engine.test.ts` running the `ConformanceKit` (`@miragon/pulse-engine-core/testing`) + one entry in each composition root (`apps/vscode/src/host/composition-root.ts`, `apps/orca/src/worker/composition-root.ts`) | branching on engines anywhere else         |
 | Read the local `.bpmn` model or find the implementing code      | `packages/core/runtime-view/src/model` (behind `ModelSource` / `CodeLocator`), per `apps/vscode/docs/adr/local-sources.md`                                                                                                                                                                                          | moddle or bpmn-modeler libs anywhere else  |
-| Add a port only the editor hosts need                           | `packages/core/runtime-view/src/ports` (`EngineAdapter`, `EngineWebUi`, `ModelSource`, `CodeLocator`, `WorkspaceFiles`)                                                                                                                                                                                             | an IDE port in engine-core                 |
+| Add a port only the editor hosts need                           | `packages/core/runtime-view/src/ports` (`EngineAdapter`, `EngineWebUi`, `EngineCli`, `ModelSource`, `CodeLocator`, `WorkspaceFiles`)                                                                                                                                                                                | an IDE port in engine-core                 |
 | Share a host rule (targets, policies, the write audit, titles)  | `packages/core/runtime-view/src/host-kit`                                                                                                                                                                                                                                                                           | `vscode`, an editor's API                  |
 | Wire VS Code                                                    | `apps/vscode/src/host`                                                                                                                                                                                                                                                                                              | business rules                             |
 
@@ -97,14 +97,14 @@ widget-shell, no React, no zod. The engine contract has one home, the engine fam
 view's ports, core, model reader and host kit and the host import its main entry, its tests,
 dev harnesses and the dev host its `./testing` entry (the kit, the world, `FakeEngine`), and
 nothing imports a file of the package by path (`engine-core-only-by-its-entries`). The ports
-only the editor hosts need (`EngineAdapter` with `EngineConnection`, `EngineCredentials` and
-`EngineWebUi`, `ModelSource`, `CodeLocator`, `WorkspaceFiles`) live in the runtime view's
-`src/ports` (`@miragon/pulse-runtime-view/ports`), never in engine-core. The package keeps these
-house rules (the repository's ESLint config names its paths next to the editor trees'), and it
-follows the views: a question the views need lands there first, below 1.0 without a stability
-promise. The host reaches the runtime view only through the entries of its ports, core,
-protocol and host kit, and only its composition root the adapter and the model reader. The C7
-adapter (`packages/connectors/c7/c7-adapter`, its tests beside it) imports
+only the editor hosts need (`EngineAdapter` with `EngineConnection`, `EngineCredentials`,
+`EngineWebUi` and `EngineCli`, `ModelSource`, `CodeLocator`, `WorkspaceFiles`) live in the
+runtime view's `src/ports` (`@miragon/pulse-runtime-view/ports`), never in engine-core. The
+package keeps these house rules (the repository's ESLint config names its paths next to the
+editor trees'), and it follows the views: a question the views need lands there first, below 1.0
+without a stability promise. The host reaches the runtime view only through the entries of its
+ports, core, protocol and host kit, and only its composition root the adapter and the model
+reader. The C7 adapter (`packages/connectors/c7/c7-adapter`, its tests beside it) imports
 `@miragon/pulse-c7-core`, the core of the Camunda 7 REST dialect family c7, the workflow domain
 the CLI and the MCP server run too, through its main entry; no other part of the editor hosts
 imports it (`runtime-view-is-dialect-neutral`, `extension-is-dialect-neutral`; the repository's
@@ -185,7 +185,9 @@ Ports, core, webview, host kit and host stay engine-neutral.
   `basic` without the OAuth keys, since `basic` does not take them), and to remove `headers`,
   naming no editor, since both hosts show it. `EditorAuth`
   (`packages/core/runtime-view/src/host-kit/connections/editor-auth.ts`) words every way out, on
-  reading and on connecting, once, next to the auth kinds and `EditorAuth.connectsWith`. The
+  reading and on connecting, once, next to the auth kinds and `EditorAuth.connectsWith`. The move
+  refusal's way out through the CLI is the core's `CliWayOut`, its command the adapter's
+  `EngineCli` (the C7 adapter's `PulseCli`), with the profile of the target's project file. The
   package owns its JSON Schema and the shared fixtures (its `./testing` entry), the runtime view
   its expectations of them
   (`packages/core/runtime-view/test/host-kit/project-file-fixtures.expected.json`, one entry per

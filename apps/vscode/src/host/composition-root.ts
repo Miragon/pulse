@@ -9,6 +9,7 @@ import {
 } from "@miragon/pulse-engine-core"
 import type {
   EngineAdapter,
+  EngineCli,
   EngineConnection,
   EngineCredentials,
   EngineWebUi,
@@ -49,6 +50,10 @@ export class CompositionRoot implements EngineFactories {
     return target.webUiUrl === undefined
       ? undefined
       : this.adapters[target.engine].webUi(target.webUiUrl)
+  }
+
+  cli(target: EngineTarget, profile: string | undefined): EngineCli | undefined {
+    return this.adapters[target.engine].cli(profile)
   }
 
   static localSources(files: WorkspaceFiles): LocalSources {
