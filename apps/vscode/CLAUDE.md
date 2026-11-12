@@ -211,7 +211,16 @@ Ports, core, webview, host kit and host stay engine-neutral.
   file listed there with its reason), and no raw colour outside the renderer's paint constants
   in `diagram/canvas-roles.ts`.
 - UI text is English and follows the English rules of the brand tone: sentence case, active
-  voice, no dash as a connector.
+  voice, no dash as a connector. It says what Pulse does today and promises no later feature:
+  the promise scan of `product-words.test.ts` refuses "not … yet" in one sentence (a dot in a
+  name ends none), "follows" as a promise, "later", "soon", "future", "planned" or "coming", a
+  next or named release, "for now", "currently" and "will support" in the texts of the runtime
+  view, the host, the packages whose texts both editors show (engine-core, the C7 adapter,
+  c7-core, `@miragon/pulse-http`, `@miragon/pulse-profile`) and the manifest and board schema;
+  it reads a sentence that a value, an inline tag or a `+` splits as one (its rules in
+  `apps/vscode/test/architecture/support/promise-words.ts`, which Pulse for Orca's gate holds
+  word for word); a state text such as "Not called yet" keeps its word only as an allowance
+  with its reason, and an allowance that spares nothing fails.
 - A field, a count or an action added to or changed in a view the MCP cockpit has too (the
   engine overview, a process, its instances, an instance, an incident, the history) is a pair
   feature: its pull request says whether the MCP widgets get it and updates the parity list

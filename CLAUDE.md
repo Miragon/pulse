@@ -224,7 +224,9 @@ Verbinder. `.miragon/brand.json` schaltet den brand-lint-Hook für jede geänder
 Strings in `.ts`/`.tsx` prüfen die Gates aus `@miragon/pulse-ui/testing` (Invariante 6). Dort
 liegen auch das Produkt-Glossar und die Zählbegriffe; die VS-Code-Erweiterung prüft damit die Texte
 der Laufzeitansicht, die sie mit Pulse for Orca teilt, und ihres Hosts
-(`apps/vscode/test/architecture/product-words.test.ts`) und die Webview mit den Marken-Gates
+(`apps/vscode/test/architecture/product-words.test.ts`, dort auch der Promise-Scan: kein Text
+verspricht eine spätere Funktion, `apps/vscode/test/architecture/support/promise-words.ts`, in
+Pulse for Orca als Kopie) und die Webview mit den Marken-Gates
 (`apps/vscode/test/architecture/brand-gates.test.ts`).
 
 ### Abweichungen für eingebettete Chat-Widgets
@@ -521,7 +523,10 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      aussetzen, Versuche, alle Engines, ein Profil "abgelehnt" / "refused"), checked with each
      connector's own terms by `src/messages/glossary.test.ts` and listed in
      `src/messages/GLOSSARY.md`, and over the
-     extension's sources by `apps/vscode/test/architecture/product-words.test.ts`. The counts
+     extension's sources by `apps/vscode/test/architecture/product-words.test.ts`, whose promise
+     scan also refuses a text that promises a later feature (its rules in
+     `apps/vscode/test/architecture/support/promise-words.ts`, of which Pulse for Orca's gate
+     holds a copy). The counts
      both tools show take the words of `COUNT_TERMS` (owner decision E2): "Incidents" are the open
      incidents of the thing shown, "With incident" the instances that have one, and a count's
      header names its version scope; the numbers behind a word may differ per tool.

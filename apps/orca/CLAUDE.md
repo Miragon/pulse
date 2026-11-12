@@ -104,7 +104,11 @@ file's path (the host kit's `CredentialStore`).
   classes, the budgets, strict TypeScript, English UI text in sentence case, ratchets one way.
 - The plugin's own texts (worker, panel, editor frames) use the product's words and draw no glyph
   and no raw colour: pulse-ui's gates read them in `apps/orca/test/architecture/brand-gates.test.ts`,
-  as the extension's read the runtime view's.
+  as the extension's read the runtime view's. They promise no later feature either, nor does
+  the manifest: its promise scan runs the rules of Pulse for VS Code
+  (`apps/orca/test/architecture/support/promise-words.ts`, a copy it holds word for word to the
+  extension's, whose file `apps/orca/turbo.json` names as an input of the tests), and a state
+  text such as "No boards yet." keeps its word only as an allowance with its reason.
 - Writes follow the extension's policy (`WritePolicy`, `ConfirmationPolicy` of the host kit). A
   confirmation waits in the Pulse panel and only a request from the panel
   (`PanelCaller { surface: "panel", contributionId: "engines" }`, set by Orca) settles it; a tab's
