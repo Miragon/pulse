@@ -101,4 +101,4 @@ deployed diagram across engines, so your team shares one view of its processes.
 ·
 [Source and contributing](https://github.com/Miragon/pulse/blob/main/apps/vscode/CONTRIBUTING.md)
 
-Made by [Miragon](https://www.miragon.io). MIT licence.
+Made by [Miragon](https://www.miragon.io). MIT licence; the licences of the works of others it bundles are in [THIRD_PARTY_LICENSES.txt](https://github.com/Miragon/pulse/blob/main/apps/vscode/THIRD_PARTY_LICENSES.txt), which the .vsix ships.

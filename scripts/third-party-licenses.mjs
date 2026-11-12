@@ -10,9 +10,10 @@
  *
  * Node built-ins only, so each artifact's generator and drift test reads it, whatever builds the
  * artifact: the CLI (apps/cli/scripts/licenses/, tsdown), @miragon/pulse-c7-client (its generated
- * SDK) and the server image (Vite). The readers of the module graphs are here too:
- * `renderedModules` (rolldown, rollup, Vite) and `cssDependencies` (what Vite inlines into a
- * stylesheet). scripts/third-party-licenses.d.mts types it, scripts/third-party-licenses.test.mjs holds it to
+ * SDK), the server image (Vite) and Pulse for VS Code (esbuild). The readers of the module graphs
+ * are here too: `renderedModules` (rolldown, rollup, Vite), `esbuildModules` (an esbuild
+ * metafile) and `cssDependencies` (what Vite inlines into a stylesheet).
+ * scripts/third-party-licenses.d.mts types it, scripts/third-party-licenses.test.mjs holds it to
  * planted cases.
  */
 /**
@@ -24,7 +25,7 @@
  * @import { LicenceText, RenderedChunk, ThirdParty, Work } from "./third-party-licenses.d.mts"
  */
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs"
-import { dirname, isAbsolute, join, relative, sep } from "node:path"
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path"
 
 /** The file name every artifact ships its list under. */
 export const LICENCES_FILE_NAME = "THIRD_PARTY_LICENSES.txt"
@@ -404,6 +405,50 @@ export const renderedModules = (/** @type {readonly RenderedChunk[]} */ chunks) 
       ? chunk.moduleIds.filter((id) => (chunk.modules[id]?.renderedLength ?? 0) > 0)
       : [],
   )
+
+/** The virtual module of an esbuild bundle whose output declares esbuild's runtime helpers. */
+export const ESBUILD_RUNTIME = "\0esbuild/runtime"
+
+/** A helper of esbuild's runtime (internal/runtime/runtime.go): `var __toESM = (mod) => ...`. */
+const ESBUILD_HELPER = /^[ \t]*var __[A-Za-z]\w* = /
+
+/**
+ * Whether an unminified output declares esbuild's runtime helpers: a `var __<name> = ` before the
+ * comment that opens its first module (`// <the input's path>`, as its metafile names the input),
+ * also indented inside an IIFE. Every helper of the runtime is named that way, so the list knows
+ * none of them by name; a module's own `var __version` comes after its comment.
+ */
+function declaresRuntime(text, inputs) {
+  const lines = text.split("\n")
+  const first = lines.findIndex((line) => {
+    const comment = /^[ \t]*\/\/ (.+)$/.exec(line)
+    return comment !== null && Object.hasOwn(inputs, comment[1] ?? "")
+  })
+  return (first < 0 ? lines : lines.slice(0, first)).some((line) => ESBUILD_HELPER.test(line))
+}
+
+/**
+ * The modules of an esbuild build that hold code or files in its outputs (the inputs of every
+ * output, a stylesheet's and a copied font's included), as absolute paths from the build's
+ * working directory, plus `ESBUILD_RUNTIME` when an output declares esbuild's runtime helpers.
+ * Build without minifying, so the helpers keep their names and the modules their comments; a
+ * module of another namespace than the file system becomes a virtual module, which the layout
+ * must name.
+ */
+export function esbuildModules(result, workingDir) {
+  const outputs = Object.entries(result.metafile.outputs)
+  const ids = outputs.flatMap(([, output]) =>
+    Object.entries(output.inputs)
+      .filter(([, input]) => input.bytesInOutput > 0)
+      .map(([path]) => (/^[\w-]+:/.test(path) ? `\0${path}` : resolve(workingDir, path))),
+  )
+  const runtime = (result.outputFiles ?? []).some(({ path, text }) => {
+    if (!/\.[cm]?js$/.test(path)) return false
+    const output = outputs.find(([key]) => resolve(workingDir, key) === path)
+    return declaresRuntime(text, output?.[1].inputs ?? {})
+  })
+  return runtime ? [ESBUILD_RUNTIME, ...ids] : ids
+}
 
 /** A hook of a Vite plugin, a function or an object with its handler, with `this` wrapped. */
 function wrapHook(hook, wrapContext) {

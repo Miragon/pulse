@@ -39,6 +39,7 @@ pnpm test && pnpm lint`) covers the extension too.
 | `pnpm --filter pulse-cockpit run typecheck`                | the app, then the host and the tooling with their globals only                                                               |
 | `pnpm --filter @miragon/pulse-runtime-view run typecheck`  | the runtime view, then each layer with its runtime's globals only                                                            |
 | `pnpm --filter pulse-cockpit run lint`                     | ESLint with the extension's house rules                                                                                      |
+| `pnpm --filter pulse-cockpit run third-party-licenses`     | writes `THIRD_PARTY_LICENSES.txt` again from the metafiles of both builds, after a bump of a bundled package                 |
 | `pnpm lint:architecture:vscode`                            | the closed-world dependency rules of the host                                                                                |
 | `pnpm lint:architecture:runtime-view`                      | the closed-world dependency rules of the runtime view's layers                                                               |
 | `pnpm lint:architecture:c7-adapter`                        | the closed-world dependency rules of the C7 adapter                                                                          |

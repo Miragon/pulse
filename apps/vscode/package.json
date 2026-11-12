@@ -286,6 +286,7 @@
     "lint:fix": "eslint src test dev scripts sandbox --fix",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.host.json && tsc -p tsconfig.tooling.json",
     "test": "vitest run",
+    "third-party-licenses": "THIRD_PARTY_LICENSES_UPDATE=1 vitest run test/architecture/third-party-licenses.test.ts --coverage.enabled=false",
     "test:smoke": "node scripts/build.mjs && vscode-test --config .vscode-test.mjs",
     "test:e2e": "node scripts/build.mjs && node scripts/e2e.mjs",
     "test:smoke:docker": "node scripts/docker-test.mjs smoke",

@@ -37,6 +37,10 @@ const PLANTED: Readonly<Record<string, string>> = {
   "test/host/anything.test.ts":
     "import { C7Adapter } from '@miragon/pulse-c7-adapter';\nimport { FakeEngine } from '@miragon/pulse-engine-core/testing';\nexport const proven = [C7Adapter, FakeEngine];\n",
   "../../packages/core/runtime-view/src/core/index.ts": "export const core = 1;\n",
+  "test/architecture/reads-the-licences.test.ts":
+    "import { inventoryOf } from '../../../../scripts/third-party-licenses.mjs';\nexport const read = inventoryOf;\n",
+  "../../scripts/third-party-licenses.mjs":
+    "import { readFileSync } from 'node:fs';\nimport * as esbuild from 'esbuild';\nimport { core } from '../packages/core/runtime-view/src/core/index.ts';\nexport const inventoryOf = [readFileSync, esbuild, core];\n",
   "package.json":
     '{ "name": "pulse-cockpit", "private": true, "dependencies": { "@miragon/pulse-runtime-view": "workspace:*", "@miragon/pulse-c7-adapter": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-c7-core": "workspace:*" } }\n',
 }
@@ -74,6 +78,9 @@ describe("the dependency rules", () => {
         "model-libraries-stay-in-the-model-adapter: apps/vscode/src/host/reads-model-library.ts -> bpmn-moddle",
         "no-circular: apps/vscode/src/host/cycle-a.ts -> apps/vscode/src/host/cycle-b.ts",
         "not-in-allowed: apps/vscode/src/host/escapes-into-the-view.ts -> packages/core/runtime-view/src/core/index.ts",
+        "not-in-allowed: scripts/third-party-licenses.mjs -> packages/core/runtime-view/src/core/index.ts",
+        "not-in-allowed: scripts/third-party-licenses.mjs -> esbuild",
+        "not-to-unresolvable: scripts/third-party-licenses.mjs -> esbuild",
         `not-in-allowed: apps/vscode/src/host/not-the-root.ts -> ${adapter}`,
         "not-in-allowed: apps/vscode/src/host/reads-model-library.ts -> bpmn-moddle",
         `not-in-allowed: apps/vscode/src/host/reads-the-model.ts -> ${model}`,

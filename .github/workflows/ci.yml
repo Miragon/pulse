@@ -291,7 +291,7 @@ jobs:
         shell: bash
         run: |
           listing="$(unzip -Z1 "$RUNNER_TEMP/pulse.vsix")"
-          for file in extension/package.json extension/dist/extension.cjs extension/dist/webview.js extension/dist/webview.css extension/schemas/board.schema.json; do
+          for file in extension/package.json extension/dist/extension.cjs extension/dist/webview.js extension/dist/webview.css extension/schemas/board.schema.json extension/THIRD_PARTY_LICENSES.txt; do
             if ! grep -qxF "$file" <<<"$listing"; then
               echo "::error::The .vsix lacks ${file}"
               exit 1

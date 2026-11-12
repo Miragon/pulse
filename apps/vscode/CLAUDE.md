@@ -89,12 +89,13 @@ The dependency rules are closed-world, one config per package (`apps/vscode/.dep
 `packages/core/runtime-view/.dependency-cruiser.cjs`,
 `packages/connectors/c7/c7-adapter/.dependency-cruiser.cjs`): an import that is not
 explicitly allowed fails its `pnpm lint:architecture:<package>` with a message that says where it
-belongs (dependency-cruiser reports it as `not-in-allowed` and takes the wording from the
-forbidden rule of that name, which never fires itself). Nothing outside them is allowed, so no
-widget-shell, no React, no zod. The engine contract has one home, the engine family's core
-`@miragon/pulse-engine-core` (`packages/connectors/engine/engine-core`, owner decision
-2026-11-09 on #585): the ports, read models and errors every dialect answers in. The runtime
-view's ports, core, model reader and host kit and the host import its main entry, its tests,
+belongs (dependency-cruiser reports it as `not-in-allowed` and takes the wording from the forbidden
+rule of that name, which never fires itself). Nothing outside them is allowed, so no widget-shell,
+no React, no zod; the repository's licence list (`scripts/third-party-licenses.mjs`), which the
+licence test reads, may use Node built-ins and nothing else. The engine contract has one home, the
+engine family's core `@miragon/pulse-engine-core` (`packages/connectors/engine/engine-core`, owner
+decision 2026-11-09 on #585): the ports, read models and errors every dialect answers in. The
+runtime view's ports, core, model reader and host kit and the host import its main entry, its tests,
 dev harnesses and the dev host its `./testing` entry (the kit, the world, `FakeEngine`), and
 nothing imports a file of the package by path (`engine-core-only-by-its-entries`). The ports
 only the editor hosts need (`EngineAdapter` with `EngineConnection`, `EngineCredentials`,
@@ -231,6 +232,15 @@ Ports, core, webview, host kit and host stay engine-neutral.
   engine overview, a process, its instances, an instance, an incident, the history) is a pair
   feature: its pull request says whether the MCP widgets get it and updates the parity list
   `docs/vscode/parity.md` by its review rule.
+- The .vsix ships `THIRD_PARTY_LICENSES.txt` beside `LICENSE` (`.vscodeignore`; the package job of
+  `ci.yml` and the release's check in `publish-vscode-extension.yml` name it, one list): the works
+  of others esbuild bundles into the extension host and the webview (packages, fonts, esbuild's
+  runtime helpers, the Lucide geometry of `lucide-glyphs.json`) with their licence files, read from
+  the metafiles of both builds by the repository's licence list
+  (`scripts/third-party-licenses.mjs`). `apps/vscode/test/architecture/third-party-licenses.test.ts`
+  fails while it misses a work or lists one the bundles hold no more, so a bump of a bundled package
+  writes it again in its pull request:
+  `pnpm --fail-if-no-match --filter pulse-cockpit third-party-licenses`.
 - Commit messages are Conventional Commits with the scope `vscode`.
 - Model BPMN only with the bpmn CLI (`npx -y @miragon/bpmn-cli@0.7.0`), never by hand; the
   conformance world's element ids are fixed.

@@ -126,6 +126,21 @@ export interface RenderedChunk {
 }
 export declare function renderedModules(chunks: readonly RenderedChunk[]): string[]
 
+export declare const ESBUILD_RUNTIME: "\0esbuild/runtime"
+/** An esbuild build result with its metafile, as far as the list reads it. */
+export interface EsbuildResult {
+  readonly metafile: {
+    readonly outputs: Readonly<
+      Record<
+        string,
+        { readonly inputs: Readonly<Record<string, { readonly bytesInOutput: number }>> }
+      >
+    >
+  }
+  readonly outputFiles?: readonly { readonly path: string; readonly text: string }[]
+}
+export declare function esbuildModules(result: EsbuildResult, workingDir: string): string[]
+
 /** A Vite plugin, as far as `cssDependencies` needs one. */
 export interface CssDependencyPlugin {
   readonly name: string

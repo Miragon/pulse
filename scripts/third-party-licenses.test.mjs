@@ -14,6 +14,8 @@ import { after, before, describe, it } from "node:test"
 import * as list from "./third-party-licenses.mjs"
 import {
   cssDependencies,
+  ESBUILD_RUNTIME,
+  esbuildModules,
   inventoryOf,
   licenceFindings,
   licenceTexts,
@@ -603,6 +605,61 @@ describe("renderedModules", () => {
       { type: "asset", fileName: "style.css" },
     ]
     assert.deepEqual(renderedModules(chunks), ["/a.js", "\0rolldown/runtime.js"])
+  })
+})
+
+describe("esbuildModules", () => {
+  const metafile = {
+    outputs: {
+      "dist/main.js": {
+        inputs: {
+          "src/main.ts": { bytesInOutput: 12 },
+          "../node_modules/x/index.js": { bytesInOutput: 4 },
+          "src/types.ts": { bytesInOutput: 0 },
+          "ns:virtual": { bytesInOutput: 2 },
+        },
+      },
+      "dist/fonts/a.woff2": { inputs: { "../node_modules/font/a.woff2": { bytesInOutput: 9 } } },
+    },
+  }
+
+  it("takes every output's inputs that hold bytes in it, from the working directory", () => {
+    assert.deepEqual(esbuildModules({ metafile }, "/work/app"), [
+      "/work/app/src/main.ts",
+      "/work/node_modules/x/index.js",
+      "\0ns:virtual",
+      "/work/node_modules/font/a.woff2",
+    ])
+  })
+
+  it("adds esbuild's runtime when an output declares its helpers, never for a module's own name", () => {
+    const outputs = (code) => [
+      { path: "/work/app/dist/main.js", text: code },
+      { path: "/work/app/dist/main.css", text: "var __toESM = 1;\n" },
+    ]
+    const runtimeIn = (code) =>
+      esbuildModules({ metafile, outputFiles: outputs(code) }, "/work/app").includes(
+        ESBUILD_RUNTIME,
+      )
+    const helpers = "var __defProp = Object.defineProperty;\nvar __export = (target, all) => {};\n"
+    assert.equal(
+      esbuildModules({ metafile, outputFiles: outputs(helpers) }, "/work/app")[0],
+      ESBUILD_RUNTIME,
+    )
+    // indented inside an IIFE, after the comment of a helper's own code
+    assert.ok(
+      runtimeIn(
+        `(() => {\n  // a note\n  var __commonJS = (cb, mod) => {};\n  // src/main.ts\n})();\n`,
+      ),
+    )
+    // a helper no list names, after a banner
+    assert.ok(runtimeIn("import { x } from 'y';\nvar __glob = (map) => (path) => map[path];\n"))
+    assert.ok(runtimeIn("var __superGet = (cls, obj, key) => 1;\n// src/main.ts\nconst a = 1;\n"))
+    // a module's own names come after the comment that opens it
+    assert.ok(!runtimeIn("// src/main.ts\nvar __version = 1;\nconst x = { __toESM: 1 };\n"))
+    assert.ok(
+      !runtimeIn("(() => {\n  // ../node_modules/x/index.js\n  var __dirname2 = 1;\n})();\n"),
+    )
   })
 })
 

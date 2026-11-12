@@ -28,6 +28,12 @@ module.exports = {
     },
     {
       comment:
+        "The repository's licence list (scripts/third-party-licenses.mjs), which the licence test reads, uses Node built-ins only.",
+      from: { path: "^scripts/third-party-licenses[.]mjs$" },
+      to: { dependencyTypes: ["core"] },
+    },
+    {
+      comment:
         "The extension host wires the runtime view's ports, core, protocol and host kit into VS Code.",
       from: { path: `${APP}src/host/` },
       to: { path: [LAYER_ENTRIES, EXTENSION_LIBRARIES, "^vscode$"] },
