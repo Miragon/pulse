@@ -127,4 +127,4 @@ Code, the plugin makes Claude use the CLI whenever a task touches an engine:
 ·
 [Source and contributing](https://github.com/Miragon/pulse/blob/main/docs/cli/development.md)
 
-Made by [Miragon](https://www.miragon.io). MIT licence.
+Made by [Miragon](https://www.miragon.io). MIT licence; the licences of the works of others it bundles are in [THIRD_PARTY_LICENSES.txt](https://github.com/Miragon/pulse/blob/main/apps/cli/THIRD_PARTY_LICENSES.txt).

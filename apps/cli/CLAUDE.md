@@ -53,7 +53,7 @@ cruises `apps/cli/src`, `pnpm lint:architecture:cli` its `scripts/` and `test/`.
 | `apps/cli/src/auth/`        | Auth providers around the transport's credential: Basic, bearer, OAuth   |
 | `apps/cli/src/http/`        | The client over `@miragon/pulse-http` and the wording of what fails      |
 | `apps/cli/src/output/`      | JSON, tables, field projection, errors, secret masking                   |
-| `apps/cli/scripts/`         | The catalog generator (`renderCatalog`), the executable build            |
+| `apps/cli/scripts/`         | The catalog generator (`renderCatalog`), the licence list, the packaging |
 | `apps/cli/test/`            | Fakes (`apps/cli/test/support/`), engine suites                          |
 
 No cycle, a type-only one included. The pure layers import no Node built-in (WebCrypto and the
@@ -142,6 +142,33 @@ patched spec and the route table c7-core's `generate` writes as files, never as 
 patch or an effect (the rule of `packages/connectors/c7/c7-core/scripts/effects.ts`) changes
 there, then c7-core's `generate` (`pnpm build` runs it) and `catalog` run in that order.
 `apps/cli/scripts/catalog/render.test.ts` fails on a stale catalog.
+
+## Licences
+
+The npm package, the image (in `/usr/share/doc/pulse-cli`), the Homebrew formula and the `.tar.xz`
+archives of the macOS and Linux executables ship `apps/cli/LICENSE` and
+`apps/cli/THIRD_PARTY_LICENSES.txt` (owner decision 2026-11-12): the works of others the two
+bundles hold, each with its licence and notice files as it ships them. The raw executables a
+release attaches beside the archives, the Windows one included, carry neither. Like the catalog,
+the file is generated and checked in:
+`pnpm --fail-if-no-match --filter @miragon/pulse-cli third-party-licenses` writes it from the module
+graphs tsdown builds of both bundles' configs without writing a file (`apps/cli/scripts/licenses/`),
+and `apps/cli/scripts/third-party-licenses.test.ts` fails while it misses a bundled work, lists
+one no bundle holds or differs otherwise (a version, a text), so a bump of commander or tsdown
+(rolldown) regenerates it in its pull request. Every module is a package's under node_modules,
+a virtual module of the bundler or a file of this repository, Miragon's under MIT like each of
+Pulse's packages in a bundle; anything else fails the generator, and so does a work without a
+licence file or one that keeps its licence texts in a folder. A module of the CLI that carries
+another work's text names that work in `CLI_LAYOUT` of `apps/cli/scripts/licenses/bundles.ts`,
+as a new virtual module does: the catalog carries the Operaton spec's descriptions (Apache-2.0,
+its `LICENSE` and `NOTICE` in `packages/connectors/c7/c7-core/spec/`), and the file says that
+Miragon changed them (section 4(b)). The test fails on a module of the bundles that carries a
+whole text of that spec and does not name it; another work's text is review knowledge. The
+archives also hold `NODE_LICENSE`, the licence of the Node.js an executable embeds: `build:exe`
+keeps the `LICENSE` of the node that runs it as `apps/cli/build/node-license/<executable>`, and
+`apps/cli/scripts/pack-binary.sh` (which `ci.yml` runs as the release does) packs it. The image
+keeps the base image's `/nodejs/LICENSE`, which `ci.yml`'s image job checks. The licence fields
+(npm, the image label, the formula) name the CLI's own, MIT.
 
 ## Tests
 

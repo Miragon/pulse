@@ -626,6 +626,14 @@ jobs:
         working-directory: apps/cli
         run: bash scripts/smoke-test.sh "build/bin/${FILE}"
 
+      # The archive a release attaches (publish-cli.yml): the executable and its licences.
+      - name: Pack the binary
+        if: runner.os != 'Windows'
+        working-directory: apps/cli
+        env:
+          XZ_OPT: -T0
+        run: bash scripts/pack-binary.sh "build/bin/${FILE}"
+
       - name: Engine suites against the binary
         if: matrix.target == 'linux-x64'
         run: pnpm --fail-if-no-match --filter @miragon/pulse-cli run test:engines
@@ -644,6 +652,7 @@ jobs:
           bash scripts/homebrew-formula.sh 0.0.0 "$RUNNER_TEMP/pulse-cli-SHA256SUMS" > "$RUNNER_TEMP/pulse-cli.rb"
           ruby -c "$RUNNER_TEMP/pulse-cli.rb"
           grep -F 'bin.install_symlink bin/"pulse-cli" => "pulse"' "$RUNNER_TEMP/pulse-cli.rb"
+          grep -F 'prefix.install "NODE_LICENSE", "THIRD_PARTY_LICENSES.txt"' "$RUNNER_TEMP/pulse-cli.rb"
           grep -F 'shell_output("#{bin}/pulse --version")' "$RUNNER_TEMP/pulse-cli.rb"
 
   # CLI image for both platforms, no push; smoke test on the runner's platform.
@@ -691,6 +700,18 @@ jobs:
       - name: Smoke test the image
         working-directory: apps/cli
         run: bash scripts/smoke-test.sh docker run --rm -i pulse-cli:ci
+
+      # The image holds the CLI's licence and the licences of what its bundle holds, and the
+      # Node.js of its base image its own, which THIRD_PARTY_LICENSES.txt points to.
+      - name: The licences in the image
+        run: |
+          container="$(docker create pulse-cli:ci)"
+          docker cp "${container}:/usr/share/doc/pulse-cli" "$RUNNER_TEMP/licences"
+          docker cp -L "${container}:/nodejs/LICENSE" "$RUNNER_TEMP/node-license"
+          docker rm "$container" > /dev/null
+          cmp "$RUNNER_TEMP/licences/LICENSE" apps/cli/LICENSE
+          cmp "$RUNNER_TEMP/licences/THIRD_PARTY_LICENSES.txt" apps/cli/THIRD_PARTY_LICENSES.txt
+          test -s "$RUNNER_TEMP/node-license"
 
       # docker stop must end the CLI with SIGTERM (143), not SIGKILL.
       - name: docker stop ends a waiting command

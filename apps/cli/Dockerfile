@@ -3,7 +3,7 @@
 # inlined) on distroless Node.js 24: non-root (nonroot, uid 65532), no shell, no package
 # manager. The bundle is the same for every platform, so a multi-platform build only copies it
 # (no RUN, so no emulation). The build context is apps/cli, where .dockerignore admits only the
-# bundle:
+# bundle and the licences:
 #   pnpm --fail-if-no-match --filter @miragon/pulse-cli run build:standalone
 #   docker build -t pulse-cli apps/cli
 #   docker run --rm pulse-cli --version
@@ -23,6 +23,9 @@ LABEL org.opencontainers.image.title="pulse-cli" \
       org.opencontainers.image.vendor="Miragon GmbH"
 
 COPY build/standalone/pulse-cli.cjs /opt/pulse-cli/pulse-cli.cjs
+# The CLI's licence and the licences of the works of others its bundle holds
+# (THIRD_PARTY_LICENSES.txt); the Node.js of the base image keeps its own in /nodejs/LICENSE.
+COPY LICENSE THIRD_PARTY_LICENSES.txt /usr/share/doc/pulse-cli/
 
 # Mount the files of deployments and --out-file here: docker run -v "$PWD:/work" ...
 WORKDIR /work

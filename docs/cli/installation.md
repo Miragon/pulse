@@ -2,7 +2,9 @@
 
 Four ways, the same CLI: the npm package (Node.js >= 22.12), Homebrew, a standalone executable
 for machines without Node.js, or the container image. The command is `pulse`, and
-`pulse-cli` is a second name of the same program.
+`pulse-cli` is a second name of the same program. The npm package, the formula, the image and the
+`.tar.xz` archives of the macOS and Linux executables come with the CLI's licence, `LICENSE` (MIT),
+and `THIRD_PARTY_LICENSES.txt`, the licences of the works of others it bundles.
 
 ## npm
 
@@ -37,7 +39,9 @@ platform that embeds Node.js 24, plus `pulse-cli-SHA256SUMS`:
 | macOS (Intel)         | `pulse-cli-macos-x64`       | macOS 13.5 or newer                                      |
 | Windows x64           | `pulse-cli-windows-x64.exe` | Windows 10 or Server 2016 or newer                       |
 
-Each macOS and Linux file also comes as `<file>.tar.xz` (about 25 MB instead of 125 MB). On Alpine and other musl based systems, use the container image or the npm package.
+Each macOS and Linux file also comes as `<file>.tar.xz` (about 25 MB instead of 125 MB), which
+holds the executable, the licences and `NODE_LICENSE`, the licence of the Node.js it embeds. On
+Alpine and other musl based systems, use the container image or the npm package.
 
 ```sh
 base=https://github.com/Miragon/pulse/releases/latest/download
@@ -99,6 +103,8 @@ docker run --rm -it --user "$(id -u):$(id -g)" -v "$HOME/.config/pulse-cli:/conf
 - `pulse auth login` and token commands do not work in the container: use Basic auth or pass a
   token with `-e PULSE_CLI_TOKEN`.
 - A project file (`.pulse.json`) in the mounted `/work` directory is used as on the host.
+- The image holds the licences in `/usr/share/doc/pulse-cli`, those of its Node.js in
+  `/nodejs/LICENSE`.
 - Each image carries an SBOM and SLSA provenance;
   `gh attestation verify oci://ghcr.io/miragon/pulse-cli:<version> --repo Miragon/pulse` verifies
   it.

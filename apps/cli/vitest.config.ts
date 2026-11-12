@@ -24,7 +24,12 @@ export default mergeConfig(
       // more than 15 s there (#445), so they get a minute.
       testTimeout: 60_000,
       coverage: {
-        include: ["src/**/*.ts", "scripts/catalog/**/*.ts", "scripts/exe/**/*.ts"],
+        include: [
+          "src/**/*.ts",
+          "scripts/catalog/**/*.ts",
+          "scripts/exe/**/*.ts",
+          "scripts/licenses/**/*.ts",
+        ],
         // Only the entry point stays out: importing it runs the CLI, so no unit test can.
         exclude: ["**/*.test.ts", "src/bin/pulse-cli.ts"],
         // Ratchet: the floors the CLI brought along (measured with the Node runtime counted:

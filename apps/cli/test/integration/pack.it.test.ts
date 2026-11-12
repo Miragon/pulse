@@ -147,9 +147,10 @@ describe("packed npm tarball", () => {
       expect(await realpath(installedBin(prefix, name)), name).toBe(entry)
   })
 
-  it("ships the README, the license and the agent skill, and no schema of its own", async () => {
+  it("ships the README, the licences and the agent skill, and no schema of its own", async () => {
     const packageDir = installedPackageDir(prefix)
-    for (const file of ["README.md", "LICENSE", join("skills", "pulse-cli", "SKILL.md")]) {
+    const files = ["README.md", "LICENSE", "THIRD_PARTY_LICENSES.txt"]
+    for (const file of [...files, join("skills", "pulse-cli", "SKILL.md")]) {
       expect(existsSync(join(packageDir, file)), file).toBe(true)
     }
     // the profile format's JSON Schema ships with @miragon/pulse-profile

@@ -16,6 +16,7 @@ pnpm --fail-if-no-match --filter @miragon/pulse-cli build
 pnpm test:one apps/cli/src/util.test.ts
 pnpm --fail-if-no-match --filter @miragon/pulse-cli test
 pnpm --fail-if-no-match --filter @miragon/pulse-cli catalog
+pnpm --fail-if-no-match --filter @miragon/pulse-cli third-party-licenses
 pnpm --fail-if-no-match --filter @miragon/pulse-cli test:engines
 ```
 
@@ -27,18 +28,17 @@ standalone executable and `PULSE_CLI_IT_CLI=<script>` another entry script.
 ## Standalone executable and container image
 
 Both start from one bundle, `build:standalone` (`apps/cli/tsdown.standalone.config.ts`): a
-CommonJS file with commander inlined, the only main script format a Node.js 24 single executable
-application runs.
+CommonJS file, commander inlined, the only main script format Node.js 24 single executables run.
 
 - `build:exe` (`apps/cli/scripts/build-exe.ts`) writes the preparation blob with
   `node --experimental-sea-config` (with V8 code cache), copies the running `node` binary, injects
-  the blob with [postject](https://github.com/nodejs/postject) and on macOS signs the result ad
-  hoc. It needs Node.js 24 (the repository's `.nvmrc` says 22) from an official build (nodejs.org,
-  nvm, fnm, Volta, setup-node): the script refuses a Homebrew or distribution build, whose shared
-  libraries the copy would need on every machine. The code cache only works on the platform that
-  built it, so every target builds on its own runner.
-- `apps/cli/Dockerfile` copies the bundle onto distroless Node.js 24; the build runs nothing on the
-  target platform, so a multi-platform build needs no emulation.
+  the blob with [postject](https://github.com/nodejs/postject), signs the result ad hoc on macOS
+  and keeps that Node.js's `LICENSE` for the archive. It needs an official Node.js 24 build
+  (nodejs.org, nvm, fnm, Volta, setup-node; the `.nvmrc` says 22): it refuses a Homebrew or
+  distribution build, whose shared libraries the copy would need on every machine. The code cache
+  only works on the platform that built it, so every target builds on its own runner.
+- `apps/cli/Dockerfile` copies the bundle and the licences onto distroless Node.js 24; the build
+  runs nothing on the target platform, so a multi-platform build needs no emulation.
 - `apps/cli/scripts/smoke-test.sh <command...>` checks a packaging without an engine (version,
   help, catalog, dry-run, stdin, a network error).
 
@@ -84,7 +84,7 @@ src/config/     config resolution and profile editing (pure), file store, projec
 src/auth/       auth providers around the transport's credential (none, basic, bearer with JWT expiry, token commands, OAuth on @miragon/pulse-http/oauth; pure)
 src/http/       the engine client on @miragon/pulse-http (bundled) and the wording of what fails
 src/output/     JSON, tables, field projection, errors, secret masking (pure)
-scripts/        catalog generator, standalone executable build, packaging smoke test
+scripts/        catalog generator, licence list, standalone executable build, packaging, smoke test
 test/           fakes for unit tests, Testcontainers engine suites
 ```
 
@@ -125,6 +125,6 @@ the adapters `src/api`, only `auth login` reaches the interactive login, and onl
 - Documented commands are tested: the unit tests run every CLI line of a ` ```sh ` block in
   `apps/cli/README.md` and in `docs/cli/` against a fake engine. Write such blocks without a `$`
   prompt, and put transcripts with output into ` ```text ` blocks.
-- The catalog is generated: change the spec patches or the generator and run `catalog`; never
-  edit a file in `apps/cli/src/generated/` by hand.
+- Generated files are never edited by hand: run `catalog` after a change to the spec patches or the
+  generator, `third-party-licenses` after a bump of commander or tsdown.
 - Commits are conventional, with the scope `cli`: release-please writes the notes from their titles.

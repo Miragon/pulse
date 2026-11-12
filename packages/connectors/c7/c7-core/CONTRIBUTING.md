@@ -10,7 +10,11 @@ bar: [CONTRIBUTING.md](../../../../CONTRIBUTING.md).
 ## The spec and the route table
 
 `spec/api.json` is the one OpenAPI spec of the Camunda 7 REST API in Pulse, Operaton's (from
-operaton-mcp's `operaton-rest-api.json`), vendored as it is. `spec/patches.json` corrects it with
+operaton-mcp's `operaton-rest-api.json`), vendored as it is. Its licence is Operaton's, the Apache
+License 2.0: `spec/LICENSE` and `spec/NOTICE` are Operaton's files at v1.0.1, the version the
+spec's `info` names (operaton-mcp ships the same licence and no notice), the notice with LF line
+ends. The CLI ships both with the spec's descriptions its catalog carries (its
+`THIRD_PARTY_LICENSES.txt`, `apps/cli/CLAUDE.md`). `spec/patches.json` corrects it with
 RFC 6902 patches, each with a `test` guard and a `reason`: bodies and parameters the engines read
 otherwise, and a task's form reference under both names. This package's `generate` (turbo runs it
 before every build; `packages/connectors/c7/c7-core/scripts/generate-routes.ts`) applies them

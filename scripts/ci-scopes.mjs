@@ -78,9 +78,13 @@ export const PATH_RULES = [
 /** Package files that checks outside the package read too. */
 export const ALSO_READ_BY = [
   { pattern: /^apps\/cli\/README\.md$/, scopes: ["brand"] },
+  // The docs package's manifest: the CLI bundles pages of it, so its licence test reads its
+  // name and licence.
+  { pattern: /^docs\/package\.json$/, scopes: ["cli", "typescript"] },
   // The one Camunda 7 REST spec, its patches and its route table, read as files: c7-client's
   // generate (the SDK, which the MCP server and the template build on) and the CLI's catalog
-  // test read the patched spec c7-core's generate writes from them.
+  // test read the patched spec c7-core's generate writes from them, and the CLI's licence test
+  // the spec's info, LICENSE and NOTICE.
   {
     pattern: /^packages\/connectors\/c7\/c7-core\/(?:spec\/|src\/generated\/routes\.json$)/,
     scopes: ["cli", "mcp", "template", "typescript"],

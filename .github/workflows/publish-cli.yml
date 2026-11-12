@@ -6,13 +6,15 @@ name: Publish the CLI
 # every runtime dependency inlined) feeds
 #   binaries  five Node.js single executable applications, each built and smoke-tested on its
 #             native runner (the V8 code cache is valid only on the platform that built it), the
-#             macOS and Linux ones also as <file>.tar.xz holding an executable pulse-cli;
+#             macOS and Linux ones also as <file>.tar.xz holding an executable pulse-cli and the
+#             licences (LICENSE, THIRD_PARTY_LICENSES.txt, NODE_LICENSE);
 #   assets    the binaries, the archives and pulse-cli-SHA256SUMS on the GitHub release of the
 #             tag, with a build provenance attestation
 #             (gh attestation verify <file> --repo Miragon/pulse); a re-run replaces them;
 #   image     ghcr.io/miragon/pulse-cli (apps/cli/Dockerfile: distroless Node.js 24, non-root,
-#             linux/amd64 and linux/arm64), tagged <version>, <major>.<minor> and latest
-#             (a prerelease only <version>), with SBOM, provenance and an attestation
+#             the licences in /usr/share/doc/pulse-cli, linux/amd64 and linux/arm64), tagged
+#             <version>, <major>.<minor> and latest (a prerelease only <version>), with SBOM,
+#             provenance and an attestation
 #             (gh attestation verify oci://ghcr.io/miragon/pulse-cli:<version> --repo Miragon/pulse).
 # A dry run builds and smoke-tests everything and publishes nothing. The jobs that install and
 # build hold contents: read only; the jobs that hold a token (release upload, attestation,
@@ -156,17 +158,16 @@ jobs:
         working-directory: apps/cli
         run: bash scripts/smoke-test.sh "build/bin/${FILE}"
 
-      # The macOS and Linux binaries also as <file>.tar.xz holding an executable pulse-cli, a
-      # fifth of the download, which the Homebrew formula takes. GNU tar passes XZ_OPT to xz.
+      # The macOS and Linux binaries also as <file>.tar.xz, a fifth of the download, which the
+      # Homebrew formula takes: the executable pulse-cli beside LICENSE, THIRD_PARTY_LICENSES.txt
+      # and NODE_LICENSE, the licence of the Node.js it embeds (scripts/pack-binary.sh, which
+      # ci.yml runs too). GNU tar passes XZ_OPT to xz.
       - name: Pack the binary
         if: runner.os != 'Windows'
         working-directory: apps/cli
         env:
           XZ_OPT: -T0
-        run: |
-          mkdir -p build/pack
-          install -m 0755 "build/bin/${FILE}" build/pack/pulse-cli
-          tar -C build/pack -cJf "build/bin/${FILE}.tar.xz" pulse-cli
+        run: bash scripts/pack-binary.sh "build/bin/${FILE}"
 
       - uses: actions/upload-artifact@v7.0.2
         with:

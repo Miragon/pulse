@@ -85,6 +85,10 @@ describe("scopesFor: prose reaches only the checks that read it", () => {
     assert.deepEqual(scopes("docs/cli/commands.md"), ["brand", "cli", "typescript"])
   })
 
+  it("runs the CLI's licence test for the manifest of the docs package it bundles pages of", () => {
+    assert.deepEqual(scopes("docs/package.json"), ["brand", "cli", "typescript"])
+  })
+
   it("runs the token drift test for the vendored docs kit, not for the rest of the site's config", () => {
     assert.deepEqual(scopes("docs/.vitepress/miragon/cd-tokens.generated.css"), [
       "brand",
