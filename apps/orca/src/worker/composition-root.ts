@@ -8,6 +8,7 @@ import {
   type ProcessRuntime,
 } from "@miragon/pulse-engine-core"
 import type {
+  CliTarget,
   EngineAdapter,
   EngineCli,
   EngineConnection,
@@ -52,8 +53,8 @@ export class CompositionRoot implements EngineFactories {
       : this.adapters[target.engine].webUi(target.webUiUrl)
   }
 
-  cli(target: EngineTarget, profile: string | undefined): EngineCli | undefined {
-    return this.adapters[target.engine].cli(profile)
+  cli(target: EngineTarget, cliTarget: CliTarget): EngineCli | undefined {
+    return this.adapters[target.engine].cli(cliTarget)
   }
 
   static localSources(files: WorkspaceFiles): LocalSources {

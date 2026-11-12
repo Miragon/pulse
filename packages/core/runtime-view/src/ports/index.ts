@@ -8,6 +8,7 @@ export type {
   VariableMapping,
 } from "./local-sources.js"
 export type {
+  CliTarget,
   EngineAdapter,
   EngineCli,
   EngineConnection,

@@ -54,13 +54,15 @@ describe("the composition root of the worker", () => {
     )
   })
 
-  test("asks the adapter for its CLI, run with the profile it is given", () => {
+  test("asks the adapter for its CLI, which names the target it is given", () => {
     const adapter = new FakeAdapter()
     const root = adapter.root()
+    const profile = { kind: "profile", name: "shop" } as const
+    const endpoint = { kind: "endpoint", endpoint: LOCAL_TARGET.endpoint } as const
 
-    expect(root.cli(BASIC, "shop")).toBe(adapter.cliOfIt)
-    expect(root.cli(LOCAL_TARGET, undefined)).toBe(adapter.cliOfIt)
-    expect(adapter.cliProfiles).toEqual(["shop", undefined])
+    expect(root.cli(BASIC, profile)).toBe(adapter.cliOfIt)
+    expect(root.cli(LOCAL_TARGET, endpoint)).toBe(adapter.cliOfIt)
+    expect(adapter.cliTargets).toEqual([profile, endpoint])
   })
 
   test("builds the real engines and the local sources", () => {

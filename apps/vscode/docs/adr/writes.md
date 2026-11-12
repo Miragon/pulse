@@ -1,7 +1,7 @@
 # Guarded writes
 
 - Status: accepted
-- Last reviewed: 2026-11-12 (a target without commands names the target policy's refusal as its read-only note; a token behind an event-based gateway is told to change a variable when a conditional event follows the gateway, and a row the engine's CLI can trigger names its command, with the profile of its project file; a token at the continuation after its event moves); 2026-11-11 (the editor refuses a number beyond the range of a double before it asks, on every engine); 2026-11-10 (the editor refuses a whole number beyond 64 bits before it asks, on every engine); 2026-10-23
+- Last reviewed: 2026-11-12 (the command for the default engine names its URL with `--auth none`, beside which a profile the CLI selects itself still adds its headers and engine name; a target without commands names the target policy's refusal as its read-only note; a token behind an event-based gateway is told to change a variable when a conditional event follows the gateway, and a row the engine's CLI can trigger names its command, with the profile of its project file; a token at the continuation after its event moves); 2026-11-11 (the editor refuses a number beyond the range of a double before it asks, on every engine); 2026-11-10 (the editor refuses a whole number beyond 64 bits before it asks, on every engine); 2026-10-23
 
 ## Context
 
@@ -159,12 +159,22 @@ Variables tab. A row the engine's CLI can trigger names its command: the adapter
 the runtime view's port `EngineCli`, and the core words it after the editors' own way on
 (`CliWayOut`: "Trigger <event> with the CLI: <command>"), so no CLI command stands in the core.
 The C7 adapter's `PulseCli` gives `pulse advance <instance> --activity-id <event>` for a message, a
-signal or a timer that alone waits at its activity in the instance tree (the CLI refuses an
-activity where more than one waits), with `--profile <name>` for a target of a project file, which
-the CLI finds when it runs in that file's folder or below it; the default engine names no profile,
-since the CLI's default is the same URL unless `PULSE_CLI_PROFILE` or a default profile of the user
-picks another. The command delivers that event to this token's execution or executes its timer job,
-nothing beyond this instance, and the instance runs on to its next wait state as when the event
+signal or a timer that alone waits at its activity in the instance tree (the CLI refuses an activity
+where more than one waits), and names the engine the editor shows (`CliTarget`, from the connection
+builder): `--profile <name>` for a target of a project file, which the CLI finds when it runs in
+that file's folder or below it, and `--url <endpoint> --auth none` for the default engine of a
+folder without one, which the editor reaches without a login. The CLI resolves each value on its own
+(flag, variable, profile, default) and still selects a profile beside a `--url`:
+`PULSE_CLI_PROFILE`, else the default profile of a project file or of the user's config file.
+`--url` replaces only that profile's URL, and `--auth none` turns off only the login its auth or the
+variables configure (Basic, OAuth, a bearer token), as the editor sends none to its default engine.
+The CLI has no flag that selects no profile, so the command does not keep such a profile out: its
+headers still go to the editor's engine, also one that carries a credential (an `Authorization`
+header, an API key), as do `PULSE_CLI_HEADERS`; its process engine name (`/engine/<name>`) and
+`PULSE_CLI_ENGINE` still apply; its read-only flag refuses the command; and a selected profile that
+is missing or refused, or a broken default profile, fails it. Closing that needs a CLI option that
+selects no profile. The command delivers that event to this token's execution or executes its timer
+job, nothing beyond this instance, and the instance runs on to its next wait state as when the event
 occurs. The CLI refuses a suspended timer job, which the contract does not tell. The command shows
 in the tooltip and the accessible name of the diagram's can't-move sign, where it is read, not
 copied.

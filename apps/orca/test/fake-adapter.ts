@@ -5,6 +5,7 @@ import {
   type ProcessRuntime,
 } from "@miragon/pulse-engine-core"
 import type {
+  CliTarget,
   EngineAdapter,
   EngineCli,
   EngineConnection,
@@ -18,7 +19,7 @@ export class FakeAdapter implements EngineAdapter {
   readonly connections: EngineConnection[] = []
   readonly unreachable = new Set<string>()
   readonly unauthorized = new Set<string>()
-  readonly cliProfiles: (string | undefined)[] = []
+  readonly cliTargets: CliTarget[] = []
   readonly cliOfIt: EngineCli = { triggerCommand: () => undefined }
 
   runtime(connection: EngineConnection): ProcessRuntime {
@@ -45,8 +46,8 @@ export class FakeAdapter implements EngineAdapter {
     }
   }
 
-  cli(profile: string | undefined): EngineCli {
-    this.cliProfiles.push(profile)
+  cli(target: CliTarget): EngineCli {
+    this.cliTargets.push(target)
     return this.cliOfIt
   }
 

@@ -6,10 +6,16 @@ import {
   type InstanceDetail,
   type WaitState,
 } from "@miragon/pulse-engine-core"
+import type { CliTarget } from "@miragon/pulse-runtime-view/ports"
 import { describe, expect, test } from "vitest"
 import { C7Adapter } from "../src/index.js"
 
 const INSTANCE = "63d65e9e-cd7f-11f1-86d2-667bc3771e0d"
+const DEFAULT_ENGINE: CliTarget = {
+  kind: "endpoint",
+  endpoint: "http://localhost:8080/engine-rest",
+}
+const ON_DEFAULT_ENGINE = "--url http://localhost:8080/engine-rest --auth none"
 
 const KINDS = {
   userTask: { kind: "userTask" },
@@ -50,10 +56,10 @@ function detailOf(waitStates: readonly WaitState[], instanceId = INSTANCE): Inst
 
 function commandFor(
   wait: WaitState,
-  options: { profile?: string; beside?: readonly WaitState[] } = {},
+  options: { target?: CliTarget; beside?: readonly WaitState[] } = {},
 ): string | undefined {
   const detail = detailOf([wait, ...(options.beside ?? [])], wait.instanceId)
-  return new C7Adapter().cli(options.profile).triggerCommand(detail, wait)
+  return new C7Adapter().cli(options.target ?? DEFAULT_ENGINE).triggerCommand(detail, wait)
 }
 
 describe("the CLI command that triggers the event a token of a C7 family engine waits for", () => {
@@ -61,7 +67,7 @@ describe("the CLI command that triggers the event a token of a C7 family engine 
     "advances a %s by its activity, the one wait state there",
     (kind) => {
       expect(commandFor(waitAt("Parcel", kind))).toBe(
-        `pulse advance ${INSTANCE} --activity-id Parcel`,
+        `pulse advance ${INSTANCE} --activity-id Parcel ${ON_DEFAULT_ENGINE}`,
       )
     },
   )
@@ -74,14 +80,27 @@ describe("the CLI command that triggers the event a token of a C7 family engine 
   )
 
   test("names the profile of the project file the editor reads the engine from", () => {
-    expect(commandFor(waitAt("Window", "timer"), { profile: "shop-dev" })).toBe(
+    const target: CliTarget = { kind: "profile", name: "shop-dev" }
+    expect(commandFor(waitAt("Window", "timer"), { target })).toBe(
       `pulse advance ${INSTANCE} --activity-id Window --profile shop-dev`,
     )
   })
 
+  test("names the URL of the editor's default engine and no credentials, as the editor reaches it", () => {
+    const target: CliTarget = { kind: "endpoint", endpoint: "http://127.0.0.1:18090/engine-rest" }
+    expect(commandFor(waitAt("Window", "timer"), { target })).toBe(
+      `pulse advance ${INSTANCE} --activity-id Window --url http://127.0.0.1:18090/engine-rest --auth none`,
+    )
+  })
+
   test("quotes a word the shell would split or read, as the CLI's own ready commands do", () => {
-    expect(commandFor(waitAt("Prüfung", "message", "return 'A' 7"), { profile: "shop dev" })).toBe(
+    const wait = waitAt("Prüfung", "message", "return 'A' 7")
+    expect(commandFor(wait, { target: { kind: "profile", name: "shop dev" } })).toBe(
       "pulse advance 'return '\\''A'\\'' 7' --activity-id 'Prüfung' --profile 'shop dev'",
+    )
+    const endpoint = "http://localhost:8080/shop%20engine/engine-rest"
+    expect(commandFor(waitAt("Parcel", "signal"), { target: { kind: "endpoint", endpoint } })).toBe(
+      `pulse advance ${INSTANCE} --activity-id Parcel --url '${endpoint}' --auth none`,
     )
   })
 
@@ -91,7 +110,7 @@ describe("the CLI command that triggers the event a token of a C7 family engine 
     expect(commandFor(waitAt("Parcel", "message"), { beside: [sibling] })).toBeUndefined()
     expect(commandFor(waitAt("Parcel", "message"), { beside: [called] })).toBeUndefined()
     expect(commandFor(waitAt("Parcel", "message"), { beside: [waitAt("Window", "timer")] })).toBe(
-      `pulse advance ${INSTANCE} --activity-id Parcel`,
+      `pulse advance ${INSTANCE} --activity-id Parcel ${ON_DEFAULT_ENGINE}`,
     )
   })
 })

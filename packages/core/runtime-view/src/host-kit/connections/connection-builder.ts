@@ -1,6 +1,7 @@
 import type { ProcessCommands } from "@miragon/pulse-engine-core"
 import { DiagramCache, LiveSwitch, SharedDefinitions, type EngineLane } from "../../core/index.js"
 import type { EngineAccess, Environment } from "../../core/protocol/index.js"
+import type { CliTarget } from "../../ports/index.js"
 import { LivePolicy } from "./live-policy.js"
 import { AuditedCommands } from "./audited-commands.js"
 import type { Connection, Credentials, EngineFactories } from "./connection.js"
@@ -40,7 +41,7 @@ export class ConnectionBuilder {
     const runtime = this.engines.runtime(target, credentials)
     const { access, commands } = this.writesOf(target, credentials, environment, settings.writes)
     const webUi = this.engines.webUi(target)
-    const cli = this.engines.cli(target, ConnectionBuilder.profileOf(target))
+    const cli = this.engines.cli(target, ConnectionBuilder.cliTargetOf(target))
     const identity = ConnectionBuilder.identityOf(target, credentials)
     return {
       target,
@@ -86,8 +87,10 @@ export class ConnectionBuilder {
     return { writable: false, note: `Read-only. ${refusal ?? NO_ADAPTER}` }
   }
 
-  private static profileOf(target: EngineTarget): string | undefined {
-    return target.source.kind === "file" ? target.name : undefined
+  private static cliTargetOf(target: EngineTarget): CliTarget {
+    return target.source.kind === "file"
+      ? { kind: "profile", name: target.name }
+      : { kind: "endpoint", endpoint: target.endpoint }
   }
 
   private static identityOf(target: EngineTarget, credentials: Credentials): string | undefined {

@@ -186,10 +186,12 @@ Ports, core, webview, host kit and host stay engine-neutral.
   naming no editor, since both hosts show it. `EditorAuth`
   (`packages/core/runtime-view/src/host-kit/connections/editor-auth.ts`) words every way out, on
   reading and on connecting, once, next to the auth kinds and `EditorAuth.connectsWith`. The move
-  refusal's way out through the CLI is the core's `CliWayOut`, its command the adapter's
-  `EngineCli` (the C7 adapter's `PulseCli`), with the profile of the target's project file. The
-  package owns its JSON Schema and the shared fixtures (its `./testing` entry), the runtime view
-  its expectations of them
+  refusal's way out through the CLI is the core's `CliWayOut`, its command the adapter's `EngineCli`
+  (the C7 adapter's `PulseCli`) on the engine its `CliTarget` names: the profile of the target's
+  project file, or the URL of the default engine with `--auth none`, beside which the CLI still
+  sends the headers and engine name of a profile it selects itself, a credential header too
+  (`apps/vscode/docs/adr/writes.md`). The package owns its JSON Schema and the shared fixtures (its
+  `./testing` entry), the runtime view its expectations of them
   (`packages/core/runtime-view/test/host-kit/project-file-fixtures.expected.json`, one entry per
   fixture); `packages/core/runtime-view/test/host-kit/project-file-fixtures.test.ts` holds
   `TargetsParser` to both. A profile the format takes is a target with its URL, auth type and

@@ -27,9 +27,13 @@ export interface EngineCli {
   triggerCommand(detail: InstanceDetail, waitState: WaitState): string | undefined
 }
 
+export type CliTarget =
+  | { readonly kind: "profile"; readonly name: string }
+  | { readonly kind: "endpoint"; readonly endpoint: string }
+
 export interface EngineAdapter {
   runtime(connection: EngineConnection): ProcessRuntime
   commands(connection: EngineConnection): ProcessCommands | undefined
   webUi(webUiUrl: string): EngineWebUi | undefined
-  cli(profile: string | undefined): EngineCli | undefined
+  cli(target: CliTarget): EngineCli | undefined
 }

@@ -1,5 +1,6 @@
 import type { ProcessCommands, ProcessRuntime } from "@miragon/pulse-engine-core"
 import type {
+  CliTarget,
   EngineAdapter,
   EngineCli,
   EngineConnection,
@@ -21,7 +22,7 @@ const C7_TARGET: EngineTarget = { ...LOCAL_TARGET, name: "shop-c7" }
 class RecordingAdapter implements EngineAdapter {
   readonly connections: EngineConnection[] = []
   readonly webUiUrls: string[] = []
-  readonly cliProfiles: (string | undefined)[] = []
+  readonly cliTargets: CliTarget[] = []
   readonly cliOfIt: EngineCli = { triggerCommand: () => undefined }
   readonly runtimeOfIt = {} as ProcessRuntime
   readonly commandsOfIt = {} as ProcessCommands
@@ -48,8 +49,8 @@ class RecordingAdapter implements EngineAdapter {
     }
   }
 
-  cli(profile: string | undefined): EngineCli {
-    this.cliProfiles.push(profile)
+  cli(target: CliTarget): EngineCli {
+    this.cliTargets.push(target)
     return this.cliOfIt
   }
 }
@@ -73,12 +74,14 @@ describe("the composition root", () => {
     expect(c7.connections).toEqual([])
   })
 
-  test("asks the adapter of the engine kind for its CLI, run with the profile it is given", () => {
+  test("asks the adapter of the engine kind for its CLI, which names the target it is given", () => {
     const { c7, root } = rootWithRecorder()
+    const profile = { kind: "profile", name: "shop-c7" } as const
+    const endpoint = { kind: "endpoint", endpoint: LOCAL_TARGET.endpoint } as const
 
-    expect(root.cli(C7_TARGET, "shop-c7")).toBe(c7.cliOfIt)
-    expect(root.cli(LOCAL_TARGET, undefined)).toBe(c7.cliOfIt)
-    expect(c7.cliProfiles).toEqual(["shop-c7", undefined])
+    expect(root.cli(C7_TARGET, profile)).toBe(c7.cliOfIt)
+    expect(root.cli(LOCAL_TARGET, endpoint)).toBe(c7.cliOfIt)
+    expect(c7.cliTargets).toEqual([profile, endpoint])
     expect(c7.connections).toEqual([])
   })
 

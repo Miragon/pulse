@@ -1,5 +1,6 @@
 import type { ProcessCommands, ProcessRuntime } from "@miragon/pulse-engine-core"
 import type {
+  CliTarget,
   EngineAdapter,
   EngineCli,
   EngineConnection,
@@ -29,8 +30,8 @@ export class C7Adapter implements EngineAdapter {
     return CockpitWebUi.at(webUiUrl)
   }
 
-  cli(profile: string | undefined): EngineCli {
-    return new PulseCli(profile)
+  cli(target: CliTarget): EngineCli {
+    return new PulseCli(target)
   }
 
   private httpOf(connection: EngineConnection, writes: boolean): EngineHttp {

@@ -42,7 +42,7 @@ flowchart LR
 ## Where things are
 
 - `packages/core/runtime-view/src/ports/index.ts`: the one entry, `@miragon/pulse-runtime-view/ports`
-- `packages/core/runtime-view/src/ports/engine-adapter.ts`: the plug every dialect family provides (`EngineAdapter` with `EngineConnection`, `EngineCredentials`, `EngineWebUi` and `EngineCli`)
+- `packages/core/runtime-view/src/ports/engine-adapter.ts`: the plug every dialect family provides (`EngineAdapter` with `EngineConnection`, `EngineCredentials`, `EngineWebUi`, `EngineCli` and the `CliTarget` it names)
 - `packages/core/runtime-view/src/ports/model-source.ts`, `code-locator.ts`, `workspace-files.ts`: the local ports `ModelSource`, `CodeLocator` and `WorkspaceFiles`
 - `packages/core/runtime-view/src/ports/local-sources.ts`: the read models of the local sources (the `.bpmn` file and the code that implements an element)
 - `packages/connectors/engine/engine-core`: the engine's ports, read models, `RuntimeError`, the kit and the fake

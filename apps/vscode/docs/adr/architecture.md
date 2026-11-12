@@ -1,7 +1,7 @@
 # Architecture
 
 - Status: accepted
-- Last reviewed: 2026-11-12 (a refused target's read-only note is its refusal; the adapter gives the command of Pulse's CLI that triggers an event through the port `EngineCli`, run with the profile of a target's project file); 2026-11-10 (the C7 adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the layers live in the runtime view and the engine adapter, which Pulse for Orca hosts too, the runtime view's contract is `@miragon/pulse-engine-core` and its own ports moved to `ports`; before that, the host kit's connections read the project file with `@miragon/pulse-profile`, the engine contract left the app for `@miragon/pulse-engine-core`, the engine family's neutral core, and 2026-11-08 Pulse's UI foundation in core and webview)
+- Last reviewed: 2026-11-12 (a refused target's read-only note is its refusal; the adapter gives the command of Pulse's CLI that triggers an event through the port `EngineCli`, on the engine its `CliTarget` names: the profile of a target's project file or the default engine's URL); 2026-11-10 (the C7 adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the layers live in the runtime view and the engine adapter, which Pulse for Orca hosts too, the runtime view's contract is `@miragon/pulse-engine-core` and its own ports moved to `ports`; before that, the host kit's connections read the project file with `@miragon/pulse-profile`, the engine contract left the app for `@miragon/pulse-engine-core`, the engine family's neutral core, and 2026-11-08 Pulse's UI foundation in core and webview)
 
 ## Context
 
@@ -161,9 +161,9 @@ class `CompositionRoot` holds one `EngineAdapter` per engine kind (`c7` → `C7A
 in a `Record<EngineKind, EngineAdapter>`, so a new kind does not compile without its
 adapter) and implements `EngineFactories`: for a configured target it
 returns the `ProcessRuntime` and, where the adapter has them, the `ProcessCommands`,
-the `EngineWebUi` (for a target with a `cockpitUrl`) and the `EngineCli` (run with the profile the
-connection builder names: the target's name when it comes from a project file, none for the
-default engine) of the adapter for `target.engine`. A target the target policy refuses (OAuth2,
+the `EngineWebUi` (for a target with a `cockpitUrl`) and the `EngineCli` (for the `CliTarget` the
+connection builder names: the target's profile when it comes from a project file, the endpoint of
+the default engine) of the adapter for `target.engine`. A target the target policy refuses (OAuth2,
 credentials saved for another endpoint, basic credentials over plain HTTP) gets a
 `FailingRuntime` with the refusal text and no commands; the connection builder keeps
 the commands only when the write policy allows them, and where it allows them for a refused

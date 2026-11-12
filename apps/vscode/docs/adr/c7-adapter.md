@@ -1,7 +1,7 @@
 # Camunda 7 family adapter
 
 - Status: accepted
-- Last reviewed: 2026-11-12 (`C7Adapter.cli` gives the CLI command that triggers the event a token waits for, `PulseCli`); 2026-11-11 (the editor hosts send the adapter no number beyond the range of a double, which it writes as text without a type; the refusal of a number that is not finite is c7-core's `toEngineVariable`, of which the adapter keeps no copy); 2026-11-10 (the adapter sends through `@miragon/pulse-http` and its inspection goes out as routes of c7-core's `CORE_ROUTES`; the incident retry's target, the built-in incident types, the request of an incident's cause and the typing of a written variable come from c7-core; the adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the adapter is a package, which Pulse for Orca bundles too)
+- Last reviewed: 2026-11-12 (`C7Adapter.cli` gives the CLI command that triggers the event a token waits for, `PulseCli`, on the engine its `CliTarget` names: a profile or the default engine's URL); 2026-11-11 (the editor hosts send the adapter no number beyond the range of a double, which it writes as text without a type; the refusal of a number that is not finite is c7-core's `toEngineVariable`, of which the adapter keeps no copy); 2026-11-10 (the adapter sends through `@miragon/pulse-http` and its inspection goes out as routes of c7-core's `CORE_ROUTES`; the incident retry's target, the built-in incident types, the request of an incident's cause and the typing of a written variable come from c7-core; the adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the adapter is a package, which Pulse for Orca bundles too)
 
 ## Context
 
@@ -292,14 +292,17 @@ MCP server run too. The package belongs to the c7 family, whose dialect it imple
 
 - **CLI.** `C7Adapter.cli` returns a `PulseCli`, which gives the command of Pulse's CLI that
   triggers the event a token waits for, for the editors' refusal behind an event-based gateway
-  ([writes.md](writes.md)): `pulse advance <instance> --activity-id <activity>`, and
-  `--profile <name>` when the editor read the target from a project file. It names one for a
-  message, a signal or a timer (`advance` delivers the message to that execution's subscription,
-  the signal to that execution, or executes the timer's job) and only when no other wait state of
-  the instance tree waits at the activity, since `advance` refuses an activity where more than one
-  waits. It quotes a word as the CLI quotes the words of its own ready commands; no package imports
-  an app, so it keeps a copy of the CLI's `shellWord`, which `scripts/shell-words.test.mjs` holds
-  to the CLI's rule.
+  ([writes.md](writes.md)): `pulse advance <instance> --activity-id <activity>`, on the engine the
+  port's `CliTarget` names: `--profile <name>` when the editor read the target from a project file,
+  `--url <endpoint> --auth none` for its default engine, which it reaches without a login, so a
+  profile the CLI selects itself neither picks another URL nor logs in; that profile's headers,
+  which can carry a credential, and its engine name still apply, a limit [writes.md](writes.md)
+  names. It names one for a message, a signal or a timer (`advance` delivers the message to that
+  execution's subscription, the signal to that execution, or executes the timer's job) and only when
+  no other wait state of the instance tree waits at the activity, since `advance` refuses an
+  activity where more than one waits. It quotes a word as the CLI quotes the words of its own ready
+  commands; no package imports an app, so it keeps a copy of the CLI's `shellWord`, which
+  `scripts/shell-words.test.mjs` holds to the CLI's rule.
 
 - **Web UI.** `C7Adapter.webUi` returns a `CockpitWebUi` ("Cockpit") when the target's
   `cockpitUrl` names one, chosen by its path (the app root cannot be told from the REST

@@ -5,7 +5,7 @@ import {
 } from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
 import { EngineLane } from "../../src/core/index.js"
-import type { EngineCli, EngineWebUi } from "../../src/ports/index.js"
+import type { CliTarget, EngineCli, EngineWebUi } from "../../src/ports/index.js"
 import {
   ConnectionBuilder,
   type ConnectionSettings,
@@ -117,13 +117,13 @@ describe("a connection the host kit builds", () => {
     expect(connection.badge).not.toHaveProperty("webUi")
   })
 
-  test("carries the engine's CLI, run with the profile of the project file and none for the default engine", () => {
-    const profiles: (string | undefined)[] = []
+  test("carries the engine's CLI, which names the profile of a project file's target and the URL of the default engine", () => {
+    const named: CliTarget[] = []
     const cli: EngineCli = { triggerCommand: () => undefined }
     const engines: EngineFactories = {
       ...factories(COMMANDS),
-      cli: (_, profile) => {
-        profiles.push(profile)
+      cli: (_, cliTarget) => {
+        named.push(cliTarget)
         return cli
       },
     }
@@ -138,7 +138,10 @@ describe("a connection the host kit builds", () => {
     builderOver(engines).build(LOCAL_TARGET, NO_LOGIN, "local", settings("localOnly"))
 
     expect(connection.cli).toBe(cli)
-    expect(profiles).toEqual(["shop-dev", undefined])
+    expect(named).toEqual([
+      { kind: "profile", name: "shop-dev" },
+      { kind: "endpoint", endpoint: "http://localhost:8080/engine-rest" },
+    ])
   })
 
   test("says that Pulse does not change data when the engine brings no commands", () => {
