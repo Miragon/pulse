@@ -106,8 +106,8 @@
     "@modelcontextprotocol/ext-apps": "2.0.4",
     "@modelcontextprotocol/node": "2.1.2",
     "@modelcontextprotocol/server": "2.4.0",
-    "hono": "4.13.17",
-    "jose": "6.2.15",
+    "hono": "4.13.18",
+    "jose": "6.2.17",
     "prom-client": "15.1.3"
   }
 }
