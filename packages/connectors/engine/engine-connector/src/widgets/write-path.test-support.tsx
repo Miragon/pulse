@@ -80,6 +80,8 @@ export const FAILED_JOB_INCIDENT: IncidentInstance = {
   incidentType: "failedJob",
   incidentMessage: "Card declined",
   incidentTimestamp: "2026-10-10T08:00:00.000+0000",
+  activityId: "charge",
+  activityName: "Charge card",
   cockpitInstanceUrl: null,
   businessKey: null,
   recovery: { action: "retry-job", jobId: "job-1" },

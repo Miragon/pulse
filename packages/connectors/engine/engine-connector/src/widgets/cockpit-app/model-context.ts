@@ -21,6 +21,22 @@ export function cockpitContext(engineId: string, current: CockpitView): ViewCont
   }
 }
 
+/**
+ * The open engine's profile is refused (`RefusedEngineGate`): its reason is the view's one state,
+ * so the model offers no work on it, since every call to it fails the same way.
+ */
+export function refusedEngineContext(engineId: string): ViewContext {
+  return {
+    summary:
+      "The operator opened an engine in the engine cockpit whose profile the server refused: " +
+      "every read and write to it fails until whoever runs the server fixes the profile, and the " +
+      "view shows only that reason. Offer no analysis or change on this engine; another engine " +
+      "can still be opened.",
+    ids: { engine: engineId },
+    facts: { profileRefused: true },
+  }
+}
+
 /** No engine is open: the engine ids are facts, not an `engine` to pin. */
 export function landingContext(
   engineGroups: Array<{ id: string; engines: Array<{ id: string }> }>,

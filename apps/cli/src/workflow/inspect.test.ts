@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { portOf } from "../../test/support/engine-port.js"
 import { engineError, fakeServer, json, text } from "../../test/support/fake-fetch.js"
 import { ALL, approveEngine } from "../../test/support/inspect-engine.js"
-import { instanceRequests } from "@miragon/pulse-engine-core"
+import { instanceRequests } from "@miragon/pulse-c7-core"
 import {
   activityTree,
   C,
@@ -11,7 +11,7 @@ import {
   historyDto,
   incidentCause,
   P,
-} from "@miragon/pulse-engine-core/testing"
+} from "@miragon/pulse-c7-core/testing"
 import { PulseCliError } from "../errors.js"
 import { inspect, loadInstance, loadView } from "./inspect.js"
 

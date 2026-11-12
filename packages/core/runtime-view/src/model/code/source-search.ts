@@ -1,4 +1,4 @@
-import type { SourceLocation, WorkspaceFiles } from "../../contract/index.js"
+import type { SourceLocation, WorkspaceFiles } from "../../ports/index.js"
 
 const MAX_SOURCES = 5000
 const COMMENT_LINE = /^\s*(?:\/\/|\/?\*)/

@@ -1,4 +1,4 @@
-import type { WorkspaceFiles } from "../../../src/contract/index.js"
+import type { WorkspaceFiles } from "../../../src/ports/index.js"
 
 export class MemoryFiles implements WorkspaceFiles {
   readonly globs: string[] = []

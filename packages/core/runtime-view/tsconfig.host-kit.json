@@ -6,6 +6,6 @@
     "jsx": null,
     "jsxImportSource": null
   },
-  "include": ["src/host-kit", "test/host-kit", "src/contract/bpmn.d.ts"],
+  "include": ["src/host-kit", "test/host-kit", "test/bpmn.d.ts"],
   "exclude": []
 }

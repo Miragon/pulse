@@ -60,6 +60,7 @@ function stored(auth: Record<string, unknown>): Readonly<Record<string, string>>
 function scenarios(token: string): Scenario[] {
   const env = { PULSE_CLI_TOKEN: token }
   const stdin = ["--auth-token-stdin"]
+  const newProfile = ["--url", "http://localhost:8080/engine-rest", ...stdin]
   const literal = stored({ type: "bearer", token })
   const variable = {
     files: stored({ type: "bearer", tokenEnv: "CI_TOKEN" }),
@@ -79,8 +80,8 @@ function scenarios(token: string): Scenario[] {
     { args: ["config", "show", "-o", "table"], ...variable },
     { args: ["config", "show"], env: unused },
     { args: ["config", "show", "-o", "table"], env: unused },
-    { args: ["config", "set", "p", ...stdin, "-o", "json"], stdin: `Bearer ${token}\r\n` },
-    { args: ["config", "set", "p", ...stdin, "-o", "table"], stdin: token },
+    { args: ["config", "set", "p", ...newProfile, "-o", "json"], stdin: `Bearer ${token}\r\n` },
+    { args: ["config", "set", "p", ...newProfile, "-o", "table"], stdin: token },
     { args: ["config", "list"], files: literal },
     { args: ["task", "list", "--dry-run"], env },
     { args: ["task", "list", "--dry-run", "-o", "table"], env },

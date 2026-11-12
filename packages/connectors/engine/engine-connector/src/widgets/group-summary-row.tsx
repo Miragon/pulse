@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { Icon, cn, CountPill, TONE_DOT, type ToneVariant } from "@miragon/pulse-ui"
+import { Icon, cn, CountPill, TONE_DOT, type ToneVariant, SITUATION_TONES } from "@miragon/pulse-ui"
 import { ChevronRight, TriangleAlert } from "lucide-react"
 
 export interface GroupSummaryStat {
@@ -8,7 +8,7 @@ export interface GroupSummaryStat {
 }
 
 /** Shared so the grouped incident lists stay pixel-identical; decorative, the row names the activity. */
-export function IncidentGroupIcon({ tone = "danger" }: { tone?: ToneVariant }) {
+export function IncidentGroupIcon({ tone = SITUATION_TONES.openIncident }: { tone?: ToneVariant }) {
   return (
     <div
       className={cn(
@@ -30,7 +30,7 @@ export function GroupSummaryRow({
   subline,
   stats = [],
   count,
-  countTone = "danger",
+  countTone = SITUATION_TONES.openIncident,
   actions,
   expanded,
   className,

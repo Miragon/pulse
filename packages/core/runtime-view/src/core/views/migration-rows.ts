@@ -1,4 +1,4 @@
-import type { InstanceId } from "../../contract/index.js"
+import type { InstanceId } from "@miragon/pulse-engine-core"
 import { MigrationReads, type MigrationState } from "../panels/migration-reads.js"
 import type { MappingRow } from "../protocol/index.js"
 import { MigrationElements } from "./migration-elements.js"

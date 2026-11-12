@@ -3,7 +3,7 @@
  * built from the helpers of text.ts. Pure.
  */
 
-import type { EndedInstance } from "@miragon/pulse-engine-core"
+import type { EndedInstance } from "@miragon/pulse-c7-core"
 import type { AdvanceView } from "./advance.js"
 import type { BatchView } from "./batch.js"
 import type { DeployView } from "./deploy.js"

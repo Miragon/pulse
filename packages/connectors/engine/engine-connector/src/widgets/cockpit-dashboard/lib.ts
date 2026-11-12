@@ -1,5 +1,4 @@
-import type { ToneVariant } from "@miragon/pulse-ui"
-import { severityTone } from "@miragon/pulse-widget-shell/widgets"
+import { severityTone, type ToneVariant } from "@miragon/pulse-ui"
 import type { CockpitDashboardData, DefinitionStat } from "../../view-models.js"
 
 export interface DefinitionRow extends DefinitionStat {

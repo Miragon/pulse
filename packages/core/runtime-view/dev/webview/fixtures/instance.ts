@@ -38,7 +38,7 @@ export const INSTANCE_WITH_CALLED_INCIDENT: InstanceView = {
       elementName: "Order received",
       startedAt: minutesBefore(150),
       endedAt: minutesBefore(150),
-      duration: "4 ms",
+      duration: "4ms",
       state: "completed",
     },
     {
@@ -46,7 +46,7 @@ export const INSTANCE_WITH_CALLED_INCIDENT: InstanceView = {
       elementName: "Reserve stock",
       startedAt: minutesBefore(150),
       endedAt: minutesBefore(149),
-      duration: "1 min 2 s",
+      duration: "1m 2s",
       state: "completed",
     },
     {

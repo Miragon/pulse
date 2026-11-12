@@ -10,6 +10,8 @@ interface Common {
 }
 
 export class WidgetParser {
+  private static readonly ONE_OF_COLUMNS = `must be one of ${BoardVocabulary.COLUMNS.join(", ")}`
+
   private readonly filters: FilterParser
 
   constructor(
@@ -148,11 +150,11 @@ export class WidgetParser {
 
   private checkColumn(column: unknown, path: string): void {
     if (typeof column === "string" && column.startsWith("var:")) {
-      this.problems.add(path, "variable columns are not supported yet")
+      this.problems.add(path, `cannot show a variable; ${WidgetParser.ONE_OF_COLUMNS}`)
       return
     }
     if (!BoardVocabulary.COLUMNS.includes(column as BoardColumn)) {
-      this.problems.add(path, `must be one of ${BoardVocabulary.COLUMNS.join(", ")}`)
+      this.problems.add(path, WidgetParser.ONE_OF_COLUMNS)
     }
   }
 }

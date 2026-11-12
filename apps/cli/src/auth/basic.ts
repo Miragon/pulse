@@ -1,24 +1,12 @@
 /**
- * HTTP Basic authentication (RFC 7617): `Authorization: Basic base64(utf8(username:password))`.
- * The header needs no network access, so dry-run previews show it (masked unless --show-secrets).
+ * HTTP Basic authentication (RFC 7617, UTF-8): the credential of @miragon/pulse-http, which masks
+ * the password and the Basic value in what the engine sends back. The header needs no network
+ * access, so dry-run previews show it (masked unless --show-secrets).
  */
 
+import { basicCredential, type Credential } from "@miragon/pulse-http"
 import type { BasicAuthConfig } from "../config/types.js"
-import type { AuthProvider } from "./types.js"
-
-const encoder = new TextEncoder()
-
-/** Standard Base64 of the UTF-8 encoding of `text` (also for OAuth client credentials). */
-export function base64(text: string): string {
-  let binary = ""
-  for (const byte of encoder.encode(text)) binary += String.fromCharCode(byte)
-  return btoa(binary)
-}
-
-/** The Authorization header value for the credentials. */
-export function basicHeader(username: string, password: string): string {
-  return `Basic ${base64(`${username}:${password}`)}`
-}
+import type { AuthPreview, AuthProvider } from "./types.js"
 
 /** `env`, or `profile for the user, env for the password` when the two differ. */
 export function credentialSource(sources: BasicAuthConfig["sources"]): string {
@@ -27,12 +15,22 @@ export function credentialSource(sources: BasicAuthConfig["sources"]): string {
     : `${sources.username} for the user, ${sources.password} for the password`
 }
 
+/** The headers a credential sends, known without network access (Basic). */
+export async function credentialHeaders(credential: Credential): Promise<AuthPreview> {
+  const authorization = await credential.authorization()
+  return { headers: authorization === undefined ? {} : { Authorization: authorization.header } }
+}
+
+/**
+ * The provider of Basic auth. Config resolution has refused a username with ":" and control
+ * characters in either value already (src/config/auth.ts), the cases the credential refuses.
+ */
 export function basicAuth(config: BasicAuthConfig): AuthProvider {
-  const headers = { Authorization: basicHeader(config.username, config.password) }
+  const credential = basicCredential(config.username, config.password)
   return {
     type: "basic",
-    headers: () => Promise.resolve(headers),
-    preview: () => Promise.resolve({ headers }),
+    credential,
+    preview: () => credentialHeaders(credential),
     principal: { user: config.username, source: credentialSource(config.sources) },
   }
 }

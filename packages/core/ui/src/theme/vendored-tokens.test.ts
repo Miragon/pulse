@@ -1,17 +1,24 @@
 /// <reference types="node" />
-import { createHash } from "node:crypto"
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { basename, dirname, join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { rootTokens, vendoredTokenFindings } from "./vendored-tokens.test-support.js"
+import {
+  EQUAL_FIX,
+  FORK,
+  FORK_FIX,
+  fixtureRepo,
+  manifestOf,
+  sha,
+  type FixtureRepo,
+} from "./vendored-token-fixtures.test-support.js"
+import { rootTokens } from "./vendored-tokens.test-support.js"
 
 /**
- * Fixture repos for the vendored-token verifier behind the drift guard in
- * `token-drift.test.ts`. Each case builds its tree under the OS temp
- * folder and removes it afterwards. The cases include copies the repo does not
- * hold yet (a second sanctioned copy, the App and web variant of the CI token
- * file under an extension's webview), so the guard is ready before they land.
+ * The vendored-token verifier behind the drift guard in `token-drift.test.ts`,
+ * over fixture repos (`vendored-token-fixtures.test-support.ts`). The cases
+ * include copies the repo does not hold yet (a second sanctioned copy, the App
+ * and web variant of the CI token file under an extension's webview), so the
+ * guard is ready before they land. Token equality: `token-equality.test.ts`;
+ * the sha256sum list of brand-assets.mjs and `valuesOnly`:
+ * `vendored-tokens-checksums.test.ts`.
  */
 
 const PALETTE = new Map([
@@ -59,46 +66,21 @@ const APP_CANVAS = ".djs-container { background: var(--cd-ui-grund); color: var(
 
 const APP_JSON = '{ "cd": { "blau": "#335DE5" } }\n'
 
-const sha = (text: string) => createHash("sha256").update(text).digest("hex")
-
-/** A manifest in the docs kit's format for the given files (`pfad` to its content). */
-function manifestOf(files: Record<string, string>, version = "1.20.0"): string {
-  return JSON.stringify(
-    {
-      $kommentar: "fixture",
-      version,
-      dateien: Object.entries(files).map(([pfad, content]) => ({
-        pfad,
-        quelle: `assets/${basename(pfad)}`,
-        sha256: sha(content),
-      })),
-    },
-    null,
-    2,
-  )
-}
-
-let root: string
+let repo: FixtureRepo
 
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), "vendored-tokens-"))
+  repo = fixtureRepo(PALETTE)
 })
 
 afterEach(() => {
-  rmSync(root, { recursive: true, force: true })
+  repo.remove()
 })
 
-function write(files: Record<string, string>): void {
-  for (const [path, content] of Object.entries(files)) {
-    mkdirSync(dirname(join(root, path)), { recursive: true })
-    writeFileSync(join(root, path), content)
-  }
+const write = (files: Record<string, string>) => {
+  repo.write(files)
 }
 
-const findings = (manifests: string[], scanRoots: string[] = ["app"]) =>
-  vendoredTokenFindings({ root, manifests, scanRoots, palette: PALETTE })
-
-const FORK = "declares --cd-* outside a sanctioned vendored copy (a fork)"
+const findings = (manifests: string[], scanRoots?: string[]) => repo.findings(manifests, scanRoots)
 
 describe("vendoredTokenFindings: sanctioned copies pass", () => {
   it("a copy its sanctioned manifest lists, byte-equal and on the palette", () => {
@@ -161,7 +143,7 @@ describe("vendoredTokenFindings: sanctioned copies pass", () => {
       "app/.temp/t/cd-tokens.generated.css": TOKENS,
     })
     expect(findings([], ["docs", "app"])).toEqual([
-      `app/.temp/t/cd-tokens.generated.css: ${FORK}: ${forkFix()}`,
+      `app/.temp/t/cd-tokens.generated.css: ${FORK}: ${FORK_FIX}`,
     ])
   })
 })
@@ -169,7 +151,7 @@ describe("vendoredTokenFindings: sanctioned copies pass", () => {
 describe("vendoredTokenFindings: forks fail", () => {
   it("a stylesheet that declares a --cd-* with no manifest", () => {
     write({ "apps/x/src/app.css": ".a { --cd-blau: red; }\n" })
-    expect(findings([], ["apps"])).toEqual([`apps/x/src/app.css: ${FORK}: ${forkFix()}`])
+    expect(findings([], ["apps"])).toEqual([`apps/x/src/app.css: ${FORK}: ${FORK_FIX}`])
   })
 
   it("a valid manifest next to the copy sanctions nothing unless the caller lists it", () => {
@@ -177,7 +159,7 @@ describe("vendoredTokenFindings: forks fail", () => {
       "app/theme/cd-tokens.generated.css": TOKENS,
       "app/theme/manifest.json": manifestOf({ "app/theme/cd-tokens.generated.css": TOKENS }),
     })
-    expect(findings([])).toEqual([`app/theme/cd-tokens.generated.css: ${FORK}: ${forkFix()}`])
+    expect(findings([])).toEqual([`app/theme/cd-tokens.generated.css: ${FORK}: ${FORK_FIX}`])
   })
 
   it("a copy edited after vendoring is reported and loses its sanction", () => {
@@ -187,7 +169,7 @@ describe("vendoredTokenFindings: forks fail", () => {
     })
     expect(findings(["app/theme/manifest.json"])).toEqual([
       "app/theme/cd-tokens.generated.css: differs from app/theme/manifest.json: re-vendor it, never edit it in the repo",
-      `app/theme/cd-tokens.generated.css: ${FORK}: ${forkFix()}`,
+      `app/theme/cd-tokens.generated.css: ${FORK}: ${FORK_FIX}`,
     ])
   })
 
@@ -197,7 +179,7 @@ describe("vendoredTokenFindings: forks fail", () => {
       "app/theme/manifest.json": manifestOf({ "other/x.css": TOKENS }),
     })
     expect(findings(["app/theme/manifest.json"], ["app", "other"])).toEqual([
-      `other/x.css: ${FORK}: ${forkFix()}`,
+      `other/x.css: ${FORK}: ${FORK_FIX}`,
     ])
   })
 })
@@ -244,7 +226,7 @@ describe("vendoredTokenFindings: a sanctioned manifest fails closed", () => {
     const result = findings(["app/theme/manifest.json"])
     expect(result).toEqual([
       expect.stringMatching(/^app\/theme\/manifest\.json: not a vendor manifest \(version x\.y\.z/),
-      `app/theme/t.css: ${FORK}: ${forkFix()}`,
+      `app/theme/t.css: ${FORK}: ${FORK_FIX}`,
     ])
   })
 
@@ -314,7 +296,7 @@ describe("vendoredTokenFindings: the palette rule", () => {
       "app/theme/manifest.json": manifestOf({ "app/theme/cd-tokens.generated.css": drifted }),
     })
     expect(findings(["app/theme/manifest.json"])).toEqual([
-      "app/theme/cd-tokens.generated.css: --cd-blau is #1D1D1D, pulse-ui's copy says #335DE5: vendor both from the same CI release (a re-vendor), never change a value in the repo",
+      `--cd-blau in :root differs between the vendored copies (#335DE5 in pulse-ui's palette; #1D1D1D in app/theme/cd-tokens.generated.css): ${EQUAL_FIX}`,
       // --cd-gruen sits in the dark scope only: no top-level :root declares it.
       "app/theme/manifest.json: its vendored stylesheets declare --cd-* tokens, but no top-level :root among them declares --cd-gruen, which pulse-ui's copy does: a copy without a palette token forks the palette by omission, so vendor the CI token file whole (a re-vendor), never trim it",
     ])
@@ -383,7 +365,7 @@ describe("vendoredTokenFindings: the palette rule", () => {
       "app/a.css": ".a {}\n",
     })
     expect(findings(["vendor/theme/manifest.json"])).toEqual([
-      expect.stringMatching(/^vendor\/theme\/cd-tokens\.generated\.css: --cd-blau is #1D1D1D/),
+      expect.stringMatching(/^--cd-blau in :root .*#1D1D1D in vendor\/theme\/cd-tokens\.generated/),
       expect.stringMatching(/^vendor\/theme\/manifest\.json: .*declares --cd-gruen, which/),
     ])
   })
@@ -408,7 +390,7 @@ describe("rootTokens", () => {
 :root .x { --cd-descendant: #8F8A8A; }
 :root, :host { --cd-list: #6B6666; }
 [data-cd-theme="dark"] { --cd-blau: #6B8AFF; }
-@media screen { :root { --cd-media: #CD1839; } }
+@media screen { :root { --cd-media: #335DE5; } }
 :root { --cd-blau: #2B50D4; }
 `
     expect(Object.fromEntries(rootTokens(css))).toEqual({
@@ -423,7 +405,3 @@ describe("rootTokens", () => {
     expect(rootTokens("").size).toBe(0)
   })
 })
-
-function forkFix(): string {
-  return "reference pulse-ui's tokens and roles with var(), or vendor the CI file unchanged with a manifest listed in SANCTIONED_TOKEN_MANIFESTS"
-}

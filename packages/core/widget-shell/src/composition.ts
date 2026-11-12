@@ -31,6 +31,12 @@ export interface ComposableModule<TShared> {
   /** Pure env → raw-config mapping; no `process.env`, no I/O side effects. */
   configFromEnv(env: NodeJS.ProcessEnv): Record<string, unknown>
   knownEnvVars: readonly string[]
+  /**
+   * Variables the module reads because its own settings name them (the engine module's profiles
+   * name ENGINE_SECRET_* variables): the typo warner takes them as known. Never throws; a setting
+   * it cannot read fails the boot in `configFromEnv`.
+   */
+  referencedEnvVars?(env: NodeJS.ProcessEnv): readonly string[]
   /** Opts into the `module:toolset` suffix; absent = a suffix is ignored with a warning. */
   toolsets?: ToolsetVocabulary<string>
   bootWarnings?(env: NodeJS.ProcessEnv): string[]
@@ -182,6 +188,29 @@ export function composeModules<TShared>(options: {
     return refs
   }
 
+  /**
+   * The variables the active modules' own settings name (`referencedEnvVars`). Runs before the
+   * boot checks those settings: a module list or a setting it cannot read names none here and
+   * fails the boot right after with its own error.
+   */
+  const referencedBy = (env: NodeJS.ProcessEnv): ReadonlySet<string> => {
+    let active: ActiveModuleRef[]
+    try {
+      active = activeModules(env)
+    } catch {
+      return new Set()
+    }
+    return new Set(
+      active.flatMap(({ name }) => {
+        try {
+          return [...(registry[name].referencedEnvVars?.(env) ?? [])]
+        } catch {
+          return []
+        }
+      }),
+    )
+  }
+
   const effectiveToolset = (
     module: ComposableModule<TShared>,
     suffix: string | undefined,
@@ -228,13 +257,15 @@ export function composeModules<TShared>(options: {
         .map((entry) => registry[entry.app].createPlugin(entry.config, shared))
     },
     warnUnknownEnvVars(env = process.env) {
-      // `<KNOWN_VAR>_*` (PROMETHEUS_PASSWORD_FILE, …) addresses OTHER processes, never a typo.
+      // `<KNOWN_VAR>_*` (ENGINE_PASSWORD_FILE, …) addresses OTHER processes, never a typo.
       const extendsKnownVar = (name: string) =>
         [...knownEnvVars].some((knownName) => name.startsWith(`${knownName}_`))
+      const referenced = referencedBy(env)
       const unknown = Object.keys(env).filter(
         (name) =>
           watchedPrefixes.some((prefix) => name.startsWith(prefix)) &&
           !knownEnvVars.has(name) &&
+          !referenced.has(name) &&
           !extendsKnownVar(name) &&
           !foreignEnvPrefixes.some((prefix) => name.startsWith(prefix)),
       )

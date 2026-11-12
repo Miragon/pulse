@@ -23,8 +23,11 @@ class RegistryHarness {
     this.statusBar = new StatusBar(api, this.registry)
   }
 
-  static async loaded(prepare: (worker: WorkerHarness) => Promise<void> = () => Promise.resolve()) {
-    const worker = await WorkerHarness.withProject()
+  static async loaded(
+    prepare: (worker: WorkerHarness) => Promise<void> = () => Promise.resolve(),
+    project: Promise<WorkerHarness> = WorkerHarness.withProject(),
+  ) {
+    const worker = await project
     await prepare(worker)
     const harness = new RegistryHarness(worker)
     await harness.registry.reload()
@@ -114,6 +117,74 @@ describe("the engine registry", () => {
 
     expect(harness.registry.projectFiles()).toEqual([])
     expect(harness.registry.all().map((connection) => connection.target.name)).toEqual(["local"])
+  })
+
+  test("asks to rename a project file under its former name and lists none of its engines, nor the local one", async () => {
+    const harness = await RegistryHarness.loaded(undefined, WorkerHarness.withFormerProject())
+    const former = harness.worker.formerProjectFile
+
+    expect(harness.registry.projectFiles()).toEqual([])
+    expect(harness.registry.formerProjectFiles()).toEqual([former])
+    expect(harness.registry.configurationProblems().map((problem) => problem.label())).toEqual([
+      ".pulse-cli.json: Pulse reads .pulse.json now. Rename this file to .pulse.json; its content stays.",
+    ])
+    expect(harness.registry.all()).toEqual([])
+  })
+
+  test("reads .pulse.json and leaves a former file beside it alone", async () => {
+    const harness = await RegistryHarness.loaded(async (worker) => {
+      await writeFile(
+        worker.formerProjectFile,
+        JSON.stringify({ profiles: { old: { url: LOCAL_ENDPOINT } } }),
+      )
+    })
+
+    expect(harness.registry.projectFiles()).toEqual([harness.worker.projectFile])
+    expect(harness.registry.configurationProblems()).toEqual([])
+    expect(harness.registry.all().map((connection) => connection.target.name)).toEqual([
+      "shop-dev",
+      "prod-eu",
+    ])
+  })
+
+  test("names a project file it finds but cannot read and lists no engine, nor the local one", async () => {
+    const harness = await RegistryHarness.loaded(async (worker) => {
+      await mkdir(worker.projectFile)
+      await writeFile(
+        worker.formerProjectFile,
+        JSON.stringify({ profiles: { old: { url: LOCAL_ENDPOINT } } }),
+      )
+    }, WorkerHarness.empty())
+
+    expect(harness.registry.projectFiles()).toEqual([])
+    expect(harness.registry.formerProjectFiles()).toEqual([])
+    expect(harness.registry.configurationProblems().map((problem) => problem.label())).toEqual([
+      ".pulse.json: Pulse can't read this file",
+    ])
+    expect(harness.registry.all()).toEqual([])
+  })
+
+  test("names a configured project file it cannot read and lists no engine in its place", async () => {
+    const harness = await RegistryHarness.loaded(async (worker) => {
+      const configured = join(worker.root, "engines")
+      await mkdir(configured)
+      worker.orca.settings.set("projectFile", configured)
+    }, WorkerHarness.empty())
+
+    expect(harness.registry.configurationProblems().map((problem) => problem.label())).toEqual([
+      "engines: Pulse can't read this file",
+    ])
+    expect(harness.registry.all()).toEqual([])
+  })
+
+  test("reads a configured file whatever its name", async () => {
+    const harness = await RegistryHarness.loaded((worker) => {
+      worker.orca.settings.set("projectFile", worker.formerProjectFile)
+      return Promise.resolve()
+    }, WorkerHarness.withFormerProject())
+
+    expect(harness.registry.projectFiles()).toEqual([harness.worker.formerProjectFile])
+    expect(harness.registry.formerProjectFiles()).toEqual([])
   })
 })
 

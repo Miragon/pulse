@@ -1,8 +1,0 @@
-# Fly.io image for the OTEL Collector: Fly Machines cannot bind-mount config
-# files, so the (shared) collector config is baked into the image instead.
-# Deployed via playground/fly/deploy.sh with playground/fly/otel.fly.toml.
-FROM otel/opentelemetry-collector-contrib:0.164.0
-
-COPY otel-collector-config.yaml /etc/otel-collector-config.yaml
-
-CMD ["--config=/etc/otel-collector-config.yaml"]

@@ -1,6 +1,6 @@
-import type { EngineStatus } from "@miragon/pulse-engine-core"
+import type { EngineStatus } from "@miragon/pulse-c7-core"
 
-/** engine-core's live verdict (`engineVerdict`), the one `engine_status` gives too. */
+/** c7-core's live verdict (`engineVerdict`), the one `engine_status` gives too. */
 export type EngineHealthStatus = EngineStatus
 
 /** A cluster larger than the scan (`CLUSTER_SCAN_LIMIT`) is only a lower bound, never the scan's length. */

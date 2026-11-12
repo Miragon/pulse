@@ -7,6 +7,8 @@ name: Publish the CLI Homebrew formula
 # has one formula, which follows the newest stable release); a manual run publishes an existing
 # release again, or checks it with dry-run. The formula comes from
 # apps/cli/scripts/homebrew-formula.sh of the commit this workflow runs from, not of the release.
+# It installs the licences of the archive, which an archive before 0.28.0 lacks: run it for such
+# a release from its tag (gh workflow run publish-homebrew.yml --ref v<version> ...).
 #
 # The first publish also renames the formula: it adds operate -> pulse-cli to the tap's
 # formula_renames.json and removes Formula/operate.rb in the same squash-merged pull request, so

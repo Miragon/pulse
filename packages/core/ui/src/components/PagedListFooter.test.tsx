@@ -118,6 +118,88 @@ describe("PagedListFooter: two failures, two retries", () => {
     expect(html.match(/Erneut versuchen<\/button>/g)).toHaveLength(2)
   })
 
+  it("offers no retry where the caller says none changes the failure, and keeps the others", () => {
+    const refused = new Error("refused until someone changes a setting")
+    const canRetry = (error: Error) => error !== refused
+    const html = render(paged({ stale: true, error: refused, loadMoreError: refused, canRetry }))
+    expect(alerts(html)).toHaveLength(2)
+    expect(html).not.toContain("Try again</button>")
+    const mixed = render(paged({ stale: true, error: refused, loadMoreError: failed, canRetry }))
+    expect(mixed.match(/Try again<\/button>/g)).toHaveLength(1)
+  })
+
+  it("never says try again for a refusal no retry changes: what you see, then the caller's reason", () => {
+    const refused = new Error('[ENGINE_PROFILE_REFUSED] Engine "prod" is configured, but …')
+    const reason = "Engine prod cannot be used: its profile is refused. Pick another engine."
+    const describeRefusal = (error: Error) => (error === refused ? reason : "another failure")
+    const html = render(
+      paged({
+        stale: true,
+        error: refused,
+        loadMoreError: refused,
+        canRetry: () => false,
+        describeRefusal,
+      }),
+    )
+    const texts = userFacingTexts(html).map((t) => t.value)
+    expect(texts).toContain(`You're seeing the previous result. ${reason}`)
+    expect(texts).toContain(`The entries above are current. ${reason}`)
+    expect(html).not.toMatch(/Try again/)
+    // The engine's raw text stays under Details.
+    expect(html.match(/<pre[^>]*>\[ENGINE_PROFILE_REFUSED\] Engine/g)).toHaveLength(2)
+  })
+
+  it("says only what you see for a refusal without a reason, in German too", () => {
+    const refused = new Error("refused until someone changes a setting")
+    const state = paged({
+      stale: true,
+      error: refused,
+      loadMoreError: refused,
+      canRetry: () => false,
+    })
+    expect(userFacingTexts(render(state)).map((t) => t.value)).toEqual(
+      expect.arrayContaining([
+        "You're seeing the previous result.",
+        "The entries above are current.",
+      ]),
+    )
+    const german = render(state, "de")
+    expect(userFacingTexts(german).map((t) => t.value)).toEqual(
+      expect.arrayContaining([
+        "Du siehst das vorherige Ergebnis.",
+        "Die Einträge oben sind aktuell.",
+      ]),
+    )
+    expect(german).not.toMatch(/versuch/i)
+  })
+
+  it("shows the raw reason only under Details, beside a refusal's reason as beside a retry", () => {
+    const refused = new Error("[ENGINE_PROFILE_REFUSED] raw engine text")
+    const describeRefusal = () => "Engine prod cannot be used. Pick another engine."
+    const canRetry = (error: Error) => error !== refused
+    const pairs = [
+      [refused, refused],
+      [failed, failed],
+      [refused, failed],
+    ] as const
+    for (const [error, loadMoreError] of pairs) {
+      const html = render(paged({ stale: true, error, loadMoreError, canRetry, describeRefusal }))
+      const raw = [error.message, loadMoreError.message]
+      const details = /<pre[^>]*>([^<]*)<\/pre>/g
+      expect([...html.matchAll(details)].map((match) => match[1])).toEqual(raw)
+      const outsideDetails = html.replace(details, "")
+      for (const message of raw) expect(outsideDetails).not.toContain(message)
+    }
+  })
+
+  it("keeps the retry hint where a retry may help, whatever the caller's reason", () => {
+    const html = render(paged({ stale: true, error: failed, describeRefusal: () => "never shown" }))
+    expect(userFacingTexts(html).map((t) => t.value)).toContain(
+      UI_MESSAGES.en.listFooter.refreshFailedHint,
+    )
+    expect(html).not.toContain("never shown")
+  })
+
   it("offers no retry it cannot run, and takes the caller's labels", () => {
     // A paged state without a page-0 retry callback.
     const noRetryState = paged({ error: failed })

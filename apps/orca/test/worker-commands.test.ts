@@ -1,4 +1,4 @@
-import { writeFile } from "node:fs/promises"
+import { access, rename, writeFile } from "node:fs/promises"
 import { afterEach, describe, expect, test, vi } from "vitest"
 import type { EngineList } from "../src/protocol.js"
 import activate, { deactivate } from "../src/worker/main.js"
@@ -63,7 +63,7 @@ describe("the commands of the worker", () => {
 
     expect(await harness.orca.run("pulse.configureEngines")).toBe(`Opened ${harness.projectFile}.`)
     expect(harness.orca.callsOf("editor.open")).toEqual([
-      { workspaceId: "shop", path: ".pulse-cli.json" },
+      { workspaceId: "shop", path: ".pulse.json" },
     ])
   })
 
@@ -75,6 +75,16 @@ describe("the commands of the worker", () => {
 
     expect(list.projectFile).toBe(harness.projectFile)
     expect(list.engines.map((row) => row.name)).toEqual(["local"])
+  })
+
+  test("open a project file under its former name to rename it and write no second one", async () => {
+    const harness = await started(WorkerHarness.withFormerProject())
+    await harness.request("engines.list")
+
+    expect(await harness.orca.run("pulse.configureEngines")).toBe(
+      `Opened ${harness.formerProjectFile}.`,
+    )
+    await expect(access(harness.projectFile)).rejects.toThrow()
   })
 
   test("answer the panel's request to configure with the project file", async () => {
@@ -146,6 +156,22 @@ describe("what the worker follows", () => {
       async () => {
         const list = (await harness.request("engines.list")) as EngineList
         expect(list.engines.map((row) => row.name)).toEqual(["only"])
+      },
+      { timeout: 4000 },
+    )
+  })
+
+  test("reloads when a project file under its former name is renamed", async () => {
+    const harness = await started(WorkerHarness.withFormerProject())
+    const before = (await harness.request("engines.list")) as EngineList
+    expect(before.engines).toEqual([])
+
+    await rename(harness.formerProjectFile, harness.projectFile)
+
+    await vi.waitFor(
+      async () => {
+        const list = (await harness.request("engines.list")) as EngineList
+        expect(list.engines.map((row) => row.name)).toEqual(["shop-dev", "prod-eu"])
       },
       { timeout: 4000 },
     )

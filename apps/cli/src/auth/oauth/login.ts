@@ -6,19 +6,18 @@
  * module: no other command can start a loopback server or a browser.
  */
 
+import { createPkce, type Pkce } from "@miragon/pulse-http/oauth"
 import { configError } from "../../config/config-error.js"
 import { endpointSource } from "../../config/resolve-oauth.js"
 import { ENV, type OAuthConfig } from "../../config/types.js"
 import { isRecord } from "../../util.js"
 import type { LoopbackRequest, LoopbackResponse, LoopbackServer } from "../../runtime.js"
 import { cachePath, withCacheLock, writeCache } from "./cache.js"
-import { authorizationUrl, callbackCode, hasState } from "./callback.js"
+import { authorizationUrl, type CallbackFailure, callbackCode } from "./callback.js"
 import { serverMetadata } from "./discovery.js"
 import { iso, loginFailed, profileNote } from "./errors.js"
-import { expiryOf } from "./expiry.js"
 import { identityOf } from "./identity.js"
 import { failurePage, successPage } from "./pages.js"
-import { createPkce, type PkceRequest } from "./pkce.js"
 import { exchangeCode } from "./token.js"
 import type { CachedLogin, LoginDeps, ServerMetadata, TokenResponse } from "./types.js"
 
@@ -47,7 +46,7 @@ interface Flow {
   readonly config: OAuthConfig
   readonly deps: LoginDeps
   readonly metadata: ServerMetadata
-  readonly pkce: PkceRequest
+  readonly pkce: Pkce
   readonly tokenFile: string
   redirectUri: string
   accepted: boolean
@@ -88,7 +87,7 @@ function redirectRegistration(config: OAuthConfig): string {
     : `register ${any} or http://127.0.0.1:${config.redirectPort}/callback for client ${config.clientId}`
 }
 
-function newLogin(flow: Flow, tokens: TokenResponse, now: number): CachedLogin {
+function newLogin(flow: Flow, tokens: TokenResponse): CachedLogin {
   const { config, metadata } = flow
   return {
     version: 1,
@@ -100,13 +99,13 @@ function newLogin(flow: Flow, tokens: TokenResponse, now: number): CachedLogin {
     },
     tokenType: "Bearer",
     accessToken: tokens.accessToken,
-    expiresAt: expiryOf(now, tokens.expiresIn),
+    expiresAt: tokens.expiresAt,
     refreshToken: tokens.refreshToken,
-    refreshExpiresAt: tokens.refreshToken === null ? null : expiryOf(now, tokens.refreshExpiresIn),
+    refreshExpiresAt: tokens.refreshToken === null ? null : tokens.refreshExpiresAt,
     scope: tokens.scope,
     subject: tokens.subject,
     user: tokens.user,
-    loggedInAt: now,
+    loggedInAt: tokens.receivedAt,
     refreshedAt: null,
   }
 }
@@ -123,15 +122,17 @@ async function finish(flow: Flow, code: string): Promise<CachedLogin> {
   }
   const exchange = { code, redirectUri: flow.redirectUri, verifier: flow.pkce.verifier }
   const tokens = await exchangeCode(client, exchange, deps)
-  const login = newLogin(flow, tokens, deps.now())
+  const login = newLogin(flow, tokens)
   await withCacheLock(flow.tokenFile, deps, () => writeCache(flow.tokenFile, login, deps))
   return login
 }
 
 /** A callback with the right state: it decides the login, success or failure. */
-async function complete(flow: Flow, query: URLSearchParams): Promise<LoopbackResponse> {
+async function complete(
+  flow: Flow,
+  checked: { readonly code: string } | CallbackFailure,
+): Promise<LoopbackResponse> {
   flow.accepted = true
-  const checked = callbackCode(query, flow.metadata, flow.config)
   const completion = "code" in checked ? finish(flow, checked.code) : Promise.reject(checked.error)
   // the login awaits it; this only keeps an early rejection from counting as unhandled
   completion.catch(() => undefined)
@@ -154,12 +155,13 @@ function handle(
   if (flow.accepted) {
     return { status: 409, html: failurePage("pulse already received the login callback.") }
   }
-  if (!hasState(request.query, flow.pkce.state)) {
+  const checked = callbackCode(request.query, flow.metadata, flow.pkce.state, flow.config)
+  if (checked === undefined) {
     if (!flow.noticed) flow.deps.stderr.write(`${IGNORED_STATE_NOTICE}\n`)
     flow.noticed = true
     return { status: 400, html: failurePage("This is not the callback of the running login.") }
   }
-  return complete(flow, request.query)
+  return complete(flow, checked)
 }
 
 /** The callback handler: one request at a time. */

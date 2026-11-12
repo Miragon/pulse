@@ -1,6 +1,10 @@
-import { BpmnProcessId, DefinitionId, RuntimeError } from "../../src/contract/index.js"
-import { NEUTRAL_DIAGRAMS } from "../../src/contract/conformance/index.js"
-import { FakeEngine, FakeWorld, PatchedRuntime } from "../../src/contract/fake/index.js"
+import { BpmnProcessId, DefinitionId, RuntimeError } from "@miragon/pulse-engine-core"
+import {
+  FakeEngine,
+  FakeWorld,
+  NEUTRAL_DIAGRAMS,
+  PatchedRuntime,
+} from "@miragon/pulse-engine-core/testing"
 import { describe, expect, test } from "vitest"
 import { BpmnProcessIds } from "../../src/core/bpmn/bpmn-process-ids.js"
 import { ElementNames } from "../../src/core/bpmn/element-names.js"

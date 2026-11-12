@@ -8,10 +8,11 @@ import {
   findProjectFile,
   mergeProject,
   parseProjectFile,
-  projectProblem,
-  projectSecretProblem,
+  projectWriteError,
   readProjectFile,
+  userDefault,
 } from "./project.js"
+import { selectProfile } from "./resolve.js"
 import type { ConfigFile, ProjectSource } from "./types.js"
 
 const LINUX = { homedir: "/home/me", platform: "linux" }
@@ -33,88 +34,121 @@ async function failure(action: () => unknown): Promise<PulseCliError> {
 }
 
 describe("findProjectFile", () => {
-  it("finds the nearest .pulse-cli.json from the working directory up", async () => {
+  it("finds the nearest .pulse.json from the working directory up", async () => {
     const files = {
-      "/home/me/repo/.pulse-cli.json": "{}",
-      "/home/me/repo/sub/.pulse-cli.json": "{}",
+      "/home/me/repo/.pulse.json": "{}",
+      "/home/me/repo/sub/.pulse.json": "{}",
     }
     const dirs = ["/home/me/repo/.git", "/home/me/repo/sub/deep"]
     expect(await find("/home/me/repo/sub/deep", files, dirs)).toEqual({
-      path: "/home/me/repo/sub/.pulse-cli.json",
+      path: "/home/me/repo/sub/.pulse.json",
       exists: true,
     })
     expect(await find("/home/me/repo", files, dirs)).toEqual({
-      path: "/home/me/repo/.pulse-cli.json",
+      path: "/home/me/repo/.pulse.json",
       exists: true,
     })
   })
 
   it("stops at the repository root and proposes a new file there", async () => {
-    const files = { "/home/me/.pulse-cli.json": "{}", "/home/me/repo/x/.keep": "" }
+    const files = { "/home/me/.pulse.json": "{}", "/home/me/repo/x/.keep": "" }
     expect(await find("/home/me/repo/x", files, ["/home/me/repo/.git"])).toEqual({
-      path: "/home/me/repo/.pulse-cli.json",
+      path: "/home/me/repo/.pulse.json",
       exists: false,
     })
     // a worktree or submodule has a .git file
     const worktree = { ...files, "/home/me/repo/.git": "gitdir: /elsewhere" }
     expect(await find("/home/me/repo/x", worktree)).toEqual({
-      path: "/home/me/repo/.pulse-cli.json",
+      path: "/home/me/repo/.pulse.json",
       exists: false,
     })
   })
 
   it("never reads the home directory: it is nobody project", async () => {
-    const files = { "/home/me/.pulse-cli.json": "{}" }
+    const files = { "/home/me/.pulse.json": "{}" }
     expect(await find("/home/me", files)).toBeUndefined()
     expect(await find("/home/me/", files)).toBeUndefined()
     expect(await find("/home/me//", files)).toBeUndefined()
     // other file systems than Windows compare with case
     expect(await find("/home/Me", files)).toEqual({
-      path: "/home/Me/.pulse-cli.json",
+      path: "/home/Me/.pulse.json",
       exists: false,
     })
     expect(await find("/home/me/work/x", files)).toEqual({
-      path: "/home/me/work/x/.pulse-cli.json",
+      path: "/home/me/work/x/.pulse.json",
       exists: false,
     })
   })
 
   it("walks up to the file system root outside the home directory", async () => {
-    expect(await find("/srv/app/src", { "/.pulse-cli.json": "{}" })).toEqual({
-      path: "/.pulse-cli.json",
+    expect(await find("/srv/app/src", { "/.pulse.json": "{}" })).toEqual({
+      path: "/.pulse.json",
       exists: true,
     })
     expect(await find("/srv/app/src")).toEqual({
-      path: "/srv/app/src/.pulse-cli.json",
+      path: "/srv/app/src/.pulse.json",
       exists: false,
     })
   })
 
-  it("counts anything named .pulse-cli.json, so reading it reports a directory", async () => {
-    expect(await find("/home/me/repo", {}, ["/home/me/repo/.pulse-cli.json"])).toEqual({
-      path: "/home/me/repo/.pulse-cli.json",
+  it("counts anything named .pulse.json, so reading it reports a directory", async () => {
+    expect(await find("/home/me/repo", {}, ["/home/me/repo/.pulse.json"])).toEqual({
+      path: "/home/me/repo/.pulse.json",
       exists: true,
     })
   })
 
+  it("fails at the first directory that holds the file only under its former name", async () => {
+    const files = {
+      "/home/me/.pulse-cli.json": "{}",
+      "/home/me/repo/.pulse.json": "{}",
+      "/home/me/repo/sub/.pulse-cli.json": "{}",
+      "/home/me/repo/sub/deep/.pulse.json": "{}",
+    }
+    const dirs = ["/home/me/repo/.git", "/home/me/repo/other"]
+    const error = await failure(() => find("/home/me/repo/sub", files, dirs))
+    expect(error.code).toBe("CONFIG")
+    expect(error.message).toBe(
+      "The project file /home/me/repo/sub/.pulse-cli.json has its former name; pulse reads .pulse.json only",
+    )
+    expect(error.details.hint).toBe(
+      "Rename it to /home/me/repo/sub/.pulse.json; its content stays as it is. To skip the project file, name your config file with --config or PULSE_CLI_CONFIG.",
+    )
+    // a nearer .pulse.json wins, and the home directory is read under neither name
+    expect(await find("/home/me/repo/sub/deep", files, dirs)).toEqual({
+      path: "/home/me/repo/sub/deep/.pulse.json",
+      exists: true,
+    })
+    expect(await find("/home/me/repo/other", files, dirs)).toEqual({
+      path: "/home/me/repo/.pulse.json",
+      exists: true,
+    })
+    expect(await find("/home/me", files)).toBeUndefined()
+  })
+
   it("uses Windows paths and compares the home directory without case", async () => {
-    const runtime = fakeRuntime({ files: { "C:\\work\\repo\\.pulse-cli.json": "{}" } })
+    const runtime = fakeRuntime({ files: { "C:\\work\\repo\\.pulse.json": "{}" } })
     expect(await findProjectFile(runtime.fs, "C:\\work\\repo\\src", WINDOWS)).toEqual({
-      path: "C:\\work\\repo\\.pulse-cli.json",
+      path: "C:\\work\\repo\\.pulse.json",
       exists: true,
     })
     expect(await findProjectFile(runtime.fs, "c:\\users\\ME", WINDOWS)).toBeUndefined()
     expect(await findProjectFile(runtime.fs, "C:\\", WINDOWS)).toEqual({
-      path: "C:\\.pulse-cli.json",
+      path: "C:\\.pulse.json",
       exists: false,
     })
   })
 })
 
-const SECRET_HINT = /a project file is shared and names no credentials/
-
 describe("parseProjectFile", () => {
-  const path = "/repo/.pulse-cli.json"
+  const path = "/repo/.pulse.json"
+  const source: ProjectSource = { path, directory: "/repo" }
+
+  /** What a command that uses `name` of the project file `text` fails with. */
+  async function useFailure(text: string, name?: string): Promise<PulseCliError> {
+    const config = mergeProject(undefined, { source, file: parseProjectFile(text, path) })
+    return failure(() => selectProfile(name === undefined ? {} : { profile: name }, {}, config))
+  }
 
   it("accepts profiles that name engines and auth settings without credentials", () => {
     const text = JSON.stringify({
@@ -125,7 +159,9 @@ describe("parseProjectFile", () => {
         c: { auth: { type: "oauth", issuer: "https://idp.example", clientId: "c" } },
       },
     })
-    expect(parseProjectFile(text, path).defaultProfile).toBe("a")
+    const file = parseProjectFile(text, path)
+    expect(file.defaultProfile).toBe("a")
+    expect(file.refused).toBeUndefined()
   })
 
   it.each([
@@ -147,23 +183,36 @@ describe("parseProjectFile", () => {
       "tokenEnv",
       "PULSE_CLI_TOKEN or PULSE_CLI_TOKEN_COMMAND",
     ],
-  ])("refuses the credential of %j without quoting it", async (auth, key, instead) => {
-    const text = JSON.stringify({ profiles: { p: { auth } } })
-    const error = await failure(() => parseProjectFile(text, path))
-    expect(error.code).toBe("CONFIG")
-    expect(error.message).toBe(
-      `Invalid project file ${path}: profile "p" sets auth.${key}; a project file is shared and names no credentials, so it comes from ${instead} or a profile "p" of your own config file`,
-    )
-    expect(error.details.hint).toContain("`pulse config unset <profile> auth --project`")
-    expect(error.details.hint).toContain("history of your repository")
-    expect(`${error.message}${error.details.hint ?? ""}`).not.toContain("S3cr3t")
-  })
+  ])(
+    "refuses the profile with the credential of %j, without quoting it",
+    async (auth, key, instead) => {
+      const text = JSON.stringify({ profiles: { p: { auth }, q: {} } })
+      expect(parseProjectFile(text, path).refused).toStrictEqual({
+        p: [{ code: "credential-in-shared-file", key: `auth.${key}` }],
+      })
+      const error = await useFailure(text, "p")
+      expect(error.code).toBe("CONFIG")
+      expect(error.message).toBe(
+        `Profile "p" of the project file ${path} cannot be used: auth.${key} is set, but a file others share names no credential, neither a secret nor the variable that holds one.`,
+      )
+      expect(error.details.hint).toBe(
+        `A project file is shared and names no credentials: they come from the environment (${instead}) or a profile "p" of your own config file. Remove it with \`pulse config unset p auth --project\`, and a committed secret from the history of your repository too.`,
+      )
+      expect(`${error.message}${error.details.hint ?? ""}`).not.toContain("S3cr3t")
+    },
+  )
 
-  it("refuses a defaultProfile that is not one of its own profiles", async () => {
+  it("keeps a defaultProfile that names none of its profiles, which gives no default", async () => {
     const text = JSON.stringify({ defaultProfile: "prod", profiles: { svc: {} } })
-    const error = await failure(() => parseProjectFile(text, path))
+    expect(parseProjectFile(text, path).notes).toStrictEqual([
+      { code: "default-not-found", key: "defaultProfile" },
+    ])
+    const error = await useFailure(text)
     expect(error.message).toBe(
-      `Invalid project file ${path}: defaultProfile "prod" is not one of its profiles; a project file chooses only among its own profiles`,
+      `The default profile of the project file ${path} cannot be used: defaultProfile names no profile of this file.`,
+    )
+    expect(error.details.hint).toBe(
+      "Choose a profile with --profile or PULSE_CLI_PROFILE, make one the default with `pulse config use <profile> --project`, or give --url, which selects no profile.",
     )
     const blank = JSON.stringify({ defaultProfile: " ", profiles: {} })
     expect(parseProjectFile(blank, path).profiles).toEqual({})
@@ -171,61 +220,90 @@ describe("parseProjectFile", () => {
     expect(parseProjectFile(padded, path).defaultProfile).toBe(" svc ")
   })
 
-  it("refuses secret headers", async () => {
+  it("refuses a profile with a secret header", async () => {
     const text = JSON.stringify({ profiles: { p: { headers: { "X-Api-Key": "k-123" } } } })
-    const error = await failure(() => parseProjectFile(text, path))
-    expect(error.message).toContain('profile "p" stores the secret header X-Api-Key')
-    expect(error.message).toContain("PULSE_CLI_HEADERS")
-    expect(error.message).not.toContain("k-123")
+    expect(parseProjectFile(text, path).refused).toStrictEqual({
+      p: [{ code: "secret-header", key: "headers.X-Api-Key" }],
+    })
+    const error = await useFailure(text, "p")
+    expect(error.message).toContain("headers.X-Api-Key carries a secret")
+    expect(error.details.hint).toContain("PULSE_CLI_HEADERS")
+    expect(`${error.message}${error.details.hint ?? ""}`).not.toContain("k-123")
   })
 
-  it("reports the parse errors of a config file", async () => {
+  it("reports the parse errors of a project file", async () => {
     const error = await failure(() => parseProjectFile("{", path))
-    expect(error.message).toBe(`Invalid config file ${path}: not valid JSON (line 1, column 2)`)
+    expect(error.message).toBe(
+      `Invalid project file ${path}: The text is not valid JSON (line 1, column 2).`,
+    )
+    expect(error.details.hint).toBe(
+      "Fix the file or recreate it with `pulse config set <profile> --project`.",
+    )
   })
 })
 
-describe("projectSecretProblem and projectProblem", () => {
-  it("finds the first profile with a credential, or none", () => {
+describe("projectWriteError", () => {
+  const path = "/r/.pulse.json"
+
+  it("refuses a credential in any profile, without quoting it", () => {
     const file: ConfigFile = {
-      profiles: { ok: { url: "http://h" }, bad: { auth: { type: "bearer", token: "t" } } },
+      profiles: { ok: { url: "http://h" }, bad: { auth: { type: "bearer", token: "t0k" } } },
     }
-    expect(projectSecretProblem(file)).toMatch(/^profile "bad" sets auth\.token;/)
-    expect(projectSecretProblem({ profiles: { ok: {} } })).toBeUndefined()
-    expect(projectSecretProblem({ profiles: {} })).toBeUndefined()
-    expect(projectSecretProblem(file)).toMatch(SECRET_HINT)
+    const error = projectWriteError(file, path)
+    expect(error?.message).toBe(
+      `The project file ${path} cannot be written: in profile "bad", auth.token is set, but a file others share names no credential, neither a secret nor the variable that holds one.`,
+    )
+    expect(error?.details.hint).toContain("`pulse config unset bad auth --project`")
+    expect(JSON.stringify(error?.details)).not.toContain("t0k")
+    expect(projectWriteError({ profiles: { ok: {} } }, path)).toBeUndefined()
+    expect(projectWriteError({ profiles: {} }, path)).toBeUndefined()
   })
 
   it("reports a credential before a foreign default, and nothing for a valid file", () => {
     const both: ConfigFile = { defaultProfile: "x", profiles: { p: { auth: { token: "t" } } } }
-    expect(projectProblem(both)?.problem).toMatch(/^profile "p" sets auth\.token/)
-    expect(projectProblem(both)?.hint).toMatch(/^Credentials come from the environment/)
-    const foreign = projectProblem({ defaultProfile: "x", profiles: {} })
-    expect(foreign?.problem).toMatch(/^defaultProfile "x" is not one of its profiles/)
-    expect(foreign?.hint).toBe(
+    expect(projectWriteError(both, path)?.message).toMatch(/in profile "p", auth\.token is set/)
+    const foreign = projectWriteError({ defaultProfile: "x", profiles: {} }, path)
+    expect(foreign?.message).toBe(
+      `The project file ${path} cannot be written: defaultProfile names no profile of this file.`,
+    )
+    expect(foreign?.details.hint).toBe(
       "Make one of its profiles the default with `pulse config use <profile> --project`, or remove defaultProfile from the file.",
     )
-    expect(projectProblem({ defaultProfile: "p", profiles: { p: {} } })).toBeUndefined()
+    expect(projectWriteError({ defaultProfile: "p", profiles: { p: {} } }, path)).toBeUndefined()
+  })
+})
+
+describe("userDefault", () => {
+  it("names why the user's defaultProfile gives no default, unless it is a valid name", () => {
+    expect(userDefault({ defaultProfile: "prod", profiles: {} })).toEqual({})
+    expect(userDefault({ defaultProfile: " ", profiles: {} })).toEqual({})
+    expect(userDefault({ defaultProfile: "../x", profiles: {} })).toEqual({
+      defaultProblem: { problem: { code: "invalid-name", key: "defaultProfile" } },
+    })
+    const note = { code: "invalid", key: "defaultProfile" } as const
+    expect(userDefault({ profiles: {}, notes: [note] })).toEqual({
+      defaultProblem: { problem: note },
+    })
   })
 })
 
 describe("readProjectFile", () => {
-  it("returns the checked file", async () => {
-    const runtime = fakeRuntime({ files: { "/r/.pulse-cli.json": '{"profiles":{"a":{}}}' } })
-    expect(await readProjectFile(runtime.fs, "/r/.pulse-cli.json")).toEqual({ profiles: { a: {} } })
+  it("returns the checked file, a profile with a credential refused", async () => {
+    const runtime = fakeRuntime({ files: { "/r/.pulse.json": '{"profiles":{"a":{}}}' } })
+    expect(await readProjectFile(runtime.fs, "/r/.pulse.json")).toEqual({ profiles: { a: {} } })
     const invalid = fakeRuntime({
-      files: { "/r/.pulse-cli.json": '{"profiles":{"a":{"auth":{"type":"bearer","token":"t"}}}}' },
+      files: { "/r/.pulse.json": '{"profiles":{"a":{"auth":{"type":"bearer","token":"t"}}}}' },
     })
-    expect(
-      (await failure(() => readProjectFile(invalid.fs, "/r/.pulse-cli.json"))).message,
-    ).toMatch(/^Invalid project file \/r\/\.pulse-cli\.json: profile "a" sets auth\.token/)
+    expect((await readProjectFile(invalid.fs, "/r/.pulse.json")).refused).toStrictEqual({
+      a: [{ code: "credential-in-shared-file", key: "auth.token" }],
+    })
   })
 
   it("is a CONFIG error naming the file and the reason when it cannot be read", async () => {
-    const runtime = fakeRuntime({ dirs: ["/r/.pulse-cli.json"] })
-    const error = await failure(() => readProjectFile(runtime.fs, "/r/.pulse-cli.json"))
+    const runtime = fakeRuntime({ dirs: ["/r/.pulse.json"] })
+    const error = await failure(() => readProjectFile(runtime.fs, "/r/.pulse.json"))
     expect(error.code).toBe("CONFIG")
-    expect(error.message).toBe("Cannot read project file /r/.pulse-cli.json (EISDIR)")
+    expect(error.message).toBe("Cannot read project file /r/.pulse.json (EISDIR)")
     expect(error.details.hint).toContain("up to the repository root")
     const broken = {
       ...runtime.fs,
@@ -246,7 +324,7 @@ describe("readProjectFile", () => {
 })
 
 describe("mergeProject", () => {
-  const source: ProjectSource = { path: "/r/.pulse-cli.json", directory: "/r" }
+  const source: ProjectSource = { path: "/r/.pulse.json", directory: "/r" }
   const project: ConfigFile = {
     defaultProfile: "svc",
     profiles: { svc: { url: "http://project" }, shared: { url: "http://project-shared" } },
@@ -287,12 +365,28 @@ describe("mergeProject", () => {
       file: { defaultProfile: " svc ", profiles: { svc: {} } },
     })
     expect(padded?.defaultProfile).toBe("svc")
-    const none = mergeProject(undefined, { source, file: { profiles: { svc: {} } } })
-    expect(none).toEqual({
-      profiles: { svc: {} },
-      project: { source, profiles: ["svc"], defaultProfile: false },
+    const only = mergeProject(user, { source, file: { profiles: { svc: {} } } })
+    expect(only).toEqual({
+      defaultProfile: "svc",
+      profiles: { svc: {}, mine: {} },
+      project: { source, profiles: ["svc"], defaultProfile: true },
     })
-    expect(none !== undefined && "defaultProfile" in none).toBe(false)
+    const two = mergeProject(undefined, { source, file: { profiles: { a: {}, b: {} } } })
+    expect(two !== undefined && "defaultProfile" in two).toBe(false)
+  })
+
+  it("makes the only profile of the project file its default, a refused one too", () => {
+    const refused = { svc: [{ code: "credential-in-shared-file", key: "auth.token" }] } as const
+    const file: ConfigFile = { profiles: { svc: { auth: { token: "t" } } }, refused }
+    const merged = mergeProject(
+      { defaultProfile: "mine", profiles: { mine: {} } },
+      { source, file },
+    )
+    expect(merged?.defaultProfile).toBe("svc")
+    expect(merged?.refused).toEqual(refused)
+    const overridden = mergeProject({ profiles: { svc: {} } }, { source, file })
+    expect(overridden?.refused).toBeUndefined()
+    expect(overridden?.defaultProfile).toBeUndefined()
   })
 
   it("never makes a profile of the user's the default", () => {
@@ -309,10 +403,17 @@ describe("mergeProject", () => {
     })
     const noDefault = mergeProject({ profiles: { prod: {} } }, { source, file })
     expect(noDefault?.defaultProfile).toBeUndefined()
-    // a default that is not one of the project's profiles never selects one of the user's
-    const dangling = mergeProject(user, { source, file: { defaultProfile: "mine", profiles: {} } })
-    expect(dangling?.defaultProfile).toBe("mine")
-    expect(dangling?.project?.defaultProfile).toBe(false)
+    // a default that is not one of the project's profiles never selects one of the user's, and
+    // never falls back to the user's default either
+    for (const defaultProfile of ["mine", "../mine"]) {
+      const dangling = mergeProject(user, { source, file: { defaultProfile, profiles: {} } })
+      expect(dangling?.defaultProfile).toBeUndefined()
+      expect(dangling?.defaultProblem?.project).toBe(source.path)
+      expect(dangling?.project?.defaultProfile).toBe(false)
+    }
+    const note = { code: "invalid", key: "defaultProfile" } as const
+    const odd = mergeProject(user, { source, file: { profiles: { a: {} }, notes: [note] } })
+    expect(odd?.defaultProblem).toEqual({ problem: note, project: source.path })
   })
 
   it("never lets a project profile win over a user profile of the same name", () => {

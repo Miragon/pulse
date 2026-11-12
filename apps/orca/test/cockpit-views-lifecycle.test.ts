@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test, vi } from "vitest"
-import { BpmnProcessId, DefinitionId, InstanceId } from "@miragon/pulse-runtime-view/contract"
+import { BpmnProcessId, DefinitionId, InstanceId } from "@miragon/pulse-engine-core"
 import { ViewsFixture } from "./views-fixture.js"
 
 const ENGINE_HANDLE = JSON.stringify({ pulse: 1, engine: "local", view: "engine" })

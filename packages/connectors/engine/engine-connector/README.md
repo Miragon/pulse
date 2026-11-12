@@ -35,30 +35,9 @@ mountViews({ views: { ...engineViews } })
 
 Your stylesheet scans the module's widget sources, since it ships them as TypeScript:
 `@source "../node_modules/@miragon/pulse-engine-connector/src";`. Point it at an engine with
-`ENGINE_BASE_URL` (default `http://localhost:8410/engine-rest`), or at several with
-`ENGINES_JSON` / `ENGINES_FILE`; every variable is in the
+`ENGINE_BASE_URL` (default `http://localhost:8410/engine-rest`), or at several with a profile file
+in `ENGINES_JSON` / `ENGINES_FILE`; every variable is in the
 [configuration reference](https://miragon.github.io/pulse/mcp/reference#configuration).
-
-With analytics in the same server, hand it this module's BPMN lookup and engine ids through your
-`shared` wiring, as the starter's `server/src/setup.ts` does:
-
-```ts
-import {
-  configuredEngineIds,
-  createBpmnXmlFetcher,
-  engineModule,
-} from "@miragon/pulse-engine-connector"
-import type { ModuleEntry } from "@miragon/pulse-widget-shell/server"
-
-export function sharedResources(entries: readonly ModuleEntry[]) {
-  const engine = entries.find((entry) => entry.app === engineModule.name)
-  if (!engine) return {}
-  return {
-    fetchBpmnXml: createBpmnXmlFetcher(engine.config),
-    engineIds: configuredEngineIds(engine.config),
-  }
-}
-```
 
 ## What it provides
 
@@ -69,14 +48,22 @@ export function sharedResources(entries: readonly ModuleEntry[]) {
   into findings by severity, counts and a live verdict. Both cap long lists and name each cut in
   `truncated`.
 - **The cockpit view.** `engine_open_cockpit` opens the operations cockpit on any of its views
-  (overview, incidents, failure cluster, process, instances, instance, incident, jobs, history)
-  and returns that view's facts as compact JSON; app-only `*_data` feeds refresh and navigate
-  inside it.
+  (overview, incidents, failure cluster, process, instances, instance, incident, jobs, history),
+  with two engines or more on the cross-engine overview (each engine's health, job backlog and
+  processes, counts only), and returns that view's facts as compact JSON; app-only `*_data` feeds
+  refresh and navigate inside it.
+- **Engines as profiles.** `ENGINES_FILE` or `ENGINES_JSON` hold a profile file of
+  `@miragon/pulse-profile`, the format of the CLI and Pulse for VS Code; without one,
+  `ENGINE_BASE_URL` and its siblings yield the profile of a single engine. A profile's name is the
+  engine id, a secret only the name of an `ENGINE_SECRET_*` variable, and `readOnly` blocks every
+  write to that engine. A profile the server cannot use is refused on its own: the boot warns,
+  `engine_list_engines` lists it under `refused`, a call to it fails with `ENGINE_PROFILE_REFUSED`.
 - **Several engines, several vendors.** Every tool takes an optional `engine`, else routes to
-  `ENGINE_DEFAULT` (it must name a configured engine, else the boot fails), else the only
-  configured engine, else `ENGINE_NOT_SELECTED` lists the engines. Each engine carries a `flavor`
-  (`cibseven` | `operaton` | `camunda7`, default `camunda7`; `ENGINE_FLAVOR` for the
-  `ENGINE_BASE_URL` shorthand) that picks its cockpit links and branding.
+  `ENGINE_DEFAULT`, else to the file's `defaultProfile` (each must name a profile, else the boot
+  fails), else the only profile, else `ENGINE_NOT_SELECTED` lists the engines; a refused target is
+  never rerouted. Each engine carries a `flavor` (`cibseven` | `operaton` | `camunda7`, default
+  `camunda7`; `ENGINE_FLAVOR` for the `ENGINE_BASE_URL` shorthand) that picks its cockpit links and
+  branding.
 - **Toolsets that fail closed.** `read-only`, `operations` and `admin`: without an `engine:<toolset>`
   suffix the module runs `read-only` on an unauthenticated server and `operations` under OAuth, an
   empty or unknown suffix falls back to `read-only`, and widget action buttons render only for

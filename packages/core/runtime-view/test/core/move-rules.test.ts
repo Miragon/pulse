@@ -8,11 +8,12 @@ import {
   type InstanceDetail,
   type InstanceState,
   type WaitState,
-} from "../../src/contract/index.js"
+} from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
 import { FlowNodes } from "../../src/core/bpmn/flow-nodes.js"
 import type { MoveOption, WaitRow } from "../../src/core/protocol/index.js"
 import { MoveOptions } from "../../src/core/views/move-options.js"
+import type { EngineCli } from "../../src/ports/index.js"
 
 const XML = `<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
@@ -68,19 +69,63 @@ const XML = `<?xml version="1.0" encoding="UTF-8"?>
   <bpmn:process id="other"><bpmn:userTask id="Elsewhere" name="Elsewhere" /></bpmn:process>
 </bpmn:definitions>`
 
+const CONDITIONS = `<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="moves">
+    <bpmn:eventBasedGateway id="Gate" name="Paid?" />
+    <bpmn:intermediateCatchEvent id="Paid" name="Payment received"><bpmn:messageEventDefinition /></bpmn:intermediateCatchEvent>
+    <bpmn:intermediateCatchEvent id="Approved" name="Approved">
+      <bpmn:conditionalEventDefinition><bpmn:condition>approved</bpmn:condition></bpmn:conditionalEventDefinition>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:intermediateCatchEvent id="Waived" name="Fee waived"><bpmn:conditionalEventDefinition /></bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="g1" sourceRef="Gate" targetRef="Paid" />
+    <bpmn:sequenceFlow id="g2" sourceRef="Gate" targetRef="Approved" />
+    <bpmn:sequenceFlow id="g3" sourceRef="Gate" targetRef="Waived" />
+  </bpmn:process>
+</bpmn:definitions>`
+
+const EVENTS = `<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="moves">
+    <bpmn:eventBasedGateway id="Returned" name="Parcel back?" />
+    <bpmn:intermediateCatchEvent id="Parcel" name="Parcel received"><bpmn:messageEventDefinition /></bpmn:intermediateCatchEvent>
+    <bpmn:receiveTask id="Pickup" name="Courier picks up" messageRef="PickedUp" />
+    <bpmn:intermediateCatchEvent id="Recall" name="Product recall announced"><bpmn:signalEventDefinition /></bpmn:intermediateCatchEvent>
+    <bpmn:intermediateCatchEvent id="Window" name="14 days"><bpmn:timerEventDefinition /></bpmn:intermediateCatchEvent>
+    <bpmn:userTask id="Refund" name="Refund" />
+    <bpmn:sequenceFlow id="r1" sourceRef="Returned" targetRef="Parcel" />
+    <bpmn:sequenceFlow id="r2" sourceRef="Returned" targetRef="Pickup" />
+    <bpmn:sequenceFlow id="r3" sourceRef="Returned" targetRef="Recall" />
+    <bpmn:sequenceFlow id="r4" sourceRef="Returned" targetRef="Window" />
+    <bpmn:sequenceFlow id="r5" sourceRef="Parcel" targetRef="Refund" />
+  </bpmn:process>
+</bpmn:definitions>`
+
+const GATEWAY_REFUSAL =
+  "The token waits at the gateway Answer? until one of the events after it occurs; Pulse does not move a token away from an event-based gateway."
+const RETURNED_REFUSAL =
+  "The token waits at the gateway Parcel back? until one of the events after it occurs; Pulse does not move a token away from an event-based gateway."
+const PAID_REFUSAL =
+  "The token waits at the gateway Paid? until one of the events after it occurs; Pulse does not move a token away from an event-based gateway. Change a variable on the Variables tab to meet the condition of Approved or Fee waived."
+
 const INSTANCE = InstanceId("instance-1")
 const SINCE = IsoTimestamp("2026-10-21T08:00:00Z")
 
+type TokenKind = "userTask" | "asyncContinuation" | "message" | "signal" | "timer" | "other"
+
 interface Token {
   readonly at: string
+  readonly kind?: TokenKind
   readonly instanceId?: string
   readonly attachedTo?: string
   readonly incident?: boolean
 }
 
+function kindOf(kind: TokenKind = "userTask") {
+  return kind === "other" ? { kind, description: "waits for something else" } : { kind }
+}
+
 function waitOf(token: Token): WaitState {
   return {
-    kind: "userTask",
+    ...kindOf(token.kind),
     instanceId: InstanceId(token.instanceId ?? INSTANCE),
     elementId: ElementId(token.at),
     ...(token.attachedTo === undefined ? {} : { attachedToElementId: ElementId(token.attachedTo) }),
@@ -116,12 +161,27 @@ function detailOf(
   }
 }
 
-function movesOf(detail: InstanceDetail, xml = XML): { rows: WaitRow[]; moves: MoveOption[] } {
+class RecordingCli implements EngineCli {
+  readonly asked: { readonly detail: InstanceDetail; readonly waitState: WaitState }[] = []
+
+  triggerCommand(detail: InstanceDetail, waitState: WaitState): string | undefined {
+    this.asked.push({ detail, waitState })
+    return waitState.kind === "other"
+      ? undefined
+      : `pulse advance ${waitState.instanceId} --activity-id ${waitState.elementId}`
+  }
+}
+
+function movesOf(
+  detail: InstanceDetail,
+  xml = XML,
+  cli?: EngineCli,
+): { rows: WaitRow[]; moves: MoveOption[] } {
   const rows = detail.waitStates.map((waitState) => ({
     elementId: waitState.elementId,
     kindLabel: "User task",
   }))
-  return new MoveOptions(detail, xml).applied(rows)
+  return new MoveOptions(detail, xml, cli).applied(rows)
 }
 
 function optionAt(tokens: readonly Token[], runs: readonly string[] = []): MoveOption {
@@ -176,6 +236,12 @@ describe("the flow nodes of a deployed diagram", () => {
     expect(nodes.eventGatewayBefore("Check")).toBeUndefined()
   })
 
+  test("know the conditional events after an event-based gateway", () => {
+    expect(nodes.conditionsAfter("Wait")).toEqual([])
+    expect(nodes.conditionsAfter("End")).toEqual([])
+    expect(FlowNodes.of(CONDITIONS).conditionsAfter("Gate")).toEqual(["Approved", "Waived"])
+  })
+
   test("find the joins after an element, also when the path leaves a sub-process", () => {
     expect(nodes.joinsAfter("Review")).toEqual([])
     expect(nodes.joinsAfter("Pack")).toEqual(["Join"])
@@ -210,7 +276,7 @@ describe("the targets of a move", () => {
     ["Overdue", "A boundary event belongs to its task; pick the task instead."],
     ["End", "Moving the token to an end event can end the instance."],
     ["Answered", "This event waits behind Answer?; move the token to Answer? instead."],
-    ["Remind", "Pulse does not start multi-instance elements yet."],
+    ["Remind", "Pulse does not start multi-instance elements."],
     ["Refund", "Pulse does not start event sub-processes."],
     ["Elsewhere", "This element belongs to another process."],
   ])("refuse %s", (elementId, reason) => {
@@ -336,11 +402,7 @@ describe("the tokens that can be moved", () => {
       "This event belongs to Review order; move the token at Review order instead.",
     ],
     [[{ at: "Pack" }, { at: "Pack" }], [], "2 tokens wait here; Pulse moves only a single one."],
-    [
-      [{ at: "Answered" }],
-      [],
-      "The token waits at the gateway Answer?; Pulse does not move it yet.",
-    ],
+    [[{ at: "Answered" }], [], GATEWAY_REFUSAL],
     [
       [{ at: "Remind" }],
       [],
@@ -357,6 +419,31 @@ describe("the tokens that can be moved", () => {
   ])("refuse %o with runs %o", (tokens, runs, reason) => {
     const { rows, moves } = movesOf(detailOf(tokens, { runs }))
     expect(rows[0]).toMatchObject({ moveRefusal: reason })
+    expect(rows[0]).not.toHaveProperty("cliCommand")
+    expect(moves).toEqual([])
+  })
+
+  test("name the variables as the way on when a condition waits behind the gateway, and the CLI for the message beside it", () => {
+    const { rows, moves } = movesOf(
+      detailOf([
+        { at: "Paid", kind: "message" },
+        { at: "Approved", kind: "other" },
+        { at: "Waived", kind: "other" },
+      ]),
+      CONDITIONS,
+      new RecordingCli(),
+    )
+    expect(rows.map((row) => row.moveRefusal)).toEqual([
+      `${PAID_REFUSAL} Trigger Payment received with the CLI: pulse advance instance-1 --activity-id Paid`,
+      PAID_REFUSAL,
+      PAID_REFUSAL,
+    ])
+    expect(rows.map((row) => row.cliCommand)).toEqual([
+      "pulse advance instance-1 --activity-id Paid",
+      undefined,
+      undefined,
+    ])
+    expect(rows[1]).not.toHaveProperty("cliCommand")
     expect(moves).toEqual([])
   })
 
@@ -375,14 +462,82 @@ describe("the tokens that can be moved", () => {
 
   test("refuse every token of a truncated instance", () => {
     const { rows } = movesOf(detailOf([{ at: "Review" }], { truncated: true }))
-    expect(rows[0]?.moveRefusal).toBe(
-      "Pulse sees only part of this instance; moving a token needs all of it.",
-    )
+    expect(rows[0]).toEqual({
+      elementId: "Review",
+      kindLabel: "User task",
+      moveRefusal: "Pulse sees only part of this instance; moving a token needs all of it.",
+    })
   })
 
   test.each(["suspended", "completed"] as const)("offer nothing in a %s instance", (state) => {
     const { rows, moves } = movesOf(detailOf([{ at: "Review" }], { state }))
     expect(rows[0]).toEqual({ elementId: "Review", kindLabel: "User task" })
     expect(moves).toEqual([])
+  })
+})
+
+describe("the way on from an event-based gateway", () => {
+  function rowAt(token: Token, cli?: EngineCli): WaitRow | undefined {
+    const { rows, moves } = movesOf(detailOf([token]), EVENTS, cli)
+    expect(moves).toEqual([])
+    return rows[0]
+  }
+
+  function refusalAt(token: Token, cli?: EngineCli): string | undefined {
+    return rowAt(token, cli)?.moveRefusal
+  }
+
+  test.each([
+    ["message catch event", { at: "Parcel", kind: "message" }, "Parcel received"],
+    ["receive task waiting for its message", { at: "Pickup", kind: "message" }, "Courier picks up"],
+    ["signal catch event", { at: "Recall", kind: "signal" }, "Product recall announced"],
+    ["timer catch event", { at: "Window", kind: "timer" }, "14 days"],
+  ] as const)("names the CLI command the engine's adapter gives for a %s", (_, token, label) => {
+    const cli = new RecordingCli()
+    const command = `pulse advance instance-1 --activity-id ${token.at}`
+    expect(rowAt(token, cli)).toMatchObject({
+      moveRefusal: `${RETURNED_REFUSAL} Trigger ${label} with the CLI: ${command}`,
+      cliCommand: command,
+    })
+    expect(cli.asked.map(({ detail, waitState }) => [detail.instance.id, waitState])).toEqual([
+      ["instance-1", expect.objectContaining({ elementId: token.at, kind: token.kind })],
+    ])
+  })
+
+  test("names no command when the adapter has none for the row or the engine no CLI", () => {
+    const withoutCommand = rowAt({ at: "Pickup", kind: "other" }, new RecordingCli())
+    const withoutCli = rowAt({ at: "Parcel", kind: "message" })
+    for (const row of [withoutCommand, withoutCli]) {
+      expect(row?.moveRefusal).toBe(RETURNED_REFUSAL)
+      expect(row).not.toHaveProperty("cliCommand")
+    }
+  })
+
+  test("keeps the called instance's refusal for a token behind a gateway of another instance", () => {
+    const cli = new RecordingCli()
+    expect(refusalAt({ at: "Parcel", kind: "message", instanceId: "called-1" }, cli)).toBe(
+      "Open the called instance to move this token.",
+    )
+    expect(cli.asked).toEqual([])
+  })
+
+  test("asks the CLI for no other refusal", () => {
+    const cli = new RecordingCli()
+    const { rows } = movesOf(detailOf([{ at: "Pack" }, { at: "Pack" }]), XML, cli)
+    expect(rows[0]?.moveRefusal).toBe("2 tokens wait here; Pulse moves only a single one.")
+    expect(rows[0]).not.toHaveProperty("cliCommand")
+    expect(cli.asked).toEqual([])
+  })
+
+  test("moves a token past its event, at the continuation after the event", () => {
+    const cli = new RecordingCli()
+    const { rows, moves } = movesOf(
+      detailOf([{ at: "Parcel", kind: "asyncContinuation" }]),
+      EVENTS,
+      cli,
+    )
+    expect(rows[0]).not.toHaveProperty("moveRefusal")
+    expect(moves.map((move) => move.fromElementId)).toEqual(["Parcel"])
+    expect(cli.asked).toEqual([])
   })
 })

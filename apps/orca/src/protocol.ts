@@ -27,10 +27,15 @@ export interface EngineRow {
   readonly definitions: readonly DefinitionRow[]
 }
 
+export interface ConfigurationProblem {
+  readonly text: string
+  readonly tone: "warning" | "danger"
+}
+
 export interface EngineList {
   readonly projectFile: string
   readonly engines: readonly EngineRow[]
-  readonly problems: readonly string[]
+  readonly problems: readonly ConfigurationProblem[]
 }
 
 export interface FileRow {

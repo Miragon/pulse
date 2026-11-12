@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest"
-import { engineDateMillis, toEngineDate } from "@miragon/pulse-engine-core"
+import { engineDateMillis, toEngineDate } from "@miragon/pulse-c7-core"
 import {
   clientFor,
   startFakeEngine,
@@ -408,7 +408,7 @@ describe("buildClusterDetailData: a cluster larger than the scan", () => {
   })
 })
 
-// One rule with analytics (`readBpmnNames`): Modeler pool names and `&#10;`/`&#38;` read as analytics reads them.
+// One rule (`readBpmnNames`): Modeler pool names and `&#10;`/`&#38;` read as every view reads them.
 describe("names from a Modeler diagram (#322 U13)", () => {
   const MODELER_XML = `<definitions>
   <collaboration id="C"><participant id="Pool" name="Miravelo - Bike Leasing" processRef="order"/></collaboration>

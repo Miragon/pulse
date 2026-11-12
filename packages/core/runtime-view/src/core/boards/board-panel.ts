@@ -1,4 +1,4 @@
-import { BpmnProcessId, InstanceId } from "../../contract/index.js"
+import { BpmnProcessId, InstanceId } from "@miragon/pulse-engine-core"
 import type { Panel } from "../panels/panel.js"
 import type { BoardView, WebviewIntent } from "../protocol/index.js"
 import type { BoardDefinition } from "./board-definition.js"

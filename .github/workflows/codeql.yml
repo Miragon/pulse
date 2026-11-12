@@ -12,7 +12,6 @@ on:
       - "**/*.png"
       - "**/*.jpg"
       - "**/*.gif"
-      - engine-plugins/**
       - playground/cibseven-example/**
   schedule:
     - cron: "27 3 * * 1" # weekly, Monday 03:27 UTC

@@ -19,9 +19,13 @@ yet: until then you [load it from the source](./orca/installation.md#from-the-so
 ## What they share
 
 - **The engines.** Operaton, CIB seven and Camunda 7 over their REST API (`/engine-rest`).
-  The CLI, the extension and the Orca plugin read the same project file, `.pulse-cli.json`.
+  The CLI, the extension and the Orca plugin read the same project file, `.pulse.json`.
 - **Read first.** The server boots read-only, the CLI previews and asks before a write, the
   extension and the Orca plugin write only on local engines unless you allow more.
+- **One look.** The MCP widgets and the panels of the extension and the Orca plugin use the same
+  words for a count, the same tone for a situation and the same formatters for a date, a
+  duration, a count and an id, each with screens of its own:
+  [Parity with the MCP cockpit](./vscode/parity.md) says what differs and why.
 - **One release.** All four carry the same version number, and every Pulse release ships the
   image `ghcr.io/miragon/pulse-server`, the npm package `@miragon/pulse-cli` and the extension
   `pulse`; the Orca plugin `miragon.pulse-cockpit` follows once Miragon's catalog lists it.

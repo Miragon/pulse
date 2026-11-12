@@ -84,7 +84,7 @@ products:
         - file: apps/orca/demo/order-fulfillment.pulse-view
         - file: apps/orca/demo/order-fulfillment.bpmn runtime.pulse-view
       files:
-        - file: apps/orca/demo/.pulse-cli.json
+        - file: apps/orca/demo/.pulse.json
         - file: apps/orca/demo/.vscode/settings.json
           name: .vscode/settings.json
         - file: apps/orca/demo/processes/order-fulfillment.bpmn

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
-import { FakeEngine, FakeWorld } from "@miragon/pulse-runtime-view/contract/fake"
+import { FakeEngine, FakeWorld } from "@miragon/pulse-engine-core/testing"
 import { type Connection, LOCAL_TARGET } from "@miragon/pulse-runtime-view/host-kit"
 import type { EngineRegistry } from "../src/worker/engine-registry.js"
 import { EnginesLive } from "../src/worker/engines-live.js"

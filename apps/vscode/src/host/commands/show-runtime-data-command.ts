@@ -1,4 +1,4 @@
-import { BpmnProcessId } from "@miragon/pulse-runtime-view/contract"
+import { BpmnProcessId } from "@miragon/pulse-engine-core"
 import { BpmnProcessIds } from "@miragon/pulse-runtime-view/core"
 import { basename } from "node:path"
 import * as vscode from "vscode"

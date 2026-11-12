@@ -1,14 +1,15 @@
 /** Request previews for `--dry-run` and results: JSON bodies parsed, multipart parts summarized. */
 
+import { parseJson } from "@miragon/pulse-http"
 import type { AuthProvider } from "../auth/types.js"
 import type { HttpRequest } from "../http/types.js"
-import { mergeHeaders, parseJson } from "../util.js"
+import { mergeHeaders } from "../util.js"
 import type { MultipartPartPreview, OperationResult, RequestPreview } from "./result.js"
 
 /** The JSON body as value (large integers kept), or the text when it is not JSON. */
 function bodyValue(text: string): unknown {
   try {
-    return parseJson(text)
+    return parseJson(text, "bigint")
   } catch {
     return text
   }

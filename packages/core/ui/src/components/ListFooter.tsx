@@ -2,7 +2,7 @@ import { FOCUS_RING } from "../lib/focus-ring.js"
 import { cn } from "../lib/utils.js"
 import { useUiLocale, useUiMessages } from "../locale/locale-provider.js"
 import type { ListFooterMessages } from "../locale/message-types.js"
-import { formatCount } from "../locale/ui-messages.js"
+import { formatCountIn } from "../locale/ui-messages.js"
 
 export interface ListFooterProps {
   /** How many rows are currently rendered. */
@@ -134,8 +134,8 @@ function StatusLine({
       {counted && (
         <span>
           {messages.showing({
-            shown: formatCount(shown, locale),
-            total: formatCount(total, locale),
+            shown: formatCountIn(shown, locale),
+            total: formatCountIn(total, locale),
             noun: noun ?? messages.defaultNoun,
           })}
         </span>

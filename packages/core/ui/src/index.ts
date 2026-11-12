@@ -41,21 +41,29 @@ export {
 export { Alert, AlertDescription, AlertTitle } from "./primitives/alert.js"
 export { Switch } from "./primitives/switch.js"
 
-// The tone model (three roles per tone: colour, tint, ink), the type scale, the focus ring, cn.
+// The tone model: the vocabulary, the situation table and the count ladder (the framework-free
+// `./tones` entry, the same names), then the kit's class maps (three roles per tone: colour,
+// tint, ink); the type scale, the focus ring, cn.
 export {
   TONE_VARIANTS,
   TONE_ALIASES,
   resolveTone,
   isToneVariant,
+  SITUATION_TONES,
+  countTone,
+  severityTone,
+  type ToneVariant,
+  type ToneAlias,
+  type ToneName,
+  type Situation,
+} from "./tones/index.js"
+export {
   TONE_SOFT,
   TONE_TINT,
   TONE_DOT,
   TONE_INK,
   TONE_BORDER,
   TONE_ICON,
-  type ToneVariant,
-  type ToneAlias,
-  type ToneName,
 } from "./lib/tone-utils.js"
 export {
   TYPE_SCALE,
@@ -173,21 +181,31 @@ export { LogText, LOG_TEXT_PREVIEW, TEXT_BLOCK_FRAME } from "./kit/log-text.js"
 export { KometMark, AppEmptyState } from "./kit/brand-mark.js"
 export { NavigationFocus } from "./kit/navigation-focus.js"
 export { MENU_ITEM } from "./kit/menu-item.js"
-// The formatters render in the locale set once with `setFormatLocale` (the browser's until then);
-// a test resets it with `setFormatLocale(undefined)`.
+// The formatters (the framework-free `./format` entry, the same names) render in the locale set
+// once with `setFormatLocale` (the browser's until then); a test resets it with
+// `setFormatLocale(undefined)`.
 export {
+  formatClock,
+  formatCompactCount,
+  formatCount,
   formatDate,
   formatDuration,
+  formatInstant,
   formatNumber,
   formatPercent,
   formatPercentPoints,
   formatPeriod,
+  formatRelativeTime,
   formatTime,
   formatTimestamp,
+  shortId,
   truncate,
   setFormatLocale,
   getFormatLocale,
   subscribeFormatLocale,
+  type ClockOptions,
+  type Count,
   type PercentFormatOptions,
   type FormatLocale,
-} from "./kit/format.js"
+  type TimeOptions,
+} from "./format/index.js"

@@ -47,7 +47,8 @@ export const BOARD_VIEW: BoardView = {
       badge: PROD_ENGINE,
       problem: {
         title: "Can't reach prod-eu.",
-        detail: "Cannot reach https://prod-eu.shop.invalid/engine-rest (ENOTFOUND)",
+        detail:
+          "Cannot reach https://prod-eu.shop.invalid/engine-rest/telemetry/data: the host name does not resolve (ENOTFOUND). Check the host name in the engine URL.",
         canEditConnection: true,
       },
     },

@@ -1,4 +1,5 @@
-import { BpmnProcessId, ElementId, type ModelFile } from "../../src/contract/index.js"
+import { BpmnProcessId, ElementId } from "@miragon/pulse-engine-core"
+import type { ModelFile } from "../../src/ports/index.js"
 import { describe, expect, test } from "vitest"
 import { BpmnModelSource } from "../../src/model/index.js"
 import paymentXml from "./fixtures/payment.bpmn"

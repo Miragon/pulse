@@ -2,8 +2,8 @@ import {
   fetchJobStacktrace,
   readProcessInstanceVariables,
   type Client,
-} from "@miragon/pulse-engine-client"
-import { incidentRecovery } from "@miragon/pulse-engine-core"
+} from "@miragon/pulse-c7-client"
+import { incidentRecovery } from "@miragon/pulse-c7-core"
 import type {
   ActivityTree,
   IncidentDetailData,
@@ -18,7 +18,7 @@ import {
   getJobs,
   getProcessDefinition,
   getProcessInstance,
-} from "@miragon/pulse-engine-client/sdk"
+} from "@miragon/pulse-c7-client/sdk"
 
 import { buildInstanceCockpitUrl } from "../lib/engine/cockpit-url.js"
 import type { EngineProvider } from "../engine-provider.js"

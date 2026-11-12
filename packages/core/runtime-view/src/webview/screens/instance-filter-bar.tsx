@@ -1,5 +1,9 @@
 import { glyphs } from "../components/lucide-glyphs.json"
-import type { InstanceListFilter, ScopeCounts } from "../../core/protocol/index.js"
+import type {
+  InstanceListFilter,
+  RefusedVariableCondition,
+  ScopeCounts,
+} from "../../core/protocol/index.js"
 import { Icon } from "../components/icon.js"
 import { ScopeSegments } from "../components/scope-segments.js"
 import { SearchField } from "../components/search-field.js"
@@ -15,6 +19,7 @@ export interface InstanceFilterBarProps {
   readonly historyNote?: string | undefined
   readonly variableLabels?: readonly string[] | undefined
   readonly variableNames?: readonly string[] | undefined
+  readonly refusedConditions?: readonly RefusedVariableCondition[] | undefined
   readonly elementName: (elementId: string) => string
   readonly onFilter: (filter: InstanceListFilter) => void
 }
@@ -52,6 +57,7 @@ export function InstanceFilterBar(props: InstanceFilterBarProps) {
         options={SCOPE_OPTIONS}
         checked={filter.scope}
         counts={props.counts}
+        atLeast={props.counts.atLeast}
         busy={props.refreshing}
         notes={
           props.historyNote === undefined
@@ -75,6 +81,7 @@ export function InstanceFilterBar(props: InstanceFilterBarProps) {
         filter={filter}
         labels={props.variableLabels}
         names={props.variableNames}
+        refused={props.refusedConditions}
         onFilter={onFilter}
       />
       <DiagramLegend kind="badges" scope={`Badges count running instances of v${props.version}`} />

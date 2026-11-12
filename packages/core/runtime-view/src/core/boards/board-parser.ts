@@ -1,5 +1,6 @@
 import type { BoardProblem } from "../protocol/index.js"
 import type { BoardDefinition, BoardWidget } from "./board-definition.js"
+import { Labels } from "../views/labels.js"
 import { BoardVocabulary } from "./board-vocabulary.js"
 import { ParseProblems, type Json } from "./parse-problems.js"
 import { WidgetParser } from "./widget-parser.js"
@@ -100,7 +101,7 @@ export class BoardParser {
     if (count > BoardVocabulary.MAX_WIDGETS) {
       this.problems.add(
         "rows",
-        `hold ${count} widgets; a board shows at most ${BoardVocabulary.MAX_WIDGETS}, so it stays cheap for the engines`,
+        `hold ${Labels.count(count)} widgets; a board shows at most ${Labels.count(BoardVocabulary.MAX_WIDGETS)}, so it stays cheap for the engines`,
       )
     }
   }

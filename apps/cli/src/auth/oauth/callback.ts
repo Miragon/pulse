@@ -1,22 +1,17 @@
 /**
- * The authorization request and the validation of its callback. The state is
- * checked first and in constant time: a callback without the right state is not processed at all
- * (and does not end the login). After that the `iss` parameter (RFC 9207 mix-up defense), an
- * `error` and the code decide. Repeated parameters count as invalid (RFC 6749 §3.1).
+ * The authorization request and its callback, both built and checked by
+ * @miragon/pulse-http/oauth (the state first and in constant time, then `iss` as the RFC 9207
+ * mix-up defense, an `error`, the code; a repeated parameter is invalid) and worded here. A
+ * callback without the right state is not processed at all (and does not end the login).
  */
 
+import { authorizationUrl as urlOf, callbackResult, type Pkce } from "@miragon/pulse-http/oauth"
 import { configError } from "../../config/config-error.js"
 import type { OAuthConfig } from "../../config/types.js"
 import type { PulseCliError } from "../../errors.js"
 import { loginCommand, loginFailed } from "./errors.js"
 import { sanitize } from "./http.js"
-import type { PkceRequest } from "./pkce.js"
 import type { ServerMetadata } from "./types.js"
-
-const encoder = new TextEncoder()
-
-/** RFC 6749 error codes: printable ASCII without `"` and `\`. */
-const ERROR_CODE = /^[\x20\x21\x23-\x5b\x5d-\x7e]+$/
 
 /** Errors that mean the request or the client registration is wrong: CONFIG. */
 const REQUEST_ERRORS: ReadonlySet<string> = new Set([
@@ -33,39 +28,17 @@ const REQUEST_ERRORS: ReadonlySet<string> = new Set([
 export function authorizationUrl(
   endpoint: string,
   config: Pick<OAuthConfig, "clientId" | "scopes" | "audience">,
-  pkce: Pick<PkceRequest, "challenge" | "state">,
+  pkce: Pick<Pkce, "challenge" | "state">,
   redirectUri: string,
 ): string {
-  const params = new URLSearchParams({
-    response_type: "code",
-    client_id: config.clientId,
-    redirect_uri: redirectUri,
+  return urlOf(endpoint, {
+    clientId: config.clientId,
+    redirectUri,
+    scopes: config.scopes,
+    ...(config.audience === undefined ? {} : { audience: config.audience }),
+    challenge: pkce.challenge,
+    state: pkce.state,
   })
-  if (config.scopes.length > 0) params.set("scope", config.scopes.join(" "))
-  params.set("state", pkce.state)
-  params.set("code_challenge", pkce.challenge)
-  params.set("code_challenge_method", "S256")
-  if (config.audience !== undefined) params.set("audience", config.audience)
-  return `${endpoint}${endpoint.includes("?") ? "&" : "?"}${params.toString()}`
-}
-
-/**
- * Compares in constant time for equal lengths (an XOR accumulation over the UTF-8 bytes): wrong
- * states do not end the login, so a local prober gets many attempts.
- */
-export function safeEqual(left: string, right: string): boolean {
-  const a = encoder.encode(left)
-  const b = encoder.encode(right)
-  if (a.length !== b.length) return false
-  let difference = 0
-  for (let index = 0; index < a.length; index++) difference |= (a[index] ?? 0) ^ (b[index] ?? 0)
-  return difference === 0
-}
-
-/** True when the query has exactly one `state` equal to the expected one. */
-export function hasState(query: URLSearchParams, expected: string): boolean {
-  const states = query.getAll("state")
-  return states.length === 1 && safeEqual(states[0] ?? "", expected)
 }
 
 /** A callback with the right state that cannot complete the login, with the page's reason. */
@@ -74,39 +47,27 @@ export interface CallbackFailure {
   readonly reason: string
 }
 
-function issFailure(): CallbackFailure {
-  return {
-    error: loginFailed(
-      "The login response came from another issuer (possible mix-up attack)",
-      "The authorization response named another issuer than the one pulse logged in with (RFC 9207). Check the issuer of the profile, close other login tabs and run the login again.",
-    ),
-    reason: "The login response came from another issuer.",
-  }
-}
-
-/** The `iss` check: when present it must be the expected issuer; required when advertised. */
-function checkIss(query: URLSearchParams, metadata: ServerMetadata): CallbackFailure | undefined {
-  const values = query.getAll("iss")
-  if (values.length > 1) return issFailure()
-  const [iss] = values
-  if (iss === undefined) return metadata.issParameterRequired ? issFailure() : undefined
-  return metadata.issuer !== null && iss !== metadata.issuer ? issFailure() : undefined
+const ISS_FAILURE: CallbackFailure = {
+  error: loginFailed(
+    "The login response came from another issuer (possible mix-up attack)",
+    "The authorization response named another issuer than the one pulse logged in with (RFC 9207). Check the issuer of the profile, close other login tabs and run the login again.",
+  ),
+  reason: "The login response came from another issuer.",
 }
 
 /** `error: description` of a callback error, sanitized. */
-function detail(error: string, description: string | null): string {
-  return description === null || description === ""
+function detail(error: string, description: string | undefined): string {
+  return description === undefined || description === ""
     ? sanitize(error)
     : `${sanitize(error)}: ${sanitize(description)}`
 }
 
 function callbackError(
-  error: string,
-  query: URLSearchParams,
+  code: string,
+  description: string | undefined,
   config: OAuthConfig,
 ): CallbackFailure {
-  const code = ERROR_CODE.test(error) ? error : "invalid_error_code"
-  const text = detail(code, query.get("error_description"))
+  const text = detail(code, description)
   const reason = `The authorization server reported ${code}.`
   if (code === "access_denied") {
     return {
@@ -141,21 +102,30 @@ const NO_CODE: CallbackFailure = {
 }
 
 /**
- * The authorization code of a callback with the right state, or why it cannot complete the
- * login: `iss` mismatch, an `error` parameter, no (or a repeated) code.
+ * The authorization code of a callback; why it cannot complete the login (`iss` mismatch, an
+ * `error` parameter, no or a repeated code); or undefined when it is not this login's callback (no
+ * state, another, a repeated one), which is ignored.
  */
 export function callbackCode(
   query: URLSearchParams,
   metadata: ServerMetadata,
+  state: string,
   config: OAuthConfig,
-): { readonly code: string } | CallbackFailure {
-  const iss = checkIss(query, metadata)
-  if (iss !== undefined) return iss
-  const errors = query.getAll("error")
-  if (errors.length === 1) return callbackError(errors[0] ?? "", query, config)
-  const codes = query.getAll("code")
-  const [code] = codes
-  return errors.length === 0 && codes.length === 1 && code !== undefined && code !== ""
-    ? { code }
-    : NO_CODE
+): { readonly code: string } | CallbackFailure | undefined {
+  const result = callbackResult(query, {
+    state,
+    ...(metadata.issuer === null ? {} : { issuer: metadata.issuer }),
+    issRequired: metadata.issParameterRequired,
+  })
+  if ("code" in result) return result
+  switch (result.problem) {
+    case "state":
+      return undefined
+    case "iss":
+      return ISS_FAILURE
+    case "error":
+      return callbackError(result.error, result.description, config)
+    case "no-code":
+      return NO_CODE
+  }
 }

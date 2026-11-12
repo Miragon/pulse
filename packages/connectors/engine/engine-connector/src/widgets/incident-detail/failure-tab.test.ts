@@ -25,19 +25,19 @@ describe("incident Ask-AI hand-offs", () => {
   it("the ticket draft names the incident on its engine, and no tool", () => {
     const prompt = bindHandOff("en").ask(draftTicketHandOff(onProdB))!
     expect(prompt).toContain('Ids: engine="prod-b", incidentId="inc-1"')
-    expect(prompt).not.toMatch(/\b(engine|analytics)_[a-z0-9_]+/)
+    expect(prompt).not.toMatch(/\bengine_[a-z0-9_]+/)
   })
 
   it("the error explanation names the job, and no tool", () => {
     const prompt = bindHandOff("en").ask(explainErrorHandOff(onProdB))!
     expect(prompt).toContain('jobId="job-1"')
-    expect(prompt).not.toMatch(/\b(engine|analytics)_[a-z0-9_]+/)
+    expect(prompt).not.toMatch(/\bengine_[a-z0-9_]+/)
   })
 
   it("the diagnosis names the instance, and no tool", () => {
     const prompt = bindHandOff("en").ask(diagnoseIncidentHandOff(onProdB))!
     expect(prompt).toContain('processInstanceId="pi-1"')
-    expect(prompt).not.toMatch(/\b(engine|analytics)_[a-z0-9_]+/)
+    expect(prompt).not.toMatch(/\bengine_[a-z0-9_]+/)
   })
 
   it("adds no engine when it is unknown (the default routed the view), never a placeholder", () => {

@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react"
 import { useLocale } from "@miragon/pulse-ui"
 import { decodeToolResult } from "../protocol/tool-result.js"
+import { describeError, isPermanentError } from "./describe-error.js"
 import { useInlineBudget } from "./inline-budget.js"
 import { useInlineRows, type InlineRows } from "./inline-fit.js"
 import { kitLabels } from "./kit-labels.js"
@@ -44,6 +45,16 @@ export interface PagedViewData<TItem, TData = unknown> {
   /** A new read at once, also during the client's retry backoff. */
   retry: () => void
   loadMoreError: Error | null
+  /**
+   * False for a refusal no retry changes (`isPermanentError`): the footer offers no retry for it.
+   * Always set by the hook; optional, so a hand-built list state needs none.
+   */
+  canRetry?: (error: Error) => boolean
+  /**
+   * Such a refusal in the host's language, `describeError`'s sentence and its way out: the footer
+   * says it where it offers no retry. Always set by the hook, optional like {@link canRetry}.
+   */
+  describeRefusal?: (error: Error) => string
   fit: InlineRows
   /** While `loadMore` opens fullscreen, its button says "Show all". */
   footerLabels: { loadMore: string } | undefined
@@ -100,6 +111,14 @@ export function usePagedViewData<TItem, TData>(opts: {
 }): PagedViewData<TItem, TData> {
   const { initialData, key, tool, args, pageSize, ready, selectItems, selectTotal } = opts
   const { callTool } = useViewHost()
+  const locale = useLocale()
+  const describeRefusal = useCallback(
+    (error: Error) => {
+      const described = describeError(error, locale)
+      return `${described.title}. ${described.hint}`
+    },
+    [locale],
+  )
   const argsKey = JSON.stringify(args)
   const { scope, placeholderData } = useSameListPlaceholder<TData>(key)
 
@@ -186,7 +205,14 @@ export function usePagedViewData<TItem, TData>(opts: {
     error: page0.error ?? (first ? page0.failureReason : null),
     retry: page0.refetch,
     loadMoreError: pages.error,
+    canRetry,
+    describeRefusal,
   }
+}
+
+/** A retry may change a failure, unless the server refuses for good (`isPermanentError`). */
+function canRetry(error: Error): boolean {
+  return !isPermanentError(error)
 }
 
 /** Inline, the rows that fit the budget (#396); more is fullscreen, else the next rows in place. */

@@ -1,0 +1,2444 @@
+[
+  {
+    "name": "not-json",
+    "about": "Text that is not JSON gives no profiles; the problem says where, never what.",
+    "text": "{\"profiles\": ",
+    "schema": false,
+    "outcome": {
+      "problem": "not-json (line 1, column 14)"
+    }
+  },
+  {
+    "name": "root-array",
+    "about": "A root that is no object gives no profiles.",
+    "text": "[]\n",
+    "schema": false,
+    "outcome": {
+      "problem": "root-not-object"
+    }
+  },
+  {
+    "name": "profiles-array",
+    "about": "profiles that is no object gives no profiles.",
+    "file": {
+      "profiles": []
+    },
+    "schema": false,
+    "outcome": {
+      "problem": "profiles-not-object profiles"
+    }
+  },
+  {
+    "name": "profiles-null",
+    "about": "profiles that is null gives no profiles.",
+    "file": {
+      "profiles": null
+    },
+    "schema": false,
+    "outcome": {
+      "problem": "profiles-not-object profiles"
+    }
+  },
+  {
+    "name": "root-key-twice",
+    "about": "A second profiles block: JSON.parse would keep only the last, so the file gives none.",
+    "text": "{\n  \"profiles\": { \"a\": { \"url\": \"http://a:8080/engine-rest\" } },\n  \"profiles\": { \"b\": { \"url\": \"http://b:8080/engine-rest\" } }\n}\n",
+    "schema": true,
+    "outcome": {
+      "problem": "duplicate-key profiles"
+    }
+  },
+  {
+    "name": "empty-file",
+    "about": "A file without profiles is valid and names no engine.",
+    "file": {},
+    "schema": true,
+    "outcome": {}
+  },
+  {
+    "name": "schema-key",
+    "about": "$schema names the schema for editors; defaultProfile names a profile of the file.",
+    "file": {
+      "$schema": "https://unpkg.com/@miragon/pulse-profile/schema/pulse.schema.json",
+      "defaultProfile": "local",
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest"
+        }
+      }
+    },
+    "schema": true,
+    "outcome": {
+      "defaultProfile": "local",
+      "profiles": [
+        {
+          "name": "local"
+        }
+      ]
+    }
+  },
+  {
+    "name": "schema-not-string",
+    "about": "$schema that is no string is a note; the file loads.",
+    "file": {
+      "$schema": 1,
+      "profiles": {}
+    },
+    "schema": false,
+    "outcome": {
+      "notes": ["invalid $schema"]
+    }
+  },
+  {
+    "name": "root-unknown-key",
+    "about": "An unknown root key is a note; the profiles load.",
+    "file": {
+      "default": "local",
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest"
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "notes": ["unknown-root-key default"],
+      "profiles": [
+        {
+          "name": "local"
+        }
+      ]
+    }
+  },
+  {
+    "name": "default-not-string",
+    "about": "defaultProfile that is no string is a note, and there is no default.",
+    "file": {
+      "defaultProfile": 1,
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest"
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "notes": ["invalid defaultProfile"],
+      "profiles": [
+        {
+          "name": "local"
+        }
+      ]
+    }
+  },
+  {
+    "name": "default-invalid-name",
+    "about": "defaultProfile that is no profile name is a note, and there is no default.",
+    "file": {
+      "defaultProfile": "-local",
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest"
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "notes": ["invalid-name defaultProfile"],
+      "profiles": [
+        {
+          "name": "local"
+        }
+      ]
+    }
+  },
+  {
+    "name": "default-foreign",
+    "about": "defaultProfile that names no profile of the file is a note (JSON Schema cannot say so); it never falls back to the only profile.",
+    "file": {
+      "defaultProfile": "prod",
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest"
+        }
+      }
+    },
+    "schema": true,
+    "outcome": {
+      "notes": ["default-not-found defaultProfile"],
+      "profiles": [
+        {
+          "name": "local"
+        }
+      ]
+    }
+  },
+  {
+    "name": "default-blank",
+    "about": "A blank defaultProfile means none.",
+    "file": {
+      "defaultProfile": "  ",
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest"
+        }
+      }
+    },
+    "schema": true,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local"
+        }
+      ]
+    }
+  },
+  {
+    "name": "default-padded",
+    "about": "defaultProfile is trimmed before it is looked up.",
+    "file": {
+      "defaultProfile": " local ",
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest"
+        }
+      }
+    },
+    "schema": true,
+    "outcome": {
+      "defaultProfile": "local",
+      "profiles": [
+        {
+          "name": "local"
+        }
+      ]
+    }
+  },
+  {
+    "name": "profile-not-object",
+    "about": "A profile that is no object is refused; the others load.",
+    "file": {
+      "profiles": {
+        "nonsense": "nonsense",
+        "local": {
+          "url": "http://localhost:8080/engine-rest"
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "nonsense",
+          "problems": ["invalid"]
+        },
+        {
+          "name": "local"
+        }
+      ]
+    }
+  },
+  {
+    "name": "profile-invalid-name",
+    "about": "A name with a space is refused by its position: it is never shown.",
+    "file": {
+      "profiles": {
+        "prod eu": {
+          "url": "http://localhost:8080/engine-rest"
+        },
+        "local": {
+          "url": "http://localhost:8080/engine-rest"
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "index": 0,
+          "problems": ["invalid-name"]
+        },
+        {
+          "name": "local"
+        }
+      ]
+    }
+  },
+  {
+    "name": "profile-name-twice",
+    "about": "A name the text lists twice is refused: JSON.parse would keep only the last profile.",
+    "text": "{\n  \"profiles\": {\n    \"local\": { \"url\": \"http://localhost:8080/engine-rest\" },\n    \"other\": { \"url\": \"http://other:8080/engine-rest\" },\n    \"local\": { \"url\": \"http://localhost:8080/engine-rest\", \"readOnly\": true }\n  }\n}\n",
+    "schema": true,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["duplicate-name"]
+        },
+        {
+          "name": "other"
+        }
+      ]
+    }
+  },
+  {
+    "name": "profile-names-of-digits",
+    "about": "Names of digits are names; the profiles keep the order of the text, which JSON.parse would change.",
+    "text": "{\n  \"defaultProfile\": \"10\",\n  \"profiles\": {\n    \"prod\": { \"url\": \"http://prod:8080/engine-rest\" },\n    \"10\": { \"url\": \"http://ten:8080/engine-rest\" },\n    \"2\": { \"url\": \"http://two:8080/engine-rest\" }\n  }\n}\n",
+    "schema": true,
+    "outcome": {
+      "defaultProfile": "10",
+      "profiles": [
+        {
+          "name": "prod"
+        },
+        {
+          "name": "10"
+        },
+        {
+          "name": "2"
+        }
+      ]
+    }
+  },
+  {
+    "name": "profile-key-twice",
+    "about": "A key twice in a profile refuses it: a second readOnly would switch the guard off silently.",
+    "text": "{\n  \"profiles\": {\n    \"local\": { \"url\": \"http://localhost:8080/engine-rest\", \"readOnly\": true, \"readOnly\": false }\n  }\n}\n",
+    "schema": true,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["duplicate-key readOnly"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "auth-key-twice",
+    "about": "A key twice in auth refuses the profile.",
+    "text": "{\n  \"profiles\": {\n    \"local\": {\n      \"url\": \"http://localhost:8080/engine-rest\",\n      \"auth\": { \"type\": \"basic\", \"username\": \"demo\", \"type\": \"none\" }\n    }\n  }\n}\n",
+    "schema": true,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["duplicate-key auth.type"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "header-twice",
+    "about": "A header name twice refuses the profile.",
+    "text": "{\n  \"profiles\": {\n    \"local\": {\n      \"url\": \"http://localhost:8080/engine-rest\",\n      \"headers\": { \"X-Tenant-Id\": \"acme\", \"X-Tenant-Id\": \"other\" }\n    }\n  }\n}\n",
+    "schema": true,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["duplicate-key headers.X-Tenant-Id"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "header-twice-in-two-spellings",
+    "about": "A header name twice in two spellings refuses the profile: HTTP ignores the case of a name, and fetch would send both values joined.",
+    "text": "{\n  \"profiles\": {\n    \"local\": {\n      \"url\": \"http://localhost:8080/engine-rest\",\n      \"headers\": { \"X-Tenant-Id\": \"acme\", \"x-tenant-id\": \"other\" }\n    }\n  }\n}\n",
+    "schema": true,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["duplicate-key headers.x-tenant-id"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "key-twice-first-no-object",
+    "about": "A name or a key twice whose first value is no object (a string, a list) refuses its profile, read at the last value as JSON.parse keeps it.",
+    "text": "{\n  \"profiles\": {\n    \"local\": \"\",\n    \"other\": {\n      \"url\": \"http://other:8080/engine-rest\",\n      \"auth\": \"\",\n      \"auth\": { \"type\": \"basic\", \"username\": \"demo\" },\n      \"headers\": [\"X-Note\"],\n      \"headers\": { \"X-Tenant-Id\": \"acme\" }\n    },\n    \"local\": { \"url\": \"http://localhost:8080/engine-rest\" }\n  }\n}\n",
+    "schema": true,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["duplicate-name"]
+        },
+        {
+          "name": "other",
+          "problems": ["duplicate-key auth", "duplicate-key headers"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "profile-unknown-key",
+    "about": "An unknown key refuses its profile: a typo never works silently.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "colour": "blue"
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["unknown-key colour"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "profile-former-key",
+    "about": "platform, the former name of flavor, is an unknown key.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "platform": "camunda7"
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["unknown-key platform"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "profile-unknown-key-not-shown",
+    "about": "An unknown key that does not look like one may be a credential: it is refused but never shown.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "hunter2 is my password": true
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["unknown-key"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "url-blank",
+    "about": "A blank url is refused.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "  "
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["invalid url"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "url-not-string",
+    "about": "A url that is no string is refused.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": 8080
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["invalid url"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "url-refused",
+    "about": "A url that is no http or https URL, or carries credentials, a query or a fragment, is refused without being shown.",
+    "file": {
+      "profiles": {
+        "ftp": {
+          "url": "ftp://localhost/engine-rest"
+        },
+        "query": {
+          "url": "http://localhost:8080/engine-rest?tenant=acme"
+        },
+        "fragment": {
+          "url": "http://localhost:8080/engine-rest#top"
+        },
+        "no-scheme": {
+          "url": "localhost:8080/engine-rest"
+        },
+        "text": {
+          "url": "not a url"
+        },
+        "credentials": {
+          "url": "https://demo:demo@shop.example.com/engine-rest"
+        }
+      }
+    },
+    "schema": true,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "ftp",
+          "problems": ["url-not-http url"]
+        },
+        {
+          "name": "query",
+          "problems": ["url-query-or-fragment url"]
+        },
+        {
+          "name": "fragment",
+          "problems": ["url-query-or-fragment url"]
+        },
+        {
+          "name": "no-scheme",
+          "problems": ["url-not-http url"]
+        },
+        {
+          "name": "text",
+          "problems": ["url-invalid url"]
+        },
+        {
+          "name": "credentials",
+          "problems": ["url-credentials url"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "url-normalized",
+    "about": "url loses surrounding blanks and trailing slashes, cockpitUrl also the start route of its app.",
+    "file": {
+      "profiles": {
+        "padded": {
+          "url": "  http://localhost:8080/engine-rest/  "
+        },
+        "slashes": {
+          "url": "http://localhost:8080/engine-rest///",
+          "cockpitUrl": "http://localhost:8080/camunda/app/cockpit/default/"
+        },
+        "route": {
+          "url": "http://localhost:8080/engine-rest",
+          "cockpitUrl": "http://localhost:8080/camunda/app/cockpit/default/#/"
+        }
+      }
+    },
+    "schema": true,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "padded"
+        },
+        {
+          "name": "slashes"
+        },
+        {
+          "name": "route"
+        }
+      ]
+    },
+    "usable": {
+      "padded": {
+        "url": "http://localhost:8080/engine-rest"
+      },
+      "slashes": {
+        "url": "http://localhost:8080/engine-rest",
+        "cockpitUrl": "http://localhost:8080/camunda/app/cockpit/default"
+      },
+      "route": {
+        "url": "http://localhost:8080/engine-rest",
+        "cockpitUrl": "http://localhost:8080/camunda/app/cockpit/default"
+      }
+    }
+  },
+  {
+    "name": "cockpit-refused",
+    "about": "A cockpitUrl that is no http or https URL, or carries credentials or a query, is refused.",
+    "file": {
+      "profiles": {
+        "file": {
+          "url": "http://localhost:8080/engine-rest",
+          "cockpitUrl": "file:///etc/passwd"
+        },
+        "credentials": {
+          "url": "http://localhost:8080/engine-rest",
+          "cockpitUrl": "https://demo:demo@shop.example.com/camunda/app/cockpit/default/"
+        },
+        "query": {
+          "url": "http://localhost:8080/engine-rest",
+          "cockpitUrl": "http://localhost:8080/camunda/app/cockpit/default/?tab=1"
+        }
+      }
+    },
+    "schema": true,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "file",
+          "problems": ["url-not-http cockpitUrl"]
+        },
+        {
+          "name": "credentials",
+          "problems": ["url-credentials cockpitUrl"]
+        },
+        {
+          "name": "query",
+          "problems": ["url-query-or-fragment cockpitUrl"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "cockpit-not-string",
+    "about": "A cockpitUrl that is no string is refused.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "cockpitUrl": true
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["invalid cockpitUrl"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "url-optional",
+    "about": "A profile without url is valid; a reader that needs one refuses it (refusalsOn).",
+    "file": {
+      "profiles": {
+        "nowhere": {
+          "readOnly": true
+        }
+      }
+    },
+    "schema": true,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "nowhere"
+        }
+      ]
+    },
+    "usable": {
+      "nowhere": {
+        "readOnly": true
+      }
+    }
+  },
+  {
+    "name": "engine-dots",
+    "about": "An engine name that would leave /engine/{name} is refused.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "engine": ".."
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["invalid engine"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "engine-not-string",
+    "about": "An engine that is no string is refused.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "engine": 1
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["invalid engine"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "engines",
+    "about": "The default engine by name, padded, and a named one; whether a reader reaches it is refusalsOn's.",
+    "file": {
+      "profiles": {
+        "default": {
+          "url": "http://localhost:8080/engine-rest",
+          "engine": "default"
+        },
+        "padded": {
+          "url": "http://localhost:8080/engine-rest",
+          "engine": " default "
+        },
+        "orders": {
+          "url": "http://localhost:8080/engine-rest",
+          "engine": "orders"
+        }
+      }
+    },
+    "schema": true,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "default"
+        },
+        {
+          "name": "padded"
+        },
+        {
+          "name": "orders"
+        }
+      ]
+    },
+    "usable": {
+      "padded": {
+        "url": "http://localhost:8080/engine-rest",
+        "engine": "default"
+      }
+    }
+  },
+  {
+    "name": "flavor-not-string",
+    "about": "A flavor that is no string is refused.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "flavor": 7
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["invalid flavor"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "flavor-padded",
+    "about": "Flavors are compared exactly, blanks included.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "flavor": " operaton"
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["flavor-unknown flavor"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "flavor-unknown",
+    "about": "A flavor of no known dialect is refused, without being shown.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "flavor": "camunda8"
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["flavor-unknown flavor"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "flavors",
+    "about": "Each flavor, and none; readOnly false is a writable engine.",
+    "file": {
+      "profiles": {
+        "c7": {
+          "url": "http://localhost:8080/engine-rest",
+          "flavor": "camunda7"
+        },
+        "seven": {
+          "url": "http://localhost:8080/engine-rest",
+          "flavor": "cibseven"
+        },
+        "operaton": {
+          "url": "http://localhost:8080/engine-rest",
+          "flavor": "operaton"
+        },
+        "plain": {
+          "url": "http://localhost:8080/engine-rest",
+          "readOnly": false
+        }
+      }
+    },
+    "schema": true,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "c7"
+        },
+        {
+          "name": "seven"
+        },
+        {
+          "name": "operaton"
+        },
+        {
+          "name": "plain"
+        }
+      ]
+    }
+  },
+  {
+    "name": "environment",
+    "about": "An environment groups engines on an MCP server; digits alone are an id too.",
+    "file": {
+      "profiles": {
+        "eu": {
+          "url": "http://localhost:8080/engine-rest",
+          "environment": "prod-eu"
+        },
+        "one": {
+          "url": "http://localhost:8080/engine-rest",
+          "environment": "1"
+        }
+      }
+    },
+    "schema": true,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "eu"
+        },
+        {
+          "name": "one"
+        }
+      ]
+    }
+  },
+  {
+    "name": "environment-invalid",
+    "about": "An environment that is no id is refused.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "environment": "Prod EU"
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["invalid environment"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "output-unknown",
+    "about": "An output format the CLI does not know is refused.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "output": "xml"
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["invalid output"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "timeout-invalid",
+    "about": "A timeout is a whole number of milliseconds a timer can hold.",
+    "file": {
+      "profiles": {
+        "zero": {
+          "url": "http://localhost:8080/engine-rest",
+          "timeout": 0
+        },
+        "fraction": {
+          "url": "http://localhost:8080/engine-rest",
+          "timeout": 1.5
+        },
+        "text": {
+          "url": "http://localhost:8080/engine-rest",
+          "timeout": "30s"
+        },
+        "over": {
+          "url": "http://localhost:8080/engine-rest",
+          "timeout": 2147483648
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "zero",
+          "problems": ["invalid timeout"]
+        },
+        {
+          "name": "fraction",
+          "problems": ["invalid timeout"]
+        },
+        {
+          "name": "text",
+          "problems": ["invalid timeout"]
+        },
+        {
+          "name": "over",
+          "problems": ["invalid timeout"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "read-only-not-boolean",
+    "about": "A readOnly that is no boolean is refused: never a writable engine by mistake.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "readOnly": "yes"
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["invalid readOnly"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "every-profile-key",
+    "about": "Every profile key, none of them a credential.",
+    "file": {
+      "profiles": {
+        "shop": {
+          "url": "https://shop.example.com/engine-rest",
+          "cockpitUrl": "https://shop.example.com/operaton/app/cockpit/default/",
+          "engine": "default",
+          "flavor": "operaton",
+          "environment": "prod-eu",
+          "auth": {
+            "type": "basic",
+            "username": "demo"
+          },
+          "output": "table",
+          "timeout": 10000,
+          "headers": {
+            "X-Tenant-Id": "acme"
+          },
+          "readOnly": true
+        }
+      }
+    },
+    "schema": true,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "shop"
+        }
+      ]
+    },
+    "usable": {
+      "shop": {
+        "url": "https://shop.example.com/engine-rest",
+        "cockpitUrl": "https://shop.example.com/operaton/app/cockpit/default",
+        "engine": "default",
+        "flavor": "operaton",
+        "environment": "prod-eu",
+        "auth": {
+          "type": "basic",
+          "username": "demo"
+        },
+        "output": "table",
+        "timeout": 10000,
+        "headers": {
+          "X-Tenant-Id": "acme"
+        },
+        "readOnly": true
+      }
+    }
+  },
+  {
+    "name": "header-boundaries",
+    "about": "Header names are HTTP tokens; values are Latin-1 with tabs.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "headers": {
+            "X-Note": "tab\there é ÿ",
+            "!#$%&'*+.^_`|~": "x"
+          }
+        }
+      }
+    },
+    "schema": true,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local"
+        }
+      ]
+    }
+  },
+  {
+    "name": "header-invalid",
+    "about": "A header name that is no token, one the client manages and a value with a line break are refused.",
+    "file": {
+      "profiles": {
+        "name": {
+          "url": "http://localhost:8080/engine-rest",
+          "headers": {
+            "Bad Name": "x"
+          }
+        },
+        "managed": {
+          "url": "http://localhost:8080/engine-rest",
+          "headers": {
+            "Content-Length": "1"
+          }
+        },
+        "value": {
+          "url": "http://localhost:8080/engine-rest",
+          "headers": {
+            "X-Note": "line\nbreak"
+          }
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "name",
+          "problems": ["invalid headers"]
+        },
+        {
+          "name": "managed",
+          "problems": ["invalid headers"]
+        },
+        {
+          "name": "value",
+          "problems": ["invalid headers"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "header-secret",
+    "about": "A secret header: only a person's own file keeps one.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "headers": {
+            "X-Api-Key": "abc"
+          }
+        }
+      }
+    },
+    "schema": true,
+    "outcomes": {
+      "none": {
+        "profiles": [
+          {
+            "name": "local",
+            "problems": ["secret-header headers.X-Api-Key"]
+          }
+        ]
+      },
+      "env": {
+        "profiles": [
+          {
+            "name": "local",
+            "problems": ["secret-header headers.X-Api-Key"]
+          }
+        ]
+      },
+      "env-or-literal": {
+        "profiles": [
+          {
+            "name": "local"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "auth-not-object",
+    "about": "An auth that is no object is refused.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": "basic"
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["invalid auth"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "auth-type-not-string",
+    "about": "An auth.type that is no string is refused.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": 1
+          }
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["invalid auth.type"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "auth-unknown-key",
+    "about": "An unknown auth key refuses its profile.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "basic",
+            "user": "demo"
+          }
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["unknown-key auth.user"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "auth-token-command",
+    "about": "The token command of 0.6.0 is an unknown key: only the CLI's environment gives one.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "bearer",
+            "tokenCommand": "print-token"
+          }
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["unknown-key auth.tokenCommand"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "auth-type-unknown",
+    "about": "An auth type no reader knows is refused, without being shown.",
+    "file": {
+      "profiles": {
+        "kerberos": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "kerberos"
+          }
+        },
+        "blank": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": ""
+          }
+        },
+        "padded": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": " basic"
+          }
+        },
+        "oauth-kerberos": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "kerberos",
+            "issuer": "https://login.example.com/realms/engine",
+            "clientId": "pulse-cli"
+          }
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "kerberos",
+          "problems": ["auth-type-unknown auth.type"]
+        },
+        {
+          "name": "blank",
+          "problems": ["auth-type-unknown auth.type"]
+        },
+        {
+          "name": "padded",
+          "problems": ["auth-type-unknown auth.type"]
+        },
+        {
+          "name": "oauth-kerberos",
+          "problems": ["auth-type-unknown auth.type"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "auth-implied",
+    "about": "Without a type a username selects Basic auth, else none; type none switches stored settings off.",
+    "file": {
+      "profiles": {
+        "empty": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {}
+        },
+        "username": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "username": "demo"
+          }
+        },
+        "basic-off": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "none",
+            "username": "demo"
+          }
+        },
+        "oauth-off": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "none",
+            "issuer": "https://login.example.com/realms/engine",
+            "clientId": "pulse-cli"
+          }
+        }
+      }
+    },
+    "schema": true,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "empty"
+        },
+        {
+          "name": "username"
+        },
+        {
+          "name": "basic-off"
+        },
+        {
+          "name": "oauth-off"
+        }
+      ]
+    }
+  },
+  {
+    "name": "auth-supported",
+    "about": "Every auth type and its keys without a credential; the secret comes from elsewhere.",
+    "file": {
+      "profiles": {
+        "none": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "none"
+          }
+        },
+        "basic": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "basic"
+          }
+        },
+        "oauth": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "oauth",
+            "issuer": "https://login.example.com/realms/engine",
+            "clientId": "pulse-cli",
+            "scopes": ["openid"],
+            "audience": "engine-rest",
+            "redirectPort": 0
+          }
+        },
+        "endpoints": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "oauth",
+            "authorizationEndpoint": "https://login.example.com/realms/engine/protocol/openid-connect/auth",
+            "tokenEndpoint": "https://login.example.com/realms/engine/protocol/openid-connect/token",
+            "clientId": "pulse-cli"
+          }
+        },
+        "bearer": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "bearer"
+          }
+        },
+        "passthrough": {
+          "url": "http://engine:8080/engine-rest",
+          "auth": {
+            "type": "passthrough"
+          }
+        },
+        "absent": {
+          "url": "http://localhost:8080/engine-rest"
+        }
+      }
+    },
+    "schema": true,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "none"
+        },
+        {
+          "name": "basic"
+        },
+        {
+          "name": "oauth"
+        },
+        {
+          "name": "endpoints"
+        },
+        {
+          "name": "bearer"
+        },
+        {
+          "name": "passthrough"
+        },
+        {
+          "name": "absent"
+        }
+      ]
+    }
+  },
+  {
+    "name": "auth-mixed",
+    "about": "Basic auth and OAuth keys in one profile are refused.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "username": "demo",
+            "issuer": "https://login.example.com/realms/engine"
+          }
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["auth-keys-mixed auth"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "auth-mixed-token",
+    "about": "Basic auth and bearer token keys in one profile are refused.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "username": "demo",
+            "token": "abc"
+          }
+        }
+      }
+    },
+    "schema": false,
+    "outcomes": {
+      "none": {
+        "profiles": [
+          {
+            "name": "local",
+            "problems": ["credential-in-shared-file auth.token", "auth-keys-mixed auth"]
+          }
+        ]
+      },
+      "env": {
+        "profiles": [
+          {
+            "name": "local",
+            "problems": ["literal-secret auth.token", "auth-keys-mixed auth"]
+          }
+        ]
+      },
+      "env-or-literal": {
+        "profiles": [
+          {
+            "name": "local",
+            "problems": ["auth-keys-mixed auth"]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "auth-oauth-keys-basic-type",
+    "about": "OAuth keys with type basic are refused.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "basic",
+            "issuer": "https://login.example.com/realms/engine"
+          }
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["auth-type-mismatch auth.type"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "auth-oauth-without-type",
+    "about": "OAuth is never implied: OAuth keys need type oauth.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "issuer": "https://login.example.com/realms/engine",
+            "clientId": "pulse-cli"
+          }
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["auth-type-mismatch auth.type"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "auth-username-oauth-type",
+    "about": "A username with type oauth is refused.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "oauth",
+            "username": "demo"
+          }
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["auth-type-mismatch auth.type"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "auth-passthrough-keys",
+    "about": "passthrough forwards the caller's token and takes no other key.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "passthrough",
+            "username": "demo"
+          }
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["auth-type-mismatch auth.type"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "auth-token-without-type",
+    "about": "A stored token is never implied: its keys need type bearer.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "tokenEnv": "ENGINE_SECRET_TOKEN"
+          }
+        }
+      }
+    },
+    "schema": false,
+    "outcomes": {
+      "none": {
+        "profiles": [
+          {
+            "name": "local",
+            "problems": ["credential-in-shared-file auth.tokenEnv", "auth-type-mismatch auth.type"]
+          }
+        ]
+      },
+      "env": {
+        "profiles": [
+          {
+            "name": "local",
+            "problems": ["auth-type-mismatch auth.type"]
+          }
+        ]
+      },
+      "env-or-literal": {
+        "profiles": [
+          {
+            "name": "local",
+            "problems": ["auth-type-mismatch auth.type"]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "auth-one-endpoint",
+    "about": "With type oauth, one endpoint without the other is refused.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "oauth",
+            "authorizationEndpoint": "https://login.example.com/realms/engine/auth",
+            "clientId": "pulse-cli"
+          }
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local",
+          "problems": ["endpoint-alone auth.authorizationEndpoint"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "auth-one-endpoint-off",
+    "about": "With type none, the OAuth keys are off, a single endpoint included.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "none",
+            "tokenEndpoint": "https://login.example.com/realms/engine/token"
+          }
+        }
+      }
+    },
+    "schema": true,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "local"
+        }
+      ]
+    }
+  },
+  {
+    "name": "auth-username-invalid",
+    "about": "A username is not blank and holds neither \":\" nor a control character.",
+    "file": {
+      "profiles": {
+        "number": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "basic",
+            "username": 42
+          }
+        },
+        "colon": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "basic",
+            "username": "a:b"
+          }
+        },
+        "control": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "basic",
+            "username": "tab\tname"
+          }
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "number",
+          "problems": ["invalid auth.username"]
+        },
+        {
+          "name": "colon",
+          "problems": ["invalid auth.username"]
+        },
+        {
+          "name": "control",
+          "problems": ["invalid auth.username"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "auth-oauth-values-invalid",
+    "about": "OAuth values of the wrong shape are refused.",
+    "file": {
+      "profiles": {
+        "scopes-text": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "oauth",
+            "issuer": "https://login.example.com/realms/engine",
+            "scopes": "openid"
+          }
+        },
+        "scopes-twice": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "oauth",
+            "issuer": "https://login.example.com/realms/engine",
+            "scopes": ["openid", "openid"]
+          }
+        },
+        "scope-space": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "oauth",
+            "issuer": "https://login.example.com/realms/engine",
+            "scopes": ["open id"]
+          }
+        },
+        "port-text": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "oauth",
+            "issuer": "https://login.example.com/realms/engine",
+            "redirectPort": "abc"
+          }
+        },
+        "port-high": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "oauth",
+            "issuer": "https://login.example.com/realms/engine",
+            "redirectPort": 99999
+          }
+        },
+        "client-number": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "oauth",
+            "issuer": "https://login.example.com/realms/engine",
+            "clientId": 1
+          }
+        },
+        "audience-object": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "oauth",
+            "issuer": "https://login.example.com/realms/engine",
+            "audience": {}
+          }
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "scopes-text",
+          "problems": ["invalid auth.scopes"]
+        },
+        {
+          "name": "scopes-twice",
+          "problems": ["invalid auth.scopes"]
+        },
+        {
+          "name": "scope-space",
+          "problems": ["invalid auth.scopes"]
+        },
+        {
+          "name": "port-text",
+          "problems": ["invalid auth.redirectPort"]
+        },
+        {
+          "name": "port-high",
+          "problems": ["invalid auth.redirectPort"]
+        },
+        {
+          "name": "client-number",
+          "problems": ["invalid auth.clientId"]
+        },
+        {
+          "name": "audience-object",
+          "problems": ["invalid auth.audience"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "auth-password",
+    "about": "A password itself: only a person's own file keeps one.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "basic",
+            "username": "demo",
+            "password": "demo"
+          }
+        }
+      }
+    },
+    "schema": true,
+    "outcomes": {
+      "none": {
+        "profiles": [
+          {
+            "name": "local",
+            "problems": ["credential-in-shared-file auth.password"]
+          }
+        ]
+      },
+      "env": {
+        "profiles": [
+          {
+            "name": "local",
+            "problems": ["literal-secret auth.password"]
+          }
+        ]
+      },
+      "env-or-literal": {
+        "profiles": [
+          {
+            "name": "local"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "auth-password-variable",
+    "about": "A variable outside ENGINE_SECRET_: a shared file names none, an MCP server reads none.",
+    "file": {
+      "profiles": {
+        "other": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "basic",
+            "username": "demo",
+            "passwordEnv": "ENGINE_PASSWORD"
+          }
+        },
+        "bare": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "basic",
+            "username": "demo",
+            "passwordEnv": "ENGINE_SECRET_"
+          }
+        }
+      }
+    },
+    "schema": true,
+    "outcomes": {
+      "none": {
+        "profiles": [
+          {
+            "name": "other",
+            "problems": ["credential-in-shared-file auth.passwordEnv"]
+          },
+          {
+            "name": "bare",
+            "problems": ["credential-in-shared-file auth.passwordEnv"]
+          }
+        ]
+      },
+      "env": {
+        "profiles": [
+          {
+            "name": "other",
+            "problems": ["variable-prefix auth.passwordEnv"]
+          },
+          {
+            "name": "bare",
+            "problems": ["variable-prefix auth.passwordEnv"]
+          }
+        ]
+      },
+      "env-or-literal": {
+        "profiles": [
+          {
+            "name": "other"
+          },
+          {
+            "name": "bare"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "auth-password-secret-variable",
+    "about": "A variable under ENGINE_SECRET_: what an MCP server reads; a shared file still names none.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "basic",
+            "username": "demo",
+            "passwordEnv": "ENGINE_SECRET_LOCAL_PASSWORD"
+          }
+        }
+      }
+    },
+    "schema": true,
+    "outcomes": {
+      "none": {
+        "profiles": [
+          {
+            "name": "local",
+            "problems": ["credential-in-shared-file auth.passwordEnv"]
+          }
+        ]
+      },
+      "env": {
+        "profiles": [
+          {
+            "name": "local"
+          }
+        ]
+      },
+      "env-or-literal": {
+        "profiles": [
+          {
+            "name": "local"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "auth-variable-not-a-name",
+    "about": "A variable that is no name is refused, never shown.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "basic",
+            "username": "demo",
+            "passwordEnv": "not a name"
+          }
+        }
+      }
+    },
+    "schema": false,
+    "outcomes": {
+      "none": {
+        "profiles": [
+          {
+            "name": "local",
+            "problems": ["credential-in-shared-file auth.passwordEnv"]
+          }
+        ]
+      },
+      "env": {
+        "profiles": [
+          {
+            "name": "local",
+            "problems": ["invalid auth.passwordEnv"]
+          }
+        ]
+      },
+      "env-or-literal": {
+        "profiles": [
+          {
+            "name": "local",
+            "problems": ["invalid auth.passwordEnv"]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "auth-token-variable",
+    "about": "The variable of a bearer token.",
+    "file": {
+      "profiles": {
+        "ci": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "bearer",
+            "tokenEnv": "CI_TOKEN"
+          }
+        }
+      }
+    },
+    "schema": true,
+    "outcomes": {
+      "none": {
+        "profiles": [
+          {
+            "name": "ci",
+            "problems": ["credential-in-shared-file auth.tokenEnv"]
+          }
+        ]
+      },
+      "env": {
+        "profiles": [
+          {
+            "name": "ci",
+            "problems": ["variable-prefix auth.tokenEnv"]
+          }
+        ]
+      },
+      "env-or-literal": {
+        "profiles": [
+          {
+            "name": "ci"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "auth-token",
+    "about": "A bearer token itself.",
+    "file": {
+      "profiles": {
+        "ci": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "bearer",
+            "token": "abc.def"
+          }
+        }
+      }
+    },
+    "schema": true,
+    "outcomes": {
+      "none": {
+        "profiles": [
+          {
+            "name": "ci",
+            "problems": ["credential-in-shared-file auth.token"]
+          }
+        ]
+      },
+      "env": {
+        "profiles": [
+          {
+            "name": "ci",
+            "problems": ["literal-secret auth.token"]
+          }
+        ]
+      },
+      "env-or-literal": {
+        "profiles": [
+          {
+            "name": "ci"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "auth-client-secret-variable",
+    "about": "The variable of an OAuth client secret.",
+    "file": {
+      "profiles": {
+        "sso": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "oauth",
+            "issuer": "https://login.example.com/realms/engine",
+            "clientId": "pulse-cli",
+            "clientSecretEnv": "CLIENT_SECRET"
+          }
+        }
+      }
+    },
+    "schema": true,
+    "outcomes": {
+      "none": {
+        "profiles": [
+          {
+            "name": "sso",
+            "problems": ["credential-in-shared-file auth.clientSecretEnv"]
+          }
+        ]
+      },
+      "env": {
+        "profiles": [
+          {
+            "name": "sso",
+            "problems": ["variable-prefix auth.clientSecretEnv"]
+          }
+        ]
+      },
+      "env-or-literal": {
+        "profiles": [
+          {
+            "name": "sso"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "auth-client-secret",
+    "about": "An OAuth client secret itself.",
+    "file": {
+      "profiles": {
+        "sso": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "oauth",
+            "issuer": "https://login.example.com/realms/engine",
+            "clientId": "pulse-cli",
+            "clientSecret": "s3cr3t"
+          }
+        }
+      }
+    },
+    "schema": true,
+    "outcomes": {
+      "none": {
+        "profiles": [
+          {
+            "name": "sso",
+            "problems": ["credential-in-shared-file auth.clientSecret"]
+          }
+        ]
+      },
+      "env": {
+        "profiles": [
+          {
+            "name": "sso",
+            "problems": ["literal-secret auth.clientSecret"]
+          }
+        ]
+      },
+      "env-or-literal": {
+        "profiles": [
+          {
+            "name": "sso"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "auth-secret-twice",
+    "about": "A secret and its variable together: keep one.",
+    "file": {
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "basic",
+            "username": "demo",
+            "passwordEnv": "ENGINE_SECRET_PASSWORD",
+            "password": "demo"
+          }
+        }
+      }
+    },
+    "schema": false,
+    "outcomes": {
+      "none": {
+        "profiles": [
+          {
+            "name": "local",
+            "problems": [
+              "credential-in-shared-file auth.passwordEnv",
+              "credential-in-shared-file auth.password",
+              "secret-twice auth.password"
+            ]
+          }
+        ]
+      },
+      "env": {
+        "profiles": [
+          {
+            "name": "local",
+            "problems": ["literal-secret auth.password", "secret-twice auth.password"]
+          }
+        ]
+      },
+      "env-or-literal": {
+        "profiles": [
+          {
+            "name": "local",
+            "problems": ["secret-twice auth.password"]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "future-dialect",
+    "about": "A flavor and an auth type of a later dialect refuse only their profile; the C7 profile next to it loads.",
+    "file": {
+      "profiles": {
+        "c8": {
+          "url": "https://c8.example.com/v2",
+          "flavor": "camunda8",
+          "auth": {
+            "type": "client-credentials",
+            "tokenEndpoint": "https://login.example.com/oauth/token",
+            "clientId": "pulse",
+            "clientSecretEnv": "ENGINE_SECRET_C8_CLIENT_SECRET",
+            "audience": "zeebe-api"
+          }
+        },
+        "c7": {
+          "url": "http://localhost:8080/engine-rest",
+          "flavor": "cibseven"
+        }
+      }
+    },
+    "schema": false,
+    "outcomes": {
+      "none": {
+        "profiles": [
+          {
+            "name": "c8",
+            "problems": [
+              "flavor-unknown flavor",
+              "auth-type-unknown auth.type",
+              "credential-in-shared-file auth.clientSecretEnv"
+            ]
+          },
+          {
+            "name": "c7"
+          }
+        ]
+      },
+      "env": {
+        "profiles": [
+          {
+            "name": "c8",
+            "problems": ["flavor-unknown flavor", "auth-type-unknown auth.type"]
+          },
+          {
+            "name": "c7"
+          }
+        ]
+      },
+      "env-or-literal": {
+        "profiles": [
+          {
+            "name": "c8",
+            "problems": ["flavor-unknown flavor", "auth-type-unknown auth.type"]
+          },
+          {
+            "name": "c7"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "operator-file",
+    "about": "The profiles of an MCP server: variables under ENGINE_SECRET_, passthrough, an OAuth profile and a default.",
+    "file": {
+      "$schema": "https://unpkg.com/@miragon/pulse-profile/schema/pulse.schema.json",
+      "defaultProfile": "prod-a",
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8410/engine-rest",
+          "cockpitUrl": "http://localhost:8410/webapp",
+          "flavor": "cibseven",
+          "environment": "local",
+          "auth": {
+            "type": "basic",
+            "username": "demo",
+            "passwordEnv": "ENGINE_SECRET_LOCAL_PASSWORD"
+          }
+        },
+        "prod-a": {
+          "url": "https://engine-a.example.com/engine-rest",
+          "cockpitUrl": "https://engine-a.example.com/webapp",
+          "flavor": "cibseven",
+          "environment": "prod-eu",
+          "timeout": 15000,
+          "auth": {
+            "type": "basic",
+            "username": "svc-pulse",
+            "passwordEnv": "ENGINE_SECRET_PROD_A_PASSWORD"
+          }
+        },
+        "prod-b": {
+          "url": "https://engine-b.example.com/engine-rest",
+          "flavor": "operaton",
+          "environment": "prod-us",
+          "readOnly": true,
+          "auth": {
+            "type": "bearer",
+            "tokenEnv": "ENGINE_SECRET_PROD_B_TOKEN"
+          }
+        },
+        "staging": {
+          "url": "https://staging.example.com/engine-rest",
+          "flavor": "camunda7",
+          "environment": "staging",
+          "auth": {
+            "type": "passthrough"
+          }
+        },
+        "dev.sso": {
+          "url": "https://dev.example.com/engine-rest",
+          "engine": "orders",
+          "auth": {
+            "type": "oauth",
+            "issuer": "https://login.example.com/realms/camunda",
+            "clientId": "pulse",
+            "scopes": ["openid", "offline_access"]
+          },
+          "output": "json"
+        }
+      }
+    },
+    "schema": true,
+    "outcomes": {
+      "none": {
+        "defaultProfile": "prod-a",
+        "profiles": [
+          {
+            "name": "local",
+            "problems": ["credential-in-shared-file auth.passwordEnv"]
+          },
+          {
+            "name": "prod-a",
+            "problems": ["credential-in-shared-file auth.passwordEnv"]
+          },
+          {
+            "name": "prod-b",
+            "problems": ["credential-in-shared-file auth.tokenEnv"]
+          },
+          {
+            "name": "staging"
+          },
+          {
+            "name": "dev.sso"
+          }
+        ]
+      },
+      "env": {
+        "defaultProfile": "prod-a",
+        "profiles": [
+          {
+            "name": "local"
+          },
+          {
+            "name": "prod-a"
+          },
+          {
+            "name": "prod-b"
+          },
+          {
+            "name": "staging"
+          },
+          {
+            "name": "dev.sso"
+          }
+        ]
+      },
+      "env-or-literal": {
+        "defaultProfile": "prod-a",
+        "profiles": [
+          {
+            "name": "local"
+          },
+          {
+            "name": "prod-a"
+          },
+          {
+            "name": "prod-b"
+          },
+          {
+            "name": "staging"
+          },
+          {
+            "name": "dev.sso"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "project-file",
+    "about": "A file a team shares: engines without any credential, read the same under every policy.",
+    "file": {
+      "$schema": "https://unpkg.com/@miragon/pulse-profile/schema/pulse.schema.json",
+      "defaultProfile": "local",
+      "profiles": {
+        "local": {
+          "url": "http://localhost:8410/engine-rest",
+          "flavor": "cibseven"
+        },
+        "staging": {
+          "url": "https://staging.example.com/engine-rest",
+          "flavor": "cibseven",
+          "readOnly": true,
+          "auth": {
+            "type": "basic",
+            "username": "ci"
+          }
+        }
+      }
+    },
+    "schema": true,
+    "outcome": {
+      "defaultProfile": "local",
+      "profiles": [
+        {
+          "name": "local"
+        },
+        {
+          "name": "staging"
+        }
+      ]
+    }
+  }
+]

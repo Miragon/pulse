@@ -8,7 +8,7 @@ import {
   InstanceId,
   RuntimeError,
   type ProcessCommands,
-} from "@miragon/pulse-runtime-view/contract"
+} from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
 import {
   AuditedCommands,
@@ -320,6 +320,7 @@ describe("a connection", () => {
       runtime: () => ({}) as never,
       commands: () => (withCommands ? commands : undefined),
       webUi: () => undefined,
+      cli: () => undefined,
     }
   }
 
@@ -349,7 +350,7 @@ describe("a connection", () => {
     expect(noAdapter.commands).toBeUndefined()
     expect(noAdapter.badge.access).toEqual({
       writable: false,
-      note: "Read-only. Pulse cannot change data on this engine yet.",
+      note: "Read-only. Pulse does not change data on this engine.",
     })
   })
 

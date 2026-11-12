@@ -1,4 +1,4 @@
-import type { Incident, IncidentDetails, IncidentJob } from "../../contract/index.js"
+import type { Incident, IncidentDetails, IncidentJob } from "@miragon/pulse-engine-core"
 import type { IncidentRow, JobLink } from "../protocol/index.js"
 import type { CalledInstanceLinks } from "./called-instance-links.js"
 import { ModelFactsView } from "./model-facts-view.js"

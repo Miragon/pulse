@@ -1,12 +1,5 @@
-import {
-  TONE_BORDER,
-  TONE_DOT,
-  TONE_ICON,
-  TONE_INK,
-  TONE_SOFT,
-  TONE_VARIANTS,
-  type ToneVariant,
-} from "../lib/tone-utils.js"
+import { TONE_BORDER, TONE_DOT, TONE_ICON, TONE_INK, TONE_SOFT } from "../lib/tone-utils.js"
+import { TONE_VARIANTS, type ToneVariant } from "../tones/index.js"
 import type { ContrastPair } from "./contrast.js"
 
 /** `bg-danger-soft text-danger-ink` + `"text"` → `--color-danger-ink` (the Tailwind theme variable). */

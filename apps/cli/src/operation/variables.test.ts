@@ -18,14 +18,14 @@ function caught(action: () => unknown): PulseCliError {
 }
 
 describe("typeValue (auto typing)", () => {
-  // The typing rule itself is engine-core's autoTypedValue, tested there.
+  // The typing rule itself is c7-core's autoTypedValue, tested there.
   it.each([
     ["true", true, "Boolean"],
     ["42", 42, "Integer"],
     ["9007199254740992", 9007199254740992n, "Long"],
     ["1.5", 1.5, "Double"],
     ["01234", "01234", "String"],
-  ])("types %j like engine-core", (raw, value, type) => {
+  ])("types %j like c7-core", (raw, value, type) => {
     expect(typeValue(raw)).toEqual({ value, type })
   })
 })

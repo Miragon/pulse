@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, type ReactNode } from "react"
 import { ErrorState, Skeleton } from "@miragon/pulse-ui"
 import {
   BpmnZoomControls,
@@ -44,10 +44,29 @@ export function useDefinitionXml(definitionId: string, engineId?: string) {
 }
 
 export function BpmnDiagram({ definitionId, engineId, height, highlights }: BpmnDiagramProps) {
+  return (
+    <WithDefinitionXml definitionId={definitionId} engineId={engineId} height={height}>
+      {(bpmnXml) => <BpmnCanvas bpmnXml={bpmnXml} height={height} highlights={highlights} />}
+    </WithDefinitionXml>
+  )
+}
+
+/**
+ * Reads a version's diagram by id (`engine_bpmn_xml_data`) and draws it with `children`; while it
+ * loads it holds the frame, and a failed or XML-less read says so.
+ */
+export function WithDefinitionXml({
+  definitionId,
+  engineId,
+  height,
+  children,
+}: Pick<BpmnDiagramProps, "definitionId" | "engineId" | "height"> & {
+  children: (bpmnXml: string) => ReactNode
+}) {
   const t = useT()
   const xml = useDefinitionXml(definitionId, engineId)
   const bpmnXml = xml.data?.bpmnXml
-  if (bpmnXml) return <BpmnCanvas bpmnXml={bpmnXml} height={height} highlights={highlights} />
+  if (bpmnXml) return children(bpmnXml)
   if (xml.data) return <ErrorState variant="inline" title={t("bpmnDiagram.unavailable")} />
   return (
     <QueryFallback

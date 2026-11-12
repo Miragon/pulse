@@ -1,0 +1,24 @@
+{
+  "case": "tls-failure",
+  "config": {
+    "PULSE_CLI_URL": "https://127.0.0.1:<port>/engine-rest"
+  },
+  "probes": [
+    {
+      "argv": [
+        "process-instance",
+        "get",
+        "pi-1"
+      ],
+      "exitCode": 8,
+      "sent": [],
+      "stderrLines": [
+        "{\"error\":{\"code\":\"NETWORK\",\"exitCode\":8,\"message\":\"Cannot reach https://127.0.0.1:<port>/engine-rest/process-instance/pi-1 (DEPTH_ZERO_SELF_SIGNED_CERT)\",\"hint\":\"The TLS certificate is not trusted. Point NODE_EXTRA_CA_CERTS to your CA bundle.\",\"request\":{\"method\":\"GET\",\"url\":\"https://127.0.0.1:<port>/engine-rest/process-instance/pi-1\"}}}",
+        ""
+      ],
+      "stdoutLines": [
+        ""
+      ]
+    }
+  ]
+}

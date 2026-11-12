@@ -1,0 +1,23 @@
+{
+  "case": "double-slash-root",
+  "connection": {
+    "credentials": {
+      "kind": "none"
+    },
+    "endpoint": "http://127.0.0.1:<port>/engine-rest//"
+  },
+  "probes": [
+    {
+      "call": "describeEngine",
+      "outcome": {
+        "returned": {
+          "product": "CIB seven",
+          "version": "2.1.0"
+        }
+      },
+      "sent": [
+        "GET /engine-rest/telemetry/data"
+      ]
+    }
+  ]
+}

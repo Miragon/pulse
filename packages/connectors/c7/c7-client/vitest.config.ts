@@ -1,0 +1,36 @@
+import { defineConfig, mergeConfig } from "vitest/config"
+import { sharedConfig } from "../../../../vitest.shared"
+
+export default mergeConfig(
+  sharedConfig,
+  defineConfig({
+    test: {
+      include: ["src/**/*.test.ts", "test/**/*.test.ts"],
+      coverage: {
+        // The generated SDK behind ./sdk, one function per operation of the spec: no test here
+        // calls them (the engine connector's wire tests and the engine suites do), and only
+        // src/index.test.ts loads the file, to hold the entries' lists of names (the root's
+        // reads import it). Counted, its 399 uncalled functions would bury the floors below,
+        // which never counted it. The exclusion goes once a test here calls the SDK.
+        exclude: ["src/generated/sdk.gen.ts"],
+        // Ratchet: frozen 2 points under the baseline. Raise when you push
+        // coverage up; never lower. Raised 2026-10-08 with the engine error
+        // mapping under test, again with its review fixes (measured
+        // statements 46.02 / branches 34.17 / functions 47.31 / lines 46.14).
+        // Raised 2026-10-09 with the SDK-bound reads under test (#328;
+        // measured statements 54.1 / branches 47.7 / functions 61.71 / lines
+        // 53.16). Raised 2026-10-10 with the engine-date read side under test
+        // (#335; measured statements 56.32 / branches 50.13 / functions 65.73
+        // / lines 55.12). Raised 2026-11-03 as the pure rules moved to engine-core (now c7-core)
+        // and the client's own wire came under test (src/wire.test.ts; measured statements
+        // 61.69 / branches 56.48 / functions 77.57 / lines 61.15). Lowered 2026-11-09 as the
+        // client's own wire left it (Ratchet-Exception): the engine error wording moved to the
+        // engine connector, the deadline, the redirect rule and Basic auth to @miragon/pulse-http,
+        // each tested there, and what stays is mostly generated hey-api code. Lowered only as far
+        // as that takes it, to the measured values rounded down, the same on Node 22 and 24
+        // (statements 55.74 / branches 48.97 / functions 75.55 / lines 55.55).
+        thresholds: { statements: 55, branches: 48, functions: 75, lines: 55 },
+      },
+    },
+  }),
+)

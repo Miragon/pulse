@@ -1,4 +1,4 @@
-import type { BpmnProcessId, InstanceId, ProcessRuntime } from "../../contract/index.js"
+import type { BpmnProcessId, InstanceId, ProcessRuntime } from "@miragon/pulse-engine-core"
 import type { OpenOptions } from "../panels/panel-context.js"
 import type { EngineBadge, InstanceListFilter, PanelState } from "../protocol/index.js"
 import type { SharedDefinitions } from "../refresh/shared-definitions.js"

@@ -1,0 +1,24 @@
+{
+  "case": "dns-failure",
+  "config": {
+    "PULSE_CLI_URL": "http://engine.pulse-golden.invalid/engine-rest"
+  },
+  "probes": [
+    {
+      "argv": [
+        "process-instance",
+        "get",
+        "pi-1"
+      ],
+      "exitCode": 8,
+      "sent": [],
+      "stderrLines": [
+        "{\"error\":{\"code\":\"NETWORK\",\"exitCode\":8,\"message\":\"Cannot reach http://engine.pulse-golden.invalid/engine-rest/process-instance/pi-1 (ENOTFOUND)\",\"hint\":\"The host name does not resolve. Check --url, PULSE_CLI_URL or your profile.\",\"request\":{\"method\":\"GET\",\"url\":\"http://engine.pulse-golden.invalid/engine-rest/process-instance/pi-1\"}}}",
+        ""
+      ],
+      "stdoutLines": [
+        ""
+      ]
+    }
+  ]
+}

@@ -1,7 +1,13 @@
-import { ValueKinds, type ValueKind } from "../../contract/index.js"
+import { ValueKinds, type ValueKind } from "@miragon/pulse-engine-core"
 import type { VariableEditor } from "../protocol/index.js"
 
 const NUMBER_KINDS: ReadonlySet<ValueKind> = new Set<ValueKind>(["integer", "decimal"])
+const WHOLE_NUMBER_EDITORS: ReadonlySet<VariableEditor> = new Set<VariableEditor>([
+  "integer",
+  "any",
+])
+const NUMBER_EDITORS: ReadonlySet<VariableEditor> = new Set<VariableEditor>(["decimal", "any"])
+const DOUBLE_RANGE = "-1.7976931348623157e308 to 1.7976931348623157e308"
 const ZONED_TIMESTAMP =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:?\d{2})$/
 
@@ -34,10 +40,49 @@ export class VariableValues {
 
   static whyInvalid(target: VariableTarget, valueJson: string): string | undefined {
     const text = valueJson.trim()
-    if (text === "null" || VariableValues.CHECKS[target.editor](text)) {
+    if (text === "null") {
       return undefined
     }
-    return `${target.name} takes ${EXPECTED[target.editor]} (${target.type ?? target.editor}).`
+    if (VariableValues.isBeyondWholeNumbers(target.editor, text)) {
+      return VariableValues.beyondWholeNumbers(target)
+    }
+    if (VariableValues.isBeyondDoubles(target.editor, text)) {
+      return VariableValues.beyondDoubles(target)
+    }
+    return VariableValues.CHECKS[target.editor](text)
+      ? undefined
+      : `${target.name} takes ${EXPECTED[target.editor]} (${target.type ?? target.editor}).`
+  }
+
+  private static isBeyondWholeNumbers(editor: VariableEditor, text: string): boolean {
+    return (
+      WHOLE_NUMBER_EDITORS.has(editor) &&
+      ValueKinds.ofJson(text) === "integer" &&
+      !ValueKinds.isWholeNumber(text)
+    )
+  }
+
+  private static beyondWholeNumbers(target: VariableTarget): string {
+    const range = `${ValueKinds.WHOLE_NUMBER_MIN.toString()} to ${ValueKinds.WHOLE_NUMBER_MAX.toString()}`
+    if (target.editor === "any") {
+      return `Pulse writes no number without a fraction outside ${range}. Write ${target.name} as text to keep every digit.`
+    }
+    return `${target.name} takes a whole number (${target.type ?? target.editor}), and Pulse writes none outside ${range}.`
+  }
+
+  private static isBeyondDoubles(editor: VariableEditor, text: string): boolean {
+    return (
+      NUMBER_EDITORS.has(editor) &&
+      NUMBER_KINDS.has(ValueKinds.ofJson(text)) &&
+      !ValueKinds.isFiniteNumber(text)
+    )
+  }
+
+  private static beyondDoubles(target: VariableTarget): string {
+    if (target.editor === "any") {
+      return `Pulse writes no number outside ${DOUBLE_RANGE}, the range of a double. Write ${target.name} as text to keep it as written.`
+    }
+    return `${target.name} takes a number (${target.type ?? target.editor}), and Pulse writes none outside ${DOUBLE_RANGE}.`
   }
 
   private static parsed(text: string): unknown {

@@ -28,7 +28,6 @@ jobs:
       vscode: ${{ steps.scopes.outputs.vscode }}
       vscode-package: ${{ steps.scopes.outputs.vscode-package }}
       orca: ${{ steps.scopes.outputs.orca }}
-      kotlin: ${{ steps.scopes.outputs.kotlin }}
       cibseven-example: ${{ steps.scopes.outputs.cibseven-example }}
       brand: ${{ steps.scopes.outputs.brand }}
     steps:
@@ -81,6 +80,17 @@ jobs:
 
       - id: build
         run: pnpm build
+
+      # turbo runs every `generate` before the build, and the npm publish packs what is committed:
+      # a committed generated file the build rewrote (c7-client's SDK, c7-core's route tables) is
+      # stale and would ship so.
+      - name: Generated files are committed fresh
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git status --short
+            echo "::error::pnpm build changed committed files: run pnpm build and commit them"
+            exit 1
+          fi
 
       - run: pnpm typecheck
 
@@ -180,7 +190,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - id: build
-        run: pnpm turbo build --filter=@miragon/pulse-cli... --filter=@miragon/pulse-engine-adapter...
+        run: pnpm turbo build --filter=@miragon/pulse-cli... --filter=@miragon/pulse-c7-adapter...
 
       # Every suite runs even after a failure; the operaton leg also tests the packed tarball.
       - name: CLI integration (apps/cli)
@@ -190,11 +200,11 @@ jobs:
           PULSE_CLI_IT_SKIP_PACK: ${{ matrix.flavor == 'operaton' && '0' || '1' }}
         run: pnpm --fail-if-no-match --filter @miragon/pulse-cli run test:engines
 
-      - name: Adapter conformance (packages/connectors/engine/engine-adapter)
+      - name: Adapter conformance (packages/connectors/c7/c7-adapter)
         if: ${{ !cancelled() && steps.build.outcome == 'success' && needs.changes.outputs.vscode == 'true' }}
         env:
           PULSE_ENGINE_IMAGE: ${{ matrix.image }}
-        run: pnpm --fail-if-no-match --filter @miragon/pulse-engine-adapter run test:engines
+        run: pnpm --fail-if-no-match --filter @miragon/pulse-c7-adapter run test:engines
 
   # The one requirable check of the matrix; skipped passes.
   engines-result:
@@ -281,7 +291,7 @@ jobs:
         shell: bash
         run: |
           listing="$(unzip -Z1 "$RUNNER_TEMP/pulse.vsix")"
-          for file in extension/package.json extension/dist/extension.cjs extension/dist/webview.js extension/dist/webview.css extension/schemas/board.schema.json; do
+          for file in extension/package.json extension/dist/extension.cjs extension/dist/webview.js extension/dist/webview.css extension/schemas/board.schema.json extension/THIRD_PARTY_LICENSES.txt; do
             if ! grep -qxF "$file" <<<"$listing"; then
               echo "::error::The .vsix lacks ${file}"
               exit 1
@@ -546,27 +556,6 @@ jobs:
         if: env.CI_SOURCE_TOKEN != ''
         run: node .ci-source/plugins/miragon-brand/scripts/brand-lint.mjs --nur-hart docs README.md apps/cli/README.md
 
-  kotlin:
-    name: Kotlin (Build + Test)
-    needs: changes
-    if: needs.changes.outputs.kotlin == 'true'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: engine-plugins
-    steps:
-      - uses: actions/checkout@v7.0.1
-
-      - uses: actions/setup-java@v6.2.0
-        with:
-          distribution: temurin
-          java-version: 21
-          cache: gradle
-
-      - run: ./gradlew build
-        env:
-          GRADLE_OPTS: -Dorg.gradle.daemon=false
-
   cibseven-example:
     name: CIB Seven Example (Build + Test)
     needs: changes
@@ -637,6 +626,25 @@ jobs:
         working-directory: apps/cli
         run: bash scripts/smoke-test.sh "build/bin/${FILE}"
 
+      # The licence of the Node.js the binary embeds: the release attaches it for every target,
+      # the Windows one included (publish-cli.yml's licences job).
+      - name: The Node.js licence of the binary
+        working-directory: apps/cli
+        run: |
+          if [ ! -s "build/node-license/${FILE}" ]; then
+            echo "::error::build:exe kept no licence of the Node.js ${FILE} embeds in build/node-license"
+            exit 1
+          fi
+          head -n 1 "build/node-license/${FILE}"
+
+      # The archive a release attaches (publish-cli.yml): the executable and its licences.
+      - name: Pack the binary
+        if: runner.os != 'Windows'
+        working-directory: apps/cli
+        env:
+          XZ_OPT: -T0
+        run: bash scripts/pack-binary.sh "build/bin/${FILE}"
+
       - name: Engine suites against the binary
         if: matrix.target == 'linux-x64'
         run: pnpm --fail-if-no-match --filter @miragon/pulse-cli run test:engines
@@ -655,6 +663,7 @@ jobs:
           bash scripts/homebrew-formula.sh 0.0.0 "$RUNNER_TEMP/pulse-cli-SHA256SUMS" > "$RUNNER_TEMP/pulse-cli.rb"
           ruby -c "$RUNNER_TEMP/pulse-cli.rb"
           grep -F 'bin.install_symlink bin/"pulse-cli" => "pulse"' "$RUNNER_TEMP/pulse-cli.rb"
+          grep -F 'prefix.install "NODE_LICENSE", "THIRD_PARTY_LICENSES.txt"' "$RUNNER_TEMP/pulse-cli.rb"
           grep -F 'shell_output("#{bin}/pulse --version")' "$RUNNER_TEMP/pulse-cli.rb"
 
   # CLI image for both platforms, no push; smoke test on the runner's platform.
@@ -702,6 +711,18 @@ jobs:
       - name: Smoke test the image
         working-directory: apps/cli
         run: bash scripts/smoke-test.sh docker run --rm -i pulse-cli:ci
+
+      # The image holds the CLI's licence and the licences of what its bundle holds, and the
+      # Node.js of its base image its own, which THIRD_PARTY_LICENSES.txt points to.
+      - name: The licences in the image
+        run: |
+          container="$(docker create pulse-cli:ci)"
+          docker cp "${container}:/usr/share/doc/pulse-cli" "$RUNNER_TEMP/licences"
+          docker cp -L "${container}:/nodejs/LICENSE" "$RUNNER_TEMP/node-license"
+          docker rm "$container" > /dev/null
+          cmp "$RUNNER_TEMP/licences/LICENSE" apps/cli/LICENSE
+          cmp "$RUNNER_TEMP/licences/THIRD_PARTY_LICENSES.txt" apps/cli/THIRD_PARTY_LICENSES.txt
+          test -s "$RUNNER_TEMP/node-license"
 
       # docker stop must end the CLI with SIGTERM (143), not SIGKILL.
       - name: docker stop ends a waiting command

@@ -37,7 +37,7 @@ export function SplitLayout({ top, bottom }: SplitLayoutProps) {
     <div
       class="split-layout"
       ref={container}
-      style={{ "--diagram-share": `${(share * 100).toFixed(1)}%` }}
+      style={{ "--diagram-share": `${Math.round(share * 1000) / 10}%` }}
     >
       <div class="split-layout__top">{top}</div>
       <Separator

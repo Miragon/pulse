@@ -2,18 +2,26 @@
 
 ## Engines
 
-Pulse for Orca reads your engines as profiles in `.pulse-cli.json`, the project file of the
-[Pulse CLI](../cli/configuration.md), with the same rules as
-[Pulse for VS Code](../vscode/configuration.md#engines): `url`, `flavor`, `engine`, `auth.type`,
-`cockpitUrl` and `readOnly`, a profile the CLI refuses shown as a problem in the panel.
+Pulse for Orca reads your engines as profiles in `.pulse.json`, the project file the
+[Pulse CLI](../cli/configuration.md) reads too, with the same rules as
+[Pulse for VS Code](../vscode/configuration.md#engines): one profile format,
+`@miragon/pulse-profile`; `url`, `flavor`, `engine`, `auth.type`, `cockpitUrl` and `readOnly`,
+and a profile that names a credential, sets `headers` or that the format refuses shows as a
+problem in the panel while the other profiles still list engines. A note on the file itself (a
+`defaultProfile` that names no profile, a key the format does not know) shows as a warning.
 
-The plugin takes the project file its setting names, else the `.pulse-cli.json` at the root of
-the focused workspace, else one engine on `localhost:8080`. It reads the file again when it
-changes. The gear in the panel opens it, created from a template when there is none.
+The plugin takes the project file its setting names, else the `.pulse.json` at the root of the
+focused workspace, else one engine on `localhost:8080`. It reads the file again when it changes.
+A project file that is there but Pulse can't read (a folder of that name, a file without read
+access) shows as a problem and lists no engine, not even the one on `localhost:8080`.
+The gear in the panel opens it, created from a template when there is none. A workspace that holds
+the project file only under its former name, `.pulse-cli.json`, shows one problem asking you to
+rename it and lists none of its engines, not even the one on `localhost:8080`; the gear opens that
+file and creates no second one.
 
 Credentials go in with the login form of the panel, which opens when an engine needs one. They
-live in Orca's secret storage, in the OS key store, bound to the project file and the engine's
-address.
+live in Orca's secret storage, in the OS key store, bound to the project file's path and the
+engine's address.
 
 ## Settings
 
@@ -21,7 +29,7 @@ The plugin's settings are in Orca's settings, under Pulse:
 
 | Setting                                              | Values                                                                      | Default                    |
 | ---------------------------------------------------- | --------------------------------------------------------------------------- | -------------------------- |
-| Project file                                         | the path of a `.pulse-cli.json`                                             | the focused workspace's    |
+| Project file                                         | the path of a `.pulse.json`                                                 | the focused workspace's    |
 | Writes                                               | on engines on this machine only, also on remote engines with a login, never | this machine only          |
 | Environments                                         | JSON, per profile: `local`, `test`, `production`                            | loopback hosts are `local` |
 | Live updates (local, test, production, unclassified) | default, on, off                                                            | local and test on          |

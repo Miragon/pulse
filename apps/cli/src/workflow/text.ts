@@ -9,7 +9,7 @@ import {
   type Waited,
   type WaitState,
   waitId,
-} from "@miragon/pulse-engine-core"
+} from "@miragon/pulse-c7-core"
 import { formatCell, renderTable } from "../output/table.js"
 import { isRecord } from "../util.js"
 import type { InstanceView } from "./types.js"

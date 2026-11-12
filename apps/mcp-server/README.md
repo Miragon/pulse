@@ -48,25 +48,28 @@ on. [Toolsets](https://miragon.github.io/pulse/mcp/reference#toolsets) lists wha
 ## Your whole fleet
 
 One server reaches [several engines](https://miragon.github.io/pulse/mcp/reference#multi-engine),
-with a default engine and an override per question. With passthrough auth behind OAuth, each
-caller's own login reaches the engine.
+described in one profile file in the format the CLI and VS Code read too, with a default engine and
+an override per question. With passthrough auth behind OAuth, each caller's own login reaches the
+engine.
 
-## Process analytics
+## Figures straight from the engine
 
-With the [metrics plugin](../../engine-plugins/README.md) in your engine and a Prometheus, Pulse
-answers where instances spend their time, how this week compares with the last and how your
-engines compare, without a query on the engine database.
+A process's flow shows its open incidents per element, how many instances are at each element right
+now (**Running**) and how often the instances started in the last 30 days passed each one
+(**Throughput · 30 days**). With two engines or more, an overview shows each engine's health and
+job backlog and which processes run where. Every figure comes from the engine's REST API: no plugin
+and no metrics store in the engine. [Usage](https://miragon.github.io/pulse/mcp/usage#tips) says
+how each one is read.
 
 ## Run it on your own engine
 
-You need Docker and the REST API of your engine (usually `…/engine-rest`). Analytics needs
-Prometheus; without it, `MCP_ACTIVE_MODULES=engine` leaves it out:
+You need Docker and the REST API of your engine (usually `…/engine-rest`). The server boots
+read-only:
 
 ```sh
 docker run --rm -p 127.0.0.1:8400:8400 \
   --add-host=host.docker.internal:host-gateway \
   -e ENGINE_BASE_URL=http://host.docker.internal:8080/engine-rest \
-  -e MCP_ACTIVE_MODULES=engine \
   ghcr.io/miragon/pulse-server:latest
 claude mcp add --transport http pulse http://localhost:8400/mcp
 ```
@@ -94,4 +97,4 @@ OAuth, write toolsets and deployment: [Operations](https://miragon.github.io/pul
 ·
 [Source and contributing](CONTRIBUTING.md)
 
-Made by [Miragon](https://www.miragon.io). MIT licence.
+Made by [Miragon](https://www.miragon.io). MIT licence; the licences of the works of others its view bundle holds are in [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt), which the image ships in `/usr/share/doc/pulse-server`.

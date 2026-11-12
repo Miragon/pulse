@@ -1,4 +1,4 @@
-import type { InstanceState } from "../../contract/index.js"
+import type { InstanceState } from "@miragon/pulse-engine-core"
 import type { IncidentRow, Notice } from "../protocol/index.js"
 import { Labels } from "./labels.js"
 
@@ -10,7 +10,7 @@ export class InstanceHeadline {
     }
     return {
       tone: "danger",
-      title: `${rows.length} incidents${state === "suspended" ? " · suspended" : ""}`,
+      title: `${Labels.plural(rows.length, "incident")}${state === "suspended" ? " · suspended" : ""}`,
       detail: first.rootCause ?? first.message,
       actions: [],
     }

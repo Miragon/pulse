@@ -1,4 +1,5 @@
-import { mapLimit } from "@miragon/pulse-engine-core"
+import { mapLimit } from "@miragon/pulse-c7-core"
+import { parseJson as packageParseJson } from "@miragon/pulse-http"
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import {
@@ -8,7 +9,6 @@ import {
   isRecord,
   mergeHeaders,
   omit,
-  parseJson,
   stringifyJson,
   withoutTrailingSlashes,
 } from "./util.js"
@@ -209,7 +209,10 @@ describe("closeNames", () => {
   })
 })
 
-describe("parseJson and stringifyJson", () => {
+/** How the CLI reads JSON (@miragon/pulse-http's reader): integers beyond 2^53 as BigInts. */
+const parseJson = (text: string): unknown => packageParseJson(text, "bigint")
+
+describe("@miragon/pulse-http's parseJson with stringifyJson", () => {
   it("keeps integers beyond 2^53 digit for digit", () => {
     const text = '{"long":9223372036854775807,"negative":-9007199254740993,"small":42,"double":1.5}'
     const value = parseJson(text)

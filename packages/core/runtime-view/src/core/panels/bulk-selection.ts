@@ -1,4 +1,4 @@
-import type { InstanceId } from "../../contract/index.js"
+import type { InstanceId } from "@miragon/pulse-engine-core"
 import type { BulkOffer, SelectionView } from "../protocol/index.js"
 
 export const BULK_CAP = 1000

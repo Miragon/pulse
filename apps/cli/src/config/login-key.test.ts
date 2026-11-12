@@ -119,11 +119,11 @@ describe("sameLoginKey", () => {
 describe("origins", () => {
   it("names a config file by its absolute path, on Windows without case", () => {
     expect(configOrigin("/home/me/.config/pulse-cli/config.json", "/x", "linux")).toBe(USER)
-    expect(configOrigin("ci/pulse-cli.json", "/work/shop", "linux")).toBe(
-      "config:/work/shop/ci/pulse-cli.json",
+    expect(configOrigin("ci/pulse.json", "/work/shop", "linux")).toBe(
+      "config:/work/shop/ci/pulse.json",
     )
-    expect(configOrigin("..\\Pulse-Cli.JSON", "C:\\Work\\Shop", "win32")).toBe(
-      "config:c:\\work\\pulse-cli.json",
+    expect(configOrigin("..\\Pulse.JSON", "C:\\Work\\Shop", "win32")).toBe(
+      "config:c:\\work\\pulse.json",
     )
     expect(originPath("/a/./b/../c", "/", "linux")).toBe("/a/c")
   })
@@ -133,7 +133,7 @@ describe("origins", () => {
       origin: USER,
       profiles: { mine: {}, svc: {} },
       project: {
-        source: { path: "/work/shop/.pulse-cli.json", directory: "/work/shop", origin: REPO },
+        source: { path: "/work/shop/.pulse.json", directory: "/work/shop", origin: REPO },
         profiles: ["svc"],
         defaultProfile: false,
       },
@@ -156,7 +156,7 @@ describe("loginProfiles", () => {
       none: {},
     },
     project: {
-      source: { path: "/work/shop/.pulse-cli.json", directory: "/work/shop", origin: REPO },
+      source: { path: "/work/shop/.pulse.json", directory: "/work/shop", origin: REPO },
       profiles: ["orders", "billing", "audience"],
       defaultProfile: false,
     },

@@ -11,6 +11,6 @@
     "outDir": "dist",
     "rootDir": "src"
   },
-  "include": ["src/contract", "src/core", "src/model", "src/host-kit"],
+  "include": ["src/ports", "src/core", "src/model", "src/host-kit"],
   "exclude": []
 }

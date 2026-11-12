@@ -1,0 +1,20 @@
+{
+  "case": "dns-failure",
+  "connection": {
+    "credentials": {
+      "kind": "none"
+    },
+    "endpoint": "http://engine.pulse-golden.invalid/engine-rest"
+  },
+  "probes": [
+    {
+      "call": "describeEngine",
+      "outcome": {
+        "failure": "unreachable",
+        "hint": "Check the host name in the engine URL.",
+        "message": "Cannot reach http://engine.pulse-golden.invalid/engine-rest/telemetry/data: the host name does not resolve (ENOTFOUND)"
+      },
+      "sent": []
+    }
+  ]
+}

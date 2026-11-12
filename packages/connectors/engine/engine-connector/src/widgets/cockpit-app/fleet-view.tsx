@@ -6,13 +6,9 @@ import {
   SectionHeading,
   TONE_DOT,
   cn,
-} from "@miragon/pulse-ui"
-import {
   countTone,
-  HandOffButton,
-  HostWidgetSlot,
-  useHostWidget,
-} from "@miragon/pulse-widget-shell/widgets"
+} from "@miragon/pulse-ui"
+import { HandOffButton } from "@miragon/pulse-widget-shell/widgets"
 import { ArrowRight } from "lucide-react"
 import type { CockpitDashboardData } from "../../view-models.js"
 import {
@@ -22,7 +18,9 @@ import {
 } from "../../lib/shared/environments.js"
 import { useT } from "../../messages/use-t.js"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
+import { isHealthFailure } from "../lib/health-verdict.js"
 import { useEngineHealth } from "./engine-health.js"
+import { FleetLandscape } from "./fleet-landscape.js"
 import { engineStatusKind } from "./landing.js"
 import { EnvironmentChip } from "../lib/engine-context.js"
 
@@ -73,7 +71,7 @@ function FleetEngineCard({
 }) {
   const { query: q, summary: s, incidents, failed, tone } = useEngineHealth(engineId)
   const t = useT()
-  const kind = engineStatusKind({ isError: q.isError, summary: s })
+  const kind = engineStatusKind({ isError: q.isError, error: q.error, summary: s })
 
   return (
     <button
@@ -97,8 +95,9 @@ function FleetEngineCard({
         </span>
       </div>
 
-      {/* The same words as the chooser: "nicht erreichbar", "lädt …" (#322 U15). */}
-      {kind === "unreachable" || kind === "loading" || !s ? (
+      {/* The same words as the chooser: "nicht erreichbar", "lädt …" (#322 U15). A failed
+          refresh keeps the last summary in the cache: the words win over it. */}
+      {kind === "loading" || isHealthFailure(kind) || !s ? (
         <span className="text-muted-foreground text-small">
           {t(`cockpit.landing.status.${kind}`)}
         </span>
@@ -114,31 +113,12 @@ function FleetEngineCard({
   )
 }
 
-/**
- * Another module's widget by its raw id, without a module-to-module import: the section is
- * absent when analytics is not in the bundle. The app's `view-registry.test.ts` holds the id
- * to a registered host widget.
- */
-export const ENGINE_LANDSCAPE_WIDGET = "analytics:engine-landscape"
-
-function LandscapeSection({ engineIds }: { engineIds: string[] }) {
-  const t = useT()
-  if (!useHostWidget(ENGINE_LANDSCAPE_WIDGET)) return null
-  // The landscape heads itself; a second heading said it twice (#322 U27). The full list, so an
-  // engine without metrics still shows instead of dropping out.
-  return (
-    <section aria-label={t("fleet.landscape.title")}>
-      <HostWidgetSlot id={ENGINE_LANDSCAPE_WIDGET} props={{ engine: engineIds }} />
-    </section>
-  )
-}
-
 interface Fleet {
   engineIds: string[]
   environments: string[] | undefined
 }
 
-/** The "never rank engines by a rate" rule lives in the analytics instructions. */
+/** Never a ranking: the model hears it from `fleetContext`, the landscape counts only. */
 function fleetOverviewHandOff({ engineIds, environments }: Fleet): HandOff {
   return {
     intent: "askAi.fleet.overview",
@@ -150,14 +130,6 @@ function fleetOverviewHandOff({ engineIds, environments }: Fleet): HandOff {
 function fleetFailuresHandOff({ engineIds, environments }: Fleet): HandOff {
   return {
     intent: "askAi.fleet.failures",
-    ids: { engine: engineIds },
-    facts: { environments },
-  }
-}
-
-function fleetPerformanceHandOff({ engineIds, environments }: Fleet): HandOff {
-  return {
-    intent: "askAi.fleet.performance",
     ids: { engine: engineIds },
     facts: { environments },
   }
@@ -217,7 +189,7 @@ export function FleetView({
         ))}
       </section>
 
-      <LandscapeSection engineIds={ids} />
+      <FleetLandscape engineIds={ids} />
 
       <section>
         <SectionHeading
@@ -226,7 +198,6 @@ export function FleetView({
         />
         <div className="flex flex-wrap items-center gap-2">
           <HandOffButton action="analyzeFailures" prompt={ask(fleetFailuresHandOff(fleet))} />
-          <HandOffButton action="analyzePerformance" prompt={ask(fleetPerformanceHandOff(fleet))} />
         </div>
       </section>
     </div>

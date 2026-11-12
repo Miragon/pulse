@@ -1,4 +1,4 @@
-import { RuntimeError, type RuntimeFailure } from "../../src/contract/index.js"
+import { RuntimeError, type RuntimeFailure } from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
 import { Problems } from "../../src/core/panels/problems.js"
 import { StatePublisher } from "../../src/core/panels/state-publisher.js"
@@ -59,12 +59,45 @@ describe("the problem shown for a failure", () => {
       detail: "boom",
       canEditConnection,
       ...(failure === "unauthorized" ? { needsCredentials: true } : {}),
+      ...(failure === "unauthorized" || failure === "forbidden" ? { loginRefused: failure } : {}),
+    })
+  })
+
+  test("names what the engine cannot do without offering to edit the connection", () => {
+    const error = new RuntimeError("unsupported", "No ordering on variables.", {
+      hint: "Use equals instead.",
+    })
+
+    expect(Problems.of(error, ENGINE)).toEqual({
+      title: "dev cannot do this.",
+      detail: "No ordering on variables. Use equals instead.",
+      canEditConnection: false,
     })
   })
 
   test("adds the hint of the adapter", () => {
     const error = new RuntimeError("unauthorized", "HTTP 401.", { hint: "Set the credentials." })
     expect(Problems.of(error, ENGINE).detail).toBe("HTTP 401. Set the credentials.")
+  })
+
+  test.each([
+    [
+      "HTTP 404 Not Found",
+      "HTTP 404 Not Found. Check that the engine URL points at the REST API root itself.",
+    ],
+    [
+      "Cannot reach https://dev.invalid/engine-rest: the host name does not resolve (ENOTFOUND)",
+      "Cannot reach https://dev.invalid/engine-rest: the host name does not resolve (ENOTFOUND). Check that the engine URL points at the REST API root itself.",
+    ],
+    [
+      "HTTP 500 Internal Server Error: xxx…",
+      "HTTP 500 Internal Server Error: xxx… Check that the engine URL points at the REST API root itself.",
+    ],
+  ])("ends the message %j as a sentence before the hint", (message, detail) => {
+    const error = new RuntimeError("misconfigured", message, {
+      hint: "Check that the engine URL points at the REST API root itself.",
+    })
+    expect(Problems.of(error, ENGINE).detail).toBe(detail)
   })
 
   test("stays readable for errors that are not runtime errors", () => {

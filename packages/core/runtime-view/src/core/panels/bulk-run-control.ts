@@ -1,4 +1,4 @@
-import type { BpmnProcessId, InstanceId } from "../../contract/index.js"
+import type { BpmnProcessId, InstanceId } from "@miragon/pulse-engine-core"
 import { LiveFailures } from "../refresh/live-failures.js"
 import { BulkFailures } from "./bulk-failures.js"
 import type { BulkFollow } from "./bulk-follow.js"

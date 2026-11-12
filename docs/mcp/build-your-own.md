@@ -1,7 +1,7 @@
 # Build your own server
 
 [Miragon/pulse-starter](https://github.com/Miragon/pulse-starter) composes Pulse's published
-modules, the engine tools and analytics with their widgets, into an MCP server of your own, next
+modules, the engine tools with their widgets, into an MCP server of your own, next
 to modules for your own systems. Start your repository from it with "Use this template" on
 GitHub, or with the GitHub CLI:
 
@@ -26,7 +26,7 @@ pnpm dev
 [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector) next to it. Open the URL it
 prints and render the notes of the example module `modules/mcp-notes` in its Apps tab: the widget
 needs no engine. Copying that module is how you start yours; name it in `MCP_ACTIVE_MODULES` too,
-since the copied `.env` runs only `engine,notes` (the starter's engine comes without a Prometheus).
+since the copied `.env` runs only `engine,notes`.
 
 ## Write a module
 

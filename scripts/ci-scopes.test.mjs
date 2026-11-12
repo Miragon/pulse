@@ -13,30 +13,41 @@ const pkg = (dir, name, dependencies = {}) => ({ dir, manifest: { name, dependen
 
 const PACKAGES = [
   pkg("packages/core/ui", "@miragon/pulse-ui"),
-  pkg("packages/connectors/engine/engine-core", "@miragon/pulse-engine-core"),
+  pkg("packages/connectors/c7/c7-core", "@miragon/pulse-c7-core"),
   pkg("packages/core/widget-shell", "@miragon/pulse-widget-shell", {
     "@miragon/pulse-ui": "workspace:*",
   }),
-  pkg("packages/connectors/engine/engine-client", "@miragon/pulse-engine-client"),
+  pkg("packages/connectors/c7/c7-client", "@miragon/pulse-c7-client"),
   pkg("packages/connectors/engine/engine-connector", "@miragon/pulse-engine-connector", {
-    "@miragon/pulse-engine-client": "workspace:*",
-    "@miragon/pulse-engine-core": "workspace:*",
+    "@miragon/pulse-c7-client": "workspace:*",
+    "@miragon/pulse-c7-core": "workspace:*",
     "@miragon/pulse-widget-shell": "workspace:*",
   }),
-  pkg("packages/connectors/analytics/analytics-client", "@miragon/pulse-analytics-client"),
   pkg("apps/mcp-server", "@miragon/pulse-mcp-server", {
     "@miragon/pulse-engine-connector": "workspace:*",
   }),
-  // The CLI bundles engine-core: a devDependency reaches it too.
+  // The CLI bundles c7-core: a devDependency reaches it too.
   {
     dir: "apps/cli",
     manifest: {
       name: "@miragon/pulse-cli",
-      devDependencies: { "@miragon/pulse-engine-core": "workspace:*" },
+      devDependencies: { "@miragon/pulse-c7-core": "workspace:*" },
     },
   },
-  // The extension's C7 adapter bundles engine-core.
-  pkg("apps/vscode", "pulse-cockpit", { "@miragon/pulse-engine-core": "workspace:*" }),
+  // The editor hosts share the runtime view and bundle the C7 adapter, which runs c7-core.
+  pkg("packages/core/runtime-view", "@miragon/pulse-runtime-view"),
+  pkg("packages/connectors/c7/c7-adapter", "@miragon/pulse-c7-adapter", {
+    "@miragon/pulse-c7-core": "workspace:*",
+    "@miragon/pulse-runtime-view": "workspace:*",
+  }),
+  pkg("apps/vscode", "pulse-cockpit", {
+    "@miragon/pulse-c7-adapter": "workspace:*",
+    "@miragon/pulse-runtime-view": "workspace:*",
+  }),
+  pkg("apps/orca", "@miragon/pulse-orca", {
+    "@miragon/pulse-c7-adapter": "workspace:*",
+    "@miragon/pulse-runtime-view": "workspace:*",
+  }),
   pkg("docs", "@miragon/pulse-docs"),
 ]
 
@@ -74,12 +85,24 @@ describe("scopesFor: prose reaches only the checks that read it", () => {
     assert.deepEqual(scopes("docs/cli/commands.md"), ["brand", "cli", "typescript"])
   })
 
+  it("runs the CLI's licence test for the manifest of the docs package it bundles pages of", () => {
+    assert.deepEqual(scopes("docs/package.json"), ["brand", "cli", "typescript"])
+  })
+
   it("runs the token drift test for the vendored docs kit, not for the rest of the site's config", () => {
     assert.deepEqual(scopes("docs/.vitepress/miragon/cd-tokens.generated.css"), [
       "brand",
       "typescript",
     ])
     assert.deepEqual(scopes("docs/.vitepress/theme/HomeLanding.vue"), ["brand"])
+  })
+
+  it("runs pulse-ui's token tests for the brand-assets list and its checksums, not for the shots", () => {
+    assert.deepEqual(scopes(".miragon/brand-assets.yaml", ".miragon/brand-assets.sha256"), [
+      "brand",
+      "typescript",
+    ])
+    assert.deepEqual(scopes(".miragon/product-shots.yaml", ".miragon/brand.json"), ["brand"])
   })
 
   it("runs the token drift scan for a stylesheet anywhere in the docs site", () => {
@@ -105,22 +128,49 @@ describe("scopesFor: a package's code reaches its dependents", () => {
   })
 
   it("runs the MCP server's checks and the template for a client, through its connector", () => {
-    assert.deepEqual(scopes("packages/connectors/engine/engine-client/src/index.ts"), [
+    assert.deepEqual(scopes("packages/connectors/c7/c7-client/src/index.ts"), [
       "mcp",
       "template",
       "typescript",
     ])
   })
 
-  it("runs the CLI's, the extension's and the MCP server's checks and the template for engine-core, its three users", () => {
-    assert.deepEqual(scopes("packages/connectors/engine/engine-core/src/inspect.ts"), [
+  it("runs the CLI's, the MCP server's and the template's checks for c7-core, and the editor hosts' through the C7 adapter", () => {
+    assert.deepEqual(scopes("packages/connectors/c7/c7-core/src/inspect.ts"), [
       "cli",
       "mcp",
+      "orca",
       "template",
       "typescript",
       "vscode",
       "vscode-package",
     ])
+  })
+
+  it("runs the editor hosts' checks for the runtime view and the C7 adapter, not the MCP server's or the template", () => {
+    for (const file of [
+      "packages/core/runtime-view/src/core/index.ts",
+      "packages/connectors/c7/c7-adapter/src/index.ts",
+    ]) {
+      assert.deepEqual(scopes(file), ["orca", "typescript", "vscode", "vscode-package"], file)
+    }
+  })
+
+  it("runs the checks of the spec's readers for c7-core's spec and route table, dependents or not", () => {
+    const spec = "packages/connectors/c7/c7-core/spec/api.json"
+    const routes = "packages/connectors/c7/c7-core/src/generated/routes.json"
+    assert.deepEqual(scopes(spec), scopes("packages/connectors/c7/c7-core/src/inspect.ts"))
+    const alone = [pkg("packages/connectors/c7/c7-core", "@miragon/pulse-c7-core")]
+    for (const file of [spec, "packages/connectors/c7/c7-core/spec/patches.json", routes]) {
+      assert.deepEqual([...scopesFor([file], alone)].sort(), [
+        "cli",
+        "mcp",
+        "template",
+        "typescript",
+      ])
+    }
+    const core = "packages/connectors/c7/c7-core/src/generated/core-routes.json"
+    assert.deepEqual([...scopesFor([core], alone)].sort(), ["mcp", "template", "typescript"])
   })
 
   it("runs the MCP server's checks for the server app itself, not only through a package", () => {
@@ -132,29 +182,28 @@ describe("scopesFor: a package's code reaches its dependents", () => {
   })
 
   it("runs the extension's checks for the extension", () => {
-    assert.deepEqual(scopes("apps/vscode/src/core/index.ts"), [
+    assert.deepEqual(scopes("apps/vscode/src/host/extension.ts"), [
       "typescript",
       "vscode",
       "vscode-package",
     ])
   })
 
-  it("adds Kotlin for the metrics contract, which the engine plugin's test reads", () => {
-    assert.deepEqual(
-      scopes("packages/connectors/analytics/analytics-client/metrics-contract.json"),
-      ["kotlin", "mcp", "template", "typescript"],
-    )
+  it("runs only the Orca plugin's checks for the Orca plugin", () => {
+    assert.deepEqual(scopes("apps/orca/src/worker/main.ts"), ["orca", "typescript"])
   })
 })
 
 describe("scopesFor: paths outside the packages", () => {
-  it("runs one Gradle build for each Gradle project", () => {
-    assert.deepEqual(scopes("engine-plugins/gradle/libs.versions.toml"), ["kotlin"])
+  it("runs the one Gradle build for the playground engine, its version catalog included", () => {
+    assert.deepEqual(scopes("playground/cibseven-example/gradle/libs.versions.toml"), [
+      "cibseven-example",
+    ])
     assert.deepEqual(scopes("playground/cibseven-example/build.gradle.kts"), ["cibseven-example"])
   })
 
-  it("runs the TypeScript job for the files the metrics contract and server env-name tests read", () => {
-    assert.deepEqual(scopes("playground/docker/prometheus/alerts.yml"), ["typescript"])
+  it("runs the TypeScript job for the files the playground and server env-name tests read", () => {
+    assert.deepEqual(scopes("playground/docker/docker-compose.yml"), ["typescript"])
     assert.deepEqual(scopes(".env.example"), ["typescript"])
   })
 
@@ -284,12 +333,41 @@ describe("the real workspace", () => {
     assert.deepEqual(without, [])
   })
 
-  it("runs the extension's checks for engine-core, which its C7 adapter bundles", () => {
+  it("runs the editor hosts' checks for c7-core, which they bundle with their C7 adapter", () => {
+    const changed = scopesFor(["packages/connectors/c7/c7-core/src/cause.ts"], packages)
+    for (const scope of ["cli", "orca", "vscode", "vscode-package"]) {
+      assert.ok(changed.has(scope), scope)
+    }
+  })
+
+  it("runs the editor hosts' checks for the transport, which their C7 adapter sends through", () => {
+    const changed = scopesFor(["packages/core/http/src/http.ts"], packages)
+    for (const scope of ["cli", "mcp", "orca", "template", "vscode", "vscode-package"]) {
+      assert.ok(changed.has(scope), scope)
+    }
+  })
+
+  it("keeps the MCP server and the template apart from what only the editor hosts bundle", () => {
+    for (const file of [
+      "packages/core/runtime-view/src/core/index.ts",
+      "packages/connectors/c7/c7-adapter/src/index.ts",
+    ]) {
+      assert.deepEqual(
+        [...scopesFor([file], packages)].sort(),
+        ["orca", "typescript", "vscode", "vscode-package"],
+        file,
+      )
+    }
+  })
+
+  it("runs the CLI's checks for engine-core, which c7-core imports", () => {
     const changed = scopesFor(
-      ["packages/connectors/engine/engine-core/src/root-cause.ts"],
+      ["packages/connectors/engine/engine-core/src/model/root-causes.ts"],
       packages,
     )
-    assert.ok(changed.has("vscode") && changed.has("vscode-package") && changed.has("cli"))
+    for (const scope of ["cli", "orca", "vscode", "vscode-package", "mcp", "template"]) {
+      assert.ok(changed.has(scope), scope)
+    }
   })
 
   it("keeps the CLI and the extension apart from the MCP server's packages", () => {

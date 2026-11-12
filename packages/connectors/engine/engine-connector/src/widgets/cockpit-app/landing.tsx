@@ -12,18 +12,38 @@ import {
   type ToneVariant,
 } from "@miragon/pulse-ui"
 import { WidgetShell } from "@miragon/pulse-widget-shell/widgets"
-import { ArrowRight, CircleDashed, Layers, LoaderCircle, Unplug } from "lucide-react"
+import {
+  ArrowRight,
+  Ban,
+  CircleDashed,
+  KeyRound,
+  Layers,
+  LoaderCircle,
+  Unplug,
+  type LucideIcon,
+} from "lucide-react"
 import { DEFAULT_ENVIRONMENT_ID, groupEnginesByEnvironment } from "../../lib/shared/environments.js"
 import { translator } from "../../messages/use-t.js"
+import {
+  HEALTH_FAILURE_TONE,
+  healthFailureOf,
+  isHealthFailure,
+  type HealthFailure,
+} from "../lib/health-verdict.js"
 import { useEngineHealth } from "./engine-health.js"
 
 /** In words, so colour is never the only signal. */
 export type EngineStatusKind =
-  "loading" | "unreachable" | "empty" | "incidents" | "failedJobs" | "idle" | "healthy"
+  "loading" | HealthFailure | "empty" | "incidents" | "failedJobs" | "idle" | "healthy"
 
-/** #322 U15, from the same live health as the engine's overview. */
+/**
+ * #322 U15, from the same live health as the engine's overview. A profile the server refused and
+ * an engine that refused the server's login are states of their own (`healthFailureOf`): the
+ * server never asks the one, and the other answered, so neither is unreachable.
+ */
 export function engineStatusKind(health: {
   isError: boolean
+  error: unknown
   summary:
     | {
         totalDefinitions: number
@@ -33,7 +53,7 @@ export function engineStatusKind(health: {
       }
     | undefined
 }): EngineStatusKind {
-  if (health.isError) return "unreachable"
+  if (health.isError) return healthFailureOf(health.error)
   const s = health.summary
   if (!s) return "loading"
   if (s.totalDefinitions === 0) return "empty"
@@ -43,12 +63,22 @@ export function engineStatusKind(health: {
   return "healthy"
 }
 
+/** A refused login is the server's key, whether the engine rejected it (401) or its access (403). */
+const FAILURE_ICON: Readonly<Record<HealthFailure, LucideIcon>> = {
+  unreachable: Unplug,
+  refused: Ban,
+  unauthorized: KeyRound,
+  forbidden: KeyRound,
+}
+
 /** CI §3.7; the dot is the engine's one live verdict, the overview badge's tone. */
 function StatusMark({ kind, tone }: { kind: EngineStatusKind; tone: ToneVariant }) {
   if (kind === "loading") {
     return <Icon icon={LoaderCircle} className="text-muted-foreground motion-safe:animate-spin" />
   }
-  if (kind === "unreachable") return <Icon icon={Unplug} className={TONE_ICON.danger} />
+  if (isHealthFailure(kind)) {
+    return <Icon icon={FAILURE_ICON[kind]} className={TONE_ICON[HEALTH_FAILURE_TONE[kind]]} />
+  }
   if (kind === "empty") return <Icon icon={CircleDashed} className="text-muted-foreground" />
   return (
     <span className="inline-flex size-4 items-center justify-center" aria-hidden="true">
@@ -70,7 +100,7 @@ function EngineRow({
   const locale = useLocale()
   const tr = (key: string, params?: Record<string, unknown>) => translator(locale, key, params)
   const { query, summary, tone } = useEngineHealth(engineId)
-  const kind = engineStatusKind({ isError: query.isError, summary })
+  const kind = engineStatusKind({ isError: query.isError, error: query.error, summary })
   const status =
     kind === "incidents"
       ? tr("cockpit.landing.status.incidents", {
@@ -143,7 +173,7 @@ export function LandingChooser({
   engines: Array<{ id: string; environment?: string }>
   defaultEngineId?: string | null
   onEnterEngine: (id: string) => void
-  /** Omitted when analytics is inactive. */
+  /** Omitted with a single engine. */
   onOpenFleet?: () => void
   notice?: ReactNode
 }) {

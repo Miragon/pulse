@@ -2,7 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks"
 import type { InstanceView, MoveOption } from "../../core/protocol/index.js"
 import type { MoveDecoration } from "../diagram/decoration-layer.js"
 import type { MoveEntryDecoration } from "../diagram/move-entry.js"
+import { useHost } from "../host/host-context.js"
 import type { MoveChoice } from "./move-panel.js"
+
+const CLI_COMMAND = "CLI command"
 
 export interface TokenMove {
   readonly choice: MoveChoice | undefined
@@ -68,6 +71,7 @@ function useMoveEntry(
   view: InstanceView,
   selected: string | undefined,
   start: (fromElementId: string) => void,
+  copy: (text: string) => void,
 ): MoveEntryDecoration | undefined {
   return useMemo(() => {
     if (selected === undefined) {
@@ -81,16 +85,33 @@ function useMoveEntry(
         },
       }
     }
-    const refusal = view.waitStates.find(
-      (row) => row.elementId === selected && row.moveRefusal !== undefined,
-    )?.moveRefusal
-    return refusal === undefined
-      ? undefined
-      : { elementId: selected, refusal, onStart: () => undefined }
-  }, [view, selected, start])
+    const row = view.waitStates.find(
+      (candidate) => candidate.elementId === selected && candidate.moveRefusal !== undefined,
+    )
+    if (row?.moveRefusal === undefined) {
+      return undefined
+    }
+    const command = row.cliCommand
+    return {
+      elementId: selected,
+      refusal: row.moveRefusal,
+      ...(command === undefined
+        ? {}
+        : {
+            cliCommand: {
+              text: command,
+              onCopy: () => {
+                copy(command)
+              },
+            },
+          }),
+      onStart: () => undefined,
+    }
+  }, [view, selected, start, copy])
 }
 
 export function useTokenMove(view: InstanceView, selected: string | undefined): TokenMove {
+  const host = useHost()
   const [choice, setChoice] = useState<MoveChoice | undefined>(undefined)
   const returnTo = useFocusReturn(choice)
   const option =
@@ -107,7 +128,13 @@ export function useTokenMove(view: InstanceView, selected: string | undefined): 
   const start = useCallback((fromElementId: string) => {
     setChoice({ from: fromElementId })
   }, [])
-  const entry = useMoveEntry(view, choice === undefined ? selected : undefined, start)
+  const copy = useCallback(
+    (text: string) => {
+      host.post({ type: "copy", text, label: CLI_COMMAND })
+    },
+    [host],
+  )
+  const entry = useMoveEntry(view, choice === undefined ? selected : undefined, start, copy)
   const pick = (elementId: string): void => {
     if (choice === undefined || option === undefined) {
       return

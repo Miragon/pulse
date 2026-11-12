@@ -2,6 +2,7 @@ import {
   ElementId,
   IsoTimestamp,
   type DefinitionId,
+  type InstanceCount,
   type InstanceFilter,
   type InstanceId,
   type InstanceSummary,
@@ -10,7 +11,7 @@ import {
   type ProcessRuntime,
   type VariableComparison,
   type VariableCondition,
-} from "../../contract/index.js"
+} from "@miragon/pulse-engine-core"
 import {
   VariableConditionRules,
   type InstanceListFilter,
@@ -62,7 +63,7 @@ export class InstanceListQuery {
       this.count(definitionId, filter, "withIncident"),
       this.count(definitionId, filter, "ended"),
     ])
-    return { running, withIncident, ended, all: running + ended }
+    return this.scopeCounts(running, withIncident, ended)
   }
 
   async liveCounts(
@@ -74,9 +75,11 @@ export class InstanceListQuery {
     const [running, withIncident, ended] = await Promise.all([
       this.count(definitionId, filter, "running"),
       this.count(definitionId, filter, "withIncident"),
-      withHistory ? this.count(definitionId, filter, "ended") : Promise.resolve(shown.ended),
+      withHistory
+        ? this.count(definitionId, filter, "ended")
+        : Promise.resolve(this.shownEnded(shown)),
     ])
-    return { running, withIncident, ended, all: running + ended }
+    return this.scopeCounts(running, withIncident, ended)
   }
 
   async idsMatching(
@@ -103,8 +106,34 @@ export class InstanceListQuery {
     definitionId: DefinitionId,
     filter: InstanceListFilter,
     scope: InstanceScope,
-  ): Promise<number> {
+  ): Promise<InstanceCount> {
     return this.runtime.countInstances(this.instanceFilter(definitionId, { ...filter, scope }))
+  }
+
+  private shownEnded(shown: ScopeCounts): InstanceCount {
+    return shown.atLeast?.includes("ended") === true
+      ? { count: shown.ended, atLeast: true }
+      : { count: shown.ended }
+  }
+
+  private scopeCounts(
+    running: InstanceCount,
+    withIncident: InstanceCount,
+    ended: InstanceCount,
+  ): ScopeCounts {
+    const atLeast: InstanceScope[] = [
+      ...(running.atLeast === true ? (["running"] as const) : []),
+      ...(withIncident.atLeast === true ? (["withIncident"] as const) : []),
+      ...(ended.atLeast === true ? (["ended"] as const) : []),
+      ...(running.atLeast === true || ended.atLeast === true ? (["all"] as const) : []),
+    ]
+    return {
+      running: running.count,
+      withIncident: withIncident.count,
+      ended: ended.count,
+      all: running.count + ended.count,
+      ...(atLeast.length === 0 ? {} : { atLeast }),
+    }
   }
 
   private instanceFilter(definitionId: DefinitionId, filter: InstanceListFilter): InstanceFilter {

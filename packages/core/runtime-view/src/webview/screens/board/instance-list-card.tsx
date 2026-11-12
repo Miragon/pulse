@@ -59,7 +59,8 @@ function GroupNote({ group }: { readonly group: InstanceGroup }) {
       <li class="board-groups__note board-groups__note--missing">{`${group.engine}: not read`}</li>
     )
   }
-  const total = group.total === undefined ? "?" : CountLabels.exact(group.total)
+  const total =
+    group.total === undefined ? "?" : CountLabels.exact(group.total, group.totalAtLeast === true)
   return (
     <li class="board-groups__note">{`${group.engine}: showing ${CountLabels.exact(group.rows.length)} of ${total}`}</li>
   )

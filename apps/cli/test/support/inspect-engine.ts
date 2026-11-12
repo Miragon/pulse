@@ -1,12 +1,12 @@
 /**
  * The fake engine and read options of the inspect tests (src/workflow/inspect*.test.ts): the
- * routes of engine-core's approve stage (`approveRoutes`), answered over fetch at the paths the
+ * routes of c7-core's approve stage (`approveRoutes`), answered over fetch at the paths the
  * catalog gives their operation ids.
  */
 
 import { findByOperationId, loadCatalog } from "../../src/catalog/catalog.js"
 import { expandPath } from "../../src/operation/request.js"
-import { approveRoutes, C, P, type Route } from "@miragon/pulse-engine-core/testing"
+import { approveRoutes, C, P, type Route } from "@miragon/pulse-c7-core/testing"
 import { fakeServer, json, type RecordedRequest, text } from "./fake-fetch.js"
 
 /** The reads the fake engine answers, each with the path values it knows. */

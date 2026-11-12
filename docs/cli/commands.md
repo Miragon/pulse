@@ -38,13 +38,13 @@ comma separated or repeated (`--process-instance-ids a,b --process-instance-ids 
 
 Variable maps are repeatable `--var name=value` flags. Values are auto typed:
 
-| Input           | Type                                         |
-| --------------- | -------------------------------------------- |
-| `true`, `false` | `Boolean`                                    |
-| integer         | `Integer`, or `Long` outside the int32 range |
-| decimal         | `Double`                                     |
-| `null`          | `Null`                                       |
-| anything else   | `String`                                     |
+| Input           | Type                                                       |
+| --------------- | ---------------------------------------------------------- |
+| `true`, `false` | `Boolean`                                                  |
+| integer         | `Integer` within int32, `Long` within int64, else `String` |
+| decimal         | `Double` within the range of a double, else `String`       |
+| `null`          | `Null`                                                     |
+| anything else   | `String`                                                   |
 
 Force a type with `name:Type=value`, where `Type` is one of `String`, `Integer`, `Short`, `Long`,
 `Double`, `Boolean`, `Date`, `Json`, `Xml`, `Null`. `Date` values accept the

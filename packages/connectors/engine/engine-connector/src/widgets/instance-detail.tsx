@@ -9,6 +9,7 @@ import { InstanceHeader, InstanceKpis, instanceStatus } from "./instance-detail/
 import { HistoryTab } from "./instance-detail/history-tab.js"
 import { IncidentsTab } from "./instance-detail/incidents-tab.js"
 import { InstanceModelContext } from "./instance-detail/model-context.js"
+import { useNav } from "./navigation.js"
 import { OpenTasksTab, useOpenTasks } from "./instance-detail/open-tasks.js"
 import { useInstanceActions } from "./instance-detail/use-instance-actions.js"
 import { VariablesTab } from "./instance-detail/variables-tab.js"
@@ -26,6 +27,7 @@ export function InstanceDetailWidget({
   engine: string
 }) {
   const t = useT()
+  const go = useNav()
   // The route's engine: a refetch never reads the default engine.
   const { data, guard, notice, refreshError } = useDetailView<InstanceDetailData>({
     initialData,
@@ -41,6 +43,7 @@ export function InstanceDetailWidget({
   const { complete, visibleTasks, activeTaskId, onToggleTask, onTaskCompleted } = useOpenTasks(
     data?.openTasks,
     actions.canCompleteTasks,
+    engine,
   )
 
   if (!data) return guard
@@ -54,6 +57,15 @@ export function InstanceDetailWidget({
   const openIncidentCount = data.incidentCount - (incidents.length - activeIncidents.length)
   const openTaskCount = data.openTaskCount - (data.openTasks.length - visibleTasks.length)
   const status = instanceStatus(t, { cancelled, ended: instance.ended, isSuspended })
+  const processKey = data.definitionKey
+  const openProcess = processKey
+    ? () =>
+        go({
+          type: "process-detail",
+          processDefinitionKey: processKey,
+          label: data.processDefinitionName ?? undefined,
+        })
+    : undefined
 
   const tabs: DetailPageTab[] = [
     {
@@ -129,6 +141,7 @@ export function InstanceDetailWidget({
             isSuspended={isSuspended}
             isActionable={isActionable}
             isMutatingInstance={actions.isMutatingInstance}
+            onOpenProcess={openProcess}
             onRequestSuspendToggle={actions.canSuspend ? actions.requestSuspendToggle : undefined}
             onRequestCancel={actions.canCancel ? actions.requestCancel : undefined}
           />

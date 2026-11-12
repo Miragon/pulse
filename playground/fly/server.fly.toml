@@ -19,22 +19,30 @@ primary_region = "fra"
   MCP_URL = "https://pulse-playground.miragon.ai"
   MCP_ALLOWED_HOSTS = "miragon-ai-playground.fly.dev"
   MCP_ALLOWED_ORIGINS = "https://miragon-ai-playground.fly.dev"
-  # Public + unauthenticated ⇒ read-only BY DESIGN: queries, widgets and
-  # analytics, no engine writes. An unauthenticated boot already
+  # Public + unauthenticated ⇒ read-only BY DESIGN: queries and widgets, no
+  # engine writes. An unauthenticated boot already
   # defaults to read-only; the explicit pin keeps it that way should someone
   # add an OAuth provider or widen a default. Never widen it here and never set
   # ENGINE_ALLOW_DEPLOYMENTS on this app: deploying a BPMN runs code inside
   # the engine JVM. A Fly SECRET of the same name
   # overrides [env]: if `fly secrets list -a miragon-ai-playground` shows
   # MCP_ACTIVE_MODULES, keep it in sync with this value (or unset it).
-  MCP_ACTIVE_MODULES = "engine:read-only,analytics"
-  # demo/demo is the engine's seeded admin user; its REST API does not enforce
-  # auth. The engine has no public IP, but it sits on the org's private 6PN
-  # network, which other apps in the org share; treat it as reachable by
-  # them, not as isolated. The engine is CIB seven: without `flavor` the
-  # server would take it for Camunda 7 and name and link it as one.
-  ENGINES_JSON = '[{"id":"prod-a","baseUrl":"http://miragon-ai-playground-engine.internal:8410/engine-rest","flavor":"cibseven","auth":{"type":"basic","username":"demo","password":"demo"}}]'
-  PROMETHEUS_URL = "http://miragon-ai-playground-prometheus.internal:9090"
+  MCP_ACTIVE_MODULES = "engine:read-only"
+  # One engine, so the single-engine variables describe it (the server makes
+  # them its one profile; a profile file in ENGINES_JSON would hold its password
+  # only by the name of an ENGINE_SECRET_* variable). demo/demo is the engine's
+  # seeded admin user; its REST API does not enforce auth. The engine has no
+  # public IP, but it sits on the org's private 6PN network, which other apps in
+  # the org share; treat it as reachable by them, not as isolated. The engine is
+  # CIB seven: without the flavor the server would take it for Camunda 7 and
+  # name and link it as one. A Fly SECRET named ENGINES_JSON or ENGINES_FILE
+  # would replace all of this: `fly secrets list` must show neither.
+  ENGINE_BASE_URL = "http://miragon-ai-playground-engine.internal:8410/engine-rest"
+  ENGINE_ID = "prod-a"
+  ENGINE_FLAVOR = "cibseven"
+  ENGINE_AUTH_TYPE = "basic"
+  ENGINE_USERNAME = "demo"
+  ENGINE_PASSWORD = "demo"
 
 [http_service]
   internal_port = 8400

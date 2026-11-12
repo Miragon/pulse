@@ -1,6 +1,6 @@
 /** `--fail-on` of `pulse status`: CHECK_FAILED when the status reaches the level. */
 
-import type { EngineStatus, Severity } from "@miragon/pulse-engine-core"
+import type { EngineStatus, Severity } from "@miragon/pulse-c7-core"
 import { PulseCliError } from "../errors.js"
 
 /** A finding as `pulse status` prints it: the next step as a command line. */

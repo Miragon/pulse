@@ -1,4 +1,4 @@
-import { ElementId, type DefinitionRef } from "../../contract/index.js"
+import { ElementId, type DefinitionRef } from "@miragon/pulse-engine-core"
 import type { InstanceView } from "../protocol/index.js"
 import { ModelFactsView } from "../views/model-facts-view.js"
 import type { ElementLink, ModelLinks } from "./model-links.js"

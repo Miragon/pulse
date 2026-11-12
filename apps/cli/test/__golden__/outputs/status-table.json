@@ -1,0 +1,52 @@
+{
+  "argv": [
+    "status",
+    "-o",
+    "table"
+  ],
+  "exitCode": 0,
+  "sent": [
+    "GET /engine-rest/batch/statistics?maxResults=100",
+    "GET /engine-rest/external-task/count",
+    "GET /engine-rest/external-task?firstResult=0&maxResults=500",
+    "GET /engine-rest/incident/count",
+    "GET /engine-rest/incident?sortBy=incidentTimestamp&sortOrder=desc&firstResult=0&maxResults=500",
+    "GET /engine-rest/job/count?executable=true&active=true",
+    "GET /engine-rest/job/job-1/stacktrace",
+    "GET /engine-rest/job?executable=true&createTimes=lt_2026-10-09T13%3A55%3A00.000%2B0000&active=true&maxResults=1000",
+    "GET /engine-rest/process-definition/statistics?failedJobs=true&rootIncidents=true",
+    "GET /engine-rest/task/count",
+    "GET /engine-rest/version"
+  ],
+  "stderrLines": [
+    ""
+  ],
+  "stdoutLines": [
+    "Engine  http://127.0.0.1:<port>/engine-rest (version 2.1.0, 0ms)",
+    "Status  warning",
+    "",
+    "Findings:",
+    "  warning  1 failedJob incident at order/charge: PaymentRefusedException: insufficient funds",
+    "           next: pulse retry --process-definition-key order --activity-id charge --dry-run",
+    "  warning  topic invoice-mail: 1 task wait since 2026-10-09T13:39:00.000+0000, none is locked: is a worker subscribed?",
+    "           next: pulse external-task list --topic-name invoice-mail --not-locked",
+    "",
+    "Definitions:",
+    "KEY    VERSIONS  INSTANCES  INCIDENTS  FAILED JOBS",
+    "order  1         2          1          1",
+    "",
+    "Incidents:",
+    "COUNT  KEY    ACTIVITY  TYPE       LAST                          ROOT CAUSE",
+    "1      order  charge    failedJob  2026-10-09T13:40:02.112+0000  PaymentRefusedException: insufficient funds",
+    "",
+    "External tasks:",
+    "TOPIC         WAITING  LOCKED  EXPIRED  FAILED  OLDEST                        WORKERS",
+    "invoice-mail  1        0       0        0       2026-10-09T13:39:00.000+0000",
+    "",
+    "Jobs       0 executable",
+    "Tasks      1 open",
+    "Batches    0 running, 0 with failures",
+    "Incidents  1 open, 0 propagated",
+    ""
+  ]
+}

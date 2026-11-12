@@ -1,5 +1,5 @@
-import { readProcessInstanceVariables, type Client } from "@miragon/pulse-engine-client"
-import { incidentRecovery } from "@miragon/pulse-engine-core"
+import { readProcessInstanceVariables, type Client } from "@miragon/pulse-c7-client"
+import { incidentRecovery } from "@miragon/pulse-c7-core"
 import type { InstanceDetailData, TaskData } from "../view-models.js"
 import {
   getActivityInstanceTree,
@@ -8,17 +8,17 @@ import {
   getProcessInstance,
   getTasks,
   getTasksCount,
-} from "@miragon/pulse-engine-client/sdk"
+} from "@miragon/pulse-c7-client/sdk"
 import { buildTaskFormSchema } from "../lib/bpmn/task-form-schema.js"
 import { collectActiveActivityIds, collectIncidentActivityIds } from "../lib/bpmn/activity-tree.js"
-import { parseBpmnNames } from "@miragon/pulse-widget-shell/server"
+import { bpmnProcessNameOf, readBpmnNames } from "@miragon/pulse-widget-shell/server"
 import { buildInstanceCockpitUrl } from "../lib/engine/cockpit-url.js"
 import type { EngineProvider } from "../engine-provider.js"
 import {
   definitionKeyInId,
   definitionVersionFromId,
+  fetchDefinitionsById,
   fetchDefinitionXml,
-  resolveDefinitionKeys,
 } from "./definition-info.js"
 import { countOf, optional, rowsOf } from "./engine-reads.js"
 
@@ -48,18 +48,26 @@ async function readBpmnXml(
   }
 }
 
-/** ENRICHMENT, read only when there are links: a failed read is no link, never the UUID as a key. */
-async function linkDefinitionKey(
+/**
+ * ENRICHMENT, for the drill to the process and the cockpit links: a bare generated id costs one
+ * read of that one definition (never the engine-wide statistics, since an instance has one key);
+ * a failed read is no drill and no link, never the UUID as a key.
+ */
+async function instanceDefinitionKey(
   client: Client,
   definitionId: string | undefined,
-  needed: boolean,
 ): Promise<string | null> {
-  if (!needed || !definitionId) return null
-  const keyOf = (await optional(resolveDefinitionKeys(client, [definitionId]))) ?? definitionKeyInId
-  return keyOf(definitionId)
+  if (!definitionId) return null
+  const inId = definitionKeyInId(definitionId)
+  if (inId !== null) return inId
+  const byId = await optional(fetchDefinitionsById(client, [definitionId]))
+  return byId?.get(definitionId)?.key || null
 }
 
-/** State, tokens, variables, incidents and tasks are PRIMARY; diagram, forms and cockpit links are enrichment. */
+/**
+ * State, tokens, variables, incidents and tasks are PRIMARY; diagram, names, forms, the process
+ * key and cockpit links are enrichment.
+ */
 export async function buildInstanceDetailData(
   client: Client,
   engineId: string,
@@ -87,8 +95,14 @@ export async function buildInstanceDetailData(
   const definitionId = (instance as { definitionId?: string } | null)?.definitionId
   const [{ bpmnXml, unreadable }, defKey] = await Promise.all([
     readBpmnXml(client, definitionId),
-    linkDefinitionKey(client, definitionId, !!urls && incidents.length > 0),
+    instanceDefinitionKey(client, definitionId),
   ])
+  // The diagram names the process and each incident's element (no extra read).
+  const diagramNames = bpmnXml ? readBpmnNames(bpmnXml) : null
+  const elementName = (activityId: string | null) =>
+    diagramNames && activityId && Object.hasOwn(diagramNames.elements, activityId)
+      ? diagramNames.elements[activityId]
+      : null
 
   const openTasks: InstanceDetailData["openTasks"] = await Promise.all(
     openTasksRaw.map(async (task) => ({
@@ -109,6 +123,8 @@ export async function buildInstanceDetailData(
     incidentType: i.incidentType ?? "unknown",
     incidentMessage: i.incidentMessage ?? null,
     incidentTimestamp: i.incidentTimestamp ?? "",
+    activityId: i.activityId ?? null,
+    activityName: elementName(i.activityId ?? null),
     recovery: incidentRecovery(i),
     cockpitInstanceUrl:
       urls && defKey
@@ -125,12 +141,11 @@ export async function buildInstanceDetailData(
         : null,
   }))
 
-  // The diagram names its process (no extra read): its own name, else its pool's.
-  const processKey = definitionId ? definitionKeyInId(definitionId) : null
   return {
     instance: instance as unknown as InstanceDetailData["instance"],
-    processDefinitionName: bpmnXml && processKey ? parseBpmnNames(bpmnXml, processKey).name : null,
-    definitionKey: processKey,
+    // Its own name, else its pool's.
+    processDefinitionName: diagramNames && defKey ? bpmnProcessNameOf(diagramNames, defKey) : null,
+    definitionKey: defKey,
     activityTree: activityTree as unknown as InstanceDetailData["activityTree"],
     variables: variables as unknown as InstanceDetailData["variables"],
     incidents: incidentRows,

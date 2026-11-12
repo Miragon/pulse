@@ -34,6 +34,10 @@ FROM base AS runtime
 WORKDIR /app
 COPY --from=build /app/deployed .
 COPY --from=build /app/apps/mcp-server/dist ./dist
+# The server's licence and the licences of the works of others its view bundle holds
+# (apps/mcp-server/test/third-party-licenses.test.ts keeps the list complete); its dependencies
+# keep theirs in /app/node_modules, Node.js its own in /usr/local/LICENSE.
+COPY LICENSE apps/mcp-server/THIRD_PARTY_LICENSES.txt /usr/share/doc/pulse-server/
 
 ENV NODE_ENV=production
 EXPOSE 8400

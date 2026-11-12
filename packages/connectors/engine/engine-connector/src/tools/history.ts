@@ -13,7 +13,7 @@ import {
   engineSorting,
   toOptionalEngineDate,
   trueOnly,
-} from "@miragon/pulse-engine-core"
+} from "@miragon/pulse-c7-core"
 import {
   getHistoricProcessInstances,
   getHistoricProcessInstancesCount,
@@ -25,7 +25,7 @@ import {
   getHistoricVariableInstancesCount,
   getHistoricIncidents,
   getHistoricIncidentsCount,
-} from "@miragon/pulse-engine-client/sdk"
+} from "@miragon/pulse-c7-client/sdk"
 import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
 import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { truncateVariableRows } from "../lib/mcp/variable-truncation.js"

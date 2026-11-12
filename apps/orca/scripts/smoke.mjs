@@ -5,9 +5,7 @@ import { fileURLToPath } from "node:url"
 
 const app = fileURLToPath(new URL("../", import.meta.url))
 const plugin = join(app, "dist")
-const projectFile = resolve(
-  process.argv[2] ?? join(app, "..", "vscode", "sandbox", ".pulse-cli.json"),
-)
+const projectFile = resolve(process.argv[2] ?? join(app, "..", "vscode", "sandbox", ".pulse.json"))
 const orca = join(app, "scripts", "orca.mjs")
 const PLUGIN_KEY = "local.pulse-cockpit"
 const WAIT_MS = 90_000

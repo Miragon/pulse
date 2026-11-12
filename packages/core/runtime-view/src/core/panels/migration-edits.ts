@@ -1,4 +1,4 @@
-import { ElementId, type ElementMapping, type MigrationPlan } from "../../contract/index.js"
+import { ElementId, type ElementMapping, type MigrationPlan } from "@miragon/pulse-engine-core"
 import { MigrationElements } from "../views/migration-elements.js"
 import { MigrationRows } from "../views/migration-rows.js"
 import type { CheckOutcome } from "./migration-checks.js"

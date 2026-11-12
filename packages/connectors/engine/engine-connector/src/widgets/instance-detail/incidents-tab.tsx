@@ -23,7 +23,7 @@ export function IncidentsTab({
       incidents={incidents ?? []}
       recovery={recovery}
       onAnalyze={(incidentId) => go({ type: "incident-detail", incidentId })}
-      hideInstanceColumn
+      subject="element"
       engine={engine}
     />
   )

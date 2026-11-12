@@ -1,0 +1,48 @@
+{
+  "case": "redirect",
+  "config": {
+    "ENGINE_BASE_URL": "http://127.0.0.1:<port>/engine-rest"
+  },
+  "probes": [
+    {
+      "arguments": {
+        "processInstanceId": "pi-1"
+      },
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "[302] redirect to https://sso.example.com/realms/ops/protocol/openid-connect/auth (engine default). The engine URL redirects, and redirects are never followed: point the engine URL at the REST API root itself (e.g. https:// when the server redirects from http://). A redirect to a login page means the engine credentials are missing or expired."
+            ],
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "sent": [
+        "GET /engine-rest/history/process-instance/pi-1",
+        "GET /engine-rest/process-instance/pi-1"
+      ],
+      "tool": "engine_inspect_process_instance"
+    },
+    {
+      "arguments": {},
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "[302] redirect to https://sso.example.com/realms/ops/protocol/openid-connect/auth (engine default). The engine URL redirects, and redirects are never followed: point the engine URL at the REST API root itself (e.g. https:// when the server redirects from http://). A redirect to a login page means the engine credentials are missing or expired."
+            ],
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "sent": [
+        "GET /engine-rest/process-instance/count",
+        "GET /engine-rest/process-instance?firstResult=0&maxResults=20"
+      ],
+      "tool": "engine_list_process_instances"
+    }
+  ]
+}

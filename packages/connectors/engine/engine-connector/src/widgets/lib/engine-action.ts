@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useResetOnChange } from "@miragon/pulse-ui"
 import {
+  isPermanentError,
   useActionFeedback,
   useQueryClient,
   useToolMutation,
@@ -27,7 +28,10 @@ export interface ActionConfirmation {
 /** U9: toasts that name the object, never a silent row change. */
 export interface WriteFeedback<TResult> {
   success: string | ((result: TResult) => string)
-  /** Not raised for a confirmed write: its dialog shows the failure. */
+  /**
+   * Not raised for a confirmed write, whose dialog shows the failure, nor for a refusal no retry
+   * changes (a read-only engine): the control's own error words it, once.
+   */
   failure: string
 }
 
@@ -38,9 +42,14 @@ interface RunOptions<TResult> {
   onError?: (error: Error) => void
 }
 
-/** The toolset decides (`engine_widget_actions_data`), AND `available`. */
+/** The toolset and the engine's profile decide (`engine_widget_actions_data`), AND `available`. */
 export interface EngineActionOptions<TArgs> {
   tool: EngineWidgetAction
+  /**
+   * The engine the write goes to: none runs on one whose profile is read-only. Required, so no
+   * call site forgets it; undefined (the default engine) stays closed while any profile is.
+   */
+  engine: string | undefined
   target?: (args: TArgs) => string
   /** The optimistic success marks drop when its identity changes. */
   resetOn?: unknown
@@ -102,22 +111,23 @@ function invalidateAfter(client: QueryClient, tool: EngineWidgetAction): void {
 }
 
 /**
- * The deployment gate of one write, for a surface that only words an offer (fix or diagnose)
- * without running the write itself. Fail-closed until the gate feed answered; the gate stays in
- * this primitive (`src/widget-actions.test.ts`).
+ * The deployment gate of one write on `engine`, for a surface that only words an offer (fix or
+ * diagnose) without running the write itself. Fail-closed until the gate feed answered; the gate
+ * stays in this primitive (`src/widget-actions.test.ts`).
  */
-export function useActionAllowed(tool: EngineWidgetAction): boolean {
-  return useCanRun()(tool)
+export function useActionAllowed(tool: EngineWidgetAction, engine: string | undefined): boolean {
+  return useCanRun()(tool, engine)
 }
 
 /** The one in-widget write primitive (`src/widget-actions.test.ts`); fail-closed until the gate feed answered. */
 export function useEngineAction<TArgs extends Record<string, unknown>, TResult = unknown>({
   tool,
+  engine,
   target = SINGLE_TARGET,
   resetOn,
   available = true,
 }: EngineActionOptions<TArgs>): EngineAction<TArgs, TResult> {
-  const allowed = useActionAllowed(tool) && available
+  const allowed = useActionAllowed(tool, engine) && available
   const mutation = useToolMutation<TResult>(tool)
   const client = useQueryClient()
   const toasts = useActionFeedback()
@@ -164,7 +174,7 @@ export function useEngineAction<TArgs extends Record<string, unknown>, TResult =
           pending: withoutMember(s.pending, key),
           errors: withEntry(s.errors, key, error.message),
         }))
-        if (!runOptions.confirm) toasts.failed(feedback.failure, error)
+        if (!runOptions.confirm && !isPermanentError(error)) toasts.failed(feedback.failure, error)
         runOptions.onError?.(error)
       },
     )

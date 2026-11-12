@@ -1,0 +1,16 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "test": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/apps/vscode/test/architecture/support/promise-words.ts",
+        "$TURBO_ROOT$/scripts/third-party-licenses.mjs",
+        "$TURBO_ROOT$/scripts/third-party-licenses.d.mts",
+        "$TURBO_ROOT$/.github/workflows/publish-orca-plugin.yml",
+        "$TURBO_ROOT$/LICENSE"
+      ]
+    }
+  }
+}

@@ -20,7 +20,7 @@ flowchart TB
   panel <-- "5: intents, host actions" --> session{{"core session"}}
 ```
 
-1. It reads every `.pulse-cli.json` and each target's login from SecretStorage.
+1. It finds every `.pulse.json` (`TargetDiscovery`), the host kit's `TargetsParser` reads it, and it takes each target's login from SecretStorage.
 2. The composition root picks the adapter for the target's engine; it supplies runtime and commands.
 3. Trees, status bar and panels show the connections; a reload rebinds open panels.
 4. The webview sends intents and gets the complete panel state back.
@@ -40,7 +40,7 @@ flowchart LR
 ## Where things are
 
 - `apps/vscode/src/host/pulse-extension.ts`: wiring on activation; `apps/vscode/src/host/composition-root.ts`: the adapters
-- `apps/vscode/src/host/connections`: targets, logins, write policy, audit (`ConnectionRegistry`, `WritePolicy`)
+- `apps/vscode/src/host/connections`: finding the project files and wiring the connections (`TargetDiscovery`, `ConnectionRegistry`); the rules they apply (targets, logins, write policy, audit) are the runtime view's host kit (`packages/core/runtime-view/src/host-kit`)
 - `apps/vscode/src/host/panels`: webview panels and their host actions (`PanelManager`, `VsCodePanelEffects`)
 - `apps/vscode/src/host/commands`, `apps/vscode/src/host/explorer`: one class per command, the Engines tree
 

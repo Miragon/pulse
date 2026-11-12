@@ -1,0 +1,10 @@
+{
+  "boot": "ENGINE_TOKEN holds a character no bearer token (RFC 6750) carries, a line break inside it, say (one at its end is trimmed); the value is not shown.",
+  "case": "token-line-break-inside",
+  "config": {
+    "ENGINE_AUTH_TYPE": "bearer",
+    "ENGINE_BASE_URL": "http://127.0.0.1:<port>/engine-rest",
+    "ENGINE_TOKEN": "tok-demo-123\nsecond-line"
+  },
+  "sent": []
+}

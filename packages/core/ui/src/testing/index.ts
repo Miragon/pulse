@@ -1,4 +1,4 @@
-/** The brand gates every widget package runs in its own test suite (Node, never bundled). The scanners parse sources with `typescript`, an optional peer. */
+/** The brand gates and the product's words every Pulse UI runs in its own test suite (Node, never bundled): the MCP widget packages over their catalogs, the VS Code extension over its sources. The scanners parse sources with `typescript`, an optional peer. */
 export {
   catalogTextFindings,
   type CatalogAllowance,
@@ -7,6 +7,17 @@ export {
   type CatalogTextFinding,
   type CatalogTextOptions,
 } from "./catalog-text.js"
+export { COUNT_TERMS, type CountTerm } from "./count-terms.js"
+export {
+  BARE_PAUSE_RULE_EN,
+  blindGlossaryRules,
+  glossaryFindings,
+  PRODUCT_GLOSSARY,
+  unnamedGlossaryTerms,
+  type GlossaryFinding,
+  type GlossaryRule,
+} from "./glossary.js"
+export { sourceTexts } from "./source-texts.js"
 export { FORBIDDEN_GLYPHS, glyphFindings, scanGlyphs, type GlyphFinding } from "./glyphs.js"
 export {
   CI_ICON_SIZES,

@@ -1,22 +1,16 @@
-import {
-  engineModule,
-  configuredEngineIds,
-  createBpmnXmlFetcher,
-} from "@miragon/pulse-engine-connector"
-import { analyticsModule, type FetchBpmnXml } from "@miragon/pulse-analytics-connector"
+import { engineModule } from "@miragon/pulse-engine-connector"
 import { notesModule } from "@acme/mcp-notes"
-import type { ComposableModule, ModuleEntry } from "@miragon/pulse-widget-shell/server"
+import type { ComposableModule } from "@miragon/pulse-widget-shell/server"
 
 /**
- * What one module hands the others at boot. Yours on purpose: which module's capability reaches
- * which other module is configuration knowledge; modules stay peers and never import each other.
+ * What the modules of this composition share at boot: the port through which one module gets
+ * another's capability (the engine module's engine access, say) without importing it. Yours on
+ * purpose: which module's capability reaches which other module is configuration knowledge;
+ * modules stay peers and never import each other. Today the server hands nothing through: give
+ * this type the field a module of yours types in `createPlugin(config, shared)`, and fill it in
+ * `sharedResources` below.
  */
-export interface SharedResources {
-  /** The engine module's BPMN-XML lookup (on any of its engines) for the analytics heatmap and the names in its views. */
-  fetchBpmnXml?: FetchBpmnXml
-  /** The engine module's configured engine ids: the only engines analytics reads from a possibly shared Prometheus. */
-  engineIds?: readonly string[]
-}
+export type SharedResources = Record<string, never>
 
 /** The port every module meets structurally; modules never import this file, yours need not either. */
 export type ModuleDefinition = ComposableModule<SharedResources>
@@ -30,18 +24,13 @@ export type ModuleDefinition = ComposableModule<SharedResources>
  * adding, replacing or dropping a module needs no test edit; only `test/example-notes.test.ts`
  * names the example module, and it goes with it.
  */
-export const MODULES: readonly ModuleDefinition[] = [engineModule, analyticsModule, notesModule]
+export const MODULES: readonly ModuleDefinition[] = [engineModule, notesModule]
 
 /**
- * The engine module hands analytics its BPMN-XML lookup and its engine ids, so analytics needs no engine
- * SDK. Without the engine module the heatmap degrades and analytics falls back to ANALYTICS_ENGINE_IDS,
- * else refuses every engine.
+ * What the active modules share, built once at boot from their entries (`createComposedServer`'s
+ * `shared`, called with the active `ModuleEntry[]`, each with the config its module's
+ * `createPlugin` gets): nothing yet.
  */
-export function sharedResources(entries: readonly ModuleEntry[]): SharedResources {
-  const engine = entries.find((entry) => entry.app === engineModule.name)
-  if (!engine) return {}
-  return {
-    fetchBpmnXml: createBpmnXmlFetcher(engine.config),
-    engineIds: configuredEngineIds(engine.config),
-  }
+export function sharedResources(): SharedResources {
+  return {}
 }

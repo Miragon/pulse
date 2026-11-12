@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs"
 import { pathToFileURL } from "node:url"
 
-const PLUGIN_SCOPES = ["orca", "runtime-view", "engine-adapter"]
+const PLUGIN_SCOPES = ["orca", "runtime-view", "c7-adapter"]
 const CHANGELOG_LIMIT = 1900
 
 export class ReleaseNotes {

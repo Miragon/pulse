@@ -1,13 +1,17 @@
 import {
   FailingRuntime,
   RuntimeError,
-  type EngineAdapter,
-  type EngineConnection,
-  type EngineWebUi,
   type ProcessCommands,
   type ProcessRuntime,
-} from "@miragon/pulse-runtime-view/contract"
-import { FakeEngine, FakeWorld } from "@miragon/pulse-runtime-view/contract/fake"
+} from "@miragon/pulse-engine-core"
+import type {
+  CliTarget,
+  EngineAdapter,
+  EngineCli,
+  EngineConnection,
+  EngineWebUi,
+} from "@miragon/pulse-runtime-view/ports"
+import { FakeEngine, FakeWorld } from "@miragon/pulse-engine-core/testing"
 import { CompositionRoot } from "../src/worker/composition-root.js"
 
 export class FakeAdapter implements EngineAdapter {
@@ -15,6 +19,8 @@ export class FakeAdapter implements EngineAdapter {
   readonly connections: EngineConnection[] = []
   readonly unreachable = new Set<string>()
   readonly unauthorized = new Set<string>()
+  readonly cliTargets: CliTarget[] = []
+  readonly cliOfIt: EngineCli = { triggerCommand: () => undefined }
 
   runtime(connection: EngineConnection): ProcessRuntime {
     this.connections.push(connection)
@@ -38,6 +44,11 @@ export class FakeAdapter implements EngineAdapter {
       instanceUrl: (instance) => `${webUiUrl}#/process-instance/${instance.id}`,
       definitionUrl: (definition) => `${webUiUrl}#/process-definition/${definition.id}`,
     }
+  }
+
+  cli(target: CliTarget): EngineCli {
+    this.cliTargets.push(target)
+    return this.cliOfIt
   }
 
   root(): CompositionRoot {

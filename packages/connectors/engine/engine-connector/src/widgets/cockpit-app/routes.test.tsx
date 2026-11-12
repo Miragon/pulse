@@ -88,6 +88,7 @@ const SEEDED: Array<[string, CockpitView, CockpitStart, string, string, string]>
         processDefinitionName: "Invoice",
         totalCount: 0,
         returnedCount: 0,
+        allCount: 0,
         withIncidentCount: 0,
         suspendedCount: 0,
         instances: [],

@@ -3,7 +3,7 @@ import {
   DefinitionId,
   InstanceId,
   type InstanceSummary,
-} from "@miragon/pulse-runtime-view/contract"
+} from "@miragon/pulse-engine-core"
 
 export function instance(id: string, bpmnProcessId: string): InstanceSummary {
   return {

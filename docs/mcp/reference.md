@@ -31,32 +31,26 @@ BPM operations across these domains (`category`): `engines`, `process-definition
   variable reads cut values over 2000 characters (`truncated: true`); the runtime reads'
   `variableName` returns one whole (history values stay cut); the server instructions state this
   paging contract, the shared filters and the variable shape once instead of on every tool
+- **Variable writes:** a value that is or holds a number that is not finite (`1e400`, beyond the
+  range of a double, reads as Infinity) fails the call before anything is sent, since JSON would
+  carry it as null; a variable of type String with the digits as text keeps such a number, a Json
+  or Object value sent as JSON text keeps it too. An integer beyond ±2^53 reaches the engine whole
+  as a string with type Long, the form the reads return, and inside a Json or Object value sent as
+  JSON text; as a JSON number, also inside a Json or Object value given as parsed JSON, it arrives
+  rounded, since the MCP SDK parses a call before the server sees it. The server instructions ask
+  for the string and the JSON text
 - **View:** `open_cockpit`, the operations cockpit and the module's one view: `view` opens it on
   the overview (default), the incidents, a failure cluster, a process, its instances, an
   instance, an incident, the jobs or an instance's history; the result carries that view's facts
-  as compact JSON
-
-### Analytics module (`analytics_*`)
-
-Prometheus-backed analysis over PromQL, one tool per question: `show_dashboard` (a period's
-flows, durations and live state per process and per activity), `show_period_compare` (two
-periods, e.g. around a deployment), `show_version_compare` (two deployed versions of one
-process), `show_engine_compare` (one process definition on two engines), `show_engine_landscape`
-(what runs where, load and job backlog per engine) and `show_bpmn_heatmap`. Each renders a view
-and returns its figures to the model as JSON (the heatmap: a summary). `analytics_engine_health` returns
-JSON without a view: a live WIP, incidents, backlog and alerts snapshot, its state from the alert
-rules as `metricsState`. The incidents open right now and their instances come from the engine module.
-
-Across engines the tools report counts, never per-engine rates: engines host different process
-definitions, so an aggregated failure rate or duration describes that engine's process mix rather
-than the engine. `show_engine_compare` therefore requires a `processDefinitionKey`;
-`show_engine_landscape` lists the definitions deployed on more than one engine as its valid
-inputs.
+  as compact JSON. A process's flow shows its open incidents or, as **Running**, what runs at
+  each element now, every deployed version summed onto the latest diagram; as **Throughput ·
+  30 days**, what the instances started in the last 30 days passed per element, from the
+  engine's history (the app-only `engine_activity_statistics_data`, `source` `history`)
 
 ### Toolsets
 
 A module with toolsets runs exactly one per boot, chosen by a suffix in `MCP_ACTIVE_MODULES`
-(`engine:operations,analytics`) and stated in the boot log. Without a suffix the default
+(`engine:operations`) and stated in the boot log. Without a suffix the default
 fails closed: the read-only toolset on an unauthenticated server, the standard one under
 OAuth. `admin` is never implied (only naming it grants it), and an empty (`engine:`) or
 unknown suffix warns and falls back to read-only, even under OAuth.
@@ -69,9 +63,8 @@ unknown suffix warns and falls back to read-only, even under OAuth.
 
 `engine_create_deployment` additionally needs `ENGINE_ALLOW_DEPLOYMENTS=true`: deploying a BPMN or
 DMN runs code inside the engine JVM (JUEL expressions, scripts). The full surface is
-`MCP_ACTIVE_MODULES=engine:admin,analytics` plus that flag, never on a server the network can
-reach without authentication. Analytics declares no toolsets: every analytics tool is a read, and
-a suffix on it is ignored with a warning.
+`MCP_ACTIVE_MODULES=engine:admin` plus that flag, never on a server the network can
+reach without authentication.
 A gateway or reverse proxy that terminates auth in front of the server is invisible to it, so such
 a deployment runs read-only until it names its toolsets.
 
@@ -83,74 +76,80 @@ anonymous deployment shows no write buttons.
 
 The most common variables. See [Operations](operations.md#environment-variables) for the full reference.
 
-| Variable                                                | Default                             | Description                                                                                                                                                                                |
-| ------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `PORT`                                                  | `8400`                              | HTTP port the MCP server listens on                                                                                                                                                        |
-| `MCP_ACTIVE_MODULES`                                    | all, read-only                      | Comma-separated modules (`engine,analytics`), each with an optional [toolset](#toolsets) suffix; no suffix = read-only, under OAuth the standard toolset                                   |
-| `MCP_URL`                                               | —                                   | Public base URL: advertised URLs, the `Host`/`Origin` accepted (else localhost only), the origin the views load Geist from (`/fonts/…`); OAuth tokens carry `<MCP_URL>/mcp` in `aud`       |
-| `MCP_OAUTH_*`                                           | —                                   | One OAuth provider's variables protecting `/mcp`, the only caller identity (see [Operations](operations.md#security))                                                                      |
-| `ENGINE_ALLOW_DEPLOYMENTS`                              | `false`                             | `true` registers `engine_create_deployment` under `engine:admin`: code execution in the engine JVM; empty = unset, any value but `true`/`false` fails the boot                             |
-| `ENGINE_BASE_URL`                                       | `http://localhost:8410/engine-rest` | Single-engine REST base URL                                                                                                                                                                |
-| `ENGINE_ID`                                             | `default`                           | Id of that engine; must match the engine's `ENGINE_ID` or its analytics stay empty                                                                                                         |
-| `ENGINE_FLAVOR`                                         | `camunda7`                          | Vendor of that engine (`cibseven`, `operaton` or `camunda7`): picks its cockpit links and product name                                                                                     |
-| `ENGINES_JSON` / `ENGINES_FILE`                         | —                                   | Register multiple engines (see [Multi-engine](#multi-engine))                                                                                                                              |
-| `ENGINE_DEFAULT`                                        | —                                   | Where a call without `engine` routes when several engines are configured; must name a configured engine, else the boot fails                                                               |
-| `ENGINE_COCKPIT_URL`                                    | derived                             | Cockpit web base for jump-out links                                                                                                                                                        |
-| `ENGINE_AUTH_TYPE`                                      | `none`                              | `basic`, `bearer`, `passthrough`, or `none`: fallback for engines without an `auth`                                                                                                        |
-| `ENGINE_USERNAME` / `ENGINE_PASSWORD` / `ENGINE_TOKEN`  | —                                   | Credentials for `basic`/`bearer`; `passthrough` forwards each caller's bearer token (trusted single-audience setups only: the engine could replay it against this server)                  |
-| `PROMETHEUS_URL`                                        | `http://localhost:9090`             | Prometheus HTTP API, the analytics data source                                                                                                                                             |
-| `PROMETHEUS_BEARER_TOKEN` / `…_USERNAME` / `…_PASSWORD` | —                                   | Prometheus auth, bearer or basic (URL userinfo works too); `PROMETHEUS_HEADERS` adds JSON headers such as a tenant id                                                                      |
-| `ANALYTICS_ENGINE_IDS`                                  | —                                   | Engines analytics may read when the engine module is inactive (comma-separated `engine_id`s); otherwise the engine module's configured engines scope analytics. Neither: analytics refuses |
-| `ENGINE_REQUEST_TIMEOUT_MS` / `PROMETHEUS_TIMEOUT_MS`   | `30000`                             | Per-request deadline in ms for engine / Prometheus calls; a hung upstream fails the tool call with a timeout error                                                                         |
+| Variable                                               | Default                             | Description                                                                                                                                                                          |
+| ------------------------------------------------------ | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `PORT`                                                 | `8400`                              | HTTP port the MCP server listens on                                                                                                                                                  |
+| `MCP_ACTIVE_MODULES`                                   | all, read-only                      | Comma-separated modules (`engine`), each with an optional [toolset](#toolsets) suffix; no suffix = read-only, under OAuth the standard toolset                                       |
+| `MCP_URL`                                              | —                                   | Public base URL: advertised URLs, the `Host`/`Origin` accepted (else localhost only), the origin the views load Geist from (`/fonts/…`); OAuth tokens carry `<MCP_URL>/mcp` in `aud` |
+| `MCP_OAUTH_*`                                          | —                                   | One OAuth provider's variables protecting `/mcp`, the only caller identity (see [Operations](operations.md#security))                                                                |
+| `ENGINE_ALLOW_DEPLOYMENTS`                             | `false`                             | `true` registers `engine_create_deployment` under `engine:admin`: code execution in the engine JVM; empty = unset, any value but `true`/`false` fails the boot                       |
+| `ENGINE_BASE_URL`                                      | `http://localhost:8410/engine-rest` | Single-engine REST base URL                                                                                                                                                          |
+| `ENGINE_ID`                                            | `default`                           | Id of that engine: the per-call `engine` selector and the name the cockpit shows                                                                                                     |
+| `ENGINE_FLAVOR`                                        | `camunda7`                          | Vendor of that engine (`cibseven`, `operaton` or `camunda7`): picks its cockpit links and product name                                                                               |
+| `ENGINES_JSON` / `ENGINES_FILE`                        | —                                   | A profile file of several engines (see [Multi-engine](#multi-engine)); replaces the single-engine variables                                                                          |
+| `ENGINE_DEFAULT`                                       | —                                   | Where a call without `engine` routes; beats the file's `defaultProfile`; must name a profile, else the boot fails                                                                    |
+| `ENGINE_COCKPIT_URL`                                   | derived                             | Cockpit web base for jump-out links                                                                                                                                                  |
+| `ENGINE_AUTH_TYPE`                                     | `none`                              | `basic`, `bearer`, `passthrough`, or `none` of the single engine; a profile states its own `auth`                                                                                    |
+| `ENGINE_USERNAME` / `ENGINE_PASSWORD` / `ENGINE_TOKEN` | —                                   | Credentials for `basic`/`bearer`; `passthrough` forwards each caller's bearer token (trusted single-audience setups only: the engine could replay it against this server)            |
+| `ENGINE_REQUEST_TIMEOUT_MS`                            | `30000`                             | Per-request deadline in ms for engine calls; a hung engine fails the tool call with a timeout error                                                                                  |
 
 ### Multi-engine
 
 The server can route to several engines: CIB seven, Operaton and Camunda 7 mixed in one fleet.
-Tag each engine in its metrics plugin
-(`ENGINE_ID`), register them in the server (`ENGINES_JSON` / `ENGINES_FILE`;
-`ENGINE_ID` must match the registered `id`, or that engine's analytics come back empty), and the
-host discovers them via `engine_list_engines` (read-only), which lists every configured engine.
-Every operations tool also accepts a per-call `engine` override
-(advertised as an enum of the configured ids). A call routes to its `engine` argument, else to
-`ENGINE_DEFAULT`, else to the only configured engine, else fails with
-`ENGINE_NOT_SELECTED` listing the engines; a default that names no configured engine fails the
-boot. Analytics tools take an optional `engine` filter to aggregate or compare. The server
-`instructions` state the routing rule once for every tool. Each engine entry may carry its own `auth`
-(`{type, username?, password?, token?}`); entries without one use the global `ENGINE_*` settings.
-Entries may also declare their vendor via `flavor` (`cibseven` | `operaton` | `camunda7`, default
-`camunda7`; the single-engine shorthand takes `ENGINE_FLAVOR`), which selects the engine's
-cockpit-link routes and display name.
-
-With several engines, the cockpit landing lists every engine with its live health in words (open
-incidents, empty, unreachable, loading), read from the engine itself. Its dot, there and in the
-cross-engine view, has the tone of the engine overview's verdict (ok, warning, critical), so one
-open incident below the thresholds is a warning, not an alarm. The cross-engine view (process
-landscape plus fleet-wide health and performance) needs the analytics module; without it
-(e.g. `MCP_ACTIVE_MODULES=engine` where no Prometheus exists) the cockpit does not offer it.
-
-Fleets that span several environments (each environment hosting some services with an engine)
-group their engines per environment: the cockpit landing lists the engines under their
-environment, the engine switcher and `engine_list_engines` group them by
-environment, and every engine view names the environment as a chip ("PROD") next to the engine,
-write confirmations included. Either write the
-engines JSON as a map keyed by environment id, or tag entries individually:
+Describe them in one profile file, the format of the CLI and of Pulse for VS Code
+(`@miragon/pulse-profile`), inline in `ENGINES_JSON` or as a path in `ENGINES_FILE` (which wins).
+It replaces the single-engine variables, which the boot then names as ignored:
 
 ```json
 {
-  "prod-eu": [{ "id": "prod-a", "baseUrl": "http://engine-a:8410/engine-rest" }],
-  "prod-us": [{ "id": "prod-b", "baseUrl": "http://engine-b:8410/engine-rest" }]
+  "defaultProfile": "prod-a",
+  "profiles": {
+    "prod-a": {
+      "url": "http://engine-a:8410/engine-rest",
+      "flavor": "cibseven",
+      "environment": "prod-eu",
+      "auth": { "type": "basic", "username": "svc", "passwordEnv": "ENGINE_SECRET_PROD_A" }
+    },
+    "prod-b": {
+      "url": "http://engine-b:8410/engine-rest",
+      "environment": "prod-us",
+      "readOnly": true
+    }
+  }
 }
 ```
 
-Engine ids stay globally unique across environments: the id remains the `ENGINE_ID` metrics
-join key and the per-call `engine` selector; the environment is a grouping level only.
+A profile's name is its engine id: the per-call `engine` selector, advertised as an enum of every
+configured id, and the name the cockpit shows. `url` is the REST root; `flavor` (`cibseven` |
+`operaton` | `camunda7`, default `camunda7`) selects the cockpit-link routes and display name;
+`cockpitUrl`, `timeout` (it beats `ENGINE_REQUEST_TIMEOUT_MS`) and `readOnly` (no tool writes to that
+engine, whatever the toolset) are optional. Each profile signs in on its own (`none`, `basic`,
+`bearer`, `passthrough`), and a secret never sits in the file: `auth.passwordEnv` or
+`auth.tokenEnv` names the variable that holds it, and the server reads only names that start with
+`ENGINE_SECRET_`. Whoever may change the file reaches those variables and the URLs.
+
+A call routes to its `engine` argument, else to `ENGINE_DEFAULT`, else to `defaultProfile`, else to
+the only profile, else fails with `ENGINE_NOT_SELECTED`; a default that names no profile fails the
+boot. The server `instructions` state the routing rule once for every tool. A profile the server
+cannot use (an unknown key, an unset variable, a literal secret, `headers`, a process engine name,
+OAuth, a URL with credentials) is refused on its own: the boot warns, `engine_list_engines` lists it
+under `refused` with the reason, and a call to it fails with `ENGINE_PROFILE_REFUSED`, also as the
+default, never rerouted. The boot fails only when the file gives no profile, none is usable or a
+default names no profile.
+
+With several engines, the cockpit landing lists every engine with its live health in words (open
+incidents, empty, unreachable, loading), read from the engine itself; a refused one reads "profile
+refused", counted apart from an unreachable one, and opening it says why at once, as its view's one
+state and without Try again, since only whoever runs the server can fix it. An engine that answers
+the server's login with HTTP 401 reads "credentials rejected", with 403 "access denied": it runs, so
+neither the landing nor the cross-engine view calls it unreachable; the latter counts it apart,
+both give it a refused profile's warning tone, and its overview names the status. An engine's
+dot, there and in the cross-engine view, has the tone of the engine overview's verdict (ok,
+warning, critical), so one open incident below the thresholds is a warning, not an alarm. With
+two engines or more the cockpit offers the cross-engine view: each engine's health, its job
+backlog and which processes run where, read from every engine itself, as counts, never a ranking
+of the engines.
+`environment` groups the engines: the landing lists them under their environment, the engine
+switcher and `engine_list_engines` group them, and every engine view names the environment as a
+chip ("PROD") next to the engine, write confirmations included.
 Full walkthrough in [Operations](operations.md).
-
-## Engine metrics plugin
-
-The analytics module needs the `engine_*` metric series in Prometheus. The Kotlin plugin in
-[`engine-plugins/`](https://github.com/Miragon/pulse/tree/main/engine-plugins) records them as Micrometer meters from inside the CIB seven
-runtime, with no engine-side database; export via Micrometer's OTLP registry (the playground default),
-an Actuator Prometheus scrape, or the OTEL Java agent's Micrometer bridge. It publishes to Maven Central as
-`io.miragon.mcp:cibseven-history-metrics`. See [`engine-plugins/README.md`](https://github.com/Miragon/pulse/blob/main/engine-plugins/README.md)
-and the runnable [`playground/cibseven-example/`](https://github.com/Miragon/pulse/tree/main/playground/cibseven-example).

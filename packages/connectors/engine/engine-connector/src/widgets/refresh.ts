@@ -7,9 +7,7 @@ export function refreshCockpitData(client: QueryClient): Promise<void> {
   return client.invalidateQueries({
     predicate: (query) => {
       const root = query.queryKey[0]
-      return (
-        typeof root === "string" && (root.startsWith("engine:") || root.startsWith("analytics:"))
-      )
+      return typeof root === "string" && root.startsWith("engine:")
     },
   })
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { OpenApiDocument } from "./openapi.js"
-import { readPatchedSpec } from "./files.js"
+import { readSpec, readRoutes } from "./files.js"
 import { assertResolvableRefs, collectRefs } from "./refs.js"
 import { buildCatalog } from "./build-catalog.js"
 import { SPEC_URL } from "./render.js"
@@ -113,12 +113,12 @@ describe("assertResolvableRefs", () => {
   })
 
   it("makes buildCatalog fail when a body schema was renamed upstream", () => {
-    const real = readPatchedSpec()
+    const real = readSpec()
     const schemas = { ...real.components?.schemas }
     schemas.RenamedStartDto = schemas.StartProcessInstanceDto ?? {}
     delete schemas.StartProcessInstanceDto
     const broken = { ...real, components: { ...real.components, schemas } }
-    expect(() => buildCatalog(broken, SPEC_URL)).toThrow(
+    expect(() => buildCatalog(broken, SPEC_URL, readRoutes())).toThrow(
       /^Unresolvable \$ref #\/components\/schemas\/StartProcessInstanceDto \(used by /,
     )
   })

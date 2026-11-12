@@ -1,14 +1,14 @@
 {
   "name": "@miragon/pulse-engine-core",
   "version": "0.27.1",
-  "description": "The workflow domain of the Camunda 7 REST API family (Operaton, CIB seven, Camunda 7): the engine port, instance selection, the inspect view, the status triage, root causes and the plans of retry and advance, and the pure engine REST rules (dates, filters, sorting, variable writes, incident recovery). No runtime dependency.",
+  "description": "The neutral core of the engine family of Pulse: the contract every dialect implements (the read and write ports ProcessRuntime and ProcessCommands, their ids, read models, queries and failure kinds, and RootCauses, the root-cause rule of every dialect), and in ./testing the conformance kit with its laws, its fixed world and an in-memory fake engine. No runtime dependency.",
   "license": "MIT",
   "keywords": [
-    "camunda",
-    "camunda7",
-    "operaton",
-    "cibseven",
     "bpmn",
+    "process engine",
+    "contract",
+    "ports",
+    "conformance",
     "workflow"
   ],
   "homepage": "https://github.com/Miragon/pulse/tree/main/packages/connectors/engine/engine-core#readme",
@@ -50,9 +50,9 @@
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint src",
-    "lint:fix": "eslint src --fix"
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
+    "lint": "eslint src test",
+    "lint:fix": "eslint src test --fix"
   },
   "devDependencies": {
     "@stryker-mutator/core": "10.1.1",

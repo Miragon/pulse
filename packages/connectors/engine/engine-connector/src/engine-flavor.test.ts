@@ -40,8 +40,8 @@ describe("providerForEntry", () => {
 
 /**
  * The single-engine shorthand names a CIB seven or Operaton engine with
- * ENGINE_FLAVOR, the way ENGINE_ID names its id: configFromEnv trims,
- * the schema's enum judges the value.
+ * ENGINE_FLAVOR, the way ENGINE_ID names its id: configFromEnv trims, the
+ * profile format's table of flavors judges the value.
  */
 describe("engineModule.configFromEnv engine flavor", () => {
   const BASE = "http://engine.example/engine-rest"
@@ -71,34 +71,28 @@ describe("engineModule.configFromEnv engine flavor", () => {
     expect(providerOf({ ENGINE_BASE_URL: BASE, ENGINE_FLAVOR: "cibseven" })).toBe(cibsevenProvider)
   })
 
-  it("accepts every known vendor on an engine entry", () => {
+  it("accepts every known vendor on a profile", () => {
     for (const flavor of ["cibseven", "operaton", "camunda7"]) {
-      const engines = [{ id: "a", baseUrl: BASE, flavor }]
-      expect(engineConfigSchema.parse({ engines }).engines[0].flavor).toBe(flavor)
+      const env = { ENGINES_JSON: JSON.stringify({ profiles: { a: { url: BASE, flavor } } }) }
+      expect(enginesOf(env)[0].flavor).toBe(flavor)
     }
   })
 
-  it("ignores ENGINE_FLAVOR when the engine list is explicit", () => {
+  it("ignores ENGINE_FLAVOR when a profile file describes the engines", () => {
     expect(
       enginesOf({
         ENGINE_FLAVOR: "cibseven",
-        ENGINES_JSON: '[{"id":"prod-b","baseUrl":"http://b.example/engine-rest"}]',
+        ENGINES_JSON: '{"profiles":{"prod-b":{"url":"http://b.example/engine-rest"}}}',
       }),
     ).toEqual([{ id: "prod-b", baseUrl: "http://b.example/engine-rest" }])
   })
 
   it.each(["CIBSEVEN", "cib seven", "flowable"])(
-    "fails the boot on %j, naming the variable",
+    "fails the boot on %j, naming the variable and never the value",
     (raw) => {
       expect(() => engineModule.configFromEnv({ ENGINE_FLAVOR: raw })).toThrow(
-        /^ENGINE_FLAVOR: Engine flavor must be "cibseven", "operaton" or "camunda7"/,
+        "ENGINE_FLAVOR: flavor must be one of camunda7, cibseven, operaton (the value is not shown).",
       )
-      const result = engineConfigSchema.safeParse({
-        engines: [{ id: "default", baseUrl: BASE, flavor: raw }],
-      })
-      expect(result.error?.issues).toEqual([
-        expect.objectContaining({ path: ["engines", 0, "flavor"] }),
-      ])
     },
   )
 

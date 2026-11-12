@@ -46,6 +46,11 @@ describe("formatTrace", () => {
     expect(formatTrace({ ...response, statusText: "" }, false)).toBe("< 404 (12 ms, 99 bytes)\n")
   })
 
+  it("prints a redirect, whose body is never read, without a size", () => {
+    const redirect = { type: "response", status: 302, statusText: "Found", durationMs: 7 } as const
+    expect(formatTrace(redirect, false)).toBe("< 302 Found (7 ms)\n")
+  })
+
   it("prints a note like curl -v", () => {
     expect(formatTrace({ type: "note", message: "Using the cached token." }, false)).toBe(
       "* Using the cached token.\n",

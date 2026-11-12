@@ -1,4 +1,4 @@
-import { type DefinitionId, type ProcessRuntime, RuntimeError } from "../../contract/index.js"
+import { type DefinitionId, type ProcessRuntime, RuntimeError } from "@miragon/pulse-engine-core"
 
 export class DiagramCache {
   private readonly diagrams = new Map<DefinitionId, Promise<string>>()

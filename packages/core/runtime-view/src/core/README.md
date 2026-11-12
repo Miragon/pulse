@@ -49,7 +49,7 @@ sequenceDiagram
 
 ## Rules
 
-- Imports the contract only, no `vscode`, Node or npm; the protocol none (dependency-cruiser)
+- Imports the engine contract (`@miragon/pulse-engine-core`, its main entry), the runtime view's ports and Pulse's UI foundation (`@miragon/pulse-ui/tones`, `/format` in `views/labels.ts`) only, no `vscode`, Node or other npm package; the protocol none (dependency-cruiser)
 - No DOM and no Node globals: `lib` is ES2023 only (`packages/core/runtime-view/tsconfig.core.json`, `packages/core/runtime-view/test/core/runtime.boundary.ts`)
 - No engine words, no comments, one class per file, no module functions (ESLint)
 

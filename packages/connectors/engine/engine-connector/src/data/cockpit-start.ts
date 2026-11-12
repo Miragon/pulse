@@ -1,6 +1,6 @@
 import type { ResolvedEngine } from "../lib/engine/resolve-engine.js"
 import type { CockpitStart, CockpitView } from "../view-models.js"
-import type { VerdictThresholds } from "@miragon/pulse-engine-core"
+import type { VerdictThresholds } from "@miragon/pulse-c7-core"
 import type { ReadContext } from "./feeds.js"
 import { COCKPIT_ROUTES, type Facts } from "./routes.js"
 

@@ -6,7 +6,7 @@ import {
   type DefinitionRef,
   type ElementMapping,
   type InstanceSummary,
-} from "../../src/contract/index.js"
+} from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
 import { MigrateInstancesAction } from "../../src/core/panels/migrate-instances-action.js"
 import type { MigrationState } from "../../src/core/panels/migration-reads.js"

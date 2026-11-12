@@ -1,4 +1,4 @@
-import type { ElementMapping } from "../../contract/index.js"
+import type { ElementMapping } from "@miragon/pulse-engine-core"
 import { ElementNames } from "../bpmn/element-names.js"
 import { FlowNodes } from "../bpmn/flow-nodes.js"
 import type { MappingCandidate } from "../protocol/index.js"

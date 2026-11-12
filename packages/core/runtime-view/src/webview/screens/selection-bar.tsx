@@ -1,10 +1,11 @@
 import type { SelectionView } from "../../core/protocol/index.js"
+import { CountLabels } from "../format/count-labels.js"
 import { useHost } from "../host/host-context.js"
 
 function SelectionCount({ selection }: { readonly selection: SelectionView }) {
   const text = selection.allMatching
-    ? `All ${selection.count} ${selection.eligible} selected`
-    : `${selection.count} selected`
+    ? `All ${CountLabels.exact(selection.count)} ${selection.eligible} selected`
+    : `${CountLabels.exact(selection.count)} selected`
   return (
     <span class="selection-bar__count" aria-live="polite">
       {text}

@@ -5,15 +5,15 @@ From a fresh clone to a running server in one command, or zero if you start with
 ## Try it first (no install)
 
 Point any MCP client at the [playground](https://pulse-playground.miragon.ai/mcp)
-(`https://pulse-playground.miragon.ai/mcp`): a seeded engine, live traffic, and the full
-analytics stack, read-only. See [Connect your Claude in 30 seconds](getting-started.md#connect-your-claude-in-30-seconds). Everything below is for running your own stack.
+(`https://pulse-playground.miragon.ai/mcp`): a seeded engine with live traffic,
+read-only. See [Connect your Claude in 30 seconds](getting-started.md#connect-your-claude-in-30-seconds). Everything below is for running your own stack.
 
 ## Prerequisites
 
 - Node.js 22.22.2 or later (`engines` in the root `package.json`)
 - pnpm 10.32.1 (`packageManager`): `corepack enable`; Node.js 25+ has none: `npm i -g pnpm@10.32.1`
 - Docker: the playground, and Gradle in a container when no JDK 21 is installed
-- Optional: a JDK 21; Gradle then runs on it, and `./gradlew` by hand in `engine-plugins/` needs one
+- Optional: a JDK 21; Gradle then runs on it, and `./gradlew` by hand in `playground/cibseven-example/` needs one
 
 ## Clone and run
 
@@ -24,8 +24,8 @@ pnpm play
 ```
 
 `pnpm play` installs the dependencies, starts the playground in Docker (CIB seven with demo data
-and live traffic, the OTEL Collector, Prometheus, Grafana; the first start builds the engine jar,
-a few minutes), builds the server and runs it on `:8400` against the playground, next to the official
+and live traffic; the first start builds the engine jar, a few minutes), builds the server and runs
+it on `:8400` against the playground, the engine module alone, next to the official
 [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector) on `127.0.0.1`: open the URL it prints (no browser
 opens by itself) to call tools and render the widgets, or connect any MCP host to `http://localhost:8400/mcp`.
 It boots read-only; `--admin` adds the write tools, `--deploy` deployments, `--multi-engine` a
@@ -50,8 +50,8 @@ prints its sign-in token, one from `MCP_INSPECTOR_API_TOKEN` too: keep the outpu
 
 The gates one by one: `pnpm build`, `pnpm typecheck`, `pnpm test`, `pnpm lint`, `pnpm format:check`.
 While you iterate: `pnpm test:one <file...>`, then the package and what depends on it with
-`pnpm exec turbo run typecheck test lint --filter=...<pkg>`, then `pnpm check`. A tool change
-refreshes the goldens with `pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server golden:update`.
+`pnpm exec turbo run typecheck test lint --filter=...<pkg>`, then `pnpm check`. A change to a tool,
+an engine read's result or its error text refreshes the goldens with `pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server golden:update`.
 `pnpm dev` and `pnpm play` bind 127.0.0.1; `pnpm start` and Docker listen on all interfaces.
 The inspector has no chat, so a hand-off shows only in a real host: tunnel the server
 (`cloudflared tunnel --url http://localhost:8400`), set `MCP_URL` to the `https://` origin it prints
@@ -59,7 +59,7 @@ and restart (Cloudflare's quick tunnels carry no Server-Sent Events, which the s
 calls hang, use a named tunnel). Anyone with that URL reaches the server, so keep the read-only default.
 To debug, press F5 in VS Code (`.vscode/launch.json`) or run any command in a JavaScript Debug Terminal.
 
-Mutation testing covers `@miragon/pulse-engine-core` only (`MUTATED_PACKAGES`), nightly, never on a pull request: `pnpm --fail-if-no-match --filter @miragon/pulse-engine-core exec stryker run`.
+Mutation testing covers `@miragon/pulse-c7-core`, `@miragon/pulse-http`, the root-cause, value-kind and move-reason rules of `@miragon/pulse-engine-core` and the profile format `@miragon/pulse-profile` (`MUTATED_PACKAGES`), nightly, never on a pull request: `pnpm --fail-if-no-match --filter @miragon/pulse-c7-core exec stryker run`, the same with `@miragon/pulse-http`, `@miragon/pulse-engine-core` and `@miragon/pulse-profile`.
 
 Editors read only `tsconfig.json`: each widget, host-bundle and test tree has a nested one extending the `tsconfig.<x>.json` that checks it (`pnpm lint:package-scripts`); `.vscode/` pins TypeScript.
 
@@ -77,4 +77,4 @@ the workspace's packed packages, also with a prebuilt module that brings its own
 
 - These pages are Markdown in `docs/`, next to the code they describe, and build into this VitePress site (`pnpm docs:dev`, `pnpm docs:build`), published to [miragon.github.io/pulse](https://miragon.github.io/pulse/) with each release, so the site shows what a release shipped (a pull request only builds them). A change to env vars, tools, ports or the getting-started steps updates them in the same PR. `scripts/docs-refs.test.mjs` checks every tool name and repo path they cite, and each page's line budget.
 - The product page [miragon.ai/tools/pulse](https://miragon.ai/tools/pulse/) is built from [Miragon/miragon-ai-docs](https://github.com/Miragon/miragon-ai-docs).
-- [Reference](reference.md) lists every tool, toolset and the common env vars; [`engine-plugins/README.md`](https://github.com/Miragon/pulse/blob/main/engine-plugins/README.md) covers the Kotlin plugin build.
+- [Reference](reference.md) lists every tool, toolset and the common env vars.

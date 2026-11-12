@@ -1,11 +1,12 @@
 /**
  * Sends a prepared request and decodes the response; HTTP error statuses become PulseCliErrors
  * whose hints name `ref`, the command that sent the request, when given, the user whose Basic
- * auth credentials were sent, or the auth provider's own hint for a rejected token (OAuth).
+ * auth credentials were sent, or the auth provider's own hint for a rejected token (OAuth). A
+ * redirect, the deadline and the network fail in `send` already.
  */
 
-import { type ClientOptions, send } from "../http/client.js"
-import { type CommandRef, httpError, redirectError } from "../http/errors.js"
+import { type Client, send } from "../http/client.js"
+import { type CommandRef, httpError } from "../http/errors.js"
 import type { HttpRequest } from "../http/types.js"
 import { decodeResponse } from "./decode.js"
 import { previewRequest } from "./preview.js"
@@ -13,12 +14,12 @@ import type { OperationResult } from "./result.js"
 
 export async function sendRequest(
   request: HttpRequest,
-  client: ClientOptions,
+  client: Client,
   ref?: CommandRef,
 ): Promise<OperationResult> {
   const response = await send(request, client)
-  const { auth } = client
   if (response.status >= 400) {
+    const { auth } = client
     const { principal, off } = auth
     const rejectedHint =
       response.status === 401 || response.status === 403
@@ -26,9 +27,6 @@ export async function sendRequest(
         : undefined
     const failed = { ...request, principal, authOff: off, rejectedHint, authNote: auth.note }
     throw httpError(response, failed, ref)
-  }
-  if (response.status >= 300) {
-    throw redirectError(response, { ...request, loginStatusCommand: auth.loginStatusCommand })
   }
   return decodeResponse(response, previewRequest(request))
 }

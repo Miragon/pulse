@@ -53,9 +53,9 @@ secrets for logins, and files in your workspace for its tabs.
 
 ## Get started
 
-1. Name your engines in a `.pulse-cli.json` at the root of your project, the project file Pulse
-   shares with the [Pulse CLI](https://miragon.github.io/pulse/cli/); you don't need to install
-   the CLI:
+1. Name your engines in a `.pulse.json` at the root of your project, the project file Pulse
+   shares with the [Pulse CLI](https://miragon.github.io/pulse/cli/) and Pulse for VS Code; you
+   don't need to install the CLI:
 
    ```json
    {
@@ -83,4 +83,6 @@ How the plugin is built, tested and released is in [CONTRIBUTING.md](CONTRIBUTIN
 
 ## License
 
-[MIT](../../LICENSE) © Miragon GmbH
+[MIT](LICENSE) © Miragon GmbH. The plugin folder ships `LICENSE` and
+[THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt), the licences of the works of others it
+bundles.

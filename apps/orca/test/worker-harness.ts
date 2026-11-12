@@ -42,7 +42,17 @@ export class WorkerHarness {
     return harness
   }
 
+  static async withFormerProject(profiles: object = PROFILES): Promise<WorkerHarness> {
+    const harness = await WorkerHarness.empty()
+    await writeFile(harness.formerProjectFile, JSON.stringify({ profiles }))
+    return harness
+  }
+
   get projectFile(): string {
+    return join(this.root, ".pulse.json")
+  }
+
+  get formerProjectFile(): string {
     return join(this.root, ".pulse-cli.json")
   }
 

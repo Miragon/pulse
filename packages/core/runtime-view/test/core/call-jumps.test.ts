@@ -4,8 +4,8 @@ import {
   type CalledInstance,
   type InstanceDetail,
   type ProcessRuntime,
-} from "../../src/contract/index.js"
-import { PatchedRuntime } from "../../src/contract/fake/index.js"
+} from "@miragon/pulse-engine-core"
+import { PatchedRuntime } from "@miragon/pulse-engine-core/testing"
 import { describe, expect, test } from "vitest"
 import { DefinitionPanel } from "../../src/core/panels/definition-panel.js"
 import { InstancePanel } from "../../src/core/panels/instance-panel.js"

@@ -1,0 +1,49 @@
+{
+  "case": "missing-resource",
+  "config": {
+    "ENGINE_BASE_URL": "http://127.0.0.1:<port>/engine-rest"
+  },
+  "probes": [
+    {
+      "arguments": {
+        "processInstanceId": "pi-1"
+      },
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "[NOT_FOUND] Process instance pi-1 does not exist, neither running nor in the history (engine default). If the engine's history level is none, ended instances cannot be found."
+            ],
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "sent": [
+        "GET /engine-rest/history/process-instance/pi-1",
+        "GET /engine-rest/process-instance/pi-1"
+      ],
+      "tool": "engine_inspect_process_instance"
+    },
+    {
+      "arguments": {
+        "processInstanceId": "pi-1"
+      },
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "[404 InvalidRequestException] Process instance with id pi-1 does not exist (engine default)"
+            ],
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "sent": [
+        "GET /engine-rest/process-instance/pi-1/variables?deserializeValues=false"
+      ],
+      "tool": "engine_get_process_instance_variables"
+    }
+  ]
+}

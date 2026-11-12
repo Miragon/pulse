@@ -4,7 +4,7 @@
  * stays a thin view over them.
  */
 
-import { resolveTone } from "./tone-utils.js"
+import { resolveTone } from "../tones/index.js"
 
 /** Status tone of a toast: the four status roles (`--success` … `--info`). */
 export type ToastTone = "success" | "warning" | "danger" | "info"

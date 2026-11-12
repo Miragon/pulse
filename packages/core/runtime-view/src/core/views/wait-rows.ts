@@ -1,4 +1,4 @@
-import type { InstanceDetail, WaitState } from "../../contract/index.js"
+import type { InstanceDetail, WaitState } from "@miragon/pulse-engine-core"
 import type { WaitRow } from "../protocol/index.js"
 import type { CalledInstanceLinks } from "./called-instance-links.js"
 import { Labels } from "./labels.js"

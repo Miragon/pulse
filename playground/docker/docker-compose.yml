@@ -1,14 +1,13 @@
 # Local demo stack: LOOPBACK-ONLY BY DESIGN. Every published port binds to
 # 127.0.0.1: the engine REST API accepts anonymous requests (anyone who reaches
-# it can deploy and start processes), Grafana runs as anonymous Admin, and
-# Keycloak and the OTEL Collector use demo-grade credentials or none.
+# it can deploy and start processes), and Keycloak uses demo-grade credentials.
 # Don't drop the 127.0.0.1: prefixes to reach the stack from another machine;
-# tunnel instead, e.g. `ssh -L 8400:127.0.0.1:8400 -L 8470:127.0.0.1:8470 <host>`.
+# tunnel instead, e.g. `ssh -L 8400:127.0.0.1:8400 -L 8410:127.0.0.1:8410 <host>`.
 name: pulse
 
 services:
-  # Default: custom-built CIB seven with the Micrometer metrics plugin.
-  # Identifies itself as `prod-a` via the `engine_id` metric tag.
+  # Default: custom-built CIB seven (../cibseven-example), seeded and with live
+  # traffic; the server knows it as `prod-a`.
   cibseven:
     build:
       context: ../cibseven-example
@@ -17,18 +16,9 @@ services:
       - "127.0.0.1:8410:8410"
     environment:
       - SPRING_PROFILES_ACTIVE=seed-presentation
-      - METRICS_ENABLED=true
-      - ENGINE_ID=prod-a
-      # Continuous real-time traffic so the metric-first analytics populate
-      # out of the box (set false to rely on the backdated seed only).
+      # Continuous real-time traffic so the cockpit moves out of the box (set
+      # false to rely on the backdated seed only).
       - LIVE_TRAFFIC_ENABLED=true
-      # Micrometer's OTLP registry pushes here (application.yml appends
-      # /v1/metrics); OTEL_SERVICE_NAME it honors natively.
-      - OTEL_SERVICE_NAME=cibseven-engine-a
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
-    depends_on:
-      otel-collector:
-        condition: service_started
     healthcheck:
       # The temurin JRE image ships no curl; probe the engine REST API with
       # bash's /dev/tcp instead (same pattern as the keycloak check below).
@@ -42,7 +32,7 @@ services:
       retries: 12
       start_period: 30s
 
-  # Second engine on port 8411, identifying as `prod-b`. Opt-in via the
+  # Second engine on port 8411, `prod-b` to the server. Opt-in via the
   # `multi-engine` profile so the default `docker compose up` keeps the existing
   # single-engine setup unchanged.
   # Use: docker compose --profile multi-engine up -d
@@ -55,14 +45,7 @@ services:
       - "127.0.0.1:8411:8410"
     environment:
       - SPRING_PROFILES_ACTIVE=seed-presentation
-      - METRICS_ENABLED=true
-      - ENGINE_ID=prod-b
       - LIVE_TRAFFIC_ENABLED=true
-      - OTEL_SERVICE_NAME=cibseven-engine-b
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
-    depends_on:
-      otel-collector:
-        condition: service_started
     healthcheck:
       # The temurin JRE image ships no curl; probe the engine REST API with
       # bash's /dev/tcp instead (same pattern as the keycloak check below).
@@ -77,7 +60,7 @@ services:
       start_period: 30s
 
   # Dev: CIB seven Run, the vendor's public image at an exact tag (Dependabot's docker-compose
-  # entry for this file moves it); no custom build, no metrics. It publishes the default
+  # entry for this file moves it); no custom build, no seed. It publishes the default
   # engine's port 8410, so it runs instead of that engine: `--profile dev up` alone starts
   # both, and the second fails to bind. Use, from the repo root with the stack down
   # (`pnpm stack:down` stops it too):
@@ -90,7 +73,7 @@ services:
     environment:
       # The REST API takes anonymous requests, like the default engine's: Run's default.yml
       # turns auth on with `authentication: pseudo`, which lets every request in, whatever its
-      # credentials. So .pulse-cli.json's `local` profile (no auth) reaches it, and so does the
+      # credentials. So .pulse.json's `local` profile (no auth) reaches it, and so does the
       # demo/demo login .env.example sends. demo/demo is also the web app's login.
       # Without the invoice example: it sets the engine clock back while it seeds itself,
       # after the REST API already answers, so data created then gets rewound timestamps.
@@ -102,57 +85,6 @@ services:
       timeout: 5s
       retries: 12
       start_period: 30s
-
-  # OpenTelemetry Collector: receives OTLP pushed by the engines' Micrometer
-  # OTLP registry, serves process metrics for Prometheus to scrape (:9464).
-  # Sole export path of the metric-first analytics stack.
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.164.0
-    command: ["--config=/etc/otel-collector-config.yaml"]
-    environment:
-      - DEPLOY_ENV=docker-local
-    volumes:
-      - ./otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
-    ports:
-      - "127.0.0.1:8430:4317" # OTLP gRPC
-      - "127.0.0.1:8431:4318" # OTLP HTTP
-      - "127.0.0.1:8450:8888" # Collector's own telemetry
-      - "127.0.0.1:8451:9464" # Prometheus exporter (process metrics)
-
-  # Prometheus: scrapes the Collector's process metrics.
-  prometheus:
-    image: prom/prometheus:v3.15.1
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.retention.time=30d"
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
-      - prometheus-data:/prometheus
-    ports:
-      - "127.0.0.1:8460:9090" # Prometheus UI
-    depends_on:
-      - otel-collector
-
-  # Grafana: process-analytics dashboards over Prometheus. Anonymous admin so
-  # the demo opens straight onto the provisioned dashboards. Grafana 13 warns that
-  # auth.anonymous.org_role is deprecated with only Viewer supported, yet 13.3.0
-  # still grants the anonymous Admin.
-  grafana:
-    image: grafana/grafana:13.3.0
-    volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
-    environment:
-      - PROMETHEUS_URL=http://prometheus:9090
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-      - GF_AUTH_DISABLE_LOGIN_FORM=true
-      - GF_USERS_DEFAULT_THEME=light
-    ports:
-      - "127.0.0.1:8470:3000" # Grafana UI
-    depends_on:
-      - prometheus
 
   # Keycloak: the local IdP for the server's opt-in OAuth
   # (MCP_OAUTH_KEYCLOAK_SERVER_URL and MCP_OAUTH_KEYCLOAK_REALM; the
@@ -219,26 +151,23 @@ services:
       - "127.0.0.1:8400:8400"
     environment:
       - PORT=8400
-      # No OAuth provider and no toolset suffix ⇒ every module boots READ-ONLY (the
-      # boot log names the effective toolsets). To exercise write paths, name
-      # the toolsets explicitly, e.g. add
-      #   - MCP_ACTIVE_MODULES=engine:operations,analytics
+      # No OAuth provider and no toolset suffix ⇒ the engine module boots
+      # READ-ONLY (the boot log names the effective toolsets). To exercise write
+      # paths, name the toolset explicitly, e.g. add
+      #   - MCP_ACTIVE_MODULES=engine:operations
       # (engine:admin for delete/modify/migrations/signals; deployments also
       # need ENGINE_ALLOW_DEPLOYMENTS=true). Safe here only because the port is
       # bound to 127.0.0.1; never widen an unauthenticated server reachable
       # from a network.
-      # Pass either a single ENGINE_BASE_URL (single engine) OR
-      # ENGINES_JSON with a list. Below: single-engine default; for
-      # multi-engine override by exporting ENGINES_JSON in the host
-      # shell before `docker compose up`, or by overriding via a compose
-      # override file.
+      # One engine: ENGINE_BASE_URL and its siblings below, which the
+      # server makes its one profile. Several: a profile file in ENGINES_JSON
+      # instead of them (the boot names each one left set as ignored), set
+      # here or in a compose override file (the service passes no variable of
+      # the host shell through), its secrets in ENGINE_SECRET_* variables:
+      #   - 'ENGINES_JSON={"profiles":{"prod-a":{"url":"http://cibseven:8410/engine-rest","flavor":"cibseven","cockpitUrl":"http://localhost:8410/webapp","auth":{"type":"basic","username":"demo","passwordEnv":"ENGINE_SECRET_DEMO_PASSWORD"}},"prod-b":{"url":"http://cibseven-b:8410/engine-rest","flavor":"cibseven","cockpitUrl":"http://localhost:8411/webapp","auth":{"type":"basic","username":"demo","passwordEnv":"ENGINE_SECRET_DEMO_PASSWORD"}}}}'
+      #   - ENGINE_SECRET_DEMO_PASSWORD=demo
       - ENGINE_BASE_URL=http://cibseven:8410/engine-rest
-      # Must stay in sync with the cibseven service's ENGINE_ID: that value is
-      # the `engine_id` metric label every analytics query is scoped to. A
-      # mismatch is silent: all analytics for the engine come back empty and its
-      # health reads `unknown`.
-      # Analytics reads only the configured engines, so this single-engine
-      # default leaves prod-b's metrics out until ENGINES_JSON lists it.
+      # The id the server knows the engine by.
       - ENGINE_ID=prod-a
       # The engine is CIB seven: without the flavor the server takes it for
       # Camunda 7 and puts Camunda 7 routes on the /webapp cockpit below.
@@ -247,12 +176,9 @@ services:
       - ENGINE_AUTH_TYPE=basic
       - ENGINE_USERNAME=demo
       - ENGINE_PASSWORD=demo
-      - PROMETHEUS_URL=http://prometheus:9090
     depends_on:
       cibseven:
         condition: service_healthy
-      prometheus:
-        condition: service_started
     healthcheck:
       # Readiness over HTTP (the server's /health/ready; mirrors the Dockerfile
       # HEALTHCHECK); the image ships no curl, Node's global fetch does the probe.
@@ -267,6 +193,3 @@ services:
       timeout: 3s
       retries: 6
       start_period: 15s
-
-volumes:
-  prometheus-data:

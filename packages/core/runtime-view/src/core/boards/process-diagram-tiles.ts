@@ -1,4 +1,4 @@
-import type { DefinitionSummary } from "../../contract/index.js"
+import type { DefinitionSummary } from "@miragon/pulse-engine-core"
 import type { BoardDiagram, ProcessDiagramTile } from "../protocol/index.js"
 import { ElementBadges } from "../views/element-badges.js"
 import type { ProcessDiagramWidget } from "./board-definition.js"

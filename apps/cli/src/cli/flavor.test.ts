@@ -23,6 +23,23 @@ describe("selectEngine", () => {
     expect(await engineOf(["ping"], { PULSE_CLI_PROFILE: "other" })).toBe("cibseven")
   })
 
+  it("takes no profile's flavor for a --url alone, a profile's for config set's --url", async () => {
+    expect(await engineOf(["ping", "--url", "http://x"])).toBe("camunda7")
+    expect(await engineOf(["ping", "--url", "http://x"], { PULSE_CLI_PROFILE: "other" })).toBe(
+      "camunda7",
+    )
+    expect(await engineOf(["ping", "--url", "http://x", "--profile", "other"])).toBe("cibseven")
+    expect(await engineOf(["config", "set", "p", "--url", "http://x"])).toBe("operaton")
+  })
+
+  it("takes no profile's flavor for PULSE_CLI_URL alone, nor for an empty one", async () => {
+    const env = { PULSE_CLI_URL: "http://x" }
+    expect(await engineOf(["ping"], env)).toBe("camunda7")
+    expect(await engineOf(["ping"], { ...env, PULSE_CLI_PROFILE: "other" })).toBe("camunda7")
+    expect(await engineOf(["ping", "--profile", "other"], env)).toBe("cibseven")
+    expect(await engineOf(["ping"], { PULSE_CLI_URL: "" })).toBe("operaton")
+  })
+
   it("uses camunda7 without a flavor and when the config cannot be read", async () => {
     expect((await selectEngine(["ping"], fakeRuntime())).name).toBe("camunda7")
     expect(await engineOf(["ping", "--profile", "missing"])).toBe("camunda7")
@@ -53,7 +70,8 @@ describe("platform, the name of flavor before the move to Pulse", () => {
     expect(JSON.parse(result.stderr)).toMatchObject({
       error: {
         code: "CONFIG",
-        message: `Invalid config file ${CONFIG_PATH}: unknown key(s) platform in profile "p" (allowed: url, cockpitUrl, engine, flavor, auth, output, timeout, headers, readOnly)`,
+        message: 'Profile "p" of your config file cannot be used: platform is no key of a profile.',
+        hint: "Remove it with `pulse config unset p platform`, or fix its spelling in the file.",
       },
     })
   })

@@ -1,6 +1,7 @@
 import { z } from "zod"
 import {
   activityIncidentsFilterShape,
+  activityStatisticsShape,
   clusterDetailFilterShape,
   incidentsDashboardFilterShape,
   instanceSearchShape,
@@ -11,6 +12,7 @@ import type { ResolvedEngine } from "../lib/engine/resolve-engine.js"
 import { pagingShape } from "../schemas/index.js"
 import {
   ENGINE_ACTIVITY_INCIDENTS_DATA,
+  ENGINE_ACTIVITY_STATISTICS_DATA,
   ENGINE_BPMN_XML_DATA,
   ENGINE_CLUSTER_DETAIL_DATA,
   ENGINE_COCKPIT_OVERVIEW_DATA,
@@ -19,11 +21,16 @@ import {
   ENGINE_INCIDENT_DETAIL_DATA,
   ENGINE_INCIDENTS_DATA,
   ENGINE_INSTANCE_DETAIL_DATA,
+  ENGINE_JOB_BACKLOG_DATA,
   ENGINE_JOBS_DATA,
   ENGINE_PROCESS_INCIDENTS_DATA,
   ENGINE_PROCESS_INSTANCES_DATA,
 } from "../tool-names.js"
 import { HISTORY_PAGE_SIZE } from "../view-models.js"
+import {
+  buildActivityStatisticsData,
+  type ActivityStatisticsFeedData,
+} from "./activity-statistics-data.js"
 import { buildClusterDetailData } from "./cluster-detail-data.js"
 import {
   buildCockpitDashboardData,
@@ -31,12 +38,13 @@ import {
   buildProcessInstancesData,
 } from "./cockpit-data.js"
 import { fetchDefinitionXml } from "./definition-info.js"
-import type { VerdictThresholds } from "@miragon/pulse-engine-core"
+import type { VerdictThresholds } from "@miragon/pulse-c7-core"
 import { buildEngineHealthData } from "./health-data.js"
 import { buildHistoryTimelineData } from "./history-timeline-data.js"
 import { buildIncidentDetailData } from "./incident-detail-data.js"
 import { buildIncidentsDashboardData } from "./incidents-dashboard-data.js"
 import { buildInstanceDetailData } from "./instance-detail-data.js"
+import { buildJobBacklogData } from "./job-backlog-data.js"
 import { buildActivityIncidentsData, buildProcessIncidentsData } from "./process-incidents-data.js"
 
 /**
@@ -154,6 +162,18 @@ export const jobsFeed = dataFeed({
 
 // The feeds below add `engineId` to their builder's result.
 
+const jobBacklogFeed = dataFeed({
+  name: ENGINE_JOB_BACKLOG_DATA,
+  title: "Job backlog data (internal)",
+  description:
+    "Internal JSON feed (no UI) for the cross-engine overview: one engine's executable, suspended and later-due jobs and its external tasks. Prefer engine_open_cockpit.",
+  shape: {},
+  read: async (_, { client, engineId }) => ({
+    ...(await buildJobBacklogData(client)),
+    engineId,
+  }),
+})
+
 export const incidentsFeed = dataFeed({
   name: ENGINE_INCIDENTS_DATA,
   title: "Incidents dashboard data (internal)",
@@ -190,6 +210,18 @@ const activityIncidentsFeed = dataFeed({
   }),
 })
 
+const activityStatisticsFeed = dataFeed({
+  name: ENGINE_ACTIVITY_STATISTICS_DATA,
+  title: "Activity statistics data (internal)",
+  description:
+    "Internal JSON feed (no UI) for the process flow: what runs at each element of a process now, or what the instances started in the last 30 days passed there, over every deployed version. Prefer engine_open_cockpit.",
+  shape: activityStatisticsShape,
+  read: async (args, { client, engineId }): Promise<ActivityStatisticsFeedData> => ({
+    ...(await buildActivityStatisticsData(client, args)),
+    engineId,
+  }),
+})
+
 export const incidentDetailFeed = dataFeed({
   name: ENGINE_INCIDENT_DETAIL_DATA,
   title: "Incident detail data (internal)",
@@ -212,8 +244,10 @@ export const DATA_FEEDS: readonly DataFeed[] = [
   instanceDetailFeed,
   historyTimelineFeed,
   jobsFeed,
+  jobBacklogFeed,
   incidentsFeed,
   processIncidentsFeed,
   activityIncidentsFeed,
+  activityStatisticsFeed,
   incidentDetailFeed,
 ]

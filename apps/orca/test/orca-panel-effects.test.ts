@@ -4,7 +4,7 @@ import {
   DefinitionId,
   InstanceId,
   type InstanceSummary,
-} from "@miragon/pulse-runtime-view/contract"
+} from "@miragon/pulse-engine-core"
 import type { MigrationTarget } from "@miragon/pulse-runtime-view/core"
 import { type Connection, LOCAL_TARGET, WriteAudit } from "@miragon/pulse-runtime-view/host-kit"
 import type { EffectsHost } from "../src/worker/effects-host.js"

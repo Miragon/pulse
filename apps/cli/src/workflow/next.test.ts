@@ -1,8 +1,8 @@
 /** nextCommands and its details (next.ts). */
 
 import { describe, expect, it } from "vitest"
-import { isAdvanceable, type InstanceView } from "@miragon/pulse-engine-core"
-import { nextSteps } from "@miragon/pulse-engine-core/testing"
+import { isAdvanceable, type InstanceView } from "@miragon/pulse-c7-core"
+import { nextSteps } from "@miragon/pulse-c7-core/testing"
 import { nextCommand } from "./next-text.js"
 
 type NextInput = Pick<InstanceView, "id" | "state" | "waitingAt" | "incidents">

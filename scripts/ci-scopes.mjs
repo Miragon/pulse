@@ -20,7 +20,6 @@ export const SCOPES = [
   "vscode",
   "vscode-package",
   "orca",
-  "kotlin",
   "cibseven-example",
   "brand",
 ]
@@ -33,7 +32,12 @@ const PACKAGE_CODE = /(?:^|\/)(?:src|test|test-host|dev|scripts)\//
 /** Paths outside the packages; first match wins, no match runs everything. */
 export const PATH_RULES = [
   { pattern: /^(?:\.github\/workflows\/ci\.yml$|\.github\/actions\/|scripts\/)/, scopes: SCOPES },
-  // Checked by lint:github only.
+  // Checked by lint:github, and licence tests read workflows: the CLI's release licence test
+  // publish-cli.yml (apps/cli/scripts/release-licenses.test.ts), the server image's licence test
+  // docker-build.yml (apps/mcp-server/test/third-party-licenses.test.ts), Pulse for VS Code's
+  // publish-vscode-extension.yml (apps/vscode/test/architecture/third-party-licenses.test.ts),
+  // Pulse for Orca's publish-orca-plugin.yml (apps/orca/test/third-party-licenses.test.ts): this
+  // scope runs them.
   { pattern: /^\.github\//, scopes: ["typescript"] },
   // Read by the CLI's tests and bundled into the CLI as its guide topics.
   { pattern: /^docs\/cli\//, scopes: ["typescript", "brand", "cli"] },
@@ -50,14 +54,15 @@ export const PATH_RULES = [
   { pattern: /^\.env\.example$/, scopes: ["typescript"] },
   { pattern: /^README\.md$/, scopes: ["brand"] },
   { pattern: /^[^/]+\.md$/, scopes: [] },
+  // Read by pulse-ui's token tests (cd-tokens.test.ts, token-drift.test.ts); CI checks the sums too.
+  { pattern: /^\.miragon\/brand-assets\.(?:yaml|sha256)$/, scopes: ["brand", "typescript"] },
   { pattern: /^\.miragon\//, scopes: ["brand"] },
   { pattern: /^\.claude\//, scopes: [] },
   { pattern: /^\.claude-plugin\//, scopes: ["cli"] },
   // The shared editor settings: only the always-on format check reads them.
   { pattern: /^\.vscode\//, scopes: [] },
-  { pattern: /^engine-plugins\//, scopes: ["kotlin"] },
   { pattern: /^playground\/cibseven-example\//, scopes: ["cibseven-example"] },
-  // Read by the metrics contract tests.
+  // Read by scripts/local-env.test.mjs (the Compose file).
   { pattern: /^playground\/docker\//, scopes: ["typescript"] },
   { pattern: /^playground\//, scopes: [] },
   // The starter's try-out engine: its own job starts it; the template's format check reads it.
@@ -77,11 +82,18 @@ export const PATH_RULES = [
 
 /** Package files that checks outside the package read too. */
 export const ALSO_READ_BY = [
-  {
-    pattern: /^packages\/connectors\/analytics\/analytics-client\/metrics-contract\.json$/,
-    scopes: ["kotlin"],
-  },
   { pattern: /^apps\/cli\/README\.md$/, scopes: ["brand"] },
+  // The docs package's manifest: the CLI bundles pages of it, so its licence test reads its
+  // name and licence.
+  { pattern: /^docs\/package\.json$/, scopes: ["cli", "typescript"] },
+  // The one Camunda 7 REST spec, its patches and its route table, read as files: c7-client's
+  // generate (the SDK, which the MCP server and the template build on) and the CLI's catalog
+  // test read the patched spec c7-core's generate writes from them, and the licence tests of the
+  // CLI and of c7-client the spec's info, texts, LICENSE and NOTICE.
+  {
+    pattern: /^packages\/connectors\/c7\/c7-core\/(?:spec\/|src\/generated\/routes\.json$)/,
+    scopes: ["cli", "mcp", "template", "typescript"],
+  },
 ]
 
 export function packageScopes(dir) {

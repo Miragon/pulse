@@ -1,4 +1,4 @@
-import type { ElementStatistics } from "../../contract/index.js"
+import type { ElementStatistics } from "@miragon/pulse-engine-core"
 import { BpmnStructure } from "../bpmn/bpmn-structure.js"
 import type { ElementBadge } from "../protocol/index.js"
 import { SubProcessRollUp } from "./sub-process-roll-up.js"

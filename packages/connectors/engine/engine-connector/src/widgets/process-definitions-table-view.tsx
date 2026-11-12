@@ -7,9 +7,10 @@ import {
   CountPill,
   TONE_DOT,
   cn,
+  countTone,
   type ToneVariant,
 } from "@miragon/pulse-ui"
-import { ListTable, countTone, type ListTableColumn } from "@miragon/pulse-widget-shell/widgets"
+import { ListTable, type ListTableColumn } from "@miragon/pulse-widget-shell/widgets"
 import { useT } from "../messages/use-t.js"
 
 // One row per deployed definition key: its counts span every version.

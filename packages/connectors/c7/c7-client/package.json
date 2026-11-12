@@ -1,0 +1,70 @@
+{
+  "name": "@miragon/pulse-c7-client",
+  "version": "0.27.1",
+  "description": "The SDK of the Camunda 7 REST dialect family (Operaton, CIB seven, Camunda 7): the generated REST SDK, its client over the fetch you hand it, and the reads whose REST contract the SDK defaults miss.",
+  "license": "MIT",
+  "keywords": [
+    "camunda",
+    "camunda7",
+    "cib-seven",
+    "bpmn",
+    "rest-client",
+    "sdk"
+  ],
+  "homepage": "https://github.com/Miragon/pulse/tree/main/packages/connectors/c7/c7-client#readme",
+  "bugs": "https://github.com/Miragon/pulse/issues",
+  "engines": {
+    "node": ">=22"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Miragon/pulse.git",
+    "directory": "packages/connectors/c7/c7-client"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.test.*",
+    "!dist/**/*.test-support.*",
+    "!dist/**/test-support",
+    "THIRD_PARTY_LICENSES.txt",
+    "src",
+    "!src/**/*.test.*",
+    "!src/**/*.test-support.*",
+    "!src/**/test-support",
+    "!src/**/tsconfig.json"
+  ],
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./sdk": {
+      "types": "./dist/generated/sdk.gen.d.ts",
+      "import": "./dist/generated/sdk.gen.js"
+    },
+    "./types": {
+      "types": "./dist/generated/types.gen.d.ts",
+      "import": "./dist/generated/types.gen.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "third-party-licenses": "THIRD_PARTY_LICENSES_UPDATE=1 vitest run test/third-party-licenses.test.ts --coverage.enabled=false",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
+    "lint": "eslint src test",
+    "lint:fix": "eslint src test --fix",
+    "generate": "openapi-ts"
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "0.99.0",
+    "typescript": "6.0.3",
+    "vitest": "5.1.0"
+  }
+}

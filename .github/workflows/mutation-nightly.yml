@@ -4,8 +4,12 @@ name: Mutation (nightly)
 # package's whole `mutate` allowlist, and the only mutation testing CI runs (owner decision): no
 # pull request runs Stryker, and this run is no required check. A red leg means the package
 # scores below its thresholds.break. Only the packages in MUTATED_PACKAGES
-# (scripts/check-package-scripts.mjs) carry a config, today engine-core alone (owner decision,
-# 2026-11-04).
+# (scripts/check-package-scripts.mjs) carry a config: the Camunda 7 REST family's core,
+# @miragon/pulse-c7-core (engine-core until 0.27; owner decision, 2026-11-04), the transport,
+# @miragon/pulse-http (owner decision 2026-11-08), the rules of the engine family's neutral core,
+# @miragon/pulse-engine-core (its root-cause, value-kind and move-reason rules alone; owner
+# decision 2026-11-09), and the profile format, @miragon/pulse-profile (owner decision
+# 2026-11-07).
 #
 # Each leg keeps its package's Stryker incremental file in the Actions cache (every
 # stryker.config.json sets incremental: true and incrementalFile reports/stryker-incremental.json,
@@ -17,9 +21,10 @@ name: Mutation (nightly)
 # the Node major, so a change there starts the package cold.
 #
 # Nightly at 02:00 UTC, and by dispatch. Mutation testing resumed on 2026-11-04 after the MCP
-# server rebuild, for engine-core alone. A pause flips scripts/mutation-pause.mjs to true and
-# removes the schedule here (a workflow cannot read that switch); resuming flips it back and
-# restores the schedule.
+# server rebuild, for engine-core (now c7-core) alone; the transport joined with its package, the
+# neutral core's rules and the profile format on 2026-11-09. A pause flips
+# scripts/mutation-pause.mjs to true and removes the schedule here (a workflow cannot read that
+# switch); resuming flips it back and restores the schedule.
 on:
   schedule:
     - cron: "0 2 * * *"
@@ -70,9 +75,13 @@ jobs:
     if: ${{ needs.packages.outputs.packages != '[]' }}
     runs-on: ubuntu-latest
     # A cold or forced run of a package mutates its whole allowlist; the other nights re-run only
-    # what changed. engine-core runs cold in about 2 min on 8 local workers, so 30 min leaves room
-    # for a hosted runner's 4 and the build before it. A package that joins MUTATED_PACKAGES
-    # brings its own measured time here.
+    # what changed. c7-core runs cold in about 2 min on 8 local workers, the transport
+    # (packages/core/http with its OAuth client ./oauth, about 2,550 mutants, its conformance
+    # cases on loopback sockets included) in about 2 min on 17, the neutral core's three rule
+    # files (packages/connectors/engine/engine-core, 115 mutants) in about 10 s on 17 and 15 s
+    # on 4, the profile format (packages/core/profile, 1,168 mutants) in about 3 min on 4 local
+    # workers, so 30 min leaves room for a hosted runner's 4 and the build before it. A package
+    # that joins MUTATED_PACKAGES brings its own measured time here.
     timeout-minutes: 30
     strategy:
       fail-fast: false

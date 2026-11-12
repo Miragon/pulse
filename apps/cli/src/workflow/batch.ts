@@ -14,7 +14,7 @@ import {
   records,
   str,
   type Waited,
-} from "@miragon/pulse-engine-core"
+} from "@miragon/pulse-c7-core"
 import type { EnginePort, PlannedRequest } from "../engine-port/engine-port.js"
 import { PulseCliError } from "../errors.js"
 import { compact } from "../util.js"

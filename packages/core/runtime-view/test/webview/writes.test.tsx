@@ -3,7 +3,14 @@ import type { WebviewIntent } from "../../src/core/protocol/index.js"
 import { FIXTURES } from "../../dev/webview/fixtures/states.js"
 import { WRITABLE_INCIDENT_ID, WRITABLE_INSTANCE } from "../../dev/webview/fixtures/writable.js"
 import { JsonText } from "../../src/webview/format/json-text.js"
-import { buttonNamed, mountApp, nextFrame, waitForElement, type Harness } from "./harness.js"
+import {
+  buttonNamed,
+  colourOfVariable,
+  mountApp,
+  nextFrame,
+  waitForElement,
+  type Harness,
+} from "./harness.js"
 
 const VARIABLES_TAB = "Variables8"
 
@@ -171,9 +178,12 @@ describe("writing from the instance screen", () => {
     })
     const error = await waitForElement(harness.root, ".variable-editor__error")
     expect(error.textContent).toBe("local refused the change.")
-    expect(harness.root.querySelector<HTMLTextAreaElement>(".variable-editor__field")?.value).toBe(
-      "99.5",
-    )
+    expect(harness.root.querySelector<HTMLTextAreaElement>(".variable-editor__field")).toBe(field)
+    expect(field.value).toBe("99.5")
+    expect(field.hasAttribute("aria-invalid")).toBe(false)
+    expect(field.hasAttribute("aria-describedby")).toBe(false)
+    expect(getComputedStyle(field).borderTopColor).toBe(colourOfVariable("--cd-ui-linie"))
+    expect(getComputedStyle(field).borderTopColor).not.toBe(colourOfVariable("--cd-ui-danger"))
 
     harness.publish({
       status: "ready",

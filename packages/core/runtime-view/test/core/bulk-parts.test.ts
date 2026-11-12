@@ -5,7 +5,7 @@ import {
   IsoTimestamp,
   type BulkOperation,
   type InstanceSummary,
-} from "../../src/contract/index.js"
+} from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
 import { BulkRun, type BulkPlan } from "../../src/core/panels/bulk-run.js"
 import { BULK_CAP, BulkSelection } from "../../src/core/panels/bulk-selection.js"

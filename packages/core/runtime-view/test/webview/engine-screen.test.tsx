@@ -65,7 +65,7 @@ describe("the engine overview", () => {
     expect(order?.querySelector(".danger-count")?.textContent).toBe("9")
     expect(shipment?.querySelector(".danger-count")).toBeNull()
     expect(harness.root.querySelector(".filter-bar__summary")?.textContent).toBe(
-      "3 processes · 1369 running · 10 with incident",
+      "3 processes · 1,369 running · 10 with incident · all versions",
     )
   })
 
@@ -157,9 +157,11 @@ describe("the engine overview", () => {
         detail: "HTTP 401.",
         canEditConnection: true,
         needsCredentials: true,
+        loginRefused: "unauthorized",
       },
     })
     await waitForElement(harness.root, ".status-box")
+    expect(harness.root.querySelector(".freshness")?.textContent).toBe("Credentials rejected")
 
     buttonNamed(harness.root, "Set credentials…").click()
 

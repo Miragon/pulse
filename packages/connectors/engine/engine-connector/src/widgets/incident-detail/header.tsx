@@ -1,4 +1,4 @@
-import { VersionChip, StatusBadge, WidgetHeader } from "@miragon/pulse-ui"
+import { VersionChip, StatusBadge, WidgetHeader, SITUATION_TONES } from "@miragon/pulse-ui"
 import { HandOffButton, OpenInCockpitLink } from "@miragon/pulse-widget-shell/widgets"
 
 import type { IncidentDetailData } from "../../view-models.js"
@@ -48,7 +48,7 @@ export function IncidentDetailHeader({
     <WidgetHeader
       size="detail"
       badge={
-        <StatusBadge tone={resolved ? "neutral" : "danger"}>
+        <StatusBadge tone={resolved ? "neutral" : SITUATION_TONES.openIncident}>
           {resolved ? t("incidentDetail.resolved") : data.incidentType}
         </StatusBadge>
       }

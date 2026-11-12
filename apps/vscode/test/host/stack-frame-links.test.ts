@@ -1,4 +1,4 @@
-import type { ElementImplementation } from "@miragon/pulse-runtime-view/contract"
+import type { ElementImplementation } from "@miragon/pulse-runtime-view/ports"
 import { describe, expect, test, vi } from "vitest"
 import { StackFrameLinks } from "../../src/host/panels/stack-frame-links.js"
 

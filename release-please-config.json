@@ -12,7 +12,6 @@
       "include-component-in-tag": false,
       "changelog-path": "CHANGELOG.md",
       "extra-files": [
-        { "type": "generic", "path": "engine-plugins/gradle.properties" },
         { "type": "json", "path": "package.json", "jsonpath": "$.version" },
         {
           "type": "json",
@@ -29,26 +28,31 @@
         },
         {
           "type": "json",
-          "path": "packages/connectors/engine/engine-adapter/package.json",
+          "path": "packages/connectors/c7/c7-adapter/package.json",
           "jsonpath": "$.version"
         },
         {
           "type": "json",
-          "path": "packages/connectors/engine/engine-client/package.json",
+          "path": "packages/connectors/c7/c7-client/package.json",
           "jsonpath": "$.version"
         },
         {
           "type": "generic",
-          "path": "packages/connectors/engine/engine-client/src/hey-api.ts"
+          "path": "packages/connectors/c7/c7-client/src/hey-api.ts"
         },
         {
           "type": "json",
-          "path": "packages/connectors/analytics/analytics-client/package.json",
+          "path": "packages/connectors/c7/c7-core/package.json",
           "jsonpath": "$.version"
         },
         {
           "type": "json",
-          "path": "packages/connectors/engine/engine-core/package.json",
+          "path": "packages/core/profile/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "packages/core/http/package.json",
           "jsonpath": "$.version"
         },
         {
@@ -68,13 +72,8 @@
         },
         {
           "type": "json",
-          "path": "packages/connectors/analytics/analytics-connector/package.json",
+          "path": "packages/connectors/engine/engine-core/package.json",
           "jsonpath": "$.version"
-        },
-        {
-          "type": "json",
-          "path": "templates/composed-server/server/package.json",
-          "jsonpath": "$.dependencies['@miragon/pulse-analytics-connector']"
         },
         {
           "type": "json",

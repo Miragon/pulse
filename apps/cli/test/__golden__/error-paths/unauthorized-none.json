@@ -1,0 +1,66 @@
+{
+  "case": "unauthorized-none",
+  "config": {
+    "PULSE_CLI_URL": "http://127.0.0.1:<port>/engine-rest"
+  },
+  "probes": [
+    {
+      "argv": [
+        "process-instance",
+        "get",
+        "pi-1"
+      ],
+      "exitCode": 4,
+      "sent": [
+        "GET /engine-rest/process-instance/pi-1"
+      ],
+      "stderrLines": [
+        "{\"error\":{\"code\":\"UNAUTHORIZED\",\"exitCode\":4,\"message\":\"HTTP 401 Unauthorized\",\"status\":401,\"hint\":\"The engine requires authentication and pulse sent no credentials. Use Basic auth: --auth basic --auth-user <name> with the password piped into --auth-password-stdin, PULSE_CLI_USERNAME and PULSE_CLI_PASSWORD, or a profile: `pulse config set <profile> --auth basic --auth-user <name> --auth-password-env <VAR>`. OAuth: `pulse config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>`, then `pulse auth login --profile <profile>` in a terminal. A token from elsewhere (SSO tooling, a CI secret): --auth bearer with PULSE_CLI_TOKEN or --auth-token-stdin.\",\"request\":{\"method\":\"GET\",\"url\":\"http://127.0.0.1:<port>/engine-rest/process-instance/pi-1\"}}}",
+        ""
+      ],
+      "stdoutLines": [
+        ""
+      ]
+    },
+    {
+      "argv": [
+        "process-instance",
+        "get",
+        "pi-1",
+        "-o",
+        "table"
+      ],
+      "exitCode": 4,
+      "sent": [
+        "GET /engine-rest/process-instance/pi-1"
+      ],
+      "stderrLines": [
+        "Error: HTTP 401 Unauthorized",
+        "  Request: GET http://127.0.0.1:<port>/engine-rest/process-instance/pi-1",
+        "  Hint: The engine requires authentication and pulse sent no credentials. Use Basic auth: --auth basic --auth-user <name> with the password piped into --auth-password-stdin, PULSE_CLI_USERNAME and PULSE_CLI_PASSWORD, or a profile: `pulse config set <profile> --auth basic --auth-user <name> --auth-password-env <VAR>`. OAuth: `pulse config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>`, then `pulse auth login --profile <profile>` in a terminal. A token from elsewhere (SSO tooling, a CI secret): --auth bearer with PULSE_CLI_TOKEN or --auth-token-stdin.",
+        ""
+      ],
+      "stdoutLines": [
+        ""
+      ]
+    },
+    {
+      "argv": [
+        "inspect",
+        "pi-1"
+      ],
+      "exitCode": 4,
+      "sent": [
+        "GET /engine-rest/history/process-instance/pi-1",
+        "GET /engine-rest/process-instance/pi-1"
+      ],
+      "stderrLines": [
+        "{\"error\":{\"code\":\"UNAUTHORIZED\",\"exitCode\":4,\"message\":\"HTTP 401 Unauthorized\",\"status\":401,\"hint\":\"The engine requires authentication and pulse sent no credentials. Use Basic auth: --auth basic --auth-user <name> with the password piped into --auth-password-stdin, PULSE_CLI_USERNAME and PULSE_CLI_PASSWORD, or a profile: `pulse config set <profile> --auth basic --auth-user <name> --auth-password-env <VAR>`. OAuth: `pulse config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>`, then `pulse auth login --profile <profile>` in a terminal. A token from elsewhere (SSO tooling, a CI secret): --auth bearer with PULSE_CLI_TOKEN or --auth-token-stdin.\",\"request\":{\"method\":\"GET\",\"url\":\"http://127.0.0.1:<port>/engine-rest/process-instance/pi-1\"}}}",
+        ""
+      ],
+      "stdoutLines": [
+        ""
+      ]
+    }
+  ]
+}

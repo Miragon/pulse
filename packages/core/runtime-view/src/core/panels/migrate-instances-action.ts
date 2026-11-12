@@ -5,7 +5,7 @@ import type {
   InstanceSummary,
   MigrationPlan,
   ProcessCommands,
-} from "../../contract/index.js"
+} from "@miragon/pulse-engine-core"
 import type { BulkKind, ScopeCounts } from "../protocol/index.js"
 import type { BulkAction, BulkWording } from "./bulk-action.js"
 

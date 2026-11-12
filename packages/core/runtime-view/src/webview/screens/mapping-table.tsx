@@ -1,6 +1,8 @@
 import type { MappingRow, MigrationView } from "../../core/protocol/index.js"
 import { Icon } from "../components/icon.js"
 import { glyphs } from "../components/lucide-glyphs.json"
+import { NoValue } from "../components/no-value.js"
+import { CountLabels } from "../format/count-labels.js"
 import { useHost } from "../host/host-context.js"
 
 interface MappingCellProps {
@@ -41,7 +43,7 @@ function TargetSelect({ row, noteId }: MappingCellProps) {
 function NoteCell({ row, noteId }: MappingCellProps) {
   const note = row.problem ?? row.warning
   if (note === undefined) {
-    return <span class="muted">–</span>
+    return <NoValue />
   }
   return (
     <span
@@ -96,16 +98,16 @@ export function MappingTable({ view }: { readonly view: MigrationView }) {
                 </td>
                 <td>
                   {view.target === undefined ? (
-                    <span class="muted">–</span>
+                    <NoValue />
                   ) : (
                     <TargetSelect row={row} noteId={noteId} />
                   )}
                 </td>
                 <td>
                   {row.waiting === undefined ? (
-                    <span class="muted">–</span>
+                    <NoValue />
                   ) : (
-                    `${row.waiting} selected ${row.waiting === 1 ? "waits" : "wait"} here`
+                    `${CountLabels.exact(row.waiting)} selected ${row.waiting === 1 ? "waits" : "wait"} here`
                   )}
                 </td>
                 <td>

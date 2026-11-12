@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "preact/hooks"
+import { useEffect, useId, useRef, useState } from "preact/hooks"
 import type { VariableEditor as EditorKind, VariableRow } from "../../core/protocol/index.js"
 import { useLiveHold } from "../host/live-hold.js"
 import { useSubmission } from "../host/submission.js"
@@ -13,24 +13,42 @@ export interface VariableEditorProps {
   readonly onClose: () => void
 }
 
+interface RefusedInput {
+  readonly errorId: string
+  readonly refusal: number
+}
+
 function ValueInput({
   kind,
   text,
   onText,
+  refused,
 }: {
   readonly kind: InputKind
   readonly text: string
   readonly onText: (text: string) => void
+  readonly refused: RefusedInput | undefined
 }) {
   const field = useRef<HTMLTextAreaElement & HTMLSelectElement>(null)
+  const refusal = refused?.refusal
   useEffect(() => {
     field.current?.focus()
   }, [kind])
+  useEffect(() => {
+    if (refusal !== undefined) {
+      field.current?.focus()
+    }
+  }, [refusal])
+  const validity = {
+    "aria-invalid": refused !== undefined || undefined,
+    "aria-describedby": refused?.errorId,
+  }
   if (kind === "boolean") {
     return (
       <select
         ref={field}
         class="variable-editor__field"
+        {...validity}
         value={text}
         onChange={(event) => {
           onText(event.currentTarget.value)
@@ -45,6 +63,7 @@ function ValueInput({
     <textarea
       ref={field}
       class="variable-editor__field"
+      {...validity}
       rows={Math.min(12, Math.max(1, text.split("\n").length))}
       spellcheck={false}
       placeholder={kind === "date" ? "2026-10-22T10:00:00Z" : undefined}
@@ -164,7 +183,9 @@ export function VariableEditor({ row, editor, shadowedBy, onClose }: VariableEdi
       save()
     }
   }
+  const errorId = useId()
   const failed = state.submission.phase !== "editing" ? state.mine : undefined
+  const refusal = failed?.status === "failed" ? failed.inputRefusal : undefined
   return (
     <div
       class="variable-editor"
@@ -176,7 +197,12 @@ export function VariableEditor({ row, editor, shadowedBy, onClose }: VariableEdi
       }}
     >
       {editor === "any" && <WriteAsPicker kind={state.kind} onKind={state.setKind} />}
-      <ValueInput kind={state.kind} text={state.text} onText={state.setText} />
+      <ValueInput
+        kind={state.kind}
+        text={state.text}
+        onText={state.setText}
+        refused={refusal === undefined ? undefined : { errorId, refusal }}
+      />
       <p class="variable-editor__hint muted">{VariableEditorText.was(row, state.kind)}</p>
       {shadowedBy !== undefined && (
         <p class="variable-editor__warning">
@@ -184,7 +210,7 @@ export function VariableEditor({ row, editor, shadowedBy, onClose }: VariableEdi
         </p>
       )}
       {failed?.status === "failed" && (
-        <p class="variable-editor__error" role="alert">
+        <p key={refusal} id={errorId} class="variable-editor__error" role="alert">
           {failed.message}
         </p>
       )}

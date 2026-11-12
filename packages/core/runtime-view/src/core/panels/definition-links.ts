@@ -1,4 +1,4 @@
-import { ElementId } from "../../contract/index.js"
+import { ElementId } from "@miragon/pulse-engine-core"
 import type { WebviewIntent } from "../protocol/index.js"
 import { CallTargets } from "../views/call-targets.js"
 import type { CallJumps } from "./call-jumps.js"

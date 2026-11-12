@@ -1,13 +1,17 @@
 /**
  * Bearer tokens obtained outside pulse: company SSO tooling, a CI secret, `az
  * account get-access-token`, `gcloud auth print-access-token`. pulse sends `Authorization:
- * Bearer <token>` and nothing else: no login, no refresh, no cache. A JWT whose `exp` lies more
+ * Bearer <token>` (the bearer credential of @miragon/pulse-http, which masks the token in what the
+ * engine sends back) and nothing else: no login, no refresh, no cache. A JWT whose `exp` lies more
  * than 30 s in the past fails before any request with TOKEN_EXPIRED (exit 4); the claims also
  * explain a 401 or 403. Opaque tokens are sent as they are. Never shows the token.
  */
 
+import { bearerCredential, staticToken, type TokenSource } from "@miragon/pulse-http"
+import { isExpired as hasExpired } from "@miragon/pulse-http/oauth"
 import { ENV, type StaticBearerConfig } from "../config/types.js"
 import { PulseCliError } from "../errors.js"
+import { profileToSet } from "../util.js"
 import { isExpired, type JwtClaims, jwtClaims } from "./jwt.js"
 import type { AuthProvider, Principal } from "./types.js"
 
@@ -19,7 +23,7 @@ function iso(epochMs: number): string {
 export function renewal(config: StaticBearerConfig): string {
   if (config.source === "flag") return "pipe it into --auth-token-stdin"
   if (config.variable !== undefined) return `set ${config.variable}`
-  return `set ${ENV.token} (it overrides the stored token) or store it with \`pulse config set ${config.profile ?? "<profile>"} --auth-token-stdin\``
+  return `set ${ENV.token} (it overrides the stored token) or store it with \`pulse config set ${profileToSet(config.profile)} --auth-token-stdin\``
 }
 
 /** The TOKEN_EXPIRED error of a JWT whose `exp` lies more than 30 s in the past. */
@@ -30,9 +34,12 @@ export function tokenExpired(config: StaticBearerConfig, expiresAt: number): Pul
   })
 }
 
-/** True once `exp` has passed (without the 30 s grace of TOKEN_EXPIRED). */
+/**
+ * True once `exp` has passed (without the 30 s grace of TOKEN_EXPIRED), never without an `exp`:
+ * the rule of @miragon/pulse-http/oauth over the claim, where null stands for none.
+ */
 function pastExpiry(claims: Pick<JwtClaims, "expiresAt">, now: number): boolean {
-  return claims.expiresAt !== null && now >= claims.expiresAt
+  return hasExpired({ expiresAt: claims.expiresAt ?? undefined }, now)
 }
 
 /**
@@ -110,12 +117,18 @@ export function bearerAuth(config: StaticBearerConfig, now: () => number): AuthP
       : undefined
   const principal = principalOf(config.origin, claims)
   const next = `fetch a new token (e.g. with your identity provider's CLI) and ${renewal(config)}. pulse sends the token as it is and never refreshes it.`
+  // A fixed token, never renewed (a 401 earns no second attempt), checked for expiry per request.
+  const fixed = staticToken(config.token)
+  const source: TokenSource = {
+    ...fixed,
+    token: () => {
+      const error = expired()
+      return error === undefined ? fixed.token() : Promise.reject(error)
+    },
+  }
   return {
     type: "bearer",
-    headers: () => {
-      const error = expired()
-      return error === undefined ? Promise.resolve(headers) : Promise.reject(error)
-    },
+    credential: bearerCredential(source),
     preview: () => {
       const error = expired()
       if (error === undefined) return Promise.resolve({ headers })

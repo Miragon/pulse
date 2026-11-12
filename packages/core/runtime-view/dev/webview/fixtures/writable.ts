@@ -133,3 +133,25 @@ export const MOVABLE_INSTANCE: InstanceView = {
     },
   ],
 }
+
+const PAYMENT = "Event_PaymentReceived"
+
+export const GATEWAY_CLI_COMMAND = `pulse advance ${INSTANCE_WAITING.instance.id} --activity-id ${PAYMENT} --url http://localhost:8080/engine-rest --auth none`
+
+export const GATEWAY_REFUSAL = `The token waits at the gateway Paid? until one of the events after it occurs; Pulse does not move a token away from an event-based gateway. Trigger Payment received with the CLI: ${GATEWAY_CLI_COMMAND}`
+
+export const GATEWAY_INSTANCE: InstanceView = {
+  ...MOVABLE_INSTANCE,
+  markers: [...MOVABLE_INSTANCE.markers, { elementId: PAYMENT, kind: "waiting" }],
+  waitStates: [
+    ...MOVABLE_INSTANCE.waitStates,
+    {
+      elementId: PAYMENT,
+      elementName: "Payment received",
+      kindLabel: "Message",
+      since: minutesBefore(5),
+      moveRefusal: GATEWAY_REFUSAL,
+      cliCommand: GATEWAY_CLI_COMMAND,
+    },
+  ],
+}

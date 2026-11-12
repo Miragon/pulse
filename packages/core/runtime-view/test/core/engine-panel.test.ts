@@ -4,8 +4,8 @@ import {
   RuntimeError,
   type DefinitionSummary,
   type ProcessRuntime,
-} from "../../src/contract/index.js"
-import { PatchedRuntime } from "../../src/contract/fake/index.js"
+} from "@miragon/pulse-engine-core"
+import { PatchedRuntime } from "@miragon/pulse-engine-core/testing"
 import { describe, expect, test } from "vitest"
 import { EnginePanel } from "../../src/core/panels/engine-panel.js"
 import type { EngineView, PanelState } from "../../src/core/protocol/index.js"
@@ -83,7 +83,7 @@ describe("the engine panel", () => {
         withIncident: 1,
       },
     ])
-    expect(view.summary).toBe("3 processes · 5 running · 3 with incident")
+    expect(view.summary).toBe("3 processes · 5 running · 3 with incident · all versions")
     expect(view.scopeCounts).toEqual({ all: 3, withIncident: 3 })
     expect(view.filter).toEqual({ scope: "all" })
     expect(view.engine).toEqual({ ...fixture.context.engine, product: "Fake engine 1.0.0" })
@@ -143,7 +143,7 @@ describe("the engine panel", () => {
 
     expect(byName.processes.map((row) => row.bpmnProcessId)).toEqual(["pulse-label"])
     expect(byName.scopeCounts).toEqual({ all: 1, withIncident: 1 })
-    expect(byName.summary).toBe("3 processes · 5 running · 3 with incident")
+    expect(byName.summary).toBe("3 processes · 5 running · 3 with incident · all versions")
     expect(byId.processes.map((row) => row.bpmnProcessId)).toEqual(["pulse-dispatch"])
     expect(byId.filter).toEqual({ scope: "withIncident", search: "pulse-disp" })
     expect(byId.asOf).toBe(byName.asOf)
@@ -159,7 +159,7 @@ describe("the engine panel", () => {
     const view = readyView(fixture.lastState())
     expect(view.processes.map((row) => row.bpmnProcessId)).toEqual(["gamma", "beta"])
     expect(view.scopeCounts).toEqual({ all: 5, withIncident: 2 })
-    expect(view.summary).toBe("5 processes · 16 running · 4 with incident")
+    expect(view.summary).toBe("5 processes · 16 running · 4 with incident · all versions")
   })
 
   test("applies a filter that arrives before the engine has answered", async () => {
@@ -189,10 +189,10 @@ describe("the engine panel", () => {
 
     expect(readyView(empty.lastState())).toMatchObject({
       processes: [],
-      summary: "0 processes · 0 running · 0 with incident",
+      summary: "0 processes · 0 running · 0 with incident · all versions",
       emptyText: "No processes deployed on local.",
     })
-    expect(one.summary).toBe("1 process · 1 running · 0 with incident")
+    expect(one.summary).toBe("1 process · 1 running · 0 with incident · all versions")
     expect(readyView(single.lastState())).toMatchObject({
       processes: [],
       scopeCounts: { all: 0, withIncident: 0 },
@@ -250,6 +250,7 @@ describe("the engine panel", () => {
         detail: "HTTP 401.",
         canEditConnection: true,
         needsCredentials: true,
+        loginRefused: "unauthorized",
       },
     })
     expect(fixture.effects.setCredentials).toHaveBeenCalledOnce()

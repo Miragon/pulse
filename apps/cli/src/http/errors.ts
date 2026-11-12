@@ -1,8 +1,14 @@
-/** Maps HTTP error responses (and the engine's ExceptionDto) to PulseCliError with hints. */
+/**
+ * Maps HTTP error responses (and the engine's ExceptionDto) to PulseCliError with hints. The
+ * answers come from @miragon/pulse-http with the request's secrets masked; the engine's message is
+ * cut here, so a stack trace in it never floods the output.
+ */
 
+import { isUnknownEndpoint } from "@miragon/pulse-c7-core"
+import { decodeText, mediaTypeOf, parseJson, statusTextOf } from "@miragon/pulse-http"
 import type { Principal } from "../auth/types.js"
 import { type ErrorCode, PulseCliError } from "../errors.js"
-import { compact, isRecord, parseJson } from "../util.js"
+import { compact, isRecord } from "../util.js"
 import type { HttpResponse } from "./types.js"
 
 interface EngineError {
@@ -12,22 +18,21 @@ interface EngineError {
   readonly data?: Record<string, unknown>
 }
 
-const decoder = new TextDecoder()
-
-function jsonOf(body: Uint8Array): unknown {
+/** The body as JSON, integers beyond 2^53 kept as BigInts; undefined when it does not parse. */
+function jsonOf(response: HttpResponse): unknown {
   try {
-    return parseJson(decoder.decode(body))
+    return parseJson(decodeText(response), "bigint")
   } catch {
     return undefined
   }
 }
 
-/** Longest excerpt of a text error body that is kept. */
-const MAX_TEXT_LENGTH = 500
+/** Longest excerpt of an engine's message that is kept. */
+const MAX_MESSAGE_LENGTH = 500
 
-/** The media type without parameters, in lower case (media types are case-insensitive). */
-function mediaType(contentType: string): string {
-  return contentType.replace(/;.*/s, "").trim().toLowerCase()
+/** An engine's message, cut after 500 characters. */
+function excerpt(message: string): string {
+  return message.length > MAX_MESSAGE_LENGTH ? `${message.slice(0, MAX_MESSAGE_LENGTH)}…` : message
 }
 
 /**
@@ -36,27 +41,24 @@ function mediaType(contentType: string): string {
  * proxies are left out; their status line says enough.
  */
 function textError(response: HttpResponse): EngineError | undefined {
-  const type = mediaType(response.contentType)
+  const type = mediaTypeOf(response.contentType)
   if (!type.startsWith("text/") || type === "text/html") return undefined
-  const text = decoder.decode(response.body).trim()
-  if (text === "") return undefined
-  return {
-    message: text.length > MAX_TEXT_LENGTH ? `${text.slice(0, MAX_TEXT_LENGTH)}…` : text,
-  }
+  const text = decodeText(response).trim()
+  return text === "" ? undefined : { message: excerpt(text) }
 }
 
 /**
  * Reads the engine's ExceptionDto (`type`, `message`, `code` and further details) from a JSON body,
- * or the message of a plain text body.
+ * or the message of a plain text body; a message is cut after 500 characters either way.
  */
 export function parseEngineError(response: HttpResponse): EngineError | undefined {
-  if (!mediaType(response.contentType).includes("json")) return textError(response)
-  const parsed = jsonOf(response.body)
+  if (!mediaTypeOf(response.contentType).includes("json")) return textError(response)
+  const parsed = jsonOf(response)
   if (!isRecord(parsed)) return undefined
   const { type, message, code, ...data } = parsed
   return compact({
     type: typeof type === "string" ? type : undefined,
-    message: typeof message === "string" ? message : undefined,
+    message: typeof message === "string" ? excerpt(message) : undefined,
     code: typeof code === "number" ? code : undefined,
     data: Object.keys(data).length > 0 ? data : undefined,
   })
@@ -72,12 +74,11 @@ export function errorCodeForStatus(status: number): ErrorCode {
 /**
  * True when a 404 comes from routing rather than from the engine: no ExceptionDto at all (a servlet
  * container or Spring Boot error page at the wrong root) or the JAX-RS `NotFoundException` the REST
- * API reports for unknown paths. Missing resources are reported as `InvalidRequestException`.
- * Restates engine-core's `isUnknownEndpoint` (the http layer does not import the core,
- * cli-family-core-only-in-named-layers); `errors.test.ts` holds the two equal.
+ * API reports for unknown paths, by c7-core's rule. Missing resources are reported as
+ * `InvalidRequestException`.
  */
-function isUnknownEndpoint(engine: EngineError | undefined): boolean {
-  return engine?.type === undefined || engine.type === "NotFoundException"
+function isRoutingMiss(engine: EngineError | undefined): boolean {
+  return isUnknownEndpoint({ status: 404, ...compact({ engineType: engine?.type }) })
 }
 
 /**
@@ -145,8 +146,7 @@ const QUERY_PARAM_EXCEPTION = "QueryParamException"
  * sent, `principal` whose Basic auth credentials the auth provider added, `authOff` why no
  * credentials were added although some were configured (`AuthProvider.off`), `rejectedHint` the
  * provider's own hint for a 401 or 403 (OAuth), `authNote` a note appended to the 401/403 hint
- * (a bearer token that is set but not used), `loginStatusCommand` the command that shows whether
- * the login of the provider is usable (OAuth).
+ * (a bearer token that is set but not used).
  */
 export interface FailedRequest {
   readonly method: string
@@ -156,7 +156,6 @@ export interface FailedRequest {
   readonly authOff?: string | undefined
   readonly rejectedHint?: string | undefined
   readonly authNote?: string | undefined
-  readonly loginStatusCommand?: string | undefined
 }
 
 function sentCredentials(request: FailedRequest): boolean {
@@ -232,7 +231,7 @@ function hintFor(
   const hint = statusHint(status, request) ?? engineHint(engine)
   if (hint !== undefined) return hint
   if (status !== 404) return clientErrorHint(ref)
-  return isUnknownEndpoint(engine) ? HINTS.endpoint : notFoundHint(ref, engine)
+  return isRoutingMiss(engine) ? HINTS.endpoint : notFoundHint(ref, engine)
 }
 
 function codeFor(status: number, engine: EngineError | undefined): ErrorCode {
@@ -267,33 +266,34 @@ export function httpError(
   })
 }
 
-/** Location of a redirect without query and fragment (they may carry tokens), absolute. */
-function redirectTarget(response: HttpResponse, url: string): string | undefined {
-  const location = Object.entries(response.headers).find(
-    ([name]) => name.toLowerCase() === "location",
-  )?.[1]
-  if (location === undefined || !URL.canParse(location, url)) return undefined
-  const target = new URL(location, url)
-  return `${target.origin}${target.pathname}`
-}
-
 /**
- * A 3xx answer. pulse never follows redirects: a redirected POST would turn into a GET of a
- * login page that "succeeds", and custom credential headers would travel to the other origin.
+ * A 3xx answer, which @miragon/pulse-http never follows: a redirected POST would turn into a GET
+ * of a login page that "succeeds", and custom credential headers would travel to the other
+ * origin. `redirect` is the transport's failure (the error's cause): `location` is where it
+ * pointed, origin and path only (its query and fragment may carry tokens), the request's secrets
+ * masked; `loginStatusCommand` the provider's (OAuth).
  */
-export function redirectError(response: HttpResponse, request: FailedRequest): PulseCliError {
-  const target = redirectTarget(response, request.url)
-  const status = `HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ""}`
-  const command = request.loginStatusCommand
+export function redirectError(
+  redirect: { readonly status?: number | undefined; readonly location?: string | undefined },
+  request: { readonly method: string; readonly url: string },
+  loginStatusCommand?: string,
+): PulseCliError {
+  const code = redirect.status ?? 0
+  const statusText = statusTextOf(code, "")
+  const status = `HTTP ${code}${statusText === "" ? "" : ` ${statusText}`}`
   const oauth =
-    command === undefined ? "" : ` \`${command}\` shows whether the OAuth login is usable.`
+    loginStatusCommand === undefined
+      ? ""
+      : ` \`${loginStatusCommand}\` shows whether the OAuth login is usable.`
+  const { location } = redirect
   return new PulseCliError(
     "HTTP_REDIRECT",
-    target === undefined ? `${status}: redirect` : `${status}: redirect to ${target}`,
+    location === undefined ? `${status}: redirect` : `${status}: redirect to ${location}`,
     {
-      status: response.status,
+      status: code,
       request: { method: request.method, url: request.url },
       hint: `pulse does not follow redirects. Point --url (PULSE_CLI_URL or the profile url) at the REST API root itself, e.g. https:// when the server redirects from http://. A redirect to a login page means the credentials (headers) are missing or expired.${oauth}`,
     },
+    redirect,
   )
 }

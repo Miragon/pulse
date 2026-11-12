@@ -1,5 +1,6 @@
 /** The rendering call's lifecycle as plain logic: what the frame shows, and when it re-runs. */
 import type { ModelContextSpec } from "./ask-ai-prompt.js"
+import { isPermanentError } from "./describe-error.js"
 
 export type ViewPhase =
   | { phase: "waiting" }
@@ -84,8 +85,9 @@ export function viewCallContext(phase: ViewPhase): ModelContextSpec | null {
       }
     case "error":
       return {
-        summary:
-          "The view could not be shown. The user sees an error message with a retry button instead of the view.",
+        summary: isPermanentError(phase.error)
+          ? "The view could not be shown. The user sees an error message instead of the view, without a retry button: retrying cannot change the server's refusal."
+          : "The view could not be shown. The user sees an error message with a retry button instead of the view.",
         untrusted: [{ label: "reason", text: phase.error.message }],
       }
     case "ready":

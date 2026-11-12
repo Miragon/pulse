@@ -2,7 +2,7 @@
   "name": "@miragon/pulse-runtime-view",
   "private": true,
   "version": "0.27.1",
-  "description": "The engine-neutral runtime view of Pulse's editor hosts (VS Code, Orca): the runtime contract with its conformance kit, the core, the protocol, the webview, the local model reader and the host rules every editor host shares.",
+  "description": "The engine-neutral runtime view of Pulse's editor hosts (VS Code, Orca) over the engine contract of @miragon/pulse-engine-core: the ports a host and an engine family plug in, the core, the protocol, the webview, the local model reader and the host rules every editor host shares.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -15,17 +15,9 @@
     "./src/webview/main.tsx"
   ],
   "exports": {
-    "./contract": {
-      "types": "./dist/contract/index.d.ts",
-      "import": "./src/contract/index.ts"
-    },
-    "./contract/fake": {
-      "types": "./dist/contract/fake/index.d.ts",
-      "import": "./src/contract/fake/index.ts"
-    },
-    "./contract/conformance": {
-      "types": "./dist/contract/conformance/index.d.ts",
-      "import": "./src/contract/conformance/index.ts"
+    "./ports": {
+      "types": "./dist/ports/index.d.ts",
+      "import": "./src/ports/index.ts"
     },
     "./core": {
       "types": "./dist/core/index.d.ts",
@@ -48,19 +40,22 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit && tsc -p tsconfig.contract.json && tsc -p tsconfig.core.json && tsc -p tsconfig.model.json && tsc -p tsconfig.webview.json && tsc -p tsconfig.host-kit.json && tsc -p tsconfig.tooling.json && tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.ports.json && tsc -p tsconfig.core.json && tsc -p tsconfig.model.json && tsc -p tsconfig.webview.json && tsc -p tsconfig.host-kit.json && tsc -p tsconfig.tooling.json && tsc -p tsconfig.build.json",
     "lint": "eslint src test dev scripts",
     "lint:fix": "eslint src test dev scripts --fix"
   },
   "dependencies": {
     "@fontsource-variable/geist": "5.3.0",
     "@fontsource-variable/geist-mono": "5.3.0",
-    "@miragon/modeler-shell": "0.10.0",
+    "@miragon/modeler-shell": "0.12.0",
+    "@miragon/pulse-engine-core": "workspace:*",
+    "@miragon/pulse-profile": "workspace:*",
+    "@miragon/pulse-ui": "workspace:*",
     "bpmn-js": "18.31.1",
     "bpmn-moddle": "10.3.1",
     "camunda-bpmn-moddle": "8.0.2",
     "diagram-js": "15.28.1",
-    "preact": "11.1.1",
+    "preact": "11.2.0",
     "zeebe-bpmn-moddle": "2.0.0"
   },
   "devDependencies": {

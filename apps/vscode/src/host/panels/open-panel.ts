@@ -122,6 +122,7 @@ export class OpenPanel<Session extends Panel> implements vscode.Disposable {
       now: () => new Date(),
       wait: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
       ...(connection.commands === undefined ? {} : { commands: connection.commands }),
+      ...(connection.cli === undefined ? {} : { cli: connection.cli }),
       ...(this.navigation.sources === undefined ? {} : { sources: this.navigation.sources }),
       live: this.navigation.live.contextFor(connection),
       bulkRuns: this.navigation.bulkRunsFor(connection),

@@ -1,0 +1,7 @@
+{
+  // The editor's project for the runtime probe tsconfig.json leaves out: it expects the globals
+  // tsconfig.ports.json lacks. The engine contract's own tests live in
+  // packages/connectors/engine/engine-core/test, which keeps a probe of its own.
+  "extends": "../../tsconfig.ports.json",
+  "include": ["runtime.boundary.ts"]
+}

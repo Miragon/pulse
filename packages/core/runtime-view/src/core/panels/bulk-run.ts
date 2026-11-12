@@ -4,7 +4,7 @@ import type {
   BulkOperationId,
   DefinitionId,
   InstanceId,
-} from "../../contract/index.js"
+} from "@miragon/pulse-engine-core"
 import type { BulkProgress } from "../protocol/index.js"
 import type { BulkAction } from "./bulk-action.js"
 

@@ -11,7 +11,7 @@ import {
   historyDto,
   DEFINITIONS,
   JOB_DEFINITIONS,
-} from "@miragon/pulse-engine-core/testing"
+} from "@miragon/pulse-c7-core/testing"
 import { WorkflowEngine } from "../../test/support/workflow-engine.js"
 import { advance, type AdvanceOptions } from "./advance.js"
 

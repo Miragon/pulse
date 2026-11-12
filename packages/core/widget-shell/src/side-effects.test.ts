@@ -8,8 +8,8 @@ import { describe, expect, it } from "vitest"
 /**
  * `"sideEffects": false` in package.json lets a consumer's bundler keep only what it takes from
  * the `/widgets` barrel. Without it, one building block drags the view root along: ext-apps'
- * `App`, the MCP client, zod and react-dom (`countTone` alone measured 214 KB gzip instead of
- * 84 bytes). Each case bundles ONE export with esbuild, as a consumer's build would, and reads
+ * `App`, the MCP client, zod and react-dom (a tone helper alone once measured 214 KB gzip
+ * instead of 84 bytes). Each case bundles ONE export with esbuild, as a consumer's build would, and reads
  * the metafile. It bundles src, the module graph tsc emits to dist (this package's tests run
  * before its own build), and pulse-ui from its dist. Outside src/ui: it reads files from disk.
  */
@@ -23,7 +23,7 @@ const SERVER_CODE =
 /** A Node built-in stays external, so a leak shows as an import of the output. */
 const NODE_BUILTINS = [...builtinModules, ...builtinModules.map((name) => `node:${name}`)]
 
-const BLOCKS = ["ListTable", "countTone", "ConfirmDialog", "TestViewHost", "useToolQuery"]
+const BLOCKS = ["ListTable", "describeError", "ConfirmDialog", "TestViewHost", "useToolQuery"]
 
 /** Bundles one export of the barrel: the server-side packages in the output, and its imports. */
 async function bundleOne(name: string) {

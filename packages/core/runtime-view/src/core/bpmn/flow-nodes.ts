@@ -59,6 +59,7 @@ export class FlowNodes {
   private readonly multiInstance = new Set<string>()
   private readonly eventSubProcesses = new Set<string>()
   private readonly timers = new Set<string>()
+  private readonly conditions = new Set<string>()
   private readonly open: OpenTag[] = []
 
   static of(xml: string): FlowNodes {
@@ -114,6 +115,10 @@ export class FlowNodes {
 
   eventGatewayBefore(id: string): string | undefined {
     return this.incoming.get(id)?.find((source) => this.kindOf(source) === "eventBasedGateway")
+  }
+
+  conditionsAfter(id: string): string[] {
+    return (this.outgoing.get(id) ?? []).filter((target) => this.conditions.has(target))
   }
 
   joinsAfter(id: string): string[] {
@@ -184,6 +189,9 @@ export class FlowNodes {
         return
       case "timerEventDefinition":
         this.timers.add(parent)
+        return
+      case "conditionalEventDefinition":
+        this.conditions.add(parent)
         return
       default:
         if (FLOW_NODE_KINDS.has(kind) && id !== "") {

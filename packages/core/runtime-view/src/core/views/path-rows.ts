@@ -1,4 +1,4 @@
-import type { ElementRun, InstanceDetail } from "../../contract/index.js"
+import type { ElementRun, InstanceDetail } from "@miragon/pulse-engine-core"
 import type { PathRow, PathState } from "../protocol/index.js"
 import { Labels } from "./labels.js"
 

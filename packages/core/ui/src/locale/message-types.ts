@@ -45,10 +45,17 @@ export interface ListFooterMessages {
   refreshFailed: string
   /** The line under {@link ListFooterMessages.refreshFailed}: what you see and can do. */
   refreshFailedHint: string
+  /**
+   * The line under {@link ListFooterMessages.refreshFailed} for a failure no retry changes: what
+   * you see, never "try again"; the caller's reason follows it.
+   */
+  refreshFailedFinalHint: string
   /** Title when loading the next page failed. */
   loadMoreFailed: string
   /** The line under {@link ListFooterMessages.loadMoreFailed}: what you see and can do. */
   loadMoreFailedHint: string
+  /** {@link ListFooterMessages.refreshFailedFinalHint}'s counterpart under the load-more failure. */
+  loadMoreFailedFinalHint: string
 }
 
 /** Strings of `FilterBar`. */

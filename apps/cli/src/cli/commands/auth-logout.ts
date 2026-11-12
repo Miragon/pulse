@@ -24,7 +24,7 @@ import type { CliContext } from "../context.js"
 import { displayOf } from "../display.js"
 import { configFlags, type GlobalOptions, readGlobals } from "../globals.js"
 import { loadConfig } from "../config-files.js"
-import { oauthDeps, tokenScope } from "../session.js"
+import { oauthDeps, tokenScope, warnOfLeftOutProfile } from "../session.js"
 import { bearerNotManaged, logoutCommand } from "./auth-bearer.js"
 import { printView, safeStderr } from "./auth-output.js"
 import { notOAuth, notOAuthOf } from "./auth-session.js"
@@ -117,7 +117,7 @@ async function logoutTarget(globals: GlobalOptions, context: CliContext) {
   // without a profile the file name is derived from the resolved OAuth settings
   if (target.settings === undefined) {
     if ("error" in resolution) throw resolution.error
-    throw notOAuth("logout", notOAuthOf(resolution.config), runtime.env)
+    throw notOAuth("logout", notOAuthOf(resolution.config, runtime.env), runtime.env)
   }
   return { target, deps, tokenCache: await cachePath(target.settings, deps), profiles: [] }
 }
@@ -125,6 +125,8 @@ async function logoutTarget(globals: GlobalOptions, context: CliContext) {
 export async function runLogout(command: Command, context: CliContext): Promise<void> {
   const { runtime } = context
   const globals = readGlobals(command)
+  // first, so it also stands before an error of the output format or of the resolution
+  warnOfLeftOutProfile(configFlags(globals), runtime)
   const display = await displayOf(context, globals)
   const found = await logoutTarget(globals, context)
   if ("command" in found) {

@@ -80,3 +80,13 @@ export const activityIncidentsFilterShape = {
   activityId: z.string().describe("Activity id whose incidents to page"),
 }
 export type ActivityIncidentsFilters = z.infer<z.ZodObject<typeof activityIncidentsFilterShape>>
+
+export const activityStatisticsShape = {
+  processDefinitionKey: z.string().describe("Process definition key"),
+  source: z
+    .enum(["runtime", "history"])
+    .describe(
+      "runtime = what runs at each element now, summed over every deployed version; history = what the instances started in the last 30 days passed (history level activity or higher)",
+    ),
+}
+export type ActivityStatisticsArgs = z.infer<z.ZodObject<typeof activityStatisticsShape>>

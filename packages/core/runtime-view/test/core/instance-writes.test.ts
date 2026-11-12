@@ -1,5 +1,5 @@
-import { PatchedRuntime } from "../../src/contract/fake/index.js"
-import { RuntimeError, type ProcessCommands } from "../../src/contract/index.js"
+import { PatchedRuntime } from "@miragon/pulse-engine-core/testing"
+import { RuntimeError, type ProcessCommands } from "@miragon/pulse-engine-core"
 import { describe, expect, test, vi } from "vitest"
 import { InstancePanel } from "../../src/core/panels/instance-panel.js"
 import type { InstanceView, PanelState } from "../../src/core/protocol/index.js"
@@ -39,6 +39,28 @@ function spied(commands: ProcessCommands) {
     stopBulkOperation: (...args: Parameters<ProcessCommands["stopBulkOperation"]>) =>
       commands.stopBulkOperation(...args),
   }
+}
+
+async function openWithRatio() {
+  let commands: ReturnType<typeof spied> | undefined
+  let engine: ProcessCommands | undefined
+  const fixture = panelFixture((runtime) => runtime, {
+    writable: true,
+    adaptCommands: (given) => {
+      engine = given
+      return (commands = spied(given))
+    },
+  })
+  const instanceId = fixture.world.instanceIds["ORD-1002"]
+  await engine?.setVariable(instanceId, { name: "ratio", valueJson: "0.5", type: "Double" })
+  const panel = new InstancePanel(fixture.context, instanceId)
+  await panel.handle({ type: "ready" })
+  const view = () => readyView(fixture.lastState())
+  expect(view().variables.find((row) => row.name === "ratio")).toMatchObject({
+    type: "Double",
+    editor: "decimal",
+  })
+  return { fixture, panel, commands, view }
 }
 
 describe("an instance on a read-only engine", () => {
@@ -295,6 +317,131 @@ describe("changing a variable", () => {
       status: "failed",
       target: { kind: "variable", name: "amount" },
       message: "amount takes a whole number (Integer).",
+      inputRefusal: 1,
+    })
+  })
+
+  test("numbers every refusal of an input, so the same reason twice is a new state", async () => {
+    const { panel, view } = await openPanel("ORD-1002", { writable: true })
+
+    await panel.handle({ type: "setVariable", name: "amount", valueJson: "4.5" })
+    await panel.handle({ type: "setVariable", name: "amount", valueJson: "4.5" })
+
+    expect(view().write).toEqual({
+      status: "failed",
+      target: { kind: "variable", name: "amount" },
+      message: "amount takes a whole number (Integer).",
+      inputRefusal: 2,
+    })
+  })
+
+  test.each([
+    [
+      "amount",
+      "-9223372036854775809",
+      "amount takes a whole number (Integer), and Pulse writes none outside -9223372036854775808 to 9223372036854775807.",
+    ],
+    [
+      "giftNote",
+      "9223372036854775808",
+      "Pulse writes no number without a fraction outside -9223372036854775808 to 9223372036854775807. Write giftNote as text to keep every digit.",
+    ],
+  ])(
+    "refuses a whole number beyond 64 bits for %s before asking and sends nothing",
+    async (name, valueJson, message) => {
+      let commands: ReturnType<typeof spied> | undefined
+      const { fixture, panel, view } = await openPanel("ORD-1002", {
+        writable: true,
+        adaptCommands: (given) => (commands = spied(given)),
+      })
+      const before = view().variables.find((row) => row.name === name)
+
+      await panel.handle({ type: "setVariable", name, valueJson })
+
+      expect(fixture.effects.confirmWrite).not.toHaveBeenCalled()
+      expect(commands?.setVariable).not.toHaveBeenCalled()
+      expect(view().write).toEqual({
+        status: "failed",
+        target: { kind: "variable", name },
+        message,
+        inputRefusal: 1,
+      })
+      expect(view().variables.find((row) => row.name === name)).toEqual(before)
+    },
+  )
+
+  test("writes the largest whole number for a variable that holds null", async () => {
+    let commands: ReturnType<typeof spied> | undefined
+    const { fixture, panel } = await openPanel("ORD-1002", {
+      writable: true,
+      adaptCommands: (given) => (commands = spied(given)),
+    })
+
+    await panel.handle({ type: "setVariable", name: "giftNote", valueJson: "9223372036854775807" })
+
+    expect(fixture.effects.confirmWrite.mock.calls[0]?.[0].facts).toContain(
+      "Null → whole number: null → 9223372036854775807",
+    )
+    expect(commands?.setVariable).toHaveBeenCalledWith(fixture.world.instanceIds["ORD-1002"], {
+      name: "giftNote",
+      valueJson: "9223372036854775807",
+    })
+  })
+
+  test.each([
+    [
+      "ratio",
+      "1.8e308",
+      "ratio takes a number (Double), and Pulse writes none outside -1.7976931348623157e308 to 1.7976931348623157e308.",
+    ],
+    [
+      "ratio",
+      `-${"9".repeat(400)}.5`,
+      "ratio takes a number (Double), and Pulse writes none outside -1.7976931348623157e308 to 1.7976931348623157e308.",
+    ],
+    [
+      "giftNote",
+      "1e400",
+      "Pulse writes no number outside -1.7976931348623157e308 to 1.7976931348623157e308, the range of a double. Write giftNote as text to keep it as written.",
+    ],
+    [
+      "giftNote",
+      `${"9".repeat(400)}.5`,
+      "Pulse writes no number outside -1.7976931348623157e308 to 1.7976931348623157e308, the range of a double. Write giftNote as text to keep it as written.",
+    ],
+  ])(
+    "refuses a number beyond the range of a double for %s before asking and sends nothing",
+    async (name, valueJson, message) => {
+      const { fixture, panel, commands, view } = await openWithRatio()
+      const before = view().variables.find((row) => row.name === name)
+
+      await panel.handle({ type: "setVariable", name, valueJson })
+
+      expect(fixture.effects.confirmWrite).not.toHaveBeenCalled()
+      expect(commands?.setVariable).not.toHaveBeenCalled()
+      expect(view().write).toEqual({
+        status: "failed",
+        target: { kind: "variable", name },
+        message,
+        inputRefusal: 1,
+      })
+      expect(view().variables.find((row) => row.name === name)).toEqual(before)
+    },
+  )
+
+  test.each([
+    ["ratio", "1.7976931348623157e308", "Double: 0.5 → 1.7976931348623157e308", { type: "Double" }],
+    ["giftNote", "-1.7976931348623157e308", "Null → number: null → -1.7976931348623157e308", {}],
+  ])("writes the largest double for %s", async (name, valueJson, fact, typed) => {
+    const { fixture, panel, commands } = await openWithRatio()
+
+    await panel.handle({ type: "setVariable", name, valueJson })
+
+    expect(fixture.effects.confirmWrite.mock.calls[0]?.[0].facts).toContain(fact)
+    expect(commands?.setVariable).toHaveBeenCalledWith(fixture.world.instanceIds["ORD-1002"], {
+      name,
+      valueJson,
+      ...typed,
     })
   })
 

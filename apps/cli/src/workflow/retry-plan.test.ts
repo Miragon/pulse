@@ -1,6 +1,6 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
-import { missingRoots, planRetry } from "@miragon/pulse-engine-core"
+import { missingRoots, planRetry } from "@miragon/pulse-c7-core"
 import {
   checkRetryCount,
   executeWrite,

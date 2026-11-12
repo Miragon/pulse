@@ -1,5 +1,6 @@
 import type { OrcaWorkerApi, PanelCaller } from "orca/worker"
-import type { EngineList, ViewRequest } from "../protocol.js"
+import type { TargetsProblem } from "@miragon/pulse-runtime-view/host-kit"
+import type { ConfigurationProblem, EngineList, ViewRequest } from "../protocol.js"
 import { BoardTemplate } from "./board-template.js"
 import type { CockpitViews } from "./cockpit-views.js"
 import { EngineRows } from "./engine-rows.js"
@@ -100,8 +101,12 @@ export class PanelRequests {
       engines: await Promise.all(
         registry.all().map((connection) => EngineRows.of(connection, connection === active)),
       ),
-      problems: registry.configurationProblems().map((problem) => problem.label()),
+      problems: registry.configurationProblems().map((problem) => PanelRequests.shown(problem)),
     }
+  }
+
+  private static shown(problem: TargetsProblem): ConfigurationProblem {
+    return { text: problem.label(), tone: problem.severity === "warning" ? "warning" : "danger" }
   }
 
   private async boards() {

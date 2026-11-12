@@ -22,12 +22,12 @@ brings the engine to where you already work.
 
 - **One question, one answer.** Ask why an order is stuck and get the incident, the diagram and
   the root cause.
-- **Your whole fleet.** Several engines side by side: profiles in the CLI and VS Code, a default
-  engine and an override per question in your AI chat.
+- **Your whole fleet.** Several engines side by side, as profiles in one format all three clients
+  read, with a default engine and an override per question in your AI chat.
 - **Safe by default.** In your AI chat Pulse only reads until you allow more, the CLI previews a
   change with `--dry-run`, and VS Code changes only a local engine until you allow more.
-- **Analytics without the engine database.** Process KPIs, bottlenecks and engine comparisons come
-  from Prometheus, fed by a small [metrics plugin](engine-plugins/README.md) in the engine.
+- **Nothing to install in the engine.** Every figure comes from the engine's own REST API: no
+  plugin, no metrics store.
 
 ![An order is stuck: the AI chat shows the incident at Charge payment with its expired card and suggests a pulse command; the terminal opens and runs it, then opens VS Code, where the card expiry is fixed and the retried task lets the order move on](docs/assets/demo.gif)
 

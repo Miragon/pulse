@@ -4,6 +4,8 @@
  * `--experimental-sea-config` and postject, the workflow of Node.js 24.
  */
 
+import { posix, win32 } from "node:path"
+
 /**
  * Release asset name per target (`<process.platform>-<process.arch>`); each target builds on a
  * native runner. `macos` and `windows` rather than `darwin` and `win32`: people look for those.
@@ -88,4 +90,16 @@ export function injectOptions(target: ExeTarget): {
   return target.macho
     ? { sentinelFuse: SEA_SENTINEL_FUSE, machoSegmentName: SEA_MACHO_SEGMENT }
     : { sentinelFuse: SEA_SENTINEL_FUSE }
+}
+
+/**
+ * The LICENSE of the Node.js at `execPath`, the licence of an executable built from it, which its
+ * archive ships as NODE_LICENSE (scripts/pack-binary.sh) and its release as pulse-cli-NODE_LICENSE
+ * (scripts/release-licenses.sh): an official build keeps it one level above bin/node, and beside
+ * node.exe on Windows.
+ */
+export function nodeLicenceOf(execPath: string, platform: string): string {
+  return platform === "win32"
+    ? win32.join(win32.dirname(execPath), "LICENSE")
+    : posix.join(posix.dirname(posix.dirname(execPath)), "LICENSE")
 }

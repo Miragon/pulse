@@ -2,6 +2,10 @@
   "extends": "../../../../tsconfig.base.json",
   "compilerOptions": {
     "target": "ES2023",
+    // No DOM and no Node types, as in the runtime view's ports layer
+    // (packages/core/runtime-view/tsconfig.ports.json): an adapter runs the contract in an editor host,
+    // in a browser or anywhere else JavaScript runs, so `document` and `process` stay compile
+    // errors (test/runtime.boundary.ts proves it).
     "lib": ["ES2023"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",

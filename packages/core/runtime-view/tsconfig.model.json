@@ -6,6 +6,6 @@
     "jsx": null,
     "jsxImportSource": null
   },
-  "include": ["src/model", "test/model", "src/contract/bpmn.d.ts"],
+  "include": ["src/model", "test/model", "test/bpmn.d.ts"],
   "exclude": []
 }

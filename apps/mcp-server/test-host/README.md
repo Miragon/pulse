@@ -5,13 +5,14 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
 
 - `global-setup.ts` boots the real composition root (`createApp` from
   `src/app.ts`, default read-only deployment, plus a `engine:operations`
-  one for the write scenario) serving `dist/mcp-app.{js,css}`, a CIB seven
-  REST stub (`stub-engine.ts`, `fixtures/process-definitions.json` with their
-  statistics and no open incident, the `invoice` diagram `fixtures/invoice.bpmn`,
-  three failed jobs; under `/realistic`, real-sized data in
-  `realistic-engine.ts`), a Prometheus
-  stub (`stub-prometheus.ts`: two engines, two processes, the `invoice`
-  activities, evaluating the exact PromQL shapes analytics sends) and the host's
+  one for the write scenario and one whose second profile the server refuses,
+  its secret's variable unset, at `HOST_SIM_REFUSED_URL`) serving
+  `dist/mcp-app.{js,css}`, a CIB seven REST stub (`stub-engine.ts`,
+  `fixtures/process-definitions.json` with their statistics and no open incident, the `invoice`
+  diagram `fixtures/invoice.bpmn` with two instances at `approveInvoice` and twelve started in
+  the last 30 days in its history, three failed jobs, their backlog counts, one invoice instance
+  with two open incidents that only its own reads see; under
+  `/realistic`, real-sized data in `realistic-engine.ts`) and the host's
   server side (`host-backend.ts`, a real MCP client), all on ephemeral
   loopback ports. A scenario can hold the stub's answers to one search term
   and release them later (`POST /__control/hold|release?term=<term>` at
@@ -54,24 +55,29 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
 | height budget              | `containerDimensions.maxHeight: 220`              | settled report ≤ 220 and ≥ the capped container, the shell scrolls inside it                                                                                       |
 | list fits a 600 px budget  | the jobs, `containerDimensions.maxHeight: 600`    | the list view fits as a card: exactly one job row, the shell's container has no scroll of its own (#396)                                                           |
 | inline fit, real-sized     | realistic engine, 760 px, 600/800/none, de-DE     | instances (all, scoped) and jobs fit as one card: k of N rows, "Show all" in view, no inner scroll; a new budget or width at runtime refits (`inline-fit.spec.ts`) |
-| inline head of a table     | analytics dashboard, `maxHeight: 400` (3 rows)    | 3 of 6 rows and "3 of 6 shown"; Show all requests fullscreen (all 6), without it Show more (#396)                                                                  |
+| inline head, cross-engine  | the overview's matrix, its own height less 20 px  | the last table cut ("1 of 3 shown" or "2 of 3"); Show all requests fullscreen (all 3), without it Show more (#396, `fleet.spec.ts`)                                |
 | bundle budget              | the built `dist/mcp-app.js` / `.css`              | gzip within `test/__golden__/bundle-budget.json`, and within 10 % of it (#344 K39)                                                                                 |
 | inline list height         | the jobs, no height budget                        | the settled report (equal to max-content) below the old 600 px floor (#339 K40)                                                                                    |
 | fullscreen                 | `availableDisplayModes: ["inline", "fullscreen"]` | the toggle requests fullscreen and follows the host's switch                                                                                                       |
 | BPMN on a dark host        | a process (`invoice`), `theme: "dark"`            | light canvas, dark flows/labels, every zoom button clickable past the logo                                                                                         |
+| process flow, Running      | a process (`invoice`), its flow on Running        | only the engine's modes, the real feed's count as a badge on `approveInvoice` (2), its row under "Values per activity"                                             |
+| process flow, Throughput   | a process (`invoice`), its flow on Throughput     | the real feed's history reads (12 instances, 1 version), the heat painted in the theme's ramp, `approveInvoice`: 10 passes, 2 running                              |
 | kit foundation             | the jobs, fullscreen offered                      | Miragon roles (link `--cd-blau-link`), Lucide stroke 2.5, 2 dense, neutral KPI                                                                                     |
 | layout at 760 px           | `width: 760` (a chat's inline column)             | no horizontal document scroll, the table in a named region, 24 px shell padding                                                                                    |
 | column priority            | the jobs at 760 px                                | `hideBelow` column hidden, the row actions `sticky` and inside the region                                                                                          |
 | row menu                   | the jobs at 760 px, "more" on a middle row        | the menu lies over the next rows' pinned cells: its entries take the clicks, focus, Escape                                                                         |
 | axe                        | overview + jobs, light and dark, 760 px           | zero WCAG 2.1 A/AA violations (`@axe-core/playwright`)                                                                                                             |
+| instance incidents         | an instance (`pi-invoice-42`), its Incidents tab  | each incident's element: the diagram's name over its id, the id where the diagram lacks it; View process opens the process route                                   |
+| instance list chips        | instances (realistic engine), With incident on    | the chips count what each lists (160, 54, 10), All and Suspended unchanged while With incident is on                                                               |
 | write refresh (operations) | the failed jobs, user clicks Retry                | the retry refetches the seeded feed and re-renders, **zero** re-executions                                                                                         |
 | cockpit on an engine       | `engine_open_cockpit` with `engine`               | opens on that engine (the head's engine select), not on the engine picker                                                                                          |
 | cockpit start view         | `engine_open_cockpit` with `view: "jobs"`         | the Jobs head section is current, the jobs table renders, no engine picker                                                                                         |
 | cockpit picker             | `engine_open_cockpit` without `engine`            | the engine list (two engines, no default engine configured), each engine's state in its accessible name                                                            |
-| analytics dashboard        | `analytics_show_dashboard` at 760 px              | every activity column shown inside its region, names from the diagram, no document scroll                                                                          |
-| analytics landscape        | `analytics_show_engine_landscape` at 760 px       | the column groups headed, the backlog columns and the compare action inside their regions                                                                          |
-| axe (analytics)            | dashboard + landscape, light and dark, 760 px     | zero WCAG 2.1 A/AA violations (`analytics.spec.ts`)                                                                                                                |
+| cross-engine overview      | the picker's "Cross-engine overview" at 760 px    | the landscape from both engines: column groups headed, backlog columns in their region, the 503 engine "unreachable" with no column; en, de (`fleet.spec.ts`)      |
+| axe (cross-engine)         | the overview, light and dark, 760 px              | zero WCAG 2.1 A/AA violations (`fleet.spec.ts`)                                                                                                                    |
 | a module's own view        | a tool bound to a resource of its module          | the finished document renders from that URI under its own CSP, no prelude, its feed answers through the host (`own-view.spec.ts`)                                  |
+| refused profile            | the picker, one profile refused                   | the refused engine reads "profile refused", opening it says why in en and de, `engine_open_cockpit` on it opens the picker (`refused-profile.spec.ts`)             |
+| refused login              | the picker, engines that answer 401 and 403       | "credentials rejected", "access denied", a key (en, de), not "unreachable"; counted apart as a warning, never "not answered" (`refused-login.spec.ts`)             |
 
 **The cockpit's chrome inline.** Every scenario of the engine module renders the cockpit, whose head
 (sections, engine switch, Refresh) sits above the route. Inline the head is the only row: a

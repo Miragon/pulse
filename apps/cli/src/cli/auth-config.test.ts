@@ -8,7 +8,8 @@ import { run } from "./run.js"
 const cli = cliOf(run)
 
 describe("config commands", () => {
-  const setBasic = ["config", "set", "p", "--auth", "basic", "--auth-user", "demo"]
+  const url = "http://localhost:8080/engine-rest"
+  const setBasic = ["config", "set", "p", "--url", url, "--auth", "basic", "--auth-user", "demo"]
   const UNSET_WARNING =
     "Warning: the variable named by --auth-password-env is not set in this environment. Pass the name of a variable that holds the password (e.g. CAMUNDA_PASSWORD), never the password itself; commands read it when they run.\n"
   const REPLACED_NOTICE =
@@ -20,16 +21,16 @@ describe("config commands", () => {
     })
     expect(result).toMatchObject({ code: 0, stderr: "" })
     const auth = { type: "basic", username: "demo", passwordEnv: "CAMUNDA_PASSWORD" }
-    expect(JSON.parse(result.stdout)).toEqual({ name: "p", default: true, auth })
+    expect(JSON.parse(result.stdout)).toEqual({ name: "p", default: true, url, auth })
     expect(JSON.parse(fileText(result.runtime, CONFIG_PATH) ?? "")).toEqual({
       defaultProfile: "p",
-      profiles: { p: { auth } },
+      profiles: { p: { url, auth } },
     })
   })
 
   it("stores a literal password from stdin with a warning, and masks it in the output", async () => {
     const result = await cli(
-      ["config", "set", "p", "--auth-user", "demo", "--auth-password-stdin"],
+      ["config", "set", "p", "--url", url, "--auth-user", "demo", "--auth-password-stdin"],
       {
         stdin: "pa:ss wörd\n",
       },
@@ -38,14 +39,15 @@ describe("config commands", () => {
     expect(JSON.parse(result.stdout)).toEqual({
       name: "p",
       default: true,
-      auth: { username: "demo", password: "***" },
+      url,
+      auth: { type: "basic", username: "demo", password: "***" },
     })
     expect(result.stderr).toBe(
       `Warning: the password is stored in plain text in ${CONFIG_PATH} (mode 0600). Prefer --auth-password-env <VAR>, which stores only the name of an environment variable.\n`,
     )
     expect(result.runtime.files.get(CONFIG_PATH)?.mode).toBe(0o600)
     expect(JSON.parse(fileText(result.runtime, CONFIG_PATH) ?? "")).toMatchObject({
-      profiles: { p: { auth: { username: "demo", password: "pa:ss wörd" } } },
+      profiles: { p: { auth: { type: "basic", username: "demo", password: "pa:ss wörd" } } },
     })
   })
 
@@ -56,7 +58,9 @@ describe("config commands", () => {
       expect(result.stderr).toBe(UNSET_WARNING)
       expect(result.stderr).not.toContain("CAMUNDA_PW_2")
     }
-    const other = await cli(["config", "set", "p", "--auth-user", "demo"], { env: {} })
+    const other = await cli(["config", "set", "p", "--url", url, "--auth-user", "demo"], {
+      env: {},
+    })
     expect(other.stderr).toBe("")
     const set = await cli([...setBasic, "--auth-password-env", " PW "], { env: { PW: "x" } })
     expect(set).toMatchObject({ code: 0, stderr: "" })
@@ -113,7 +117,7 @@ describe("config commands", () => {
       defaultProfile: "p",
       profiles: {
         p: {
-          url: "http://x",
+          url,
           auth: { type: "basic", username: "demo", passwordEnv: "PW" },
           headers: { "X-Tenant": "a" },
         },

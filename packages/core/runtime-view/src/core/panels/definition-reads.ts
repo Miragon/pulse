@@ -6,11 +6,11 @@ import {
   type DefinitionRef,
   type ElementStatistics,
   type InstanceSummary,
-  type ModelFile,
   type Page,
   type PageCursor,
   type VersionSummary,
-} from "../../contract/index.js"
+} from "@miragon/pulse-engine-core"
+import type { ModelFile } from "../../ports/index.js"
 import type { DriftCheck } from "../drift/drift-check.js"
 import type {
   DefinitionView,
@@ -208,6 +208,7 @@ export class DefinitionReads {
       hasMoreInstances: state.next !== undefined,
       filter: state.filter,
       scopeCounts: state.scopeCounts,
+      refusedVariableConditions: this.context.runtime.refusedVariableConditions?.() ?? [],
       extraNotices:
         state.deployed === undefined ? state.notices : [...state.notices, state.deployed],
     }).build()

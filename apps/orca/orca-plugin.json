@@ -83,10 +83,10 @@
       {
         "key": "projectFile",
         "title": "Project file",
-        "description": "Path of the .pulse-cli.json that names your engines. Empty: the .pulse-cli.json at the root of the focused workspace.",
+        "description": "Path of the .pulse.json that names your engines. Empty: the .pulse.json at the root of the focused workspace.",
         "type": "string",
         "default": "",
-        "placeholder": "/path/to/project/.pulse-cli.json"
+        "placeholder": "/path/to/project/.pulse.json"
       },
       {
         "key": "writes",

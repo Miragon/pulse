@@ -2,12 +2,14 @@ const APP = "^apps/vscode/"
 const TEST_CODE = `[.]test[.](tsx?|cjs)$|${APP}test/`
 const TOOLING = `${APP}(scripts|dev)/`
 const RUNTIME_VIEW = "(^|/)node_modules/@miragon/pulse-runtime-view/"
-const LAYER_ENTRIES = `${RUNTIME_VIEW}dist/(contract|core|core/protocol|host-kit)/index[.]d[.]ts$`
+const LAYER_ENTRIES = `${RUNTIME_VIEW}dist/(ports|core|core/protocol|host-kit)/index[.]d[.]ts$`
 const MODEL_ENTRY = `${RUNTIME_VIEW}dist/model/index[.]d[.]ts$`
 const ADAPTER_ENTRY = "(^|/)node_modules/@miragon/pulse-[^/]+-adapter/dist/index[.]d[.]ts$"
+const ENGINE_CORE_ENTRY = "(^|/)node_modules/@miragon/pulse-engine-core/dist/index[.]d[.]ts$"
+const ENGINE_CORE_TREE = "^packages/connectors/engine/engine-core/"
+const DIALECT_PACKAGES =
+  "(^|/)node_modules/@miragon/pulse-(?!engine-core/)[^/]+-(core|client|connector)/|^@miragon/pulse-(?!engine-core(/|$))[^/]+-(core|client|connector)(/|$)|^packages/connectors/(?!engine/engine-core/)[^/]+/[^/]+-(core|client|connector)/"
 const EXTENSION_LIBRARIES = "(^|/)node_modules/@miragon/modeler-shell/"
-const ENGINE_CORE =
-  "(^|/)node_modules/@miragon/pulse-engine-core/|^@miragon/pulse-engine-core(/|$)|^packages/connectors/engine/engine-core/"
 const MODEL_LIBRARIES =
   "(^|/)node_modules/(bpmn-moddle|camunda-bpmn-moddle|zeebe-bpmn-moddle|@miragon/bpmn-modeler[^/]*)/|^(bpmn-moddle|camunda-bpmn-moddle|zeebe-bpmn-moddle|@miragon/bpmn-modeler[^/]*)(/|$)"
 
@@ -26,9 +28,21 @@ module.exports = {
     },
     {
       comment:
-        "The extension host wires the runtime view's core, protocol, contract and host kit into VS Code.",
+        "The repository's licence list (scripts/third-party-licenses.mjs), which the licence test reads, uses Node built-ins only.",
+      from: { path: "^scripts/third-party-licenses[.]mjs$" },
+      to: { dependencyTypes: ["core"] },
+    },
+    {
+      comment:
+        "The extension host wires the runtime view's ports, core, protocol and host kit into VS Code.",
       from: { path: `${APP}src/host/` },
       to: { path: [LAYER_ENTRIES, EXTENSION_LIBRARIES, "^vscode$"] },
+    },
+    {
+      comment:
+        "The extension host names the contract's ids and read models from @miragon/pulse-engine-core, the neutral core of the engine family (its main entry), which esbuild bundles into the extension.",
+      from: { path: `${APP}src/host/` },
+      to: { path: ENGINE_CORE_ENTRY },
     },
     {
       comment: "The extension host may use Node built-ins.",
@@ -46,7 +60,7 @@ module.exports = {
       name: "not-in-allowed",
       severity: "error",
       comment:
-        "No entry of `allowed` in apps/vscode/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md). The host uses its own modules, the runtime view (@miragon/pulse-runtime-view) through the entries of its core, protocol, contract and host kit, vscode, modeler-shell and Node built-ins, and only its composition root the engine adapters (@miragon/pulse-<family>-adapter) and the model adapter (@miragon/pulse-runtime-view/model).",
+        "No entry of `allowed` in apps/vscode/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md). The host uses its own modules, the runtime view (@miragon/pulse-runtime-view) through the entries of its ports, core, protocol and host kit, the main entry of @miragon/pulse-engine-core (never ./testing), vscode, modeler-shell and Node built-ins, and only its composition root the engine adapters (@miragon/pulse-<family>-adapter) and the model adapter (@miragon/pulse-runtime-view/model).",
       from: {},
       to: { path: "^$" },
     },
@@ -62,17 +76,25 @@ module.exports = {
       name: "model-libraries-stay-in-the-model-adapter",
       severity: "error",
       comment:
-        "BPMN model libraries (bpmn-moddle, its vendor descriptors, bpmn-modeler libs) belong in packages/core/runtime-view/src/model only. Read what you need through the ModelSource or CodeLocator port of the contract instead.",
+        "BPMN model libraries (bpmn-moddle, its vendor descriptors, bpmn-modeler libs) belong in packages/core/runtime-view/src/model only. Read what you need through the ModelSource or CodeLocator port instead.",
       from: { pathNot: "(^|/)node_modules/" },
       to: { path: MODEL_LIBRARIES },
     },
     {
-      name: "extension-is-engine-neutral",
+      name: "extension-is-dialect-neutral",
       severity: "error",
       comment:
-        "@miragon/pulse-engine-core is the Camunda 7 family's workflow domain: only the family's adapter (packages/connectors/engine/engine-adapter) imports it. The extension host stays engine-neutral and reaches the engines through the adapter its composition root wires.",
+        "The extension speaks the engine contract of @miragon/pulse-engine-core only: no dialect's core (such as @miragon/pulse-c7-core, the workflow domain of the Camunda 7 REST API), client or connector. Only the family's adapter (packages/connectors/<family>/<family>-adapter) runs its dialect, and the composition root wires it in.",
       from: { pathNot: "(^|/)node_modules/" },
-      to: { path: ENGINE_CORE },
+      to: { path: DIALECT_PACKAGES },
+    },
+    {
+      name: "engine-core-only-by-its-entries",
+      severity: "error",
+      comment:
+        "Import @miragon/pulse-engine-core, the neutral core of the engine family, by its package entries (the main entry in the host, ./testing in tests and the dev host), never a file of packages/connectors/engine/engine-core by path, its source or its build: the entries load the package's build, so a module reached by path is a second copy of the contract, and RuntimeError.is and instanceof no longer recognise an error of the other copy.",
+      from: { pathNot: "(^|/)node_modules/" },
+      to: { path: ENGINE_CORE_TREE },
     },
     {
       name: "src-not-to-dev-dependencies",

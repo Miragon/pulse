@@ -117,7 +117,8 @@ describe("session helpers", () => {
   })
 
   it("builds target, guards, client and render options", async () => {
-    const runtime = fakeRuntime({ columns: 70, stdoutTTY: true })
+    const fetch = () => Promise.resolve(new Response("{}", { status: 200 }))
+    const runtime = fakeRuntime({ columns: 70, stdoutTTY: true, fetch })
     const session = await openSession(context(runtime), {
       ...NONE,
       engine: "e",
@@ -139,10 +140,12 @@ describe("session helpers", () => {
     })
     const client = clientOf(session, runtime)
     expect(client.timeoutMs).toBe(30_000)
-    expect(client.now()).toBe(runtime.now())
-    expect(await client.auth.headers()).toEqual({})
-    client.trace?.({ type: "request", method: "GET", url: "http://x", headers: {} })
-    expect(runtime.stderr.text()).toBe("> GET http://x\n")
+    expect(client.http.root).toBe("http://localhost:8080/engine-rest")
+    expect(client.auth.credential.scheme).toBe("none")
+    await client.http.send({ method: "GET", url: `${client.http.root}/version`, intent: "read" })
+    expect(runtime.stderr.text()).toBe(
+      "> GET http://localhost:8080/engine-rest/version\n< 200 OK (0 ms, 2 bytes)\n",
+    )
     expect(renderOptionsOf(session, runtime, "bpmn20Xml")).toEqual({
       format: "table",
       pretty: true,
@@ -155,13 +158,16 @@ describe("session helpers", () => {
   })
 
   it("builds a target without engine, guards without source and a client without trace", async () => {
-    const runtime = fakeRuntime()
+    const fetch = () => Promise.resolve(new Response(null, { status: 204 }))
+    const runtime = fakeRuntime({ fetch })
     const session = await openSession(context(runtime), NONE)
     expect(targetOf(session)).toEqual({
       baseUrl: "http://localhost:8080/engine-rest",
       headers: {},
     })
     expect(guardsOf(session)).toEqual({ readOnly: false, yes: false, dryRun: false })
-    expect(clientOf(session, runtime).trace).toBeUndefined()
+    const quiet = clientOf(session, runtime)
+    await quiet.http.send({ method: "GET", url: `${quiet.http.root}/version`, intent: "read" })
+    expect(runtime.stderr.text()).toBe("")
   })
 })

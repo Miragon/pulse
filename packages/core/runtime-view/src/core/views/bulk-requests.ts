@@ -1,4 +1,4 @@
-import type { InstanceSummary } from "../../contract/index.js"
+import type { InstanceSummary } from "@miragon/pulse-engine-core"
 import { ElementNames } from "../bpmn/element-names.js"
 import type { BulkRequest } from "../panels/panel-context.js"
 import type { BulkPlan } from "../panels/bulk-run.js"
@@ -39,11 +39,16 @@ export class BulkRequests {
       confirmLabel: `${verb} ${instances}`,
       selected: preview.selected,
       count,
-      countPrompt: `Type ${count} to ${wording.verb} ${instances}`,
+      countPrompt: BulkRequests.countPrompt(count, wording.verb),
       warning: wording.warning,
       takesReason: plan.action.sendsReason,
       reasonPrompt: wording.reasonPrompt,
     }
+  }
+
+  static countPrompt(count: number, verb: string): string {
+    const digits = String(count)
+    return `Type ${digits} to ${verb} ${digits} ${count === 1 ? "instance" : "instances"}`
   }
 
   static skippedFacts(preview: BulkPreview): string[] {

@@ -401,7 +401,7 @@ tr:focus-within .value-cell__edit {
   outline-offset: -1px;
 }
 
-.variable-editor:has(.variable-editor__error) .variable-editor__field {
+.variable-editor__field[aria-invalid="true"] {
   border-color: var(--cd-ui-danger);
 }
 

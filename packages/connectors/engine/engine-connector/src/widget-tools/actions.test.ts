@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { feedPayload } from "../tools/test-support/feed-payload.js"
 import { appOnly } from "@miragon/pulse-widget-shell/server"
 import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
-import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-engine-core"
+import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-c7-core"
 import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { resolveEngineToolset, type EngineToolset } from "../lib/mcp/toolsets.js"
 import { ENGINE_WIDGET_ACTIONS, ENGINE_WIDGET_ACTIONS_DATA } from "../tool-names.js"
@@ -17,7 +17,7 @@ function registerFeed(toolset: EngineToolset) {
   const recording = recordingModuleServer()
   registerWidgetActionsFeed({
     server: recording.server,
-    registry: { engines: [] } as unknown as EngineRegistry,
+    registry: { engines: [], backends: new Map() } as unknown as EngineRegistry,
     healthThresholds: DEFAULT_VERDICT_THRESHOLDS,
     toolset,
     engineParam: engineParamShape,

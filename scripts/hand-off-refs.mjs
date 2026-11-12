@@ -1,5 +1,4 @@
 import ts from "typescript"
-import { metricVocabulary } from "./tool-surface.mjs"
 
 /**
  * Source readers for the hand-off guard (#338). Every Ask-AI prompt and model
@@ -94,7 +93,7 @@ function toolNamesUnder(node, prefixes) {
   return names
 }
 
-const TOOL_PREFIXES = ["engine", "analytics"]
+const TOOL_PREFIXES = ["engine"]
 
 function propertyName(node) {
   if (!node.name) return null
@@ -111,12 +110,21 @@ const PLUMBING_MEMBERS = new Set(["locale", "isError"])
 /** Members the hand-off API once had: an object with a lead that carries one is always a spec. */
 const RETIRED_MEMBERS = new Set(["tools", "toolIds", "surface"])
 
-/** A spread or a caller's key makes an object plumbing that passes a spec on, not a spec. */
+/**
+ * The member that makes an object an HTTP request (`{ method, url, intent: "read" }` of
+ * @miragon/pulse-http), whose `intent` says whether it writes: data, never a hand-off.
+ */
+const REQUEST_MEMBER = "method"
+
+/**
+ * A spread or a caller's key makes an object plumbing that passes a spec on, not a spec; a
+ * `method` makes it a request.
+ */
 function isPlumbing(node) {
   return node.properties.some((p) => {
     if (ts.isSpreadAssignment(p)) return true
     const name = propertyName(p)
-    return name !== null && PLUMBING_MEMBERS.has(name)
+    return name !== null && (PLUMBING_MEMBERS.has(name) || name === REQUEST_MEMBER)
   })
 }
 
@@ -167,7 +175,8 @@ function memberValue(p) {
  * Every hand-off / view-context spec: an object literal with an `intent`
  * (hand-off) or a `summary` (context) next to its `ids`, `facts` and
  * `untrusted`. Only a spread or a caller's key (`locale`, `isError`) makes it
- * plumbing (`{ ...handOff, intent, locale }`, `{ isError, summary }`); any
+ * plumbing (`{ ...handOff, intent, locale }`, `{ isError, summary }`), and a
+ * `method` a transport request (`{ method, url, intent: "read" }`); any
  * other member stays a spec and is reported (`extraMembers`), so a spec that
  * regains a `tools` list fails the guard instead of leaving it. Its
  * `intent`/`summary` must be static text, and no part of it may name a tool:
@@ -316,20 +325,16 @@ export function findModelContextContents(file, text) {
   return found
 }
 
-/** The contract's metric names and labels (`engine_id`, `engine_jobs_failed`): never a tool. */
-const METRIC_VOCABULARY = metricVocabulary()
-
 /**
  * Every `<module>_…` tool name inside a server-instructions text; a family
- * wildcard (`engine_query_historic_*`) names no single tool and is skipped, and
- * so is a metric name or label of the metrics contract, which shares the prefix.
+ * wildcard (`engine_query_historic_*`) names no single tool and is skipped.
  */
 export function toolNamesIn(text, prefixes) {
   const shape = new RegExp(
     `(?<![A-Za-z0-9_])(?:${prefixes.join("|")})_[a-z0-9_]*[a-z0-9](?![A-Za-z0-9_*])`,
     "g",
   )
-  return [...new Set(text.match(shape) ?? [])].filter((name) => !METRIC_VOCABULARY.has(name))
+  return [...new Set(text.match(shape) ?? [])]
 }
 
 /**

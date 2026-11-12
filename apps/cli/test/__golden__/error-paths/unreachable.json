@@ -1,0 +1,44 @@
+{
+  "case": "unreachable",
+  "config": {
+    "PULSE_CLI_URL": "http://127.0.0.1:<port>/engine-rest"
+  },
+  "probes": [
+    {
+      "argv": [
+        "process-instance",
+        "get",
+        "pi-1"
+      ],
+      "exitCode": 8,
+      "sent": [],
+      "stderrLines": [
+        "{\"error\":{\"code\":\"NETWORK\",\"exitCode\":8,\"message\":\"Cannot reach http://127.0.0.1:<port>/engine-rest/process-instance/pi-1 (ECONNREFUSED)\",\"hint\":\"Is the engine running? Check --url, PULSE_CLI_URL or `pulse config show`. Run `pulse ping` to test the connection.\",\"request\":{\"method\":\"GET\",\"url\":\"http://127.0.0.1:<port>/engine-rest/process-instance/pi-1\"}}}",
+        ""
+      ],
+      "stdoutLines": [
+        ""
+      ]
+    },
+    {
+      "argv": [
+        "process-instance",
+        "get",
+        "pi-1",
+        "-o",
+        "table"
+      ],
+      "exitCode": 8,
+      "sent": [],
+      "stderrLines": [
+        "Error: Cannot reach http://127.0.0.1:<port>/engine-rest/process-instance/pi-1 (ECONNREFUSED)",
+        "  Request: GET http://127.0.0.1:<port>/engine-rest/process-instance/pi-1",
+        "  Hint: Is the engine running? Check --url, PULSE_CLI_URL or `pulse config show`. Run `pulse ping` to test the connection.",
+        ""
+      ],
+      "stdoutLines": [
+        ""
+      ]
+    }
+  ]
+}

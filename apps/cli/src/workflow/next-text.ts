@@ -1,5 +1,5 @@
 /**
- * The next steps of @miragon/pulse-engine-core as ready-to-run `pulse` command lines, always
+ * The next steps of @miragon/pulse-c7-core as ready-to-run `pulse` command lines, always
  * with ids (never business keys), so they are reproducible. Pure.
  */
 
@@ -11,7 +11,7 @@ import {
   type NextStep,
   type SkipStep,
   type WaitState,
-} from "@miragon/pulse-engine-core"
+} from "@miragon/pulse-c7-core"
 import { shellWord } from "./shell.js"
 
 /** The generated command that moves one wait state. */

@@ -1,4 +1,4 @@
-import type { DefinitionSummary, EngineInfo } from "../../contract/index.js"
+import type { DefinitionSummary, EngineInfo } from "@miragon/pulse-engine-core"
 import type { EngineBadge, EngineView, ProcessListFilter, ProcessRow } from "../protocol/index.js"
 import { Labels } from "./labels.js"
 import { WebUiLinks } from "./web-ui-links.js"
@@ -91,6 +91,6 @@ export class EngineViewBuilder {
     const running = definitions.reduce((sum, summary) => sum + summary.running, 0)
     const withIncident = definitions.reduce((sum, summary) => sum + summary.withIncident, 0)
     const processes = Labels.plural(definitions.length, "process", "processes")
-    return `${processes} · ${running} running · ${withIncident} with incident`
+    return `${processes} · ${Labels.count(running)} running · ${Labels.count(withIncident)} with incident · all versions`
   }
 }

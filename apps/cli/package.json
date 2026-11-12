@@ -29,11 +29,11 @@
   },
   "files": [
     "dist",
-    "schema",
     "skills",
     "!skills/pulse-cli/evals",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "THIRD_PARTY_LICENSES.txt"
   ],
   "engines": {
     "node": ">=22.12.0"
@@ -47,19 +47,22 @@
     "build:exe": "tsx scripts/build-exe.ts",
     "catalog": "tsx scripts/generate-catalog.ts",
     "catalog:check": "tsx scripts/generate-catalog.ts --check",
+    "third-party-licenses": "tsx scripts/third-party-licenses.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src scripts test *.config.ts",
     "lint:fix": "eslint src scripts test *.config.ts --fix",
     "test": "vitest run",
-    "test:engines": "vitest run --config vitest.integration.config.ts"
+    "test:engines": "vitest run --config vitest.integration.config.ts",
+    "golden:update": "turbo run build --filter=@miragon/pulse-cli^... --output-logs=errors-only && GOLDEN_UPDATE=1 vitest run --coverage.enabled=false"
   },
   "dependencies": {
-    "commander": "15.0.0"
+    "commander": "15.1.0"
   },
   "devDependencies": {
-    "@miragon/pulse-engine-core": "workspace:*",
+    "@miragon/pulse-c7-core": "workspace:*",
+    "@miragon/pulse-http": "workspace:*",
+    "@miragon/pulse-profile": "workspace:*",
     "@types/node": "22.20.5",
-    "ajv": "8.20.0",
     "fast-check": "4.10.2",
     "postject": "1.0.0-alpha.6",
     "prettier": "3.9.10",
@@ -67,6 +70,7 @@
     "tsdown": "0.23.7",
     "tsx": "4.23.15",
     "typescript": "6.0.3",
-    "vitest": "5.1.0"
+    "vitest": "5.1.0",
+    "yaml": "2.9.1"
   }
 }

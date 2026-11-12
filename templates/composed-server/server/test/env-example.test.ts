@@ -15,12 +15,31 @@ import { MODULES } from "../src/setup.js"
 
 const ENV_EXAMPLE = path.join(import.meta.dirname, "..", "..", ".env.example")
 
-/** Keys from `FOO=…` lines, commented-out (`# FOO=…`) examples included. */
-function documentedKeys(content: string): string[] {
+/** `FOO=…` lines as name and value, commented-out (`# FOO=…`) examples included. */
+function documented(content: string): Array<[name: string, value: string]> {
   return content
     .split("\n")
-    .map((line) => /^#?\s*([A-Z][A-Z0-9_]*)=/.exec(line)?.[1])
-    .filter((key): key is string => key !== undefined)
+    .map((line) => /^#?\s*([A-Z][A-Z0-9_]*)=(.*)$/.exec(line))
+    .filter((match): match is RegExpExecArray => match !== null)
+    .map((match) => [match[1], match[2]])
+}
+
+/** Keys from `FOO=…` lines, commented-out (`# FOO=…`) examples included. */
+function documentedKeys(content: string): string[] {
+  return documented(content).map(([name]) => name)
+}
+
+/**
+ * The variables the documented settings name themselves, read as the boot reads them: each
+ * module's `referencedEnvVars` (the engine module's profiles name their ENGINE_SECRET_*
+ * variables). The server reads those too, so a copied .env sets them without a warning. Each
+ * documented line on its own: the commented examples are alternatives (ENGINES_FILE would win
+ * over ENGINES_JSON).
+ */
+function referencedKeys(content: string): string[] {
+  return documented(content).flatMap(([name, value]) =>
+    MODULES.flatMap((module) => [...(module.referencedEnvVars?.({ [name]: value }) ?? [])]),
+  )
 }
 
 /** The modules the live `MCP_ACTIVE_MODULES=` line runs, read as the boot reads it; unset or `all` runs every composed one. */
@@ -34,11 +53,18 @@ function listedModules(content: string, composed: readonly string[]): string[] {
 }
 
 describe(".env.example matches the server's env surface", () => {
-  const keys = documentedKeys(fs.readFileSync(ENV_EXAMPLE, "utf8"))
+  const content = fs.readFileSync(ENV_EXAMPLE, "utf8")
+  const keys = documentedKeys(content)
   const allowed = composedEnvVars(MODULES)
+  const referenced = referencedKeys(content)
 
   it("documents no variable the server ignores (a copied .env would warn at boot)", () => {
-    expect(keys.filter((key) => !allowed.has(key))).toEqual([])
+    expect(keys.filter((key) => !allowed.has(key) && !referenced.includes(key))).toEqual([])
+  })
+
+  it("documents every variable its own example settings name", () => {
+    expect(referenced.length).toBeGreaterThan(0)
+    expect(referenced.filter((key) => !keys.includes(key))).toEqual([])
   })
 
   it("documents every variable the app and its modules read", () => {
@@ -63,8 +89,7 @@ describe("the module list a copied .env starts with", () => {
     expect(listed.filter((name, i) => listed.indexOf(name) !== i)).toEqual([])
   })
 
-  // Analytics may stay out: compose.yaml runs no Prometheus for it to read.
-  it("names every other composed module (one it leaves out is off, its tools absent)", () => {
-    expect(composed.filter((name) => name !== "analytics" && !listed.includes(name))).toEqual([])
+  it("names every composed module (one it leaves out is off, its tools absent)", () => {
+    expect(composed.filter((name) => !listed.includes(name))).toEqual([])
   })
 })

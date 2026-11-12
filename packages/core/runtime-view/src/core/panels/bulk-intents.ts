@@ -1,4 +1,4 @@
-import { InstanceId, type BpmnProcessId } from "../../contract/index.js"
+import { InstanceId, type BpmnProcessId } from "@miragon/pulse-engine-core"
 import type { DefinitionView, OfferedBulkKind, WebviewIntent } from "../protocol/index.js"
 import type { Attention } from "../refresh/live-context.js"
 import { BulkDecoration } from "../views/bulk-decoration.js"
@@ -251,7 +251,11 @@ export class BulkIntents {
 
   private migrates(loaded: DefinitionLoaded): boolean {
     const canWrite = this.context.commands !== undefined
-    return BulkDecoration.selects(loaded.view, canWrite) && loaded.versions.length > 1
+    return (
+      BulkDecoration.selects(loaded.view, canWrite) &&
+      loaded.versions.length > 1 &&
+      this.context.runtime.proposeMigration !== undefined
+    )
   }
 
   private async start(kind: OfferedBulkKind): Promise<void> {

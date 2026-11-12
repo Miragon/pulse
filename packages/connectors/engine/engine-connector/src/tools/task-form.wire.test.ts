@@ -137,7 +137,7 @@ const incidentRoute = (incident: Record<string, unknown>): FakeRoutes => ({
   "GET /incident/inc-1": { body: { id: "inc-1", ...incident } },
 })
 
-describe("engine_format_incident_issue reads the failure text through the contract", () => {
+describe("engine_format_incident_issue reads the failure text through the SDK-bound reads", () => {
   it("fetches a failed job's stacktrace as text/plain (the default Accept is a 406)", async () => {
     const engine = await engineWith({
       ...incidentRoute({ incidentType: "failedJob", configuration: "job-1" }),

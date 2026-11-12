@@ -187,7 +187,7 @@ describe("the draft_incident_ticket prompt", () => {
 })
 
 /** A 404 of the stacktrace read is "none" only when the engine names the job as missing. */
-describe("engine_format_incident_issue reads the stacktrace's 404 by engine-core's rule", () => {
+describe("engine_format_incident_issue reads the stacktrace's 404 by c7-core's rule", () => {
   async function draftWith(stacktrace: FakeReply): Promise<Draft> {
     const engine = await incidentEngine(stacktrace)
     return (await callTool(draftTool(), registryFor(engine), { incidentId: "inc-1" })) as Draft

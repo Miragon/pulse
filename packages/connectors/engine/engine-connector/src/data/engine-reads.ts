@@ -1,4 +1,4 @@
-/** A `/…/count` reply's number; a reply without one is an engine-contract breach, not a 0. */
+/** A `/…/count` reply's number; a reply without one is a REST contract breach, not a 0. */
 export function countOf(res: unknown): number {
   const count = (res as { count?: unknown } | null)?.count
   if (typeof count !== "number") {
@@ -7,7 +7,7 @@ export function countOf(res: unknown): number {
   return count
 }
 
-/** A list reply's rows; anything but an array is an engine-contract breach, not "no rows". */
+/** A list reply's rows; anything but an array is a REST contract breach, not "no rows". */
 export function rowsOf<T>(res: unknown): T[] {
   if (!Array.isArray(res)) {
     throw new Error("The engine answered a list query without a list.")

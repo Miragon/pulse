@@ -1,5 +1,6 @@
 /** The outcome errors, their texts and the dry-run output (outcomes.ts, dry-run.ts). */
 
+import { noCredential } from "@miragon/pulse-http"
 import { describe, expect, it } from "vitest"
 import { portOf } from "../../test/support/engine-port.js"
 import { BASE_URL, fakeServer } from "../../test/support/fake-fetch.js"
@@ -110,7 +111,7 @@ describe("dryRunOutput", () => {
     const note = 'Not logged in with OAuth (profile "sso")'
     const auth = {
       type: "oauth",
-      headers: () => Promise.resolve({}),
+      credential: noCredential,
       preview: () => Promise.resolve({ headers: {}, note }),
     }
     const version = { operationId: "getRestAPIVersion", input: { pathArgs: [], query: {} } }

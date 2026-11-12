@@ -14,7 +14,7 @@ import { readBody } from "../../operation/body.js"
 import { commandRef } from "../../operation/command-ref.js"
 import { checkEffect, dryRunPreview, sendRequest } from "../../operation/execute.js"
 import { apiPath, apiQuery, type ApiPath, parseApiPath } from "../../operation/raw-request.js"
-import { acceptHeader, joinUrl } from "../../operation/request.js"
+import { acceptHeader, intentOf, joinUrl } from "../../operation/request.js"
 import type { OperationResult } from "../../operation/result.js"
 import { mergeHeaders, stringifyJson } from "../../util.js"
 import { subcommand } from "../command.js"
@@ -77,6 +77,7 @@ async function apiRequest(
   return {
     method: call.method,
     url: joinUrl(session.config.url, location),
+    intent: intentOf(apiEffect(call.operation, call.method)),
     headers: mergeHeaders(defaults, session.config.headers),
     ...(body === undefined ? {} : { body }),
   }

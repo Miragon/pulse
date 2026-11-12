@@ -3,6 +3,7 @@ import { noAuth } from "../auth/none.js"
 import { findByOperationId, findOperation, loadCatalog } from "../catalog/catalog.js"
 import type { OperationSpec } from "../catalog/types.js"
 import { PulseCliError } from "../errors.js"
+import { createClient } from "../http/client.js"
 import {
   checkEffect,
   executeOperation,
@@ -40,12 +41,13 @@ function options(
   return {
     calls,
     target: { baseUrl: "http://h/engine-rest", headers: { "X-Team": "a" } },
-    client: {
+    client: createClient({
+      url: "http://h/engine-rest",
       fetch: fetch,
       auth: noAuth(),
       timeoutMs: 1000,
       now: () => 0,
-    },
+    }),
     readOnly: false,
     yes: false,
     dryRun: false,

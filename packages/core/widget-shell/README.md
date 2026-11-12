@@ -58,22 +58,23 @@ variables only; the widgets follow the host's theme, then the OS.
 
 ## What it provides
 
-| Part             | Entry       | What you get                                                                                                                                                                                                                   |
-| ---------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Server boot      | `./server`  | `createComposedServer` and `runComposedServer`: module selection with `module:toolset` suffixes in `MCP_ACTIVE_MODULES`, OAuth from `MCP_OAUTH_*`, the Host/Origin guard, `/mcp`, `/health/*`, `/metrics` and the served fonts |
-| Module port      | `./server`  | `ComposableModule`, `ModulePlugin`, `ModuleEntry`, `ModuleServer` (the official SDK's `registerTool`/`registerPrompt`/`registerResource`), `createToolsetVocabulary` for toolsets that fail closed                             |
-| Tool authoring   | `./server`  | The registrar (`createToolRegistrar`, `withToolErrors`), `showToolBinding`, `OwnViewBinding`, `AppResourceCsp`, `appOnly`, `strictToolInput`, `buildViewResult`, `buildDataFeedResult`, `decodeToolResult`, `createTranslator` |
-| Server helpers   | `./server`  | The BPMN-name readers (`readBpmnNames`, `parseBpmnNames`), the per-caller request info (`callerCacheKey`, `getMcpRequestInfo`, `runWithMcpRequestInfo`), `composedEnvVars`, `viewResourceUri`, `viewPrelude`                   |
-| Bundle build     | `./server`  | `VIEW_BUNDLE_DEDUPE`, `viewBundleWatchPlugin`, and the served fonts (`installFontAssets`, `fontAssetsCsp`)                                                                                                                     |
-| View runtime     | `./widgets` | `mountViews`, the view host (`useViewHost`, `HostModelContext`), the query hooks (`useToolQuery`, `useToolMutation`, `useViewData`), host widgets by raw id (`useHostWidget`, `HostWidgetSlot`), `TestViewHost` for tests      |
-| Host-bound UI    | `./widgets` | `WidgetShell`, `ListTable` + `PagedRows`, `IdCell`/`IdText`, `describeError`, `useActionFeedback`, `ConfirmDialog`, the hand-offs (`HAND_OFF_ACTIONS`, `AskAiButton` for one it does not list) and the BPMN viewer             |
-| Module tests     | `./testing` | `recordingModuleServer` and `testServerContext` for a module's tools, prompts and resources                                                                                                                                    |
-| Product glossary | `./testing` | `PRODUCT_GLOSSARY`, `glossaryFindings`, `blindGlossaryRules`, `unnamedGlossaryTerms`: one word per thing across the Pulse modules                                                                                              |
+| Part           | Entry       | What you get                                                                                                                                                                                                                   |
+| -------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Server boot    | `./server`  | `createComposedServer` and `runComposedServer`: module selection with `module:toolset` suffixes in `MCP_ACTIVE_MODULES`, OAuth from `MCP_OAUTH_*`, the Host/Origin guard, `/mcp`, `/health/*`, `/metrics` and the served fonts |
+| Module port    | `./server`  | `ComposableModule`, `ModulePlugin`, `ModuleEntry`, `ModuleServer` (the official SDK's `registerTool`/`registerPrompt`/`registerResource`), `createToolsetVocabulary` for toolsets that fail closed                             |
+| Tool authoring | `./server`  | The registrar (`createToolRegistrar`, `withToolErrors`), `showToolBinding`, `OwnViewBinding`, `AppResourceCsp`, `appOnly`, `strictToolInput`, `buildViewResult`, `buildDataFeedResult`, `decodeToolResult`, `createTranslator` |
+| Server helpers | `./server`  | The BPMN-name readers (`readBpmnNames`, `parseBpmnNames`), the per-caller request info (`callerCacheKey`, `getMcpRequestInfo`, `runWithMcpRequestInfo`), `composedEnvVars`, `viewResourceUri`, `viewPrelude`                   |
+| Bundle build   | `./server`  | `VIEW_BUNDLE_DEDUPE`, `viewBundleWatchPlugin`, and the served fonts (`installFontAssets`, `fontAssetsCsp`)                                                                                                                     |
+| View runtime   | `./widgets` | `mountViews`, the view host (`useViewHost`, `HostModelContext`), the query hooks (`useToolQuery`, `useToolQueries`, `useToolMutation`, `useViewData`), `TestViewHost` for tests                                                |
+| Host-bound UI  | `./widgets` | `WidgetShell`, `ListTable` + `PagedRows`, `IdCell`/`IdText`, `describeError`, `useActionFeedback`, `ConfirmDialog`, the hand-offs (`HAND_OFF_ACTIONS`, `AskAiButton` for one it does not list) and the BPMN viewer             |
+| Module tests   | `./testing` | `recordingModuleServer` and `testServerContext` for a module's tools, prompts and resources                                                                                                                                    |
 
 Views render in German for a host locale whose language is `de` and in English otherwise; the
-design kit itself (primitives, tones, formatters) comes from `@miragon/pulse-ui`. Without an
-OAuth provider the boot runs unauthenticated with one warning, and a module with toolsets runs
-its read-only floor; the providers and what fails the boot are under
+design kit itself (primitives, tones, formatters) comes from `@miragon/pulse-ui`, and so do the
+brand gates and the product glossary every widget package checks its catalogs against
+(`@miragon/pulse-ui/testing`). No module renders another's widget, and the view root keeps no map
+for one. Without an OAuth provider the boot runs unauthenticated with one warning, and a module
+with toolsets runs its read-only floor; the providers and what fails the boot are under
 [Security](https://miragon.github.io/pulse/mcp/operations#security).
 
 ## Peers and the SDK

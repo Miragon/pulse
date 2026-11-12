@@ -1,4 +1,4 @@
-import { RuntimeError, type DefinitionSummary } from "../../src/contract/index.js"
+import { RuntimeError, type DefinitionSummary } from "@miragon/pulse-engine-core"
 import { describe, expect, test, vi } from "vitest"
 import { DefinitionsLoop } from "../../src/core/refresh/definitions-loop.js"
 import { EngineLane } from "../../src/core/refresh/engine-lane.js"
@@ -290,6 +290,10 @@ describe("the failures that stop live updates", () => {
     }
     expect(LiveFailures.stopsLiveUpdates(new RuntimeError("unreachable", "no"))).toBe(false)
     expect(LiveFailures.stopsLiveUpdates(new Error("no"))).toBe(false)
+  })
+
+  test("leave out a question the engine cannot answer, which concerns one view only", () => {
+    expect(LiveFailures.stopsLiveUpdates(new RuntimeError("unsupported", "no"))).toBe(false)
   })
 })
 

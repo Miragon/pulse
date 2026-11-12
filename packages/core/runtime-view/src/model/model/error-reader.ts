@@ -1,4 +1,4 @@
-import type { ErrorReference } from "../../contract/index.js"
+import type { ErrorReference } from "../../ports/index.js"
 import type { ModdleElement, ParseResult } from "bpmn-moddle"
 import { ModelParser } from "./model-parser.js"
 

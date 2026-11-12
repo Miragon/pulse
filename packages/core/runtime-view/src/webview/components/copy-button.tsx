@@ -11,8 +11,7 @@ export interface CopyButtonProps {
   readonly class?: string
 }
 
-export function CopyButton({ text, label, class: className }: CopyButtonProps) {
-  const host = useHost()
+export function useCopied(): readonly [boolean, () => void] {
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
@@ -27,6 +26,18 @@ export function CopyButton({ text, label, class: className }: CopyButtonProps) {
     }
   }, [copied])
 
+  return [
+    copied,
+    () => {
+      setCopied(true)
+    },
+  ]
+}
+
+export function CopyButton({ text, label, class: className }: CopyButtonProps) {
+  const host = useHost()
+  const [copied, markCopied] = useCopied()
+
   return (
     <>
       <button
@@ -37,7 +48,7 @@ export function CopyButton({ text, label, class: className }: CopyButtonProps) {
         onClick={(event) => {
           event.stopPropagation()
           host.post({ type: "copy", text, label })
-          setCopied(true)
+          markCopied()
         }}
       >
         <Icon of={copied ? glyphs.Check : glyphs.Copy} />

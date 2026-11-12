@@ -1,16 +1,12 @@
-import type { Client } from "@miragon/pulse-engine-client"
+import type { Client } from "@miragon/pulse-c7-client"
 import {
   earliestEngineDate,
   engineLike,
   latestEngineDate,
   messageSignature,
   toEngineDate,
-} from "@miragon/pulse-engine-core"
-import {
-  getIncidents,
-  getIncidentsCount,
-  getProcessInstances,
-} from "@miragon/pulse-engine-client/sdk"
+} from "@miragon/pulse-c7-core"
+import { getIncidents, getIncidentsCount, getProcessInstances } from "@miragon/pulse-c7-client/sdk"
 import { LIST_PAGE_SIZE, type ClusterDetailData, type ClusterIncidentRow } from "../view-models.js"
 import type { ClusterDetailFilters, PagingArgs } from "../feed-contracts.js"
 import {

@@ -1,7 +1,7 @@
 /**
  * The non-test sources of every package and every MCP server app: what the cross-module source
  * guards (tool-name refs, hand-off refs, server env names) read. An interface app (a CLI, an
- * editor extension) carries no tool name of either module and posts nothing to an MCP host, so
+ * editor extension) carries no tool name of any module and posts nothing to an MCP host, so
  * no guard reads it, and neither reads the packages only the editor hosts bundle
  * (INTERFACE_PACKAGES).
  */
@@ -25,10 +25,10 @@ export const APP_SCAN = {
 
 /**
  * The packages only the interface apps bundle (keyed by their directory under packages/): the
- * runtime view the editor hosts share and the engine family's adapter of its contract. Like an
+ * runtime view the editor hosts share and the c7 family's adapter of its contract. Like an
  * interface app, they carry no tool name and post nothing to an MCP host.
  */
-export const INTERFACE_PACKAGES = ["core/runtime-view", "connectors/engine/engine-adapter"]
+export const INTERFACE_PACKAGES = ["core/runtime-view", "connectors/c7/c7-adapter"]
 
 /** @param {string} dir */
 const childDirs = (dir) =>

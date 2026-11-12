@@ -9,7 +9,7 @@ import type { Connection } from "@miragon/pulse-runtime-view/host-kit"
 import type { ConnectionRegistry } from "../../src/host/connections/connection-registry.js"
 import type { PanelManager } from "../../src/host/panels/panel-manager.js"
 import type { HostMessage, PanelState } from "@miragon/pulse-runtime-view/protocol"
-import { RuntimeError } from "@miragon/pulse-runtime-view/contract"
+import { RuntimeError } from "@miragon/pulse-engine-core"
 import { BoardParser } from "@miragon/pulse-runtime-view/core"
 import { instance } from "./support/board-instance.js"
 
@@ -214,7 +214,7 @@ function setup() {
     badge: { name: "shop", environment: "test", host: "shop" },
     runtime: {
       describeEngine: () => Promise.resolve({ product: "Engine", version: "1" }),
-      countInstances: () => Promise.resolve(4),
+      countInstances: () => Promise.resolve({ count: 4 }),
       searchInstances: () => Promise.resolve({ items: [instance("i-1", "order")] }),
     },
     definitions: { read: () => Promise.resolve([]) },

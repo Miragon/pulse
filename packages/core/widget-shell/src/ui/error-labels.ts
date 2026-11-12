@@ -1,7 +1,6 @@
 import type { Locale } from "./host-context.js"
 
-export type ErrorSource =
-  { type: "engine"; id?: string } | { type: "prometheus" } | { type: "unknown" }
+export type ErrorSource = { type: "engine"; id?: string } | { type: "unknown" }
 
 export interface ErrorKindLabels {
   title: (p: { source: string; status: string }) => string
@@ -14,6 +13,8 @@ export interface ErrorLabels {
   source: (p: { source: ErrorSource }) => string
   /** The HTTP status as a title suffix (" (HTTP 503)"). */
   status: (p: { status: number }) => string
+  profileRefused: ErrorKindLabels
+  readOnly: ErrorKindLabels
   unreachable: ErrorKindLabels
   timeout: ErrorKindLabels
   notOnServer: ErrorKindLabels
@@ -40,18 +41,24 @@ const EN: ErrorLabels = {
       ? source.id
         ? `Engine ${source.id}`
         : "The engine"
-      : source.type === "prometheus"
-        ? "Prometheus"
-        : "The data source",
+      : "The data source",
   status: ({ status }) => ` (HTTP ${status})`,
+  profileRefused: {
+    title: ({ source }) => `${source} cannot be used: its profile is refused`,
+    hint: () =>
+      "Whoever runs this server finds the reason in its log at startup and can fix the profile. Until then, pick another engine.",
+  },
+  readOnly: {
+    title: ({ source }) => `${source} is read-only on this server`,
+    hint: () =>
+      "Its profile allows reads only, so nothing was changed. Ask whoever runs this server if you need to change something there.",
+  },
   unreachable: {
     title: ({ source, status }) => `${source} is unreachable${status}`,
     hint: ({ source }) =>
       source === "engine"
         ? "Check that the engine is running, or pick another engine."
-        : source === "prometheus"
-          ? "Check that Prometheus is running and reachable."
-          : "Check the connection, then try again.",
+        : "Check the connection, then try again.",
   },
   timeout: {
     title: ({ source }) => `${source} did not respond in time`,
@@ -99,18 +106,24 @@ const DE: ErrorLabels = {
       ? source.id
         ? `Die Engine ${source.id}`
         : "Die Engine"
-      : source.type === "prometheus"
-        ? "Prometheus"
-        : "Die Datenquelle",
+      : "Die Datenquelle",
   status: ({ status }) => ` (HTTP ${status})`,
+  profileRefused: {
+    title: ({ source }) => `${source} ist nicht nutzbar: ihr Profil ist abgelehnt`,
+    hint: () =>
+      "Die Person, die den Server betreibt, findet den Grund im Log beim Start und kann das Profil korrigieren. Wähl bis dahin eine andere Engine.",
+  },
+  readOnly: {
+    title: ({ source }) => `${source} ist auf diesem Server nur lesbar`,
+    hint: () =>
+      "Das Profil dieser Engine erlaubt nur Lesezugriffe, darum hat sich nichts geändert. Bitte die Person, die den Server betreibt, wenn du dort etwas ändern musst.",
+  },
   unreachable: {
     title: ({ source, status }) => `${source} ist nicht erreichbar${status}`,
     hint: ({ source }) =>
       source === "engine"
         ? "Prüf, ob die Engine läuft, oder wähl eine andere Engine."
-        : source === "prometheus"
-          ? "Prüf, ob Prometheus läuft und erreichbar ist."
-          : "Prüf die Verbindung und versuch es noch mal.",
+        : "Prüf die Verbindung und versuch es noch mal.",
   },
   timeout: {
     title: ({ source }) => `${source} antwortet nicht rechtzeitig`,

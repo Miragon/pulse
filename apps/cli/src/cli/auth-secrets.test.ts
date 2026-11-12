@@ -57,6 +57,8 @@ function secretForms(user: string, password: string): string[] {
   return [password, JSON.stringify(password).slice(1, -1), base64(`${user}:${password}`)]
 }
 
+const URL = "http://localhost:8080/engine-rest"
+
 /** Every way the credentials reach pulse, and every command that renders something. */
 function scenarios(user: string, password: string): Scenario[] {
   const env = { PULSE_CLI_USERNAME: user, PULSE_CLI_PASSWORD: password }
@@ -70,7 +72,7 @@ function scenarios(user: string, password: string): Scenario[] {
     { args: ["config", "show", "-o", "table"], env },
     { args: ["config", "show", ...stdin], stdin: `${password}\n` },
     { args: ["config", "show"], files: { [CONFIG_PATH]: stored } },
-    { args: ["config", "set", "p", ...stdin], stdin: `${password}\r\n` },
+    { args: ["config", "set", "p", "--url", URL, ...stdin], stdin: `${password}\r\n` },
     { args: ["config", "list"], files: { [CONFIG_PATH]: stored } },
     { args: ["task", "list", "--dry-run"], env },
     { args: ["task", "list", "--dry-run", "-o", "table"], env },

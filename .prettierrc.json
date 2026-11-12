@@ -14,7 +14,7 @@
         "apps/vscode/**",
         "apps/orca/**",
         "packages/core/runtime-view/**",
-        "packages/connectors/engine/engine-adapter/**"
+        "packages/connectors/c7/c7-adapter/**"
       ],
       "options": {
         "plugins": []

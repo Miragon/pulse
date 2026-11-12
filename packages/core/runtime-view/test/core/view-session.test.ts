@@ -1,4 +1,4 @@
-import { RuntimeError } from "../../src/contract/index.js"
+import { RuntimeError } from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
 import { ViewSession, type Snapshot } from "../../src/core/panels/view-session.js"
 import type { EngineView } from "../../src/core/protocol/index.js"

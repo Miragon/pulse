@@ -31,7 +31,7 @@ describe("the engines tree", () => {
       "shop-dev (active) shop-test Order fulfillment Invoice No process definitions deployed",
     )
     expect(shown.expandedOf(TREE)).toEqual(["engine|shop-dev"])
-    expect(shown.find({ type: "Text", text: "shop/.pulse-cli.json" })).not.toBeNull()
+    expect(shown.find({ type: "Text", text: "shop/.pulse.json" })).not.toBeNull()
     expectClean(shown)
   })
 
@@ -64,16 +64,36 @@ describe("the engines tree", () => {
     expectClean(shown)
   })
 
-  test("shows each configuration problem as a danger callout", async () => {
+  test("shows a refused profile and an unreadable file as a danger callout each", async () => {
     const problems = [
-      "/work/shop/.pulse-cli.json: profile prod needs a url",
-      "/work/other/.pulse-cli.json: Pulse can't read this file",
-    ]
+      { text: "/work/shop/.pulse.json: profile prod needs a url", tone: "danger" },
+      { text: "/work/other/.pulse.json: Pulse can't read this file", tone: "danger" },
+    ] as const
     const shown = await mounted(panelHost({ "engines.list": engineList([SHOP_DEV], { problems }) }))
 
     expect(shown.summary()).toEqual(
-      expect.arrayContaining(problems.map((problem) => `Callout danger "${problem}"`)),
+      expect.arrayContaining(problems.map((problem) => `Callout danger "${problem.text}"`)),
     )
+    expectClean(shown)
+  })
+
+  test("shows a note of the project file as a warning callout, beside a refused profile", async () => {
+    const note = ".pulse.json: defaultProfile names no profile of this file."
+    const refused = '.pulse.json: profile "prod": url is missing.'
+    const problems = [
+      { text: note, tone: "warning" },
+      { text: refused, tone: "danger" },
+    ] as const
+    const shown = await mounted(panelHost({ "engines.list": engineList([SHOP_DEV], { problems }) }))
+
+    const summary = shown.summary()
+    expect(summary).toEqual(
+      expect.arrayContaining([
+        `Callout warning ${JSON.stringify(note)}`,
+        `Callout danger ${JSON.stringify(refused)}`,
+      ]),
+    )
+    expect(summary).not.toContain(`Callout danger ${JSON.stringify(note)}`)
     expectClean(shown)
   })
 
@@ -150,7 +170,7 @@ describe("the engines tree's actions", () => {
   })
 
   test("asks the worker to configure the engines from the toolbar", async () => {
-    const host = panelHost({ "engines.configure": { path: "/work/shop/.pulse-cli.json" } })
+    const host = panelHost({ "engines.configure": { path: "/work/shop/.pulse.json" } })
     const shown = await mounted(host)
 
     await shown.press({ label: "Configure engines" })

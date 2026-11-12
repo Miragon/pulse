@@ -35,7 +35,11 @@ describe("changedAuth", () => {
     expect(auth).toEqual({ type: "basic", username: "demo", passwordEnv: "CAMUNDA_PASSWORD" })
     expect(Object.keys(auth ?? {})).toEqual(["type", "username", "passwordEnv"])
     expect(changedAuth(undefined, { auth: " none " })).toEqual({ type: "none" })
-    expect(changedAuth(undefined, { authUser: "demo" })).toEqual({ username: "demo" })
+    // the writer states the type, so a written profile never relies on a username implying it
+    expect(changedAuth(undefined, { authUser: "demo" })).toEqual({
+      type: "basic",
+      username: "demo",
+    })
   })
 
   it("changes only the given values", () => {
@@ -50,10 +54,12 @@ describe("changedAuth", () => {
       password: " s3cr:t ",
     })
     expect(changedAuth({ username: "demo", password: "x" }, { authPasswordEnv: "PW" })).toEqual({
+      type: "basic",
       username: "demo",
       passwordEnv: "PW",
     })
     expect(changedAuth({ username: "demo", password: "x" }, { authUser: "u" })).toEqual({
+      type: "basic",
       username: "u",
       password: "x",
     })

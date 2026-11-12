@@ -8,7 +8,7 @@ import type {
   ParamSpec,
 } from "../../src/catalog/types.js"
 import { buildCatalog } from "./build-catalog.js"
-import { readPatchedSpec } from "./files.js"
+import { readSpec, readRoutes } from "./files.js"
 import {
   GLOBAL_FLAGS,
   JSON_BODY_FLAGS,
@@ -231,7 +231,7 @@ let cachedCatalog: Catalog | undefined
  * at load time, so a generator failure fails that test instead of the whole file.
  */
 function realCatalog(): Catalog {
-  cachedCatalog ??= buildCatalog(readPatchedSpec(), SPEC_URL)
+  cachedCatalog ??= buildCatalog(readSpec(), SPEC_URL, readRoutes())
   return cachedCatalog
 }
 

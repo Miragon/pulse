@@ -1,4 +1,4 @@
-import { BpmnProcessId, ElementId, type InstanceFilter } from "../../contract/index.js"
+import { BpmnProcessId, ElementId, type InstanceFilter } from "@miragon/pulse-engine-core"
 import type { InstanceListFilter } from "../protocol/index.js"
 import type { BoardFilter } from "./board-definition.js"
 

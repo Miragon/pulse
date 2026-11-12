@@ -8,12 +8,12 @@ Merging it tags `v<version>`, and once someone approves "Await release approval"
 environment), `.github/workflows/release-please.yml` publishes every channel from the commit of
 that run:
 
-| Channel                     | Workflow                                    | What it publishes                                                                                                                                                                                                                                                          |
-| --------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| npm `@miragon/pulse-cli`    | `.github/workflows/publish-npm-package.yml` | The tarball `pnpm pack` builds, published with npm trusted publishing (OIDC, no token) and provenance                                                                                                                                                                      |
-| GitHub release              | `.github/workflows/publish-cli.yml`         | `pulse-cli-<os>-<arch>` for Linux x64 and arm64, macOS x64 and arm64 and Windows x64 (`.exe`), each built and smoke-tested on its native runner, the macOS and Linux ones also as `.tar.xz`, plus `pulse-cli-SHA256SUMS` and a build provenance attestation                |
-| `ghcr.io/miragon/pulse-cli` | `.github/workflows/publish-cli.yml`         | linux/amd64 and linux/arm64, tagged `<version>`, `<major>.<minor>` and `latest` (a prerelease only `<version>`), with SBOM, provenance and an attestation                                                                                                                  |
-| `miragon/tap/pulse-cli`     | `.github/workflows/publish-homebrew.yml`    | Stable releases only: the formula from `apps/cli/scripts/homebrew-formula.sh` (the executable `pulse-cli` and the link `pulse`), installed, tested and audited on macOS and Linux, then squash-merged into [Miragon/homebrew-tap](https://github.com/Miragon/homebrew-tap) |
+| Channel                     | Workflow                                    | What it publishes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| --------------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| npm `@miragon/pulse-cli`    | `.github/workflows/publish-npm-package.yml` | The tarball `pnpm pack` builds, published with npm trusted publishing (OIDC, no token) and provenance                                                                                                                                                                                                                                                                                                                                                                                               |
+| GitHub release              | `.github/workflows/publish-cli.yml`         | `pulse-cli-<os>-<arch>` for Linux x64 and arm64, macOS x64 and arm64 and Windows x64 (`.exe`), each built and smoke-tested on its native runner, the macOS and Linux ones also as `.tar.xz` with the licences (`apps/cli/scripts/pack-binary.sh`), the licences for every executable as `pulse-cli-LICENSE`, `pulse-cli-THIRD_PARTY_LICENSES.txt` and `pulse-cli-NODE_LICENSE` (`apps/cli/scripts/release-licenses.sh`), plus `pulse-cli-SHA256SUMS` and a build provenance attestation of them all |
+| `ghcr.io/miragon/pulse-cli` | `.github/workflows/publish-cli.yml`         | linux/amd64 and linux/arm64, tagged `<version>`, `<major>.<minor>` and `latest` (a prerelease only `<version>`), with SBOM, provenance and an attestation, the licences in `/usr/share/doc/pulse-cli`                                                                                                                                                                                                                                                                                               |
+| `miragon/tap/pulse-cli`     | `.github/workflows/publish-homebrew.yml`    | Stable releases only: the formula from `apps/cli/scripts/homebrew-formula.sh` (the executable `pulse-cli`, the link `pulse` and the licences), installed, tested and audited on macOS and Linux, then squash-merged into [Miragon/homebrew-tap](https://github.com/Miragon/homebrew-tap)                                                                                                                                                                                                            |
 
 The jobs that build hold read access only; the jobs that hold a token (the asset upload, the
 attestations, the image push, the tap update) install nothing. `pnpm lint:github` pins that
@@ -22,14 +22,20 @@ shape, and that no publish job runs before the approval or after a rejected one.
 ## Dry run and re-runs
 
 `gh workflow run release-please.yml -f dry_run=true` (with `--ref <branch>` for a branch) builds
-and smoke-tests the bundle, the five executables and the image, counts the nine assets and packs
-every npm package, after the same approval. It publishes nothing and skips Homebrew.
+and smoke-tests the bundle, the five executables and the image, checks that the executables
+share one Node.js licence, counts the twelve assets and packs every npm package, after the same
+approval. It publishes nothing and skips Homebrew.
 
 When a publish fails after the release exists, fix the cause and re-run the failed jobs of the
 Release run: npm skips a version that already carries this repository's provenance, the assets
 are replaced, the image tags are pushed again and a tap that holds the formula is left alone.
 `gh workflow run publish-homebrew.yml -f version=<version>` publishes the formula of an existing
-release again (`-f dry-run=true` only checks it).
+release again (`-f dry-run=true` only checks it); for a release before 0.28.0, whose archives hold
+no licences, run it with `--ref v<version>`. When "CLI licences" fails because the executables'
+Node.js licences differ (a Node.js release during the run changed the text), a re-run of the failed
+jobs compares the same files again. Its error lists the executables of each text, and each "CLI
+binary" job prints the Node.js it embeds: re-run the jobs on the older one, and GitHub runs "CLI
+licences" and the jobs after it again with each.
 
 ## Check a release
 
