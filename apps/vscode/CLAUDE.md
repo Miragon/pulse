@@ -188,8 +188,8 @@ Ports, core, webview, host kit and host stay engine-neutral.
   reading and on connecting, once, next to the auth kinds and `EditorAuth.connectsWith`. The move
   refusal's way out through the CLI is the core's `CliWayOut`, its command the adapter's `EngineCli`
   (the C7 adapter's `PulseCli`) on the engine its `CliTarget` names: the profile of the target's
-  project file, or the URL of the default engine with `--auth none`, beside which the CLI still
-  sends the headers and engine name of a profile it selects itself, a credential header too
+  project file, or the URL of the default engine with `--auth none`, on which the CLI takes no
+  profile, only the user's `PULSE_CLI_*` environment, whose login `--auth none` switches off
   (`apps/vscode/docs/adr/writes.md`); the wait row carries the command apart from the sentence
   (`WaitRow.cliCommand`) for the copy button beside the can't-move sign. The package owns its JSON
   Schema and the shared fixtures (its `./testing` entry), the runtime view its expectations of them

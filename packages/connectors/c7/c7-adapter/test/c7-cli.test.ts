@@ -86,7 +86,7 @@ describe("the CLI command that triggers the event a token of a C7 family engine 
     )
   })
 
-  test("names the URL of the editor's default engine and no credentials, as the editor reaches it", () => {
+  test("names the editor's default engine by --url with --auth none, so the CLI takes no profile or login", () => {
     const target: CliTarget = { kind: "endpoint", endpoint: "http://127.0.0.1:18090/engine-rest" }
     expect(commandFor(waitAt("Window", "timer"), { target })).toBe(
       `pulse advance ${INSTANCE} --activity-id Window --url http://127.0.0.1:18090/engine-rest --auth none`,

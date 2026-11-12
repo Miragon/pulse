@@ -103,7 +103,7 @@ describe("cockpit views in editor tabs", () => {
 
   test.each([
     [
-      "the default engine by its URL, reached without credentials",
+      "the default engine by --url with --auth none, so the CLI takes no profile or login",
       LOCAL_TARGET,
       "--url http://localhost:8080/engine-rest --auth none",
     ],
