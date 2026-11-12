@@ -54,7 +54,7 @@
     "test:engines": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
-    "commander": "15.0.0"
+    "commander": "15.1.0"
   },
   "devDependencies": {
     "@miragon/pulse-engine-core": "workspace:*",
