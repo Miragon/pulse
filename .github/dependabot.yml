@@ -158,7 +158,7 @@ updates:
   # Compose file, the playground stack (playground/docker/docker-compose.yml): moves the images
   # it pins (the dev profile's CIB seven Run, the OTEL Collector, Prometheus, Grafana, Keycloak).
   # The docker ecosystem below reads Dockerfiles only, so the same images in the Fly variants
-  # (Dockerfile.fly) move there, in pull requests of their own. dependabot-automerge.yml leaves
+  # (Dockerfile.fly) move there, in pull requests of their own. dependabot-automerge-eligibility.yml leaves
   # these out (its paths name no playground file), and no CI job starts the stack: before a merge,
   # check the configs on the new image (promtool check config and check rules, the collector's
   # validate, a Grafana that loads the provisioning) and run the metrics-contract tests.
@@ -207,7 +207,7 @@ updates:
   # The bump runs ci.yml's "Starter try-out engine" (scope starter-engine): the new image turns
   # healthy, answers an anonymous call with 401 and demo/demo with 200, deploys invoice and
   # ReviewInvoice, and a container on pulse-starter_default reaches it, the README's container
-  # recipe. dependabot-automerge.yml leaves it out (its paths name no compose file), so it
+  # recipe. dependabot-automerge-eligibility.yml leaves it out (its paths name no compose file), so it
   # merges by hand once that job is green.
   - package-ecosystem: "docker-compose"
     directory: "/templates/composed-server"
