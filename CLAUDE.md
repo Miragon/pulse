@@ -304,8 +304,10 @@ gelten für alle Oberflächen (Owner-Entscheidung):
 - Der angedockte Hinweisstreifen ohne die 4-px-Kante.
 - Icons: 12 px mit Strich 2,5 neben dichtem Text und auf den 20-px-Overlays des Diagramms (Zähl-
   und Move-Badges, Code- und Move-Knöpfe, Links und Warnungen im Text), sonst 16 und 24 px.
-  `scanIconSizes` lässt 12 px nur in den Dateien zu, die das Gate je mit Grund nennt; ein
-  Eintrag ohne 12-px-Icon schlägt fehl.
+  `scanIconSizes` liest `size={…}` und die `size-*`-Klassen auf SVG-Selektoren
+  (`[&>svg]:size-3`) und auf `Icon` und lässt 12 px nur in den Dateien zu, die das Gate je mit
+  Grund nennt (`allowDense`; im Kit `packages/core/ui/src/brand-gates.test.ts`: Badge, die
+  Knöpfe xs und icon-xs); ein Eintrag ohne 12-px-Icon schlägt fehl.
 
 ### Abweichung für die VS-Code-Webview
 
@@ -562,7 +564,8 @@ Ihre 12-px-Icons (Dichte, oben) lässt `scanIconSizes` in der Webview nur in den
      role pair to WCAG AA (a role a brand may override belongs in `ROLE_CONTRAST_PAIRS`). A brand
      override goes under `:root` AND the dark scopes, or a light-only value shows in dark
      (`parseThemeVariables`).
-   - **Icons are Lucide**, never glyphs or emoji: `Icon`, 16 or 24 px (`scanIconSizes`), its
+   - **Icons are Lucide**, never glyphs or emoji: `Icon`, 16 or 24 px, 12 px only in the files
+     the gate names with a reason (`scanIconSizes`, the density section's deviation), its
      stroke through lucide's own `strokeWidth`, never a CSS `stroke-width` rule, which would
      beat the `LucideProvider` widget-shell's view root sets with pulse-ui's `ICON_STROKE`.
      Every package that imports `lucide-react` and every host bundle pin the SAME exact 1.x

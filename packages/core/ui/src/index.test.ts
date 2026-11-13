@@ -228,6 +228,7 @@ describe("the @miragon/pulse-ui/testing entry", () => {
       "BARE_PAUSE_RULE_EN",
       "CI_ICON_SIZES",
       "COUNT_TERMS",
+      "DENSE_ICON_SIZE",
       "FORBIDDEN_GLYPHS",
       "LIGHT_STATUS_EXEMPTION",
       "PRODUCT_GLOSSARY",

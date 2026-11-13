@@ -41,6 +41,19 @@ const SCANNED = [
   "tones",
 ]
 
+/**
+ * The density section's named deviation (root CLAUDE.md): 12 px icons beside dense text and on
+ * 20 px badges, per directory and file, each with its reason. Shrink-only: a listed file that
+ * draws no 12 px icon fails as an unused allowance.
+ */
+const DENSE_ICONS_ALLOWED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+  primitives: {
+    "badge.tsx": "a badge is 20 px high beside 13 px text, so its icon is 12 px ([&>svg]:size-3!)",
+    "button.tsx":
+      "the xs and icon-xs buttons are 24 px (in notice strips, to copy), so their icon is 12 px",
+  },
+}
+
 /** The sources at the root of src (the barrel and the render fixtures), tests aside. */
 const ROOT_FILES = readdirSync(SRC, { withFileTypes: true })
   .filter((entry) => entry.isFile() && /\.tsx?$/.test(entry.name))
@@ -131,8 +144,8 @@ describe.each(SCANNED)("src/%s", (dir) => {
     expect(scanGlyphs(path)).toEqual([])
   })
 
-  it("draws icons at the CI sizes (16 or 24 px)", () => {
-    expect(scanIconSizes(path)).toEqual([])
+  it("draws icons at the CI sizes (16 or 24 px), at 12 px only in the files the dense deviation names", () => {
+    expect(scanIconSizes(path, { allowDense: DENSE_ICONS_ALLOWED[dir] })).toEqual([])
   })
 
   it("sets text on the type scale, the vendored shadcn primitives included", () => {

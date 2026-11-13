@@ -72,12 +72,13 @@ function stateTone(name: unknown): ErrorStateTone {
 /**
  * Per-variant geometry: `block` replaces a surface and reads as running text
  * (16 px), `inline` is the compact alert box above content that still renders
- * (14 px, the dense-controls exception of the type scale).
+ * (14 px, the dense-controls exception of the type scale). The icon is 16 px
+ * in both, a CI size, centred on the title's first line.
  */
 const VARIANT = {
   block: {
     box: "gap-4 p-4",
-    icon: "size-5",
+    iconOffset: "mt-1",
     title: "text-body",
     description: "text-body",
     defaultTitleAs: "h2",
@@ -85,7 +86,7 @@ const VARIANT = {
   },
   inline: {
     box: "gap-3 px-4 py-3 text-dense",
-    icon: "size-4",
+    iconOffset: "mt-0.5",
     title: "text-dense",
     description: "text-dense",
     defaultTitleAs: "p",
@@ -95,7 +96,7 @@ const VARIANT = {
   NonNullable<ErrorStateProps["variant"]>,
   {
     box: string
-    icon: string
+    iconOffset: string
     title: string
     description: string
     defaultTitleAs: StateHeadingLevel
@@ -145,7 +146,10 @@ export function ErrorState({
         className,
       )}
     >
-      <Icon aria-hidden="true" className={cn("mt-0.5 shrink-0", style.icon, TONE_ICON[tone])} />
+      <Icon
+        aria-hidden="true"
+        className={cn("size-4 shrink-0", style.iconOffset, TONE_ICON[tone])}
+      />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <Title className={cn("font-semibold", style.title)}>{title}</Title>
         {description && <div className={cn("break-words", style.description)}>{description}</div>}

@@ -1,12 +1,17 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { CI_ICON_SIZES, scanColors, scanGlyphs, scanIconSizes } from "@miragon/pulse-ui/testing"
+import {
+  CI_ICON_SIZES,
+  DENSE_ICON_SIZE,
+  scanColors,
+  scanGlyphs,
+  scanIconSizes,
+} from "@miragon/pulse-ui/testing"
 import { afterAll, describe, expect, test } from "vitest"
 import { PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, REPO_ROOT } from "./support/files.js"
 import { ENGINE_CORE_SOURCES, WEBVIEW, WORDED_LAYERS } from "./support/layers.js"
 
-const DENSE_ICON_SIZE = 12
 const RENDERER_PAINT = "diagram/canvas-roles.ts"
 
 const DENSE_ICONS_ALLOWED: Readonly<Record<string, string>> = {
@@ -26,15 +31,10 @@ const RAW_COLOURS_ALLOWED = {
     "bpmn-js paints with literal colours: the renderer's light paper and ink are constants that CanvasRoles maps to the vendored cd-canvas role classes, and test/webview/canvas-tokens.test.ts pins them to cd-tokens.generated.json",
 }
 
-function iconSizeFindings(root: string, allowed: Readonly<Record<string, string>>): string[] {
-  const findings = scanIconSizes(root)
-  const misplaced = findings
-    .filter(({ file, size }) => size !== DENSE_ICON_SIZE || !(file in allowed))
-    .map(({ file, line, size }) => `${file}:${String(line)}: ${String(size)} px`)
-  const unused = Object.keys(allowed)
-    .filter((file) => !findings.some((finding) => finding.file === file))
-    .map((file) => `${file}: unused allowance`)
-  return [...misplaced, ...unused]
+function iconSizeFindings(root: string, allowDense: Readonly<Record<string, string>>): string[] {
+  return scanIconSizes(root, { allowDense }).map(({ file, line, size, match }) =>
+    line === 0 ? `${file}: ${match}` : `${file}:${String(line)}: ${String(size)} px`,
+  )
 }
 
 function colourFindings(root: string) {
