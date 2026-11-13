@@ -5,6 +5,8 @@ import {
   CountBadge,
   Facts,
   LoadingState,
+  NavTab,
+  NavTabs,
   StateLabel,
   StatusStrip,
   Toolbar,
@@ -90,5 +92,18 @@ export const BLOCK_RENDER_CASES: RenderCase[] = [
   {
     name: "LoadingState",
     render: () => <LoadingState />,
+  },
+  {
+    name: "NavTabs",
+    marker: "RC:NavTabs",
+    render: () => (
+      <NavTabs ariaLabel="Sections">
+        <NavTab current>RC:NavTabs</NavTab>
+        <NavTab count={{ atLeast: 2000 }}>Jobs</NavTab>
+        <NavTab asChild count={null}>
+          <a href="#/history">History</a>
+        </NavTab>
+      </NavTabs>
+    ),
   },
 ]

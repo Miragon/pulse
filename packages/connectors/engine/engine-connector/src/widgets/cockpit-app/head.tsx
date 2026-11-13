@@ -1,11 +1,11 @@
 import type { ReactNode } from "react"
 import {
   Button,
-  cn,
-  FOCUS_RING_INSET,
   Icon,
   type LucideIcon,
   NativeSelect,
+  NavTab,
+  NavTabs,
   useLocale,
 } from "@miragon/pulse-ui"
 import { Cog, Layers, LayoutDashboard, TriangleAlert } from "lucide-react"
@@ -70,22 +70,11 @@ export function EngineSwitch({
 }
 
 /**
- * A section of the head: a line tab of the webview's tab bar (CI §8), the whole height of the bar,
- * the open one on the hover fill with a 2 px bar in `--interaction` on the bar's rule and its
- * label at 600; a Windows contrast theme draws that bar in Highlight and leaves the others unpainted.
- */
-const SECTION_LINK = cn(
-  "text-dense text-muted-foreground hover:bg-accent hover:text-foreground -mb-px inline-flex items-center gap-1.5 border-b-2 border-transparent px-2 whitespace-nowrap transition-colors",
-  "aria-[current=page]:bg-accent aria-[current=page]:border-b-interaction aria-[current=page]:text-foreground aria-[current=page]:font-semibold",
-  "forced-colors:border-b-[color:Canvas] forced-colors:aria-[current=page]:border-b-[color:Highlight]",
-  FOCUS_RING_INSET,
-)
-
-/**
  * #322 U20: one compact head row instead of a sidebar that cost ~200 px inline: a 40 px bar from
- * edge to edge (the webview's bar), its rule below, the sections as line tabs and the engine's
- * context at its end. A `trail` takes the sections' place: its first crumb leads back to them. Its
- * container is `bar`, so the cross-engine button keeps only its icon in a bar under 36rem.
+ * edge to edge (the webview's bar), its rule below, the sections as pulse-ui's `NavTabs` (line
+ * tabs whose open one's bar lands on that rule) and the engine's context at its end. A `trail`
+ * takes the sections' place: its first crumb leads back to them. Its container is `bar`, so the
+ * cross-engine button keeps only its icon in a bar under 36rem.
  */
 export function CockpitHead({
   activeSection,
@@ -112,23 +101,18 @@ export function CockpitHead({
       {trail ? (
         <div className="flex min-w-0 items-center ps-[calc(var(--gutter)-0.5rem)]">{trail}</div>
       ) : (
-        <nav
-          aria-label={translator(locale, "cockpit.aria.sections")}
-          className="flex flex-wrap items-stretch"
-        >
+        <NavTabs ariaLabel={translator(locale, "cockpit.aria.sections")}>
           {SECTIONS.map((s) => (
-            <button
+            <NavTab
               key={s.id}
-              type="button"
-              aria-current={activeSection === s.id ? "page" : undefined}
+              current={activeSection === s.id}
+              icon={<Icon icon={s.icon} />}
               onClick={() => onSection(s.intent)}
-              className={SECTION_LINK}
             >
-              <Icon icon={s.icon} />
               {translator(locale, `cockpit.section.${s.id}`)}
-            </button>
+            </NavTab>
           ))}
-        </nav>
+        </NavTabs>
       )}
       <div className="ms-auto flex min-w-0 flex-wrap items-center gap-2 py-1">
         {onOpenFleet && (

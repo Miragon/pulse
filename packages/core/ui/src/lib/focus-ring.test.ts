@@ -1,6 +1,5 @@
-import { readdirSync, readFileSync } from "node:fs"
+import { readFileSync } from "node:fs"
 import { createRequire } from "node:module"
-import { fileURLToPath } from "node:url"
 import { compile } from "tailwindcss"
 import { describe, expect, it } from "vitest"
 import { FOCUS_RING, FOCUS_RING_INSET } from "./focus-ring.js"
@@ -9,10 +8,9 @@ import { FOCUS_RING, FOCUS_RING_INSET } from "./focus-ring.js"
  * Forced colours (Windows contrast themes) drop the ring, a box-shadow, so the outline carries
  * focus there. Tailwind's `outline-hidden` keeps a transparent 2 px outline under forced colours,
  * which the browser paints in a system colour: written without a variant it frames every control
- * at rest and focus adds nothing visible. The kit writes it only under `focus-visible:`.
+ * at rest and focus adds nothing visible. The kit writes it only under `focus-visible:`; the brand
+ * gate `scanOutlines` of `@miragon/pulse-ui/testing` holds every source to it.
  */
-
-const SRC = fileURLToPath(new URL("../", import.meta.url))
 
 /** The CSS Tailwind writes for `classes`, whitespace folded. */
 async function css(classes: readonly string[]) {
@@ -25,9 +23,6 @@ async function css(classes: readonly string[]) {
 }
 
 const classesOf = (ring: string) => ring.split(/\s+/)
-
-/** A class token `outline-hidden` without a variant. */
-const BARE_OUTLINE_HIDDEN = /(?:^|[\s"'`])outline-hidden(?=[\s"'`]|$)/
 
 describe("the kit's focus outline under forced colours", () => {
   it.each([
@@ -57,19 +52,5 @@ describe("the kit's focus outline under forced colours", () => {
     )
     expect(outline).toBeGreaterThan(-1)
     expect(inside).toBeGreaterThan(outline)
-  })
-
-  it("no kit source writes outline-hidden without a variant", () => {
-    const sources = readdirSync(SRC, { recursive: true, encoding: "utf8" }).filter(
-      (file) => /\.tsx?$/.test(file) && !/\.test(?:-support)?\.tsx?$/.test(file),
-    )
-    const bare = sources.filter((file) =>
-      readFileSync(`${SRC}${file}`, "utf8")
-        .split("\n")
-        .filter((line) => !/^\s*(?:\*|\/\/|\/\*)/.test(line))
-        .some((line) => BARE_OUTLINE_HIDDEN.test(line)),
-    )
-    expect(sources.length).toBeGreaterThan(50)
-    expect(bare).toEqual([])
   })
 })

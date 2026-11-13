@@ -225,14 +225,14 @@ describe("Tabs: the line bar of a view, the box of a card", () => {
     expect(active?.getAttribute("data-state")).toBe("active")
   })
 
-  it("forced colours draw the active bar and a checked segment's edge in Highlight, the others' in Canvas, like the tabs", () => {
+  it("forced colours draw the active bar, a navigation's current bar and a checked segment's edge in Highlight, the others' in Canvas", () => {
     const forced = rules.slice(rules.indexOf("@media (forced-colors: active)")).replace(/\s+/g, " ")
     expect(forced).toContain(
-      '[data-slot="tabs-trigger"][data-variant="line"][data-state="active"], [data-slot="segmented-option"][aria-checked="true"] ) { border-color: Highlight; }',
+      '[data-slot="tabs-trigger"][data-variant="line"][data-state="active"], [data-slot="nav-tab"][aria-current="page"], [data-slot="segmented-option"][aria-checked="true"] ) { border-color: Highlight; }',
     )
     // The selected rule is more specific, so it wins over this one in either order.
     expect(forced).toContain(
-      ':is([data-slot="tabs-trigger"][data-variant="line"], [data-slot="segmented-option"]) { border-color: Canvas; }',
+      ':is( [data-slot="tabs-trigger"][data-variant="line"], [data-slot="nav-tab"], [data-slot="segmented-option"] ) { border-color: Canvas; }',
     )
   })
 

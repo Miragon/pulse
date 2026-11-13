@@ -1,7 +1,12 @@
-import { readdirSync, readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
-import { scanColors, scanGlyphs, scanIconSizes, scanTypeScale } from "@miragon/pulse-ui/testing"
+import {
+  scanColors,
+  scanGlyphs,
+  scanIconSizes,
+  scanOutlines,
+  scanTypeScale,
+} from "@miragon/pulse-ui/testing"
 
 // The scans of the kit's widget code. Outside src/ui: they read sources from disk, and
 // tsconfig.widgets.json is browser-only. The catalog text and glossary checks of the kit's
@@ -35,19 +40,9 @@ describe("kit widget code sets text on the type scale", () => {
   })
 })
 
-/**
- * Tailwind's `outline-hidden` keeps a transparent 2 px outline under forced colours, which the
- * browser paints: without a variant it frames a control at rest. Only `focus-visible:outline-hidden`
- * (pulse-ui's FOCUS_RING) or `outline-none` on a focus holder.
- */
 describe("kit widget code draws no outline at rest under forced colours", () => {
-  it("src/ui writes outline-hidden only under focus-visible", () => {
-    const bare = readdirSync(UI_DIR, { recursive: true, encoding: "utf8" })
-      .filter((file) => /\.tsx?$/.test(file) && !/\.test\.tsx?$/.test(file))
-      .filter((file) =>
-        /(?:^|[\s"'`])outline-hidden(?=[\s"'`]|$)/m.test(readFileSync(`${UI_DIR}${file}`, "utf8")),
-      )
-    expect(bare).toEqual([])
+  it("src/ui writes outline-hidden only under a focus state (pulse-ui's FOCUS_RING), never at rest", () => {
+    expect(scanOutlines(UI_DIR)).toEqual([])
   })
 })
 

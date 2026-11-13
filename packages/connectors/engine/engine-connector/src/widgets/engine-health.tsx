@@ -1,7 +1,9 @@
 import { useId } from "react"
 import {
   Button,
+  cn,
   KpiGrid,
+  MICRO_LABEL,
   StatusBadge,
   StatusStrip,
   WidgetHeader,
@@ -300,7 +302,7 @@ function ClustersSection({
   if (clusters.length === 0) return null
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-2">
-      <h2 id={headingId} className="text-section text-foreground">
+      <h2 id={headingId} className={cn("text-foreground", MICRO_LABEL)}>
         {t("engineHealth.clustersHeading")}
       </h2>
       <ul className="flex flex-col gap-2">

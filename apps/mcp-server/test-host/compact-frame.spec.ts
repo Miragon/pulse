@@ -5,9 +5,10 @@ import { HEALTHY_ENGINE, REALISTIC_ENGINE, REALISTIC_HOST_ENV } from "./engines.
 /**
  * The cockpit's frame in the one compact look (D9) where the reader's setup differs from a desk:
  * a touch screen takes the comfortable step, text at 200 % grows every control around it, a
- * 320 px card keeps every fact and id of a view's bar, forced colours keep the open tab, the
- * head's open section and a docked strip, a fact's term sits on its value's baseline, and the
- * detail views pass axe with a failed refresh docked under the bar.
+ * 320 px card keeps every fact and id of a view's bar and every section of the head, the head's
+ * sections (pulse-ui's NavTabs) open by keyboard, forced colours keep the open tab, the head's
+ * open section and a docked strip, a fact's term sits on its value's baseline, and the detail
+ * views pass axe with a failed refresh docked under the bar.
  */
 
 const INSTANCE_ARGS = {
@@ -247,6 +248,61 @@ test.describe("a 320 px card", () => {
     const actions = bar.locator('[data-slot="view-bar-actions"]')
     await expect(actions.getByRole("button", { name: "View process" })).toBeVisible()
     await expect(actions.getByRole("button", { name: /chat/ })).toBeVisible()
+  })
+})
+
+test.describe("the head's sections (pulse-ui's NavTabs)", () => {
+  test("a named navigation of buttons: Tab reaches each in turn, Enter opens one, aria-current follows", async ({
+    page,
+  }) => {
+    const app = await openView(page, { engine: HEALTHY_ENGINE })
+    const sections = app.getByRole("navigation", { name: "Cockpit sections" })
+    const overview = sections.getByRole("button", { name: "Overview" })
+    const incidents = sections.getByRole("button", { name: "Incidents" })
+    await expect(overview).toHaveAttribute("aria-current", "page", { timeout: 15_000 })
+    await expect(sections.getByRole("listitem")).toHaveCount(3)
+    // The open section's 2 px bar lands on the head's rule: the item reaches its bottom edge.
+    const edges = await overview.evaluate((item) => {
+      const head = item.closest('[data-slot="cockpit-head"]')!.getBoundingClientRect()
+      const box = item.getBoundingClientRect()
+      return { item: Math.round(box.bottom), head: Math.round(head.bottom) }
+    })
+    expect(edges.item).toBe(edges.head)
+    await overview.focus()
+    await page.keyboard.press("Tab")
+    await expect(incidents).toBeFocused()
+    await page.keyboard.press("Enter")
+    await expect(incidents).toHaveAttribute("aria-current", "page", { timeout: 15_000 })
+    await expect(overview).not.toHaveAttribute("aria-current", /.*/)
+  })
+
+  test("a 320 px card keeps every section whole and inside it", async ({ page }) => {
+    const app = await openView(page, { engine: HEALTHY_ENGINE }, { width: 320 })
+    const sections = app.getByRole("navigation", { name: "Cockpit sections" })
+    await expect(sections.getByRole("button", { name: "Overview" })).toBeVisible({
+      timeout: 15_000,
+    })
+    const seen = await sections.evaluate((nav) => {
+      const width = document.documentElement.clientWidth
+      const items = [...nav.querySelectorAll("button")].map((item) => {
+        const box = item.getBoundingClientRect()
+        return {
+          name: item.textContent,
+          inside: box.left >= 0 && box.right <= width,
+          whole: item.scrollWidth <= item.clientWidth,
+        }
+      })
+      return { items, scrolls: document.documentElement.scrollWidth > width }
+    })
+    expect(seen.scrolls, "the document never scrolls sideways").toBe(false)
+    expect(seen.items.map((item) => item.name)).toEqual(["Overview", "Incidents", "Jobs"])
+    for (const item of seen.items) {
+      expect(item, `${item.name} whole and inside the card`).toEqual({
+        name: item.name,
+        inside: true,
+        whole: true,
+      })
+    }
   })
 })
 

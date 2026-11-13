@@ -1,7 +1,13 @@
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
-import { scanColors, scanGlyphs, scanIconSizes, scanTypeScale } from "@miragon/pulse-ui/testing"
+import {
+  scanColors,
+  scanGlyphs,
+  scanIconSizes,
+  scanOutlines,
+  scanTypeScale,
+} from "@miragon/pulse-ui/testing"
 
 // Outside `src/widgets`: it reads sources from disk (the widget tsconfig is browser-only).
 const SRC = fileURLToPath(new URL(".", import.meta.url))
@@ -40,6 +46,18 @@ describe("engine widget code colours through role names only", () => {
     // a file that loses its raw colours fails here until its entry goes.
     expect(scanColors(join(SRC, "widgets"))).toEqual([])
   })
+})
+
+describe("engine widget code draws no outline at rest under forced colours", () => {
+  // Tailwind's outline-hidden is a transparent 2 px outline that a Windows contrast theme paints:
+  // outside a focus state it frames a control at rest, and focus adds nothing visible. The browser
+  // code is the widgets and what they share (`src/lib/shared`).
+  it.each(["widgets", "lib/shared"])(
+    "src/%s writes outline-hidden only under a focus state (pulse-ui's FOCUS_RING)",
+    (dir) => {
+      expect(scanOutlines(join(SRC, dir))).toEqual([])
+    },
+  )
 })
 
 describe("engine widget code sets text on the type scale", () => {

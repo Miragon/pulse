@@ -6,7 +6,7 @@
  * | Step      | Utility        | Size / weight / line height | Use                                        |
  * | --------- | -------------- | --------------------------- | ------------------------------------------ |
  * | `title`   | `text-title`   | 28 px / 700 / 1.2           | page title (the CI h2; a widget has no h1 40 px) |
- * | `section` | `text-section` | 21 px / 600 / 1.3           | section and dialog titles (CI h3)          |
+ * | `section` | `text-section` | 21 px / 600 / 1.3           | a dialog's title (CI h3) and a KPI figure; a section's heading is {@link MICRO_LABEL} at its level |
  * | `body`    | `text-body`    | 16 px / 400 / 1.6           | running text: state and toast descriptions |
  * | `dense`   | `text-dense`   | 13 px / 400 / 1.5           | tables and controls (buttons, tabs, menu entries, segments, chips, count pills, the inline alert box) and the primitives' short descriptions (card, dialog) |
  * | `small`   | `text-small`   | 13 px / 400 / 1.5           | captions, labels, hints, meta rows, badges: the FLOOR |
@@ -53,8 +53,9 @@ export const TYPE_FLOOR_PX = 13
 
 /**
  * A caption above a value or a column: table heads, KPI labels, group
- * labels. 13 px semibold in normal case: the CI floor, where these used to
- * be 10–11 px uppercase. Typography only: add the colour
+ * labels, and the compact heading of a section (`Section`, `SectionHeading`,
+ * an `h2` over a block). 13 px semibold in normal case: the CI floor, where
+ * these used to be 10–11 px uppercase. Typography only: add the colour
  * (`text-muted-foreground`) at the call site.
  */
 export const MICRO_LABEL = "text-small font-semibold"

@@ -2,6 +2,7 @@ import type { ReactElement } from "react"
 import { ExternalLink, Inbox } from "lucide-react"
 import {
   Button,
+  CountFigure,
   CountPill,
   DataTable,
   DrillButton,
@@ -106,12 +107,15 @@ export const RENDER_CASES: RenderCase[] = [
         cells={[
           {
             label: "Open",
-            value: 7,
-            tone: "danger",
+            value: (
+              <CountFigure situation="openIncident" label="Has open incidents">
+                7
+              </CountFigure>
+            ),
             trend: "+2 vs yesterday",
             trendDirection: "up",
           },
-          { label: "Done", value: 12, fraction: "/19", tone: "success" },
+          { label: "Done", value: 12, fraction: "/19" },
           { label: "Total", value: 19, onClick: noop, actionHint: "Shows all orders" },
         ]}
       />

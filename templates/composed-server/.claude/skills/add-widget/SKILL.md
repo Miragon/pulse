@@ -73,10 +73,12 @@ what reads the host or calls a tool. Neither re-exports the other's names:
   local helpers, no `Intl.DateTimeFormat`/`toLocaleDateString`/`toFixed` in
   widget code
 - Status: a tone (`danger`/`warning`/`success`/`info`/`neutral`) via the
-  kit's `StatusBadge`/`CountPill`/`KpiCell.tone` or its `TONE_*` maps, next
-  to readable words; colours come from the role variables (override them in
-  `server/src/ui/brand.css`, light and dark, to brand), never palette
-  classes or raw colours in widgets
+  kit's `StatusBadge`/`CountPill` or its `TONE_*` maps, next to readable
+  words; a count stays a neutral figure (an alarming one is the kit's
+  `CountFigure`, also as a `KpiGrid` value: never a tinted tile); colours
+  come from the role variables (override them in `server/src/ui/brand.css`,
+  light and dark, to brand), never palette classes or raw colours in
+  widgets
 - Icons: Lucide through the kit's `Icon` (add `lucide-react` to the module's
   dependencies at the exact version `server/package.json` pins), never Unicode
   glyphs or emoji

@@ -36,7 +36,7 @@ const TEXT_PAIRS: [string, string, string][] = [
   ["--muted-foreground", "--card", "CardDescription, AlertDescription"],
   ["--muted-foreground", "--popover", "dialog descriptions"],
   ["--muted-foreground", "--raised", "an inactive FilterBar chip"],
-  ["--muted-foreground", "--muted", "KpiGrid header, TabsList, TONE_SOFT.neutral"],
+  ["--muted-foreground", "--muted", "TabsList, TONE_SOFT.neutral"],
   ["--muted-foreground", "--accent", "quiet text on a hovered/selected item (text-leise on hover)"],
   ["--muted-foreground", "--secondary", "quiet text on a secondary surface"],
   ["--primary-foreground", "--primary", "primary Button, default Badge"],
@@ -87,7 +87,7 @@ const LIGHT_EXEMPT_STATUS = ["--success", "--warning"]
 
 /**
  * Where a status colour renders as a dot, border or icon (non-text, 3:1), per
- * tone: the page (KpiGrid dot, EmptyState icon, Pills), an overlay card (the
+ * tone: the page (a KPI trend's icon, EmptyState icon, Pills), an overlay card (the
  * Toast's left edge and icon) and the tone's own tint (the ErrorState's rim and
  * icon). Same CI exemption as above on light.
  */

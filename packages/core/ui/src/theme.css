@@ -596,14 +596,20 @@
   :is([data-slot="card"], [data-slot="switch"]) {
     border-color: CanvasText;
   }
-  /* A line tab's bar and a segment's edge are borders, Highlight on the
-     selected one; an unselected tab's bar and an unchecked segment's edge,
-     transparent, stay unpainted. */
-  :is([data-slot="tabs-trigger"][data-variant="line"], [data-slot="segmented-option"]) {
+  /* A line tab's bar (a view's tab or a navigation's item) and a segment's
+     edge are borders, Highlight on the selected or current one; an
+     unselected tab's bar and an unchecked segment's edge, transparent, stay
+     unpainted. */
+  :is(
+    [data-slot="tabs-trigger"][data-variant="line"],
+    [data-slot="nav-tab"],
+    [data-slot="segmented-option"]
+  ) {
     border-color: Canvas;
   }
   :is(
     [data-slot="tabs-trigger"][data-variant="line"][data-state="active"],
+    [data-slot="nav-tab"][aria-current="page"],
     [data-slot="segmented-option"][aria-checked="true"]
   ) {
     border-color: Highlight;

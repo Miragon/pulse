@@ -14,15 +14,36 @@ afterEach(cleanup)
 const classes = (el: Element | null) => (el?.getAttribute("class") ?? "").split(/\s+/)
 
 describe("kit type roles", () => {
-  it("a Section heading is the section step (21 px / 600), its summary keyboard-visible", () => {
+  it("a Section heading is the compact chrome heading (13 px / 600), never the 21 px section step", () => {
     render(
       <Section title="Variables" count={3}>
         <p>body</p>
       </Section>,
     )
     const heading = screen.getByRole("heading", { level: 3, name: "Variables" })
-    expect(classes(heading)).toContain("text-section")
-    expect(classes(heading.closest("summary"))).toContain("focus-visible:ring-focus")
+    expect(classes(heading)).toEqual(expect.arrayContaining(["text-small", "font-semibold"]))
+    expect(classes(heading)).not.toContain("text-section")
+    // Quiet like a SectionHeading, the foreground while hovered; its summary keyboard-visible.
+    const summary = classes(heading.closest("summary"))
+    expect(summary).toEqual(
+      expect.arrayContaining(["text-muted-foreground", "hover:text-foreground"]),
+    )
+    expect(summary).toContain("focus-visible:ring-focus")
+  })
+
+  it("a Section keeps the heading level its caller passes", () => {
+    render(
+      <>
+        <Section title="Activity tree" as="h2">
+          <p>tree</p>
+        </Section>
+        <Section title="Stack trace" as="h4">
+          <p>trace</p>
+        </Section>
+      </>,
+    )
+    expect(screen.getByRole("heading", { level: 2, name: "Activity tree" })).toBeTruthy()
+    expect(screen.getByRole("heading", { level: 4, name: "Stack trace" })).toBeTruthy()
   })
 
   it("a native select takes the 3:1 input edge, the field's text and the kit's focus ring", () => {

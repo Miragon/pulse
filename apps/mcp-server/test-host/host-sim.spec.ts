@@ -186,12 +186,13 @@ const STUB_DEFINITIONS = ["Customer Onboarding", "Invoice Receipt", "Order Fulfi
  *
  * Under the compact look (28 px heads, 28 px rows with their 24 px row actions; the cockpit's
  * 40 px head and the view's 40 px bar from edge to edge, each route's content in the 12 px
- * gutter) the overview with all three rows is 456 px high at 960 px and at the inline width of
- * 760 px, English and German alike: the unstated budget (fitted as 600 px) fits all three, with
- * 144 px to spare. A host that adds a line above the view (a recovered render's "Reloaded at",
- * the fullscreen toggle's bar) adds 40 px: all three still fit (496 px). Under that line one row
- * and the 44 px footer row are 484 px and two rows and the footer 512 px, more than all three
- * without a footer, so a 490 px budget fits exactly one, 6 px either side of what one and all three need.
+ * gutter, the section's heading on the 13 px chrome step) the overview with all three rows is
+ * 448 px high at 960 px and at the inline width of 760 px, English and German alike: the
+ * unstated budget (fitted as 600 px) fits all three, with 152 px to spare. A host that adds a
+ * line above the view (a recovered render's "Reloaded at", the fullscreen toggle's bar) adds
+ * 40 px: all three still fit (488 px). Under that line one row and the 44 px footer row are
+ * 476 px and two rows and the footer 504 px, more than all three without a footer, so a 482 px
+ * budget fits exactly one, 6 px either side of what one and all three need.
  * Where even one row would not fit (a 220 px budget) the fit cuts nothing and the view scrolls
  * instead, and fullscreen fits nothing.
  */
@@ -228,7 +229,7 @@ async function expectGermanOverview(app: FrameLocator, shown: 1 | 2 | 3 = 3): Pr
  * A budget that fits exactly one of the overview's three rows at 960 px under the fullscreen
  * toggle's bar, 6 px either side.
  */
-const ONE_DEFINITION_BUDGET = 490
+const ONE_DEFINITION_BUDGET = 482
 
 const STUB_JOBS = [
   "Card declined",
@@ -549,7 +550,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
   }) => {
     const app = await openView(page, { structuredContent: "strip" })
 
-    // With the "Reloaded at" line above it the view (496 px) still fits all three rows into the
+    // With the "Reloaded at" line above it the view (488 px) still fits all three rows into the
     // unstated budget.
     await expectOverview(app)
     // The view loaded these figures itself, so they can differ from the
@@ -1462,7 +1463,7 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
     page,
   }) => {
     const app = await openView(page, { width: INLINE_WIDTH })
-    // At 760 px the unstated budget fits all three (456 px).
+    // At 760 px the unstated budget fits all three (448 px).
     await expectOverview(app, 3)
     const { scrollWidth, clientWidth } = await documentOverflow(app)
     expect(scrollWidth, "the document never scrolls sideways").toBeLessThanOrEqual(clientWidth)
@@ -1826,8 +1827,8 @@ test.describe("an instance and the instance list (engine_open_cockpit)", () => {
     // The diagram's name leads with the id after it on one line; an element the diagram lacks
     // shows its id.
     await expect(elements).toHaveText(["Approve Invoice approveInvoice", "chargeCard"])
-    // The view with both 28 px rows is 627 px. A cut to one row would add the 44 px "1 of 2
-    // shown" footer and make it taller still (643 px): a cut pays for its footer, so nothing is
+    // The view with both 28 px rows is 619 px. A cut to one row would add the 44 px "1 of 2
+    // shown" footer and make it taller still (635 px): a cut pays for its footer, so nothing is
     // cut and the view scrolls inside its budget.
     await expect(table.locator("tfoot")).toHaveCount(0)
     await expect(app.locator("[data-inline-fit]")).toHaveAttribute("data-inline-fit", "overflow")

@@ -324,9 +324,10 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   APP-level surfaces (landing, first start, "no engines"), never in a widget
 - Type roles (pulse-ui's `TYPE_SCALE`): a view's title is chrome, the `WidgetHeader`'s bar
   heading (13/600 in its 40 px bar, `as` for the level); 28/700 only at app level (landing,
-  fleet: `size="app"`), a section `text-section` (21/600), running text `text-body` (16), dense
-  tables and controls `text-dense` (13, the guide's klein step, the size of `text-small` with its
-  own meaning), captions and meta `text-small` (13, the floor); no `text-xs`/`text-[11px]`, no
+  fleet: `size="app"`), a section's title the compact heading (`MICRO_LABEL`, 13/600, at its
+  level; `text-section` 21/600 only for a dialog's title and a KPI figure), running text
+  `text-body` (16), dense tables and controls `text-dense` (13, the guide's klein step, the size
+  of `text-small` with its own meaning), captions and meta `text-small` (13, the floor); no `text-xs`/`text-[11px]`, no
   Tailwind sizes in kit code, and weights 400, 600 and 700 only (`font-normal`, `font-semibold`,
   `font-bold`; no `font-medium`) (`scanTypeScale` from `@miragon/pulse-ui/testing`; connectors
   adopt it with `rules: ["below-floor"]` first). A disabled control is opaque (the kit's
@@ -349,12 +350,14 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   neutral; an alarming one adds its tone's icon of its own shape with words in `Icon`'s
   `label`); a state is a `StateLabel`; a tab's count is `TabCount`, only for a count the view
   already holds
-- From pulse-ui: `Section` (collapsibles); `Th`/`Td` (cells); `WidgetHeader`
-  (`badge`/`titleSuffix`/`sub`/`actions`/`as`, `size="app"` only at app level, no icon tile) +
-  `VersionChip`; `KpiGrid` (KPI strips, incl. `variant="soft"`; a clickable cell says what the
-  click does in `actionHint`, never `ariaLabel`); `Facts`, `StatusStrip`, `StateLabel`,
-  `TabCount`. From the view runtime: `WidgetShell` (the view's card, above; split into View +
-  Shell only when the body is embedded elsewhere)
+- From pulse-ui: `Section` (collapsibles, `as` for the heading level); `Th`/`Td` (cells);
+  `WidgetHeader` (`badge`/`titleSuffix`/`sub`/`actions`/`as`, `size="app"` only at app level, no
+  icon tile) + `VersionChip`; `KpiGrid` (KPI strips, neutral tiles: an alarming figure is its
+  value's `CountFigure`, through the connector's `AlarmCount`; a clickable cell says what the
+  click does in `actionHint`, never `ariaLabel`); `NavTabs`/`NavTab` (a navigation between
+  views, the cockpit head's sections); `Facts`, `StatusStrip`, `StateLabel`, `TabCount`. From
+  the view runtime: `WidgetShell` (the view's card, above; split into View + Shell only when the
+  body is embedded elsewhere)
 - Where and what (#322 U4, U13): the cockpit's head names the engine and its environment (a
   text chip, "PROD"), so a route view's `WidgetHeader` `sub` carries only the time it read
   (widget-shell's `ViewMeta` with `asOf`) and its own facts; a route widget takes `engine` and
@@ -381,8 +384,8 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   VS Code webview reads too: running `info`, suspended and ended `neutral`), retries left or
   degraded = `warning`; an
   engine's own state is its verdict's tone, `VERDICT_TONE`, never a ladder over its counts)
-  shown via pulse-ui's `StatusBadge` (tone and words required)/`CountPill`/`KpiCell.tone` or its
-  `TONE_DOT`/`TONE_BORDER`/`TONE_ICON`/`TONE_TINT`/`TONE_SOFT`/`TONE_INK` maps (a tone
+  shown via pulse-ui's `StatusBadge` (tone and words required)/`CountPill`/`CountFigure` or its
+  `TONE_DOT`/`TONE_BORDER`/`TONE_ICON`/`TONE_SOFT`/`TONE_INK` maps (a tone
   from the wire through `resolveTone`), next to readable words; never a coloured
   number, never a palette class or raw colour; text on a tint is black (`TONE_SOFT`), the
   `-ink` role is only for text in a tone directly on the card or page (an inline error)
@@ -405,9 +408,10 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   the noun's number (`countOf` from `messages/plural.ts`). The gates: `catalogTextFindings`
   over every catalog and en/de key parity of the widget catalogs (`messages/catalog-text.test.ts`),
   the glossary
-  (`messages/glossary.test.ts`), `scanGlyphs` over all of `src` and `scanColors` over
-  `src/widgets` (`src/brand-gates.test.ts`; the gates, the glossary and the count terms come
-  from `@miragon/pulse-ui/testing`)
+  (`messages/glossary.test.ts`), `scanGlyphs` over all of `src`, `scanColors` over
+  `src/widgets` and `scanOutlines` (Tailwind's `outline-hidden` only under a focus state, as
+  `FOCUS_RING` writes it) over `src/widgets` and `src/lib/shared` (`src/brand-gates.test.ts`; the
+  gates, the glossary and the count terms come from `@miragon/pulse-ui/testing`)
 - A pair: the overview, a process, its instances, an instance, an incident and the history
   have a counterpart in the VS Code webview, which shares a core up to building blocks with the
   widgets (owner decision 2026-11-12, `apps/vscode/docs/adr/ui-foundation.md`). Where both show

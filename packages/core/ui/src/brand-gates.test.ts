@@ -17,10 +17,12 @@ import {
   glossaryFindings,
   glyphFindings,
   iconSizeFindings,
+  outlineFindings,
   PRODUCT_GLOSSARY,
   scanColors,
   scanGlyphs,
   scanIconSizes,
+  scanOutlines,
   scanTypeScale,
   typeScaleFindings,
 } from "./testing/index.js"
@@ -84,15 +86,19 @@ describe("the gates reach every source", () => {
     expect(ROOT_FILES).toEqual(expect.arrayContaining(["index.ts", "render-cases.tsx"]))
   })
 
-  it.each(ROOT_FILES)("src/%s passes the glyph, icon-size, type-scale and colour gates", (name) => {
-    const source = readFileSync(join(SRC, name), "utf8")
-    expect([
-      ...glyphFindings(source, name),
-      ...iconSizeFindings(source, name),
-      ...typeScaleFindings(source, name),
-      ...colorFindings(source, name),
-    ]).toEqual([])
-  })
+  it.each(ROOT_FILES)(
+    "src/%s passes the glyph, icon-size, type-scale, colour and outline gates",
+    (name) => {
+      const source = readFileSync(join(SRC, name), "utf8")
+      expect([
+        ...glyphFindings(source, name),
+        ...iconSizeFindings(source, name),
+        ...typeScaleFindings(source, name),
+        ...colorFindings(source, name),
+        ...outlineFindings(source, name),
+      ]).toEqual([])
+    },
+  )
 })
 
 /** brand-lint reads Markdown only, not strings in `.ts`/`.tsx`. */
@@ -169,6 +175,10 @@ describe.each(SCANNED)("src/%s", (dir) => {
 
   it("sets text on the type scale and its three weights, the vendored shadcn primitives included", () => {
     expect(scanTypeScale(path).map((f) => `${f.file}:${f.line} ${f.match}`)).toEqual([])
+  })
+
+  it("draws no outline at rest under forced colours: outline-hidden only under a focus state", () => {
+    expect(scanOutlines(path)).toEqual([])
   })
 
   it("colours through role names only, outside the reasoned allowances", () => {

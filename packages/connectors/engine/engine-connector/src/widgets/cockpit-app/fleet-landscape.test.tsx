@@ -236,11 +236,11 @@ describe("the cross-engine landscape, read from each engine", () => {
 
     const trendOf = (landscape: HTMLElement, text: string) =>
       within(landscape).getByText(text, { exact: true })
-    /** The tone of the dot beside a KPI's trend line. */
+    /** The tone of the icon of its own shape beside a KPI's trend line (never a coloured dot). */
     const toneOf = (landscape: HTMLElement, text: string) =>
       trendOf(landscape, text)
         .closest("[data-slot='kpi-trend']")
-        ?.querySelector("[data-tone]")
+        ?.querySelector("svg[data-tone]")
         ?.getAttribute("data-tone")
 
     it("counts a 401 and a 403 apart, never as unreachable, with a refused profile's tone", async () => {

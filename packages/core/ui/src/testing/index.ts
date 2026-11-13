@@ -41,6 +41,7 @@ export {
   type ColorFinding,
   type ScanColorsOptions,
 } from "./colors.js"
+export { outlineFindings, scanOutlines, type OutlineFinding } from "./outlines.js"
 export {
   composite,
   contrastFindings,

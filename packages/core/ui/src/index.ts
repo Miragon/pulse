@@ -150,6 +150,7 @@ export { Toolbar, type ToolbarProps } from "./components/Toolbar.js"
 export { CopyableId, type CopyableIdProps } from "./components/CopyableId.js"
 export { ConditionChip, type ConditionChipProps } from "./components/ConditionChip.js"
 export { LoadingState, type LoadingStateProps } from "./components/LoadingState.js"
+export { NavTab, NavTabs, type NavTabProps, type NavTabsProps } from "./components/NavTabs.js"
 
 // Hooks
 export { useDebouncedValue } from "./hooks/use-debounced-value.js"
@@ -224,7 +225,7 @@ export type {
   ColumnWidths,
   SizedHeadProps,
 } from "./kit/column-sizing.js"
-export { Section } from "./kit/section.js"
+export { Section, type SectionHeadingLevel } from "./kit/section.js"
 export { NativeSelect } from "./kit/native-select.js"
 export { Field, type FieldProps } from "./kit/field.js"
 export type { FieldControlProps } from "./lib/field-control.js"

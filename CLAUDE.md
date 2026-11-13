@@ -624,13 +624,15 @@ Ihre 12-px-Icons (Dichte, oben) lässt `scanIconSizes` in der Webview nur in den
      ESLint gate a raw `AskAiButton`, so a new function goes into widget-shell's table.
    - **Brand gates and glossary.** Every widget package runs the gates of
      `@miragon/pulse-ui/testing` (`catalogTextFindings`, `scanGlyphs`, `scanIconSizes`,
-     `scanColors`) in its own `brand-gates.test.ts` (the host bundle's `src/ui` runs
-     `scanGlyphs`; widget-shell checks its words next to its catalogs, in
+     `scanColors`, `scanOutlines`: Tailwind's `outline-hidden` only under a focus state, since
+     forced colours paint it as a 2 px frame at rest anywhere else) in its own
+     `brand-gates.test.ts` (the host bundle's `src/ui` runs `scanGlyphs` and `scanOutlines`;
+     widget-shell checks its words next to its catalogs, in
      `packages/core/widget-shell/src/ui/kit-words.test.ts`), and its en/de catalogs hold the same
-     keys; the VS Code extension runs `scanGlyphs`, `scanIconSizes` and `scanColors` over its
-     webview (`apps/vscode/test/architecture/brand-gates.test.ts`, its 12 px icons the named
-     deviation of the design section). One term per thing across the product, the VS Code
-     extension included: `PRODUCT_GLOSSARY` (`@miragon/pulse-ui/testing`, with the brand gates; Incident,
+     keys; the VS Code extension runs `scanGlyphs`, `scanIconSizes`, `scanColors` and
+     `scanOutlines` over its webview (`apps/vscode/test/architecture/brand-gates.test.ts`, its
+     12 px icons the named deviation of the design section). One term per thing across the
+     product, the VS Code extension included: `PRODUCT_GLOSSARY` (`@miragon/pulse-ui/testing`, with the brand gates; Incident,
      "Jobs ohne Versuche" / "jobs without retries", "bereitstellen", Geschäftsschlüssel,
      aussetzen, Versuche, alle Engines, ein Profil "abgelehnt" / "refused"), checked with each
      connector's own terms by `src/messages/glossary.test.ts` and listed in
