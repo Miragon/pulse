@@ -6,7 +6,7 @@ import { LocaleProvider } from "../locale/locale-provider.js"
 import { UI_MESSAGES } from "../locale/ui-messages.js"
 import { FOCUS_RING } from "../lib/focus-ring.js"
 import { createToast } from "../lib/toast-model.js"
-import { TONE_BORDER, TONE_ICON, TONE_SOFT } from "../lib/tone-utils.js"
+import { TONE_BORDER, TONE_ICON } from "../lib/tone-utils.js"
 import { attribute, openingTags } from "../render-scan.js"
 import { EmptyState, type EmptyStateProps } from "./EmptyState.js"
 import { ErrorState, type ErrorStateTone } from "./ErrorState.js"
@@ -184,11 +184,20 @@ describe("EmptyState", () => {
     expect(renderToStaticMarkup(<EmptyState title="Bare" />)).not.toContain("<button")
   })
 
-  it("sets its help line as running text (16 px), not in the dense-table size", () => {
-    const html = renderToStaticMarkup(<EmptyState title="Nothing" description="Add one." />)
-    const line = openingTags(html, "p").find((t) => /max-w-prose/.test(t)) ?? ""
-    expect(attribute(line, "class")).toMatch(/(^| )text-body( |$)/)
-    expect(html).not.toMatch(/\btext-dense\b/)
+  it("is compact by default (13 px, 24 px above and below, the help line quiet); a page sets running text (16 px)", () => {
+    const lineOf = (html: string) =>
+      attribute(openingTags(html, "p").find((t) => /max-w-prose/.test(t)) ?? "", "class") ?? ""
+    const compact = renderToStaticMarkup(<EmptyState title="Nothing" description="Add one." />)
+    expect(attribute(openingTags(compact, "div")[0] ?? "", "data-size")).toBe("compact")
+    expect(attribute(openingTags(compact, "div")[0] ?? "", "class")).toMatch(/(^| )py-6( |$)/)
+    expect(lineOf(compact)).toMatch(/(^| )text-dense( |$)/)
+    expect(lineOf(compact)).toContain("text-muted-foreground")
+    expect(compact).not.toMatch(/\btext-body\b/)
+    const page = renderToStaticMarkup(
+      <EmptyState size="page" title="Nothing" description="Add one." />,
+    )
+    expect(lineOf(page)).toMatch(/(^| )text-body( |$)/)
+    expect(page).not.toMatch(/\btext-dense\b/)
   })
 
   it("resolves an untyped tone: a retired success name colours the icon, anything else stays quiet", () => {
@@ -244,14 +253,21 @@ describe("ErrorState", () => {
   })
 
   it.each(["danger", "warning", "info"] as const)(
-    "shows the %s tone as rim, tint and icon; every word on the tint is the foreground (CI §3.3)",
+    "is the guide's status box in the %s tone: rim, 4 px edge, status surface and icon; every word on it is the foreground (CI §3.3)",
     (tone) => {
       const html = renderToStaticMarkup(
         <ErrorState title="x" description="what to do" details="raw" tone={tone} onRetry={noop} />,
       )
       const rootClass = attribute(openingTags(html, "div")[0] ?? "", "class") ?? ""
-      expect(rootClass).toContain(TONE_SOFT[tone])
+      expect(rootClass).toContain(`bg-${tone}-surface`)
+      expect(rootClass).toContain("text-foreground")
       expect(rootClass).toContain(TONE_BORDER[tone])
+      // The edge is a real border (forced colours keep it), the box at most 560 px with shadow-2.
+      expect(rootClass).toMatch(new RegExp(`(^| )border-l-4( |$).*(^| )border-l-${tone}( |$)`))
+      expect(rootClass).toContain("shadow-2")
+      expect(rootClass).toContain("max-w-[min(560px,100%)]")
+      expect(rootClass).toContain("forced-colors:border-[color:CanvasText]")
+      expect(rootClass).not.toMatch(/\bbg-\w+-soft\b/)
       expect(attribute(openingTags(html, "svg")[0] ?? "", "class")).toContain(TONE_ICON[tone])
       // No quiet text, no ink and no status colour as text anywhere on the tint
       // (the icons, which carry the tone colour, set aside; a disabled button
@@ -282,15 +298,21 @@ describe("ErrorState", () => {
     expect(html).toContain('<a href="#help">Help</a>')
   })
 
-  it("sets the block's description as running text (16 px); the inline alert box stays dense", () => {
+  it("sets both variants in 13 px, the icon 16 px, the actions beside the text (below it under 30rem)", () => {
     const descriptionClass = (html: string) =>
       /<div class="([^"]*)">what to do<\/div>/.exec(html)?.[1] ?? ""
-    const block = renderToStaticMarkup(<ErrorState title="x" description="what to do" />)
-    expect(descriptionClass(block)).toMatch(/(^| )text-body( |$)/)
-    const inline = renderToStaticMarkup(
-      <ErrorState variant="inline" title="x" description="what to do" />,
-    )
-    expect(descriptionClass(inline)).toMatch(/(^| )text-dense( |$)/)
+    for (const variant of ["block", "inline"] as const) {
+      const html = renderToStaticMarkup(
+        <ErrorState variant={variant} title="x" description="what to do" onRetry={noop} />,
+      )
+      expect(descriptionClass(html)).toMatch(/(^| )text-dense( |$)/)
+      expect(html).not.toMatch(/\btext-body\b/)
+      expect(attribute(openingTags(html, "svg")[0] ?? "", "class")).toContain("size-4")
+      const grid = openingTags(html, "div")[1] ?? ""
+      expect(attribute(grid, "class")).toContain("grid-cols-[1rem_minmax(0,1fr)_auto]")
+      const actions = openingTags(html, "div").find((t) => /error-state-actions/.test(t)) ?? ""
+      expect(attribute(actions, "class")).toContain("@max-[30rem]/status:col-start-2")
+    }
   })
 
   it.each([

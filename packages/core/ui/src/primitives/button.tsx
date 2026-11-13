@@ -21,13 +21,14 @@ const FOCUS_IN_CELL = "in-[td]:focus-visible:ring-offset-0"
 
 /**
  * A toolbar button's label (`data-slot="button-label"`, the span `Button` puts its text in):
- * inside a container (`@container`, the view's bar) narrower than 36rem a button WITH an icon
- * hides it visually and keeps it as its accessible name (`sr-only`, never `display: none`), and
- * turns square around the icon at the control's height. A button without an icon keeps its
- * label, or it would be an empty box. An inline card at 760 px keeps its labels.
+ * inside a bar (the container named `bar`: `ViewBar`, `Toolbar`, `StatusStrip`, lib/bar.ts)
+ * narrower than 36rem a button WITH an icon hides it visually and keeps it as its accessible name
+ * (`sr-only`, never `display: none`), and turns square around the icon at the control's height.
+ * Any other container (a table's region, a card's head) leaves it alone. A button without an icon
+ * keeps its label, or it would be an empty box. An inline card at 760 px keeps its labels.
  */
 const TOOLBAR_COLLAPSE =
-  "@max-[36rem]:has-[>svg]:min-w-control @max-[36rem]:has-[>svg]:px-0 @max-[36rem]:has-[>svg]:[&>[data-slot=button-label]]:sr-only"
+  "@max-[36rem]/bar:has-[>svg]:min-w-control @max-[36rem]/bar:has-[>svg]:px-0 @max-[36rem]/bar:has-[>svg]:[&>[data-slot=button-label]]:sr-only"
 
 // Miragon CI §8: weight 600, 13 px; primary = blue fill with white text and shadow-1, hover
 // deeper blue + shadow-2 + a 1px lift; outline = the raised surface (the guide's flaeche-hoch)

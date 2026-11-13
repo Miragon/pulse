@@ -22,9 +22,11 @@ beforeAll(async () => {
   tools = { [ENGINE_WIDGET_ACTIONS_DATA]: await widgetActionsFeedFor("operations") }
 })
 
+/** The view's bar (WidgetHeader renders the kit's ViewBar): its facts and its one action group. */
 function head(container: HTMLElement) {
-  const header = container.querySelector<HTMLElement>('[data-slot="widget-header"]')!
-  const [facts, group] = Array.from(header.children) as HTMLElement[]
+  const bar = container.querySelector<HTMLElement>('[data-slot="view-bar"]')!
+  const facts = bar.querySelector<HTMLElement>('[data-slot="view-bar-facts"]')!
+  const group = bar.querySelector<HTMLElement>('[data-slot="view-bar-actions"]')
   const actions = Array.from(group?.querySelectorAll<HTMLElement>("a, button") ?? [])
   return { facts, actions }
 }

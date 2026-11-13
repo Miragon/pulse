@@ -126,6 +126,28 @@ export {
 } from "./components/EmptyState.js"
 export { ErrorState, type ErrorStateProps, type ErrorStateTone } from "./components/ErrorState.js"
 
+// The shared building blocks lifted from the VS Code webview (D9): props and callbacks only, no
+// host inside; the cockpit and, after the switch, the webview compose them.
+export {
+  ViewBar,
+  type ViewBarAccess,
+  type ViewBarHeadingLevel,
+  type ViewBarProps,
+} from "./components/ViewBar.js"
+export {
+  StatusStrip,
+  type StatusStripAction,
+  type StatusStripProps,
+  type StatusStripTone,
+} from "./components/StatusStrip.js"
+export { Facts, type Fact, type FactsProps } from "./components/Facts.js"
+export { StateLabel, type StateLabelProps, type StateLabelState } from "./components/StateLabel.js"
+export { CountBadge, type CountBadgeProps } from "./components/CountBadge.js"
+export { Toolbar, type ToolbarProps } from "./components/Toolbar.js"
+export { CopyableId, type CopyableIdProps } from "./components/CopyableId.js"
+export { ConditionChip, type ConditionChipProps } from "./components/ConditionChip.js"
+export { LoadingState, type LoadingStateProps } from "./components/LoadingState.js"
+
 // Hooks
 export { useDebouncedValue } from "./hooks/use-debounced-value.js"
 export { useResetOnChange } from "./kit/use-reset-on-change.js"
@@ -157,13 +179,17 @@ export {
   UI_MESSAGES,
   resolveUiMessages,
   type CommonMessages,
+  type ConditionChipMessages,
+  type CopyableIdMessages,
   type DataTableMessages,
   type FilterBarMessages,
   type ListFooterMessages,
   type SearchFieldMessages,
+  type StateLabelMessages,
   type UiLocale,
   type UiMessages,
   type UiMessagesOverride,
+  type ViewBarMessages,
 } from "./locale/ui-messages.js"
 export { createUseT, type T } from "./kit/create-use-t.js"
 

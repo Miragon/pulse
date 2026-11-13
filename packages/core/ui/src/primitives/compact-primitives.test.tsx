@@ -77,7 +77,7 @@ describe("Button on the density roles", () => {
     expect(variantClasses({ variant: "link" })).toContain("border-0")
   })
 
-  it("the toolbar variant: weight 400, the hover fill, its text in a label that collapses visually under a 36rem container", () => {
+  it("the toolbar variant: weight 400, the hover fill, its text in a label that collapses visually under a 36rem bar", () => {
     render(
       <Button variant="toolbar">
         <Icon icon={Search} />
@@ -89,13 +89,13 @@ describe("Button on the density roles", () => {
     expect(c).toEqual(expect.arrayContaining(["font-normal", "hover:bg-accent", "min-h-control"]))
     expect(c).not.toContain("font-semibold")
     // sr-only keeps the label the button's name; display: none would drop it.
-    expect(c).toContain("@max-[36rem]:has-[>svg]:[&>[data-slot=button-label]]:sr-only")
+    expect(c).toContain("@max-[36rem]/bar:has-[>svg]:[&>[data-slot=button-label]]:sr-only")
     expect(c.filter((x) => /(?:^|:)hidden$/.test(x))).toEqual([])
     const label = button.querySelector('[data-slot="button-label"]')
     expect(label?.textContent).toBe("Find")
   })
 
-  /** The rules the toolbar variant's own classes compile to inside its 36rem container query. */
+  /** The rules the toolbar variant's own classes compile to inside its query on a 36rem bar. */
   async function toolbarCollapseRules() {
     const tailwind = readFileSync(
       createRequire(import.meta.url).resolve("tailwindcss/theme.css"),
@@ -106,7 +106,9 @@ describe("Button on the density roles", () => {
     )
       .build(variantClasses({ variant: "toolbar" }))
       .replace(/\s+/g, " ")
-    const blocks = css.split("@container (width < 36rem) {").slice(1)
+    // Only the bar (the container named `bar`) collapses it, never any container.
+    expect(css).not.toContain("@container (width < 36rem)")
+    const blocks = css.split("@container bar (width < 36rem) {").slice(1)
     // Each block's rules up to its closing brace (rules nest no deeper).
     return blocks.flatMap((block) =>
       [...(block.split(/\}\s*\}/)[0] ?? "").matchAll(/([^{}]+)\{([^{}]+)\}?/g)].map(

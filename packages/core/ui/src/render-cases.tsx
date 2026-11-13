@@ -26,6 +26,7 @@ import {
   WidgetHeader,
   type DataTableColumn,
 } from "./index.js"
+import { BLOCK_RENDER_CASES } from "./render-cases-blocks.js"
 import { PRIMITIVE_RENDER_CASES, type RenderCase } from "./render-cases-primitives.js"
 
 export type { RenderCase } from "./render-cases-primitives.js"
@@ -90,6 +91,7 @@ function SizedTable({
 
 export const RENDER_CASES: RenderCase[] = [
   ...PRIMITIVE_RENDER_CASES,
+  ...BLOCK_RENDER_CASES,
 
   // ── Composed components ──
   {

@@ -185,14 +185,14 @@ const STUB_DEFINITIONS = ["Customer Onboarding", "Invoice Receipt", "Order Fulfi
  * head (#396), and a cut list says how many of the three in its footer row (`shownLine`).
  *
  * Under the compact look (28 px heads, 33 px rows: their 28 px row actions and the cells' 2 px
- * padding) the overview with all three rows is 574 px high at 960 px and 592 px at the inline
- * width of 760 px, in Geist and in the fallback font, English and German alike: the unstated
- * budget (fitted as 600 px) fits all three, with 26 px and 8 px to spare. At 960 px one row and the
- * 44 px footer row are 552 px and two rows and the footer 585 px, so a 563 px budget fits exactly
- * one, 11 px either side. A host that adds a line above the view (a recovered render's "Reloaded
- * at", the fullscreen toggle's bar) adds 40 px: the unstated budget then fits one, with 8 px to
- * spare. Where even one row would not fit (a 220 px budget) the fit cuts nothing and the view
- * scrolls instead, and fullscreen fits nothing.
+ * padding; the view's 40 px bar) the overview with all three rows is 505 px high at 960 px and at
+ * the inline width of 760 px, English and German alike: the unstated budget (fitted as 600 px)
+ * fits all three, with 95 px to spare. A host that adds a line above the view (a recovered
+ * render's "Reloaded at", the fullscreen toggle's bar) adds 40 px: all three still fit (545 px).
+ * Under that line one row and the 44 px footer row are 523 px and two rows and the footer 556 px,
+ * so a 534 px budget fits exactly one, 11 px either side of what one and all three need. Where
+ * even one row would not fit (a 220 px budget) the fit cuts nothing and the view scrolls instead,
+ * and fullscreen fits nothing.
  */
 async function expectDefinitions(
   table: Locator,
@@ -223,8 +223,11 @@ async function expectGermanOverview(app: FrameLocator, shown: 1 | 2 | 3 = 3): Pr
   await expect(app.getByText("3 bereitgestellt · Zahlen über alle Versionen")).toBeVisible()
 }
 
-/** A budget that fits exactly one of the overview's three rows at 960 px, 11 px either side. */
-const ONE_DEFINITION_BUDGET = 563
+/**
+ * A budget that fits exactly one of the overview's three rows at 960 px under the fullscreen
+ * toggle's bar, 11 px either side.
+ */
+const ONE_DEFINITION_BUDGET = 534
 
 const STUB_JOBS = [
   "Card declined",
@@ -245,12 +248,13 @@ const STUB_JOBS = [
  * The cockpit's jobs route rendered the stub engine's twelve failed jobs, the first job first:
  * inline exactly the `shown` rows the host's budget leaves room for under the cockpit's head
  * and the KPI strip (#396), and the count line says how many of the twelve. Under the compact
- * look (33 px rows with their 28 px row actions, ids in one line) a 600 px budget (and the unstated
- * one, fitted as 600 px) leaves room for seven at 960 px and at 760 px (579 px; an eighth row would
- * need 12 px more); 800 px fits all twelve (735 px). A head section shows no trail inline, so the
+ * look (33 px rows with their 28 px row actions, ids in one line, the view's 40 px bar, the KPI
+ * strip's 12 px tiles) a 600 px budget (and the unstated one, fitted as 600 px) leaves room for
+ * eight at 960 px and at 760 px (576 px; a ninth row would need 9 px more); 800 px fits all
+ * twelve (699 px). A head section shows no trail inline, so the
  * head is the only row above the view.
  */
-async function expectJobs(app: FrameLocator, shown: 7 | 12) {
+async function expectJobs(app: FrameLocator, shown: 8 | 12) {
   const region = app.getByRole("region", { name: "Jobs", exact: true })
   await expect(region).toBeVisible({ timeout: 15_000 })
   await expect(region.getByRole("row")).toHaveCount(shown + 1)
@@ -539,8 +543,9 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
   }) => {
     const app = await openView(page, { structuredContent: "strip" })
 
-    // The "Reloaded at" line above the view leaves the unstated budget room for one row.
-    await expectOverview(app, 1)
+    // With the "Reloaded at" line above it the view (545 px) still fits all three rows into the
+    // unstated budget.
+    await expectOverview(app)
     // The view loaded these figures itself, so they can differ from the
     // chat's answer: the frame's "Reloaded at" line says so.
     await expect(app.getByText(CHROME.reloadedAt)).toBeVisible()
@@ -847,7 +852,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
   }) => {
     const app = await openView(page, { args: JOBS_ARGS, maxHeight: 600 })
 
-    await expectJobs(app, 7)
+    await expectJobs(app, 8)
     const container = await app.locator("#root").evaluate((root) => {
       const el = root.firstElementChild as HTMLElement
       return { scrollHeight: el.scrollHeight, clientHeight: el.clientHeight }
@@ -860,7 +865,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
   }) => {
     const app = await openView(page, { args: JOBS_ARGS })
 
-    await expectJobs(app, 7)
+    await expectJobs(app, 8)
     // The old html/body/#root floor reported 600 for every view. `settledHeight`
     // waits for the report that equals the content's max-content height.
     const reported = await settledHeight(page, app)
@@ -871,9 +876,12 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
   test("host with fullscreen: the toggle requests it and follows the host's switch", async ({
     page,
   }) => {
-    const app = await openView(page, { displayModes: ["inline", "fullscreen"] })
+    const app = await openView(page, {
+      displayModes: ["inline", "fullscreen"],
+      maxHeight: ONE_DEFINITION_BUDGET,
+    })
 
-    // Inline, the toggle's bar above the view leaves the unstated budget room for one row.
+    // Inline, the toggle's bar above the view leaves this budget room for one row.
     await expectOverview(app, 1)
     await app.getByRole("button", { name: CHROME.enterFullscreen }).click()
 
@@ -1217,8 +1225,8 @@ test.describe("kit foundation (engine_open_cockpit, the jobs)", () => {
     await expect(blocked).toBeVisible()
     const card = await blocked.evaluate((el) => {
       const style = getComputedStyle(el)
-      // pulse-ui's KpiGrid: the figure on the type scale's title step.
-      const digits = getComputedStyle(el.querySelector(".text-title")!)
+      // pulse-ui's KpiGrid: the figure on the type scale's section step (the compact tile).
+      const digits = getComputedStyle(el.querySelector(".text-section")!)
       const page = getComputedStyle(document.body)
       return {
         edge: style.borderTopColor,
@@ -1233,7 +1241,9 @@ test.describe("kit foundation (engine_open_cockpit, the jobs)", () => {
     expect(card.edge).not.toBe(card.foreground)
     expect(card.tint, "the state is the card's tint").not.toBe(card.pageBackground)
     expect(card.digits, "a KPI number stays neutral").toBe(card.foreground)
-    expect(card.digitSize, "a KPI figure is the CI page-title size").toBe("28px")
+    expect(card.digitSize, "a KPI figure is the CI section size (21 px), the compact tile").toBe(
+      "21px",
+    )
   })
 
   test("forced colours: the current section keeps a Highlight ring, a status dot turns CanvasText", async ({
@@ -1276,7 +1286,7 @@ test.describe("kit foundation (engine_open_cockpit, the jobs)", () => {
 
   test("high contrast (data-cd-kontrast): no shadows, a 3 px focus ring", async ({ page }) => {
     const app = await openView(page, { args: JOBS_ARGS })
-    await expectJobs(app, 7)
+    await expectJobs(app, 8)
     const current = app
       .getByRole("navigation", { name: "Cockpit sections" })
       .getByRole("button", { name: "Jobs" })
@@ -1686,7 +1696,7 @@ test.describe("cockpit (engine_open_cockpit)", () => {
 
   test("opens on its start view: the head section current, no picker", async ({ page }) => {
     const app = await openView(page, { args: JOBS_ARGS })
-    await expectJobs(app, 7)
+    await expectJobs(app, 8)
     const sections = app.getByRole("navigation", { name: "Cockpit sections" })
     await expect(sections.getByRole("button", { name: "Jobs" })).toHaveAttribute(
       "aria-current",

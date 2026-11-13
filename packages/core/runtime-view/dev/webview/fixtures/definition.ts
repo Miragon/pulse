@@ -83,7 +83,7 @@ export const ENDED_DEFINITION_VIEW: DefinitionView = {
   ...DEFINITION_VIEW,
   instances: [
     instance("d1e2f3a4-b5c6-4d7e-8f9a-0b1c2d3e4f5a", "ORD-10399", 3100, { state: "Completed" }),
-    instance("a9b8c7d6-e5f4-4a3b-9c2d-1e0f9a8b7c6d", "ORD-10391", 3400, { state: "Terminated" }),
+    instance("a9b8c7d6-e5f4-4a3b-9c2d-1e0f9a8b7c6d", "ORD-10391", 3400, { state: "Cancelled" }),
     instance("f0e1d2c3-b4a5-4968-8776-655443322110", "ORD-10388", 3600, { state: "Completed" }),
   ],
   hasMoreInstances: true,

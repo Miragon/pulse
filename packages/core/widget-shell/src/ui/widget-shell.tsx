@@ -18,7 +18,8 @@ export function useHostDisplayMode(): string {
 /**
  * Every child may shrink (`min-w-0`), so a wide table scrolls in its own region instead of widening
  * the document. The view sits in the gutter of the density roles and its sections the section gap
- * apart (12 px each, 16 px on touch).
+ * apart (12 px each, 16 px on touch). A bar of the kit inside (a `ViewBar`, a `Toolbar`) sits flush
+ * with the content (`--bar-inset: 0`) instead of adding the gutter a second time.
  */
 export function WidgetShell({ children, className }: { children: ReactNode; className?: string }) {
   const nested = useContext(InsideShellContext)
@@ -33,7 +34,7 @@ export function WidgetShell({ children, className }: { children: ReactNode; clas
     <InsideShellContext.Provider value={true}>
       <div className={cn("bg-card text-card-foreground min-h-full min-w-0", className)}>
         <div
-          className={`gap-section p-gutter mx-auto flex min-w-0 flex-col ${isFullscreen ? "max-w-full" : "max-w-7xl"}`}
+          className={`gap-section p-gutter mx-auto flex min-w-0 flex-col [--bar-inset:0px] ${isFullscreen ? "max-w-full" : "max-w-7xl"}`}
         >
           {children}
         </div>

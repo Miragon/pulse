@@ -25,7 +25,7 @@ const STATE_SITUATIONS: Readonly<Record<StateLabelProps["state"], Situation>> = 
   Running: "running",
   Suspended: "suspended",
   Completed: "ended",
-  Terminated: "ended",
+  Cancelled: "ended",
   Incident: "openIncident",
 }
 

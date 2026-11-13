@@ -9,7 +9,7 @@ const GLYPHS: Readonly<Record<StateKind, string>> = {
   Running: glyphs.CircleDot,
   Suspended: glyphs.Pause,
   Completed: glyphs.CircleCheck,
-  Terminated: glyphs.Ban,
+  Cancelled: glyphs.Ban,
   Incident: glyphs.CircleX,
 }
 
@@ -17,7 +17,7 @@ const SITUATIONS: Readonly<Record<StateKind, Situation>> = {
   Running: "running",
   Suspended: "suspended",
   Completed: "ended",
-  Terminated: "ended",
+  Cancelled: "ended",
   Incident: "openIncident",
 }
 

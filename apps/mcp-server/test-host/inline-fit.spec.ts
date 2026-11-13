@@ -224,8 +224,8 @@ test.describe("inline fit on real-sized data (760 px column)", () => {
         px,
       )
     // Narrower: the cells keep one line (ids in one line), so no row grows taller; the table
-    // shows fewer columns (State hides below 48rem) and the chrome above it wraps taller, so
-    // fewer rows fit.
+    // shows fewer columns (State hides below 48rem) and the chrome above it wraps taller (under
+    // 30rem the view's bar and the filter bar take a second line), so fewer rows fit.
     const tallestRow = async () =>
       Math.max(
         ...(await tableRows(app).evaluateAll((rows) =>
@@ -233,7 +233,7 @@ test.describe("inline fit on real-sized data (760 px column)", () => {
         )),
       )
     const tallestAt760 = await tallestRow()
-    await setWidth(560)
+    await setWidth(480)
     await expect.poll(() => tableRows(app).count()).toBeLessThan(at760)
     await expectFits(page, app, view, 800)
     expect(await tallestRow(), "a narrower column wraps no row taller").toBeLessThanOrEqual(

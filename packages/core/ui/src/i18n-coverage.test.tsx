@@ -106,11 +106,15 @@ describe("no English leaks into a German view", () => {
     )
     expect(Object.keys(PSEUDO).sort()).toEqual([
       "common",
+      "conditionChip",
+      "copyableId",
       "dataTable",
       "filterBar",
       "listFooter",
       "pills",
       "searchField",
+      "stateLabel",
+      "viewBar",
     ])
   })
 

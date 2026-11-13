@@ -202,7 +202,7 @@ describe("definition view flow: Throughput", () => {
         .getAllByRole("row")
         .map((row) => row.textContent),
     ).toEqual([
-      "ActivityPassesRunningCanceled",
+      "ActivityPassesRunningCancelled",
       "Assess assess1,300412",
       "sendPolicy1,10000",
       "Legacy check legacyCheck · only in older versions4003",

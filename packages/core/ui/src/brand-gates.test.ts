@@ -47,6 +47,9 @@ const SCANNED = [
  * draws no 12 px icon fails as an unused allowance.
  */
 const DENSE_ICONS_ALLOWED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+  components: {
+    "CountBadge.tsx": "an alarming count's tone icon inside its 20 px pill beside 13 px figures",
+  },
   primitives: {
     "badge.tsx": "a badge is 20 px high beside 13 px text, so its icon is 12 px ([&>svg]:size-3!)",
     "button.tsx":
@@ -93,7 +96,17 @@ describe("the gates reach every source", () => {
 
 /** brand-lint reads Markdown only, not strings in `.ts`/`.tsx`. */
 describe("kit copy follows the voice rules", () => {
-  const SECTIONS = ["common", "listFooter", "filterBar", "searchField", "pills"] as const
+  const SECTIONS = [
+    "common",
+    "listFooter",
+    "filterBar",
+    "searchField",
+    "viewBar",
+    "copyableId",
+    "conditionChip",
+    "stateLabel",
+    "pills",
+  ] as const
   it.each(
     (["de", "en"] as const).flatMap((language) =>
       SECTIONS.map((section) => [`${section} (${language})`, section, language] as const),

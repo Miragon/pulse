@@ -69,8 +69,8 @@ describe("KpiGrid strip: neutral figures, the state beside them", () => {
     }
   })
 
-  it("keeps every figure in the foreground at the page-title size", () => {
-    expect(html).toMatch(/class="text-title text-foreground[^"]*tabular-nums">18</)
+  it("keeps every figure in the foreground at the section size (21 px at 600, the compact tile)", () => {
+    expect(html).toMatch(/class="text-section text-foreground[^"]*tabular-nums">18</)
     expect(html).not.toMatch(/text-(?:danger|warning|success|info)(?:-ink)?\b/)
   })
 
@@ -271,9 +271,11 @@ describe("KpiGridSkeleton mirrors the grid's geometry", () => {
 
   it("soft and boxed variants keep the loaded card shapes", () => {
     const soft = renderToStaticMarkup(<KpiGridSkeleton cells={3} variant="soft" />)
-    expect(openingTags(soft, "div").filter((t) => /rounded-lg border p-4/.test(t))).toHaveLength(3)
+    expect(openingTags(soft, "div").filter((t) => /rounded-lg border p-3/.test(t))).toHaveLength(3)
     const boxed = renderToStaticMarkup(<KpiGridSkeleton cells={2} boxed />)
     expect(classOf(openingTags(boxed, "div")[0])).toContain("rounded-lg border")
-    expect(renderToStaticMarkup(<KpiGridSkeleton cells={-1} />)).not.toContain("px-5 py-4")
+    expect(renderToStaticMarkup(<KpiGridSkeleton cells={-1} />)).not.toContain(
+      "border-r border-b p-3",
+    )
   })
 })

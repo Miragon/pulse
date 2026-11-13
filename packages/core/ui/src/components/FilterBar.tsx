@@ -1,8 +1,10 @@
+import type { ReactNode } from "react"
+import { SearchField } from "../kit/search-field.js"
 import { FOCUS_RING } from "../lib/focus-ring.js"
 import { TONE_BORDER, TONE_SOFT } from "../lib/tone-utils.js"
 import { cn } from "../lib/utils.js"
 import { useUiMessages } from "../locale/locale-provider.js"
-import { Input } from "../primitives/input.js"
+import { Toolbar } from "./Toolbar.js"
 
 export interface FilterChip {
   /** Stable id passed back to `onChipToggle`. */
@@ -16,7 +18,7 @@ export interface FilterChip {
 }
 
 export interface FilterBarProps {
-  /** Current search text (controlled). */
+  /** The search in effect (controlled): what the list is filtered by now. */
   search: string
   /** Placeholder for the search input. Default: the locale's "Filter…". */
   searchPlaceholder?: string
@@ -25,7 +27,10 @@ export interface FilterBarProps {
    * placeholder is no label (it disappears while you type).
    */
   searchAriaLabel?: string
-  /** Called with the new search text on every keystroke. */
+  /**
+   * Called with the trimmed search text as you type (the field adds no delay of its own), at
+   * once on Enter, its clear button and Escape; never twice in a row with the same text.
+   */
   onSearchChange: (next: string) => void
   /** Filter chips rendered to the right of the search input. */
   chips: FilterChip[]
@@ -33,15 +38,18 @@ export interface FilterBarProps {
   onChipToggle: (id: string) => void
   /** Names the chip row (`role="group"`). Default: the locale's "Filters". */
   chipsAriaLabel?: string
+  /** A line on what the list shows, at the bar's end ("Showing 20 of 160"). */
+  summary?: ReactNode
   className?: string
 }
 
 /**
- * Search input + toggleable chip row for filtering a list/table of widget
- * items. The input is labelled; every chip is a toggle button whose state is
- * `aria-pressed`. An active chip is a selection in the CI pattern: the info
- * tint and edge around foreground text. Pair with `useDebouncedValue` to
- * avoid re-querying on every keystroke.
+ * A `Toolbar` with a `SearchField` and a row of toggle chips for filtering a list or table of
+ * widget items: 36 px high with a rule below. The field is labelled; every chip is a toggle
+ * button whose state is `aria-pressed`, a 28 px pill up to 240 px wide (its whole label in its
+ * title). An active chip is a selection in the CI pattern: the info tint and edge around
+ * foreground text. Pair with `useDebouncedValue` to avoid re-querying on every keystroke. A
+ * condition you remove or edit is a `ConditionChip`.
  */
 export function FilterBar({
   search,
@@ -51,40 +59,41 @@ export function FilterBar({
   chips,
   onChipToggle,
   chipsAriaLabel,
+  summary,
   className,
 }: FilterBarProps) {
   const { filterBar } = useUiMessages()
   return (
-    <div data-slot="filter-bar" className={cn("flex flex-wrap items-center gap-2", className)}>
-      <Input
-        type="search"
+    <Toolbar summary={summary} className={className}>
+      <SearchField
         value={search}
-        onChange={(e) => onSearchChange(e.target.value)}
+        onChange={onSearchChange}
+        delayMs={0}
         placeholder={searchPlaceholder ?? filterBar.searchPlaceholder}
         aria-label={searchAriaLabel ?? filterBar.searchLabel}
-        className="text-dense md:text-dense h-9 min-w-[220px] flex-1"
       />
       {chips.length > 0 && (
         <div
           role="group"
           aria-label={chipsAriaLabel ?? filterBar.chipsLabel}
-          className="flex flex-wrap gap-1.5"
+          className="flex min-w-0 flex-wrap gap-1.5"
         >
           {chips.map((chip) => (
             <button
               type="button"
               key={chip.id}
+              title={chip.label}
               onClick={() => onChipToggle(chip.id)}
               aria-pressed={Boolean(chip.active)}
               className={cn(
-                "text-small inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 transition-colors",
+                "text-dense min-h-control rounded-pill inline-flex max-w-60 min-w-0 items-center gap-1.5 border px-2.5 transition-colors",
                 FOCUS_RING,
                 chip.active
                   ? cn(TONE_SOFT.info, TONE_BORDER.info, "font-semibold")
                   : "border-border bg-raised text-muted-foreground hover:bg-accent hover:text-foreground",
               )}
             >
-              {chip.label}
+              <span className="min-w-0 truncate">{chip.label}</span>
               {chip.count !== undefined && chip.count !== "" && (
                 <span className="font-normal tabular-nums">{chip.count}</span>
               )}
@@ -92,6 +101,6 @@ export function FilterBar({
           ))}
         </div>
       )}
-    </div>
+    </Toolbar>
   )
 }

@@ -21,6 +21,10 @@ const SAMPLES: Record<string, unknown[]> = {
   resizeColumn: [{ column: "Process" }],
   columnMenu: [{ column: "Process" }],
   columnWidth: [{ width: "120" }],
+  copy: [{ label: "instance ID" }],
+  copied: [{ label: "instance ID" }],
+  edit: [{ label: "amount > 100" }],
+  remove: [{ label: "amount > 100" }],
 }
 
 /** Every message of a catalog as `[path, rendered text]`. */
@@ -110,7 +114,7 @@ describe("kit catalogs", () => {
     const identical = flatten(UI_MESSAGES.de)
       .filter(([path, text]) => en.get(path) === text)
       .map(([, text]) => text)
-    expect([...new Set(identical)].sort()).toEqual(["Details", "Live"])
+    expect([...new Set(identical)].sort()).toEqual(["Details", "Incident", "Live"])
   })
 
   it("renders counts and names into the parametrised messages", () => {
@@ -131,6 +135,11 @@ describe("kit catalogs", () => {
     )
     expect(en.dataTable.columnMenu({ column: "Process" })).toBe("Width of column Process")
     expect(de.dataTable.columnWidth({ width: "1.200" })).toBe("1.200 Pixel")
+    // What an id or a condition is goes into the names of the buttons beside it.
+    expect(en.copyableId.copy({ label: "instance ID" })).toBe("Copy instance ID")
+    expect(de.copyableId.copied({ label: "Instanz-ID" })).toBe("Instanz-ID kopiert")
+    expect(en.conditionChip.remove({ label: "amount > 100" })).toBe("Remove filter amount > 100")
+    expect(de.conditionChip.edit({ label: "Betrag > 100" })).toBe("Filter Betrag > 100 bearbeiten")
   })
 })
 
@@ -166,7 +175,16 @@ describe("resolveUiMessages", () => {
     expect(merged.listFooter.loadingMore).toBe(UI_MESSAGES.de.listFooter.loadingMore)
     expect(merged.filterBar.searchLabel).toBe("Suchen")
     expect(merged.filterBar.chipsLabel).toBe(UI_MESSAGES.de.filterBar.chipsLabel)
-    for (const section of ["common", "searchField", "dataTable", "pills"] as const) {
+    for (const section of [
+      "common",
+      "searchField",
+      "dataTable",
+      "viewBar",
+      "copyableId",
+      "conditionChip",
+      "stateLabel",
+      "pills",
+    ] as const) {
       expect(merged[section]).toEqual(UI_MESSAGES.de[section])
     }
   })

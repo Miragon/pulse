@@ -23,7 +23,7 @@ export interface WebUiLink {
   readonly title: string
 }
 
-export type InstanceStateLabel = "Running" | "Suspended" | "Completed" | "Terminated"
+export type InstanceStateLabel = "Running" | "Suspended" | "Completed" | "Cancelled"
 
 export interface VersionOption {
   readonly definitionId: string

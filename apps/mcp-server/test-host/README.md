@@ -85,10 +85,11 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
 (sections, engine switch, Refresh) sits above the route. Inline the head is the only row: a
 drilled view's breadcrumb takes the sections' place, a head section shows none. Under the compact
 look (28 px heads, a row with an id or a pill 28 px, the cockpit's rows 33 px for their 28 px row
-actions) a 600 px budget then shows seven of the twelve job rows (579 px; an eighth would need
-12 px more) and all three of the overview's definitions at 960 px (574 px) and at 760 px
-(592 px); a host's line above the view (a recovered render's "Reloaded at", the fullscreen
-toggle's bar) adds 40 px and leaves room for one, and a 563 px budget fits exactly one at 960 px.
+actions, a view's header its 40 px bar) a 600 px budget then shows eight of the twelve job rows
+(576 px; a ninth would need 9 px more) and all three of the overview's definitions at 960 px and
+at 760 px (505 px); a host's line above the view (a recovered render's "Reloaded at", the
+fullscreen toggle's bar) adds 40 px and still leaves room for all three, and under it a 534 px
+budget fits exactly one at 960 px.
 The host scenarios pin each count. The width refit (`inline-fit.spec.ts`) and the row menu run at
 800 px, where all twelve jobs fit.
 

@@ -24,6 +24,8 @@ die Erweiterung prüft ihre Texte im Code (`apps/vscode/test/architecture/produc
 | Retries eines Jobs                                    | Versuche („Noch 2 Versuche“, „Keine Versuche mehr“), neu versuchen | Wiederholungen, wiederholen, Retries | retries, retry                     | –                      |
 | Alle Engines zusammen                                 | alle Engines, Engine-übergreifend                                  | Flotte                               | all engines, cross-engine          | fleet                  |
 | Engine-Profil, das eine Oberfläche nicht nutzt (²)    | abgelehnt („ihr Profil ist abgelehnt“)                             | verworfen, zurückgewiesen, ungültig  | refused („its profile is refused“) | rejected, invalid      |
+| Instanz oder Schritt, der läuft (³)                   | läuft                                                              | Aktiv                                | running                            | Active                 |
+| Instanz oder Schritt, beendet ohne Abschluss (³)      | abgebrochen                                                        | terminiert                           | cancelled                          | Terminated, Canceled   |
 
 (¹) Englisch prüft die gemeinsame Regel „pause“ und „halt“ nur in drei Wörtern Abstand zu dem,
 was die Engine aussetzt (Instanz, Prozess, Definition, Version, Job): VS Code pausiert seine
@@ -37,6 +39,13 @@ for VS Code eines, das es nicht bedienen kann. Die Wörter stehen in `describeEr
 (die Art `profileRefused`), auf der Landing des Cockpits („Profil abgelehnt“) und in der
 Engine-übergreifenden Übersicht, die solche Engines zählt („1 mit abgelehntem Profil“, nie nur „1
 abgelehnt“: neben „1 mit abgelehnten Zugangsdaten“ läse sich das wie die Anmeldung).
+
+(³) Ein Zustand heißt in jeder Oberfläche gleich, die Wörter stehen einmal in pulse-ui
+(`StateLabel` und sein Katalog): läuft, ausgesetzt, abgeschlossen, abgebrochen, beendet (wo eine
+Ansicht nicht weiß, ob abgeschlossen oder abgebrochen). Das Cockpit schrieb „Canceled“, VS Code
+„Terminated“ und im Verlauf „Active“ und „Canceled“. Die Regeln prüfen nur Wörter, die jemand
+liest; die Werte der Engine im Code („terminated“, „canceled“) und ein aktiver Filter („3 active“)
+bleiben frei.
 
 ## Zählbegriffe
 
@@ -69,9 +78,9 @@ pulse-ui (`COUNT_TERMS` in `@miragon/pulse-ui/testing`).
 | Ladezustand                                     | Wird geladen…                                                        | Laden…                    | Loading…                                      | –                     |
 | Herstellerprodukt                               | CIB seven, Camunda 7, Operaton (aus `provider.branding.displayName`) | CIB Seven                 | CIB seven                                     | CIB Seven             |
 | Künstliche Intelligenz                          | AI                                                                   | KI                        | AI                                            | –                     |
-| Engine lehnt die Anmeldung des Servers ab (³)   | Zugangsdaten abgelehnt (HTTP 401), Zugriff verweigert (HTTP 403)     | nicht erreichbar          | credentials rejected, access denied           | unreachable           |
+| Engine lehnt die Anmeldung des Servers ab (⁴)   | Zugangsdaten abgelehnt (HTTP 401), Zugriff verweigert (HTTP 403)     | nicht erreichbar          | credentials rejected, access denied           | unreachable           |
 
-(³) Die Kurzform der Titel, die `describeError` für 401 und 403 zeigt, auf der Landing und in der
+(⁴) Die Kurzform der Titel, die `describeError` für 401 und 403 zeigt, auf der Landing und in der
 Engine-übergreifenden Übersicht, dort auch gezählt („1 mit abgelehnten Zugangsdaten“). Die Engine hat
 geantwortet, also ist sie erreichbar; der Ton ist der eines abgelehnten Profils (warning), nicht der
 eines Ausfalls. Die Übersicht sagt deshalb zu einer Engine, die sie nicht lesen konnte, nie „hat nicht

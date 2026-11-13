@@ -195,7 +195,7 @@ describe("the strip under the instance header", () => {
 
   test("says when the instance is suspended or has ended", () => {
     expect(InstanceHeadline.of([row], "suspended")?.title).toBe("This instance is suspended.")
-    expect(InstanceHeadline.of([], "terminated")?.title).toBe("This instance is terminated.")
+    expect(InstanceHeadline.of([], "terminated")?.title).toBe("This instance is cancelled.")
   })
 
   test("sums up several incidents without actions, which sit on each card", () => {

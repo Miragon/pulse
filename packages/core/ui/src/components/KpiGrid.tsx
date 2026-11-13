@@ -140,7 +140,7 @@ function TrendLine({ cell }: { cell: KpiCell }) {
   const marked = tone !== "neutral"
   const Icon = direction ? TREND_ICON[direction] : undefined
   return (
-    <div data-slot="kpi-trend" className="text-small mt-1.5 flex items-center gap-1.5">
+    <div data-slot="kpi-trend" className="text-small mt-1 flex items-center gap-1.5">
       {Icon ? (
         <Icon aria-hidden="true" className={cn("size-4 shrink-0", TONE_ICON[tone])} />
       ) : (
@@ -169,7 +169,7 @@ function KpiCellBody({ cell, variant }: { cell: KpiCell; variant: "strip" | "sof
         </span>
         {cell.onClick && <ChevronRight aria-hidden="true" className="size-4 shrink-0" />}
       </div>
-      <div className="text-title text-foreground mt-1.5 leading-none tracking-tight break-words tabular-nums">
+      <div className="text-section text-foreground mt-1 leading-none break-words tabular-nums">
         {cell.value}
         {cell.fraction && (
           <span className="text-dense text-muted-foreground ml-0.5 font-normal">
@@ -229,7 +229,7 @@ function KpiCellView({
 /** A soft card: the tone's tint and edge around neutral text. */
 function softCardClass(tone: ToneName | undefined): string {
   const t = resolveTone(tone)
-  return cn("text-foreground rounded-lg border p-4", TONE_TINT[t], TONE_BORDER[t])
+  return cn("text-foreground rounded-lg border p-3", TONE_TINT[t], TONE_BORDER[t])
 }
 
 /**
@@ -241,7 +241,7 @@ function softCardClass(tone: ToneName | undefined): string {
  */
 const STRIP_FRAME = "bg-card overflow-hidden"
 const STRIP_GRID = "-mr-px -mb-px grid"
-const STRIP_CELL = "border-border min-w-0 border-r border-b px-5 py-4"
+const STRIP_CELL = "border-border min-w-0 border-r border-b p-3"
 
 function KpiStripHeader({ header }: { header: KpiGridHeader }) {
   return (
@@ -263,7 +263,8 @@ function KpiStripHeader({ header }: { header: KpiGridHeader }) {
 
 /**
  * A row of headline metrics, the canonical way to show KPIs in a widget
- * (replaces the single-metric KPICard). Cells flow as columns (1–6), falling
+ * (replaces the single-metric KPICard). Compact: 12 px inside each tile, the
+ * caption 4 px above a 21 px figure at 600. Cells flow as columns (1–6), falling
  * back to 2 columns in narrow frames. A cell's `tone` shows as a dot next to
  * its label (or as a soft card's tint and edge); figures stay in the
  * foreground colour. A clickable cell is a button whose accessible name is
@@ -281,7 +282,7 @@ export function KpiGrid({
   const group = ariaLabel ? { role: "group" as const, "aria-label": ariaLabel } : {}
   if (variant === "soft") {
     return (
-      <div {...group} data-slot="kpi-grid" className={cn("grid gap-4", colClass, className)}>
+      <div {...group} data-slot="kpi-grid" className={cn("grid gap-3", colClass, className)}>
         {cells.map((cell, idx) => (
           <KpiCellView
             key={idx}
@@ -336,11 +337,11 @@ export function KpiGridSkeleton({
   const count = Math.max(Math.trunc(cells) || 0, 0)
   if (variant === "soft") {
     return (
-      <div aria-busy="true" className={cn("grid gap-4", colClass, className)}>
+      <div aria-busy="true" className={cn("grid gap-3", colClass, className)}>
         {Array.from({ length: count }, (_, idx) => (
-          <div key={idx} className="bg-muted border-border rounded-lg border p-4">
+          <div key={idx} className="bg-muted border-border rounded-lg border p-3">
             <Skeleton className="h-4 w-20" />
-            <Skeleton className="mt-2 h-7 w-14" />
+            <Skeleton className="mt-1.5 h-5 w-14" />
           </div>
         ))}
       </div>
@@ -356,7 +357,7 @@ export function KpiGridSkeleton({
           {Array.from({ length: count }, (_, idx) => (
             <div key={idx} className={STRIP_CELL}>
               <Skeleton className="h-4 w-16" />
-              <Skeleton className="mt-2.5 h-7 w-14" />
+              <Skeleton className="mt-1.5 h-5 w-14" />
             </div>
           ))}
         </div>

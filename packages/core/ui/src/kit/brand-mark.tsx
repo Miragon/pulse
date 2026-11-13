@@ -55,6 +55,7 @@ export function AppEmptyState({
       action={action}
       secondaryAction={secondaryAction}
       titleAs={titleAs}
+      size="page"
       className={cn("py-12", className)}
     />
   )

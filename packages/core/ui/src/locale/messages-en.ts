@@ -14,6 +14,7 @@ export const en: UiMessages = {
     notifications: "Notifications",
     loadFailed: "This content couldn't be loaded",
     loadFailedHint: "Try again. If it fails again, ask in the chat.",
+    loading: "Loading…",
   },
   listFooter: {
     showing: ({ shown, total, noun }) => `Showing ${shown} of ${total} ${noun}`.trimEnd(),
@@ -40,6 +41,24 @@ export const en: UiMessages = {
     widerColumn: "Wider",
     narrowerColumn: "Narrower",
     resetColumns: "Reset all widths",
+  },
+  viewBar: { back: "Back", readOnly: "Read-only", writable: "Writable" },
+  copyableId: {
+    copy: ({ label }) => `Copy ${label}`,
+    copied: ({ label }) => `Copied ${label}`,
+    done: "Copied",
+  },
+  conditionChip: {
+    edit: ({ label }) => `Edit filter ${label}`,
+    remove: ({ label }) => `Remove filter ${label}`,
+  },
+  stateLabel: {
+    running: "Running",
+    suspended: "Suspended",
+    completed: "Completed",
+    cancelled: "Cancelled",
+    ended: "Ended",
+    incident: "Incident",
   },
   pills: { live: "Live" },
 }

@@ -10,9 +10,9 @@ export interface HistoryTabProps {
 }
 
 const STATE_LABELS: Readonly<Record<PathState, string>> = {
-  active: "Active",
+  active: "Running",
   completed: "Completed",
-  canceled: "Canceled",
+  canceled: "Cancelled",
 }
 
 export function HistoryTab({ path, elementName }: HistoryTabProps) {

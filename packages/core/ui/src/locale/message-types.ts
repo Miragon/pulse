@@ -24,6 +24,8 @@ export interface CommonMessages {
   loadFailed: string
   /** The line under {@link CommonMessages.loadFailed}: what you can do (a retry follows). */
   loadFailedHint: string
+  /** What a `LoadingState` says while its content loads. */
+  loading: string
 }
 
 /** Strings of `ListFooter`. */
@@ -98,6 +100,48 @@ export interface DataTableMessages {
   resetColumns: string
 }
 
+/** Strings of `ViewBar`: its back button and its access chip. */
+export interface ViewBarMessages {
+  /** Accessible name of the back button. */
+  back: string
+  /** The access chip of a view that only reads from the engine. */
+  readOnly: string
+  /** The access chip of a view that may write to the engine. */
+  writable: string
+}
+
+/** Strings of `CopyableId`. */
+export interface CopyableIdMessages {
+  /** The copy button's name, e.g. "Copy instance ID". */
+  copy: (params: { label: string }) => string
+  /** The copy button's name for a moment after a copy, e.g. "Copied instance ID". */
+  copied: (params: { label: string }) => string
+  /** What the live region says once the copy is done. */
+  done: string
+}
+
+/** Strings of `ConditionChip`: its two buttons, each naming the chip. */
+export interface ConditionChipMessages {
+  /** The chip's label as a button that edits it, e.g. "Edit filter amount > 100". */
+  edit: (params: { label: string }) => string
+  /** The chip's remove button, e.g. "Remove filter amount > 100". */
+  remove: (params: { label: string }) => string
+}
+
+/**
+ * The words of `StateLabel`: one word per state of an instance or a step, in every Pulse UI
+ * (`PRODUCT_GLOSSARY` holds the synonyms off).
+ */
+export interface StateLabelMessages {
+  running: string
+  suspended: string
+  completed: string
+  cancelled: string
+  /** Ended, where the view does not know whether it completed or was cancelled. */
+  ended: string
+  incident: string
+}
+
 /** One locale's complete kit catalog. */
 export interface UiMessages {
   common: CommonMessages
@@ -105,5 +149,9 @@ export interface UiMessages {
   filterBar: FilterBarMessages
   searchField: SearchFieldMessages
   dataTable: DataTableMessages
+  viewBar: ViewBarMessages
+  copyableId: CopyableIdMessages
+  conditionChip: ConditionChipMessages
+  stateLabel: StateLabelMessages
   pills: { live: string }
 }

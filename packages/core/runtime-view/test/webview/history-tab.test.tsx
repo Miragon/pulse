@@ -25,7 +25,7 @@ describe("the History tab of an instance", () => {
     expect(rows).toEqual([
       ["Order received", "Completed", true, true, "4ms"],
       ["Reserve stock", "Completed", true, true, "1m 2s"],
-      ["Check credit", "Active", true, false, "—"],
+      ["Check credit", "Running", true, false, "—"],
     ])
   })
 })

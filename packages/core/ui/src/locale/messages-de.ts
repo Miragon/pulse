@@ -15,6 +15,7 @@ export const de: UiMessages = {
     notifications: "Hinweise",
     loadFailed: "Der Inhalt konnte nicht geladen werden",
     loadFailedHint: "Versuch es noch mal. Klappt es wieder nicht, frag im Chat nach.",
+    loading: "Wird geladen…",
   },
   listFooter: {
     showing: ({ shown, total, noun }) => `Zeigt ${shown} von ${total} ${noun}`.trimEnd(),
@@ -41,6 +42,24 @@ export const de: UiMessages = {
     widerColumn: "Breiter",
     narrowerColumn: "Schmaler",
     resetColumns: "Alle Breiten zurücksetzen",
+  },
+  viewBar: { back: "Zurück", readOnly: "Nur Lesezugriff", writable: "Schreibzugriff" },
+  copyableId: {
+    copy: ({ label }) => `${label} kopieren`,
+    copied: ({ label }) => `${label} kopiert`,
+    done: "Kopiert",
+  },
+  conditionChip: {
+    edit: ({ label }) => `Filter ${label} bearbeiten`,
+    remove: ({ label }) => `Filter ${label} entfernen`,
+  },
+  stateLabel: {
+    running: "Läuft",
+    suspended: "Ausgesetzt",
+    completed: "Abgeschlossen",
+    cancelled: "Abgebrochen",
+    ended: "Beendet",
+    incident: "Incident",
   },
   pills: { live: "Live" },
 }

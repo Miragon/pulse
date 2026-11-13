@@ -526,7 +526,10 @@ Ihre 12-px-Icons (Dichte, oben) lässt `scanIconSizes` in der Webview nur in den
      confirmation's dialog, and the cockpit shows a refused engine once, as its view's one state
      (`RefusedEngineGate`), also before the engine list answers. A write reports through
      `useActionFeedback()` toasts that name the object and confirms through `ConfirmDialog`;
-     nothing to show is `TableEmptyState`.
+     nothing to show is `TableEmptyState`. A first load shows its skeleton only after 400 ms
+     (`SKELETON_DELAY_MS`), a refresh keeps the content on screen with its region `aria-busy`
+     (both components' `children` and `refreshing`), and an error is the guide's status box
+     (`ErrorState`).
    - **Inline is a card, not a page** (#396). A list under a host shows the rows that FIT the
      host's height budget, measured on the rendered view (`InlineFitBox`), never estimated
      with px constants. A paged list registers ONE list (`PagedRows` + `paged.fit`, its footer
@@ -579,7 +582,10 @@ Ihre 12-px-Icons (Dichte, oben) lässt `scanIconSizes` in der Webview nur in den
      roles: `--<tone>` (dot, edge, icon), `--<tone>-soft` (tint, black text), `--<tone>-surface`
      (the guide's status surface for a status box or strip: the tint on light, neutral on dark)
      and `--<tone>-ink` (text on card or page, never on a tint, never a number). Numbers stay
-     neutral. Components use
+     neutral: an alarming count shows its tone by an icon of the tone's own shape and says it in
+     words (`CountBadge`; filled in its tone only on a BPMN diagram, the named deviation), a state
+     in a cell is a `StateLabel` (an icon of the state's own shape, its one word from the kit's
+     catalog). Components use
      role names only (`scanColors`); `packages/core/ui/src/theme/tone-contrast.test.ts` holds every
      role pair to WCAG AA (a role a brand may override belongs in `ROLE_CONTRAST_PAIRS`). A brand
      override goes under `:root` AND the dark scopes, or a light-only value shows in dark
@@ -591,10 +597,11 @@ Ihre 12-px-Icons (Dichte, oben) lässt `scanIconSizes` in der Webview nur in den
      Every package that imports `lucide-react` and every host bundle pin the SAME exact 1.x
      devDependency (today `1.70.0`): pnpm installs a package once per peer set, so two versions
      resolve a second pulse-ui and widget-shell instance and split the React contexts.
-   - **Actions and hand-offs.** A view's actions are ONE group in `WidgetHeader` `actions`, all
-     `size="sm"`, ordered: deterministic steps, the engine's own web app
-     (`OpenInCockpitLink`), then the chat; the meta line under the title holds facts only
-     (`action-group.test.tsx`), and a state goes into the header's `badge`, not an icon tile. A row's drill is `DrillButton` (`row-actions.test.ts`), its
+   - **Actions and hand-offs.** A view's actions are ONE group in `WidgetHeader` `actions` (the
+     view's `ViewBar`, the hero only at app level with `size="app"`), all `size="sm"`, ordered:
+     deterministic steps, the engine's own web app (`OpenInCockpitLink`), then the chat; the
+     bar's facts hold facts only (`action-group.test.tsx`), and a state goes into the header's
+     `badge`, not an icon tile. A row's drill is `DrillButton` (`row-actions.test.ts`), its
      further actions sit in `MoreActions`. A chat hand-off is widget-shell's `HandOffButton`
      (`action` from `HAND_OFF_ACTIONS`: one Lucide icon and one verb naming the chat per
      function), a secondary outline after the action it accompanies; `scanGlyphs` bans sparkle
