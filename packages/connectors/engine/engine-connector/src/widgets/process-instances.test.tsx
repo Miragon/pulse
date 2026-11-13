@@ -108,7 +108,8 @@ describe("the engine-wide list's columns", () => {
     expect(headers()).not.toContain("Version")
     expect(headers()).toContain("Process")
     const process = screen.getAllByText("Invoice receipt")[0].closest("button")!
-    expect(process.textContent).toBe("Invoice receiptinvoice · v7")
+    // One line in the cell: the name, the key, the version.
+    expect(process.textContent).toBe("Invoice receipt invoice · v7")
     // A row's "Open" has the one action size (the density's control, 13 px, 600), level with its
     // icon buttons.
     const open = screen.getAllByRole("button", { name: /^Open instance/ })[0]

@@ -1,0 +1,287 @@
+import type { PointerEvent } from "react"
+import { useUiMessages } from "../locale/locale-provider.js"
+import { cn } from "../lib/utils.js"
+import { Checkbox } from "../primitives/checkbox.js"
+import { ColumnGrip } from "./column-grip.js"
+import { COLUMN_KEY_ATTRIBUTE, columnSizer, type ColumnSizer } from "./column-measure.js"
+import { ColumnMenu } from "./column-menu.js"
+import { tableMinWidth, type ColumnWidths } from "./column-sizing.js"
+import {
+  FITTED_CELL,
+  ROW_HOVER,
+  RowsBody,
+  SELECTION_CELL,
+  SELECTION_WIDTH,
+  SkeletonBody,
+} from "./data-table-body.js"
+import type { DataTableColumn, DataTableProps, DataTableSelection } from "./data-table-types.js"
+import { NamedIdLayoutContext } from "./named-id.js"
+import { SortLabel, thClasses } from "./table.js"
+
+/**
+ * The region's focus ring as an inward outline on a sibling over it: an outset ring is clipped by
+ * a card (WCAG 2.4.7), and row fills and a pinned column paint over the region's own outline.
+ */
+const REGION_RING =
+  "pointer-events-none absolute inset-0 z-[3] rounded-sm peer-focus-visible:outline-(length:--focus-width) peer-focus-visible:outline-solid peer-focus-visible:outline-focus peer-focus-visible:-outline-offset-2"
+
+/** Marks a title the table offered itself, so it never takes over one a cell names. */
+const OFFERED_TITLE = "data-offered-title"
+
+/**
+ * In a sized table a cell its column cuts offers its whole text on hover (a title), and drops it
+ * once the column is wide enough again; a cell that names its own title keeps it.
+ */
+function offerTitle(event: PointerEvent<HTMLTableElement>) {
+  const cell = (event.target as Element).closest("td")
+  if (!cell || (cell.hasAttribute("title") && !cell.hasAttribute(OFFERED_TITLE))) return
+  if (cell.scrollWidth > cell.clientWidth) {
+    cell.title = cell.textContent ?? ""
+    cell.setAttribute(OFFERED_TITLE, "")
+  } else {
+    cell.removeAttribute("title")
+    cell.removeAttribute(OFFERED_TITLE)
+  }
+}
+
+/** The column's name in words: given, the caption's text, else its key. */
+function nameOf<Row>(column: DataTableColumn<Row>): string {
+  if (column.name) return column.name
+  return typeof column.label === "string" ? column.label : column.key
+}
+
+/** The column that takes the room the others leave while they fit their content: `fill`, else the last. */
+function restKeyOf<Row>(columns: ReadonlyArray<DataTableColumn<Row>>): string | undefined {
+  return (columns.find((column) => column.fill) ?? columns.at(-1))?.key
+}
+
+/** The columns that size: neither one of a fixed width, a bare one, nor the last, which takes the rest. */
+function sizedKeys<Row>(columns: ReadonlyArray<DataTableColumn<Row>>): string[] {
+  return columns
+    .slice(0, -1)
+    .filter((column) => column.width === undefined && !column.plain)
+    .map((column) => column.key)
+}
+
+function HeadCell<Row>({
+  column,
+  sizer,
+  wrap,
+  fitted,
+}: {
+  column: DataTableColumn<Row>
+  sizer: ColumnSizer | undefined
+  /** The caption may wrap (`wrapHeads`). */
+  wrap: boolean
+  fitted: boolean
+}) {
+  const align = column.align ?? "left"
+  const caption = column.sort ? (
+    <SortLabel sort={column.sort} align={align}>
+      {column.label}
+    </SortLabel>
+  ) : (
+    column.label
+  )
+  return (
+    <th
+      scope="col"
+      aria-sort={column.sort}
+      {...{ [COLUMN_KEY_ATTRIBUTE]: column.key }}
+      style={column.width === undefined ? undefined : { width: column.width }}
+      className={cn(
+        thClasses(align, column.plain ?? false),
+        wrap && "whitespace-normal",
+        fitted && FITTED_CELL,
+        sizer && "group/th relative",
+        column.className,
+      )}
+    >
+      {sizer ? (
+        <>
+          <span
+            data-slot="column-head"
+            className={cn(
+              "inline-flex max-w-full items-center gap-1 align-middle",
+              align === "right" && "flex-row-reverse",
+            )}
+          >
+            <span className="min-w-0 truncate">{caption}</span>
+            <ColumnMenu column={nameOf(column)} columnKey={column.key} sizer={sizer} />
+          </span>
+          <ColumnGrip column={nameOf(column)} columnKey={column.key} sizer={sizer} />
+        </>
+      ) : (
+        caption
+      )}
+    </th>
+  )
+}
+
+function SelectionHead<Row>({ selection }: { selection: DataTableSelection<Row> }) {
+  const { dataTable } = useUiMessages()
+  return (
+    <th
+      scope="col"
+      style={{ width: SELECTION_WIDTH }}
+      className={cn(thClasses("left", true), SELECTION_CELL)}
+    >
+      <Checkbox
+        aria-label={selection.allLabel ?? dataTable.selectAll}
+        checked={selection.all}
+        onCheckedChange={() => selection.onToggleAll()}
+        className="align-middle"
+      />
+    </th>
+  )
+}
+
+/** Widths for each column: a sized one's, a fixed one's, none for the rest. */
+function ColumnWidthsGroup<Row>({
+  columns,
+  widths,
+  selection,
+}: {
+  columns: ReadonlyArray<DataTableColumn<Row>>
+  widths: ColumnWidths
+  selection: boolean
+}) {
+  return (
+    <colgroup>
+      {selection && <col style={{ width: SELECTION_WIDTH }} />}
+      {columns.map((column) => {
+        const width = column.width ?? widths[column.key]
+        return <col key={column.key} style={width === undefined ? undefined : { width }} />
+      })}
+    </colgroup>
+  )
+}
+
+function fixedWidth<Row>(columns: ReadonlyArray<DataTableColumn<Row>>, selection: boolean): number {
+  return columns.reduce((sum, column) => sum + (column.width ?? 0), selection ? SELECTION_WIDTH : 0)
+}
+
+function Body<Row>(props: DataTableProps<Row> & { fitted: (key: string) => boolean }) {
+  const { columns, rows, rowKey, skeletonRows, bodyRef, children } = props
+  if (skeletonRows !== undefined) {
+    const count = columns.length + (props.selection ? 1 : 0)
+    return <SkeletonBody columns={count} count={skeletonRows} />
+  }
+  if (rows === undefined || rowKey === undefined) {
+    return (
+      <tbody ref={bodyRef} className={ROW_HOVER}>
+        {children}
+      </tbody>
+    )
+  }
+  return (
+    <RowsBody
+      columns={columns}
+      rows={rows}
+      rowKey={rowKey}
+      onActivate={props.onActivate}
+      onCopy={props.onCopy}
+      selection={props.selection}
+      bodyRef={bodyRef}
+      fitted={props.fitted}
+    />
+  )
+}
+
+/** The part of the table that scrolls: the head, the body and what follows them. */
+function TableBody<Row>(
+  props: DataTableProps<Row> & { sizer: ColumnSizer | undefined; sized: ReadonlyArray<string> },
+) {
+  const { label, columns, rows, selection, skeletonRows, sizer, sized, headRows, foot } = props
+  const widths = sizer?.widths
+  const loading = skeletonRows !== undefined
+  // Drawn rows fit their columns to their content, one column taking the rest, until sized.
+  const rest = rows !== undefined && widths === undefined ? restKeyOf(columns) : undefined
+  const fitted = (key: string) => rest !== undefined && key !== rest
+  return (
+    <table
+      aria-label={label}
+      style={
+        widths ? { minWidth: tableMinWidth(widths, fixedWidth(columns, !!selection)) } : undefined
+      }
+      onPointerOver={widths ? offerTitle : undefined}
+      className={cn(
+        "text-dense w-full border-separate border-spacing-0",
+        widths &&
+          "table-fixed [--named-id-floor:0px] [&>tbody>tr>td]:overflow-hidden [&>tbody>tr>td]:text-ellipsis",
+        props.tableClassName,
+      )}
+    >
+      {widths && <ColumnWidthsGroup columns={columns} widths={widths} selection={!!selection} />}
+      {!loading && (
+        <thead className="sticky top-0 z-[2]">
+          {headRows}
+          <tr>
+            {selection && <SelectionHead selection={selection} />}
+            {columns.map((column) => (
+              <HeadCell
+                key={column.key}
+                column={column}
+                sizer={sized.includes(column.key) ? sizer : undefined}
+                wrap={props.wrapHeads ?? false}
+                fitted={fitted(column.key)}
+              />
+            ))}
+          </tr>
+        </thead>
+      )}
+      <NamedIdLayoutContext.Provider value="inline">
+        <Body {...props} fitted={fitted} />
+      </NamedIdLayoutContext.Provider>
+      {foot}
+    </table>
+  )
+}
+
+/**
+ * The kit's data table, in the one compact look (CI §8 tables, the webview's lists): 28 px rows
+ * on the density roles, a sticky head of 13 px captions at 600 on the table's surface, a hover
+ * fill on `--accent`, and inside a named scroll region a keyboard reaches (WCAG 1.4.10: a wide
+ * table scrolls in it, never the document), which keeps a focused row clear of the sticky head
+ * (`scroll-padding-top`, WCAG 2.4.11). Two ways to fill it: `rows` drawn by the columns' `cell`s,
+ * one line each, the columns fitting their content and one taking the rest (`fill`, else the
+ * last), with an optional row target (`onActivate`, one tab stop, the arrows between rows), copy
+ * and selection column; or `children`, rows composed by hand and laid out by their content. Either
+ * way the heads keep one line, a `NamedId` in the body takes one line that gives way first where
+ * the region is short of room, the columns can be sized by mouse and keyboard (`sizing` from
+ * `useColumnSizing`, with a grip and a menu per head), and `skeletonRows` stands in while it
+ * loads. Props and callbacks only: no host, no tool call; where widths are kept is the caller's
+ * (`useColumnSizing`'s `load`, `save`).
+ */
+export function DataTable<Row = unknown>(props: DataTableProps<Row>) {
+  const { label, columns, rows, onActivate, skeletonRows, sizing, empty, footer, className } = props
+  const keys = sizedKeys(columns)
+  const sizer = sizing && keys.length > 0 ? columnSizer(sizing, keys) : undefined
+  const targets = rows !== undefined && rows.length > 0 && onActivate !== undefined
+  const showEmpty = rows !== undefined && rows.length === 0 && skeletonRows === undefined
+  return (
+    <div
+      data-slot="data-table"
+      className={cn(
+        "relative flex w-full min-w-0 flex-col has-[[data-dragging]]:select-none",
+        className,
+      )}
+    >
+      <div
+        role="region"
+        aria-label={label}
+        aria-busy={skeletonRows !== undefined || undefined}
+        // A scrollable region a keyboard must reach; rows that take focus reach it themselves.
+        // Positioned, so what a cell holds out of flow (a screen reader's text) scrolls and clips
+        // with it instead of widening the document.
+        tabIndex={targets ? undefined : 0}
+        className="peer scroll-pt-row @container relative min-h-0 w-full min-w-0 flex-1 overflow-auto rounded-sm focus-visible:outline-none"
+      >
+        <TableBody {...props} sizer={sizer} sized={keys} />
+        {showEmpty && empty}
+        {footer !== undefined && <div className="px-cell flex justify-center py-2">{footer}</div>}
+      </div>
+      <span aria-hidden="true" data-slot="data-table-ring" className={REGION_RING} />
+    </div>
+  )
+}

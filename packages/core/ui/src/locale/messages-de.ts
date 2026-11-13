@@ -32,5 +32,15 @@ export const de: UiMessages = {
   },
   filterBar: { searchPlaceholder: "Filtern…", searchLabel: "Filtern", chipsLabel: "Filter" },
   searchField: { label: "Suchen", placeholder: "Suchen…", clear: "Suche leeren" },
+  dataTable: {
+    selectAll: "Alle gezeigten Zeilen auswählen",
+    resizeColumn: ({ column }) => `Breite der Spalte ${column} ändern`,
+    columnWidth: ({ width }) => `${width} Pixel`,
+    columnMenu: ({ column }) => `Breite der Spalte ${column}`,
+    fitColumn: "An Inhalt anpassen",
+    widerColumn: "Breiter",
+    narrowerColumn: "Schmaler",
+    resetColumns: "Alle Breiten zurücksetzen",
+  },
   pills: { live: "Live" },
 }

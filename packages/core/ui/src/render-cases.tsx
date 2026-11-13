@@ -3,6 +3,7 @@ import { ExternalLink, Inbox } from "lucide-react"
 import {
   Button,
   CountPill,
+  DataTable,
   DrillButton,
   EmptyState,
   ErrorState,
@@ -20,8 +21,10 @@ import {
   SectionHeading,
   StatusBadge,
   ToastProvider,
+  useColumnSizing,
   useLocale,
   WidgetHeader,
+  type DataTableColumn,
 } from "./index.js"
 import { PRIMITIVE_RENDER_CASES, type RenderCase } from "./render-cases-primitives.js"
 
@@ -44,6 +47,45 @@ const noop = (): void => {}
 function LocaleProbe(): ReactElement {
   const locale = useLocale()
   return <span>RC:LocaleProvider {locale}</span>
+}
+
+interface CaseRow {
+  name: string
+  state: string
+  choose: string
+}
+
+/** A table with every kit word it has: the sizing grips and menus, the selection head. */
+function SizedTable({
+  label,
+  columns,
+  rows,
+  footer,
+}: {
+  label: string
+  columns: DataTableColumn<CaseRow>[]
+  rows: CaseRow[]
+  footer: ReactElement
+}) {
+  const sizing = useColumnSizing()
+  return (
+    <DataTable
+      label={label}
+      columns={columns}
+      rows={rows}
+      rowKey={(row) => row.name}
+      sizing={sizing}
+      selection={{
+        isSelected: () => false,
+        onToggle: noop,
+        all: "indeterminate",
+        onToggleAll: noop,
+        rowLabel: (row) => row.choose,
+      }}
+      onActivate={noop}
+      footer={footer}
+    />
+  )
 }
 
 export const RENDER_CASES: RenderCase[] = [
@@ -154,6 +196,22 @@ export const RENDER_CASES: RenderCase[] = [
       <Field label="RC:Field" hint="Names are case sensitive." error="Enter a name.">
         <Input defaultValue="orderId" />
       </Field>
+    ),
+  },
+  {
+    name: "DataTable",
+    marker: "RC:DataTable",
+    render: () => (
+      <SizedTable
+        label="RC:DataTable"
+        columns={[
+          { key: "name", label: "Order", cell: (row) => row.name },
+          { key: "state", label: "State", cell: (row) => row.state },
+          { key: "rest", label: "Note", cell: () => null },
+        ]}
+        rows={[{ name: "Order 1001", state: "Running", choose: "Choose order 1001" }]}
+        footer={<Button size="sm">Load more orders</Button>}
+      />
     ),
   },
   {

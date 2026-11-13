@@ -304,8 +304,8 @@ function failedJob(id: string, processInstanceId: string, exceptionMessage: stri
  * failed until a retry lands, the one stateful corner of the stub's engine
  * data (the search holds are scenario control), owned by that one scenario.
  * The others are never written: the row menu scenario opens the menu of
- * `job-2`'s row with another row under it. Five, so a 600 px budget shows
- * some of them ("k of 5") under the compact cockpit and 800 px all.
+ * `job-2`'s row with another row under it. Twelve, so a 600 px budget shows
+ * some of them ("k of 12") under the compact cockpit's 28 px rows and 800 px all.
  */
 function stubJobs(): Map<string, StubJob> {
   return new Map(
@@ -315,6 +315,13 @@ function stubJobs(): Map<string, StubJob> {
       failedJob("job-3", "pi-3", "Billing address unknown"),
       failedJob("job-4", "pi-4", "Insufficient funds"),
       failedJob("job-5", "pi-5", "Issuer unavailable"),
+      failedJob("job-6", "pi-6", "Limit exceeded"),
+      failedJob("job-7", "pi-7", "Card blocked"),
+      failedJob("job-8", "pi-8", "Currency not supported"),
+      failedJob("job-9", "pi-9", "Gateway timeout"),
+      failedJob("job-10", "pi-10", "Fraud check failed"),
+      failedJob("job-11", "pi-11", "Security code mismatch"),
+      failedJob("job-12", "pi-12", "Account closed"),
     ].map((job) => [job.id, job]),
   )
 }
@@ -412,7 +419,7 @@ function createSearchHolds() {
  * server ACTUALLY builds (view envelope, data shape, engine id) from a fixed
  * engine response (`fixtures/process-definitions.json` with their statistics,
  * no open incident, the `invoice` diagram `fixtures/invoice.bpmn` with two instances at
- * `approveInvoice`, twelve started in the last 30 days in its history, five failed jobs, and
+ * `approveInvoice`, twelve started in the last 30 days in its history, twelve failed jobs, and
  * one invoice instance with two open incidents that only its own reads see).
  * The broken base URL turns any tool into a genuine `isError` result: an
  * engine 503 through the server's own error mapping.

@@ -198,10 +198,10 @@ describe("definition view flow: Running", () => {
     const table = await screen.findByRole("region", { name: "Values per activity" })
     const rows = within(table).getAllByRole("row").slice(1)
     expect(rows.map((row) => row.textContent)).toEqual([
-      "Send policysendPolicy700",
-      "Assessassess311",
+      "Send policy sendPolicy700",
+      "Assess assess311",
       "notify202",
-      "Legacy checklegacyCheck · only in older versions100",
+      "Legacy check legacyCheck · only in older versions100",
     ])
   })
 

@@ -26,7 +26,11 @@ import { DOM_MEASURE, LIST_SELECTOR, SlotRegistry, type FitMeasure } from "./inl
  * Outside a host and in fullscreen there is no fit: every row shows.
  */
 
-const START_ROWS = 10
+/**
+ * The rows a list shows before its first measure, and so the most a fit leaves it (a cap only
+ * shrinks): compact rows are 28 px, so a large budget fits more than ten.
+ */
+const START_ROWS = 20
 export const UNSTATED_BUDGET = 600
 /** Smaller width changes are scrollbars or rounding, not a new epoch. */
 const WIDTH_EPSILON = 8

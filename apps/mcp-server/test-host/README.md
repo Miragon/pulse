@@ -53,7 +53,7 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
 | fonts blocked              | `resourceDomains=ignore` (CSP without them)       | faces fail, the host's font is drawn, rows and height within 5 % of the Geist render                                                                               |
 | font route unreachable     | the font requests are held, never answered        | the list paints at once in the fallback (`font-display: swap`), nothing waits                                                                                      |
 | height budget              | `containerDimensions.maxHeight: 220`              | settled report ≤ 220 and ≥ the capped container, the shell scrolls inside it                                                                                       |
-| list fits a 600 px budget  | the jobs, `containerDimensions.maxHeight: 600`    | the list view fits as a card: exactly three of the five job rows, the shell's container has no scroll of its own (#396)                                            |
+| list fits a 600 px budget  | the jobs, `containerDimensions.maxHeight: 600`    | the list view fits as a card: exactly seven of the twelve job rows, the shell's container has no scroll of its own (#396)                                          |
 | inline fit, real-sized     | realistic engine, 760 px, 600/800/none, de-DE     | instances (all, scoped) and jobs fit as one card: k of N rows, "Show all" in view, no inner scroll; a new budget or width at runtime refits (`inline-fit.spec.ts`) |
 | inline head, cross-engine  | the overview's matrix, its own height less 20 px  | the last table cut ("1 of 3 shown" or "2 of 3"); Show all requests fullscreen (all 3), without it Show more (#396, `fleet.spec.ts`)                                |
 | bundle budget              | the built `dist/mcp-app.js` / `.css`              | gzip within `test/__golden__/bundle-budget.json`, and within 10 % of it (#344 K39)                                                                                 |
@@ -84,10 +84,13 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
 **The cockpit's chrome inline.** Every scenario of the engine module renders the cockpit, whose head
 (sections, engine switch, Refresh) sits above the route. Inline the head is the only row: a
 drilled view's breadcrumb takes the sections' place, a head section shows none. Under the compact
-look a 600 px budget then shows three of the five job rows and one of the overview's three
-definitions (at 760 px none is cut: not even one row would fit); the host scenarios pin both
-counts. The width refit (`inline-fit.spec.ts`) and the row menu run at 800 px, where all five
-jobs fit.
+look (28 px heads, a row with an id or a pill 28 px, the cockpit's rows 33 px for their 28 px row
+actions) a 600 px budget then shows seven of the twelve job rows (579 px; an eighth would need
+12 px more) and all three of the overview's definitions at 960 px (574 px) and at 760 px
+(592 px); a host's line above the view (a recovered render's "Reloaded at", the fullscreen
+toggle's bar) adds 40 px and leaves room for one, and a 563 px budget fits exactly one at 960 px.
+The host scenarios pin each count. The width refit (`inline-fit.spec.ts`) and the row menu run at
+800 px, where all twelve jobs fit.
 
 Height checks read the **settled** report, the one equal to the document's current
 max-content height: auto-resize reports one frame late, so right after the content becomes

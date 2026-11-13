@@ -1,14 +1,8 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
 import { cleanup, render, screen } from "@testing-library/react"
-import {
-  COLUMN_BREAKPOINTS,
-  ListTable,
-  listTableCss,
-  REGION_FOCUS_RING,
-  type ListTableColumn,
-} from "./list-table.js"
-import { Td } from "@miragon/pulse-ui"
+import { COLUMN_BREAKPOINTS, ListTable, listTableCss, type ListTableColumn } from "./list-table.js"
+import { NamedId, Td } from "@miragon/pulse-ui"
 
 afterEach(cleanup)
 
@@ -35,15 +29,29 @@ function Jobs() {
 }
 
 describe("ListTable: the table never widens the document (U2, WCAG 1.4.10)", () => {
-  it("scrolls inside a named region a keyboard can reach", () => {
+  it("scrolls inside a named region a keyboard can reach (pulse-ui's DataTable)", () => {
     render(<Jobs />)
     const region = screen.getByRole("region", { name: "Failed jobs" })
     expect(region.getAttribute("tabindex")).toBe("0")
-    expect(region.className).toContain("overflow-x-auto")
+    expect(region.className).toContain("overflow-auto")
     // A container: the column priorities read the REGION's width.
     expect(region.className).toContain("@container")
     expect(region.className).toContain("min-w-0")
     expect(region.contains(screen.getByRole("table", { name: "Failed jobs" }))).toBe(true)
+  })
+
+  it("keeps its head on top while rows scroll under it, a focused row clear of it", () => {
+    render(<Jobs />)
+    const region = screen.getByRole("region")
+    // Scroll padding of one row: a focused row never hides under the sticky head (WCAG 2.4.11).
+    expect(region.className.split(/\s+/)).toContain("scroll-pt-row")
+    const head = screen.getByRole("table").querySelector("thead")!
+    expect(head.className.split(/\s+/)).toEqual(expect.arrayContaining(["sticky", "top-0"]))
+    // The heads paint the table's surface (the card), no longer a muted band.
+    expect(head.className).not.toContain("bg-muted")
+    const activity = screen.getByRole("columnheader", { name: "Activity" })
+    expect(activity.className).toContain("bg-[var(--table-surface,var(--card))]")
+    expect(activity.className.split(/\s+/)).toEqual(expect.arrayContaining(["h-row", "px-cell"]))
   })
 
   it("draws its focus ring inside its own box, where no clipping wrapper can cut it", () => {
@@ -54,22 +62,37 @@ describe("ListTable: the table never widens the document (U2, WCAG 1.4.10)", () 
     expect(regionClasses).toContain("peer")
     expect(regionClasses.some((c) => c.includes("ring"))).toBe(false)
     const ring = region.nextElementSibling as HTMLElement
-    expect(ring.hasAttribute("data-list-table-ring")).toBe(true)
+    expect(ring.getAttribute("data-slot")).toBe("data-table-ring")
     expect(ring.getAttribute("aria-hidden")).toBe("true")
-    const ringClasses = ring.className.split(/\s+/)
-    for (const name of REGION_FOCUS_RING.split(" ")) expect(ringClasses).toContain(name)
-    expect(ringClasses).toEqual(
+    expect(ring.className.split(/\s+/)).toEqual(
       expect.arrayContaining([
+        "peer-focus-visible:outline-(length:--focus-width)",
+        "peer-focus-visible:outline-focus",
         "peer-focus-visible:-outline-offset-2",
         "absolute",
         "inset-0",
-        "z-[2]",
+        "z-[3]",
         "pointer-events-none",
       ]),
     )
     // Its frame does not scroll, so the ring stays put while the table does.
     expect(region.parentElement!.className.split(/\s+/)).toContain("relative")
     expect(region.parentElement!.className).not.toContain("overflow")
+  })
+
+  it("shows an id in a cell in one line (NamedId's inline layout in its body)", () => {
+    render(
+      <ListTable ariaLabel="Processes" columns={[{ label: "Process" }]}>
+        <tr>
+          <Td>
+            <NamedId name="Invoice" id="invoice" />
+          </Td>
+        </tr>
+      </ListTable>,
+    )
+    const cell = screen.getByRole("cell")
+    expect(cell.querySelector("[data-named-id]")?.getAttribute("data-named-id")).toBe("inline")
+    expect(cell.querySelector("wbr")).toBeNull()
   })
 
   it("sets the rows in the dense table step, the heads in the 13 px caption", () => {
@@ -83,8 +106,10 @@ describe("ListTable: the table never widens the document (U2, WCAG 1.4.10)", () 
 
   it("hides low-priority columns and pins the actions through rules scoped to this table", () => {
     const { container } = render(<Jobs />)
-    const region = screen.getByRole("region")
-    const scope = region.getAttribute("data-list-table")!
+    const scope = screen
+      .getByRole("region")
+      .closest("[data-list-table]")!
+      .getAttribute("data-list-table")!
     const css = container.querySelector("style")?.textContent ?? ""
     expect(css).toBe(listTableCss(scope, COLUMNS))
     const at = `[data-list-table="${scope}"]`
@@ -97,10 +122,33 @@ describe("ListTable: the table never widens the document (U2, WCAG 1.4.10)", () 
     expect(css).toContain(
       `${at} tr > :nth-child(4) { position: sticky; right: 0; z-index: 1; background-color: inherit; }`,
     )
+    // The rows' surface in the components layer, under the utilities a row's hover fill comes
+    // from: unlayered, it would beat them whatever their specificity.
     expect(css).toContain(
-      `:where(${at} tbody tr) { background-color: var(--list-table-surface, var(--card)); }`,
+      `@layer components { :where(${at} tbody tr), :where(${at} thead tr) { background-color: var(--table-surface, var(--card)); } }`,
     )
-    expect(css).toContain(`:where(${at} thead tr) { background-color: var(--muted); }`)
+    expect(css.replace(/@layer components \{[^\n]*\} \}/, "")).not.toContain(
+      "background-color: var",
+    )
+  })
+
+  it("keeps each caption on one line, or lets it wrap in a wide table of figures", () => {
+    const table = (wrapHeads?: boolean) => (
+      <ListTable
+        ariaLabel="Engines"
+        columns={[{ label: "Jobs without retries" }]}
+        wrapHeads={wrapHeads}
+      >
+        <tr>
+          <Td>0</Td>
+        </tr>
+      </ListTable>
+    )
+    const { rerender } = render(table())
+    expect(screen.getByRole("columnheader").className).toContain("whitespace-nowrap")
+    rerender(table(true))
+    expect(screen.getByRole("columnheader").className).toContain("whitespace-normal")
+    expect(screen.getByRole("columnheader").className).not.toContain("whitespace-nowrap")
   })
 
   it("scopes each table on its own", () => {
@@ -110,8 +158,11 @@ describe("ListTable: the table never widens the document (U2, WCAG 1.4.10)", () 
         <Jobs />
       </>,
     )
-    const [a, b] = screen.getAllByRole("region")
-    expect(a.getAttribute("data-list-table")).not.toBe(b.getAttribute("data-list-table"))
+    const [a, b] = screen
+      .getAllByRole("region")
+      .map((region) => region.closest("[data-list-table]")!.getAttribute("data-list-table"))
+    expect(a).toBeTruthy()
+    expect(a).not.toBe(b)
   })
 
   it("renders no stylesheet for a table without priorities or pinned actions", () => {
@@ -193,7 +244,10 @@ describe("ListTable: column groups (a head over adjacent columns)", () => {
 
   it("keeps the column rules off the group row and lets a group of one follow its column", () => {
     const { container } = render(<Grouped />)
-    const scope = screen.getByRole("region").getAttribute("data-list-table")!
+    const scope = screen
+      .getByRole("region")
+      .closest("[data-list-table]")!
+      .getAttribute("data-list-table")!
     const at = `[data-list-table="${scope}"]`
     const css = container.querySelector("style")?.textContent ?? ""
     expect(css).toContain(

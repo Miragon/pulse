@@ -18,6 +18,9 @@ import {
 /** Sample arguments for the function-valued messages. */
 const SAMPLES: Record<string, unknown[]> = {
   showing: [{ shown: "8", total: "42", noun: "tasks" }],
+  resizeColumn: [{ column: "Process" }],
+  columnMenu: [{ column: "Process" }],
+  columnWidth: [{ width: "120" }],
 }
 
 /** Every message of a catalog as `[path, rendered text]`. */
@@ -121,6 +124,13 @@ describe("kit catalogs", () => {
     // An empty noun leaves no trailing blank.
     expect(en.listFooter.showing({ shown: "1", total: "2", noun: "" })).toBe("Showing 1 of 2")
     expect(de.listFooter.showing({ shown: "1", total: "2", noun: "" })).toBe("Zeigt 1 von 2")
+    // A column's name and width go into its grip and its menu.
+    expect(en.dataTable.resizeColumn({ column: "Process" })).toBe("Resize column Process")
+    expect(de.dataTable.resizeColumn({ column: "Prozess" })).toBe(
+      "Breite der Spalte Prozess ändern",
+    )
+    expect(en.dataTable.columnMenu({ column: "Process" })).toBe("Width of column Process")
+    expect(de.dataTable.columnWidth({ width: "1.200" })).toBe("1.200 Pixel")
   })
 })
 
@@ -156,7 +166,7 @@ describe("resolveUiMessages", () => {
     expect(merged.listFooter.loadingMore).toBe(UI_MESSAGES.de.listFooter.loadingMore)
     expect(merged.filterBar.searchLabel).toBe("Suchen")
     expect(merged.filterBar.chipsLabel).toBe(UI_MESSAGES.de.filterBar.chipsLabel)
-    for (const section of ["common", "searchField", "pills"] as const) {
+    for (const section of ["common", "searchField", "dataTable", "pills"] as const) {
       expect(merged[section]).toEqual(UI_MESSAGES.de[section])
     }
   })

@@ -304,15 +304,20 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   `Intl.NumberFormat` (canonical duration style
   "3m 7s", "2d 3h" / German "3 Min. 7 s"; a lower bound "≥ 2,000", compact "10k+";
   "3,7 %", "+0,2 Pp.", "7 Tage")
-- Tables: widget-shell's `ListTable` is the frame: a named, keyboard-reachable scroll region
-  (`role="region"`, `tabIndex=0`; `ariaLabel` is required), so a wide table never widens
-  the document at 760 px (the host simulation pins it). A column a narrow view can do
+- Tables: widget-shell's `ListTable` is the frame, over pulse-ui's `DataTable` (a sticky head,
+  28 px rows): a named, keyboard-reachable scroll region (`role="region"`, `tabIndex=0`;
+  `ariaLabel` is required), so a wide table never widens the document at 760 px (the host
+  simulation pins it). A column a narrow view can do
   without takes `hideBelow: "sm" | "md" | "lg"` (the REGION's width: 640/768/1024 px;
   `md` hides inline, shows in fullscreen), the row actions are the LAST column with
-  `sticky: true` (pinned at the region's right edge, Retry never scrolled away). Rows
+  `sticky: true` (pinned at the region's right edge, Retry never scrolled away). A caption
+  keeps one line; a wide table of figures passes `wrapHeads` so its captions wrap instead. Rows
   stay hand-composed `<tr>` + `Td`, one cell per column (the rules address cell
   positions). An id column is `IdCell` (`IdText` inline): Geist Mono, shortened
-  ("5f0ce78e…", whole for screen readers and in `title`), a copy button with a toast.
+  ("5f0ce78e…", whole for screen readers and in `title`), a copy button with a toast that
+  shows on the row's hover and focus. A `NamedId` in a cell takes one line by itself (the
+  name, then the id quiet in mono), so a row keeps its height: whole where the table has
+  room, cut with an ellipsis first where it has none.
   Nothing to show: pulse-ui's `TableEmptyState`, `variant="done"` (`CircleCheck`, success) for
   "nothing left to do" ("Keine offenen Incidents"), the default `empty` (quiet `Inbox`)
   for no data; `description`, `action`. The Komet (`KometMark`, `AppEmptyState`) only on

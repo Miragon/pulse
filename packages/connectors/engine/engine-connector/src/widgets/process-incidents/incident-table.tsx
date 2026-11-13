@@ -119,7 +119,7 @@ export function IncidentTable({
   ]
 
   return (
-    <div className="bg-muted [--list-table-surface:var(--muted)]">
+    <div className="bg-muted [--table-surface:var(--muted)]">
       <ListTable
         ariaLabel={byInstance ? t("procIncTable.tableLabel") : t("procIncTable.tableLabelInstance")}
         columns={columns}

@@ -2,28 +2,21 @@ import { Children, useId, type ReactNode } from "react"
 import {
   Button,
   cn,
+  DataTable,
   MICRO_LABEL,
   useLocale,
   formatNumber,
   Icon,
-  Th,
   type ColumnSort,
+  type DataTableColumn,
 } from "@miragon/pulse-ui"
 import { Maximize2 } from "lucide-react"
 import { useInlineBudget, useRowsBudgeted } from "./inline-budget.js"
 import { useInlineRows } from "./inline-fit.js"
 import { kitLabels } from "./kit-labels.js"
 
-/**
- * Focus ring as an inward outline on a sibling over the region: an outset ring
- * is clipped by the card (WCAG 2.4.7), and the row fills and the pinned column
- * paint over the region's own shadow or outline.
- */
-export const REGION_FOCUS_RING =
-  "peer-focus-visible:outline-(length:--focus-width) peer-focus-visible:outline-solid peer-focus-visible:outline-focus peer-focus-visible:-outline-offset-2"
-
-/** Above the pinned column's `z-index: 1` (see {@link listTableCss}). */
-const RING_LAYER = "pointer-events-none absolute inset-0 z-[2] rounded-sm"
+/** The table's surface (pulse-ui's `--table-surface`, the card by default), which a pinned cell paints. */
+const SURFACE = "var(--table-surface, var(--card))"
 
 /** Container-query widths of the region itself; `md` hides in a 760 px inline view, shows in fullscreen. */
 export const COLUMN_BREAKPOINTS = { sm: "40rem", md: "48rem", lg: "64rem" } as const
@@ -40,7 +33,7 @@ export interface ListTableColumn {
   hideBelow?: ColumnBreakpoint
   /**
    * Pins the LAST column (row actions) to the right edge while scrolling. Rows
-   * then paint the card surface; another surface sets `--list-table-surface`.
+   * then paint the table's surface, the card; another surface sets `--table-surface`.
    */
   sticky?: boolean
   sort?: ColumnSort
@@ -120,10 +113,11 @@ export function listTableCss(
       if (groups && !ownGroupCell(index)) {
         throw new Error("ListTable: the pinned last column needs a group of its own")
       }
-      // The pinned cell inherits its row's background (hover, selection); `:where` lets a row's own class win.
+      // The pinned cell inherits its row's background (hover, selection). The rows' surface sits in
+      // the `components` layer: unlayered it would beat every utility, a row's hover fill (in
+      // `utilities`) included, whatever the specificity.
       rules.push(
-        `:where(${at} tbody tr) { background-color: var(--list-table-surface, var(--card)); }`,
-        `:where(${at} thead tr) { background-color: var(--muted); }`,
+        `@layer components { :where(${at} tbody tr), :where(${at} thead tr) { background-color: ${SURFACE}; } }`,
         ...cells.map(
           (cell) =>
             `${cell} { position: sticky; right: 0; z-index: 1; background-color: inherit; }`,
@@ -140,14 +134,18 @@ function GroupRow({ groups }: { groups: ReadonlyArray<ListTableGroup> }) {
     <tr data-list-table-groups="">
       {groups.map((group, index) =>
         group.label === undefined ? (
-          <td key={index} colSpan={group.span ?? 1} className="border-border border-t" />
+          <td
+            key={index}
+            colSpan={group.span ?? 1}
+            className="bg-[var(--table-surface,var(--card))]"
+          />
         ) : (
           <th
             key={index}
             scope="col"
             colSpan={group.span ?? 1}
             className={cn(
-              "border-border text-foreground border-t border-l px-4 pt-2.5 pb-1 text-center",
+              "border-border text-foreground h-row px-cell border-l bg-[var(--table-surface,var(--card))] py-0 text-center align-bottom",
               MICRO_LABEL,
             )}
           >
@@ -160,13 +158,18 @@ function GroupRow({ groups }: { groups: ReadonlyArray<ListTableGroup> }) {
 }
 
 /**
- * The table frame; rows stay hand-composed per widget since cells differ.
- * Inside `PagedRows` it hands its body to the paged fit instead of capping twice.
+ * The MCP views' table: pulse-ui's `DataTable` (the named scroll region, the sticky head, the
+ * compact rows, ids in one line) with the columns a narrow region drops (`hideBelow`), a pinned
+ * action column, heads over groups of columns, and the inline fit: inside `PagedRows` it hands
+ * its body to the paged fit instead of capping twice. Rows stay hand-composed per widget, since
+ * cells differ; the rules address cell positions. Its columns fit their content and are not
+ * sized: it hands `DataTable` no `sizing`, so no head has a grip or a column menu.
  */
 export function ListTable({
   columns,
   groups,
   ariaLabel,
+  wrapHeads,
   className,
   children,
 }: {
@@ -174,6 +177,11 @@ export function ListTable({
   /** Heads over adjacent columns, in a row above the column heads ({@link ListTableGroup}). */
   groups?: ReadonlyArray<ListTableGroup>
   ariaLabel: string
+  /**
+   * Lets a long caption wrap where the region is short of room, so a wide table of figures keeps
+   * every column in view (pulse-ui's `DataTable` `wrapHeads`); by default a caption keeps one line.
+   */
+  wrapHeads?: boolean
   className?: string
   children: ReactNode
 }) {
@@ -186,43 +194,26 @@ export function ListTable({
   const cap = paged ? null : own.cap
   const capped = cap !== null && rows.length > cap
   const showMore = budget.expand ?? (() => own.reveal(own.step))
+  const heads = columns.map((column, index): DataTableColumn => ({
+    key: String(index),
+    label: column.label,
+    align: column.align,
+    plain: column.plain,
+    sort: column.sort,
+    className: column.className,
+  }))
   return (
-    // The frame does not scroll, so the ring stays put.
-    <div className="relative w-full min-w-0">
-      <div
-        role="region"
-        aria-label={ariaLabel}
-        // A scrollable region must be reachable by keyboard to scroll it.
-        tabIndex={0}
-        data-list-table={scope}
-        className="peer @container w-full min-w-0 overflow-x-auto rounded-sm focus-visible:outline-hidden"
-      >
-        {css && <style>{css}</style>}
-        <table
-          className={cn("text-dense w-full border-collapse", className)}
-          aria-label={ariaLabel}
-        >
-          <thead className="bg-muted">
-            {groups && <GroupRow groups={groups} />}
-            <tr>
-              {columns.map((column, index) => (
-                <Th
-                  key={index}
-                  align={column.align}
-                  plain={column.plain}
-                  sort={column.sort}
-                  className={column.className}
-                >
-                  {column.label}
-                </Th>
-              ))}
-            </tr>
-          </thead>
-          <tbody ref={paged ? paged.attachRows : own.attachRows}>
-            {/* Same keyed rows either way, so a changing cap never remounts them. */}
-            {capped ? rows.slice(0, cap) : rows}
-          </tbody>
-          {capped && (
+    <div data-list-table={scope} className="w-full min-w-0">
+      {css && <style>{css}</style>}
+      <DataTable
+        label={ariaLabel}
+        columns={heads}
+        headRows={groups && <GroupRow groups={groups} />}
+        wrapHeads={wrapHeads}
+        bodyRef={paged ? paged.attachRows : own.attachRows}
+        tableClassName={className}
+        foot={
+          capped && (
             <MoreRows
               colSpan={columns.length}
               shown={cap}
@@ -230,14 +221,12 @@ export function ListTable({
               fullscreen={budget.expand !== null}
               onShowMore={showMore}
             />
-          )}
-        </table>
-      </div>
-      <span
-        aria-hidden="true"
-        data-list-table-ring=""
-        className={cn(RING_LAYER, REGION_FOCUS_RING)}
-      />
+          )
+        }
+      >
+        {/* Same keyed rows either way, so a changing cap never remounts them. */}
+        {capped ? rows.slice(0, cap) : rows}
+      </DataTable>
     </div>
   )
 }
@@ -260,11 +249,7 @@ function MoreRows({
   return (
     <tfoot>
       <tr data-list-table-more="">
-        <td
-          colSpan={colSpan}
-          style={{ display: "table-cell" }}
-          className="border-border border-t px-4 py-2"
-        >
+        <td colSpan={colSpan} style={{ display: "table-cell" }} className="px-cell py-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-muted-foreground text-small" aria-live="polite">
               {labels.rowsShown({ shown: formatNumber(shown), total: formatNumber(total) })}

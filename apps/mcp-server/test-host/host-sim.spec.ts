@@ -28,7 +28,7 @@ import {
  */
 
 const RENDER_TOOL = "engine_open_cockpit"
-/** The cockpit opened on its engine-wide jobs (the stub's five failed jobs). */
+/** The cockpit opened on its engine-wide jobs (the stub's twelve failed jobs). */
 const JOBS_ARGS = { engine: HEALTHY_ENGINE, view: "jobs" }
 /**
  * How long every re-execution count waits after the last lifecycle event
@@ -180,25 +180,51 @@ function germanDefinitionsTable(app: FrameLocator): Locator {
 const STUB_DEFINITIONS = ["Customer Onboarding", "Invoice Receipt", "Order Fulfillment"]
 
 /**
- * The cockpit's overview rendered the stub engine's three definitions, issues then running
- * instances first (the stub's order): inline exactly the `shown` rows the host's budget leaves
- * room for under the cockpit's head (#396), and a cut list says how many of the three in its
- * footer row. Under the compact look the unstated budget (fitted as 600 px) leaves room for one
- * at 960 px; where even one row would not fit (a 220 px budget, the inline width of 760 px) the
- * fit cuts nothing and the view scrolls instead, and fullscreen fits nothing.
+ * The stub's three definitions in `table`, issues then running instances first (the stub's
+ * order): inline exactly the `shown` rows the host's budget leaves room for under the cockpit's
+ * head (#396), and a cut list says how many of the three in its footer row (`shownLine`).
+ *
+ * Under the compact look (28 px heads, 33 px rows: their 28 px row actions and the cells' 2 px
+ * padding) the overview with all three rows is 574 px high at 960 px and 592 px at the inline
+ * width of 760 px, in Geist and in the fallback font, English and German alike: the unstated
+ * budget (fitted as 600 px) fits all three, with 26 px and 8 px to spare. At 960 px one row and the
+ * 44 px footer row are 552 px and two rows and the footer 585 px, so a 563 px budget fits exactly
+ * one, 11 px either side. A host that adds a line above the view (a recovered render's "Reloaded
+ * at", the fullscreen toggle's bar) adds 40 px: the unstated budget then fits one, with 8 px to
+ * spare. Where even one row would not fit (a 220 px budget) the fit cuts nothing and the view
+ * scrolls instead, and fullscreen fits nothing.
  */
-async function expectOverview(app: FrameLocator, shown: 1 | 2 | 3 = 1): Promise<void> {
-  const table = definitionsTable(app)
+async function expectDefinitions(
+  table: Locator,
+  shown: 1 | 2 | 3,
+  shownLine: (shown: number) => string,
+): Promise<void> {
   await expect(table).toBeVisible({ timeout: 15_000 })
+  const rows = table.getByRole("row")
   const cut = shown < STUB_DEFINITIONS.length
   // The head, the rows and, in a cut list, its footer row.
-  await expect(table.getByRole("row")).toHaveCount(shown + 1 + (cut ? 1 : 0))
+  await expect(rows).toHaveCount(shown + 1 + (cut ? 1 : 0))
   for (const [index, name] of STUB_DEFINITIONS.slice(0, shown).entries()) {
-    await expect(table.getByRole("row").nth(index + 1)).toContainText(name)
+    await expect(rows.nth(index + 1)).toContainText(name)
   }
-  if (cut) await expect(table.getByRole("row").last()).toContainText(`${shown} of 3 shown`)
+  if (cut) await expect(rows.last()).toContainText(shownLine(shown))
+  else await expect(table.locator("tfoot")).toHaveCount(0)
+}
+
+/** The cockpit's overview in English: the definitions as {@link expectDefinitions} says. */
+async function expectOverview(app: FrameLocator, shown: 1 | 2 | 3 = 3): Promise<void> {
+  await expectDefinitions(definitionsTable(app), shown, (count) => `${count} of 3 shown`)
   await expect(app.getByText("3 deployed · counts span all versions")).toBeVisible()
 }
+
+/** The same in German. */
+async function expectGermanOverview(app: FrameLocator, shown: 1 | 2 | 3 = 3): Promise<void> {
+  await expectDefinitions(germanDefinitionsTable(app), shown, (count) => `${count} von 3 angezeigt`)
+  await expect(app.getByText("3 bereitgestellt · Zahlen über alle Versionen")).toBeVisible()
+}
+
+/** A budget that fits exactly one of the overview's three rows at 960 px, 11 px either side. */
+const ONE_DEFINITION_BUDGET = 563
 
 const STUB_JOBS = [
   "Card declined",
@@ -206,24 +232,32 @@ const STUB_JOBS = [
   "Billing address unknown",
   "Insufficient funds",
   "Issuer unavailable",
+  "Limit exceeded",
+  "Card blocked",
+  "Currency not supported",
+  "Gateway timeout",
+  "Fraud check failed",
+  "Security code mismatch",
+  "Account closed",
 ]
 
 /**
- * The cockpit's jobs route rendered the stub engine's five failed jobs, the first job first:
+ * The cockpit's jobs route rendered the stub engine's twelve failed jobs, the first job first:
  * inline exactly the `shown` rows the host's budget leaves room for under the cockpit's head
- * and the KPI strip (#396), and the count line says how many of the five. Under the compact look
- * at 960 px a 600 px budget (and the unstated one, fitted as 600 px) leaves room for three; 800
- * px fits all five. A head section shows no trail inline, so the head is the only row above the
- * view.
+ * and the KPI strip (#396), and the count line says how many of the twelve. Under the compact
+ * look (33 px rows with their 28 px row actions, ids in one line) a 600 px budget (and the unstated
+ * one, fitted as 600 px) leaves room for seven at 960 px and at 760 px (579 px; an eighth row would
+ * need 12 px more); 800 px fits all twelve (735 px). A head section shows no trail inline, so the
+ * head is the only row above the view.
  */
-async function expectJobs(app: FrameLocator, shown: 3 | 5) {
+async function expectJobs(app: FrameLocator, shown: 7 | 12) {
   const region = app.getByRole("region", { name: "Jobs", exact: true })
   await expect(region).toBeVisible({ timeout: 15_000 })
   await expect(region.getByRole("row")).toHaveCount(shown + 1)
   for (const message of STUB_JOBS.slice(0, shown)) {
     await expect(region.getByText(message)).toBeVisible()
   }
-  await expect(app.getByText(`Showing ${shown} of 5 jobs`)).toBeVisible()
+  await expect(app.getByText(`Showing ${shown} of ${STUB_JOBS.length} jobs`)).toBeVisible()
 }
 
 /** Relative luminance (0 = black, 1 = white) of an element's computed color property. */
@@ -347,6 +381,20 @@ async function listLayout(page: Page, app: FrameLocator) {
   const row = await table.getByRole("row").nth(1).boundingBox()
   const overflow = await app.locator("html").evaluate((html) => html.scrollWidth - html.clientWidth)
   return { table: box!, row: row!, overflow, reported: await settledHeight(page, app) }
+}
+
+/**
+ * Shows every one-line NamedId of the view whole (its floor, `--named-id-floor`, at its text), so a
+ * font probe reads the id's own glyphs, not the ellipsis a cut line draws in the line's font.
+ */
+async function wholeIdLines(app: FrameLocator): Promise<void> {
+  await app
+    .locator("body")
+    .evaluate((body) =>
+      body
+        .querySelectorAll<HTMLElement>("[data-named-id='inline']")
+        .forEach((line) => line.style.setProperty("--named-id-floor", "max-content")),
+    )
 }
 
 /** `actual` within `tolerance` (a share, e.g. 0.05) of `expected`. */
@@ -491,7 +539,8 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
   }) => {
     const app = await openView(page, { structuredContent: "strip" })
 
-    await expectOverview(app)
+    // The "Reloaded at" line above the view leaves the unstated budget room for one row.
+    await expectOverview(app, 1)
     // The view loaded these figures itself, so they can differ from the
     // chat's answer: the frame's "Reloaded at" line says so.
     await expect(app.getByText(CHROME.reloadedAt)).toBeVisible()
@@ -651,15 +700,15 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
 
   test("host locale de-DE: a German view (#339)", async ({ page }) => {
     // The host's locale decides the view's language.
-    const app = await openView(page, { locale: "de-DE", displayModes: ["inline", "fullscreen"] })
+    const app = await openView(page, {
+      locale: "de-DE",
+      displayModes: ["inline", "fullscreen"],
+      maxHeight: ONE_DEFINITION_BUDGET,
+    })
 
-    const table = germanDefinitionsTable(app)
-    await expect(table).toBeVisible({ timeout: 15_000 })
-    // Under the compact look the unstated budget leaves room for one of the three (#396): the
-    // head, its row and the footer row that says so.
-    await expect(table.getByRole("row")).toHaveCount(3)
-    await expect(table.getByRole("row").last()).toContainText("1 von 3 angezeigt")
-    await expect(app.getByText("3 bereitgestellt · Zahlen über alle Versionen")).toBeVisible()
+    // The budget leaves room for one of the three (#396): the head, its row and the footer row
+    // that says so in German.
+    await expectGermanOverview(app, 1)
     // One German title and no English toolbar title over it: the server
     // never titles a view (#322 U3).
     await expect(app.getByRole("heading", { name: "Alle Prozesse", exact: true })).toHaveCount(1)
@@ -684,8 +733,9 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
       text: root.textContent,
     }))
     expect(documentLayer).toEqual({ children: 0, text: "" })
-    // Once the host answers: the German view on the host's dark theme.
-    await expect(germanDefinitionsTable(app).getByRole("row")).toHaveCount(3, { timeout: 15_000 })
+    // Once the host answers: the German view on the host's dark theme, all three rows in the
+    // unstated budget.
+    await expectGermanOverview(app)
     expect(await documentTheme(app)).toEqual({ dark: true, dataTheme: "dark", colorScheme: "dark" })
   })
 
@@ -797,7 +847,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
   }) => {
     const app = await openView(page, { args: JOBS_ARGS, maxHeight: 600 })
 
-    await expectJobs(app, 3)
+    await expectJobs(app, 7)
     const container = await app.locator("#root").evaluate((root) => {
       const el = root.firstElementChild as HTMLElement
       return { scrollHeight: el.scrollHeight, clientHeight: el.clientHeight }
@@ -810,7 +860,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
   }) => {
     const app = await openView(page, { args: JOBS_ARGS })
 
-    await expectJobs(app, 3)
+    await expectJobs(app, 7)
     // The old html/body/#root floor reported 600 for every view. `settledHeight`
     // waits for the report that equals the content's max-content height.
     const reported = await settledHeight(page, app)
@@ -823,7 +873,8 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
   }) => {
     const app = await openView(page, { displayModes: ["inline", "fullscreen"] })
 
-    await expectOverview(app)
+    // Inline, the toggle's bar above the view leaves the unstated budget room for one row.
+    await expectOverview(app, 1)
     await app.getByRole("button", { name: CHROME.enterFullscreen }).click()
 
     await expect.poll(async () => (await hostLog(page)).displayModeRequests).toEqual(["fullscreen"])
@@ -860,7 +911,9 @@ test.describe("served fonts (Geist from the server's font route)", () => {
         .join(",")
       twin.style.fontSize = style.fontSize
       twin.style.fontWeight = style.fontWeight
-      el.parentElement!.appendChild(twin)
+      // Beside the text in its cell, never inside a line that truncates: an ellipsis there
+      // would draw in the line's own font.
+      ;(el.closest("td") ?? el.parentElement!).appendChild(twin)
       return twin.id
     })
     const twin = app.locator(`#${id}`)
@@ -882,7 +935,9 @@ test.describe("served fonts (Geist from the server's font route)", () => {
     await expect
       .poll(() => servedFaces(app), { timeout: 15_000 })
       .toEqual({ Geist: "loaded", "Geist Mono": "loaded" })
-    // What Chromium drew the text with, not just the stack it was given.
+    // What Chromium drew the text with, not just the stack it was given (the whole line, so no
+    // ellipsis draws in the line's font).
+    await wholeIdLines(app)
     expect(await renderedFonts(page, nameCell(app))).toEqual(["Geist"])
     expect(await renderedFonts(page, keyCell(app))).toEqual(["Geist Mono"])
     // Each file once, from the server that served the view, by its versioned URL.
@@ -897,21 +952,23 @@ test.describe("served fonts (Geist from the server's font route)", () => {
     page,
   }) => {
     const fontSans = '"Host Sim Sans", serif'
-    const allowed = await openView(page, { fontSans })
-    await expectOverview(allowed)
+    // A budget every row fits under either font, so the two layouts hold the same rows.
+    const allowed = await openView(page, { fontSans, maxHeight: 1000 })
+    await expectOverview(allowed, 3)
     await expect
       .poll(() => servedFaces(allowed), { timeout: 15_000 })
       .toEqual({ Geist: "loaded", "Geist Mono": "loaded" })
     const withGeist = await listLayout(page, allowed)
 
     const errors = collectErrors(page)
-    const blocked = await openView(page, { fontSans, ignoreResourceDomains: true })
-    await expectOverview(blocked)
+    const blocked = await openView(page, { fontSans, ignoreResourceDomains: true, maxHeight: 1000 })
+    await expectOverview(blocked, 3)
     // The CSP refuses both files; the faces fail instead of hanging.
     await expect
       .poll(() => servedFaces(blocked), { timeout: 15_000 })
       .toEqual({ Geist: "error", "Geist Mono": "error" })
     const withoutGeist = await listLayout(page, blocked)
+    await wholeIdLines(blocked)
     const name = await renderedFonts(page, nameCell(blocked))
     expect(name).not.toContain("Geist")
     expect(name).toEqual(await fallbackFonts(page, blocked, nameCell(blocked)))
@@ -1076,6 +1133,38 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
  * neutral digits, never a coloured number.
  */
 test.describe("kit foundation (engine_open_cockpit, the jobs)", () => {
+  test("a row holding an id is the row height: 28 px, 40 px comfortable", async ({ page }) => {
+    // Wide enough for the Instance column (hidden below 64rem), so a row holds its id's copy button.
+    const app = await openView(page, { args: JOBS_ARGS, width: 1100, maxHeight: 900 })
+    const region = app.getByRole("region", { name: "Jobs", exact: true })
+    await expect(region).toBeVisible({ timeout: 15_000 })
+    const heights = await region.evaluate((el) => {
+      const row = el.querySelector<HTMLTableRowElement>("tbody tr")!
+      const copy = row.querySelector<HTMLElement>("button[aria-label^='Copy']")
+      // The row's actions are 28 px controls with the cell's padding around them, which make the
+      // row taller on their own: out of the measure, so it reads what the id's cell asks for.
+      for (const action of row.lastElementChild!.children) {
+        ;(action as HTMLElement).style.display = "none"
+      }
+      const root = document.documentElement
+      const rowHeight = () => ({
+        row: row.getBoundingClientRect().height,
+        role: parseFloat(getComputedStyle(row).getPropertyValue("--row-h")) * 16,
+        copy: copy?.getBoundingClientRect().height,
+      })
+      const compact = rowHeight()
+      root.setAttribute("data-density", "comfortable")
+      const comfortable = rowHeight()
+      root.removeAttribute("data-density")
+      return { shown: !!copy && copy.offsetParent !== null, compact, comfortable }
+    })
+    expect(heights.shown, "the row holds an id's copy button").toBe(true)
+    // The 24 px copy button (32 px comfortable) reaches into the cell's padding: the row keeps
+    // the row height, and a one-line row is exactly it.
+    expect(heights.compact).toEqual({ row: 28, role: 28, copy: 24 })
+    expect(heights.comfortable).toEqual({ row: 40, role: 40, copy: 32 })
+  })
+
   test("role variables, Lucide strokes and the tone model reach the rendered view", async ({
     page,
   }) => {
@@ -1187,7 +1276,7 @@ test.describe("kit foundation (engine_open_cockpit, the jobs)", () => {
 
   test("high contrast (data-cd-kontrast): no shadows, a 3 px focus ring", async ({ page }) => {
     const app = await openView(page, { args: JOBS_ARGS })
-    await expectJobs(app, 3)
+    await expectJobs(app, 7)
     const current = app
       .getByRole("navigation", { name: "Cockpit sections" })
       .getByRole("button", { name: "Jobs" })
@@ -1311,6 +1400,7 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
     page,
   }) => {
     const app = await openView(page, { width: INLINE_WIDTH })
+    // At 760 px the unstated budget fits all three (592 px).
     await expectOverview(app, 3)
     const { scrollWidth, clientWidth } = await documentOverflow(app)
     expect(scrollWidth, "the document never scrolls sideways").toBeLessThanOrEqual(clientWidth)
@@ -1354,13 +1444,63 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
     expect(layout.actionRight).toBeLessThanOrEqual(layout.regionRight + 1)
   })
 
+  test("a hovered row of a table with pinned actions fills from --accent, its pinned cell too", async ({
+    page,
+  }) => {
+    const app = await openView(page, { args: JOBS_ARGS, width: INLINE_WIDTH })
+    const region = app.getByRole("region", { name: "Jobs", exact: true })
+    await expect(region).toBeVisible({ timeout: 15_000 })
+    const hovered = region.locator("tbody tr").nth(1)
+    await hovered.hover()
+    const paint = () =>
+      region.evaluate((el) => {
+        const role = (name: string) => {
+          const probe = document.createElement("div")
+          probe.style.backgroundColor = `var(${name})`
+          document.body.append(probe)
+          const colour = getComputedStyle(probe).backgroundColor
+          probe.remove()
+          return colour
+        }
+        const [first, second] = [...el.querySelectorAll("tbody tr")]
+        const fill = (row: Element) => ({
+          row: getComputedStyle(row).backgroundColor,
+          pinned: getComputedStyle(row.lastElementChild!).backgroundColor,
+          position: getComputedStyle(row.lastElementChild!).position,
+        })
+        return {
+          accent: role("--accent"),
+          card: role("--card"),
+          rest: fill(first),
+          hovered: fill(second),
+        }
+      })
+    // The row's colour eases in (transition-colors): read it once it has arrived.
+    await expect
+      .poll(async () => {
+        const now = await paint()
+        return now.hovered.row === now.accent
+      })
+      .toBe(true)
+    const settled = await paint()
+    expect(settled.accent).not.toBe(settled.card)
+    // The hover fill wins over the pinned rows' surface, which sits in a lower cascade layer.
+    expect(settled.hovered).toEqual({
+      row: settled.accent,
+      pinned: settled.accent,
+      position: "sticky",
+    })
+    // A row at rest paints the table's surface, so its pinned cell covers what scrolls under it.
+    expect(settled.rest).toEqual({ row: settled.card, pinned: settled.card, position: "sticky" })
+  })
+
   test("a row's menu lies over the next rows' pinned cells: its entries take the clicks (U20)", async ({
     page,
   }) => {
-    // The cockpit's head and the KPI strip leave room for three rows at the default 600 px fit
-    // (#396): an 800 px budget fits all five jobs, so a middle row has a row under it.
+    // The cockpit's head and the KPI strip leave room for seven rows at the default 600 px fit
+    // (#396): an 800 px budget fits all twelve jobs, so a middle row has a row under it.
     const app = await openView(page, { args: JOBS_ARGS, width: INLINE_WIDTH, maxHeight: 800 })
-    await expectJobs(app, 5)
+    await expectJobs(app, 12)
     // The stub's job-2 (never written), with job-3's row under it.
     const row = app.getByRole("row").filter({ hasText: "Card expired" })
     const next = app.getByRole("row").filter({ hasText: "Billing address unknown" })
@@ -1546,7 +1686,7 @@ test.describe("cockpit (engine_open_cockpit)", () => {
 
   test("opens on its start view: the head section current, no picker", async ({ page }) => {
     const app = await openView(page, { args: JOBS_ARGS })
-    await expectJobs(app, 3)
+    await expectJobs(app, 7)
     const sections = app.getByRole("navigation", { name: "Cockpit sections" })
     await expect(sections.getByRole("button", { name: "Jobs" })).toHaveAttribute(
       "aria-current",
@@ -1588,8 +1728,9 @@ test.describe("an instance and the instance list (engine_open_cockpit)", () => {
     await expect(table).toBeVisible({ timeout: 15_000 })
     await expect(table.getByRole("columnheader").first()).toHaveText("Activity")
     const elements = table.locator("tbody > tr > td:first-child")
-    // The diagram's name leads with the id below it; an element the diagram lacks shows its id.
-    await expect(elements).toHaveText(["Approve InvoiceapproveInvoice", "chargeCard"])
+    // The diagram's name leads with the id after it on one line; an element the diagram lacks
+    // shows its id.
+    await expect(elements).toHaveText(["Approve Invoice approveInvoice", "chargeCard"])
 
     await app.getByRole("button", { name: "View process" }).click()
     await expect(app.getByRole("heading", { name: "Invoice Receipt" })).toBeVisible({

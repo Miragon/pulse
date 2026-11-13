@@ -157,6 +157,7 @@ export {
   UI_MESSAGES,
   resolveUiMessages,
   type CommonMessages,
+  type DataTableMessages,
   type FilterBarMessages,
   type ListFooterMessages,
   type SearchFieldMessages,
@@ -176,6 +177,19 @@ export {
   type ColumnSort,
   type EmptyVariant,
 } from "./kit/table.js"
+export { DataTable } from "./kit/data-table.js"
+export type {
+  DataTableColumn,
+  DataTableProps,
+  DataTableSelection,
+  RowActivation,
+} from "./kit/data-table-types.js"
+export {
+  useColumnSizing,
+  type ColumnSizing,
+  type ColumnSizingOptions,
+  type ColumnWidths,
+} from "./kit/column-sizing.js"
 export { Section } from "./kit/section.js"
 export { NativeSelect } from "./kit/native-select.js"
 export { Field, type FieldProps } from "./kit/field.js"
@@ -187,7 +201,7 @@ export {
   type SegmentedCountTone,
 } from "./kit/segmented-control.js"
 export { RowCard } from "./kit/row-card.js"
-export { NamedId } from "./kit/named-id.js"
+export { NamedId, type NamedIdLayout } from "./kit/named-id.js"
 export { LogText, LOG_TEXT_PREVIEW, TEXT_BLOCK_FRAME } from "./kit/log-text.js"
 // The Komet belongs on app-level surfaces only (a landing, a first start), never in a widget.
 export { KometMark, AppEmptyState } from "./kit/brand-mark.js"

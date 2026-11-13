@@ -47,8 +47,9 @@ what reads the host or calls a tool. Neither re-exports the other's names:
 - `WidgetShell` (container) from the view runtime; `WidgetHeader`
   (title/sub/badge, no icon tile, `as` for the heading level) and `Section`
   from the kit
-- Tables: the view runtime's `ListTable` (the frame: a named,
-  keyboard-reachable scroll region so a wide table never widens the view;
+- Tables: the view runtime's `ListTable` (the frame, over the kit's
+  `DataTable`: a named, keyboard-reachable scroll region with a sticky head
+  and 28 px rows, so a wide table never widens the view;
   `hideBelow` on a column a narrow view can do without; `sticky` on the last
   column, the row actions; `sort` on the column the rows are ordered by;
   `groups` to head adjacent columns) with hand-composed `<tr>` + the kit's

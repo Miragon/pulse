@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState } from "react"
-import { cn, FOCUS_RING, useLocale, useToast, Icon, Td, shortId } from "@miragon/pulse-ui"
+import {
+  cn,
+  FOCUS_RING,
+  FOCUS_RING_INSET,
+  useLocale,
+  useToast,
+  Icon,
+  Td,
+  shortId,
+} from "@miragon/pulse-ui"
 import { Check, Copy } from "lucide-react"
 import { kitLabels } from "./kit-labels.js"
 
@@ -70,6 +79,16 @@ function RevealedId({
   )
 }
 
+/**
+ * In a table row the copy button shows while the pointer is over the row or focus is in it, so
+ * a row stays one quiet line: transparent, never `visibility: hidden`, so it keeps its place in
+ * the tab order and shows when it takes focus. On a screen without hover it always shows, and
+ * outside a table (a header, facts) too. In a row it reaches into the cell's padding above and
+ * below (`--cell-py`), so the 24 px target (32 px on touch) keeps the row at its height.
+ */
+const COPY_IN_ROW =
+  "[@media(hover:hover)]:[tr_&]:opacity-0 [tr:hover_&]:opacity-100 [tr:focus-within_&]:opacity-100 focus-visible:opacity-100 [tr_&]:-my-(--cell-py)"
+
 export function IdText({ value, className }: { value: string; className?: string }) {
   const labels = kitLabels(useLocale())
   const toast = useToast()
@@ -117,8 +136,10 @@ export function IdText({ value, className }: { value: string; className?: string
         title={labels.copyId(short)}
         onClick={() => void copy()}
         className={cn(
-          "text-muted-foreground hover:text-foreground inline-flex size-6 shrink-0 items-center justify-center rounded-sm",
-          FOCUS_RING,
+          "text-muted-foreground hover:text-foreground size-control-xs inline-flex shrink-0 items-center justify-center rounded-sm transition-opacity motion-reduce:transition-none",
+          // Drawn inside the button: a cell at the region's edge would cut an outset ring.
+          FOCUS_RING_INSET,
+          COPY_IN_ROW,
         )}
       >
         <Icon icon={copied ? Check : Copy} dense />

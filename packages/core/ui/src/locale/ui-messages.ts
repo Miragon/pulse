@@ -13,6 +13,7 @@ import { en } from "./messages-en.js"
 
 export type {
   CommonMessages,
+  DataTableMessages,
   FilterBarMessages,
   ListFooterMessages,
   SearchFieldMessages,
@@ -56,6 +57,7 @@ export function resolveUiMessages(
     listFooter: { ...base.listFooter, ...override.listFooter },
     filterBar: { ...base.filterBar, ...override.filterBar },
     searchField: { ...base.searchField, ...override.searchField },
+    dataTable: { ...base.dataTable, ...override.dataTable },
     pills: { ...base.pills, ...override.pills },
   }
 }

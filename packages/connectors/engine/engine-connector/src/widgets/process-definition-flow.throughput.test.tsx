@@ -203,10 +203,10 @@ describe("definition view flow: Throughput", () => {
         .map((row) => row.textContent),
     ).toEqual([
       "ActivityPassesRunningCanceled",
-      "Assessassess1,300412",
+      "Assess assess1,300412",
       "sendPolicy1,10000",
-      "Legacy checklegacyCheck · only in older versions4003",
-      "Reviewreview020",
+      "Legacy check legacyCheck · only in older versions4003",
+      "Review review020",
     ])
   })
 

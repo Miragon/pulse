@@ -30,6 +30,7 @@ describe("the @miragon/pulse-ui entry", () => {
       "CardTitle",
       "Checkbox",
       "CountPill",
+      "DataTable",
       "Dialog",
       "DialogClose",
       "DialogContent",
@@ -141,6 +142,7 @@ describe("the @miragon/pulse-ui entry", () => {
       "shortId",
       "subscribeFormatLocale",
       "truncate",
+      "useColumnSizing",
       "useDebouncedValue",
       "useLocale",
       "usePortalContainer",
@@ -154,6 +156,12 @@ describe("the @miragon/pulse-ui entry", () => {
   it("keeps the internals internal", () => {
     for (const name of [
       "BreakableId",
+      "COLUMN_WIDTH",
+      "ColumnGrip",
+      "ColumnMenu",
+      "NamedIdLayoutContext",
+      "SortLabel",
+      "thClasses",
       "FIELD_CONTROL",
       "FIELD_FOCUS",
       "FieldControlContext",

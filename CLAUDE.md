@@ -531,12 +531,21 @@ Ihre 12-px-Icons (Dichte, oben) lässt `scanIconSizes` in der Webview nur in den
      host's height budget, measured on the rendered view (`InlineFitBox`), never estimated
      with px constants. A paged list registers ONE list (`PagedRows` + `paged.fit`, its footer
      `labels={paged.footerLabels}`; `inline-fit-wiring.test.ts`); a row that continues the one
-     before carries `FIT_CONTINUES_ROW`; ids wrap between their parts (`BreakableId`). Roots
-     declare inline + fullscreen only (`SHELL_VIEW_CONFIG`).
-   - **Tables never widen the document** (WCAG 1.4.10): `ListTable` scrolls inside a named
-     region (`ariaLabel`) and drops columns on narrow regions (`hideBelow`). Ids show through
-     `IdCell`/`IdText`, processes and elements through `NamedId`, named by ONE reader
-     (`readBpmnNames`/`parseBpmnNames`), so every module shows them alike.
+     before carries `FIT_CONTINUES_ROW`. An id in a table cell takes one line, so a row keeps the
+     row height: `NamedId` lays out inline in a `DataTable`'s body (the name, then the short id
+     quiet in mono, the whole in its title), whole where the table has room and cut with an
+     ellipsis first where it has none, and `IdText`'s copy button reaches into the cell's padding,
+     shows on the row's hover and focus, always on touch, never leaving the tab order. Only
+     outside tables (facts, a detail's header) does an id stack and wrap between its parts
+     (`BreakableId`). Roots declare inline + fullscreen only (`SHELL_VIEW_CONFIG`).
+   - **Tables never widen the document** (WCAG 1.4.10): `ListTable`, over pulse-ui's
+     `DataTable` (a sticky head of one-line captions, 28 px rows, a hover fill on `--accent`),
+     scrolls inside a named region (`ariaLabel`) and drops columns on narrow regions
+     (`hideBelow`); a wide table of figures lets its captions wrap (`wrapHeads`). It sizes no
+     column: `DataTable`'s column sizing (`useColumnSizing`, its persistence injected) is for a
+     view that passes `sizing`. Ids show through `IdCell`/`IdText`, processes and elements
+     through `NamedId`, named by ONE reader (`readBpmnNames`/`parseBpmnNames`), so every module
+     shows them alike.
    - **Type, dates and numbers.** Text sits on pulse-ui's `TYPE_SCALE` (13 px floor, weights
      400, 600 and 700 only, `scanTypeScale`); a disabled control is opaque, never faded. Dates,
      durations, numbers, counts and short ids go through the kit's `format*` helpers and `shortId`

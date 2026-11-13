@@ -78,11 +78,32 @@ export interface SearchFieldMessages {
   clear: string
 }
 
+/** Strings of `DataTable`: its selection column and the sizing of its columns. */
+export interface DataTableMessages {
+  /** Accessible name of the selection column's box in the head (every row shown). */
+  selectAll: string
+  /** Accessible name of a column's sizing grip, e.g. "Resize column Process". */
+  resizeColumn: (params: { column: string }) => string
+  /** A column's width in words, the grip's value. The number arrives pre-formatted. */
+  columnWidth: (params: { width: string }) => string
+  /** Accessible name of a column's menu button, the single-pointer way to size it. */
+  columnMenu: (params: { column: string }) => string
+  /** Menu entry: the column takes its content's width. */
+  fitColumn: string
+  /** Menu entry: the column grows by a step. */
+  widerColumn: string
+  /** Menu entry: the column shrinks by a step. */
+  narrowerColumn: string
+  /** Menu entry: every column of the table takes its content's width again. */
+  resetColumns: string
+}
+
 /** One locale's complete kit catalog. */
 export interface UiMessages {
   common: CommonMessages
   listFooter: ListFooterMessages
   filterBar: FilterBarMessages
   searchField: SearchFieldMessages
+  dataTable: DataTableMessages
   pills: { live: string }
 }

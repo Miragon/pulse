@@ -250,8 +250,9 @@ function EngineTable({ figures, states, t }: Landscape & { t: T }) {
         ariaLabel={t("fleet.landscape.engines.tableLabel")}
         columns={engineColumns(t)}
         groups={engineGroups(t)}
-        // Eight figures side by side: the compact cell padding keeps every
-        // backlog column in a 760 px inline view, in German too.
+        // Eight figures side by side: the compact cell padding and captions that
+        // wrap keep every backlog column in a 760 px inline view, in German too.
+        wrapHeads
         className="[&_td]:px-3 [&_th]:px-3"
       >
         {figures.engines.map((e) => (

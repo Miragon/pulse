@@ -65,8 +65,8 @@ describe("the instance's Incidents tab names each incident's element", () => {
       .getAllByRole("row")
       .slice(1)
       .map((row) => row.querySelector("td")!)
-    // The name leads, the BPMN id on the quiet line below it.
-    expect(firstCells[0].textContent).toBe("Charge cardchargeCard")
+    // The name leads, the BPMN id quiet after it on the same line.
+    expect(firstCells[0].textContent).toBe("Charge card chargeCard")
     // Without a name the id leads, in mono, never a blank cell.
     expect(firstCells[1].textContent).toBe("Gateway_1x9")
     expect(firstCells[1].querySelector(".font-mono")).not.toBeNull()
