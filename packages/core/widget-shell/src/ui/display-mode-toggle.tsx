@@ -53,7 +53,7 @@ export function DisplayModeToggle() {
       title={label}
       onClick={() => request(fullscreen ? "inline" : "fullscreen")}
     >
-      <Icon icon={fullscreen ? Minimize2 : Maximize2} dense />
+      <Icon icon={fullscreen ? Minimize2 : Maximize2} />
     </Button>
   )
 }

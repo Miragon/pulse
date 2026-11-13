@@ -369,8 +369,9 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   `-ink` role is only for text in a tone directly on the card or page (an inline error)
 - Icons: Lucide via `Icon` (`import { FileSearch } from "lucide-react"`; the package pins
   devDependency `lucide-react` `1.70.0`, see CLAUDE.md invariant 6), never a Unicode glyph
-  or emoji, at 16 px (`dense` in rows; `scanIconSizes` allows 16 and 24 only; 12 px is the
-  named deviation of D9, only in the pulse-ui files the gate lists); a chat
+  or emoji, at 16 px (`scanIconSizes` allows 16 and 24; `dense` is 12 px, the named deviation
+  of D9 beside dense text and on 20 px badges, only in the files the connector's
+  `brand-gates.test.ts` lists with a reason); a chat
   hand-off is widget-shell's `<HandOffButton action="explainError" prompt={ask(…)} />`
   (`@miragon/pulse-widget-shell/widgets`: the product's one table of functions, each with its
   Lucide icon and a label that names the chat, "Fehler im Chat erklären" / "Explain error in

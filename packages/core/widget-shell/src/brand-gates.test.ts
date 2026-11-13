@@ -13,9 +13,18 @@ describe("kit widget code draws icons with Lucide, never glyphs or emoji", () =>
   })
 })
 
+/**
+ * The density section's named deviation (root CLAUDE.md): 12 px icons beside dense text and on
+ * 20 px badges, per file with its reason. Shrink-only: a listed file that draws no 12 px icon
+ * fails as an unused allowance.
+ */
+const DENSE_ICONS_ALLOWED: Readonly<Record<string, string>> = {
+  "id-text.tsx": "the copy button beside an id is 24 px (the xs control), so its icon is 12 px",
+}
+
 describe("kit widget code draws icons at the CI sizes", () => {
-  it("src/ui has no icon at a size other than 16 or 24 px", () => {
-    expect(scanIconSizes(UI_DIR)).toEqual([])
+  it("src/ui has no icon at a size other than 16 or 24 px, at 12 px only in the files the dense deviation names", () => {
+    expect(scanIconSizes(UI_DIR, { allowDense: DENSE_ICONS_ALLOWED })).toEqual([])
   })
 })
 

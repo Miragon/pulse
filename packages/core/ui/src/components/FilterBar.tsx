@@ -81,7 +81,7 @@ export function FilterBar({
                 FOCUS_RING,
                 chip.active
                   ? cn(TONE_SOFT.info, TONE_BORDER.info, "font-semibold")
-                  : "border-border bg-raised text-muted-foreground hover:bg-muted hover:text-foreground",
+                  : "border-border bg-raised text-muted-foreground hover:bg-accent hover:text-foreground",
               )}
             >
               {chip.label}

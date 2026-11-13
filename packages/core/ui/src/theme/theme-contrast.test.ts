@@ -173,9 +173,17 @@ describe("dark mode follows the CI dark-ground rules", () => {
       expect(ratio("--primary", surface, "dark")).toBeLessThan(3)
       expect(ratio("--interaction", surface, "dark")).toBeGreaterThanOrEqual(3)
     }
-    for (const file of ["../primitives/switch.tsx", "../primitives/tabs.tsx"]) {
-      expect(read(file), file).toMatch(/\bbg-interaction\b/)
-      expect(read(file), file).not.toMatch(/\bbg-primary(?![\w-])/)
+    // The active tab's bar and the checked segment's edge sit on the hover fill.
+    for (const mode of ["light", "dark"] as const) {
+      expect(ratio("--interaction", "--accent", mode), mode).toBeGreaterThanOrEqual(3)
+    }
+    for (const [file, mark] of [
+      ["../primitives/switch.tsx", /\bbg-interaction\b/],
+      ["../primitives/tabs.tsx", /\bborder-b-interaction\b/],
+      ["../kit/segmented-control.tsx", /\bborder-interaction\b/],
+    ] as const) {
+      expect(read(file), file).toMatch(mark)
+      expect(read(file), file).not.toMatch(/\b(?:bg|border(?:-[a-z])?)-primary(?![\w-])/)
     }
   })
 

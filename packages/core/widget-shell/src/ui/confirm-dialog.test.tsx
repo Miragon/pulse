@@ -37,7 +37,10 @@ describe("ConfirmDialog (CI §8 dialogs, §9 destructive)", () => {
     expect(dialog.getAttribute("aria-describedby")).toBeTruthy()
     const overlay = document.querySelector('[data-slot="dialog-overlay"]')
     expect(overlay?.className).toContain("bg-scrim")
-    expect(overlay?.className).toContain("backdrop-blur-sm")
+    expect(overlay?.className).toContain("backdrop-blur-[3px]")
+    expect(overlay?.className).toContain("backdrop-grayscale")
+    // A confirmation is narrower than a dialog: 440 px at most, 16 px off each edge.
+    expect(dialog.className).toContain("max-w-[min(440px,calc(100%-2rem))]")
   })
 
   it("names its target by label and value, ids in Geist Mono", () => {
@@ -48,10 +51,13 @@ describe("ConfirmDialog (CI §8 dialogs, §9 destructive)", () => {
     expect(screen.getByText("Instance").tagName).toBe("DT")
   })
 
-  it("labels both buttons verb + object; the destructive one in the danger role", () => {
+  it("labels both buttons verb + object; the destructive one in the danger role; both the dialog's 36 px control", () => {
     const props = renderDialog()
     const confirm = screen.getByRole("button", { name: "Cancel instance" })
     expect(confirm.getAttribute("data-variant") ?? confirm.className).toContain("destructive")
+    for (const name of ["Cancel instance", "Keep instance"]) {
+      expect(screen.getByRole("button", { name }).getAttribute("data-size"), name).toBe("lg")
+    }
     fireEvent.click(confirm)
     expect(props.onConfirm).toHaveBeenCalledTimes(1)
     fireEvent.click(screen.getByRole("button", { name: "Keep instance" }))

@@ -76,7 +76,7 @@ export function ConfirmDialog({
         role="alertdialog"
         showCloseButton={!pending}
         onOpenAutoFocus={anchor}
-        className="sm:max-w-md"
+        className="max-w-[min(440px,calc(100%-2rem))]"
       >
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
@@ -99,11 +99,17 @@ export function ConfirmDialog({
           />
         )}
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={pending}>
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={() => onOpenChange(false)}
+            disabled={pending}
+          >
             {keepLabel}
           </Button>
           <Button
             variant={destructive ? "destructive" : "default"}
+            size="lg"
             onClick={onConfirm}
             disabled={pending}
             aria-busy={pending || undefined}

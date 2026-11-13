@@ -16,7 +16,7 @@ export interface IconSizeFinding {
   /** 0 for an allowance nothing needs. */
   line: number
   size: number
-  /** What sets it: `size={14}`, `[&>svg]:size-3!`, `size-5`, or `unused allowance`. */
+  /** What sets it: `size={14}`, `[&>svg]:size-3!`, `size-5`, `dense`, or `unused allowance`. */
   match: string
 }
 
@@ -119,8 +119,19 @@ function numericSizes(expression: ts.Expression, sf: ts.SourceFile): Sized[] {
   return [{ at: expression.getStart(sf), size, match: `size={${expression.text}}` }]
 }
 
+/** The kit `Icon`'s `dense` (12 px), unless it is a literal `dense={false}`. */
+function denseSize(node: ts.JsxAttribute, sf: ts.SourceFile): Sized[] {
+  if (node.parent.parent.tagName.getText(sf) !== "Icon") return []
+  const value = node.initializer
+  if (value && ts.isJsxExpression(value) && value.expression?.kind === ts.SyntaxKind.FalseKeyword) {
+    return []
+  }
+  return [{ at: node.getStart(sf), size: DENSE_ICON_SIZE, match: "dense" }]
+}
+
 function attributeSizes(node: ts.JsxAttribute, icons: Set<string>, sf: ts.SourceFile): Sized[] {
   const name = node.name.getText(sf)
+  if (name === "dense") return denseSize(node, sf)
   const value = node.initializer
   if (name === "size" && value && ts.isJsxExpression(value) && value.expression) {
     return numericSizes(value.expression, sf)
@@ -134,8 +145,9 @@ function attributeSizes(node: ts.JsxAttribute, icons: Set<string>, sf: ts.Source
 /**
  * Every place a file sets an icon's size: a numeric `size` on any element (both branches of a
  * conditional), a `size-*` class on an svg selector (`[&>svg]:size-3`, `[&_svg]:size-5`)
- * anywhere in the file, and a `size-*` class on `Icon` or on a Lucide component the file
- * imports. A class handed in through a variable is left to review.
+ * anywhere in the file, a `size-*` class on `Icon` or on a Lucide component the file
+ * imports, and the kit `Icon`'s `dense` (12 px; a `dense={…}` that may be true counts). A class
+ * handed in through a variable is left to review.
  */
 export function iconSizeFindings(source: string, file: string): IconSizeFinding[] {
   const sf = parseSource(source, file)

@@ -23,7 +23,7 @@ export {
   TableCaption,
 } from "./primitives/table.js"
 export { Skeleton } from "./primitives/skeleton.js"
-export { Tabs, TabsList, TabsTrigger, TabsContent } from "./primitives/tabs.js"
+export { Tabs, TabsList, TabsTrigger, TabsContent, TabCount } from "./primitives/tabs.js"
 export { Button, buttonVariants } from "./primitives/button.js"
 export { Input } from "./primitives/input.js"
 export {
@@ -173,7 +173,11 @@ export {
 } from "./kit/table.js"
 export { Section } from "./kit/section.js"
 export { NativeSelect } from "./kit/native-select.js"
-export { SegmentedControl, type SegmentedControlOption } from "./kit/segmented-control.js"
+export {
+  SegmentedControl,
+  type SegmentedControlOption,
+  type SegmentedCountTone,
+} from "./kit/segmented-control.js"
 export { RowCard } from "./kit/row-card.js"
 export { NamedId } from "./kit/named-id.js"
 export { LogText, LOG_TEXT_PREVIEW, TEXT_BLOCK_FRAME } from "./kit/log-text.js"

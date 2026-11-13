@@ -28,7 +28,7 @@ import {
  */
 
 const RENDER_TOOL = "engine_open_cockpit"
-/** The cockpit opened on its engine-wide jobs (the stub's three failed jobs). */
+/** The cockpit opened on its engine-wide jobs (the stub's five failed jobs). */
 const JOBS_ARGS = { engine: HEALTHY_ENGINE, view: "jobs" }
 /**
  * How long every re-execution count waits after the last lifecycle event
@@ -177,35 +177,53 @@ function germanDefinitionsTable(app: FrameLocator): Locator {
   })
 }
 
-/** The cockpit's overview rendered the stub engine's three definitions. */
-async function expectOverview(app: FrameLocator): Promise<void> {
+const STUB_DEFINITIONS = ["Customer Onboarding", "Invoice Receipt", "Order Fulfillment"]
+
+/**
+ * The cockpit's overview rendered the stub engine's three definitions, issues then running
+ * instances first (the stub's order): inline exactly the `shown` rows the host's budget leaves
+ * room for under the cockpit's head (#396), and a cut list says how many of the three in its
+ * footer row. Under the compact look the unstated budget (fitted as 600 px) leaves room for one
+ * at 960 px; where even one row would not fit (a 220 px budget, the inline width of 760 px) the
+ * fit cuts nothing and the view scrolls instead, and fullscreen fits nothing.
+ */
+async function expectOverview(app: FrameLocator, shown: 1 | 2 | 3 = 1): Promise<void> {
   const table = definitionsTable(app)
   await expect(table).toBeVisible({ timeout: 15_000 })
-  // Header + one row per fixture definition, issues then running instances first (the stub's order).
-  await expect(table.getByRole("row")).toHaveCount(4)
-  await expect(table.getByRole("row").nth(1)).toContainText("Customer Onboarding")
-  await expect(table.getByRole("row").nth(2)).toContainText("Invoice Receipt")
-  await expect(table.getByRole("row").nth(3)).toContainText("Order Fulfillment")
+  const cut = shown < STUB_DEFINITIONS.length
+  // The head, the rows and, in a cut list, its footer row.
+  await expect(table.getByRole("row")).toHaveCount(shown + 1 + (cut ? 1 : 0))
+  for (const [index, name] of STUB_DEFINITIONS.slice(0, shown).entries()) {
+    await expect(table.getByRole("row").nth(index + 1)).toContainText(name)
+  }
+  if (cut) await expect(table.getByRole("row").last()).toContainText(`${shown} of 3 shown`)
   await expect(app.getByText("3 deployed · counts span all versions")).toBeVisible()
 }
 
-const STUB_JOBS = ["Card declined", "Card expired", "Billing address unknown"]
+const STUB_JOBS = [
+  "Card declined",
+  "Card expired",
+  "Billing address unknown",
+  "Insufficient funds",
+  "Issuer unavailable",
+]
 
 /**
- * The cockpit's jobs route rendered the stub engine's three failed jobs, the first job first:
+ * The cockpit's jobs route rendered the stub engine's five failed jobs, the first job first:
  * inline exactly the `shown` rows the host's budget leaves room for under the cockpit's head
- * and the KPI strip (#396), and the count line says how many of the three. At 960 px a 600 px
- * budget (and the unstated one, fitted as 600 px) leaves room for two; 800 px fits all three.
- * A head section shows no trail inline, so the head is the only row above the view.
+ * and the KPI strip (#396), and the count line says how many of the five. Under the compact look
+ * at 960 px a 600 px budget (and the unstated one, fitted as 600 px) leaves room for three; 800
+ * px fits all five. A head section shows no trail inline, so the head is the only row above the
+ * view.
  */
-async function expectJobs(app: FrameLocator, shown: 2 | 3) {
+async function expectJobs(app: FrameLocator, shown: 3 | 5) {
   const region = app.getByRole("region", { name: "Jobs", exact: true })
   await expect(region).toBeVisible({ timeout: 15_000 })
   await expect(region.getByRole("row")).toHaveCount(shown + 1)
   for (const message of STUB_JOBS.slice(0, shown)) {
     await expect(region.getByText(message)).toBeVisible()
   }
-  await expect(app.getByText(`Showing ${shown} of 3 jobs`)).toBeVisible()
+  await expect(app.getByText(`Showing ${shown} of 5 jobs`)).toBeVisible()
 }
 
 /** Relative luminance (0 = black, 1 = white) of an element's computed color property. */
@@ -637,7 +655,10 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
 
     const table = germanDefinitionsTable(app)
     await expect(table).toBeVisible({ timeout: 15_000 })
-    await expect(table.getByRole("row")).toHaveCount(4)
+    // Under the compact look the unstated budget leaves room for one of the three (#396): the
+    // head, its row and the footer row that says so.
+    await expect(table.getByRole("row")).toHaveCount(3)
+    await expect(table.getByRole("row").last()).toContainText("1 von 3 angezeigt")
     await expect(app.getByText("3 bereitgestellt · Zahlen über alle Versionen")).toBeVisible()
     // One German title and no English toolbar title over it: the server
     // never titles a view (#322 U3).
@@ -664,7 +685,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
     }))
     expect(documentLayer).toEqual({ children: 0, text: "" })
     // Once the host answers: the German view on the host's dark theme.
-    await expect(germanDefinitionsTable(app).getByRole("row")).toHaveCount(4, { timeout: 15_000 })
+    await expect(germanDefinitionsTable(app).getByRole("row")).toHaveCount(3, { timeout: 15_000 })
     expect(await documentTheme(app)).toEqual({ dark: true, dataTheme: "dark", colorScheme: "dark" })
   })
 
@@ -751,7 +772,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
   }) => {
     const app = await openView(page, { maxHeight: 220 })
 
-    await expectOverview(app)
+    await expectOverview(app, 3)
     // The shell's document layer is the scroll container, capped at the budget.
     const container = await app.locator("#root").evaluate((root) => {
       const el = root.firstElementChild as HTMLElement
@@ -776,7 +797,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
   }) => {
     const app = await openView(page, { args: JOBS_ARGS, maxHeight: 600 })
 
-    await expectJobs(app, 2)
+    await expectJobs(app, 3)
     const container = await app.locator("#root").evaluate((root) => {
       const el = root.firstElementChild as HTMLElement
       return { scrollHeight: el.scrollHeight, clientHeight: el.clientHeight }
@@ -789,7 +810,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
   }) => {
     const app = await openView(page, { args: JOBS_ARGS })
 
-    await expectJobs(app, 2)
+    await expectJobs(app, 3)
     // The old html/body/#root floor reported 600 for every view. `settledHeight`
     // waits for the report that equals the content's max-content height.
     const reported = await settledHeight(page, app)
@@ -807,7 +828,8 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
 
     await expect.poll(async () => (await hostLog(page)).displayModeRequests).toEqual(["fullscreen"])
     await expect(app.getByRole("button", { name: CHROME.exitFullscreen })).toBeVisible()
-    await expectOverview(app)
+    // Fullscreen fits nothing: every row shows.
+    await expectOverview(app, 3)
   })
 })
 
@@ -1087,11 +1109,18 @@ test.describe("kit foundation (engine_open_cockpit, the jobs)", () => {
     expect(link).toBe("#2b50d4")
 
     const stroke = (locator: Locator) => locator.evaluate((el) => getComputedStyle(el).strokeWidth)
+    // The CI stroke at every size: 2.5, the 16 px icons of a row's and the frame's 28 px icon
+    // buttons included (no narrower stroke for dense chrome).
     expect(await stroke(handOff.locator("svg.lucide"))).toBe("2.5px")
-    const rowHandOffs = app.locator("td button svg.lucide")
-    expect(await rowHandOffs.count()).toBeGreaterThan(0)
-    expect(await stroke(rowHandOffs.first())).toBe("2px")
-    expect(await stroke(app.locator("svg.lucide-maximize-2"))).toBe("2px")
+    const rowMenu = app
+      .getByRole("button", { name: /^More actions for / })
+      .first()
+      .locator("svg.lucide")
+    expect(await stroke(rowMenu)).toBe("2.5px")
+    expect(await rowMenu.getAttribute("width")).toBe("16")
+    const fullscreen = app.locator("svg.lucide-maximize-2")
+    expect(await stroke(fullscreen)).toBe("2.5px")
+    expect(await fullscreen.getAttribute("width")).toBe("16")
     // No glyph icon anywhere in the view.
     expect(await app.locator("body").innerText()).not.toMatch(/[✦⊡▦↗›⚠⚙⏱⤧▶✓✕▤⊞↻]/)
 
@@ -1158,7 +1187,7 @@ test.describe("kit foundation (engine_open_cockpit, the jobs)", () => {
 
   test("high contrast (data-cd-kontrast): no shadows, a 3 px focus ring", async ({ page }) => {
     const app = await openView(page, { args: JOBS_ARGS })
-    await expectJobs(app, 2)
+    await expectJobs(app, 3)
     const current = app
       .getByRole("navigation", { name: "Cockpit sections" })
       .getByRole("button", { name: "Jobs" })
@@ -1282,18 +1311,18 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
     page,
   }) => {
     const app = await openView(page, { width: INLINE_WIDTH })
-    await expectOverview(app)
+    await expectOverview(app, 3)
     const { scrollWidth, clientWidth } = await documentOverflow(app)
     expect(scrollWidth, "the document never scrolls sideways").toBeLessThanOrEqual(clientWidth)
     const region = app.getByRole("region", { name: DEFINITIONS_TABLE })
     await expect(region).toBeVisible()
     expect(await region.getAttribute("tabindex")).toBe("0")
-    // The shell pads on the CI grid: 24 px at this width (16 px below 640).
+    // The shell pads in the gutter of the density roles: 12 px (--cd-shell-rand), at every width.
     const padding = await app
       .locator(".max-w-7xl")
       .first()
       .evaluate((frame) => getComputedStyle(frame).paddingLeft)
-    expect(padding).toBe("24px")
+    expect(padding).toBe("12px")
   })
 
   test("the job panel: low-priority columns hide, the row actions stay pinned and reachable", async ({
@@ -1328,10 +1357,10 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
   test("a row's menu lies over the next rows' pinned cells: its entries take the clicks (U20)", async ({
     page,
   }) => {
-    // The cockpit's head and the KPI strip take the room of two rows at the default 600 px fit
-    // (#396): an 800 px budget fits all three jobs, so a middle row has a row under it.
+    // The cockpit's head and the KPI strip leave room for three rows at the default 600 px fit
+    // (#396): an 800 px budget fits all five jobs, so a middle row has a row under it.
     const app = await openView(page, { args: JOBS_ARGS, width: INLINE_WIDTH, maxHeight: 800 })
-    await expectJobs(app, 3)
+    await expectJobs(app, 5)
     // The stub's job-2 (never written), with job-3's row under it.
     const row = app.getByRole("row").filter({ hasText: "Card expired" })
     const next = app.getByRole("row").filter({ hasText: "Billing address unknown" })
@@ -1517,7 +1546,7 @@ test.describe("cockpit (engine_open_cockpit)", () => {
 
   test("opens on its start view: the head section current, no picker", async ({ page }) => {
     const app = await openView(page, { args: JOBS_ARGS })
-    await expectJobs(app, 2)
+    await expectJobs(app, 3)
     const sections = app.getByRole("navigation", { name: "Cockpit sections" })
     await expect(sections.getByRole("button", { name: "Jobs" })).toHaveAttribute(
       "aria-current",

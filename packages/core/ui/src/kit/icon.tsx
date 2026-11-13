@@ -5,10 +5,11 @@ export type { LucideIcon }
 
 /** The CI stroke (modeler-tool-design §11); pass it to a `LucideProvider` if you use one. */
 export const ICON_STROKE = 2.5
-export const DENSE_ICON_STROKE = 2
 
 /**
- * Stroke set on the icon itself so it holds outside a `LucideProvider` too.
+ * Stroke set on the icon itself so it holds outside a `LucideProvider` too, at every size.
+ * `dense` is the 12 px icon beside dense text and on 20 px badges, the named deviation of the
+ * density section (root CLAUDE.md): only in the files a brand gate's `allowDense` lists.
  * Decorative by default; `label` only for a standalone icon that carries meaning.
  */
 export function Icon({
@@ -26,8 +27,8 @@ export function Icon({
 }) {
   return (
     <Glyph
-      size={size}
-      strokeWidth={dense ? DENSE_ICON_STROKE : ICON_STROKE}
+      size={dense ? 12 : size}
+      strokeWidth={ICON_STROKE}
       aria-hidden={label ? undefined : true}
       aria-label={label}
       role={label ? "img" : undefined}

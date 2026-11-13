@@ -14,11 +14,29 @@ describe("engine draws function icons with Lucide, never glyphs or emoji", () =>
   })
 })
 
+/**
+ * The density section's named deviation (root CLAUDE.md): 12 px icons (`Icon dense`) beside
+ * dense text and on 20 px badges, per file with its reason. Shrink-only: a listed file that
+ * draws no 12 px icon fails as an unused allowance.
+ */
+const DENSE_ICONS_ALLOWED: Readonly<Record<string, string>> = {
+  "cockpit-app/breadcrumb.tsx": "the chevron between the trail's 13 px entries",
+  "cockpit-app/fleet-landscape.tsx": "the info icon leading a 13 px note",
+  "cockpit-app/fleet-view.tsx": "the arrow after an engine card's 13 px way in",
+  "cockpit-app/landing.tsx": "the arrow closing an engine's row of 13 px text",
+  "incident-detail/failure-tab.tsx": "the check inside a 20 px status badge beside its 13 px words",
+  "job-panel.tsx": "the check inside a 20 px status badge in a dense table cell",
+  "process-incidents/incident-table.tsx":
+    "the check inside a 20 px status badge in a dense table cell",
+  "process-instances/instance-row.tsx":
+    "the incident warning inside a 20 px count pill in a dense table cell",
+}
+
 describe("engine draws icons at the CI sizes", () => {
-  // Chrome icons take the kit Icon's 16 px default (`dense` for tight rows);
-  // a 14 or 20 px icon beside them is a third size in the same view.
-  it("no icon at a size other than 16 or 24 px", () => {
-    expect(scanIconSizes(join(SRC, "widgets"))).toEqual([])
+  // Chrome icons take the kit Icon's 16 px default; a 14 or 20 px icon beside them is a third
+  // size in the same view.
+  it("no icon at a size other than 16 or 24 px, at 12 px only in the files the dense deviation names", () => {
+    expect(scanIconSizes(join(SRC, "widgets"), { allowDense: DENSE_ICONS_ALLOWED })).toEqual([])
   })
 })
 

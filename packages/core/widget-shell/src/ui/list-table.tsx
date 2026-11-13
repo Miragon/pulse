@@ -270,7 +270,7 @@ function MoreRows({
               {labels.rowsShown({ shown: formatNumber(shown), total: formatNumber(total) })}
             </span>
             <Button type="button" variant="outline" size="sm" onClick={onShowMore}>
-              {fullscreen && <Icon icon={Maximize2} dense />}
+              {fullscreen && <Icon icon={Maximize2} />}
               {fullscreen ? labels.showAll : labels.showMore}
             </Button>
           </div>

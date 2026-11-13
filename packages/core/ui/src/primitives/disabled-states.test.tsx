@@ -28,7 +28,15 @@ const SRC = fileURLToPath(new URL("..", import.meta.url))
 const noop = (): void => {}
 const classesOf = (tag: string | undefined) => (attribute(tag ?? "", "class") ?? "").split(/\s+/)
 
-const BUTTON_VARIANTS = ["default", "destructive", "outline", "secondary", "ghost", "link"] as const
+const BUTTON_VARIANTS = [
+  "default",
+  "destructive",
+  "outline",
+  "secondary",
+  "ghost",
+  "toolbar",
+  "link",
+] as const
 
 /** The disabled control of each kit primitive, as its class list. */
 function disabledControls(): Record<string, string[]> {
@@ -57,6 +65,16 @@ function disabledControls(): Record<string, string[]> {
       </TabsList>
     </Tabs>,
   )
+  const lineTabs = renderToStaticMarkup(
+    <Tabs defaultValue="a">
+      <TabsList variant="line">
+        <TabsTrigger value="a">Open</TabsTrigger>
+        <TabsTrigger value="b" disabled>
+          Closed
+        </TabsTrigger>
+      </TabsList>
+    </Tabs>,
+  )
   const footer = renderToStaticMarkup(
     <LocaleProvider locale="en">
       <ListFooter shown={8} total={42} hasMore onLoadMore={noop} loadingMore noun="tasks" />
@@ -69,6 +87,7 @@ function disabledControls(): Record<string, string[]> {
       openingTags(renderToStaticMarkup(<NativeSelect disabled />), "select")[0],
     ),
     "TabsTrigger (disabled)": classesOf(openingTags(tabs, "button")[1]),
+    "TabsTrigger line (disabled)": classesOf(openingTags(lineTabs, "button")[1]),
     MENU_ITEM: MENU_ITEM.split(/\s+/),
     Switch: classesOf(openingTags(renderToStaticMarkup(<Switch disabled />), "button")[0]),
     "ListFooter's Load more": classesOf(openingTags(footer, "button")[0]),
@@ -124,7 +143,7 @@ describe("disabled kit controls are opaque, never faded (CI §8)", () => {
     },
   )
 
-  it("each Button variant takes the fill the guide names: hover fill with a line edge when filled, its own fill when secondary, transparent when ghost", () => {
+  it("each Button variant takes the fill the guide names: hover fill with a line edge when filled, its own fill when secondary, transparent when ghost or toolbar", () => {
     const disabled = (variant: (typeof BUTTON_VARIANTS)[number]) =>
       buttonVariants({ variant })
         .split(/\s+/)
@@ -134,9 +153,8 @@ describe("disabled kit controls are opaque, never faded (CI §8)", () => {
       expect(disabled(variant), variant).toEqual(
         [
           "disabled:bg-accent",
+          "disabled:border-border",
           "disabled:cursor-not-allowed",
-          "disabled:inset-ring",
-          "disabled:inset-ring-border",
           "disabled:shadow-none",
           "disabled:text-muted-foreground",
           "disabled:translate-y-0",
@@ -151,16 +169,17 @@ describe("disabled kit controls are opaque, never faded (CI §8)", () => {
     ])
     expect(disabled("secondary")).toEqual([
       "disabled:bg-secondary",
-      "disabled:cursor-not-allowed",
-      "disabled:inset-ring",
-      "disabled:inset-ring-border",
-      "disabled:text-muted-foreground",
-    ])
-    expect(disabled("ghost")).toEqual([
-      "disabled:bg-transparent",
+      "disabled:border-border",
       "disabled:cursor-not-allowed",
       "disabled:text-muted-foreground",
     ])
+    for (const variant of ["ghost", "toolbar"] as const) {
+      expect(disabled(variant), variant).toEqual([
+        "disabled:bg-transparent",
+        "disabled:cursor-not-allowed",
+        "disabled:text-muted-foreground",
+      ])
+    }
     expect(disabled("link")).toEqual([
       "disabled:cursor-not-allowed",
       "disabled:no-underline",

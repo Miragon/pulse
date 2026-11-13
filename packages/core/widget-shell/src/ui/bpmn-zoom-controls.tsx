@@ -51,7 +51,7 @@ export function BpmnZoomControls({
             FOCUS_RING_INSET,
           )}
         >
-          <Icon icon={icon} dense />
+          <Icon icon={icon} />
         </button>
       ))}
     </div>

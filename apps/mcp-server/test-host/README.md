@@ -10,7 +10,7 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
   `dist/mcp-app.{js,css}`, a CIB seven REST stub (`stub-engine.ts`,
   `fixtures/process-definitions.json` with their statistics and no open incident, the `invoice`
   diagram `fixtures/invoice.bpmn` with two instances at `approveInvoice` and twelve started in
-  the last 30 days in its history, three failed jobs, their backlog counts, one invoice instance
+  the last 30 days in its history, five failed jobs, their backlog counts, one invoice instance
   with two open incidents that only its own reads see; under
   `/realistic`, real-sized data in `realistic-engine.ts`) and the host's
   server side (`host-backend.ts`, a real MCP client), all on ephemeral
@@ -53,7 +53,7 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
 | fonts blocked              | `resourceDomains=ignore` (CSP without them)       | faces fail, the host's font is drawn, rows and height within 5 % of the Geist render                                                                               |
 | font route unreachable     | the font requests are held, never answered        | the list paints at once in the fallback (`font-display: swap`), nothing waits                                                                                      |
 | height budget              | `containerDimensions.maxHeight: 220`              | settled report ≤ 220 and ≥ the capped container, the shell scrolls inside it                                                                                       |
-| list fits a 600 px budget  | the jobs, `containerDimensions.maxHeight: 600`    | the list view fits as a card: exactly one job row, the shell's container has no scroll of its own (#396)                                                           |
+| list fits a 600 px budget  | the jobs, `containerDimensions.maxHeight: 600`    | the list view fits as a card: exactly three of the five job rows, the shell's container has no scroll of its own (#396)                                            |
 | inline fit, real-sized     | realistic engine, 760 px, 600/800/none, de-DE     | instances (all, scoped) and jobs fit as one card: k of N rows, "Show all" in view, no inner scroll; a new budget or width at runtime refits (`inline-fit.spec.ts`) |
 | inline head, cross-engine  | the overview's matrix, its own height less 20 px  | the last table cut ("1 of 3 shown" or "2 of 3"); Show all requests fullscreen (all 3), without it Show more (#396, `fleet.spec.ts`)                                |
 | bundle budget              | the built `dist/mcp-app.js` / `.css`              | gzip within `test/__golden__/bundle-budget.json`, and within 10 % of it (#344 K39)                                                                                 |
@@ -62,10 +62,10 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
 | BPMN on a dark host        | a process (`invoice`), `theme: "dark"`            | light canvas, dark flows/labels, every zoom button clickable past the logo                                                                                         |
 | process flow, Running      | a process (`invoice`), its flow on Running        | only the engine's modes, the real feed's count as a badge on `approveInvoice` (2), its row under "Values per activity"                                             |
 | process flow, Throughput   | a process (`invoice`), its flow on Throughput     | the real feed's history reads (12 instances, 1 version), the heat painted in the theme's ramp, `approveInvoice`: 10 passes, 2 running                              |
-| kit foundation             | the jobs, fullscreen offered                      | Miragon roles (link `--cd-blau-link`), Lucide stroke 2.5, 2 dense, neutral KPI                                                                                     |
+| kit foundation             | the jobs, fullscreen offered                      | Miragon roles (link `--cd-blau-link`), Lucide stroke 2.5 at every size, neutral KPI                                                                                |
 | forced colours             | the overview, `forcedColors: "active"`            | the current head section ringed in Highlight, a status dot in CanvasText, not Canvas                                                                               |
 | high contrast              | the jobs, `data-cd-kontrast="hoch"` on `<html>`   | the focus ring 3 px (2 px without), the shadow roles transparent                                                                                                   |
-| layout at 760 px           | `width: 760` (a chat's inline column)             | no horizontal document scroll, the table in a named region, 24 px shell padding                                                                                    |
+| layout at 760 px           | `width: 760` (a chat's inline column)             | no horizontal document scroll, the table in a named region, the 12 px gutter as shell padding                                                                      |
 | column priority            | the jobs at 760 px                                | `hideBelow` column hidden, the row actions `sticky` and inside the region                                                                                          |
 | row menu                   | the jobs at 760 px, "more" on a middle row        | the menu lies over the next rows' pinned cells: its entries take the clicks, focus, Escape                                                                         |
 | axe                        | overview + jobs, light and dark, 760 px           | zero WCAG 2.1 A/AA violations (`@axe-core/playwright`)                                                                                                             |
@@ -83,9 +83,11 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
 
 **The cockpit's chrome inline.** Every scenario of the engine module renders the cockpit, whose head
 (sections, engine switch, Refresh) sits above the route. Inline the head is the only row: a
-drilled view's breadcrumb takes the sections' place, a head section shows none. A 600 px budget
-then shows two job rows; the host scenarios pin the job count. The width refit
-(`inline-fit.spec.ts`) and the row menu run at 800 px, where several rows fit.
+drilled view's breadcrumb takes the sections' place, a head section shows none. Under the compact
+look a 600 px budget then shows three of the five job rows and one of the overview's three
+definitions (at 760 px none is cut: not even one row would fit); the host scenarios pin both
+counts. The width refit (`inline-fit.spec.ts`) and the row menu run at 800 px, where all five
+jobs fit.
 
 Height checks read the **settled** report, the one equal to the document's current
 max-content height: auto-resize reports one frame late, so right after the content becomes

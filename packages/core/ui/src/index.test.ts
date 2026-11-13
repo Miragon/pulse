@@ -86,6 +86,7 @@ describe("the @miragon/pulse-ui entry", () => {
       "TYPE_FLOOR_PX",
       "TYPE_SCALE",
       "TYPE_STEPS",
+      "TabCount",
       "Table",
       "TableBody",
       "TableCaption",
@@ -149,8 +150,7 @@ describe("the @miragon/pulse-ui entry", () => {
       "BreakableId",
       "FIELD_CONTROL",
       "PortalContainerContext",
-      // No consumer outside the kit: Icon's `dense`, KometMark's own clamp, ListFooter's count.
-      "DENSE_ICON_STROKE",
+      // No consumer outside the kit: KometMark's own clamp, ListFooter's count.
       "KOMET_MIN_SIZE",
       "formatCountIn",
     ]) {

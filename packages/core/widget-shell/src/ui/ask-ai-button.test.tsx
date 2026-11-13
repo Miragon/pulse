@@ -73,8 +73,11 @@ describe("AskAiButton", () => {
     const button = screen.getByRole("button", { name: "Draft a ticket in chat" })
     expect(button.getAttribute("title")).toBe("Draft a ticket in chat")
     expect(button.textContent).toBe("")
-    // A dense icon bar: the CI's narrower stroke, set on the icon itself.
-    expect(container.querySelector("svg")!.getAttribute("stroke-width")).toBe("2")
+    // A 28 px icon button: the 16 px icon at the CI stroke, set on the icon itself.
+    expect(button.className.split(" ")).toContain("size-control")
+    const icon = container.querySelector("svg")!
+    expect(icon.getAttribute("width")).toBe("16")
+    expect(icon.getAttribute("stroke-width")).toBe("2.5")
   })
 
   it("the menuitem variant is a plain entry of a menu that posts the same hand-off", () => {

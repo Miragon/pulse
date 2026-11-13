@@ -4,12 +4,11 @@ import type * as React from "react"
 import { XIcon } from "lucide-react"
 import { Dialog as DialogPrimitive } from "radix-ui"
 
-import { FOCUS_RING } from "../lib/focus-ring.js"
 import { useFocusReturn } from "../lib/focus-return.js"
 import { useUiMessages } from "../locale/locale-provider.js"
 import { cn } from "../lib/utils.js"
 import { usePortalContainer } from "../theme/portal-container.js"
-import { Button } from "./button.js"
+import { Button, buttonVariants } from "./button.js"
 
 function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />
@@ -38,6 +37,7 @@ function DialogClose({ ...props }: React.ComponentProps<typeof DialogPrimitive.C
   return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
 }
 
+/** The scrim (`--scrim`, the guide's backdrop) blurs and greys the view behind the dialog. */
 function DialogOverlay({
   className,
   ...props
@@ -46,7 +46,7 @@ function DialogOverlay({
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 bg-scrim fixed inset-0 z-50 backdrop-blur-sm",
+        "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 bg-scrim fixed inset-0 z-50 backdrop-blur-[3px] backdrop-grayscale",
         className,
       )}
       {...props}
@@ -54,6 +54,10 @@ function DialogOverlay({
   )
 }
 
+/**
+ * A dialog up to 560 px wide, 16 px off each edge of a narrower view (a confirmation narrows it
+ * to 440 px through `className`). Its close button is a 32 px ghost icon button (CI §8).
+ */
 function DialogContent({
   className,
   children,
@@ -77,7 +81,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "bg-popover text-popover-foreground dark:border-input data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 shadow-3 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-md border p-6 outline-hidden duration-(--motion-base) sm:max-w-lg",
+          "bg-popover text-popover-foreground dark:border-input data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 shadow-3 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[min(560px,calc(100%-2rem))] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-md border p-6 outline-hidden duration-(--motion-base)",
           className,
         )}
         {...props}
@@ -88,8 +92,8 @@ function DialogContent({
           <DialogPrimitive.Close
             data-slot="dialog-close"
             className={cn(
-              "text-muted-foreground hover:text-foreground absolute top-4 right-4 rounded-sm transition-colors disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-              FOCUS_RING,
+              buttonVariants({ variant: "ghost", size: "icon" }),
+              "text-muted-foreground absolute top-4 right-4 size-8",
             )}
           >
             <XIcon />
@@ -105,12 +109,13 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn("flex flex-col gap-2 text-center sm:text-left", className)}
+      className={cn("flex flex-col gap-2 pr-6 text-center sm:text-left", className)}
       {...props}
     />
   )
 }
 
+/** Secondary before primary; the buttons take `size="lg"`, the 36 px control of a dialog. */
 function DialogFooter({
   className,
   showCloseButton = false,
@@ -132,7 +137,9 @@ function DialogFooter({
       {children}
       {showCloseButton && (
         <DialogPrimitive.Close asChild>
-          <Button variant="outline">{closeLabel ?? messages.common.close}</Button>
+          <Button variant="outline" size="lg">
+            {closeLabel ?? messages.common.close}
+          </Button>
         </DialogPrimitive.Close>
       )}
     </div>

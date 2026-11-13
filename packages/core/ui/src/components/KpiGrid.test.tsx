@@ -113,7 +113,7 @@ describe("KpiGrid strip: an incomplete last row keeps the card colour", () => {
     )
     const { cells } = strip(html)
     expect(cells).toHaveLength(5)
-    for (const cell of cells) expect(classOf(cell)).toContain("hover:bg-muted")
+    for (const cell of cells) expect(classOf(cell)).toContain("hover:bg-accent")
   })
 })
 

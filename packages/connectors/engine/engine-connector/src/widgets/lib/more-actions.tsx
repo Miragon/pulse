@@ -132,7 +132,7 @@ export function MoreActions({ label, children }: { label: string; children: Reac
           setOpen((was) => !was)
         }}
       >
-        <Icon icon={Ellipsis} dense />
+        <Icon icon={Ellipsis} />
       </Button>
       {open &&
         createPortal(

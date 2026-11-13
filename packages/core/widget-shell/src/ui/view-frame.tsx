@@ -133,7 +133,10 @@ function ViewMain({
   return (
     <main style={style}>
       {(reloadedAt !== null || canFullscreen) && (
-        <div data-slot="view-toolbar" className="flex min-h-12 items-center gap-2 px-4 py-2">
+        <div
+          data-slot="view-toolbar"
+          className="min-h-bar px-gutter flex items-center gap-2 py-1.5"
+        >
           {reloadedAt !== null && (
             <p
               data-slot="view-reloaded-at"

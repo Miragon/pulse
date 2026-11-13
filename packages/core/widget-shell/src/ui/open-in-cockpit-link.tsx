@@ -33,7 +33,7 @@ export function OpenInCockpitLink({
   if (variant === "menuitem") {
     return (
       <a {...link} role="menuitem" tabIndex={-1} className={MENU_ITEM}>
-        <Icon icon={ExternalLink} dense />
+        <Icon icon={ExternalLink} />
         {text}
       </a>
     )
@@ -41,7 +41,7 @@ export function OpenInCockpitLink({
   return (
     <a {...link} className={buttonVariants({ variant: "outline", size: "sm" })}>
       {text}
-      <Icon icon={ExternalLink} dense />
+      <Icon icon={ExternalLink} />
     </a>
   )
 }

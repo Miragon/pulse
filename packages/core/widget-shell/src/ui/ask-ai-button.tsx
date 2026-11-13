@@ -50,7 +50,7 @@ export function AskAiButton({
         className={MENU_ITEM}
         onClick={send}
       >
-        <Icon icon={icon} dense />
+        <Icon icon={icon} />
         {effectiveLabel}
       </button>
     )
@@ -66,7 +66,7 @@ export function AskAiButton({
       title={isIcon ? (title ?? effectiveLabel) : title}
       onClick={send}
     >
-      <Icon icon={icon} dense={isIcon} />
+      <Icon icon={icon} />
       {!isIcon && effectiveLabel}
     </Button>
   )

@@ -303,8 +303,9 @@ function failedJob(id: string, processInstanceId: string, exceptionMessage: stri
  * The stub's jobs. `job-1` is the write scenario's (`write-refresh.spec.ts`):
  * failed until a retry lands, the one stateful corner of the stub's engine
  * data (the search holds are scenario control), owned by that one scenario.
- * `job-2` and `job-3` are never written: the row menu scenario opens the
- * menu of a row with another row under it.
+ * The others are never written: the row menu scenario opens the menu of
+ * `job-2`'s row with another row under it. Five, so a 600 px budget shows
+ * some of them ("k of 5") under the compact cockpit and 800 px all.
  */
 function stubJobs(): Map<string, StubJob> {
   return new Map(
@@ -312,6 +313,8 @@ function stubJobs(): Map<string, StubJob> {
       failedJob("job-1", "pi-1", "Card declined"),
       failedJob("job-2", "pi-2", "Card expired"),
       failedJob("job-3", "pi-3", "Billing address unknown"),
+      failedJob("job-4", "pi-4", "Insufficient funds"),
+      failedJob("job-5", "pi-5", "Issuer unavailable"),
     ].map((job) => [job.id, job]),
   )
 }
@@ -409,7 +412,7 @@ function createSearchHolds() {
  * server ACTUALLY builds (view envelope, data shape, engine id) from a fixed
  * engine response (`fixtures/process-definitions.json` with their statistics,
  * no open incident, the `invoice` diagram `fixtures/invoice.bpmn` with two instances at
- * `approveInvoice`, twelve started in the last 30 days in its history, three failed jobs, and
+ * `approveInvoice`, twelve started in the last 30 days in its history, five failed jobs, and
  * one invoice instance with two open incidents that only its own reads see).
  * The broken base URL turns any tool into a genuine `isError` result: an
  * engine 503 through the server's own error mapping.

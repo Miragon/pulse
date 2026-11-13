@@ -68,6 +68,8 @@ export const THEME_REFERENCE = block("@theme inline reference")
 /** The comfortable density step: on a coarse pointer, and inside `data-density="comfortable"`. */
 export const COARSE = blockIn("(any-pointer: coarse)", ":root")
 export const COMFORTABLE = block('[data-density="comfortable"]')
+/** The compact step pinned by a host (`data-density="compact"`), on a coarse pointer too. */
+export const COMPACT = block('[data-density="compact"]')
 
 const CD: Record<string, string> = {}
 for (const m of cdCss.matchAll(/(--cd-[a-z0-9-]+):\s*([^;]+);/g)) CD[m[1]] = m[2]

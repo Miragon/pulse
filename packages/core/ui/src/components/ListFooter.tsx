@@ -1,5 +1,5 @@
-import { FOCUS_RING } from "../lib/focus-ring.js"
 import { cn } from "../lib/utils.js"
+import { Button } from "../primitives/button.js"
 import { useUiLocale, useUiMessages } from "../locale/locale-provider.js"
 import type { ListFooterMessages } from "../locale/message-types.js"
 import { formatCountIn } from "../locale/ui-messages.js"
@@ -93,21 +93,23 @@ export function ListFooter({
         />
       </p>
       {counted && hasMore && (
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={onLoadMore}
           disabled={loadingMore}
-          className={`border-border text-foreground hover:border-focus hover:bg-accent hover:text-accent-foreground disabled:border-border disabled:text-muted-foreground inline-flex items-center gap-1 rounded-md border px-3 py-1.5 font-semibold transition-colors disabled:cursor-not-allowed disabled:bg-transparent ${FOCUS_RING}`}
         >
           {loadingMore ? listFooter.loadingMore : listFooter.loadMore}
-        </button>
+        </Button>
       )}
     </div>
   )
 }
 
+/** The cell's side padding, so the count lines up with the rows above it. */
 const FOOTER_CLASS =
-  "text-small text-muted-foreground flex items-center justify-between gap-3 px-1 py-2"
+  "text-small text-muted-foreground px-cell flex items-center justify-between gap-3 py-1.5"
 
 /** What the live region says: the count, "Updating…", or "No entries" at zero rows. */
 function StatusLine({

@@ -19,7 +19,7 @@ export interface DrillButtonProps {
 }
 
 /** The `Button` size each drill size is: one scale for every action of a view. */
-const BUTTON_SIZE = { sm: "sm", md: "default" } as const
+const BUTTON_SIZE = { sm: "sm", md: "lg" } as const
 
 /**
  * The single, deterministic in-widget navigation control: a neutral outline
@@ -28,10 +28,11 @@ const BUTTON_SIZE = { sm: "sm", md: "default" } as const
  * and stay visually quieter than primary/agentic actions. Decoupled from any
  * host: pass an `onDrill` callback (e.g. wrapping `useHostActions().showWidget`).
  *
- * It IS the kit's outline `Button` (`buttonVariants`): `sm` is 32 px,
- * 13 px, weight 600, the size of a `Button size="sm"` or an `AskAiButton`
- * beside it in a row; `md` is the `Button` default (36 px). The design
- * system gives every button weight 600 and one radius.
+ * It IS the kit's outline `Button` (`buttonVariants`): `sm` is the control of
+ * the density roles (28 px, 36 px on touch), 13 px, weight 600, the size of a
+ * `Button size="sm"` or an `AskAiButton` beside it in a row; `md` is the
+ * `Button` `lg` (36 px). The design system gives every button weight 600 and
+ * one radius.
  */
 export function DrillButton({ children, onDrill, icon, size = "sm", ariaLabel }: DrillButtonProps) {
   return (

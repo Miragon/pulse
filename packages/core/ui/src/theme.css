@@ -250,7 +250,11 @@
    menu entries and large controls (zeile); 32 px xs controls and segments
    (ziel); a 48 px bar, a 36 px target with 6 px above and below; a 16 px
    gutter and section gap, 8 px cell padding top and bottom, the md radius on
-   buttons. Both blocks carry the same values (theme-density.test.ts). */
+   buttons. Both blocks carry the same values (theme-density.test.ts).
+   data-density="compact" pins the compact step on a coarse pointer too (an
+   editor stays compact on a touch laptop, as the editor itself does): it
+   comes after the media block and repeats :root's values, and
+   data-density="comfortable" after it, so the nearest mark wins. */
 @media (any-pointer: coarse) {
   :root {
     --bar-h: 3rem; /* 48px */
@@ -267,6 +271,21 @@
     --segment-h: 2rem; /* 32px */
     --button-radius: var(--cd-radius-md);
   }
+}
+[data-density="compact"] {
+  --bar-h: 2.5rem; /* 40px */
+  --toolbar-h: 2.25rem; /* 36px */
+  --entry-h: 2.25rem; /* 36px */
+  --control-h: 1.75rem; /* 28px */
+  --control-h-xs: 1.5rem; /* 24px */
+  --control-h-lg: 2.25rem; /* 36px */
+  --row-h: 1.75rem; /* 28px */
+  --cell-px: 0.75rem; /* 12px */
+  --cell-py: 0.25rem; /* 4px */
+  --gutter: 0.75rem; /* 12px */
+  --section-gap: 0.75rem; /* 12px */
+  --segment-h: 1.5rem; /* 24px */
+  --button-radius: var(--cd-radius-sm);
 }
 [data-density="comfortable"] {
   --bar-h: 3rem; /* 48px */
@@ -520,7 +539,8 @@
    of its own: a selected, pressed or checked control and the current link
    or button a 2 px ring inside in Highlight (focus keeps its own outline), a
    card (edged by a shadow ring) and a switch an edge in CanvasText, a status
-   dot and the switch's thumb CanvasText. A light island (a diagram's paper and its zoom
+   dot and the switch's thumb CanvasText. A transparent edge (the kit's
+   buttons) turns visible here, so a button keeps its outline. A light island (a diagram's paper and its zoom
    bar) keeps the colours it is drawn in, so the drawing stays on its paper.
    Unlayered, so these win over the utilities. */
 @media (forced-colors: active) {
@@ -535,6 +555,18 @@
   }
   :is([data-slot="card"], [data-slot="switch"]) {
     border-color: CanvasText;
+  }
+  /* A line tab's bar and a segment's edge are borders, Highlight on the
+     selected one; an unselected tab's bar and an unchecked segment's edge,
+     transparent, stay unpainted. */
+  :is([data-slot="tabs-trigger"][data-variant="line"], [data-slot="segmented-option"]) {
+    border-color: Canvas;
+  }
+  :is(
+    [data-slot="tabs-trigger"][data-variant="line"][data-state="active"],
+    [data-slot="segmented-option"][aria-pressed="true"]
+  ) {
+    border-color: Highlight;
   }
   [data-slot="card"] {
     border-style: solid;

@@ -24,7 +24,7 @@ export function LivePill({ tone = "info", children, className }: LivePillProps) 
   return (
     <span
       className={cn(
-        "text-small inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 font-semibold",
+        "text-small min-h-badge inline-flex items-center gap-1.5 rounded-sm border px-2 leading-4 font-semibold",
         TONE_SOFT[t],
         TONE_BORDER[t],
         className,
@@ -64,7 +64,7 @@ export function StatusBadge({ children, tone, className }: StatusBadgeProps) {
       data-slot="status-badge"
       data-tone={t}
       className={cn(
-        "text-small inline-flex w-fit items-center gap-1.5 rounded-sm border px-2.5 py-0.5 font-semibold",
+        "text-small min-h-badge inline-flex w-fit items-center gap-1.5 rounded-sm border px-2.5 leading-4 font-semibold",
         TONE_SOFT[t],
         TONE_BORDER[t],
         className,
@@ -86,17 +86,19 @@ export interface CountPillProps {
 
 /**
  * Compact count badge: tabular numbers on a tinted background with a border
- * in the tone. Use as the right-aligned indicator on a list/group row (e.g. a
- * per-group item count). The number stays in the foreground in every tone
- * (no coloured digits): the tint and the border carry the tone. A count
- * without a state stays `neutral`.
+ * in the tone, a 20 px pill (the badge height of the density roles; counts as
+ * pills are a named deviation), 13 px at 600. Use as the right-aligned
+ * indicator on a list/group row (e.g. a per-group item count). The number
+ * stays in the foreground in every tone (no coloured digits): the tint and the
+ * border carry the tone. A count without a state stays `neutral`. An icon in
+ * it is 12 px (`Icon dense`).
  */
 export function CountPill({ tone = "neutral", children, className }: CountPillProps) {
   const t = resolveTone(tone)
   return (
     <span
       className={cn(
-        "text-dense inline-flex min-w-10 items-center justify-center rounded-sm border px-2.5 py-0.5 font-semibold tabular-nums",
+        "text-small min-h-badge rounded-pill inline-flex min-w-5 items-center justify-center gap-1 border px-1.5 leading-4 font-semibold tabular-nums",
         TONE_SOFT[t],
         TONE_BORDER[t],
         className,

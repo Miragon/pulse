@@ -18,7 +18,7 @@ export type ViewMap = Readonly<Record<string, ViewComponent>>
  */
 export function ViewStack({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-w-0 flex-col gap-4">
+    <div className="gap-section flex min-w-0 flex-col">
       {Children.toArray(children).map((child, index) => (
         <ViewErrorBoundary key={isValidElement(child) ? child.key : index}>
           {child}

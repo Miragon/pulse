@@ -15,7 +15,9 @@ describe("ViewStack", () => {
       </ViewStack>,
     )
     const stack = container.firstElementChild
-    expect(stack?.className.split(" ")).toEqual(["flex", "min-w-0", "flex-col", "gap-4"])
+    expect(stack?.className.split(" ").sort()).toEqual(
+      ["flex", "flex-col", "gap-section", "min-w-0"].sort(),
+    )
     expect([...(stack?.children ?? [])].map((child) => child.textContent)).toEqual(["one", "two"])
   })
 

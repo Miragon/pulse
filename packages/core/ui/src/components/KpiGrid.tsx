@@ -211,7 +211,7 @@ function KpiCellView({
       data-tone={tone}
       className={cn(
         "cursor-pointer text-left transition-colors",
-        variant === "strip" ? cn("hover:bg-muted", FOCUS_RING_INSET) : FOCUS_RING,
+        variant === "strip" ? cn("hover:bg-accent", FOCUS_RING_INSET) : FOCUS_RING,
         className,
       )}
     >

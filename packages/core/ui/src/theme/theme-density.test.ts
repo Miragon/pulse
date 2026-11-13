@@ -3,8 +3,10 @@ import { DENSITY_CELL_PADDING, DENSITY_RADIUS, DENSITY_SPACING } from "../lib/de
 import { DENSITY_ROLES, ROLE_TOKENS } from "./role-tokens.js"
 import {
   cdToken,
+  BLOCKS,
   COARSE,
   COMFORTABLE,
+  COMPACT,
   DARK,
   DARK_KONTRAST,
   KONTRAST,
@@ -109,6 +111,21 @@ describe("theme.css: the density roles (D9: compact by default, comfortable on t
       expect(remPx(value), `${name}: ${JSON.stringify(comfortable)}`).toBe(stepPx(comfortable))
     }
     expect(rules).toMatch(/@media \(any-pointer: coarse\) \{\s*:root \{/)
+  })
+
+  it("lets a host pin the compact step on a coarse pointer, and a nearer comfortable mark win over it", () => {
+    // Every role the comfortable step changes, back at its compact value.
+    const pinned = Object.fromEntries(Object.keys(COARSE).map((name) => [name, ROOT[name]]))
+    expect(COMPACT).toEqual(pinned)
+    // Each mark after the media block: the same specificity as :root, so the later rule wins
+    // on <html> and the nearest mark wins below it.
+    const at = (selector: string) => BLOCKS.findIndex((b) => b.selector === selector)
+    const coarse = rules.indexOf("@media (any-pointer: coarse)")
+    const compact = BLOCKS[at('[data-density="compact"]')]?.offset ?? -1
+    const comfortable = BLOCKS[at('[data-density="comfortable"]')]?.offset ?? -1
+    expect(coarse).toBeGreaterThan(0)
+    expect(compact).toBeGreaterThan(coarse)
+    expect(comfortable).toBeGreaterThan(compact)
   })
 
   it("rounds a button with the sm radius in the compact step and the md radius in the comfortable one", () => {

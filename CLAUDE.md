@@ -294,9 +294,11 @@ Kompakt ist der Standard. Auf Touch (`any-pointer: coarse`) und unter
 `[data-density=comfortable]` gilt die komfortable Stufe: Bedienelemente 36 px, Zeilen und
 Toolbars 40 px, Radius md auf Knöpfen. Die Schrift bleibt in jeder Stufe gleich; nur Eingaben
 zeigen auf Touch 16 px Text, damit iOS beim Fokus nicht in die Seite zoomt, und
-`[data-density=comfortable]` allein lässt sie bei 13 px. Leiste 40 px, Toolbar 36 px und Rand
-12 px sind Werte des Guides und keine Abweichung. Diese bewussten Abweichungen vom Guide
-gelten für alle Oberflächen (Owner-Entscheidung):
+`[data-density=comfortable]` allein lässt sie bei 13 px. `[data-density=compact]` hält die
+kompakte Stufe auch auf Touch fest, damit die Editoren auf einem Touch-Laptop kompakt bleiben wie
+VS Code selbst; die Webview setzt es mit dem Umstieg auf ihr `<html>`. Leiste 40 px, Toolbar
+36 px und Rand 12 px sind Werte des Guides und keine Abweichung. Diese bewussten Abweichungen
+vom Guide gelten für alle Oberflächen (Owner-Entscheidung):
 
 - Bedienelemente (Knöpfe, Eingaben, Auswahlen) mit 28 px und klickbare Tabellenzeilen mit 28 px
   statt 36 px.
@@ -308,10 +310,12 @@ gelten für alle Oberflächen (Owner-Entscheidung):
 - Der angedockte Hinweisstreifen ohne die 4-px-Kante.
 - Icons: 12 px mit Strich 2,5 neben dichtem Text und auf den 20-px-Overlays des Diagramms (Zähl-
   und Move-Badges, Code- und Move-Knöpfe, Links und Warnungen im Text), sonst 16 und 24 px.
-  `scanIconSizes` liest `size={…}` und die `size-*`-Klassen auf SVG-Selektoren
-  (`[&>svg]:size-3`) und auf `Icon` und lässt 12 px nur in den Dateien zu, die das Gate je mit
-  Grund nennt (`allowDense`; im Kit `packages/core/ui/src/brand-gates.test.ts`: Badge, die
-  Knöpfe xs und icon-xs); ein Eintrag ohne 12-px-Icon schlägt fehl.
+  `Icon` mit `dense` ist das 12-px-Icon. `scanIconSizes` liest `size={…}`, die `size-*`-Klassen
+  auf SVG-Selektoren (`[&>svg]:size-3`) und auf `Icon` und `dense` auf `Icon` und lässt 12 px nur
+  in den Dateien zu, die das Gate je mit Grund nennt (`allowDense`; im Kit
+  `packages/core/ui/src/brand-gates.test.ts`: Badge, die Knöpfe xs und icon-xs, `Icon` selbst,
+  der Sortierpfeil im Tabellenkopf, das Ton-Icon im Segment; widget-shell und der Konnektor in
+  ihrer `brand-gates.test.ts`); ein Eintrag ohne 12-px-Icon schlägt fehl.
 
 ### Abweichung für die VS-Code-Webview
 

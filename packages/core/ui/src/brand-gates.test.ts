@@ -52,6 +52,11 @@ const DENSE_ICONS_ALLOWED: Readonly<Record<string, Readonly<Record<string, strin
     "button.tsx":
       "the xs and icon-xs buttons are 24 px (in notice strips, to copy), so their icon is 12 px",
   },
+  kit: {
+    "icon.tsx": "Icon's dense is the deviation's 12 px icon itself",
+    "segmented-control.tsx": "an alarming count's tone icon beside 13 px text in a 24 px segment",
+    "table.tsx": "a column head's sort arrow beside its 13 px caption",
+  },
 }
 
 /** The sources at the root of src (the barrel and the render fixtures), tests aside. */

@@ -16,7 +16,7 @@ export function IncidentGroupIcon({ tone = SITUATION_TONES.openIncident }: { ton
         tone === "danger" ? "bg-danger-soft text-danger-ink" : "bg-muted text-muted-foreground",
       )}
     >
-      <Icon icon={TriangleAlert} dense />
+      <Icon icon={TriangleAlert} />
     </div>
   )
 }
@@ -90,7 +90,6 @@ export function GroupSummaryRow({
       {expanded !== undefined && (
         <Icon
           icon={ChevronRight}
-          dense
           className={`text-muted-foreground transition-transform ${expanded ? "rotate-90" : ""}`}
         />
       )}

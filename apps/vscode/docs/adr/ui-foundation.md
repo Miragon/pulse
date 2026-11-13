@@ -140,6 +140,9 @@ day the owner decided D9, which replaces D4 and turns D7 into the switch's preco
      applies under `any-pointer: coarse` and `[data-density=comfortable]`. Density never scales
      type: only inputs take 16 px text, on a coarse pointer, so that iOS does not zoom into a
      focused field, and `[data-density=comfortable]` alone leaves them at 13 px.
+     `[data-density=compact]` pins the compact step on a coarse pointer too, so the editors stay
+     compact on a touch laptop as VS Code itself does: the webview sets it on its `<html>` with
+     the switch.
      Controls and bars take a minimum height, never a fixed one, so text at 200 % does not clip.
      Dense text is 13 px. The view title is chrome, 13 px at weight 600 in the 40 px bar; 28 px at
      weight 700 stays for the app level (landing, fleet). pulse-ui gets no entry for the editors

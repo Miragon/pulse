@@ -10,7 +10,7 @@ const sizesOf = (source: string) =>
 describe("iconSizeFindings: icons at the CI sizes only", () => {
   it("flags an off-size icon and spares the CI sizes, the default and string sizes", () => {
     const probe = [
-      "const a = <Icon icon={TriangleAlert} size={14} dense />",
+      "const a = <Icon icon={TriangleAlert} size={14} />",
       "const b = <Icon icon={LayoutDashboard} size={20} />",
       "const c = <Icon icon={RefreshCw} size={16} />",
       "const d = <Workflow size={24} />",
@@ -89,6 +89,21 @@ describe("iconSizeFindings: icons at the CI sizes only", () => {
     ])
   })
 
+  it("reads the kit Icon's dense as 12 px, unless it is a literal false, and no other element's", () => {
+    const probe = [
+      "const a = <Icon icon={Check} dense />",
+      "const b = <Icon icon={Check} dense={true} />",
+      "const c = <Icon icon={Check} dense={isIcon} />",
+      "const d = <Icon icon={Check} dense={false} />",
+      "const e = <Row dense />",
+    ].join("\n")
+    expect(sizesOf(probe)).toEqual([
+      [1, 12, "dense"],
+      [2, 12, "dense"],
+      [3, 12, "dense"],
+    ])
+  })
+
   it("reports the line of the class inside a multi-line template", () => {
     const probe = ["const v = `", "  h-6 px-2", "  [&_svg]:size-3", "`"].join("\n")
     expect(sizesOf(probe)).toEqual([[3, 12, "[&_svg]:size-3"]])
@@ -120,9 +135,11 @@ describe("scanIconSizes: 12 px only where the dense deviation names the file", (
       ['const b = "[&>svg]:size-3!"', "const lead = <Icon icon={X} size={20} />"].join("\n"),
     )
     writeFileSync(join(dir, "card.tsx"), 'const c = "[&_svg]:size-3"\n')
+    writeFileSync(join(dir, "copy.tsx"), "const c = <Icon icon={Copy} dense />\n")
     writeFileSync(join(dir, "chrome.tsx"), "const c = <Icon icon={X} size={16} />\n")
     const allowDense = {
       "badge.tsx": "a probe",
+      "copy.tsx": "a probe whose icon is dense",
       "chrome.tsx": "a probe whose icons are 16 px",
       "gone.tsx": "a probe whose file is gone",
     }

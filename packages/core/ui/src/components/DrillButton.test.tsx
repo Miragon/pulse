@@ -9,24 +9,24 @@ const noop = () => undefined
 const classOf = (tag: string | undefined) => attribute(tag ?? "", "class") ?? ""
 
 describe("DrillButton: the outline Button with a trailing arrow (mcp-toolkit#194)", () => {
-  it("sm is a Button size sm: 32 px, 13 px, weight 600, like the buttons beside it in a row", () => {
+  it("sm is a Button size sm: the density's control (28 px), 13 px, weight 600, like the buttons beside it in a row", () => {
     const html = renderToStaticMarkup(<DrillButton onDrill={noop}>Open</DrillButton>)
     const [button] = openingTags(html, "button")
     expect(classOf(button)).toBe(buttonVariants({ variant: "outline", size: "sm" }))
-    expect(classOf(button)).toMatch(/\bh-8\b/)
+    expect(classOf(button)).toMatch(/(^| )min-h-control( |$)/)
     expect(classOf(button)).toMatch(/(^| )text-dense( |$)/)
     expect(classOf(button)).toMatch(/\bfont-semibold\b/)
     expect(attribute(button ?? "", "type")).toBe("button")
   })
 
-  it("md is the Button default size (surface headers)", () => {
+  it("md is the Button lg size, 36 px (surface headers)", () => {
     const html = renderToStaticMarkup(
       <DrillButton onDrill={noop} size="md">
         View running instances
       </DrillButton>,
     )
     expect(classOf(openingTags(html, "button")[0])).toBe(
-      buttonVariants({ variant: "outline", size: "default" }),
+      buttonVariants({ variant: "outline", size: "lg" }),
     )
   })
 
