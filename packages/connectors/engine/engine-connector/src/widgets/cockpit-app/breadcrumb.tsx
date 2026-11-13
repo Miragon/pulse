@@ -46,7 +46,7 @@ export function NavBreadcrumb({
               {entry.label}
             </button>
           ) : (
-            <span aria-current="page" className="text-foreground font-medium">
+            <span aria-current="page" className="text-foreground font-semibold">
               {entry.label}
             </span>
           )}
@@ -71,7 +71,7 @@ export function FleetCrumbs({ locale, onLanding }: { locale: string; onLanding: 
         {translator(locale, "cockpit.crumb.allEngines")}
       </button>
       <Icon icon={ChevronRight} dense />
-      <span aria-current="page" className="text-foreground font-medium">
+      <span aria-current="page" className="text-foreground font-semibold">
         {translator(locale, "cockpit.crumb.fleet")}
       </span>
     </nav>

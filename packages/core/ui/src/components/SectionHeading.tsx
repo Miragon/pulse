@@ -25,7 +25,7 @@ export function SectionHeading({ title, hint, trailing }: SectionHeadingProps) {
     >
       <span>{title}</span>
       {(hint || trailing) && (
-        <span className="text-muted-foreground text-small font-medium">{trailing ?? hint}</span>
+        <span className="text-muted-foreground text-small">{trailing ?? hint}</span>
       )}
     </div>
   )

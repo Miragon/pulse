@@ -148,7 +148,7 @@ describe.each(SCANNED)("src/%s", (dir) => {
     expect(scanIconSizes(path, { allowDense: DENSE_ICONS_ALLOWED[dir] })).toEqual([])
   })
 
-  it("sets text on the type scale, the vendored shadcn primitives included", () => {
+  it("sets text on the type scale and its three weights, the vendored shadcn primitives included", () => {
     expect(scanTypeScale(path).map((f) => `${f.file}:${f.line} ${f.match}`)).toEqual([])
   })
 

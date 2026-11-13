@@ -56,7 +56,7 @@ export function ActivityNode({ node, depth = 0 }: { node: ActivityTree; depth?: 
     <div>
       <div className="flex items-center gap-2 py-1" style={{ paddingLeft: `${depth * 16}px` }}>
         <span className="text-muted-foreground text-small font-mono">{node.activityType}</span>
-        <span className="text-dense font-medium">{node.activityName ?? node.activityId}</span>
+        <span className="text-dense font-semibold">{node.activityName ?? node.activityId}</span>
       </div>
       {(node.childActivityInstances ?? []).map((child) => (
         <ActivityNode key={child.id} node={child} depth={depth + 1} />

@@ -62,7 +62,7 @@ function OpenTaskCard({
       <CardContent className="p-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex flex-col">
-            <div className="font-medium">{task.name ?? task.taskDefinitionKey}</div>
+            <div className="font-semibold">{task.name ?? task.taskDefinitionKey}</div>
             <div className="text-muted-foreground text-small font-mono">
               {task.taskDefinitionKey}
               {task.assignee && <> · {t("instanceDetail.assignee", { name: task.assignee })}</>}

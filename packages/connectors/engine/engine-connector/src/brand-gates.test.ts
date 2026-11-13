@@ -32,8 +32,9 @@ describe("engine widget code colours through role names only", () => {
 
 describe("engine widget code sets text on the type scale", () => {
   // CI §4 as pulse-ui's TYPE_SCALE (#322 M6): title 28, section 21, body
-  // 16, dense 14 (tables, controls), small 13 (the floor). No Tailwind sizes.
-  it("no text size off the five steps and nothing below 13 px", () => {
+  // 16, dense 13 (tables, controls), small 13 (the floor). No Tailwind sizes,
+  // weights 400, 600 and 700 only.
+  it("no text size off the five steps, nothing below 13 px, no weight but 400, 600 and 700", () => {
     expect(scanTypeScale(join(SRC, "widgets"))).toEqual([])
   })
 })

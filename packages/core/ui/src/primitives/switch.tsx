@@ -4,12 +4,15 @@ import { Switch as SwitchPrimitive } from "radix-ui"
 import { FOCUS_RING } from "../lib/focus-ring.js"
 import { cn } from "../lib/utils.js"
 
+// Disabled is opaque, never faded (CI §8): the track takes the hover fill with a line edge in
+// either state, the thumb the quiet text colour, so its position still shows the state.
 function Switch({ className, ...props }: React.ComponentProps<typeof SwitchPrimitive.Root>) {
   return (
     <SwitchPrimitive.Root
       data-slot="switch"
       className={cn(
-        "peer data-[state=checked]:bg-interaction data-[state=unchecked]:bg-input inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+        "peer data-[state=checked]:bg-interaction data-[state=unchecked]:bg-input inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors",
+        "disabled:border-border disabled:data-[state=checked]:bg-accent disabled:data-[state=unchecked]:bg-accent disabled:cursor-not-allowed",
         FOCUS_RING,
         className,
       )}
@@ -17,7 +20,7 @@ function Switch({ className, ...props }: React.ComponentProps<typeof SwitchPrimi
     >
       <SwitchPrimitive.Thumb
         data-slot="switch-thumb"
-        className="bg-primary-foreground shadow-1 pointer-events-none block h-4 w-4 rounded-full ring-0 transition-transform data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0"
+        className="bg-primary-foreground data-disabled:bg-muted-foreground shadow-1 pointer-events-none block h-4 w-4 rounded-full ring-0 transition-transform data-disabled:shadow-none data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0"
       />
     </SwitchPrimitive.Root>
   )

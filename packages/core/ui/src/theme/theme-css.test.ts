@@ -108,7 +108,7 @@ describe("theme.css: the role-token contract", () => {
       title: { px: 28, lineHeight: "1.2", weight: "700" },
       section: { px: 21, lineHeight: "1.3", weight: "600" },
       body: { px: 16, lineHeight: "1.6", weight: undefined },
-      dense: { px: 14, lineHeight: "1.5", weight: undefined },
+      dense: { px: 13, lineHeight: "1.5", weight: undefined },
       small: { px: 13, lineHeight: "1.5", weight: undefined },
     })
     for (const { px: size } of Object.values(scale)) {

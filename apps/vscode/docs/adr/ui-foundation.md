@@ -136,8 +136,10 @@ day the owner decided D9, which replaces D4 and turns D7 into the switch's preco
      `rem` in pulse-ui's `theme.css` that a test holds to the guide's shell tokens at a 16 px root:
      a 40 px bar, 36 px toolbars and menu entries, 28 px controls and table rows, 24 px small
      buttons, a 12 px gutter. Compact is the default of every surface (the MCP widgets, the web
-     apps, the webview); a comfortable step (36 px controls, 40 px rows and toolbars, a 48 px bar,
-     inputs with 16 px text) applies under `any-pointer: coarse` and `[data-density=comfortable]`.
+     apps, the webview); a comfortable step (36 px controls, 40 px rows and toolbars, a 48 px bar)
+     applies under `any-pointer: coarse` and `[data-density=comfortable]`. Density never scales
+     type: only inputs take 16 px text, on a coarse pointer, so that iOS does not zoom into a
+     focused field, and `[data-density=comfortable]` alone leaves them at 13 px.
      Controls and bars take a minimum height, never a fixed one, so text at 200 % does not clip.
      Dense text is 13 px. The view title is chrome, 13 px at weight 600 in the 40 px bar; 28 px at
      weight 700 stays for the app level (landing, fleet). pulse-ui gets no entry for the editors

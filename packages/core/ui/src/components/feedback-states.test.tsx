@@ -254,9 +254,12 @@ describe("ErrorState", () => {
       expect(rootClass).toContain(TONE_BORDER[tone])
       expect(attribute(openingTags(html, "svg")[0] ?? "", "class")).toContain(TONE_ICON[tone])
       // No quiet text, no ink and no status colour as text anywhere on the tint
-      // (the icons, which carry the tone colour, set aside).
+      // (the icons, which carry the tone colour, set aside; a disabled button
+      // draws its quiet text on its own opaque fill, CI §8).
       const words = html.replace(/<svg[\s\S]*?<\/svg>/g, "")
-      expect(words).not.toMatch(/text-muted-foreground|text-\w+-ink|text-(danger|warning|info)\b/)
+      expect(words).not.toMatch(
+        /(?<!disabled:)text-muted-foreground|text-\w+-ink|text-(danger|warning|info)\b/,
+      )
       // The disclosure is a kit control: the kit's opaque focus ring.
       expect(attribute(openingTags(html, "summary")[0] ?? "", "class")).toContain(FOCUS_RING)
     },

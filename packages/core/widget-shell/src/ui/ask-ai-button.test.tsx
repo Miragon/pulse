@@ -94,7 +94,7 @@ describe("AskAiButton", () => {
       "rounded-sm",
       "text-dense",
       "hover:bg-accent",
-      "disabled:opacity-50",
+      "disabled:text-muted-foreground",
       "focus-visible:ring-inset",
     ]) {
       expect(classes, role).toContain(role)

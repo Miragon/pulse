@@ -189,9 +189,11 @@
      and the base outline below read it. */
   --focus-width: 2px;
   /* Type scale (modeler-tool-design §4, adapted for embedded widgets: the
-     page title is the CI h2, dense tables keep 14 px as the documented
-     product exception). 13 px is the floor: nothing renders smaller. In rem,
-     so a reader's font-size setting scales it. */
+     page title is the CI h2). Dense text (tables, controls, menus) is the
+     guide's klein step, 13 px like small; the two keep their names because
+     they mean different things. 13 px is the floor: nothing renders smaller.
+     Weights are 400, 600 and 700 only. In rem, so a reader's font-size
+     setting scales it. */
   --text-title: 1.75rem; /* 28px */
   --text-title--line-height: 1.2;
   --text-title--font-weight: 700;
@@ -200,7 +202,7 @@
   --text-section--font-weight: 600;
   --text-body: 1rem; /* 16px */
   --text-body--line-height: 1.6;
-  --text-dense: 0.875rem; /* 14px */
+  --text-dense: 0.8125rem; /* 13px */
   --text-dense--line-height: 1.5;
   --text-small: 0.8125rem; /* 13px */
   --text-small--line-height: 1.5;

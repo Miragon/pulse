@@ -282,7 +282,7 @@ function FieldRow({
     return (
       <div className="flex flex-col gap-1">
         <div className="flex items-baseline justify-between">
-          <label className="text-muted-foreground text-dense font-medium">{label}</label>
+          <label className="text-muted-foreground text-dense font-semibold">{label}</label>
           <span className="text-muted-foreground text-small">{meta}</span>
         </div>
         <div className="flex flex-wrap gap-1">
@@ -311,7 +311,7 @@ function FieldRow({
     return (
       <div className="flex flex-col gap-1">
         <div className="flex items-baseline justify-between">
-          <label className={`text-dense font-medium ${disabled ? "text-muted-foreground" : ""}`}>
+          <label className={`text-dense font-semibold ${disabled ? "text-muted-foreground" : ""}`}>
             {label}
           </label>
           <span className="text-muted-foreground text-small">{meta}</span>
@@ -341,7 +341,7 @@ function FieldRow({
       <div className="flex items-baseline justify-between">
         <label
           htmlFor={`field-${field.name}`}
-          className={`text-dense font-medium ${disabled ? "text-muted-foreground" : ""}`}
+          className={`text-dense font-semibold ${disabled ? "text-muted-foreground" : ""}`}
         >
           {label}
         </label>

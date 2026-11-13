@@ -1,5 +1,5 @@
 {
   "$comment": "Gzip ceilings (bytes, zlib default level) for the widget bundle every view resource inlines (#344 K39); checked by test-host/bundle-budget.spec.ts against the BUILT dist. Shrink-only (scripts/check-ratchets.mjs): growth needs a Ratchet-Exception trailer; a bundle that shrank more than 10 % below its ceiling must lower it.",
   "mcp-app.js": 310450,
-  "mcp-app.css": 12400
+  "mcp-app.css": 12600
 }

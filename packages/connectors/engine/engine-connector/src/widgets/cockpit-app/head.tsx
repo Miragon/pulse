@@ -105,7 +105,7 @@ export function CockpitHead({
                   aria-current={isActive ? "page" : undefined}
                   onClick={() => onSection(s.intent)}
                   className={cn(
-                    "text-dense inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-medium transition-colors",
+                    "text-dense inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 transition-colors",
                     FOCUS_RING,
                     isActive
                       ? "bg-accent text-accent-foreground font-semibold"

@@ -204,7 +204,7 @@ function EngineRow({ engine: e, state, t }: { engine: LandscapeEngine; state: En
       <Td>
         <span className="flex flex-wrap items-center gap-2">
           {/* An engine id is short and one word ("prod-a"): never wrapped. */}
-          <span className="font-mono font-medium whitespace-nowrap">{e.engineId}</span>
+          <span className="font-mono font-semibold whitespace-nowrap">{e.engineId}</span>
           {/* The engine card's words, which may wrap: the backlog columns keep their room. */}
           {state !== "read" && (
             <span className="text-muted-foreground text-small">

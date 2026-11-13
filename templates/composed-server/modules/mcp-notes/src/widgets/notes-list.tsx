@@ -59,7 +59,7 @@ export function NotesListWidget({ data: initialData }: { data: NotesListData | n
           {data.notes.map((note) => (
             <tr key={note.id}>
               <Td>
-                <div className="font-medium">{note.title}</div>
+                <div className="font-semibold">{note.title}</div>
                 <div className="text-muted-foreground mt-0.5">{note.text}</div>
               </Td>
               <Td>{note.tags.join(", ")}</Td>

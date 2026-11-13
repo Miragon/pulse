@@ -9,7 +9,7 @@ const noop = () => undefined
 const classOf = (tag: string | undefined) => attribute(tag ?? "", "class") ?? ""
 
 describe("DrillButton: the outline Button with a trailing arrow (mcp-toolkit#194)", () => {
-  it("sm is a Button size sm: 32 px, 14 px, weight 600, like the buttons beside it in a row", () => {
+  it("sm is a Button size sm: 32 px, 13 px, weight 600, like the buttons beside it in a row", () => {
     const html = renderToStaticMarkup(<DrillButton onDrill={noop}>Open</DrillButton>)
     const [button] = openingTags(html, "button")
     expect(classOf(button)).toBe(buttonVariants({ variant: "outline", size: "sm" }))

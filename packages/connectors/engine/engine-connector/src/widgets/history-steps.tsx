@@ -92,7 +92,7 @@ export function HistoryTable({
         {entries.map((entry) => (
           <tr key={entry.id} className="hover:bg-card [&:last-child>td]:border-b-0">
             <Td className="w-full max-w-0 py-2">
-              <div className="text-foreground truncate font-medium">
+              <div className="text-foreground truncate font-semibold">
                 {entry.activityName ?? entry.activityId}
               </div>
               <div className="text-muted-foreground text-small truncate font-mono">

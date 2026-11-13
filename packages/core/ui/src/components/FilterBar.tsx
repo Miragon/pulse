@@ -77,7 +77,7 @@ export function FilterBar({
               onClick={() => onChipToggle(chip.id)}
               aria-pressed={Boolean(chip.active)}
               className={cn(
-                "text-small inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 font-medium transition-colors",
+                "text-small inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 transition-colors",
                 FOCUS_RING,
                 chip.active
                   ? cn(TONE_SOFT.info, TONE_BORDER.info, "font-semibold")

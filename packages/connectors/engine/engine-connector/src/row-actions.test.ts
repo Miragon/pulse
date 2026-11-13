@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest"
 
 /**
  * Every action a view shows, in its head and in its rows, has one size: the
- * kit's `Button` scale (32 px, 14 px, 600), so a row's "Open" sits level
+ * kit's `Button` scale (32 px, 13 px, 600), so a row's "Open" sits level
  * with the chat icon button beside it. A drill is pulse-ui's `DrillButton`,
  * the outline `Button` at that scale (Miragon/mcp-toolkit#194), never a
  * `Button` dressed up with a trailing arrow: one drill control, the kit's

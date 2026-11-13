@@ -109,7 +109,7 @@ describe("the engine-wide list's columns", () => {
     expect(headers()).toContain("Process")
     const process = screen.getAllByText("Invoice receipt")[0].closest("button")!
     expect(process.textContent).toBe("Invoice receiptinvoice · v7")
-    // A row's "Open" has the one action size (32 px, 14 px, 600), level with its icon buttons.
+    // A row's "Open" has the one action size (32 px, 13 px, 600), level with its icon buttons.
     const open = screen.getAllByRole("button", { name: /^Open instance/ })[0]
     expect(open.className).toMatch(/\bh-8\b/)
     expect(open.className).toMatch(/(^| )text-dense( |$)/)

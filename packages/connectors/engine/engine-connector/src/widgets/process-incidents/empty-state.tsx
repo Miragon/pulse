@@ -15,7 +15,7 @@ export function EmptyStateWithSiblings({
   const t = useT()
   return (
     <div className="border-border bg-card text-dense flex flex-col items-center gap-3 rounded-lg border px-6 py-8 text-center">
-      <div className="text-foreground font-medium">
+      <div className="text-foreground font-semibold">
         {t("procIncEmpty.noOpenIncidentsOnProcess", { processName })}
       </div>
       {siblings === null ? (
@@ -40,7 +40,7 @@ export function EmptyStateWithSiblings({
                   onJumpTo(s.processDefinitionKey, s.processDefinitionName ?? undefined)
                 }
                 className={cn(
-                  "border-border bg-muted text-muted-foreground hover:text-foreground hover:bg-muted text-small inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 font-medium transition-colors",
+                  "border-border bg-muted text-muted-foreground hover:text-foreground hover:bg-muted text-small inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 transition-colors",
                   FOCUS_RING,
                 )}
               >

@@ -292,8 +292,10 @@ hält sie bei 16 px Wurzelgröße gleich zu den Shell-Tokens des
 Guides (`--cd-shell-zeile`, `--cd-shell-eintrag`, `--cd-shell-ziel`, `--cd-shell-rand`).
 Kompakt ist der Standard. Auf Touch (`any-pointer: coarse`) und unter
 `[data-density=comfortable]` gilt die komfortable Stufe: Bedienelemente 36 px, Zeilen und
-Toolbars 40 px, Radius md auf Knöpfen, Eingaben mit 16 px Text. Leiste 40 px, Toolbar 36 px und
-Rand 12 px sind Werte des Guides und keine Abweichung. Diese bewussten Abweichungen vom Guide
+Toolbars 40 px, Radius md auf Knöpfen. Die Schrift bleibt in jeder Stufe gleich; nur Eingaben
+zeigen auf Touch 16 px Text, damit iOS beim Fokus nicht in die Seite zoomt, und
+`[data-density=comfortable]` allein lässt sie bei 13 px. Leiste 40 px, Toolbar 36 px und Rand
+12 px sind Werte des Guides und keine Abweichung. Diese bewussten Abweichungen vom Guide
 gelten für alle Oberflächen (Owner-Entscheidung):
 
 - Bedienelemente (Knöpfe, Eingaben, Auswahlen) mit 28 px und klickbare Tabellenzeilen mit 28 px
@@ -530,16 +532,16 @@ Ihre 12-px-Icons (Dichte, oben) lässt `scanIconSizes` in der Webview nur in den
      region (`ariaLabel`) and drops columns on narrow regions (`hideBelow`). Ids show through
      `IdCell`/`IdText`, processes and elements through `NamedId`, named by ONE reader
      (`readBpmnNames`/`parseBpmnNames`), so every module shows them alike.
-   - **Type, dates and numbers.** Text sits on pulse-ui's `TYPE_SCALE` (13 px floor,
-     `scanTypeScale`). Dates, durations, numbers, counts and short ids go through the kit's
-     `format*` helpers and `shortId` in the locale `LocaleGate` publishes, one set for every
-     Pulse UI (pulse-ui's framework-free `@miragon/pulse-ui/format`, which the VS Code
-     extension's core and webview read too; a lower bound is `formatCount({ atLeast })`, `≥ 2,000`;
-     ESLint's date and number gates over `WIDGET_TREES`, every widget tree: the host bundle's
-     `src/ui`, widget-shell's and the connector's widgets, and the extension's core and webview;
-     `scripts/eslint-gates.test.mjs`). A count reaches a
-     catalog entry already formatted, and the entry puts the noun in the right number
-     (`countOf`, `plural(…)`), never a `…One`/`…Other` key pair.
+   - **Type, dates and numbers.** Text sits on pulse-ui's `TYPE_SCALE` (13 px floor, weights
+     400, 600 and 700 only, `scanTypeScale`); a disabled control is opaque, never faded. Dates,
+     durations, numbers, counts and short ids go through the kit's `format*` helpers and `shortId`
+     in the locale `LocaleGate` publishes, one set for every Pulse UI (pulse-ui's framework-free
+     `@miragon/pulse-ui/format`, which the VS Code extension's core and webview read too; a lower
+     bound is `formatCount({ atLeast })`, `≥ 2,000`; ESLint's date and number gates over
+     `WIDGET_TREES`, every widget tree: the host bundle's `src/ui`, widget-shell's and the
+     connector's widgets, and the extension's core and webview; `scripts/eslint-gates.test.mjs`).
+     A count reaches a catalog entry already formatted, and the entry puts the noun in the right
+     number (`countOf`, `plural(…)`), never a `…One`/`…Other` key pair.
    - **BPMN** renders through `useBpmnViewer` + `BpmnZoomControls` on a forced-light canvas
      whose colours all come from `BPMN_TOKENS` (`packages/core/widget-shell/src/ui/bpmn-tokens.ts`).
    - **Paged lists** compose `usePagedListView` (the feed takes `firstResult`/`maxResults` and

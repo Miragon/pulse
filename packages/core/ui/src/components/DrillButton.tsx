@@ -29,7 +29,7 @@ const BUTTON_SIZE = { sm: "sm", md: "default" } as const
  * host: pass an `onDrill` callback (e.g. wrapping `useHostActions().showWidget`).
  *
  * It IS the kit's outline `Button` (`buttonVariants`): `sm` is 32 px,
- * 14 px, weight 600, the size of a `Button size="sm"` or an `AskAiButton`
+ * 13 px, weight 600, the size of a `Button size="sm"` or an `AskAiButton`
  * beside it in a row; `md` is the `Button` default (36 px). The design
  * system gives every button weight 600 and one radius.
  */

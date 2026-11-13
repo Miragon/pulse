@@ -72,7 +72,7 @@ function stateTone(name: unknown): ErrorStateTone {
 /**
  * Per-variant geometry: `block` replaces a surface and reads as running text
  * (16 px), `inline` is the compact alert box above content that still renders
- * (14 px, the dense-controls exception of the type scale). The icon is 16 px
+ * (13 px, the type scale's dense step). The icon is 16 px
  * in both, a CI size, centred on the title's first line.
  */
 const VARIANT = {

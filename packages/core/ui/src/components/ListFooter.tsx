@@ -97,7 +97,7 @@ export function ListFooter({
           type="button"
           onClick={onLoadMore}
           disabled={loadingMore}
-          className={`border-border text-foreground hover:border-focus hover:bg-accent hover:text-accent-foreground inline-flex items-center gap-1 rounded-md border px-3 py-1.5 font-medium transition-colors disabled:opacity-50 ${FOCUS_RING}`}
+          className={`border-border text-foreground hover:border-focus hover:bg-accent hover:text-accent-foreground disabled:border-border disabled:text-muted-foreground inline-flex items-center gap-1 rounded-md border px-3 py-1.5 font-semibold transition-colors disabled:cursor-not-allowed disabled:bg-transparent ${FOCUS_RING}`}
         >
           {loadingMore ? listFooter.loadingMore : listFooter.loadMore}
         </button>

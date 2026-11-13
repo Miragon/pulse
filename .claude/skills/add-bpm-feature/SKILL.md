@@ -319,12 +319,14 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   APP-level surfaces (landing, first start, "no engines"), never in a widget
 - Type roles (pulse-ui's `TYPE_SCALE`): a widget's page title is the `WidgetHeader`
   (28/700, an h2 below the view, `as`), a section `text-section` (21/600), running text
-  `text-body` (16), dense tables and controls `text-dense` (14), captions and meta
-  `text-small` (13, the floor); no `text-xs`/`text-[11px]`, no Tailwind sizes in kit
-  code (`scanTypeScale` from `@miragon/pulse-ui/testing`; connectors adopt it with `rules:
-["below-floor"]` first). The owner's decision D9 of 2026-11-12
-  (`apps/vscode/docs/adr/ui-foundation.md`) gives every surface one compact look, which pulse-ui
-  and the cockpit take in their own commits: `text-dense` becomes 13, a view's title becomes
+  `text-body` (16), dense tables and controls `text-dense` (13, the guide's klein step, the size
+  of `text-small` with its own meaning), captions and meta `text-small` (13, the floor); no
+  `text-xs`/`text-[11px]`, no Tailwind sizes in kit code, and weights 400, 600 and 700 only
+  (`font-normal`, `font-semibold`, `font-bold`; no `font-medium`) (`scanTypeScale` from
+  `@miragon/pulse-ui/testing`; connectors adopt it with `rules: ["below-floor"]` first). A
+  disabled control is opaque (the kit's controls bring it), never `opacity-50`. The owner's
+  decision D9 of 2026-11-12 (`apps/vscode/docs/adr/ui-foundation.md`) gives every surface one
+  compact look, which pulse-ui and the cockpit take in their own commits: a view's title becomes
   chrome (13/600 in a 40 px bar) with 28/700 left for the app level (landing, fleet), and
   controls and rows take pulse-ui's density roles (28 px compact, comfortable on touch; the
   root `CLAUDE.md`, "Abweichung Dichte, für alle Oberflächen"); size nothing by hand

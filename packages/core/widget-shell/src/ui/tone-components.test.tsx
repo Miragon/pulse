@@ -31,7 +31,8 @@ describe("OpenInCockpitLink", () => {
     const link = screen.getByRole("link", { name: "In CIB seven öffnen, öffnet in neuem Tab" })
     expect(link.textContent).toBe("In CIB seven öffnen")
     expect(link.querySelector("svg.lucide-external-link")?.getAttribute("aria-hidden")).toBe("true")
-    expect(link.className).not.toContain("text-muted-foreground")
+    // Never quiet text (a link is never disabled, so the button's disabled state is moot).
+    expect(link.className.split(/\s+/)).not.toContain("text-muted-foreground")
     // One action size with the buttons beside it: the kit's outline button, sm.
     expect(link.className).toBe(buttonVariants({ variant: "outline", size: "sm" }))
   })

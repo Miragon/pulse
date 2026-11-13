@@ -158,7 +158,8 @@ function KpiCellBody({ cell, variant }: { cell: KpiCell; variant: "strip" | "sof
     <>
       <div
         className={cn(
-          "text-small flex items-center justify-between gap-2 font-medium",
+          "flex items-center justify-between gap-2",
+          MICRO_LABEL,
           variant === "strip" ? "text-muted-foreground" : "text-foreground",
         )}
       >
@@ -252,7 +253,7 @@ function KpiStripHeader({ header }: { header: KpiGridHeader }) {
     >
       <span>{header.label}</span>
       {header.badge && (
-        <span className="border-border bg-card text-muted-foreground text-small rounded-sm border px-1.5 font-medium">
+        <span className="border-border bg-card text-muted-foreground text-small rounded-sm border px-1.5 font-normal">
           {header.badge}
         </span>
       )}

@@ -127,7 +127,7 @@ export function VersionChip({
   return (
     <span
       className={cn(
-        "border-border bg-muted text-muted-foreground text-small ml-2 inline-block rounded-sm border px-2 py-0.5 align-middle font-mono font-medium",
+        "border-border bg-muted text-muted-foreground text-small ml-2 inline-block rounded-sm border px-2 py-0.5 align-middle font-mono",
         className,
       )}
     >

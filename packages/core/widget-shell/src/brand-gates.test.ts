@@ -20,7 +20,7 @@ describe("kit widget code draws icons at the CI sizes", () => {
 })
 
 describe("kit widget code sets text on the type scale", () => {
-  it("src/ui has no text size off the five steps and nothing below 13 px", () => {
+  it("src/ui has no text size off the five steps, nothing below 13 px, no weight but 400, 600 and 700", () => {
     expect(scanTypeScale(UI_DIR)).toEqual([])
   })
 })

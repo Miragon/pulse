@@ -158,7 +158,7 @@ function ToastCard({
       {/* mt-1 centres the 16 px icon on the first 16/1.6 line. */}
       <Icon aria-hidden="true" className={cn("mt-1 size-4 shrink-0", TONE_ICON[toast.tone])} />
       <div className="min-w-0 flex-1">
-        <p className="font-medium break-words">{toast.title}</p>
+        <p className="font-semibold break-words">{toast.title}</p>
         {toast.description && (
           <p className="text-muted-foreground mt-0.5 break-words">{toast.description}</p>
         )}
