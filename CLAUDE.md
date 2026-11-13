@@ -527,7 +527,7 @@ diese bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      stroke through lucide's own `strokeWidth`, never a CSS `stroke-width` rule, which would
      beat the `LucideProvider` widget-shell's view root sets with pulse-ui's `ICON_STROKE`.
      Every package that imports `lucide-react` and every host bundle pin the SAME exact 1.x
-     devDependency (today `1.67.0`): pnpm installs a package once per peer set, so two versions
+     devDependency (today `1.70.0`): pnpm installs a package once per peer set, so two versions
      resolve a second pulse-ui and widget-shell instance and split the React contexts.
    - **Actions and hand-offs.** A view's actions are ONE group in `WidgetHeader` `actions`, all
      `size="sm"`, ordered: deterministic steps, the engine's own web app
