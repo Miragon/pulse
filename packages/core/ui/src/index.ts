@@ -32,6 +32,7 @@ export { Checkbox } from "./primitives/checkbox.js"
 export { Progress, type ProgressProps } from "./primitives/progress.js"
 export {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,
@@ -181,6 +182,7 @@ export {
   type CommonMessages,
   type ConditionChipMessages,
   type CopyableIdMessages,
+  type CountMessages,
   type DataTableMessages,
   type FilterBarMessages,
   type ListFooterMessages,
@@ -224,6 +226,7 @@ export { SearchField, type SearchFieldProps } from "./kit/search-field.js"
 export {
   SegmentedControl,
   type SegmentedControlOption,
+  type SegmentedControlProps,
   type SegmentedCountTone,
 } from "./kit/segmented-control.js"
 export { RowCard } from "./kit/row-card.js"

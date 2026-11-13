@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs"
 import { createRequire } from "node:module"
 import { pathToFileURL } from "node:url"
-import { DENSITY_ROLES } from "../theme/role-tokens.js"
+import { POINTER_ROLES } from "../theme/role-tokens.js"
 
 /**
  * WCAG contrast over the THEME as written, resolved the way the browser would, so a brand
@@ -125,9 +125,12 @@ const DARK_ROOT_SCOPES: ReadonlySet<string> = new Set([
   '[data-cd-theme="dark"]',
 ])
 
-const DENSITY: ReadonlySet<string> = new Set(DENSITY_ROLES)
+const DENSITY: ReadonlySet<string> = new Set(POINTER_ROLES)
 
-/** The density roles hold no colour: their comfortable step switches under a media query. */
+/**
+ * The density roles and the field's text hold no colour: their comfortable step switches under a
+ * media query.
+ */
 const switchesDensityOnly = (block: RuleBlock) =>
   block.declarations.every(([name]) => DENSITY.has(name))
 

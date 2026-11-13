@@ -25,6 +25,7 @@ const SAMPLES: Record<string, unknown[]> = {
   copied: [{ label: "instance ID" }],
   edit: [{ label: "amount > 100" }],
   remove: [{ label: "amount > 100" }],
+  atLeast: [{ count: "2,000" }],
 }
 
 /** Every message of a catalog as `[path, rendered text]`. */
@@ -140,6 +141,9 @@ describe("kit catalogs", () => {
     expect(de.copyableId.copied({ label: "Instanz-ID" })).toBe("Instanz-ID kopiert")
     expect(en.conditionChip.remove({ label: "amount > 100" })).toBe("Remove filter amount > 100")
     expect(de.conditionChip.edit({ label: "Betrag > 100" })).toBe("Filter Betrag > 100 bearbeiten")
+    // A capped count in words, where the screen shows "≥ 2,000".
+    expect(en.count.atLeast({ count: "2,000" })).toBe("at least 2,000")
+    expect(de.count.atLeast({ count: "2.000" })).toBe("mindestens 2.000")
   })
 })
 

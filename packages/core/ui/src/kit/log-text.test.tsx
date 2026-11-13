@@ -1,8 +1,7 @@
 // @vitest-environment happy-dom
-import { afterEach, describe, expect, it, vi } from "vitest"
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { afterEach, describe, expect, it } from "vitest"
+import { cleanup, render, screen } from "@testing-library/react"
 import { LOG_TEXT_PREVIEW, LogText, TEXT_BLOCK_FRAME } from "./log-text.js"
-import { SegmentedControl } from "./segmented-control.js"
 
 afterEach(cleanup)
 
@@ -30,33 +29,5 @@ describe("LogText: one truncation policy for engine text", () => {
     const pre = details?.querySelector("pre")
     expect(pre?.textContent).toBe(text)
     for (const c of TEXT_BLOCK_FRAME.split(" ")) expect(pre?.getAttribute("class")).toContain(c)
-  })
-})
-
-describe("SegmentedControl", () => {
-  it("reports the segment you press and names its group", () => {
-    const onChange = vi.fn()
-    render(
-      <SegmentedControl
-        ariaLabel="View"
-        options={[
-          { value: "freq", label: "Frequency" },
-          { value: "dur", label: "Duration" },
-        ]}
-        value="freq"
-        onChange={onChange}
-      />,
-    )
-    expect(screen.getByRole("group", { name: "View" })).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Frequency" }).getAttribute("aria-pressed")).toBe(
-      "true",
-    )
-    fireEvent.click(screen.getByRole("button", { name: "Duration" }))
-    expect(onChange).toHaveBeenCalledWith("dur")
-  })
-
-  it("is no group without a name", () => {
-    render(<SegmentedControl options={[{ value: "a", label: "A" }]} value="a" onChange={vi.fn()} />)
-    expect(screen.queryByRole("group")).toBeNull()
   })
 })

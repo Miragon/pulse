@@ -25,7 +25,7 @@ describe("kit type roles", () => {
     expect(classes(heading.closest("summary"))).toContain("focus-visible:ring-focus")
   })
 
-  it("a native select takes the 3:1 input edge, the dense step and the kit's focus ring", () => {
+  it("a native select takes the 3:1 input edge, the field's text and the kit's focus ring", () => {
     render(
       <NativeSelect aria-label="select">
         <option>a</option>
@@ -34,7 +34,7 @@ describe("kit type roles", () => {
     const c = classes(screen.getByLabelText("select"))
     expect(c).toContain("border-input")
     expect(c).not.toContain("border-border")
-    expect(c).toContain("text-dense")
+    expect(c).toContain("text-field")
     expect(c).toContain("focus-visible:ring-focus")
   })
 

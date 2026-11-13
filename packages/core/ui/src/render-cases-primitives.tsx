@@ -14,6 +14,7 @@ import {
   CardTitle,
   Checkbox,
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,
@@ -26,6 +27,7 @@ import {
   Progress,
   Skeleton,
   Switch,
+  TabCount,
   Table,
   TableBody,
   TableCaption,
@@ -167,6 +169,30 @@ export const PRIMITIVE_RENDER_CASES: RenderCase[] = [
     ),
   },
   {
+    // A view's tab bar: counts exact, capped and unknown (their words from the catalog), and an
+    // aside after the tab list.
+    name: "Tabs (line)",
+    marker: "RC:TabsAside",
+    render: () => (
+      <Tabs defaultValue="orders" onValueChange={noop}>
+        <TabsList variant="line" aside={<span>RC:TabsAside</span>}>
+          <TabsTrigger value="orders">
+            Orders
+            <TabCount count={12} />
+          </TabsTrigger>
+          <TabsTrigger value="returns">
+            Returns
+            <TabCount count={{ atLeast: 500 }} />
+          </TabsTrigger>
+          <TabsTrigger value="claims">
+            Claims
+            <TabCount count={null} />
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+    ),
+  },
+  {
     // SSR limitation: DialogContent renders through a Radix portal targeting
     // document.body, so the modal body cannot SSR even with `open`: the
     // trigger is the SSR surface. Portal content needs a browser host.
@@ -180,6 +206,7 @@ export const PRIMITIVE_RENDER_CASES: RenderCase[] = [
             <DialogTitle>Archive order?</DialogTitle>
             <DialogDescription>The order can be restored later.</DialogDescription>
           </DialogHeader>
+          <DialogBody>Order 4711 leaves the list.</DialogBody>
           <DialogFooter>
             <DialogClose>Cancel</DialogClose>
           </DialogFooter>

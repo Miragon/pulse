@@ -1063,15 +1063,15 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
     const app = await openView(page, {
       args: { engine: HEALTHY_ENGINE, view: "process-detail", processDefinitionKey: "invoice" },
     })
-    const modes = app.getByRole("group", { name: "Process flow display" })
+    const modes = app.getByRole("radiogroup", { name: "Process flow display" })
     await expect(modes).toBeVisible({ timeout: 15_000 })
     // No other module's mode: the flow offers what the engine reads, nothing to probe.
-    await expect(modes.getByRole("button")).toHaveText([
+    await expect(modes.getByRole("radio")).toHaveText([
       "Incidents",
       "Running",
       "Throughput · 30 days",
     ])
-    await modes.getByRole("button", { name: "Running" }).click()
+    await modes.getByRole("radio", { name: "Running" }).click()
 
     await expect(
       app.getByText("diagram v3 (latest) · running now, counts span 1 version"),
@@ -1098,9 +1098,9 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
     const app = await openView(page, {
       args: { engine: HEALTHY_ENGINE, view: "process-detail", processDefinitionKey: "invoice" },
     })
-    const modes = app.getByRole("group", { name: "Process flow display" })
+    const modes = app.getByRole("radiogroup", { name: "Process flow display" })
     await expect(modes).toBeVisible({ timeout: 15_000 })
-    await modes.getByRole("button", { name: "Throughput · 30 days" }).click()
+    await modes.getByRole("radio", { name: "Throughput · 30 days" }).click()
 
     await expect(
       app.getByText(/^diagram v3 \(latest\) · 12 instances started since .+, on 1 version$/),

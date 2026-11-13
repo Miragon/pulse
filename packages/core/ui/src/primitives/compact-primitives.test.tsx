@@ -6,12 +6,12 @@ import { cleanup, render, screen } from "@testing-library/react"
 import { Search } from "lucide-react"
 import { compile } from "tailwindcss"
 import { CountPill, LivePill, StatusBadge } from "../components/Pills.js"
+import { setFormatLocale, type Count } from "../format/index.js"
 import { Icon } from "../kit/icon.js"
 import { MENU_ITEM } from "../kit/menu-item.js"
 import { LocaleProvider } from "../locale/locale-provider.js"
 import { rules, themeCss } from "../theme/theme-css.test-support.js"
 import { Button, buttonVariants } from "./button.js"
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./dialog.js"
 import { Input } from "./input.js"
 import { TabCount, Tabs, TabsList, TabsTrigger } from "./tabs.js"
 
@@ -21,7 +21,10 @@ import { TabCount, Tabs, TabsList, TabsTrigger } from "./tabs.js"
  * `rounded-button`, …), never a Tailwind step, so the comfortable step on touch reaches it.
  */
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  setFormatLocale(undefined)
+})
 
 const classes = (el: Element | null | undefined) => (el?.getAttribute("class") ?? "").split(/\s+/)
 const variantClasses = (options: Parameters<typeof buttonVariants>[0]) =>
@@ -171,7 +174,7 @@ describe("fields on the density roles", () => {
 })
 
 describe("Tabs: the line bar of a view, the box of a card", () => {
-  function lineTabs(count = 3) {
+  function lineTabs(count: Count = 3, jobs: Count = 0) {
     return render(
       <LocaleProvider locale="en">
         <Tabs defaultValue="incidents">
@@ -182,7 +185,7 @@ describe("Tabs: the line bar of a view, the box of a card", () => {
             </TabsTrigger>
             <TabsTrigger value="jobs">
               Jobs
-              <TabCount count={0} />
+              <TabCount count={jobs} />
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -225,7 +228,7 @@ describe("Tabs: the line bar of a view, the box of a card", () => {
   it("forced colours draw the active bar and a checked segment's edge in Highlight, the others' in Canvas, like the tabs", () => {
     const forced = rules.slice(rules.indexOf("@media (forced-colors: active)")).replace(/\s+/g, " ")
     expect(forced).toContain(
-      '[data-slot="tabs-trigger"][data-variant="line"][data-state="active"], [data-slot="segmented-option"][aria-pressed="true"] ) { border-color: Highlight; }',
+      '[data-slot="tabs-trigger"][data-variant="line"][data-state="active"], [data-slot="segmented-option"][aria-checked="true"] ) { border-color: Highlight; }',
     )
     // The selected rule is more specific, so it wins over this one in either order.
     expect(forced).toContain(
@@ -247,6 +250,81 @@ describe("Tabs: the line bar of a view, the box of a card", () => {
         "text-small",
       ]),
     )
+    expect(pill?.querySelector("[aria-hidden='true']")?.textContent).toBe("1,234")
+  })
+
+  it("a capped count shows its bound and an unknown one a dash; the tab's name says them in words", () => {
+    lineTabs({ atLeast: 2000 }, null)
+    const [capped, unknown] = [...document.querySelectorAll('[data-slot="tab-count"]')]
+    expect(capped?.querySelector("[aria-hidden='true']")?.textContent).toBe("≥\u00a02,000")
+    expect(unknown?.querySelector("[aria-hidden='true']")?.textContent).toBe("—")
+    expect(screen.getByRole("tab", { name: /^Incidents\s*at least 2,000$/ })).toBeTruthy()
+    expect(screen.getByRole("tab", { name: /^Jobs\s*count unknown$/ })).toBeTruthy()
+  })
+
+  it("says a count's words and writes its number in the kit's locale, whatever the format locale says", () => {
+    // The format locale is English here; the kit's words are German, so is the number's grouping.
+    setFormatLocale({ language: "en", locale: "en" })
+    render(
+      <LocaleProvider locale="de">
+        <Tabs defaultValue="jobs">
+          <TabsList variant="line">
+            <TabsTrigger value="jobs">
+              Jobs
+              <TabCount count={{ atLeast: 2000 }} />
+            </TabsTrigger>
+            <TabsTrigger value="incidents">
+              Incidents
+              <TabCount count={undefined} />
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </LocaleProvider>,
+    )
+    expect(screen.getByRole("tab", { name: /^Jobs\s*mindestens 2\.000$/ })).toBeTruthy()
+    expect(screen.getByRole("tab", { name: /^Incidents\s*Anzahl unbekannt$/ })).toBeTruthy()
+    const [capped] = [...document.querySelectorAll('[data-slot="tab-count"]')]
+    expect(capped?.querySelector("[aria-hidden='true']")?.textContent).toBe("≥\u00a02.000")
+    expect(capped?.querySelector(".sr-only")?.textContent).toBe("mindestens 2.000")
+  })
+
+  it("an aside sits at the line bar's end, outside the tab list: the bar takes the line's frame", () => {
+    render(
+      <Tabs defaultValue="a">
+        <TabsList
+          variant="line"
+          aria-label="Views"
+          className="mt-2"
+          aside={<button>Legend</button>}
+        >
+          <TabsTrigger value="a">A</TabsTrigger>
+          <TabsTrigger value="b">B</TabsTrigger>
+        </TabsList>
+      </Tabs>,
+    )
+    const list = screen.getByRole("tablist", { name: "Views" })
+    // The list holds the tabs only; the aside is its sibling in the bar.
+    expect(list.querySelectorAll("button")).toHaveLength(2)
+    expect(list.contains(screen.getByRole("button", { name: "Legend" }))).toBe(false)
+    const bar = list.parentElement
+    expect(bar?.getAttribute("data-slot")).toBe("tabs-bar")
+    expect(bar?.lastElementChild?.getAttribute("data-slot")).toBe("tabs-aside")
+    expect(classes(bar)).toEqual(
+      expect.arrayContaining(["border-b", "min-h-toolbar", "pl-2", "pr-gutter", "mt-2"]),
+    )
+    expect(classes(list)).toEqual(expect.arrayContaining(["border-b-0", "flex-1", "min-w-0"]))
+    expect(classes(list)).not.toContain("border-b")
+    expect(classes(list)).not.toContain("mt-2")
+    // The arrows still move between the tabs only.
+    const [a, b] = screen.getAllByRole("tab")
+    a?.focus()
+    expect(document.activeElement).toBe(a)
+    expect(b?.getAttribute("tabindex")).toBe("-1")
+  })
+
+  it("without an aside the list is the bar", () => {
+    lineTabs()
+    expect(document.querySelector('[data-slot="tabs-bar"]')).toBeNull()
   })
 
   it("the default list stays the box of a card switch, at least the control's height, its tabs stretched to it, so text at 200 % grows it", () => {
@@ -271,32 +349,6 @@ describe("Tabs: the line bar of a view, the box of a card", () => {
     for (const c of [list, classes(tab)]) {
       expect(c.filter((x) => /(?:^|[:/])h-(?!fit$)/.test(x))).toEqual([])
     }
-  })
-})
-
-describe("Dialog geometry (CI §8)", () => {
-  it("is at most 560 px wide, closes with a 32 px ghost icon button, over the guide's scrim blurred and greyed", () => {
-    render(
-      <LocaleProvider locale="en">
-        <Dialog open>
-          <DialogContent>
-            <DialogTitle>Rename</DialogTitle>
-            <DialogDescription>Give it a new name.</DialogDescription>
-          </DialogContent>
-        </Dialog>
-      </LocaleProvider>,
-    )
-    expect(classes(screen.getByRole("dialog"))).toContain("max-w-[min(560px,calc(100%-2rem))]")
-    const close = screen.getByRole("button", { name: "Close" })
-    expect(close.getAttribute("data-slot")).toBe("dialog-close")
-    expect(classes(close)).toEqual(
-      expect.arrayContaining(["size-8", "hover:bg-accent", "border-transparent", "rounded-button"]),
-    )
-    const overlay = document.querySelector('[data-slot="dialog-overlay"]')
-    expect(classes(overlay)).toEqual(
-      expect.arrayContaining(["bg-scrim", "backdrop-blur-[3px]", "backdrop-grayscale"]),
-    )
-    expect(classes(overlay)).not.toContain("backdrop-blur-sm")
   })
 })
 

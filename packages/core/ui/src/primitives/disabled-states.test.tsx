@@ -9,7 +9,9 @@ import { describe, expect, it } from "vitest"
 import { ListFooter } from "../components/ListFooter.js"
 import { MENU_ITEM } from "../kit/menu-item.js"
 import { NativeSelect } from "../kit/native-select.js"
+import { SearchField } from "../kit/search-field.js"
 import { FIELD_TEXT } from "../lib/typography.js"
+import { cn } from "../lib/utils.js"
 import { LocaleProvider } from "../locale/locale-provider.js"
 import { attribute, openingTags } from "../render-scan.js"
 import { themeCss } from "../theme/theme-css.test-support.js"
@@ -294,25 +296,38 @@ describe("no kit source fades a control", () => {
   })
 })
 
-describe("fields take 13 px, 16 px on a coarse pointer (iOS zooms into smaller text)", () => {
-  it("is the dense step with the body step under any-pointer: coarse", () => {
-    expect(FIELD_TEXT).toBe("text-dense any-pointer-coarse:text-body")
+describe("fields take the field's text role: 13 px, 16 px on a coarse pointer (iOS zooms into smaller text)", () => {
+  it("is the utility over the role, which a host's compact pin reaches", () => {
+    expect(FIELD_TEXT).toBe("text-field")
   })
 
   it.each([
     ["Input", openingTags(renderToStaticMarkup(<Input />), "input")[0]],
     ["Textarea", openingTags(renderToStaticMarkup(<Textarea />), "textarea")[0]],
     ["NativeSelect", openingTags(renderToStaticMarkup(<NativeSelect />), "select")[0]],
+    [
+      "SearchField",
+      openingTags(renderToStaticMarkup(<SearchField value="" onChange={noop} />), "input")[0],
+    ],
   ])("%s", (_, tag) => {
-    expect(classesOf(tag)).toEqual(expect.arrayContaining(FIELD_TEXT.split(" ")))
-    expect(classesOf(tag)).not.toContain("text-body")
+    expect(classesOf(tag)).toContain(FIELD_TEXT)
+    // No pointer variant of its own: the role switches, so a host's mark reaches it.
+    const sizes = classesOf(tag).filter((c) => /(?:^|:)text-(?:dense|body|small)$/.test(c))
+    // Input's file button is no field text.
+    expect(sizes.filter((c) => !c.startsWith("file:"))).toEqual([])
+    expect(classesOf(tag).some((c) => c.startsWith("any-pointer-coarse:"))).toBe(false)
   })
 
-  it("compiles to the body step under the coarse pointer only", async () => {
-    const css = (await stylesheet(FIELD_TEXT.split(" "))).replace(/\s+/g, " ")
-    expect(css).toMatch(/(?:^|\} )\.text-dense \{ font-size: var\(--text-dense\);/)
+  it("compiles to the role's size on the dense step's line height, under no media query", async () => {
+    const css = (await stylesheet([FIELD_TEXT])).replace(/\s+/g, " ")
     expect(css).toMatch(
-      /@media \(any-pointer: coarse\) \{ \.any-pointer-coarse\\:text-body \{ font-size: var\(--text-body\);/,
+      /(?:^|\} )\.text-field \{ font-size: var\(--field-text\); line-height: var\(--tw-leading, var\(--text-dense--line-height\)\);/,
     )
+    expect(css).not.toMatch(/@media[^{]*\{[^{}]*\.text-field/)
+  })
+
+  it("keeps its size next to a colour and gives way to a later size in cn", () => {
+    expect(cn(FIELD_TEXT, "text-muted-foreground")).toBe("text-field text-muted-foreground")
+    expect(cn(FIELD_TEXT, "text-dense")).toBe("text-dense")
   })
 })

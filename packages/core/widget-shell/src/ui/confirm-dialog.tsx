@@ -2,6 +2,7 @@ import { Fragment, useRef } from "react"
 import {
   Button,
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -36,7 +37,7 @@ export interface ConfirmDialogProps {
   onConfirm: () => void
 }
 
-/** An `alertdialog` with verb + object buttons, so "Keep instance" is never mistaken for "Cancel instance"; undismissable while the write runs (its outcome would be hidden). Inline in a chat (#344 K45) it centres on its opener, since a frame as tall as its content can be far taller than the chat shows. */
+/** An `alertdialog` with verb + object buttons, so "Keep instance" is never mistaken for "Cancel instance"; undismissable while the write runs (its outcome would be hidden). The kit's dialog geometry: the question and its description in the header, the target and a failure in the body, the buttons under the footer's rule; the header keeps the close button's corner clear while the write hides the button, so the question never rewraps. Inline in a chat (#344 K45) it centres on its opener, since a frame as tall as its content can be far taller than the chat shows. */
 export function ConfirmDialog({
   open,
   onOpenChange,
@@ -78,26 +79,28 @@ export function ConfirmDialog({
         onOpenAutoFocus={anchor}
         className="max-w-[min(440px,calc(100%-2rem))]"
       >
-        <DialogHeader>
+        <DialogHeader className="pr-14">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription className="text-body">{description}</DialogDescription>
         </DialogHeader>
-        <dl className="bg-muted text-dense grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-sm px-3 py-2">
-          {target.map(([label, value]) => (
-            <Fragment key={label}>
-              <dt className="text-muted-foreground">{label}</dt>
-              <dd className="font-mono break-all">{value}</dd>
-            </Fragment>
-          ))}
-        </dl>
-        {described && (
-          <ErrorState
-            variant="inline"
-            title={described.title}
-            description={described.hint}
-            details={described.details ?? undefined}
-          />
-        )}
+        <DialogBody>
+          <dl className="bg-muted text-dense grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-sm px-3 py-2">
+            {target.map(([label, value]) => (
+              <Fragment key={label}>
+                <dt className="text-muted-foreground">{label}</dt>
+                <dd className="font-mono break-all">{value}</dd>
+              </Fragment>
+            ))}
+          </dl>
+          {described && (
+            <ErrorState
+              variant="inline"
+              title={described.title}
+              description={described.hint}
+              details={described.details ?? undefined}
+            />
+          )}
+        </DialogBody>
         <DialogFooter>
           <Button
             variant="outline"

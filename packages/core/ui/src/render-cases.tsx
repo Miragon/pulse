@@ -19,6 +19,7 @@ import {
   PagedListFooter,
   SearchField,
   SectionHeading,
+  SegmentedControl,
   StatusBadge,
   ToastProvider,
   useColumnSizing,
@@ -190,6 +191,30 @@ export const RENDER_CASES: RenderCase[] = [
     name: "SearchField",
     marker: "RC:SearchField",
     render: () => <SearchField value="RC:SearchField" onChange={noop} />,
+  },
+  {
+    // Counts exact, capped and unknown, their words from the catalog; a note as a title.
+    name: "SegmentedControl",
+    marker: "RC:SegmentedControl",
+    render: () => (
+      <SegmentedControl
+        ariaLabel="Order scope"
+        options={[
+          { value: "all", label: "RC:SegmentedControl", count: 12 },
+          {
+            value: "open",
+            label: "Open",
+            count: { atLeast: 500 },
+            note: "Counted up to 500 orders.",
+          },
+          { value: "late", label: "Late", count: null, tone: "warning", countLabel: "late orders" },
+          { value: "claims", label: "Claims", count: undefined },
+        ]}
+        value="all"
+        busy
+        onChange={noop}
+      />
+    ),
   },
   {
     name: "Field",

@@ -146,7 +146,10 @@ them as spacing keys (`min-h-control`, `h-row`, `size-control-xs`, `p-gutter`, `
 and `rounded-button`; `cn` merges them against Tailwind's own steps. A brand that sets a density
 role under `:root` sets it for both steps, since its stylesheet comes after the theme. A host
 that stays compact on touch (an editor, as the editor itself does) marks its root
-`data-density="compact"`.
+`data-density="compact"`. A field's text has a role of its own, `--field-text` (the `text-field`
+utility): 13 px, 16 px on a coarse pointer, where iOS zooms into a focused field with smaller
+text, and 13 px again under a host's `data-density="compact"`; `data-density="comfortable"` alone
+leaves it at 13 px, since density never scales type.
 
 The kit's controls stand on them: `Button` is 28 px in its default and `sm` sizes, 24 px in
 `xs`, 36 px in `lg` (a dialog's footer), its icon sizes square, with the sm radius; its
@@ -157,9 +160,17 @@ around its icon (a toolbar button without an icon keeps its label). A bar's side
 or `--bar-inset` where a padded surface sets it (widget-shell's `WidgetShell` sets 0, so a bar
 inside sits flush with the content). `Input` and `NativeSelect` are
 28 px on the ground (`Textarea` too, three lines high at least), `Tabs` with `variant="line"` is
-a view's 36 px tab bar (a 2 px `--interaction` bar under the active tab, `TabCount` for a count),
-`SegmentedControl` has 24 px segments with an optional count and tone icon, a menu entry
-(`MENU_ITEM`) is 36 px, and `Icon`'s `dense` is the 12 px icon of the named deviation.
+a view's 36 px tab bar (a 2 px `--interaction` bar under the active tab; `TabCount` for a count,
+`≥ 2,000` for a capped one and `—` for an unknown one, said in words in the tab's name, both in
+the kit's locale; an `aside` at the bar's end, outside the tab list), `SegmentedControl` is a
+radio group of 24 px segments with one tab stop whose arrow keys, Home and End move the check,
+each segment with an optional count (compact on screen, exact for a screen reader, both in the
+kit's locale), tone icon and note (for a host that passes `busy`, `aria-busy` and the picked
+segment checked at once until the value follows or the change ends), a menu entry (`MENU_ITEM`)
+is 36 px, and `Icon`'s `dense` is the 12 px icon of the named deviation. `Dialog` is at most 560 px wide in
+three parts that carry its spacing: `DialogHeader` (16 px above, 24 px left, 8 px below, the
+close button's corner kept clear), `DialogBody` (24 px on the sides and below) and
+`DialogFooter` (a rule above, 24 px on the sides, 16 px above and below, its buttons `lg`).
 
 `Field` wires a label above its control and a hint and an error below it (`htmlFor`,
 `aria-describedby`, `aria-invalid` while the error shows): `Input`, `Textarea`, `NativeSelect`,

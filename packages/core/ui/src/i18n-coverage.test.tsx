@@ -108,6 +108,7 @@ describe("no English leaks into a German view", () => {
       "common",
       "conditionChip",
       "copyableId",
+      "count",
       "dataTable",
       "filterBar",
       "listFooter",

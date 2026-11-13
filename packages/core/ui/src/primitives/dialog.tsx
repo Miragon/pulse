@@ -1,5 +1,6 @@
 "use client"
 
+import { createContext, useContext } from "react"
 import type * as React from "react"
 import { XIcon } from "lucide-react"
 import { Dialog as DialogPrimitive } from "radix-ui"
@@ -54,9 +55,14 @@ function DialogOverlay({
   )
 }
 
+/** Whether the content draws its close button, which sits in the header's top right corner. */
+const DialogCloseButtonContext = createContext(false)
+
 /**
  * A dialog up to 560 px wide, 16 px off each edge of a narrower view (a confirmation narrows it
- * to 440 px through `className`). Its close button is a 32 px ghost icon button (CI §8).
+ * to 440 px through `className`), in three parts that carry its spacing (CI §8): `DialogHeader`,
+ * `DialogBody` and `DialogFooter`. Its close button is a 32 px ghost icon button in the header's
+ * top right corner, 16 px in from the edges.
  */
 function DialogContent({
   className,
@@ -81,13 +87,15 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "bg-popover text-popover-foreground dark:border-input data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 shadow-3 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[min(560px,calc(100%-2rem))] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-md border p-6 outline-hidden duration-(--motion-base)",
+          "bg-popover text-popover-foreground dark:border-input data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 shadow-3 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[min(560px,calc(100%-2rem))] translate-x-[-50%] translate-y-[-50%] rounded-md border outline-hidden duration-(--motion-base)",
           className,
         )}
         {...props}
         {...focusReturn}
       >
-        {children}
+        <DialogCloseButtonContext.Provider value={showCloseButton}>
+          {children}
+        </DialogCloseButtonContext.Provider>
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
@@ -105,17 +113,43 @@ function DialogContent({
   )
 }
 
+/**
+ * The title and its description: 16 px above, 24 px on the left, 8 px below, 16 px on the right,
+ * and the close button's 32 px with an 8 px gap kept clear beside them while it shows.
+ */
 function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
+  const closeButton = useContext(DialogCloseButtonContext)
   return (
     <div
       data-slot="dialog-header"
-      className={cn("flex flex-col gap-2 pr-6 text-center sm:text-left", className)}
+      className={cn(
+        "flex flex-col gap-1 pt-4 pr-4 pb-2 pl-6 text-left",
+        closeButton && "pr-14",
+        className,
+      )}
       {...props}
     />
   )
 }
 
-/** Secondary before primary; the buttons take `size="lg"`, the 36 px control of a dialog. */
+/**
+ * The dialog's content under its header: 24 px on the sides and below. Prose takes the body step;
+ * a form's controls and a table bring their own 13 px.
+ */
+function DialogBody({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="dialog-body"
+      className={cn("text-body flex min-w-0 flex-col gap-3 px-6 pb-6", className)}
+      {...props}
+    />
+  )
+}
+
+/**
+ * The buttons under a rule, 24 px on the sides and 16 px above and below, secondary before
+ * primary; they take `size="lg"`, the 36 px control of a dialog.
+ */
 function DialogFooter({
   className,
   showCloseButton = false,
@@ -131,7 +165,10 @@ function DialogFooter({
   return (
     <div
       data-slot="dialog-footer"
-      className={cn("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end", className)}
+      className={cn(
+        "flex flex-col-reverse gap-2 border-t px-6 py-4 sm:flex-row sm:justify-end",
+        className,
+      )}
       {...props}
     >
       {children}
@@ -173,6 +210,7 @@ function DialogDescription({
 
 export {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,

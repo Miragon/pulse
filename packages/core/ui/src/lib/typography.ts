@@ -7,8 +7,8 @@
  * | --------- | -------------- | --------------------------- | ------------------------------------------ |
  * | `title`   | `text-title`   | 28 px / 700 / 1.2           | page title (the CI h2; a widget has no h1 40 px) |
  * | `section` | `text-section` | 21 px / 600 / 1.3           | section and dialog titles (CI h3)          |
- * | `body`    | `text-body`    | 16 px / 400 / 1.6           | running text: state and toast descriptions; fields on a coarse pointer ({@link FIELD_TEXT}) |
- * | `dense`   | `text-dense`   | 13 px / 400 / 1.5           | tables and controls (buttons, tabs, menu entries, fields on a fine pointer, segments, chips, count pills, the inline alert box) and the primitives' short descriptions (card, dialog) |
+ * | `body`    | `text-body`    | 16 px / 400 / 1.6           | running text: state and toast descriptions |
+ * | `dense`   | `text-dense`   | 13 px / 400 / 1.5           | tables and controls (buttons, tabs, menu entries, segments, chips, count pills, the inline alert box) and the primitives' short descriptions (card, dialog) |
  * | `small`   | `text-small`   | 13 px / 400 / 1.5           | captions, labels, hints, meta rows, badges: the FLOOR |
  *
  * `dense` is the guide's klein step (§8: forms and tables 13 px), the same
@@ -25,6 +25,9 @@
  *
  * `scanTypeScale` of `@miragon/pulse-ui/testing` holds a source tree to the
  * steps, the floor and the weights.
+ *
+ * A field's text is a role of its own, {@link FIELD_TEXT} (`text-field`): 13 px, 16 px on a
+ * coarse pointer.
  *
  * Combine the utilities through the kit's `cn`: plain tailwind-merge does not
  * know these sizes and would drop `text-small` next to a text colour.
@@ -57,10 +60,12 @@ export const TYPE_FLOOR_PX = 13
 export const MICRO_LABEL = "text-small font-semibold"
 
 /**
- * The text of a field (an input, a native select): `dense` on a fine
- * pointer, `body` (16 px) once any pointer is coarse. iOS zooms the page
- * into a field whose text is under 16 px when it takes focus, a chat app's
- * embedded view included, so this is the one place the type follows the
- * pointer; density never scales type.
+ * The text of a field (an input, a textarea, a native select, a search field): the utility over
+ * the field's text role, `--field-text` in `theme.css`, on the dense step's line height. It is
+ * 13 px, and 16 px once any pointer is coarse: iOS zooms the page into a field whose text is under
+ * 16 px when it takes focus, a chat app's embedded view included. A host that pins the compact
+ * step (`data-density="compact"`, the editors on a touch laptop) keeps it at 13 px, and
+ * `data-density="comfortable"` alone never raises it: density never scales type, only the pointer
+ * does, and only here.
  */
-export const FIELD_TEXT = "text-dense any-pointer-coarse:text-body"
+export const FIELD_TEXT = "text-field"

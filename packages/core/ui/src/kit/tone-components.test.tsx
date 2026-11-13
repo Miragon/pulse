@@ -13,9 +13,10 @@ afterEach(cleanup)
 const classes = (el: Element | null) => (el?.getAttribute("class") ?? "").split(/\s+/)
 
 describe("selection (CI §8: the hover fill with an --interaction edge, text in the foreground)", () => {
-  it("SegmentedControl: the pressed segment takes the hover fill, a 2 px --interaction border and 600", () => {
+  it("SegmentedControl: the checked segment takes the hover fill, a 2 px --interaction border and 600", () => {
     render(
       <SegmentedControl
+        ariaLabel="Ansicht"
         options={[
           { value: "f", label: "Frequenz" },
           { value: "d", label: "Dauer" },
@@ -24,8 +25,8 @@ describe("selection (CI §8: the hover fill with an --interaction edge, text in 
         onChange={() => {}}
       />,
     )
-    const pressed = screen.getByRole("button", { name: "Dauer" })
-    expect(classes(pressed)).toEqual(
+    const checked = screen.getByRole("radio", { name: "Dauer" })
+    expect(classes(checked)).toEqual(
       expect.arrayContaining([
         "bg-accent",
         "text-foreground",
@@ -35,11 +36,11 @@ describe("selection (CI §8: the hover fill with an --interaction edge, text in 
       ]),
     )
     // A border, not a ring, so a Windows contrast theme keeps it; the focus ring sits inside.
-    expect(classes(pressed).some((c) => /^ring-/.test(c))).toBe(false)
-    expect(classes(pressed)).toEqual(
+    expect(classes(checked).some((c) => /^ring-/.test(c))).toBe(false)
+    expect(classes(checked)).toEqual(
       expect.arrayContaining(["focus-visible:ring-focus", "focus-visible:ring-inset"]),
     )
-    const other = classes(screen.getByRole("button", { name: "Frequenz" }))
+    const other = classes(screen.getByRole("radio", { name: "Frequenz" }))
     expect(other).toEqual(
       expect.arrayContaining([
         "border-2",
@@ -55,6 +56,7 @@ describe("selection (CI §8: the hover fill with an --interaction edge, text in 
   it("SegmentedControl: a count is compact on screen and exact for a screen reader; an alarming one adds a tone icon of its own shape, the number neutral", () => {
     const { container } = render(
       <SegmentedControl
+        ariaLabel="Scope"
         options={[
           { value: "all", label: "All", count: 12_345 },
           {
@@ -70,9 +72,9 @@ describe("selection (CI §8: the hover fill with an --interaction edge, text in 
       />,
     )
     // The compact figure is hidden from the name, which says the exact count once.
-    const all = screen.getByRole("button", { name: /^All\s*12,345$/ })
+    const all = screen.getByRole("radio", { name: /^All\s*12,345$/ })
     expect(all.textContent).toContain("12.3k")
-    const alarming = screen.getByRole("button", { name: /9 with incident$/ })
+    const alarming = screen.getByRole("radio", { name: /9 with incident$/ })
     const icon = alarming.querySelector("svg")!
     expect(icon.getAttribute("class")).toContain("lucide-circle-x")
     expect(icon.getAttribute("class")).toContain("text-danger")
@@ -103,7 +105,7 @@ describe("selection (CI §8: the hover fill with an --interaction edge, text in 
       expect.arrayContaining(["p-0.5", "gap-0.5", "rounded-sm", "bg-background"]),
     )
     expect(classes(track)).not.toContain("overflow-hidden")
-    for (const segment of screen.getAllByRole("button")) {
+    for (const segment of screen.getAllByRole("radio")) {
       expect(classes(segment)).toEqual(
         expect.arrayContaining(["min-h-segment", "rounded-[calc(var(--radius-sm)-2px)]"]),
       )

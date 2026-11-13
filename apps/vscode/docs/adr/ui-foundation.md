@@ -142,7 +142,8 @@ day the owner decided D9, which replaces D4 and turns D7 into the switch's preco
      focused field, and `[data-density=comfortable]` alone leaves them at 13 px.
      `[data-density=compact]` pins the compact step on a coarse pointer too, so the editors stay
      compact on a touch laptop as VS Code itself does: the webview sets it on its `<html>` with
-     the switch.
+     the switch. The pin reaches the fields too: their text is a role of its own
+     (`--field-text`), which stays 13 px under `[data-density=compact]`.
      Controls and bars take a minimum height, never a fixed one, so text at 200 % does not clip.
      A view's bar (`ViewBar`) keeps one line while its parts fit: its title gives way first, cut
      with an ellipsis down to 6ch, and a toolbar button's label hides under 36rem; a group that

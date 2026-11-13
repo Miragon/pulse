@@ -296,9 +296,10 @@ Toolbars 40 px, Radius md auf Knöpfen. Die Schrift bleibt in jeder Stufe gleich
 zeigen auf Touch 16 px Text, damit iOS beim Fokus nicht in die Seite zoomt, und
 `[data-density=comfortable]` allein lässt sie bei 13 px. `[data-density=compact]` hält die
 kompakte Stufe auch auf Touch fest, damit die Editoren auf einem Touch-Laptop kompakt bleiben wie
-VS Code selbst; die Webview setzt es mit dem Umstieg auf ihr `<html>`. Leiste 40 px, Toolbar
-36 px und Rand 12 px sind Werte des Guides und keine Abweichung. Diese bewussten Abweichungen
-vom Guide gelten für alle Oberflächen (Owner-Entscheidung):
+VS Code selbst; die Webview setzt es mit dem Umstieg auf ihr `<html>`. Die Eingaben behalten dort
+13 px Text, denn ihre Schrift ist eine eigene Rolle (`--field-text`), die der kompakte Pin
+erreicht. Leiste 40 px, Toolbar 36 px und Rand 12 px sind Werte des Guides und keine Abweichung.
+Diese bewussten Abweichungen vom Guide gelten für alle Oberflächen (Owner-Entscheidung):
 
 - Bedienelemente (Knöpfe, Eingaben, Auswahlen) mit 28 px und klickbare Tabellenzeilen mit 28 px
   statt 36 px.

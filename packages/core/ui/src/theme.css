@@ -122,7 +122,9 @@
    `var(--font-mono)`). `reference` keeps Tailwind from emitting the
    self-referencing theme variable; the roles below define the values.
    The type scale works the same way: `text-small` sets the font size, line
-   height and weight of the `--text-small` role. The density roles are
+   height and weight of the `--text-small` role, and `text-field` the size of
+   the field's text role (`--field-text`) on the dense step's line height
+   (FIELD_TEXT in src/lib/typography.ts). The density roles are
    spacing keys (`min-h-control` → `var(--control-h)`, `h-row`, `p-gutter`,
    `gap-section`; the keys in src/lib/density.ts, which cn knows too) and the
    button's radius a radius key (`rounded-button`). */
@@ -139,6 +141,8 @@
   --text-dense--line-height: var(--text-dense--line-height);
   --text-small: var(--text-small);
   --text-small--line-height: var(--text-small--line-height);
+  --text-field: var(--field-text);
+  --text-field--line-height: var(--text-dense--line-height);
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
@@ -222,6 +226,12 @@
   --text-dense--line-height: 1.5;
   --text-small: 0.8125rem; /* 13px */
   --text-small--line-height: 1.5;
+  /* The text of a field (Input, Textarea, NativeSelect, SearchField): 13 px,
+     16 px on a coarse pointer (the density blocks below), where iOS zooms
+     into a focused field whose text is smaller. The one type role that
+     follows the pointer; a host that pins the compact step keeps it at
+     13 px, and data-density="comfortable" alone never raises it. */
+  --field-text: 0.8125rem; /* 13px */
   /* Geist first, then the host's font, then the system stack. Loading Geist
      is opt-in (fonts.css or fontFaces()); where it is not loaded the next
      family renders. A SEP-1865 host sends its font as --font-sans and
@@ -266,11 +276,14 @@
    menu entries and large controls (zeile); 32 px xs controls and segments
    (ziel); a 48 px bar, a 36 px target with 6 px above and below; a 16 px
    gutter and section gap, 8 px cell padding top and bottom, the md radius on
-   buttons. Both blocks carry the same values (theme-density.test.ts).
+   buttons; on a coarse pointer the fields' text is 16 px. Both blocks carry
+   the same values but that one, which follows the pointer alone
+   (theme-density.test.ts).
    data-density="compact" pins the compact step on a coarse pointer too (an
-   editor stays compact on a touch laptop, as the editor itself does): it
-   comes after the media block and repeats :root's values, and
-   data-density="comfortable" after it, so the nearest mark wins. */
+   editor stays compact on a touch laptop, as the editor itself does), its
+   fields' 13 px text included: it comes after the media block and repeats
+   :root's values, and data-density="comfortable" after it, so the nearest
+   mark wins. */
 @media (any-pointer: coarse) {
   :root {
     --bar-h: 3rem; /* 48px */
@@ -286,6 +299,7 @@
     --section-gap: 1rem; /* 16px */
     --segment-h: 2rem; /* 32px */
     --button-radius: var(--cd-radius-md);
+    --field-text: 1rem; /* 16px */
   }
 }
 [data-density="compact"] {
@@ -302,6 +316,7 @@
   --section-gap: 0.75rem; /* 12px */
   --segment-h: 1.5rem; /* 24px */
   --button-radius: var(--cd-radius-sm);
+  --field-text: 0.8125rem; /* 13px */
 }
 [data-density="comfortable"] {
   --bar-h: 3rem; /* 48px */
@@ -317,6 +332,14 @@
   --section-gap: 1rem; /* 16px */
   --segment-h: 2rem; /* 32px */
   --button-radius: var(--cd-radius-md);
+}
+/* The field's text follows the pointer, never the density: a comfortable
+   mark raises it to 16 px on a coarse pointer only (inside a host's compact
+   pin), and leaves it at 13 px on a fine one. */
+@media (any-pointer: coarse) {
+  [data-density="comfortable"] {
+    --field-text: 1rem; /* 16px */
+  }
 }
 
 /* ── Neutral roles: the guide's --cd-ui-* roles (modeler-tool-design §3.5) ─────
@@ -581,7 +604,7 @@
   }
   :is(
     [data-slot="tabs-trigger"][data-variant="line"][data-state="active"],
-    [data-slot="segmented-option"][aria-pressed="true"]
+    [data-slot="segmented-option"][aria-checked="true"]
   ) {
     border-color: Highlight;
   }

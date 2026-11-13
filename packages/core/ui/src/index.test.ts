@@ -35,6 +35,7 @@ describe("the @miragon/pulse-ui entry", () => {
       "CountPill",
       "DataTable",
       "Dialog",
+      "DialogBody",
       "DialogClose",
       "DialogContent",
       "DialogDescription",

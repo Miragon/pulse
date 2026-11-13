@@ -142,6 +142,17 @@ export interface StateLabelMessages {
   incident: string
 }
 
+/**
+ * The words of a count where the screen shows a sign: a screen reader hears "at least 2,000" for
+ * `≥ 2,000` and "count unknown" for `—` (`TabCount`, `SegmentedControl`).
+ */
+export interface CountMessages {
+  /** A lower bound a capped read vouches for, e.g. "at least 2,000". The number arrives formatted. */
+  atLeast: (params: { count: string }) => string
+  /** A count no read gave (the screen shows "—"). */
+  unknown: string
+}
+
 /** One locale's complete kit catalog. */
 export interface UiMessages {
   common: CommonMessages
@@ -153,5 +164,6 @@ export interface UiMessages {
   copyableId: CopyableIdMessages
   conditionChip: ConditionChipMessages
   stateLabel: StateLabelMessages
+  count: CountMessages
   pills: { live: string }
 }

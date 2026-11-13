@@ -15,6 +15,7 @@ export type {
   CommonMessages,
   ConditionChipMessages,
   CopyableIdMessages,
+  CountMessages,
   DataTableMessages,
   FilterBarMessages,
   ListFooterMessages,
@@ -66,6 +67,7 @@ export function resolveUiMessages(
     copyableId: { ...base.copyableId, ...override.copyableId },
     conditionChip: { ...base.conditionChip, ...override.conditionChip },
     stateLabel: { ...base.stateLabel, ...override.stateLabel },
+    count: { ...base.count, ...override.count },
     pills: { ...base.pills, ...override.pills },
   }
 }

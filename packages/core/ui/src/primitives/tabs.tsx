@@ -1,12 +1,13 @@
-import { createContext, useContext } from "react"
+import { createContext, useContext, type ReactNode } from "react"
 import type * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { Tabs as TabsPrimitive } from "radix-ui"
 
+import type { Count } from "../format/index.js"
+import { countText, countWords } from "../lib/count-words.js"
 import { FOCUS_RING, FOCUS_RING_INSET } from "../lib/focus-ring.js"
 import { cn } from "../lib/utils.js"
-import { useUiLocale } from "../locale/locale-provider.js"
-import { formatCountIn } from "../locale/ui-messages.js"
+import { useUiLocale, useUiMessages } from "../locale/locale-provider.js"
 
 type TabsVariant = "default" | "line"
 
@@ -52,20 +53,57 @@ const tabsListVariants = cva(
   },
 )
 
+/**
+ * A bar that holds the list and an aside after it: the line's frame (its height, its rule, its
+ * sides) moves from the list onto the bar, and the list takes the room the aside leaves.
+ */
+const TABS_BAR = {
+  default: "inline-flex items-center gap-2",
+  line: "flex w-full items-stretch gap-2 border-b pr-gutter pl-2 min-h-toolbar",
+} as const
+
+const LIST_IN_BAR = {
+  default: "",
+  line: "min-w-0 flex-1 border-b-0 px-0 group-data-[orientation=horizontal]/tabs:min-h-0",
+} as const
+
 function TabsList({
   className,
   variant = "default",
+  aside,
   ...props
-}: React.ComponentProps<typeof TabsPrimitive.List> & VariantProps<typeof tabsListVariants>) {
+}: React.ComponentProps<typeof TabsPrimitive.List> &
+  VariantProps<typeof tabsListVariants> & {
+    /**
+     * What sits at the bar's end, after the tabs and outside the tab list (a legend's button, a
+     * count of the whole): the list keeps tabs only. With it, `className` goes to the bar.
+     */
+    aside?: ReactNode
+  }) {
   const shape = variant ?? "default"
+  const list = (
+    <TabsPrimitive.List
+      data-slot="tabs-list"
+      data-variant={shape}
+      className={cn(
+        tabsListVariants({ variant: shape }),
+        aside === undefined ? className : LIST_IN_BAR[shape],
+      )}
+      {...props}
+    />
+  )
   return (
     <TabsVariantContext.Provider value={shape}>
-      <TabsPrimitive.List
-        data-slot="tabs-list"
-        data-variant={shape}
-        className={cn(tabsListVariants({ variant: shape }), className)}
-        {...props}
-      />
+      {aside === undefined ? (
+        list
+      ) : (
+        <div data-slot="tabs-bar" data-variant={shape} className={cn(TABS_BAR[shape], className)}>
+          {list}
+          <div data-slot="tabs-aside" className="flex shrink-0 items-center gap-1">
+            {aside}
+          </div>
+        </div>
+      )}
     </TabsVariantContext.Provider>
   )
 }
@@ -106,11 +144,14 @@ function TabsTrigger({ className, ...props }: React.ComponentProps<typeof TabsPr
 
 /**
  * A tab's count, after its label: a quiet pill (a named deviation: counts are pills), the
- * number at 400 in tabular figures, always shown, a zero too. It is the exact count, so the tab's
- * name says it as the eye reads it ("Incidents 3"). Numbers stay neutral: an alarming count
- * says so in its label, never in a colour.
+ * number at 400 in tabular figures, always shown, a zero too. It is the count as `formatCount`
+ * writes it (`1,234`; a lower bound a capped read vouches for `≥ 2,000`; unknown `—`), and the
+ * tab's name says it in words ("Incidents 1,234", "Jobs at least 2,000", "Jobs count unknown"),
+ * both in the kit's locale, so the number is grouped in the language of its words. Numbers stay
+ * neutral: an alarming count says so in its label, never in a colour.
  */
-function TabCount({ count, className }: { count: number; className?: string }) {
+function TabCount({ count, className }: { count: Count; className?: string }) {
+  const words = useUiMessages().count
   const locale = useUiLocale()
   return (
     <span
@@ -120,7 +161,8 @@ function TabCount({ count, className }: { count: number; className?: string }) {
         className,
       )}
     >
-      {formatCountIn(count, locale)}
+      <span aria-hidden="true">{countText(count, locale)}</span>
+      <span className="sr-only">{countWords(count, words, locale)}</span>
     </span>
   )
 }

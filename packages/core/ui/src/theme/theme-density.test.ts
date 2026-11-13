@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { DENSITY_CELL_PADDING, DENSITY_RADIUS, DENSITY_SPACING } from "../lib/density.js"
-import { DENSITY_ROLES, ROLE_TOKENS } from "./role-tokens.js"
+import { DENSITY_ROLES, FIELD_TEXT_ROLE, POINTER_ROLES, ROLE_TOKENS } from "./role-tokens.js"
 import {
   cdToken,
   BLOCKS,
@@ -102,9 +102,11 @@ describe("theme.css: the density roles (D9: compact by default, comfortable on t
     ).toEqual([40, 36, 32, 12])
   })
 
-  it("takes the comfortable step on a coarse pointer and under data-density=comfortable, the same values", () => {
-    expect(COMFORTABLE).toEqual(COARSE)
-    for (const name of Object.keys(COARSE)) expect(DENSITY_ROLES, name).toContain(name)
+  it("takes the comfortable step on a coarse pointer and under data-density=comfortable, the same values but the field's text", () => {
+    const { [FIELD_TEXT_ROLE]: fieldText, ...coarseDensity } = COARSE
+    expect(fieldText).toBe("1rem")
+    expect(COMFORTABLE).toEqual(coarseDensity)
+    for (const name of Object.keys(COARSE)) expect(POINTER_ROLES, name).toContain(name)
     for (const name of LENGTH_ROLES) {
       const [, comfortable] = STEPS[name]
       const value = COARSE[name] ?? ROOT[name]
@@ -126,6 +128,37 @@ describe("theme.css: the density roles (D9: compact by default, comfortable on t
     expect(coarse).toBeGreaterThan(0)
     expect(compact).toBeGreaterThan(coarse)
     expect(comfortable).toBeGreaterThan(compact)
+  })
+
+  it("gives a field's text 13 px, 16 px on a coarse pointer, and 13 px again under a host's compact pin", () => {
+    // 16 px on a coarse pointer: iOS zooms into a focused field whose text is smaller.
+    expect(remPx(ROOT[FIELD_TEXT_ROLE])).toBe(13)
+    expect(remPx(COARSE[FIELD_TEXT_ROLE])).toBe(16)
+    // The editors pin compact on a touch laptop, as VS Code itself: their fields stay 13 px.
+    expect(remPx(COMPACT[FIELD_TEXT_ROLE])).toBe(13)
+    expect(ROLE_TOKENS).toContain(FIELD_TEXT_ROLE)
+    expect(DENSITY_ROLES).not.toContain(FIELD_TEXT_ROLE)
+    for (const decls of [LIGHT, DARK, KONTRAST, DARK_KONTRAST]) {
+      expect(decls).not.toHaveProperty(FIELD_TEXT_ROLE)
+    }
+  })
+
+  it("never raises a field's text by density alone: a comfortable mark does so on a coarse pointer only", () => {
+    // Density never scales type: on a fine pointer a comfortable mark keeps what it inherits.
+    expect(COMFORTABLE).not.toHaveProperty(FIELD_TEXT_ROLE)
+    const css = norm(rules)
+    const nested =
+      '@media (any-pointer: coarse) { [data-density="comfortable"] { --field-text: 1rem; } }'
+    expect(css).toContain(nested)
+    // After the compact pin, so inside it a nearer comfortable mark wins on touch.
+    const compact = BLOCKS.find((b) => b.selector === '[data-density="compact"]')?.offset ?? -1
+    expect(compact).toBeGreaterThan(0)
+    expect(css.indexOf(nested)).toBeGreaterThan(norm(rules.slice(0, compact)).length)
+  })
+
+  it("exposes the field's text as one type utility, text-field, on the dense step's line height", () => {
+    expect(THEME_REFERENCE["--text-field"]).toBe(`var(${FIELD_TEXT_ROLE})`)
+    expect(THEME_REFERENCE["--text-field--line-height"]).toBe("var(--text-dense--line-height)")
   })
 
   it("rounds a button with the sm radius in the compact step and the md radius in the comfortable one", () => {

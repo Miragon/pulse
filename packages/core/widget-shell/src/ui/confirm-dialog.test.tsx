@@ -43,6 +43,34 @@ describe("ConfirmDialog (CI §8 dialogs, §9 destructive)", () => {
     expect(dialog.className).toContain("max-w-[min(440px,calc(100%-2rem))]")
   })
 
+  it("takes the kit's dialog geometry: the question in the header, the target in the body, the buttons under the footer's rule", () => {
+    renderDialog({ error: "[503 ProcessEngineException] down (engine prod)" })
+    const dialog = screen.getByRole("alertdialog")
+    const part = (name: string) => dialog.querySelector(`[data-slot="${name}"]`)
+    const classes = (el: Element | null) => (el?.getAttribute("class") ?? "").split(/\s+/)
+    expect(classes(part("dialog-header"))).toEqual(
+      expect.arrayContaining(["pt-4", "pr-14", "pb-2", "pl-6"]),
+    )
+    expect(part("dialog-header")?.textContent).toContain("Cancel this instance?")
+    expect(classes(part("dialog-body"))).toEqual(expect.arrayContaining(["px-6", "pb-6"]))
+    expect(part("dialog-body")?.querySelector("dl")).toBeTruthy()
+    expect(part("dialog-body")?.contains(screen.getByRole("alert"))).toBe(true)
+    expect(classes(part("dialog-footer"))).toEqual(
+      expect.arrayContaining(["border-t", "px-6", "py-4"]),
+    )
+    // The box itself carries no padding: its parts do.
+    expect(classes(dialog)).not.toContain("p-6")
+  })
+
+  it("keeps the close button's corner clear while the write runs, so the question never rewraps", () => {
+    renderDialog({ pending: true })
+    expect(screen.queryByRole("button", { name: "Close" })).toBeNull()
+    const header = screen.getByRole("alertdialog").querySelector('[data-slot="dialog-header"]')
+    const classes = (header?.getAttribute("class") ?? "").split(/\s+/)
+    expect(classes).toEqual(expect.arrayContaining(["pt-4", "pr-14", "pb-2", "pl-6"]))
+    expect(classes).not.toContain("pr-4")
+  })
+
   it("names its target by label and value, ids in Geist Mono", () => {
     renderDialog()
     const value = screen.getByText("5f0ce78e-6b1d-11ef-9c3a-0242ac120002")

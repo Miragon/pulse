@@ -24,6 +24,17 @@ export const DENSITY_ROLES = [
 ] as const satisfies readonly CssVarName[]
 
 /**
+ * The text of a field (`Input`, `Textarea`, `NativeSelect`, `SearchField`): 13 px, 16 px on a
+ * coarse pointer, where iOS zooms into a focused field whose text is smaller, and 13 px again
+ * where a host pins the compact step (`data-density="compact"`, the editors on a touch laptop).
+ * Density never scales type: `data-density="comfortable"` alone leaves it at 13 px.
+ */
+export const FIELD_TEXT_ROLE = "--field-text" satisfies CssVarName
+
+/** The roles that switch under a media query (the pointer) and the density marks. */
+export const POINTER_ROLES = [...DENSITY_ROLES, FIELD_TEXT_ROLE] as const
+
+/**
  * The role-token contract: every variable the kit defines for components
  * to use (`src/theme.css`), in light and, for colours, dark. Components in this
  * package, and in apps built on it, style through these names only, never
@@ -31,7 +42,7 @@ export const DENSITY_ROLES = [
  * values of the Miragon guide's `--cd-ui-*` roles (`--background` grund,
  * `--card` flaeche, `--popover` and `--raised` flaeche-hoch, `--accent` hover,
  * `--border` linie, `--interaction` interaktion, `--<tone>-surface` the status
- * surface). The density roles close the list.
+ * surface). The field's text role and the density roles close the list.
  */
 export const ROLE_TOKENS = [
   "--background",
@@ -89,5 +100,6 @@ export const ROLE_TOKENS = [
   "--text-body",
   "--text-dense",
   "--text-small",
+  FIELD_TEXT_ROLE,
   ...DENSITY_ROLES,
 ] as const satisfies readonly CssVarName[]
