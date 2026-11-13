@@ -1,7 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import type { WebviewIntent } from "../../src/core/protocol/index.js"
 import { FIXTURES } from "../../dev/webview/fixtures/states.js"
-import { buttonNamed, mountApp, nextFrame, press, waitForElement, type Harness } from "./harness.js"
+import {
+  buttonNamed,
+  enterValue,
+  type Harness,
+  mountApp,
+  nextFrame,
+  press,
+  waitForElement,
+} from "./harness.js"
 
 describe("the migration screen", () => {
   let harness: Harness
@@ -56,10 +64,8 @@ describe("the migration screen", () => {
     const table = await open("migration")
     const select = selectOf(table, "Approve order")
 
-    select.value = ""
-    select.dispatchEvent(new Event("change", { bubbles: true }))
-    select.value = "Activity_ApproveOrder"
-    select.dispatchEvent(new Event("change", { bubbles: true }))
+    enterValue(select, "")
+    enterValue(select, "Activity_ApproveOrder")
 
     expect(posted("unmapElement")).toEqual([
       { type: "unmapElement", sourceElementId: "Activity_ApproveOrder" },
@@ -92,8 +98,7 @@ describe("the migration screen", () => {
 
     buttonNamed(harness.root, "Migrate 10 instances…").click()
     const picker = harness.root.querySelector<HTMLSelectElement>("select.version-picker__select")!
-    picker.value = "order-fulfillment:5:0b7d"
-    picker.dispatchEvent(new Event("change", { bubbles: true }))
+    enterValue(picker, "order-fulfillment:5:0b7d")
 
     expect(posted("startMigration")).toHaveLength(1)
     expect(posted("pickMigrationTarget")).toEqual([

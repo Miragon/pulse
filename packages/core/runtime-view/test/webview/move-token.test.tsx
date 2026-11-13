@@ -2,7 +2,15 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import type { PanelState, WebviewIntent, WriteState } from "../../src/core/protocol/index.js"
 import { FIXTURES } from "../../dev/webview/fixtures/states.js"
 import { MOVABLE_INSTANCE } from "../../dev/webview/fixtures/writable.js"
-import { buttonNamed, mountApp, nextFrame, press, waitForElement, type Harness } from "./harness.js"
+import {
+  buttonNamed,
+  enterValue,
+  type Harness,
+  mountApp,
+  nextFrame,
+  press,
+  waitForElement,
+} from "./harness.js"
 
 const APPROVE = "Activity_ApproveOrder"
 const TOKEN = { kind: "token", fromElementId: APPROVE } as const
@@ -41,15 +49,13 @@ describe("moving a token from the instance screen", () => {
 
   async function pick(panel: HTMLElement, elementId: string): Promise<void> {
     const select = panel.querySelector("select")!
-    select.value = elementId
-    select.dispatchEvent(new Event("change", { bubbles: true }))
+    enterValue(select, elementId)
     await nextFrame()
   }
 
   async function typeReason(panel: HTMLElement, reason: string): Promise<void> {
     const field = panel.querySelector<HTMLInputElement>('input[type="text"]')!
-    field.value = reason
-    field.dispatchEvent(new Event("input", { bubbles: true }))
+    enterValue(field, reason)
     await nextFrame()
   }
 

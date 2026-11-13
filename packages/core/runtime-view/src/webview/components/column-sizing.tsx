@@ -1,4 +1,4 @@
-import { useRef, useState } from "preact/hooks"
+import { useLayoutEffect, useRef, useState } from "preact/hooks"
 import { useHost } from "../host/host-context.js"
 import { UiStateStore } from "../host/ui-state-store.js"
 import { ColumnMeasure, type ColumnWidths } from "./column-measure.js"
@@ -50,10 +50,22 @@ export interface ColumnGripProps {
   readonly sizing: ColumnSizing
 }
 
+function useMeasuredCell() {
+  const handle = useRef<HTMLDivElement>(null)
+  const [measured, setMeasured] = useState<number | undefined>(undefined)
+  useLayoutEffect(() => {
+    const cell = handle.current?.parentElement
+    if (cell !== null && cell !== undefined) {
+      setMeasured(ColumnMeasure.width(cell))
+    }
+  }, [])
+  return { handle, measured, setMeasured }
+}
+
 export function ColumnGrip({ label, columnKey, sizing }: ColumnGripProps) {
   const drag = useRef({ x: 0, width: 0, cell: null as Element | null })
-  const [focused, setFocused] = useState<number | undefined>(undefined)
-  const width = sizing.widths?.[columnKey] ?? focused
+  const { handle, measured, setMeasured } = useMeasuredCell()
+  const width = sizing.widths?.[columnKey] ?? measured
   const cellOf = (event: Event): Element =>
     (event.currentTarget as Element).parentElement as Element
   const set = (cell: Element, next: number, persist = true): void => {
@@ -69,6 +81,7 @@ export function ColumnGrip({ label, columnKey, sizing }: ColumnGripProps) {
   return (
     <Separator
       class="column-grip"
+      handle={handle}
       orientation="vertical"
       label={`Resize column ${label}`}
       value={width}
@@ -84,7 +97,7 @@ export function ColumnGrip({ label, columnKey, sizing }: ColumnGripProps) {
         },
       }}
       onFocus={(event) => {
-        setFocused(ColumnMeasure.width(cellOf(event)))
+        setMeasured(ColumnMeasure.width(cellOf(event)))
       }}
       onDragStart={(event) => {
         const cell = cellOf(event)

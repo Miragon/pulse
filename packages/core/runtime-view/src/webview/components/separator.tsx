@@ -1,3 +1,5 @@
+import type { Ref } from "preact"
+
 type SeparatorKeys = Readonly<Record<string, (event: KeyboardEvent) => void>>
 
 export interface SeparatorProps {
@@ -15,6 +17,7 @@ export interface SeparatorProps {
   readonly onDragCancel: () => void
   readonly onFocus?: (event: FocusEvent) => void
   readonly onDoubleClick?: (event: MouseEvent) => void
+  readonly handle?: Ref<HTMLDivElement>
 }
 
 const DRAGGING = "data-dragging"
@@ -34,6 +37,7 @@ export function Separator(props: SeparatorProps) {
   }
   return (
     <div
+      ref={props.handle ?? null}
       class={props.class}
       role="separator"
       aria-orientation={props.orientation}

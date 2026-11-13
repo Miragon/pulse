@@ -561,6 +561,9 @@ importers:
       '@vitest/coverage-v8':
         specifier: 5.1.0
         version: 5.1.0(@vitest/browser@5.1.0)(vitest@5.1.0)
+      axe-core:
+        specifier: 4.14.0
+        version: 4.14.0
       esbuild:
         specifier: 0.28.2
         version: 0.28.2

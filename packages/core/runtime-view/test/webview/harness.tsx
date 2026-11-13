@@ -11,7 +11,8 @@ import "../../src/webview/styles/screens.css"
 import "../../src/webview/styles/migration.css"
 import "../../src/webview/styles/tables.css"
 import "../../src/webview/styles/diagram.css"
-import { render } from "preact"
+import "../../src/webview/styles/boards.css"
+import { render, type ComponentChild } from "preact"
 import { vi } from "vitest"
 import type { PanelState, WebviewIntent } from "../../src/core/protocol/index.js"
 import { App } from "../../src/webview/app.js"
@@ -50,16 +51,40 @@ export interface MountOptions {
   readonly stored?: unknown
 }
 
+export type Renderable = ComponentChild
+
+export interface Mounted {
+  readonly root: HTMLElement
+  readonly update: (node: Renderable) => void
+  readonly unmount: () => void
+}
+
+export function mount(node: Renderable, root = document.createElement("div")): Mounted {
+  if (!root.isConnected) {
+    document.body.append(root)
+  }
+  render(node, root)
+  return {
+    root,
+    update: (next) => {
+      render(next, root)
+    },
+    unmount: () => {
+      render(null, root)
+      root.remove()
+    },
+  }
+}
+
 export function mountApp({ width = 1200, stored }: MountOptions = {}): Harness {
   document.documentElement.dataset.cdTheme = "light"
   delete document.documentElement.dataset.cdKontrast
   const root = document.createElement("div")
   root.style.cssText = `position: fixed; inset: 0; width: ${width}px; height: 800px;`
-  document.body.append(root)
   const posted: WebviewIntent[] = []
   const api = fakeApi(posted, stored)
   const bridge = new HostBridge(api)
-  render(<App bridge={bridge} />, root)
+  const mounted = mount(<App bridge={bridge} />, root)
   let revision = 0
   return {
     root,
@@ -71,11 +96,30 @@ export function mountApp({ width = 1200, stored }: MountOptions = {}): Harness {
       postState(state, revision)
     },
     unmount: () => {
-      render(null, root)
+      mounted.unmount()
       bridge.dispose()
-      root.remove()
     },
   }
+}
+
+type ValueControl = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+
+function setNativeValue(control: ValueControl, value: string): void {
+  const prototype = Object.getPrototypeOf(control) as object
+  const descriptor = Object.getOwnPropertyDescriptor(prototype, "value")
+  if (descriptor?.set === undefined) {
+    throw new Error("The control has no native value setter.")
+  }
+  descriptor.set.call(control, value)
+}
+
+export function enterValue(control: ValueControl | null | undefined, value: string): void {
+  if (control === null || control === undefined) {
+    throw new Error(`No control to enter ${value} into.`)
+  }
+  setNativeValue(control, value)
+  control.dispatchEvent(new Event("input", { bubbles: true }))
+  control.dispatchEvent(new Event("change", { bubbles: true }))
 }
 
 export function waitForElement<T extends Element>(root: ParentNode, selector: string): Promise<T> {

@@ -3,8 +3,7 @@ import type { DefinitionView, LiveUpdates, PanelState } from "../../src/core/pro
 import { FIXTURES } from "../../dev/webview/fixtures/states.js"
 import { App } from "../../src/webview/app.js"
 import { HostBridge } from "../../src/webview/host/host-bridge.js"
-import { render } from "preact"
-import { buttonNamed, mountApp, waitForElement, type Harness } from "./harness.js"
+import { buttonNamed, mount, mountApp, waitForElement, type Harness } from "./harness.js"
 
 const VIEW = (FIXTURES.definition as { readonly view: DefinitionView }).view
 
@@ -164,18 +163,15 @@ describe("activity inside a panel", () => {
       getState: () => undefined,
       setState: () => undefined,
     })
-    const root = document.createElement("div")
-    document.body.append(root)
-    render(<App bridge={bridge} />, root)
+    const mounted = mount(<App bridge={bridge} />)
     await new Promise((resolve) => setTimeout(resolve, 50))
 
     document.dispatchEvent(new PointerEvent("pointerdown"))
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "a" }))
 
     expect(sent).toEqual([{ type: "activity" }])
-    render(null, root)
+    mounted.unmount()
     bridge.dispose()
-    root.remove()
   })
 })
 

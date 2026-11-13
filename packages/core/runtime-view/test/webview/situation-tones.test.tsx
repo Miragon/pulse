@@ -2,7 +2,6 @@ import "../../src/webview/theme/cd-tokens.generated.css"
 import "../../src/webview/styles/base.css"
 import "../../src/webview/styles/components.css"
 import { SITUATION_TONES, type Situation, type ToneVariant } from "@miragon/pulse-ui/tones"
-import { render, type ComponentChild } from "preact"
 import { afterAll, beforeAll, describe, expect, test } from "vitest"
 import { CountBadge, type CountBadgeProps } from "../../src/webview/components/count-badge.js"
 import {
@@ -10,6 +9,7 @@ import {
   StateLabel,
   type StateLabelProps,
 } from "../../src/webview/components/state-label.js"
+import { mount, type Mounted, type Renderable } from "./harness.js"
 
 type Paint = "backgroundColor" | "borderTopColor"
 
@@ -50,6 +50,7 @@ const PALETTE_FILLS: Readonly<Record<"incident" | "running", string>> = {
 }
 
 const host = document.createElement("div")
+let mounted: Mounted | undefined
 
 function useTheme(theme: string, contrast: string | undefined): void {
   const { dataset } = document.documentElement
@@ -67,7 +68,7 @@ beforeAll(() => {
 })
 
 afterAll(() => {
-  render(null, host)
+  mounted?.unmount()
   host.remove()
   useTheme("light", undefined)
 })
@@ -85,8 +86,12 @@ function colourOf(situation: Situation): string {
   return colourOfVariable(TONE_ROLES[SITUATION_TONES[situation]])
 }
 
-function rendered(node: ComponentChild): Element {
-  render(node, host)
+function rendered(node: Renderable): Element {
+  if (mounted === undefined) {
+    mounted = mount(node, host)
+  } else {
+    mounted.update(node)
+  }
   const element = host.firstElementChild
   if (element === null) throw new Error("nothing rendered")
   return element

@@ -264,8 +264,8 @@ tr:focus-within :is(.id-text__copy, .value-cell__copy),
 }
 
 .button--primary {
-  background: var(--cd-ui-interaktion);
-  border-color: var(--cd-ui-interaktion);
+  background: var(--cd-blau);
+  border-color: var(--cd-blau);
   color: var(--cd-weiss);
 }
 

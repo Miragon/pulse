@@ -1,4 +1,3 @@
-import { render } from "preact"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { page, userEvent } from "vitest/browser"
 import type { InstanceView } from "../../src/core/protocol/index.js"
@@ -8,7 +7,7 @@ import {
   GATEWAY_INSTANCE,
   GATEWAY_REFUSAL as REFUSAL,
 } from "../../dev/webview/fixtures/writable.js"
-import { buttonNamed, mountApp, nextFrame, waitForElement, type Harness } from "./harness.js"
+import { buttonNamed, mount, mountApp, nextFrame, waitForElement, type Harness } from "./harness.js"
 
 const EVENT = "Event_PaymentReceived"
 
@@ -112,10 +111,8 @@ describe("the CLI command of a token that cannot move", () => {
 
 describe("the can't-move sign a copy control names as its description", () => {
   it("is the sign of its own entry, also with two entries in roots of their own", () => {
-    const anchors = ["Event_First", "Event_Second"].map((elementId) => {
-      const anchor = document.createElement("div")
-      document.body.append(anchor)
-      render(
+    const anchors = ["Event_First", "Event_Second"].map((elementId) =>
+      mount(
         <MoveEntry
           entry={{
             elementId,
@@ -124,12 +121,10 @@ describe("the can't-move sign a copy control names as its description", () => {
             onStart: vi.fn(),
           }}
         />,
-        anchor,
-      )
-      return anchor
-    })
+      ),
+    )
     try {
-      for (const anchor of anchors) {
+      for (const { root: anchor } of anchors) {
         const described = anchor.querySelector("button")?.getAttribute("aria-describedby") ?? ""
         expect(document.getElementById(described)).toBe(
           anchor.querySelector(".move-entry--refused"),
@@ -137,8 +132,7 @@ describe("the can't-move sign a copy control names as its description", () => {
       }
     } finally {
       for (const anchor of anchors) {
-        render(null, anchor)
-        anchor.remove()
+        anchor.unmount()
       }
     }
   })

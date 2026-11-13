@@ -48,6 +48,7 @@ function ValueInput({
       <select
         ref={field}
         class="variable-editor__field"
+        aria-label="New value"
         {...validity}
         value={text}
         onChange={(event) => {
@@ -63,6 +64,7 @@ function ValueInput({
     <textarea
       ref={field}
       class="variable-editor__field"
+      aria-label="New value"
       {...validity}
       rows={Math.min(12, Math.max(1, text.split("\n").length))}
       spellcheck={false}

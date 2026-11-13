@@ -4,11 +4,12 @@ import { ENGINE_VIEW } from "../../dev/webview/fixtures/engine.js"
 import { PROD_ENGINE } from "../../dev/webview/fixtures/engines.js"
 import {
   buttonNamed,
+  enterValue,
+  type Harness,
   mountApp,
   press,
   radioNamed,
   waitForElement,
-  type Harness,
 } from "./harness.js"
 
 function ready(view: EngineView, refreshing = false): PanelState {
@@ -98,8 +99,7 @@ describe("the engine overview", () => {
 
     radioNamed(harness.root, "With incident").click()
     const search = harness.root.querySelector<HTMLInputElement>(".search-field input")!
-    search.value = "  order "
-    search.dispatchEvent(new Event("input", { bubbles: true }))
+    enterValue(search, "  order ")
     await vi.waitFor(() => {
       expect(harness.posted.filter((intent) => intent.type === "filterProcesses")).toHaveLength(2)
     })
@@ -120,8 +120,7 @@ describe("the engine overview", () => {
     const search = await waitForElement<HTMLInputElement>(harness.root, ".search-field input")
     expect(search.value).toBe("order")
 
-    search.value = ""
-    search.dispatchEvent(new Event("input", { bubbles: true }))
+    enterValue(search, "")
 
     await vi.waitFor(() => {
       expect(harness.posted).toEqual([

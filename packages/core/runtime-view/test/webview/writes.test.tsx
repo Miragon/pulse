@@ -6,10 +6,11 @@ import { JsonText } from "../../src/webview/format/json-text.js"
 import {
   buttonNamed,
   colourOfVariable,
+  enterValue,
+  type Harness,
   mountApp,
   nextFrame,
   waitForElement,
-  type Harness,
 } from "./harness.js"
 
 const VARIABLES_TAB = "Variables8"
@@ -47,8 +48,7 @@ describe("writing from the instance screen", () => {
   }
 
   async function type(field: HTMLTextAreaElement, text: string): Promise<void> {
-    field.value = text
-    field.dispatchEvent(new Event("input", { bubbles: true }))
+    enterValue(field, text)
     await nextFrame()
   }
 
@@ -216,8 +216,7 @@ describe("the editor lifecycle", () => {
     await waitForElement(harness.root, ".value-cell__edit")
     harness.root.querySelector<HTMLButtonElement>('[aria-label="Edit amount"]')?.click()
     const field = await waitForElement<HTMLTextAreaElement>(harness.root, ".variable-editor__field")
-    field.value = "12.5"
-    field.dispatchEvent(new Event("input", { bubbles: true }))
+    enterValue(field, "12.5")
     await nextFrame()
     buttonNamed(harness.root, "Save").click()
     await nextFrame()
@@ -263,18 +262,15 @@ describe("a null variable", () => {
     expect(harness.root.querySelector(".variable-editor__hint")?.textContent).toBe(
       "Null · was null · written as Text",
     )
-    field.value = "4117"
-    field.dispatchEvent(new Event("input", { bubbles: true }))
+    enterValue(field, "4117")
     await nextFrame()
     buttonNamed(harness.root, "Save").click()
 
     const picker = harness.root.querySelector<HTMLSelectElement>(".variable-editor__kind")
-    picker!.value = "integer"
-    picker!.dispatchEvent(new Event("change", { bubbles: true }))
+    enterValue(picker, "integer")
     await nextFrame()
     const numberField = harness.root.querySelector<HTMLTextAreaElement>(".variable-editor__field")
-    numberField!.value = "4117"
-    numberField!.dispatchEvent(new Event("input", { bubbles: true }))
+    enterValue(numberField, "4117")
     await nextFrame()
     buttonNamed(harness.root, "Save").click()
 

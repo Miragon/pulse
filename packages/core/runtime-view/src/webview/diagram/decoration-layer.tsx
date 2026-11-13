@@ -11,6 +11,7 @@ import type { ElementRegistryLike } from "./diagram-elements.js"
 import { CodeButton, type ElementCode } from "./code-button.js"
 import { MoveBadge, type MoveBadgeKind } from "./move-badge.js"
 import { MoveEntry, type MoveEntryDecoration } from "./move-entry.js"
+import { OverlayFocus } from "./overlay-focus.js"
 
 export interface MoveDecoration {
   readonly from: string
@@ -88,8 +89,28 @@ export class DecorationLayer {
     if (wanted === this.applied) {
       return
     }
+    const held = OverlayFocus.held(this.anchors)
     this.clear()
     this.applied = wanted
+    this.draw(decorations)
+    OverlayFocus.restore(this.anchors, held)
+  }
+
+  clear(): void {
+    this.applied = undefined
+    for (const anchor of this.anchors.splice(0)) {
+      render(null, anchor)
+    }
+    this.services.overlays.remove({ type: BADGE_OVERLAY_TYPE })
+    for (const [elementId, marker] of this.markers) {
+      if (this.services.registry.get(elementId) !== undefined) {
+        this.services.canvas.removeMarker(elementId, marker)
+      }
+    }
+    this.markers = []
+  }
+
+  private draw(decorations: Decorations): void {
     for (const badge of decorations.badges) {
       this.addBadge(badge, decorations.stale)
     }
@@ -115,20 +136,6 @@ export class DecorationLayer {
     }
     this.addMapping(decorations)
     this.focus(decorations.focusElementId)
-  }
-
-  clear(): void {
-    this.applied = undefined
-    for (const anchor of this.anchors.splice(0)) {
-      render(null, anchor)
-    }
-    this.services.overlays.remove({ type: BADGE_OVERLAY_TYPE })
-    for (const [elementId, marker] of this.markers) {
-      if (this.services.registry.get(elementId) !== undefined) {
-        this.services.canvas.removeMarker(elementId, marker)
-      }
-    }
-    this.markers = []
   }
 
   private addElementActions(
@@ -211,6 +218,7 @@ export class DecorationLayer {
     }
     const anchor = document.createElement("div")
     anchor.className = "badge-anchor"
+    anchor.dataset.overlayFor = elementId
     render(content, anchor)
     this.anchors.push(anchor)
     this.services.overlays.add(elementId, BADGE_OVERLAY_TYPE, {

@@ -115,6 +115,7 @@ function NameCell({
       {shadows !== "" && (
         <span
           class="variable-name__shadow"
+          role="img"
           title={`${shadows} keeps its own ${row.name}; changing this one does not reach it.`}
           aria-label={`${shadows} keeps its own ${row.name}`}
         >

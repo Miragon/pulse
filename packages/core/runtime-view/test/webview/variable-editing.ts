@@ -2,7 +2,14 @@ import type { ProcessCommands, VariableChange } from "@miragon/pulse-engine-core
 import { expect, vi, type MockInstance } from "vitest"
 import { InstancePanel } from "../../src/core/panels/instance-panel.js"
 import { panelFixture, type PanelFixture } from "../core/support/panel-fixture.js"
-import { buttonNamed, mountApp, nextFrame, waitForElement, type Harness } from "./harness.js"
+import {
+  buttonNamed,
+  enterValue,
+  type Harness,
+  mountApp,
+  nextFrame,
+  waitForElement,
+} from "./harness.js"
 
 const VARIABLES_OF_THE_INSTANCE = 4
 
@@ -48,14 +55,12 @@ export async function editVariable(
     field,
     writeAs: async (kind) => {
       const picker = harness.root.querySelector<HTMLSelectElement>(".variable-editor__kind")
-      picker!.value = kind
-      picker!.dispatchEvent(new Event("change", { bubbles: true }))
+      enterValue(picker, kind)
       await nextFrame()
       return harness.root.querySelector<HTMLTextAreaElement>(".variable-editor__field")!
     },
     save: async (target, text) => {
-      target.value = text
-      target.dispatchEvent(new Event("input", { bubbles: true }))
+      enterValue(target, text)
       await nextFrame()
       const button = buttonNamed(harness.root, "Save")
       button.focus()

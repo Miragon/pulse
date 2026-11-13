@@ -1,10 +1,17 @@
-import { render } from "preact"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import type { PanelState, WebviewIntent } from "../../src/core/protocol/index.js"
 import { DEFINITION_VIEW, FILTERED_DEFINITION_VIEW } from "../../dev/webview/fixtures/definition.js"
 import { FIXTURES } from "../../dev/webview/fixtures/states.js"
 import { ScopeSegments } from "../../src/webview/components/scope-segments.js"
-import { mountApp, nextFrame, press, radioNamed, waitForElement, type Harness } from "./harness.js"
+import {
+  mount,
+  mountApp,
+  nextFrame,
+  press,
+  radioNamed,
+  waitForElement,
+  type Harness,
+} from "./harness.js"
 
 function filtersPosted(harness: Harness): WebviewIntent[] {
   return harness.posted.filter((intent) => intent.type === "filterInstances")
@@ -200,15 +207,8 @@ describe("the bar of the instance panel", () => {
   })
 
   it("keeps a scope chosen right after the first render", async () => {
-    const root = document.body.appendChild(document.createElement("div"))
-    harness = {
-      unmount: () => {
-        render(null, root)
-        root.remove()
-      },
-    } as Harness
     const chosen: string[] = []
-    render(
+    const mounted = mount(
       <ScopeSegments
         label="Show instances"
         options={[
@@ -220,8 +220,9 @@ describe("the bar of the instance panel", () => {
         busy={false}
         onSelect={(scope) => chosen.push(scope)}
       />,
-      root,
     )
+    harness = { unmount: mounted.unmount } as Harness
+    const { root } = mounted
 
     radioNamed(root, "Ended").click()
     await nextFrame()

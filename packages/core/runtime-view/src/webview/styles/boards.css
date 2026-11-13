@@ -132,6 +132,11 @@
 
 .counter__threshold.counter__threshold--above,
 .counter__threshold.counter__threshold--undecided {
+  color: var(--cd-ui-text);
+}
+
+.counter__threshold--above .icon,
+.counter__threshold--undecided .icon {
   color: var(--cd-ui-warning);
 }
 

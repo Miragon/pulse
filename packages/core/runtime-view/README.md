@@ -44,6 +44,15 @@ read the works the CSS inlines (`inlinedStylesheets` of the repository's
 `scripts/third-party-licenses.mjs`); `test/scripts/tailwind-entries.test.ts` builds a fixture
 entry through it.
 
+The webview tests (`test/webview`, Chromium) mount, update and unmount through one harness,
+`packages/core/runtime-view/test/webview/harness.tsx`, which alone holds the renderer, and enter
+values through the native value setter with bubbling `input` and `change` events, so they read
+the same under Preact and React. Their accessibility baseline runs axe-core over every fixture of
+the dev page in light, dark and both high-contrast themes and over the opened tabs, the variable
+editor, the condition dialog and the move panel, with no WCAG 2.2 A or AA violation
+(`test/webview/accessibility.test.tsx`); `test/webview/semantics.test.tsx` holds the roles and
+states each screen keeps, `test/webview/focus-on-update.test.tsx` focus across a live update.
+
 The architecture decisions are the extension's (`apps/vscode/docs/adr/`), where the runtime view
 grew up; the house rules are in `apps/vscode/CLAUDE.md`.
 
