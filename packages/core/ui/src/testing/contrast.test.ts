@@ -186,6 +186,21 @@ describe("parseThemeVariables", () => {
     expect(scoped.dark.get("--x")).toBe("#000001")
   })
 
+  it("skips the comfortable density step on touch: a nested root rule of density roles only, no colour", () => {
+    const dense = parseThemeVariables(
+      ":root { --x: #000001; --control-h: 1.75rem; }",
+      "@media (any-pointer: coarse) { :root { --control-h: 2.25rem; --button-radius: 12px; } }",
+    )
+    expect(dense.light.get("--control-h")).toBe("1.75rem")
+    expect(dense.dark.get("--x")).toBe("#000001")
+    expect(() =>
+      parseThemeVariables(
+        ":root { --x: #ffffff; }",
+        "@media (any-pointer: coarse) { :root { --control-h: 2.25rem; --x: #000000; } }",
+      ),
+    ).toThrow(/Unsupported theme rule/)
+  })
+
   it("models the kit's dark scopes on <html> and skips its light islands and high contrast", () => {
     // Like the kit's theme.css: a light island nested in a dark scope, three dark scopes.
     const kitShaped = parseThemeVariables(

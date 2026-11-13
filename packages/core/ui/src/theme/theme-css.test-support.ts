@@ -50,6 +50,14 @@ function block(selector: string): Record<string, string> {
   return found.decls
 }
 
+/** Declarations of the first block with `selector` inside the media query `media`. */
+function blockIn(media: string, selector: string): Record<string, string> {
+  const at = rules.indexOf(`@media ${media} {`)
+  const found = BLOCKS.find((b) => at >= 0 && b.offset > at && b.selector === norm(selector))
+  if (!found) throw new Error(`theme.css has no block "${selector}" in @media ${media}`)
+  return found.decls
+}
+
 export const ROOT = block(":root")
 export const LIGHT = block(LIGHT_SELECTOR)
 export const DARK = block(DARK_SCOPES)
@@ -57,9 +65,19 @@ export const KONTRAST = block(KONTRAST_SELECTOR)
 export const DARK_KONTRAST = block(DARK_KONTRAST_SELECTOR)
 export const THEME_INLINE = block("@theme inline")
 export const THEME_REFERENCE = block("@theme inline reference")
+/** The comfortable density step: on a coarse pointer, and inside `data-density="comfortable"`. */
+export const COARSE = blockIn("(any-pointer: coarse)", ":root")
+export const COMFORTABLE = block('[data-density="comfortable"]')
 
 const CD: Record<string, string> = {}
 for (const m of cdCss.matchAll(/(--cd-[a-z0-9-]+):\s*([^;]+);/g)) CD[m[1]] = m[2]
+
+/** A vendored `--cd-*` token's value (a mode-switched one: as the tokens declare it last). */
+export function cdToken(name: string): string {
+  const value = CD[name]
+  if (!value) throw new Error(`the vendored tokens declare no ${name}`)
+  return value
+}
 
 // ── Colour maths (sRGB, WCAG 2.x relative luminance) ──────────────────────────
 

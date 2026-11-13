@@ -128,9 +128,22 @@ guide's own `data-cd-theme="dark"`; `data-cd-kontrast="hoch"` switches high cont
 stronger edges and quiet text, a 3 px focus) and forced colours keep every state visible. Your
 brand overrides role variables only, never a `--cd-*` token, under `:root` AND the dark scopes
 (`.dark, [data-theme="dark"], [data-theme-mode="dark"], [data-cd-theme="dark"]`), or a light-only
-value shows in dark.
-Measure it in a test with `@miragon/pulse-ui/testing`: `parseThemeVariables(...themeStylesheets(), brandCss)` and
-`contrastFindings` over `toneContrastPairs()` and `ROLE_CONTRAST_PAIRS`.
+value shows in dark. Measure it in a test with `@miragon/pulse-ui/testing`:
+`parseThemeVariables(...themeStylesheets(), brandCss)` and `contrastFindings` over
+`toneContrastPairs()` and `ROLE_CONTRAST_PAIRS`.
+
+The density roles set the size of controls, rows and bars on every surface, compact by default
+and in `rem` on the guide's shell ladder (`--cd-shell-zeile` 40 px, `--cd-shell-eintrag` 36,
+`--cd-shell-rand` 12 at a 16 px root): `--bar-h` 40 px, `--toolbar-h` and `--entry-h` 36,
+`--control-h` 28, `--control-h-xs` 24, `--control-h-lg` 36, `--row-h` 28, `--cell-px` 12 and
+`--cell-py` 4, `--gutter` and `--section-gap` 12, `--segment-h` 24, `--badge-h` 20 and
+`--button-radius` (sm). On a coarse pointer (`any-pointer: coarse`) and inside an element marked
+`data-density="comfortable"` they take the comfortable step: 36 px controls, 40 px rows,
+toolbars and menu entries, a 48 px bar, a 16 px gutter, the md radius on buttons. Tailwind reaches
+them as spacing keys (`min-h-control`, `h-row`, `size-control-xs`, `p-gutter`, `gap-section`,
+`min-h-bar`, `min-h-toolbar`, `min-h-entry`, `h-segment`, `h-badge`), `px-cell` and `py-cell`,
+and `rounded-button`; `cn` merges them against Tailwind's own steps. A brand that sets a density
+role under `:root` sets it for both steps, since its stylesheet comes after the theme.
 
 ## Help and feedback
 

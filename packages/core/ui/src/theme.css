@@ -14,7 +14,9 @@
  *                `--raised`, `--muted`, `--accent`, `--border`, …), `--primary`,
  *                `--interaction`, `--link`, `--focus`, `--<tone>`,
  *                `--<tone>-soft`, `--<tone>-surface`, `--<tone>-ink`, radii,
- *                shadows, motion, fonts, light AND dark, each pointing at
+ *                shadows, motion, fonts, the density (`--control-h`,
+ *                `--row-h`, `--gutter`, …, compact, comfortable on touch),
+ *                light AND dark, each pointing at
  *                `--cd-*` only (never at another role, so a role overridden on
  *                a scope cannot leave a stale alias behind; the font roles also
  *                name the host's font, `--host-font-*`).
@@ -120,7 +122,10 @@
    `var(--font-mono)`). `reference` keeps Tailwind from emitting the
    self-referencing theme variable; the roles below define the values.
    The type scale works the same way: `text-small` sets the font size, line
-   height and weight of the `--text-small` role. */
+   height and weight of the `--text-small` role. The density roles are
+   spacing keys (`min-h-control` → `var(--control-h)`, `h-row`, `p-gutter`,
+   `gap-section`; the keys in src/lib/density.ts, which cn knows too) and the
+   button's radius a radius key (`rounded-button`). */
 @theme inline reference {
   --text-title: var(--text-title);
   --text-title--line-height: var(--text-title--line-height);
@@ -143,6 +148,27 @@
   --shadow-3: var(--shadow-3);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
+  --spacing-bar: var(--bar-h);
+  --spacing-toolbar: var(--toolbar-h);
+  --spacing-entry: var(--entry-h);
+  --spacing-control: var(--control-h);
+  --spacing-control-xs: var(--control-h-xs);
+  --spacing-control-lg: var(--control-h-lg);
+  --spacing-row: var(--row-h);
+  --spacing-gutter: var(--gutter);
+  --spacing-section: var(--section-gap);
+  --spacing-segment: var(--segment-h);
+  --spacing-badge: var(--badge-h);
+  --radius-button: var(--button-radius);
+}
+
+/* The cell's padding has a role per axis, so its two utilities are their own:
+   a spacing key would give `px-cell` and `py-cell` one value. */
+@utility px-cell {
+  padding-inline: var(--cell-px);
+}
+@utility py-cell {
+  padding-block: var(--cell-py);
 }
 
 /* ── Mode-independent roles ───────────────────────────────────────────────── */
@@ -190,6 +216,70 @@
   --font-mono:
     "Geist Mono", "Geist Mono Variable", var(--host-font-mono, ui-monospace), SFMono-Regular, Menlo,
     Consolas, monospace;
+  /* Density, compact: the default of every surface (D9), on the guide's shell
+     ladder (modeler-tool-design §5.2). In rem, so a reader's font size scales
+     it; at a 16 px root the bar is --cd-shell-zeile, toolbars, menu entries
+     and the large control --cd-shell-eintrag, the gutter, the section gap and
+     the cell's side padding --cd-shell-rand (theme-density.test.ts holds
+     them). The 28 px control and row, the 24 px xs control and the sm radius
+     on buttons are the named deviations of the density section in CLAUDE.md;
+     the shell ladder has no 28 px token. Controls and bars take their height
+     as a minimum. The badge is no target and keeps 20 px in both steps. */
+  --bar-h: 2.5rem; /* 40px */
+  --toolbar-h: 2.25rem; /* 36px */
+  --entry-h: 2.25rem; /* 36px */
+  --control-h: 1.75rem; /* 28px */
+  --control-h-xs: 1.5rem; /* 24px */
+  --control-h-lg: 2.25rem; /* 36px */
+  --row-h: 1.75rem; /* 28px */
+  --cell-px: 0.75rem; /* 12px */
+  --cell-py: 0.25rem; /* 4px */
+  --gutter: 0.75rem; /* 12px */
+  --section-gap: 0.75rem; /* 12px */
+  --segment-h: 1.5rem; /* 24px */
+  --button-radius: var(--cd-radius-sm);
+  --badge-h: 1.25rem; /* 20px */
+}
+
+/* ── Density, comfortable: touch, or data-density="comfortable" ───────────────
+   On a coarse pointer (any-pointer: coarse, a touch screen next to a mouse
+   too) and inside an element marked data-density="comfortable", the roles
+   take the guide's ladder: 36 px controls (eintrag); 40 px rows, toolbars,
+   menu entries and large controls (zeile); 32 px xs controls and segments
+   (ziel); a 48 px bar, a 36 px target with 6 px above and below; a 16 px
+   gutter and section gap, 8 px cell padding top and bottom, the md radius on
+   buttons. Both blocks carry the same values (theme-density.test.ts). */
+@media (any-pointer: coarse) {
+  :root {
+    --bar-h: 3rem; /* 48px */
+    --toolbar-h: 2.5rem; /* 40px */
+    --entry-h: 2.5rem; /* 40px */
+    --control-h: 2.25rem; /* 36px */
+    --control-h-xs: 2rem; /* 32px */
+    --control-h-lg: 2.5rem; /* 40px */
+    --row-h: 2.5rem; /* 40px */
+    --cell-px: 0.75rem; /* 12px */
+    --cell-py: 0.5rem; /* 8px */
+    --gutter: 1rem; /* 16px */
+    --section-gap: 1rem; /* 16px */
+    --segment-h: 2rem; /* 32px */
+    --button-radius: var(--cd-radius-md);
+  }
+}
+[data-density="comfortable"] {
+  --bar-h: 3rem; /* 48px */
+  --toolbar-h: 2.5rem; /* 40px */
+  --entry-h: 2.5rem; /* 40px */
+  --control-h: 2.25rem; /* 36px */
+  --control-h-xs: 2rem; /* 32px */
+  --control-h-lg: 2.5rem; /* 40px */
+  --row-h: 2.5rem; /* 40px */
+  --cell-px: 0.75rem; /* 12px */
+  --cell-py: 0.5rem; /* 8px */
+  --gutter: 1rem; /* 16px */
+  --section-gap: 1rem; /* 16px */
+  --segment-h: 2rem; /* 32px */
+  --button-radius: var(--cd-radius-md);
 }
 
 /* ── Neutral roles: the guide's --cd-ui-* roles (modeler-tool-design §3.5) ─────

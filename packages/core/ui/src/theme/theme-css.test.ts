@@ -6,7 +6,9 @@ import { ROLE_TOKENS } from "./role-tokens.js"
 import { TONE_DOT } from "../lib/tone-utils.js"
 import {
   BLOCKS,
+  COARSE,
   colour,
+  COMFORTABLE,
   DARK,
   DARK_KONTRAST,
   DARK_SCOPES,
@@ -56,7 +58,7 @@ describe("theme.css: the role-token contract", () => {
 
   it("points every role at --cd-* tokens only (never at another role; fonts also at the host's font)", () => {
     const hostSlots = new Set<string>(Object.values(HOST_FONT_VARIABLES))
-    for (const decls of [ROOT, LIGHT, DARK, KONTRAST, DARK_KONTRAST]) {
+    for (const decls of [ROOT, LIGHT, DARK, KONTRAST, DARK_KONTRAST, COARSE, COMFORTABLE]) {
       for (const [name, value] of Object.entries(decls)) {
         for (const ref of value.matchAll(/var\((--[a-z0-9-]+)/g)) {
           const target = ref[1]
@@ -199,7 +201,7 @@ describe("theme.css: the role-token contract", () => {
 
   it("names the palette, never a --cd-ui-* role, so a mode the host sets reaches every value", () => {
     // The --cd-ui-* roles switch only under data-cd-theme; .dark and data-theme would keep their light values.
-    for (const decls of [ROOT, LIGHT, DARK, KONTRAST, DARK_KONTRAST]) {
+    for (const decls of [ROOT, LIGHT, DARK, KONTRAST, DARK_KONTRAST, COARSE, COMFORTABLE]) {
       for (const value of Object.values(decls)) expect(value).not.toMatch(/--cd-ui-/)
     }
   })

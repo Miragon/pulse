@@ -22,6 +22,9 @@
  *   --chart-1 … --chart-5, --sidebar-*                 charts, a sidebar
  *   --radius-sm/-md/-lg, --shadow-1/-2/-3, --scrim     shape and depth
  *   --font-sans, --font-mono                           type
+ *   --control-h, --row-h, --bar-h, --gutter …          the density in rem: compact, and
+ *     and --button-radius (pulse-ui's README          comfortable on touch and under
+ *     lists them all)                                  data-density="comfortable"
  *   --brand-mark-display                               the Miragon Komet on app-level
  *                                                      surfaces: set none to hide it
  *
