@@ -1,5 +1,7 @@
 import {
+  cn,
   LogText,
+  MICRO_LABEL,
   NamedId,
   TableEmptyState,
   Td,
@@ -280,7 +282,7 @@ function ClusterDetailView({
         <>
           {data.representativeMessage && (
             <div>
-              <h2 className="text-foreground text-dense font-semibold">
+              <h2 className={cn("text-foreground", MICRO_LABEL)}>
                 {t("clusterDetail.failureMessage")}
               </h2>
               <LogText text={data.representativeMessage} className="mt-1" />
@@ -291,7 +293,7 @@ function ClusterDetailView({
             aria-label={t("clusterDetail.affectedInstances")}
             className="flex flex-col gap-2"
           >
-            <h2 className="text-foreground text-dense font-semibold">
+            <h2 className={cn("text-foreground", MICRO_LABEL)}>
               {t("clusterDetail.affectedInstances")}
             </h2>
             <FilterBar

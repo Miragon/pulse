@@ -213,7 +213,7 @@ function EnginesEmptyState({
   }
   return (
     <WidgetShell>
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+      <div className="gap-section mx-auto flex w-full max-w-3xl flex-col">
         <LandingHeader />
         <EmptyState
           titleAs="h2"

@@ -435,7 +435,13 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   `widget-shell/src/ui/bpmn-tokens.ts`: incident = danger, running/open task = blue on the
   info tint, counts white on blue or danger; strokes ≥ 3:1, badge text ≥ 4.5:1, drift- and contrast-tested) through `HIGHLIGHT_COLORS`
   (`src/widgets/bpmn-highlights.ts`); the CSS is
-  `injectBpmnOverlayCss()`. No pulse: an open user task is a heavier dashed stroke
+  `injectBpmnOverlayCss()`. No pulse: an open user task is a heavier dashed stroke. A marker
+  paints its own shape's outline only, never a label's text or what lies inside a marked
+  process or subprocess. The diagram's name goes to the hook's `ariaLabel`, which makes the
+  canvas alone the image: never `role="img"` on the frame, whose zoom controls and bpmn.io's
+  link would then sit inside an image. A count badge is a drawing beside the image,
+  `aria-hidden`, its value in words in the view (the values list, the tables); the hook hides
+  bpmn-js's drilldown trail, never in sight under the canvas.
 
 **Paged list recipe** (every list that can exceed one page follows it; reference:
 `src/widgets/process-instances/list.tsx`):
@@ -444,11 +450,14 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
    `businessKeyLike`/`nameLike`) and return the full filtered total (via the matching
    `/count` endpoint) so the footer is honest.
 2. Widget: `usePagedListView` (owns search state, 300 ms debounce, the server-side
-   `searchArg`, and the drop-initialData-on-interaction rule; chips go into
-   `filtersActive` + the `args`) → `FilterBar` (with `searchAriaLabel`, the placeholder's
-   words without the ellipsis, and `chipsAriaLabel` for a chip row: pulse-ui's default
-   name is a generic "Filter"; `src/widgets/search-labels.test.tsx` pins every search box
-   by its name) → `PagedRows` (marks the rows while they
+   `searchArg`, and the drop-initialData-on-interaction rule; a scope goes into
+   `filtersActive` + the `args`) → the filter `Toolbar`: a single-choice scope (All, With
+   incident, Last 24h …) is a `SegmentedControl` first, named by its `ariaLabel`, its counts
+   from the payload on screen, then the `SearchField` named by its `aria-label`, the
+   placeholder's words without the ellipsis; a search alone may be a `FilterBar` with
+   `searchAriaLabel` (pulse-ui's default name is a generic "Filter";
+   `src/widgets/search-labels.test.tsx` pins every search box and scope by its name) →
+   `PagedRows` (marks the rows while they
    are the previous result) around `ListTable` (frame + `Th` header row;
    rows stay hand-composed `<tr>` + `Td`) or a `RowCard` stack → `TableEmptyState`
    (distinguish "no match" when `interacted`) → pulse-ui's `PagedListFooter`

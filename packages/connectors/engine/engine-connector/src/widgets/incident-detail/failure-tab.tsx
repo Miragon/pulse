@@ -218,7 +218,7 @@ function StacktraceSection({ job }: { job: IncidentDetailJob }) {
     <pre
       aria-label={t("incidentFailure.stacktraceTitle")}
       className={cn(
-        "border-border bg-card text-foreground text-small rounded-md border p-3 font-mono leading-relaxed",
+        "border-border bg-card text-foreground text-small p-gutter rounded-md border font-mono leading-relaxed",
         TEXT_BLOCK_FRAME,
       )}
     >

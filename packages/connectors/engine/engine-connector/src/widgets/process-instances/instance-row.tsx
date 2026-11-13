@@ -10,18 +10,20 @@ import { rootCauseHandOff } from "./hand-offs.js"
 /**
  * The row's state on one line, as the webview's state cell: running or suspended, and an open
  * incident beside it, each a tone icon of its own shape and its word (never a pill, never a dot's
- * colour alone).
+ * colour alone). In a region under 28rem (a phone-width chat) the incident shows its icon alone,
+ * closer, its word for a screen reader and in its title, so the row's own state and the incident
+ * stay clear of the pinned row actions without scrolling.
  */
 function InstanceState({ row }: { row: ProcessInstanceRow }) {
   const t = useT()
   return (
-    <span className="inline-flex max-w-full items-baseline gap-3 whitespace-nowrap">
+    <span className="inline-flex max-w-full items-center gap-3 whitespace-nowrap @max-md:gap-1">
       {row.suspended ? (
         <StateLabel state="suspended">{t("processInstances.stateSuspended")}</StateLabel>
       ) : (
         <StateLabel state="running">{t("processInstances.stateRunning")}</StateLabel>
       )}
-      {row.hasIncident && <StateLabel state="incident" />}
+      {row.hasIncident && <StateLabel state="incident" iconOnlyBelow="md" />}
     </span>
   )
 }

@@ -157,7 +157,7 @@ function ClusterRow({
   ].filter((part): part is string => part !== null)
 
   return (
-    <li className="border-border flex flex-wrap items-start justify-between gap-3 rounded-md border p-3">
+    <li className="border-border p-gutter flex flex-wrap items-start justify-between gap-3 rounded-md border">
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex min-w-0 flex-wrap items-start gap-2">
           <NamedId name={cluster.activityName} id={cluster.activityId} />

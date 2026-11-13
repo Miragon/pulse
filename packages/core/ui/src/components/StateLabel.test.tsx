@@ -59,6 +59,30 @@ describe("StateLabel", () => {
     expect(new Set(shapes).size).toBe(STATES.length)
   })
 
+  it.each([
+    ["sm", "@max-sm:sr-only"],
+    ["md", "@max-md:sr-only"],
+  ] as const)(
+    "iconOnlyBelow %s: under that container width the word leaves the sight, never the name",
+    (below, query) => {
+      const { container } = render(<StateLabel state="incident" iconOnlyBelow={below} />)
+      const label = container.querySelector('[data-slot="state-label"]')!
+      const word = label.querySelector("span")!
+      expect(word.getAttribute("class")).toContain(query)
+      expect(word.textContent).toBe(UI_MESSAGES.en.stateLabel.incident)
+      expect(label.getAttribute("title")).toBe(UI_MESSAGES.en.stateLabel.incident)
+      // The icon stays in sight: a shape of its own carries the state.
+      expect(label.querySelector("svg")?.getAttribute("class")).not.toContain("sr-only")
+    },
+  )
+
+  it("keeps its word in sight at every width by default", () => {
+    const { container } = render(<StateLabel state="incident" />)
+    expect(
+      container.querySelector('[data-slot="state-label"] span')?.getAttribute("class"),
+    ).not.toMatch(/sr-only/)
+  })
+
   it("speaks the locale, one word per state, and takes other words", () => {
     render(
       <LocaleProvider locale="de">

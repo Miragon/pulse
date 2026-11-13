@@ -59,7 +59,7 @@ function OpenTaskCard({
   const t = useT()
   return (
     <Card className="gap-0 py-0 shadow-none">
-      <CardContent className="p-3">
+      <CardContent className="p-gutter">
         <div className="flex items-start justify-between gap-2">
           <div className="flex flex-col">
             <div className="font-semibold">{task.name ?? task.taskDefinitionKey}</div>
@@ -76,7 +76,7 @@ function OpenTaskCard({
           )}
         </div>
         {canComplete && expanded && (
-          <div className="mt-3 border-t pt-3">
+          <div className="mt-gutter pt-gutter border-t">
             <TaskCompleteForm
               taskId={task.id}
               taskName={task.name ?? task.id}

@@ -8,6 +8,7 @@ import {
   useLocale,
   Icon,
   KometMark,
+  MICRO_LABEL,
   WidgetHeader,
   formatNumber,
   type ToneVariant,
@@ -118,7 +119,7 @@ function EngineRow({
       onClick={onEnter}
       data-status={kind}
       className={cn(
-        "hover:bg-accent text-dense min-h-row px-cell flex w-full items-center gap-3 py-1 text-left transition-colors",
+        "hover:bg-accent text-dense min-h-row px-cell py-cell flex w-full items-center gap-3 text-left transition-colors",
         FOCUS_RING_INSET,
       )}
     >
@@ -190,7 +191,7 @@ export function LandingChooser({
   })
   return (
     <WidgetShell header={notice}>
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+      <div className="gap-section mx-auto flex w-full max-w-3xl flex-col">
         <LandingHeader
           subtitle={subtitle}
           action={
@@ -208,11 +209,7 @@ export function LandingChooser({
             aria-label={named ? tr("cockpit.landing.envLabel", { env: g.id }) : undefined}
             className="flex flex-col gap-2"
           >
-            {named && (
-              <h2 className="text-muted-foreground text-small font-semibold tracking-wide uppercase">
-                {g.id}
-              </h2>
-            )}
+            {named && <h2 className={cn("text-muted-foreground", MICRO_LABEL)}>{g.id}</h2>}
             <ul className="border-border bg-card divide-border divide-y overflow-hidden rounded-md border">
               {g.engines.map((e) => (
                 <li key={e.id}>

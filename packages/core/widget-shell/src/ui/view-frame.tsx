@@ -48,9 +48,10 @@ function FrameBody({
   labels: KitLabels
   onRetry: () => void
 }) {
+  // Every phase before the view sits on the gutter, as the view's own content does.
   if (!View) {
     return (
-      <div className="px-4 py-4">
+      <div className="p-gutter">
         <ErrorState title={labels.viewMissing} />
       </div>
     )
@@ -60,7 +61,7 @@ function FrameBody({
       return <ViewWaiting labels={labels} />
     case "cancelled":
       return (
-        <div className="px-4 py-4">
+        <div className="p-gutter">
           <p role="status" className="text-muted-foreground text-small">
             {labels.cancelled}
           </p>
@@ -68,7 +69,7 @@ function FrameBody({
       )
     case "error":
       return (
-        <div className="px-4 py-4">
+        <div className="p-gutter">
           <ViewDataState
             loading={false}
             error={phase.error}
@@ -97,8 +98,8 @@ function ViewWaiting({ labels }: { labels: KitLabels }) {
     return () => clearTimeout(id)
   }, [])
   return (
-    <div className="flex flex-col gap-4 px-4 py-4">
-      <Skeleton aria-hidden="true" className="h-8 w-48" />
+    <div className="gap-section p-gutter flex flex-col">
+      <Skeleton aria-hidden="true" className="h-control w-48" />
       <Skeleton aria-hidden="true" className="h-32 w-full" />
       <div role="status" className="text-muted-foreground text-small flex flex-col gap-1">
         <p>{labels.loadingView}</p>

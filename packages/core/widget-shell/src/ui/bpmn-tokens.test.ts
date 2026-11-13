@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { describe, expect, it } from "vitest"
 import { CD_TOKENS, type CdTokenName } from "@miragon/pulse-ui"
 import {
@@ -71,6 +72,43 @@ describe("BPMN token module ↔ the vendored CSS (modeler-tool-design §13 drift
     expect(BPMN_OVERLAY_CSS).not.toMatch(/animation|@keyframes|transition/)
     expect(BPMN_OVERLAY_CSS).toMatch(/highlight-open-user-task[^}]*stroke-dasharray/)
   })
+})
+
+/**
+ * The graphics bpmn-js draws, reduced to their classes: the process's layer (an activity instance
+ * tree's root names the process, so the instance view marks it too), an event with its external
+ * label beside it, a task with its name inside, an expanded subprocess with a task inside.
+ */
+const DRAWN = `
+<svg xmlns="http://www.w3.org/2000/svg"><g class="layer-root highlight-running highlight-incident highlight-open-user-task">
+  <g class="djs-group"><g class="djs-element djs-shape" data-element-id="start"><g class="djs-visual"><circle data-part="start"/></g></g></g>
+  <g class="djs-group"><g class="djs-element djs-shape" data-element-id="start_label"><g class="djs-visual"><text data-part="start label"/></g></g></g>
+  <g class="djs-group"><g class="djs-element djs-shape MARKER" data-element-id="task"><g class="djs-visual"><rect data-part="task"/><text data-part="task name"/></g></g></g>
+  <g class="djs-group"><g class="djs-element djs-shape MARKER" data-element-id="sub"><g class="djs-visual"><rect data-part="sub"/></g></g>
+    <g class="djs-children"><g class="djs-group"><g class="djs-element djs-shape" data-element-id="inner"><g class="djs-visual"><rect data-part="inner"/></g></g></g></g>
+  </g>
+  <g class="djs-group"><g class="djs-element djs-connection MARKER" data-element-id="flow"><g class="djs-visual"><path data-part="flow"/></g></g></g>
+</g></svg>`
+
+describe("a marker paints its shape's outline, never a label or what lies inside", () => {
+  const rules = [...BPMN_OVERLAY_CSS.matchAll(/^([^{}\n]*highlight-[^{}\n]*)\{/gm)].map((m) =>
+    m[1].trim(),
+  )
+
+  it.each(["highlight-running", "highlight-open-user-task", "highlight-incident"])(
+    "%s: the marked task's and subprocess's own outline, nothing of the process's layer",
+    (marker) => {
+      document.body.innerHTML = DRAWN.replaceAll("MARKER", marker)
+      const selectors = rules.filter((rule) => rule.includes(`.${marker} `))
+      expect(selectors).toHaveLength(1)
+      const painted = [...document.querySelectorAll(selectors[0])].map((el) =>
+        el.getAttribute("data-part"),
+      )
+      // Not the event or its label (only the process's layer carries the marker), not the
+      // task's name, not the task inside the subprocess, not the flow.
+      expect(painted).toEqual(["task", "sub"])
+    },
+  )
 })
 
 describe("BPMN palette contrast (CI §3.6: strokes ≥ 3:1, text ≥ 4.5:1)", () => {

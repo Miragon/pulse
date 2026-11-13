@@ -113,6 +113,8 @@ export function BpmnCanvas({
     // markers/overlays are only ever added, never removed.
     reimportKey: highlights,
     fitOnResize: true,
+    // The canvas alone is the image: the zoom controls, bpmn.io's link and the badges lie beside it.
+    ariaLabel: t("bpmnDiagram.ariaLabel"),
     onImported: (imported) => {
       injectBpmnOverlayCss()
       applyHighlights(imported.get("canvas"), imported.get("overlays"), highlights)
@@ -129,13 +131,11 @@ export function BpmnCanvas({
     <div data-theme-mode="light" className="relative">
       <div
         ref={containerRef}
-        role="img"
-        aria-label={t("bpmnDiagram.ariaLabel")}
         className="border-border rounded-md border"
         style={{ height: `${height ?? autoHeight}px`, width: "100%" }}
       />
       {importError !== null && (
-        <div className="absolute inset-0 grid place-items-center p-6">
+        <div className="p-gutter absolute inset-0 grid place-items-center">
           <ErrorState variant="inline" title={t("bpmnDiagram.renderError")} details={importError} />
         </div>
       )}

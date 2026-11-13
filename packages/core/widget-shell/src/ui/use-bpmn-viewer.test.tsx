@@ -62,6 +62,12 @@ const mock = vi.hoisted(() => {
       MockViewer.containers.push(opts.container)
       this.canvas = new FakeCanvas(opts.container)
       MockViewer.canvases.push(this.canvas)
+      // bpmn-js's frame inside the container: the canvas is its focusable SVG, the drilldown
+      // trail a list under it.
+      opts.container.innerHTML =
+        '<div class="bjs-container"><div class="djs-container"><svg tabindex="0"></svg>' +
+        '<ul class="bjs-breadcrumbs"><li><span class="bjs-crumb"><a>Invoice Receipt</a></span></li></ul>' +
+        "</div></div>"
     }
     importXML(): Promise<{ warnings: string[] }> {
       return Promise.resolve({ warnings: [] })
@@ -169,6 +175,37 @@ describe("useBpmnViewer canvas (#339, N122)", () => {
 
     rerender(<Diagram xml={XML} />)
     expectLightCanvas(canvas())
+  })
+})
+
+function Named({ xml, label }: { xml: string; label?: string }) {
+  const { containerRef } = useBpmnViewer({ bpmnXml: xml, ariaLabel: label })
+  return <div ref={containerRef} data-testid="canvas" />
+}
+
+describe("useBpmnViewer names the canvas, never its frame (axe's nested-interactive)", () => {
+  it("the canvas SVG is the image under the diagram's name, the frame of its controls none", async () => {
+    const { rerender } = render(<Named xml={XML} label="BPMN process diagram" />)
+    const image = await screen.findByRole("img", { name: "BPMN process diagram" })
+    expect(image.tagName.toLowerCase()).toBe("svg")
+    expect(canvas().hasAttribute("role")).toBe(false)
+
+    rerender(<Named xml={XML} label="BPMN-Prozessdiagramm" />)
+    expect(screen.getByRole("img", { name: "BPMN-Prozessdiagramm" })).toBe(image)
+  })
+
+  it("without a name the canvas stays as bpmn-js drew it", async () => {
+    render(<Named xml={XML} />)
+    await waitFor(() => expect(mock.MockViewer.containers).toEqual([canvas()]))
+    expect(screen.queryByRole("img")).toBeNull()
+    expect(canvas().querySelector("svg")?.hasAttribute("aria-label")).toBe(false)
+  })
+
+  it("hides bpmn-js's drilldown trail, never in sight under the canvas, so no list reads beside the image", async () => {
+    render(<Named xml={XML} label="BPMN process diagram" />)
+    await screen.findByRole("img", { name: "BPMN process diagram" })
+    expect(canvas().querySelector(".bjs-breadcrumbs")?.hasAttribute("hidden")).toBe(true)
+    expect(screen.queryByRole("list")).toBeNull()
   })
 })
 

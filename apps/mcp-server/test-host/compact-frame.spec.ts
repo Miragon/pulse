@@ -8,7 +8,7 @@ import { HEALTHY_ENGINE, REALISTIC_ENGINE, REALISTIC_HOST_ENV } from "./engines.
  * 320 px card keeps every fact and id of a view's bar and every section of the head, the head's
  * sections (pulse-ui's NavTabs) open by keyboard, forced colours keep the open tab, the head's
  * open section and a docked strip, a fact's term sits on its value's baseline, and the detail
- * views pass axe with a failed refresh docked under the bar.
+ * views pass axe, their BPMN diagram included, with a failed refresh docked under the bar.
  */
 
 const INSTANCE_ARGS = {
@@ -480,16 +480,10 @@ test.describe("facts", () => {
   })
 })
 
-/**
- * The BPMN canvas (role img) holds bpmn.io's link, axe's nested-interactive: a finding of the
- * diagram's own, not the frame's, left out here (the frame, then the canvas inside it).
- */
-const BPMN_CANVAS = ["#app", '[role="img"][aria-label="BPMN process diagram"]']
-
+/** The whole view, the BPMN diagram included: its canvas alone is the image, its controls beside it. */
 async function expectAxeClean(page: Page, label: string) {
   const results = await new AxeBuilder({ page })
     .include("#app")
-    .exclude(BPMN_CANVAS)
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22a", "wcag22aa"])
     .analyze()
   const violations = results.violations.map((v) => ({

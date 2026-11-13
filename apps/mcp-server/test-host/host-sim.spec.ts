@@ -1036,9 +1036,12 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
     })
     expect((await documentTheme(app)).dark).toBe(true)
 
-    // The canvas is light in a dark theme; bpmn-js's near-black strokes and
+    // The canvas alone is the image (its SVG), the zoom controls and bpmn.io's link beside it.
+    expect(await canvas.evaluate((el) => el.tagName.toLowerCase())).toBe("svg")
+    // The paper under it is light in a dark theme; bpmn-js's near-black strokes and
     // labels sit on it, not on the dark card.
-    expect(await luminance(canvas, "backgroundColor")).toBeGreaterThan(0.95)
+    const paper = canvas.locator("xpath=ancestor::*[@data-theme-mode='light'][1]")
+    expect(await luminance(paper, "backgroundColor")).toBeGreaterThan(0.95)
     expect(await luminance(canvas.locator(".djs-connection path").first(), "stroke")).toBeLessThan(
       0.25,
     )
@@ -1062,8 +1065,62 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
     }
   })
 
+  // An instance's activity tree names the process at its root, so the view marks the process too:
+  // a marker paints its own shape's outline, never what lies inside the process or a label.
+  test("an instance's markers paint their shapes alone: every label keeps its ink, the other shapes theirs", async ({
+    page,
+  }) => {
+    const app = await openView(page, {
+      args: { engine: HEALTHY_ENGINE, view: "instance-detail", processInstanceId: "pi-invoice-42" },
+    })
+    const canvas = app.getByRole("img", { name: "BPMN process diagram" })
+    await expect(canvas.locator(".djs-connection")).toHaveCount(4, { timeout: 15_000 })
+    const drawn = await canvas.evaluate((svg) => {
+      const ink = (el: Element) => {
+        const style = getComputedStyle(el)
+        return { fill: style.fill, stroke: style.stroke, strokeWidth: style.strokeWidth }
+      }
+      const outline = (id: string) =>
+        svg.querySelector(`[data-element-id="${id}"] > .djs-visual > :first-child`)!
+      /** A `--cd-*` token as the browser computes it, to compare with what a shape paints. */
+      const token = (name: string) => {
+        const probe = document.createElement("span")
+        probe.style.color = `var(--cd-${name})`
+        svg.parentElement!.appendChild(probe)
+        const color = getComputedStyle(probe).color
+        probe.remove()
+        return color
+      }
+      return {
+        labels: [...svg.querySelectorAll("text")].map((text) => ({
+          text: text.textContent,
+          ...ink(text),
+        })),
+        incident: ink(outline("approveInvoice")),
+        start: ink(outline("StartEvent_received")),
+        running: { stroke: token("blau"), fill: token("info-soft") },
+        danger: token("danger"),
+        rootMarked: svg.querySelector(".highlight-running:not(.djs-shape)") !== null,
+      }
+    })
+    // The process (the tree's root) carries the running marker, and it paints nothing.
+    expect(drawn.rootMarked).toBe(true)
+    // Every text in one ink, bpmn-js's dark one, never stroked: the labels beside the events,
+    // the gateway and the flows, and the task's name inside its marked shape.
+    expect(drawn.labels.length).toBeGreaterThanOrEqual(6)
+    expect(new Set(drawn.labels.map((label) => label.fill)).size).toBe(1)
+    for (const label of drawn.labels) {
+      expect(label, `"${label.text}" keeps bpmn-js's ink`).toMatchObject({ stroke: "none" })
+      expect(label.fill).not.toBe(drawn.running.stroke)
+    }
+    // The incident's task in its tone; the start event, which no marker names, as bpmn-js drew it.
+    expect(drawn.incident).toMatchObject({ stroke: drawn.danger, strokeWidth: "2px" })
+    expect(drawn.start.stroke).not.toBe(drawn.running.stroke)
+    expect(drawn.start.fill).not.toBe(drawn.running.fill)
+  })
+
   // The flow's "Running" end to end: the server's real feed against the stub's statistics, its
-  // count on the built diagram and the values under it.
+  // count on the built diagram (hidden from assistive technology) and the values under it.
   test("the process flow shows what runs at each element now, read from the engine", async ({
     page,
   }) => {
@@ -1087,8 +1144,26 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
     })
     const canvas = app.getByRole("img", { name: "BPMN process diagram" })
     await expect(canvas.locator(".djs-connection")).toHaveCount(4, { timeout: 15_000 })
-    // The two instances at approveInvoice, as a badge on that element.
-    await expect(app.locator(".bpmn-overlay-badge--instance-count")).toHaveText(["2"])
+    // The two instances at approveInvoice, as a badge on that element: a drawing, its count in
+    // words in the values below.
+    const badge = app.locator(".bpmn-overlay-badge--instance-count")
+    await expect(badge).toHaveText(["2"])
+    await expect(badge).toHaveAttribute("aria-hidden", "true")
+    // What the diagram's frame says to assistive technology: the image, bpmn.io's link and the
+    // zoom controls, never a bare "2" or bpmn-js's drilldown trail (a list of the process's name).
+    const frame = canvas.locator("xpath=ancestor::*[@data-theme-mode='light'][2]")
+    const exposed = (await frame.ariaSnapshot())
+      .split("\n")
+      .map((line) => /^- ([\w-]+)(?: "([^"]*)")?/.exec(line))
+      .filter((match): match is RegExpExecArray => match !== null)
+      .map(([, role, name]) => (name === undefined ? role : `${role} "${name}"`))
+    expect(exposed).toEqual([
+      'img "BPMN process diagram"',
+      'link "Powered by bpmn.io"',
+      'button "Zoom in"',
+      'button "Fit to viewport"',
+      'button "Zoom out"',
+    ])
 
     await app.getByText("Values per activity").click()
     const values = app.getByRole("region", { name: "Values per activity" })
@@ -1877,9 +1952,18 @@ test.describe("an instance and the instance list (engine_open_cockpit)", () => {
     await expect(withIncidents).toHaveAttribute("aria-checked", "true")
     await expect(all).toHaveAttribute("aria-checked", "false")
     await expect(scopes).toHaveAttribute("aria-busy", "false")
+    // A table this wide shows each incident's word beside its icon (only a narrow one drops it).
+    const incident = app.locator("tbody [data-slot='state-label'][data-state='incident']").first()
+    await expect(incident).toBeVisible()
+    const word = await incident.locator("span").evaluate((el) => ({
+      text: el.textContent,
+      width: el.getBoundingClientRect().width,
+    }))
+    expect(word.text).toBe("Incident")
+    expect(word.width).toBeGreaterThan(20)
   })
 
-  test("a phone-width chat shows each instance's state without scrolling sideways", async ({
+  test("a phone-width chat shows each instance's state and its incident without scrolling sideways", async ({
     page,
   }) => {
     // The realistic engine's long keys and process names are wider than 400 px together: the
@@ -1913,6 +1997,23 @@ test.describe("an instance and the instance list (engine_open_cockpit)", () => {
         states: [...el.querySelectorAll("tbody tr td:nth-child(2) [data-slot='state-label']")]
           .filter((label) => label.getAttribute("data-state") !== "incident")
           .map(box),
+        // An open incident beside it: in a region this narrow its icon alone, its word kept for a
+        // screen reader and in its title.
+        incidents: [
+          ...el.querySelectorAll(
+            "tbody tr td:nth-child(2) [data-slot='state-label'][data-state='incident']",
+          ),
+        ].map((label) => {
+          const icon = label.querySelector("svg")!.getBoundingClientRect()
+          const word = label.querySelector("span")!
+          return {
+            left: icon.left,
+            right: icon.right,
+            title: label.getAttribute("title"),
+            word: word.textContent,
+            wordInSight: word.getBoundingClientRect().width > 1,
+          }
+        }),
         rows: el.querySelectorAll("tbody tr").length,
       }
     })
@@ -1925,6 +2026,14 @@ test.describe("an instance and the instance list (engine_open_cockpit)", () => {
     for (const state of [placed.head, ...placed.states]) {
       expect(state.left).toBeGreaterThanOrEqual(placed.left)
       expect(state.right).toBeLessThanOrEqual(placed.pinnedLeft)
+    }
+    // So does each open incident's icon, a suspended row's too; its word reads to a screen
+    // reader and in its title, never under the actions.
+    expect(placed.incidents.length).toBeGreaterThan(0)
+    for (const incident of placed.incidents) {
+      expect(incident.left).toBeGreaterThanOrEqual(placed.left)
+      expect(incident.right).toBeLessThanOrEqual(placed.pinnedLeft)
+      expect(incident).toMatchObject({ title: "Incident", word: "Incident", wordInSight: false })
     }
   })
 })

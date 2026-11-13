@@ -55,7 +55,7 @@ export function DetailPage({
       {tabs && tabs.length > 0 ? (
         <section>
           <Tabs
-            className="gap-3"
+            className="gap-section"
             defaultValue={
               defaultTab && tabs.some((tab) => tab.id === defaultTab) ? defaultTab : tabs[0].id
             }

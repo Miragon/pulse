@@ -566,7 +566,9 @@ Ihre 12-px-Icons (Dichte, oben) lässt `scanIconSizes` in der Webview nur in den
      A count reaches a catalog entry already formatted, and the entry puts the noun in the right
      number (`countOf`, `plural(…)`), never a `…One`/`…Other` key pair.
    - **BPMN** renders through `useBpmnViewer` + `BpmnZoomControls` on a forced-light canvas
-     whose colours all come from `BPMN_TOKENS` (`packages/core/widget-shell/src/ui/bpmn-tokens.ts`).
+     whose colours all come from `BPMN_TOKENS` (`packages/core/widget-shell/src/ui/bpmn-tokens.ts`);
+     a marker paints its shape's outline, never a label, and the canvas alone is the image (the
+     hook's `ariaLabel`), its controls beside it and its count badges `aria-hidden` drawings.
    - **Paged lists** compose `usePagedListView` (the feed takes `firstResult`/`maxResults` and
      returns an honest total; counts, filters and model contexts read the payload ON SCREEN,
      never the request) + `ListTable` + `PagedListFooter`. Optimistic local state resets with

@@ -54,7 +54,7 @@ function editText(value: unknown, type?: string): string {
 export function ActivityNode({ node, depth = 0 }: { node: ActivityTree; depth?: number }) {
   return (
     <div>
-      <div className="flex items-center gap-2 py-1" style={{ paddingLeft: `${depth * 16}px` }}>
+      <div className="py-cell flex items-center gap-2" style={{ paddingLeft: `${depth * 16}px` }}>
         <span className="text-muted-foreground text-small font-mono">{node.activityType}</span>
         <span className="text-dense font-semibold">{node.activityName ?? node.activityId}</span>
       </div>

@@ -2,6 +2,7 @@ import {
   formatNumber,
   Icon,
   FOCUS_RING,
+  MICRO_LABEL,
   SectionHeading,
   TONE_DOT,
   cn,
@@ -85,7 +86,7 @@ function FleetEngineCard({
       onClick={onEnter}
       // No aria-label: it would replace the accessible name and hide the KPIs from screen readers.
       className={cn(
-        "border-border bg-card hover:bg-accent flex flex-col gap-2.5 rounded-md border p-3 text-left transition-colors",
+        "border-border bg-card hover:bg-accent p-gutter flex flex-col gap-2.5 rounded-md border text-left transition-colors",
         FOCUS_RING,
       )}
     >
@@ -161,7 +162,7 @@ export function FleetView({
   const fleet: Fleet = { engineIds: ids, environments: enginesByEnvironment(engineGroups) }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="gap-section flex flex-col">
       <WidgetHeader
         size="app"
         title={t("fleet.heading")}
@@ -169,16 +170,14 @@ export function FleetView({
         actions={<HandOffButton action="assess" prompt={ask(fleetOverviewHandOff(fleet))} />}
       />
 
-      <section className="flex flex-col gap-4">
+      <section className="gap-section flex flex-col">
         <SectionHeading title={t("fleet.engineHealth.title")} hint={t("fleet.engineHealth.hint")} />
         {engineGroups.map((g) => (
           <div key={g.id}>
             {engineGroups.length > 1 && (
-              <h3 className="text-muted-foreground text-small mb-2 font-semibold tracking-wide uppercase">
-                {g.id}
-              </h3>
+              <h3 className={cn("text-muted-foreground mb-2", MICRO_LABEL)}>{g.id}</h3>
             )}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="gap-section grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {g.engines.map((e) => (
                 <FleetEngineCard
                   key={e.id}

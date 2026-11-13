@@ -251,10 +251,9 @@ function EngineTable({ figures, states, t }: Landscape & { t: T }) {
         ariaLabel={t("fleet.landscape.engines.tableLabel")}
         columns={engineColumns(t)}
         groups={engineGroups(t)}
-        // Eight figures side by side: the compact cell padding and captions that
+        // Eight figures side by side: the density's cell padding and captions that
         // wrap keep every backlog column in a 760 px inline view, in German too.
         wrapHeads
-        className="[&_td]:px-3 [&_th]:px-3"
       >
         {figures.engines.map((e) => (
           <EngineRow key={e.engineId} engine={e} state={states[e.engineId] ?? "loading"} t={t} />
@@ -346,7 +345,7 @@ export function FleetLandscape({ engineIds }: { engineIds: readonly string[] }) 
   const t = useT()
   const landscape = useLandscape(engineIds)
   return (
-    <section aria-label={t("fleet.landscape.title")} className="flex flex-col gap-6">
+    <section aria-label={t("fleet.landscape.title")} className="gap-section flex flex-col">
       <div>
         <SectionHeading title={t("fleet.landscape.title")} hint={t("fleet.landscape.hint")} />
         <LandscapeKpis {...landscape} t={t} />

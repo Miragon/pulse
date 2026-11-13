@@ -11,7 +11,8 @@ export interface GroupSummaryStat {
 /**
  * Shared summary-row anatomy, so the grouped incident lists stay pixel-identical; `expanded`
  * doubles as the expandability switch (omit for plain rows). The row's one alarm sign is its
- * incident count's pill, the tone's icon of its own shape: no second icon leads the row.
+ * incident count's pill, the tone's icon of its own shape: no second icon leads the row. On the
+ * density roles: a list entry's height at least, the cell's padding.
  */
 export function GroupSummaryRow({
   title,
@@ -43,7 +44,7 @@ export function GroupSummaryRow({
   return (
     <div
       className={cn(
-        "px-cell flex items-center gap-4 py-2",
+        "px-cell py-cell min-h-entry flex items-center gap-4",
         expanded && "border-border border-b",
         className,
       )}

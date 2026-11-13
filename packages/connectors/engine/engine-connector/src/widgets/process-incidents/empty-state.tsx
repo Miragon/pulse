@@ -1,7 +1,12 @@
-import { CountBadge, FOCUS_RING, cn, formatNumber } from "@miragon/pulse-ui"
+import { CountBadge, FOCUS_RING, TableEmptyState, cn, formatNumber } from "@miragon/pulse-ui"
 import type { IncidentsByProcess } from "../../view-models.js"
 import { useT } from "../../messages/use-t.js"
 
+/**
+ * The incidents focus of a process without one: the kit's neutral empty note (a process without a
+ * problem is never green), its help line on the engine's other processes and a way to each that
+ * has open incidents.
+ */
 export function EmptyStateWithSiblings({
   processName,
   siblings,
@@ -13,24 +18,17 @@ export function EmptyStateWithSiblings({
   onJumpTo: (key: string, label?: string) => void
 }) {
   const t = useT()
+  const description =
+    siblings === null
+      ? t("procIncEmpty.siblingsUnavailable")
+      : siblings.length === 0
+        ? t("procIncEmpty.noOpenIncidentsInEngine")
+        : t("procIncEmpty.otherProcessesHaveIncidents")
   return (
-    <div className="border-border bg-card text-dense flex flex-col items-center gap-3 rounded-lg border px-6 py-8 text-center">
-      <div className="text-foreground font-semibold">
-        {t("procIncEmpty.noOpenIncidentsOnProcess", { processName })}
-      </div>
-      {siblings === null ? (
-        <div className="text-muted-foreground text-small">
-          {t("procIncEmpty.siblingsUnavailable")}
-        </div>
-      ) : siblings.length === 0 ? (
-        <div className="text-muted-foreground text-small">
-          {t("procIncEmpty.noOpenIncidentsInEngine")}
-        </div>
-      ) : (
-        <>
-          <div className="text-muted-foreground text-small">
-            {t("procIncEmpty.otherProcessesHaveIncidents")}
-          </div>
+    <TableEmptyState
+      description={description}
+      action={
+        siblings && siblings.length > 0 ? (
           <div className="flex flex-wrap items-center justify-center gap-1.5">
             {siblings.map((s) => (
               <button
@@ -40,7 +38,7 @@ export function EmptyStateWithSiblings({
                   onJumpTo(s.processDefinitionKey, s.processDefinitionName ?? undefined)
                 }
                 className={cn(
-                  "border-border bg-raised text-muted-foreground hover:text-foreground hover:bg-accent text-small min-h-control inline-flex items-center gap-1.5 rounded-md border px-2.5 transition-colors",
+                  "border-border bg-raised text-muted-foreground hover:text-foreground hover:bg-accent text-small min-h-control rounded-button inline-flex items-center gap-1.5 border px-2.5 transition-colors",
                   FOCUS_RING,
                 )}
               >
@@ -56,8 +54,10 @@ export function EmptyStateWithSiblings({
               </button>
             ))}
           </div>
-        </>
-      )}
-    </div>
+        ) : undefined
+      }
+    >
+      {t("procIncEmpty.noOpenIncidentsOnProcess", { processName })}
+    </TableEmptyState>
   )
 }

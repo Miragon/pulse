@@ -117,7 +117,7 @@ function HistoryTimelineView({
   const isOutlier = durationOutliers(activities.map((a) => a.durationInMillis))
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="gap-section flex flex-col">
       <ol
         ref={attachRows}
         className="flex flex-col gap-1"
@@ -147,7 +147,7 @@ function HistoryTimelineView({
                   state === "incident" && "border-danger",
                 )}
               >
-                <CardContent className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+                <CardContent className="px-cell py-cell flex flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0">
                     <span className="text-dense font-semibold">
                       {activity.activityName ?? activity.activityId}

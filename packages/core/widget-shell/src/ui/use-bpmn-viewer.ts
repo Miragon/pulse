@@ -182,6 +182,15 @@ export interface UseBpmnViewerOptions {
   reimportKey?: unknown
   /** Off by default: the heatmap preserves the operator's pan/zoom. */
   fitOnResize?: boolean
+  /**
+   * The diagram's name. The canvas alone (bpmn-js's SVG) becomes the image (`role="img"`) under
+   * it, so what lies beside the canvas in the frame (the zoom controls, bpmn.io's link) stays
+   * outside any image: an image's content is presentational, a control inside it would be lost to
+   * assistive technology (axe's nested-interactive). Never put the role on the frame. An overlay a
+   * caller draws over the canvas (a count badge) reads beside the image, so the caller hides it
+   * (`aria-hidden`) and says its value in words elsewhere in the view.
+   */
+  ariaLabel?: string
 }
 
 export interface UseBpmnViewerResult {
@@ -198,6 +207,7 @@ export function useBpmnViewer({
   onImported,
   reimportKey,
   fitOnResize = false,
+  ariaLabel,
 }: UseBpmnViewerOptions): UseBpmnViewerResult {
   const containerRef = useRef<HTMLDivElement>(null)
   const viewerRef = useRef<NavigatedViewer | null>(null)
@@ -316,5 +326,33 @@ export function useBpmnViewer({
     }
   }, [bpmnXml, reimportKey, fitOnResize, fit, getCanvas])
 
+  // After the viewer's effect, so a viewer created in this commit has its canvas named in it too.
+  useEffect(() => {
+    nameCanvas(containerRef.current, ariaLabel)
+    hideBreadcrumbs(containerRef.current)
+  })
+
   return { containerRef, height, importError, zoomIn, zoomOut, fit }
+}
+
+/** bpmn-js draws into `.bjs-container > .djs-container > svg` inside the frame it is handed. */
+const CANVAS_SVG = ".djs-container > svg"
+/** bpmn-js's drilldown trail, a list it appends under the canvas. */
+const BREADCRUMBS = ".djs-container > .bjs-breadcrumbs"
+
+/**
+ * The trail (the planes above a drilled-into subprocess) lies under the canvas, clipped by the
+ * frame and, without bpmn-js's stylesheet, never in sight: hidden, so it does not read beside the
+ * image either, as a list of one item, the process's name.
+ */
+function hideBreadcrumbs(container: HTMLElement | null): void {
+  container?.querySelector(BREADCRUMBS)?.setAttribute("hidden", "")
+}
+
+/** The canvas becomes the image under its name; without a name it stays as bpmn-js drew it. */
+function nameCanvas(container: HTMLElement | null, label: string | undefined): void {
+  const svg = container?.querySelector(CANVAS_SVG)
+  if (!svg || label === undefined) return
+  svg.setAttribute("role", "img")
+  svg.setAttribute("aria-label", label)
 }

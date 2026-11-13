@@ -241,7 +241,7 @@ function JobRetryError({ error, columns }: { error: string | null; columns: numb
   if (!error) return null
   return (
     <tr {...FIT_CONTINUES_ROW}>
-      <td colSpan={columns} className="border-border px-cell border-b py-1.5">
+      <td colSpan={columns} className="border-border px-cell py-cell border-b">
         <WriteError error={error} />
       </td>
     </tr>

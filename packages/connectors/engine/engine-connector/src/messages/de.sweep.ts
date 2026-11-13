@@ -209,9 +209,6 @@ export const deSweep: MessageCatalog = {
   "incidentsList.activitiesLabel": "Aktivitäten",
   "incidentsList.breakdownPartial": ({ scanned, total }) =>
     `Die Aufschlüsselung zeigt die neuesten ${String(scanned)} von ${countOf(total, "Incident", "Incidents")}. Öffne den Prozess für die genauen Zahlen je Aktivität.`,
-  "incidentsList.chipAll": "Alle",
-  "incidentsList.chipLast24h": "Letzte 24 Std.",
-  "incidentsList.chipsLabel": "Incident-Filter",
   "incidentsList.clickToExpand": "klapp einen Prozess auf, um seine Aktivitäten zu sehen",
   "incidentsList.firstSeen": "zuerst gesehen",
   "incidentsList.groupedByProcess": "Nach Prozess gruppiert",
@@ -224,6 +221,9 @@ export const deSweep: MessageCatalog = {
   "incidentsList.noOpenIncidents": "Keine offenen Incidents auf dieser Engine.",
   "incidentsList.open": "Öffnen",
   "incidentsList.openDetailAria": "Incident-Details für {name} öffnen",
+  "incidentsList.scopeAll": "Alle",
+  "incidentsList.scopeLabel": "Incidents zeigen",
+  "incidentsList.scopeLast24h": "Letzte 24 Std.",
   "incidentsList.searchLabel": "Incidents nach Prozess, Aktivität oder Fehlermeldung filtern",
   "incidentsList.searchPlaceholder":
     "Incidents nach Prozess, Aktivität oder Fehlermeldung filtern…",
