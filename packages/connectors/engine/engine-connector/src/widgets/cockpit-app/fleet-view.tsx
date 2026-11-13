@@ -1,12 +1,10 @@
 import {
   formatNumber,
   Icon,
-  CountPill,
   FOCUS_RING,
   SectionHeading,
   TONE_DOT,
   cn,
-  countTone,
   WidgetHeader,
 } from "@miragon/pulse-ui"
 import { HandOffButton } from "@miragon/pulse-widget-shell/widgets"
@@ -18,6 +16,7 @@ import {
   groupEnginesByEnvironment,
 } from "../../lib/shared/environments.js"
 import { useT } from "../../messages/use-t.js"
+import { AlarmCount } from "../lib/alarm-count.js"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
 import { isHealthFailure } from "../lib/health-verdict.js"
 import { useEngineHealth } from "./engine-health.js"
@@ -43,19 +42,25 @@ function FleetEngineKpis({
           {formatNumber(summary.totalRunningInstances)}
         </div>
       </div>
-      {/* One severity ladder (#322 U14): open incidents and jobs without
-          retries are danger when there are any; a zero is a count, neutral. */}
+      {/* One severity ladder (#322 U14): open incidents and jobs without retries alarm when
+          there are any, by the tone's icon and words; the number stays neutral (invariant 6). */}
       <div>
         <div className="text-muted-foreground text-small">{t("fleet.incidents")}</div>
-        <div>
-          <CountPill tone={countTone(incidents)}>{formatNumber(incidents)}</CountPill>
-        </div>
+        <AlarmCount
+          alarm={incidents > 0 && "openIncidents"}
+          className="text-foreground font-mono font-semibold"
+        >
+          {formatNumber(incidents)}
+        </AlarmCount>
       </div>
       <div>
         <div className="text-muted-foreground text-small">{t("fleet.failedJobs")}</div>
-        <div>
-          <CountPill tone={countTone(failed)}>{formatNumber(failed)}</CountPill>
-        </div>
+        <AlarmCount
+          alarm={failed > 0 && "jobsWithoutRetries"}
+          className="text-foreground font-mono font-semibold"
+        >
+          {formatNumber(failed)}
+        </AlarmCount>
       </div>
     </div>
   )

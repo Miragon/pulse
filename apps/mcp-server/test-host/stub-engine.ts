@@ -330,8 +330,9 @@ function failedJob(id: string, processInstanceId: string, exceptionMessage: stri
  * failed until a retry lands, the one stateful corner of the stub's engine
  * data (the search holds are scenario control), owned by that one scenario.
  * The others are never written: the row menu scenario opens the menu of
- * `job-2`'s row with another row under it. Twelve, so a 600 px budget shows
- * some of them ("k of 12") under the compact cockpit's 28 px rows and 800 px all.
+ * `job-2`'s row with another row under it. Sixteen, so a 600 px budget shows
+ * some of them ("k of 16") under the compact cockpit's 28 px rows, its row actions
+ * included, and 800 px all.
  */
 function stubJobs(): Map<string, StubJob> {
   return new Map(
@@ -348,6 +349,10 @@ function stubJobs(): Map<string, StubJob> {
       failedJob("job-10", "pi-10", "Fraud check failed"),
       failedJob("job-11", "pi-11", "Security code mismatch"),
       failedJob("job-12", "pi-12", "Account closed"),
+      failedJob("job-13", "pi-13", "Risk score too high"),
+      failedJob("job-14", "pi-14", "Bank holiday"),
+      failedJob("job-15", "pi-15", "Invalid IBAN"),
+      failedJob("job-16", "pi-16", "Duplicate payment"),
     ].map((job) => [job.id, job]),
   )
 }
@@ -445,7 +450,7 @@ function createSearchHolds() {
  * server ACTUALLY builds (view envelope, data shape, engine id) from a fixed
  * engine response (`fixtures/process-definitions.json` with their statistics,
  * no open incident, the `invoice` diagram `fixtures/invoice.bpmn` with two instances at
- * `approveInvoice`, twelve started in the last 30 days in its history, twelve failed jobs, and
+ * `approveInvoice`, twelve started in the last 30 days in its history, sixteen failed jobs, and
  * one invoice instance with two open incidents that only its own reads and a read by an
  * incident's id see).
  * The broken base URL turns any tool into a genuine `isError` result: an

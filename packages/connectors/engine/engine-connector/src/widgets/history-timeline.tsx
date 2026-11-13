@@ -28,7 +28,7 @@ import { useT } from "../messages/use-t.js"
 import {
   HistoryTable,
   STEP_TONE,
-  StepBadge,
+  StepState,
   historyStepState,
   instanceStateLabel,
   type HistoryEntry,
@@ -162,7 +162,7 @@ function HistoryTimelineView({
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    {(state === "incident" || state === "running") && <StepBadge state={state} />}
+                    {(state === "incident" || state === "running") && <StepState state={state} />}
                     {activity.durationInMillis != null && (
                       <span className="text-muted-foreground text-small">
                         {formatDuration(activity.durationInMillis)}

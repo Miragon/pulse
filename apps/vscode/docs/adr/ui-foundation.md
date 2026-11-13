@@ -167,21 +167,24 @@ day the owner decided D9, which replaces D4 and turns D7 into the switch's preco
      `forced-colors`, and its bridge sets `data-cd-kontrast="hoch"` only where Orca reports high
      contrast.
   4. **Numbers stay neutral** (invariant 6) on every surface: an alarming count gets a tone icon
-     of its own shape and its meaning as screen-reader text, never a coloured number or a dot
-     alone. The webview's red and orange counts turn neutral.
+     of its own shape and its meaning as screen-reader text, never a coloured number, a tinted
+     tile or a dot alone (`CountFigure`, `CountBadge` as a pill; owner's delegate, 2026-11-13).
+     The webview's red and orange counts turn neutral.
   5. **Building blocks in pulse-ui's root.** What the webview draws and the cockpit can use moves
      into pulse-ui's root, and the cockpit uses it: `ViewBar` (back, title, facts, actions,
      access, freshness), `StatusStrip`, `Facts`, `StateLabel` (a tone icon and text, no pill),
-     `CountBadge`, segments with counts, `SearchField`, the condition chip, an id with its copy
-     button, `LoadingState`, `DataTable` (a sticky head, column sizing, row focus) and form
+     `CountBadge`, `CountFigure`, segments with counts (the cockpit's instance scope and a form's
+     yes or no too, owner's delegate, 2026-11-13), `SearchField`, the condition chip, an id with
+     its copy button, `LoadingState`, `DataTable` (a sticky head, column sizing, row focus) and form
      primitives (checkbox, textarea, label and field, progress). Only the split pane and the
      widths it and the tables store stay the editor's. The variable condition dialog becomes a
      native `<dialog>` on the kit's roles; the diagram's overlays stay the webview's own.
   6. **Named deviations from the guide**, listed in the design section of the root `CLAUDE.md`:
      28 px controls (buttons, inputs, selects) and clickable 28 px rows, radius sm on labelled
-     buttons, 24 px small buttons, weight 400 on toolbar labels, pill count badges, the docked
-     strip without the 4 px edge; 12 px icons at stroke 2.5 in a listed set of pulse-ui's files;
-     the diagram's count badges stay solid 20 px pills.
+     buttons, 24 px small buttons (in notice strips, to copy, and a table row's actions, so every
+     row stays 28 px as in the webview; owner's delegate, 2026-11-13), weight 400 on toolbar
+     labels, pill count badges, the docked strip without the 4 px edge; 12 px icons at stroke 2.5
+     in a listed set of pulse-ui's files; the diagram's count badges stay solid 20 px pills.
   7. **Budgets and release notes.** Each growth of a shrink-only ceiling the move needs (the
      webview's, the MCP view bundle's, the char budgets) updates the ceiling with a
      `Ratchet-Exception:` trailer that says what it buys; no checker is weakened. The webview's

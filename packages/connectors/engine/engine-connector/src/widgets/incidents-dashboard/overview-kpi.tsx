@@ -5,7 +5,6 @@ import {
   KpiGrid,
   LivePill,
   WidgetHeader,
-  SITUATION_TONES,
 } from "@miragon/pulse-ui"
 import {
   HandOffButton,
@@ -15,6 +14,7 @@ import {
 } from "@miragon/pulse-widget-shell/widgets"
 import type { IncidentsDashboardData } from "../../view-models.js"
 import { ENGINE_INCIDENTS_DATA } from "../../tool-names.js"
+import { AlarmCount } from "../lib/alarm-count.js"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
 import { useT } from "../../messages/use-t.js"
 import { dashboardScope, incidentsFeed } from "./scope.js"
@@ -108,15 +108,19 @@ function IncidentOverviewKpiView({
         />
       }
     >
-      {/* Only the open incidents carry a state (#322 U14); the rest are counts. */}
+      {/* Only the open incidents alarm, by their icon and words (#322 U14); every number stays
+          neutral, no tile tinted. */}
       <KpiGrid
         boxed
         ariaLabel={t("incidentsKpi.overviewLabel")}
         cells={[
           {
             label: t("incidentsKpi.cellOpenIncidents"),
-            value: formatNumber(data.totalCount),
-            tone: data.totalCount > 0 ? SITUATION_TONES.openIncident : undefined,
+            value: (
+              <AlarmCount alarm={data.totalCount > 0 && "openIncidents"}>
+                {formatNumber(data.totalCount)}
+              </AlarmCount>
+            ),
           },
           {
             label: t("incidentsKpi.cellProcessesAffected"),

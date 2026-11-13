@@ -145,6 +145,7 @@ export {
 export { Facts, type Fact, type FactsProps } from "./components/Facts.js"
 export { StateLabel, type StateLabelProps, type StateLabelState } from "./components/StateLabel.js"
 export { CountBadge, type CountBadgeProps } from "./components/CountBadge.js"
+export { CountFigure, type CountFigureProps } from "./components/CountFigure.js"
 export { Toolbar, type ToolbarProps } from "./components/Toolbar.js"
 export { CopyableId, type CopyableIdProps } from "./components/CopyableId.js"
 export { ConditionChip, type ConditionChipProps } from "./components/ConditionChip.js"

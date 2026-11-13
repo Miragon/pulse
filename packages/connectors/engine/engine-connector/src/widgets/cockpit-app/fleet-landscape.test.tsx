@@ -135,7 +135,8 @@ describe("the cross-engine landscape, read from each engine", () => {
       expect(cells(rows[0])).toEqual([
         "prod-a",
         "4",
-        "2",
+        // Open incidents alarm by their icon and words; the number stays neutral.
+        "2Has open incidents",
         "0",
         "12",
         "3",
@@ -164,7 +165,7 @@ describe("the cross-engine landscape, read from each engine", () => {
     const rows = within(matrix).getAllByRole("row").slice(1)
     expect(within(rows[0]).getByText("Invoice Receipt")).toBeTruthy()
     expect(within(rows[0]).getByText("on 2 engines")).toBeTruthy()
-    expect(cells(rows[0]).slice(1)).toEqual(["3", "4", "2"])
+    expect(cells(rows[0]).slice(1)).toEqual(["3", "4", "2Has open incidents"])
     // Not deployed is an empty cell, said for screen readers; deployed with nothing running is 0.
     expect(cells(rows.find((r) => r.textContent?.includes("Onboarding"))!).slice(1)).toEqual([
       "not deployed on this engine",

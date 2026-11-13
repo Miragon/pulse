@@ -49,11 +49,12 @@ const SCANNED = [
 const DENSE_ICONS_ALLOWED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   components: {
     "CountBadge.tsx": "an alarming count's tone icon inside its 20 px pill beside 13 px figures",
+    "DrillButton.tsx": "the xs drill of a table row is the 24 px xs button, its arrow 12 px",
   },
   primitives: {
     "badge.tsx": "a badge is 20 px high beside 13 px text, so its icon is 12 px ([&>svg]:size-3!)",
     "button.tsx":
-      "the xs and icon-xs buttons are 24 px (in notice strips, to copy), so their icon is 12 px",
+      "the xs and icon-xs buttons are 24 px (in notice strips, to copy, in table rows), so their icon is 12 px",
   },
   kit: {
     "icon.tsx": "Icon's dense is the deviation's 12 px icon itself",

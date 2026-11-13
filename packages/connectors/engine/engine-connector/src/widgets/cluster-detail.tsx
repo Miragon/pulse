@@ -34,6 +34,7 @@ import {
   clusterScanComplete,
   remediationHandOff,
 } from "./remediation.js"
+import { AlarmCount } from "./lib/alarm-count.js"
 import { useActionAllowed } from "./lib/engine-action.js"
 import { useHandOff, type ViewContext } from "./lib/hand-off.js"
 import { InstanceLabel } from "./lib/identity.js"
@@ -150,8 +151,11 @@ function ClusterKpis({ data }: { data: ClusterDetailData }) {
       cells={[
         {
           label: t("clusterDetail.kpiAffected"),
-          value: formatCount(data.incidentCount ?? { atLeast: data.scannedIncidentCount }),
-          tone: SITUATION_TONES.openIncident,
+          value: (
+            <AlarmCount alarm="openIncidents">
+              {formatCount(data.incidentCount ?? { atLeast: data.scannedIncidentCount })}
+            </AlarmCount>
+          ),
         },
         // How fast it grows is a count, not a second state (#322 U14).
         { label: t("clusterDetail.kpiNewLastHour"), value: formatCount(data.lastHourCount) },
@@ -200,6 +204,7 @@ function IncidentRow({
       <Td align="right">
         <div className="inline-flex items-center justify-end gap-1">
           <DrillButton
+            size="xs"
             onDrill={() =>
               go({ type: "instance-detail", processInstanceId: row.processInstanceId, label })
             }
@@ -209,6 +214,7 @@ function IncidentRow({
           </DrillButton>
           {row.incidentId && (
             <DrillButton
+              size="xs"
               onDrill={() =>
                 go({
                   type: "incident-detail",

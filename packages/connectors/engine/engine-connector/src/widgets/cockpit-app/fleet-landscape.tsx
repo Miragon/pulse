@@ -1,17 +1,14 @@
 import {
   Badge,
-  CountPill,
   Icon,
   KpiGrid,
   NamedId,
   SectionHeading,
   TableEmptyState,
   Td,
-  countTone,
   formatCount,
   formatNumber,
   type KpiCell,
-  SITUATION_TONES,
 } from "@miragon/pulse-ui"
 import {
   ListTable,
@@ -33,6 +30,7 @@ import {
   healthFailureOf,
   type HealthFailure,
 } from "../lib/health-verdict.js"
+import { AlarmCount, type CountAlarm } from "../lib/alarm-count.js"
 import { ENGINE_COCKPIT_OVERVIEW_DATA, ENGINE_JOB_BACKLOG_DATA } from "../../tool-names.js"
 import type { CockpitDashboardData, JobBacklogData } from "../../view-models.js"
 
@@ -138,8 +136,11 @@ function LandscapeKpis({ figures, states, t }: Landscape & { t: T }) {
     },
     {
       label: t("fleet.landscape.kpiIncidents"),
-      value: totalOf(totals.openIncidents, complete),
-      tone: (totals.openIncidents ?? 0) > 0 ? SITUATION_TONES.openIncident : undefined,
+      value: (
+        <AlarmCount alarm={(totals.openIncidents ?? 0) > 0 && "openIncidents"}>
+          {totalOf(totals.openIncidents, complete)}
+        </AlarmCount>
+      ),
     },
   ]
   return <KpiGrid cells={cells} />
@@ -157,19 +158,19 @@ function Figure({ value, t }: { value: number | null; t: T }) {
   )
 }
 
-/** A count that is a state: a danger pill while there are any, as the engine cards show it. */
-function StateCount({ value, t }: { value: number | null; t: T }) {
-  const tone = countTone(value)
-  if (tone === SITUATION_TONES.openIncident) {
-    return <CountPill tone={tone}>{formatNumber(value)}</CountPill>
-  }
-  return <Figure value={value} t={t} />
+/**
+ * A count that is a state: a neutral number that alarms by its icon and words while there are
+ * any, as the engine cards show it (invariant 6).
+ */
+function StateCount({ value, alarm, t }: { value: number | null; alarm: CountAlarm; t: T }) {
+  if (value === null || value <= 0) return <Figure value={value} t={t} />
+  return <AlarmCount alarm={alarm}>{formatNumber(value)}</AlarmCount>
 }
 
-function CountCell({ value, state, t }: { value: number | null; state?: boolean; t: T }) {
+function CountCell({ value, alarm, t }: { value: number | null; alarm?: CountAlarm; t: T }) {
   return (
     <Td align="right" className="tabular-nums">
-      {state ? <StateCount value={value} t={t} /> : <Figure value={value} t={t} />}
+      {alarm ? <StateCount value={value} alarm={alarm} t={t} /> : <Figure value={value} t={t} />}
     </Td>
   )
 }
@@ -214,8 +215,8 @@ function EngineRow({ engine: e, state, t }: { engine: LandscapeEngine; state: En
         </span>
       </Td>
       <CountCell value={e.runningInstances} t={t} />
-      <CountCell value={e.openIncidents} state t={t} />
-      <CountCell value={e.failedJobs} state t={t} />
+      <CountCell value={e.openIncidents} alarm="openIncidents" t={t} />
+      <CountCell value={e.failedJobs} alarm="jobsWithoutRetries" t={t} />
       <CountCell value={e.executableJobs} t={t} />
       <CountCell value={e.suspendedJobs} t={t} />
       <CountCell value={e.jobsDueLater} t={t} />
@@ -318,7 +319,7 @@ function ProcessMatrix({ figures, states, t }: Landscape & { t: T }) {
               </Td>
             ))}
             <Td align="right" className="tabular-nums">
-              <StateCount value={p.openIncidentsTotal} t={t} />
+              <StateCount value={p.openIncidentsTotal} alarm="openIncidents" t={t} />
             </Td>
           </tr>
         ))}

@@ -304,8 +304,9 @@ Diese bewussten Abweichungen vom Guide gelten für alle Oberflächen (Owner-Ents
 - Bedienelemente (Knöpfe, Eingaben, Auswahlen) mit 28 px und klickbare Tabellenzeilen mit 28 px
   statt 36 px.
 - Radius sm (6 px) statt md auf beschrifteten Knöpfen.
-- Knöpfe mit 24 px (xs: in Hinweisstreifen, zum Kopieren), unter der kleinsten Größe des Guides
-  von 28 px.
+- Knöpfe mit 24 px (xs: in Hinweisstreifen, zum Kopieren, in Tabellenzeilen), unter der kleinsten
+  Größe des Guides von 28 px; die Aktionen einer Tabellenzeile sind xs, damit jede Zeile 28 px
+  hoch bleibt (40 px komfortabel), wie in der Webview.
 - Gewicht 400 auf den Beschriftungen der Toolbar-Knöpfe.
 - Zähler als Pille.
 - Der angedockte Hinweisstreifen ohne die 4-px-Kante.
@@ -314,9 +315,10 @@ Diese bewussten Abweichungen vom Guide gelten für alle Oberflächen (Owner-Ents
   `Icon` mit `dense` ist das 12-px-Icon. `scanIconSizes` liest `size={…}`, die `size-*`-Klassen
   auf SVG-Selektoren (`[&>svg]:size-3`) und auf `Icon` und `dense` auf `Icon` und lässt 12 px nur
   in den Dateien zu, die das Gate je mit Grund nennt (`allowDense`; im Kit
-  `packages/core/ui/src/brand-gates.test.ts`: Badge, die Knöpfe xs und icon-xs, `Icon` selbst,
-  der Sortierpfeil im Tabellenkopf, das Ton-Icon im Segment; widget-shell und der Konnektor in
-  ihrer `brand-gates.test.ts`); ein Eintrag ohne 12-px-Icon schlägt fehl.
+  `packages/core/ui/src/brand-gates.test.ts`: Badge, die Knöpfe xs und icon-xs, der Pfeil des
+  `DrillButton` in xs, `Icon` selbst, der Sortierpfeil im Tabellenkopf, das Ton-Icon im Segment;
+  widget-shell und der Konnektor in ihrer `brand-gates.test.ts`); ein Eintrag ohne 12-px-Icon
+  schlägt fehl.
 
 ### Abweichung für die VS-Code-Webview
 
@@ -587,9 +589,12 @@ Ihre 12-px-Icons (Dichte, oben) lässt `scanIconSizes` in der Webview nur in den
      (the guide's status surface for a status box or strip: the tint on light, neutral on dark)
      and `--<tone>-ink` (text on card or page, never on a tint, never a number). Numbers stay
      neutral: an alarming count shows its tone by an icon of the tone's own shape and says it in
-     words (`CountBadge`; filled in its tone only on a BPMN diagram, the named deviation), a state
-     in a cell is a `StateLabel` (an icon of the state's own shape, its one word from the kit's
-     catalog). Components use
+     words (`CountFigure` in a table cell, a fact or a KPI tile, `CountBadge` as a pill at a row's
+     end; filled in its tone only on a BPMN diagram, the named deviation), never by a coloured
+     number, a tinted pill or a tinted KPI tile (owner decision of 2026-11-12, D9), a state in a
+     cell is a `StateLabel` (an icon of the state's own shape, its one word from the kit's
+     catalog) on the row's one line, never a pill (those are a header's `badge`) and never stacked
+     under an id. Components use
      role names only (`scanColors`); `packages/core/ui/src/theme/tone-contrast.test.ts` holds every
      role pair to WCAG AA (a role a brand may override belongs in `ROLE_CONTRAST_PAIRS`). A brand
      override goes under `:root` AND the dark scopes, or a light-only value shows in dark
@@ -611,11 +616,12 @@ Ihre 12-px-Icons (Dichte, oben) lässt `scanIconSizes` in der Webview nur in den
      `WidgetShell` pads nothing: its `header` (the bar, the strips under it) runs from edge to
      edge, its content sits in the gutter, and a `flush` shell's children are views of their own
      (the cockpit's routes). A row's drill is `DrillButton` (`row-actions.test.ts`), its
-     further actions sit in `MoreActions`. A chat hand-off is widget-shell's `HandOffButton`
-     (`action` from `HAND_OFF_ACTIONS`: one Lucide icon and one verb naming the chat per
-     function), a secondary outline after the action it accompanies (in a view's bar its toolbar
-     button); `scanGlyphs` bans sparkle
-     icons and an ESLint gate a raw `AskAiButton`, so a new function goes into widget-shell's table.
+     further actions sit in `MoreActions`; a table row's actions are `xs` (24 px: `DrillButton`
+     `size="xs"`, a hand-off's `size="xs"`, `MoreActions`), so the row keeps the row height. A
+     chat hand-off is widget-shell's `HandOffButton` (`action` from `HAND_OFF_ACTIONS`: one Lucide
+     icon and one verb naming the chat per function), a secondary outline after the action it
+     accompanies (in a view's bar its toolbar button); `scanGlyphs` bans sparkle icons and an
+     ESLint gate a raw `AskAiButton`, so a new function goes into widget-shell's table.
    - **Brand gates and glossary.** Every widget package runs the gates of
      `@miragon/pulse-ui/testing` (`catalogTextFindings`, `scanGlyphs`, `scanIconSizes`,
      `scanColors`) in its own `brand-gates.test.ts` (the host bundle's `src/ui` runs

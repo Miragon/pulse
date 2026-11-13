@@ -32,6 +32,7 @@ describe("the @miragon/pulse-ui entry", () => {
       "ConditionChip",
       "CopyableId",
       "CountBadge",
+      "CountFigure",
       "CountPill",
       "DataTable",
       "Dialog",

@@ -1,16 +1,11 @@
 import { Fragment } from "react"
 import {
   Button,
-  CountPill,
   KpiGrid,
   PagedListFooter,
-  SITUATION_TONES,
-  StatusBadge,
   WidgetHeader,
-  type ToneVariant,
   formatNumber,
   formatTimestamp,
-  Icon,
   LogText,
   NamedId,
   TableEmptyState,
@@ -30,8 +25,9 @@ import {
   WidgetShell,
   HostModelContext,
 } from "@miragon/pulse-widget-shell/widgets"
-import { Check } from "lucide-react"
 import { ENGINE_JOBS_DATA } from "../tool-names.js"
+import { AlarmCount, type CountAlarm } from "./lib/alarm-count.js"
+import { DoneMark } from "./lib/done-mark.js"
 import { useEngineAction, type EngineAction } from "./lib/engine-action.js"
 import { MoreActions } from "./lib/more-actions.js"
 import { WriteError } from "./lib/write-error.js"
@@ -132,10 +128,11 @@ function draftJobTicketHandOff(job: Job, engineId: string | undefined): HandOff 
   }
 }
 
-// #322 U14: no retries left holds an incident (danger), retries left means the engine tries again (warning).
-function retriesTone(job: Job): ToneVariant {
-  if (job.retries === 0) return SITUATION_TONES.jobWithoutRetries
-  return job.exceptionMessage ? SITUATION_TONES.jobWithRetriesLeft : "neutral"
+// #322 U14: no retries left holds an incident (danger), retries left means the engine tries again
+// (warning); the number stays neutral, the alarm is its icon and words.
+function retriesAlarm(job: Job): CountAlarm | null {
+  if (job.retries === 0) return "noRetriesLeft"
+  return job.exceptionMessage ? "retriesLeft" : null
 }
 
 // A panel scoped to one process names it in the head, not in every row.
@@ -185,9 +182,9 @@ function JobRow({
         <IdText value={job.processInstanceId} />
       </Td>
       <Td align="right">
-        <CountPill tone={retried ? "neutral" : retriesTone(job)}>
+        <AlarmCount alarm={!retried && retriesAlarm(job)}>
           {formatNumber(retried ? 1 : job.retries)}
-        </CountPill>
+        </AlarmCount>
       </Td>
       <Td>
         <LogText text={job.exceptionMessage} />
@@ -197,17 +194,15 @@ function JobRow({
       </Td>
       <Td align="right">
         {retried ? (
-          <StatusBadge tone="success" className="whitespace-nowrap">
-            <Icon icon={Check} dense />
-            {t("jobPanel.retried")}
-          </StatusBadge>
+          <DoneMark>{t("jobPanel.retried")}</DoneMark>
         ) : (
           job.retries === 0 && (
+            // A row's actions are xs, so the row keeps the row height (28 px).
             <div className="inline-flex items-center justify-end gap-1">
               {retry.allowed && (
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="xs"
                   disabled={retry.pending(job.id)}
                   onClick={() =>
                     retry.run(
@@ -338,17 +333,20 @@ export function JobPanelWidget({
       <HostModelContext content={context(describeJobPanel(data, engine, jobs.length))}>
         {null}
       </HostModelContext>
-      {/* Only the jobs without retries carry a state; the other two are counts. */}
+      {/* A neutral card of counts: only the jobs without retries alarm, by their icon and words,
+          never by a tinted tile or a coloured number (invariant 6). */}
       <KpiGrid
-        variant="soft"
-        className="grid-cols-2 gap-3 sm:grid-cols-3"
+        boxed
         ariaLabel={t("jobPanel.summaryLabel")}
         cells={[
           { label: t("jobPanel.totalJobs"), value: formatNumber(totalCount) },
           {
             label: t("jobPanel.stuck"),
-            value: formatNumber(failedCount),
-            tone: failedCount > 0 ? SITUATION_TONES.jobWithoutRetries : undefined,
+            value: (
+              <AlarmCount alarm={failedCount > 0 && "jobsWithoutRetries"}>
+                {formatNumber(failedCount)}
+              </AlarmCount>
+            ),
           },
           { label: t("jobPanel.healthy"), value: formatNumber(totalCount - failedCount) },
         ]}

@@ -67,7 +67,6 @@ function ProcessDefinitionsSection({
     key: row.key,
     name: row.name,
     version: row.latestVersion,
-    tone: row.tone,
     counts: {
       instances: row.instances,
       failedJobs: row.failedJobs,
@@ -111,12 +110,14 @@ function ProcessDefinitionsSection({
         renderActions={(row) => (
           <>
             <DrillButton
+              size="xs"
               onDrill={() => go({ type: "process-instances", processDefinitionKey: row.key })}
               ariaLabel={t("cockpitDefs.viewInstancesAria", { name: row.name ?? row.key })}
             >
               {t("cockpitDefs.instancesAction")}
             </DrillButton>
             <DrillButton
+              size="xs"
               onDrill={() =>
                 go({
                   type: "process-detail",

@@ -24,12 +24,6 @@ const DENSE_ICONS_ALLOWED: Readonly<Record<string, string>> = {
   "cockpit-app/fleet-landscape.tsx": "the info icon leading a 13 px note",
   "cockpit-app/fleet-view.tsx": "the arrow after an engine card's 13 px way in",
   "cockpit-app/landing.tsx": "the arrow closing an engine's row of 13 px text",
-  "incident-detail/failure-tab.tsx": "the check inside a 20 px status badge beside its 13 px words",
-  "job-panel.tsx": "the check inside a 20 px status badge in a dense table cell",
-  "process-incidents/incident-table.tsx":
-    "the check inside a 20 px status badge in a dense table cell",
-  "process-instances/instance-row.tsx":
-    "the incident warning inside a 20 px count pill in a dense table cell",
 }
 
 describe("engine draws icons at the CI sizes", () => {

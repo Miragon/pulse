@@ -11,7 +11,6 @@ import {
   NamedId,
   formatCount,
   formatNumber,
-  SITUATION_TONES,
 } from "@miragon/pulse-ui"
 import {
   HandOffButton,
@@ -28,6 +27,7 @@ import type { EngineHealthCluster, EngineHealthData, EngineHealthStatus } from "
 import { useNav, type OnNavigate } from "./navigation.js"
 import { ENGINE_HEALTH_DATA } from "../tool-names.js"
 import { remediationHandOff, UNKNOWN_KEY as UNKNOWN } from "./remediation.js"
+import { AlarmCount } from "./lib/alarm-count.js"
 import { useActionAllowed } from "./lib/engine-action.js"
 import { useHandOff, type HandOff, type ViewContext } from "./lib/hand-off.js"
 import { healthFailureOf, healthVerdictLine, VERDICT_TONE } from "./lib/health-verdict.js"
@@ -238,14 +238,17 @@ function HealthKpis({ summary, go }: { summary: EngineHealthData["summary"]; go:
           label: t("engineHealth.kpiOpenIncidents"),
           // The derivative beats the absolute during an active incident:
           // "9 in the last hour" = burning now; fall back to the 24h count.
-          value: formatNumber(summary.totalIncidents),
+          value: (
+            <AlarmCount alarm={summary.totalIncidents > 0 && "openIncidents"}>
+              {formatNumber(summary.totalIncidents)}
+            </AlarmCount>
+          ),
           fraction:
             summary.lastHourIncidents > 0
               ? ` ${t("engineHealth.kpiInLastHour", { count: formatNumber(summary.lastHourIncidents) })}`
               : summary.last24hIncidents > 0
                 ? ` ${t("engineHealth.kpiIn24h", { count: formatNumber(summary.last24hIncidents) })}`
                 : undefined,
-          tone: summary.totalIncidents > 0 ? SITUATION_TONES.openIncident : undefined,
           onClick: () => go({ type: "incidents" }),
           actionHint: t("engineHealth.kpiOpenIncidentsAria"),
         },

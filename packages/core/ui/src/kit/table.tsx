@@ -81,13 +81,14 @@ export function Th({
 
 /**
  * A body cell's padding above and below: the cell's padding (`--cell-py`), at most half of what a
- * 24 px control (`--control-h-xs`) leaves of the row height (2 px compact, 4 px comfortable). A
- * line of 13 px text (19.5 px), a 20 px pill, the padding and the 1 px rule below then stay inside
- * the row height, so a one-line row is exactly the row height; a control in a cell reaches into
- * the padding (`IdText`'s copy button), so it adds nothing either. A wrapped cell keeps the
+ * 24 px control (`--control-h-xs`) and the 1 px rule below leave of the row height (1.5 px
+ * compact, 3.5 px comfortable). A line of 13 px text (19.5 px), a 20 px pill or a table row's xs
+ * actions (24 px, 32 px comfortable), the padding and the rule then stay inside the row height,
+ * so a one-line row is exactly the row height, its actions included; a control in a cell that
+ * reaches into the padding (`IdText`'s copy button) adds nothing either. A wrapped cell keeps the
  * padding.
  */
-const TD_PADDING_Y = "py-[min(var(--cell-py),calc((var(--row-h)_-_var(--control-h-xs))/2))]"
+const TD_PADDING_Y = "py-[min(var(--cell-py),calc((var(--row-h)_-_var(--control-h-xs)_-_1px)/2))]"
 
 /**
  * A body cell: the row height as a minimum (so text at 200 % still wraps into a taller row), the
@@ -180,6 +181,10 @@ export function TableEmptyState({
   )
 }
 
+/**
+ * A version as a quiet chip ("v3"): mono caption text on the ground with a line edge, the badge's
+ * 20 px height, so it sits in a 28 px table row as in a view's bar.
+ */
 export function VersionChip({
   version,
   className,
@@ -190,7 +195,7 @@ export function VersionChip({
   return (
     <span
       className={cn(
-        "border-border bg-muted text-muted-foreground text-small ml-2 inline-block rounded-sm border px-2 py-0.5 align-middle font-mono",
+        "border-border bg-muted text-muted-foreground text-small min-h-badge ml-2 inline-flex items-center rounded-sm border px-2 align-middle font-mono leading-4",
         className,
       )}
     >

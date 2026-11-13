@@ -6,7 +6,9 @@ import type { CockpitDashboardData } from "../view-models.js"
 import { ProcessDefinitionsTable } from "./cockpit-dashboard/definitions-table.js"
 import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 
-// #322 U14, decision f: the engine module reads the kit's `countTone`, the ladder its cross-engine landscape uses too.
+// #322 U14, decision f, and owner decision (d) of D9: a count stays a neutral number; jobs without
+// retries and open incidents alarm while there are any, by the tone's icon of its own shape and
+// words for a screen reader, as the cross-engine landscape shows them too.
 
 afterEach(() => {
   cleanup()
@@ -28,8 +30,10 @@ const LANDSCAPE: CockpitDashboardData = {
   engineId: "prod-a",
 }
 
-describe("the definitions table's jobs without retries", () => {
-  it("edges them in danger while there are any and leaves a zero neutral", () => {
+const TONE_AS_TEXT = /\btext-(?:success|warning|danger|info)(?:-ink)?\b|\b(?:bg|border)-danger/
+
+describe("the definitions table's jobs without retries and open incidents", () => {
+  it("mark them with the danger icon and words while there are any and leave a zero plain", () => {
     render(
       <LocaleProvider locale="en">
         <TestViewHost>
@@ -39,11 +43,21 @@ describe("the definitions table's jobs without retries", () => {
     )
     const table = screen.getByRole("table")
     const broken = within(table).getByText("BROKEN").closest("tr")!
-    expect(within(broken).getByText("7").className).toContain("border-danger")
-    expect(within(broken).getByText("3").className).toContain("border-danger")
+    const figure = (cell: HTMLElement) => cell.closest('[data-slot="count-figure"]')!
+    const jobs = figure(within(broken).getByText("7"))
+    expect(jobs.getAttribute("data-tone")).toBe("danger")
+    expect(jobs.querySelector("svg")?.getAttribute("class")).toContain("lucide-circle-x")
+    expect(jobs.textContent).toBe("7Has jobs without retries")
+    const incidents = figure(within(broken).getByText("3"))
+    expect(incidents.textContent).toBe("3Has open incidents")
+    // The numbers themselves stay neutral: no tone on their text, tint or edge.
+    for (const cell of [jobs, incidents]) {
+      expect(cell.innerHTML.replace(/<svg[\s\S]*?<\/svg>/g, "")).not.toMatch(TONE_AS_TEXT)
+    }
     const calm = within(table).getByText("CALM").closest("tr")!
     for (const zero of within(calm).getAllByText("0")) {
-      expect(zero.className).not.toContain("border-danger")
+      expect(figure(zero).getAttribute("data-tone")).toBe("neutral")
+      expect(figure(zero).querySelector("svg")).toBeNull()
     }
   })
 })

@@ -184,16 +184,16 @@ const STUB_DEFINITIONS = ["Customer Onboarding", "Invoice Receipt", "Order Fulfi
  * order): inline exactly the `shown` rows the host's budget leaves room for under the cockpit's
  * head (#396), and a cut list says how many of the three in its footer row (`shownLine`).
  *
- * Under the compact look (28 px heads, 33 px rows: their 28 px row actions and the cells' 2 px
- * padding; the cockpit's 40 px head and the view's 40 px bar from edge to edge, each route's
- * content in the 12 px gutter) the overview with all three rows is 471 px high at 960 px (472 px
- * at the inline width of 760 px), English and German alike: the unstated budget (fitted as
- * 600 px) fits all three, with 129 px to spare. A host that adds a line above the view (a
- * recovered render's "Reloaded at", the fullscreen toggle's bar) adds 40 px: all three still fit
- * (511 px). Under that line one row and the 44 px footer row are 489 px and two rows and the
- * footer 522 px, so a 500 px budget fits exactly one, 11 px either side of what one and all three
- * need. Where even one row would not fit (a 220 px budget) the fit cuts nothing and the view
- * scrolls instead, and fullscreen fits nothing.
+ * Under the compact look (28 px heads, 28 px rows with their 24 px row actions; the cockpit's
+ * 40 px head and the view's 40 px bar from edge to edge, each route's content in the 12 px
+ * gutter) the overview with all three rows is 456 px high at 960 px and at the inline width of
+ * 760 px, English and German alike: the unstated budget (fitted as 600 px) fits all three, with
+ * 144 px to spare. A host that adds a line above the view (a recovered render's "Reloaded at",
+ * the fullscreen toggle's bar) adds 40 px: all three still fit (496 px). Under that line one row
+ * and the 44 px footer row are 484 px and two rows and the footer 512 px, more than all three
+ * without a footer, so a 490 px budget fits exactly one, 6 px either side of what one and all three need.
+ * Where even one row would not fit (a 220 px budget) the fit cuts nothing and the view scrolls
+ * instead, and fullscreen fits nothing.
  */
 async function expectDefinitions(
   table: Locator,
@@ -226,9 +226,9 @@ async function expectGermanOverview(app: FrameLocator, shown: 1 | 2 | 3 = 3): Pr
 
 /**
  * A budget that fits exactly one of the overview's three rows at 960 px under the fullscreen
- * toggle's bar, 11 px either side.
+ * toggle's bar, 6 px either side.
  */
-const ONE_DEFINITION_BUDGET = 500
+const ONE_DEFINITION_BUDGET = 490
 
 const STUB_JOBS = [
   "Card declined",
@@ -243,19 +243,24 @@ const STUB_JOBS = [
   "Fraud check failed",
   "Security code mismatch",
   "Account closed",
+  "Risk score too high",
+  "Bank holiday",
+  "Invalid IBAN",
+  "Duplicate payment",
 ]
 
 /**
- * The cockpit's jobs route rendered the stub engine's twelve failed jobs, the first job first:
+ * The cockpit's jobs route rendered the stub engine's sixteen failed jobs, the first job first:
  * inline exactly the `shown` rows the host's budget leaves room for under the cockpit's head
- * and the KPI strip (#396), and the count line says how many of the twelve. Under the compact
- * look (33 px rows with their 28 px row actions, ids in one line, the cockpit's 40 px head and the
- * view's 40 px bar from edge to edge, the content in the 12 px gutter, the KPI strip's 12 px
- * tiles) a 600 px budget (and the unstated one, fitted as 600 px) leaves room for ten at 960 px
- * and at 760 px (589 px; an eleventh row would need 22 px more); 800 px fits all twelve (655 px).
- * A head section shows no trail inline, so the head is the only row above the view.
+ * and the KPI card (#396), and the count line says how many of the sixteen. Under the compact
+ * look (28 px rows with their 24 px row actions, ids in one line, the cockpit's 40 px head and the
+ * view's 40 px bar from edge to edge, the content in the 12 px gutter, the KPI card's 12 px
+ * tiles) a 600 px budget (and the unstated one, fitted as 600 px) leaves room for eleven at 960 px
+ * and at 760 px (575 px with the Load more button; a twelfth row would need 3 px more);
+ * 800 px fits all sixteen (706 px). A head section shows no trail inline, so the head is the
+ * only row above the view.
  */
-async function expectJobs(app: FrameLocator, shown: 10 | 12) {
+async function expectJobs(app: FrameLocator, shown: 11 | 16) {
   const region = app.getByRole("region", { name: "Jobs", exact: true })
   await expect(region).toBeVisible({ timeout: 15_000 })
   await expect(region.getByRole("row")).toHaveCount(shown + 1)
@@ -544,7 +549,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
   }) => {
     const app = await openView(page, { structuredContent: "strip" })
 
-    // With the "Reloaded at" line above it the view (545 px) still fits all three rows into the
+    // With the "Reloaded at" line above it the view (496 px) still fits all three rows into the
     // unstated budget.
     await expectOverview(app)
     // The view loaded these figures itself, so they can differ from the
@@ -853,7 +858,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
   }) => {
     const app = await openView(page, { args: JOBS_ARGS, maxHeight: 600 })
 
-    await expectJobs(app, 10)
+    await expectJobs(app, 11)
     const container = await app.locator("#root").evaluate((root) => {
       const el = root.firstElementChild as HTMLElement
       return { scrollHeight: el.scrollHeight, clientHeight: el.clientHeight }
@@ -866,7 +871,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
   }) => {
     const app = await openView(page, { args: JOBS_ARGS })
 
-    await expectJobs(app, 10)
+    await expectJobs(app, 11)
     // The old html/body/#root floor reported 600 for every view. `settledHeight`
     // waits for the report that equals the content's max-content height.
     const reported = await settledHeight(page, app)
@@ -1137,12 +1142,14 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
  * The kit's design-system foundation in the BUILT bundle (#322): the Miragon
  * role variables reach the view (pulse-ui's theme survived Tailwind), Lucide
  * icons draw at the CI stroke through lucide-react's own strokeWidth, never a
- * CSS rule (2.5; 2 in dense rows and the view frame's toolbar, whose
- * dense icon sets it), and a KPI's state is a tinted, edged card around
- * neutral digits, never a coloured number.
+ * CSS rule (2.5 at every size), and an alarming KPI is a neutral figure with
+ * its tone's icon of its own shape and its words, on an untinted tile, never a
+ * coloured number (invariant 6).
  */
 test.describe("kit foundation (engine_open_cockpit, the jobs)", () => {
-  test("a row holding an id is the row height: 28 px, 40 px comfortable", async ({ page }) => {
+  test("a row holding an id and its actions is the row height: 28 px, 40 px comfortable", async ({
+    page,
+  }) => {
     // Wide enough for the Instance column (hidden below 64rem), so a row holds its id's copy button.
     const app = await openView(page, { args: JOBS_ARGS, width: 1100, maxHeight: 900 })
     const region = app.getByRole("region", { name: "Jobs", exact: true })
@@ -1150,28 +1157,33 @@ test.describe("kit foundation (engine_open_cockpit, the jobs)", () => {
     const heights = await region.evaluate((el) => {
       const row = el.querySelector<HTMLTableRowElement>("tbody tr")!
       const copy = row.querySelector<HTMLElement>("button[aria-label^='Copy']")
-      // The row's actions are 28 px controls with the cell's padding around them, which make the
-      // row taller on their own: out of the measure, so it reads what the id's cell asks for.
-      for (const action of row.lastElementChild!.children) {
-        ;(action as HTMLElement).style.display = "none"
-      }
+      // The row's actions (its menu; Retry job too where the toolset writes), the xs buttons of a
+      // table row.
+      const actions = [...row.lastElementChild!.querySelectorAll<HTMLElement>("button")]
       const root = document.documentElement
       const rowHeight = () => ({
         row: row.getBoundingClientRect().height,
         role: parseFloat(getComputedStyle(row).getPropertyValue("--row-h")) * 16,
         copy: copy?.getBoundingClientRect().height,
+        actions: [...new Set(actions.map((action) => action.getBoundingClientRect().height))],
       })
       const compact = rowHeight()
       root.setAttribute("data-density", "comfortable")
       const comfortable = rowHeight()
       root.removeAttribute("data-density")
-      return { shown: !!copy && copy.offsetParent !== null, compact, comfortable }
+      return {
+        shown: !!copy && copy.offsetParent !== null,
+        actions: actions.map((action) => action.getAttribute("aria-label") ?? action.textContent),
+        compact,
+        comfortable,
+      }
     })
     expect(heights.shown, "the row holds an id's copy button").toBe(true)
-    // The 24 px copy button (32 px comfortable) reaches into the cell's padding: the row keeps
-    // the row height, and a one-line row is exactly it.
-    expect(heights.compact).toEqual({ row: 28, role: 28, copy: 24 })
-    expect(heights.comfortable).toEqual({ row: 40, role: 40, copy: 32 })
+    expect(heights.actions).toContain("More actions for the job at chargeCard")
+    // The 24 px copy button and the row's 24 px actions (32 px comfortable) fit the cell with its
+    // padding and its rule: the row keeps the row height, and a one-line row is exactly it.
+    expect(heights.compact).toEqual({ row: 28, role: 28, copy: 24, actions: [24] })
+    expect(heights.comfortable).toEqual({ row: 40, role: 40, copy: 32, actions: [32] })
   })
 
   test("role variables, Lucide strokes and the tone model reach the rendered view", async ({
@@ -1207,44 +1219,55 @@ test.describe("kit foundation (engine_open_cockpit, the jobs)", () => {
     expect(link).toBe("#2b50d4")
 
     const stroke = (locator: Locator) => locator.evaluate((el) => getComputedStyle(el).strokeWidth)
-    // The CI stroke at every size: 2.5, the 16 px icons of a row's and the frame's 28 px icon
-    // buttons included (no narrower stroke for dense chrome).
+    // The CI stroke at every size: 2.5, the 12 px icon of a row's 24 px icon button and the 16 px
+    // one of the frame's 28 px icon button included (no narrower stroke for dense chrome).
     expect(await stroke(handOff.locator("svg.lucide"))).toBe("2.5px")
     const rowMenu = app
       .getByRole("button", { name: /^More actions for / })
       .first()
       .locator("svg.lucide")
     expect(await stroke(rowMenu)).toBe("2.5px")
-    expect(await rowMenu.getAttribute("width")).toBe("16")
+    expect(await rowMenu.evaluate((svg) => svg.getBoundingClientRect().width)).toBe(12)
     const fullscreen = app.locator("svg.lucide-maximize-2")
     expect(await stroke(fullscreen)).toBe("2.5px")
     expect(await fullscreen.getAttribute("width")).toBe("16")
     // No glyph icon anywhere in the view.
     expect(await app.locator("body").innerText()).not.toMatch(/[✦⊡▦↗›⚠⚙⏱⤧▶✓✕▤⊞↻]/)
 
-    const blocked = app.locator('[data-tone="danger"]').first()
-    await expect(blocked).toBeVisible()
-    const card = await blocked.evaluate((el) => {
-      const style = getComputedStyle(el)
+    // The KPI tile of the jobs without retries: an alarming figure in an untinted tile.
+    const alarm = app
+      .locator('[data-slot="kpi-grid"] [data-slot="count-figure"][data-tone="danger"]')
+      .first()
+    await expect(alarm).toBeVisible()
+    const tile = await alarm.evaluate((el) => {
+      const cell = el.closest<HTMLElement>('[data-slot="kpi-strip"] > div > *')!
+      const strip = el.closest<HTMLElement>('[data-slot="kpi-strip"]')!
       // pulse-ui's KpiGrid: the figure on the type scale's section step (the compact tile).
-      const digits = getComputedStyle(el.querySelector(".text-section")!)
+      const digits = getComputedStyle(el.closest(".text-section")!)
+      const icon = el.querySelector("svg")!
       const page = getComputedStyle(document.body)
+      const transparent = "rgba(0, 0, 0, 0)"
+      const fill = getComputedStyle(cell).backgroundColor
       return {
-        edge: style.borderTopColor,
-        tint: style.backgroundColor,
-        pageBackground: page.backgroundColor,
+        tinted: fill !== transparent && fill !== getComputedStyle(strip).backgroundColor,
         digits: digits.color,
         digitSize: digits.fontSize,
         foreground: page.color,
+        icon: icon.getAttribute("class"),
+        iconColour: getComputedStyle(icon).color,
+        words: el.querySelector(".sr-only")?.textContent,
       }
     })
-    expect(card.edge).not.toBe("rgba(0, 0, 0, 0)")
-    expect(card.edge).not.toBe(card.foreground)
-    expect(card.tint, "the state is the card's tint").not.toBe(card.pageBackground)
-    expect(card.digits, "a KPI number stays neutral").toBe(card.foreground)
-    expect(card.digitSize, "a KPI figure is the CI section size (21 px), the compact tile").toBe(
+    expect(tile.tinted, "no KPI tile is tinted").toBe(false)
+    expect(tile.digits, "a KPI number stays neutral").toBe(tile.foreground)
+    expect(tile.digitSize, "a KPI figure is the CI section size (21 px), the compact tile").toBe(
       "21px",
     )
+    expect(tile.icon, "the alarm is the danger tone's icon of its own shape").toContain(
+      "lucide-circle-x",
+    )
+    expect(tile.iconColour).not.toBe(tile.foreground)
+    expect(tile.words).toBe("Has jobs without retries")
   })
 
   test("forced colours: the current section keeps a Highlight ring, a status dot turns CanvasText, an outline marks focus only", async ({
@@ -1311,7 +1334,7 @@ test.describe("kit foundation (engine_open_cockpit, the jobs)", () => {
 
   test("high contrast (data-cd-kontrast): no shadows, a 3 px focus ring", async ({ page }) => {
     const app = await openView(page, { args: JOBS_ARGS })
-    await expectJobs(app, 10)
+    await expectJobs(app, 11)
     const current = app
       .getByRole("navigation", { name: "Cockpit sections" })
       .getByRole("button", { name: "Jobs" })
@@ -1439,7 +1462,7 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
     page,
   }) => {
     const app = await openView(page, { width: INLINE_WIDTH })
-    // At 760 px the unstated budget fits all three (472 px).
+    // At 760 px the unstated budget fits all three (456 px).
     await expectOverview(app, 3)
     const { scrollWidth, clientWidth } = await documentOverflow(app)
     expect(scrollWidth, "the document never scrolls sideways").toBeLessThanOrEqual(clientWidth)
@@ -1569,10 +1592,10 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
   test("a row's menu lies over the next rows' pinned cells: its entries take the clicks (U20)", async ({
     page,
   }) => {
-    // The cockpit's head and the KPI strip leave room for seven rows at the default 600 px fit
-    // (#396): an 800 px budget fits all twelve jobs, so a middle row has a row under it.
+    // The cockpit's head and the KPI card leave room for eleven rows at the default 600 px fit
+    // (#396): an 800 px budget fits all sixteen jobs, so a middle row has a row under it.
     const app = await openView(page, { args: JOBS_ARGS, width: INLINE_WIDTH, maxHeight: 800 })
-    await expectJobs(app, 12)
+    await expectJobs(app, 16)
     // The stub's job-2 (never written), with job-3's row under it.
     const row = app.getByRole("row").filter({ hasText: "Card expired" })
     const next = app.getByRole("row").filter({ hasText: "Billing address unknown" })
@@ -1758,7 +1781,7 @@ test.describe("cockpit (engine_open_cockpit)", () => {
 
   test("opens on its start view: the head section current, no picker", async ({ page }) => {
     const app = await openView(page, { args: JOBS_ARGS })
-    await expectJobs(app, 10)
+    await expectJobs(app, 11)
     const sections = app.getByRole("navigation", { name: "Cockpit sections" })
     await expect(sections.getByRole("button", { name: "Jobs" })).toHaveAttribute(
       "aria-current",
@@ -1786,13 +1809,13 @@ test.describe("cockpit (engine_open_cockpit)", () => {
 
 /**
  * What the VS Code extension showed and the cockpit lacked: an instance names the element of
- * each incident and leads to its process, and the instance list's chips count what each lists.
+ * each incident and leads to its process, and the instance list's scopes count what each lists.
  */
 test.describe("an instance and the instance list (engine_open_cockpit)", () => {
   test("an instance names each incident's element and leads to its process", async ({ page }) => {
     const errors = collectErrors(page)
     // The stub's one instance with open incidents (stub-engine.ts), no open task: the view
-    // opens on its Incidents tab.
+    // opens on its Incidents tab, in the unstated budget (fitted as 600 px).
     const app = await openView(page, {
       args: { engine: HEALTHY_ENGINE, view: "instance-detail", processInstanceId: "pi-invoice-42" },
     })
@@ -1803,6 +1826,11 @@ test.describe("an instance and the instance list (engine_open_cockpit)", () => {
     // The diagram's name leads with the id after it on one line; an element the diagram lacks
     // shows its id.
     await expect(elements).toHaveText(["Approve Invoice approveInvoice", "chargeCard"])
+    // The view with both 28 px rows is 627 px. A cut to one row would add the 44 px "1 of 2
+    // shown" footer and make it taller still (643 px): a cut pays for its footer, so nothing is
+    // cut and the view scrolls inside its budget.
+    await expect(table.locator("tfoot")).toHaveCount(0)
+    await expect(app.locator("[data-inline-fit]")).toHaveAttribute("data-inline-fit", "overflow")
 
     await app.getByRole("button", { name: "View process" }).click()
     await expect(app.getByRole("heading", { name: "Invoice Receipt" })).toBeVisible({
@@ -1814,28 +1842,88 @@ test.describe("an instance and the instance list (engine_open_cockpit)", () => {
     expect(errors).toEqual([])
   })
 
-  test("the chips count what each lists, whichever chip is on", async ({ page }) => {
+  test("the scopes count what each lists, whichever scope is checked", async ({ page }) => {
     // The realistic engine: 160 running instances, 54 with an incident, 10 suspended.
     const app = await openView(page, {
       hostEnv: REALISTIC_HOST_ENV,
       args: { engine: REALISTIC_ENGINE, view: "process-instances" },
     })
-    const chips = app.getByRole("group", { name: "Instance filters" })
-    // Exact names and texts: a substring would let 540 pass for 54 and 154 running for 54.
-    const all = chips.getByRole("button", { name: "All 160", exact: true })
-    const withIncidents = chips.getByRole("button", { name: "With incident 54", exact: true })
-    const suspended = chips.getByRole("button", { name: "Suspended 10", exact: true })
+    // One radio group of segments (the webview's scope segments), each with its count.
+    const scopes = app.getByRole("radiogroup", { name: "Show instances" })
+    // Whole names: a substring would let 540 pass for 54 and 154 running for 54.
+    const all = scopes.getByRole("radio", { name: /^All ?160$/ })
+    // The label says why its count alarms, so the name is the label and the exact count, once.
+    const withIncidents = scopes.getByRole("radio", { name: /^With incident ?54$/ })
+    const suspended = scopes.getByRole("radio", { name: /^Suspended ?10$/ })
     await expect(all).toBeVisible({ timeout: 15_000 })
     await expect(withIncidents).toBeVisible()
     await expect(suspended).toBeVisible()
     await expect(app.getByText("160 running", { exact: true })).toBeVisible()
+    // The count with an incident alarms by the danger icon, its number neutral (invariant 6).
+    const alarm = withIncidents.locator("svg.lucide-circle-x")
+    await expect(alarm).toBeVisible()
+    const colours = await withIncidents.evaluate((segment) => ({
+      number: getComputedStyle(segment.querySelector('[aria-hidden="true"]:not(svg)')!).color,
+      icon: getComputedStyle(segment.querySelector("svg.lucide-circle-x")!).color,
+    }))
+    expect(colours.icon).not.toBe(colours.number)
 
-    await chips.getByRole("button", { name: /^With incident/ }).click()
+    await withIncidents.click()
     await expect(app.getByText("54 running", { exact: true })).toBeVisible({ timeout: 15_000 })
     // Still the whole list and its suspended ones, not those that also have an incident.
     await expect(all).toBeVisible()
     await expect(suspended).toBeVisible()
-    await expect(withIncidents).toHaveAttribute("aria-pressed", "true")
-    await expect(all).toHaveAttribute("aria-pressed", "false")
+    await expect(withIncidents).toHaveAttribute("aria-checked", "true")
+    await expect(all).toHaveAttribute("aria-checked", "false")
+    await expect(scopes).toHaveAttribute("aria-busy", "false")
+  })
+
+  test("a phone-width chat shows each instance's state without scrolling sideways", async ({
+    page,
+  }) => {
+    // The realistic engine's long keys and process names are wider than 400 px together: the
+    // table scrolls sideways inside its region, the row actions pinned at its end.
+    const app = await openView(page, {
+      hostEnv: REALISTIC_HOST_ENV,
+      args: { engine: REALISTIC_ENGINE, view: "process-instances" },
+      width: 400,
+    })
+    const region = app.getByRole("region", { name: /^Running instances of/ })
+    await expect(region.getByRole("columnheader", { name: "State" })).toBeVisible({
+      timeout: 15_000,
+    })
+    const placed = await region.evaluate((el) => {
+      // The extent of what a node shows, its text included, not its cell's.
+      const box = (node: Element) => {
+        const range = document.createRange()
+        range.selectNodeContents(node)
+        const rect = range.getBoundingClientRect()
+        return { left: rect.left, right: rect.right }
+      }
+      const pinned = el.querySelector("tbody tr td:last-child")!
+      return {
+        heads: [...el.querySelectorAll("thead th")].map((th) => th.textContent),
+        scrolls: el.scrollWidth > el.clientWidth,
+        scrollLeft: el.scrollLeft,
+        left: el.getBoundingClientRect().left,
+        pinnedLeft: pinned.getBoundingClientRect().left,
+        head: box(el.querySelector("thead th:nth-child(2)")!),
+        // Each row's own state, running or suspended, the first label of its state cell.
+        states: [...el.querySelectorAll("tbody tr td:nth-child(2) [data-slot='state-label']")]
+          .filter((label) => label.getAttribute("data-state") !== "incident")
+          .map(box),
+        rows: el.querySelectorAll("tbody tr").length,
+      }
+    })
+    // The state right after the ids (the webview's order): the process name is what scrolls.
+    expect(placed.heads.slice(0, 3)).toEqual(["Business key / ID", "State", "Process"])
+    expect(placed.scrolls, "the table is wider than a phone").toBe(true)
+    expect(placed.scrollLeft).toBe(0)
+    // The State head and every row's state lie in view, clear of the pinned row actions.
+    expect(placed.states).toHaveLength(placed.rows)
+    for (const state of [placed.head, ...placed.states]) {
+      expect(state.left).toBeGreaterThanOrEqual(placed.left)
+      expect(state.right).toBeLessThanOrEqual(placed.pinnedLeft)
+    }
   })
 })

@@ -85,6 +85,28 @@ describe("SegmentedControl: a radio group", () => {
     fireEvent.click(radio("All"))
     expect(onChange).not.toHaveBeenCalled()
   })
+
+  it("disabled, keeps its check and takes no change: every segment disabled, the group too", () => {
+    const onChange = vi.fn()
+    render(
+      <SegmentedControl
+        ariaLabel="Scope"
+        options={SCOPES}
+        value="incident"
+        onChange={onChange}
+        disabled
+      />,
+    )
+    expect(screen.getByRole("radiogroup").getAttribute("aria-disabled")).toBe("true")
+    for (const name of ["All", "With incident", "Suspended"]) {
+      expect((radio(name) as HTMLButtonElement).disabled).toBe(true)
+    }
+    expect(radio("With incident").getAttribute("aria-checked")).toBe("true")
+    fireEvent.click(radio("Suspended"))
+    expect(onChange).not.toHaveBeenCalled()
+    // Opaque, never faded.
+    expect(radio("Suspended").className).not.toMatch(/opacity/)
+  })
 })
 
 describe("SegmentedControl: the keyboard", () => {

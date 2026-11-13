@@ -75,7 +75,9 @@ edge, and its children sit in the gutter of the density roles, 12 px above and b
 sections the section gap apart; a bar further down, inside the content, reaches the card's edges
 with `-mx-gutter`. A shell whose children are views of their own (a cockpit's routes, each a
 shell with its bar) is `flush`. `useDetailView`'s `notice` is a `StatusStrip` for the header: a
-failed refresh in the kit's words, the engine's raw text under its Details.
+failed refresh in the kit's words, the engine's raw text under its Details. A hand-off in a table
+row is `size="xs"` (`HandOffButton`, `AskAiButton`), the 24 px button the kit's row actions take,
+so the row keeps its 28 px.
 
 Views render in German for a host locale whose language is `de` and in English otherwise; the
 design kit itself (primitives, tones, formatters) comes from `@miragon/pulse-ui`, and so do the

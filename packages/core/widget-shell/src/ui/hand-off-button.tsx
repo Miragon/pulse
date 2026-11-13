@@ -13,7 +13,7 @@ import {
   Workflow,
   Wrench,
 } from "lucide-react"
-import { AskAiButton, type AskAiVariant } from "./ask-ai-button.js"
+import { AskAiButton, type AskAiSize, type AskAiVariant } from "./ask-ai-button.js"
 import type { AskAiPrompt } from "./ask-ai-prompt.js"
 import { kitLabels } from "./kit-labels.js"
 
@@ -37,17 +37,20 @@ export type HandOffAction = keyof typeof HAND_OFF_ACTIONS
 
 /**
  * `title` overrides name and tooltip when a row needs its subject in them; `variant="toolbar"`
- * puts it in a view's bar beside the other toolbar buttons.
+ * puts it in a view's bar beside the other toolbar buttons; `size="xs"` is a table row's 24 px
+ * button, so the row keeps its height.
  */
 export function HandOffButton({
   action,
   prompt,
   variant = "subtle",
+  size,
   title,
 }: {
   action: HandOffAction
   prompt: AskAiPrompt | null
   variant?: AskAiVariant
+  size?: AskAiSize
   title?: string
 }) {
   const locale = useLocale()
@@ -57,6 +60,7 @@ export function HandOffButton({
       label={kitLabels(locale).handOff[action]}
       prompt={prompt}
       variant={variant}
+      size={size}
       title={title}
     />
   )

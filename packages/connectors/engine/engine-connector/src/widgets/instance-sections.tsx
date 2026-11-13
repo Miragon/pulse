@@ -188,8 +188,9 @@ function VariableRow({
       </Td>
       {editable && (
         <Td align="right" className="w-16">
+          {/* A row's action is xs, so the row keeps the row height (28 px). */}
           {!editing && isEditableVariable(variable) && (
-            <Button variant="ghost" size="sm" onClick={startEdit}>
+            <Button variant="ghost" size="xs" onClick={startEdit}>
               {t("instanceSections.edit")}
             </Button>
           )}

@@ -113,9 +113,11 @@ describe("Td", () => {
     inRow(<Td>cell</Td>)
     const c = classes(screen.getByRole("cell"))
     expect(c).toEqual(expect.arrayContaining(["h-row", "px-cell", "border-b", "align-middle"]))
-    // The cell's padding above and below, at most half of what a 24 px control leaves of the row:
-    // a one-line row is the row height exactly.
-    expect(c).toContain("py-[min(var(--cell-py),calc((var(--row-h)_-_var(--control-h-xs))/2))]")
+    // The cell's padding above and below, at most half of what a 24 px control and the rule leave
+    // of the row: a one-line row is the row height exactly, a row's xs actions included.
+    expect(c).toContain(
+      "py-[min(var(--cell-py),calc((var(--row-h)_-_var(--control-h-xs)_-_1px)/2))]",
+    )
     // Text may still wrap into a taller row (200 % text): no forced single line.
     expect(c).not.toContain("whitespace-nowrap")
     expect(c).not.toContain("truncate")
@@ -182,9 +184,13 @@ describe("TableEmptyState", () => {
 })
 
 describe("VersionChip", () => {
-  it("prefixes the version with v in mono caption text", () => {
+  it("prefixes the version with v in mono caption text, the badge's 20 px high", () => {
     render(<VersionChip version="3" />)
     const chip = screen.getByText("v3")
-    expect(classes(chip)).toEqual(expect.arrayContaining(["font-mono", "text-small"]))
+    expect(classes(chip)).toEqual(
+      expect.arrayContaining(["font-mono", "text-small", "min-h-badge", "leading-4"]),
+    )
+    // No vertical padding: the badge height holds it, so a table row keeps its 28 px.
+    expect(classes(chip).some((c) => /^py-/.test(c))).toBe(false)
   })
 })

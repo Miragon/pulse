@@ -19,6 +19,23 @@ describe("DrillButton: the outline Button with a trailing arrow (mcp-toolkit#194
     expect(attribute(button ?? "", "type")).toBe("button")
   })
 
+  it("xs is the Button xs size, 24 px with a 12 px arrow: a table row's drill keeps the row 28 px", () => {
+    const html = renderToStaticMarkup(
+      <DrillButton onDrill={noop} size="xs">
+        Open
+      </DrillButton>,
+    )
+    const [button] = openingTags(html, "button")
+    expect(classOf(button)).toBe(buttonVariants({ variant: "outline", size: "xs" }))
+    expect(classOf(button)).toMatch(/(^| )min-h-control-xs( |$)/)
+    expect(classOf(button)).toMatch(/\bfont-semibold\b/)
+    const [arrow] = openingTags(html, "svg")
+    expect(classOf(arrow)).toMatch(/(^| )size-3( |$)/)
+    // sm keeps the 16 px arrow.
+    const sm = renderToStaticMarkup(<DrillButton onDrill={noop}>Open</DrillButton>)
+    expect(classOf(openingTags(sm, "svg")[0])).toMatch(/(^| )size-4( |$)/)
+  })
+
   it("md is the Button lg size, 36 px (surface headers)", () => {
     const html = renderToStaticMarkup(
       <DrillButton onDrill={noop} size="md">

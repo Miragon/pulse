@@ -1,15 +1,13 @@
 import { Fragment } from "react"
 import {
   Button,
-  StatusBadge,
   PagedListFooter,
   DrillButton,
   formatTimestamp,
-  Icon,
   LogText,
   NamedId,
+  StateLabel,
   Td,
-  SITUATION_TONES,
 } from "@miragon/pulse-ui"
 import {
   FIT_CONTINUES_ROW,
@@ -21,7 +19,6 @@ import {
   usePagedViewData,
   ViewDataState,
 } from "@miragon/pulse-widget-shell/widgets"
-import { Check } from "lucide-react"
 
 import type { ActivityIncidentsData, IncidentInstance } from "../../view-models.js"
 import { ENGINE_ACTIVITY_INCIDENTS_DATA } from "../../tool-names.js"
@@ -30,6 +27,7 @@ import { useT } from "../../messages/use-t.js"
 import { EngineActionDialog } from "../lib/engine-action-dialog.js"
 import { useIncidentRecovery, type IncidentRecoveryState } from "./use-incident-recovery.js"
 import { InstanceLabel } from "../lib/identity.js"
+import { DoneMark } from "../lib/done-mark.js"
 import { MoreActions } from "../lib/more-actions.js"
 import { WriteError } from "../lib/write-error.js"
 
@@ -62,7 +60,7 @@ function RecoveryButton({
   return (
     <Button
       variant="outline"
-      size="sm"
+      size="xs"
       disabled={recovery.isPending(incident)}
       title={action === "retry" ? t("procIncTable.retryHint") : undefined}
       onClick={() => recovery.act(incident)}
@@ -149,11 +147,13 @@ export function IncidentTable({
                   </Td>
                 )}
                 <Td>
-                  <div className="flex flex-col items-start gap-1">
-                    <StatusBadge tone={SITUATION_TONES.openIncident}>
+                  {/* The incident's type as its state label beside the message, on one line
+                      with it, never a pill stacked above it. */}
+                  <div className="flex min-w-0 items-baseline gap-3">
+                    <StateLabel state="incident" className="shrink-0">
                       {incident.incidentType}
-                    </StatusBadge>
-                    <LogText text={incident.incidentMessage} />
+                    </StateLabel>
+                    <LogText text={incident.incidentMessage} className="min-w-0" />
                   </div>
                 </Td>
                 <Td align="right" className="text-muted-foreground text-small whitespace-nowrap">
@@ -162,13 +162,14 @@ export function IncidentTable({
                 <Td>
                   {done ? (
                     // Done in words, never a dimmed row that reads as disabled (#322 U11).
-                    <StatusBadge tone="success" className="whitespace-nowrap">
-                      <Icon icon={Check} dense />
+                    <DoneMark>
                       {retried ? t("procIncTable.retried") : t("procIncTable.resolved")}
-                    </StatusBadge>
+                    </DoneMark>
                   ) : (
+                    // A row's actions are xs, so the row keeps the row height (28 px).
                     <div className="flex items-center gap-1">
                       <DrillButton
+                        size="xs"
                         onDrill={() => onAnalyze(incident.id)}
                         ariaLabel={t("procIncTable.openIncidentDetail")}
                       >

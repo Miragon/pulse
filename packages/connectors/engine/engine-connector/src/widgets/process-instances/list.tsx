@@ -1,9 +1,10 @@
 import {
   TableEmptyState,
-  FilterBar,
   PagedListFooter,
-  formatNumber,
-  type FilterChip,
+  SearchField,
+  SegmentedControl,
+  Toolbar,
+  type SegmentedControlOption,
 } from "@miragon/pulse-ui"
 import {
   ListTable,
@@ -43,9 +44,9 @@ type InstancesFilterArgs = Partial<ProcessInstancesFilters> & {
 }
 
 /**
- * Server-side filters, so chips and search cover the whole result set, not the loaded page. The
- * route's engine and process scope every page, never the default engine. The feed maps `false`
- * onto its complement, so the Suspended chip sends `suspended: true` alone.
+ * Server-side filters, so the scope and the search cover the whole result set, not the loaded
+ * page. The route's engine and process scope every page, never the default engine. The feed maps
+ * `false` onto its complement, so the Suspended scope sends `suspended: true` alone.
  */
 function instancesFilterArgs(
   engine: string,
@@ -110,26 +111,22 @@ export function ProcessInstancesView({
   // The echo of the page on screen, never the request: an in-flight or failed query still shows the previous result.
   const listFilters = data.filters
 
-  // Each chip counts what it lists on the page's scope and search, whichever chip is on: the
-  // payload on screen, never the request.
-  const chips: FilterChip[] = [
+  // Each segment counts what it lists on the page's scope and search, whichever is checked: the
+  // payload on screen, never the request. The count with an incident alarms by its icon, never
+  // by a coloured number (invariant 6); its label already says why, so a screen reader hears the
+  // label and the exact count, as the webview's segment reads ("With incident 54").
+  const scopes: SegmentedControlOption<InstanceChip>[] = [
+    { value: CHIP_ALL, label: t("processInstances.chipAll"), count: data.allCount },
     {
-      id: CHIP_ALL,
-      label: t("processInstances.chipAll"),
-      count: formatNumber(data.allCount),
-      active: activeChip === CHIP_ALL,
-    },
-    {
-      id: CHIP_INCIDENTS,
+      value: CHIP_INCIDENTS,
       label: t("processInstances.chipWithIncidents"),
-      count: formatNumber(data.withIncidentCount),
-      active: activeChip === CHIP_INCIDENTS,
+      count: data.withIncidentCount,
+      tone: data.withIncidentCount > 0 ? "danger" : undefined,
     },
     {
-      id: CHIP_SUSPENDED,
+      value: CHIP_SUSPENDED,
       label: t("processInstances.chipSuspended"),
-      count: formatNumber(data.suspendedCount),
-      active: activeChip === CHIP_SUSPENDED,
+      count: data.suspendedCount,
     },
   ]
 
@@ -145,18 +142,25 @@ export function ProcessInstancesView({
             engine={engine}
             filters={listFilters}
           />
-          {/* The list's filters under the view's bar, from edge to edge (the webview's filter bar). */}
-          <FilterBar
-            search={search}
-            onSearchChange={setSearch}
-            searchPlaceholder={t("processInstances.searchPlaceholder")}
-            searchAriaLabel={t("processInstances.searchLabel")}
-            chips={chips}
-            chipsAriaLabel={t("processInstances.chipsLabel")}
-            onChipToggle={(id) =>
-              setActiveChip(id === activeChip ? CHIP_ALL : (id as InstanceChip))
-            }
-          />
+          {/* The list's filters under the view's bar, from edge to edge: the scope segments
+              first, then the search (the webview's filter bar). Busy while a scope's page
+              loads. */}
+          <Toolbar>
+            <SegmentedControl
+              ariaLabel={t("processInstances.scopeLabel")}
+              options={scopes}
+              value={activeChip}
+              onChange={setActiveChip}
+              busy={paged.refreshing}
+            />
+            <SearchField
+              value={search}
+              onChange={setSearch}
+              delayMs={0}
+              placeholder={t("processInstances.searchPlaceholder")}
+              aria-label={t("processInstances.searchLabel")}
+            />
+          </Toolbar>
         </>
       }
     >
@@ -190,14 +194,12 @@ export function ProcessInstancesView({
             ariaLabel={t("processInstances.tableAriaLabel", { name: title })}
             columns={[
               { label: t("processInstances.colBusinessKey") },
-              // Engine-wide, the state hides in a chat's narrow column; a scoped list has room for both.
+              // The state and an open incident on one line in one column, right after the ids as
+              // the webview has it, so a narrow chat that scrolls the table sideways still shows it.
+              { label: t("processInstances.colState") },
               scopedKey
                 ? { label: t("processInstances.colVersion") }
                 : { label: t("processInstances.colProcess") },
-              scopedKey
-                ? { label: t("processInstances.colState") }
-                : { label: t("processInstances.colState"), hideBelow: "md" as const },
-              { label: t("processInstances.colIncident"), align: "right" as const },
               { plain: true, sticky: true },
             ]}
           >

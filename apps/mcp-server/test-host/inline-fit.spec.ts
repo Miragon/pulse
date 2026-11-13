@@ -223,10 +223,9 @@ test.describe("inline fit on real-sized data (760 px column)", () => {
           ).__hostSim.setWidth(width),
         px,
       )
-    // Narrower: the cells keep one line (ids in one line), so no row grows taller; the table
-    // shows fewer columns (State hides below 48rem) and the chrome above it wraps taller (under
-    // 30rem the view's bar, from edge to edge of the frame, and the filter bar take a second
-    // line), so fewer rows fit.
+    // Narrower: the cells keep one line (ids and the state on one line each), so no row grows
+    // taller; the chrome above the table wraps taller (under 30rem the view's bar, from edge to
+    // edge of the frame, and the filter bar take a second line), so fewer rows fit.
     const tallestRow = async () =>
       Math.max(
         ...(await tableRows(app).evaluateAll((rows) =>
@@ -240,9 +239,9 @@ test.describe("inline fit on real-sized data (760 px column)", () => {
     expect(await tallestRow(), "a narrower column wraps no row taller").toBeLessThanOrEqual(
       tallestAt760,
     )
-    await expect(app.getByRole("columnheader", { name: "State" })).toBeHidden()
+    // The state keeps its column at every width: it never hides into a row's first cell.
+    await expect(app.getByRole("columnheader", { name: "State" })).toBeVisible()
 
-    // Wide enough for the State column again (hidden below 48rem).
     await setWidth(960)
     await expect(app.getByRole("columnheader", { name: "State" })).toBeVisible()
     await expectFits(page, app, view, 800)

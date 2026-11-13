@@ -5,19 +5,18 @@ import {
   StateLabel,
   StatusBadge,
   SITUATION_TONES,
-  TONE_ICON,
   WidgetHeader,
-  cn,
   type StateLabelState,
   type ToneVariant,
   VersionChip,
   formatNumber,
 } from "@miragon/pulse-ui"
 import { HandOffButton, IdText } from "@miragon/pulse-widget-shell/widgets"
-import { Ban, CircleX, Pause, Play, Workflow } from "lucide-react"
+import { Ban, Pause, Play, Workflow } from "lucide-react"
 
 import type { InstanceDetailData } from "../../view-models.js"
 import { type T, useT } from "../../messages/use-t.js"
+import { AlarmCount } from "../lib/alarm-count.js"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
 import { definitionVersionOf } from "../lib/identity.js"
 import { instanceName } from "../lib/write-feedback.js"
@@ -210,16 +209,9 @@ export function InstanceFacts({
           label: t("instanceDetail.kpiOpenIncidents"),
           value: (
             // On the number's baseline, the icon centred beside it: the facts align on baselines.
-            <span className="inline-flex items-baseline gap-1.5 tabular-nums">
-              {openIncidentCount > 0 && (
-                <Icon
-                  icon={CircleX}
-                  label={t("instanceDetail.hasOpenIncidents")}
-                  className={cn(TONE_ICON[SITUATION_TONES.openIncident], "self-center")}
-                />
-              )}
+            <AlarmCount alarm={openIncidentCount > 0 && "openIncidents"}>
               {formatNumber(openIncidentCount)}
-            </span>
+            </AlarmCount>
           ),
         },
         {

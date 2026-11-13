@@ -122,6 +122,8 @@ interface SearchSite {
   widget: ComponentType<Record<string, unknown>>
   search: Record<Locale, string>
   chips?: Record<Locale, string>
+  /** A scope picked in segments: a radio group of its own name. */
+  scope?: Record<Locale, string>
 }
 
 const SITES: Record<string, SearchSite> = {
@@ -130,7 +132,7 @@ const SITES: Record<string, SearchSite> = {
       <ProcessInstancesWidget data={INSTANCES} processDefinitionKey="invoice" engine="prod-a" />
     ),
     search: { en: "Search by business key or ID", de: "Nach Geschäftsschlüssel oder ID suchen" },
-    chips: { en: "Instance filters", de: "Instanzfilter" },
+    scope: { en: "Show instances", de: "Instanzen zeigen" },
   },
   "cluster detail": {
     widget: () => (
@@ -164,7 +166,7 @@ const CASES = Object.keys(SITES).flatMap((site) =>
 
 describe("every search box is named by what it searches", () => {
   it.each(CASES)("%s (%s)", (site, locale) => {
-    const { widget, search, chips } = SITES[site]
+    const { widget, search, chips, scope } = SITES[site]
     render(
       <LocaleProvider locale={locale}>
         <TestViewHost>{createElement(widget)}</TestViewHost>
@@ -174,6 +176,7 @@ describe("every search box is named by what it searches", () => {
     const box = screen.getByRole("searchbox", { name: search[locale] })
     expect(box.getAttribute("placeholder")).toBe(`${search[locale]}…`)
     if (chips) expect(screen.getByRole("group", { name: chips[locale] })).toBeTruthy()
+    if (scope) expect(screen.getByRole("radiogroup", { name: scope[locale] })).toBeTruthy()
   })
 })
 

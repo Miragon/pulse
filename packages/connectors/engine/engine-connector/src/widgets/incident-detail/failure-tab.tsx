@@ -5,22 +5,21 @@ import {
   Button,
   Facts,
   MICRO_LABEL,
-  StatusBadge,
   cn,
   formatNumber,
   formatTimestamp,
   Icon,
   LogText,
-  SITUATION_TONES,
   TEXT_BLOCK_FRAME,
-  TONE_ICON,
   type Fact,
 } from "@miragon/pulse-ui"
 import { HandOffButton, IdText } from "@miragon/pulse-widget-shell/widgets"
-import { Check, CircleX, RotateCcw } from "lucide-react"
+import { Check, RotateCcw } from "lucide-react"
 
 import type { IncidentDetailData, IncidentDetailJob } from "../../view-models.js"
 
+import { AlarmCount } from "../lib/alarm-count.js"
+import { DoneMark } from "../lib/done-mark.js"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
 import { WriteError } from "../lib/write-error.js"
 import { useT } from "../../messages/use-t.js"
@@ -70,19 +69,7 @@ export interface RemedyProps {
  * the danger tone's icon of its own shape, named in words for a screen reader.
  */
 function RetriesLeft({ retries }: { retries: number }) {
-  const t = useT()
-  return (
-    <span className="inline-flex items-baseline gap-1.5 tabular-nums">
-      {retries === 0 && (
-        <Icon
-          icon={CircleX}
-          label={t("incidentFailure.noRetriesLeft")}
-          className={cn(TONE_ICON[SITUATION_TONES.jobWithoutRetries], "self-center")}
-        />
-      )}
-      {formatNumber(retries)}
-    </span>
-  )
+  return <AlarmCount alarm={retries === 0 && "noRetriesLeft"}>{formatNumber(retries)}</AlarmCount>
 }
 
 /**
@@ -148,10 +135,9 @@ export function FailureSummary({
       <IncidentFacts data={data} />
       <div className="flex flex-wrap items-center gap-2">
         {retried || resolved ? (
-          <StatusBadge tone="success">
-            <Icon icon={Check} dense />
+          <DoneMark>
             {retried ? t("incidentFailure.retriedButton") : t("incidentDetail.resolved")}
-          </StatusBadge>
+          </DoneMark>
         ) : (
           <>
             {onRetry && <RetryButton data={data} onRetry={onRetry} retrying={retrying} />}

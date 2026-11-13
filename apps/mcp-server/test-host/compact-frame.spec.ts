@@ -84,7 +84,7 @@ const bars = (app: FrameLocator) =>
   app.locator('[data-slot="cockpit-head"], [data-slot="view-bar"]')
 
 test.describe("a list's filter bar", () => {
-  test("the instance list's docks under the view's bar from edge to edge, its field on the content's edge", async ({
+  test("the instance list's docks under the view's bar from edge to edge, its scope on the content's edge", async ({
     page,
   }) => {
     const app = await openView(page, INSTANCES_ARGS, { hostEnv: REALISTIC_HOST_ENV })
@@ -93,22 +93,34 @@ test.describe("a list's filter bar", () => {
     const seen = await toolbar.evaluate((bar) => {
       const card = document.querySelector('[data-slot="widget-shell"]')!.getBoundingClientRect()
       const own = bar.getBoundingClientRect()
+      const scope = bar.querySelector('[data-slot="segmented-control"]')!.getBoundingClientRect()
       const field = bar.querySelector('[data-slot="search-field"]')!.getBoundingClientRect()
       return {
         under: bar.previousElementSibling?.getAttribute("data-slot"),
         left: own.left - card.left,
         right: card.right - own.right,
-        field: field.left - card.left,
+        scope: scope.left - card.left,
+        // The search after the scope on the same line, 8 px apart (the webview's filter bar).
+        fieldAfterScope: Math.round(field.left - scope.right),
+        oneLine:
+          Math.round(field.top + field.height / 2) === Math.round(scope.top + scope.height / 2),
       }
     })
-    expect(seen).toEqual({ under: "view-bar", left: 0, right: 0, field: 12 })
+    expect(seen).toEqual({
+      under: "view-bar",
+      left: 0,
+      right: 0,
+      scope: 12,
+      fieldAfterScope: 8,
+      oneLine: true,
+    })
   })
 })
 
 test.describe("touch (a coarse pointer)", () => {
   test.use({ hasTouch: true, isMobile: true })
 
-  test("the comfortable step: 48 px bars, 36 px controls, 40 px rows, 16 px field text, copy buttons shown", async ({
+  test("the comfortable step: 48 px bars, 36 px controls, 32 px row actions, 40 px rows, 16 px field text, copy buttons shown", async ({
     page,
   }) => {
     const app = await openView(page, INSTANCES_ARGS, { hostEnv: REALISTIC_HOST_ENV })
@@ -120,12 +132,8 @@ test.describe("touch (a coarse pointer)", () => {
     )) {
       expect(height, "a bar on touch").toBeGreaterThanOrEqual(48)
     }
-    // Every control of the bars, the trail's crumbs too, and the kit's buttons in the rows.
-    const controls = await app
-      .locator(
-        '[data-slot="view-bar"] button, [data-slot="cockpit-head"] button, tbody button[class*="min-h-control"]',
-      )
-      .evaluateAll((all) =>
+    const heightsOf = (selector: string) =>
+      app.locator(selector).evaluateAll((all) =>
         all
           .filter((el) => el.getAttribute("aria-label")?.startsWith("Copy") !== true)
           .map((el) => ({
@@ -133,9 +141,19 @@ test.describe("touch (a coarse pointer)", () => {
             height: Math.round(el.getBoundingClientRect().height),
           })),
       )
-    expect(controls.length).toBeGreaterThan(3)
+    // Every control of the bars, the trail's crumbs too.
+    const controls = await heightsOf(
+      '[data-slot="view-bar"] button, [data-slot="cockpit-head"] button',
+    )
+    expect(controls.length).toBeGreaterThanOrEqual(3)
     for (const control of controls) {
       expect(control.height, `${control.name}: a control on touch`).toBeGreaterThanOrEqual(36)
+    }
+    // A row's actions are the xs buttons, a 32 px target on touch inside the 40 px row.
+    const actions = await heightsOf('tbody button[class*="min-h-control"]')
+    expect(actions.length).toBeGreaterThan(3)
+    for (const action of actions) {
+      expect(action.height, `${action.name}: a row's action on touch`).toBeGreaterThanOrEqual(32)
     }
     const rows = await region
       .locator("tbody tr")
@@ -389,14 +407,20 @@ test.describe("facts", () => {
   }
 
   test("an alarming count names its alarm in words beside its tone's icon", async ({ page }) => {
+    /** The facts' alarming count: the danger icon of its own shape and its words, read after it. */
+    const alarmOf = (facts: Locator) =>
+      facts.locator('[data-slot="count-figure"][data-tone="danger"]')
     const incident = await openView(page, INCIDENT_ARGS)
     const facts = incident.locator('[data-slot="facts"]').first()
     await expect(facts).toBeVisible({ timeout: 15_000 })
-    await expect(facts.getByRole("img", { name: "No retries left" })).toBeVisible()
+    await expect(alarmOf(facts).locator("svg.lucide-circle-x")).toBeVisible()
+    await expect(alarmOf(facts).locator(".sr-only")).toHaveText("No retries left")
     const instance = await openView(page, INSTANCE_ARGS)
-    await expect(
-      instance.locator('[data-slot="facts"]').getByRole("img", { name: "Has open incidents" }),
-    ).toBeVisible({ timeout: 15_000 })
+    const instanceFacts = instance.locator('[data-slot="facts"]')
+    await expect(alarmOf(instanceFacts).locator(".sr-only")).toHaveText("Has open incidents", {
+      timeout: 15_000,
+    })
+    await expect(alarmOf(instanceFacts).locator("svg.lucide-circle-x")).toBeVisible()
   })
 })
 

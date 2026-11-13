@@ -80,6 +80,17 @@ describe("AskAiButton", () => {
     expect(icon.getAttribute("stroke-width")).toBe("2.5")
   })
 
+  it("xs is a table row's 24 px button, labelled or as an icon, so the row keeps its height", () => {
+    renderButton(prompt(), "en", { variant: "icon", size: "xs", label: "Find the cause in chat" })
+    const icon = screen.getByRole("button", { name: "Find the cause in chat" })
+    expect(icon.className.split(" ")).toContain("size-control-xs")
+    cleanup()
+    renderButton(prompt(), "en", { size: "xs", label: "Find the cause in chat" })
+    const labelled = screen.getByRole("button", { name: "Find the cause in chat" })
+    expect(labelled.className.split(" ")).toContain("min-h-control-xs")
+    expect(labelled.className.split(" ")).not.toContain("min-h-control")
+  })
+
   it("the toolbar variant is the kit's toolbar button: the icon, then the label at 400 that a narrow bar hides visually", () => {
     const { container, actions } = renderButton(prompt(), "en", {
       variant: "toolbar",

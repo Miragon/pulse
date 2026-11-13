@@ -1,56 +1,45 @@
 import type { ReactNode } from "react"
-import { Icon, cn, CountPill, TONE_DOT, type ToneVariant, SITUATION_TONES } from "@miragon/pulse-ui"
-import { ChevronRight, TriangleAlert } from "lucide-react"
+import { CountBadge, Icon, cn, formatNumber } from "@miragon/pulse-ui"
+import { ChevronRight } from "lucide-react"
+import { useT } from "../messages/use-t.js"
 
 export interface GroupSummaryStat {
   value: ReactNode
   label: ReactNode
 }
 
-/** Shared so the grouped incident lists stay pixel-identical; decorative, the row names the activity. */
-export function IncidentGroupIcon({ tone = SITUATION_TONES.openIncident }: { tone?: ToneVariant }) {
-  return (
-    <div
-      className={cn(
-        "grid size-6 place-items-center rounded-md",
-        tone === "danger" ? "bg-danger-soft text-danger-ink" : "bg-muted text-muted-foreground",
-      )}
-    >
-      <Icon icon={TriangleAlert} />
-    </div>
-  )
-}
-
-/** Shared summary-row anatomy; `expanded` doubles as the expandability switch (omit for plain rows). */
+/**
+ * Shared summary-row anatomy, so the grouped incident lists stay pixel-identical; `expanded`
+ * doubles as the expandability switch (omit for plain rows). The row's one alarm sign is its
+ * incident count's pill, the tone's icon of its own shape: no second icon leads the row.
+ */
 export function GroupSummaryRow({
-  icon,
-  tone,
   title,
   titleSuffix,
   subline,
   stats = [],
-  count,
-  countTone = SITUATION_TONES.openIncident,
+  incidents,
   actions,
   expanded,
   className,
 }: {
-  icon?: ReactNode
-  tone?: ToneVariant
   title: ReactNode
   /** Inline suffix after the title, e.g. a `VersionChip`. */
   titleSuffix?: ReactNode
   /** Truncated second line under the title (the cause, in words). */
   subline?: ReactNode
   stats?: GroupSummaryStat[]
-  /** Count-pill content after the stats; omit to render no pill. */
-  count?: ReactNode
-  countTone?: ToneVariant
+  /**
+   * The group's open incidents after the stats: a neutral count pill with the incident's icon,
+   * the count in words for a screen reader, never a coloured number; omit to render none.
+   */
+  incidents?: number
   /** Action cells (AskAi / drill / cockpit link) between the pill and the chevron. */
   actions?: ReactNode
   expanded?: boolean
   className?: string
 }) {
+  const t = useT()
   return (
     <div
       className={cn(
@@ -59,15 +48,8 @@ export function GroupSummaryRow({
         className,
       )}
     >
-      {icon}
       <div className="min-w-0 flex-1">
         <div className="text-foreground text-dense flex items-center gap-2 font-semibold">
-          {tone && (
-            <span
-              aria-hidden="true"
-              className={`size-1.5 shrink-0 rounded-full ${TONE_DOT[tone]}`}
-            />
-          )}
           <span className="truncate">{title}</span>
           {titleSuffix}
         </div>
@@ -85,7 +67,13 @@ export function GroupSummaryRow({
           <div>{stat.label}</div>
         </div>
       ))}
-      {count !== undefined && <CountPill tone={countTone}>{count}</CountPill>}
+      {incidents !== undefined && (
+        <CountBadge
+          count={incidents}
+          situation={incidents > 0 ? "openIncident" : undefined}
+          label={t("procIncHeader.openIncidents", { count: formatNumber(incidents) })}
+        />
+      )}
       {actions}
       {expanded !== undefined && (
         <Icon

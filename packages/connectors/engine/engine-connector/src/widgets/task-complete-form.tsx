@@ -1,5 +1,13 @@
 import { useMemo, useState } from "react"
-import { Alert, AlertDescription, Button, Input, Icon, NativeSelect } from "@miragon/pulse-ui"
+import {
+  Alert,
+  AlertDescription,
+  Button,
+  Input,
+  Icon,
+  NativeSelect,
+  SegmentedControl,
+} from "@miragon/pulse-ui"
 import { QueryFallback, TableSkeleton, useToolQuery } from "@miragon/pulse-widget-shell/widgets"
 import { Plus, X } from "lucide-react"
 
@@ -270,6 +278,7 @@ function FieldRow({
   const label = field.label ?? field.name
   const required = isRequired(field)
   const disabled = field.readonly === true
+  const labelClass = `text-dense font-semibold ${disabled ? "text-muted-foreground" : ""}`
 
   const meta = useMemo(() => {
     const parts: string[] = []
@@ -311,27 +320,21 @@ function FieldRow({
     return (
       <div className="flex flex-col gap-1">
         <div className="flex items-baseline justify-between">
-          <label className={`text-dense font-semibold ${disabled ? "text-muted-foreground" : ""}`}>
-            {label}
-          </label>
+          <span className={labelClass}>{label}</span>
           <span className="text-muted-foreground text-small">{meta}</span>
         </div>
-        {/* The engine value stays "true"/"false"; the screen says Ja/Nein. */}
-        <div className="flex gap-1">
-          {(["true", "false"] as const).map((choice) => (
-            <Button
-              key={choice}
-              type="button"
-              size="sm"
-              variant={value === choice ? "default" : "outline"}
-              aria-pressed={value === choice}
-              disabled={disabled}
-              onClick={() => onChange(choice)}
-            >
-              {t(choice === "true" ? "value.yes" : "value.no")}
-            </Button>
-          ))}
-        </div>
+        {/* A radio group named by the words above; the engine still gets "true"/"false". */}
+        <SegmentedControl<string>
+          ariaLabel={label}
+          options={[
+            { value: "true", label: t("value.yes") },
+            { value: "false", label: t("value.no") },
+          ]}
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          className="self-start"
+        />
       </div>
     )
   }
@@ -339,10 +342,7 @@ function FieldRow({
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-baseline justify-between">
-        <label
-          htmlFor={`field-${field.name}`}
-          className={`text-dense font-semibold ${disabled ? "text-muted-foreground" : ""}`}
-        >
+        <label htmlFor={`field-${field.name}`} className={labelClass}>
           {label}
         </label>
         <span className="text-muted-foreground text-small">{meta}</span>

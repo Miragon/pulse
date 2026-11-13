@@ -1,15 +1,12 @@
 import { useMemo, useState } from "react"
 
 import {
-  CountPill,
+  CountBadge,
   FilterBar,
   GroupCard,
   SectionHeading,
-  TONE_DOT,
   cn,
-  countTone,
   type FilterChip,
-  type ToneVariant,
   DrillButton,
   TableEmptyState,
   formatCount,
@@ -24,10 +21,10 @@ import type {
 
 import { useNav } from "../navigation.js"
 import { ENGINE_INCIDENTS_DATA } from "../../tool-names.js"
-import { GroupSummaryRow, IncidentGroupIcon } from "../group-summary-row.js"
+import { GroupSummaryRow } from "../group-summary-row.js"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
 import { MoreActions } from "../lib/more-actions.js"
-import { useT } from "../../messages/use-t.js"
+import { useT, type T } from "../../messages/use-t.js"
 import { dashboardScope, incidentsFeed } from "./scope.js"
 
 import {
@@ -69,9 +66,19 @@ export function processRootCauseHandOff(
 }
 
 interface DisplayProcess extends IncidentsDashboardProcess {
-  tone: ToneVariant
   /** Null = unknown. */
   shownCount: number | null
+  /** The count is the incidents of the last 24 hours (the Last 24h chip), not every open one. */
+  last24h: boolean
+}
+
+/** The group's count in words, exact: its open incidents or those of the last 24 hours. */
+function shownCountLabel(t: T, process: DisplayProcess): string {
+  if (process.shownCount === null) return t("incidentsList.countUnknown")
+  const count = formatNumber(process.shownCount)
+  return process.last24h
+    ? t("incidentsList.new24h", { count })
+    : t("procIncHeader.openIncidents", { count })
 }
 
 /** #322 U20: two lines; the full process name, never cut; the cockpit link and hand-off behind "more". */
@@ -108,10 +115,6 @@ function ProcessSummary({
   return (
     <div className={cn("px-cell flex flex-col gap-1.5 py-2", expanded && "border-border border-b")}>
       <div className="flex items-start gap-3">
-        <span
-          aria-hidden="true"
-          className={cn("mt-2 size-1.5 shrink-0 rounded-full", TONE_DOT[process.tone])}
-        />
         <span className="text-foreground text-dense min-w-0 flex-1 font-semibold break-words">
           {name}
           {process.processDefinitionName && (
@@ -120,12 +123,18 @@ function ProcessSummary({
             </span>
           )}
         </span>
-        <CountPill tone={process.tone}>{formatCount(process.shownCount)}</CountPill>
+        {/* A neutral count with the incident's icon, never a coloured number (invariant 6). */}
+        <CountBadge
+          count={process.shownCount}
+          situation={(process.shownCount ?? 0) > 0 ? "openIncident" : undefined}
+          label={shownCountLabel(t, process)}
+        />
       </div>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 ps-4">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
         <span className="text-muted-foreground text-small min-w-0 flex-1">{facts.join(" · ")}</span>
         <div className="flex items-center gap-1">
           <DrillButton
+            size="xs"
             onDrill={onOpenDetail}
             ariaLabel={t("incidentsList.openDetailAria", { name })}
           >
@@ -151,11 +160,10 @@ function ActivityRow({ activity }: { activity: IncidentsDashboardActivity }) {
   const t = useT()
   return (
     <GroupSummaryRow
-      icon={<IncidentGroupIcon />}
       title={activity.activityName ?? activity.activityId}
       subline={activity.representativeMessage ?? activity.activityId}
       stats={[{ value: formatTimestamp(activity.firstSeen), label: t("incidentsList.firstSeen") }]}
-      count={formatNumber(activity.scannedIncidentCount)}
+      incidents={activity.scannedIncidentCount}
       className="border-border border-b pl-7 last:border-b-0"
     />
   )
@@ -215,8 +223,7 @@ function filterProcesses(
         ...p,
         activities,
         shownCount: showLast24h ? p.last24hCount : p.incidentCount,
-        // The one severity ladder: open incidents are danger (#322 U14).
-        tone: countTone(p.incidentCount),
+        last24h: showLast24h,
       }
     })
     .filter((p): p is DisplayProcess => p !== null)
