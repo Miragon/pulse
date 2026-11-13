@@ -10,13 +10,22 @@ name: Publish VS Code extension
 #            (a prerelease or build suffix).
 #   publish  runs in the vscode-marketplace environment (deployment branch main), installs the
 #            lockfile's vsce and ovsx with --ignore-scripts, builds nothing and publishes the
-#            .vsix: with the organization's VSCE_PUBLISH / OVSX_PUBLISH (as every Miragon
-#            extension) when set, else by trusted publishing (OIDC, id-token: write). The
-#            environment is the gate (main only), the caller hands down the two tokens by name.
+#            .vsix by trusted publishing on both stores (OIDC, id-token: write; vsce --oidc,
+#            ovsx --trusted-publishing), so no store token exists. The environment is the gate
+#            (main only).
 #   attach   uploads the .vsix to the release v<version> (contents: write, no credentials).
 # Every release publishes a plain release, never a pre-release. --skip-duplicate makes a re-run
 # after a partial failure publish only what is missing. scripts/check-github-config.mjs
 # (`pnpm lint:github`) pins its credential shape.
+#
+# Trusted publishing is registered on both stores with the same four values: owner Miragon,
+# repository pulse, workflow release-please.yml (the CALLING file: Open VSX matches the token's
+# workflow_ref claim, not job_workflow_ref) and environment vscode-marketplace. The Visual Studio
+# Marketplace holds it as a Trusted Publishing policy of the publisher miragon-gmbh, Open VSX as a
+# trusted publisher of miragon-gmbh/pulse-cockpit (Settings, Trusted Publishers; it binds only to
+# an extension that exists). Renaming release-please.yml or the environment breaks publishing until
+# both are updated. The Marketplace does not document which claim its workflow field matches: if
+# its exchange refuses the token, add a policy for publish-vscode-extension.yml and re-run.
 on:
   workflow_call:
     inputs:
@@ -32,13 +41,6 @@ on:
         description: Package only, publish nothing
         type: boolean
         default: false
-    secrets:
-      VSCE_PUBLISH:
-        description: Visual Studio Marketplace token (the organization secret)
-        required: false
-      OVSX_PUBLISH:
-        description: Open VSX token (the organization secret)
-        required: false
 
 permissions: {}
 
@@ -210,27 +212,13 @@ jobs:
         env:
           NAME: ${{ needs.package.outputs.name }}
           VSIX: ${{ needs.package.outputs.vsix }}
-          VSCE_PAT: ${{ secrets.VSCE_PUBLISH }}
-        run: |
-          args=(--packagePath "$RUNNER_TEMP/vsix/${VSIX}" --skip-duplicate)
-          if [ -z "$VSCE_PAT" ]; then
-            unset VSCE_PAT
-            args+=(--oidc)
-          fi
-          pnpm --fail-if-no-match --filter "${NAME}" run marketplace:publish "${args[@]}"
+        run: pnpm --fail-if-no-match --filter "${NAME}" run marketplace:publish --packagePath "$RUNNER_TEMP/vsix/${VSIX}" --skip-duplicate --oidc
 
       - name: Publish to Open VSX
         env:
           NAME: ${{ needs.package.outputs.name }}
           VSIX: ${{ needs.package.outputs.vsix }}
-          OVSX_PAT: ${{ secrets.OVSX_PUBLISH }}
-        run: |
-          args=(--packagePath "$RUNNER_TEMP/vsix/${VSIX}" --skip-duplicate)
-          if [ -z "$OVSX_PAT" ]; then
-            unset OVSX_PAT
-            args+=(--trusted-publishing)
-          fi
-          pnpm --fail-if-no-match --filter "${NAME}" run open-vsx:publish "${args[@]}"
+        run: pnpm --fail-if-no-match --filter "${NAME}" run open-vsx:publish --packagePath "$RUNNER_TEMP/vsix/${VSIX}" --skip-duplicate --trusted-publishing
 
   attach:
     name: Attach ${{ inputs.directory }} to the release
