@@ -191,6 +191,31 @@ describe("listTableCss", () => {
       `@container (min-width: 40rem) { ${at} tr > :nth-child(2) { position: sticky; right: 0; z-index: 1; background-color: inherit; } }`,
     )
     expect(css).not.toMatch(/^\[data-list-table="s"\] tr > :nth-child\(2\) \{ position: sticky/m)
+    // Below it the column scrolls with the row: its head's word is a screen reader's only.
+    expect(css).toContain(
+      `@container (width < 40rem) { ${at} thead [data-list-table-scrolls] { position: absolute;`,
+    )
+  })
+
+  it("keeps the head of a column that scrolls below its breakpoint named, its word in a marked span", () => {
+    render(
+      <ListTable
+        ariaLabel="Incidents"
+        columns={[{ label: "Message" }, { label: "Actions", sticky: "sm" }]}
+      >
+        <tr>
+          <Td>a</Td>
+          <Td>b</Td>
+        </tr>
+      </ListTable>,
+    )
+    const head = screen.getByRole("columnheader", { name: "Actions" })
+    expect(head.querySelector("[data-list-table-scrolls]")?.textContent).toBe("Actions")
+    expect(
+      screen
+        .getByRole("columnheader", { name: "Message" })
+        .querySelector("[data-list-table-scrolls]"),
+    ).toBeNull()
   })
 
   it("maps each breakpoint to its container width", () => {

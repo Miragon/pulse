@@ -375,7 +375,7 @@ export function JobPanelWidget({
           </PagedRows>
           <PagedListFooter
             paged={paged}
-            noun={t("jobPanel.footerNoun")}
+            noun={(total) => t("jobPanel.footerNoun", { count: total })}
             labels={paged.footerLabels}
           />
         </>

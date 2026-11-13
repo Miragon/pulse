@@ -35,7 +35,8 @@ export interface ListTableColumn {
    * Pins the LAST column (row actions) to the right edge while scrolling. Rows
    * then paint the table's surface, the card; another surface sets `--table-surface`. A
    * breakpoint pins it only from that region width up: below it the column scrolls with the
-   * rest, so a narrow region keeps the cells beside it in view.
+   * rest, so a narrow region keeps the cells beside it in view, and its head's word is there for
+   * a screen reader only, never a cut word at the region's edge.
    */
   sticky?: boolean | ColumnBreakpoint
   sort?: ColumnSort
@@ -81,6 +82,13 @@ function groupLayout(
   return layout
 }
 
+/** Visually hidden, still read: the rules of Tailwind's `sr-only`. */
+const SR_ONLY =
+  "position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border-width: 0;"
+
+/** Marks the head word of a column that scrolls with its row below its pinning breakpoint. */
+const SCROLLING_HEAD = "data-list-table-scrolls"
+
 function hideRules(cell: string, below: ColumnBreakpoint): string[] {
   const width = COLUMN_BREAKPOINTS[below]
   return [
@@ -123,15 +131,26 @@ export function listTableCss(
       )
       rules.push(
         `@layer components { :where(${at} tbody tr), :where(${at} thead tr) { background-color: ${SURFACE}; } }`,
-        ...(column.sticky === true
-          ? pinned
-          : [
-              `@container (min-width: ${COLUMN_BREAKPOINTS[column.sticky]}) { ${pinned.join(" ")} }`,
-            ]),
+        ...(column.sticky === true ? pinned : pinnedFrom(at, column.sticky, pinned)),
       )
     }
   })
   return rules.join("\n")
+}
+
+/** Pinned from `from` up; below it the column scrolls and its head's word is for a screen reader. */
+function pinnedFrom(at: string, from: ColumnBreakpoint, pinned: string[]): string[] {
+  const width = COLUMN_BREAKPOINTS[from]
+  return [
+    `@container (min-width: ${width}) { ${pinned.join(" ")} }`,
+    `@container (width < ${width}) { ${at} thead [${SCROLLING_HEAD}] { ${SR_ONLY} } }`,
+  ]
+}
+
+/** A head that scrolls with its row below a breakpoint carries its word in a marked span. */
+function headLabel(column: ListTableColumn): ReactNode {
+  const scrolls = typeof column.sticky === "string" && column.label !== undefined
+  return scrolls ? <span data-list-table-scrolls="">{column.label}</span> : column.label
 }
 
 /** Heads use `scope="col"`: `colgroup` would need `<col>` elements, which keep hidden columns in the table model. */
@@ -202,7 +221,7 @@ export function ListTable({
   const showMore = budget.expand ?? (() => own.reveal(own.step))
   const heads = columns.map((column, index): DataTableColumn => ({
     key: String(index),
-    label: column.label,
+    label: headLabel(column),
     align: column.align,
     plain: column.plain,
     sort: column.sort,

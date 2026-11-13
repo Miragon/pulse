@@ -15,6 +15,7 @@ export type {
   CommonMessages,
   ConditionChipMessages,
   CopyableIdMessages,
+  CountNoun,
   CountMessages,
   DataTableMessages,
   FilterBarMessages,

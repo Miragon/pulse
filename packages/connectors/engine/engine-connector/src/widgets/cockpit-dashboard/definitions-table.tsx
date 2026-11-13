@@ -138,7 +138,7 @@ function ProcessDefinitionsSection({
         total={filtered.length}
         hasMore={rows.length < filtered.length}
         onLoadMore={() => setLimit((prev) => prev + PAGE_SIZE)}
-        noun={t("cockpitDefs.footerNoun")}
+        noun={(total) => t("cockpitDefs.footerNoun", { count: total })}
       />
     </section>
   )

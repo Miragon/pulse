@@ -149,7 +149,8 @@ day the owner decided D9, which replaces D4 and turns D7 into the switch's preco
      (`--field-text`), which stays 13 px under `[data-density=compact]`.
      Controls and bars take a minimum height, never a fixed one, so text at 200 % does not clip.
      A view's bar (`ViewBar`) keeps one line while its parts fit: its title gives way first, cut
-     with an ellipsis down to 6ch, and a toolbar button's label hides under 36rem; a group that
+     with an ellipsis, keeping a 20rem subject (about 10rem of title beside its state) before the
+     facts move and 6ch alone on a line, and a toolbar button's label hides under 36rem; a group that
      still has no room (the facts with their ids and links, the actions, the host's meta) moves
      onto a further line instead of being cut or hidden (WCAG 1.4.10), two lines under 30rem. So
      the webview's bar row takes the bar's height from the switch on, 40 px at least instead of a

@@ -165,6 +165,25 @@ describe("a group's summary in a narrow row", () => {
     // Each stat its label, then its value, on one line there.
     expect(classes(stats.firstElementChild)).toContain("@max-2xl/summary:flex-row-reverse")
   })
+
+  it("gives each stat and the count a fixed track, so they line up from row to row", () => {
+    const { container } = render(
+      <TestViewHost>
+        <GroupSummaryRow
+          title="Approve Invoice"
+          stats={[{ value: "10/9/2026, 8:00 AM", label: "first seen" }]}
+          incidents={46}
+        />
+      </TestViewHost>,
+    )
+    const stats = container.querySelector("[data-slot='group-summary-stats']")!
+    expect(classes(stats.firstElementChild)).toEqual(
+      expect.arrayContaining(["min-w-40", "text-right", "@max-2xl/summary:min-w-0"]),
+    )
+    expect(classes(container.querySelector("[data-slot='group-summary-count']"))).toEqual(
+      expect.arrayContaining(["min-w-14", "justify-end"]),
+    )
+  })
 })
 
 describe("a count in a view's header is a state label, never a tinted badge", () => {

@@ -90,7 +90,8 @@ function BarMeta({ access, live, freshness }: Pick<ViewBarProps, "access" | "liv
  * 13 px at 600 and the state after it), then the facts in quiet 13 px text, the actions as one
  * group and, at the end, the access chip, the host's live control and its freshness stamp. It
  * keeps one line where it gets narrow: the title gives way first, cut with an ellipsis (its whole
- * text in its title) down to 12rem for the subject or to 6ch, and a toolbar button's label hides
+ * text in its title) down to 20rem for the subject (about 10rem of title beside a state) or to 6ch
+ * on a line of its own, and a toolbar button's label hides
  * visually under 36rem (its container is `bar`) and stays its name. Only a group that still has
  * no room moves onto a further line, never cut or hidden (WCAG 1.4.10: the facts hold ids and
  * links, the meta the host's controls), and under 30rem the actions and the meta start a line of
@@ -127,11 +128,13 @@ export function ViewBar({
           The subject's columns: the back button, the icon and the state at their own width (an
           empty one takes none, its gap is the item's margin), the title between them from 6ch up
           to its whole text. A grid, since its minimum then counts the title's 6ch (a flex row
-          would count the whole title): the title gives way before any group moves.
+          would count the whole title). Its basis is 20rem, so beside a state the title keeps
+          about 10rem before the facts move onto a line of their own; alone on a line it gives
+          way down to 6ch.
         */}
         <div
           data-slot="view-bar-subject"
-          className="text-dense grid max-w-max min-w-min flex-[1_1_12rem] grid-cols-[auto_auto_minmax(6ch,max-content)_auto] items-center justify-start whitespace-nowrap"
+          className="text-dense grid max-w-max min-w-min flex-[1_1_20rem] grid-cols-[auto_auto_minmax(6ch,max-content)_auto] items-center justify-start whitespace-nowrap"
         >
           {onBack && (
             <Button

@@ -254,7 +254,7 @@ export function PagedHistoryView({
       </RowsBudgeted>
       <PagedListFooter
         paged={paged}
-        noun={t("historyTimeline.footerNoun")}
+        noun={(total) => t("historyTimeline.footerNoun", { count: total })}
         labels={paged.footerLabels}
       />
     </div>

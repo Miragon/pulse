@@ -185,6 +185,7 @@ export {
   type CommonMessages,
   type ConditionChipMessages,
   type CopyableIdMessages,
+  type CountNoun,
   type CountMessages,
   type DataTableMessages,
   type FilterBarMessages,

@@ -18,6 +18,7 @@ import {
 /** Sample arguments for the function-valued messages. */
 const SAMPLES: Record<string, unknown[]> = {
   showing: [{ shown: "8", total: "42", noun: "tasks" }],
+  defaultNoun: ["42"],
   resizeColumn: [{ column: "Process" }],
   columnMenu: [{ column: "Process" }],
   columnWidth: [{ width: "120" }],

@@ -341,7 +341,7 @@ function ClusterDetailView({
             </PagedRows>
             <PagedListFooter
               paged={paged}
-              noun={t("clusterDetail.footerNoun")}
+              noun={(total) => t("clusterDetail.footerNoun", { count: total })}
               labels={paged.footerLabels}
             />
             {listCapped(data) && (

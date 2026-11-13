@@ -301,7 +301,7 @@ export function PagedIncidentTable({
       {/* The footer pads itself on the cell's role, so it lines up with the cells above. */}
       <PagedListFooter
         paged={paged}
-        noun={t("procIncTable.footerNoun")}
+        noun={(total) => t("procIncTable.footerNoun", { count: total })}
         labels={paged.footerLabels}
       />
       {/* The per-row button only requests the resolve; the actual

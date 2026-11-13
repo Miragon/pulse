@@ -28,12 +28,18 @@ export interface CommonMessages {
   loading: string
 }
 
+/**
+ * A list's noun for its count line: a word, or the word in the number the formatted total asks
+ * for ("1 incident", "2 incidents").
+ */
+export type CountNoun = string | ((total: string) => string)
+
 /** Strings of `ListFooter`. */
 export interface ListFooterMessages {
   /** The honest count line, e.g. "Showing 8 of 42 tasks". Numbers arrive pre-formatted. */
   showing: (params: { shown: string; total: string; noun: string }) => string
-  /** Plural noun used when the caller passes none. */
-  defaultNoun: string
+  /** The noun used when the caller passes none, in the number the total asks for. */
+  defaultNoun: CountNoun
   loadMore: string
   loadingMore: string
   /** Status while a new first page is in flight over the rows on screen. */

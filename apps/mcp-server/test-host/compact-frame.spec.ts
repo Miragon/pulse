@@ -6,8 +6,10 @@ import { HEALTHY_ENGINE, REALISTIC_ENGINE, REALISTIC_HOST_ENV } from "./engines.
  * The cockpit's frame in the one compact look (D9) where the reader's setup differs from a desk:
  * a touch screen takes the comfortable step, text at 200 % grows every control around it, a
  * 320 px card keeps every fact and id of a view's bar and every section of the head (on its last
- * line where the head wraps), a 400 px chat keeps each incident row one line and each group's
- * title its share, a header's count stays a neutral number beside its tone's icon, the head's
+ * line where the head wraps), the overview's processes give way to their ellipsis while the row
+ * actions scroll, a 400 px chat keeps each incident row one line and each group's title its share
+ * and reads a scrolling column's head without a cut word, a footer's noun follows its count, a
+ * header's count stays a neutral number beside its tone's icon and its title its share, the head's
  * sections (pulse-ui's NavTabs) open by keyboard, forced colours keep the open tab, the head's
  * open section and a docked strip, a fact's term sits on its value's baseline, and the detail
  * views pass axe, their BPMN diagram included, with a failed refresh docked under the bar.
@@ -348,6 +350,40 @@ async function narrowTable(region: Locator) {
   }))
 }
 
+test.describe("the overview's processes in a narrow card", () => {
+  for (const width of [320, 400]) {
+    test(`at ${width} px the actions scroll with the row and the process gives way with its ellipsis`, async ({
+      page,
+    }) => {
+      const app = await openView(page, { engine: HEALTHY_ENGINE }, { width })
+      const region = app.getByRole("region", { name: /^Deployed process definitions/ })
+      await expect(region.locator("tbody tr").first()).toBeVisible({ timeout: 15_000 })
+      const rows = await region.locator("tbody tr").evaluateAll((all) =>
+        all.map((row) => {
+          const name = row.querySelector("td")!
+          const actions = row.querySelector("td:last-child")!
+          const line = name.querySelector("[title]") as HTMLElement
+          return {
+            position: getComputedStyle(actions).position,
+            overlap: actions.getBoundingClientRect().left < name.getBoundingClientRect().right - 1,
+            ellipsis: getComputedStyle(line).textOverflow,
+            width: Math.round(line.getBoundingClientRect().width),
+          }
+        }),
+      )
+      expect(rows.length).toBeGreaterThan(0)
+      for (const row of rows) {
+        expect(row).toMatchObject({ position: "static", overlap: false, ellipsis: "ellipsis" })
+        expect(row.width, "the process keeps its 8rem floor").toBeGreaterThanOrEqual(120)
+      }
+      const scrolls = await app
+        .locator("html")
+        .evaluate((html) => html.scrollWidth > html.clientWidth)
+      expect(scrolls, "the document never scrolls sideways").toBe(false)
+    })
+  }
+})
+
 test.describe("a 400 px chat", () => {
   test("the process's incidents by activity: each row one 28 px line, the message cut and whole in its title, the table scrolling in its region; each group's title keeps its share", async ({
     page,
@@ -398,6 +434,34 @@ test.describe("a 400 px chat", () => {
     const label = region.locator("tbody tr").first().locator("td").first()
     await expect(label).toContainText("INV-2026-0041")
     await expect(label.getByRole("button", { name: /^Copy/ })).toBeHidden()
+  })
+
+  test("an activity's incidents: the actions' head is read, not cut at the edge, while the actions scroll; the footer's noun follows its count", async ({
+    page,
+  }) => {
+    await groupedIncidents(page)
+    const app = await openView(page, PROCESS_ARGS, { width: 400 })
+    const groups = app.locator('[role="button"][aria-expanded]')
+    await expect(groups).toHaveCount(2, { timeout: 15_000 })
+    await groups.first().click()
+    const region = app.getByRole("region", { name: "Incidents in this activity" })
+    await expect(region.locator("tbody tr")).toHaveCount(3, { timeout: 15_000 })
+    const head = region.getByRole("columnheader", { name: "Actions" })
+    await expect(head).toHaveCount(1)
+    const word = await head.locator("[data-list-table-scrolls]").evaluate((el) => {
+      const box = el.getBoundingClientRect()
+      return { width: box.width, height: box.height, clip: getComputedStyle(el).clipPath }
+    })
+    expect(word, "the head's word visually hidden while the actions scroll").toEqual({
+      width: 1,
+      height: 1,
+      clip: "inset(50%)",
+    })
+    await expect(app.getByText("Showing 3 of 3 incidents")).toBeVisible()
+    await groups.nth(1).click()
+    await expect(app.getByText("Showing 1 of 1 incident", { exact: true })).toBeVisible({
+      timeout: 15_000,
+    })
   })
 
   test("an instance's incidents: each row one 28 px line, the message 10rem at least, the document never scrolling sideways", async ({
@@ -526,6 +590,26 @@ test.describe("a view's header counts", () => {
     expect(seen.fill).toBe("rgba(0, 0, 0, 0)")
     expect(seen.shape).toContain("lucide-circle-x")
     expect(seen.icon).not.toBe(seen.foreground)
+  })
+
+  test("at 760 px the title keeps its share beside the count, whole, and no fact is cut", async ({
+    page,
+  }) => {
+    await groupedIncidents(page)
+    const app = await openView(page, PROCESS_ARGS)
+    const bar = app.locator('[data-slot="view-bar"]').first()
+    await expect(bar.locator('[data-slot="state-label"]')).toBeVisible({ timeout: 15_000 })
+    const seen = await bar.evaluate((el) => {
+      const title = el.querySelector("h1 > span")!
+      const facts = [...el.querySelectorAll('[data-slot="view-bar-facts"] *')].filter(
+        (part) => part.children.length === 0 && part.textContent,
+      )
+      return {
+        whole: title.scrollWidth <= title.clientWidth,
+        cutFacts: facts.filter((part) => part.scrollWidth > part.clientWidth + 1).length,
+      }
+    })
+    expect(seen).toEqual({ whole: true, cutFacts: 0 })
   })
 })
 

@@ -236,7 +236,7 @@ export function ProcessInstancesView({
           (empty) rows on screen, and its error + retry live in the footer. */}
       <PagedListFooter
         paged={paged}
-        noun={t("processInstances.footerNoun")}
+        noun={(total) => t("processInstances.footerNoun", { count: total })}
         labels={paged.footerLabels}
       />
     </WidgetShell>

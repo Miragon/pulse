@@ -19,7 +19,7 @@ export const de: UiMessages = {
   },
   listFooter: {
     showing: ({ shown, total, noun }) => `Zeigt ${shown} von ${total} ${noun}`.trimEnd(),
-    defaultNoun: "Zeilen",
+    defaultNoun: (total) => (total === "1" ? "Zeile" : "Zeilen"),
     loadMore: "Mehr laden",
     loadingMore: "Wird geladen…",
     updating: "Wird aktualisiert…",

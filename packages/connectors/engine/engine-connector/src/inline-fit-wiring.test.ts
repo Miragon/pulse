@@ -49,7 +49,8 @@ describe("every paged list reaches the inline fit", () => {
     "%s lets its footer say what the click does",
     (_name, path) => {
       const source = readFileSync(path, "utf8")
-      const footers = source.match(/<PagedListFooter\b[^>]*>/g) ?? []
+      // An arrow function in a prop (`noun={(total) => …}`) is no end of the tag.
+      const footers = source.match(/<PagedListFooter\b(?:=>|[^>])*>/g) ?? []
       expect(footers.length).toBeGreaterThan(0)
       for (const footer of footers) expect(footer).toMatch(/labels=\{\w+\.footerLabels\}/)
     },

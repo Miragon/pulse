@@ -139,7 +139,7 @@ describe("ViewBar", () => {
     expect(screen.queryByRole("button")).toBeNull()
   })
 
-  it("cuts the title before any group moves: the subject's minimum counts 6ch of title, not the whole of it", async () => {
+  it("cuts the title down to a 20rem subject before the facts move, and to 6ch alone on a line: the minimum counts 6ch of title, not the whole of it", async () => {
     const { container } = render(
       <ViewBar
         title="Order fulfillment with a long process name"
@@ -159,7 +159,7 @@ describe("ViewBar", () => {
         "grid-cols-[auto_auto_minmax(6ch,max-content)_auto]",
         "min-w-min",
         "max-w-max",
-        "flex-[1_1_12rem]",
+        "flex-[1_1_20rem]",
         "whitespace-nowrap",
       ]),
     )
@@ -177,7 +177,7 @@ describe("ViewBar", () => {
     expect(css).toContain("grid-template-columns: auto auto minmax(6ch,max-content) auto")
     expect(css).toContain("min-width: min-content")
     expect(css).toContain("max-width: max-content")
-    expect(css).toContain("flex: 1 1 12rem")
+    expect(css).toContain("flex: 1 1 20rem")
     // The meta wraps rather than widening the document at 320 px.
     expect(classes(slot(container, "view-bar-meta"))).toEqual(
       expect.arrayContaining(["flex-wrap", "min-w-0", "ml-auto"]),

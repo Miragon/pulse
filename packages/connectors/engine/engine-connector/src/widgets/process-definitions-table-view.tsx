@@ -38,7 +38,9 @@ export function ProcessDefinitionsTableView({
     { label: t("cockpitDefs.colRunning"), align: "right" },
     { label: t("cockpitDefs.colFailedJobs"), align: "right" },
     { label: t("cockpitDefs.colIncidents"), align: "right" },
-    ...(renderActions ? [{ plain: true, sticky: true }] : []),
+    // Pinned from 40rem up only: in a narrower region a pinned column would cover the process, so
+    // the actions scroll with the row and the name gives way with its ellipsis.
+    ...(renderActions ? [{ plain: true, sticky: "sm" as const }] : []),
   ]
 
   return (

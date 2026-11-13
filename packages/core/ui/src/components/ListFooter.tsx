@@ -1,7 +1,7 @@
 import { cn } from "../lib/utils.js"
 import { Button } from "../primitives/button.js"
 import { useUiLocale, useUiMessages } from "../locale/locale-provider.js"
-import type { ListFooterMessages } from "../locale/message-types.js"
+import type { CountNoun, ListFooterMessages } from "../locale/message-types.js"
 import { formatCountIn } from "../locale/ui-messages.js"
 
 export interface ListFooterProps {
@@ -15,8 +15,11 @@ export interface ListFooterProps {
   loadingMore?: boolean
   /** Called when the user asks for the next page. */
   onLoadMore: () => void
-  /** Plural noun for the count, e.g. `"instances"`. Default: the locale's word for rows. */
-  noun?: string
+  /**
+   * The noun for the count: a word (`"instances"`), or a function that puts it in the number the
+   * formatted total asks for (`"1 instance"`, `"2 instances"`). Default: the locale's word for rows.
+   */
+  noun?: CountNoun
   /**
    * A new first page is in flight while these rows stay on screen (a search,
    * a filter, a refetch): the status line adds a visible "Updating…".
@@ -124,12 +127,14 @@ function StatusLine({
   messages: ListFooterMessages
   shown: number
   total: number
-  noun: string | undefined
+  noun: CountNoun | undefined
   counted: boolean
   refreshing: boolean
   empty: boolean
 }) {
   const locale = useUiLocale()
+  const totalText = formatCountIn(total, locale)
+  const word = noun ?? messages.defaultNoun
   return (
     <>
       {empty && <span>{messages.noResults}</span>}
@@ -137,8 +142,8 @@ function StatusLine({
         <span>
           {messages.showing({
             shown: formatCountIn(shown, locale),
-            total: formatCountIn(total, locale),
-            noun: noun ?? messages.defaultNoun,
+            total: totalText,
+            noun: typeof word === "function" ? word(totalText) : word,
           })}
         </span>
       )}

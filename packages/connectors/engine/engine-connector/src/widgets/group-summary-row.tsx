@@ -23,7 +23,9 @@ const NARROW = {
  * doubles as the expandability switch (omit for plain rows). The row's one alarm sign is its
  * incident count's pill, the tone's icon of its own shape: no second icon leads the row. On the
  * density roles: a list entry's height at least, the cell's padding. The title keeps 10rem at
- * least; in a narrow row (a phone-width chat) the stats sit under it.
+ * least; in a narrow row (a phone-width chat) the stats sit under it. The stats and the count
+ * take fixed tracks (a stat 10rem, the count 3.5rem, its pill at the end), so they line up from
+ * row to row whatever a date's or a count's width.
  */
 export function GroupSummaryRow({
   title,
@@ -74,7 +76,7 @@ export function GroupSummaryRow({
               <div
                 key={i}
                 className={cn(
-                  "text-muted-foreground text-small flex min-w-[80px] flex-col text-right tabular-nums",
+                  "text-muted-foreground text-small flex min-w-40 flex-col text-right tabular-nums",
                   NARROW.stat,
                 )}
               >
@@ -85,11 +87,13 @@ export function GroupSummaryRow({
           </div>
         )}
         {incidents !== undefined && (
-          <CountBadge
-            count={incidents}
-            situation={incidents > 0 ? "openIncident" : undefined}
-            label={t("procIncHeader.openIncidents", { count: formatNumber(incidents) })}
-          />
+          <span data-slot="group-summary-count" className="flex min-w-14 justify-end">
+            <CountBadge
+              count={incidents}
+              situation={incidents > 0 ? "openIncident" : undefined}
+              label={t("procIncHeader.openIncidents", { count: formatNumber(incidents) })}
+            />
+          </span>
         )}
         {actions}
         {expanded !== undefined && (
