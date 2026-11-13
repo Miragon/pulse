@@ -12,6 +12,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
+  Checkbox,
   Dialog,
   DialogClose,
   DialogContent,
@@ -21,6 +22,8 @@ import {
   DialogTitle,
   DialogTrigger,
   Input,
+  Label,
+  Progress,
   Skeleton,
   Switch,
   Table,
@@ -35,6 +38,7 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
+  Textarea,
 } from "./index.js"
 
 /**
@@ -91,6 +95,29 @@ export const PRIMITIVE_RENDER_CASES: RenderCase[] = [
     name: "Input",
     marker: "RC:Input",
     render: () => <Input type="text" placeholder="RC:Input" defaultValue="42" onChange={noop} />,
+  },
+  {
+    // The marker lands in the placeholder attribute of the markup.
+    name: "Textarea",
+    marker: "RC:Textarea",
+    render: () => <Textarea placeholder="RC:Textarea" defaultValue="{}" onChange={noop} />,
+  },
+  {
+    name: "Label",
+    marker: "RC:Label",
+    render: () => <Label htmlFor="rc-label">RC:Label</Label>,
+  },
+  {
+    // The marker lands in the aria-label attribute; the box is checked, so its mark renders.
+    name: "Checkbox",
+    marker: "RC:Checkbox",
+    render: () => <Checkbox defaultChecked aria-label="RC:Checkbox" onCheckedChange={noop} />,
+  },
+  {
+    // The markers land in the aria-label and aria-valuetext attributes.
+    name: "Progress",
+    marker: "RC:Progress",
+    render: () => <Progress aria-label="Archiving" value={3} max={12} valueText="RC:Progress" />,
   },
   {
     // The marker lands in the aria-label attribute of the markup.

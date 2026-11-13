@@ -93,7 +93,7 @@ describe("the gates reach every source", () => {
 
 /** brand-lint reads Markdown only, not strings in `.ts`/`.tsx`. */
 describe("kit copy follows the voice rules", () => {
-  const SECTIONS = ["common", "listFooter", "filterBar", "pills"] as const
+  const SECTIONS = ["common", "listFooter", "filterBar", "searchField", "pills"] as const
   it.each(
     (["de", "en"] as const).flatMap((language) =>
       SECTIONS.map((section) => [`${section} (${language})`, section, language] as const),

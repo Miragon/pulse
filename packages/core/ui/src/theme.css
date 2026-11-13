@@ -171,6 +171,22 @@
   padding-block: var(--cell-py);
 }
 
+/* An indeterminate Progress: its segment (two fifths of the track) runs from
+   before the track's start to past its end. Emitted only where a view uses it;
+   reduced motion stops it (the block at the end of this file, and Progress
+   draws a still dashed line then). */
+@theme inline {
+  --animate-progress-indeterminate: progress-indeterminate 1.5s var(--ease) infinite;
+  @keyframes progress-indeterminate {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(250%);
+    }
+  }
+}
+
 /* ── Mode-independent roles ───────────────────────────────────────────────── */
 :root {
   --radius: var(--cd-radius-md);
@@ -539,7 +555,8 @@
    of its own: a selected, pressed or checked control and the current link
    or button a 2 px ring inside in Highlight (focus keeps its own outline), a
    card (edged by a shadow ring) and a switch an edge in CanvasText, a status
-   dot and the switch's thumb CanvasText. A transparent edge (the kit's
+   dot, the switch's thumb and a progress bar's fill CanvasText, the bar's
+   track a CanvasText outline. A transparent edge (the kit's
    buttons) turns visible here, so a button keeps its outline. A light island (a diagram's paper and its zoom
    bar) keeps the colours it is drawn in, so the drawing stays on its paper.
    Unlayered, so these win over the utilities. */
@@ -578,9 +595,20 @@
     .bg-danger,
     .bg-info,
     .bg-muted-foreground,
-    [data-slot="switch-thumb"]
+    [data-slot="switch-thumb"],
+    [data-slot="progress-indicator"]
   ):not([data-theme-mode="light"] *) {
     background-color: CanvasText;
+  }
+  /* A progress bar's track shows its extent by an outline; a still
+     indeterminate one (reduced motion) keeps its dashed line, no fill. */
+  [data-slot="progress"] {
+    outline: 1px solid CanvasText;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    [data-slot="progress-indicator"][data-state="indeterminate"] {
+      background-color: Canvas;
+    }
   }
   [data-theme-mode="light"] {
     forced-color-adjust: none;

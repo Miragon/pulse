@@ -26,6 +26,10 @@ export { Skeleton } from "./primitives/skeleton.js"
 export { Tabs, TabsList, TabsTrigger, TabsContent, TabCount } from "./primitives/tabs.js"
 export { Button, buttonVariants } from "./primitives/button.js"
 export { Input } from "./primitives/input.js"
+export { Textarea } from "./primitives/textarea.js"
+export { Label } from "./primitives/label.js"
+export { Checkbox } from "./primitives/checkbox.js"
+export { Progress, type ProgressProps } from "./primitives/progress.js"
 export {
   Dialog,
   DialogClose,
@@ -155,6 +159,7 @@ export {
   type CommonMessages,
   type FilterBarMessages,
   type ListFooterMessages,
+  type SearchFieldMessages,
   type UiLocale,
   type UiMessages,
   type UiMessagesOverride,
@@ -173,6 +178,9 @@ export {
 } from "./kit/table.js"
 export { Section } from "./kit/section.js"
 export { NativeSelect } from "./kit/native-select.js"
+export { Field, type FieldProps } from "./kit/field.js"
+export type { FieldControlProps } from "./lib/field-control.js"
+export { SearchField, type SearchFieldProps } from "./kit/search-field.js"
 export {
   SegmentedControl,
   type SegmentedControlOption,

@@ -6,14 +6,17 @@ import {
   DrillButton,
   EmptyState,
   ErrorState,
+  Field,
   FilterBar,
   GroupCard,
   KpiGrid,
   KpiGridSkeleton,
+  Input,
   ListFooter,
   LivePill,
   LocaleProvider,
   PagedListFooter,
+  SearchField,
   SectionHeading,
   StatusBadge,
   ToastProvider,
@@ -135,6 +138,22 @@ export const RENDER_CASES: RenderCase[] = [
         ]}
         onChipToggle={noop}
       />
+    ),
+  },
+  {
+    // Text in it, so the clear button renders with its catalog name; the placeholder and the
+    // field's name come from the catalog too.
+    name: "SearchField",
+    marker: "RC:SearchField",
+    render: () => <SearchField value="RC:SearchField" onChange={noop} />,
+  },
+  {
+    name: "Field",
+    marker: "RC:Field",
+    render: () => (
+      <Field label="RC:Field" hint="Names are case sensitive." error="Enter a name.">
+        <Input defaultValue="orderId" />
+      </Field>
     ),
   },
   {

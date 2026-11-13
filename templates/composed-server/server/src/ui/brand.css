@@ -10,7 +10,8 @@
  * The roles your brand owns:
  *   --primary, --primary-foreground, --primary-hover   buttons
  *   --interaction                                      a selection mark, a checked
- *                                                      switch, the active tab (3:1)
+ *                                                      switch or checkbox, the active
+ *                                                      tab, a progress bar's fill (3:1)
  *   --link                                             links, interactive text
  *   --focus, --ring                                    the focus ring (3:1)
  *   --accent, --accent-foreground                      hover and selection

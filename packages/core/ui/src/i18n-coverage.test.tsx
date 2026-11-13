@@ -104,7 +104,13 @@ describe("no English leaks into a German view", () => {
     expect(PSEUDO.listFooter.showing({ shown: "1", total: "2", noun: "x" })).toBe(
       `⟦${UI_MESSAGES.de.listFooter.showing({ shown: "1", total: "2", noun: "x" })}⟧`,
     )
-    expect(Object.keys(PSEUDO).sort()).toEqual(["common", "filterBar", "listFooter", "pills"])
+    expect(Object.keys(PSEUDO).sort()).toEqual([
+      "common",
+      "filterBar",
+      "listFooter",
+      "pills",
+      "searchField",
+    ])
   })
 
   for (const renderCase of [...RENDER_CASES, ...CHROME_CASES]) {

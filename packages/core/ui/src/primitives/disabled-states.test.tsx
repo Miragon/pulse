@@ -14,9 +14,11 @@ import { LocaleProvider } from "../locale/locale-provider.js"
 import { attribute, openingTags } from "../render-scan.js"
 import { themeCss } from "../theme/theme-css.test-support.js"
 import { Button, buttonVariants } from "./button.js"
+import { Checkbox } from "./checkbox.js"
 import { Input } from "./input.js"
 import { Switch } from "./switch.js"
 import { Tabs, TabsList, TabsTrigger } from "./tabs.js"
+import { Textarea } from "./textarea.js"
 
 /**
  * Disabled is opaque and neutral, never faded (modeler-tool-design §8 "Deaktiviert", §13 "nie
@@ -83,6 +85,10 @@ function disabledControls(): Record<string, string[]> {
   return {
     ...buttons,
     Input: classesOf(openingTags(renderToStaticMarkup(<Input disabled />), "input")[0]),
+    Textarea: classesOf(openingTags(renderToStaticMarkup(<Textarea disabled />), "textarea")[0]),
+    Checkbox: classesOf(
+      openingTags(renderToStaticMarkup(<Checkbox disabled defaultChecked />), "button")[0],
+    ),
     NativeSelect: classesOf(
       openingTags(renderToStaticMarkup(<NativeSelect disabled />), "select")[0],
     ),
@@ -187,6 +193,45 @@ describe("disabled kit controls are opaque, never faded (CI §8)", () => {
     ])
   })
 
+  it("the checkbox keeps its mark readable: the hover fill with a line edge in every state, the mark quiet", () => {
+    expect(controls.Checkbox).toEqual(
+      expect.arrayContaining([
+        "disabled:bg-accent",
+        "disabled:border-border",
+        "disabled:data-[state=checked]:border-border",
+        "disabled:data-[state=indeterminate]:border-border",
+        "disabled:text-muted-foreground",
+      ]),
+    )
+  })
+
+  it.each(["checked", "indeterminate"])(
+    "a %s checkbox's --interaction edge yields: a later rule draws the line edge when disabled, the danger edge when invalid",
+    async (state) => {
+      // Each rule that sets the edge, keyed by what it selects beyond its own class.
+      const edges = (await rulesFor(controls.Checkbox))
+        .filter((rule) => rule.properties.has("border-color"))
+        .map((rule) => ({ ...rule, on: rule.selector.replace(/^\.(?:\\.|[\w-])+/, "") }))
+      const edgeOn = (selects: string) => edges.find((rule) => rule.on === selects)
+      const checkedEdge = edgeOn(`[data-state="${state}"]`)
+      expect(checkedEdge?.selector).toContain("border-interaction")
+      for (const [selects, role] of [
+        [`:disabled[data-state="${state}"]`, "border-border"],
+        [`[aria-invalid="true"][data-state="${state}"]`, "border-danger"],
+      ] as const) {
+        const edge = edgeOn(selects)
+        expect(edge?.selector, selects).toContain(role)
+        expect(edge!.at, selects).toBeGreaterThan(checkedEdge!.at)
+      }
+    },
+  )
+
+  it("a disabled textarea is not resized either", () => {
+    expect(controls.Textarea).toEqual(
+      expect.arrayContaining(["disabled:bg-accent", "disabled:resize-none"]),
+    )
+  })
+
   it("the switch keeps its state readable: the hover fill with a line edge in either state, the thumb quiet", () => {
     const html = renderToStaticMarkup(<Switch disabled defaultChecked />)
     const [track] = openingTags(html, "button")
@@ -256,6 +301,7 @@ describe("fields take 13 px, 16 px on a coarse pointer (iOS zooms into smaller t
 
   it.each([
     ["Input", openingTags(renderToStaticMarkup(<Input />), "input")[0]],
+    ["Textarea", openingTags(renderToStaticMarkup(<Textarea />), "textarea")[0]],
     ["NativeSelect", openingTags(renderToStaticMarkup(<NativeSelect />), "select")[0]],
   ])("%s", (_, tag) => {
     expect(classesOf(tag)).toEqual(expect.arrayContaining(FIELD_TEXT.split(" ")))

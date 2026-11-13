@@ -1,5 +1,6 @@
 import type { ComponentProps } from "react"
 import { cn } from "../lib/utils.js"
+import { useFieldControl } from "../lib/field-control.js"
 import { FOCUS_RING } from "../lib/focus-ring.js"
 import { FIELD_TEXT } from "../lib/typography.js"
 
@@ -18,7 +19,11 @@ const FIELD_CONTROL = cn(
   "in-[td]:focus-visible:ring-offset-0",
 )
 
-/** Native on purpose: widget iframes keep the host's popover positioning out of the picture. */
+/**
+ * Native on purpose: widget iframes keep the host's popover positioning out of the picture.
+ * Inside a `Field` it takes the Field's id, hint and error.
+ */
 export function NativeSelect({ className, ...props }: ComponentProps<"select">) {
-  return <select {...props} className={cn(FIELD_CONTROL, className)} />
+  const control = useFieldControl(props)
+  return <select {...control} className={cn(FIELD_CONTROL, className)} />
 }

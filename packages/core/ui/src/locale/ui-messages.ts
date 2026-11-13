@@ -15,6 +15,7 @@ export type {
   CommonMessages,
   FilterBarMessages,
   ListFooterMessages,
+  SearchFieldMessages,
   UiMessages,
 } from "./message-types.js"
 
@@ -54,6 +55,7 @@ export function resolveUiMessages(
     common: { ...base.common, ...override.common },
     listFooter: { ...base.listFooter, ...override.listFooter },
     filterBar: { ...base.filterBar, ...override.filterBar },
+    searchField: { ...base.searchField, ...override.searchField },
     pills: { ...base.pills, ...override.pills },
   }
 }

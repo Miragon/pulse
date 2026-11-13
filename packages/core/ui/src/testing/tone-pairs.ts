@@ -151,6 +151,8 @@ export const ROLE_CONTRAST_PAIRS: readonly ContrastPair[] = [
     over: "--background",
     min: 3,
   },
+  // A progress bar's fill against its track (Progress): the share must read (WCAG 1.4.11).
+  { label: "interaction mark on muted", fg: "--interaction", bg: "--muted", min: 3 },
   ...(["success", "warning", "danger", "info"] as const).map((tone): ContrastPair => ({
     label: `${tone}-ink on ${tone}-surface`,
     fg: `--${tone}-ink`,

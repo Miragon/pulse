@@ -68,10 +68,21 @@ export interface FilterBarMessages {
   chipsLabel: string
 }
 
+/** Strings of `SearchField`. */
+export interface SearchFieldMessages {
+  /** Accessible name of the search input (a placeholder is no label). */
+  label: string
+  /** Placeholder of the search input. */
+  placeholder: string
+  /** Accessible name of the button that empties the field. */
+  clear: string
+}
+
 /** One locale's complete kit catalog. */
 export interface UiMessages {
   common: CommonMessages
   listFooter: ListFooterMessages
   filterBar: FilterBarMessages
+  searchField: SearchFieldMessages
   pills: { live: string }
 }

@@ -496,7 +496,8 @@ Ihre 12-px-Icons (Dichte, oben) lässt `scanIconSizes` in der Webview nur in den
      from `@miragon/pulse-ui`, a leaf (`ui-is-a-leaf`, invariant 8); widget-shell exports only
      what touches the host and never a pulse-ui name
      (`packages/core/widget-shell/src/pulse-ui-overlap.test.ts`). A form says an invalid
-     entry inline next to the control it marks `aria-invalid`, never clamps it silently.
+     entry inline next to the control it marks `aria-invalid` (pulse-ui's `Field` wires both),
+     never clamps it silently.
    - **The view runtime is widget-shell's.** Its host adapter (`ExtAppsViewHost` in
      `src/ui/ext-apps-host.tsx` over the official `App` of `@modelcontextprotocol/ext-apps` in
      `src/ui/view-runtime.ts`, mounted by `src/ui/view-root.tsx`) is the ONE place that speaks to

@@ -31,5 +31,6 @@ export const de: UiMessages = {
     loadMoreFailedFinalHint: "Die Einträge oben sind aktuell.",
   },
   filterBar: { searchPlaceholder: "Filtern…", searchLabel: "Filtern", chipsLabel: "Filter" },
+  searchField: { label: "Suchen", placeholder: "Suchen…", clear: "Suche leeren" },
   pills: { live: "Live" },
 }

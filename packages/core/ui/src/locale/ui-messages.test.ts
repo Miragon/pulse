@@ -156,7 +156,7 @@ describe("resolveUiMessages", () => {
     expect(merged.listFooter.loadingMore).toBe(UI_MESSAGES.de.listFooter.loadingMore)
     expect(merged.filterBar.searchLabel).toBe("Suchen")
     expect(merged.filterBar.chipsLabel).toBe(UI_MESSAGES.de.filterBar.chipsLabel)
-    for (const section of ["common", "pills"] as const) {
+    for (const section of ["common", "searchField", "pills"] as const) {
       expect(merged[section]).toEqual(UI_MESSAGES.de[section])
     }
   })

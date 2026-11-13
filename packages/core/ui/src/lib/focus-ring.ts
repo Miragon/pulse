@@ -19,3 +19,11 @@ export const FOCUS_RING =
 /** {@link FOCUS_RING} drawn inside the element, for cells and rows flush with a container edge. */
 export const FOCUS_RING_INSET =
   "outline-hidden focus-visible:ring-(length:--focus-width) focus-visible:ring-focus focus-visible:ring-inset"
+
+/**
+ * A text field's own focus (`Input`, `Textarea`): its border turns `--focus` and a ring adds the
+ * rest of `--focus-width`, a 2px opaque edge (CI §8), 3px under `data-cd-kontrast="hoch"`.
+ * Internal: `SearchField` draws the same edge on its box while its input has focus.
+ */
+export const FIELD_FOCUS =
+  "focus-visible:border-focus focus-visible:ring-focus focus-visible:ring-[length:calc(var(--focus-width)-1px)]"
