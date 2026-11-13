@@ -2,7 +2,6 @@ import {
   formatNumber,
   Icon,
   FOCUS_RING,
-  MICRO_LABEL,
   SectionHeading,
   TONE_DOT,
   cn,
@@ -174,9 +173,7 @@ export function FleetView({
         <SectionHeading title={t("fleet.engineHealth.title")} hint={t("fleet.engineHealth.hint")} />
         {engineGroups.map((g) => (
           <div key={g.id}>
-            {engineGroups.length > 1 && (
-              <h3 className={cn("text-muted-foreground mb-2", MICRO_LABEL)}>{g.id}</h3>
-            )}
+            {engineGroups.length > 1 && <SectionHeading as="h3" title={g.id} className="mb-2" />}
             <div className="gap-section grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {g.engines.map((e) => (
                 <FleetEngineCard

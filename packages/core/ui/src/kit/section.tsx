@@ -11,10 +11,10 @@ export type SectionHeadingLevel = "h2" | "h3" | "h4" | "h5" | "h6"
 
 /**
  * A collapsible section: its summary is a 16 px chevron and the title as a heading on the compact
- * chrome step (13 px at 600, `MICRO_LABEL`), quiet like a `SectionHeading` and in the foreground
- * while hovered, so it never outweighs the 13 px view bar above it. The heading element is
- * the one you pass (`as`, default `h3`), so the section sits in the view's outline where it
- * belongs.
+ * chrome step (13 px at 600, `MICRO_LABEL`), in the foreground like a `SectionHeading` (the
+ * webview's section titles), the quiet chevron in the foreground too while hovered, so it never
+ * outweighs the 13 px view bar above it. The heading element is the one you pass (`as`, default
+ * `h3`), so the section sits in the view's outline where it belongs.
  */
 export function Section({
   title,
@@ -39,13 +39,13 @@ export function Section({
     <details open={defaultOpen || undefined} onToggle={(e) => onToggle?.(e.currentTarget.open)}>
       <summary
         className={cn(
-          "text-muted-foreground hover:text-foreground flex w-fit cursor-pointer list-none items-center gap-1.5 rounded-sm transition-colors [&::-webkit-details-marker]:hidden",
+          "group/section text-foreground flex w-fit cursor-pointer list-none items-center gap-1.5 rounded-sm [&::-webkit-details-marker]:hidden",
           FOCUS_RING,
         )}
       >
         <Icon
           icon={ChevronRight}
-          className="transition-transform motion-reduce:transition-none [[open]>summary>&]:rotate-90"
+          className="text-muted-foreground group-hover/section:text-foreground transition-transform motion-reduce:transition-none [[open]>summary>&]:rotate-90"
         />
         <Heading className={MICRO_LABEL}>{title}</Heading>
         {count !== undefined && <Badge variant={badgeVariant}>{count}</Badge>}

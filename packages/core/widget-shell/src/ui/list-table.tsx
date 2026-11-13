@@ -33,9 +33,11 @@ export interface ListTableColumn {
   hideBelow?: ColumnBreakpoint
   /**
    * Pins the LAST column (row actions) to the right edge while scrolling. Rows
-   * then paint the table's surface, the card; another surface sets `--table-surface`.
+   * then paint the table's surface, the card; another surface sets `--table-surface`. A
+   * breakpoint pins it only from that region width up: below it the column scrolls with the
+   * rest, so a narrow region keeps the cells beside it in view.
    */
-  sticky?: boolean
+  sticky?: boolean | ColumnBreakpoint
   sort?: ColumnSort
 }
 
@@ -116,12 +118,16 @@ export function listTableCss(
       // The pinned cell inherits its row's background (hover, selection). The rows' surface sits in
       // the `components` layer: unlayered it would beat every utility, a row's hover fill (in
       // `utilities`) included, whatever the specificity.
+      const pinned = cells.map(
+        (cell) => `${cell} { position: sticky; right: 0; z-index: 1; background-color: inherit; }`,
+      )
       rules.push(
         `@layer components { :where(${at} tbody tr), :where(${at} thead tr) { background-color: ${SURFACE}; } }`,
-        ...cells.map(
-          (cell) =>
-            `${cell} { position: sticky; right: 0; z-index: 1; background-color: inherit; }`,
-        ),
+        ...(column.sticky === true
+          ? pinned
+          : [
+              `@container (min-width: ${COLUMN_BREAKPOINTS[column.sticky]}) { ${pinned.join(" ")} }`,
+            ]),
       )
     }
   })

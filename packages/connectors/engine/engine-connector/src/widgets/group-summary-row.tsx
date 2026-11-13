@@ -9,10 +9,21 @@ export interface GroupSummaryStat {
 }
 
 /**
+ * Under this width of the row (42rem) its stats move onto a line of their own under the title,
+ * each its label then its value, so the title keeps its share beside the count and the chevron.
+ */
+const NARROW = {
+  stats:
+    "@max-2xl/summary:order-last @max-2xl/summary:basis-full @max-2xl/summary:flex-wrap @max-2xl/summary:gap-x-3 @max-2xl/summary:gap-y-0",
+  stat: "@max-2xl/summary:min-w-0 @max-2xl/summary:flex-row-reverse @max-2xl/summary:justify-end @max-2xl/summary:gap-1 @max-2xl/summary:text-left",
+} as const
+
+/**
  * Shared summary-row anatomy, so the grouped incident lists stay pixel-identical; `expanded`
  * doubles as the expandability switch (omit for plain rows). The row's one alarm sign is its
  * incident count's pill, the tone's icon of its own shape: no second icon leads the row. On the
- * density roles: a list entry's height at least, the cell's padding.
+ * density roles: a list entry's height at least, the cell's padding. The title keeps 10rem at
+ * least; in a narrow row (a phone-width chat) the stats sit under it.
  */
 export function GroupSummaryRow({
   title,
@@ -43,45 +54,51 @@ export function GroupSummaryRow({
   const t = useT()
   return (
     <div
-      className={cn(
-        "px-cell py-cell min-h-entry flex items-center gap-4",
-        expanded && "border-border border-b",
-        className,
-      )}
+      data-slot="group-summary"
+      className={cn("@container/summary", expanded && "border-border border-b", className)}
     >
-      <div className="min-w-0 flex-1">
-        <div className="text-foreground text-dense flex items-center gap-2 font-semibold">
-          <span className="truncate">{title}</span>
-          {titleSuffix}
+      <div className="px-cell py-cell min-h-entry flex flex-wrap items-center gap-x-4 gap-y-1">
+        <div data-slot="group-summary-title" className="min-w-[min(10rem,100%)] flex-1">
+          <div className="text-foreground text-dense flex items-center gap-2 font-semibold">
+            <span className="truncate">{title}</span>
+            {titleSuffix}
+          </div>
+          {/* The cause in words (an engine message), not code: no mono. */}
+          {subline !== undefined && (
+            <div className="text-muted-foreground text-small truncate">{subline}</div>
+          )}
         </div>
-        {/* The cause in words (an engine message), not code: no mono. */}
-        {subline !== undefined && (
-          <div className="text-muted-foreground text-small truncate">{subline}</div>
+        {stats.length > 0 && (
+          <div data-slot="group-summary-stats" className={cn("flex gap-4", NARROW.stats)}>
+            {stats.map((stat, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "text-muted-foreground text-small flex min-w-[80px] flex-col text-right tabular-nums",
+                  NARROW.stat,
+                )}
+              >
+                <div className="text-foreground font-semibold whitespace-nowrap">{stat.value}</div>
+                <div>{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        )}
+        {incidents !== undefined && (
+          <CountBadge
+            count={incidents}
+            situation={incidents > 0 ? "openIncident" : undefined}
+            label={t("procIncHeader.openIncidents", { count: formatNumber(incidents) })}
+          />
+        )}
+        {actions}
+        {expanded !== undefined && (
+          <Icon
+            icon={ChevronRight}
+            className={`text-muted-foreground transition-transform ${expanded ? "rotate-90" : ""}`}
+          />
         )}
       </div>
-      {stats.map((stat, i) => (
-        <div
-          key={i}
-          className="text-muted-foreground text-small min-w-[80px] text-right tabular-nums"
-        >
-          <div className="text-foreground font-semibold">{stat.value}</div>
-          <div>{stat.label}</div>
-        </div>
-      ))}
-      {incidents !== undefined && (
-        <CountBadge
-          count={incidents}
-          situation={incidents > 0 ? "openIncident" : undefined}
-          label={t("procIncHeader.openIncidents", { count: formatNumber(incidents) })}
-        />
-      )}
-      {actions}
-      {expanded !== undefined && (
-        <Icon
-          icon={ChevronRight}
-          className={`text-muted-foreground transition-transform ${expanded ? "rotate-90" : ""}`}
-        />
-      )}
     </div>
   )
 }

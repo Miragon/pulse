@@ -63,7 +63,7 @@ export function IncidentDetailHeader({
           </span>
           <span aria-hidden="true">·</span>
           {/* One instance label: its business key, the UUID a copyable chip. */}
-          <InstanceLabel id={data.processInstanceId} businessKey={data.businessKey} />
+          <InstanceLabel id={data.processInstanceId} businessKey={data.businessKey} wrap />
         </>
       }
       actions={

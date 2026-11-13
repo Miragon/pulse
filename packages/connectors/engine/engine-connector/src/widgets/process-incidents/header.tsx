@@ -3,9 +3,8 @@ import {
   formatNumber,
   formatTimestamp,
   Icon,
-  StatusBadge,
+  StateLabel,
   WidgetHeader,
-  SITUATION_TONES,
 } from "@miragon/pulse-ui"
 import {
   HandOffButton,
@@ -46,14 +45,18 @@ export function triageProcessHandOff(
   }
 }
 
-/** Healthy definitions render too; the badge shows only when something is on fire. */
+/**
+ * Healthy definitions render too; the state shows only when something is on fire. A count in the
+ * header is a state label, never a tinted badge (invariant 6): the incident's icon carries the
+ * tone, the number stays in the foreground.
+ */
 function HeaderBadge({ data }: { data: ProcessIncidentsData }) {
   const t = useT()
   if (data.incidentCount === 0) return null
   return (
-    <StatusBadge tone={SITUATION_TONES.openIncident}>
+    <StateLabel state="incident">
       {t("procIncHeader.openIncidents", { count: formatNumber(data.incidentCount) })}
-    </StatusBadge>
+    </StateLabel>
   )
 }
 

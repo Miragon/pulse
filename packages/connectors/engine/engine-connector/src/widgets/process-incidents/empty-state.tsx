@@ -45,10 +45,11 @@ export function EmptyStateWithSiblings({
                 <span className="text-foreground">
                   {s.processDefinitionName ?? s.processDefinitionKey}
                 </span>
-                {/* A neutral count with the incident's icon, never a coloured number. */}
+                {/* A neutral count with the incident's icon while there are any, never a
+                    coloured number. */}
                 <CountBadge
                   count={s.incidentCount}
-                  situation="openIncident"
+                  situation={s.incidentCount > 0 ? "openIncident" : undefined}
                   label={t("procIncHeader.openIncidents", { count: formatNumber(s.incidentCount) })}
                 />
               </button>

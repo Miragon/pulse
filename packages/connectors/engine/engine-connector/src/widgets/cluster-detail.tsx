@@ -1,8 +1,7 @@
 import {
-  cn,
   LogText,
-  MICRO_LABEL,
   NamedId,
+  SectionHeading,
   TableEmptyState,
   Td,
   formatCount,
@@ -39,7 +38,7 @@ import {
 import { AlarmCount } from "./lib/alarm-count.js"
 import { useActionAllowed } from "./lib/engine-action.js"
 import { useHandOff, type ViewContext } from "./lib/hand-off.js"
-import { InstanceLabel } from "./lib/identity.js"
+import { InstanceLabel, SUBJECT_CELL, SUBJECT_COLUMN } from "./lib/identity.js"
 import { instanceName } from "./lib/write-feedback.js"
 import { useT } from "../messages/use-t.js"
 
@@ -144,9 +143,14 @@ function ClusterHeader({ data, engineId }: { data: ClusterDetailData; engineId: 
   )
 }
 
-/** A count a capped scan cannot vouch for renders as a lower bound ("≥ 2,000") or "—". */
+/**
+ * A count a capped scan cannot vouch for renders as a lower bound ("≥ 2,000") or "—". The
+ * affected count alarms while there are any, as every open incident count does: a cluster whose
+ * incidents are all gone shows a plain 0.
+ */
 function ClusterKpis({ data }: { data: ClusterDetailData }) {
   const t = useT()
+  const affected = data.incidentCount ?? data.scannedIncidentCount
   return (
     <KpiGrid
       boxed
@@ -154,7 +158,7 @@ function ClusterKpis({ data }: { data: ClusterDetailData }) {
         {
           label: t("clusterDetail.kpiAffected"),
           value: (
-            <AlarmCount alarm="openIncidents">
+            <AlarmCount alarm={affected > 0 && "openIncidents"}>
               {formatCount(data.incidentCount ?? { atLeast: data.scannedIncidentCount })}
             </AlarmCount>
           ),
@@ -192,7 +196,7 @@ function IncidentRow({
   const label = instanceName(row.processInstanceId, row.businessKey)
   return (
     <tr>
-      <Td>
+      <Td className={SUBJECT_CELL}>
         <InstanceLabel id={row.processInstanceId} businessKey={row.businessKey} />
       </Td>
       {showProcess && (
@@ -282,10 +286,8 @@ function ClusterDetailView({
         <>
           {data.representativeMessage && (
             <div>
-              <h2 className={cn("text-foreground", MICRO_LABEL)}>
-                {t("clusterDetail.failureMessage")}
-              </h2>
-              <LogText text={data.representativeMessage} className="mt-1" />
+              <SectionHeading as="h2" title={t("clusterDetail.failureMessage")} className="mb-1" />
+              <LogText text={data.representativeMessage} />
             </div>
           )}
 
@@ -293,9 +295,7 @@ function ClusterDetailView({
             aria-label={t("clusterDetail.affectedInstances")}
             className="flex flex-col gap-2"
           >
-            <h2 className={cn("text-foreground", MICRO_LABEL)}>
-              {t("clusterDetail.affectedInstances")}
-            </h2>
+            <SectionHeading as="h2" title={t("clusterDetail.affectedInstances")} className="mb-0" />
             <FilterBar
               search={search}
               onSearchChange={setSearch}
@@ -315,11 +315,14 @@ function ClusterDetailView({
                 <ListTable
                   ariaLabel={t("clusterDetail.affectedInstances")}
                   columns={[
-                    { label: t("clusterDetail.colInstance") },
+                    // The instance whole while there is room; the process gives way first.
+                    { label: t("clusterDetail.colInstance"), className: SUBJECT_COLUMN },
                     ...(spansProcesses(data)
                       ? [{ label: t("clusterDetail.colProcess"), hideBelow: "sm" as const }]
                       : []),
-                    { label: t("clusterDetail.colOccurred"), align: "right" },
+                    // In a 760 px card the time gives way, as in the incident tables, so the
+                    // table fits without scrolling under its pinned actions.
+                    { label: t("clusterDetail.colOccurred"), align: "right", hideBelow: "md" },
                     { plain: true, sticky: true },
                   ]}
                 >

@@ -23,12 +23,16 @@ describe("kit type roles", () => {
     const heading = screen.getByRole("heading", { level: 3, name: "Variables" })
     expect(classes(heading)).toEqual(expect.arrayContaining(["text-small", "font-semibold"]))
     expect(classes(heading)).not.toContain("text-section")
-    // Quiet like a SectionHeading, the foreground while hovered; its summary keyboard-visible.
+    // In the foreground like a SectionHeading (the webview's section titles), its chevron quiet
+    // and in the foreground while hovered; its summary keyboard-visible.
     const summary = classes(heading.closest("summary"))
-    expect(summary).toEqual(
-      expect.arrayContaining(["text-muted-foreground", "hover:text-foreground"]),
-    )
+    expect(summary).toContain("text-foreground")
+    expect(summary).not.toContain("text-muted-foreground")
     expect(summary).toContain("focus-visible:ring-focus")
+    const chevron = classes(heading.closest("summary")!.querySelector("svg"))
+    expect(chevron).toEqual(
+      expect.arrayContaining(["text-muted-foreground", "group-hover/section:text-foreground"]),
+    )
   })
 
   it("a Section keeps the heading level its caller passes", () => {

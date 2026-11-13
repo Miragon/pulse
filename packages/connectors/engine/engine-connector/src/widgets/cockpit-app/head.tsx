@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 import {
   Button,
+  cn,
   Icon,
   type LucideIcon,
   NativeSelect,
@@ -72,9 +73,12 @@ export function EngineSwitch({
 /**
  * #322 U20: one compact head row instead of a sidebar that cost ~200 px inline: a 40 px bar from
  * edge to edge (the webview's bar), its rule below, the sections as pulse-ui's `NavTabs` (line
- * tabs whose open one's bar lands on that rule) and the engine's context at its end. A `trail`
- * takes the sections' place: its first crumb leads back to them. Its container is `bar`, so the
- * cross-engine button keeps only its icon in a bar under 36rem.
+ * tabs whose open one's bar lands on that rule) and the engine's context at its end. Where the
+ * two do not fit on one line (a phone-width chat) the sections stay on the head's last line, the
+ * context above them, so the open section's bar still lands on the rule (`flex-wrap-reverse`;
+ * the reading order stays the sections, then the context). A `trail` takes the sections' place:
+ * its first crumb leads back to them. Its container is `bar`, so the cross-engine button keeps
+ * only its icon in a bar under 36rem.
  */
 export function CockpitHead({
   activeSection,
@@ -94,7 +98,10 @@ export function CockpitHead({
   return (
     <div
       data-slot="cockpit-head"
-      className="bg-card border-border min-h-bar pr-gutter @container/bar flex min-w-0 flex-wrap items-stretch gap-x-3 border-b pl-2"
+      className={cn(
+        "bg-card border-border min-h-bar pr-gutter @container/bar flex min-w-0 items-stretch gap-x-3 border-b pl-2",
+        trail ? "flex-wrap" : "flex-wrap-reverse",
+      )}
     >
       {/* The tabs start 8 px in, as a view's tab bar does; the trail's words line up with the
           view's title below, in the gutter. */}

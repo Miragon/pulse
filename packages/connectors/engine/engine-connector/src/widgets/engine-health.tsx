@@ -1,9 +1,7 @@
 import { useId } from "react"
 import {
   Button,
-  cn,
   KpiGrid,
-  MICRO_LABEL,
   StatusBadge,
   StatusStrip,
   WidgetHeader,
@@ -13,6 +11,7 @@ import {
   NamedId,
   formatCount,
   formatNumber,
+  SectionHeading,
 } from "@miragon/pulse-ui"
 import {
   HandOffButton,
@@ -302,9 +301,12 @@ function ClustersSection({
   if (clusters.length === 0) return null
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-2">
-      <h2 id={headingId} className={cn("text-foreground", MICRO_LABEL)}>
-        {t("engineHealth.clustersHeading")}
-      </h2>
+      <SectionHeading
+        as="h2"
+        id={headingId}
+        title={t("engineHealth.clustersHeading")}
+        className="mb-0"
+      />
       <ul className="flex flex-col gap-2">
         {clusters.map((cluster) => (
           <ClusterRow key={cluster.id} cluster={cluster} engine={engine} go={go} />

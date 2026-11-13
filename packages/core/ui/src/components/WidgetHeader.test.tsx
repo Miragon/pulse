@@ -75,11 +75,30 @@ describe("WidgetHeader: a view's bar, the hero only at app level", () => {
 })
 
 describe("SectionHeading: a block label inside a widget body", () => {
-  it("is a 13 px caption (MICRO_LABEL), never in the dense-table size", () => {
+  it("is a 13 px caption (MICRO_LABEL) in the foreground, the webview's section title; its hint quiet", () => {
     const html = renderToStaticMarkup(<SectionHeading title="Recent" hint="3 new" />)
     const row = classOf(openingTags(html, "div")[0])
     expect(row).toContain(MICRO_LABEL)
-    expect(row).toContain("text-muted-foreground")
+    expect(row).toContain("text-foreground")
+    expect(row).not.toContain("text-muted-foreground")
+    expect(classOf(openingTags(html, "span")[1])).toContain("text-muted-foreground")
     expect(html).not.toMatch(/\btext-dense\b/)
+  })
+
+  it("puts its title at the level it is given, with the id a section is labelled by", () => {
+    const html = renderToStaticMarkup(
+      <SectionHeading as="h2" id="clusters" title="Failure clusters" className="mb-0" />,
+    )
+    const heading = openingTags(html, "h2")[0] ?? ""
+    expect(attribute(heading, "id")).toBe("clusters")
+    expect(classOf(heading)).toContain(MICRO_LABEL)
+    const row = classOf(openingTags(html, "div")[0])
+    expect(row).toContain("mb-0")
+    expect(row).not.toContain("mb-3")
+  })
+
+  it("is a caption outside the outline by default", () => {
+    const html = renderToStaticMarkup(<SectionHeading title="Recent" />)
+    expect(html).not.toMatch(/<h[1-6]/)
   })
 })

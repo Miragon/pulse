@@ -4,7 +4,6 @@ import {
   AlertDescription,
   Button,
   Facts,
-  MICRO_LABEL,
   cn,
   formatNumber,
   formatTimestamp,
@@ -12,6 +11,7 @@ import {
   LogText,
   TEXT_BLOCK_FRAME,
   type Fact,
+  SectionHeading,
 } from "@miragon/pulse-ui"
 import { HandOffButton, IdText } from "@miragon/pulse-widget-shell/widgets"
 import { Check, RotateCcw } from "lucide-react"
@@ -128,9 +128,12 @@ export function FailureSummary({
   const headingId = useId()
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-3">
-      <h2 id={headingId} className={cn("text-muted-foreground", MICRO_LABEL)}>
-        {t("incidentFailure.errorMessageTitle")}
-      </h2>
+      <SectionHeading
+        as="h2"
+        id={headingId}
+        title={t("incidentFailure.errorMessageTitle")}
+        className="mb-0"
+      />
       <LogText text={errorText(data)} />
       <IncidentFacts data={data} />
       <div className="flex flex-wrap items-center gap-2">

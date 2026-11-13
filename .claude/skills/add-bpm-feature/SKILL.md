@@ -310,7 +310,9 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   simulation pins it). A column a narrow view can do
   without takes `hideBelow: "sm" | "md" | "lg"` (the REGION's width: 640/768/1024 px;
   `md` hides inline, shows in fullscreen), the row actions are the LAST column with
-  `sticky: true` (pinned at the region's right edge, Retry never scrolled away). A caption
+  `sticky: true` (pinned at the region's right edge, Retry never scrolled away), or
+  `sticky: "sm"` where a pinned column would cover a narrow region's message (pinned from
+  640 px up, scrolling with the row below). A caption
   keeps one line; a wide table of figures passes `wrapHeads` so its captions wrap instead. Rows
   stay hand-composed `<tr>` + `Td`, one cell per column (the rules address cell
   positions). An id column is `IdCell` (`IdText` inline): Geist Mono, shortened
@@ -324,8 +326,10 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   APP-level surfaces (landing, first start, "no engines"), never in a widget
 - Type roles (pulse-ui's `TYPE_SCALE`): a view's title is chrome, the `WidgetHeader`'s bar
   heading (13/600 in its 40 px bar, `as` for the level); 28/700 only at app level (landing,
-  fleet: `size="app"`), a section's title the compact heading (`MICRO_LABEL`, 13/600, at its
-  level; `text-section` 21/600 only for a dialog's title and a KPI figure), running text
+  fleet: `size="app"`), a section's title pulse-ui's `SectionHeading` (13/600 in the foreground,
+  the webview's; `as` for its level, `id` for the section's `aria-labelledby`; never an `h2` with
+  `MICRO_LABEL` by hand, the connector's brand gates refuse one; `text-section` 21/600 only for a
+  dialog's title and a KPI figure), running text
   `text-body` (16), dense tables and controls `text-dense` (13, the guide's klein step, the size
   of `text-small` with its own meaning), captions and meta `text-small` (13, the floor); no `text-xs`/`text-[11px]`, no
   Tailwind sizes in kit code, and weights 400, 600 and 700 only (`font-normal`, `font-semibold`,
@@ -348,8 +352,9 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   `HandOffButton` and `OpenInCockpitLink` take `variant="toolbar"` there. Facts about one thing
   (an incident's, an instance's) are pulse-ui's `Facts` (ids copyable through `IdText`, numbers
   neutral; an alarming one adds its tone's icon of its own shape with words in `Icon`'s
-  `label`); a state is a `StateLabel`; a tab's count is `TabCount`, only for a count the view
-  already holds
+  `label`); a state is a `StateLabel`, a count in the header's `badge` or `sub` too (its tone's
+  icon, the number in the foreground), never a tinted `StatusBadge` or `LivePill`; a tab's count
+  is `TabCount`, only for a count the view already holds
 - From pulse-ui: `Section` (collapsibles, `as` for the heading level); `Th`/`Td` (cells);
   `WidgetHeader` (`badge`/`titleSuffix`/`sub`/`actions`/`as`, `size="app"` only at app level, no
   icon tile) + `VersionChip`; `KpiGrid` (KPI strips, neutral tiles: an alarming figure is its
@@ -366,8 +371,11 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   (`widgets/lib/engine-context.tsx`). Names before ids: the
   design kit's `NamedId` (`@miragon/pulse-ui`: an activity's or process's name, the
   id a quiet mono line; the same look in every module), `InstanceLabel`
-  (`widgets/lib/identity.tsx`: the business key, the UUID a copyable `IdText` chip; the
-  words of `instanceName`); a drill passes the target's `label` so its breadcrumb reads
+  (`widgets/lib/identity.tsx`: the business key, the UUID a copyable `IdText` chip, one line in
+  a table cell, the key alone under 28rem, `wrap` on a line of facts; the words of
+  `instanceName`); a table with a long text column (an engine message) lets the other columns
+  fit their content (`w-[1%]` on their heads) and keeps the text one line with a floor, so it
+  scrolls in its region instead of squeezing (`process-incidents/incident-table.tsx`); a drill passes the target's `label` so its breadcrumb reads
   the name. The builder reads names as enrichment (`fetchNamesByDefinition` with
   `processNameIn`/`elementNameIn`, `fetchDefinitionsById`, `fetchBusinessKeys`), every
   diagram name through widget-shell's `readBpmnNames`/`parseBpmnNames` (never a regex of your

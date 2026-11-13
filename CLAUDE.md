@@ -556,7 +556,10 @@ Ihre 12-px-Icons (Dichte, oben) lässt `scanIconSizes` in der Webview nur in den
      show through `IdCell`/`IdText`, processes and elements through `NamedId`, named by ONE
      reader (`readBpmnNames`/`parseBpmnNames`), so every module shows them alike.
    - **Type, dates and numbers.** Text sits on pulse-ui's `TYPE_SCALE` (13 px floor, weights
-     400, 600 and 700 only, `scanTypeScale`); a disabled control is opaque, never faded. Dates,
+     400, 600 and 700 only, `scanTypeScale`); a disabled control is opaque, never faded; a
+     section's title is pulse-ui's `SectionHeading` (13 px at 600 in the foreground, the
+     webview's; `as` for its level), never a heading composed by hand (the connector's
+     `src/brand-gates.test.ts`). Dates,
      durations, numbers, counts and short ids go through the kit's `format*` helpers and `shortId`
      in the locale `LocaleGate` publishes, one set for every Pulse UI (pulse-ui's framework-free
      `@miragon/pulse-ui/format`, which the VS Code extension's core and webview read too; a lower
@@ -596,7 +599,8 @@ Ihre 12-px-Icons (Dichte, oben) lässt `scanIconSizes` in der Webview nur in den
      number, a tinted pill or a tinted KPI tile (owner decision of 2026-11-12, D9), a state in a
      cell is a `StateLabel` (an icon of the state's own shape, its one word from the kit's
      catalog) on the row's one line, never a pill (those are a header's `badge`) and never stacked
-     under an id. Components use
+     under an id; a count in a view's header is a `StateLabel` too (its tone's icon, the number
+     in the foreground), never a tinted `StatusBadge` or `LivePill`. Components use
      role names only (`scanColors`); `packages/core/ui/src/theme/tone-contrast.test.ts` holds every
      role pair to WCAG AA (a role a brand may override belongs in `ROLE_CONTRAST_PAIRS`). A brand
      override goes under `:root` AND the dark scopes, or a light-only value shows in dark

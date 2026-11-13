@@ -8,10 +8,10 @@ import {
   useLocale,
   Icon,
   KometMark,
-  MICRO_LABEL,
   WidgetHeader,
   formatNumber,
   type ToneVariant,
+  SectionHeading,
 } from "@miragon/pulse-ui"
 import { WidgetShell } from "@miragon/pulse-widget-shell/widgets"
 import {
@@ -209,7 +209,7 @@ export function LandingChooser({
             aria-label={named ? tr("cockpit.landing.envLabel", { env: g.id }) : undefined}
             className="flex flex-col gap-2"
           >
-            {named && <h2 className={cn("text-muted-foreground", MICRO_LABEL)}>{g.id}</h2>}
+            {named && <SectionHeading as="h2" title={g.id} className="mb-0" />}
             <ul className="border-border bg-card divide-border divide-y overflow-hidden rounded-md border">
               {g.engines.map((e) => (
                 <li key={e.id}>

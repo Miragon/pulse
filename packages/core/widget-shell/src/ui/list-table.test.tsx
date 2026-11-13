@@ -184,6 +184,15 @@ describe("listTableCss", () => {
     expect(css).toBe("")
   })
 
+  it("pins the row actions only from a breakpoint up when it names one", () => {
+    const css = listTableCss("s", [{ label: "A" }, { plain: true, sticky: "sm" }])
+    const at = `[data-list-table="s"]`
+    expect(css).toContain(
+      `@container (min-width: 40rem) { ${at} tr > :nth-child(2) { position: sticky; right: 0; z-index: 1; background-color: inherit; } }`,
+    )
+    expect(css).not.toMatch(/^\[data-list-table="s"\] tr > :nth-child\(2\) \{ position: sticky/m)
+  })
+
   it("maps each breakpoint to its container width", () => {
     for (const [name, width] of Object.entries(COLUMN_BREAKPOINTS)) {
       const css = listTableCss("s", [

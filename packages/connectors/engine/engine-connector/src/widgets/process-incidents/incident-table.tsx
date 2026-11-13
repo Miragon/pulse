@@ -5,7 +5,6 @@ import {
   PagedListFooter,
   DrillButton,
   formatTimestamp,
-  LogText,
   NamedId,
   StateLabel,
   Td,
@@ -27,7 +26,7 @@ import { useHandOff, type HandOff } from "../lib/hand-off.js"
 import { useT } from "../../messages/use-t.js"
 import { EngineActionDialog } from "../lib/engine-action-dialog.js"
 import { useIncidentRecovery, type IncidentRecoveryState } from "./use-incident-recovery.js"
-import { InstanceLabel } from "../lib/identity.js"
+import { InstanceLabel, SUBJECT_CELL, SUBJECT_COLUMN } from "../lib/identity.js"
 import { DoneMark } from "../lib/done-mark.js"
 import { MoreActions } from "../lib/more-actions.js"
 import { WriteError } from "../lib/write-error.js"
@@ -73,14 +72,42 @@ function RecoveryButton({
 
 /** Where an incident sits, by its element's name (the id where it has none); never blank. */
 function IncidentElement({ incident }: { incident: IncidentInstance }) {
-  // A floor, or a wrapping name gets squeezed into a column a word wide.
+  return incident.activityId ? (
+    <NamedId name={incident.activityName} id={incident.activityId} />
+  ) : (
+    <span className="text-muted-foreground">{"—"}</span>
+  )
+}
+
+/**
+ * A column that fits its content (pulse-ui's `DataTable` does so for its drawn rows): the message
+ * column takes the room the others leave.
+ */
+const FIT_COLUMN = SUBJECT_COLUMN
+
+/**
+ * The incident's type as its state label and its message on one line, never a pill stacked above
+ * it or a message wrapped into a tall row: the message is cut with an ellipsis, its whole text in
+ * its title and on the incident's page, and keeps 10rem, so a narrow table scrolls inside its
+ * region instead of squeezing it. Under 28rem the type shows its icon alone, its word read out and
+ * in its title.
+ */
+function IncidentMessage({ incident }: { incident: IncidentInstance }) {
+  const message = incident.incidentMessage
   return (
-    <div className="flex min-w-40 flex-col">
-      {incident.activityId ? (
-        <NamedId name={incident.activityName} id={incident.activityId} />
-      ) : (
-        <span className="text-muted-foreground">{"—"}</span>
-      )}
+    <div className="flex min-w-0 items-center gap-3 @max-md:gap-1.5">
+      <StateLabel state="incident" iconOnlyBelow="md" className="shrink-0">
+        {incident.incidentType}
+      </StateLabel>
+      <span className="grid min-w-0 grid-cols-[minmax(10rem,max-content)]">
+        <span
+          data-incident-message=""
+          className="text-muted-foreground text-small min-w-0 truncate font-mono"
+          title={message ?? undefined}
+        >
+          {message || "—"}
+        </span>
+      </span>
     </div>
   )
 }
@@ -105,14 +132,23 @@ export function IncidentTable({
   const { ask } = useHandOff()
   const byInstance = subject === "instance"
 
+  // Each row is one line at the row height: the subject, the time and the actions fit their
+  // content, the message takes the rest (#322 U2: the summary row above names first and latest).
   const columns: ListTableColumn[] = [
-    byInstance
-      ? { label: t("procIncTable.columnInstance") }
-      : { label: t("procIncTable.columnActivity") },
+    {
+      label: byInstance ? t("procIncTable.columnInstance") : t("procIncTable.columnActivity"),
+      className: FIT_COLUMN,
+    },
     { label: t("procIncTable.columnErrorMessage") },
-    // The summary row above names first and latest; the message keeps the room (#322 U2).
-    { label: t("procIncTable.columnTime"), align: "right" as const, hideBelow: "md" as const },
-    { label: t("procIncTable.columnActions"), sticky: true },
+    {
+      label: t("procIncTable.columnTime"),
+      align: "right" as const,
+      hideBelow: "md" as const,
+      className: FIT_COLUMN,
+    },
+    // Pinned from 40rem up only: in a narrower region a pinned column would cover the message, so
+    // the actions scroll with the row and the message keeps its 10rem in view.
+    { label: t("procIncTable.columnActions"), sticky: "sm" as const, className: FIT_COLUMN },
   ]
 
   // The table on the surface it lies on, its head the kit's (`Th` paints `--table-surface`): the
@@ -132,29 +168,19 @@ export function IncidentTable({
         return (
           <Fragment key={incident.id}>
             <tr>
-              {byInstance ? (
-                <Td>
-                  {/* One instance label (#322 U13): its business key, the
-                      UUID a copyable chip. */}
+              <Td className={SUBJECT_CELL}>
+                {byInstance ? (
+                  // One instance label (#322 U13): its business key, the UUID a copyable chip.
                   <InstanceLabel
                     id={incident.processInstanceId}
                     businessKey={incident.businessKey}
                   />
-                </Td>
-              ) : (
-                <Td>
+                ) : (
                   <IncidentElement incident={incident} />
-                </Td>
-              )}
+                )}
+              </Td>
               <Td>
-                {/* The incident's type as its state label beside the message, on one line
-                    with it, never a pill stacked above it. */}
-                <div className="flex min-w-0 items-baseline gap-3">
-                  <StateLabel state="incident" className="shrink-0">
-                    {incident.incidentType}
-                  </StateLabel>
-                  <LogText text={incident.incidentMessage} className="min-w-0" />
-                </div>
+                <IncidentMessage incident={incident} />
               </Td>
               <Td align="right" className="text-muted-foreground text-small whitespace-nowrap">
                 {formatTimestamp(incident.incidentTimestamp)}

@@ -1,3 +1,4 @@
+import { readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
@@ -58,6 +59,30 @@ describe("engine widget code draws no outline at rest under forced colours", () 
       expect(scanOutlines(join(SRC, dir))).toEqual([])
     },
   )
+})
+
+/** The browser code's sources (the widgets and what they share), their tests left out. */
+function widgetSources(): Array<{ file: string; text: string }> {
+  return ["widgets", "lib/shared"].flatMap((dir) =>
+    readdirSync(join(SRC, dir), { recursive: true, encoding: "utf8" })
+      .filter((file) => /\.tsx?$/.test(file) && !/\.test(-support)?\.tsx?$/.test(file))
+      .map((file) => ({
+        file: `${dir}/${file}`,
+        text: readFileSync(join(SRC, dir, file), "utf8"),
+      })),
+  )
+}
+
+describe("engine widget code titles its sections with the kit's SectionHeading", () => {
+  // One look for every section title (13 px at 600 in the foreground, the webview's): a heading
+  // composed by hand drifted from it once (a quiet one beside foreground ones), so a section's
+  // title is pulse-ui's SectionHeading (`as` for its level) or a collapsible Section.
+  it("no h2 to h6 and no MICRO_LABEL composed by hand", () => {
+    const found = widgetSources().flatMap(({ file, text }) =>
+      [...text.matchAll(/<h[2-6][\s>]|\bMICRO_LABEL\b/g)].map((match) => `${file}: ${match[0]}`),
+    )
+    expect(found).toEqual([])
+  })
 })
 
 describe("engine widget code sets text on the type scale", () => {

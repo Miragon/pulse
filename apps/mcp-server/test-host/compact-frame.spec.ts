@@ -5,7 +5,9 @@ import { HEALTHY_ENGINE, REALISTIC_ENGINE, REALISTIC_HOST_ENV } from "./engines.
 /**
  * The cockpit's frame in the one compact look (D9) where the reader's setup differs from a desk:
  * a touch screen takes the comfortable step, text at 200 % grows every control around it, a
- * 320 px card keeps every fact and id of a view's bar and every section of the head, the head's
+ * 320 px card keeps every fact and id of a view's bar and every section of the head (on its last
+ * line where the head wraps), a 400 px chat keeps each incident row one line and each group's
+ * title its share, a header's count stays a neutral number beside its tone's icon, the head's
  * sections (pulse-ui's NavTabs) open by keyboard, forced colours keep the open tab, the head's
  * open section and a docked strip, a fact's term sits on its value's baseline, and the detail
  * views pass axe, their BPMN diagram included, with a failed refresh docked under the bar.
@@ -251,6 +253,282 @@ test.describe("a 320 px card", () => {
   })
 })
 
+/** A long engine text, wider than any narrow column: it must stay one line, cut, whole in its title. */
+const LONG_MESSAGE =
+  "Approver lookup failed: no user with role 'finance-approver' in group 'invoice-eu'"
+
+/** The invoice process's open incidents grouped by activity, each group's page of rows. */
+async function groupedIncidents(page: Page) {
+  const activities = [
+    { activityId: "approveInvoice", activityName: "Approve Invoice", count: 3 },
+    { activityId: "chargeCard", activityName: null, count: 1 },
+  ].map(({ activityId, activityName, count }) => ({
+    activityId,
+    activityName,
+    representativeMessage: "Approver lookup failed",
+    firstSeen: "2026-10-09T08:00:00.000+0000",
+    latestIncident: "2026-10-10T08:00:00.000+0000",
+    incidentCount: count,
+  }))
+  const rows = (activityId: string, count: number) =>
+    Array.from({ length: count }, (_, index) => ({
+      id: `inc-${activityId}-${index}`,
+      processInstanceId: `7f3c2a9${index}-5b0e-4c1d-9a77-2e6b8d4f1c0${index}`,
+      businessKey: index === 1 ? null : `INV-2026-00${41 + index}`,
+      incidentType: "failedJob",
+      incidentMessage: index === 1 ? LONG_MESSAGE : "Approver lookup failed",
+      incidentTimestamp: "2026-10-10T08:00:00.000+0000",
+      activityId,
+      activityName: null,
+      recovery: { action: "retry-job", jobId: `job-${index}` },
+      cockpitInstanceUrl: null,
+    }))
+  let definition: Record<string, unknown> | null = null
+  const result = (structuredContent: unknown) => ({
+    json: { result: { structuredContent, content: [{ type: "text", text: "{}" }] } },
+  })
+  await page.route("**/host/call", async (route) => {
+    const call = route.request().postDataJSON() as {
+      name: string
+      arguments: Record<string, unknown>
+    }
+    if (call.name === "engine_open_cockpit") {
+      const json = (await (await route.fetch()).json()) as {
+        result: { structuredContent: { start: { data: Record<string, unknown> } } }
+      }
+      const start = json.result.structuredContent.start
+      definition = { ...start.data, incidentCount: 4, activities }
+      start.data = definition
+      return route.fulfill({ json })
+    }
+    if (call.name === "engine_process_incidents_data" && definition) {
+      return route.fulfill(result(definition))
+    }
+    if (call.name === "engine_activity_incidents_data") {
+      const activityId = String(call.arguments.activityId)
+      const count = activities.find((a) => a.activityId === activityId)?.incidentCount ?? 0
+      return route.fulfill(
+        result({
+          processDefinitionKey: "invoice",
+          activityId,
+          incidents: rows(activityId, count),
+          totalCount: count,
+          engineId: HEALTHY_ENGINE,
+        }),
+      )
+    }
+    return route.continue()
+  })
+}
+
+/** What a narrow incident table shows: its rows, its messages and whether it scrolls in its region. */
+async function narrowTable(region: Locator) {
+  return region.evaluate((el) => ({
+    scrolls: el.scrollWidth > el.clientWidth,
+    documentScrolls: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    rows: [...el.querySelectorAll("tbody tr")].map((row) =>
+      Math.round(row.getBoundingClientRect().height),
+    ),
+    messages: [...el.querySelectorAll<HTMLElement>("[data-incident-message]")].map((message) => ({
+      width: Math.round(message.getBoundingClientRect().width),
+      // What the reader sees of it at rest: up to the region's edge or a pinned cell over it.
+      visible: Math.round(
+        Math.min(
+          message.getBoundingClientRect().right,
+          el.getBoundingClientRect().right,
+          ...[...message.closest("tr")!.children]
+            .filter((cell) => getComputedStyle(cell).position === "sticky")
+            .map((cell) => cell.getBoundingClientRect().left),
+        ) - message.getBoundingClientRect().left,
+      ),
+      lines: Math.round(message.getBoundingClientRect().height / 20),
+      cut: message.scrollWidth > message.clientWidth,
+      title: message.title,
+    })),
+  }))
+}
+
+test.describe("a 400 px chat", () => {
+  test("the process's incidents by activity: each row one 28 px line, the message cut and whole in its title, the table scrolling in its region; each group's title keeps its share", async ({
+    page,
+  }) => {
+    await groupedIncidents(page)
+    const app = await openView(page, PROCESS_ARGS, { width: 400 })
+    await expect(app.getByText("Incidents by activity")).toBeVisible({ timeout: 15_000 })
+    const groups = app.locator('[role="button"][aria-expanded]')
+    await expect(groups).toHaveCount(2)
+    // Each group's title beside its count and chevron, 10rem at least, its stats on a line below.
+    const summaries = await app.locator('[data-slot="group-summary"]').evaluateAll((all) =>
+      all.map((summary) => {
+        const title = summary.querySelector('[data-slot="group-summary-title"]')!
+        const stats = summary.querySelector('[data-slot="group-summary-stats"]')!
+        const count = summary.querySelector('[data-slot="count-badge"]')!
+        const box = (el: Element) => el.getBoundingClientRect()
+        return {
+          title: Math.round(box(title).width),
+          titleText: (title.firstElementChild as HTMLElement).innerText,
+          titleWhole:
+            title.firstElementChild!.firstElementChild!.scrollWidth <=
+            title.firstElementChild!.firstElementChild!.clientWidth,
+          statsBelow: box(stats).top >= box(title).bottom - 1,
+          countBeside: Math.abs(box(count).top - box(title).top) < box(title).height,
+        }
+      }),
+    )
+    expect(summaries.map((s) => s.titleText)).toEqual(["Approve Invoice", "chargeCard"])
+    for (const summary of summaries) {
+      expect(summary.title, `${summary.titleText}: the title's share`).toBeGreaterThanOrEqual(160)
+      expect(summary).toMatchObject({ titleWhole: true, statsBelow: true, countBeside: true })
+    }
+    await groups.first().click()
+    const region = app.getByRole("region", { name: "Incidents in this activity" })
+    await expect(region.locator("tbody tr")).toHaveCount(3, { timeout: 15_000 })
+    const seen = await narrowTable(region)
+    expect(seen.rows).toEqual([28, 28, 28])
+    expect(seen.scrolls, "the table scrolls in its region").toBe(true)
+    expect(seen.documentScrolls, "the document never scrolls sideways").toBe(false)
+    expect(seen.messages).toHaveLength(3)
+    for (const message of seen.messages) {
+      expect(message.width, "a message keeps 10rem").toBeGreaterThanOrEqual(160)
+      expect(message.visible, "its 10rem in view at rest").toBeGreaterThanOrEqual(160)
+      expect(message.lines).toBe(1)
+    }
+    expect(seen.messages[1]).toMatchObject({ cut: true, title: LONG_MESSAGE })
+    // An instance with a business key shows the key alone here, its id in the title and read out.
+    const label = region.locator("tbody tr").first().locator("td").first()
+    await expect(label).toContainText("INV-2026-0041")
+    await expect(label.getByRole("button", { name: /^Copy/ })).toBeHidden()
+  })
+
+  test("an instance's incidents: each row one 28 px line, the message 10rem at least, the document never scrolling sideways", async ({
+    page,
+  }) => {
+    const app = await openView(page, INSTANCE_ARGS, { width: 400 })
+    await app
+      .getByRole("tab", { name: /^Incidents/ })
+      .first()
+      .click({ timeout: 15_000 })
+    const region = app.getByRole("region", { name: "Incidents of this instance" })
+    await expect(region.locator("tbody tr")).toHaveCount(2, { timeout: 15_000 })
+    const seen = await narrowTable(region)
+    expect(seen.rows).toEqual([28, 28])
+    expect(seen.documentScrolls).toBe(false)
+    for (const message of seen.messages) {
+      expect(message.width).toBeGreaterThanOrEqual(160)
+      expect(message.visible, "its 10rem in view at rest").toBeGreaterThanOrEqual(160)
+      expect(message.lines).toBe(1)
+    }
+    expect(seen.messages.map((message) => message.title)).toEqual([
+      "Approver lookup failed",
+      "Card declined",
+    ])
+  })
+})
+
+/** A failure cluster of three instances across two processes, each with its incident. */
+const CLUSTER = {
+  activityId: "chargeCard",
+  activityName: "Charge card",
+  incidentType: "failedJob",
+  messageSignature: "card declined by <id>",
+  incidentCount: 3,
+  scannedIncidentCount: 3,
+  lastHourCount: 1,
+  last24hCount: 2,
+  firstSeen: "2026-10-09T08:00:00.000+0000",
+  latestIncident: "2026-10-10T08:00:00.000+0000",
+  processDefinitionKeys: ["invoice", "onboarding"],
+  representativeMessage: "Card declined by the payment provider",
+  incidents: [1, 2, 3].map((index) => ({
+    incidentId: `inc-c-${index}`,
+    processInstanceId: `7f3c2a9${index}-5b0e-4c1d-9a77-2e6b8d4f1c0${index}`,
+    businessKey: index === 2 ? null : `INV-2026-00${40 + index}`,
+    processDefinitionKey: index === 3 ? "onboarding" : "invoice",
+    processDefinitionName: index === 3 ? "Customer Onboarding" : "Invoice Receipt",
+    incidentTimestamp: "2026-10-10T08:00:00.000+0000",
+  })),
+  totalMatching: 3,
+  engineId: HEALTHY_ENGINE,
+  fetchedAt: "2026-10-10T08:05:00.000Z",
+}
+const CLUSTER_ARGS = {
+  engine: HEALTHY_ENGINE,
+  view: "cluster-detail",
+  activityId: "chargeCard",
+  incidentType: "failedJob",
+}
+
+async function cluster(page: Page) {
+  await page.route("**/host/call", async (route) => {
+    const call = route.request().postDataJSON() as { name: string }
+    if (call.name === "engine_open_cockpit") {
+      const json = (await (await route.fetch()).json()) as {
+        result: { structuredContent: { start: { data: Record<string, unknown> } } }
+      }
+      const start = json.result.structuredContent.start
+      start.data = { ...start.data, ...CLUSTER }
+      return route.fulfill({ json })
+    }
+    if (call.name === "engine_cluster_detail_data") {
+      return route.fulfill({
+        json: { result: { structuredContent: CLUSTER, content: [{ type: "text", text: "{}" }] } },
+      })
+    }
+    return route.continue()
+  })
+}
+
+test.describe("a cluster's affected instances", () => {
+  for (const width of [760, 400]) {
+    test(`at ${width} px the table fits its region, no column under the pinned actions`, async ({
+      page,
+    }) => {
+      await cluster(page)
+      const app = await openView(page, CLUSTER_ARGS, { width })
+      const region = app.getByRole("region", { name: "Affected instances" }).last()
+      await expect(region.locator("tbody tr")).toHaveCount(3, { timeout: 15_000 })
+      const seen = await region.evaluate((el) => {
+        const head = [...el.querySelectorAll("thead th")]
+        const pinned = head.at(-1)!.getBoundingClientRect().left
+        return {
+          scrolls: el.scrollWidth > el.clientWidth,
+          covered: head
+            .slice(0, -1)
+            .filter((cell) => getComputedStyle(cell).display !== "none")
+            .filter((cell) => cell.getBoundingClientRect().right > pinned + 1)
+            .map((cell) => (cell as HTMLElement).innerText),
+        }
+      })
+      expect(seen).toEqual({ scrolls: false, covered: [] })
+    })
+  }
+})
+
+test.describe("a view's header counts", () => {
+  test("the process's open incidents: a state label, the number in the foreground on no tint", async ({
+    page,
+  }) => {
+    await groupedIncidents(page)
+    const app = await openView(page, PROCESS_ARGS)
+    const state = app.locator('[data-slot="view-bar"] [data-slot="state-label"]')
+    await expect(state).toHaveText("4 open incidents", { timeout: 15_000 })
+    const seen = await state.evaluate((label) => {
+      const words = label.lastElementChild!
+      return {
+        words: getComputedStyle(words).color,
+        foreground: getComputedStyle(document.body).color,
+        fill: getComputedStyle(label).backgroundColor,
+        icon: getComputedStyle(label.querySelector("svg")!).color,
+        shape: label.querySelector("svg")!.getAttribute("class"),
+      }
+    })
+    expect(seen.words).toBe(seen.foreground)
+    expect(seen.fill).toBe("rgba(0, 0, 0, 0)")
+    expect(seen.shape).toContain("lucide-circle-x")
+    expect(seen.icon).not.toBe(seen.foreground)
+  })
+})
+
 test.describe("the head's sections (pulse-ui's NavTabs)", () => {
   test("a named navigation of buttons: Tab reaches each in turn, Enter opens one, aria-current follows", async ({
     page,
@@ -276,34 +554,51 @@ test.describe("the head's sections (pulse-ui's NavTabs)", () => {
     await expect(overview).not.toHaveAttribute("aria-current", /.*/)
   })
 
-  test("a 320 px card keeps every section whole and inside it", async ({ page }) => {
-    const app = await openView(page, { engine: HEALTHY_ENGINE }, { width: 320 })
-    const sections = app.getByRole("navigation", { name: "Cockpit sections" })
-    await expect(sections.getByRole("button", { name: "Overview" })).toBeVisible({
-      timeout: 15_000,
-    })
-    const seen = await sections.evaluate((nav) => {
-      const width = document.documentElement.clientWidth
-      const items = [...nav.querySelectorAll("button")].map((item) => {
-        const box = item.getBoundingClientRect()
+  for (const width of [320, 400]) {
+    test(`a ${width} px card keeps every section whole and inside it, on the head's last line, the open one's bar on its rule`, async ({
+      page,
+    }) => {
+      const app = await openView(page, { engine: HEALTHY_ENGINE }, { width })
+      const sections = app.getByRole("navigation", { name: "Cockpit sections" })
+      await expect(sections.getByRole("button", { name: "Overview" })).toBeVisible({
+        timeout: 15_000,
+      })
+      const seen = await sections.evaluate((nav) => {
+        const width = document.documentElement.clientWidth
+        const head = nav.closest('[data-slot="cockpit-head"]')!.getBoundingClientRect()
+        const context = nav
+          .closest('[data-slot="cockpit-head"]')!
+          .querySelector('[data-slot="engine-context"]')!
+          .getBoundingClientRect()
+        const items = [...nav.querySelectorAll("button")].map((item) => {
+          const box = item.getBoundingClientRect()
+          return {
+            name: item.textContent,
+            inside: box.left >= 0 && box.right <= width,
+            whole: item.scrollWidth <= item.clientWidth,
+            // The head wraps here: the sections stay on its last line, each reaching its rule.
+            onTheRule: Math.round(box.bottom) === Math.round(head.bottom),
+          }
+        })
         return {
-          name: item.textContent,
-          inside: box.left >= 0 && box.right <= width,
-          whole: item.scrollWidth <= item.clientWidth,
+          items,
+          scrolls: document.documentElement.scrollWidth > width,
+          contextAbove: context.bottom <= nav.getBoundingClientRect().top + 1,
         }
       })
-      return { items, scrolls: document.documentElement.scrollWidth > width }
+      expect(seen.scrolls, "the document never scrolls sideways").toBe(false)
+      expect(seen.contextAbove, "the engine's context on the line above the sections").toBe(true)
+      expect(seen.items.map((item) => item.name)).toEqual(["Overview", "Incidents", "Jobs"])
+      for (const item of seen.items) {
+        expect(item, `${item.name} whole, inside the card and on the head's rule`).toEqual({
+          name: item.name,
+          inside: true,
+          whole: true,
+          onTheRule: true,
+        })
+      }
     })
-    expect(seen.scrolls, "the document never scrolls sideways").toBe(false)
-    expect(seen.items.map((item) => item.name)).toEqual(["Overview", "Incidents", "Jobs"])
-    for (const item of seen.items) {
-      expect(item, `${item.name} whole and inside the card`).toEqual({
-        name: item.name,
-        inside: true,
-        whole: true,
-      })
-    }
-  })
+  }
 })
 
 test.describe("forced colours", () => {

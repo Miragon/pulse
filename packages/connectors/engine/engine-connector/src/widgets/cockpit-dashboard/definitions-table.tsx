@@ -1,12 +1,11 @@
 import { useId, useState } from "react"
 import {
-  cn,
   formatNumber,
   FilterBar,
   ListFooter,
-  MICRO_LABEL,
   useDebouncedValue,
   DrillButton,
+  SectionHeading,
 } from "@miragon/pulse-ui"
 import { ViewDataState, WidgetShell, useViewData } from "@miragon/pulse-widget-shell/widgets"
 import type { CockpitDashboardData } from "../../view-models.js"
@@ -88,14 +87,13 @@ function ProcessDefinitionsSection({
     // A real heading on the same step as the failure clusters above it (#322 U27): the compact
     // section caption (13 px at 600), never above the 13 px view bar.
     <section aria-labelledby={headingId}>
-      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <h2 id={headingId} className={cn("text-foreground", MICRO_LABEL)}>
-          {t("cockpitDefs.heading")}
-        </h2>
-        <span className="text-muted-foreground text-small">
-          {t("cockpitDefs.deployedHint", { count: formatNumber(allRows.length) })}
-        </span>
-      </div>
+      <SectionHeading
+        as="h2"
+        id={headingId}
+        title={t("cockpitDefs.heading")}
+        hint={t("cockpitDefs.deployedHint", { count: formatNumber(allRows.length) })}
+        className="mb-2"
+      />
       <FilterBar
         search={search}
         onSearchChange={setSearch}
