@@ -6,7 +6,7 @@ import { createEngineRegistry } from "../lib/engine/resolve-engine.js"
 import { providerForEntry } from "../providers/index.js"
 import { ENGINE_WIDGET_ACTIONS_DATA } from "../tool-names.js"
 import { registerWidgetTools } from "../widget-tools.js"
-import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-engine-core"
+import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-c7-core"
 
 /**
  * #325: dropping `ctx` compiles (`call` is optional) and the per-feed tests stay green; only a

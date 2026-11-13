@@ -1,12 +1,12 @@
-import type { Client } from "@miragon/pulse-engine-client"
-import { latestEngineDate, toEngineDate } from "@miragon/pulse-engine-core"
+import type { Client } from "@miragon/pulse-c7-client"
+import { latestEngineDate, toEngineDate } from "@miragon/pulse-c7-core"
 import {
   getActivityStatistics,
   getIncidents,
   getIncidentsCount,
   getJobsCount,
   getProcessInstancesCount,
-} from "@miragon/pulse-engine-client/sdk"
+} from "@miragon/pulse-c7-client/sdk"
 import { bpmnProcessNameOf, readBpmnNames } from "@miragon/pulse-widget-shell/server"
 import type {
   ActivityIncidentsData,
@@ -176,7 +176,7 @@ async function fetchSiblingsWithIncidents(
   const siblings = [...(await fetchStatsByKey(client, {})).entries()]
     .filter(([key, stats]) => key !== excludeKey && stats.incidentCount > 0)
     .sort((a, b) => b[1].incidentCount - a[1].incidentCount)
-  // A Modeler pool around an unnamed process names it, as analytics names it.
+  // A Modeler pool around an unnamed process names it, as every view names it.
   await nameUnnamedDefinitions(
     client,
     siblings.map(([, stats]) => stats.latest),

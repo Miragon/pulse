@@ -1,0 +1,65 @@
+import type { InstanceDetail, WaitState } from "@miragon/pulse-engine-core"
+import type { EngineCli } from "../../ports/index.js"
+import { FlowNodes } from "../bpmn/flow-nodes.js"
+import type { MoveOption, WaitRow } from "../protocol/index.js"
+import { ActiveTokens } from "./active-tokens.js"
+import { CliWayOut } from "./cli-way-out.js"
+import { ElementLabels } from "./element-labels.js"
+import { MoveSources, type MoveRefusal } from "./move-sources.js"
+import { MoveTargets } from "./move-targets.js"
+
+const TRUNCATED = "Pulse sees only part of this instance; moving a token needs all of it."
+
+export interface MovableWaits {
+  readonly rows: WaitRow[]
+  readonly moves: MoveOption[]
+}
+
+export class MoveOptions {
+  private readonly labels: ElementLabels
+  private readonly sources: MoveSources
+  private readonly targets: MoveTargets
+
+  constructor(
+    private readonly detail: InstanceDetail,
+    diagramXml: string,
+    cli?: EngineCli,
+  ) {
+    const nodes = FlowNodes.of(diagramXml)
+    const tokens = new ActiveTokens(detail)
+    this.labels = new ElementLabels(diagramXml)
+    this.sources = new MoveSources(nodes, tokens, this.labels, new CliWayOut(detail, cli))
+    this.targets = new MoveTargets(nodes, tokens, this.labels)
+  }
+
+  applied(rows: readonly WaitRow[]): MovableWaits {
+    if (this.detail.instance.state !== "running") {
+      return { rows: [...rows], moves: [] }
+    }
+    const moves: MoveOption[] = []
+    const marked = rows.map((row, index) => {
+      const waitState = this.detail.waitStates[index]
+      const refusal = waitState === undefined ? undefined : this.refusalOf(waitState)
+      if (refusal !== undefined) {
+        return { ...row, ...refusal }
+      }
+      moves.push(this.optionFor(row.elementId, waitState?.incidentId !== undefined))
+      return row
+    })
+    return { rows: marked, moves }
+  }
+
+  private refusalOf(waitState: WaitState): MoveRefusal | undefined {
+    return this.detail.truncated
+      ? { moveRefusal: TRUNCATED }
+      : this.sources.refusalOf(waitState, this.detail.instance.id)
+  }
+
+  private optionFor(fromElementId: string, closesIncident: boolean): MoveOption {
+    return {
+      fromElementId,
+      fromLabel: this.labels.of(fromElementId),
+      ...this.targets.from(fromElementId, closesIncident),
+    }
+  }
+}

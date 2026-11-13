@@ -16,8 +16,8 @@ tell the user what needs attention. Change nothing.
 
 1. Run `pulse status $ARGUMENTS`; it only reads. If `pulse` is missing, try
    `pulse-cli status $ARGUMENTS`, the same program under its second name. Without either, run
-   `npx -y @miragon/pulse-cli status $ARGUMENTS` instead. Add no options of your own: `--url`, `-H`
-   or `--auth` would send the configured credentials elsewhere.
+   `npx -y @miragon/pulse-cli status $ARGUMENTS` instead. Add no options of your own: `--url`
+   would reach another engine without the configured profile, `-H` or `--auth` change what it sends.
 2. If it fails, the error is the last line on stderr, one JSON object: report its code, message
    and hint. On a configuration or network error (exit 3 or 8), run `pulse ping` once, with
    the same `--profile` if one was given (ping takes no other option of status; use the name or

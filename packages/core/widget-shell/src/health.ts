@@ -1,5 +1,5 @@
 /**
- * Readiness checks the server's OWN dependencies only: engine or Prometheus outages are reported by
+ * Readiness checks the server's OWN dependencies only: engine outages are reported by
  * the tools, and pulling the server out of rotation would turn a visible error into a silent absence.
  * The bare `<path>` aliases readiness for single-URL probes. Outside the OAuth gate, so no token.
  */

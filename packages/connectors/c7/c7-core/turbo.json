@@ -1,0 +1,17 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "generate": {
+      "inputs": [
+        "spec/api.json",
+        "spec/patches.json",
+        "scripts/**/*.ts",
+        "!scripts/**/*.test.ts",
+        "src/operations.ts",
+        "src/route.ts"
+      ],
+      "outputs": ["src/generated/**", "spec/patched/**"]
+    }
+  }
+}

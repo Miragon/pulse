@@ -5,13 +5,13 @@ import { BoardWatcher } from "../../src/host/boards/board-watcher.js"
 import { BoardsTree } from "../../src/host/boards/boards-tree.js"
 import { NewBoardCommand } from "../../src/host/commands/new-board-command.js"
 import { OpenBoardCommand } from "../../src/host/commands/open-board-command.js"
-import type { Connection } from "../../src/host/connections/connection.js"
+import type { Connection } from "@miragon/pulse-runtime-view/host-kit"
 import type { ConnectionRegistry } from "../../src/host/connections/connection-registry.js"
 import type { PanelManager } from "../../src/host/panels/panel-manager.js"
-import type { HostMessage, PanelState } from "../../src/core/protocol/index.js"
-import { RuntimeError } from "../../src/contract/index.js"
-import { BoardParser } from "../../src/core/index.js"
-import { instance } from "../core/support/board-fixture.js"
+import type { HostMessage, PanelState } from "@miragon/pulse-runtime-view/protocol"
+import { RuntimeError } from "@miragon/pulse-engine-core"
+import { BoardParser } from "@miragon/pulse-runtime-view/core"
+import { instance } from "./support/board-instance.js"
 
 interface FakeUri {
   readonly path: string
@@ -214,7 +214,7 @@ function setup() {
     badge: { name: "shop", environment: "test", host: "shop" },
     runtime: {
       describeEngine: () => Promise.resolve({ product: "Engine", version: "1" }),
-      countInstances: () => Promise.resolve(4),
+      countInstances: () => Promise.resolve({ count: 4 }),
       searchInstances: () => Promise.resolve({ items: [instance("i-1", "order")] }),
     },
     definitions: { read: () => Promise.resolve([]) },

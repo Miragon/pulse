@@ -18,6 +18,9 @@ function uiBlock(meta: Record<string, unknown>): Record<string, unknown> {
   return (meta.ui ?? {}) as Record<string, unknown>
 }
 
+/** A view tool by its name: `*_show_*` or `*_open_*` (the naming convention is load-bearing). */
+const isViewToolName = (name: string) => /_(?:show|open)_/.test(name)
+
 /**
  * Wire-level widget-contract assertions: what ext-apps hosts (Claude Desktop /
  * claude.ai) actually see on tools/list, resources/list and resources/read.
@@ -36,7 +39,7 @@ describe("widget wire contract (dual-protocol _meta)", () => {
   beforeAll(async () => {
     // The widest surface (admin); widget tools and *_data feeds are the
     // same in every toolset.
-    server = await bootServer({ env: { MCP_ACTIVE_MODULES: "engine:admin,analytics" } })
+    server = await bootServer({ env: { MCP_ACTIVE_MODULES: "engine:admin" } })
     client = server.client
     serverOrigin = `http://127.0.0.1:${server.port}`
     tools = (await client.listTools()).tools
@@ -53,9 +56,8 @@ describe("widget wire contract (dual-protocol _meta)", () => {
       const ui = uiBlock(meta)
       return typeof ui.resourceUri === "string" && ui.visibility === undefined
     })
-    // The cockpit plus the engine/analytics show_* tools.
-    expect(widgetTools.length).toBeGreaterThanOrEqual(3)
-    expect(widgetTools.map((t) => t.name)).toContain("engine_open_cockpit")
+    // The engine module's one view.
+    expect(widgetTools.map((t) => t.name)).toEqual(["engine_open_cockpit"])
 
     for (const tool of widgetTools) {
       const meta = toolMeta(tool)
@@ -77,15 +79,13 @@ describe("widget wire contract (dual-protocol _meta)", () => {
     }
   })
 
-  it("carries widget _meta on every *_show_* tool (name-based; catches a forgotten view binding)", () => {
+  it("carries widget _meta on every *_show_* and *_open_* tool (name-based; catches a forgotten view binding)", () => {
     // The meta-derived filter above can only check tools that HAVE meta; a
-    // show tool that forgot its view binding would silently drop out of it and
+    // view tool that forgot its view binding would silently drop out of it and
     // hang on the host's loading skeleton. The naming convention is the
     // invariant we can enforce unconditionally.
-    const showTools = tools.filter((t) => t.name.includes("_show_"))
-    // Pinned at the post-cut count: cut 7 removed the twelve engine show tools; the six
-    // analytics ones remain (the engine module's one view, engine_open_cockpit, is checked above).
-    expect(showTools.length).toBeGreaterThanOrEqual(6)
+    const showTools = tools.filter((t) => isViewToolName(t.name))
+    expect(showTools.map((t) => t.name)).toEqual(["engine_open_cockpit"])
     for (const tool of showTools) {
       const ui = uiBlock(toolMeta(tool))
       expect(ui.resourceUri, `${tool.name}: show tools must bind their own view`).toBe(
@@ -146,7 +146,8 @@ describe("widget wire contract (dual-protocol _meta)", () => {
   it("lists one view resource per view-bound tool with the mcp-app profile mimeType", async () => {
     const { resources } = await client.listResources()
     const viewResources = resources.filter((r) => r.uri.startsWith(VIEW_RESOURCE_URI_PREFIX))
-    const showTools = tools.filter((t) => t.name.includes("_show_"))
+    const showTools = tools.filter((t) => isViewToolName(t.name))
+    expect(showTools.length).toBeGreaterThanOrEqual(1)
     for (const tool of showTools) {
       const resource = viewResources.find((r) => r.uri === viewResourceUri(tool.name))
       expect(resource, `view resource for ${tool.name} should be listed`).toBeDefined()
@@ -159,9 +160,8 @@ describe("widget wire contract (dual-protocol _meta)", () => {
   it("names every module view and asks the host for a border", async () => {
     // Every view-bound tool: the show tools and the cockpit.
     const showTools = tools.filter((t) => typeof uiBlock(t._meta ?? {}).resourceUri === "string")
-    // The four view floors in this file are pinned at the post-cut count: cut 7 removed the
-    // twelve engine show tools (engine_open_cockpit and six analytics views remain).
-    expect(showTools.length).toBeGreaterThanOrEqual(7)
+    // The view floors in this file: the engine module's one view, engine_open_cockpit.
+    expect(showTools.length).toBeGreaterThanOrEqual(1)
     for (const tool of showTools) {
       const { contents } = await client.readResource({ uri: viewResourceUri(tool.name) })
       const meta = (contents[0] as { _meta?: Record<string, unknown> })._meta ?? {}
@@ -184,7 +184,7 @@ describe("widget wire contract (dual-protocol _meta)", () => {
   // before the bundle runs, so the bundle mounts that view and re-runs that tool on a stripped result.
   it("names its view in every view document, before the bundle", async () => {
     const viewTools = tools.filter((t) => typeof uiBlock(t._meta ?? {}).resourceUri === "string")
-    expect(viewTools.length).toBeGreaterThanOrEqual(7)
+    expect(viewTools.length).toBeGreaterThanOrEqual(1)
     for (const tool of viewTools) {
       const { contents } = await client.readResource({ uri: viewResourceUri(tool.name) })
       const text = (contents[0] as { text?: string }).text ?? ""
@@ -216,7 +216,7 @@ describe("widget wire contract (dual-protocol _meta)", () => {
     // view resolves its font URLs against the same origin (servedFontBaseUrl).
     const { resources } = await client.listResources()
     const views = resources.filter((r) => r.uri.startsWith(VIEW_RESOURCE_URI_PREFIX))
-    expect(views.length).toBeGreaterThanOrEqual(7)
+    expect(views.length).toBeGreaterThanOrEqual(1)
     for (const view of views) {
       expect(await readResourceDomains(client, view.uri), view.uri).toContain(serverOrigin)
     }
@@ -233,7 +233,7 @@ async function readResourceDomains(client: Client, uri: string): Promise<string[
 
 /**
  * Behind its public URL (`MCP_URL`) the server declares that origin itself on
- * every view-bound tool (the cockpit and each module's `*_show_*` alike,
+ * every view-bound tool (the cockpit and any module's `*_show_*` alike,
  * listed and read, and in the Apps SDK half, `openai/widgetCSP`), so a host
  * admits the font route (`/fonts/geist-<version>/…`) the views load Geist from.
  */
@@ -244,7 +244,7 @@ describe("widget wire contract: the font origin under MCP_URL", () => {
   beforeAll(async () => {
     server = await bootServer({
       env: {
-        MCP_ACTIVE_MODULES: "engine:admin,analytics",
+        MCP_ACTIVE_MODULES: "engine:admin",
         MCP_URL: `${PUBLIC_ORIGIN}/mcp`,
       },
     })
@@ -262,7 +262,7 @@ describe("widget wire contract: the font origin under MCP_URL", () => {
     )
     // One view per widget tool: the show tools and the cockpit.
     expect(views).toHaveLength(widgetTools.length)
-    expect(views.length).toBeGreaterThanOrEqual(7)
+    expect(views.length).toBeGreaterThanOrEqual(1)
     for (const view of views) {
       const listed = uiBlock((view as { _meta?: Record<string, unknown> })._meta ?? {}).csp as
         { resourceDomains?: string[] } | undefined
@@ -276,9 +276,7 @@ describe("widget wire contract: the font origin under MCP_URL", () => {
   it("advertises it to Apps SDK hosts on every widget tool (openai/widgetCSP)", async () => {
     const { tools } = await server.client.listTools()
     const widgetTools = tools.filter((t) => t._meta?.["openai/outputTemplate"] !== undefined)
-    expect(widgetTools.map((t) => t.name)).toEqual(
-      expect.arrayContaining(["engine_open_cockpit", "analytics_show_dashboard"]),
-    )
+    expect(widgetTools.map((t) => t.name)).toEqual(["engine_open_cockpit"])
     for (const tool of widgetTools) {
       expect(tool._meta?.["openai/widgetCSP"], tool.name).toEqual({
         resource_domains: [PUBLIC_ORIGIN],

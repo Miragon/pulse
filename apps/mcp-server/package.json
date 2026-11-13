@@ -25,6 +25,7 @@
     "typecheck": "tsc --noEmit && tsc -p tsconfig.ui.json && tsc -p tsconfig.test.json",
     "test": "vitest run",
     "test:host": "pnpm run build:ui && playwright test -c test-host",
+    "third-party-licenses": "THIRD_PARTY_LICENSES_UPDATE=1 vitest run test/third-party-licenses.test.ts --coverage.enabled=false",
     "golden:update": "turbo run build --filter=@miragon/pulse-mcp-server^... --output-logs=errors-only && GOLDEN_UPDATE=1 vitest run --coverage.enabled=false",
     "lint": "eslint src test test-host",
     "lint:fix": "eslint src test test-host --fix",
@@ -34,7 +35,6 @@
     "dev:inspector": "HOST=127.0.0.1 MCP_AUTO_OPEN_ENABLED=false MCP_INSPECTOR_SECRET_STORE=${MCP_INSPECTOR_SECRET_STORE:-memory} mcp-inspector --web --transport http --server-url http://localhost:${PORT:-8400}/mcp"
   },
   "dependencies": {
-    "@miragon/pulse-analytics-connector": "workspace:*",
     "@miragon/pulse-engine-connector": "workspace:*",
     "@miragon/pulse-widget-shell": "workspace:*",
     "zod": "4.6.7"
@@ -44,21 +44,21 @@
     "@miragon/pulse-ui": "workspace:*",
     "@modelcontextprotocol/client": "2.4.0",
     "@modelcontextprotocol/inspector": "2.14.0",
-    "@playwright/test": "1.64.1",
-    "@tailwindcss/vite": "4.3.4",
-    "@tanstack/react-query": "5.105.3",
+    "@playwright/test": "1.65.0",
+    "@tailwindcss/vite": "4.3.5",
+    "@tanstack/react-query": "5.107.1",
     "@types/node": "26.6.5",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
-    "@vitejs/plugin-react": "6.2.1",
+    "@vitejs/plugin-react": "6.3.0",
     "cross-env": "10.1.0",
-    "lucide-react": "1.67.0",
+    "lucide-react": "1.70.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "tailwindcss": "4.3.4",
+    "tailwindcss": "4.3.5",
     "tsx": "4.23.15",
     "typescript": "6.0.3",
-    "vite": "8.3.6",
+    "vite": "8.3.8",
     "vitest": "5.1.0"
   }
 }

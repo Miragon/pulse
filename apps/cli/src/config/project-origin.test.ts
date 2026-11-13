@@ -36,18 +36,16 @@ function origin(
 
 describe("projectOrigin", () => {
   it("is the git directory of the repository, also for a project file below its root", async () => {
-    await expect(origin(`${REPO}/.pulse-cli.json`, {}, [GIT])).resolves.toBe(`repository:${GIT}`)
-    await expect(origin(`${REPO}/services/orders/.pulse-cli.json`, {}, [GIT])).resolves.toBe(
+    await expect(origin(`${REPO}/.pulse.json`, {}, [GIT])).resolves.toBe(`repository:${GIT}`)
+    await expect(origin(`${REPO}/services/orders/.pulse.json`, {}, [GIT])).resolves.toBe(
       `repository:${GIT}`,
     )
   })
 
   it("is the same for every worktree that links back to the repository", async () => {
     const files = { ...worktreeFiles(), ...worktreeFiles("/srv/agents/one", "one") }
-    await expect(origin(`${WORKTREE}/.pulse-cli.json`, files, [GIT])).resolves.toBe(
-      `repository:${GIT}`,
-    )
-    await expect(origin("/srv/agents/one/sub/.pulse-cli.json", files, [GIT])).resolves.toBe(
+    await expect(origin(`${WORKTREE}/.pulse.json`, files, [GIT])).resolves.toBe(`repository:${GIT}`)
+    await expect(origin("/srv/agents/one/sub/.pulse.json", files, [GIT])).resolves.toBe(
       `repository:${GIT}`,
     )
   })
@@ -57,13 +55,11 @@ describe("projectOrigin", () => {
       [`${WORKTREE}/.git`]: "gitdir: ../../repo/.git/worktrees/feature\n",
       [`${GIT}/worktrees/feature/gitdir`]: "../../../../worktrees/feature/.git\n",
     }
-    await expect(origin(`${WORKTREE}/.pulse-cli.json`, files, [GIT])).resolves.toBe(
-      `repository:${GIT}`,
-    )
+    await expect(origin(`${WORKTREE}/.pulse.json`, files, [GIT])).resolves.toBe(`repository:${GIT}`)
   })
 
   it("never trusts a .git file whose git directory does not link back to it", async () => {
-    const project = "/home/me/download/.pulse-cli.json"
+    const project = "/home/me/download/.pulse.json"
     const claims = [
       // a copied worktree: the repository links back to the real one
       {
@@ -99,37 +95,35 @@ describe("projectOrigin", () => {
       [`${REPO}/vendor/lib/.git`]: `gitdir: ${GIT}/modules/lib`,
       [`${GIT}/modules/lib/gitdir`]: `${REPO}/vendor/lib/.git`,
     }
-    await expect(origin(`${REPO}/vendor/lib/.pulse-cli.json`, files, [GIT])).resolves.toBe(
-      `project:${REPO}/vendor/lib/.pulse-cli.json`,
+    await expect(origin(`${REPO}/vendor/lib/.pulse.json`, files, [GIT])).resolves.toBe(
+      `project:${REPO}/vendor/lib/.pulse.json`,
     )
   })
 
   it("is the project file outside a repository, below the home directory and at the root", async () => {
-    await expect(origin("/home/me/scratch/.pulse-cli.json")).resolves.toBe(
-      "project:/home/me/scratch/.pulse-cli.json",
+    await expect(origin("/home/me/scratch/.pulse.json")).resolves.toBe(
+      "project:/home/me/scratch/.pulse.json",
     )
     // the home directory is nobody's repository
-    await expect(origin("/home/me/scratch/.pulse-cli.json", {}, ["/home/me/.git"])).resolves.toBe(
-      "project:/home/me/scratch/.pulse-cli.json",
+    await expect(origin("/home/me/scratch/.pulse.json", {}, ["/home/me/.git"])).resolves.toBe(
+      "project:/home/me/scratch/.pulse.json",
     )
-    await expect(origin("/srv/app/.pulse-cli.json")).resolves.toBe(
-      "project:/srv/app/.pulse-cli.json",
-    )
+    await expect(origin("/srv/app/.pulse.json")).resolves.toBe("project:/srv/app/.pulse.json")
   })
 
   it("stops at a .git that is neither a file nor a directory", async () => {
     const runtime = fakeRuntime({
-      files: { [`${REPO}/.pulse-cli.json`]: "{}" },
+      files: { [`${REPO}/.pulse.json`]: "{}" },
       dirs: ["/home/me/.git"],
       others: [GIT],
     })
-    await expect(projectOrigin(runtime.fs, `${REPO}/.pulse-cli.json`, LINUX)).resolves.toBe(
-      `project:${REPO}/.pulse-cli.json`,
+    await expect(projectOrigin(runtime.fs, `${REPO}/.pulse.json`, LINUX)).resolves.toBe(
+      `project:${REPO}/.pulse.json`,
     )
   })
 
   it("never takes another user's .git, nor one in a file system root (like git's safe.directory)", async () => {
-    const project = "/tmp/evil/.pulse-cli.json"
+    const project = "/tmp/evil/.pulse.json"
     const foreign = fakeRuntime({
       files: { [project]: "{}" },
       dirs: ["/tmp/.git"],
@@ -137,32 +131,32 @@ describe("projectOrigin", () => {
     })
     await expect(projectOrigin(foreign.fs, project, LINUX)).resolves.toBe(`project:${project}`)
     // a worktree .git file of another user does not count either
-    const files = { [`${WORKTREE}/.pulse-cli.json`]: "{}", ...worktreeFiles() }
+    const files = { [`${WORKTREE}/.pulse.json`]: "{}", ...worktreeFiles() }
     const file = fakeRuntime({ files, dirs: [GIT], foreign: [`${WORKTREE}/.git`] })
-    await expect(projectOrigin(file.fs, `${WORKTREE}/.pulse-cli.json`, LINUX)).resolves.toBe(
-      `project:${WORKTREE}/.pulse-cli.json`,
+    await expect(projectOrigin(file.fs, `${WORKTREE}/.pulse.json`, LINUX)).resolves.toBe(
+      `project:${WORKTREE}/.pulse.json`,
     )
-    const root = fakeRuntime({ files: { "/srv/.pulse-cli.json": "{}" }, dirs: ["/.git"] })
-    await expect(projectOrigin(root.fs, "/srv/.pulse-cli.json", LINUX)).resolves.toBe(
-      "project:/srv/.pulse-cli.json",
+    const root = fakeRuntime({ files: { "/srv/.pulse.json": "{}" }, dirs: ["/.git"] })
+    await expect(projectOrigin(root.fs, "/srv/.pulse.json", LINUX)).resolves.toBe(
+      "project:/srv/.pulse.json",
     )
     const drive = fakeRuntime({
-      files: { "C:\\tmp\\evil\\.pulse-cli.json": "{}" },
+      files: { "C:\\tmp\\evil\\.pulse.json": "{}" },
       dirs: ["C:\\.git"],
       noOwners: true,
     })
-    await expect(projectOrigin(drive.fs, "C:\\tmp\\evil\\.pulse-cli.json", WINDOWS)).resolves.toBe(
-      "project:c:\\tmp\\evil\\.pulse-cli.json",
+    await expect(projectOrigin(drive.fs, "C:\\tmp\\evil\\.pulse.json", WINDOWS)).resolves.toBe(
+      "project:c:\\tmp\\evil\\.pulse.json",
     )
   })
 
   it("takes any .git below the root where the platform has no owners", async () => {
     const runtime = fakeRuntime({
-      files: { [`${REPO}/.pulse-cli.json`]: "{}" },
+      files: { [`${REPO}/.pulse.json`]: "{}" },
       dirs: [GIT],
       noOwners: true,
     })
-    await expect(projectOrigin(runtime.fs, `${REPO}/.pulse-cli.json`, LINUX)).resolves.toBe(
+    await expect(projectOrigin(runtime.fs, `${REPO}/.pulse.json`, LINUX)).resolves.toBe(
       `repository:${GIT}`,
     )
   })
@@ -170,17 +164,15 @@ describe("projectOrigin", () => {
   it("compares Windows paths without case", async () => {
     const runtime = fakeRuntime({
       files: {
-        "C:\\work\\repo\\.pulse-cli.json": "{}",
-        "D:\\wt\\x\\.pulse-cli.json": "{}",
+        "C:\\work\\repo\\.pulse.json": "{}",
+        "D:\\wt\\x\\.pulse.json": "{}",
         "D:\\wt\\x\\.git": "gitdir: C:\\work\\repo\\.git\\worktrees\\x",
         "C:\\work\\repo\\.git\\worktrees\\x\\gitdir": "d:\\WT\\x\\.git",
       },
       dirs: ["C:\\work\\repo\\.git"],
     })
-    const main = await projectOrigin(runtime.fs, "C:\\work\\repo\\.pulse-cli.json", WINDOWS)
+    const main = await projectOrigin(runtime.fs, "C:\\work\\repo\\.pulse.json", WINDOWS)
     expect(main).toBe("repository:c:\\work\\repo\\.git")
-    await expect(projectOrigin(runtime.fs, "D:\\wt\\x\\.pulse-cli.json", WINDOWS)).resolves.toBe(
-      main,
-    )
+    await expect(projectOrigin(runtime.fs, "D:\\wt\\x\\.pulse.json", WINDOWS)).resolves.toBe(main)
   })
 })

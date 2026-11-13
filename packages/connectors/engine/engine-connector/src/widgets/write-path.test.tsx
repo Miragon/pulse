@@ -170,6 +170,8 @@ describe("a confirmation names its target (N108)", () => {
           incidentType: "invoiceMismatch",
           incidentMessage: "amount mismatch",
           incidentTimestamp: "2026-10-10T08:00:00.000+0000",
+          activityId: "match",
+          activityName: null,
           cockpitInstanceUrl: null,
           businessKey: null,
           recovery: { action: "resolve" },

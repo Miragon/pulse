@@ -43,7 +43,7 @@ export default mergeConfig(sharedConfig, defineConfig({
   },
 }))
 `
-const PKG_VITEST = "packages/connectors/engine/engine-client/vitest.config.ts"
+const PKG_VITEST = "packages/connectors/c7/c7-client/vitest.config.ts"
 const BASE_THRESHOLDS = "thresholds: { statements: 44, branches: 32, functions: 45, lines: 44 },"
 // The apps and a new connector-family package: the ratchet covers each by its layout.
 const CLI_DIR = "apps/cli"
@@ -52,10 +52,8 @@ const FAMILY_DIR = "packages/connectors/fam/x-connector"
 const REAL_VITEST_CONFIGS = [
   "apps/mcp-server/vitest.config.ts",
   "packages/core/widget-shell/vitest.config.ts",
-  "packages/connectors/engine/engine-client/vitest.config.ts",
+  "packages/connectors/c7/c7-client/vitest.config.ts",
   "packages/connectors/engine/engine-connector/vitest.config.ts",
-  "packages/connectors/analytics/analytics-client/vitest.config.ts",
-  "packages/connectors/analytics/analytics-connector/vitest.config.ts",
 ]
 
 describe("ratchetKind", () => {
@@ -125,7 +123,7 @@ describe("shadowing configs (loaded BEFORE the ratcheted file)", () => {
     "packages/core/widget-shell/stryker.conf.json",
     "packages/core/widget-shell/.stryker.config.json",
     "packages/core/widget-shell/stryker.config.mjs",
-    "packages/connectors/engine/engine-client/stryker.conf.cjs",
+    "packages/connectors/c7/c7-client/stryker.conf.cjs",
   ]
 
   it("flags each one, also when the diff introduces it", () => {
@@ -781,11 +779,12 @@ export default defineConfig({
     assert.deepEqual(read.projects, {
       unit: {
         include: ["src/**/*.test.ts"],
-        exclude: ["ENGINE_TEST", "test/fixtures/**"],
+        // A string constant is read as the glob it holds.
+        exclude: ["test/**/*.engine.test.ts", "test/fixtures/**"],
         extends: true,
       },
       browser: { include: ["src/webview/**/*.test.tsx"], exclude: [], extends: true },
-      engine: { include: ["ENGINE_TEST"], exclude: [], extends: true },
+      engine: { include: ["test/**/*.engine.test.ts"], exclude: [], extends: true },
     })
     assert.deepEqual(checkRatchetFile(VSCODE, null, base), [])
   })
@@ -1174,6 +1173,323 @@ describe("measured surface: include lists only grow (the counterpart of exclude)
   })
 })
 
+describe("include and exclude lists built from a constant (read entry by entry)", () => {
+  const listConst = (...entries) => `const EXCLUDED = ${JSON.stringify(entries)}`
+  // A package config whose coverage list names, spreads or is shorthand for a constant.
+  const config = ({
+    decl = listConst("src/a.ts"),
+    use = "exclude: EXCLUDED,",
+    after = "",
+    test = 'include: ["src/**/*.test.ts"],',
+  } = {}) => `
+import { coverageConfigDefaults, defineConfig, mergeConfig } from "vitest/config"
+import { sharedConfig } from "../../vitest.shared"
+${decl}
+${after}
+export default mergeConfig(sharedConfig, defineConfig({
+  test: {
+    ${test}
+    coverage: {
+      ${use}
+      ${BASE_THRESHOLDS}
+    },
+  },
+}))
+`
+  const check = (before, after) => checkRatchetFile(PKG_VITEST, before, after)
+  const read = (options) => extractVitestCoverage(PKG_VITEST, config(options))
+  const SPREAD = 'exclude: ["src/**/*.d.ts", ...EXCLUDED],'
+  const literal = vitestConfig({ thresholds: BASE_THRESHOLDS, exclude: 'exclude: ["src/a.ts"],' })
+
+  it("fails an exclude constant that grows, named or spread", () => {
+    for (const use of ["exclude: EXCLUDED,", SPREAD]) {
+      const violations = check(
+        config({ use }),
+        config({ use, decl: listConst("src/a.ts", "src/host/b.ts") }),
+      )
+      assert.equal(violations.length, 1, use)
+      assert.match(violations[0], /new coverage\.exclude entry "src\/host\/b\.ts"/, use)
+    }
+  })
+
+  it("passes an exclude constant that shrinks, and a literal list moved into a constant and back", () => {
+    for (const use of ["exclude: EXCLUDED,", SPREAD])
+      assert.deepEqual(
+        check(config({ use, decl: listConst("src/a.ts", "src/host/b.ts") }), config({ use })),
+        [],
+        use,
+      )
+    assert.deepEqual(check(literal, config()), [])
+    assert.deepEqual(check(config(), literal), [])
+    // A config that introduces a constant it reads through has nothing opaque.
+    assert.deepEqual(checkRatchetFile(PKG_VITEST, null, config()), [])
+  })
+
+  it("reads a spread of it, a constant built from another and its type wrappers entry by entry", () => {
+    assert.deepEqual(read({ use: SPREAD, decl: listConst("src/a.ts", "src/b.ts") }).exclude, [
+      "src/**/*.d.ts",
+      "src/a.ts",
+      "src/b.ts",
+    ])
+    const chained = `${listConst("src/a.ts")}\nconst HOST = [...EXCLUDED, "src/host/**"]`
+    assert.deepEqual(read({ decl: chained, use: "exclude: HOST," }).exclude, [
+      "src/a.ts",
+      "src/host/**",
+    ])
+    assert.deepEqual(read({ decl: chained, use: "exclude: [...EXCLUDED, ...HOST]," }).exclude, [
+      "src/a.ts",
+      "src/a.ts",
+      "src/host/**",
+    ])
+    // A cycle (a TDZ error at runtime) ends, as an entry of its own text that is opaque.
+    const cycle = read({ decl: "const A = [...B]\nconst B = [...A]", use: "exclude: A," })
+    assert.deepEqual(cycle.exclude, ["...A"])
+    assert.match(cycle.opaque.join("\n"), /^coverage\.exclude: \.\.\.A \(A: /)
+    // A chain of any length is followed: the first link grows, the list grows.
+    const links = (...first) =>
+      [`const A0 = ${JSON.stringify(first)}`]
+        .concat([1, 2, 3, 4, 5].map((i) => `const A${i} = [...A${i - 1}]`))
+        .join("\n")
+    assert.match(
+      check(
+        config({ decl: links("src/a.ts"), use: "exclude: A5," }),
+        config({ decl: links("src/a.ts", "src/**"), use: "exclude: A5," }),
+      )[0],
+      /new coverage\.exclude entry "src\/\*\*"/,
+    )
+    for (const decl of [
+      'const EXCLUDED = ["src/a.ts"] as const',
+      'const EXCLUDED = (["src/a.ts"]) satisfies string[]',
+      'const EXCLUDED: string[] = ["src/a.ts"]',
+    ])
+      for (const use of ["exclude: [...EXCLUDED] as string[],", "exclude: EXCLUDED as string[],"])
+        assert.deepEqual(read({ decl, use }).exclude, ["src/a.ts"], `${decl} / ${use}`)
+    // An import stays one entry of its own text: its content is the dependency's,
+    // and a name the entry declares itself is pinned by that text.
+    const imported = read({ use: "exclude: [...coverageConfigDefaults.exclude]," })
+    assert.deepEqual(imported.exclude, ["...coverageConfigDefaults.exclude"])
+    assert.deepEqual(imported.opaque, [])
+    const filtered = read({
+      use: 'exclude: coverageConfigDefaults.exclude.filter((glob) => glob !== "x"),',
+    })
+    assert.deepEqual(filtered.exclude, [
+      'coverageConfigDefaults.exclude.filter((glob)=>glob!=="x")',
+    ])
+    assert.deepEqual(filtered.opaque, [])
+  })
+
+  it("reads a string constant and a template of constants as the glob it holds", () => {
+    const glob = (value) => config({ decl: `const GEN = ${value}`, use: "exclude: [GEN]," })
+    assert.deepEqual(read({ decl: 'const GEN = "src/gen/**"', use: "exclude: [GEN]," }).exclude, [
+      "src/gen/**",
+    ])
+    assert.match(
+      check(glob('"src/gen/**"'), glob('"src/**"'))[0],
+      /new coverage\.exclude entry "src\/\*\*"/,
+    )
+    const template = (dir) =>
+      config({
+        decl: `export const DIR = "${dir}"\nconst GEN = \`\${DIR}/**\``,
+        use: "exclude: [GEN, `${DIR}/*.d.ts`, `v${1}`],",
+      })
+    assert.deepEqual(extractVitestCoverage(PKG_VITEST, template("src/gen")).exclude, [
+      "src/gen/**",
+      "src/gen/*.d.ts",
+      "v1",
+    ])
+    const widened = check(template("src/gen"), template("src"))
+    assert.deepEqual(
+      widened.map((v) => v.match(/entry "(.*?)"/)[1]),
+      ["src/**", "src/*.d.ts"],
+    )
+    // A glob moved into a string constant is no change.
+    const asLiteral = vitestConfig({
+      thresholds: BASE_THRESHOLDS,
+      exclude: 'exclude: ["src/gen/**"],',
+    })
+    assert.deepEqual(check(asLiteral, glob('"src/gen/**"')), [])
+  })
+
+  it("reads a list shorthand of a constant also next to keys and members of its name", () => {
+    const shorthand = (...entries) =>
+      config({ decl: `const exclude = ${JSON.stringify(entries)}`, use: "exclude," })
+    assert.deepEqual(extractVitestCoverage(PKG_VITEST, shorthand("src/a.ts")).opaque, [])
+    assert.match(
+      check(shorthand("src/a.ts"), shorthand("src/a.ts", "src/b.ts"))[0],
+      /new coverage\.exclude entry "src\/b\.ts"/,
+    )
+    // A key `exclude:`, a member `.exclude` or a type names no binding.
+    const crowded = read({
+      decl: 'const exclude = ["src/a.ts"]\ntype Excluded = typeof exclude',
+      use: "exclude,",
+      test: 'include: ["src/**/*.test.ts"], exclude: [...coverageConfigDefaults.exclude],',
+    })
+    assert.deepEqual(crowded.opaque, [])
+    assert.deepEqual(crowded.exclude, ["src/a.ts"])
+    const include = read({ decl: 'const include = ["src/**"]', use: "include," })
+    assert.deepEqual([include.include, include.opaque], [["src/**"], []])
+    // A shorthand of anything else stays opaque: another key, or an import.
+    const other = config({ decl: "const reporter = ['text']", use: "reporter," })
+    assert.deepEqual(extractVitestCoverage(PKG_VITEST, other).opaque, ["reporter"])
+    const fromModule = config({ decl: 'import { exclude } from "./excluded"', use: "exclude," })
+    assert.deepEqual(extractVitestCoverage(PKG_VITEST, fromModule).opaque, ["exclude"])
+  })
+
+  it("reads include, test and project lists from constants too", () => {
+    const include = (...globs) =>
+      config({ decl: `const MEASURED = ${JSON.stringify(globs)}`, use: "include: MEASURED," })
+    assert.match(
+      check(include("src/**", "scripts/**"), include("src/**"))[0],
+      /coverage\.include lost "scripts\/\*\*"/,
+    )
+    const testList = (key, ...globs) =>
+      config({
+        decl: `const TESTS = ${JSON.stringify(globs)}`,
+        use: "",
+        test: key === "include" ? "include: [...TESTS]," : 'include: ["src/**"], exclude: TESTS,',
+      })
+    assert.match(
+      check(
+        testList("exclude", "src/slow/**"),
+        testList("exclude", "src/slow/**", "src/flaky/**"),
+      )[0],
+      /new test\.exclude entry "src\/flaky\/\*\*"/,
+    )
+    assert.match(
+      check(testList("include", "src/**", "test/**"), testList("include", "src/**"))[0],
+      /test\.include lost "test\/\*\*"/,
+    )
+    const project = (include, exclude) => `
+import { defineConfig } from "vitest/config"
+const UNIT = ${JSON.stringify(include)}
+const ENGINE_TESTS = ${JSON.stringify(exclude)}
+export default defineConfig({
+  test: {
+    coverage: { enabled: true, ${BASE_THRESHOLDS} },
+    projects: [{ extends: true, test: { name: "unit", include: UNIT, exclude: ENGINE_TESTS } }],
+  },
+})`
+    const ENGINE = "test/**/*.engine.test.ts"
+    assert.match(
+      check(project(["test/**"], [ENGINE]), project(["test/**"], [ENGINE, "test/ui/**"]))[0],
+      /new test\.projects\["unit"\]\.exclude entry "test\/ui\/\*\*"/,
+    )
+    assert.match(
+      check(project(["test/**", "src/**"], [ENGINE]), project(["test/**"], [ENGINE]))[0],
+      /test\.projects\["unit"\]\.include lost "src\/\*\*"/,
+    )
+  })
+
+  it("makes an entry that names a binding it cannot read through opaque, with the reason", () => {
+    const shadowed = `
+import { defineConfig } from "vitest/config"
+${listConst("src/a.ts")}
+export default defineConfig(() => {
+  const EXCLUDED = ["src/a.ts", "src/b.ts"]
+  return { test: { coverage: { enabled: true, exclude: EXCLUDED, ${BASE_THRESHOLDS} } } }
+})`
+    // Each push below names no member of the constant's name, so only the
+    // read itself can tell that the constant may hold more than its literal.
+    const viaValues = 'function widen(o) { Object.values(o)[0].push("src/b.ts") }'
+    const viaBlock = 'function widen(o) { Object.values(o)[0].exclude.push("src/b.ts") }'
+    const NAMED = /named other than as an include\/exclude list/
+    for (const [label, after, reason] of [
+      ["pushed to", config({ after: 'EXCLUDED.push("src/b.ts")' }), NAMED],
+      ["passed on", config({ after: "widen(EXCLUDED)" }), NAMED],
+      ["passed on in a shorthand", config({ after: `${viaValues}\nwiden({ EXCLUDED })` }), NAMED],
+      [
+        "a list shorthand passed on",
+        config({
+          decl: 'const exclude = ["src/a.ts"]',
+          use: "exclude,",
+          after: `${viaValues}\nwiden({ exclude })`,
+        }),
+        NAMED,
+      ],
+      [
+        "the list key of another block",
+        config({ after: `${viaBlock}\nwiden({ opts: { exclude: EXCLUDED } })` }),
+        NAMED,
+      ],
+      [
+        "another key of the block",
+        config({ use: "exclude: EXCLUDED, reportsDirectory: EXCLUDED," }),
+        NAMED,
+      ],
+      ["exported", config({ decl: `export ${listConst("src/a.ts")}` }), /exported/],
+      ["exported by name", config({ after: "export { EXCLUDED }" }), /exported/],
+      [
+        "declared with let",
+        config({ decl: listConst("src/a.ts").replace("const", "let") }),
+        /let or var/,
+      ],
+      ["shadowed", shadowed, /declared more than once/],
+      ["local", shadowed.replace(`${listConst("src/a.ts")}\n`, ""), /no top-level const/],
+      [
+        "no literal",
+        config({ decl: 'const EXCLUDED = ["src/a.ts"].filter(Boolean)' }),
+        /no array, string or template literal/,
+      ],
+      [
+        "a function",
+        config({
+          decl: 'function EXCLUDED() { return ["src/a.ts"] }',
+          use: "exclude: EXCLUDED(),",
+        }),
+        /no top-level const/,
+      ],
+      ["changed in eval", config({ after: `eval('EXCLUDED.push("src/b.ts")')` }), /calls eval/],
+    ]) {
+      const violations = check(literal, after).join("\n")
+      assert.match(violations, /new coverage\.exclude entry "(EXCLUDED|exclude)(\(\))?"/, label)
+      assert.match(violations, /new spread\/shorthand or non-literal `coverage\.exclude: /, label)
+      assert.match(violations, reason, label)
+      // A config that introduces one fails: from then on it could grow unseen.
+      const introduced = checkRatchetFile(PKG_VITEST, null, after).join("\n")
+      assert.match(introduced, /nothing to compare against/, label)
+      assert.match(introduced, reason, label)
+    }
+  })
+
+  it("keeps the code an unread binding hangs on in sight: an edit to it is a new opaque entry", () => {
+    const PUSH = 'EXCLUDED.push("src/b.ts")'
+    const helper = (globs) => `function widen(list) { list.push(${globs}) }\nwiden(EXCLUDED)`
+    const evaluated = (globs) => `eval('EXCLUDED.push(${globs})')`
+    for (const [label, before, after] of [
+      ["the literal", { after: PUSH }, { after: PUSH, decl: listConst("src/a.ts", "src/**") }],
+      ["the push", { after: PUSH }, { after: 'EXCLUDED.push("src/b.ts", "src/**")' }],
+      ["a helper it is passed to", { after: helper('"b"') }, { after: helper('"b", "src/**"') }],
+      ["the code eval runs", { after: evaluated('"b"') }, { after: evaluated('"b", "src/**"') }],
+    ]) {
+      const violations = check(config(before), config(after))
+      assert.equal(violations.length, 1, label)
+      assert.match(
+        violations[0],
+        /new spread\/shorthand or non-literal `coverage\.exclude: EXCLUDED/,
+        label,
+      )
+    }
+    // Unchanged, it stays as the base had it.
+    assert.deepEqual(check(config({ after: PUSH }), config({ after: PUSH })), [])
+  })
+
+  it("holds a helper object with a block of its own to the one-block rule", () => {
+    // A list key of a test or coverage block reads as harmless only because the
+    // ratchet reads every such block or fails on the file.
+    for (const [after, error] of [
+      [
+        'const helper = { coverage: { exclude: EXCLUDED } }\nhelper.coverage.exclude.push("src/**")',
+        /2 `coverage` blocks/,
+      ],
+      [
+        'const helper = { test: { exclude: EXCLUDED } }\nhelper.test.exclude.push("src/**")',
+        /2 `test` blocks/,
+      ],
+    ])
+      assert.match(check(config(), config({ after })).join("\n"), error)
+  })
+})
+
 describe("stryker policy (break raise-only, mutate grow-only)", () => {
   const rel = "packages/core/widget-shell/stryker.config.json"
   const json = (o) => JSON.stringify(o)
@@ -1309,12 +1625,13 @@ export default [
 ]`
   const base = config()
 
-  it("reads the real eslint.config.mjs: its ignores and no local import", () => {
-    const { ignores, imports } = extractEslintRatchets(
+  it("reads the real eslint.config.mjs: its ignores, no opaque entry and no local import", () => {
+    const { ignores, opaque, imports } = extractEslintRatchets(
       "eslint.config.mjs",
       readFileSync("eslint.config.mjs", "utf8"),
     )
     assert.ok(ignores.length > 0)
+    assert.deepEqual(opaque, [])
     assert.deepEqual(imports, [])
   })
 
@@ -1436,6 +1753,491 @@ export default [
         partition('"ui/**", "widgets/**"'),
       ),
       [],
+    )
+  })
+})
+
+describe("eslint ignores built from a constant (read entry by entry only where nothing can grow it)", () => {
+  const exempt = (...globs) => `const EXEMPT = ${JSON.stringify(globs)}`
+  // A config whose gate block's `ignores` names, spreads or is shorthand for a constant.
+  const config = ({
+    decl = exempt("src/widget-tools.ts"),
+    after = "",
+    use = "ignores: EXEMPT,",
+    blocks = "",
+    callee = "tseslint.config",
+  } = {}) => `import tseslint from "typescript-eslint"
+${decl}
+${after}
+export default ${callee}(
+  { ignores: ["**/dist/**"] },
+  { files: ["src/**"], ${use} rules: { "no-restricted-syntax": ["error", "X"] } },
+  ${blocks}
+)`
+  const check = (before, after) => checkRatchetFile("eslint.config.mjs", before, after)
+  const read = (options) => extractEslintRatchets("eslint.config.mjs", config(options))
+  const GATE = "rules no-restricted-syntax :: "
+  const GLOBAL = "every rule (global ignores) :: **/dist/**"
+  // The constant shared with the files list of another gate and the ignores of a partition.
+  const SHARED =
+    '{ files: EXEMPT, rules: { complexity: ["error", 15] } }, { ignores: [...EXEMPT], languageOptions: {} },'
+  const literal = config({ decl: "", use: 'ignores: ["src/widget-tools.ts"],' })
+
+  it("reads a constant the blocks share as files and ignores lists entry by entry", () => {
+    for (const use of ["ignores: EXEMPT,", "ignores: [...EXEMPT],", "ignores: (EXEMPT),"]) {
+      const shared = read({ use, blocks: SHARED })
+      assert.deepEqual(shared.opaque, [], use)
+      assert.deepEqual(shared.ignores, [GLOBAL, `${GATE}src/widget-tools.ts`], use)
+    }
+    // A literal computed key is the same key to ESLint.
+    const computed = read({
+      blocks: '{ ["files"]: EXEMPT, rules: { complexity: ["error", 15] } },',
+    })
+    assert.deepEqual(
+      [computed.ignores, computed.opaque],
+      [[GLOBAL, `${GATE}src/widget-tools.ts`], []],
+    )
+    const shorthand = read({ decl: 'const ignores = ["src/widget-tools.ts"]', use: "ignores," })
+    assert.deepEqual(
+      [shorthand.ignores, shorthand.opaque],
+      [[GLOBAL, `${GATE}src/widget-tools.ts`], []],
+    )
+    // Moving a literal list into a constant and back is no change, also for a config it introduces.
+    assert.deepEqual(check(literal, config({ blocks: SHARED })), [])
+    assert.deepEqual(check(config({ blocks: SHARED }), literal), [])
+    assert.deepEqual(check(null, config({ blocks: SHARED })), [])
+  })
+
+  it("fails a shared constant that grows and passes one that shrinks", () => {
+    for (const use of ["ignores: EXEMPT,", 'ignores: ["src/x.ts", ...EXEMPT],']) {
+      const grown = check(
+        config({ use, blocks: SHARED }),
+        config({ use, blocks: SHARED, decl: exempt("src/widget-tools.ts", "src/tools/**") }),
+      )
+      assert.equal(grown.length, 1, use)
+      assert.match(
+        grown[0],
+        /new `ignores` entry "src\/tools\/\*\*" \(exempts from: rules no-restricted-syntax\)/,
+        use,
+      )
+      assert.deepEqual(
+        check(
+          config({ use, blocks: SHARED, decl: exempt("src/widget-tools.ts", "src/tools/**") }),
+          config({ use, blocks: SHARED }),
+        ),
+        [],
+        use,
+      )
+    }
+  })
+
+  it("reads a string constant and a template of constants as the glob it holds", () => {
+    const glob = (dir) =>
+      config({
+        decl: `const DIR = "${dir}"\nconst GEN = \`\${DIR}/**\``,
+        use: "ignores: [GEN, `${DIR}/*.d.ts`],",
+      })
+    assert.deepEqual(extractEslintRatchets("eslint.config.mjs", glob("src/gen")).ignores, [
+      GLOBAL,
+      `${GATE}src/gen/**`,
+      `${GATE}src/gen/*.d.ts`,
+    ])
+    assert.deepEqual(
+      check(glob("src/gen"), glob("src")).map((v) => v.match(/entry "(.*?)"/)[1]),
+      ["src/**", "src/*.d.ts"],
+    )
+    assert.deepEqual(
+      check(
+        config({ decl: "", use: 'ignores: ["src/gen/**", "src/gen/*.d.ts"],' }),
+        glob("src/gen"),
+      ),
+      [],
+    )
+  })
+
+  it("reads blocks the exported config holds through arrays, spreads and its imported helper's call", () => {
+    const gate = '{ files: ["src/**"], ignores: EXEMPT, rules: { complexity: ["error", 15] } }'
+    const exporting = (exported, pre = "") =>
+      extractEslintRatchets(
+        "eslint.config.mjs",
+        `import js from "@eslint/js"
+import tseslint from "typescript-eslint"
+import { defineConfig } from "eslint/config"
+${exempt("src/widget-tools.ts")}
+const BLOCKS = [{ rules: {} }]
+let LET_BLOCKS = [{ rules: {} }]
+function widen(...blocks) { return blocks }
+const HANDED = [widen]
+const CYCLE = [CYCLE_BACK]
+const CYCLE_BACK = [CYCLE]
+const lib = { config: widen }
+${pre}
+export default ${exported}`,
+      )
+    const readable = [["rules complexity :: src/widget-tools.ts"], []]
+    for (const exported of [
+      gate,
+      `[${gate}]`,
+      `[[${gate}]]`,
+      `[...[${gate}]]`,
+      `([(${gate})])`,
+      `tseslint.config(${gate})`,
+      `tseslint.config([${gate}])`,
+      `(tseslint.config(...[${gate}]))`,
+      `(tseslint as any).config(${gate})`,
+      `(tseslint.config)(${gate})`,
+      `defineConfig([${gate}])`,
+      // An import's value and a const of the file holding blocks hand the helper no code.
+      `tseslint.config(js.configs.recommended, ...tseslint.configs.strict, ${gate}, ...BLOCKS)`,
+    ]) {
+      const { ignores, opaque } = exporting(exported)
+      assert.deepEqual([ignores, opaque], readable, exported)
+    }
+    // Other reads of the helper's import that leave its callee as it is.
+    for (const [pre, exported = `tseslint.config(${gate})`] of [
+      ["const strict = tseslint.configs.strict"],
+      ["const strict = (tseslint as any).configs.strict"],
+      ["tseslint.configs.strict = []"],
+      ["const unused = tseslint.config({})"],
+      ["const unused = (tseslint.config as any)({})"],
+      ["const name = tseslint.config.name"],
+      ['const name = tseslint.config["name"]'],
+      ["const unused = defineConfig([])", `defineConfig([${gate}])`],
+      // A second import cannot rebind an import binding called itself.
+      ['import { defineConfig as again } from "eslint/config"', `defineConfig([${gate}])`],
+    ]) {
+      const { ignores, opaque } = exporting(exported, pre)
+      assert.deepEqual([ignores, opaque], readable, pre)
+    }
+    const NO_BLOCK = /no block of the exported config/
+    const CALLEE = /callee is no import of the file/
+    const HANDS = /may hand the helper code/
+    const IMPORT = /hands on or writes the import/
+    const AGAIN = /imports the module of the exported call's helper a second time/
+    // A block another function receives, or the callee of the exported call, is none, nor
+    // is a block of a call that is no imported helper's, can be changed or receives code.
+    for (const [exported, reason, pre] of [
+      [`tseslint.config(widen(${gate}))`, NO_BLOCK],
+      [`[widen(${gate})]`, NO_BLOCK],
+      [`new Config(${gate})`, NO_BLOCK],
+      [`(${gate})()`, NO_BLOCK],
+      [`[${gate}].map((block) => block)`, NO_BLOCK],
+      [`[tseslint.config(${gate})]`, NO_BLOCK],
+      [`widen(${gate})`, CALLEE],
+      [`lib.config(${gate})`, CALLEE],
+      [`Reflect.apply(widen, null, [${gate}])`, CALLEE],
+      // A callee that does not rest on a name is no import either.
+      [`((...blocks) => blocks)(${gate})`, CALLEE],
+      [`tseslint.config.bind(null)(${gate})`, CALLEE],
+      [`tseslint.config(${gate}, widen)`, HANDS],
+      // The first argument hands code as much as any other ...
+      [`tseslint.config(widen, ${gate})`, HANDS],
+      [`tseslint.config(${gate}, (blocks) => blocks)`, HANDS],
+      [`tseslint.config(${gate}, [widen])`, HANDS],
+      // ... and so does an array with one element that hands it, whatever the others hold.
+      [`tseslint.config(${gate}, [widen, {}])`, HANDS],
+      [`tseslint.config(${gate}, ...HANDED)`, HANDS],
+      [`tseslint.config(${gate}, ...LET_BLOCKS)`, HANDS],
+      // A name declared twice may be either declaration, whichever comes first.
+      [
+        `tseslint.config(${gate}, ...TWICE)`,
+        HANDS,
+        "function shadow() { const TWICE = [{ rules: {} }] }\nconst TWICE = [widen]",
+      ],
+      [
+        `tseslint.config(${gate}, ...TWICE)`,
+        HANDS,
+        "const TWICE = [widen]\nfunction shadow() { const TWICE = [{ rules: {} }] }",
+      ],
+      [`tseslint.config(${gate}, ...CYCLE)`, HANDS],
+      [`tseslint.config(${gate}, ...BLOCKS.map(widen))`, HANDS],
+      [`tseslint.config(${gate})`, IMPORT, "tseslint.config = widen"],
+      [`tseslint.config(${gate})`, IMPORT, "(tseslint as any).config = widen"],
+      [`tseslint.config(${gate})`, IMPORT, 'tseslint["config"] = widen'],
+      [`tseslint.config(${gate})`, IMPORT, "Object.assign(tseslint, lib)"],
+      [`tseslint.config(${gate})`, IMPORT, "delete tseslint.config"],
+      [`tseslint.config(${gate})`, /calls eval/, "eval('')"],
+      [
+        `tseslint.config(${gate})`,
+        AGAIN,
+        'import * as again from "typescript-eslint"\nagain.default.config = widen',
+      ],
+      [`tseslint.config(${gate})`, AGAIN, 'import { config } from "typescript-eslint"'],
+      [`tseslint.config(${gate})`, AGAIN, 'import again from "typescript-eslint"'],
+      // An import the reader cannot place counts as a second one.
+      [`cfg.config(${gate})`, AGAIN, 'import cfg = require("typescript-eslint")'],
+    ]) {
+      const label = `${pre ?? ""} ${exported}`
+      const { ignores, opaque } = exporting(exported, pre)
+      assert.deepEqual(ignores, ["rules complexity :: EXEMPT"], label)
+      assert.match(opaque.join("\n"), /\(EXEMPT: /, label)
+      const block = opaque.find((entry) => entry.includes(": the list of its block ("))
+      assert.match(block, reason, label)
+    }
+  })
+
+  it("makes an ignores entry opaque wherever the constant could grow, with the reason, and fails it", () => {
+    // Each push below names no member of the constant's name, so only the read
+    // itself can tell that the constant may hold more than its literal.
+    const viaValues = 'function widen(o) { Object.values(o)[0].push("src/**") }'
+    const viaBlock = 'function widen(o) { o.files.push("src/**"); return o }'
+    const NAMED = /named other than as a files\/ignores list of a block of the exported config/
+    for (const [label, options, reason] of [
+      ["pushed to", { after: 'EXEMPT.push("src/**")' }, NAMED],
+      ["spliced", { after: 'EXEMPT.splice(0, 0, "src/**")' }, NAMED],
+      ["assigned to", { after: 'EXEMPT[1] = "src/**"' }, NAMED],
+      ["passed on", { after: "widen(EXEMPT)" }, NAMED],
+      ["passed on in a shorthand", { after: `${viaValues}\nwiden({ EXEMPT })` }, NAMED],
+      [
+        "the files list of a block outside the config",
+        { after: `${viaValues}\nwiden({ files: EXEMPT })` },
+        NAMED,
+      ],
+      [
+        "the ignores list of a named block",
+        { after: 'const block = { ignores: EXEMPT, rules: {} }\nblock.ignores.push("src/**")' },
+        NAMED,
+      ],
+      [
+        "a block the config passes to another function",
+        { after: viaBlock, blocks: "widen({ files: EXEMPT, rules: {} })," },
+        NAMED,
+      ],
+      [
+        "a block nested in another key",
+        { blocks: "{ settings: { nested: { files: EXEMPT } } }," },
+        NAMED,
+      ],
+      // A rule can change what it receives through settings.
+      ["another key of a block", { blocks: "{ files: [], settings: EXEMPT }," }, NAMED],
+      // A block's own code reaches its lists as `this`.
+      [
+        "the files list of a block with an accessor",
+        { blocks: "{ files: EXEMPT, get languageOptions() { return {} } }," },
+        NAMED,
+      ],
+      [
+        "the files list of a block with a setter",
+        { blocks: "{ files: EXEMPT, set languageOptions(value) {} }," },
+        NAMED,
+      ],
+      [
+        "the files list of a block with a method",
+        { blocks: "{ files: EXEMPT, toJSON() { return {} } }," },
+        NAMED,
+      ],
+      [
+        "the files list of a block with a function a caller runs as its method",
+        { blocks: "{ files: EXEMPT, toJSON: (function () { return {} }) }," },
+        NAMED,
+      ],
+      [
+        "the files list of a block with __proto__",
+        { blocks: "{ files: EXEMPT, __proto__: {} }," },
+        NAMED,
+      ],
+      [
+        'the files list of a block with "__proto__"',
+        { blocks: '{ files: EXEMPT, "__proto__": {} },' },
+        NAMED,
+      ],
+      [
+        "a block of a local function's call",
+        { after: "function widen(...blocks) { return blocks }", callee: "widen" },
+        NAMED,
+      ],
+      [
+        "a block of a local object's config",
+        { after: "const lib = { config: (...blocks) => blocks }", callee: "lib.config" },
+        NAMED,
+      ],
+      [
+        "a block of a helper whose import the file writes",
+        { after: "tseslint.config = (...blocks) => blocks" },
+        NAMED,
+      ],
+      ["a block of a helper handed a function", { blocks: "(blocks) => blocks," }, NAMED],
+      ["a member of a block", { blocks: "...({ files: EXEMPT }).files.concat([])," }, NAMED],
+      ["exported", { decl: `export ${exempt("src/widget-tools.ts")}` }, /exported/],
+      ["exported by name", { after: "export { EXEMPT }" }, /exported/],
+      [
+        "declared with let",
+        { decl: exempt("src/widget-tools.ts").replace("const", "let") },
+        /let or var/,
+      ],
+      [
+        "shadowed",
+        { after: "function widen(EXEMPT) { return EXEMPT }" },
+        /declared more than once/,
+      ],
+      [
+        "no literal",
+        { decl: 'const EXEMPT = ["src/widget-tools.ts"].concat([])' },
+        /no array, string or template literal/,
+      ],
+      [
+        "a function",
+        { decl: 'function EXEMPT() { return ["src/widget-tools.ts"] }', use: "ignores: EXEMPT()," },
+        /no top-level const/,
+      ],
+      ["changed in eval", { after: `eval('EXEMPT.push("src/**")')` }, /calls eval/],
+    ]) {
+      const after = config(options)
+      const violations = check(literal, after).join("\n")
+      assert.match(violations, /new `ignores` entry "EXEMPT(\(\))?"/, label)
+      assert.match(
+        violations,
+        /new `ignores` entry the ratchet cannot read through: `ignores \(exempts from: rules no-restricted-syntax\): EXEMPT(\(\))? \(EXEMPT: /,
+        label,
+      )
+      assert.match(violations, reason, label)
+      // A config that introduces one fails: from then on it could grow unseen.
+      const introduced = check(null, after).join("\n")
+      assert.match(
+        introduced,
+        /nothing to compare against: `ignores \(exempts from: rules no-restricted-syntax\): EXEMPT/,
+        label,
+      )
+      assert.match(introduced, reason, label)
+    }
+  })
+
+  it("keeps the code an unread constant hangs on in sight: an edit to it is a new opaque entry", () => {
+    const PUSH = 'EXEMPT.push("src/b.ts")'
+    // A block of the exported config that names the constant other than in a list holds it
+    // whole: code anywhere in that block reaches it, here as `this.settings.list`.
+    const HOLDER = '{ files: ["x/**"], settings: { list: EXEMPT }'
+    const GETTER = 'get languageOptions() { this.settings.list.push("src/**"); return {} }'
+    for (const [label, before, after] of [
+      [
+        "the literal",
+        { after: PUSH },
+        { after: PUSH, decl: exempt("src/widget-tools.ts", "src/**") },
+      ],
+      ["the push", { after: PUSH }, { after: 'EXEMPT.push("src/b.ts", "src/**")' }],
+      [
+        "the block that names it",
+        { blocks: `${HOLDER} },` },
+        { blocks: `${HOLDER}, ${GETTER} },` },
+      ],
+    ]) {
+      const violations = check(config(before), config(after))
+      assert.equal(violations.length, 1, label)
+      assert.match(
+        violations[0],
+        /read through: `ignores \(exempts from: [^)]*\): EXEMPT \(EXEMPT: /,
+        label,
+      )
+    }
+    // Unchanged, it stays as the base had it.
+    assert.deepEqual(check(config({ after: PUSH }), config({ after: PUSH })), [])
+  })
+
+  it("keeps the list of any other exempting block opaque, with the code that reaches the block", () => {
+    const head = 'import tseslint from "typescript-eslint"\n'
+    const LIST = 'ignores: ["src/a.ts"], rules: { "no-restricted-imports": "error" }'
+    const NO_BLOCK = /\(the block is no block of the exported config/
+    const RUNS = /\(the block runs code of its own/
+    for (const [label, before, after, reason] of [
+      [
+        "a named block",
+        `const gate = { files: ["src/**"], ${LIST} }\nexport default tseslint.config(gate)`,
+        `const gate = { files: ["src/**"], ${LIST} }\ngate.ignores.push("src/**")\nexport default tseslint.config(gate)`,
+        NO_BLOCK,
+      ],
+      [
+        "a named block whose list is an unread constant",
+        `const EXEMPT = ["src/a.ts"]\nconst gate = { ignores: EXEMPT, rules: {} }\nexport default [gate]`,
+        `const EXEMPT = ["src/a.ts"]\nconst gate = { ignores: EXEMPT, rules: {} }\ngate.ignores.push("src/**")\nexport default [gate]`,
+        NO_BLOCK,
+      ],
+      [
+        "a block a local function receives",
+        `function widen(block) { return block }\nexport default [widen({ ${LIST} })]`,
+        `function widen(block) { block.ignores.push("src/**"); return block }\nexport default [widen({ ${LIST} })]`,
+        NO_BLOCK,
+      ],
+      [
+        "a block a global hands to a local function",
+        `function widen(...blocks) { return blocks }\nexport default Reflect.apply(widen, null, [{ ${LIST} }])`,
+        `function widen(...blocks) { blocks[0].ignores.push("src/**"); return blocks }\nexport default Reflect.apply(widen, null, [{ ${LIST} }])`,
+        /\(the exported call's callee is no import of the file/,
+      ],
+      [
+        "a block an object with a getter holds",
+        `const all = { gate: { ${LIST} }, get other() { return {} } }\nexport default [all.gate]`,
+        `const all = { gate: { ${LIST} }, get other() { this.gate.ignores.push("src/**"); return {} } }\nexport default [all.gate]`,
+        NO_BLOCK,
+      ],
+      [
+        "a block with an accessor",
+        `export default [{ ${LIST}, get languageOptions() { return {} } }]`,
+        `export default [{ ${LIST}, get languageOptions() { this.ignores.push("src/**"); return {} } }]`,
+        RUNS,
+      ],
+      // A block in a callee's place is handed every argument of the call, data too: the reader
+      // does not tell that calling an object throws.
+      [
+        "the arguments of a call of a block",
+        `export default [({ ${LIST} })({ files: ["x"] })]`,
+        `export default [({ ${LIST} })({ files: ["y"] })]`,
+        NO_BLOCK,
+      ],
+    ]) {
+      // An edit to the code that reaches the block is a new opaque entry ...
+      const violations = check(head + before, head + after)
+      assert.equal(violations.length, 1, label)
+      assert.match(
+        violations[0],
+        /new `ignores` entry the ratchet cannot read through: `ignores \(exempts from: rules [^)]*\): the list of its block \(/,
+        label,
+      )
+      assert.match(violations[0], reason, label)
+      // ... unchanged, it stays as the base had it, and a config that introduces one fails.
+      assert.deepEqual(check(head + before, head + before), [], label)
+      assert.match(
+        check(null, head + before).join("\n"),
+        /nothing to compare against: `ignores \(exempts from: rules [^)]*\): the list of its block/,
+        label,
+      )
+    }
+    // The entries themselves compare as ever: the list may shrink, not grow.
+    const named = (globs, other = "x") =>
+      `${head}const gate = { files: ["src/**"], ignores: ${JSON.stringify(globs)}, rules: { "no-restricted-imports": "error" } }
+export default tseslint.config(gate, { files: ["${other}"], rules: {} })`
+    assert.deepEqual(check(named(["src/a.ts", "src/b.ts"]), named(["src/a.ts"])), [])
+    // Data next to the block reaches it no more than other blocks of the exported config do,
+    // so an edit to them is no new entry.
+    const GATE_BLOCK = `{ ${LIST} }`
+    for (const [label, config] of [
+      ["another block of the exported config", (other) => named(["src/a.ts"], other)],
+      [
+        "another element of an array",
+        (other) =>
+          `${head}function widen(block) { return block }\nexport default [widen(${GATE_BLOCK}), { files: ["${other}"], rules: {} }]`,
+      ],
+      [
+        "an object argument of the call",
+        (other) =>
+          `${head}function widen(block) { return block }\nexport default [widen(${GATE_BLOCK}, { files: ["${other}"] })]`,
+      ],
+      [
+        "an object argument of a constructor call",
+        (other) =>
+          `${head}function Widen(block) { return block }\nexport default [new Widen(${GATE_BLOCK}, { files: ["${other}"] })]`,
+      ],
+      [
+        "another key of an object",
+        (other) =>
+          `${head}const all = { gate: ${GATE_BLOCK}, other: { files: ["${other}"] } }\nexport default [all.gate]`,
+      ],
+    ])
+      assert.deepEqual(check(config("x"), config("y")), [], label)
+    const grown = check(named(["src/a.ts"]), named(["src/a.ts", "src/**"]))
+    assert.equal(grown.length, 1)
+    assert.match(
+      grown[0],
+      /new `ignores` entry "src\/\*\*" \(exempts from: rules no-restricted-imports\)/,
     )
   })
 })
@@ -2135,6 +2937,49 @@ export default mergeConfig(sharedConfig, defineConfig({
     assert.match(out, /RATCHET EXCEPTION APPLIED: .*lines: 80 -> -5/)
     assert.match(out, /RATCHET VIOLATION .*perFile switched on next to a negative floor/)
     assert.match(out, /no single commit makes it/)
+  })
+
+  it("holds a config brought back to a path the base holds to the commit that brings it back", async () => {
+    // Decision: A removes the config (trailer), B brings another one back with a lower floor.
+    // Against its parent B's file reads as introduced, so the lower floor would only add up
+    // from two steps and no trailer could cover it; compared with the base's file there, B
+    // makes it: without a trailer B fails, with one it is waved.
+    const config = (branches) => `import { defineConfig, mergeConfig } from "vitest/config"
+import { sharedConfig } from "../../../vitest.shared"
+export default mergeConfig(sharedConfig, defineConfig({
+  test: { coverage: { thresholds: { statements: 99, branches: ${branches}, functions: 99, lines: 99 } } },
+}))
+`
+    const removeThenBringBack = (trailerOnB) => {
+      const repo = synthetic({ [VITEST]: config(98) })
+      repo.commit(`refactor: the package moves away\n\n${TRAILER}`, () =>
+        repo.git("rm", "-q", VITEST),
+      )
+      const b = repo.commit(
+        `feat: another package at the path${trailerOnB ? `\n\n${TRAILER}` : ""}`,
+        () => repo.write(VITEST, config(90)),
+      )
+      return { repo, b }
+    }
+    const bare = removeThenBringBack(false)
+    const failed = await bare.repo.check()
+    assert.equal(failed.code, 1, failed.out)
+    assert.match(failed.out, /RATCHET VIOLATION .*branches: 98 -> 90/)
+    assert.ok(failed.out.includes(`made by ${bare.b.slice(0, 9)}`), failed.out)
+    assert.doesNotMatch(failed.out, /no single commit makes it/)
+
+    const covered = removeThenBringBack(true)
+    const waved = await covered.repo.check()
+    assert.equal(waved.code, 0, waved.out)
+    assert.match(waved.out, /RATCHET EXCEPTION APPLIED: .*branches: 98 -> 90/)
+    assert.ok(waved.out.includes(`waved by ${covered.b.slice(0, 9)}`), waved.out)
+
+    // Brought back with the base's floors, the path holds what it held: nothing to cover.
+    const same = synthetic({ [VITEST]: config(98) })
+    same.commit(`refactor: away\n\n${TRAILER}`, () => same.git("rm", "-q", VITEST))
+    same.commit("feat: back", () => same.write(VITEST, config(98)))
+    const kept = await same.check()
+    assert.doesNotMatch(kept.out, /branches/)
   })
 
   it("fails every violation when no commit carries a trailer", async () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { classifyError, describeError, type ErrorKind } from "./describe-error.js"
+import { classifyError, describeError, isPermanentError, type ErrorKind } from "./describe-error.js"
 
 /** The mapping table (U1): every error text the wire carries onto one kind, status and source. */
 const TABLE: Array<[raw: string, kind: ErrorKind, status: number | undefined, source: string]> = [
@@ -22,8 +22,8 @@ const TABLE: Array<[raw: string, kind: ErrorKind, status: number | undefined, so
     undefined,
     "engine:prod-a",
   ],
-  ["Prometheus unreachable (ENOTFOUND)", "unreachable", undefined, "prometheus"],
-  ["Prometheus query failed (503): service unavailable", "unreachable", 503, "prometheus"],
+  // No source of its own any more: a data source the kit does not know reads as unknown.
+  ["Prometheus unreachable (ENOTFOUND)", "unreachable", undefined, "unknown"],
   ["TypeError: Failed to fetch", "unreachable", undefined, "unknown"],
   [
     "engine prod-a did not respond within 30000 ms (timeout)",
@@ -31,40 +31,17 @@ const TABLE: Array<[raw: string, kind: ErrorKind, status: number | undefined, so
     undefined,
     "engine:prod-a",
   ],
-  ["Prometheus did not respond within 10000 ms (timeout)", "timeout", undefined, "prometheus"],
+  ["upstream did not respond within 10000 ms (timeout)", "timeout", undefined, "unknown"],
   ["MCP error -32001: Request timed out", "timeout", undefined, "unknown"],
   ["[504] Gateway Timeout (engine prod)", "timeout", 504, "engine:prod"],
   ["Tool engine_jobs_data not found", "notOnServer", undefined, "unknown"],
-  [
-    "MCP error -32602: Tool analytics_engine_landscape_data not found",
-    "notOnServer",
-    undefined,
-    "unknown",
-  ],
+  ["MCP error -32602: Tool notes_list_data not found", "notOnServer", undefined, "unknown"],
   ["Unknown tool: engine_jobs_data", "notOnServer", undefined, "unknown"],
   [
     "[401] Unauthorized (engine prod). Check ENGINES_JSON credentials",
     "unauthorized",
     401,
     "engine:prod",
-  ],
-  [
-    "Prometheus query failed (403): forbidden. Check the credentials: PROMETHEUS_BEARER_TOKEN, PROMETHEUS_USERNAME and PROMETHEUS_PASSWORD, the userinfo of PROMETHEUS_URL, or PROMETHEUS_HEADERS.",
-    "forbidden",
-    403,
-    "prometheus",
-  ],
-  [
-    "Prometheus query failed (404): the answer is a web page, so another service or a proxy holds that address. Check PROMETHEUS_URL, which decides the target; a server without a Prometheus leaves analytics out of MCP_ACTIVE_MODULES.",
-    "unreachable",
-    404,
-    "prometheus",
-  ],
-  [
-    "Prometheus unreachable (ECONNREFUSED). Check PROMETHEUS_URL, which decides the target; a server without a Prometheus leaves analytics out of MCP_ACTIVE_MODULES.",
-    "unreachable",
-    undefined,
-    "prometheus",
   ],
   [
     "[404 InvalidRequestException] Process instance with id x does not exist (engine prod-a)",
@@ -113,8 +90,9 @@ describe("classifyError: the mapping table", () => {
 
   it("takes strings, { message } objects and anything else", () => {
     expect(classifyError("engine e unreachable (ECONNREFUSED)").kind).toBe("unreachable")
-    expect(classifyError({ message: "Prometheus unreachable (x)" }).source).toEqual({
-      type: "prometheus",
+    expect(classifyError({ message: "engine e unreachable (x)" }).source).toEqual({
+      type: "engine",
+      id: "e",
     })
     expect(classifyError(null)).toEqual({
       kind: "unknown",
@@ -203,19 +181,14 @@ describe("describeError: the words, en and de", () => {
       "Versuch es gleich noch mal. Passiert das öfter, ist die Engine vielleicht stark ausgelastet.",
     ],
     [
-      "Prometheus did not respond within 1 ms (timeout)",
-      "Prometheus antwortet nicht rechtzeitig",
+      "upstream did not respond within 1 ms (timeout)",
+      "Die Datenquelle antwortet nicht rechtzeitig",
       "Versuch es gleich noch mal.",
     ],
     [
       "Prometheus unreachable (ECONNREFUSED)",
-      "Prometheus ist nicht erreichbar",
-      "Prüf, ob Prometheus läuft und erreichbar ist.",
-    ],
-    [
-      "Prometheus query failed (404): 404 page not found",
-      "Prometheus ist nicht erreichbar (HTTP 404)",
-      "Prüf, ob Prometheus läuft und erreichbar ist.",
+      "Die Datenquelle ist nicht erreichbar",
+      "Prüf die Verbindung und versuch es noch mal.",
     ],
     [
       "Failed to fetch",
@@ -263,19 +236,14 @@ describe("describeError: the words, en and de", () => {
       "Try again in a moment. If it keeps happening, the engine may be under heavy load.",
     ],
     [
-      "Prometheus did not respond within 1 ms (timeout)",
-      "Prometheus did not respond in time",
+      "upstream did not respond within 1 ms (timeout)",
+      "The data source did not respond in time",
       "Try again in a moment.",
     ],
     [
       "Prometheus unreachable (ECONNREFUSED)",
-      "Prometheus is unreachable",
-      "Check that Prometheus is running and reachable.",
-    ],
-    [
-      "Prometheus query failed (404): 404 page not found",
-      "Prometheus is unreachable (HTTP 404)",
-      "Check that Prometheus is running and reachable.",
+      "The data source is unreachable",
+      "Check the connection, then try again.",
     ],
     ["Failed to fetch", "The data source is unreachable", "Check the connection, then try again."],
     [
@@ -306,6 +274,54 @@ describe("describeError: the words, en and de", () => {
     ["odd", "Something went wrong", "Try again. If it fails again, ask in the chat."],
   ])("en: %s", (raw, title, hint) => {
     expect(describeError(raw, "en")).toMatchObject({ title, hint })
+  })
+
+  /** The engine module's codes for an engine it does not use and a write it does not send. */
+  const REFUSED =
+    '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask whoever runs this server to fix it.'
+  const READ_ONLY =
+    '[ENGINE_READ_ONLY] Engine "ro" is read-only on this server: its profile sets readOnly, so no tool writes to it. Nothing was sent.'
+
+  it("a refused profile: names the engine and where its reason is, the code's text under Details", () => {
+    expect(describeError(new Error(REFUSED), "en")).toEqual({
+      kind: "profileRefused",
+      title: "Engine locked cannot be used: its profile is refused",
+      hint: "Whoever runs this server finds the reason in its log at startup and can fix the profile. Until then, pick another engine.",
+      details: REFUSED,
+    })
+    expect(describeError(new Error(REFUSED), "de")).toMatchObject({
+      title: "Die Engine locked ist nicht nutzbar: ihr Profil ist abgelehnt",
+      hint: "Die Person, die den Server betreibt, findet den Grund im Log beim Start und kann das Profil korrigieren. Wähl bis dahin eine andere Engine.",
+    })
+    expect(classifyError(REFUSED)).toMatchObject({
+      kind: "profileRefused",
+      source: { type: "engine", id: "locked" },
+      reason:
+        'Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask whoever runs this server to fix it.',
+    })
+  })
+
+  it("a code an engine's own message quotes is no refusal: only the server leads with one", () => {
+    // A script error that echoes a variable's value: retried, and Try again stays.
+    for (const code of ["[ENGINE_PROFILE_REFUSED]", "[ENGINE_READ_ONLY]"]) {
+      const quoted = `[500 ProcessEngineException] Script failed on value "${code} x" (engine prod)`
+      expect(classifyError(quoted).kind).toBe("failed")
+      expect(isPermanentError(new Error(quoted))).toBe(false)
+    }
+    expect(isPermanentError(new Error(REFUSED))).toBe(true)
+    expect(isPermanentError(READ_ONLY)).toBe(true)
+  })
+
+  it("a read-only engine: says nothing was changed, en and de", () => {
+    expect(describeError(READ_ONLY, "en")).toMatchObject({
+      kind: "readOnly",
+      title: "Engine ro is read-only on this server",
+      hint: "Its profile allows reads only, so nothing was changed. Ask whoever runs this server if you need to change something there.",
+    })
+    expect(describeError(READ_ONLY, "de")).toMatchObject({
+      title: "Die Engine ro ist auf diesem Server nur lesbar",
+      hint: "Das Profil dieser Engine erlaubt nur Lesezugriffe, darum hat sich nichts geändert. Bitte die Person, die den Server betreibt, wenn du dort etwas ändern musst.",
+    })
   })
 
   it("English for an unsupported or missing locale", () => {

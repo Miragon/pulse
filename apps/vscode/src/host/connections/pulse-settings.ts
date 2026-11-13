@@ -1,14 +1,13 @@
 import * as vscode from "vscode"
-import type { Environment } from "../../core/protocol/index.js"
-import { LivePolicy } from "./live-policy.js"
-import { WritePolicy, type WritesSetting } from "./write-policy.js"
+import type { Environment } from "@miragon/pulse-runtime-view/protocol"
+import {
+  LivePolicy,
+  WritePolicy,
+  type EnvironmentSettings,
+  type WritesSetting,
+} from "@miragon/pulse-runtime-view/host-kit"
 
 type Scoped = Readonly<Record<string, unknown>>
-
-export interface EnvironmentSettings {
-  readonly user: Scoped | undefined
-  readonly workspace: readonly (Scoped | undefined)[]
-}
 
 export class PulseSettings {
   static environments(): EnvironmentSettings {

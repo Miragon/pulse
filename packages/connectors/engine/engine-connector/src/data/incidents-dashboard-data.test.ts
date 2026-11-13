@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest"
-import { toEngineDate } from "@miragon/pulse-engine-core"
+import { toEngineDate } from "@miragon/pulse-c7-core"
 import { cibsevenProvider } from "../providers/index.js"
 import {
   clientFor,
@@ -232,7 +232,7 @@ describe("buildIncidentsDashboardData: exact cards beyond the scan (#335 N61)", 
   })
 })
 
-// One rule with analytics (`readBpmnNames`): an unnamed process takes its pool name.
+// One rule (`readBpmnNames`): an unnamed process takes its pool name.
 describe("buildIncidentsDashboardData: names", () => {
   it("names a card's unnamed process by its Modeler pool, reading only that diagram", async () => {
     const pooled = `<definitions><collaboration id="C"><participant id="Pool" name="Miravelo - Bike Leasing" processRef="quiet"/></collaboration><process id="quiet"/></definitions>`

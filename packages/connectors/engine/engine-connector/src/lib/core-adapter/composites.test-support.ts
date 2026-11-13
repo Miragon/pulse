@@ -1,5 +1,5 @@
-import { DEFAULT_VERDICT_THRESHOLDS, type VerdictThresholds } from "@miragon/pulse-engine-core"
-import type { Route } from "@miragon/pulse-engine-core/testing"
+import { DEFAULT_VERDICT_THRESHOLDS, type VerdictThresholds } from "@miragon/pulse-c7-core"
+import type { Route } from "@miragon/pulse-c7-core/testing"
 import { withToolErrors } from "@miragon/pulse-widget-shell/server"
 import {
   engineStatusForModel,
@@ -16,7 +16,7 @@ import {
   startFakeEngine,
 } from "../../tools/test-support/fake-engine.js"
 
-/** The read composites on the wire: engine-core's rounds over the real client and a loopback engine. */
+/** The read composites on the wire: c7-core's rounds over the real client and a loopback engine. */
 
 const engines: FakeEngine[] = []
 
@@ -46,7 +46,7 @@ const PATHS: readonly (readonly [RegExp, string])[] = [
   [/^\/job-definition$/, "getJobDefinitions"],
 ]
 
-/** The engine-core fixture's routes, answered over HTTP; an undefined answer is an engine 404. */
+/** The c7-core fixture's routes, answered over HTTP; an undefined answer is an engine 404. */
 export function fixtureEngine(routes: Record<string, Route>) {
   return (request: RecordedRequest): FakeReply => {
     for (const [pattern, operationId] of PATHS) {

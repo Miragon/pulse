@@ -1,9 +1,10 @@
-/** unsetProfileKeys, showConfig and Basic auth in profiles (edit.ts). */
+/** unsetProfileKeys, showConfig and Basic auth in profiles (edit.ts, show.ts). */
 
 import { describe, expect, it } from "vitest"
 import { frozen } from "../../test/support/config-edit.js"
 import { failure } from "../../test/support/failure.js"
-import { listProfiles, setProfile, showConfig, unsetProfileKeys } from "./edit.js"
+import { setProfile, unsetProfileKeys } from "./edit.js"
+import { listProfiles, showConfig } from "./show.js"
 import { parseConfigFile } from "./file.js"
 import { resolveConfig } from "./resolve.js"
 import type { ConfigFile } from "./types.js"
@@ -62,7 +63,23 @@ describe("unsetProfileKeys", () => {
     expect(error.code).toBe("CONFIG")
     expect(error.message).toBe('Unknown profile key "user"')
     expect(error.details.hint).toBe(
-      "Valid keys: url, cockpitUrl, engine, flavor, auth, output, timeout, headers, readOnly; OAuth settings: issuer, endpoints, clientId, clientSecret, scopes, audience, redirectPort; bearer token: token, tokenEnv.",
+      "Valid keys: url, cockpitUrl, engine, flavor, environment, auth, output, timeout, headers, readOnly; OAuth settings: issuer, endpoints, clientId, clientSecret, scopes, audience, redirectPort; bearer token: token, tokenEnv; or any key the profile holds, auth.<key> for one of its auth object.",
+    )
+  })
+
+  it("removes any key the profile or its auth object holds, one the format refuses too", () => {
+    const file: ConfigFile = {
+      profiles: {
+        p: { url: "http://x", flavour: "x", auth: { type: "bearer", tokenCommand: "c" } } as never,
+      },
+      refused: { p: [{ code: "unknown-key", key: "flavour" }] },
+    }
+    expect(unsetProfileKeys(file, "p", ["flavour", "auth.tokenCommand"]).profiles.p).toEqual({
+      url: "http://x",
+      auth: { type: "bearer" },
+    })
+    expect(failure(() => unsetProfileKeys(file, "p", ["auth.other"])).message).toBe(
+      'Unknown profile key "auth.other"',
     )
   })
 
@@ -219,8 +236,13 @@ describe("Basic auth in profiles", () => {
   })
 
   it("keeps the auth object when other values change", () => {
-    const stored = setProfile(undefined, "p", { authUser: "demo", authPasswordEnv: "PW" })
+    const stored = setProfile(undefined, "p", {
+      url: "http://x",
+      authUser: "demo",
+      authPasswordEnv: "PW",
+    })
     expect(setProfile(stored, "p", { timeout: 5 }).profiles.p?.auth).toEqual({
+      type: "basic",
       username: "demo",
       passwordEnv: "PW",
     })

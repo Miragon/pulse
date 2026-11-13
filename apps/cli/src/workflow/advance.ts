@@ -10,7 +10,7 @@ import {
   type WaitKind,
   type WaitState,
   waitId,
-} from "@miragon/pulse-engine-core"
+} from "@miragon/pulse-c7-core"
 import type { EnginePort } from "../engine-port/engine-port.js"
 import { PulseCliError } from "../errors.js"
 import { compact, omit } from "../util.js"

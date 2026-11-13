@@ -1,13 +1,9 @@
 /**
- * The reasons of @miragon/pulse-engine-core as tool errors: a code `withToolErrors` prints as
+ * The reasons of @miragon/pulse-c7-core as tool errors: a code `withToolErrors` prints as
  * `[CODE] message`, and a message in the tools' parameter names. Names no tool.
  */
 
-import {
-  isWorkflowError,
-  type Selection,
-  type WorkflowErrorReason,
-} from "@miragon/pulse-engine-core"
+import { isWorkflowError, type Selection, type WorkflowErrorReason } from "@miragon/pulse-c7-core"
 
 /** An error `withToolErrors` prints with its code. */
 export class WorkflowToolError extends Error {

@@ -1,7 +1,7 @@
-/** engine-core's incident grouping as `pulse status` prints it, for the status tests. */
+/** c7-core's incident grouping as `pulse status` prints it, for the status tests. */
 
-import type { Rec } from "@miragon/pulse-engine-core"
-import { groupIncidents as groupedBy } from "@miragon/pulse-engine-core/testing"
+import type { Rec } from "@miragon/pulse-c7-core"
+import { groupIncidents as groupedBy } from "@miragon/pulse-c7-core/testing"
 import { groupOrder, renderGroup } from "../../src/workflow/status-command.js"
 
 /** The incident groups in the CLI's order, each with its next step as a command line. */

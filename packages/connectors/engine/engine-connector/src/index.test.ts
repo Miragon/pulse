@@ -8,11 +8,6 @@ import * as root from "./index.js"
  */
 describe("the package root", () => {
   it("exports exactly these runtime names", () => {
-    expect(Object.keys(root).sort()).toEqual([
-      "ENGINE_ADMIN_ONLY_TOOLS",
-      "configuredEngineIds",
-      "createBpmnXmlFetcher",
-      "engineModule",
-    ])
+    expect(Object.keys(root).sort()).toEqual(["ENGINE_ADMIN_ONLY_TOOLS", "engineModule"])
   })
 })

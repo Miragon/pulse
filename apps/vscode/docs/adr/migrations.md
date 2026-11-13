@@ -47,7 +47,8 @@ sequenceDiagram
 ```
 
 1. **Entry.** Only the selection bar of the definition panel offers "Migrate to
-   version…", and only when the process has another version. The intent
+   version…", and only when the process has another version and the engine plans
+   migrations (`proposeMigration?`). The intent
    `openMigration` names nothing: the core hands its own selection (a fixed id list, at
    most 1000) and the shown version to `PanelEffects.openMigration` and clears the
    selection. There is no entry without a fixed id list (Eva's veto): "Select all n
@@ -133,15 +134,17 @@ false`). The table is the primary editor: one native select per source element
 Three reads and one write, no new port (all three groups): writes already flow through
 `ProcessCommands`, the write policy and `AuditedCommands`, and progress already is a read.
 
-| Method                             | Port              | Effect                                                                                                                                     |
-| ---------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `proposeMigration(source, target)` | `ProcessRuntime`  | the engine's mapping between two versions as `MigrationPlan { sourceDefinitionId, targetDefinitionId, mappings: ElementMapping[] }`        |
-| `checkMigration(plan)`             | `ProcessRuntime`  | `MigrationCheck { problems: { mapping?, message }[] }`; it knows nothing about tokens                                                      |
-| `getBulkFailures(id)`              | `ProcessRuntime`  | at most 100 `BulkFailure { instanceId?, reason }` of a bulk operation; `instanceId` is optional because an engine may name it only in text |
-| `migrateInstances(plan, ids)`      | `ProcessCommands` | one asynchronous bulk operation of kind `migrateInstances`; ended and unknown ids are skipped; nothing left is `rejected`                  |
+| Method                              | Port              | Effect                                                                                                                                     |
+| ----------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `proposeMigration?(source, target)` | `ProcessRuntime`  | the engine's mapping between two versions as `MigrationPlan { sourceDefinitionId, targetDefinitionId, mappings: ElementMapping[] }`        |
+| `checkMigration?(plan)`             | `ProcessRuntime`  | `MigrationCheck { problems: { mapping?, message }[] }`; it knows nothing about tokens                                                      |
+| `getBulkFailures(id)`               | `ProcessRuntime`  | at most 100 `BulkFailure { instanceId?, reason }` of a bulk operation; `instanceId` is optional because an engine may name it only in text |
+| `migrateInstances(plan, ids)`       | `ProcessCommands` | one asynchronous bulk operation of kind `migrateInstances`; ended and unknown ids are skipped; nothing left is `rejected`                  |
 
-The laws are in [runtime-contract.md](runtime-contract.md). A later plan file is keyed by
-BPMN process id and version numbers, not by `DefinitionId`s, which differ per engine.
+The two planning reads are optional, as a pair: an engine that cannot plan has neither and
+gets no migration. The laws are in [runtime-contract.md](runtime-contract.md). A later plan
+file is keyed by BPMN process id and version numbers, not by `DefinitionId`s, which differ per
+engine.
 
 ### Audit
 
@@ -188,8 +191,10 @@ text: it can carry business data from listeners and expressions.
 ## Consequences
 
 - Migration is the first feature that adds three reads at once; `ProcessRuntime` grows
-  by `proposeMigration`, `checkMigration` and `getBulkFailures`, and every runtime
-  (the fake, `FailingRuntime`, test doubles) implements them.
+  by `proposeMigration?`, `checkMigration?` and `getBulkFailures`. Every runtime implements
+  `getBulkFailures`; the planning pair only a runtime that plans (and every one that
+  migrates). Without it the selection bar offers no migration, and `MigrationPlanning` fails a
+  proposal or a check as `unsupported`.
 - The migration tab does not refresh on its own: the mapping is the user's work. The
   bulk poll goes on, and the tab loads again when the run is worked off or on Refresh,
   keeping the mapping.

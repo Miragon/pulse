@@ -1,16 +1,8 @@
 /**
- * Node test aids, never bundled: the product glossary every widget package checks its catalogs
- * against (the generic brand gates are `@miragon/pulse-ui/testing`) and the recording
- * `ModuleServer` a module's tests register on.
+ * Node test aids, never bundled: the recording `ModuleServer` a module's tests register on. The
+ * brand gates and the product glossary every widget package checks its catalogs against are
+ * `@miragon/pulse-ui/testing`.
  */
-export {
-  blindGlossaryRules,
-  glossaryFindings,
-  PRODUCT_GLOSSARY,
-  unnamedGlossaryTerms,
-  type GlossaryFinding,
-  type GlossaryRule,
-} from "./glossary.js"
 export {
   recordingModuleServer,
   testServerContext,

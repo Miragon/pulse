@@ -8,6 +8,7 @@ import {
   hashKey,
   QueryClient,
   useMutation,
+  useQueries,
   useQuery,
   useQueryClient,
   type UseMutationResult,
@@ -15,14 +16,28 @@ import {
   type UseQueryResult,
 } from "@tanstack/react-query"
 import { decodeToolResult } from "../protocol/tool-result.js"
+import { isPermanentError } from "./describe-error.js"
 import { useViewHost } from "./view-host.js"
 
 export { useQueryClient, type QueryClient } from "@tanstack/react-query"
 
-/** Reads stay fresh for 30 s; TanStack's default retry (3) rides out a transient failure. */
+/** TanStack's default for a read: three retries after the first attempt, its backoff 1, 2, 4 s. */
+const READ_RETRIES = 3
+
+/**
+ * Reads stay fresh for 30 s; TanStack's three retries ride out a transient failure, never a
+ * permanent refusal (`isPermanentError`), which the view shows at once. Writes keep TanStack's
+ * default: none is retried.
+ */
 export function createViewQueryClient(): QueryClient {
   return new QueryClient({
-    defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
+    defaultOptions: {
+      queries: {
+        staleTime: 30_000,
+        refetchOnWindowFocus: false,
+        retry: (failureCount, error) => failureCount < READ_RETRIES && !isPermanentError(error),
+      },
+    },
   })
 }
 
@@ -44,6 +59,30 @@ export function useToolQuery<TData>(
     ...options,
     queryKey: [...key, args],
     queryFn: async () => decodeToolResult<TData>(await callTool(tool, args)),
+  })
+}
+
+/** One read of {@link useToolQueries}: `tool` with `args`, cached under `[...key, args]`. */
+export interface ToolRead {
+  key: readonly unknown[]
+  tool: string
+  args: object
+}
+
+/**
+ * Reads a list of the same kind at once (one engine's feed per engine, say), in the order given:
+ * each entry is the {@link useToolQuery} of its read, under the same cache key, so a widget that
+ * reads one of them alone shares its answer.
+ */
+export function useToolQueries<TData>(
+  reads: readonly ToolRead[],
+): Array<UseQueryResult<TData, Error>> {
+  const { callTool } = useViewHost()
+  return useQueries({
+    queries: reads.map(({ key, tool, args }) => ({
+      queryKey: [...key, args],
+      queryFn: async () => decodeToolResult<TData>(await callTool(tool, args)),
+    })),
   })
 }
 

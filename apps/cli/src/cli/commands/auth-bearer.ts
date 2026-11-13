@@ -22,6 +22,7 @@ import {
   type StaticBearerConfig,
 } from "../../config/types.js"
 import { type PulseCliError, usageError } from "../../errors.js"
+import { profileToSet } from "../../util.js"
 import type { LogoutView } from "./auth-view.js"
 
 export interface BearerStatusView {
@@ -137,7 +138,7 @@ const OAUTH_SETUP = (name: string) =>
 
 /** How `auth login` gets to an OAuth login, by what selected bearer auth. */
 function loginWay(selector: Selector, selection: BearerSelection): string {
-  const name = selection.profile ?? "<profile>"
+  const name = profileToSet(selection.profile)
   if (selector === "type variable") {
     return `To log in with OAuth instead, unset ${ENV.auth} so that the auth settings of ${settingsOf(selection.profile)} apply.`
   }

@@ -43,6 +43,7 @@ function instances(ids: string[], total: number): ProcessInstancesData {
     processDefinitionName: "Invoice",
     totalCount: total,
     returnedCount: ids.length,
+    allCount: total,
     withIncidentCount: 0,
     suspendedCount: 0,
     instances: ids.map((id) => ({
@@ -116,7 +117,7 @@ describe("a search keeps the list and its search box mounted while page 0 is in 
     host(Widget, { [ENGINE_PROCESS_INSTANCES_DATA]: feed.handler })
 
     const search = screen.getByRole("searchbox", { name: "Search by business key or ID" })
-    fireEvent.click(screen.getByRole("button", { name: "With incidents" }))
+    fireEvent.click(screen.getByRole("button", { name: /^With incident \d/ }))
     await waitFor(() => expect(feed.calls).toHaveLength(1))
     expect(feed.calls[0].args).toMatchObject({ withIncidents: true })
     expect(search.isConnected).toBe(true)
@@ -271,7 +272,7 @@ describe("the instance list states what is ON SCREEN while a filter is pending o
   it("a pending chip: the previous count with the previous filters, said to be previous", async () => {
     const { held, control, modelContexts, triage } = await engineWideList()
 
-    fireEvent.click(screen.getByRole("button", { name: "Suspended" }))
+    fireEvent.click(screen.getByRole("button", { name: /^Suspended \d/ }))
     await waitFor(() => expect(held).toHaveLength(1))
     expect(held[0].args).toMatchObject({ suspended: true })
 
@@ -304,7 +305,7 @@ describe("the instance list states what is ON SCREEN while a filter is pending o
   it("a failed chip keeps saying so, to the operator and to the model", async () => {
     const { held, control, modelContexts, triage } = await engineWideList()
 
-    fireEvent.click(screen.getByRole("button", { name: "Suspended" }))
+    fireEvent.click(screen.getByRole("button", { name: /^Suspended \d/ }))
     await waitFor(() => expect(held).toHaveLength(1))
     control[0].reject(new Error("engine timeout"))
 
@@ -355,7 +356,7 @@ describe("the instance list states what is ON SCREEN while a filter is pending o
     host(Widget, { [ENGINE_PROCESS_INSTANCES_DATA]: feed })
     await screen.findByText("BK-pi-1")
 
-    fireEvent.click(screen.getByRole("button", { name: "Suspended" }))
+    fireEvent.click(screen.getByRole("button", { name: /^Suspended \d/ }))
 
     await screen.findByText("No instances match the filter.")
     expect(screen.queryByText(/The search finds/)).toBeNull()

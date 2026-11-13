@@ -1,7 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
 import { attribute, openingTags, userFacingTexts } from "../render-scan.js"
-import { TONE_BORDER, TONE_DOT, TONE_SOFT, TONE_VARIANTS } from "../lib/tone-utils.js"
+import { TONE_BORDER, TONE_DOT, TONE_SOFT } from "../lib/tone-utils.js"
+import { TONE_VARIANTS } from "../tones/index.js"
 import { CountPill, LivePill, StatusBadge } from "./Pills.js"
 
 const classOf = (tag: string | undefined) => attribute(tag ?? "", "class") ?? ""

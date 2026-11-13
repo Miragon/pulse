@@ -16,9 +16,6 @@ coverage/
 templates/composed-server/pnpm-lock.yaml
 miranum-ai/
 # Gradle
-engine-plugins/.gradle/
-engine-plugins/build/
-engine-plugins/*/build/
 playground/cibseven-example/.gradle/
 playground/cibseven-example/build/
 .idea/
@@ -32,6 +29,9 @@ apps/mcp-server/test-results/
 .stryker-tmp/
 reports/
 stryker-setup-*.js
+# The one Camunda 7 REST spec with its patches applied, which c7-core's `generate` writes for
+# c7-client's SDK and the CLI's catalog: derived, so never committed and never shipped.
+packages/connectors/c7/c7-core/spec/patched/
 # The CLI (apps/cli): the standalone bundle and executables (build:standalone, build:exe), a
 # packed tarball and the results of a local plugin eval run.
 apps/cli/build/

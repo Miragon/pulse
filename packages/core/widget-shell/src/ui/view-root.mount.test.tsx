@@ -17,7 +17,6 @@ vi.mock("./view-runtime.js", () => ({ createViewRuntime: create }))
 const global = globalThis as Record<string, unknown>
 const Rows: ViewComponent = () => null
 const Other: ViewComponent = () => null
-const hostWidgets = { "demo:panel": () => null }
 
 /** The root the document renders under its error boundary, with its props. */
 function mounted(): ReactElement<MountViewOptions & { runtime: ViewRuntime }> {
@@ -35,12 +34,19 @@ afterEach(() => {
 describe("mountViews", () => {
   it("mounts the view the document's prelude names, with the shell's display modes", () => {
     global[VIEW_NAME_GLOBAL] = "demo_show_rows"
-    mountViews({ views: { demo_show_rows: Rows, demo_show_other: Other }, hostWidgets })
+    mountViews({ views: { demo_show_rows: Rows, demo_show_other: Other } })
     expect(render).toHaveBeenCalledOnce()
     expect(create).toHaveBeenCalledWith(SHELL_VIEW_CONFIG)
     const element = mounted()
     expect(element.type).toBe(ViewRoot)
-    expect(element.props).toMatchObject({ name: "demo_show_rows", view: Rows, hostWidgets })
+    expect(element.props).toMatchObject({ name: "demo_show_rows", view: Rows })
+  })
+
+  it("takes the view map alone: no module renders another's widget, so there is no host widget map", () => {
+    global[VIEW_NAME_GLOBAL] = "demo_show_rows"
+    // @ts-expect-error: the root takes no host widget map
+    mountViews({ views: { demo_show_rows: Rows }, hostWidgets: { "demo:panel": () => null } })
+    expect(Object.keys(mounted().props).sort()).toEqual(["name", "runtime", "view"])
   })
 
   it("mounts no view for a name the map lacks, or without a prelude; never an inherited key", () => {

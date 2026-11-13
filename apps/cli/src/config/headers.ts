@@ -19,9 +19,9 @@ const BEYOND_LATIN1 = /[Ā-\u{10ffff}]/u
 /**
  * Connection management headers the HTTP client sets itself; undici refuses most of them (the
  * request would fail as if the engine were unreachable) and a wrong Content-Length breaks bodies.
- * The project file schema refuses them too.
+ * The profile format refuses them in a profile too.
  */
-export const CLIENT_HEADERS: ReadonlySet<string> = new Set([
+const CLIENT_HEADERS: ReadonlySet<string> = new Set([
   "connection",
   "content-length",
   "expect",
@@ -30,16 +30,6 @@ export const CLIENT_HEADERS: ReadonlySet<string> = new Set([
   "upgrade",
 ])
 const HEADER_HINT = 'Use the form "Name: value", e.g. "X-Tenant-Id: acme".'
-
-/** True for a header name pulse may send: an HTTP token, not a connection management header. */
-export function isHeaderName(name: string): boolean {
-  return HEADER_NAME.test(name) && !CLIENT_HEADERS.has(name.toLowerCase())
-}
-
-/** True for a value fetch can send: no control characters but tab, only ISO-8859-1. */
-export function isHeaderValue(value: string): boolean {
-  return !HEADER_CONTROLS.test(value) && !BEYOND_LATIN1.test(value)
-}
 
 function checkHeaderName(name: string): void {
   if (!HEADER_NAME.test(name)) throw configError(`Invalid header name "${name}"`, HEADER_HINT)

@@ -81,7 +81,7 @@ What they found:
 ### Bulk progress is not a tick
 
 A running bulk operation ([writes.md](writes.md)) is followed by a poll of its own
-(`BulkFollow` in `apps/vscode/src/core/panels`), not by the panel's ticks:
+(`BulkFollow` in `packages/core/runtime-view/src/core/panels`), not by the panel's ticks:
 
 - Cadence 2, 3 and 5 s after the submit (and after a panel picks the run up), then
   every 10 s, on every engine; the setting `pulse.liveUpdates` and the pause button do not
@@ -112,8 +112,11 @@ A running bulk operation ([writes.md](writes.md)) is followed by a poll of its o
   `As of … · 2m ago` with a clock when nothing succeeded for two intervals and 10 s,
   `Reconnecting… · data from …` (tooltip: when Pulse tries again), `Stopped · data from …`
   when the engine refused the login or the subject is gone, `Offline · data from …` after a
-  failed user load, the ended tooltip for an ended instance, and the Off tooltip naming the
-  setting and the cadence it would have.
+  failed user load, or with a key `Credentials rejected · data from …` (401) and
+  `Access denied · data from …` (403) when the engine answered it by refusing the login, so
+  an engine that runs is never called offline (`Problem.loginRefused`), the ended tooltip
+  for an ended instance, and the Off tooltip naming the setting and the cadence it would
+  have.
 - A pause button left of the stamp pauses this panel; it never resumes on its own, and
   resume reads at once.
 - Nothing moves on its own: a definition panel stays on the version it shows and adds an
@@ -122,12 +125,12 @@ A running bulk operation ([writes.md](writes.md)) is followed by a poll of its o
   table focus follows the row and moves to its neighbour when the row leaves; overlays are
   redrawn only when they changed; an open variable editor or move panel holds its panel until
   it closes or the panel is hidden; a write confirmation holds it too and names the data's age ("Data read
-  2 min 5 s ago · live updates are paused").
+  2m 5s ago · live updates are paused").
 - No notifications or toasts from anything a background read finds.
 
 ### Where it lives
 
-- `apps/vscode/src/core/refresh`: `RefreshCadence` (intervals, self-throttle, backoff, jitter,
+- `packages/core/runtime-view/src/core/refresh`: `RefreshCadence` (intervals, self-throttle, backoff, jitter,
   history and version ticks), `RefreshLoop` (attention, pause, editor hold, nudge,
   single-flight, status), `EngineLane` (one automatic read per engine, blocked on auth
   failures), `LiveSwitch` (the engine's setting, switched in place), `SharedDefinitions`,

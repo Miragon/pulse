@@ -1,0 +1,81 @@
+{
+  "arguments": {},
+  "result": {
+    "_meta": {
+      "mimeType": "application/json"
+    },
+    "content": [
+      {
+        "textLines": [
+          "{",
+          "  \"engines\": [",
+          "    {",
+          "      \"id\": \"prod-eu\",",
+          "      \"environment\": \"prod\",",
+          "      \"flavor\": \"cibseven\",",
+          "      \"engineName\": \"CIB seven\",",
+          "      \"cockpitUrl\": \"https://ops.example.com/camunda/app/cockpit/default/\"",
+          "    },",
+          "    {",
+          "      \"id\": \"test\",",
+          "      \"environment\": \"test\",",
+          "      \"flavor\": \"operaton\",",
+          "      \"engineName\": \"Operaton\"",
+          "    }",
+          "  ],",
+          "  \"environments\": [",
+          "    {",
+          "      \"id\": \"prod\",",
+          "      \"engineIds\": [",
+          "        \"prod-eu\"",
+          "      ]",
+          "    },",
+          "    {",
+          "      \"id\": \"test\",",
+          "      \"engineIds\": [",
+          "        \"test\"",
+          "      ]",
+          "    }",
+          "  ],",
+          "  \"defaultEngineId\": \"prod-eu\"",
+          "}"
+        ],
+        "type": "text"
+      }
+    ],
+    "structuredContent": {
+      "defaultEngineId": "prod-eu",
+      "engines": [
+        {
+          "cockpitUrl": "https://ops.example.com/camunda/app/cockpit/default/",
+          "engineName": "CIB seven",
+          "environment": "prod",
+          "flavor": "cibseven",
+          "id": "prod-eu"
+        },
+        {
+          "engineName": "Operaton",
+          "environment": "test",
+          "flavor": "operaton",
+          "id": "test"
+        }
+      ],
+      "environments": [
+        {
+          "engineIds": [
+            "prod-eu"
+          ],
+          "id": "prod"
+        },
+        {
+          "engineIds": [
+            "test"
+          ],
+          "id": "test"
+        }
+      ]
+    }
+  },
+  "sent": [],
+  "tool": "engine_list_engines"
+}

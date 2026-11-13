@@ -1,7 +1,8 @@
 /** Builds the HTTP request for a catalog operation. Pure, no I/O. */
 
+import type { Intent } from "@miragon/pulse-http"
 import { argumentName } from "../catalog/names.js"
-import type { OperationSpec } from "../catalog/types.js"
+import type { Effect, OperationSpec } from "../catalog/types.js"
 import { PulseCliError, usageError } from "../errors.js"
 import type { HttpRequest } from "../http/types.js"
 import { mergeHeaders, stringifyJson, withoutTrailingSlashes } from "../util.js"
@@ -100,6 +101,11 @@ function body(operation: OperationSpec, input: OperationInput): Pick<HttpRequest
   return text === undefined ? {} : { body: text }
 }
 
+/** What a request of an operation does: only an operation whose effect is `read` reads. */
+export function intentOf(effect: Effect): Intent {
+  return effect === "read" ? "read" : "write"
+}
+
 export function buildRequest(
   operation: OperationSpec,
   input: OperationInput,
@@ -115,6 +121,7 @@ export function buildRequest(
   return {
     method: operation.method,
     url,
+    intent: intentOf(operation.effect),
     // case-insensitive: `-H 'accept: ...'` replaces the default Accept instead of adding a second one
     headers: mergeHeaders({ Accept: acceptHeader(operation), ...contentType }, target.headers),
     ...payload,

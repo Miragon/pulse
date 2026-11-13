@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { engineModule } from "@miragon/pulse-engine-connector"
 import { composedEnvVars } from "@miragon/pulse-widget-shell/server"
 import { createApp } from "../src/app.js"
 import { MODULES, sharedResources } from "../src/setup.js"
@@ -11,17 +10,9 @@ afterEach(() => {
 })
 
 describe("the app's module list and its wiring", () => {
-  it("hands analytics the engine module's engine ids and BPMN lookup, and nothing without the engine module", () => {
-    const config = engineModule.configFromEnv({
-      ENGINES_JSON: JSON.stringify([
-        { id: "prod-a", baseUrl: "http://localhost:1" },
-        { id: "prod-b", baseUrl: "http://localhost:2" },
-      ]),
-    })
-    const shared = sharedResources([{ app: "engine", config }])
-    expect(shared.engineIds).toEqual(["prod-a", "prod-b"])
-    expect(shared.fetchBpmnXml).toBeTypeOf("function")
-    expect(sharedResources([{ app: "analytics", config: {} }])).toEqual({})
+  it("composes the engine module alone and hands the modules nothing through shared", () => {
+    expect(MODULES.map((module) => module.name)).toEqual(["engine"])
+    expect(sharedResources()).toEqual({})
   })
 
   // PulseAudio owns PULSE_* and the CLI PULSE_CLI_*: one server name there would make the typo

@@ -1,6 +1,6 @@
 /** Wait states, an instance view and the usage error, for the advance plan tests. */
 
-import type { WaitState } from "@miragon/pulse-engine-core"
+import type { WaitState } from "@miragon/pulse-c7-core"
 import { PulseCliError } from "../../src/errors.js"
 import type { InstanceView } from "../../src/workflow/types.js"
 
@@ -14,7 +14,7 @@ export {
   TIMER,
   USER_TASK,
   VARS,
-} from "@miragon/pulse-engine-core/testing"
+} from "@miragon/pulse-c7-core/testing"
 
 export function view(
   waitingAt: readonly WaitState[],

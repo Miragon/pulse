@@ -1,12 +1,9 @@
 import { useLocale, type LucideIcon } from "@miragon/pulse-ui"
 import {
-  ArrowLeftRight,
   Braces,
   Bug,
   ClipboardList,
   FileSearch,
-  Gauge,
-  Hourglass,
   ListChecks,
   ListOrdered,
   Route,
@@ -33,10 +30,7 @@ export const HAND_OFF_ACTIONS = {
   explainDiagram: Workflow,
   checkHealth: Stethoscope,
   analyzeFailures: Bug,
-  analyzePerformance: Gauge,
-  explainBottleneck: Hourglass,
   prioritize: ListOrdered,
-  compareEngines: ArrowLeftRight,
 } as const satisfies Record<string, LucideIcon>
 
 export type HandOffAction = keyof typeof HAND_OFF_ACTIONS

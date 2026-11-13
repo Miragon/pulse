@@ -47,12 +47,12 @@ export function chainSteps(script, chain) {
 export function checkSteps({ all = false, force = false, scripts = rootScripts() } = {}) {
   const steps = [
     pnpm("install", "install", "--frozen-lockfile"),
-    // The VS Code webview tests in `test` render in Chromium.
+    // The runtime view's webview tests in `test` render in Chromium.
     pnpm(
       "browsers",
       "--fail-if-no-match",
       "--filter",
-      "pulse-cockpit",
+      "@miragon/pulse-runtime-view",
       "exec",
       "playwright",
       "install",
@@ -81,7 +81,10 @@ export function checkSteps({ all = false, force = false, scripts = rootScripts()
     pnpm("host browsers", ...server, "exec", "playwright", "install", "chromium"),
     pnpm("test:host", ...server, "test:host"),
     { name: "template", command: "bash", args: ["scripts/test-template.sh"] },
-    { name: "engine-plugins", gradle: { project: "engine-plugins", tasks: ["build"] } },
+    {
+      name: "cibseven-example",
+      gradle: { project: "playground/cibseven-example", tasks: ["build"] },
+    },
     pnpm("docs:build", "docs:build"),
     pnpm("test:engines", "--fail-if-no-match", "--filter", "@miragon/pulse-cli", "test:engines"),
   ]

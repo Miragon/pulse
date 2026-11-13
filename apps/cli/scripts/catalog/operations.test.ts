@@ -1,17 +1,33 @@
 import { describe, expect, it } from "vitest"
-import { byId, document, json, ref, single, SPEC } from "../../test/support/openapi-fixture.js"
+import {
+  byId,
+  document,
+  json,
+  ref,
+  single,
+  SPEC,
+  SPEC_ROUTES,
+} from "../../test/support/openapi-fixture.js"
 import { extractOperations } from "./operations.js"
+import type { CatalogRoute, CatalogRoutes } from "./routes.js"
+
+/** SPEC_ROUTES with the route of getVersion changed, or without it. */
+function versionRoute(change: Partial<CatalogRoute> | undefined): CatalogRoutes {
+  const routes = Object.entries(SPEC_ROUTES).filter(([id]) => id !== "getVersion")
+  if (change === undefined) return Object.fromEntries(routes)
+  return { ...Object.fromEntries(routes), getVersion: { ...SPEC_ROUTES.getVersion!, ...change } }
+}
 
 describe("extractOperations", () => {
   it("fails for path item keys it does not know, such as PATCH", () => {
     const spec = document({ "/x": { patch: { operationId: "patchX", tags: ["X"] } } })
-    expect(() => extractOperations(spec)).toThrow('/x: unsupported path item key "patch"')
+    expect(() => extractOperations(spec, {})).toThrow('/x: unsupported path item key "patch"')
     const head = document({ "/y": { head: { operationId: "headY", tags: ["Y"] } } })
-    expect(() => extractOperations(head)).toThrow('/y: unsupported path item key "head"')
+    expect(() => extractOperations(head, {})).toThrow('/y: unsupported path item key "head"')
   })
 
   it("extracts GET, POST, PUT and DELETE operations in path order, never OPTIONS", () => {
-    const operations = extractOperations(SPEC)
+    const operations = extractOperations(SPEC, SPEC_ROUTES)
     expect(operations.map((operation) => `${operation.method} ${operation.operationId}`)).toEqual([
       "GET getSub",
       "DELETE deleteSub",
@@ -147,10 +163,22 @@ describe("extractOperations", () => {
     expect(operation.params[0]?.trueOnly).toBe(true)
   })
 
-  it("marks /engine and /version as not engine scoped", () => {
-    expect(byId("getEngines").engineScoped).toBe(false)
-    expect(byId("getVersion").engineScoped).toBe(false)
-    expect(byId("createThing").engineScoped).toBe(true)
+  it("takes the effect and the engine scope from the route table", () => {
+    expect(byId("getEngines")).toMatchObject({ effect: "read", engineScoped: false })
+    expect(byId("getVersion")).toMatchObject({ effect: "read", engineScoped: false })
+    expect(byId("createThing")).toMatchObject({ effect: "write", engineScoped: true })
+    const operations = extractOperations(SPEC, versionRoute({ effect: "bulk" }))
+    expect(operations.find((op) => op.operationId === "getVersion")?.effect).toBe("bulk")
+  })
+
+  it("fails for an operation the route table lacks or has under another method or path", () => {
+    const stale = new Error(
+      "GET /version (getVersion) is not in c7-core's route table: run " +
+        "`pnpm --fail-if-no-match --filter @miragon/pulse-c7-core generate`",
+    )
+    expect(() => extractOperations(SPEC, versionRoute(undefined))).toThrow(stale)
+    expect(() => extractOperations(SPEC, versionRoute({ path: "/v" }))).toThrow(stale)
+    expect(() => extractOperations(SPEC, versionRoute({ method: "POST" }))).toThrow(stale)
   })
 
   it("keeps only success responses and resolves response references", () => {

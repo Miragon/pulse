@@ -8,7 +8,7 @@
  */
 
 import { PulseCliError } from "../errors.js"
-import { compact } from "../util.js"
+import { compact, profileToSet } from "../util.js"
 import { normalizeToken } from "./bearer.js"
 import { configError } from "./config-error.js"
 import type { Env } from "./pick.js"
@@ -122,7 +122,7 @@ function missingToken(selectedBy: string, selected: SelectedProfile) {
     selected.profile === undefined
       ? "a profile (none is selected)"
       : `the auth.tokenEnv and auth.token of profile "${selected.name}"`
-  const name = selected.name ?? "<profile>"
+  const name = profileToSet(selected.name)
   return configError(
     "Bearer auth is selected but the token is missing",
     `Bearer auth was selected by ${selectedBy}. Looked up the token in ${STDIN_FLAG}, ${ENV.token}, ${ENV.tokenCommand} and ${profile}. Fetch a token with the tool that issues it (e.g. az account get-access-token, gcloud auth print-access-token) and export ${ENV.token}=<token>, let pulse run that tool with export ${ENV.tokenCommand}=<command>, pipe it into ${STDIN_FLAG}, or store the name of its variable with \`pulse config set ${name} --auth bearer --auth-token-env <VAR>\`; --auth none switches bearer auth off.`,

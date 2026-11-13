@@ -1,4 +1,4 @@
-import type { IncidentDetails } from "../../contract/index.js"
+import type { IncidentDetails } from "@miragon/pulse-engine-core"
 import * as vscode from "vscode"
 
 export const INCIDENT_SCHEME = "pulse-incident"

@@ -6,7 +6,7 @@
 import { describe, expect, it } from "vitest"
 import { PulseCliError } from "../errors.js"
 import { parseConfigFile } from "./file.js"
-import { showConfig } from "./edit.js"
+import { showConfig } from "./show.js"
 import { mergeProject } from "./project.js"
 import { bearerSource, unusedTokenNote } from "./resolve-bearer.js"
 import { resolveAuth, selectedAuth } from "./resolve-auth.js"
@@ -23,7 +23,7 @@ function failure(action: () => unknown): PulseCliError {
   throw new Error("expected an PulseCliError")
 }
 
-const PROJECT: ProjectSource = { path: "/repo/.pulse-cli.json", directory: "/repo" }
+const PROJECT: ProjectSource = { path: "/repo/.pulse.json", directory: "/repo" }
 
 function profile(auth: ProfileAuth): SelectedProfile {
   return { name: "dev", profile: { auth } }
@@ -65,13 +65,17 @@ describe("resolveAuth with a token command", () => {
     expect(resolveAuth({}, { CI_TOKEN: "ci" }, stored).auth).toMatchObject({ token: "ci" })
   })
 
-  it("is no key of a profile", () => {
+  it("is no key of a profile: the profile is refused when it is used", () => {
     const text = JSON.stringify({
       profiles: { p: { auth: { type: "bearer", tokenCommand: "c" } } },
     })
-    const error = failure(() => parseConfigFile(text, "/c.json"))
+    const file = parseConfigFile(text, "/c.json")
+    const error = failure(() => selectProfile({ profile: "p" }, {}, file))
     expect(error.message).toBe(
-      'Invalid config file /c.json: profile "p" sets auth.tokenCommand, which pulse no longer reads: remove the key from the file and export PULSE_CLI_TOKEN_COMMAND=<command> instead',
+      'Profile "p" of your config file cannot be used: auth.tokenCommand is no key of a profile.',
+    )
+    expect(error.details.hint).toBe(
+      "Remove it with `pulse config unset p auth.tokenCommand`, or fix its spelling in the file.",
     )
   })
 
@@ -159,7 +163,7 @@ describe("profiles of a project file", () => {
     const broken: LoadedConfig = { ...file, defaultProfile: "gone" }
     const error = failure(() => selectProfile({}, {}, broken))
     expect(error.details.hint).toBe(
-      "It is the defaultProfile of the project file /repo/.pulse-cli.json; choose another one with `pulse config use <profile> --project`. Known profiles: svc, mine. Create it with `pulse config set gone --url <url>`.",
+      "It is the defaultProfile of the project file /repo/.pulse.json; choose another one with `pulse config use <profile> --project`. Known profiles: svc, mine. Create it with `pulse config set gone --url <url>`.",
     )
     expect(missingProfileError("x", { profiles: {} }, "default").details.hint).toBe(
       "It is the defaultProfile of the config file; choose another one with `pulse config use <profile>`. Create it with `pulse config set x --url <url>`.",

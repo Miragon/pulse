@@ -1,8 +1,0 @@
-{
-  "about": "A file without profiles is valid and names no engine.",
-  "file": {},
-  "cli": {
-    "valid": true,
-    "profiles": {}
-  }
-}

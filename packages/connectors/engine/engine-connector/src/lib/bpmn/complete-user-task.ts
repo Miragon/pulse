@@ -1,5 +1,5 @@
 /**
- * The one place `engine_complete_task` picks its endpoint (`engine-contract.test.ts` scans for it):
+ * The one place `engine_complete_task` picks its endpoint (`sdk-reads.test.ts` scans for it):
  * - `/submit-form` alone validates form fields, but writes BPMN defaults over omitted fields
  *   and RESOLVES a delegated task (`SubmitTaskFormCmd`).
  * - `/complete` validates nothing and completes a delegated task, skipping its owner.
@@ -7,9 +7,9 @@
  * So a form task is submitted with the current value of every omitted field, a formless one
  * completes, and a delegated one is resolved and reported as such, never as completed.
  */
-import { readTaskVariables, type Client, type VariableMap } from "@miragon/pulse-engine-client"
-import { toEngineVariables, type EngineVariableInput } from "@miragon/pulse-engine-core"
-import { complete, getTask, resolve, submit } from "@miragon/pulse-engine-client/sdk"
+import { readTaskVariables, type Client, type VariableMap } from "@miragon/pulse-c7-client"
+import { toEngineVariables, type EngineVariableInput } from "@miragon/pulse-c7-core"
+import { complete, getTask, resolve, submit } from "@miragon/pulse-c7-client/sdk"
 import { formFieldSubmitRules, type FormFieldSubmitRule } from "./bpmn-task-form.js"
 import type { TaskCompletion } from "../shared/task-completion.js"
 import { fetchDefinitionXml } from "./definition-xml.js"

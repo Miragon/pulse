@@ -5,7 +5,11 @@ import { decodeResponse } from "./decode.js"
 const request = { method: "GET", url: "http://h/x", headers: {} }
 const encoder = new TextEncoder()
 
-function response(status: number, contentType: string, body: string | Uint8Array): HttpResponse {
+function response(
+  status: number,
+  contentType: string,
+  body: string | Uint8Array<ArrayBuffer>,
+): HttpResponse {
   return {
     status,
     statusText: status === 204 ? "No Content" : "OK",

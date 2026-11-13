@@ -11,9 +11,9 @@
  * (package.json `bin`), so scripts and agents that call it keep working. Every text that tells a
  * person or an agent what to type says pulse; the second name stands only where SECOND_NAME_ALLOWED
  * says why. The names that keep the old spelling are no program name and pass the pattern: the npm
- * package @miragon/pulse-cli, .pulse-cli.json, the config directory path, the image
- * ghcr.io/miragon/pulse-cli, the release assets pulse-cli-<os>-<arch>, the bundle pulse-cli.js and
- * the plugin command /pulse-cli:status.
+ * package @miragon/pulse-cli, the project file's former name in the hint to rename it, the config
+ * directory path, the image ghcr.io/miragon/pulse-cli, the release assets pulse-cli-<os>-<arch>,
+ * the bundle pulse-cli.js and the plugin command /pulse-cli:status.
  */
 
 import { existsSync, readdirSync, readFileSync } from "node:fs"
@@ -249,7 +249,7 @@ describe("the second name", () => {
     "pulse sends the token as it is",
     "npm i -g @miragon/pulse-cli",
     "ghcr.io/miragon/pulse-cli:0.25.0",
-    "reads ./.pulse-cli.json first",
+    "The project file /repo/.pulse-cli.json has its former name",
     "~/.config/pulse-cli/config.json",
     "%APPDATA%\\pulse-cli\\config.json",
     "curl -O $base/pulse-cli-linux-x64",

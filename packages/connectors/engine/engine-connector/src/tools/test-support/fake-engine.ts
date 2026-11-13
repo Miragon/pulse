@@ -7,7 +7,7 @@ import { createServer, type IncomingHttpHeaders, type Server, type ServerRespons
 import type { AddressInfo } from "node:net"
 import { z } from "zod"
 import type { ToolConfig } from "@miragon/pulse-widget-shell/server"
-import type { Client } from "@miragon/pulse-engine-client"
+import type { Client } from "@miragon/pulse-c7-client"
 import { createEngineRegistry, type EngineRegistry } from "../../lib/engine/resolve-engine.js"
 import { providerForEntry } from "../../providers/index.js"
 
@@ -25,7 +25,9 @@ export interface FakeReply {
   contentType?: string
 }
 
-export type FakeRoute = FakeReply | ((request: RecordedRequest) => FakeReply)
+/** A function may answer later (a Promise): a test holds a read open to see what is in flight. */
+export type FakeRoute =
+  FakeReply | ((request: RecordedRequest) => FakeReply | Promise<FakeReply | undefined>)
 
 /** Unknown routes get `fallback` (default: 204, a write's usual reply). */
 export type FakeRoutes = Record<string, FakeRoute>
@@ -79,7 +81,9 @@ export async function startFakeEngine(
       }
       requests.push(request)
       const route = routes[`${req.method} ${path}`] ?? fallback
-      answer(res, typeof route === "function" ? route(request) : route)
+      void Promise.resolve(typeof route === "function" ? route(request) : route).then((reply) =>
+        answer(res, reply),
+      )
     })
   })
   server.listen(0, "127.0.0.1")

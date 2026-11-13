@@ -14,7 +14,10 @@ $ pulse process-instance delete abc
 
 - **Read-only mode**: `--read-only`, `PULSE_CLI_READ_ONLY=1` or a profile created with `--read-only`
   refuse every command whose effect is not `read` (exit 2, `READ_ONLY`). Use read-only profiles for
-  production engines:
+  production engines; a profile guards only the commands that use it, and a URL without
+  `--profile` (`--url` or `PULSE_CLI_URL`) [uses none](configuration.md#profiles). When such a URL
+  leaves out the `PULSE_CLI_PROFILE` you set, the command warns once on stderr and advises dropping
+  that URL. Name the guarded profile without a URL:
 
 ```sh
 pulse config set prod --url https://camunda.example.com/engine-rest --read-only
@@ -26,3 +29,12 @@ pulse process-instance list --profile prod --with-incident
 - `pulse api` normalizes the path before it checks the effect and sends the request
   (`/process-instance/./delete/` is `/process-instance/delete`, a bulk operation that needs
   `--yes`); paths with `#` or `;` are refused.
+- A `--url` beside `--profile` keeps a profile of your config file that holds headers or
+  credentials (Basic auth, OAuth, a bearer token) to the origin of its own URL, and every header it
+  stores counts, whatever its name: another scheme, host or port fails (`CONFIG`) before any
+  request, also in a command copied from an editor, and so does every `--url` for such a profile
+  without a URL. Drop `--url`, or point the profile at that engine with
+  `pulse config set <profile> --url <url>`. Your own `-H` and `PULSE_CLI_HEADERS` do not count (a
+  header the profile stores counts even when an `-H` replaces it) and go to the `--url` of a
+  command that runs. Beside `--profile`, `PULSE_CLI_URL` replaces only the URL and takes everything
+  the profile holds there.

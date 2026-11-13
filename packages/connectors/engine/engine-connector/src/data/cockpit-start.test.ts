@@ -29,7 +29,7 @@ import {
   engineVerdict,
   messageSignature,
   type VerdictThresholds,
-} from "@miragon/pulse-engine-core"
+} from "@miragon/pulse-c7-core"
 import { buildCockpitStart } from "./cockpit-start.js"
 
 // The clock the health and cluster views stamp (`fetchedAt`), so the start and the feed agree.

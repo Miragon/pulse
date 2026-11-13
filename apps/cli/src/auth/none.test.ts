@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import { headersOf } from "../../test/support/credential.js"
 import { noAuth } from "./none.js"
 
 describe("noAuth", () => {
@@ -7,7 +8,7 @@ describe("noAuth", () => {
   })
 
   it("adds no headers", async () => {
-    await expect(noAuth().headers()).resolves.toEqual({})
+    await expect(headersOf(noAuth())).resolves.toEqual({})
   })
 
   it("says why no credentials are sent only when given a reason", () => {
@@ -18,6 +19,6 @@ describe("noAuth", () => {
   })
 
   it("cannot refresh credentials", () => {
-    expect("refresh" in noAuth()).toBe(false)
+    expect(noAuth().credential.renewable).toBe(false)
   })
 })

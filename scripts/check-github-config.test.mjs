@@ -17,10 +17,11 @@ import { parse } from "yaml"
 import {
   BEFORE_THE_GATE,
   CI_WORKFLOW,
-  CLI_PUBLISH_TRIGGERS,
-  CLI_PUBLISH_WORKFLOWS,
+  CHANNEL_PUBLISH_TRIGGERS,
+  CHANNEL_PUBLISH_WORKFLOWS,
   DOCS_TRIGGERS,
   DOCS_WORKFLOW,
+  ORCA_PUBLISH_ACTION,
   PAGES_ENVIRONMENT,
   PUBLISHABLE_DIR,
   PUBLISH_WORKFLOW,
@@ -30,7 +31,7 @@ import {
   VSCODE_PUBLISH_WORKFLOW,
   actionRefs,
   checkCiScopes,
-  checkCliPublishWorkflows,
+  checkChannelPublishWorkflows,
   checkDocsDeploy,
   checkPluginVersions,
   checkPublishMatrix,
@@ -77,17 +78,11 @@ const published = (dir, manifest) => ({
 const TODAY = {
   "apps/mcp-server": { name: "@miragon/pulse-mcp-server", private: true },
   ...published("packages/core/widget-shell", { name: "@miragon/pulse-widget-shell" }),
-  ...published("packages/connectors/engine/engine-client", {
-    name: "@miragon/pulse-engine-client",
+  ...published("packages/connectors/c7/c7-client", {
+    name: "@miragon/pulse-c7-client",
   }),
   ...published("packages/connectors/engine/engine-connector", {
     name: "@miragon/pulse-engine-connector",
-  }),
-  ...published("packages/connectors/analytics/analytics-client", {
-    name: "@miragon/pulse-analytics-client",
-  }),
-  ...published("packages/connectors/analytics/analytics-connector", {
-    name: "@miragon/pulse-analytics-connector",
   }),
   docs: { name: "@miragon/pulse-docs", private: true },
 }
@@ -794,7 +789,6 @@ const fixtureConfig = (manifests) => ({
   packages: {
     ".": {
       "extra-files": [
-        { type: "generic", path: "engine-plugins/gradle.properties" },
         { type: "json", path: "package.json", jsonpath: "$.version" },
         ...Object.keys(manifests)
           .filter((dir) => /^(?:apps|packages)\//.test(dir))
@@ -1211,31 +1205,33 @@ describe("checkCiScopes", () => {
   })
 
   it("rejects a job that does not wait for the changes job", () => {
-    const errors = scopeErrors((doc) => delete doc.jobs.kotlin.needs)
-    assert.ok(matches(errors, /job kotlin does not wait for the changes job/))
+    const errors = scopeErrors((doc) => delete doc.jobs["cibseven-example"].needs)
+    assert.ok(matches(errors, /job cibseven-example does not wait for the changes job/))
   })
 
   it("rejects a job that reads a scope through another job: needs holds its own needs only", () => {
-    const errors = scopeErrors((doc) => (doc.jobs.kotlin.needs = ["template"]))
-    assert.ok(matches(errors, /job kotlin reads a scope but does not list changes in its needs/))
-    assert.ok(!matches(errors, /job kotlin does not wait/))
+    const errors = scopeErrors((doc) => (doc.jobs["cibseven-example"].needs = ["template"]))
+    assert.ok(
+      matches(errors, /job cibseven-example reads a scope but does not list changes in its needs/),
+    )
+    assert.ok(!matches(errors, /job cibseven-example does not wait/))
   })
 
   it("rejects a scope the changes job does not hand out, and an unknown output", () => {
     const errors = scopeErrors((doc) => {
-      delete doc.jobs.changes.outputs.kotlin
+      delete doc.jobs.changes.outputs["cibseven-example"]
       doc.jobs.changes.outputs.extra = "${{ steps.scopes.outputs.extra }}"
     })
-    assert.ok(matches(errors, /does not hand out the scope "kotlin"/))
+    assert.ok(matches(errors, /does not hand out the scope "cibseven-example"/))
     assert.ok(matches(errors, /hands out "extra", which scripts\/ci-scopes\.mjs does not compute/))
   })
 
   it("rejects a job that reads an unknown scope, and a scope no job reads", () => {
     const errors = scopeErrors(
-      (doc) => (doc.jobs.kotlin.if = "needs.changes.outputs.gradle == 'true'"),
+      (doc) => (doc.jobs["cibseven-example"].if = "needs.changes.outputs.gradle == 'true'"),
     )
-    assert.ok(matches(errors, /job kotlin reads the unknown scope "gradle"/))
-    assert.ok(matches(errors, /no job runs in the scope "kotlin"/))
+    assert.ok(matches(errors, /job cibseven-example reads the unknown scope "gradle"/))
+    assert.ok(matches(errors, /no job runs in the scope "cibseven-example"/))
   })
 
   it("rejects a workflow whose required jobs all skip when the changes job fails", () => {
@@ -1279,15 +1275,15 @@ describe("checkReleaseGate", () => {
     const doc = release()
     doc.jobs["publish-cli"].if = "${{ always() }}"
     doc.jobs["publish-npm"].if = "${{ !cancelled() && inputs.dry_run == true }}"
-    doc.jobs["publish-maven"].if = "${{ success() || true }}"
+    doc.jobs["publish-vscode"].if = "${{ success() || true }}"
     doc.jobs["publish-docker"].if = "failure ()"
     doc.jobs["sync-template-mirror"].if = "${{ cancelled() }}"
     const errors = checkReleaseGate(doc)
     assert.equal(errors.length, 5)
-    assert.match(errors[0], /job publish-maven's if uses the status check function success\(\)/)
-    assert.match(errors[1], /job publish-docker's if uses the status check function failure \(\)/)
-    assert.match(errors[2], /job publish-npm's if uses the status check function cancelled\(\)/)
-    assert.match(errors[3], /job publish-cli's if uses the status check function always\(\)/)
+    assert.match(errors[0], /job publish-docker's if uses the status check function failure \(\)/)
+    assert.match(errors[1], /job publish-npm's if uses the status check function cancelled\(\)/)
+    assert.match(errors[2], /job publish-cli's if uses the status check function always\(\)/)
+    assert.match(errors[3], /job publish-vscode's if uses the status check function success\(\)/)
     assert.match(errors[4], /job sync-template-mirror's .* cancelled\(\): it would run after/)
     // the gate's own condition and an output named like a function stay allowed
     const quiet = release()
@@ -1311,22 +1307,22 @@ describe("checkReleaseGate", () => {
   })
 })
 
-// ── publish-cli.yml + publish-homebrew.yml ──────────────────────────────────
+// ── publish-cli.yml + publish-homebrew.yml + publish-orca-plugin.yml ────────
 
-describe("checkCliPublishWorkflows", () => {
+describe("checkChannelPublishWorkflows", () => {
   const workflows = () =>
-    new Map([RELEASE_WORKFLOW, ...CLI_PUBLISH_WORKFLOWS].map((file) => [file, readDoc(file)]))
+    new Map([RELEASE_WORKFLOW, ...CHANNEL_PUBLISH_WORKFLOWS].map((file) => [file, readDoc(file)]))
 
   it("accepts the real workflows", () => {
-    assert.deepEqual(checkCliPublishWorkflows(workflows()), [])
+    assert.deepEqual(checkChannelPublishWorkflows(workflows()), [])
   })
 
   it("rejects a package manager next to a write grant, not in a contents: read job", () => {
     const docs = workflows()
-    const cli = docs.get(CLI_PUBLISH_WORKFLOWS[0])
+    const cli = docs.get(CHANNEL_PUBLISH_WORKFLOWS[0])
     cli.jobs.image.steps.splice(1, 0, { run: "pnpm install --frozen-lockfile" })
     cli.jobs.assets.steps.push({ run: "npx some-tool" })
-    const errors = checkCliPublishWorkflows(docs)
+    const errors = checkChannelPublishWorkflows(docs)
     assert.equal(errors.length, 2)
     assert.match(errors[0], /job assets holds .* and runs "npx"/)
     assert.match(errors[1], /job image holds .* and runs "pnpm"/)
@@ -1334,7 +1330,7 @@ describe("checkCliPublishWorkflows", () => {
 
   it("rejects a package manager next to an App token, a secret or a minted token", () => {
     const docs = workflows()
-    const brew = docs.get(CLI_PUBLISH_WORKFLOWS[1])
+    const brew = docs.get(CHANNEL_PUBLISH_WORKFLOWS[1])
     brew.jobs.publish.steps.splice(2, 0, { run: "npx some-tool" })
     brew.jobs.formula.steps.push({
       env: { NPM_TOKEN: "${{ secrets.NPM_TOKEN }}" },
@@ -1344,7 +1340,7 @@ describe("checkCliPublishWorkflows", () => {
       env: { GH_TOKEN: "${{ needs.formula.outputs.tap-token }}" },
       run: "yarn install",
     })
-    const errors = checkCliPublishWorkflows(docs)
+    const errors = checkChannelPublishWorkflows(docs)
     assert.equal(errors.length, 3)
     assert.match(errors[0], /job formula holds a secret and runs "npm ci"/)
     assert.match(errors[1], /job verify holds a minted token and runs "yarn"/)
@@ -1353,23 +1349,23 @@ describe("checkCliPublishWorkflows", () => {
 
   it("lets a contents: read job with only its own GITHUB_TOKEN run a package manager", () => {
     const docs = workflows()
-    const cli = docs.get(CLI_PUBLISH_WORKFLOWS[0])
+    const cli = docs.get(CHANNEL_PUBLISH_WORKFLOWS[0])
     cli.jobs.bundle.steps.push({
       env: { GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" },
       run: "pnpm --version",
     })
-    assert.deepEqual(checkCliPublishWorkflows(docs), [])
+    assert.deepEqual(checkChannelPublishWorkflows(docs), [])
   })
 
   it("rejects string permissions, top-level grants, caches, persisted credentials and expressions in run", () => {
     const docs = workflows()
-    const brew = docs.get(CLI_PUBLISH_WORKFLOWS[1])
+    const brew = docs.get(CHANNEL_PUBLISH_WORKFLOWS[1])
     brew.permissions = { contents: "read" }
     brew.jobs.publish.permissions = "write-all"
     brew.jobs.formula.steps[0].with = {}
     brew.jobs.verify.steps.push({ uses: "actions/cache@v6.1.0", with: { path: "x", key: "y" } })
     brew.jobs.verify.steps.push({ run: 'echo "${{ inputs.version }}"' })
-    const errors = checkCliPublishWorkflows(docs)
+    const errors = checkChannelPublishWorkflows(docs)
     assert.equal(errors.length, 5)
     assert.match(errors[0], /top-level permissions must be \{\}/)
   })
@@ -1377,9 +1373,9 @@ describe("checkCliPublishWorkflows", () => {
   it("demands that the release calls each one and that it runs on its own triggers only", () => {
     const docs = workflows()
     delete docs.get(RELEASE_WORKFLOW).jobs["publish-homebrew"]
-    docs.get(CLI_PUBLISH_WORKFLOWS[0]).on.workflow_dispatch = {}
-    docs.get(CLI_PUBLISH_WORKFLOWS[1]).on.push = { branches: ["main"] }
-    const errors = checkCliPublishWorkflows(docs)
+    docs.get(CHANNEL_PUBLISH_WORKFLOWS[0]).on.workflow_dispatch = {}
+    docs.get(CHANNEL_PUBLISH_WORKFLOWS[1]).on.push = { branches: ["main"] }
+    const errors = checkChannelPublishWorkflows(docs)
     assert.equal(errors.length, 3)
     assert.match(
       errors[0],
@@ -1387,16 +1383,31 @@ describe("checkCliPublishWorkflows", () => {
     )
     assert.match(errors[1], /no job calls \.\/\.github\/workflows\/publish-homebrew\.yml/)
     assert.match(errors[2], /publish-homebrew\.yml: runs on push; it runs on workflow_call and/)
-    assert.deepEqual(Object.keys(CLI_PUBLISH_TRIGGERS), CLI_PUBLISH_WORKFLOWS)
+    assert.deepEqual(Object.keys(CHANNEL_PUBLISH_TRIGGERS), CHANNEL_PUBLISH_WORKFLOWS)
+  })
+
+  it("pins the Orca publish action to a commit, in a job a dry run skips, next to no package manager", () => {
+    const docs = workflows()
+    const orca = docs.get(CHANNEL_PUBLISH_WORKFLOWS[2])
+    const publish = orca.jobs.publish
+    const action = publish.steps.find((step) => String(step.uses).startsWith(ORCA_PUBLISH_ACTION))
+    action.uses = `${ORCA_PUBLISH_ACTION}@main`
+    delete publish.if
+    publish.steps.push({ run: "pnpm install --frozen-lockfile" })
+    const errors = checkChannelPublishWorkflows(docs)
+    assert.equal(errors.length, 3)
+    assert.match(errors[0], /publish-plugin is pinned to "main"; pin it to a full commit SHA/)
+    assert.match(errors[1], /job publish publishes to Miragon\/orca-plugins: it needs if:/)
+    assert.match(errors[2], /job publish holds an App token and runs "pnpm"/)
   })
 
   it("names a missing workflow, and a release that calls nothing", () => {
     const docs = workflows()
-    docs.delete(CLI_PUBLISH_WORKFLOWS[1])
-    assert.match(checkCliPublishWorkflows(docs)[0], /publish-homebrew\.yml is missing/)
+    docs.delete(CHANNEL_PUBLISH_WORKFLOWS[1])
+    assert.match(checkChannelPublishWorkflows(docs)[0], /publish-homebrew\.yml is missing/)
     docs.delete(RELEASE_WORKFLOW)
     assert.match(
-      checkCliPublishWorkflows(docs)[0],
+      checkChannelPublishWorkflows(docs)[0],
       /no job calls \.\/\.github\/workflows\/publish-cli\.yml/,
     )
   })

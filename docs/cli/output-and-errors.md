@@ -28,7 +28,8 @@ $ pulse task list --assignee demo --dry-run -o table
 curl 'http://localhost:8080/engine-rest/task?assignee=demo' -H 'Accept: application/json'
 ```
 
-- **`--verbose`** traces the request and response on stderr (secret headers masked):
+- **`--verbose`** traces the request and response on stderr (secret headers masked unless
+  `--show-secrets`; a redirect's answer shows no size, since pulse never reads its body):
 
 ```text
 $ pulse process-definition list --key order-process --fields id,key,version --verbose
@@ -44,7 +45,8 @@ Errors go to stderr as one JSON line, the last one; warnings such as a deprecati
 before it (`-o table` or a terminal prints readable text). `hint` names the fix (for unknown
 commands, options and body properties it starts with "Did you mean ...?"); `engineMessage` carries
 the engine's own explanation, also when the engine answers with plain text (such as JSON
-deserialization errors).
+deserialization errors), cut after 500 characters. Each secret of the request (the password, the
+Basic value, the token, a secret header) reads `***` in it, also with `--show-secrets`.
 
 ```text
 $ pulse process-instance get abc

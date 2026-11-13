@@ -118,7 +118,7 @@ describe("resolveAuth with a bearer token", () => {
     expect(error.exitCode).toBe(3)
     expect(error.message).toBe("Bearer auth is selected but the token is missing")
     expect(error.details.hint).toBe(
-      "Bearer auth was selected by --auth bearer. Looked up the token in --auth-token-stdin, PULSE_CLI_TOKEN, PULSE_CLI_TOKEN_COMMAND and a profile (none is selected). Fetch a token with the tool that issues it (e.g. az account get-access-token, gcloud auth print-access-token) and export PULSE_CLI_TOKEN=<token>, let pulse run that tool with export PULSE_CLI_TOKEN_COMMAND=<command>, pipe it into --auth-token-stdin, or store the name of its variable with `pulse config set <profile> --auth bearer --auth-token-env <VAR>`; --auth none switches bearer auth off.",
+      "Bearer auth was selected by --auth bearer. Looked up the token in --auth-token-stdin, PULSE_CLI_TOKEN, PULSE_CLI_TOKEN_COMMAND and a profile (none is selected). Fetch a token with the tool that issues it (e.g. az account get-access-token, gcloud auth print-access-token) and export PULSE_CLI_TOKEN=<token>, let pulse run that tool with export PULSE_CLI_TOKEN_COMMAND=<command>, pipe it into --auth-token-stdin, or store the name of its variable with `pulse config set <profile> --url <url> --auth bearer --auth-token-env <VAR>`; --auth none switches bearer auth off.",
     )
     const stored = failure(() => resolveAuth({}, {}, profile({ type: "bearer" })))
     expect(stored.details.hint).toContain(

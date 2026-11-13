@@ -1,5 +1,5 @@
-import type { BpmnProcessId, InstanceId } from "../../contract/index.js"
-import type { BackLink } from "../../core/protocol/index.js"
+import type { BpmnProcessId, InstanceId } from "@miragon/pulse-engine-core"
+import type { BackLink } from "@miragon/pulse-runtime-view/protocol"
 import {
   DefinitionPanel,
   EnginePanel,
@@ -10,15 +10,13 @@ import {
   type LocalModel,
   type MigrationTarget,
   type Panel,
-} from "../../core/index.js"
+} from "@miragon/pulse-runtime-view/core"
 import { currentAppearance, renderWebviewHtml } from "@miragon/modeler-shell/vscode/extension"
 import * as vscode from "vscode"
-import type { Connection } from "../connections/connection.js"
+import { type Connection, PanelOrigins, PanelTitle } from "@miragon/pulse-runtime-view/host-kit"
 import { EngineBulkRuns } from "../connections/engine-bulk-runs.js"
 import type { LiveWiring } from "../live/live-wiring.js"
 import { OpenPanel, THEMES, type SessionFactory } from "./open-panel.js"
-import { PanelOrigins } from "./panel-origins.js"
-import { PanelTitle } from "./panel-title.js"
 import { VsCodePanelEffects, type PanelHost, type PanelNavigator } from "./vscode-panel-effects.js"
 
 const VIEW_TYPE = "pulse.panel"

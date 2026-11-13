@@ -1,11 +1,13 @@
 /**
  * The bearer token command of PULSE_CLI_TOKEN_COMMAND end to end through `run()`: the
- * header on the wire, the run again after a 401, the cache per project, failures, masking in
- * --verbose and --dry-run, `ping`, `auth status|login|logout` and `config show`.
+ * header on the wire, the run again after a 401, one run for parallel reads, the cache per
+ * project, failures, masking in --verbose and --dry-run, `ping`, `auth status|login|logout` and
+ * `config show`.
  */
 
 import { describe, expect, it } from "vitest"
-import { jwtWith, VALID_CLAIMS } from "../../test/support/bearer.js"
+import { jwtWith, NOW_S, VALID_CLAIMS } from "../../test/support/bearer.js"
+import { workflowSetup } from "../../test/support/cli-workflow.js"
 import { fakeServer, json, type RecordedRequest } from "../../test/support/fake-fetch.js"
 import {
   CONFIG_PATH,
@@ -13,7 +15,8 @@ import {
   fakeRuntime,
   type FakeRuntimeOptions,
 } from "../../test/support/fake-runtime.js"
-import { TOKEN_DIR } from "../../test/support/oauth.js"
+import { authDeps, TOKEN_DIR } from "../../test/support/oauth.js"
+import { commandCachePath } from "../auth/command-cache.js"
 import { run } from "./run.js"
 
 const JWT = jwtWith(VALID_CLAIMS)
@@ -85,8 +88,8 @@ describe("token command sources", () => {
     const files = { [CONFIG_PATH]: profiles({ type: "bearer", tokenCommand: "c" }) }
     const stored = await cli(["task", "list"], { files })
     expect(stored.code).toBe(3)
-    expect(errorOf(stored.stderr).message).toContain(
-      "sets auth.tokenCommand, which pulse no longer reads",
+    expect(errorOf(stored.stderr).message).toBe(
+      'Profile "dev" of your config file cannot be used: auth.tokenCommand is no key of a profile.',
     )
     expect(stored.runtime.commandRuns).toEqual([])
   })
@@ -104,9 +107,20 @@ describe("token command sources", () => {
   })
 })
 
+/** The command cache of print-token holding `token`, printed a minute ago. */
+async function cachedAMinuteAgo(token: string): Promise<Record<string, string>> {
+  const path = await commandCachePath(ENV.PULSE_CLI_TOKEN_COMMAND, authDeps(fakeRuntime()))
+  return { [path]: JSON.stringify({ token, fetchedAt: NOW_S * 1000 - 60_000 }) }
+}
+
 describe("a token command and the engine", () => {
-  it("runs the command again after a 401 and retries with the new token", async () => {
-    const result = await cli(["task", "list"], { env: ENV, commands: printing(JWT, OTHER) }, OTHER)
+  it("runs the command again after a 401 for a token 30 s old or older, and retries", async () => {
+    const files = await cachedAMinuteAgo(JWT)
+    const result = await cli(
+      ["task", "list"],
+      { env: ENV, files, commands: printing(OTHER) },
+      OTHER,
+    )
     expect(result.code).toBe(0)
     expect(result.requests.map((request) => request.headers.authorization)).toEqual([
       `Bearer ${JWT}`,
@@ -114,8 +128,17 @@ describe("a token command and the engine", () => {
     ])
   })
 
+  it("keeps a token the command just printed after a 401: a new one would not help", async () => {
+    const result = await cli(["task", "list"], { env: ENV, commands: printing(JWT, OTHER) }, OTHER)
+    expect(result.code).toBe(4)
+    expect(result.requests).toHaveLength(1)
+    expect(result.runtime.commandRuns).toHaveLength(1)
+    expect(String(errorOf(result.stderr).hint)).toContain("pulse ran the command for this request")
+  })
+
   it("reports a 401 after the second run, naming the command", async () => {
-    const result = await cli(["task", "list"], { env: ENV, commands: printing(JWT, OTHER) }, "x")
+    const files = await cachedAMinuteAgo(JWT)
+    const result = await cli(["task", "list"], { env: ENV, files, commands: printing(OTHER) }, "x")
     expect(result.code).toBe(4)
     expect(result.requests).toHaveLength(2)
     const hint = String(errorOf(result.stderr).hint)
@@ -134,6 +157,66 @@ describe("a token command and the engine", () => {
     expect(opaque.commandRuns).toHaveLength(1)
     await execute(run, ["ping"], opaque)
     expect(opaque.commandRuns).toHaveLength(2)
+  })
+
+  // `status` and `inspect` send their reads in parallel: they share one run of the command
+  it.each([
+    ["status", "an opaque token", "opaque-1"],
+    ["inspect pi-1", "a JWT", JWT],
+  ])("runs it once for the parallel reads of %s, with %s", async (line, _kind, token) => {
+    const { engine, runtime, cli } = workflowSetup(run, "failed", {
+      env: ENV,
+      commands: printing(token, OTHER),
+    })
+    expect((await cli(line.split(" "))).code).toBe(0)
+    expect(runtime.commandRuns).toHaveLength(1)
+    expect(engine.requests.length).toBeGreaterThan(1)
+    const sent = new Set(engine.requests.map((request) => request.headers.authorization))
+    expect([...sent]).toEqual([`Bearer ${token}`])
+  })
+
+  it("runs it once for the 401s of parallel reads, and each read retries with its token", async () => {
+    const files = await cachedAMinuteAgo(JWT)
+    const refused: string[] = []
+    const { engine, runtime, cli } = workflowSetup(run, "failed", {
+      env: ENV,
+      files,
+      commands: printing(OTHER),
+      // the engine refuses the cached token, a minute old, and takes the one the command prints
+      fetch: (input, init) => {
+        if (new Headers(init?.headers).get("authorization") === `Bearer ${OTHER}`) {
+          return engine.fetch(input, init)
+        }
+        const url = new URL(input instanceof Request ? input.url : input)
+        refused.push(`${init?.method ?? "GET"} ${url.href}`)
+        return Promise.resolve(new Response("Jwt is expired", { status: 401 }))
+      },
+    })
+    expect((await cli(["status"])).code).toBe(0)
+    expect(runtime.commandRuns).toHaveLength(1)
+    expect(refused.length).toBeGreaterThan(1)
+    // every refused read went out once more, with the token of the one run
+    const accepted = engine.requests.map((request) => `${request.method} ${request.url}`)
+    const unretried = refused.filter((line) => {
+      const at = accepted.indexOf(line)
+      if (at >= 0) accepted.splice(at, 1)
+      return at < 0
+    })
+    expect(unretried).toEqual([])
+  })
+
+  it("runs a failing command once for the reads under way, and exits 4", async () => {
+    const { engine, runtime, cli } = workflowSetup(run, "failed", {
+      env: ENV,
+      commands: { exitCode: 7, stderr: "curl: (7) Failed to connect\n" },
+    })
+    const result = await cli(["inspect", "pi-1"])
+    // a read the failure left behind would run the command once more after the call returned
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(result.code).toBe(4)
+    expect(errorOf(result.stderr)).toMatchObject({ code: "LOGIN_FAILED" })
+    expect(runtime.commandRuns).toHaveLength(1)
+    expect(engine.requests).toEqual([])
   })
 
   it("caches the JWT of a command per working directory", async () => {
@@ -274,7 +357,7 @@ describe("pulse auth with a token command", () => {
     })
     const env = await cli(["auth", "login"], { env: ENV })
     expect(errorOf(env.stderr).hint).toBe(
-      "Bearer auth is selected by a token command from PULSE_CLI_TOKEN_COMMAND without an auth type: pulse runs the token command (PULSE_CLI_TOKEN_COMMAND) whenever it needs a token and never logs in itself; `pulse auth status` runs it and shows the token's claims and expiry. For an OAuth login run by pulse: unset PULSE_CLI_TOKEN_COMMAND and configure OAuth: pulse config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>.",
+      "Bearer auth is selected by a token command from PULSE_CLI_TOKEN_COMMAND without an auth type: pulse runs the token command (PULSE_CLI_TOKEN_COMMAND) whenever it needs a token and never logs in itself; `pulse auth status` runs it and shows the token's claims and expiry. For an OAuth login run by pulse: unset PULSE_CLI_TOKEN_COMMAND and configure OAuth: pulse config set <profile> --url <url> --auth oauth --oauth-issuer <url> --oauth-client-id <id>.",
     )
     expect(env.runtime.commandRuns).toEqual([])
   })
@@ -298,7 +381,7 @@ describe("config show with a token command", () => {
 describe("the cached token of a project", () => {
   it("is shared by the directories of a repository with a project file", async () => {
     const fake = server()
-    const files = { "/home/tester/repo/.pulse-cli.json": '{"profiles":{}}' }
+    const files = { "/home/tester/repo/.pulse.json": '{"profiles":{}}' }
     const options = {
       fetch: fake.fetch,
       env: { ...ENV, PULSE_CLI_URL: "http://localhost:8080/engine-rest" },

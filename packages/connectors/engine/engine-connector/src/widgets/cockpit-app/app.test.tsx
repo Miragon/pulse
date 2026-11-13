@@ -11,6 +11,7 @@ import type {
 import {
   ENGINE_COCKPIT_OVERVIEW_DATA,
   ENGINE_HEALTH_DATA,
+  ENGINE_JOB_BACKLOG_DATA,
   ENGINE_JOBS_DATA,
   ENGINE_LIST_ENGINES,
 } from "../../tool-names.js"
@@ -52,16 +53,35 @@ function boot(
 const FULLSCREEN = { displayMode: "fullscreen" } as const
 const INLINE = { displayMode: "inline" } as const
 
-/** `list` is mutable, so a test can reload it. */
+/** What the server answers for an engine whose profile it refused. */
+const REFUSED_TEXT =
+  '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask whoever runs this server to fix it.'
+
+/** `list` is mutable, so a test can reload it; its `refused` are the profiles the server refused. */
 function renderCockpit(
   bootstrap: CockpitAppData = boot(null, ENGINES),
-  list: { engines: CockpitAppData["engines"] } = { engines: ENGINES },
+  list: {
+    engines: CockpitAppData["engines"]
+    refused?: Array<{ id: string; environment?: string; reason: string }>
+  } = { engines: ENGINES },
   displayMode: typeof FULLSCREEN | typeof INLINE = FULLSCREEN,
 ) {
   const modelContexts: string[] = []
   const actions: HostAction[] = []
-  const listEngines = () => ({ engines: list.engines, environments: [], defaultEngineId: "prod-b" })
-  const overview = (args: Record<string, unknown>) => ({
+  const listEngines = () => ({
+    engines: list.engines,
+    environments: [],
+    defaultEngineId: "prod-b",
+    ...(list.refused ? { refused: list.refused } : {}),
+  })
+  const refusedEngine = (args: Record<string, unknown>) => {
+    if (list.refused?.some(({ id }) => id === args.engine)) throw new Error(REFUSED_TEXT)
+  }
+  const overview = (args: Record<string, unknown>) => {
+    refusedEngine(args)
+    return overviewOf(args)
+  }
+  const overviewOf = (args: Record<string, unknown>) => ({
     summary: {
       totalDefinitions: 0,
       totalRunningInstances: 0,
@@ -71,7 +91,11 @@ function renderCockpit(
     definitions: [],
     engineId: args.engine,
   })
-  const health = (args: Record<string, unknown>): EngineHealthData => ({
+  const health = (args: Record<string, unknown>): EngineHealthData => {
+    refusedEngine(args)
+    return healthOf(args)
+  }
+  const healthOf = (args: Record<string, unknown>): EngineHealthData => ({
     status: "ok",
     statusRule: "ok without open incidents",
     summary: {
@@ -94,6 +118,13 @@ function renderCockpit(
     [ENGINE_COCKPIT_OVERVIEW_DATA]: overview,
     [ENGINE_HEALTH_DATA]: health,
     [ENGINE_JOBS_DATA]: () => JOBS_DATA,
+    [ENGINE_JOB_BACKLOG_DATA]: (args: Record<string, unknown>) => ({
+      executableJobs: 0,
+      suspendedJobs: 0,
+      jobsDueLater: 0,
+      externalTasks: 0,
+      engineId: String(args.engine),
+    }),
   }
   const host = (data: CockpitAppData) => (
     <TestViewHost
@@ -113,6 +144,40 @@ function renderCockpit(
     actions.flatMap((a) => (a.type === "callTool" && a.name === feed ? [a.args] : []))
   return { modelContexts, redeliver, reads }
 }
+
+/** A profile the server refused: the picker lists it as not answering, and opening it says why. */
+describe("CockpitApp lists a refused engine with the others", () => {
+  const REFUSED = [{ id: "locked", environment: "prod", reason: "auth.tokenEnv is missing." }]
+
+  it("the picker shows it among the engines, its profile refused in words", async () => {
+    renderCockpit(boot(null, ENGINES), { engines: ENGINES, refused: REFUSED })
+    expect(
+      await screen.findByRole("button", { name: /^locked\b.*refused$/ }, { timeout: 5_000 }),
+    ).toBeTruthy()
+    expect(screen.getByRole("button", { name: /^prod-a\b/ })).toBeTruthy()
+  })
+
+  it("keeps the order of the profiles when the engine list answers", async () => {
+    // The start data names the profiles in their order, the list names the usable ones first.
+    const locked = { id: "locked", environment: "default" }
+    const refused = [{ ...locked, reason: "auth.tokenEnv is missing." }]
+    renderCockpit(boot(null, [ENGINES[0], locked, ENGINES[1]]), { engines: ENGINES, refused })
+    // The list names prod-b the default: once that shows, the list has answered.
+    await screen.findByRole("button", { name: /^prod-b\b.*\bdefault\b/ }, { timeout: 5_000 })
+    const rows = screen.getAllByRole("button", { name: /^(prod-a|prod-b|locked)\b/ })
+    expect(rows.map((row) => row.textContent?.slice(0, 6))).toEqual(["prod-a", "locked", "prod-b"])
+  })
+
+  it("opening it shows why it cannot be used, from the server's code", async () => {
+    renderCockpit(boot(null, ENGINES), { engines: ENGINES, refused: REFUSED })
+    fireEvent.click(await screen.findByRole("button", { name: /^locked\b/ }))
+    expect(
+      await screen.findByText("Engine locked cannot be used: its profile is refused", undefined, {
+        timeout: 5_000,
+      }),
+    ).toBeTruthy()
+  })
+})
 
 describe("CockpitApp navigation is side-effect free", () => {
   // Navigation never moves the default engine, so the model must learn the viewed engine.
@@ -197,6 +262,35 @@ describe("CockpitApp reconciles its engine scope with the engine list", () => {
     renderCockpit(boot("prod-a", THREE), { engines: THREE.slice(1) })
     await waitFor(() => expect(onLanding()).toBe(true))
     expect(screen.getByText(/prod-a is no longer configured on this server/)).toBeTruthy()
+  })
+})
+
+/** The cross-engine overview reads the engines themselves: no other module gates it. */
+describe("CockpitApp offers the cross-engine overview with two engines or more", () => {
+  it("from the picker, with nothing but the engine module's feeds", async () => {
+    const { reads } = renderCockpit()
+    fireEvent.click(await screen.findByRole("button", { name: "Cross-engine overview" }))
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Cross-engine overview" }),
+    ).toBeTruthy()
+    expect(screen.getByRole("region", { name: "Process landscape" })).toBeTruthy()
+    await waitFor(() => expect(reads(ENGINE_JOB_BACKLOG_DATA)).toHaveLength(2))
+  })
+
+  it("from an engine's head", async () => {
+    renderCockpit(boot("prod-a", ENGINES))
+    await waitFor(() => expect(activeEngine()).toBe("prod-a"))
+    fireEvent.click(screen.getByRole("button", { name: "Cross-engine overview" }))
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Cross-engine overview" }),
+    ).toBeTruthy()
+  })
+
+  it("not with one engine", async () => {
+    const solo = [{ id: "solo", environment: "default" }]
+    renderCockpit(boot("solo", solo), { engines: solo })
+    expect(await screen.findByRole("heading", { name: "solo · Overview" })).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "Cross-engine overview" })).toBeNull()
   })
 })
 

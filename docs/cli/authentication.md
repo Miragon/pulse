@@ -3,15 +3,16 @@
 `pulse` supports [Basic auth](#basic-auth), [OAuth 2.0](#oauth) (authorization code flow with
 PKCE, for Keycloak, Microsoft Entra ID, Auth0 or another OpenID Connect provider),
 [bearer tokens](#bearer-tokens) you get elsewhere, [token commands](#token-commands) that fetch
-one, and [headers](#other-headers) for other schemes.
+one, and [headers](#other-headers) for other schemes. Every option: `pulse auth <command> --help`.
 
 - The type comes from `--auth none|basic|oauth|bearer`, `PULSE_CLI_AUTH` or the profile. Without
   one, a username selects `basic` and a token selects `bearer`. OAuth is never implied.
-- Each value resolves on its own: flag > environment variable > profile. With `--url` or
-  `PULSE_CLI_URL` set, the profile's credentials go to that URL: check `pulse config show`.
-- Secrets are never plain flags and are masked (`***`) in output unless `--show-secrets`.
-
-Every option: `pulse auth <command> --help`.
+- Each value resolves on its own: flag > environment variable > profile. A URL without `--profile`
+  (`--url` or `PULSE_CLI_URL`) selects [no profile](configuration.md#profiles), so no profile's
+  credentials or headers go along. Beside `--profile` either URL replaces the profile's URL, so its
+  credentials and headers go there; a `--url` of another origin fails if your own profile holds one.
+- Secrets are never plain flags and are masked (`***`) in output unless `--show-secrets`. In an
+  engine's error text (`message`, `engineMessage`) they stay masked even then.
 
 ## Basic auth
 
@@ -79,9 +80,13 @@ $ pulse process-instance list --profile sso
   `ssh -L 8765:127.0.0.1:8765 host` and open the URL locally.
 - `auth status` shows user, scopes and expiry without network access; exit 4 when a new login is
   needed. `auth logout` revokes the refresh token (if the provider supports it) and removes the
-  login.
+  login. A URL without `--profile` uses the login of the `PULSE_CLI_OAUTH_*` variables: give
+  `auth login`, `status` and `logout` the same `--url`, or run them with the same `PULSE_CLI_URL`.
 - Tokens are cached in `~/.config/pulse-cli/tokens` (mode `0600`). Changing issuer, client, audience
   or scopes needs a new login.
+- A token is refreshed a tenth of its lifetime before it expires, at most 60 s and at least 5 s
+  before; one of unknown lifetime only after a 401. After a 401 only a token at least 30 s old is
+  refreshed and the request retried: a younger one was refused for its issuer, audience or clock.
 - `UNAUTHORIZED` or `FORBIDDEN` after a successful login are gateway (issuer, audience, clock) or
   permission problems, not login problems: do not ask for a new login. The gateway must expect exactly the issuer URL the CLI
   logs in with (`localhost` and `127.0.0.1` differ).
@@ -109,8 +114,7 @@ Client registration:
   `http://127.0.0.1/callback`, issuer `https://login.microsoftonline.com/<tenant-id>/v2.0`, and the
   API as a scope, e.g. `--oauth-scopes 'openid offline_access api://<app-id>/.default'`.
 - **Auth0**: issuer `https://<tenant>.auth0.com/` with the trailing slash, the API identifier as
-  `--oauth-audience`, redirect URI `http://127.0.0.1:8765/callback` with
-  `--oauth-redirect-port 8765`.
+  `--oauth-audience`, redirect URI `http://127.0.0.1:8765/callback` with `--oauth-redirect-port 8765`.
 
 ## Bearer tokens
 
@@ -134,8 +138,8 @@ pulse config set ci --url https://camunda.example.com/engine-rest --auth bearer 
 
 - `PULSE_CLI_TOKEN` or `--auth-token-stdin` select `bearer` when no type is set. An explicit `basic`
   or `oauth` type wins: add `--auth bearer` or `PULSE_CLI_AUTH=bearer`.
-- A JWT whose `exp` has passed fails before any request with `TOKEN_EXPIRED` (exit 4). Fetch a new
-  token, or use a [token command](#token-commands). Opaque tokens are sent as they are.
+- A JWT more than 30 s past its `exp` fails before any request with `TOKEN_EXPIRED` (exit 4). Fetch
+  a new token, or use a [token command](#token-commands). Opaque tokens are sent as they are.
 - `pulse auth status` shows the token's source and, for a JWT, its claims and expiry.
 
 ## Token commands
@@ -152,11 +156,11 @@ pulse task list
 
 - Token sources in order: `--auth-token-stdin`, `PULSE_CLI_TOKEN`, `PULSE_CLI_TOKEN_COMMAND`, then
   the profile's `tokenEnv` or `token`.
-- It runs in the working directory with stdin closed and must print the token, not JSON (use
-  e.g. `jq -r .access_token`). Use an absolute path or no path: a relative one runs the script of
-  whatever directory the CLI runs in.
-- A JWT is cached until shortly before it expires, also for later and parallel calls. After a 401
-  the CLI runs the command once more and retries.
+- It runs in the working directory with stdin closed and must print the token, not JSON (use e.g.
+  `jq -r .access_token`); all reads under way at once share one run (`status` sends several). Use
+  an absolute path or no path: a relative one runs the script of whatever directory the CLI runs in.
+- A JWT is cached until due (like an OAuth token), also for later calls; an opaque token within its
+  call until a 401. A 401 to a token at least 30 s old runs the command again and retries once.
 - A failing command exits 4 with `LOGIN_FAILED` and the end of its stderr. `auth status` runs it
   and shows the claims, `auth logout` removes the cached token.
 
@@ -172,5 +176,5 @@ configuration error. Secret headers are masked unless `--show-secrets`.
 
 ```sh
 export PULSE_CLI_HEADERS='X-API-Key: k-7f3a...'
-pulse config set prod --header 'X-Tenant-Id: acme'
+pulse config set prod --url https://camunda.example.com/engine-rest --header 'X-Tenant-Id: acme'
 ```

@@ -129,7 +129,8 @@ jobs:
           mkdir -p "$RUNNER_TEMP/vsix"
           pnpm --fail-if-no-match --filter "${NAME}" run package --out "$RUNNER_TEMP/vsix/${VSIX}"
 
-      # The same list as ci.yml's vscode-package job.
+      # The same list as ci.yml's vscode-package job, which
+      # apps/vscode/test/architecture/third-party-licenses.test.ts holds equal.
       - name: Check the package
         env:
           VSIX: ${{ steps.pkg.outputs.vsix }}
@@ -137,7 +138,7 @@ jobs:
         run: |
           vsix="$RUNNER_TEMP/vsix/${VSIX}"
           listing="$(unzip -Z1 "$vsix")"
-          for file in extension/package.json extension/dist/extension.cjs extension/dist/webview.js extension/dist/webview.css; do
+          for file in extension/package.json extension/dist/extension.cjs extension/dist/webview.js extension/dist/webview.css extension/schemas/board.schema.json extension/THIRD_PARTY_LICENSES.txt; do
             if ! grep -qxF "$file" <<<"$listing"; then
               echo "::error::The .vsix lacks ${file}"
               exit 1

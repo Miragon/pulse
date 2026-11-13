@@ -3,7 +3,7 @@
  * default condition `idle`) or, with `--batch`, for a batch.
  */
 
-import { type EndedInstance, instanceRequests, selectionRequests } from "@miragon/pulse-engine-core"
+import { type EndedInstance, instanceRequests, selectionRequests } from "@miragon/pulse-c7-core"
 import { type BatchView, batchRequests, waitForBatch } from "./batch.js"
 import { checkSelection, type Selection, selectInstance } from "./select.js"
 import type { InstanceView, WorkflowResult } from "./types.js"

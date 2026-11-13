@@ -7,6 +7,7 @@
  */
 
 import { posix, win32 } from "node:path"
+import { refusalOf } from "./profile-file.js"
 import {
   type ConfigFile,
   DEFAULT_OAUTH_SCOPES,
@@ -75,14 +76,16 @@ export function originOf(file: LoadedConfig, name: string): string | undefined {
 }
 
 /**
- * The OAuth profiles of `file` that use the login of `key`, in file order. A config file read
- * on its own is one origin: pass it as `{ ...file, origin }`.
+ * The OAuth profiles of `file` that use the login of `key`, in file order; a profile the file
+ * refuses never logs in. A config file read on its own is one origin: pass it as
+ * `{ ...file, origin }`.
  */
 export function loginProfiles(file: LoadedConfig | undefined, key: LoginKey): string[] {
   const profiles: ConfigFile["profiles"] = file?.profiles ?? {}
   return Object.entries(profiles)
     .filter(([name, profile]) => {
-      if (file === undefined || profile.auth?.type !== "oauth") return false
+      if (file === undefined || refusalOf(file, name) !== undefined) return false
+      if (profile.auth?.type !== "oauth") return false
       const origin = originOf(file, name)
       return origin !== undefined && sameLoginKey(loginKeyOf(origin, profile.auth), key)
     })

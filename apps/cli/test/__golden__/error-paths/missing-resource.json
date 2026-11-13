@@ -1,0 +1,44 @@
+{
+  "case": "missing-resource",
+  "config": {
+    "PULSE_CLI_URL": "http://127.0.0.1:<port>/engine-rest"
+  },
+  "probes": [
+    {
+      "argv": [
+        "process-instance",
+        "get",
+        "pi-1"
+      ],
+      "exitCode": 5,
+      "sent": [
+        "GET /engine-rest/process-instance/pi-1"
+      ],
+      "stderrLines": [
+        "{\"error\":{\"code\":\"NOT_FOUND\",\"exitCode\":5,\"message\":\"HTTP 404 Not Found: Process instance with id pi-1 does not exist\",\"status\":404,\"engineType\":\"InvalidRequestException\",\"engineMessage\":\"Process instance with id pi-1 does not exist\",\"hint\":\"Check the id or key. List the existing ones with `pulse process-instance list`.\",\"request\":{\"method\":\"GET\",\"url\":\"http://127.0.0.1:<port>/engine-rest/process-instance/pi-1\"}}}",
+        ""
+      ],
+      "stdoutLines": [
+        ""
+      ]
+    },
+    {
+      "argv": [
+        "inspect",
+        "pi-1"
+      ],
+      "exitCode": 5,
+      "sent": [
+        "GET /engine-rest/history/process-instance/pi-1",
+        "GET /engine-rest/process-instance/pi-1"
+      ],
+      "stderrLines": [
+        "{\"error\":{\"code\":\"NOT_FOUND\",\"exitCode\":5,\"message\":\"Process instance pi-1 does not exist (neither running nor in the history)\",\"hint\":\"List instances with `pulse process-instance list` (running) or `pulse historic-process-instance list` (also ended); with history level none, ended instances cannot be found.\"}}",
+        ""
+      ],
+      "stdoutLines": [
+        ""
+      ]
+    }
+  ]
+}

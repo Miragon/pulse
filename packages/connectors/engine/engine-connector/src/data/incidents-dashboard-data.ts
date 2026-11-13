@@ -1,6 +1,6 @@
-import type { Client } from "@miragon/pulse-engine-client"
-import { latestEngineDate, toEngineDate } from "@miragon/pulse-engine-core"
-import { getIncidentsCount } from "@miragon/pulse-engine-client/sdk"
+import type { Client } from "@miragon/pulse-c7-client"
+import { latestEngineDate, toEngineDate } from "@miragon/pulse-c7-core"
+import { getIncidentsCount } from "@miragon/pulse-c7-client/sdk"
 import type {
   IncidentsDashboardActivity,
   IncidentsDashboardData,
@@ -66,7 +66,7 @@ export async function buildIncidentsDashboardData(
   const shown = [...statsByKey.entries()]
     .filter(([key, stats]) => stats.incidentCount > 0 && matchesKey(key, options))
     .sort((a, b) => b[1].incidentCount - a[1].incidentCount)
-  // A Modeler pool around an unnamed process names its card, as analytics names it.
+  // A Modeler pool around an unnamed process names its card, as every view names it.
   await nameUnnamedDefinitions(
     client,
     shown.map(([, stats]) => stats.latest),

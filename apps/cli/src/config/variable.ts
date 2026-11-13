@@ -4,13 +4,13 @@
  * (`--oauth-client-secret-env`, auth.clientSecretEnv) and the bearer token (`--auth-token-env`,
  * auth.tokenEnv). Many secrets are valid variable names (GitHub's `ghp_...`, passwords without
  * special characters), so a secret typed in place of the name must not be repeated: messages name
- * a variable only in the usual form, and `config set` refuses an unset name in another form
- * before anything is stored.
+ * a variable only in the usual form (the profile format's `isConventionalVariable`), and
+ * `config set` refuses an unset name in another form before anything is stored.
  */
 
+import { ENV_NAME, isConventionalVariable } from "@miragon/pulse-profile"
 import { configError } from "./config-error.js"
 import type { Env } from "./pick.js"
-import { ENV_NAME } from "./syntax.js"
 
 /** A secret that a profile keeps in an environment variable, as messages name it. */
 export interface SecretVariable {
@@ -48,20 +48,6 @@ export const TOKEN_VARIABLE: SecretVariable = {
   noun: "token",
   placeholder: "<token>",
   example: "CI_ENGINE_TOKEN",
-}
-
-/** A variable name as people write them: upper case letters, digits and "_", at most 64. */
-const CONVENTIONAL_NAME = /^[A-Z_][A-Z0-9_]{0,63}$/
-/** Longest word between "_" of a conventional name; longer runs look like a random token. */
-const MAX_WORD = 24
-
-/**
- * True for a variable name in the usual form. Secrets that are valid variable names (GitHub's
- * `ghp_...`, long alphanumeric reference tokens, most passwords) are not, so messages never
- * repeat them.
- */
-export function isConventionalVariable(name: string): boolean {
-  return CONVENTIONAL_NAME.test(name) && name.split("_").every((word) => word.length <= MAX_WORD)
 }
 
 /**

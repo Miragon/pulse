@@ -1,15 +1,15 @@
 /**
- * The read composites on @miragon/pulse-engine-core, the workflow domain pulse-cli runs too: one
+ * The read composites on @miragon/pulse-c7-core, the workflow domain pulse-cli runs too: one
  * call answers what took several reads (`engine_inspect_process_instance`,
  * `engine_status`). Each takes the input of its schema (`inspectProcessInstanceInput`,
  * `engineStatusInput` in `src/schemas/`) and the client `withEngine` resolved, and returns plain data
  * for the model: no next steps (they would name tools a toolset may lack), the engine by its id,
- * variables cut like every read, and the lists engine-core leaves uncapped for the CLI (wait
+ * variables cut like every read, and the lists c7-core leaves uncapped for the CLI (wait
  * states, incidents, timeline, variables, definitions, topics) capped here, each cut named in
- * `truncated`. The caps bound the result, not the reads: engine-core still loads the whole lists.
+ * `truncated`. The caps bound the result, not the reads: c7-core still loads the whole lists.
  */
 
-import type { Client } from "@miragon/pulse-engine-client"
+import type { Client } from "@miragon/pulse-c7-client"
 import type { engineStatusInput, inspectProcessInstanceInput } from "../../schemas/index.js"
 import {
   criticalIncidentsRule,
@@ -22,7 +22,7 @@ import {
   type Selection,
   type TimelineEntry,
   type VerdictThresholds,
-} from "@miragon/pulse-engine-core"
+} from "@miragon/pulse-c7-core"
 import type { z } from "zod"
 import { boundFailureText, condenseStacktrace } from "../mcp/failure-text.js"
 import { enginePortFor } from "./engine-port.js"
@@ -33,9 +33,9 @@ export type InspectArgs = z.infer<typeof inspectProcessInstanceInput>
 export type EngineStatusArgs = z.infer<typeof engineStatusInput>
 
 /**
- * What each finding code of engine-core's triage says, under its severity (INCIDENTS_CRITICAL with
+ * What each finding code of c7-core's triage says, under its severity (INCIDENTS_CRITICAL with
  * the thresholds in force); `statusRule` is built from it, and `composites-status.wire.test.ts`
- * holds its codes and severities to the findings engine-core raises.
+ * holds its codes and severities to the findings c7-core raises.
  */
 export const FINDING_RULES: Readonly<
   Record<
@@ -66,7 +66,7 @@ function saying(severity: "critical" | "warning", thresholds: VerdictThresholds)
 }
 
 /**
- * How the status comes about (engine-core's verdict, by the thresholds the cockpit's overview
+ * How the status comes about (c7-core's verdict, by the thresholds the cockpit's overview
  * judges with) and what its counts mean.
  */
 export function statusRule(thresholds: VerdictThresholds): string {
@@ -80,9 +80,9 @@ export function statusRule(thresholds: VerdictThresholds): string {
 /** Timeline entries and variables the model gets at most (the newest entries, the first names). */
 export const MAX_TIMELINE_ENTRIES = 100
 export const MAX_VARIABLES = 100
-/** Wait states the model gets at most, in engine-core's order (by tree depth, instance, activity). */
+/** Wait states the model gets at most, in c7-core's order (by tree depth, instance, activity). */
 export const MAX_WAIT_STATES = 100
-/** Root-cause incidents the model gets at most: the oldest, the ones engine-core loads causes for. */
+/** Root-cause incidents the model gets at most: the oldest, the ones c7-core loads causes for. */
 export const MAX_INCIDENTS = 10
 /** Definitions, external-task topics and incident groups of the status. */
 export const MAX_STATUS_ROWS = 10
@@ -96,7 +96,7 @@ function withoutNext<T extends { next: unknown }>(entry: T): Omit<T, "next"> {
 
 /**
  * `port` that keeps the whole text of every stacktrace and error-details read by its id (the job
- * or external task); engine-core hands on only the first 200 lines, which can end before the
+ * or external task); c7-core hands on only the first 200 lines, which can end before the
  * Caused-by chain.
  */
 function recordingTexts(port: EnginePort, texts: Map<string, string>): EnginePort {
@@ -139,7 +139,7 @@ function cappedVariables(variables: Readonly<Record<string, unknown>>, notes: st
   return truncatePlainVariables(Object.fromEntries(entries.slice(0, MAX_VARIABLES)))
 }
 
-/** The newest `MAX_TIMELINE_ENTRIES` entries; engine-core orders the timeline oldest first. */
+/** The newest `MAX_TIMELINE_ENTRIES` entries; c7-core orders the timeline oldest first. */
 function cappedTimeline(timeline: readonly TimelineEntry[], notes: string[]) {
   if (timeline.length <= MAX_TIMELINE_ENTRIES) return timeline
   notes.push(`timeline: the newest ${MAX_TIMELINE_ENTRIES} of ${timeline.length} entries shown`)
@@ -150,9 +150,9 @@ const RUNNING: ReadonlySet<string> = new Set(["ACTIVE", "SUSPENDED"])
 
 /**
  * The view for the model: data, no next steps, condensed stacktraces, every list cut.
- * engine-core's `truncated: true` (the called-instance tree was cut) becomes a note among the
+ * c7-core's `truncated: true` (the called-instance tree was cut) becomes a note among the
  * others, so `truncated` reads like the status's: what was cut, and of how many. An ended
- * instance has no `children`: engine-core reads called instances from the running tree only, so
+ * instance has no `children`: c7-core reads called instances from the running tree only, so
  * an empty list would claim it called none (its timeline names them).
  */
 type ModelInstanceView = Omit<
@@ -231,7 +231,7 @@ export async function engineStatusForModel(
   engineId: string,
   thresholds: VerdictThresholds,
 ) {
-  // trimmed, unlike the contract's engineKeyList: a key of spaces names no definition either
+  // trimmed, unlike c7-core's engineKeyList: a key of spaces names no definition either
   const keys = (args.processDefinitionKeyIn ?? []).filter((key) => key.trim() !== "")
   const data = await readStatus(
     { port: enginePortFor(client), now: () => Date.now() },
@@ -239,7 +239,7 @@ export async function engineStatusForModel(
   )
   const notes = [...(data.truncated ?? [])]
   const named = namedTopics(data.findings)
-  // the topics a finding names first (engine-core sorts them by name), so the cut keeps their rows
+  // the topics a finding names first (c7-core sorts them by name), so the cut keeps their rows
   const topics = [
     ...data.externalTasks.filter((row) => named.has(row.topic)),
     ...data.externalTasks.filter((row) => !named.has(row.topic)),

@@ -1,7 +1,7 @@
 # User interface
 
 - Status: accepted
-- Last reviewed: 2026-10-26 (boards, see [boards.md](boards.md); live updates, see [live-updates.md](live-updates.md); moving a token; bulk cancel, see [writes.md](writes.md); migration, see [migrations.md](migrations.md))
+- Last reviewed: 2026-11-12 (a button beside the "can't move" sign copies the CLI command its reason names); 2026-11-09 (the Engines tree's problems in the profile format's words, a cockpitUrl's trailing `#/` dropped); 2026-11-08 (the tones of Pulse's situation table; times, durations, counts and short ids from Pulse's formatters; 2026-10-26: boards, see [boards.md](boards.md); live updates, see [live-updates.md](live-updates.md); moving a token; bulk cancel, see [writes.md](writes.md); migration, see [migrations.md](migrations.md))
 
 ## Context
 
@@ -15,7 +15,7 @@ guidelines.
 
 ### Name
 
-**Pulse**, the name of Miragon's process analytics and operations for the Camunda 7
+**Pulse**, the name of Miragon's process operations for the Camunda 7
 family ([Miragon/pulse](https://github.com/Miragon/pulse), an MCP server). Same engines, same
 questions, another surface: this extension is Pulse inside VS Code. The Marketplace shows
 "Miragon Pulse" because the bare name is crowded there. Not "Operate" (Camunda 8's app and
@@ -25,10 +25,10 @@ Miragon's CLI) and not "Cockpit" (Camunda 7's webapp).
 
 | Surface                           | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Activity Bar container _Pulse_    | One native tree, **Engines** (engine › definitions with `vN · n running` and a red incident decoration; a click on an engine opens its overview, the twistie expands it; on top, an error item per problem of a broken `.pulse-cli.json`, e.g. `.pulse-cli.json: the file is not valid JSON`, and a warning item per project file under the CLI's former name, each opening its file); open incidents show as the red decoration and count per definition, and in the engine overview's _With incident_ scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Activity Bar container _Pulse_    | One native tree, **Engines** (engine › definitions with `n running in all versions · latest vN` and a red incident decoration; a click on an engine opens its overview, the twistie expands it; on top, an error item per problem of a broken `.pulse.json`, e.g. `.pulse.json: The text is not valid JSON (line 1, column 2).`, a warning item per note on the file's root, an error item per project file under its former name, each opening its file); open incidents show as the red decoration and count per definition, and in the engine overview's _With incident_ scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | Activity Bar view **Boards**      | One entry per `.pulse/boards/*.board.json`, named by the board's title with its file name beside it, an error icon and the problem count on a broken file; shown only when the workspace has a board; **New Board…** in its title bar and in the Engines menu ([boards.md](boards.md))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| Webview editor tab **Board**      | "Shop operations · Board": the header names the board and its engines, Refresh and Open file, never an access chip (each engine has its own); one strip per engine that failed (with Set credentials… or Edit connection…) or is not in `.pulse-cli.json` (Edit connection…), a line of the engines that answered (production name in red when configured), then rows of cards that stack below 760 px. A counter shows the total, "from 2 of 3 engines" when one is missing, the threshold and which engines crossed it, one clickable line per engine ("not read" where it was not); an instance list is one table with an Engine column, the rows of each engine together and "showing 50 of 1,204" per engine below it; a process diagram is the definition panel's canvas, 320 px high, with its badges and Open process, and a click on a count opens the process at that element; an incident list is one table of Engine, Process, Element, Message and Since with "first 50, more open" per engine; a broken file lists each problem with its path and reason above the last valid board                                                                                                                                                            |
-| Webview editor tab **Engine**     | One per engine, "shop-dev · Processes": the header names product and version from `describeEngine`, access, freshness, Refresh and the web UI's start page; one filter bar (scopes _All · With incident_ with counts, search by name or BPMN process id, the engine's summary "3 processes · 172 running · 10 with incident"); a table Process (name, BPMN process id muted) · Latest version · Running · With incident (red above 0), incidents first, then running, then name. A row opens the definition panel at the latest version (the tab the Engines tree opens), Ctrl/Cmd+click to the side                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Webview editor tab **Board**      | "Shop operations · Board": the header names the board and its engines, Refresh and Open file, never an access chip (each engine has its own); one strip per engine that failed (with Set credentials… or Edit connection…) or is not in `.pulse.json` (Edit connection…), a line of the engines that answered (production name in red when configured), then rows of cards that stack below 760 px. A counter shows the total, "from 2 of 3 engines" when one is missing, the threshold and which engines crossed it, one clickable line per engine ("not read" where it was not); an instance list is one table with an Engine column, the rows of each engine together and "showing 50 of 1,204" per engine below it; a process diagram is the definition panel's canvas, 320 px high, with its badges and Open process, and a click on a count opens the process at that element; an incident list is one table of Engine, Process, Element, Message and Since with "first 50, more open" per engine; a broken file lists each problem with its path and reason above the last valid board                                                                                                                                                                |
+| Webview editor tab **Engine**     | One per engine, "shop-dev · Processes": the header names product and version from `describeEngine`, access, freshness, Refresh and the web UI's start page; one filter bar (scopes _All · With incident_ with counts, search by name or BPMN process id, the engine's summary "3 processes · 172 running · 10 with incident · all versions", the scope of every count in the table); a table Process (name, BPMN process id muted) · Latest version · Running · With incident (red above 0), incidents first, then running, then name. A row opens the definition panel at the latest version (the tab the Engines tree opens), Ctrl/Cmd+click to the side                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | Webview editor tab **Definition** | The header names the process (its BPMN process id when it has no name) and the version picker, not the id beside the name. Deployed diagram of one version with a badge cluster per element (running, incidents, incidents in called instances; a click on a count filters the instances to the element and its scope, _With incident_ for both incident counts, _Running_ for the blue one), a jump into each called process, version picker with per-version counts, _Open model_ in the header when a local `.bpmn` declares the process (centred on the filtered element, the tooltip says when the file differs from the deployed version) and a code button on the filtered element's shape when its code is found, notices (older versions still running, drift), one filter bar above the instance table (scopes _Running · With incident · Ended · All_ with counts, element filter, business-key search, badge legend behind `?`); on a writable engine a checkbox column, a selection bar and a bulk strip to cancel or migrate many instances                                                                                                                                                                                                    |
 | Webview editor tab **Migration**  | One per engine and process, "Order fulfillment v2 → v3 · shop-dev": the target picker in the header, the source and target diagrams side by side (stacked below 900 px), the mapping table with one select per element, the action row with the summary and Migrate or what blocks it, and the shared bulk strip ([migrations.md](migrations.md))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | Webview editor tab **Instance**   | A code button on the shape of the clicked element and of every incident element whose code is found, a header with id, definition, caller and start (or end) to the millisecond but no state or incident label (the diagram, the Incidents tab and its count say that), a strip docked under the header only for several incidents (their count and the first root cause, no actions) or a suspended or ended instance, waiting and incident markers, the path it took (done elements and taken flows in green), a jump into the called instances of each call activity and back to the caller, tabs History (each element run with start and end to the millisecond, and duration) / Incidents (each card with what the local model configures on the element, its file and whether it differs from the deployed version, _Open in model_ and _Open code_, all only when found, plus the actions the strip does not already offer for that incident; no message the root cause already repeats, no engine type beside the incident id; [local-sources.md](local-sources.md)) / Waiting / Variables in one bar with the marker legend behind `?`, engine types and scopes, an inline editor per editable variable, links into called instances, copy buttons |
@@ -42,15 +42,26 @@ confronted with runtime data (#1688).
 ### Visual language
 
 - The webview uses only Miragon `--cd-*` tokens (mostly the `--cd-ui-*` roles) from
-  vendored, unchanged token files (`apps/vscode/src/webview/theme/`); no `--vscode-*` colour
+  vendored, unchanged token files (`packages/core/runtime-view/src/webview/theme/`); no `--vscode-*` colour
   (ESLint enforces it). The
   renderer draws with the two light roles plot and text; they are constants that a drift
   test pins to `cd-tokens.generated.json`, so the bundle carries no token map it does not
-  read (303 B gzip). Native surfaces use VS Code theme colours only.
+  read (303 B gzip); `diagram/canvas-roles.ts` is the one file pulse-ui's colour gate allows
+  a raw colour in (`apps/vscode/test/architecture/brand-gates.test.ts`). The repository's
+  token drift test holds each token the vendored copies share (this one, pulse-ui's and the
+  docs kit's) to one value per scope. Native surfaces use VS Code theme colours only.
 - Light, dark and high contrast switch by CSS only: the cd-canvas role classes are
   assigned to the rendered SVG once per import; viewbox and overlays stay.
 - One severity ladder: incident (danger, full badge), incident in a called instance
-  (outline), running (blue badge), stale (outline). No state by colour alone, no green
+  (outline), running (blue badge), stale (outline). The tones of a state are Pulse's, the same
+  the MCP widgets show: the state labels take theirs from `SITUATION_TONES`
+  (`@miragon/pulse-ui/tones`: running info, suspended and ended neutral, an incident danger), and
+  `packages/core/runtime-view/test/webview/situation-tones.test.tsx` holds them to that table by their rendered
+  colour, the labels and the incident flag in the light and dark themes with and without high
+  contrast, the badges in the light theme: the filled ones keep the palette's full colour under
+  white text in every theme. The table tones a state only; the diagram's green path (the elements
+  an instance passed, the flows it took) and a notice's strip are drawings of the extension's own.
+  No state by colour alone, no green
   "healthy", no greyed-out write buttons; production is red only when configured
   (`pulse.environments`), never guessed from a name. The panel headers name neither
   engine nor environment (a board's names its engines, since it spans several): the Engines
@@ -60,14 +71,22 @@ confronted with runtime data (#1688).
   webview draws Lucide's geometry itself: `components/lucide-glyphs.json` holds the
   glyphs it uses, copied from lucide-preact 1.61.0 with Lucide's ISC and Feather's MIT
   notice, and `Icon` renders them. lucide-preact's runtime and per-path keys cost
-  2.1 kB gzip of the bundle budget; a new icon is one more entry in that file.
+  2.1 kB gzip of the bundle budget; a new icon is one more entry in that file. An icon is
+  16 px in the chrome and 12 px beside dense text and on the diagram's 20 px overlays
+  (count and move badges, the code and move buttons, inline links and warnings): 12 px is a
+  named deviation from the design system's 16 and 24 px, the one other size `Icon` takes,
+  and pulse-ui's icon size gate allows it only in the files
+  `apps/vscode/test/architecture/brand-gates.test.ts` lists, each with its reason; an entry no
+  icon needs fails.
 
 ### Moving a token
 
 A move starts on the diagram, where the token is: selecting an element that holds a
 token puts a move button (arrow) below its shape, beside the code button, where every
 element action sits like a bpmn-io overlay; a token that cannot move gets a "can't move"
-sign there with the reason as its tooltip, so no button is greyed out. The tables stay free of write columns; on a writable engine the element names in the Waiting tab select the element on the diagram and focus its move button, the keyboard path to a move. The move panel takes the place of the tabs: the diagram outlines the allowed
+sign there with the reason as its tooltip, so no button is greyed out. When the reason names a
+CLI command (a token behind an event-based gateway, [writes.md](writes.md)), a copy button
+beside the sign, "Copy CLI command", copies that command. The tables stay free of write columns; on a writable engine the element names in the Waiting tab select the element on the diagram and focus its move button, or that copy button, the keyboard path to a move. The move panel takes the place of the tabs: the diagram outlines the allowed
 targets dashed and dims the refused ones, a click on a refused one says why in the
 panel's status line, and a "To" list is the keyboard path to the same targets. Once a
 target is picked, the source shows "−1" with a struck-through label and the target "+1"
@@ -120,7 +139,9 @@ the diagram, the "Instances … · n running" header and the toolbar.
   quotes) has its remove button and keeps its width up to 240 px, the bar wrapping into a
   second row instead; all conditions must hold, at most 5. Automatic reads
   `42` and `-4.5` as a number, `true` and `false` as true or false and anything else as
-  text; _matches_ compares text and _is greater than_ and _is less than_ numbers.
+  text; _matches_ compares text and _is greater than_ and _is less than_ numbers. The dialog
+  leaves out what the engine refuses (`DefinitionView.refusedVariableConditions`): _Date and
+  time_ for `date`, _is greater than_ and _is less than_ for `ordering`.
   `VariableConditionRules` in the protocol holds these rules for the guard and the core,
   which also labels the chips (`DefinitionView.variableLabels`); the webview imports the
   protocol as types only, so the dialog keeps its operator table, number and date patterns and cap
@@ -175,8 +196,8 @@ Bulk cancel lives in the definition panel; who may and how it is confirmed is in
   selected: "12 selected" (or "All 117 running selected", announced politely),
   "Select all 117 running" while more run than are selected, "1234 match · narrow the
   filter to 1000 or fewer" above the cap instead, then _Cancel instances…_ and, when the
-  process has another version, _Migrate to version…_ or, while a run of the process is
-  active, "Wait until cancelling 44 instances ends", and _Clear_.
+  process has another version and the engine plans migrations, _Migrate to version…_ or,
+  while a run of the process is active, "Wait until cancelling 44 instances ends", and _Clear_.
   The button is never greyed out. Below 760 px the bar wraps and the note takes a row of
   its own.
 - **Bulk strip**, docked under the header above the notices, one per process and engine,
@@ -188,7 +209,7 @@ Bulk cancel lives in the definition panel; who may and how it is confirmed is in
   | submitting             | "Cancelling 44 instances…"                                                     | none                                       |
   | running                | "Cancelling instances: 20 of 44 done", the failed count only when some failed  | Stop                                       |
   | running, unread        | the same title, "Pulse can't read its progress: " and the problem (warning)    | Stop                                       |
-  | stalled                | "No progress for 5 min: 20 of 44 done" with the action's hint (warning)        | Stop                                       |
+  | stalled                | "No progress for 5m 12s: 20 of 44 done" with the action's hint (warning)       | Stop                                       |
   | stopping               | "Stopping… 20 of 44 cancelled so far"                                          | none                                       |
   | stopped                | "Stopped. 23 of 117 cancelled, 94 still running."                              | Select the 94 still running, Dismiss       |
   | stopped, halted        | the same, "The engine keeps the halted operation. Stop again to remove it."    | Stop, Select the 94 still running, Dismiss |
@@ -265,6 +286,16 @@ read-only document.
 - Instance start and end and the History tab's times show seconds and milliseconds
   (`09:05:07.042`, the day before it when it is not today): runs a few milliseconds apart
   stay apart. Lists and waiting times stay at minutes.
+- Times, durations, counts and short ids go through the MCP widgets' formatters: `TimeLabels`,
+  `CountLabels` and `Labels` delegate to Pulse's formatters (`@miragon/pulse-ui/format`) in
+  English with a 24-hour clock. Durations, counts and ids read as in the MCP widgets; a time
+  reads in English with a 24-hour clock (`09:05`), where the MCP widgets follow the host's
+  locale (a 12-hour clock on an en-US host). A duration takes its two largest units (`742ms`,
+  `3m 7s`, `2h 5m`, `1d 3h`), a count is grouped (`1,234`, in a sentence too) and above 999
+  shortens where the exact value sits in the tooltip (`1.2k`, `1.5M`), a lower bound reads
+  `≥ 2,000` exact and `10k+` compact, and a short id keeps up to 12 characters whole, a longer
+  number by its tail (`…13685249`, big-integer keys share their head), a UUID by its head
+  (`8f3c2a1e…`) and any other id whole. A missing value is one em dash (`—`) in every cell.
 - A called instance's header links to its caller ("from 63e79cda…", `CornerLeftUp`). It
   names the caller by its short id: the called instance's data has no business key of
   the caller, and reading it would cost a second detail read per load.
@@ -284,8 +315,9 @@ read-only document.
   ("Open Cockpit on shop-dev").
 - It opens the shown instance (Cockpit on its incidents tab when it has one) or the
   shown version, not single incidents: Cockpit's instance page lists them.
-- `cockpitUrl` per profile in `.pulse-cli.json` (an http or https URL
-  without credentials, query or fragment, else the target is refused with a problem); without it there is
+- `cockpitUrl` per profile in `.pulse.json` (an http or https URL
+  without credentials, query or fragment, else the target is refused with a problem; a trailing
+  `#/` of the web app's start route is dropped, as the profile format does); without it there is
   no button at all, never a disabled one, and no guess from the REST endpoint: a link
   that 404s costs more trust than a missing one. The adapter knows the routes
   ([c7-adapter.md](c7-adapter.md)); the webview posts

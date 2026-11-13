@@ -33,13 +33,14 @@ function errorOf(stderr: string): Record<string, unknown> {
 }
 
 const NEXT = "Next: run `pulse auth login --profile p` in a terminal to log in.\n"
+const URL = "https://camunda.example.com/engine-rest"
+/** `config set` of a new profile p, which needs a URL. */
+const NEW_P = ["config", "set", "p", "--url", URL]
 
 describe("config set with OAuth options", () => {
   it("stores the OAuth settings, selects oauth and says what comes next", async () => {
     const result = await cli([
-      "config",
-      "set",
-      "p",
+      ...NEW_P,
       "--oauth-issuer",
       ISSUER,
       "--oauth-client-id",
@@ -66,9 +67,7 @@ describe("config set with OAuth options", () => {
 
   it("stores explicit endpoints and no scopes", async () => {
     const result = await cli([
-      "config",
-      "set",
-      "p",
+      ...NEW_P,
       "--auth",
       "oauth",
       "--oauth-authorization-endpoint",
@@ -91,16 +90,7 @@ describe("config set with OAuth options", () => {
 
   it("stores a client secret from stdin with a warning and masks it in the output", async () => {
     const result = await cli(
-      [
-        "config",
-        "set",
-        "p",
-        "--oauth-issuer",
-        ISSUER,
-        "--oauth-client-id",
-        "c",
-        "--oauth-client-secret-stdin",
-      ],
+      [...NEW_P, "--oauth-issuer", ISSUER, "--oauth-client-id", "c", "--oauth-client-secret-stdin"],
       {
         stdin: "very-secret\n",
       },
@@ -134,9 +124,7 @@ describe("config set with OAuth options", () => {
 
   it("warns when the secret variable is not set, without naming it", async () => {
     const result = await cli([
-      "config",
-      "set",
-      "p",
+      ...NEW_P,
       "--oauth-issuer",
       ISSUER,
       "--oauth-client-id",
@@ -149,7 +137,7 @@ describe("config set with OAuth options", () => {
       `Warning: the variable named by --oauth-client-secret-env is not set in this environment. Pass the name of a variable that holds the client secret (e.g. PULSE_CLI_CLIENT_SECRET), never the client secret itself; commands read it when they run.\n${NEXT}`,
     )
     expect(result.stderr).not.toContain("PULSE_CLI_SECRET_X")
-    const set = await cli(["config", "set", "p", "--oauth-client-secret-env", "S"], {
+    const set = await cli(["config", "set", "p", "--url", URL, "--oauth-client-secret-env", "S"], {
       env: { S: "v" },
     })
     expect(set.stderr).toBe(NEXT)
@@ -376,7 +364,7 @@ describe("config unset with OAuth settings", () => {
       files: { [CONFIG_PATH]: oauthProfiles() },
     })
     expect(errorOf(unknown.stderr).hint).toBe(
-      "Valid keys: url, cockpitUrl, engine, flavor, auth, output, timeout, headers, readOnly; OAuth settings: issuer, endpoints, clientId, clientSecret, scopes, audience, redirectPort; bearer token: token, tokenEnv.",
+      "Valid keys: url, cockpitUrl, engine, flavor, environment, auth, output, timeout, headers, readOnly; OAuth settings: issuer, endpoints, clientId, clientSecret, scopes, audience, redirectPort; bearer token: token, tokenEnv; or any key the profile holds, auth.<key> for one of its auth object.",
     )
   })
 })

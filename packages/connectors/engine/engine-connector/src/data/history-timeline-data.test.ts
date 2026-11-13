@@ -39,7 +39,7 @@ describe("buildHistoryTimelineData: the failing steps", () => {
   })
 })
 
-// One rule with analytics (`readBpmnNames`): a Modeler pool names the process.
+// One rule (`readBpmnNames`): a Modeler pool names the process.
 describe("buildHistoryTimelineData: the process name", () => {
   const instance = (processDefinitionName: string | null) => ({
     id: "pi-1",

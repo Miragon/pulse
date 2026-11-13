@@ -13,9 +13,9 @@ const PACKAGE_ROOT = path.join(import.meta.dirname, "..")
  * descriptions carry the per-tool details.
  */
 export const SERVER_INSTRUCTIONS =
-  "Camunda 7 / CIB seven operations and Prometheus-backed process analytics. " +
+  "Camunda 7 / CIB seven operations. " +
   "Toolsets fail closed: a tool missing from tools/list is not enabled on this deployment. " +
-  "On hosts that render MCP Apps, prefer the view tools (*_show_*, *_open_*) to present results to the user."
+  "On hosts that render MCP Apps, prefer the view tools (*_open_*) to present results to the user."
 
 /** The version release-please maintains in `package.json`, never a hard-coded copy. */
 function packageVersion(): string {
@@ -43,7 +43,7 @@ export async function createApp(
       name: "pulse",
       version: packageVersion(),
       title: "Pulse",
-      description: "Camunda 7 / CIB seven operations and process analytics",
+      description: "Camunda 7 / CIB seven operations",
       websiteUrl: "https://github.com/Miragon/pulse",
       instructions: SERVER_INSTRUCTIONS,
     },

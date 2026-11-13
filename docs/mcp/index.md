@@ -12,6 +12,6 @@ read-only; writes need a toolset you name. Commands and configs call the server 
 | [Usage](./usage.md)                          | Connect an assistant, what to ask, language and theme                                |
 | [Reference](./reference.md)                  | Every tool, the toolsets and the common settings                                     |
 | [Operations](./operations.md)                | The Docker image, security, environment variables, toolsets, health routes           |
-| [Architecture](./architecture.md)            | The server, its two modules and the systems they talk to                             |
+| [Architecture](./architecture.md)            | The server, its engine module and the systems it talks to                            |
 | [Build your own server](./build-your-own.md) | Start a server of your own from the starter, with modules for your own systems       |
 | [Developer guide](./developer.md)            | Run the stack from source and contribute to Pulse                                    |

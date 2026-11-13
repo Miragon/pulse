@@ -2,13 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { cibsevenProvider } from "../providers/index.js"
 
 // Primary-read failures are the rejection table in `honest-numbers.test.ts`.
-vi.mock("@miragon/pulse-engine-client/sdk", () => ({
+vi.mock("@miragon/pulse-c7-client/sdk", () => ({
   getActivityInstanceTree: vi.fn(),
   getIncidents: vi.fn(),
   getIncidentsCount: vi.fn(),
   getProcessDefinitionBpmn20Xml: vi.fn(),
   getProcessDefinitionByKey: vi.fn(),
   getProcessDefinitionStatistics: vi.fn(),
+  getProcessDefinitions: vi.fn(),
   getProcessInstance: vi.fn(),
   getProcessInstanceVariables: vi.fn(),
   getTasks: vi.fn(),
@@ -23,11 +24,12 @@ import {
   getIncidentsCount,
   getProcessDefinitionBpmn20Xml,
   getProcessDefinitionStatistics,
+  getProcessDefinitions,
   getProcessInstance,
   getProcessInstanceVariables,
   getTasks,
   getTasksCount,
-} from "@miragon/pulse-engine-client/sdk"
+} from "@miragon/pulse-c7-client/sdk"
 import { buildTaskFormSchema } from "../lib/bpmn/task-form-schema.js"
 
 import { buildInstanceDetailData } from "./instance-detail-data.js"
@@ -37,6 +39,7 @@ const mockedIncidents = vi.mocked(getIncidents)
 const mockedIncidentsCount = vi.mocked(getIncidentsCount)
 const mockedBpmn = vi.mocked(getProcessDefinitionBpmn20Xml)
 const mockedStatistics = vi.mocked(getProcessDefinitionStatistics)
+const mockedDefinitions = vi.mocked(getProcessDefinitions)
 const mockedInstance = vi.mocked(getProcessInstance)
 const mockedVariables = vi.mocked(getProcessInstanceVariables)
 const mockedTasks = vi.mocked(getTasks)
@@ -105,7 +108,45 @@ describe("buildInstanceDetailData", () => {
     expect(data.incidents.map((i) => i.businessKey)).toEqual(["LEA-2026-00424"])
   })
 
-  // One rule with analytics (widget-shell `parseBpmnNames`): the Modeler
+  it("names each incident's element from the instance's diagram, the id where it has no name", async () => {
+    mockedBpmn.mockResolvedValueOnce({
+      bpmn20Xml:
+        '<definitions><process id="K1"><serviceTask id="A1" name="Charge card"/><serviceTask id="A2"/></process></definitions>',
+    })
+    mockedIncidents.mockResolvedValueOnce([
+      { id: "i1", processInstanceId: "p1", activityId: "A1", incidentType: "failedJob" },
+      { id: "i2", processInstanceId: "p1", activityId: "A2", incidentType: "failedJob" },
+      // An id the diagram does not hold (nor an inherited key like "toString").
+      { id: "i3", processInstanceId: "p1", activityId: "toString", incidentType: "failedJob" },
+      { id: "i4", processInstanceId: "p1", incidentType: "custom" },
+    ] as never)
+
+    const data = await buildInstanceDetailData(fakeClient, "engine-a", { processInstanceId: "p1" })
+
+    expect(data.incidents.map((i) => [i.activityId, i.activityName])).toEqual([
+      ["A1", "Charge card"],
+      ["A2", null],
+      ["toString", null],
+      [null, null],
+    ])
+    // The names come from the diagram the view reads anyway: no read of their own.
+    expect(mockedBpmn).toHaveBeenCalledTimes(1)
+  })
+
+  it("keeps the incidents' elements, unnamed, when the diagram cannot be read (enrichment)", async () => {
+    mockedBpmn.mockRejectedValueOnce(new Error("boom"))
+    mockedIncidents.mockResolvedValueOnce([
+      { id: "i1", processInstanceId: "p1", activityId: "A1", incidentType: "failedJob" },
+    ] as never)
+
+    const data = await buildInstanceDetailData(fakeClient, "engine-a", { processInstanceId: "p1" })
+
+    expect(data.incidents).toEqual([
+      expect.objectContaining({ id: "i1", activityId: "A1", activityName: null }),
+    ])
+  })
+
+  // One rule (widget-shell `parseBpmnNames`): the Modeler
   // names the pool of a collaboration and writes a line break as `&#10;`.
   it("names a Modeler collaboration's process by its pool, the line break a space", async () => {
     mockedInstance.mockResolvedValueOnce({ id: "p1", definitionId: "K1:3:dep" })
@@ -133,11 +174,13 @@ describe("buildInstanceDetailData", () => {
 
     const [incident] = data.incidents
     expect(incident?.cockpitInstanceUrl).toContain("/process/K1/3/p1?tab=incidents")
-    // An id that names its key needs no statistics.
+    // The drill to the process takes the key the id names: no further read.
+    expect(data.definitionKey).toBe("K1")
+    expect(mockedDefinitions).not.toHaveBeenCalled()
     expect(mockedStatistics).not.toHaveBeenCalled()
   })
 
-  describe("the cockpit links of a bare generated definition id", () => {
+  describe("the key of a bare generated definition id (the drill and the cockpit links)", () => {
     // A key over ~25 characters with UUID ids: the engine stores a bare id,
     // and a key parsed from it is that UUID (a cockpit route no key matches).
     const LONG_KEY = "customerOnboardingApprovalProcess"
@@ -152,11 +195,9 @@ describe("buildInstanceDetailData", () => {
         { id: "i1", processInstanceId: "p1", incidentType: "failedJob" },
       ] as never)
 
-    it("address the key the statistics resolve (ONE read)", async () => {
+    it("address the key that one definition's row resolves (ONE read, no statistics)", async () => {
       withOneIncident()
-      mockedStatistics.mockResolvedValueOnce([
-        { id: UUID, instances: 1, incidents: [], definition: { id: UUID, key: LONG_KEY } },
-      ] as never)
+      mockedDefinitions.mockResolvedValueOnce([{ id: UUID, key: LONG_KEY, version: 1 }] as never)
 
       const data = await buildInstanceDetailData(
         fakeClient,
@@ -168,12 +209,18 @@ describe("buildInstanceDetailData", () => {
       const url = data.incidents[0]?.cockpitInstanceUrl
       expect(url).toContain(`/process/${LONG_KEY}/p1?tab=incidents`)
       expect(url).not.toContain(UUID)
-      expect(mockedStatistics).toHaveBeenCalledTimes(1)
+      expect(data.definitionKey).toBe(LONG_KEY)
+      expect(mockedDefinitions).toHaveBeenCalledTimes(1)
+      expect(mockedDefinitions.mock.calls[0]?.[0]).toMatchObject({
+        query: { processDefinitionIdIn: UUID, maxResults: 1 },
+      })
+      // An instance has one key: never the engine-wide statistics.
+      expect(mockedStatistics).not.toHaveBeenCalled()
     })
 
-    it("are null when the statistics fail (enrichment), never the UUID as a key", async () => {
+    it("are null when that read fails (enrichment), never the UUID as a key", async () => {
       withOneIncident()
-      mockedStatistics.mockRejectedValueOnce(new Error("boom"))
+      mockedDefinitions.mockRejectedValueOnce(new Error("boom"))
 
       const data = await buildInstanceDetailData(
         fakeClient,
@@ -185,25 +232,25 @@ describe("buildInstanceDetailData", () => {
       expect(data.incidents).toEqual([
         expect.objectContaining({ id: "i1", cockpitInstanceUrl: null }),
       ])
+      // No drill to the process either: its key is unknown.
+      expect(data.definitionKey).toBeNull()
     })
 
-    it("read no statistics without engine urls to build them from", async () => {
-      withOneIncident()
+    it("resolve it for the drill to the process without incidents or engine urls too", async () => {
+      mockedDefinitions.mockResolvedValueOnce([{ id: UUID, key: LONG_KEY, version: 1 }] as never)
+      mockedBpmn.mockResolvedValueOnce({
+        bpmn20Xml: `<definitions><process id="${LONG_KEY}" name="Customer onboarding"/></definitions>`,
+      })
 
-      await buildInstanceDetailData(fakeClient, "engine-a", { processInstanceId: "p1" })
-
-      expect(mockedStatistics).not.toHaveBeenCalled()
-    })
-
-    it("read no statistics for an instance without incidents: no link to build", async () => {
-      const data = await buildInstanceDetailData(
-        fakeClient,
-        "engine-a",
-        { processInstanceId: "p1" },
-        URLS,
-      )
+      const data = await buildInstanceDetailData(fakeClient, "engine-a", {
+        processInstanceId: "p1",
+      })
 
       expect(data.incidents).toEqual([])
+      expect(data.definitionKey).toBe(LONG_KEY)
+      // The resolved key also names the process from its diagram.
+      expect(data.processDefinitionName).toBe("Customer onboarding")
+      expect(mockedDefinitions).toHaveBeenCalledTimes(1)
       expect(mockedStatistics).not.toHaveBeenCalled()
     })
   })

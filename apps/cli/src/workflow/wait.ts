@@ -24,7 +24,7 @@ import {
   str,
   type Verdict,
   type WaitState,
-} from "@miragon/pulse-engine-core"
+} from "@miragon/pulse-c7-core"
 import type { EnginePort } from "../engine-port/engine-port.js"
 import type { PulseCliError } from "../errors.js"
 import { compact, omit } from "../util.js"

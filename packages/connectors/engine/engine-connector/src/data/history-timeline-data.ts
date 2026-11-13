@@ -1,11 +1,11 @@
-import type { Client } from "@miragon/pulse-engine-client"
+import type { Client } from "@miragon/pulse-c7-client"
 import { MAX_PAGE_SIZE } from "../schemas/index.js"
 import {
   getHistoricActivityInstances,
   getHistoricActivityInstancesCount,
   getHistoricProcessInstances,
   getIncidents,
-} from "@miragon/pulse-engine-client/sdk"
+} from "@miragon/pulse-c7-client/sdk"
 import { collectIncidentActivityIds } from "../lib/bpmn/activity-tree.js"
 import type { HistoryTimelineData } from "../view-models.js"
 import type { PagingArgs } from "../feed-contracts.js"

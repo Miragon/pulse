@@ -1,9 +1,9 @@
 /**
- * Planning of `pulse retry`: @miragon/pulse-engine-core's retry plan with usage errors that
+ * Planning of `pulse retry`: @miragon/pulse-c7-core's retry plan with usage errors that
  * name the flags and the skipped incidents' next commands.
  */
 
-import * as core from "@miragon/pulse-engine-core"
+import * as core from "@miragon/pulse-c7-core"
 import type { Effect } from "../catalog/types.js"
 import { rendered } from "./error-text.js"
 import { skipCommand } from "./next-text.js"

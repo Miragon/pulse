@@ -1,7 +1,7 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import { PulseCliError } from "../errors.js"
-import { formatDuration } from "@miragon/pulse-engine-core"
+import { formatDuration } from "@miragon/pulse-c7-core"
 import { parseDuration } from "./durations.js"
 
 describe("parseDuration", () => {

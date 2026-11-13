@@ -1,0 +1,450 @@
+{
+  "auth-client-secret": {
+    "targets": [],
+    "problems": [
+      "profile \"sso\": auth.clientSecret is set, but a file others share names no credential, neither a secret nor the variable that holds one."
+    ]
+  },
+  "auth-client-secret-variable": {
+    "targets": [],
+    "problems": [
+      "profile \"sso\": auth.clientSecretEnv is set, but a file others share names no credential, neither a secret nor the variable that holds one."
+    ]
+  },
+  "auth-implied": {
+    "targets": ["empty", "username", "basic-off", "oauth-off"],
+    "problems": []
+  },
+  "auth-key-twice": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": auth.type is set twice, and JSON keeps only the last one without a word: set it once."
+    ]
+  },
+  "auth-mixed": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": auth mixes the keys of two kinds of credentials (Basic auth, OAuth, a bearer token): keep one. This client connects with auth.type none or basic: use one of them."
+    ]
+  },
+  "auth-mixed-token": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": auth.token is set, but a file others share names no credential, neither a secret nor the variable that holds one. auth mixes the keys of two kinds of credentials (Basic auth, OAuth, a bearer token): keep one. This client connects with auth.type none or basic: use one of them."
+    ]
+  },
+  "auth-not-object": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": auth must be an object such as {\"type\": \"basic\", \"username\": \"demo\"}."
+    ]
+  },
+  "auth-oauth-keys-basic-type": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": auth.type does not fit the other auth keys: OAuth keys need \"oauth\", a stored token \"bearer\", Basic auth keys \"basic\" or no type, \"passthrough\" takes none, and \"none\" switches them off. This client connects with auth.type none or basic: use one of them."
+    ]
+  },
+  "auth-oauth-values-invalid": {
+    "targets": [],
+    "problems": [
+      "profile \"scopes-text\": auth.scopes must be a list of distinct scopes such as [\"openid\", \"offline_access\"].",
+      "profile \"scopes-twice\": auth.scopes must be a list of distinct scopes such as [\"openid\", \"offline_access\"].",
+      "profile \"scope-space\": auth.scopes must be a list of distinct scopes such as [\"openid\", \"offline_access\"].",
+      "profile \"port-text\": auth.redirectPort must be a whole number between 0 and 65535.",
+      "profile \"port-high\": auth.redirectPort must be a whole number between 0 and 65535.",
+      "profile \"client-number\": auth.clientId must be a non-empty string.",
+      "profile \"audience-object\": auth.audience must be a non-empty string."
+    ]
+  },
+  "auth-oauth-without-type": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": auth.type does not fit the other auth keys: OAuth keys need \"oauth\", a stored token \"bearer\", Basic auth keys \"basic\" or no type, \"passthrough\" takes none, and \"none\" switches them off. This client connects with auth.type none or basic: use one of them."
+    ]
+  },
+  "auth-one-endpoint": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": auth.authorizationEndpoint and auth.tokenEndpoint go together: set both, or neither and let auth.issuer name them."
+    ]
+  },
+  "auth-one-endpoint-off": {
+    "targets": ["local"],
+    "problems": []
+  },
+  "auth-passthrough-keys": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": auth.type does not fit the other auth keys: OAuth keys need \"oauth\", a stored token \"bearer\", Basic auth keys \"basic\" or no type, \"passthrough\" takes none, and \"none\" switches them off. This client connects with auth.type none or basic: use one of them."
+    ]
+  },
+  "auth-password": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": auth.password is set, but a file others share names no credential, neither a secret nor the variable that holds one."
+    ]
+  },
+  "auth-password-secret-variable": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": auth.passwordEnv is set, but a file others share names no credential, neither a secret nor the variable that holds one."
+    ]
+  },
+  "auth-password-variable": {
+    "targets": [],
+    "problems": [
+      "profile \"other\": auth.passwordEnv is set, but a file others share names no credential, neither a secret nor the variable that holds one.",
+      "profile \"bare\": auth.passwordEnv is set, but a file others share names no credential, neither a secret nor the variable that holds one."
+    ]
+  },
+  "auth-secret-twice": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": auth.passwordEnv is set, but a file others share names no credential, neither a secret nor the variable that holds one. auth.password is set, but a file others share names no credential, neither a secret nor the variable that holds one. Both auth.password and auth.passwordEnv are set: keep one, the variable."
+    ]
+  },
+  "auth-supported": {
+    "targets": ["none", "basic", "oauth", "endpoints", "absent"],
+    "problems": [
+      "profile \"bearer\": This client cannot authenticate with this auth.type. Set auth.type to none or basic, or keep this profile for the CLI.",
+      "profile \"passthrough\": This client cannot authenticate with this auth.type. Set auth.type to none or basic, or keep this profile for the MCP server."
+    ]
+  },
+  "auth-token": {
+    "targets": [],
+    "problems": [
+      "profile \"ci\": auth.token is set, but a file others share names no credential, neither a secret nor the variable that holds one."
+    ]
+  },
+  "auth-token-command": {
+    "targets": [],
+    "problems": ["profile \"local\": auth.tokenCommand is no key of a profile."]
+  },
+  "auth-token-variable": {
+    "targets": [],
+    "problems": [
+      "profile \"ci\": auth.tokenEnv is set, but a file others share names no credential, neither a secret nor the variable that holds one."
+    ]
+  },
+  "auth-token-without-type": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": auth.tokenEnv is set, but a file others share names no credential, neither a secret nor the variable that holds one. auth.type does not fit the other auth keys: OAuth keys need \"oauth\", a stored token \"bearer\", Basic auth keys \"basic\" or no type, \"passthrough\" takes none, and \"none\" switches them off. This client connects with auth.type none or basic: use one of them."
+    ]
+  },
+  "auth-type-not-string": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": auth.type must be a string, one of none, basic, bearer, oauth, passthrough. This client connects with auth.type none or basic: use one of them."
+    ]
+  },
+  "auth-type-unknown": {
+    "targets": [],
+    "problems": [
+      "profile \"kerberos\": auth.type must be one of none, basic, bearer, oauth, passthrough (the value is not shown). This client connects with auth.type none or basic: use one of them.",
+      "profile \"blank\": auth.type must be one of none, basic, bearer, oauth, passthrough (the value is not shown). This client connects with auth.type none or basic: use one of them.",
+      "profile \"padded\": auth.type must be one of none, basic, bearer, oauth, passthrough (the value is not shown). This client connects with auth.type none or basic: use one of them.",
+      "profile \"oauth-kerberos\": auth.type must be one of none, basic, bearer, oauth, passthrough (the value is not shown). This client connects with auth.type none or basic: use one of them."
+    ]
+  },
+  "auth-unknown-key": {
+    "targets": [],
+    "problems": ["profile \"local\": auth.user is no key of a profile."]
+  },
+  "auth-username-invalid": {
+    "targets": [],
+    "problems": [
+      "profile \"number\": auth.username must be a non-empty string without \":\" and without control characters.",
+      "profile \"colon\": auth.username must be a non-empty string without \":\" and without control characters.",
+      "profile \"control\": auth.username must be a non-empty string without \":\" and without control characters."
+    ]
+  },
+  "auth-username-oauth-type": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": auth.type does not fit the other auth keys: OAuth keys need \"oauth\", a stored token \"bearer\", Basic auth keys \"basic\" or no type, \"passthrough\" takes none, and \"none\" switches them off. This client connects with auth.type none or basic: use one of them."
+    ]
+  },
+  "auth-variable-not-a-name": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": auth.passwordEnv is set, but a file others share names no credential, neither a secret nor the variable that holds one."
+    ]
+  },
+  "cockpit-not-string": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": cockpitUrl must be a URL such as http://localhost:8080/camunda/app/cockpit/default/."
+    ]
+  },
+  "cockpit-refused": {
+    "targets": [],
+    "problems": [
+      "profile \"file\": cockpitUrl must start with http:// or https://.",
+      "profile \"credentials\": cockpitUrl must not contain credentials (they are not shown): put them into auth.",
+      "profile \"query\": cockpitUrl must not contain a query string or a fragment."
+    ]
+  },
+  "default-blank": {
+    "targets": ["local"],
+    "problems": []
+  },
+  "default-foreign": {
+    "targets": ["local"],
+    "problems": ["defaultProfile names no profile of this file."]
+  },
+  "default-invalid-name": {
+    "targets": ["local"],
+    "problems": [
+      "defaultProfile must name a profile: letters, digits, \".\", \"_\" and \"-\", starting with a letter or digit."
+    ]
+  },
+  "default-not-string": {
+    "targets": ["local"],
+    "problems": ["defaultProfile must be a string that names one of the file's profiles."]
+  },
+  "default-padded": {
+    "targets": ["local"],
+    "problems": []
+  },
+  "empty-file": {
+    "targets": [],
+    "problems": []
+  },
+  "engine-dots": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": engine must be the name of a process engine, not \".\" or \"..\"."
+    ]
+  },
+  "engine-not-string": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": engine must be the name of a process engine, not \".\" or \"..\"."
+    ]
+  },
+  "engines": {
+    "targets": ["default", "padded"],
+    "problems": [
+      "profile \"orders\": engine names a process engine this client does not reach: it reaches only \"default\"."
+    ]
+  },
+  "environment": {
+    "targets": ["eu", "one"],
+    "problems": []
+  },
+  "environment-invalid": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": environment must be an environment id: lower case letters, digits and \"-\", starting with a letter or digit."
+    ]
+  },
+  "every-profile-key": {
+    "targets": [],
+    "problems": [
+      "profile \"shop\": This client does not apply headers, so it refuses the profile rather than ignore it. Remove headers from this profile, or use one without them."
+    ]
+  },
+  "flavor-not-string": {
+    "targets": [],
+    "problems": ["profile \"local\": flavor must be a string, one of camunda7, cibseven, operaton."]
+  },
+  "flavor-padded": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": flavor must be one of camunda7, cibseven, operaton (the value is not shown)."
+    ]
+  },
+  "flavor-unknown": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": flavor must be one of camunda7, cibseven, operaton (the value is not shown)."
+    ]
+  },
+  "flavors": {
+    "targets": ["c7", "seven", "operaton", "plain"],
+    "problems": []
+  },
+  "future-dialect": {
+    "targets": ["c7"],
+    "problems": [
+      "profile \"c8\": flavor must be one of camunda7, cibseven, operaton (the value is not shown). auth.type must be one of none, basic, bearer, oauth, passthrough (the value is not shown). auth.clientSecretEnv is set, but a file others share names no credential, neither a secret nor the variable that holds one. This client connects with auth.type none or basic: use one of them."
+    ]
+  },
+  "header-boundaries": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": This client does not apply headers, so it refuses the profile rather than ignore it. Remove headers from this profile, or use one without them."
+    ]
+  },
+  "header-invalid": {
+    "targets": [],
+    "problems": [
+      "profile \"name\": headers must be an object that maps header names (HTTP tokens, not Connection, Content-Length, Expect, Keep-Alive, Transfer-Encoding or Upgrade) to ISO-8859-1 (Latin-1) values without control characters but tab.",
+      "profile \"managed\": headers must be an object that maps header names (HTTP tokens, not Connection, Content-Length, Expect, Keep-Alive, Transfer-Encoding or Upgrade) to ISO-8859-1 (Latin-1) values without control characters but tab.",
+      "profile \"value\": headers must be an object that maps header names (HTTP tokens, not Connection, Content-Length, Expect, Keep-Alive, Transfer-Encoding or Upgrade) to ISO-8859-1 (Latin-1) values without control characters but tab."
+    ]
+  },
+  "header-secret": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": headers.X-Api-Key carries a secret, and only a person's own config file stores a secret header."
+    ]
+  },
+  "header-twice": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": headers.X-Tenant-Id is set twice, in one spelling or two (header names ignore case): set it once."
+    ]
+  },
+  "header-twice-in-two-spellings": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": headers.x-tenant-id is set twice, in one spelling or two (header names ignore case): set it once."
+    ]
+  },
+  "key-twice-first-no-object": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": The file lists this profile name twice: JSON keeps only the last one, so neither counts.",
+      "profile \"other\": auth is set twice, and JSON keeps only the last one without a word: set it once. headers is set twice, and JSON keeps only the last one without a word: set it once."
+    ]
+  },
+  "not-json": {
+    "targets": [],
+    "problems": ["The text is not valid JSON (line 1, column 14)."]
+  },
+  "operator-file": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": auth.passwordEnv is set, but a file others share names no credential, neither a secret nor the variable that holds one.",
+      "profile \"prod-a\": auth.passwordEnv is set, but a file others share names no credential, neither a secret nor the variable that holds one.",
+      "profile \"prod-b\": auth.tokenEnv is set, but a file others share names no credential, neither a secret nor the variable that holds one.",
+      "profile \"staging\": This client cannot authenticate with this auth.type. Set auth.type to none or basic, or keep this profile for the MCP server.",
+      "profile \"dev.sso\": engine names a process engine this client does not reach: it reaches only \"default\"."
+    ]
+  },
+  "output-unknown": {
+    "targets": [],
+    "problems": ["profile \"local\": output must be json or table."]
+  },
+  "profile-former-key": {
+    "targets": [],
+    "problems": ["profile \"local\": platform is no key of a profile."]
+  },
+  "profile-invalid-name": {
+    "targets": ["local"],
+    "problems": [
+      "profile 1: The profile's name is not valid (it is not shown): use letters, digits, \".\", \"_\" and \"-\", starting with a letter or digit."
+    ]
+  },
+  "profile-key-twice": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": readOnly is set twice, and JSON keeps only the last one without a word: set it once."
+    ]
+  },
+  "profile-name-twice": {
+    "targets": ["other"],
+    "problems": [
+      "profile \"local\": The file lists this profile name twice: JSON keeps only the last one, so neither counts."
+    ]
+  },
+  "profile-names-of-digits": {
+    "targets": ["prod", "10", "2"],
+    "problems": []
+  },
+  "profile-not-object": {
+    "targets": ["local"],
+    "problems": ["profile \"nonsense\": The profile must be a JSON object."]
+  },
+  "profile-unknown-key": {
+    "targets": [],
+    "problems": ["profile \"local\": colour is no key of a profile."]
+  },
+  "profile-unknown-key-not-shown": {
+    "targets": [],
+    "problems": [
+      "profile \"local\": The profile holds a key that is not shown: it does not look like a key."
+    ]
+  },
+  "profiles-array": {
+    "targets": [],
+    "problems": ["profiles must be a JSON object that maps each profile name to a profile."]
+  },
+  "profiles-null": {
+    "targets": [],
+    "problems": ["profiles must be a JSON object that maps each profile name to a profile."]
+  },
+  "project-file": {
+    "targets": ["local", "staging"],
+    "problems": []
+  },
+  "read-only-not-boolean": {
+    "targets": [],
+    "problems": ["profile \"local\": readOnly must be true or false."]
+  },
+  "root-array": {
+    "targets": [],
+    "problems": ["The file must hold one JSON object."]
+  },
+  "root-key-twice": {
+    "targets": [],
+    "problems": [
+      "profiles is set twice, and JSON keeps only the last one without a word: set it once."
+    ]
+  },
+  "root-unknown-key": {
+    "targets": ["local"],
+    "problems": [
+      "default is no key of a profile file, which holds $schema, defaultProfile and profiles."
+    ]
+  },
+  "schema-key": {
+    "targets": ["local"],
+    "problems": []
+  },
+  "schema-not-string": {
+    "targets": [],
+    "problems": ["$schema must be a string, the URL or path of a JSON Schema."]
+  },
+  "timeout-invalid": {
+    "targets": [],
+    "problems": [
+      "profile \"zero\": timeout must be a whole number of milliseconds between 1 and 2147483647.",
+      "profile \"fraction\": timeout must be a whole number of milliseconds between 1 and 2147483647.",
+      "profile \"text\": timeout must be a whole number of milliseconds between 1 and 2147483647.",
+      "profile \"over\": timeout must be a whole number of milliseconds between 1 and 2147483647."
+    ]
+  },
+  "url-blank": {
+    "targets": [],
+    "problems": ["profile \"local\": url must be a URL such as http://localhost:8080/engine-rest."]
+  },
+  "url-normalized": {
+    "targets": ["padded", "slashes", "route"],
+    "problems": []
+  },
+  "url-not-string": {
+    "targets": [],
+    "problems": ["profile \"local\": url must be a URL such as http://localhost:8080/engine-rest."]
+  },
+  "url-optional": {
+    "targets": [],
+    "problems": [
+      "profile \"nowhere\": url is missing: this client needs the REST API root, a URL such as http://localhost:8080/engine-rest."
+    ]
+  },
+  "url-refused": {
+    "targets": [],
+    "problems": [
+      "profile \"ftp\": url must start with http:// or https://.",
+      "profile \"query\": url must not contain a query string or a fragment.",
+      "profile \"fragment\": url must not contain a query string or a fragment.",
+      "profile \"no-scheme\": url must start with http:// or https://.",
+      "profile \"text\": url is no URL: use a URL such as http://localhost:8080/engine-rest.",
+      "profile \"credentials\": url must not contain credentials (they are not shown): put them into auth."
+    ]
+  }
+}

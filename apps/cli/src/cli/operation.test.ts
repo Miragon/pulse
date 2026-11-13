@@ -122,6 +122,16 @@ describe("operation commands: lossless numbers, field warnings, terminals", () =
     )
   })
 
+  it("sends a --var decimal beyond the range of a double as a String of its exact text", async () => {
+    const server = fakeServer().on("POST", "/process-definition/key/order/start", json({ id: "x" }))
+    const huge = `${"9".repeat(400)}.5`
+    const args = ["--var", `a=${huge}`, "--var", `b=-${huge}`, "--var", "c=-2.5"]
+    await cli(server, ["process-definition", "start", "order", ...args])
+    expect(only(server).body).toBe(
+      `{"variables":{"a":{"value":"${huge}","type":"String"},"b":{"value":"-${huge}","type":"String"},"c":{"value":-2.5,"type":"Double"}}}`,
+    )
+  })
+
   it("warns on stderr about --fields that match nothing, and still succeeds", async () => {
     const server = fakeServer().on("GET", "/task", json(TASKS))
     const result = await cli(server, ["task", "list", "--fields", "id,nme"])

@@ -45,6 +45,14 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./format": {
+      "types": "./dist/format/index.d.ts",
+      "import": "./dist/format/index.js"
+    },
+    "./tones": {
+      "types": "./dist/tones/index.d.ts",
+      "import": "./dist/tones/index.js"
+    },
     "./testing": {
       "types": "./dist/testing/index.d.ts",
       "import": "./dist/testing/index.js"
@@ -89,10 +97,10 @@
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "happy-dom": "21.0.4",
-    "lucide-react": "1.67.0",
+    "lucide-react": "1.70.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "tailwindcss": "4.3.4",
+    "tailwindcss": "4.3.5",
     "typescript": "6.0.3",
     "vitest": "5.1.0"
   }

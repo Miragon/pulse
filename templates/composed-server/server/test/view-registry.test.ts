@@ -1,13 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import type { Tool } from "@modelcontextprotocol/client"
-import { engineModule } from "@miragon/pulse-engine-connector"
-import { ENGINE_HOST_WIDGET_REFS } from "@miragon/pulse-engine-connector/widgets"
-import { hostWidgets, viewRegistry } from "../src/ui/view-registry.js"
+import { viewRegistry } from "../src/ui/view-registry.js"
 import {
   bootComposition,
   closeComposition,
   isBundleView,
-  isComposed,
   isViewBound,
   toolsetSelections,
 } from "./boot.js"
@@ -90,35 +87,6 @@ describe("the view registry vs the view-bound tools", () => {
       "view-bound tools that are not reads: a host that strips structuredContent re-runs the " +
         "view tool once, unasked. Annotate it { readOnlyHint: true } and move the write into a " +
         "registrar tool of its own (create-module skill, Steps 4 and 5)",
-    ).toEqual([])
-  })
-})
-
-/**
- * The widgets one module renders of another by raw id (`<owner>:<widget>`); today only the engine
- * module renders any (`ENGINE_HOST_WIDGET_REFS`). One whose owner is not composed is dead code in
- * every view's bundle; one a composed module renders and its composed owner ships but the bundle
- * lacks leaves the slot to the caller's fallback.
- */
-describe("the host widgets", () => {
-  const rendered: readonly string[] = isComposed(engineModule.name) ? ENGINE_HOST_WIDGET_REFS : []
-  const expected = rendered.filter((id) => isComposed(id.split(":")[0]!))
-
-  it("hold no widget that no composed module renders", () => {
-    const stray = Object.keys(hostWidgets).filter((id) => !expected.includes(id))
-    expect(
-      stray,
-      "host widgets no composed module renders, or whose owner is not in MODULES: drop their " +
-        "spread from hostWidgets in src/ui/view-registry.ts",
-    ).toEqual([])
-  })
-
-  it("hold every widget a composed module renders of another composed module", () => {
-    const missing = expected.filter((id) => !(id in hostWidgets))
-    expect(
-      missing,
-      "spread the owning module's host widgets (analyticsHostWidgets for analytics:…) into " +
-        "hostWidgets in src/ui/view-registry.ts",
     ).toEqual([])
   })
 })

@@ -1,0 +1,26 @@
+{
+  "argv": [
+    "status"
+  ],
+  "exitCode": 0,
+  "sent": [
+    "GET /engine-rest/batch/statistics?maxResults=100",
+    "GET /engine-rest/external-task/count",
+    "GET /engine-rest/external-task?firstResult=0&maxResults=500",
+    "GET /engine-rest/incident/count",
+    "GET /engine-rest/incident?sortBy=incidentTimestamp&sortOrder=desc&firstResult=0&maxResults=500",
+    "GET /engine-rest/job/count?executable=true&active=true",
+    "GET /engine-rest/job/job-1/stacktrace",
+    "GET /engine-rest/job?executable=true&createTimes=lt_2026-10-09T13%3A55%3A00.000%2B0000&active=true&maxResults=1000",
+    "GET /engine-rest/process-definition/statistics?failedJobs=true&rootIncidents=true",
+    "GET /engine-rest/task/count",
+    "GET /engine-rest/version"
+  ],
+  "stderrLines": [
+    ""
+  ],
+  "stdoutLines": [
+    "{\"engine\":{\"url\":\"http://127.0.0.1:<port>/engine-rest\",\"version\":\"2.1.0\",\"latencyMs\":0},\"status\":\"warning\",\"findings\":[{\"severity\":\"warning\",\"code\":\"INCIDENTS\",\"message\":\"1 failedJob incident at order/charge: PaymentRefusedException: insufficient funds\",\"next\":\"pulse retry --process-definition-key order --activity-id charge --dry-run\"},{\"severity\":\"warning\",\"code\":\"NO_WORKER\",\"message\":\"topic invoice-mail: 1 task wait since 2026-10-09T13:39:00.000+0000, none is locked: is a worker subscribed?\",\"next\":\"pulse external-task list --topic-name invoice-mail --not-locked\"}],\"definitions\":[{\"key\":\"order\",\"name\":\"Order\",\"latestVersion\":2,\"versions\":1,\"instances\":2,\"failedJobs\":1,\"incidents\":1}],\"incidents\":[{\"processDefinitionKey\":\"order\",\"activityId\":\"charge\",\"type\":\"failedJob\",\"message\":\"Card declined: insufficient funds (order B-7)\",\"count\":1,\"firstAt\":\"2026-10-09T13:40:02.112+0000\",\"lastAt\":\"2026-10-09T13:40:02.112+0000\",\"processInstanceIds\":[\"pi-1\"],\"next\":\"pulse retry --process-definition-key order --activity-id charge --dry-run\",\"rootCause\":\"PaymentRefusedException: insufficient funds\"}],\"incidentsTotal\":1,\"propagated\":0,\"externalTasks\":[{\"topic\":\"invoice-mail\",\"waiting\":1,\"locked\":0,\"lockExpired\":0,\"failed\":0,\"workers\":[],\"oldestWaitingSince\":\"2026-10-09T13:39:00.000+0000\"}],\"jobs\":{\"executable\":0,\"overdue\":0},\"tasks\":{\"open\":1},\"batches\":{\"running\":0,\"withFailures\":0}}",
+    ""
+  ]
+}

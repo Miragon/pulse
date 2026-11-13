@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import type { Catalog, OperationSpec } from "../../src/catalog/types.js"
 import { assertUniqueNames, assignNames, buildCatalog, stripExamples } from "./build-catalog.js"
-import { readPatchedSpec } from "./files.js"
+import { readSpec, readRoutes } from "./files.js"
 import { GROUP_DESCRIPTIONS } from "./groups.js"
 import type { OpenApiDocument } from "./openapi.js"
 import type { UnnamedOperation } from "./operations.js"
@@ -16,7 +16,7 @@ let cachedCatalog: Catalog | undefined
  * at load time, so a generator failure fails that test instead of the whole file.
  */
 function realCatalog(): Catalog {
-  cachedCatalog ??= buildCatalog(readPatchedSpec(), SPEC_URL)
+  cachedCatalog ??= buildCatalog(readSpec(), SPEC_URL, readRoutes())
   return cachedCatalog
 }
 
@@ -218,7 +218,7 @@ describe("stripExamples", () => {
 
 describe("buildCatalog", () => {
   it("records the source", () => {
-    const { info } = readPatchedSpec()
+    const { info } = readSpec()
     expect(realCatalog().source).toEqual({
       title: info.title,
       version: info.version,
@@ -281,7 +281,7 @@ describe("buildCatalog", () => {
   })
 
   it("describes groups without a curated description by their tag", () => {
-    const spec = readPatchedSpec()
+    const spec = readSpec()
     const extended: OpenApiDocument = {
       ...spec,
       paths: {
@@ -289,7 +289,14 @@ describe("buildCatalog", () => {
         "/brand-new": { get: { operationId: "getBrandNew", tags: ["Brand New"] } },
       },
     }
-    const groups = buildCatalog(extended, SPEC_URL).groups
+    const brandNew = {
+      method: "GET",
+      path: "/brand-new",
+      effect: "read",
+      engineScoped: true,
+    } as const
+    const routes = { ...readRoutes(), getBrandNew: brandNew }
+    const groups = buildCatalog(extended, SPEC_URL, routes).groups
     expect(groups.find((group) => group.tag === "Brand New")).toEqual({
       name: "brand-new",
       tag: "Brand New",
@@ -298,7 +305,7 @@ describe("buildCatalog", () => {
   })
 
   it("rejects commands that clash with a preset", () => {
-    const spec = readPatchedSpec()
+    const spec = readSpec()
     const clashing: OpenApiDocument = {
       ...spec,
       paths: {
@@ -308,24 +315,28 @@ describe("buildCatalog", () => {
         },
       },
     }
-    expect(() => buildCatalog(clashing, SPEC_URL)).toThrow(
+    const suspend = {
+      method: "PUT",
+      path: "/process-instance/suspend-all",
+      effect: "write",
+      engineScoped: true,
+    } as const
+    const routes = { ...readRoutes(), suspendProcessInstance: suspend }
+    expect(() => buildCatalog(clashing, SPEC_URL, routes)).toThrow(
       new Error(
         'Command name clash "process-instance suspend": suspendProcessInstance and updateSuspensionStateById',
       ),
     )
   })
 
-  it("rejects bulk classifications and effect overrides for unknown operations", () => {
-    const empty: OpenApiDocument = { info: { title: "t", version: "1" }, paths: {} }
-    expect(() => buildCatalog(empty, SPEC_URL)).toThrow(
-      /^Bulk classification for unknown operations: /,
-    )
-    const withoutOverride = readPatchedSpec() as {
-      paths: Record<string, Record<string, unknown>>
+  it("rejects an operation c7-core's route table does not hold", () => {
+    const spec = readSpec()
+    const extended: OpenApiDocument = {
+      ...spec,
+      paths: { ...spec.paths, "/brand-new": { get: { operationId: "getBrandNew", tags: ["X"] } } },
     }
-    delete withoutOverride.paths["/condition"]
-    expect(() => buildCatalog(withoutOverride as unknown as OpenApiDocument, SPEC_URL)).toThrow(
-      new Error("Effect overrides for unknown operations: evaluateCondition"),
+    expect(() => buildCatalog(extended, SPEC_URL, readRoutes())).toThrow(
+      /^GET \/brand-new \(getBrandNew\) is not in c7-core's route table: run /,
     )
   })
 })

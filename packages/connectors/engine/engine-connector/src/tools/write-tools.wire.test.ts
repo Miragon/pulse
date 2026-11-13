@@ -1,4 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest"
+import { z } from "zod"
+import { createToolRegistrar } from "@miragon/pulse-widget-shell/server"
+import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
 import { registerTools } from "./index.js"
 import {
   callTool,
@@ -6,13 +9,14 @@ import {
   registryFor,
   startFakeEngine,
   type FakeEngine,
+  type FakeRoutes,
   type RecordedRequest,
 } from "./test-support/fake-engine.js"
 import { RUNTIME_WRITE_CASES, type WireRequest } from "./test-support/write-cases.js"
 import { OPERATIONS_WRITE_CASES } from "./test-support/write-cases-operations.js"
 import { FORM_BPMN, TASK, TASK_WRITE_CASES, taskRoutes } from "./test-support/write-cases-tasks.js"
 
-/** #328: before this, no write tool had a handler test and the engine contract broke silently. */
+/** #328: before this, no write tool had a handler test and the REST contract broke silently. */
 
 const tools = captureTools((register) => registerTools(register, { allowDeployments: true }))
 const CASES = [...RUNTIME_WRITE_CASES, ...TASK_WRITE_CASES, ...OPERATIONS_WRITE_CASES]
@@ -126,6 +130,241 @@ describe("writes the engine would misread are refused before any request", () =>
     ).toThrow(/ISO 8601/)
     expect(engine.requests).toHaveLength(0)
   })
+})
+
+const NOT_FINITE =
+  "a number that is not finite (a number beyond the range of a double, such as 1e400, reads as " +
+  "Infinity)"
+/** c7-core's refusal of such a number as the value. */
+const REFUSAL =
+  `Variable "amount": ${NOT_FINITE} would go out as null; ` +
+  "send it as a variable of type String with its digits as text"
+/** c7-core's refusal of a value that holds such a number. */
+const HELD_REFUSAL =
+  `Variable "amount": the value holds ${NOT_FINITE} that would go out as null; ` +
+  "send the whole value as JSON text, which keeps its digits"
+
+/**
+ * The arguments as the SDK hands them over, parsed from the request's JSON: `1e400`, beyond the
+ * range of a double, reads as Infinity, and `value: z.unknown()` lets it through. JSON would send
+ * it as null, so the write stored null and reported success (final review S3). One case per tool
+ * and input that takes a variable's value.
+ */
+const NOT_FINITE_WRITES: ReadonlyArray<
+  readonly [toolName: string, input: string, argsJson: string, refusal: string]
+> = [
+  [
+    "engine_set_process_instance_variable",
+    "value",
+    '{"processInstanceId":"pi-1","variableName":"amount","value":1e400,"type":"Double"}',
+    REFUSAL,
+  ],
+  [
+    "engine_set_process_instance_variable",
+    "value",
+    '{"processInstanceId":"pi-1","variableName":"amount","value":{"total":-1e400},"type":"Json"}',
+    HELD_REFUSAL,
+  ],
+  [
+    "engine_start_process_instance",
+    "variables",
+    '{"processDefinitionKey":"invoice","variables":{"amount":{"value":1e400,"type":"Double"}}}',
+    REFUSAL,
+  ],
+  [
+    "engine_complete_task",
+    "variables",
+    '{"taskId":"t-1","variables":{"amount":{"value":[1,1e400]}}}',
+    HELD_REFUSAL,
+  ],
+  [
+    "engine_complete_external_task",
+    "variables",
+    '{"externalTaskId":"ext-1","workerId":"w-1","variables":{"amount":{"value":1e400,"type":"Long"}}}',
+    REFUSAL,
+  ],
+  [
+    "engine_correlate_message",
+    "correlationKeys",
+    '{"messageName":"paid","correlationKeys":{"amount":{"value":1e400,"type":"Double"}}}',
+    REFUSAL,
+  ],
+  [
+    "engine_correlate_message",
+    "processVariables",
+    '{"messageName":"paid","processVariables":{"amount":{"value":-1e400,"type":"Double"}}}',
+    REFUSAL,
+  ],
+  [
+    "engine_throw_signal",
+    "variables",
+    '{"name":"alarm","variables":{"amount":{"value":1e400,"type":"Double"}}}',
+    REFUSAL,
+  ],
+]
+
+/** The parts of a zod schema's definition that hold further schemas. */
+interface SchemaDef {
+  type: string
+  shape?: Record<string, z.ZodType>
+  innerType?: z.ZodType
+  valueType?: z.ZodType
+  element?: z.ZodType
+  options?: z.ZodType[]
+  items?: z.ZodType[]
+  in?: z.ZodType
+  out?: z.ZodType
+}
+
+const defOf = (schema: z.ZodType) => schema._zod.def as unknown as SchemaDef
+
+/** An object shape that takes a variable's value: `value: z.unknown()`, whatever its name. */
+const takesAValue = (shape: Record<string, z.ZodType>) =>
+  shape.value !== undefined && defOf(shape.value).type === "unknown"
+
+/** Whether a schema holds, at any depth, an object that takes a variable's value. */
+function holdsAValue(schema: z.ZodType): boolean {
+  const def = defOf(schema)
+  if (def.shape && takesAValue(def.shape)) return true
+  const inner = [def.innerType, def.valueType, def.element, def.in, def.out]
+  return [...inner, ...(def.options ?? []), ...(def.items ?? []), ...Object.values(def.shape ?? {})]
+    .filter((child) => child !== undefined)
+    .some(holdsAValue)
+}
+
+describe("a variable whose number is not finite is refused before any request", () => {
+  it("covers every input of every tool that takes a variable's value", () => {
+    // Found by the schema, not by a name: a variables map (variableSchema) or a value of its own.
+    const taking = [...tools.values()].flatMap(({ name, inputSchema = {} }) => [
+      ...(takesAValue(inputSchema) ? [`${name} value`] : []),
+      ...Object.entries(inputSchema)
+        .filter(([, schema]) => holdsAValue(schema))
+        .map(([input]) => `${name} ${input}`),
+    ])
+    const covered = new Set(NOT_FINITE_WRITES.map(([toolName, input]) => `${toolName} ${input}`))
+    expect(taking.length).toBeGreaterThanOrEqual(7)
+    expect([...covered].sort()).toEqual([...new Set(taking)].sort())
+  })
+
+  it.each(NOT_FINITE_WRITES)("%s refuses it in %s", async (toolName, _input, argsJson, refusal) => {
+    const engine = await engineWith()
+    const recording = recordingModuleServer()
+    registerTools(createToolRegistrar(recording.server, registryFor(engine)), {
+      allowDeployments: true,
+    })
+    // Validated as the SDK validates a call's arguments before the registrar's callback runs.
+    const args = z
+      .strictObject(toolConfig(toolName).inputSchema ?? {})
+      .parse(JSON.parse(argsJson)) as Record<string, unknown>
+
+    const result = await recording.tool(toolName).call(args)
+
+    expect(result.isError).toBe(true)
+    expect(result.content.map((part) => part.text)).toEqual([refusal])
+    expect(engine.requests).toEqual([])
+  })
+})
+
+/** A whole number beyond ±2^53: written as a JSON number, it would read as …992. */
+const BEYOND_2_53 = "9007199254740993"
+const LONG_TEXT = `{"value":"${BEYOND_2_53}","type":"Long"}`
+/** A Json or Object value that holds it, as JSON text. */
+const HOLDING_TEXT = JSON.stringify(`{"id":${BEYOND_2_53}}`)
+const MESSAGE_ROUTES: FakeRoutes = { "POST /message": { body: [{ resultType: "Execution" }] } }
+
+/**
+ * The forms the module instructions ask for (final review S3): an integer beyond ±2^53 as a string
+ * of type Long, a Json or Object value that holds one as JSON text. Parsed from the request's JSON
+ * as the SDK parses it, each reaches the engine digit for digit; the engine's body is read back as
+ * JSON, where a string keeps every digit and a number could not. One case per tool and input that
+ * takes a variable's value; `sent` is the variable as the engine's body must carry it.
+ */
+const EXACT_DIGIT_WRITES: ReadonlyArray<
+  readonly [toolName: string, input: string, argsJson: string, sent: string, routes: FakeRoutes]
+> = [
+  [
+    "engine_set_process_instance_variable",
+    "value",
+    `{"processInstanceId":"pi-1","variableName":"big","value":"-${BEYOND_2_53}","type":"Long"}`,
+    `{"value":"-${BEYOND_2_53}","type":"Long"}`,
+    {},
+  ],
+  [
+    "engine_set_process_instance_variable",
+    "value",
+    `{"processInstanceId":"pi-1","variableName":"big","value":${HOLDING_TEXT},"type":"Json"}`,
+    `{"value":${HOLDING_TEXT},"type":"Json"}`,
+    {},
+  ],
+  [
+    "engine_start_process_instance",
+    "variables",
+    `{"processDefinitionKey":"invoice","variables":{"big":${LONG_TEXT}}}`,
+    `"big":${LONG_TEXT}`,
+    { "POST /process-definition/key/invoice/start": { body: { id: "pi-1" } } },
+  ],
+  [
+    "engine_complete_task",
+    "variables",
+    `{"taskId":"t-1","variables":{"big":${LONG_TEXT}}}`,
+    `"big":${LONG_TEXT}`,
+    { "GET /task/t-1": { body: { ...TASK, processDefinitionId: null } } },
+  ],
+  [
+    "engine_complete_external_task",
+    "variables",
+    `{"externalTaskId":"ext-1","workerId":"w-1","variables":{"big":${LONG_TEXT}}}`,
+    `"big":${LONG_TEXT}`,
+    {},
+  ],
+  [
+    "engine_correlate_message",
+    "correlationKeys",
+    `{"messageName":"paid","correlationKeys":{"big":${LONG_TEXT}}}`,
+    `"big":${LONG_TEXT}`,
+    MESSAGE_ROUTES,
+  ],
+  [
+    "engine_correlate_message",
+    "processVariables",
+    `{"messageName":"paid","processVariables":{"big":{"value":${HOLDING_TEXT},"type":"Object",` +
+      `"valueInfo":{"objectTypeName":"java.util.HashMap","serializationDataFormat":"application/json"}}}}`,
+    `"big":{"value":${HOLDING_TEXT},"type":"Object"`,
+    MESSAGE_ROUTES,
+  ],
+  [
+    "engine_throw_signal",
+    "variables",
+    `{"name":"alarm","variables":{"big":${LONG_TEXT}}}`,
+    `"big":${LONG_TEXT}`,
+    {},
+  ],
+]
+
+const inputsOf = (table: ReadonlyArray<readonly [toolName: string, input: string, ...unknown[]]>) =>
+  [...new Set(table.map(([toolName, input]) => `${toolName} ${input}`))].sort()
+
+describe("a whole number beyond ±2^53 in the form the instructions ask for keeps every digit", () => {
+  it("covers every input the refusal of a number that is not finite covers", () => {
+    expect(inputsOf(EXACT_DIGIT_WRITES)).toEqual(inputsOf(NOT_FINITE_WRITES))
+  })
+
+  it.each(EXACT_DIGIT_WRITES)(
+    "%s sends it whole from %s",
+    async (toolName, _input, argsJson, sent, routes) => {
+      const engine = await engineWith(routes)
+
+      await callTool(
+        toolConfig(toolName),
+        registryFor(engine),
+        JSON.parse(argsJson) as Record<string, unknown>,
+      )
+
+      const writes = engine.requests.filter((request) => request.method !== "GET")
+      expect(writes).toHaveLength(1)
+      expect(JSON.stringify(writes[0]?.body)).toContain(sent)
+    },
+  )
 })
 
 describe("complete_task never picks its endpoint on a guess", () => {

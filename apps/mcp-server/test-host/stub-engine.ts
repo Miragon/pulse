@@ -9,6 +9,10 @@ export interface StubEngine {
   baseUrl: string
   /** `baseUrl` of an engine that answers every request with a 503. */
   brokenBaseUrl: string
+  /** `baseUrl` of an engine that refuses every login with a 401, as CIB seven's auth filter does. */
+  loginRefusedBaseUrl: string
+  /** `baseUrl` of an engine that denies the server's account every read with a 403. */
+  accessDeniedBaseUrl: string
   /** `baseUrl` of the realistic engine (`realistic-engine.ts`): long names, 160 instances, 73 jobs. */
   realisticBaseUrl: string
   /** Origin of the scenario control routes (see {@link startStubEngine}). */
@@ -32,6 +36,50 @@ const INVOICE_BPMN = readFileSync(
   "utf8",
 )
 
+/**
+ * What runs at each element now (the process flow's "Running"): two instances wait at the
+ * invoice's `approveInvoice`; the other definitions run nothing the stub draws.
+ */
+function activityStatistics(key: string): unknown[] {
+  return key === "invoice"
+    ? [{ id: "approveInvoice", instances: 2, failedJobs: 0, incidents: [] }]
+    : []
+}
+
+/** The invoice instances started in the window ("Throughput"); no other definition started any. */
+const INVOICE_STARTED = 12
+
+/**
+ * What those twelve instances passed (the process flow's "Throughput"): two still wait at
+ * `approveInvoice`, eight were paid and two rejected.
+ */
+const INVOICE_HISTORY = [
+  { id: "StartEvent_received", instances: 0, finished: 12, canceled: 0 },
+  { id: "approveInvoice", instances: 2, finished: 10, canceled: 0 },
+  { id: "Gateway_approved", instances: 0, finished: 10, canceled: 0 },
+  { id: "EndEvent_paid", instances: 0, finished: 8, canceled: 0 },
+  { id: "EndEvent_rejected", instances: 0, finished: 2, canceled: 0 },
+]
+
+const isInvoice = (key: string | null, id: string | null) =>
+  key === "invoice" || DEFINITIONS.some((d) => d.id === id && d.key === "invoice")
+
+/**
+ * The history reads of "Throughput": the cohort counts per key or version, and a version's
+ * history statistics. Any other history count (the overview's 24 h) falls through to 0.
+ */
+function historyResource(url: URL): { status: number; body: unknown } | null {
+  const { pathname, searchParams } = url
+  const key = searchParams.get("processDefinitionKey")
+  const id = searchParams.get("processDefinitionId")
+  if (pathname === "/engine-rest/history/process-instance/count" && (key ?? id)) {
+    return { status: 200, body: { count: isInvoice(key, id) ? INVOICE_STARTED : 0 } }
+  }
+  const match = /^\/engine-rest\/history\/process-definition\/([^/]+)\/statistics$/.exec(pathname)
+  if (!match) return null
+  return { status: 200, body: isInvoice(null, decodeURIComponent(match[1])) ? INVOICE_HISTORY : [] }
+}
+
 /** `/process-definition/{id}/{xml|statistics}` of a fixture definition, or null. */
 function definitionResource(pathname: string): { status: number; body: unknown } | null {
   const match = /^\/engine-rest\/process-definition\/([^/]+)\/(xml|statistics)$/.exec(pathname)
@@ -39,7 +87,7 @@ function definitionResource(pathname: string): { status: number; body: unknown }
   const id = decodeURIComponent(match[1])
   const definition = DEFINITIONS.find((d) => d.id === id)
   if (!definition) return { status: 404, body: { type: "RestException", message: `No ${id}` } }
-  if (match[2] === "statistics") return { status: 200, body: [] }
+  if (match[2] === "statistics") return { status: 200, body: activityStatistics(definition.key) }
   // The other definitions have no diagram here: their names stay the engine's (enrichment).
   if (definition.key !== "invoice") {
     return { status: 404, body: { type: "RestException", message: `No diagram for ${id}` } }
@@ -62,7 +110,10 @@ function definitionStatistics() {
   }))
 }
 
-/** The overview's engine-wide reads: statistics, the open incidents (none) and the counts. */
+/**
+ * The overview's engine-wide reads: statistics, the open incidents (none) and the counts; the
+ * cross-engine landscape's backlog counts the external tasks (none).
+ */
 function overviewResource(pathname: string): { status: number; body: unknown } | null {
   switch (pathname) {
     case "/engine-rest/process-definition/statistics":
@@ -71,9 +122,96 @@ function overviewResource(pathname: string): { status: number; body: unknown } |
       return { status: 200, body: [] }
     case "/engine-rest/incident/count":
     case "/engine-rest/history/process-instance/count":
+    case "/engine-rest/external-task/count":
       return { status: 200, body: { count: 0 } }
     case "/engine-rest/process-instance/count":
       return { status: 200, body: { count: 3 } }
+    default:
+      return null
+  }
+}
+
+/** The invoice version every stub instance and job runs on. */
+const INVOICE_V3 = "invoice:3:7f1c2a9e-2f4b-11f1-9c7e-0242ac120004"
+
+/** The one instance the stub serves whole (the instance view): it waits at `approveInvoice`. */
+const INVOICE_INSTANCE = "pi-invoice-42"
+
+/**
+ * Its two open incidents: one at an element the diagram names (`approveInvoice`), one at an
+ * element the diagram does not hold (`chargeCard`, the stub jobs' element), named by its id.
+ * Only reads scoped to this instance see them; the engine-wide reads stay empty.
+ */
+function invoiceIncident(id: string, activityId: string, incidentMessage: string) {
+  return {
+    id,
+    processDefinitionId: INVOICE_V3,
+    processInstanceId: INVOICE_INSTANCE,
+    executionId: INVOICE_INSTANCE,
+    activityId,
+    failedActivityId: activityId,
+    incidentType: "failedJob",
+    incidentMessage,
+    incidentTimestamp: "2026-10-10T08:00:00.000+0000",
+    configuration: `job-${id}`,
+    causeIncidentId: id,
+    rootCauseIncidentId: id,
+  }
+}
+
+const INVOICE_INSTANCE_INCIDENTS = [
+  invoiceIncident("inc-approve", "approveInvoice", "Approver lookup failed"),
+  invoiceIncident("inc-charge", "chargeCard", "Card declined"),
+]
+
+/** The instance view's reads of {@link INVOICE_INSTANCE}, or null. */
+function instanceResource(url: URL): { status: number; body: unknown } | null {
+  const { pathname, searchParams } = url
+  const base = `/engine-rest/process-instance/${INVOICE_INSTANCE}`
+  const scoped = searchParams.get("processInstanceId") === INVOICE_INSTANCE
+  switch (true) {
+    case pathname === base:
+      return {
+        status: 200,
+        body: {
+          id: INVOICE_INSTANCE,
+          definitionId: INVOICE_V3,
+          businessKey: "INV-2026-0042",
+          suspended: false,
+          ended: false,
+        },
+      }
+    case pathname === `${base}/activity-instances`:
+      return {
+        status: 200,
+        body: {
+          id: INVOICE_INSTANCE,
+          activityId: "invoice",
+          activityName: "Invoice Receipt",
+          activityType: "processDefinition",
+          childActivityInstances: [
+            {
+              id: "approveInvoice:ai-1",
+              activityId: "approveInvoice",
+              activityName: "Approve Invoice",
+              activityType: "userTask",
+              childActivityInstances: [],
+              childTransitionInstances: [],
+            },
+          ],
+          childTransitionInstances: [],
+        },
+      }
+    case pathname === `${base}/variables`:
+      return { status: 200, body: { amount: { type: "Double", value: 129.9, valueInfo: {} } } }
+    case scoped && pathname === "/engine-rest/incident":
+      return { status: 200, body: INVOICE_INSTANCE_INCIDENTS }
+    case scoped && pathname === "/engine-rest/incident/count":
+      return { status: 200, body: { count: INVOICE_INSTANCE_INCIDENTS.length } }
+    case scoped && pathname === "/engine-rest/task":
+      return { status: 200, body: [] }
+    case scoped && pathname === "/engine-rest/task/count":
+      return { status: 200, body: { count: 0 } }
     default:
       return null
   }
@@ -92,6 +230,18 @@ function route(url: URL): { status: number; body: unknown } {
       body: { type: "ProcessEngineException", message: "Engine is shutting down" },
     }
   }
+  // The engine runs and answers, but not to these credentials: a 401 without a body.
+  if (pathname.startsWith("/login-refused/")) return { status: 401, body: undefined }
+  // The engine takes the login but denies the account the read: a 403 with the engine's own body.
+  if (pathname.startsWith("/access-denied/")) {
+    return {
+      status: 403,
+      body: {
+        type: "AuthorizationException",
+        message: "The user with id 'viewer' does not have 'READ' permission on resource '*'.",
+      },
+    }
+  }
   if (pathname === "/engine-rest/process-definition/count") {
     return { status: 200, body: { count: filterDefinitions(searchParams).length } }
   }
@@ -100,7 +250,11 @@ function route(url: URL): { status: number; body: unknown } {
     const max = Number(searchParams.get("maxResults") ?? DEFINITIONS.length)
     return { status: 200, body: filterDefinitions(searchParams).slice(first, first + max) }
   }
-  const resource = overviewResource(pathname) ?? definitionResource(pathname)
+  const resource =
+    instanceResource(url) ??
+    historyResource(url) ??
+    overviewResource(pathname) ??
+    definitionResource(pathname)
   if (resource) return resource
   // Unmapped on purpose (and logged): a widget that starts needing another
   // endpoint shows its error state instead of rendering made-up data.
@@ -134,7 +288,7 @@ function failedJob(id: string, processInstanceId: string, exceptionMessage: stri
     id,
     processInstanceId,
     processDefinitionKey: "invoice",
-    processDefinitionId: "invoice:3:7f1c2a9e-2f4b-11f1-9c7e-0242ac120004",
+    processDefinitionId: INVOICE_V3,
     failedActivityId: "chargeCard",
     retries: 0,
     exceptionMessage,
@@ -165,6 +319,8 @@ function stubJobs(): Map<string, StubJob> {
 /**
  * `/job` reads, the count (GET, query) and the panel's query (POST, its
  * filter in the body), and the retries write; null for every other request.
+ * The jobs are active and due now: an executable count takes those with
+ * retries left, and none is suspended or due later (the landscape's backlog).
  */
 function jobRoute(
   method: string,
@@ -176,7 +332,12 @@ function jobRoute(
   const failedOnly =
     searchParams.get("noRetriesLeft") === "true" ||
     (body as { noRetriesLeft?: unknown } | undefined)?.noRetriesLeft === true
-  const listed = () => [...jobs.values()].filter((j) => !failedOnly || j.retries === 0)
+  const executableOnly = searchParams.get("executable") === "true"
+  const none = searchParams.get("suspended") === "true" || searchParams.has("dueDates")
+  const listed = () =>
+    [...jobs.values()].filter(
+      (j) => !none && (!failedOnly || j.retries === 0) && (!executableOnly || j.retries > 0),
+    )
   if (method === "GET" && pathname === "/engine-rest/job/count") {
     return { status: 200, body: { count: listed().length } }
   }
@@ -247,8 +408,9 @@ function createSearchHolds() {
  * against it through the real server, so the view renders the payload the
  * server ACTUALLY builds (view envelope, data shape, engine id) from a fixed
  * engine response (`fixtures/process-definitions.json` with their statistics,
- * no open incident, the `invoice` diagram `fixtures/invoice.bpmn` with empty
- * activity statistics and three failed jobs).
+ * no open incident, the `invoice` diagram `fixtures/invoice.bpmn` with two instances at
+ * `approveInvoice`, twelve started in the last 30 days in its history, three failed jobs, and
+ * one invoice instance with two open incidents that only its own reads see).
  * The broken base URL turns any tool into a genuine `isError` result: an
  * engine 503 through the server's own error mapping.
  *
@@ -292,6 +454,8 @@ export async function startStubEngine(): Promise<StubEngine> {
   return {
     baseUrl: `${origin}/engine-rest`,
     brokenBaseUrl: `${origin}/broken/engine-rest`,
+    loginRefusedBaseUrl: `${origin}/login-refused/engine-rest`,
+    accessDeniedBaseUrl: `${origin}/access-denied/engine-rest`,
     realisticBaseUrl: `${origin}${REALISTIC_PREFIX}/engine-rest`,
     controlUrl: origin,
     close: () =>

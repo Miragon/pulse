@@ -6,9 +6,7 @@ import { APP_ROOT } from "./support/files.js"
 
 type Options = Readonly<Record<string, unknown>>
 
-const ENGINE_TESTS = "test/**/*.engine.test.ts"
 const SMOKE_TESTS = "test/**/*.test.cjs"
-const SWITCHES = ["passWithNoTests", "allowOnly", "bail", "testNamePattern", "include", "exclude"]
 
 function filesOf(patterns: unknown): string[] {
   const globs = [patterns].flat().filter((pattern) => typeof pattern === "string")
@@ -27,33 +25,13 @@ async function configOf(file: string): Promise<Options> {
 }
 
 describe("the configs the CI jobs run by name", () => {
-  test("are the ones the pinned test:engines and test:smoke scripts load", () => {
+  test("are the ones the pinned test:smoke script loads", () => {
     const manifest = JSON.parse(readFileSync(join(APP_ROOT, "package.json"), "utf8")) as {
       readonly scripts: Readonly<Record<string, string>>
     }
-    expect(manifest.scripts["test:engines"]).toBe("vitest run --config vitest.engines.config.ts")
     expect(manifest.scripts["test:smoke"]).toBe(
       "node scripts/build.mjs && vscode-test --config .vscode-test.mjs",
     )
-  })
-
-  test("run every engine test in one project that switches nothing off", async () => {
-    const root = optionsOf((await configOf("vitest.engines.config.ts")).test)
-    const projects = [root.projects].flat()
-    expect(projects).toHaveLength(1)
-    const project = optionsOf(optionsOf(projects[0]).test)
-    expect(Object.keys(project).sort()).toEqual([
-      "environment",
-      "hookTimeout",
-      "include",
-      "name",
-      "testTimeout",
-    ])
-    expect(filesOf(ENGINE_TESTS).length).toBeGreaterThan(0)
-    expect(filesOf(project.include)).toEqual(filesOf(ENGINE_TESTS))
-    for (const option of SWITCHES) {
-      expect(root[option], option).toBeUndefined()
-    }
   })
 
   test("run every smoke test against the built extension", async () => {

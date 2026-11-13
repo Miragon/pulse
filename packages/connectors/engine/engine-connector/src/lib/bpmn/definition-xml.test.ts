@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest"
 import { runWithMcpRequestInfo } from "@miragon/pulse-widget-shell/server"
-import { withCallerSignal } from "@miragon/pulse-engine-client"
+import { withCallerSignal } from "@miragon/pulse-c7-client"
 import {
   clientFor,
   startFakeEngine,

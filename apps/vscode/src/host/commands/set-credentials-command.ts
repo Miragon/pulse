@@ -1,7 +1,6 @@
 import * as vscode from "vscode"
-import type { Connection } from "../connections/connection.js"
+import type { Connection, CredentialStore } from "@miragon/pulse-runtime-view/host-kit"
 import type { ConnectionRegistry } from "../connections/connection-registry.js"
-import type { CredentialStore } from "../connections/credential-store.js"
 import type { Command } from "./command.js"
 import { COMMAND } from "./command-ids.js"
 import type { ConnectionPicker } from "./connection-picker.js"

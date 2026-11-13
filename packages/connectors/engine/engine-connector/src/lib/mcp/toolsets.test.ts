@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { registerEngineTools } from "../../tools/engines.js"
-import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-engine-core"
+import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-c7-core"
 import { registerTools } from "../../tools/index.js"
 import { registerIncidentIssueTools } from "../../tools/incident-issue.js"
 import type { EngineRegistry } from "../engine/resolve-engine.js"

@@ -1,12 +1,14 @@
 import { readFileSync } from "node:fs"
 import { describe, expect, it } from "vitest"
 import {
+  BARE_PAUSE_RULE_EN,
   blindGlossaryRules,
+  COUNT_TERMS,
   glossaryFindings,
   PRODUCT_GLOSSARY,
   unnamedGlossaryTerms,
   type GlossaryRule,
-} from "@miragon/pulse-widget-shell/testing"
+} from "@miragon/pulse-ui/testing"
 import { catalogs } from "./index.js"
 
 /** Each rule carries a probe it must catch, so a broken pattern fails instead of passing everything. */
@@ -29,6 +31,9 @@ const DE_RULES: readonly GlossaryRule[] = [
 ]
 
 const EN_RULES: readonly GlossaryRule[] = [
+  // The cockpit pauses nothing of its own (no live updates, no runs), so any pause or halt here
+  // means the engine's suspension; the product rule only flags one next to what it suspends.
+  BARE_PAUSE_RULE_EN,
   { pattern: /\bresum(e|ed|es|ing)\b/i, use: "activate", probe: "Resume instance" },
   {
     pattern: /^(Resolved|Resolve|Retried|Fix)$/,
@@ -81,6 +86,40 @@ describe("the glossary rules spare the glossary terms", () => {
   })
 })
 
+/** Owner decision E2 (2026-11-08): the count terms the VS Code webview shares, word for word. */
+describe("the count terms", () => {
+  it.each([
+    ["processInstances.chipWithIncidents", COUNT_TERMS.withIncident],
+    ["instanceDetail.tabIncidents", COUNT_TERMS.incidents],
+    ["cockpitDefs.colIncidents", COUNT_TERMS.incidents],
+    ["fleet.incidents", COUNT_TERMS.incidents],
+    ["fleet.landscape.colIncidents", COUNT_TERMS.incidents],
+    ["procIncFlow.modeIncidents", COUNT_TERMS.incidents],
+    ["procIncFlow.valuesColIncidents", COUNT_TERMS.incidents],
+    // A KPI tile names the same count spelled out, standing alone.
+    ["engineHealth.kpiOpenIncidents", COUNT_TERMS.incidents.long],
+    ["fleet.landscape.kpiIncidents", COUNT_TERMS.incidents.long],
+    ["incidentsKpi.cellOpenIncidents", COUNT_TERMS.incidents.long],
+    ["instanceDetail.kpiOpenIncidents", COUNT_TERMS.incidents.long],
+    ["procIncKpi.openIncidents", COUNT_TERMS.incidents.long],
+    ["procIncHeader.allVersions", COUNT_TERMS.allVersions],
+    ["processInstances.allVersions", COUNT_TERMS.allVersions],
+  ])("%s", (key, term) => {
+    expect(catalogs.de[key]).toBe(term.de)
+    expect(catalogs.en[key]).toBe(term.en)
+  })
+
+  it.each([
+    "cockpitDefs.deployedHint",
+    "procIncFlow.diagramVersion",
+    "procIncKpi.headerBadge",
+    "fleet.landscape.matrix.hint",
+  ])("%s names the version scope of its counts", (key) => {
+    expect(catalogs.de[key]).toContain(COUNT_TERMS.allVersions.de)
+    expect(catalogs.en[key]).toContain(COUNT_TERMS.allVersions.en)
+  })
+})
+
 /** Owner decision (#322 U5): marking an incident resolved never claims a fix. */
 describe("the decided wording", () => {
   it.each([
@@ -91,8 +130,37 @@ describe("the decided wording", () => {
     ["confirmDialog.resolveConfirm", "Als gelöst markieren", "Mark as resolved"],
     ["value.yes", "Ja", "Yes"],
     ["value.no", "Nein", "No"],
-    // Same name as the metric engine_jobs_failed in analytics' landscape.
+    // The engine cards and the landscape's column say it alike.
     ["fleet.failedJobs", "Jobs ohne Versuche", "Jobs without retries"],
+    ["fleet.landscape.colFailedJobs", "Jobs ohne Versuche", "Jobs without retries"],
+    ["fleet.landscape.colRunning", "Laufend", "Running"],
+    // The process flow's mode: what runs at each element now, a count, so "laufend", never "aktiv".
+    ["procIncFlow.modeRunning", "Laufend", "Running"],
+    ["procIncFlow.valuesColRunning", "Laufend", "Running"],
+    // What the last 30 days' instances passed: a cohort read from the history, never "Häufigkeit".
+    ["procIncFlow.modeThroughput", "Durchlauf · 30 Tage", "Throughput · 30 days"],
+    ["procIncFlow.valuesColPassed", "Durchläufe", "Passes"],
+    // An engine that refuses the server's login runs (F2): describeError's 401 and 403 in short,
+    // never "unreachable", and its count says the same.
+    ["cockpit.landing.status.unauthorized", "Zugangsdaten abgelehnt", "credentials rejected"],
+    ["cockpit.landing.status.forbidden", "Zugriff verweigert", "access denied"],
+    [
+      "fleet.landscape.kpiUnauthorized",
+      "{count} mit abgelehnten Zugangsdaten",
+      "{count} with credentials rejected",
+    ],
+    [
+      "fleet.landscape.kpiForbidden",
+      "{count} mit verweigertem Zugriff",
+      "{count} with access denied",
+    ],
+    // A refused profile's count names the profile, so it never reads like the refused login
+    // beside it; the glossary's word for it, abgelehnt / refused.
+    [
+      "fleet.landscape.kpiRefused",
+      "{count} mit abgelehntem Profil",
+      "{count} with profile refused",
+    ],
   ])("%s", (key, german, english) => {
     expect(catalogs.de[key]).toBe(german)
     expect(catalogs.en[key]).toBe(english)

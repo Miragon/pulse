@@ -65,7 +65,7 @@ const logins: fc.Arbitrary<CachedLogin> = fc
       clientAuthMethod: fc.constantFrom("none", "client_secret_basic", "client_secret_post"),
     }),
     tokenType: fc.constant("Bearer"),
-    accessToken: fc.string({ minLength: 1, maxLength: 40 }),
+    accessToken: fc.stringMatching(/^[A-Za-z0-9\-._~+/]{1,40}={0,2}$/),
     expiresAt: optionalNumber,
     refreshToken: fc.option(fc.string({ minLength: 1, maxLength: 40 }), { nil: null }),
     refreshExpiresAt: optionalNumber,
@@ -256,6 +256,7 @@ describe("readCache and writeCache", () => {
     ["a missing field", cacheText(cachedLogin(NOW)).replace('"user": "alice",', "")],
     ["a number access token", cacheText(cachedLogin(NOW)).replace('"cached-access"', "42")],
     ["an empty access token", cacheText(cachedLogin(NOW, { accessToken: "" }))],
+    ["an access token pulse cannot send", cacheText(cachedLogin(NOW, { accessToken: "a b" }))],
     ["an empty refresh token", cacheText(cachedLogin(NOW, { refreshToken: "" }))],
     [
       "a string expiry",

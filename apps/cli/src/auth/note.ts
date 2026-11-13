@@ -5,10 +5,11 @@
  * the Basic credentials, and neither would mention the token the agent exported.
  */
 
+import type { Credential } from "@miragon/pulse-http"
 import { PulseCliError } from "../errors.js"
 import type { AuthPreview, AuthProvider } from "./types.js"
 
-/** Failures of `headers()` and `refresh()` that the note explains. */
+/** Failures of the credential (its token, its renewal after a 401) that the note explains. */
 const NOTED_CODES: ReadonlySet<string> = new Set(["LOGIN_REQUIRED"])
 
 function withHint(error: PulseCliError, note: string): PulseCliError {
@@ -22,6 +23,16 @@ function noted(note: string): (error: unknown) => never {
     throw error instanceof PulseCliError && NOTED_CODES.has(error.code)
       ? withHint(error, note)
       : error
+  }
+}
+
+/** `credential` whose failures carry the note. */
+function notedCredential(credential: Credential, fail: (error: unknown) => never): Credential {
+  return {
+    scheme: credential.scheme,
+    renewable: credential.renewable,
+    authorization: () => credential.authorization().catch(fail),
+    rejected: (sent) => credential.rejected(sent).catch(fail),
   }
 }
 
@@ -43,10 +54,7 @@ export function withAuthNote(provider: AuthProvider, note: string | undefined): 
     ...(provider.loginStatusCommand === undefined
       ? {}
       : { loginStatusCommand: provider.loginStatusCommand }),
-    headers: () => provider.headers().catch(fail),
-    ...(provider.refresh === undefined
-      ? {}
-      : { refresh: () => provider.refresh?.().catch(fail) ?? Promise.resolve(false) }),
+    credential: notedCredential(provider.credential, fail),
     preview: async (): Promise<AuthPreview> => {
       const preview = (await provider.preview?.()) ?? { headers: {} }
       return preview.note === undefined ? preview : { ...preview, note: `${preview.note} ${note}` }

@@ -8,10 +8,17 @@ import { withAuthNote } from "../auth/note.js"
 import type { OAuthDeps } from "../auth/oauth/types.js"
 import { pathModule, tokenDirectory, tokenPath } from "../config/file.js"
 import { plainHttpHost } from "../config/oauth.js"
+import { profileNotice } from "../config/no-profile.js"
 import { resolveConfig } from "../config/resolve.js"
 import { unusedTokenNote } from "../config/resolve-bearer.js"
-import { ENV, type LoadedConfig, type OutputFormat, type ResolvedConfig } from "../config/types.js"
-import type { ClientOptions } from "../http/client.js"
+import {
+  type ConfigFlags,
+  ENV,
+  type LoadedConfig,
+  type OutputFormat,
+  type ResolvedConfig,
+} from "../config/types.js"
+import { type Client, createClient } from "../http/client.js"
 import type { GuardOptions } from "../operation/guards.js"
 import type { Target } from "../operation/request.js"
 import type { RenderOptions } from "../output/render.js"
@@ -45,10 +52,18 @@ export interface SessionOptions {
   readonly authCommand?: boolean
 }
 
+/** Writes `profileNotice` on stderr: a URL without `--profile` left out the user's PULSE_CLI_PROFILE. */
+export function warnOfLeftOutProfile(flags: ConfigFlags, runtime: Runtime): void {
+  const notice = profileNotice(flags, runtime.env)
+  if (notice !== undefined) runtime.stderr.write(notice)
+}
+
 /**
  * Resolves the configuration and records the output format for error rendering. Reads the
  * password from stdin for `--auth-password-stdin` and the token for `--auth-token-stdin`;
- * `bodyFromStdin` (`--body -`) refuses both.
+ * `bodyFromStdin` (`--body -`) refuses both. Warns on stderr first when a URL leaves out the
+ * PULSE_CLI_PROFILE the user set (`profileNotice`), from the flags and the environment alone, so
+ * the warning also stands before an error of the resolution.
  */
 export async function openSession(
   context: CliContext,
@@ -57,6 +72,7 @@ export async function openSession(
 ): Promise<Session> {
   const { runtime } = context
   const { authPasswordStdin, authTokenStdin } = globals
+  warnOfLeftOutProfile(configFlags(globals), runtime)
   checkStdinUse({
     password: authPasswordStdin,
     token: authTokenStdin,
@@ -65,14 +81,10 @@ export async function openSession(
   const files = await loadConfig(runtime, globals.config)
   const password = authPasswordStdin ? await readStdinPassword(runtime) : undefined
   const token = authTokenStdin ? await readStdinPassword(runtime, TOKEN) : undefined
-  const config = resolveConfig(
-    configFlags(globals, { password, token }),
-    runtime.env,
-    files.config,
-    {
-      authCommand: options.authCommand === true,
-    },
-  )
+  const flags = configFlags(globals, { password, token })
+  const config = resolveConfig(flags, runtime.env, files.config, {
+    authCommand: options.authCommand === true,
+  })
   const format = config.output ?? terminalFormat(runtime)
   context.state.format = format
   return {
@@ -171,21 +183,29 @@ function unusedNote(config: ResolvedConfig): string | undefined {
     : unusedTokenNote(unusedToken)
 }
 
-/** The HTTP client of a command; the auth provider reads the token cache lazily (OAuth). */
-export function clientOf(session: Session, runtime: Runtime): ClientOptions {
+/**
+ * The engine client of a command: the resolved configuration mapped onto the transport's
+ * connection (`createClient`: the URL, the auth provider's credential, the timeout, the secret
+ * ones of the extra headers), with the `--verbose` trace, which shows the secrets only with
+ * `--show-secrets`. The auth provider reads the token cache lazily (OAuth).
+ */
+export function clientOf(session: Session, runtime: Runtime): Client {
   const { config, globals } = session
   const warning = plainHttpWarning(session)
   if (warning !== undefined) runtime.stderr.write(`${warning}\n`)
   const provider = createAuthProvider(config.auth, sessionAuthDeps(session, runtime))
-  const client: ClientOptions = {
+  const trace = globals.verbose
+    ? { trace: traceWriter(runtime.stderr, globals.showSecrets), showSecrets: globals.showSecrets }
+    : {}
+  return createClient({
+    url: config.url,
     fetch: runtime.fetch,
     auth: withAuthNote(provider, unusedNote(config)),
     timeoutMs: config.timeoutMs,
     now: () => runtime.now(),
-  }
-  return globals.verbose
-    ? { ...client, trace: traceWriter(runtime.stderr, globals.showSecrets) }
-    : client
+    headers: config.headers,
+    ...trace,
+  })
 }
 
 /** Where read-only mode was switched on, for the READ_ONLY hint. */

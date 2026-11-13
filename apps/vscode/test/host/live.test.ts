@@ -1,14 +1,13 @@
-import { FakeEngine, FakeWorld } from "../../src/contract/fake/index.js"
-import { DiagramCache } from "../../src/core/index.js"
+import { FakeEngine, FakeWorld } from "@miragon/pulse-engine-core/testing"
+import { DiagramCache } from "@miragon/pulse-runtime-view/core"
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
-import type { Connection } from "../../src/host/connections/connection.js"
+import { type Connection, LOCAL_TARGET } from "@miragon/pulse-runtime-view/host-kit"
 import { EnginesTreeLive, type LiveTree } from "../../src/host/explorer/engines-tree-live.js"
 import { LiveTriggers } from "../../src/host/live/live-triggers.js"
 import { LiveWiring } from "../../src/host/live/live-wiring.js"
 import { WindowAttention } from "../../src/host/live/window-attention.js"
 import { ConnectionLive } from "./support/connection-live.js"
 import { FakeRegistry } from "./support/fake-registry.js"
-import { LOCAL_TARGET } from "../../src/host/connections/engine-target.js"
 import {
   EventEmitter,
   debugEnded,

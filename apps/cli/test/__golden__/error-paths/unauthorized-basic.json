@@ -1,0 +1,29 @@
+{
+  "case": "unauthorized-basic",
+  "config": {
+    "PULSE_CLI_AUTH": "basic",
+    "PULSE_CLI_PASSWORD": "demo-secret",
+    "PULSE_CLI_URL": "http://127.0.0.1:<port>/engine-rest",
+    "PULSE_CLI_USERNAME": "demo"
+  },
+  "probes": [
+    {
+      "argv": [
+        "process-instance",
+        "get",
+        "pi-1"
+      ],
+      "exitCode": 4,
+      "sent": [
+        "GET /engine-rest/process-instance/pi-1 [Basic ZGVtbzpkZW1vLXNlY3JldA==]"
+      ],
+      "stderrLines": [
+        "{\"error\":{\"code\":\"UNAUTHORIZED\",\"exitCode\":4,\"message\":\"HTTP 401 Unauthorized\",\"status\":401,\"hint\":\"The engine rejected the credentials of user demo (source: env). Check the username and the password; `pulse config show` shows where each comes from. After a failed login the engine refuses the user for a few seconds (and locks it after repeated failures), so wait before retrying.\",\"request\":{\"method\":\"GET\",\"url\":\"http://127.0.0.1:<port>/engine-rest/process-instance/pi-1\"}}}",
+        ""
+      ],
+      "stdoutLines": [
+        ""
+      ]
+    }
+  ]
+}

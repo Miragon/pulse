@@ -1,7 +1,6 @@
-import type { WriteRequest } from "../../core/index.js"
+import type { WriteRequest } from "@miragon/pulse-runtime-view/core"
 import * as vscode from "vscode"
-import type { Confirmation } from "../connections/confirmation-policy.js"
-import { NotificationText } from "../notification-text.js"
+import { type Confirmation, NotificationText } from "@miragon/pulse-runtime-view/host-kit"
 
 const NO_LOGIN: Readonly<Record<string, string>> = {
   moveToken: "No login: the engine records neither who nor why.",

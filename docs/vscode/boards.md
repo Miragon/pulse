@@ -41,7 +41,7 @@ completion and checks from the board schema; Pulse reloads an open board when yo
 }
 ```
 
-`engines` names profiles of `.pulse-cli.json`. A widget may narrow them with its own `engines`.
+`engines` names profiles of `.pulse.json`. A widget may narrow them with its own `engines`.
 
 | Widget            | Shows                                                                                            |
 | ----------------- | ------------------------------------------------------------------------------------------------ |
@@ -60,7 +60,7 @@ Columns are `engine`, `process`, `version`, `businessKey`, `state`, `startedAt`,
 
 Every row and every number keeps the engine it came from, and a click opens the instance or
 the process on that engine. An engine that cannot be read, or that is not in your
-`.pulse-cli.json`, gets one strip on top and "not read" in its cells; a total then says how
+`.pulse.json`, gets one strip on top and "not read" in its cells; a total then says how
 many engines it counts. A click on a count in a diagram opens the process filtered to that
 element. A broken file lists each problem with its path and reason and keeps
 showing the last valid version.

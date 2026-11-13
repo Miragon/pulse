@@ -15,7 +15,6 @@
 @source "../../node_modules/@miragon/pulse-ui/dist";
 @source "../../node_modules/@miragon/pulse-widget-shell/dist";
 @source "../../node_modules/@miragon/pulse-engine-connector/src";
-@source "../../node_modules/@miragon/pulse-analytics-connector/src";
 @source "../../../modules/*/src/**/*.{ts,tsx}";
 /*
  * The look: pulse-ui's Miragon theme plus your brand overrides, both in

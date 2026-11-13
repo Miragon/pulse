@@ -1,5 +1,5 @@
 import { cn } from "../lib/utils.js"
-import { truncate } from "./format.js"
+import { truncate } from "../format/index.js"
 
 /** The one preview length for log and error text: longer text folds behind a summary. */
 export const LOG_TEXT_PREVIEW = 160

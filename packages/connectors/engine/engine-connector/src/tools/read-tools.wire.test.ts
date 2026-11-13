@@ -13,7 +13,7 @@ import {
   type FakeRoutes,
 } from "./test-support/fake-engine.js"
 
-/** #328, read side: engine-contract rules every READ tool honours on the wire. */
+/** #328, read side: the REST contract rules every READ tool honours on the wire. */
 
 const tools = captureTools(
   (register) => registerTools(register, { allowDeployments: true }),
@@ -249,7 +249,7 @@ describe("engine_list_tasks candidate groups", () => {
 /**
  * A 404 as the engine sends it for a resource it does not have, and the 404s of a wrong REST root:
  * JAX-RS's `NotFoundException` for an unknown path, and a servlet container's or proxy's page
- * without an engine answer. Only the first is "none" (engine-core's `isMissing`).
+ * without an engine answer. Only the first is "none" (c7-core's `isMissing`).
  */
 const GONE: FakeReply = {
   status: 404,

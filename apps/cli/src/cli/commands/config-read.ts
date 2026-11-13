@@ -1,11 +1,13 @@
 /**
  * The reading `pulse config` commands: `config path` (the user's config file,
  * with `--project` the project file), `config show` (the effective configuration with the source
- * of every value and the files it comes from) and `config list` (the profiles of both files).
+ * of every value and the files it comes from) and `config list` (the profiles of both files, a
+ * refused one with why). Both report on stderr what is off at a file's root besides its profiles.
  */
 
 import type { Command } from "commander"
-import { listProfiles, showConfig } from "../../config/edit.js"
+import { listProfiles, showConfig } from "../../config/show.js"
+import { fileNotices } from "../../config/profile-problems.js"
 import { validateOutput } from "../../config/resolve.js"
 import { renderValue } from "../../output/render.js"
 import { compact } from "../../util.js"
@@ -83,14 +85,20 @@ async function printConfig(command: Command, context: CliContext): Promise<void>
       ? renderValue(view, options)
       : `${showHeader(view)}${renderValue(showRows(view), options)}`,
   )
+  writeNotices(context, fileNotices(session.file, session.configPath))
+}
+
+function writeNotices(context: CliContext, notices: readonly string[]): void {
+  for (const notice of notices) context.runtime.stderr.write(`${notice}\n`)
 }
 
 /** The profiles of the project file and the user's config file (or the named file). */
 async function printProfiles(command: Command, context: CliContext): Promise<void> {
   const globals = readGlobals(command)
   const view = await displayOf(context, globals)
-  const { config } = await loadConfig(context.runtime, globals.config)
+  const { config, path } = await loadConfig(context.runtime, globals.config)
   write(context, renderValue(listProfiles(config), view))
+  writeNotices(context, fileNotices(config, path))
 }
 
 /** Heading of the own options of config commands (commander's default). */
@@ -113,7 +121,7 @@ export function registerReadCommands(config: Command, context: CliContext): void
     FILE_OPTIONS,
   ).option(
     PROJECT_OPTION[0],
-    "Print the project file (.pulse-cli.json from the working directory up to the repository root)",
+    "Print the project file (.pulse.json from the working directory up to the repository root)",
   )
   path.action(() => printPath(path, context))
   const show = configSubcommand(

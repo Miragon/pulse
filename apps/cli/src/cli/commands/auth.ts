@@ -29,9 +29,9 @@ import { sharedLoginLines, sharingProfiles } from "./auth-shared.js"
 import { loginView } from "./auth-view.js"
 import type { UtilityCommand } from "./types.js"
 
-const LOGIN_OPTIONS = ["profile", "config", "output", "timeout", "verbose"]
+const LOGIN_OPTIONS = ["url", "profile", "config", "output", "timeout", "verbose"]
 /** `--auth-token-stdin` lets `auth status` show a piped bearer token. */
-const STATUS_OPTIONS = ["profile", "config", "output", "auth-token-stdin"]
+const STATUS_OPTIONS = ["url", "profile", "config", "output", "auth-token-stdin"]
 const OPTIONS_GROUP = "Options:"
 const DEFAULT_LOGIN_TIMEOUT_MS = 300_000
 

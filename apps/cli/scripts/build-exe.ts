@@ -12,12 +12,21 @@ import { existsSync } from "node:fs"
 import { chmod, copyFile, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises"
 import { fileURLToPath } from "node:url"
 import { inject } from "postject"
-import { exeTarget, injectOptions, SEA_RESOURCE, seaConfig, sharedLibraries } from "./exe/sea.js"
+import {
+  exeTarget,
+  injectOptions,
+  nodeLicenceOf,
+  SEA_RESOURCE,
+  seaConfig,
+  sharedLibraries,
+} from "./exe/sea.js"
 
 const root = (path: string) => fileURLToPath(new URL(`../${path}`, import.meta.url))
 const BUNDLE = root("build/standalone/pulse-cli.cjs")
 const WORK_DIR = root("build/sea")
 const OUT_DIR = root("build/bin")
+// Not in OUT_DIR: a release uploads every file of it that starts with the executable's name.
+const LICENCE_DIR = root("build/node-license")
 
 const run = (file: string, args: readonly string[]) => {
   execFileSync(file, args, { stdio: "inherit" })
@@ -40,6 +49,8 @@ const target = exeTarget(process.platform, process.arch)
 const configFile = `${WORK_DIR}/sea-config.json`
 const blob = `${WORK_DIR}/sea-prep.blob`
 const binary = `${OUT_DIR}/${target.fileName}`
+const licence = `${LICENCE_DIR}/${target.fileName}`
+const nodeLicence = nodeLicenceOf(process.execPath, process.platform)
 
 await rm(WORK_DIR, { recursive: true, force: true })
 await mkdir(WORK_DIR, { recursive: true })
@@ -53,6 +64,18 @@ await chmod(binary, 0o755)
 if (target.macho) run("codesign", ["--remove-signature", binary])
 await inject(binary, SEA_RESOURCE, await readFile(blob), injectOptions(target))
 if (target.macho) run("codesign", ["--sign", "-", binary])
+
+// The licence of the Node.js the executable embeds, kept with the build: its archive ships it as
+// NODE_LICENSE (scripts/pack-binary.sh) and its release as pulse-cli-NODE_LICENSE
+// (scripts/release-licenses.sh), whichever node a later step finds on the PATH.
+await mkdir(LICENCE_DIR, { recursive: true })
+await rm(licence, { force: true })
+if (existsSync(nodeLicence)) await copyFile(nodeLicence, licence)
+else {
+  console.error(
+    `${nodeLicence} does not exist: scripts/pack-binary.sh needs it named, and a release, which attaches it (scripts/release-licenses.sh), fails without it.`,
+  )
+}
 
 const megabytes = ((await stat(binary)).size / 1024 / 1024).toFixed(1)
 console.log(`Built ${binary} (${megabytes} MB, Node.js ${process.version})`)

@@ -53,9 +53,11 @@ const UI_PREFIX = UI_ROOT + sep
 
 const PULSE_UI = {
   root: exportsOf(join(UI_ROOT, "dist/index.d.ts")).map((e) => e.name),
+  format: exportsOf(join(UI_ROOT, "dist/format/index.d.ts")).map((e) => e.name),
+  tones: exportsOf(join(UI_ROOT, "dist/tones/index.d.ts")).map((e) => e.name),
   testing: exportsOf(join(UI_ROOT, "dist/testing/index.d.ts")).map((e) => e.name),
 }
-const KIT = new Set([...PULSE_UI.root, ...PULSE_UI.testing])
+const KIT = new Set([...PULSE_UI.root, ...PULSE_UI.format, ...PULSE_UI.tones, ...PULSE_UI.testing])
 const WIDGETS = {
   widgets: exportsOf(join(here, "ui/index.ts")),
   testing: exportsOf(join(here, "testing/index.ts")),
@@ -68,17 +70,28 @@ describe("widget-shell exports no pulse-ui name (one kit)", () => {
     for (const name of ["Button", "Icon", "formatNumber", "ToneVariant", "WidgetHeader"]) {
       expect(PULSE_UI.root, name).toContain(name)
     }
-    for (const name of ["scanGlyphs", "themeStylesheets", "catalogTextFindings"]) {
+    for (const name of ["formatCount", "formatClock", "shortId", "FormatLocale"]) {
+      expect(PULSE_UI.format, name).toContain(name)
+    }
+    for (const name of ["countTone", "severityTone", "SITUATION_TONES", "ToneVariant"]) {
+      expect(PULSE_UI.tones, name).toContain(name)
+    }
+    for (const name of [
+      "scanGlyphs",
+      "themeStylesheets",
+      "catalogTextFindings",
+      "PRODUCT_GLOSSARY",
+    ]) {
       expect(PULSE_UI.testing, name).toContain(name)
     }
     const widgets = WIDGETS.widgets.map((e) => e.name)
     for (const name of ["WidgetShell", "mountViews", "PagedRows", "useViewData"]) {
       expect(widgets, name).toContain(name)
     }
-    expect(WIDGETS.testing.map((e) => e.name)).toContain("PRODUCT_GLOSSARY")
+    expect(WIDGETS.testing.map((e) => e.name)).toContain("recordingModuleServer")
   })
 
-  it("/widgets and /testing share no name with pulse-ui's root or /testing", () => {
+  it("/widgets and /testing share no name with pulse-ui's root, /format, /tones or /testing", () => {
     expect(SHELL.filter((e) => KIT.has(e.name)).map((e) => e.name)).toEqual([])
   })
 

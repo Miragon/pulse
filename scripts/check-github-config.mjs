@@ -13,9 +13,10 @@
  *   release-please-config.json bumps every workspace package (checkReleaseExtraFiles) and
  *   every Claude Code plugin manifest an app ships (checkPluginVersions);
  * - every job of release-please.yml past the approval waits for gate, and release-please.yml
- *   calls the CLI's publish workflows, which run on no other trigger (a dispatch only publishes
- *   the formula of a release again) and hold their tokens like the npm publish
- *   (checkReleaseGate, checkCliPublishWorkflows);
+ *   calls the publish workflows of the CLI and the Orca plugin, which run on no other trigger
+ *   (a dispatch only publishes the formula of a release again) and hold their tokens like the
+ *   npm publish, the Orca publish action pinned to a commit (checkReleaseGate,
+ *   checkChannelPublishWorkflows);
  * - every VS Code extension is packaged by exactly one release job through
  *   publish-vscode-extension.yml, after the release gate, and that workflow publishes by
  *   trusted publishing on both stores (no secret anywhere) from its one job in the
@@ -517,12 +518,16 @@ export function checkReleaseGate(releaseDoc) {
   return errors
 }
 
-// ── publish-cli.yml + publish-homebrew.yml ──────────────────────────────────
+// ── publish-cli.yml + publish-homebrew.yml + publish-orca-plugin.yml ────────
 
-/** The CLI's release channels besides npm, called by release-please.yml after the gate. */
-export const CLI_PUBLISH_WORKFLOWS = [
+/**
+ * The release channels besides npm and the VS Code stores, called by release-please.yml after
+ * the gate: the CLI's binaries, image and formula, and the Orca plugin.
+ */
+export const CHANNEL_PUBLISH_WORKFLOWS = [
   ".github/workflows/publish-cli.yml",
   ".github/workflows/publish-homebrew.yml",
+  ".github/workflows/publish-orca-plugin.yml",
 ]
 
 /**
@@ -530,10 +535,18 @@ export const CLI_PUBLISH_WORKFLOWS = [
  * again by hand, from the assets of a release that exists. Nothing reaches the binaries or the
  * image without the approval.
  */
-export const CLI_PUBLISH_TRIGGERS = {
+export const CHANNEL_PUBLISH_TRIGGERS = {
   ".github/workflows/publish-cli.yml": ["workflow_call"],
   ".github/workflows/publish-homebrew.yml": ["workflow_call", "workflow_dispatch"],
+  ".github/workflows/publish-orca-plugin.yml": ["workflow_call"],
 }
+
+/**
+ * The action that publishes into Miragon/orca-plugins. A full commit pins it, with its release of
+ * Miragon/orca-plugin-kit as a comment, so Dependabot moves the pin to each new release.
+ */
+export const ORCA_PUBLISH_ACTION = "Miragon/orca-plugin-kit/actions/publish-plugin"
+const COMMIT_REF = /^[0-9a-f]{40}$/
 
 const grantsWrite = (job) =>
   Object.values(job?.permissions ?? {}).some((value) => value === "write")
@@ -559,19 +572,20 @@ function credentialOf(job) {
 }
 
 /**
- * The CLI's publish workflows hold their tokens the way the npm publish does (pure; `workflows`
- * holds release-please.yml too): release-please.yml calls each of them, each runs only on its
- * CLI_PUBLISH_TRIGGERS, no permission at the top level, a permissions map on every job, no
- * dependency cache, checkouts without persisted credentials, no expression in a run script, and
- * no package manager in a job that holds a credential: a write grant, id-token, an App token, a
- * secret or a minted token (the build jobs hold contents: read only).
+ * The channels' publish workflows hold their tokens the way the npm publish does (pure;
+ * `workflows` holds release-please.yml too): release-please.yml calls each of them, each runs
+ * only on its CHANNEL_PUBLISH_TRIGGERS, no permission at the top level, a permissions map on every
+ * job, no dependency cache, checkouts without persisted credentials, no expression in a run
+ * script, and no package manager in a job that holds a credential: a write grant, id-token, an
+ * App token, a secret or a minted token (the build jobs hold contents: read only). The Orca
+ * publish action is pinned to a commit and runs in a job a dry run skips.
  */
-export function checkCliPublishWorkflows(workflows) {
+export function checkChannelPublishWorkflows(workflows) {
   const errors = []
   const callers = new Set(
     jobsOf(workflows.get(RELEASE_WORKFLOW)).map(([, job]) => String(job?.uses ?? "")),
   )
-  for (const file of CLI_PUBLISH_WORKFLOWS) {
+  for (const file of CHANNEL_PUBLISH_WORKFLOWS) {
     const doc = workflows.get(file)
     if (doc === undefined) {
       errors.push(`${file} is missing: release-please.yml calls it`)
@@ -582,7 +596,7 @@ export function checkCliPublishWorkflows(workflows) {
         `${RELEASE_WORKFLOW}: no job calls ./${file}: a release would ship without that channel`,
       )
     }
-    const allowed = CLI_PUBLISH_TRIGGERS[file]
+    const allowed = CHANNEL_PUBLISH_TRIGGERS[file]
     for (const event of Object.keys(triggersOf(doc)).filter((e) => !allowed.includes(e))) {
       errors.push(
         `${file}: runs on ${event}; it runs on ${allowed.join(" and ")} only, so nothing ` +
@@ -632,8 +646,25 @@ export function checkCliPublishWorkflows(workflows) {
               `contents: read`,
           )
         }
+        errors.push(...checkOrcaPublishStep(at, job, step))
       }
     }
+  }
+  return errors
+}
+
+function checkOrcaPublishStep(at, job, step) {
+  if (!usesAction(step, ORCA_PUBLISH_ACTION)) return []
+  const errors = []
+  const ref = String(step.uses).split("@")[1] ?? ""
+  if (!COMMIT_REF.test(ref)) {
+    errors.push(
+      `${at}: ${ORCA_PUBLISH_ACTION} is pinned to "${ref}"; pin it to a full commit SHA with ` +
+        `its release as a comment`,
+    )
+  }
+  if (!String(job?.if ?? "").includes("!inputs.dry_run")) {
+    errors.push(`${at} publishes to Miragon/orca-plugins: it needs if: \${{ !inputs.dry_run }}`)
   }
   return errors
 }
@@ -1149,7 +1180,7 @@ export function checkRepo(root) {
       pluginManifests(root, packages),
     ),
     ...checkReleaseGate(workflows.get(RELEASE_WORKFLOW)),
-    ...checkCliPublishWorkflows(workflows),
+    ...checkChannelPublishWorkflows(workflows),
     ...checkVscodePublish(
       workflows.get(RELEASE_WORKFLOW),
       workflows.get(VSCODE_PUBLISH_WORKFLOW),
@@ -1175,7 +1206,7 @@ if (isMain) {
   }
   console.log(
     "GitHub config: publish workflow, npm matrix and repositories, release extra-files and " +
-      "plugin versions, the release gate, the CLI publish workflows, the extension's release " +
+      "plugin versions, the release gate, the CLI and Orca publish workflows, the extension's release " +
       "path, the docs deploy and the CI scopes hold.",
   )
 }

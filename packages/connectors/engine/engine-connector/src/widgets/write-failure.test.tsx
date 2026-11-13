@@ -106,6 +106,8 @@ function incident(id: string, over: Partial<IncidentInstance>): IncidentInstance
     incidentType: "failedJob",
     incidentMessage: `message ${id}`,
     incidentTimestamp: "2026-10-09T09:30:00.000+0000",
+    activityId: "charge",
+    activityName: null,
     cockpitInstanceUrl: null,
     businessKey: null,
     recovery: { action: "none" },

@@ -7,7 +7,7 @@ import { VERDICT_TONE } from "../lib/health-verdict.js"
 /**
  * An engine's live health on the landing and the fleet view, read through the engine overview's
  * own two feeds on its query keys, so a drill-in lands on a warm cache: the counts from its
- * definitions feed, the dot from its health feed's verdict (engine-core's `engineVerdict` on the
+ * definitions feed, the dot from its health feed's verdict (c7-core's `engineVerdict` on the
  * deployment's thresholds), the one the overview's badge shows. Failed jobs stay counted and
  * named; the dot is the verdict's alone.
  */
@@ -33,9 +33,8 @@ export function useEngineHealth(engineId: string) {
   }
 }
 
-/** Neutral until the verdict is read (or when it cannot be); an idle engine must not read as green. */
+/** Neutral until the verdict is read (or when it cannot be), and neutral while it is ok. */
 function dotTone(health: EngineHealthData | undefined): ToneVariant {
   if (!health) return "neutral"
-  if (health.status === "ok" && health.summary.runningInstances === 0) return "neutral"
   return VERDICT_TONE[health.status]
 }

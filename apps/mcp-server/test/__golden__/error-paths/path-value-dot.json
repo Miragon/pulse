@@ -1,0 +1,44 @@
+{
+  "case": "path-value-dot",
+  "config": {
+    "ENGINE_BASE_URL": "http://127.0.0.1:<port>/engine-rest"
+  },
+  "probes": [
+    {
+      "arguments": {
+        "processInstanceId": "."
+      },
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "the path value \".\" was refused before sending (dot-segment): the URL would address another resource; nothing was sent (engine default)"
+            ],
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "sent": [],
+      "tool": "engine_inspect_process_instance"
+    },
+    {
+      "arguments": {
+        "processInstanceId": ".."
+      },
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "the path value \"..\" was refused before sending (dot-segment): the URL would address another resource; nothing was sent (engine default)"
+            ],
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "sent": [],
+      "tool": "engine_inspect_process_instance"
+    }
+  ]
+}

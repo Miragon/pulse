@@ -20,8 +20,8 @@ class CheckBlacklistDelegate : JavaDelegate {
         // Pre-fix bug era: MiraveloLeasingSeeder marks instances in the legacy
         // window with `_simulateBlacklistOutage=true`, the upstream blacklist
         // provider was unreachable. Surfaces as a job-level incident on
-        // Activity_CheckBlacklist (asyncBefore) and feeds the period comparison
-        // with the IMPROVED verdict for UC5 once the cutoff has passed.
+        // Activity_CheckBlacklist (asyncBefore), so the incident history shows
+        // the fix for UC5 IMPROVED once the cutoff has passed.
         val outage = execution.getVariable("_simulateBlacklistOutage") as? Boolean ?: false
         if (outage) {
             log.warn("Simulated blacklist provider outage for customer {} (pre-fix era)", customerId)

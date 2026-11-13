@@ -5,7 +5,7 @@ import { before, describe, it } from "node:test"
 import { fileURLToPath } from "node:url"
 import { ESLint, Linter } from "eslint"
 import tseslint from "typescript-eslint"
-import { DEFAULT_PROJECT_FILES } from "../eslint.config.mjs"
+import { DEFAULT_PROJECT_FILES, HTTP_BROWSER_GLOBALS } from "../eslint.config.mjs"
 
 /**
  * Self-test of the architecture pattern gates in eslint.config.mjs (a gate
@@ -18,7 +18,6 @@ import { DEFAULT_PROJECT_FILES } from "../eslint.config.mjs"
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const ENGINE_CONNECTOR_SRC_DIR = "packages/connectors/engine/engine-connector/src"
-const AN = "packages/connectors/analytics/analytics-connector/src"
 
 /**
  * Every extension of a source in a connector's src: tsc builds .mts and .cts too, ESLint's
@@ -61,36 +60,61 @@ async function gateMessages(rel, code, rule = "no-restricted-syntax") {
 const isRegistrarHit = (m) => m.includes("createToolRegistrar")
 const isResourceHit = (m) => m.includes("A connector registers no resource of its own")
 const isDateHit = (m) =>
-  /^Use format(?:Timestamp|Date|Time)\b/.test(m) && m.includes("@miragon/pulse-ui")
+  /^Use format(?:Timestamp|Date|Time|RelativeTime)\b/.test(m) && m.includes("@miragon/pulse-ui")
 const isNumberHit = (m) => m.includes("view's locale") || m.includes("browser's locale")
 
 const WS = "packages/core/widget-shell/src/ui"
 const UI = "packages/core/ui/src"
 const APP_UI = "apps/mcp-server/src/ui"
 /**
- * WIDGET_TREES of eslint.config.mjs: the host bundle's src/ui, widget-shell's view half and both
- * connectors' widgets, a .ts and a .tsx probe each. The date and number gates hold all of them.
+ * WIDGET_TREES of eslint.config.mjs: the host bundle's src/ui, widget-shell's view half and the
+ * connector's widgets, a .ts and a .tsx probe each. The date and number gates hold all of them.
  */
-const WIDGET_TREE_PATHS = [
-  APP_UI,
-  WS,
-  `${ENGINE_CONNECTOR_SRC_DIR}/widgets`,
-  `${AN}/widgets`,
-].flatMap((dir) => [`${dir}/__probe__.ts`, `${dir}/__probe__.tsx`])
-/** The number gate's probes: pulse-ui's code and every widget tree. */
-const NUMBER_PATHS = [`${UI}/__probe__.ts`, `${UI}/__probe__.tsx`, ...WIDGET_TREE_PATHS]
+const WIDGET_TREE_PATHS = [APP_UI, WS, `${ENGINE_CONNECTOR_SRC_DIR}/widgets`].flatMap((dir) => [
+  `${dir}/__probe__.ts`,
+  `${dir}/__probe__.tsx`,
+])
+/**
+ * The runtime view's core and webview, which Pulse for VS Code and Pulse for Orca host: they
+ * format through pulse-ui's foundation (`@miragon/pulse-ui/format`), so the date and number
+ * gates join their own blocks' unions.
+ */
+const VSCODE_FORMAT_PATHS = [
+  "packages/core/runtime-view/src/core/views/__probe__.ts",
+  "packages/core/runtime-view/src/webview/format/__probe__.ts",
+  "packages/core/runtime-view/src/webview/screens/__probe__.tsx",
+]
+/** Every tree the date gate holds. */
+const DATE_PATHS = [...WIDGET_TREE_PATHS, ...VSCODE_FORMAT_PATHS]
+/** The number gate's probes: pulse-ui's code, every widget tree and the VS Code extension's. */
+const NUMBER_PATHS = [`${UI}/__probe__.ts`, `${UI}/__probe__.tsx`, ...DATE_PATHS]
 
-describe("date gate (invariant 6) in every widget tree", () => {
-  it("catches Intl.DateTimeFormat (new and called), toLocaleDateString and toLocaleTimeString", async () => {
+describe("date gate (invariant 6) in every widget tree and the runtime view's core and webview", () => {
+  it("catches Intl.DateTimeFormat and Intl.RelativeTimeFormat (new and called), toLocaleDateString and toLocaleTimeString", async () => {
     const code = [
       'new Intl.DateTimeFormat("de", opts).format(d)',
       "Intl.DateTimeFormat(undefined).format(d)",
+      'new Intl.RelativeTimeFormat("en", { style: "narrow" }).format(-5, "minute")',
       "d.toLocaleDateString()",
       'd.toLocaleTimeString("de")',
     ].join("\n")
-    for (const rel of WIDGET_TREE_PATHS) {
+    for (const rel of DATE_PATHS) {
       const messages = await gateMessages(rel, code)
-      assert.equal(messages.filter(isDateHit).length, 4, rel)
+      assert.equal(messages.filter(isDateHit).length, 5, rel)
+    }
+  })
+
+  it("keeps the VS Code extension's own selectors in the union beside it", async () => {
+    const code = 'export const word = "processDefinitionKey"\nd.toLocaleDateString()'
+    for (const rel of VSCODE_FORMAT_PATHS) {
+      const messages = await gateMessages(rel, code)
+      assert.equal(messages.filter(isDateHit).length, 1, rel)
+      assert.ok(
+        messages.some((m) =>
+          m.includes("Engine vocabulary belongs in packages/connectors/<family>/<family>-adapter"),
+        ),
+        rel,
+      )
     }
   })
 
@@ -99,7 +123,8 @@ describe("date gate (invariant 6) in every widget tree", () => {
     for (const rel of [
       "packages/core/widget-shell/src/__probe__.ts",
       "packages/core/widget-shell/src/protocol/__probe__.ts",
-      `${UI}/kit/format.ts`,
+      `${UI}/format/dates.ts`,
+      "apps/vscode/src/host/__probe__.ts",
     ]) {
       const messages = await gateMessages(rel, code)
       assert.equal(messages.filter(isDateHit).length, 0, rel)
@@ -146,7 +171,7 @@ describe("number gate (invariant 6) in pulse-ui and every widget tree", () => {
   })
 
   it("lets exactly the kit's two formatters build an Intl.NumberFormat, toFixed stays banned there", async () => {
-    for (const rel of [`${UI}/kit/format.ts`, `${UI}/locale/ui-messages.ts`]) {
+    for (const rel of [`${UI}/format/numbers.ts`, `${UI}/locale/ui-messages.ts`]) {
       const messages = await gateMessages(
         rel,
         "new Intl.NumberFormat(current?.locale, options)\nconst a = n.toFixed(1)",
@@ -158,6 +183,19 @@ describe("number gate (invariant 6) in pulse-ui and every widget tree", () => {
       )
     }
   })
+
+  it("keeps the formatters' tests and the extension's wrappers under the whole gate", async () => {
+    for (const rel of [
+      `${UI}/format/format.test.ts`,
+      `${UI}/format/duration.ts`,
+      `${UI}/format/dates.ts`,
+      "packages/core/runtime-view/src/webview/format/count-labels.ts",
+      "packages/core/runtime-view/src/core/views/labels.ts",
+    ]) {
+      const messages = await gateMessages(rel, 'new Intl.NumberFormat("en").format(n)')
+      assert.equal(messages.filter(isNumberHit).length, 1, rel)
+    }
+  })
 })
 
 describe("MCP Apps runtime gate (invariant 6): only widget-shell's host adapter imports ext-apps", () => {
@@ -166,7 +204,7 @@ describe("MCP Apps runtime gate (invariant 6): only widget-shell's host adapter 
   const ADAPTER = [`${WS}/view-runtime.ts`, `${WS}/ext-apps-host.tsx`, `${WS}/view-root.tsx`]
   const MCP_PATHS = [
     `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.tsx`,
-    `${AN}/widgets/__probe__.ts`,
+    `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.ts`,
     `${ENGINE_CONNECTOR_SRC_DIR}/widget-tools/__probe__.ts`,
     `${UI}/__probe__.tsx`,
     `${UI}/testing/__probe__.ts`,
@@ -257,12 +295,9 @@ describe("MCP Apps runtime gate (invariant 6): only widget-shell's host adapter 
   })
 })
 
-describe("hand-off gate (invariant 6, CI U4) in both connectors' widgets", () => {
+describe("hand-off gate (invariant 6, CI U4) in the connector's widgets", () => {
   const isHandOffHit = (m) => m.includes("HandOffButton") && m.includes("not AskAiButton")
-  const HAND_OFF_PATHS = [
-    `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.tsx`,
-    `${AN}/widgets/__probe__.tsx`,
-  ]
+  const HAND_OFF_PATHS = [`${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.tsx`]
   const KIT = '"@miragon/pulse-widget-shell/widgets"'
 
   it("bans AskAiButton in every spelling: import, renamed import, element, namespace", async () => {
@@ -371,7 +406,7 @@ const REGISTRAR_ESCAPES = {
 describe("registrar gate (invariant 1) catches every spelling that names the member", () => {
   for (const rel of [
     `${ENGINE_CONNECTOR_SRC_DIR}/tools/__probe__.ts`,
-    `${AN}/tools/__probe__.tsx`,
+    `${ENGINE_CONNECTOR_SRC_DIR}/tools/__probe__.tsx`,
   ]) {
     for (const [label, code] of Object.entries(REGISTRAR_ESCAPES)) {
       it(`${label} (${path.extname(rel)})`, async () => {
@@ -420,16 +455,14 @@ describe("registrar gate (invariant 1) catches every spelling that names the mem
       `${ENGINE_CONNECTOR_SRC_DIR}/widget-tools.ts`,
       `${ENGINE_CONNECTOR_SRC_DIR}/widget-tools/__probe__.ts`,
       `${ENGINE_CONNECTOR_SRC_DIR}/widget-tools/__probe__.mts`,
-      `${AN}/widget-tools.ts`,
-      `${AN}/widget-tools/__probe__.ts`,
-      `${AN}/widget-tools/__probe__.mjs`,
+      `${ENGINE_CONNECTOR_SRC_DIR}/widget-tools/__probe__.mjs`,
     ]) {
       assert.deepEqual(await gateMessages(rel, code), [], rel)
     }
     for (const rel of [
       `${ENGINE_CONNECTOR_SRC_DIR}/widget-tools.mts`,
       `${ENGINE_CONNECTOR_SRC_DIR}/widget-tools-more.ts`,
-      `${AN}/widgets/__probe__.tsx`,
+      `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.tsx`,
     ]) {
       assert.ok((await gateMessages(rel, code)).some(isRegistrarHit), rel)
     }
@@ -473,11 +506,15 @@ describe("connector resource gate (invariant 3): a connector's views belong in t
     `${ENGINE_CONNECTOR_SRC_DIR}/widget-tools/__probe__.ts`,
     `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.tsx`,
     `${ENGINE_CONNECTOR_SRC_DIR}/plugin.test.ts`,
-    `${AN}/widget-tools.ts`,
-    `${AN}/widget-tools/__probe__.ts`,
-    `${AN}/widgets/__probe__.ts`,
-    "packages/connectors/engine/engine-client/src/__probe__.ts",
+    `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.ts`,
+    "packages/connectors/c7/c7-client/src/__probe__.ts",
     "packages/connectors/newfamily/newfamily-connector/src/__probe__.ts",
+    // engine-core's src and the C7 adapter's, where the blocks of Pulse for VS Code's house
+    // rules carry the gate in their union, the id constructors' block too.
+    "packages/connectors/c7/c7-adapter/src/__probe__.ts",
+    "packages/connectors/engine/engine-core/src/__probe__.ts",
+    "packages/connectors/engine/engine-core/src/testing/fake/__probe__.ts",
+    "packages/connectors/engine/engine-core/src/model/ids.ts",
   ]
 
   for (const [label, code] of Object.entries(RESOURCE_ESCAPES)) {
@@ -501,14 +538,20 @@ describe("connector resource gate (invariant 3): a connector's views belong in t
       'declare const typed: { "registerResource": number }',
       'const sentence = "a connector calls no registerResource"',
     ].join("\n")
-    assert.deepEqual(await gateMessages(`${AN}/widget-tools/__probe__.ts`, code), [])
+    assert.deepEqual(
+      await gateMessages(`${ENGINE_CONNECTOR_SRC_DIR}/widget-tools/__probe__.ts`, code),
+      [],
+    )
   })
 
   for (const [label, code] of Object.entries(
     openRoutes("registerResource", "register", "Resource"),
   )) {
     it(`leaves ${label} to review, as CLAUDE.md says`, async () => {
-      const messages = await gateMessages(`${AN}/widget-tools/__probe__.ts`, code)
+      const messages = await gateMessages(
+        `${ENGINE_CONNECTOR_SRC_DIR}/widget-tools/__probe__.ts`,
+        code,
+      )
       assert.equal(messages.filter(isResourceHit).length, 0, code)
     })
   }
@@ -533,7 +576,7 @@ describe("connector resource gate (invariant 3): a connector's views belong in t
     ].join("\n")
     for (const rel of [
       `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.ts`,
-      `${AN}/widgets/__probe__.tsx`,
+      `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.tsx`,
     ]) {
       const messages = await gateMessages(rel, code)
       assert.equal(messages.filter(isResourceHit).length, 1, `${rel}: resource gate dropped`)
@@ -558,11 +601,12 @@ describe("the registration gates hold every source extension", () => {
         // [probe path, registrar gate?]: the registrar holds the connectors outside widget-tools.
         [`${ENGINE_CONNECTOR_SRC_DIR}/__probe__.${extension}`, true],
         [`${ENGINE_CONNECTOR_SRC_DIR}/tools/deep/__probe__.${extension}`, true],
-        [`${AN}/widgets/__probe__.${extension}`, true],
-        [`${AN}/__probe__.test.${extension}`, true],
+        [`${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.${extension}`, true],
+        [`${ENGINE_CONNECTOR_SRC_DIR}/__probe__.test.${extension}`, true],
         [`${ENGINE_CONNECTOR_SRC_DIR}/widget-tools/__probe__.${extension}`, false],
-        [`packages/connectors/engine/engine-client/src/__probe__.${extension}`, false],
+        [`packages/connectors/c7/c7-client/src/__probe__.${extension}`, false],
         [`packages/connectors/newfamily/newfamily-connector/src/__probe__.${extension}`, false],
+        [`packages/connectors/engine/engine-core/src/__probe__.${extension}`, false],
       ]
       for (const [rel, registrar] of paths) {
         assert.equal(await eslint.isPathIgnored(path.join(repoRoot, rel)), false, rel)
@@ -580,7 +624,7 @@ describe("gates sharing a glob are merged, not overridden", () => {
   before(async () => {
     const code = 'server.registerTool("x")\nnew Intl.DateTimeFormat("de")\nd.toLocaleDateString()'
     widgetTs = await gateMessages(`${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.ts`, code)
-    widgetTsx = await gateMessages(`${AN}/widgets/__probe__.tsx`, code)
+    widgetTsx = await gateMessages(`${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.tsx`, code)
   })
 
   it("connector widget files carry BOTH the registrar and the date gate", () => {
@@ -590,7 +634,7 @@ describe("gates sharing a glob are merged, not overridden", () => {
     }
   })
 
-  it("both connectors' widgets carry the registrar, date AND number gates in one union per glob", async () => {
+  it("the connector's widgets carry the registrar, date AND number gates in one union per glob", async () => {
     const code = [
       'server.registerTool("x")',
       "d.toLocaleDateString()",
@@ -602,8 +646,6 @@ describe("gates sharing a glob are merged, not overridden", () => {
     for (const rel of [
       `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.ts`,
       `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.tsx`,
-      `${AN}/widgets/__probe__.ts`,
-      `${AN}/widgets/__probe__.tsx`,
     ]) {
       const messages = await gateMessages(rel, code)
       assert.ok(messages.some(isRegistrarHit), `${rel}: registrar gate dropped`)
@@ -630,12 +672,12 @@ describe("gates sharing a glob are merged, not overridden", () => {
   })
 })
 
-describe("engine-core keeps the CLI's budgets (the CLI block of eslint.config.mjs)", () => {
-  const ENGINE = "packages/connectors/engine/engine-core/src"
+describe("c7-core keeps the CLI's budgets (the CLI block of eslint.config.mjs)", () => {
+  const C7_CORE = "packages/connectors/c7/c7-core/src"
   const budget = async (rel, rule) => (await ruleOptionsFor(rel, rule))?.slice(1)[0] ?? null
 
   it("holds its shipped code, the ./testing export included, to complexity 10, 300 lines, 60 per function, 20 statements, depth 3, 4 parameters", async () => {
-    for (const rel of [`${ENGINE}/__probe__.ts`, `${ENGINE}/testing/__probe__.ts`]) {
+    for (const rel of [`${C7_CORE}/__probe__.ts`, `${C7_CORE}/testing/__probe__.ts`]) {
       assert.equal(await budget(rel, "complexity"), 10, rel)
       assert.equal((await budget(rel, "max-lines"))?.max, 300, rel)
       assert.equal((await budget(rel, "max-lines-per-function"))?.max, 60, rel)
@@ -646,9 +688,154 @@ describe("engine-core keeps the CLI's budgets (the CLI block of eslint.config.mj
   })
 
   it("gives its tests 400 lines and no per-function budget", async () => {
-    const rel = `${ENGINE}/__probe__.test.ts`
+    const rel = `${C7_CORE}/__probe__.test.ts`
     assert.equal((await budget(rel, "max-lines"))?.max, 400)
     assert.equal(await ruleOptionsFor(rel, "max-lines-per-function"), null)
+  })
+})
+
+describe("the transport keeps out what only a browser has (packages/core/http)", () => {
+  const HTTP_SRC = "packages/core/http/src"
+  const isHit = (m) => m.includes("The transport runs outside a browser")
+  const globalsGate = (rel, code) => gateMessages(rel, code, "no-restricted-globals")
+
+  it("bans each name of HTTP_BROWSER_GLOBALS in its shipped code, the ./testing export included", async () => {
+    for (const name of [
+      "window",
+      "document",
+      "XMLHttpRequest",
+      "WebSocket",
+      "EventSource",
+      "alert",
+    ]) {
+      assert.ok(HTTP_BROWSER_GLOBALS.includes(name), name)
+    }
+    for (const rel of [`${HTTP_SRC}/__probe__.ts`, `${HTTP_SRC}/testing/__probe__.ts`]) {
+      for (const name of HTTP_BROWSER_GLOBALS) {
+        const messages = await globalsGate(rel, `export const probe = ${name}`)
+        assert.equal(messages.filter(isHit).length, 1, `${rel}: ${name}`)
+      }
+    }
+  })
+
+  it("leaves fetch's own globals, a local binding of a banned name and the tests alone", async () => {
+    const code =
+      "const close = (): number => 1\n" +
+      "export const probe = [fetch, Request, Response, Headers, AbortSignal, URL, close()]"
+    assert.deepEqual(await globalsGate(`${HTTP_SRC}/__probe__.ts`, code), [])
+    assert.equal(
+      await ruleOptionsFor("packages/core/http/test/__probe__.ts", "no-restricted-globals"),
+      null,
+    )
+  })
+})
+
+describe("engine-core keeps the house rules of Pulse for VS Code (packages/connectors/engine/engine-core)", () => {
+  const ENGINE_CORE_SRC = "packages/connectors/engine/engine-core/src"
+  const ENGINE_CORE_TEST = "packages/connectors/engine/engine-core/test"
+  // Every TypeScript extension: a file under src steps out of no rule by its name.
+  const SHIPPED = [
+    `${ENGINE_CORE_SRC}/__probe__.ts`,
+    `${ENGINE_CORE_SRC}/testing/fake/__probe__.ts`,
+    `${ENGINE_CORE_SRC}/__probe__.mts`,
+    `${ENGINE_CORE_SRC}/__probe__.cts`,
+    `${ENGINE_CORE_SRC}/model/__probe__.tsx`,
+  ]
+  const budget = async (rel, rule) => (await ruleOptionsFor(rel, rule))?.slice(1)[0] ?? null
+  const isWordHit = (m) => m.includes("Engine vocabulary belongs in")
+  const isClassHit = (m) => m.includes("Put behaviour in a class")
+
+  it("holds its shipped code, the ./testing export included, to the extension's budgets and one class per file", async () => {
+    for (const rel of SHIPPED) {
+      assert.equal(await budget(rel, "complexity"), 10, rel)
+      assert.equal((await budget(rel, "max-lines"))?.max, 300, rel)
+      assert.equal((await budget(rel, "max-lines-per-function"))?.max, 60, rel)
+      assert.equal(await budget(rel, "max-statements"), 20, rel)
+      assert.equal(await budget(rel, "max-depth"), 3, rel)
+      assert.equal(await budget(rel, "max-params"), 4, rel)
+      assert.equal(await budget(rel, "max-nested-callbacks"), 3, rel)
+      assert.equal(await budget(rel, "max-classes-per-file"), 1, rel)
+      assert.ok(await ruleOptionsFor(rel, "@typescript-eslint/member-ordering"), rel)
+      assert.ok(await ruleOptionsFor(rel, "pulse-vscode/no-comments"), rel)
+    }
+  })
+
+  it("keeps engine words and module functions out of its shipped code, the id constructors aside", async () => {
+    for (const rel of SHIPPED) {
+      const words = await gateMessages(rel, 'export const key = "processInstanceKey"')
+      assert.equal(words.filter(isWordHit).length, 1, rel)
+      assert.deepEqual(
+        words.filter((m) => m.includes("apps/vscode")),
+        [],
+        `${rel}: a public package names no app's path`,
+      )
+      const helper = await gateMessages(rel, "export function helper(): number {\n  return 1\n}")
+      assert.equal(helper.filter(isClassHit).length, 1, rel)
+    }
+    const ids = `${ENGINE_CORE_SRC}/model/ids.ts`
+    assert.equal(
+      (await gateMessages(ids, 'export const key = "activityId"')).filter(isWordHit).length,
+      1,
+    )
+    assert.deepEqual(
+      await gateMessages(ids, "export const Id = (value: string): string => value"),
+      [],
+    )
+  })
+
+  it("holds its engine words, module functions and the connector resource gate in one union", async () => {
+    const code = [
+      'export const key = "processInstanceKey"',
+      "export function helper(): number {\n  return 1\n}",
+      'server.registerResource("x", "ui://x/y.html", {}, read)',
+    ].join("\n")
+    for (const rel of SHIPPED) {
+      const messages = await gateMessages(rel, code)
+      assert.equal(messages.filter(isWordHit).length, 1, `${rel}: word gate dropped`)
+      assert.equal(messages.filter(isClassHit).length, 1, `${rel}: class gate dropped`)
+      assert.equal(messages.filter(isResourceHit).length, 1, `${rel}: resource gate dropped`)
+    }
+    const ids = await gateMessages(`${ENGINE_CORE_SRC}/model/ids.ts`, code)
+    assert.equal(ids.filter(isWordHit).length, 1, "ids.ts: word gate dropped")
+    assert.equal(ids.filter(isClassHit).length, 0, "ids.ts: its module functions are allowed")
+    assert.equal(ids.filter(isResourceHit).length, 1, "ids.ts: resource gate dropped")
+  })
+
+  it("bans comments in its tests as well, never switched off inline, its runtime probe aside", async () => {
+    const rel = `${ENGINE_CORE_TEST}/__probe__.test.ts`
+    const config = await eslint.calculateConfigForFile(path.join(repoRoot, rel))
+    assert.equal(config.linterOptions.noInlineConfig, true)
+    assert.ok(await ruleOptionsFor(rel, "pulse-vscode/no-comments"))
+    assert.equal(await ruleOptionsFor(rel, "max-lines-per-function"), null)
+    for (const [test, max] of [
+      [rel, 400],
+      [`${ENGINE_CORE_TEST}/support/__probe__.ts`, 300],
+      [`${ENGINE_CORE_TEST}/runtime.boundary.ts`, 300],
+      ["packages/connectors/engine/engine-core/vitest.config.ts", 300],
+    ]) {
+      assert.deepEqual(
+        (await budget(test, "max-lines")) ?? null,
+        { max, skipBlankLines: true, skipComments: true },
+        `${test}: the budget its path held before the package took it`,
+      )
+    }
+    assert.equal(
+      await ruleOptionsFor(`${ENGINE_CORE_TEST}/runtime.boundary.ts`, "pulse-vscode/no-comments"),
+      null,
+    )
+  })
+
+  it("holds its config files to the rules of the extension's own", async () => {
+    for (const rel of [
+      "packages/connectors/engine/engine-core/vitest.config.ts",
+      "apps/vscode/vitest.config.ts",
+    ]) {
+      const config = await eslint.calculateConfigForFile(path.join(repoRoot, rel))
+      assert.equal(config.linterOptions.noInlineConfig, true, rel)
+      assert.ok(await ruleOptionsFor(rel, "pulse-vscode/no-comments"), rel)
+      assert.equal(await budget(rel, "complexity"), 10, rel)
+      assert.ok(await ruleOptionsFor(rel, "@typescript-eslint/no-unnecessary-condition"), rel)
+    }
   })
 })
 
@@ -680,14 +867,15 @@ describe("type-safety rules: errors everywhere, require-await off in the MCP tre
     "apps/mcp-server/src/setup.ts",
     "apps/mcp-server/test/golden.ts",
     "packages/core/widget-shell/src/caller.ts",
-    "packages/core/ui/src/kit/format.ts",
+    "packages/core/ui/src/format/numbers.ts",
     "packages/connectors/engine/engine-connector/src/widgets/lib/engine-action.ts",
-    "packages/connectors/analytics/analytics-client/src/metric-names.ts",
+    "packages/connectors/c7/c7-client/src/client.ts",
   ]
   const STRICT_TREES = [
     "apps/cli/src/util.ts",
+    "packages/connectors/c7/c7-core/src/index.ts",
     "packages/connectors/engine/engine-core/src/index.ts",
-    "apps/vscode/src/core/boards/board-filters.ts",
+    "packages/core/runtime-view/src/core/boards/board-filters.ts",
   ]
 
   it("reports every type-safety rule as an error, in the MCP trees and the strict ones", async () => {
@@ -700,9 +888,139 @@ describe("type-safety rules: errors everywhere, require-await off in the MCP tre
     }
   })
 
-  it("leaves require-await off in the MCP trees and at error in the CLI, engine-core and VS Code", async () => {
+  it("leaves require-await off in the MCP trees and at error in the CLI, c7-core, engine-core and VS Code", async () => {
     for (const rel of MCP_TREES) assert.equal(await severityAt(rel, REQUIRE_AWAIT), "off", rel)
     for (const rel of STRICT_TREES) assert.equal(await severityAt(rel, REQUIRE_AWAIT), "error", rel)
+  })
+})
+
+/**
+ * Messages the effective setting of `rule` reports for `code` at `rel`, parsed with the path's own
+ * parser options (its jsxPragma among them) and the plugin that brings the rule, without a
+ * program: the rules below read syntax and scopes only.
+ */
+async function syntaxRuleMessages(rel, code, rule) {
+  const config = await eslint.calculateConfigForFile(path.join(repoRoot, rel))
+  const setting = config?.rules?.[rule]
+  if (!setting || setting[0] === 0) return []
+  const namespace = rule.includes("/") ? rule.slice(0, rule.lastIndexOf("/")) : undefined
+  const {
+    project: _project,
+    projectService: _projectService,
+    tsconfigRootDir: _root,
+    ...parserOptions
+  } = config.languageOptions.parserOptions ?? {}
+  return linter
+    .verify(
+      code,
+      [
+        {
+          files: SOURCE_EXTENSIONS.map((extension) => `**/*.${extension}`),
+          plugins: namespace ? { [namespace]: config.plugins[namespace] } : {},
+          languageOptions: {
+            parser: tseslint.parser,
+            parserOptions: { ...parserOptions, ecmaFeatures: { jsx: true } },
+          },
+          rules: { [rule]: setting },
+        },
+      ],
+      { filename: path.join(repoRoot, rel) },
+    )
+    .map((m) => m.message)
+}
+
+// Every program compiles with verbatimModuleSyntax (scripts/module-syntax.mjs), so an import or
+// re-export not marked `type` stays in the emitted JavaScript as written. Each planted form below
+// passed tsc and ESLint before these rules and left a side-effect import (`import {} from`,
+// `export {} from`) or a namespace import that only types use.
+describe("no import or re-export of types alone stays in the emitted JavaScript", () => {
+  const IMPORT_RULE = "@typescript-eslint/no-import-type-side-effects"
+  const EXPORT_RULE = "pulse/no-export-type-side-effects"
+  const TYPE_IMPORTS = "@typescript-eslint/consistent-type-imports"
+  /** A source of every tree, shipped code and tests, MCP and the strict ones. */
+  const TREES = [
+    "apps/mcp-server/src/__probe__.ts",
+    "apps/mcp-server/test/__probe__.ts",
+    "apps/cli/src/__probe__.ts",
+    "apps/vscode/src/host/__probe__.ts",
+    "apps/orca/src/worker/__probe__.ts",
+    `${UI}/__probe__.ts`,
+    "packages/core/widget-shell/src/__probe__.ts",
+    "packages/core/http/src/testing/loopback/__probe__.ts",
+    "packages/core/profile/src/__probe__.ts",
+    "packages/core/runtime-view/src/host-kit/__probe__.ts",
+    "packages/core/runtime-view/test/core/__probe__.test.ts",
+    "packages/connectors/c7/c7-client/src/__probe__.ts",
+    "packages/connectors/c7/c7-core/src/__probe__.ts",
+    "packages/connectors/c7/c7-adapter/test/__probe__.test.ts",
+    `${ENGINE_CONNECTOR_SRC_DIR}/__probe__.ts`,
+    "packages/connectors/engine/engine-core/src/__probe__.ts",
+    ...WIDGET_TREE_PATHS,
+  ]
+  /** A JSX file of every tree with JSX: React, Preact (the runtime view) and Orca's own runtime. */
+  const JSX_TREES = [
+    `${UI}/primitives/__probe__.tsx`,
+    ...WIDGET_TREE_PATHS.filter((rel) => rel.endsWith(".tsx")),
+    "packages/core/runtime-view/src/webview/components/__probe__.tsx",
+    "apps/orca/src/__probe__.tsx",
+  ]
+
+  it("reports an import whose names all carry an inline type, in every tree", async () => {
+    const code = 'import { type A, type B } from "./a.js"\nexport type C = A | B'
+    for (const rel of TREES) {
+      assert.equal((await syntaxRuleMessages(rel, code, IMPORT_RULE)).length, 1, rel)
+    }
+  })
+
+  it("reports a re-export whose names all carry an inline type, in every tree", async () => {
+    const code = 'export { type A, type B as C } from "./a.js"'
+    for (const rel of TREES) {
+      assert.equal((await syntaxRuleMessages(rel, code, EXPORT_RULE)).length, 1, rel)
+    }
+  })
+
+  it("fixes the re-export to `export type`, aliases kept", async () => {
+    const config = await eslint.calculateConfigForFile(path.join(repoRoot, `${UI}/__probe__.ts`))
+    const { output } = linter.verifyAndFix(
+      'export {\n  type A,\n  type B as C,\n} from "./a.js"\n',
+      [
+        {
+          files: ["**/*.ts"],
+          plugins: { pulse: config.plugins.pulse },
+          languageOptions: { parser: tseslint.parser },
+          rules: { [EXPORT_RULE]: "error" },
+        },
+      ],
+      { filename: path.join(repoRoot, `${UI}/__probe__.ts`) },
+    )
+    assert.equal(output, 'export type {\n  A,\n  B as C,\n} from "./a.js"\n')
+  })
+
+  it("leaves the forms the emitted JavaScript drops or needs alone", async () => {
+    const imports = [
+      'import type { A } from "./a.js"\nexport type C = A',
+      'import { type A, b } from "./a.js"\nexport const c: A = b',
+      'import "./side-effect.js"',
+    ].join("\n")
+    const exports = [
+      'export type { A } from "./a.js"',
+      'export { type B, b } from "./b.js"',
+      'export * from "./c.js"',
+      "type D = string\nexport { type D }",
+    ].join("\n")
+    for (const rel of TREES) {
+      assert.deepEqual(await syntaxRuleMessages(rel, imports, IMPORT_RULE), [], rel)
+      assert.deepEqual(await syntaxRuleMessages(rel, exports, EXPORT_RULE), [], rel)
+    }
+  })
+
+  it("reads JSX with the automatic runtime: a namespace import only types use is reported", async () => {
+    const typeOnly = 'import * as React from "react"\nexport const node: React.ReactNode = <div />'
+    const used = 'import * as React from "react"\nexport const node = React.createElement("div")'
+    for (const rel of JSX_TREES) {
+      assert.equal((await syntaxRuleMessages(rel, typeOnly, TYPE_IMPORTS)).length, 1, rel)
+      assert.deepEqual(await syntaxRuleMessages(rel, used, TYPE_IMPORTS), [], rel)
+    }
   })
 })
 

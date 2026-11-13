@@ -1,0 +1,26 @@
+{
+  "case": "dns-failure",
+  "config": {
+    "ENGINE_BASE_URL": "http://engine.pulse-golden.invalid/engine-rest"
+  },
+  "probes": [
+    {
+      "arguments": {
+        "processInstanceId": "pi-1"
+      },
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "engine default unreachable (ENOTFOUND)"
+            ],
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "sent": [],
+      "tool": "engine_inspect_process_instance"
+    }
+  ]
+}

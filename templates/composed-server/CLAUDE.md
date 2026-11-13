@@ -1,8 +1,8 @@
 # CLAUDE.md
 
 Guidance for AI agents working in this repository: a composed MCP server built
-from the published `@miragon/pulse-*` modules (engine BPM operations, Prometheus
-process analytics) plus your own custom modules. `README.md` is the quick tour
+from the published `@miragon/pulse-*` modules (engine BPM operations) plus your
+own custom modules. `README.md` is the quick tour
 for humans; this file plus the skills carry the architecture rules.
 
 The skills in `.claude/skills/` are step-by-step walkthroughs for the three main
@@ -38,7 +38,7 @@ cover a need, stop and ask: custom modules have no supported engine seam yet.
 ```bash
 corepack enable       # pnpm 10.32.1 (`packageManager`); Node.js 25+ has none: npm i -g pnpm@10.32.1
 pnpm install          # public npm registry only, no credentials needed
-cp .env.example .env  # local config, runs engine and notes (compose.yaml has no Prometheus); only `pnpm dev` loads it
+cp .env.example .env  # local config, runs engine and notes against compose.yaml's engine; only `pnpm dev` loads it
 
 pnpm build            # modules → widget bundle → server
 pnpm typecheck        # tsc everywhere, INCLUDING widget .tsx code: the only check that covers it
@@ -163,8 +163,7 @@ only in a real host, through a tunnel (the `setup-server` skill, Step 6).
 7. **`.env.example` documents every env var the server reads**: both drift
    directions are guarded by `server/test/env-example.test.ts`; add your
    module's vars there. The same test holds its live `MCP_ACTIVE_MODULES` to
-   `MODULES`: every composed module; analytics may stay out, since
-   `compose.yaml` runs no Prometheus.
+   `MODULES`: every composed module, each once.
 8. **Toolsets fail closed.** A module opts into the `module:toolset` suffix by
    declaring `toolsets: createToolsetVocabulary(...)` on its definition (a
    module without one has no toolsets and registers every tool whenever it runs,
@@ -216,9 +215,8 @@ scan in one look.
 - `modules/mcp-notes/`: the example custom module showing the full house
   pattern (module definition, registrar tool, widget tool + data feed, widget,
   module test, widget test under `TestViewHost`). Copy it; don't invent a new shape.
-- The published Pulse modules ship their **sources**: read
-  `server/node_modules/@miragon/pulse-engine-connector/src/` and
-  `server/node_modules/@miragon/pulse-analytics-connector/src/` for the
+- The published Pulse module ships its **sources**: read
+  `server/node_modules/@miragon/pulse-engine-connector/src/` for the
   reference implementations of anything the notes module doesn't cover
   (toolsets, paged lists, BPMN widgets).
 - Where the APIs live: widget-shell's README

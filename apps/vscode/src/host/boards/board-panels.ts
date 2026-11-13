@@ -1,8 +1,13 @@
-import type { BoardContext, BoardEngine, BoardNavigation, OpenOptions } from "../../core/index.js"
-import type { PanelState } from "../../core/protocol/index.js"
+import type {
+  BoardContext,
+  BoardEngine,
+  BoardNavigation,
+  OpenOptions,
+} from "@miragon/pulse-runtime-view/core"
+import type { PanelState } from "@miragon/pulse-runtime-view/protocol"
 import * as vscode from "vscode"
 import { COMMAND } from "../commands/command-ids.js"
-import type { Connection } from "../connections/connection.js"
+import type { Connection } from "@miragon/pulse-runtime-view/host-kit"
 import type { ConnectionRegistry } from "../connections/connection-registry.js"
 import type { PanelManager } from "../panels/panel-manager.js"
 import { BoardFiles } from "./board-files.js"

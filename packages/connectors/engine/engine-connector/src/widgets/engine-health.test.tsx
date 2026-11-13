@@ -1,15 +1,15 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeAll, describe, expect, it } from "vitest"
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react"
 import { LocaleProvider, formatNumber } from "@miragon/pulse-ui"
 import {
   TestViewHost,
   type HostAction,
   createTestQueryClient,
 } from "@miragon/pulse-widget-shell/widgets"
-import { EngineHealthVerdict } from "./engine-health.js"
+import { EngineHealthVerdict, EngineHealthView } from "./engine-health.js"
 import type { EngineHealthData } from "../view-models.js"
-import { ENGINE_WIDGET_ACTIONS_DATA } from "../tool-names.js"
+import { ENGINE_HEALTH_DATA, ENGINE_WIDGET_ACTIONS_DATA } from "../tool-names.js"
 import { widgetActionsFeedFor } from "./lib/hand-off.test-support.js"
 
 // One retry-free client per test; the test reads and pokes its cache.
@@ -168,7 +168,7 @@ describe("EngineHealthVerdict (fixture render)", () => {
     const prompts = actions.flatMap((a) => (a.type === "sendFollowUp" ? [a.prompt] : []))
     expect(prompts).toHaveLength(1)
     expect(prompts[0]).toContain('Ids: engine="default"')
-    expect(prompts[0]).not.toMatch(/\b(engine|analytics)_[a-z0-9_]+/)
+    expect(prompts[0]).not.toMatch(/\bengine_[a-z0-9_]+/)
     queryClient.setQueryDefaults(["engine-widget-actions"], {})
   })
 
@@ -196,6 +196,16 @@ describe("EngineHealthVerdict (fixture render)", () => {
     expect(within(cluster).getByText(/· Shipping$/)).toBeTruthy()
     // The type is a neutral chip, not a red badge on every row.
     expect(within(cluster).getByText("failedExternalTask").closest("[data-tone]")).toBeNull()
+  })
+
+  it("a stable engine's badge is the table's healthy: neutral, never green", () => {
+    render(
+      <TestViewHost client={queryClient}>
+        <Widget data={HEALTHY as never} />
+      </TestViewHost>,
+    )
+    const badge = screen.getByText("Stable").closest("[data-slot='status-badge']")!
+    expect(badge.getAttribute("data-tone")).toBe("neutral")
   })
 
   it("an engine with nothing deployed is neutral: no green 'stable' over an empty engine", () => {
@@ -248,7 +258,7 @@ describe("EngineHealthVerdict (fixture render)", () => {
       </TestViewHost>,
     )
 
-    expect(screen.getByText(`≥${formatNumber(1400)} affected`, { exact: false })).toBeTruthy()
+    expect(screen.getByText(`≥ ${formatNumber(1400)} affected`, { exact: false })).toBeTruthy()
     // An unknown 24h count is left out, not rendered as "0 new in 24h".
     expect(screen.queryByText(/new in 24h/)).toBeNull()
   })
@@ -334,5 +344,84 @@ describe("the verdict line and the hand-offs speak the view's language", () => {
     expect(explain).toHaveLength(2)
     expect(explain[0].querySelector("svg")!.getAttribute("class")).toContain("lucide-file-search")
     expect(screen.queryByRole("button", { name: "Behebung im Chat planen" })).toBeNull()
+  })
+})
+
+/**
+ * The chat can look for why an engine does not answer, and a retry may reach it; a refused
+ * profile's reason is on screen, and neither helps until the operator fixes the profile.
+ */
+describe("an engine whose health cannot be read", () => {
+  const REFUSED =
+    '[ENGINE_PROFILE_REFUSED] Engine "default" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask whoever runs this server to fix it.'
+
+  it.each([
+    ["an unreachable engine offers Try again and the chat", "engine default unreachable", true],
+    ["a refused profile offers neither: only the operator can fix it", REFUSED, false],
+  ])("%s", async (_case, message, offered) => {
+    const failing = () => Promise.reject(new Error(message))
+    render(
+      <TestViewHost tools={{ ...tools, [ENGINE_HEALTH_DATA]: failing }} client={queryClient}>
+        <EngineHealthView engine="default" />
+      </TestViewHost>,
+    )
+    await screen.findByRole("alert")
+    expect(screen.queryByRole("button", { name: "Try again" }) !== null).toBe(offered)
+    expect(screen.queryByRole("button", { name: "Find cause in chat" }) !== null).toBe(offered)
+  })
+
+  /** F2: an engine that refused the server's login runs, so the chat never looks for an outage. */
+  it.each([
+    [
+      "a 401 asks why the engine refused the server's login",
+      "[401] empty response body (engine default). The engine rejected the configured credentials.",
+      "The engine refused the server's login.",
+      "not reachable",
+    ],
+    [
+      "a 403 asks the same",
+      "[403 AuthorizationException] The user 'pulse' does not have READ permission (engine default)",
+      "The engine refused the server's login.",
+      "not reachable",
+    ],
+    [
+      "an unreachable engine asks why it is not reachable",
+      "engine default unreachable",
+      "Find out why the engine is not reachable",
+      "refused the server's login",
+    ],
+  ])("%s", async (_case, message, intent, absent) => {
+    const failing = () => Promise.reject(new Error(message))
+    const actions: HostAction[] = []
+    render(
+      <TestViewHost
+        tools={{ ...tools, [ENGINE_HEALTH_DATA]: failing }}
+        onHostAction={(action) => actions.push(action)}
+        client={queryClient}
+      >
+        <EngineHealthView engine="default" />
+      </TestViewHost>,
+    )
+    fireEvent.click(await screen.findByRole("button", { name: "Find cause in chat" }))
+    const prompts = actions.flatMap((a) => (a.type === "sendFollowUp" ? [a.prompt] : []))
+    expect(prompts).toHaveLength(1)
+    expect(prompts[0]).toContain(intent)
+    expect(prompts[0]).not.toContain(absent)
+  })
+
+  it.each([
+    ["an unreachable engine's failed re-pull offers Try again", "engine default unreachable", true],
+    ["a refused profile's failed re-pull offers none", REFUSED, false],
+  ])("%s", async (_case, message, offered) => {
+    const failing = () => Promise.reject(new Error(message))
+    render(
+      <TestViewHost tools={{ ...tools, [ENGINE_HEALTH_DATA]: failing }} client={queryClient}>
+        <EngineHealthView data={DEGRADED} engine="default" />
+      </TestViewHost>,
+    )
+    await act(() => queryClient.invalidateQueries({ queryKey: ["engine:health"] }))
+    const banner = await screen.findByRole("alert")
+    expect(banner.textContent).toContain("This overview is not current")
+    expect(within(banner).queryByRole("button", { name: "Try again" }) !== null).toBe(offered)
   })
 })

@@ -1,10 +1,11 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { LocaleProvider, PagedListFooter } from "@miragon/pulse-ui"
 import { NO_FIT_ROWS } from "./inline-fit.js"
 import { PagedRows } from "./paged-rows.js"
-import type { PagedViewData } from "./use-paged-view-data.js"
+import { createTestQueryClient, TestViewHost } from "./test-view-host.js"
+import { usePagedViewData, type PagedViewData } from "./use-paged-view-data.js"
 
 afterEach(() => cleanup())
 
@@ -135,4 +136,71 @@ describe("PagedListFooter: the catalog follows the active locale", () => {
     expect(more.querySelector("details pre")?.textContent).toBe("Zeitüberschreitung")
     expect(screen.getAllByRole("button", { name: "Erneut versuchen" })).toHaveLength(2)
   })
+})
+
+/**
+ * End to end: the hook's state, passed whole as every cockpit list passes it, makes the footer
+ * say why a refused engine cannot refresh the list, in the host's language, and offer no retry.
+ */
+describe("usePagedViewData + PagedListFooter: a refused engine", () => {
+  interface Page {
+    items: string[]
+    total: number
+  }
+  const REFUSED =
+    '[ENGINE_PROFILE_REFUSED] Engine "prod" is configured, but its profile is refused.'
+
+  function RefusedList({ noun }: { noun: string }) {
+    const paged = usePagedViewData<string, Page>({
+      initialData: null,
+      key: ["test:refused"],
+      tool: "test_list_data",
+      args: {},
+      pageSize: 2,
+      ready: true,
+      selectItems: (data) => data.items,
+      selectTotal: (data) => data.total,
+    })
+    return <PagedListFooter paged={paged} noun={noun} />
+  }
+
+  async function refusedAfterTheFirstPage(locale: string, noun: string) {
+    const client = createTestQueryClient()
+    const answers = [
+      { structuredContent: { items: ["a", "b"], total: 3 } },
+      { isError: true, content: [{ type: "text", text: REFUSED }] },
+    ]
+    const tools = { test_list_data: () => answers.shift() ?? answers[0] }
+    render(
+      <TestViewHost client={client} tools={tools} locale={locale}>
+        <RefusedList noun={noun} />
+      </TestViewHost>,
+    )
+    await waitFor(() => expect(screen.getByRole("status").textContent).toContain("2"))
+    await act(() => client.invalidateQueries({ queryKey: ["test:refused"] }))
+    const alert = await screen.findByRole("alert")
+    await client.cancelQueries()
+    return alert
+  }
+
+  it.each([
+    [
+      "en",
+      "items",
+      "You're seeing the previous result. Engine prod cannot be used: its profile is refused. Whoever runs this server finds the reason in its log at startup and can fix the profile. Until then, pick another engine.",
+    ],
+    [
+      "de",
+      "Einträge",
+      "Du siehst das vorherige Ergebnis. Die Engine prod ist nicht nutzbar: ihr Profil ist abgelehnt. Die Person, die den Server betreibt, findet den Grund im Log beim Start und kann das Profil korrigieren. Wähl bis dahin eine andere Engine.",
+    ],
+  ])(
+    "says the reason in %s, offers no retry and keeps the raw text under Details",
+    async (locale, noun, line) => {
+      const alert = await refusedAfterTheFirstPage(locale, noun)
+      expect(alert.textContent).toContain(line)
+      expect(alert.querySelector("details pre")?.textContent).toBe(REFUSED)
+      expect(alert.querySelector("button")).toBeNull()
+    },
+  )
 })

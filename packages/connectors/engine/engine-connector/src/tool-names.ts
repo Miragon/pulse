@@ -10,11 +10,15 @@ export const ENGINE_INCIDENTS_DATA = "engine_incidents_data"
 // Every section of the definition view reads this one feed under a shared query key.
 export const ENGINE_PROCESS_INCIDENTS_DATA = "engine_process_incidents_data"
 export const ENGINE_ACTIVITY_INCIDENTS_DATA = "engine_activity_incidents_data"
+// What runs at each element of a process now, over every version: the process flow's "Running".
+export const ENGINE_ACTIVITY_STATISTICS_DATA = "engine_activity_statistics_data"
 export const ENGINE_INCIDENT_DETAIL_DATA = "engine_incident_detail_data"
 export const ENGINE_HISTORY_TIMELINE_DATA = "engine_history_timeline_data"
 // A definition's XML never changes, so the widget keeps it for good and the server caches it.
 export const ENGINE_BPMN_XML_DATA = "engine_bpmn_xml_data"
 export const ENGINE_HEALTH_DATA = "engine_health_data"
+// One engine's job backlog: the cross-engine overview's landscape reads it per engine.
+export const ENGINE_JOB_BACKLOG_DATA = "engine_job_backlog_data"
 export const ENGINE_CLUSTER_DETAIL_DATA = "engine_cluster_detail_data"
 export const ENGINE_LIST_ENGINES = "engine_list_engines"
 // The toolset may not register these, so widgets ask `*_widget_actions_data` which exist.

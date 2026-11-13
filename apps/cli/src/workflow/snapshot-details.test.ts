@@ -13,8 +13,8 @@ import {
   PARENT_DEF,
   ROOT_NODE,
   instanceView as viewOf,
-} from "@miragon/pulse-engine-core/testing"
-import type { InstanceData } from "@miragon/pulse-engine-core"
+} from "@miragon/pulse-c7-core/testing"
+import type { InstanceData } from "@miragon/pulse-c7-core"
 import { omit } from "../util.js"
 import { cliView } from "./inspect.js"
 

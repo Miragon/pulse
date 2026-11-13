@@ -1,10 +1,10 @@
 import type { ReactNode } from "react"
 import { ErrorState, Skeleton, useLocale } from "@miragon/pulse-ui"
-import { describeError } from "./describe-error.js"
+import { describeError, isPermanentError } from "./describe-error.js"
 import { kitLabels } from "./kit-labels.js"
 import { LoadingStatus } from "./view-data-state.js"
 
-/** The error branch several widgets forgot, leaving them on an eternal skeleton. */
+/** The error branch several widgets forgot, leaving them on an eternal skeleton; no Try again on a permanent refusal. */
 export function QueryFallback({
   isError,
   error,
@@ -29,7 +29,7 @@ export function QueryFallback({
         title={described.title}
         description={described.hint}
         details={described.details ?? undefined}
-        onRetry={onRetry}
+        onRetry={isPermanentError(error) ? undefined : onRetry}
       />
     )
   }

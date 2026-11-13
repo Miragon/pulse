@@ -148,7 +148,7 @@ describe("ENGINE_REQUEST_TIMEOUT_MS", () => {
   })
 })
 
-/** The id is the join key against `engine_id`: a mismatch makes engine-scoped analytics empty, not failing. */
+/** The id is the per-call `engine` selector, the name the cockpit shows and the id the hand-offs name. */
 describe("engineModule.configFromEnv engine ids", () => {
   const enginesOf = (env: NodeJS.ProcessEnv) =>
     engineModule.configFromEnv(env).engines as Array<{ id: string; baseUrl: string }>
@@ -170,15 +170,16 @@ describe("engineModule.configFromEnv engine ids", () => {
     expect(enginesOf({ ENGINE_ID: "  " })[0].id).toBe("default")
   })
 
-  it("applies ENGINE_ID to the zero-config engine too", () => {
+  it("applies ENGINE_ID to the zero-config engine too, a profile name of any valid shape", () => {
     expect(enginesOf({ ENGINE_ID: "prod-a" })[0].id).toBe("prod-a")
+    expect(enginesOf({ ENGINE_ID: "Prod_A.eu" })[0].id).toBe("Prod_A.eu")
   })
 
-  it("ignores ENGINE_ID when the engine list is explicit", () => {
+  it("ignores ENGINE_ID when a profile file describes the engines", () => {
     expect(
       enginesOf({
         ENGINE_ID: "prod-a",
-        ENGINES_JSON: '[{"id":"prod-b","baseUrl":"http://b.example/engine-rest"}]',
+        ENGINES_JSON: '{"profiles":{"prod-b":{"url":"http://b.example/engine-rest"}}}',
       }),
     ).toEqual([{ id: "prod-b", baseUrl: "http://b.example/engine-rest" }])
   })
@@ -188,21 +189,20 @@ describe("engineModule.configFromEnv engine ids", () => {
   })
 })
 
-describe("engineModule.configFromEnv environment-map form", () => {
-  const enginesOf = (env: NodeJS.ProcessEnv) =>
-    engineModule.configFromEnv(env).engines as Array<Record<string, unknown>>
+describe("engineModule.configFromEnv profiles: environment and names", () => {
+  const configOf = (json: string) => engineModule.configFromEnv({ ENGINES_JSON: json })
 
-  it("stamps the map key as each entry's environment, preserving key order", () => {
+  it("takes each profile's environment, in the order of the file", () => {
     expect(
-      enginesOf({
-        ENGINES_JSON: JSON.stringify({
-          "prod-eu": [
-            { id: "eu-a", baseUrl: "http://eu-a.example/engine-rest" },
-            { id: "eu-b", baseUrl: "http://eu-b.example/engine-rest" },
-          ],
-          "prod-us": [{ id: "us-a", baseUrl: "http://us-a.example/engine-rest" }],
+      configOf(
+        JSON.stringify({
+          profiles: {
+            "eu-a": { url: "http://eu-a.example/engine-rest", environment: "prod-eu" },
+            "eu-b": { url: "http://eu-b.example/engine-rest", environment: "prod-eu" },
+            "us-a": { url: "http://us-a.example/engine-rest", environment: "prod-us" },
+          },
         }),
-      }),
+      ).engines,
     ).toEqual([
       { id: "eu-a", baseUrl: "http://eu-a.example/engine-rest", environment: "prod-eu" },
       { id: "eu-b", baseUrl: "http://eu-b.example/engine-rest", environment: "prod-eu" },
@@ -210,72 +210,52 @@ describe("engineModule.configFromEnv environment-map form", () => {
     ])
   })
 
-  it("keeps a matching per-entry environment and rejects a contradicting one", () => {
-    const matching = {
-      "prod-eu": [
-        { id: "eu-a", baseUrl: "http://eu-a.example/engine-rest", environment: "prod-eu" },
-      ],
-    }
-    expect(enginesOf({ ENGINES_JSON: JSON.stringify(matching) })[0].environment).toBe("prod-eu")
-    const contradicting = {
-      "prod-eu": [
-        { id: "eu-a", baseUrl: "http://eu-a.example/engine-rest", environment: "prod-us" },
-      ],
-    }
-    expect(() => enginesOf({ ENGINES_JSON: JSON.stringify(contradicting) })).toThrow(
-      /contradicting environment "prod-us"/,
-    )
-  })
-
-  it("rejects a map value that is not an engine array", () => {
-    expect(() => enginesOf({ ENGINES_JSON: '{"prod-eu":{"id":"a"}}' })).toThrow(
-      /must map to an ARRAY/,
-    )
-  })
-
-  it("passes the flat array form through untouched, environment field included", () => {
-    const flat = [{ id: "a", baseUrl: "http://a.example/engine-rest", environment: "prod-eu" }]
-    expect(enginesOf({ ENGINES_JSON: JSON.stringify(flat) })).toEqual(flat)
-  })
-
-  it("rejects a duplicate environment key: JSON.parse would silently keep only the last block", () => {
-    const duplicated =
-      '{"prod-eu":[{"id":"eu-a","baseUrl":"http://eu-a.example/engine-rest"}],' +
-      '"prod-us":[{"id":"us-a","baseUrl":"http://us-a.example/engine-rest"}],' +
-      '"prod-eu":[{"id":"eu-b","baseUrl":"http://eu-b.example/engine-rest"}]}'
-    expect(() => enginesOf({ ENGINES_JSON: duplicated })).toThrow(
-      /duplicate environment key "prod-eu"/,
-    )
-  })
-
-  it("only depth-1 keys count as duplicates; repeated engine-entry fields stay legal", () => {
-    // Every engine entry repeats "id"/"baseUrl", and the array form has no
-    // top-level object keys at all.
-    expect(() =>
-      enginesOf({
-        ENGINES_JSON:
-          '{"prod-eu":[{"id":"eu-a","baseUrl":"http://eu-a.example/engine-rest"},' +
-          '{"id":"eu-b","baseUrl":"http://eu-b.example/engine-rest"}]}',
+  it("refuses a profile whose environment is no lower-case id, and runs the others", () => {
+    const config = configOf(
+      JSON.stringify({
+        profiles: {
+          a: { url: "http://a.example/engine-rest", environment: "Prod EU" },
+          b: { url: "http://b.example/engine-rest", environment: "2" },
+        },
       }),
-    ).not.toThrow()
-    expect(() =>
-      enginesOf({
-        ENGINES_JSON:
-          '[{"id":"a","baseUrl":"http://a.example/engine-rest"},' +
-          '{"id":"b","baseUrl":"http://b.example/engine-rest"}]',
-      }),
-    ).not.toThrow()
+    )
+    expect((config.engines as Array<{ id: string }>).map(({ id }) => id)).toEqual(["b"])
+    expect(config.refused).toEqual([
+      {
+        id: "a",
+        reason:
+          'environment must be an environment id: lower case letters, digits and "-", starting with a letter or digit.',
+      },
+    ])
+  })
+
+  it("refuses a name the file lists twice: JSON would keep only the last one", () => {
+    const config = configOf(
+      '{"profiles":{"a":{"url":"http://a1/engine-rest"},"b":{"url":"http://b/engine-rest"},' +
+        '"a":{"url":"http://a2/engine-rest"}}}',
+    )
+    expect((config.engines as Array<{ id: string }>).map(({ id }) => id)).toEqual(["b"])
+    expect(config.refused).toEqual([
+      {
+        id: "a",
+        reason:
+          "The file lists this profile name twice: JSON keeps only the last one, so neither counts.",
+      },
+    ])
+    expect(config.engineIds).toEqual(["a", "b"])
+    expect(config.profileCount).toBe(2)
   })
 })
 
-/** Zero-config reaches a local CIB seven while analytics silently return empty: the warning is the only signal. */
+/** Zero-config reaches a local CIB seven on the fallback URL: the warning is the only signal of where. */
 describe("engineModule.bootWarnings", () => {
   it("warns on a fully unconfigured environment, naming the fallback URL and id", () => {
     const warnings = engineModule.bootWarnings({})
     expect(warnings).toHaveLength(1)
     expect(warnings[0]).toContain("http://localhost:8410/engine-rest")
     expect(warnings[0]).toContain('engine id "default"')
-    expect(warnings[0]).toContain("ENGINE_ID")
+    // No metrics label joins the id any more: the warning sends no one to match it.
+    expect(warnings[0]).not.toMatch(/analytics|metrics|engine_id|stamps/)
   })
 
   // The warning ships to every server built on the package, a starter's too: it names the two
@@ -284,7 +264,6 @@ describe("engineModule.bootWarnings", () => {
     const [warning] = engineModule.bootWarnings({})
     expect(warning).toContain("the Pulse starter's compose.yaml (Miragon/pulse-starter)")
     expect(warning).toContain("the Pulse playground (Miragon/pulse)")
-    expect(warning).toContain('the playground\'s engine stamps "prod-a"')
     // A zero-config boot sends no login, which the starter's engine refuses with 401.
     expect(warning).toContain("the starter's asks for a login (ENGINE_AUTH_TYPE=basic, demo/demo)")
     expect(warning).not.toMatch(/the repo's/i)
@@ -296,7 +275,7 @@ describe("engineModule.bootWarnings", () => {
 
   it.each([
     { ENGINE_BASE_URL: "http://engine.example/engine-rest" },
-    { ENGINES_JSON: '[{"id":"a","baseUrl":"http://a.example/engine-rest"}]' },
+    { ENGINES_JSON: '{"profiles":{"a":{"url":"http://a.example/engine-rest"}}}' },
     { ENGINES_FILE: "/etc/engines.json" },
   ])("stays silent when an engine source is configured (%o)", (env) => {
     expect(engineModule.bootWarnings(env)).toEqual([])
@@ -311,6 +290,36 @@ describe("engineModule.bootWarnings", () => {
 
   it("names the default id for a whitespace-only ENGINE_ID", () => {
     expect(engineModule.bootWarnings({ ENGINE_ID: "  " })[0]).toContain('engine id "default"')
+  })
+
+  it("names the single engine's settings a profile file makes meaningless", () => {
+    const warnings = engineModule.bootWarnings({
+      ENGINES_JSON: '{"profiles":{"a":{"url":"http://a.example/engine-rest"}}}',
+      ENGINE_BASE_URL: "http://other/engine-rest",
+      ENGINE_AUTH_TYPE: "basic",
+      ENGINE_PASSWORD: "pw",
+      ENGINE_DEFAULT: "a",
+    })
+    expect(warnings).toEqual([
+      'ENGINE_BASE_URL, ENGINE_AUTH_TYPE, ENGINE_PASSWORD are set next to ENGINES_JSON and ignored: they describe the single engine, which a profile file replaces. A profile states its own url and auth, for example {"url": "…", "auth": {"type": "basic", "username": "…", "passwordEnv": "ENGINE_SECRET_PASSWORD"}}.',
+    ])
+    expect(
+      engineModule.bootWarnings({ ENGINES_FILE: "/etc/engines.json", ENGINE_ID: "x" })[0],
+    ).toMatch(/^ENGINE_ID is set next to ENGINES_FILE and ignored/)
+  })
+
+  it("names each refused profile and the notes on the file, and nothing on a file that fails", () => {
+    const warnings = engineModule.bootWarnings({
+      ENGINES_JSON: JSON.stringify({
+        engines: [],
+        profiles: { a: { url: "http://a.example/engine-rest" }, b: { headers: {} } },
+      }),
+    })
+    expect(warnings).toEqual([
+      "ENGINES_JSON: engines is no key of a profile file, which holds $schema, defaultProfile and profiles.",
+      expect.stringMatching(/^Profile "b" \(ENGINES_JSON\) is refused: /),
+    ])
+    expect(engineModule.bootWarnings({ ENGINES_JSON: "[]" })).toEqual([])
   })
 
   it("states the deployment opt-in on every boot: admin-only, code execution in the JVM", () => {
@@ -351,23 +360,22 @@ describe("engineModule.bootWarnings", () => {
   })
 })
 
-describe("engineModule.configFromEnv passthrough", () => {
-  it("maps the auth and repo env vars verbatim", () => {
-    expect(
-      engineModule.configFromEnv({
-        ENGINE_AUTH_TYPE: "basic",
-        ENGINE_USERNAME: "u",
-        ENGINE_PASSWORD: "p",
-        ENGINE_TOKEN: "t",
-        ENGINE_INCIDENT_ISSUE_REPO: "acme/procs",
-      }),
-    ).toMatchObject({
-      authType: "basic",
-      username: "u",
-      password: "p",
-      token: "t",
+describe("engineModule.configFromEnv settings", () => {
+  it("hands each engine its own auth and keeps no module-wide credentials", () => {
+    const config = engineModule.configFromEnv({
+      ENGINE_AUTH_TYPE: "basic",
+      ENGINE_USERNAME: "u",
+      ENGINE_PASSWORD: "p",
+      ENGINE_TOKEN: "t",
+      ENGINE_INCIDENT_ISSUE_REPO: "acme/procs",
+    })
+    expect(config).toMatchObject({
+      engines: [{ id: "default", auth: { type: "basic", username: "u", password: "p" } }],
       incidentIssueRepository: "acme/procs",
     })
+    for (const key of ["authType", "username", "password", "token"]) {
+      expect(config).not.toHaveProperty(key)
+    }
   })
 
   it("forwards healthThresholds only when one of the vars is set", () => {
@@ -379,72 +387,31 @@ describe("engineModule.configFromEnv passthrough", () => {
       healthThresholds: { criticalClusterSize: "4" },
     })
   })
+
+  it("names the ENGINE_SECRET_ variables the profiles reference, for the typo warner", () => {
+    const json = JSON.stringify({
+      profiles: {
+        a: {
+          url: "http://a.example/engine-rest",
+          auth: { type: "bearer", tokenEnv: "ENGINE_SECRET_A_TOKEN" },
+        },
+      },
+    })
+    expect(engineModule.referencedEnvVars({ ENGINES_JSON: json })).toEqual([
+      "ENGINE_SECRET_A_TOKEN",
+    ])
+  })
 })
 
-describe("engineConfigSchema auth validation", () => {
+describe("engineConfigSchema holds what configFromEnv hands on", () => {
   const engine = { id: "prod-a", baseUrl: "http://engine.example/engine-rest" }
 
-  it("accepts complete basic/bearer credentials", () => {
-    expect(() =>
-      engineConfigSchema.parse({
-        engines: [engine],
-        authType: "basic",
-        username: "u",
-        password: "p",
-      }),
-    ).not.toThrow()
-    expect(() =>
-      engineConfigSchema.parse({ engines: [engine], authType: "bearer", token: "t" }),
-    ).not.toThrow()
-  })
-
-  it("rejects basic without credentials and bearer without token, naming the vars", () => {
-    expect(() => engineConfigSchema.parse({ engines: [engine], authType: "basic" })).toThrow(
-      /ENGINE_USERNAME and ENGINE_PASSWORD/,
+  it("an engine needs an id and its REST root, a refused profile an id and its reason", () => {
+    expect(() => engineConfigSchema.parse({ engines: [engine] })).not.toThrow()
+    expect(() => engineConfigSchema.parse({ engines: [] })).toThrow(/Names no engine/)
+    expect(() => engineConfigSchema.parse({ engines: [{ id: "a" }] })).toThrow(/baseUrl/)
+    expect(() => engineConfigSchema.parse({ engines: [engine], refused: [{ id: "b" }] })).toThrow(
+      /the reason/,
     )
-    expect(() => engineConfigSchema.parse({ engines: [engine], authType: "bearer" })).toThrow(
-      /ENGINE_TOKEN/,
-    )
-  })
-
-  it("lets per-engine auth stand in for missing global credentials", () => {
-    const withAuth = { ...engine, auth: { type: "none" as const } }
-    expect(() => engineConfigSchema.parse({ engines: [withAuth], authType: "basic" })).not.toThrow()
-  })
-
-  it("rejects engine ids that break the metrics-label contract", () => {
-    expect(() => engineConfigSchema.parse({ engines: [{ ...engine, id: "Prod A" }] })).toThrow(
-      /lowercase/,
-    )
-  })
-
-  it("holds environment ids to the same lowercase contract", () => {
-    expect(() =>
-      engineConfigSchema.parse({ engines: [{ ...engine, environment: "Prod EU" }] }),
-    ).toThrow(/lowercase/)
-    expect(() =>
-      engineConfigSchema.parse({ engines: [{ ...engine, environment: "prod-eu" }] }),
-    ).not.toThrow()
-  })
-
-  it("rejects purely numeric environment ids: JS object enumeration would reorder them first", () => {
-    expect(() => engineConfigSchema.parse({ engines: [{ ...engine, environment: "2" }] })).toThrow(
-      /purely numeric/,
-    )
-    // A digit-leading id with a non-digit is not an array-index key, so it stays legal.
-    expect(() =>
-      engineConfigSchema.parse({ engines: [{ ...engine, environment: "2nd-region" }] }),
-    ).not.toThrow()
-  })
-
-  it("rejects duplicate engine ids across environments: the id stays the flat join key", () => {
-    expect(() =>
-      engineConfigSchema.parse({
-        engines: [
-          { ...engine, environment: "prod-eu" },
-          { ...engine, environment: "prod-us" },
-        ],
-      }),
-    ).toThrow(/unique across all environments/)
   })
 })

@@ -1,6 +1,6 @@
-import { DefinitionsLoop } from "../../core/index.js"
+import { DefinitionsLoop } from "@miragon/pulse-runtime-view/core"
 import * as vscode from "vscode"
-import type { Connection } from "../connections/connection.js"
+import type { Connection } from "@miragon/pulse-runtime-view/host-kit"
 import type { ConnectionRegistry } from "../connections/connection-registry.js"
 import type { LiveWiring } from "../live/live-wiring.js"
 

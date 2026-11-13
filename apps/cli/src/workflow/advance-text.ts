@@ -10,7 +10,7 @@ import {
   type WaitState,
   type WorkflowErrorReason,
   waitId,
-} from "@miragon/pulse-engine-core"
+} from "@miragon/pulse-c7-core"
 import { PulseCliError, usageError } from "../errors.js"
 import { itemCommand } from "./next-text.js"
 import { shellWord } from "./shell.js"

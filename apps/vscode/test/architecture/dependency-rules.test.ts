@@ -1,140 +1,93 @@
-import { execFileSync, spawnSync } from "node:child_process"
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { dirname, join } from "node:path"
 import { afterAll, describe, expect, test } from "vitest"
-import { APP_ROOT, REPO_ROOT } from "./support/files.js"
-
-interface Violation {
-  readonly from: string
-  readonly to: string
-  readonly rule: { readonly name: string }
-}
+import { PlantedTree } from "./support/planted-tree.js"
 
 const PLANTED: Readonly<Record<string, string>> = {
-  "src/contract/ids.ts": "export const id = 1;\n",
-  "src/contract/index.ts": "export * from './ids.ts';\n",
-  "src/core/uses-node.ts":
-    "import { readFileSync } from 'node:fs';\nexport const read = readFileSync;\n",
-  "src/core/deep-contract.ts": "export * from '../contract/ids.ts';\n",
-  "src/core/cycle-a.ts": "import { b } from './cycle-b.ts';\nexport const a = () => b();\n",
-  "src/core/cycle-b.ts": "import { a } from './cycle-a.ts';\nexport const b = () => a();\n",
-  "src/core/protocol/index.ts": "export const protocolValue = 1;\n",
-  "src/core/protocol/leaky.ts":
-    "import { id } from '../../contract/index.ts';\nexport const leaked = id;\n",
+  "src/host/wires-the-view.ts":
+    "import { PanelTitle } from '@miragon/pulse-runtime-view/host-kit';\nimport type { StateMessage } from '@miragon/pulse-runtime-view/protocol';\nimport type { WorkspaceFiles } from '@miragon/pulse-runtime-view/ports';\nexport type Message = StateMessage | WorkspaceFiles;\nexport const title = PanelTitle;\n",
+  "src/host/composition-root.ts":
+    "import { C7Adapter } from '@miragon/pulse-c7-adapter';\nimport { BpmnModelSource } from '@miragon/pulse-runtime-view/model';\nexport const wired = [C7Adapter, BpmnModelSource];\n",
   "src/host/not-the-root.ts":
-    "import { adapter } from '../adapters/c7/index.ts';\nexport const wired = adapter;\n",
+    "import { C7Adapter } from '@miragon/pulse-c7-adapter';\nexport const wired = C7Adapter;\n",
+  "src/host/reads-the-model.ts":
+    "import { BpmnModelSource } from '@miragon/pulse-runtime-view/model';\nexport const source = BpmnModelSource;\n",
+  "src/host/escapes-into-the-view.ts":
+    "import { core } from '../../../../packages/core/runtime-view/src/core/index.ts';\nexport const escaped = core;\n",
   "src/host/reads-model-library.ts":
     "import { BpmnModdle } from 'bpmn-moddle';\nexport const moddle = BpmnModdle;\n",
-  "src/adapters/c7/index.ts": "export const adapter = 1;\n",
-  "src/adapters/c7/mapping-uses-node.ts":
-    "import { spawn } from 'node:child_process';\nexport const run = spawn;\n",
-  "src/adapters/other/index.ts": "export const adapter = 2;\n",
-  "src/adapters/other/peer.ts":
-    "import { adapter } from '../c7/index.ts';\nexport const peer = adapter;\n",
-  "src/webview/runtime-import.ts":
-    "import { protocolValue } from '../core/protocol/index.ts';\nexport const value = protocolValue;\n",
-  "test/adapters/c7/c7.engine.test.ts":
-    "import { adapter } from '../../../src/adapters/c7/index.ts';\nexport const proven = adapter;\n",
-  "src/adapters/c7/runs-engine-core.ts":
-    "import { rootCause } from '@miragon/pulse-engine-core';\nexport const cause = rootCause;\n",
-  "src/adapters/c7/ships-engine-core-testing.ts":
-    "import { pageQuery } from '@miragon/pulse-engine-core/testing';\nexport const page = pageQuery;\n",
-  "src/adapters/other/runs-engine-core.ts":
-    "import { rootCause } from '@miragon/pulse-engine-core';\nexport const cause = rootCause;\n",
-  "src/core/runs-engine-core.ts":
-    "import type { WaitState } from '@miragon/pulse-engine-core';\nexport type Wait = WaitState;\n",
-  "test/adapters/c7/engine-core.test.ts":
-    "import { pageQuery } from '@miragon/pulse-engine-core/testing';\nexport const page = pageQuery;\n",
-  "test/adapters/c7-other/engine-core.test.ts":
-    "import { rootCause } from '@miragon/pulse-engine-core';\nexport const cause = rootCause;\n",
-  "test/core/engine-core.test.ts":
-    "import { rootCause } from '@miragon/pulse-engine-core';\nexport const cause = rootCause;\n",
-  "test/core/escapes-into-engine-core.test.ts":
-    "import { rootCause } from '../../../../packages/connectors/engine/engine-core/src/root-cause.ts';\nexport const cause = rootCause;\n",
-  "../../packages/connectors/engine/engine-core/src/root-cause.ts": "export const rootCause = 1;\n",
+  "src/host/names-an-id.ts":
+    "import { InstanceId } from '@miragon/pulse-engine-core';\nexport const id = InstanceId;\n",
+  "src/host/ships-the-fake.ts":
+    "import { FakeEngine } from '@miragon/pulse-engine-core/testing';\nexport const fake = FakeEngine;\n",
+  "src/host/escapes-into-the-contract.ts":
+    "import { RuntimeError } from '../../../../packages/connectors/engine/engine-core/dist/index.js';\nexport const error = RuntimeError;\n",
+  "../../packages/connectors/engine/engine-core/dist/index.js": "export const RuntimeError = 1;\n",
+  "src/host/runs-c7-core.ts":
+    "import { causeOf } from '@miragon/pulse-c7-core';\nexport const cause = causeOf;\n",
+  "src/host/reads-c7-core-subpath.ts":
+    "import { causeOf } from '@miragon/pulse-c7-core/cause';\nexport const cause = causeOf;\n",
+  "test/host/escapes-into-c7-core.test.ts":
+    "import { causeOf } from '../../../../packages/connectors/c7/c7-core/src/cause.ts';\nexport const cause = causeOf;\n",
+  "../../packages/connectors/c7/c7-core/src/cause.ts": "export const causeOf = 1;\n",
+  "../../node_modules/@miragon/pulse-c7-core/package.json":
+    '{ "name": "@miragon/pulse-c7-core", "exports": { ".": { "types": "./dist/index.d.ts" } } }\n',
+  "../../node_modules/@miragon/pulse-c7-core/dist/index.d.ts":
+    "export declare const causeOf: number;\n",
+  "src/host/cycle-a.ts": "import { b } from './cycle-b.ts';\nexport const a = () => b();\n",
+  "src/host/cycle-b.ts": "import { a } from './cycle-a.ts';\nexport const b = () => a();\n",
+  "test/host/anything.test.ts":
+    "import { C7Adapter } from '@miragon/pulse-c7-adapter';\nimport { FakeEngine } from '@miragon/pulse-engine-core/testing';\nexport const proven = [C7Adapter, FakeEngine];\n",
+  "../../packages/core/runtime-view/src/core/index.ts": "export const core = 1;\n",
+  "test/architecture/reads-the-licences.test.ts":
+    "import { inventoryOf } from '../../../../scripts/third-party-licenses.mjs';\nexport const read = inventoryOf;\n",
+  "../../scripts/third-party-licenses.mjs":
+    "import { readFileSync } from 'node:fs';\nimport * as esbuild from 'esbuild';\nimport { core } from '../packages/core/runtime-view/src/core/index.ts';\nexport const inventoryOf = [readFileSync, esbuild, core];\n",
   "package.json":
-    '{ "name": "pulse", "private": true, "dependencies": { "@miragon/pulse-engine-core": "workspace:*" } }\n',
+    '{ "name": "pulse-cockpit", "private": true, "dependencies": { "@miragon/pulse-runtime-view": "workspace:*", "@miragon/pulse-c7-adapter": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-c7-core": "workspace:*" } }\n',
 }
 
-const roots: string[] = []
+const tree = new PlantedTree("apps/vscode", PLANTED)
 
 afterAll(() => {
-  for (const root of roots) rmSync(root, { recursive: true, force: true })
+  tree.dispose()
 })
-
-function plantedTree(): string {
-  const root = mkdtempSync(join(tmpdir(), "pulse-vscode-depcruise-"))
-  roots.push(root)
-  for (const [path, text] of Object.entries(PLANTED)) {
-    const file = join(root, "apps", "vscode", path)
-    mkdirSync(dirname(file), { recursive: true })
-    writeFileSync(file, text)
-  }
-  symlinkSync(join(APP_ROOT, "node_modules"), join(root, "apps", "vscode", "node_modules"), "dir")
-  return root
-}
-
-const DEPCRUISE = join(REPO_ROOT, "node_modules/.bin/depcruise")
-
-function cruiseArguments(outputType: string): string[] {
-  return [
-    "apps/vscode/src",
-    "apps/vscode/test",
-    "--config",
-    join(APP_ROOT, ".dependency-cruiser.cjs"),
-    "--output-type",
-    outputType,
-  ]
-}
-
-function violationsIn(root: string): string[] {
-  const output = execFileSync(DEPCRUISE, cruiseArguments("json"), { cwd: root, encoding: "utf8" })
-  const result = JSON.parse(output) as { summary: { violations: Violation[] } }
-  return result.summary.violations.map(
-    (violation) => `${violation.rule.name}: ${violation.from} -> ${violation.to}`,
-  )
-}
 
 describe("the dependency rules", () => {
   test("say where an import outside the closed world belongs", { timeout: 60_000 }, () => {
-    const { stdout } = spawnSync(DEPCRUISE, cruiseArguments("err-long"), {
-      cwd: plantedTree(),
-      encoding: "utf8",
-    })
-    expect(stdout.replace(/\s+/g, " ")).toContain(
-      "error not-in-allowed: apps/vscode/src/core/uses-node.ts → fs No entry of `allowed` in apps/vscode/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md)",
+    expect(tree.report()).toContain(
+      "error not-in-allowed: apps/vscode/src/host/not-the-root.ts → apps/vscode/node_modules/@miragon/pulse-c7-adapter/dist/index.d.ts No entry of `allowed` in apps/vscode/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md)",
     )
   })
 
   test("fire on every planted violation and on nothing else", { timeout: 60_000 }, () => {
-    const library = "apps/vscode/node_modules/bpmn-moddle/dist/index.js"
-    const engineCore = "apps/vscode/node_modules/@miragon/pulse-engine-core/dist/index.d.ts"
+    const adapter = "apps/vscode/node_modules/@miragon/pulse-c7-adapter/dist/index.d.ts"
+    const model = "apps/vscode/node_modules/@miragon/pulse-runtime-view/dist/model/index.d.ts"
     const engineCoreTesting =
       "apps/vscode/node_modules/@miragon/pulse-engine-core/dist/testing/index.d.ts"
-    expect(violationsIn(plantedTree()).sort()).toEqual(
+    const contractBuild = "packages/connectors/engine/engine-core/dist/index.js"
+    const c7Core = "node_modules/@miragon/pulse-c7-core/dist/index.d.ts"
+    const c7CoreSubpath = "@miragon/pulse-c7-core/cause"
+    const c7CoreSource = "packages/connectors/c7/c7-core/src/cause.ts"
+    expect(tree.violations()).toEqual(
       [
-        `engine-core-only-in-the-c7-adapter: apps/vscode/src/adapters/other/runs-engine-core.ts -> ${engineCore}`,
-        `engine-core-only-in-the-c7-adapter: apps/vscode/src/core/runs-engine-core.ts -> ${engineCore}`,
-        `engine-core-only-in-the-c7-adapter: apps/vscode/test/adapters/c7-other/engine-core.test.ts -> ${engineCore}`,
-        `engine-core-only-in-the-c7-adapter: apps/vscode/test/core/engine-core.test.ts -> ${engineCore}`,
-        "engine-core-only-in-the-c7-adapter: apps/vscode/test/core/escapes-into-engine-core.test.ts -> packages/connectors/engine/engine-core/src/root-cause.ts",
-        `not-in-allowed: apps/vscode/src/adapters/c7/ships-engine-core-testing.ts -> ${engineCoreTesting}`,
-        `not-in-allowed: apps/vscode/src/adapters/other/runs-engine-core.ts -> ${engineCore}`,
-        `not-in-allowed: apps/vscode/src/core/runs-engine-core.ts -> ${engineCore}`,
-        "adapter-proven-on-an-engine: apps/vscode/src/adapters/other/index.ts -> apps/vscode/src/adapters/other/index.ts",
-        "engine-test-runs-the-conformance-kit: apps/vscode/test/adapters/c7/c7.engine.test.ts -> apps/vscode/test/adapters/c7/c7.engine.test.ts",
-        `model-libraries-stay-in-the-model-adapter: apps/vscode/src/host/reads-model-library.ts -> ${library}`,
-        "no-circular: apps/vscode/src/core/cycle-a.ts -> apps/vscode/src/core/cycle-b.ts",
-        `no-undeclared-dependencies: apps/vscode/src/host/reads-model-library.ts -> ${library}`,
-        "not-in-allowed: apps/vscode/src/adapters/c7/mapping-uses-node.ts -> child_process",
-        "not-in-allowed: apps/vscode/src/adapters/other/peer.ts -> apps/vscode/src/adapters/c7/index.ts",
-        "not-in-allowed: apps/vscode/src/core/deep-contract.ts -> apps/vscode/src/contract/ids.ts",
-        "not-in-allowed: apps/vscode/src/core/uses-node.ts -> fs",
-        "not-in-allowed: apps/vscode/src/host/not-the-root.ts -> apps/vscode/src/adapters/c7/index.ts",
-        `not-in-allowed: apps/vscode/src/host/reads-model-library.ts -> ${library}`,
-        "not-in-allowed: apps/vscode/src/webview/runtime-import.ts -> apps/vscode/src/core/protocol/index.ts",
-        "protocol-imports-nothing: apps/vscode/src/core/protocol/leaky.ts -> apps/vscode/src/contract/index.ts",
+        `extension-is-dialect-neutral: apps/vscode/src/host/runs-c7-core.ts -> ${c7Core}`,
+        `not-in-allowed: apps/vscode/src/host/runs-c7-core.ts -> ${c7Core}`,
+        `extension-is-dialect-neutral: apps/vscode/src/host/reads-c7-core-subpath.ts -> ${c7CoreSubpath}`,
+        `not-in-allowed: apps/vscode/src/host/reads-c7-core-subpath.ts -> ${c7CoreSubpath}`,
+        `not-to-unresolvable: apps/vscode/src/host/reads-c7-core-subpath.ts -> ${c7CoreSubpath}`,
+        `extension-is-dialect-neutral: apps/vscode/test/host/escapes-into-c7-core.test.ts -> ${c7CoreSource}`,
+        "model-libraries-stay-in-the-model-adapter: apps/vscode/src/host/reads-model-library.ts -> bpmn-moddle",
+        "no-circular: apps/vscode/src/host/cycle-a.ts -> apps/vscode/src/host/cycle-b.ts",
+        "not-in-allowed: apps/vscode/src/host/escapes-into-the-view.ts -> packages/core/runtime-view/src/core/index.ts",
+        "not-in-allowed: scripts/third-party-licenses.mjs -> packages/core/runtime-view/src/core/index.ts",
+        "not-in-allowed: scripts/third-party-licenses.mjs -> esbuild",
+        "not-to-unresolvable: scripts/third-party-licenses.mjs -> esbuild",
+        `not-in-allowed: apps/vscode/src/host/not-the-root.ts -> ${adapter}`,
+        "not-in-allowed: apps/vscode/src/host/reads-model-library.ts -> bpmn-moddle",
+        `not-in-allowed: apps/vscode/src/host/reads-the-model.ts -> ${model}`,
+        `not-in-allowed: apps/vscode/src/host/ships-the-fake.ts -> ${engineCoreTesting}`,
+        `engine-core-only-by-its-entries: apps/vscode/src/host/escapes-into-the-contract.ts -> ${contractBuild}`,
+        `not-in-allowed: apps/vscode/src/host/escapes-into-the-contract.ts -> ${contractBuild}`,
+        "not-to-unresolvable: apps/vscode/src/host/reads-model-library.ts -> bpmn-moddle",
       ].sort(),
     )
   })

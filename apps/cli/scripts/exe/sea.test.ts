@@ -4,6 +4,7 @@ import {
   EXE_TARGETS,
   exeTarget,
   injectOptions,
+  nodeLicenceOf,
   SEA_RESOURCE,
   SEA_SENTINEL_FUSE,
   seaConfig,
@@ -136,5 +137,27 @@ describe("sharedLibraries", () => {
         },
       ),
     )
+  })
+})
+
+describe("nodeLicenceOf", () => {
+  it.each([
+    [
+      "linux",
+      "/opt/hostedtoolcache/node/24.11.0/x64/bin/node",
+      "/opt/hostedtoolcache/node/24.11.0/x64/LICENSE",
+    ],
+    [
+      "darwin",
+      "/Users/me/.volta/tools/image/node/24.15.0/bin/node",
+      "/Users/me/.volta/tools/image/node/24.15.0/LICENSE",
+    ],
+    [
+      "win32",
+      "C:\\hostedtoolcache\\windows\\node\\24.11.0\\x64\\node.exe",
+      "C:\\hostedtoolcache\\windows\\node\\24.11.0\\x64\\LICENSE",
+    ],
+  ])("finds the LICENSE of an official build on %s", (platform, execPath, licence) => {
+    expect(nodeLicenceOf(execPath, platform)).toBe(licence)
   })
 })

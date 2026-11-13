@@ -7,7 +7,7 @@
 import { DEFAULT_PAGE_SIZE } from "../catalog/rules.js"
 import type { OperationSpec } from "../catalog/types.js"
 import { PulseCliError, usageError } from "../errors.js"
-import type { ClientOptions } from "../http/client.js"
+import type { Client } from "../http/client.js"
 import type { CommandRef } from "../http/errors.js"
 import { buildRequest, type OperationInput, type Target } from "./request.js"
 import type { OperationResult, RequestPreview } from "./result.js"
@@ -61,7 +61,7 @@ function pageResult(result: OperationResult): PageResult {
 
 export interface PageContext {
   readonly target: Target
-  readonly client: ClientOptions
+  readonly client: Client
   readonly ref?: CommandRef
 }
 

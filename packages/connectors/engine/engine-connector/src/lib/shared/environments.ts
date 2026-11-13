@@ -1,4 +1,4 @@
-// Environments only group engines; ids stay flat and globally unique (the metrics' `engine_id` join key).
+// Environments only group engines; ids stay flat and globally unique (the `engine` selector).
 
 export const DEFAULT_ENVIRONMENT_ID = "default"
 

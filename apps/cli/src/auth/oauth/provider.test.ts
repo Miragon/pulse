@@ -5,6 +5,7 @@
  */
 
 import { describe, expect, it } from "vitest"
+import { headersOf, renewalOf } from "../../../test/support/credential.js"
 import { oauthError } from "../../../test/support/fake-idp.js"
 import { fakeRuntime } from "../../../test/support/fake-runtime.js"
 import { rejection, setup, T0 } from "../../../test/support/oauth-provider.js"
@@ -16,7 +17,7 @@ const HINT =
 describe("OAuth provider: the cached login", () => {
   it("sends the cached access token as the only header", async () => {
     const test = setup()
-    await expect(test.provider().headers()).resolves.toEqual({
+    await expect(headersOf(test.provider())).resolves.toEqual({
       Authorization: "Bearer cached-access",
     })
     expect(test.idp.requests).toEqual([])
@@ -25,13 +26,13 @@ describe("OAuth provider: the cached login", () => {
   it("reads the cache once per process", async () => {
     const test = setup()
     const auth = test.provider()
-    await auth.headers()
+    await headersOf(auth)
     test.runtime.files.delete(TOKEN_FILE)
-    await expect(auth.headers()).resolves.toEqual({ Authorization: "Bearer cached-access" })
+    await expect(headersOf(auth)).resolves.toEqual({ Authorization: "Bearer cached-access" })
   })
 
   it("fails with LOGIN_REQUIRED without a cache, with the exact hint", async () => {
-    const error = await rejection(setup(null).provider().headers())
+    const error = await rejection(headersOf(setup(null).provider()))
     expect(error).toMatchObject({
       code: "LOGIN_REQUIRED",
       message: 'Not logged in: profile "p" has no OAuth login',
@@ -55,7 +56,7 @@ describe("OAuth provider: the cached login", () => {
 
   it("names the directory of the project file to log in in", async () => {
     const error = await rejection(
-      setup(null).provider({ projectDirectory: "/work/shop" }).headers(),
+      headersOf(setup(null).provider({ projectDirectory: "/work/shop" })),
     )
     expect(error.details.hint).toContain(
       "Run `pulse auth login --profile p` in a terminal in /work/shop: a person logs in once",
@@ -63,26 +64,26 @@ describe("OAuth provider: the cached login", () => {
   })
 
   it("fails with LOGIN_REQUIRED for a cache of another identity or an unknown format", async () => {
-    const other = await rejection(setup().provider({ clientId: "other" }).headers())
+    const other = await rejection(headersOf(setup().provider({ clientId: "other" })))
     expect(other.message).toBe(
       'The OAuth login of profile "p" was made for another issuer, client, audience or scopes: client "pulse-cli" (the configuration asks for "other")',
     )
     expect(other.details.hint).toBe(
       `The login was made with other settings: PULSE_CLI_OAUTH_* variables were set where the login ran (also through another profile that shares the login). ${HINT}`,
     )
-    const garbage = await rejection(setup('{"version":1}').provider().headers())
+    const garbage = await rejection(headersOf(setup('{"version":1}').provider()))
     expect(garbage.message).toBe(`The token cache ${TOKEN_FILE} has an unknown format`)
   })
 
   it("fails with LOGIN_REQUIRED for an expired token that cannot be refreshed", async () => {
     const noRefresh = setup(cachedLogin(T0, { refreshToken: null }))
     noRefresh.clock = T0 + 300_000
-    expect((await rejection(noRefresh.provider().headers())).message).toBe(
+    expect((await rejection(headersOf(noRefresh.provider()))).message).toBe(
       'The access token of profile "p" expired at 2023-11-14T22:18:20.000Z and there is no refresh token',
     )
     const expired = setup(cachedLogin(T0, { refreshExpiresAt: T0 + 100_000 }))
     expired.clock = T0 + 300_000
-    expect((await rejection(expired.provider().headers())).message).toBe(
+    expect((await rejection(headersOf(expired.provider()))).message).toBe(
       'The OAuth login of profile "p" expired at 2023-11-14T22:15:00.000Z',
     )
     expect(noRefresh.idp.requests).toEqual([])
@@ -92,7 +93,7 @@ describe("OAuth provider: the cached login", () => {
   it("uses a token in its margin that cannot be refreshed until it expires", async () => {
     const test = setup(cachedLogin(T0, { refreshToken: null }))
     test.clock = T0 + 299_999
-    await expect(test.provider().headers()).resolves.toEqual({
+    await expect(headersOf(test.provider())).resolves.toEqual({
       Authorization: "Bearer cached-access",
     })
   })
@@ -100,13 +101,13 @@ describe("OAuth provider: the cached login", () => {
   it("knows the user once the cache was read", async () => {
     const auth = setup().provider()
     expect(auth.principal).toBeUndefined()
-    await auth.headers()
+    await headersOf(auth)
     expect(auth.principal).toEqual({ user: "alice", source: 'OAuth login of profile "p"' })
     const subjectOnly = setup(cachedLogin(T0, { user: null })).provider()
-    await subjectOnly.headers()
+    await headersOf(subjectOnly)
     expect(subjectOnly.principal?.user).toBe("user-1")
     const anonymous = setup(cachedLogin(T0, { user: null, subject: null })).provider()
-    await anonymous.headers()
+    await headersOf(anonymous)
     expect(anonymous.principal).toBeUndefined()
   })
 })
@@ -115,17 +116,17 @@ describe("OAuth provider: concurrent processes", () => {
   it("adopts the token another process refreshed, without a token request", async () => {
     const test = setup()
     const [leader, follower] = [test.provider(), test.provider()]
-    await follower.headers()
-    test.clock = T0 + 250_000
-    await expect(leader.headers()).resolves.toEqual({ Authorization: "Bearer access-1" })
-    await expect(follower.headers()).resolves.toEqual({ Authorization: "Bearer access-1" })
+    await headersOf(follower)
+    test.clock = T0 + 280_000
+    await expect(headersOf(leader)).resolves.toEqual({ Authorization: "Bearer access-1" })
+    await expect(headersOf(follower)).resolves.toEqual({ Authorization: "Bearer access-1" })
     expect(test.idp.tokenRequests()).toHaveLength(1)
   })
 
   it("takes the refresh token from the file under the lock, never from memory", async () => {
     const test = setup()
     const auth = test.provider()
-    await auth.headers()
+    await headersOf(auth)
     // another process rotated the refresh token; the access token in the file is the same
     test.idp.seed("rotated-refresh")
     test.runtime.files.set(TOKEN_FILE, {
@@ -134,16 +135,30 @@ describe("OAuth provider: concurrent processes", () => {
       ),
       mode: 0o600,
     })
-    test.clock = T0 + 250_000
-    await auth.headers()
+    test.clock = T0 + 280_000
+    await headersOf(auth)
     const sent = test.idp.tokenRequests().map((request) => request.form.get("refresh_token"))
     expect(sent).toEqual(["rotated-refresh"])
+  })
+
+  it("refreshes at the token endpoint of the login read under the lock", async () => {
+    const test = setup()
+    const auth = test.provider()
+    await headersOf(auth)
+    // another terminal logged in anew meanwhile, with a discovery that names another endpoint
+    const moved = "https://login.example.org/realms/camunda/protocol/openid-connect/token"
+    const login = cachedLogin(T0)
+    const relogin = cachedLogin(T0, { endpoints: { ...login.endpoints, token: moved } })
+    test.runtime.files.set(TOKEN_FILE, { data: new TextEncoder().encode(cacheText(relogin)) })
+    test.clock = T0 + 280_000
+    await expect(headersOf(auth)).resolves.toEqual({ Authorization: "Bearer access-1" })
+    expect(test.idp.tokenRequests().map((request) => request.url)).toEqual([moved])
   })
 
   it("refreshes with the file when its newer token already expired", async () => {
     const test = setup()
     const auth = test.provider()
-    await auth.headers()
+    await headersOf(auth)
     test.idp.seed("newer-refresh")
     const newer = cachedLogin(T0, {
       accessToken: "newer-access",
@@ -151,8 +166,8 @@ describe("OAuth provider: concurrent processes", () => {
       refreshToken: "newer-refresh",
     })
     test.runtime.files.set(TOKEN_FILE, { data: new TextEncoder().encode(cacheText(newer)) })
-    test.clock = T0 + 250_000
-    await expect(auth.headers()).resolves.toEqual({ Authorization: "Bearer access-1" })
+    test.clock = T0 + 280_000
+    await expect(headersOf(auth)).resolves.toEqual({ Authorization: "Bearer access-1" })
     expect(test.idp.tokenRequests().map((request) => request.form.get("refresh_token"))).toEqual([
       "newer-refresh",
     ])
@@ -161,19 +176,19 @@ describe("OAuth provider: concurrent processes", () => {
   it("fails with LOGIN_REQUIRED when the login was removed or replaced meanwhile", async () => {
     const removed = setup()
     const auth = removed.provider()
-    await auth.headers()
+    await headersOf(auth)
     removed.runtime.files.delete(TOKEN_FILE)
-    removed.clock = T0 + 250_000
-    const error = await rejection(auth.headers())
+    removed.clock = T0 + 280_000
+    const error = await rejection(headersOf(auth))
     expect(error.message).toBe('The OAuth login of profile "p" was removed while this command ran')
     expect(removed.idp.requests).toEqual([])
     const replaced = setup()
     const other = replaced.provider()
-    await other.headers()
+    await headersOf(other)
     const foreign = cachedLogin(T0, { identity: { ...cachedLogin(T0).identity, clientId: "x" } })
     replaced.runtime.files.set(TOKEN_FILE, { data: new TextEncoder().encode(cacheText(foreign)) })
-    replaced.clock = T0 + 250_000
-    expect((await rejection(other.headers())).message).toBe(
+    replaced.clock = T0 + 280_000
+    expect((await rejection(headersOf(other))).message).toBe(
       'The OAuth login of profile "p" was made for another issuer, client, audience or scopes: client "x" (the configuration asks for "pulse-cli")',
     )
     expect(replaced.idp.requests).toEqual([])
@@ -182,12 +197,12 @@ describe("OAuth provider: concurrent processes", () => {
   it("fails with LOGIN_REQUIRED when the file has no usable refresh token", async () => {
     const test = setup()
     const auth = test.provider()
-    await auth.headers()
+    await headersOf(auth)
     test.runtime.files.set(TOKEN_FILE, {
       data: new TextEncoder().encode(cacheText(cachedLogin(T0, { refreshToken: null }))),
     })
-    test.clock = T0 + 250_000
-    const error = await rejection(auth.headers())
+    test.clock = T0 + 280_000
+    const error = await rejection(headersOf(auth))
     expect(error.message).toBe(
       'The access token of profile "p" expired at 2023-11-14T22:18:20.000Z and there is no refresh token',
     )
@@ -196,26 +211,58 @@ describe("OAuth provider: concurrent processes", () => {
 })
 
 describe("OAuth provider: reactive refresh", () => {
-  it("refreshes once per process after a 401", async () => {
+  it("refreshes a token at least 30 s old after a 401, never a young one", async () => {
     const test = setup()
     const auth = test.provider()
-    await auth.headers()
-    await expect(auth.refresh?.()).resolves.toBe(true)
-    await expect(auth.headers()).resolves.toEqual({ Authorization: "Bearer access-1" })
-    await expect(auth.refresh?.()).resolves.toBe(false)
+    await headersOf(auth)
+    await expect(renewalOf(auth)).resolves.toBe(false)
+    test.clock = T0 + 30_000
+    await expect(renewalOf(auth)).resolves.toBe(true)
+    await expect(headersOf(auth)).resolves.toEqual({ Authorization: "Bearer access-1" })
+    await expect(renewalOf(auth)).resolves.toBe(false)
     expect(test.idp.tokenRequests()).toHaveLength(1)
+  })
+
+  it("refreshes a token whose answer named no lifetime only after a 401", async () => {
+    const login = cachedLogin(T0, { expiresAt: null, refreshExpiresAt: null })
+    const test = setup(login, { idp: { expiresIn: null } })
+    const auth = test.provider()
+    // a token younger than 30 s was refused for another reason than its age
+    test.clock = T0 + 29_999
+    await expect(renewalOf(auth)).resolves.toBe(false)
+    expect(test.idp.tokenRequests()).toEqual([])
+    test.clock = T0 + 10 * 3_600_000
+    await expect(headersOf(auth)).resolves.toEqual({ Authorization: "Bearer cached-access" })
+    expect(test.idp.tokenRequests()).toEqual([])
+    await expect(renewalOf(auth)).resolves.toBe(true)
+    await expect(headersOf(auth)).resolves.toEqual({ Authorization: "Bearer access-1" })
+    test.clock += 10 * 3_600_000
+    await expect(headersOf(auth)).resolves.toEqual({ Authorization: "Bearer access-1" })
+    expect(test.idp.tokenRequests()).toHaveLength(1)
+  })
+
+  it("sends the token a 401 brought as it is, even one of 5 s: one token request per 401", async () => {
+    const test = setup(undefined, { idp: { expiresIn: 5 } })
+    const auth = test.provider()
+    test.clock = T0 + 60_000
+    await expect(renewalOf(auth)).resolves.toBe(true)
+    await expect(headersOf(auth)).resolves.toEqual({ Authorization: "Bearer access-1" })
+    expect(test.idp.tokenRequests()).toHaveLength(1)
+    // the next request renews it by the policy: a 5 s token is due at once
+    await expect(headersOf(auth)).resolves.toEqual({ Authorization: "Bearer access-2" })
   })
 
   it("cannot refresh without a refresh token", async () => {
     const test = setup(cachedLogin(T0, { refreshToken: null }))
-    await expect(test.provider().refresh?.()).resolves.toBe(false)
+    await expect(renewalOf(test.provider())).resolves.toBe(false)
     expect(test.idp.requests).toEqual([])
   })
 
   it("propagates refresh errors instead of the 401", async () => {
     const test = setup()
+    test.clock = T0 + 30_000
     test.idp.queue("token", oauthError(400, "invalid_grant", "Session not active"))
-    expect((await rejection(test.provider().refresh?.() ?? Promise.resolve())).code).toBe(
+    expect((await rejection(renewalOf(test.provider()) ?? Promise.resolve())).code).toBe(
       "LOGIN_REQUIRED",
     )
   })
@@ -223,12 +270,13 @@ describe("OAuth provider: reactive refresh", () => {
   it("names the rejected user and whether a refresh happened in the 401 hint", async () => {
     const test = setup()
     const auth = test.provider()
-    await auth.headers()
+    await headersOf(auth)
     const first = auth.rejectedHint?.(401)
     expect(first).toBe(
       'The engine (or the gateway in front of it) rejected the OAuth access token of alice (profile "p"). The authorization server issued it, but it is not accepted here: the gateway must expect exactly the issuer pulse logged in with (auth.issuer: https://login.example.com/realms/camunda; localhost and 127.0.0.1 are different issuers), and its clock must agree; `pulse auth status --profile p` shows scopes and expiry. If the login was revoked, run `pulse auth login --profile p` in a terminal.',
     )
-    await auth.refresh?.()
+    test.clock = T0 + 30_000
+    await renewalOf(auth)
     expect(auth.rejectedHint?.(401)).toContain(
       'of alice (profile "p"), also after refreshing it. The',
     )
@@ -268,7 +316,7 @@ describe("OAuth provider: dry-run preview", () => {
 
   it("notes a refresh it would do, or one it cannot do", async () => {
     const refresh = setup()
-    refresh.clock = T0 + 250_000
+    refresh.clock = T0 + 280_000
     await expect(refresh.provider().preview?.()).resolves.toEqual({
       headers: { Authorization: "Bearer cached-access" },
       note: "The cached access token expires at 2023-11-14T22:18:20.000Z; pulse would refresh it before sending.",
@@ -285,11 +333,36 @@ describe("OAuth provider: dry-run preview", () => {
       note: "The cached access token expired at 2023-11-14T22:18:20.000Z and pulse cannot refresh it: the request would fail with LOGIN_REQUIRED. Run `pulse auth login --profile p` in a terminal.",
     })
     const soon = setup(cachedLogin(T0, { refreshToken: null }))
-    soon.clock = T0 + 250_000
+    soon.clock = T0 + 280_000
     await expect(soon.provider().preview?.()).resolves.toMatchObject({
       note: "The cached access token expires at 2023-11-14T22:18:20.000Z and pulse cannot refresh it.",
     })
     expect(refresh.idp.requests).toEqual([])
+  })
+
+  it("notes a token received later than the clock shows, the only due one of unknown expiry", async () => {
+    const unknown = { expiresAt: null }
+    const fresh = setup(cachedLogin(T0, unknown))
+    fresh.clock = T0 + 10 * 3_600_000
+    await expect(fresh.provider().preview?.()).resolves.toEqual({
+      headers: { Authorization: "Bearer cached-access" },
+    })
+    const refresh = setup(cachedLogin(T0, unknown))
+    refresh.clock = T0 - 1
+    await expect(refresh.provider().preview?.()).resolves.toMatchObject({
+      note: "The cached access token was received at 2023-11-14T22:13:20.000Z (later than this machine's clock shows); pulse would refresh it before sending.",
+    })
+    const kept = setup(cachedLogin(T0, { ...unknown, refreshToken: null }))
+    kept.clock = T0 - 1
+    await expect(kept.provider().preview?.()).resolves.toMatchObject({
+      note: "The cached access token was received at 2023-11-14T22:13:20.000Z (later than this machine's clock shows) and pulse cannot refresh it.",
+    })
+    // a token of known expiry is due then too, for the same reason
+    const known = setup()
+    known.clock = T0 - 1
+    await expect(known.provider().preview?.()).resolves.toMatchObject({
+      note: "The cached access token was received at 2023-11-14T22:13:20.000Z (later than this machine's clock shows); pulse would refresh it before sending.",
+    })
   })
 
   it("notes a missing login instead of failing", async () => {

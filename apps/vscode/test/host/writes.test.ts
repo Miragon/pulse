@@ -1,4 +1,5 @@
-import { EngineLane } from "../../src/core/index.js"
+import { VSCODE_WRITES_WORDING } from "../../src/host/connections/writes-wording.js"
+import { EngineLane } from "@miragon/pulse-runtime-view/core"
 import {
   DefinitionId,
   ElementId,
@@ -7,18 +8,22 @@ import {
   InstanceId,
   RuntimeError,
   type ProcessCommands,
-} from "../../src/contract/index.js"
+} from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
-import { AuditedCommands } from "../../src/host/connections/audited-commands.js"
-import { ConfirmationPolicy } from "../../src/host/connections/confirmation-policy.js"
-import { ConnectionBuilder } from "../../src/host/connections/connection-builder.js"
+import {
+  AuditedCommands,
+  ConfirmationPolicy,
+  ConnectionBuilder,
+  type Credentials,
+  type EngineFactories,
+  LOCAL_TARGET,
+  type EngineTarget,
+  WriteAudit,
+  WritePolicy,
+  NotificationText,
+  type EnvironmentSettings,
+} from "@miragon/pulse-runtime-view/host-kit"
 import { EngineBulkRuns } from "../../src/host/connections/engine-bulk-runs.js"
-import type { Credentials, EngineFactories } from "../../src/host/connections/connection.js"
-import { LOCAL_TARGET, type EngineTarget } from "../../src/host/connections/engine-target.js"
-import type { EnvironmentSettings } from "../../src/host/connections/pulse-settings.js"
-import { WriteAudit } from "../../src/host/connections/write-audit.js"
-import { WritePolicy } from "../../src/host/connections/write-policy.js"
-import { NotificationText } from "../../src/host/notification-text.js"
 
 const NO_LOGIN: Credentials = { kind: "none" }
 const LOGIN: Credentials = { kind: "basic", username: "demo", password: "demo" }
@@ -58,20 +63,24 @@ describe("who may write", () => {
     [REMOTE, "enabled", LOGIN, true],
     [REMOTE_WITHOUT_LOGIN, "enabled", LOGIN, false],
   ] as const)("%s with %s and %o may write: %s", (engine, setting, credentials, writable) => {
-    expect(WritePolicy.access(engine, setting, credentials).writable).toBe(writable)
+    expect(WritePolicy.access(engine, setting, credentials, VSCODE_WRITES_WORDING).writable).toBe(
+      writable,
+    )
   })
 
   test("says why an engine stays read-only", () => {
-    expect(WritePolicy.access(REMOTE, "enabled", NO_LOGIN).note).toBe(
+    expect(WritePolicy.access(REMOTE, "enabled", NO_LOGIN, VSCODE_WRITES_WORDING).note).toBe(
       "Read-only. prod-eu needs a login before Pulse writes, so that the engine records who changed what.",
     )
-    expect(WritePolicy.access(REMOTE, "localOnly", LOGIN).note).toContain(
+    expect(WritePolicy.access(REMOTE, "localOnly", LOGIN, VSCODE_WRITES_WORDING).note).toContain(
       'pulse.writes to "enabled"',
     )
   })
 
   test("keeps a read-only profile read-only, even on this machine", () => {
-    expect(WritePolicy.access({ ...LOCAL, readOnly: true }, "enabled", NO_LOGIN)).toEqual({
+    expect(
+      WritePolicy.access({ ...LOCAL, readOnly: true }, "enabled", NO_LOGIN, VSCODE_WRITES_WORDING),
+    ).toEqual({
       writable: false,
       note: "Read-only. shop-dev is a read-only profile in its project file.",
     })
@@ -311,12 +320,17 @@ describe("a connection", () => {
       runtime: () => ({}) as never,
       commands: () => (withCommands ? commands : undefined),
       webUi: () => undefined,
+      cli: () => undefined,
     }
   }
 
   const LOCAL_ONLY = { writes: "localOnly", live: undefined, lane: new EngineLane() } as const
   const builder = (withCommands: boolean) =>
-    new ConnectionBuilder(factories(withCommands), new WriteAudit({ info: () => undefined }))
+    new ConnectionBuilder(
+      factories(withCommands),
+      new WriteAudit({ info: () => undefined }),
+      VSCODE_WRITES_WORDING,
+    )
 
   test("carries audited commands and the identity it logs in with when it may write", () => {
     const connection = builder(true).build(
@@ -336,7 +350,7 @@ describe("a connection", () => {
     expect(noAdapter.commands).toBeUndefined()
     expect(noAdapter.badge.access).toEqual({
       writable: false,
-      note: "Read-only. Pulse cannot change data on this engine yet.",
+      note: "Read-only. Pulse does not change data on this engine.",
     })
   })
 
@@ -355,6 +369,7 @@ describe("a connection", () => {
     const withWebUi = new ConnectionBuilder(
       { ...factories(false), webUi: () => cockpit },
       new WriteAudit({ info: () => undefined }),
+      VSCODE_WRITES_WORDING,
     ).build(LOCAL, NO_LOGIN, "local", LOCAL_ONLY)
 
     expect(withWebUi.webUi).toBe(cockpit)

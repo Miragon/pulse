@@ -1,0 +1,12 @@
+{
+  // The route generator under scripts/ (spec/api.json in, src/generated/ out) and its tests: the
+  // one place the package's code sees Node types. src/ keeps its own project (tsconfig.json),
+  // where they stay compile errors.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "noEmit": true,
+    "rootDir": "."
+  },
+  "include": ["scripts"]
+}

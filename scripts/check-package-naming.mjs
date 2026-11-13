@@ -11,11 +11,11 @@
  *   directory is lowercase kebab-case and never repeats the product prefix
  *   ("pulse-"), and no pnpm-workspace.yaml glob reaches another layout.
  * - A connector-family package is named <family>-<role>: its family's directory
- *   name plus a role suffix (CONNECTOR_ROLES: -connector, -client, -core), since
+ *   name plus a role suffix (CONNECTOR_ROLES: -connector, -client, -core, -adapter), since
  *   connectors-own-their-family matches a connector's own client and core by that
  *   name; apps and foundation packages carry no suffix, because the
  *   dependency-cruiser rules match the suffix by name. A family's -core (its pure
- *   domain, e.g. engine-core) is family code: it lives in the family, never under
+ *   domain, e.g. c7-core) is family code: it lives in the family, never under
  *   packages/core/, which holds what every family builds on and no family's code.
  * - The npm name is @miragon/pulse-<dir>. The one exception is a VS Code
  *   extension, an app whose package.json declares engines.vscode: vsce takes no
@@ -26,7 +26,7 @@
  *   declared it would escape them.
  * - A generated/ directory under apps/ or packages/ is exempt from ESLint,
  *   prettier and the source scans (`scripts/source-scan.mjs`; dependency-cruiser excludes only the
- *   CIB seven SDK and cruises every other generated/ tree), so it exists only
+ *   c7 SDK and cruises every other generated/ tree), so it exists only
  *   where GENERATED_DIRS lists it with its reason.
  * - No .mts/.cts/.js/.mjs/.cjs/.jsx source under a package's src/: the ESLint
  *   complexity/max-lines budgets and pattern gates (globbed *.{ts,tsx}) and
@@ -60,20 +60,22 @@ import { expandWorkspaceGlobs, workspaceGlobs } from "./check-package-scripts.mj
  * dependency-cruiser rule (the lockstep test in check-package-naming.test.mjs
  * fails otherwise): add a role there in the same change as here.
  */
-export const CONNECTOR_ROLES = ["connector", "client", "core"]
+export const CONNECTOR_ROLES = ["connector", "client", "core", "adapter"]
 
 /**
  * The only generated/ directories under apps/ or packages/, each with the
  * reason it may skip ESLint, prettier and the source scans (`scripts/source-scan.mjs`)
- * (dependency-cruiser keeps its own exclude list, today only the CIB seven SDK).
+ * (dependency-cruiser keeps its own exclude list, today only the c7 SDK).
  * An entry names output a tool regenerates and nobody edits by hand; an entry
  * whose directory is gone fails as stale.
  */
 export const GENERATED_DIRS = {
-  "packages/connectors/engine/engine-client/src/generated":
-    "the hey-api SDK `pnpm generate` regenerates from the CIB seven OpenAPI spec; never edited by hand",
+  "packages/connectors/c7/c7-client/src/generated":
+    "the hey-api SDK `pnpm generate` regenerates from the one Camunda 7 REST spec (packages/connectors/c7/c7-core/spec/api.json, its patches applied); never edited by hand (CI's TypeScript job fails when the build rewrites it)",
+  "packages/connectors/c7/c7-core/src/generated":
+    "the route tables (routes.json, core-routes.json) `pnpm generate` writes from the one Camunda 7 REST spec (packages/connectors/c7/c7-core/spec/api.json, its patches applied); never edited by hand (CI's TypeScript job fails when the build rewrites it)",
   "apps/cli/src/generated":
-    "the CLI's command catalog (catalog.json) of every engine, which `pnpm --fail-if-no-match --filter @miragon/pulse-cli catalog` renders from apps/cli/spec; never edited by hand (scripts/catalog/render.test.ts fails on a stale one)",
+    "the CLI's command catalog (catalog.json) of every engine, which `pnpm --fail-if-no-match --filter @miragon/pulse-cli catalog` renders from c7-core's patched spec and route table; never edited by hand (scripts/catalog/render.test.ts fails on a stale one)",
 }
 
 /** The package.json fields that make another package reachable under pnpm. */

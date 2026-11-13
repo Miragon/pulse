@@ -1,4 +1,4 @@
-import type { SourceLocation } from "../../contract/index.js"
+import type { SourceLocation } from "@miragon/pulse-runtime-view/ports"
 import * as vscode from "vscode"
 
 const MODELER_FOCUS_COMMAND = "bpmn-modeler.focusLintElement"

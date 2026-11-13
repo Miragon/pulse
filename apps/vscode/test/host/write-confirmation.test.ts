@@ -1,4 +1,4 @@
-import type { BulkRequest } from "../../src/core/index.js"
+import type { BulkRequest } from "@miragon/pulse-runtime-view/core"
 import { describe, expect, test, vi } from "vitest"
 
 const window = vi.hoisted(() => ({
@@ -12,8 +12,8 @@ vi.mock("vscode", () => ({
 }))
 
 const { WriteConfirmation } = await import("../../src/host/panels/write-confirmation.js")
-const { WriteAudit } = await import("../../src/host/connections/write-audit.js")
-const { LOCAL_TARGET } = await import("../../src/host/connections/engine-target.js")
+const { WriteAudit } = await import("@miragon/pulse-runtime-view/host-kit")
+const { LOCAL_TARGET } = await import("@miragon/pulse-runtime-view/host-kit")
 
 const REQUEST: BulkRequest = {
   action: "migrateInstances",

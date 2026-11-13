@@ -28,7 +28,7 @@ pulse guide auth
 - A bearer token from `PULSE_CLI_TOKEN` is never refreshed: on `TOKEN_EXPIRED` (exit 4) the agent
   asks for a new one. A [token command](authentication.md#token-commands) in the `env` of
   `.claude/settings.json` fetches short-lived tokens instead.
-- A [project file](configuration.md#project-file) (`.pulse-cli.json`) ships the repository's
+- A [project file](configuration.md#project-file) (`.pulse.json`) ships the repository's
   engines, so an agent session needs no setup. It names engines, never credentials.
 
 ## Claude Code plugin

@@ -8,9 +8,15 @@ import { allowedWidgetActions } from "../lib/mcp/toolsets.js"
 import { ENGINE_WIDGET_ACTIONS_DATA } from "../tool-names.js"
 import type { WidgetToolsContext } from "./shared.js"
 
-/** `allowedActions` uses the registrar filter's rule, so no button resolves to an unknown tool. */
+/**
+ * `allowedActions` uses the registrar filter's rule, so no button resolves to an unknown tool;
+ * `readOnlyEngines` names the engines whose profile is read-only, where no write runs.
+ */
 export function registerWidgetActionsFeed(ctx: WidgetToolsContext) {
   const allowedActions = allowedWidgetActions(ctx.toolset)
+  const readOnlyEngines = [...ctx.registry.backends]
+    .filter(([, backend]) => backend.readOnly)
+    .map(([engineId]) => engineId)
 
   ctx.server.registerTool(
     ENGINE_WIDGET_ACTIONS_DATA,
@@ -22,6 +28,6 @@ export function registerWidgetActionsFeed(ctx: WidgetToolsContext) {
       inputSchema: strictToolInput({}),
       ...appOnly,
     },
-    withToolErrors(() => Promise.resolve(rawData({ allowedActions }))),
+    withToolErrors(() => Promise.resolve(rawData({ allowedActions, readOnlyEngines }))),
   )
 }

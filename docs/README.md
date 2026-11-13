@@ -1,14 +1,15 @@
 # Pulse docs
 
 Pulse reaches your Camunda 7, CIB seven and Operaton engines from your AI chat, your terminal
-and VS Code.
+VS Code and Orca.
 
 | Page                       | What it covers                                                   |
 | -------------------------- | ---------------------------------------------------------------- |
-| [Overview](overview.md)    | The three clients and what they share                            |
+| [Overview](overview.md)    | The four clients and what they share                             |
 | [MCP server](mcp/index.md) | Getting started, usage, reference, operations, architecture      |
 | [CLI](cli/index.md)        | Install, commands, configuration, authentication, AI agents      |
 | [VS Code](vscode/index.md) | Installation, configuration, usage, architecture (early version) |
+| [Orca](orca/index.md)      | Installation, configuration, usage (early version)               |
 
 The pages build into a VitePress site, published at
 [miragon.github.io/pulse](https://miragon.github.io/pulse/) with each release. Run

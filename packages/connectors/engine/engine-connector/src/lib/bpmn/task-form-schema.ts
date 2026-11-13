@@ -1,5 +1,5 @@
-import { readTaskVariables, type Client, type VariableMap } from "@miragon/pulse-engine-client"
-import { getTask } from "@miragon/pulse-engine-client/sdk"
+import { readTaskVariables, type Client, type VariableMap } from "@miragon/pulse-c7-client"
+import { getTask } from "@miragon/pulse-c7-client/sdk"
 import type { TaskFormField, TaskFormSchema } from "../../view-models.js"
 import { extractEmbeddedFormFields } from "./bpmn-task-form.js"
 import { fetchDefinitionXml } from "./definition-xml.js"

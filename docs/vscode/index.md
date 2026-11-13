@@ -36,3 +36,4 @@ where the models and the code already are.
 | [Usage](./usage.md)                 | The views and panels, model and code, writes and batches |
 | [Boards](./boards.md)               | Shared views across engines, kept as JSON in the repo    |
 | [Architecture](./architecture.md)   | Contract, core, adapters and the decisions behind them   |
+| [Parity](./parity.md)               | What differs from the MCP cockpit, and why               |

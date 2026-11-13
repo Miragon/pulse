@@ -21,7 +21,7 @@ const STRAY = /^MCP_OAUTH(?:$|_)/
 /**
  * The env every in-process boot starts from: EVERY variable the server reads is cleared (the
  * boot's own, OAuth's and each module's slice, `composedEnvVars(MODULES)`) plus every stray name
- * above; then a dead engine URL (nothing may reach a real engine or Prometheus) and `env` are
+ * above; then a dead engine URL (nothing may reach a real engine) and `env` are
  * applied. Derived, not hand-listed: a toolset, an engine source, an edge override or an OAuth
  * provider exported in the developer's shell changes the surface under test.
  * `vi.unstubAllEnvs()` undoes it.

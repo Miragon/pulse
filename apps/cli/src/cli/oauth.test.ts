@@ -108,7 +108,7 @@ describe("OAuth on operation commands", () => {
   })
 
   it("refreshes proactively and traces the token request with --verbose", async () => {
-    const { cli, server, runtime } = setup({ now: T0 + 250_000 })
+    const { cli, server, runtime } = setup({ now: T0 + 280_000 })
     const result = await cli(["process-definition", "count", "--verbose"])
     expect(result.code).toBe(0)
     const lines = result.stderr.split("\n")
@@ -128,7 +128,7 @@ describe("OAuth on operation commands", () => {
   it("shows the Bearer token with --show-secrets, never the client credentials", async () => {
     const idpSecret = "client-secret-value"
     const { cli } = setup({
-      now: T0 + 250_000,
+      now: T0 + 280_000,
       env: { PULSE_CLI_OAUTH_CLIENT_SECRET: idpSecret },
       idp: { clients: { "pulse-cli": { secret: idpSecret } } },
     })
@@ -138,8 +138,9 @@ describe("OAuth on operation commands", () => {
     expect(result.stderr).not.toContain(Buffer.from(`pulse-cli:${idpSecret}`).toString("base64"))
   })
 
-  it("refreshes once after a 401 and retries", async () => {
+  it("refreshes a token old enough once after a 401 and retries", async () => {
     const { cli, server, idp } = setup({
+      login: cachedLogin(T0 - 60_000),
       engine: (authorization) =>
         authorization === "Bearer cached-access"
           ? rejected(401, "Jwt is expired")
@@ -154,6 +155,7 @@ describe("OAuth on operation commands", () => {
 
   it("gives the OAuth 401 hint after exactly one refresh", async () => {
     const { cli, server, idp } = setup({
+      login: cachedLogin(T0 - 60_000),
       engine: () => rejected(401, "Jwt issuer is not configured"),
     })
     const result = await cli(["process-definition", "count"])
@@ -191,7 +193,10 @@ describe("OAuth on operation commands", () => {
   })
 
   it("fails with the refresh error instead of the 401 when the login was revoked", async () => {
-    const { cli, idp, runtime } = setup({ engine: () => rejected(401, "Jwt is expired") })
+    const { cli, idp, runtime } = setup({
+      login: cachedLogin(T0 - 60_000),
+      engine: () => rejected(401, "Jwt is expired"),
+    })
     idp.queue("token", oauthError(400, "invalid_grant", "Session not active"))
     const before = JSON.parse(fileText(runtime, TOKEN_FILE) ?? "") as object
     const result = await cli(["process-definition", "count"])
@@ -218,7 +223,7 @@ describe("OAuth on operation commands", () => {
   })
 
   it("uses the valid token when the lock cannot be taken", async () => {
-    const { cli, server } = setup({ now: T0 + 250_000, lockTimeout: true })
+    const { cli, server } = setup({ now: T0 + 280_000, lockTimeout: true })
     expect((await cli(["process-definition", "count"])).code).toBe(0)
     expect(authorizations(server)).toEqual(["Bearer cached-access"])
   })
@@ -234,7 +239,10 @@ describe("OAuth on operation commands", () => {
     const runtime = fakeRuntime({
       fetch: routeFetch(idp, server.fetch),
       now: () => T0,
-      files: { [CONFIG_PATH]: oauthProfiles(), [TOKEN_FILE]: cacheText(cachedLogin(T0)) },
+      files: {
+        [CONFIG_PATH]: oauthProfiles(),
+        [TOKEN_FILE]: cacheText(cachedLogin(T0 - 60_000)),
+      },
     })
     const result = await execute(
       run,
@@ -306,12 +314,14 @@ describe("OAuth on dry-run, ping and api", () => {
   it("warns when the access token would travel over plain http beyond loopback", async () => {
     const warning =
       "Warning: pulse sends the OAuth access token over plain http to 192.168.1.125:9198; anyone on the network path can read and reuse it. Use https:// for the engine URL (RFC 6750 §5.3).\n"
+    // PULSE_CLI_URL replaces the URL of the profile --profile names; alone it selects none
+    const count = ["process-definition", "count", "--profile", "p"]
     const lan = setup({ env: { PULSE_CLI_URL: "http://192.168.1.125:9198/engine-rest" } })
-    const sent = await lan.cli(["process-definition", "count"])
+    const sent = await lan.cli(count)
     expect(sent.code).toBe(0)
     expect(sent.stderr).toBe(warning)
     const dryRun = setup({ env: { PULSE_CLI_URL: "http://192.168.1.125:9198/engine-rest" } })
-    const preview = await dryRun.cli(["process-definition", "count", "--dry-run"])
+    const preview = await dryRun.cli([...count, "--dry-run"])
     expect(preview.stderr).not.toContain("plain http")
     for (const url of [
       "http://localhost:8080/engine-rest",
@@ -320,12 +330,12 @@ describe("OAuth on dry-run, ping and api", () => {
       "https://camunda.example.com/engine-rest",
     ]) {
       const quiet = setup({ env: { PULSE_CLI_URL: url } })
-      expect((await quiet.cli(["process-definition", "count"])).stderr).toBe("")
+      expect((await quiet.cli(count)).stderr).toBe("")
     }
     const basic = setup({
       env: { PULSE_CLI_URL: "http://10.0.0.1/engine-rest", PULSE_CLI_AUTH: "none" },
     })
-    expect((await basic.cli(["process-definition", "count"])).stderr).not.toContain("plain http")
+    expect((await basic.cli(count)).stderr).not.toContain("plain http")
   })
 
   it("adds pulse auth status to the hint of a redirect", async () => {

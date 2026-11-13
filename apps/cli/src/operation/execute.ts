@@ -4,7 +4,7 @@
  */
 
 import type { Schema, OperationSpec } from "../catalog/types.js"
-import type { ClientOptions } from "../http/client.js"
+import type { Client } from "../http/client.js"
 import type { CommandRef } from "../http/errors.js"
 import { checkEffect, type GuardOptions } from "./guards.js"
 import { isPaginated } from "../catalog/rules.js"
@@ -22,7 +22,7 @@ export { sendRequest } from "./send.js"
 export interface ExecuteOptions extends GuardOptions {
   /** baseUrl, engine, headers */
   readonly target: Target
-  readonly client: ClientOptions
+  readonly client: Client
   readonly all: boolean
   readonly validate: boolean
   readonly schemas: Readonly<Record<string, Schema>>

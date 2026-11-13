@@ -2,7 +2,10 @@
 # Writes the Homebrew formula of the Pulse CLI (Miragon/homebrew-tap, Formula/pulse-cli.rb) to
 # stdout: the .tar.xz archives of the standalone executables of one Pulse release for macOS and
 # Linux, no dependencies, checksums from that release's pulse-cli-SHA256SUMS. It installs the
-# executable pulse-cli of the archive and links the command pulse to it.
+# executable pulse-cli of the archive, links the command pulse to it and puts the archive's
+# licences into the formula's prefix (scripts/pack-binary.sh packs them; Homebrew installs a
+# LICENSE there on its own). An archive of a release before 0.28.0 holds no licences: publish
+# such a release with the script of its own tag.
 #
 #   gh release download v0.22.0 --repo Miragon/pulse --pattern pulse-cli-SHA256SUMS
 #   apps/cli/scripts/homebrew-formula.sh 0.22.0 pulse-cli-SHA256SUMS > pulse-cli.rb
@@ -65,6 +68,7 @@ class PulseCli < Formula
   def install
     bin.install "pulse-cli"
     bin.install_symlink bin/"pulse-cli" => "pulse"
+    prefix.install "NODE_LICENSE", "THIRD_PARTY_LICENSES.txt"
   end
 
   test do

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "test": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/scripts/third-party-licenses.mjs",
+        "$TURBO_ROOT$/scripts/third-party-licenses.d.mts",
+        "$TURBO_ROOT$/Dockerfile",
+        "$TURBO_ROOT$/.github/workflows/docker-build.yml"
+      ]
+    }
+  }
+}

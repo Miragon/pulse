@@ -1,6 +1,6 @@
 ---
 name: add-bpm-feature
-description: Step-by-step house pattern for adding a new BPM operations tool, widget tool, or widget to the engine module (`packages/connectors/engine/engine-connector`, over `packages/connectors/engine/engine-client` and `packages/connectors/engine/engine-core`). Use whenever adding or changing Camunda 7 / CIB seven tools ("add a tool to suspend jobs", "expose X from the engine REST API"), input schemas, cockpit routes, `*_data` feeds, or React widgets in the cockpit. Takes precedence over generic MCP SDK examples.
+description: Step-by-step house pattern for adding a new BPM operations tool, widget tool, or widget to the engine module (`packages/connectors/engine/engine-connector`, over `packages/connectors/c7/c7-client` and `packages/connectors/c7/c7-core`). Use whenever adding or changing Camunda 7 / CIB seven tools ("add a tool to suspend jobs", "expose X from the engine REST API"), input schemas, cockpit routes, `*_data` feeds, or React widgets in the cockpit. Takes precedence over generic MCP SDK examples.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 ---
 
@@ -9,8 +9,9 @@ allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 The engine module never registers operations tools with a raw `server.registerTool()`. Tools go
 through the registrar (`createToolRegistrar` from `@miragon/pulse-widget-shell/server`);
 engine access goes through `withEngine`/`resolveEngine` (per-call `engine` override >
-`ENGINE_DEFAULT` > the only configured engine). A view is registered in three places (CLAUDE.md
-invariant 3). Follow the steps for the path you need.
+`ENGINE_DEFAULT` > the profile file's `defaultProfile` > the only profile, refused ones counted;
+a refused target fails with `ENGINE_PROFILE_REFUSED`, CLAUDE.md invariant 2). A view is
+registered in three places (CLAUDE.md invariant 3). Follow the steps for the path you need.
 
 ## Step 0: pick the render path
 
@@ -19,7 +20,7 @@ invariant 3). Follow the steps for the path you need.
 | JSON data for the model                                          | Registrar tool in `src/tools/<domain>.ts` (Steps 1–3)                                 |
 | A view for the user                                              | a cockpit route plus its builder and `*_data` feed (Step 4); never a second view tool |
 | App-only JSON for in-widget refresh/nav                          | `*_data` feed in `DATA_FEEDS` of `src/data/feeds.ts` (Step 4)                         |
-| An answer the CLI's workflow commands give too (inspect, status) | a composite on `@miragon/pulse-engine-core` over `src/lib/core-adapter/` (Step 2b)    |
+| An answer the CLI's workflow commands give too (inspect, status) | a composite on `@miragon/pulse-c7-core` over `src/lib/core-adapter/` (Step 2b)        |
 
 ## Step 1: input schema next to the tools
 
@@ -61,15 +62,15 @@ hand-rolled `maxResults` (a `*_data` feed spreads `pagingShape` from the same fi
 definition in its described, default-free form): `src/tools/list-tools.test.ts` treats every registrar tool that
 takes `maxResults` as a list and fails it without the cap or the envelope (Step 2). The
 REST calls themselves use the generated SDK (imported from
-`@miragon/pulse-engine-client/sdk`). If the endpoint is missing there, the OpenAPI spec
+`@miragon/pulse-c7-client/sdk`). If the endpoint is missing there, the OpenAPI spec
 changed and you need `pnpm generate`, not a hand-written fetch. The engine's REST rules the
 handler applies (`toEngineDate`, `engineLike`, `complementaryFlags`, `engineSorting`,
 `toEngineVariables`, `incidentRecovery`, `RAW_VARIABLES`, `isMissing`) come from
-`@miragon/pulse-engine-core`, their one home, which the CLI uses too; the reads bound to the SDK
+`@miragon/pulse-c7-core`, their one home, which the CLI uses too; the reads bound to the SDK
 (`fetchJobStacktrace`, `readProcessInstanceVariables`, `readBatch`) from
-`@miragon/pulse-engine-client`. Those reads throw every 404: a handler that reads a missing
+`@miragon/pulse-c7-client`. Those reads throw every 404: a handler that reads a missing
 resource as "none" wraps the read in `noneIfMissing` (`src/lib/core-adapter/engine-port.ts`,
-engine-core's `isMissing`), so a wrong REST root still fails loud.
+c7-core's `isMissing`), so a wrong REST root still fails loud.
 
 ### Parameter naming guide
 
@@ -81,7 +82,7 @@ input schema that lets an unknown key through): an unknown key is a tool error l
 | Concept                  | Name                                                                                                                                                                                                                                                   |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Process definition       | `processDefinitionKey` (all versions), `processDefinitionId` (one version); never bare `key`                                                                                                                                                           |
-| Entity ids               | `<entity>Id`: `processInstanceId`, `deploymentId`, `jobId`, `activityId` (analytics too); never bare `id`, never `elementId`                                                                                                                           |
+| Entity ids               | `<entity>Id`: `processInstanceId`, `deploymentId`, `jobId`, `activityId`; never bare `id`, never `elementId`                                                                                                                                           |
 | Several values           | `<name>In`, an array (`processDefinitionKeyIn`); merged with the single form via `engineKeyList`                                                                                                                                                       |
 | User filter              | `assignee` (the user a task is assigned to); a write that sets a user takes `userId`                                                                                                                                                                   |
 | Business key / substring | `businessKey` exact, `businessKeyLike`/`nameLike` substring via `likeParam()`: `engineLike` wraps a `%`-less value                                                                                                                                     |
@@ -109,8 +110,8 @@ Add the tool in `packages/connectors/engine/engine-connector/src/tools/<domain>.
 ```ts
 import { listProcessInstancesInput } from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
-import { complementaryFlags, engineLike, engineSorting } from "@miragon/pulse-engine-core"
-import { getProcessInstances, getProcessInstancesCount } from "@miragon/pulse-engine-client/sdk"
+import { complementaryFlags, engineLike, engineSorting } from "@miragon/pulse-c7-core"
+import { getProcessInstances, getProcessInstancesCount } from "@miragon/pulse-c7-client/sdk"
 import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
 import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
@@ -200,38 +201,39 @@ same state. Every engine tool carries `openWorldHint: true` (it talks to an exte
 engine); a tool that only reads the server's own config (`engine_list_engines`) says
 `openWorldHint: false`.
 
-## Step 2b: a read composite on engine-core
+## Step 2b: a read composite on c7-core
 
 A question the CLI answers too (where an instance waits, how an engine is doing) runs on
-`@miragon/pulse-engine-core` (`packages/connectors/engine/engine-core`, the engine family's
-core), the workflow domain both share, never on a second copy here. A rule both need that it
+`@miragon/pulse-c7-core` (`packages/connectors/c7/c7-core`, the core of the Camunda 7 REST
+dialect family c7, which the engine module spans), the workflow domain both share, never on a
+second copy here. A rule both need that it
 lacks goes into that package (a leaf: no dependency, data rather than wording).
 The pattern is `engine_inspect_process_instance` and `engine_status`
 (`src/lib/core-adapter/composites.ts`, registered like any registrar tool):
 
-- Map every operation the composite sends in `READS` of `src/lib/core-adapter/engine-port.ts`, one typed
-  SDK read each; text/plain and variable reads go through engine-client's SDK-bound reads
-  (`fetchJobStacktrace`, `readProcessInstanceVariables`), as `engine-contract.test.ts`
-  demands. `src/lib/core-adapter/engine-port.test.ts` holds `READS` to engine-core's operation
-  lists.
-- Word engine-core's error reasons in `src/lib/core-adapter/workflow-errors.ts` (`[CODE] message` in the
+- Map nothing by hand: the port (`src/lib/core-adapter/engine-port.ts`) sends every operation
+  the composite asks for as its route of c7-core's `CORE_ROUTES` (`routedTransport`) through the
+  engine's client, so a composite that needs an operation c7-core does not send yet adds it to
+  c7-core's `CORE_OPERATIONS`, and `src/lib/core-adapter/engine-port.test.ts` holds every
+  operation of c7-core's lists to a reading route.
+- Word c7-core's error reasons in `src/lib/core-adapter/workflow-errors.ts` (`[CODE] message` in the
   tool's parameter names, no tool names).
 - Return data for the model: drop `next` (it would name tools a toolset may lack), cut
-  variables with `truncatePlainVariables`, and cap every list engine-core leaves uncapped for
+  variables with `truncatePlainVariables`, and cap every list c7-core leaves uncapped for
   the CLI (today wait states, incidents, timeline, variables, definitions, topics), naming each
   cut in `truncated`. The cap bounds the result, not the reads. Pin the wire and each cap in
   `src/lib/core-adapter/composites.wire.test.ts` (inspect) and
   `src/lib/core-adapter/composites-status.wire.test.ts` (status), over the helpers of
   `src/lib/core-adapter/composites.test-support.ts`.
-- How an engine is doing has one answer: mask incidents with engine-core's `messageSignature`,
+- How an engine is doing has one answer: mask incidents with c7-core's `messageSignature`,
   count one cause with its `causeKeyOf`/`largestCause` and judge with its `engineVerdict`
   (`ok | warning | critical`) by the `ENGINE_HEALTH_*` thresholds (`pulse status`: the
   defaults), as `engine_status` and the cockpit's health route (`src/data/health-data.ts`)
-  do. Neither text names the other's verdict or an analytics tool.
+  do. Neither text names the other's verdict.
 
 `src/lib/` is split by job, and each helper goes into the folder of its job: `engine/`
 (routing: `resolveEngine`, `withEngine`, the cockpit links, passthrough auth), `core-adapter/`
-(the engine-core port, the composites, their error wording), `bpmn/` (the definition XML,
+(the c7-core port, the composites, their error wording), `bpmn/` (the definition XML,
 BPMN and task-form reading, completing a user task by its form), `mcp/` (the tool surface:
 toolsets, the paging envelope, the bounds on variable values and failure text) and `shared/`
 (pure code the widgets run too). `src/data/` and `src/lib/` never import `src/tools/`,
@@ -256,14 +258,16 @@ these primitives. Widgets are browser code: at runtime they import only their ow
 `src/messages`, `src/tool-names.ts`, the view models, `@miragon/pulse-widget-shell/widgets` and the
 view stack, plus `src/lib/shared` (pure code the server runs too, held to the same allowlist);
 `src/tools`, `src/data`, the feed contracts, the plugin, the module,
-`@miragon/pulse-engine-client` and anything else only as types (`import type`), and the other
+`@miragon/pulse-c7-client` and anything else only as types (`import type`), and the other
 `src/lib` folders not even as types: a type both sides need is declared once in
 `src/lib/shared` (`TaskCompletion`). Data arrives through the view tool and the `*_data` feeds
 (`connector-widgets-are-browser-code` and `connector-widgets-only-shared-lib` in
 `.dependency-cruiser.cjs`):
 
 - `ViewDataState` is the loading/error/no-data guard (no inline Alert/loading ternary):
-  `onRetry` is required (`paged.retry`, a query's `refetch`), loading is a `skeleton`
+  `onRetry` is required (`paged.retry`, a query's `refetch`), though a refusal no retry
+  changes (`isPermanentError`: a refused profile, a read-only engine) shows no Try again, and
+  the view's query client never retries one; loading is a `skeleton`
   slot under a polite sr-only status ("Ansicht wird geladen…" unless `loadingText`),
   no data pulse-ui's `EmptyState`
 - Self-fetching widgets: skeleton + error via `QueryFallback` (+ `TableSkeleton`). A
@@ -281,15 +285,25 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
 - A view that reads its feed directly calls widget-shell's `useViewData` (from
   `@miragon/pulse-widget-shell/widgets`): the handed-in tool result always seeds a live
   query, so Refresh and a write's invalidation re-read it (#341). Widgets import every
-  query hook (`useToolQuery`, `useToolMutation`, `useViewData`, `useQueryClient`) and the
-  host seam (`useViewHost`, `HostModelContext`) from the view runtime, never from
-  `@modelcontextprotocol/ext-apps` (ESLint); tests render them under `TestViewHost`
-- `formatTimestamp`/`formatDate`/`formatTime` (dates) and `formatNumber`/`formatPercent`/
-  `formatPercentPoints`/`formatPeriod`/`formatDuration`/`truncate`, all from
-  `@miragon/pulse-ui`: no local format
+  query hook (`useToolQuery`, `useToolQueries`, `useToolMutation`, `useViewData`,
+  `useQueryClient`) and the host seam (`useViewHost`, `HostModelContext`) from the view
+  runtime, never from `@modelcontextprotocol/ext-apps` (ESLint); tests render them under
+  `TestViewHost`, whose `locale` (else an outer `LocaleProvider`'s, else English) and
+  `host.timeZone` the formatters render in, as `LocaleGate` publishes the host's: a widget test
+  sets no `setFormatLocale` of its own and reads the same on every machine
+- Across engines (the cross-engine overview) a widget reads each engine's feed under the key
+  its other readers use (`useToolQueries`, one read per engine), and a figure over engines is
+  a sum of counts (`foldFleetLandscape` in `src/lib/shared/fleet-landscape.ts`), never a
+  rate, a duration or a ranking: engines run different processes
+- `formatTimestamp`/`formatDate`/`formatTime`/`formatClock`/`formatInstant`/
+  `formatRelativeTime` (dates) and `formatNumber`/`formatCount`/`formatCompactCount`/
+  `formatPercent`/`formatPercentPoints`/`formatPeriod`/`formatDuration`/`shortId`/`truncate`,
+  all from `@miragon/pulse-ui` (the same set the VS Code extension reads from
+  `@miragon/pulse-ui/format`): no local format
   helpers, no `toFixed`, no `toLocaleString()` without a locale, no hand-built
   `Intl.NumberFormat` (canonical duration style
-  "3m 7s" / German "3 Min. 7 s"; "3,7 %", "+0,2 Pp.", "7 Tage")
+  "3m 7s", "2d 3h" / German "3 Min. 7 s"; a lower bound "≥ 2,000", compact "10k+";
+  "3,7 %", "+0,2 Pp.", "7 Tage")
 - Tables: widget-shell's `ListTable` is the frame: a named, keyboard-reachable scroll region
   (`role="region"`, `tabIndex=0`; `ariaLabel` is required), so a wide table never widens
   the document at 760 px (the host simulation pins it). A column a narrow view can do
@@ -322,22 +336,24 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   adds `engineTargetLines(t, engineId, useEngineEnvironment(engineId))`
   (`widgets/lib/engine-context.tsx`). Names before ids: the
   design kit's `NamedId` (`@miragon/pulse-ui`: an activity's or process's name, the
-  id a quiet mono line; the same look analytics uses), `InstanceLabel`
+  id a quiet mono line; the same look in every module), `InstanceLabel`
   (`widgets/lib/identity.tsx`: the business key, the UUID a copyable `IdText` chip; the
   words of `instanceName`); a drill passes the target's `label` so its breadcrumb reads
   the name. The builder reads names as enrichment (`fetchNamesByDefinition` with
   `processNameIn`/`elementNameIn`, `fetchDefinitionsById`, `fetchBusinessKeys`), every
   diagram name through widget-shell's `readBpmnNames`/`parseBpmnNames` (never a regex of your
-  own: analytics reads the same diagrams), and a view that shows the engine's definition
+  own: every view reads the same diagrams), and a view that shows the engine's definition
   name passes its rows through `nameUnnamedDefinitions` (a Modeler pool around an unnamed
-  process names it, as analytics does). A row keeps ONE deterministic action;
+  process names it, as in every view). A row keeps ONE deterministic action;
   its vendor link and chat hand-offs sit behind `MoreActions`, as `variant="menuitem"`
   entries (`HandOffButton`, `OpenInCockpitLink`); a confirmation names an instance with
   `instanceTargetLines` (business key, then short id)
 - Status: a `ToneVariant` (`danger`/`warning`/`success`/`info`/`neutral`; open incident or
-  failed job without retries = `danger` (`severityTone`/`countTone` from
-  `@miragon/pulse-widget-shell/widgets` is the one ladder for incident and job counts in every
-  module, a count without a state stays neutral), retries left or degraded = `warning`; an
+  failed job without retries = `danger` (`severityTone`/`countTone` from `@miragon/pulse-ui` is
+  the one ladder for incident and job counts in every module, a count without a state stays
+  neutral; an instance's or a step's state takes its tone from `SITUATION_TONES`, the table the
+  VS Code webview reads too: running `info`, suspended and ended `neutral`), retries left or
+  degraded = `warning`; an
   engine's own state is its verdict's tone, `VERDICT_TONE`, never a ladder over its counts)
   shown via pulse-ui's `StatusBadge` (tone and words required)/`CountPill`/`KpiCell.tone` or its
   `TONE_DOT`/`TONE_BORDER`/`TONE_ICON`/`TONE_TINT`/`TONE_SOFT`/`TONE_INK` maps (a tone
@@ -345,7 +361,7 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   number, never a palette class or raw colour; text on a tint is black (`TONE_SOFT`), the
   `-ink` role is only for text in a tone directly on the card or page (an inline error)
 - Icons: Lucide via `Icon` (`import { FileSearch } from "lucide-react"`; the package pins
-  devDependency `lucide-react` `1.67.0`, see CLAUDE.md invariant 6), never a Unicode glyph
+  devDependency `lucide-react` `1.70.0`, see CLAUDE.md invariant 6), never a Unicode glyph
   or emoji, at 16 px (`dense` in rows; `scanIconSizes` allows 16 and 24 only); a chat
   hand-off is widget-shell's `<HandOffButton action="explainError" prompt={ask(…)} />`
   (`@miragon/pulse-widget-shell/widgets`: the product's one table of functions, each with its
@@ -355,22 +371,30 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   builder sets it from `provider.branding.displayName`)
 - Copy: en + de catalogs in the brand voice (du, AI, "CIB seven", no dash connector,
   errors say what happened and what you can do, `Ja`/`Nein` for Booleans) and the terms of
-  `src/messages/GLOSSARY.md`; counts go in formatted (`formatNumber`) and the entry picks
+  `src/messages/GLOSSARY.md` (a count the VS Code webview shows too takes its word from
+  `COUNT_TERMS`); counts go in formatted (`formatNumber`) and the entry picks
   the noun's number (`countOf` from `messages/plural.ts`). The gates: `catalogTextFindings`
   over every catalog and en/de key parity of the widget catalogs (`messages/catalog-text.test.ts`),
   the glossary
   (`messages/glossary.test.ts`), `scanGlyphs` over all of `src` and `scanColors` over
-  `src/widgets` (`src/brand-gates.test.ts`; the gates come from `@miragon/pulse-ui/testing`,
-  the glossary from `@miragon/pulse-widget-shell/testing`)
+  `src/widgets` (`src/brand-gates.test.ts`; the gates, the glossary and the count terms come
+  from `@miragon/pulse-ui/testing`)
+- A pair: the overview, a process, its instances, an instance, an incident and the history
+  have a counterpart in the VS Code webview, which shares only pulse-ui's foundation with the
+  widgets. A field, a count or an action you add to one says in its pull request whether the
+  webview gets it and updates `docs/vscode/parity.md`; its content takes props and callbacks
+  only, no host context (as `process-definitions-table-view.tsx` with `renderActions`)
 - BPMN: viewer lifecycle and the fixed light canvas via `useBpmnViewer` (the container
   is a forced-light island, `data-theme-mode="light"`, on the paper token) +
   `BpmnZoomControls` (light in every theme, Lucide). The frame height comes from the
   diagram's size (`height` from the hook: its height at the scale bpmn-js draws it, never
   past 1:1, 240–560 px, read from the XML's DI before the import, so the frame does not
-  jump): pass no fixed `height` to `BpmnDiagram` unless a layout needs one. The heat on the
-  process flow is analytics' (`analytics:process-heatmap` through `HostWidgetSlot`, offered only
-  while `useAnalyticsActive` holds and both heatmap host widgets are registered): this module
-  passes its diagram, never the heat values.
+  jump): pass no fixed `height` to `BpmnDiagram` unless a layout needs one. The process flow
+  draws only engine reads: the open incidents, or as "Running" the `instance-count`,
+  `incident` and `failed-jobs` badges of `engine_activity_statistics_data` (every version
+  summed onto the latest diagram, mounted only once picked), or as "Throughput" its history
+  source as heat (`BpmnHeatmap`, the ramp `BPMN_TOKENS.heat` read from the theme's variables;
+  a read that loads the engine's database: see CLAUDE.md invariant 7).
   Overlay and legend colours are widget-shell's ONE token module (`BPMN_TOKENS`,
   `widget-shell/src/ui/bpmn-tokens.ts`: incident = danger, running/open task = blue on the
   info tint, counts white on blue or danger; strokes ≥ 3:1, badge text ≥ 4.5:1, drift- and contrast-tested) through `HIGHLIGHT_COLORS`
@@ -492,16 +516,16 @@ call's abort signal at `ctx.mcpReq.signal`):
   a tool error), and an unknown id or key is a not-found error, never a view of zeros. Only
   ENRICHMENT (display names, diagram XML, cockpit links, optional history) degrades, via
   `optional(...)`, and to `null`, never to a `0`, `[]` or `{}` that reads as a fact.
-  Widgets render that null as "—" (`formatCount`, `src/widgets/lib/format-count.ts`),
+  Widgets render that null as "—" (`formatCount` from `@miragon/pulse-ui`),
   the facts keep it `null` (the instructions read it as unknown). Totals come from `/count`
   endpoints or statistics, never from
   the length of a capped page or scan: a recency scan (`INCIDENT_SCAN_LIMIT`, the health
   views' `CLUSTER_SCAN_LIMIT`) only enriches and says how far it reaches
-  (`scannedIncidentCount`, null facts, "≥N" via `formatCountAtLeast`). A view about
+  (`scannedIncidentCount`, null facts, "≥ N" via `formatCount(exact ?? { atLeast: scanned })`). A view about
   a process definition KEY spans every deployed version (key-scoped `/count`, statistics
   summed per key); only a diagram is one version, and it is labelled. Engine timestamps
   compare by instant (`engineDateMillis`/`latestEngineDate`/`earliestEngineDate` from
-  `@miragon/pulse-engine-core`), never as strings. A new builder adds its case to the
+  `@miragon/pulse-c7-core`), never as strings. A new builder adds its case to the
   rejection table in `src/data/honest-numbers.test.ts`; the table fails without it. The
   table breaks EVERY read the healthy build makes (method + path + query names), so a
   case declares only its enrichment reads; any other read whose failure is swallowed fails.
@@ -528,7 +552,8 @@ call's abort signal at `ctx.mcpReq.signal`):
   `src/widgets/lib/write-feedback.ts` (`writeFeedback.jobRetry(t, instanceName(id,
 businessKey))` …; add an entry and its `feedback.*` keys in `messages/{en,de}.feedback.ts`
   for a new write): a success toast, a failure toast with the reason in words
-  (`useActionFeedback`); a confirmed write's failure stays in its dialog. Optimistic state reads `action.done` (dropped when
+  (`useActionFeedback`); a confirmed write's failure stays in its dialog, a read-only
+  engine's refusal at its control, without a toast. Optimistic state reads `action.done` (dropped when
   `resetOn` changes; pass the data the marked ROWS come from, not a sibling feed).
   `src/widget-actions.test.ts` enforces all of it structurally; add
   the new call site to `src/widgets/action-gating.sites.ts` + its renderer in

@@ -1,20 +1,28 @@
-import { C7Adapter } from "../adapters/c7/index.js"
-import type { LocalSources } from "../core/index.js"
-import { BpmnModelSource, WorkspaceCodeLocator } from "../model/index.js"
+import { C7Adapter } from "@miragon/pulse-c7-adapter"
+import type { LocalSources } from "@miragon/pulse-runtime-view/core"
+import { BpmnModelSource, WorkspaceCodeLocator } from "@miragon/pulse-runtime-view/model"
 import {
   FailingRuntime,
   RuntimeError,
-  type EngineAdapter,
-  type EngineConnection,
-  type EngineCredentials,
-  type EngineWebUi,
   type ProcessCommands,
   type ProcessRuntime,
-  type WorkspaceFiles,
-} from "../contract/index.js"
-import type { Credentials, EngineFactories } from "./connections/connection.js"
-import type { EngineKind, EngineTarget } from "./connections/engine-target.js"
-import { TargetPolicy } from "./connections/target-policy.js"
+} from "@miragon/pulse-engine-core"
+import type {
+  CliTarget,
+  EngineAdapter,
+  EngineCli,
+  EngineConnection,
+  EngineCredentials,
+  EngineWebUi,
+  WorkspaceFiles,
+} from "@miragon/pulse-runtime-view/ports"
+import {
+  type Credentials,
+  type EngineFactories,
+  type EngineKind,
+  type EngineTarget,
+  TargetPolicy,
+} from "@miragon/pulse-runtime-view/host-kit"
 
 type EngineAdapters = Readonly<Record<EngineKind, EngineAdapter>>
 
@@ -43,6 +51,10 @@ export class CompositionRoot implements EngineFactories {
     return target.webUiUrl === undefined
       ? undefined
       : this.adapters[target.engine].webUi(target.webUiUrl)
+  }
+
+  cli(target: EngineTarget, cliTarget: CliTarget): EngineCli | undefined {
+    return this.adapters[target.engine].cli(cliTarget)
   }
 
   static localSources(files: WorkspaceFiles): LocalSources {

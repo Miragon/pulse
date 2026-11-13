@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest"
-import { catalogTextFindings } from "@miragon/pulse-ui/testing"
-import { glossaryFindings, PRODUCT_GLOSSARY } from "../testing/index.js"
+import {
+  BARE_PAUSE_RULE_EN,
+  catalogTextFindings,
+  glossaryFindings,
+  PRODUCT_GLOSSARY,
+} from "@miragon/pulse-ui/testing"
 import { ASK_AI_PROMPT_LABELS } from "./ask-ai-prompt.js"
 import { ERROR_KINDS } from "./describe-error.js"
 import { ERROR_LABELS, type ErrorLabels, type ErrorSource } from "./error-labels.js"
@@ -14,7 +18,6 @@ import { KIT_LABELS } from "./kit-labels.js"
 const ERROR_SOURCES: ReadonlyArray<[key: string, source: ErrorSource]> = [
   ["engineWithId", { type: "engine", id: "prod" }],
   ["engine", { type: "engine" }],
-  ["prometheus", { type: "prometheus" }],
   ["unknown", { type: "unknown" }],
 ]
 
@@ -46,12 +49,12 @@ const ERROR_WORDS = {
 }
 
 describe("the error words are rendered branch by branch", () => {
-  it.each(["de", "en"] as const)("%s: the engine, Prometheus and fallback branches differ", (l) => {
+  it.each(["de", "en"] as const)("%s: the engine and fallback branches differ", (l) => {
     const words = ERROR_WORDS[l]
-    const hints = ["engine", "prometheus", "unknown"].map((s) => words[`unreachable.hint.${s}`])
-    expect(new Set(hints).size).toBe(3)
+    const hints = ["engine", "unknown"].map((s) => words[`unreachable.hint.${s}`])
+    expect(new Set(hints).size).toBe(2)
     const subjects = ERROR_SOURCES.map(([key]) => words[`source.${key}`])
-    expect(new Set(subjects).size).toBe(4)
+    expect(new Set(subjects).size).toBe(3)
     expect(words["source.engineWithId"]).toContain("prod")
   })
 })
@@ -71,12 +74,23 @@ describe("kit copy follows the voice rules", () => {
 })
 
 describe("kit copy uses the product glossary", () => {
+  // The MCP views pause nothing of their own, so any "pause" here means the engine's suspension.
+  const rules = {
+    de: PRODUCT_GLOSSARY.de,
+    en: [...PRODUCT_GLOSSARY.en, BARE_PAUSE_RULE_EN],
+  }
+
+  it("holds the profile refusal's words: the kit words it (profileRefused)", () => {
+    expect(PRODUCT_GLOSSARY.de.map((rule) => rule.use)).toContain("abgelehnt")
+    expect(PRODUCT_GLOSSARY.en.map((rule) => rule.use)).toContain("refused")
+  })
+
   // The kit's labels sit in every module's views (hand-offs, list chrome).
   it.each(["de", "en"] as const)("kit labels (%s)", (language) => {
-    expect(glossaryFindings(KIT_LABELS[language], PRODUCT_GLOSSARY[language])).toEqual([])
+    expect(glossaryFindings(KIT_LABELS[language], rules[language])).toEqual([])
   })
 
   it.each(["de", "en"] as const)("error words (%s)", (language) => {
-    expect(glossaryFindings(ERROR_WORDS[language], PRODUCT_GLOSSARY[language])).toEqual([])
+    expect(glossaryFindings(ERROR_WORDS[language], rules[language])).toEqual([])
   })
 })

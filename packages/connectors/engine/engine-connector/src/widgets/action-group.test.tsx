@@ -5,8 +5,10 @@ import type { EngineHealthData, IncidentDetailData, ProcessIncidentsData } from 
 import { ENGINE_WIDGET_ACTIONS_DATA } from "../tool-names.js"
 import { EngineHealthView } from "./engine-health.js"
 import { IncidentDetailWidget } from "./incident-detail.js"
+import { InstanceDetailWidget } from "./instance-detail.js"
 import { ProcessDetailHeader } from "./process-incidents/header.js"
 import { widgetActionsFeedFor } from "./lib/hand-off.test-support.js"
+import { instance } from "./write-path.test-support.js"
 import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 
 /** One action group, one size, one order; an operator reported actions in three places and sizes. */
@@ -110,6 +112,16 @@ describe("one action group per view, one action size", () => {
       </TestViewHost>,
     )
     await expectOneGroup(container, [/^Open instance in CIB seven/, /chat/i])
+  })
+
+  // Suspend and Cancel are admin writes; the operations toolset offers neither.
+  it("instance detail: its process, then the chat", async () => {
+    const { container } = render(
+      <TestViewHost tools={tools}>
+        <InstanceDetailWidget data={instance()} processInstanceId="pi-1" engine="prod" />
+      </TestViewHost>,
+    )
+    await expectOneGroup(container, [/^View process$/, /chat/i])
   })
 
   // The cockpit's head holds the one Refresh (#322 U27), so the overview has none of its own.

@@ -1,4 +1,10 @@
-import { TableEmptyState, FilterBar, PagedListFooter, type FilterChip } from "@miragon/pulse-ui"
+import {
+  TableEmptyState,
+  FilterBar,
+  PagedListFooter,
+  formatNumber,
+  type FilterChip,
+} from "@miragon/pulse-ui"
 import {
   ListTable,
   PagedRows,
@@ -102,16 +108,25 @@ export function ProcessInstancesView({
   // The echo of the page on screen, never the request: an in-flight or failed query still shows the previous result.
   const listFilters = data.filters
 
+  // Each chip counts what it lists on the page's scope and search, whichever chip is on: the
+  // payload on screen, never the request.
   const chips: FilterChip[] = [
-    { id: CHIP_ALL, label: t("processInstances.chipAll"), active: activeChip === CHIP_ALL },
+    {
+      id: CHIP_ALL,
+      label: t("processInstances.chipAll"),
+      count: formatNumber(data.allCount),
+      active: activeChip === CHIP_ALL,
+    },
     {
       id: CHIP_INCIDENTS,
       label: t("processInstances.chipWithIncidents"),
+      count: formatNumber(data.withIncidentCount),
       active: activeChip === CHIP_INCIDENTS,
     },
     {
       id: CHIP_SUSPENDED,
       label: t("processInstances.chipSuspended"),
+      count: formatNumber(data.suspendedCount),
       active: activeChip === CHIP_SUSPENDED,
     },
   ]

@@ -1,7 +1,10 @@
+import { historicVariableMap, plainVariables } from "@miragon/pulse-c7-core/testing"
+import { parseJson as packageParseJson } from "@miragon/pulse-http"
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
-import { parseJson } from "../util.js"
-import { historicVariableMap, plainVariables } from "@miragon/pulse-engine-core/testing"
+
+/** How the CLI reads an answer's JSON: integers beyond 2^53 as BigInts. */
+const parseJson = (text: string): unknown => packageParseJson(text, "bigint")
 
 describe("plainVariables", () => {
   it("flattens scalar types and keeps typed values of the other types, sorted by name", () => {

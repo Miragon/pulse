@@ -1,0 +1,171 @@
+{
+  "arguments": {},
+  "result": {
+    "_meta": {
+      "mimeType": "application/json"
+    },
+    "content": [
+      {
+        "textLines": [
+          "{",
+          "  \"engine\": {",
+          "    \"id\": \"prod-eu\",",
+          "    \"version\": \"2.1.0\",",
+          "    \"latencyMs\": 0",
+          "  },",
+          "  \"status\": \"warning\",",
+          "  \"findings\": [",
+          "    {",
+          "      \"severity\": \"warning\",",
+          "      \"code\": \"INCIDENTS\",",
+          "      \"message\": \"1 failedJob incident at order/charge: PaymentRefusedException: insufficient funds\"",
+          "    },",
+          "    {",
+          "      \"severity\": \"warning\",",
+          "      \"code\": \"NO_WORKER\",",
+          "      \"message\": \"topic invoice-mail: 1 task wait since 2026-10-09T13:39:00.000+0000, none is locked: is a worker subscribed?\"",
+          "    }",
+          "  ],",
+          "  \"definitions\": [",
+          "    {",
+          "      \"key\": \"order\",",
+          "      \"name\": \"Order\",",
+          "      \"latestVersion\": 2,",
+          "      \"versions\": 1,",
+          "      \"instances\": 2,",
+          "      \"failedJobs\": 1,",
+          "      \"incidents\": 1",
+          "    }",
+          "  ],",
+          "  \"incidents\": [",
+          "    {",
+          "      \"processDefinitionKey\": \"order\",",
+          "      \"activityId\": \"charge\",",
+          "      \"type\": \"failedJob\",",
+          "      \"message\": \"Card declined: insufficient funds (order B-7)\",",
+          "      \"count\": 1,",
+          "      \"firstAt\": \"2026-10-09T13:40:02.112+0000\",",
+          "      \"lastAt\": \"2026-10-09T13:40:02.112+0000\",",
+          "      \"processInstanceIds\": [",
+          "        \"pi-1\"",
+          "      ],",
+          "      \"rootCause\": \"PaymentRefusedException: insufficient funds\"",
+          "    }",
+          "  ],",
+          "  \"incidentsTotal\": 1,",
+          "  \"propagated\": 0,",
+          "  \"externalTasks\": [",
+          "    {",
+          "      \"topic\": \"invoice-mail\",",
+          "      \"waiting\": 1,",
+          "      \"locked\": 0,",
+          "      \"lockExpired\": 0,",
+          "      \"failed\": 0,",
+          "      \"workers\": [],",
+          "      \"oldestWaitingSince\": \"2026-10-09T13:39:00.000+0000\"",
+          "    }",
+          "  ],",
+          "  \"jobs\": {",
+          "    \"executable\": 0,",
+          "    \"overdue\": 0",
+          "  },",
+          "  \"tasks\": {",
+          "    \"open\": 1",
+          "  },",
+          "  \"batches\": {",
+          "    \"running\": 0,",
+          "    \"withFailures\": 0",
+          "  },",
+          "  \"statusRule\": \"critical: >=50 open incidents or >=25 of one cause, executable jobs overdue (is the job executor running?); warning: any open incident (incident groups), topics without a worker, topics with expired locks, failed batch jobs, keys not deployed; else ok. incidentsTotal counts every open incident, propagated the copies on calling instances; the incident groups and definitions count root causes.\"",
+          "}"
+        ],
+        "type": "text"
+      }
+    ],
+    "structuredContent": {
+      "batches": {
+        "running": 0,
+        "withFailures": 0
+      },
+      "definitions": [
+        {
+          "failedJobs": 1,
+          "incidents": 1,
+          "instances": 2,
+          "key": "order",
+          "latestVersion": 2,
+          "name": "Order",
+          "versions": 1
+        }
+      ],
+      "engine": {
+        "id": "prod-eu",
+        "latencyMs": 0,
+        "version": "2.1.0"
+      },
+      "externalTasks": [
+        {
+          "failed": 0,
+          "lockExpired": 0,
+          "locked": 0,
+          "oldestWaitingSince": "2026-10-09T13:39:00.000+0000",
+          "topic": "invoice-mail",
+          "waiting": 1,
+          "workers": []
+        }
+      ],
+      "findings": [
+        {
+          "code": "INCIDENTS",
+          "message": "1 failedJob incident at order/charge: PaymentRefusedException: insufficient funds",
+          "severity": "warning"
+        },
+        {
+          "code": "NO_WORKER",
+          "message": "topic invoice-mail: 1 task wait since 2026-10-09T13:39:00.000+0000, none is locked: is a worker subscribed?",
+          "severity": "warning"
+        }
+      ],
+      "incidents": [
+        {
+          "activityId": "charge",
+          "count": 1,
+          "firstAt": "2026-10-09T13:40:02.112+0000",
+          "lastAt": "2026-10-09T13:40:02.112+0000",
+          "message": "Card declined: insufficient funds (order B-7)",
+          "processDefinitionKey": "order",
+          "processInstanceIds": [
+            "pi-1"
+          ],
+          "rootCause": "PaymentRefusedException: insufficient funds",
+          "type": "failedJob"
+        }
+      ],
+      "incidentsTotal": 1,
+      "jobs": {
+        "executable": 0,
+        "overdue": 0
+      },
+      "propagated": 0,
+      "status": "warning",
+      "statusRule": "critical: >=50 open incidents or >=25 of one cause, executable jobs overdue (is the job executor running?); warning: any open incident (incident groups), topics without a worker, topics with expired locks, failed batch jobs, keys not deployed; else ok. incidentsTotal counts every open incident, propagated the copies on calling instances; the incident groups and definitions count root causes.",
+      "tasks": {
+        "open": 1
+      }
+    }
+  },
+  "sent": [
+    "GET /engine-rest/batch/statistics?maxResults=100",
+    "GET /engine-rest/external-task/count",
+    "GET /engine-rest/external-task?firstResult=0&maxResults=500",
+    "GET /engine-rest/incident/count",
+    "GET /engine-rest/incident?sortBy=incidentTimestamp&sortOrder=desc&firstResult=0&maxResults=500",
+    "GET /engine-rest/job/count?executable=true&active=true",
+    "GET /engine-rest/job/job-1/stacktrace",
+    "GET /engine-rest/job?executable=true&active=true&createTimes=lt_2026-10-09T13%3A55%3A00.000%2B0000&maxResults=1000",
+    "GET /engine-rest/process-definition/statistics?failedJobs=true&rootIncidents=true",
+    "GET /engine-rest/task/count",
+    "GET /engine-rest/version"
+  ],
+  "tool": "engine_status"
+}

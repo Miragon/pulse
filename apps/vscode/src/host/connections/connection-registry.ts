@@ -1,13 +1,15 @@
 import * as vscode from "vscode"
-import type { Connection } from "./connection.js"
-import type { ConnectionBuilder } from "./connection-builder.js"
-import type { CredentialStore } from "./credential-store.js"
-import { EngineLanes } from "./engine-lanes.js"
-import { LivePolicy } from "./live-policy.js"
-import { EnvironmentClassifier } from "./environment-classifier.js"
+import {
+  type Connection,
+  type ConnectionBuilder,
+  type CredentialStore,
+  EngineLanes,
+  LivePolicy,
+  EnvironmentClassifier,
+  type TargetsProblem,
+} from "@miragon/pulse-runtime-view/host-kit"
 import { PulseSettings } from "./pulse-settings.js"
 import { TargetDiscovery } from "./target-discovery.js"
-import type { TargetsProblem } from "./targets-problem.js"
 
 const ACTIVE_KEY = "pulse.activeEngine"
 

@@ -2,19 +2,25 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { ReactNode } from "react"
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react"
-import { createTestQueryClient, TestViewHost } from "@miragon/pulse-widget-shell/widgets"
+import {
+  createTestQueryClient,
+  createViewQueryClient,
+  TestViewHost,
+} from "@miragon/pulse-widget-shell/widgets"
 import { ENGINE_WIDGET_ACTIONS_DATA } from "../../tool-names.js"
 import { useEngineAction, type ActionConfirmation } from "./engine-action.js"
 import { WRITE_POLICY } from "./write-policy.js"
 
 let allowed: string[]
+/** The engines the feed names read-only. */
+let readOnlyEngines: string[]
 const write = vi.fn<(name: string, args: object) => unknown>()
 
 // One retry-free client per test; the test reads and spies on its cache.
 let queryClient = createTestQueryClient()
 
 const TOOLS: Record<string, unknown> = {
-  [ENGINE_WIDGET_ACTIONS_DATA]: () => ({ allowedActions: allowed }),
+  [ENGINE_WIDGET_ACTIONS_DATA]: () => ({ allowedActions: allowed, readOnlyEngines }),
   ...Object.fromEntries(
     Object.keys(WRITE_POLICY).map((name) => [
       name,
@@ -42,6 +48,7 @@ function retryAction(resetOn?: unknown) {
     ({ reset }: { reset: unknown }) =>
       useEngineAction<RetryArgs>({
         tool: "engine_set_job_retries",
+        engine: "prod",
         target: (args) => args.jobId,
         resetOn: reset,
       }),
@@ -61,6 +68,7 @@ const CONFIRM: ActionConfirmation = {
 
 beforeEach(() => {
   allowed = ["engine_set_job_retries", "engine_resolve_incident"]
+  readOnlyEngines = []
   write.mockReset()
   write.mockReturnValue({ success: true })
 })
@@ -86,6 +94,7 @@ describe("useEngineAction: the gate", () => {
       ({ available }: { available: boolean }) =>
         useEngineAction<RetryArgs>({
           tool: "engine_set_job_retries",
+          engine: "prod",
           target: (args) => args.jobId,
           available,
         }),
@@ -98,6 +107,27 @@ describe("useEngineAction: the gate", () => {
 
     rerender({ available: true })
     expect(result.current.allowed).toBe(true)
+  })
+
+  /** Without an engine the write goes to the default engine, which may be the read-only one. */
+  it.each<[string, string | undefined, string[], boolean]>([
+    ["closed on the read-only engine", "prod", ["prod"], false],
+    ["open on another engine than the read-only one", "test", ["prod"], true],
+    ["closed without an engine while one profile is read-only", undefined, ["prod"], false],
+    ["open without an engine while no profile is read-only", undefined, [], true],
+  ])("%s", async (_case, engine, readOnly, expected) => {
+    readOnlyEngines = readOnly
+    const { result } = renderHook(
+      () =>
+        useEngineAction<RetryArgs>({
+          tool: "engine_set_job_retries",
+          engine,
+          target: (args) => args.jobId,
+        }),
+      { wrapper },
+    )
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+    expect(result.current.allowed).toBe(expected)
   })
 })
 
@@ -177,6 +207,7 @@ describe("useEngineAction: a write that asks first", () => {
       ({ available }: { available: boolean }) =>
         useEngineAction<{ incidentId: string }>({
           tool: "engine_resolve_incident",
+          engine: "prod",
           target: (args) => args.incidentId,
           available,
         }),
@@ -298,6 +329,7 @@ describe("useEngineAction: the feedback (U9: a write is never silent)", () => {
       () =>
         useEngineAction<Record<string, unknown>, TResult>({
           tool,
+          engine: "prod",
           target: (args) => String(args.jobId ?? args.incidentId),
         }),
       { wrapper: toastWrapper },
@@ -336,6 +368,22 @@ describe("useEngineAction: the feedback (U9: a write is never silent)", () => {
     expect(shown.getAttribute("data-tone")).toBe("danger")
     expect(shown.textContent).toContain("Engine prod is unreachable (HTTP 503).")
     expect(shown.textContent).not.toContain("ProcessEngineException")
+  })
+
+  it("sends a write the read-only engine refuses once, and words it once: at its control", async () => {
+    // The view's own client: no write is retried, a refusal no retry changes least of all.
+    queryClient = createViewQueryClient()
+    const refusal =
+      '[ENGINE_READ_ONLY] Engine "prod" is read-only on this server: its profile sets readOnly, so no tool writes to it. Nothing was sent.'
+    write.mockImplementation(() => {
+      throw new Error(refusal)
+    })
+    const { result } = action()
+    await waitFor(() => expect(result.current.allowed).toBe(true))
+    act(() => result.current.run({ jobId: "job-1", retries: 1 }, { feedback: FEEDBACK }))
+    await waitFor(() => expect(result.current.error("job-1")).toBe(refusal))
+    expect(write).toHaveBeenCalledTimes(1)
+    expect(document.querySelector(`[data-slot="toast"]`)).toBeNull()
   })
 
   it("leaves a confirmed write's failure to its dialog: no second, toast-shaped copy", async () => {

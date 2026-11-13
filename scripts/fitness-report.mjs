@@ -33,7 +33,7 @@ function architectureLine(command) {
 }
 
 const archLine = architectureLine(
-  "pnpm exec depcruise apps/*/src packages/core/*/src packages/connectors/*/*/src --config .dependency-cruiser.cjs",
+  "pnpm exec depcruise apps/*/src packages/core/*/src packages/connectors/*/*/src packages/core/*/test packages/connectors/*/*/test --config .dependency-cruiser.cjs",
 )
 // The VS Code extension's own closed-world rules: the root script, so the command stays one.
 const vscodeArchLine = architectureLine("pnpm --silent run lint:architecture:vscode")

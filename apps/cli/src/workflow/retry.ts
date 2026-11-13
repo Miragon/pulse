@@ -17,7 +17,7 @@ import {
   records,
   type RetryFilter,
   type RetryMode,
-} from "@miragon/pulse-engine-core"
+} from "@miragon/pulse-c7-core"
 import type { EnginePort } from "../engine-port/engine-port.js"
 import { PulseCliError, usageError } from "../errors.js"
 import { compact, omit } from "../util.js"
@@ -142,7 +142,7 @@ async function load(port: EnginePort, mode: RetryMode, options: RetryOptions): P
 
 /**
  * A job or external task that no longer exists (its incident was resolved meanwhile): external
- * tasks answer 404 (a missing resource by engine-core's `isMissing`), jobs 500
+ * tasks answer 404 (a missing resource by c7-core's `isMissing`), jobs 500
  * `ENGINE-13053 No job found with id` (verified on all three engines).
  */
 function isGone(port: EnginePort, error: unknown): boolean {

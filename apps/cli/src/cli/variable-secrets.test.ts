@@ -7,6 +7,7 @@
  * the verbose trace, `auth status|login|logout` or any error.
  */
 
+import { isConventionalVariable } from "@miragon/pulse-profile"
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import { opaqueTokens } from "../../test/support/bearer.js"
@@ -14,7 +15,6 @@ import { fakeServer, json } from "../../test/support/fake-fetch.js"
 import { ISSUER } from "../../test/support/fake-idp.js"
 import { CONFIG_PATH, execute, fakeRuntime, fileText } from "../../test/support/fake-runtime.js"
 import { cachedLogin, cacheText, TOKEN_FILE } from "../../test/support/oauth.js"
-import { isConventionalVariable } from "../config/variable.js"
 import { run } from "./run.js"
 
 const T0 = 1_700_000_000_000

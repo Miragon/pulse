@@ -342,7 +342,7 @@ describe("buildActivityIncidentsData: one page of an activity's incidents (N67)"
   })
 })
 
-// One rule with analytics (`readBpmnNames`): an unnamed definition takes its pool
+// One rule (`readBpmnNames`): an unnamed definition takes its pool
 // name, in the title and in the empty state alike.
 describe("buildProcessIncidentsData: names from a Modeler pool", () => {
   const pooled = (key: string) =>

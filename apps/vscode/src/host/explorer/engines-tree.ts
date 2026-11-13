@@ -1,9 +1,8 @@
-import { DefinitionNodes, Problems, type DefinitionNode } from "../../core/index.js"
+import { DefinitionNodes, Problems, type DefinitionNode } from "@miragon/pulse-runtime-view/core"
 import * as vscode from "vscode"
 import { COMMAND } from "../commands/command-ids.js"
-import type { Connection } from "../connections/connection.js"
+import type { Connection, TargetsProblem } from "@miragon/pulse-runtime-view/host-kit"
 import type { ConnectionRegistry } from "../connections/connection-registry.js"
-import type { TargetsProblem } from "../connections/targets-problem.js"
 import type { PanelFocus } from "../panels/panel-manager.js"
 import type { LiveTree } from "./engines-tree-live.js"
 import { IncidentDecorations } from "./incident-decorations.js"
@@ -12,10 +11,16 @@ export type EnginesTreeNode =
   | { readonly kind: "targetsProblem"; readonly problem: TargetsProblem }
   | { readonly kind: "engine"; readonly connection: Connection }
   | { readonly kind: "definition"; readonly connection: Connection; readonly node: DefinitionNode }
-  | { readonly kind: "message"; readonly text: string; readonly detail: string }
+  | {
+      readonly kind: "message"
+      readonly text: string
+      readonly detail: string
+      readonly icon: "debug-disconnect" | "key"
+    }
 
 type EngineNode = Extract<EnginesTreeNode, { kind: "engine" }>
 type DefinitionTreeNode = Extract<EnginesTreeNode, { kind: "definition" }>
+type MessageNode = Extract<EnginesTreeNode, { kind: "message" }>
 
 const ENVIRONMENT_LABELS = {
   local: "LOCAL",
@@ -82,7 +87,7 @@ export class EnginesTree
       case "definition":
         return this.definitionItem(element.connection, element.node)
       case "message":
-        return this.messageItem(element.text, element.detail)
+        return this.messageItem(element)
     }
   }
 
@@ -201,9 +206,9 @@ export class EnginesTree
     return item
   }
 
-  private messageItem(text: string, detail: string): vscode.TreeItem {
+  private messageItem({ text, detail, icon }: MessageNode): vscode.TreeItem {
     const item = new vscode.TreeItem(text, vscode.TreeItemCollapsibleState.None)
-    item.iconPath = new vscode.ThemeIcon("debug-disconnect")
+    item.iconPath = new vscode.ThemeIcon(icon)
     item.tooltip = detail
     item.description = detail
     item.accessibilityInformation = { label: [text, detail].filter(Boolean).join(" ") }
@@ -252,12 +257,20 @@ export class EnginesTree
     try {
       const nodes = await new DefinitionNodes(connection.definitions).list()
       if (nodes.length === 0) {
-        return [{ kind: "message", text: "No process definitions deployed", detail: "" }]
+        return [
+          {
+            kind: "message",
+            text: "No process definitions deployed",
+            detail: "",
+            icon: "debug-disconnect",
+          },
+        ]
       }
       return nodes.map((node) => ({ kind: "definition", connection, node }))
     } catch (error) {
       const problem = Problems.of(error, connection.badge)
-      return [{ kind: "message", text: problem.title, detail: problem.detail }]
+      const icon = problem.loginRefused === undefined ? "debug-disconnect" : "key"
+      return [{ kind: "message", text: problem.title, detail: problem.detail, icon }]
     }
   }
 }

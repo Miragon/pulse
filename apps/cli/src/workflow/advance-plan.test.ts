@@ -11,7 +11,7 @@ import {
   VARS,
 } from "../../test/support/advance-plan.js"
 import { advanceSteps, checkAdvanceInput, checkLock, checkOptions } from "./advance-plan.js"
-import type { WaitState } from "@miragon/pulse-engine-core"
+import type { WaitState } from "@miragon/pulse-c7-core"
 
 describe("advanceSteps", () => {
   it.each([

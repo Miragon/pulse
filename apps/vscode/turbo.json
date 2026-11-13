@@ -3,7 +3,13 @@
   "extends": ["//"],
   "tasks": {
     "test": {
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/apps/cli/test/fixtures/project-file/**"]
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/scripts/third-party-licenses.mjs",
+        "$TURBO_ROOT$/scripts/third-party-licenses.d.mts",
+        "$TURBO_ROOT$/.github/workflows/ci.yml",
+        "$TURBO_ROOT$/.github/workflows/publish-vscode-extension.yml"
+      ]
     }
   }
 }

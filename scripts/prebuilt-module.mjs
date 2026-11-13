@@ -66,11 +66,7 @@ function wire(starterDir, moduleTarball) {
   const setup = path.join(starterDir, "server/src/setup.ts")
   const notesImport = 'import { notesModule } from "@acme/mcp-notes"\n'
   replaceOnce(setup, notesImport, `${notesImport}import { boardModule } from "@acme/mcp-board"\n`)
-  replaceOnce(
-    setup,
-    "[engineModule, analyticsModule, notesModule]",
-    "[engineModule, analyticsModule, notesModule, boardModule]",
-  )
+  replaceOnce(setup, "[engineModule, notesModule]", "[engineModule, notesModule, boardModule]")
   replaceOnce(
     path.join(starterDir, ".env.example"),
     "MCP_ACTIVE_MODULES=engine,notes\n",

@@ -13,7 +13,9 @@ import {
   unsetProfileKeys,
   useProfile,
 } from "../../config/edit.js"
+import { settledTwice, writtenFile } from "../../config/file.js"
 import { OAUTH_UNSET_KEYS } from "../../config/oauth-edit.js"
+import { settledTwiceError } from "../../config/profile-problems.js"
 import { findProfile } from "../../config/resolve.js"
 import { type ConfigFile, FLAVORS, PROFILE_KEYS } from "../../config/types.js"
 import { checkVariableNames } from "../../config/variable.js"
@@ -39,6 +41,7 @@ import {
   overrideNotices,
   PROJECT_OPTION,
   readTarget,
+  targetOrigin,
   writeTarget,
 } from "./config-project.js"
 import {
@@ -47,7 +50,7 @@ import {
   OPTIONS_GROUP,
   registerReadCommands,
 } from "./config-read.js"
-import { profileView } from "./config-view.js"
+import { profileView, refusedNotices } from "./config-view.js"
 import type { UtilityCommand } from "./types.js"
 
 /** `config set` has no global `--output`: its `--output` is a profile value, `-o` the format. */
@@ -89,9 +92,10 @@ function editFlags(command: Command): DisplayFlags & { readonly project?: boolea
 }
 
 /**
- * Reads the target file, applies the edit and writes it back. `own`: the profile the edit needs
- * in the user's file (`config unset|use|delete`); one that only the project file has asks for
- * `--project`.
+ * Reads the target file, applies the edit and writes it back, unless writing would settle a name
+ * or a key the file holds twice without a word (`settledTwice`, CONFIG, nothing written). `own`:
+ * the profile the edit needs in the user's file (`config unset|use|delete`); one that only the
+ * project file has asks for `--project`.
  */
 async function editConfig(command: Command, context: CliContext, edit: Edit, own?: string) {
   const { runtime } = context
@@ -100,8 +104,11 @@ async function editConfig(command: Command, context: CliContext, edit: Edit, own
   const target = await editTarget(runtime, flags)
   const previous = await readTarget(runtime, target)
   if (own !== undefined) checkUserProfile(target, previous, own)
-  const file = edit(previous)
-  await writeTarget(runtime, target, file)
+  const edited = edit(previous)
+  const file = writtenFile(edited, target.project)
+  const twice = settledTwice(previous, file)
+  if (twice !== undefined) throw settledTwiceError(twice.name, twice.problem, targetOrigin(target))
+  await writeTarget(runtime, target, edited)
   return { file, previous, path: target.path, view, target }
 }
 
@@ -146,9 +153,11 @@ async function editProfile(command: Command, context: CliContext, change: Profil
   const { name, edit, own } = change
   const edited = await editConfig(command, context, edit, own === true ? name : undefined)
   write(context, renderValue(profileView(edited.file, name, context.runtime.env), edited.view))
-  for (const notice of overrideNotices(edited.target, name, edited.previous, edited.file)) {
-    context.runtime.stderr.write(`${notice}\n`)
-  }
+  const notices = [
+    ...overrideNotices(edited.target, name, edited.previous, edited.file),
+    ...refusedNotices(edited.file, name),
+  ]
+  for (const notice of notices) context.runtime.stderr.write(`${notice}\n`)
   return edited
 }
 
@@ -226,7 +235,7 @@ function registerEditCommands(config: Command, context: CliContext): void {
   const unset = configSubcommand(
     config,
     "unset",
-    "Remove values from a profile; auth removes all auth settings, an OAuth setting only itself, token (or tokenEnv) the bearer token",
+    "Remove values from a profile; auth removes all auth settings, an OAuth setting only itself, token (or tokenEnv) the bearer token, and any other key the profile holds (auth.<key> for its auth object) only itself",
     FILE_OPTIONS,
   )
     .argument("<profile>", "Profile name")
@@ -259,7 +268,7 @@ export const configCommand: UtilityCommand = {
     const config = subcommand(program, "config")
       .summary("Manage the config file and its profiles")
       .description(
-        "Manage the config file and its profiles. The file is written with mode 0600; values are validated before they are stored. A repository can share profiles in a project file (.pulse-cli.json, written with --project); your own profiles of the same name override them.",
+        "Manage the config file and its profiles. The file is written with mode 0600; values are validated before they are stored. A repository can share profiles in a project file (.pulse.json, written with --project); your own profiles of the same name override them.",
       )
     registerReadCommands(config, context)
     registerEditCommands(config, context)

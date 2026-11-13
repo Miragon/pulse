@@ -140,6 +140,11 @@ function isConfigSet(argv: readonly string[]): boolean {
   return command === "config" && subcommand === "set"
 }
 
+/** The last `--url`, but none for `config set`, whose `--url` is a value to store. */
+export function urlFromArgv(argv: readonly string[]): string | undefined {
+  return isConfigSet(argv) ? undefined : globalFromArgv(argv, "url")
+}
+
 /** The last `-o/--output` value of the argument list if it is a valid format. */
 export function outputFromArgv(argv: readonly string[]): OutputFormat | undefined {
   const last = globalFromArgv(argv, "output", isConfigSet(argv))

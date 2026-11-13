@@ -7,6 +7,7 @@
 
 import type { Command } from "commander"
 import { configError } from "../../config/config-error.js"
+import { noProfileAdvice, withoutTheUrl } from "../../config/no-profile.js"
 import type { Env } from "../../config/pick.js"
 import { selectedAuth } from "../../config/resolve-auth.js"
 import { unusedToken, unusedTokenNote } from "../../config/resolve-bearer.js"
@@ -17,6 +18,7 @@ import type { CliContext } from "../context.js"
 import { configFlags, type GlobalOptions, readGlobals } from "../globals.js"
 import { loadConfig } from "../config-files.js"
 import { openSession, type Session } from "../session.js"
+import { profileToSet } from "../../util.js"
 import { bearerNotManaged } from "./auth-bearer.js"
 
 /**
@@ -29,13 +31,38 @@ export interface NotOAuth {
   readonly source: Source
   readonly off?: string | undefined
   readonly unused?: string | undefined
+  /**
+   * Why no profile applies (a URL without `--profile`): a profile's OAuth would not help, and how
+   * to leave that URL out for one (`withoutTheUrl`).
+   */
+  readonly noProfile?: { readonly reason: string; readonly withoutUrl: string } | undefined
 }
 
-export function notOAuthOf(config: ResolvedConfig): NotOAuth {
-  const { auth, unusedToken } = config
+/** Why no profile applies, and how to leave out the URL that selects none (its source `url`). */
+function noProfileOf(reason: string | undefined, url: Source, env: Env): NotOAuth["noProfile"] {
+  if (reason === undefined) return undefined
+  return { reason, withoutUrl: withoutTheUrl(url === "flag" ? "--url" : ENV.url, env) }
+}
+
+export function notOAuthOf(config: ResolvedConfig, env: Env): NotOAuth {
+  const { auth, unusedToken, sources } = config
   const off = auth.type === "none" ? auth.off : undefined
   const unused = unusedToken === undefined ? undefined : unusedTokenNote(unusedToken, true)
-  return { profile: config.profile, type: auth.type, source: config.sources.auth, off, unused }
+  const noProfile = noProfileOf(config.noProfile, sources.url, env)
+  return { profile: config.profile, type: auth.type, source: sources.auth, off, unused, noProfile }
+}
+
+/**
+ * How to configure OAuth: a profile, or, when a URL selects no profile, a profile with OAuth passed
+ * with `--profile` once that URL is left out (the command that sets one up) or the environment's
+ * OAuth.
+ */
+function configureHint(state: NotOAuth): string {
+  const configure = `pulse config set ${profileToSet(state.profile)} --auth oauth --oauth-issuer <url> --oauth-client-id <id>`
+  const { noProfile } = state
+  return noProfile === undefined
+    ? `Configure it: ${configure}`
+    : `${noProfile.reason}: ${noProfile.withoutUrl}, then pass --profile <profile>, a profile with OAuth (${configure} sets one up), or set ${ENV.auth}=oauth with ${ENV.oauthIssuer} and ${ENV.oauthClientId}`
 }
 
 /**
@@ -44,12 +71,10 @@ export function notOAuthOf(config: ResolvedConfig): NotOAuth {
  * commands have no `--auth` option, so the hint never suggests one.
  */
 function notOAuthHint(state: NotOAuth, env: Env): string {
-  const profile = state.profile ?? "<profile>"
+  const profile = profileToSet(state.profile)
   const variable = oauthEnvVariable(env)
   const off = state.off?.includes("OAuth") === true ? state.off : undefined
-  if (off === undefined) {
-    return `Configure it: pulse config set ${profile} --auth oauth --oauth-issuer <url> --oauth-client-id <id>`
-  }
+  if (off === undefined) return configureHint(state)
   switch (state.source) {
     case "profile":
       return `${off}. Switch it on: pulse config set ${profile} --auth oauth`
@@ -71,7 +96,7 @@ function statusHint(state: NotOAuth, env: Env): string {
   if (state.off?.startsWith("Bearer auth") === true) {
     const on =
       state.source === "profile"
-        ? `pulse config set ${state.profile ?? "<profile>"} --auth bearer`
+        ? `pulse config set ${profileToSet(state.profile)} --auth bearer`
         : `${ENV.auth}=bearer`
     return `${state.off}. Switch it on: ${on}`
   }
@@ -116,7 +141,9 @@ async function otherTypeInstead(context: CliContext, globals: GlobalOptions, com
     if (auth?.type !== "basic") return undefined
     const unused = unusedToken({ flags, env, selected }, "basic", auth.label)
     const note = unused === undefined ? undefined : unusedTokenNote(unused, true)
-    return notOAuth(command, { profile, type: "basic", source: auth.source, unused: note }, env)
+    const noProfile = noProfileAdvice(flags, env, config)
+    const state = { profile, type: "basic", source: auth.source, unused: note, noProfile }
+    return notOAuth(command, state, env)
   } catch {
     return undefined
   }
@@ -143,6 +170,6 @@ export function oauthOf(session: Session, name: string, env: Env): OAuthConfig {
     const token = { origin: auth.origin, command: auth.command !== undefined }
     throw bearerNotManaged(name, { profile, source: sources.auth, env, token })
   }
-  if (auth.type !== "oauth") throw notOAuth(name, notOAuthOf(session.config), env)
+  if (auth.type !== "oauth") throw notOAuth(name, notOAuthOf(session.config, env), env)
   return auth
 }

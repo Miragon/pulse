@@ -3,10 +3,10 @@ import type { AddressInfo } from "node:net"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import { createToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { recordingModuleServer, testServerContext } from "@miragon/pulse-widget-shell/testing"
-import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-engine-core"
+import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-c7-core"
 import type { EngineEntry } from "../engine-provider.js"
 import { createEngineRegistry } from "../lib/engine/resolve-engine.js"
-import { engineModule, createBpmnXmlFetcher } from "../module.js"
+import { engineModule } from "../module.js"
 import { providerForEntry } from "../providers/index.js"
 import { ENGINE_PROCESS_INSTANCES_DATA } from "../tool-names.js"
 import { registerWidgetDataFeeds } from "../widget-tools/data-feeds.js"
@@ -43,7 +43,17 @@ function answer(url: string, body: string, res: http.ServerResponse) {
     })
   }
   if (url.startsWith("/engine-rest/process-instance/empty")) {
-    res.writeHead(500)
+    // Tomcat's status line, without a reason phrase: the transport fills in the standard one.
+    res.writeHead(500, "")
+    return res.end()
+  }
+  if (url.startsWith("/engine-rest/process-instance/standard")) {
+    // A proxy's status line with Node's standard reason phrase, "Service Unavailable".
+    res.writeHead(503)
+    return res.end()
+  }
+  if (url.startsWith("/engine-rest/process-instance/phrase")) {
+    res.writeHead(502, "Upstream Engine Down")
     return res.end()
   }
   if (url.startsWith("/engine-rest/process-instance/text")) {
@@ -116,7 +126,19 @@ describe("engine errors as the model reads them (registrar tool)", () => {
 
   it("500 with an empty body", async () => {
     expect(await getInstanceError("empty", prodA())).toBe(
-      "[500] Internal Server Error — empty response body (engine prod-a)",
+      "[500] empty response body (engine prod-a)",
+    )
+  })
+
+  it("an empty body behind a standard reason phrase: the phrase is not repeated", async () => {
+    expect(await getInstanceError("standard", prodA())).toBe(
+      "[503] empty response body (engine prod-a)",
+    )
+  })
+
+  it("an empty body behind a reason phrase of the server's own", async () => {
+    expect(await getInstanceError("phrase", prodA())).toBe(
+      "[502] Upstream Engine Down — empty response body (engine prod-a)",
     )
   })
 
@@ -154,19 +176,6 @@ describe("engine errors as the model reads them (registrar tool)", () => {
       processInstanceId: "hang",
     })
     expect(result.content[0].text).toBe("engine prod-a did not respond within 150 ms (timeout)")
-  })
-
-  it("ENGINE_REQUEST_TIMEOUT_MS also bounds the BPMN-XML lookup handed to analytics", async () => {
-    const fetchBpmnXml = createBpmnXmlFetcher(
-      engineModule.configFromEnv({
-        ENGINE_BASE_URL: baseUrl,
-        ENGINE_REQUEST_TIMEOUT_MS: "100",
-      }),
-    )!
-    const started = Date.now()
-    // A timeout is a failed read, never "not deployed": it rejects.
-    await expect(fetchBpmnXml("hang")).rejects.toThrow()
-    expect(Date.now() - started).toBeLessThan(2_000)
   })
 })
 

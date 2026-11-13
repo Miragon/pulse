@@ -34,6 +34,9 @@
  * nested tsconfig.json that extends it, in the workspace's packages and the template's
  * (scripts/editor-projects.mjs says why and what holds).
  *
+ * Every program of a source package compiles with verbatimModuleSyntax and isolatedModules, the
+ * packages MODULE_SYNTAX_EXEMPT names aside (scripts/module-syntax.mjs says why and what holds).
+ *
  * A pnpm filter that matches nothing exits 0 (pnpm 10), so a stale name turns a gate green
  * without running it, and `--fail-if-no-match` fails only when NO filter of the command
  * matches. So every filter in a tracked text file (docs included) that names a package names
@@ -46,6 +49,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { editorProjectFindings, extraTsconfigs } from "./editor-projects.mjs"
+import { checkModuleSyntax } from "./module-syntax.mjs"
 import { MUTATION_PAUSED } from "./mutation-pause.mjs"
 
 /**
@@ -79,10 +83,23 @@ export const REQUIRED_SCRIPTS = {
  * A package joins only by an owner decision.
  */
 export const MUTATED_PACKAGES = {
+  "packages/connectors/c7/c7-core":
+    "owner decision 2026-11-04: c7-core (engine-core until 0.27) holds the pure engine rules the " +
+    "CLI, the MCP server and the VS Code extension share, where a surviving mutant is a wrong " +
+    "rule in all three; in a package without such rules a full run costs more than it finds",
+  "packages/core/http":
+    "owner decision 2026-11-08: the transport the MCP server, the CLI and the " +
+    "VS Code extension send through (deadline, redirects, cap, credentials, failure reasons, " +
+    "masking) and the OAuth client protocol of every surface (./oauth: token requests, " +
+    "renewal policy, token sources), where a surviving mutant is a wrong rule in all of them",
   "packages/connectors/engine/engine-core":
-    "owner decision 2026-11-04: mutation testing covers engine-core only. It holds the pure " +
-    "engine rules the CLI, the MCP server and the VS Code extension share, where a surviving " +
-    "mutant is a wrong rule in all three; in every other package a full run costs more than it finds",
+    "owner decision 2026-11-09: the root-cause, value-kind and move-reason rules every dialect " +
+    "and every interface share, where a surviving mutant is a wrong rule everywhere; only those " +
+    "three files are mutated",
+  "packages/core/profile":
+    "owner decision 2026-11-07: the profile rules decide which secrets, variables and URLs every " +
+    "surface accepts, so a surviving mutant is a wrong rule in the CLI, Pulse for VS Code and " +
+    "the MCP server",
 }
 
 /** The one path the CI mutation artifact and scripts/fitness-report.mjs read. */
@@ -465,10 +482,11 @@ if (isMain) {
   // Loaded here, never at the top: ci-scopes.mjs imports this module before any install.
   const { default: ts } = await import("typescript")
   errors.push(...checkEditorProjects(ts, root, sourceDirs))
+  errors.push(...checkModuleSyntax(ts, root, sourceDirs))
   if (errors.length > 0) {
     console.error(
-      "Workspace packages with missing or non-canonical gate scripts, configs, filters or " +
-        "editor projects:\n",
+      "Workspace packages with missing or non-canonical gate scripts, configs, filters, " +
+        "editor projects or module syntax:\n",
     )
     for (const error of errors) console.error(`  - ${error}`)
     console.error(
@@ -476,7 +494,8 @@ if (isMain) {
         "`turbo run lint|typecheck|test` or without a vitest.config.ts is invisible to the " +
         "gates, and a stryker.config.json belongs in exactly the packages MUTATED_PACKAGES " +
         "lists (CLAUDE.md, Verification); a file only a tsconfig.<x>.json checks opens in a " +
-        "nested tsconfig.json that extends that project (scripts/editor-projects.mjs).",
+        "nested tsconfig.json that extends that project (scripts/editor-projects.mjs); every " +
+        "program sets verbatimModuleSyntax and isolatedModules (scripts/module-syntax.mjs).",
     )
     process.exit(1)
   }
@@ -485,6 +504,6 @@ if (isMain) {
     ? "(mutation testing paused, stryker.config.json not checked: scripts/mutation-pause.mjs)"
     : `(a gated stryker.config.json in ${mutated} and in no other package)`
   console.log(
-    `Package scripts: all ${sourceDirs.length} source packages run the canonical lint, typecheck and test, carry a vitest.config.ts ${mutation}, and every pnpm filter names a workspace package; editors open every file with the settings of the project that checks it (with the template's packages).`,
+    `Package scripts: all ${sourceDirs.length} source packages run the canonical lint, typecheck and test, carry a vitest.config.ts ${mutation}, and every pnpm filter names a workspace package; editors open every file with the settings of the project that checks it (with the template's packages); every program compiles with verbatimModuleSyntax and isolatedModules (the exempt aside).`,
   )
 }

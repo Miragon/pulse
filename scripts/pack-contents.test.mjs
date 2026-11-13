@@ -121,6 +121,31 @@ describe("pack-contents", () => {
     ])
   })
 
+  it("reads an exports subpath literally: a wildcard names no file, so list each one", () => {
+    const withSchema = (exports) => ({
+      ...CONNECTOR,
+      "package.json": JSON.stringify({ ...JSON.parse(CONNECTOR["package.json"]), exports }),
+      "schema/pulse.schema.json": "{}",
+    })
+    const { exports } = JSON.parse(CONNECTOR["package.json"])
+    assert.deepEqual(findings(withSchema({ ...exports, "./schema/*": "./schema/*" })), [
+      "exports ./schema/*: ./schema/* is not in the tarball",
+    ])
+    const literal = { ...exports, "./schema/pulse.schema.json": "./schema/pulse.schema.json" }
+    assert.deepEqual(findings(withSchema(literal)), [])
+  })
+
+  it("fails a JSON module a shipped module imports that the tarball lacks", () => {
+    const planted = {
+      ...CONNECTOR,
+      "dist/testing/index.js": 'import fixtures from "./fixtures.json" with { type: "json" }',
+    }
+    assert.deepEqual(findings(planted), [
+      "dist/testing/index.js: imports ./fixtures.json, which the tarball lacks (add it to files)",
+    ])
+    assert.deepEqual(findings({ ...planted, "dist/testing/fixtures.json": "[]" }), [])
+  })
+
   it("fails once for the maps whose sources the tarball lacks, naming the first", () => {
     // A .d.ts.map sorts first, and inlineSources never fills one: the hint says to ship them.
     const why =

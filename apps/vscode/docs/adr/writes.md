@@ -1,7 +1,7 @@
 # Guarded writes
 
 - Status: accepted
-- Last reviewed: 2026-10-23
+- Last reviewed: 2026-11-12 (a button beside the can't-move sign copies the command; the command for the default engine names its URL with `--auth none`, on which the CLI takes no profile, only the user's `PULSE_CLI_*` environment; the command for a project file's target names its profile with the target's URL, which a `PULSE_CLI_URL` of the user's shell does not replace and which the CLI refuses beside a profile of the same name in the user's config file that holds headers, whatever their names, or credentials for another origin; a target without commands names the target policy's refusal as its read-only note; a token behind an event-based gateway is told to change a variable when a conditional event follows the gateway, and a row the engine's CLI can trigger names its command, with the profile of its project file; a token at the continuation after its event moves); 2026-11-11 (the editor refuses a number beyond the range of a double before it asks, on every engine); 2026-11-10 (the editor refuses a whole number beyond 64 bits before it asks, on every engine); 2026-10-23
 
 ## Context
 
@@ -38,8 +38,8 @@ a plan the engine proposes and the user can change. Its own record is
 `ProcessRuntime` stays read-only. Writes go through a second, optional port
 `ProcessCommands` (`retryIncident`, `setVariable`, `moveToken`, `cancelInstances`,
 `migrateInstances`, `stopBulkOperation`); progress and what a write needs to be planned
-are reads (`ProcessRuntime.getBulkOperation`, `getBulkFailures`, `proposeMigration`,
-`checkMigration`). See
+are reads (`ProcessRuntime.getBulkOperation`, `getBulkFailures`, `proposeMigration?`,
+`checkMigration?`). See
 [runtime-contract.md](runtime-contract.md). A connection carries commands only when the
 policy allows writes for it, so the core and the webview never decide whether writing
 is allowed; they only see whether commands are there.
@@ -51,7 +51,7 @@ is allowed; they only see whether commands are there.
 | `pulse.writes`: `localOnly` (default), `enabled`, `disabled`, scope `application`; only the user's value is read (`inspect().globalValue`), never a workspace or dev container one                                  | `connections/pulse-settings.ts`, `connections/write-policy.ts`, manifest |
 | `localOnly` means the literal loopback hosts `localhost`, `127.0.0.1`, `[::1]`; `host.docker.internal` is not local, neither for writes nor for the LOCAL badge                                                     | `connections/target-hosts.ts`, `write-policy.ts`                         |
 | A remote target writes only when it is configured with `auth: basic` and credentials are stored; otherwise the engine could not record who changed what                                                             | `write-policy.ts`                                                        |
-| Commands exist only for adapters that have them (today the C7 adapter) and only after the target policy accepted the connection                                                                                     | `composition-root.ts`, `connections/connection-builder.ts`               |
+| Commands exist only for adapters that have them (today the C7 adapter) and only after the target policy accepted the connection; without them the read-only note is the target policy's refusal, if any             | `composition-root.ts`, `connections/connection-builder.ts`               |
 | A bulk cancel and a migration follow the same policy; there is no setting of their own. The policy's note names them: "Pulse may retry incidents, change variables, move tokens, cancel and migrate instances on …" | `write-policy.ts`                                                        |
 
 ### How a write is confirmed
@@ -111,7 +111,29 @@ variable must be an editable instance-scope variable of a running instance whose
 is not cut off; the type always comes from the snapshot. Values are checked per kind
 before anything is sent. A variable that is currently null asks which type to write
 ("Write as": text, whole number, number, true or false, JSON), and the dialog names it
-("Null → text"), so `4117` never turns into a number by accident.
+("Null → text"), so `4117` never turns into a number by accident. The adapter picks the
+engine's type within that kind. A whole number holds 64 bits, on every engine (owner decision
+2026-11-10): the core refuses one beyond -9223372036854775808 to 9223372036854775807 (the
+contract's `ValueKinds.isWholeNumber`, exact on the digits) for a whole-number variable, with its
+name and type, and for one that holds null, with the advice to write it as text, which keeps
+every digit; a Double or a Json variable still takes it. A number holds a double, on every
+engine (owner decision 2026-11-11): the core refuses one beyond -1.7976931348623157e308 to
+1.7976931348623157e308 once rounded to a double (the contract's `ValueKinds.isFiniteNumber`:
+`Number()` of its text is finite, as the C7 adapter and c7-core read it, so `1e400` or 400 digits
+and `.5` are beyond, while `1.7976931348623158e308`, which rounds to the largest double, goes out)
+for a Double variable, with its name and type, and for one that holds null, whatever "Write as"
+picked (number, whole number and JSON send the same text), with the advice to write it as text,
+which keeps it as written. So the C7 adapter, which writes such a number for a variable without a
+type as text, by c7-core's rule, as the CLI does, gets none from the editor hosts, whose dialog
+would name a number; a test of the adapter holds its reading to `ValueKinds` on the edges of both
+ranges. A Json variable still takes it, as JSON text, and so does a number inside JSON. The core
+checks no narrower range of a type (a Short or an Integer refuses a larger number only at the
+engine, after the dialog). Every value the core refuses before the dialog, of the wrong kind,
+beyond 64 bits or beyond a double, comes back numbered (`inputRefusal`, from 1 per panel): the
+editor marks its field `aria-invalid` with a red edge, points it at the reason inline and moves
+the focus there, and a second refusal with the same reason is a new state, so the focus moves
+back and the reason is announced again. An engine's refusal shows inline too, but leaves the
+field unmarked, without `aria-invalid` and without the red edge.
 
 ### Moving a token
 
@@ -121,15 +143,59 @@ running instance that is not cut off, and only for a source and target it lists 
 (`views/move-options.ts`, from the deployed diagram in `bpmn/flow-nodes.ts` and the
 snapshot). The intent is resolved against that list; anything else is ignored.
 
-| Rule                                                                                                                                                                                                                                                                           | Why                                                                              |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| The source is a token of the instance itself (not of a called instance, not a boundary subscription, not a sub-process), the only one at its element, not behind an event-based gateway, not multi-instance, not in an event sub-process or a repeated sub-process             | v1 moves only unambiguous tokens; the element-instance model can lift this later |
-| Refused targets: start events, boundary events, events behind an event-based gateway (the list Camunda 8 Operate uses), end events, event sub-processes, multi-instance elements, elements in a sub-process that runs more than once, other processes                          | a move never ends the instance; the engine could not pick the scope              |
-| Any other element of the process is a target, also one that does not wait                                                                                                                                                                                                      | as in Cockpit and Operate; the token runs on until it waits                      |
-| Warnings, not refusals: a converging join the token newly reaches or no longer feeds, a target that already holds a token, a sub-process that keeps running with other tokens; the join search stops at the next fork, so a join behind a nested fork and join gets no warning | Operate warns about a stuck join too; a second move can fix it                   |
-| A token with an incident can be moved; the review says it cancels the step and closes the incident                                                                                                                                                                             | skipping a step that Retry cannot fix is the main use                            |
-| A reason is required: trimmed, 1–500 characters, one line (`MoveReasons` in the contract, checked by core and adapter); it goes to the engine as the annotation of its operation log                                                                                           | the reason lives in the engine, not in our log                                   |
-| Variables are not part of a move in v1                                                                                                                                                                                                                                         | cancelling the source drops its locals; edit in the Variables tab first          |
+| Rule                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Why                                                                              |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| The source is a token of the instance itself (not of a called instance, not a boundary subscription, not a sub-process), the only one at its element, not waiting at an event-based gateway (a token behind the gateway waits for one of its events, and the refusal names the way on, below; at the continuation after its event, `asyncContinuation`, it waits there no longer and moves), not multi-instance, not in an event sub-process or a repeated sub-process | v1 moves only unambiguous tokens; the element-instance model can lift this later |
+| Refused targets: start events, boundary events, events behind an event-based gateway (the list Camunda 8 Operate uses), end events, event sub-processes, multi-instance elements, elements in a sub-process that runs more than once, other processes                                                                                                                                                                                                                  | a move never ends the instance; the engine could not pick the scope              |
+| Any other element of the process is a target, also one that does not wait                                                                                                                                                                                                                                                                                                                                                                                              | as in Cockpit and Operate; the token runs on until it waits                      |
+| Warnings, not refusals: a converging join the token newly reaches or no longer feeds, a target that already holds a token, a sub-process that keeps running with other tokens; the join search stops at the next fork, so a join behind a nested fork and join gets no warning                                                                                                                                                                                         | Operate warns about a stuck join too; a second move can fix it                   |
+| A token with an incident can be moved; the review says it cancels the step and closes the incident                                                                                                                                                                                                                                                                                                                                                                     | skipping a step that Retry cannot fix is the main use                            |
+| A reason is required: trimmed, 1–500 characters, one line (`MoveReasons` in the contract, checked by core and adapter); it goes to the engine as the annotation of its operation log                                                                                                                                                                                                                                                                                   | the reason lives in the engine, not in our log                                   |
+| Variables are not part of a move in v1                                                                                                                                                                                                                                                                                                                                                                                                                                 | cancelling the source drops its locals; edit in the Variables tab first          |
+
+The refusal of a token behind an event-based gateway names the way on. A conditional event after the
+gateway goes on when a changed variable meets its condition, so every row there names the Variables
+tab. A row the engine's CLI can trigger names its command: the adapter gives it through the runtime
+view's port `EngineCli`, and the core words it after the editors' own way on (`CliWayOut`: "Trigger
+<event> with the CLI: <command>"), so no CLI command stands in the core. The C7 adapter's `PulseCli`
+gives `pulse advance <instance> --activity-id <event>` for a message, a signal or a timer that alone
+waits at its activity in the instance tree (the CLI refuses an activity where more than one waits),
+and names the engine the editor shows (`CliTarget`, from the connection builder): `--profile <name>
+--url <endpoint>` for a target of a project file, whose profile the CLI finds when it runs in that
+file's folder or below it, and `--url <endpoint> --auth none` for the default engine of a folder
+without one, which the editor reaches without a login. A `--url` without `--profile` selects no
+profile in the CLI, so that command takes nothing of a profile the CLI would otherwise select itself
+(`PULSE_CLI_PROFILE`, else the default profile of a project file or of the user's config file): no
+headers, no login, no process engine name, no read-only flag, and such a profile that is missing or
+refused, or a broken default profile, fails nothing. Only the user's `PULSE_CLI_*` environment
+applies, the user's own shell settings: `PULSE_CLI_HEADERS`, `PULSE_CLI_ENGINE`,
+`PULSE_CLI_READ_ONLY`, `PULSE_CLI_TIMEOUT`, and `PULSE_CLI_AUTH` with its credentials, which `--auth
+none` overrides, as the editor sends no credentials to its default engine. A config file the CLI
+cannot read at all (no JSON, a project file under its former name) still fails the command, as it
+fails every command. With `--profile` the CLI resolves each value on its own, a flag before a
+`PULSE_CLI_*` variable before the profile's value, so without the `--url` a shell that exports
+`PULSE_CLI_URL` sent the command, with the profile's engine name and headers, to that URL instead of
+the engine the editor shows. The `--url <endpoint>` beside `--profile` (owner decision 2026-11-12)
+beats the variable, so the command goes to the URL the editor shows; everything else still resolves
+per value. The profile's headers, login and process engine name go along, and a `PULSE_CLI_*`
+variable, the user's own shell setting, beats each of them: a process engine name, the profile's or
+`PULSE_CLI_ENGINE`'s, names `/engine/<name>` under that URL. A profile of the same name in the
+user's config file, which the CLI takes as a whole in place of the project file's, sends its headers
+and credentials there only when its own URL has that origin (scheme, host, port): beside a `--url`
+of another origin the CLI refuses a profile of the user's that holds headers or credentials (every
+header it stores, whatever its name, Basic auth, OAuth, a bearer token; CONFIG, owner decisions
+2026-11-12), so the copied command fails with the CLI's error instead of sending them to the URL the
+project file names. In the common case the user's profile names the project file's engine, and the
+command runs with it. The command delivers that event to this token's execution or executes its
+timer job, nothing beyond this instance, and the instance runs on to its next wait state as when the
+event occurs. The CLI refuses a suspended timer job, which the contract does not tell. The command
+shows in the tooltip and the accessible name of the diagram's can't-move sign, and a button beside
+the sign, "Copy CLI command", copies it. The view model carries the command apart from the sentence
+(`WaitRow.cliCommand`, set only on a row whose refusal names one, never read back from the text),
+and the webview sends it through the panels' `copy` intent, so each host copies it with the feedback
+it gives every copy (VS Code's status bar, Orca's frame). On a writable engine the element's name in
+the Waiting tab focuses that button, the keyboard path to it; the button names the refusal as its
+description.
 
 The C7 adapter reads the activity instance tree (read-only), refuses 0, more than one or
 a multi-instance body at the source, and sends one modification on stdin: start before
@@ -205,7 +271,9 @@ submit; it comes back when the engine refused the start. Ticks and Load more kee
 **The cap refuses, it never cuts.** A bulk operation takes at most 1000 instances. When
 more run, the selection bar says "1234 match · narrow the filter to 1000 or fewer" and
 offers no Select all; a toggle that would go beyond 1000 is refused as a whole. Pulse
-never cancels the first 1000 of more without saying so.
+never cancels the first 1000 of more without saying so. The bar reads the scope counts as
+exact: a count that is only a lower bound (`atLeast`) comes from a dialect that does not write
+today, and the first one that does carries the bound into "Select all" and the cap note.
 
 **Re-read before the dialog.** `BulkWrite` reads the selected ids again
 (`searchInstances` with `instanceIds` and the panel's `definitionId`, one call). Only
@@ -231,9 +299,10 @@ cancel always asks for more:
   with them." and "Can't be undone; Stop only halts the rest."), "Checked just now" and
   the engine line with host and identity. The title carries the count, so the dialog
   does not repeat it; it stays short with 1000 instances as with one.
-- The count is typed as digits, exactly ("Type 44 to cancel 44 instances"). Its prompt
-  names engine, environment and host and repeats the action's warning; an empty box
-  shows no error yet.
+- The count is typed as digits, exactly ("Type 44 to cancel 44 instances"), and the prompt
+  writes it as those digits twice ("Type 1000 to cancel 1000 instances", where the title
+  groups it: "Cancel 1,000 instances of …?"). Its prompt names engine, environment and host
+  and repeats the action's warning; an empty box shows no error yet.
 - The reason is asked only for actions that send it to the engine (`takesReason`), with
   the action's prompt ("The engine keeps it with the cancelled instances. Pulse does not
   log it."). It is cleaned first (`NotificationText.printable`, then trimmed) and then
@@ -264,7 +333,7 @@ again when it loads or is shown. An operation is worked off when it ended, when
 below history level FULL). Then the core counts the submitted ids that are still running
 (one `countInstances`); that count decides the outcome, the panel reloads once and the
 outcome goes to the audit. Progress counts are capped at the submitted count. The strip
-shows "No progress for 5 min" when nothing moved for 2 minutes on a local engine and 5
+shows "No progress for" and the idle time when nothing moved for 2 minutes on a local engine and 5
 minutes elsewhere, counted only while a panel watches and from the moment one comes back.
 A failed read is no stall: the strip warns "Pulse can't read its progress: …" with the
 problem, which is "Paused until the engine accepts the login again." while the engine
@@ -325,7 +394,7 @@ one kind literal (`BulkOperationKind` in the contract, `BulkKind` in the protoco
 Migration needed three reads besides its write (the proposal, the check and the reasons of
 failed items), because a plan has to be built and checked before it is confirmed; the
 reasons are kind-neutral and serve every bulk write.
-`BulkAction` (`apps/vscode/src/core/panels/bulk-action.ts`: `CancelInstancesAction` and
+`BulkAction` (`packages/core/runtime-view/src/core/panels/bulk-action.ts`: `CancelInstancesAction` and
 `MigrateInstancesAction`) owns
 what differs per kind: which instances are eligible and the filter that finds them, how
 many the scope counts offer, whether it sends a reason, and the port call. Its wording

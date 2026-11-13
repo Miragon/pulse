@@ -1,14 +1,7 @@
 import { useEffect, useRef, useState } from "react"
-import { cn, FOCUS_RING, useLocale, useToast, Icon, Td } from "@miragon/pulse-ui"
+import { cn, FOCUS_RING, useLocale, useToast, Icon, Td, shortId } from "@miragon/pulse-ui"
 import { Check, Copy } from "lucide-react"
 import { kitLabels } from "./kit-labels.js"
-
-const ID_FULL_LENGTH = 12
-const ID_SHORT_LENGTH = 8
-
-export function shortId(value: string): string {
-  return value.length <= ID_FULL_LENGTH ? value : `${value.slice(0, ID_SHORT_LENGTH)}…`
-}
 
 /** The path a sandboxed frame without the Clipboard API still has. */
 function selectionCopy(text: string): boolean {

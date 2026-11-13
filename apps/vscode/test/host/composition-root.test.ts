@@ -1,14 +1,18 @@
+import type { ProcessCommands, ProcessRuntime } from "@miragon/pulse-engine-core"
 import type {
+  CliTarget,
   EngineAdapter,
+  EngineCli,
   EngineConnection,
   EngineWebUi,
-  ProcessCommands,
-  ProcessRuntime,
-} from "../../src/contract/index.js"
+} from "@miragon/pulse-runtime-view/ports"
 import { describe, expect, test } from "vitest"
 import { CompositionRoot } from "../../src/host/composition-root.js"
-import type { Credentials } from "../../src/host/connections/connection.js"
-import { LOCAL_TARGET, type EngineTarget } from "../../src/host/connections/engine-target.js"
+import {
+  type Credentials,
+  LOCAL_TARGET,
+  type EngineTarget,
+} from "@miragon/pulse-runtime-view/host-kit"
 
 const NO_LOGIN: Credentials = { kind: "none" }
 const LOGIN: Credentials = { kind: "basic", username: "demo", password: "demo" }
@@ -18,6 +22,8 @@ const C7_TARGET: EngineTarget = { ...LOCAL_TARGET, name: "shop-c7" }
 class RecordingAdapter implements EngineAdapter {
   readonly connections: EngineConnection[] = []
   readonly webUiUrls: string[] = []
+  readonly cliTargets: CliTarget[] = []
+  readonly cliOfIt: EngineCli = { triggerCommand: () => undefined }
   readonly runtimeOfIt = {} as ProcessRuntime
   readonly commandsOfIt = {} as ProcessCommands
 
@@ -42,6 +48,11 @@ class RecordingAdapter implements EngineAdapter {
       definitionUrl: () => "",
     }
   }
+
+  cli(target: CliTarget): EngineCli {
+    this.cliTargets.push(target)
+    return this.cliOfIt
+  }
 }
 
 function rootWithRecorder() {
@@ -60,6 +71,17 @@ describe("the composition root", () => {
     expect(root.webUi(cockpit)?.name).toBe("c7")
     expect(root.webUi(C7_TARGET)).toBeUndefined()
     expect(c7.webUiUrls).toEqual(["http://localhost:18090/camunda/app/cockpit/default/"])
+    expect(c7.connections).toEqual([])
+  })
+
+  test("asks the adapter of the engine kind for its CLI, which names the target it is given", () => {
+    const { c7, root } = rootWithRecorder()
+    const profile = { kind: "profile", name: "shop-c7", endpoint: C7_TARGET.endpoint } as const
+    const endpoint = { kind: "endpoint", endpoint: LOCAL_TARGET.endpoint } as const
+
+    expect(root.cli(C7_TARGET, profile)).toBe(c7.cliOfIt)
+    expect(root.cli(LOCAL_TARGET, endpoint)).toBe(c7.cliOfIt)
+    expect(c7.cliTargets).toEqual([profile, endpoint])
     expect(c7.connections).toEqual([])
   })
 
@@ -92,7 +114,8 @@ describe("the composition root", () => {
 
     await expect(root.runtime(oauth, NO_LOGIN).listDefinitions()).rejects.toMatchObject({
       failure: "misconfigured",
-      message: expect.stringContaining("uses OAuth2") as unknown,
+      message:
+        'Profile "shop-c7" uses auth.type oauth, which this client cannot authenticate with. Set auth.type to none, or to basic without the OAuth keys, or keep this profile for the CLI.',
     })
     expect(root.commands(oauth, NO_LOGIN)).toBeUndefined()
     expect(c7.connections).toEqual([])
