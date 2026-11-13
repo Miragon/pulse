@@ -115,7 +115,7 @@ export async function showPulse(window) {
 export async function goToInstance(window, key) {
   await runCommand(window, "Pulse: Go to Process Instance")
   await answer(window, key)
-  await panelFrame(window).locator(".context-bar", { hasText: "As of" }).waitFor({
+  await panelFrame(window).locator('[data-part="context-bar"]', { hasText: "As of" }).waitFor({
     timeout: 30_000,
   })
 }

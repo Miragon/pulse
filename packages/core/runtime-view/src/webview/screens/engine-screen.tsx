@@ -44,7 +44,11 @@ const COLUMNS: readonly Column<ProcessRow>[] = [
     key: "withIncident",
     label: "With incident",
     render: (row) => (
-      <span class={row.withIncident > 0 ? "danger-count" : undefined}>
+      <span
+        class={row.withIncident > 0 ? "danger-count" : undefined}
+        data-part="incident-count"
+        data-tone={row.withIncident > 0 ? "danger" : undefined}
+      >
         {CountLabels.exact(row.withIncident)}
       </span>
     ),
@@ -64,7 +68,7 @@ function ProcessFilterBar({
     host.post({ type: "filterProcesses", filter: next })
   }
   return (
-    <div class="filter-bar">
+    <div class="filter-bar" data-part="filter-bar">
       <ScopeSegments
         label="Show processes"
         options={PROCESS_SCOPES}
@@ -83,7 +87,9 @@ function ProcessFilterBar({
           filter(search === "" ? { scope } : { scope, search })
         }}
       />
-      <span class="filter-bar__summary">{view.summary}</span>
+      <span class="filter-bar__summary" data-part="filter-summary">
+        {view.summary}
+      </span>
     </div>
   )
 }
@@ -99,7 +105,9 @@ export function EngineScreen({ view, freshness, problem }: EngineScreenProps) {
         freshness={freshness}
       >
         {view.engine.product !== undefined && (
-          <span class="context-bar__key">{view.engine.product}</span>
+          <span class="context-bar__key" data-part="context-key">
+            {view.engine.product}
+          </span>
         )}
         <HeaderButton
           icon={glyphs.RotateCcw}
@@ -109,7 +117,9 @@ export function EngineScreen({ view, freshness, problem }: EngineScreenProps) {
         />
         <WebUiButton link={view.webUi} />
       </ContextBar>
-      <div class="strip-stack">{problem}</div>
+      <div class="strip-stack" data-part="strips">
+        {problem}
+      </div>
       <section class="list-region" aria-label="Processes">
         <ProcessFilterBar view={view} refreshing={freshness.kind === "refreshing"} />
         <DataTable

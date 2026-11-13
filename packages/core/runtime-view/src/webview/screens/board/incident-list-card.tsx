@@ -44,12 +44,15 @@ const COLUMNS: readonly Column<BoardIncidentRow>[] = [
 function GroupNote({ group }: { readonly group: IncidentGroup }) {
   if (group.unavailable === true) {
     return (
-      <li class="board-groups__note board-groups__note--missing">{`${group.engine}: not read`}</li>
+      <li
+        class="board-groups__note board-groups__note--missing"
+        data-part="group-note"
+      >{`${group.engine}: not read`}</li>
     )
   }
   const shown = CountLabels.exact(group.rows.length)
   return (
-    <li class="board-groups__note">
+    <li class="board-groups__note" data-part="group-note">
       {group.more === true
         ? `${group.engine}: first ${shown}, more open`
         : `${group.engine}: ${shown} open`}

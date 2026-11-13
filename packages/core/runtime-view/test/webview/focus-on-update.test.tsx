@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import type { DefinitionView, PanelState } from "../../src/core/protocol/index.js"
 import { FIXTURES } from "../../dev/webview/fixtures/states.js"
-import { mountApp, waitForElement, type Harness } from "./harness.js"
+import { findRole, getRole, mountApp, waitForElement, type Harness } from "./harness.js"
 
 const READY = FIXTURES.definition as PanelState & {
   readonly status: "ready"
@@ -34,8 +34,9 @@ describe("focus across a live update", () => {
   it("stays on the focused table row when the update changes the row", async () => {
     harness = mountApp()
     harness.publish(READY)
-    await waitForElement(harness.root, ".data-table__row--interactive")
-    const row = harness.root.querySelectorAll<HTMLElement>(".data-table__row--interactive")[1]
+    const table = await findRole<HTMLTableElement>(harness.root, "table", { name: "Instances" })
+    const row = table.tBodies[0]?.rows[1]
+    expect(row?.hasAttribute("tabindex")).toBe(true)
     const key = READY.view.instances[1]?.businessKey ?? ""
     row?.focus()
 
@@ -103,8 +104,10 @@ describe("focus across a live update", () => {
     harness.publish(READY)
     const ship = '[data-badge-for="Activity_ShipOrder"]'
     ;(await waitForElement<HTMLElement>(harness.root, `${ship} [data-scope="running"]`)).focus()
-    const search = harness.root.querySelector<HTMLInputElement>(".search-field input")
-    search?.focus()
+    const search = getRole<HTMLInputElement>(harness.root, "searchbox", {
+      name: "Search by business key",
+    })
+    search.focus()
 
     harness.publish(withBadge("Activity_ShipOrder", { running: 2 }))
     await new Promise((resolve) => setTimeout(resolve, 100))

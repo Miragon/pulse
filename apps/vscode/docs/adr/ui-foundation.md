@@ -115,7 +115,8 @@ day the owner decided D9, which replaces D4 and turns D7 into the switch's preco
   React instance, so one `react`, `react-dom`, `lucide-react` and pulse-ui in the bundle, checked
   on its metafile; an accessibility and geometry baseline taken under Preact (tests by role,
   label and `data-part`, an axe run without findings, focus kept through a live update, icon and
-  target sizes measured in Chromium); pulse-ui's stylesheet following the editor theme
+  target sizes measured in Chromium; done, `packages/core/runtime-view/test/webview/geometry.test.tsx`
+  and `packages/core/runtime-view/test/architecture/webview-test-hooks.test.ts`); pulse-ui's stylesheet following the editor theme
   (`data-cd-theme`, `data-cd-kontrast="hoch"`, `forced-colors`, reduced motion); pulse-ui's
   density roles. These are tasks, not a gate on the decision.
 - **D8, homes.** The board format and the board builder go into a new published package, planned

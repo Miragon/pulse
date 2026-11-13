@@ -12,6 +12,7 @@ export function CallButton({ call, onOpen }: CallButtonProps) {
       type="button"
       class={`bjs-drilldown call-button${call.missing === true ? " call-button--missing" : ""}`}
       data-call-for={call.elementId}
+      data-state={call.missing === true ? "missing" : undefined}
       aria-label={call.label}
       title={call.label}
       onClick={(event) => {

@@ -4,7 +4,7 @@ import parcelReturnXml from "../../dev/webview/fixtures/parcel-return.bpmn"
 import { DEFINITION_VIEW } from "../../dev/webview/fixtures/definition.js"
 import { INSTANCE_WITH_CALLED_INCIDENT } from "../../dev/webview/fixtures/instance.js"
 import { FIXTURES } from "../../dev/webview/fixtures/states.js"
-import { mountApp, nextFrame, waitForElement, type Harness } from "./harness.js"
+import { allRoles, findRole, mountApp, nextFrame, waitForElement, type Harness } from "./harness.js"
 
 const PARCEL_RETURN: DefinitionView = {
   ...DEFINITION_VIEW,
@@ -128,7 +128,7 @@ describe("jumping into a call activity from the diagram", () => {
     const call = await waitForElement(harness.root, '[data-call-for="Activity_NotifyCustomer"]')
     const drilldown = await waitForElement(
       overlaysOf(harness.root, "Activity_InspectParcel") ?? harness.root,
-      ".bjs-drilldown:not(.call-button)",
+      ".bjs-drilldown:not([data-call-for])",
     )
     await nextFrame()
 
@@ -157,7 +157,7 @@ describe("jumping into a call activity from the diagram", () => {
       '[data-call-for="Activity_CheckCredit"]',
     )
 
-    expect(button.classList).toContain("call-button--missing")
+    expect(button.dataset.state).toBe("missing")
     expect(getComputedStyle(button).borderTopStyle).toBe("solid")
     expect(button.title).toBe("credit-scoring isn't deployed on local-operaton")
   })
@@ -174,13 +174,14 @@ describe("jumping into a call activity from the diagram", () => {
         notice: { tone: "info", title: "credit-scoring isn't deployed on local.", actions: [] },
       }),
     )
-    const strip = await waitForElement(harness.root, ".status-strip")
-    const parent = [...harness.root.querySelectorAll("button")].find(
+    const strip = await findRole(harness.root, "status")
+    const parent = allRoles<HTMLButtonElement>(harness.root, "button").find(
       (button) => button.textContent === "from 63e79cda…",
     )
 
     parent?.click()
 
+    expect(strip.dataset.part).toBe("status-strip")
     expect(strip.parentElement?.textContent).toContain("credit-scoring isn't deployed on local.")
     expect(parent?.title).toBe("Open the calling instance 63e79cda-cd7f-11f1-86d2-667bc3771e0d")
     expect(harness.posted).toContainEqual({
@@ -202,7 +203,7 @@ describe("jumping into a call activity from the diagram", () => {
     const text = textNodeOf(link, caller)
     const range = document.createRange()
     range.selectNodeContents(text)
-    const icon = link.querySelector(".icon")!.getBoundingClientRect()
+    const icon = link.querySelector("svg")!.getBoundingClientRect()
     const label = text.parentElement!
 
     expect(

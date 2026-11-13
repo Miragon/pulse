@@ -118,7 +118,7 @@ export function DefinitionScreen({
         )}
         <WebUiButton link={view.webUi} />
       </ContextBar>
-      <div class="strip-stack">
+      <div class="strip-stack" data-part="strips">
         {problem}
         {view.bulk !== undefined && <BulkStrip bulk={view.bulk} />}
         <NoticeStrips notices={view.notices} />

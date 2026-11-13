@@ -40,7 +40,7 @@ export function LoadingScreen({
   return (
     <div class="screen" aria-busy="true">
       <ContextBar title={title} engine={engine} freshness={{ kind: "loading" }} />
-      <div class="loading-layout" data-skeleton={showSkeleton}>
+      <div class="loading-layout" data-part="loading-layout" data-skeleton={showSkeleton}>
         <section class="diagram-region diagram-region--placeholder">
           {showSkeleton && (
             <EmptyHint text="Loading…" busy>

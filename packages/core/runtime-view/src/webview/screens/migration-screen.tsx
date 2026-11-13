@@ -59,7 +59,7 @@ function Diagrams({ view, stale }: { readonly view: MigrationView; readonly stal
   return (
     <div class="migration-diagrams">
       <div class="migration-diagrams__grid">
-        <div class="migration-diagram">
+        <div class="migration-diagram" data-part="migration-diagram">
           <span class="migration-diagram__label">v{view.source.version} · from</span>
           <RuntimeDiagram
             xml={view.source.diagramXml}
@@ -73,11 +73,11 @@ function Diagrams({ view, stale }: { readonly view: MigrationView; readonly stal
           />
         </div>
         {view.target === undefined ? (
-          <div class="migration-diagram migration-diagram--empty">
+          <div class="migration-diagram migration-diagram--empty" data-part="migration-diagram">
             <EmptyHint text="Pick the version to migrate to." />
           </div>
         ) : (
-          <div class="migration-diagram">
+          <div class="migration-diagram" data-part="migration-diagram">
             <span class="migration-diagram__label">v{view.target.version} · to</span>
             <RuntimeDiagram
               xml={view.target.diagramXml}
@@ -127,7 +127,7 @@ export function MigrationScreen({ view, freshness, stale, problem }: MigrationSc
           }}
         />
       </ContextBar>
-      <div class="strip-stack">
+      <div class="strip-stack" data-part="strips">
         {problem}
         {view.bulk !== undefined && <BulkStrip bulk={view.bulk} />}
         <NoticeStrips notices={view.notices} />

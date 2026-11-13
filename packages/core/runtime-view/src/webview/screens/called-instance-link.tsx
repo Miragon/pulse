@@ -9,6 +9,7 @@ export function CalledInstanceLink({ link }: { readonly link: CalledInstance }) 
     <button
       type="button"
       class="link-button"
+      data-part="called-instance-link"
       title={`Open called instance ${link.instanceId}`}
       onClick={(event) => {
         event.stopPropagation()

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest"
 import { FIXTURES } from "../../dev/webview/fixtures/states.js"
-import { mountApp, waitForElement, type Harness } from "./harness.js"
+import { findPart, findRole, mountApp, type Harness } from "./harness.js"
 
 describe("the History tab of an instance", () => {
   let harness: Harness
@@ -12,9 +12,9 @@ describe("the History tab of an instance", () => {
   it("lists every element the instance ran through, the open one without an end", async () => {
     harness = mountApp()
     harness.publish(FIXTURES.instance)
-    await waitForElement(harness.root, ".incident-card")
+    await findPart(harness.root, "incident-card")
     harness.root.querySelector<HTMLElement>('[data-key="history"]')?.click()
-    const table = await waitForElement(harness.root, 'table[aria-label="History"]')
+    const table = await findRole(harness.root, "table", { name: "History" })
 
     const rows = [...table.querySelectorAll("tbody tr")].map((row) =>
       [...row.querySelectorAll("td")].map((cell, index) =>

@@ -65,7 +65,7 @@ describe("the roles and states each screen keeps", () => {
   })
 
   it("shows each column grip as a focusable vertical separator with its width in aria-valuenow", async () => {
-    await open("definition", ".column-grip")
+    await open("definition", '[role="separator"][aria-label^="Resize column"]')
     const grips = all('[role="separator"][aria-label^="Resize column"]')
 
     expect(grips.length).toBeGreaterThan(1)
@@ -80,7 +80,7 @@ describe("the roles and states each screen keeps", () => {
   })
 
   it("shows the split between diagram and list as a separator with its share in aria-valuenow", async () => {
-    await open("definition", ".column-grip")
+    await open("definition", '[role="separator"][aria-label^="Resize column"]')
     const split = all('[role="separator"]').filter(
       (separator) => !separator.getAttribute("aria-label")?.startsWith("Resize column"),
     )
@@ -98,19 +98,22 @@ describe("the roles and states each screen keeps", () => {
   })
 
   it("announces an informing strip as status", async () => {
-    const strip = await open("definition", ".status-strip--info")
+    const strip = await open("definition", '[data-part="status-strip"][data-tone="info"]')
 
     expect(strip.getAttribute("role")).toBe("status")
   })
 
   it("announces a danger strip as alert", async () => {
-    const strip = await open("instance-failed-again", ".status-strip--danger")
+    const strip = await open(
+      "instance-failed-again",
+      '[data-part="status-strip"][data-tone="danger"]',
+    )
 
     expect(strip.getAttribute("role")).toBe("alert")
   })
 
   it("announces the danger box of a failed read without a view as alert", async () => {
-    const box = await open("failed-empty", ".status-box--danger")
+    const box = await open("failed-empty", '[data-part="status-box"][data-tone="danger"]')
 
     expect(box.getAttribute("role")).toBe("alert")
   })

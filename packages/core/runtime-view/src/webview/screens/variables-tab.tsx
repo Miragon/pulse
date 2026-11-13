@@ -110,7 +110,7 @@ function NameCell({
 }) {
   const shadows = (row.shadowedAt ?? []).map(elementName).join(", ")
   return (
-    <span class="variable-name">
+    <span class="variable-name" data-part="variable-name">
       <code>{row.name}</code>
       {shadows !== "" && (
         <span

@@ -167,6 +167,29 @@ function EditorActions({
   )
 }
 
+function EditorNotes({
+  row,
+  kind,
+  shadowedBy,
+}: {
+  readonly row: VariableRow
+  readonly kind: InputKind
+  readonly shadowedBy: string | undefined
+}) {
+  return (
+    <>
+      <p class="variable-editor__hint muted" data-part="editor-hint">
+        {VariableEditorText.was(row, kind)}
+      </p>
+      {shadowedBy !== undefined && (
+        <p class="variable-editor__warning" data-part="editor-warning">
+          {shadowedBy} keeps its own {row.name}; this change does not reach it.
+        </p>
+      )}
+    </>
+  )
+}
+
 export function VariableEditor({ row, editor, shadowedBy, onClose }: VariableEditorProps) {
   useLiveHold()
   const state = useEditor(row, editor, onClose)
@@ -205,12 +228,7 @@ export function VariableEditor({ row, editor, shadowedBy, onClose }: VariableEdi
         onText={state.setText}
         refused={refusal === undefined ? undefined : { errorId, refusal }}
       />
-      <p class="variable-editor__hint muted">{VariableEditorText.was(row, state.kind)}</p>
-      {shadowedBy !== undefined && (
-        <p class="variable-editor__warning">
-          {shadowedBy} keeps its own {row.name}; this change does not reach it.
-        </p>
-      )}
+      <EditorNotes row={row} kind={state.kind} shadowedBy={shadowedBy} />
       {failed?.status === "failed" && (
         <p key={refusal} id={errorId} class="variable-editor__error" role="alert">
           {failed.message}

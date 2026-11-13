@@ -89,10 +89,10 @@
 .column-grip {
   position: absolute;
   top: 0;
-  right: -4px;
+  right: -12px;
   bottom: 0;
   z-index: 1;
-  width: 8px;
+  width: 24px;
   cursor: col-resize;
   touch-action: none;
 }
@@ -100,7 +100,7 @@
 .column-grip::after {
   content: "";
   position: absolute;
-  inset: 0 3px;
+  inset: 0 11px;
   background: var(--cd-ui-interaktion);
   opacity: 0;
   transition: opacity var(--cd-motion-fast) var(--cd-ease);

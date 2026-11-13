@@ -7,7 +7,12 @@ import {
   fontsLoaded,
   mountApp,
   nextFrame,
+  allRoles,
+  findPart,
+  findRole,
+  getRole,
   press,
+  queryPart,
   waitForElement,
   type Harness,
 } from "./harness.js"
@@ -21,6 +26,10 @@ function gripOf(root: ParentNode, label: string): HTMLElement {
   }
   grip.setPointerCapture = () => undefined
   return grip
+}
+
+function headersOf(root: HTMLElement): HTMLElement[] {
+  return allRoles(getRole(root, "table", { name: "Instances" }), "columnheader")
 }
 
 function widthOf(element: Element | null | undefined): number {
@@ -51,9 +60,9 @@ describe("resizable columns", () => {
   it("offers a keyboard separator on every header but the last", async () => {
     harness = mountApp()
     harness.publish(FIXTURES.definition)
-    await waitForElement(harness.root, '.data-table th [role="separator"]')
+    await findRole(harness.root, "separator", { name: "Resize column ID" })
 
-    const headers = [...harness.root.querySelectorAll(".data-table th")]
+    const headers = headersOf(harness.root)
     const grips = headers.map((header) => header.querySelector('[role="separator"]'))
 
     expect(grips.map((grip) => grip?.getAttribute("aria-label"))).toEqual([
@@ -75,14 +84,15 @@ describe("resizable columns", () => {
     )
     grip.focus()
     await settled()
-    const headers = [...harness.root.querySelectorAll(".data-table th")]
+    const headers = headersOf(harness.root)
     const before = headers.map(widthOf)
-    expect(harness.root.querySelector(".data-table--fixed, colgroup")).toBeNull()
+    expect(queryPart(harness.root, "data-table", { state: "fixed" })).toBeNull()
+    expect(harness.root.querySelector("colgroup")).toBeNull()
     expect(grip.getAttribute("aria-valuenow")).toBe(String(before[1]))
     press(grip, "ArrowRight")
     await settled()
 
-    expect(harness.root.querySelector(".data-table--fixed")).not.toBeNull()
+    expect(queryPart(harness.root, "data-table", { state: "fixed" })).not.toBeNull()
     expect(headers.map(widthOf).slice(0, 3)).toEqual([before[0], (before[1] ?? 0) + 8, before[2]])
     expect(grip.getAttribute("aria-valuetext")).toBe(`${(before[1] ?? 0) + 8} pixels`)
     press(grip, "ArrowRight", { shiftKey: true })
@@ -96,7 +106,7 @@ describe("resizable columns", () => {
     harness = mountApp()
     harness.publish(FIXTURES.definition)
     const grip = await waitForElement<HTMLElement>(harness.root, '[aria-label="Resize column ID"]')
-    const label = harness.root.querySelector(".data-table th .data-table__label")!
+    const label = queryPart(headersOf(harness.root)[0]!, "column-label")!
 
     press(grip, "Home")
     await settled()
@@ -165,11 +175,11 @@ describe("resizable columns", () => {
   it("fits at most half of the visible table", async () => {
     harness = mountApp({ width: 500 })
     harness.publish(FIXTURES.instance)
-    await waitForElement(harness.root, ".incident-card")
+    await findPart(harness.root, "incident-card")
     buttonNamed(harness.root, "Variables6").click()
     await waitForElement(harness.root, '[aria-label="Resize column Value"]')
     const grip = gripOf(harness.root, "Value")
-    const visible = harness.root.querySelector(".data-table")!.clientWidth
+    const visible = queryPart(harness.root, "data-table")!.clientWidth
 
     press(grip, "Enter")
     await settled()
@@ -184,16 +194,16 @@ describe("resizable columns", () => {
       },
     })
     harness.publish(FIXTURES.definition)
-    await waitForElement(harness.root, ".data-table--fixed")
-    const headers = [...harness.root.querySelectorAll(".data-table th")]
+    await findPart(harness.root, "data-table", { state: "fixed" })
+    const headers = headersOf(harness.root)
     expect(headers.map(widthOf).slice(0, 3)).toEqual([120, 200, 140])
     harness.unmount()
 
     for (const kept of [{ id: 5, businessKey: 200, state: 140 }, { id: 120 }, "wide"]) {
       harness = mountApp({ stored: { pulse: { columnWidths: { instances: kept } } } })
       harness.publish(FIXTURES.definition)
-      await waitForElement(harness.root, ".data-table th")
-      expect(harness.root.querySelector(".data-table--fixed")).toBeNull()
+      await findRole(harness.root, "table", { name: "Instances" })
+      expect(queryPart(harness.root, "data-table", { state: "fixed" })).toBeNull()
       harness.unmount()
     }
     harness = mountApp()
@@ -206,7 +216,7 @@ describe("resizable columns", () => {
       },
     })
     harness.publish(FIXTURES.definition)
-    const row = await waitForElement(harness.root, ".data-table__row")
+    const row = await waitForElement(harness.root, "tbody tr")
     const cell = row.querySelectorAll("td")[1]!
 
     cell.dispatchEvent(new PointerEvent("pointerover", { bubbles: true }))
@@ -218,7 +228,7 @@ describe("resizable columns", () => {
   it("keeps the widths of the Waiting and the Variables table apart", async () => {
     harness = mountApp()
     harness.publish(FIXTURES.instance)
-    await waitForElement(harness.root, ".incident-card")
+    await findPart(harness.root, "incident-card")
     harness.root.querySelector<HTMLElement>('[data-key="waiting"]')?.click()
     await waitForElement(harness.root, '[aria-label="Resize column Waiting at"]')
     press(gripOf(harness.root, "Waiting at"), "Home")
@@ -242,7 +252,7 @@ describe("the split between diagram and list", () => {
   it("moves with the arrow keys and restores its share when Escape cancels a drag", async () => {
     harness = mountApp()
     harness.publish(FIXTURES.definition)
-    const handle = await waitForElement<HTMLElement>(harness.root, ".split-layout__handle")
+    const handle = await findRole(harness.root, "separator", { name: "Resize diagram and list" })
     handle.setPointerCapture = () => undefined
 
     press(handle, "ArrowDown")

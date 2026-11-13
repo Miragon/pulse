@@ -46,6 +46,7 @@ function ParentLink({ parent }: { readonly parent: NonNullable<InstanceHeader["p
     <button
       type="button"
       class="link-button context-bar__shrink context-bar__shrink--with-icon"
+      data-part="caller-link"
       title={`Open the calling instance ${parent.instanceId}`}
       onClick={(event) => {
         host.post({

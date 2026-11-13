@@ -7,7 +7,7 @@ export interface IconProps {
 export function Icon({ of: glyph, size = 16, class: className }: IconProps) {
   return (
     <svg
-      class={className === undefined ? "icon" : `icon ${className}`}
+      class={className === undefined ? "icon lucide" : `icon lucide ${className}`}
       width={size}
       height={size}
       viewBox="0 0 24 24"

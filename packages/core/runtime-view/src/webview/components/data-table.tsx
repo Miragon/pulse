@@ -77,7 +77,7 @@ function SkeletonBody({ columns, count }: { readonly columns: number; readonly c
         <tr key={rowIndex} class="data-table__skeleton">
           {Array.from({ length: columns }, (_cell, cellIndex) => (
             <td key={cellIndex}>
-              <span class="skeleton-bar" />
+              <span class="skeleton-bar" data-part="skeleton" />
             </td>
           ))}
         </tr>
@@ -174,7 +174,11 @@ function HeaderRow<Row>({
       <tr>
         {columns.map((column, index) => (
           <th key={column.key} scope="col" data-key={column.key}>
-            {column.header ?? <span class="data-table__label">{column.label}</span>}
+            {column.header ?? (
+              <span class="data-table__label" data-part="column-label">
+                {column.label}
+              </span>
+            )}
             {sizing !== undefined && column.width === undefined && index < columns.length - 1 && (
               <ColumnGrip label={column.label} columnKey={column.key} sizing={sizing} />
             )}
@@ -204,6 +208,11 @@ function FixedColumns<Row>({
   )
 }
 
+const LAYOUTS = {
+  auto: "data-table",
+  fixed: "data-table data-table--fixed",
+} as const
+
 export function DataTable<Row>(props: DataTableProps<Row>) {
   const { label, columns, rows, skeletonRows, empty, footer, resizeId } = props
   const sizing = useColumnSizing(
@@ -213,8 +222,9 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
   const fixed = columns.reduce((sum, column) => sum + (column.width ?? 0), 0)
   const { widths } = sizing
   const showEmpty = skeletonRows === undefined && rows.length === 0
+  const layout = widths === undefined ? "auto" : "fixed"
   return (
-    <div class={widths === undefined ? "data-table" : "data-table data-table--fixed"}>
+    <div class={LAYOUTS[layout]} data-part="data-table" data-state={layout}>
       <table
         aria-label={label}
         style={
@@ -236,8 +246,16 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
           <SkeletonBody columns={columns.length} count={skeletonRows} />
         )}
       </table>
-      {showEmpty && <div class="data-table__empty">{empty}</div>}
-      {footer !== undefined && <div class="data-table__footer">{footer}</div>}
+      {showEmpty && (
+        <div class="data-table__empty" data-part="table-empty">
+          {empty}
+        </div>
+      )}
+      {footer !== undefined && (
+        <div class="data-table__footer" data-part="table-footer">
+          {footer}
+        </div>
+      )}
     </div>
   )
 }

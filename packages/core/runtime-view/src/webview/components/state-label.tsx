@@ -28,7 +28,12 @@ export interface StateLabelProps {
 
 export function StateLabel({ state, text = state }: StateLabelProps) {
   return (
-    <span class={`state-label state-label--${SITUATION_TONES[SITUATIONS[state]]}`} title={text}>
+    <span
+      class={`state-label state-label--${SITUATION_TONES[SITUATIONS[state]]}`}
+      data-part="state-label"
+      data-tone={SITUATION_TONES[SITUATIONS[state]]}
+      title={text}
+    >
       <Icon of={GLYPHS[state]} />
       <span class="state-label__text">{text}</span>
     </span>
@@ -39,6 +44,8 @@ export function IncidentFlag() {
   return (
     <span
       class={`state-label state-label--${SITUATION_TONES.openIncident} incident-flag`}
+      data-part="incident-flag"
+      data-tone={SITUATION_TONES.openIncident}
       title="Has an open incident"
     >
       <Icon of={glyphs.CircleX} />

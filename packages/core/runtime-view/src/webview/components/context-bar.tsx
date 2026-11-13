@@ -29,6 +29,8 @@ function AccessChip({ engine }: { readonly engine: EngineBadge }) {
   return (
     <span
       class={`read-only${writable ? " read-only--writable" : ""}`}
+      data-part="access"
+      data-state={writable ? "writable" : "read-only"}
       title={engine.access?.note ?? "Pulse only reads from the engine."}
     >
       <Icon of={writable ? glyphs.Pencil : glyphs.Eye} />
@@ -39,8 +41,12 @@ function AccessChip({ engine }: { readonly engine: EngineBadge }) {
 
 export function ContextBar({ subject, title, engine, freshness, children }: ContextBarProps) {
   return (
-    <header class={`context-bar context-bar--${subject ?? "pending"}`}>
-      <div class="context-bar__subject">
+    <header
+      class={`context-bar context-bar--${subject ?? "pending"}`}
+      data-part="context-bar"
+      data-kind={subject ?? "pending"}
+    >
+      <div class="context-bar__subject" data-part="context-subject">
         <BackButton class="context-bar__back" />
         {subject !== undefined && <Icon of={SUBJECT_GLYPHS[subject]} />}
         <h1 class="context-bar__title">{title}</h1>

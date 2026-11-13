@@ -7,7 +7,7 @@ function SelectionCount({ selection }: { readonly selection: SelectionView }) {
     ? `All ${CountLabels.exact(selection.count)} ${selection.eligible} selected`
     : `${CountLabels.exact(selection.count)} selected`
   return (
-    <span class="selection-bar__count" aria-live="polite">
+    <span class="selection-bar__count" data-part="selection-count" aria-live="polite">
       {text}
     </span>
   )

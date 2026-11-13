@@ -1,7 +1,17 @@
 import { afterEach, describe, expect, it } from "vitest"
 import type { BoardView, PanelState } from "../../src/core/protocol/index.js"
 import { PROCESS_BOARD_VIEW } from "../../dev/webview/fixtures/process-board.js"
-import { buttonNamed, mountApp, waitForElement, type Harness } from "./harness.js"
+import {
+  allParts,
+  buttonNamed,
+  findPart,
+  getRole,
+  mountApp,
+  part,
+  queryPart,
+  waitForElement,
+  type Harness,
+} from "./harness.js"
 
 function ready(view: BoardView): PanelState {
   return { status: "ready", view, refreshing: false }
@@ -9,6 +19,10 @@ function ready(view: BoardView): PanelState {
 
 function texts(root: ParentNode, selector: string): string[] {
   return [...root.querySelectorAll(selector)].map((element) => element.textContent.trim())
+}
+
+function partTexts(root: ParentNode, name: string): string[] {
+  return allParts(root, name).map((element) => element.textContent.trim())
 }
 
 describe("the process widgets of a board", () => {
@@ -23,12 +37,12 @@ describe("the process widgets of a board", () => {
     harness.publish(ready(PROCESS_BOARD_VIEW))
     const cluster = await waitForElement<HTMLElement>(
       harness.root,
-      '.board-card--processDiagram [data-badge-for="Activity_ShipOrder"]',
+      `${part("board-card", { kind: "processDiagram" })} [data-badge-for="Activity_ShipOrder"]`,
     )
-    const diagram = harness.root.querySelector(".board-card--processDiagram")!
+    const diagram = queryPart(harness.root, "board-card", { kind: "processDiagram" })!
 
     expect(diagram.textContent).toContain("local · v3, the latest version")
-    expect(diagram.querySelector('[aria-label="Diagram of Order fulfillment on local"]')).not.toBe(
+    expect(getRole(diagram, "region", { name: "Diagram of Order fulfillment on local" })).not.toBe(
       null,
     )
     cluster.querySelector<HTMLButtonElement>('[data-scope="withIncident"]')?.click()
@@ -56,11 +70,11 @@ describe("the process widgets of a board", () => {
     harness.publish(ready(PROCESS_BOARD_VIEW))
     const hit = (elementId: string) =>
       harness.root.querySelector(
-        `.board-card--processDiagram g.djs-element[data-element-id="${elementId}"] .djs-hit`,
+        `${part("board-card", { kind: "processDiagram" })} g.djs-element[data-element-id="${elementId}"] .djs-hit`,
       )
     await waitForElement(
       harness.root,
-      '.board-card--processDiagram [data-badge-for="Activity_CheckCredit"]',
+      `${part("board-card", { kind: "processDiagram" })} [data-badge-for="Activity_CheckCredit"]`,
     )
 
     hit("Activity_ApproveOrder")?.dispatchEvent(
@@ -98,9 +112,14 @@ describe("the process widgets of a board", () => {
     } satisfies BoardView
     harness = mountApp()
     harness.publish(ready(unread))
-    await waitForElement(harness.root, ".board-card--processDiagram")
+    await findPart(harness.root, "board-card", { kind: "processDiagram" })
 
-    expect(texts(harness.root, ".board-card--processDiagram .empty-hint")).toEqual([
+    expect(
+      texts(
+        harness.root,
+        `${part("board-card", { kind: "processDiagram" })} ${part("empty-hint")}`,
+      ),
+    ).toEqual([
       "The diagram was not read from prod-eu.",
       "order-fulfillment is not deployed on shop-test.",
     ])
@@ -109,15 +128,15 @@ describe("the process widgets of a board", () => {
   it("lists open incidents with their messages and opens the instance on its engine", async () => {
     harness = mountApp()
     harness.publish(ready(PROCESS_BOARD_VIEW))
-    await waitForElement(harness.root, ".board-card--incidentList tbody tr")
-    const list = harness.root.querySelector(".board-card--incidentList")!
+    await waitForElement(harness.root, `${part("board-card", { kind: "incidentList" })} tbody tr`)
+    const list = queryPart(harness.root, "board-card", { kind: "incidentList" })!
 
     expect(texts(list, "th")).toEqual(["Engine", "Process", "Element", "Message", "Since"])
     expect(texts(list, "tbody tr td:nth-child(4)")).toEqual([
       "Carrier API answered 503",
       "Carrier API answered 503",
     ])
-    expect(texts(list, ".board-groups__note")).toEqual([
+    expect(partTexts(list, "group-note")).toEqual([
       "local: first 2, more open",
       "shop-test: not read",
     ])
@@ -148,11 +167,11 @@ describe("the process widgets of a board", () => {
     } satisfies BoardView
     harness = mountApp()
     harness.publish(ready(calm))
-    const list = await waitForElement(harness.root, ".board-card--incidentList")
+    const list = await findPart(harness.root, "board-card", { kind: "incidentList" })
 
     expect(texts(list, "th")).toEqual(["Process", "Element", "Message", "Since"])
     expect(list.textContent).toContain("No open incident on the engines that answered.")
-    expect(texts(list, ".board-groups__note")).toEqual(["local: 0 open"])
+    expect(partTexts(list, "group-note")).toEqual(["local: 0 open"])
   })
 
   it("says so when no engine was read", async () => {
@@ -170,7 +189,7 @@ describe("the process widgets of a board", () => {
     } satisfies BoardView
     harness = mountApp()
     harness.publish(ready(unread))
-    const list = await waitForElement(harness.root, ".board-card--incidentList")
+    const list = await findPart(harness.root, "board-card", { kind: "incidentList" })
 
     expect(list.textContent).toContain("No engine was read.")
   })

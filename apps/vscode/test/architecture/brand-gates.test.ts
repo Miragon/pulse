@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
@@ -25,6 +25,19 @@ const DENSE_ICONS_ALLOWED: Readonly<Record<string, string>> = {
   "screens/mapping-table.tsx": "a warning inside a dense table cell",
   "screens/move-panel.tsx": "a warning inside a dense list line",
   "screens/variables-tab.tsx": "the shadow warning beside a variable's name in a dense table cell",
+}
+
+const DENSE_ICON_REGIONS_FILE = join(
+  REPO_ROOT,
+  "packages/core/runtime-view/test/webview/dense-icon-regions.ts",
+)
+
+function denseIconRegions(): Record<string, string> {
+  const source = readFileSync(DENSE_ICON_REGIONS_FILE, "utf8")
+  const entries = [...source.matchAll(/"([^"]+\.tsx)": "([^"]+)"/g)].map(
+    (match): [string, string] => [match[1] ?? "", match[2] ?? ""],
+  )
+  return Object.fromEntries(entries)
 }
 
 const RAW_COLOURS_ALLOWED = {
@@ -59,6 +72,15 @@ describe(
 
     test(`the webview draws icons at the CI sizes, ${CI_ICON_SIZES.join(" and ")} px, or at ${DENSE_ICON_SIZE} px where the named deviation lists it, beside dense text and on the diagram's 20 px overlays`, () => {
       expect(iconSizeFindings(WEBVIEW, DENSE_ICONS_ALLOWED)).toEqual([])
+    })
+
+    test("each file the deviation names marks its dense region, which the webview's geometry gate measures", () => {
+      const regions = denseIconRegions()
+
+      expect(Object.keys(regions).sort()).toEqual(Object.keys(DENSE_ICONS_ALLOWED).sort())
+      for (const [file, part] of Object.entries(regions)) {
+        expect(readFileSync(join(WEBVIEW, file), "utf8"), file).toContain(`data-part="${part}"`)
+      }
     })
 
     test(`the webview still draws the ${DENSE_ICON_SIZE} px deviation, so the docs that name it stay true`, () => {

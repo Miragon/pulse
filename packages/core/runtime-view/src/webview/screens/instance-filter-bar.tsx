@@ -30,7 +30,7 @@ function ElementChip({ filter, elementName, onFilter }: InstanceFilterBarProps) 
   }
   const name = elementName(filter.elementId)
   return (
-    <span class="filter-chip" title={`At ${name}`}>
+    <span class="filter-chip" data-part="filter-chip" data-kind="element" title={`At ${name}`}>
       <span class="filter-chip__name">
         <span class="muted">At</span> {name}
       </span>
@@ -51,7 +51,7 @@ function ElementChip({ filter, elementName, onFilter }: InstanceFilterBarProps) 
 export function InstanceFilterBar(props: InstanceFilterBarProps) {
   const { filter, onFilter } = props
   return (
-    <div class="filter-bar">
+    <div class="filter-bar" data-part="filter-bar">
       <ScopeSegments
         label="Show instances"
         options={SCOPE_OPTIONS}

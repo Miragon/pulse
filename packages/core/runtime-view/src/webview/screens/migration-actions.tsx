@@ -11,7 +11,7 @@ function Refusal({
 }) {
   return (
     <>
-      <span class="migration-actions__refusal" title={offer.reason}>
+      <span class="migration-actions__refusal" data-part="migration-refusal" title={offer.reason}>
         {offer.reason}
       </span>
       {offer.leaveOut !== undefined && (
@@ -43,7 +43,9 @@ export function MigrationActions({
   }, [offer.status])
   return (
     <div class="migration-actions" role="group" aria-label="Migration">
-      <span class="migration-actions__summary">{summary}</span>
+      <span class="migration-actions__summary" data-part="migration-summary">
+        {summary}
+      </span>
       <span class="visually-hidden" aria-live="polite">
         {announcement}
       </span>

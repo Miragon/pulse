@@ -2,7 +2,15 @@ import axe from "axe-core"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import type { PanelState } from "../../src/core/protocol/index.js"
 import { FIXTURES, type FixtureName } from "../../dev/webview/fixtures/states.js"
-import { mountApp, nextFrame, waitForElement, type Harness } from "./harness.js"
+import {
+  allParts,
+  findPart,
+  mountApp,
+  nextFrame,
+  queryPart,
+  waitForElement,
+  type Harness,
+} from "./harness.js"
 
 const WCAG_22_A_AA = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22a", "wcag22aa"]
 
@@ -32,9 +40,9 @@ async function settled(harness: Harness, state: PanelState): Promise<void> {
       if (state.status !== "loading" && heading === null) {
         throw new Error("The screen has no heading yet.")
       }
-      for (const diagram of harness.root.querySelectorAll(".diagram-region")) {
+      for (const diagram of allParts(harness.root, "diagram")) {
         const drawn = diagram.querySelector("g.djs-element") !== null
-        const failed = diagram.querySelector(".diagram-region__failure") !== null
+        const failed = queryPart(diagram, "diagram-failure") !== null
         if (!drawn && !failed) {
           throw new Error("A diagram is not drawn yet.")
         }
@@ -152,7 +160,7 @@ describe.each(THEMES)(
       harness.root
         .querySelector('g.djs-element[data-element-id="Activity_ApproveOrder"] .djs-hit')
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true, button: 0 }))
-      ;(await waitForElement<HTMLElement>(harness.root, ".move-entry")).click()
+      ;(await findPart(harness.root, "move-entry")).click()
       await waitForElement(harness.root, '[role="group"][aria-label^="Move the token"]')
       await nextFrame()
 

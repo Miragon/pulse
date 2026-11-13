@@ -7,8 +7,11 @@ import {
   buttonNamed,
   fakeApi,
   mountApp,
+  findPart,
+  findRole,
+  part,
   postState,
-  waitForElement,
+  queryPart,
   type Harness,
 } from "./harness.js"
 
@@ -62,7 +65,7 @@ describe("panel states", () => {
   it("offers Reconnect when loading failed and posts refresh", async () => {
     harness = mountApp()
     harness.publish(FIXTURES["failed-empty"])
-    await waitForElement(harness.root, ".status-box--danger")
+    expect((await findRole(harness.root, "alert")).dataset.part).toBe("status-box")
 
     buttonNamed(harness.root, "Reconnect").click()
     buttonNamed(harness.root, "Edit connection…").click()
@@ -75,13 +78,14 @@ describe("panel states", () => {
     harness = mountApp()
     harness.publish(FIXTURES.failed)
 
-    await waitForElement(harness.root, ".count-badge--stale")
+    await findPart(harness.root, "count-badge", { state: "stale" })
 
-    expect(harness.root.querySelector(".status-strip--danger")?.textContent).toContain(
+    expect(queryPart(harness.root, "status-strip", { tone: "danger" })?.role).toBe("alert")
+    expect(queryPart(harness.root, "status-strip", { tone: "danger" })?.textContent).toContain(
       "Couldn't reach prod-eu.",
     )
-    expect(harness.root.querySelector(".freshness--offline")).not.toBeNull()
-    expect(harness.root.querySelector(".context-bar")?.textContent).not.toContain("PROD")
+    expect(queryPart(harness.root, "freshness", { state: "offline" })).not.toBeNull()
+    expect(queryPart(harness.root, "context-bar")?.textContent).not.toContain("PROD")
   })
 
   it.each([
@@ -94,7 +98,7 @@ describe("panel states", () => {
       const failed = FIXTURES["failed-empty"]
       harness.publish({ ...failed, problem: { ...failed.problem, loginRefused: refusal } })
 
-      const stamp = await waitForElement<HTMLElement>(harness.root, ".freshness--offline")
+      const stamp = await findPart(harness.root, "freshness", { state: "offline" })
 
       expect(stamp.textContent).toBe(label)
       expect(stamp.querySelector("svg")?.innerHTML).toBe(drawn(glyphs.KeyRound))
@@ -107,9 +111,9 @@ describe("panel states", () => {
       ...FIXTURES.failed,
       problem: { ...FIXTURES.failed.problem, loginRefused: "unauthorized" },
     })
-    await waitForElement(harness.root, ".count-badge--stale")
+    await findPart(harness.root, "count-badge", { state: "stale" })
 
-    const stamp = harness.root.querySelector(".freshness--offline")
+    const stamp = queryPart(harness.root, "freshness", { state: "offline" })
     expect(stamp?.textContent).toMatch(/^Credentials rejected · data from /)
     expect(stamp?.textContent).not.toContain("Offline")
   })
@@ -118,7 +122,7 @@ describe("panel states", () => {
     harness = mountApp()
     harness.publish(FIXTURES["failed-empty"])
 
-    const stamp = await waitForElement<HTMLElement>(harness.root, ".freshness--offline")
+    const stamp = await findPart(harness.root, "freshness", { state: "offline" })
 
     expect(stamp.textContent).toBe("Offline")
     expect(stamp.querySelector("svg")?.innerHTML).toBe(drawn(glyphs.Unplug))
@@ -127,10 +131,10 @@ describe("panel states", () => {
   it("shows the skeleton only after the loading delay", async () => {
     harness = mountApp()
     harness.publish(FIXTURES.loading)
-    await waitForElement(harness.root, ".loading-layout")
+    await findPart(harness.root, "loading-layout")
 
-    expect(harness.root.querySelector(".skeleton-bar")).toBeNull()
-    await waitForElement(harness.root, ".skeleton-bar")
+    expect(queryPart(harness.root, "skeleton")).toBeNull()
+    await findPart(harness.root, "skeleton")
   })
 })
 
@@ -148,20 +152,21 @@ describe("instance screen", () => {
   it("keeps state and incident out of the header and names when it started, to the millisecond", async () => {
     harness = mountApp()
     harness.publish(FIXTURES.instance)
-    const bar = await waitForElement(harness.root, ".context-bar")
+    const bar = await findPart(harness.root, "context-bar")
 
-    expect(bar.querySelector(".state-label, .incident-flag")).toBeNull()
+    expect(queryPart(bar, "state-label")).toBeNull()
+    expect(queryPart(bar, "incident-flag")).toBeNull()
     expect(bar.textContent).toMatch(/Started (\w{3} \d{1,2}, )?\d{2}:\d{2}:\d{2}\.\d{3}/)
   })
 
   it("opens the stacktrace of a single incident from its card, without a strip", async () => {
     harness = mountApp()
     harness.publish(FIXTURES.instance)
-    const card = await waitForElement(harness.root, ".incident-card")
+    const card = await findPart(harness.root, "incident-card")
 
     buttonNamed(card, "Open stacktrace").click()
 
-    expect(harness.root.querySelector(".strip-stack .status-strip")).toBeNull()
+    expect(harness.root.querySelector(`${part("strips")} ${part("status-strip")}`)).toBeNull()
 
     expect(postedOfType("openIncidentDetails")).toEqual([
       { type: "openIncidentDetails", incidentId: "a4b5c6d7-e8f9-4a0b-9c1d-2e3f4a5b6c7d" },
@@ -171,13 +176,13 @@ describe("instance screen", () => {
   it("links a wait state in a called instance to that instance", async () => {
     harness = mountApp()
     harness.publish(FIXTURES.instance)
-    await waitForElement(harness.root, ".incident-card")
+    await findPart(harness.root, "incident-card")
 
     buttonNamed(harness.root, "Waiting1").click()
-    const link = await waitForElement<HTMLButtonElement>(
-      harness.root,
-      "#tabpanel-waiting .link-button",
-    )
+    const panel = await findRole(harness.root, "tabpanel", { name: /^Waiting/ })
+    const link = await findPart(panel, "called-instance-link")
+
+    expect(link.title).toBe("Open called instance 3e9d1c2b-7a6f-4e5d-8c4b-2a1f0e9d8c7b")
     link.click()
 
     expect(postedOfType("openInstance")).toEqual([
@@ -188,7 +193,9 @@ describe("instance screen", () => {
   it("opens the definition of the instance from its header", async () => {
     harness = mountApp()
     harness.publish(FIXTURES.instance)
-    await waitForElement(harness.root, ".context-bar .link-button")
+    await findRole(await findPart(harness.root, "context-bar"), "button", {
+      name: "Order fulfillment v7",
+    })
 
     buttonNamed(harness.root, "Order fulfillment v7").click()
 
@@ -204,9 +211,10 @@ describe("instance screen", () => {
   it("copies the instance ID through the host", async () => {
     harness = mountApp()
     harness.publish(FIXTURES.instance)
-    const copy = await waitForElement<HTMLButtonElement>(
-      harness.root,
-      ".context-bar .id-text__copy",
+    const copy = await findRole<HTMLButtonElement>(
+      await findPart(harness.root, "context-bar"),
+      "button",
+      { name: "Copy instance ID" },
     )
 
     copy.click()

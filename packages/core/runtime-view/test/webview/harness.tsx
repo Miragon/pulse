@@ -14,6 +14,7 @@ import "../../src/webview/styles/diagram.css"
 import "../../src/webview/styles/boards.css"
 import { render, type ComponentChild } from "preact"
 import { vi } from "vitest"
+import { page, type Locator } from "vitest/browser"
 import type { PanelState, WebviewIntent } from "../../src/core/protocol/index.js"
 import { App } from "../../src/webview/app.js"
 import { HostBridge, type VsCodeApi } from "../../src/webview/host/host-bridge.js"
@@ -180,4 +181,88 @@ export function press(target: Element, key: string, init: KeyboardEventInit = {}
 
 export async function fontsLoaded(): Promise<void> {
   await Promise.all([...document.fonts].map((face) => face.load()))
+}
+
+type Role = Parameters<Locator["getByRole"]>[0]
+type Match<T> = T | null
+type RoleOptions = NonNullable<Parameters<Locator["getByRole"]>[1]>
+
+function rolesIn(root: Element, role: Role, options: RoleOptions): HTMLElement[] {
+  return page
+    .elementLocator(root)
+    .getByRole(role, { exact: true, ...options })
+    .elements() as HTMLElement[]
+}
+
+function describeRole(role: Role, options: RoleOptions): string {
+  return options.name === undefined ? role : `${role} named ${String(options.name)}`
+}
+
+export function allRoles<T extends HTMLElement = HTMLElement>(
+  root: Element,
+  role: Role,
+  options: RoleOptions = {},
+): T[] {
+  return rolesIn(root, role, options) as T[]
+}
+
+export function queryRole<T extends HTMLElement = HTMLElement>(
+  root: Element,
+  role: Role,
+  options: RoleOptions = {},
+): Match<T> {
+  const found = rolesIn(root, role, options)
+  if (found.length > 1) {
+    throw new Error(`${String(found.length)} elements match the ${describeRole(role, options)}.`)
+  }
+  return (found[0] as T | undefined) ?? null
+}
+
+export function getRole<T extends HTMLElement = HTMLElement>(
+  root: Element,
+  role: Role,
+  options: RoleOptions = {},
+): NonNullable<Match<T>> {
+  const found = queryRole<T>(root, role, options)
+  if (found === null) {
+    throw new Error(`No ${describeRole(role, options)}.`)
+  }
+  return found
+}
+
+export function findRole<T extends HTMLElement = HTMLElement>(
+  root: Element,
+  role: Role,
+  options: RoleOptions = {},
+): Promise<T> {
+  return vi.waitFor(() => getRole<T>(root, role, options), { timeout: 5000, interval: 25 })
+}
+
+export function part(name: string, state?: Readonly<Record<string, string>>): string {
+  const extra = Object.entries(state ?? {}).map(([key, value]) => `[data-${key}="${value}"]`)
+  return `[data-part="${name}"]${extra.join("")}`
+}
+
+export function queryPart(
+  root: ParentNode,
+  name: string,
+  state?: Readonly<Record<string, string>>,
+): HTMLElement | null {
+  return root.querySelector<HTMLElement>(part(name, state))
+}
+
+export function allParts(
+  root: ParentNode,
+  name: string,
+  state?: Readonly<Record<string, string>>,
+): HTMLElement[] {
+  return [...root.querySelectorAll<HTMLElement>(part(name, state))]
+}
+
+export function findPart(
+  root: ParentNode,
+  name: string,
+  state?: Readonly<Record<string, string>>,
+): Promise<HTMLElement> {
+  return waitForElement<HTMLElement>(root, part(name, state))
 }

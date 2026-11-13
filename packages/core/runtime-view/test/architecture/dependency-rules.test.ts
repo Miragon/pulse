@@ -112,6 +112,10 @@ const PLANTED: Readonly<Record<string, string>> = {
     "import { parseProfileFile } from '@miragon/pulse-profile';\nexport const parse = parseProfileFile;\n",
   "src/host-kit/panels/reads-profiles.ts":
     "import { parseProfileFile } from '@miragon/pulse-profile';\nexport const parse = parseProfileFile;\n",
+  "src/webview/renders-widget-shell.ts":
+    "import { ListTable } from '@miragon/pulse-widget-shell/widgets';\nexport const table = ListTable;\n",
+  "src/webview/boots-widget-shell.ts":
+    "import { createToolRegistrar } from '@miragon/pulse-widget-shell';\nexport const boot = createToolRegistrar;\n",
   "src/core/reads-profiles.ts":
     "import type { Profile } from '@miragon/pulse-profile';\nexport type Read = Profile;\n",
   "src/host-kit/connections/ships-profile-fixtures.ts":
@@ -209,6 +213,12 @@ describe("the dependency rules", () => {
         `webview-pulse-ui-by-its-entries: ${at("src/webview/reads-kit-subpath.ts")} -> @miragon/pulse-ui/kit`,
         `not-in-allowed: ${at("src/webview/reads-kit-subpath.ts")} -> @miragon/pulse-ui/kit`,
         `not-to-unresolvable: ${at("src/webview/reads-kit-subpath.ts")} -> @miragon/pulse-ui/kit`,
+        `webview-never-widget-shell: ${at("src/webview/renders-widget-shell.ts")} -> @miragon/pulse-widget-shell/widgets`,
+        `not-in-allowed: ${at("src/webview/renders-widget-shell.ts")} -> @miragon/pulse-widget-shell/widgets`,
+        `not-to-unresolvable: ${at("src/webview/renders-widget-shell.ts")} -> @miragon/pulse-widget-shell/widgets`,
+        `webview-never-widget-shell: ${at("src/webview/boots-widget-shell.ts")} -> @miragon/pulse-widget-shell`,
+        `not-in-allowed: ${at("src/webview/boots-widget-shell.ts")} -> @miragon/pulse-widget-shell`,
+        `not-to-unresolvable: ${at("src/webview/boots-widget-shell.ts")} -> @miragon/pulse-widget-shell`,
         `not-in-allowed: ${at("src/host-kit/panels/reads-profiles.ts")} -> ${profile}`,
         `not-in-allowed: ${at("src/core/reads-profiles.ts")} -> ${profile}`,
         `not-in-allowed: ${at("src/host-kit/connections/ships-profile-fixtures.ts")} -> ${profileTesting}`,

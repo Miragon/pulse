@@ -15,7 +15,9 @@ export function CountBadge({ variant, count, stale = false }: CountBadgeProps) {
   return (
     <span
       class={`count-badge count-badge--${variant}${stale ? " count-badge--stale" : ""}`}
+      data-part="count-badge"
       data-variant={variant}
+      data-state={stale ? "stale" : undefined}
     >
       {withIcon && <Icon of={glyphs.CircleX} size={12} />}
       {count !== undefined && <span class="count-badge__count">{CountLabels.compact(count)}</span>}

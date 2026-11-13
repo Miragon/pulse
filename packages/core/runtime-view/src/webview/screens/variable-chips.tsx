@@ -27,7 +27,12 @@ interface VariableChipProps {
 
 function VariableChip({ label, onEdit, onRemove }: VariableChipProps) {
   return (
-    <span class="filter-chip filter-chip--variable" title={label}>
+    <span
+      class="filter-chip filter-chip--variable"
+      data-part="filter-chip"
+      data-kind="variable"
+      title={label}
+    >
       <button
         type="button"
         class="filter-chip__name filter-chip__edit"

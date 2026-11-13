@@ -5,7 +5,7 @@ async function showIncidentCard(window) {
   await selectTab(window, "Incidents")
   await enlargeList(window)
   await panelFrame(window)
-    .locator(".incident-card")
+    .locator('[data-part="incident-card"]')
     .getByRole("button", { name: "Open in model" })
     .waitFor({ timeout: 30_000 })
   await window.waitForTimeout(800)

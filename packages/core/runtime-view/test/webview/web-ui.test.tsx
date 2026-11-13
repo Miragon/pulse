@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { DEFINITION_VIEW } from "../../dev/webview/fixtures/definition.js"
 import { INSTANCE_WITH_CALLED_INCIDENT } from "../../dev/webview/fixtures/instance.js"
-import { mountApp, waitForElement, type Harness } from "./harness.js"
+import { allRoles, findPart, getRole, mountApp, queryPart, type Harness } from "./harness.js"
 
 const COCKPIT = {
   label: "Open in Cockpit",
@@ -9,7 +9,8 @@ const COCKPIT = {
 }
 
 function webUiButton(root: HTMLElement): HTMLButtonElement | undefined {
-  return [...root.querySelectorAll<HTMLButtonElement>(".context-bar button")].find(
+  const bar = queryPart(root, "context-bar")
+  return allRoles<HTMLButtonElement>(bar ?? root, "button").find(
     (button) => button.textContent === "Open in Cockpit",
   )
 }
@@ -28,7 +29,7 @@ describe("the link into the engine web UI", () => {
       refreshing: false,
       view: { ...INSTANCE_WITH_CALLED_INCIDENT, webUi: COCKPIT },
     })
-    await waitForElement(harness.root, ".context-bar")
+    await findPart(harness.root, "context-bar")
     const button = webUiButton(harness.root)
 
     button?.click()
@@ -49,7 +50,7 @@ describe("the link into the engine web UI", () => {
         webUi: { ...COCKPIT, title: "Open Order fulfillment v7" },
       },
     })
-    const definitionBar = await waitForElement(harness.root, ".context-bar__subject")
+    const definitionBar = await findPart(harness.root, "context-subject")
     const labels = [...definitionBar.querySelectorAll("button")].map((button) => button.title)
 
     expect(labels.slice(-2)).toEqual(["Open order-fulfillment.bpmn", "Open Order fulfillment v7"])
@@ -59,9 +60,9 @@ describe("the link into the engine web UI", () => {
       refreshing: false,
       view: { ...INSTANCE_WITH_CALLED_INCIDENT, webUi: COCKPIT },
     })
-    const instanceBar = await waitForElement(harness.root, ".context-bar--instance")
+    const instanceBar = await findPart(harness.root, "context-bar", { kind: "instance" })
 
-    expect(instanceBar.querySelector(".context-bar__subject")?.lastElementChild).toBe(
+    expect(queryPart(instanceBar, "context-subject")?.lastElementChild).toBe(
       webUiButton(harness.root),
     )
   })
@@ -73,11 +74,11 @@ describe("the link into the engine web UI", () => {
       refreshing: false,
       view: { ...DEFINITION_VIEW, webUi: { ...COCKPIT, title: "Open Order fulfillment v7" } },
     })
-    const bar = await waitForElement(harness.root, ".context-bar")
-    const picker = bar.querySelector(".version-picker")
+    const bar = await findPart(harness.root, "context-bar")
+    const picker = getRole(bar, "combobox", { name: "Version" }).closest("label")
 
     expect(picker?.nextElementSibling).toBe(webUiButton(harness.root))
-    expect(bar.querySelector(".context-bar__key")).toBeNull()
+    expect(queryPart(bar, "context-key")).toBeNull()
     expect(bar.textContent).not.toContain(DEFINITION_VIEW.bpmnProcessId)
 
     harness.publish({ status: "ready", refreshing: false, view: DEFINITION_VIEW })

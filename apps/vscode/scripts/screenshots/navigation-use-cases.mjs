@@ -25,7 +25,7 @@ export const NAVIGATION_USE_CASES = [
       const frame = panelFrame(window)
       await frame.getByRole("radio", { name: /^With incident/ }).click()
       await frame
-        .locator('.segmented[aria-busy="false"] [aria-checked="true"]', {
+        .locator('[role="radiogroup"][aria-busy="false"] [role="radio"][aria-checked="true"]', {
           hasText: "With incident",
         })
         .waitFor()
@@ -41,9 +41,9 @@ export const NAVIGATION_USE_CASES = [
       await openDefinition(window)
       const frame = panelFrame(window)
       await frame.locator(`${CHARGE_PAYMENT_BADGE} [data-scope="withIncident"]`).click()
-      await frame.locator(".filter-chip", { hasText: "Charge payment" }).waitFor()
+      await frame.locator('[data-part="filter-chip"]', { hasText: "Charge payment" }).waitFor()
       await frame
-        .locator('.segmented[aria-busy="false"] [aria-checked="true"]', {
+        .locator('[role="radiogroup"][aria-busy="false"] [role="radio"][aria-checked="true"]', {
           hasText: "With incident",
         })
         .waitFor()
@@ -101,7 +101,7 @@ export const NAVIGATION_USE_CASES = [
       await goToInstanceOf(window, "ORD-10137", "Order fulfillment")
       await panelFrame(window).locator(SHIP_ORDER_CALL).click()
       await window.locator(".tab.active", { hasText: "Shipment" }).waitFor({ timeout: 30_000 })
-      await panelFrame(window).locator(".context-bar", { hasText: "from " }).waitFor({
+      await panelFrame(window).locator('[data-part="context-bar"]', { hasText: "from " }).waitFor({
         timeout: 30_000,
       })
       await waitForPanel(window)

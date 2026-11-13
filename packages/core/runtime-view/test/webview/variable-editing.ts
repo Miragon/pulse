@@ -7,8 +7,11 @@ import {
   enterValue,
   type Harness,
   mountApp,
+  findPart,
+  findRole,
+  getRole,
   nextFrame,
-  waitForElement,
+  queryRole,
 } from "./harness.js"
 
 const VARIABLES_OF_THE_INSTANCE = 4
@@ -43,21 +46,19 @@ export async function editVariable(
   await panel.handle({ type: "ready" })
   const harness = mountApp()
   harness.publish(fixture.lastState())
-  await waitForElement(harness.root, ".incident-card")
+  await findPart(harness.root, "incident-card")
   buttonNamed(harness.root, `Variables${VARIABLES_OF_THE_INSTANCE + addedVariables.length}`).click()
-  await waitForElement(harness.root, ".value-cell__edit")
-  harness.root.querySelector<HTMLButtonElement>(`[aria-label="Edit ${name}"]`)?.click()
-  const field = await waitForElement<HTMLTextAreaElement>(harness.root, ".variable-editor__field")
+  ;(await findRole(harness.root, "button", { name: `Edit ${name}` })).click()
+  const field = await findRole<HTMLTextAreaElement>(harness.root, "textbox", { name: "New value" })
   return {
     harness,
     fixture,
     setVariable,
     field,
     writeAs: async (kind) => {
-      const picker = harness.root.querySelector<HTMLSelectElement>(".variable-editor__kind")
-      enterValue(picker, kind)
+      enterValue(getRole<HTMLSelectElement>(harness.root, "combobox", { name: "Write as" }), kind)
       await nextFrame()
-      return harness.root.querySelector<HTMLTextAreaElement>(".variable-editor__field")!
+      return getRole<HTMLTextAreaElement>(harness.root, "textbox", { name: "New value" })
     },
     save: async (target, text) => {
       enterValue(target, text)
@@ -74,4 +75,20 @@ export async function editVariable(
       harness.publish(fixture.lastState())
     },
   }
+}
+
+export function openEditor(root: HTMLElement): HTMLElement | null {
+  return queryRole(root, "group", { name: /^Edit / })
+}
+
+export function editorError(root: HTMLElement): HTMLElement | null {
+  const editor = openEditor(root)
+  return editor === null ? null : queryRole(editor, "alert")
+}
+
+export function findEditorError(root: HTMLElement): Promise<HTMLElement> {
+  return vi.waitFor(() => getRole(getRole(root, "group", { name: /^Edit / }), "alert"), {
+    timeout: 5000,
+    interval: 25,
+  })
 }

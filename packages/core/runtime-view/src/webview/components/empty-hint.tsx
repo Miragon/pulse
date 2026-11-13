@@ -9,7 +9,12 @@ export interface EmptyHintProps {
 
 export function EmptyHint({ text, busy = false, action, children }: EmptyHintProps) {
   return (
-    <div class="empty-hint" role={busy ? "status" : undefined} aria-busy={busy || undefined}>
+    <div
+      class="empty-hint"
+      data-part="empty-hint"
+      role={busy ? "status" : undefined}
+      aria-busy={busy || undefined}
+    >
       {children}
       <p class="empty-hint__text">{text}</p>
       {action !== undefined && (

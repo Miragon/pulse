@@ -49,6 +49,8 @@ function NoteCell({ row, noteId }: MappingCellProps) {
     <span
       id={noteId}
       class={row.problem === undefined ? "mapping-table__warning" : "mapping-table__problem"}
+      data-part="mapping-note"
+      data-tone={row.problem === undefined ? "warning" : "danger"}
     >
       <Icon of={glyphs.TriangleAlert} size={12} />
       {note}

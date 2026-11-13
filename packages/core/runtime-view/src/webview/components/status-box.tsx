@@ -22,7 +22,12 @@ const GLYPHS: Readonly<Record<Tone, string>> = {
 
 export function StatusBox({ tone, title, detail, actions = [] }: StatusBoxProps) {
   return (
-    <div class={`status-box status-box--${tone}`} role={tone === "danger" ? "alert" : "status"}>
+    <div
+      class={`status-box status-box--${tone}`}
+      data-part="status-box"
+      data-tone={tone}
+      role={tone === "danger" ? "alert" : "status"}
+    >
       <Icon of={GLYPHS[tone]} class="status-box__icon" />
       <div class="status-box__body">
         <p class="status-box__title">{title}</p>

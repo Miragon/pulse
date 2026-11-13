@@ -17,6 +17,7 @@ export function CodeButton({ code, onOpen }: CodeButtonProps) {
     <button
       type="button"
       class="code-button"
+      data-part="code-button"
       data-code-for={code.elementId}
       aria-label={label}
       title={label}

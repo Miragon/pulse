@@ -225,6 +225,9 @@
   bottom: var(--cd-shell-rand) !important;
   left: var(--cd-shell-rand) !important;
   z-index: 10 !important;
+  display: flex;
+  align-items: flex-end;
+  min-height: 24px;
   color: var(--cd-ui-text-leise) !important;
 }
 

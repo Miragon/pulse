@@ -167,10 +167,12 @@ a build that ships; no entry until the switch brings the webview's own, with pre
 `process.env.NODE_ENV` defined as production in every build that ships, Orca's readable one
 included, so React's development build never ships; it stays for its warnings in the builds
 without `--production` (watch, smoke, e2e) and on the runtime view's dev page while it serves.
-Before the switch, these land too: one React instance in the bundle, checked on its
-metafile; an accessibility and geometry baseline of the webview's tests, taken under Preact
-(roles, labels and `data-part` hooks, axe, focus through a live update, icon and target sizes);
-pulse-ui's stylesheet following `data-cd-theme`, `data-cd-kontrast="hoch"`, `forced-colors` and
+The accessibility and geometry baseline of the webview's tests has landed too, taken under Preact
+for the switch to keep: queries by role, label and the `data-part` hooks the runtime view's README
+lists (`packages/core/runtime-view/test/architecture/webview-test-hooks.test.ts` refuses a class),
+an axe run, focus kept through a live update, and icon and target sizes measured in Chromium
+(`packages/core/runtime-view/test/webview/geometry.test.tsx`). Before the switch, these land too:
+one React instance in the bundle, checked on its metafile; pulse-ui's stylesheet following `data-cd-theme`, `data-cd-kontrast="hoch"`, `forced-colors` and
 reduced motion; pulse-ui's density roles, compact by default. The closed world admits the kit in the
 webview alone (`webview-pulse-ui-by-its-entries`: never `./testing`, `globals.css`, the
 stylesheet of an app without a Tailwind entry of its own, or `fonts.css`); with the switch its

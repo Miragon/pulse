@@ -43,6 +43,8 @@ function CopyCliCommand({
       <button
         type="button"
         class="move-entry"
+        data-part="move-entry"
+        data-kind="copy"
         data-move-from={elementId}
         aria-label={copied ? COPIED_LABEL : COPY_LABEL}
         aria-describedby={refusalId}
@@ -71,6 +73,8 @@ export function MoveEntry({ entry }: { readonly entry: MoveEntryDecoration }) {
         <span
           id={refusalId}
           class="move-entry move-entry--refused"
+          data-part="move-entry"
+          data-state="refused"
           role="img"
           aria-label={label}
           title={label}
@@ -91,6 +95,8 @@ export function MoveEntry({ entry }: { readonly entry: MoveEntryDecoration }) {
     <button
       type="button"
       class="move-entry"
+      data-part="move-entry"
+      data-kind="move"
       data-move-from={entry.elementId}
       aria-label={MOVE_LABEL}
       title={MOVE_LABEL}

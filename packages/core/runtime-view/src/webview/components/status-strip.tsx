@@ -43,10 +43,17 @@ export function StripButton({ action }: { readonly action: StripAction }) {
 
 export function StatusStrip({ tone, title, detail, actions = [] }: StatusStripProps) {
   return (
-    <div class={`status-strip status-strip--${tone}`} role={tone === "danger" ? "alert" : "status"}>
+    <div
+      class={`status-strip status-strip--${tone}`}
+      data-part="status-strip"
+      data-tone={tone}
+      role={tone === "danger" ? "alert" : "status"}
+    >
       <Icon of={TONE_GLYPHS[tone]} class="status-strip__icon" />
       <p class="status-strip__text" title={detail === undefined ? title : `${title} ${detail}`}>
-        <span class="status-strip__title">{title}</span>
+        <span class="status-strip__title" data-part="strip-title">
+          {title}
+        </span>
         {detail !== undefined && <span class="status-strip__detail">{detail}</span>}
       </p>
       {actions.length > 0 && (

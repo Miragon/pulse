@@ -152,7 +152,7 @@ export class DecorationLayer {
       this.addOverlay(
         elementId,
         CODE_POSITION,
-        <span class="element-actions">
+        <span class="element-actions" data-part="element-actions">
           {code !== undefined && <CodeButton code={code} onOpen={this.onOpenCode} />}
           {move !== undefined && <MoveEntry entry={move} />}
         </span>,

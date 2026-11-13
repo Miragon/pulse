@@ -22,13 +22,15 @@ export interface BoardScreenProps {
 
 function BoardHeader({ view, freshness }: BoardScreenProps) {
   return (
-    <header class="context-bar context-bar--board">
-      <div class="context-bar__subject">
+    <header class="context-bar context-bar--board" data-part="context-bar" data-kind="board">
+      <div class="context-bar__subject" data-part="context-subject">
         <BackButton class="context-bar__back" />
         <Icon of={glyphs.ClipboardList} />
         <h1 class="context-bar__title">{view.title}</h1>
         {view.engines.length > 0 && (
-          <span class="context-bar__key context-bar__shrink">{BoardLabels.scope(view)}</span>
+          <span class="context-bar__key context-bar__shrink" data-part="context-key">
+            {BoardLabels.scope(view)}
+          </span>
         )}
         <HeaderButton
           icon={glyphs.RotateCcw}
@@ -110,7 +112,7 @@ export function BoardScreen({ view, freshness }: BoardScreenProps) {
   return (
     <div class="screen screen--with-strips">
       <BoardHeader view={view} freshness={freshness} />
-      <div class="strip-stack">
+      <div class="strip-stack" data-part="strips">
         <ProblemsStrip view={view} />
         <BoardEngines engines={view.engines} />
       </div>

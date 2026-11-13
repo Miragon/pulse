@@ -31,7 +31,7 @@ function Review({ target }: { readonly target: MoveTarget }) {
         <li key={effect}>{effect}</li>
       ))}
       {target.warnings.map((warning) => (
-        <li key={warning} class="move-panel__warning">
+        <li key={warning} class="move-panel__warning" data-part="move-warning">
           <Icon of={glyphs.TriangleAlert} size={12} />
           {warning}
         </li>
@@ -110,7 +110,12 @@ function Gone({
     close.current?.focus()
   }, [])
   return (
-    <section class="move-panel" role="group" aria-label={`Move the token at ${fromLabel}`}>
+    <section
+      class="move-panel"
+      data-part="move-panel"
+      role="group"
+      aria-label={`Move the token at ${fromLabel}`}
+    >
       <p role="status">This token is no longer at {fromLabel}.</p>
       <div class="move-panel__actions">
         <button type="button" class="button button--secondary" ref={close} onClick={onClose}>
@@ -196,6 +201,7 @@ export function MovePanel({ choice, option, fromLabel, onPick, onClose }: MovePa
   return (
     <section
       class="move-panel"
+      data-part="move-panel"
       role="group"
       aria-label={`Move the token at ${option.fromLabel}`}
       ref={panel}

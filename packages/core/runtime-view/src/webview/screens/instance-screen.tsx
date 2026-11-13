@@ -120,7 +120,7 @@ function InstanceStrips({
   readonly problem: ComponentChildren
 }) {
   return (
-    <div class="strip-stack">
+    <div class="strip-stack" data-part="strips">
       {problem}
       {view.outcome !== undefined && <NoticeStrip notice={view.outcome} />}
       {view.notice !== undefined && <NoticeStrip notice={view.notice} />}

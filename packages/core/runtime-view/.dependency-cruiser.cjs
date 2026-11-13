@@ -13,6 +13,8 @@ const UI_FOUNDATION =
 const UI_TONES_ENTRY = "(^|/)node_modules/@miragon/pulse-ui/dist/tones/index[.]d[.]ts$"
 const UI_FORMAT_ENTRY = "(^|/)node_modules/@miragon/pulse-ui/dist/format/index[.]d[.]ts$"
 const UI_KIT_ENTRY = "(^|/)node_modules/@miragon/pulse-ui/dist/index[.]d[.]ts$"
+const WIDGET_SHELL =
+  "(^|/)node_modules/@miragon/pulse-widget-shell/|^@miragon/pulse-widget-shell(/|$)|^packages/core/widget-shell/"
 const UI_THEME_ENTRY = "(^|/)node_modules/@miragon/pulse-ui/src/theme[.]css$"
 const UI_WEBVIEW_ENTRIES = [
   UI_FOUNDATION,
@@ -160,6 +162,14 @@ module.exports = {
         "The webview imports @miragon/pulse-ui by its package entries only (owner decision 2026-11-12, apps/vscode/docs/adr/ui-foundation.md): its root, the React kit, and its stylesheet @miragon/pulse-ui/theme.css for the shared building blocks it renders, @miragon/pulse-ui/tones and, in its label helpers (webview/format/), @miragon/pulse-ui/format. Never ./testing (the brand gates read files with node:fs; tests may import it), never globals.css (the stylesheet of an app without a Tailwind entry of its own; the webview gets its own, preflight on, with its switch to React, D9) or fonts.css (the webview loads Geist itself), never another subpath, and never a file of packages/core/ui by path, its source or its build: the entries load the package's build, so a module reached by path is a second copy of the kit.",
       from: { path: `${PACKAGE}src/webview/`, pathNot: TEST_CODE },
       to: { path: PULSE_UI, pathNot: UI_WEBVIEW_ENTRIES },
+    },
+    {
+      name: "webview-never-widget-shell",
+      severity: "error",
+      comment:
+        "The webview never imports @miragon/pulse-widget-shell, by any entry or path (owner decision D9 of 2026-11-12, apps/vscode/docs/adr/ui-foundation.md): widget-shell is the view runtime of the MCP widgets and the web apps, bound to an MCP host, and stays outside the editor hosts. The webview renders the view models its host pushes, with pulse-ui's building blocks and its own host wiring.",
+      from: { path: `${PACKAGE}src/webview/` },
+      to: { path: WIDGET_SHELL },
     },
     {
       name: "protocol-imports-nothing",

@@ -20,9 +20,11 @@ async function openBoard(window, title) {
     .getByRole("treeitem", { name: new RegExp(`^${title}, .*\\.board\\.json`) })
     .first()
     .click()
-  await panelFrame(window).locator(".context-bar--board", { hasText: "As of" }).waitFor({
-    timeout: 60_000,
-  })
+  await panelFrame(window)
+    .locator('[data-part="context-bar"][data-kind="board"]', { hasText: "As of" })
+    .waitFor({
+      timeout: 60_000,
+    })
   await window.waitForTimeout(1500)
 }
 
@@ -66,10 +68,15 @@ export const BOARD_USE_CASES = [
     shows: "A click on a row opens that instance in the instance panel of the engine it came from.",
     run: async (window) => {
       await openBoard(window, "Shop operations")
-      await panelFrame(window).locator(".board-card--instanceList tbody tr").first().click()
-      await panelFrame(window).locator(".context-bar--instance", { hasText: "As of" }).waitFor({
-        timeout: 30_000,
-      })
+      await panelFrame(window)
+        .locator('[data-part="board-card"][data-kind="instanceList"] tbody tr')
+        .first()
+        .click()
+      await panelFrame(window)
+        .locator('[data-part="context-bar"][data-kind="instance"]', { hasText: "As of" })
+        .waitFor({
+          timeout: 30_000,
+        })
       await restPointer(window)
       await window.waitForTimeout(900)
     },
@@ -104,9 +111,11 @@ export const BOARD_USE_CASES = [
       const item = window.getByRole("treeitem", { name: /^broken\.board\.json/ }).first()
       await item.waitFor({ timeout: 30_000 })
       await item.click()
-      await panelFrame(window).locator(".status-strip", { hasText: "problems in" }).waitFor({
-        timeout: 30_000,
-      })
+      await panelFrame(window)
+        .locator('[data-part="status-strip"]', { hasText: "problems in" })
+        .waitFor({
+          timeout: 30_000,
+        })
       await restPointer(window)
       await window.waitForTimeout(900)
     },
@@ -125,7 +134,7 @@ export const BOARD_USE_CASES = [
       await signInToTest(window)
       await openBoard(window, "Order fulfillment")
       await panelFrame(window)
-        .locator(".board-card--processDiagram .badge-cluster")
+        .locator('[data-part="board-card"][data-kind="processDiagram"] [data-badge-for]')
         .first()
         .waitFor({
           timeout: 30_000,
@@ -142,12 +151,14 @@ export const BOARD_USE_CASES = [
     run: async (window) => {
       await openBoard(window, "Order fulfillment")
       await panelFrame(window)
-        .locator('.board-card--processDiagram [data-scope="withIncident"]')
+        .locator('[data-part="board-card"][data-kind="processDiagram"] [data-scope="withIncident"]')
         .first()
         .click()
-      await panelFrame(window).locator(".context-bar--definition", { hasText: "As of" }).waitFor({
-        timeout: 30_000,
-      })
+      await panelFrame(window)
+        .locator('[data-part="context-bar"][data-kind="definition"]', { hasText: "As of" })
+        .waitFor({
+          timeout: 30_000,
+        })
       await restPointer(window)
       await window.waitForTimeout(900)
     },

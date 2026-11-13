@@ -27,7 +27,7 @@ export function Tabs<Id extends string>({
 }: TabsProps<Id>) {
   return (
     <div class="tabs">
-      <div class="tabs__bar">
+      <div class="tabs__bar" data-part="tab-bar">
         <div
           class="tabs__list"
           role="tablist"

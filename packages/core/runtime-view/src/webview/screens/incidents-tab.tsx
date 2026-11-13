@@ -125,7 +125,11 @@ function IncidentCard({
 }) {
   const host = useHost()
   return (
-    <article class="incident-card" aria-label={`${incident.typeLabel} at ${elementName}`}>
+    <article
+      class="incident-card"
+      data-part="incident-card"
+      aria-label={`${incident.typeLabel} at ${elementName}`}
+    >
       <header class="incident-card__header">
         <StateLabel state="Incident" text={`${incident.typeLabel} · ${elementName}`} />
         <span class="muted" title={TimeLabels.tooltip(incident.createdAt)}>

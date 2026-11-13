@@ -11,7 +11,12 @@ export interface BoardCardProps {
 export function BoardCard({ title, kind, children }: BoardCardProps) {
   const heading = useId()
   return (
-    <section class={`board-card board-card--${kind}`} aria-labelledby={heading}>
+    <section
+      class={`board-card board-card--${kind}`}
+      data-part="board-card"
+      data-kind={kind}
+      aria-labelledby={heading}
+    >
       <h2 id={heading} class="board-card__title" title={title}>
         {title}
       </h2>

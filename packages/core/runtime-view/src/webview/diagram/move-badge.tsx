@@ -12,7 +12,14 @@ const TEXTS: Readonly<Record<MoveBadgeKind, { readonly text: string; readonly la
 export function MoveBadge({ kind }: { readonly kind: MoveBadgeKind }) {
   const { text, label } = TEXTS[kind]
   return (
-    <span class={`move-badge move-badge--${kind}`} role="img" aria-label={label} title={label}>
+    <span
+      class={`move-badge move-badge--${kind}`}
+      data-part="move-badge"
+      data-kind={kind}
+      role="img"
+      aria-label={label}
+      title={label}
+    >
       {kind === "again" && <Icon of={glyphs.RotateCcw} size={12} />}
       {text}
     </span>

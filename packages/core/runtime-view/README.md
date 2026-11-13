@@ -53,6 +53,35 @@ editor, the condition dialog and the move panel, with no WCAG 2.2 A or AA violat
 (`test/webview/accessibility.test.tsx`); `test/webview/semantics.test.tsx` holds the roles and
 states each screen keeps, `test/webview/focus-on-update.test.tsx` focus across a live update.
 
+They reach the webview by role and accessible name, which a query asserts, and where no role
+fits by a `data-part` hook, never by a CSS class of the webview: the switch to React (D9) keeps
+every hook below on the element that plays the part, so the tests, the VS Code e2e test and the
+screenshot scripts (`apps/vscode/scripts`) carry over unchanged.
+`test/architecture/webview-test-hooks.test.ts` refuses a test under `test/webview` that names a
+class of the webview in a selector or as a class it expects (diagram-js's and bpmn-js's own
+classes and the diagram's `pulse-*` markers, which bpmn-js sets, stay). The hooks:
+
+| Hook              | Parts                                                                                                                                                                                 |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| bar and states    | `context-bar` (`data-kind`: engine, definition, instance, migration, board, pending), `context-subject`, `context-key`, `access`, `freshness`, `strips`                               |
+| notices           | `status-strip`, `strip-title`, `status-box`, `bulk-strip`, `empty-hint`, `loading-layout`, `skeleton`                                                                                 |
+| lists             | `data-table` (`data-state`: auto, fixed), `column-label`, `table-empty`, `table-footer`, `filter-bar`, `filter-chip`, `filter-summary`, `segment-count`, `selection-count`, `tab-bar` |
+| states and counts | `state-label`, `incident-flag`, `count-badge`, `incident-count`                                                                                                                       |
+| instance          | `incident-card`, `variable-name`, `editor-hint`, `editor-warning`, `caller-link`, `called-instance-link`                                                                              |
+| diagram           | `diagram`, `diagram-canvas`, `diagram-failure`, `element-actions`, `move-entry`, `move-badge`, `code-button`, `move-panel`, `move-warning`                                            |
+| migration         | `migration-diagram`, `migration-summary`, `migration-refusal`, `mapping-note`                                                                                                         |
+| boards            | `board-card` (`data-kind`: the tile's kind), `counter-value`, `counter-partial`, `counter-threshold`, `counter-entry`, `counter-count`, `group-note`                                  |
+
+A variant is `data-kind`, a tone `data-tone` (danger, warning, info, neutral, success) and a state
+`data-state` (stale, offline, refreshing, above, undecided, refused, missing, writable …), each
+on the element with the part. The geometry gate (`test/webview/geometry.test.tsx`) renders every
+fixture of the dev page, the open legend, the variable editor, the condition dialog and the move
+panel at 1,300 pixels: every Lucide icon measures 12 or 16 px, 12 px only inside the parts
+`test/webview/dense-icon-regions.ts` maps to the files of the 12 px allowance in
+`apps/vscode/test/architecture/brand-gates.test.ts` (which holds the two lists equal and each file
+to its hook), and every interactive target at least 24 by 24 px (WCAG 2.5.8), the overlays on the
+diagram (`.djs-overlays`, the named 20 px deviation) aside.
+
 The architecture decisions are the extension's (`apps/vscode/docs/adr/`), where the runtime view
 grew up; the house rules are in `apps/vscode/CLAUDE.md`.
 

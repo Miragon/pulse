@@ -8,6 +8,11 @@ import {
   mountApp,
   nextFrame,
   press,
+  allRoles,
+  findPart,
+  findRole,
+  getRole,
+  queryPart,
   radioNamed,
   waitForElement,
   type Harness,
@@ -97,7 +102,7 @@ describe("the filter bar of the definition panel", () => {
     await waitForElement(harness.root, '[role="radiogroup"]')
 
     expect(radioNamed(harness.root, "With incident").textContent).toBe("With incident 0")
-    expect(harness.root.querySelector(".segmented__count--danger")).toBeNull()
+    expect(queryPart(harness.root, "segment-count", { tone: "danger" })).toBeNull()
   })
 
   it("marks a count that is only a lower bound", async () => {
@@ -126,10 +131,11 @@ describe("the filter bar of the definition panel", () => {
   it("puts the element chip and the search on a second row when it is narrow", async () => {
     harness = mountApp({ width: 600 })
     harness.publish(FILTERED)
-    const chip = await waitForElement(harness.root, ".filter-bar .filter-chip")
-    const group = harness.root.querySelector('[role="radiogroup"]')!
-    const search = harness.root.querySelector(".filter-bar .search-field")!
-    const toggle = harness.root.querySelector(".filter-bar .legend__toggle")!
+    const bar = await findPart(harness.root, "filter-bar")
+    const chip = await findPart(bar, "filter-chip", { kind: "element" })
+    const group = getRole(bar, "radiogroup", { name: "Show instances" })
+    const search = getRole(bar, "searchbox").closest("label")!
+    const toggle = getRole(bar, "button", { name: "Legend" })
 
     expect(chip.getBoundingClientRect().top).toBeGreaterThan(group.getBoundingClientRect().bottom)
     expect(search.getBoundingClientRect().top).toBe(chip.getBoundingClientRect().top)
@@ -142,8 +148,8 @@ describe("the filter bar of the definition panel", () => {
   it("keeps the legend behind a button whose popover opens over the diagram", async () => {
     harness = mountApp()
     harness.publish(FIXTURES.definition)
-    const toggle = await waitForElement<HTMLButtonElement>(harness.root, ".legend__toggle")
-    const popover = harness.root.querySelector<HTMLElement>(".legend__popover")!
+    const toggle = await findRole<HTMLButtonElement>(harness.root, "button", { name: "Legend" })
+    const popover = toggle.popoverTargetElement as HTMLElement
     expect(toggle.offsetParent).not.toBeNull()
     expect(popover.matches(":popover-open")).toBe(false)
 
@@ -160,13 +166,13 @@ describe("the filter bar of the definition panel", () => {
   it("closes the legend on Escape without clearing the element filter", async () => {
     harness = mountApp({ width: 900 })
     harness.publish(FILTERED)
-    const toggle = await waitForElement<HTMLButtonElement>(harness.root, ".legend__toggle")
+    const toggle = await findRole<HTMLButtonElement>(harness.root, "button", { name: "Legend" })
     toggle.click()
 
     press(toggle, "Escape")
     expect(filtersPosted(harness)).toEqual([])
 
-    harness.root.querySelector<HTMLElement>(".legend__popover")?.hidePopover()
+    ;(toggle.popoverTargetElement as HTMLElement).hidePopover()
     press(toggle, "Escape")
     expect(filtersPosted(harness)).toEqual([
       { type: "filterInstances", filter: { scope: "withIncident" } },
@@ -184,11 +190,12 @@ describe("the bar of the instance panel", () => {
   it("holds the tabs and the marker legend behind a button, without the version line", async () => {
     harness = mountApp()
     harness.publish(FIXTURES.instance)
-    const bar = await waitForElement(harness.root, ".tabs__bar")
-    const toggle = bar.querySelector<HTMLButtonElement>(".legend__toggle")!
-    const popover = bar.querySelector<HTMLElement>(".legend__popover")!
+    const bar = await findPart(harness.root, "tab-bar")
+    const toggle = getRole<HTMLButtonElement>(bar, "button", { name: "Legend" })
+    const popover = toggle.popoverTargetElement as HTMLElement
 
-    expect(bar.querySelector('[role="tablist"]')).not.toBeNull()
+    expect(bar.contains(popover)).toBe(true)
+    expect(getRole(bar, "tablist")).not.toBeNull()
     expect(popover.matches(":popover-open")).toBe(false)
     toggle.click()
     expect(popover.textContent).toBe(
@@ -200,10 +207,12 @@ describe("the bar of the instance panel", () => {
   it("shows only the legend button at 650 pixels", async () => {
     harness = mountApp({ width: 650 })
     harness.publish(FIXTURES.instance)
-    const toggle = await waitForElement<HTMLElement>(harness.root, ".tabs__bar .legend__toggle")
+    const toggle = await findRole(await findPart(harness.root, "tab-bar"), "button", {
+      name: "Legend",
+    })
 
     expect(toggle.offsetParent).not.toBeNull()
-    expect(harness.root.querySelector(".legend__inline")).toBeNull()
+    expect(allRoles(harness.root, "button", { name: "Legend" })).toEqual([toggle])
   })
 
   it("keeps a scope chosen right after the first render", async () => {

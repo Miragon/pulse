@@ -62,10 +62,10 @@ export function RuntimeDiagram(props: RuntimeDiagramProps) {
   }, [props.xml, props.decorations])
 
   return (
-    <section class="diagram-region" aria-label={props.label ?? "Diagram"}>
-      <div class="diagram-host" ref={hostElement} />
+    <section class="diagram-region" data-part="diagram" aria-label={props.label ?? "Diagram"}>
+      <div class="diagram-host" data-part="diagram-canvas" ref={hostElement} />
       {failure !== undefined && (
-        <div class="diagram-region__failure">
+        <div class="diagram-region__failure" data-part="diagram-failure">
           <EmptyHint text="Couldn't draw the deployed diagram." />
         </div>
       )}

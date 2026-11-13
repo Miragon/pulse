@@ -28,6 +28,8 @@ function ScopeCount({ alarming, count, atLeast }: ScopeCountProps) {
   return (
     <span
       class={alarming ? "segmented__count segmented__count--danger" : "segmented__count"}
+      data-part="segment-count"
+      data-tone={alarming ? "danger" : undefined}
       title={CountLabels.exact(count, atLeast)}
     >
       {CountLabels.compact(count, atLeast)}

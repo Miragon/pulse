@@ -43,13 +43,19 @@ export function BulkStrip({ bulk }: { readonly bulk: BulkView }) {
   const announced = useStatusAnnouncement(status, bulk.announcement)
   const detail = notice.detail
   return (
-    <div class={`status-strip status-strip--${notice.tone} bulk-strip`}>
+    <div
+      class={`status-strip status-strip--${notice.tone} bulk-strip`}
+      data-part="bulk-strip"
+      data-tone={notice.tone}
+    >
       <Icon of={TONE_GLYPHS[notice.tone]} class="status-strip__icon" />
       <p
         class="status-strip__text"
         title={detail === undefined ? notice.title : `${notice.title} ${detail}`}
       >
-        <span class="status-strip__title">{notice.title}</span>
+        <span class="status-strip__title" data-part="strip-title">
+          {notice.title}
+        </span>
         {detail !== undefined && <span class="status-strip__detail">{detail}</span>}
       </p>
       {actions.length > 0 && (

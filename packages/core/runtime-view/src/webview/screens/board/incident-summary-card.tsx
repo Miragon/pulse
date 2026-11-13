@@ -55,10 +55,16 @@ export function IncidentSummaryCard({ tile }: { readonly tile: IncidentSummaryTi
       <p class="counter__total">
         <span
           class={`counter__value${tile.total !== undefined && tile.total > 0 ? " danger-count" : ""}`}
+          data-part="counter-value"
+          data-tone={tile.total !== undefined && tile.total > 0 ? "danger" : undefined}
         >
           {BoardLabels.count(tile.total)}
         </span>
-        {partial !== undefined && <span class="counter__partial">{partial}</span>}
+        {partial !== undefined && (
+          <span class="counter__partial" data-part="counter-partial">
+            {partial}
+          </span>
+        )}
       </p>
       {tile.rows.length === 0 ? (
         <EmptyHint

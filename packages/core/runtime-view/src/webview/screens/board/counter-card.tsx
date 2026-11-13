@@ -17,7 +17,11 @@ function EntryText({ entry, incident }: EntryProps) {
   return (
     <>
       <span class="counter__engine-name">{entry.engine}</span>
-      <span class={`counter__engine-count${tone}`}>
+      <span
+        class={`counter__engine-count${tone}`}
+        data-part="counter-count"
+        data-tone={danger ? "danger" : undefined}
+      >
         {BoardLabels.entryCount(entry.count, entry.atLeast === true)}
       </span>
       {entry.above === true && <Icon of={glyphs.TriangleAlert} />}
@@ -44,7 +48,11 @@ function EntryButton({ entry, incident, target }: EntryProps & { readonly target
 function Entry({ entry, incident }: EntryProps) {
   const above = entry.above === true ? " counter__entry--above" : ""
   return (
-    <li class={`counter__entry${above}`}>
+    <li
+      class={`counter__entry${above}`}
+      data-part="counter-entry"
+      data-state={entry.above === true ? "above" : undefined}
+    >
       {entry.count === undefined || entry.target === undefined ? (
         <span class="counter__engine counter__engine--static">
           <EntryText entry={entry} incident={incident} />
@@ -63,12 +71,19 @@ function Threshold({ tile }: { readonly tile: CounterTile }) {
   const warning = BoardLabels.warning(tile)
   if (warning === undefined) {
     return (
-      <span class="counter__threshold">{`warns above ${CountLabels.exact(tile.warnAbove)}`}</span>
+      <span
+        class="counter__threshold"
+        data-part="counter-threshold"
+      >{`warns above ${CountLabels.exact(tile.warnAbove)}`}</span>
     )
   }
   const tone = BoardLabels.above(tile) === undefined ? "undecided" : "above"
   return (
-    <span class={`counter__threshold counter__threshold--${tone}`}>
+    <span
+      class={`counter__threshold counter__threshold--${tone}`}
+      data-part="counter-threshold"
+      data-state={tone}
+    >
       <Icon of={glyphs.TriangleAlert} />
       {warning}
     </span>
@@ -82,10 +97,18 @@ export function CounterCard({ tile }: { readonly tile: CounterTile }) {
   return (
     <BoardCard title={tile.title} kind="counter">
       <p class="counter__total">
-        <span class={`counter__value${danger ? " danger-count" : ""}`}>
+        <span
+          class={`counter__value${danger ? " danger-count" : ""}`}
+          data-part="counter-value"
+          data-tone={danger ? "danger" : undefined}
+        >
           {BoardLabels.count(tile.total, tile.totalAtLeast === true)}
         </span>
-        {partial !== undefined && <span class="counter__partial">{partial}</span>}
+        {partial !== undefined && (
+          <span class="counter__partial" data-part="counter-partial">
+            {partial}
+          </span>
+        )}
         <Threshold tile={tile} />
       </p>
       <ul class="counter__entries" aria-label="Per engine">
