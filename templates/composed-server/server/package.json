@@ -22,12 +22,12 @@
   },
   "dependencies": {
     "@acme/mcp-notes": "workspace:*",
-    "@miragon/pulse-engine-connector": "0.27.1",
-    "@miragon/pulse-widget-shell": "0.27.1",
+    "@miragon/pulse-engine-connector": "0.28.0",
+    "@miragon/pulse-widget-shell": "0.28.0",
     "zod": "4.6.7"
   },
   "devDependencies": {
-    "@miragon/pulse-ui": "0.27.1",
+    "@miragon/pulse-ui": "0.28.0",
     "@modelcontextprotocol/client": "2.4.0",
     "@modelcontextprotocol/inspector": "2.14.0",
     "@tailwindcss/vite": "4.3.5",

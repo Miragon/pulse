@@ -1,6 +1,6 @@
 {
   "name": "@miragon/pulse-engine-core",
-  "version": "0.27.1",
+  "version": "0.28.0",
   "description": "The neutral core of the engine family of Pulse: the contract every dialect implements (the read and write ports ProcessRuntime and ProcessCommands, their ids, read models, queries and failure kinds, and RootCauses, the root-cause rule of every dialect), and in ./testing the conformance kit with its laws, its fixed world and an in-memory fake engine. No runtime dependency.",
   "license": "MIT",
   "keywords": [
