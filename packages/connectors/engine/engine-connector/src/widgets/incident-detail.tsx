@@ -127,13 +127,9 @@ export function IncidentDetailWidget({
   // #322 U12: the failure and its remedy first, then the diagram, then the depth.
   return (
     <DetailPage
-      header={
-        <>
-          {notice}
-          <IncidentDetailHeader data={data} resolved={resolved} />
-          <FailureSummary data={data} {...remedy} />
-        </>
-      }
+      header={<IncidentDetailHeader data={data} resolved={resolved} />}
+      notice={notice}
+      summary={<FailureSummary data={data} {...remedy} />}
       diagram={
         <section>
           <SectionHeading

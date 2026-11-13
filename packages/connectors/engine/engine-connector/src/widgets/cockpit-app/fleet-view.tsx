@@ -7,6 +7,7 @@ import {
   TONE_DOT,
   cn,
   countTone,
+  WidgetHeader,
 } from "@miragon/pulse-ui"
 import { HandOffButton } from "@miragon/pulse-widget-shell/widgets"
 import { ArrowRight } from "lucide-react"
@@ -79,7 +80,7 @@ function FleetEngineCard({
       onClick={onEnter}
       // No aria-label: it would replace the accessible name and hide the KPIs from screen readers.
       className={cn(
-        "border-border bg-card hover:bg-muted flex flex-col gap-3 rounded-xl border p-4 text-left transition-colors",
+        "border-border bg-card hover:bg-accent flex flex-col gap-2.5 rounded-md border p-3 text-left transition-colors",
         FOCUS_RING,
       )}
     >
@@ -156,15 +157,12 @@ export function FleetView({
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-title text-foreground mb-1.5 tracking-tight">{t("fleet.heading")}</h1>
-          <div className="text-muted-foreground text-small">
-            {t("fleet.engineCount", { count: formatNumber(engines.length), list: idList })}
-          </div>
-        </div>
-        <HandOffButton action="assess" prompt={ask(fleetOverviewHandOff(fleet))} />
-      </header>
+      <WidgetHeader
+        size="app"
+        title={t("fleet.heading")}
+        sub={t("fleet.engineCount", { count: formatNumber(engines.length), list: idList })}
+        actions={<HandOffButton action="assess" prompt={ask(fleetOverviewHandOff(fleet))} />}
+      />
 
       <section className="flex flex-col gap-4">
         <SectionHeading title={t("fleet.engineHealth.title")} hint={t("fleet.engineHealth.hint")} />

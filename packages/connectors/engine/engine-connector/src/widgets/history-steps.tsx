@@ -75,23 +75,23 @@ export function HistoryTable({
   const t = useT()
   return (
     <div className="border-border overflow-x-auto rounded-lg border">
-      {/* Compact variant: py-2 overrides Td/Th's default padding, the wrapper
-          border replaces the header's own top edge, and the activity cell takes
-          the remaining width (w-full max-w-0) so long names truncate instead of
-          widening the table into horizontal scroll. */}
+      {/* The cells keep the kit's padding (28 px rows), the wrapper border replaces the
+          header's own top edge, and the activity cell takes the remaining width
+          (w-full max-w-0) so long names truncate instead of widening the table into
+          horizontal scroll. */}
       <ListTable
         className="[&_th]:border-t-0"
         ariaLabel={t("incidentHistory.tableAriaLabel")}
         columns={[
-          { label: t("incidentHistory.columnActivity"), className: "py-2" },
-          { label: t("incidentHistory.columnStarted"), align: "right", className: "py-2" },
-          { label: t("incidentHistory.columnDuration"), align: "right", className: "py-2" },
-          { label: t("incidentHistory.columnStatus"), align: "right", className: "py-2" },
+          { label: t("incidentHistory.columnActivity") },
+          { label: t("incidentHistory.columnStarted"), align: "right" },
+          { label: t("incidentHistory.columnDuration"), align: "right" },
+          { label: t("incidentHistory.columnStatus"), align: "right" },
         ]}
       >
         {entries.map((entry) => (
-          <tr key={entry.id} className="hover:bg-card [&:last-child>td]:border-b-0">
-            <Td className="w-full max-w-0 py-2">
+          <tr key={entry.id} className="[&:last-child>td]:border-b-0">
+            <Td className="w-full max-w-0">
               <div className="text-foreground truncate font-semibold">
                 {entry.activityName ?? entry.activityId}
               </div>
@@ -99,13 +99,13 @@ export function HistoryTable({
                 {entry.activityType}
               </div>
             </Td>
-            <Td align="right" className="text-muted-foreground text-small py-2 font-mono">
+            <Td align="right" className="text-muted-foreground text-small font-mono">
               {formatTimestamp(entry.startTime)}
             </Td>
-            <Td align="right" className="text-muted-foreground text-small py-2 font-mono">
+            <Td align="right" className="text-muted-foreground text-small font-mono">
               {formatDuration(entry.durationInMillis)}
             </Td>
-            <Td align="right" className="py-2">
+            <Td align="right">
               <StepBadge state={historyStepState(entry, incidentIds)} />
             </Td>
           </tr>

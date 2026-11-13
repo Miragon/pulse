@@ -40,7 +40,7 @@ export function EmptyStateWithSiblings({
                   onJumpTo(s.processDefinitionKey, s.processDefinitionName ?? undefined)
                 }
                 className={cn(
-                  "border-border bg-muted text-muted-foreground hover:text-foreground hover:bg-muted text-small inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 transition-colors",
+                  "border-border bg-raised text-muted-foreground hover:text-foreground hover:bg-accent text-small min-h-control inline-flex items-center gap-1.5 rounded-md border px-2.5 transition-colors",
                   FOCUS_RING,
                 )}
               >

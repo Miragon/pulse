@@ -31,7 +31,7 @@ describe("Toolbar", () => {
       ]),
     )
     expect(classes(bar?.firstElementChild)).toEqual(
-      expect.arrayContaining(["gap-2", "items-center", "px-[var(--bar-inset,var(--gutter))]"]),
+      expect.arrayContaining(["gap-2", "items-center", "px-gutter"]),
     )
     expect(classes(bar?.firstElementChild)).not.toContain("min-h-toolbar")
     const css = await compiled(["min-h-toolbar", "border-b"])

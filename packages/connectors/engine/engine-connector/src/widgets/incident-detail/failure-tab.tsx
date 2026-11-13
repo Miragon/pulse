@@ -3,6 +3,7 @@ import {
   Alert,
   AlertDescription,
   Button,
+  Facts,
   MICRO_LABEL,
   StatusBadge,
   cn,
@@ -10,10 +11,13 @@ import {
   formatTimestamp,
   Icon,
   LogText,
+  SITUATION_TONES,
   TEXT_BLOCK_FRAME,
+  TONE_ICON,
+  type Fact,
 } from "@miragon/pulse-ui"
 import { HandOffButton, IdText } from "@miragon/pulse-widget-shell/widgets"
-import { Check, RotateCcw } from "lucide-react"
+import { Check, CircleX, RotateCcw } from "lucide-react"
 
 import type { IncidentDetailData, IncidentDetailJob } from "../../view-models.js"
 
@@ -61,17 +65,63 @@ export interface RemedyProps {
   retryError?: string | null
 }
 
-/** One wrapping line instead of a KPI strip whose tiles cut "10/10/202" (#322 U12). */
-function FactLine({ data }: { data: IncidentDetailData }) {
+/**
+ * A job's retries left, a neutral number: none left is a failed job without retries, which adds
+ * the danger tone's icon of its own shape, named in words for a screen reader.
+ */
+function RetriesLeft({ retries }: { retries: number }) {
   const t = useT()
-  const facts = [
-    t("incidentFailure.factOccurred", { time: formatTimestamp(data.incidentTimestamp) }),
-    data.job ? t("incidentFailure.retriesLeft", { count: formatNumber(data.job.retries) }) : null,
-    data.historyTotalCount !== null
-      ? t("incidentFailure.factHistory", { count: formatNumber(data.historyTotalCount) })
-      : null,
-  ].filter((fact): fact is string => fact !== null)
-  return <p className="text-muted-foreground text-small break-words">{facts.join(" · ")}</p>
+  return (
+    <span className="inline-flex items-baseline gap-1.5 tabular-nums">
+      {retries === 0 && (
+        <Icon
+          icon={CircleX}
+          label={t("incidentFailure.noRetriesLeft")}
+          className={cn(TONE_ICON[SITUATION_TONES.jobWithoutRetries], "self-center")}
+        />
+      )}
+      {formatNumber(retries)}
+    </span>
+  )
+}
+
+/**
+ * The incident's key facts as the webview's incident card lists them, never a KPI strip whose
+ * tiles cut "10/10/202" (#322 U12): when, its retries, its job and its own id (each copyable),
+ * how much history it has.
+ */
+function IncidentFacts({ data }: { data: IncidentDetailData }) {
+  const t = useT()
+  const facts: Fact[] = [
+    {
+      id: "occurred",
+      label: t("incidentFailure.factOccurred"),
+      value: formatTimestamp(data.incidentTimestamp),
+    },
+  ]
+  if (data.job) {
+    facts.push(
+      {
+        id: "retries",
+        label: t("incidentFailure.factRetries"),
+        value: <RetriesLeft retries={data.job.retries} />,
+      },
+      { id: "job", label: t("incidentFailure.job"), value: <IdText value={data.job.id} /> },
+    )
+  }
+  facts.push({
+    id: "incident",
+    label: t("incidentFailure.factIncident"),
+    value: <IdText value={data.incidentId} />,
+  })
+  if (data.historyTotalCount !== null) {
+    facts.push({
+      id: "history",
+      label: t("incidentFailure.factHistory"),
+      value: <span className="tabular-nums">{formatNumber(data.historyTotalCount)}</span>,
+    })
+  }
+  return <Facts facts={facts} />
 }
 
 /** #322 U11/U12: the failure first, the deterministic remedy as the one primary button. */
@@ -95,6 +145,7 @@ export function FailureSummary({
         {t("incidentFailure.errorMessageTitle")}
       </h2>
       <LogText text={errorText(data)} />
+      <IncidentFacts data={data} />
       <div className="flex flex-wrap items-center gap-2">
         {retried || resolved ? (
           <StatusBadge tone="success">
@@ -123,7 +174,6 @@ export function FailureSummary({
         <HandOffButton action="draftTicket" prompt={ask(draftTicketHandOff(data))} />
       </div>
       <WriteError error={retryError} />
-      <FactLine data={data} />
     </section>
   )
 }

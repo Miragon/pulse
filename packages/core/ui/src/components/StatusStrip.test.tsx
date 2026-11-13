@@ -1,8 +1,9 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react"
 import { RotateCcw } from "lucide-react"
 import { TONE_BORDER, TONE_ICON } from "../lib/tone-utils.js"
+import { LocaleProvider } from "../locale/locale-provider.js"
 import { classesUnder, compiled, narrowRules } from "./bar-css.test-support.js"
 import { StatusStrip, type StatusStripAction } from "./StatusStrip.js"
 
@@ -149,6 +150,51 @@ describe("StatusStrip", () => {
     expect(onClick).not.toHaveBeenCalled()
   })
 
+  it("keeps the raw reason behind Details: collapsed, outside the live region, opened under the line by its button", () => {
+    const retry = vi.fn()
+    const { container } = render(
+      <StatusStrip
+        tone="warning"
+        title="Couldn't refresh this view"
+        detail="Something went wrong."
+        details="[404 NotFoundException] pi-1 does not exist"
+        actions={[{ label: "Try again", icon: RotateCcw, onClick: retry }]}
+      />,
+    )
+    const toggle = screen.getByRole("button", { name: "Details" })
+    const panel = container.querySelector<HTMLElement>('[data-slot="status-strip-details"]')!
+    expect(toggle.getAttribute("aria-controls")).toBe(panel.id)
+    expect(toggle.getAttribute("aria-expanded")).toBe("false")
+    expect(panel.hidden).toBe(true)
+    expect(panel.textContent).toBe("[404 NotFoundException] pi-1 does not exist")
+    // Never part of what the strip announces; the Details button sits before the actions.
+    expect(screen.getByRole("status").textContent).not.toContain("pi-1")
+    const buttons = within(strip(container)).getAllByRole("button")
+    expect(buttons.map((button) => button.getAttribute("title"))).toEqual(["Details", "Try again"])
+    fireEvent.click(toggle)
+    expect(toggle.getAttribute("aria-expanded")).toBe("true")
+    expect(panel.hidden).toBe(false)
+    expect(classes(panel)).toEqual(
+      expect.arrayContaining(["font-mono", "text-small", "whitespace-pre-wrap"]),
+    )
+    fireEvent.click(toggle)
+    expect(panel.hidden).toBe(true)
+    expect(retry).not.toHaveBeenCalled()
+  })
+
+  it("draws no Details button without a reason, and takes its words from the locale or the caller", () => {
+    const { rerender } = render(<StatusStrip tone="info" title="Stale" details="" />)
+    expect(screen.queryByRole("button")).toBeNull()
+    rerender(
+      <LocaleProvider locale="de">
+        <StatusStrip tone="info" title="Veraltet" details="raw" />
+      </LocaleProvider>,
+    )
+    expect(screen.getByRole("button", { name: "Details" })).toBeTruthy()
+    rerender(<StatusStrip tone="info" title="Stale" details="raw" detailsLabel="Engine text" />)
+    expect(screen.getByRole("button", { name: "Engine text" })).toBeTruthy()
+  })
+
   it("keeps the title before the detail, the detail cut first; under 30rem the line wraps and under 36rem a label collapses, by the strip's own width", async () => {
     const { container } = render(
       <StatusStrip
@@ -159,7 +205,9 @@ describe("StatusStrip", () => {
       />,
     )
     const [title, detail] = Array.from(screen.getByRole("status").children)
-    expect(classes(title)).toContain("font-semibold")
+    expect(classes(title)).toEqual(
+      expect.arrayContaining(["font-semibold", "shrink-0", "max-w-full"]),
+    )
     expect(classes(detail)).toContain("shrink-[1000]")
     const css = await compiled(classesUnder(strip(container)))
     const under30 = narrowRules(css, "30rem")

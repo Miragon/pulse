@@ -185,14 +185,15 @@ const STUB_DEFINITIONS = ["Customer Onboarding", "Invoice Receipt", "Order Fulfi
  * head (#396), and a cut list says how many of the three in its footer row (`shownLine`).
  *
  * Under the compact look (28 px heads, 33 px rows: their 28 px row actions and the cells' 2 px
- * padding; the view's 40 px bar) the overview with all three rows is 505 px high at 960 px and at
- * the inline width of 760 px, English and German alike: the unstated budget (fitted as 600 px)
- * fits all three, with 95 px to spare. A host that adds a line above the view (a recovered
- * render's "Reloaded at", the fullscreen toggle's bar) adds 40 px: all three still fit (545 px).
- * Under that line one row and the 44 px footer row are 523 px and two rows and the footer 556 px,
- * so a 534 px budget fits exactly one, 11 px either side of what one and all three need. Where
- * even one row would not fit (a 220 px budget) the fit cuts nothing and the view scrolls instead,
- * and fullscreen fits nothing.
+ * padding; the cockpit's 40 px head and the view's 40 px bar from edge to edge, each route's
+ * content in the 12 px gutter) the overview with all three rows is 471 px high at 960 px (472 px
+ * at the inline width of 760 px), English and German alike: the unstated budget (fitted as
+ * 600 px) fits all three, with 129 px to spare. A host that adds a line above the view (a
+ * recovered render's "Reloaded at", the fullscreen toggle's bar) adds 40 px: all three still fit
+ * (511 px). Under that line one row and the 44 px footer row are 489 px and two rows and the
+ * footer 522 px, so a 500 px budget fits exactly one, 11 px either side of what one and all three
+ * need. Where even one row would not fit (a 220 px budget) the fit cuts nothing and the view
+ * scrolls instead, and fullscreen fits nothing.
  */
 async function expectDefinitions(
   table: Locator,
@@ -227,7 +228,7 @@ async function expectGermanOverview(app: FrameLocator, shown: 1 | 2 | 3 = 3): Pr
  * A budget that fits exactly one of the overview's three rows at 960 px under the fullscreen
  * toggle's bar, 11 px either side.
  */
-const ONE_DEFINITION_BUDGET = 534
+const ONE_DEFINITION_BUDGET = 500
 
 const STUB_JOBS = [
   "Card declined",
@@ -248,13 +249,13 @@ const STUB_JOBS = [
  * The cockpit's jobs route rendered the stub engine's twelve failed jobs, the first job first:
  * inline exactly the `shown` rows the host's budget leaves room for under the cockpit's head
  * and the KPI strip (#396), and the count line says how many of the twelve. Under the compact
- * look (33 px rows with their 28 px row actions, ids in one line, the view's 40 px bar, the KPI
- * strip's 12 px tiles) a 600 px budget (and the unstated one, fitted as 600 px) leaves room for
- * eight at 960 px and at 760 px (576 px; a ninth row would need 9 px more); 800 px fits all
- * twelve (699 px). A head section shows no trail inline, so the
- * head is the only row above the view.
+ * look (33 px rows with their 28 px row actions, ids in one line, the cockpit's 40 px head and the
+ * view's 40 px bar from edge to edge, the content in the 12 px gutter, the KPI strip's 12 px
+ * tiles) a 600 px budget (and the unstated one, fitted as 600 px) leaves room for ten at 960 px
+ * and at 760 px (589 px; an eleventh row would need 22 px more); 800 px fits all twelve (655 px).
+ * A head section shows no trail inline, so the head is the only row above the view.
  */
-async function expectJobs(app: FrameLocator, shown: 8 | 12) {
+async function expectJobs(app: FrameLocator, shown: 10 | 12) {
   const region = app.getByRole("region", { name: "Jobs", exact: true })
   await expect(region).toBeVisible({ timeout: 15_000 })
   await expect(region.getByRole("row")).toHaveCount(shown + 1)
@@ -852,7 +853,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
   }) => {
     const app = await openView(page, { args: JOBS_ARGS, maxHeight: 600 })
 
-    await expectJobs(app, 8)
+    await expectJobs(app, 10)
     const container = await app.locator("#root").evaluate((root) => {
       const el = root.firstElementChild as HTMLElement
       return { scrollHeight: el.scrollHeight, clientHeight: el.clientHeight }
@@ -865,7 +866,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
   }) => {
     const app = await openView(page, { args: JOBS_ARGS })
 
-    await expectJobs(app, 8)
+    await expectJobs(app, 10)
     // The old html/body/#root floor reported 600 for every view. `settledHeight`
     // waits for the report that equals the content's max-content height.
     const reported = await settledHeight(page, app)
@@ -1310,22 +1311,26 @@ test.describe("kit foundation (engine_open_cockpit, the jobs)", () => {
 
   test("high contrast (data-cd-kontrast): no shadows, a 3 px focus ring", async ({ page }) => {
     const app = await openView(page, { args: JOBS_ARGS })
-    await expectJobs(app, 8)
+    await expectJobs(app, 10)
     const current = app
       .getByRole("navigation", { name: "Cockpit sections" })
       .getByRole("button", { name: "Jobs" })
-    /** The widest box-shadow spread on the focused section button: the ring plus its 2 px offset. */
+    /**
+     * The focused section's ring: a line tab of the head's bar draws it inside (the kit's inset
+     * ring, so the bar's edge never cuts it), its spread the focus width alone.
+     */
     const ringReach = async () => {
       await current.focus()
       return await current.evaluate((el) => {
-        const spreads = [...getComputedStyle(el).boxShadow.matchAll(/0px 0px 0px (\d+)px/g)]
+        const shadow = getComputedStyle(el).boxShadow
+        const spreads = [...shadow.matchAll(/0px 0px 0px (\d+)px inset/g)]
         return Math.max(...spreads.map((spread) => Number(spread[1])))
       })
     }
 
-    expect(await ringReach()).toBe(4)
+    expect(await ringReach()).toBe(2)
     await app.locator("html").evaluate((html) => html.setAttribute("data-cd-kontrast", "hoch"))
-    expect(await ringReach()).toBe(5)
+    expect(await ringReach()).toBe(3)
     const shadows = await app
       .locator("html")
       .evaluate((html) =>
@@ -1434,19 +1439,52 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
     page,
   }) => {
     const app = await openView(page, { width: INLINE_WIDTH })
-    // At 760 px the unstated budget fits all three (592 px).
+    // At 760 px the unstated budget fits all three (472 px).
     await expectOverview(app, 3)
     const { scrollWidth, clientWidth } = await documentOverflow(app)
     expect(scrollWidth, "the document never scrolls sideways").toBeLessThanOrEqual(clientWidth)
     const region = app.getByRole("region", { name: DEFINITIONS_TABLE })
     await expect(region).toBeVisible()
     expect(await region.getAttribute("tabindex")).toBe("0")
-    // The shell pads in the gutter of the density roles: 12 px (--cd-shell-rand), at every width.
-    const padding = await app
-      .locator(".max-w-7xl")
+    // The shell pads nothing: the head's and the view's bars run from edge to edge, the gutter of
+    // the density roles (12 px, --cd-shell-rand) inside the view's bar and around each route's
+    // content. The list's filter bar under its heading reaches the card's edges too, its field
+    // in the gutter, on the content's edge.
+    const frame = await app
+      .locator('[data-slot="widget-shell"]')
       .first()
-      .evaluate((frame) => getComputedStyle(frame).paddingLeft)
-    expect(padding).toBe("12px")
+      .evaluate((shell) => {
+        const box = shell.getBoundingClientRect()
+        const span = (selector: string) =>
+          [...shell.querySelectorAll<HTMLElement>(selector)].map((bar) => {
+            const own = bar.getBoundingClientRect()
+            return { left: own.left - box.left, right: box.right - own.right }
+          })
+        const pad = (el: Element) => getComputedStyle(el).paddingLeft
+        return {
+          padding: getComputedStyle(shell).paddingLeft,
+          bars: span('[data-slot="cockpit-head"], [data-slot="view-bar"]'),
+          barInsets: [...shell.querySelectorAll('[data-slot="view-bar"] > div')].map(pad),
+          headInsets: [...shell.querySelectorAll('[data-slot="cockpit-head"]')].map(
+            (head) => `${pad(head)} ${getComputedStyle(head).paddingRight}`,
+          ),
+          contents: [...shell.querySelectorAll('[data-slot="widget-content"].px-gutter')].map(pad),
+          toolbars: span('[data-slot="toolbar"]'),
+          fields: [
+            ...shell.querySelectorAll('[data-slot="toolbar"] [data-slot="search-field"]'),
+          ].map((field) => field.getBoundingClientRect().left - box.left),
+        }
+      })
+    expect(frame.padding).toBe("0px")
+    expect(frame.bars).toHaveLength(2)
+    for (const bar of frame.bars) expect(bar).toEqual({ left: 0, right: 0 })
+    expect(frame.barInsets).toEqual(["12px"])
+    // The head's tabs start 8 px in, as a view's tab bar does; its end sits in the gutter.
+    expect(frame.headInsets).toEqual(["8px 12px"])
+    expect(frame.contents.length).toBeGreaterThan(0)
+    for (const padding of frame.contents) expect(padding).toBe("12px")
+    expect(frame.toolbars).toEqual([{ left: 0, right: 0 }])
+    expect(frame.fields).toEqual([12])
   })
 
   test("the job panel: low-priority columns hide, the row actions stay pinned and reachable", async ({
@@ -1679,7 +1717,7 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
     }
   })
 
-  test("axe: the inline views pass WCAG 2.1 A/AA (light and dark)", async ({ page }) => {
+  test("axe: the inline views pass WCAG 2.2 A/AA (light and dark)", async ({ page }) => {
     for (const [view, args, theme] of [
       ["overview", { engine: HEALTHY_ENGINE }, "light"],
       ["jobs", JOBS_ARGS, "light"],
@@ -1690,7 +1728,7 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
       await expect(app.getByRole("table").first()).toBeVisible({ timeout: 15_000 })
       const results = await new AxeBuilder({ page })
         .include("#app")
-        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22a", "wcag22aa"])
         .analyze()
       const violations = results.violations.map((v) => ({
         id: v.id,
@@ -1720,7 +1758,7 @@ test.describe("cockpit (engine_open_cockpit)", () => {
 
   test("opens on its start view: the head section current, no picker", async ({ page }) => {
     const app = await openView(page, { args: JOBS_ARGS })
-    await expectJobs(app, 8)
+    await expectJobs(app, 10)
     const sections = app.getByRole("navigation", { name: "Cockpit sections" })
     await expect(sections.getByRole("button", { name: "Jobs" })).toHaveAttribute(
       "aria-current",

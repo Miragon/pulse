@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeAll, describe, expect, it } from "vitest"
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { LocaleProvider, formatNumber } from "@miragon/pulse-ui"
 import {
   TestViewHost,
@@ -420,8 +420,22 @@ describe("an engine whose health cannot be read", () => {
       </TestViewHost>,
     )
     await act(() => queryClient.invalidateQueries({ queryKey: ["engine:health"] }))
-    const banner = await screen.findByRole("alert")
-    expect(banner.textContent).toContain("This overview is not current")
-    expect(within(banner).queryByRole("button", { name: "Try again" }) !== null).toBe(offered)
+    // The kit's strip docked under the view's bar, a warning said politely.
+    const strip = await waitFor(() => {
+      const found = document.querySelector<HTMLElement>('[data-slot="status-strip"]')
+      if (!found) throw new Error("no status strip yet")
+      return found
+    })
+    const bar = document.querySelector('[data-slot="view-bar"]')!
+    expect(bar.nextElementSibling).toBe(strip)
+    expect(strip.getAttribute("data-tone")).toBe("warning")
+    expect(within(strip).getByRole("status").textContent).toContain("This overview is not current")
+    expect(within(strip).getByRole("status").textContent).not.toContain(message)
+    expect(within(strip).queryByRole("button", { name: "Try again" }) !== null).toBe(offered)
+    // The engine's own text waits under the strip's Details.
+    const reason = within(strip).getByText(message)
+    expect(reason.hidden).toBe(true)
+    fireEvent.click(within(strip).getByRole("button", { name: "Details" }))
+    expect(reason.hidden).toBe(false)
   })
 })

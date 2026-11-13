@@ -49,7 +49,8 @@ export interface StateLabelProps {
  * A state as a 16 px icon in its situation's tone and the state's word in the foreground (the
  * webview's state label): no pill, no dot, no edge. Each state has an icon of its own shape and
  * one word in every Pulse UI. For a state in a table cell or a list; several in one cell sit
- * `gap-3` apart. A header's state may stay a `StatusBadge`.
+ * `gap-3` apart. A header's state may stay a `StatusBadge`. Its baseline is its word's (the icon
+ * centred beside it), so it sits on the line of a term beside it (`Facts`).
  */
 export function StateLabel({ state, children, className }: StateLabelProps) {
   const { stateLabel } = useUiMessages()
@@ -61,9 +62,9 @@ export function StateLabel({ state, children, className }: StateLabelProps) {
       data-state={state}
       data-tone={tone}
       title={typeof text === "string" ? text : undefined}
-      className={cn("text-dense inline-flex min-w-0 items-center gap-1.5", className)}
+      className={cn("text-dense inline-flex min-w-0 items-baseline gap-1.5", className)}
     >
-      <Icon icon={GLYPH[state]} className={TONE_ICON[tone]} />
+      <Icon icon={GLYPH[state]} className={cn(TONE_ICON[tone], "self-center")} />
       <span className="text-foreground min-w-0 truncate">{text}</span>
     </span>
   )

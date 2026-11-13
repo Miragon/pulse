@@ -93,13 +93,15 @@ export function ProcessInstancesView({
 
   if (!data) {
     return (
-      <QueryFallback
-        isError={!!paged.error}
-        error={paged.error}
-        errorTitle={t("processInstances.loadError")}
-        onRetry={paged.retry}
-        skeleton={<TableSkeleton />}
-      />
+      <WidgetShell>
+        <QueryFallback
+          isError={!!paged.error}
+          error={paged.error}
+          errorTitle={t("processInstances.loadError")}
+          onRetry={paged.retry}
+          skeleton={<TableSkeleton />}
+        />
+      </WidgetShell>
     )
   }
 
@@ -132,7 +134,32 @@ export function ProcessInstancesView({
   ]
 
   return (
-    <>
+    <WidgetShell
+      header={
+        <>
+          <InstancesHeader
+            title={title}
+            processName={data.processDefinitionName ?? null}
+            scopedKey={scopedKey}
+            total={paged.total}
+            engine={engine}
+            filters={listFilters}
+          />
+          {/* The list's filters under the view's bar, from edge to edge (the webview's filter bar). */}
+          <FilterBar
+            search={search}
+            onSearchChange={setSearch}
+            searchPlaceholder={t("processInstances.searchPlaceholder")}
+            searchAriaLabel={t("processInstances.searchLabel")}
+            chips={chips}
+            chipsAriaLabel={t("processInstances.chipsLabel")}
+            onChipToggle={(id) =>
+              setActiveChip(id === activeChip ? CHIP_ALL : (id as InstanceChip))
+            }
+          />
+        </>
+      }
+    >
       {/* Keep the agent aware of what the operator is looking at so it can offer
           the obvious next steps (drill into an instance, retry/suspend, etc.). */}
       <HostModelContext
@@ -150,24 +177,6 @@ export function ProcessInstancesView({
       >
         {null}
       </HostModelContext>
-      <InstancesHeader
-        title={title}
-        processName={data.processDefinitionName ?? null}
-        scopedKey={scopedKey}
-        total={paged.total}
-        engine={engine}
-        filters={listFilters}
-      />
-
-      <FilterBar
-        search={search}
-        onSearchChange={setSearch}
-        searchPlaceholder={t("processInstances.searchPlaceholder")}
-        searchAriaLabel={t("processInstances.searchLabel")}
-        chips={chips}
-        chipsAriaLabel={t("processInstances.chipsLabel")}
-        onChipToggle={(id) => setActiveChip(id === activeChip ? CHIP_ALL : (id as InstanceChip))}
-      />
 
       <PagedRows paged={paged}>
         {paged.items.length === 0 ? (
@@ -226,18 +235,15 @@ export function ProcessInstancesView({
         noun={t("processInstances.footerNoun")}
         labels={paged.footerLabels}
       />
-    </>
+    </WidgetShell>
   )
 }
 
+/** The instances route: a view of its own, its bar, the filters and the list. */
 export function ProcessInstancesWidget(props: {
   data: ProcessInstancesData | null
   processDefinitionKey?: string
   engine: string
 }) {
-  return (
-    <WidgetShell>
-      <ProcessInstancesView {...props} />
-    </WidgetShell>
-  )
+  return <ProcessInstancesView {...props} />
 }

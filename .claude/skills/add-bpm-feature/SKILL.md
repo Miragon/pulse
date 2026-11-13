@@ -322,25 +322,39 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   "nothing left to do" ("Keine offenen Incidents"), the default `empty` (quiet `Inbox`)
   for no data; `description`, `action`. The Komet (`KometMark`, `AppEmptyState`) only on
   APP-level surfaces (landing, first start, "no engines"), never in a widget
-- Type roles (pulse-ui's `TYPE_SCALE`): a widget's page title is the `WidgetHeader`
-  (28/700, an h2 below the view, `as`), a section `text-section` (21/600), running text
-  `text-body` (16), dense tables and controls `text-dense` (13, the guide's klein step, the size
-  of `text-small` with its own meaning), captions and meta `text-small` (13, the floor); no
-  `text-xs`/`text-[11px]`, no Tailwind sizes in kit code, and weights 400, 600 and 700 only
-  (`font-normal`, `font-semibold`, `font-bold`; no `font-medium`) (`scanTypeScale` from
-  `@miragon/pulse-ui/testing`; connectors adopt it with `rules: ["below-floor"]` first). A
-  disabled control is opaque (the kit's controls bring it), never `opacity-50`. The owner's
-  decision D9 of 2026-11-12 (`apps/vscode/docs/adr/ui-foundation.md`) gives every surface one
-  compact look, which pulse-ui and the cockpit take in their own commits: a view's title becomes
-  chrome (13/600 in a 40 px bar) with 28/700 left for the app level (landing, fleet), and
-  controls and rows take pulse-ui's density roles (28 px compact, comfortable on touch; the
-  root `CLAUDE.md`, "Abweichung Dichte, für alle Oberflächen"); size nothing by hand
-- From pulse-ui: `Section` (collapsibles); `Th`/`Td` (cells);
-  `WidgetHeader` (`badge`/`titleSuffix`/`size="detail"`/`as`, no icon tile) + `VersionChip`
-  (hero/detail headers); `KpiGrid` (KPI strips, incl. `variant="soft"`; a
-  clickable cell says what the click does in `actionHint`, never `ariaLabel`). From the view
-  runtime: `WidgetShell` (page container, split into View + Shell only when the body is
-  embedded elsewhere)
+- Type roles (pulse-ui's `TYPE_SCALE`): a view's title is chrome, the `WidgetHeader`'s bar
+  heading (13/600 in its 40 px bar, `as` for the level); 28/700 only at app level (landing,
+  fleet: `size="app"`), a section `text-section` (21/600), running text `text-body` (16), dense
+  tables and controls `text-dense` (13, the guide's klein step, the size of `text-small` with its
+  own meaning), captions and meta `text-small` (13, the floor); no `text-xs`/`text-[11px]`, no
+  Tailwind sizes in kit code, and weights 400, 600 and 700 only (`font-normal`, `font-semibold`,
+  `font-bold`; no `font-medium`) (`scanTypeScale` from `@miragon/pulse-ui/testing`; connectors
+  adopt it with `rules: ["below-floor"]` first). A disabled control is opaque (the kit's
+  controls bring it), never `opacity-50`. The owner's decision D9 of 2026-11-12
+  (`apps/vscode/docs/adr/ui-foundation.md`) gives every surface one compact look: controls and
+  rows take pulse-ui's density roles (28 px compact, comfortable on touch; the root `CLAUDE.md`,
+  "Abweichung Dichte, für alle Oberflächen"); size nothing by hand, and a hover fills with
+  `bg-accent`, never `bg-muted`
+- The frame of a view (the webview's): `WidgetShell` pads nothing itself. Its `header` holds
+  the view's `WidgetHeader` (the kit's `ViewBar`, its bar from edge to edge), the `StatusStrip`s
+  docked under it (a failed refresh: `useDetailView`'s `notice`, the engine's raw text under the
+  strip's `details`) and a list's filter `Toolbar`/`FilterBar` that sits right under the bar; its
+  children sit in the 12 px gutter. A bar further down inside the content (a list's filters under
+  a section heading, a view's line tab bar) reaches the card's edges with `-mx-gutter`. A route
+  whose children are views of their own (a `ViewStack` of shells) is a `flush` shell. The bar's
+  `actions` are one group in invariant 6's order, each `variant="toolbar" size="sm"` with its
+  Lucide icon (the label at 400 collapses visually in a bar under 36rem and stays the name);
+  `HandOffButton` and `OpenInCockpitLink` take `variant="toolbar"` there. Facts about one thing
+  (an incident's, an instance's) are pulse-ui's `Facts` (ids copyable through `IdText`, numbers
+  neutral; an alarming one adds its tone's icon of its own shape with words in `Icon`'s
+  `label`); a state is a `StateLabel`; a tab's count is `TabCount`, only for a count the view
+  already holds
+- From pulse-ui: `Section` (collapsibles); `Th`/`Td` (cells); `WidgetHeader`
+  (`badge`/`titleSuffix`/`sub`/`actions`/`as`, `size="app"` only at app level, no icon tile) +
+  `VersionChip`; `KpiGrid` (KPI strips, incl. `variant="soft"`; a clickable cell says what the
+  click does in `actionHint`, never `ariaLabel`); `Facts`, `StatusStrip`, `StateLabel`,
+  `TabCount`. From the view runtime: `WidgetShell` (the view's card, above; split into View +
+  Shell only when the body is embedded elsewhere)
 - Where and what (#322 U4, U13): the cockpit's head names the engine and its environment (a
   text chip, "PROD"), so a route view's `WidgetHeader` `sub` carries only the time it read
   (widget-shell's `ViewMeta` with `asOf`) and its own facts; a route widget takes `engine` and
@@ -381,8 +395,9 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   (`@miragon/pulse-widget-shell/widgets`: the product's one table of functions, each with its
   Lucide icon and a label that names the chat, "Fehler im Chat erklären" / "Explain error in
   chat", the same in every module; `AskAiButton` is banned in connector widgets, so a new
-  function gets its entry and both labels in widget-shell), placed after the deterministic action; `OpenInCockpitLink` gets `vendor={data.engineVendor}` (the
-  builder sets it from `provider.branding.displayName`)
+  function gets its entry and both labels in widget-shell), placed after the deterministic action
+  (in a view's bar `variant="toolbar"`); `OpenInCockpitLink` gets `vendor={data.engineVendor}`
+  (the builder sets it from `provider.branding.displayName`)
 - Copy: en + de catalogs in the brand voice (du, AI, "CIB seven", no dash connector,
   errors say what happened and what you can do, `Ja`/`Nein` for Booleans) and the terms of
   `src/messages/GLOSSARY.md` (a count the VS Code webview shows too takes its word from

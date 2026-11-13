@@ -6,7 +6,9 @@
 export const BAR_CONTAINER = "@container/bar"
 
 /**
- * A bar's side padding: the gutter, or `--bar-inset` where a padded surface sets it (widget-shell's
- * `WidgetShell` sets 0, so a bar inside sits flush with the content around it).
+ * A bar's side padding, the gutter: a bar runs from edge to edge of its surface (widget-shell's
+ * `WidgetShell` pads only its content), and its first and last control line up with the content
+ * below it. A bar placed inside padded content (a list's `Toolbar` under a section's heading)
+ * reaches the surface's edges with `-mx-gutter`, as a view's tab bar does.
  */
-export const BAR_INSET = "px-[var(--bar-inset,var(--gutter))]"
+export const BAR_INSET = "px-gutter"

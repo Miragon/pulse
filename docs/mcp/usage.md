@@ -59,8 +59,11 @@ assistant. Try asking _"show me the open incidents"_. Claude calls
 Most data-heavy answers come back as an interactive view: the engine
 operations cockpit (opened on its overview, the incidents, a process, an
 instance, an incident, the jobs or an instance's history, then navigated by
-clicking) renders inline. Inline a
-view stays a compact card: a list shows its first rows and how many there are,
+clicking) renders inline. Its head switches between the overview, the
+incidents and the jobs, or leads back along the way you came; under it each
+view has one bar with what it shows, its facts and its actions, and a notice
+docks under that bar when a refresh fails, the engine's own words under its
+**Details**. Inline a view stays a compact card: a list shows its first rows and how many there are,
 and **Show all** opens it fullscreen where your chat app offers that.
 
 What the assistant may _change_ depends on the deployment's toolset. A

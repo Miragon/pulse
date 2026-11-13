@@ -45,7 +45,7 @@ export function InstanceRow({
   const { ask } = useHandOff()
   const tone = rowTone(row)
   return (
-    <tr className="hover:bg-muted transition-colors">
+    <tr>
       <Td>
         {/* One instance label (#322 U13): the business key, the UUID a
             copyable chip beside it, never a three-line UUID. */}

@@ -10,8 +10,13 @@ import { ProcessDetailHeader } from "./process-incidents/header.js"
 import { widgetActionsFeedFor } from "./lib/hand-off.test-support.js"
 import { instance } from "./write-path.test-support.js"
 import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
+import { buttonVariants } from "@miragon/pulse-ui"
 
-/** One action group, one size, one order; an operator reported actions in three places and sizes. */
+/**
+ * One action group, one size, one order; an operator reported actions in three places and sizes.
+ * In the view's bar every action is the kit's toolbar button (the webview's header buttons): the
+ * icon and the label at 400, 28 px, the label hidden visually in a bar under 36rem.
+ */
 
 afterEach(() => {
   cleanup()
@@ -42,10 +47,18 @@ async function expectOneGroup(container: HTMLElement, names: RegExp[]) {
   expect(facts.querySelectorAll("a")).toHaveLength(0)
   expect(actions.map(nameOf)).toEqual(names.map((name) => expect.stringMatching(name) as string))
   for (const action of actions) {
-    // The kit's button size sm: the density's control (28 px, 36 px on touch), 13 px, semibold.
-    expect(action.className, nameOf(action)).toMatch(/(^| )min-h-control( |$)/)
-    expect(action.className, nameOf(action)).toMatch(/(^| )text-dense( |$)/)
-    expect(action.className, nameOf(action)).toMatch(/\bfont-semibold\b/)
+    const name = nameOf(action)
+    // The kit's toolbar button, size sm: the density's control (28 px, 36 px on touch), 13 px at
+    // 400, the classes of `buttonVariants({ variant: "toolbar", size: "sm" })`.
+    expect(action.className, name).toBe(buttonVariants({ variant: "toolbar", size: "sm" }))
+    expect(action.className, name).toMatch(/(^| )min-h-control( |$)/)
+    expect(action.className, name).toMatch(/(^| )text-dense( |$)/)
+    expect(action.className, name).toMatch(/(^| )font-normal( |$)/)
+    // An icon first, then the label the bar may hide visually: the name stays the label's.
+    expect(action.firstElementChild?.tagName.toLowerCase(), name).toBe("svg")
+    const label = action.querySelector('[data-slot="button-label"]')
+    expect(label?.textContent, name).toBeTruthy()
+    expect(name).toContain(label?.textContent ?? "")
   }
 }
 

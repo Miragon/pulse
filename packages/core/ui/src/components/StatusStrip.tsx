@@ -1,8 +1,17 @@
-import { CircleX, Info, LoaderCircle, TriangleAlert, type LucideIcon } from "lucide-react"
+import { useId, useState } from "react"
+import {
+  ChevronRight,
+  CircleX,
+  Info,
+  LoaderCircle,
+  TriangleAlert,
+  type LucideIcon,
+} from "lucide-react"
 import { Icon } from "../kit/icon.js"
 import { BAR_CONTAINER } from "../lib/bar.js"
 import { TONE_BORDER, TONE_ICON } from "../lib/tone-utils.js"
 import { cn } from "../lib/utils.js"
+import { useUiMessages } from "../locale/locale-provider.js"
 import { Button } from "../primitives/button.js"
 
 /** The tone of a {@link StatusStrip}: what the notice is about. */
@@ -31,6 +40,13 @@ export interface StatusStripProps {
   /** The rest of the message: on one line it is cut first, under 30rem it wraps instead. */
   detail?: string
   actions?: readonly StatusStripAction[]
+  /**
+   * The raw reason behind the words (an engine's own text): collapsed behind a Details button
+   * before the actions, shown under the line in small mono once opened, outside the live region.
+   */
+  details?: string
+  /** The Details button's words; default: the kit's "Details". */
+  detailsLabel?: string
   /** Replaces the tone's icon (CircleX, TriangleAlert, Info). */
   icon?: LucideIcon
   className?: string
@@ -94,6 +110,38 @@ function StripAction({ action }: { action: StatusStripAction }) {
   )
 }
 
+/** The Details button: a disclosure of the strip's raw reason, its chevron turning down when open. */
+function DetailsToggle({
+  open,
+  label,
+  controls,
+  onToggle,
+}: {
+  open: boolean
+  label: string
+  controls: string
+  onToggle: () => void
+}) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="xs"
+      title={label}
+      aria-expanded={open}
+      aria-controls={controls}
+      onClick={onToggle}
+      className={ACTION_COLLAPSE}
+    >
+      <Icon
+        icon={ChevronRight}
+        className={cn("transition-transform motion-reduce:transition-none", open && "rotate-90")}
+      />
+      <span data-slot="button-label">{label}</span>
+    </Button>
+  )
+}
+
 /**
  * A notice docked under a view's bar (the webview's strip), never a floating card: one line on
  * the tone's status surface with a rule in the tone below (2 px in high contrast, CanvasText in
@@ -102,16 +150,23 @@ function StripAction({ action }: { action: StatusStripAction }) {
  * title) and wrapping onto a second line under 30rem instead, and the actions as 24 px buttons.
  * Its message is a live region, `alert` for danger and `status` otherwise, and the actions sit
  * outside it: it announces when it appears and when its words change, never on a re-render or
- * when an action turns busy.
+ * when an action turns busy. A raw reason (`details`) waits behind a Details button and opens
+ * under the line, so the strip stays one line until you ask for it.
  */
 export function StatusStrip({
   tone,
   title,
   detail,
   actions = [],
+  details,
+  detailsLabel,
   icon,
   className,
 }: StatusStripProps) {
+  const { common } = useUiMessages()
+  const [open, setOpen] = useState(false)
+  const detailsId = useId()
+  const hasDetails = details !== undefined && details !== ""
   const full = detail === undefined ? title : `${title} ${detail}`
   return (
     <div
@@ -137,17 +192,37 @@ export function StatusStrip({
           title={full}
           className="text-dense flex min-w-0 flex-1 gap-2 whitespace-nowrap @max-[30rem]/bar:flex-wrap @max-[30rem]/bar:gap-y-0 @max-[30rem]/bar:whitespace-normal"
         >
-          <span className={cn(LINE_PART, "font-semibold")}>{title}</span>
+          {/* The title never shrinks for the detail (a share of a pixel would cut its last glyph);
+              it is cut only where it alone is wider than the line. */}
+          <span className={cn(LINE_PART, "max-w-full shrink-0 font-semibold")}>{title}</span>
           {detail !== undefined && <span className={cn(LINE_PART, "shrink-[1000]")}>{detail}</span>}
         </p>
-        {actions.length > 0 && (
+        {(hasDetails || actions.length > 0) && (
           <div data-slot="status-strip-actions" className="flex shrink-0 items-center gap-1.5">
+            {hasDetails && (
+              <DetailsToggle
+                open={open}
+                label={detailsLabel ?? common.details}
+                controls={detailsId}
+                onToggle={() => setOpen((was) => !was)}
+              />
+            )}
             {actions.map((action) => (
               <StripAction key={action.label} action={action} />
             ))}
           </div>
         )}
       </div>
+      {hasDetails && (
+        <pre
+          id={detailsId}
+          data-slot="status-strip-details"
+          hidden={!open}
+          className="text-small pr-3 pb-2 pl-9 font-mono [overflow-wrap:anywhere] whitespace-pre-wrap"
+        >
+          {details}
+        </pre>
+      )}
     </div>
   )
 }

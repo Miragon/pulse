@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from "vitest"
-import { fireEvent, screen } from "@testing-library/react"
+import { fireEvent, screen, within } from "@testing-library/react"
 import { ENGINE_INSTANCE_DETAIL_DATA } from "../tool-names.js"
 import {
   FAILED_JOB_INCIDENT,
@@ -67,7 +67,13 @@ describe("the instance view offers only what its CURRENT state allows (N99)", ()
       },
     })
     await completeTheOpenTask()
-    expect(await screen.findByText(/pi-1 does not exist/)).toBeTruthy()
+    // The strip under the view's bar says the view could not be refreshed (the kit's words);
+    // the engine's own reason waits under its Details.
+    const reason = await screen.findByText(/pi-1 does not exist/)
+    const strip = reason.closest<HTMLElement>('[data-slot="status-strip"]')!
+    expect(within(strip).getByText("Couldn't refresh this view")).toBeTruthy()
+    fireEvent.click(within(strip).getByRole("button", { name: "Details" }))
+    expect(reason.hidden).toBe(false)
     openTab(/^Incidents/)
     expect(await screen.findByText("Card declined")).toBeTruthy()
     expect(screen.queryByRole("button", { name: "Retry" })).toBeNull()

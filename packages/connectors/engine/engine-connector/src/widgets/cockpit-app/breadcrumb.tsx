@@ -4,6 +4,9 @@ import { translator } from "../../messages/use-t.js"
 import type { CockpitView } from "../../view-models.js"
 import { crumbLabel, type CockpitScope } from "../nav-core.js"
 
+/** A crumb that leads back: the control's height (28 px, 36 px on touch) around its words. */
+const CRUMB = cn("hover:text-foreground min-h-control inline-flex items-center rounded", FOCUS_RING)
+
 /**
  * Every crumb pops back to the view it names, so back never re-drills from the top.
  * `rootLabel` adds a leading crumb that leaves the trail via `onPop(-1)`.
@@ -38,11 +41,7 @@ export function NavBreadcrumb({
         <span key={position} className="inline-flex items-center gap-1.5">
           {position > 0 && <Icon icon={ChevronRight} dense />}
           {position < entries.length - 1 ? (
-            <button
-              type="button"
-              onClick={() => onPop(entry.index)}
-              className={cn("hover:text-foreground rounded", FOCUS_RING)}
-            >
+            <button type="button" onClick={() => onPop(entry.index)} className={CRUMB}>
               {entry.label}
             </button>
           ) : (
@@ -61,13 +60,9 @@ export function FleetCrumbs({ locale, onLanding }: { locale: string; onLanding: 
   return (
     <nav
       aria-label={translator(locale, "cockpit.aria.breadcrumb")}
-      className="text-muted-foreground text-dense mb-4 flex items-center gap-1.5"
+      className="text-muted-foreground text-dense flex items-center gap-1.5"
     >
-      <button
-        type="button"
-        onClick={onLanding}
-        className={cn("hover:text-foreground rounded", FOCUS_RING)}
-      >
+      <button type="button" onClick={onLanding} className={CRUMB}>
         {translator(locale, "cockpit.crumb.allEngines")}
       </button>
       <Icon icon={ChevronRight} dense />

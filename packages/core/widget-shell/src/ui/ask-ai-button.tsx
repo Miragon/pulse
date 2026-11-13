@@ -4,8 +4,13 @@ import type { AskAiPrompt } from "./ask-ai-prompt.js"
 import { kitLabels } from "./kit-labels.js"
 import { useViewHost } from "./view-host.js"
 
-/** A hand-off is never the view's primary action, so every tier but `menuitem` is the same secondary outline button. */
-export type AskAiVariant = "primary" | "subtle" | "icon" | "menuitem"
+/**
+ * A hand-off is never the view's primary action, so `primary`, `subtle` and `icon` are the same
+ * secondary outline button (`icon` without its label). `toolbar` is the kit's toolbar button for
+ * a view's bar: the icon and the label at 400, the label hidden visually in a narrow bar and kept
+ * as its name. `menuitem` is an entry of a row's menu.
+ */
+export type AskAiVariant = "primary" | "subtle" | "icon" | "toolbar" | "menuitem"
 
 export interface AskAiButtonProps {
   /** Only {@link askAiPrompt} builds one; `null` renders no button. */
@@ -53,6 +58,21 @@ export function AskAiButton({
         <Icon icon={icon} />
         {effectiveLabel}
       </button>
+    )
+  }
+  if (variant === "toolbar") {
+    return (
+      <Button
+        type="button"
+        variant="toolbar"
+        size="sm"
+        disabled={disabled}
+        title={title ?? effectiveLabel}
+        onClick={send}
+      >
+        <Icon icon={icon} />
+        {effectiveLabel}
+      </Button>
     )
   }
   const isIcon = variant === "icon"

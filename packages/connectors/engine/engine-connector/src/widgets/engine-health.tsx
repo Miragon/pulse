@@ -1,9 +1,9 @@
 import { useId } from "react"
 import {
   Button,
-  ErrorState,
   KpiGrid,
   StatusBadge,
+  StatusStrip,
   WidgetHeader,
   type ToneVariant,
   DrillButton,
@@ -23,7 +23,7 @@ import {
   HostModelContext,
   useViewData,
 } from "@miragon/pulse-widget-shell/widgets"
-import { TriangleAlert } from "lucide-react"
+import { RefreshCw, TriangleAlert } from "lucide-react"
 import type { EngineHealthCluster, EngineHealthData, EngineHealthStatus } from "../view-models.js"
 import { useNav, type OnNavigate } from "./navigation.js"
 import { ENGINE_HEALTH_DATA } from "../tool-names.js"
@@ -332,63 +332,91 @@ export function EngineHealthView({
   const { refreshError, refreshing } = viewRefreshState(view)
 
   if (!data) {
-    return <HealthUnavailable engine={engine} loading={loading} error={error} onRetry={refetch} />
+    return (
+      <WidgetShell>
+        <HealthUnavailable engine={engine} loading={loading} error={error} onRetry={refetch} />
+      </WidgetShell>
+    )
   }
 
   const badge = verdictBadge(data)
 
   return (
-    <>
+    <WidgetShell
+      header={
+        <>
+          <WidgetHeader
+            badge={<StatusBadge tone={badge.tone}>{t(badge.labelKey)}</StatusBadge>}
+            // The engine in the title (#322 U4): prod-leasing and test-leasing
+            // never share a heading.
+            title={t("engineHealth.titleFor", { engine })}
+            sub={
+              <>
+                <ViewMeta asOf={data.fetchedAt} />
+                <span>{healthVerdictLine(t, data)}</span>
+              </>
+            }
+            actions={
+              <>
+                {/* The deterministic next step leads (#322 U11): with open incidents, look at
+                    them; the chat assessment follows. The cockpit's head holds the one Refresh
+                    (#322 U27). */}
+                {data.summary.totalIncidents > 0 && (
+                  <Button
+                    type="button"
+                    variant="toolbar"
+                    size="sm"
+                    onClick={() => go({ type: "incidents" })}
+                  >
+                    <Icon icon={TriangleAlert} />
+                    {t("engineHealth.openIncidents")}
+                  </Button>
+                )}
+                <HandOffButton
+                  action="assess"
+                  variant="toolbar"
+                  prompt={ask(triageHandOff(data, engine))}
+                />
+              </>
+            }
+          />
+          {/* A failed re-pull keeps the last verdict and says it is not current, docked under
+              the bar, the engine's own text under its Details; a refusal no retry changes offers
+              no retry. */}
+          {refreshError && !refreshing && (
+            <StatusStrip
+              tone="warning"
+              title={t("engineHealth.refreshFailedTitle")}
+              detail={t("engineHealth.refreshFailedHint")}
+              details={refreshError.message}
+              actions={
+                isPermanentError(refreshError)
+                  ? []
+                  : [
+                      {
+                        label: t("viewState.retry"),
+                        icon: RefreshCw,
+                        onClick: () => void refetch(),
+                      },
+                    ]
+              }
+            />
+          )}
+        </>
+      }
+    >
       <HostModelContext content={context(describeHealth(data, engine))}>{null}</HostModelContext>
-      <WidgetHeader
-        badge={<StatusBadge tone={badge.tone}>{t(badge.labelKey)}</StatusBadge>}
-        // The engine in the title (#322 U4): prod-leasing and test-leasing
-        // never share a heading.
-        title={t("engineHealth.titleFor", { engine })}
-        sub={
-          <>
-            <ViewMeta asOf={data.fetchedAt} />
-            <span>{healthVerdictLine(t, data)}</span>
-          </>
-        }
-        actions={
-          <>
-            {/* The deterministic next step leads (#322 U11): with open incidents, look at
-                them; the chat assessment follows. The cockpit's head holds the one Refresh
-                (#322 U27). */}
-            {data.summary.totalIncidents > 0 && (
-              <Button type="button" size="sm" onClick={() => go({ type: "incidents" })}>
-                <Icon icon={TriangleAlert} />
-                {t("engineHealth.openIncidents")}
-              </Button>
-            )}
-            <HandOffButton action="assess" prompt={ask(triageHandOff(data, engine))} />
-          </>
-        }
-      />
-
-      {/* A failed re-pull keeps the last verdict and says it is not current; a refusal no
-          retry changes offers no retry. */}
-      {refreshError && !refreshing && (
-        <ErrorState
-          variant="inline"
-          tone="warning"
-          title={t("engineHealth.refreshFailedTitle")}
-          description={t("engineHealth.refreshFailedHint")}
-          details={refreshError.message}
-          onRetry={isPermanentError(refreshError) ? undefined : refetch}
-        />
-      )}
 
       <HealthKpis summary={data.summary} go={go} />
 
       <Throughput24h summary={data.summary} />
 
       <ClustersSection clusters={data.clusters} engine={engine} go={go} />
-    </>
+    </WidgetShell>
   )
 }
 
+/** The overview's verdict: the engine's health as a view of its own, its bar and its content. */
 export function EngineHealthVerdict({
   data,
   engine,
@@ -396,9 +424,5 @@ export function EngineHealthVerdict({
   data: EngineHealthData | null
   engine: string
 }) {
-  return (
-    <WidgetShell>
-      <EngineHealthView data={data} engine={engine} />
-    </WidgetShell>
-  )
+  return <EngineHealthView data={data} engine={engine} />
 }

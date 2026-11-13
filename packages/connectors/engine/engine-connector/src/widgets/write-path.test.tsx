@@ -105,7 +105,13 @@ describe("completing a user task refreshes the instance (N99)", () => {
 
     await completeTheOpenTask()
 
-    expect(await screen.findByText(/pi-1 does not exist/)).toBeTruthy()
+    // The strip under the view's bar says the view could not be refreshed (the kit's words);
+    // the engine's own reason waits under its Details.
+    const reason = await screen.findByText(/pi-1 does not exist/)
+    const strip = reason.closest<HTMLElement>('[data-slot="status-strip"]')!
+    expect(within(strip).getByText("Couldn't refresh this view")).toBeTruthy()
+    fireEvent.click(within(strip).getByRole("button", { name: "Details" }))
+    expect(reason.hidden).toBe(false)
     // One attempt so far: the client is still retrying, the gate is closed already.
     expect(feedCalls(calls)).toHaveLength(1)
     // The model is not told the instance still runs.

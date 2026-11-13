@@ -134,7 +134,7 @@ function VariableRow({
   }
 
   return (
-    <tr className="hover:bg-muted transition-colors">
+    <tr>
       <Td className="text-dense font-mono">{name}</Td>
       <Td className="text-muted-foreground text-small">{variable.type ?? "—"}</Td>
       <Td className="text-small max-w-md font-mono break-words whitespace-pre-wrap">

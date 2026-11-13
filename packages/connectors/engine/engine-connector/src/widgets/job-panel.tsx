@@ -177,7 +177,7 @@ function JobRow({
   const retried = retry.done.has(job.id)
   const name = job.activityName ?? job.activityId ?? job.id
   return (
-    <tr className="hover:bg-muted transition-colors">
+    <tr>
       <Td>
         <JobSubject job={job} showProcess={showProcess} />
       </Td>
@@ -246,7 +246,7 @@ function JobRetryError({ error, columns }: { error: string | null; columns: numb
   if (!error) return null
   return (
     <tr {...FIT_CONTINUES_ROW}>
-      <td colSpan={columns} className="border-border border-b px-4 py-1.5">
+      <td colSpan={columns} className="border-border px-cell border-b py-1.5">
         <WriteError error={error} />
       </td>
     </tr>
@@ -310,27 +310,34 @@ export function JobPanelWidget({
   ]
 
   return (
-    <WidgetShell>
+    <WidgetShell
+      header={
+        <WidgetHeader
+          title={t("jobPanel.title")}
+          sub={
+            <>
+              <span>{t("jobPanel.badgeTotal", { count: formatNumber(totalCount) })}</span>
+              {/* A panel scoped to one process names it here, once, not in every row. */}
+              {scopedProcess && <span>{t("jobPanel.inProcess", { process: scopedProcess })}</span>}
+            </>
+          }
+          actions={
+            failedJobs.length > 0 && (
+              <HandOffButton
+                action="assess"
+                variant="toolbar"
+                prompt={ask(triageJobsHandOff(data, engine))}
+              />
+            )
+          }
+        />
+      }
+    >
       {/* Described from what is on screen: in the cockpit the widget self-fetches,
           so only it knows the data. */}
       <HostModelContext content={context(describeJobPanel(data, engine, jobs.length))}>
         {null}
       </HostModelContext>
-      <WidgetHeader
-        title={t("jobPanel.title")}
-        sub={
-          <>
-            <span>{t("jobPanel.badgeTotal", { count: formatNumber(totalCount) })}</span>
-            {/* A panel scoped to one process names it here, once, not in every row. */}
-            {scopedProcess && <span>{t("jobPanel.inProcess", { process: scopedProcess })}</span>}
-          </>
-        }
-        actions={
-          failedJobs.length > 0 && (
-            <HandOffButton action="assess" prompt={ask(triageJobsHandOff(data, engine))} />
-          )
-        }
-      />
       {/* Only the jobs without retries carry a state; the other two are counts. */}
       <KpiGrid
         variant="soft"

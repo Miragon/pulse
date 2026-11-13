@@ -1,5 +1,11 @@
-import { useMemo, useReducer } from "react"
-import { EmptyState, NavigationFocus, useLocale, useResetOnChange } from "@miragon/pulse-ui"
+import { useMemo, useReducer, type Dispatch } from "react"
+import {
+  EmptyState,
+  NavigationFocus,
+  StatusStrip,
+  useLocale,
+  useResetOnChange,
+} from "@miragon/pulse-ui"
 import {
   HostModelContext,
   useHostDisplayMode,
@@ -23,7 +29,7 @@ import {
 import { translator } from "../../messages/use-t.js"
 import { ENGINE_LIST_ENGINES } from "../../tool-names.js"
 import { FleetCrumbs, NavBreadcrumb, navigationOf } from "./breadcrumb.js"
-import { CockpitHead, EngineSwitch, type TopSection } from "./head.js"
+import { CockpitHead, CockpitTrailBar, EngineSwitch, type TopSection } from "./head.js"
 import { CockpitRoute } from "./routes.js"
 import { FleetView } from "./fleet-view.js"
 import { LandingChooser, LandingHeader } from "./landing.js"
@@ -174,13 +180,12 @@ function activeSectionOf(stack: CockpitView[]): TopSection {
   return isTopSection(root) ? root.section : "overview"
 }
 
+/** Docked under the head: the engine the view showed went away, and the view fell back. */
 function EngineGoneNotice({ engineId }: { engineId: string | null }) {
   const locale = useLocale()
   if (!engineId) return null
   return (
-    <p role="status" className="text-muted-foreground text-dense mb-3">
-      {translator(locale, "cockpit.engineGone", { engineId })}
-    </p>
+    <StatusStrip tone="warning" title={translator(locale, "cockpit.engineGone", { engineId })} />
   )
 }
 
@@ -250,6 +255,66 @@ function startSeed(
   return viewKey(stack[stack.length - 1]) === seededKey ? data.start : null
 }
 
+/**
+ * An engine's bars, from edge to edge above its route: the head (its sections, inline a drilled
+ * view's trail in their place), the trail on a row of its own where fullscreen has room for both
+ * and it has two crumbs, and the notice of an engine that went away.
+ */
+function EngineBars({
+  engineId,
+  engines,
+  engineGroups,
+  stack,
+  inline,
+  goneEngineId,
+  onOpenFleet,
+  dispatch,
+}: {
+  engineId: string
+  engines: readonly ListedEngine[]
+  engineGroups: Array<{ id: string; engines: Array<{ id: string }> }>
+  stack: CockpitView[]
+  inline: boolean
+  goneEngineId: string | null
+  onOpenFleet?: () => void
+  dispatch: Dispatch<CockpitAction>
+}) {
+  const locale = useLocale()
+  // "All engines" leads back to the chooser (#322 U15) when there is more than one engine.
+  const rootLabel = engines.length > 1 ? translator(locale, "cockpit.crumb.allEngines") : undefined
+  const trail = (
+    <NavBreadcrumb
+      stack={stack}
+      locale={locale}
+      rootLabel={rootLabel}
+      onPop={(to) => dispatch(to < 0 ? { type: "to-landing" } : { type: "pop", to })}
+    />
+  )
+  // Inline is a card (#396): a drilled view's trail takes the sections' row, a head section shows none.
+  const drilled = stack.length > 1
+  const crumbs = stack.length + (rootLabel === undefined ? 0 : 1)
+  return (
+    <>
+      <CockpitHead
+        activeSection={activeSectionOf(stack)}
+        onSection={(intent) => dispatch(intent)}
+        onOpenFleet={onOpenFleet}
+        trail={inline && drilled ? trail : undefined}
+        engineSwitch={
+          <EngineSwitch
+            engineId={engineId}
+            environment={environmentIn(engines, engineId)}
+            engineGroups={engineGroups}
+            onSwitch={(id) => dispatch({ type: "switch-engine", id })}
+          />
+        }
+      />
+      {!inline && crumbs > 1 && <CockpitTrailBar>{trail}</CockpitTrailBar>}
+      <EngineGoneNotice engineId={goneEngineId} />
+    </>
+  )
+}
+
 export function CockpitApp({ data }: { data: CockpitAppData | null }) {
   // Decoupled from the open_cockpit bootstrap so picker and switcher work however the app launched.
   const enginesQuery = useToolQuery<EnginesResult>(["engine:engines"], ENGINE_LIST_ENGINES, {})
@@ -275,7 +340,6 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
   const openFleet = offerFleet ? () => dispatch({ type: "to-fleet" }) : undefined
 
   const enterEngine = (id: string) => dispatch({ type: "enter-engine", id })
-  const switchEngine = (id: string) => dispatch({ type: "switch-engine", id })
 
   const navigate: OnNavigate = dispatch
 
@@ -306,9 +370,14 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
   if (scope.kind === "fleet") {
     return (
       <NavigationFocus viewKey={nav.key} label={nav.label}>
-        <WidgetShell>
+        <WidgetShell
+          header={
+            <CockpitTrailBar>
+              <FleetCrumbs locale={locale} onLanding={() => dispatch({ type: "to-landing" })} />
+            </CockpitTrailBar>
+          }
+        >
           <HostModelContext content={context(fleetContext(engineGroups))}>{null}</HostModelContext>
-          <FleetCrumbs locale={locale} onLanding={() => dispatch({ type: "to-landing" })} />
           <FleetView engines={engines} onEnterEngine={enterEngine} />
         </WidgetShell>
       </NavigationFocus>
@@ -317,26 +386,26 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
 
   const engineId = scope.engineId
   const current = stack[stack.length - 1]
-  const activeSection = activeSectionOf(stack)
-
-  const environment = environmentIn(engines, engineId)
-
-  // "All engines" leads back to the chooser (#322 U15) when there is more than one engine.
-  const trail = (className?: string) => (
-    <NavBreadcrumb
-      stack={stack}
-      locale={locale}
-      rootLabel={engines.length > 1 ? translator(locale, "cockpit.crumb.allEngines") : undefined}
-      onPop={(to) => dispatch(to < 0 ? { type: "to-landing" } : { type: "pop", to })}
-      className={className}
-    />
-  )
-  // Inline is a card (#396): a drilled view's trail takes the sections' row, a head section shows none.
-  const drilled = stack.length > 1
 
   return (
     <NavigationFocus viewKey={nav.key} label={nav.label}>
-      <WidgetShell>
+      {/* Flush: each route is a view of its own, its bar from edge to edge, its content in the
+          gutter (WidgetShell). */}
+      <WidgetShell
+        flush
+        header={
+          <EngineBars
+            engineId={engineId}
+            engines={engines}
+            engineGroups={engineGroups}
+            stack={stack}
+            inline={inline}
+            goneEngineId={goneEngineId}
+            onOpenFleet={openFleet}
+            dispatch={dispatch}
+          />
+        }
+      >
         <HostModelContext
           content={context(
             metRefusal ? refusedEngineContext(engineId) : cockpitContext(engineId, current),
@@ -344,25 +413,7 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
         >
           {null}
         </HostModelContext>
-        <CockpitHead
-          activeSection={activeSection}
-          onSection={(intent) => dispatch(intent)}
-          onOpenFleet={openFleet}
-          trail={inline && drilled ? trail() : undefined}
-          engineSwitch={
-            <EngineSwitch
-              engineId={engineId}
-              environment={environment}
-              engineGroups={engineGroups}
-              onSwitch={switchEngine}
-            />
-          }
-        />
-
         <main className="min-w-0">
-          <EngineGoneNotice engineId={goneEngineId} />
-          {!inline && trail("mb-4")}
-
           {/* Every view is a route of self-fetching widgets. The NavProvider is
             the client-side navigation seam: widgets call `useNav()`, which
             resolves to this in-app router instead of a chat follow-up. The head

@@ -22,16 +22,17 @@ export interface FactsProps {
 
 /**
  * Facts about one thing (the webview's incident facts) as a description list on a two-column
- * grid: each term quiet in 13 px, its value in the foreground beside it. A value wraps anywhere
- * rather than widen the view (an exception, a long id), several parts of one value wrap as a row
- * 4 px apart, and a `CopyableId` in it shows its copy button always.
+ * grid: each term quiet in 13 px, its value in the foreground beside it, the two on one baseline
+ * (a value with a 24 px copy button centres its text in it, and the term follows). A value wraps
+ * anywhere rather than widen the view (an exception, a long id), several parts of one value wrap
+ * as a row 4 px apart, and a `CopyableId` in it shows its copy button always.
  */
 export function Facts({ facts, className }: FactsProps) {
   return (
     <dl
       data-slot="facts"
       className={cn(
-        "text-dense grid w-full grid-cols-[max-content_minmax(0,1fr)] gap-x-4 gap-y-1",
+        "text-dense grid w-full grid-cols-[max-content_minmax(0,1fr)] items-baseline gap-x-4 gap-y-1",
         className,
       )}
     >

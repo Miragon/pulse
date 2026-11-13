@@ -1,28 +1,38 @@
 import type { ReactNode } from "react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@miragon/pulse-ui"
+import { TabCount, Tabs, TabsContent, TabsList, TabsTrigger } from "@miragon/pulse-ui"
 import { WidgetShell } from "@miragon/pulse-widget-shell/widgets"
 
 /** Tabs mount on first activation, so lazy tabs do not query early; `keepMounted` keeps half-filled input. */
 export interface DetailPageTab {
   id: string
   label: string
+  /** A count the page already holds (its data on screen), never one read for the tab. */
   count?: number
   content: ReactNode
   keepMounted?: boolean
 }
 
-/** Shared detail-page skeleton: pure layout, no fetching, no mutations, no i18n. */
+/**
+ * Shared detail-page skeleton: pure layout, no fetching, no mutations, no i18n. The view's bar and
+ * the strips under it run from edge to edge, the rest sits in the gutter; the tab bar runs from
+ * edge to edge too, the webview's line tabs with their counts.
+ */
 export function DetailPage({
   header,
-  kpi,
+  notice,
+  summary,
   diagram,
   tabs,
   content,
   defaultTab,
   children,
 }: {
+  /** The view's bar (`WidgetHeader`). */
   header: ReactNode
-  kpi?: ReactNode
+  /** A `StatusStrip` docked under the bar (a failed refresh over the data shown). */
+  notice?: ReactNode
+  /** The first section under the bar: the facts, a failure and its remedy, KPIs. */
+  summary?: ReactNode
   diagram?: ReactNode
   /** Tabbed body. Takes precedence over `content` when non-empty. */
   tabs?: DetailPageTab[]
@@ -32,26 +42,31 @@ export function DetailPage({
   children?: ReactNode
 }) {
   return (
-    <WidgetShell>
-      {header}
-      {kpi}
+    <WidgetShell
+      header={
+        <>
+          {header}
+          {notice}
+        </>
+      }
+    >
+      {summary}
       {diagram}
       {tabs && tabs.length > 0 ? (
         <section>
           <Tabs
+            className="gap-3"
             defaultValue={
               defaultTab && tabs.some((tab) => tab.id === defaultTab) ? defaultTab : tabs[0].id
             }
           >
-            <TabsList variant="line">
+            {/* A view's tab bar: from edge to edge of the card, out of the content's gutter; in a
+                narrow card its tabs wrap onto a second line rather than widen the view. */}
+            <TabsList variant="line" className="-mx-gutter w-auto flex-wrap">
               {tabs.map((tab) => (
                 <TabsTrigger key={tab.id} value={tab.id}>
                   {tab.label}
-                  {tab.count !== undefined && (
-                    <span className="text-muted-foreground font-normal tabular-nums">
-                      ({tab.count})
-                    </span>
-                  )}
+                  {tab.count !== undefined && <TabCount count={tab.count} />}
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -61,12 +76,12 @@ export function DetailPage({
                   key={tab.id}
                   value={tab.id}
                   forceMount
-                  className="pt-4 data-[state=inactive]:hidden"
+                  className="data-[state=inactive]:hidden"
                 >
                   {tab.content}
                 </TabsContent>
               ) : (
-                <TabsContent key={tab.id} value={tab.id} className="pt-4">
+                <TabsContent key={tab.id} value={tab.id}>
                   {tab.content}
                 </TabsContent>
               ),

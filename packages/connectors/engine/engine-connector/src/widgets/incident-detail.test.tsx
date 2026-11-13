@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import {
   ENGINE_INCIDENT_DETAIL_DATA,
   ENGINE_WIDGET_ACTIONS,
@@ -193,7 +193,13 @@ describe("the incident detail offers the remedy the engine accepts", () => {
     expect(await screen.findByText("Retry job")).toBeTruthy()
     // A write elsewhere (a variable edit) or a refresh re-reads the incident.
     void queryClient.invalidateQueries({ queryKey: ["engine:incident-detail"] })
-    expect(await screen.findByText(/inc-1 does not exist/)).toBeTruthy()
+    // The strip under the view's bar says the view could not be refreshed (the kit's words);
+    // the engine's own reason waits under its Details.
+    const reason = await screen.findByText(/inc-1 does not exist/)
+    const strip = reason.closest<HTMLElement>('[data-slot="status-strip"]')!
+    expect(within(strip).getByText("Couldn't refresh this view")).toBeTruthy()
+    fireEvent.click(within(strip).getByRole("button", { name: "Details" }))
+    expect(reason.hidden).toBe(false)
     expect(screen.queryByText("Retry job")).toBeNull()
   })
 

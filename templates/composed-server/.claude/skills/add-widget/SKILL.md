@@ -44,9 +44,10 @@ kit holds everything that touches no host (primitives, components, tone
 maps, `cn`, the formatters, `Icon`, the table cells); the view runtime holds
 what reads the host or calls a tool. Neither re-exports the other's names:
 
-- `WidgetShell` (container) from the view runtime; `WidgetHeader`
-  (title/sub/badge, no icon tile, `as` for the heading level) and `Section`
-  from the kit
+- `WidgetShell` (container) from the view runtime, the kit's `WidgetHeader`
+  (title/sub/badge/actions, no icon tile, `as` for the heading level) in its
+  `header` (the view's bar, from edge to edge), the content as its children
+  (in the gutter); `Section` from the kit
 - Tables: the view runtime's `ListTable` (the frame, over the kit's
   `DataTable`: a named, keyboard-reachable scroll region with a sticky head
   and 28 px rows, so a wide table never widens the view;

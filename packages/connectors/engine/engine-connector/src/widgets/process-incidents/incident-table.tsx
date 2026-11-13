@@ -194,7 +194,7 @@ export function IncidentTable({
                 <tr {...FIT_CONTINUES_ROW}>
                   <td
                     colSpan={columns.length}
-                    className={`border-border border-b px-4 py-1.5 ${leadPad ?? ""}`}
+                    className={`border-border px-cell border-b py-1.5 ${leadPad ?? ""}`}
                   >
                     <WriteError error={error} />
                   </td>
@@ -242,7 +242,7 @@ export function PagedIncidentTable({
 
   if (!paged.firstPage) {
     return (
-      <div className="bg-muted px-4 py-3">
+      <div className="bg-muted px-cell py-2">
         <ViewDataState
           loading={paged.loading}
           error={paged.error}
@@ -257,7 +257,7 @@ export function PagedIncidentTable({
   return (
     <>
       {paged.items.length === 0 ? (
-        <p className="bg-muted text-muted-foreground text-dense px-4 py-3">
+        <p className="bg-muted text-muted-foreground text-dense px-cell py-2">
           {t("procIncTable.noIncidents")}
         </p>
       ) : (

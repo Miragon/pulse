@@ -1,5 +1,6 @@
 import type { ReactElement, ReactNode } from "react"
-import { ErrorState, useLocale } from "@miragon/pulse-ui"
+import { StatusStrip, useLocale } from "@miragon/pulse-ui"
+import { RefreshCw } from "lucide-react"
 import { describeError, isPermanentError } from "./describe-error.js"
 import { kitLabels } from "./kit-labels.js"
 import { useViewData } from "./tool-query.js"
@@ -8,9 +9,11 @@ import { ViewDataState } from "./view-data-state.js"
 import { WidgetShell } from "./widget-shell.js"
 
 /**
- * `notice` reports a failed REFETCH over shown data, which may be stale.
- * `loadError` lets a section on a composed page hide itself when the feed's
- * tool is not on this server.
+ * `notice` reports a failed REFETCH over shown data, which may be stale: a `StatusStrip` for the
+ * view's header, docked under its bar, with Try again unless the failure is a refusal no retry
+ * changes. It says what happened in the kit's words; the raw engine text waits under its Details.
+ * `loadError` lets a section on a composed page hide itself when the feed's tool is not on this
+ * server.
  */
 export function useDetailView<TData>(opts: {
   initialData: TData | null | undefined
@@ -57,15 +60,17 @@ export function useDetailView<TData>(opts: {
   if (refreshError) {
     const described = describeError(refreshError, locale)
     notice = (
-      <ErrorState
-        variant="inline"
+      <StatusStrip
         tone="warning"
         title={opts.refreshErrorTitle ?? defaults.refreshFailed}
-        description={`${described.title}. ${defaults.refreshStale}`}
+        detail={`${described.title}. ${defaults.refreshStale}`}
         details={described.details ?? undefined}
         // A refusal no retry changes (`isPermanentError`) offers none here either.
-        onRetry={isPermanentError(refreshError) ? undefined : retry}
-        retryLabel={retryText}
+        actions={
+          isPermanentError(refreshError)
+            ? []
+            : [{ label: retryText ?? defaults.retry, icon: RefreshCw, onClick: retry }]
+        }
       />
     )
   }

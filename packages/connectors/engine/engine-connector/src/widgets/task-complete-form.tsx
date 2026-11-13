@@ -351,7 +351,6 @@ function FieldRow({
         id={`field-${field.name}`}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-8"
         // ISO 8601, converted to the engine's date format server-side.
         placeholder={field.type === "Date" ? "YYYY-MM-DD" : undefined}
         disabled={disabled}
@@ -374,14 +373,13 @@ function ManualEntryRow({
     <div className="flex items-center gap-1">
       <Input
         aria-label={t("taskForm.variableName")}
-        className="h-8 flex-1"
+        className="flex-1"
         placeholder={t("taskForm.namePlaceholder")}
         value={entry.name}
         onChange={(e) => onChange({ ...entry, name: e.target.value })}
       />
       <NativeSelect
         aria-label={t("taskForm.variableType")}
-        className="text-small h-8"
         value={entry.type}
         onChange={(e) => onChange({ ...entry, type: e.target.value })}
       >
@@ -393,7 +391,7 @@ function ManualEntryRow({
       </NativeSelect>
       <Input
         aria-label={t("taskForm.variableValue")}
-        className="h-8 flex-1"
+        className="flex-1"
         placeholder={t("taskForm.valuePlaceholder")}
         value={entry.value}
         onChange={(e) => onChange({ ...entry, value: e.target.value })}

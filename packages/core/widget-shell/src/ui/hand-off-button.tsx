@@ -35,7 +35,10 @@ export const HAND_OFF_ACTIONS = {
 
 export type HandOffAction = keyof typeof HAND_OFF_ACTIONS
 
-/** `title` overrides name and tooltip when a row needs its subject in them. */
+/**
+ * `title` overrides name and tooltip when a row needs its subject in them; `variant="toolbar"`
+ * puts it in a view's bar beside the other toolbar buttons.
+ */
 export function HandOffButton({
   action,
   prompt,

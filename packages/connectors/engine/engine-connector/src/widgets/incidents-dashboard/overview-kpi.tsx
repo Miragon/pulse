@@ -61,44 +61,53 @@ function IncidentOverviewKpiView({
 
   if (!data) {
     return (
-      <ViewDataState
-        loading={loading}
-        error={error}
-        onRetry={refetch}
-        loadingText={t("incidentsKpi.loading")}
-        emptyText={t("incidentsKpi.noData")}
-      />
+      <WidgetShell>
+        <ViewDataState
+          loading={loading}
+          error={error}
+          onRetry={refetch}
+          loadingText={t("incidentsKpi.loading")}
+          emptyText={t("incidentsKpi.noData")}
+        />
+      </WidgetShell>
     )
   }
 
   return (
-    <>
-      <WidgetHeader
-        // The engine in the title (#322 U4).
-        title={t("incidentsKpi.titleFor", { engine })}
-        sub={
-          <>
-            <LivePill>{t("incidentsKpi.live")}</LivePill>
-            <span>
-              {t("incidentsKpi.openSummary", {
-                count: formatNumber(data.totalCount),
-                processes: formatNumber(data.processCount),
-              })}
-              {data.latestIncident && (
-                <>
-                  {" "}
-                  {t("incidentsKpi.lastEvent", {
-                    time: formatTimestamp(data.latestIncident),
-                  })}
-                </>
-              )}
-            </span>
-          </>
-        }
-        actions={
-          <HandOffButton action="assess" prompt={ask(triageIncidentsHandOff(data, engine))} />
-        }
-      />
+    <WidgetShell
+      header={
+        <WidgetHeader
+          // The engine in the title (#322 U4).
+          title={t("incidentsKpi.titleFor", { engine })}
+          sub={
+            <>
+              <LivePill>{t("incidentsKpi.live")}</LivePill>
+              <span>
+                {t("incidentsKpi.openSummary", {
+                  count: formatNumber(data.totalCount),
+                  processes: formatNumber(data.processCount),
+                })}
+                {data.latestIncident && (
+                  <>
+                    {" "}
+                    {t("incidentsKpi.lastEvent", {
+                      time: formatTimestamp(data.latestIncident),
+                    })}
+                  </>
+                )}
+              </span>
+            </>
+          }
+          actions={
+            <HandOffButton
+              action="assess"
+              variant="toolbar"
+              prompt={ask(triageIncidentsHandOff(data, engine))}
+            />
+          }
+        />
+      }
+    >
       {/* Only the open incidents carry a state (#322 U14); the rest are counts. */}
       <KpiGrid
         boxed
@@ -123,10 +132,11 @@ function IncidentOverviewKpiView({
           },
         ]}
       />
-    </>
+    </WidgetShell>
   )
 }
 
+/** The incidents route's view of its own: its bar and the KPIs. */
 export function IncidentOverviewKpi({
   data,
   engine,
@@ -134,9 +144,5 @@ export function IncidentOverviewKpi({
   data: IncidentsDashboardData | null
   engine: string
 }) {
-  return (
-    <WidgetShell>
-      <IncidentOverviewKpiView data={data} engine={engine} />
-    </WidgetShell>
-  )
+  return <IncidentOverviewKpiView data={data} engine={engine} />
 }

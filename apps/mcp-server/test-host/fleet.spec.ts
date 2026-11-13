@@ -141,13 +141,13 @@ test.describe("the cross-engine overview at the inline width (760 px)", () => {
     expect(columns.filter((c) => !c.shown || !c.inside)).toEqual([])
   })
 
-  test("axe: the cross-engine overview passes WCAG 2.1 A/AA (light and dark)", async ({ page }) => {
+  test("axe: the cross-engine overview passes WCAG 2.2 A/AA (light and dark)", async ({ page }) => {
     for (const theme of ["light", "dark"] as const) {
       const app = await openFleet(page, { theme })
       await settled(app)
       const results = await new AxeBuilder({ page })
         .include("#app")
-        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22a", "wcag22aa"])
         .analyze()
       const violations = results.violations.map((v) => ({
         id: v.id,

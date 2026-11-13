@@ -19,7 +19,9 @@ export interface ToolbarProps {
  * included, the gutter at its sides, its controls 8 px apart, the summary and the aside at the
  * end. Its container is `bar`: a `SearchField` inside shrinks under 1180 px, a toolbar button's
  * label collapses under 36rem, and under 760 px the bar takes two lines, the summary and the
- * aside first, the controls below them with the whole width to wrap in.
+ * aside first, the controls below them with the whole width to wrap in. It runs from edge to edge
+ * of its surface: right under a view's bar it goes into the shell's header, inside padded content
+ * it takes `-mx-gutter` (a view's tab bar does the same).
  */
 export function Toolbar({ children, summary, aside, ariaLabel, className }: ToolbarProps) {
   return (

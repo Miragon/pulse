@@ -54,7 +54,7 @@ export function GroupSummaryRow({
   return (
     <div
       className={cn(
-        "flex items-center gap-4 px-4 py-3",
+        "px-cell flex items-center gap-4 py-2",
         expanded && "border-border border-b",
         className,
       )}

@@ -130,7 +130,13 @@ function ClusterHeader({ data, engineId }: { data: ClusterDetailData; engineId: 
           </span>
         </>
       }
-      actions={<HandOffButton action={canFix ? "planFix" : "explainError"} prompt={ask(handOff)} />}
+      actions={
+        <HandOffButton
+          action={canFix ? "planFix" : "explainError"}
+          variant="toolbar"
+          prompt={ask(handOff)}
+        />
+      }
     />
   )
 }
@@ -179,7 +185,7 @@ function IncidentRow({
   const t = useT()
   const label = instanceName(row.processInstanceId, row.businessKey)
   return (
-    <tr className="hover:bg-muted transition-colors">
+    <tr>
       <Td>
         <InstanceLabel id={row.processInstanceId} businessKey={row.businessKey} />
       </Td>
@@ -262,7 +268,7 @@ function ClusterDetailView({
   return (
     <DetailPage
       header={<ClusterHeader data={data} engineId={engine} />}
-      kpi={<ClusterKpis data={data} />}
+      summary={<ClusterKpis data={data} />}
       /* A single content block, no tabs: the failure message stays beside its instances. */
       content={
         <>
@@ -289,6 +295,8 @@ function ClusterDetailView({
               searchAriaLabel={t("clusterDetail.searchLabel")}
               chips={[]}
               onChipToggle={() => undefined}
+              // A bar inside the content reaches the card's edges, as a view's tab bar does.
+              className="-mx-gutter"
             />
             <PagedRows paged={paged}>
               {paged.items.length === 0 ? (

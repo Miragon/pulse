@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, render, screen } from "@testing-library/react"
 import { TestViewHost } from "./test-view-host.js"
 import { ViewStack, type ViewComponent, type ViewMap } from "./views.js"
+import { WidgetShell } from "./widget-shell.js"
 
 afterEach(cleanup)
 
@@ -19,6 +20,29 @@ describe("ViewStack", () => {
       ["flex", "flex-col", "gap-section", "min-w-0"].sort(),
     )
     expect([...(stack?.children ?? [])].map((child) => child.textContent)).toEqual(["one", "two"])
+  })
+
+  it("in a flush shell lets its rows touch: each is a view of its own with its gutter", () => {
+    render(
+      <WidgetShell flush>
+        <ViewStack>
+          <WidgetShell header={<header>bar</header>}>
+            <p data-testid="first">one</p>
+          </WidgetShell>
+          <WidgetShell>
+            <p data-testid="second">two</p>
+          </WidgetShell>
+        </ViewStack>
+      </WidgetShell>,
+    )
+    const content = (id: string) => screen.getByTestId(id).parentElement!
+    const stack = content("first").parentElement!.parentElement!
+    expect(stack.className.split(" ").sort()).toEqual(["flex", "flex-col", "min-w-0"].sort())
+    for (const id of ["first", "second"]) {
+      expect(content(id).className.split(" ")).toEqual(
+        expect.arrayContaining(["px-gutter", "py-3", "gap-section"]),
+      )
+    }
   })
 
   it("keeps a crashing row inside its own boundary: the rows around it stay", () => {

@@ -80,6 +80,28 @@ describe("AskAiButton", () => {
     expect(icon.getAttribute("stroke-width")).toBe("2.5")
   })
 
+  it("the toolbar variant is the kit's toolbar button: the icon, then the label at 400 that a narrow bar hides visually", () => {
+    const { container, actions } = renderButton(prompt(), "en", {
+      variant: "toolbar",
+      icon: FileSearch,
+      label: "Explain error in chat",
+    })
+    const button = screen.getByRole("button", { name: "Explain error in chat" })
+    expect(button.getAttribute("data-variant")).toBe("toolbar")
+    const classes = button.className.split(/\s+/)
+    expect(classes).toEqual(expect.arrayContaining(["min-h-control", "font-normal"]))
+    expect(classes).not.toContain("font-semibold")
+    expect(button.querySelector('[data-slot="button-label"]')?.textContent).toBe(
+      "Explain error in chat",
+    )
+    expect(button.getAttribute("title")).toBe("Explain error in chat")
+    expect(container.querySelector("svg")!.getAttribute("class")).toContain("lucide-file-search")
+    fireEvent.click(button)
+    expect(actions).toEqual([
+      { type: "sendFollowUp", prompt: 'Explain this.\nIds: incidentId="i1"' },
+    ])
+  })
+
   it("the menuitem variant is a plain entry of a menu that posts the same hand-off", () => {
     const onSent = vi.fn()
     const { container, actions } = renderButton(prompt(), "en", {

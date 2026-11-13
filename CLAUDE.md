@@ -523,9 +523,11 @@ Ihre 12-px-Icons (Dichte, oben) lässt `scanIconSizes` in der Webview nur in den
      (`isPermanentError`: a refused profile, a write to a read-only engine) is not retried by the
      view's query client and offers no Try again, in an error state or a failed refresh's notice
      (a paged list's footer through `canRetry`, which then says why through `describeRefusal`,
-     never "try again"); a write words it once, at its control or in its
-     confirmation's dialog, and the cockpit shows a refused engine once, as its view's one state
-     (`RefusedEngineGate`), also before the engine list answers. A write reports through
+     never "try again"; a view's failed refresh over the data it shows is a `StatusStrip` docked
+     under its bar, `useDetailView`'s `notice`, the raw engine text under the strip's Details); a
+     write words it once, at its control or in its confirmation's dialog, and the cockpit shows a
+     refused engine once, as its view's one state (`RefusedEngineGate`), also before the engine
+     list answers. A write reports through
      `useActionFeedback()` toasts that name the object and confirms through `ConfirmDialog`;
      nothing to show is `TableEmptyState`. A first load shows its skeleton only after 400 ms
      (`SKELETON_DELAY_MS`), a refresh keeps the content on screen with its region `aria-busy`
@@ -600,13 +602,19 @@ Ihre 12-px-Icons (Dichte, oben) lässt `scanIconSizes` in der Webview nur in den
      devDependency (today `1.70.0`): pnpm installs a package once per peer set, so two versions
      resolve a second pulse-ui and widget-shell instance and split the React contexts.
    - **Actions and hand-offs.** A view's actions are ONE group in `WidgetHeader` `actions` (the
-     view's `ViewBar`, the hero only at app level with `size="app"`), all `size="sm"`, ordered:
-     deterministic steps, the engine's own web app (`OpenInCockpitLink`), then the chat; the
-     bar's facts hold facts only (`action-group.test.tsx`), and a state goes into the header's
-     `badge`, not an icon tile. A row's drill is `DrillButton` (`row-actions.test.ts`), its
+     view's `ViewBar`, the hero only at app level with `size="app"`), all the kit's toolbar
+     buttons of one size (`variant="toolbar"`, `size="sm"`: an icon and its label at 400, the
+     label hidden visually in a bar under 36rem and kept as the name; `OpenInCockpitLink` and
+     `HandOffButton` take `variant="toolbar"` there), ordered: deterministic steps, the engine's
+     own web app (`OpenInCockpitLink`), then the chat; the bar's facts hold facts only
+     (`action-group.test.tsx`), and a state goes into the header's `badge`, not an icon tile.
+     `WidgetShell` pads nothing: its `header` (the bar, the strips under it) runs from edge to
+     edge, its content sits in the gutter, and a `flush` shell's children are views of their own
+     (the cockpit's routes). A row's drill is `DrillButton` (`row-actions.test.ts`), its
      further actions sit in `MoreActions`. A chat hand-off is widget-shell's `HandOffButton`
      (`action` from `HAND_OFF_ACTIONS`: one Lucide icon and one verb naming the chat per
-     function), a secondary outline after the action it accompanies; `scanGlyphs` bans sparkle
+     function), a secondary outline after the action it accompanies (in a view's bar its toolbar
+     button); `scanGlyphs` bans sparkle
      icons and an ESLint gate a raw `AskAiButton`, so a new function goes into widget-shell's table.
    - **Brand gates and glossary.** Every widget package runs the gates of
      `@miragon/pulse-ui/testing` (`catalogTextFindings`, `scanGlyphs`, `scanIconSizes`,

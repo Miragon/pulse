@@ -101,7 +101,8 @@ function ProcessDefinitionsSection({
         searchAriaLabel={t("cockpitDefs.searchLabel")}
         chips={[]}
         onChipToggle={() => undefined}
-        className="mb-2"
+        // A bar inside the content reaches the card's edges, as a view's tab bar does.
+        className="-mx-gutter mb-2"
       />
       <ProcessDefinitionsTableView
         rows={rows}

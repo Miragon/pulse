@@ -29,6 +29,8 @@ describe("Facts", () => {
         "gap-x-4",
         "gap-y-1",
         "text-dense",
+        // A term on its value's baseline, also where a 24 px copy button centres the value.
+        "items-baseline",
       ]),
     )
     const terms = screen.getAllByRole("term")

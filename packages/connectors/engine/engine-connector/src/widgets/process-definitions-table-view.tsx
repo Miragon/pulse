@@ -54,7 +54,7 @@ export function ProcessDefinitionsTableView({
   return (
     <ListTable ariaLabel={ariaLabel} columns={columns}>
       {rows.map((row) => (
-        <tr key={row.id} className="hover:bg-muted transition-colors">
+        <tr key={row.id}>
           <Td>
             {/* Name first, the key a quiet mono line (#322 U13). */}
             <NamedId

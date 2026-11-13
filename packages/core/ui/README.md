@@ -156,9 +156,13 @@ The kit's controls stand on them: `Button` is 28 px in its default and `sm` size
 `toolbar` variant (an icon and a label at 400) hides the label visually, never from the
 accessible name, inside a bar narrower than 36rem (the container named `bar`: `ViewBar`,
 `Toolbar` and `StatusStrip` set it, any other container leaves the label alone), and turns square
-around its icon (a toolbar button without an icon keeps its label). A bar's sides take the gutter,
-or `--bar-inset` where a padded surface sets it (widget-shell's `WidgetShell` sets 0, so a bar
-inside sits flush with the content). `Input` and `NativeSelect` are
+around its icon (a toolbar button without an icon keeps its label). A bar runs from edge to edge
+of its surface with the gutter at its sides (widget-shell's `WidgetShell` pads only its content,
+never its bars), so its controls line up with the content below; a `Toolbar` inside that content
+reaches the card's edges with `-mx-gutter`, as a view's tab bar does. A `StatusStrip` keeps an
+engine's raw text (`details`) behind a Details button and opens it under its line, outside the
+live region, so the strip stays one line until the reader asks. `Facts` sets a term on its
+value's baseline. `Input` and `NativeSelect` are
 28 px on the ground (`Textarea` too, three lines high at least), `Tabs` with `variant="line"` is
 a view's 36 px tab bar (a 2 px `--interaction` bar under the active tab; `TabCount` for a count,
 `≥ 2,000` for a capped one and `—` for an unknown one, said in words in the tab's name, both in

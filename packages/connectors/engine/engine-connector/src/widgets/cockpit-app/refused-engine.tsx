@@ -4,6 +4,7 @@ import {
   useQueryClient,
   useToolQuery,
   ViewDataState,
+  WidgetShell,
 } from "@miragon/pulse-widget-shell/widgets"
 import type { EngineHealthData } from "../../view-models.js"
 import { ENGINE_HEALTH_DATA } from "../../tool-names.js"
@@ -70,13 +71,16 @@ function RefusedEngine({ engine, children }: { engine: string; children: ReactNo
     { retryOnMount: false },
   )
   if (health.data && !isRefusal(health)) return children
+  // A shell of its own, the view's one state in the gutter, as a route's content sits.
   return (
-    <ViewDataState
-      loading={!health.isError}
-      error={health.error}
-      onRetry={() => void health.refetch()}
-      loadingText={t("engineHealth.loading")}
-      emptyText={t("engineHealth.noData")}
-    />
+    <WidgetShell>
+      <ViewDataState
+        loading={!health.isError}
+        error={health.error}
+        onRetry={() => void health.refetch()}
+        loadingText={t("engineHealth.loading")}
+        emptyText={t("engineHealth.noData")}
+      />
+    </WidgetShell>
   )
 }

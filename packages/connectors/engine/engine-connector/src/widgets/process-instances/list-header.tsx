@@ -78,6 +78,7 @@ export function InstancesHeader({
       actions={
         <HandOffButton
           action="assess"
+          variant="toolbar"
           prompt={ask(triageInstancesHandOff({ scopedKey, processName, total, engine, filters }))}
         />
       }

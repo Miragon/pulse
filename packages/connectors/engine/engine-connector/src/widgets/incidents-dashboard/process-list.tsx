@@ -106,7 +106,7 @@ function ProcessSummary({
   ].filter((fact): fact is string => fact !== null)
 
   return (
-    <div className={cn("flex flex-col gap-1.5 px-4 py-3", expanded && "border-border border-b")}>
+    <div className={cn("px-cell flex flex-col gap-1.5 py-2", expanded && "border-border border-b")}>
       <div className="flex items-start gap-3">
         <span
           aria-hidden="true"
@@ -305,6 +305,8 @@ function IncidentProcessListView({
         chips={chips}
         chipsAriaLabel={t("incidentsList.chipsLabel")}
         onChipToggle={(id) => setActiveChip(id === activeChip ? TYPE_ALL : (id as IncidentChip))}
+        // A bar inside the content reaches the card's edges, as a view's tab bar does.
+        className="-mx-gutter"
       />
 
       <section>

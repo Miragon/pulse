@@ -45,6 +45,9 @@ describe("StateLabel", () => {
       )
       expect(label.querySelector("span")?.getAttribute("class")).toContain("text-foreground")
       expect(label.getAttribute("class")).not.toMatch(/\b(border|rounded|bg-)/)
+      // On its word's baseline, the icon centred beside it: a term beside it shares the line.
+      expect(label.getAttribute("class")).toContain("items-baseline")
+      expect(icon.getAttribute("class")).toContain("self-center")
     },
   )
 

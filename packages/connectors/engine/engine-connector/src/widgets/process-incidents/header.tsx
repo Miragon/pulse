@@ -1,9 +1,10 @@
 import {
+  Button,
   formatNumber,
   formatTimestamp,
+  Icon,
   StatusBadge,
   WidgetHeader,
-  DrillButton,
   SITUATION_TONES,
 } from "@miragon/pulse-ui"
 import {
@@ -12,6 +13,7 @@ import {
   ViewDataState,
   WidgetShell,
 } from "@miragon/pulse-widget-shell/widgets"
+import { CircleDot } from "lucide-react"
 import type { ProcessIncidentsData } from "../../view-models.js"
 import { useNav } from "../navigation.js"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
@@ -104,29 +106,43 @@ export function ProcessDetailHeader(scope: DefinitionScope) {
 
   const title = data.processDefinitionName ?? data.processDefinitionKey
 
+  // The route's bar alone: the KPIs, the flow and the list below are views of their own.
   return (
-    <WidgetShell>
-      <WidgetHeader
-        size="detail"
-        badge={<HeaderBadge data={data} />}
-        title={title}
-        sub={<HeaderSub data={data} />}
-        actions={
-          <>
-            <DrillButton
-              onDrill={() =>
-                go({ type: "process-instances", processDefinitionKey: data.processDefinitionKey })
-              }
-            >
-              {t("procIncHeader.viewRunningInstances")}
-            </DrillButton>
-            {data.cockpitUrl && (
-              <OpenInCockpitLink url={data.cockpitUrl} vendor={data.engineVendor} />
-            )}
-            <HandOffButton action="assess" prompt={ask(triageProcessHandOff(data, scope.engine))} />
-          </>
-        }
-      />
-    </WidgetShell>
+    <WidgetShell
+      header={
+        <WidgetHeader
+          badge={<HeaderBadge data={data} />}
+          title={title}
+          sub={<HeaderSub data={data} />}
+          actions={
+            <>
+              <Button
+                type="button"
+                variant="toolbar"
+                size="sm"
+                onClick={() =>
+                  go({ type: "process-instances", processDefinitionKey: data.processDefinitionKey })
+                }
+              >
+                <Icon icon={CircleDot} />
+                {t("procIncHeader.viewRunningInstances")}
+              </Button>
+              {data.cockpitUrl && (
+                <OpenInCockpitLink
+                  url={data.cockpitUrl}
+                  vendor={data.engineVendor}
+                  variant="toolbar"
+                />
+              )}
+              <HandOffButton
+                action="assess"
+                variant="toolbar"
+                prompt={ask(triageProcessHandOff(data, scope.engine))}
+              />
+            </>
+          }
+        />
+      }
+    />
   )
 }

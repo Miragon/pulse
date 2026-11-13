@@ -8,6 +8,7 @@ import {
   useLocale,
   Icon,
   KometMark,
+  WidgetHeader,
   formatNumber,
   type ToneVariant,
 } from "@miragon/pulse-ui"
@@ -117,7 +118,7 @@ function EngineRow({
       onClick={onEnter}
       data-status={kind}
       className={cn(
-        "hover:bg-muted text-dense flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors",
+        "hover:bg-accent text-dense min-h-row px-cell flex w-full items-center gap-3 py-1 text-left transition-colors",
         FOCUS_RING_INSET,
       )}
     >
@@ -136,29 +137,31 @@ function EngineRow({
   )
 }
 
-/** #322 U15: hangs on the theme slot a customer brand empties (`--brand-mark-display: none`). */
+/**
+ * #322 U15: hangs on the theme slot a customer brand empties (`--brand-mark-display: none`). The
+ * title is the app-level one (`WidgetHeader` `size="app"`), the signature above it.
+ */
 export function LandingHeader({ subtitle, action }: { subtitle?: string; action?: ReactNode }) {
   const locale = useLocale()
   return (
-    <header className="flex flex-wrap items-center justify-between gap-4">
-      <div className="flex min-w-0 items-center gap-4">
-        <KometMark />
-        <div className="min-w-0">
-          <p
-            data-brand-signature=""
-            className="text-muted-foreground text-small font-semibold"
-            style={{ display: "var(--brand-mark-display, block)" }}
-          >
-            {translator(locale, "cockpit.signature")}
-          </p>
-          <h1 className="text-title text-foreground font-bold tracking-tight">
-            {translator(locale, "cockpit.landing.title")}
-          </h1>
-          {subtitle && <p className="text-muted-foreground text-dense mt-1">{subtitle}</p>}
-        </div>
+    <div className="flex min-w-0 items-center gap-4">
+      <KometMark />
+      <div className="min-w-0 flex-1">
+        <p
+          data-brand-signature=""
+          className="text-muted-foreground text-small font-semibold"
+          style={{ display: "var(--brand-mark-display, block)" }}
+        >
+          {translator(locale, "cockpit.signature")}
+        </p>
+        <WidgetHeader
+          size="app"
+          title={translator(locale, "cockpit.landing.title")}
+          sub={subtitle}
+          actions={action}
+        />
       </div>
-      {action}
-    </header>
+    </div>
   )
 }
 
@@ -186,9 +189,8 @@ export function LandingChooser({
     envCount: formatNumber(groups.length),
   })
   return (
-    <WidgetShell>
+    <WidgetShell header={notice}>
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-        {notice}
         <LandingHeader
           subtitle={subtitle}
           action={
