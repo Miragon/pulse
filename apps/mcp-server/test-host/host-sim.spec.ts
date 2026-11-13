@@ -1117,6 +1117,72 @@ test.describe("kit foundation (engine_open_cockpit, the jobs)", () => {
     expect(card.digits, "a KPI number stays neutral").toBe(card.foreground)
     expect(card.digitSize, "a KPI figure is the CI page-title size").toBe("28px")
   })
+
+  test("forced colours: the current section keeps a Highlight ring, a status dot turns CanvasText", async ({
+    page,
+  }) => {
+    await page.emulateMedia({ forcedColors: "active" })
+    const app = await openView(page)
+    await expectOverview(app)
+    await expect(
+      app.getByRole("navigation", { name: "Cockpit sections" }).locator('[aria-current="page"]'),
+    ).toBeVisible()
+
+    const seen = await app.locator("html").evaluate(() => {
+      // The system colours as this browser resolves them, from a probe of each.
+      const system = (colour: string) => {
+        const probe = document.createElement("i")
+        probe.style.color = colour
+        document.body.append(probe)
+        const value = getComputedStyle(probe).color
+        probe.remove()
+        return value
+      }
+      const section = getComputedStyle(document.querySelector('nav button[aria-current="page"]')!)
+      const dot = document.querySelector(
+        ".bg-success, .bg-warning, .bg-danger, .bg-info, .bg-muted-foreground",
+      )!
+      return {
+        canvas: system("Canvas"),
+        canvasText: system("CanvasText"),
+        highlight: system("Highlight"),
+        ring: `${section.outlineStyle} ${section.outlineColor}`,
+        dot: getComputedStyle(dot).backgroundColor,
+      }
+    })
+    // Its fill alone marked the current section; forced colours paint every fill Canvas.
+    expect(seen.ring).toBe(`solid ${seen.highlight}`)
+    expect(seen.dot).toBe(seen.canvasText)
+    expect(seen.dot).not.toBe(seen.canvas)
+  })
+
+  test("high contrast (data-cd-kontrast): no shadows, a 3 px focus ring", async ({ page }) => {
+    const app = await openView(page, { args: JOBS_ARGS })
+    await expectJobs(app, 2)
+    const current = app
+      .getByRole("navigation", { name: "Cockpit sections" })
+      .getByRole("button", { name: "Jobs" })
+    /** The widest box-shadow spread on the focused section button: the ring plus its 2 px offset. */
+    const ringReach = async () => {
+      await current.focus()
+      return await current.evaluate((el) => {
+        const spreads = [...getComputedStyle(el).boxShadow.matchAll(/0px 0px 0px (\d+)px/g)]
+        return Math.max(...spreads.map((spread) => Number(spread[1])))
+      })
+    }
+
+    expect(await ringReach()).toBe(4)
+    await app.locator("html").evaluate((html) => html.setAttribute("data-cd-kontrast", "hoch"))
+    expect(await ringReach()).toBe(5)
+    const shadows = await app
+      .locator("html")
+      .evaluate((html) =>
+        ["--shadow-1", "--shadow-2", "--shadow-3"].map((name) =>
+          getComputedStyle(html).getPropertyValue(name).trim(),
+        ),
+      )
+    expect(shadows).toEqual(["0 0 transparent", "0 0 transparent", "0 0 transparent"])
+  })
 })
 
 /** The inline width a chat column gives a view (the before-shots' 760 px frame). */

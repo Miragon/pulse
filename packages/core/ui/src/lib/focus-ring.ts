@@ -1,8 +1,9 @@
 /**
- * The kit's focus indicator as Tailwind classes: an opaque 2px ring in the
+ * The kit's focus indicator as Tailwind classes: an opaque ring in the
  * `--focus` role (blau-link on light, blau-hell on dark; 3:1 or more against
- * every surface, see `theme/theme-css.test.ts`), offset from the control so it
- * reads on any fill. Every interactive kit control uses it; spread it into a
+ * every surface, see `theme/theme-contrast.test.ts`), `--focus-width` wide (2px,
+ * 3px under `data-cd-kontrast="hoch"`), offset from the control so it reads on
+ * any fill. Every interactive kit control uses it; spread it into a
  * custom control's `className` so keyboard focus looks the same everywhere.
  * (`theme.css` also gives every element without its own ring an opaque
  * `:focus-visible` outline in the same colour.)
@@ -13,8 +14,8 @@
  * browser paints in the system colour, so focus stays visible there too.
  */
 export const FOCUS_RING =
-  "outline-hidden focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+  "outline-hidden focus-visible:ring-(length:--focus-width) focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background"
 
 /** {@link FOCUS_RING} drawn inside the element, for cells and rows flush with a container edge. */
 export const FOCUS_RING_INSET =
-  "outline-hidden focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset"
+  "outline-hidden focus-visible:ring-(length:--focus-width) focus-visible:ring-focus focus-visible:ring-inset"

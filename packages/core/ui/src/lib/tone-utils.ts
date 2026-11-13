@@ -64,8 +64,8 @@ export const TONE_DOT: Record<ToneVariant, string> = {
 /**
  * The tone's TEXT colour (its `-ink` role) for words on a plain surface: a
  * field error, a "missing" label. Success and warning resolve to the
- * foreground on light: pair the text with a {@link TONE_DOT} or
- * {@link TONE_ICON} to show the tone. Never on a tint (use {@link TONE_SOFT})
+ * foreground on light, info on dark (CI §3.3: 4.27:1 on an overlay): pair the
+ * text with a {@link TONE_DOT} or {@link TONE_ICON} to show the tone. Never on a tint (use {@link TONE_SOFT})
  * and never for figures (they stay in the foreground next to a dot).
  */
 export const TONE_INK: Record<ToneVariant, string> = {

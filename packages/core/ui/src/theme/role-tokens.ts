@@ -4,13 +4,19 @@ type CssVarName = `--${string}`
  * The role-token contract: every variable the kit defines for components
  * to use (`src/theme.css`), in light and, for colours, dark. Components in this
  * package, and in apps built on it, style through these names only, never
- * through raw colours or Tailwind palette classes.
+ * through raw colours or Tailwind palette classes. The neutrals carry the
+ * values of the Miragon guide's `--cd-ui-*` roles (`--background` grund,
+ * `--card` flaeche, `--popover` and `--raised` flaeche-hoch, `--accent` hover,
+ * `--border` linie, `--interaction` interaktion, `--<tone>-surface` the status
+ * surface).
  */
 export const ROLE_TOKENS = [
   "--background",
   "--card",
   "--popover",
+  "--raised",
   "--muted",
+  "--accent",
   "--secondary",
   "--foreground",
   "--muted-foreground",
@@ -19,9 +25,11 @@ export const ROLE_TOKENS = [
   "--primary",
   "--primary-foreground",
   "--primary-hover",
+  "--interaction",
   "--link",
   "--ring",
   "--focus",
+  "--focus-width",
   "--success",
   "--warning",
   "--danger",
@@ -30,6 +38,10 @@ export const ROLE_TOKENS = [
   "--warning-soft",
   "--danger-soft",
   "--info-soft",
+  "--success-surface",
+  "--warning-surface",
+  "--danger-surface",
+  "--info-surface",
   "--success-ink",
   "--warning-ink",
   "--danger-ink",

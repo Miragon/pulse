@@ -9,33 +9,40 @@
  *
  * The roles your brand owns:
  *   --primary, --primary-foreground, --primary-hover   buttons
+ *   --interaction                                      a selection mark, a checked
+ *                                                      switch, the active tab (3:1)
  *   --link                                             links, interactive text
  *   --focus, --ring                                    the focus ring (3:1)
  *   --accent, --accent-foreground                      hover and selection
  *   --input                                            the field edge (3:1)
  *   --destructive, --destructive-foreground            a destructive action
  *   --danger, --warning, --success, --info             a status: dot, edge, icon
- *     each with -soft (its tint) and -ink (its text)
+ *     each with -soft (its tint), -surface (its status
+ *     box) and -ink (its text)
  *   --chart-1 … --chart-5, --sidebar-*                 charts, a sidebar
  *   --radius-sm/-md/-lg, --shadow-1/-2/-3, --scrim     shape and depth
  *   --font-sans, --font-mono                           type
  *   --brand-mark-display                               the Miragon Komet on app-level
  *                                                      surfaces: set none to hide it
  *
- * Miragon blue sits in more roles than --primary: --link, --focus, --ring,
- * --accent-foreground, --info/-ink, --chart-1/-3 and --sidebar-primary/
- * -accent-foreground/-ring carry it too. Give them your colour, or your
+ * Miragon blue sits in more roles than --primary: --interaction, --link,
+ * --focus, --ring, --accent-foreground, --info/-ink, --chart-1/-3 and
+ * --sidebar-primary/-accent-foreground/-ring carry it too. Give them your colour, or your
  * brand ships mixed with Miragon's: a view's selected section, for example,
  * is --accent-foreground on --accent.
  *
- * The neutrals are the HOST's: the surfaces (--background, --card,
- * --popover, --muted, --secondary), the text on them (--foreground,
- * --card-foreground, --popover-foreground, --secondary-foreground,
- * --muted-foreground) and the divider (--border). A host that sends its
- * palette (SEP-1865 style variables) writes these inline on <html>, which
- * beats this file, so a neutral set here shows only where the host sends
- * none. Your brand colours therefore sit on the host's surfaces, not only
- * on the Miragon neutrals: check them against a light AND a dark host too.
+ * The neutrals are the Miragon guide's surface roles (a light grey ground,
+ * white cards; on dark, surfaces that lift off the black ground) and the
+ * HOST's: the surfaces (--background, --card, --popover, --muted,
+ * --secondary), the text on them (--foreground, --card-foreground,
+ * --popover-foreground, --secondary-foreground, --muted-foreground) and the
+ * divider (--border). A host that sends its palette (SEP-1865 style
+ * variables) writes these inline on <html>, which beats this file, so a
+ * neutral set here shows only where the host sends none. --raised (a raised
+ * control: an outline button, the active tab) and the status surfaces stay
+ * the theme's. Your brand colours therefore sit on the host's surfaces, not
+ * only on the Miragon neutrals: check them against a light AND a dark host
+ * too.
  *
  * Set a role in BOTH blocks: the host's dark mode puts .dark and
  * data-theme="dark" on <html>, where :root matches too, so a value set only
@@ -55,13 +62,15 @@
 /* ── Brand overrides: role variables only ─────────────────────────────────── */
 
 :root,
-:where(.dark, [data-theme="dark"], [data-theme-mode="dark"]) [data-theme-mode="light"] {
+:where(.dark, [data-theme="dark"], [data-theme-mode="dark"], [data-cd-theme="dark"])
+  :is([data-theme-mode="light"], [data-cd-theme="light"]) {
   /* Light roles, e.g. --primary, --primary-hover, --link, --focus, --ring. */
 }
 
 .dark,
 [data-theme="dark"],
-[data-theme-mode="dark"] {
+[data-theme-mode="dark"],
+[data-cd-theme="dark"] {
   /* The same roles for dark. */
 }
 
@@ -74,6 +83,7 @@
  * brand-example:light
  *   --primary: #0b5cad;
  *   --primary-hover: #094a8c;
+ *   --interaction: #0b5cad;
  *   --link: #0b5cad;
  *   --focus: #0b5cad;
  *   --ring: #0b5cad;
@@ -82,6 +92,7 @@
  * brand-example:dark
  *   --primary: #0b5cad;
  *   --primary-hover: #094a8c;
+ *   --interaction: #7fb2ec;
  *   --link: #7fb2ec;
  *   --focus: #7fb2ec;
  *   --ring: #7fb2ec;

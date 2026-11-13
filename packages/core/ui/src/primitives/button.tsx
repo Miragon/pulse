@@ -6,8 +6,9 @@ import { FOCUS_RING } from "../lib/focus-ring.js"
 import { cn } from "../lib/utils.js"
 
 // Miragon CI §8: radius md, weight 600; primary = blue fill with white text and
-// shadow-1, hover deeper blue + shadow-2 + a 1px lift; secondary/outline =
-// surface with a line border, hover blue border and text on the accent tint.
+// shadow-1, hover deeper blue + shadow-2 + a 1px lift; outline = the raised
+// surface (the guide's flaeche-hoch) with a line border, hover blue border and
+// text on the accent tint.
 const buttonVariants = cva(
   `inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-dense font-semibold whitespace-nowrap transition-[color,background-color,border-color,box-shadow,translate] disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-danger ${FOCUS_RING} [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4`,
   {
@@ -18,7 +19,7 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive text-destructive-foreground shadow-1 hover:bg-destructive/90 hover:shadow-2",
         outline:
-          "border border-border bg-background text-foreground hover:border-focus hover:bg-accent hover:text-accent-foreground",
+          "border border-border bg-raised text-foreground hover:border-focus hover:bg-accent hover:text-accent-foreground",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-link underline-offset-4 hover:underline",

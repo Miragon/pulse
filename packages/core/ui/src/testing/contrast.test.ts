@@ -186,15 +186,20 @@ describe("parseThemeVariables", () => {
     expect(scoped.dark.get("--x")).toBe("#000001")
   })
 
-  it("models the kit's dark scopes on <html> and skips its light islands", () => {
+  it("models the kit's dark scopes on <html> and skips its light islands and high contrast", () => {
     // Like the kit's theme.css: a light island nested in a dark scope, three dark scopes.
     const kitShaped = parseThemeVariables(
-      ':root, :where(.dark, [data-theme="dark"], [data-theme-mode="dark"]) [data-theme-mode="light"] { --x: #000001; }',
-      '.dark, [data-theme="dark"], [data-theme-mode="dark"] { --x: #000002; }',
+      ':root, :where(.dark, [data-theme="dark"], [data-theme-mode="dark"], [data-cd-theme="dark"]) :is([data-theme-mode="light"], [data-cd-theme="light"]) { --x: #000001; }',
+      '.dark, [data-theme="dark"], [data-theme-mode="dark"], [data-cd-theme="dark"] { --x: #000002; }',
+      '[data-cd-kontrast="hoch"] { --x: #000003; }',
     )
     expect(kitShaped.light.get("--x")).toBe("#000001")
     expect(kitShaped.dark.get("--x")).toBe("#000002")
-    for (const scope of ["[data-theme='dark']", '[data-theme-mode="dark"]']) {
+    for (const scope of [
+      "[data-theme='dark']",
+      '[data-theme-mode="dark"]',
+      '[data-cd-theme="dark"]',
+    ]) {
       const single = parseThemeVariables(":root { --x: #000001; }", `${scope} { --x: #000002; }`)
       expect(single.light.get("--x")).toBe("#000001")
       expect(single.dark.get("--x")).toBe("#000002")
@@ -211,10 +216,10 @@ describe("parseThemeVariables", () => {
       const { r, g, b } = resolveColor(`var(${name})`, miragon[mode])
       return [r, g, b].map((c) => Math.round(c * 255)).join(",")
     }
-    // --primary is --cd-blau (#335DE5) in both modes; the ground flips.
+    // --primary is --cd-blau (#335DE5) in both modes; the ground (the guide's grund) flips.
     expect(rgb("--primary", "light")).toBe("51,93,229")
     expect(rgb("--primary", "dark")).toBe("51,93,229")
-    expect(rgb("--background", "light")).toBe("255,255,255")
+    expect(rgb("--background", "light")).toBe("249,247,247")
     expect(rgb("--background", "dark")).toBe("29,29,29")
   })
 

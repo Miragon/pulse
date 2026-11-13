@@ -3,17 +3,24 @@ import { describe, expect, it } from "vitest"
 import { TYPE_FLOOR_PX, TYPE_STEPS } from "../lib/typography.js"
 import { HOST_FONT_VARIABLES } from "./host-fonts.js"
 import { ROLE_TOKENS } from "./role-tokens.js"
+import { TONE_DOT } from "../lib/tone-utils.js"
 import {
   BLOCKS,
   colour,
   DARK,
-  DARK_SELECTOR,
+  DARK_KONTRAST,
+  DARK_SCOPES,
   fontsCss,
   globalsCss,
+  guideRole,
+  KONTRAST,
   LIGHT,
+  LIGHT_ISLANDS,
   LIGHT_SELECTOR,
   MODES,
   norm,
+  painted,
+  read,
   role,
   ROOT,
   rules,
@@ -49,7 +56,7 @@ describe("theme.css: the role-token contract", () => {
 
   it("points every role at --cd-* tokens only (never at another role; fonts also at the host's font)", () => {
     const hostSlots = new Set<string>(Object.values(HOST_FONT_VARIABLES))
-    for (const decls of [ROOT, LIGHT, DARK]) {
+    for (const decls of [ROOT, LIGHT, DARK, KONTRAST, DARK_KONTRAST]) {
       for (const [name, value] of Object.entries(decls)) {
         for (const ref of value.matchAll(/var\((--[a-z0-9-]+)/g)) {
           const target = ref[1]
@@ -143,19 +150,79 @@ describe("theme.css: the role-token contract", () => {
       "warning-ink",
       "danger-ink",
       "info-ink",
+      "raised",
+      "interaction",
+      "success-surface",
+      "warning-surface",
+      "danger-surface",
+      "info-surface",
     ]) {
       expect(THEME_INLINE[`--color-${name}`], name).toBe(`var(--${name})`)
     }
   })
 
-  it("follows the NEAREST mode scope for dark: (dark scope, or a dark scope nested in a light island)", () => {
-    const D = String.raw`:is\(\.dark, \[data-theme="dark"\], \[data-theme-mode="dark"\]\)`
-    const L = String.raw`\[data-theme-mode="light"\]`
-    expect(rules).toMatch(
-      new RegExp(
-        String.raw`@custom-variant dark \(&:is\(${D} \*:not\(${L} \*\), ${L} ${D} \*:not\(${L} ${D} ${L} \*\)\)\);`,
+  it("carries the guide's --cd-ui-* roles in the neutrals, light AND dark (modeler-tool-design §3.5)", () => {
+    const guide: Record<string, string> = {
+      "--background": "--cd-ui-grund",
+      "--muted": "--cd-ui-grund",
+      "--card": "--cd-ui-flaeche",
+      "--popover": "--cd-ui-flaeche-hoch",
+      "--raised": "--cd-ui-flaeche-hoch",
+      "--accent": "--cd-ui-hover",
+      "--border": "--cd-ui-linie",
+      "--input": "--cd-ui-kontur",
+      "--foreground": "--cd-ui-text",
+      "--muted-foreground": "--cd-ui-text-leise",
+      "--link": "--cd-ui-link",
+      "--focus": "--cd-ui-fokus",
+      "--ring": "--cd-ui-fokus",
+      "--interaction": "--cd-ui-interaktion",
+      "--scrim": "--cd-ui-backdrop",
+      "--sidebar": "--cd-ui-flaeche",
+      "--sidebar-accent": "--cd-ui-hover",
+      "--sidebar-border": "--cd-ui-linie",
+      ...Object.fromEntries(
+        ["success", "warning", "danger", "info"].flatMap((tone) => [
+          [`--${tone}`, `--cd-ui-${tone}`],
+          [`--${tone}-surface`, `--cd-ui-${tone}-flaeche`],
+        ]),
       ),
+    }
+    for (const mode of MODES) {
+      for (const [name, cdUi] of Object.entries(guide)) {
+        expect(painted(colour(role(name, mode))), `${name} (${mode}) is ${cdUi}`).toBe(
+          painted(guideRole(cdUi, mode)),
+        )
+      }
+    }
+  })
+
+  it("names the palette, never a --cd-ui-* role, so a mode the host sets reaches every value", () => {
+    // The --cd-ui-* roles switch only under data-cd-theme; .dark and data-theme would keep their light values.
+    for (const decls of [ROOT, LIGHT, DARK, KONTRAST, DARK_KONTRAST]) {
+      for (const value of Object.values(decls)) expect(value).not.toMatch(/--cd-ui-/)
+    }
+  })
+
+  it("follows the NEAREST mode scope for dark: (dark scope, or a dark scope nested in a light island)", () => {
+    const D = `:is(${DARK_SCOPES})`
+    const L = `:is(${LIGHT_ISLANDS})`
+    expect(rules).toContain(
+      `@custom-variant dark (&:is(${D} *:not(${L} *), ${L} ${D} *:not(${L} ${D} ${L} *)));`,
     )
+  })
+
+  it("takes the guide's own switch as a mode scope: data-cd-theme, on the same weight as .dark", () => {
+    expect(DARK_SCOPES.split(", ")).toEqual([
+      ".dark",
+      '[data-theme="dark"]',
+      '[data-theme-mode="dark"]',
+      '[data-cd-theme="dark"]',
+    ])
+    expect(LIGHT_ISLANDS.split(", ")).toEqual([
+      '[data-theme-mode="light"]',
+      '[data-cd-theme="light"]',
+    ])
   })
 
   it("re-declares the light roles on a light island only inside a dark scope (a light document keeps a consumer's :root brand)", () => {
@@ -166,13 +233,14 @@ describe("theme.css: the role-token contract", () => {
       const selectors = b.selector.split(/,(?![^(]*\))/).map(norm)
       if (Object.keys(b.decls).some((d) => d.startsWith("--"))) {
         expect(selectors, b.selector).not.toContain('[data-theme-mode="light"]')
+        expect(selectors, b.selector).not.toContain('[data-cd-theme="light"]')
       }
     }
   })
 
   it("declares the dark roles AFTER the light ones (same specificity on <html>: order decides)", () => {
     const light = BLOCKS.find((b) => b.selector === norm(LIGHT_SELECTOR))
-    const dark = BLOCKS.find((b) => b.selector === norm(DARK_SELECTOR))
+    const dark = BLOCKS.find((b) => b.selector === norm(DARK_SCOPES))
     expect(light && dark && light.offset < dark.offset).toBe(true)
   })
 
@@ -206,17 +274,68 @@ describe("theme.css: the role-token contract", () => {
     )
   })
 
-  it("gives every focusable element an opaque focus outline in --focus", () => {
-    expect(rules).toMatch(/:focus-visible \{\s*outline: 2px solid var\(--focus\);/)
+  it("gives every focusable element an opaque focus outline in --focus, --focus-width wide", () => {
+    expect(rules).toMatch(/:focus-visible \{\s*outline: var\(--focus-width\) solid var\(--focus\);/)
+    expect(ROOT["--focus-width"]).toBe("2px")
+  })
+
+  it("draws high contrast (data-cd-kontrast) without shadows, linie as kontur, the text as edge and quiet text, a 3 px focus", () => {
+    for (const shadow of ["--shadow-1", "--shadow-2", "--shadow-3"]) {
+      // A box-shadow list Tailwind composes stays valid: `none` in it would drop the focus ring too.
+      expect(KONTRAST[shadow], shadow).toBe("0 0 transparent")
+    }
+    expect(KONTRAST["--focus-width"]).toBe("3px")
+    for (const decls of [KONTRAST, DARK_KONTRAST]) {
+      expect(decls["--border"]).toBe("var(--cd-kontur)")
+      expect(decls["--sidebar-border"]).toBe("var(--cd-kontur)")
+    }
+    expect(KONTRAST["--input"]).toBe("var(--cd-schwarz)")
+    expect(KONTRAST["--muted-foreground"]).toBe("var(--cd-schwarz)")
+    expect(DARK_KONTRAST["--input"]).toBe("var(--cd-weiss)")
+    expect(DARK_KONTRAST["--muted-foreground"]).toBe("var(--cd-weiss)")
+    // The guide's values for the same roles under data-cd-kontrast="hoch".
+    const vendored = stripComments(read("../tokens/cd-tokens.generated.css"))
+    expect(vendored).toMatch(
+      /\[data-cd-kontrast="hoch"\] \{\s*--cd-ui-linie: #8F8A8A;\s*--cd-ui-kontur: #1D1D1D;\s*--cd-ui-text-leise: #1D1D1D;/,
+    )
+    // The dark contrast block comes after the light one: on <html class="dark"> both match.
+    const at = (decls: Record<string, string>) =>
+      BLOCKS.find((b) => b.decls === decls)?.offset ?? -1
+    expect(at(KONTRAST)).toBeGreaterThan(at(DARK))
+    expect(at(DARK_KONTRAST)).toBeGreaterThan(at(KONTRAST))
+  })
+
+  it("keeps every state visible under forced colours (Highlight, CanvasText), the light islands as drawn", () => {
+    const forced = stripComments(themeCss).slice(
+      stripComments(themeCss).indexOf("@media (forced-colors: active)"),
+    )
+    expect(forced).not.toBe("")
+    const css = norm(forced)
+    expect(css).toContain(
+      ':is([aria-selected="true"], [aria-pressed="true"], [aria-checked="true"], :is(a, button)[aria-current]:not([aria-current="false"])):not(:focus-visible) { outline: 2px solid Highlight; outline-offset: -2px; }',
+    )
+    expect(css).toContain(
+      ':is([data-slot="card"], [data-slot="switch"]) { border-color: CanvasText; }',
+    )
+    // Every status dot the kit draws (TONE_DOT) turns CanvasText, outside a light island.
+    const dots = Object.values(TONE_DOT).map((classes) => `.${classes.split(" ")[0]}`)
+    const dotRule =
+      /:is\(([^)]*)\):not\(\[data-theme-mode="light"\] \*\) \{ background-color: CanvasText; \}/.exec(
+        css,
+      )
+    expect(dotRule?.[1].split(", ")).toEqual(
+      expect.arrayContaining([...dots, '[data-slot="switch-thumb"]']),
+    )
+    expect(css).toContain('[data-theme-mode="light"] { forced-color-adjust: none; }')
   })
 
   it("sets color-scheme per mode on <body> and the mode scopes, never on <html>", () => {
     const schemes = BLOCKS.filter((b) => "color-scheme" in b.decls)
     const light = schemes.find((b) => b.decls["color-scheme"] === "light")
     const dark = schemes.find((b) => b.decls["color-scheme"] === "dark")
-    expect(light?.selector).toBe('body, :where(body) [data-theme-mode="light"]')
+    expect(light?.selector).toBe(`body, :where(body) :is(${LIGHT_ISLANDS})`)
     expect(dark?.selector).toBe(
-      ':is(.dark, [data-theme="dark"]) body, body:is(.dark, [data-theme="dark"], [data-theme-mode="dark"]), :where(body) :is(.dark, [data-theme="dark"], [data-theme-mode="dark"])',
+      `:is(.dark, [data-theme="dark"], [data-cd-theme="dark"]) body, body:is(${DARK_SCOPES}), :where(body) :is(${DARK_SCOPES})`,
     )
     // A root color-scheme that differs from the host's iframe paints an opaque
     // canvas behind the view; the host keeps it transparent on purpose.

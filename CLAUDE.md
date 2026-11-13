@@ -252,14 +252,16 @@ Die Widgets laufen als MCP Apps im Rahmen eines Chat-Hosts. Dafür gelten diese 
 Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 
 - Theme: Die Widgets folgen dem Host-Theme (#339), ohne Umschalter in der App; ohne Host das
-  OS. Die neutralen Rollen nehmen in Hell und Dunkel die `--cd-ui-*`-Rollen des Guides (Grund,
-  Fläche, Fläche hoch, Hover, Linie, leiser Text, Backdrop) wie die Webview, statt
-  `color-mix`-Aufhellungen von `--cd-schwarz` (entschieden in D9,
-  `apps/vscode/docs/adr/ui-foundation.md`; pulse-ui zieht in einem eigenen Commit nach). Sonst
-  folgt Dunkel den Dark-Ground-Regeln der CI: Text Weiß, Links und Akzenttext `--cd-gruen`,
-  Buttons `--cd-blau` mit Weiß, Fokus `--cd-blau-hell`, Status in den `-hell`-Werten ohne
-  getönte Flächen. Der Host setzt nur die neutralen Rollen (`HOST_TOKEN_MAP`: Flächen, Text,
-  `--border`), nie `--primary`, `--link`, `--focus`, `--ring`, `--input`, `--accent` oder einen
+  OS. Die neutralen Rollen nehmen in Hell und Dunkel die Werte der `--cd-ui-*`-Rollen des Guides
+  (Grund, Fläche, Fläche hoch, Hover, Linie, leiser Text, Backdrop) wie die Webview, keine
+  eigenen Aufhellungen von `--cd-schwarz` (entschieden in D9,
+  `apps/vscode/docs/adr/ui-foundation.md`); dazu `--raised`, `--interaction` und
+  `--<ton>-surface`. pulse-ui folgt auch `data-cd-theme`, `data-cd-kontrast="hoch"` und
+  `forced-colors`. Sonst folgt Dunkel den Dark-Ground-Regeln der CI: Text Weiß, Links und
+  Akzenttext `--cd-gruen`, Buttons `--cd-blau` mit Weiß, Fokus `--cd-blau-hell`, der
+  eingeschaltete Schalter und die Linie unter dem aktiven Tab `--interaction` (dunkel
+  `--cd-blau-hell`), Status in den `-hell`-Werten ohne getönte Flächen. Der Host setzt nur die
+  neutralen Rollen (`HOST_TOKEN_MAP`: Flächen, Text, `--border`), nie `--primary`, `--link`, `--focus`, `--ring`, `--input`, `--accent` oder einen
   Status; unter seinem Theme fallen Grund und Fläche zusammen, Bereiche trennen dann die
   1-px-Linien. BPMN-Papier und seine Zoom-Leiste bleiben immer hell.
 - Schrift: Geist zuerst, dann die Schrift des Hosts (`adoptHostFontVariables`), dann System.
@@ -557,9 +559,11 @@ Ihre 12-px-Icons (Dichte, oben) lässt `scanIconSizes` in der Webview nur in den
      on the landing and the fleet view alike. A failed health read has no verdict: its tone is
      the engine module's `HEALTH_FAILURE_TONE`
      (`packages/connectors/engine/engine-connector/src/widgets/lib/health-verdict.ts`), an
-     unreachable engine `danger`, a refused profile or login `warning`. Each tone has three
-     roles: `--<tone>` (dot, edge, icon), `--<tone>-soft` (tint, black text) and `--<tone>-ink`
-     (text on card or page, never on a tint, never a number). Numbers stay neutral. Components use
+     unreachable engine `danger`, a refused profile or login `warning`. Each tone has four
+     roles: `--<tone>` (dot, edge, icon), `--<tone>-soft` (tint, black text), `--<tone>-surface`
+     (the guide's status surface for a status box or strip: the tint on light, neutral on dark)
+     and `--<tone>-ink` (text on card or page, never on a tint, never a number). Numbers stay
+     neutral. Components use
      role names only (`scanColors`); `packages/core/ui/src/theme/tone-contrast.test.ts` holds every
      role pair to WCAG AA (a role a brand may override belongs in `ROLE_CONTRAST_PAIRS`). A brand
      override goes under `:root` AND the dark scopes, or a light-only value shows in dark

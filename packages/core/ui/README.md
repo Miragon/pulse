@@ -118,10 +118,17 @@ builds on this kit.
 
 ## Your own brand
 
-The theme maps role variables (`--primary`, `--link`, `--focus`, `--<tone>`, `--<tone>-soft`,
-`--<tone>-ink`, radii, shadows, fonts) onto the vendored `--cd-*` tokens, in light and dark. Your
+The theme maps role variables (`--primary`, `--interaction`, `--link`, `--focus`, `--<tone>`,
+`--<tone>-soft`, `--<tone>-surface`, `--<tone>-ink`, radii, shadows, fonts) onto the vendored
+`--cd-*` tokens, in light and dark. The neutrals carry the Miragon guide's `--cd-ui-*` roles:
+`--background` and `--muted` its ground (`#F9F7F7` on light), `--card` its surface, `--popover`
+and `--raised` its raised surface, `--accent` its hover, `--border` its line, `--muted-foreground`
+its quiet text, `--scrim` its backdrop. The mode follows `.dark`, `data-theme="dark"` and the
+guide's own `data-cd-theme="dark"`; `data-cd-kontrast="hoch"` switches high contrast (no shadows,
+stronger edges and quiet text, a 3 px focus) and forced colours keep every state visible. Your
 brand overrides role variables only, never a `--cd-*` token, under `:root` AND the dark scopes
-(`.dark, [data-theme="dark"], [data-theme-mode="dark"]`), or a light-only value shows in dark.
+(`.dark, [data-theme="dark"], [data-theme-mode="dark"], [data-cd-theme="dark"]`), or a light-only
+value shows in dark.
 Measure it in a test with `@miragon/pulse-ui/testing`: `parseThemeVariables(...themeStylesheets(), brandCss)` and
 `contrastFindings` over `toneContrastPairs()` and `ROLE_CONTRAST_PAIRS`.
 

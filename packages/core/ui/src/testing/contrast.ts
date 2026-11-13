@@ -113,11 +113,15 @@ function ruleBlocks(css: string): RuleBlock[] {
 
 const ROOT_THEME = /:root|^html(?![\w-])|\.dark(?![\w-])|\[data-(?:theme|mode)|:host/
 
-/** useApplyTheme puts `.dark` AND `data-theme="dark"` on `<html>`; all share `.dark`'s specificity. */
+/**
+ * useApplyTheme puts `.dark` AND `data-theme="dark"` on `<html>`, an editor host the guide's
+ * `data-cd-theme="dark"`; all share `.dark`'s specificity.
+ */
 const DARK_ROOT_SCOPES: ReadonlySet<string> = new Set([
   ".dark",
   '[data-theme="dark"]',
   '[data-theme-mode="dark"]',
+  '[data-cd-theme="dark"]',
 ])
 
 /**

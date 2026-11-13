@@ -1,5 +1,6 @@
 /// <reference types="node" />
 import { readFileSync } from "node:fs"
+import { scopedTokens } from "./vendored-tokens.test-support.js"
 
 /**
  * theme.css parsed for its two suites (`theme-css.test.ts`, `theme-contrast.test.ts`): its
@@ -15,10 +16,17 @@ const cdCss = read("../tokens/cd-tokens.generated.css")
 export const stripComments = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, "")
 export const rules = stripComments(themeCss)
 
-export const LIGHT_SELECTOR =
-  ':root, :where(.dark, [data-theme="dark"], [data-theme-mode="dark"]) [data-theme-mode="light"]'
-export const DARK_SELECTOR = '.dark, [data-theme="dark"], [data-theme-mode="dark"]'
-export const norm = (s: string) => s.replace(/\s+/g, " ").trim()
+/** The dark scopes: the host's (`.dark`, `data-theme`), a dark container and the guide's own switch. */
+export const DARK_SCOPES =
+  '.dark, [data-theme="dark"], [data-theme-mode="dark"], [data-cd-theme="dark"]'
+/** The light islands a dark scope may hold. */
+export const LIGHT_ISLANDS = '[data-theme-mode="light"], [data-cd-theme="light"]'
+export const LIGHT_SELECTOR = `:root, :where(${DARK_SCOPES}) :is(${LIGHT_ISLANDS})`
+/** High contrast on the mode's element, and the light island inside it. */
+const KONTRAST_SELECTOR = `[data-cd-kontrast="hoch"], [data-cd-kontrast="hoch"] :is(${LIGHT_ISLANDS})`
+const DARK_KONTRAST_SELECTOR = `:is(${DARK_SCOPES})[data-cd-kontrast="hoch"], [data-cd-kontrast="hoch"] :is(${DARK_SCOPES}), :is(${DARK_SCOPES}) [data-cd-kontrast="hoch"]`
+export const norm = (s: string) =>
+  s.replace(/\s+/g, " ").replace(/\( /g, "(").replace(/ \)/g, ")").trim()
 
 /** Every innermost block of theme.css: its normalized selector, offset and declarations. */
 export const BLOCKS = [...rules.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((match) => {
@@ -44,7 +52,9 @@ function block(selector: string): Record<string, string> {
 
 export const ROOT = block(":root")
 export const LIGHT = block(LIGHT_SELECTOR)
-export const DARK = block(DARK_SELECTOR)
+export const DARK = block(DARK_SCOPES)
+export const KONTRAST = block(KONTRAST_SELECTOR)
+export const DARK_KONTRAST = block(DARK_KONTRAST_SELECTOR)
 export const THEME_INLINE = block("@theme inline")
 export const THEME_REFERENCE = block("@theme inline reference")
 
@@ -96,6 +106,25 @@ export function colour(value: string): Rgba {
   }
   throw new Error(`value outside the token grammar: ${v}`)
 }
+
+const RGBA = /^rgba\((\d+), (\d+), (\d+), ([\d.]+)\)$/
+
+/** The vendored tokens by scope: the guide's light roles in `:root`, its dark ones under `data-cd-theme`. */
+const GUIDE_SCOPES = scopedTokens(cdCss)
+const GUIDE_SCOPE = { light: ":root", dark: '@media screen { [data-cd-theme="dark"] }' } as const
+
+/** A `--cd-ui-*` role of the guide in `mode`, as the vendored tokens declare it (#rrggbb or rgba()). */
+export function guideRole(name: string, mode: "light" | "dark"): Rgba {
+  const value = GUIDE_SCOPES.get(GUIDE_SCOPE[mode])?.get(name)
+  if (!value) throw new Error(`the vendored tokens declare no ${name} for ${mode}`)
+  const rgba = RGBA.exec(value)
+  if (!rgba) return hex(value)
+  return { r: Number(rgba[1]), g: Number(rgba[2]), b: Number(rgba[3]), a: Number(rgba[4]) }
+}
+
+/** A colour as 8-bit channels and an alpha in hundredths, the precision a browser paints at. */
+export const painted = ({ r, g, b, a }: Rgba) =>
+  [r, g, b, a * 100].map((c) => Math.round(c)).join(",")
 
 /** `top` painted over an opaque `bottom`. */
 export function over(top: Rgba, bottom: Rgba): Rgba {

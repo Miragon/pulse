@@ -20,7 +20,7 @@ import { kitLabels } from "./kit-labels.js"
  * paint over the region's own shadow or outline.
  */
 export const REGION_FOCUS_RING =
-  "peer-focus-visible:outline-2 peer-focus-visible:outline-solid peer-focus-visible:outline-focus peer-focus-visible:-outline-offset-2"
+  "peer-focus-visible:outline-(length:--focus-width) peer-focus-visible:outline-solid peer-focus-visible:outline-focus peer-focus-visible:-outline-offset-2"
 
 /** Above the pinned column's `z-index: 1` (see {@link listTableCss}). */
 const RING_LAYER = "pointer-events-none absolute inset-0 z-[2] rounded-sm"
