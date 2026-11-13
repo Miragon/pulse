@@ -13,8 +13,22 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEMPLATE="$ROOT/templates/composed-server"
-PACK_DIR="$(mktemp -d)"
-WORK="$(mktemp -d)/composed-server"
+
+# Every scratch directory goes when the script ends, green or red: each run
+# installs two full starters, and left behind they fill a tmpfs's inodes.
+SCRATCH=()
+scratch_dir() {
+  local dir
+  dir="$(mktemp -d)"
+  SCRATCH+=("$dir")
+  REPLY="$dir"
+}
+trap 'rm -rf "${SCRATCH[@]}"' EXIT
+
+scratch_dir
+PACK_DIR="$REPLY"
+scratch_dir
+WORK="$REPLY/composed-server"
 
 # The libraries a composed server builds on, from the workspace itself
 # (scripts/workspace-packages.mjs: published to npm from packages/, the same
@@ -121,7 +135,8 @@ fi
 # composed, and prebuilt-module.test.ts adds what only this path shows: the built server boots,
 # its document reaches the wire unchanged under its own CSP, the Vite bundle holds nothing of it.
 FIXTURE="$ROOT/templates/fixtures/prebuilt-module"
-MODULE_WORK="$(mktemp -d)/prebuilt-module"
+scratch_dir
+MODULE_WORK="$REPLY/prebuilt-module"
 rsync -a --exclude node_modules --exclude dist --exclude starter "$FIXTURE/" "$MODULE_WORK/"
 node "$ROOT/scripts/prebuilt-module.mjs" pin "$MODULE_WORK"
 {
