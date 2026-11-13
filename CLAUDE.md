@@ -94,17 +94,20 @@ Three axes decide where code goes, and they stay apart:
   layers: the formats, the board file first; the engine reads and their rules (the Camunda 7
   rules in c7-core, which the MCP server and the C7 adapter run over their `EnginePort`); the
   numbers and view models of a feature more than one surface shows, built once and
-  framework-free over engine-core's read models; and building blocks, components written against
-  React's API that take props and callbacks only, with no host context inside (no
-  `useToolQuery`, `ConfirmDialog`, `HandOffButton` or `HostBridge`), which the MCP widgets and
-  the web apps render in React and the webview through `preact/compat`. Each surface keeps its
-  own screens and host wiring (hand-offs to the chat, live updates and the push protocol, native
-  confirmations, sign-in) and may build parts of its own; where two surfaces show the same
-  thing, a shared building block is the default, and no surface is forced to replace its own
-  screen. The foundation stays pulse-ui's framework-free `/format` and `/tones` and, in tests,
-  `/testing` (the glossary, the count words, the brand gates); the webview keeps Preact as its
-  runtime and for its own screens and may import pulse-ui's React kit and stylesheet for shared
-  building blocks. The board format and the board builder go into a new published package (the
+  framework-free over engine-core's read models; and building blocks, components on React that
+  take props and callbacks only, with no host context inside (no `useToolQuery`,
+  `ConfirmDialog`, `HandOffButton` or `HostBridge`). Each surface keeps its own screens and host
+  wiring (hand-offs to the chat, live updates and the push protocol, native confirmations,
+  sign-in) and may build parts of its own; where two surfaces show the same thing, a shared
+  building block is the default, and no surface is forced to replace its own screen. Pulse's UIs are
+  one UI family by decision, React on `@miragon/pulse-ui` with one compact look (owner decision D9,
+  later on 2026-11-12, in the same record): the webview moves from Preact to React on pulse-ui in
+  one switch, a commit of the pull request that recorded D9, with no `preact/compat` bridge; until
+  that switch lands the webview is Preact. widget-shell stays the view runtime of the MCP widgets
+  and the web apps, never the editor hosts'. The foundation stays pulse-ui's framework-free
+  `/format` and `/tones` and, in tests, `/testing` (the glossary, the count words, the brand gates);
+  the runtime view's core, ports, model reader and host kit stay framework-free. The board format
+  and the board builder go into a new published package (the
   planned @miragon/pulse-board, whose dependency rules arrive with it); a shared building block
   goes into pulse-ui (a primitive) or into a shared package created with the first engine block
   two surfaces render. `docs/vscode/parity.md` lists what still differs between the views both
@@ -249,13 +252,16 @@ Die Widgets laufen als MCP Apps im Rahmen eines Chat-Hosts. Dafür gelten diese 
 Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 
 - Theme: Die Widgets folgen dem Host-Theme (#339), ohne Umschalter in der App; ohne Host das
-  OS. Dunkel entsteht streng aus den Dark-Ground-Regeln der
-  CI: Basis `--cd-schwarz`, Flächen als `color-mix`-Aufhellungen davon, Text Weiß, Links und
-  Akzenttext `--cd-gruen`, Buttons `--cd-blau` mit Weiß, Fokus `--cd-blau-hell`, Status in den
-  `-hell`-Werten ohne getönte Flächen, leiser Text `--cd-kontur`. Der Host setzt nur die
-  neutralen Rollen (`HOST_TOKEN_MAP`: Flächen, Text, `--border`), nie `--primary`, `--link`,
-  `--focus`, `--ring`, `--input`, `--accent` oder einen Status. BPMN-Papier und seine
-  Zoom-Leiste bleiben immer hell.
+  OS. Die neutralen Rollen nehmen in Hell und Dunkel die `--cd-ui-*`-Rollen des Guides (Grund,
+  Fläche, Fläche hoch, Hover, Linie, leiser Text, Backdrop) wie die Webview, statt
+  `color-mix`-Aufhellungen von `--cd-schwarz` (entschieden in D9,
+  `apps/vscode/docs/adr/ui-foundation.md`; pulse-ui zieht in einem eigenen Commit nach). Sonst
+  folgt Dunkel den Dark-Ground-Regeln der CI: Text Weiß, Links und Akzenttext `--cd-gruen`,
+  Buttons `--cd-blau` mit Weiß, Fokus `--cd-blau-hell`, Status in den `-hell`-Werten ohne
+  getönte Flächen. Der Host setzt nur die neutralen Rollen (`HOST_TOKEN_MAP`: Flächen, Text,
+  `--border`), nie `--primary`, `--link`, `--focus`, `--ring`, `--input`, `--accent` oder einen
+  Status; unter seinem Theme fallen Grund und Fläche zusammen, Bereiche trennen dann die
+  1-px-Linien. BPMN-Papier und seine Zoom-Leiste bleiben immer hell.
 - Schrift: Geist zuerst, dann die Schrift des Hosts (`adoptHostFontVariables`), dann System.
   Der Server liefert Geist und Geist Mono selbst aus (`installFontAssets`, kein CDN), jede View
   erlaubt den Ursprung über ihre CSP `resourceDomains` (`declareServedFonts`). Blockt ein Host
@@ -263,8 +269,9 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 - Sprache: Deutsch und Englisch nach Host-Locale (Fallback Englisch) statt nur Deutsch.
 - Chrome: im Rahmen des Hosts (Kopf mit Titel und Aktionen) statt randlosem Canvas mit
   schwebendem Chrome in den Ecken.
-- Seitentitel: h2 mit 28 px statt h1 mit 40 px.
-- Dichte Tabellen: 14 px statt 16 px Fließtext.
+- Titel: Der Titel einer Ansicht ist Chrome, 13 px in 600 als Überschrift in der 40-px-Leiste
+  (der Chrome-Titel des Guides); 28 px in 700 als h2 nur auf App-Ebene (Landing, Flotte) statt
+  h1 mit 40 px.
 - Data-Viz: eine einfarbige Rampe von `--cd-info-soft` bis `--cd-blau`; Rot nur für
   Incidents.
 - Komet: nur auf App-Ebene (Landing, Erststart, „keine Engines“), nicht in jedem Widget
@@ -273,27 +280,59 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 - BPMN-Zoom-Leiste oben rechts statt unten rechts: unten rechts liegt das bpmn.io-Logo
   (Lizenzpflicht).
 
+### Abweichung Dichte, für alle Oberflächen
+
+Alle Oberflächen (die MCP-Widgets, die Web-Apps, die Webview von VS Code und Orca) haben einen
+kompakten Look aus `@miragon/pulse-ui`, nach dem Vorbild der Webview (Owner-Entscheidung D9 vom
+2026-11-12, `apps/vscode/docs/adr/ui-foundation.md`; pulse-ui, das Cockpit und die Webview ziehen
+in eigenen Commits nach). Die Dichte-Rollen stehen in `rem` in pulse-uis `theme.css`; ein Test
+hält sie bei 16 px Wurzelgröße gleich zu den Shell-Tokens des
+Guides (`--cd-shell-zeile`, `--cd-shell-eintrag`, `--cd-shell-ziel`, `--cd-shell-rand`).
+Kompakt ist der Standard. Auf Touch (`any-pointer: coarse`) und unter
+`[data-density=comfortable]` gilt die komfortable Stufe: Bedienelemente 36 px, Zeilen und
+Toolbars 40 px, Radius md auf Knöpfen, Eingaben mit 16 px Text. Leiste 40 px, Toolbar 36 px und
+Rand 12 px sind Werte des Guides und keine Abweichung. Diese bewussten Abweichungen vom Guide
+gelten für alle Oberflächen (Owner-Entscheidung):
+
+- Bedienelemente (Knöpfe, Eingaben, Auswahlen) mit 28 px und klickbare Tabellenzeilen mit 28 px
+  statt 36 px.
+- Radius sm (6 px) statt md auf beschrifteten Knöpfen.
+- Knöpfe mit 24 px (xs: in Hinweisstreifen, zum Kopieren), unter der kleinsten Größe des Guides
+  von 28 px.
+- Gewicht 400 auf den Beschriftungen der Toolbar-Knöpfe.
+- Zähler als Pille.
+- Der angedockte Hinweisstreifen ohne die 4-px-Kante.
+- Icons: 12 px mit Strich 2,5 neben dichtem Text und auf den 20-px-Overlays des Diagramms (Zähl-
+  und Move-Badges, Code- und Move-Knöpfe, Links und Warnungen im Text), sonst 16 und 24 px.
+  `scanIconSizes` lässt 12 px nur in den Dateien zu, die das Gate je mit Grund nennt; ein
+  Eintrag ohne 12-px-Icon schlägt fehl.
+
 ### Abweichung für die VS-Code-Webview
 
 Die Webview der VS-Code-Erweiterung, die Pulse for Orca ebenso zeigt (in
-`packages/core/runtime-view`), läuft auf Preact und behält ihre eigenen Ansichten und ihr
-eigenes CSS. Mit den Widgets teilt sie das Fundament aus pulse-ui: Töne
-(`@miragon/pulse-ui/tones`), Formatierer (`@miragon/pulse-ui/format`), Tokens mit gleichen
-Werten, Glossar, Zählbegriffe und Marken-Gates. Dazu kommen gemeinsame Bausteine: Komponenten,
-gegen die API von React geschrieben, die nur Props und Callbacks nehmen und keinen Host-Kontext
-kennen. Die Widgets und die Web-Apps rendern sie in React, die Webview über `preact/compat`, mit
-dem React-Kit und dem Stylesheet von pulse-ui. Zeigen zwei Oberflächen dasselbe, ist ein gemeinsamer
-Baustein der Normalfall; keine Oberfläche muss dafür eine eigene Ansicht aufgeben
-(Owner-Entscheidung 2026-11-12, `apps/vscode/docs/adr/ui-foundation.md`). Was die Oberflächen
-noch unterscheidet und ob es gewollt ist, steht in `docs/vscode/parity.md`. Für die Webview gilt
-diese bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
+`packages/core/runtime-view`), zieht in einem Umstieg von Preact auf React 19 und
+`@miragon/pulse-ui` um, ohne Brücke über `preact/compat` (Owner-Entscheidung D9 vom 2026-11-12,
+`apps/vscode/docs/adr/ui-foundation.md`; der Umstieg ist ein Commit der PR, die D9 festhält).
+Bis dahin läuft sie auf Preact mit eigenem CSS. Danach baut sie ihre Ansichten aus dem Kit, ohne
+widget-shell: Sie rendert die View-Modelle, die der Kern schickt, und behält ihre Host-Anbindung
+(Push-Protokoll, Live-Updates, native Bestätigung). Mit den Widgets teilt sie das Fundament aus
+pulse-ui (Töne `@miragon/pulse-ui/tones`, Formatierer `@miragon/pulse-ui/format`, Glossar,
+Zählbegriffe, Marken-Gates) und die Bausteine, die D9 aus der Webview in pulse-ui hebt
+(`ViewBar`, `StatusStrip`, `Facts`, `StateLabel`, `CountBadge`, `DataTable` …); nur die geteilte
+Ansicht mit ihrer verstellbaren Trennung und den gespeicherten Breiten bleibt im Editor. Die Hosts
+setzen `data-cd-theme`; VS Code setzt für seine Hochkontrast-Themes schon heute
+`data-cd-kontrast="hoch"`. Das Theme-Ereignis von Orca meldet nur hell oder dunkel
+(`apps/orca/types/orca/index.d.ts`): In Orca erreicht hoher Kontrast die Webview über
+`forced-colors`, und die Brücke von Pulse for Orca setzt `data-cd-kontrast="hoch"` nur, wo Orca
+hohen Kontrast meldet. Was die Oberflächen noch unterscheidet und ob es gewollt ist, steht in
+`docs/vscode/parity.md`. Für die Webview gilt zusätzlich diese
+bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
 `apps/vscode/docs/adr/user-interface.md`):
 
-- Icons: 12 px neben dichtem Text und auf den 20-px-Overlays des Diagramms (Zähl- und
-  Move-Badges, Code- und Move-Knöpfe, Links und Warnungen im Text), sonst 16 px. `scanIconSizes`
-  lässt dort neben 16 und 24 px nur 12 px zu, und nur in den Dateien, die
-  `apps/vscode/test/architecture/brand-gates.test.ts` je mit Grund nennt; ein Eintrag ohne
-  12-px-Icon schlägt fehl.
+- Diagramm: Die Zähl-Badges auf dem Diagramm bleiben gefüllte 20-px-Pillen.
+
+Ihre 12-px-Icons (Dichte, oben) lässt `scanIconSizes` in der Webview nur in den Dateien zu, die
+`apps/vscode/test/architecture/brand-gates.test.ts` je mit Grund nennt.
 
 ## Architecture invariants
 
@@ -427,21 +466,21 @@ diese bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
    `src/widgets`, the host bundle in `apps/mcp-server/src/ui/`); another interface
    app's own UI follows the design system above, and the VS Code webview takes from pulse-ui its
    foundation (`/format`, `/tones`) and, for shared building blocks, its React kit and
-   stylesheet through `preact/compat` (owner decision 2026-11-12,
-   `apps/vscode/docs/adr/ui-foundation.md`).
+   stylesheet. By the owner's decision D9 of 2026-11-12 (`apps/vscode/docs/adr/ui-foundation.md`)
+   the webview moves from Preact to React on pulse-ui in one switch and then composes the kit
+   without widget-shell, in the one compact look of the design section.
    - **Pairs.** Six cockpit views have a counterpart in the VS Code webview (the overview, a
      process, its instances, an instance, an incident, the history). A field, a count or an
      action added to or changed in one is a pair feature: where both show it, a shared building
-     block is the default (React's API, props and callbacks only, no host context inside: no
-     `useToolQuery`, `ConfirmDialog`, `HandOffButton` or `HostBridge`), which the widgets render
-     in React and the webview through `preact/compat`, and each side keeps its own screen and
-     host wiring around it; until the first one renders in the webview (the preconditions
-     `apps/vscode/CLAUDE.md` lists), a pair feature is still built on each side. Its pull request
-     updates `docs/vscode/parity.md` by its review rule. Which blocks two surfaces share is the
-     owner's decision in normal review. A primitive goes into pulse-ui, an engine block into a
-     shared package created with the first one two surfaces render; until then the cockpit side
-     keeps its props-only content in the connector (`process-definitions-table-view.tsx` with
-     `renderActions`, `history-steps.tsx`).
+     block is the default (React, props and callbacks only, no host context inside: no
+     `useToolQuery`, `ConfirmDialog`, `HandOffButton` or `HostBridge`), which both render in
+     React once the webview's switch lands, and each side keeps its own screen and host wiring
+     around it; until that switch (its preconditions in `apps/vscode/CLAUDE.md`), a pair feature
+     is still built on each side. Its pull request updates `docs/vscode/parity.md` by its review
+     rule. Which blocks two surfaces share is the owner's decision in normal review. A
+     primitive goes into pulse-ui, an engine block into a shared package created with the first
+     one two surfaces render; until then the cockpit side keeps its props-only content in the
+     connector (`process-definitions-table-view.tsx` with `renderActions`, `history-steps.tsx`).
    - **One kit.** Primitives, components, the tone model (`TONE_*`, `resolveTone`), `cn`, the
      formatters and the kit pieces (`Icon`, `Th`/`Td`, `TableEmptyState`, `NativeSelect` …) come
      from `@miragon/pulse-ui`, a leaf (`ui-is-a-leaf`, invariant 8); widget-shell exports only
@@ -716,10 +755,12 @@ diese bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      framework-free formatters and tones (`@miragon/pulse-ui/format`, `@miragon/pulse-ui/tones`,
      which import nothing: `ui-foundation-entries-import-nothing`). Its core, ports, model reader
      and host kit stay framework-free, with nothing else of pulse-ui (its closed world's
-     `pulse-ui-only-its-foundation`); the webview may render pulse-ui's React kit and stylesheet
-     for shared building blocks through `preact/compat`, by the package's root and
-     `@miragon/pulse-ui/theme.css` only (`webview-pulse-ui-by-its-entries`; the decision of
-     2026-11-12: `apps/vscode/docs/adr/ui-foundation.md`). A family's adapter imports only its
+     `pulse-ui-only-its-foundation`); the webview may import pulse-ui's React kit and stylesheet
+     for shared building blocks, by the package's root and `@miragon/pulse-ui/theme.css` only
+     (`webview-pulse-ui-by-its-entries`; the decisions of 2026-11-12:
+     `apps/vscode/docs/adr/ui-foundation.md`, whose D9 moves the webview to React on pulse-ui in
+     one switch, its rendering libraries then `react`, `react-dom` and `lucide-react` instead of
+     `preact`, never widget-shell). A family's adapter imports only its
      own family's core, engine-core, the runtime view and the transport
      (`adapters-own-their-family`; the C7 adapter, `packages/connectors/c7/c7-adapter`, runs
      c7-core), never a client, its own family's included (`client-consumers`, owner decision

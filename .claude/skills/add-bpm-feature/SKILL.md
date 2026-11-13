@@ -322,7 +322,12 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   `text-body` (16), dense tables and controls `text-dense` (14), captions and meta
   `text-small` (13, the floor); no `text-xs`/`text-[11px]`, no Tailwind sizes in kit
   code (`scanTypeScale` from `@miragon/pulse-ui/testing`; connectors adopt it with `rules:
-["below-floor"]` first)
+["below-floor"]` first). The owner's decision D9 of 2026-11-12
+  (`apps/vscode/docs/adr/ui-foundation.md`) gives every surface one compact look, which pulse-ui
+  and the cockpit take in their own commits: `text-dense` becomes 13, a view's title becomes
+  chrome (13/600 in a 40 px bar) with 28/700 left for the app level (landing, fleet), and
+  controls and rows take pulse-ui's density roles (28 px compact, comfortable on touch; the
+  root `CLAUDE.md`, "Abweichung Dichte, für alle Oberflächen"); size nothing by hand
 - From pulse-ui: `Section` (collapsibles); `Th`/`Td` (cells);
   `WidgetHeader` (`badge`/`titleSuffix`/`size="detail"`/`as`, no icon tile) + `VersionChip`
   (hero/detail headers); `KpiGrid` (KPI strips, incl. `variant="soft"`; a
@@ -362,7 +367,8 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   `-ink` role is only for text in a tone directly on the card or page (an inline error)
 - Icons: Lucide via `Icon` (`import { FileSearch } from "lucide-react"`; the package pins
   devDependency `lucide-react` `1.70.0`, see CLAUDE.md invariant 6), never a Unicode glyph
-  or emoji, at 16 px (`dense` in rows; `scanIconSizes` allows 16 and 24 only); a chat
+  or emoji, at 16 px (`dense` in rows; `scanIconSizes` allows 16 and 24 only; 12 px is the
+  named deviation of D9, only in the pulse-ui files the gate lists); a chat
   hand-off is widget-shell's `<HandOffButton action="explainError" prompt={ask(…)} />`
   (`@miragon/pulse-widget-shell/widgets`: the product's one table of functions, each with its
   Lucide icon and a label that names the chat, "Fehler im Chat erklären" / "Explain error in
@@ -384,8 +390,9 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   widgets (owner decision 2026-11-12, `apps/vscode/docs/adr/ui-foundation.md`). Where both show
   a field, a count or an action, a shared building block is the default: React's API, props and
   callbacks only, no host context (as `process-definitions-table-view.tsx` with
-  `renderActions`), rendered in the webview through `preact/compat`; until the first one renders
-  there, each side builds its own. Its pull request updates `docs/vscode/parity.md`
+  `renderActions`), which the webview renders in React too once its switch to React on pulse-ui
+  lands (owner decision D9); until then, each side builds its own. Its pull request updates
+  `docs/vscode/parity.md`
 - BPMN: viewer lifecycle and the fixed light canvas via `useBpmnViewer` (the container
   is a forced-light island, `data-theme-mode="light"`, on the paper token) +
   `BpmnZoomControls` (light in every theme, Lucide). The frame height comes from the

@@ -107,18 +107,18 @@ engine-core's contract, as the runtime view does: a design question of its own.
 
 ## What the UIs share
 
-Pulse's UIs run on two runtimes. React on `@miragon/pulse-ui` and widget-shell: the MCP widgets, a
-starter's and the web apps of [#573](https://github.com/Miragon/pulse/issues/573). Preact with its
-own components and stylesheets: the runtime view's webview (Pulse for VS Code and Pulse for Orca),
-which has no host adapter and never renders a widget. They share a core up to building blocks: the
-formats (the board file first), pulse-ui's framework-free `@miragon/pulse-ui/tones` (one tone per
-situation, `SITUATION_TONES`) and `@miragon/pulse-ui/format` (dates, durations, counts, short ids),
-from `@miragon/pulse-ui/testing` the product glossary, the count words and the brand gates, the
-engine rules of c7-core, the numbers of a feature several show (boards first: one builder over one
-read) and building blocks written against React's API with props and callbacks only, which the
-webview renders through `preact/compat`. Each keeps its own screens and host wiring: six cockpit
-views have a counterpart in the editors, and [Parity with the MCP cockpit](../vscode/parity.md)
-lists what still differs. The decision, of 2026-11-12, is `apps/vscode/docs/adr/ui-foundation.md`.
+By the owner's decision of 2026-11-12, Pulse's UIs become one family, React on `@miragon/pulse-ui`
+in one compact look: the MCP widgets, a starter's and the web apps of
+[#573](https://github.com/Miragon/pulse/issues/573) with widget-shell, and the runtime view's
+webview (Pulse for VS Code and Pulse for Orca) without it, which has no host adapter, never renders
+a widget and is Preact until its switch. They share a core up to building blocks: the formats (the
+board file first), pulse-ui's framework-free `@miragon/pulse-ui/tones` (`SITUATION_TONES`) and
+`@miragon/pulse-ui/format` (dates, durations, counts, short ids), from `@miragon/pulse-ui/testing`
+the product glossary, the count words and the brand gates, the engine rules of c7-core, the numbers
+of a feature several show (boards first: one builder over one read) and building blocks on React
+with props and callbacks only. Each keeps its own screens and host wiring: six cockpit views have a
+counterpart in the editors, and [Parity with the MCP cockpit](../vscode/parity.md) lists what still
+differs. The decisions are in `apps/vscode/docs/adr/ui-foundation.md`.
 
 ## External systems
 

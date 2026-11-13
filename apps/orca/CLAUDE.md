@@ -92,6 +92,17 @@ repository's `http-consumers`), over the worker's global `fetch`. The repository
 (`scripts/third-party-licenses.mjs`), which the licence test reads, may use Node built-ins and
 nothing else. `pnpm lint:architecture:orca` says where an import belongs.
 
+The frames show the runtime view's webview. By the owner's decision D9 of 2026-11-12
+(`apps/vscode/docs/adr/ui-foundation.md`) it moves from Preact to React 19 on `@miragon/pulse-ui` in
+one switch, a commit of the pull request that recorded D9, in the one compact look of every surface;
+until then it is Preact. Orca's build is readable (`apps/orca/scripts/build.mjs`), so before the
+switch the webview's build comes to define `process.env.NODE_ENV` as production in every build (a
+precondition the record lists), or React's development build would ship. The frames' bridge
+(`apps/orca/src/editor/bridge.ts`) sets `data-cd-theme`. Orca's theme event reports only light or
+dark (`apps/orca/types/orca/index.d.ts`), so in Orca high contrast reaches the webview through
+`forced-colors`, and the bridge sets `data-cd-kontrast="hoch"` only where Orca reports high
+contrast. With the switch the plugin's licence list follows the new bundle.
+
 The project file is `.pulse.json`, read through the host kit (`TargetsParser` over
 `@miragon/pulse-profile`, the rules in `apps/vscode/CLAUDE.md`); `ProjectFile` of the host kit
 names it and its former name, `.pulse-cli.json`, which the worker turns into one problem and no

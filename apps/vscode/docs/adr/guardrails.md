@@ -1,7 +1,7 @@
 # Guardrails
 
 - Status: accepted
-- Last reviewed: 2026-11-12 (the runtime view's closed world after the owner decision in [ui-foundation.md](ui-foundation.md): `webview-pulse-ui-by-its-entries` lets the webview import pulse-ui's React kit and stylesheet for shared building blocks, `pulse-ui-only-its-foundation` keeps the ports, core, model reader and host kit framework-free, and a shared building block may raise the webview's bundle ceiling with a `Ratchet-Exception:` trailer that names it; the connection builder tested; the panel's hand-over of the engine's CLI tested, the host's floors and the host kit's statements raised to the measured values; the runtime view's global and host kit floors at the measured values; the promise scan over the editors' texts, their manifests and the packages whose texts they show, a sentence a value or a tag splits read as one); 2026-11-11 (two of the host kit's safety rules tested; the runtime view's global and host kit floors at the measured values); 2026-11-10 (the C7 adapter joined the c7 family as `@miragon/pulse-c7-adapter`: its closed world, knip workspace and configs on the new path; floors over the extension's host and the runtime view's host kit); 2026-11-09 (#585 merged: the closed worlds of the runtime view and the engine adapter beside the host's, the engine contract the runtime view's one contract; the profile format only in the host kit's connections; the engine contract keeps every rule in `packages/connectors/engine/engine-core`, the engine family's core); 2026-11-08 (the product's words over the extension's texts; the tones of Pulse's situation table; `@miragon/pulse-ui/tones` and `@miragon/pulse-ui/format` in the closed world; the date and number gates over core and webview; pulse-ui's brand gates over the webview)
+- Last reviewed: 2026-11-12 (later that day, D9 in [ui-foundation.md](ui-foundation.md): the webview's switch to React raises its bundle ceiling once, to the measured size plus about 5 %, at most 250,000 B, with a `Ratchet-Exception:` trailer, and the React Compiler rules of `recommended-latest` follow in a commit of their own after it; earlier: the runtime view's closed world after the owner decision in [ui-foundation.md](ui-foundation.md): `webview-pulse-ui-by-its-entries` lets the webview import pulse-ui's React kit and stylesheet for shared building blocks, `pulse-ui-only-its-foundation` keeps the ports, core, model reader and host kit framework-free, and a shared building block may raise the webview's bundle ceiling with a `Ratchet-Exception:` trailer that names it; the connection builder tested; the panel's hand-over of the engine's CLI tested, the host's floors and the host kit's statements raised to the measured values; the runtime view's global and host kit floors at the measured values; the promise scan over the editors' texts, their manifests and the packages whose texts they show, a sentence a value or a tag splits read as one); 2026-11-11 (two of the host kit's safety rules tested; the runtime view's global and host kit floors at the measured values); 2026-11-10 (the C7 adapter joined the c7 family as `@miragon/pulse-c7-adapter`: its closed world, knip workspace and configs on the new path; floors over the extension's host and the runtime view's host kit); 2026-11-09 (#585 merged: the closed worlds of the runtime view and the engine adapter beside the host's, the engine contract the runtime view's one contract; the profile format only in the host kit's connections; the engine contract keeps every rule in `packages/connectors/engine/engine-core`, the engine family's core); 2026-11-08 (the product's words over the extension's texts; the tones of Pulse's situation table; `@miragon/pulse-ui/tones` and `@miragon/pulse-ui/format` in the closed world; the date and number gates over core and webview; pulse-ui's brand gates over the webview)
 
 ## Context
 
@@ -100,7 +100,8 @@ repository's CI (`.github/workflows/ci.yml`) next to the server's.
   instead.
 - Of the React hooks rules only `rules-of-hooks` is on in the webview: the React Compiler
   rules of `recommended-latest` read Preact's mutable refs and the diagram handles as React
-  state.
+  state. After the switch to React (D9 in [ui-foundation.md](ui-foundation.md)) they come in a
+  commit of their own.
 
 ## Consequences
 
@@ -134,7 +135,8 @@ repository's CI (`.github/workflows/ci.yml`) next to the server's.
   bundle 200 000 B, raised from 108 000 B by the maintainer on 2026-10-22 for the back navigation
   and the drilldown button (108.2 kB), with room for the next UI features; a shared building block
   of pulse-ui's React kit may raise it, with a `Ratchet-Exception:` trailer that names the block
-  (owner decision 2026-11-12, [ui-foundation.md](ui-foundation.md)).
+  (owner decision 2026-11-12, [ui-foundation.md](ui-foundation.md)), and the webview's switch to
+  React (D9 there) raises it once to the measured size plus about 5 %, at most 250,000 B.
 - The host layer (`apps/vscode/src/host`) was excluded from coverage as VS Code glue; once #585
   moved the other layers out, the extension's floors measured no file. Since 2026-11-10 they
   measure the host but `extension.ts`, the entry VS Code calls, and `pulse-extension.ts`, the

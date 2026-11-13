@@ -34,13 +34,13 @@ wiring and the composition root:
 |                                          | `host-kit` | the host-neutral rules: targets, writes, live updates, logins |
 | `packages/connectors/c7/c7-adapter`      | adapter    | the C7 adapter of the contract                                |
 
-The webview stays Preact for its own screens. Its tones come from `@miragon/pulse-ui/tones` and
-its times, durations, counts and short ids from `@miragon/pulse-ui/format`, the parts of Pulse's
-design kit without React, bundled as well: a running, suspended or failing instance shows in the
-same tone as in the MCP widgets, and a duration, a lower bound or a long key reads the same. A
-building block both show is shared by default, written against React's API with props and
-callbacks only, and renders here through `preact/compat`; the core, ports, model reader and host
-kit stay framework-free. [Parity with the MCP cockpit](./parity.md) lists what differs and why.
+The webview is Preact today; by the owner's decision D9 of 2026-11-12 it moves to React on
+`@miragon/pulse-ui` in one switch and shares one compact look with the MCP widgets. Its tones come
+from `@miragon/pulse-ui/tones` and its times, durations, counts and short ids from
+`@miragon/pulse-ui/format`, the parts of Pulse's design kit without React: a running, suspended or
+failing instance shows in the same tone as in the MCP widgets, and a duration, a lower bound or a
+long key reads the same. The core, ports, model reader and host kit stay framework-free.
+[Parity with the MCP cockpit](./parity.md) lists what differs and why.
 
 More in the repository:
 

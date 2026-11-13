@@ -45,8 +45,9 @@ Only UI state (open tab, split, column widths, zoom) stays in the webview's own 
 ## Rules
 
 - Takes the core's protocol types, pulse-ui's `/tones` and `/format` (the latter from `format/`)
-  and, for shared building blocks rendered through `preact/compat`, pulse-ui's React kit and
-  `theme.css`; nothing else of ours (dependency-cruiser)
+  and, for shared building blocks, pulse-ui's React kit and `theme.css`; nothing else of ours
+  (dependency-cruiser). It moves from Preact to React on pulse-ui in one switch (D9 in
+  `apps/vscode/docs/adr/ui-foundation.md`)
 - No `vscode` and no Node: it runs in a browser sandbox (dependency-cruiser, `packages/core/runtime-view/tsconfig.webview.json`)
 - Colours only from Miragon `--cd-*` tokens, never `--vscode-*`; no engine words (ESLint)
 

@@ -91,7 +91,7 @@ The dependency rules are closed-world, one config per package (`apps/vscode/.dep
 explicitly allowed fails its `pnpm lint:architecture:<package>` with a message that says where it
 belongs (dependency-cruiser reports it as `not-in-allowed` and takes the wording from the forbidden
 rule of that name, which never fires itself). Nothing outside them is allowed, so no widget-shell,
-no React (a shared building block's React API renders through `preact/compat`, below), no zod;
+no React of its own until the webview's switch to React (below), no zod;
 the repository's licence list (`scripts/third-party-licenses.mjs`), which the licence test
 reads, may use Node built-ins and nothing else. The engine contract has one home, the
 engine family's core `@miragon/pulse-engine-core` (`packages/connectors/engine/engine-core`, owner
@@ -143,31 +143,46 @@ never into a copy; the adapter's `InspectView` is c7-core's instance view, not a
 Ports, core, webview, host kit and host stay engine-neutral.
 
 The surfaces share a core up to building blocks, not everything, by the product owner's decision
-of 2026-11-12 (`apps/vscode/docs/adr/ui-foundation.md`). The webview keeps Preact as its runtime
-and for its own screens, keeps its host wiring (the push protocol and live updates, the native
-confirmation, sign-in) and may build parts of its own; where it shows the same thing as the MCP
-widgets or the web apps of #573, a shared building block is the default, and no screen of it is
-replaced by force. A shared building block is a component written against React's API that takes
-props and callbacks only, with no host context inside (no `useToolQuery`, `ConfirmDialog`,
-`HandOffButton` or `HostBridge`); the webview renders it through `preact/compat` with pulse-ui's
-React kit and stylesheet. It lives in pulse-ui (a primitive) or in a shared package created with
-the first engine block two surfaces render. Before the first one renders here, these land: the
-`preact/compat` alias in the webview's esbuild build; pulse-ui's `theme.css` honouring
-`data-cd-theme`, `data-cd-kontrast="hoch"` and `forced-colors`; Tailwind without preflight,
-scoped to the shared blocks; the blocks' tests running under `preact/compat` too. The closed
-world admits the kit in the webview alone (`webview-pulse-ui-by-its-entries`: never `./testing`,
-`globals.css` with Tailwind's preflight or `fonts.css`), and the webview's bundle ceiling
-(200,000 B gzip, shrink-only) may grow for a block with a `Ratchet-Exception:` trailer that names
-the block. A feature more than one surface shows, boards first, shows the same numbers on every
-surface, from one framework-free builder over one read of engine-core's read models; elsewhere
-each tool keeps its own numbers behind the same words (`COUNT_TERMS`) until its view moves onto
-shared numbers. The board format and the board builder go into a new published package (the
-planned @miragon/pulse-board). The board's "with incident" reads two ways today, the counter as
-the history count with open incidents
-(`packages/connectors/c7/c7-adapter/src/reading/instance-search.ts`), the incident summary and
-the engine strip from a runtime incident scan
-(`packages/connectors/c7/c7-adapter/src/reading/definition-reader.ts`); settle that before
-boards move.
+of 2026-11-12 (`apps/vscode/docs/adr/ui-foundation.md`). Later that day the owner decided D9 in
+the same record: the webview moves from Preact to React 19 on `@miragon/pulse-ui` in one switch,
+a commit of the pull request that recorded D9, with no `preact/compat` bridge, and every surface
+takes one compact look from pulse-ui (the design section of the root `CLAUDE.md`). Until the
+switch lands, the webview keeps Preact as its runtime and its own stylesheets. After it, the
+webview composes pulse-ui's kit, its primitives and the building blocks D9 lifts into its root
+from the webview (the context bar, `StatusStrip`, the facts grid, `StateLabel`, `CountBadge`, the
+segments with counts, `SearchField`, the condition chip, the id with its copy button, `DataTable`,
+the form primitives), and stays a renderer of the view models the core pushes, without
+widget-shell. It keeps its host wiring (the push protocol and live updates, the native
+confirmation, sign-in), its diagram runtime and overlays, and the split pane with the widths it
+stores, which stay the editor's; where it shows the same thing as the MCP widgets or the web apps
+of #573, a shared building block is the default, and no screen of it is replaced by force. A
+shared building block is a component on React that takes props and callbacks only, with no host
+context inside (no `useToolQuery`, `ConfirmDialog`, `HandOffButton` or `HostBridge`); it lives in
+pulse-ui or in a shared package created with the first engine block two surfaces render. Before
+the switch, these land: a Tailwind step in the webview's esbuild build
+(`packages/core/runtime-view/scripts/webview-build-options.mjs`) with Tailwind's preflight on;
+`process.env.NODE_ENV` defined as production in every build, Orca's readable one included, or
+React's development build ships; one React instance in the bundle, checked on its metafile; an
+accessibility and geometry baseline of the webview's tests, taken under Preact (roles, labels and
+`data-part` hooks, axe, focus through a live update, icon and target sizes); pulse-ui's
+stylesheet following `data-cd-theme`, `data-cd-kontrast="hoch"`, `forced-colors` and reduced
+motion; pulse-ui's density roles, compact by default. The closed world admits the kit in the
+webview alone (`webview-pulse-ui-by-its-entries`: never `./testing`, `globals.css`, the
+stylesheet of an app without a Tailwind entry of its own, or `fonts.css`); with the switch its
+rendering libraries become `react`, `react-dom` and `lucide-react` (the repository's one pin)
+instead of `preact`. The webview's bundle ceiling (200,000 B gzip, shrink-only) goes with the
+switch to the measured size plus about 5 %, at most 250,000 B, with a `Ratchet-Exception:`
+trailer. Numbers stay neutral here too: with the switch the webview's red and orange counts turn
+neutral and carry a tone icon. A feature more than one surface shows, boards first, shows the
+same numbers on every surface, from one framework-free builder over one read of engine-core's
+read models; elsewhere each tool keeps its own numbers behind the same words (`COUNT_TERMS`) until
+its view moves onto shared numbers. The board format and the board builder go into a new published
+package (the planned @miragon/pulse-board). The board's "with incident" reads two ways today, the
+counter as the history count with open incidents
+(`packages/connectors/c7/c7-adapter/src/reading/instance-search.ts`), the incident summary and the
+engine strip from a runtime incident scan
+(`packages/connectors/c7/c7-adapter/src/reading/definition-reader.ts`); settle that before boards
+move.
 
 ## Rules
 
@@ -241,11 +256,16 @@ boards move.
   pinned by `.miragon/brand-assets.sha256`: re-copy, never edit (the repository's token drift
   test reads those checksums and holds every token the copy shares with pulse-ui's and the docs
   kit's to one value per scope, so a release that changes a value is copied into every copy at
-  once). pulse-ui's brand gates scan the webview and the texts of the runtime view and the host
-  (`apps/vscode/test/architecture/brand-gates.test.ts`, `product-words.test.ts`): Lucide icons, never a glyph, at
-  16 px or at 12 px beside dense text and on the diagram's overlays (the named deviation, each
-  file listed there with its reason), and no raw colour outside the renderer's paint constants
-  in `diagram/canvas-roles.ts`.
+  once). With the switch to React the webview takes pulse-ui's `theme.css`, and its copy of
+  `cd-tokens.generated.css` goes (its manifest entry, checksums and drift test with it);
+  `cd-tokens.generated.json`, which the renderer's paint constants are pinned to
+  (`packages/core/runtime-view/test/webview/canvas-tokens.test.ts`), and `cd-canvas.css` stay for
+  the diagram. pulse-ui's brand gates scan the webview and the texts of
+  the runtime view and the host (`apps/vscode/test/architecture/brand-gates.test.ts`,
+  `product-words.test.ts`): Lucide icons, never a glyph, at 16 px or at 12 px beside dense text
+  and on the diagram's overlays (the named deviation of the root `CLAUDE.md`'s density section,
+  each file listed there with its reason), and no raw colour outside the renderer's paint
+  constants in `diagram/canvas-roles.ts`.
 - UI text is English and follows the English rules of the brand tone: sentence case, active
   voice, no dash as a connector. It says what Pulse does today and promises no later feature:
   the promise scan of `product-words.test.ts` refuses "not … yet" in one sentence (a dot in a
@@ -259,8 +279,8 @@ boards move.
   with its reason, and an allowance that spares nothing fails.
 - A field, a count or an action added to or changed in a view the MCP cockpit has too (the
   engine overview, a process, its instances, an instance, an incident, the history) is a pair
-  feature: where both show it, a shared building block is the default (above); until the first
-  one renders here, it is still built on each side. Its pull request updates the parity list
+  feature: where both show it, a shared building block is the default (above); until the switch
+  to React lands, it is still built on each side. Its pull request updates the parity list
   `docs/vscode/parity.md` by its review rule. Decisions about shared building blocks are the
   product owner's and go through normal review.
 - The .vsix ships `THIRD_PARTY_LICENSES.txt` beside `LICENSE` (`.vscodeignore`; the package job of
