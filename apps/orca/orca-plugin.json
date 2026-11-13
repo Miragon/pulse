@@ -3,7 +3,7 @@
   "manifestVersion": 2,
   "id": "pulse-cockpit",
   "name": "Pulse",
-  "version": "0.27.1",
+  "version": "0.28.0",
   "description": "The Pulse engine cockpit for Operaton, CIB seven and Camunda 7 inside Orca.",
   "author": {
     "name": "Miragon GmbH",
@@ -67,14 +67,18 @@
       {
         "id": "pulse-view",
         "title": "Pulse",
-        "extensions": [".pulse-view"],
+        "extensions": [
+          ".pulse-view"
+        ],
         "entry": "editor/index.html",
         "frame": "isolated"
       },
       {
         "id": "pulse-board",
         "title": "Board",
-        "extensions": [".board.json"],
+        "extensions": [
+          ".board.json"
+        ],
         "entry": "editor/board.html",
         "frame": "isolated"
       }
@@ -93,7 +97,11 @@
         "title": "Writes",
         "description": "Whether Pulse may retry incidents, change variables, move tokens, cancel and migrate instances.",
         "type": "string",
-        "enum": ["localOnly", "enabled", "disabled"],
+        "enum": [
+          "localOnly",
+          "enabled",
+          "disabled"
+        ],
         "enumLabels": [
           "On engines on this machine only",
           "Also on remote engines with a login",
@@ -114,8 +122,16 @@
         "title": "Live updates: local engines",
         "description": "Whether open Pulse views read local engines again on their own. Default: on.",
         "type": "string",
-        "enum": ["default", "on", "off"],
-        "enumLabels": ["Default", "On", "Off"],
+        "enum": [
+          "default",
+          "on",
+          "off"
+        ],
+        "enumLabels": [
+          "Default",
+          "On",
+          "Off"
+        ],
         "default": "default"
       },
       {
@@ -123,8 +139,16 @@
         "title": "Live updates: test engines",
         "description": "Whether open Pulse views read test engines again on their own. Default: on.",
         "type": "string",
-        "enum": ["default", "on", "off"],
-        "enumLabels": ["Default", "On", "Off"],
+        "enum": [
+          "default",
+          "on",
+          "off"
+        ],
+        "enumLabels": [
+          "Default",
+          "On",
+          "Off"
+        ],
         "default": "default"
       },
       {
@@ -132,8 +156,16 @@
         "title": "Live updates: production engines",
         "description": "Whether open Pulse views read production engines again on their own. Default: off.",
         "type": "string",
-        "enum": ["default", "on", "off"],
-        "enumLabels": ["Default", "On", "Off"],
+        "enum": [
+          "default",
+          "on",
+          "off"
+        ],
+        "enumLabels": [
+          "Default",
+          "On",
+          "Off"
+        ],
         "default": "default"
       },
       {
@@ -141,8 +173,16 @@
         "title": "Live updates: unclassified engines",
         "description": "Whether open Pulse views read unclassified engines again on their own. Default: off.",
         "type": "string",
-        "enum": ["default", "on", "off"],
-        "enumLabels": ["Default", "On", "Off"],
+        "enum": [
+          "default",
+          "on",
+          "off"
+        ],
+        "enumLabels": [
+          "Default",
+          "On",
+          "Off"
+        ],
         "default": "default"
       }
     ],

@@ -1,7 +1,7 @@
 {
   "name": "@miragon/pulse-orca",
   "private": true,
-  "version": "0.27.1",
+  "version": "0.28.0",
   "description": "Pulse for Orca: the runtime view of Pulse for VS Code as an Orca plugin, for Operaton, CIB seven and Camunda 7.",
   "license": "MIT",
   "repository": {
