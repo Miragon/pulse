@@ -8,7 +8,7 @@
  * | `title`   | `text-title`   | 28 px / 700 / 1.2           | page title (the CI h2; a widget has no h1 40 px) |
  * | `section` | `text-section` | 21 px / 600 / 1.3           | section title (CI h3)                      |
  * | `body`    | `text-body`    | 16 px / 400 / 1.6           | running text: state and toast descriptions |
- * | `dense`   | `text-dense`   | 14 px / 400 / 1.5           | dense tables and controls (inputs, chips, count pills, the inline alert box): the documented product exception, never running text |
+ * | `dense`   | `text-dense`   | 14 px / 400 / 1.5           | dense tables and controls (buttons, tabs, inputs, chips, count pills, the inline alert box) and the primitives' short descriptions (card, dialog): the documented product exception, never running text |
  * | `small`   | `text-small`   | 13 px / 400 / 1.5           | captions, labels, hints, meta rows: the FLOOR |
  *
  * Nothing renders below 13 px: no `text-xs` (12 px), no `text-[10px]`

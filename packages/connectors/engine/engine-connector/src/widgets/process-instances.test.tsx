@@ -112,7 +112,7 @@ describe("the engine-wide list's columns", () => {
     // A row's "Open" has the one action size (32 px, 14 px, 600), level with its icon buttons.
     const open = screen.getAllByRole("button", { name: /^Open instance/ })[0]
     expect(open.className).toMatch(/\bh-8\b/)
-    expect(open.className).toMatch(/\btext-sm\b/)
+    expect(open.className).toMatch(/(^| )text-dense( |$)/)
     expect(open.className).toMatch(/\bfont-semibold\b/)
     // The aria-label replaces the content for a screen reader, so it must state the version.
     expect(process.getAttribute("aria-label")).toBe("Open process Invoice receipt, version 7")

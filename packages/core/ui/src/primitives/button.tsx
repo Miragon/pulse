@@ -9,7 +9,7 @@ import { cn } from "../lib/utils.js"
 // shadow-1, hover deeper blue + shadow-2 + a 1px lift; secondary/outline =
 // surface with a line border, hover blue border and text on the accent tint.
 const buttonVariants = cva(
-  `inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-semibold whitespace-nowrap transition-[color,background-color,border-color,box-shadow,translate] disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-danger ${FOCUS_RING} [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4`,
+  `inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-dense font-semibold whitespace-nowrap transition-[color,background-color,border-color,box-shadow,translate] disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-danger ${FOCUS_RING} [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4`,
   {
     variants: {
       variant: {

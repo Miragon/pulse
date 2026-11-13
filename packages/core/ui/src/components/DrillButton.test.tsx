@@ -14,7 +14,7 @@ describe("DrillButton: the outline Button with a trailing arrow (mcp-toolkit#194
     const [button] = openingTags(html, "button")
     expect(classOf(button)).toBe(buttonVariants({ variant: "outline", size: "sm" }))
     expect(classOf(button)).toMatch(/\bh-8\b/)
-    expect(classOf(button)).toMatch(/\btext-sm\b/)
+    expect(classOf(button)).toMatch(/(^| )text-dense( |$)/)
     expect(classOf(button)).toMatch(/\bfont-semibold\b/)
     expect(attribute(button ?? "", "type")).toBe("button")
   })

@@ -41,27 +41,6 @@ const SCANNED = [
   "tones",
 ]
 
-/**
- * The shadcn primitives as vendored in toolkit 2.8.1 take Tailwind's own sizes (`text-sm`,
- * `text-base`). Shrink-only: a primitive moved onto the type scale fails until its entry goes.
- */
-const PRIMITIVE_OFF_SCALE = [
-  "alert.tsx text-sm",
-  "alert.tsx text-sm",
-  "button.tsx text-sm",
-  "card.tsx card:text-sm",
-  "card.tsx text-base",
-  "card.tsx text-sm",
-  "card.tsx text-sm",
-  "dialog.tsx text-sm",
-  "input.tsx file:text-sm",
-  "input.tsx md:text-sm",
-  "input.tsx text-base",
-  "table.tsx text-sm",
-  "table.tsx text-sm",
-  "tabs.tsx text-sm",
-]
-
 /** The sources at the root of src (the barrel and the render fixtures), tests aside. */
 const ROOT_FILES = readdirSync(SRC, { withFileTypes: true })
   .filter((entry) => entry.isFile() && /\.tsx?$/.test(entry.name))
@@ -156,9 +135,8 @@ describe.each(SCANNED)("src/%s", (dir) => {
     expect(scanIconSizes(path)).toEqual([])
   })
 
-  it("sets text on the type scale (the shadcn primitives' Tailwind sizes pinned)", () => {
-    const findings = scanTypeScale(path).map((f) => `${f.file} ${f.match}`)
-    expect(findings.sort()).toEqual(dir === "primitives" ? PRIMITIVE_OFF_SCALE : [])
+  it("sets text on the type scale, the vendored shadcn primitives included", () => {
+    expect(scanTypeScale(path).map((f) => `${f.file}:${f.line} ${f.match}`)).toEqual([])
   })
 
   it("colours through role names only, outside the reasoned allowances", () => {

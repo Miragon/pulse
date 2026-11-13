@@ -42,7 +42,7 @@ async function expectOneGroup(container: HTMLElement, names: RegExp[]) {
   for (const action of actions) {
     // The kit's button size sm: 32 px, 14 px, semibold.
     expect(action.className, nameOf(action)).toMatch(/\bh-8\b/)
-    expect(action.className, nameOf(action)).toMatch(/\btext-sm\b/)
+    expect(action.className, nameOf(action)).toMatch(/(^| )text-dense( |$)/)
     expect(action.className, nameOf(action)).toMatch(/\bfont-semibold\b/)
   }
 }
