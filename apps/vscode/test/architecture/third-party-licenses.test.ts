@@ -6,6 +6,7 @@ import { beforeAll, describe, expect, test } from "vitest"
 import {
   ESBUILD_RUNTIME,
   esbuildModules,
+  inlinedStylesheets,
   type Inventory,
   inventoryOf,
   type Layout,
@@ -110,7 +111,10 @@ async function modulesOf(options: esbuild.BuildOptions): Promise<string[]> {
     sourcemap: false,
     logLevel: "silent",
   })
-  return esbuildModules({ metafile: result.metafile, outputFiles: result.outputFiles }, APP)
+  return [
+    ...esbuildModules({ metafile: result.metafile, outputFiles: result.outputFiles }, APP),
+    ...inlinedStylesheets(options.plugins ?? []),
+  ]
 }
 
 async function bundledModules(): Promise<Record<string, string[]>> {

@@ -24,13 +24,20 @@ async function configOf(file: string): Promise<Options> {
   return optionsOf(loaded.default)
 }
 
+const MANIFEST = JSON.parse(readFileSync(join(APP_ROOT, "package.json"), "utf8")) as {
+  readonly scripts: Readonly<Record<string, string>>
+}
+
 describe("the configs the CI jobs run by name", () => {
   test("are the ones the pinned test:smoke script loads", () => {
-    const manifest = JSON.parse(readFileSync(join(APP_ROOT, "package.json"), "utf8")) as {
-      readonly scripts: Readonly<Record<string, string>>
-    }
-    expect(manifest.scripts["test:smoke"]).toBe(
+    expect(MANIFEST.scripts["test:smoke"]).toBe(
       "node scripts/build.mjs && vscode-test --config .vscode-test.mjs",
+    )
+  })
+
+  test("package the .vsix from the build that ships, with React's production build", () => {
+    expect(MANIFEST.scripts.package).toMatch(
+      /^node scripts\/build\.mjs --production && vsce package /,
     )
   })
 

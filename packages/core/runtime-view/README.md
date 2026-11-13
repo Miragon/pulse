@@ -27,6 +27,23 @@ core. That edge of `packages/core` into the engine family is the one the owner a
 (`runtime-view-builds-on-the-engine-contract` in the repository's `.dependency-cruiser.cjs`).
 The hosts read the types from the build (`dist`, declarations only) and bundle the sources.
 
+Every build of the webview takes its esbuild options from
+`packages/core/runtime-view/scripts/webview-build-options.mjs`: the hosts' (Pulse for Orca's
+readable one turns off minifying and source maps), the dev harness and the tests of the bundle
+budget and the licence lists. A build that ships (`production: true`) defines
+`process.env.NODE_ENV` as production, so React's development build never ships, and so does the
+dev page's `--build`, which the product shots load. A build without `production` keeps React's
+development build for its warnings: VS Code's builds without `--production` (its watch, smoke
+and e2e builds) and the dev page while it serves. The Tailwind step, `TailwindEntries`
+(`packages/core/runtime-view/scripts/tailwind-entries.mjs`), compiles the stylesheets the options
+name as Tailwind entries and nothing else (none until the webview's switch to React, D9):
+Tailwind's `compile`, the `@source` globs of the entry scanned (without `source(…)` the entry's
+folder), `optimize` in a build that ships, esbuild watching what it read and scanned. It records
+what each entry read, its `@import`s, which the build's metafile never names, so the licence lists
+read the works the CSS inlines (`inlinedStylesheets` of the repository's
+`scripts/third-party-licenses.mjs`); `test/scripts/tailwind-entries.test.ts` builds a fixture
+entry through it.
+
 The architecture decisions are the extension's (`apps/vscode/docs/adr/`), where the runtime view
 grew up; the house rules are in `apps/vscode/CLAUDE.md`.
 

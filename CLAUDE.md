@@ -1063,7 +1063,9 @@ Ihre 12-px-Icons (Dichte, oben) lässt `scanIconSizes` in der Webview nur in den
   because apps never import each other) reads what the artifact really holds: its bundler's
   module graph (`renderedModules` for rolldown, rollup and Vite, `cssDependencies` for the
   stylesheets Vite inlines, `esbuildModules` for an esbuild metafile and esbuild's runtime
-  helpers) or its generated files. A module under node_modules is its package's, a virtual module
+  helpers, `inlinedStylesheets` for what an esbuild plugin inlines into a stylesheet, a Tailwind
+  entry, which every plugin of a shipped esbuild build reports through `inlined()`, or the list
+  fails) or its generated files. A module under node_modules is its package's, a virtual module
   the bundler's (named in the artifact's layout), a file of the repository Miragon's, and one of
   Pulse's packages must share the artifact's MIT; a module that carries another work's text names
   that work (`embedded`). Anything else fails, and so does a work without a licence file unless

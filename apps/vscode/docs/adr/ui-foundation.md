@@ -108,14 +108,16 @@ day the owner decided D9, which replaces D4 and turns D7 into the switch's preco
 - **D7, the switch's preconditions (since D9).** D7 first listed what had to land before a shared
   building block rendered through `preact/compat`. Since D9 it lists what lands before the switch:
   a Tailwind step in the webview's esbuild build with Tailwind's preflight on (the vendored diagram
-  styles stay unlayered above it); `process.env.NODE_ENV` defined as `"production"` in every
-  build, Orca's readable one included; one React instance, so one `react`, `react-dom`,
-  `lucide-react` and pulse-ui in the bundle, checked on its metafile; an accessibility and geometry
-  baseline taken under Preact (tests by role, label and `data-part`, an axe run without findings,
-  focus kept through a live update, icon and target sizes measured in Chromium); pulse-ui's
-  stylesheet following the editor theme (`data-cd-theme`, `data-cd-kontrast="hoch"`,
-  `forced-colors`, reduced motion); pulse-ui's density roles. These are tasks, not a gate on the
-  decision.
+  styles stay unlayered above it; done, the entry with its preflight comes with the switch);
+  `process.env.NODE_ENV` defined as `"production"` in every build that ships, Orca's readable one
+  included (done; a build without `production`, VS Code's watch, smoke and e2e builds and the
+  runtime view's dev page while it serves, keeps React's development build for its warnings); one
+  React instance, so one `react`, `react-dom`, `lucide-react` and pulse-ui in the bundle, checked
+  on its metafile; an accessibility and geometry baseline taken under Preact (tests by role,
+  label and `data-part`, an axe run without findings, focus kept through a live update, icon and
+  target sizes measured in Chromium); pulse-ui's stylesheet following the editor theme
+  (`data-cd-theme`, `data-cd-kontrast="hoch"`, `forced-colors`, reduced motion); pulse-ui's
+  density roles. These are tasks, not a gate on the decision.
 - **D8, homes.** The board format and the board builder go into a new published package, planned
   as @miragon/pulse-board; its dependency rules arrive with the package. Shared building blocks go
   into pulse-ui (primitives) or into a shared package created with the first engine block two
@@ -218,7 +220,10 @@ missing value ([user-interface.md](user-interface.md)).
   `preact`; Radix reaches it only through pulse-ui, widget-shell never.
 - The preconditions of D7 have a home each: the Tailwind step and the `NODE_ENV` define in the
   webview's esbuild options, which both hosts build with
-  (`packages/core/runtime-view/scripts/webview-build-options.mjs`); the single-instance check beside
+  (`packages/core/runtime-view/scripts/webview-build-options.mjs`; both done: the step,
+  `packages/core/runtime-view/scripts/tailwind-entries.mjs`, compiles only the entries the options
+  name, none until the switch, and the licence lists read what such an entry inlines through
+  `inlinedStylesheets` of `scripts/third-party-licenses.mjs`); the single-instance check beside
   the bundle ceiling (`apps/vscode/test/architecture/bundle-budget.test.ts`,
   `apps/vscode/test/__golden__/bundle-budget.json`); the baseline in the webview's tests
   (`packages/core/runtime-view/test/webview`); the editor theme and the density roles in pulse-ui's

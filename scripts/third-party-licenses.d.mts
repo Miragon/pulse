@@ -151,3 +151,17 @@ export declare function cssDependencies(): {
   /** The stylesheets of the chunks' modules and what their `@import`s pull in, real paths. */
   readonly files: (chunks: readonly RenderedChunk[]) => string[]
 }
+
+/** An entry an esbuild plugin compiled into the CSS it hands esbuild, with what it read for it. */
+export interface InlinedStylesheet {
+  readonly entry: string
+  /** The files the plugin read for the entry (its `@import`s), never a source it scanned. */
+  readonly dependencies: readonly string[]
+}
+/** An esbuild plugin, as far as `inlinedStylesheets` reads one: what it inlined, after the build. */
+export interface InliningPlugin {
+  readonly name: string
+  readonly inlined?: () => readonly InlinedStylesheet[]
+}
+/** The entries the plugins inlined and the stylesheets their `@import`s pull in, real paths. */
+export declare function inlinedStylesheets(plugins: readonly InliningPlugin[]): string[]

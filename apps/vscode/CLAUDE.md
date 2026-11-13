@@ -158,15 +158,20 @@ stores, which stay the editor's; where it shows the same thing as the MCP widget
 of #573, a shared building block is the default, and no screen of it is replaced by force. A
 shared building block is a component on React that takes props and callbacks only, with no host
 context inside (no `useToolQuery`, `ConfirmDialog`, `HandOffButton` or `HostBridge`); it lives in
-pulse-ui or in a shared package created with the first engine block two surfaces render. Before
-the switch, these land: a Tailwind step in the webview's esbuild build
-(`packages/core/runtime-view/scripts/webview-build-options.mjs`) with Tailwind's preflight on;
-`process.env.NODE_ENV` defined as production in every build, Orca's readable one included, or
-React's development build ships; one React instance in the bundle, checked on its metafile; an
-accessibility and geometry baseline of the webview's tests, taken under Preact (roles, labels and
-`data-part` hooks, axe, focus through a live update, icon and target sizes); pulse-ui's
-stylesheet following `data-cd-theme`, `data-cd-kontrast="hoch"`, `forced-colors` and reduced
-motion; pulse-ui's density roles, compact by default. The closed world admits the kit in the
+pulse-ui or in a shared package created with the first engine block two surfaces render. Two
+preconditions of the switch have landed in the webview's esbuild options
+(`packages/core/runtime-view/scripts/webview-build-options.mjs`, which every host, dev and test
+build takes): a Tailwind step (`packages/core/runtime-view/scripts/tailwind-entries.mjs`:
+Tailwind's `compile` over the entries the options name, its `@source` globs scanned, `optimize` in
+a build that ships; no entry until the switch brings the webview's own, with preflight on), and
+`process.env.NODE_ENV` defined as production in every build that ships, Orca's readable one
+included, so React's development build never ships; it stays for its warnings in the builds
+without `--production` (watch, smoke, e2e) and on the runtime view's dev page while it serves.
+Before the switch, these land too: one React instance in the bundle, checked on its
+metafile; an accessibility and geometry baseline of the webview's tests, taken under Preact
+(roles, labels and `data-part` hooks, axe, focus through a live update, icon and target sizes);
+pulse-ui's stylesheet following `data-cd-theme`, `data-cd-kontrast="hoch"`, `forced-colors` and
+reduced motion; pulse-ui's density roles, compact by default. The closed world admits the kit in the
 webview alone (`webview-pulse-ui-by-its-entries`: never `./testing`, `globals.css`, the
 stylesheet of an app without a Tailwind entry of its own, or `fonts.css`); with the switch its
 rendering libraries become `react`, `react-dom` and `lucide-react` (the repository's one pin)
@@ -287,7 +292,8 @@ move.
   `ci.yml` and the release's check in `publish-vscode-extension.yml` name it, one list): the works
   of others esbuild bundles into the extension host and the webview (packages, fonts, esbuild's
   runtime helpers, the Lucide geometry of `lucide-glyphs.json`) with their licence files, read from
-  the metafiles of both builds by the repository's licence list
+  the metafiles of both builds, and from what the webview's Tailwind step inlines, which no
+  metafile names (`inlinedStylesheets`), by the repository's licence list
   (`scripts/third-party-licenses.mjs`). `apps/vscode/test/architecture/third-party-licenses.test.ts`
   fails while it misses a work or lists one the bundles hold no more, so a bump of a bundled package
   writes it again in its pull request:

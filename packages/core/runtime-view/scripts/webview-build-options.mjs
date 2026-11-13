@@ -1,6 +1,8 @@
 import { fileURLToPath } from "node:url"
+import { TailwindEntries } from "./tailwind-entries.mjs"
 
 const here = fileURLToPath(new URL("../", import.meta.url))
+const TAILWIND_ENTRIES = []
 
 export function webviewBuildOptions({ production, outdir }) {
   return {
@@ -12,6 +14,8 @@ export function webviewBuildOptions({ production, outdir }) {
     target: "es2022",
     jsx: "automatic",
     jsxImportSource: "preact",
+    define: { "process.env.NODE_ENV": JSON.stringify(production ? "production" : "development") },
+    plugins: [new TailwindEntries({ entries: TAILWIND_ENTRIES, production })],
     sourcemap: !production,
     minify: production,
     metafile: true,

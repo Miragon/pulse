@@ -18,7 +18,10 @@ const stubOptions = {
   logLevel: "info",
 }
 
-const webviewOptions = { ...webviewBuildOptions({ production: true, outdir }), metafile: false }
+const webviewOptions = {
+  ...webviewBuildOptions({ production: buildOnly, outdir }),
+  metafile: false,
+}
 
 if (buildOnly) {
   await Promise.all([esbuild.build(stubOptions), esbuild.build(webviewOptions)])

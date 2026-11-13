@@ -36,7 +36,7 @@ export function pluginBuilds(out) {
       },
     },
     webview: {
-      ...webviewBuildOptions({ production: false, outdir: `${out}editor` }),
+      ...webviewBuildOptions({ production: true, outdir: `${out}editor` }),
       ...readable,
       metafile: false,
     },
