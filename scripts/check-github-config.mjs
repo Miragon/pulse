@@ -544,7 +544,7 @@ export const CHANNEL_PUBLISH_TRIGGERS = {
  * The action that publishes into Miragon/orca-plugins. A full commit pins it, with its release of
  * Miragon/orca-plugin-kit as a comment, so Dependabot moves the pin to each new release.
  */
-export const ORCA_PUBLISH_ACTION = "Miragon/orca-plugin-kit/publish-plugin"
+export const ORCA_PUBLISH_ACTION = "Miragon/orca-plugin-kit/actions/publish-plugin"
 const COMMIT_REF = /^[0-9a-f]{40}$/
 
 const grantsWrite = (job) =>
