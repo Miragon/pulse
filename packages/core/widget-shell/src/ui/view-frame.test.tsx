@@ -78,7 +78,11 @@ describe("ViewFrame: before the view", () => {
     fireEvent.click(button)
     expect(retry).toHaveBeenCalledTimes(1)
     // The frame keeps the focus while the view re-loads.
-    expect(document.activeElement?.getAttribute("data-slot")).toBe("view-frame")
+    const frame = document.activeElement
+    expect(frame?.getAttribute("data-slot")).toBe("view-frame")
+    // A focus holder, no control: no outline, not even the one forced colours draw for
+    // `outline-hidden`, which would frame the whole view.
+    expect(frame?.getAttribute("class")?.split(/\s+/)).toEqual(["outline-none"])
     expect(lines.at(-1)).toContain("could not be shown")
   })
 

@@ -1,4 +1,5 @@
-import { useState } from "react"
+import type { ComponentType, ReactNode } from "react"
+import type { ColumnSizer } from "./column-measure.js"
 
 /** The widths of a table's sized columns in CSS px, by column key. */
 export type ColumnWidths = Readonly<Record<string, number>>
@@ -25,7 +26,7 @@ export interface ColumnSizingOptions {
   min?: number
 }
 
-/** The sizing state a `DataTable` takes (`sizing`). */
+/** The sizing a `DataTable` takes (`sizing`), as `useColumnSizing` returns it. */
 export interface ColumnSizing {
   /** The sized widths, or `undefined` while every column fits its content. */
   widths: ColumnWidths | undefined
@@ -35,6 +36,29 @@ export interface ColumnSizing {
   setWidths: (next: ColumnWidths | undefined, persist: boolean) => void
   /** Hands the widths as they are to `save` (the end of a drag). */
   persist: () => void
+  /**
+   * What a sized table draws in its heads, brought along by `useColumnSizing`, so a table that
+   * never sizes loads none of it.
+   */
+  parts: ColumnSizingParts
+}
+
+/** What a sized head shows: its caption, and the column it sizes. */
+export interface SizedHeadProps {
+  caption: ReactNode
+  align: "left" | "right"
+  /** The column's name in words, for the grip and the menu. */
+  column: string
+  columnKey: string
+  sizer: ColumnSizer
+}
+
+/** The parts of a sized table: its sizer, its heads' grip and column menu, and their measuring. */
+export interface ColumnSizingParts {
+  /** The sizing operations over the columns that size (`keys`). */
+  sizer: (keys: readonly string[]) => ColumnSizer
+  /** A sized head's content: the caption with its column menu, the grip on the head's edge. */
+  Head: ComponentType<SizedHeadProps>
 }
 
 function isWidth(value: unknown, min: number): value is number {
@@ -73,25 +97,4 @@ export function clampWidth(width: number, floor: number, min: number = COLUMN_WI
 /** A sized table's minimum width: its sized and fixed columns and the room of the last one. */
 export function tableMinWidth(widths: ColumnWidths, fixed: number): number {
   return Object.values(widths).reduce((sum, width) => sum + width, LAST_COLUMN_MIN + fixed)
-}
-
-/**
- * The column sizing of a `DataTable`, by mouse and keyboard: a grip on each head's edge and a
- * column menu. Without sizing a column fits its content; once one is sized the table lays out
- * fixed, every sized column at its width and the last one taking the rest. Persistence is
- * injected (`load`, `save`), so the kit keeps nothing itself: an MCP view passes none and its
- * widths last as long as the view, an editor keeps them in its own state.
- */
-export function useColumnSizing({ load, save, min = COLUMN_WIDTH.min }: ColumnSizingOptions = {}) {
-  const [widths, setState] = useState<ColumnWidths | undefined>(() => validWidths(load?.(), min))
-  const sizing: ColumnSizing = {
-    widths,
-    min,
-    setWidths: (next, persist) => {
-      setState(next)
-      if (persist) save?.(next)
-    },
-    persist: () => save?.(widths),
-  }
-  return sizing
 }

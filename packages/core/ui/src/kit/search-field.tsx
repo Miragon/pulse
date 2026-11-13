@@ -126,7 +126,7 @@ export function SearchField({
         onChange={(event) => search.setText(event.target.value)}
         onKeyDown={keyDown}
         className={cn(
-          "placeholder:text-muted-foreground min-w-0 flex-1 self-stretch bg-transparent outline-hidden disabled:cursor-not-allowed [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none",
+          "placeholder:text-muted-foreground min-w-0 flex-1 self-stretch bg-transparent focus-visible:outline-hidden disabled:cursor-not-allowed forced-colors:focus-visible:-outline-offset-2 [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none",
           FIELD_TEXT,
         )}
         {...control}

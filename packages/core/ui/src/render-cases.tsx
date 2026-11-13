@@ -17,6 +17,7 @@ import {
   LivePill,
   LocaleProvider,
   PagedListFooter,
+  rowSelection,
   SearchField,
   SectionHeading,
   SegmentedControl,
@@ -77,13 +78,13 @@ function SizedTable({
       rows={rows}
       rowKey={(row) => row.name}
       sizing={sizing}
-      selection={{
+      selection={rowSelection<CaseRow>({
         isSelected: () => false,
         onToggle: noop,
         all: "indeterminate",
         onToggleAll: noop,
         rowLabel: (row) => row.choose,
-      }}
+      })}
       onActivate={noop}
       footer={footer}
     />

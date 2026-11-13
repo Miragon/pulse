@@ -3,7 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { DataTable } from "./data-table.js"
 import type { DataTableColumn } from "./data-table-types.js"
-import { useColumnSizing, type ColumnSizingOptions } from "./column-sizing.js"
+import type { ColumnSizingOptions } from "./column-sizing.js"
+import { rowSelection } from "./row-selection.js"
+import { useColumnSizing } from "./use-column-sizing.js"
 import { NamedId } from "./named-id.js"
 
 /** The edges of DataTable, its grip and its menu: placement, dismissal, the quiet branches. */
@@ -27,13 +29,13 @@ function Sized(options: ColumnSizingOptions) {
       rows={[{ id: "r-1" }]}
       rowKey={(row) => row.id}
       sizing={sizing}
-      selection={{
+      selection={rowSelection<Row>({
         isSelected: () => false,
         onToggle: () => undefined,
         all: false,
         onToggleAll: () => undefined,
         rowLabel: (row) => `Choose ${row.id}`,
-      }}
+      })}
     />
   )
 }
@@ -172,13 +174,13 @@ describe("DataTable: loading with a selection column", () => {
         rows={[]}
         rowKey={(row: Row) => row.id}
         skeletonRows={2}
-        selection={{
+        selection={rowSelection<Row>({
           isSelected: () => false,
           onToggle: () => undefined,
           all: false,
           onToggleAll: () => undefined,
           rowLabel: (row) => row.id,
-        }}
+        })}
       />,
     )
     const row = screen.getByRole("region").querySelector("tbody tr")!

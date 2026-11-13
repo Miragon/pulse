@@ -1,11 +1,8 @@
 import type { PointerEvent } from "react"
 import { useUiMessages } from "../locale/locale-provider.js"
 import { cn } from "../lib/utils.js"
-import { Checkbox } from "../primitives/checkbox.js"
-import { ColumnGrip } from "./column-grip.js"
-import { COLUMN_KEY_ATTRIBUTE, columnSizer, type ColumnSizer } from "./column-measure.js"
-import { ColumnMenu } from "./column-menu.js"
-import { tableMinWidth, type ColumnWidths } from "./column-sizing.js"
+import { COLUMN_KEY_ATTRIBUTE, type ColumnSizer } from "./column-measure.js"
+import { tableMinWidth, type ColumnSizingParts, type ColumnWidths } from "./column-sizing.js"
 import {
   FITTED_CELL,
   ROW_HOVER,
@@ -63,14 +60,20 @@ function sizedKeys<Row>(columns: ReadonlyArray<DataTableColumn<Row>>): string[] 
     .map((column) => column.key)
 }
 
+/** What a head that sizes draws by: the table's sizer and the sizing's head. */
+interface HeadSizing {
+  sizer: ColumnSizer
+  Head: ColumnSizingParts["Head"]
+}
+
 function HeadCell<Row>({
   column,
-  sizer,
+  sizing,
   wrap,
   fitted,
 }: {
   column: DataTableColumn<Row>
-  sizer: ColumnSizer | undefined
+  sizing: HeadSizing | undefined
   /** The caption may wrap (`wrapHeads`). */
   wrap: boolean
   fitted: boolean
@@ -93,24 +96,18 @@ function HeadCell<Row>({
         thClasses(align, column.plain ?? false),
         wrap && "whitespace-normal",
         fitted && FITTED_CELL,
-        sizer && "group/th relative",
+        sizing && "group/th relative",
         column.className,
       )}
     >
-      {sizer ? (
-        <>
-          <span
-            data-slot="column-head"
-            className={cn(
-              "inline-flex max-w-full items-center gap-1 align-middle",
-              align === "right" && "flex-row-reverse",
-            )}
-          >
-            <span className="min-w-0 truncate">{caption}</span>
-            <ColumnMenu column={nameOf(column)} columnKey={column.key} sizer={sizer} />
-          </span>
-          <ColumnGrip column={nameOf(column)} columnKey={column.key} sizer={sizer} />
-        </>
+      {sizing ? (
+        <sizing.Head
+          caption={caption}
+          align={align}
+          column={nameOf(column)}
+          columnKey={column.key}
+          sizer={sizing.sizer}
+        />
       ) : (
         caption
       )}
@@ -126,7 +123,7 @@ function SelectionHead<Row>({ selection }: { selection: DataTableSelection<Row> 
       style={{ width: SELECTION_WIDTH }}
       className={cn(thClasses("left", true), SELECTION_CELL)}
     >
-      <Checkbox
+      <selection.Box
         aria-label={selection.allLabel ?? dataTable.selectAll}
         checked={selection.all}
         onCheckedChange={() => selection.onToggleAll()}
@@ -190,10 +187,10 @@ function Body<Row>(props: DataTableProps<Row> & { fitted: (key: string) => boole
 
 /** The part of the table that scrolls: the head, the body and what follows them. */
 function TableBody<Row>(
-  props: DataTableProps<Row> & { sizer: ColumnSizer | undefined; sized: ReadonlyArray<string> },
+  props: DataTableProps<Row> & { head: HeadSizing | undefined; sized: ReadonlyArray<string> },
 ) {
-  const { label, columns, rows, selection, skeletonRows, sizer, sized, headRows, foot } = props
-  const widths = sizer?.widths
+  const { label, columns, rows, selection, skeletonRows, head, sized, headRows, foot } = props
+  const widths = head?.sizer.widths
   const loading = skeletonRows !== undefined
   // Drawn rows fit their columns to their content, one column taking the rest, until sized.
   const rest = rows !== undefined && widths === undefined ? restKeyOf(columns) : undefined
@@ -222,7 +219,7 @@ function TableBody<Row>(
               <HeadCell
                 key={column.key}
                 column={column}
-                sizer={sized.includes(column.key) ? sizer : undefined}
+                sizing={sized.includes(column.key) ? head : undefined}
                 wrap={props.wrapHeads ?? false}
                 fitted={fitted(column.key)}
               />
@@ -246,17 +243,22 @@ function TableBody<Row>(
  * (`scroll-padding-top`, WCAG 2.4.11). Two ways to fill it: `rows` drawn by the columns' `cell`s,
  * one line each, the columns fitting their content and one taking the rest (`fill`, else the
  * last), with an optional row target (`onActivate`, one tab stop, the arrows between rows), copy
- * and selection column; or `children`, rows composed by hand and laid out by their content. Either
- * way the heads keep one line, a `NamedId` in the body takes one line that gives way first where
- * the region is short of room, the columns can be sized by mouse and keyboard (`sizing` from
- * `useColumnSizing`, with a grip and a menu per head), and `skeletonRows` stands in while it
- * loads. Props and callbacks only: no host, no tool call; where widths are kept is the caller's
- * (`useColumnSizing`'s `load`, `save`).
+ * and selection column (`selection` from `rowSelection`); or `children`, rows composed by hand and
+ * laid out by their content. Either way the heads keep one line, a `NamedId` in the body takes one
+ * line that gives way first where the region is short of room, the columns can be sized by mouse
+ * and keyboard (`sizing` from `useColumnSizing`, with a grip and a menu per head), and
+ * `skeletonRows` stands in while it loads. The grips, the menus and the selection's boxes come
+ * with `sizing` and `selection`, so a table without them never loads them. Props and callbacks
+ * only: no host, no tool call; where widths are kept is the caller's (`useColumnSizing`'s `load`,
+ * `save`).
  */
 export function DataTable<Row = unknown>(props: DataTableProps<Row>) {
   const { label, columns, rows, onActivate, skeletonRows, sizing, empty, footer, className } = props
   const keys = sizedKeys(columns)
-  const sizer = sizing && keys.length > 0 ? columnSizer(sizing, keys) : undefined
+  const head =
+    sizing && keys.length > 0
+      ? { sizer: sizing.parts.sizer(keys), Head: sizing.parts.Head }
+      : undefined
   const targets = rows !== undefined && rows.length > 0 && onActivate !== undefined
   const showEmpty = rows !== undefined && rows.length === 0 && skeletonRows === undefined
   return (
@@ -277,7 +279,7 @@ export function DataTable<Row = unknown>(props: DataTableProps<Row>) {
         tabIndex={targets ? undefined : 0}
         className="peer scroll-pt-row @container relative min-h-0 w-full min-w-0 flex-1 overflow-auto rounded-sm focus-visible:outline-none"
       >
-        <TableBody {...props} sizer={sizer} sized={keys} />
+        <TableBody {...props} head={head} sized={keys} />
         {showEmpty && empty}
         {footer !== undefined && <div className="px-cell flex justify-center py-2">{footer}</div>}
       </div>

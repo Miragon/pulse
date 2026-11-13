@@ -9,7 +9,7 @@ afterEach(() => vi.restoreAllMocks())
 
 function sizingOf(widths?: ColumnWidths) {
   const setWidths = vi.fn<ColumnSizing["setWidths"]>()
-  const sizing: ColumnSizing = { widths, min: 48, setWidths, persist: vi.fn() }
+  const sizing: Omit<ColumnSizing, "parts"> = { widths, min: 48, setWidths, persist: vi.fn() }
   return { sizing, setWidths }
 }
 

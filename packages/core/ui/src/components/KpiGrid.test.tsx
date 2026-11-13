@@ -155,7 +155,9 @@ describe("KpiGrid clickable cells (WCAG 2.5.3, label in name)", () => {
   it("is a native button with the kit's inset focus ring and a Lucide chevron, no glyph", () => {
     expect(attribute(first ?? "", "type")).toBe("button")
     expect(classOf(first)).toContain("focus-visible:ring-inset")
-    expect(classOf(first)).toContain("outline-hidden")
+    // The outline only while focus is visible: forced colours draw it then, never at rest.
+    expect(classOf(first).split(/\s+/)).toContain("focus-visible:outline-hidden")
+    expect(classOf(first).split(/\s+/)).not.toContain("outline-hidden")
     expect(html).toMatch(/<svg[^>]*class="lucide lucide-chevron-right[^"]*"/)
     for (const svg of openingTags(html, "svg")) expect(attribute(svg, "aria-hidden")).toBe("true")
     expect(html).not.toContain("›")

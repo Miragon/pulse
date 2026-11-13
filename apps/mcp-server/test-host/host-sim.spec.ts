@@ -1246,7 +1246,7 @@ test.describe("kit foundation (engine_open_cockpit, the jobs)", () => {
     )
   })
 
-  test("forced colours: the current section keeps a Highlight ring, a status dot turns CanvasText", async ({
+  test("forced colours: the current section keeps a Highlight ring, a status dot turns CanvasText, an outline marks focus only", async ({
     page,
   }) => {
     await page.emulateMedia({ forcedColors: "active" })
@@ -1282,6 +1282,30 @@ test.describe("kit foundation (engine_open_cockpit, the jobs)", () => {
     expect(seen.ring).toBe(`solid ${seen.highlight}`)
     expect(seen.dot).toBe(seen.canvasText)
     expect(seen.dot).not.toBe(seen.canvas)
+
+    // The kit's focus ring is a shadow, which forced colours drop: its outline carries focus
+    // there, drawn only while focus is visible, so no control wears a frame at rest.
+    const jobs = app
+      .getByRole("navigation", { name: "Cockpit sections" })
+      .getByRole("button", { name: "Jobs" })
+    const outline = () =>
+      jobs.evaluate((el) => {
+        const style = getComputedStyle(el)
+        return {
+          style: style.outlineStyle,
+          width: parseFloat(style.outlineWidth),
+          color: style.outlineColor,
+        }
+      })
+    expect((await outline()).style, "a control at rest draws no outline").toBe("none")
+    await jobs.focus()
+    await page.keyboard.press("Shift+Tab")
+    await page.keyboard.press("Tab")
+    await expect(jobs).toBeFocused()
+    const focused = await outline()
+    expect(focused.style, "a control keyboard focus reaches draws an outline").not.toBe("none")
+    expect(focused.width).toBeGreaterThanOrEqual(2)
+    expect(focused.color, "in a system colour, never transparent").not.toBe("rgba(0, 0, 0, 0)")
   })
 
   test("high contrast (data-cd-kontrast): no shadows, a 3 px focus ring", async ({ page }) => {

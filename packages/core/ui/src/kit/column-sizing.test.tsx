@@ -9,12 +9,12 @@ import {
   clampWidth,
   COLUMN_WIDTH,
   tableMinWidth,
-  useColumnSizing,
   validWidths,
   widthsOf,
   type ColumnSizingOptions,
   type ColumnWidths,
 } from "./column-sizing.js"
+import { useColumnSizing } from "./use-column-sizing.js"
 
 /**
  * Column sizing by mouse and keyboard (the webview's lists): a grip per head, a column menu as

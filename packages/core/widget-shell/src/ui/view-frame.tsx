@@ -30,7 +30,7 @@ export function ViewFrame({ call, view }: { call: ViewCall; view: ViewComponent 
   }, [call])
   const spec = view ? viewCallContext(phase) : null
   return (
-    <div ref={frameRef} tabIndex={-1} data-slot="view-frame" className="outline-hidden">
+    <div ref={frameRef} tabIndex={-1} data-slot="view-frame" className="outline-none">
       {spec && <HostModelContext content={modelContextText(spec)} />}
       <FrameBody call={call} view={view} labels={labels} onRetry={retry} />
     </div>

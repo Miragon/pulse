@@ -1,7 +1,9 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { setFormatLocale } from "../format/index.js"
 import { TONE_ICON } from "../lib/tone-utils.js"
+import { LocaleProvider } from "../locale/locale-provider.js"
 import { CountBadge } from "./CountBadge.js"
 
 /**
@@ -9,7 +11,10 @@ import { CountBadge } from "./CountBadge.js"
  * marked by a tone icon of its own shape and named in words; filled only on a diagram.
  */
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  setFormatLocale(undefined)
+})
 
 const classes = (el: Element | null | undefined) => (el?.getAttribute("class") ?? "").split(/\s+/)
 const badge = (container: HTMLElement) =>
@@ -34,6 +39,23 @@ describe("CountBadge", () => {
     expect(pill.querySelector(".sr-only")?.textContent).toBe("1,234 running instances")
     expect(pill.getAttribute("title")).toBe("1,234 running instances")
     expect(screen.getByText("1,234 running instances")).toBeTruthy()
+  })
+
+  it("writes its figure in the kit's locale like the words around it, whatever the format locale says", () => {
+    // The format locale is English here; the kit's words are German, so is the figure.
+    setFormatLocale({ language: "en", locale: "en" })
+    const figures = [12_345, { atLeast: 2000 }, 1_500_000].map((count) => {
+      const { container } = render(
+        <LocaleProvider locale="de">
+          <CountBadge count={count} label="x" />
+        </LocaleProvider>,
+      )
+      const figure = badge(container).querySelector('[aria-hidden="true"]')?.textContent
+      cleanup()
+      return figure
+    })
+    // German shortens from a million on.
+    expect(figures).toEqual(["12.345", "2.000+", "1,5\u00a0Mio."])
   })
 
   it("keeps the number neutral: a count without a state draws no icon, on the raised surface", () => {

@@ -1,4 +1,4 @@
-import type { ReactNode, Ref } from "react"
+import type { ComponentType, ReactNode, Ref } from "react"
 import type { ColumnSizing } from "./column-sizing.js"
 import type { ColumnSort } from "./table.js"
 
@@ -30,7 +30,19 @@ export interface DataTableColumn<Row = unknown> {
   cellClassName?: string
 }
 
-/** The selection column of a `DataTable`: a checkbox per row, one in the head for every row shown. */
+/** What the selection column's box takes: its name, its state and a toggle. */
+export interface SelectionBoxProps {
+  "aria-label": string
+  checked: boolean | "indeterminate"
+  onCheckedChange: () => void
+  tabIndex?: number
+  className?: string
+}
+
+/**
+ * The selection column of a `DataTable`, as `rowSelection` builds it: a checkbox per row, one in
+ * the head for every row shown.
+ */
 export interface DataTableSelection<Row> {
   isSelected: (row: Row) => boolean
   /** Whether the row can be chosen at all; a row that cannot shows no box. Default: every row. */
@@ -43,6 +55,11 @@ export interface DataTableSelection<Row> {
   rowLabel: (row: Row) => string
   /** The accessible name of the head's box; the kit's "Select all shown rows" by default. */
   allLabel?: string
+  /**
+   * The box of each row and of the head, the kit's `Checkbox`, brought along by `rowSelection`, so
+   * a table without a selection column never loads it.
+   */
+  Box: ComponentType<SelectionBoxProps>
 }
 
 /** How a row opened: in place, or beside the view (Ctrl or Cmd held). */
@@ -71,7 +88,10 @@ export interface DataTableProps<Row = unknown> {
   onActivate?: (row: Row, how: RowActivation) => void
   /** Ctrl or Cmd with C on a focused row copies what it names (with `rows`). */
   onCopy?: (row: Row) => void
-  /** A selection column before the first one (with `rows`); Space on a focused row toggles it. */
+  /**
+   * A selection column before the first one (with `rows`, from `rowSelection`); Space on a focused
+   * row toggles it.
+   */
   selection?: DataTableSelection<Row>
   /** While loading: this many placeholder rows (8 px bars) instead of the head and body. */
   skeletonRows?: number

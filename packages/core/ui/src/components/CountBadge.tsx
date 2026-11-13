@@ -1,14 +1,19 @@
 import type { MouseEvent } from "react"
 import { CircleX, TriangleAlert, type LucideIcon } from "lucide-react"
-import { formatCompactCount, type Count } from "../format/index.js"
+import type { Count } from "../format/index.js"
 import { Icon } from "../kit/icon.js"
+import { compactCountText } from "../lib/count-words.js"
 import { FOCUS_RING } from "../lib/focus-ring.js"
 import { TONE_ICON } from "../lib/tone-utils.js"
 import { cn } from "../lib/utils.js"
+import { useUiLocale } from "../locale/locale-provider.js"
 import { SITUATION_TONES, type Situation, type ToneVariant } from "../tones/index.js"
 
 export interface CountBadgeProps {
-  /** The count, compact on screen (`1.2k`); leave it out for the badge as a sign (a legend). */
+  /**
+   * The count, compact on screen (`1.2k`) in the kit's locale like the words around it; leave it
+   * out for the badge as a sign (a legend).
+   */
   count?: Count
   /**
    * The exact count and what it counts, in words ("3 instances with an incident"): the badge's
@@ -94,6 +99,7 @@ export function CountBadge({
   onClick,
   className,
 }: CountBadgeProps) {
+  const locale = useUiLocale()
   const { tone, fill, icon } = look(situation, diagram, stale)
   const glyph = TONE_GLYPH[tone]
   const classes = cn(
@@ -107,7 +113,7 @@ export function CountBadge({
   const content = (
     <>
       {glyph && <Icon icon={glyph} dense className={icon} />}
-      {count !== undefined && <span aria-hidden="true">{formatCompactCount(count)}</span>}
+      {count !== undefined && <span aria-hidden="true">{compactCountText(count, locale)}</span>}
       <span className="sr-only">{label}</span>
     </>
   )

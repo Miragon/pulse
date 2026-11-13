@@ -8,7 +8,6 @@ import {
   type Ref,
 } from "react"
 import { cn } from "../lib/utils.js"
-import { Checkbox } from "../primitives/checkbox.js"
 import type { DataTableColumn, DataTableProps, DataTableSelection } from "./data-table-types.js"
 import { Td } from "./table.js"
 
@@ -160,7 +159,7 @@ function SelectionCell<Row>({
   return (
     <Td className={SELECTION_CELL}>
       {selectable && (
-        <Checkbox
+        <selection.Box
           aria-label={selection.rowLabel(row)}
           checked={selection.isSelected(row)}
           onCheckedChange={() => selection.onToggle(row)}

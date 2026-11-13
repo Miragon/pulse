@@ -3,7 +3,8 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { LocaleProvider } from "../locale/locale-provider.js"
 import { DataTable } from "./data-table.js"
-import type { DataTableColumn, DataTableSelection } from "./data-table-types.js"
+import type { DataTableColumn } from "./data-table-types.js"
+import { rowSelection } from "./row-selection.js"
 
 /** DataTable's selection column: a box per row, one in the head for every row shown (mixed). */
 
@@ -42,14 +43,14 @@ describe("DataTable: the selection column", () => {
     onToggleAll?: () => void
     onActivate?: () => void
   }) {
-    const selection: DataTableSelection<Order> = {
+    const selection = rowSelection<Order>({
       isSelected: (row) => selected.has(row.id),
       isSelectable: (row) => row.id !== "o-3",
       onToggle,
       all,
       onToggleAll,
       rowLabel: (row) => `Select ${row.name}`,
-    }
+    })
     return (
       <DataTable
         label="Orders"

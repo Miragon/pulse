@@ -171,7 +171,7 @@ describe("Textarea", () => {
         "py-1",
         "resize-y",
         "min-h-[calc(3lh+0.5rem+2px)]",
-        "outline-hidden",
+        "focus-visible:outline-hidden",
         "focus-visible:border-focus",
         "focus-visible:ring-[length:calc(var(--focus-width)-1px)]",
         "aria-invalid:border-danger",

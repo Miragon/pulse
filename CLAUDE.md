@@ -547,9 +547,10 @@ Ihre 12-px-Icons (Dichte, oben) lässt `scanIconSizes` in der Webview nur in den
      scrolls inside a named region (`ariaLabel`) and drops columns on narrow regions
      (`hideBelow`); a wide table of figures lets its captions wrap (`wrapHeads`). It sizes no
      column: `DataTable`'s column sizing (`useColumnSizing`, its persistence injected) is for a
-     view that passes `sizing`. Ids show through `IdCell`/`IdText`, processes and elements
-     through `NamedId`, named by ONE reader (`readBpmnNames`/`parseBpmnNames`), so every module
-     shows them alike.
+     view that passes `sizing`; the grips, the column menu and their measuring come with it, and
+     a selection column's box with `rowSelection`, so a bundle without them carries none. Ids
+     show through `IdCell`/`IdText`, processes and elements through `NamedId`, named by ONE
+     reader (`readBpmnNames`/`parseBpmnNames`), so every module shows them alike.
    - **Type, dates and numbers.** Text sits on pulse-ui's `TYPE_SCALE` (13 px floor, weights
      400, 600 and 700 only, `scanTypeScale`); a disabled control is opaque, never faded. Dates,
      durations, numbers, counts and short ids go through the kit's `format*` helpers and `shortId`

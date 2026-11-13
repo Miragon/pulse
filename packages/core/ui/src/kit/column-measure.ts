@@ -65,7 +65,10 @@ export interface ColumnSizer {
 }
 
 /** `keys`: the columns that size (neither the last nor one of a fixed width). */
-export function columnSizer(sizing: ColumnSizing, keys: readonly string[]): ColumnSizer {
+export function columnSizer(
+  sizing: Omit<ColumnSizing, "parts">,
+  keys: readonly string[],
+): ColumnSizer {
   const widths = widthsOf(sizing.widths, keys)
   const resize = (cell: Element, key: string, width: number, persist: boolean) => {
     const base = widths ?? headWidths(cell, keys)

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import {
   cn,
+  FIELD_TEXT,
   FOCUS_RING,
   FOCUS_RING_INSET,
   useLocale,
@@ -72,7 +73,9 @@ function RevealedId({
         if (event.key === "Escape") onDone(true)
       }}
       className={cn(
-        "text-dense border-input bg-background text-foreground min-w-0 rounded-sm border px-1 font-mono",
+        "border-input bg-background text-foreground min-w-0 rounded-sm border px-1 font-mono",
+        // A field's text: 16 px on a coarse pointer, so iOS never zooms in when it takes focus.
+        FIELD_TEXT,
         FOCUS_RING,
       )}
     />

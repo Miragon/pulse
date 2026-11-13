@@ -18,7 +18,7 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
         // --input (3:1 on its surface). Text 13 px, 16 px on a coarse pointer (FIELD_TEXT).
         // Disabled is opaque, never faded (CI §8): the hover fill and quiet text. The focus edge
         // is the border plus a ring of the rest of --focus-width (FIELD_FOCUS).
-        "border-input selection:bg-primary selection:text-primary-foreground file:text-foreground placeholder:text-muted-foreground bg-background file:text-dense min-h-control w-full min-w-0 rounded-sm border px-3 py-0.5 outline-hidden transition-[color,box-shadow,border-color] file:inline-flex file:border-0 file:bg-transparent file:font-semibold",
+        "border-input selection:bg-primary selection:text-primary-foreground file:text-foreground placeholder:text-muted-foreground bg-background file:text-dense min-h-control w-full min-w-0 rounded-sm border px-3 py-0.5 transition-[color,box-shadow,border-color] file:inline-flex file:border-0 file:bg-transparent file:font-semibold focus-visible:outline-hidden",
         FIELD_TEXT,
         "disabled:bg-accent disabled:text-muted-foreground disabled:cursor-not-allowed",
         FIELD_FOCUS,

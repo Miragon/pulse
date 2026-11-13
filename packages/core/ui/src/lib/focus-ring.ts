@@ -9,16 +9,22 @@
  * `:focus-visible` outline in the same colour.)
  *
  * The ring is a box-shadow, which forced-colors mode (Windows High Contrast)
- * drops. `outline-hidden` (never `outline-none`) hides the outline only
- * outside that mode and keeps a transparent 2px outline in it, which the
- * browser paints in the system colour, so focus stays visible there too.
+ * drops. `focus-visible:outline-hidden` hides the outline outside that mode and
+ * keeps a transparent 2px outline in it, which the browser paints in the system
+ * colour, so focus stays visible there too. Only while focus is visible: an
+ * unconditional `outline-hidden` would draw that outline at rest, a frame on
+ * every control that focus then adds nothing to.
  */
 export const FOCUS_RING =
-  "outline-hidden focus-visible:ring-(length:--focus-width) focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+  "focus-visible:outline-hidden focus-visible:ring-(length:--focus-width) focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background"
 
-/** {@link FOCUS_RING} drawn inside the element, for cells and rows flush with a container edge. */
+/**
+ * {@link FOCUS_RING} drawn inside the element, for cells and rows flush with a container edge;
+ * under forced colours its outline sits inside too, so a scrolling or clipping container never
+ * cuts it.
+ */
 export const FOCUS_RING_INSET =
-  "outline-hidden focus-visible:ring-(length:--focus-width) focus-visible:ring-focus focus-visible:ring-inset"
+  "focus-visible:outline-hidden focus-visible:ring-(length:--focus-width) focus-visible:ring-focus focus-visible:ring-inset forced-colors:focus-visible:-outline-offset-2"
 
 /**
  * A text field's own focus (`Input`, `Textarea`): its border turns `--focus` and a ring adds the

@@ -75,6 +75,7 @@ export {
   TYPE_STEPS,
   TYPE_FLOOR_PX,
   MICRO_LABEL,
+  FIELD_TEXT,
   type TypeStep,
 } from "./lib/typography.js"
 export { FOCUS_RING, FOCUS_RING_INSET } from "./lib/focus-ring.js"
@@ -211,12 +212,16 @@ export type {
   DataTableProps,
   DataTableSelection,
   RowActivation,
+  SelectionBoxProps,
 } from "./kit/data-table-types.js"
-export {
-  useColumnSizing,
-  type ColumnSizing,
-  type ColumnSizingOptions,
-  type ColumnWidths,
+export { rowSelection } from "./kit/row-selection.js"
+export { useColumnSizing } from "./kit/use-column-sizing.js"
+export type {
+  ColumnSizing,
+  ColumnSizingOptions,
+  ColumnSizingParts,
+  ColumnWidths,
+  SizedHeadProps,
 } from "./kit/column-sizing.js"
 export { Section } from "./kit/section.js"
 export { NativeSelect } from "./kit/native-select.js"
