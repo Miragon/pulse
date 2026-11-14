@@ -5,6 +5,10 @@ import { cn } from "../lib/utils.js"
 import { COLUMN_WIDTH } from "./column-sizing.js"
 import { cellWidth, type ColumnSizer } from "./column-measure.js"
 
+/** Under forced colours: a focused grip's outline, `--focus-width` of `Highlight` inside its target. */
+const GRIP_FORCED_FOCUS =
+  "forced-colors:focus-visible:outline-(length:--focus-width) forced-colors:focus-visible:outline-solid forced-colors:focus-visible:outline-[Highlight] forced-colors:focus-visible:-outline-offset-(--focus-width)"
+
 /** A key press sizes by 8 px, with Shift by 32 px. */
 const GRIP_STEP = 8
 const GRIP_SHIFT_STEP = 32
@@ -32,11 +36,12 @@ function useHeadWidth() {
 
 /**
  * The grip on a head's right edge: a 24 px target centred on the edge, a 2 px `--interaction`
- * line on hover, focus and while dragging (its focus indicator, `--focus-width` wide; no outline
- * of its own, so forced colours draw none either). A focusable separator with the column's width
- * as its value from the start: ArrowLeft and ArrowRight size it (Shift for bigger steps), Enter
- * and a double click fit it to its content, Home makes it as narrow as its caption allows, Escape
- * cancels a drag.
+ * line on hover, focus and while dragging (its focus indicator, `--focus-width` wide). Under
+ * forced colours a focused grip also draws a real outline around its target in `Highlight`, since
+ * a contrast theme may drop a background, the line's only paint; at rest it draws none. A
+ * focusable separator with the column's width as its value from the start: ArrowLeft and
+ * ArrowRight size it (Shift for bigger steps), Enter and a double click fit it to its content, Home
+ * makes it as narrow as its caption allows, Escape cancels a drag.
  */
 export function ColumnGrip({
   column,
@@ -103,6 +108,7 @@ export function ColumnGrip({
         "after:bg-interaction after:absolute after:inset-y-0 after:left-1/2 after:w-0.5 after:-translate-x-1/2 after:opacity-0 after:transition-opacity motion-reduce:after:transition-none",
         "hover:after:opacity-100 focus-visible:after:w-(--focus-width) focus-visible:after:opacity-100 data-dragging:after:opacity-100",
         "forced-colors:after:bg-[Highlight] forced-colors:after:forced-color-adjust-none",
+        GRIP_FORCED_FOCUS,
       )}
       onKeyDown={onKeyDown}
       onFocus={(event) => setMeasured(cellWidth(cellOf(event)))}

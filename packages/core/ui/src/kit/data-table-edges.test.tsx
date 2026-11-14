@@ -82,6 +82,22 @@ describe("DataTable sizing: heads that size", () => {
     expect(head.querySelector("svg.lucide-arrow-down")).toBeTruthy()
   })
 
+  it("names each sized head by its caption alone; its grip and its menu keep their own names", () => {
+    render(<Sized />)
+    for (const name of ["Name", "Count"]) {
+      const head = screen.getByRole("columnheader", { name })
+      const caption = document.getElementById(head.getAttribute("aria-labelledby")!)
+      expect(caption?.textContent).toBe(name)
+      expect(screen.getByRole("separator", { name: `Resize column ${name}` })).toBeTruthy()
+      expect(menuButton(name)).toBeTruthy()
+      expect(head.contains(menuButton(name))).toBe(true)
+    }
+    // The last column takes the rest and never sizes: named by its content, nothing to leave out.
+    expect(screen.getByRole("columnheader", { name: "Rest" }).hasAttribute("aria-labelledby")).toBe(
+      false,
+    )
+  })
+
   it("counts the selection column in a sized table's minimum width and widths", () => {
     const save = vi.fn()
     render(<Sized save={save} />)
@@ -91,6 +107,25 @@ describe("DataTable sizing: heads that size", () => {
     const cols = Array.from(screen.getByRole("table").querySelectorAll("col"))
     expect(cols.map((col) => col.style.width)).toEqual(["32px", "108px", "100px", ""])
     expect(screen.getByRole("table").style.minWidth).toBe(`${108 + 100 + 80 + 32}px`)
+  })
+})
+
+describe("DataTable sizing: the grip under forced colours", () => {
+  it("draws no outline at rest; focused, a real one of its own in Highlight", () => {
+    render(<Sized />)
+    const grip = screen.getByRole("separator", { name: "Resize column Name" })
+    const names = grip.className.split(/\s+/)
+    expect(names).toContain("outline-none")
+    expect(names).not.toContain("outline-hidden")
+    // A contrast theme may drop the line's background: the outline is a system colour of its own.
+    expect(names).toEqual(
+      expect.arrayContaining([
+        "forced-colors:focus-visible:outline-solid",
+        "forced-colors:focus-visible:outline-[Highlight]",
+        "forced-colors:focus-visible:outline-(length:--focus-width)",
+        "forced-colors:focus-visible:-outline-offset-(--focus-width)",
+      ]),
+    )
   })
 })
 

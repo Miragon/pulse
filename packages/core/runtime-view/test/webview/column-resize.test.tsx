@@ -1,4 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
+import { cdp } from "vitest/browser"
 import type { PanelState } from "../../src/core/protocol/index.js"
 import { FILTERED_DEFINITION_VIEW } from "../../dev/webview/fixtures/definition.js"
 import { FIXTURES } from "../../dev/webview/fixtures/states.js"
@@ -52,6 +53,29 @@ async function settled(): Promise<void> {
   await nextFrame()
 }
 
+interface MediaEmulation {
+  send(
+    method: "Emulation.setEmulatedMedia",
+    params: { features: { name: string; value: string }[] },
+  ): Promise<unknown>
+}
+
+async function emulateForcedColours(value: "active" | "none"): Promise<void> {
+  const session = cdp() as unknown as MediaEmulation
+  await session.send("Emulation.setEmulatedMedia", {
+    features: [{ name: "forced-colors", value }],
+  })
+}
+
+function systemColour(name: string): string {
+  const probe = document.createElement("i")
+  probe.style.color = name
+  document.body.append(probe)
+  const colour = getComputedStyle(probe).color
+  probe.remove()
+  return colour
+}
+
 describe("resizable columns", () => {
   let harness: Harness
 
@@ -77,6 +101,39 @@ describe("resizable columns", () => {
     ])
     expect(grips[1]?.getAttribute("aria-orientation")).toBe("vertical")
     expect(grips[1]?.getAttribute("tabindex")).toBe("0")
+  })
+
+  it("names each header by its caption alone, its grip and its menu by their own", async () => {
+    harness = mountApp()
+    harness.publish(FIXTURES.definition)
+    await findRole(harness.root, "separator", { name: "Resize column ID" })
+    const table = getRole(harness.root, "table", { name: "Instances" })
+
+    for (const caption of ["ID", "Business key", "State"]) {
+      const header = getRole(table, "columnheader", { name: caption })
+      expect(getRole(header, "separator", { name: `Resize column ${caption}` })).toBeTruthy()
+      expect(getRole(header, "button", { name: `Width of column ${caption}` })).toBeTruthy()
+    }
+  })
+
+  it("outlines a focused grip in Highlight under forced colours, and draws nothing at rest", async () => {
+    await emulateForcedColours("active")
+    try {
+      harness = mountApp()
+      harness.publish(FIXTURES.definition)
+      const grip = await findRole(harness.root, "separator", { name: "Resize column ID" })
+      expect(getComputedStyle(grip).outlineStyle).toBe("none")
+
+      grip.focus()
+      await settled()
+
+      const outline = getComputedStyle(grip)
+      expect(grip.matches(":focus-visible")).toBe(true)
+      expect(`${outline.outlineStyle} ${outline.outlineWidth}`).toBe("solid 2px")
+      expect(outline.outlineColor).toBe(systemColour("Highlight"))
+    } finally {
+      await emulateForcedColours("none")
+    }
   })
 
   it("keeps the content-fit layout until the first resize, then freezes every width", async () => {

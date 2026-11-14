@@ -88,14 +88,12 @@ function SourceCell({ row }: { readonly row: MappingRow }) {
   )
 }
 
-const FITTED = "w-[1%] whitespace-nowrap"
-
 class MappingColumns {
   static of(view: MigrationView): DataTableColumn[] {
     return [
-      { key: "source", label: `In v${view.source.version}` },
-      { key: "target", label: `In v${view.target?.version ?? "…"}` },
-      { key: "waiting", label: "Waiting" },
+      { key: "source", label: `In v${view.source.version}`, fit: true },
+      { key: "target", label: `In v${view.target?.version ?? "…"}`, fit: true },
+      { key: "waiting", label: "Waiting", fit: true },
       { key: "check", label: "Check" },
     ]
   }
@@ -127,13 +125,13 @@ function MappingLine({ row, view }: { readonly row: MappingRow; readonly view: M
         host.post({ type: "focusMapping", sourceElementId: row.sourceElementId })
       }}
     >
-      <Td className={FITTED}>
+      <Td>
         <SourceCell row={row} />
       </Td>
-      <Td className={FITTED}>
+      <Td>
         {view.target === undefined ? <NoValue /> : <TargetSelect row={row} noteId={noteId} />}
       </Td>
-      <Td className={FITTED}>
+      <Td>
         <WaitingText waiting={row.waiting} />
       </Td>
       <Td>

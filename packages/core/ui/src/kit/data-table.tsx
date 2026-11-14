@@ -1,11 +1,11 @@
-import type { PointerEvent } from "react"
+import { useId, type PointerEvent } from "react"
 import { useUiMessages } from "../locale/locale-provider.js"
 import { cn } from "../lib/utils.js"
 import { COLUMN_KEY_ATTRIBUTE, type ColumnSizer } from "./column-measure.js"
 import { tableMinWidth, type ColumnSizingParts, type ColumnWidths } from "./column-sizing.js"
 import {
+  ComposedBody,
   FITTED_CELL,
-  ROW_HOVER,
   RowsBody,
   SELECTION_CELL,
   SELECTION_WIDTH,
@@ -52,6 +52,21 @@ function restKeyOf<Row>(columns: ReadonlyArray<DataTableColumn<Row>>): string | 
   return (columns.find((column) => column.fill) ?? columns.at(-1))?.key
 }
 
+/**
+ * The columns that fit their content until the table is sized: with drawn `rows` every one but
+ * the column that takes the rest, with rows composed by hand the ones marked `fit`.
+ */
+function fittedKeys<Row>(
+  columns: ReadonlyArray<DataTableColumn<Row>>,
+  drawn: boolean,
+  sized: boolean,
+): ReadonlySet<string> {
+  if (sized) return new Set()
+  const rest = drawn ? restKeyOf(columns) : undefined
+  const fits = (column: DataTableColumn<Row>) => (drawn ? column.key !== rest : !!column.fit)
+  return new Set(columns.filter(fits).map((column) => column.key))
+}
+
 /** The columns that size: neither one of a fixed width, a bare one, nor the last, which takes the rest. */
 function sizedKeys<Row>(columns: ReadonlyArray<DataTableColumn<Row>>): string[] {
   return columns
@@ -79,6 +94,7 @@ function HeadCell<Row>({
   fitted: boolean
 }) {
   const align = column.align ?? "left"
+  const captionId = useId()
   const caption = column.sort ? (
     <SortLabel sort={column.sort} align={align}>
       {column.label}
@@ -90,6 +106,8 @@ function HeadCell<Row>({
     <th
       scope="col"
       aria-sort={column.sort}
+      // A sized head names itself by its caption alone: its grip and menu keep their own names.
+      aria-labelledby={sizing ? captionId : undefined}
       {...{ [COLUMN_KEY_ATTRIBUTE]: column.key }}
       style={column.width === undefined ? undefined : { width: column.width }}
       className={cn(
@@ -102,7 +120,7 @@ function HeadCell<Row>({
     >
       {sizing ? (
         <sizing.Head
-          caption={caption}
+          caption={<span id={captionId}>{caption}</span>}
           align={align}
           column={nameOf(column)}
           columnKey={column.key}
@@ -165,10 +183,11 @@ function Body<Row>(props: DataTableProps<Row> & { fitted: (key: string) => boole
     return <SkeletonBody columns={count} count={skeletonRows} />
   }
   if (rows === undefined || rowKey === undefined) {
+    const fitted = columns.flatMap((column, index) => (props.fitted(column.key) ? [index] : []))
     return (
-      <tbody ref={bodyRef} className={ROW_HOVER}>
+      <ComposedBody fitted={fitted} bodyRef={bodyRef}>
         {children}
-      </tbody>
+      </ComposedBody>
     )
   }
   return (
@@ -192,9 +211,8 @@ function TableBody<Row>(
   const { label, columns, rows, selection, skeletonRows, head, sized, headRows, foot } = props
   const widths = head?.sizer.widths
   const loading = skeletonRows !== undefined
-  // Drawn rows fit their columns to their content, one column taking the rest, until sized.
-  const rest = rows !== undefined && widths === undefined ? restKeyOf(columns) : undefined
-  const fitted = (key: string) => rest !== undefined && key !== rest
+  const fits = fittedKeys(columns, rows !== undefined, widths !== undefined)
+  const fitted = (key: string) => fits.has(key)
   return (
     <table
       aria-label={label}
@@ -244,9 +262,10 @@ function TableBody<Row>(
  * one line each, the columns fitting their content and one taking the rest (`fill`, else the
  * last), with an optional row target (`onActivate`, one tab stop, the arrows between rows), copy
  * and selection column (`selection` from `rowSelection`); or `children`, rows composed by hand and
- * laid out by their content. Either way the heads keep one line, a `NamedId` in the body takes one
- * line that gives way first where the region is short of room, the columns can be sized by mouse
- * and keyboard (`sizing` from `useColumnSizing`, with a grip and a menu per head), and
+ * laid out by their content, where a column marked `fit` fits its one line as a drawn one does.
+ * Either way the heads keep one line, a `NamedId` in the body takes one line that gives way first
+ * where the region is short of room, the columns can be sized by mouse and keyboard (`sizing`
+ * from `useColumnSizing`, with a grip and a menu per head, each head named by its caption), and
  * `skeletonRows` stands in while it loads. The grips, the menus and the selection's boxes come
  * with `sizing` and `selection`, so a table without them never loads them. Props and callbacks
  * only: no host, no tool call; where widths are kept is the caller's (`useColumnSizing`'s `load`,

@@ -5,6 +5,7 @@ import {
   useState,
   type KeyboardEvent,
   type MouseEvent,
+  type ReactNode,
   type Ref,
 } from "react"
 import { cn } from "../lib/utils.js"
@@ -20,7 +21,7 @@ const INTERACTIVE_ROW =
   "cursor-pointer outline-none focus-visible:outline-(length:--focus-width) focus-visible:outline-solid focus-visible:outline-focus focus-visible:-outline-offset-(--focus-width)"
 
 /** Every body row fills on hover from `--accent` (the guide's hover), drawn or composed by hand. */
-export const ROW_HOVER = "[&>tr:hover]:bg-accent"
+const ROW_HOVER = "[&>tr:hover]:bg-accent"
 
 /**
  * A cell of a column that fits its content (`rows`, not sized): as narrow as its one line allows,
@@ -28,6 +29,16 @@ export const ROW_HOVER = "[&>tr:hover]:bg-accent"
  * gives way down to its floor where the region is short of room.
  */
 export const FITTED_CELL = "w-[1%] [--named-id-floor:max-content]"
+
+/** Marks a hand-composed row's cell of a column that fits its content (`fit`). */
+const FIT_ATTRIBUTE = "data-fit"
+
+/**
+ * A marked cell of hand-composed rows, as a drawn row's fitted cell: one line, a `NamedId` in it
+ * whole. The head's `FITTED_CELL` makes the column as narrow as that line.
+ */
+const COMPOSED_FIT =
+  "[&>tr>[data-fit]]:whitespace-nowrap [&>tr>[data-fit]]:[--named-id-floor:max-content]"
 
 /** The selection column: 32 px, the box at the cell's start. */
 export const SELECTION_WIDTH = 32
@@ -214,6 +225,61 @@ export function RowsBody<Row>(props: RowsProps<Row>) {
           ))}
         </tr>
       ))}
+    </tbody>
+  )
+}
+
+/**
+ * Marks each cell that stands alone in a fitted column, by its position in its row: column spans
+ * counted, row spans not.
+ */
+function markFitted(body: HTMLTableSectionElement, fitted: ReadonlySet<number>) {
+  for (const row of Array.from(body.querySelectorAll<HTMLTableRowElement>(":scope > tr"))) {
+    let column = 0
+    for (const cell of Array.from(row.cells)) {
+      cell.toggleAttribute(FIT_ATTRIBUTE, cell.colSpan === 1 && fitted.has(column))
+      column += cell.colSpan
+    }
+  }
+}
+
+/**
+ * The table's `children`, rows composed by hand. Their cells take no column's classes, so the
+ * cells of a column that fits its content are marked by their position (`fitted`, the columns'
+ * indexes), again whenever rows or cells come and go.
+ */
+export function ComposedBody({
+  fitted,
+  bodyRef,
+  children,
+}: {
+  fitted: ReadonlyArray<number>
+  bodyRef: Ref<HTMLTableSectionElement> | undefined
+  children: ReactNode
+}) {
+  const body = useRef<HTMLTableSectionElement | null>(null)
+  const positions = fitted.join(" ")
+  useLayoutEffect(() => {
+    const element = body.current
+    if (!element) return
+    const columns = new Set(positions === "" ? [] : positions.split(" ").map(Number))
+    const mark = () => markFitted(element, columns)
+    mark()
+    if (columns.size === 0) return
+    const observer = new MutationObserver(mark)
+    observer.observe(element, { childList: true, subtree: true })
+    return () => observer.disconnect()
+  }, [positions])
+  const attach = useCallback(
+    (element: HTMLTableSectionElement | null) => {
+      body.current = element
+      setRef(bodyRef, element)
+    },
+    [bodyRef],
+  )
+  return (
+    <tbody ref={attach} className={cn(ROW_HOVER, COMPOSED_FIT)}>
+      {children}
     </tbody>
   )
 }

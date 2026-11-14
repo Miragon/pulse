@@ -9,10 +9,26 @@ import {
   nextFrame,
   press,
   allParts,
+  allRoles,
   findRole,
   getRole,
   queryPart,
 } from "./harness.js"
+
+function contentWidth(cell: Element): number {
+  const range = document.createRange()
+  range.selectNodeContents(cell)
+  return range.getBoundingClientRect().width
+}
+
+function contentBoxWidth(cell: Element): number {
+  const style = getComputedStyle(cell)
+  return (
+    cell.getBoundingClientRect().width -
+    Number.parseFloat(style.paddingLeft) -
+    Number.parseFloat(style.paddingRight)
+  )
+}
 
 describe("the migration screen", () => {
   let harness: Harness
@@ -50,6 +66,30 @@ describe("the migration screen", () => {
     expect(queryPart(harness.root, "migration-summary")?.textContent).toBe(
       "All 6 elements map by id · no problems · checked just now",
     )
+  })
+
+  it("fits the element, target and waiting columns to their one line, the check taking the rest", async () => {
+    const table = await open("migration")
+    const heads = allRoles(table, "columnheader")
+    const rows = [...table.tBodies[0]!.rows]
+
+    expect(heads.map((head) => head.textContent)).toEqual(["In v6", "In v7", "Waiting", "Check"])
+    for (const row of rows) {
+      expect([...row.cells].map((cell) => getComputedStyle(cell).whiteSpace)).toEqual([
+        "nowrap",
+        "nowrap",
+        "nowrap",
+        "normal",
+      ])
+    }
+    for (const [index, head] of heads.slice(0, 3).entries()) {
+      const widest = Math.max(
+        contentWidth(head),
+        ...rows.map((row) => contentWidth(row.cells[index]!)),
+      )
+      expect(Math.abs(contentBoxWidth(head) - widest)).toBeLessThanOrEqual(1)
+    }
+    expect(contentBoxWidth(heads[3]!)).toBeGreaterThan(contentWidth(heads[3]!))
   })
 
   it("stacks the diagrams in a narrow editor group", async () => {

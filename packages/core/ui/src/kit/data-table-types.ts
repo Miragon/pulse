@@ -24,6 +24,15 @@ export interface DataTableColumn<Row = unknown> {
    * is room and cuts its line first where there is not. One column at most.
    */
   fill?: boolean
+  /**
+   * With hand-composed `children`, while the columns are not sized: this column fits its content
+   * as a drawn row's does, its cells one line and a `NamedId` in them whole, so the columns without
+   * it share the room it leaves. The table marks the column's cells by their position, so a
+   * composed row's cells take no class for it. A position counts the column spans of the cells
+   * before it in its row, not the row spans of the rows above, so a cell that spans rows shifts the
+   * cells below it. Drawn `rows` fit every column but the one that takes the rest by themselves.
+   */
+  fit?: boolean
   /** The cell of one of the table's `rows`. */
   cell?: (row: Row) => ReactNode
   /** Classes of each of its body cells (with `rows`). */
@@ -75,7 +84,7 @@ export interface DataTableProps<Row = unknown> {
    * The rows, each drawn by the columns' `cell`s, one line each: every column fits its content
    * and one takes the rest (the `fill` column, else the last). Without them the table's body is
    * its `children`, rows composed by hand (`<tr>` with `Td`s), one cell per column, laid out by
-   * their content.
+   * their content, a column marked `fit` as narrow as its one line.
    */
   rows?: ReadonlyArray<Row>
   /** A row's stable key (with `rows`). */

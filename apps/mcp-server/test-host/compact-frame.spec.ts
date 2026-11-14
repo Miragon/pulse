@@ -695,6 +695,23 @@ test.describe("a 760 px card's action heads", () => {
   })
 })
 
+test.describe("a table's heads, a guard for when the cockpit sizes its columns", () => {
+  test("the instance list names each head by its caption alone, as the editors name their sized heads (no cockpit head has a grip or a column menu today)", async ({
+    page,
+  }) => {
+    const app = await openView(page, INSTANCES_ARGS, { hostEnv: REALISTIC_HOST_ENV, width: 760 })
+    const table = app.getByRole("table", { name: "Running instances", exact: true })
+    await expect(table.locator("tbody tr").first()).toBeVisible({ timeout: 15_000 })
+    const captions = await table
+      .locator("thead tr:last-child > th")
+      .evaluateAll((heads) => heads.map((head) => (head.textContent ?? "").trim()).filter(Boolean))
+    expect(captions.length).toBeGreaterThan(2)
+    for (const caption of captions) {
+      await expect(table.getByRole("columnheader", { name: caption, exact: true })).toHaveCount(1)
+    }
+  })
+})
+
 test.describe("a view's header counts", () => {
   test("the process's open incidents: a state label, the number in the foreground on no tint", async ({
     page,
