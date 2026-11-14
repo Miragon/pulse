@@ -10,7 +10,7 @@ import { IncidentFlag, StateLabel } from "../../components/state-label.js"
 import { CountLabels } from "../../format/count-labels.js"
 import { TimeLabels } from "../../format/time-labels.js"
 import { useHost } from "../../host/host-context.js"
-import { BoardCard } from "./board-card.js"
+import { BoardCard, GROUP_NOTES, MissingNote } from "./board-card.js"
 
 const COLUMNS: Readonly<Record<BoardColumn, Column<BoardInstanceRow>>> = {
   engine: { key: "engine", label: "Engine", render: (row) => row.engine },
@@ -23,7 +23,8 @@ const COLUMNS: Readonly<Record<BoardColumn, Column<BoardInstanceRow>>> = {
   businessKey: {
     key: "businessKey",
     label: "Business key",
-    render: (row) => row.businessKey ?? <code class="muted">{row.shortId}</code>,
+    render: (row) =>
+      row.businessKey ?? <code className="text-muted-foreground">{row.shortId}</code>,
   },
   state: { key: "state", label: "State", render: (row) => <StateLabel state={row.state} /> },
   startedAt: {
@@ -55,14 +56,12 @@ const COLUMNS: Readonly<Record<BoardColumn, Column<BoardInstanceRow>>> = {
 
 function GroupNote({ group }: { readonly group: InstanceGroup }) {
   if (group.unavailable === true) {
-    return (
-      <li class="board-groups__note board-groups__note--missing">{`${group.engine}: not read`}</li>
-    )
+    return <MissingNote engine={group.engine} />
   }
   const total =
     group.total === undefined ? "?" : CountLabels.exact(group.total, group.totalAtLeast === true)
   return (
-    <li class="board-groups__note">{`${group.engine}: showing ${CountLabels.exact(group.rows.length)} of ${total}`}</li>
+    <li data-part="group-note">{`${group.engine}: showing ${CountLabels.exact(group.rows.length)} of ${total}`}</li>
   )
 }
 
@@ -72,7 +71,7 @@ export function InstanceListCard({ tile }: { readonly tile: InstanceListTile }) 
   return (
     <BoardCard title={tile.title} kind="instanceList">
       <DataTable
-        label={tile.title}
+        label="Instances"
         columns={tile.columns.map((column) => COLUMNS[column])}
         rows={rows}
         rowKey={(row) => `${row.engine}|${row.id}`}
@@ -86,7 +85,7 @@ export function InstanceListCard({ tile }: { readonly tile: InstanceListTile }) 
         }}
         empty={<EmptyHint text="No instance matches on the engines that answered." />}
         footer={
-          <ul class="board-groups" aria-label="Per engine">
+          <ul className={GROUP_NOTES} aria-label="Per engine">
             {tile.groups.map((group) => (
               <GroupNote key={group.engine} group={group} />
             ))}

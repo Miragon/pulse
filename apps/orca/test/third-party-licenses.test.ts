@@ -7,13 +7,14 @@ import { beforeAll, describe, expect, test } from "vitest"
 import {
   ESBUILD_RUNTIME,
   esbuildModules,
+  inlinedStylesheets,
   type Inventory,
   inventoryOf,
   type Layout,
   licenceFindings,
   type LicenceFileText,
+  licenceTexts,
   renderLicences,
-  type Work,
 } from "../../../scripts/third-party-licenses.mjs"
 
 interface PluginBuild {
@@ -21,16 +22,11 @@ interface PluginBuild {
   readonly pluginBuilds: (out: string) => Readonly<Record<string, esbuild.BuildOptions>>
 }
 
-interface Glyphs {
-  readonly $description: string
-  readonly license: Readonly<Record<string, string>>
-}
-
 const APP = realpathSync(fileURLToPath(new URL("..", import.meta.url)))
 const REPO = join(APP, "..", "..")
 const LICENCES_FILE = join(APP, "THIRD_PARTY_LICENSES.txt")
 const PLUGIN_BUILD = new URL("../scripts/build.mjs", import.meta.url).href
-const GLYPHS = "packages/core/runtime-view/src/webview/components/lucide-glyphs.json"
+const PRIMITIVES = "packages/core/ui/dist/primitives/"
 const ESBUILD_DIR = dirname(
   createRequire(join(APP, "package.json")).resolve("esbuild/package.json"),
 )
@@ -40,25 +36,6 @@ const PART_NAMES: Readonly<Record<string, string>> = {
   panel: "the panel",
   bridge: "the frames' bridge",
   webview: "the webview",
-}
-
-function lucideWork(): Work {
-  const glyphs = JSON.parse(readFileSync(join(REPO, GLYPHS), "utf8")) as Glyphs
-  const version = /lucide-preact (\d+\.\d+\.\d+)/.exec(glyphs.$description)?.[1]
-  if (version === undefined) throw new Error(`${GLYPHS} names no lucide-preact version`)
-  return {
-    name: "lucide-preact",
-    version,
-    licence: "ISC",
-    source: "https://github.com/lucide-icons/lucide",
-    holds:
-      "the geometry of the Lucide icons the webview draws, without lucide-preact's runtime " +
-      `(${GLYPHS}), some of them derived from Feather (MIT)`,
-    texts: Object.entries(glyphs.license).map(([work, text]) => ({
-      file: `license.${work} of lucide-glyphs.json`,
-      text,
-    })),
-  }
 }
 
 function phrase(names: readonly string[]): string {
@@ -87,7 +64,18 @@ const LAYOUT: Layout = {
       holds: "the runtime helpers esbuild writes into the bundles",
     },
   },
-  embedded: { [GLYPHS]: lucideWork },
+  embedded: {
+    [PRIMITIVES]: () => ({
+      name: "shadcn/ui",
+      version: "new-york-v4",
+      licence: "MIT",
+      holds:
+        "the components the primitives of Pulse's design kit @miragon/pulse-ui build on, " +
+        "changed by Miragon GmbH (packages/core/ui/src/primitives)",
+      source: "https://github.com/shadcn-ui/ui (apps/v4/registry/new-york-v4/ui)",
+      texts: licenceTexts(join(REPO, "packages/core/ui/src/primitives"), "shadcn/ui"),
+    }),
+  },
 }
 
 const TEXT: LicenceFileText = {
@@ -100,7 +88,8 @@ const TEXT: LicenceFileText = {
     "the worker (worker.mjs), the panel (panel/engines.js), the frames' bridge (editor/bridge.js)",
     "and the webview (editor/webview.js, editor/webview.css and the fonts in editor/fonts).",
     "apps/orca/test/third-party-licenses.test.ts of https://github.com/Miragon/pulse writes this",
-    "file from the metafiles of the four builds.",
+    "file from the metafiles of the four builds and the stylesheets the webview's Tailwind entry",
+    "inlines into editor/webview.css.",
   ],
   notes: [],
   artifacts: everySetOfParts(),
@@ -120,7 +109,10 @@ async function modulesOf(options: esbuild.BuildOptions): Promise<string[]> {
     sourcemap: false,
     logLevel: "silent",
   })
-  return esbuildModules({ metafile: result.metafile, outputFiles: result.outputFiles }, APP)
+  return [
+    ...esbuildModules({ metafile: result.metafile, outputFiles: result.outputFiles }, APP),
+    ...inlinedStylesheets(options.plugins ?? []),
+  ]
 }
 
 async function bundledModules(): Promise<Record<string, string[]>> {
@@ -147,15 +139,21 @@ describe("THIRD_PARTY_LICENSES.txt", { timeout: 120_000 }, () => {
     expect(licenceFindings(readFileSync(LICENCES_FILE, "utf8"), inventory, TEXT)).toEqual([])
   })
 
-  test("reads the fonts and the icons of the webview", () => {
-    expect(inventory.thirdParty.map(({ name }) => name)).toEqual(
+  test("reads the fonts, the stylesheet, the icons and the UI runtime of the webview", () => {
+    const names = inventory.thirdParty.map(({ name }) => name)
+    expect(names).toEqual(
       expect.arrayContaining([
         "@fontsource-variable/geist",
         "@fontsource-variable/geist-mono",
         "bpmn-js",
-        "lucide-preact",
+        "lucide-react",
+        "react",
+        "react-dom",
+        "shadcn/ui",
+        "tailwindcss",
       ]),
     )
+    expect(names).not.toContain("preact")
   })
 
   test("fails while it misses a work the bundles hold, or lists one they hold no more", () => {

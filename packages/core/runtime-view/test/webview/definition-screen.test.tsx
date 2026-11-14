@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { page, userEvent } from "vitest/browser"
 import { DEFINITION_VIEW } from "../../dev/webview/fixtures/definition.js"
 import { FIXTURES } from "../../dev/webview/fixtures/states.js"
-import { mountApp, nextFrame, waitForElement, type Harness } from "./harness.js"
+import { getRole, mountApp, nextFrame, queryPart, waitForElement, type Harness } from "./harness.js"
 
 const BADGES = '.djs-overlays[data-container-id="Activity_ShipOrder"]'
 
@@ -176,11 +176,13 @@ describe("definition screen", () => {
     harness.publish(FIXTURES.refreshing)
 
     await vi.waitFor(() => {
-      expect(harness.root.querySelector(".freshness")?.textContent).toBe("Refreshing…")
+      expect(queryPart(harness.root, "freshness", { state: "refreshing" })?.textContent).toBe(
+        "Refreshing…",
+      )
     })
     expect(harness.root.querySelector(`${BADGES} [data-variant="incident"]`)).not.toBeNull()
-    expect(harness.root.querySelectorAll(".data-table__row")).toHaveLength(
-      DEFINITION_VIEW.instances.length,
-    )
+    expect(
+      getRole<HTMLTableElement>(harness.root, "table", { name: "Instances" }).tBodies[0]?.rows,
+    ).toHaveLength(DEFINITION_VIEW.instances.length)
   })
 })

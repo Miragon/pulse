@@ -172,12 +172,13 @@ then reinstall so the lockfile matches:
 
 Branding: `server/src/ui/brand.css` imports pulse-ui's Miragon theme (the
 default) and has one override block for light and one for dark. Set ROLE
-variables there only (`--primary`, `--primary-hover`, `--link`, `--focus`,
-`--ring`, `--accent`/`--accent-foreground`, `--input`, `--<tone>`/`-soft`/
-`-ink`, radii, shadows, `--font-sans`) in BOTH blocks (the host's dark mode
-matches `:root` too). Miragon blue also sits in `--info`, `--chart-1/-3` and
-`--sidebar-*`; set those too for a single brand. The neutrals (surfaces, the
-text on them, `--border`) are the host's: a host that sends SEP-1865 style
+variables there only (`--primary`, `--primary-hover`, `--interaction`,
+`--link`, `--focus`, `--ring`, `--accent`/`--accent-foreground`, `--input`,
+`--<tone>`/`-soft`/`-surface`/`-ink`, radii, shadows, `--font-sans`) in BOTH
+blocks (the host's dark mode matches `:root` too). Miragon blue also sits in
+`--info`, `--chart-1/-3` and `--sidebar-*`; set those too for a single brand.
+The neutrals (surfaces, the text on them, `--border`) are the host's: a host
+that sends SEP-1865 style
 variables writes them inline on `<html>`, so a value set in brand.css shows
 only where the host sends none. Check your colours against a light and a
 dark host surface. Never set the `--cd-*` tokens, never colour a widget with

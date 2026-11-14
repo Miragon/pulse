@@ -304,31 +304,66 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   `Intl.NumberFormat` (canonical duration style
   "3m 7s", "2d 3h" / German "3 Min. 7 s"; a lower bound "≥ 2,000", compact "10k+";
   "3,7 %", "+0,2 Pp.", "7 Tage")
-- Tables: widget-shell's `ListTable` is the frame: a named, keyboard-reachable scroll region
-  (`role="region"`, `tabIndex=0`; `ariaLabel` is required), so a wide table never widens
-  the document at 760 px (the host simulation pins it). A column a narrow view can do
+- Tables: widget-shell's `ListTable` is the frame, over pulse-ui's `DataTable` (a sticky head,
+  28 px rows): a named, keyboard-reachable scroll region (`role="region"`, `tabIndex=0`;
+  `ariaLabel` is required), so a wide table never widens the document at 760 px (the host
+  simulation pins it). A column a narrow view can do
   without takes `hideBelow: "sm" | "md" | "lg"` (the REGION's width: 640/768/1024 px;
   `md` hides inline, shows in fullscreen), the row actions are the LAST column with
-  `sticky: true` (pinned at the region's right edge, Retry never scrolled away). Rows
+  `sticky: true` (pinned at the region's right edge, Retry never scrolled away), or
+  `sticky: "sm"` where a pinned column would cover a narrow region's message (pinned from
+  640 px up, scrolling with the row below), under a head that names them ("Actions"). A column
+  that fits its one line (an id, a time, the row actions beside a long text) takes `fit`. A caption
+  keeps one line; a wide table of figures passes `wrapHeads` so its captions wrap instead. Rows
   stay hand-composed `<tr>` + `Td`, one cell per column (the rules address cell
   positions). An id column is `IdCell` (`IdText` inline): Geist Mono, shortened
-  ("5f0ce78e…", whole for screen readers and in `title`), a copy button with a toast.
+  ("5f0ce78e…", whole for screen readers and in `title`), a copy button with a toast that
+  shows on the row's hover and focus. A `NamedId` in a cell takes one line by itself (the
+  name, then the id quiet in mono), so a row keeps its height: whole where the table has
+  room, cut with an ellipsis first where it has none.
   Nothing to show: pulse-ui's `TableEmptyState`, `variant="done"` (`CircleCheck`, success) for
   "nothing left to do" ("Keine offenen Incidents"), the default `empty` (quiet `Inbox`)
   for no data; `description`, `action`. The Komet (`KometMark`, `AppEmptyState`) only on
   APP-level surfaces (landing, first start, "no engines"), never in a widget
-- Type roles (pulse-ui's `TYPE_SCALE`): a widget's page title is the `WidgetHeader`
-  (28/700, an h2 below the view, `as`), a section `text-section` (21/600), running text
-  `text-body` (16), dense tables and controls `text-dense` (14), captions and meta
-  `text-small` (13, the floor); no `text-xs`/`text-[11px]`, no Tailwind sizes in kit
-  code (`scanTypeScale` from `@miragon/pulse-ui/testing`; connectors adopt it with `rules:
-["below-floor"]` first)
-- From pulse-ui: `Section` (collapsibles); `Th`/`Td` (cells);
-  `WidgetHeader` (`badge`/`titleSuffix`/`size="detail"`/`as`, no icon tile) + `VersionChip`
-  (hero/detail headers); `KpiGrid` (KPI strips, incl. `variant="soft"`; a
-  clickable cell says what the click does in `actionHint`, never `ariaLabel`). From the view
-  runtime: `WidgetShell` (page container, split into View + Shell only when the body is
-  embedded elsewhere)
+- Type roles (pulse-ui's `TYPE_SCALE`): a view's title is chrome, the `WidgetHeader`'s bar
+  heading (13/600 in its 40 px bar, `as` for the level); 28/700 only at app level (landing,
+  fleet: `size="app"`), a section's title pulse-ui's `SectionHeading` (13/600 in the foreground,
+  the webview's; `as` for its level, `id` for the section's `aria-labelledby`; never an `h2` with
+  `MICRO_LABEL` by hand, the connector's brand gates refuse one; `text-section` 21/600 only for a
+  dialog's title and a KPI figure), running text
+  `text-body` (16), dense tables and controls `text-dense` (13, the guide's klein step, the size
+  of `text-small` with its own meaning), captions and meta `text-small` (13, the floor); no `text-xs`/`text-[11px]`, no
+  Tailwind sizes in kit code, and weights 400, 600 and 700 only (`font-normal`, `font-semibold`,
+  `font-bold`; no `font-medium`) (`scanTypeScale` from `@miragon/pulse-ui/testing`; connectors
+  adopt it with `rules: ["below-floor"]` first). A disabled control is opaque (the kit's
+  controls bring it), never `opacity-50`. The owner's decision D9 of 2026-11-12
+  (`apps/vscode/docs/adr/ui-foundation.md`) gives every surface one compact look: controls and
+  rows take pulse-ui's density roles (28 px compact, comfortable on touch; the root `CLAUDE.md`,
+  "Abweichung Dichte, für alle Oberflächen"); size nothing by hand, and a hover fills with
+  `bg-accent`, never `bg-muted`
+- The frame of a view (the webview's): `WidgetShell` pads nothing itself. Its `header` holds
+  the view's `WidgetHeader` (the kit's `ViewBar`, its bar from edge to edge), the `StatusStrip`s
+  docked under it (a failed refresh: `useDetailView`'s `notice`, the engine's raw text under the
+  strip's `details`) and a list's filter `Toolbar`/`FilterBar` that sits right under the bar; its
+  children sit in the 12 px gutter. A bar further down inside the content (a list's filters under
+  a section heading, a view's line tab bar) reaches the card's edges with `-mx-gutter`. A route
+  whose children are views of their own (a `ViewStack` of shells) is a `flush` shell. The bar's
+  `actions` are one group in invariant 6's order, each `variant="toolbar" size="sm"` with its
+  Lucide icon (the label at 400 collapses visually in a bar under 36rem and stays the name);
+  `HandOffButton` and `OpenInCockpitLink` take `variant="toolbar"` there. Facts about one thing
+  (an incident's, an instance's) are pulse-ui's `Facts` (ids copyable through `IdText`, numbers
+  neutral; an alarming one adds its tone's icon of its own shape with words in `Icon`'s
+  `label`); a state is a `StateLabel`, a count in the header's `badge` or `sub` too (its tone's
+  icon, the number in the foreground), never a tinted `StatusBadge` or `LivePill`; a tab's count
+  is `TabCount`, only for a count the view already holds
+- From pulse-ui: `Section` (collapsibles, `as` for the heading level); `Th`/`Td` (cells);
+  `WidgetHeader` (`badge`/`titleSuffix`/`sub`/`actions`/`as`, `size="app"` only at app level, no
+  icon tile) + `VersionChip`; `KpiGrid` (KPI strips, neutral tiles: an alarming figure is its
+  value's `CountFigure`, through the connector's `AlarmCount`; a clickable cell says what the
+  click does in `actionHint`, never `ariaLabel`); `NavTabs`/`NavTab` (a navigation between
+  views, the cockpit head's sections); `Facts`, `StatusStrip`, `StateLabel`, `TabCount`. From
+  the view runtime: `WidgetShell` (the view's card, above; split into View + Shell only when the
+  body is embedded elsewhere)
 - Where and what (#322 U4, U13): the cockpit's head names the engine and its environment (a
   text chip, "PROD"), so a route view's `WidgetHeader` `sub` carries only the time it read
   (widget-shell's `ViewMeta` with `asOf`) and its own facts; a route widget takes `engine` and
@@ -337,8 +372,14 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   (`widgets/lib/engine-context.tsx`). Names before ids: the
   design kit's `NamedId` (`@miragon/pulse-ui`: an activity's or process's name, the
   id a quiet mono line; the same look in every module), `InstanceLabel`
-  (`widgets/lib/identity.tsx`: the business key, the UUID a copyable `IdText` chip; the
-  words of `instanceName`); a drill passes the target's `label` so its breadcrumb reads
+  (`widgets/lib/identity.tsx`: the business key, the UUID a copyable `IdText` chip, one line in
+  a table cell, the key alone under 28rem, `wrap` on a line of facts; the words of
+  `instanceName`); a table with a long text column (an engine message) lets the other columns
+  fit their content (`fit: true` on their `ListTable` columns, pulse-ui's `DataTable` `fit`: the
+  head as narrow as its cells' one line, a `NamedId` in them whole, never a width class of your
+  own) and keeps the text one line with a floor, so it scrolls in its region instead of
+  squeezing (`process-incidents/incident-table.tsx`; under 28rem a subject gives way to 8rem by
+  its own `NARROW_SUBJECT_FLOOR`); a drill passes the target's `label` so its breadcrumb reads
   the name. The builder reads names as enrichment (`fetchNamesByDefinition` with
   `processNameIn`/`elementNameIn`, `fetchDefinitionsById`, `fetchBusinessKeys`), every
   diagram name through widget-shell's `readBpmnNames`/`parseBpmnNames` (never a regex of your
@@ -355,20 +396,23 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   VS Code webview reads too: running `info`, suspended and ended `neutral`), retries left or
   degraded = `warning`; an
   engine's own state is its verdict's tone, `VERDICT_TONE`, never a ladder over its counts)
-  shown via pulse-ui's `StatusBadge` (tone and words required)/`CountPill`/`KpiCell.tone` or its
-  `TONE_DOT`/`TONE_BORDER`/`TONE_ICON`/`TONE_TINT`/`TONE_SOFT`/`TONE_INK` maps (a tone
+  shown via pulse-ui's `StatusBadge` (tone and words required)/`CountPill`/`CountFigure` or its
+  `TONE_DOT`/`TONE_BORDER`/`TONE_ICON`/`TONE_SOFT`/`TONE_INK` maps (a tone
   from the wire through `resolveTone`), next to readable words; never a coloured
   number, never a palette class or raw colour; text on a tint is black (`TONE_SOFT`), the
   `-ink` role is only for text in a tone directly on the card or page (an inline error)
 - Icons: Lucide via `Icon` (`import { FileSearch } from "lucide-react"`; the package pins
   devDependency `lucide-react` `1.70.0`, see CLAUDE.md invariant 6), never a Unicode glyph
-  or emoji, at 16 px (`dense` in rows; `scanIconSizes` allows 16 and 24 only); a chat
+  or emoji, at 16 px (`scanIconSizes` allows 16 and 24; `dense` is 12 px, the named deviation
+  of D9 beside dense text and on 20 px badges, only in the files the connector's
+  `brand-gates.test.ts` lists with a reason); a chat
   hand-off is widget-shell's `<HandOffButton action="explainError" prompt={ask(…)} />`
   (`@miragon/pulse-widget-shell/widgets`: the product's one table of functions, each with its
   Lucide icon and a label that names the chat, "Fehler im Chat erklären" / "Explain error in
   chat", the same in every module; `AskAiButton` is banned in connector widgets, so a new
-  function gets its entry and both labels in widget-shell), placed after the deterministic action; `OpenInCockpitLink` gets `vendor={data.engineVendor}` (the
-  builder sets it from `provider.branding.displayName`)
+  function gets its entry and both labels in widget-shell), placed after the deterministic action
+  (in a view's bar `variant="toolbar"`); `OpenInCockpitLink` gets `vendor={data.engineVendor}`
+  (the builder sets it from `provider.branding.displayName`)
 - Copy: en + de catalogs in the brand voice (du, AI, "CIB seven", no dash connector,
   errors say what happened and what you can do, `Ja`/`Nein` for Booleans) and the terms of
   `src/messages/GLOSSARY.md` (a count the VS Code webview shows too takes its word from
@@ -376,17 +420,22 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   the noun's number (`countOf` from `messages/plural.ts`). The gates: `catalogTextFindings`
   over every catalog and en/de key parity of the widget catalogs (`messages/catalog-text.test.ts`),
   the glossary
-  (`messages/glossary.test.ts`), `scanGlyphs` over all of `src` and `scanColors` over
-  `src/widgets` (`src/brand-gates.test.ts`; the gates, the glossary and the count terms come
-  from `@miragon/pulse-ui/testing`)
+  (`messages/glossary.test.ts`), `scanGlyphs` over all of `src`, `scanColors` over
+  `src/widgets` and `scanOutlines` (Tailwind's `outline-hidden` only under a focus state, as
+  `FOCUS_RING` writes it) over `src/widgets` and `src/lib/shared` (`src/brand-gates.test.ts`; the
+  gates, the glossary and the count terms come from `@miragon/pulse-ui/testing`)
 - A pair: the overview, a process, its instances, an instance, an incident and the history
-  have a counterpart in the VS Code webview, which shares only pulse-ui's foundation with the
-  widgets. A field, a count or an action you add to one says in its pull request whether the
-  webview gets it and updates `docs/vscode/parity.md`; its content takes props and callbacks
-  only, no host context (as `process-definitions-table-view.tsx` with `renderActions`)
+  have a counterpart in the VS Code webview, which shares a core up to building blocks with the
+  widgets (owner decision 2026-11-12, `apps/vscode/docs/adr/ui-foundation.md`). Where both show
+  a field, a count or an action, a shared building block is the default: React's API, props and
+  callbacks only, no host context (as `process-definitions-table-view.tsx` with
+  `renderActions`), which the webview renders in React too since its switch to React on pulse-ui
+  (owner decision D9). Its pull request updates
+  `docs/vscode/parity.md`
 - BPMN: viewer lifecycle and the fixed light canvas via `useBpmnViewer` (the container
   is a forced-light island, `data-theme-mode="light"`, on the paper token) +
-  `BpmnZoomControls` (light in every theme, Lucide). The frame height comes from the
+  `BpmnZoomControls` (light in every theme, Lucide; beside the container in one frame, so the
+  hook's fit keeps the diagram clear of it and of bpmn.io's link). The frame height comes from the
   diagram's size (`height` from the hook: its height at the scale bpmn-js draws it, never
   past 1:1, 240–560 px, read from the XML's DI before the import, so the frame does not
   jump): pass no fixed `height` to `BpmnDiagram` unless a layout needs one. The process flow
@@ -399,7 +448,13 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   `widget-shell/src/ui/bpmn-tokens.ts`: incident = danger, running/open task = blue on the
   info tint, counts white on blue or danger; strokes ≥ 3:1, badge text ≥ 4.5:1, drift- and contrast-tested) through `HIGHLIGHT_COLORS`
   (`src/widgets/bpmn-highlights.ts`); the CSS is
-  `injectBpmnOverlayCss()`. No pulse: an open user task is a heavier dashed stroke
+  `injectBpmnOverlayCss()`. No pulse: an open user task is a heavier dashed stroke. A marker
+  paints its own shape's outline only, never a label's text or what lies inside a marked
+  process or subprocess. The diagram's name goes to the hook's `ariaLabel`, which makes the
+  canvas alone the image: never `role="img"` on the frame, whose zoom controls and bpmn.io's
+  link would then sit inside an image. A count badge is a drawing beside the image,
+  `aria-hidden`, its value in words in the view (the values list, the tables); the hook hides
+  bpmn-js's drilldown trail, never in sight under the canvas.
 
 **Paged list recipe** (every list that can exceed one page follows it; reference:
 `src/widgets/process-instances/list.tsx`):
@@ -408,11 +463,14 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
    `businessKeyLike`/`nameLike`) and return the full filtered total (via the matching
    `/count` endpoint) so the footer is honest.
 2. Widget: `usePagedListView` (owns search state, 300 ms debounce, the server-side
-   `searchArg`, and the drop-initialData-on-interaction rule; chips go into
-   `filtersActive` + the `args`) → `FilterBar` (with `searchAriaLabel`, the placeholder's
-   words without the ellipsis, and `chipsAriaLabel` for a chip row: pulse-ui's default
-   name is a generic "Filter"; `src/widgets/search-labels.test.tsx` pins every search box
-   by its name) → `PagedRows` (marks the rows while they
+   `searchArg`, and the drop-initialData-on-interaction rule; a scope goes into
+   `filtersActive` + the `args`) → the filter `Toolbar`: a single-choice scope (All, With
+   incident, Last 24h …) is a `SegmentedControl` first, named by its `ariaLabel`, its counts
+   from the payload on screen, then the `SearchField` named by its `aria-label`, the
+   placeholder's words without the ellipsis; a search alone may be a `FilterBar` with
+   `searchAriaLabel` (pulse-ui's default name is a generic "Filter";
+   `src/widgets/search-labels.test.tsx` pins every search box and scope by its name) →
+   `PagedRows` (marks the rows while they
    are the previous result) around `ListTable` (frame + `Th` header row;
    rows stay hand-composed `<tr>` + `Td`) or a `RowCard` stack → `TableEmptyState`
    (distinguish "no match" when `interacted`) → pulse-ui's `PagedListFooter`

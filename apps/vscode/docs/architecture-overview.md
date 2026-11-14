@@ -11,7 +11,7 @@ flowchart TB
   subgraph window [VS Code window]
     direction LR
     workbench["Trees, commands, status bar, .bpmn editor"]
-    webview["Webview panels: Preact and bpmn-js"]
+    webview["Webview panels: React on pulse-ui and bpmn-js"]
   end
   subgraph host [Extension host: one Node process]
     extension["extension: wiring, connections, write policy"]
@@ -81,7 +81,7 @@ adapter per dialect family implements them.
 flowchart LR
   subgraph driving [Driving side]
     ui[VS Code UI: trees, commands, status bar]
-    webview[Webview: Preact and bpmn-js]
+    webview[Webview: React on pulse-ui and bpmn-js]
   end
   subgraph neutral [Engine-neutral]
     extension[extension: composition root, connections, panel hosts]
@@ -147,6 +147,7 @@ flowchart TB
   webview -- bundled --> tones
   core -- bundled --> format["@miragon/pulse-ui/format"]
   webview -- bundled --> format
+  webview -- shared building blocks --> kit["@miragon/pulse-ui and its theme.css"]
 ```
 
 Every import edge not drawn fails the closed world of its package (dependency-cruiser:
@@ -164,7 +165,10 @@ read `.pulse.json`. `@miragon/pulse-ui/tones` and `@miragon/pulse-ui/format` are
 Pulse's UI foundation without React: the tone vocabulary and the one tone per situation, and the
 formatters for times, durations, counts and short ids, both as the MCP widgets show them. The
 core and the webview may import the tones, only their label helpers the formatters (they set the
-locale), and nothing of pulse-ui's React kit.
+locale). The webview alone may also import pulse-ui's React kit and its `theme.css`, for the
+building blocks the surfaces share; with its switch to React on pulse-ui (D9) it builds its screens
+on the kit. The core, the ports, the model reader and the host kit import nothing else of pulse-ui
+(`apps/vscode/docs/adr/ui-foundation.md`).
 
 ## 4. One adapter for Operaton, CIB seven and Camunda 7
 

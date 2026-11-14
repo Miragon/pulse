@@ -1,5 +1,6 @@
-import { formatNumber, KpiGrid, type KpiCell, SITUATION_TONES } from "@miragon/pulse-ui"
+import { formatNumber, KpiGrid, type KpiCell } from "@miragon/pulse-ui"
 import { ViewDataState, WidgetShell } from "@miragon/pulse-widget-shell/widgets"
+import { AlarmCount } from "../lib/alarm-count.js"
 import { useNav } from "../navigation.js"
 import { useT } from "../../messages/use-t.js"
 import { diagramActivityFraction } from "./activity-scope.js"
@@ -40,7 +41,8 @@ export function ProcessDefinitionKpi(scope: DefinitionScope) {
       }
     : { label: t("procIncKpi.activitiesAffected"), value: formatNumber(data.activities.length) }
 
-  // #322 U14: counts stay neutral, never a green or red digit.
+  // #322 U14: counts stay neutral, never a green or red digit or a tinted tile; open incidents and
+  // jobs without retries alarm by their icon and words.
   const cells: KpiCell[] = [
     {
       label: t("procIncKpi.running"),
@@ -52,8 +54,11 @@ export function ProcessDefinitionKpi(scope: DefinitionScope) {
     },
     {
       label: t("procIncKpi.openIncidents"),
-      value: formatNumber(data.incidentCount),
-      tone: data.incidentCount > 0 ? SITUATION_TONES.openIncident : undefined,
+      value: (
+        <AlarmCount alarm={data.incidentCount > 0 && "openIncidents"}>
+          {formatNumber(data.incidentCount)}
+        </AlarmCount>
+      ),
     },
     {
       label: t("procIncKpi.last24h"),
@@ -61,8 +66,11 @@ export function ProcessDefinitionKpi(scope: DefinitionScope) {
     },
     {
       label: t("procIncKpi.failedJobs"),
-      value: formatNumber(data.failedJobs),
-      tone: data.failedJobs > 0 ? SITUATION_TONES.jobWithoutRetries : undefined,
+      value: (
+        <AlarmCount alarm={data.failedJobs > 0 && "jobsWithoutRetries"}>
+          {formatNumber(data.failedJobs)}
+        </AlarmCount>
+      ),
       // The drill shows what the cell counts: this process's jobs without retries.
       onClick: () =>
         go({ type: "jobs", processDefinitionKey: data.processDefinitionKey, failedOnly: true }),

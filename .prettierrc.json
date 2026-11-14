@@ -19,6 +19,13 @@
       "options": {
         "plugins": []
       }
+    },
+    {
+      "files": "packages/core/runtime-view/src/webview/**",
+      "options": {
+        "plugins": ["prettier-plugin-tailwindcss"],
+        "tailwindPreserveWhitespace": true
+      }
     }
   ]
 }

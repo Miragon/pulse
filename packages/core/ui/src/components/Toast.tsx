@@ -158,7 +158,7 @@ function ToastCard({
       {/* mt-1 centres the 16 px icon on the first 16/1.6 line. */}
       <Icon aria-hidden="true" className={cn("mt-1 size-4 shrink-0", TONE_ICON[toast.tone])} />
       <div className="min-w-0 flex-1">
-        <p className="font-medium break-words">{toast.title}</p>
+        <p className="font-semibold break-words">{toast.title}</p>
         {toast.description && (
           <p className="text-muted-foreground mt-0.5 break-words">{toast.description}</p>
         )}
@@ -167,7 +167,9 @@ function ToastCard({
         type="button"
         aria-label={dismissLabel}
         onClick={() => onDismiss(toast.id)}
-        className={`text-muted-foreground hover:text-foreground -mr-1 inline-flex size-6 shrink-0 items-center justify-center rounded-sm ${FOCUS_RING}`}
+        // A transparent edge that a Windows contrast theme (forced colours) paints, so the
+        // button keeps its outline there; the card has its own 1 px edge.
+        className={`text-muted-foreground hover:text-foreground -mr-1 inline-flex size-6 shrink-0 items-center justify-center rounded-sm border border-transparent ${FOCUS_RING}`}
       >
         <X aria-hidden="true" className="size-4" />
       </button>

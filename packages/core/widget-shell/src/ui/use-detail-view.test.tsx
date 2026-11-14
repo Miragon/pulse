@@ -8,6 +8,7 @@ import {
   renderHook,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react"
 import { LocaleProvider } from "@miragon/pulse-ui"
 import { spyHost } from "./tool-host.test-support.js"
@@ -104,6 +105,14 @@ describe("useViewData (seeded) + viewRefreshState", () => {
   })
 })
 
+const strip = () => document.querySelector<HTMLElement>('[data-slot="status-strip"]')
+const findStrip = () =>
+  waitFor(() => {
+    const found = strip()
+    if (!found) throw new Error("no status strip yet")
+    return found
+  })
+
 function Detail({ seed }: { seed: Detail | null }) {
   const { data, guard, notice, refreshError } = useDetailView<Detail>({
     initialData: seed,
@@ -165,24 +174,32 @@ describe("useDetailView", () => {
     callTool.mockRejectedValueOnce(new Error("instance gone"))
     render(<Detail seed={{ name: "seed" }} />, { wrapper })
     expect(screen.getByRole("button", { name: "Act" })).toBeTruthy()
-    expect(screen.queryByRole("alert")).toBeNull()
+    expect(strip()).toBeNull()
 
     await invalidate()
-    const notice = await screen.findByRole("alert")
+    // The kit's strip, docked under the view's bar: a warning, said politely.
+    const notice = await findStrip()
     expect(notice.getAttribute("data-tone")).toBe("warning")
-    expect(notice.getAttribute("data-variant")).toBe("inline")
-    expect(notice.textContent).toContain("Stale")
-    expect(notice.textContent).toContain(
+    const message = within(notice).getByRole("status")
+    expect(message.textContent).toContain("Stale")
+    expect(message.textContent).toContain(
       "Something went wrong. You're seeing the last loaded state.",
     )
-    expect(screen.getByText("instance gone").closest("details")).toBeTruthy()
+    // The raw engine text is no part of the strip's words: it waits under its Details.
+    expect(message.textContent).not.toContain("instance gone")
+    const reason = within(notice).getByText("instance gone")
+    expect(reason.closest("[hidden]")).toBe(reason)
+    const details = within(notice).getByRole("button", { name: "Details" })
+    expect(details.getAttribute("aria-controls")).toBe(reason.id)
+    fireEvent.click(details)
+    expect(reason.hidden).toBe(false)
     expect(screen.getByText("seed")).toBeTruthy()
     expect(screen.queryByRole("button", { name: "Act" })).toBeNull()
 
     callTool.mockResolvedValueOnce(answer("fresh"))
-    fireEvent.click(screen.getByRole("button", { name: "Retry now" }))
+    fireEvent.click(within(notice).getByRole("button", { name: "Retry now" }))
     expect(await screen.findByText("fresh")).toBeTruthy()
-    expect(screen.queryByRole("alert")).toBeNull()
+    expect(strip()).toBeNull()
     expect(screen.getByRole("button", { name: "Act" })).toBeTruthy()
   })
 
@@ -198,7 +215,7 @@ describe("useDetailView", () => {
     })
     render(<Detail seed={{ name: "seed" }} />, { wrapper })
     await invalidate()
-    const notice = await screen.findByRole("alert")
+    const notice = await findStrip()
     expect(notice.textContent).toContain("Engine prod cannot be used: its profile is refused.")
     expect(screen.queryByRole("button", { name: "Retry now" })).toBeNull()
     expect(screen.getByText("seed")).toBeTruthy()

@@ -90,7 +90,19 @@ const PLANTED: Readonly<Record<string, string>> = {
   "../ui/dist/tones/count-tone.js": "export const countTone = 1;\n",
   "src/webview/renders-kit.ts":
     "import { Button } from '@miragon/pulse-ui';\nexport const button = Button;\n",
+  "src/webview/reads-theme.ts":
+    "import '@miragon/pulse-ui/theme.css';\nexport const themed = true;\n",
+  "src/core/renders-kit.ts":
+    "import { Button } from '@miragon/pulse-ui';\nexport const button = Button;\n",
+  "src/core/reads-theme.ts": "import '@miragon/pulse-ui/theme.css';\nexport const themed = true;\n",
+  "src/webview/reads-globals.ts":
+    "import '@miragon/pulse-ui/globals.css';\nexport const themed = true;\n",
+  "src/webview/escapes-into-kit.ts":
+    "import { Button } from '../../../ui/src/index.ts';\nexport const button = Button;\n",
+  "../ui/src/index.ts": "export const Button = 1;\n",
   "src/core/ships-ui-testing.ts":
+    "import { PRODUCT_GLOSSARY } from '@miragon/pulse-ui/testing';\nexport const glossary = PRODUCT_GLOSSARY;\n",
+  "src/webview/ships-ui-testing.ts":
     "import { PRODUCT_GLOSSARY } from '@miragon/pulse-ui/testing';\nexport const glossary = PRODUCT_GLOSSARY;\n",
   "src/webview/reads-kit-subpath.ts":
     "import { Button } from '@miragon/pulse-ui/kit';\nexport const button = Button;\n",
@@ -100,6 +112,10 @@ const PLANTED: Readonly<Record<string, string>> = {
     "import { parseProfileFile } from '@miragon/pulse-profile';\nexport const parse = parseProfileFile;\n",
   "src/host-kit/panels/reads-profiles.ts":
     "import { parseProfileFile } from '@miragon/pulse-profile';\nexport const parse = parseProfileFile;\n",
+  "src/webview/renders-widget-shell.ts":
+    "import { ListTable } from '@miragon/pulse-widget-shell/widgets';\nexport const table = ListTable;\n",
+  "src/webview/boots-widget-shell.ts":
+    "import { createToolRegistrar } from '@miragon/pulse-widget-shell';\nexport const boot = createToolRegistrar;\n",
   "src/core/reads-profiles.ts":
     "import type { Profile } from '@miragon/pulse-profile';\nexport type Read = Profile;\n",
   "src/host-kit/connections/ships-profile-fixtures.ts":
@@ -109,8 +125,21 @@ const PLANTED: Readonly<Record<string, string>> = {
   "../profile/src/parse.ts": "export const parseProfileFile = 1;\n",
   "test/host-kit/reads-profile-fixtures.test.ts":
     "import { PROFILE_FIXTURES } from '@miragon/pulse-profile/testing';\nexport const fixtures = PROFILE_FIXTURES;\n",
+  "src/webview/renders-react.tsx":
+    "import { createRoot } from 'react-dom/client';\nimport { useState } from 'react';\nimport { XIcon } from 'lucide-react';\nexport const parts = [createRoot, useState, XIcon];\n",
+  "src/core/renders-react.ts":
+    "import { useState } from 'react';\nexport const state = useState;\n",
+  "src/webview/renders-preact.ts":
+    "import { render } from 'preact';\nexport const draw = render;\n",
+  "../../../node_modules/preact/package.json":
+    '{ "name": "preact", "exports": { ".": { "types": "./index.d.ts" } } }\n',
+  "../../../node_modules/preact/index.d.ts": "export declare const render: number;\n",
+  "src/webview/reads-radix.ts": "import { Tabs } from 'radix-ui';\nexport const tabs = Tabs;\n",
+  "../../../node_modules/radix-ui/package.json":
+    '{ "name": "radix-ui", "exports": { ".": { "types": "./index.d.ts" } } }\n',
+  "../../../node_modules/radix-ui/index.d.ts": "export declare const Tabs: number;\n",
   "package.json":
-    '{ "name": "@miragon/pulse-runtime-view", "private": true, "dependencies": { "@miragon/pulse-c7-core": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-profile": "workspace:*", "@miragon/pulse-ui": "workspace:*", "bpmn-moddle": "10.3.1" } }\n',
+    '{ "name": "@miragon/pulse-runtime-view", "private": true, "dependencies": { "@miragon/pulse-c7-core": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-profile": "workspace:*", "@miragon/pulse-ui": "workspace:*", "bpmn-moddle": "10.3.1", "lucide-react": "1.70.0", "react": "19.3.1", "react-dom": "19.3.1" } }\n',
 }
 
 const tree = new PlantedTree("packages/core/runtime-view", PLANTED)
@@ -133,6 +162,8 @@ describe("the dependency rules", () => {
     const engineCoreTesting = at("node_modules/@miragon/pulse-engine-core/dist/testing/index.d.ts")
     const kit = at("node_modules/@miragon/pulse-ui/dist/index.d.ts")
     const kitTesting = at("node_modules/@miragon/pulse-ui/dist/testing/index.d.ts")
+    const theme = at("node_modules/@miragon/pulse-ui/src/theme.css")
+    const globals = at("node_modules/@miragon/pulse-ui/src/globals.css")
     const tones = at("node_modules/@miragon/pulse-ui/dist/tones/index.d.ts")
     const format = at("node_modules/@miragon/pulse-ui/dist/format/index.d.ts")
     const profile = at("node_modules/@miragon/pulse-profile/dist/index.d.ts")
@@ -174,23 +205,42 @@ describe("the dependency rules", () => {
         `not-in-allowed: ${at("src/core/reads-format.ts")} -> ${format}`,
         `pulse-ui-only-its-foundation: ${at("src/core/escapes-into-format.ts")} -> packages/core/ui/src/format/text.ts`,
         `not-in-allowed: ${at("src/core/escapes-into-format.ts")} -> packages/core/ui/src/format/text.ts`,
-        `pulse-ui-only-its-foundation: ${at("src/webview/escapes-into-built-format.ts")} -> packages/core/ui/dist/format/numbers.js`,
+        `webview-pulse-ui-by-its-entries: ${at("src/webview/escapes-into-built-format.ts")} -> packages/core/ui/dist/format/numbers.js`,
         `not-in-allowed: ${at("src/webview/escapes-into-built-format.ts")} -> packages/core/ui/dist/format/numbers.js`,
-        `pulse-ui-only-its-foundation: ${at("src/webview/escapes-into-tones.ts")} -> ${tonesSource}`,
+        `webview-pulse-ui-by-its-entries: ${at("src/webview/escapes-into-tones.ts")} -> ${tonesSource}`,
         `not-in-allowed: ${at("src/webview/escapes-into-tones.ts")} -> ${tonesSource}`,
         `pulse-ui-only-its-foundation: ${at("src/core/escapes-into-built-tones.ts")} -> ${tonesBuild}`,
         `not-in-allowed: ${at("src/core/escapes-into-built-tones.ts")} -> ${tonesBuild}`,
-        `pulse-ui-only-its-foundation: ${at("src/webview/renders-kit.ts")} -> ${kit}`,
-        `not-in-allowed: ${at("src/webview/renders-kit.ts")} -> ${kit}`,
+        `webview-pulse-ui-by-its-entries: ${at("src/webview/escapes-into-kit.ts")} -> packages/core/ui/src/index.ts`,
+        `not-in-allowed: ${at("src/webview/escapes-into-kit.ts")} -> packages/core/ui/src/index.ts`,
+        `pulse-ui-only-its-foundation: ${at("src/core/renders-kit.ts")} -> ${kit}`,
+        `not-in-allowed: ${at("src/core/renders-kit.ts")} -> ${kit}`,
+        `pulse-ui-only-its-foundation: ${at("src/core/reads-theme.ts")} -> ${theme}`,
+        `not-in-allowed: ${at("src/core/reads-theme.ts")} -> ${theme}`,
+        `webview-pulse-ui-by-its-entries: ${at("src/webview/reads-globals.ts")} -> ${globals}`,
+        `not-in-allowed: ${at("src/webview/reads-globals.ts")} -> ${globals}`,
         `pulse-ui-only-its-foundation: ${at("src/core/ships-ui-testing.ts")} -> ${kitTesting}`,
         `not-in-allowed: ${at("src/core/ships-ui-testing.ts")} -> ${kitTesting}`,
-        `pulse-ui-only-its-foundation: ${at("src/webview/reads-kit-subpath.ts")} -> @miragon/pulse-ui/kit`,
+        `webview-pulse-ui-by-its-entries: ${at("src/webview/ships-ui-testing.ts")} -> ${kitTesting}`,
+        `not-in-allowed: ${at("src/webview/ships-ui-testing.ts")} -> ${kitTesting}`,
+        `webview-pulse-ui-by-its-entries: ${at("src/webview/reads-kit-subpath.ts")} -> @miragon/pulse-ui/kit`,
         `not-in-allowed: ${at("src/webview/reads-kit-subpath.ts")} -> @miragon/pulse-ui/kit`,
         `not-to-unresolvable: ${at("src/webview/reads-kit-subpath.ts")} -> @miragon/pulse-ui/kit`,
+        `webview-never-widget-shell: ${at("src/webview/renders-widget-shell.ts")} -> @miragon/pulse-widget-shell/widgets`,
+        `not-in-allowed: ${at("src/webview/renders-widget-shell.ts")} -> @miragon/pulse-widget-shell/widgets`,
+        `not-to-unresolvable: ${at("src/webview/renders-widget-shell.ts")} -> @miragon/pulse-widget-shell/widgets`,
+        `webview-never-widget-shell: ${at("src/webview/boots-widget-shell.ts")} -> @miragon/pulse-widget-shell`,
+        `not-in-allowed: ${at("src/webview/boots-widget-shell.ts")} -> @miragon/pulse-widget-shell`,
+        `not-to-unresolvable: ${at("src/webview/boots-widget-shell.ts")} -> @miragon/pulse-widget-shell`,
         `not-in-allowed: ${at("src/host-kit/panels/reads-profiles.ts")} -> ${profile}`,
         `not-in-allowed: ${at("src/core/reads-profiles.ts")} -> ${profile}`,
         `not-in-allowed: ${at("src/host-kit/connections/ships-profile-fixtures.ts")} -> ${profileTesting}`,
         `not-in-allowed: ${at("src/host-kit/connections/escapes-into-profile.ts")} -> packages/core/profile/src/parse.ts`,
+        `not-in-allowed: ${at("src/core/renders-react.ts")} -> ${at("node_modules/react/index.js")}`,
+        `not-in-allowed: ${at("src/webview/renders-preact.ts")} -> node_modules/preact/index.d.ts`,
+        `no-undeclared-dependencies: ${at("src/webview/renders-preact.ts")} -> node_modules/preact/index.d.ts`,
+        `not-in-allowed: ${at("src/webview/reads-radix.ts")} -> node_modules/radix-ui/index.d.ts`,
+        `no-undeclared-dependencies: ${at("src/webview/reads-radix.ts")} -> node_modules/radix-ui/index.d.ts`,
       ].sort(),
     )
   })

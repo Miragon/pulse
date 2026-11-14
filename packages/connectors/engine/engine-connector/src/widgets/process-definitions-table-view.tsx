@@ -1,17 +1,8 @@
 import type { ReactNode } from "react"
-import {
-  NamedId,
-  TableEmptyState,
-  Td,
-  formatNumber,
-  CountPill,
-  TONE_DOT,
-  cn,
-  countTone,
-  type ToneVariant,
-} from "@miragon/pulse-ui"
+import { NamedId, TableEmptyState, Td, VersionChip, formatNumber } from "@miragon/pulse-ui"
 import { ListTable, type ListTableColumn } from "@miragon/pulse-widget-shell/widgets"
 import { useT } from "../messages/use-t.js"
+import { AlarmCount } from "./lib/alarm-count.js"
 
 // One row per deployed definition key: its counts span every version.
 export interface ProcessDefinitionsTableRow {
@@ -19,7 +10,6 @@ export interface ProcessDefinitionsTableRow {
   key: string
   name: string | null
   version: number
-  tone: ToneVariant
   counts: { instances: number; failedJobs: number; totalIncidents: number }
 }
 
@@ -48,45 +38,39 @@ export function ProcessDefinitionsTableView({
     { label: t("cockpitDefs.colRunning"), align: "right" },
     { label: t("cockpitDefs.colFailedJobs"), align: "right" },
     { label: t("cockpitDefs.colIncidents"), align: "right" },
-    ...(renderActions ? [{ plain: true, sticky: true }] : []),
+    // Pinned from 40rem up only: in a narrower region a pinned column would cover the process, so
+    // the actions scroll with the row, their head's word for a screen reader alone, and the name
+    // gives way with its ellipsis.
+    ...(renderActions
+      ? [{ label: t("cockpitDefs.colActions"), align: "right" as const, sticky: "sm" as const }]
+      : []),
   ]
 
   return (
     <ListTable ariaLabel={ariaLabel} columns={columns}>
       {rows.map((row) => (
-        <tr key={row.id} className="hover:bg-muted transition-colors">
+        <tr key={row.id}>
           <Td>
-            {/* Name first, the key a quiet mono line (#322 U13). */}
-            <NamedId
-              name={row.name}
-              id={row.key}
-              lead={
-                <span
-                  aria-hidden="true"
-                  className={cn("size-1.5 shrink-0 rounded-full", TONE_DOT[row.tone])}
-                />
-              }
-            />
+            {/* Name first, the key quiet beside it (#322 U13). */}
+            <NamedId name={row.name} id={row.key} />
           </Td>
           <Td>
-            <span className="border-border bg-muted text-muted-foreground text-small inline-block rounded border px-1.5 py-0.5 font-mono">
-              v{row.version}
-            </span>
+            <VersionChip version={row.version} className="ml-0" />
           </Td>
-          {/* A count without a state is a plain number; jobs without retries and open incidents
-              take the one severity ladder (#322 U14): danger while there are any, else neutral. */}
-          <Td align="right" className="text-foreground tabular-nums">
-            {formatNumber(row.counts.instances)}
+          {/* Every count is a neutral number; jobs without retries and open incidents alarm while
+              there are any, by the tone's icon and words, never a coloured number (#322 U14). */}
+          <Td align="right">
+            <AlarmCount>{formatNumber(row.counts.instances)}</AlarmCount>
           </Td>
           <Td align="right">
-            <CountPill tone={countTone(row.counts.failedJobs)}>
+            <AlarmCount alarm={row.counts.failedJobs > 0 && "jobsWithoutRetries"}>
               {formatNumber(row.counts.failedJobs)}
-            </CountPill>
+            </AlarmCount>
           </Td>
           <Td align="right">
-            <CountPill tone={countTone(row.counts.totalIncidents)}>
+            <AlarmCount alarm={row.counts.totalIncidents > 0 && "openIncidents"}>
               {formatNumber(row.counts.totalIncidents)}
-            </CountPill>
+            </AlarmCount>
           </Td>
           {renderActions && (
             <Td>

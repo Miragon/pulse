@@ -28,7 +28,7 @@ export function ActivityValues<A extends ActivityRow>({
   const t = useT()
   const title = t("procIncFlow.valuesTitle")
   return (
-    <Section title={title}>
+    <Section as="h2" title={title}>
       <ListTable
         ariaLabel={title}
         columns={[

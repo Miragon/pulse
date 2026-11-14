@@ -23,11 +23,16 @@ export {
   TableCaption,
 } from "./primitives/table.js"
 export { Skeleton } from "./primitives/skeleton.js"
-export { Tabs, TabsList, TabsTrigger, TabsContent } from "./primitives/tabs.js"
+export { Tabs, TabsList, TabsTrigger, TabsContent, TabCount } from "./primitives/tabs.js"
 export { Button, buttonVariants } from "./primitives/button.js"
 export { Input } from "./primitives/input.js"
+export { Textarea } from "./primitives/textarea.js"
+export { Label } from "./primitives/label.js"
+export { Checkbox } from "./primitives/checkbox.js"
+export { Progress, type ProgressProps } from "./primitives/progress.js"
 export {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,
@@ -70,6 +75,7 @@ export {
   TYPE_STEPS,
   TYPE_FLOOR_PX,
   MICRO_LABEL,
+  FIELD_TEXT,
   type TypeStep,
 } from "./lib/typography.js"
 export { FOCUS_RING, FOCUS_RING_INSET } from "./lib/focus-ring.js"
@@ -122,6 +128,30 @@ export {
 } from "./components/EmptyState.js"
 export { ErrorState, type ErrorStateProps, type ErrorStateTone } from "./components/ErrorState.js"
 
+// The shared building blocks lifted from the VS Code webview (D9): props and callbacks only, no
+// host inside; the cockpit and, after the switch, the webview compose them.
+export {
+  ViewBar,
+  type ViewBarAccess,
+  type ViewBarHeadingLevel,
+  type ViewBarProps,
+} from "./components/ViewBar.js"
+export {
+  StatusStrip,
+  type StatusStripAction,
+  type StatusStripProps,
+  type StatusStripTone,
+} from "./components/StatusStrip.js"
+export { Facts, type Fact, type FactsProps } from "./components/Facts.js"
+export { StateLabel, type StateLabelProps, type StateLabelState } from "./components/StateLabel.js"
+export { CountBadge, type CountBadgeProps } from "./components/CountBadge.js"
+export { CountFigure, type CountFigureProps } from "./components/CountFigure.js"
+export { Toolbar, type ToolbarProps } from "./components/Toolbar.js"
+export { CopyableId, type CopyableIdProps } from "./components/CopyableId.js"
+export { ConditionChip, type ConditionChipProps } from "./components/ConditionChip.js"
+export { LoadingState, type LoadingStateProps } from "./components/LoadingState.js"
+export { NavTab, NavTabs, type NavTabProps, type NavTabsProps } from "./components/NavTabs.js"
+
 // Hooks
 export { useDebouncedValue } from "./hooks/use-debounced-value.js"
 export { useResetOnChange } from "./kit/use-reset-on-change.js"
@@ -132,6 +162,7 @@ export { ROLE_TOKENS } from "./theme/role-tokens.js"
 export { usePortalContainer } from "./theme/portal-container.js"
 export { CD_TOKENS, CD_TOKENS_VERSION, type CdTokenName } from "./theme/cd-tokens.js"
 export { fontFaces, GEIST_FONT_FILES, type FontFacesOptions } from "./theme/fonts.js"
+export { BPMN_LABEL_STYLE } from "./theme/bpmn-labels.js"
 export {
   adoptHostFontVariables,
   HOST_FONT_VARIABLES,
@@ -153,11 +184,19 @@ export {
   UI_MESSAGES,
   resolveUiMessages,
   type CommonMessages,
+  type ConditionChipMessages,
+  type CopyableIdMessages,
+  type CountNoun,
+  type CountMessages,
+  type DataTableMessages,
   type FilterBarMessages,
   type ListFooterMessages,
+  type SearchFieldMessages,
+  type StateLabelMessages,
   type UiLocale,
   type UiMessages,
   type UiMessagesOverride,
+  type ViewBarMessages,
 } from "./locale/ui-messages.js"
 export { createUseT, type T } from "./kit/create-use-t.js"
 
@@ -171,11 +210,36 @@ export {
   type ColumnSort,
   type EmptyVariant,
 } from "./kit/table.js"
-export { Section } from "./kit/section.js"
+export { DataTable } from "./kit/data-table.js"
+export type {
+  DataTableColumn,
+  DataTableProps,
+  DataTableSelection,
+  RowActivation,
+  SelectionBoxProps,
+} from "./kit/data-table-types.js"
+export { rowSelection } from "./kit/row-selection.js"
+export { useColumnSizing } from "./kit/use-column-sizing.js"
+export type {
+  ColumnSizing,
+  ColumnSizingOptions,
+  ColumnSizingParts,
+  ColumnWidths,
+  SizedHeadProps,
+} from "./kit/column-sizing.js"
+export { Section, type SectionHeadingLevel } from "./kit/section.js"
 export { NativeSelect } from "./kit/native-select.js"
-export { SegmentedControl, type SegmentedControlOption } from "./kit/segmented-control.js"
+export { Field, type FieldProps } from "./kit/field.js"
+export type { FieldControlProps } from "./lib/field-control.js"
+export { SearchField, type SearchFieldProps } from "./kit/search-field.js"
+export {
+  SegmentedControl,
+  type SegmentedControlOption,
+  type SegmentedControlProps,
+  type SegmentedCountTone,
+} from "./kit/segmented-control.js"
 export { RowCard } from "./kit/row-card.js"
-export { NamedId } from "./kit/named-id.js"
+export { NamedId, type NamedIdLayout } from "./kit/named-id.js"
 export { LogText, LOG_TEXT_PREVIEW, TEXT_BLOCK_FRAME } from "./kit/log-text.js"
 // The Komet belongs on app-level surfaces only (a landing, a first start), never in a widget.
 export { KometMark, AppEmptyState } from "./kit/brand-mark.js"

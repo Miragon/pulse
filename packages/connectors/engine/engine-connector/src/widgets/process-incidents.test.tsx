@@ -1,7 +1,9 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
 import { cleanup, render, screen, within } from "@testing-library/react"
+import { TONE_DOT, TONE_ICON } from "@miragon/pulse-ui"
 import { ProcessDefinitionKpi } from "./process-incidents/kpi.js"
+import { ActivityIncidentList } from "./process-incidents/list.js"
 import { diagramActivityFraction } from "./process-incidents/activity-scope.js"
 import type { ProcessIncidentsData } from "../view-models.js"
 import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
@@ -78,5 +80,41 @@ describe("definition view: activities affected over the diagram", () => {
       }),
     ).toBeNull()
     expect(diagramActivityFraction(DATA)).toEqual({ affected: 1, total: 2, olderVersionsOnly: 1 })
+  })
+})
+
+// A process that runs without a problem is neutral (SITUATION_TONES, invariant 6): no green dot or
+// check, the kit's empty note, in both empty states of the incidents list.
+describe("definition view: a process without open incidents", () => {
+  const QUIET: ProcessIncidentsData = {
+    ...DATA,
+    incidentCount: 0,
+    last24hCount: 0,
+    failedJobs: 0,
+    affectedDiagramActivityCount: 0,
+    activities: [],
+    siblingsWithIncidents: [
+      { processDefinitionKey: "order", processDefinitionName: "Order", incidentCount: 4 },
+    ],
+  }
+  const SUCCESS = [TONE_DOT.success, TONE_ICON.success]
+
+  it.each(["note", "siblings"] as const)("%s: the kit's neutral empty note", (emptyVariant) => {
+    const { container } = render(
+      <TestViewHost>
+        <ActivityIncidentList
+          data={QUIET}
+          processDefinitionKey="leasing"
+          engine="prod-a"
+          emptyVariant={emptyVariant}
+        />
+      </TestViewHost>,
+    )
+    const note = container.querySelector('[data-empty-variant="empty"]')!
+    expect(note.textContent).toContain("No open incidents on Leasing")
+    for (const tone of SUCCESS) expect(container.innerHTML).not.toContain(tone)
+    if (emptyVariant === "siblings") {
+      expect(within(note as HTMLElement).getByRole("button", { name: /^Order/ })).toBeTruthy()
+    }
   })
 })

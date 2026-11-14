@@ -28,7 +28,7 @@ import { useT } from "../messages/use-t.js"
 import {
   HistoryTable,
   STEP_TONE,
-  StepBadge,
+  StepState,
   historyStepState,
   instanceStateLabel,
   type HistoryEntry,
@@ -81,20 +81,16 @@ export function explainActivityHandOff(
 /** Shell-less activity history: `"timeline"` (outliers, Ask-AI) or the compact `"table"` of the incident detail. */
 function HistoryTimelineView({
   activities,
-  processInstance,
   instanceRef,
   engineId,
-  totalActivities,
   incidentActivityIds,
   variant = "timeline",
   attachRows,
 }: {
   activities: HistoryEntry[]
-  processInstance?: HistoryTimelineData["processInstance"]
-  /** The instance the rows belong to, for their hand-offs where no header data is shown. */
+  /** The instance the rows belong to, for their hand-offs. */
   instanceRef?: TimelineInstanceRef
   engineId: string
-  totalActivities?: number
   /** Activities with an open incident on this instance: their running step is marked. */
   incidentActivityIds?: readonly string[] | null
   variant?: "timeline" | "table"
@@ -121,46 +117,7 @@ function HistoryTimelineView({
   const isOutlier = durationOutliers(activities.map((a) => a.durationInMillis))
 
   return (
-    <div className="flex flex-col gap-4">
-      {processInstance && (
-        <WidgetHeader
-          badge={
-            <StatusBadge tone={instanceStateLabel(t, processInstance.state).tone}>
-              {instanceStateLabel(t, processInstance.state).label}
-            </StatusBadge>
-          }
-          title={processInstance.processDefinitionName ?? processInstance.processDefinitionKey}
-          sub={
-            <>
-              <span>
-                {t("historyTimeline.started", {
-                  time: formatTimestamp(processInstance.startTime),
-                })}
-              </span>
-              {processInstance.durationInMillis != null && (
-                <span>
-                  {t("historyTimeline.duration", {
-                    duration: formatDuration(processInstance.durationInMillis),
-                  })}
-                </span>
-              )}
-            </>
-          }
-          actions={
-            <HandOffButton
-              action="explainTimeline"
-              prompt={ask(
-                explainInstanceHandOff(
-                  processInstance,
-                  engineId,
-                  totalActivities ?? activities.length,
-                ),
-              )}
-            />
-          }
-        />
-      )}
-
+    <div className="gap-section flex flex-col">
       <ol
         ref={attachRows}
         className="flex flex-col gap-1"
@@ -190,9 +147,9 @@ function HistoryTimelineView({
                   state === "incident" && "border-danger",
                 )}
               >
-                <CardContent className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+                <CardContent className="px-cell py-cell flex flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <span className="text-dense font-medium">
+                    <span className="text-dense font-semibold">
                       {activity.activityName ?? activity.activityId}
                     </span>
                     <span className="text-muted-foreground text-small ml-2">
@@ -205,7 +162,7 @@ function HistoryTimelineView({
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    {(state === "incident" || state === "running") && <StepBadge state={state} />}
+                    {(state === "incident" || state === "running") && <StepState state={state} />}
                     {activity.durationInMillis != null && (
                       <span className="text-muted-foreground text-small">
                         {formatDuration(activity.durationInMillis)}
@@ -215,13 +172,7 @@ function HistoryTimelineView({
                       <HandOffButton
                         action="explainDuration"
                         variant="icon"
-                        prompt={ask(
-                          explainActivityHandOff(
-                            activity,
-                            processInstance ?? instanceRef,
-                            engineId,
-                          ),
-                        )}
+                        prompt={ask(explainActivityHandOff(activity, instanceRef, engineId))}
                       />
                     )}
                   </div>
@@ -249,7 +200,6 @@ export function PagedHistoryView({
   engine,
   variant = "timeline",
   initialPage = null,
-  processInstance,
   processDefinitionKey,
   incidentActivityIds,
 }: {
@@ -259,7 +209,6 @@ export function PagedHistoryView({
   processDefinitionKey?: string | null
   variant?: "timeline" | "table"
   initialPage?: HistoryPage | null
-  processInstance?: HistoryTimelineData["processInstance"]
   /** Activities with an open incident on this instance: their running step is marked. */
   incidentActivityIds?: readonly string[] | null
 }) {
@@ -297,17 +246,15 @@ export function PagedHistoryView({
         <HistoryTimelineView
           variant={variant}
           activities={paged.items}
-          processInstance={processInstance}
           instanceRef={{ id: processInstanceId, processDefinitionKey }}
           engineId={engine}
-          totalActivities={paged.total}
           incidentActivityIds={incidentActivityIds}
           attachRows={paged.fit.attachRows}
         />
       </RowsBudgeted>
       <PagedListFooter
         paged={paged}
-        noun={t("historyTimeline.footerNoun")}
+        noun={(total) => t("historyTimeline.footerNoun", { count: total })}
         labels={paged.footerLabels}
       />
     </div>
@@ -383,15 +330,22 @@ export function HistoryTimelineWidget({
       </WidgetShell>
     )
   }
+  const instance = data.processInstance
   return (
-    <WidgetShell>
+    <WidgetShell
+      header={
+        instance && (
+          <HistoryHeader instance={instance} engineId={engine} total={data.totalActivities} />
+        )
+      }
+    >
       <HistoryModelContext data={data} />
-      {data.processInstance ? (
+      {instance ? (
         <PagedHistoryView
-          processInstanceId={data.processInstance.id}
+          processInstanceId={instance.id}
           engine={engine}
           initialPage={initialPage}
-          processInstance={data.processInstance}
+          processDefinitionKey={instance.processDefinitionKey}
           incidentActivityIds={data.incidentActivityIds}
         />
       ) : (
@@ -399,10 +353,49 @@ export function HistoryTimelineWidget({
         <HistoryTimelineView
           activities={data.activities}
           engineId={engine}
-          totalActivities={data.totalActivities}
           incidentActivityIds={data.incidentActivityIds}
         />
       )}
     </WidgetShell>
+  )
+}
+
+/** The history route's bar: the instance's process, its state, start and duration. */
+function HistoryHeader({
+  instance,
+  engineId,
+  total,
+}: {
+  instance: TimelineInstance
+  engineId: string
+  total: number
+}) {
+  const t = useT()
+  const { ask } = useHandOff()
+  const state = instanceStateLabel(t, instance.state)
+  return (
+    <WidgetHeader
+      badge={<StatusBadge tone={state.tone}>{state.label}</StatusBadge>}
+      title={instance.processDefinitionName ?? instance.processDefinitionKey}
+      sub={
+        <>
+          <span>{t("historyTimeline.started", { time: formatTimestamp(instance.startTime) })}</span>
+          {instance.durationInMillis != null && (
+            <span>
+              {t("historyTimeline.duration", {
+                duration: formatDuration(instance.durationInMillis),
+              })}
+            </span>
+          )}
+        </>
+      }
+      actions={
+        <HandOffButton
+          action="explainTimeline"
+          variant="toolbar"
+          prompt={ask(explainInstanceHandOff(instance, engineId, total))}
+        />
+      }
+    />
   )
 }

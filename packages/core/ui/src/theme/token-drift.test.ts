@@ -38,9 +38,9 @@ const DOCS_KIT = "docs/.vitepress/miragon"
  * The vendored CI token copies, by manifest: the docs kit's (`version`,
  * `dateien: [{ pfad, quelle, sha256 }]`) and the sha256sum list that
  * `brand-assets.mjs` writes for the copies in `.miragon/brand-assets.yaml`
- * (pulse-ui's token file every view ships, and the token file, canvas and JSON
- * of the runtime view's webview, packages/core/runtime-view, which Pulse for
- * VS Code and Pulse for Orca host). A copy is sanctioned only by an entry here,
+ * (pulse-ui's token file every view ships, the runtime view's webview included,
+ * and the canvas and JSON of that webview, packages/core/runtime-view, which
+ * Pulse for VS Code and Pulse for Orca host). A copy is sanctioned only by an entry here,
  * never by a manifest's mere presence next to it. A new copy is added with
  * `brand-assets.mjs --add`; it never becomes an exception in the scan.
  */
@@ -68,7 +68,7 @@ describe("Miragon tokens: vendored copies listed by manifest", () => {
     expect(check.status).toBe(0)
   })
 
-  it("the equality rule compares real values: the runtime view's webview copy and the docs kit share tokens in :root, the light and the dark theme", () => {
+  it("the equality rule compares real values: pulse-ui's copy and the docs kit share tokens in :root, the light and the dark theme", () => {
     const shared = (a: string, b: string) => {
       const left = scopedTokens(readFileSync(join(REPO_ROOT, a), "utf8"))
       const right = scopedTokens(readFileSync(join(REPO_ROOT, b), "utf8"))
@@ -78,7 +78,7 @@ describe("Miragon tokens: vendored copies listed by manifest", () => {
     }
     expect(
       shared(
-        "packages/core/runtime-view/src/webview/theme/cd-tokens.generated.css",
+        "packages/core/ui/src/tokens/cd-tokens.generated.css",
         `${DOCS_KIT}/theme/cd-tokens.generated.css`,
       ),
     ).toEqual(

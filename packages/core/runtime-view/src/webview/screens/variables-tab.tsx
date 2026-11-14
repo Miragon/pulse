@@ -1,10 +1,10 @@
-import { useCallback, useState } from "preact/hooks"
-import { glyphs } from "../components/lucide-glyphs.json"
+import { ChevronDownIcon, ChevronRightIcon, PencilIcon, TriangleAlertIcon } from "lucide-react"
+import { useCallback, useState } from "react"
+import { Button, Icon, TEXT_BLOCK_FRAME, TONE_ICON, cn } from "@miragon/pulse-ui"
 import type { VariableRow } from "../../core/protocol/index.js"
 import { CopyButton } from "../components/copy-button.js"
 import { DataTable, type Column } from "../components/data-table.js"
 import { EmptyHint } from "../components/empty-hint.js"
-import { Icon } from "../components/icon.js"
 import { NoValue } from "../components/no-value.js"
 import { useWriteState } from "../host/write-context.js"
 import { WriteStates } from "../host/write-states.js"
@@ -22,12 +22,20 @@ interface Editing {
   readonly close: () => void
 }
 
+const ROW_REVEAL =
+  "opacity-0 focus-visible:opacity-100 in-[tr:hover]:opacity-100 in-[tr:focus-within]:opacity-100 any-pointer-coarse:opacity-100"
+
+const COPY_REVEAL =
+  "invisible focus-visible:visible in-[tr:hover]:visible in-[tr:focus-within]:visible any-pointer-coarse:visible"
+
 function EditButton({ row, editing }: { readonly row: VariableRow; readonly editing: Editing }) {
   const write = useWriteState()
   return (
-    <button
+    <Button
       type="button"
-      class="icon-button icon-button--small value-cell__edit"
+      variant="ghost"
+      size="icon-xs"
+      className={ROW_REVEAL}
       aria-label={`Edit ${row.name}`}
       title={`Edit ${row.name}`}
       disabled={WriteStates.isWriting(write)}
@@ -36,8 +44,29 @@ function EditButton({ row, editing }: { readonly row: VariableRow; readonly edit
         editing.open(row.name)
       }}
     >
-      <Icon of={glyphs.Pencil} />
-    </button>
+      <Icon icon={PencilIcon} />
+    </Button>
+  )
+}
+
+function ValueText({ row, open }: { readonly row: VariableRow; readonly open: boolean }) {
+  if (open) {
+    return (
+      <pre
+        className={cn(
+          "border-border bg-background text-dense my-0.5 max-w-[min(96ch,64vw)] rounded-sm border px-3 py-2 font-mono wrap-anywhere whitespace-pre-wrap",
+          TEXT_BLOCK_FRAME,
+        )}
+      >
+        {VariableValueText.readable(row)}
+      </pre>
+    )
+  }
+  const cutOff = row.truncated ? " (cut off)" : ""
+  return (
+    <code className="max-w-[min(64ch,56vw)] truncate font-mono" title={`${row.valueJson}${cutOff}`}>
+      {row.valueJson}
+    </code>
   )
 }
 
@@ -46,32 +75,32 @@ function ValueCell({ row, editing }: { readonly row: VariableRow; readonly editi
   const expandable = VariableValueText.isExpandable(row)
   const cutOff = row.truncated ? " (cut off)" : ""
   return (
-    <div class={`value-cell${open ? " value-cell--open" : ""}`}>
+    <div
+      className={cn(
+        "min-h-row -ml-1 flex min-w-0 items-center gap-1",
+        open && "items-start py-0.5",
+      )}
+    >
       {expandable && (
-        <button
+        <Button
           type="button"
-          class="icon-button icon-button--small"
+          variant="ghost"
+          size="icon-xs"
           aria-expanded={open}
           aria-label={`${open ? "Collapse" : "Expand"} the value of ${row.name}`}
           onClick={() => {
             setOpen(!open)
           }}
         >
-          <Icon of={open ? glyphs.ChevronDown : glyphs.ChevronRight} />
-        </button>
+          <Icon icon={open ? ChevronDownIcon : ChevronRightIcon} />
+        </Button>
       )}
-      {open ? (
-        <pre class="value-cell__full">{VariableValueText.readable(row)}</pre>
-      ) : (
-        <code class="value-cell__line" title={`${row.valueJson}${cutOff}`}>
-          {row.valueJson}
-        </code>
-      )}
-      {row.truncated && <span class="muted value-cell__cut">cut off</span>}
+      <ValueText row={row} open={open} />
+      {row.truncated && <span className="text-muted-foreground whitespace-nowrap">cut off</span>}
       <CopyButton
         text={row.valueJson}
         label={`value of ${row.name}${cutOff}`}
-        class="value-cell__copy"
+        className={COPY_REVEAL}
       />
       {row.editor !== undefined && <EditButton row={row} editing={editing} />}
     </div>
@@ -110,15 +139,16 @@ function NameCell({
 }) {
   const shadows = (row.shadowedAt ?? []).map(elementName).join(", ")
   return (
-    <span class="variable-name">
-      <code>{row.name}</code>
+    <span className="inline-flex items-center gap-1.5" data-part="variable-name">
+      <code className="font-mono">{row.name}</code>
       {shadows !== "" && (
         <span
-          class="variable-name__shadow"
+          className="inline-grid"
+          role="img"
           title={`${shadows} keeps its own ${row.name}; changing this one does not reach it.`}
           aria-label={`${shadows} keeps its own ${row.name}`}
         >
-          <Icon of={glyphs.TriangleAlert} size={12} />
+          <Icon icon={TriangleAlertIcon} dense className={TONE_ICON.warning} />
         </span>
       )}
     </span>

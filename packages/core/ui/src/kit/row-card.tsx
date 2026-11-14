@@ -20,7 +20,7 @@ export function RowCard({
       )}
     >
       <div className="min-w-0">
-        <div className="text-dense flex items-center gap-2 font-medium">{title}</div>
+        <div className="text-dense flex items-center gap-2 font-semibold">{title}</div>
         {subtitle && <div className="text-muted-foreground text-small truncate">{subtitle}</div>}
       </div>
       {actions && <div className="flex shrink-0 items-center gap-1.5">{actions}</div>}

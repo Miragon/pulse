@@ -6,10 +6,16 @@ import { JsonText } from "../../src/webview/format/json-text.js"
 import {
   buttonNamed,
   colourOfVariable,
-  mountApp,
-  nextFrame,
-  waitForElement,
+  enterValue,
   type Harness,
+  mountApp,
+  findPart,
+  findRole,
+  getRole,
+  nextFrame,
+  part,
+  queryPart,
+  queryRole,
 } from "./harness.js"
 
 const VARIABLES_TAB = "Variables8"
@@ -28,37 +34,39 @@ describe("writing from the instance screen", () => {
   async function openVariables() {
     harness = mountApp()
     harness.publish(FIXTURES["instance-writable"])
-    await waitForElement(harness.root, ".incident-card")
+    await findPart(harness.root, "incident-card")
     buttonNamed(harness.root, VARIABLES_TAB).click()
-    await waitForElement(harness.root, ".value-cell__edit")
+    await findRole(harness.root, "button", { name: "Edit amount" })
   }
 
   function editButton(name: string): HTMLButtonElement {
-    const button = harness.root.querySelector<HTMLButtonElement>(`[aria-label="Edit ${name}"]`)
-    if (button === null) {
-      throw new Error(`no edit button for ${name}`)
-    }
-    return button
+    return getRole<HTMLButtonElement>(harness.root, "button", { name: `Edit ${name}` })
   }
 
   async function edit(name: string): Promise<HTMLTextAreaElement> {
     editButton(name).click()
-    return waitForElement<HTMLTextAreaElement>(harness.root, ".variable-editor__field")
+    const editor = await findRole(harness.root, "group", { name: `Edit ${name}` })
+    return getRole<HTMLTextAreaElement>(
+      editor,
+      editor.querySelector("select") ? "combobox" : "textbox",
+      {
+        name: "New value",
+      },
+    )
   }
 
   async function type(field: HTMLTextAreaElement, text: string): Promise<void> {
-    field.value = text
-    field.dispatchEvent(new Event("input", { bubbles: true }))
+    enterValue(field, text)
     await nextFrame()
   }
 
   it("retries a single incident from its card, without a strip", async () => {
     harness = mountApp()
     harness.publish(FIXTURES["instance-writable"])
-    const card = await waitForElement(harness.root, ".incident-card")
+    const card = await findPart(harness.root, "incident-card")
 
-    expect(harness.root.querySelector(".read-only")?.textContent).toBe("Writable")
-    expect(harness.root.querySelector(".strip-stack .status-strip")).toBeNull()
+    expect(queryPart(harness.root, "access", { state: "writable" })?.textContent).toBe("Writable")
+    expect(harness.root.querySelector(`${part("strips")} ${part("status-strip")}`)).toBeNull()
     buttonNamed(card, "Retry").click()
 
     expect(posted("retryIncident")).toEqual([
@@ -69,25 +77,23 @@ describe("writing from the instance screen", () => {
   it("shows a running retry and blocks every other write meanwhile", async () => {
     harness = mountApp()
     harness.publish(FIXTURES["instance-retrying"])
-    await waitForElement(harness.root, ".incident-card")
+    await findPart(harness.root, "incident-card")
 
-    const card = harness.root.querySelector(".incident-card") ?? harness.root
+    const card = queryPart(harness.root, "incident-card") ?? harness.root
     expect(buttonNamed(card, "Retrying…").disabled).toBe(true)
     buttonNamed(harness.root, VARIABLES_TAB).click()
-    await waitForElement(harness.root, ".value-cell__edit")
+    await findRole(harness.root, "button", { name: "Edit amount" })
     expect(editButton("amount").disabled).toBe(true)
   })
 
   it("reports a retry that failed again in a strip under the header", async () => {
     harness = mountApp()
     harness.publish(FIXTURES["instance-failed-again"])
-    const strips = await waitForElement(harness.root, ".strip-stack")
+    const strips = await findPart(harness.root, "strips")
 
-    expect(strips.closest(".diagram-region")).toBeNull()
-    expect(strips.querySelectorAll(".status-strip")).toHaveLength(1)
-    expect(strips.querySelector(".status-strip")?.textContent).toContain(
-      "Failed again at Check credit.",
-    )
+    expect(strips.closest(part("diagram"))).toBeNull()
+    expect(getRole(strips, "alert").closest(part("status-strip"))).not.toBeNull()
+    expect(getRole(strips, "alert").textContent).toContain("Failed again at Check credit.")
   })
 
   it("edits text without quotes and sends it as a JSON string", async () => {
@@ -95,9 +101,7 @@ describe("writing from the instance screen", () => {
     const field = await edit("cardExpiry")
 
     expect(field.value).toBe("03/2025")
-    expect(harness.root.querySelector(".variable-editor__hint")?.textContent).toBe(
-      'String · was "03/2025"',
-    )
+    expect(queryPart(harness.root, "editor-hint")?.textContent).toBe('String · was "03/2025"')
     await type(field, "12/2030")
     buttonNamed(harness.root, "Save").click()
 
@@ -142,11 +146,11 @@ describe("writing from the instance screen", () => {
   it("closes on Escape, sets null on purpose and offers no pencil for opaque or local values", async () => {
     await openVariables()
     await edit("amount")
-    harness.root
-      .querySelector(".variable-editor__field")
-      ?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }))
+    getRole(harness.root, "textbox", { name: "New value" }).dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+    )
     await nextFrame()
-    expect(harness.root.querySelector(".variable-editor")).toBeNull()
+    expect(queryRole(harness.root, "group", { name: /^Edit / })).toBeNull()
 
     await edit("express")
     buttonNamed(harness.root, "Set to null").click()
@@ -154,9 +158,9 @@ describe("writing from the instance screen", () => {
       { type: "setVariable", name: "express", valueJson: "null" },
     ])
 
-    expect(harness.root.querySelector('[aria-label="Edit invoice"]')).toBeNull()
-    expect(harness.root.querySelectorAll('[aria-label="Edit cardExpiry"]')).toHaveLength(1)
-    expect(harness.root.querySelector(".variable-name__shadow")?.getAttribute("title")).toContain(
+    expect(queryRole(harness.root, "button", { name: "Edit invoice" })).toBeNull()
+    expect(queryRole(harness.root, "button", { name: "Edit cardExpiry" })).not.toBeNull()
+    expect(getRole(harness.root, "img", { name: /keeps its own cardExpiry/ }).title).toContain(
       "keeps its own cardExpiry",
     )
   })
@@ -176,14 +180,17 @@ describe("writing from the instance screen", () => {
       },
       refreshing: false,
     })
-    const error = await waitForElement(harness.root, ".variable-editor__error")
+    const error = await findRole(getRole(harness.root, "group", { name: "Edit amount" }), "alert")
     expect(error.textContent).toBe("local refused the change.")
-    expect(harness.root.querySelector<HTMLTextAreaElement>(".variable-editor__field")).toBe(field)
+    expect(getRole(harness.root, "textbox", { name: "New value" })).toBe(field)
     expect(field.value).toBe("99.5")
     expect(field.hasAttribute("aria-invalid")).toBe(false)
     expect(field.hasAttribute("aria-describedby")).toBe(false)
-    expect(getComputedStyle(field).borderTopColor).toBe(colourOfVariable("--cd-ui-linie"))
-    expect(getComputedStyle(field).borderTopColor).not.toBe(colourOfVariable("--cd-ui-danger"))
+    const calm = colourOfVariable(document.activeElement === field ? "--focus" : "--input")
+    await vi.waitFor(() => {
+      expect(getComputedStyle(field).borderTopColor).toBe(calm)
+    })
+    expect(getComputedStyle(field).borderTopColor).not.toBe(colourOfVariable("--danger"))
 
     harness.publish({
       status: "ready",
@@ -191,7 +198,7 @@ describe("writing from the instance screen", () => {
       refreshing: false,
     })
     await vi.waitFor(() => {
-      expect(harness.root.querySelector(".variable-editor")).toBeNull()
+      expect(queryRole(harness.root, "group", { name: /^Edit / })).toBeNull()
     })
   })
 })
@@ -211,13 +218,14 @@ describe("the editor lifecycle", () => {
       view: { ...WRITABLE_INSTANCE, write: { status: "done", target } },
       refreshing: false,
     })
-    await waitForElement(harness.root, ".incident-card")
+    await findPart(harness.root, "incident-card")
     buttonNamed(harness.root, VARIABLES_TAB).click()
-    await waitForElement(harness.root, ".value-cell__edit")
-    harness.root.querySelector<HTMLButtonElement>('[aria-label="Edit amount"]')?.click()
-    const field = await waitForElement<HTMLTextAreaElement>(harness.root, ".variable-editor__field")
-    field.value = "12.5"
-    field.dispatchEvent(new Event("input", { bubbles: true }))
+    await findRole(harness.root, "button", { name: "Edit amount" })
+    getRole(harness.root, "button", { name: "Edit amount" }).click()
+    const field = await findRole<HTMLTextAreaElement>(harness.root, "textbox", {
+      name: "New value",
+    })
+    enterValue(field, "12.5")
     await nextFrame()
     buttonNamed(harness.root, "Save").click()
     await nextFrame()
@@ -226,7 +234,7 @@ describe("the editor lifecycle", () => {
 
   it("does not close on a done state left from an earlier change", async () => {
     await editAmount()
-    expect(harness.root.querySelector(".variable-editor")).not.toBeNull()
+    expect(queryRole(harness.root, "group", { name: "Edit amount" })).not.toBeNull()
   })
 
   it("stays open with the text when the user cancels the confirmation", async () => {
@@ -238,7 +246,7 @@ describe("the editor lifecycle", () => {
       refreshing: false,
     })
     await nextFrame()
-    expect(harness.root.querySelector<HTMLTextAreaElement>(".variable-editor__field")?.value).toBe(
+    expect(getRole<HTMLTextAreaElement>(harness.root, "textbox", { name: "New value" }).value).toBe(
       "12.5",
     )
     expect(buttonNamed(harness.root, "Save").disabled).toBe(false)
@@ -255,26 +263,25 @@ describe("a null variable", () => {
   it("is written as the type the user picks", async () => {
     harness = mountApp()
     harness.publish(FIXTURES["instance-writable"])
-    await waitForElement(harness.root, ".incident-card")
+    await findPart(harness.root, "incident-card")
     buttonNamed(harness.root, VARIABLES_TAB).click()
-    await waitForElement(harness.root, ".value-cell__edit")
-    harness.root.querySelector<HTMLButtonElement>('[aria-label="Edit iban"]')?.click()
-    const field = await waitForElement<HTMLTextAreaElement>(harness.root, ".variable-editor__field")
-    expect(harness.root.querySelector(".variable-editor__hint")?.textContent).toBe(
+    await findRole(harness.root, "button", { name: "Edit amount" })
+    getRole(harness.root, "button", { name: "Edit iban" }).click()
+    const field = await findRole<HTMLTextAreaElement>(harness.root, "textbox", {
+      name: "New value",
+    })
+    expect(queryPart(harness.root, "editor-hint")?.textContent).toBe(
       "Null · was null · written as Text",
     )
-    field.value = "4117"
-    field.dispatchEvent(new Event("input", { bubbles: true }))
+    enterValue(field, "4117")
     await nextFrame()
     buttonNamed(harness.root, "Save").click()
 
-    const picker = harness.root.querySelector<HTMLSelectElement>(".variable-editor__kind")
-    picker!.value = "integer"
-    picker!.dispatchEvent(new Event("change", { bubbles: true }))
+    const picker = getRole<HTMLSelectElement>(harness.root, "combobox", { name: "Write as" })
+    enterValue(picker, "integer")
     await nextFrame()
-    const numberField = harness.root.querySelector<HTMLTextAreaElement>(".variable-editor__field")
-    numberField!.value = "4117"
-    numberField!.dispatchEvent(new Event("input", { bubbles: true }))
+    const numberField = getRole<HTMLTextAreaElement>(harness.root, "textbox", { name: "New value" })
+    enterValue(numberField, "4117")
     await nextFrame()
     buttonNamed(harness.root, "Save").click()
 
@@ -287,11 +294,11 @@ describe("a null variable", () => {
   it("shows the shadowing warning inside the editor", async () => {
     harness = mountApp()
     harness.publish(FIXTURES["instance-writable"])
-    await waitForElement(harness.root, ".incident-card")
+    await findPart(harness.root, "incident-card")
     buttonNamed(harness.root, VARIABLES_TAB).click()
-    await waitForElement(harness.root, ".value-cell__edit")
-    harness.root.querySelector<HTMLButtonElement>('[aria-label="Edit cardExpiry"]')?.click()
-    const warning = await waitForElement(harness.root, ".variable-editor__warning")
+    await findRole(harness.root, "button", { name: "Edit amount" })
+    getRole(harness.root, "button", { name: "Edit cardExpiry" }).click()
+    const warning = await findPart(harness.root, "editor-warning")
     expect(warning.textContent).toContain("keeps its own cardExpiry")
   })
 })

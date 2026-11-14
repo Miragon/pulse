@@ -120,6 +120,14 @@ function applyCountOverlays(overlays: BpmnOverlays, highlights: ReadonlyArray<Bp
   }
 }
 
+/**
+ * A count badge is a drawing on the diagram, hidden from assistive technology: beside the canvas
+ * image a bare number would read without its element or meaning. The view says each count in words
+ * (the "Values per activity" list, the tables).
+ */
+const badge = (kind: "instance-count" | "incident-count", count: number) =>
+  `<div class="bpmn-overlay-badge bpmn-overlay-badge--${kind}" aria-hidden="true">${count}</div>`
+
 function addInstanceCountOverlays(
   overlays: BpmnOverlays,
   counts: ReadonlyArray<{ activityId: string; count: number }>,
@@ -129,7 +137,7 @@ function addInstanceCountOverlays(
     if (safeCount <= 0) continue
     safeAddOverlay(overlays, c.activityId, {
       position: { top: -14, right: -14 },
-      html: `<div class="bpmn-overlay-badge bpmn-overlay-badge--instance-count">${safeCount}</div>`,
+      html: badge("instance-count", safeCount),
     })
   }
 }
@@ -143,7 +151,7 @@ function addRedCountOverlays(
     if (safeCount <= 0) continue
     safeAddOverlay(overlays, c.activityId, {
       position: { top: -14, left: -14 },
-      html: `<div class="bpmn-overlay-badge bpmn-overlay-badge--incident-count">${safeCount}</div>`,
+      html: badge("incident-count", safeCount),
     })
   }
 }

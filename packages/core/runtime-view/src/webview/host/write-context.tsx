@@ -1,5 +1,4 @@
-import { createContext } from "preact"
-import { useContext } from "preact/hooks"
+import { createContext, useContext } from "react"
 import type { WriteState } from "../../core/protocol/index.js"
 
 export const WriteContext = createContext<WriteState | undefined>(undefined)

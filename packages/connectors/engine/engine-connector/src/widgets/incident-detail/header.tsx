@@ -46,7 +46,6 @@ export function IncidentDetailHeader({
   const cockpitInstanceUrl = data.cockpitInstanceUrl
   return (
     <WidgetHeader
-      size="detail"
       badge={
         <StatusBadge tone={resolved ? "neutral" : SITUATION_TONES.openIncident}>
           {resolved ? t("incidentDetail.resolved") : data.incidentType}
@@ -64,7 +63,7 @@ export function IncidentDetailHeader({
           </span>
           <span aria-hidden="true">·</span>
           {/* One instance label: its business key, the UUID a copyable chip. */}
-          <InstanceLabel id={data.processInstanceId} businessKey={data.businessKey} />
+          <InstanceLabel id={data.processInstanceId} businessKey={data.businessKey} wrap />
         </>
       }
       actions={
@@ -74,9 +73,14 @@ export function IncidentDetailHeader({
               url={cockpitInstanceUrl}
               vendor={data.engineVendor}
               label={t("incidentDetail.openInstanceIn", { vendor: data.engineVendor })}
+              variant="toolbar"
             />
           )}
-          <HandOffButton action="findCause" prompt={ask(diagnoseIncidentHandOff(data))} />
+          <HandOffButton
+            action="findCause"
+            variant="toolbar"
+            prompt={ask(diagnoseIncidentHandOff(data))}
+          />
         </>
       }
     />

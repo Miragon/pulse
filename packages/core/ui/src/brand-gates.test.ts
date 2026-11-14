@@ -17,10 +17,12 @@ import {
   glossaryFindings,
   glyphFindings,
   iconSizeFindings,
+  outlineFindings,
   PRODUCT_GLOSSARY,
   scanColors,
   scanGlyphs,
   scanIconSizes,
+  scanOutlines,
   scanTypeScale,
   typeScaleFindings,
 } from "./testing/index.js"
@@ -42,25 +44,26 @@ const SCANNED = [
 ]
 
 /**
- * The shadcn primitives as vendored in toolkit 2.8.1 take Tailwind's own sizes (`text-sm`,
- * `text-base`). Shrink-only: a primitive moved onto the type scale fails until its entry goes.
+ * The density section's named deviation (root CLAUDE.md): 12 px icons beside dense text and on
+ * 20 px badges, per directory and file, each with its reason. Shrink-only: a listed file that
+ * draws no 12 px icon fails as an unused allowance.
  */
-const PRIMITIVE_OFF_SCALE = [
-  "alert.tsx text-sm",
-  "alert.tsx text-sm",
-  "button.tsx text-sm",
-  "card.tsx card:text-sm",
-  "card.tsx text-base",
-  "card.tsx text-sm",
-  "card.tsx text-sm",
-  "dialog.tsx text-sm",
-  "input.tsx file:text-sm",
-  "input.tsx md:text-sm",
-  "input.tsx text-base",
-  "table.tsx text-sm",
-  "table.tsx text-sm",
-  "tabs.tsx text-sm",
-]
+const DENSE_ICONS_ALLOWED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+  components: {
+    "CountBadge.tsx": "an alarming count's tone icon inside its 20 px pill beside 13 px figures",
+    "DrillButton.tsx": "the xs drill of a table row is the 24 px xs button, its arrow 12 px",
+  },
+  primitives: {
+    "badge.tsx": "a badge is 20 px high beside 13 px text, so its icon is 12 px ([&>svg]:size-3!)",
+    "button.tsx":
+      "the xs and icon-xs buttons are 24 px (in notice strips, to copy, in table rows), so their icon is 12 px",
+  },
+  kit: {
+    "icon.tsx": "Icon's dense is the deviation's 12 px icon itself",
+    "segmented-control.tsx": "an alarming count's tone icon beside 13 px text in a 24 px segment",
+    "table.tsx": "a column head's sort arrow beside its 13 px caption",
+  },
+}
 
 /** The sources at the root of src (the barrel and the render fixtures), tests aside. */
 const ROOT_FILES = readdirSync(SRC, { withFileTypes: true })
@@ -83,20 +86,34 @@ describe("the gates reach every source", () => {
     expect(ROOT_FILES).toEqual(expect.arrayContaining(["index.ts", "render-cases.tsx"]))
   })
 
-  it.each(ROOT_FILES)("src/%s passes the glyph, icon-size, type-scale and colour gates", (name) => {
-    const source = readFileSync(join(SRC, name), "utf8")
-    expect([
-      ...glyphFindings(source, name),
-      ...iconSizeFindings(source, name),
-      ...typeScaleFindings(source, name),
-      ...colorFindings(source, name),
-    ]).toEqual([])
-  })
+  it.each(ROOT_FILES)(
+    "src/%s passes the glyph, icon-size, type-scale, colour and outline gates",
+    (name) => {
+      const source = readFileSync(join(SRC, name), "utf8")
+      expect([
+        ...glyphFindings(source, name),
+        ...iconSizeFindings(source, name),
+        ...typeScaleFindings(source, name),
+        ...colorFindings(source, name),
+        ...outlineFindings(source, name),
+      ]).toEqual([])
+    },
+  )
 })
 
 /** brand-lint reads Markdown only, not strings in `.ts`/`.tsx`. */
 describe("kit copy follows the voice rules", () => {
-  const SECTIONS = ["common", "listFooter", "filterBar", "pills"] as const
+  const SECTIONS = [
+    "common",
+    "listFooter",
+    "filterBar",
+    "searchField",
+    "viewBar",
+    "copyableId",
+    "conditionChip",
+    "stateLabel",
+    "pills",
+  ] as const
   it.each(
     (["de", "en"] as const).flatMap((language) =>
       SECTIONS.map((section) => [`${section} (${language})`, section, language] as const),
@@ -152,13 +169,16 @@ describe.each(SCANNED)("src/%s", (dir) => {
     expect(scanGlyphs(path)).toEqual([])
   })
 
-  it("draws icons at the CI sizes (16 or 24 px)", () => {
-    expect(scanIconSizes(path)).toEqual([])
+  it("draws icons at the CI sizes (16 or 24 px), at 12 px only in the files the dense deviation names", () => {
+    expect(scanIconSizes(path, { allowDense: DENSE_ICONS_ALLOWED[dir] })).toEqual([])
   })
 
-  it("sets text on the type scale (the shadcn primitives' Tailwind sizes pinned)", () => {
-    const findings = scanTypeScale(path).map((f) => `${f.file} ${f.match}`)
-    expect(findings.sort()).toEqual(dir === "primitives" ? PRIMITIVE_OFF_SCALE : [])
+  it("sets text on the type scale and its three weights, the vendored shadcn primitives included", () => {
+    expect(scanTypeScale(path).map((f) => `${f.file}:${f.line} ${f.match}`)).toEqual([])
+  })
+
+  it("draws no outline at rest under forced colours: outline-hidden only under a focus state", () => {
+    expect(scanOutlines(path)).toEqual([])
   })
 
   it("colours through role names only, outside the reasoned allowances", () => {

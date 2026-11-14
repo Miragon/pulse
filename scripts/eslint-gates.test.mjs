@@ -957,7 +957,10 @@ describe("no import or re-export of types alone stays in the emitted JavaScript"
     "packages/connectors/engine/engine-core/src/__probe__.ts",
     ...WIDGET_TREE_PATHS,
   ]
-  /** A JSX file of every tree with JSX: React, Preact (the runtime view) and Orca's own runtime. */
+  /**
+   * A JSX file of every tree with JSX: the React trees (the runtime view's webview among them)
+   * and Orca's own runtime.
+   */
   const JSX_TREES = [
     `${UI}/primitives/__probe__.tsx`,
     ...WIDGET_TREE_PATHS.filter((rel) => rel.endsWith(".tsx")),

@@ -73,8 +73,44 @@ describe("AskAiButton", () => {
     const button = screen.getByRole("button", { name: "Draft a ticket in chat" })
     expect(button.getAttribute("title")).toBe("Draft a ticket in chat")
     expect(button.textContent).toBe("")
-    // A dense icon bar: the CI's narrower stroke, set on the icon itself.
-    expect(container.querySelector("svg")!.getAttribute("stroke-width")).toBe("2")
+    // A 28 px icon button: the 16 px icon at the CI stroke, set on the icon itself.
+    expect(button.className.split(" ")).toContain("size-control")
+    const icon = container.querySelector("svg")!
+    expect(icon.getAttribute("width")).toBe("16")
+    expect(icon.getAttribute("stroke-width")).toBe("2.5")
+  })
+
+  it("xs is a table row's 24 px button, labelled or as an icon, so the row keeps its height", () => {
+    renderButton(prompt(), "en", { variant: "icon", size: "xs", label: "Find the cause in chat" })
+    const icon = screen.getByRole("button", { name: "Find the cause in chat" })
+    expect(icon.className.split(" ")).toContain("size-control-xs")
+    cleanup()
+    renderButton(prompt(), "en", { size: "xs", label: "Find the cause in chat" })
+    const labelled = screen.getByRole("button", { name: "Find the cause in chat" })
+    expect(labelled.className.split(" ")).toContain("min-h-control-xs")
+    expect(labelled.className.split(" ")).not.toContain("min-h-control")
+  })
+
+  it("the toolbar variant is the kit's toolbar button: the icon, then the label at 400 that a narrow bar hides visually", () => {
+    const { container, actions } = renderButton(prompt(), "en", {
+      variant: "toolbar",
+      icon: FileSearch,
+      label: "Explain error in chat",
+    })
+    const button = screen.getByRole("button", { name: "Explain error in chat" })
+    expect(button.getAttribute("data-variant")).toBe("toolbar")
+    const classes = button.className.split(/\s+/)
+    expect(classes).toEqual(expect.arrayContaining(["min-h-control", "font-normal"]))
+    expect(classes).not.toContain("font-semibold")
+    expect(button.querySelector('[data-slot="button-label"]')?.textContent).toBe(
+      "Explain error in chat",
+    )
+    expect(button.getAttribute("title")).toBe("Explain error in chat")
+    expect(container.querySelector("svg")!.getAttribute("class")).toContain("lucide-file-search")
+    fireEvent.click(button)
+    expect(actions).toEqual([
+      { type: "sendFollowUp", prompt: 'Explain this.\nIds: incidentId="i1"' },
+    ])
   })
 
   it("the menuitem variant is a plain entry of a menu that posts the same hand-off", () => {
@@ -94,7 +130,7 @@ describe("AskAiButton", () => {
       "rounded-sm",
       "text-dense",
       "hover:bg-accent",
-      "disabled:opacity-50",
+      "disabled:text-muted-foreground",
       "focus-visible:ring-inset",
     ]) {
       expect(classes, role).toContain(role)

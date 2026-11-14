@@ -1,12 +1,11 @@
 import {
   formatNumber,
   Icon,
-  CountPill,
   FOCUS_RING,
   SectionHeading,
   TONE_DOT,
   cn,
-  countTone,
+  WidgetHeader,
 } from "@miragon/pulse-ui"
 import { HandOffButton } from "@miragon/pulse-widget-shell/widgets"
 import { ArrowRight } from "lucide-react"
@@ -17,6 +16,7 @@ import {
   groupEnginesByEnvironment,
 } from "../../lib/shared/environments.js"
 import { useT } from "../../messages/use-t.js"
+import { AlarmCount } from "../lib/alarm-count.js"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
 import { isHealthFailure } from "../lib/health-verdict.js"
 import { useEngineHealth } from "./engine-health.js"
@@ -42,19 +42,25 @@ function FleetEngineKpis({
           {formatNumber(summary.totalRunningInstances)}
         </div>
       </div>
-      {/* One severity ladder (#322 U14): open incidents and jobs without
-          retries are danger when there are any; a zero is a count, neutral. */}
+      {/* One severity ladder (#322 U14): open incidents and jobs without retries alarm when
+          there are any, by the tone's icon and words; the number stays neutral (invariant 6). */}
       <div>
         <div className="text-muted-foreground text-small">{t("fleet.incidents")}</div>
-        <div>
-          <CountPill tone={countTone(incidents)}>{formatNumber(incidents)}</CountPill>
-        </div>
+        <AlarmCount
+          alarm={incidents > 0 && "openIncidents"}
+          className="text-foreground font-mono font-semibold"
+        >
+          {formatNumber(incidents)}
+        </AlarmCount>
       </div>
       <div>
         <div className="text-muted-foreground text-small">{t("fleet.failedJobs")}</div>
-        <div>
-          <CountPill tone={countTone(failed)}>{formatNumber(failed)}</CountPill>
-        </div>
+        <AlarmCount
+          alarm={failed > 0 && "jobsWithoutRetries"}
+          className="text-foreground font-mono font-semibold"
+        >
+          {formatNumber(failed)}
+        </AlarmCount>
       </div>
     </div>
   )
@@ -79,7 +85,7 @@ function FleetEngineCard({
       onClick={onEnter}
       // No aria-label: it would replace the accessible name and hide the KPIs from screen readers.
       className={cn(
-        "border-border bg-card hover:bg-muted flex flex-col gap-3 rounded-xl border p-4 text-left transition-colors",
+        "border-border bg-card hover:bg-accent p-gutter flex flex-col gap-2.5 rounded-md border text-left transition-colors",
         FOCUS_RING,
       )}
     >
@@ -155,27 +161,20 @@ export function FleetView({
   const fleet: Fleet = { engineIds: ids, environments: enginesByEnvironment(engineGroups) }
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-title text-foreground mb-1.5 tracking-tight">{t("fleet.heading")}</h1>
-          <div className="text-muted-foreground text-small">
-            {t("fleet.engineCount", { count: formatNumber(engines.length), list: idList })}
-          </div>
-        </div>
-        <HandOffButton action="assess" prompt={ask(fleetOverviewHandOff(fleet))} />
-      </header>
+    <div className="gap-section flex flex-col">
+      <WidgetHeader
+        size="app"
+        title={t("fleet.heading")}
+        sub={t("fleet.engineCount", { count: formatNumber(engines.length), list: idList })}
+        actions={<HandOffButton action="assess" prompt={ask(fleetOverviewHandOff(fleet))} />}
+      />
 
-      <section className="flex flex-col gap-4">
+      <section className="gap-section flex flex-col">
         <SectionHeading title={t("fleet.engineHealth.title")} hint={t("fleet.engineHealth.hint")} />
         {engineGroups.map((g) => (
           <div key={g.id}>
-            {engineGroups.length > 1 && (
-              <h3 className="text-muted-foreground text-small mb-2 font-semibold tracking-wide uppercase">
-                {g.id}
-              </h3>
-            )}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {engineGroups.length > 1 && <SectionHeading as="h3" title={g.id} className="mb-2" />}
+            <div className="gap-section grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {g.engines.map((e) => (
                 <FleetEngineCard
                   key={e.id}

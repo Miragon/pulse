@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { InstanceView, MoveOption } from "../../core/protocol/index.js"
 import type { MoveDecoration } from "../diagram/decoration-layer.js"
 import type { MoveEntryDecoration } from "../diagram/move-entry.js"
@@ -28,7 +28,9 @@ function useFocusReturn(choice: MoveChoice | undefined) {
       })
     }
   })
-  return returnTo
+  return useCallback((from: string | undefined) => {
+    returnTo.current = from
+  }, [])
 }
 
 function useEscape(active: boolean, close: () => void): void {
@@ -113,16 +115,16 @@ function useMoveEntry(
 export function useTokenMove(view: InstanceView, selected: string | undefined): TokenMove {
   const host = useHost()
   const [choice, setChoice] = useState<MoveChoice | undefined>(undefined)
-  const returnTo = useFocusReturn(choice)
+  const returnFocusTo = useFocusReturn(choice)
   const option =
     choice === undefined
       ? undefined
       : view.moves?.find((move) => move.fromElementId === choice.from)
   const from = choice?.from
   const close = useCallback(() => {
-    returnTo.current = from
+    returnFocusTo(from)
     setChoice(undefined)
-  }, [from, returnTo])
+  }, [from, returnFocusTo])
   useEscape(from !== undefined, close)
   const decoration = useMoveDecoration(choice, option)
   const start = useCallback((fromElementId: string) => {

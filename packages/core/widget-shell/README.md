@@ -69,6 +69,16 @@ variables only; the widgets follow the host's theme, then the OS.
 | Host-bound UI  | `./widgets` | `WidgetShell`, `ListTable` + `PagedRows`, `IdCell`/`IdText`, `describeError`, `useActionFeedback`, `ConfirmDialog`, the hand-offs (`HAND_OFF_ACTIONS`, `AskAiButton` for one it does not list) and the BPMN viewer             |
 | Module tests   | `./testing` | `recordingModuleServer` and `testServerContext` for a module's tools, prompts and resources                                                                                                                                    |
 
+`WidgetShell` is a view's card and pads nothing itself: its `header` (the kit's `WidgetHeader`,
+the `StatusStrip`s under it and a list's filter `Toolbar` right under the bar) runs from edge to
+edge, and its children sit in the gutter of the density roles, 12 px above and below, their
+sections the section gap apart; a bar further down, inside the content, reaches the card's edges
+with `-mx-gutter`. A shell whose children are views of their own (a cockpit's routes, each a
+shell with its bar) is `flush`. `useDetailView`'s `notice` is a `StatusStrip` for the header: a
+failed refresh in the kit's words, the engine's raw text under its Details. A hand-off in a table
+row is `size="xs"` (`HandOffButton`, `AskAiButton`), the 24 px button the kit's row actions take,
+so the row keeps its 28 px.
+
 Views render in German for a host locale whose language is `de` and in English otherwise; the
 design kit itself (primitives, tones, formatters) comes from `@miragon/pulse-ui`, and so do the
 brand gates and the product glossary every widget package checks its catalogs against

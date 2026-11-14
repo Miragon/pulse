@@ -1,6 +1,6 @@
 # miragon-brand/product-shots: neu erzeugen mit listing.mjs, Bilder nie von Hand ändern
 # Cover und Galerie der Store-Seiten dieses Repos. Pfade sind relativ zum Repo.
-skillVersion: 1.29.0
+skillVersion: 1.32.0
 orca:
   folder: shop
   themes:
@@ -34,10 +34,10 @@ products:
     shots:
       image: docs/assets/widget-incident.png
       crop:
-        - 118
-        - 178
-        - 1880
-        - 1234
+        - 120
+        - 176
+        - 1872
+        - 1240
       height: 1660
     recipe: .miragon/shots/card-recipe.mjs
   - id: cli

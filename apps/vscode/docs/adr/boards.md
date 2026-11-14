@@ -1,7 +1,7 @@
 # Boards
 
 - Status: accepted
-- Last reviewed: 2026-11-09 (the project file is read with `@miragon/pulse-profile`; before that 2026-11-04, the CLI's rules)
+- Last reviewed: 2026-11-12 (boards are the first feature of D2; the format and the builder move to a new published package); 2026-11-09 (the project file is read with `@miragon/pulse-profile`; before that 2026-11-04, the CLI's rules)
 
 ## Context
 
@@ -85,6 +85,11 @@ an open board on save, and **Pulse: New Board…** writes a starter board.
 - Deferred: `var:` columns (a variable projection in the contract with a law and a saboteur),
   oldest first and an age filter for stuck instances, a real incident count in the contract,
   and grouping incidents by message.
+- Boards are the first feature of the owner decision D2 of 2026-11-12
+  ([ui-foundation.md](ui-foundation.md)): once another surface shows them, every surface shows a
+  board's numbers from one builder over one read, so the format and the builder leave the runtime
+  view for a new published package (the planned @miragon/pulse-board), and the counter's and the
+  incident summary's readings of "with incident" become one first.
 - `.pulse.json` is parsed in the CLI and in the extension by one package, Pulse's profile
   format `@miragon/pulse-profile`, which owns its JSON Schema and the fixtures that hold both
   readers to it ([architecture.md](architecture.md)).

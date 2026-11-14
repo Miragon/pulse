@@ -1,6 +1,7 @@
 import {
   LogText,
   NamedId,
+  SectionHeading,
   TableEmptyState,
   Td,
   formatCount,
@@ -34,6 +35,7 @@ import {
   clusterScanComplete,
   remediationHandOff,
 } from "./remediation.js"
+import { AlarmCount } from "./lib/alarm-count.js"
 import { useActionAllowed } from "./lib/engine-action.js"
 import { useHandOff, type ViewContext } from "./lib/hand-off.js"
 import { InstanceLabel } from "./lib/identity.js"
@@ -130,22 +132,36 @@ function ClusterHeader({ data, engineId }: { data: ClusterDetailData; engineId: 
           </span>
         </>
       }
-      actions={<HandOffButton action={canFix ? "planFix" : "explainError"} prompt={ask(handOff)} />}
+      actions={
+        <HandOffButton
+          action={canFix ? "planFix" : "explainError"}
+          variant="toolbar"
+          prompt={ask(handOff)}
+        />
+      }
     />
   )
 }
 
-/** A count a capped scan cannot vouch for renders as a lower bound ("≥ 2,000") or "—". */
+/**
+ * A count a capped scan cannot vouch for renders as a lower bound ("≥ 2,000") or "—". The
+ * affected count alarms while there are any, as every open incident count does: a cluster whose
+ * incidents are all gone shows a plain 0.
+ */
 function ClusterKpis({ data }: { data: ClusterDetailData }) {
   const t = useT()
+  const affected = data.incidentCount ?? data.scannedIncidentCount
   return (
     <KpiGrid
       boxed
       cells={[
         {
           label: t("clusterDetail.kpiAffected"),
-          value: formatCount(data.incidentCount ?? { atLeast: data.scannedIncidentCount }),
-          tone: SITUATION_TONES.openIncident,
+          value: (
+            <AlarmCount alarm={affected > 0 && "openIncidents"}>
+              {formatCount(data.incidentCount ?? { atLeast: data.scannedIncidentCount })}
+            </AlarmCount>
+          ),
         },
         // How fast it grows is a count, not a second state (#322 U14).
         { label: t("clusterDetail.kpiNewLastHour"), value: formatCount(data.lastHourCount) },
@@ -179,7 +195,7 @@ function IncidentRow({
   const t = useT()
   const label = instanceName(row.processInstanceId, row.businessKey)
   return (
-    <tr className="hover:bg-muted transition-colors">
+    <tr>
       <Td>
         <InstanceLabel id={row.processInstanceId} businessKey={row.businessKey} />
       </Td>
@@ -194,6 +210,7 @@ function IncidentRow({
       <Td align="right">
         <div className="inline-flex items-center justify-end gap-1">
           <DrillButton
+            size="xs"
             onDrill={() =>
               go({ type: "instance-detail", processInstanceId: row.processInstanceId, label })
             }
@@ -203,6 +220,7 @@ function IncidentRow({
           </DrillButton>
           {row.incidentId && (
             <DrillButton
+              size="xs"
               onDrill={() =>
                 go({
                   type: "incident-detail",
@@ -262,16 +280,14 @@ function ClusterDetailView({
   return (
     <DetailPage
       header={<ClusterHeader data={data} engineId={engine} />}
-      kpi={<ClusterKpis data={data} />}
+      summary={<ClusterKpis data={data} />}
       /* A single content block, no tabs: the failure message stays beside its instances. */
       content={
         <>
           {data.representativeMessage && (
             <div>
-              <h2 className="text-foreground text-dense font-semibold">
-                {t("clusterDetail.failureMessage")}
-              </h2>
-              <LogText text={data.representativeMessage} className="mt-1" />
+              <SectionHeading as="h2" title={t("clusterDetail.failureMessage")} className="mb-1" />
+              <LogText text={data.representativeMessage} />
             </div>
           )}
 
@@ -279,9 +295,7 @@ function ClusterDetailView({
             aria-label={t("clusterDetail.affectedInstances")}
             className="flex flex-col gap-2"
           >
-            <h2 className="text-foreground text-dense font-semibold">
-              {t("clusterDetail.affectedInstances")}
-            </h2>
+            <SectionHeading as="h2" title={t("clusterDetail.affectedInstances")} className="mb-0" />
             <FilterBar
               search={search}
               onSearchChange={setSearch}
@@ -289,6 +303,8 @@ function ClusterDetailView({
               searchAriaLabel={t("clusterDetail.searchLabel")}
               chips={[]}
               onChipToggle={() => undefined}
+              // A bar inside the content reaches the card's edges, as a view's tab bar does.
+              className="-mx-gutter"
             />
             <PagedRows paged={paged}>
               {paged.items.length === 0 ? (
@@ -299,12 +315,17 @@ function ClusterDetailView({
                 <ListTable
                   ariaLabel={t("clusterDetail.affectedInstances")}
                   columns={[
-                    { label: t("clusterDetail.colInstance") },
+                    // The instance whole while there is room; the process gives way first.
+                    { label: t("clusterDetail.colInstance"), fit: true },
                     ...(spansProcesses(data)
                       ? [{ label: t("clusterDetail.colProcess"), hideBelow: "sm" as const }]
                       : []),
-                    { label: t("clusterDetail.colOccurred"), align: "right" },
-                    { plain: true, sticky: true },
+                    // In a 760 px card the time gives way, as in the incident tables, so the
+                    // table fits without scrolling under its pinned actions.
+                    { label: t("clusterDetail.colOccurred"), align: "right", hideBelow: "md" },
+                    // Pinned from 40rem up only, as in the incident tables: in a narrower region
+                    // the actions scroll with the row, so they never cover the instance.
+                    { label: t("clusterDetail.colActions"), align: "right", sticky: "sm" },
                   ]}
                 >
                   {paged.items.map((row) => (
@@ -322,7 +343,7 @@ function ClusterDetailView({
             </PagedRows>
             <PagedListFooter
               paged={paged}
-              noun={t("clusterDetail.footerNoun")}
+              noun={(total) => t("clusterDetail.footerNoun", { count: total })}
               labels={paged.footerLabels}
             />
             {listCapped(data) && (

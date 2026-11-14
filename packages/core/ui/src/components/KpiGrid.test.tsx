@@ -2,13 +2,14 @@ import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
 import { attribute, openingTags, userFacingTexts } from "../render-scan.js"
 import { TONE_ICON } from "../lib/tone-utils.js"
+import { CountFigure } from "./CountFigure.js"
 import { KpiGrid, KpiGridSkeleton, kpiColumns } from "./KpiGrid.js"
 
 /**
- * The lifted (widget-shell) KpiGrid on its SSR markup: responsive columns,
- * neutral figures with the state as a dot or a Lucide icon, and clickable
- * cells whose accessible name is what you SEE (WCAG 2.5.3) while the action
- * goes into the description.
+ * The lifted (widget-shell) KpiGrid on its SSR markup: responsive columns, neutral tiles whose
+ * alarms show only as their figure's icon and words (invariant 6), a trend's state as a Lucide
+ * icon of its own shape, and clickable cells whose accessible name is what you SEE (WCAG 2.5.3)
+ * while the action goes into the description.
  */
 
 const noop = (): void => {}
@@ -48,30 +49,46 @@ describe("kpiColumns: responsive columns, clamped to 1–6", () => {
   })
 })
 
-describe("KpiGrid strip: neutral figures, the state beside them", () => {
+describe("KpiGrid strip: neutral tiles, an alarm only through its figure's icon and words", () => {
   const html = renderToStaticMarkup(
     <KpiGrid
       cells={[
-        { label: "Open incidents", value: 18, tone: "danger" },
-        { label: "Legacy", value: 2, tone: "critical" },
-        { label: "Running", value: 40, tone: "neutral" },
+        {
+          label: "Open incidents",
+          value: (
+            <CountFigure situation="openIncident" label="Has open incidents">
+              18
+            </CountFigure>
+          ),
+        },
+        { label: "Running", value: 40 },
         { label: "Plain", value: 7, fraction: "/9" },
+        { label: "Done", value: 4 },
       ]}
     />,
   )
 
-  it("draws the tone as a decorative dot, the alias 'critical' as danger", () => {
-    const dots = openingTags(html, "span").filter((t) => /data-tone=/.test(t))
-    expect(dots.map((t) => attribute(t, "data-tone"))).toEqual(["danger", "danger"])
-    for (const dot of dots) {
-      expect(attribute(dot, "aria-hidden")).toBe("true")
-      expect(classOf(dot)).toContain("bg-danger")
-    }
+  it("tints no tile and draws no coloured dot: the tile stays the card", () => {
+    const { cells } = strip(html)
+    expect(cells).toHaveLength(4)
+    for (const cell of cells) expect(classOf(cell)).not.toMatch(/(^| )bg-/)
+    expect(html).not.toMatch(/\bbg-(?:danger|warning|success|info)(?:-soft)?\b/)
+    expect(html).not.toMatch(/rounded-full/)
   })
 
-  it("keeps every figure in the foreground at the page-title size", () => {
-    expect(html).toMatch(/class="text-title text-foreground[^"]*tabular-nums">18</)
-    expect(html).not.toMatch(/text-(?:danger|warning|success|info)(?:-ink)?\b/)
+  it("shows an alarming count through CountFigure: its tone's icon of its own shape and its words", () => {
+    const figure = html.slice(html.indexOf('data-slot="count-figure"'))
+    expect(figure).toMatch(/^data-slot="count-figure" data-tone="danger"/)
+    expect(figure).toMatch(/<svg[^>]*class="lucide lucide-circle-x[^"]*text-danger/)
+    expect(figure).toContain('<span class="sr-only">Has open incidents</span>')
+  })
+
+  it("keeps every figure in the foreground at the section size (21 px at 600, the compact tile)", () => {
+    expect(html).toMatch(/class="text-section text-foreground[^"]*tabular-nums">40</)
+    // Only the alarm's icon draws in its tone (SVG currentColor); no word or digit does.
+    expect(html.replace(/<svg[\s\S]*?<\/svg>/g, "")).not.toMatch(
+      /text-(?:danger|warning|success|info)(?:-ink)?\b/,
+    )
   })
 
   it("flows 4 cells responsively with wrap-safe dividers", () => {
@@ -113,7 +130,7 @@ describe("KpiGrid strip: an incomplete last row keeps the card colour", () => {
     )
     const { cells } = strip(html)
     expect(cells).toHaveLength(5)
-    for (const cell of cells) expect(classOf(cell)).toContain("hover:bg-muted")
+    for (const cell of cells) expect(classOf(cell)).toContain("hover:bg-accent")
   })
 })
 
@@ -124,7 +141,6 @@ describe("KpiGrid clickable cells (WCAG 2.5.3, label in name)", () => {
         {
           label: "Open incidents",
           value: 18,
-          tone: "danger",
           onClick: noop,
           actionHint: "Opens the incidents dashboard",
         },
@@ -155,7 +171,9 @@ describe("KpiGrid clickable cells (WCAG 2.5.3, label in name)", () => {
   it("is a native button with the kit's inset focus ring and a Lucide chevron, no glyph", () => {
     expect(attribute(first ?? "", "type")).toBe("button")
     expect(classOf(first)).toContain("focus-visible:ring-inset")
-    expect(classOf(first)).toContain("outline-hidden")
+    // The outline only while focus is visible: forced colours draw it then, never at rest.
+    expect(classOf(first).split(/\s+/)).toContain("focus-visible:outline-hidden")
+    expect(classOf(first).split(/\s+/)).not.toContain("outline-hidden")
     expect(html).toMatch(/<svg[^>]*class="lucide lucide-chevron-right[^"]*"/)
     for (const svg of openingTags(html, "svg")) expect(attribute(svg, "aria-hidden")).toBe("true")
     expect(html).not.toContain("›")
@@ -169,16 +187,18 @@ describe("KpiGrid clickable cells (WCAG 2.5.3, label in name)", () => {
   })
 })
 
-describe("KpiGrid trend line: neutral words, the state as an icon or a dot", () => {
+describe("KpiGrid trend line: neutral words, the state as an icon of its own shape", () => {
   const html = renderToStaticMarkup(
     <KpiGrid
       cells={[
         { label: "Up", value: 1, trend: "+12%", trendDirection: "up" },
         { label: "Down", value: 2, trend: "-4%", trendDirection: "down" },
         { label: "Override", value: 3, trend: "-3", trendDirection: "down", trendTone: "neutral" },
-        { label: "Dot", value: 4, trend: "+2", trendTone: "warning" },
+        { label: "Alarm", value: 4, trend: "+2", trendTone: "warning" },
         { label: "Flat", value: 5, trend: "±0", trendDirection: "flat" },
         { label: "Plain", value: 6, trend: "same" },
+        { label: "Danger", value: 7, trend: "1 unreachable", trendTone: "critical" },
+        { label: "Calm", value: 8, trend: "on track", trendTone: "success" },
       ]}
     />,
   )
@@ -192,11 +212,18 @@ describe("KpiGrid trend line: neutral words, the state as an icon or a dot", () 
     expect(trends[4]).toMatch(/lucide-minus/)
   })
 
-  it("lets trendTone override the direction's tone, and draws a dot without a direction", () => {
+  it("lets trendTone override the direction's tone", () => {
     expect(trends[2]).toMatch(/lucide-trending-down/)
     expect(trends[2]).toContain(TONE_ICON.neutral)
-    expect(trends[3]).not.toContain("<svg")
-    expect(trends[3]).toMatch(/data-tone="warning"[^>]*class="[^"]*bg-warning/)
+  })
+
+  it("without a direction, an alarming tone draws its icon of its own shape, never a dot", () => {
+    expect(trends[3]).toMatch(/<svg[^>]*class="[^"]*lucide-triangle-alert[^"]*text-warning/)
+    expect(trends[6]).toMatch(/<svg[^>]*class="lucide lucide-circle-x[^"]*text-danger/)
+    // A calm tone has no shape of its own: its words read in the foreground, no mark beside them.
+    expect(trends[7]).not.toMatch(/<svg|data-tone/)
+    expect(trends[7]).toMatch(/<span class="text-foreground">on track<\/span>/)
+    expect(html).not.toMatch(/rounded-full|\bbg-(?:danger|warning|success|info)\b/)
   })
 
   it("keeps the trend words in the foreground next to a state, quiet without one", () => {
@@ -208,33 +235,13 @@ describe("KpiGrid trend line: neutral words, the state as an icon or a dot", () 
   })
 })
 
-describe("KpiGrid soft variant, group and header", () => {
-  it("soft: each cell a card in its tone's tint and edge around foreground text", () => {
-    const html = renderToStaticMarkup(
-      <KpiGrid
-        variant="soft"
-        cells={[
-          { label: "Failed", value: 4, tone: "danger", onClick: noop, actionHint: "Open" },
-          { label: "Total", value: 12 },
-        ]}
-      />,
-    )
-    const failed = openingTags(html, "button")[0] ?? ""
-    expect(classOf(failed)).toMatch(/bg-danger-soft/)
-    expect(classOf(failed)).toMatch(/border-danger/)
-    expect(classOf(failed)).toMatch(/text-foreground/)
-    expect(classOf(failed)).toContain("focus-visible:ring-offset-2")
-    const total = openingTags(html, "div").find((t) => /bg-muted/.test(t) && /rounded-lg/.test(t))
-    expect(classOf(total)).toContain("border-border")
-    expect(html).not.toMatch(/border-y/)
-  })
-
-  it("names the group when asked and renders the header label in normal case at 13 px", () => {
+describe("KpiGrid group and header", () => {
+  it("names the group when asked; the header row is flat: 13 px at 600 on the card, a 1 px rule", () => {
     const html = renderToStaticMarkup(
       <KpiGrid
         boxed
         ariaLabel="Health"
-        header={{ label: "Status", badge: "live" }}
+        header={{ label: "Status", badge: "all versions" }}
         cells={[{ label: "Up", value: 1 }]}
       />,
     )
@@ -242,8 +249,15 @@ describe("KpiGrid soft variant, group and header", () => {
     expect(attribute(root, "role")).toBe("group")
     expect(attribute(root, "aria-label")).toBe("Health")
     expect(classOf(root)).toContain("rounded-lg border")
-    expect(html).toMatch(/text-small font-semibold[^"]*"><span>Status<\/span>/)
-    expect(html).toContain(">live</span>")
+    const header = openingTags(html, "div").find((t) => /data-slot="kpi-header"/.test(t)) ?? ""
+    expect(classOf(header).split(" ")).toEqual(
+      expect.arrayContaining(["bg-card", "border-b", "border-border"]),
+    )
+    expect(classOf(header)).not.toMatch(/\bbg-muted\b/)
+    expect(html).toContain('<span class="text-foreground text-small font-semibold">Status</span>')
+    // The note is quiet text after the label, no chip around it.
+    expect(html).toContain('<span class="text-muted-foreground text-small">all versions</span>')
+    expect(html).not.toMatch(/rounded-sm border/)
     const unnamed = renderToStaticMarkup(<KpiGrid cells={[{ label: "Up", value: 1 }]} />)
     expect(attribute(openingTags(unnamed, "div")[0] ?? "", "role")).toBeUndefined()
   })
@@ -269,11 +283,11 @@ describe("KpiGridSkeleton mirrors the grid's geometry", () => {
     }
   })
 
-  it("soft and boxed variants keep the loaded card shapes", () => {
-    const soft = renderToStaticMarkup(<KpiGridSkeleton cells={3} variant="soft" />)
-    expect(openingTags(soft, "div").filter((t) => /rounded-lg border p-4/.test(t))).toHaveLength(3)
+  it("boxed keeps the loaded card's shape", () => {
     const boxed = renderToStaticMarkup(<KpiGridSkeleton cells={2} boxed />)
     expect(classOf(openingTags(boxed, "div")[0])).toContain("rounded-lg border")
-    expect(renderToStaticMarkup(<KpiGridSkeleton cells={-1} />)).not.toContain("px-5 py-4")
+    expect(renderToStaticMarkup(<KpiGridSkeleton cells={-1} />)).not.toContain(
+      "border-r border-b p-3",
+    )
   })
 })

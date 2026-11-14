@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import { ArrowRight } from "lucide-react"
+import { cn } from "../lib/utils.js"
 import { buttonVariants } from "../primitives/button.js"
 
 export interface DrillButtonProps {
@@ -12,14 +13,17 @@ export interface DrillButtonProps {
    * Decorative (`aria-hidden`). The trailing arrow is always rendered.
    */
   icon?: ReactNode
-  /** `sm` for table rows, `md` for surface headers. Default `"sm"`. */
-  size?: "sm" | "md"
+  /**
+   * `xs` in a table row (24 px, so the row keeps its 28 px height), `sm` beside a view's other
+   * controls, `md` for surface headers. Default `"sm"`.
+   */
+  size?: "xs" | "sm" | "md"
   /** Accessible label when the visible text is terse; keep the visible text in it (WCAG 2.5.3). */
   ariaLabel?: string
 }
 
 /** The `Button` size each drill size is: one scale for every action of a view. */
-const BUTTON_SIZE = { sm: "sm", md: "default" } as const
+const BUTTON_SIZE = { xs: "xs", sm: "sm", md: "lg" } as const
 
 /**
  * The single, deterministic in-widget navigation control: a neutral outline
@@ -28,10 +32,11 @@ const BUTTON_SIZE = { sm: "sm", md: "default" } as const
  * and stay visually quieter than primary/agentic actions. Decoupled from any
  * host: pass an `onDrill` callback (e.g. wrapping `useHostActions().showWidget`).
  *
- * It IS the kit's outline `Button` (`buttonVariants`): `sm` is 32 px,
- * 14 px, weight 600, the size of a `Button size="sm"` or an `AskAiButton`
- * beside it in a row; `md` is the `Button` default (36 px). The design
- * system gives every button weight 600 and one radius.
+ * It IS the kit's outline `Button` (`buttonVariants`): `xs` is the 24 px button of a table row
+ * (the named deviation: a row's actions are xs, so a row stays the row height, 28 px, 40 px on
+ * touch), its arrow the xs button's 12 px icon; `sm` is the control of the density roles (28 px,
+ * 36 px on touch), 13 px, weight 600, the size of a `Button size="sm"` beside it; `md` is the
+ * `Button` `lg` (36 px). The design system gives every button weight 600 and one radius.
  */
 export function DrillButton({ children, onDrill, icon, size = "sm", ariaLabel }: DrillButtonProps) {
   return (
@@ -47,7 +52,10 @@ export function DrillButton({ children, onDrill, icon, size = "sm", ariaLabel }:
         </span>
       )}
       {children}
-      <ArrowRight aria-hidden="true" className="size-4 shrink-0" />
+      <ArrowRight
+        aria-hidden="true"
+        className={cn(size === "xs" ? "size-3" : "size-4", "shrink-0")}
+      />
     </button>
   )
 }

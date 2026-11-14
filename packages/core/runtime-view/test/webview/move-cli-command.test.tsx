@@ -1,4 +1,3 @@
-import { render } from "preact"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { page, userEvent } from "vitest/browser"
 import type { InstanceView } from "../../src/core/protocol/index.js"
@@ -8,7 +7,19 @@ import {
   GATEWAY_INSTANCE,
   GATEWAY_REFUSAL as REFUSAL,
 } from "../../dev/webview/fixtures/writable.js"
-import { buttonNamed, mountApp, nextFrame, waitForElement, type Harness } from "./harness.js"
+import {
+  allParts,
+  buttonNamed,
+  findPart,
+  mount,
+  mountApp,
+  nextFrame,
+  part,
+  queryPart,
+  queryRole,
+  waitForElement,
+  type Harness,
+} from "./harness.js"
 
 const EVENT = "Event_PaymentReceived"
 
@@ -44,11 +55,12 @@ describe("the CLI command of a token that cannot move", () => {
     harness.root
       .querySelector(`g.djs-element[data-element-id="${EVENT}"] .djs-hit`)
       ?.dispatchEvent(new MouseEvent("click", { bubbles: true, button: 0 }))
-    return waitForElement<HTMLElement>(harness.root, ".move-entry--refused")
+    return findPart(harness.root, "move-entry", { state: "refused" })
   }
 
   function copyControl(): HTMLButtonElement | null {
-    return harness.root.querySelector<HTMLButtonElement>(".element-actions button.move-entry")
+    const actions = queryPart(harness.root, "element-actions")
+    return actions && queryRole<HTMLButtonElement>(actions, "button", { name: /CLI command$/ })
   }
 
   function copied() {
@@ -62,7 +74,9 @@ describe("the CLI command of a token that cannot move", () => {
     const copy = page.getByRole("button", { name: "Copy CLI command" })
 
     expect(copy.element()).toBe(copyControl())
-    expect(copy.element().closest(".element-actions")).toBe(sign.closest(".element-actions"))
+    expect(copy.element().closest(part("element-actions"))).toBe(
+      sign.closest(part("element-actions")),
+    )
     expect(copy.element().getAttribute("title")).toBe("Copy CLI command")
     await expect.element(copy).toHaveAccessibleDescription(`Can't move: ${REFUSAL}`)
     expect(sign.getAttribute("aria-label")).toBe(`Can't move: ${REFUSAL}`)
@@ -78,7 +92,9 @@ describe("the CLI command of a token that cannot move", () => {
     await vi.waitFor(() => {
       expect(copyControl()?.getAttribute("aria-label")).toBe("Copied CLI command")
     })
-    expect(harness.root.querySelector(".element-actions [aria-live]")?.textContent).toBe("Copied")
+    expect(
+      queryPart(harness.root, "element-actions")?.querySelector("[aria-live]")?.textContent,
+    ).toBe("Copied")
     await vi.waitFor(
       () => {
         expect(copyControl()?.getAttribute("aria-label")).toBe("Copy CLI command")
@@ -94,7 +110,7 @@ describe("the CLI command of a token that cannot move", () => {
     await nextFrame()
 
     expect(copyControl()).toBeNull()
-    expect(harness.root.querySelectorAll(".element-actions .move-entry")).toHaveLength(1)
+    expect(allParts(queryPart(harness.root, "element-actions")!, "move-entry")).toHaveLength(1)
   })
 
   it("reaches the copy from the keyboard through the Waiting tab and copies with Enter", async () => {
@@ -112,10 +128,8 @@ describe("the CLI command of a token that cannot move", () => {
 
 describe("the can't-move sign a copy control names as its description", () => {
   it("is the sign of its own entry, also with two entries in roots of their own", () => {
-    const anchors = ["Event_First", "Event_Second"].map((elementId) => {
-      const anchor = document.createElement("div")
-      document.body.append(anchor)
-      render(
+    const anchors = ["Event_First", "Event_Second"].map((elementId) =>
+      mount(
         <MoveEntry
           entry={{
             elementId,
@@ -124,21 +138,18 @@ describe("the can't-move sign a copy control names as its description", () => {
             onStart: vi.fn(),
           }}
         />,
-        anchor,
-      )
-      return anchor
-    })
+      ),
+    )
     try {
-      for (const anchor of anchors) {
+      for (const { root: anchor } of anchors) {
         const described = anchor.querySelector("button")?.getAttribute("aria-describedby") ?? ""
         expect(document.getElementById(described)).toBe(
-          anchor.querySelector(".move-entry--refused"),
+          queryPart(anchor, "move-entry", { state: "refused" }),
         )
       }
     } finally {
       for (const anchor of anchors) {
-        render(null, anchor)
-        anchor.remove()
+        anchor.unmount()
       }
     }
   })

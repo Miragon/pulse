@@ -1,8 +1,4 @@
-import "../../src/webview/theme/cd-tokens.generated.css"
-import "../../src/webview/styles/base.css"
-import "../../src/webview/styles/components.css"
 import { SITUATION_TONES, type Situation, type ToneVariant } from "@miragon/pulse-ui/tones"
-import { render, type ComponentChild } from "preact"
 import { afterAll, beforeAll, describe, expect, test } from "vitest"
 import { CountBadge, type CountBadgeProps } from "../../src/webview/components/count-badge.js"
 import {
@@ -10,6 +6,7 @@ import {
   StateLabel,
   type StateLabelProps,
 } from "../../src/webview/components/state-label.js"
+import { mount, nextFrame, queryPart, type Mounted, type Renderable } from "./harness.js"
 
 type Paint = "backgroundColor" | "borderTopColor"
 
@@ -25,7 +22,7 @@ const STATE_SITUATIONS: Readonly<Record<StateLabelProps["state"], Situation>> = 
   Running: "running",
   Suspended: "suspended",
   Completed: "ended",
-  Terminated: "ended",
+  Cancelled: "ended",
   Incident: "openIncident",
 }
 
@@ -50,6 +47,7 @@ const PALETTE_FILLS: Readonly<Record<"incident" | "running", string>> = {
 }
 
 const host = document.createElement("div")
+let mounted: Mounted | undefined
 
 function useTheme(theme: string, contrast: string | undefined): void {
   const { dataset } = document.documentElement
@@ -67,7 +65,7 @@ beforeAll(() => {
 })
 
 afterAll(() => {
-  render(null, host)
+  mounted?.unmount()
   host.remove()
   useTheme("light", undefined)
 })
@@ -81,21 +79,35 @@ function colourOfVariable(variable: string): string {
   return colour
 }
 
-function colourOf(situation: Situation): string {
-  return colourOfVariable(TONE_ROLES[SITUATION_TONES[situation]])
+function channels(colour: string): string {
+  const srgb = /^color\(srgb ([\d.]+) ([\d.]+) ([\d.]+)/.exec(colour)
+  const values =
+    srgb === null
+      ? (colour.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number)
+      : srgb.slice(1).map((value) => Number(value) * 255)
+  return values.map((value) => Math.round(value)).join(",")
 }
 
-function rendered(node: ComponentChild): Element {
-  render(node, host)
+function colourOf(situation: Situation): string {
+  return channels(colourOfVariable(TONE_ROLES[SITUATION_TONES[situation]]))
+}
+
+async function rendered(node: Renderable): Promise<HTMLElement> {
+  if (mounted === undefined) {
+    mounted = mount(node, host)
+  } else {
+    mounted.update(node)
+  }
+  await nextFrame()
   const element = host.firstElementChild
-  if (element === null) throw new Error("nothing rendered")
+  if (!(element instanceof HTMLElement)) throw new Error("nothing rendered")
   return element
 }
 
 function iconColour(element: Element): string {
-  const icon = element.querySelector(".icon")
+  const icon = element.querySelector("svg")
   if (icon === null) throw new Error("no icon")
-  return getComputedStyle(icon).color
+  return channels(getComputedStyle(icon).color)
 }
 
 describe.each(THEMES)("the webview's states in the %s theme, contrast %s", (theme, contrast) => {
@@ -105,15 +117,19 @@ describe.each(THEMES)("the webview's states in the %s theme, contrast %s", (them
 
   test.each(Object.entries(STATE_SITUATIONS))(
     "show the state %s in the tone of its situation",
-    (state, situation) => {
-      const label = rendered(<StateLabel state={state as StateLabelProps["state"]} />)
-      expect(label.className).toContain(`state-label--${SITUATION_TONES[situation]}`)
+    async (state, situation) => {
+      await rendered(<StateLabel state={state as StateLabelProps["state"]} />)
+      const label = queryPart(host, "state-label")!
+      expect(label.dataset.tone).toBe(SITUATION_TONES[situation])
       expect(iconColour(label)).toBe(colourOf(situation))
     },
   )
 
-  test("flag an open incident in its tone", () => {
-    expect(iconColour(rendered(<IncidentFlag />))).toBe(colourOf("openIncident"))
+  test("flag an open incident in its tone", async () => {
+    const flag = await rendered(<IncidentFlag />)
+    expect(flag.dataset.part).toBe("incident-flag")
+    expect(flag.dataset.tone).toBe(SITUATION_TONES.openIncident)
+    expect(iconColour(flag)).toBe(colourOf("openIncident"))
   })
 })
 
@@ -124,19 +140,19 @@ describe("the webview's diagram badges", () => {
 
   test.each(Object.entries(BADGE_SITUATIONS))(
     "paint the %s badge in the tone of its situation, in the light theme",
-    (variant, { situation, paint }) => {
-      const badge = rendered(
+    async (variant, { situation, paint }) => {
+      const badge = await rendered(
         <CountBadge variant={variant as CountBadgeProps["variant"]} count={3} />,
       )
-      expect(getComputedStyle(badge)[paint]).toBe(colourOf(situation))
+      expect(channels(getComputedStyle(badge)[paint])).toBe(colourOf(situation))
     },
   )
 
   test.each(Object.entries(PALETTE_FILLS))(
     "fill the %s badge with the palette's full colour under white text in the dark theme too",
-    (variant, palette) => {
+    async (variant, palette) => {
       useTheme("dark", undefined)
-      const badge = rendered(
+      const badge = await rendered(
         <CountBadge variant={variant as CountBadgeProps["variant"]} count={3} />,
       )
       expect(getComputedStyle(badge).backgroundColor).toBe(colourOfVariable(palette))

@@ -3,7 +3,7 @@ import { DataTable, type Column } from "../components/data-table.js"
 import { EmptyHint } from "../components/empty-hint.js"
 import { NoValue } from "../components/no-value.js"
 import { TimeLabels } from "../format/time-labels.js"
-import { CalledInstanceLink } from "./called-instance-link.js"
+import { CalledInstanceLink, LinkButton } from "./called-instance-link.js"
 
 export interface WaitingTabProps {
   readonly waitStates: readonly WaitRow[]
@@ -22,9 +22,9 @@ export function TimeCell({
     return <NoValue />
   }
   return (
-    <span title={TimeLabels.tooltip(iso)}>
+    <span className="tabular-nums" title={TimeLabels.tooltip(iso)}>
       {precise ? TimeLabels.precise(iso) : TimeLabels.clock(iso)}
-      <span class="muted"> · {TimeLabels.relative(iso)}</span>
+      <span className="text-muted-foreground"> · {TimeLabels.relative(iso)}</span>
     </span>
   )
 }
@@ -43,25 +43,23 @@ function ElementCell({
     (row.calledInstance === undefined ? elementName(row.elementId) : row.elementId)
   if (row.calledInstance === undefined && onShowElement !== undefined) {
     return (
-      <button
-        type="button"
-        class="link-button"
+      <LinkButton
         title="Show on the diagram"
         onClick={() => {
           onShowElement(row.elementId)
         }}
       >
         {name}
-      </button>
+      </LinkButton>
     )
   }
   if (row.calledInstance === undefined) {
     return <span>{name}</span>
   }
   return (
-    <span class="stacked">
-      <span>{name}</span>
-      <span class="muted">
+    <span className="inline-flex min-w-0 items-baseline gap-1 whitespace-nowrap">
+      <span className="truncate">{name}</span>
+      <span className="text-muted-foreground">
         in <CalledInstanceLink link={row.calledInstance} />
       </span>
     </span>

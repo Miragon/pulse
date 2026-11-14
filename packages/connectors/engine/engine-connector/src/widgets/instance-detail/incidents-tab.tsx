@@ -1,3 +1,4 @@
+import { TableEmptyState } from "@miragon/pulse-ui"
 import type { InstanceDetailData } from "../../view-models.js"
 import { IncidentTable } from "../process-incidents/incident-table.js"
 import type { IncidentRecoveryState } from "../process-incidents/use-incident-recovery.js"
@@ -16,7 +17,8 @@ export function IncidentsTab({
   const t = useT()
   const go = useNav()
   if ((incidents ?? []).length === 0) {
-    return <p className="text-muted-foreground text-dense">{t("instanceDetail.noIncidents")}</p>
+    // Nothing wrong is neutral: the kit's empty note, as the variables' empty tab.
+    return <TableEmptyState>{t("instanceDetail.noIncidents")}</TableEmptyState>
   }
   return (
     <IncidentTable

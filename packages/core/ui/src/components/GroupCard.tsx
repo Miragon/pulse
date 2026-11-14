@@ -41,7 +41,7 @@ export function GroupCard({ expanded, onToggle, summary, children }: GroupCardPr
         aria-expanded={expanded}
         onClick={handleClick}
         onKeyDown={handleKeyDown}
-        className={`bg-card hover:bg-muted cursor-pointer transition-colors ${FOCUS_RING_INSET} ${
+        className={`bg-card hover:bg-accent cursor-pointer transition-colors ${FOCUS_RING_INSET} ${
           expanded ? "border-border border-b" : ""
         }`}
       >

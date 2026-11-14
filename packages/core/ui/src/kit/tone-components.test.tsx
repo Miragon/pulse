@@ -12,10 +12,11 @@ afterEach(cleanup)
 
 const classes = (el: Element | null) => (el?.getAttribute("class") ?? "").split(/\s+/)
 
-describe("selection in the info tone (CI: blue contour + tint, black text)", () => {
-  it("SegmentedControl: the pressed segment is the info tint and an inset info contour", () => {
+describe("selection (CI §8: the hover fill with an --interaction edge, text in the foreground)", () => {
+  it("SegmentedControl: the checked segment takes the hover fill, a 2 px --interaction border and 600", () => {
     render(
       <SegmentedControl
+        ariaLabel="Ansicht"
         options={[
           { value: "f", label: "Frequenz" },
           { value: "d", label: "Dauer" },
@@ -24,18 +25,65 @@ describe("selection in the info tone (CI: blue contour + tint, black text)", () 
         onChange={() => {}}
       />,
     )
-    const pressed = screen.getByRole("button", { name: "Dauer" })
-    expect(classes(pressed)).toEqual(
+    const checked = screen.getByRole("radio", { name: "Dauer" })
+    expect(classes(checked)).toEqual(
       expect.arrayContaining([
-        "bg-info-soft",
+        "bg-accent",
         "text-foreground",
-        "ring-1",
-        "ring-inset",
-        "ring-info",
+        "font-semibold",
+        "border-2",
+        "border-interaction",
       ]),
     )
-    expect(classes(pressed)).toContain("focus-visible:ring-focus")
-    expect(classes(screen.getByRole("button", { name: "Frequenz" }))).not.toContain("ring-info")
+    // A border, not a ring, so a Windows contrast theme keeps it; the focus ring sits inside.
+    expect(classes(checked).some((c) => /^ring-/.test(c))).toBe(false)
+    expect(classes(checked)).toEqual(
+      expect.arrayContaining(["focus-visible:ring-focus", "focus-visible:ring-inset"]),
+    )
+    const other = classes(screen.getByRole("radio", { name: "Frequenz" }))
+    expect(other).toEqual(
+      expect.arrayContaining([
+        "border-2",
+        "border-transparent",
+        "font-normal",
+        "text-muted-foreground",
+        "hover:bg-accent",
+      ]),
+    )
+    expect(other).not.toContain("border-interaction")
+  })
+
+  it("SegmentedControl: a count is compact on screen and exact for a screen reader; an alarming one adds a tone icon of its own shape, the number neutral", () => {
+    const { container } = render(
+      <SegmentedControl
+        ariaLabel="Scope"
+        options={[
+          { value: "all", label: "All", count: 12_345 },
+          {
+            value: "incident",
+            label: "With incident",
+            count: 9,
+            tone: "danger",
+            countLabel: "9 with incident",
+          },
+        ]}
+        value="all"
+        onChange={() => {}}
+      />,
+    )
+    // The compact figure is hidden from the name, which says the exact count once.
+    const all = screen.getByRole("radio", { name: /^All\s*12,345$/ })
+    expect(all.textContent).toContain("12.3k")
+    const alarming = screen.getByRole("radio", { name: /9 with incident$/ })
+    const icon = alarming.querySelector("svg")!
+    expect(icon.getAttribute("class")).toContain("lucide-circle-x")
+    expect(icon.getAttribute("class")).toContain("text-danger")
+    expect(icon.getAttribute("width")).toBe("12")
+    expect(icon.getAttribute("aria-hidden")).toBe("true")
+    // The number itself carries no tone.
+    const number = [...alarming.querySelectorAll("span")].find((s) => s.textContent === "9")!
+    expect(number.closest("[class*='text-danger']")).toBeNull()
+    expect(container.querySelectorAll("svg")).toHaveLength(1)
   })
 
   it("SegmentedControl: segments sit inside the track with concentric corners, no separators", () => {
@@ -53,17 +101,21 @@ describe("selection in the info tone (CI: blue contour + tint, black text)", () 
     )
     const track = container.firstElementChild!
     // The contour never touches the track's border, and the track never clips it.
-    expect(classes(track)).toEqual(expect.arrayContaining(["p-0.5", "gap-0.5", "rounded-md"]))
+    expect(classes(track)).toEqual(
+      expect.arrayContaining(["p-0.5", "gap-0.5", "rounded-sm", "bg-background"]),
+    )
     expect(classes(track)).not.toContain("overflow-hidden")
-    for (const segment of screen.getAllByRole("button")) {
-      expect(classes(segment)).toContain("rounded-[calc(var(--radius-md)-3px)]")
+    for (const segment of screen.getAllByRole("radio")) {
+      expect(classes(segment)).toEqual(
+        expect.arrayContaining(["min-h-segment", "rounded-[calc(var(--radius-sm)-2px)]"]),
+      )
       expect(classes(segment).some((c) => c.includes("border-r"))).toBe(false)
     }
   })
 })
 
 describe("icons", () => {
-  it("Icon: decorative 16 px at the CI stroke by default, named when it stands alone, dense opt-in", () => {
+  it("Icon: decorative 16 px at the CI stroke by default, named when it stands alone, dense 12 px at the same stroke", () => {
     const { container } = render(
       <>
         <Icon icon={TriangleAlert} />
@@ -75,8 +127,8 @@ describe("icons", () => {
     expect(plain.getAttribute("width")).toBe("16")
     expect(plain.getAttribute("stroke-width")).toBe("2.5")
     expect(screen.getByRole("img", { name: "Warnung" })).toBe(named)
-    expect(named.getAttribute("width")).toBe("24")
-    expect(named.getAttribute("stroke-width")).toBe("2")
+    expect(named.getAttribute("width")).toBe("12")
+    expect(named.getAttribute("stroke-width")).toBe("2.5")
   })
 
   it("Section rotates a Lucide chevron when open and reports the toggle", () => {

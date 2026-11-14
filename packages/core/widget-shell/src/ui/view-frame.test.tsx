@@ -78,7 +78,11 @@ describe("ViewFrame: before the view", () => {
     fireEvent.click(button)
     expect(retry).toHaveBeenCalledTimes(1)
     // The frame keeps the focus while the view re-loads.
-    expect(document.activeElement?.getAttribute("data-slot")).toBe("view-frame")
+    const frame = document.activeElement
+    expect(frame?.getAttribute("data-slot")).toBe("view-frame")
+    // A focus holder, no control: no outline, not even the one forced colours draw for
+    // `outline-hidden`, which would frame the whole view.
+    expect(frame?.getAttribute("class")?.split(/\s+/)).toEqual(["outline-none"])
     expect(lines.at(-1)).toContain("could not be shown")
   })
 
@@ -134,14 +138,18 @@ describe("ViewFrame: the view", () => {
     expect(lines.at(-1)).toContain("2026-10-31T14:32:00.000Z")
   })
 
-  it("offers fullscreen where the host does, with the kit's dense chrome button", () => {
+  it("offers fullscreen where the host does, with the kit's 28 px chrome button in the bar-high toolbar", () => {
     const { actions } = renderFrame(
       { phase: "ready", data: { rows: [] }, reloadedAt: null },
       { host: { availableDisplayModes: ["inline", "fullscreen"] } },
     )
     const button = screen.getByRole("button", { name: "Fullscreen" })
     expect(button.className).toContain("shadow-1")
-    expect(button.querySelector("svg")?.getAttribute("stroke-width")).toBe("2")
+    expect(button.className.split(" ")).toContain("size-control")
+    expect(button.querySelector("svg")?.getAttribute("width")).toBe("16")
+    expect(button.querySelector("svg")?.getAttribute("stroke-width")).toBe("2.5")
+    const toolbar = button.closest('[data-slot="view-toolbar"]')!
+    expect(toolbar.className.split(" ")).toEqual(expect.arrayContaining(["min-h-bar", "px-gutter"]))
     fireEvent.click(button)
     expect(actions).toEqual([{ type: "requestDisplayMode", mode: "fullscreen" }])
   })

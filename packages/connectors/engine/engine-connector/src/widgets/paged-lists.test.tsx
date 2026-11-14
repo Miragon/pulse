@@ -105,7 +105,7 @@ function host(widget: ComponentType<Record<string, unknown>>, tools: Record<stri
 }
 
 describe("a search keeps the list and its search box mounted while page 0 is in flight (N123)", () => {
-  it("process instances (search and chip)", async () => {
+  it("process instances (search and scope)", async () => {
     const feed = deferredFeed<ProcessInstancesData>()
     const Widget = () => (
       <ProcessInstancesWidget
@@ -116,8 +116,8 @@ describe("a search keeps the list and its search box mounted while page 0 is in 
     )
     host(Widget, { [ENGINE_PROCESS_INSTANCES_DATA]: feed.handler })
 
-    const search = screen.getByRole("searchbox", { name: "Search by business key or ID" })
-    fireEvent.click(screen.getByRole("button", { name: /^With incident \d/ }))
+    const search = screen.getByRole("searchbox", { name: "Search instances by business key or ID" })
+    fireEvent.click(screen.getByRole("radio", { name: /^With incident/ }))
     await waitFor(() => expect(feed.calls).toHaveLength(1))
     expect(feed.calls[0].args).toMatchObject({ withIncidents: true })
     expect(search.isConnected).toBe(true)
@@ -269,10 +269,10 @@ describe("the instance list states what is ON SCREEN while a filter is pending o
     return { held, control, modelContexts, triage }
   }
 
-  it("a pending chip: the previous count with the previous filters, said to be previous", async () => {
+  it("a pending scope: the previous count with the previous filters, said to be previous", async () => {
     const { held, control, modelContexts, triage } = await engineWideList()
 
-    fireEvent.click(screen.getByRole("button", { name: /^Suspended \d/ }))
+    fireEvent.click(screen.getByRole("radio", { name: /^Suspended/ }))
     await waitFor(() => expect(held).toHaveLength(1))
     expect(held[0].args).toMatchObject({ suspended: true })
 
@@ -302,10 +302,10 @@ describe("the instance list states what is ON SCREEN while a filter is pending o
     expect(triage().split("\n")).toContain("On screen: matchingInstances=7, suspended=true")
   })
 
-  it("a failed chip keeps saying so, to the operator and to the model", async () => {
+  it("a failed scope keeps saying so, to the operator and to the model", async () => {
     const { held, control, modelContexts, triage } = await engineWideList()
 
-    fireEvent.click(screen.getByRole("button", { name: /^Suspended \d/ }))
+    fireEvent.click(screen.getByRole("radio", { name: /^Suspended/ }))
     await waitFor(() => expect(held).toHaveLength(1))
     control[0].reject(new Error("engine timeout"))
 
@@ -329,9 +329,12 @@ describe("the instance list states what is ON SCREEN while a filter is pending o
     host(Widget, { [ENGINE_PROCESS_INSTANCES_DATA]: feed })
     await screen.findByText("No running instances for this process definition.")
 
-    fireEvent.change(screen.getByRole("searchbox", { name: "Search by business key or ID" }), {
-      target: { value: "ORD" },
-    })
+    fireEvent.change(
+      screen.getByRole("searchbox", { name: "Search instances by business key or ID" }),
+      {
+        target: { value: "ORD" },
+      },
+    )
     await waitFor(() => expect(held.calls).toHaveLength(1), { timeout: 2_000 })
     expect(screen.getByText("No running instances for this process definition.")).toBeTruthy()
     expect(screen.queryByText("No instances match the filter.")).toBeNull()
@@ -346,7 +349,7 @@ describe("the instance list states what is ON SCREEN while a filter is pending o
     ).toBeTruthy()
   })
 
-  it("a chip without matches says no match, without the search's hint", async () => {
+  it("a scope without matches says no match, without the search's hint", async () => {
     const EMPTY = { ...instances([], 0), processDefinitionKey: null }
     const feed = (args: Record<string, unknown>) =>
       Promise.resolve(
@@ -356,7 +359,7 @@ describe("the instance list states what is ON SCREEN while a filter is pending o
     host(Widget, { [ENGINE_PROCESS_INSTANCES_DATA]: feed })
     await screen.findByText("BK-pi-1")
 
-    fireEvent.click(screen.getByRole("button", { name: /^Suspended \d/ }))
+    fireEvent.click(screen.getByRole("radio", { name: /^Suspended/ }))
 
     await screen.findByText("No instances match the filter.")
     expect(screen.queryByText(/The search finds/)).toBeNull()

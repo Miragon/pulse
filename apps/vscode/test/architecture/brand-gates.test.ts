@@ -1,12 +1,19 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { CI_ICON_SIZES, scanColors, scanGlyphs, scanIconSizes } from "@miragon/pulse-ui/testing"
+import {
+  CI_ICON_SIZES,
+  DENSE_ICON_SIZE,
+  scanColors,
+  scanGlyphs,
+  scanIconSizes,
+  scanOutlines,
+  scanTypeScale,
+} from "@miragon/pulse-ui/testing"
 import { afterAll, describe, expect, test } from "vitest"
 import { PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, REPO_ROOT } from "./support/files.js"
 import { ENGINE_CORE_SOURCES, WEBVIEW, WORDED_LAYERS } from "./support/layers.js"
 
-const DENSE_ICON_SIZE = 12
 const RENDERER_PAINT = "diagram/canvas-roles.ts"
 
 const DENSE_ICONS_ALLOWED: Readonly<Record<string, string>> = {
@@ -21,20 +28,28 @@ const DENSE_ICONS_ALLOWED: Readonly<Record<string, string>> = {
   "screens/variables-tab.tsx": "the shadow warning beside a variable's name in a dense table cell",
 }
 
+const DENSE_ICON_REGIONS_FILE = join(
+  REPO_ROOT,
+  "packages/core/runtime-view/test/webview/dense-icon-regions.ts",
+)
+
+function denseIconRegions(): Record<string, string> {
+  const source = readFileSync(DENSE_ICON_REGIONS_FILE, "utf8")
+  const entries = [...source.matchAll(/"([^"]+\.tsx)": "([^"]+)"/g)].map(
+    (match): [string, string] => [match[1] ?? "", match[2] ?? ""],
+  )
+  return Object.fromEntries(entries)
+}
+
 const RAW_COLOURS_ALLOWED = {
   [RENDERER_PAINT]:
     "bpmn-js paints with literal colours: the renderer's light paper and ink are constants that CanvasRoles maps to the vendored cd-canvas role classes, and test/webview/canvas-tokens.test.ts pins them to cd-tokens.generated.json",
 }
 
-function iconSizeFindings(root: string, allowed: Readonly<Record<string, string>>): string[] {
-  const findings = scanIconSizes(root)
-  const misplaced = findings
-    .filter(({ file, size }) => size !== DENSE_ICON_SIZE || !(file in allowed))
-    .map(({ file, line, size }) => `${file}:${String(line)}: ${String(size)} px`)
-  const unused = Object.keys(allowed)
-    .filter((file) => !findings.some((finding) => finding.file === file))
-    .map((file) => `${file}: unused allowance`)
-  return [...misplaced, ...unused]
+function iconSizeFindings(root: string, allowDense: Readonly<Record<string, string>>): string[] {
+  return scanIconSizes(root, { allowDense }).map(({ file, line, size, match }) =>
+    line === 0 ? `${file}: ${match}` : `${file}:${String(line)}: ${String(size)} px`,
+  )
 }
 
 function colourFindings(root: string) {
@@ -60,12 +75,29 @@ describe(
       expect(iconSizeFindings(WEBVIEW, DENSE_ICONS_ALLOWED)).toEqual([])
     })
 
+    test("each file the deviation names marks its dense region, which the webview's geometry gate measures", () => {
+      const regions = denseIconRegions()
+
+      expect(Object.keys(regions).sort()).toEqual(Object.keys(DENSE_ICONS_ALLOWED).sort())
+      for (const [file, part] of Object.entries(regions)) {
+        expect(readFileSync(join(WEBVIEW, file), "utf8"), file).toContain(`data-part="${part}"`)
+      }
+    })
+
     test(`the webview still draws the ${DENSE_ICON_SIZE} px deviation, so the docs that name it stay true`, () => {
       expect(scanIconSizes(WEBVIEW).map(({ size }) => size)).toContain(DENSE_ICON_SIZE)
     })
 
     test("the webview colours through the vendored tokens, the renderer's paint constants aside", () => {
       expect(colourFindings(WEBVIEW)).toEqual([])
+    })
+
+    test("the webview draws no outline at rest under forced colours", () => {
+      expect(scanOutlines(WEBVIEW)).toEqual([])
+    })
+
+    test("the webview sets its text on pulse-ui's type scale, at 13 px or more and in the weights 400, 600 and 700", () => {
+      expect(scanTypeScale(WEBVIEW)).toEqual([])
     })
   },
 )
@@ -76,7 +108,7 @@ describe("the brand gates over the webview", PARSING_SOURCES_ON_A_BUSY_CI_RUNNER
     rmSync(root, { recursive: true, force: true })
   })
 
-  test("flag a third icon size, a raw colour, a glyph icon and an allowance nothing needs", () => {
+  test("flag a third icon size, a raw colour, a glyph icon, an outline at rest, text off the type scale and an allowance nothing needs", () => {
     mkdirSync(join(root, "screens"))
     writeFileSync(
       join(root, "screens", "probe.tsx"),
@@ -86,6 +118,8 @@ describe("the brand gates over the webview", PARSING_SOURCES_ON_A_BUSY_CI_RUNNER
         'export const Odd = () => <Icon of="" size={14} />',
         'export const ink = "#1D1D1D"',
         "export const Done = () => <span>✓</span>",
+        'export const frame = "rounded outline-hidden focus-visible:outline-hidden"',
+        'export const small = "text-xs font-medium"',
       ].join("\n"),
     )
     writeFileSync(
@@ -109,6 +143,13 @@ describe("the brand gates over the webview", PARSING_SOURCES_ON_A_BUSY_CI_RUNNER
     ])
     expect(scanGlyphs(root)).toEqual([
       expect.objectContaining({ file: "screens/probe.tsx", line: 5, glyph: "✓" }),
+    ])
+    expect(scanOutlines(root)).toEqual([
+      expect.objectContaining({ file: "screens/probe.tsx", line: 6, match: "outline-hidden" }),
+    ])
+    expect(scanTypeScale(root).map(({ line, rule }) => `${String(line)} ${rule}`)).toEqual([
+      "7 below-floor",
+      "7 off-weight",
     ])
   })
 })

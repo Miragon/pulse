@@ -1,7 +1,7 @@
 # User interface
 
 - Status: accepted
-- Last reviewed: 2026-11-12 (a button beside the "can't move" sign copies the CLI command its reason names); 2026-11-09 (the Engines tree's problems in the profile format's words, a cockpitUrl's trailing `#/` dropped); 2026-11-08 (the tones of Pulse's situation table; times, durations, counts and short ids from Pulse's formatters; 2026-10-26: boards, see [boards.md](boards.md); live updates, see [live-updates.md](live-updates.md); moving a token; bulk cancel, see [writes.md](writes.md); migration, see [migrations.md](migrations.md))
+- Last reviewed: 2026-11-14 (the switch of D9 landed: the webview draws pulse-ui's `Icon` over `lucide-react`, its copy of Lucide's glyphs went; its bundle ceilings and the two cascade rules of its stylesheet; the split's handle a 24 px target with a forced-colours line); 2026-11-12, later the same day (decided, D9 of [ui-foundation.md](ui-foundation.md): the webview moves to React on `@miragon/pulse-ui` in one switch; its 12 px icons become the density deviation every surface shares; its notice strips become pulse-ui's `StatusStrip`; its sizes come from pulse-ui's density roles; its red and orange counts turn neutral with a tone icon); 2026-11-12 (a button beside the "can't move" sign copies the CLI command its reason names); 2026-11-09 (the Engines tree's problems in the profile format's words, a cockpitUrl's trailing `#/` dropped); 2026-11-08 (the tones of Pulse's situation table; times, durations, counts and short ids from Pulse's formatters; 2026-10-26: boards, see [boards.md](boards.md); live updates, see [live-updates.md](live-updates.md); moving a token; bulk cancel, see [writes.md](writes.md); migration, see [migrations.md](migrations.md))
 
 ## Context
 
@@ -28,7 +28,7 @@ Miragon's CLI) and not "Cockpit" (Camunda 7's webapp).
 | Activity Bar container _Pulse_    | One native tree, **Engines** (engine › definitions with `n running in all versions · latest vN` and a red incident decoration; a click on an engine opens its overview, the twistie expands it; on top, an error item per problem of a broken `.pulse.json`, e.g. `.pulse.json: The text is not valid JSON (line 1, column 2).`, a warning item per note on the file's root, an error item per project file under its former name, each opening its file); open incidents show as the red decoration and count per definition, and in the engine overview's _With incident_ scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | Activity Bar view **Boards**      | One entry per `.pulse/boards/*.board.json`, named by the board's title with its file name beside it, an error icon and the problem count on a broken file; shown only when the workspace has a board; **New Board…** in its title bar and in the Engines menu ([boards.md](boards.md))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | Webview editor tab **Board**      | "Shop operations · Board": the header names the board and its engines, Refresh and Open file, never an access chip (each engine has its own); one strip per engine that failed (with Set credentials… or Edit connection…) or is not in `.pulse.json` (Edit connection…), a line of the engines that answered (production name in red when configured), then rows of cards that stack below 760 px. A counter shows the total, "from 2 of 3 engines" when one is missing, the threshold and which engines crossed it, one clickable line per engine ("not read" where it was not); an instance list is one table with an Engine column, the rows of each engine together and "showing 50 of 1,204" per engine below it; a process diagram is the definition panel's canvas, 320 px high, with its badges and Open process, and a click on a count opens the process at that element; an incident list is one table of Engine, Process, Element, Message and Since with "first 50, more open" per engine; a broken file lists each problem with its path and reason above the last valid board                                                                                                                                                                |
-| Webview editor tab **Engine**     | One per engine, "shop-dev · Processes": the header names product and version from `describeEngine`, access, freshness, Refresh and the web UI's start page; one filter bar (scopes _All · With incident_ with counts, search by name or BPMN process id, the engine's summary "3 processes · 172 running · 10 with incident · all versions", the scope of every count in the table); a table Process (name, BPMN process id muted) · Latest version · Running · With incident (red above 0), incidents first, then running, then name. A row opens the definition panel at the latest version (the tab the Engines tree opens), Ctrl/Cmd+click to the side                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Webview editor tab **Engine**     | One per engine, "shop-dev · Processes": the header names product and version from `describeEngine`, access, freshness, Refresh and the web UI's start page; one filter bar (scopes _All · With incident_ with counts, search by name or BPMN process id, the engine's summary "3 processes · 172 running · 10 with incident · all versions", the scope of every count in the table); a table Process (name, BPMN process id muted) · Latest version · Running · With incident (neutral with an incident's tone icon, see Visual language), incidents first, then running, then name. A row opens the definition panel at the latest version (the tab the Engines tree opens), Ctrl/Cmd+click to the side                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | Webview editor tab **Definition** | The header names the process (its BPMN process id when it has no name) and the version picker, not the id beside the name. Deployed diagram of one version with a badge cluster per element (running, incidents, incidents in called instances; a click on a count filters the instances to the element and its scope, _With incident_ for both incident counts, _Running_ for the blue one), a jump into each called process, version picker with per-version counts, _Open model_ in the header when a local `.bpmn` declares the process (centred on the filtered element, the tooltip says when the file differs from the deployed version) and a code button on the filtered element's shape when its code is found, notices (older versions still running, drift), one filter bar above the instance table (scopes _Running · With incident · Ended · All_ with counts, element filter, business-key search, badge legend behind `?`); on a writable engine a checkbox column, a selection bar and a bulk strip to cancel or migrate many instances                                                                                                                                                                                                    |
 | Webview editor tab **Migration**  | One per engine and process, "Order fulfillment v2 → v3 · shop-dev": the target picker in the header, the source and target diagrams side by side (stacked below 900 px), the mapping table with one select per element, the action row with the summary and Migrate or what blocks it, and the shared bulk strip ([migrations.md](migrations.md))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | Webview editor tab **Instance**   | A code button on the shape of the clicked element and of every incident element whose code is found, a header with id, definition, caller and start (or end) to the millisecond but no state or incident label (the diagram, the Incidents tab and its count say that), a strip docked under the header only for several incidents (their count and the first root cause, no actions) or a suspended or ended instance, waiting and incident markers, the path it took (done elements and taken flows in green), a jump into the called instances of each call activity and back to the caller, tabs History (each element run with start and end to the millisecond, and duration) / Incidents (each card with what the local model configures on the element, its file and whether it differs from the deployed version, _Open in model_ and _Open code_, all only when found, plus the actions the strip does not already offer for that incident; no message the root cause already repeats, no engine type beside the incident id; [local-sources.md](local-sources.md)) / Waiting / Variables in one bar with the marker legend behind `?`, engine types and scopes, an inline editor per editable variable, links into called instances, copy buttons |
@@ -67,17 +67,30 @@ confronted with runtime data (#1688).
   engine nor environment (a board's names its engines, since it spans several): the Engines
   tree and the status bar do, and every write dialog
   names both ([writes.md](writes.md)).
-- Geist / Geist Mono, Lucide icons in the webview, codicons on native surfaces. The
-  webview draws Lucide's geometry itself: `components/lucide-glyphs.json` holds the
-  glyphs it uses, copied from lucide-preact 1.61.0 with Lucide's ISC and Feather's MIT
-  notice, and `Icon` renders them. lucide-preact's runtime and per-path keys cost
-  2.1 kB gzip of the bundle budget; a new icon is one more entry in that file. An icon is
+- Geist / Geist Mono, Lucide icons in the webview, codicons on native surfaces. The labels
+  bpmn-js draws on the diagram are its own Arial (12 px in a shape, 11 px beside it), the canvas
+  text of Camunda Modeler and bpmn.io, whose label boxes are sized for it: Geist, up to 8 % wider,
+  wrapped labels that fit there. A named deviation the cockpit shares (owner, 2026-11-14; D9 in
+  [ui-foundation.md](ui-foundation.md)): both hand bpmn-js pulse-ui's `BPMN_LABEL_STYLE`, and the
+  diagram's tooltips, popups, badges and overlays stay in Geist. The
+  webview draws pulse-ui's `Icon` over `lucide-react`, at the repository's one pin. An icon is
   16 px in the chrome and 12 px beside dense text and on the diagram's 20 px overlays
   (count and move badges, the code and move buttons, inline links and warnings): 12 px is a
   named deviation from the design system's 16 and 24 px, the one other size `Icon` takes,
   and pulse-ui's icon size gate allows it only in the files
   `apps/vscode/test/architecture/brand-gates.test.ts` lists, each with its reason; an entry no
-  icon needs fails.
+  icon needs fails. Since D9 it is the density deviation every surface shares, at stroke 2.5,
+  in the files the icon gate lists (the root `CLAUDE.md`, "Abweichung Dichte, für alle
+  Oberflächen"); `Icon` with `dense` is the 12 px icon.
+- Sizes are the compact ones every surface shares (D9): 40 px bars, 36 px filter bars and tab
+  lists, 28 px controls and table rows, 24 px strip buttons, a 12 px gutter, 13 px dense text.
+  They come from pulse-ui's density roles (`rem` on the guide's `--cd-shell-*`
+  tokens) instead of the webview's own stylesheets, so the reader's font size and VS Code's zoom
+  scale them; a coarse pointer gets the comfortable step.
+- Numbers stay neutral (D9, invariant 6 of the root `CLAUDE.md`). The _With incident_ counts of
+  the engine overview and of a scope and a board counter's count over its threshold are neutral
+  and carry a tone icon of its own shape (an incident's, a warning's) with its meaning as screen-reader text, never a coloured
+  number or a dot alone. The diagram's count badges stay solid 20 px pills, a named deviation.
 
 ### Moving a token
 
@@ -106,12 +119,22 @@ icon, a title that never shortens, a detail that ends in "…" with the full tex
 tooltip, actions on the right. Below 900 px the actions show their icons only, below
 480 px the detail is dropped (container queries). A problem offers Reconnect, plus Set
 credentials… (straight to the prompt for that engine) when the engine rejected the
-credentials, or Edit connection… for the other connection problems.
+credentials, or Edit connection… for the other connection problems. By D9 the strips are
+pulse-ui's `StatusStrip`, the block the MCP cockpit shows its notices in too:
+one line on the tone's surface, without the guide's 4 px edge (a named deviation), only a
+danger strip announced as an alert, and a label that gives way on a narrow strip stays the
+action's accessible name.
 
 ### One filter bar, resizable tables
 
 The bottom pane of the split starts with one 36 px bar; it replaced the legend line under
-the diagram, the "Instances … · n running" header and the toolbar.
+the diagram, the "Instances … · n running" header and the toolbar. The handle between the panes
+is a 24 px target over its 1 px line (WCAG 2.5.8), 20 px above the line and 3 px below, so it
+covers none of the definition panel's filter controls, and the instance panel's tabs keep 33 of
+their 36 px outside it; the diagram's canvas ends 8 px above the line, which keeps the bpmn.io logo
+and the zoom bar out of its reach. A drag keeps the line where the pointer took hold of it. Under
+forced colours its line is `CanvasText`, and `Highlight` on hover, while dragged and with focus,
+which also outlines the target.
 
 - **Definition panel:** scopes with counts, element chip, business-key search, the
   filter button (a funnel) with one chip per variable condition and, at the far end, the legend
@@ -119,9 +142,10 @@ the diagram, the "Instances … · n running" header and the toolbar.
   stop on the checked radio; ←/→/Home/End move and select, the latest request wins,
   and the checked segment is boxed, not underlined (an underline means tabs). Each
   scope shows `DefinitionView.scopeCounts` (compact, the exact value in the tooltip, a
-  red "With incident" count when it is above 0). Counts follow the element filter, the
-  business-key search and the variable conditions, so a count says what a click shows; the version totals stay
-  in the version picker. While the panel refreshes the old counts stay and the group is
+  red "With incident" count when it is above 0, neutral with a tone icon from the switch of
+  D9 on). Counts follow the element filter, the business-key search and the variable
+  conditions, so a count says what a click shows; the version totals stay in the version
+  picker. While the panel refreshes the old counts stay and the group is
   `aria-busy`.
 - **Variable conditions:** the funnel button ("Filter by variables", with conditions their
   count beside the icon and "…, 2 active" in its name) opens a modal `<dialog>` for one
@@ -342,8 +366,16 @@ overdue jobs and topics without workers, variable history.
 - The design guide's "no header bar" rule is broken on purpose: a tab title cannot hold
   version, access, freshness and the live updates button. Strips dock under it.
 - The bpmn.io watermark stays visible (bpmn-js licence).
-- Webview bundle: ~110.8 kB gzip; budget 200 000 B since 2026-10-22 (a maintainer's
-  decision, see guardrails.md), may only shrink from there (`apps/vscode/test/__golden__/bundle-budget.json`).
+- Webview bundle: about 235.7 kB gzip on React 19 and pulse-ui, a ceiling of 247,500 B; its
+  stylesheet about 28.9 kB, a ceiling of 30,100 B (`apps/vscode/test/__golden__/bundle-budget.json`).
+  Both were set by the switch of D9 (2026-11-14, its `Ratchet-Exception:` trailer) at the measured
+  size plus about 5 % and may only shrink from there (guardrails.md).
+- The webview's stylesheet (`src/webview/styles/webview.css`) keeps two cascade rules. modeler-shell's
+  `shell.css` sits in a layer of its own, `shell`, below `components` and `utilities`: unlayered,
+  its `font: inherit` and `color: inherit` on the document's controls beat every kit class. The
+  root's font size is pinned to 100 %, so pulse-ui's density roles in `rem` keep their 16 px base
+  under the 13 px `html` of modeler-shell's stylesheets. The diagram's vendor CSS (diagram-js,
+  bpmn-js, `cd-canvas.css`) and `diagram.css` stay unlayered.
 - The engine overview reads one `listDefinitions` and one `describeEngine`: it knows
   running and with-incident counts per process, not ended ones, which would cost a count
   per process.

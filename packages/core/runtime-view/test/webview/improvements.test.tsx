@@ -3,7 +3,20 @@ import type { DefinitionView, PanelState, WebviewIntent } from "../../src/core/p
 import { DEFINITION_VIEW } from "../../dev/webview/fixtures/definition.js"
 import { FIXTURES } from "../../dev/webview/fixtures/states.js"
 import { TimeLabels } from "../../src/webview/format/time-labels.js"
-import { buttonNamed, mountApp, radioNamed, waitForElement, type Harness } from "./harness.js"
+import {
+  allParts,
+  buttonNamed,
+  findPart,
+  findRole,
+  getRole,
+  mountApp,
+  queryPart,
+  queryRole,
+  nextFrame,
+  radioNamed,
+  waitForElement,
+  type Harness,
+} from "./harness.js"
 
 function readyWith(change: Partial<DefinitionView>): PanelState {
   return { status: "ready", refreshing: false, view: { ...DEFINITION_VIEW, ...change } }
@@ -19,34 +32,48 @@ describe("instance list scopes", () => {
   it("sends the pressed scope as it is", async () => {
     harness = mountApp()
     harness.publish(FIXTURES.definition)
-    await waitForElement(harness.root, ".segmented")
+    await findRole(harness.root, "radiogroup", { name: "Show instances" })
 
-    for (const name of ["Running", "With incident", "Ended", "All"]) {
+    for (const name of ["With incident", "Ended", "All", "Running"]) {
       radioNamed(harness.root, name).click()
+      await nextFrame()
     }
 
     expect(harness.posted.filter((intent) => intent.type === "filterInstances")).toEqual([
-      { type: "filterInstances", filter: { scope: "running" } },
       { type: "filterInstances", filter: { scope: "withIncident" } },
       { type: "filterInstances", filter: { scope: "ended" } },
       { type: "filterInstances", filter: { scope: "all" } },
+      { type: "filterInstances", filter: { scope: "running" } },
     ])
+  })
+
+  it("posts nothing for the scope already shown", async () => {
+    harness = mountApp()
+    harness.publish(FIXTURES["definition-ended"])
+    await findRole(harness.root, "radiogroup", { name: "Show instances" })
+
+    radioNamed(harness.root, "Ended").click()
+    await nextFrame()
+
+    expect(harness.posted.filter((intent) => intent.type === "filterInstances")).toEqual([])
   })
 
   it("checks the scope of the shown list", async () => {
     harness = mountApp()
     harness.publish(FIXTURES["definition-ended"])
-    await waitForElement(harness.root, ".segmented")
+    await findRole(harness.root, "radiogroup", { name: "Show instances" })
 
     expect(radioNamed(harness.root, "Ended").getAttribute("aria-checked")).toBe("true")
     expect(radioNamed(harness.root, "Running").getAttribute("aria-checked")).toBe("false")
-    expect(harness.root.querySelector(".data-table")?.textContent).not.toContain("Running")
+    expect(getRole(harness.root, "table", { name: "Instances" }).textContent).not.toContain(
+      "Running",
+    )
   })
 
   it("counts every scope in the one bar above the list, without a summary header", async () => {
     harness = mountApp()
     harness.publish(FIXTURES.definition)
-    const bar = await waitForElement(harness.root, ".filter-bar")
+    const bar = await findPart(harness.root, "filter-bar")
 
     expect(radioNamed(harness.root, "Running").textContent).toBe("Running 12")
     expect(radioNamed(harness.root, "Ended").textContent).toBe("Ended 12.4k")
@@ -54,16 +81,19 @@ describe("instance list scopes", () => {
       "12,437",
     )
     expect(
-      radioNamed(harness.root, "With incident").querySelector(".segmented__count--danger"),
+      queryPart(radioNamed(harness.root, "With incident"), "segment-count", { tone: "danger" }),
     ).not.toBeNull()
     expect(bar.parentElement?.firstElementChild).toBe(bar)
-    expect(harness.root.querySelector('.list-region__header, [role="toolbar"], h2')).toBeNull()
+    expect(queryRole(harness.root, "toolbar")).toBeNull()
+    expect(queryRole(harness.root, "heading", { level: 2 })).toBeNull()
   })
 
   it("clears the search field when the host drops the business key", async () => {
     harness = mountApp()
     harness.publish(readyWith({ filter: { scope: "running", businessKey: "ORD-10442" } }))
-    const field = await waitForElement<HTMLInputElement>(harness.root, ".search-field input")
+    const field = await findRole<HTMLInputElement>(harness.root, "searchbox", {
+      name: "Search by business key",
+    })
     expect(field.value).toBe("ORD-10442")
 
     harness.publish(readyWith({ filter: { scope: "running" } }))
@@ -77,9 +107,9 @@ describe("instance list scopes", () => {
     harness = mountApp()
     harness.publish(FIXTURES.refreshing)
 
-    const loadMore = await waitForElement<HTMLButtonElement>(
-      harness.root,
-      ".data-table__footer button",
+    const loadMore = await findRole<HTMLButtonElement>(
+      await findPart(harness.root, "table-footer"),
+      "button",
     )
     loadMore.click()
 
@@ -90,28 +120,34 @@ describe("instance list scopes", () => {
   it("shows the lifecycle and the incident apart, so a suspended instance stays visible", async () => {
     harness = mountApp()
     harness.publish(FIXTURES.definition)
-    await waitForElement(harness.root, ".data-table__row")
+    const table = await findRole<HTMLTableElement>(harness.root, "table", { name: "Instances" })
 
-    const row = [...harness.root.querySelectorAll(".data-table__row")].find((candidate) =>
+    const row = [...(table.tBodies[0]?.rows ?? [])].find((candidate) =>
       candidate.textContent.includes("ORD-10440"),
     )
 
-    expect(row?.querySelector(".state-label--neutral")?.textContent).toBe("Suspended")
-    expect(row?.querySelector(".incident-flag")?.textContent).toBe("Incident")
+    expect(row && queryPart(row, "state-label", { tone: "neutral" })?.textContent).toBe("Suspended")
+    expect(row && queryPart(row, "incident-flag", { tone: "danger" })?.textContent).toBe("Incident")
   })
 
   it("explains the badges for the version shown with shapes, not digits", async () => {
     harness = mountApp()
     harness.publish(FIXTURES.definition)
 
-    const legend = await waitForElement<HTMLElement>(harness.root, ".filter-bar .legend__popover")
+    const toggle = await findRole<HTMLButtonElement>(
+      await findPart(harness.root, "filter-bar"),
+      "button",
+      {
+        name: "Legend",
+      },
+    )
+    const legend = toggle.popoverTargetElement as HTMLElement
 
     expect(legend.textContent).toBe(
       "Badges count running instances of v7.waiting hereincident hereincident in a called instance",
     )
-    expect(legend.querySelectorAll(".count-badge")).toHaveLength(3)
-    expect(legend.querySelector(".count-badge__count")).toBeNull()
-    expect(harness.root.querySelector(".diagram-region")?.textContent).not.toContain("waiting")
+    expect(allParts(legend, "count-badge").map((badge) => badge.textContent)).toEqual(["", "", ""])
+    expect(queryPart(harness.root, "diagram")?.textContent).not.toContain("waiting")
   })
 })
 
@@ -129,7 +165,7 @@ describe("instance details", () => {
   it("copies a handover from the header", async () => {
     harness = mountApp()
     harness.publish(FIXTURES.instance)
-    await waitForElement(harness.root, ".context-bar")
+    await findPart(harness.root, "context-bar")
 
     buttonNamed(harness.root, "Copy handover").click()
 
@@ -139,12 +175,12 @@ describe("instance details", () => {
   it("shows the job of an incident with its type and a copyable id", async () => {
     harness = mountApp()
     harness.publish(FIXTURES.instance)
-    const card = await waitForElement(harness.root, ".incident-card")
+    const card = await findPart(harness.root, "incident-card")
 
     expect(card.textContent).toContain("5c1d77a0…")
     expect(card.textContent).toContain("a4b5c6d7…")
     expect(card.textContent).toContain("scoring-api")
-    card.querySelector<HTMLButtonElement>('[aria-label="Copy job ID"]')?.click()
+    getRole(card, "button", { name: "Copy job ID" }).click()
 
     expect(postedOfType("copy")).toEqual([
       { type: "copy", text: "5c1d77a0-9e8f-4d7c-b6a5-4f3e2d1c0b9a", label: "job ID" },
@@ -154,16 +190,15 @@ describe("instance details", () => {
   it("expands a JSON value in place and copies it", async () => {
     harness = mountApp()
     harness.publish(FIXTURES.instance)
-    await waitForElement(harness.root, ".incident-card")
+    await findPart(harness.root, "incident-card")
     buttonNamed(harness.root, "Variables6").click()
 
-    const expand = await waitForElement<HTMLButtonElement>(
-      harness.root,
-      '[aria-label="Expand the value of customer"]',
-    )
+    const expand = await findRole<HTMLButtonElement>(harness.root, "button", {
+      name: "Expand the value of customer",
+    })
     expand.click()
-    const full = await waitForElement(harness.root, ".value-cell__full")
-    harness.root.querySelector<HTMLButtonElement>('[aria-label="Copy value of customer"]')?.click()
+    const full = await waitForElement(expand.parentElement!, "pre")
+    getRole(harness.root, "button", { name: "Copy value of customer", includeHidden: true }).click()
 
     expect(full.textContent).toContain('"tier": "gold"')
     expect(expand.getAttribute("aria-expanded")).toBe("true")

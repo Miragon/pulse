@@ -1,20 +1,19 @@
 import { useMemo, useState } from "react"
 
 import {
-  CountPill,
-  FilterBar,
+  CountBadge,
   GroupCard,
+  SearchField,
   SectionHeading,
-  TONE_DOT,
+  SegmentedControl,
+  Toolbar,
   cn,
-  countTone,
-  type FilterChip,
-  type ToneVariant,
   DrillButton,
   TableEmptyState,
   formatCount,
   formatNumber,
   formatTimestamp,
+  type SegmentedControlOption,
 } from "@miragon/pulse-ui"
 import type {
   IncidentsDashboardActivity,
@@ -24,10 +23,10 @@ import type {
 
 import { useNav } from "../navigation.js"
 import { ENGINE_INCIDENTS_DATA } from "../../tool-names.js"
-import { GroupSummaryRow, IncidentGroupIcon } from "../group-summary-row.js"
+import { GroupSummaryRow } from "../group-summary-row.js"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
 import { MoreActions } from "../lib/more-actions.js"
-import { useT } from "../../messages/use-t.js"
+import { useT, type T } from "../../messages/use-t.js"
 import { dashboardScope, incidentsFeed } from "./scope.js"
 
 import {
@@ -38,10 +37,10 @@ import {
   useViewData,
 } from "@miragon/pulse-widget-shell/widgets"
 
-const TYPE_ALL = "all"
-const TYPE_LAST24H = "last24h"
+const SCOPE_ALL = "all"
+const SCOPE_LAST24H = "last24h"
 
-type IncidentChip = typeof TYPE_ALL | typeof TYPE_LAST24H
+type IncidentScope = typeof SCOPE_ALL | typeof SCOPE_LAST24H
 
 /** On a type-filtered dashboard the filter travels as an id and the count as the matching incidents. */
 export function processRootCauseHandOff(
@@ -69,9 +68,19 @@ export function processRootCauseHandOff(
 }
 
 interface DisplayProcess extends IncidentsDashboardProcess {
-  tone: ToneVariant
   /** Null = unknown. */
   shownCount: number | null
+  /** The count is the incidents of the last 24 hours (the Last 24h scope), not every open one. */
+  last24h: boolean
+}
+
+/** The group's count in words, exact: its open incidents or those of the last 24 hours. */
+function shownCountLabel(t: T, process: DisplayProcess): string {
+  if (process.shownCount === null) return t("incidentsList.countUnknown")
+  const count = formatNumber(process.shownCount)
+  return process.last24h
+    ? t("incidentsList.new24h", { count })
+    : t("procIncHeader.openIncidents", { count })
 }
 
 /** #322 U20: two lines; the full process name, never cut; the cockpit link and hand-off behind "more". */
@@ -106,12 +115,13 @@ function ProcessSummary({
   ].filter((fact): fact is string => fact !== null)
 
   return (
-    <div className={cn("flex flex-col gap-1.5 px-4 py-3", expanded && "border-border border-b")}>
+    <div
+      className={cn(
+        "px-cell py-cell min-h-entry flex flex-col justify-center gap-1.5",
+        expanded && "border-border border-b",
+      )}
+    >
       <div className="flex items-start gap-3">
-        <span
-          aria-hidden="true"
-          className={cn("mt-2 size-1.5 shrink-0 rounded-full", TONE_DOT[process.tone])}
-        />
         <span className="text-foreground text-dense min-w-0 flex-1 font-semibold break-words">
           {name}
           {process.processDefinitionName && (
@@ -120,12 +130,18 @@ function ProcessSummary({
             </span>
           )}
         </span>
-        <CountPill tone={process.tone}>{formatCount(process.shownCount)}</CountPill>
+        {/* A neutral count with the incident's icon, never a coloured number (invariant 6). */}
+        <CountBadge
+          count={process.shownCount}
+          situation={(process.shownCount ?? 0) > 0 ? "openIncident" : undefined}
+          label={shownCountLabel(t, process)}
+        />
       </div>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 ps-4">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
         <span className="text-muted-foreground text-small min-w-0 flex-1">{facts.join(" · ")}</span>
         <div className="flex items-center gap-1">
           <DrillButton
+            size="xs"
             onDrill={onOpenDetail}
             ariaLabel={t("incidentsList.openDetailAria", { name })}
           >
@@ -151,23 +167,26 @@ function ActivityRow({ activity }: { activity: IncidentsDashboardActivity }) {
   const t = useT()
   return (
     <GroupSummaryRow
-      icon={<IncidentGroupIcon />}
       title={activity.activityName ?? activity.activityId}
       subline={activity.representativeMessage ?? activity.activityId}
       stats={[{ value: formatTimestamp(activity.firstSeen), label: t("incidentsList.firstSeen") }]}
-      count={formatNumber(activity.scannedIncidentCount)}
-      className="border-border border-b pl-7 last:border-b-0"
+      incidents={activity.scannedIncidentCount}
+      className="border-border border-b last:border-b-0"
     />
   )
 }
 
-/** From the newest-first recency scan, so a partial scan says so; exact counts are in the definition view. */
+/**
+ * From the newest-first recency scan, so a partial scan says so; exact counts are in the definition
+ * view. The group's body lies on the ground, nested under its summary on the card and indented by
+ * the gutter, its rules too: forced colours drop the ground, the indent stays.
+ */
 function ActivityList({ process }: { process: DisplayProcess }) {
   const t = useT()
   return (
-    <div className="bg-muted">
+    <div className="bg-muted ps-gutter">
       {process.scannedIncidentCount < process.incidentCount && (
-        <p className="text-muted-foreground border-border text-small border-b px-4 py-2 pl-7">
+        <p className="text-muted-foreground border-border text-small px-cell py-cell border-b">
           {t("incidentsList.breakdownPartial", {
             scanned: formatNumber(process.scannedIncidentCount),
             total: formatNumber(process.incidentCount),
@@ -215,14 +234,13 @@ function filterProcesses(
         ...p,
         activities,
         shownCount: showLast24h ? p.last24hCount : p.incidentCount,
-        // The one severity ladder: open incidents are danger (#322 U14).
-        tone: countTone(p.incidentCount),
+        last24h: showLast24h,
       }
     })
     .filter((p): p is DisplayProcess => p !== null)
 }
 
-/** One widget so the search/chip state stays one `useState`. */
+/** One widget so the search and the scope stay with the list. */
 function IncidentProcessListView({
   data: initialData = null,
   engine,
@@ -243,12 +261,12 @@ function IncidentProcessListView({
   )
 
   const [search, setSearch] = useState("")
-  const [activeChip, setActiveChip] = useState<IncidentChip>(TYPE_ALL)
+  const [scope, setScope] = useState<IncidentScope>(SCOPE_ALL)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
   const filteredProcesses = useMemo<DisplayProcess[]>(
-    () => (data ? filterProcesses(data.processes, search, activeChip === TYPE_LAST24H) : []),
-    [data, search, activeChip],
+    () => (data ? filterProcesses(data.processes, search, scope === SCOPE_LAST24H) : []),
+    [data, search, scope],
   )
 
   if (!data) {
@@ -263,19 +281,11 @@ function IncidentProcessListView({
     )
   }
 
-  const chips: FilterChip[] = [
-    {
-      id: TYPE_ALL,
-      label: t("incidentsList.chipAll"),
-      count: formatNumber(data.totalCount),
-      active: activeChip === TYPE_ALL,
-    },
-    {
-      id: TYPE_LAST24H,
-      label: t("incidentsList.chipLast24h"),
-      count: formatNumber(data.last24hCount),
-      active: activeChip === TYPE_LAST24H,
-    },
+  // One pick of two, the instance scope's control: each count from the payload on screen (the
+  // KPIs above show the same two), a neutral number.
+  const scopes: SegmentedControlOption<IncidentScope>[] = [
+    { value: SCOPE_ALL, label: t("incidentsList.scopeAll"), count: data.totalCount },
+    { value: SCOPE_LAST24H, label: t("incidentsList.scopeLast24h"), count: data.last24hCount },
   ]
 
   function toggleExpanded(key: string) {
@@ -297,15 +307,23 @@ function IncidentProcessListView({
 
   return (
     <>
-      <FilterBar
-        search={search}
-        onSearchChange={setSearch}
-        searchPlaceholder={t("incidentsList.searchPlaceholder")}
-        searchAriaLabel={t("incidentsList.searchLabel")}
-        chips={chips}
-        chipsAriaLabel={t("incidentsList.chipsLabel")}
-        onChipToggle={(id) => setActiveChip(id === activeChip ? TYPE_ALL : (id as IncidentChip))}
-      />
+      {/* The scope segments first, then the search, as the instance list's filters. A bar inside
+          the content reaches the card's edges, as a view's tab bar does. */}
+      <Toolbar className="-mx-gutter">
+        <SegmentedControl
+          ariaLabel={t("incidentsList.scopeLabel")}
+          options={scopes}
+          value={scope}
+          onChange={setScope}
+        />
+        <SearchField
+          value={search}
+          onChange={setSearch}
+          delayMs={0}
+          placeholder={t("incidentsList.searchPlaceholder")}
+          aria-label={t("incidentsList.searchLabel")}
+        />
+      </Toolbar>
 
       <section>
         <SectionHeading

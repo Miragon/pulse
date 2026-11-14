@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest"
-import { DENSE_ICON_STROKE, ICON_STROKE } from "./icon.js"
+import { ICON_STROKE } from "./icon.js"
 
 /**
- * The Lucide stroke (CI §11): the two constants of `icon.tsx`, 2.5 for the view
- * and 2 in dense chrome bars. Kit code takes every stroke from them, never a
- * literal, so the two can never disagree; and no CSS rule
+ * The Lucide stroke (CI §11): the constant of `icon.tsx`, 2.5 at every size, the
+ * 12 px dense icon included (the guide gives stroke 2 only to 20 px palette
+ * tools, which Pulse draws none of). Kit code takes every stroke from it, never a
+ * literal; and no CSS rule
  * (`svg.lucide { stroke-width }`) in the theme, which would beat the stroke a
  * `LucideProvider` or an `Icon` sets.
  */
@@ -30,9 +31,8 @@ const SOURCES = import.meta.glob(["../**/*.tsx", "!../**/*.test.tsx", "!../rende
   eager: true,
 })
 
-/** A stroke expression built from the two constants only (`dense ? A : B` included). */
-const FROM_CONSTANTS =
-  /^(?:[\w.]+\s*\?\s*)?(?:DENSE_ICON_STROKE|ICON_STROKE)(?:\s*:\s*(?:DENSE_ICON_STROKE|ICON_STROKE))?$/
+/** A stroke expression that is the constant. */
+const FROM_CONSTANTS = /^ICON_STROKE$/
 
 function strokeUses(): string[][] {
   return Object.entries(SOURCES).flatMap(([file, source]) =>
@@ -45,9 +45,8 @@ function strokeUses(): string[][] {
 }
 
 describe("Lucide stroke", () => {
-  it("is 2.5 for the view and 2 in dense bars (CI §11)", () => {
+  it("is 2.5 at every size (CI §11)", () => {
     expect(ICON_STROKE).toBe(2.5)
-    expect(DENSE_ICON_STROKE).toBe(2)
   })
 
   it("is never set in CSS (theme.css, globals.css, fonts.css, the vendored tokens)", () => {
@@ -78,6 +77,6 @@ describe("Lucide stroke", () => {
   it("catches a literal stroke (self-test)", () => {
     expect("2.5").not.toMatch(FROM_CONSTANTS)
     expect("dense ? 2 : ICON_STROKE").not.toMatch(FROM_CONSTANTS)
-    expect("dense ? DENSE_ICON_STROKE : ICON_STROKE").toMatch(FROM_CONSTANTS)
+    expect("ICON_STROKE").toMatch(FROM_CONSTANTS)
   })
 })

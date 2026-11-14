@@ -1,7 +1,40 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import type { WebviewIntent } from "../../src/core/protocol/index.js"
 import { FIXTURES } from "../../dev/webview/fixtures/states.js"
-import { buttonNamed, mountApp, nextFrame, press, waitForElement, type Harness } from "./harness.js"
+import {
+  buttonNamed,
+  enterValue,
+  type Harness,
+  mountApp,
+  nextFrame,
+  press,
+  allParts,
+  allRoles,
+  findRole,
+  getRole,
+  queryPart,
+} from "./harness.js"
+
+function contentWidth(cell: Element): number {
+  const range = document.createRange()
+  range.selectNodeContents(cell)
+  return range.getBoundingClientRect().width
+}
+
+function markedIn(diagram: Element, marker: `pulse-${string}`): (string | null)[] {
+  return [...diagram.querySelectorAll("g.djs-element")]
+    .filter((shape) => shape.classList.contains(marker))
+    .map((shape) => shape.getAttribute("data-element-id"))
+}
+
+function contentBoxWidth(cell: Element): number {
+  const style = getComputedStyle(cell)
+  return (
+    cell.getBoundingClientRect().width -
+    Number.parseFloat(style.paddingLeft) -
+    Number.parseFloat(style.paddingRight)
+  )
+}
 
 describe("the migration screen", () => {
   let harness: Harness
@@ -17,7 +50,7 @@ describe("the migration screen", () => {
   async function open(fixture: keyof typeof FIXTURES, width = 1200): Promise<HTMLTableElement> {
     harness = mountApp({ width })
     harness.publish(FIXTURES[fixture])
-    return waitForElement<HTMLTableElement>(harness.root, 'table[aria-label="Mapping"]')
+    return findRole<HTMLTableElement>(harness.root, "table", { name: "Mapping" })
   }
 
   function selectOf(table: HTMLTableElement, label: string): HTMLSelectElement {
@@ -31,22 +64,46 @@ describe("the migration screen", () => {
   it("shows both versions side by side with the mapping and the summary", async () => {
     const table = await open("migration")
 
-    const diagrams = harness.root.querySelectorAll(".migration-diagram")
+    const diagrams = allParts(harness.root, "migration-diagram")
     expect(diagrams).toHaveLength(2)
     const [first, second] = [...diagrams].map((diagram) => diagram.getBoundingClientRect())
     expect(second!.left).toBeGreaterThan(first!.left)
     expect(table.tBodies[0]!.rows).toHaveLength(6)
-    expect(harness.root.querySelector(".migration-actions__summary")?.textContent).toBe(
+    expect(queryPart(harness.root, "migration-summary")?.textContent).toBe(
       "All 6 elements map by id · no problems · checked just now",
     )
+  })
+
+  it("fits the element, target and waiting columns to their one line, the check taking the rest", async () => {
+    const table = await open("migration")
+    const heads = allRoles(table, "columnheader")
+    const rows = [...table.tBodies[0]!.rows]
+
+    expect(heads.map((head) => head.textContent)).toEqual(["In v6", "In v7", "Waiting", "Check"])
+    for (const row of rows) {
+      expect([...row.cells].map((cell) => getComputedStyle(cell).whiteSpace)).toEqual([
+        "nowrap",
+        "nowrap",
+        "nowrap",
+        "normal",
+      ])
+    }
+    for (const [index, head] of heads.slice(0, 3).entries()) {
+      const widest = Math.max(
+        contentWidth(head),
+        ...rows.map((row) => contentWidth(row.cells[index]!)),
+      )
+      expect(Math.abs(contentBoxWidth(head) - widest)).toBeLessThanOrEqual(1)
+    }
+    expect(contentBoxWidth(heads[3]!)).toBeGreaterThan(contentWidth(heads[3]!))
   })
 
   it("stacks the diagrams in a narrow editor group", async () => {
     await open("migration", 700)
     await nextFrame()
 
-    const [first, second] = [...harness.root.querySelectorAll(".migration-diagram")].map(
-      (diagram) => diagram.getBoundingClientRect(),
+    const [first, second] = allParts(harness.root, "migration-diagram").map((diagram) =>
+      diagram.getBoundingClientRect(),
     )
     expect(second!.top).toBeGreaterThan(first!.top)
     expect(second!.left).toBe(first!.left)
@@ -56,10 +113,8 @@ describe("the migration screen", () => {
     const table = await open("migration")
     const select = selectOf(table, "Approve order")
 
-    select.value = ""
-    select.dispatchEvent(new Event("change", { bubbles: true }))
-    select.value = "Activity_ApproveOrder"
-    select.dispatchEvent(new Event("change", { bubbles: true }))
+    enterValue(select, "")
+    enterValue(select, "Activity_ApproveOrder")
 
     expect(posted("unmapElement")).toEqual([
       { type: "unmapElement", sourceElementId: "Activity_ApproveOrder" },
@@ -77,7 +132,7 @@ describe("the migration screen", () => {
     const table = await open("migration-unmapped")
 
     expect(table.tBodies[0]!.rows[0]!.textContent).toContain("no mapping")
-    expect(harness.root.querySelector(".migration-actions__refusal")?.textContent).toBe(
+    expect(queryPart(harness.root, "migration-refusal")?.textContent).toBe(
       "3 of 10 wait at Approve order, which has no mapping in v7.",
     )
     expect(() => buttonNamed(harness.root, "Migrate 10 instances…")).toThrow()
@@ -87,13 +142,28 @@ describe("the migration screen", () => {
     expect(posted("leaveOutUnmapped")).toHaveLength(1)
   })
 
+  it("marks in the diagram to migrate from only the element whose tokens have no mapping", async () => {
+    await open("migration-unmapped")
+    const [source, target] = allParts(harness.root, "migration-diagram")
+
+    await vi.waitFor(
+      () => {
+        expect(markedIn(source!, "pulse-unmapped")).toEqual(["Activity_ApproveOrder"])
+        expect(markedIn(target!, "pulse-move-target")).toEqual(["Activity_ApproveOrder"])
+      },
+      { timeout: 5000, interval: 25 },
+    )
+    expect(markedIn(target!, "pulse-unmapped")).toEqual([])
+  })
+
   it("starts the migration only from the button and picks the target from the header", async () => {
     await open("migration")
 
     buttonNamed(harness.root, "Migrate 10 instances…").click()
-    const picker = harness.root.querySelector<HTMLSelectElement>("select.version-picker__select")!
-    picker.value = "order-fulfillment:5:0b7d"
-    picker.dispatchEvent(new Event("change", { bubbles: true }))
+    const picker = getRole<HTMLSelectElement>(harness.root, "combobox", {
+      name: "Migrate to version",
+    })
+    enterValue(picker, "order-fulfillment:5:0b7d")
 
     expect(posted("startMigration")).toHaveLength(1)
     expect(posted("pickMigrationTarget")).toEqual([
@@ -104,7 +174,7 @@ describe("the migration screen", () => {
 
   it("zooms only the diagram the keys were pressed in", async () => {
     await open("migration")
-    const [source, target] = [...harness.root.querySelectorAll<HTMLElement>(".migration-diagram")]
+    const [source, target] = allParts(harness.root, "migration-diagram")
     const zoomOf = (diagram: HTMLElement) => /\d+\s?%/.exec(diagram.textContent)?.[0]
     await vi.waitFor(() => {
       expect([zoomOf(source!), zoomOf(target!)]).not.toContain("100%")
@@ -124,7 +194,7 @@ describe("the migration screen", () => {
   it("marks the focused row for every theme and screen reader", async () => {
     const table = await open("migration")
 
-    const focused = table.querySelector("tr.is-focused")
+    const focused = table.querySelector("tr[aria-current]")
     expect(focused?.getAttribute("aria-current")).toBe("true")
     expect(getComputedStyle(focused!).outlineStyle).toBe("solid")
   })
@@ -132,23 +202,23 @@ describe("the migration screen", () => {
   it("announces why the button is gone and keeps the whole reason in its tooltip", async () => {
     await open("migration-unmapped")
 
-    const live = harness.root.querySelector('.migration-actions [aria-live="polite"]')
+    const live = getRole(harness.root, "group", { name: "Migration" }).querySelector(
+      '[aria-live="polite"]',
+    )
     expect(live?.textContent).toBe("3 of 10 wait at Approve order, which has no mapping in v7.")
-    expect(harness.root.querySelector(".migration-actions__refusal")?.getAttribute("title")).toBe(
+    expect(queryPart(harness.root, "migration-refusal")?.getAttribute("title")).toBe(
       "3 of 10 wait at Approve order, which has no mapping in v7.",
     )
-    expect(
-      harness.root.querySelector(".migration-actions__summary")?.getAttribute("aria-live"),
-    ).toBeNull()
+    expect(queryPart(harness.root, "migration-summary")?.getAttribute("aria-live")).toBeNull()
   })
 
   it("shows the shared bulk strip while the run goes on", async () => {
     await open("migration-running")
 
-    expect(harness.root.querySelector(".bulk-strip")?.textContent).toContain(
+    expect(queryPart(harness.root, "bulk-strip")?.textContent).toContain(
       "Migrating instances: 4 of 10 done",
     )
-    expect(harness.root.querySelector(".migration-actions__refusal")?.textContent).toBe(
+    expect(queryPart(harness.root, "migration-refusal")?.textContent).toBe(
       "Wait until migrating 10 instances ends.",
     )
   })
@@ -158,7 +228,7 @@ describe("the selection bar", () => {
   it("opens a migration for the selection", async () => {
     const harness = mountApp()
     harness.publish(FIXTURES["definition-selecting"])
-    await waitForElement(harness.root, ".selection-bar")
+    await findRole(harness.root, "group", { name: "Selected instances" })
 
     buttonNamed(harness.root, "Migrate to version…").click()
 

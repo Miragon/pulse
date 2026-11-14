@@ -72,3 +72,23 @@ from the repository root after the views or the skill changed:
 node packages/core/runtime-view/dev/webview/serve.mjs --build   # the webview dev page the VS Code card loads
 node "<product-shots skill>/scripts/listing.mjs"
 ```
+
+The skill's scripts take Playwright from `PLAYWRIGHT_CORE`, the workspace's with
+`export PLAYWRIGHT_CORE=$(node -p "require.resolve('playwright', { paths: ['apps/vscode'] })")`, and
+set the title of a window frame in Geist, so install the Geist font before you frame.
+
+The incident view of the MCP card, `docs/assets/widget-incident.png` and its dark twin (the MCP
+server's README shows both), is the journey `.miragon/shots/incident-view.mjs`: the cockpit's
+incident route of the built MCP server (`pnpm build`, the `engine:operations` toolset) for
+ORD-10131's incident on shop-dev, in the host page of `test:host`
+(`apps/mcp-server/test-host/host-sim.html`), on a fresh shop sandbox
+(`pnpm --filter pulse-cockpit run sandbox:up`). Render it before the covers, since the MCP card
+crops it:
+
+```bash
+node "<product-shots skill>/scripts/render.mjs" --journey .miragon/shots/incident-view.mjs \
+  --viewport 960x620 --chrome mac --title "Incident · Charge payment" --out docs/assets/widget-incident.png
+node "<product-shots skill>/scripts/render.mjs" --journey .miragon/shots/incident-view.mjs \
+  --viewport 960x620 --chrome mac --theme dark --title "Incident · Charge payment" \
+  --out docs/assets/widget-incident-dark.png
+```

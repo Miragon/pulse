@@ -1,8 +1,8 @@
-import { useMemo } from "preact/hooks"
+import { Button, Icon } from "@miragon/pulse-ui"
+import { WorkflowIcon } from "lucide-react"
+import { useMemo } from "react"
 import type { InstanceScope, ProcessDiagramTile } from "../../../core/protocol/index.js"
 import { EmptyHint } from "../../components/empty-hint.js"
-import { Icon } from "../../components/icon.js"
-import { glyphs } from "../../components/lucide-glyphs.json"
 import { RuntimeDiagram } from "../../components/runtime-diagram.js"
 import type { Decorations } from "../../diagram/decoration-layer.js"
 import { useHost } from "../../host/host-context.js"
@@ -30,21 +30,24 @@ function DiagramBody({ tile }: { readonly tile: ProcessDiagramTile }) {
   }
   return (
     <>
-      <p class="board-diagram__meta">
-        <span class="muted">{BoardLabels.diagramFacts(tile.engine, diagram.version)}</span>
-        <button
+      <p className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <span className="text-muted-foreground">
+          {BoardLabels.diagramFacts(tile.engine, diagram.version)}
+        </span>
+        <Button
           type="button"
-          class="button button--secondary button--compact"
+          variant="outline"
+          size="sm"
           title={`Open ${diagram.processName} on ${tile.engine} (Ctrl/Cmd+click: to the side)`}
           onClick={(event) => {
             open(undefined, "running", event.ctrlKey || event.metaKey)
           }}
         >
-          <Icon of={glyphs.Workflow} />
-          <span class="button__label">Open process</span>
-        </button>
+          <Icon icon={WorkflowIcon} />
+          Open process
+        </Button>
       </p>
-      <div class="board-diagram">
+      <div className="border-border h-80 overflow-hidden rounded-sm border">
         <RuntimeDiagram
           xml={diagram.diagramXml}
           decorations={decorations}

@@ -1,5 +1,5 @@
-import { Icon } from "../components/icon.js"
-import { glyphs } from "../components/lucide-glyphs.json"
+import { FileCodeIcon } from "lucide-react"
+import { Icon } from "@miragon/pulse-ui"
 
 export interface ElementCode {
   readonly elementId: string
@@ -16,7 +16,8 @@ export function CodeButton({ code, onOpen }: CodeButtonProps) {
   return (
     <button
       type="button"
-      class="code-button"
+      className="code-button"
+      data-part="code-button"
       data-code-for={code.elementId}
       aria-label={label}
       title={label}
@@ -25,7 +26,7 @@ export function CodeButton({ code, onOpen }: CodeButtonProps) {
         onOpen(code.elementId)
       }}
     >
-      <Icon of={glyphs.FileCode} size={12} />
+      <Icon icon={FileCodeIcon} dense />
     </button>
   )
 }

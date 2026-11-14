@@ -1,6 +1,6 @@
+import { WorkflowIcon } from "lucide-react"
 import type { DefinitionView } from "../../core/protocol/index.js"
 import { HeaderButton } from "./header-button.js"
-import { glyphs } from "./lucide-glyphs.json"
 
 export interface OpenModelButtonProps {
   readonly model: NonNullable<DefinitionView["model"]>
@@ -13,7 +13,7 @@ export function OpenModelButton({ model, elementId, elementName }: OpenModelButt
   const differs = model.differsFromDeployed === true ? " (differs from the deployed version)" : ""
   return (
     <HeaderButton
-      icon={glyphs.Workflow}
+      icon={WorkflowIcon}
       label="Open model"
       title={`Open ${model.fileName}${at}${differs}`}
       intent={elementId === undefined ? { type: "openModel" } : { type: "openModel", elementId }}

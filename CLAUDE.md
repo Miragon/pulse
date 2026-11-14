@@ -54,7 +54,7 @@ command line interface (`apps/cli`), a VS Code extension (`apps/vscode`) and an 
 | `packages/connectors/c7/c7-adapter/`           | The C7 adapter of the runtime view (`@miragon/pulse-c7-adapter`, private): its REST client and the mapping onto the contract of `engine-core`, over c7-core; bundled by the editor hosts                                                                                                                                                                                                                                   |
 | `packages/core/ui/`                            | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the formatters and the tones without React under `/format` and `/tones`, the brand gates under `/testing`                                                                                 |
 | `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), a module's test server (`/testing`)                                                                                                                                                             |
-| `packages/core/runtime-view/`                  | The runtime view both editor hosts compose (`@miragon/pulse-runtime-view`, private) over the contract of `engine-core`: the ports a host and an engine family plug in, the core, the protocol, the Preact webview, the local model reader and the host kit (targets from `.pulse.json`, policies, the write audit)                                                                                                         |
+| `packages/core/runtime-view/`                  | The runtime view both editor hosts compose (`@miragon/pulse-runtime-view`, private) over the contract of `engine-core`: the ports a host and an engine family plug in, the core, the protocol, the webview (React on `@miragon/pulse-ui`), the local model reader and the host kit (targets from `.pulse.json`, policies, the write audit)                                                                                 |
 | `packages/core/profile/`                       | The one profile format of the CLI, the editor hosts and the MCP server (npm `@miragon/pulse-profile`): a parser from a file's text to a verdict per profile as data (a code and a key, never a value), the credential policy by where the file comes from, `refusalsOn` for what a reader cannot serve, the JSON Schema (`schema/pulse.schema.json`) and the shared fixtures (`/testing`); no runtime dependency           |
 | `packages/core/http/`                          | The one engine transport of the MCP server, the CLI and the editor hosts' adapters (npm `@miragon/pulse-http`) over the `fetch` each hands in: a deadline to the last byte, no redirects, a 64 MiB cap, one retry after a 401, reasons as data, lossless JSON, masking, the path value rule; the OAuth client (`/oauth`); conformance cases, fake fetch (`/testing`), loopback engine (`/testing/loopback`); no dependency |
 | `playground/`                                  | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                                                                                                                                                                          |
@@ -88,13 +88,30 @@ Three axes decide where code goes, and they stay apart:
   app of its own. Apps never import each other, and no package imports an app: what the editor
   hosts share is the runtime view (`packages/core/runtime-view`) and a dialect's adapter of the
   engine contract (`packages/connectors/<family>/<family>-adapter`), private packages only they
-  bundle. An interface's UI belongs to one of two UI families (owner decision 2026-11-08,
-  `apps/vscode/docs/adr/ui-foundation.md`): React on `@miragon/pulse-ui` and widget-shell (the
-  MCP widgets, a starter's, the web apps of #573) or Preact with its own components (the runtime
-  view's webview, which both editor hosts show). They share pulse-ui's framework-free foundation
-  (`/format`, `/tones`, and in tests the glossary, the count words and the brand gates of
-  `/testing`), never a component; `docs/vscode/parity.md` lists what differs between the views
-  both show, and #586 holds when they share building blocks again.
+  bundle. The surfaces (the MCP widgets and a starter's; the runtime view's webview, which both
+  editor hosts show; the web apps of #573) share a core up to building blocks, not
+  everything (owner decision 2026-11-12, `apps/vscode/docs/adr/ui-foundation.md`), in four
+  layers: the formats, the board file first; the engine reads and their rules (the Camunda 7
+  rules in c7-core, which the MCP server and the C7 adapter run over their `EnginePort`); the
+  numbers and view models of a feature more than one surface shows, built once and
+  framework-free over engine-core's read models; and building blocks, components on React that
+  take props and callbacks only, with no host context inside (no `useToolQuery`,
+  `ConfirmDialog`, `HandOffButton` or `HostBridge`). Each surface keeps its own screens and host
+  wiring (hand-offs to the chat, live updates and the push protocol, native confirmations,
+  sign-in) and may build parts of its own; where two surfaces show the same thing, a shared
+  building block is the default, and no surface is forced to replace its own screen. Pulse's UIs are
+  one UI family by decision, React on `@miragon/pulse-ui` with one compact look (owner decision D9,
+  later on 2026-11-12, in the same record): the webview moved from Preact to React on pulse-ui in
+  one switch, a commit of the pull request that recorded D9, with no `preact/compat` bridge.
+  widget-shell stays the view runtime of the MCP widgets
+  and the web apps, never the editor hosts'. The foundation stays pulse-ui's framework-free
+  `/format` and `/tones` and, in tests, `/testing` (the glossary, the count words, the brand gates);
+  the runtime view's core, ports, model reader and host kit stay framework-free. The board format
+  and the board builder go into a new published package (the
+  planned @miragon/pulse-board, whose dependency rules arrive with it); a shared building block
+  goes into pulse-ui (a primitive) or into a shared package created with the first engine block
+  two surfaces render. `docs/vscode/parity.md` lists what still differs between the views both
+  show.
 
 A family is one source the MCP server reads, a dialect or another source (a metrics store,
 say), or `engine`, the neutral family above the dialects. Its packages are
@@ -206,13 +223,14 @@ nimmt das Doku-Kit der CI unverändert (`docs/.vitepress/miragon/`, `docs/public
 CI-Release neu vendoren, nie von Hand ändern).
 
 Ein `--cd-*` steht nur in vendorten Kopien, deren Manifest `SANCTIONED_TOKEN_MANIFESTS` freigibt:
-die Kopien aus `.miragon/brand-assets.yaml` (pulse-ui in `packages/core/ui/src/tokens/` und das
-Theme der Webview von VS Code und Orca in `packages/core/runtime-view/src/webview/theme/`,
+die Kopien aus `.miragon/brand-assets.yaml` (pulse-ui in `packages/core/ui/src/tokens/`, deren
+Tokens auch die Webview von VS Code und Orca über `theme.css` nimmt, und deren Diagramm-Leinwand mit
+`cd-canvas.css` und `cd-tokens.generated.json` in `packages/core/runtime-view/src/webview/theme/`,
 Prüfsummen in `.miragon/brand-assets.sha256`) und das Doku-Kit. Eine weitere Kopie kommt mit
 `brand-assets.mjs --add` aus dem Plugin miragon-brand, nie als Ausnahme im Scan. Ein Token, das
 mehrere Kopien im selben Geltungsbereich setzen (`:root`, Hell, Dunkel), hat in allen denselben
-Wert: Ändert ein CI-Release einen Wert, kommt er in alle Kopien zugleich. Der
-Drift-Test ist `packages/core/ui/src/theme/token-drift.test.ts` (mit
+Wert: Ändert ein CI-Release einen Wert, kommt er in alle Kopien zugleich. Der Drift-Test ist
+`packages/core/ui/src/theme/token-drift.test.ts` (mit
 `packages/core/ui/src/theme/vendored-tokens.test-support.ts`); `test:host` prüft das gebaute
 Stylesheet.
 
@@ -235,22 +253,37 @@ Die Widgets laufen als MCP Apps im Rahmen eines Chat-Hosts. Dafür gelten diese 
 Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 
 - Theme: Die Widgets folgen dem Host-Theme (#339), ohne Umschalter in der App; ohne Host das
-  OS. Dunkel entsteht streng aus den Dark-Ground-Regeln der
-  CI: Basis `--cd-schwarz`, Flächen als `color-mix`-Aufhellungen davon, Text Weiß, Links und
-  Akzenttext `--cd-gruen`, Buttons `--cd-blau` mit Weiß, Fokus `--cd-blau-hell`, Status in den
-  `-hell`-Werten ohne getönte Flächen, leiser Text `--cd-kontur`. Der Host setzt nur die
-  neutralen Rollen (`HOST_TOKEN_MAP`: Flächen, Text, `--border`), nie `--primary`, `--link`,
-  `--focus`, `--ring`, `--input`, `--accent` oder einen Status. BPMN-Papier und seine
-  Zoom-Leiste bleiben immer hell.
+  OS. Die neutralen Rollen nehmen in Hell und Dunkel die Werte der `--cd-ui-*`-Rollen des Guides
+  (Grund, Fläche, Fläche hoch, Hover, Linie, leiser Text, Backdrop) wie die Webview, keine
+  eigenen Aufhellungen von `--cd-schwarz` (entschieden in D9,
+  `apps/vscode/docs/adr/ui-foundation.md`); dazu `--raised`, `--interaction` und
+  `--<ton>-surface`. pulse-ui folgt auch `data-cd-theme`, `data-cd-kontrast="hoch"` und
+  `forced-colors`. Sonst folgt Dunkel den Dark-Ground-Regeln der CI: Text Weiß, Links und
+  Akzenttext `--cd-gruen`, Buttons `--cd-blau` mit Weiß, Fokus `--cd-blau-hell`, der
+  eingeschaltete Schalter und die Linie unter dem aktiven Tab `--interaction` (dunkel
+  `--cd-blau-hell`), Status in den `-hell`-Werten ohne getönte Flächen. Der Host setzt nur die
+  neutralen Rollen (`HOST_TOKEN_MAP`: Flächen, Text, `--border`), nie `--primary`, `--link`, `--focus`, `--ring`, `--input`, `--accent` oder einen
+  Status; unter seinem Theme fallen Grund und Fläche zusammen, Bereiche trennen dann die
+  1-px-Linien. BPMN-Papier und seine Zoom-Leiste bleiben immer hell.
 - Schrift: Geist zuerst, dann die Schrift des Hosts (`adoptHostFontVariables`), dann System.
   Der Server liefert Geist und Geist Mono selbst aus (`installFontAssets`, kein CDN), jede View
   erlaubt den Ursprung über ihre CSP `resourceDomains` (`declareServedFonts`). Blockt ein Host
   den Ursprung, rendert die Host-Schrift, ohne dass etwas wartet.
+- Diagrammbeschriftung, in den Widgets und in der Webview von VS Code und Orca
+  (Owner-Entscheidung vom 2026-11-14): Die Beschriftungen, die bpmn-js auf die Leinwand zeichnet,
+  stehen in bpmn-js' eigener Arial (`Arial, sans-serif`, 12 px in einer Form, 11 px daneben) statt
+  in Geist, das der Hinweis zum Canvas des Guides (§4) für SVG-Text verlangt. Pulse zeigt meist
+  Diagramme aus dem Camunda Modeler oder bpmn.io, deren Beschriftungsboxen für Arial bemessen
+  sind; Geist ist bis zu 8 % breiter und bräche dort Beschriftungen um, die im Modeler passen.
+  Beide Oberflächen geben bpmn-js dasselbe Objekt, `BPMN_LABEL_STYLE` aus `@miragon/pulse-ui`
+  (`useBpmnViewer` in widget-shell, die `RuntimeCanvas` der Webview). Chrome, Tooltips, die Popups
+  von diagram-js (`cd-canvas.css`), Zähl-Badges und Overlays bleiben in Geist.
 - Sprache: Deutsch und Englisch nach Host-Locale (Fallback Englisch) statt nur Deutsch.
 - Chrome: im Rahmen des Hosts (Kopf mit Titel und Aktionen) statt randlosem Canvas mit
   schwebendem Chrome in den Ecken.
-- Seitentitel: h2 mit 28 px statt h1 mit 40 px.
-- Dichte Tabellen: 14 px statt 16 px Fließtext.
+- Titel: Der Titel einer Ansicht ist Chrome, 13 px in 600 als Überschrift in der 40-px-Leiste
+  (der Chrome-Titel des Guides); 28 px in 700 als h2 nur auf App-Ebene (Landing, Flotte) statt
+  h1 mit 40 px.
 - Data-Viz: eine einfarbige Rampe von `--cd-info-soft` bis `--cd-blau`; Rot nur für
   Incidents.
 - Komet: nur auf App-Ebene (Landing, Erststart, „keine Engines“), nicht in jedem Widget
@@ -259,22 +292,73 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 - BPMN-Zoom-Leiste oben rechts statt unten rechts: unten rechts liegt das bpmn.io-Logo
   (Lizenzpflicht).
 
+### Abweichung Dichte, für alle Oberflächen
+
+Alle Oberflächen (die MCP-Widgets, die Web-Apps, die Webview von VS Code und Orca) haben einen
+kompakten Look aus `@miragon/pulse-ui`, nach dem Vorbild der Webview (Owner-Entscheidung D9 vom
+2026-11-12, `apps/vscode/docs/adr/ui-foundation.md`). Die Dichte-Rollen stehen in `rem` in pulse-uis
+`theme.css`; ein Test hält sie bei 16 px Wurzelgröße gleich zu den Shell-Tokens des Guides
+(`--cd-shell-zeile`, `--cd-shell-eintrag`, `--cd-shell-ziel`, `--cd-shell-rand`). Kompakt ist der
+Standard. Auf Touch (`any-pointer: coarse`) und unter `[data-density=comfortable]` gilt die
+komfortable Stufe: Bedienelemente 36 px, Zeilen und Toolbars 40 px, Radius md auf Knöpfen. Die
+Schrift bleibt in jeder Stufe gleich; nur Eingaben zeigen auf Touch 16 px Text, damit iOS beim Fokus
+nicht in die Seite zoomt, und `[data-density=comfortable]` allein lässt sie bei 13 px.
+`[data-density=compact]` hält die kompakte Stufe auch auf Touch fest, damit die Editoren auf einem
+Touch-Laptop kompakt bleiben wie VS Code selbst; die Webview setzt es auf ihr `<html>`. Die Eingaben
+behalten dort 13 px Text, denn ihre Schrift ist eine eigene Rolle (`--field-text`), die der kompakte
+Pin erreicht. Leiste 40 px, Toolbar 36 px und Rand 12 px sind Werte des Guides und keine Abweichung.
+Diese bewussten Abweichungen vom Guide gelten für alle Oberflächen (Owner-Entscheidung):
+
+- Bedienelemente (Knöpfe, Eingaben, Auswahlen) mit 28 px und klickbare Tabellenzeilen mit 28 px
+  statt 36 px.
+- Radius sm (6 px) statt md auf beschrifteten Knöpfen.
+- Knöpfe mit 24 px (xs: in Hinweisstreifen, zum Kopieren, in Tabellenzeilen), unter der kleinsten
+  Größe des Guides von 28 px; die Aktionen einer Tabellenzeile sind xs, damit jede Zeile 28 px
+  hoch bleibt (40 px komfortabel), wie in der Webview.
+- Gewicht 400 auf den Beschriftungen der Toolbar-Knöpfe.
+- Zähler als Pille.
+- Der angedockte Hinweisstreifen ohne die 4-px-Kante.
+- Icons: 12 px mit Strich 2,5 neben dichtem Text und auf den 20-px-Overlays des Diagramms (Zähl-
+  und Move-Badges, Code- und Move-Knöpfe, Links und Warnungen im Text), sonst 16 und 24 px.
+  `Icon` mit `dense` ist das 12-px-Icon. `scanIconSizes` liest `size={…}`, die `size-*`-Klassen
+  auf SVG-Selektoren (`[&>svg]:size-3`) und auf `Icon` und `dense` auf `Icon` und lässt 12 px nur
+  in den Dateien zu, die das Gate je mit Grund nennt (`allowDense`; im Kit
+  `packages/core/ui/src/brand-gates.test.ts`: Badge, die Knöpfe xs und icon-xs, der Pfeil des
+  `DrillButton` in xs, `Icon` selbst, der Sortierpfeil im Tabellenkopf, das Ton-Icon im Segment;
+  widget-shell und der Konnektor in ihrer `brand-gates.test.ts`); ein Eintrag ohne 12-px-Icon
+  schlägt fehl.
+
 ### Abweichung für die VS-Code-Webview
 
-Die Webview der VS-Code-Erweiterung, die Pulse for Orca ebenso zeigt (Preact, eigenes CSS, in
-`packages/core/runtime-view`), teilt mit den Widgets das Fundament aus
-pulse-ui, nicht die Komponenten: Töne (`@miragon/pulse-ui/tones`), Formatierer
-(`@miragon/pulse-ui/format`), Tokens mit gleichen Werten, Glossar, Zählbegriffe und Marken-Gates
-(Owner-Entscheidung, `apps/vscode/docs/adr/ui-foundation.md`). Was die beiden Oberflächen
-unterscheidet und ob es gewollt ist, steht in `docs/vscode/parity.md`. Für die Webview gilt diese
+Die Webview der VS-Code-Erweiterung, die Pulse for Orca ebenso zeigt (in
+`packages/core/runtime-view`), ist in einem Umstieg von Preact auf React 19 und `@miragon/pulse-ui`
+umgezogen, ohne Brücke über `preact/compat` (Owner-Entscheidung D9 vom 2026-11-12,
+`apps/vscode/docs/adr/ui-foundation.md`; der Umstieg ist ein Commit der PR, die D9 festhält). Ihr
+Stylesheet ist ein Tailwind-Eintrag (`packages/core/runtime-view/src/webview/styles/webview.css`:
+Preflight an, das Theme von pulse-ui und die Diagramm-CSS (diagram-js, bpmn-js, `cd-canvas.css`,
+`diagram.css`) ohne Schicht, `shell.css` von modeler-shell in einer eigenen Schicht `shell` unter
+dem Kit, die Schriftgröße der Wurzel auf 100 %, damit die Dichte-Rollen in `rem` bei 16 px bleiben),
+`<html>` trägt `data-density="compact"`. Sie baut ihre Ansichten aus dem Kit, ohne widget-shell: Sie
+rendert die View-Modelle, die der Kern schickt, und behält ihre Host-Anbindung (Push-Protokoll,
+Live-Updates, native Bestätigung). Mit den Widgets teilt sie das Fundament aus pulse-ui (Töne
+`@miragon/pulse-ui/tones`, Formatierer `@miragon/pulse-ui/format`, Glossar, Zählbegriffe,
+Marken-Gates) und die Bausteine, die D9 aus der Webview in pulse-ui hebt (`ViewBar`, `StatusStrip`,
+`Facts`, `StateLabel`, `CountBadge`, `DataTable` …); nur die geteilte Ansicht mit ihrer
+verstellbaren Trennung und den gespeicherten Breiten bleibt im Editor. Die Hosts setzen
+`data-cd-theme`; VS Code setzt für seine Hochkontrast-Themes schon heute `data-cd-kontrast="hoch"`.
+Das Theme-Ereignis von Orca meldet nur hell oder dunkel (`apps/orca/types/orca/index.d.ts`): In Orca
+erreicht hoher Kontrast die Webview über `forced-colors`, und die Brücke von Pulse for Orca setzt
+`data-cd-kontrast="hoch"` nur, wo Orca hohen Kontrast meldet. Was die Oberflächen noch unterscheidet
+und ob es gewollt ist, steht in `docs/vscode/parity.md`. Für die Webview gilt zusätzlich diese
 bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
 `apps/vscode/docs/adr/user-interface.md`):
 
-- Icons: 12 px neben dichtem Text und auf den 20-px-Overlays des Diagramms (Zähl- und
-  Move-Badges, Code- und Move-Knöpfe, Links und Warnungen im Text), sonst 16 px. `scanIconSizes`
-  lässt dort neben 16 und 24 px nur 12 px zu, und nur in den Dateien, die
-  `apps/vscode/test/architecture/brand-gates.test.ts` je mit Grund nennt; ein Eintrag ohne
-  12-px-Icon schlägt fehl.
+- Diagramm: Die Zähl-Badges auf dem Diagramm bleiben gefüllte 20-px-Pillen.
+
+Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Abweichung
+„Diagrammbeschriftung“ bei den eingebetteten Chat-Widgets oben gilt für beide Oberflächen). Ihre
+12-px-Icons (Dichte, oben) lässt `scanIconSizes` in der Webview nur in den Dateien zu, die
+`apps/vscode/test/architecture/brand-gates.test.ts` je mit Grund nennt.
 
 ## Architecture invariants
 
@@ -406,21 +490,29 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
    `@miragon/pulse-widget-shell/widgets`; never re-inline their primitives.** This covers
    the React views an MCP host renders (pulse-ui's and widget-shell's `src`, the connectors'
    `src/widgets`, the host bundle in `apps/mcp-server/src/ui/`); another interface
-   app's own UI follows the design system above, and the VS Code webview takes from pulse-ui
-   only its foundation (`/format`, `/tones`; `apps/vscode/docs/adr/ui-foundation.md`).
+   app's own UI follows the design system above, and the VS Code webview takes from pulse-ui its
+   foundation (`/format`, `/tones`) and, for shared building blocks, its React kit and
+   stylesheet. By the owner's decision D9 of 2026-11-12 (`apps/vscode/docs/adr/ui-foundation.md`)
+   the webview moved from Preact to React on pulse-ui in one switch and composes the kit
+   without widget-shell, in the one compact look of the design section.
    - **Pairs.** Six cockpit views have a counterpart in the VS Code webview (the overview, a
-     process, its instances, an instance, an incident, the history). A field, a count or an
-     action added to or changed in one is a pair feature: its pull request says whether the
-     other tool gets it and updates `docs/vscode/parity.md` by its review rule. Its content takes
-     props and callbacks only, no host context (`process-definitions-table-view.tsx` with
-     `renderActions`, `history-steps.tsx`), and stays in the connector until a second consumer
-     comes, so a shared building block (#586) costs little.
+     process, its instances, an instance, an incident, the history). A field, a count or an action
+     added to or changed in one is a pair feature: where both show it, a shared building block is
+     the default (React, props and callbacks only, no host context inside: no `useToolQuery`,
+     `ConfirmDialog`, `HandOffButton` or `HostBridge`), which both render in React, and each side
+     keeps its own screen and host wiring around it. Its pull request updates
+     `docs/vscode/parity.md` by its review rule. Which blocks two surfaces share is the owner's
+     decision in normal review. A primitive goes into pulse-ui, an engine block into a shared
+     package created with the first one two surfaces render; until then the cockpit side keeps its
+     props-only content in the connector (`process-definitions-table-view.tsx` with `renderActions`,
+     `history-steps.tsx`).
    - **One kit.** Primitives, components, the tone model (`TONE_*`, `resolveTone`), `cn`, the
      formatters and the kit pieces (`Icon`, `Th`/`Td`, `TableEmptyState`, `NativeSelect` …) come
      from `@miragon/pulse-ui`, a leaf (`ui-is-a-leaf`, invariant 8); widget-shell exports only
      what touches the host and never a pulse-ui name
      (`packages/core/widget-shell/src/pulse-ui-overlap.test.ts`). A form says an invalid
-     entry inline next to the control it marks `aria-invalid`, never clamps it silently.
+     entry inline next to the control it marks `aria-invalid` (pulse-ui's `Field` wires both),
+     never clamps it silently.
    - **The view runtime is widget-shell's.** Its host adapter (`ExtAppsViewHost` in
      `src/ui/ext-apps-host.tsx` over the official `App` of `@modelcontextprotocol/ext-apps` in
      `src/ui/view-runtime.ts`, mounted by `src/ui/view-root.tsx`) is the ONE place that speaks to
@@ -445,33 +537,58 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      (`isPermanentError`: a refused profile, a write to a read-only engine) is not retried by the
      view's query client and offers no Try again, in an error state or a failed refresh's notice
      (a paged list's footer through `canRetry`, which then says why through `describeRefusal`,
-     never "try again"); a write words it once, at its control or in its
-     confirmation's dialog, and the cockpit shows a refused engine once, as its view's one state
-     (`RefusedEngineGate`), also before the engine list answers. A write reports through
+     never "try again"; a view's failed refresh over the data it shows is a `StatusStrip` docked
+     under its bar, `useDetailView`'s `notice`, the raw engine text under the strip's Details); a
+     write words it once, at its control or in its confirmation's dialog, and the cockpit shows a
+     refused engine once, as its view's one state (`RefusedEngineGate`), also before the engine
+     list answers. A write reports through
      `useActionFeedback()` toasts that name the object and confirms through `ConfirmDialog`;
-     nothing to show is `TableEmptyState`.
+     nothing to show is `TableEmptyState`. A first load shows its skeleton only after 400 ms
+     (`SKELETON_DELAY_MS`), a refresh keeps the content on screen with its region `aria-busy`
+     (both components' `children` and `refreshing`), and an error is the guide's status box
+     (`ErrorState`).
    - **Inline is a card, not a page** (#396). A list under a host shows the rows that FIT the
      host's height budget, measured on the rendered view (`InlineFitBox`), never estimated
      with px constants. A paged list registers ONE list (`PagedRows` + `paged.fit`, its footer
      `labels={paged.footerLabels}`; `inline-fit-wiring.test.ts`); a row that continues the one
-     before carries `FIT_CONTINUES_ROW`; ids wrap between their parts (`BreakableId`). Roots
-     declare inline + fullscreen only (`SHELL_VIEW_CONFIG`).
-   - **Tables never widen the document** (WCAG 1.4.10): `ListTable` scrolls inside a named
-     region (`ariaLabel`) and drops columns on narrow regions (`hideBelow`). Ids show through
-     `IdCell`/`IdText`, processes and elements through `NamedId`, named by ONE reader
-     (`readBpmnNames`/`parseBpmnNames`), so every module shows them alike.
-   - **Type, dates and numbers.** Text sits on pulse-ui's `TYPE_SCALE` (13 px floor,
-     `scanTypeScale`). Dates, durations, numbers, counts and short ids go through the kit's
-     `format*` helpers and `shortId` in the locale `LocaleGate` publishes, one set for every
-     Pulse UI (pulse-ui's framework-free `@miragon/pulse-ui/format`, which the VS Code
-     extension's core and webview read too; a lower bound is `formatCount({ atLeast })`, `≥ 2,000`;
-     ESLint's date and number gates over `WIDGET_TREES`, every widget tree: the host bundle's
-     `src/ui`, widget-shell's and the connector's widgets, and the extension's core and webview;
-     `scripts/eslint-gates.test.mjs`). A count reaches a
-     catalog entry already formatted, and the entry puts the noun in the right number
-     (`countOf`, `plural(…)`), never a `…One`/`…Other` key pair.
+     before carries `FIT_CONTINUES_ROW`. An id in a table cell takes one line, so a row keeps the
+     row height: `NamedId` lays out inline in a `DataTable`'s body (the name, then the short id
+     quiet in mono, the whole in its title), whole where the table has room and cut with an
+     ellipsis first where it has none, and `IdText`'s copy button reaches into the cell's padding,
+     shows on the row's hover and focus, always on touch, never leaving the tab order. Only
+     outside tables (facts, a detail's header) does an id stack and wrap between its parts
+     (`BreakableId`). Roots declare inline + fullscreen only (`SHELL_VIEW_CONFIG`).
+   - **Tables never widen the document** (WCAG 1.4.10): `ListTable`, over pulse-ui's
+     `DataTable` (a sticky head of one-line captions, 28 px rows, a hover fill on `--accent`),
+     scrolls inside a named region (`ariaLabel`), drops columns on narrow regions
+     (`hideBelow`) and fits a column to its one line (`fit`: the identifying column, a time, the
+     row actions beside a long text, which takes the rest); a wide table of figures lets its
+     captions wrap (`wrapHeads`). It sizes no column: `DataTable`'s column sizing
+     (`useColumnSizing`, its persistence injected) is for a view that passes `sizing`; the grips,
+     the column menu and their measuring come with it, and a selection column's box with
+     `rowSelection`, so a bundle without them carries none. Ids
+     show through `IdCell`/`IdText`, processes and elements through `NamedId`, named by ONE
+     reader (`readBpmnNames`/`parseBpmnNames`), so every module shows them alike.
+   - **Type, dates and numbers.** Text sits on pulse-ui's `TYPE_SCALE` (13 px floor, weights
+     400, 600 and 700 only, `scanTypeScale`); a disabled control is opaque, never faded; a
+     section's title is pulse-ui's `SectionHeading` (13 px at 600 in the foreground, the
+     webview's; `as` for its level), never a heading composed by hand (the connector's
+     `src/brand-gates.test.ts`). Dates,
+     durations, numbers, counts and short ids go through the kit's `format*` helpers and `shortId`
+     in the locale `LocaleGate` publishes, one set for every Pulse UI (pulse-ui's framework-free
+     `@miragon/pulse-ui/format`, which the VS Code extension's core and webview read too; a lower
+     bound is `formatCount({ atLeast })`, `≥ 2,000`; ESLint's date and number gates over
+     `WIDGET_TREES`, every widget tree: the host bundle's `src/ui`, widget-shell's and the
+     connector's widgets, and the extension's core and webview; `scripts/eslint-gates.test.mjs`).
+     A count reaches a catalog entry already formatted, and the entry puts the noun in the right
+     number (`countOf`, `plural(…)`), never a `…One`/`…Other` key pair.
    - **BPMN** renders through `useBpmnViewer` + `BpmnZoomControls` on a forced-light canvas
-     whose colours all come from `BPMN_TOKENS` (`packages/core/widget-shell/src/ui/bpmn-tokens.ts`).
+     whose colours all come from `BPMN_TOKENS` (`packages/core/widget-shell/src/ui/bpmn-tokens.ts`)
+     and whose labels are bpmn-js's Arial (`BPMN_LABEL_STYLE`, the design section's deviation);
+     a marker paints its shape's outline, never a label, and the canvas alone is the image (the
+     hook's `ariaLabel`), its controls beside it and its count badges `aria-hidden` drawings. The
+     hook's fit keeps the drawing clear of the zoom bar beside the canvas and of bpmn.io's link,
+     both measured as drawn, so a narrow card shows every element.
    - **Paged lists** compose `usePagedListView` (the feed takes `firstResult`/`maxResults` and
      returns an honest total; counts, filters and model contexts read the payload ON SCREEN,
      never the request) + `ListTable` + `PagedListFooter`. Optimistic local state resets with
@@ -489,36 +606,56 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      on the landing and the fleet view alike. A failed health read has no verdict: its tone is
      the engine module's `HEALTH_FAILURE_TONE`
      (`packages/connectors/engine/engine-connector/src/widgets/lib/health-verdict.ts`), an
-     unreachable engine `danger`, a refused profile or login `warning`. Each tone has three
-     roles: `--<tone>` (dot, edge, icon), `--<tone>-soft` (tint, black text) and `--<tone>-ink`
-     (text on card or page, never on a tint, never a number). Numbers stay neutral. Components use
+     unreachable engine `danger`, a refused profile or login `warning`. Each tone has four
+     roles: `--<tone>` (dot, edge, icon), `--<tone>-soft` (tint, black text), `--<tone>-surface`
+     (the guide's status surface for a status box or strip: the tint on light, neutral on dark)
+     and `--<tone>-ink` (text on card or page, never on a tint, never a number). Numbers stay
+     neutral: an alarming count shows its tone by an icon of the tone's own shape and says it in
+     words (`CountFigure` in a table cell, a fact or a KPI tile, `CountBadge` as a pill at a row's
+     end; filled in its tone only on a BPMN diagram, the named deviation), never by a coloured
+     number, a tinted pill or a tinted KPI tile (owner decision of 2026-11-12, D9), a state in a
+     cell is a `StateLabel` (an icon of the state's own shape, its one word from the kit's
+     catalog) on the row's one line, never a pill (those are a header's `badge`) and never stacked
+     under an id; a count in a view's header is a `StateLabel` too (its tone's icon, the number
+     in the foreground), never a tinted `StatusBadge` or `LivePill`. Components use
      role names only (`scanColors`); `packages/core/ui/src/theme/tone-contrast.test.ts` holds every
      role pair to WCAG AA (a role a brand may override belongs in `ROLE_CONTRAST_PAIRS`). A brand
      override goes under `:root` AND the dark scopes, or a light-only value shows in dark
      (`parseThemeVariables`).
-   - **Icons are Lucide**, never glyphs or emoji: `Icon`, 16 or 24 px (`scanIconSizes`), its
+   - **Icons are Lucide**, never glyphs or emoji: `Icon`, 16 or 24 px, 12 px only in the files
+     the gate names with a reason (`scanIconSizes`, the density section's deviation), its
      stroke through lucide's own `strokeWidth`, never a CSS `stroke-width` rule, which would
      beat the `LucideProvider` widget-shell's view root sets with pulse-ui's `ICON_STROKE`.
      Every package that imports `lucide-react` and every host bundle pin the SAME exact 1.x
      devDependency (today `1.70.0`): pnpm installs a package once per peer set, so two versions
      resolve a second pulse-ui and widget-shell instance and split the React contexts.
-   - **Actions and hand-offs.** A view's actions are ONE group in `WidgetHeader` `actions`, all
-     `size="sm"`, ordered: deterministic steps, the engine's own web app
-     (`OpenInCockpitLink`), then the chat; the meta line under the title holds facts only
-     (`action-group.test.tsx`), and a state goes into the header's `badge`, not an icon tile. A row's drill is `DrillButton` (`row-actions.test.ts`), its
-     further actions sit in `MoreActions`. A chat hand-off is widget-shell's `HandOffButton`
-     (`action` from `HAND_OFF_ACTIONS`: one Lucide icon and one verb naming the chat per
-     function), a secondary outline after the action it accompanies; `scanGlyphs` bans sparkle
-     icons and an ESLint gate a raw `AskAiButton`, so a new function goes into widget-shell's table.
+   - **Actions and hand-offs.** A view's actions are ONE group in `WidgetHeader` `actions` (the
+     view's `ViewBar`, the hero only at app level with `size="app"`), all the kit's toolbar
+     buttons of one size (`variant="toolbar"`, `size="sm"`: an icon and its label at 400, the
+     label hidden visually in a bar under 36rem and kept as the name; `OpenInCockpitLink` and
+     `HandOffButton` take `variant="toolbar"` there), ordered: deterministic steps, the engine's
+     own web app (`OpenInCockpitLink`), then the chat; the bar's facts hold facts only
+     (`action-group.test.tsx`), and a state goes into the header's `badge`, not an icon tile.
+     `WidgetShell` pads nothing: its `header` (the bar, the strips under it) runs from edge to
+     edge, its content sits in the gutter, and a `flush` shell's children are views of their own
+     (the cockpit's routes). A row's drill is `DrillButton` (`row-actions.test.ts`), its
+     further actions sit in `MoreActions`; a table row's actions are `xs` (24 px: `DrillButton`
+     `size="xs"`, a hand-off's `size="xs"`, `MoreActions`), so the row keeps the row height. A
+     chat hand-off is widget-shell's `HandOffButton` (`action` from `HAND_OFF_ACTIONS`: one Lucide
+     icon and one verb naming the chat per function), a secondary outline after the action it
+     accompanies (in a view's bar its toolbar button); `scanGlyphs` bans sparkle icons and an
+     ESLint gate a raw `AskAiButton`, so a new function goes into widget-shell's table.
    - **Brand gates and glossary.** Every widget package runs the gates of
      `@miragon/pulse-ui/testing` (`catalogTextFindings`, `scanGlyphs`, `scanIconSizes`,
-     `scanColors`) in its own `brand-gates.test.ts` (the host bundle's `src/ui` runs
-     `scanGlyphs`; widget-shell checks its words next to its catalogs, in
+     `scanColors`, `scanOutlines`: Tailwind's `outline-hidden` only under a focus state, since
+     forced colours paint it as a 2 px frame at rest anywhere else) in its own
+     `brand-gates.test.ts` (the host bundle's `src/ui` runs `scanGlyphs` and `scanOutlines`;
+     widget-shell checks its words next to its catalogs, in
      `packages/core/widget-shell/src/ui/kit-words.test.ts`), and its en/de catalogs hold the same
-     keys; the VS Code extension runs `scanGlyphs`, `scanIconSizes` and `scanColors` over its
-     webview (`apps/vscode/test/architecture/brand-gates.test.ts`, its 12 px icons the named
-     deviation of the design section). One term per thing across the product, the VS Code
-     extension included: `PRODUCT_GLOSSARY` (`@miragon/pulse-ui/testing`, with the brand gates; Incident,
+     keys; the VS Code extension runs `scanGlyphs`, `scanIconSizes`, `scanColors`,
+     `scanOutlines` and `scanTypeScale` over its webview (`apps/vscode/test/architecture/brand-gates.test.ts`, its
+     12 px icons the named deviation of the design section). One term per thing across the
+     product, the VS Code extension included: `PRODUCT_GLOSSARY` (`@miragon/pulse-ui/testing`, with the brand gates; Incident,
      "Jobs ohne Versuche" / "jobs without retries", "bereitstellen", Geschäftsschlüssel,
      aussetzen, Versuche, alle Engines, ein Profil "abgelehnt" / "refused"), checked with each
      connector's own terms by `src/messages/glossary.test.ts` and listed in
@@ -529,7 +666,10 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      holds a copy). The counts
      both tools show take the words of `COUNT_TERMS` (owner decision E2): "Incidents" are the open
      incidents of the thing shown, "With incident" the instances that have one, and a count's
-     header names its version scope; the numbers behind a word may differ per tool.
+     header names its version scope. A feature more than one surface shows (boards first) shows
+     the same numbers on every surface, from one builder over one read (owner decision D2 of
+     2026-11-12, amending E2); elsewhere a tool keeps its own numbers behind the same words until
+     its view moves onto shared numbers.
    - **Locale on the server.** Tool results for the model are English only (the engine module's
      cockpit facts are JSON keys); a
      verdict travels as data and the widget words it in the host's language. The server never
@@ -684,12 +824,18 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      decision of 2026-11-09 on #585: engine-core by its entries
      (`runtime-view-builds-on-the-engine-contract`); its core and webview import pulse-ui's
      framework-free formatters and tones (`@miragon/pulse-ui/format`, `@miragon/pulse-ui/tones`,
-     which import nothing: `ui-foundation-entries-import-nothing`; its closed world's
-     `pulse-ui-only-its-foundation` keeps the React kit out; the decision:
-     `apps/vscode/docs/adr/ui-foundation.md`). A family's adapter imports only its own family's
-     core, engine-core, the runtime view and the transport (`adapters-own-their-family`; the C7
-     adapter, `packages/connectors/c7/c7-adapter`, runs c7-core), never a client, its own family's
-     included (`client-consumers`, owner decision 2026-11-11). A family core
+     which import nothing: `ui-foundation-entries-import-nothing`). Its core, ports, model reader
+     and host kit stay framework-free, with nothing else of pulse-ui (its closed world's
+     `pulse-ui-only-its-foundation`); the webview may import pulse-ui's React kit and stylesheet
+     for shared building blocks, by the package's root and `@miragon/pulse-ui/theme.css` only
+     (`webview-pulse-ui-by-its-entries`; the decisions of 2026-11-12:
+     `apps/vscode/docs/adr/ui-foundation.md`, whose D9 moved the webview to React on pulse-ui in
+     one switch, its rendering libraries `react`, `react-dom` and `lucide-react`, never
+     widget-shell). A family's adapter imports only its
+     own family's core, engine-core, the runtime view and the transport
+     (`adapters-own-their-family`; the C7 adapter, `packages/connectors/c7/c7-adapter`, runs
+     c7-core), never a client, its own family's included (`client-consumers`, owner decision
+     2026-11-11). A family core
      (`family-core-is-a-leaf`) is imported only by its family's connector (a dialect's core by the
      engine module) and adapter and by the apps that bundle it (`family-core-consumers`,
      `CORE_BUNDLERS`); the profile format (`@miragon/pulse-profile`, `packages/core/profile`) is a
@@ -917,7 +1063,10 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
   size is the cost of every render: `test/__golden__/bundle-budget.json` holds shrink-only gzip
   ceilings that `test-host/bundle-budget.spec.ts` checks; growth needs a `Ratchet-Exception:`
   trailer that says why. Two more shipped bundles have a shrink-only ceiling: the VS Code
-  webview's (`apps/vscode/test/__golden__/bundle-budget.json`, gzip) and the CLI's npm dist
+  webview's (`apps/vscode/test/__golden__/bundle-budget.json`, gzip, its script and its
+  stylesheet, each failing too once it shrinks more than 10 % below its ceiling; the same test
+  holds the bundle to one copy each of React, react-dom, lucide-react and pulse-ui, the esbuild
+  counterpart of invariant 4) and the CLI's npm dist
   (`apps/cli/test/__golden__/bundle-budget.json`, raw bytes, c7-core with engine-core's
   root-cause rule, http and profile bundled in, read by `scripts/published-imports.test.mjs`,
   which also makes it come down once the dist shrinks more than 10 % below it). The CLI's
@@ -938,7 +1087,9 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
   because apps never import each other) reads what the artifact really holds: its bundler's
   module graph (`renderedModules` for rolldown, rollup and Vite, `cssDependencies` for the
   stylesheets Vite inlines, `esbuildModules` for an esbuild metafile and esbuild's runtime
-  helpers) or its generated files. A module under node_modules is its package's, a virtual module
+  helpers, `inlinedStylesheets` for what an esbuild plugin inlines into a stylesheet, a Tailwind
+  entry, which every plugin of a shipped esbuild build reports through `inlined()`, or the list
+  fails) or its generated files. A module under node_modules is its package's, a virtual module
   the bundler's (named in the artifact's layout), a file of the repository Miragon's, and one of
   Pulse's packages must share the artifact's MIT; a module that carries another work's text names
   that work (`embedded`). Anything else fails, and so does a work without a licence file unless

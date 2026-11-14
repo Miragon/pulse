@@ -30,7 +30,7 @@ export function ViewFrame({ call, view }: { call: ViewCall; view: ViewComponent 
   }, [call])
   const spec = view ? viewCallContext(phase) : null
   return (
-    <div ref={frameRef} tabIndex={-1} data-slot="view-frame" className="outline-hidden">
+    <div ref={frameRef} tabIndex={-1} data-slot="view-frame" className="outline-none">
       {spec && <HostModelContext content={modelContextText(spec)} />}
       <FrameBody call={call} view={view} labels={labels} onRetry={retry} />
     </div>
@@ -48,9 +48,10 @@ function FrameBody({
   labels: KitLabels
   onRetry: () => void
 }) {
+  // Every phase before the view sits on the gutter, as the view's own content does.
   if (!View) {
     return (
-      <div className="px-4 py-4">
+      <div className="p-gutter">
         <ErrorState title={labels.viewMissing} />
       </div>
     )
@@ -60,7 +61,7 @@ function FrameBody({
       return <ViewWaiting labels={labels} />
     case "cancelled":
       return (
-        <div className="px-4 py-4">
+        <div className="p-gutter">
           <p role="status" className="text-muted-foreground text-small">
             {labels.cancelled}
           </p>
@@ -68,7 +69,7 @@ function FrameBody({
       )
     case "error":
       return (
-        <div className="px-4 py-4">
+        <div className="p-gutter">
           <ViewDataState
             loading={false}
             error={phase.error}
@@ -97,8 +98,8 @@ function ViewWaiting({ labels }: { labels: KitLabels }) {
     return () => clearTimeout(id)
   }, [])
   return (
-    <div className="flex flex-col gap-4 px-4 py-4">
-      <Skeleton aria-hidden="true" className="h-8 w-48" />
+    <div className="gap-section p-gutter flex flex-col">
+      <Skeleton aria-hidden="true" className="h-control w-48" />
       <Skeleton aria-hidden="true" className="h-32 w-full" />
       <div role="status" className="text-muted-foreground text-small flex flex-col gap-1">
         <p>{labels.loadingView}</p>
@@ -133,7 +134,10 @@ function ViewMain({
   return (
     <main style={style}>
       {(reloadedAt !== null || canFullscreen) && (
-        <div data-slot="view-toolbar" className="flex min-h-12 items-center gap-2 px-4 py-2">
+        <div
+          data-slot="view-toolbar"
+          className="min-h-bar px-gutter flex items-center gap-2 py-1.5"
+        >
           {reloadedAt !== null && (
             <p
               data-slot="view-reloaded-at"

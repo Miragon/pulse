@@ -19,6 +19,7 @@ import {
   selectTab,
   showPulse,
 } from "./vscode-driver.mjs"
+import { part } from "../support/webview-parts.mjs"
 
 export const READING_USE_CASES = [
   {
@@ -55,7 +56,7 @@ export const READING_USE_CASES = [
         .locator('[data-element-id="Activity_ChargePayment"]')
         .first()
         .click({ force: true })
-      await panelFrame(window).locator(".filter-chip", { hasText: "Charge payment" }).waitFor()
+      await panelFrame(window).locator(part("filter-chip"), { hasText: "Charge payment" }).waitFor()
       await restPointer(window)
       await window.waitForTimeout(900)
     },

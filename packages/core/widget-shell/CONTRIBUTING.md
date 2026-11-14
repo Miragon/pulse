@@ -71,9 +71,12 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   `InlineFitBox`) caps a paged list (`usePagedViewData`) and an unpaged `ListTable` to the
   rows that fit the host's height budget, measured on the rendered view, with the count and
   a way to the rest (fullscreen where the host offers it); the BPMN canvas stays at 320 px.
-  Layout, states and feedback: `ListTable` scrolls inside a named, keyboard-reachable region
-  (column priorities via `hideBelow`, the row actions pinned with `sticky`, the sorted
-  column marked with `sort`, heads over adjacent columns with `groups`), `IdCell`/`IdText`
+  Layout, states and feedback: `ListTable`, over pulse-ui's `DataTable`, scrolls inside a
+  named, keyboard-reachable region with a sticky head and 28 px rows (column priorities via
+  `hideBelow`, the row actions pinned with `sticky`, a column as narrow as its one line with
+  `fit`, pulse-ui's `DataTable` `fit`, so a long text column takes the rest, the sorted
+  column marked with `sort`, heads over adjacent columns with `groups`, captions that wrap in a
+  wide table of figures with `wrapHeads`), `IdCell`/`IdText`
   show an id shortened in Geist Mono with a copy button (the short form, `shortId`, and the
   severity ladder for incident and job counts, `countTone`/`severityTone`, are pulse-ui's), `describeError` turns an engine or
   transport failure into what happened and what you can do (pulse-ui's `ErrorState` in

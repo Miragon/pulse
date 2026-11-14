@@ -1,3 +1,3 @@
 export function NoValue() {
-  return <span class="muted">—</span>
+  return <span className="text-muted-foreground">—</span>
 }

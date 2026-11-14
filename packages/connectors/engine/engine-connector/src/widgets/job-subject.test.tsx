@@ -5,7 +5,7 @@ import type { JobPanelData } from "../view-models.js"
 import { JobPanelWidget } from "./job-panel.js"
 import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 
-// #396: two lines; a scoped panel names its process once in the head, since three-line rows cost a chat card a row.
+// #396: one line in the table's cell (NamedId inline); a scoped panel names its process once in the head.
 
 afterEach(() => {
   cleanup()
@@ -48,14 +48,14 @@ function renderPanel(filters: JobPanelData["filters"]) {
 }
 
 describe("a job's subject", () => {
-  it("over several processes: the activity, then its id and its process on one quiet line", () => {
+  it("over several processes: the activity, then its id and its process, on one line", () => {
     const cell = renderPanel({})
-    expect(cell.textContent).toBe("Charge cardActivity_ChargeCard · in Invoice receipt")
+    expect(cell.textContent).toBe("Charge card Activity_ChargeCard · in Invoice receipt")
   })
 
   it("in a panel scoped to one process: the activity and its id; the head names the process", () => {
     const cell = renderPanel({ processDefinitionKey: "invoice" })
-    expect(cell.textContent).toBe("Charge cardActivity_ChargeCard")
+    expect(cell.textContent).toBe("Charge card Activity_ChargeCard")
     // Named once, in the head's meta line.
     expect(screen.getAllByText("in Invoice receipt")).toHaveLength(1)
     expect(cell.textContent).not.toContain("Invoice receipt")

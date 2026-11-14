@@ -1,5 +1,4 @@
-import { createContext } from "preact"
-import { useContext } from "preact/hooks"
+import { createContext, useContext } from "react"
 import type { BackLink, WebviewIntent } from "../../core/protocol/index.js"
 import type { VsCodeApi } from "./host-bridge.js"
 

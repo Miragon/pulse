@@ -4,6 +4,8 @@ import {
   colour,
   contrast,
   DARK,
+  DARK_KONTRAST,
+  KONTRAST,
   LIGHT,
   MODES,
   over,
@@ -29,10 +31,14 @@ const TEXT_PAIRS: [string, string, string][] = [
   ["--popover-foreground", "--popover", "Dialog"],
   ["--secondary-foreground", "--secondary", "secondary Button/Badge"],
   ["--accent-foreground", "--accent", "hovered outline/ghost Button, active FilterBar chip"],
+  ["--foreground", "--raised", "outline Button, active tab, FilterBar chip"],
   ["--muted-foreground", "--background", "secondary text"],
   ["--muted-foreground", "--card", "CardDescription, AlertDescription"],
   ["--muted-foreground", "--popover", "dialog descriptions"],
-  ["--muted-foreground", "--muted", "KpiGrid header, TabsList, TONE_SOFT.neutral"],
+  ["--muted-foreground", "--raised", "an inactive FilterBar chip"],
+  ["--muted-foreground", "--muted", "TabsList, TONE_SOFT.neutral"],
+  ["--muted-foreground", "--accent", "quiet text on a hovered/selected item (text-leise on hover)"],
+  ["--muted-foreground", "--secondary", "quiet text on a secondary surface"],
   ["--primary-foreground", "--primary", "primary Button, default Badge"],
   ["--primary-foreground", "--primary-hover", "hovered primary Button"],
   ["--destructive-foreground", "--destructive", "destructive Button"],
@@ -50,21 +56,9 @@ const TEXT_PAIRS: [string, string, string][] = [
     [`--${tone}-ink`, "--card", `TONE_INK.${tone} in a card`],
     [`--${tone}-ink`, "--popover", `TONE_INK.${tone} in a dialog`],
     [`--${tone}-ink`, "--muted", `TONE_INK.${tone} on a quiet surface`],
+    [`--${tone}-ink`, `--${tone}-surface`, `TONE_INK.${tone} in its status box`],
+    [`--foreground`, `--${tone}-surface`, `text in the ${tone} status box`],
   ]),
-]
-
-/**
- * Text pairs that hold in LIGHT only, by design: dark lifts the hover/selected
- * (--accent) and secondary surfaces 10 % so they stay visible, and
- * --cd-kontur keeps 4.5:1 only up to a 3 % lift. On these surfaces quiet text
- * takes the surface's own foreground (`group-hover:text-accent-foreground`);
- * the design-system gate checks that a class string switching to one of these
- * surfaces switches the text too. Pinned below so the exemption is dropped
- * the day it is no longer needed.
- */
-const LIGHT_ONLY_TEXT_PAIRS: [string, string, string][] = [
-  ["--muted-foreground", "--accent", "quiet text on a hovered/selected item"],
-  ["--muted-foreground", "--secondary", "quiet text on a secondary surface"],
 ]
 
 /** Non-text pairs (WCAG 1.4.11, 3:1) that identify a control or its state. */
@@ -73,15 +67,14 @@ const NON_TEXT_PAIRS: [string, string, string][] = [
   ["--input", "--card", "inputs in cards"],
   ["--input", "--popover", "inputs in dialogs"],
   ["--input", "--muted", "inputs on quiet surfaces"],
-  ...["--background", "--card", "--popover", "--muted", "--accent"].flatMap(
+  ["--input", "--raised", "inputs beside a raised control"],
+  ...["--background", "--card", "--popover", "--raised", "--muted", "--accent"].flatMap(
     (bg): [string, string, string][] => [
       ["--focus", bg, "FOCUS_RING, :focus-visible outline"],
       ["--ring", bg, "legacy ring utilities"],
+      ["--interaction", bg, "checked Switch track, active tab bar, a selection mark"],
     ],
   ),
-  ["--primary", "--background", "checked Switch track, active tab indicator"],
-  ["--primary", "--card", "checked Switch in a card"],
-  ["--primary", "--popover", "checked Switch in a dialog"],
 ]
 
 /**
@@ -94,28 +87,22 @@ const LIGHT_EXEMPT_STATUS = ["--success", "--warning"]
 
 /**
  * Where a status colour renders as a dot, border or icon (non-text, 3:1), per
- * tone: the page (KpiGrid dot, EmptyState icon, Pills), an overlay card (the
+ * tone: the page (a KPI trend's icon, EmptyState icon, Pills), an overlay card (the
  * Toast's left edge and icon) and the tone's own tint (the ErrorState's rim and
  * icon). Same CI exemption as above on light.
  */
 const STATUS_SURFACES = (tone: (typeof TONES)[number]): [string, string][] => [
   ["--background", "dot, border or icon on the page"],
+  ["--card", "dot, border or icon in a card"],
   ["--popover", "Toast edge and icon"],
   [`--${tone}-soft`, "ErrorState rim and icon on its own tint"],
+  [`--${tone}-surface`, "the status box's bar and icon on its surface"],
 ]
 
 describe.each(MODES)("contrast in %s mode (computed from the vendored tokens)", (mode) => {
   it.each(TEXT_PAIRS)("text %s on %s ≥ 4.5:1 (%s)", (fg, bg) => {
     expect(ratio(fg, bg, mode)).toBeGreaterThanOrEqual(4.5)
   })
-
-  it.each(LIGHT_ONLY_TEXT_PAIRS)(
-    "text %s on %s ≥ 4.5:1 in light only, dark exemption still needed (%s)",
-    (fg, bg) => {
-      if (mode === "light") expect(ratio(fg, bg, mode)).toBeGreaterThanOrEqual(4.5)
-      else expect(ratio(fg, bg, mode)).toBeLessThan(4.5)
-    },
-  )
 
   it.each(NON_TEXT_PAIRS)("non-text %s on %s ≥ 3:1 (%s)", (fg, bg) => {
     expect(ratio(fg, bg, mode)).toBeGreaterThanOrEqual(3)
@@ -141,43 +128,66 @@ describe.each(MODES)("contrast in %s mode (computed from the vendored tokens)", 
 })
 
 describe("dark mode follows the CI dark-ground rules", () => {
-  it("grounds on --cd-schwarz with white text, green links, blue buttons, blau-hell focus", () => {
+  it("grounds on --cd-schwarz with white text, green links, blue buttons, blau-hell focus and selection", () => {
     expect(DARK["--background"]).toBe("var(--cd-schwarz)")
+    expect(DARK["--muted"]).toBe("var(--cd-schwarz)")
     expect(DARK["--foreground"]).toBe("var(--cd-weiss)")
     expect(DARK["--link"]).toBe("var(--cd-gruen)")
     expect(DARK["--primary"]).toBe("var(--cd-blau)")
     expect(DARK["--primary-foreground"]).toBe("var(--cd-weiss)")
     expect(DARK["--destructive-foreground"]).toBe("var(--cd-weiss)")
     expect(DARK["--focus"]).toBe("var(--cd-blau-hell)")
-    expect(DARK["--muted-foreground"]).toBe("var(--cd-kontur)")
+    expect(DARK["--interaction"]).toBe("var(--cd-blau-hell)")
   })
 
-  it("uses the -hell status values with no tinted fills", () => {
+  it("uses the -hell status values with no tinted fills; info is no text on an overlay (CI §3.3)", () => {
     for (const tone of TONES) {
       expect(DARK[`--${tone}`]).toBe(`var(--cd-${tone}-hell)`)
-      expect(DARK[`--${tone}-ink`]).toBe(`var(--cd-${tone}-hell)`)
       expect(DARK[`--${tone}-soft`]).toBe("transparent")
+      expect(DARK[`--${tone}-surface`]).toBe(DARK["--card"])
     }
+    for (const tone of ["success", "warning", "danger"]) {
+      expect(DARK[`--${tone}-ink`]).toBe(`var(--cd-${tone}-hell)`)
+    }
+    // --cd-info-hell as text reaches 4.27:1 on flaeche-hoch (a dialog, a toast): the ink is the text.
+    expect(ratio("--info", "--popover", "dark")).toBeLessThan(4.5)
+    expect(DARK["--info-ink"]).toBe("var(--cd-weiss)")
   })
 
-  it("lifts surfaces only with white mixed into --cd-schwarz", () => {
-    for (const name of ["--muted", "--secondary", "--accent"]) {
+  it("lifts surfaces only with white mixed into --cd-schwarz, higher is lighter", () => {
+    for (const name of ["--card", "--popover", "--raised", "--secondary", "--accent", "--border"]) {
       expect(DARK[name]).toMatch(
         /^color-mix\(in srgb, var\(--cd-weiss\) \d+%, var\(--cd-schwarz\)\)$/,
       )
     }
+    const lift = (name: string) => colour(role(name, "dark")).r
+    expect(lift("--background")).toBeLessThan(lift("--card"))
+    expect(lift("--card")).toBeLessThan(lift("--popover"))
+    expect(lift("--popover")).toBeLessThan(lift("--accent"))
   })
 
-  it("keeps overlays on the ground (any lift drops a checked Switch below 3:1) and pushes the page back harder", () => {
-    expect(DARK["--popover"]).toBe("var(--cd-schwarz)")
-    const onLift = over(
-      colour(role("--primary", "dark")),
-      colour("color-mix(in srgb, var(--cd-weiss) 2%, var(--cd-schwarz))"),
-    )
-    // Why not lift: --cd-blau is 3.08:1 on the ground and under 3:1 from a 2 % lift.
-    expect(
-      contrast(onLift, colour("color-mix(in srgb, var(--cd-weiss) 2%, var(--cd-schwarz))")),
-    ).toBeLessThan(3)
+  it("marks a selection and a checked switch in --interaction: --primary falls under 3:1 on a lift", () => {
+    // --cd-blau is 3.08:1 on the ground only; a card (flaeche) or an overlay (flaeche-hoch) drops it.
+    expect(ratio("--primary", "--background", "dark")).toBeGreaterThanOrEqual(3)
+    for (const surface of ["--card", "--popover", "--raised"]) {
+      expect(ratio("--primary", surface, "dark")).toBeLessThan(3)
+      expect(ratio("--interaction", surface, "dark")).toBeGreaterThanOrEqual(3)
+    }
+    // The active tab's bar and the checked segment's edge sit on the hover fill.
+    for (const mode of ["light", "dark"] as const) {
+      expect(ratio("--interaction", "--accent", mode), mode).toBeGreaterThanOrEqual(3)
+    }
+    for (const [file, mark] of [
+      ["../primitives/switch.tsx", /\bbg-interaction\b/],
+      ["../primitives/tabs.tsx", /\bborder-b-interaction\b/],
+      ["../kit/segmented-control.tsx", /\bborder-interaction\b/],
+    ] as const) {
+      expect(read(file), file).toMatch(mark)
+      expect(read(file), file).not.toMatch(/\b(?:bg|border(?:-[a-z])?)-primary(?![\w-])/)
+    }
+  })
+
+  it("pushes the page back harder than on light (the guide's backdrop)", () => {
     const scrimAlpha = (mode: Mode) => colour(role("--scrim", mode)).a
     expect(role("--scrim", "dark")).toMatch(
       /^color-mix\(in srgb, var\(--cd-schwarz\) \d+%, transparent\)$/,
@@ -192,6 +202,30 @@ describe("dark mode follows the CI dark-ground rules", () => {
     expect(panel).toMatch(/\sdark:border-input\s/)
     expect(ratio("--input", "--popover", "dark")).toBeGreaterThanOrEqual(3)
   })
+})
+
+describe("high contrast (data-cd-kontrast) holds every pair, and more", () => {
+  /** A role in high contrast: the contrast block over the mode's roles. */
+  const hoch = (name: string, mode: Mode) =>
+    (mode === "dark" ? (DARK_KONTRAST[name] ?? KONTRAST[name]) : KONTRAST[name]) ?? role(name, mode)
+  const hochRatio = (fg: string, bg: string, mode: Mode) => {
+    const back = over(colour(hoch(bg, mode)), colour(role("--background", mode)))
+    return contrast(over(colour(hoch(fg, mode)), back), back)
+  }
+
+  it.each(MODES)(
+    "draws the edges at 3:1 and quiet text and field edges at 7:1 on every surface (%s)",
+    (mode) => {
+      for (const bg of ["--background", "--card", "--popover", "--muted", "--accent"]) {
+        expect(hochRatio("--border", bg, mode), `--border on ${bg}`).toBeGreaterThanOrEqual(3)
+        expect(hochRatio("--input", bg, mode), `--input on ${bg}`).toBeGreaterThanOrEqual(7)
+        expect(
+          hochRatio("--muted-foreground", bg, mode),
+          `--muted-foreground on ${bg}`,
+        ).toBeGreaterThanOrEqual(7)
+      }
+    },
+  )
 })
 
 describe("light mode text never uses a status colour that fails on white", () => {

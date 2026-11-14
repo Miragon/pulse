@@ -43,6 +43,32 @@ describe("typeScaleFindings", () => {
     ])
   })
 
+  it("passes the guide's three weights and the families", () => {
+    expect(
+      found(
+        `const a = "font-normal font-semibold md:font-bold data-[state=active]:font-semibold font-mono font-sans font-heading font-['Geist'] font-[family-name:var(--x)]"`,
+      ),
+    ).toEqual([])
+  })
+
+  it("fails every other weight as off the scale's weights, 500 first", () => {
+    expect(
+      found(
+        `const a = "font-medium file:font-medium font-light font-thin font-extralight font-extrabold font-black font-[500] font-[weight:550]"`,
+      ),
+    ).toEqual([
+      "off-weight:font-medium",
+      "off-weight:file:font-medium",
+      "off-weight:font-light",
+      "off-weight:font-thin",
+      "off-weight:font-extralight",
+      "off-weight:font-extrabold",
+      "off-weight:font-black",
+      "off-weight:font-[500]",
+      "off-weight:font-[weight:550]",
+    ])
+  })
+
   it("never mistakes a step or a colour for a size, and skips comments", () => {
     expect(
       found(`// text-xs in a comment
@@ -67,12 +93,16 @@ describe("scanTypeScale", () => {
 
   it("scans a tree's sources (not its tests), optionally one rule only", () => {
     dir = mkdtempSync(join(tmpdir(), "type-scale-"))
-    writeFileSync(join(dir, "a.tsx"), `export const a = "text-xs text-sm"`)
-    writeFileSync(join(dir, "a.test.tsx"), `export const t = "text-xs"`)
+    writeFileSync(join(dir, "a.tsx"), `export const a = "text-xs text-sm font-medium"`)
+    writeFileSync(join(dir, "a.test.tsx"), `export const t = "text-xs font-medium"`)
     expect(scanTypeScale(dir).map((f) => `${f.file}:${f.match}`)).toEqual([
       "a.tsx:text-xs",
       "a.tsx:text-sm",
+      "a.tsx:font-medium",
     ])
     expect(scanTypeScale(dir, { rules: ["below-floor"] }).map((f) => f.match)).toEqual(["text-xs"])
+    expect(scanTypeScale(dir, { rules: ["off-weight"] }).map((f) => f.match)).toEqual([
+      "font-medium",
+    ])
   })
 })

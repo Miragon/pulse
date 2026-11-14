@@ -140,7 +140,8 @@ const INVOICE_INSTANCE = "pi-invoice-42"
 /**
  * Its two open incidents: one at an element the diagram names (`approveInvoice`), one at an
  * element the diagram does not hold (`chargeCard`, the stub jobs' element), named by its id.
- * Only reads scoped to this instance see them; the engine-wide reads stay empty.
+ * Only reads scoped to this instance or naming one by its id see them (the incident view: the
+ * incident, then its failed job); the engine-wide reads stay empty.
  */
 function invoiceIncident(id: string, activityId: string, incidentMessage: string) {
   return {
@@ -163,6 +164,30 @@ const INVOICE_INSTANCE_INCIDENTS = [
   invoiceIncident("inc-approve", "approveInvoice", "Approver lookup failed"),
   invoiceIncident("inc-charge", "chargeCard", "Card declined"),
 ]
+
+/**
+ * The incident view's reads of one of {@link INVOICE_INSTANCE_INCIDENTS}: the incident by its id
+ * and the failed job its configuration names (no retries left); null for every other request.
+ */
+function invoiceIncidentResource(url: URL): { status: number; body: unknown } | null {
+  const byId = /^\/engine-rest\/incident\/([^/]+)$/.exec(url.pathname)
+  const incident = byId
+    ? INVOICE_INSTANCE_INCIDENTS.find((one) => one.id === decodeURIComponent(byId[1]))
+    : undefined
+  if (incident) return { status: 200, body: incident }
+  const jobId = url.pathname === "/engine-rest/job" ? url.searchParams.get("jobId") : null
+  const failed = INVOICE_INSTANCE_INCIDENTS.find((one) => one.configuration === jobId)
+  if (!failed) return null
+  return {
+    status: 200,
+    body: [
+      {
+        ...failedJob(failed.configuration, INVOICE_INSTANCE, failed.incidentMessage),
+        failedActivityId: failed.activityId,
+      },
+    ],
+  }
+}
 
 /** The instance view's reads of {@link INVOICE_INSTANCE}, or null. */
 function instanceResource(url: URL): { status: number; body: unknown } | null {
@@ -252,6 +277,7 @@ function route(url: URL): { status: number; body: unknown } {
   }
   const resource =
     instanceResource(url) ??
+    invoiceIncidentResource(url) ??
     historyResource(url) ??
     overviewResource(pathname) ??
     definitionResource(pathname)
@@ -303,8 +329,10 @@ function failedJob(id: string, processInstanceId: string, exceptionMessage: stri
  * The stub's jobs. `job-1` is the write scenario's (`write-refresh.spec.ts`):
  * failed until a retry lands, the one stateful corner of the stub's engine
  * data (the search holds are scenario control), owned by that one scenario.
- * `job-2` and `job-3` are never written: the row menu scenario opens the
- * menu of a row with another row under it.
+ * The others are never written: the row menu scenario opens the menu of
+ * `job-2`'s row with another row under it. Sixteen, so a 600 px budget shows
+ * some of them ("k of 16") under the compact cockpit's 28 px rows, its row actions
+ * included, and 800 px all.
  */
 function stubJobs(): Map<string, StubJob> {
   return new Map(
@@ -312,6 +340,19 @@ function stubJobs(): Map<string, StubJob> {
       failedJob("job-1", "pi-1", "Card declined"),
       failedJob("job-2", "pi-2", "Card expired"),
       failedJob("job-3", "pi-3", "Billing address unknown"),
+      failedJob("job-4", "pi-4", "Insufficient funds"),
+      failedJob("job-5", "pi-5", "Issuer unavailable"),
+      failedJob("job-6", "pi-6", "Limit exceeded"),
+      failedJob("job-7", "pi-7", "Card blocked"),
+      failedJob("job-8", "pi-8", "Currency not supported"),
+      failedJob("job-9", "pi-9", "Gateway timeout"),
+      failedJob("job-10", "pi-10", "Fraud check failed"),
+      failedJob("job-11", "pi-11", "Security code mismatch"),
+      failedJob("job-12", "pi-12", "Account closed"),
+      failedJob("job-13", "pi-13", "Risk score too high"),
+      failedJob("job-14", "pi-14", "Bank holiday"),
+      failedJob("job-15", "pi-15", "Invalid IBAN"),
+      failedJob("job-16", "pi-16", "Duplicate payment"),
     ].map((job) => [job.id, job]),
   )
 }
@@ -409,8 +450,9 @@ function createSearchHolds() {
  * server ACTUALLY builds (view envelope, data shape, engine id) from a fixed
  * engine response (`fixtures/process-definitions.json` with their statistics,
  * no open incident, the `invoice` diagram `fixtures/invoice.bpmn` with two instances at
- * `approveInvoice`, twelve started in the last 30 days in its history, three failed jobs, and
- * one invoice instance with two open incidents that only its own reads see).
+ * `approveInvoice`, twelve started in the last 30 days in its history, sixteen failed jobs, and
+ * one invoice instance with two open incidents that only its own reads and a read by an
+ * incident's id see).
  * The broken base URL turns any tool into a genuine `isError` result: an
  * engine 503 through the server's own error mapping.
  *

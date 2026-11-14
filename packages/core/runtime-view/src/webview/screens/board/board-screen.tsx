@@ -1,9 +1,9 @@
+import { ClipboardListIcon, FileCodeIcon, RotateCcwIcon } from "lucide-react"
+import { Card, Icon, SectionHeading, ViewBar } from "@miragon/pulse-ui"
 import type { BoardTile, BoardView } from "../../../core/protocol/index.js"
-import { BackButton } from "../../components/back-button.js"
+import { BackTarget } from "../../components/back-target.js"
 import { HeaderButton } from "../../components/header-button.js"
-import { Icon } from "../../components/icon.js"
 import { FreshnessStamp, type Freshness } from "../../components/live-stamp.js"
-import { glyphs } from "../../components/lucide-glyphs.json"
 import { StatusStrip } from "../../components/status-strip.js"
 import { CountLabels } from "../../format/count-labels.js"
 import { useHost } from "../../host/host-context.js"
@@ -21,32 +21,39 @@ export interface BoardScreenProps {
 }
 
 function BoardHeader({ view, freshness }: BoardScreenProps) {
+  const host = useHost()
   return (
-    <header class="context-bar context-bar--board">
-      <div class="context-bar__subject">
-        <BackButton class="context-bar__back" />
-        <Icon of={glyphs.ClipboardList} />
-        <h1 class="context-bar__title">{view.title}</h1>
-        {view.engines.length > 0 && (
-          <span class="context-bar__key context-bar__shrink">{BoardLabels.scope(view)}</span>
-        )}
-        <HeaderButton
-          icon={glyphs.RotateCcw}
-          label="Refresh"
-          title="Read every engine of this board again"
-          intent={{ type: "refresh" }}
-        />
-        <HeaderButton
-          icon={glyphs.FileCode}
-          label="Open file"
-          title={`Open ${view.fileName}`}
-          intent={{ type: "openBoardFile" }}
-        />
-      </div>
-      <div class="context-bar__meta">
-        <FreshnessStamp freshness={freshness} />
-      </div>
-    </header>
+    <div data-part="context-bar" data-kind="board">
+      <ViewBar
+        title={view.title}
+        {...BackTarget.propsOf(host)}
+        icon={<Icon icon={ClipboardListIcon} />}
+        facts={
+          view.engines.length > 0 ? (
+            <span className="min-w-0 truncate" data-part="context-key">
+              {BoardLabels.scope(view)}
+            </span>
+          ) : undefined
+        }
+        actions={
+          <>
+            <HeaderButton
+              icon={RotateCcwIcon}
+              label="Refresh"
+              title="Read every engine of this board again"
+              intent={{ type: "refresh" }}
+            />
+            <HeaderButton
+              icon={FileCodeIcon}
+              label="Open file"
+              title={`Open ${view.fileName}`}
+              intent={{ type: "openBoardFile" }}
+            />
+          </>
+        }
+        freshness={<FreshnessStamp freshness={freshness} />}
+      />
+    </div>
   )
 }
 
@@ -63,7 +70,7 @@ function ProblemsStrip({ view }: { readonly view: BoardView }) {
       actions={[
         {
           label: "Open file",
-          icon: glyphs.FileCode,
+          icon: FileCodeIcon,
           onClick: () => {
             host.post({ type: "openBoardFile" })
           },
@@ -78,16 +85,21 @@ function ProblemList({ view }: { readonly view: BoardView }) {
     return null
   }
   return (
-    <section class="board-card board-problems" aria-labelledby="board-problems-title">
-      <h2 id="board-problems-title" class="board-card__title">{`Problems in ${view.fileName}`}</h2>
-      <ul class="board-problems__list">
+    <Card role="region" aria-labelledby="board-problems-title" className="border-danger gap-2">
+      <SectionHeading
+        as="h2"
+        id="board-problems-title"
+        title={`Problems in ${view.fileName}`}
+        className="mb-0 px-3"
+      />
+      <ul className="flex flex-col gap-1 px-3">
         {view.problems.map((problem) => (
-          <li key={`${problem.path} ${problem.reason}`} class="board-problems__item">
+          <li key={`${problem.path} ${problem.reason}`}>
             <code>{problem.path}</code> {problem.reason}
           </li>
         ))}
       </ul>
-    </section>
+    </Card>
   )
 }
 
@@ -108,16 +120,22 @@ function Tile({ tile }: { readonly tile: BoardTile }) {
 
 export function BoardScreen({ view, freshness }: BoardScreenProps) {
   return (
-    <div class="screen screen--with-strips">
+    <div className="grid h-full min-w-0 grid-rows-[auto_auto_minmax(0,1fr)]">
       <BoardHeader view={view} freshness={freshness} />
-      <div class="strip-stack">
+      <div className="flex min-w-0 flex-col" data-part="strips">
         <ProblemsStrip view={view} />
         <BoardEngines engines={view.engines} />
       </div>
-      <main class="board" aria-label={view.title}>
+      <main
+        className="bg-background @container/board flex min-h-0 flex-col gap-3 overflow-auto p-3"
+        aria-label={view.title}
+      >
         <ProblemList view={view} />
         {view.rows.map((row, index) => (
-          <div class="board__row" key={index}>
+          <div
+            className="grid min-w-0 auto-cols-[minmax(0,1fr)] grid-flow-col gap-3 @max-[760px]/board:grid-flow-row"
+            key={index}
+          >
             {row.map((tile, column) => (
               <Tile key={column} tile={tile} />
             ))}

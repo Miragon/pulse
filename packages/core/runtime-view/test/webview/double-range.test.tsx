@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { colourOfVariable, waitForElement } from "./harness.js"
-import { editVariable, type VariableEditing } from "./variable-editing.js"
+import { colourOfVariable } from "./harness.js"
+import {
+  editVariable,
+  findEditorError,
+  openEditor,
+  type VariableEditing,
+} from "./variable-editing.js"
 
 const RANGE = "-1.7976931348623157e308 to 1.7976931348623157e308"
 const FOR_A_NULL_VARIABLE = `Pulse writes no number outside ${RANGE}, the range of a double. Write giftNote as text to keep it as written.`
@@ -15,7 +20,7 @@ describe("a number beyond the range of a double, typed into the editor of the co
   })
 
   async function refusedInline(field: HTMLTextAreaElement, reason: string): Promise<void> {
-    const error = await waitForElement(editing.harness.root, ".variable-editor__error")
+    const error = await findEditorError(editing.harness.root)
     expect(error.textContent).toBe(reason)
     expect(error.getAttribute("role")).toBe("alert")
     expect(field.getAttribute("aria-invalid")).toBe("true")
@@ -23,7 +28,9 @@ describe("a number beyond the range of a double, typed into the editor of the co
     await vi.waitFor(() => {
       expect(document.activeElement).toBe(field)
     })
-    expect(getComputedStyle(field).borderTopColor).toBe(colourOfVariable("--cd-ui-danger"))
+    await vi.waitFor(() => {
+      expect(getComputedStyle(field).borderTopColor).toBe(colourOfVariable("--danger"))
+    })
     expect(editing.fixture.effects.confirmWrite).not.toHaveBeenCalled()
     expect(editing.setVariable).not.toHaveBeenCalled()
   }
@@ -58,12 +65,12 @@ describe("a number beyond the range of a double, typed into the editor of the co
   it("keeps the number as written when the user writes it as text, as the error says", async () => {
     editing = await editVariable("giftNote")
     await editing.save(await editing.writeAs("decimal"), BEYOND_A_DOUBLE)
-    await waitForElement(editing.harness.root, ".variable-editor__error")
+    await findEditorError(editing.harness.root)
 
     await editing.save(await editing.writeAs("text"), BEYOND_A_DOUBLE)
 
     await vi.waitFor(() => {
-      expect(editing.harness.root.querySelector(".variable-editor")).toBeNull()
+      expect(openEditor(editing.harness.root)).toBeNull()
     })
     expect(editing.fixture.effects.confirmWrite).toHaveBeenCalledTimes(1)
     expect(editing.setVariable).toHaveBeenCalledWith(
@@ -81,7 +88,7 @@ describe("a number beyond the range of a double, typed into the editor of the co
     await editing.save(editing.field, "1.7976931348623157e308")
 
     await vi.waitFor(() => {
-      expect(editing.harness.root.querySelector(".variable-editor")).toBeNull()
+      expect(openEditor(editing.harness.root)).toBeNull()
     })
     expect(editing.fixture.effects.confirmWrite.mock.calls[0]?.[0].facts).toContain(
       "Double: 0.5 → 1.7976931348623157e308",

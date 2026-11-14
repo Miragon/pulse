@@ -12,30 +12,37 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react"
-import { FIT_LIMITS, solveInlineFit } from "./inline-fit-solve.js"
-import { DOM_MEASURE, LIST_SELECTOR, SlotRegistry, type FitMeasure } from "./inline-fit-registry.js"
+import { FIT_LIMITS, solveInlineFit, type FitSlot } from "./inline-fit-solve.js"
+import {
+  DOM_MEASURE,
+  LIST_SELECTOR,
+  SlotRegistry,
+  type FitMeasure,
+  type SlotCaps,
+} from "./inline-fit-registry.js"
 
 /**
  * The measured inline fit (#396): a card taller than the host budget becomes
  * one scroll box, so inline lists show only the rows that fit, measured on
  * the rendered view.
  * - Runs before first paint, so the host's first size report is fitted.
- * - Within an EPOCH (budget, width, display mode) a cap only shrinks.
+ * - Within an EPOCH (budget, width, display mode) a cap only shrinks, but for a cut that made
+ *   the view taller: the footer it adds is measured once it renders, and a list whose cut hid no
+ *   more than that shows every row again (the solver then counts that footer).
  * - After the user's first pointer/key, only a list's own placement refits,
  *   so rows never vanish under the pointer; until then late content (a font swap, a diagram) refits.
  * Outside a host and in fullscreen there is no fit: every row shows.
  */
 
-const START_ROWS = 10
+/**
+ * The rows a list shows before its first measure, and so the most a fit leaves it (a cap only
+ * shrinks): compact rows are 28 px, so a large budget fits more than ten.
+ */
+const START_ROWS = 20
 export const UNSTATED_BUDGET = 600
 /** Smaller width changes are scrollbars or rounding, not a new epoch. */
 const WIDTH_EPSILON = 8
 const RESIZE_DEBOUNCE_MS = 150
-
-interface SlotCaps {
-  fitted: number
-  revealed: number
-}
 
 interface FitState {
   epoch: string
@@ -45,6 +52,7 @@ interface FitState {
 interface FitApi {
   register: (id: string) => () => void
   setRows: (id: string, element: HTMLElement | null, kind: "rows" | "fallback") => void
+  setCapped: (id: string, capped: boolean) => void
   fit: () => void
   reveal: (id: string, rows: number) => void
   reset: (id: string) => void
@@ -62,6 +70,34 @@ function applyCuts(state: FitState, cuts: Record<string, number>): FitState {
   const caps = { ...state.caps }
   for (const [id, rows] of entries) caps[id] = { fitted: rows, revealed: 0 }
   return { ...state, caps }
+}
+
+/** Undoes cuts that made the view taller; always a new state, so the undo renders. */
+function withCapsBefore(state: FitState, before: ReadonlyMap<string, SlotCaps | undefined>) {
+  const caps = { ...state.caps }
+  for (const [id, prior] of before) {
+    if (prior) caps[id] = prior
+    else delete caps[id]
+  }
+  return { ...state, caps }
+}
+
+/** The cuts of lists that showed every row, each with the px of rows it hides. */
+function newCuts(
+  registry: SlotRegistry,
+  state: FitState,
+  slots: readonly FitSlot[],
+  cuts: Record<string, number>,
+) {
+  const trial = new Map<string, { hidden: number; before: SlotCaps | undefined }>()
+  for (const slot of slots) {
+    const keep = cuts[slot.id]
+    if (keep === undefined || keep >= capsOf(state, slot.id).fitted) continue
+    if (!registry.isWhole(slot.id)) continue
+    const hidden = slot.bottoms[slot.bottoms.length - 1] - slot.bottoms[keep - 1]
+    trial.set(slot.id, { hidden, before: state.caps[slot.id] })
+  }
+  return trial
 }
 
 function withRevealed(
@@ -97,6 +133,13 @@ export function InlineFitBox({
 
   const [registry] = useState(() => new SlotRegistry())
   const latched = useRef(false)
+  /** The state on screen; `settling` while an undone cut has yet to render. */
+  const committed = useRef(state)
+  const settling = useRef(false)
+  useInsertionEffect(() => {
+    committed.current = state
+    settling.current = false
+  }, [state])
   /** A parent's ref attaches after its children's effects, so early fits wait here. */
   const pending = useRef(false)
   const current = useRef({ active, budget, measure })
@@ -112,6 +155,8 @@ export function InlineFitBox({
       return
     }
     pending.current = false
+    // The DOM still shows a cut that is being undone: the undo's render fits again.
+    if (settling.current) return
     const { active: on, budget: limit, measure: m } = current.current
     if (!on) {
       element.removeAttribute("data-inline-fit")
@@ -120,8 +165,20 @@ export function InlineFitBox({
     const { slots, fresh } = registry.measure(element, m)
     // A newly placed list is a new view: late content refits until touched.
     if (fresh) latched.current = false
-    const { cuts, fits } = solveInlineFit({ budget: limit, content: m.content(element), slots })
+    const content = m.content(element)
+    const undo = registry.judgeTrial(committed.current, content)
+    if (undo.size > 0) {
+      settling.current = true
+      setState((previous) => withCapsBefore(previous, undo))
+      return
+    }
+    const { cuts, fits } = solveInlineFit({ budget: limit, content, slots })
     element.setAttribute("data-inline-fit", fits ? "fits" : "overflow")
+    registry.startTrial(
+      committed.current,
+      content,
+      newCuts(registry, committed.current, slots, cuts),
+    )
     setState((previous) => applyCuts(previous, cuts))
   }, [registry])
 
@@ -129,6 +186,7 @@ export function InlineFitBox({
     () => ({
       register: (id) => registry.register(id),
       setRows: (id, element, kind) => registry.setRows(id, element, kind),
+      setCapped: (id, capped) => registry.setCapped(id, capped),
       fit,
       reveal(id, rows) {
         registry.setFrozen(id, true)
@@ -255,6 +313,12 @@ export function useInlineRows(
   const caps = capsOf(state, id)
   const cap = on ? caps.fitted + caps.revealed : null
   const shown = cap === null ? available : Math.min(cap, available)
+  const capped = shown < available
+
+  // Before every list's fit of the commit: whether a cut of this list adds its footer.
+  useInsertionEffect(() => {
+    if (api && enabled) api.setCapped(id, capped)
+  }, [api, enabled, id, capped])
 
   useLayoutEffect(() => {
     if (!api || !enabled) return

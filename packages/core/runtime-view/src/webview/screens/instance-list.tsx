@@ -1,3 +1,4 @@
+import { Button } from "@miragon/pulse-ui"
 import type { DefinitionView, InstanceListFilter, InstanceRow } from "../../core/protocol/index.js"
 import { DataTable, type Column } from "../components/data-table.js"
 import { EmptyHint } from "../components/empty-hint.js"
@@ -8,6 +9,7 @@ import { TimeLabels } from "../format/time-labels.js"
 import { useHost } from "../host/host-context.js"
 import { InstanceFilter } from "./instance-filter.js"
 import { InstanceFilterBar } from "./instance-filter-bar.js"
+import { ScreenFrame } from "./screen-frame.js"
 import { useSelectionColumn } from "./instance-selection.js"
 import { SelectionBar } from "./selection-bar.js"
 
@@ -18,7 +20,7 @@ function StartedCell({ row }: { readonly row: InstanceRow }) {
   return (
     <span title={TimeLabels.tooltip(row.startedAt)}>
       {TimeLabels.clock(row.startedAt)}
-      <span class="muted"> · {TimeLabels.relative(row.startedAt)}</span>
+      <span className="text-muted-foreground"> · {TimeLabels.relative(row.startedAt)}</span>
     </span>
   )
 }
@@ -38,7 +40,7 @@ const COLUMNS: readonly Column<InstanceRow>[] = [
     key: "state",
     label: "State",
     render: (row) => (
-      <span class="state-cell">
+      <span className="inline-flex items-center gap-3">
         <StateLabel state={row.state} />
         {row.hasIncident && <IncidentFlag />}
       </span>
@@ -88,9 +90,10 @@ export interface InstanceListProps {
 function LoadMore({ busy }: { readonly busy: boolean }) {
   const host = useHost()
   return (
-    <button
+    <Button
       type="button"
-      class="button button--ghost"
+      variant="ghost"
+      size="sm"
       disabled={busy}
       title={busy ? "Wait until the refresh is done" : undefined}
       onClick={() => {
@@ -98,7 +101,7 @@ function LoadMore({ busy }: { readonly busy: boolean }) {
       }}
     >
       Load more
-    </button>
+    </Button>
   )
 }
 
@@ -107,7 +110,7 @@ export function InstanceList({ view, elementName, onFilter, refreshing, busy }: 
   const selectionColumn = useSelectionColumn(view.instances, view.selection?.count ?? 0)
   const columns = selectionColumn === undefined ? COLUMNS : [selectionColumn, ...COLUMNS]
   return (
-    <section class="list-region" aria-label="Instances">
+    <section className={ScreenFrame.LIST_REGION} aria-label="Instance list">
       <InstanceFilterBar
         filter={view.filter}
         counts={view.scopeCounts}

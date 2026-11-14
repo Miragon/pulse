@@ -114,9 +114,11 @@ export function IncidentDetailWidget({
     available: refreshError === null,
   })
 
+  // New highlights reimport the diagram: one array per activity, so a refetch never redraws it.
+  const activityId = data?.activityId
   const highlights = useMemo<BpmnHighlight[]>(
-    () => [{ kind: "incident", activityIds: data ? [data.activityId] : [] }],
-    [data?.activityId],
+    () => [{ kind: "incident", activityIds: activityId === undefined ? [] : [activityId] }],
+    [activityId],
   )
 
   if (!data) return guard
@@ -127,13 +129,9 @@ export function IncidentDetailWidget({
   // #322 U12: the failure and its remedy first, then the diagram, then the depth.
   return (
     <DetailPage
-      header={
-        <>
-          {notice}
-          <IncidentDetailHeader data={data} resolved={resolved} />
-          <FailureSummary data={data} {...remedy} />
-        </>
-      }
+      header={<IncidentDetailHeader data={data} resolved={resolved} />}
+      notice={notice}
+      summary={<FailureSummary data={data} {...remedy} />}
       diagram={
         <section>
           <SectionHeading

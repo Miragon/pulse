@@ -27,8 +27,30 @@ export interface EmptyStateProps {
   secondaryAction?: ReactNode
   /** Element of the title. Default `"h3"` (inside a widget below its own heading). */
   titleAs?: StateHeadingLevel
+  /**
+   * `"compact"` (default): in a table, a card or a view's body, in 13 px with the dense
+   * geometry. `"page"`: a whole app surface (a landing, a first start), the help line in 16 px.
+   */
+  size?: "compact" | "page"
   className?: string
 }
+
+/** Per size: the box, the title and the help line. */
+const SIZE = {
+  compact: {
+    box: "gap-3 px-3 py-6",
+    title: "text-dense",
+    description: "text-dense text-muted-foreground",
+  },
+  page: {
+    box: "gap-2 px-4 py-8",
+    title: "text-body",
+    description: "text-body text-muted-foreground",
+  },
+} as const satisfies Record<
+  NonNullable<EmptyStateProps["size"]>,
+  { box: string; title: string; description: string }
+>
 
 /** The icon slot in the tone's icon colour (`TONE_ICON`): quiet, or the success tone. */
 const ICON_TONE: Record<NonNullable<EmptyStateProps["tone"]>, string> = {
@@ -38,8 +60,10 @@ const ICON_TONE: Record<NonNullable<EmptyStateProps["tone"]>, string> = {
 
 /**
  * The one empty-state pattern: icon or mark, a title (600), one help line and
- * up to two actions, centred in the space the content would take. Static (no
- * live region): it replaces content, it does not announce a change.
+ * up to two actions, centred in the space the content would take. Compact by
+ * default (the webview's empty hint: 24 px above and below, 13 px, the help
+ * line quiet); `size="page"` on an app surface. Static (no live region): it
+ * replaces content, it does not announce a change.
  */
 export function EmptyState({
   icon,
@@ -49,6 +73,7 @@ export function EmptyState({
   action,
   secondaryAction,
   titleAs: Title = "h3",
+  size = "compact",
   className,
 }: EmptyStateProps) {
   // An untyped tone resolves (`ok` → success); anything else stays quiet.
@@ -56,25 +81,28 @@ export function EmptyState({
   return (
     <div
       data-slot="empty-state"
-      className={cn("flex flex-col items-center gap-2 px-4 py-8 text-center", className)}
+      data-size={size}
+      className={cn("flex flex-col items-center text-center", SIZE[size].box, className)}
     >
       {icon && (
         <div
           aria-hidden="true"
           className={cn(
-            "mb-1 flex items-center justify-center [&_svg:not([class*='size-'])]:size-6",
+            "flex items-center justify-center [&_svg:not([class*='size-'])]:size-6",
             ICON_TONE[iconTone],
           )}
         >
           {icon}
         </div>
       )}
-      <Title className="text-foreground text-body font-semibold">{title}</Title>
-      {description && (
-        <p className="text-muted-foreground text-body max-w-prose text-balance">{description}</p>
-      )}
+      <div className="flex flex-col items-center gap-1">
+        <Title className={cn("text-foreground font-semibold", SIZE[size].title)}>{title}</Title>
+        {description && (
+          <p className={cn("max-w-prose text-balance", SIZE[size].description)}>{description}</p>
+        )}
+      </div>
       {(action || secondaryAction) && (
-        <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+        <div className="flex flex-wrap items-center justify-center gap-2">
           {action}
           {secondaryAction}
         </div>

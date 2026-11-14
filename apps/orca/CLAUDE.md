@@ -68,7 +68,11 @@ podman run --rm --init -v "$PWD":/work -w /work -v "$PLUGIN":/plugin:ro \
 
 `$PLUGIN` is the `miragon-brand` plugin folder. Make them again after a visible change of the
 tabs or the panel and after an update of the skill (the version the config names), and copy the two light
-screenshots to `docs/assets/orca/`.
+screenshots to `docs/assets/orca/`. The released skill (1.32.0) still ignores the config's `files`
+and `panel` (a patch on Miragon/corporate-identity#78): without it the demo folder has no project
+file and the panel stays closed, so a local copy of the plugin copies those files into the demo
+folder and opens the panel (`orca plugin open <key>`) before the window shots. The run leaves
+root-owned core files in the repository root and `apps/orca/dist/.orca`: remove both.
 
 ## Where code goes
 
@@ -91,6 +95,18 @@ the transport `@miragon/pulse-http`, which the C7 adapter's wire alone sends thr
 repository's `http-consumers`), over the worker's global `fetch`. The repository's licence list
 (`scripts/third-party-licenses.mjs`), which the licence test reads, may use Node built-ins and
 nothing else. `pnpm lint:architecture:orca` says where an import belongs.
+
+The frames show the runtime view's webview. By the owner's decision D9 of 2026-11-12
+(`apps/vscode/docs/adr/ui-foundation.md`) it moved from Preact to React 19 on `@miragon/pulse-ui` in
+one switch, a commit of the pull request that recorded D9, in the one compact look of every surface.
+Orca's build is readable (`apps/orca/scripts/build.mjs`): it takes the
+webview's esbuild options of a build that ships (`production: true`, which defines
+`process.env.NODE_ENV` as production, so React's development build never ships) and turns off
+their minifying and source maps. The frames' bridge
+(`apps/orca/src/editor/bridge.ts`) sets `data-cd-theme`. Orca's theme event reports only light or
+dark (`apps/orca/types/orca/index.d.ts`), so in Orca high contrast reaches the webview through
+`forced-colors`, and the bridge sets `data-cd-kontrast="hoch"` only where Orca reports high
+contrast.
 
 The project file is `.pulse.json`, read through the host kit (`TargetsParser` over
 `@miragon/pulse-profile`, the rules in `apps/vscode/CLAUDE.md`); `ProjectFile` of the host kit
@@ -131,9 +147,10 @@ file's path (the host kit's `CredentialStore`).
 - The plugin folder ships `LICENSE` and `THIRD_PARTY_LICENSES.txt` (`PLUGIN_FILES` of
   `apps/orca/scripts/build.mjs`; the release's folder check in
   `.github/workflows/publish-orca-plugin.yml` names both): the works of others esbuild bundles
-  into the worker, the panel, the frames' bridge and the webview (packages, fonts, the Lucide
-  geometry of `lucide-glyphs.json`) with their licence files, read from the metafiles of the four
-  builds (`pluginBuilds`) by the repository's licence list (`scripts/third-party-licenses.mjs`).
+  into the worker, the panel, the frames' bridge and the webview (packages, fonts, the components
+  pulse-ui's primitives build on, shadcn/ui) with their licence files, read from the metafiles of the four
+  builds (`pluginBuilds`), and from what the webview's Tailwind step inlines, which no metafile
+  names (`inlinedStylesheets`), by the repository's licence list (`scripts/third-party-licenses.mjs`).
   `apps/orca/test/third-party-licenses.test.ts` fails while it misses a work or lists one the
   bundles hold no more, so a bump of a bundled package writes it again in its pull request:
   `pnpm --fail-if-no-match --filter @miragon/pulse-orca third-party-licenses`.

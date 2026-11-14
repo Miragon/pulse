@@ -164,6 +164,57 @@ describe("ClusterDetailWidget (fixture render)", () => {
       ),
     ).toBeTruthy()
   })
+
+  /** The KPI tile of a label: its figure, the tone of that figure and its words for a screen reader. */
+  const affectedTile = (container: HTMLElement) => {
+    const label = screen.getByText("Affected")
+    // The label's caption row, then its cell.
+    const tile = label.parentElement!.parentElement!
+    const figure = tile.querySelector<HTMLElement>("[data-slot='count-figure']")!
+    return {
+      tone: figure.getAttribute("data-tone"),
+      icon: figure.querySelector("svg") !== null,
+      words: figure.querySelector(".sr-only")?.textContent ?? null,
+      inside: container.contains(figure),
+    }
+  }
+
+  it("alarms on an affected count while there are any, by the danger icon and its words", () => {
+    const { container } = render(
+      <TestViewHost>
+        <Widget data={CLUSTER as never} />
+      </TestViewHost>,
+    )
+    expect(affectedTile(container)).toEqual({
+      tone: "danger",
+      icon: true,
+      words: "Has open incidents",
+      inside: true,
+    })
+  })
+
+  it("shows a cluster with nothing affected as a plain 0: no icon, no alarm words", () => {
+    const gone: ClusterDetailData = {
+      ...CLUSTER,
+      incidentCount: 0,
+      scannedIncidentCount: 0,
+      lastHourCount: 0,
+      last24hCount: 0,
+      incidents: [],
+      totalMatching: 0,
+    }
+    const { container } = render(
+      <TestViewHost>
+        <Widget data={gone as never} />
+      </TestViewHost>,
+    )
+    expect(affectedTile(container)).toEqual({
+      tone: "neutral",
+      icon: false,
+      words: null,
+      inside: true,
+    })
+  })
 })
 
 // #335 facts in #338's model context: a capped scan's count is a lower bound,

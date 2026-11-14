@@ -5,13 +5,39 @@ import { readRepoFile, REPO_ROOT } from "./support/files.js"
 const PROBE_FILE = "packages/core/runtime-view/src/core/views/labels.ts"
 const ENGINE_CORE = "packages/connectors/engine/engine-core/src"
 const CLASS_PROBE = `${ENGINE_CORE}/model/value-kinds.ts`
-const COMPONENT_PROBE = "packages/core/runtime-view/src/webview/components/icon.tsx"
+const COMPONENT_PROBE = "packages/core/runtime-view/src/webview/app.tsx"
+const WEBVIEW_TEST_PROBE = "packages/core/runtime-view/test/webview/harness.tsx"
+const HOOKS_SET = "recommended-latest"
+
+interface ResolvedConfig {
+  readonly rules: Readonly<Record<string, readonly unknown[] | undefined>>
+  readonly plugins: {
+    readonly "react-hooks": {
+      readonly configs: Readonly<
+        Record<string, { readonly rules: Readonly<Record<string, unknown>> }>
+      >
+    }
+  }
+}
 
 const eslint = new ESLint({ cwd: REPO_ROOT })
 
 async function rulesFiredOn(text: string, filePath = PROBE_FILE): Promise<string[]> {
   const [result] = await eslint.lintText(text, { filePath })
   return (result?.messages ?? []).map((message) => message.ruleId ?? message.message)
+}
+
+async function errorsFiredOn(text: string, filePath: string): Promise<string[]> {
+  const [result] = await eslint.lintText(text, { filePath })
+  return (result?.messages ?? [])
+    .filter((message) => message.severity === 2)
+    .map((message) => message.ruleId ?? message.message)
+}
+
+async function hookSeverities(filePath: string): Promise<Record<string, unknown>> {
+  const config = (await eslint.calculateConfigForFile(filePath)) as ResolvedConfig
+  const set = Object.keys(config.plugins["react-hooks"].configs[HOOKS_SET]?.rules ?? {})
+  return Object.fromEntries(set.map((rule) => [rule, config.rules[rule]?.[0]]))
 }
 
 function withProbe(line: string): string {
@@ -134,7 +160,7 @@ describe("the lint gates", { timeout: 120_000 }, () => {
     expect(await rulesFiredOn(probe, filePath)).toContain("no-restricted-syntax")
   })
 
-  test("let Preact components and hooks stay functions", async () => {
+  test("let React components and hooks stay functions", async () => {
     const probe = `${readRepoFile(COMPONENT_PROBE)}\nexport function Probe() {\n  return null;\n}\n\nexport function useProbe(): number {\n  return 1;\n}\n`
     expect(await rulesFiredOn(probe, COMPONENT_PROBE)).toEqual([])
   })
@@ -143,6 +169,50 @@ describe("the lint gates", { timeout: 120_000 }, () => {
     const probe = `${readRepoFile(COMPONENT_PROBE)}\nexport function Probe({ on }: { on: boolean }) {\n  if (on) {\n    useProbe()\n  }\n  return null\n}\n\nexport function useProbe(): number {\n  return 1\n}\n`
     expect(await rulesFiredOn(probe, COMPONENT_PROBE)).toContain("react-hooks/rules-of-hooks")
   })
+
+  test.each([
+    [
+      "react-hooks/set-state-in-effect",
+      "export function Probe() {\n  const [shown, setShown] = useState(false)\n  useEffect(() => {\n    setShown(true)\n  }, [])\n  return shown ? null : null\n}",
+    ],
+    ["react-hooks/purity", "export function Probe() {\n  return <time>{Date.now()}</time>\n}"],
+    [
+      "react-hooks/immutability",
+      "export function Probe({ seen }: { seen: { at: number } }) {\n  seen.at = 1\n  return <i>{seen.at}</i>\n}",
+    ],
+    [
+      "react-hooks/refs",
+      "export function Probe({ seenRef }: { seenRef: { current: number } }) {\n  return <i>{seenRef.current}</i>\n}",
+    ],
+    [
+      "react-hooks/use-memo",
+      "export function Probe({ rows }: { rows: string[] }) {\n  const joined = useMemo(() => rows.join(), [rows.join()])\n  return <i>{joined}</i>\n}",
+    ],
+    [
+      "react-hooks/exhaustive-deps",
+      "export function Probe({ rows }: { rows: string[] }) {\n  const joined = useMemo(() => rows.join(), [])\n  return <i>{joined}</i>\n}",
+    ],
+  ])("hold the webview to the hooks rule %s as an error", async (rule, component) => {
+    const probe = `${readRepoFile(COMPONENT_PROBE)}\n${component}\n`
+    expect(await errorsFiredOn(probe, COMPONENT_PROBE)).toContain(rule)
+  })
+
+  test.each([
+    [COMPONENT_PROBE, 2],
+    [WEBVIEW_TEST_PROBE, 2],
+    [PROBE_FILE, 0],
+  ])(
+    `turn every rule of ${HOOKS_SET} on as an error in the webview and its tests only: %s`,
+    async (filePath, severity) => {
+      const severities = await hookSeverities(filePath)
+      expect(Object.keys(severities)).toEqual(
+        expect.arrayContaining(["react-hooks/refs", "react-hooks/exhaustive-deps"]),
+      )
+      expect(severities).toEqual(
+        Object.fromEntries(Object.keys(severities).map((rule) => [rule, severity])),
+      )
+    },
+  )
 
   test("allow one class per file", async () => {
     const probe = `${readRepoFile(CLASS_PROBE)}\nexport class Second {}\n`

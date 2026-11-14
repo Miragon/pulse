@@ -4,11 +4,17 @@ import { ENGINE_VIEW } from "../../dev/webview/fixtures/engine.js"
 import { PROD_ENGINE } from "../../dev/webview/fixtures/engines.js"
 import {
   buttonNamed,
+  enterValue,
+  type Harness,
   mountApp,
   press,
   radioNamed,
+  findPart,
+  findRole,
+  allRoles,
+  getRole,
+  queryPart,
   waitForElement,
-  type Harness,
 } from "./harness.js"
 
 function ready(view: EngineView, refreshing = false): PanelState {
@@ -33,13 +39,13 @@ describe("the engine overview", () => {
   it("names the engine, its product, access and freshness, and refreshes on request", async () => {
     harness = mountApp()
     harness.publish(ready(ENGINE_VIEW))
-    const bar = await waitForElement(harness.root, ".context-bar")
+    const bar = await findPart(harness.root, "context-bar")
 
     buttonNamed(bar, "Refresh").click()
     buttonNamed(bar, "Open in Cockpit").click()
 
     expect(bar.querySelector("h1")?.textContent).toBe("shop-dev")
-    expect(bar.querySelector(".context-bar__key")?.textContent).toBe("Operaton 2.1.5")
+    expect(queryPart(bar, "context-key")?.textContent).toBe("Operaton 2.1.5")
     expect(bar.textContent).not.toContain("LOCAL")
     expect(bar.textContent).toContain("Writable")
     expect(bar.textContent).toContain("As of")
@@ -47,7 +53,7 @@ describe("the engine overview", () => {
     expect(harness.posted).toEqual([{ type: "refresh" }, { type: "openWebUi" }])
   })
 
-  it("lists the processes with their latest version and counts, incidents in red", async () => {
+  it("lists the processes with their latest version and counts, an incident count with its alarm icon and words", async () => {
     harness = mountApp()
     harness.publish(ready(ENGINE_VIEW))
     await waitForElement(harness.root, "tbody tr")
@@ -60,11 +66,18 @@ describe("the engine overview", () => {
       "Running",
       "With incident",
     ])
-    expect(cells(order)).toEqual(["Order fulfillment order-fulfillment", "v3", "150", "9"])
+    expect(cells(order)).toEqual([
+      "Order fulfillment order-fulfillment",
+      "v3",
+      "150",
+      "9Has open incidents",
+    ])
     expect(cells(shipment)).toEqual(["shipment", "v1", "1,204", "0"])
-    expect(order?.querySelector(".danger-count")?.textContent).toBe("9")
-    expect(shipment?.querySelector(".danger-count")).toBeNull()
-    expect(harness.root.querySelector(".filter-bar__summary")?.textContent).toBe(
+    expect(order && queryPart(order, "incident-count", { tone: "danger" })?.textContent).toBe(
+      "9Has open incidents",
+    )
+    expect(shipment && queryPart(shipment, "incident-count", { tone: "danger" })).toBeNull()
+    expect(queryPart(harness.root, "filter-summary")?.textContent).toBe(
       "3 processes · 1,369 running · 10 with incident · all versions",
     )
   })
@@ -80,8 +93,15 @@ describe("the engine overview", () => {
     order?.focus()
     press(order!, "ArrowDown")
     press(document.activeElement!, "Enter", { metaKey: true })
+    const reachedWindow: string[] = []
+    const listener = (event: KeyboardEvent): void => {
+      reachedWindow.push(event.key)
+    }
+    window.addEventListener("keydown", listener)
     press(document.activeElement!, "c", { ctrlKey: true })
+    window.removeEventListener("keydown", listener)
 
+    expect(reachedWindow).toEqual([])
     expect(document.activeElement).toBe(returns)
     expect(harness.posted).toEqual([
       { type: "openProcess", bpmnProcessId: "order-fulfillment", toSide: false },
@@ -94,12 +114,11 @@ describe("the engine overview", () => {
   it("filters by scope and by a search on name or key, with counts", async () => {
     harness = mountApp()
     harness.publish(ready(ENGINE_VIEW))
-    const group = await waitForElement(harness.root, '[role="radiogroup"]')
+    const group = await findRole(harness.root, "radiogroup", { name: "Show processes" })
 
     radioNamed(harness.root, "With incident").click()
-    const search = harness.root.querySelector<HTMLInputElement>(".search-field input")!
-    search.value = "  order "
-    search.dispatchEvent(new Event("input", { bubbles: true }))
+    const search = getRole<HTMLInputElement>(harness.root, "searchbox")
+    enterValue(search, "  order ")
     await vi.waitFor(() => {
       expect(harness.posted.filter((intent) => intent.type === "filterProcesses")).toHaveLength(2)
     })
@@ -107,7 +126,7 @@ describe("the engine overview", () => {
     expect(group.getAttribute("aria-label")).toBe("Show processes")
     expect(radioNamed(harness.root, "All").textContent).toBe("All 3")
     expect(radioNamed(harness.root, "With incident").textContent).toBe("With incident 2")
-    expect(group.querySelector(".segmented__count--danger")?.textContent).toBe("2")
+    expect(queryPart(group, "segment-count", { tone: "danger" })?.textContent).toBe("2")
     expect(harness.posted).toEqual([
       { type: "filterProcesses", filter: { scope: "withIncident" } },
       { type: "filterProcesses", filter: { scope: "all", search: "order" } },
@@ -117,11 +136,10 @@ describe("the engine overview", () => {
   it("drops an emptied search and keeps the scope it shows", async () => {
     harness = mountApp()
     harness.publish(ready({ ...ENGINE_VIEW, filter: { scope: "withIncident", search: "order" } }))
-    const search = await waitForElement<HTMLInputElement>(harness.root, ".search-field input")
+    const search = await findRole<HTMLInputElement>(harness.root, "searchbox")
     expect(search.value).toBe("order")
 
-    search.value = ""
-    search.dispatchEvent(new Event("input", { bubbles: true }))
+    enterValue(search, "")
 
     await vi.waitFor(() => {
       expect(harness.posted).toEqual([
@@ -141,7 +159,7 @@ describe("the engine overview", () => {
       }),
     )
 
-    const empty = await waitForElement(harness.root, ".data-table__empty")
+    const empty = await findPart(harness.root, "table-empty")
 
     expect(empty.textContent).toBe("No processes deployed on shop-dev.")
     expect(rows(harness.root)).toEqual([])
@@ -160,14 +178,16 @@ describe("the engine overview", () => {
         loginRefused: "unauthorized",
       },
     })
-    await waitForElement(harness.root, ".status-box")
-    expect(harness.root.querySelector(".freshness")?.textContent).toBe("Credentials rejected")
+    const box = await findRole(harness.root, "alert")
+    expect(box.dataset.part).toBe("status-box")
+    expect(queryPart(harness.root, "freshness")?.textContent).toBe("Credentials rejected")
 
     buttonNamed(harness.root, "Set credentials…").click()
 
-    expect(
-      [...harness.root.querySelectorAll(".status-box button")].map((b) => b.textContent),
-    ).toEqual(["Reconnect", "Set credentials…"])
+    expect(allRoles(box, "button").map((b) => b.textContent)).toEqual([
+      "Reconnect",
+      "Set credentials…",
+    ])
     expect(harness.posted).toEqual([{ type: "setCredentials" }])
   })
 })

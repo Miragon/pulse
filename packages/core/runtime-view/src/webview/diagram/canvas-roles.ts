@@ -7,15 +7,6 @@ export const RENDERER_COLORS = {
   defaultLabelColor: LIGHT_INK,
 } as const
 
-export const CANVAS_TEXT_STYLE = {
-  defaultStyle: {
-    fontFamily: "'Geist Variable', 'Geist', ui-sans-serif, system-ui, sans-serif",
-    fontSize: 12,
-    lineHeight: 1.2,
-  },
-  externalStyle: { fontSize: 11, lineHeight: 1.2 },
-} as const
-
 type Paint = "fill" | "stroke"
 
 interface PaintRole {

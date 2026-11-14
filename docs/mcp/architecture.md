@@ -23,14 +23,14 @@ flowchart LR
 
 ## Modules
 
-| Module                                                      | Role                                                                                                                                                                                                                           |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **MCP Server** (`apps/mcp-server/`)                         | Hosts the HTTP transport on port `8400` on the official MCP TypeScript SDK, loads modules from `MCP_ACTIVE_MODULES`, and serves the Vite-built React widget bundle (see **widgets**).                                          |
-| **CLI** (`apps/cli/`)                                       | Every engine REST operation as a command, generated from the OpenAPI spec, plus the workflow commands; on npm, Homebrew, GHCR and the GitHub release. See the [CLI docs](../cli/index.md); rules in `apps/cli/CLAUDE.md`.      |
-| **Pulse for VS Code** (`apps/vscode/`)                      | Shows what an engine runs next to the BPMN models in VS Code: the runtime view (`packages/core/runtime-view`, a Preact webview over the engine contract) and the C7 adapter. A .vsix; rules in `apps/vscode/CLAUDE.md`.        |
-| **Pulse for Orca** (`apps/orca/`)                           | The same runtime view and C7 adapter in Orca's editor tabs and a Pulse panel; an Orca plugin, rules in `apps/orca/CLAUDE.md`.                                                                                                  |
-| **engine** (`packages/connectors/engine/engine-connector/`) | Wraps the Camunda 7 / CIB seven REST API via an OpenAPI-generated client. Exposes process, task, incident, deployment, and history tools plus widgets.                                                                         |
-| **widgets** (`apps/mcp-server/dist/mcp-app.js` + `.css`)    | One Vite-built ES module + stylesheet containing React, Tailwind, and every widget. The server serves it behind one `ui://views/<tool>.html` resource per widget tool, which declares that view on itself (`showToolBinding`). |
+| Module                                                      | Role                                                                                                                                                                                                                               |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **MCP Server** (`apps/mcp-server/`)                         | Hosts the HTTP transport on port `8400` on the official MCP TypeScript SDK, loads modules from `MCP_ACTIVE_MODULES`, and serves the Vite-built React widget bundle (see **widgets**).                                              |
+| **CLI** (`apps/cli/`)                                       | Every engine REST operation as a command, generated from the OpenAPI spec, plus the workflow commands; on npm, Homebrew, GHCR and the GitHub release. See the [CLI docs](../cli/index.md); rules in `apps/cli/CLAUDE.md`.          |
+| **Pulse for VS Code** (`apps/vscode/`)                      | Shows what an engine runs next to the BPMN models in VS Code: the runtime view (`packages/core/runtime-view`, a React webview on pulse-ui over the engine contract) and the C7 adapter. A .vsix; rules in `apps/vscode/CLAUDE.md`. |
+| **Pulse for Orca** (`apps/orca/`)                           | The same runtime view and C7 adapter in Orca's editor tabs and a Pulse panel; an Orca plugin, rules in `apps/orca/CLAUDE.md`.                                                                                                      |
+| **engine** (`packages/connectors/engine/engine-connector/`) | Wraps the Camunda 7 / CIB seven REST API via an OpenAPI-generated client. Exposes process, task, incident, deployment, and history tools plus widgets.                                                                             |
+| **widgets** (`apps/mcp-server/dist/mcp-app.js` + `.css`)    | One Vite-built ES module + stylesheet containing React, Tailwind, and every widget. The server serves it behind one `ui://views/<tool>.html` resource per widget tool, which declares that view on itself (`showToolBinding`).     |
 
 ## Composition rules
 
@@ -105,21 +105,20 @@ same React components brings an adapter of its own and leaves the widgets as the
 module's widgets still read the Camunda 7 REST family's data. Components for Camunda 8 would read
 engine-core's contract, as the runtime view does: a design question of its own.
 
-## Two UI families
+## What the UIs share
 
-Pulse's UIs come in two families. React on `@miragon/pulse-ui` and widget-shell: the MCP widgets,
-a starter's widgets and the web apps of [#573](https://github.com/Miragon/pulse/issues/573).
-Preact with components and stylesheets of its own: the runtime view's webview (Pulse for VS Code
-and Pulse for Orca), which has no host adapter and never renders a widget. The two share
-pulse-ui's foundation, never a component: the framework-free `@miragon/pulse-ui/tones` (one tone
-per situation, `SITUATION_TONES`) and `@miragon/pulse-ui/format` (dates, durations, counts, short
-ids), which both hosts bundle, and from `@miragon/pulse-ui/testing` the product glossary, the
-count words and the brand gates their tests run. So the same count has the same word, the same
-situation the same tone and a duration the same form in both, while each tool shows what its
-audience needs: six cockpit views have a counterpart in the editors, and
-[Parity with the MCP cockpit](../vscode/parity.md) lists every difference between them as closed,
-wanted or open. The decision is `apps/vscode/docs/adr/ui-foundation.md`;
-[#586](https://github.com/Miragon/pulse/issues/586) holds when the two share building blocks again.
+By the owner's decision of 2026-11-12, Pulse's UIs become one family, React on `@miragon/pulse-ui`
+in one compact look: the MCP widgets, a starter's and the web apps of
+[#573](https://github.com/Miragon/pulse/issues/573) with widget-shell, and the runtime view's
+webview (Pulse for VS Code and Pulse for Orca) without it, which has no host adapter, never renders
+a widget and moved from Preact to React on pulse-ui in one switch. They share a core up to building blocks: the formats (the
+board file first), pulse-ui's framework-free `@miragon/pulse-ui/tones` (`SITUATION_TONES`) and
+`@miragon/pulse-ui/format` (dates, durations, counts, short ids), from `@miragon/pulse-ui/testing`
+the product glossary, the count words and the brand gates, the engine rules of c7-core, the numbers
+of a feature several show (boards first: one builder over one read) and building blocks on React
+with props and callbacks only. Each keeps its own screens and host wiring: six cockpit views have a
+counterpart in the editors, and [Parity with the MCP cockpit](../vscode/parity.md) lists what still
+differs. The decisions are in `apps/vscode/docs/adr/ui-foundation.md`.
 
 ## External systems
 

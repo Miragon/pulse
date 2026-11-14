@@ -8,12 +8,12 @@ import { useT } from "../../messages/use-t.js"
 export function InstanceTab({ data, engineId }: { data: IncidentDetailData; engineId?: string }) {
   const t = useT()
   return (
-    <div className="flex flex-col gap-4">
+    <div className="gap-section flex flex-col">
       {data.activityTree && (
         <div>
           <SectionHeading title={t("incidentDetail.activityTreeTitle")} />
           <Card className="gap-0 py-0 shadow-none">
-            <CardContent className="p-3">
+            <CardContent className="p-gutter">
               <ActivityNode node={data.activityTree} />
             </CardContent>
           </Card>

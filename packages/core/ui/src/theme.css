@@ -10,11 +10,16 @@
  *
  * Three layers (modeler-tool-design §13):
  *   1. `--cd-*`  the Miragon corporate-design tokens, vendored unchanged.
- *   2. Roles     `--primary`, `--link`, `--focus`, `--<tone>`, `--<tone>-soft`,
- *                `--<tone>-ink`, radii, shadows, motion, fonts, light AND dark,
- *                each pointing at `--cd-*` only (never at another role, so a
- *                role overridden on a scope cannot leave a stale alias behind;
- *                the font roles also name the host's font, `--host-font-*`).
+ *   2. Roles     the neutrals (`--background`, `--card`, `--popover`,
+ *                `--raised`, `--muted`, `--accent`, `--border`, …), `--primary`,
+ *                `--interaction`, `--link`, `--focus`, `--<tone>`,
+ *                `--<tone>-soft`, `--<tone>-surface`, `--<tone>-ink`, radii,
+ *                shadows, motion, fonts, the density (`--control-h`,
+ *                `--row-h`, `--gutter`, …, compact, comfortable on touch),
+ *                light AND dark, each pointing at
+ *                `--cd-*` only (never at another role, so a role overridden on
+ *                a scope cannot leave a stale alias behind; the font roles also
+ *                name the host's font, `--host-font-*`).
  *   3. Utilities Tailwind's `@theme` maps utilities onto the roles.
  * A brand (a customer's, or a host's neutral palette) overrides layer 2 only:
  * see the Theme section of the package README. Components use role names
@@ -26,16 +31,18 @@
 
 /*
  * Dark mode follows the host: a `.dark` class (a shell that mirrors the host
- * theme) or `data-theme="dark"` (what SEP-1865 hosts write on <html>).
+ * theme), `data-theme="dark"` (what SEP-1865 hosts write on <html>) or the
+ * guide's own switch, `data-cd-theme="dark"` (what the editor hosts write).
  * `data-theme-mode="light"` marks a forced-light island: an always-light
- * surface such as a diagram's paper and its zoom chrome.
+ * surface such as a diagram's paper and its zoom chrome; `data-cd-theme="light"`
+ * inside a dark scope is one too.
  *
  * `dark:` follows the NEAREST mode scope: an element is dark when it sits in a
  * dark scope with no light island in between. The second branch is a dark
  * scope nested in a light island (a dark preview inside a light app); one
  * such re-nesting is supported, which also covers a light island inside it.
  */
-@custom-variant dark (&:is(:is(.dark, [data-theme="dark"], [data-theme-mode="dark"]) *:not([data-theme-mode="light"] *), [data-theme-mode="light"] :is(.dark, [data-theme="dark"], [data-theme-mode="dark"]) *:not([data-theme-mode="light"] :is(.dark, [data-theme="dark"], [data-theme-mode="dark"]) [data-theme-mode="light"] *)));
+@custom-variant dark (&:is(:is(.dark, [data-theme="dark"], [data-theme-mode="dark"], [data-cd-theme="dark"]) *:not(:is([data-theme-mode="light"], [data-cd-theme="light"]) *), :is([data-theme-mode="light"], [data-cd-theme="light"]) :is(.dark, [data-theme="dark"], [data-theme-mode="dark"], [data-cd-theme="dark"]) *:not(:is([data-theme-mode="light"], [data-cd-theme="light"]) :is(.dark, [data-theme="dark"], [data-theme-mode="dark"], [data-cd-theme="dark"]) :is([data-theme-mode="light"], [data-cd-theme="light"]) *)));
 
 @theme inline {
   --font-heading: var(--font-sans);
@@ -72,26 +79,34 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-raised: var(--raised);
+  --color-interaction: var(--interaction);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
   --color-scrim: var(--scrim);
-  /* Status tones, three roles each (CI §3.3): the colour itself for fills,
-     dots, borders and icons (`bg-danger`, `border-danger`); a tint for
-     surfaces (`bg-danger-soft`, the text on it is the foreground); and the
+  /* Status tones (CI §3.3): the colour itself for fills, dots, borders and
+     icons (`bg-danger`, `border-danger`); a tint for surfaces
+     (`bg-danger-soft`, the text on it is the foreground, transparent on
+     dark); the guide's status surface (`bg-danger-surface`, the status box
+     and the strip: the tint on light, the neutral flaeche on dark); and the
      TEXT colour of a tone on a plain surface (`text-danger-ink`, e.g. a
      field error). Success and warning reach only 1.67:1 / 1.83:1 on white,
      so their ink is the foreground. Figures never take a tone colour. */
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
+  --color-danger-surface: var(--danger-surface);
   --color-danger-ink: var(--danger-ink);
   --color-warning: var(--warning);
   --color-warning-soft: var(--warning-soft);
+  --color-warning-surface: var(--warning-surface);
   --color-warning-ink: var(--warning-ink);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
+  --color-success-surface: var(--success-surface);
   --color-success-ink: var(--success-ink);
   --color-info: var(--info);
   --color-info-soft: var(--info-soft);
+  --color-info-surface: var(--info-surface);
   --color-info-ink: var(--info-ink);
   /* Larger legacy steps keep deriving from the base `--radius`. */
   --radius-xl: calc(var(--radius) * 1.4);
@@ -107,7 +122,12 @@
    `var(--font-mono)`). `reference` keeps Tailwind from emitting the
    self-referencing theme variable; the roles below define the values.
    The type scale works the same way: `text-small` sets the font size, line
-   height and weight of the `--text-small` role. */
+   height and weight of the `--text-small` role, and `text-field` the size of
+   the field's text role (`--field-text`) on the dense step's line height
+   (FIELD_TEXT in src/lib/typography.ts). The density roles are
+   spacing keys (`min-h-control` → `var(--control-h)`, `h-row`, `p-gutter`,
+   `gap-section`; the keys in src/lib/density.ts, which cn knows too) and the
+   button's radius a radius key (`rounded-button`). */
 @theme inline reference {
   --text-title: var(--text-title);
   --text-title--line-height: var(--text-title--line-height);
@@ -121,6 +141,8 @@
   --text-dense--line-height: var(--text-dense--line-height);
   --text-small: var(--text-small);
   --text-small--line-height: var(--text-small--line-height);
+  --text-field: var(--field-text);
+  --text-field--line-height: var(--text-dense--line-height);
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
@@ -130,6 +152,43 @@
   --shadow-3: var(--shadow-3);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
+  --spacing-bar: var(--bar-h);
+  --spacing-toolbar: var(--toolbar-h);
+  --spacing-entry: var(--entry-h);
+  --spacing-control: var(--control-h);
+  --spacing-control-xs: var(--control-h-xs);
+  --spacing-control-lg: var(--control-h-lg);
+  --spacing-row: var(--row-h);
+  --spacing-gutter: var(--gutter);
+  --spacing-section: var(--section-gap);
+  --spacing-segment: var(--segment-h);
+  --spacing-badge: var(--badge-h);
+  --radius-button: var(--button-radius);
+}
+
+/* The cell's padding has a role per axis, so its two utilities are their own:
+   a spacing key would give `px-cell` and `py-cell` one value. */
+@utility px-cell {
+  padding-inline: var(--cell-px);
+}
+@utility py-cell {
+  padding-block: var(--cell-py);
+}
+
+/* An indeterminate Progress: its segment (two fifths of the track) runs from
+   before the track's start to past its end. Emitted only where a view uses it;
+   reduced motion stops it (the block at the end of this file, and Progress
+   draws a still dashed line then). */
+@theme inline {
+  --animate-progress-indeterminate: progress-indeterminate 1.5s var(--ease) infinite;
+  @keyframes progress-indeterminate {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(250%);
+    }
+  }
 }
 
 /* ── Mode-independent roles ───────────────────────────────────────────────── */
@@ -146,10 +205,15 @@
   --motion-base: var(--cd-motion-base);
   --motion-slow: var(--cd-motion-slow);
   --ease: var(--cd-ease);
+  /* The focus indicator's width: 2 px, 3 px in high contrast (§8). FOCUS_RING
+     and the base outline below read it. */
+  --focus-width: 2px;
   /* Type scale (modeler-tool-design §4, adapted for embedded widgets: the
-     page title is the CI h2, dense tables keep 14 px as the documented
-     product exception). 13 px is the floor: nothing renders smaller. In rem,
-     so a reader's font-size setting scales it. */
+     page title is the CI h2). Dense text (tables, controls, menus) is the
+     guide's klein step, 13 px like small; the two keep their names because
+     they mean different things. 13 px is the floor: nothing renders smaller.
+     Weights are 400, 600 and 700 only. In rem, so a reader's font-size
+     setting scales it. */
   --text-title: 1.75rem; /* 28px */
   --text-title--line-height: 1.2;
   --text-title--font-weight: 700;
@@ -158,10 +222,16 @@
   --text-section--font-weight: 600;
   --text-body: 1rem; /* 16px */
   --text-body--line-height: 1.6;
-  --text-dense: 0.875rem; /* 14px */
+  --text-dense: 0.8125rem; /* 13px */
   --text-dense--line-height: 1.5;
   --text-small: 0.8125rem; /* 13px */
   --text-small--line-height: 1.5;
+  /* The text of a field (Input, Textarea, NativeSelect, SearchField): 13 px,
+     16 px on a coarse pointer (the density blocks below), where iOS zooms
+     into a focused field whose text is smaller. The one type role that
+     follows the pointer; a host that pins the compact step keeps it at
+     13 px, and data-density="comfortable" alone never raises it. */
+  --field-text: 0.8125rem; /* 13px */
   /* Geist first, then the host's font, then the system stack. Loading Geist
      is opt-in (fonts.css or fontFaces()); where it is not loaded the next
      family renders. A SEP-1865 host sends its font as --font-sans and
@@ -174,7 +244,117 @@
   --font-mono:
     "Geist Mono", "Geist Mono Variable", var(--host-font-mono, ui-monospace), SFMono-Regular, Menlo,
     Consolas, monospace;
+  /* Density, compact: the default of every surface (D9), on the guide's shell
+     ladder (modeler-tool-design §5.2). In rem, so a reader's font size scales
+     it; at a 16 px root the bar is --cd-shell-zeile, toolbars, menu entries
+     and the large control --cd-shell-eintrag, the gutter, the section gap and
+     the cell's side padding --cd-shell-rand (theme-density.test.ts holds
+     them). The 28 px control and row, the 24 px xs control and the sm radius
+     on buttons are the named deviations of the density section in CLAUDE.md;
+     the shell ladder has no 28 px token. Controls and bars take their height
+     as a minimum. The badge is no target and keeps 20 px in both steps. */
+  --bar-h: 2.5rem; /* 40px */
+  --toolbar-h: 2.25rem; /* 36px */
+  --entry-h: 2.25rem; /* 36px */
+  --control-h: 1.75rem; /* 28px */
+  --control-h-xs: 1.5rem; /* 24px */
+  --control-h-lg: 2.25rem; /* 36px */
+  --row-h: 1.75rem; /* 28px */
+  --cell-px: 0.75rem; /* 12px */
+  --cell-py: 0.25rem; /* 4px */
+  --gutter: 0.75rem; /* 12px */
+  --section-gap: 0.75rem; /* 12px */
+  --segment-h: 1.5rem; /* 24px */
+  --button-radius: var(--cd-radius-sm);
+  --badge-h: 1.25rem; /* 20px */
 }
+
+/* ── Density, comfortable: touch, or data-density="comfortable" ───────────────
+   On a coarse pointer (any-pointer: coarse, a touch screen next to a mouse
+   too) and inside an element marked data-density="comfortable", the roles
+   take the guide's ladder: 36 px controls (eintrag); 40 px rows, toolbars,
+   menu entries and large controls (zeile); 32 px xs controls and segments
+   (ziel); a 48 px bar, a 36 px target with 6 px above and below; a 16 px
+   gutter and section gap, 8 px cell padding top and bottom, the md radius on
+   buttons; on a coarse pointer the fields' text is 16 px. Both blocks carry
+   the same values but that one, which follows the pointer alone
+   (theme-density.test.ts).
+   data-density="compact" pins the compact step on a coarse pointer too (an
+   editor stays compact on a touch laptop, as the editor itself does), its
+   fields' 13 px text included: it comes after the media block and repeats
+   :root's values, and data-density="comfortable" after it, so the nearest
+   mark wins. */
+@media (any-pointer: coarse) {
+  :root {
+    --bar-h: 3rem; /* 48px */
+    --toolbar-h: 2.5rem; /* 40px */
+    --entry-h: 2.5rem; /* 40px */
+    --control-h: 2.25rem; /* 36px */
+    --control-h-xs: 2rem; /* 32px */
+    --control-h-lg: 2.5rem; /* 40px */
+    --row-h: 2.5rem; /* 40px */
+    --cell-px: 0.75rem; /* 12px */
+    --cell-py: 0.5rem; /* 8px */
+    --gutter: 1rem; /* 16px */
+    --section-gap: 1rem; /* 16px */
+    --segment-h: 2rem; /* 32px */
+    --button-radius: var(--cd-radius-md);
+    --field-text: 1rem; /* 16px */
+  }
+}
+[data-density="compact"] {
+  --bar-h: 2.5rem; /* 40px */
+  --toolbar-h: 2.25rem; /* 36px */
+  --entry-h: 2.25rem; /* 36px */
+  --control-h: 1.75rem; /* 28px */
+  --control-h-xs: 1.5rem; /* 24px */
+  --control-h-lg: 2.25rem; /* 36px */
+  --row-h: 1.75rem; /* 28px */
+  --cell-px: 0.75rem; /* 12px */
+  --cell-py: 0.25rem; /* 4px */
+  --gutter: 0.75rem; /* 12px */
+  --section-gap: 0.75rem; /* 12px */
+  --segment-h: 1.5rem; /* 24px */
+  --button-radius: var(--cd-radius-sm);
+  --field-text: 0.8125rem; /* 13px */
+}
+[data-density="comfortable"] {
+  --bar-h: 3rem; /* 48px */
+  --toolbar-h: 2.5rem; /* 40px */
+  --entry-h: 2.5rem; /* 40px */
+  --control-h: 2.25rem; /* 36px */
+  --control-h-xs: 2rem; /* 32px */
+  --control-h-lg: 2.5rem; /* 40px */
+  --row-h: 2.5rem; /* 40px */
+  --cell-px: 0.75rem; /* 12px */
+  --cell-py: 0.5rem; /* 8px */
+  --gutter: 1rem; /* 16px */
+  --section-gap: 1rem; /* 16px */
+  --segment-h: 2rem; /* 32px */
+  --button-radius: var(--cd-radius-md);
+}
+/* The field's text follows the pointer, never the density: a comfortable
+   mark raises it to 16 px on a coarse pointer only (inside a host's compact
+   pin), and leaves it at 13 px on a fine one. */
+@media (any-pointer: coarse) {
+  [data-density="comfortable"] {
+    --field-text: 1rem; /* 16px */
+  }
+}
+
+/* ── Neutral roles: the guide's --cd-ui-* roles (modeler-tool-design §3.5) ─────
+   The neutrals carry the values of the guide's --cd-ui-* roles in both modes:
+   --background and --muted are grund, --card flaeche, --popover and --raised
+   flaeche-hoch, --accent (hover and selection) hover, --border linie,
+   --input kontur, --muted-foreground text-leise, --interaction interaktion,
+   --<tone>-surface the status surface, --scrim backdrop. They name the
+   palette tokens of those values rather than var(--cd-ui-*): the --cd-ui-*
+   roles switch only under data-cd-theme, while this theme's mode also
+   follows the host (.dark, data-theme). On light every value is a palette
+   token; on dark the guide lifts --cd-schwarz with white (flaeche 5 %,
+   flaeche-hoch 8 %, hover 12 %; linie 18 % and text-leise 70 % are its
+   #464646 and #BBBBBB). theme-css.test.ts holds each role to its --cd-ui-*
+   value in both modes. */
 
 /* ── Light roles ──────────────────────────────────────────────────────────── */
 /* Re-declared on a forced-light island only where it sits inside a dark
@@ -183,16 +363,19 @@
    `:root` brand included. `:where()` keeps the island selector at (0,1,0):
    a brand rule on `[data-theme-mode="light"]` after this file still wins. */
 :root,
-:where(.dark, [data-theme="dark"], [data-theme-mode="dark"]) [data-theme-mode="light"] {
-  --background: var(--cd-weiss);
+:where(.dark, [data-theme="dark"], [data-theme-mode="dark"], [data-cd-theme="dark"])
+  :is([data-theme-mode="light"], [data-cd-theme="light"]) {
+  --background: var(--cd-grau);
   --foreground: var(--cd-schwarz);
   --card: var(--cd-weiss);
   --card-foreground: var(--cd-schwarz);
   --popover: var(--cd-weiss);
   --popover-foreground: var(--cd-schwarz);
+  --raised: var(--cd-weiss);
   --primary: var(--cd-blau);
   --primary-foreground: var(--cd-weiss);
   --primary-hover: var(--cd-blau-link);
+  --interaction: var(--cd-blau);
   --secondary: var(--cd-grau);
   --secondary-foreground: var(--cd-schwarz);
   --muted: var(--cd-grau);
@@ -208,22 +391,26 @@
   --focus: var(--cd-blau-link);
   --success: var(--cd-success);
   --success-soft: var(--cd-success-soft);
+  --success-surface: var(--cd-success-soft);
   --success-ink: var(--cd-schwarz);
   --warning: var(--cd-warning);
   --warning-soft: var(--cd-warning-soft);
+  --warning-surface: var(--cd-warning-soft);
   --warning-ink: var(--cd-schwarz);
   --danger: var(--cd-danger);
   --danger-soft: var(--cd-danger-soft);
+  --danger-surface: var(--cd-danger-soft);
   --danger-ink: var(--cd-danger);
   --info: var(--cd-info);
   --info-soft: var(--cd-info-soft);
+  --info-surface: var(--cd-info-soft);
   --info-ink: var(--cd-info);
   --chart-1: var(--cd-blau);
   --chart-2: var(--cd-gruen);
   --chart-3: var(--cd-blau-hell);
   --chart-4: var(--cd-kontur);
   --chart-5: var(--cd-schwarz);
-  --sidebar: var(--cd-grau);
+  --sidebar: var(--cd-weiss);
   --sidebar-foreground: var(--cd-schwarz);
   --sidebar-primary: var(--cd-blau);
   --sidebar-primary-foreground: var(--cd-weiss);
@@ -235,69 +422,110 @@
 }
 
 /* ── Dark roles (CI dark-ground rules) ────────────────────────────────────── */
-/* --cd-schwarz is the ground; quiet surfaces lift it with white. Text white,
-   links and accent text green, buttons stay blue with white text, focus
-   blau-hell, status in the -hell values WITHOUT tinted fills, quiet text
-   --cd-kontur. --cd-kontur keeps 4.5:1 only up to a 3 % lift, so the quiet
-   surfaces quiet text sits on (--muted, --sidebar) lift 3 %. The
-   hover/selected (--accent) and secondary surfaces lift 10 % to stay
-   visible; quiet text on them switches to their foreground (both pinned in
-   theme-css.test.ts). --popover stays on the ground: --cd-blau (a checked
-   Switch in a sheet) reaches 3:1 only there (3.08:1; 2.92:1 at a 2 % lift).
-   Overlays stand off the page by their border and a scrim that pushes the
-   page back harder than on light. A destructive action keeps the
-   --cd-danger fill: white on --cd-danger-hell is 2.79:1. */
+/* --cd-schwarz is the ground (grund), and higher is lighter: a card
+   (flaeche) 5 %, an overlay and a raised control (flaeche-hoch) 8 %, hover
+   and selection 12 %, each with its 1 px linie edge, since the steps alone
+   part too little. Text white, quiet text text-leise, links and accent text
+   green, buttons stay blue with white text, focus, selection marks and the
+   checked switch blau-hell (--interaction): --cd-blau falls under 3:1 on a
+   lifted surface (2.69:1 on flaeche), so it fills only a control with white
+   text on it. Status in the -hell values WITHOUT tinted fills: the status
+   surface is the neutral flaeche, and info is no text on flaeche-hoch
+   (4.27:1, §3.3), so its ink is the text. The scrim pushes the page back
+   harder than on light. A destructive action keeps the --cd-danger fill:
+   white on --cd-danger-hell is 2.79:1. */
 .dark,
 [data-theme="dark"],
-[data-theme-mode="dark"] {
+[data-theme-mode="dark"],
+[data-cd-theme="dark"] {
   --background: var(--cd-schwarz);
   --foreground: var(--cd-weiss);
-  --card: var(--cd-schwarz);
+  --card: color-mix(in srgb, var(--cd-weiss) 5%, var(--cd-schwarz));
   --card-foreground: var(--cd-weiss);
-  --popover: var(--cd-schwarz);
+  --popover: color-mix(in srgb, var(--cd-weiss) 8%, var(--cd-schwarz));
   --popover-foreground: var(--cd-weiss);
+  --raised: color-mix(in srgb, var(--cd-weiss) 8%, var(--cd-schwarz));
   --primary: var(--cd-blau);
   --primary-foreground: var(--cd-weiss);
   --primary-hover: var(--cd-blau-link);
-  --secondary: color-mix(in srgb, var(--cd-weiss) 10%, var(--cd-schwarz));
+  --interaction: var(--cd-blau-hell);
+  --secondary: color-mix(in srgb, var(--cd-weiss) 12%, var(--cd-schwarz));
   --secondary-foreground: var(--cd-weiss);
-  --muted: color-mix(in srgb, var(--cd-weiss) 3%, var(--cd-schwarz));
-  --muted-foreground: var(--cd-kontur);
-  --accent: color-mix(in srgb, var(--cd-weiss) 10%, var(--cd-schwarz));
+  --muted: var(--cd-schwarz);
+  --muted-foreground: color-mix(in srgb, var(--cd-weiss) 70%, var(--cd-schwarz));
+  --accent: color-mix(in srgb, var(--cd-weiss) 12%, var(--cd-schwarz));
   --accent-foreground: var(--cd-weiss);
   --link: var(--cd-gruen);
   --destructive: var(--cd-danger);
   --destructive-foreground: var(--cd-weiss);
-  --border: color-mix(in srgb, var(--cd-weiss) 14%, transparent);
+  --border: color-mix(in srgb, var(--cd-weiss) 18%, var(--cd-schwarz));
   --input: var(--cd-kontur);
   --ring: var(--cd-blau-hell);
   --focus: var(--cd-blau-hell);
   --success: var(--cd-success-hell);
   --success-soft: transparent;
+  --success-surface: color-mix(in srgb, var(--cd-weiss) 5%, var(--cd-schwarz));
   --success-ink: var(--cd-success-hell);
   --warning: var(--cd-warning-hell);
   --warning-soft: transparent;
+  --warning-surface: color-mix(in srgb, var(--cd-weiss) 5%, var(--cd-schwarz));
   --warning-ink: var(--cd-warning-hell);
   --danger: var(--cd-danger-hell);
   --danger-soft: transparent;
+  --danger-surface: color-mix(in srgb, var(--cd-weiss) 5%, var(--cd-schwarz));
   --danger-ink: var(--cd-danger-hell);
   --info: var(--cd-info-hell);
   --info-soft: transparent;
-  --info-ink: var(--cd-info-hell);
+  --info-surface: color-mix(in srgb, var(--cd-weiss) 5%, var(--cd-schwarz));
+  --info-ink: var(--cd-weiss);
   --chart-1: var(--cd-blau-hell);
   --chart-2: var(--cd-gruen);
   --chart-3: var(--cd-blau);
   --chart-4: var(--cd-kontur);
   --chart-5: var(--cd-weiss);
-  --sidebar: color-mix(in srgb, var(--cd-weiss) 3%, var(--cd-schwarz));
+  --sidebar: color-mix(in srgb, var(--cd-weiss) 5%, var(--cd-schwarz));
   --sidebar-foreground: var(--cd-weiss);
   --sidebar-primary: var(--cd-blau);
   --sidebar-primary-foreground: var(--cd-weiss);
-  --sidebar-accent: color-mix(in srgb, var(--cd-weiss) 10%, var(--cd-schwarz));
+  --sidebar-accent: color-mix(in srgb, var(--cd-weiss) 12%, var(--cd-schwarz));
   --sidebar-accent-foreground: var(--cd-weiss);
-  --sidebar-border: color-mix(in srgb, var(--cd-weiss) 14%, transparent);
+  --sidebar-border: color-mix(in srgb, var(--cd-weiss) 18%, var(--cd-schwarz));
   --sidebar-ring: var(--cd-blau-hell);
-  --scrim: color-mix(in srgb, var(--cd-schwarz) 72%, transparent);
+  --scrim: color-mix(in srgb, var(--cd-schwarz) 60%, transparent);
+}
+
+/* ── High contrast (data-cd-kontrast="hoch", modeler-tool-design §5.3, §8) ── */
+/* The guide's attribute, on the element that carries the mode (VS Code's
+   webview sets it on <html> for a high-contrast theme; Orca reports no
+   contrast, so there forced-colors below carries it). No shadows, the
+   divider takes the field edge's value (linie becomes kontur), the field
+   edge and quiet text become the text, the focus indicator 3 px. A light
+   island inside keeps its light values in high contrast too. */
+[data-cd-kontrast="hoch"],
+[data-cd-kontrast="hoch"] :is([data-theme-mode="light"], [data-cd-theme="light"]) {
+  --shadow-1: 0 0 transparent;
+  --shadow-2: 0 0 transparent;
+  --shadow-3: 0 0 transparent;
+  --focus-width: 3px;
+  --border: var(--cd-kontur);
+  --sidebar-border: var(--cd-kontur);
+  --input: var(--cd-schwarz);
+  --muted-foreground: var(--cd-schwarz);
+}
+:is(
+  .dark,
+  [data-theme="dark"],
+  [data-theme-mode="dark"],
+  [data-cd-theme="dark"]
+)[data-cd-kontrast="hoch"],
+[data-cd-kontrast="hoch"]
+  :is(.dark, [data-theme="dark"], [data-theme-mode="dark"], [data-cd-theme="dark"]),
+:is(.dark, [data-theme="dark"], [data-theme-mode="dark"], [data-cd-theme="dark"])
+  [data-cd-kontrast="hoch"] {
+  --border: var(--cd-kontur);
+  --sidebar-border: var(--cd-kontur);
+  --input: var(--cd-weiss);
+  --muted-foreground: var(--cd-weiss);
 }
 
 @layer base {
@@ -314,7 +542,7 @@
      including raw <button>s. Components with their own ring (FOCUS_RING) win:
      utilities are a later layer. */
   :focus-visible {
-    outline: 2px solid var(--focus);
+    outline: var(--focus-width) solid var(--focus);
     outline-offset: 2px;
   }
   /* Native controls and scrollbars follow the mode. Declared on <body> and
@@ -322,12 +550,12 @@
      the host's iframe element makes the browser paint an opaque canvas
      behind the view, which the host keeps transparent on purpose. */
   body,
-  :where(body) [data-theme-mode="light"] {
+  :where(body) :is([data-theme-mode="light"], [data-cd-theme="light"]) {
     color-scheme: light;
   }
-  :is(.dark, [data-theme="dark"]) body,
-  body:is(.dark, [data-theme="dark"], [data-theme-mode="dark"]),
-  :where(body) :is(.dark, [data-theme="dark"], [data-theme-mode="dark"]) {
+  :is(.dark, [data-theme="dark"], [data-cd-theme="dark"]) body,
+  body:is(.dark, [data-theme="dark"], [data-theme-mode="dark"], [data-cd-theme="dark"]),
+  :where(body) :is(.dark, [data-theme="dark"], [data-theme-mode="dark"], [data-cd-theme="dark"]) {
     color-scheme: dark;
   }
 }
@@ -340,5 +568,85 @@
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Forced colours (Windows contrast themes, modeler-tool-design §5.3, §5.14) ─
+   The browser paints text, edges and fills in its system colours and drops
+   every shadow, so what a fill or a shadow alone showed gets a system colour
+   of its own: a selected, pressed or checked control and the current link
+   or button a 2 px ring inside in Highlight (focus keeps its own outline), a
+   card (edged by a shadow ring) and a switch an edge in CanvasText, a status
+   dot, the switch's thumb and a progress bar's fill CanvasText, the bar's
+   track a CanvasText outline. A transparent edge (the kit's
+   buttons) turns visible here, so a button keeps its outline. A light island (a diagram's paper and its zoom
+   bar) keeps the colours it is drawn in, so the drawing stays on its paper.
+   Unlayered, so these win over the utilities. */
+@media (forced-colors: active) {
+  :is(
+    [aria-selected="true"],
+    [aria-pressed="true"],
+    [aria-checked="true"],
+    :is(a, button)[aria-current]:not([aria-current="false"])
+  ):not(:focus-visible) {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+  :is([data-slot="card"], [data-slot="switch"]) {
+    border-color: CanvasText;
+  }
+  /* A line tab's bar (a view's tab or a navigation's item) and a segment's
+     edge are borders, Highlight on the selected or current one; an
+     unselected tab's bar and an unchecked segment's edge, transparent, stay
+     unpainted. */
+  :is(
+    [data-slot="tabs-trigger"][data-variant="line"],
+    [data-slot="nav-tab"],
+    [data-slot="segmented-option"]
+  ) {
+    border-color: Canvas;
+  }
+  :is(
+    [data-slot="tabs-trigger"][data-variant="line"][data-state="active"],
+    [data-slot="nav-tab"][aria-current="page"],
+    [data-slot="segmented-option"][aria-checked="true"]
+  ) {
+    border-color: Highlight;
+  }
+  [data-slot="card"] {
+    border-style: solid;
+    border-width: 1px;
+  }
+  :is(
+    .bg-success,
+    .bg-warning,
+    .bg-danger,
+    .bg-info,
+    .bg-muted-foreground,
+    [data-slot="switch-thumb"],
+    [data-slot="progress-indicator"]
+  ):not([data-theme-mode="light"] *) {
+    background-color: CanvasText;
+  }
+  /* A tone's icon (a KPI tile's, a pill's, a state's, a count's) follows
+     the system colour of what it sits in, as its text does: the browser
+     forces no stroke, and an icon's own tone class would keep it red. Its
+     shape still tells the tone. A docked strip keeps its tone's icon. */
+  svg.lucide:not([data-slot="status-strip"] *, [data-theme-mode="light"] *) {
+    color: inherit;
+  }
+  /* A progress bar's track shows its extent by an outline; a still
+     indeterminate one (reduced motion) keeps its dashed line, no fill. */
+  [data-slot="progress"] {
+    outline: 1px solid CanvasText;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    [data-slot="progress-indicator"][data-state="indeterminate"] {
+      background-color: Canvas;
+    }
+  }
+  [data-theme-mode="light"] {
+    forced-color-adjust: none;
   }
 }

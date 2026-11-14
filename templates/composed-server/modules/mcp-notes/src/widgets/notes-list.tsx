@@ -28,8 +28,7 @@ export function NotesListWidget({ data: initialData }: { data: NotesListData | n
 
   if (!data) {
     return (
-      <WidgetShell>
-        <WidgetHeader title="Team Notes" />
+      <WidgetShell header={<WidgetHeader title="Team Notes" />}>
         <QueryFallback
           isError={error !== null}
           error={error}
@@ -42,8 +41,8 @@ export function NotesListWidget({ data: initialData }: { data: NotesListData | n
   }
 
   return (
-    <WidgetShell>
-      <WidgetHeader title={data.title} sub={`${data.notes.length} note(s)`} />
+    // The header is the view's bar, from edge to edge; the list sits in the gutter below it.
+    <WidgetShell header={<WidgetHeader title={data.title} sub={`${data.notes.length} note(s)`} />}>
       {data.notes.length === 0 ? (
         <TableEmptyState>No notes match the current filter.</TableEmptyState>
       ) : (
@@ -59,7 +58,7 @@ export function NotesListWidget({ data: initialData }: { data: NotesListData | n
           {data.notes.map((note) => (
             <tr key={note.id}>
               <Td>
-                <div className="font-medium">{note.title}</div>
+                <div className="font-semibold">{note.title}</div>
                 <div className="text-muted-foreground mt-0.5">{note.text}</div>
               </Td>
               <Td>{note.tags.join(", ")}</Td>

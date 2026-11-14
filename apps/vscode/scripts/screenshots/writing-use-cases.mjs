@@ -18,6 +18,7 @@ import {
   selectTab,
   showPulse,
 } from "./vscode-driver.mjs"
+import { part } from "../support/webview-parts.mjs"
 
 export const WRITING_USE_CASES = [
   {
@@ -33,7 +34,7 @@ export const WRITING_USE_CASES = [
       const frame = panelFrame(window)
       await frame.locator("tr", { hasText: "cardExpiry" }).hover()
       await frame.getByRole("button", { name: "Edit cardExpiry" }).click()
-      const field = frame.locator(".variable-editor__field")
+      const field = frame.getByRole("textbox", { name: "New value" })
       await field.fill("12/2030")
       await window.waitForTimeout(600)
     },
@@ -48,7 +49,7 @@ export const WRITING_USE_CASES = [
       await frame.getByRole("button", { name: "Cancel" }).click()
       await frame.locator("tr", { hasText: "couponCode" }).hover()
       await frame.getByRole("button", { name: "Edit couponCode" }).click()
-      await frame.locator(".variable-editor__field").fill("SPRING-4117")
+      await frame.getByRole("textbox", { name: "New value" }).fill("SPRING-4117")
       await window.waitForTimeout(600)
     },
     after: async (window) => {
@@ -56,16 +57,18 @@ export const WRITING_USE_CASES = [
       const frame = panelFrame(window)
       await frame.locator("tr", { hasText: "cardExpiry" }).hover()
       await frame.getByRole("button", { name: "Edit cardExpiry" }).click()
-      await frame.locator(".variable-editor__field").fill("12/2030")
+      await frame.getByRole("textbox", { name: "New value" }).fill("12/2030")
     },
   },
   {
     file: "variable-changed-retry-now",
     title: "Fix the data, then retry",
     shows:
-      "After the change the panel confirms it and the incident strip right below offers Retry for the incident that waited for this fix.",
+      "After the change the panel confirms it in a strip that offers Retry now for the incident that waited for this fix.",
     run: async (window) => {
-      await panelFrame(window).locator(".variable-editor__field").press(`${MODIFIER}+Enter`)
+      await panelFrame(window)
+        .getByRole("textbox", { name: "New value" })
+        .press(`${MODIFIER}+Enter`)
       await waitForStrip(window, "Changed cardExpiry")
       await window.waitForTimeout(800)
     },
@@ -152,7 +155,7 @@ export const MOVING_USE_CASES = [
       await panelFrame(window)
         .locator('g.djs-element[data-element-id="Activity_ChargePayment"] .djs-hit')
         .click()
-      await panelFrame(window).locator(".move-entry").waitFor({ timeout: 15_000 })
+      await panelFrame(window).locator('[data-part="move-entry"]').waitFor({ timeout: 15_000 })
       await window.waitForTimeout(600)
     },
   },
@@ -163,11 +166,15 @@ export const MOVING_USE_CASES = [
       "The move button opens the move panel: the diagram marks where the token may go, and once a target is picked the source shows −1, the target +1 and the review list what happens.",
     run: async (window) => {
       const frame = panelFrame(window)
-      await frame.locator(".move-entry").click()
+      await frame.locator('[data-part="move-entry"]').click()
       await frame
-        .locator(".move-panel select")
+        .getByRole("group", { name: /^Move the token at / })
+        .locator("select")
         .selectOption({ label: "Await payment confirmation" })
-      await frame.locator(".move-panel input").fill("Customer paid by bank transfer")
+      await frame
+        .getByRole("group", { name: /^Move the token at / })
+        .locator("input")
+        .fill("Customer paid by bank transfer")
       await window.waitForTimeout(800)
     },
   },
@@ -177,7 +184,10 @@ export const MOVING_USE_CASES = [
     shows:
       "Even on the local engine a move asks first, names what happens and says that it cannot be undone.",
     run: async (window) => {
-      await panelFrame(window).locator(".move-panel").getByRole("button", { name: "Move…" }).click()
+      await panelFrame(window)
+        .getByRole("group", { name: /^Move the token at / })
+        .getByRole("button", { name: "Move…" })
+        .click()
       await window.locator(".monaco-dialog-box").waitFor({ timeout: 15_000 })
       await window.waitForTimeout(600)
     },
@@ -189,10 +199,10 @@ export const MOVING_USE_CASES = [
 
 async function openVersion(window, label) {
   const frame = panelFrame(window)
-  const picker = frame.locator("select.version-picker__select")
+  const picker = frame.getByRole("combobox", { name: "Version" })
   const value = await picker.locator("option", { hasText: label }).first().getAttribute("value")
   await picker.selectOption(value)
-  await frame.locator(".context-bar", { hasText: "As of" }).waitFor({ timeout: 30_000 })
+  await frame.locator(part("context-bar"), { hasText: "As of" }).waitFor({ timeout: 30_000 })
   await window.waitForTimeout(1500)
 }
 
@@ -206,7 +216,9 @@ export const MIGRATING_USE_CASES = [
       await openDefinition(window)
       await openVersion(window, /^v2 /)
       await panelFrame(window).getByRole("checkbox", { name: "Select all shown instances" }).check()
-      await panelFrame(window).locator(".selection-bar").waitFor({ timeout: 15_000 })
+      await panelFrame(window)
+        .getByRole("group", { name: "Selected instances" })
+        .waitFor({ timeout: 15_000 })
       await restPointer(window)
     },
   },
@@ -232,7 +244,9 @@ export const MIGRATING_USE_CASES = [
       await panelFrame(window)
         .getByRole("combobox", { name: "Map Check order to" })
         .selectOption({ label: "Not mapped" })
-      await panelFrame(window).locator(".migration-actions__refusal").waitFor({ timeout: 30_000 })
+      await panelFrame(window)
+        .locator('[data-part="migration-refusal"]')
+        .waitFor({ timeout: 30_000 })
       await restPointer(window)
     },
     after: async (window) => {

@@ -10,8 +10,13 @@ import { ProcessDetailHeader } from "./process-incidents/header.js"
 import { widgetActionsFeedFor } from "./lib/hand-off.test-support.js"
 import { instance } from "./write-path.test-support.js"
 import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
+import { buttonVariants } from "@miragon/pulse-ui"
 
-/** One action group, one size, one order; an operator reported actions in three places and sizes. */
+/**
+ * One action group, one size, one order; an operator reported actions in three places and sizes.
+ * In the view's bar every action is the kit's toolbar button (the webview's header buttons): the
+ * icon and the label at 400, 28 px, the label hidden visually in a bar under 36rem.
+ */
 
 afterEach(() => {
   cleanup()
@@ -22,9 +27,11 @@ beforeAll(async () => {
   tools = { [ENGINE_WIDGET_ACTIONS_DATA]: await widgetActionsFeedFor("operations") }
 })
 
+/** The view's bar (WidgetHeader renders the kit's ViewBar): its facts and its one action group. */
 function head(container: HTMLElement) {
-  const header = container.querySelector<HTMLElement>('[data-slot="widget-header"]')!
-  const [facts, group] = Array.from(header.children) as HTMLElement[]
+  const bar = container.querySelector<HTMLElement>('[data-slot="view-bar"]')!
+  const facts = bar.querySelector<HTMLElement>('[data-slot="view-bar-facts"]')!
+  const group = bar.querySelector<HTMLElement>('[data-slot="view-bar-actions"]')
   const actions = Array.from(group?.querySelectorAll<HTMLElement>("a, button") ?? [])
   return { facts, actions }
 }
@@ -40,10 +47,18 @@ async function expectOneGroup(container: HTMLElement, names: RegExp[]) {
   expect(facts.querySelectorAll("a")).toHaveLength(0)
   expect(actions.map(nameOf)).toEqual(names.map((name) => expect.stringMatching(name) as string))
   for (const action of actions) {
-    // The kit's button size sm: 32 px, 14 px, semibold.
-    expect(action.className, nameOf(action)).toMatch(/\bh-8\b/)
-    expect(action.className, nameOf(action)).toMatch(/\btext-sm\b/)
-    expect(action.className, nameOf(action)).toMatch(/\bfont-semibold\b/)
+    const name = nameOf(action)
+    // The kit's toolbar button, size sm: the density's control (28 px, 36 px on touch), 13 px at
+    // 400, the classes of `buttonVariants({ variant: "toolbar", size: "sm" })`.
+    expect(action.className, name).toBe(buttonVariants({ variant: "toolbar", size: "sm" }))
+    expect(action.className, name).toMatch(/(^| )min-h-control( |$)/)
+    expect(action.className, name).toMatch(/(^| )text-dense( |$)/)
+    expect(action.className, name).toMatch(/(^| )font-normal( |$)/)
+    // An icon first, then the label the bar may hide visually: the name stays the label's.
+    expect(action.firstElementChild?.tagName.toLowerCase(), name).toBe("svg")
+    const label = action.querySelector('[data-slot="button-label"]')
+    expect(label?.textContent, name).toBeTruthy()
+    expect(name).toContain(label?.textContent ?? "")
   }
 }
 

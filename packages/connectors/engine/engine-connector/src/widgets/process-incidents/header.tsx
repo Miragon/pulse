@@ -1,10 +1,10 @@
 import {
+  Button,
   formatNumber,
   formatTimestamp,
-  StatusBadge,
+  Icon,
+  StateLabel,
   WidgetHeader,
-  DrillButton,
-  SITUATION_TONES,
 } from "@miragon/pulse-ui"
 import {
   HandOffButton,
@@ -12,6 +12,7 @@ import {
   ViewDataState,
   WidgetShell,
 } from "@miragon/pulse-widget-shell/widgets"
+import { CircleDot } from "lucide-react"
 import type { ProcessIncidentsData } from "../../view-models.js"
 import { useNav } from "../navigation.js"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
@@ -44,14 +45,18 @@ export function triageProcessHandOff(
   }
 }
 
-/** Healthy definitions render too; the badge shows only when something is on fire. */
+/**
+ * Healthy definitions render too; the state shows only when something is on fire. A count in the
+ * header is a state label, never a tinted badge (invariant 6): the incident's icon carries the
+ * tone, the number stays in the foreground.
+ */
 function HeaderBadge({ data }: { data: ProcessIncidentsData }) {
   const t = useT()
   if (data.incidentCount === 0) return null
   return (
-    <StatusBadge tone={SITUATION_TONES.openIncident}>
+    <StateLabel state="incident">
       {t("procIncHeader.openIncidents", { count: formatNumber(data.incidentCount) })}
-    </StatusBadge>
+    </StateLabel>
   )
 }
 
@@ -104,29 +109,43 @@ export function ProcessDetailHeader(scope: DefinitionScope) {
 
   const title = data.processDefinitionName ?? data.processDefinitionKey
 
+  // The route's bar alone: the KPIs, the flow and the list below are views of their own.
   return (
-    <WidgetShell>
-      <WidgetHeader
-        size="detail"
-        badge={<HeaderBadge data={data} />}
-        title={title}
-        sub={<HeaderSub data={data} />}
-        actions={
-          <>
-            <DrillButton
-              onDrill={() =>
-                go({ type: "process-instances", processDefinitionKey: data.processDefinitionKey })
-              }
-            >
-              {t("procIncHeader.viewRunningInstances")}
-            </DrillButton>
-            {data.cockpitUrl && (
-              <OpenInCockpitLink url={data.cockpitUrl} vendor={data.engineVendor} />
-            )}
-            <HandOffButton action="assess" prompt={ask(triageProcessHandOff(data, scope.engine))} />
-          </>
-        }
-      />
-    </WidgetShell>
+    <WidgetShell
+      header={
+        <WidgetHeader
+          badge={<HeaderBadge data={data} />}
+          title={title}
+          sub={<HeaderSub data={data} />}
+          actions={
+            <>
+              <Button
+                type="button"
+                variant="toolbar"
+                size="sm"
+                onClick={() =>
+                  go({ type: "process-instances", processDefinitionKey: data.processDefinitionKey })
+                }
+              >
+                <Icon icon={CircleDot} />
+                {t("procIncHeader.viewRunningInstances")}
+              </Button>
+              {data.cockpitUrl && (
+                <OpenInCockpitLink
+                  url={data.cockpitUrl}
+                  vendor={data.engineVendor}
+                  variant="toolbar"
+                />
+              )}
+              <HandOffButton
+                action="assess"
+                variant="toolbar"
+                prompt={ask(triageProcessHandOff(data, scope.engine))}
+              />
+            </>
+          }
+        />
+      }
+    />
   )
 }

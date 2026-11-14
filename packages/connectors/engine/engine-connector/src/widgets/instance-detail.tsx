@@ -5,7 +5,7 @@ import { ENGINE_INSTANCE_DETAIL_DATA } from "../tool-names.js"
 import { DetailPage, type DetailPageTab } from "./detail-page.js"
 import { InstanceActionDialogs } from "./instance-detail/dialogs.js"
 import { InstanceDiagramSection } from "./instance-detail/diagram.js"
-import { InstanceHeader, InstanceKpis, instanceStatus } from "./instance-detail/header.js"
+import { InstanceFacts, InstanceHeader, instanceStatus } from "./instance-detail/header.js"
 import { HistoryTab } from "./instance-detail/history-tab.js"
 import { IncidentsTab } from "./instance-detail/incidents-tab.js"
 import { InstanceModelContext } from "./instance-detail/model-context.js"
@@ -129,26 +129,24 @@ export function InstanceDetailWidget({
   return (
     <DetailPage
       header={
-        <>
-          {notice}
-          <InstanceHeader
-            instance={instance}
-            processName={data.processDefinitionName}
-            status={status}
-            engineId={engineId}
-            activeActivityIds={data.activeActivityIds}
-            incidentActivityIds={data.incidentActivityIds}
-            isSuspended={isSuspended}
-            isActionable={isActionable}
-            isMutatingInstance={actions.isMutatingInstance}
-            onOpenProcess={openProcess}
-            onRequestSuspendToggle={actions.canSuspend ? actions.requestSuspendToggle : undefined}
-            onRequestCancel={actions.canCancel ? actions.requestCancel : undefined}
-          />
-        </>
+        <InstanceHeader
+          instance={instance}
+          processName={data.processDefinitionName}
+          status={status}
+          engineId={engineId}
+          activeActivityIds={data.activeActivityIds}
+          incidentActivityIds={data.incidentActivityIds}
+          isSuspended={isSuspended}
+          isActionable={isActionable}
+          isMutatingInstance={actions.isMutatingInstance}
+          onOpenProcess={openProcess}
+          onRequestSuspendToggle={actions.canSuspend ? actions.requestSuspendToggle : undefined}
+          onRequestCancel={actions.canCancel ? actions.requestCancel : undefined}
+        />
       }
-      kpi={
-        <InstanceKpis
+      notice={notice}
+      summary={
+        <InstanceFacts
           status={status}
           openTaskCount={openTaskCount}
           openIncidentCount={openIncidentCount}

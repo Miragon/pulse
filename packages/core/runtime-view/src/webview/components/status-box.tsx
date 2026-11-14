@@ -1,6 +1,6 @@
-import { glyphs } from "./lucide-glyphs.json"
+import { CircleXIcon, InfoIcon, TriangleAlertIcon, type LucideIcon } from "lucide-react"
+import { Button, ErrorState } from "@miragon/pulse-ui"
 import type { Tone } from "../../core/protocol/index.js"
-import { Icon } from "./icon.js"
 
 export interface StatusAction {
   readonly label: string
@@ -14,34 +14,37 @@ export interface StatusBoxProps {
   readonly actions?: readonly StatusAction[]
 }
 
-const GLYPHS: Readonly<Record<Tone, string>> = {
-  info: glyphs.Info,
-  warning: glyphs.TriangleAlert,
-  danger: glyphs.CircleX,
+const GLYPHS: Readonly<Record<Tone, LucideIcon>> = {
+  info: InfoIcon,
+  warning: TriangleAlertIcon,
+  danger: CircleXIcon,
+}
+
+function BoxActions({ actions }: { readonly actions: readonly StatusAction[] }) {
+  return actions.map((action) => (
+    <Button key={action.label} type="button" variant="outline" onClick={action.onClick}>
+      {action.label}
+    </Button>
+  ))
 }
 
 export function StatusBox({ tone, title, detail, actions = [] }: StatusBoxProps) {
   return (
-    <div class={`status-box status-box--${tone}`} role={tone === "danger" ? "alert" : "status"}>
-      <Icon of={GLYPHS[tone]} class="status-box__icon" />
-      <div class="status-box__body">
-        <p class="status-box__title">{title}</p>
-        {detail !== undefined && <p class="status-box__detail">{detail}</p>}
-      </div>
-      {actions.length > 0 && (
-        <div class="status-box__actions">
-          {actions.map((action) => (
-            <button
-              key={action.label}
-              type="button"
-              class="button button--secondary"
-              onClick={action.onClick}
-            >
-              {action.label}
-            </button>
-          ))}
-        </div>
-      )}
+    <div
+      className="flex w-full justify-center"
+      data-part="status-box"
+      data-tone={tone}
+      role={tone === "danger" ? "alert" : "status"}
+    >
+      <ErrorState
+        tone={tone}
+        icon={GLYPHS[tone]}
+        role="none"
+        titleAs="p"
+        title={title}
+        description={detail}
+        actions={actions.length > 0 ? <BoxActions actions={actions} /> : undefined}
+      />
     </div>
   )
 }

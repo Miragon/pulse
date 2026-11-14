@@ -64,7 +64,12 @@ export { useDetailView } from "./use-detail-view.js"
 export { viewRefreshState, type ViewRefreshState } from "./view-refresh-state.js"
 // Public for a customer's own hand-off that HAND_OFF_ACTIONS does not list; Pulse's own
 // connectors are banned from it by ESLint and use HandOffButton.
-export { AskAiButton, type AskAiButtonProps, type AskAiVariant } from "./ask-ai-button.js"
+export {
+  AskAiButton,
+  type AskAiButtonProps,
+  type AskAiSize,
+  type AskAiVariant,
+} from "./ask-ai-button.js"
 export { HAND_OFF_ACTIONS, HandOffButton, type HandOffAction } from "./hand-off-button.js"
 export {
   askAiPrompt,

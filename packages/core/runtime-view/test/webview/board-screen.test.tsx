@@ -7,26 +7,44 @@ import type {
 } from "../../src/core/protocol/index.js"
 import { BOARD_VIEW, BROKEN_BOARD_VIEW } from "../../dev/webview/fixtures/board.js"
 import { TimeLabels } from "../../src/webview/format/time-labels.js"
-import { buttonNamed, mountApp, waitForElement, type Harness } from "./harness.js"
+import {
+  allParts,
+  allRoles,
+  buttonNamed,
+  findPart,
+  findRole,
+  getRole,
+  mountApp,
+  part,
+  queryPart,
+  waitForElement,
+  type Harness,
+} from "./harness.js"
 
 function ready(view: BoardView, refreshing = false): PanelState {
   return { status: "ready", view, refreshing }
 }
 
-function card(root: ParentNode, title: string): HTMLElement {
-  const heading = [...root.querySelectorAll("section > h2")].find(
-    (candidate) => candidate.textContent === title,
-  )
-  const found = heading?.parentElement
-  if (found === null || found === undefined) {
-    throw new Error(`No card ${title}.`)
-  }
-  expect(found.getAttribute("aria-labelledby")).toBe(heading?.id)
+function card(root: HTMLElement, title: string): HTMLElement {
+  const found = getRole(root, "region", { name: title })
+  expect(found.dataset.part).toBe("board-card")
   return found
 }
 
 function texts(root: ParentNode, selector: string): string[] {
   return [...root.querySelectorAll(selector)].map((element) => element.textContent.trim())
+}
+
+function partTexts(
+  root: ParentNode,
+  name: string,
+  state?: Readonly<Record<string, string>>,
+): string[] {
+  return allParts(root, name, state).map((element) => element.textContent.trim())
+}
+
+function itemTexts(list: HTMLElement): string[] {
+  return allRoles(list, "listitem").map((element) => element.textContent.trim())
 }
 
 describe("a board", () => {
@@ -39,7 +57,7 @@ describe("a board", () => {
   it("names the board and its engines, and refreshes or opens the file on request", async () => {
     harness = mountApp()
     harness.publish(ready(BOARD_VIEW))
-    const bar = await waitForElement(harness.root, ".context-bar--board")
+    const bar = await findPart(harness.root, "context-bar", { kind: "board" })
 
     buttonNamed(bar, "Refresh").click()
     buttonNamed(bar, "Open file").click()
@@ -53,13 +71,15 @@ describe("a board", () => {
   it("says once per engine what went wrong, with the way out", async () => {
     harness = mountApp()
     harness.publish(ready(BOARD_VIEW))
-    const strips = await waitForElement(harness.root, ".strip-stack")
+    const strips = await findPart(harness.root, "strips")
 
-    expect(texts(strips, ".status-strip__title")).toEqual([
+    expect(partTexts(strips, "strip-title")).toEqual([
       "Can't reach prod-eu.",
       "billing-prod is not in .pulse.json.",
     ])
-    for (const button of strips.querySelectorAll<HTMLButtonElement>(".status-strip button")) {
+    for (const button of allParts(strips, "status-strip").flatMap((strip) =>
+      allRoles(strip, "button"),
+    )) {
       button.click()
     }
     expect(harness.posted).toEqual([{ type: "editConnection" }, { type: "editConnection" }])
@@ -83,7 +103,7 @@ describe("a board", () => {
     } satisfies BoardView
     harness = mountApp()
     harness.publish(ready(refused))
-    const strips = await waitForElement(harness.root, ".strip-stack .status-strip")
+    const strips = await waitForElement(harness.root, `${part("strips")} ${part("status-strip")}`)
 
     buttonNamed(strips, "Set credentials…").click()
 
@@ -93,29 +113,38 @@ describe("a board", () => {
   it("lists the engines that answered, the production one marked, and opens one on click", async () => {
     harness = mountApp()
     harness.publish(ready(BOARD_VIEW))
-    const engines = await waitForElement(harness.root, ".board-engines")
+    const engines = await findRole(harness.root, "group", { name: "Engines of this board" })
 
-    expect(texts(engines, ".board-engine")).toEqual([
+    expect(allRoles(engines, "button").map((engine) => engine.textContent)).toEqual([
       "localLocal · Operaton 2.1.5 · 172 running · 13 with incident",
       "shop-testTest · CIB seven 2.2.0 · 9 running · 1 with incident",
     ])
-    engines.querySelector<HTMLButtonElement>(".board-engine")?.click()
+    allRoles(engines, "button")[0]?.click()
     expect(harness.posted).toEqual([{ type: "openBoardEngine", engine: "local", toSide: false }])
   })
 
   it("counts per engine, says the total is partial and warns above the threshold", async () => {
     harness = mountApp()
     harness.publish(ready(BOARD_VIEW))
-    await waitForElement(harness.root, ".board-card--counter")
+    await findPart(harness.root, "board-card", { kind: "counter" })
     const counter = card(harness.root, "Waiting for payment")
 
-    expect(counter.querySelector(".counter__value")?.textContent).toBe("12")
-    expect(counter.querySelector(".counter__partial")?.textContent).toBe("from 2 of 3 engines")
-    expect(counter.querySelector(".counter__threshold--above")?.textContent).toBe("local above 5")
-    expect(texts(counter, ".counter__engine")).toEqual(["local10", "shop-test2", "prod-eunot read"])
-    expect(counter.querySelector(".counter__entry--above")?.textContent).toBe("local10")
+    expect(queryPart(counter, "counter-value")?.textContent).toBe("12")
+    expect(queryPart(counter, "counter-partial")?.textContent).toBe("from 2 of 3 engines")
+    expect(queryPart(counter, "counter-threshold", { state: "above" })?.textContent).toBe(
+      "local above 5",
+    )
+    expect(partTexts(counter, "counter-entry")).toEqual([
+      "local10",
+      "shop-test2",
+      "prod-eunot read",
+    ])
+    expect(queryPart(counter, "counter-entry", { state: "above" })?.textContent).toBe("local10")
 
-    const buttons = [...counter.querySelectorAll<HTMLButtonElement>("button.counter__engine")]
+    const buttons = allRoles<HTMLButtonElement>(
+      getRole(counter, "list", { name: "Per engine" }),
+      "button",
+    )
     expect(buttons.map((button) => button.textContent)).toEqual(["local10", "shop-test2"])
     expect(buttons[0]?.title).toBe(
       "Open the process on local, latest version first (Ctrl/Cmd+click: to the side)",
@@ -148,10 +177,10 @@ describe("a board", () => {
     } satisfies BoardView
     harness = mountApp()
     harness.publish(ready(calm))
-    const counter = await waitForElement(harness.root, ".board-card--counter")
+    const counter = await findPart(harness.root, "board-card", { kind: "counter" })
 
-    expect(counter.querySelector(".counter__threshold")?.textContent).toBe("warns above 5")
-    expect(counter.querySelector(".counter__partial")).toBeNull()
+    expect(queryPart(counter, "counter-threshold")?.textContent).toBe("warns above 5")
+    expect(queryPart(counter, "counter-partial")).toBeNull()
   })
 
   it("warns in the warning style when an engine stopped counting at or below the threshold", async () => {
@@ -169,15 +198,15 @@ describe("a board", () => {
     } as const
     harness = mountApp()
     harness.publish(ready({ ...BOARD_VIEW, rows: [[tile]] }))
-    const counter = await waitForElement(harness.root, ".board-card--counter")
-    const threshold = counter.querySelector(".counter__threshold")
+    const counter = await findPart(harness.root, "board-card", { kind: "counter" })
+    const threshold = queryPart(counter, "counter-threshold")
 
     expect(threshold?.textContent).toBe("capped stopped counting at 10,000 · warns above 20,000")
-    expect(threshold?.classList).toContain("counter__threshold--undecided")
-    expect(threshold?.querySelector(".icon")).not.toBeNull()
-    expect(counter.querySelector(".counter__value")?.textContent).toBe("≥ 10,002")
-    expect(texts(counter, ".counter__engine")).toEqual(["capped≥ 10,000", "local2"])
-    expect(counter.querySelector(".counter__entry--above")).toBeNull()
+    expect(threshold?.dataset.state).toBe("undecided")
+    expect(threshold?.querySelector("svg")).not.toBeNull()
+    expect(queryPart(counter, "counter-value")?.textContent).toBe("≥ 10,002")
+    expect(partTexts(counter, "counter-entry")).toEqual(["capped≥ 10,000", "local2"])
+    expect(queryPart(counter, "counter-entry", { state: "above" })).toBeNull()
   })
 
   it("names the engines that stopped counting next to the engines above the threshold", async () => {
@@ -202,19 +231,19 @@ describe("a board", () => {
     ]
     harness = mountApp()
     harness.publish(ready({ ...BOARD_VIEW, rows: [tiles.map(counter)] }))
-    await waitForElement(harness.root, ".board-card--counter")
+    await findPart(harness.root, "board-card", { kind: "counter" })
 
     const lines = [
       "local above 20,000 · capped stopped counting at 10,000 · warns above 20,000",
       "local above 20,000 · 2 engines stopped counting · warns above 20,000",
       "2 engines above 20,000 · capped stopped counting at 10,000 · warns above 20,000",
     ]
-    expect(texts(harness.root, ".counter__threshold")).toEqual([
+    expect(partTexts(harness.root, "counter-threshold")).toEqual([
       "2 engines stopped counting · warns above 20,000",
       ...lines,
     ])
-    expect(texts(harness.root, ".counter__threshold--above")).toEqual(lines)
-    expect(texts(harness.root, ".counter__threshold--undecided")).toEqual([
+    expect(partTexts(harness.root, "counter-threshold", { state: "above" })).toEqual(lines)
+    expect(partTexts(harness.root, "counter-threshold", { state: "undecided" })).toEqual([
       "2 engines stopped counting · warns above 20,000",
     ])
   })
@@ -222,15 +251,15 @@ describe("a board", () => {
   it("lists instances with incident per process and opens a process with its filter", async () => {
     harness = mountApp()
     harness.publish(ready(BOARD_VIEW))
-    await waitForElement(harness.root, ".board-card--incidentSummary")
+    await findPart(harness.root, "board-card", { kind: "incidentSummary" })
     const summary = card(harness.root, "With incident per process")
 
-    expect(summary.querySelector(".counter__value")?.textContent).toBe("14")
-    expect(texts(summary, ".incident-summary__open")).toEqual([
-      "Order fulfillmentlocal10",
-      "Order fulfillmentshop-test1",
+    expect(queryPart(summary, "counter-value")?.textContent).toBe("14")
+    expect(itemTexts(getRole(summary, "list", { name: "Per process" }))).toEqual([
+      "Order fulfillmentlocal10with incident",
+      "Order fulfillmentshop-test1with incident",
     ])
-    summary.querySelector<HTMLButtonElement>(".incident-summary__open")?.click()
+    allRoles(summary, "button")[0]?.click()
     expect(harness.posted).toEqual([
       {
         type: "openBoardProcess",
@@ -269,7 +298,7 @@ describe("a board", () => {
     } satisfies BoardView
     harness = mountApp()
     harness.publish(ready(empty))
-    await waitForElement(harness.root, ".board-card--incidentSummary")
+    await findPart(harness.root, "board-card", { kind: "incidentSummary" })
 
     expect(card(harness.root, "None").textContent).toContain("No engine was read.")
     expect(card(harness.root, "Calm").textContent).toContain("No instance has an open incident.")
@@ -278,17 +307,17 @@ describe("a board", () => {
   it("lists the instances of every engine in one table and opens a row on its engine", async () => {
     harness = mountApp()
     harness.publish(ready(BOARD_VIEW))
-    await waitForElement(harness.root, ".board-card--instanceList tbody tr")
+    await waitForElement(harness.root, `${part("board-card", { kind: "instanceList" })} tbody tr`)
     const list = card(harness.root, "Orders waiting for payment")
 
     expect(texts(list, "th")).toEqual(["Engine", "Business key", "Version", "Started", "Incident"])
     expect(texts(list, "tbody tr td:first-child")).toEqual(["local", "local", "shop-test"])
-    expect(texts(list, ".board-groups__note")).toEqual([
+    expect(partTexts(list, "group-note")).toEqual([
       "local: showing 2 of 10",
       "shop-test: showing 1 of 2",
       "prod-eu: not read",
     ])
-    expect(list.querySelector("tbody tr:last-child .incident-flag")).not.toBeNull()
+    expect(list.querySelector(`tbody tr:last-child ${part("incident-flag")}`)).not.toBeNull()
 
     list.querySelector<HTMLTableRowElement>("tbody tr:last-child")?.click()
     expect(harness.posted).toEqual([
@@ -328,7 +357,7 @@ describe("a board", () => {
     } satisfies BoardView
     harness = mountApp()
     harness.publish(ready(everything))
-    await waitForElement(harness.root, ".board-card--instanceList tbody tr")
+    await waitForElement(harness.root, `${part("board-card", { kind: "instanceList" })} tbody tr`)
 
     expect(texts(harness.root, "th")).toEqual(["Process", "State", "Ended", "Business key"])
     const cells = texts(harness.root, "tbody td")
@@ -336,7 +365,7 @@ describe("a board", () => {
     expect(cells[1]).toBe("Completed")
     expect(cells[2]).toBe(TimeLabels.clock(row.endedAt))
     expect(cells[3]).toBe("81a2e0b4…")
-    expect(texts(harness.root, ".board-groups__note")).toEqual(["local: showing 1 of ?"])
+    expect(partTexts(harness.root, "group-note")).toEqual(["local: showing 1 of ?"])
   })
 
   it("says of a list's total that an engine stopped counting there", async () => {
@@ -368,9 +397,9 @@ describe("a board", () => {
     } satisfies BoardView
     harness = mountApp()
     harness.publish(ready(capped))
-    await waitForElement(harness.root, ".board-card--instanceList tbody tr")
+    await waitForElement(harness.root, `${part("board-card", { kind: "instanceList" })} tbody tr`)
 
-    expect(texts(harness.root, ".board-groups__note")).toEqual([
+    expect(partTexts(harness.root, "group-note")).toEqual([
       "capped: showing 1 of ≥ 10,000",
       "local: showing 1 of 1",
     ])
@@ -379,11 +408,14 @@ describe("a board", () => {
   it("lists each problem of a broken file with its path and reason", async () => {
     harness = mountApp()
     harness.publish(ready(BROKEN_BOARD_VIEW))
-    const strip = await waitForElement(harness.root, ".strip-stack .status-strip--danger")
+    const strip = await waitForElement(
+      harness.root,
+      `${part("strips")} ${part("status-strip", { tone: "danger" })}`,
+    )
 
     expect(strip.textContent).toContain("1 problem in shop-operations.board.json.")
     expect(strip.textContent).toContain("Pulse shows the last valid version until you fix them.")
-    expect(texts(harness.root, ".board-problems__item")).toEqual([
+    expect(itemTexts(getRole(harness.root, "region", { name: /^Problems in / }))).toEqual([
       "rows[0].row[0].props.filter.activeElement needs a process: element ids are only unique within one process",
     ])
     buttonNamed(strip, "Open file").click()
@@ -393,13 +425,16 @@ describe("a board", () => {
   it("says it shows nothing until a broken file is fixed when no version was valid", async () => {
     harness = mountApp()
     harness.publish(ready({ ...BROKEN_BOARD_VIEW, engines: [], rows: [] }))
-    const strip = await waitForElement(harness.root, ".strip-stack .status-strip--danger")
+    const strip = await waitForElement(
+      harness.root,
+      `${part("strips")} ${part("status-strip", { tone: "danger" })}`,
+    )
 
     expect(strip.textContent).toContain("Pulse shows the board once you fix them.")
-    expect(harness.root.querySelector(".context-bar__key")).toBeNull()
+    expect(queryPart(harness.root, "context-key")).toBeNull()
   })
 
-  it("names several engines above the threshold and colours a count of incidents", async () => {
+  it("names several engines above the threshold and marks a count of incidents in words", async () => {
     const tile = {
       kind: "counter",
       title: "Orders with incident",
@@ -414,22 +449,27 @@ describe("a board", () => {
     } as const
     harness = mountApp()
     harness.publish(ready({ ...BOARD_VIEW, rows: [[tile]] }))
-    const counter = await waitForElement(harness.root, ".board-card--counter")
+    const counter = await findPart(harness.root, "board-card", { kind: "counter" })
 
-    expect(counter.querySelector(".counter__threshold--above")?.textContent).toBe(
+    expect(queryPart(counter, "counter-threshold", { state: "above" })?.textContent).toBe(
       "2 engines above 1",
     )
-    expect(counter.querySelector(".counter__value.danger-count")?.textContent).toBe("7")
-    expect(texts(counter, ".counter__engine-count.danger-count")).toEqual(["4", "3"])
+    expect(queryPart(counter, "counter-value", { tone: "danger" })?.textContent).toBe("7")
+    expect(partTexts(counter, "counter-count", { tone: "danger" })).toEqual(["4", "3"])
+    const value = queryPart(counter, "counter-value", { tone: "danger" })!
+    const figure = value.closest('[data-slot="count-figure"]')
+    expect(figure?.textContent).toBe("7with incident")
+    expect(figure?.querySelector("svg")).not.toBeNull()
+    expect(getComputedStyle(value).color).toBe(getComputedStyle(counter).color)
     expect(counter.querySelector("button")).toBeNull()
   })
 
   it("keeps the board on screen while it reads again", async () => {
     harness = mountApp()
     harness.publish(ready(BOARD_VIEW, true))
-    const bar = await waitForElement(harness.root, ".context-bar--board")
+    const bar = await findPart(harness.root, "context-bar", { kind: "board" })
 
     expect(bar.textContent).toContain("Refreshing")
-    expect(harness.root.querySelector(".board-card--counter")).not.toBeNull()
+    expect(queryPart(harness.root, "board-card", { kind: "counter" })).not.toBeNull()
   })
 })

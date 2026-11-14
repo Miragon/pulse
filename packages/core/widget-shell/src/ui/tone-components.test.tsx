@@ -12,7 +12,7 @@ afterEach(cleanup)
 describe("OpenInCockpitLink", () => {
   function renderLink(
     locale: string,
-    props: { vendor?: string; label?: string; variant?: "outline" | "menuitem" },
+    props: { vendor?: string; label?: string; variant?: "outline" | "toolbar" | "menuitem" },
   ) {
     const openExternal = vi.fn()
     const onHostAction = (action: HostAction) => {
@@ -31,7 +31,8 @@ describe("OpenInCockpitLink", () => {
     const link = screen.getByRole("link", { name: "In CIB seven öffnen, öffnet in neuem Tab" })
     expect(link.textContent).toBe("In CIB seven öffnen")
     expect(link.querySelector("svg.lucide-external-link")?.getAttribute("aria-hidden")).toBe("true")
-    expect(link.className).not.toContain("text-muted-foreground")
+    // Never quiet text (a link is never disabled, so the button's disabled state is moot).
+    expect(link.className.split(/\s+/)).not.toContain("text-muted-foreground")
     // One action size with the buttons beside it: the kit's outline button, sm.
     expect(link.className).toBe(buttonVariants({ variant: "outline", size: "sm" }))
   })
@@ -49,6 +50,19 @@ describe("OpenInCockpitLink", () => {
     const link = screen.getByRole("link", {
       name: "Open instance in Camunda 7 (opens in a new tab)",
     })
+    fireEvent.click(link)
+    expect(openExternal).toHaveBeenCalledWith("https://engine.example/cockpit")
+  })
+
+  it("in a view's bar: the toolbar button, its icon first, its label collapsible and still its name", () => {
+    const openExternal = renderLink("en", { vendor: "CIB seven", variant: "toolbar" })
+    const link = screen.getByRole("link", { name: "Open in CIB seven (opens in a new tab)" })
+    expect(link.className).toBe(buttonVariants({ variant: "toolbar", size: "sm" }))
+    expect(link.firstElementChild?.getAttribute("class")).toContain("lucide-external-link")
+    // The span the bar hides visually under 36rem; the link's own name stays whole.
+    const label = link.querySelector('[data-slot="button-label"]')
+    expect(label?.textContent).toBe("Open in CIB seven")
+    expect(link.getAttribute("title")).toBe("Open in CIB seven")
     fireEvent.click(link)
     expect(openExternal).toHaveBeenCalledWith("https://engine.example/cockpit")
   })

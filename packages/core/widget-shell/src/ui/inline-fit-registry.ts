@@ -44,17 +44,47 @@ interface SlotRecord {
   fallback: HTMLElement | null
   placed: boolean
   frozen: boolean
+  /** The list hides rows now, so its footer shows and a further cut adds none. */
+  capped: boolean
+  /** What a cut of this list added below its rows, measured once one rendered. */
+  footer: number
+}
+
+/** A list's cap: the rows the fit leaves it and the rows the user revealed beyond them. */
+export interface SlotCaps {
+  fitted: number
+  revealed: number
+}
+
+/**
+ * A cut that hid rows of lists that showed every row: what it added besides is their footer,
+ * which no layout knows before it renders, so the next fit measures it (`judgeTrial`).
+ */
+interface Trial {
+  /** The fit state the cut was decided on: judged once a newer one has rendered. */
+  stamp: unknown
+  content: number
+  /** The px of rows each newly cut list hid, and its cap before the cut. */
+  cuts: ReadonlyMap<string, { hidden: number; before: SlotCaps | undefined }>
 }
 
 /** Mutable bookkeeping outside React state: ref callbacks and effects change it mid-measure. */
 export class SlotRegistry {
   private readonly records = new Map<string, SlotRecord>()
+  private trial: Trial | null = null
 
   /** Refs attach before effects, so rows can arrive before their list registers. */
   private recordOf(id: string): SlotRecord {
     let record = this.records.get(id)
     if (!record) {
-      record = { rows: null, fallback: null, placed: false, frozen: false }
+      record = {
+        rows: null,
+        fallback: null,
+        placed: false,
+        frozen: false,
+        capped: false,
+        footer: 0,
+      }
       this.records.set(id, record)
     }
     return record
@@ -76,11 +106,51 @@ export class SlotRegistry {
     this.recordOf(id).frozen = frozen
   }
 
+  setCapped(id: string, capped: boolean): void {
+    this.recordOf(id).capped = capped
+  }
+
+  /** Whether the list shows every row, so a cut of it adds its footer. */
+  isWhole(id: string): boolean {
+    return !this.recordOf(id).capped
+  }
+
+  /** A new epoch: a footer may wrap differently at another width, so it is measured again. */
   restart(): void {
+    this.trial = null
     for (const record of this.records.values()) {
       record.frozen = false
       record.placed = false
+      record.footer = 0
     }
+  }
+
+  /** Records a cut of lists that showed every row; a trial not yet judged stays. */
+  startTrial(stamp: unknown, content: number, cuts: Trial["cuts"]): void {
+    if (this.trial || cuts.size === 0) return
+    this.trial = { stamp, content, cuts }
+  }
+
+  /**
+   * Once a newer fit state than the trial's has rendered: what the view grew by besides the rows
+   * the cut hid is the footer it added, which each list keeps for later cuts. Returns the caps
+   * before the cut of the lists whose cut hid no more than that, so the view grew: they show every
+   * row again.
+   */
+  judgeTrial(stamp: unknown, content: number): Map<string, SlotCaps | undefined> {
+    const undo = new Map<string, SlotCaps | undefined>()
+    const trial = this.trial
+    if (!trial || trial.stamp === stamp) return undo
+    this.trial = null
+    const hidden = [...trial.cuts.values()].reduce((sum, cut) => sum + cut.hidden, 0)
+    const footer = Math.max(0, content - (trial.content - hidden)) / trial.cuts.size
+    for (const [id, cut] of trial.cuts) {
+      const record = this.records.get(id)
+      if (!record || record.frozen) continue
+      record.footer = footer
+      if (cut.hidden <= footer) undo.set(id, cut.before)
+    }
+    return undo
   }
 
   unplace(id: string): void {
@@ -99,7 +169,13 @@ export class SlotRegistry {
       if (bottoms.length === 0) continue
       fresh ||= !record.placed
       record.placed = true
-      slots.push({ id, order: ordered.indexOf(rows), bottoms, frozen: record.frozen })
+      slots.push({
+        id,
+        order: ordered.indexOf(rows),
+        bottoms,
+        frozen: record.frozen,
+        footer: record.capped ? 0 : record.footer,
+      })
     }
     return { slots, fresh }
   }

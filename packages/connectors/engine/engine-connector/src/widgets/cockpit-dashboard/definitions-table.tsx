@@ -5,6 +5,7 @@ import {
   ListFooter,
   useDebouncedValue,
   DrillButton,
+  SectionHeading,
 } from "@miragon/pulse-ui"
 import { ViewDataState, WidgetShell, useViewData } from "@miragon/pulse-widget-shell/widgets"
 import type { CockpitDashboardData } from "../../view-models.js"
@@ -67,7 +68,6 @@ function ProcessDefinitionsSection({
     key: row.key,
     name: row.name,
     version: row.latestVersion,
-    tone: row.tone,
     counts: {
       instances: row.instances,
       failedJobs: row.failedJobs,
@@ -84,16 +84,16 @@ function ProcessDefinitionsSection({
   const rows = filtered.slice(0, limit)
 
   return (
-    // A real heading on the same step as the failure clusters above it (#322 U27).
+    // A real heading on the same step as the failure clusters above it (#322 U27): the compact
+    // section caption (13 px at 600), never above the 13 px view bar.
     <section aria-labelledby={headingId}>
-      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <h2 id={headingId} className="text-section text-foreground">
-          {t("cockpitDefs.heading")}
-        </h2>
-        <span className="text-muted-foreground text-small">
-          {t("cockpitDefs.deployedHint", { count: formatNumber(allRows.length) })}
-        </span>
-      </div>
+      <SectionHeading
+        as="h2"
+        id={headingId}
+        title={t("cockpitDefs.heading")}
+        hint={t("cockpitDefs.deployedHint", { count: formatNumber(allRows.length) })}
+        className="mb-2"
+      />
       <FilterBar
         search={search}
         onSearchChange={setSearch}
@@ -101,7 +101,8 @@ function ProcessDefinitionsSection({
         searchAriaLabel={t("cockpitDefs.searchLabel")}
         chips={[]}
         onChipToggle={() => undefined}
-        className="mb-2"
+        // A bar inside the content reaches the card's edges, as a view's tab bar does.
+        className="-mx-gutter mb-2"
       />
       <ProcessDefinitionsTableView
         rows={rows}
@@ -110,12 +111,14 @@ function ProcessDefinitionsSection({
         renderActions={(row) => (
           <>
             <DrillButton
+              size="xs"
               onDrill={() => go({ type: "process-instances", processDefinitionKey: row.key })}
               ariaLabel={t("cockpitDefs.viewInstancesAria", { name: row.name ?? row.key })}
             >
               {t("cockpitDefs.instancesAction")}
             </DrillButton>
             <DrillButton
+              size="xs"
               onDrill={() =>
                 go({
                   type: "process-detail",
@@ -135,7 +138,7 @@ function ProcessDefinitionsSection({
         total={filtered.length}
         hasMore={rows.length < filtered.length}
         onLoadMore={() => setLimit((prev) => prev + PAGE_SIZE)}
-        noun={t("cockpitDefs.footerNoun")}
+        noun={(total) => t("cockpitDefs.footerNoun", { count: total })}
       />
     </section>
   )

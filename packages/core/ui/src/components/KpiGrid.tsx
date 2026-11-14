@@ -1,7 +1,15 @@
 import { useId, type ReactNode } from "react"
-import { ChevronRight, Minus, TrendingDown, TrendingUp, type LucideIcon } from "lucide-react"
-import { FOCUS_RING_INSET, FOCUS_RING } from "../lib/focus-ring.js"
-import { TONE_BORDER, TONE_DOT, TONE_ICON, TONE_TINT } from "../lib/tone-utils.js"
+import {
+  ChevronRight,
+  CircleX,
+  Minus,
+  TrendingDown,
+  TrendingUp,
+  TriangleAlert,
+  type LucideIcon,
+} from "lucide-react"
+import { FOCUS_RING_INSET } from "../lib/focus-ring.js"
+import { TONE_ICON } from "../lib/tone-utils.js"
 import { MICRO_LABEL } from "../lib/typography.js"
 import { cn } from "../lib/utils.js"
 import { resolveTone, type ToneName, type ToneVariant } from "../tones/index.js"
@@ -11,7 +19,7 @@ type TrendDirection = "up" | "down" | "flat"
 
 /**
  * Direction → tone when no `trendTone` is set (incident-biased: up reads as
- * worse). The tone shows ONLY as the direction icon's colour or a dot; the
+ * worse). The tone shows ONLY as the colour of an icon of its own shape; the
  * trend words stay neutral (no coloured digits, CI §3.3).
  */
 const TREND_TONE: Record<TrendDirection, ToneVariant> = {
@@ -24,6 +32,12 @@ const TREND_ICON: Record<TrendDirection, LucideIcon> = {
   up: TrendingUp,
   down: TrendingDown,
   flat: Minus,
+}
+
+/** A trend without a direction that alarms: its tone's icon of its own shape (`CountFigure`'s). */
+const ALARM_ICON: Partial<Record<ToneVariant, LucideIcon>> = {
+  danger: CircleX,
+  warning: TriangleAlert,
 }
 
 export interface KpiCell {
@@ -43,15 +57,11 @@ export interface KpiCell {
   trendDirection?: TrendDirection
   /**
    * Explicit tone of the trend; overrides the direction's default. Shown as
-   * the direction icon's colour, or as a dot when there is no direction.
+   * the direction icon's colour; without a direction an alarming tone
+   * (danger, warning) draws its icon of its own shape, any other tone only
+   * sets the words in the foreground.
    */
   trendTone?: ToneName
-  /**
-   * The state the figure stands for (e.g. `"danger"` for a breached metric),
-   * shown as a dot next to the label (strip) or as the card's tint and edge
-   * (`variant="soft"`). The figure itself stays in the foreground colour.
-   */
-  tone?: ToneName
   /** When set, the cell renders as a button: it turns a metric into a nav entry point. */
   onClick?: () => void
   /**
@@ -89,9 +99,9 @@ export function kpiColumns(count: number): string {
 }
 
 export interface KpiGridHeader {
-  /** Group label of the strip header (13 px semibold, normal case). */
+  /** Group label of the strip's header row (13 px at 600, normal case). */
   label: ReactNode
-  /** Optional muted badge to the right of the label. */
+  /** Optional quiet note after the label (13 px at 400), e.g. the scope the figures span. */
   badge?: ReactNode
 }
 
@@ -100,34 +110,18 @@ export interface KpiGridProps {
   cells: KpiCell[]
   /** Wrap the strip in a bordered card with an optional group `header`. Default `false`. */
   boxed?: boolean
-  /** Group header above the strip (strip variant), usually with `boxed`. */
+  /** Group header row above the strip, usually with `boxed`. */
   header?: KpiGridHeader
-  /**
-   * `"strip"` (default): one bordered strip, the tone as a dot next to the
-   * label. `"soft"`: one card per cell in its tone's tint and edge (`boxed`
-   * and `header` don't apply).
-   */
-  variant?: "strip" | "soft"
   /** Names the group of metrics (`role="group"`); omit when a heading right above names it. */
   ariaLabel?: string
   className?: string
 }
 
-/** A small status dot, decorative: the label next to it carries the meaning. */
-function ToneDot({ tone, className }: { tone: ToneVariant; className: string }) {
-  return (
-    <span
-      aria-hidden="true"
-      data-tone={tone}
-      className={cn("shrink-0 rounded-full", className, TONE_DOT[tone])}
-    />
-  )
-}
-
 /**
  * The trend line: neutral words (the foreground next to a state, quiet
- * without one) and the state beside them as a direction icon or a dot in the
- * tone, never as coloured digits.
+ * without one) and the state beside them as an icon in the tone (the
+ * direction's, else an alarming tone's own shape), never as coloured digits
+ * or a dot whose colour alone carries it.
  */
 function TrendLine({ cell }: { cell: KpiCell }) {
   const direction = cell.trendDirection
@@ -138,37 +132,36 @@ function TrendLine({ cell }: { cell: KpiCell }) {
         ? TREND_TONE[direction]
         : "neutral"
   const marked = tone !== "neutral"
-  const Icon = direction ? TREND_ICON[direction] : undefined
+  const Icon = direction ? TREND_ICON[direction] : ALARM_ICON[tone]
   return (
-    <div data-slot="kpi-trend" className="text-small mt-1.5 flex items-center gap-1.5">
-      {Icon ? (
-        <Icon aria-hidden="true" className={cn("size-4 shrink-0", TONE_ICON[tone])} />
-      ) : (
-        marked && <ToneDot tone={tone} className="size-1.5" />
+    <div data-slot="kpi-trend" className="text-small mt-1 flex items-center gap-1.5">
+      {Icon && (
+        <Icon
+          aria-hidden="true"
+          data-tone={tone}
+          className={cn("size-4 shrink-0", TONE_ICON[tone])}
+        />
       )}
       <span className={marked ? "text-foreground" : "text-muted-foreground"}>{cell.trend}</span>
     </div>
   )
 }
 
-/** Label, figure, fraction and trend, shared by the strip and soft variants. */
-function KpiCellBody({ cell, variant }: { cell: KpiCell; variant: "strip" | "soft" }) {
-  const tone = resolveTone(cell.tone)
+/**
+ * Label, figure, fraction and trend. The figure is neutral: an alarming count shows its alarm as
+ * the value's `CountFigure` (its tone's icon of its own shape and its words), never as a tint, a
+ * dot or a coloured number.
+ */
+function KpiCellBody({ cell }: { cell: KpiCell }) {
   return (
     <>
       <div
-        className={cn(
-          "text-small flex items-center justify-between gap-2 font-medium",
-          variant === "strip" ? "text-muted-foreground" : "text-foreground",
-        )}
+        className={cn("text-muted-foreground flex items-center justify-between gap-2", MICRO_LABEL)}
       >
-        <span className="inline-flex min-w-0 items-center gap-1.5">
-          {variant === "strip" && tone !== "neutral" && <ToneDot tone={tone} className="size-2" />}
-          <span className="min-w-0 break-words">{cell.label}</span>
-        </span>
+        <span className="min-w-0 break-words">{cell.label}</span>
         {cell.onClick && <ChevronRight aria-hidden="true" className="size-4 shrink-0" />}
       </div>
-      <div className="text-title text-foreground mt-1.5 leading-none tracking-tight break-words tabular-nums">
+      <div className="text-section text-foreground mt-1 leading-none break-words tabular-nums">
         {cell.value}
         {cell.fraction && (
           <span className="text-dense text-muted-foreground ml-0.5 font-normal">
@@ -181,25 +174,23 @@ function KpiCellBody({ cell, variant }: { cell: KpiCell; variant: "strip" | "sof
   )
 }
 
+/**
+ * The strip's dividers. Each cell draws its own right and bottom rule, and the
+ * grid reaches 1 px past its clipping frame, so the rules on the outer edges
+ * fall away at any column count. An empty track in a short last row (5 cells
+ * in 2 columns, 7 in 6) keeps the card colour: a `gap-px` grid on a
+ * `bg-border` container would paint it as a solid block of the divider colour.
+ */
+const STRIP_FRAME = "bg-card overflow-hidden"
+const STRIP_GRID = "-mr-px -mb-px grid"
+const STRIP_CELL = "border-border min-w-0 border-r border-b p-3"
+
 /** One cell: a button when clickable (named by its visible text), else a plain box. */
-function KpiCellView({
-  cell,
-  variant,
-  className,
-}: {
-  cell: KpiCell
-  variant: "strip" | "soft"
-  className: string
-}) {
+function KpiCellView({ cell }: { cell: KpiCell }) {
   const hintId = useId()
-  const body = <KpiCellBody cell={cell} variant={variant} />
-  const tone = cell.tone === undefined ? undefined : resolveTone(cell.tone)
+  const body = <KpiCellBody cell={cell} />
   if (!cell.onClick) {
-    return (
-      <div data-tone={tone} className={className}>
-        {body}
-      </div>
-    )
+    return <div className={STRIP_CELL}>{body}</div>
   }
   return (
     <button
@@ -207,11 +198,10 @@ function KpiCellView({
       onClick={cell.onClick}
       aria-label={cell.ariaLabel}
       aria-describedby={cell.actionHint ? hintId : undefined}
-      data-tone={tone}
       className={cn(
-        "cursor-pointer text-left transition-colors",
-        variant === "strip" ? cn("hover:bg-muted", FOCUS_RING_INSET) : FOCUS_RING,
-        className,
+        "hover:bg-accent cursor-pointer text-left transition-colors",
+        FOCUS_RING_INSET,
+        STRIP_CELL,
       )}
     >
       {body}
@@ -225,73 +215,35 @@ function KpiCellView({
   )
 }
 
-/** A soft card: the tone's tint and edge around neutral text. */
-function softCardClass(tone: ToneName | undefined): string {
-  const t = resolveTone(tone)
-  return cn("text-foreground rounded-lg border p-4", TONE_TINT[t], TONE_BORDER[t])
-}
-
 /**
- * The strip's dividers. Each cell draws its own right and bottom rule, and the
- * grid reaches 1 px past its clipping frame, so the rules on the outer edges
- * fall away at any column count. An empty track in a short last row (5 cells
- * in 2 columns, 7 in 6) keeps the card colour: a `gap-px` grid on a
- * `bg-border` container would paint it as a solid block of the divider colour.
+ * The strip's header row, flat in the compact look: its label at 13 px and 600 on the card's
+ * surface, a quiet note after it, a 1 px rule below; the tiles' 12 px inset on its sides.
  */
-const STRIP_FRAME = "bg-card overflow-hidden"
-const STRIP_GRID = "-mr-px -mb-px grid"
-const STRIP_CELL = "border-border min-w-0 border-r border-b px-5 py-4"
-
 function KpiStripHeader({ header }: { header: KpiGridHeader }) {
   return (
     <div
-      className={cn(
-        "border-border bg-muted text-muted-foreground flex items-center gap-2 border-b px-4 py-2",
-        MICRO_LABEL,
-      )}
+      data-slot="kpi-header"
+      className="border-border bg-card flex flex-wrap items-baseline gap-x-2 border-b px-3 py-1.5"
     >
-      <span>{header.label}</span>
-      {header.badge && (
-        <span className="border-border bg-card text-muted-foreground text-small rounded-sm border px-1.5 font-medium">
-          {header.badge}
-        </span>
-      )}
+      <span className={cn("text-foreground", MICRO_LABEL)}>{header.label}</span>
+      {header.badge && <span className="text-muted-foreground text-small">{header.badge}</span>}
     </div>
   )
 }
 
 /**
  * A row of headline metrics, the canonical way to show KPIs in a widget
- * (replaces the single-metric KPICard). Cells flow as columns (1–6), falling
- * back to 2 columns in narrow frames. A cell's `tone` shows as a dot next to
- * its label (or as a soft card's tint and edge); figures stay in the
- * foreground colour. A clickable cell is a button whose accessible name is
- * its visible label and value; `actionHint` describes what the click does.
+ * (replaces the single-metric KPICard). Compact: 12 px inside each tile, the
+ * caption 4 px above a 21 px figure at 600. Cells flow as columns (1–6), falling
+ * back to 2 columns in narrow frames. Every tile is neutral (invariant 6): no
+ * tint, no coloured dot, the figure in the foreground; a count that alarms is
+ * the value's `CountFigure`, its tone's icon of its own shape before it and its
+ * words for a screen reader. A clickable cell is a button whose accessible name
+ * is its visible label and value; `actionHint` describes what the click does.
  */
-export function KpiGrid({
-  cells,
-  boxed = false,
-  header,
-  variant = "strip",
-  ariaLabel,
-  className,
-}: KpiGridProps) {
+export function KpiGrid({ cells, boxed = false, header, ariaLabel, className }: KpiGridProps) {
   const colClass = kpiColumns(cells.length)
   const group = ariaLabel ? { role: "group" as const, "aria-label": ariaLabel } : {}
-  if (variant === "soft") {
-    return (
-      <div {...group} data-slot="kpi-grid" className={cn("grid gap-4", colClass, className)}>
-        {cells.map((cell, idx) => (
-          <KpiCellView
-            key={idx}
-            cell={cell}
-            variant="soft"
-            className={cn("min-w-0", softCardClass(cell.tone))}
-          />
-        ))}
-      </div>
-    )
-  }
   return (
     <div
       {...group}
@@ -302,7 +254,7 @@ export function KpiGrid({
       <div data-slot="kpi-strip" className={cn(STRIP_FRAME, !boxed && "border-border border-y")}>
         <div className={cn(STRIP_GRID, colClass)}>
           {cells.map((cell, idx) => (
-            <KpiCellView key={idx} cell={cell} variant="strip" className={STRIP_CELL} />
+            <KpiCellView key={idx} cell={cell} />
           ))}
         </div>
       </div>
@@ -313,8 +265,6 @@ export function KpiGrid({
 export interface KpiGridSkeletonProps {
   /** How many cells the loaded grid will have. */
   cells: number
-  /** The loaded grid's variant. Default `"strip"`. */
-  variant?: "strip" | "soft"
   /** The loaded grid's `boxed`. Default `false`. */
   boxed?: boolean
   className?: string
@@ -322,29 +272,12 @@ export interface KpiGridSkeletonProps {
 
 /**
  * Loading placeholder with {@link KpiGrid}'s geometry (same wrapper, grid and
- * cell padding in both variants), so the layout doesn't jump when the data
- * arrives. `aria-busy`; pair it with a status line if the wait is long.
+ * cell padding), so the layout doesn't jump when the data arrives.
+ * `aria-busy`; pair it with a status line if the wait is long.
  */
-export function KpiGridSkeleton({
-  cells,
-  variant = "strip",
-  boxed = false,
-  className,
-}: KpiGridSkeletonProps) {
+export function KpiGridSkeleton({ cells, boxed = false, className }: KpiGridSkeletonProps) {
   const colClass = kpiColumns(cells)
   const count = Math.max(Math.trunc(cells) || 0, 0)
-  if (variant === "soft") {
-    return (
-      <div aria-busy="true" className={cn("grid gap-4", colClass, className)}>
-        {Array.from({ length: count }, (_, idx) => (
-          <div key={idx} className="bg-muted border-border rounded-lg border p-4">
-            <Skeleton className="h-4 w-20" />
-            <Skeleton className="mt-2 h-7 w-14" />
-          </div>
-        ))}
-      </div>
-    )
-  }
   return (
     <div
       aria-busy="true"
@@ -355,7 +288,7 @@ export function KpiGridSkeleton({
           {Array.from({ length: count }, (_, idx) => (
             <div key={idx} className={STRIP_CELL}>
               <Skeleton className="h-4 w-16" />
-              <Skeleton className="mt-2.5 h-7 w-14" />
+              <Skeleton className="mt-1.5 h-5 w-14" />
             </div>
           ))}
         </div>

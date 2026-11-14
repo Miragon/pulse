@@ -20,10 +20,10 @@ import type { ToneVariant } from "../tones/index.js"
  * foreground (CI §3.3: "-soft: Text darauf --cd-schwarz, Rand in der
  * Statusfarbe"), so pair `TONE_SOFT` with `TONE_BORDER`. `TONE_INK` is for
  * a tone's words on a plain surface (a field error); figures (counts, KPI
- * values, trends) never take it: they stay in the foreground next to a
- * `TONE_DOT`. In dark mode the colours are the `-hell` values and the tints
- * are transparent (no tinted fills on dark). The `neutral` tone reuses the
- * muted ramp.
+ * values, trends) never take it: they stay in the foreground next to an
+ * icon of the tone's own shape (`TONE_ICON`). In dark mode the colours are
+ * the `-hell` values and the tints are transparent (no tinted fills on dark).
+ * The `neutral` tone reuses the muted ramp.
  *
  * Change a tone here, in one place, instead of hand-rolling
  * `tone === "x" ? "…" : "…"` ternaries at every call site.
@@ -43,7 +43,10 @@ export const TONE_SOFT: Record<ToneVariant, string> = {
   danger: "bg-danger-soft text-foreground",
 }
 
-/** The tint alone, for a surface that sets its text itself (a soft KPI card). */
+/**
+ * The tint alone, for a status surface that sets its text itself. Never on a figure's tile: a
+ * KPI tile stays neutral, its alarm the figure's icon and words (`CountFigure`).
+ */
 export const TONE_TINT: Record<ToneVariant, string> = {
   neutral: "bg-muted",
   info: "bg-info-soft",
@@ -64,8 +67,8 @@ export const TONE_DOT: Record<ToneVariant, string> = {
 /**
  * The tone's TEXT colour (its `-ink` role) for words on a plain surface: a
  * field error, a "missing" label. Success and warning resolve to the
- * foreground on light: pair the text with a {@link TONE_DOT} or
- * {@link TONE_ICON} to show the tone. Never on a tint (use {@link TONE_SOFT})
+ * foreground on light, info on dark (CI §3.3: 4.27:1 on an overlay): pair the
+ * text with a {@link TONE_DOT} or {@link TONE_ICON} to show the tone. Never on a tint (use {@link TONE_SOFT})
  * and never for figures (they stay in the foreground next to a dot).
  */
 export const TONE_INK: Record<ToneVariant, string> = {

@@ -1,18 +1,5 @@
-import {
-  formatNumber,
-  Icon,
-  NamedId,
-  Td,
-  VersionChip,
-  CountPill,
-  SITUATION_TONES,
-  StatusBadge,
-  TONE_DOT,
-  type ToneVariant,
-  DrillButton,
-} from "@miragon/pulse-ui"
+import { formatNumber, NamedId, StateLabel, Td, VersionChip, DrillButton } from "@miragon/pulse-ui"
 import { HandOffButton } from "@miragon/pulse-widget-shell/widgets"
-import { TriangleAlert } from "lucide-react"
 import type { ProcessInstanceRow } from "../../view-models.js"
 import { useHandOff } from "../lib/hand-off.js"
 import { InstanceLabel } from "../lib/identity.js"
@@ -20,10 +7,25 @@ import { instanceName } from "../lib/write-feedback.js"
 import { useT } from "../../messages/use-t.js"
 import { rootCauseHandOff } from "./hand-offs.js"
 
-function rowTone(row: ProcessInstanceRow): ToneVariant {
-  if (row.hasIncident) return SITUATION_TONES.openIncident
-  if (row.suspended) return SITUATION_TONES.suspended
-  return SITUATION_TONES.running
+/**
+ * The row's state on one line, as the webview's state cell: running or suspended, and an open
+ * incident beside it, each a tone icon of its own shape and its word (never a pill, never a dot's
+ * colour alone). In a region under 28rem (a phone-width chat) the incident shows its icon alone,
+ * closer, its word for a screen reader and in its title, so the row's own state and the incident
+ * stay clear of the pinned row actions without scrolling.
+ */
+function InstanceState({ row }: { row: ProcessInstanceRow }) {
+  const t = useT()
+  return (
+    <span className="inline-flex max-w-full items-center gap-3 whitespace-nowrap @max-md:gap-1">
+      {row.suspended ? (
+        <StateLabel state="suspended">{t("processInstances.stateSuspended")}</StateLabel>
+      ) : (
+        <StateLabel state="running">{t("processInstances.stateRunning")}</StateLabel>
+      )}
+      {row.hasIncident && <StateLabel state="incident" iconOnlyBelow="md" />}
+    </span>
+  )
 }
 
 export function InstanceRow({
@@ -43,25 +45,15 @@ export function InstanceRow({
 }) {
   const t = useT()
   const { ask } = useHandOff()
-  const tone = rowTone(row)
   return (
-    <tr className="hover:bg-muted transition-colors">
+    <tr>
       <Td>
         {/* One instance label (#322 U13): the business key, the UUID a
             copyable chip beside it, never a three-line UUID. */}
-        <span className="flex items-center gap-2">
-          <span aria-hidden="true" className={`size-1.5 shrink-0 rounded-full ${TONE_DOT[tone]}`} />
-          <InstanceLabel id={row.id} businessKey={row.businessKey} />
-        </span>
-        {/* Where the State column hides (a narrow engine-wide list), the
-            state still shows in words, never as the dot's colour alone. */}
-        {showProcessColumn && row.suspended && (
-          <span className="mt-1 flex @min-[48rem]:hidden">
-            <StatusBadge tone={SITUATION_TONES.suspended}>
-              {t("processInstances.stateSuspended")}
-            </StatusBadge>
-          </span>
-        )}
+        <InstanceLabel id={row.id} businessKey={row.businessKey} />
+      </Td>
+      <Td>
+        <InstanceState row={row} />
       </Td>
       {showProcessColumn && (
         <Td>
@@ -104,29 +96,11 @@ export function InstanceRow({
           )}
         </Td>
       )}
-      <Td>
-        {row.suspended ? (
-          <StatusBadge tone={SITUATION_TONES.suspended}>
-            {t("processInstances.stateSuspended")}
-          </StatusBadge>
-        ) : (
-          <StatusBadge tone={SITUATION_TONES.running}>
-            {t("processInstances.stateRunning")}
-          </StatusBadge>
-        )}
-      </Td>
       <Td align="right">
-        {row.hasIncident ? (
-          <CountPill tone={SITUATION_TONES.openIncident}>
-            <Icon icon={TriangleAlert} dense label={t("processInstances.hasIncident")} />
-          </CountPill>
-        ) : (
-          <span className="text-muted-foreground">—</span>
-        )}
-      </Td>
-      <Td align="right">
+        {/* A row's actions are xs, so the row keeps the row height (28 px). */}
         <div className="inline-flex items-center justify-end gap-1">
           <DrillButton
+            size="xs"
             onDrill={() => onOpen(row)}
             ariaLabel={t("processInstances.openInstanceAria", {
               name: instanceName(row.id, row.businessKey),
@@ -138,6 +112,7 @@ export function InstanceRow({
             <HandOffButton
               action="findCause"
               variant="icon"
+              size="xs"
               prompt={ask(rootCauseHandOff(row, processDefinitionKey, engine))}
             />
           )}

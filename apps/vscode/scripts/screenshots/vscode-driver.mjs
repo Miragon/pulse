@@ -2,9 +2,12 @@ import { existsSync } from "node:fs"
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
+import { fileURLToPath } from "node:url"
 import { downloadAndUnzipVSCode } from "@vscode/test-electron"
 import { _electron as electron } from "playwright"
+import { part } from "../support/webview-parts.mjs"
 
+const APP = resolve(fileURLToPath(new URL("../..", import.meta.url)))
 const MAC_INSTALLATION = "/Applications/Visual Studio Code.app/Contents/MacOS/Code"
 const MODIFIER = process.platform === "darwin" ? "Meta" : "Control"
 const WINDOW = { width: 1600, height: 1000 }
@@ -16,13 +19,17 @@ const USER_SETTINGS = {
   "git.openRepositoryInParentFolders": "never",
   "workbench.tips.enabled": false,
   "editor.minimap.enabled": false,
+  "workbench.colorTheme": "Default Dark Modern",
 }
+const KEYRING_FREE = process.platform === "linux" ? ["--password-store=basic"] : []
 
 async function vscodeExecutable() {
   if (process.env.PULSE_VSCODE_EXECUTABLE !== undefined) {
     return process.env.PULSE_VSCODE_EXECUTABLE
   }
-  return existsSync(MAC_INSTALLATION) ? MAC_INSTALLATION : downloadAndUnzipVSCode("stable")
+  return existsSync(MAC_INSTALLATION)
+    ? MAC_INSTALLATION
+    : downloadAndUnzipVSCode({ version: "stable", cachePath: join(APP, ".vscode-test") })
 }
 
 async function userDataWithSettings() {
@@ -37,8 +44,8 @@ export async function launchVsCode(workspace) {
   const app = await electron.launch({
     executablePath: await vscodeExecutable(),
     args: [
-      resolve(workspace),
-      `--extensionDevelopmentPath=${resolve(".")}`,
+      resolve(APP, workspace),
+      `--extensionDevelopmentPath=${APP}`,
       `--user-data-dir=${userData}`,
       `--extensions-dir=${join(userData, "extensions")}`,
       "--disable-workspace-trust",
@@ -46,6 +53,7 @@ export async function launchVsCode(workspace) {
       "--skip-release-notes",
       "--disable-telemetry",
       "--new-window",
+      ...KEYRING_FREE,
     ],
   })
   const window = await app.firstWindow()
@@ -86,9 +94,28 @@ export async function runCommand(window, title) {
 export async function answer(window, text) {
   const input = window.locator(".quick-input-widget input")
   await input.waitFor({ state: "visible", timeout: 10_000 })
+  await window.waitForFunction(
+    () => !globalThis.document.querySelector(".quick-input-widget input")?.value.startsWith(">"),
+    undefined,
+    { timeout: 10_000 },
+  )
   await input.fill(text)
   await window.waitForTimeout(300)
   await input.press("Enter")
+  await answered(window, text)
+}
+
+async function answered(window, text) {
+  await window
+    .waitForFunction(
+      (typed) => {
+        const field = globalThis.document.querySelector(".quick-input-widget input")
+        return field === null || field.offsetParent === null || field.value !== typed
+      },
+      text,
+      { timeout: 5_000 },
+    )
+    .catch(() => undefined)
 }
 
 export async function openFile(window, fileName) {
@@ -115,7 +142,7 @@ export async function showPulse(window) {
 export async function goToInstance(window, key) {
   await runCommand(window, "Pulse: Go to Process Instance")
   await answer(window, key)
-  await panelFrame(window).locator(".context-bar", { hasText: "As of" }).waitFor({
+  await panelFrame(window).locator(part("context-bar"), { hasText: "As of" }).waitFor({
     timeout: 30_000,
   })
 }

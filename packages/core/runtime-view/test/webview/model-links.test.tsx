@@ -2,7 +2,15 @@ import type { IncidentRow, InstanceView } from "../../src/core/protocol/index.js
 import { afterEach, describe, expect, it } from "vitest"
 import { DEFINITION_VIEW } from "../../dev/webview/fixtures/definition.js"
 import { INSTANCE_WITH_CALLED_INCIDENT } from "../../dev/webview/fixtures/instance.js"
-import { mountApp, waitForElement, type Harness } from "./harness.js"
+import {
+  allParts,
+  allRoles,
+  findPart,
+  mountApp,
+  queryPart,
+  waitForElement,
+  type Harness,
+} from "./harness.js"
 
 const INCIDENT = INSTANCE_WITH_CALLED_INCIDENT.incidents[0]!
 
@@ -17,13 +25,13 @@ function button(root: HTMLElement, label: string): HTMLButtonElement | undefined
 }
 
 function header(root: HTMLElement): HTMLElement {
-  return root.querySelector<HTMLElement>(".context-bar") ?? root
+  return queryPart(root, "context-bar") ?? root
 }
 
 function facts(root: HTMLElement): string[] {
-  return [...root.querySelectorAll(".incident-card .facts dt")].map(
-    (term) => `${term.textContent}: ${term.nextElementSibling?.textContent ?? ""}`,
-  )
+  return allParts(root, "incident-card")
+    .flatMap((card) => allRoles(card, "term"))
+    .map((term) => `${term.textContent}: ${term.nextElementSibling?.textContent ?? ""}`)
 }
 
 describe("the model and code links of an incident", () => {
@@ -36,7 +44,7 @@ describe("the model and code links of an incident", () => {
   async function show(view: InstanceView): Promise<void> {
     harness = mountApp()
     harness.publish({ status: "ready", refreshing: false, view })
-    await waitForElement(harness.root, ".incident-card")
+    await findPart(harness.root, "incident-card")
   }
 
   it("shows what the local model configures and opens model and code by incident", async () => {
@@ -77,9 +85,7 @@ describe("the model and code links of an incident", () => {
 
     expect(repeated.some((fact) => fact.startsWith("Message:"))).toBe(false)
     expect(facts(harness.root)).toContain(`Message: ${INCIDENT.message}`)
-    expect(harness.root.querySelector(".incident-card")?.textContent).not.toContain(
-      INCIDENT.engineType,
-    )
+    expect(queryPart(harness.root, "incident-card")?.textContent).not.toContain(INCIDENT.engineType)
   })
 
   it("offers no code link when no code was found", async () => {
@@ -116,7 +122,7 @@ describe("the model link of a definition", () => {
       refreshing: false,
       view: { ...DEFINITION_VIEW, model: { fileName: "order-fulfillment.bpmn" } },
     })
-    await waitForElement(harness.root, ".context-bar")
+    await findPart(harness.root, "context-bar")
 
     const open = button(harness.root, "Open model")
     open?.click()
@@ -127,7 +133,7 @@ describe("the model link of a definition", () => {
     harness.unmount()
     harness = mountApp()
     harness.publish({ status: "ready", refreshing: false, view: DEFINITION_VIEW })
-    await waitForElement(harness.root, ".context-bar")
+    await findPart(harness.root, "context-bar")
     expect(button(harness.root, "Open model")).toBeUndefined()
   })
 
@@ -164,7 +170,7 @@ describe("the model link of a definition", () => {
       type: "openModel",
       elementId: "Activity_ReserveStock",
     })
-    expect(harness.root.querySelectorAll(".djs-overlay .code-button")).toHaveLength(1)
+    expect(harness.root.querySelectorAll(".djs-overlay [data-code-for]")).toHaveLength(1)
   })
 })
 

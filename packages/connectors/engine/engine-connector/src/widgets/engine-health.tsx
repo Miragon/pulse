@@ -1,9 +1,9 @@
 import { useId } from "react"
 import {
   Button,
-  ErrorState,
   KpiGrid,
   StatusBadge,
+  StatusStrip,
   WidgetHeader,
   type ToneVariant,
   DrillButton,
@@ -11,7 +11,7 @@ import {
   NamedId,
   formatCount,
   formatNumber,
-  SITUATION_TONES,
+  SectionHeading,
 } from "@miragon/pulse-ui"
 import {
   HandOffButton,
@@ -23,11 +23,12 @@ import {
   HostModelContext,
   useViewData,
 } from "@miragon/pulse-widget-shell/widgets"
-import { TriangleAlert } from "lucide-react"
+import { RefreshCw, TriangleAlert } from "lucide-react"
 import type { EngineHealthCluster, EngineHealthData, EngineHealthStatus } from "../view-models.js"
 import { useNav, type OnNavigate } from "./navigation.js"
 import { ENGINE_HEALTH_DATA } from "../tool-names.js"
 import { remediationHandOff, UNKNOWN_KEY as UNKNOWN } from "./remediation.js"
+import { AlarmCount } from "./lib/alarm-count.js"
 import { useActionAllowed } from "./lib/engine-action.js"
 import { useHandOff, type HandOff, type ViewContext } from "./lib/hand-off.js"
 import { healthFailureOf, healthVerdictLine, VERDICT_TONE } from "./lib/health-verdict.js"
@@ -155,7 +156,7 @@ function ClusterRow({
   ].filter((part): part is string => part !== null)
 
   return (
-    <li className="border-border flex flex-wrap items-start justify-between gap-3 rounded-md border p-3">
+    <li className="border-border p-gutter flex flex-wrap items-start justify-between gap-3 rounded-md border">
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex min-w-0 flex-wrap items-start gap-2">
           <NamedId name={cluster.activityName} id={cluster.activityId} />
@@ -238,14 +239,17 @@ function HealthKpis({ summary, go }: { summary: EngineHealthData["summary"]; go:
           label: t("engineHealth.kpiOpenIncidents"),
           // The derivative beats the absolute during an active incident:
           // "9 in the last hour" = burning now; fall back to the 24h count.
-          value: formatNumber(summary.totalIncidents),
+          value: (
+            <AlarmCount alarm={summary.totalIncidents > 0 && "openIncidents"}>
+              {formatNumber(summary.totalIncidents)}
+            </AlarmCount>
+          ),
           fraction:
             summary.lastHourIncidents > 0
               ? ` ${t("engineHealth.kpiInLastHour", { count: formatNumber(summary.lastHourIncidents) })}`
               : summary.last24hIncidents > 0
                 ? ` ${t("engineHealth.kpiIn24h", { count: formatNumber(summary.last24hIncidents) })}`
                 : undefined,
-          tone: summary.totalIncidents > 0 ? SITUATION_TONES.openIncident : undefined,
           onClick: () => go({ type: "incidents" }),
           actionHint: t("engineHealth.kpiOpenIncidentsAria"),
         },
@@ -297,9 +301,12 @@ function ClustersSection({
   if (clusters.length === 0) return null
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-2">
-      <h2 id={headingId} className="text-section text-foreground">
-        {t("engineHealth.clustersHeading")}
-      </h2>
+      <SectionHeading
+        as="h2"
+        id={headingId}
+        title={t("engineHealth.clustersHeading")}
+        className="mb-0"
+      />
       <ul className="flex flex-col gap-2">
         {clusters.map((cluster) => (
           <ClusterRow key={cluster.id} cluster={cluster} engine={engine} go={go} />
@@ -332,63 +339,91 @@ export function EngineHealthView({
   const { refreshError, refreshing } = viewRefreshState(view)
 
   if (!data) {
-    return <HealthUnavailable engine={engine} loading={loading} error={error} onRetry={refetch} />
+    return (
+      <WidgetShell>
+        <HealthUnavailable engine={engine} loading={loading} error={error} onRetry={refetch} />
+      </WidgetShell>
+    )
   }
 
   const badge = verdictBadge(data)
 
   return (
-    <>
+    <WidgetShell
+      header={
+        <>
+          <WidgetHeader
+            badge={<StatusBadge tone={badge.tone}>{t(badge.labelKey)}</StatusBadge>}
+            // The engine in the title (#322 U4): prod-leasing and test-leasing
+            // never share a heading.
+            title={t("engineHealth.titleFor", { engine })}
+            sub={
+              <>
+                <ViewMeta asOf={data.fetchedAt} />
+                <span>{healthVerdictLine(t, data)}</span>
+              </>
+            }
+            actions={
+              <>
+                {/* The deterministic next step leads (#322 U11): with open incidents, look at
+                    them; the chat assessment follows. The cockpit's head holds the one Refresh
+                    (#322 U27). */}
+                {data.summary.totalIncidents > 0 && (
+                  <Button
+                    type="button"
+                    variant="toolbar"
+                    size="sm"
+                    onClick={() => go({ type: "incidents" })}
+                  >
+                    <Icon icon={TriangleAlert} />
+                    {t("engineHealth.openIncidents")}
+                  </Button>
+                )}
+                <HandOffButton
+                  action="assess"
+                  variant="toolbar"
+                  prompt={ask(triageHandOff(data, engine))}
+                />
+              </>
+            }
+          />
+          {/* A failed re-pull keeps the last verdict and says it is not current, docked under
+              the bar, the engine's own text under its Details; a refusal no retry changes offers
+              no retry. */}
+          {refreshError && !refreshing && (
+            <StatusStrip
+              tone="warning"
+              title={t("engineHealth.refreshFailedTitle")}
+              detail={t("engineHealth.refreshFailedHint")}
+              details={refreshError.message}
+              actions={
+                isPermanentError(refreshError)
+                  ? []
+                  : [
+                      {
+                        label: t("viewState.retry"),
+                        icon: RefreshCw,
+                        onClick: () => void refetch(),
+                      },
+                    ]
+              }
+            />
+          )}
+        </>
+      }
+    >
       <HostModelContext content={context(describeHealth(data, engine))}>{null}</HostModelContext>
-      <WidgetHeader
-        badge={<StatusBadge tone={badge.tone}>{t(badge.labelKey)}</StatusBadge>}
-        // The engine in the title (#322 U4): prod-leasing and test-leasing
-        // never share a heading.
-        title={t("engineHealth.titleFor", { engine })}
-        sub={
-          <>
-            <ViewMeta asOf={data.fetchedAt} />
-            <span>{healthVerdictLine(t, data)}</span>
-          </>
-        }
-        actions={
-          <>
-            {/* The deterministic next step leads (#322 U11): with open incidents, look at
-                them; the chat assessment follows. The cockpit's head holds the one Refresh
-                (#322 U27). */}
-            {data.summary.totalIncidents > 0 && (
-              <Button type="button" size="sm" onClick={() => go({ type: "incidents" })}>
-                <Icon icon={TriangleAlert} />
-                {t("engineHealth.openIncidents")}
-              </Button>
-            )}
-            <HandOffButton action="assess" prompt={ask(triageHandOff(data, engine))} />
-          </>
-        }
-      />
-
-      {/* A failed re-pull keeps the last verdict and says it is not current; a refusal no
-          retry changes offers no retry. */}
-      {refreshError && !refreshing && (
-        <ErrorState
-          variant="inline"
-          tone="warning"
-          title={t("engineHealth.refreshFailedTitle")}
-          description={t("engineHealth.refreshFailedHint")}
-          details={refreshError.message}
-          onRetry={isPermanentError(refreshError) ? undefined : refetch}
-        />
-      )}
 
       <HealthKpis summary={data.summary} go={go} />
 
       <Throughput24h summary={data.summary} />
 
       <ClustersSection clusters={data.clusters} engine={engine} go={go} />
-    </>
+    </WidgetShell>
   )
 }
 
+/** The overview's verdict: the engine's health as a view of its own, its bar and its content. */
 export function EngineHealthVerdict({
   data,
   engine,
@@ -396,9 +431,5 @@ export function EngineHealthVerdict({
   data: EngineHealthData | null
   engine: string
 }) {
-  return (
-    <WidgetShell>
-      <EngineHealthView data={data} engine={engine} />
-    </WidgetShell>
-  )
+  return <EngineHealthView data={data} engine={engine} />
 }

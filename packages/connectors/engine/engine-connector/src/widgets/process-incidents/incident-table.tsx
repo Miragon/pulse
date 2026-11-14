@@ -1,15 +1,13 @@
 import { Fragment } from "react"
 import {
   Button,
-  StatusBadge,
+  cn,
   PagedListFooter,
   DrillButton,
   formatTimestamp,
-  Icon,
-  LogText,
   NamedId,
+  StateLabel,
   Td,
-  SITUATION_TONES,
 } from "@miragon/pulse-ui"
 import {
   FIT_CONTINUES_ROW,
@@ -21,7 +19,6 @@ import {
   usePagedViewData,
   ViewDataState,
 } from "@miragon/pulse-widget-shell/widgets"
-import { Check } from "lucide-react"
 
 import type { ActivityIncidentsData, IncidentInstance } from "../../view-models.js"
 import { ENGINE_ACTIVITY_INCIDENTS_DATA } from "../../tool-names.js"
@@ -29,7 +26,8 @@ import { useHandOff, type HandOff } from "../lib/hand-off.js"
 import { useT } from "../../messages/use-t.js"
 import { EngineActionDialog } from "../lib/engine-action-dialog.js"
 import { useIncidentRecovery, type IncidentRecoveryState } from "./use-incident-recovery.js"
-import { InstanceLabel } from "../lib/identity.js"
+import { InstanceLabel, NARROW_SUBJECT_FLOOR } from "../lib/identity.js"
+import { DoneMark } from "../lib/done-mark.js"
 import { MoreActions } from "../lib/more-actions.js"
 import { WriteError } from "../lib/write-error.js"
 
@@ -62,7 +60,7 @@ function RecoveryButton({
   return (
     <Button
       variant="outline"
-      size="sm"
+      size="xs"
       disabled={recovery.isPending(incident)}
       title={action === "retry" ? t("procIncTable.retryHint") : undefined}
       onClick={() => recovery.act(incident)}
@@ -72,16 +70,45 @@ function RecoveryButton({
   )
 }
 
-/** Where an incident sits, by its element's name (the id where it has none); never blank. */
+/**
+ * Where an incident sits, by its element's name (the id where it has none); never blank. Whole in
+ * its fitted column, down to 8rem in a phone-width chat, as an instance is.
+ */
 function IncidentElement({ incident }: { incident: IncidentInstance }) {
-  // A floor, or a wrapping name gets squeezed into a column a word wide.
+  return incident.activityId ? (
+    <NamedId
+      name={incident.activityName}
+      id={incident.activityId}
+      className={NARROW_SUBJECT_FLOOR}
+    />
+  ) : (
+    <span className="text-muted-foreground">{"—"}</span>
+  )
+}
+
+/**
+ * The incident's type as its state label and its message on one line, never a pill stacked above
+ * it or a message wrapped into a tall row: the message is cut with an ellipsis, its whole text in
+ * its title and on the incident's page, and keeps 10rem, so a narrow table scrolls inside its
+ * region instead of squeezing it. Under 28rem the type shows its icon alone, its word read out and
+ * in its title.
+ */
+function IncidentMessage({ incident }: { incident: IncidentInstance }) {
+  const message = incident.incidentMessage
   return (
-    <div className="flex min-w-40 flex-col">
-      {incident.activityId ? (
-        <NamedId name={incident.activityName} id={incident.activityId} />
-      ) : (
-        <span className="text-muted-foreground">{"—"}</span>
-      )}
+    <div className="flex min-w-0 items-center gap-3 @max-md:gap-1.5">
+      <StateLabel state="incident" iconOnlyBelow="md" className="shrink-0">
+        {incident.incidentType}
+      </StateLabel>
+      <span className="grid min-w-0 grid-cols-[minmax(10rem,max-content)]">
+        <span
+          data-incident-message=""
+          className="text-muted-foreground text-small min-w-0 truncate font-mono"
+          title={message ?? undefined}
+        >
+          {message || "—"}
+        </span>
+      </span>
     </div>
   )
 }
@@ -105,108 +132,114 @@ export function IncidentTable({
   const t = useT()
   const { ask } = useHandOff()
   const byInstance = subject === "instance"
-  // Aligns under the activity summary's icon column; without that column the indent would float.
-  const leadPad = byInstance ? "pl-12" : undefined
 
+  // Each row is one line at the row height: the subject, the time and the actions fit their
+  // content, the message takes the rest (#322 U2: the summary row above names first and latest).
   const columns: ListTableColumn[] = [
-    byInstance
-      ? { label: t("procIncTable.columnInstance"), className: leadPad }
-      : { label: t("procIncTable.columnActivity") },
+    {
+      label: byInstance ? t("procIncTable.columnInstance") : t("procIncTable.columnActivity"),
+      fit: true,
+    },
     { label: t("procIncTable.columnErrorMessage") },
-    // The summary row above names first and latest; the message keeps the room (#322 U2).
-    { label: t("procIncTable.columnTime"), align: "right" as const, hideBelow: "md" as const },
-    { label: t("procIncTable.columnActions"), sticky: true },
+    {
+      label: t("procIncTable.columnTime"),
+      align: "right" as const,
+      hideBelow: "md" as const,
+      fit: true,
+    },
+    // Pinned from 40rem up only: in a narrower region a pinned column would cover the message, so
+    // the actions scroll with the row and the message keeps its 10rem in view. Right-aligned, its
+    // head over its buttons, as every table's row actions.
+    {
+      label: t("procIncTable.columnActions"),
+      align: "right" as const,
+      sticky: "sm" as const,
+      fit: true,
+    },
   ]
 
+  // The table on the surface it lies on, its head the kit's (`Th` paints `--table-surface`): the
+  // card in an instance's tab, the ground of an activity's group (`PagedIncidentTable`).
   return (
-    <div className="bg-muted [--list-table-surface:var(--muted)]">
-      <ListTable
-        ariaLabel={byInstance ? t("procIncTable.tableLabel") : t("procIncTable.tableLabelInstance")}
-        columns={columns}
-      >
-        {/* Inline, the table shows the incidents that fit (its own fit, or the
-            paged wrapper's) and says how many there are. */}
-        {incidents.map((incident) => {
-          const done = recovery.isDone(incident)
-          const error = recovery.errorOf(incident)
-          const retried = incident.recovery.action !== "resolve"
-          const instanceUrl = incident.cockpitInstanceUrl
-          return (
-            <Fragment key={incident.id}>
-              <tr>
+    <ListTable
+      ariaLabel={byInstance ? t("procIncTable.tableLabel") : t("procIncTable.tableLabelInstance")}
+      columns={columns}
+    >
+      {/* Inline, the table shows the incidents that fit (its own fit, or the
+          paged wrapper's) and says how many there are. */}
+      {incidents.map((incident) => {
+        const done = recovery.isDone(incident)
+        const error = recovery.errorOf(incident)
+        const retried = incident.recovery.action !== "resolve"
+        const instanceUrl = incident.cockpitInstanceUrl
+        return (
+          <Fragment key={incident.id}>
+            <tr>
+              <Td>
                 {byInstance ? (
-                  <Td className={leadPad}>
-                    {/* One instance label (#322 U13): its business key, the
-                        UUID a copyable chip. */}
-                    <InstanceLabel
-                      id={incident.processInstanceId}
-                      businessKey={incident.businessKey}
-                    />
-                  </Td>
+                  // One instance label (#322 U13): its business key, the UUID a copyable chip.
+                  <InstanceLabel
+                    id={incident.processInstanceId}
+                    businessKey={incident.businessKey}
+                  />
                 ) : (
-                  <Td>
-                    <IncidentElement incident={incident} />
-                  </Td>
+                  <IncidentElement incident={incident} />
                 )}
-                <Td>
-                  <div className="flex flex-col items-start gap-1">
-                    <StatusBadge tone={SITUATION_TONES.openIncident}>
-                      {incident.incidentType}
-                    </StatusBadge>
-                    <LogText text={incident.incidentMessage} />
+              </Td>
+              <Td>
+                <IncidentMessage incident={incident} />
+              </Td>
+              <Td align="right" className="text-muted-foreground text-small">
+                {formatTimestamp(incident.incidentTimestamp)}
+              </Td>
+              <Td align="right">
+                {done ? (
+                  // Done in words, never a dimmed row that reads as disabled (#322 U11).
+                  <DoneMark>
+                    {retried ? t("procIncTable.retried") : t("procIncTable.resolved")}
+                  </DoneMark>
+                ) : (
+                  // A row's actions are xs, so the row keeps the row height (28 px).
+                  <div className="inline-flex items-center justify-end gap-1">
+                    <DrillButton
+                      size="xs"
+                      onDrill={() => onAnalyze(incident.id)}
+                      ariaLabel={t("procIncTable.openIncidentDetail")}
+                    >
+                      {t("procIncTable.open")}
+                    </DrillButton>
+                    <RecoveryButton incident={incident} recovery={recovery} />
+                    <MoreActions label={t("procIncTable.moreActions")}>
+                      {instanceUrl && (
+                        <OpenInCockpitLink url={instanceUrl} vendor={vendor} variant="menuitem" />
+                      )}
+                      <HandOffButton
+                        action="draftTicket"
+                        variant="menuitem"
+                        prompt={ask(draftIncidentTicketHandOff(incident, engine))}
+                      />
+                    </MoreActions>
                   </div>
-                </Td>
-                <Td align="right" className="text-muted-foreground text-small whitespace-nowrap">
-                  {formatTimestamp(incident.incidentTimestamp)}
-                </Td>
-                <Td>
-                  {done ? (
-                    // Done in words, never a dimmed row that reads as disabled (#322 U11).
-                    <StatusBadge tone="success" className="whitespace-nowrap">
-                      <Icon icon={Check} dense />
-                      {retried ? t("procIncTable.retried") : t("procIncTable.resolved")}
-                    </StatusBadge>
-                  ) : (
-                    <div className="flex items-center gap-1">
-                      <DrillButton
-                        onDrill={() => onAnalyze(incident.id)}
-                        ariaLabel={t("procIncTable.openIncidentDetail")}
-                      >
-                        {t("procIncTable.open")}
-                      </DrillButton>
-                      <RecoveryButton incident={incident} recovery={recovery} />
-                      <MoreActions label={t("procIncTable.moreActions")}>
-                        {instanceUrl && (
-                          <OpenInCockpitLink url={instanceUrl} vendor={vendor} variant="menuitem" />
-                        )}
-                        <HandOffButton
-                          action="draftTicket"
-                          variant="menuitem"
-                          prompt={ask(draftIncidentTicketHandOff(incident, engine))}
-                        />
-                      </MoreActions>
-                    </div>
-                  )}
-                </Td>
+                )}
+              </Td>
+            </tr>
+            {/* The error line belongs to its incident: one item in the fit. */}
+            {error && (
+              <tr {...FIT_CONTINUES_ROW}>
+                <td colSpan={columns.length} className="border-border px-cell py-cell border-b">
+                  <WriteError error={error} />
+                </td>
               </tr>
-              {/* The error line belongs to its incident: one item in the fit. */}
-              {error && (
-                <tr {...FIT_CONTINUES_ROW}>
-                  <td
-                    colSpan={columns.length}
-                    className={`border-border border-b px-4 py-1.5 ${leadPad ?? ""}`}
-                  >
-                    <WriteError error={error} />
-                  </td>
-                </tr>
-              )}
-            </Fragment>
-          )
-        })}
-      </ListTable>
-    </div>
+            )}
+          </Fragment>
+        )
+      })}
+    </ListTable>
   )
 }
+
+/** An activity group's body: the ground under its summary on the card, its table's head too. */
+const GROUP_GROUND = "bg-muted [--table-surface:var(--muted)]"
 
 /**
  * Pages `engine_activity_incidents_data` so a group reaches every incident, not just the
@@ -242,7 +275,7 @@ export function PagedIncidentTable({
 
   if (!paged.firstPage) {
     return (
-      <div className="bg-muted px-4 py-3">
+      <div className={cn(GROUP_GROUND, "px-cell py-cell")}>
         <ViewDataState
           loading={paged.loading}
           error={paged.error}
@@ -255,9 +288,9 @@ export function PagedIncidentTable({
   }
 
   return (
-    <>
+    <div className={GROUP_GROUND}>
       {paged.items.length === 0 ? (
-        <p className="bg-muted text-muted-foreground text-dense px-4 py-3">
+        <p className="text-muted-foreground text-dense px-cell py-cell">
           {t("procIncTable.noIncidents")}
         </p>
       ) : (
@@ -272,18 +305,17 @@ export function PagedIncidentTable({
           />
         </PagedRows>
       )}
-      <div className="bg-muted px-3 pb-1">
-        <PagedListFooter
-          paged={paged}
-          noun={t("procIncTable.footerNoun")}
-          labels={paged.footerLabels}
-        />
-      </div>
+      {/* The footer pads itself on the cell's role, so it lines up with the cells above. */}
+      <PagedListFooter
+        paged={paged}
+        noun={(total) => t("procIncTable.footerNoun", { count: total })}
+        labels={paged.footerLabels}
+      />
       {/* The per-row button only requests the resolve; the actual
           engine_resolve_incident call runs after this confirmation. The
           dialog stays open until success so a failure is shown right here
           (and inline at the row once dismissed). */}
       <EngineActionDialog action={recovery.resolve} />
-    </>
+    </div>
   )
 }

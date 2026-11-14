@@ -1,28 +1,23 @@
-import "./theme/cd-tokens.generated.css"
-import "@fontsource-variable/geist/wght.css"
-import "@fontsource-variable/geist-mono/wght.css"
-import "diagram-js/assets/diagram-js.css"
-import "bpmn-js/dist/assets/bpmn-js.css"
-import "./theme/cd-canvas.css"
-import "@miragon/modeler-shell/shell.css"
-import "./styles/base.css"
-import "./styles/components.css"
-import "./styles/screens.css"
-import "./styles/migration.css"
-import "./styles/tables.css"
-import "./styles/diagram.css"
-import "./styles/boards.css"
-import { render } from "preact"
+import "./styles/webview.css"
+import { createRoot } from "react-dom/client"
+import { LocaleProvider } from "@miragon/pulse-ui"
 import { App } from "./app.js"
+import { LabelLocale } from "./format/label-locale.js"
 import { HostBridge, type VsCodeApi } from "./host/host-bridge.js"
 
 interface VsCodeGlobal {
   readonly acquireVsCodeApi: () => VsCodeApi
 }
 
+LabelLocale.apply()
+document.documentElement.dataset.density = "compact"
 const bridge = new HostBridge((globalThis as unknown as VsCodeGlobal).acquireVsCodeApi())
 const mountPoint =
   document.getElementById("pulse") ?? document.body.appendChild(document.createElement("div"))
 mountPoint.id = "pulse"
-render(<App bridge={bridge} />, mountPoint)
+createRoot(mountPoint).render(
+  <LocaleProvider locale="en">
+    <App bridge={bridge} />
+  </LocaleProvider>,
+)
 bridge.post({ type: "ready" })

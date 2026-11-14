@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { colourOfVariable, waitForElement } from "./harness.js"
-import { editVariable, type VariableEditing } from "./variable-editing.js"
+import { colourOfVariable } from "./harness.js"
+import {
+  editVariable,
+  editorError,
+  findEditorError,
+  openEditor,
+  type VariableEditing,
+} from "./variable-editing.js"
 
 const RANGE = "-9223372036854775808 to 9223372036854775807"
 const FOR_A_NULL_VARIABLE = `Pulse writes no number without a fraction outside ${RANGE}. Write giftNote as text to keep every digit.`
@@ -19,14 +25,16 @@ describe("a whole number beyond 64 bits, typed into the editor of the core's own
 
     await editing.save(field, "9223372036854775808")
 
-    const error = await waitForElement(editing.harness.root, ".variable-editor__error")
+    const error = await findEditorError(editing.harness.root)
     expect(error.textContent).toBe(FOR_A_NULL_VARIABLE)
     expect(field.getAttribute("aria-invalid")).toBe("true")
     expect(field.getAttribute("aria-describedby")).toBe(error.id)
     await vi.waitFor(() => {
       expect(document.activeElement).toBe(field)
     })
-    expect(getComputedStyle(field).borderTopColor).toBe(colourOfVariable("--cd-ui-danger"))
+    await vi.waitFor(() => {
+      expect(getComputedStyle(field).borderTopColor).toBe(colourOfVariable("--danger"))
+    })
     expect(field.value).toBe("9223372036854775808")
     expect(editing.fixture.effects.confirmWrite).not.toHaveBeenCalled()
     expect(editing.setVariable).not.toHaveBeenCalled()
@@ -38,7 +46,7 @@ describe("a whole number beyond 64 bits, typed into the editor of the core's own
 
     await editing.save(field, "-9223372036854775809")
 
-    const error = await waitForElement(editing.harness.root, ".variable-editor__error")
+    const error = await findEditorError(editing.harness.root)
     expect(error.textContent).toBe(FOR_AN_INTEGER_VARIABLE)
     expect(field.getAttribute("aria-invalid")).toBe("true")
     await vi.waitFor(() => {
@@ -52,7 +60,7 @@ describe("a whole number beyond 64 bits, typed into the editor of the core's own
     editing = await editVariable("amount")
     const { field, harness } = editing
     await editing.save(field, "-9223372036854775809")
-    const first = await waitForElement(harness.root, ".variable-editor__error")
+    const first = await findEditorError(harness.root)
     await vi.waitFor(() => {
       expect(document.activeElement).toBe(field)
     })
@@ -60,9 +68,9 @@ describe("a whole number beyond 64 bits, typed into the editor of the core's own
     await editing.save(field, "9223372036854775808")
 
     await vi.waitFor(() => {
-      expect(harness.root.querySelector(".variable-editor__error")).not.toBe(first)
+      expect(editorError(harness.root)).not.toBe(first)
     })
-    const second = harness.root.querySelector(".variable-editor__error")
+    const second = editorError(harness.root)
     expect(second?.textContent).toBe(FOR_AN_INTEGER_VARIABLE)
     expect(second?.getAttribute("role")).toBe("alert")
     expect(field.getAttribute("aria-describedby")).toBe(second?.id)
@@ -75,12 +83,12 @@ describe("a whole number beyond 64 bits, typed into the editor of the core's own
   it("keeps every digit when the user writes it as text, as the error says", async () => {
     editing = await editVariable("giftNote")
     await editing.save(await editing.writeAs("integer"), "9223372036854775808")
-    await waitForElement(editing.harness.root, ".variable-editor__error")
+    await findEditorError(editing.harness.root)
 
     await editing.save(await editing.writeAs("text"), "9223372036854775808")
 
     await vi.waitFor(() => {
-      expect(editing.harness.root.querySelector(".variable-editor")).toBeNull()
+      expect(openEditor(editing.harness.root)).toBeNull()
     })
     expect(editing.fixture.effects.confirmWrite).toHaveBeenCalledTimes(1)
     expect(editing.setVariable).toHaveBeenCalledWith(
