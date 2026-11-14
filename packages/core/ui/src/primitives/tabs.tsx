@@ -14,19 +14,26 @@ type TabsVariant = "default" | "line"
 /** The list's variant, which its triggers take their shape from. */
 const TabsVariantContext = createContext<TabsVariant>("default")
 
+type TabsOrientation = "horizontal" | "vertical"
+
+/** The tabs' orientation: a horizontal line list sits in its bar and scrolls inside it. */
+const TabsOrientationContext = createContext<TabsOrientation>("horizontal")
+
 function Tabs({
   className,
   orientation = "horizontal",
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.Root>) {
   return (
-    <TabsPrimitive.Root
-      data-slot="tabs"
-      data-orientation={orientation}
-      orientation={orientation}
-      className={cn("group/tabs flex gap-2 data-[orientation=horizontal]:flex-col", className)}
-      {...props}
-    />
+    <TabsOrientationContext.Provider value={orientation}>
+      <TabsPrimitive.Root
+        data-slot="tabs"
+        data-orientation={orientation}
+        orientation={orientation}
+        className={cn("group/tabs flex gap-2 data-[orientation=horizontal]:flex-col", className)}
+        {...props}
+      />
+    </TabsOrientationContext.Provider>
   )
 }
 
@@ -54,17 +61,26 @@ const tabsListVariants = cva(
 )
 
 /**
- * A bar that holds the list and an aside after it: the line's frame (its height, its rule, its
- * sides) moves from the list onto the bar, and the list takes the room the aside leaves.
+ * The bar a list sits in: always for a horizontal line, else with an aside after the list. The
+ * line's frame (its height, its rule) moves from the list onto the bar, and the list takes the
+ * room an aside leaves.
  */
 const TABS_BAR = {
   default: "inline-flex items-center gap-2",
-  line: "flex w-full items-stretch gap-2 border-b pr-gutter pl-2 min-h-toolbar",
+  line: "flex w-full items-stretch gap-2 border-b min-h-toolbar",
 } as const
 
+/**
+ * A line list in its bar stays one line and scrolls inside itself where its tabs need more room
+ * than the bar has, its scrollbar hidden: a tab that takes the focus (the arrows, a click on a cut
+ * one) scrolls into view, so every tab stays reachable by keyboard, and a swipe or a wheel with
+ * Shift scrolls it. It reaches 1 px over the bar's rule, so the open tab's 2 px bar covers the rule
+ * as it does outside a scroll container; the tabs scroll to the bar's edges, the list's own sides
+ * inside the scroll.
+ */
 const LIST_IN_BAR = {
   default: "",
-  line: "min-w-0 flex-1 border-b-0 px-0 group-data-[orientation=horizontal]/tabs:min-h-0",
+  line: "min-w-0 flex-1 -mb-px border-b-0 overflow-x-auto overflow-y-hidden [scrollbar-width:none] group-data-[orientation=horizontal]/tabs:min-h-0",
 } as const
 
 function TabsList({
@@ -76,33 +92,45 @@ function TabsList({
   VariantProps<typeof tabsListVariants> & {
     /**
      * What sits at the bar's end, after the tabs and outside the tab list (a legend's button, a
-     * count of the whole): the list keeps tabs only. With it, `className` goes to the bar.
+     * count of the whole): the list keeps tabs only. With it, and always for a horizontal line,
+     * the list sits in a bar and `className` goes to the bar.
      */
     aside?: ReactNode
   }) {
   const shape = variant ?? "default"
+  const orientation = useContext(TabsOrientationContext)
+  const beside = aside !== undefined
+  const inBar = beside || (shape === "line" && orientation === "horizontal")
   const list = (
     <TabsPrimitive.List
       data-slot="tabs-list"
       data-variant={shape}
       className={cn(
         tabsListVariants({ variant: shape }),
-        aside === undefined ? className : LIST_IN_BAR[shape],
+        inBar ? LIST_IN_BAR[shape] : className,
+        // Beside an aside the bar keeps the side after it; alone the list scrolls to both edges.
+        shape === "line" && beside && "pr-0",
       )}
       {...props}
     />
   )
   return (
     <TabsVariantContext.Provider value={shape}>
-      {aside === undefined ? (
-        list
-      ) : (
-        <div data-slot="tabs-bar" data-variant={shape} className={cn(TABS_BAR[shape], className)}>
+      {inBar ? (
+        <div
+          data-slot="tabs-bar"
+          data-variant={shape}
+          className={cn(TABS_BAR[shape], beside && shape === "line" && "pr-gutter", className)}
+        >
           {list}
-          <div data-slot="tabs-aside" className="flex shrink-0 items-center gap-1">
-            {aside}
-          </div>
+          {beside && (
+            <div data-slot="tabs-aside" className="flex shrink-0 items-center gap-1">
+              {aside}
+            </div>
+          )}
         </div>
+      ) : (
+        list
       )}
     </TabsVariantContext.Provider>
   )
@@ -122,7 +150,7 @@ const tabsTriggerVariants = cva(
           FOCUS_RING,
         ),
         line: cn(
-          "data-[state=active]:bg-accent data-[state=active]:border-b-interaction -mb-px justify-center border-b-2 border-transparent px-2 group-data-[orientation=vertical]/tabs:mb-0 group-data-[orientation=vertical]/tabs:border-b-0 group-data-[orientation=vertical]/tabs:border-r-2 group-data-[orientation=vertical]/tabs:data-[state=active]:border-r-interaction",
+          "data-[state=active]:bg-accent data-[state=active]:border-b-interaction justify-center border-b-2 border-transparent px-2 group-data-[orientation=vertical]/tabs:border-b-0 group-data-[orientation=vertical]/tabs:border-r-2 group-data-[orientation=vertical]/tabs:data-[state=active]:border-r-interaction",
           FOCUS_RING_INSET,
         ),
       },
@@ -130,13 +158,38 @@ const tabsTriggerVariants = cva(
   },
 )
 
-function TabsTrigger({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
+/**
+ * Scrolls a line list just enough to show the whole of its tab that took the focus, with the
+ * list's own side beside it: the browser leaves a tab half in view where it is, so an arrow or a
+ * click on a cut tab would not reveal it. The list alone scrolls, never the page around it.
+ */
+function revealInList(tab: HTMLElement): void {
+  const list = tab.closest<HTMLElement>('[data-slot="tabs-list"]')
+  if (!list || list.scrollWidth <= list.clientWidth) return
+  const style = getComputedStyle(list)
+  const shown = list.getBoundingClientRect()
+  const start = shown.left + (Number.parseFloat(style.paddingLeft) || 0)
+  const end = shown.right - (Number.parseFloat(style.paddingRight) || 0)
+  const own = tab.getBoundingClientRect()
+  if (own.left < start) list.scrollLeft -= start - own.left
+  else if (own.right > end) list.scrollLeft += own.right - end
+}
+
+function TabsTrigger({
+  className,
+  onFocus,
+  ...props
+}: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
   const variant = useContext(TabsVariantContext)
   return (
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       data-variant={variant}
       className={cn(tabsTriggerVariants({ variant }), className)}
+      onFocus={(event) => {
+        onFocus?.(event)
+        if (variant === "line") revealInList(event.currentTarget)
+      }}
       {...props}
     />
   )

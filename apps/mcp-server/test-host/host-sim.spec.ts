@@ -492,7 +492,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
     await expect(rows.first()).toBeVisible({ timeout: 15_000 })
 
     // Named by the placeholder's words, never the kit's generic "Filter".
-    const search = app.getByRole("searchbox", { name: "Search by business key or ID" })
+    const search = app.getByRole("searchbox", { name: "Search instances by business key or ID" })
     const before = await rows.count()
     // The stub engine holds its answer to this search until the in-flight
     // state has been looked at: no timing window to race.

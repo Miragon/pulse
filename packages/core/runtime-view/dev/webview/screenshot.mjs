@@ -15,6 +15,7 @@ const tab = process.env.TAB
 const expand = process.env.EXPAND
 const width = Number(process.env.WIDTH ?? 1280)
 const suffix = process.env.SUFFIX ?? ""
+const clock = new Date(process.env.CLOCK ?? "2026-11-12T09:30:00.000Z")
 const page = pathToFileURL(`${devDir}index.html`).href
 
 await mkdir(outDir, { recursive: true })
@@ -26,7 +27,10 @@ async function openTab(forcedColors) {
     deviceScaleFactor: 2,
     forcedColors,
     reducedMotion,
+    locale: "en-US",
+    timezoneId: "UTC",
   })
+  await context.clock.setFixedTime(clock)
   return context.newPage()
 }
 

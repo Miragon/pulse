@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react"
 import { BPMN_LABEL_STYLE } from "@miragon/pulse-ui"
 import TextRenderer from "bpmn-js/lib/draw/TextRenderer"
+import { BpmnZoomControls } from "./bpmn-zoom-controls.js"
+import { KEEP_CLEAR_GAP } from "./bpmn-fit.js"
 import {
   DIAGRAM_MAX_HEIGHT,
   DIAGRAM_MIN_HEIGHT,
@@ -14,11 +16,12 @@ import {
 // bpmn-js needs a real SVG engine happy-dom lacks; the full lifecycle suite runs in the engine connector.
 const mock = vi.hoisted(() => {
   /** Viewbox cached on first read and dropped only by `resized()` (Canvas.js 15.27). */
+  type Box = { x: number; y: number; width: number; height: number }
   class FakeCanvas {
     static inner = { x: 150, y: 80, width: 400, height: 700 }
     cached: { outer: { width: number; height: number } } | null = null
     level = 1
-    fits: Array<{ outerHeight: number; scale: number; center: unknown }> = []
+    fits: Array<{ outerHeight: number; scale: number; box: Box }> = []
     constructor(private readonly container: HTMLElement) {}
     private size() {
       return {
@@ -26,7 +29,18 @@ const mock = vi.hoisted(() => {
         height: Number.parseFloat(this.container.style.height) || 0,
       }
     }
-    viewbox() {
+    viewbox(box?: Box) {
+      if (box) {
+        // As diagram-js sets it: the box on the whole canvas, at the scale that fits it.
+        const { outer } = this.read()
+        this.level = Math.min(outer.width / box.width, outer.height / box.height)
+        this.fits.push({ outerHeight: outer.height, scale: this.level, box })
+        this.cached = { outer: this.size() }
+        return box
+      }
+      return this.read()
+    }
+    private read() {
       this.cached ??= { outer: this.size() }
       return {
         x: 0,
@@ -38,20 +52,14 @@ const mock = vi.hoisted(() => {
         outer: this.cached.outer,
       }
     }
+    getContainer() {
+      return this.container.querySelector(".djs-container") ?? this.container
+    }
     resized() {
       this.cached = null
     }
-    zoom(arg?: "fit-viewport" | number, center?: unknown): number {
-      if (arg === undefined) return this.level
-      if (arg === "fit-viewport") {
-        const { outer, inner } = this.viewbox()
-        this.level = Math.min(1, outer.width / inner.width, outer.height / inner.height)
-        this.fits.push({ outerHeight: outer.height, scale: this.level, center })
-        // Setting the viewbox re-reads the size and refills the cache.
-        this.cached = { outer: this.size() }
-        return this.level
-      }
-      this.level = arg
+    zoom(arg?: number): number {
+      if (arg !== undefined) this.level = arg
       return this.level
     }
   }
@@ -136,6 +144,17 @@ function Diagram({
 function Framed({ xml, fitOnResize = false }: { xml: string; fitOnResize?: boolean }) {
   const { containerRef, height } = useBpmnViewer({ bpmnXml: xml, fitOnResize })
   return <div ref={containerRef} data-testid="canvas" style={{ height: `${height}px` }} />
+}
+
+/** The frame as the cockpit draws it: the viewer's container, the zoom bar beside it. */
+function WithZoomBar({ xml }: { xml: string }) {
+  const { containerRef, height, zoomIn, zoomOut, fit } = useBpmnViewer({ bpmnXml: xml })
+  return (
+    <div>
+      <div ref={containerRef} data-testid="canvas" style={{ height: `${height}px` }} />
+      <BpmnZoomControls onZoomIn={zoomIn} onZoomOut={zoomOut} onFit={fit} />
+    </div>
+  )
 }
 
 const canvas = () => screen.getByTestId("canvas")
@@ -300,7 +319,42 @@ describe("useBpmnViewer frame and fit", () => {
   it("fits centred, after dropping diagram-js's cached viewbox", async () => {
     render(<Framed xml={INVOICE_DI} />)
     await waitFor(() => expect(mock.MockViewer.canvases[0]?.fits.length).toBeGreaterThan(0))
-    expect(mock.MockViewer.canvases[0].fits[0]).toMatchObject({ center: "auto", outerHeight: 265 })
+    const [first] = mock.MockViewer.canvases[0].fits
+    // The 265 px frame, not a cached size: 95 % of the 700 units tall diagram, its centre the canvas's.
+    expect(first.outerHeight).toBe(265)
+    expect(first.scale).toBeCloseTo((0.95 * 265) / 700, 9)
+    const { inner } = mock.FakeCanvas
+    expect(first.box.x + first.box.width / 2).toBeCloseTo(inner.x + inner.width / 2)
+    expect(first.box.y + first.box.height / 2).toBeCloseTo(inner.y + inner.height / 2)
+  })
+
+  it("keeps the diagram clear of the zoom bar beside its container, measured as drawn", async () => {
+    // A wide diagram fitted to 710 px would reach under the bar's corner: the room below the bar
+    // holds it at the same scale.
+    const bar = { left: 665, top: 11, width: 34, height: 100 }
+    const rects = vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (
+      this: Element,
+    ) {
+      const box = this.matches('[data-slot="bpmn-zoom-controls"]')
+        ? bar
+        : { left: 0, top: 0, width: 0, height: 0 }
+      return { ...box, right: box.left + box.width, bottom: box.top + box.height } as DOMRect
+    })
+    const inner = mock.FakeCanvas.inner
+    mock.FakeCanvas.inner = { x: 40, y: 60, width: 1400, height: 200 }
+    try {
+      render(<WithZoomBar xml={XML} />)
+      await waitFor(() => expect(canvas().style.height).toBe("240px"))
+      await act(async () => {})
+      const last = mock.MockViewer.canvases[0].fits.at(-1)!
+      expect(last.scale).toBeCloseTo((0.95 * 710) / 1400, 9)
+      const top = (60 - last.box.y) * last.scale
+      expect(top).toBeGreaterThanOrEqual(bar.top + bar.height + KEEP_CLEAR_GAP)
+      expect(top + 200 * last.scale).toBeLessThanOrEqual(240)
+    } finally {
+      mock.FakeCanvas.inner = inner
+      rects.mockRestore()
+    }
   })
 
   it("never fits a hidden container (no layout box), so a drill's hidden origin view keeps its diagram", async () => {
@@ -324,7 +378,9 @@ describe("useBpmnViewer frame and fit", () => {
     await waitFor(() => expect(canvas().style.height).toBe("560px"))
     await act(async () => {})
     const fits = mock.MockViewer.canvases[0].fits
-    expect(fits[0]).toMatchObject({ outerHeight: 360, scale: 360 / 700 })
-    expect(fits.at(-1)).toMatchObject({ outerHeight: 560, scale: 0.8 })
+    expect(fits[0].outerHeight).toBe(360)
+    expect(fits[0].scale).toBeCloseTo((0.95 * 360) / 700, 9)
+    expect(fits.at(-1)!.outerHeight).toBe(560)
+    expect(fits.at(-1)!.scale).toBeCloseTo(0.95 * 0.8, 9)
   })
 })

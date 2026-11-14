@@ -18,7 +18,7 @@ export type ColumnSort = "ascending" | "descending"
 const TH_CELL =
   "border-border h-row px-cell border-b bg-[var(--table-surface,var(--card))] py-0 align-middle whitespace-nowrap"
 
-/** A head cell's classes: the caption, aligned, or a bare one (the row actions' head). */
+/** A head cell's classes: the caption, aligned, or a bare one (a head that holds a control). */
 export function thClasses(align: "left" | "right", plain: boolean): string {
   if (plain) return TH_CELL
   return cn(
@@ -60,7 +60,7 @@ export function Th({
   children,
 }: {
   align?: "left" | "right"
-  /** Bare header cell (e.g. the empty action column): the rule and padding only. */
+  /** A bare head, the rule and the padding only: for a control instead of a caption. */
   plain?: boolean
   sort?: ColumnSort
   className?: string

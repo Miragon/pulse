@@ -1,5 +1,6 @@
 import { cn, FOCUS_RING_INSET, useLocale, Icon } from "@miragon/pulse-ui"
 import { Scan, ZoomIn, ZoomOut } from "lucide-react"
+import { ZOOM_CONTROLS_SLOT } from "./bpmn-fit.js"
 import { kitLabels } from "./kit-labels.js"
 
 interface BpmnZoomControlsLabels {
@@ -17,7 +18,12 @@ export interface BpmnZoomControlsProps {
   className?: string
 }
 
-/** Top-right, not bottom-right: bpmn-js pins its bpmn.io logo (licence requirement) there at z-index 100, covering zoom-out. A forced-light island, so a dark host shows no black chip on white paper. */
+/**
+ * Top-right, not bottom-right: bpmn-js pins its bpmn.io logo (licence requirement) there at z-index
+ * 100, covering zoom-out. A forced-light island, so a dark host shows no black chip on white paper.
+ * Placed beside the viewer's container in one frame, as `useBpmnViewer` expects: its fit keeps the
+ * diagram clear of the bar (and of the logo) wherever the bar lies.
+ */
 export function BpmnZoomControls({
   onZoomIn,
   onZoomOut,
@@ -33,6 +39,7 @@ export function BpmnZoomControls({
   ]
   return (
     <div
+      data-slot={ZOOM_CONTROLS_SLOT}
       data-theme-mode="light"
       className={cn(
         "border-border bg-card text-card-foreground shadow-1 absolute top-3 right-3 flex flex-col overflow-hidden rounded-md border",

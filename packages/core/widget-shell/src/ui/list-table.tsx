@@ -26,7 +26,10 @@ type ColumnBreakpoint = keyof typeof COLUMN_BREAKPOINTS
 export interface ListTableColumn {
   label?: ReactNode
   align?: "left" | "right"
-  /** Bare header cell without the MICRO_LABEL treatment (actions column). */
+  /**
+   * A bare head without the caption treatment (MICRO_LABEL): for a head that holds a control
+   * instead of a caption. The row actions' column has its caption ("Actions") like any other.
+   */
   plain?: boolean
   className?: string
   /** Hidden while the region is narrower; never on the identifying column or the row actions. */

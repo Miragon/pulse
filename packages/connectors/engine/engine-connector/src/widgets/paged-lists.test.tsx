@@ -116,7 +116,7 @@ describe("a search keeps the list and its search box mounted while page 0 is in 
     )
     host(Widget, { [ENGINE_PROCESS_INSTANCES_DATA]: feed.handler })
 
-    const search = screen.getByRole("searchbox", { name: "Search by business key or ID" })
+    const search = screen.getByRole("searchbox", { name: "Search instances by business key or ID" })
     fireEvent.click(screen.getByRole("radio", { name: /^With incident/ }))
     await waitFor(() => expect(feed.calls).toHaveLength(1))
     expect(feed.calls[0].args).toMatchObject({ withIncidents: true })
@@ -329,9 +329,12 @@ describe("the instance list states what is ON SCREEN while a filter is pending o
     host(Widget, { [ENGINE_PROCESS_INSTANCES_DATA]: feed })
     await screen.findByText("No running instances for this process definition.")
 
-    fireEvent.change(screen.getByRole("searchbox", { name: "Search by business key or ID" }), {
-      target: { value: "ORD" },
-    })
+    fireEvent.change(
+      screen.getByRole("searchbox", { name: "Search instances by business key or ID" }),
+      {
+        target: { value: "ORD" },
+      },
+    )
     await waitFor(() => expect(held.calls).toHaveLength(1), { timeout: 2_000 })
     expect(screen.getByText("No running instances for this process definition.")).toBeTruthy()
     expect(screen.queryByText("No instances match the filter.")).toBeNull()

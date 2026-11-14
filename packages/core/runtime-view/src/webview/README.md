@@ -62,7 +62,7 @@ Only UI state (open tab, split, column widths, zoom) stays in the webview's own 
 
 - `pnpm --filter pulse-cockpit run build`, then `pnpm --filter pulse-cockpit run dev`, runs the real core on a fake engine at localhost:5180
 - `pnpm --filter @miragon/pulse-runtime-view test` runs the browser tests in Chromium with the unit tests; `pnpm --filter pulse-cockpit test` checks the gzip ceilings of the script and the stylesheet the extension ships and that the bundle holds one React (`apps/vscode/test/__golden__/bundle-budget.json`)
-- `packages/core/runtime-view/dev/webview/serve.mjs` serves the fixture page with the webview alone, `screenshot.mjs` shoots its fixtures and `bundle-size.mjs` lists what the bundle is made of; run them by hand with `node`
+- `packages/core/runtime-view/dev/webview/serve.mjs` serves the fixture page with the webview alone, `screenshot.mjs` shoots its fixtures on a fixed clock (UTC, `CLOCK` to set it), so a rerun gives the same images byte for byte, and `bundle-size.mjs` lists what the bundle is made of; run them by hand with `node`
 
 ## More
 

@@ -8,7 +8,11 @@ import { HEALTHY_ENGINE, REALISTIC_ENGINE, REALISTIC_HOST_ENV } from "./engines.
  * 320 px card keeps every fact and id of a view's bar and every section of the head (on its last
  * line where the head wraps), the overview's processes give way to their ellipsis while the row
  * actions scroll, so do a cluster's and the instance list's (its segments one line each), a 400 px chat keeps each incident row one line and each group's title its share
- * and reads a scrolling column's head without a cut word, a footer's noun follows its count, a
+ * and reads a scrolling column's head without a cut word, a narrow card draws the instance's
+ * diagram clear of its zoom bar and bpmn.io's link, keeps its tabs one line scrolling in their bar,
+ * each job's row one line (a cut error opening on its whole text by keyboard) and the instance
+ * search's placeholder whole, every table's row actions
+ * sit right-aligned under their head, a footer's noun follows its count, a
  * header's count stays a neutral number beside its tone's icon and its title its share, the head's
  * sections (pulse-ui's NavTabs) open by keyboard, forced colours keep the open tab, the head's
  * open section and a docked strip and draw a tone's icon in its text's system colour, a fact's term sits on its value's baseline, and the detail
@@ -713,6 +717,32 @@ test.describe("a 760 px card's action heads", () => {
     }
   })
 
+  test("the incident tables' actions head sits over their buttons, right-aligned like every table's", async ({
+    page,
+  }) => {
+    await groupedIncidents(page)
+    const process = await openView(page, PROCESS_ARGS, { width: 760 })
+    const groups = process.locator('[role="button"][aria-expanded]')
+    await expect(groups).toHaveCount(2, { timeout: 15_000 })
+    await groups.first().click()
+    const byActivity = process.getByRole("region", { name: "Incidents in this activity" })
+    await expect(byActivity.locator("tbody tr")).toHaveCount(3, { timeout: 15_000 })
+    const activity = await actionsHeadOverButtons(byActivity)
+    expect(activity).toMatchObject({ head: "Actions", align: "right" })
+    expect(activity.buttons).toEqual([activity.word])
+
+    const instance = await openView(page, INSTANCE_ARGS, { width: 760 })
+    await instance
+      .getByRole("tab", { name: /^Incidents/ })
+      .first()
+      .click({ timeout: 15_000 })
+    const ofInstance = instance.getByRole("region", { name: "Incidents of this instance" })
+    await expect(ofInstance.locator("tbody tr")).toHaveCount(2, { timeout: 15_000 })
+    const own = await actionsHeadOverButtons(ofInstance)
+    expect(own).toMatchObject({ head: "Actions", align: "right" })
+    expect(own.buttons).toEqual([own.word])
+  })
+
   test("an instance's variables name their edit column's head where the deployment offers the edit", async ({
     page,
   }) => {
@@ -865,6 +895,221 @@ test.describe("the head's sections (pulse-ui's NavTabs)", () => {
           onTheRule: true,
         })
       }
+    })
+  }
+})
+
+/**
+ * Where the instance's diagram lies on its canvas and what lies over it: each drawn element (a
+ * shape, a flow, a label) against the zoom bar and bpmn.io's link, and the drawing's extent.
+ */
+async function diagramLayout(app: FrameLocator) {
+  return app.locator("html").evaluate((html) => {
+    const canvas = html.querySelector(".djs-container")!.getBoundingClientRect()
+    const over = {
+      "the zoom bar": html.querySelector('[data-slot="bpmn-zoom-controls"]')!,
+      "bpmn.io's link": html.querySelector(".bjs-powered-by")!,
+    }
+    const drawn = [...html.querySelectorAll(".djs-element:not(.djs-root) > .djs-visual")].map(
+      (visual) => ({
+        id: visual.parentElement!.getAttribute("data-element-id"),
+        box: visual.getBoundingClientRect(),
+      }),
+    )
+    const meets = (a: DOMRect, b: DOMRect) =>
+      a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
+    const left = Math.min(...drawn.map(({ box }) => box.left))
+    const right = Math.max(...drawn.map(({ box }) => box.right))
+    return {
+      elements: drawn.length,
+      covered: Object.entries(over).flatMap(([name, el]) =>
+        drawn
+          .filter(({ box }) => meets(box, el.getBoundingClientRect()))
+          .map(({ id }) => `${id} under ${name}`),
+      ),
+      outside: drawn
+        .filter(
+          ({ box }) =>
+            box.left < canvas.left ||
+            box.right > canvas.right ||
+            box.top < canvas.top ||
+            box.bottom > canvas.bottom,
+        )
+        .map(({ id }) => id),
+      share: (right - left) / canvas.width,
+      gaps: { left: left - canvas.left, right: canvas.right - right },
+    }
+  })
+}
+
+/** The instance's diagram, drawn and fitted to its frame (the fit follows the drawn bounds). */
+async function fittedDiagram(app: FrameLocator) {
+  await expect(app.locator("g.djs-element").first()).toBeVisible({ timeout: 15_000 })
+  await expect(app.locator(".bjs-powered-by")).toBeVisible()
+  await expect
+    .poll(() =>
+      app.locator(".djs-container svg .viewport").evaluate(async (viewport) => {
+        const before = viewport.getAttribute("transform")
+        await new Promise((resolve) => setTimeout(resolve, 150))
+        return before !== null && before === viewport.getAttribute("transform")
+      }),
+    )
+    .toBe(true)
+}
+
+test.describe("a narrow card's details", () => {
+  for (const width of [320, 400]) {
+    test(`at ${width} px the instance's diagram lies clear of the zoom bar and bpmn.io's link, whole on its canvas`, async ({
+      page,
+    }) => {
+      const app = await openView(page, INSTANCE_ARGS, { width })
+      await fittedDiagram(app)
+      const seen = await diagramLayout(app)
+      expect(seen.elements, "the invoice diagram drawn").toBeGreaterThan(10)
+      expect(seen.covered, "nothing under the zoom bar or the link").toEqual([])
+      expect(seen.outside, "every element on the canvas").toEqual([])
+      // The room left of the bar and above the link still holds it across most of the width.
+      expect(seen.share, "the drawing's share of the canvas's width").toBeGreaterThanOrEqual(0.7)
+    })
+
+    test(`at ${width} px each job's row is one 28 px line: its error cut with an ellipsis, whole in its title, a cut one a disclosure`, async ({
+      page,
+    }) => {
+      const app = await openView(page, { engine: HEALTHY_ENGINE, view: "jobs" }, { width })
+      const region = app.getByRole("region", { name: /^Jobs$/ })
+      // The rows that fit the host's height, as many as its footer says.
+      const footer = app.getByText(/^Showing \d+ of 16 jobs$/)
+      await expect(footer).toBeVisible({ timeout: 15_000 })
+      const shown = Number((await footer.innerText()).split(" ")[1])
+      await expect(region.locator("tbody tr")).toHaveCount(shown)
+      const seen = await region.evaluate((el) => ({
+        rows: [
+          ...new Set(
+            [...el.querySelectorAll("tbody tr")].map((row) => row.getBoundingClientRect().height),
+          ),
+        ],
+        errors: [...el.querySelectorAll<HTMLElement>("tbody tr td:nth-child(4) [title]")].map(
+          (error) => ({
+            whole: error.title === error.textContent,
+            lines: Math.round(error.getBoundingClientRect().height / 20),
+            cut: error.scrollWidth > error.clientWidth,
+            disclosure: error.tagName === "SUMMARY",
+            width: Math.round(error.getBoundingClientRect().width),
+          }),
+        ),
+      }))
+      expect(seen.rows, "every row at the row height").toEqual([28])
+      expect(seen.errors).toHaveLength(shown)
+      for (const error of seen.errors) {
+        expect(error).toMatchObject({ whole: true, lines: 1 })
+        expect(error.width, "an error keeps 10rem").toBeGreaterThanOrEqual(160)
+        expect(error.disclosure, "a cut error opens, a whole one does not").toBe(error.cut)
+      }
+      expect(
+        seen.errors.some((error) => error.cut),
+        "a longer error is cut",
+      ).toBe(true)
+      expect(
+        seen.errors.some((error) => !error.cut),
+        "a short error shows whole",
+      ).toBe(true)
+    })
+  }
+
+  test("at 400 px a job's cut error opens on its whole text by keyboard, its row back at 28 px once closed", async ({
+    page,
+  }) => {
+    const app = await openView(page, { engine: HEALTHY_ENGINE, view: "jobs" }, { width: 400 })
+    const region = app.getByRole("region", { name: /^Jobs$/ })
+    await expect(app.getByText(/^Showing \d+ of 16 jobs$/)).toBeVisible({ timeout: 15_000 })
+    const rows = region.locator("tbody tr")
+    const index = await rows.evaluateAll((all) =>
+      all.findIndex((row) => row.querySelector("td:nth-child(4) summary")),
+    )
+    expect(index, "a cut error").toBeGreaterThanOrEqual(0)
+    const row = rows.nth(index)
+    const error = row.locator("td:nth-child(4) summary")
+    const whole = (await error.getAttribute("title"))!
+    const height = () => row.evaluate((tr) => tr.getBoundingClientRect().height)
+
+    await error.focus()
+    await page.keyboard.press("Enter")
+    const text = row.locator("td:nth-child(4) pre")
+    await expect(text).toBeVisible()
+    await expect(text).toHaveText(whole)
+    expect(await height(), "the open error grows its row").toBeGreaterThan(28)
+
+    await page.keyboard.press("Enter")
+    await expect(text).toBeHidden()
+    await expect.poll(height).toBe(28)
+    await expect(error, "still a disclosure, its line still cut").toHaveCount(1)
+  })
+
+  test("at 760 px the instance's diagram keeps bpmn-js's own fit, centred, where nothing lies over it", async ({
+    page,
+  }) => {
+    const app = await openView(page, INSTANCE_ARGS, { width: 760 })
+    await fittedDiagram(app)
+    const seen = await diagramLayout(app)
+    expect(seen.covered).toEqual([])
+    expect(Math.abs(seen.gaps.left - seen.gaps.right), "centred").toBeLessThanOrEqual(2)
+  })
+
+  test("at 320 px the instance's tabs stay one line in their bar and scroll inside it; the arrows reach each and show it whole", async ({
+    page,
+  }) => {
+    const app = await openView(page, INSTANCE_ARGS, { width: 320 })
+    const tabs = app.getByRole("tab")
+    await expect(tabs).toHaveCount(4, { timeout: 15_000 })
+    const seen = await app.getByRole("tablist").evaluate((list) => ({
+      lines: new Set(
+        [...list.querySelectorAll('[role="tab"]')].map((tab) =>
+          Math.round(tab.getBoundingClientRect().top),
+        ),
+      ).size,
+      bar: Math.round(list.parentElement!.getBoundingClientRect().height),
+      scrolls: list.scrollWidth > list.clientWidth,
+      documentScrolls: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    }))
+    expect(seen).toEqual({ lines: 1, bar: 36, scrolls: true, documentScrolls: false })
+
+    await tabs.first().focus()
+    for (const name of [/^Incidents/, /^Variables/, /^History/]) {
+      await page.keyboard.press("ArrowRight")
+      await expect(app.getByRole("tab", { name })).toBeFocused()
+    }
+    const history = await app.getByRole("tablist").evaluate((list) => {
+      const shown = list.getBoundingClientRect()
+      const tab = list.querySelector('[role="tab"]:focus')!.getBoundingClientRect()
+      return {
+        whole: tab.left >= shown.left && tab.right <= shown.right,
+        scrolled: list.scrollLeft > 0,
+      }
+    })
+    expect(history).toEqual({ whole: true, scrolled: true })
+    await expect(app.getByRole("tab", { name: /^History/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    )
+  })
+
+  for (const width of [760, 400]) {
+    test(`at ${width} px the instance list's search shows its placeholder whole, the words its name starts with`, async ({
+      page,
+    }) => {
+      const app = await openView(page, INSTANCES_ARGS, { hostEnv: REALISTIC_HOST_ENV, width })
+      const search = app.getByRole("searchbox", { name: "Search instances by business key or ID" })
+      await expect(search).toBeVisible({ timeout: 15_000 })
+      await expect(search).toHaveAttribute("placeholder", "Search instances…")
+      const fit = await search.evaluate((input: HTMLInputElement) => {
+        const style = getComputedStyle(input)
+        const pen = document.createElement("canvas").getContext("2d")!
+        pen.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`
+        const room =
+          input.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+        return { text: pen.measureText(input.placeholder).width, room }
+      })
+      expect(fit.text, "the placeholder whole in the field").toBeLessThanOrEqual(fit.room)
     })
   }
 })

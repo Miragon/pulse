@@ -11,7 +11,11 @@ export interface DataTableColumn<Row = unknown> {
   /** The column's name in words, for its sizing grip and menu (by default the caption's text). */
   name?: string
   align?: "left" | "right"
-  /** A bare head (the row actions' column): no caption treatment, never sized. */
+  /**
+   * A bare head, the rule and the padding only: no caption treatment, never sized. For a head that
+   * holds a control (the box that selects every row) instead of a caption; the row actions' column
+   * has its caption ("Actions") like any other.
+   */
   plain?: boolean
   sort?: ColumnSort
   /** Classes of the head cell. */

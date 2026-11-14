@@ -148,8 +148,14 @@ export function IncidentTable({
       fit: true,
     },
     // Pinned from 40rem up only: in a narrower region a pinned column would cover the message, so
-    // the actions scroll with the row and the message keeps its 10rem in view.
-    { label: t("procIncTable.columnActions"), sticky: "sm" as const, fit: true },
+    // the actions scroll with the row and the message keeps its 10rem in view. Right-aligned, its
+    // head over its buttons, as every table's row actions.
+    {
+      label: t("procIncTable.columnActions"),
+      align: "right" as const,
+      sticky: "sm" as const,
+      fit: true,
+    },
   ]
 
   // The table on the surface it lies on, its head the kit's (`Th` paints `--table-surface`): the
@@ -186,7 +192,7 @@ export function IncidentTable({
               <Td align="right" className="text-muted-foreground text-small">
                 {formatTimestamp(incident.incidentTimestamp)}
               </Td>
-              <Td>
+              <Td align="right">
                 {done ? (
                   // Done in words, never a dimmed row that reads as disabled (#322 U11).
                   <DoneMark>
@@ -194,7 +200,7 @@ export function IncidentTable({
                   </DoneMark>
                 ) : (
                   // A row's actions are xs, so the row keeps the row height (28 px).
-                  <div className="flex items-center gap-1">
+                  <div className="inline-flex items-center justify-end gap-1">
                     <DrillButton
                       size="xs"
                       onDrill={() => onAnalyze(incident.id)}

@@ -560,11 +560,13 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      (`BreakableId`). Roots declare inline + fullscreen only (`SHELL_VIEW_CONFIG`).
    - **Tables never widen the document** (WCAG 1.4.10): `ListTable`, over pulse-ui's
      `DataTable` (a sticky head of one-line captions, 28 px rows, a hover fill on `--accent`),
-     scrolls inside a named region (`ariaLabel`) and drops columns on narrow regions
-     (`hideBelow`); a wide table of figures lets its captions wrap (`wrapHeads`). It sizes no
-     column: `DataTable`'s column sizing (`useColumnSizing`, its persistence injected) is for a
-     view that passes `sizing`; the grips, the column menu and their measuring come with it, and
-     a selection column's box with `rowSelection`, so a bundle without them carries none. Ids
+     scrolls inside a named region (`ariaLabel`), drops columns on narrow regions
+     (`hideBelow`) and fits a column to its one line (`fit`: the identifying column, a time, the
+     row actions beside a long text, which takes the rest); a wide table of figures lets its
+     captions wrap (`wrapHeads`). It sizes no column: `DataTable`'s column sizing
+     (`useColumnSizing`, its persistence injected) is for a view that passes `sizing`; the grips,
+     the column menu and their measuring come with it, and a selection column's box with
+     `rowSelection`, so a bundle without them carries none. Ids
      show through `IdCell`/`IdText`, processes and elements through `NamedId`, named by ONE
      reader (`readBpmnNames`/`parseBpmnNames`), so every module shows them alike.
    - **Type, dates and numbers.** Text sits on pulse-ui's `TYPE_SCALE` (13 px floor, weights
@@ -584,7 +586,9 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      whose colours all come from `BPMN_TOKENS` (`packages/core/widget-shell/src/ui/bpmn-tokens.ts`)
      and whose labels are bpmn-js's Arial (`BPMN_LABEL_STYLE`, the design section's deviation);
      a marker paints its shape's outline, never a label, and the canvas alone is the image (the
-     hook's `ariaLabel`), its controls beside it and its count badges `aria-hidden` drawings.
+     hook's `ariaLabel`), its controls beside it and its count badges `aria-hidden` drawings. The
+     hook's fit keeps the drawing clear of the zoom bar beside the canvas and of bpmn.io's link,
+     both measured as drawn, so a narrow card shows every element.
    - **Paged lists** compose `usePagedListView` (the feed takes `firstResult`/`maxResults` and
      returns an honest total; counts, filters and model contexts read the payload ON SCREEN,
      never the request) + `ListTable` + `PagedListFooter`. Optimistic local state resets with

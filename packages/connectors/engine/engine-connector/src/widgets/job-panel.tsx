@@ -187,7 +187,8 @@ function JobRow({
         </AlarmCount>
       </Td>
       <Td>
-        <LogText text={job.exceptionMessage} />
+        {/* One line at the row height, whole in its title; a cut one opens on its whole text. */}
+        <LogText text={job.exceptionMessage} line />
       </Td>
       <Td align="right" className="text-muted-foreground text-small whitespace-nowrap">
         {formatTimestamp(job.createTime)}

@@ -434,7 +434,8 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   `docs/vscode/parity.md`
 - BPMN: viewer lifecycle and the fixed light canvas via `useBpmnViewer` (the container
   is a forced-light island, `data-theme-mode="light"`, on the paper token) +
-  `BpmnZoomControls` (light in every theme, Lucide). The frame height comes from the
+  `BpmnZoomControls` (light in every theme, Lucide; beside the container in one frame, so the
+  hook's fit keeps the diagram clear of it and of bpmn.io's link). The frame height comes from the
   diagram's size (`height` from the hook: its height at the scale bpmn-js draws it, never
   past 1:1, 240–560 px, read from the XML's DI before the import, so the frame does not
   jump): pass no fixed `height` to `BpmnDiagram` unless a layout needs one. The process flow

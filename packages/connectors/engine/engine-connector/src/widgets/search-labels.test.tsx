@@ -138,7 +138,10 @@ const SITES: Record<string, SearchSite> = {
     widget: () => (
       <ProcessInstancesWidget data={INSTANCES} processDefinitionKey="invoice" engine="prod-a" />
     ),
-    search: { en: "Search by business key or ID", de: "Nach Geschäftsschlüssel oder ID suchen" },
+    search: {
+      en: "Search instances by business key or ID",
+      de: "Instanzen suchen nach Geschäftsschlüssel oder ID",
+    },
     scope: { en: "Show instances", de: "Instanzen zeigen" },
   },
   "cluster detail": {

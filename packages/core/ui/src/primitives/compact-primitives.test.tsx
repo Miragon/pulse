@@ -193,15 +193,14 @@ describe("Tabs: the line bar of a view, the box of a card", () => {
     )
   }
 
-  it("the line list is a toolbar-high strip with a rule under it", () => {
+  it("the line list sits in a toolbar-high bar with a rule under it, even without an aside", () => {
     lineTabs()
     const list = screen.getByRole("tablist")
-    expect(classes(list)).toEqual(
-      expect.arrayContaining([
-        "border-b",
-        "group-data-[orientation=horizontal]/tabs:min-h-toolbar",
-      ]),
-    )
+    const bar = list.parentElement
+    expect(bar?.getAttribute("data-slot")).toBe("tabs-bar")
+    expect(classes(bar)).toEqual(expect.arrayContaining(["border-b", "min-h-toolbar", "flex"]))
+    expect(classes(list)).toContain("border-b-0")
+    expect(classes(list)).not.toContain("border-b")
   })
 
   it("the active line tab: the hover fill, 600 and a real 2 px bottom border in --interaction; the others hover on the fill", () => {
@@ -310,9 +309,12 @@ describe("Tabs: the line bar of a view, the box of a card", () => {
     expect(bar?.getAttribute("data-slot")).toBe("tabs-bar")
     expect(bar?.lastElementChild?.getAttribute("data-slot")).toBe("tabs-aside")
     expect(classes(bar)).toEqual(
-      expect.arrayContaining(["border-b", "min-h-toolbar", "pl-2", "pr-gutter", "mt-2"]),
+      expect.arrayContaining(["border-b", "min-h-toolbar", "pr-gutter", "mt-2"]),
     )
-    expect(classes(list)).toEqual(expect.arrayContaining(["border-b-0", "flex-1", "min-w-0"]))
+    // The list's start inside its scroll; the bar keeps the side after the aside.
+    expect(classes(list)).toEqual(
+      expect.arrayContaining(["border-b-0", "flex-1", "min-w-0", "pl-2", "pr-0"]),
+    )
     expect(classes(list)).not.toContain("border-b")
     expect(classes(list)).not.toContain("mt-2")
     // The arrows still move between the tabs only.
@@ -322,9 +324,16 @@ describe("Tabs: the line bar of a view, the box of a card", () => {
     expect(b?.getAttribute("tabindex")).toBe("-1")
   })
 
-  it("without an aside the list is the bar", () => {
-    lineTabs()
+  it("a default list without an aside is its own box, in no bar", () => {
+    render(
+      <Tabs defaultValue="a">
+        <TabsList className="mt-2">
+          <TabsTrigger value="a">A</TabsTrigger>
+        </TabsList>
+      </Tabs>,
+    )
     expect(document.querySelector('[data-slot="tabs-bar"]')).toBeNull()
+    expect(classes(screen.getByRole("tablist"))).toContain("mt-2")
   })
 
   it("the default list stays the box of a card switch, at least the control's height, its tabs stretched to it, so text at 200 % grows it", () => {

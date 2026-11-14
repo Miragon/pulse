@@ -61,8 +61,9 @@ export function DetailPage({
             }
           >
             {/* A view's tab bar: from edge to edge of the card, out of the content's gutter; in a
-                narrow card its tabs wrap onto a second line rather than widen the view. */}
-            <TabsList variant="line" className="-mx-gutter w-auto flex-wrap">
+                narrow card its tabs stay one line and scroll inside it (the kit's line list), each
+                reached with the arrows, rather than widen the view. */}
+            <TabsList variant="line" className="-mx-gutter w-auto">
               {tabs.map((tab) => (
                 <TabsTrigger key={tab.id} value={tab.id}>
                   {tab.label}
