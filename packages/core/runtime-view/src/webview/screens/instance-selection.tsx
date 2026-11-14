@@ -2,6 +2,7 @@ import type { InstanceRow } from "../../core/protocol/index.js"
 import type { ComponentChildren } from "preact"
 import { useLayoutEffect, useRef } from "preact/hooks"
 import type { Column } from "../components/data-table.js"
+import { usePendingValue } from "../components/pending-value.js"
 import { useHost } from "../host/host-context.js"
 
 const SELECTION_WIDTH = 32
@@ -31,11 +32,13 @@ function SelectionHeader({
   const selectable = rows.filter((row) => row.selectable === true)
   const shown = selectable.filter((row) => row.selected === true).length
   const all = shown > 0 && shown === selectable.length
+  const [checked, hold] = usePendingValue(all)
+  const mixed = shown > 0 && !all && checked === all
   useLayoutEffect(() => {
     if (box.current !== null) {
-      box.current.indeterminate = shown > 0 && !all
+      box.current.indeterminate = mixed
     }
-  }, [shown, all])
+  }, [mixed])
   return (
     <SelectionLabel>
       <input
@@ -43,8 +46,9 @@ function SelectionHeader({
         type="checkbox"
         class="selection-box"
         aria-label="Select all shown instances"
-        checked={all}
+        checked={checked}
         onChange={() => {
+          hold(!all)
           host.post(
             all && selected > shown
               ? { type: "clearSelection" }
@@ -58,6 +62,7 @@ function SelectionHeader({
 
 function SelectionCell({ row }: { readonly row: InstanceRow }) {
   const host = useHost()
+  const [checked, hold] = usePendingValue(row.selected === true)
   if (row.selectable !== true) {
     return null
   }
@@ -68,9 +73,10 @@ function SelectionCell({ row }: { readonly row: InstanceRow }) {
         class="selection-box"
         tabIndex={-1}
         aria-label={`Select ${row.businessKey ?? row.shortId}`}
-        checked={row.selected === true}
+        checked={checked}
         onChange={() => {
-          host.post({ type: "toggleInstances", ids: [row.id], selected: row.selected !== true })
+          hold(!checked)
+          host.post({ type: "toggleInstances", ids: [row.id], selected: !checked })
         }}
       />
     </SelectionLabel>

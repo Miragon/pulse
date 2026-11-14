@@ -144,9 +144,11 @@ function RowsBody<Row>({ columns, rows, rowKey, actions }: DataTableProps<Row>) 
           key={rowKey(row)}
           class={interactive ? "data-table__row data-table__row--interactive" : "data-table__row"}
           tabIndex={interactive ? (index === keys.active ? 0 : -1) : undefined}
-          onFocus={() => {
-            keys.setActive(index)
-            focus.focused(index)
+          onFocus={(event) => {
+            if (event.target === event.currentTarget) {
+              keys.setActive(index)
+              focus.focused(index)
+            }
           }}
           onKeyDown={(event) => {
             keys.onKeyDown(event, row, index)

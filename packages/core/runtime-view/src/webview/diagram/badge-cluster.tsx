@@ -31,6 +31,7 @@ function CountButton({ badge, elementName, stale, onSelect, variant, count }: Co
     <button
       type="button"
       class="badge-cluster__count"
+      data-part="badge-count"
       data-scope={SCOPES[variant]}
       aria-label={description}
       title={description}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "preact/hooks"
 import type { BadgeFilter } from "../diagram/badge-cluster.js"
 import type { Decorations } from "../diagram/decoration-layer.js"
+import { PreactOverlaySink } from "../diagram/overlay-slots.js"
 import { RuntimeCanvas } from "../diagram/runtime-canvas.js"
 import { useHost } from "../host/host-context.js"
 import { EmptyHint } from "./empty-hint.js"
@@ -32,6 +33,7 @@ export function RuntimeDiagram(props: RuntimeDiagramProps) {
     }
     const created = new RuntimeCanvas({
       host: hostElement.current,
+      overlays: new PreactOverlaySink(),
       stateApi: api,
       onSelectElement: (elementId, scope) => {
         latest.current.onSelectElement(elementId, scope)
@@ -51,6 +53,7 @@ export function RuntimeDiagram(props: RuntimeDiagramProps) {
       keysOnCanvas,
     })
     canvas.current = created
+    void created.update(latest.current.xml, latest.current.decorations)
     return () => {
       canvas.current = null
       created.destroy()

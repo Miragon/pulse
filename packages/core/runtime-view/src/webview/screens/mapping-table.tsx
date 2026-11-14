@@ -2,6 +2,7 @@ import type { MappingRow, MigrationView } from "../../core/protocol/index.js"
 import { Icon } from "../components/icon.js"
 import { glyphs } from "../components/lucide-glyphs.json"
 import { NoValue } from "../components/no-value.js"
+import { usePendingValue } from "../components/pending-value.js"
 import { CountLabels } from "../format/count-labels.js"
 import { useHost } from "../host/host-context.js"
 
@@ -12,17 +13,19 @@ interface MappingCellProps {
 
 function TargetSelect({ row, noteId }: MappingCellProps) {
   const host = useHost()
+  const [target, pick] = usePendingValue(row.targetElementId ?? "")
   return (
     <select
       class="mapping-table__select"
       aria-label={`Map ${row.sourceLabel} to`}
       aria-describedby={noteId}
-      value={row.targetElementId ?? ""}
+      value={target}
       onFocus={() => {
         host.post({ type: "focusMapping", sourceElementId: row.sourceElementId })
       }}
       onChange={(event) => {
         const targetElementId = event.currentTarget.value
+        pick(targetElementId)
         host.post(
           targetElementId === ""
             ? { type: "unmapElement", sourceElementId: row.sourceElementId }

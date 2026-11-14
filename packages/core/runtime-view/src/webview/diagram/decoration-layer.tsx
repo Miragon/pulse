@@ -1,4 +1,4 @@
-import { render, type VNode } from "preact"
+import type { VNode } from "preact"
 import type {
   CallLink,
   ElementBadge,
@@ -11,7 +11,8 @@ import type { ElementRegistryLike } from "./diagram-elements.js"
 import { CodeButton, type ElementCode } from "./code-button.js"
 import { MoveBadge, type MoveBadgeKind } from "./move-badge.js"
 import { MoveEntry, type MoveEntryDecoration } from "./move-entry.js"
-import { OverlayFocus } from "./overlay-focus.js"
+import { OverlayFocus, type HeldOverlayFocus } from "./overlay-focus.js"
+import type { OverlayKind, OverlaySlot } from "./overlay-slots.js"
 
 export interface MoveDecoration {
   readonly from: string
@@ -72,10 +73,22 @@ const CODE_POSITION = { bottom: -14, left: -8 } as const
 const BADGE_SCALE = { min: 0.7, max: 1 } as const
 const CALL_SCALE = { min: 0.7 } as const
 
+const PLACEMENTS: Readonly<
+  Record<OverlayKind, { readonly position: object; readonly scale: object }>
+> = {
+  badges: { position: BADGE_POSITION, scale: BADGE_SCALE },
+  call: { position: CALL_POSITION, scale: CALL_SCALE },
+  actions: { position: CODE_POSITION, scale: CALL_SCALE },
+  move: { position: MOVE_POSITION, scale: BADGE_SCALE },
+}
+
 export class DecorationLayer {
-  private readonly anchors: HTMLElement[] = []
+  private readonly anchors = new Map<string, HTMLElement>()
+  private slots: readonly OverlaySlot[] = []
+  private drawing: OverlaySlot[] = []
   private markers: (readonly [string, string])[] = []
   private applied: string | undefined
+  private held: HeldOverlayFocus | undefined
 
   constructor(
     private readonly services: DecorationServices,
@@ -84,23 +97,40 @@ export class DecorationLayer {
     private readonly onOpenCode: (elementId: string) => void,
   ) {}
 
-  apply(decorations: Decorations): void {
+  apply(decorations: Decorations): readonly OverlaySlot[] {
     const wanted = JSON.stringify(decorations)
     if (wanted === this.applied) {
-      return
+      return this.slots
     }
-    const held = OverlayFocus.held(this.anchors)
-    this.clear()
+    this.held ??= OverlayFocus.held(this.shownAnchors())
+    this.removeDrawn()
     this.applied = wanted
+    this.drawing = []
     this.draw(decorations)
-    OverlayFocus.restore(this.anchors, held)
+    this.slots = this.drawing
+    this.forgetAnchorsNotIn(this.slots)
+    return this.slots
+  }
+
+  restoreFocus(): void {
+    const held = this.held
+    this.held = undefined
+    OverlayFocus.restore(this.shownAnchors(), held)
   }
 
   clear(): void {
+    this.removeDrawn()
     this.applied = undefined
-    for (const anchor of this.anchors.splice(0)) {
-      render(null, anchor)
-    }
+    this.held = undefined
+    this.slots = []
+    this.anchors.clear()
+  }
+
+  private shownAnchors(): HTMLElement[] {
+    return this.slots.map((slot) => slot.anchor)
+  }
+
+  private removeDrawn(): void {
     this.services.overlays.remove({ type: BADGE_OVERLAY_TYPE })
     for (const [elementId, marker] of this.markers) {
       if (this.services.registry.get(elementId) !== undefined) {
@@ -110,17 +140,19 @@ export class DecorationLayer {
     this.markers = []
   }
 
+  private forgetAnchorsNotIn(slots: readonly OverlaySlot[]): void {
+    const kept = new Set(slots.map((slot) => slot.key))
+    for (const key of [...this.anchors.keys()].filter((candidate) => !kept.has(candidate))) {
+      this.anchors.delete(key)
+    }
+  }
+
   private draw(decorations: Decorations): void {
     for (const badge of decorations.badges) {
       this.addBadge(badge, decorations.stale)
     }
     for (const call of decorations.calls) {
-      this.addOverlay(
-        call.elementId,
-        CALL_POSITION,
-        <CallButton call={call} onOpen={this.onOpenCall} />,
-        CALL_SCALE,
-      )
+      this.addOverlay(call.elementId, "call", <CallButton call={call} onOpen={this.onOpenCall} />)
     }
     this.addElementActions(decorations.codes ?? [], decorations.moveEntry)
     for (const marker of decorations.markers) {
@@ -151,12 +183,11 @@ export class DecorationLayer {
       const move = entry?.elementId === elementId ? entry : undefined
       this.addOverlay(
         elementId,
-        CODE_POSITION,
+        "actions",
         <span class="element-actions" data-part="element-actions">
           {code !== undefined && <CodeButton code={code} onOpen={this.onOpenCode} />}
           {move !== undefined && <MoveEntry entry={move} />}
         </span>,
-        CALL_SCALE,
       )
     }
   }
@@ -190,7 +221,7 @@ export class DecorationLayer {
   }
 
   private addMoveBadge(elementId: string, kind: MoveBadgeKind): void {
-    this.addOverlay(elementId, MOVE_POSITION, <MoveBadge kind={kind} />, BADGE_SCALE)
+    this.addOverlay(elementId, "move", <MoveBadge kind={kind} />)
   }
 
   private focus(elementId: string | undefined): void {
@@ -201,31 +232,36 @@ export class DecorationLayer {
   private addBadge(badge: ElementBadge, stale: boolean): void {
     this.addOverlay(
       badge.elementId,
-      BADGE_POSITION,
+      "badges",
       <BadgeCluster
         badge={badge}
         elementName={this.services.names.get(badge.elementId) ?? badge.elementId}
         stale={stale}
         onSelect={this.onSelect}
       />,
-      BADGE_SCALE,
     )
   }
 
-  private addOverlay(elementId: string, position: object, content: VNode, scale: object): void {
-    if (this.services.registry.get(elementId) === undefined) {
+  private addOverlay(elementId: string, kind: OverlayKind, node: VNode): void {
+    const key = `${elementId}#${kind}`
+    if (
+      this.services.registry.get(elementId) === undefined ||
+      this.drawing.some((slot) => slot.key === key)
+    ) {
       return
     }
+    const anchor = this.anchors.get(key) ?? DecorationLayer.anchorFor(elementId, kind)
+    this.anchors.set(key, anchor)
+    this.drawing.push({ key, anchor, node })
+    this.services.overlays.add(elementId, BADGE_OVERLAY_TYPE, { ...PLACEMENTS[kind], html: anchor })
+  }
+
+  private static anchorFor(elementId: string, kind: OverlayKind): HTMLElement {
     const anchor = document.createElement("div")
     anchor.className = "badge-anchor"
     anchor.dataset.overlayFor = elementId
-    render(content, anchor)
-    this.anchors.push(anchor)
-    this.services.overlays.add(elementId, BADGE_OVERLAY_TYPE, {
-      position,
-      scale,
-      html: anchor,
-    })
+    anchor.dataset.overlay = kind
+    return anchor
   }
 
   private addMarker(elementId: string, marker: string): void {

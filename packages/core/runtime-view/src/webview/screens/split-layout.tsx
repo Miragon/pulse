@@ -17,11 +17,17 @@ export function SplitLayout({ top, bottom }: SplitLayoutProps) {
   const { api } = useHost()
   const container = useRef<HTMLDivElement>(null)
   const [share, setShare] = useState(() => UiStateStore.read(api).diagramShare ?? DEFAULT_SHARE)
+  const live = useRef(share)
   const atDragStart = useRef(share)
+
+  const show = (next: number): void => {
+    live.current = next
+    setShare(next)
+  }
 
   const commit = (next: number): void => {
     const clamped = SplitShare.clamp(next)
-    setShare(clamped)
+    show(clamped)
     UiStateStore.write(api, { diagramShare: clamped })
   }
 
@@ -30,7 +36,7 @@ export function SplitLayout({ top, bottom }: SplitLayoutProps) {
     if (bounds === undefined || bounds.height === 0) {
       return
     }
-    setShare(SplitShare.clamp((event.clientY - bounds.top) / bounds.height))
+    show(SplitShare.clamp((event.clientY - bounds.top) / bounds.height))
   }
 
   return (
@@ -49,21 +55,21 @@ export function SplitLayout({ top, bottom }: SplitLayoutProps) {
         value={Math.round(share * 100)}
         keys={{
           ArrowUp: () => {
-            commit(share - KEY_STEP)
+            commit(live.current - KEY_STEP)
           },
           ArrowDown: () => {
-            commit(share + KEY_STEP)
+            commit(live.current + KEY_STEP)
           },
         }}
         onDragStart={() => {
-          atDragStart.current = share
+          atDragStart.current = live.current
         }}
         onDrag={onDrag}
         onDragEnd={() => {
-          commit(share)
+          commit(live.current)
         }}
         onDragCancel={() => {
-          setShare(atDragStart.current)
+          show(atDragStart.current)
         }}
       />
       <div class="split-layout__bottom">{bottom}</div>

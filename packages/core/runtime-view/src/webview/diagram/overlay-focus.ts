@@ -27,9 +27,10 @@ export class OverlayFocus {
   }
 
   private static selectorOf(element: HTMLElement): string {
-    const part = element.classList.item(0)
+    const part = element.getAttribute("data-part")
     const scope = element.getAttribute("data-scope")
-    const byPart = part === null ? element.tagName.toLowerCase() : `.${CSS.escape(part)}`
+    const byPart =
+      part === null ? element.tagName.toLowerCase() : `[data-part="${CSS.escape(part)}"]`
     return scope === null ? byPart : `${byPart}[data-scope="${CSS.escape(scope)}"]`
   }
 

@@ -68,7 +68,7 @@ classes and the diagram's `pulse-*` markers, which bpmn-js sets, stay). The hook
 | lists             | `data-table` (`data-state`: auto, fixed), `column-label`, `table-empty`, `table-footer`, `filter-bar`, `filter-chip`, `filter-summary`, `segment-count`, `selection-count`, `tab-bar` |
 | states and counts | `state-label`, `incident-flag`, `count-badge`, `incident-count`                                                                                                                       |
 | instance          | `incident-card`, `variable-name`, `editor-hint`, `editor-warning`, `caller-link`, `called-instance-link`                                                                              |
-| diagram           | `diagram`, `diagram-canvas`, `diagram-failure`, `element-actions`, `move-entry`, `move-badge`, `code-button`, `move-panel`, `move-warning`                                            |
+| diagram           | `diagram`, `diagram-canvas`, `diagram-failure`, `badge-count`, `call-button`, `element-actions`, `move-entry`, `move-badge`, `code-button`, `move-panel`, `move-warning`              |
 | migration         | `migration-diagram`, `migration-summary`, `migration-refusal`, `mapping-note`                                                                                                         |
 | boards            | `board-card` (`data-kind`: the tile's kind), `counter-value`, `counter-partial`, `counter-threshold`, `counter-entry`, `counter-count`, `group-note`                                  |
 

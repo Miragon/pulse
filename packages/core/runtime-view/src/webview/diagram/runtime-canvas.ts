@@ -26,9 +26,11 @@ import {
   type DiagramElement,
   type ElementRegistryLike,
 } from "./diagram-elements.js"
+import type { OverlaySink } from "./overlay-slots.js"
 
 export interface RuntimeCanvasOptions {
   readonly host: HTMLElement
+  readonly overlays: OverlaySink
   readonly stateApi: WebviewStateApi
   readonly onSelectElement: BadgeFilter
   readonly onOpenCall: (elementId: string, toSide: boolean) => void
@@ -110,6 +112,7 @@ export class RuntimeCanvas {
     this.destroyed = true
     this.stopPersisting()
     this.layer?.clear()
+    this.options.overlays.render([], () => undefined)
     this.viewer.destroy()
     this.shell.destroy()
     this.disconnectShell()
@@ -144,7 +147,17 @@ export class RuntimeCanvas {
     if (wanted.xml !== this.importedXml && !(await this.importDiagram(wanted.xml))) {
       return
     }
-    this.layer?.apply(this.wanted?.decorations ?? wanted.decorations)
+    this.decorate(this.wanted?.decorations ?? wanted.decorations)
+  }
+
+  private decorate(decorations: Decorations): void {
+    const layer = this.layer
+    if (layer === undefined || this.destroyed) {
+      return
+    }
+    this.options.overlays.render(layer.apply(decorations), () => {
+      layer.restoreFocus()
+    })
   }
 
   private async importDiagram(xml: string): Promise<boolean> {
@@ -152,7 +165,12 @@ export class RuntimeCanvas {
       await this.viewer.importXML(xml)
     } catch (error) {
       this.importedXml = undefined
-      this.options.onImportFailed(error instanceof Error ? error.message : String(error))
+      if (!this.destroyed) {
+        this.options.onImportFailed(error instanceof Error ? error.message : String(error))
+      }
+      return false
+    }
+    if (this.destroyed) {
       return false
     }
     this.importedXml = xml

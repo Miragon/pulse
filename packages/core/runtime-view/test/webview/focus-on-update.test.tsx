@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import type { DefinitionView, PanelState } from "../../src/core/protocol/index.js"
 import { FIXTURES } from "../../dev/webview/fixtures/states.js"
+import { OverlayFocus } from "../../src/webview/diagram/overlay-focus.js"
 import { findRole, getRole, mountApp, waitForElement, type Harness } from "./harness.js"
 
 const READY = FIXTURES.definition as PanelState & {
@@ -107,11 +108,19 @@ describe("focus across a live update", () => {
     const search = getRole<HTMLInputElement>(harness.root, "searchbox", {
       name: "Search by business key",
     })
-    search.focus()
+    const restore = OverlayFocus.restore.bind(OverlayFocus)
+    const restored = vi.spyOn(OverlayFocus, "restore").mockImplementation((anchors, held) => {
+      if (held !== undefined) {
+        search.focus()
+      }
+      restore(anchors, held)
+    })
 
     harness.publish(withBadge("Activity_ShipOrder", { running: 2 }))
-    await new Promise((resolve) => setTimeout(resolve, 100))
 
+    await vi.waitFor(() => {
+      expect(restored.mock.calls.some(([, held]) => held !== undefined)).toBe(true)
+    })
     expect(document.activeElement).toBe(search)
   })
 })

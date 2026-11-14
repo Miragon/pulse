@@ -21,6 +21,7 @@ export function useColumnSizing(
   const [widths, setWidths] = useState(() =>
     tableId === undefined ? undefined : UiStateStore.columnWidths(api, tableId, keys),
   )
+  const live = useRef(widths)
   const save = (next: ColumnWidths | undefined): void => {
     if (tableId !== undefined && next !== undefined) {
       UiStateStore.writeColumnWidths(api, tableId, next)
@@ -30,16 +31,17 @@ export function useColumnSizing(
     widths,
     resize: (cell, key, width, persist) => {
       const next = {
-        ...(widths ?? ColumnMeasure.widths(cell, keys)),
+        ...(live.current ?? ColumnMeasure.widths(cell, keys)),
         [key]: ColumnMeasure.clamp(cell, width),
       }
+      live.current = next
       setWidths(next)
       if (persist) {
         save(next)
       }
     },
     persist: () => {
-      save(widths)
+      save(live.current)
     },
   }
 }

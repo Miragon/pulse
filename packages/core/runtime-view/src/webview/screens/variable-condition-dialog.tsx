@@ -1,3 +1,4 @@
+import type { RefObject } from "preact"
 import { useEffect, useId, useRef, useState } from "preact/hooks"
 import type { RefusedVariableCondition, VariableConditionView } from "../../core/protocol/index.js"
 import { VariableDraft, type CompareAs, type Draft, type DraftErrors } from "./variable-draft.js"
@@ -30,12 +31,17 @@ function NameField({
   errors,
   onDraft,
   suggestions,
-}: FieldProps & { readonly suggestions: readonly string[] }) {
+  input,
+}: FieldProps & {
+  readonly suggestions: readonly string[]
+  readonly input: RefObject<HTMLInputElement | null>
+}) {
   const id = useId()
   return (
     <div class="condition-dialog__field">
       <label for={id}>Name</label>
       <input
+        ref={input}
         id={id}
         class="condition-dialog__control"
         value={draft.name}
@@ -43,7 +49,6 @@ function NameField({
         maxLength={255}
         list={`${id}-names`}
         autocomplete="off"
-        autoFocus
         aria-invalid={errors.name !== undefined || undefined}
         aria-describedby={`${id}-hint ${id}-error`}
         onInput={(event) => {
@@ -188,9 +193,11 @@ function ValueField(props: FieldProps) {
 
 function useModal(onClose: () => void) {
   const dialog = useRef<HTMLDialogElement>(null)
+  const first = useRef<HTMLInputElement>(null)
   useEffect(() => {
     const element = dialog.current
     element?.showModal()
+    first.current?.focus()
     return () => {
       element?.close()
     }
@@ -199,15 +206,16 @@ function useModal(onClose: () => void) {
     event.preventDefault()
     onClose()
   }
-  return { dialog, onCancel }
+  return { dialog, first, onCancel }
 }
 
 export function VariableConditionDialog(props: VariableConditionDialogProps) {
   const { initial, others, suggestions, onApply, onClose } = props
-  const { dialog, onCancel } = useModal(onClose)
+  const { dialog, first, onCancel } = useModal(onClose)
   const titleId = useId()
   const [draft, setDraft] = useState(() => VariableDraft.from(initial))
   const [errors, setErrors] = useState<DraftErrors>({})
+  const fields: FieldProps = { draft, errors, onDraft: setDraft }
   useEffect(() => {
     dialog.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
   }, [errors, dialog])
@@ -234,14 +242,9 @@ export function VariableConditionDialog(props: VariableConditionDialogProps) {
           {initial === undefined ? "Filter by variable" : "Edit variable condition"}
         </h2>
         <p class="muted">An instance matches when all conditions hold.</p>
-        <NameField draft={draft} errors={errors} onDraft={setDraft} suggestions={suggestions} />
-        <ComparisonFields
-          draft={draft}
-          errors={errors}
-          onDraft={setDraft}
-          refused={props.refused ?? []}
-        />
-        <ValueField draft={draft} errors={errors} onDraft={setDraft} />
+        <NameField {...fields} suggestions={suggestions} input={first} />
+        <ComparisonFields {...fields} refused={props.refused ?? []} />
+        <ValueField {...fields} />
         {errors.count !== undefined && (
           <p class="condition-dialog__error" role="alert">
             {errors.count}

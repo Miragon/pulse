@@ -1,5 +1,5 @@
-import { useState } from "preact/hooks"
 import { CountLabels } from "../format/count-labels.js"
+import { usePendingValue } from "./pending-value.js"
 import { RovingKeys } from "./roving-keys.js"
 
 export interface ScopeOption<Scope extends string> {
@@ -37,16 +37,10 @@ function ScopeCount({ alarming, count, atLeast }: ScopeCountProps) {
   )
 }
 
-interface PendingSelection<Scope extends string> {
-  readonly from: Scope
-  readonly to: Scope
-}
-
 export function ScopeSegments<Scope extends string>(props: ScopeSegmentsProps<Scope>) {
-  const [pending, setPending] = useState<PendingSelection<Scope> | undefined>(undefined)
-  const scope = pending?.from === props.checked ? pending.to : props.checked
+  const [scope, setPending] = usePendingValue(props.checked)
   const select = (next: Scope): void => {
-    setPending({ from: props.checked, to: next })
+    setPending(next)
     props.onSelect(next)
   }
   const scopes = props.options.map((option) => option.scope)
