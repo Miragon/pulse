@@ -1,7 +1,9 @@
 # Runtime contract
 
 - Status: accepted
-- Last reviewed: 2026-11-11 (a number holds a double); 2026-11-10 (the plug every dialect
+- Last reviewed: 2026-11-14 (on the C7 family "with incident" is an open incident the runtime
+  holds now, on every history level; the read laws run on a C7 engine at history level AUDIT
+  too); 2026-11-11 (a number holds a double); 2026-11-10 (the plug every dialect
   family provides; a whole number holds 64 bits); 2026-11-09 (the engine
   contract is the engine family's core `@miragon/pulse-engine-core`, with the four changes
   Camunda 8 needs)
@@ -119,7 +121,10 @@ for any workspace, and the conformance kit does not cover them
   not stop live updates.
   `new FailingRuntime(error)` is the one runtime that rejects every call with a given
   error (unreachable engine, unsupported target).
-- **Counts** mean instances, not incidents (`withIncident`), on both engines.
+- **Counts** mean instances, not incidents (`withIncident`), on both engines. An instance with
+  an incident is one with an open incident now; on the C7 family the runtime's, which every history
+  level answers alike (c7-core's `with-incident.ts`), so the C7 adapter's harness runs the read
+  laws on an engine at history level AUDIT as well as at FULL.
   `countInstances(filter)` counts what `searchInstances(filter, …)` pages through, as an
   `InstanceCount`: exact, or with `atLeast` when the engine stopped counting (Camunda 8 at
   10,000). The laws require an exact count over the world; a sum over a lower bound is one

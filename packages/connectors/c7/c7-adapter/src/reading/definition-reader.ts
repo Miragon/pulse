@@ -1,3 +1,4 @@
+import { withIncidentByVersion } from "@miragon/pulse-c7-core"
 import type {
   BpmnProcessId,
   DefinitionId,
@@ -7,7 +8,7 @@ import type {
 } from "@miragon/pulse-engine-core"
 import { ErrorTranslation } from "../errors/error-translation.js"
 import { DefinitionRefs } from "../mapping/definition-refs.js"
-import type { EngineClient, IncidentInstanceView } from "../engine-rest/index.js"
+import type { EngineClient } from "../engine-rest/index.js"
 
 export class DefinitionReader {
   constructor(private readonly client: EngineClient) {}
@@ -38,16 +39,16 @@ export class DefinitionReader {
   }
 
   private async allVersions(): Promise<VersionSummary[]> {
-    const [statistics, incidents] = await Promise.all([
+    const [statistics, failing] = await Promise.all([
       this.client.definitionStatistics(),
-      this.client.incidentInstances(),
+      this.client.instancesWithIncident({}),
     ])
-    const instancesWithIncident = this.instancesWithIncidentOf(incidents)
+    const withIncident = withIncidentByVersion(failing)
     return statistics
       .map((row) => ({
         definition: DefinitionRefs.of(row.definition),
         running: row.instances,
-        withIncident: instancesWithIncident.get(row.definition.id)?.size ?? 0,
+        withIncident: withIncident.get(row.definition.id) ?? 0,
       }))
       .sort((left, right) => right.definition.version - left.definition.version)
   }
@@ -64,19 +65,5 @@ export class DefinitionReader {
         withIncident: versions.reduce((sum, version) => sum + version.withIncident, 0),
       },
     ]
-  }
-
-  private instancesWithIncidentOf(
-    incidents: readonly IncidentInstanceView[],
-  ): ReadonlyMap<string, ReadonlySet<string>> {
-    const byDefinition = new Map<string, Set<string>>()
-    for (const { processDefinitionId, processInstanceId } of incidents) {
-      if (processDefinitionId !== undefined && processInstanceId !== undefined) {
-        const instances = byDefinition.get(processDefinitionId) ?? new Set<string>()
-        instances.add(processInstanceId)
-        byDefinition.set(processDefinitionId, instances)
-      }
-    }
-    return byDefinition
   }
 }

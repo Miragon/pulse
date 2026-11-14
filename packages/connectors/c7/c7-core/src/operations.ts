@@ -50,7 +50,23 @@ export const CONDITION_OPERATIONS = [
   "getTasksCount",
 ] as const
 
+/**
+ * "With incident" (`with-incident.ts`): the instances with an open incident in a scope, their count,
+ * the flag of listed ids, and whether the history recorded the open incidents.
+ */
+export const WITH_INCIDENT_OPERATIONS = [
+  "getProcessInstances",
+  "getProcessInstancesCount",
+  "getIncidentsCount",
+  "getHistoricIncidents",
+] as const
+
 /** Every operation c7-core sends, once each, in code unit order: all of them read. */
 export const CORE_OPERATIONS: readonly string[] = [
-  ...new Set<string>([...INSPECT_OPERATIONS, ...STATUS_OPERATIONS, ...CONDITION_OPERATIONS]),
+  ...new Set<string>([
+    ...INSPECT_OPERATIONS,
+    ...STATUS_OPERATIONS,
+    ...CONDITION_OPERATIONS,
+    ...WITH_INCIDENT_OPERATIONS,
+  ]),
 ].sort()

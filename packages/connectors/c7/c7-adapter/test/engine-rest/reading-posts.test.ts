@@ -21,7 +21,10 @@ const READS: Readonly<Record<string, Read>> = {
   activityStatistics: (client) => client.activityStatistics("order:1"),
   diagramXml: (client) => client.diagramXml("order:1"),
   incidents: (client) => client.incidents({ processInstanceId: "p1" }, PAGE),
-  incidentInstances: (client) => client.incidentInstances(),
+  instancesWithIncident: (client) =>
+    client.instancesWithIncident({ processDefinitionKey: "order" }),
+  countWithIncident: (client) => client.countWithIncident({ processDefinitionKey: "order" }),
+  withIncidentAmong: (client) => client.withIncidentAmong(["p1"]),
   incident: (client) => client.incident("i1"),
   historicInstances: (client) => client.historicInstances({ unfinished: true }, PAGE),
   historicInstanceCount: (client) => client.historicInstanceCount({ unfinished: true }),

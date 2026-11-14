@@ -35,7 +35,7 @@ describe("engineModule.instructions", () => {
       "- Engine state: engine_status triages, engine_open_cockpit shows the user.\n",
     )
     expect(text).toContain(
-      "- History (engine_query_historic_*) covers finished instances, activities, tasks, variables and resolved incidents.\n",
+      "- History (engine_query_historic_*) covers finished instances, activities, tasks, variables and resolved incidents (incidents need history level FULL).\n",
     )
   })
 

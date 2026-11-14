@@ -666,7 +666,13 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      holds a copy). The counts
      both tools show take the words of `COUNT_TERMS` (owner decision E2): "Incidents" are the open
      incidents of the thing shown, "With incident" the instances that have one, and a count's
-     header names its version scope. A feature more than one surface shows (boards first) shows
+     header names its version scope. On Camunda 7 "With incident" reads one way on every surface
+     (owner decision 2026-11-14): an open incident the runtime holds now, on every history level,
+     by c7-core's rule (`packages/connectors/c7/c7-core/src/with-incident.ts`; the cockpit's
+     instance list and its scope counts send the same runtime filter, `withIncident`, in their
+     search body), never by the history's incident filters, which find nothing below history
+     level FULL; a history query by incident refuses an empty answer the runtime contradicts
+     (`unrecordedIncidents`). A feature more than one surface shows (boards first) shows
      the same numbers on every surface, from one builder over one read (owner decision D2 of
      2026-11-12, amending E2); elsewhere a tool keeps its own numbers behind the same words until
      its view moves onto shared numbers.
@@ -709,7 +715,8 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
    - Each engine REST rule the client defaults miss has one home, used by `tools/` AND `data/`
      (and by the CLI and the C7 adapter of the editor hosts): the pure rules (`toEngineDate`, `engineSorting`, the filters,
      `toEngineVariable(s)`, `autoTypedValue`, `incidentRecovery`, `RAW_VARIABLES`, the
-     missing-resource rule `isMissing`) in `@miragon/pulse-c7-core`; the root cause of a failure
+     missing-resource rule `isMissing`, "with incident" `with-incident.ts`) in
+     `@miragon/pulse-c7-core`; the root cause of a failure
      text, the one rule every dialect shares, in the engine family's core,
      `@miragon/pulse-engine-core` (`RootCauses.of`, `RootCauses.lineOf`), which c7-core applies
      as `causeOf` (the root cause,

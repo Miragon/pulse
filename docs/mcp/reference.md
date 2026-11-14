@@ -26,7 +26,9 @@ BPM operations across these domains (`category`): `engines`, `process-definition
   `failedJob`/`failedExternalTask` clear by a retry), `format_incident_issue`, `list_jobs`,
   `get_job_stacktrace`, `set_job_retries`
 - **History, migrations & batches:** `query_historic_*` (ISO 8601 dates; incidents incl. resolved
-  ones), migration tools; batch tools return a queued `batchId` that `get_batch` follows
+  ones, which the engine records at history level FULL only: below it, a history query by incident
+  that finds nothing is refused while the engine holds open incidents its history lacks),
+  migration tools; batch tools return a queued `batchId` that `get_batch` follows
 - **Lists:** one page as `{ items, totalCount, hasMore, nextOffset? }`, `maxResults` ≤ 100;
   variable reads cut values over 2000 characters (`truncated: true`); the runtime reads'
   `variableName` returns one whole (history values stay cut); the server instructions state this

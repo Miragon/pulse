@@ -193,9 +193,10 @@ describe("buildProcessInstancesData: totals and page-scoped incident flags (#335
     })
     const flagQuery = calls(engine, "/process-instance").find((r) => r.method === "GET")
     expect(flagQuery?.query).toEqual({
-      processInstanceIds: "p1,p2,p3",
       withIncident: "true",
-      maxResults: "3",
+      processInstanceIds: "p1,p2,p3",
+      firstResult: "0",
+      maxResults: "500",
     })
     // No engine-wide incident scan decorates the page any more.
     expect(calls(engine, "/incident")).toEqual([])

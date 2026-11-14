@@ -209,12 +209,15 @@ icon of its own shape and words. A feature more than one surface shows, boards f
 same numbers on every surface, from one framework-free builder over one read of engine-core's
 read models; elsewhere each tool keeps its own numbers behind the same words (`COUNT_TERMS`) until
 its view moves onto shared numbers. The board format and the board builder go into a new published
-package (the planned @miragon/pulse-board). The board's "with incident" reads two ways today, the
-counter as the history count with open incidents
-(`packages/connectors/c7/c7-adapter/src/reading/instance-search.ts`), the incident summary and the
-engine strip from a runtime incident scan
-(`packages/connectors/c7/c7-adapter/src/reading/definition-reader.ts`); settle that before boards
-move.
+package (the planned @miragon/pulse-board). "With incident" reads one way in the C7 adapter, as on
+every C7 surface (owner decision 2026-11-14): an open incident the runtime holds now, on every
+history level, by c7-core's rule (`packages/connectors/c7/c7-core/src/with-incident.ts`), for the
+board's counter and the instance lists
+(`packages/connectors/c7/c7-adapter/src/reading/instance-search.ts`: the history's rows of the
+runtime's ids) as for its incident summary, the engine strip and the version counts
+(`packages/connectors/c7/c7-adapter/src/reading/definition-reader.ts`); the read laws run on an
+engine at history level AUDIT too
+(`packages/connectors/c7/c7-adapter/test/c7-history-audit.engine.test.ts`).
 
 ## Rules
 

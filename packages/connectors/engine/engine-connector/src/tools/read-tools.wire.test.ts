@@ -85,7 +85,11 @@ describe("history date filters take ISO 8601 and reach the engine in its format"
   })
 
   it("converts the historic incidents' createTimeAfter/createTimeBefore, list AND count", async () => {
-    const engine = await engineWith({}, { body: [] })
+    // A row found: no check of the incident history (history-incidents.wire.test.ts).
+    const engine = await engineWith(
+      { "GET /history/incident/count": { body: { count: 1 } } },
+      { body: [] },
+    )
     await call(engine, "engine_query_historic_incidents", {
       activityId: "callWms",
       resolved: true,

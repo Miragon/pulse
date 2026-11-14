@@ -25,6 +25,7 @@ describe("the @miragon/pulse-c7-core entries", () => {
       "RAW_VARIABLES_QUERY",
       "Slots",
       "UTC_WITHOUT_OFFSET",
+      "WITH_INCIDENT",
       "WorkflowError",
       "activeTree",
       "advanceSteps",
@@ -44,6 +45,7 @@ describe("the @miragon/pulse-c7-core entries", () => {
       "compareTime",
       "complementaryFlags",
       "conditionLabel",
+      "countWithIncident",
       "createEnginePort",
       "criticalIncidentsRule",
       "decide",
@@ -64,6 +66,7 @@ describe("the @miragon/pulse-c7-core entries", () => {
       "incidentRecovery",
       "inspectInstance",
       "instanceRequests",
+      "instancesWithIncident",
       "intentOf",
       "isAdvanceable",
       "isEngineDateInput",
@@ -104,7 +107,10 @@ describe("the @miragon/pulse-c7-core entries", () => {
       "toEngineVariables",
       "toOptionalEngineDate",
       "trueOnly",
+      "unrecordedIncidents",
       "waitId",
+      "withIncidentAmong",
+      "withIncidentByVersion",
     ])
   })
 
@@ -139,6 +145,7 @@ describe("the @miragon/pulse-c7-core entries", () => {
       "TIMER",
       "USER_TASK",
       "VARS",
+      "WITH_INCIDENT_OPERATIONS",
       "activeData",
       "activity",
       "activityTree",

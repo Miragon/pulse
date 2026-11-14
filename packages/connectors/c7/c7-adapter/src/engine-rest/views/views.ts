@@ -40,11 +40,6 @@ export interface IncidentView {
   readonly configuration?: string
 }
 
-export interface IncidentInstanceView {
-  readonly processDefinitionId?: string
-  readonly processInstanceId?: string
-}
-
 export interface HistoricInstanceView {
   readonly id: string
   readonly businessKey?: string
@@ -136,7 +131,6 @@ export interface HistoricInstanceQuery {
   readonly processInstanceBusinessKey?: string
   readonly unfinished?: true
   readonly finished?: true
-  readonly incidentStatus?: "open"
   readonly activityIdIn?: readonly string[]
   readonly variables?: readonly VariableQueryCondition[]
 }

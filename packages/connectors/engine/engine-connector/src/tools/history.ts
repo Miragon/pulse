@@ -26,6 +26,7 @@ import {
   getHistoricIncidents,
   getHistoricIncidentsCount,
 } from "@miragon/pulse-c7-client/sdk"
+import { checkedIncidentHistory } from "../lib/core-adapter/incident-history.js"
 import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
 import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { truncateVariableRows } from "../lib/mcp/variable-truncation.js"
@@ -78,7 +79,11 @@ export function registerHistoryTools(register: ToolRegistrar<EngineRegistry>) {
         }),
         getHistoricProcessInstancesCount({ client, query: filters }),
       ])
-      return toPaginatedList(items, count, args.firstResult)
+      const list = toPaginatedList(items, count, args.firstResult)
+      // Filtered by the history's incidents, which only history level FULL records.
+      return filters.withIncidents || filters.incidentStatus
+        ? checkedIncidentHistory(client, list)
+        : list
     }),
   })
 
@@ -212,7 +217,7 @@ export function registerHistoryTools(register: ToolRegistrar<EngineRegistry>) {
         }),
         getHistoricIncidentsCount({ client, query: filters }),
       ])
-      return toPaginatedList(items, count, args.firstResult)
+      return checkedIncidentHistory(client, toPaginatedList(items, count, args.firstResult))
     }),
   })
 }

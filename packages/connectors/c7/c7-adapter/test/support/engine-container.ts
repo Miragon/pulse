@@ -12,6 +12,8 @@ const WITHOUT_RUN_EXAMPLE = {
   OPERATON_BPM_RUN_EXAMPLE_ENABLED: "false",
 } as const
 
+type HistoryLevel = "full" | "audit"
+
 export interface RunningEngine {
   readonly url: string
   stop(): Promise<void>
@@ -33,9 +35,16 @@ async function ensureWithoutExample(url: string, image: string): Promise<void> {
   }
 }
 
-export async function startEngine(image: string = ENGINE_IMAGE): Promise<RunningEngine> {
+function historyLevelOf(level: HistoryLevel): Record<string, string> {
+  return { CAMUNDA_BPM_HISTORY_LEVEL: level, OPERATON_BPM_HISTORY_LEVEL: level }
+}
+
+export async function startEngine(
+  image: string = ENGINE_IMAGE,
+  historyLevel: HistoryLevel = "full",
+): Promise<RunningEngine> {
   const container = await new GenericContainer(image)
-    .withEnvironment(WITHOUT_RUN_EXAMPLE)
+    .withEnvironment({ ...WITHOUT_RUN_EXAMPLE, ...historyLevelOf(historyLevel) })
     .withExposedPorts(ENGINE_PORT)
     .withWaitStrategy(Wait.forHttp(`${REST_ROOT}/version`, ENGINE_PORT).forStatusCode(200))
     .withStartupTimeout(STARTUP_TIMEOUT_MS)

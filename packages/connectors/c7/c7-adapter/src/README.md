@@ -58,8 +58,10 @@ Writes (`ProcessCommands`) take the same road on a connection that may write.
 
 ## Proven on
 
-CI runs all conformance laws on real Operaton 2.1.5 and CIB seven 2.2.0; Camunda 7.24.0 ran
-there until its image left Docker Hub in November 2026.
+CI runs all conformance laws on real Operaton 2.1.5 and CIB seven 2.2.0, the read laws a second
+time on each at history level AUDIT, where the history keeps no incident: "with incident" is the
+runtime's open incidents, c7-core's rule, on every history level. Camunda 7.24.0 ran there until its
+image left Docker Hub in November 2026.
 
 ## More
 

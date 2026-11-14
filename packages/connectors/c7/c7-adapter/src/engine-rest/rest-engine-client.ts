@@ -1,7 +1,17 @@
-import { RAW_VARIABLES_QUERY } from "@miragon/pulse-c7-core"
+import {
+  countWithIncident,
+  createEnginePort,
+  instancesWithIncident,
+  RAW_VARIABLES_QUERY,
+  withIncidentAmong,
+  type EnginePort,
+  type IncidentScope,
+  type InstanceWithIncident,
+} from "@miragon/pulse-c7-core"
 import type { EngineClient } from "./engine-client.js"
 import type { EngineHttp } from "./http/engine-http.js"
 import { CoreRequests } from "./inspect/core-requests.js"
+import { HttpEngineTransport } from "./inspect/http-engine-transport.js"
 import { InstanceInspection } from "./inspect/instance-inspection.js"
 import { RequestArguments } from "./request-arguments.js"
 import { ActivityInstanceViewParser } from "./views/activity-instance-view-parser.js"
@@ -21,7 +31,6 @@ import type {
   HistoricBatchView,
   HistoricInstanceQuery,
   HistoricInstanceView,
-  IncidentInstanceView,
   IncidentQuery,
   IncidentView,
   InspectView,
@@ -41,7 +50,11 @@ const NEWEST_FIRST = [
 ]
 
 export class RestEngineClient implements EngineClient {
-  constructor(private readonly http: EngineHttp) {}
+  private readonly core: EnginePort
+
+  constructor(private readonly http: EngineHttp) {
+    this.core = createEnginePort(HttpEngineTransport.over(http))
+  }
 
   async product(): Promise<ProductView> {
     return EngineViewParser.product(await this.http.read("/telemetry/data"))
@@ -86,8 +99,16 @@ export class RestEngineClient implements EngineClient {
     )
   }
 
-  async incidentInstances(): Promise<IncidentInstanceView[]> {
-    return IncidentViewParser.incidentInstances(await this.http.readAll("/incident"))
+  instancesWithIncident(scope: IncidentScope): Promise<InstanceWithIncident[]> {
+    return instancesWithIncident(this.core, scope)
+  }
+
+  countWithIncident(scope: IncidentScope): Promise<number> {
+    return countWithIncident(this.core, scope)
+  }
+
+  withIncidentAmong(instanceIds: readonly string[]): Promise<ReadonlySet<string>> {
+    return withIncidentAmong(this.core, instanceIds)
   }
 
   async incident(incidentId: string): Promise<IncidentView> {

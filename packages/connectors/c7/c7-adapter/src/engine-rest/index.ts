@@ -21,7 +21,6 @@ export type {
   HistoricInstanceQuery,
   HistoricInstanceView,
   VariableQueryCondition,
-  IncidentInstanceView,
   IncidentView,
   InspectView,
   MigrationInstructionView,

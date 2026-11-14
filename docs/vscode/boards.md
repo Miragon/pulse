@@ -52,7 +52,8 @@ completion and checks from the board schema; Pulse reloads an open board when yo
 | `incidentList`    | The first 50 open incidents of each engine with element and message, optionally of one `process` |
 
 The `filter` takes `process` (BPMN process ID, every version), `activeElement` (needs
-`process`), `state` (`running`, the default, or `ended`), `withIncident` and `businessKey`.
+`process`), `state` (`running`, the default, or `ended`), `withIncident` (an open incident now,
+which an ended instance never has) and `businessKey`.
 Columns are `engine`, `process`, `version`, `businessKey`, `state`, `startedAt`, `endedAt` and
 `incident`.
 

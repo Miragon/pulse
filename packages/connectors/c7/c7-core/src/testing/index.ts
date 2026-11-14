@@ -20,7 +20,7 @@ export {
 } from "./fake-port.js"
 export { pageQuery } from "../port.js"
 export { countByIds, ID_CHUNK } from "../requests.js"
-export { INSPECT_OPERATIONS, STATUS_OPERATIONS } from "../operations.js"
+export { INSPECT_OPERATIONS, STATUS_OPERATIONS, WITH_INCIDENT_OPERATIONS } from "../operations.js"
 export { mergeCandidates } from "../select.js"
 export { incidentCause } from "../inspect.js"
 export { instanceView } from "../snapshot.js"

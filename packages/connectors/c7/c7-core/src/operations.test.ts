@@ -7,12 +7,19 @@ import {
   CORE_OPERATIONS,
   INSPECT_OPERATIONS,
   STATUS_OPERATIONS,
+  WITH_INCIDENT_OPERATIONS,
 } from "./operations.js"
 import type { Route } from "./testing/fake-port.js"
 import { fakePort } from "./testing/fake-port.js"
 import { P } from "./testing/fixture.js"
 import { APPROVE_INCIDENT, approveRoutes } from "./testing/inspect-routes.js"
 import { NOW } from "./testing/status.js"
+import {
+  countWithIncident,
+  instancesWithIncident,
+  unrecordedIncidents,
+  withIncidentAmong,
+} from "./with-incident.js"
 
 /** Routes for exactly the declared operations: any other one is refused by the fake port. */
 function only(operations: readonly string[], routes: Readonly<Record<string, Route>>) {
@@ -68,12 +75,31 @@ describe("the declared operations", () => {
   })
 })
 
+describe("the with-incident operations", () => {
+  it("are all the reads of with incident send", async () => {
+    const routes: Record<string, Route> = {
+      getProcessInstances: () => [{ id: "p1", definitionId: "order:1:x" }],
+      getProcessInstancesCount: () => ({ count: 1 }),
+      getIncidentsCount: () => ({ count: 1 }),
+      getHistoricIncidents: () => [],
+    }
+    const port = fakePort(only(WITH_INCIDENT_OPERATIONS, routes))
+    await instancesWithIncident(port, {})
+    await countWithIncident(port, {})
+    await withIncidentAmong(port, ["p1"])
+    await unrecordedIncidents(port)
+    const sent = new Set(port.calls.map((call) => call.operationId))
+    expect([...sent].sort()).toEqual([...WITH_INCIDENT_OPERATIONS].sort())
+  })
+})
+
 describe("CORE_OPERATIONS", () => {
-  it("is every operation of the composites and the wait, once each, in order", () => {
+  it("is every operation of the composites, the wait and with incident, once each, in order", () => {
     const all = new Set<string>([
       ...INSPECT_OPERATIONS,
       ...STATUS_OPERATIONS,
       ...CONDITION_OPERATIONS,
+      ...WITH_INCIDENT_OPERATIONS,
     ])
     expect(CORE_OPERATIONS).toHaveLength(all.size)
     expect(new Set(CORE_OPERATIONS)).toEqual(all)

@@ -1,6 +1,6 @@
 import { Present } from "../present.js"
 import { JsonObject } from "./json-object.js"
-import type { IncidentInstanceView, IncidentView } from "./views.js"
+import type { IncidentView } from "./views.js"
 
 export class IncidentViewParser {
   static incident(value: unknown): IncidentView {
@@ -10,15 +10,6 @@ export class IncidentViewParser {
   static incidents(value: unknown): IncidentView[] {
     return JsonObject.listOf(value, "incidents").map((record) =>
       IncidentViewParser.incidentOf(record),
-    )
-  }
-
-  static incidentInstances(value: unknown): IncidentInstanceView[] {
-    return JsonObject.listOf(value, "incidents").map((record) =>
-      Present.fields({
-        processDefinitionId: record.optionalString("processDefinitionId"),
-        processInstanceId: record.optionalString("processInstanceId"),
-      }),
     )
   }
 

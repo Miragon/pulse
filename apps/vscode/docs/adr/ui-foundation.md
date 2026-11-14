@@ -1,7 +1,7 @@
 # UI foundation and shared building blocks
 
 - Status: accepted
-- Last reviewed: 2026-11-14 (executed: the switch of D9 landed, the webview renders with React 19 on `@miragon/pulse-ui`; every precondition of D7 is in place; its follow-up landed too: the webview and its tests follow `react-hooks`' `recommended-latest`, the React Compiler rules included, every rule of it an error); 2026-11-12, later the same day (decided, D9: the webview moves from Preact to React 19 on `@miragon/pulse-ui` in one switch, without a `preact/compat` bridge; one compact look for every surface, on density roles over the guide's `--cd-shell-*` tokens and pulse-ui's colour roles on the guide's `--cd-ui-*` roles, numbers neutral; replaces D4 and turns D7 into the switch's preconditions); 2026-11-12 (decided: the surfaces share a core up to building blocks, not everything: formats, the engine reads and their rules, the numbers and view models of a feature more than one surface shows, and building blocks on React's API; a feature more than one surface shows, boards first, shows the same numbers on every surface; replaces the two UI families of 2026-11-08)
+- Last reviewed: 2026-11-14 (executed: the switch of D9 landed, the webview renders with React 19 on `@miragon/pulse-ui`; every precondition of D7 is in place; its follow-up landed too: the webview and its tests follow `react-hooks`' `recommended-latest`, the React Compiler rules included, every rule of it an error; decided: "with incident" reads one way on every C7 surface, an open incident the runtime holds now, so the board's two readings are one); 2026-11-12, later the same day (decided, D9: the webview moves from Preact to React 19 on `@miragon/pulse-ui` in one switch, without a `preact/compat` bridge; one compact look for every surface, on density roles over the guide's `--cd-shell-*` tokens and pulse-ui's colour roles on the guide's `--cd-ui-*` roles, numbers neutral; replaces D4 and turns D7 into the switch's preconditions); 2026-11-12 (decided: the surfaces share a core up to building blocks, not everything: formats, the engine reads and their rules, the numbers and view models of a feature more than one surface shows, and building blocks on React's API; a feature more than one surface shows, boards first, shows the same numbers on every surface; replaces the two UI families of 2026-11-08)
 
 ## Context
 
@@ -35,10 +35,11 @@ A review on 2026-11-12 checked those facts and found:
 - A design review of four target architectures (2026-11-12) found that the same numbers on two
   surfaces need a shared builder and shared reads, not shared components alone.
 - Boards ([boards.md](boards.md)) are planned for the MCP server and the web apps. The VS Code
-  board reads "with incident" two ways today: its counter counts the history with
+  board read "with incident" two ways until 2026-11-14: its counter counted the history with
   `incidentStatus=open` (`packages/connectors/c7/c7-adapter/src/reading/instance-search.ts`), its
-  incident summary and its engine strip scan the runtime incidents
-  (`packages/connectors/c7/c7-adapter/src/reading/definition-reader.ts`).
+  incident summary and its engine strip scanned the runtime incidents
+  (`packages/connectors/c7/c7-adapter/src/reading/definition-reader.ts`). Both read the runtime
+  now, c7-core's rule (`packages/connectors/c7/c7-core/src/with-incident.ts`).
 
 Later the same day two studies looked at the look of the surfaces and at the webview's runtime:
 
@@ -272,7 +273,8 @@ missing value ([user-interface.md](user-interface.md)).
   1 px lines part the regions there.
 - Boards move first. Before they move onto one builder over one read, the board's two readings of
   "with incident" (the counter's history count and the incident summary's runtime scan) settle to
-  one; which one is open. Two owner decisions fall due then too: the board package's home (under
+  one: the owner chose the runtime's on 2026-11-14 (an open incident now, on every history level,
+  on every C7 surface). Two owner decisions fall due then too: the board package's home (under
   `packages/core` with an exception like the runtime view's, or a role-suffixed package of the
   engine family) and whether the engine connector may import engine-core's read models before it
   serves a second dialect.

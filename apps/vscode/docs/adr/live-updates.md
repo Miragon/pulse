@@ -1,7 +1,7 @@
 # Live updates
 
 - Status: accepted
-- Last reviewed: 2026-11-03
+- Last reviewed: 2026-11-14 (With incident is a runtime count in the C7 adapter); 2026-11-03
 
 ## Context
 
@@ -61,10 +61,11 @@ What they found:
   status bar) blocks the lane of that engine: no view reads it on its own and retry checks
   stop until a load of that engine succeeds or the login changes.
 - On a tick the definition panel reads element statistics, the first page of instances
-  (unless Load more added pages) and the Running and With incident counts (history counts
-  in the C7 adapter). The version list is read on every tick locally and every fourth tick
-  elsewhere; the Ended count every fourth tick on local and test engines and only on user
-  loads on production, where Ended and All say "Ended and All update when you refresh."
+  (unless Load more added pages) and the Running and With incident counts (in the C7 adapter
+  Running a history count, With incident the runtime's). The version list is read on every tick
+  locally and every fourth tick elsewhere; the Ended count every fourth tick on local and test
+  engines and only on user loads on production, where Ended and All say "Ended and All update
+  when you refresh."
   Called-process wiring, `describeEngine`, the diagram and the local `.bpmn` files are not
   read on a tick. The instance panel reads its detail; incident links and the complete
   stack trace of the first incident are read again only when the incidents change.

@@ -1,4 +1,4 @@
-import { toEngineDate } from "@miragon/pulse-c7-core"
+import { toEngineDate, type IncidentScope } from "@miragon/pulse-c7-core"
 import {
   InstanceId,
   type InstanceFilter,
@@ -34,13 +34,14 @@ export class InstanceSearch {
   constructor(private readonly client: EngineClient) {}
 
   async search(filter: InstanceFilter, page: PageRequest): Promise<Page<InstanceSummary>> {
-    if (filter.instanceIds?.length === 0) {
+    const scoped = await this.scopedToIncidents(filter)
+    if (scoped.instanceIds?.length === 0) {
       return { items: [] }
     }
     const paging = new OffsetPaging(page)
     const rows = await this.client.historicInstances(
-      this.queryOf(filter),
-      this.windowFor(paging, filter),
+      this.queryOf(scoped),
+      this.windowFor(paging, scoped),
     )
     const withOpenIncident = await this.idsWithOpenIncident(rows.slice(0, page.limit), filter)
     return paging.pageOf(rows, (pageRows) =>
@@ -51,17 +52,58 @@ export class InstanceSearch {
   }
 
   async count(filter: InstanceFilter): Promise<number> {
-    if (filter.instanceIds?.length === 0) {
-      return 0
+    if (filter.withIncident === false) {
+      const [counted, withIncident] = await Promise.all([
+        this.historyCount(filter),
+        this.count({ ...filter, withIncident: true }),
+      ])
+      return counted - withIncident
     }
-    const counted = await this.client.historicInstanceCount(this.queryOf(filter))
-    if (filter.withIncident !== false) {
-      return counted
+    if (filter.withIncident === true && this.runtimeCounts(filter)) {
+      return this.client.countWithIncident(this.scopeOf(filter))
     }
-    const withIncident = await this.client.historicInstanceCount(
-      this.queryOf({ ...filter, withIncident: true }),
+    return this.historyCount(await this.scopedToIncidents(filter))
+  }
+
+  private historyCount(filter: InstanceFilter): Promise<number> {
+    return filter.instanceIds?.length === 0
+      ? Promise.resolve(0)
+      : this.client.historicInstanceCount(this.queryOf(filter))
+  }
+
+  private async scopedToIncidents(filter: InstanceFilter): Promise<InstanceFilter> {
+    if (filter.withIncident !== true || filter.instanceIds?.length === 0) {
+      return filter
+    }
+    if (filter.lifecycle === "ended") {
+      return { ...filter, instanceIds: [] }
+    }
+    const failing = await this.client.instancesWithIncident(this.scopeOf(filter))
+    const wanted =
+      filter.instanceIds === undefined ? undefined : new Set<string>(filter.instanceIds)
+    return {
+      ...filter,
+      instanceIds: failing
+        .filter((instance) => wanted?.has(instance.id) ?? true)
+        .map((instance) => InstanceId(instance.id)),
+    }
+  }
+
+  private runtimeCounts(filter: InstanceFilter): boolean {
+    return (
+      filter.lifecycle !== "ended" &&
+      filter.instanceIds === undefined &&
+      filter.activeElementId === undefined &&
+      (filter.variables?.length ?? 0) === 0
     )
-    return counted - withIncident
+  }
+
+  private scopeOf(filter: InstanceFilter): IncidentScope {
+    return Present.fields({
+      processDefinitionId: filter.definitionId,
+      processDefinitionKey: filter.bpmnProcessId,
+      businessKey: filter.businessKey,
+    })
   }
 
   private queryOf(filter: InstanceFilter): HistoricInstanceQuery {
@@ -72,7 +114,6 @@ export class InstanceSearch {
       processInstanceBusinessKey: filter.businessKey,
       unfinished: filter.lifecycle === "running" ? (true as const) : undefined,
       finished: filter.lifecycle === "ended" ? (true as const) : undefined,
-      incidentStatus: filter.withIncident === true ? ("open" as const) : undefined,
       activityIdIn: filter.activeElementId === undefined ? undefined : [filter.activeElementId],
       variables: filter.variables?.map((condition) => this.conditionOf(condition)),
     })
@@ -131,14 +172,11 @@ export class InstanceSearch {
     rows: readonly HistoricInstanceView[],
     filter: InstanceFilter,
   ): Promise<ReadonlySet<string>> {
-    const ids = rows.map((row) => row.id)
-    if (filter.withIncident === true || ids.length === 0) {
-      return new Set(filter.withIncident === true ? ids : [])
+    if (filter.withIncident === true) {
+      return new Set(rows.map((row) => row.id))
     }
-    const flagged = await this.client.historicInstances(
-      { processInstanceIds: ids, incidentStatus: "open" },
-      { firstResult: 0, maxResults: ids.length },
+    return this.client.withIncidentAmong(
+      rows.filter((row) => row.endTime === undefined).map((row) => row.id),
     )
-    return new Set(flagged.map((row) => row.id))
   }
 }

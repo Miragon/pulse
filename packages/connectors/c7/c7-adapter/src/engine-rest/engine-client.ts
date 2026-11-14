@@ -1,3 +1,4 @@
+import type { IncidentScope, InstanceWithIncident } from "@miragon/pulse-c7-core"
 import type {
   ActivityInstanceView,
   ActivityStatisticsView,
@@ -7,7 +8,6 @@ import type {
   FailedJobView,
   HistoricInstanceQuery,
   HistoricInstanceView,
-  IncidentInstanceView,
   IncidentQuery,
   IncidentView,
   InspectView,
@@ -25,7 +25,9 @@ export interface EngineClient {
   activityStatistics(definitionId: string): Promise<ActivityStatisticsView[]>
   diagramXml(definitionId: string): Promise<string>
   incidents(query: IncidentQuery, page?: OffsetPage): Promise<IncidentView[]>
-  incidentInstances(): Promise<IncidentInstanceView[]>
+  instancesWithIncident(scope: IncidentScope): Promise<InstanceWithIncident[]>
+  countWithIncident(scope: IncidentScope): Promise<number>
+  withIncidentAmong(instanceIds: readonly string[]): Promise<ReadonlySet<string>>
   incident(incidentId: string): Promise<IncidentView>
   historicInstances(query: HistoricInstanceQuery, page: OffsetPage): Promise<HistoricInstanceView[]>
   historicInstanceCount(query: HistoricInstanceQuery): Promise<number>

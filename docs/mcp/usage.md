@@ -119,6 +119,8 @@ still answers you in your language.
 - An instance's view names the element of each open incident (its name in the
   diagram, else its id) and leads to its process with **View process**. The
   instance list's scopes (**All**, **With incident**, **Suspended**) count what
-  each one shows within the search, whichever scope is picked.
+  each one shows within the search, whichever scope is picked. **With incident**
+  is an instance with an open incident now, read from the engine's runtime on
+  every history level, as Pulse for VS Code and Pulse for Orca read it.
 - If a tool isn't doing what you expect, ask the assistant to show you the raw
   arguments. It'll print them, and you can spot mismatches quickly.

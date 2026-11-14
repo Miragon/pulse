@@ -6,6 +6,7 @@
 import { WorkflowError } from "./errors.js"
 import type { EnginePort } from "./port.js"
 import { countByIds } from "./requests.js"
+import { WITH_INCIDENT } from "./with-incident.js"
 
 export type Condition =
   | { readonly kind: "idle" | "ended" | "incident" }
@@ -133,9 +134,7 @@ export async function measure(
   checkIncidents: boolean,
 ): Promise<Measurement> {
   const results = await Promise.all(conditions.map((condition) => holds(port, probe, condition)))
-  const incidents = checkIncidents
-    ? await countInTree(port, probe.tree, { withIncident: "true" })
-    : 0
+  const incidents = checkIncidents ? await countInTree(port, probe.tree, WITH_INCIDENT) : 0
   const held = conditions.filter((_, index) => results[index] === true).map(conditionLabel)
   return { incidents, held }
 }

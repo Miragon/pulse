@@ -120,7 +120,7 @@ export function engineInstructions(input: EngineInstructionsInput): string {
     ...(input.toolset === "read-only" ? [] : [VARIABLE_INPUT_RULE]),
     // The tool families are tools/list's; only what history covers is said here.
     "- History (engine_query_historic_*) covers finished instances, activities, tasks, variables " +
-      "and resolved incidents.",
+      "and resolved incidents (incidents need history level FULL).",
     // How to read one whole and never to write a cut value back are said where they apply: the
     // runtime reads' `variableName` and the variable writes (`CUT_VALUE_WRITE_RULE`).
     `- Variable reads cut string values over ${MAX_VARIABLE_VALUE_CHARS} chars (truncated: true).`,

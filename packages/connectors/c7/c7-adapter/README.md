@@ -13,7 +13,9 @@ whose dialect it implements (`adapters-own-their-family` in the repository's
 inspection of an instance, which incident types the engine raises itself
 (`BUILT_IN_INCIDENT_TYPES`), which job or external task an incident names, for its retry and in
 the incident list (`incidentRecovery`), which request holds an incident's cause
-(`CAUSE_OPERATIONS`), and how a written variable is typed (`autoTypedValue`, `toEngineVariable`).
+(`CAUSE_OPERATIONS`), how a written variable is typed (`autoTypedValue`, `toEngineVariable`),
+and what "with incident" is (an open incident the runtime holds now, `instancesWithIncident`,
+`countWithIncident`, `withIncidentAmong`), on every history level.
 It sends every request through `@miragon/pulse-http`, the transport the CLI and the MCP server
 send through, from its wire alone (`src/engine-rest/http`: `EngineHttp`, 60 s and 64 MiB, over
 the global `fetch` of its host's runtime), and its inspection goes out as routes of c7-core's

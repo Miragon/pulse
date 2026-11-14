@@ -77,6 +77,14 @@ missing.
   every cut named in `truncated`. `engineVerdict` judges an engine `ok`, `warning` or `critical` by
   thresholds you pass; `messageSignature` (the incident mask) and `causeKeyOf` (one cause) group
   incidents alike everywhere.
+- **With incident:** one reading of "an instance with an incident" for every caller: an open
+  incident the runtime holds now, which every history level answers alike (`WITH_INCIDENT`, the
+  runtime's process-instance filter). `instancesWithIncident(port, scope)` lists the instances of
+  a version, a process or a business key with one, `countWithIncident` counts them,
+  `withIncidentAmong(port, ids)` flags listed instances and `withIncidentByVersion` counts per
+  version. The history's incident filters find nothing below history level FULL, which writes no
+  incident to the history: `unrecordedIncidents(port)` tells that from a true "none" before a
+  history query by incident answers.
 - **Plans:** the pure parts of retry (`planRetry`, `retriesWrite`), advance (`chooseWait`,
   `advanceSteps`) and wait (`parseCondition`, `decide`, `poll`).
 - **Routes:** the route of each operation of the REST API: method, path template, effect (`read`,
@@ -130,21 +138,25 @@ package.
   operation's effect from the route table.
 - [`@miragon/pulse-engine-connector`](https://www.npmjs.com/package/@miragon/pulse-engine-connector),
   the engine module that serves every dialect, runs it as the MCP tools
-  `engine_inspect_process_instance` and `engine_status`, and builds its cockpit's failure clusters
-  and health verdict from the same rules.
+  `engine_inspect_process_instance` and `engine_status`, builds its cockpit's failure clusters
+  and health verdict from the same rules, flags its instance rows with `withIncidentAmong` and
+  checks a history query by incident with `unrecordedIncidents`.
 - Pulse for VS Code and Pulse for Orca bundle it in their C7 adapter: an instance's panel reads
   through `loadInstance`, an incident's retry and the incident list take its job or external task
   from `incidentRecovery`, its details their request from `CAUSE_OPERATIONS`; a variable change
-  without a type that is no JSON string, object or array is typed by `autoTypedValue`, and every
-  change is sent in the form of `toEngineVariable`.
+  without a type that is no JSON string, object or array is typed by `autoTypedValue`, every
+  change is sent in the form of `toEngineVariable`, and every "with incident" (a process's and a
+  version's count, an instance list's scope and its rows' flags) is the runtime's of
+  `with-incident.ts`.
 
 ## Testing helpers
 
 `@miragon/pulse-c7-core/testing` exports the verified workflow fixture, the status fixture, wait
 states of every kind, `fakePort` (a recording port over canned answers that refuses any operation
 without a route) and `fakeClock`. It also exports the rules behind the entry's functions that
-tests reach directly, and `INSPECT_OPERATIONS` and `STATUS_OPERATIONS`, the operations each
-composite sends: a port that maps operations one by one holds its table equal to them in a test.
+tests reach directly, and `INSPECT_OPERATIONS`, `STATUS_OPERATIONS` and
+`WITH_INCIDENT_OPERATIONS`, the operations each composite sends: a port that maps operations one by
+one holds its table equal to them in a test.
 
 ## Help and feedback
 

@@ -170,6 +170,16 @@ export {
 } from "./conditions.js"
 export { poll, type PollResult, type PollTiming } from "./poll.js"
 export {
+  countWithIncident,
+  type IncidentScope,
+  instancesWithIncident,
+  type InstanceWithIncident,
+  unrecordedIncidents,
+  WITH_INCIDENT,
+  withIncidentAmong,
+  withIncidentByVersion,
+} from "./with-incident.js"
+export {
   checkRetryCount,
   executeWrite,
   missingRoots,

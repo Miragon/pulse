@@ -4,6 +4,7 @@ import {
   engineInstanceSearch,
   engineLike,
   trueOnly,
+  withIncidentAmong,
 } from "@miragon/pulse-c7-core"
 import {
   LIST_PAGE_SIZE,
@@ -14,7 +15,6 @@ import {
   type ProcessInstancesData,
 } from "../view-models.js"
 import {
-  getProcessInstances,
   getJobsCount,
   queryJobs,
   queryProcessInstances,
@@ -39,6 +39,7 @@ import {
   resolveDefinitionKeys,
   type DefinitionInfo,
 } from "./definition-info.js"
+import { enginePortFor } from "../lib/core-adapter/engine-port.js"
 import { countOf, optional, rowsOf } from "./engine-reads.js"
 
 /** One row per KEY, summed over every version; the statistics call's failure is the view's (no "0 instances"). */
@@ -87,7 +88,9 @@ export type ProcessInstancesArgs = ProcessInstancesFilters & InstanceSearchArgs 
 // The engine IGNORES `false` for active/suspended/withIncident (HTTP 200, no
 // filter), so a forwarded false would list every instance: active/suspended
 // send the complement, withIncident only goes out as true. businessKeyLike
-// needs `%`, or it matches exactly.
+// needs `%`, or it matches exactly. "With incident" is c7-core's one reading
+// (`WITH_INCIDENT`, with-incident.ts): the runtime's open incidents, on every
+// history level; this list reads the runtime, so it goes out in the POST body.
 function toProcessInstanceFilter(args: ProcessInstancesArgs) {
   const { orQueries } = engineInstanceSearch(args.search)
   return {
@@ -148,26 +151,17 @@ async function filteredTotals(client: Client, filter: ProcessInstanceFilter) {
   return { totalCount, allCount, withIncidentCount, suspendedCount }
 }
 
-/** Scoped to the page's ids, not an engine-wide incident scan. */
+/**
+ * Scoped to the page's ids, not an engine-wide incident scan: c7-core's flag of a listed instance
+ * (`withIncidentAmong`), the one the editors' instance lists read too.
+ */
 async function instancesWithIncident(
   client: Client,
   pageIds: string[],
   filter: ProcessInstanceFilter,
-): Promise<Set<string>> {
-  if (filter.withIncident || pageIds.length === 0) {
-    return new Set(filter.withIncident ? pageIds : [])
-  }
-  const flagged = rowsOf<RawInstance>(
-    await getProcessInstances({
-      client,
-      query: {
-        processInstanceIds: pageIds.join(","),
-        withIncident: true,
-        maxResults: pageIds.length,
-      },
-    }),
-  )
-  return new Set(flagged.map((i) => i.id).filter((id): id is string => !!id))
+): Promise<ReadonlySet<string>> {
+  if (filter.withIncident) return new Set(pageIds)
+  return withIncidentAmong(enginePortFor(client), pageIds)
 }
 
 /** ENRICHMENT: a failed statistics read leaves bare-id keys null ("—", no drill), never a UUID. */

@@ -1,7 +1,7 @@
 # Camunda 7 family adapter
 
 - Status: accepted
-- Last reviewed: 2026-11-12 (`C7Adapter.cli` gives the CLI command that triggers the event a token waits for, `PulseCli`, on the engine its `CliTarget` names: a profile with the target's URL, which beats a `PULSE_CLI_URL` of the user's shell and which the CLI refuses beside a profile of the same name in the user's config file that holds headers, whatever their names, or credentials for another origin, or the default engine's URL, on which the CLI takes no profile); 2026-11-11 (the editor hosts send the adapter no number beyond the range of a double, which it writes as text without a type; the refusal of a number that is not finite is c7-core's `toEngineVariable`, of which the adapter keeps no copy); 2026-11-10 (the adapter sends through `@miragon/pulse-http` and its inspection goes out as routes of c7-core's `CORE_ROUTES`; the incident retry's target, the built-in incident types, the request of an incident's cause and the typing of a written variable come from c7-core; the adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the adapter is a package, which Pulse for Orca bundles too)
+- Last reviewed: 2026-11-14 ("with incident" reads one way, c7-core's rule: an open incident the runtime holds now, on every history level; the instance search pages the history's rows of the runtime's ids, and the read laws run on an engine at history level AUDIT too); 2026-11-12 (`C7Adapter.cli` gives the CLI command that triggers the event a token waits for, `PulseCli`, on the engine its `CliTarget` names: a profile with the target's URL, which beats a `PULSE_CLI_URL` of the user's shell and which the CLI refuses beside a profile of the same name in the user's config file that holds headers, whatever their names, or credentials for another origin, or the default engine's URL, on which the CLI takes no profile); 2026-11-11 (the editor hosts send the adapter no number beyond the range of a double, which it writes as text without a type; the refusal of a number that is not finite is c7-core's `toEngineVariable`, of which the adapter keeps no copy); 2026-11-10 (the adapter sends through `@miragon/pulse-http` and its inspection goes out as routes of c7-core's `CORE_ROUTES`; the incident retry's target, the built-in incident types, the request of an incident's cause and the typing of a written variable come from c7-core; the adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the adapter is a package, which Pulse for Orca bundles too)
 
 ## Context
 
@@ -64,7 +64,8 @@ MCP server run too. The package belongs to the c7 family, whose dialect it imple
 
 - **Typed calls.** The `EngineClient` interface exposes `definitionStatistics`,
   `activityStatistics`, `diagramXml`, `historicInstances`, `historicInstanceCount`,
-  `inspect`, `variables`, `incidents`, `incidentInstances`, `incident`, `causeText` (the
+  `inspect`, `variables`, `incidents`, `instancesWithIncident`, `countWithIncident`,
+  `withIncidentAmong` (c7-core's "with incident" over its port), `incident`, `causeText` (the
   text route of `CORE_ROUTES` by operation id, any other refused before it leaves),
   `activityInstances`, `batchStatistics`, `historicBatch`, `failedJobs`, `migrationPlan`,
   `migrationReport`, `product` and `version` with typed views; `RestEngineClient`
@@ -280,6 +281,20 @@ MCP server run too. The package belongs to the c7 family, whose dialect it imple
   `Incident.definition` comes from the `inspect` view (own incidents), one historic query
   for the called instances that hold incidents, or one join with the definition
   statistics (`searchIncidents`), never one call per incident.
+- **With incident is the runtime's** (owner decision 2026-11-14), c7-core's rule
+  (`packages/connectors/c7/c7-core/src/with-incident.ts`), the reading the MCP cockpit and the CLI
+  share: an instance the runtime holds an open incident for, now (`GET /process-instance` with
+  `withIncident`, `ACT_RU_INCIDENT`). The history's incident filters (`incidentStatus`,
+  `withIncidents`) read `ACT_HI_INCIDENT`, which only history level FULL writes, so at AUDIT they
+  found nothing (measured on Operaton 2.1.5 and CIB seven 2.2.0: the version counts said 6 with
+  incident, the scope "With incident" 0). `listDefinitions` and `listVersions` count the runtime's
+  instances with an open incident per version; `searchInstances` with `withIncident: true` pages the
+  history's rows (newest first, the other filters the history's) of the runtime's ids in the scope
+  (version, process, business key), none for `lifecycle: "ended"`; `countInstances` counts them in
+  one runtime count when the runtime knows the whole filter, else the history's count of those ids;
+  a row's flag asks the runtime for the page's running ids, 50 per request; without an incident is
+  all minus those with one. The runtime laws run on a second engine at history level AUDIT
+  (`packages/connectors/c7/c7-adapter/test/c7-history-audit.engine.test.ts`).
 - **Calls.** `getCalledProcesses` reads the deployed XML and the definition statistics in
   parallel (which carry every version's `deploymentId` and `versionTag`) and parses each
   `callActivity` start tag for `calledElement` and the binding attributes
@@ -323,11 +338,14 @@ MCP server run too. The package belongs to the c7 family, whose dialect it imple
     community Cockpits send an ended instance to its definition.
 
 Engine calls per port method (`inspect` counts as one): `describeEngine` 1–2,
-`listDefinitions`/`listVersions` 2, `getElementStatistics` 2, `getCalledProcesses` 2 in
-parallel, `searchInstances` 2 per page (never per row), `listVariableNames` 2 (the newest 50
+`listDefinitions`/`listVersions` 2 (the runtime's instances with an open incident, every
+page), `getElementStatistics` 2, `getCalledProcesses` 2 in parallel, `searchInstances` 2 per
+page (never per row; the flag 1 per 50 running rows; with an incident first the runtime's ids,
+then the history's page of them), `listVariableNames` 2 (the newest 50
 instances of the version, then the historic variable query without values
 for their ids, at most 2000 variables), `countInstances` 1
-(the historic instance count with the body of the search; 2 for instances
+(the historic instance count with the body of the search; with an incident the runtime's count, or
+its ids and the historic count of them under an element or variable condition; 2 for instances
 without an incident: all minus those with an open incident), `getInstanceDetail` 2 in
 parallel (`inspect` and
 `GET /variable-instance` without values, which carries the engine type and the
