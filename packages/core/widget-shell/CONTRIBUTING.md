@@ -33,12 +33,26 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   error with a retry, none for a refusal no retry changes (`isPermanentError`), cancelled, ready)
   and keeps a crashing view, and each `ViewStack` row,
   inside its own error boundary. Widgets reach the host only through the view
-  host seam (`useViewHost`: `callTool`, `sendFollowUp`, `openExternal`; `HostModelContext`) and the query
+  host seam (`useViewHost`: `callTool`, `sendFollowUp`, `followUp`, `openExternal`; `HostModelContext`) and the query
   hooks (`useToolQuery`, `useToolQueries` (one read per entry of a list, under `useToolQuery`'s
   keys), `useToolMutation`, `useViewData` (which seeds a feed with the view's data),
   `useQueryClient`), never ext-apps, so a widget renders under `TestViewHost`
   (fake tools, a log of host actions and model contexts) in a plain test. No module renders
   another's widget, and the view root keeps no map for one.
+- **The page root** (`./widgets`): `mountPage(views, options)` is the second adapter, for a
+  page outside a chat (the web app). `BrowserViewHost` (`src/ui/browser-view-host.tsx`) fills the
+  same contexts from the page: tools through the caller it hands in, the theme from a
+  `data-cd-theme` on `<html>` else the OS, the locale from the option, the document's `lang` or
+  the browser, fullscreen as its one mode (so no switch and no inline budget), a model context
+  that reaches nothing. It imports nothing of ext-apps, the page root calls the view tool itself
+  (`usePageCall`: once, again on Try again), and both roots share `ViewProviders`
+  (`src/ui/view-providers.tsx`), so the provider order is one. The view host's `followUp` says
+  what a hand-off does: `chat` posts it (the ext-apps adapter; `TestViewHost` by default), and a
+  page that posts to no chat says `copy`, where `AskAiButton` copies the prompt with a toast, or
+  `none` (its default), where it renders nothing, and so does a widget's menu, column or section
+  that holds hand-offs alone (it asks `useHostFollowUp`, which hands it no tool caller). The MCP
+  bundle mounts with `mountViews` alone, so tree-shaking leaves the page root out of it
+  (`apps/mcp-server/test/view-bundle.test.ts`).
 - **View builders** (`./server`): `buildViewResult(data, summary)` (a show tool's result: the
   `structuredContent` IS the view's data, the text what the model reads: a short summary or,
   where the model needs the figures, the result as compact JSON) and

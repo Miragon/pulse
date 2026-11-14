@@ -23,9 +23,18 @@ export {
   type MountViewOptions,
   type MountViewsOptions,
 } from "./view-root.js"
+// The page root: a view on a page outside a chat, under the browser adapter instead of ext-apps.
+export { mountPage, type MountPageOptions } from "./page-root.js"
+export type { BrowserHostOptions, ToolCaller } from "./browser-view-host.js"
 export { ViewStack, type ViewComponent, type ViewMap, type ViewProps } from "./views.js"
 export { ViewErrorBoundary } from "./view-error-boundary.js"
-export { HostModelContext, useViewHost, type ViewHost } from "./view-host.js"
+export {
+  HostModelContext,
+  useHostFollowUp,
+  useViewHost,
+  type FollowUp,
+  type ViewHost,
+} from "./view-host.js"
 export {
   createViewQueryClient,
   useQueryClient,

@@ -19,6 +19,11 @@ export interface KitLabels {
   idCopied: string
   copyFailed: string
   copyFailedHint: string
+  /** A hand-off where the host posts to no chat: its prompt, copied for a chat of the user's own. */
+  copyPrompt: (handOff: string) => string
+  promptCopied: string
+  promptCopyFailed: string
+  promptCopyFailedHint: string
   fullId: string
   working: string
   rowsShown: (p: { shown: string; total: string }) => string
@@ -65,6 +70,11 @@ const LABELS: Record<Locale, KitLabels> = {
     idCopied: "ID copied",
     copyFailed: "Couldn't copy the ID",
     copyFailedHint: "The full ID is now selected. Copy it yourself.",
+    copyPrompt: (handOff) => `Copy prompt: ${handOff}`,
+    promptCopied: "Prompt copied. Paste it into your chat.",
+    promptCopyFailed: "Couldn't copy the prompt",
+    promptCopyFailedHint:
+      "This page can't write to the clipboard. Allow it in your browser and try again.",
     fullId: "Full ID",
     working: "Working…",
     rowsShown: ({ shown, total }) => `${shown} of ${total} shown`,
@@ -108,6 +118,11 @@ const LABELS: Record<Locale, KitLabels> = {
     idCopied: "ID kopiert",
     copyFailed: "Die ID ließ sich nicht kopieren",
     copyFailedHint: "Die ganze ID ist jetzt markiert. Kopier sie selbst.",
+    copyPrompt: (handOff) => `Prompt kopieren: ${handOff}`,
+    promptCopied: "Prompt kopiert. Füg ihn in deinen Chat ein.",
+    promptCopyFailed: "Der Prompt ließ sich nicht kopieren",
+    promptCopyFailedHint:
+      "Die Seite darf nicht in die Zwischenablage schreiben. Erlaub es im Browser und versuch es noch mal.",
     fullId: "Ganze ID",
     working: "Wird ausgeführt…",
     rowsShown: ({ shown, total }) => `${shown} von ${total} angezeigt`,

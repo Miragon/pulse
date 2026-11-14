@@ -23,7 +23,7 @@ import { useDisplayModeControl } from "./display-mode-toggle.js"
 import { useInlineBudget } from "./inline-budget.js"
 import { useShellHost } from "./shell-host.js"
 import { createTestQueryClient, TestViewHost, type HostAction } from "./test-view-host.js"
-import { HostModelContext, useViewHost } from "./view-host.js"
+import { HostModelContext, useHostFollowUp, useViewHost } from "./view-host.js"
 import { useHostDisplayMode } from "./widget-shell.js"
 
 afterEach(cleanup)
@@ -95,6 +95,24 @@ describe("TestViewHost: what the widget asked the host", () => {
     ])
   })
 
+  it("posts a hand-off as a chat host does unless a test names another follow-up", () => {
+    expect(hostWith().followUp).toBe("chat")
+    expect(hostWith({ followUp: "copy" }).followUp).toBe("copy")
+    expect(hostWith({ followUp: "none" }).followUp).toBe("none")
+  })
+
+  it("tells a widget what a hand-off does without handing it the tool caller", () => {
+    const followUpUnder = (followUp?: "chat" | "copy" | "none") =>
+      renderHook(() => useHostFollowUp(), {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <TestViewHost followUp={followUp}>{children}</TestViewHost>
+        ),
+      }).result.current
+    expect(followUpUnder()).toBe("chat")
+    expect(followUpUnder("copy")).toBe("copy")
+    expect(followUpUnder("none")).toBe("none")
+  })
+
   it("reports each mounted model context, the last writer last", async () => {
     const lines: string[] = []
     render(
@@ -150,6 +168,25 @@ describe("TestViewHost: what the widget asked the host", () => {
       </TestViewHost>,
     )
     expect(screen.getByText("true")).toBeTruthy()
+  })
+
+  it("offers no switch where the host offers its one mode alone, as a page its fullscreen", () => {
+    function Probe() {
+      return <p>{String(useDisplayModeControl().canFullscreen)}</p>
+    }
+    render(
+      <TestViewHost host={{ displayMode: "fullscreen", availableDisplayModes: ["fullscreen"] }}>
+        <Probe />
+      </TestViewHost>,
+    )
+    expect(screen.getByText("false")).toBeTruthy()
+    cleanup()
+    render(
+      <TestViewHost host={{ displayMode: "inline", availableDisplayModes: ["inline"] }}>
+        <Probe />
+      </TestViewHost>,
+    )
+    expect(screen.getByText("false")).toBeTruthy()
   })
 
   it("derives the inline budget as production does: capped inline, expanding to fullscreen", () => {
@@ -225,7 +262,7 @@ describe("TestViewHost: providers", () => {
   it("throws a clear error outside any host", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {})
     expect(() => renderHook(() => useViewHost())).toThrow(
-      "[pulse] useViewHost() needs mountViews/mountView or TestViewHost",
+      "[pulse] useViewHost() needs mountViews/mountView, mountPage or TestViewHost",
     )
     error.mockRestore()
   })

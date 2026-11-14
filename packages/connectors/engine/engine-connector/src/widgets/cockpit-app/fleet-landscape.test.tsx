@@ -181,8 +181,22 @@ describe("the cross-engine landscape, read from each engine", () => {
     expect(new Set(calls)).toEqual(
       new Set([ENGINE_COCKPIT_OVERVIEW_DATA, ENGINE_JOB_BACKLOG_DATA, ENGINE_HEALTH_DATA]),
     )
+    expect(screen.getByText("Analyses across all engines")).toBeTruthy()
     expect(screen.getByRole("button", { name: "Analyze failures in chat" })).toBeTruthy()
     expect(screen.queryByRole("button", { name: "Analyze performance in chat" })).toBeNull()
+  })
+
+  it("shows no analyses section, nor the header's hand-off, where the host shows no hand-off", async () => {
+    render(
+      <TestViewHost tools={TOOLS} client={queryClient} followUp="none">
+        <FleetView engines={[{ id: "prod-a" }, { id: "prod-b" }]} onEnterEngine={() => {}} />
+      </TestViewHost>,
+    )
+    await screen.findByRole("region", { name: "Process definitions by engine" })
+    expect(screen.getByRole("heading", { name: "Cross-engine overview" })).toBeTruthy()
+    expect(screen.queryByText("Analyses across all engines")).toBeNull()
+    expect(screen.queryByText("the AI runs these analyses in the chat")).toBeNull()
+    expect(screen.queryByRole("button", { name: /in chat$/ })).toBeNull()
   })
 
   it("counts nothing while no engine has answered: unknown, never 0", async () => {

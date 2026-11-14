@@ -1,7 +1,16 @@
-import { Button, useLocale, Icon, type LucideIcon, MENU_ITEM } from "@miragon/pulse-ui"
-import { MessageSquare } from "lucide-react"
+import {
+  Button,
+  useLocale,
+  useToast,
+  Icon,
+  type LucideIcon,
+  MENU_ITEM,
+  type ToastApi,
+} from "@miragon/pulse-ui"
+import { Copy, MessageSquare } from "lucide-react"
 import type { AskAiPrompt } from "./ask-ai-prompt.js"
-import { kitLabels } from "./kit-labels.js"
+import { copyText } from "./id-text.js"
+import { kitLabels, type KitLabels } from "./kit-labels.js"
 import { useViewHost } from "./view-host.js"
 
 /**
@@ -35,26 +44,65 @@ export interface AskAiButtonProps {
 
 const ICON_SIZE = { sm: "icon-sm", xs: "icon-xs" } as const
 
-/** The ONLY owner of the hand-off follow-up (a structural test fails on any other). Navigation and mutations must not use it. */
-export function AskAiButton({
-  prompt,
-  icon = MessageSquare,
-  label,
-  variant = "subtle",
-  size = "sm",
-  title,
-  disabled,
-  onSent,
-}: AskAiButtonProps) {
-  const { sendFollowUp } = useViewHost()
-  const locale = useLocale()
-  if (prompt === null) return null
-  // The kit has no catalog, so the default verb follows the ambient locale instead of leaking English.
-  const effectiveLabel = label ?? kitLabels(locale).askAiDefault
-  const send = () => {
-    sendFollowUp(prompt)
-    onSent?.()
+/** The hand-off as this host does it: posted into the chat, or its prompt copied for one. */
+interface HandOff {
+  icon: LucideIcon
+  label: string
+  title: string | undefined
+  run: () => void
+}
+
+async function copyPrompt(prompt: AskAiPrompt, toast: ToastApi, words: KitLabels): Promise<void> {
+  if (await copyText(prompt)) {
+    toast.show({ tone: "success", title: words.promptCopied })
+  } else {
+    toast.show({
+      tone: "danger",
+      title: words.promptCopyFailed,
+      description: words.promptCopyFailedHint,
+    })
   }
+}
+
+/** `null` where the host shows no hand-off; where it posts to no chat, the prompt is copied. */
+function useHandOff(
+  prompt: AskAiPrompt | null,
+  { icon = MessageSquare, label, title, onSent }: AskAiButtonProps,
+): HandOff | null {
+  const { sendFollowUp, followUp } = useViewHost()
+  const toast = useToast()
+  // The kit has no catalog, so the default verb follows the ambient locale instead of leaking English.
+  const words = kitLabels(useLocale())
+  if (prompt === null || followUp === "none") return null
+  const chatLabel = label ?? words.askAiDefault
+  if (followUp === "copy") {
+    return {
+      icon: Copy,
+      label: words.copyPrompt(chatLabel),
+      title: title === undefined ? undefined : words.copyPrompt(title),
+      run: () => {
+        void copyPrompt(prompt, toast, words)
+        onSent?.()
+      },
+    }
+  }
+  return {
+    icon,
+    label: chatLabel,
+    title,
+    run: () => {
+      sendFollowUp(prompt)
+      onSent?.()
+    },
+  }
+}
+
+/** The ONLY owner of the hand-off follow-up (a structural test fails on any other). Navigation and mutations must not use it. */
+export function AskAiButton(props: AskAiButtonProps) {
+  const { prompt, variant = "subtle", size = "sm", disabled } = props
+  const handOff = useHandOff(prompt, props)
+  if (handOff === null) return null
+  const { icon, label, title, run } = handOff
   if (variant === "menuitem") {
     return (
       <button
@@ -64,10 +112,10 @@ export function AskAiButton({
         disabled={disabled}
         title={title}
         className={MENU_ITEM}
-        onClick={send}
+        onClick={run}
       >
         <Icon icon={icon} />
-        {effectiveLabel}
+        {label}
       </button>
     )
   }
@@ -78,11 +126,11 @@ export function AskAiButton({
         variant="toolbar"
         size="sm"
         disabled={disabled}
-        title={title ?? effectiveLabel}
-        onClick={send}
+        title={title ?? label}
+        onClick={run}
       >
         <Icon icon={icon} />
-        {effectiveLabel}
+        {label}
       </Button>
     )
   }
@@ -93,12 +141,12 @@ export function AskAiButton({
       variant="outline"
       size={isIcon ? ICON_SIZE[size] : size}
       disabled={disabled}
-      aria-label={isIcon ? (title ?? effectiveLabel) : undefined}
-      title={isIcon ? (title ?? effectiveLabel) : title}
-      onClick={send}
+      aria-label={isIcon ? (title ?? label) : undefined}
+      title={isIcon ? (title ?? label) : title}
+      onClick={run}
     >
       <Icon icon={icon} />
-      {!isIcon && effectiveLabel}
+      {!isIcon && label}
     </Button>
   )
 }

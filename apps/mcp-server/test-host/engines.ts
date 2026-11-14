@@ -31,3 +31,8 @@ export const OWN_VIEW_HOST_ENV = "HOST_SIM_OWN_VIEW_URL"
 /** That module's view tool and feed (own-view-module.ts). */
 export const OWN_VIEW_TOOL = "board_show_board"
 export const OWN_VIEW_FEED = "board_cards_data"
+/**
+ * Env var carrying the path of the plain page's built script (global-setup.ts): the default
+ * deployment serves that page at `/page` (page-root.spec.ts).
+ */
+export const PAGE_SCRIPT_ENV = "HOST_SIM_PAGE_SCRIPT"

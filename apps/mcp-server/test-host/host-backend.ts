@@ -19,8 +19,17 @@ export interface HostBackend {
   close(): Promise<void>
 }
 
+/** The plain page (page/index.html) and the two files it loads, from where the setup built them. */
+export interface PageFiles {
+  /** The page's script: `page/main.ts`, built by global-setup.ts. */
+  script: string
+  /** The served view bundle's stylesheet, `dist/mcp-app.css`. */
+  stylesheet: string
+}
+
 const MAX_BODY_BYTES = 1024 * 1024
 const HOST_PAGE = path.join(import.meta.dirname, "host-sim.html")
+const PLAIN_PAGE = path.join(import.meta.dirname, "page", "index.html")
 
 async function readJsonBody(req: http.IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = []
@@ -56,17 +65,45 @@ const errorBody = (err: unknown) => ({
   error: { message: err instanceof Error ? err.message : String(err) },
 })
 
+async function sendFile(res: http.ServerResponse, file: string, type: string): Promise<void> {
+  res.writeHead(200, { "content-type": type })
+  res.end(await readFile(file))
+}
+
+/** The plain page's routes, where the setup built its script. */
+async function routePage(
+  page: PageFiles | undefined,
+  endpoint: string,
+  res: http.ServerResponse,
+): Promise<boolean> {
+  if (!page) return false
+  switch (endpoint) {
+    case "GET /page":
+      await sendFile(res, PLAIN_PAGE, "text/html; charset=utf-8")
+      return true
+    case "GET /page/page.js":
+      await sendFile(res, page.script, "text/javascript; charset=utf-8")
+      return true
+    case "GET /page/mcp-app.css":
+      await sendFile(res, page.stylesheet, "text/css; charset=utf-8")
+      return true
+    default:
+      return false
+  }
+}
+
 async function route(
   client: Client,
+  page: PageFiles | undefined,
   req: http.IncomingMessage,
   res: http.ServerResponse,
 ): Promise<void> {
   const url = new URL(req.url ?? "/", "http://host")
   const endpoint = `${req.method} ${url.pathname}`
+  if (await routePage(page, endpoint, res)) return
   switch (endpoint) {
     case "GET /":
-      res.writeHead(200, { "content-type": "text/html; charset=utf-8" })
-      res.end(await readFile(HOST_PAGE))
+      await sendFile(res, HOST_PAGE, "text/html; charset=utf-8")
       return
     case "GET /favicon.ico":
       // Keeps the browser's automatic request out of the console-error check.
@@ -102,10 +139,12 @@ async function route(
  * - `GET /host/view?tool` {@link HostView} for one view-bound tool
  * - `POST /host/call`     `{ name, arguments }` → `{ result }` | `{ error }`
  *   (a tool's `isError` result is a `result`; only protocol failures are errors)
+ * - `GET /page`           with `page`: a plain page outside a chat (page/index.html), whose
+ *   views call `POST /host/call` themselves through the caller it hands `mountPage`
  */
-export async function startHostBackend(client: Client): Promise<HostBackend> {
+export async function startHostBackend(client: Client, page?: PageFiles): Promise<HostBackend> {
   const server = http.createServer((req, res) => {
-    route(client, req, res).catch((err: unknown) => sendJson(res, 500, errorBody(err)))
+    route(client, page, req, res).catch((err: unknown) => sendJson(res, 500, errorBody(err)))
   })
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve))
   const { port } = server.address() as AddressInfo

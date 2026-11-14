@@ -53,7 +53,7 @@ command line interface (`apps/cli`), a VS Code extension (`apps/vscode`) and an 
 | `packages/connectors/c7/c7-core/`              | The core of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-core`), its workflow domain and pure engine REST rules: port, selection, inspect, status triage, the root cause of an incident (`causeOf`), retry/advance plans, dates, filters, variable writes, the one spec and its routes (`routeOf`, `intentOf`, `./routes`); one runtime dependency, engine-core's main entry                               |
 | `packages/connectors/c7/c7-adapter/`           | The C7 adapter of the runtime view (`@miragon/pulse-c7-adapter`, private): its REST client and the mapping onto the contract of `engine-core`, over c7-core; bundled by the editor hosts                                                                                                                                                                                                                                   |
 | `packages/core/ui/`                            | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the formatters and the tones without React under `/format` and `/tones`, the brand gates under `/testing`                                                                                 |
-| `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), a module's test server (`/testing`)                                                                                                                                                             |
+| `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, `mountPage`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), a module's test server (`/testing`)                                                                                                                                                |
 | `packages/core/runtime-view/`                  | The runtime view both editor hosts compose (`@miragon/pulse-runtime-view`, private) over the contract of `engine-core`: the ports a host and an engine family plug in, the core, the protocol, the webview (React on `@miragon/pulse-ui`), the local model reader and the host kit (targets from `.pulse.json`, policies, the write audit)                                                                                 |
 | `packages/core/profile/`                       | The one profile format of the CLI, the editor hosts and the MCP server (npm `@miragon/pulse-profile`): a parser from a file's text to a verdict per profile as data (a code and a key, never a value), the credential policy by where the file comes from, `refusalsOn` for what a reader cannot serve, the JSON Schema (`schema/pulse.schema.json`) and the shared fixtures (`/testing`); no runtime dependency           |
 | `packages/core/http/`                          | The one engine transport of the MCP server, the CLI and the editor hosts' adapters (npm `@miragon/pulse-http`) over the `fetch` each hands in: a deadline to the last byte, no redirects, a 64 MiB cap, one retry after a 401, reasons as data, lossless JSON, masking, the path value rule; the OAuth client (`/oauth`); conformance cases, fake fetch (`/testing`), loopback engine (`/testing/loopback`); no dependency |
@@ -513,13 +513,24 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      (`packages/core/widget-shell/src/pulse-ui-overlap.test.ts`). A form says an invalid
      entry inline next to the control it marks `aria-invalid` (pulse-ui's `Field` wires both),
      never clamps it silently.
-   - **The view runtime is widget-shell's.** Its host adapter (`ExtAppsViewHost` in
+   - **The view runtime is widget-shell's.** Its host adapter in a chat (`ExtAppsViewHost` in
      `src/ui/ext-apps-host.tsx` over the official `App` of `@modelcontextprotocol/ext-apps` in
      `src/ui/view-runtime.ts`, mounted by `src/ui/view-root.tsx`) is the ONE place that speaks to
      the host: it mounts the
      host-agnostic contexts every widget reads (`HostContexts`, from one `ShellHost` and one
      `ViewHost`), as `TestViewHost` does in tests, so another host (a web app, a VS Code
-     webview) brings an adapter of its own and never touches a widget.
+     webview) brings an adapter of its own and never touches a widget. The second adapter is a
+     page's outside a chat (the web app's root): `mountPage(views, options)`
+     (`src/ui/page-root.tsx`) mounts a view under `BrowserViewHost` (`src/ui/browser-view-host.tsx`:
+     tools through the caller the page hands in, the theme from `data-cd-theme` else the OS, the
+     page's locale, fullscreen without a switch, no model context, no ext-apps import) and the
+     same providers as `ViewRoot` (`src/ui/view-providers.tsx`), calls the view tool itself and
+     tree-shakes out of the MCP bundle (`apps/mcp-server/test/view-bundle.test.ts`; test:host's
+     `page-root.spec.ts` renders the cockpit on such a page). What a hand-off does is the view
+     host's `followUp`: `chat` posts it, a page that posts to no chat says `copy` (its prompt to
+     copy) or `none` (hidden), and `AskAiButton` reads it, as does a widget whose menu,
+     column or section holds hand-offs alone (`useHostFollowUp`, no tool caller), so `none`
+     leaves no empty menu.
      The root's call hook (`useViewCall` over `resolveViewCall`) owns the stripped-result
      recovery: a host that drops `structuredContent` gets ONE re-run of the view's own view
      tool, so every view-bound tool is a read (`apps/mcp-server/test/view-registry.test.ts`).

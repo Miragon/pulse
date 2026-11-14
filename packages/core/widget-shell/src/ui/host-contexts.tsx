@@ -15,9 +15,9 @@ export type RequestDisplayMode = (mode: "inline" | "fullscreen") => void
 /**
  * The host-agnostic contexts every widget reads, all derived from ONE `ShellHost`: the display
  * mode, the fullscreen switch, the inline budget (#396) and the view host. The ext-apps adapter
- * (`ext-apps-host.tsx`) and `TestViewHost` both mount it, so a widget test sees the production
- * derivation: inline, the BPMN canvas is capped and "show more" asks for fullscreen where the
- * host offers it.
+ * (`ext-apps-host.tsx`), the browser adapter (`browser-view-host.tsx`) and `TestViewHost` all mount
+ * it, so a widget test sees the production derivation: inline, the BPMN canvas is capped and "show
+ * more" asks for fullscreen where the host offers it.
  */
 export function HostContexts({
   shell,
@@ -31,15 +31,14 @@ export function HostContexts({
   requestDisplayMode: RequestDisplayMode
   children: ReactNode
 }) {
-  const { displayMode } = shell
-  const offersFullscreen = shell.availableDisplayModes.includes("fullscreen")
+  const { displayMode, availableDisplayModes: modes } = shell
+  const offersFullscreen = modes.includes("fullscreen")
+  // A host that offers its one mode alone (a page: fullscreen) has nothing to switch to.
+  const switchable = modes.length !== 1 || modes[0] !== displayMode
+  const canFullscreen = switchable && (displayMode === "fullscreen" || offersFullscreen)
   const control = useMemo<DisplayModeControl>(
-    () => ({
-      displayMode,
-      canFullscreen: displayMode === "fullscreen" || offersFullscreen,
-      request: requestDisplayMode,
-    }),
-    [displayMode, offersFullscreen, requestDisplayMode],
+    () => ({ displayMode, canFullscreen, request: requestDisplayMode }),
+    [displayMode, canFullscreen, requestDisplayMode],
   )
   const budget = useMemo<InlineBudget>(
     () =>

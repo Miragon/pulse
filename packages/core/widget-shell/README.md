@@ -65,7 +65,7 @@ variables only; the widgets follow the host's theme, then the OS.
 | Tool authoring | `./server`  | The registrar (`createToolRegistrar`, `withToolErrors`), `showToolBinding`, `OwnViewBinding`, `AppResourceCsp`, `appOnly`, `strictToolInput`, `buildViewResult`, `buildDataFeedResult`, `decodeToolResult`, `createTranslator` |
 | Server helpers | `./server`  | The BPMN-name readers (`readBpmnNames`, `parseBpmnNames`), the per-caller request info (`callerCacheKey`, `getMcpRequestInfo`, `runWithMcpRequestInfo`), `composedEnvVars`, `viewResourceUri`, `viewPrelude`                   |
 | Bundle build   | `./server`  | `VIEW_BUNDLE_DEDUPE`, `viewBundleWatchPlugin`, and the served fonts (`installFontAssets`, `fontAssetsCsp`)                                                                                                                     |
-| View runtime   | `./widgets` | `mountViews`, the view host (`useViewHost`, `HostModelContext`), the query hooks (`useToolQuery`, `useToolQueries`, `useToolMutation`, `useViewData`), `TestViewHost` for tests                                                |
+| View runtime   | `./widgets` | `mountViews`, `mountPage` for a page outside a chat, the view host (`useViewHost`, `HostModelContext`), the query hooks (`useToolQuery`, `useToolQueries`, `useToolMutation`, `useViewData`), `TestViewHost` for tests         |
 | Host-bound UI  | `./widgets` | `WidgetShell`, `ListTable` + `PagedRows`, `IdCell`/`IdText`, `describeError`, `useActionFeedback`, `ConfirmDialog`, the hand-offs (`HAND_OFF_ACTIONS`, `AskAiButton` for one it does not list) and the BPMN viewer             |
 | Module tests   | `./testing` | `recordingModuleServer` and `testServerContext` for a module's tools, prompts and resources                                                                                                                                    |
 
@@ -86,6 +86,34 @@ brand gates and the product glossary every widget package checks its catalogs ag
 for one. Without an OAuth provider the boot runs unauthenticated with one warning, and a module
 with toolsets runs its read-only floor; the providers and what fails the boot are under
 [Security](https://miragon.github.io/pulse/mcp/operations#security).
+
+## A view on a page outside a chat
+
+`mountPage(views, options)` mounts one view on a plain page, a web app's say, without the MCP
+Apps runtime: the page hands in a caller for the server's tools (a fetch to its `/mcp` endpoint)
+and the view calls its own view tool with `args`, then runs under the same providers as in a
+chat, so every widget works unchanged. The page's theme follows a `data-cd-theme` it sets on
+`<html>`, else the OS; its language the `locale` option, else the document's `lang`, else the
+browser's. It owns its viewport, so it shows fullscreen with no switch, and nothing reaches a
+model. A page posts into no chat, so a hand-off shows only where the page asks for it to be
+copied (`followUp: "copy"`); a widget asks the host's `followUp` with `useHostFollowUp()`, so a
+menu, a column or a section that holds hand-offs alone shows not at all where they are hidden.
+
+```ts
+import { mountPage } from "@miragon/pulse-widget-shell/widgets"
+import { engineViews } from "@miragon/pulse-engine-connector/widgets"
+
+mountPage(engineViews, {
+  view: "engine_open_cockpit",
+  args: { engine: "prod" },
+  // Your page's call of a server tool, resolving with its raw result (an `isError` one too).
+  callTool: (name, args) => callServerTool(name, args),
+  followUp: "copy",
+})
+```
+
+The MCP bundle never carries it: tree-shaking leaves `mountPage` out of a bundle that mounts
+with `mountViews`.
 
 ## Peers and the SDK
 

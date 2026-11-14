@@ -23,7 +23,7 @@ import {
 
 import type { ActivityIncidentsData, IncidentInstance } from "../../view-models.js"
 import { ENGINE_ACTIVITY_INCIDENTS_DATA } from "../../tool-names.js"
-import { useHandOff, type HandOff } from "../lib/hand-off.js"
+import { useHandOff, useHandOffsShown, type HandOff } from "../lib/hand-off.js"
 import { useT } from "../../messages/use-t.js"
 import { EngineActionDialog } from "../lib/engine-action-dialog.js"
 import { useIncidentRecovery, type IncidentRecoveryState } from "./use-incident-recovery.js"
@@ -126,6 +126,7 @@ export function IncidentTable({
 }) {
   const t = useT()
   const { ask } = useHandOff()
+  const handOffs = useHandOffsShown()
   const byInstance = subject === "instance"
 
   // Each row is one line at the row height: the subject, the time and the actions fit their
@@ -204,16 +205,19 @@ export function IncidentTable({
                       {t("procIncTable.open")}
                     </DrillButton>
                     <RecoveryButton incident={incident} recovery={recovery} />
-                    <MoreActions label={t("procIncTable.moreActions")}>
-                      {instanceUrl && (
-                        <OpenInCockpitLink url={instanceUrl} vendor={vendor} variant="menuitem" />
-                      )}
-                      <HandOffButton
-                        action="draftTicket"
-                        variant="menuitem"
-                        prompt={ask(draftIncidentTicketHandOff(incident, engine))}
-                      />
-                    </MoreActions>
+                    {/* A menu only while one of its entries shows. */}
+                    {(instanceUrl || handOffs) && (
+                      <MoreActions label={t("procIncTable.moreActions")}>
+                        {instanceUrl && (
+                          <OpenInCockpitLink url={instanceUrl} vendor={vendor} variant="menuitem" />
+                        )}
+                        <HandOffButton
+                          action="draftTicket"
+                          variant="menuitem"
+                          prompt={ask(draftIncidentTicketHandOff(incident, engine))}
+                        />
+                      </MoreActions>
+                    )}
                   </div>
                 )}
               </Td>

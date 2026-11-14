@@ -1,6 +1,6 @@
 import { HandOffButton } from "@miragon/pulse-widget-shell/widgets"
 import { PagedHistoryView } from "../history-timeline.js"
-import { useHandOff, type HandOff } from "../lib/hand-off.js"
+import { useHandOff, useHandOffsShown, type HandOff } from "../lib/hand-off.js"
 
 /** Walk ONE instance's activity history: where the token spent its time. */
 function explainTimelineHandOff(
@@ -29,14 +29,17 @@ export function HistoryTab({
   incidentActivityIds: readonly string[]
 }) {
   const { ask } = useHandOff()
+  const handOffs = useHandOffsShown()
   return (
     <>
-      <div className="mb-2">
-        <HandOffButton
-          action="explainTimeline"
-          prompt={ask(explainTimelineHandOff(instanceId, definitionId, engineId))}
-        />
-      </div>
+      {handOffs && (
+        <div className="mb-2">
+          <HandOffButton
+            action="explainTimeline"
+            prompt={ask(explainTimelineHandOff(instanceId, definitionId, engineId))}
+          />
+        </div>
+      )}
       {/* Mounted on first tab activation: the lazy-load point. */}
       <PagedHistoryView
         processInstanceId={instanceId}

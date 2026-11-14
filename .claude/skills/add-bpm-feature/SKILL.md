@@ -387,8 +387,9 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   name passes its rows through `nameUnnamedDefinitions` (a Modeler pool around an unnamed
   process names it, as in every view). A row keeps ONE deterministic action;
   its vendor link and chat hand-offs sit behind `MoreActions`, as `variant="menuitem"`
-  entries (`HandOffButton`, `OpenInCockpitLink`); a confirmation names an instance with
-  `instanceTargetLines` (business key, then short id)
+  entries (`HandOffButton`, `OpenInCockpitLink`), and a menu, a column or a section that holds
+  hand-offs alone renders only under `useHandOffsShown()` (a page may show none); a
+  confirmation names an instance with `instanceTargetLines` (business key, then short id)
 - Status: a `ToneVariant` (`danger`/`warning`/`success`/`info`/`neutral`; open incident or
   failed job without retries = `danger` (`severityTone`/`countTone` from `@miragon/pulse-ui` is
   the one ladder for incident and job counts in every module, a count without a state stays

@@ -23,7 +23,15 @@ const SERVER_CODE =
 /** A Node built-in stays external, so a leak shows as an import of the output. */
 const NODE_BUILTINS = [...builtinModules, ...builtinModules.map((name) => `node:${name}`)]
 
-const BLOCKS = ["ListTable", "describeError", "ConfirmDialog", "TestViewHost", "useToolQuery"]
+/** The page root among them: a page outside a chat mounts its views without ext-apps. */
+const BLOCKS = [
+  "ListTable",
+  "describeError",
+  "ConfirmDialog",
+  "TestViewHost",
+  "useToolQuery",
+  "mountPage",
+]
 
 /** Bundles one export of the barrel: the server-side packages in the output, and its imports. */
 async function bundleOne(name: string) {

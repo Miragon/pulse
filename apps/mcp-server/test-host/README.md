@@ -26,6 +26,11 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
   `ui/initialize`, and proxies every `tools/call` the view makes to the server.
 - A scenario can size the frame (`width=<px>`; default 960): the layout
   scenarios render at the 760 px a chat gives an inline view.
+- `page/` is a plain page outside a chat, the web app's shape: `page/main.ts` mounts this
+  server's views with widget-shell's `mountPage` (no ext-apps, no frame), its caller posting
+  each tool call to the host backend's `/host/call`. `global-setup.ts` builds it with the view
+  bundle's Vite config into a temporary directory, and the default deployment serves it at
+  `/page` (`?view=&args=&followUp=copy&lang=&theme=`) with the built `dist/mcp-app.css`.
 - The rendering tool is the real `engine_open_cockpit` against the stub,
   opened on its overview unless a scenario names a `view` (the jobs, a process
   for the BPMN scenario, the instances on the realistic engine for the
@@ -92,6 +97,7 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
 | a module's own view        | a tool bound to a resource of its module                               | the finished document renders from that URI under its own CSP, no prelude, its feed answers through the host (`own-view.spec.ts`)                                                                                                                                                                                                                                               |
 | refused profile            | the picker, one profile refused                                        | the refused engine reads "profile refused", opening it says why in en and de, `engine_open_cockpit` on it opens the picker (`refused-profile.spec.ts`)                                                                                                                                                                                                                          |
 | refused login              | the picker, engines that answer 401 and 403                            | "credentials rejected", "access denied", a key (en, de), not "unreachable"; counted apart as a warning, never "not answered" (`refused-login.spec.ts`)                                                                                                                                                                                                                          |
+| page outside a chat        | `/page`: `mountPage` with the page's caller, no ext-apps               | the cockpit's overview from one view call through the caller, every row (no fit), no Fullscreen, zero axe violations; a section's feed through the caller; the page's `lang` and `data-cd-theme` (switched at runtime); hand-offs hidden, or "Copy prompt: …" copying the prompt; the page's script without ext-apps' `ui/initialize` (`page-root.spec.ts`)                     |
 
 **The cockpit's chrome inline.** Every scenario of the engine module renders the cockpit, whose head
 (sections, engine switch, Refresh) sits above the route. Inline the head is the only row: a

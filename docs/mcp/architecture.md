@@ -95,15 +95,16 @@ A few layering rules keep modules independently usable and a second engine diale
 
 A widget never talks to its host. It reads host-agnostic contexts from widget-shell's view
 runtime (`useViewHost` for tool calls and hand-offs, the theme, locale, display mode and height
-budget), and one adapter fills them: today the MCP Apps adapter over the official `App` of
+budget), and an adapter fills them: in a chat the MCP Apps adapter over the official `App` of
 `@modelcontextprotocol/ext-apps`, the only code that imports its view runtime (an ESLint gate
-keeps it so). `TestViewHost` fills the same contexts in tests and publishes the formatters'
-locale as the view root does, so a widget test reads the same on every machine.
+keeps it so), on a page outside a chat the browser adapter of `mountPage`. `TestViewHost` fills
+them in tests and publishes the formatters' locale as the view root does, so a widget test reads
+the same on every machine.
 
-The MCP Apps host is therefore one host among several possible ones. A web app that shows the
-same React components brings an adapter of its own and leaves the widgets as they are. The engine
-module's widgets still read the Camunda 7 REST family's data. Components for Camunda 8 would read
-engine-core's contract, as the runtime view does: a design question of its own.
+The MCP Apps host is one host among several: a web app shows the same components through
+`mountPage` (a caller for the server's tools from the page; a hand-off, posting into no chat there,
+hidden or offering its prompt to copy). The engine module's widgets read the Camunda 7 REST
+family's data; Camunda 8 components would read engine-core's contract, a design question of its own.
 
 ## What the UIs share
 

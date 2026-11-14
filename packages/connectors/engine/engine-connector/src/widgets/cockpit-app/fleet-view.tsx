@@ -17,7 +17,7 @@ import {
 } from "../../lib/shared/environments.js"
 import { useT } from "../../messages/use-t.js"
 import { AlarmCount } from "../lib/alarm-count.js"
-import { useHandOff, type HandOff } from "../lib/hand-off.js"
+import { useHandOff, useHandOffsShown, type HandOff } from "../lib/hand-off.js"
 import { isHealthFailure } from "../lib/health-verdict.js"
 import { useEngineHealth } from "./engine-health.js"
 import { FleetLandscape } from "./fleet-landscape.js"
@@ -154,6 +154,7 @@ export function FleetView({
 }) {
   const t = useT()
   const { ask } = useHandOff()
+  const handOffs = useHandOffsShown()
   const ids = engines.map((e) => e.id)
   // The fleet itself stays all engines, across environments.
   const engineGroups = groupEnginesByEnvironment(engines)
@@ -166,7 +167,9 @@ export function FleetView({
         size="app"
         title={t("fleet.heading")}
         sub={t("fleet.engineCount", { count: formatNumber(engines.length), list: idList })}
-        actions={<HandOffButton action="assess" prompt={ask(fleetOverviewHandOff(fleet))} />}
+        actions={
+          handOffs && <HandOffButton action="assess" prompt={ask(fleetOverviewHandOff(fleet))} />
+        }
       />
 
       <section className="gap-section flex flex-col">
@@ -190,15 +193,18 @@ export function FleetView({
 
       <FleetLandscape engineIds={ids} />
 
-      <section>
-        <SectionHeading
-          title={t("fleet.fleetAnalyses.title")}
-          hint={t("fleet.fleetAnalyses.hint")}
-        />
-        <div className="flex flex-wrap items-center gap-2">
-          <HandOffButton action="analyzeFailures" prompt={ask(fleetFailuresHandOff(fleet))} />
-        </div>
-      </section>
+      {/* Its analyses are hand-offs only: a host that shows none gets no section. */}
+      {handOffs && (
+        <section>
+          <SectionHeading
+            title={t("fleet.fleetAnalyses.title")}
+            hint={t("fleet.fleetAnalyses.hint")}
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <HandOffButton action="analyzeFailures" prompt={ask(fleetFailuresHandOff(fleet))} />
+          </div>
+        </section>
+      )}
     </div>
   )
 }

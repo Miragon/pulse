@@ -24,7 +24,7 @@ import type {
 import { useNav } from "../navigation.js"
 import { ENGINE_INCIDENTS_DATA } from "../../tool-names.js"
 import { GroupSummaryRow } from "../group-summary-row.js"
-import { useHandOff, type HandOff } from "../lib/hand-off.js"
+import { useHandOff, useHandOffsShown, type HandOff } from "../lib/hand-off.js"
 import { MoreActions } from "../lib/more-actions.js"
 import { useT, type T } from "../../messages/use-t.js"
 import { dashboardScope, incidentsFeed } from "./scope.js"
@@ -101,6 +101,7 @@ function ProcessSummary({
 }) {
   const t = useT()
   const { ask } = useHandOff()
+  const handOffs = useHandOffsShown()
   const cockpitUrl = process.cockpitUrl
   const name = process.processDefinitionName ?? process.processDefinitionKey
   const facts = [
@@ -147,16 +148,19 @@ function ProcessSummary({
           >
             {t("incidentsList.open")}
           </DrillButton>
-          <MoreActions label={t("incidentsList.moreActions", { name })}>
-            {cockpitUrl && (
-              <OpenInCockpitLink url={cockpitUrl} vendor={vendor} variant="menuitem" />
-            )}
-            <HandOffButton
-              action="findCause"
-              variant="menuitem"
-              prompt={ask(processRootCauseHandOff(process, engineId, filters))}
-            />
-          </MoreActions>
+          {/* A menu only while one of its entries shows. */}
+          {(cockpitUrl || handOffs) && (
+            <MoreActions label={t("incidentsList.moreActions", { name })}>
+              {cockpitUrl && (
+                <OpenInCockpitLink url={cockpitUrl} vendor={vendor} variant="menuitem" />
+              )}
+              <HandOffButton
+                action="findCause"
+                variant="menuitem"
+                prompt={ask(processRootCauseHandOff(process, engineId, filters))}
+              />
+            </MoreActions>
+          )}
         </div>
       </div>
     </div>

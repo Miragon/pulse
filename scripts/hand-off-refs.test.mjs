@@ -26,12 +26,16 @@ import { appOnlyFeeds } from "./tool-surface.mjs"
  */
 
 const PRIMITIVE = "packages/core/widget-shell/src/ui/ask-ai-button.tsx"
-/** The view runtime: the host seam, its MCP Apps adapter and the test host only pass the pen on. */
+/**
+ * The view runtime: the host seam, its MCP Apps adapter and the test host only pass the pen on; the
+ * browser adapter of a page outside a chat holds one that posts nothing.
+ */
 const RUNTIME = [
   "packages/core/widget-shell/src/ui/view-host.tsx",
   "packages/core/widget-shell/src/ui/ext-apps-host.tsx",
   "packages/core/widget-shell/src/ui/view-runtime.ts",
   "packages/core/widget-shell/src/ui/test-view-host.tsx",
+  "packages/core/widget-shell/src/ui/browser-view-host.tsx",
 ]
 const FOLLOW_UP_HOLDERS = [PRIMITIVE, ...RUNTIME]
 const FOLLOW_UP_NAMES = new Set([

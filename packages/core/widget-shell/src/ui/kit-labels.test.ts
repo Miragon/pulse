@@ -11,6 +11,7 @@ function rendered(tag: string | undefined) {
     openInEngine: labels.openInVendor(undefined),
     opensInNewTab: labels.opensInNewTab("In CIB seven öffnen"),
     copyId: labels.copyId("5f0ce78e…"),
+    copyPrompt: labels.copyPrompt(handOff.findCause),
     rowsShown: labels.rowsShown({ shown: "8", total: "23" }),
     reloadedAt: labels.reloadedAt("14:32"),
   }
@@ -35,6 +36,11 @@ describe("kitLabels: the kit's own strings follow the active locale", () => {
         idCopied: "ID kopiert",
         copyFailed: "Die ID ließ sich nicht kopieren",
         copyFailedHint: "Die ganze ID ist jetzt markiert. Kopier sie selbst.",
+        copyPrompt: "Prompt kopieren: Ursache im Chat klären",
+        promptCopied: "Prompt kopiert. Füg ihn in deinen Chat ein.",
+        promptCopyFailed: "Der Prompt ließ sich nicht kopieren",
+        promptCopyFailedHint:
+          "Die Seite darf nicht in die Zwischenablage schreiben. Erlaub es im Browser und versuch es noch mal.",
         fullId: "Ganze ID",
         working: "Wird ausgeführt…",
         rowsShown: "8 von 23 angezeigt",
@@ -70,6 +76,11 @@ describe("kitLabels: the kit's own strings follow the active locale", () => {
         idCopied: "ID copied",
         copyFailed: "Couldn't copy the ID",
         copyFailedHint: "The full ID is now selected. Copy it yourself.",
+        copyPrompt: "Copy prompt: Find cause in chat",
+        promptCopied: "Prompt copied. Paste it into your chat.",
+        promptCopyFailed: "Couldn't copy the prompt",
+        promptCopyFailedHint:
+          "This page can't write to the clipboard. Allow it in your browser and try again.",
         fullId: "Full ID",
         working: "Working…",
         rowsShown: "8 of 23 shown",

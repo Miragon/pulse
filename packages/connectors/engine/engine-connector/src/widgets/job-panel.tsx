@@ -32,7 +32,7 @@ import { useEngineAction, type EngineAction } from "./lib/engine-action.js"
 import { MoreActions } from "./lib/more-actions.js"
 import { WriteError } from "./lib/write-error.js"
 import { instanceName, writeFeedback } from "./lib/write-feedback.js"
-import { useHandOff, type HandOff, type ViewContext } from "./lib/hand-off.js"
+import { useHandOff, useHandOffsShown, type HandOff, type ViewContext } from "./lib/hand-off.js"
 import { useT } from "../messages/use-t.js"
 
 export type { JobPanelData }
@@ -157,22 +157,76 @@ function JobSubject({ job, showProcess }: { job: Job; showProcess: boolean }) {
   )
 }
 
+/** A failed job's actions: its retry, then the hand-offs about it in its menu. */
+function JobActions({
+  job,
+  retry,
+  engineId,
+  handOffs,
+}: {
+  job: Job
+  retry: EngineAction<RetryArgs, unknown>
+  engineId: string
+  handOffs: boolean
+}) {
+  const t = useT()
+  const { ask } = useHandOff()
+  const name = job.activityName ?? job.activityId ?? job.id
+  if (retry.done.has(job.id)) return <DoneMark>{t("jobPanel.retried")}</DoneMark>
+  if (job.retries !== 0) return null
+  return (
+    // A row's actions are xs, so the row keeps the row height (28 px).
+    <div className="inline-flex items-center justify-end gap-1">
+      {retry.allowed && (
+        <Button
+          variant="outline"
+          size="xs"
+          disabled={retry.pending(job.id)}
+          onClick={() =>
+            retry.run(
+              { jobId: job.id, retries: 1, engine: engineId },
+              { feedback: writeFeedback.jobRetry(t, instanceName(job.processInstanceId)) },
+            )
+          }
+        >
+          {t("jobPanel.retry")}
+        </Button>
+      )}
+      {/* Its entries are hand-offs only: a host that shows none gets no menu. */}
+      {handOffs && (
+        <MoreActions label={t("jobPanel.moreActions", { name })}>
+          <HandOffButton
+            action="explainError"
+            variant="menuitem"
+            prompt={ask(explainJobHandOff(job, engineId))}
+          />
+          <HandOffButton
+            action="draftTicket"
+            variant="menuitem"
+            prompt={ask(draftJobTicketHandOff(job, engineId))}
+          />
+        </MoreActions>
+      )}
+    </div>
+  )
+}
+
 // #322 U2, U11, U13. A done retry shows a check, never a dimmed row that reads as disabled.
 function JobRow({
   job,
   retry,
   engineId,
   showProcess,
+  handOffs,
 }: {
   job: Job
   retry: EngineAction<RetryArgs, unknown>
   engineId: string
   showProcess: boolean
+  /** Whether the host shows hand-offs; with no retry either, the row has no actions cell. */
+  handOffs: boolean
 }) {
-  const t = useT()
-  const { ask } = useHandOff()
   const retried = retry.done.has(job.id)
-  const name = job.activityName ?? job.activityId ?? job.id
   return (
     <tr>
       <Td>
@@ -193,46 +247,11 @@ function JobRow({
       <Td align="right" className="text-muted-foreground text-small whitespace-nowrap">
         {formatTimestamp(job.createTime)}
       </Td>
-      <Td align="right">
-        {retried ? (
-          <DoneMark>{t("jobPanel.retried")}</DoneMark>
-        ) : (
-          job.retries === 0 && (
-            // A row's actions are xs, so the row keeps the row height (28 px).
-            <div className="inline-flex items-center justify-end gap-1">
-              {retry.allowed && (
-                <Button
-                  variant="outline"
-                  size="xs"
-                  disabled={retry.pending(job.id)}
-                  onClick={() =>
-                    retry.run(
-                      { jobId: job.id, retries: 1, engine: engineId },
-                      {
-                        feedback: writeFeedback.jobRetry(t, instanceName(job.processInstanceId)),
-                      },
-                    )
-                  }
-                >
-                  {t("jobPanel.retry")}
-                </Button>
-              )}
-              <MoreActions label={t("jobPanel.moreActions", { name })}>
-                <HandOffButton
-                  action="explainError"
-                  variant="menuitem"
-                  prompt={ask(explainJobHandOff(job, engineId))}
-                />
-                <HandOffButton
-                  action="draftTicket"
-                  variant="menuitem"
-                  prompt={ask(draftJobTicketHandOff(job, engineId))}
-                />
-              </MoreActions>
-            </div>
-          )
-        )}
-      </Td>
+      {(retry.allowed || handOffs) && (
+        <Td align="right">
+          <JobActions job={job} retry={retry} engineId={engineId} handOffs={handOffs} />
+        </Td>
+      )}
     </tr>
   )
 }
@@ -254,6 +273,7 @@ export function JobPanelWidget({
   ...route
 }: JobsRoute & { data?: JobPanelData | null }) {
   const { ask, context } = useHandOff()
+  const handOffs = useHandOffsShown()
   const { engine, processDefinitionKey, failedOnly } = route
   const paged = usePagedViewData<JobPanelData["jobs"][number], JobPanelData>({
     initialData,
@@ -302,7 +322,10 @@ export function JobPanelWidget({
     { label: t("jobPanel.colRetries"), align: "right" },
     { label: t("jobPanel.colError") },
     { label: t("jobPanel.colCreated"), align: "right", hideBelow: "md" },
-    { label: t("jobPanel.colActions"), align: "right", sticky: "sm" },
+    // No column that no row can fill: it would read as missing data.
+    ...(retry.allowed || handOffs
+      ? [{ label: t("jobPanel.colActions"), align: "right" as const, sticky: "sm" as const }]
+      : []),
   ]
 
   return (
@@ -368,6 +391,7 @@ export function JobPanelWidget({
                     retry={retry}
                     engineId={engine}
                     showProcess={!data.filters.processDefinitionKey}
+                    handOffs={handOffs}
                   />
                   <JobRetryError error={retry.error(job.id)} columns={columns.length} />
                 </Fragment>

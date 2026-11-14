@@ -100,6 +100,7 @@ export function ExtAppsViewHost({
     () => ({
       callTool: (name, args = {}) => runtime.callTool(name, args as Record<string, unknown>),
       sendFollowUp: (prompt) => void runtime.sendFollowUp(prompt).catch(warn("sendFollowUp")),
+      followUp: "chat",
       openExternal: (url) => {
         // Not connected (the bundle opened straight in a browser): the plain browser way.
         if (!connected) {
