@@ -930,9 +930,13 @@ export default tseslint.config(
       ],
     },
   },
-  // The webview follows the rules of hooks. The React Compiler rules of recommended-latest stay
-  // off in the editor trees for now: they come on in a commit of their own after the webview's
-  // switch to React (D9), which also reworks the mutable refs and diagram handles they flag.
+  // The webview and its tests follow react-hooks' recommended-latest, the React Compiler rules
+  // included, as the plugin version the workspace pins defines them (D9's follow-up to the switch):
+  // no ref read or written during render, no setState in an effect's body, a pure render, no
+  // mutation of props, state or a hook's result, dependencies as written. Every rule of the set is
+  // an error there, its three warnings (exhaustive-deps, incompatible-library, unsupported-syntax)
+  // included, since pnpm lint fails on errors only. The rest of the editor trees renders nothing
+  // with React, so the set stays off there.
   {
     files: [`${EDITOR_TREES}/**/*.{ts,tsx}`],
     plugins: { "react-hooks": reactHooks },
@@ -943,6 +947,8 @@ export default tseslint.config(
   {
     files: [`${RUNTIME_VIEW}/{src,test}/webview/**/*.{ts,tsx}`],
     plugins: { "react-hooks": reactHooks },
-    rules: { "react-hooks/rules-of-hooks": "error" },
+    rules: Object.fromEntries(
+      Object.keys(reactHooks.configs["recommended-latest"].rules).map((rule) => [rule, "error"]),
+    ),
   },
 )

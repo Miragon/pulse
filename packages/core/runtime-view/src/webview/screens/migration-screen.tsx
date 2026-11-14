@@ -30,7 +30,6 @@ const DIAGRAM_LABEL =
 
 function useMigrationDecorations(view: MigrationView, stale: boolean) {
   const focusedRow = view.rows.find((row) => row.sourceElementId === view.focused)
-  const unmapped = view.rows.filter((row) => row.unmappedTokens === true)
   const source = useMemo<Decorations>(
     () => ({
       badges: [],
@@ -38,9 +37,11 @@ function useMigrationDecorations(view: MigrationView, stale: boolean) {
       calls: [],
       stale,
       focusElementId: view.focused,
-      unmapped: unmapped.map((row) => row.sourceElementId),
+      unmapped: view.rows
+        .filter((row) => row.unmappedTokens === true)
+        .map((row) => row.sourceElementId),
     }),
-    [stale, view.focused, unmapped.map((row) => row.sourceElementId).join()],
+    [stale, view.focused, view.rows],
   )
   const target = useMemo<Decorations>(
     () => ({

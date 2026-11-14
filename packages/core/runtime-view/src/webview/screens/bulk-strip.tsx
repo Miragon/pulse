@@ -1,5 +1,5 @@
 import { cn, Icon, Progress, TONE_BORDER, TONE_ICON } from "@miragon/pulse-ui"
-import { useEffect, useState } from "react"
+import { useEffect, useEffectEvent, useRef, type RefObject } from "react"
 import type { BulkProgress, BulkStatus, BulkView, Tone } from "../../core/protocol/index.js"
 import { StripButton, TONE_GLYPHS } from "../components/status-strip.js"
 import { CountLabels } from "../format/count-labels.js"
@@ -15,22 +15,20 @@ const SURFACE: Readonly<Record<Tone, string>> = {
 
 const LINE_PART = "min-w-0 overflow-hidden text-ellipsis @max-[30rem]/bar:[overflow-wrap:anywhere]"
 
-interface Announced {
-  readonly status: BulkStatus | undefined
-  readonly text: string
-}
-
-function useStatusAnnouncement(status: BulkStatus, text: string): string {
-  const [seen, setSeen] = useState<Announced>({ status: undefined, text: "" })
-  const [mounted, setMounted] = useState(false)
+function useStatusAnnouncement(
+  status: BulkStatus,
+  text: string,
+): RefObject<HTMLSpanElement | null> {
+  const region = useRef<HTMLSpanElement>(null)
+  const announce = useEffectEvent(() => {
+    if (region.current !== null) {
+      region.current.textContent = text
+    }
+  })
   useEffect(() => {
-    setMounted(true)
-  }, [])
-  if (mounted && seen.status !== status) {
-    setSeen({ status, text })
-    return text
-  }
-  return seen.text
+    announce()
+  }, [status])
+  return region
 }
 
 function ProgressBar({ progress }: { readonly progress: BulkProgress }) {
@@ -81,7 +79,7 @@ function StripLine({ bulk }: { readonly bulk: BulkView }) {
 
 export function BulkStrip({ bulk }: { readonly bulk: BulkView }) {
   const { notice, status, progress } = bulk
-  const announced = useStatusAnnouncement(status, bulk.announcement)
+  const announcer = useStatusAnnouncement(status, bulk.announcement)
   return (
     <div
       className={cn(
@@ -95,9 +93,11 @@ export function BulkStrip({ bulk }: { readonly bulk: BulkView }) {
     >
       <StripLine bulk={bulk} />
       {MOVING.has(status) && <ProgressBar progress={progress} />}
-      <span className="sr-only" aria-live={notice.tone === "danger" ? "assertive" : "polite"}>
-        {announced}
-      </span>
+      <span
+        ref={announcer}
+        className="sr-only"
+        aria-live={notice.tone === "danger" ? "assertive" : "polite"}
+      />
     </div>
   )
 }

@@ -1,7 +1,7 @@
 # UI foundation and shared building blocks
 
 - Status: accepted
-- Last reviewed: 2026-11-14 (executed: the switch of D9 landed, the webview renders with React 19 on `@miragon/pulse-ui`; every precondition of D7 is in place); 2026-11-12, later the same day (decided, D9: the webview moves from Preact to React 19 on `@miragon/pulse-ui` in one switch, without a `preact/compat` bridge; one compact look for every surface, on density roles over the guide's `--cd-shell-*` tokens and pulse-ui's colour roles on the guide's `--cd-ui-*` roles, numbers neutral; replaces D4 and turns D7 into the switch's preconditions); 2026-11-12 (decided: the surfaces share a core up to building blocks, not everything: formats, the engine reads and their rules, the numbers and view models of a feature more than one surface shows, and building blocks on React's API; a feature more than one surface shows, boards first, shows the same numbers on every surface; replaces the two UI families of 2026-11-08)
+- Last reviewed: 2026-11-14 (executed: the switch of D9 landed, the webview renders with React 19 on `@miragon/pulse-ui`; every precondition of D7 is in place; its follow-up landed too: the webview and its tests follow `react-hooks`' `recommended-latest`, the React Compiler rules included, every rule of it an error); 2026-11-12, later the same day (decided, D9: the webview moves from Preact to React 19 on `@miragon/pulse-ui` in one switch, without a `preact/compat` bridge; one compact look for every surface, on density roles over the guide's `--cd-shell-*` tokens and pulse-ui's colour roles on the guide's `--cd-ui-*` roles, numbers neutral; replaces D4 and turns D7 into the switch's preconditions); 2026-11-12 (decided: the surfaces share a core up to building blocks, not everything: formats, the engine reads and their rules, the numbers and view models of a feature more than one surface shows, and building blocks on React's API; a feature more than one surface shows, boards first, shows the same numbers on every surface; replaces the two UI families of 2026-11-08)
 
 ## Context
 
@@ -240,8 +240,17 @@ missing value ([user-interface.md](user-interface.md)).
   renderer's paint test reads, `cd-canvas.css` and the overlay part of `diagram.css` stay for the
   diagram; the licence lists of the .vsix and of the Orca plugin were written again and
   `docs/vscode/parity.md` followed. The screenshots of `apps/vscode/docs/screenshots` are shot
-  again after the switch, with the product images. The React Compiler rules of `react-hooks`'
-  `recommended-latest` come in a commit of their own after the switch.
+  again after the switch, with the product images.
+- After the switch, in a commit of its own, the webview and its tests took `react-hooks`'
+  `recommended-latest`, the React Compiler rules included, as the plugin version the workspace
+  pins defines them, every rule of it an error, its three warnings included; the rest of the
+  editor trees renders nothing with React and keeps the set off. Its findings were fixed the way the rules intend, without a suppression: the diagram and
+  the live hold read the latest props through `useEffectEvent` instead of a ref written during
+  render, a write's phase is derived while rendering and closes through an effect event, the bulk
+  strip's live region gets its text from an effect (the region is on the page, empty, before it
+  speaks), the split pane's hook owns its refs, the focus a closed panel returns to is written
+  by the hook that holds it, and the migration's diagram decorations take the rows as their
+  dependency (the decoration layer skips equal decorations).
 - Per surface stays: the webview's host wiring (the push protocol and live updates, English, the
   native confirmation), its diagram runtime and overlays, the split pane and the widths it stores;
   the MCP widgets' hand-offs to the chat, their height budget, the host contexts and
@@ -283,4 +292,6 @@ blocks move into pulse-ui's root, and the deviations from the guide are named. D
 D7 lists the switch's preconditions. 2026-11-14: the switch landed in one commit; a part a kit
 piece plays is found through the test harness's map of its `data-slot`, so pulse-ui carries no
 webview-only hook, the webview's stylesheet has a ceiling of its own beside its script's, and the
-screenshots are shot again with the product images after the switch (the owner's delegate).
+screenshots are shot again with the product images after the switch (the owner's delegate); in a
+commit after the switch, the webview and its tests took `react-hooks`' `recommended-latest` with
+the React Compiler rules, every rule of it an error, every finding fixed and none suppressed.

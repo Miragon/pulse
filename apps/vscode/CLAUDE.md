@@ -212,6 +212,20 @@ move.
   through the constructor. See `apps/vscode/docs/adr/code-structure.md`.
 - Budgets: complexity 10, 300 lines per file, 60 per function, 4 parameters, 20 statements.
   Split instead of raising.
+- The webview and its tests (`packages/core/runtime-view/src/webview`,
+  `packages/core/runtime-view/test/webview`) follow `eslint-plugin-react-hooks`'
+  `recommended-latest`, the React Compiler rules included, as the version the workspace pins
+  defines them (D9's follow-up to the switch, `apps/vscode/docs/adr/ui-foundation.md`): no ref
+  read or written during render (an effect reads the latest props through `useEffectEvent`), no
+  setState in an effect's body (derive the value while rendering; an effect writes only to what
+  React does not render, such as the text of a live region), a pure render, no mutation of props,
+  state or a hook's result (the hook that owns a ref writes it), dependencies as written. Every
+  rule of the set is an error there, its warnings (`exhaustive-deps`, `incompatible-library`,
+  `unsupported-syntax`) included, since `pnpm lint` fails on errors only. The rest of the editor
+  trees renders nothing with React and keeps the set off. A finding is fixed, never suppressed
+  (`noInlineConfig`); `apps/vscode/test/architecture/lint-rules.test.ts` holds every rule of the
+  set to an error on the webview and its tests and off elsewhere, read from the resolved config,
+  and lints probes for the rules of hooks and six more of the set.
 - Strict TypeScript (`exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`).
 - Thresholds only move one way: the coverage floors (the `vitest.config.ts` of the runtime view,
   of the adapter and of this app) and the webview bundle budget (`apps/vscode/test/__golden__/bundle-budget.json`).

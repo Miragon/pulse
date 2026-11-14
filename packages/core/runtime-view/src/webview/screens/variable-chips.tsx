@@ -73,17 +73,20 @@ function useReturnFocus(editing: Editing | undefined) {
       focusable?.focus()
     }
   }, [editing])
-  return { opener, returnTo }
+  const returnFocusTo = (target: HTMLElement): void => {
+    returnTo.current = target
+  }
+  return { opener, returnFocusTo }
 }
 
 export function VariableChips({ filter, labels, names, refused, onFilter }: VariableChipsProps) {
   const host = useHost()
   const locale = useLocale()
   const [editing, setEditing] = useState<Editing | undefined>(undefined)
-  const { opener, returnTo } = useReturnFocus(editing)
+  const { opener, returnFocusTo } = useReturnFocus(editing)
   const conditions = filter.variables ?? []
   const open = (from: HTMLElement, at?: number): void => {
-    returnTo.current = from
+    returnFocusTo(from)
     host.post({ type: "suggestVariableNames" })
     setEditing(at === undefined ? {} : { at })
   }

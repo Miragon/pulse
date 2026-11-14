@@ -8,6 +8,7 @@ import {
   type RefObject,
 } from "react"
 import { Separator } from "../components/separator.js"
+import type { VsCodeApi } from "../host/host-bridge.js"
 import { useHost } from "../host/host-context.js"
 import { UiStateStore } from "../host/ui-state-store.js"
 import { SplitShare } from "./split-share.js"
@@ -36,29 +37,14 @@ export interface SplitLayoutProps {
 
 export function SplitLayout({ top, bottom }: SplitLayoutProps) {
   const { api } = useHost()
-  const [share, setShare] = useState(() => UiStateStore.read(api).diagramShare ?? DEFAULT_SHARE)
-  const live = useRef(share)
-
-  const show = (next: number): void => {
-    live.current = next
-    setShare(next)
-  }
-
-  const commit = (next: number): void => {
-    const clamped = SplitShare.clamp(next)
-    show(clamped)
-    UiStateStore.write(api, { diagramShare: clamped })
-  }
-
-  const drag = useSplitDrag(live, show)
-
+  const { share, container, topPane, step, ...drag } = useSplitShare(api)
   return (
     <div
       className="grid min-h-0 grid-rows-[minmax(min(300px,50%),var(--diagram-share))_1px_minmax(120px,1fr)]"
-      ref={drag.container}
+      ref={container}
       style={{ "--diagram-share": `${Math.round(share * 1000) / 10}%` } as CSSProperties}
     >
-      <div className={TOP_PANE} ref={drag.topPane}>
+      <div className={TOP_PANE} ref={topPane}>
         {top}
       </div>
       <Separator
@@ -70,40 +56,53 @@ export function SplitLayout({ top, bottom }: SplitLayoutProps) {
         value={Math.round(share * 100)}
         keys={{
           ArrowUp: () => {
-            commit(live.current - KEY_STEP)
+            step(-KEY_STEP)
           },
           ArrowDown: () => {
-            commit(live.current + KEY_STEP)
+            step(KEY_STEP)
           },
         }}
-        onDragStart={drag.onDragStart}
-        onDrag={drag.onDrag}
-        onDragEnd={() => {
-          commit(live.current)
-        }}
-        onDragCancel={drag.onDragCancel}
+        {...drag}
       />
       <div className={PANE}>{bottom}</div>
     </div>
   )
 }
 
-interface SplitDrag {
+interface SplitShareState {
+  readonly share: number
   readonly container: RefObject<HTMLDivElement | null>
   readonly topPane: RefObject<HTMLDivElement | null>
+  readonly step: (by: number) => void
   readonly onDragStart: (event: PointerEvent<HTMLDivElement>) => void
   readonly onDrag: (event: PointerEvent<HTMLDivElement>) => void
+  readonly onDragEnd: () => void
   readonly onDragCancel: () => void
 }
 
-function useSplitDrag(live: RefObject<number>, show: (next: number) => void): SplitDrag {
+function useSplitShare(api: VsCodeApi): SplitShareState {
+  const [share, setShare] = useState(() => UiStateStore.read(api).diagramShare ?? DEFAULT_SHARE)
+  const live = useRef(share)
   const container = useRef<HTMLDivElement>(null)
   const topPane = useRef<HTMLDivElement>(null)
   const atDragStart = useRef(0)
   const grabOffset = useRef(0)
+  const show = (next: number): void => {
+    live.current = next
+    setShare(next)
+  }
+  const commit = (next: number): void => {
+    const clamped = SplitShare.clamp(next)
+    show(clamped)
+    UiStateStore.write(api, { diagramShare: clamped })
+  }
   return {
+    share,
     container,
     topPane,
+    step: (by) => {
+      commit(live.current + by)
+    },
     onDragStart: (event) => {
       atDragStart.current = live.current
       const line = topPane.current?.getBoundingClientRect().bottom ?? event.clientY
@@ -115,6 +114,9 @@ function useSplitDrag(live: RefObject<number>, show: (next: number) => void): Sp
         return
       }
       show(SplitShare.clamp((event.clientY - grabOffset.current - bounds.top) / bounds.height))
+    },
+    onDragEnd: () => {
+      commit(live.current)
     },
     onDragCancel: () => {
       show(atDragStart.current)

@@ -192,6 +192,25 @@ describe("bulk operations on the definition screen", () => {
     expect(harness.posted.slice(-2)).toEqual([{ type: "selectRemaining" }, { type: "dismissBulk" }])
   })
 
+  it("puts its live region on the page before the region speaks", async () => {
+    harness = mountApp()
+    const spoken: string[] = []
+    const watcher = new MutationObserver((records) => {
+      for (const record of records) {
+        if (record.target instanceof HTMLElement && record.target.hasAttribute("aria-live")) {
+          spoken.push(record.target.textContent)
+        }
+      }
+    })
+    watcher.observe(harness.root, { childList: true, subtree: true })
+    harness.publish(FIXTURES["definition-bulk-running"])
+    await findPart(harness.root, "bulk-strip")
+    await nextFrame()
+    watcher.disconnect()
+
+    expect(spoken).toEqual(["Cancelling instances: 5 of 12 done"])
+  })
+
   it("announces a change of state, not every count", async () => {
     await open("definition-bulk-running")
     const strip = await findPart(harness.root, "bulk-strip")

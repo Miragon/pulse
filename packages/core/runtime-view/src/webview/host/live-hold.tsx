@@ -1,19 +1,15 @@
-import { useEffect, useRef } from "react"
-import type { WebviewIntent } from "../../core/protocol/index.js"
+import { useEffect, useEffectEvent } from "react"
 import { useHost } from "./host-context.js"
 
 export function useLiveHold(): void {
   const host = useHost()
-  const post = useRef((intent: WebviewIntent) => {
-    host.post(intent)
+  const hold = useEffectEvent((held: boolean) => {
+    host.post({ type: "holdLiveUpdates", held })
   })
-  post.current = (intent) => {
-    host.post(intent)
-  }
   useEffect(() => {
-    post.current({ type: "holdLiveUpdates", held: true })
+    hold(true)
     return () => {
-      post.current({ type: "holdLiveUpdates", held: false })
+      hold(false)
     }
   }, [])
 }
