@@ -49,10 +49,23 @@ the root. The webview tests run in Chromium: install it once with
 `test:e2e` and `docs:screenshots` only when the change touches the adapter or the contract, the
 VS Code flows or the screens.
 
-The README demo GIF `apps/vscode/docs/demo.gif` comes from the `product-shots` skill of the
-`miragon-brand` plugin ([Miragon/corporate-identity](https://github.com/Miragon/corporate-identity)),
-journey `pulse-vscode-demo.mjs`, with `sandbox:up` and `sandbox:traffic` running. This repo
-keeps no script of its own for it.
+The README demo GIF `apps/vscode/docs/demo.gif` (copied to `docs/assets/vscode/demo.gif`) is the
+journey `.miragon/shots/vscode-demo.mjs` (shop-dev, Order fulfillment, ORD-10130, `cardExpiry`
+fixed, the incident retried) over the driver of `docs:screenshots`, recorded by `render.mjs` of
+the `product-shots` skill of the `miragon-brand` plugin
+([Miragon/corporate-identity](https://github.com/Miragon/corporate-identity)) from the repository
+root, with `sandbox:up` and `sandbox:traffic` running (`PLAYWRIGHT_CORE` as in the root
+`CONTRIBUTING.md`):
+
+```sh
+node "<product-shots skill>/scripts/render.mjs" --journey .miragon/shots/vscode-demo.mjs \
+  --chrome overlay --theme dark --width 1320 --out apps/vscode/docs/demo.gif
+```
+
+The driver (`apps/vscode/scripts/screenshots/vscode-driver.mjs`) pins the colour theme to Default
+Dark Modern, so the shots keep their look when VS Code changes its default theme, and on Linux it
+starts VS Code with `--password-store=basic`: without a keyring, Set Credentials (use cases 19, 41
+and 44 of `docs:screenshots`) would stop at VS Code's keyring dialog.
 
 `engine:up` seeds the fixed conformance world that the e2e test asserts on; do not change it
 for manual testing. Manual and exploratory scenarios belong in

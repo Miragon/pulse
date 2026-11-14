@@ -20,7 +20,7 @@ export const NAVIGATION_USE_CASES = [
     file: "definition-filter-with-incident",
     title: "Filter the instances by scope, with counts",
     shows:
-      "One filter bar above the instances: every scope carries its count, the incident count in red; With incident lists only the instances of v3 with an incident. Search and the legend button share the bar.",
+      "One filter bar above the instances: every scope carries its count, the incident count beside the incident icon; With incident lists only the instances of v3 with an incident. Search and the legend button share the bar.",
     run: async (window) => {
       await openDefinition(window)
       const frame = panelFrame(window)
@@ -129,7 +129,7 @@ export const ENGINE_OVERVIEW_USE_CASES = [
     file: "engine-overview",
     title: "The processes of an engine at a glance",
     shows:
-      "A click on shop-dev in the Engines view opens its overview: product and version, access, Refresh and Open in Cockpit in the header; one filter bar with the scopes and their counts, a search by name or key and the summary of the engine; the processes with incidents first, their incident counts in red. A row opens the process, Ctrl/Cmd+click to the side.",
+      "A click on shop-dev in the Engines view opens its overview: product and version, access, Refresh and Open in Cockpit in the header; one filter bar with the scopes and their counts, a search by name or key and the summary of the engine; the processes with incidents first, their incident counts beside the incident icon. A row opens the process, Ctrl/Cmd+click to the side.",
     run: async (window) => {
       await closeEditors(window)
       await showPulse(window)

@@ -68,7 +68,11 @@ podman run --rm --init -v "$PWD":/work -w /work -v "$PLUGIN":/plugin:ro \
 
 `$PLUGIN` is the `miragon-brand` plugin folder. Make them again after a visible change of the
 tabs or the panel and after an update of the skill (the version the config names), and copy the two light
-screenshots to `docs/assets/orca/`.
+screenshots to `docs/assets/orca/`. The released skill (1.32.0) still ignores the config's `files`
+and `panel` (a patch on Miragon/corporate-identity#78): without it the demo folder has no project
+file and the panel stays closed, so a local copy of the plugin copies those files into the demo
+folder and opens the panel (`orca plugin open <key>`) before the window shots. The run leaves
+root-owned core files in the repository root and `apps/orca/dist/.orca`: remove both.
 
 ## Where code goes
 

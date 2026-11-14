@@ -64,7 +64,7 @@ export const WRITING_USE_CASES = [
     file: "variable-changed-retry-now",
     title: "Fix the data, then retry",
     shows:
-      "After the change the panel confirms it and the incident strip right below offers Retry for the incident that waited for this fix.",
+      "After the change the panel confirms it in a strip that offers Retry now for the incident that waited for this fix.",
     run: async (window) => {
       await panelFrame(window)
         .getByRole("textbox", { name: "New value" })

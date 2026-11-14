@@ -16,7 +16,7 @@ export const LOCAL_SOURCES_USE_CASES = [
     file: "local-sources-model-and-code",
     title: "What the local model configures on the failed element",
     shows:
-      "The incident card of a worker task reads order-fulfillment.bpmn from the workspace: the model file, with Open in model and Open code (the task type only when it differs from the job type; mappings and error codes show the same way when the element has them). Open stacktrace and Retry sit in the strip only. Without a local model these facts and buttons are absent.",
+      "The incident card of a worker task reads order-fulfillment.bpmn from the workspace: the model file, with Open in model and Open code beside Stacktrace and Retry (the task type only when it differs from the job type; mappings and error codes show the same way when the element has them). Without a local model the model's facts and its two buttons are absent.",
     run: async (window) => {
       await closeEditors(window)
       await goToInstance(window, "ORD-10129")
