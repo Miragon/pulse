@@ -158,6 +158,20 @@ describe("a profile the server cannot use is refused on its own", () => {
     ],
     ["an unknown flavor", { url: B, flavor: "flowable" }, "flavor must be one of"],
     [
+      "a Camunda 8 profile",
+      {
+        url: "https://c8.example.com/v2",
+        flavor: "camunda8",
+        auth: { type: "clientCredentials", tokenEndpoint: "https://login.example.com/token" },
+      },
+      "This server does not speak the API of this flavor: it reads camunda7, cibseven and operaton.",
+    ],
+    [
+      "client credentials on a Camunda 7 profile",
+      { url: B, auth: { type: "clientCredentials", tokenEndpoint: "https://login.example.com/t" } },
+      "auth.type does not fit the API of the flavor",
+    ],
+    [
       "an unknown key",
       { url: B, readOnyl: true },
       "The profile holds a key the profile format does not know (it is not shown).",
@@ -238,8 +252,8 @@ describe("a profile the server cannot use is refused on its own", () => {
     const readerCodes = PROBLEM_CODES.slice(PROBLEM_CODES.indexOf("dialect-not-served"))
     expect(Object.keys(NOT_SERVED).sort()).toEqual([...readerCodes].sort())
     for (const words of Object.values(NOT_SERVED)) {
-      expect(words("headers")).toMatch(/\b[Tt]his server\b/)
-      expect(words(undefined)).not.toMatch(/client|undefined/)
+      expect(words("headers", ["camunda7"])).toMatch(/\b[Tt]his server\b/)
+      expect(words(undefined, ["camunda7"])).not.toMatch(/client|undefined/)
     }
   })
 

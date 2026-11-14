@@ -14,10 +14,13 @@ import type {
 export {
   BASIC_AUTH_KEYS,
   BEARER_AUTH_KEYS,
+  DIALECT_AUTH_TYPES,
+  FLAVORS as PROFILE_FLAVORS,
   OAUTH_AUTH_KEYS,
   OUTPUT_FORMATS,
   type OutputFormat,
   AUTH_KEYS as PROFILE_AUTH_KEYS,
+  AUTH_TYPES as PROFILE_AUTH_TYPES,
   PROFILE_KEYS,
   type ProfileKey,
 } from "@miragon/pulse-profile"

@@ -12,14 +12,15 @@ const HEADERS =
 const REMOVE_HEADERS = "Remove headers from this profile, or use one without them."
 const NOT_SERVED = "This client cannot authenticate with this auth.type."
 const MISMATCH =
-  'auth.type does not fit the other auth keys: OAuth keys need "oauth", a stored token "bearer", Basic auth keys "basic" or no type, "passthrough" takes none, and "none" switches them off.'
+  'auth.type does not fit the other auth keys: OAuth keys need "oauth", or "clientCredentials" without issuer, authorizationEndpoint and redirectPort; a stored token "bearer"; Basic auth keys "basic" or no type; "passthrough" takes none; and "none" switches them off.'
 const MIXED =
   "auth mixes the keys of two kinds of credentials (Basic auth, OAuth, a bearer token): keep one."
 const UNKNOWN_TYPE =
-  "auth.type must be one of none, basic, bearer, oauth, passthrough (the value is not shown)."
+  "auth.type must be one of none, basic, bearer, oauth, clientCredentials, passthrough (the value is not shown)."
+const OTHER_DIALECT = "This client does not speak the API of this flavor."
 const READER_CODES = PROBLEM_CODES.slice(PROBLEM_CODES.indexOf("dialect-not-served"))
-const REFUSED_BY_THIS_CLIENT: Record<string, readonly [Record<string, unknown>, string] | null> = {
-  "dialect-not-served": null,
+const REFUSED_BY_THIS_CLIENT: Record<string, readonly [Record<string, unknown>, string]> = {
+  "dialect-not-served": [{ url: "http://localhost:8088/v2", flavor: "camunda8" }, OTHER_DIALECT],
   "auth-type-not-served": [
     { url: URL, auth: { type: "bearer" } },
     `${NOT_SERVED} ${SET_TYPE}, or keep this profile for the CLI.`,
@@ -117,7 +118,7 @@ describe("a project file the extension reads", () => {
         ],
         [`profile "kerberos": ${UNKNOWN_TYPE} ${AUTH_KEYS_WAY_OUT}`, undefined],
         [
-          `profile "numbered": auth.type must be a string, one of none, basic, bearer, oauth, passthrough. ${AUTH_KEYS_WAY_OUT}`,
+          `profile "numbered": auth.type must be a string, one of none, basic, bearer, oauth, clientCredentials, passthrough. ${AUTH_KEYS_WAY_OUT}`,
           undefined,
         ],
         [`profile "mismatched": ${MISMATCH} ${AUTH_KEYS_WAY_OUT}`, undefined],
@@ -153,6 +154,28 @@ describe("a project file the extension reads", () => {
     expect(refusalOnConnecting({ type: "basic", ...OAUTH_KEYS })).toBe("no target")
   })
 
+  test("refuses a Camunda 8 profile for its dialect, with no way out of its auth type", () => {
+    const c8 = { url: "https://c8.example.com/v2", flavor: "camunda8" }
+    const grant = { type: "clientCredentials", tokenEndpoint: "https://login.example.com/token" }
+    expect(
+      problemsOf({
+        cluster: { ...c8, auth: grant },
+        "c7-grant": { url: URL, auth: grant },
+        "c8-oauth": { ...c8, auth: { type: "oauth" } },
+      }).problems,
+    ).toEqual([
+      [`profile "cluster": ${OTHER_DIALECT} ${NOT_SERVED}`, undefined],
+      [
+        `profile "c7-grant": auth.type does not fit the API of the flavor (camunda7, cibseven, operaton: none, basic, bearer, oauth, passthrough; camunda8: none, basic, bearer, clientCredentials). ${AUTH_KEYS_WAY_OUT}`,
+        undefined,
+      ],
+      [
+        `profile "c8-oauth": auth.type does not fit the API of the flavor (camunda7, cibseven, operaton: none, basic, bearer, oauth, passthrough; camunda8: none, basic, bearer, clientCredentials). ${AUTH_KEYS_WAY_OUT}`,
+        undefined,
+      ],
+    ])
+  })
+
   test("says the ways out after every sentence of the format, each once", () => {
     expect(
       problemsOf({
@@ -170,10 +193,8 @@ describe("a project file the extension reads", () => {
 
   test("follows each code it refuses a profile with by a way out, or by a sentence that names one", () => {
     expect(Object.keys(REFUSED_BY_THIS_CLIENT).sort()).toEqual([...READER_CODES].sort())
-    expect(new Set(Object.values(FLAVORS))).toEqual(new Set(["c7"]))
-    for (const refused of Object.values(REFUSED_BY_THIS_CLIENT)) {
-      if (refused === null) continue
-      const [profile, message] = refused
+    expect(new Set(Object.values(FLAVORS))).toEqual(new Set(["c7", "c8"]))
+    for (const [profile, message] of Object.values(REFUSED_BY_THIS_CLIENT)) {
       expect(problemsOf({ p: profile }).problems).toEqual([[`profile "p": ${message}`, undefined]])
     }
   })

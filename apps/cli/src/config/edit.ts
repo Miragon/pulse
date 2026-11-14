@@ -10,7 +10,13 @@
 
 import { PROFILE_NAME } from "@miragon/pulse-profile"
 import { compact, isRecord, mergeHeaders } from "../util.js"
-import { changedAuth, settleAuthorization } from "./auth-edit.js"
+import {
+  changedAuth,
+  checkAuthType,
+  checkDialect,
+  hasAuthOptions,
+  settleAuthorization,
+} from "./auth-edit.js"
 import { type BearerChanges, BEARER_UNSET_KEYS, bearerUnsetKeys } from "./bearer-edit.js"
 import { configError } from "./config-error.js"
 import { parseHeaders } from "./headers.js"
@@ -149,7 +155,9 @@ function checkNewProfile(name: string, existing: Profile | undefined, changes: P
 /**
  * Creates or updates a profile; only the given keys change, headers are merged. The first profile
  * of a file becomes the default profile automatically. Basic auth options replace a stored
- * Authorization header; any other mix of the two is a CONFIG error (`settleAuthorization`).
+ * Authorization header; any other mix of the two is a CONFIG error (`settleAuthorization`), and
+ * so are an auth option on client credentials (`checkAuthType`) and an auth type the flavor of
+ * the profile does not take (`checkDialect`).
  */
 export function setProfile(
   file: ConfigFile | undefined,
@@ -159,10 +167,12 @@ export function setProfile(
   validateProfileName(name)
   const current = file ?? EMPTY
   const existing = storedProfile(current, name)
+  if (hasAuthOptions(changes)) checkAuthType(existing?.auth, name)
   const changed = changedValues(existing, changes)
   checkNewProfile(name, existing, changes)
   const merged = { ...existing, ...changed }
   const profile = canonical(settleAuthorization(merged, changes, name))
+  checkDialect(existing, profile, name)
   const first = Object.keys(current.profiles).length === 0
   const makeDefault = changes.makeDefault === true || first
   return buildFile(
@@ -201,7 +211,9 @@ function authUnsetKeys(key: string, profile: Profile): readonly string[] | undef
  * Removes keys from a profile: profile keys, or single OAuth settings or the bearer token of its
  * auth object (`audience`, `clientSecret`, `token`, ...; `auth` removes all auth settings), and
  * any key the profile or its auth object holds (`auth.<key>`), so a key the format refuses can
- * go. Unknown key names fail; keys of the format the profile does not set are ignored.
+ * go. Unknown key names fail; keys of the format the profile does not set are ignored. One
+ * setting of client credentials fails (`checkAuthType`), and so does removing the flavor an auth
+ * type needs (`checkDialect`).
  */
 export function unsetProfileKeys(
   file: ConfigFile | undefined,
@@ -211,6 +223,8 @@ export function unsetProfileKeys(
   const current = file ?? EMPTY
   const profile = requireProfile(current, name)
   const authKeys = keys.flatMap((key) => authUnsetKeys(key, profile) ?? [])
+  // one setting, stored or not, fails the command; `auth` removes the whole object
+  if (authKeys.length > 0) checkAuthType(profile.auth, name)
   const plain = keys.filter((key) => authUnsetKeys(key, profile) === undefined)
   const removed = new Set<string>(plain.map((key) => profileKey(key, profile)))
   const { auth, ...kept }: Profile = Object.fromEntries(
@@ -218,6 +232,7 @@ export function unsetProfileKeys(
   )
   const rest = withoutAuthKeys(isRecord(auth) ? auth : undefined, authKeys)
   const edited = canonical(rest === undefined ? kept : { ...kept, auth: rest })
+  checkDialect(profile, edited, name)
   return buildFile(current, { ...current.profiles, [name]: edited }, current.defaultProfile)
 }
 

@@ -13,7 +13,7 @@ import {
 } from "@miragon/pulse-profile"
 import type { PulseCliError } from "../errors.js"
 import { configError } from "./config-error.js"
-import { AUTH_TYPES, ENV, type LoadedConfig } from "./types.js"
+import { AUTH_TYPES, ENV, FLAVORS, type LoadedConfig } from "./types.js"
 
 /** The problems of a profile as one text: the format's sentences in order. */
 export function describeProblems(problems: readonly Problem[]): string {
@@ -74,6 +74,12 @@ const CODE_HINTS: Readonly<Partial<Record<ProblemCode, (name: string, flag: stri
     `A project file is shared, so secret headers go into ${ENV.headers} or a profile of your own config file. Remove it with \`pulse config unset ${name} headers${flag}\`.`,
   "auth-type-not-served": (name, flag) => authTypeHint(name, flag),
   "auth-type-unknown": (name, flag) => authTypeHint(name, flag),
+  "auth-type-not-in-dialect": (name, flag) =>
+    `Fix auth.type or flavor in the file, or remove all auth settings with \`pulse config unset ${name} auth${flag}\`.`,
+  "token-endpoint-missing": () =>
+    "Set auth.tokenEndpoint in the file: pulse config does not edit client credentials.",
+  "dialect-not-served": () =>
+    `The CLI reads engines of the Camunda 7 REST API (${FLAVORS.join(", ")}) and leaves this profile as it stands: choose another one with --profile or ${ENV.profile}, or give --url, which selects no profile.`,
 }
 
 function authTypeHint(name: string, flag: string): string {

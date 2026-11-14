@@ -5,17 +5,44 @@
  */
 
 /**
- * The vendors a profile names in `flavor`, each with the API dialect it speaks. The one table of
- * flavors: a new vendor of a known dialect is a row here, a new dialect a new value.
+ * The vendors a profile names in `flavor`, each with the API dialect it speaks: `c7` the Camunda 7
+ * REST API, `c8` Camunda 8's Orchestration Cluster REST API. The one table of flavors: a new vendor
+ * of a known dialect is a row here, a new dialect a new value.
  */
-export const FLAVORS = { camunda7: "c7", cibseven: "c7", operaton: "c7" } as const
+export const FLAVORS = {
+  camunda7: "c7",
+  camunda8: "c8",
+  cibseven: "c7",
+  operaton: "c7",
+} as const
 export type Flavor = keyof typeof FLAVORS
 export type Dialect = (typeof FLAVORS)[Flavor]
 /** The flavor of a profile that names none. */
 export const DEFAULT_FLAVOR: Flavor = "camunda7"
 
-export const AUTH_TYPES = ["none", "basic", "bearer", "oauth", "passthrough"] as const
+/**
+ * How a client signs in: `none`, Basic auth, a bearer token obtained elsewhere, an OAuth login of
+ * a person, the client credentials grant of a client without a person (OAuth 2.0, RFC 6749 §4.4),
+ * or the caller's own token an MCP server passes on.
+ */
+export const AUTH_TYPES = [
+  "none",
+  "basic",
+  "bearer",
+  "oauth",
+  "clientCredentials",
+  "passthrough",
+] as const
 export type AuthType = (typeof AUTH_TYPES)[number]
+
+/**
+ * The auth types a profile of each dialect may name: client credentials only on Camunda 8, an
+ * OAuth login of a person and the caller's own token (`passthrough`) only on Camunda 7.
+ */
+export const DIALECT_AUTH_TYPES = {
+  c7: ["none", "basic", "bearer", "oauth", "passthrough"],
+  c8: ["none", "basic", "bearer", "clientCredentials"],
+} as const satisfies Readonly<Record<Dialect, readonly AuthType[]>>
 
 export const OUTPUT_FORMATS = ["json", "table"] as const
 export type OutputFormat = (typeof OUTPUT_FORMATS)[number]
@@ -40,7 +67,10 @@ export type ProfileKey = (typeof PROFILE_KEYS)[number]
 
 /** Basic auth: the username, and the password or the variable that holds it. */
 export const BASIC_AUTH_KEYS = ["username", "passwordEnv", "password"] as const
-/** OAuth: discovery or both endpoints, the client, its secret, scopes, audience, callback port. */
+/**
+ * OAuth: discovery or both endpoints, the client, its secret, scopes, audience, callback port. The
+ * client credentials grant takes a part of them (CLIENT_CREDENTIALS_AUTH_KEYS).
+ */
 export const OAUTH_AUTH_KEYS = [
   "issuer",
   "authorizationEndpoint",
@@ -52,6 +82,18 @@ export const OAUTH_AUTH_KEYS = [
   "audience",
   "redirectPort",
 ] as const
+/**
+ * The OAuth keys the client credentials grant takes: the token endpoint (required), the client,
+ * its secret, scopes and audience; never a login's issuer, authorization endpoint or callback port.
+ */
+export const CLIENT_CREDENTIALS_AUTH_KEYS = [
+  "tokenEndpoint",
+  "clientId",
+  "clientSecretEnv",
+  "clientSecret",
+  "scopes",
+  "audience",
+] as const satisfies readonly (typeof OAUTH_AUTH_KEYS)[number][]
 /** A bearer token obtained elsewhere: the variable that holds it, or the token itself. */
 export const BEARER_AUTH_KEYS = ["tokenEnv", "token"] as const
 /** The keys of a profile's auth object, in the order a file lists them. */
@@ -142,8 +184,10 @@ export const PROBLEM_CODES = [
   "auth-type-unknown",
   "auth-keys-mixed",
   "auth-type-mismatch",
+  "auth-type-not-in-dialect",
   "secret-twice",
   "endpoint-alone",
+  "token-endpoint-missing",
   "url-invalid",
   "url-not-http",
   "url-credentials",

@@ -3,9 +3,9 @@
  * user's config file (`parseConfigFile`, policy env-or-literal) and as a project file
  * (`parseProjectFile`, policy none). The CLI fails the file exactly when the format gives no
  * profiles, refuses each profile the format refuses with the format's problems (and a usable one
- * only for what it cannot serve, the MCP server's passthrough), fails a command that uses a
- * refused profile with the format's sentence, and resolves every other profile, its credentials
- * completed from the environment.
+ * only for what it cannot serve: a Camunda 8 profile, the editors' client credentials, the MCP
+ * server's passthrough), fails a command that uses a refused profile with the format's sentence,
+ * and resolves every other profile, its credentials completed from the environment.
  */
 
 import { describeProblem, PROFILE_NAME } from "@miragon/pulse-profile"
@@ -20,7 +20,15 @@ import { PulseCliError } from "../errors.js"
 import { parseConfigFile } from "./file.js"
 import { mergeProject, parseProjectFile } from "./project.js"
 import { resolveConfig, selectProfile } from "./resolve.js"
-import { type ConfigFile, ENV, type LoadedConfig, type Profile, type ProfileAuth } from "./types.js"
+import {
+  AUTH_TYPES,
+  type ConfigFile,
+  ENV,
+  FLAVORS,
+  type LoadedConfig,
+  type Profile,
+  type ProfileAuth,
+} from "./types.js"
 
 const PATH = "/repo/.pulse.json"
 
@@ -54,12 +62,20 @@ function refusedLabels(file: ConfigFile) {
   })
 }
 
+/** What the CLI refuses of a profile the format takes: another dialect, an auth type it lacks. */
+function cliRefusals(profile: Profile | undefined): string[] {
+  const flavors: readonly unknown[] = FLAVORS
+  const types: readonly unknown[] = AUTH_TYPES
+  return [
+    ...(flavors.includes(profile?.flavor ?? "camunda7") ? [] : ["dialect-not-served flavor"]),
+    ...(types.includes(profile?.auth?.type ?? "none") ? [] : ["auth-type-not-served auth.type"]),
+  ]
+}
+
 /** What the fixture's outcome refuses, plus what the CLI refuses of a usable profile. */
 function expectedLabels(outcome: FixtureOutcome, file: ConfigFile) {
   return (outcome.profiles ?? []).flatMap(({ name, index, problems }) => {
-    const passthrough =
-      name !== undefined && file.profiles[name]?.auth?.type === ("passthrough" as never)
-    const labels = problems ?? (passthrough ? ["auth-type-not-served auth.type"] : [])
+    const labels = problems ?? (name === undefined ? [] : cliRefusals(file.profiles[name]))
     if (labels.length === 0) return []
     return [{ ...(name === undefined ? { index } : { name }), problems: labels }]
   })

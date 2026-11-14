@@ -8,6 +8,7 @@ import {
   type AuthType,
   DEFAULT_FLAVOR,
   type Dialect,
+  type Flavor,
   FLAVORS,
   type Problem,
   type Profile,
@@ -27,6 +28,11 @@ export interface Surface {
   readonly defaultEngineOnly: boolean
   /** Keys it cannot apply: a profile that sets one is refused. */
   readonly refusedKeys: readonly ProfileKey[]
+}
+
+/** The flavors that speak `dialect`, in the order of FLAVORS: what a reader of it may name. */
+export function flavorsOf(dialect: Dialect): readonly Flavor[] {
+  return (Object.keys(FLAVORS) as Flavor[]).filter((flavor) => FLAVORS[flavor] === dialect)
 }
 
 /** The dialect a profile speaks: its flavor's, DEFAULT_FLAVOR's without one. */

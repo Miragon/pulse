@@ -792,7 +792,7 @@
       "profiles": {
         "local": {
           "url": "http://localhost:8080/engine-rest",
-          "flavor": "camunda8"
+          "flavor": "zeebe"
         }
       }
     },
@@ -815,6 +815,10 @@
           "url": "http://localhost:8080/engine-rest",
           "flavor": "camunda7"
         },
+        "c8": {
+          "url": "http://localhost:8080/v2",
+          "flavor": "camunda8"
+        },
         "seven": {
           "url": "http://localhost:8080/engine-rest",
           "flavor": "cibseven"
@@ -834,6 +838,9 @@
       "profiles": [
         {
           "name": "c7"
+        },
+        {
+          "name": "c8"
         },
         {
           "name": "seven"
@@ -1262,6 +1269,14 @@
             "issuer": "https://login.example.com/realms/engine",
             "clientId": "pulse-cli"
           }
+        },
+        "kebab": {
+          "url": "https://c8.example.com/v2",
+          "flavor": "camunda8",
+          "auth": {
+            "type": "client-credentials",
+            "tokenEndpoint": "https://login.example.com/oauth/token"
+          }
         }
       }
     },
@@ -1282,6 +1297,10 @@
         },
         {
           "name": "oauth-kerberos",
+          "problems": ["auth-type-unknown auth.type"]
+        },
+        {
+          "name": "kebab",
           "problems": ["auth-type-unknown auth.type"]
         }
       ]
@@ -1339,7 +1358,7 @@
   },
   {
     "name": "auth-supported",
-    "about": "Every auth type and its keys without a credential; the secret comes from elsewhere.",
+    "about": "Every auth type and its keys without a credential, client credentials on a camunda8 profile; the secret comes from elsewhere.",
     "file": {
       "profiles": {
         "none": {
@@ -1380,6 +1399,17 @@
             "type": "bearer"
           }
         },
+        "client-credentials": {
+          "url": "https://c8.example.com/v2",
+          "flavor": "camunda8",
+          "auth": {
+            "type": "clientCredentials",
+            "tokenEndpoint": "https://login.example.com/oauth/token",
+            "clientId": "pulse",
+            "scopes": ["api://camunda/.default"],
+            "audience": "zeebe-api"
+          }
+        },
         "passthrough": {
           "url": "http://engine:8080/engine-rest",
           "auth": {
@@ -1408,6 +1438,9 @@
         },
         {
           "name": "bearer"
+        },
+        {
+          "name": "client-credentials"
         },
         {
           "name": "passthrough"
@@ -2216,19 +2249,44 @@
     }
   },
   {
-    "name": "future-dialect",
-    "about": "A flavor and an auth type of a later dialect refuse only their profile; the C7 profile next to it loads.",
+    "name": "camunda8-profiles",
+    "about": "Camunda 8 profiles next to a Camunda 7 one: a cluster without auth, one with Basic auth and two with client credentials; a file others share names no variable of a client secret.",
     "file": {
       "profiles": {
-        "c8": {
-          "url": "https://c8.example.com/v2",
+        "c8-local": {
+          "url": "http://localhost:8088/v2",
+          "cockpitUrl": "http://localhost:8088/operate",
+          "flavor": "camunda8"
+        },
+        "c8-basic": {
+          "url": "https://camunda.example.com/v2",
           "flavor": "camunda8",
           "auth": {
-            "type": "client-credentials",
-            "tokenEndpoint": "https://login.example.com/oauth/token",
+            "type": "basic",
+            "username": "demo"
+          }
+        },
+        "c8-oidc": {
+          "url": "https://camunda.example.com/v2",
+          "flavor": "camunda8",
+          "auth": {
+            "type": "clientCredentials",
+            "tokenEndpoint": "https://keycloak.example.com/realms/camunda/protocol/openid-connect/token",
+            "clientId": "pulse",
+            "scopes": ["camunda-api"],
+            "audience": "orchestration-api"
+          }
+        },
+        "saas": {
+          "url": "https://bru-2.api.camunda.io/12345678-90ab-cdef-1234-567890abcdef/v2",
+          "cockpitUrl": "https://bru-2.operate.camunda.io/12345678-90ab-cdef-1234-567890abcdef",
+          "flavor": "camunda8",
+          "auth": {
+            "type": "clientCredentials",
+            "tokenEndpoint": "https://login.cloud.camunda.io/oauth/token",
             "clientId": "pulse",
             "clientSecretEnv": "ENGINE_SECRET_C8_CLIENT_SECRET",
-            "audience": "zeebe-api"
+            "audience": "zeebe.camunda.io"
           }
         },
         "c7": {
@@ -2237,17 +2295,22 @@
         }
       }
     },
-    "schema": false,
+    "schema": true,
     "outcomes": {
       "none": {
         "profiles": [
           {
-            "name": "c8",
-            "problems": [
-              "flavor-unknown flavor",
-              "auth-type-unknown auth.type",
-              "credential-in-shared-file auth.clientSecretEnv"
-            ]
+            "name": "c8-local"
+          },
+          {
+            "name": "c8-basic"
+          },
+          {
+            "name": "c8-oidc"
+          },
+          {
+            "name": "saas",
+            "problems": ["credential-in-shared-file auth.clientSecretEnv"]
           },
           {
             "name": "c7"
@@ -2257,8 +2320,16 @@
       "env": {
         "profiles": [
           {
-            "name": "c8",
-            "problems": ["flavor-unknown flavor", "auth-type-unknown auth.type"]
+            "name": "c8-local"
+          },
+          {
+            "name": "c8-basic"
+          },
+          {
+            "name": "c8-oidc"
+          },
+          {
+            "name": "saas"
           },
           {
             "name": "c7"
@@ -2268,14 +2339,464 @@
       "env-or-literal": {
         "profiles": [
           {
-            "name": "c8",
-            "problems": ["flavor-unknown flavor", "auth-type-unknown auth.type"]
+            "name": "c8-local"
+          },
+          {
+            "name": "c8-basic"
+          },
+          {
+            "name": "c8-oidc"
+          },
+          {
+            "name": "saas"
           },
           {
             "name": "c7"
           }
         ]
       }
+    },
+    "usable": {
+      "c8-oidc": {
+        "url": "https://camunda.example.com/v2",
+        "flavor": "camunda8",
+        "auth": {
+          "type": "clientCredentials",
+          "tokenEndpoint": "https://keycloak.example.com/realms/camunda/protocol/openid-connect/token",
+          "clientId": "pulse",
+          "scopes": ["camunda-api"],
+          "audience": "orchestration-api"
+        }
+      }
+    }
+  },
+  {
+    "name": "auth-type-not-in-dialect",
+    "about": "An auth type the flavor's API does not take: client credentials only on camunda8, an OAuth login and passthrough only on the Camunda 7 flavors; a flavor the format does not know says only that.",
+    "file": {
+      "profiles": {
+        "c7-client-credentials": {
+          "url": "http://localhost:8080/engine-rest",
+          "auth": {
+            "type": "clientCredentials",
+            "tokenEndpoint": "https://login.example.com/oauth/token"
+          }
+        },
+        "seven-client-credentials": {
+          "url": "http://localhost:8080/engine-rest",
+          "flavor": "cibseven",
+          "auth": {
+            "type": "clientCredentials",
+            "tokenEndpoint": "https://login.example.com/oauth/token"
+          }
+        },
+        "c8-oauth": {
+          "url": "https://c8.example.com/v2",
+          "flavor": "camunda8",
+          "auth": {
+            "type": "oauth",
+            "issuer": "https://login.example.com/realms/camunda"
+          }
+        },
+        "c8-passthrough": {
+          "url": "https://c8.example.com/v2",
+          "flavor": "camunda8",
+          "auth": {
+            "type": "passthrough"
+          }
+        },
+        "zeebe-client-credentials": {
+          "url": "https://c8.example.com/v2",
+          "flavor": "zeebe",
+          "auth": {
+            "type": "clientCredentials",
+            "tokenEndpoint": "https://login.example.com/oauth/token"
+          }
+        },
+        "prototype-flavor": {
+          "url": "https://c8.example.com/v2",
+          "flavor": "constructor",
+          "auth": {
+            "type": "oauth",
+            "issuer": "https://login.example.com/realms/camunda"
+          }
+        },
+        "flavor-list": {
+          "url": "http://localhost:8080/engine-rest",
+          "flavor": ["operaton"],
+          "auth": {
+            "type": "clientCredentials",
+            "tokenEndpoint": "https://login.example.com/oauth/token"
+          }
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "c7-client-credentials",
+          "problems": ["auth-type-not-in-dialect auth.type"]
+        },
+        {
+          "name": "seven-client-credentials",
+          "problems": ["auth-type-not-in-dialect auth.type"]
+        },
+        {
+          "name": "c8-oauth",
+          "problems": ["auth-type-not-in-dialect auth.type"]
+        },
+        {
+          "name": "c8-passthrough",
+          "problems": ["auth-type-not-in-dialect auth.type"]
+        },
+        {
+          "name": "zeebe-client-credentials",
+          "problems": ["flavor-unknown flavor"]
+        },
+        {
+          "name": "prototype-flavor",
+          "problems": ["flavor-unknown flavor"]
+        },
+        {
+          "name": "flavor-list",
+          "problems": ["invalid flavor"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "client-credentials-token-endpoint-missing",
+    "about": "Client credentials need the token endpoint: no issuer discovers one.",
+    "file": {
+      "profiles": {
+        "bare": {
+          "url": "https://c8.example.com/v2",
+          "flavor": "camunda8",
+          "auth": {
+            "type": "clientCredentials"
+          }
+        },
+        "client": {
+          "url": "https://c8.example.com/v2",
+          "flavor": "camunda8",
+          "auth": {
+            "type": "clientCredentials",
+            "clientId": "pulse",
+            "audience": "zeebe-api"
+          }
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "bare",
+          "problems": ["token-endpoint-missing auth.tokenEndpoint"]
+        },
+        {
+          "name": "client",
+          "problems": ["token-endpoint-missing auth.tokenEndpoint"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "client-credentials-login-keys",
+    "about": "Client credentials take no key of a person's login: an issuer, an authorization endpoint or a callback port.",
+    "file": {
+      "profiles": {
+        "issuer": {
+          "url": "https://c8.example.com/v2",
+          "flavor": "camunda8",
+          "auth": {
+            "type": "clientCredentials",
+            "issuer": "https://login.example.com/realms/camunda",
+            "tokenEndpoint": "https://login.example.com/oauth/token"
+          }
+        },
+        "endpoints": {
+          "url": "https://c8.example.com/v2",
+          "flavor": "camunda8",
+          "auth": {
+            "type": "clientCredentials",
+            "authorizationEndpoint": "https://login.example.com/oauth/authorize",
+            "tokenEndpoint": "https://login.example.com/oauth/token"
+          }
+        },
+        "port": {
+          "url": "https://c8.example.com/v2",
+          "flavor": "camunda8",
+          "auth": {
+            "type": "clientCredentials",
+            "tokenEndpoint": "https://login.example.com/oauth/token",
+            "redirectPort": 0
+          }
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "issuer",
+          "problems": ["auth-type-mismatch auth.type"]
+        },
+        {
+          "name": "endpoints",
+          "problems": ["auth-type-mismatch auth.type"]
+        },
+        {
+          "name": "port",
+          "problems": ["auth-type-mismatch auth.type"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "client-credentials-values-invalid",
+    "about": "Client credentials values of the wrong shape are refused: a blank audience, scopes as one string.",
+    "file": {
+      "profiles": {
+        "audience-blank": {
+          "url": "https://c8.example.com/v2",
+          "flavor": "camunda8",
+          "auth": {
+            "type": "clientCredentials",
+            "tokenEndpoint": "https://login.cloud.camunda.io/oauth/token",
+            "audience": "  "
+          }
+        },
+        "scopes-text": {
+          "url": "https://c8.example.com/v2",
+          "flavor": "camunda8",
+          "auth": {
+            "type": "clientCredentials",
+            "tokenEndpoint": "https://login.example.com/oauth2/v2.0/token",
+            "scopes": "api://pulse/.default"
+          }
+        },
+        "endpoint-blank": {
+          "url": "https://c8.example.com/v2",
+          "flavor": "camunda8",
+          "auth": {
+            "type": "clientCredentials",
+            "tokenEndpoint": " "
+          }
+        }
+      }
+    },
+    "schema": false,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "audience-blank",
+          "problems": ["invalid auth.audience"]
+        },
+        {
+          "name": "scopes-text",
+          "problems": ["invalid auth.scopes"]
+        },
+        {
+          "name": "endpoint-blank",
+          "problems": ["invalid auth.tokenEndpoint"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "client-credentials-secret",
+    "about": "A client secret itself and a variable outside ENGINE_SECRET_: only a person's own file keeps either.",
+    "file": {
+      "profiles": {
+        "literal": {
+          "url": "https://c8.example.com/v2",
+          "flavor": "camunda8",
+          "auth": {
+            "type": "clientCredentials",
+            "tokenEndpoint": "https://login.example.com/oauth/token",
+            "clientId": "pulse",
+            "clientSecret": "s3cr3t"
+          }
+        },
+        "variable": {
+          "url": "https://c8.example.com/v2",
+          "flavor": "camunda8",
+          "auth": {
+            "type": "clientCredentials",
+            "tokenEndpoint": "https://login.example.com/oauth/token",
+            "clientId": "pulse",
+            "clientSecretEnv": "C8_CLIENT_SECRET"
+          }
+        }
+      }
+    },
+    "schema": true,
+    "outcomes": {
+      "none": {
+        "profiles": [
+          {
+            "name": "literal",
+            "problems": ["credential-in-shared-file auth.clientSecret"]
+          },
+          {
+            "name": "variable",
+            "problems": ["credential-in-shared-file auth.clientSecretEnv"]
+          }
+        ]
+      },
+      "env": {
+        "profiles": [
+          {
+            "name": "literal",
+            "problems": ["literal-secret auth.clientSecret"]
+          },
+          {
+            "name": "variable",
+            "problems": ["variable-prefix auth.clientSecretEnv"]
+          }
+        ]
+      },
+      "env-or-literal": {
+        "profiles": [
+          {
+            "name": "literal"
+          },
+          {
+            "name": "variable"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "client-credentials-token-endpoint-as-written",
+    "about": "A token endpoint with a trailing slash, a query or blanks around it is kept as written: its URL rules are the reader's that asks it for tokens, as with an OAuth login's endpoints.",
+    "file": {
+      "profiles": {
+        "slash": {
+          "url": "https://c8.example.com/v2",
+          "flavor": "camunda8",
+          "auth": {
+            "type": "clientCredentials",
+            "tokenEndpoint": "https://authentik.example.com/application/o/token/"
+          }
+        },
+        "query": {
+          "url": "https://c8.example.com/v2",
+          "flavor": "camunda8",
+          "auth": {
+            "type": "clientCredentials",
+            "tokenEndpoint": "https://tenant.b2clogin.com/tenant.onmicrosoft.com/oauth2/v2.0/token?p=B2C_1_app"
+          }
+        },
+        "padded": {
+          "url": "https://c8.example.com/v2",
+          "flavor": "camunda8",
+          "auth": {
+            "type": "clientCredentials",
+            "tokenEndpoint": "  https://login.example.com/oauth/token  "
+          }
+        }
+      }
+    },
+    "schema": true,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "slash"
+        },
+        {
+          "name": "query"
+        },
+        {
+          "name": "padded"
+        }
+      ]
+    },
+    "usable": {
+      "slash": {
+        "url": "https://c8.example.com/v2",
+        "flavor": "camunda8",
+        "auth": {
+          "type": "clientCredentials",
+          "tokenEndpoint": "https://authentik.example.com/application/o/token/"
+        }
+      },
+      "query": {
+        "url": "https://c8.example.com/v2",
+        "flavor": "camunda8",
+        "auth": {
+          "type": "clientCredentials",
+          "tokenEndpoint": "https://tenant.b2clogin.com/tenant.onmicrosoft.com/oauth2/v2.0/token?p=B2C_1_app"
+        }
+      },
+      "padded": {
+        "url": "https://c8.example.com/v2",
+        "flavor": "camunda8",
+        "auth": {
+          "type": "clientCredentials",
+          "tokenEndpoint": "  https://login.example.com/oauth/token  "
+        }
+      }
+    }
+  },
+  {
+    "name": "client-credentials-token-endpoint-unchecked",
+    "about": "A token endpoint with credentials, a fragment or no http or https URL passes the format, which checks no URL of an auth key: the reader that sends the client secret there refuses it.",
+    "file": {
+      "profiles": {
+        "credentials": {
+          "url": "https://c8.example.com/v2",
+          "flavor": "camunda8",
+          "auth": {
+            "type": "clientCredentials",
+            "tokenEndpoint": "https://demo:demo@login.example.com/oauth/token"
+          }
+        },
+        "fragment": {
+          "url": "https://c8.example.com/v2",
+          "flavor": "camunda8",
+          "auth": {
+            "type": "clientCredentials",
+            "tokenEndpoint": "https://login.example.com/oauth/token#top"
+          }
+        },
+        "ftp": {
+          "url": "https://c8.example.com/v2",
+          "flavor": "camunda8",
+          "auth": {
+            "type": "clientCredentials",
+            "tokenEndpoint": "ftp://login.example.com/oauth/token"
+          }
+        },
+        "text": {
+          "url": "https://c8.example.com/v2",
+          "flavor": "camunda8",
+          "auth": {
+            "type": "clientCredentials",
+            "tokenEndpoint": "not a url"
+          }
+        }
+      }
+    },
+    "schema": true,
+    "outcome": {
+      "profiles": [
+        {
+          "name": "credentials"
+        },
+        {
+          "name": "fragment"
+        },
+        {
+          "name": "ftp"
+        },
+        {
+          "name": "text"
+        }
+      ]
     }
   },
   {

@@ -1,10 +1,18 @@
 import type { Client } from "@miragon/pulse-c7-client"
-import type { Flavor } from "@miragon/pulse-profile"
+import { type Flavor, FLAVORS } from "@miragon/pulse-profile"
 
 /** One per vendor of the C7 dialect: ONLY the real differences, never a mirror of the SDK. */
 
-/** A profile's `flavor`: the one table of vendors is the profile format's (`FLAVORS`). */
-export type EngineFlavor = Flavor
+/**
+ * A profile's `flavor` this server serves: the flavors of the Camunda 7 REST dialect in the profile
+ * format's one table of vendors (`FLAVORS`). A profile of another dialect is refused before.
+ */
+export type EngineFlavor = { [F in Flavor]: (typeof FLAVORS)[F] extends "c7" ? F : never }[Flavor]
+
+/** True when the server has a provider for `flavor`: one of the Camunda 7 REST dialect. */
+export function isEngineFlavor(flavor: Flavor): flavor is EngineFlavor {
+  return FLAVORS[flavor] === "c7"
+}
 
 /**
  * How the server signs in to an engine: not at all, Basic, a fixed bearer token, or the MCP

@@ -42,7 +42,7 @@
   "auth-oauth-keys-basic-type": {
     "targets": [],
     "problems": [
-      "profile \"local\": auth.type does not fit the other auth keys: OAuth keys need \"oauth\", a stored token \"bearer\", Basic auth keys \"basic\" or no type, \"passthrough\" takes none, and \"none\" switches them off. This client connects with auth.type none or basic: use one of them."
+      "profile \"local\": auth.type does not fit the other auth keys: OAuth keys need \"oauth\", or \"clientCredentials\" without issuer, authorizationEndpoint and redirectPort; a stored token \"bearer\"; Basic auth keys \"basic\" or no type; \"passthrough\" takes none; and \"none\" switches them off. This client connects with auth.type none or basic: use one of them."
     ]
   },
   "auth-oauth-values-invalid": {
@@ -60,7 +60,7 @@
   "auth-oauth-without-type": {
     "targets": [],
     "problems": [
-      "profile \"local\": auth.type does not fit the other auth keys: OAuth keys need \"oauth\", a stored token \"bearer\", Basic auth keys \"basic\" or no type, \"passthrough\" takes none, and \"none\" switches them off. This client connects with auth.type none or basic: use one of them."
+      "profile \"local\": auth.type does not fit the other auth keys: OAuth keys need \"oauth\", or \"clientCredentials\" without issuer, authorizationEndpoint and redirectPort; a stored token \"bearer\"; Basic auth keys \"basic\" or no type; \"passthrough\" takes none; and \"none\" switches them off. This client connects with auth.type none or basic: use one of them."
     ]
   },
   "auth-one-endpoint": {
@@ -76,7 +76,7 @@
   "auth-passthrough-keys": {
     "targets": [],
     "problems": [
-      "profile \"local\": auth.type does not fit the other auth keys: OAuth keys need \"oauth\", a stored token \"bearer\", Basic auth keys \"basic\" or no type, \"passthrough\" takes none, and \"none\" switches them off. This client connects with auth.type none or basic: use one of them."
+      "profile \"local\": auth.type does not fit the other auth keys: OAuth keys need \"oauth\", or \"clientCredentials\" without issuer, authorizationEndpoint and redirectPort; a stored token \"bearer\"; Basic auth keys \"basic\" or no type; \"passthrough\" takes none; and \"none\" switches them off. This client connects with auth.type none or basic: use one of them."
     ]
   },
   "auth-password": {
@@ -108,6 +108,7 @@
     "targets": ["none", "basic", "oauth", "endpoints", "absent"],
     "problems": [
       "profile \"bearer\": This client cannot authenticate with this auth.type. Set auth.type to none or basic, or keep this profile for the CLI.",
+      "profile \"client-credentials\": This client does not speak the API of this flavor. This client cannot authenticate with this auth.type.",
       "profile \"passthrough\": This client cannot authenticate with this auth.type. Set auth.type to none or basic, or keep this profile for the MCP server."
     ]
   },
@@ -130,22 +131,35 @@
   "auth-token-without-type": {
     "targets": [],
     "problems": [
-      "profile \"local\": auth.tokenEnv is set, but a file others share names no credential, neither a secret nor the variable that holds one. auth.type does not fit the other auth keys: OAuth keys need \"oauth\", a stored token \"bearer\", Basic auth keys \"basic\" or no type, \"passthrough\" takes none, and \"none\" switches them off. This client connects with auth.type none or basic: use one of them."
+      "profile \"local\": auth.tokenEnv is set, but a file others share names no credential, neither a secret nor the variable that holds one. auth.type does not fit the other auth keys: OAuth keys need \"oauth\", or \"clientCredentials\" without issuer, authorizationEndpoint and redirectPort; a stored token \"bearer\"; Basic auth keys \"basic\" or no type; \"passthrough\" takes none; and \"none\" switches them off. This client connects with auth.type none or basic: use one of them."
+    ]
+  },
+  "auth-type-not-in-dialect": {
+    "targets": [],
+    "problems": [
+      "profile \"c7-client-credentials\": auth.type does not fit the API of the flavor (camunda7, cibseven, operaton: none, basic, bearer, oauth, passthrough; camunda8: none, basic, bearer, clientCredentials). This client connects with auth.type none or basic: use one of them.",
+      "profile \"seven-client-credentials\": auth.type does not fit the API of the flavor (camunda7, cibseven, operaton: none, basic, bearer, oauth, passthrough; camunda8: none, basic, bearer, clientCredentials). This client connects with auth.type none or basic: use one of them.",
+      "profile \"c8-oauth\": auth.type does not fit the API of the flavor (camunda7, cibseven, operaton: none, basic, bearer, oauth, passthrough; camunda8: none, basic, bearer, clientCredentials). This client connects with auth.type none or basic: use one of them.",
+      "profile \"c8-passthrough\": auth.type does not fit the API of the flavor (camunda7, cibseven, operaton: none, basic, bearer, oauth, passthrough; camunda8: none, basic, bearer, clientCredentials). This client connects with auth.type none or basic: use one of them.",
+      "profile \"zeebe-client-credentials\": flavor must be one of camunda7, camunda8, cibseven, operaton (the value is not shown).",
+      "profile \"prototype-flavor\": flavor must be one of camunda7, camunda8, cibseven, operaton (the value is not shown).",
+      "profile \"flavor-list\": flavor must be a string, one of camunda7, camunda8, cibseven, operaton."
     ]
   },
   "auth-type-not-string": {
     "targets": [],
     "problems": [
-      "profile \"local\": auth.type must be a string, one of none, basic, bearer, oauth, passthrough. This client connects with auth.type none or basic: use one of them."
+      "profile \"local\": auth.type must be a string, one of none, basic, bearer, oauth, clientCredentials, passthrough. This client connects with auth.type none or basic: use one of them."
     ]
   },
   "auth-type-unknown": {
     "targets": [],
     "problems": [
-      "profile \"kerberos\": auth.type must be one of none, basic, bearer, oauth, passthrough (the value is not shown). This client connects with auth.type none or basic: use one of them.",
-      "profile \"blank\": auth.type must be one of none, basic, bearer, oauth, passthrough (the value is not shown). This client connects with auth.type none or basic: use one of them.",
-      "profile \"padded\": auth.type must be one of none, basic, bearer, oauth, passthrough (the value is not shown). This client connects with auth.type none or basic: use one of them.",
-      "profile \"oauth-kerberos\": auth.type must be one of none, basic, bearer, oauth, passthrough (the value is not shown). This client connects with auth.type none or basic: use one of them."
+      "profile \"kerberos\": auth.type must be one of none, basic, bearer, oauth, clientCredentials, passthrough (the value is not shown). This client connects with auth.type none or basic: use one of them.",
+      "profile \"blank\": auth.type must be one of none, basic, bearer, oauth, clientCredentials, passthrough (the value is not shown). This client connects with auth.type none or basic: use one of them.",
+      "profile \"padded\": auth.type must be one of none, basic, bearer, oauth, clientCredentials, passthrough (the value is not shown). This client connects with auth.type none or basic: use one of them.",
+      "profile \"oauth-kerberos\": auth.type must be one of none, basic, bearer, oauth, clientCredentials, passthrough (the value is not shown). This client connects with auth.type none or basic: use one of them.",
+      "profile \"kebab\": auth.type must be one of none, basic, bearer, oauth, clientCredentials, passthrough (the value is not shown). This client connects with auth.type none or basic: use one of them."
     ]
   },
   "auth-unknown-key": {
@@ -163,13 +177,69 @@
   "auth-username-oauth-type": {
     "targets": [],
     "problems": [
-      "profile \"local\": auth.type does not fit the other auth keys: OAuth keys need \"oauth\", a stored token \"bearer\", Basic auth keys \"basic\" or no type, \"passthrough\" takes none, and \"none\" switches them off. This client connects with auth.type none or basic: use one of them."
+      "profile \"local\": auth.type does not fit the other auth keys: OAuth keys need \"oauth\", or \"clientCredentials\" without issuer, authorizationEndpoint and redirectPort; a stored token \"bearer\"; Basic auth keys \"basic\" or no type; \"passthrough\" takes none; and \"none\" switches them off. This client connects with auth.type none or basic: use one of them."
     ]
   },
   "auth-variable-not-a-name": {
     "targets": [],
     "problems": [
       "profile \"local\": auth.passwordEnv is set, but a file others share names no credential, neither a secret nor the variable that holds one."
+    ]
+  },
+  "camunda8-profiles": {
+    "targets": ["c7"],
+    "problems": [
+      "profile \"c8-local\": This client does not speak the API of this flavor.",
+      "profile \"c8-basic\": This client does not speak the API of this flavor.",
+      "profile \"c8-oidc\": This client does not speak the API of this flavor. This client cannot authenticate with this auth.type.",
+      "profile \"saas\": auth.clientSecretEnv is set, but a file others share names no credential, neither a secret nor the variable that holds one."
+    ]
+  },
+  "client-credentials-login-keys": {
+    "targets": [],
+    "problems": [
+      "profile \"issuer\": auth.type does not fit the other auth keys: OAuth keys need \"oauth\", or \"clientCredentials\" without issuer, authorizationEndpoint and redirectPort; a stored token \"bearer\"; Basic auth keys \"basic\" or no type; \"passthrough\" takes none; and \"none\" switches them off. This client connects with auth.type none or basic: use one of them.",
+      "profile \"endpoints\": auth.type does not fit the other auth keys: OAuth keys need \"oauth\", or \"clientCredentials\" without issuer, authorizationEndpoint and redirectPort; a stored token \"bearer\"; Basic auth keys \"basic\" or no type; \"passthrough\" takes none; and \"none\" switches them off. This client connects with auth.type none or basic: use one of them.",
+      "profile \"port\": auth.type does not fit the other auth keys: OAuth keys need \"oauth\", or \"clientCredentials\" without issuer, authorizationEndpoint and redirectPort; a stored token \"bearer\"; Basic auth keys \"basic\" or no type; \"passthrough\" takes none; and \"none\" switches them off. This client connects with auth.type none or basic: use one of them."
+    ]
+  },
+  "client-credentials-secret": {
+    "targets": [],
+    "problems": [
+      "profile \"literal\": auth.clientSecret is set, but a file others share names no credential, neither a secret nor the variable that holds one.",
+      "profile \"variable\": auth.clientSecretEnv is set, but a file others share names no credential, neither a secret nor the variable that holds one."
+    ]
+  },
+  "client-credentials-token-endpoint-as-written": {
+    "targets": [],
+    "problems": [
+      "profile \"slash\": This client does not speak the API of this flavor. This client cannot authenticate with this auth.type.",
+      "profile \"query\": This client does not speak the API of this flavor. This client cannot authenticate with this auth.type.",
+      "profile \"padded\": This client does not speak the API of this flavor. This client cannot authenticate with this auth.type."
+    ]
+  },
+  "client-credentials-token-endpoint-missing": {
+    "targets": [],
+    "problems": [
+      "profile \"bare\": auth.tokenEndpoint is missing: auth.type \"clientCredentials\" gets its tokens from that URL, such as https://login.example.com/oauth/token.",
+      "profile \"client\": auth.tokenEndpoint is missing: auth.type \"clientCredentials\" gets its tokens from that URL, such as https://login.example.com/oauth/token."
+    ]
+  },
+  "client-credentials-token-endpoint-unchecked": {
+    "targets": [],
+    "problems": [
+      "profile \"credentials\": This client does not speak the API of this flavor. This client cannot authenticate with this auth.type.",
+      "profile \"fragment\": This client does not speak the API of this flavor. This client cannot authenticate with this auth.type.",
+      "profile \"ftp\": This client does not speak the API of this flavor. This client cannot authenticate with this auth.type.",
+      "profile \"text\": This client does not speak the API of this flavor. This client cannot authenticate with this auth.type."
+    ]
+  },
+  "client-credentials-values-invalid": {
+    "targets": [],
+    "problems": [
+      "profile \"audience-blank\": auth.audience must be a non-empty string.",
+      "profile \"scopes-text\": auth.scopes must be a list of distinct scopes such as [\"openid\", \"offline_access\"].",
+      "profile \"endpoint-blank\": auth.tokenEndpoint must be a URL."
     ]
   },
   "cockpit-not-string": {
@@ -248,29 +318,25 @@
   },
   "flavor-not-string": {
     "targets": [],
-    "problems": ["profile \"local\": flavor must be a string, one of camunda7, cibseven, operaton."]
+    "problems": [
+      "profile \"local\": flavor must be a string, one of camunda7, camunda8, cibseven, operaton."
+    ]
   },
   "flavor-padded": {
     "targets": [],
     "problems": [
-      "profile \"local\": flavor must be one of camunda7, cibseven, operaton (the value is not shown)."
+      "profile \"local\": flavor must be one of camunda7, camunda8, cibseven, operaton (the value is not shown)."
     ]
   },
   "flavor-unknown": {
     "targets": [],
     "problems": [
-      "profile \"local\": flavor must be one of camunda7, cibseven, operaton (the value is not shown)."
+      "profile \"local\": flavor must be one of camunda7, camunda8, cibseven, operaton (the value is not shown)."
     ]
   },
   "flavors": {
     "targets": ["c7", "seven", "operaton", "plain"],
-    "problems": []
-  },
-  "future-dialect": {
-    "targets": ["c7"],
-    "problems": [
-      "profile \"c8\": flavor must be one of camunda7, cibseven, operaton (the value is not shown). auth.type must be one of none, basic, bearer, oauth, passthrough (the value is not shown). auth.clientSecretEnv is set, but a file others share names no credential, neither a secret nor the variable that holds one. This client connects with auth.type none or basic: use one of them."
-    ]
+    "problems": ["profile \"c8\": This client does not speak the API of this flavor."]
   },
   "header-boundaries": {
     "targets": [],

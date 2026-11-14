@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
-import type { EngineFlavor } from "./engine-provider.js"
+import { FLAVORS, type Flavor } from "@miragon/pulse-profile"
+import { type EngineFlavor, isEngineFlavor } from "./engine-provider.js"
 import { engineConfigSchema, engineModule } from "./module.js"
 import {
   DEFAULT_ENGINE_FLAVOR,
@@ -29,6 +30,12 @@ describe("providerForEntry", () => {
     for (const [flavor, provider] of Object.entries(ENGINE_PROVIDERS)) {
       expect(provider.flavor).toBe(flavor)
     }
+  })
+
+  it("holds the flavors it narrows a profile to to the providers, never another dialect's", () => {
+    const flavors = Object.keys(FLAVORS) as Flavor[]
+    expect(flavors.filter(isEngineFlavor).sort()).toEqual(Object.keys(ENGINE_PROVIDERS).sort())
+    expect(isEngineFlavor("camunda8")).toBe(false)
   })
 
   it("fails on a flavor an untyped caller made up, naming the engine and the known ones", () => {
@@ -91,10 +98,16 @@ describe("engineModule.configFromEnv engine flavor", () => {
     "fails the boot on %j, naming the variable and never the value",
     (raw) => {
       expect(() => engineModule.configFromEnv({ ENGINE_FLAVOR: raw })).toThrow(
-        "ENGINE_FLAVOR: flavor must be one of camunda7, cibseven, operaton (the value is not shown).",
+        "ENGINE_FLAVOR: flavor must be one of camunda7, camunda8, cibseven, operaton (the value is not shown).",
       )
     },
   )
+
+  it("fails the boot on camunda8, naming the flavors this server reads", () => {
+    expect(() => engineModule.configFromEnv({ ENGINE_FLAVOR: "camunda8" })).toThrow(
+      "ENGINE_FLAVOR: This server does not speak the API of this flavor: it reads camunda7, cibseven and operaton.",
+    )
+  })
 
   it("declares ENGINE_FLAVOR so the unknown-env-var warner does not flag it", () => {
     expect(engineModule.knownEnvVars).toContain("ENGINE_FLAVOR")

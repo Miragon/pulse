@@ -58,11 +58,11 @@ const SENTENCES: readonly (readonly [Problem, string])[] = [
   [{ code: "unknown-key", key: "auth.scope" }, "auth.scope is no key of a profile."],
   [
     { code: "flavor-unknown", key: "flavor" },
-    "flavor must be one of camunda7, cibseven, operaton (the value is not shown).",
+    "flavor must be one of camunda7, camunda8, cibseven, operaton (the value is not shown).",
   ],
   [
     { code: "auth-type-unknown", key: "auth.type" },
-    "auth.type must be one of none, basic, bearer, oauth, passthrough (the value is not shown).",
+    "auth.type must be one of none, basic, bearer, oauth, clientCredentials, passthrough (the value is not shown).",
   ],
   [
     { code: "auth-keys-mixed", key: "auth" },
@@ -70,7 +70,11 @@ const SENTENCES: readonly (readonly [Problem, string])[] = [
   ],
   [
     { code: "auth-type-mismatch", key: "auth.type" },
-    'auth.type does not fit the other auth keys: OAuth keys need "oauth", a stored token "bearer", Basic auth keys "basic" or no type, "passthrough" takes none, and "none" switches them off.',
+    'auth.type does not fit the other auth keys: OAuth keys need "oauth", or "clientCredentials" without issuer, authorizationEndpoint and redirectPort; a stored token "bearer"; Basic auth keys "basic" or no type; "passthrough" takes none; and "none" switches them off.',
+  ],
+  [
+    { code: "auth-type-not-in-dialect", key: "auth.type" },
+    "auth.type does not fit the API of the flavor (camunda7, cibseven, operaton: none, basic, bearer, oauth, passthrough; camunda8: none, basic, bearer, clientCredentials).",
   ],
   [
     { code: "secret-twice", key: "auth.clientSecret" },
@@ -79,6 +83,10 @@ const SENTENCES: readonly (readonly [Problem, string])[] = [
   [
     { code: "endpoint-alone", key: "auth.tokenEndpoint" },
     "auth.authorizationEndpoint and auth.tokenEndpoint go together: set both, or neither and let auth.issuer name them.",
+  ],
+  [
+    { code: "token-endpoint-missing", key: "auth.tokenEndpoint" },
+    'auth.tokenEndpoint is missing: auth.type "clientCredentials" gets its tokens from that URL, such as https://login.example.com/oauth/token.',
   ],
   [
     { code: "url-invalid", key: "url" },
@@ -138,7 +146,7 @@ const TAKES: Readonly<Record<string, string>> = {
   url: "a URL such as http://localhost:8080/engine-rest",
   cockpitUrl: "a URL such as http://localhost:8080/camunda/app/cockpit/default/",
   engine: 'the name of a process engine, not "." or ".."',
-  flavor: "a string, one of camunda7, cibseven, operaton",
+  flavor: "a string, one of camunda7, camunda8, cibseven, operaton",
   environment:
     'an environment id: lower case letters, digits and "-", starting with a letter or digit',
   auth: 'an object such as {"type": "basic", "username": "demo"}',
@@ -147,7 +155,7 @@ const TAKES: Readonly<Record<string, string>> = {
   headers:
     "an object that maps header names (HTTP tokens, not Connection, Content-Length, Expect, Keep-Alive, Transfer-Encoding or Upgrade) to ISO-8859-1 (Latin-1) values without control characters but tab",
   readOnly: "true or false",
-  "auth.type": "a string, one of none, basic, bearer, oauth, passthrough",
+  "auth.type": "a string, one of none, basic, bearer, oauth, clientCredentials, passthrough",
   "auth.username": 'a non-empty string without ":" and without control characters',
   "auth.passwordEnv": "the name of an environment variable, such as ENGINE_SECRET_PROD_PASSWORD",
   "auth.password": "a non-empty string",

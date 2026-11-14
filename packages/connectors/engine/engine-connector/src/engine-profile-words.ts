@@ -8,13 +8,21 @@
 
 import type { CredentialProblem } from "./lib/engine/credentials.js"
 
+/** `items` as English lists them: `a, b and c`. */
+function listed(items: readonly string[]): string {
+  return items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`
+}
+
 /**
  * What this server cannot serve, in its own words, by the format's problem code (the codes of
  * `refusalsOn`): the format's sentences speak of "this client", which the model would read as its
- * own MCP client. `key` is the key the problem is about.
+ * own MCP client. `key` is the key the problem is about, `flavors` the flavors the server reads.
  */
-export const NOT_SERVED: Readonly<Record<string, (key: string | undefined) => string>> = {
-  "dialect-not-served": () => "This server does not speak the API of this flavor.",
+export const NOT_SERVED: Readonly<
+  Record<string, (key: string | undefined, flavors: readonly string[]) => string>
+> = {
+  "dialect-not-served": (_key, flavors) =>
+    `This server does not speak the API of this flavor: it reads ${listed(flavors)}.`,
   "auth-type-not-served": () =>
     "This server cannot sign in with this auth.type: it signs in with none, basic, bearer or passthrough, and an OAuth login needs a person.",
   "url-missing": () =>

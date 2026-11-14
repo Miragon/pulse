@@ -21,6 +21,7 @@ import {
   AUTH_KEYS,
   authTypeOf,
   describeProblem,
+  flavorsOf,
   isConventionalVariable,
   parseProfileFile,
   type Problem,
@@ -31,7 +32,12 @@ import {
   refusalsOn,
   type Surface,
 } from "@miragon/pulse-profile"
-import type { EngineAuth, EngineEntry } from "./engine-provider.js"
+import {
+  type EngineAuth,
+  type EngineEntry,
+  type EngineFlavor,
+  isEngineFlavor,
+} from "./engine-provider.js"
 import { credentialProblemOf } from "./lib/engine/credentials.js"
 import type { RefusedProfile } from "./lib/engine/resolve-engine.js"
 import {
@@ -62,6 +68,9 @@ export const SERVER_SURFACE: Surface = {
   defaultEngineOnly: true,
   refusedKeys: ["headers"],
 }
+
+/** The flavors of the dialects SERVER_SURFACE speaks, as the refusal of another one names them. */
+const SERVED_FLAVORS = SERVER_SURFACE.dialects.flatMap(flavorsOf)
 
 /** Where the zero-config engine is: the starter's compose.yaml and the playground serve there. */
 export const LOCAL_ENGINE_URL = "http://localhost:8410/engine-rest"
@@ -186,10 +195,18 @@ function writtenCockpitUrls(text: string): WrittenCockpitUrl {
   }
 }
 
+/** A usable profile whose flavor the server has a provider for. */
+type EngineProfile = Profile & { readonly flavor?: EngineFlavor }
+
+/** True when the server has a provider for the flavor of `profile`, or it names none. */
+function hasEngineFlavor(profile: Profile): profile is EngineProfile {
+  return profile.flavor === undefined || isEngineFlavor(profile.flavor)
+}
+
 /** The engine of a usable profile: its name is the id, its `url` the REST root. */
 function entryOf(
   id: string,
-  profile: Profile,
+  profile: EngineProfile,
   auth: EngineAuth,
   written: WrittenCockpitUrl,
 ): EngineEntry {
@@ -229,6 +246,9 @@ function judge(
   }
   const refused = refusalsOn(profile, SERVER_SURFACE)
   if (refused.length > 0) return { name, index, profile, problems: refused }
+  if (!hasEngineFlavor(profile)) {
+    return { name, index, profile, problems: [{ code: "dialect-not-served", key: "flavor" }] }
+  }
   const { auth, problems } = authOf(profile, env, secrets)
   if (auth === undefined) return { name, index, profile, problems }
   const credential = credentialProblemOf(auth)
@@ -265,7 +285,9 @@ function unnamedKeyProblem({ code, key = "" }: Problem): string {
 function problemSentence(problem: Problem, forModel: boolean): string {
   const { code, key } = problem
   if (forModel && key !== undefined && !FORMAT_KEYS.has(key)) return unnamedKeyProblem(problem)
-  return Object.hasOwn(NOT_SERVED, code) ? NOT_SERVED[code](key) : describeProblem(problem)
+  return Object.hasOwn(NOT_SERVED, code)
+    ? NOT_SERVED[code](key, SERVED_FLAVORS)
+    : describeProblem(problem)
 }
 
 /**

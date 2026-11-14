@@ -10,6 +10,9 @@ import { keyed } from "./keys.js"
 import { ENVIRONMENT_ID, isNonEmptyString, isRecord } from "./syntax.js"
 import {
   type CredentialPolicy,
+  DEFAULT_FLAVOR,
+  type Dialect,
+  type Flavor,
   FLAVORS,
   OUTPUT_FORMATS,
   type Problem,
@@ -108,14 +111,33 @@ function headerProblems(
   ]
 }
 
+/**
+ * The dialect of the flavor a profile names, DEFAULT_FLAVOR's without one; undefined for a value
+ * that names no flavor of the format, which has its own problem.
+ */
+function dialectOfFlavor(flavor: unknown): Dialect | undefined {
+  if (flavor === undefined) return FLAVORS[DEFAULT_FLAVOR]
+  return typeof flavor === "string" && Object.hasOwn(FLAVORS, flavor)
+    ? FLAVORS[flavor as Flavor]
+    : undefined
+}
+
+/** What the rules of a profile's auth object depend on: the file's policy and the dialect. */
+interface AuthContext {
+  readonly policy: CredentialPolicy
+  readonly dialect: Dialect | undefined
+}
+
 function keyProblems(
   key: ProfileKey,
   value: unknown,
   members: () => Members,
-  policy: CredentialPolicy,
+  { policy, dialect }: AuthContext,
 ): Problem[] {
   if (key === "auth") {
-    return isRecord(value) ? authProblems(value, members(), policy) : [{ code: "invalid", key }]
+    return isRecord(value)
+      ? authProblems(value, members(), policy, dialect)
+      : [{ code: "invalid", key }]
   }
   if (key === "headers") return headerProblems(value, members, policy)
   const code = VALUE_CHECKS[key](value)
@@ -134,6 +156,7 @@ export function profileProblems(
   policy: CredentialPolicy,
 ): Problem[] {
   const known: readonly string[] = PROFILE_KEYS
+  const context: AuthContext = { policy, dialect: dialectOfFlavor(profile.flavor) }
   const nested = (key: string) => () => {
     const member = members.first.find((candidate) => candidate.key === key)
     return member === undefined ? { first: [], repeated: [] } : objectMembers(source, member.start)
@@ -144,7 +167,7 @@ export function profileProblems(
       .filter(({ key }) => !known.includes(key))
       .map(({ key }) => keyed("unknown-key", undefined, key)),
     ...PROFILE_KEYS.filter((key) => Object.hasOwn(profile, key)).flatMap((key) =>
-      keyProblems(key, profile[key], nested(key), policy),
+      keyProblems(key, profile[key], nested(key), context),
     ),
   ]
 }

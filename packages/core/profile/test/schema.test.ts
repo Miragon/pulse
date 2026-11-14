@@ -14,6 +14,7 @@ import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import { parseProfileFile } from "../src/parse.js"
 import { MAX_TIMEOUT_MS } from "../src/profile.js"
+import { flavorsOf } from "../src/surface.js"
 import { PROFILE_FIXTURES } from "../src/testing/index.js"
 import {
   AUTH_KEYS,
@@ -22,6 +23,7 @@ import {
   BASIC_AUTH_KEYS,
   BEARER_AUTH_KEYS,
   CREDENTIAL_POLICIES,
+  DIALECT_AUTH_TYPES,
   FLAVORS,
   OUTPUT_FORMATS,
   PROFILE_KEYS,
@@ -33,6 +35,10 @@ interface SchemaNode {
   readonly properties?: Readonly<Record<string, SchemaNode>>
   readonly definitions?: Readonly<Record<string, SchemaNode>>
   readonly enum?: readonly unknown[]
+  readonly allOf?: readonly SchemaNode[]
+  readonly if?: SchemaNode
+  readonly then?: SchemaNode
+  readonly else?: SchemaNode
 }
 
 const SCHEMA_URL = new URL("../schema/pulse.schema.json", import.meta.url)
@@ -113,6 +119,18 @@ describe("the JSON Schema", () => {
     expect(node(["profile", "flavor"]).enum).toEqual(Object.keys(FLAVORS))
     expect(node(["auth", "type"]).enum).toEqual(AUTH_TYPES)
     expect(node(["profile", "output"]).enum).toEqual(OUTPUT_FORMATS)
+  })
+
+  it("gives the flavors of each dialect the auth types DIALECT_AUTH_TYPES lists", () => {
+    const [rule] = node(["profile"]).allOf ?? []
+    const typesIn = (branch: SchemaNode | undefined) =>
+      branch?.properties?.auth?.properties?.type?.enum
+    expect(rule?.if?.properties?.flavor?.enum).toEqual(flavorsOf("c8"))
+    expect(typesIn(rule?.then)).toEqual(DIALECT_AUTH_TYPES.c8)
+    expect(typesIn(rule?.else)).toEqual(DIALECT_AUTH_TYPES.c7)
+    expect(flavorsOf("c7")).toEqual(
+      Object.keys(FLAVORS).filter((flavor) => !flavorsOf("c8").some((c8) => c8 === flavor)),
+    )
   })
 
   it("is published where its $id points: one export, listed literally, and in the files", () => {
@@ -256,18 +274,27 @@ describe("the JSON Schema on random values", () => {
     expect(silent).toBeGreaterThan(0)
   })
 
-  it("takes what the parser takes silently, however auth's keys combine", () => {
+  it("takes what the parser takes silently, however auth's keys and the flavor combine", () => {
     const keys = AUTH_KEYS.filter((key) => key !== "type")
-    let silent = 0
+    const flavors = new Set<unknown>()
     fc.assert(
-      fc.property(fc.subarray(keys), fc.option(fc.constantFrom(...AUTH_TYPES)), (chosen, type) => {
-        const auth = Object.fromEntries(chosen.map((key) => [key, AUTH_VALUES[key]]))
-        if (holdsSchemaToParser(profileWith({ auth: type === null ? auth : { ...auth, type } })))
-          silent += 1
-      }),
-      { numRuns: 1000 },
+      fc.property(
+        fc.subarray(keys),
+        fc.option(fc.constantFrom(...AUTH_TYPES)),
+        fc.option(fc.constantFrom(...Object.keys(FLAVORS))),
+        (chosen, type, flavor) => {
+          const auth = Object.fromEntries(chosen.map((key) => [key, AUTH_VALUES[key]]))
+          const profile = {
+            ...(flavor === null ? {} : { flavor }),
+            auth: type === null ? auth : { ...auth, type },
+          }
+          if (holdsSchemaToParser(profileWith(profile))) flavors.add(flavor)
+        },
+      ),
+      { numRuns: 2000 },
     )
-    expect(silent).toBeGreaterThan(0)
+    expect(flavors).toContain("camunda8")
+    expect(flavors).toContain(null)
   })
 })
 

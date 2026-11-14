@@ -11,7 +11,7 @@ import {
   type Surface,
 } from "@miragon/pulse-profile"
 import { EditorAuth } from "./editor-auth.js"
-import type { EngineTarget } from "./engine-target.js"
+import type { EngineKind, EngineTarget } from "./engine-target.js"
 import { TargetsProblem } from "./targets-problem.js"
 
 export interface ParsedTargets {
@@ -19,8 +19,10 @@ export interface ParsedTargets {
   readonly problems: readonly TargetsProblem[]
 }
 
+const DIALECTS: readonly EngineKind[] = ["c7"]
+
 const SURFACE: Surface = {
-  dialects: ["c7"],
+  dialects: DIALECTS,
   authTypes: ["none", "basic", "oauth"],
   urlRequired: true,
   defaultEngineOnly: true,
@@ -31,6 +33,7 @@ const AUTH_KEY_CODES: ReadonlySet<ProblemCode> = new Set([
   "auth-type-unknown",
   "auth-keys-mixed",
   "auth-type-mismatch",
+  "auth-type-not-in-dialect",
 ])
 
 export class TargetsParser {
@@ -58,22 +61,28 @@ export class TargetsParser {
     const { name, profile } = verdict
     const refusals = profile === undefined ? verdict.problems : refusalsOn(profile, SURFACE)
     const auth = profile === undefined ? undefined : EditorAuth.kindOf(authTypeOf(profile))
+    const engine = profile === undefined ? undefined : this.engineOf(profile)
     if (
       refusals.length > 0 ||
       name === undefined ||
       profile?.url === undefined ||
-      auth === undefined
+      auth === undefined ||
+      engine === undefined
     ) {
       return this.refusal(verdict, refusals)
     }
     return {
       name,
-      engine: dialectOf(profile),
+      engine,
       endpoint: profile.url,
       auth,
       source: { kind: "file", path: this.path },
       ...this.optionalsOf(profile),
     }
+  }
+
+  private engineOf(profile: Profile): EngineKind | undefined {
+    return DIALECTS.find((dialect) => dialect === dialectOf(profile))
   }
 
   private optionalsOf(profile: Profile): Pick<EngineTarget, "webUiUrl" | "readOnly"> {
@@ -101,10 +110,14 @@ export class TargetsParser {
     if (code === "key-not-served") {
       return key === "headers" ? EditorAuth.WAYS_OUT.headers : undefined
     }
-    if (code !== "auth-type-not-served") {
+    return code === "auth-type-not-served" ? this.authTypeWayOut(profile) : undefined
+  }
+
+  private authTypeWayOut(profile: Profile | undefined): string | undefined {
+    if (profile === undefined || this.engineOf(profile) === undefined) {
       return undefined
     }
-    return profile !== undefined && authTypeOf(profile) === "passthrough"
+    return authTypeOf(profile) === "passthrough"
       ? EditorAuth.WAYS_OUT.passthrough
       : EditorAuth.WAYS_OUT.authType
   }

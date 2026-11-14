@@ -21,6 +21,14 @@ not before.
 
 **Until then the CLI does not support Camunda 8.** The docs say so ([Engines](../engines.md)).
 
+**A profile file may name it.** The profile format (`@miragon/pulse-profile`) knows the flavor
+`camunda8` and its auth type `clientCredentials`, so a file the CLI reads may hold such a profile.
+The file still loads, and the CLI refuses only that profile, by name, when a command uses it.
+`--flavor camunda8` and `PULSE_CLI_FLAVOR=camunda8` stay unknown: the CLI's flavors are the engines
+it serves. `pulse config` changes no single setting of client credentials, since it knows none of
+their rules (`pulse config unset <profile> auth` removes the whole object), and gives no profile an
+auth type its flavor does not take, such as an OAuth login on `camunda8`.
+
 ## Consequences
 
 - The Camunda 7 engines are not slowed down by abstractions for an API that is not there.

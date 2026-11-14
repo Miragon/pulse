@@ -45,9 +45,13 @@ npm install @miragon/pulse-profile
 
 A profile's name is how you select it, and on an MCP server the engine id. Its keys: `url` (the
 REST API root), `cockpitUrl` (the engine's web app, for links), `engine` (a named process engine),
-`flavor` (`camunda7`, `cibseven` or `operaton`, each mapped to the API dialect it speaks in
-`FLAVORS`), `environment`, `auth`, `output`, `timeout`, `headers` and `readOnly`. `auth.type` is
-`none`, `basic`, `bearer`, `oauth` or `passthrough` (an MCP server forwards its caller's token).
+`flavor` (`camunda7`, `cibseven` or `operaton` for the Camunda 7 REST API, `camunda8` for a Camunda 8
+cluster, each mapped to the API dialect it speaks in `FLAVORS`), `environment`, `auth`, `output`,
+`timeout`, `headers` and `readOnly`. `auth.type` is `none`, `basic`, `bearer`, `oauth` (a person's
+login), `clientCredentials` (the client's own token from `tokenEndpoint`, which it needs) or
+`passthrough` (an MCP server forwards its caller's token). Each dialect takes its own auth types
+(`DIALECT_AUTH_TYPES`): client credentials only on `camunda8`, an OAuth login and `passthrough`
+only on the Camunda 7 flavors. A reader still decides which dialects it serves (`refusalsOn`).
 
 Where a file comes from decides what it may hold of credentials, the `credentials` policy you
 parse it under:
@@ -94,7 +98,7 @@ for (const verdict of file.profiles) {
 - **Readers:** `Surface` states what a reader serves; `refusalsOn(profile, surface)` lists what it
   cannot (a dialect, an auth type, a missing `url`, a named process engine, a key such as
   `headers`), so a key is applied or refuses the profile, never ignored. `dialectOf` and
-  `authTypeOf` give what a profile uses.
+  `authTypeOf` give what a profile uses, `flavorsOf` the flavors of a dialect.
 - **Rules a reader applies elsewhere too:** `urlProblem`, `normalizeUrl` and
   `normalizeCockpitUrl` for a URL from a flag or a variable, `isLoopbackHost` and
   `credentialsInClearText` (a credential over plain http beyond the local machine),

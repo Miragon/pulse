@@ -178,7 +178,7 @@ describe("mistyped bearer flags", () => {
         message:
           index < 5
             ? "Unsupported auth type (not one of none, basic, oauth, bearer)"
-            : 'Profile "p" of your config file cannot be used: auth.type must be one of none, basic, bearer, oauth, passthrough (the value is not shown).',
+            : 'Profile "p" of your config file cannot be used: auth.type must be one of none, basic, bearer, oauth, clientCredentials, passthrough (the value is not shown).',
       })
       expect(errorOf(result.stderr).hint).toContain(
         "A bearer token itself goes into PULSE_CLI_TOKEN or --auth-token-stdin",
