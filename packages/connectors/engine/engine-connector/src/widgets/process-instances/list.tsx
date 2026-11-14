@@ -192,7 +192,11 @@ export function ProcessInstancesView({
           </TableEmptyState>
         ) : (
           <ListTable
-            ariaLabel={t("processInstances.tableAriaLabel", { name: title })}
+            ariaLabel={
+              title === t("processInstances.allTitle")
+                ? title
+                : t("processInstances.tableAriaLabel", { name: title })
+            }
             columns={[
               // The instance whole while there is room; the process gives way first.
               { label: t("processInstances.colBusinessKey"), className: SUBJECT_COLUMN },
@@ -202,7 +206,9 @@ export function ProcessInstancesView({
               scopedKey
                 ? { label: t("processInstances.colVersion") }
                 : { label: t("processInstances.colProcess") },
-              { plain: true, sticky: true },
+              // Pinned from 40rem up only, as in the incident tables: in a narrower region the
+              // actions scroll with the row, so they never cover the instance or its state.
+              { label: t("processInstances.colActions"), align: "right", sticky: "sm" },
             ]}
           >
             {paged.items.map((row) => (

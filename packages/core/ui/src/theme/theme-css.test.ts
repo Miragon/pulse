@@ -331,6 +331,19 @@ describe("theme.css: the role-token contract", () => {
     expect(css).toContain('[data-theme-mode="light"] { forced-color-adjust: none; }')
   })
 
+  it("lets a tone's icon follow its surroundings' system colour under forced colours, but in a docked strip or a light island", () => {
+    const css = norm(
+      stripComments(themeCss).slice(
+        stripComments(themeCss).indexOf("@media (forced-colors: active)"),
+      ),
+    )
+    // The browser forces no SVG stroke, and an icon's own tone class (TONE_ICON) would keep it red
+    // on the system's canvas: inheriting takes the text's forced colour (CanvasText, ButtonText).
+    expect(css).toContain(
+      'svg.lucide:not([data-slot="status-strip"] *, [data-theme-mode="light"] *) { color: inherit; }',
+    )
+  })
+
   it("sets color-scheme per mode on <body> and the mode scopes, never on <html>", () => {
     const schemes = BLOCKS.filter((b) => "color-scheme" in b.decls)
     const light = schemes.find((b) => b.decls["color-scheme"] === "light")

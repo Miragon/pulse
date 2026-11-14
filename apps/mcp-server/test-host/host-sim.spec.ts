@@ -1967,13 +1967,13 @@ test.describe("an instance and the instance list (engine_open_cockpit)", () => {
     page,
   }) => {
     // The realistic engine's long keys and process names are wider than 400 px together: the
-    // table scrolls sideways inside its region, the row actions pinned at its end.
+    // table scrolls sideways inside its region, the row actions with it (pinned from 40rem up).
     const app = await openView(page, {
       hostEnv: REALISTIC_HOST_ENV,
       args: { engine: REALISTIC_ENGINE, view: "process-instances" },
       width: 400,
     })
-    const region = app.getByRole("region", { name: /^Running instances of/ })
+    const region = app.getByRole("region", { name: "Running instances", exact: true })
     await expect(region.getByRole("columnheader", { name: "State" })).toBeVisible({
       timeout: 15_000,
     })
@@ -2021,7 +2021,7 @@ test.describe("an instance and the instance list (engine_open_cockpit)", () => {
     expect(placed.heads.slice(0, 3)).toEqual(["Business key / ID", "State", "Process"])
     expect(placed.scrolls, "the table is wider than a phone").toBe(true)
     expect(placed.scrollLeft).toBe(0)
-    // The State head and every row's state lie in view, clear of the pinned row actions.
+    // The State head and every row's state lie in view, clear of the row actions.
     expect(placed.states).toHaveLength(placed.rows)
     for (const state of [placed.head, ...placed.states]) {
       expect(state.left).toBeGreaterThanOrEqual(placed.left)

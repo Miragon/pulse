@@ -1,8 +1,12 @@
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
 import type { ToneVariant } from "../tones/index.js"
+import { SegmentedControl } from "../kit/segmented-control.js"
+import { CountBadge } from "./CountBadge.js"
+import { CountFigure } from "./CountFigure.js"
 import { KpiGrid } from "./KpiGrid.js"
 import { CountPill, LivePill } from "./Pills.js"
+import { StateLabel } from "./StateLabel.js"
 
 /**
  * Status model (owner decision 2e-f, CI §3.3; owner decision (d) of D9): coloured digits are
@@ -56,4 +60,33 @@ describe("figures never take a tone colour", () => {
       }
     },
   )
+})
+
+describe("a tone's icon follows forced colours", () => {
+  // theme.css lets every Lucide icon outside a docked strip inherit its surroundings' system colour
+  // under forced colours (theme-css.test.ts), so each tone icon must be a Lucide SVG.
+  it("KPI tiles, pills, states, counts and segments draw their tone icons as Lucide SVGs", () => {
+    const html = renderToStaticMarkup(
+      <>
+        <KpiGrid cells={[{ label: "Alarm", value: "4", trend: "+2", trendTone: "danger" }]} />
+        <CountBadge count={3} label="3 open incidents" situation="openIncident" />
+        <CountFigure situation="jobWithRetriesLeft" label="Why it alarms">
+          2
+        </CountFigure>
+        <StateLabel state="incident" />
+        <SegmentedControl
+          ariaLabel="Scope"
+          value="all"
+          onChange={() => undefined}
+          options={[
+            { value: "all", label: "All", count: 9 },
+            { value: "failed", label: "With incident", count: 2, tone: "danger" },
+          ]}
+        />
+      </>,
+    )
+    const toned = [...html.matchAll(/<svg[^>]*class="([^"]*\btext-(?:danger|warning)\b[^"]*)"/g)]
+    expect(toned).toHaveLength(5)
+    for (const [, classes] of toned) expect(classes.split(" ")).toContain("lucide")
+  })
 })

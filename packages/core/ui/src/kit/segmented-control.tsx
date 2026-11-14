@@ -116,7 +116,8 @@ function useShownValue<V extends string>(value: V, busy: boolean | undefined) {
  * check and the focus together. Each segment has a 2 px edge, transparent until it is checked: the
  * checked one takes the hover fill at 600 with an `--interaction` edge, a border, not a ring, so a
  * Windows contrast theme keeps it (theme.css draws it in Highlight there and an unchecked one's in
- * Canvas, as for line tabs). Never underlined. The focus ring sits inside. While a change runs
+ * Canvas, as for line tabs). Never underlined. A segment keeps its label and count on one line;
+ * where the group has no room, whole segments wrap. The focus ring sits inside. While a change runs
  * (`busy`) the group is `aria-busy` and the picked segment shows checked before `value` follows.
  * A `disabled` group (a read-only field) keeps its check and takes no change, opaque, never faded.
  */
@@ -155,7 +156,7 @@ export function SegmentedControl<V extends string>({
       aria-disabled={disabled || undefined}
       data-slot="segmented-control"
       className={cn(
-        "border-border bg-background text-dense inline-flex gap-0.5 rounded-sm border p-0.5",
+        "border-border bg-background text-dense inline-flex max-w-full flex-wrap gap-0.5 rounded-sm border p-0.5",
         className,
       )}
     >
@@ -178,7 +179,7 @@ export function SegmentedControl<V extends string>({
             onClick={() => select(option.value)}
             onKeyDown={(event) => keyDown(event, index)}
             className={cn(
-              "min-h-segment inline-flex items-center gap-1.5 rounded-[calc(var(--radius-sm)-2px)] border-2 border-transparent px-2.5 transition-colors disabled:cursor-not-allowed",
+              "min-h-segment inline-flex items-center gap-1.5 rounded-[calc(var(--radius-sm)-2px)] border-2 border-transparent px-2.5 whitespace-nowrap transition-colors disabled:cursor-not-allowed",
               FOCUS_RING_INSET,
               checked
                 ? "bg-accent text-foreground border-interaction font-semibold"

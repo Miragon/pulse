@@ -7,11 +7,11 @@ import { HEALTHY_ENGINE, REALISTIC_ENGINE, REALISTIC_HOST_ENV } from "./engines.
  * a touch screen takes the comfortable step, text at 200 % grows every control around it, a
  * 320 px card keeps every fact and id of a view's bar and every section of the head (on its last
  * line where the head wraps), the overview's processes give way to their ellipsis while the row
- * actions scroll, a 400 px chat keeps each incident row one line and each group's title its share
+ * actions scroll, so do a cluster's and the instance list's (its segments one line each), a 400 px chat keeps each incident row one line and each group's title its share
  * and reads a scrolling column's head without a cut word, a footer's noun follows its count, a
  * header's count stays a neutral number beside its tone's icon and its title its share, the head's
  * sections (pulse-ui's NavTabs) open by keyboard, forced colours keep the open tab, the head's
- * open section and a docked strip, a fact's term sits on its value's baseline, and the detail
+ * open section and a docked strip and draw a tone's icon in its text's system colour, a fact's term sits on its value's baseline, and the detail
  * views pass axe, their BPMN diagram included, with a failed refresh docked under the bar.
  */
 
@@ -544,7 +544,7 @@ async function cluster(page: Page) {
 
 test.describe("a cluster's affected instances", () => {
   for (const width of [760, 400]) {
-    test(`at ${width} px the table fits its region, no column under the pinned actions`, async ({
+    test(`at ${width} px the table fits its region, no column under the actions`, async ({
       page,
     }) => {
       await cluster(page)
@@ -566,6 +566,133 @@ test.describe("a cluster's affected instances", () => {
       expect(seen).toEqual({ scrolls: false, covered: [] })
     })
   }
+})
+
+/** A narrow table's rows: whether the actions are pinned, cover the first cell, or cut a text. */
+async function narrowRows(region: Locator) {
+  return region.evaluate((el) => ({
+    head: [...el.querySelectorAll("thead th")].map((th) => {
+      const word = th.querySelector("[data-list-table-scrolls]")
+      return { name: th.textContent, inSight: word ? word.getBoundingClientRect().width > 1 : true }
+    }),
+    documentScrolls: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    rows: [...el.querySelectorAll("tbody tr")].map((row) => {
+      const first = row.querySelector("td")!
+      const actions = row.querySelector("td:last-child")!
+      return {
+        subject: first.textContent,
+        position: getComputedStyle(actions).position,
+        overlap: actions.getBoundingClientRect().left < first.getBoundingClientRect().right - 1,
+        cut: [...first.querySelectorAll<HTMLElement>("*")]
+          .filter((part) => part.children.length === 0 && part.textContent)
+          .filter((part) => part.scrollWidth > part.clientWidth + 1)
+          .map((part) => part.textContent),
+      }
+    }),
+  }))
+}
+
+test.describe("a 320 px card's tables", () => {
+  test("a cluster's actions scroll with the row: every business key whole, the actions head read only", async ({
+    page,
+  }) => {
+    await cluster(page)
+    const app = await openView(page, CLUSTER_ARGS, { width: 320 })
+    const region = app.getByRole("region", { name: "Affected instances" }).last()
+    // The inline card shows the rows that fit its height; the first is a business key.
+    await expect(region.locator("tbody tr").first()).toBeVisible({ timeout: 15_000 })
+    await expect(region.getByRole("columnheader", { name: "Actions" })).toBeAttached()
+    const seen = await narrowRows(region)
+    expect(seen.documentScrolls, "the document never scrolls sideways").toBe(false)
+    expect(seen.head.at(-1), "the head's word, for a screen reader alone").toEqual({
+      name: "Actions",
+      inSight: false,
+    })
+    for (const row of seen.rows) {
+      expect(row).toMatchObject({ position: "static", overlap: false })
+      // Only the quiet id beside a business key may give way to its ellipsis (NamedId).
+      expect(row.cut.filter((text) => text?.includes("INV-"))).toEqual([])
+    }
+    expect(seen.rows[0]?.subject).toContain("INV-2026-0041")
+  })
+
+  test("the instance list: one-line segments, its region named once, the actions after the state", async ({
+    page,
+  }) => {
+    const app = await openView(page, INSTANCES_ARGS, { hostEnv: REALISTIC_HOST_ENV, width: 320 })
+    const region = app.getByRole("region", { name: "Running instances", exact: true })
+    await expect(region.locator("tbody tr").first()).toBeVisible({ timeout: 15_000 })
+    const segments = await app
+      .getByRole("radiogroup", { name: "Show instances" })
+      .getByRole("radio")
+      .evaluateAll((all) =>
+        all.map((segment) => ({
+          name: segment.textContent,
+          height: Math.round(segment.getBoundingClientRect().height),
+        })),
+      )
+    expect(segments.map((segment) => segment.name)).toEqual([
+      expect.stringMatching(/^All/),
+      expect.stringMatching(/^With incident/),
+      expect.stringMatching(/^Suspended/),
+    ])
+    // A segment keeps the density's 24 px on one line; where the group has no room a whole
+    // segment wraps, never its words.
+    for (const segment of segments) expect(segment.height, segment.name ?? "").toBe(24)
+    const seen = await narrowRows(region)
+    expect(seen.documentScrolls, "the document never scrolls sideways").toBe(false)
+    for (const row of seen.rows) {
+      expect(row).toMatchObject({ position: "static", overlap: false })
+    }
+    const states = await region.evaluate((el) => {
+      const right = el.getBoundingClientRect().right
+      return [...el.querySelectorAll("tbody tr td:nth-child(2) [data-slot='state-label']")]
+        .filter((label) => label.getAttribute("data-state") !== "incident")
+        .map((label) => label.getBoundingClientRect().right <= right)
+    })
+    expect(states.length).toBeGreaterThan(0)
+    expect(new Set(states), "every row's state in view, nothing over it").toEqual(new Set([true]))
+  })
+})
+
+async function actionsHeadOverButtons(region: Locator) {
+  return region.evaluate((el) => {
+    const head = [...el.querySelectorAll("thead th")].at(-1)!
+    const range = document.createRange()
+    range.selectNodeContents(head)
+    const groups = [...el.querySelectorAll("tbody tr td:last-child > div")]
+    return {
+      head: head.textContent,
+      align: getComputedStyle(head).textAlign,
+      word: Math.round(range.getBoundingClientRect().right),
+      buttons: [...new Set(groups.map((group) => Math.round(group.getBoundingClientRect().right)))],
+    }
+  })
+}
+
+test.describe("a 760 px card's action heads", () => {
+  test("a cluster's actions head sits over its buttons, right-aligned like them", async ({
+    page,
+  }) => {
+    await cluster(page)
+    const app = await openView(page, CLUSTER_ARGS, { width: 760 })
+    const region = app.getByRole("region", { name: "Affected instances" }).last()
+    await expect(region.locator("tbody tr").first()).toBeVisible({ timeout: 15_000 })
+    const seen = await actionsHeadOverButtons(region)
+    expect(seen).toMatchObject({ head: "Actions", align: "right" })
+    expect(seen.buttons).toEqual([seen.word])
+  })
+
+  test("the instance list's actions head sits over its buttons, every row's group ending at one edge", async ({
+    page,
+  }) => {
+    const app = await openView(page, INSTANCES_ARGS, { hostEnv: REALISTIC_HOST_ENV, width: 760 })
+    const region = app.getByRole("region", { name: "Running instances", exact: true })
+    await expect(region.locator("tbody tr").first()).toBeVisible({ timeout: 15_000 })
+    const seen = await actionsHeadOverButtons(region)
+    expect(seen).toMatchObject({ head: "Actions", align: "right" })
+    expect(seen.buttons).toEqual([seen.word])
+  })
 })
 
 test.describe("a view's header counts", () => {
@@ -742,6 +869,49 @@ test.describe("forced colours", () => {
     expect(seen.others.length).toBeGreaterThan(0)
     for (const edge of seen.others) expect(edge).toBe(`solid 2px ${seen.canvas}`)
   })
+
+  for (const [name, args, prepare, hostEnv] of [
+    ["a cluster's KPI tile", CLUSTER_ARGS, cluster, "HOST_SIM_URL"],
+    [
+      "the process's header state and its groups' pills",
+      PROCESS_ARGS,
+      groupedIncidents,
+      "HOST_SIM_URL",
+    ],
+    ["the instance list's states and scope count", INSTANCES_ARGS, null, REALISTIC_HOST_ENV],
+  ] as const) {
+    test(`${name}: a tone's icon takes its text's system colour, never its tone`, async ({
+      page,
+    }) => {
+      await page.emulateMedia({ forcedColors: "active" })
+      if (prepare) await prepare(page)
+      const app = await openView(page, args, { hostEnv })
+      const toned = app.locator(
+        ':is([data-slot="count-figure"], [data-slot="count-badge"], [data-slot="state-label"], [data-slot="segmented-option"]) svg[class*="text-danger"]',
+      )
+      await expect(toned.first()).toBeVisible({ timeout: 15_000 })
+      const seen = await toned.evaluateAll((icons) => {
+        const colour = (value: string) => {
+          const probe = document.createElement("i")
+          probe.style.color = value
+          document.body.append(probe)
+          const computed = getComputedStyle(probe).color
+          probe.remove()
+          return computed
+        }
+        const system = [colour("CanvasText"), colour("ButtonText")]
+        return icons.map((icon) => {
+          const own = getComputedStyle(icon).color
+          return {
+            follows: own === getComputedStyle(icon.parentElement!).color,
+            system: system.includes(own),
+          }
+        })
+      })
+      expect(seen.length).toBeGreaterThan(0)
+      for (const icon of seen) expect(icon).toEqual({ follows: true, system: true })
+    })
+  }
 
   test("a failed refresh's docked strip keeps its edge in CanvasText and its icon in its tone", async ({
     page,

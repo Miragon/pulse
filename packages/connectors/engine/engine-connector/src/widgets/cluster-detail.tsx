@@ -323,7 +323,9 @@ function ClusterDetailView({
                     // In a 760 px card the time gives way, as in the incident tables, so the
                     // table fits without scrolling under its pinned actions.
                     { label: t("clusterDetail.colOccurred"), align: "right", hideBelow: "md" },
-                    { plain: true, sticky: true },
+                    // Pinned from 40rem up only, as in the incident tables: in a narrower region
+                    // the actions scroll with the row, so they never cover the instance.
+                    { label: t("clusterDetail.colActions"), align: "right", sticky: "sm" },
                   ]}
                 >
                   {paged.items.map((row) => (

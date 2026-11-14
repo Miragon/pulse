@@ -43,6 +43,15 @@ const checked = () =>
     .map((option) => option.textContent)
 
 describe("SegmentedControl: a radio group", () => {
+  it("keeps each segment on one line and wraps whole segments where the group has no room", () => {
+    renderScopes()
+    const group = screen.getByRole("radiogroup", { name: "Scope" })
+    expect(group.className.split(" ")).toEqual(expect.arrayContaining(["flex-wrap", "max-w-full"]))
+    for (const option of screen.getAllByRole("radio")) {
+      expect(option.className.split(" ")).toContain("whitespace-nowrap")
+    }
+  })
+
   it("is a named radio group of radios, the checked one aria-checked and the group's one tab stop", () => {
     renderScopes("incident")
     const group = screen.getByRole("radiogroup", { name: "Scope" })

@@ -58,7 +58,9 @@ function setup(props: Props) {
 }
 
 function ListFooter(props: Props) {
-  return <PagedListFooter paged={useList(props)} noun="items" />
+  return (
+    <PagedListFooter paged={useList(props)} noun={(total) => (total === "1" ? "item" : "items")} />
+  )
 }
 
 const page0Calls = (args: Record<string, unknown>) =>
@@ -191,7 +193,7 @@ describe("usePagedViewData: a failed page 0 over the rows on screen, from its fi
     fireEvent.click(within(alert).getByRole("button", { name: "Try again" }))
     // Well inside the backoff: a Retry that joined the running chain sends nothing yet.
     await waitFor(() => expect(page0Calls(SEARCH)).toHaveLength(2), { timeout: 400 })
-    expect(await screen.findByText("Showing 1 of 1 items")).toBeTruthy()
+    expect(await screen.findByText("Showing 1 of 1 item")).toBeTruthy()
     expect(screen.queryByRole("alert")).toBeNull()
   })
 })

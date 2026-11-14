@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { DefinitionView, LiveUpdates, PanelState } from "../../src/core/protocol/index.js"
 import { FIXTURES } from "../../dev/webview/fixtures/states.js"
 import { App } from "../../src/webview/app.js"
@@ -15,6 +15,8 @@ import {
 } from "./harness.js"
 
 const VIEW = (FIXTURES.definition as { readonly view: DefinitionView }).view
+
+const NOON = new Date(2026, 10, 14, 12, 0, 0)
 
 function live(status: LiveUpdates, ageMs = 1000, refreshing = false): PanelState {
   return {
@@ -40,8 +42,13 @@ function liveButton(harness: Harness): HTMLButtonElement | null {
 describe("the freshness stamp with live updates", () => {
   let harness: Harness
 
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"], now: NOON })
+  })
+
   afterEach(() => {
     harness.unmount()
+    vi.useRealTimers()
   })
 
   it("shows only the time while live and names the cadence in its tooltip", async () => {

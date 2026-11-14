@@ -629,6 +629,13 @@
   ):not([data-theme-mode="light"] *) {
     background-color: CanvasText;
   }
+  /* A tone's icon (a KPI tile's, a pill's, a state's, a count's) follows
+     the system colour of what it sits in, as its text does: the browser
+     forces no stroke, and an icon's own tone class would keep it red. Its
+     shape still tells the tone. A docked strip keeps its tone's icon. */
+  svg.lucide:not([data-slot="status-strip"] *, [data-theme-mode="light"] *) {
+    color: inherit;
+  }
   /* A progress bar's track shows its extent by an outline; a still
      indeterminate one (reduced motion) keeps its dashed line, no fill. */
   [data-slot="progress"] {
